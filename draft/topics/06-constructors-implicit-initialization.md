@@ -1,6 +1,6 @@
 # 议题 06：构造函数、隐式构造与字面量初始化
 
-> 状态：已确认，议题 34、54 修订
+> 状态：已确认，议题 34、54、72 修订
 > 确认日期：2026-08-01
 
 ## 1. 构造函数的内建名称
@@ -244,13 +244,13 @@ let target: u8 = source; // 编译错误，不是字面量初始化
 
 ## 8. 标准库 `UnicodeScalar`
 
-标准库的 `UnicodeScalar` 通过 `implicit comptime constructor` 接收编译器标量字面量：
+标准库的 `UnicodeScalar` 通过参数类型为编译期专用 `ScalarLiteral` 的 `implicit constructor` 接收编译器标量字面量：
 
 ```ink
 class UnicodeScalar {
     private value: u32;
 
-    implicit comptime func constructor(literal: ScalarLiteral) {
+    implicit func constructor(literal: ScalarLiteral) {
         this.value = literal.codepoint;
     }
 

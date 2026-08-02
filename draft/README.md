@@ -2,6 +2,8 @@
 
 Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存；只有全部议题完成并经过一致性检查后，才合并生成 `language-draft.md`。
 
+基础语言前端规则从 [`tokenizer/README.md`](./tokenizer/README.md) 开始独立讨论；本表继续保存此前已经确认的语义议题。
+
 ## 议题状态
 
 | 编号 | 议题 | 状态 | 文件 |
@@ -11,7 +13,7 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 03 | 析构、RAII 与 `defer` | 已确认，议题 06、27、32、34、42、48、51、53、54 修订 | [`topics/03-raii-destructor-defer.md`](./topics/03-raii-destructor-defer.md) |
 | 04 | 指针、引用、数组与切片 | 已确认，议题 31—33、43、44、54、61 补充 | [`topics/04-pointers-references-arrays-slices.md`](./topics/04-pointers-references-arrays-slices.md) |
 | 05 | 基础类型与 `ptrsize` | 已确认 | [`topics/05-primitive-types-ptrsize.md`](./topics/05-primitive-types-ptrsize.md) |
-| 06 | 构造函数、隐式构造与字面量初始化 | 已确认，议题 34、54 修订 | [`topics/06-constructors-implicit-initialization.md`](./topics/06-constructors-implicit-initialization.md) |
+| 06 | 构造函数、隐式构造与字面量初始化 | 已确认，议题 34、54、72 修订 | [`topics/06-constructors-implicit-initialization.md`](./topics/06-constructors-implicit-initialization.md) |
 | 07 | 整数溢出与回绕算术 | 已确认 | [`topics/07-integer-overflow-wrapping.md`](./topics/07-integer-overflow-wrapping.md) |
 | 08 | 平台相关行为（PDB） | 已确认，议题 61 补充编译期执行 | [`topics/08-platform-dependent-behavior.md`](./topics/08-platform-dependent-behavior.md) |
 | 09 | 整数除法与移位 | 已确认 | [`topics/09-integer-division-shifts.md`](./topics/09-integer-division-shifts.md) |
@@ -66,7 +68,7 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 58 | 异步函数装饰器包围任务执行体 | 已确认，议题 59 确认 v0 不提供任务构造装饰器 | [`topics/58-async-decorators-wrap-task-body.md`](./topics/58-async-decorators-wrap-task-body.md) |
 | 59 | Ink v0 不提供任务构造装饰器 | 已确认，创建期自定义行为使用显式同步任务工厂 | [`topics/59-no-task-construction-decorators.md`](./topics/59-no-task-construction-decorators.md) |
 | 60 | 异步覆盖不支持协变结果 | 已确认，`Task<T>` 对结果类型不变型 | [`topics/60-no-covariant-async-results.md`](./topics/60-no-covariant-async-results.md) |
-| 61 | `comptime` 泛型、部分求值与编译期执行 | 已确认，议题 62—71 补充泛型、结构化生成、重载与元组元值 | [`topics/61-comptime-generics-partial-evaluation.md`](./topics/61-comptime-generics-partial-evaluation.md) |
+| 61 | `comptime` 泛型、部分求值与编译期执行 | 已确认，议题 62—72 补充泛型、结构化生成、重载、元组元值与统一函数阶段 | [`topics/61-comptime-generics-partial-evaluation.md`](./topics/61-comptime-generics-partial-evaluation.md) |
 | 62 | 编译期参数包是普通编译期序列 | 已确认，议题 64、66、68—71 补充绑定、反射、运行时包、元组与重载 | [`topics/62-comptime-parameter-packs.md`](./topics/62-comptime-parameter-packs.md) |
 | 63 | Ink v0 不提供字符串到代码生成 | 已确认，议题 67 确认只使用结构化声明表达式 | [`topics/63-no-string-to-code-generation.md`](./topics/63-no-string-to-code-generation.md) |
 | 64 | Ink v0 不支持泛型实参推导 | 已确认，议题 65、70 补充默认值与重载候选规则 | [`topics/64-no-generic-argument-inference.md`](./topics/64-no-generic-argument-inference.md) |
@@ -77,5 +79,6 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 69 | 元组是内建匿名结构值类型 | 已确认，议题 71 补充异构编译期元值与静态遍历 | [`topics/69-tuples-structural-values.md`](./topics/69-tuples-structural-values.md) |
 | 70 | 显式泛型实参与重载解析 | 已确认，先闭合候选签名再执行普通重载，不提供 SFINAE 回退 | [`topics/70-explicit-generic-overload-resolution.md`](./topics/70-explicit-generic-overload-resolution.md) |
 | 71 | 现有元组直接承载异构编译期值 | 已确认，不增加元值容器或类型擦除，由 `comptime for` 逐项展开 | [`topics/71-comptime-heterogeneous-tuples.md`](./topics/71-comptime-heterogeneous-tuples.md) |
+| 72 | 不设置 `comptime func` 函数类别 | 已确认，普通函数按调用上下文在编译期执行或残留到运行时 | [`topics/72-no-comptime-function-category.md`](./topics/72-no-comptime-function-category.md) |
 
 “讨论中”的议题不会提前写入设计文件。后续议题在开始讨论时追加到本表，在确认后创建对应文件。

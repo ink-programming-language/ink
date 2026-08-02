@@ -58,7 +58,7 @@ comptime {
 辅助函数可以直接接收整个序列：
 
 ```ink
-comptime func total_size(Types: const type[]) -> ptrsize {
+func total_size(Types: const type[]) -> ptrsize {
     var result: ptrsize = 0;
 
     for T in Types {
