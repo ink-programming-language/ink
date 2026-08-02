@@ -1,6 +1,6 @@
 # 议题 21：动态反射值传递与调用 ABI
 
-> 状态：已确认，议题 22 补充，精确二进制布局待定  
+> 状态：已确认，议题 22、23、25、28、34、38 补充，精确二进制布局待定  
 > 确认日期：2026-08-01
 
 ## 1. 定位
@@ -15,21 +15,23 @@ Ink 的动态反射采用“编译器生成描述符与适配器，加借用型�
 - 不为了反射复制或装箱 `[noncopyable]` 对象；
 - 不要求每次字段访问或函数调用进行堆分配；
 - 在动态边界检查类型和可变性；
-- 让错误反射调用返回结构化错误，而不是破坏内存。
+- 让错误反射调用抛出结构化反射异常，而不是破坏内存。
 
 ## 2. 常用 API
 
 用户侧 API 保持强类型外观：
 
 ```ink
-let type = reflection.find_type("game.Player")?;
-let health = type.property("health")?;
+if let .some(type) = reflection.find_type("game.Player") {
+    if let .some(health) = type.property("health") {
+        let value = health.get[i32](&player);
+        health.set[i32](&player, 80);
+    }
 
-let value = health.get[i32](&player)?;
-health.set[i32](&player, 80)?;
-
-let function = type.function("take_damage")?;
-let result = function.call[bool](&player, 10i32)?;
+    if let .some(function) = type.function("take_damage") {
+        let result = function.call[bool](&player, 10i32);
+    }
+}
 ```
 
 方括号中的类型参数表达调用者期待的字段类型或返回类型。运行时描述符必须与该静态期待完全匹配。
@@ -41,7 +43,7 @@ let result = function.call[bool](&player, 10i32)?;
 反射运行时内部使用概念上的借用型动态引用：
 
 ```ink
-struct DynamicRef {
+class DynamicRef {
     data: void*;
     type: TypeHandle;
     mutable: bool;
@@ -63,6 +65,8 @@ struct DynamicRef {
 - 不能把只读借用提升为可变借用；
 - 不能从任意地址安全伪造。
 
+议题 38 的异常捕获绑定永久只读。即使异常类具有 `[reflect]`，从捕获引用建立的 `DynamicRef` 也只能是只读借用；`borrow_mut`、`set` 或要求可变接收者的动态调用必须拒绝，不能借助反射绕过异常载荷不可变性。
+
 安全构造入口只接受有效的普通 Ink 引用：
 
 ```ink
@@ -77,7 +81,7 @@ let writable = DynamicRef.from(&mutable_value);
 可复制字段可以按值读取：
 
 ```ink
-let health = property.get[i32](&player)?;
+let health = property.get[i32](&player);
 ```
 
 `get[T]` 只在运行时字段类型与 `T` 完全一致且 `T` 可复制时成功。它执行 Ink 的普通复制，不引入隐藏移动语义。
@@ -85,8 +89,8 @@ let health = property.get[i32](&player)?;
 任意字段，包括 `[noncopyable]` 字段，都可以按引用借用：
 
 ```ink
-let file: const File& = property.borrow[File](&object)?;
-let buffer: Buffer& = property.borrow_mut[Buffer](&mutable_object)?;
+let file: const File& = property.borrow[File](&object);
+let buffer: Buffer& = property.borrow_mut[Buffer](&mutable_object);
 ```
 
 - `borrow[T]` 返回只读引用；
@@ -101,7 +105,7 @@ let buffer: Buffer& = property.borrow_mut[Buffer](&mutable_object)?;
 字段写入使用已有对象的普通赋值语义：
 
 ```ink
-property.set[i32](&player, 80)?;
+property.set[i32](&player, 80);
 ```
 
 它要求：
@@ -131,6 +135,10 @@ arguments: DynamicRef[]
 - 接收对象类型与可变性；
 - 调用约定和模块版本。
 
+目标是虚函数时，适配器在完成上述检查后必须按照议题 25 进入正常虚派发，不能直接调用描述符声明位置的原始函数体。
+
+目标是接口反射函数时，适配器按照议题 28 取得或验证接口胖引用，并通过对应接口表槽调用具体实现。
+
 按值参数按照 Ink 的普通调用规则复制到调用帧。不可复制类型不能通过反射按值传递，但可以传给对应的引用参数。引用参数直接借用原值，并保持原有生命周期和可变性限制。
 
 动态反射调用不执行用户定义隐式构造。由于运行时查找到的签名不能给源码字面量提供编译期目标类型，调用者应使用类型后缀、显式泛型参数、构造函数或 `cast` 提供准确实参类型。
@@ -157,12 +165,11 @@ result: DynamicOut {
 
 `call[R](...)` 是对上述结果存储协议的强类型便捷封装。
 
-## 8. 错误语义
+## 8. 异常语义
 
-来自合法反射 API 输入的以下问题必须返回结构化反射错误：
+来自合法反射 API 输入的以下问题必须抛出结构化反射异常：
 
 - 类型或成员不存在；
-- 重载无法唯一确定；
 - 接收对象类型错误；
 - 参数数量、类型或传递方式错误；
 - 返回类型不匹配；
@@ -172,7 +179,7 @@ result: DynamicOut {
 - 描述符、对象布局版本或模块版本不兼容；
 - 目标模块已经开始卸载。
 
-这些错误不能退化成错误偏移访问、错误 ABI 调用或 UB。只有绕过安全入口并伪造裸地址、类型或生命周期契约时，才适用 Ink 的原始指针 UB 规则。
+这些异常按照议题 34 的普通未检查异常规则传播，不能退化成错误偏移访问、错误 ABI 调用或 UB。只有绕过安全入口并伪造裸地址、类型或生命周期契约时，才适用 Ink 的原始指针 UB 规则。
 
 ## 9. 分配与性能
 
@@ -202,7 +209,7 @@ result: DynamicOut {
 
 - 使用与该对象布局版本兼容的描述符；
 - 先通过已定义的状态迁移把对象转换到新布局；
-- 或返回版本不兼容错误。
+- 或抛出版本不兼容异常。
 
 取得描述符视图时，实现必须在借用期间固定相应模块版本，防止适配器正在执行时其代码或描述表被卸载。新旧版本的注册与切换仍遵守议题 17。
 
@@ -228,7 +235,6 @@ function.call[R](receiver, arguments...)
 
 - `TypeHandle`、布局版本令牌和动态引用的精确位宽与二进制布局；
 - 动态值参数数组的正式调用约定；
-- 重载函数查找和消歧语法；
-- 异步、生成器、可变参数和错误返回函数的动态调用；
+- 异步、生成器、可变参数和异常边界的动态调用；
 - 长期保存的类型擦除对象如何表达所有权；
 - 热更新对象状态迁移协议。

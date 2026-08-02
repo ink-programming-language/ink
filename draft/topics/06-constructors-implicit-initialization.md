@@ -1,6 +1,6 @@
 # 议题 06：构造函数、隐式构造与字面量初始化
 
-> 状态：已确认
+> 状态：已确认，议题 34、54 修订
 > 确认日期：2026-08-01
 
 ## 1. 构造函数的内建名称
@@ -8,7 +8,7 @@
 Ink 提供语言级构造函数。构造函数使用固定内建名称 `constructor`，不重复所属类型名称。
 
 ```ink
-struct Point {
+class Point {
     x: int;
     y: int;
 
@@ -31,6 +31,8 @@ struct Point {
 - 完整对象构造完成前，`this` 不能逃逸；
 - 构造函数不能作为已有对象的普通方法调用。
 
+议题 54 的异步成员调用会把原始 `this` 指针保存进任务帧。构造函数内即使创建这种任务，也不得在完整对象构造完成前把它返回、存入外部对象或交给库设施，使它越过构造边界继续持有 `this`；这仍是本议题规定的构造期 `this` 逃逸编译错误。未被驱动且在构造函数内销毁的 `created` 任务不会执行方法体。
+
 显式构造使用类型调用语法：
 
 ```ink
@@ -44,7 +46,7 @@ let point = Point(10, 20);
 普通 `constructor` 默认只能显式调用：
 
 ```ink
-struct Duration {
+class Duration {
     milliseconds: int;
 
     func constructor(milliseconds: int) {
@@ -58,16 +60,16 @@ let duration = Duration(1000); // 合法
 let duration: Duration = 1000; // 编译错误
 ```
 
-普通构造函数可以执行运行时代码，也可以声明 `throws`：
+普通构造函数可以执行运行时代码，也可以像普通未标记函数一样抛出异常；函数签名不声明异常：
 
 ```ink
-struct File {
-    func constructor(path: string) throws {
-        this.handle = try os.open(path);
+class File {
+    func constructor(path: string) {
+        this.handle = os.open(path);
     }
 }
 
-let file = try File("data.txt");
+let file = File("data.txt");
 ```
 
 ## 3. `implicit` 构造函数
@@ -84,7 +86,7 @@ implicit constructor：
 ```
 
 ```ink
-struct Duration {
+class Duration {
     milliseconds: int;
 
     implicit func constructor(milliseconds: int) {
@@ -109,7 +111,7 @@ let second: Duration = 1000;
 - 带显式类型的局部绑定；
 - 已确定形参类型的函数调用；
 - 已确定返回类型的返回表达式；
-- 结构体字段初始化；
+- 类字段初始化；
 - 已知元素类型的数组初始化。
 
 ```ink
@@ -125,7 +127,7 @@ func default_timeout() -> Duration {
 ```
 
 ```ink
-struct Options {
+class Options {
     timeout: Duration;
 }
 
@@ -148,20 +150,20 @@ duration = 2000; // 编译错误，除非以后另行定义已有对象赋值规
 隐式构造函数：
 
 - 必须恰好接受一个参数；
-- 不得声明 `throws`；
+- 隐式满足议题 34 的 `[nothrow]`，异常不能逃逸；
 - 可以是 `comptime`，也可以在运行时执行；
 - 可以由普通运行时值触发，不限于编译器字面量；
 - 不允许形成连续的隐式构造链；
 - 不帮助推断原本未知的目标类型；
 - 多个同级候选都可行时必须报告歧义。
 
-隐式构造可以执行运行时代码和产生运行时副作用。API 作者应当优先把它用于不会失败、语义自然且成本可预期的初始化。需要报告可恢复失败的构造必须保持显式并使用 `throws`。
+隐式构造可以执行运行时代码和产生运行时副作用，但 `[nothrow]` 保证异常不能逃逸。API 作者应当优先把它用于不会失败、语义自然且成本可预期的初始化。可能抛出异常的构造必须保持显式。
 
 ```ink
-struct Port {
+class Port {
     value: u16;
 
-    func constructor(value: int) throws {
+    func constructor(value: int) {
         if value < 0 || value > 65535 {
             throw InvalidPort {};
         }
@@ -170,7 +172,7 @@ struct Port {
     }
 }
 
-let port = try Port(read_port());
+let port = Port(read_port());
 ```
 
 ## 6. 构造函数重载解析
@@ -188,7 +190,7 @@ let port = try Port(read_port());
 5. 不使用返回类型以外的未知上下文猜测目标类型。
 
 ```ink
-struct Value {
+class Value {
     implicit func constructor(value: i32) {
         // ...
     }
@@ -245,14 +247,14 @@ let target: u8 = source; // 编译错误，不是字面量初始化
 标准库的 `UnicodeScalar` 通过 `implicit comptime constructor` 接收编译器标量字面量：
 
 ```ink
-struct UnicodeScalar {
+class UnicodeScalar {
     private value: u32;
 
     implicit comptime func constructor(literal: ScalarLiteral) {
         this.value = literal.codepoint;
     }
 
-    func constructor(value: u32) throws {
+    func constructor(value: u32) {
         if !is_valid_unicode_scalar(value) {
             throw InvalidScalar {};
         }
@@ -273,7 +275,7 @@ let second: UnicodeScalar = '中';
 
 ```ink
 let raw: u32 = read_codepoint();
-let third = try UnicodeScalar(raw); // 合法
+let third = UnicodeScalar(raw);     // 合法，可能抛出异常
 let fourth: UnicodeScalar = raw;    // 编译错误
 ```
 
@@ -281,6 +283,6 @@ Ink 不再需要独立的通用 `FromLiteral` 隐式转换接口。
 
 ## 9. 构造失败与部分初始化
 
-普通构造函数声明 `throws` 并在部分字段初始化后失败时，只清理已经成功初始化的字段，顺序遵守议题 03。
+普通构造函数抛出异常并在部分字段初始化后失败时，只清理已经成功初始化的字段，顺序遵守议题 03 和 34。
 
 完整对象构造成功前不调用该对象自身的 `destructor`。构造成功以后，对象进入正常生命周期并按照 RAII 规则清理。

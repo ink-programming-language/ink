@@ -6,27 +6,60 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 
 | 编号 | 议题 | 状态 | 文件 |
 | --- | --- | --- | --- |
-| 01 | 运行时检查、底层契约与 UB | 已确认，议题 04 修订 | [`topics/01-safety-model.md`](./topics/01-safety-model.md) |
-| 02 | 值、复制与不可复制类型 | 已确认 | [`topics/02-values-copy-noncopyable.md`](./topics/02-values-copy-noncopyable.md) |
-| 03 | 析构、RAII 与 `defer` | 已确认，议题 06 修订 | [`topics/03-raii-destructor-defer.md`](./topics/03-raii-destructor-defer.md) |
-| 04 | 指针、引用、数组与切片 | 已确认 | [`topics/04-pointers-references-arrays-slices.md`](./topics/04-pointers-references-arrays-slices.md) |
+| 01 | 运行时检查、底层契约与 UB | 已确认，议题 04、32、51、54 修订 | [`topics/01-safety-model.md`](./topics/01-safety-model.md) |
+| 02 | 值、复制与不可复制类型 | 已确认，议题 27、32、34、36、43—45、54 补充 | [`topics/02-values-copy-noncopyable.md`](./topics/02-values-copy-noncopyable.md) |
+| 03 | 析构、RAII 与 `defer` | 已确认，议题 06、27、32、34、42、48、51、53、54 修订 | [`topics/03-raii-destructor-defer.md`](./topics/03-raii-destructor-defer.md) |
+| 04 | 指针、引用、数组与切片 | 已确认，议题 31—33、43、44、54 补充 | [`topics/04-pointers-references-arrays-slices.md`](./topics/04-pointers-references-arrays-slices.md) |
 | 05 | 基础类型与 `ptrsize` | 已确认 | [`topics/05-primitive-types-ptrsize.md`](./topics/05-primitive-types-ptrsize.md) |
-| 06 | 构造函数、隐式构造与字面量初始化 | 已确认 | [`topics/06-constructors-implicit-initialization.md`](./topics/06-constructors-implicit-initialization.md) |
+| 06 | 构造函数、隐式构造与字面量初始化 | 已确认，议题 34、54 修订 | [`topics/06-constructors-implicit-initialization.md`](./topics/06-constructors-implicit-initialization.md) |
 | 07 | 整数溢出与回绕算术 | 已确认 | [`topics/07-integer-overflow-wrapping.md`](./topics/07-integer-overflow-wrapping.md) |
 | 08 | 平台相关行为（PDB） | 已确认 | [`topics/08-platform-dependent-behavior.md`](./topics/08-platform-dependent-behavior.md) |
 | 09 | 整数除法与移位 | 已确认 | [`topics/09-integer-division-shifts.md`](./topics/09-integer-division-shifts.md) |
-| 10 | 整数转换与 `cast` | 已确认，`as` 用途待定 | [`topics/10-integer-conversions-cast.md`](./topics/10-integer-conversions-cast.md) |
-| 11 | 位模式转换与指针转换 | 已确认 | [`topics/11-bitcast-ptrcast.md`](./topics/11-bitcast-ptrcast.md) |
+| 10 | 整数转换与 `cast` | 已确认，议题 34、37 确认异常绑定中的 `as`，其他用途待定 | [`topics/10-integer-conversions-cast.md`](./topics/10-integer-conversions-cast.md) |
+| 11 | 位模式转换与指针转换 | 已确认，议题 31、32、38 补充 | [`topics/11-bitcast-ptrcast.md`](./topics/11-bitcast-ptrcast.md) |
 | 12 | 浮点语义与显式 fast-math | 已确认，细分规则待定 | [`topics/12-floating-point-fast-math.md`](./topics/12-floating-point-fast-math.md) |
 | 13 | 整数与浮点转换 | 已确认 | [`topics/13-integer-floating-conversions.md`](./topics/13-integer-floating-conversions.md) |
 | 14 | 浮点运行环境与 subnormal | 已确认 | [`topics/14-floating-environment-subnormal.md`](./topics/14-floating-environment-subnormal.md) |
 | 15 | fast-math 与有限值契约 | 已确认，属性作用域待定 | [`topics/15-fast-math-finite-contract.md`](./topics/15-fast-math-finite-contract.md) |
-| 16 | 内建属性与函数装饰器 | 已确认，议题 19 补充 | [`topics/16-attributes-function-decorators.md`](./topics/16-attributes-function-decorators.md) |
-| 17 | 模块生命周期、装饰器注册与热更新 | 已确认，议题 18、22 补充 | [`topics/17-module-lifecycle-decorator-registration.md`](./topics/17-module-lifecycle-decorator-registration.md) |
-| 18 | 模块生命周期钩子排序 | 已确认，依赖环规则待定 | [`topics/18-module-lifecycle-hook-order.md`](./topics/18-module-lifecycle-hook-order.md) |
-| 19 | 编译期反射、动态反射与自定义元数据 | 已确认，议题 20、21、22 补充 | [`topics/19-reflection-runtime-metadata.md`](./topics/19-reflection-runtime-metadata.md) |
-| 20 | 反射访问权限与封装 | 已确认 | [`topics/20-reflection-access-control.md`](./topics/20-reflection-access-control.md) |
-| 21 | 动态反射值传递与调用 ABI | 已确认，议题 22 补充，精确二进制布局待定 | [`topics/21-dynamic-reflection-value-abi.md`](./topics/21-dynamic-reflection-value-abi.md) |
-| 22 | 基于名称的动态反射身份 | 已确认 | [`topics/22-name-based-reflection-identity.md`](./topics/22-name-based-reflection-identity.md) |
+| 16 | 内建属性与函数装饰器 | 已确认，议题 19、34、35 补充 | [`topics/16-attributes-function-decorators.md`](./topics/16-attributes-function-decorators.md) |
+| 17 | 模块生命周期、装饰器注册与热更新 | 已确认，议题 18、22、34、36、42—45、55 补充 | [`topics/17-module-lifecycle-decorator-registration.md`](./topics/17-module-lifecycle-decorator-registration.md) |
+| 18 | 模块生命周期钩子排序 | 已确认，议题 34、42 补充，依赖环规则待定 | [`topics/18-module-lifecycle-hook-order.md`](./topics/18-module-lifecycle-hook-order.md) |
+| 19 | 编译期反射、动态反射与自定义元数据 | 已确认，议题 20—26、28、31—35、37 补充 | [`topics/19-reflection-runtime-metadata.md`](./topics/19-reflection-runtime-metadata.md) |
+| 20 | 反射访问权限与封装 | 已确认，议题 34 补充 | [`topics/20-reflection-access-control.md`](./topics/20-reflection-access-control.md) |
+| 21 | 动态反射值传递与调用 ABI | 已确认，议题 22、23、25、28、34、38 补充，精确二进制布局待定 | [`topics/21-dynamic-reflection-value-abi.md`](./topics/21-dynamic-reflection-value-abi.md) |
+| 22 | 基于名称的动态反射身份 | 已确认，议题 23、31、35、37 补充 | [`topics/22-name-based-reflection-identity.md`](./topics/22-name-based-reflection-identity.md) |
+| 23 | 反射成员唯一性与继承覆盖 | 已确认，议题 24、25、28—30 补充 | [`topics/23-reflection-member-inheritance.md`](./topics/23-reflection-member-inheritance.md) |
+| 24 | `class`、单继承与多接口 | 已确认，议题 25—31、35、54、55 补充 | [`topics/24-class-inheritance-interfaces.md`](./topics/24-class-inheritance-interfaces.md) |
+| 25 | 虚函数与动态反射调用 | 已确认，议题 26、28、34、55 补充 | [`topics/25-virtual-functions-reflection.md`](./topics/25-virtual-functions-reflection.md) |
+| 26 | vptr、vtable 与接口胖引用 ABI | 已确认，议题 27—31、35、55 补充 | [`topics/26-vtable-interface-abi.md`](./topics/26-vtable-interface-abi.md) |
+| 27 | 自动动态销毁与存储释放分离 | 已确认，议题 34、36、43 补充，拥有型多态容器 API 待定 | [`topics/27-dynamic-destruction.md`](./topics/27-dynamic-destruction.md) |
+| 28 | 接口动态反射 | 已确认，议题 29—31、34 补充 | [`topics/28-interface-reflection.md`](./topics/28-interface-reflection.md) |
+| 29 | 接口默认方法与冲突消解 | 已确认，议题 30 补充 | [`topics/29-interface-default-methods.md`](./topics/29-interface-default-methods.md) |
+| 30 | 接口继承、重新抽象与接口转换 | 已确认，议题 31、35 补充 | [`topics/30-interface-inheritance.md`](./topics/30-interface-inheritance.md) |
+| 31 | 安全下转型与动态接口转换 | 已确认，议题 32—34 补充 | [`topics/31-safe-dynamic-cast.md`](./topics/31-safe-dynamic-cast.md) |
+| 32 | 枚举、判别联合与通用 niche 优化 | 已确认，议题 33、34 补充 | [`topics/32-enums-tagged-unions.md`](./topics/32-enums-tagged-unions.md) |
+| 33 | 枚举模式绑定、`if let` 与 `match` 表达式 | 已确认 | [`topics/33-pattern-binding-and-match.md`](./topics/33-pattern-binding-and-match.md) |
+| 34 | 未检查异常、展开与 `[nothrow]` | 已确认，议题 35—48、52 补充 | [`topics/34-unchecked-exceptions-nothrow.md`](./topics/34-unchecked-exceptions-nothrow.md) |
+| 35 | 异常类、异常接口与捕获匹配 | 已确认，议题 36—43 补充 | [`topics/35-exception-types-and-matching.md`](./topics/35-exception-types-and-matching.md) |
+| 36 | 异常记录、对象存储与释放 | 已确认，议题 37、38、40—43 补充，精确运行时 ABI 待定 | [`topics/36-exception-record-storage.md`](./topics/36-exception-record-storage.md) |
+| 37 | catch-all、`ExceptionView` 与重新抛出 | 已确认，议题 38—43 补充 | [`topics/37-catch-all-exception-view-rethrow.md`](./topics/37-catch-all-exception-view-rethrow.md) |
+| 38 | 只读异常捕获与载荷不可变性 | 已确认，议题 39—43 补充 | [`topics/38-readonly-exception-catch.md`](./topics/38-readonly-exception-catch.md) |
+| 39 | 无异常过滤器与单类型捕获 | 已确认，议题 40—43 补充 | [`topics/39-no-exception-filters-or-multi-catch.md`](./topics/39-no-exception-filters-or-multi-catch.md) |
+| 40 | 显式异常原因链与 `from` | 已确认，议题 41—43、47 补充 | [`topics/40-explicit-exception-cause.md`](./topics/40-explicit-exception-cause.md) |
+| 41 | 抛出位置与可配置 traceback | 已确认，议题 42、43 补充，精确诊断 ABI 待定 | [`topics/41-throw-site-and-traceback.md`](./topics/41-throw-site-and-traceback.md) |
+| 42 | 未捕获异常边界与进程级 fail-fast | 已确认，议题 43、47、52、53 补充，精确运行时钩子 ABI 待定 | [`topics/42-unhandled-exception-fail-fast.md`](./topics/42-unhandled-exception-fail-fast.md) |
+| 43 | 可重复等待的 `Task`、结果约束与 `ExceptionBox` | 已确认，议题 44—53 补充，公开 `ExceptionBox` API 待定 | [`topics/43-repeatable-task-exception-box.md`](./topics/43-repeatable-task-exception-box.md) |
+| 44 | 惰性异步任务与 `await` 驱动执行 | 已确认，议题 45、46、48—55 修订；高层调度属于库，底层任务驱动 ABI 待定 | [`topics/44-lazy-async-task-start.md`](./topics/44-lazy-async-task-start.md) |
+| 45 | 并发组合等待 `all` | 已确认，议题 46—48、50、52、53 补充；动态任务集合属于库 | [`topics/45-concurrent-await-all.md`](./topics/45-concurrent-await-all.md) |
+| 46 | 组合等待的失败取消策略 | 已确认，议题 47—50 补充；底层取消感知 I/O ABI 待定 | [`topics/46-all-failure-cancellation-policy.md`](./topics/46-all-failure-cancellation-policy.md) |
+| 47 | 组合等待的确定性异常选择 | 已确认，议题 48、53 补充；`all_settled` 结果 API 待定 | [`topics/47-deterministic-all-exception-selection.md`](./topics/47-deterministic-all-exception-selection.md) |
+| 48 | 协作式取消请求 | 已确认，议题 49、50、52 补充；底层取消感知 I/O ABI 待定 | [`topics/48-cooperative-cancellation-request.md`](./topics/48-cooperative-cancellation-request.md) |
+| 49 | `Task.request_cancel()` 请求接口 | 已确认，议题 50—52 补充；批量取消令牌待定 | [`topics/49-task-cancellation-request-api.md`](./topics/49-task-cancellation-request-api.md) |
+| 50 | 显式取消请求传播等待 | 已确认，议题 51、52 补充；底层取消感知 I/O ABI 和组合器中间对象 ABI 待定 | [`topics/50-explicit-cancellation-propagation-await.md`](./topics/50-explicit-cancellation-propagation-await.md) |
+| 51 | `Task` 析构状态规则 | 已确认，议题 52、53 补充 | [`topics/51-task-destruction-state-rules.md`](./topics/51-task-destruction-state-rules.md) |
+| 52 | 任务调度与后台执行属于库 | 已确认，议题 53 补充库级失败观察策略；底层任务驱动 ABI 待定 | [`topics/52-library-task-scheduling.md`](./topics/52-library-task-scheduling.md) |
+| 53 | 核心 `Task` 不记录失败观察状态 | 已确认 | [`topics/53-no-task-failure-observation-state.md`](./topics/53-no-task-failure-observation-state.md) |
+| 54 | 异步成员函数的 `this` 是非拥有原始指针 | 已确认，议题 55 补充异步虚函数；异步接口与反射规则待定 | [`topics/54-async-member-this-pointer.md`](./topics/54-async-member-this-pointer.md) |
+| 55 | 异步虚函数在任务创建时完成动态分派 | 已确认，异步接口与反射规则待定 | [`topics/55-async-virtual-dispatch-at-task-creation.md`](./topics/55-async-virtual-dispatch-at-task-creation.md) |
 
 “讨论中”的议题不会提前写入设计文件。后续议题在开始讨论时追加到本表，在确认后创建对应文件。

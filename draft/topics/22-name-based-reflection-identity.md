@@ -1,6 +1,6 @@
 # 议题 22：基于名称的动态反射身份
 
-> 状态：已确认  
+> 状态：已确认，议题 23、31、35、37 补充  
 > 确认日期：2026-08-01
 
 ## 1. 不提供稳定声明 ID
@@ -10,9 +10,15 @@ Ink 不提供 `[stable_id]` 属性，也不为反射声明定义需要跨重命�
 动态反射中的类型、字段、函数和元数据类型都以规范化的完全限定字符串名称作为语义身份。
 
 ```ink
-let type = reflection.find_type("game.Player")?;
-let property = type.property("health")?;
-let function = type.function("take_damage")?;
+if let .some(type) = reflection.find_type("game.Player") {
+    if let .some(property) = type.property("health") {
+        print(property.name);
+    }
+
+    if let .some(function) = type.function("take_damage") {
+        print(function.name);
+    }
+}
 ```
 
 源码名称就是动态反射接口的一部分。
@@ -24,34 +30,44 @@ let function = type.function("take_damage")?;
 ```text
 类型：      package.module.Player
 字段：      package.module.Player.health
-顶层函数：  package.module.spawn_player(...)
-成员函数：  package.module.Player.take_damage(...)
+顶层函数：  package.module.spawn_player
+成员函数：  package.module.Player.take_damage
 元数据类型：package.module.Range
 ```
 
 包系统负责确定包和模块部分的规范拼写。源码别名、局部 `import` 别名、相对导入写法和文件系统实际路径不能改变规范名称。
 
-函数存在重载时，完整身份还必须包含规范化签名，例如参数类型、引用方式和返回类型。精确的可打印签名格式留给函数重载与 ABI 议题确定，但它必须是确定性的字符串表示，不能依赖地址或链接器私有符号。
+动态反射函数不使用签名扩展名称。议题 23 禁止同一反射作用域内出现两个同名反射函数，因此函数的完全限定名称只需要声明路径和函数名。
 
 ## 3. 查找规则
 
 运行时全局查找使用完全限定名称：
 
 ```ink
-let type = reflection.find_type("game.Player")?;
-let function = reflection.find_function(
-    "game.Player.take_damage(i32)->bool"
-)?;
+if let .some(type) = reflection.find_type("game.Player") {
+    print(type.name);
+}
+
+if let .some(function) = reflection.find_function(
+    "game.Player.take_damage"
+) {
+    print(function.name);
+}
 ```
 
 已经取得 `TypeInfo` 后，可以使用成员局部名称查询：
 
 ```ink
-let health = type.property("health")?;
-let damage = type.function("take_damage")?;
+if let .some(health) = type.property("health") {
+    print(health.name);
+}
+
+if let .some(damage) = type.function("take_damage") {
+    print(damage.name);
+}
 ```
 
-局部函数名称存在多个重载时，只有名称不足以唯一确定目标，查询必须继续提供签名或返回歧义错误。
+由于同一类型中不能有两个同名反射函数，局部名称可以唯一确定当前继承视图中的函数。继承链上的同名成员按照议题 23 从子类到父类查找。
 
 反射查找默认进行精确、区分大小写的字符串匹配，不执行模糊匹配、Unicode 外观相似匹配、自动命名风格转换或历史名称回退。
 
@@ -63,7 +79,6 @@ let damage = type.function("take_damage")?;
 - 类型重命名；
 - 字段重命名；
 - 函数重命名；
-- 构成重载身份的函数签名变化；
 - 元数据类型重命名。
 
 编译器和运行时不自动建立别名，也不尝试通过源码位置、结构相似度或旧构建信息推断新旧声明是同一个实体。
@@ -123,6 +138,8 @@ let range = property.metadata.get[editor.Range]();
 
 因此 `DynamicRef` 可以保存紧凑的进程内 `TypeHandle`，不需要在每个临时引用中复制完整类型名称，也不改变本议题的字符串身份语义。
 
+议题 37 的 `ExceptionView.type_name()` 返回活动异常描述符保存的规范化完全限定名称。该操作不要求异常类具有 `[reflect]`，也不把描述符指针或模块版本编号暴露为稳定身份；返回的安全字符串视图继承当前异常处理器的短期不逃逸限制。
+
 ## 9. 名称冲突
 
 同一运行时反射注册表中不能同时公开两个具有相同完全限定名称、但表示不同声明的当前版本。
@@ -130,7 +147,7 @@ let range = property.metadata.get[editor.Range]();
 - 编译期可见冲突必须产生编译错误；
 - 动态模块加载产生冲突时，加载事务失败且不公开部分注册；
 - 同名热更新只有通过 ABI、布局和版本检查后才能替换旧版本；
-- 函数重载使用完整签名消除正常的同名歧义。
+- 同一作用域中的同名反射成员按照议题 23 在编译期拒绝。
 
 ## 10. 注册系统
 

@@ -1,6 +1,6 @@
 # 议题 02：值、复制与不可复制类型
 
-> 状态：已确认
+> 状态：已确认，议题 27、32、34、36、43—45、54 补充  
 > 确认日期：2026-08-01
 
 ## 1. 不提供通用移动语义
@@ -21,7 +21,7 @@ func inspect(file: const File&) {
     // 临时借用
 }
 
-var file = try File.open("data.txt");
+var file = File.open("data.txt");
 inspect(file);
 file.read(); // 合法，inspect 不会消费 file
 ```
@@ -42,7 +42,7 @@ print(first);       // first 仍然有效
 func submit(file: File) {
 }
 
-var file = try File.open("data.txt");
+var file = File.open("data.txt");
 submit(file); // 编译错误：File 不可复制
 ```
 
@@ -59,17 +59,32 @@ file.read(); // 仍然有效
 一个没有独立源对象的构造表达式可以直接初始化最终目标，包括局部变量、字段、返回位置和参数位置。这属于保证的原地构造，不是移动。
 
 ```ink
-func create_server() -> Server throws {
+func create_server() -> Server {
     return Server {
-        listener: try Socket.listen(8080),
-        log: try File.open("server.log"),
+        listener: Socket.listen(8080),
+        log: File.open("server.log"),
     };
 }
 
-var server = try create_server(); // 直接构造在 server 的最终存储中
+var server = create_server(); // 直接构造在 server 的最终存储中
 ```
 
 对于不可复制类型，不能保证原地构造的代码必须被拒绝，不能退化为隐藏移动。
+
+议题 36 的异常抛出遵守同一规则。从命名变量抛出异常属于按值使用，必须把变量复制到运行时异常存储；因此只有可复制异常类允许这种写法，源变量不会被消费：
+
+```ink
+var error = ParseError { position: 12 };
+throw error; // 复制 error；error 必须可复制
+```
+
+直接抛出没有独立源对象的构造表达式时，异常对象直接构造在最终异常存储中，不产生需要移动的临时对象：
+
+```ink
+throw FileNotFound { path }; // 直接构造，不是移动
+```
+
+因此不可复制异常类仍然可以直接构造并抛出，但不能从已经存在的命名变量按值抛出。
 
 ## 3. `[noncopyable]` 属性
 
@@ -77,7 +92,7 @@ var server = try create_server(); // 直接构造在 server 的最终存储中
 
 ```ink
 [noncopyable]
-struct File {
+class File {
     handle: OsHandle;
 
     func destructor(this: File&) {
@@ -91,7 +106,7 @@ struct File {
 - 禁止类型的隐式复制和复制赋值；
 - 禁止从命名变量按值传参；
 - 不改变类型的内存布局；
-- 可以用于 `struct`、`enum` 和 `newtype`；
+- 可以用于 `class`、`enum` 和 `newtype`；
 - 是公开 API 的组成部分；
 - 会进入类型元数据和 API 摘要；
 - 不能被下游代码移除或覆盖。
@@ -107,15 +122,17 @@ copyable(T) =
 
 直接声明析构函数的类型必须显式标记 `[noncopyable]`，否则是编译错误。这可以防止资源类型在重构过程中意外获得复制能力。
 
+议题 27 为虚类 vtable 自动生成的动态销毁入口不是用户声明的 `destructor`，不会单独使类型变成 `[noncopyable]`。类是否可复制仍由其显式析构函数、父类、字段和 `[noncopyable]` 属性决定。
+
 包含不可复制字段或载荷的外层类型自动不可复制，无须层层添加属性：
 
 ```ink
 [noncopyable]
-struct File {
+class File {
     // ...
 }
 
-struct Server {
+class Server {
     log: File;
     port: u16;
 }
@@ -129,7 +146,7 @@ struct Server {
 
 基础数值、布尔、字符、原始指针和函数指针是可复制类型。
 
-数组、元组、结构体和枚举在全部组成部分都可复制，且自身没有 `[noncopyable]` 和析构函数时自动可复制。
+数组、元组、类和枚举在全部组成部分都可复制，且自身没有 `[noncopyable]` 和析构函数时自动可复制。对于议题 32 的带载荷枚举，“全部组成部分”是所有分支的全部载荷，而不只是某个运行时活动分支。
 
 需要执行以下工作的复制不能隐藏在赋值或按值传参中：
 
@@ -176,7 +193,7 @@ func submit(file: File*) {
     task_queue.store(file);
 }
 
-var file = try File.open("data.txt");
+var file = File.open("data.txt");
 submit(&file);
 ```
 
@@ -205,9 +222,21 @@ var files: PtrVector<File>;
 不可复制类型仍然可以作为：
 
 - 局部变量；
-- 结构体字段；
+- 类字段；
 - 固定长度数组元素；
 - 由稳定地址容器管理的对象；
 - 通过保证原地构造产生的返回值。
 
 包含不可复制元素的聚合体自身自动不可复制。
+
+## 7. 异步任务结果不引入移动
+
+议题 43 规定可重复等待的 `Task<T>` 按值返回成功结果时要求 `T: Copy`。每次 `await` 都从任务的只读结果存储执行普通复制，不从任务中取走结果。
+
+不可复制资源不能作为 `Task<File>` 一类的内联结果；应返回 `File*` 或未来显式拥有型指针。`Task<T>` 自身也是 `[noncopyable]`，任务创建依赖保证原地构造，而不是通过复制任务句柄隐藏共享引用计数。
+
+议题 44 的惰性任务在异步调用点立即保存实参。命名不可复制对象不能被隐式移动进任务帧；需要延迟访问时传递原始指针，并由程序员保证对象一直存活到任务不再访问它。
+
+议题 54 的异步成员函数同样不复制接收对象。普通成员调用只把非拥有的原始 `this` 指针保存进任务帧，即使接收类型可复制也不会隐式创建对象快照；接收对象必须存活到该任务最终结束。
+
+议题 45 的 `await all(...)` 同样不复制或移动命名 `Task<T>`。直接作为参数产生的临时任务必须原地构造在组合等待的稳定存储中；组合结果按参数顺序执行议题 43 的普通结果复制，不为不可复制结果引入隐藏移动。

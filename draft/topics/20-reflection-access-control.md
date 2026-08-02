@@ -1,6 +1,6 @@
 # 议题 20：反射访问权限与封装
 
-> 状态：已确认  
+> 状态：已确认，议题 34 补充  
 > 确认日期：2026-08-01
 
 ## 1. 结构可见与值访问分离
@@ -69,7 +69,7 @@ func serialize_all[T](value: const T&) {
 
 ```ink
 [reflect]
-struct Player {
+class Player {
     [reflect(DisplayName("Health"))]
     private health: i32;
 
@@ -101,7 +101,7 @@ struct Player {
 - 取得字段引用时仍须满足普通引用生命周期规则；
 - 反射不能把只读内存转换成可写内存。
 
-动态适配器必须检查这些条件并返回反射错误，不能通过内部 `ptrcast` 或字段偏移计算绕过它们。
+动态适配器必须检查这些条件并抛出结构化反射异常，不能通过内部 `ptrcast` 或字段偏移计算绕过它们。
 
 ## 6. 维护类型不变量
 
@@ -111,7 +111,7 @@ struct Player {
 
 ```ink
 [reflect]
-struct Account {
+class Account {
     private balance: i64;
 
     [reflect]
@@ -148,7 +148,7 @@ struct Account {
 - 拒绝访问所依据的模块边界；
 - 可以由类型作者采取的显式方案，例如公开访问函数或添加动态 `[reflect]`。
 
-当运行时动态访问因为可变性、接收对象类型或模块版本不匹配而失败时，适配器返回结构化反射错误，不产生 UB。
+当运行时动态访问因为可变性、接收对象类型或模块版本不匹配而失败时，适配器抛出结构化反射异常，不产生 UB。
 
 ## 9. 不授予的能力
 

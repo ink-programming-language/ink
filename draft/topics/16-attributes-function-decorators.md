@@ -1,6 +1,6 @@
 # 议题 16：内建属性与函数装饰器
 
-> 状态：已确认，议题 19 补充
+> 状态：已确认，议题 19、34、35 补充
 > 确认日期：2026-08-01
 
 ## 1. 属性与装饰器是两种机制
@@ -27,13 +27,23 @@ Ink 不允许用户声明自定义属性。所有合法属性都由语言规范�
 
 ```ink
 [noncopyable]
-struct File {
+class File {
     // ...
 }
 
 [transparent]
-struct Handle {
+class Handle {
     value: ptrsize;
+}
+
+[nothrow]
+func interrupt_handler() {
+    // 异常不能逃逸
+}
+
+[exception]
+interface IoError {
+    // 只允许异常类实现
 }
 ```
 
@@ -63,7 +73,7 @@ func calculate() {
 
 ```ink
 [align(16), section("network")]
-struct Packet {
+class Packet {
     // ...
 }
 ```
@@ -85,7 +95,7 @@ struct Packet {
 
 ```ink
 [noncopyable]
-struct Resource {
+class Resource {
     [align(16)]
     storage: byte[16];
 }
@@ -252,11 +262,15 @@ original function body
 
 工具链应能显示装饰后的 HIR/MIR，帮助检查实际插入的运行时代码和装饰器堆叠顺序。
 
+装饰器应用于 `[nothrow]` 函数时，展开后的完整函数体仍必须通过议题 34 的不抛异常检查。装饰器不能因为生成代码而静默削弱目标函数的公开契约。
+
+`[exception]` 也是封闭集合中的无参数内建属性，只允许附着于 `class` 和 `interface`；其传播、实现和捕获语义由议题 35 规定。
+
 ## 13. 后续问题
 
 以下内容留给独立议题：
 
 - 装饰器参数的完整类型与求值阶段规则；
 - 装饰器如何访问异构参数包；
-- `throws`、异步函数、生成器和 `never` 返回函数的 continuation 规则；
+- 未检查异常和 `[nothrow]` 目标的装饰器规则由议题 34 规定；异步函数、生成器和 `never` 返回函数的 continuation 规则仍待定；
 - 装饰器生成的静态状态如何参与热更新迁移。

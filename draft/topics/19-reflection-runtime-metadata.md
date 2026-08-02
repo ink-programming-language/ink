@@ -1,6 +1,6 @@
 # 议题 19：编译期反射、动态反射与自定义元数据
 
-> 状态：已确认，议题 20、21、22 补充  
+> 状态：已确认，议题 20—26、28、31—35、37 补充  
 > 确认日期：2026-08-01
 
 ## 1. 两级反射模型
@@ -18,12 +18,12 @@ Ink 把反射分成两种能力：
 
 ```ink
 [reflect]
-struct EmptyMetadataType {
+class EmptyMetadataType {
     // ...
 }
 
 [reflect(DisplayName("Player"), Serializable())]
-struct Player {
+class Player {
     // ...
 }
 ```
@@ -66,7 +66,7 @@ comptime {
 
 - 类型种类、名称、可见性和泛型参数；
 - 大小、对齐、字段偏移和其他布局信息；
-- 字段、函数、构造函数、枚举项及其类型信息；
+- 字段、函数、构造函数，以及议题 32 定义的枚举分支、载荷和表示信息；
 - 参数、返回类型和调用约定；
 - 全部内建属性；
 - 已附着的用户反射元数据。
@@ -81,7 +81,7 @@ comptime {
 
 ```ink
 [reflect(DisplayName("Player"))]
-struct Player {
+class Player {
     [reflect(
         DisplayName("Health"),
         Range(min: 0, max: 100),
@@ -119,23 +119,23 @@ struct Player {
 
 ```ink
 [metadata]
-struct DisplayName {
+class DisplayName {
     value: comptime string;
 }
 
 [metadata]
-struct Range {
+class Range {
     min: i64;
     max: i64;
 }
 
 [metadata]
-struct Category {
+class Category {
     name: comptime string;
 }
 
 [metadata]
-struct SaveGame {}
+class SaveGame {}
 ```
 
 `[metadata]` 自身是语言内建属性；`DisplayName`、`Range` 等是普通用户类型。这不允许用户发明新的编译器属性，也不会让编译器把这些类型解释为布局、优化或类型检查指令。
@@ -165,30 +165,30 @@ struct SaveGame {}
 带有 `[reflect]` 的类型进入运行时反射注册表，并按照议题 22 使用完全限定名称查找：
 
 ```ink
-let type = reflection.find_type("game.Player")?;
+if let .some(type) = reflection.find_type("game.Player") {
+    print(type.name);
+    print(type.size);
+    print(type.alignment);
 
-print(type.name);
-print(type.size);
-print(type.alignment);
-
-for property in type.properties {
-    print(property.name);
-    print(property.type_name);
+    for property in type.properties {
+        print(property.name);
+        print(property.type_name);
+    }
 }
 ```
 
 自定义元数据按其类型查询：
 
 ```ink
-let health = type.property("health")?;
+if let .some(health) = type.property("health") {
+    if let .some(range) = health.metadata.get[Range]() {
+        print(range.min);
+        print(range.max);
+    }
 
-if let range = health.metadata.get[Range]() {
-    print(range.min);
-    print(range.max);
-}
-
-if health.metadata.has[SaveGame]() {
-    save_property(health);
+    if health.metadata.has[SaveGame]() {
+        save_property(health);
+    }
 }
 ```
 
@@ -199,10 +199,10 @@ if health.metadata.has[SaveGame]() {
 被反射字段可以通过编译器生成的适配器进行类型检查后的动态访问：
 
 ```ink
-let property = type.property("health")?;
-
-let health = property.get[i32](&player)?;
-property.set[i32](&player, 80)?;
+if let .some(property) = type.property("health") {
+    let health = property.get[i32](&player);
+    property.set[i32](&player, 80);
+}
 ```
 
 运行时必须检查：
@@ -212,7 +212,7 @@ property.set[i32](&player, 80)?;
 - 写入操作满足字段可变性；
 - 对象和描述符仍属于有效模块版本。
 
-不匹配必须返回反射错误，不能因为反射适配器中的错误类型、错误偏移或错误对象产生 UB。对不可复制字段取得值、借用字段以及字段访问控制的具体 API 留给后续议题细化。
+不匹配必须抛出明确的反射异常，不能因为反射适配器中的错误类型、错误偏移或错误对象产生 UB。异常按照议题 34 自动传播。对不可复制字段取得值、借用字段以及字段访问控制的具体 API 留给后续议题细化。
 
 字段按值读取、借用、写入以及内部类型擦除表示由 [`21-dynamic-reflection-value-abi.md`](./21-dynamic-reflection-value-abi.md) 规定。
 
@@ -221,15 +221,20 @@ property.set[i32](&player, 80)?;
 被反射函数具有编译器生成的类型擦除调用适配器：
 
 ```ink
-let function = type.function("take_damage")?;
-let damaged = function.call[bool](&player, 10)?;
+if let .some(function) = type.function("take_damage") {
+    let damaged = function.call[bool](&player, 10);
+}
 ```
 
-适配器必须检查接收对象、参数数量、参数类型、返回类型和调用约定。反射调用失败返回明确错误，不以类型不匹配作为 UB。
+适配器必须检查接收对象、参数数量、参数类型、返回类型和调用约定。反射调用失败抛出明确异常，不以类型不匹配作为 UB。
 
-适配器可以使用调用者提供的栈上动态值数组，不要求为每次调用进行堆分配。不可复制参数、引用参数、可变参数、异步函数和错误返回函数的详细适配规则留给对应语言议题确定。
+适配器可以使用调用者提供的栈上动态值数组，不要求为每次调用进行堆分配。不可复制参数、引用参数、可变参数、异步函数和异常边界的详细适配规则留给对应语言议题确定。
 
 普通同步函数的动态参数与返回值 ABI 由 [`21-dynamic-reflection-value-abi.md`](./21-dynamic-reflection-value-abi.md) 规定。
+
+反射虚函数的描述符选择、元数据来源和最终虚派发规则由 [`25-virtual-functions-reflection.md`](./25-virtual-functions-reflection.md) 规定。
+
+反射接口、接口方法描述符、实现关系与接口表调用规则由 [`28-interface-reflection.md`](./28-interface-reflection.md) 规定。
 
 ## 9. 对象布局
 
@@ -261,7 +266,9 @@ let damaged = function.call[bool](&player, 10)?;
 - 模块加载时的事务式注册项；
 - 动态查询和动态调用本身的检查成本。
 
-没有 `[reflect]` 的声明不生成这些信息。链接器可以删除不可达模块版本的全部反射表。`[reflect]` 不改变普通直接字段访问和普通直接函数调用的性能。
+没有 `[reflect]` 的声明不生成上述完整动态反射信息。议题 31 为 `try_cast`、议题 35 为异常匹配分别定义的最小类型描述符不包含成员列表、用户元数据或动态调用适配器，不属于这里的完整反射表。链接器可以删除不可达模块版本的全部反射表。`[reflect]` 不改变普通直接字段访问和普通直接函数调用的性能。
+
+议题 37 的 `ExceptionView.reflection()` 只在动态异常类具有 `[reflect]` 信息时返回与该异常记录模块版本相匹配的 `TypeInfo`；否则返回 `none`。它不能仅按名称查找并把旧异常载荷交给不兼容的新版本反射描述符。
 
 ## 12. 与内建属性和装饰器的关系
 
@@ -277,7 +284,6 @@ let damaged = function.call[bool](&player, 10)?;
 以下内容留给独立议题：
 
 - 反射描述符、句柄和动态值容器的精确二进制布局；
-- 继承、接口对象和动态类型查询；
-- 重载函数的查找和消歧；
-- 异步函数、错误返回函数和可变参数函数的动态调用；
+- 安全动态类型查询由议题 31 规定；完整反射描述符的精确二进制布局仍待定；
+- 异步函数、异常边界和可变参数函数的动态调用；
 - 元数据类型的版本兼容和插件边界。

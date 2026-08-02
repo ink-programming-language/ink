@@ -81,7 +81,7 @@ Ink 核心语言不提供 `char` 基础类型。字节使用 `byte` 或 `u8` 表
 
 ```ink
 [transparent]
-struct UnicodeScalar {
+class UnicodeScalar {
     value: u32;
 }
 ```
