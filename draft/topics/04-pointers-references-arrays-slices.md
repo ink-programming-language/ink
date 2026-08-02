@@ -1,6 +1,6 @@
 # 议题 04：指针、引用、数组与切片
 
-> 状态：已确认，议题 31—33、43、44、54 补充
+> 状态：已确认，议题 31—33、43、44、54、61 补充  
 > 确认日期：2026-08-01
 
 ## 1. 原始指针
@@ -172,7 +172,7 @@ func sum(values: const int[]) -> int {
 需要长期保存“地址加长度”时，使用可复制的原始切片：
 
 ```ink
-class RawSlice<T> {
+class RawSlice<T: comptime type> {
     data: T*;
     length: ptrsize;
 }
