@@ -1,6 +1,6 @@
 # Parser 议题 04：标准 EBNF 记法
 
-> 状态：已确认  
+> 状态：已确认，非终结符统一使用 `snake_case`  
 > 确认日期：2026-08-03
 
 ## 1. 采用标准
@@ -14,13 +14,13 @@ EBNF 描述语言接受哪些 Token 序列；Parser 的递归下降、表驱动�
 本 draft 使用以下标准 EBNF 结构：
 
 ```ebnf
-declaration = function declaration | class declaration ;
+declaration = function_declaration | class_declaration ;
 
-qualified name = identifier, { ".", identifier } ;
+qualified_name = identifier, { ".", identifier } ;
 
-optional alias = [ "as", identifier ] ;
+optional_alias = [ "as", identifier ] ;
 
-binding declaration = ( "let" | "var" ), identifier ;
+binding_declaration = ( "let" | "var" ), identifier ;
 ```
 
 其含义为：
@@ -39,17 +39,17 @@ binding declaration = ( "let" | "var" ), identifier ;
 至少出现一次写为一个元素后接它的重复，而不使用后缀 `+`：
 
 ```ebnf
-one or more identifiers = identifier, { identifier } ;
+one_or_more_identifiers = identifier, { identifier } ;
 ```
 
 ## 3. 非终结符命名
 
-非终结符使用小写英文单词组成的 meta-identifier：
+非终结符使用小写英文单词和下划线组成的 `snake_case` meta-identifier。非终结符名称内部不能出现空格：
 
 ```ebnf
-function declaration
-parameter list
-return type
+function_declaration
+parameter_list
+return_type
 ```
 
 同一个 meta-identifier 在所有 Parser 议题中保持相同含义。尚未定义的非终结符可以在前置示例中被引用，但必须在后续对应语法议题中完成定义。
@@ -76,7 +76,7 @@ Tokenizer 已经完成 Keyword、BuiltinType、Identifier 和 Symbol 的分类�
 因此：
 
 ```ebnf
-return type = "->", type ;
+return_type = "->", type ;
 ```
 
 接受：
@@ -94,7 +94,7 @@ return type = "->", type ;
 如果语法确实允许两个符号之间存在 Trivia，产生式必须写成两个 terminal string：
 
 ```ebnf
-separated symbols = "-", ">" ;
+separated_symbols = "-", ">" ;
 ```
 
 ## 5. Token 类别
@@ -103,8 +103,8 @@ Identifier、字面量等开放集合通过标准 special sequence 引用 Tokeni
 
 ```ebnf
 identifier = ? Identifier Token ? ;
-integer literal = ? IntegerLiteral Token ? ;
-string literal = ? StringLiteral Token ? ;
+integer_literal = ? IntegerLiteral Token ? ;
+string_literal = ? StringLiteral Token ? ;
 ```
 
 special sequence 中的文字是对 Tokenizer 议题的引用，不是 Ink 源码，也不创建新的 TokenKind。
@@ -112,7 +112,7 @@ special sequence 中的文字是对 Tokenizer 议题的引用，不是 Ink 源�
 EOF 可以定义为：
 
 ```ebnf
-end of file = ? EndOfFile Token ? ;
+end_of_file = ? EndOfFile Token ? ;
 ```
 
 Trivia 不出现在每条产生式中；它由议题 02 的统一游标规则隐式跳过并完整写入 CST。
@@ -122,13 +122,13 @@ Trivia 不出现在每条产生式中；它由议题 02 的统一游标规则隐
 函数声明的一部分可以使用标准 EBNF 写为：
 
 ```ebnf
-function declaration =
-    "func", identifier, "(", [ parameter list ], ")",
-    [ return type ], function body ;
+function_declaration =
+    "func", identifier, "(", [ parameter_list ], ")",
+    [ return_type ], function_body ;
 
-parameter list = parameter, { ",", parameter } ;
+parameter_list = parameter, { ",", parameter } ;
 
-return type = "->", type ;
+return_type = "->", type ;
 
 identifier = ? Identifier Token ? ;
 ```
@@ -145,4 +145,4 @@ identifier = ? Identifier Token ? ;
 
 ## 8. 确认结论
 
-Ink Parser 的正式语法统一使用 ISO/IEC 14977 风格的标准 EBNF。可选、重复、分组、连接和分支使用标准记号；终结字符串表示准确源码拼写，多字符终结字符串要求底层 Symbol Token 直接相邻；开放 Token 类别使用标准 special sequence 引用 Tokenizer 定义。
+Ink Parser 的正式语法统一使用 ISO/IEC 14977 风格的标准 EBNF。所有非终结符使用不含空格的 `snake_case` 名称。可选、重复、分组、连接和分支使用标准记号；终结字符串表示准确源码拼写，多字符终结字符串要求底层 Symbol Token 直接相邻；开放 Token 类别使用标准 special sequence 引用 Tokenizer 定义。

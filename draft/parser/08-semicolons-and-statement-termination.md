@@ -1,6 +1,6 @@
 # Parser 议题 08：分号与语句结束
 
-> 状态：已确认  
+> 状态：已确认，议题 18 补充表达式语句结果丢弃语义  
 > 确认日期：2026-08-03
 
 ## 1. 显式分号
@@ -10,23 +10,23 @@ Ink 不提供自动分号插入。所有由对应语法定义为简单语句的�
 代表性产生式为：
 
 ```ebnf
-expression statement =
+expression_statement =
     expression, ";" ;
 
-return statement =
+return_statement =
     "return", [ expression ], ";" ;
 
-break statement =
+break_statement =
     "break", ";" ;
 
-continue statement =
+continue_statement =
     "continue", ";" ;
 
-throw statement =
+throw_statement =
     "throw", expression, ";" ;
 ```
 
-这些产生式确认分号规则；`return`、`break`、`continue` 和 `throw` 的完整上下文限制由各自语句议题定义。
+这些产生式确认分号规则；议题 18 进一步规定表达式语句允许丢弃非 `void` 结果，并以分号作为未消费临时结果的销毁边界。`return`、`break`、`continue` 和 `throw` 的完整上下文限制由各自语句议题定义。
 
 ## 2. 换行没有终止作用
 

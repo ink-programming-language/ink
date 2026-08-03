@@ -8,21 +8,21 @@
 普通绑定声明分为三种：
 
 ```ebnf
-binding declaration =
-    let declaration
-  | var declaration
-  | const declaration ;
+binding_declaration =
+    let_declaration
+  | var_declaration
+  | const_declaration ;
 
-let declaration =
+let_declaration =
     "let", identifier, [ ":", type ], "=", expression, ";" ;
 
-var declaration =
+var_declaration =
     "var", identifier,
     ( ":", type, [ "=", expression ]
     | "=", expression ),
     ";" ;
 
-const declaration =
+const_declaration =
     "const", identifier, [ ":", type ], "=", expression, ";" ;
 ```
 
@@ -103,7 +103,7 @@ const limit: i32 = 100;       // const declaration
 let view: const Data* = ptr;   // const type qualifier
 ```
 
-Parser 在 `binding declaration` 起始位置把 `const` 解析为常量声明；在冒号后的类型语法及其他类型位置把它解析为类型限定符。Tokenizer 仍只产生同一种 `Keyword(const)`。
+Parser 在 `binding_declaration` 起始位置把 `const` 解析为常量声明；在冒号后的类型语法及其他类型位置把它解析为类型限定符。Tokenizer 仍只产生同一种 `Keyword(const)`。
 
 ## 7. 一个声明只绑定一个名称
 
@@ -132,7 +132,7 @@ let b = 2;
 let (a, b) = pair;
 ```
 
-该形式是否增加，以及解构时如何处理借用、复制、不可复制值和临时对象，将由未来独立解构议题确定。当前已确认的 `if let` 与 `match` 模式绑定是各自控制结构的专用语法，不会让普通 `let declaration` 自动接受任意模式。
+该形式是否增加，以及解构时如何处理借用、复制、不可复制值和临时对象，将由未来独立解构议题确定。当前已确认的 `if let` 与 `match` 模式绑定是各自控制结构的专用语法，不会让普通 `let_declaration` 自动接受任意模式。
 
 ## 9. Module 与局部声明
 

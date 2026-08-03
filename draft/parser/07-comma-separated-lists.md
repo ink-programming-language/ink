@@ -8,14 +8,14 @@
 Ink 的普通逗号分隔列表不允许尾随逗号。每种实际列表在自己的产生式中使用标准 EBNF 展开：
 
 ```ebnf
-parameter list =
+parameter_list =
     parameter, { ",", parameter } ;
 
-argument list =
+argument_list =
     argument, { ",", argument } ;
 
-imported member list =
-    imported member, { ",", imported member } ;
+imported_member_list =
+    imported_member, { ",", imported_member } ;
 ```
 
 本议题不引入可参数化的自定义 `List<T>` 元语法；后续正式产生式应直接写出对应元素非终结符。
@@ -25,11 +25,11 @@ imported member list =
 列表本身表示至少一个元素。某个定界结构是否允许空列表，由外层产生式使用标准可选序列决定：
 
 ```ebnf
-parameter clause =
-    "(", [ parameter list ], ")" ;
+parameter_clause =
+    "(", [ parameter_list ], ")" ;
 
-argument clause =
-    "(", [ argument list ], ")" ;
+argument_clause =
+    "(", [ argument_list ], ")" ;
 ```
 
 因此 `()` 可以表示空参数或空实参结构，但单独的逗号不能表示空元素。
@@ -89,9 +89,9 @@ func run(
 成员导入直接使用普通列表规则：
 
 ```ebnf
-member import declaration =
-    "from", module path, "import", imported member,
-    { ",", imported member }, ";" ;
+member_import_declaration =
+    "from", module_path, "import", imported_member,
+    { ",", imported_member }, ";" ;
 ```
 
 单行和多行均可：
@@ -121,15 +121,15 @@ from math.scalar import
 元组语法明确区分：
 
 ```ebnf
-empty tuple =
+empty_tuple =
     "(", ")" ;
 
-single element tuple =
-    "(", tuple element, ",", ")" ;
+single_element_tuple =
+    "(", tuple_element, ",", ")" ;
 
-multiple element tuple =
-    "(", tuple element, ",", tuple element,
-    { ",", tuple element }, ")" ;
+multiple_element_tuple =
+    "(", tuple_element, ",", tuple_element,
+    { ",", tuple_element }, ")" ;
 ```
 
 多元素元组不允许尾随逗号：

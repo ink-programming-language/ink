@@ -8,14 +8,14 @@
 每个 `.ink` 源文件由零个或多个顶层项和一个 EOF 构成：
 
 ```ebnf
-source file = { top level item }, end of file ;
+source_file = { top_level_item }, end_of_file ;
 
-top level item =
-    import declaration
-  | top level declaration
-  | comptime top level conditional ;
+top_level_item =
+    import_declaration
+  | top_level_declaration
+  | comptime_top_level_conditional ;
 
-end of file = ? EndOfFile Token ? ;
+end_of_file = ? EndOfFile Token ? ;
 ```
 
 空源文件合法。Trivia 由 Parser 议题 02 的显著 Token 游标隐式跳过，但仍作为 `SourceFile` CST 的真实叶节点完整保留。
@@ -39,16 +39,16 @@ Module 议题 01 规定 package/module 身份由包清单、源码根和文件�
 顶层条件结构的基本文法为：
 
 ```ebnf
-comptime top level conditional =
-    "if", "comptime", expression, top level block,
-    [ "else", ( top level block | comptime top level conditional ) ] ;
+comptime_top_level_conditional =
+    "if", "comptime", expression, top_level_block,
+    [ "else", ( top_level_block | comptime_top_level_conditional ) ] ;
 
-top level block = "{", { top level item }, "}" ;
+top_level_block = "{", { top_level_item }, "}" ;
 ```
 
 该结构不是运行时语句。它在编译期决定分支中的导入和普通声明是否进入后续模块。
 
-`else if comptime` 由递归的 `comptime top level conditional` 表达。是否支持其他顶层编译期循环结构，以及它们的准确 EBNF，由后续独立语法议题确定。
+`else if comptime` 由递归的 `comptime_top_level_conditional` 表达。是否支持其他顶层编译期循环结构，以及它们的准确 EBNF，由后续独立语法议题确定。
 
 ## 4. 条件导入示例
 
@@ -118,7 +118,7 @@ parse current source file
 
 ## 7. 封闭候选集
 
-为了保证候选集合在执行前有限且可发现，`import declaration` 的 package/module 导入目标必须由后续模块系统语法定义为静态源码结构。
+为了保证候选集合在执行前有限且可发现，`import_declaration` 的 package/module 导入目标必须由后续模块系统语法定义为静态源码结构。
 
 禁止：
 

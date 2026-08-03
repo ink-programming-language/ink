@@ -134,7 +134,7 @@ catch as error {
 
 `cause()` 只返回直接原因。调用者可以对返回视图再次调用 `cause()` 遍历整条链。
 
-该查询不要求 `[reflect]`，不复制载荷，不增加引用计数，也不暴露 `ExceptionRecord*`。返回的 `Optional<const ExceptionView&>` 传播议题 04、32、33 和 37 的短期引用限制，不能逃逸处理器生命周期。
+该查询不要求 `[reflect]`，不复制载荷，不增加引用计数，也不暴露 `ExceptionRecord*`。虽然外层使用普通 `Optional<T&>` 表示可选引用，但 `ExceptionView` 是议题 37 定义的异常运行时专用受限视图；返回的 `Optional<const ExceptionView&>` 仍不能越过当前处理器生命周期。这是 `ExceptionView` 自身的规则，不是普通 `T&` 的通用限制。
 
 ## 9. 原因链不可变且无环
 

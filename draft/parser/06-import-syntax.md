@@ -8,32 +8,32 @@
 Ink 支持模块命名空间导入和成员导入：
 
 ```ebnf
-import declaration =
-    module import declaration
-  | member import declaration ;
+import_declaration =
+    module_import_declaration
+  | member_import_declaration ;
 
-module import declaration =
-    "import", module path, [ import alias ], ";" ;
+module_import_declaration =
+    "import", module_path, [ import_alias ], ";" ;
 
-member import declaration =
-    "from", module path, "import", imported member,
-    { ",", imported member }, ";" ;
+member_import_declaration =
+    "from", module_path, "import", imported_member,
+    { ",", imported_member }, ";" ;
 
-import alias = "as", identifier ;
+import_alias = "as", identifier ;
 
-imported member = identifier, [ import alias ] ;
+imported_member = identifier, [ import_alias ] ;
 
-module path =
-    absolute module path
-  | relative module path ;
+module_path =
+    absolute_module_path
+  | relative_module_path ;
 
-absolute module path =
+absolute_module_path =
     identifier, ".", identifier, { ".", identifier } ;
 
-relative module path =
-    relative prefix, identifier, { ".", identifier } ;
+relative_module_path =
+    relative_prefix, identifier, { ".", identifier } ;
 
-relative prefix =
+relative_prefix =
     ? One or more directly adjacent Symbol('.') Tokens ? ;
 ```
 
@@ -98,7 +98,7 @@ from core.io import File;
 
 ## 4. 导入对象
 
-`imported member` 表示被导入模块中具有对应名称、且允许从当前模块访问的顶层导出声明。成员究竟是函数、类型、全局绑定、装饰器或其他声明，由名称绑定阶段确定，不由 Parser 判断。
+`imported_member` 表示被导入模块中具有对应名称、且允许从当前模块访问的顶层导出声明。成员究竟是函数、类型、全局绑定、装饰器或其他声明，由名称绑定阶段确定，不由 Parser 判断。
 
 如果该名称表示函数重载集合，则成员导入引入该名称下可见的整个重载集合，后续调用仍按普通重载解析规则选择具体函数。
 
@@ -177,7 +177,7 @@ import platform.windows;
 from platform.linux import Window;
 ```
 
-候选发现阶段只需要读取 `module path`，不需要先解析 `imported member` 是否真实存在。顶层 `comptime` 求值后，仅保留分支中的 module 路径成为实际依赖。
+候选发现阶段只需要读取 `module_path`，不需要先解析 `imported_member` 是否真实存在。顶层 `comptime` 求值后，仅保留分支中的 module 路径成为实际依赖。
 
 一个激活的 `from` 导入仍然使整个来源模块成为实际模块依赖。成员绑定在最终代码中未被引用，不自动取消模块依赖，因为来源模块可能具有已确认的模块生命周期行为；是否可以在无可观察生命周期时优化掉依赖属于后端优化，不改变语言语义。
 

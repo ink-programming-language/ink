@@ -23,21 +23,21 @@ from ..common.math import Vector;
 Parser 使用：
 
 ```ebnf
-module path =
-    absolute module path
-  | relative module path ;
+module_path =
+    absolute_module_path
+  | relative_module_path ;
 
-absolute module path =
+absolute_module_path =
     identifier, ".", identifier, { ".", identifier } ;
 
-relative module path =
-    relative prefix, identifier, { ".", identifier } ;
+relative_module_path =
+    relative_prefix, identifier, { ".", identifier } ;
 
-relative prefix =
+relative_prefix =
     ? One or more directly adjacent Symbol('.') Tokens ? ;
 ```
 
-`relative prefix` 使用标准 EBNF special sequence 引用 Tokenizer Token。前导点必须直接相邻，不能跨 Trivia；后面的 Identifier 和路径分隔 `.` 遵守普通 Parser Trivia 规则。
+`relative_prefix` 使用标准 EBNF special sequence 引用 Tokenizer Token。前导点必须直接相邻，不能跨 Trivia；后面的 Identifier 和路径分隔 `.` 遵守普通 Parser Trivia 规则。
 
 相对路径必须在前导点之后包含一个 module 路径段，不能只写点序列。
 

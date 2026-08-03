@@ -1,6 +1,6 @@
 # Parser 议题 09：语句块与花括号
 
-> 状态：已确认  
+> 状态：已确认，议题 20 补充 `if` 条件与完整语句规则  
 > 确认日期：2026-08-03
 
 ## 1. 普通语句块
@@ -8,21 +8,21 @@
 普通运行时语句块使用花括号：
 
 ```ebnf
-statement block =
-    "{", { block item }, "}" ;
+statement_block =
+    "{", { block_item }, "}" ;
 
-block item =
-    local declaration
+block_item =
+    local_declaration
   | statement ;
 ```
 
-`local declaration` 和各类 `statement` 的完整产生式在后续议题中定义。空语句块 `{}` 合法。
+`local_declaration` 和各类 `statement` 的完整产生式在后续议题中定义。空语句块 `{}` 合法。
 
 换行和缩进仍然是 Trivia；只有真实的 `Symbol('{')` 与 `Symbol('}')` 建立和结束语句块。
 
 ## 2. 词法作用域
 
-每个 `statement block` 建立一个新的词法作用域。块内声明的局部名称在结束 `}` 后不可见：
+每个 `statement_block` 建立一个新的词法作用域。块内声明的局部名称在结束 `}` 后不可见：
 
 ```ink
 {
@@ -40,8 +40,8 @@ block item =
 单独的语句块可以作为 block statement 出现在另一个语句块中：
 
 ```ebnf
-block statement =
-    statement block ;
+block_statement =
+    statement_block ;
 ```
 
 这允许程序显式缩短局部资源和 `defer` 的作用域：
@@ -62,7 +62,7 @@ func process() {
 
 ## 4. Block 不是表达式
 
-普通 `statement block` 是语句结构，不是表达式，不产生隐式结果。块中最后一个表达式仍必须作为表达式语句以 `;` 结束：
+普通 `statement_block` 是语句结构，不是表达式，不产生隐式结果。块中最后一个表达式仍必须作为表达式语句以 `;` 结束：
 
 ```ink
 {
@@ -78,11 +78,11 @@ let value = {
 };
 ```
 
-函数通过显式 `return` 返回值。已经在既有语义示例中使用的 `if` 表达式，以及聚合初始化、类型构造、`match` 分支或其他使用花括号的表达式，拥有各自独立产生式和专用 CST 节点，不会把普通语句块自动变成有值 block expression。
+函数通过显式 `return` 返回值。议题 21 的 `if_expression` 使用 `if ... then ... else ...`，本身不使用花括号。聚合初始化、类型构造、`match` 分支或其他可能使用花括号的表达式拥有各自独立产生式和专用 CST 节点，不会把普通语句块自动变成有值 block expression。
 
 ## 5. 控制流必须使用花括号
 
-使用语句体的 `if`、`while`、`for` 及后续同类控制结构必须接收完整 `statement block`，不能直接接收单条无花括号语句：
+使用语句体的 `if`、`while`、`for` 及后续同类控制结构必须接收完整 `statement_block`，不能直接接收单条无花括号语句：
 
 ```ink
 if condition {
@@ -107,12 +107,12 @@ while condition update();
 
 ## 6. `else if`
 
-`else if` 通过 `else` 后嵌套另一个完整 `if statement` 支持：
+`else if` 通过 `else` 后嵌套另一个完整 `if_statement` 支持：
 
 ```ebnf
-if statement =
-    "if", expression, statement block,
-    [ "else", ( statement block | if statement ) ] ;
+if_statement =
+    "if", expression, statement_block,
+    [ "else", ( statement_block | if_statement ) ] ;
 ```
 
 ```ink
@@ -127,7 +127,7 @@ if first {
 
 这里每个 `if` 的执行体仍然具有花括号；只有 `else` 与下一个 `if` 之间不额外增加一层块。
 
-条件是否需要括号以及条件中允许哪些绑定结构，由条件语句议题确定，本节 EBNF 只确认 block 形状和 `else` 归属。
+议题 20 已确认条件不强制括号，并允许普通 `expression` 或 `let_condition`。本节 EBNF 只确认 block 形状和 `else` 归属，完整规则以议题 20 为准。
 
 ## 7. Block 自身结束结构
 
@@ -152,7 +152,6 @@ StatementBlock         运行时语句和局部声明
 TopLevelBlock          顶层 if comptime 中的导入和顶层声明
 TypeDeclarationBody    class、interface、enum 等成员
 InitializerBody        聚合或命名字段初始化
-ConditionalExprArm     if 表达式的有值分支
 ```
 
 每种结构的内部元素由自己的 EBNF 决定。Parser 不能因为定界符相同就允许顶层导入出现在普通运行时块，也不能把类型成员体当成普通语句块。

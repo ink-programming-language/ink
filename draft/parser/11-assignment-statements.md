@@ -8,17 +8,17 @@
 Ink 的赋值是独立语句，不是表达式：
 
 ```ebnf
-assignment statement =
-    assignment target, assignment operator, expression, ";" ;
+assignment_statement =
+    assignment_target, assignment_operator, expression, ";" ;
 
-assignment operator =
+assignment_operator =
     "="
   | "+=" | "-=" | "*=" | "/=" | "%="
   | "&=" | "|=" | "^="
   | "<<=" | ">>=" ;
 ```
 
-`assignment target` 的具体表达式形状由后续 place expression 议题定义；语义上它必须表示一个可写存储位置。
+`assignment_target` 的具体表达式形状由后续 `place_expression` 议题定义；语义上它必须表示一个可写存储位置。
 
 ## 2. 普通赋值
 
@@ -37,7 +37,7 @@ pointer->field = value;
 
 ## 3. 赋值不产生结果值
 
-赋值只能出现在允许 `assignment statement` 的位置，不能嵌入初始化器、调用实参、条件或其他表达式：
+赋值只能出现在允许 `assignment_statement` 的位置，不能嵌入初始化器、调用实参、条件或其他表达式：
 
 ```ink
 var a = 0;
@@ -52,7 +52,7 @@ if a = 10 { }     // 非法
 
 ## 4. 禁止链式赋值
 
-每条赋值语句准确包含一个 `assignment target` 和一个 `assignment operator`。链式赋值非法：
+每条赋值语句准确包含一个 `assignment_target` 和一个 `assignment_operator`。链式赋值非法：
 
 ```ink
 a = b = value;

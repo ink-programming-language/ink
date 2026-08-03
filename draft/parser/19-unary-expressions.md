@@ -1,0 +1,232 @@
+# Parser 议题 19：一元表达式
+
+> 状态：已确认  
+> 确认日期：2026-08-03
+
+## 1. 文法
+
+一元表达式使用右递归标准 EBNF：
+
+```ebnf
+unary_expression =
+      postfix_expression
+    | unary_operator, unary_expression ;
+
+unary_operator =
+    "+" | "-" | "!" | "~" | "*" | "&" | "await" ;
+```
+
+所有非终结符遵守议题 04，使用不含空格的 `snake_case` 名称。
+
+右递归使连续一元运算从右侧组合：
+
+```ink
+!*pointer     // !(*pointer)
+~-value       // ~(-value)
+&*pointer     // &(*pointer)
+```
+
+每一层运算符都必须分别满足自己的语义要求。
+
+## 2. 一元正号
+
+`+value` 是数值正号，结果数值与操作数相同：
+
+```ink
+let value = +input;
+```
+
+它只适用于语义支持一元正号的数值类型。Parser 不根据操作数类型决定是否合法。
+
+正号不属于数值字面量 Token：
+
+```ink
++42
+```
+
+Tokenizer 产生 `Symbol('+')` 和 `IntegerLiteral("42")`，Parser 再建立一元表达式。
+
+## 3. 一元负号
+
+`-value` 表示数值取负：
+
+```ink
+let negative = -value;
+```
+
+负号同样不属于数值字面量 Token。固定宽度整数取负继续遵守议题 07 的按类型位宽回绕语义，包括最小有符号值和无符号整数。
+
+## 4. 逻辑非
+
+`!value` 表示布尔逻辑非，只接受 `bool` 并返回 `bool`：
+
+```ink
+if !ready {
+    wait();
+}
+```
+
+Ink 不把整数、浮点数、指针、对象或其他值隐式转换为布尔真值：
+
+```ink
+!pointer // 类型错误，即使 pointer 可以与 null 比较
+!1       // 类型错误
+```
+
+指针条件必须明确写出比较：
+
+```ink
+pointer != null
+```
+
+## 5. 按位非
+
+`~value` 表示逐位取反，只接受支持该操作的整数类型：
+
+```ink
+let inverted = ~mask;
+```
+
+`bool` 不使用按位非；布尔值使用 `!`。结果保持操作数的具体整数类型和位宽。
+
+## 6. 解引用
+
+`*pointer` 解引用原始指针，并产生指向目标存储的 place：
+
+```ink
+let value = *pointer;
+*pointer = replacement;
+```
+
+结果的可读、可写能力继承指针目标类型。`const T*` 解引用得到只读 place，`T*` 解引用得到类型允许的可写 place。
+
+Parser 只识别前缀 `*`。操作数是否为可解引用指针、地址是否非空、有效、对齐且处于对象生命周期内，由类型与原始内存访问语义决定。违反原始指针解引用前置条件继续按照既有安全模型处理，而不是 Parser 错误。
+
+## 7. 取地址的语法与语义分层
+
+取地址在语法上接受任意 `unary_expression`：
+
+```ebnf
+unary_expression =
+      postfix_expression
+    | "&", unary_expression
+    | (* other unary operators *) ;
+```
+
+Parser 不把 `&` 的操作数限制成语法非终结符 `place_expression`，因为一个表达式是否产生 place 可能依赖名称绑定、函数返回类型、重载选择和值类别。
+
+Parser 对下列源码都建立取地址一元节点：
+
+```ink
+&variable
+&make_object()
+&(left + right)
+&42
+```
+
+它们是否合法由后续语义阶段判断，不能由 Parser 根据表面形状提前拒绝。
+
+## 8. 内建取地址要求 place
+
+内建 `&expression` 要求操作数完成名称绑定和类型检查后属于 place expression，也就是表示一个具有有效存储位置和生命周期的对象位置。
+
+典型合法形式包括：
+
+```ink
+&variable
+&object.field
+&array[index]
+&tuple.0
+&*pointer
+```
+
+调用表达式是否可取址取决于最终结果类别。Ink 允许普通函数返回引用：
+
+```ink
+func get_object() -> Object&;
+func get_const_object() -> const Object&;
+func make_object() -> Object;
+
+&get_object()       // 合法，结果为 Object*
+&get_const_object() // 合法，结果为 const Object*
+&make_object()      // 语义错误：调用产生按值临时对象
+```
+
+同理，运算结果若合法产生引用 place，可以取址；普通按值算术结果不能取址。Parser 不需要知道重载解析后是否选择了返回 `T&` 的用户运算符。
+
+## 9. 禁止对按值临时对象取址
+
+按值临时结果不满足内建取地址的 place 要求：
+
+```ink
+&make_object() // make_object() -> Object 时非法
+&(a + b)       // 普通按值算术结果非法
+&42            // 字面量非法
+```
+
+Ink 不通过取地址隐式物化一个只活到当前完整表达式结束的临时对象，也不为该指针进行临时生命周期延长。这避免产生在分号之后立即悬空的原始指针：
+
+```ink
+let pointer = &make_object(); // 不允许建立这种立即悬空指针
+```
+
+需要地址时先建立具有明确词法生命周期的绑定：
+
+```ink
+let object = make_object();
+consume(&object);
+```
+
+绑定是否可重新赋值与通过所得指针能否修改目标是不同能力，继续由绑定和目标类型规则决定。
+
+## 10. `&` 与 `*` 的上下文含义
+
+Tokenizer 始终产生单字符 Symbol Token。Parser 根据一元或二元语法位置区分同一符号：
+
+```ink
+&value     // 一元取地址
+left & right // 二元按位与
+
+*pointer   // 一元解引用
+left * right // 二元乘法
+```
+
+不需要为一元和二元拼写建立不同 TokenKind。
+
+## 11. `await`
+
+`await task` 是一元表达式，并使用与其他一元运算相同的右侧操作数结构：
+
+```ink
+let value = await task;
+```
+
+其任务启动、暂停、异常传播、取消和结果复制继续遵守既有异步议题。本节只确定它在表达式文法中的前缀位置和优先级。
+
+## 12. 不支持自增与自减
+
+议题 11 已经禁止 `++`、`--`。它们不属于 `unary_operator`：
+
+```ink
+++value
+--value
+value++
+value--
+```
+
+递增和递减继续使用无结果复合赋值语句：
+
+```ink
+value += 1;
+value -= 1;
+```
+
+## 13. Parser、CST 与恢复
+
+一元 CST 保存运算符的真实 Token 和右侧完整 `unary_expression`。连续一元运算可以保存为嵌套节点，也可以保存为有序前缀列表后在 lowering 时右结合；两者必须产生相同 AST。
+
+Parser 不在 CST 中记录“可取址”“可写”“指针有效”或“操作数是 bool”等语义结论。缺少右操作数时，按照议题 03 使用 `MissingToken` 或 `ErrorNode` 恢复。
+
+## 14. 确认结论
+
+Ink 的一元运算符为 `+`、`-`、`!`、`~`、`*`、`&` 和 `await`，使用右递归 `snake_case` EBNF。Parser 对 `&unary_expression` 只建立语法节点；内建取地址在语义阶段要求操作数最终属于 place。`T&` 或 `const T&` 表达式结果都可以取址；按值临时对象不能取址且不会获得隐式生命周期延长。普通函数允许返回引用，但 Ink 不保证返回引用的目标仍然有效。

@@ -1,6 +1,6 @@
 # 议题 69：元组是内建匿名结构值类型
 
-> 状态：已确认，议题 71 补充异构编译期元值与静态遍历，Parser 议题 07 确认逗号规则  
+> 状态：已确认，议题 71 补充异构编译期元值与静态遍历，Parser 议题 07、14 确认逗号与元组表达式语法  
 > 确认日期：2026-08-02
 
 ## 1. 类型和值语法
@@ -87,7 +87,7 @@ let target: (i64, i64) = source; // 编译错误
 ```ink
 let target: (i64, i64) = (
     cast<i64>(source.0),
-    cast<i64>(source.1),
+    cast<i64>(source.1)
 );
 ```
 
@@ -106,7 +106,7 @@ print(value.1);
 
 ```ink
 value.0 = 20;        // value 可变且元素可写时合法
-let first = &value.0; // 遵守普通引用生命周期
+let first = &value.0; // 程序员负责 value 的剩余生命周期
 ```
 
 编译期已知索引也可以用于结构化元编程访问；索引必须在范围内，并在类型检查该访问前已知。普通运行时整数不能索引异构元组，因为结果无法具有一个确定静态类型：
@@ -146,9 +146,9 @@ let resources: (File, Socket);
 let views: (const User&, const Config&);
 ```
 
-包含安全引用不会让元组获得更长生命周期。该元组不能存入超出任一引用允许范围的字段、全局状态、异步任务或其他长期存储。包含原始指针时仍由程序员负责指针目标生命周期。
+包含普通 `T&` 或 `const T&` 的元组可以存入字段、全局状态、异步任务或其他长期存储，但不会让任何目标获得更长生命周期。复制元组只复制引用别名；目标失效后继续通过元素引用访问属于 UB。包含原始指针时遵守相同的程序员生命周期责任。
 
-议题 43 的 `Task<T>` 要求成功结果可复制且不能长期保存安全引用，因此 `Task<(A, B)>` 只有在整个元组满足同一结果约束时才合法。
+议题 43 的 `Task<T>` 要求成功结果可复制。普通引用是可复制的非拥有别名，因此可以出现在任务结果元组中；安全切片或其他具有独立不逃逸规则的类型仍遵守各自限制。
 
 ## 8. 模式绑定
 
@@ -164,7 +164,7 @@ let (number, text) = value;
 let (header, (left, right)) = nested;
 ```
 
-模式绑定不为元组引入特殊移动。按值、只读引用或可变引用绑定继续遵守普通值类别、复制能力和引用生命周期；不可复制元素不能通过无标记按值模式被隐藏复制。
+模式绑定不为元组引入特殊移动。按值、只读引用或可变引用绑定继续遵守普通值类别和复制能力；引用目标生命周期由程序员负责。不可复制元素不能通过无标记按值模式被隐藏复制。
 
 模式元素数量必须与元组元素数量完全一致。忽略元素的占位模式以及更完整的 tuple pattern 语法留给模式系统后续细化。
 
@@ -190,9 +190,9 @@ let (header, (left, right)) = nested;
 
 ```ink
 func make_tuple<
-    Types: comptime type...,
+    Types: comptime type...
 >(
-    values: Types...,
+    values: Types...
 ) -> (...Types) {
     return (...values);
 }
@@ -203,7 +203,7 @@ func make_tuple<
 ```ink
 let tuple = make_tuple<i32, String>(
     10,
-    "hello",
+    "hello"
 );
 ```
 
@@ -245,7 +245,7 @@ extern "C" func invalid() -> (i32, i32); // 编译错误
 ```ink
 let (user, permissions) = await all(
     load_user(),
-    load_permissions(),
+    load_permissions()
 );
 ```
 
