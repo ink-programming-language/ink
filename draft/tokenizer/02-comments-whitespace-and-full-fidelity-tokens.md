@@ -237,7 +237,7 @@ InvalidCharacter
 UnterminatedBlockComment
 ```
 
-错误 Token 的 `raw` 仍是准确原始字节切片，并参与连续源码分区。它们不属于 Trivia，也不能交给 parser 当作合法语法 Token。Parser 的错误恢复视图可以显式观察或跳过它们，但整个 `LexedFile` 仍满足字节拼接还原规则。
+错误 Token 的 `raw` 仍是准确原始字节切片，并参与连续源码分区。它们不属于 Trivia，也不能交给 Parser 当作合法语法 Token。只要 Tokenizer 产生错误 Token，本文件的词法结果就是失败；编译驱动不得对它调用 Parser。整个失败的 `LexedFile` 仍满足字节拼接还原规则，供错误展示和源码工具使用。
 
 未闭合块注释的错误 Token 从 `/*` 覆盖到 EOF；诊断至少报告最外层起点、剩余嵌套深度，以及能够合理展示时最近未闭合层的位置。
 

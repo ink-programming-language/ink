@@ -2,7 +2,7 @@
 
 Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存；只有全部议题完成并经过一致性检查后，才合并生成 `language-draft.md`。
 
-基础语言前端规则从 [`tokenizer/README.md`](./tokenizer/README.md) 开始独立讨论；本表继续保存此前已经确认的语义议题。
+基础语言前端与模块规则在 [`tokenizer/README.md`](./tokenizer/README.md)、[`parser/README.md`](./parser/README.md) 与 [`modules/README.md`](./modules/README.md) 中独立讨论；本表继续保存此前已经确认的语义议题。
 
 ## 议题状态
 
@@ -10,7 +10,7 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | --- | --- | --- | --- |
 | 01 | 运行时检查、底层契约与 UB | 已确认，议题 04、32、51、54 修订 | [`topics/01-safety-model.md`](./topics/01-safety-model.md) |
 | 02 | 值、复制与不可复制类型 | 已确认，议题 27、32、34、36、43—45、54、60、61、69 补充 | [`topics/02-values-copy-noncopyable.md`](./topics/02-values-copy-noncopyable.md) |
-| 03 | 析构、RAII 与 `defer` | 已确认，议题 06、27、32、34、42、48、51、53、54 修订 | [`topics/03-raii-destructor-defer.md`](./topics/03-raii-destructor-defer.md) |
+| 03 | 析构、RAII 与 `defer` | 已确认，议题 06、27、32、34、42、48、51、53、54 修订；Parser 议题 09 确认独立 block 作用域 | [`topics/03-raii-destructor-defer.md`](./topics/03-raii-destructor-defer.md) |
 | 04 | 指针、引用、数组与切片 | 已确认，议题 31—33、43、44、54、61 补充 | [`topics/04-pointers-references-arrays-slices.md`](./topics/04-pointers-references-arrays-slices.md) |
 | 05 | 基础类型与 `ptrsize` | 已确认 | [`topics/05-primitive-types-ptrsize.md`](./topics/05-primitive-types-ptrsize.md) |
 | 06 | 构造函数、隐式构造与字面量初始化 | 已确认，议题 34、54、72 修订 | [`topics/06-constructors-implicit-initialization.md`](./topics/06-constructors-implicit-initialization.md) |
@@ -24,12 +24,12 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 14 | 浮点运行环境与 subnormal | 已确认 | [`topics/14-floating-environment-subnormal.md`](./topics/14-floating-environment-subnormal.md) |
 | 15 | fast-math 与有限值契约 | 已确认，属性作用域待定 | [`topics/15-fast-math-finite-contract.md`](./topics/15-fast-math-finite-contract.md) |
 | 16 | 内建属性与函数装饰器 | 已确认，议题 19、34、35、58、59、65 补充 | [`topics/16-attributes-function-decorators.md`](./topics/16-attributes-function-decorators.md) |
-| 17 | 模块生命周期、装饰器注册与热更新 | 已确认，议题 18、22、34、36、42—45、55、58、61 补充 | [`topics/17-module-lifecycle-decorator-registration.md`](./topics/17-module-lifecycle-decorator-registration.md) |
-| 18 | 模块生命周期钩子排序 | 已确认，议题 34、42 补充，依赖环规则待定 | [`topics/18-module-lifecycle-hook-order.md`](./topics/18-module-lifecycle-hook-order.md) |
+| 17 | 模块生命周期、装饰器注册与热更新 | 已确认，议题 18、22、34、36、42—45、55、58、61 与 Module 议题 03 补充 | [`topics/17-module-lifecycle-decorator-registration.md`](./topics/17-module-lifecycle-decorator-registration.md) |
+| 18 | 模块生命周期钩子排序 | 已确认，议题 34、42 补充；Module 议题 01 确认单文件 module，Module 议题 03 禁止实际依赖环 | [`topics/18-module-lifecycle-hook-order.md`](./topics/18-module-lifecycle-hook-order.md) |
 | 19 | 编译期反射、动态反射与自定义元数据 | 已确认，议题 20—26、28、31—35、37、57、61、63、66 补充 | [`topics/19-reflection-runtime-metadata.md`](./topics/19-reflection-runtime-metadata.md) |
 | 20 | 反射访问权限与封装 | 已确认，议题 34、61、66 补充 | [`topics/20-reflection-access-control.md`](./topics/20-reflection-access-control.md) |
 | 21 | 动态反射值传递与调用 ABI | 已确认，议题 22、23、25、28、34、38、57、65 补充，精确二进制布局待定 | [`topics/21-dynamic-reflection-value-abi.md`](./topics/21-dynamic-reflection-value-abi.md) |
-| 22 | 基于名称的动态反射身份 | 已确认，议题 23、31、35、37 补充 | [`topics/22-name-based-reflection-identity.md`](./topics/22-name-based-reflection-identity.md) |
+| 22 | 基于名称的动态反射身份 | 已确认，议题 23、31、35、37 补充；Module 议题 01、02 确认 package/module 路径身份 | [`topics/22-name-based-reflection-identity.md`](./topics/22-name-based-reflection-identity.md) |
 | 23 | 反射成员唯一性与继承覆盖 | 已确认，议题 24、25、28—30 补充 | [`topics/23-reflection-member-inheritance.md`](./topics/23-reflection-member-inheritance.md) |
 | 24 | `class`、单继承与多接口 | 已确认，议题 25—31、35、54—57 补充 | [`topics/24-class-inheritance-interfaces.md`](./topics/24-class-inheritance-interfaces.md) |
 | 25 | 虚函数与动态反射调用 | 已确认，议题 26、28、34、55、57、58、60、65 补充 | [`topics/25-virtual-functions-reflection.md`](./topics/25-virtual-functions-reflection.md) |
@@ -70,13 +70,13 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 60 | 异步覆盖不支持协变结果 | 已确认，`Task<T>` 对结果类型不变型 | [`topics/60-no-covariant-async-results.md`](./topics/60-no-covariant-async-results.md) |
 | 61 | `comptime` 泛型、部分求值与编译期执行 | 已确认，议题 62—72 补充泛型、结构化生成、重载、元组元值与统一函数阶段 | [`topics/61-comptime-generics-partial-evaluation.md`](./topics/61-comptime-generics-partial-evaluation.md) |
 | 62 | 编译期参数包是普通编译期序列 | 已确认，议题 64、66、68—71 补充绑定、反射、运行时包、元组与重载 | [`topics/62-comptime-parameter-packs.md`](./topics/62-comptime-parameter-packs.md) |
-| 63 | Ink v0 不提供字符串到代码生成 | 已确认，议题 67 确认只使用结构化声明表达式 | [`topics/63-no-string-to-code-generation.md`](./topics/63-no-string-to-code-generation.md) |
+| 63 | Ink v0 不提供字符串到代码生成 | 已确认，议题 67 确认只使用结构化声明表达式；允许静态候选集条件导入 | [`topics/63-no-string-to-code-generation.md`](./topics/63-no-string-to-code-generation.md) |
 | 64 | Ink v0 不支持泛型实参推导 | 已确认，议题 65、70 补充默认值与重载候选规则 | [`topics/64-no-generic-argument-inference.md`](./topics/64-no-generic-argument-inference.md) |
 | 65 | 普通参数与编译期参数统一使用默认实参 | 已确认，议题 70 补充默认实参与重载候选关系 | [`topics/65-unified-default-arguments.md`](./topics/65-unified-default-arguments.md) |
 | 66 | 开放泛型声明是一等编译期值 | 已确认，议题 67、70、71 补充结构化生成、泛型重载与元值元组 | [`topics/66-first-class-generic-declarations.md`](./topics/66-first-class-generic-declarations.md) |
 | 67 | `comptime` 直接生成结构化声明，不公开 Builder | 已确认，议题 71 补充使用编译期元组组织声明输入 | [`topics/67-comptime-structured-declarations-no-builders.md`](./topics/67-comptime-structured-declarations-no-builders.md) |
 | 68 | 运行时参数包与编译期类型包一一对应 | 已确认，议题 69、70 补充元组与闭合重载 | [`topics/68-runtime-parameter-packs.md`](./topics/68-runtime-parameter-packs.md) |
-| 69 | 元组是内建匿名结构值类型 | 已确认，议题 71 补充异构编译期元值与静态遍历 | [`topics/69-tuples-structural-values.md`](./topics/69-tuples-structural-values.md) |
+| 69 | 元组是内建匿名结构值类型 | 已确认，议题 71 补充异构编译期元值与静态遍历；Parser 议题 07 确认逗号规则 | [`topics/69-tuples-structural-values.md`](./topics/69-tuples-structural-values.md) |
 | 70 | 显式泛型实参与重载解析 | 已确认，先闭合候选签名再执行普通重载，不提供 SFINAE 回退 | [`topics/70-explicit-generic-overload-resolution.md`](./topics/70-explicit-generic-overload-resolution.md) |
 | 71 | 现有元组直接承载异构编译期值 | 已确认，不增加元值容器或类型擦除，由 `comptime for` 逐项展开 | [`topics/71-comptime-heterogeneous-tuples.md`](./topics/71-comptime-heterogeneous-tuples.md) |
 | 72 | 不设置 `comptime func` 函数类别 | 已确认，普通函数按调用上下文在编译期执行或残留到运行时 | [`topics/72-no-comptime-function-category.md`](./topics/72-no-comptime-function-category.md) |

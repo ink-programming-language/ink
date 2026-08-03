@@ -15,5 +15,6 @@
 | 07 | 普通字符串字面量 | 已确认，双引号单行字符串、统一 Unicode 转义、无插值 | [`07-string-literals.md`](./07-string-literals.md) |
 | 08 | Raw 与多行字符串字面量 | 已确认，一对/三对双引号决定行模式，`r` 前缀关闭转义 | [`08-raw-and-multiline-string-literals.md`](./08-raw-and-multiline-string-literals.md) |
 | 09 | 单字符 Symbol Token | 已确认，所有合法符号逐字符产生统一 Token，复合含义由 parser 识别 | [`09-single-character-symbol-tokens.md`](./09-single-character-symbol-tokens.md) |
+| 10 | Token 流与错误恢复契约 | 已确认，完整字节分区、固定 EOF、错误 Token、词法失败门控和确定性输出 | [`10-token-stream-and-error-contract.md`](./10-token-stream-and-error-contract.md) |
 
 词法议题在本目录内独立编号，从 `01` 开始。完成词法层后再进入语法规则目录；词法分析不提前承担名称绑定、类型检查或语义消歧职责。
