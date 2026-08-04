@@ -45,7 +45,7 @@ Ink 不提供 `isize` 和 `usize`，统一使用 `ptrsize`。
 - 与指针显式往返转换时保留全部地址位。
 
 ```ink
-let length: ptrsize = values.length;
+const length: ptrsize = values.length;
 ```
 
 指针与 `ptrsize` 之间必须使用议题 11 定义的 `ptrcast` 显式转换，不使用 `as`。
@@ -53,7 +53,7 @@ let length: ptrsize = values.length;
 Ink 不提供返回指针宽度有符号整数的普通指针减法运算符。需要计算地址或元素距离时使用显式标准库函数：
 
 ```ink
-let distance: int = pointer_distance(begin, end);
+const distance: int = pointer_distance(begin, end);
 ```
 
 结果不能由 `int` 表示时产生 trap。首批 Ink 目标的对象大小必须受到相应可表示范围限制；未来宽于 64 位的目标需要在目标规范中重新确认距离结果类型。
@@ -107,4 +107,4 @@ U+E000 .. U+10FFFF
 
 核心语言只负责解析并验证 Unicode 标量字面量的词法合法性，不内置 Unicode 分类数据库。
 
-标准库通过议题 06 定义的 `implicit constructor`，把标量字面量初始化为具有有效值不变量的 `UnicodeScalar`。
+标准库通过议题 06 定义的 `implicit` 构造函数，把标量字面量初始化为具有有效值不变量的 `UnicodeScalar`。

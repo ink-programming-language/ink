@@ -1,6 +1,6 @@
 # 议题 40：显式异常原因链与 `from`
 
-> 状态：已确认，议题 41—43、47 补充  
+> 状态：已确认，议题 41—43、47 与 Parser 议题 27 补充
 > 确认日期：2026-08-02
 
 ## 1. `from` 显式建立原因
@@ -19,7 +19,15 @@ try {
 
 正在传播的新异常是 `ConfigurationError`，原 `ParseError` 记录成为它的直接 `cause`。
 
-`from` 是 `throw` 语句中位于新异常表达式之后的上下文关键字，不是普通二元运算符，也不能在其他表达式位置使用。
+`from` 是 `throw` 语句中位于新异常表达式之后的上下文关键字，不是普通二元运算符，也不能在其他表达式位置使用。Tokenizer 议题 04 规定它始终产生普通 `Identifier("from")`；Parser 议题 27 只在已经完成的新异常表达式之后按拼写识别原因子句。成员导入开头是 Parser 议题 06 已确认的另一个上下文位置。
+
+因此普通声明、成员访问以及作为抛出表达式本身的同名标识符仍然合法：
+
+```ink
+const from = fallback_error;
+const text = String.from("hello");
+throw from;
+```
 
 ## 2. 原因必须是当前处理器绑定
 
@@ -96,7 +104,7 @@ catch ConfigurationError as error {
 }
 ```
 
-`throw; from error` 和没有新异常表达式的其他 `from` 形式都非法。重新抛出不会新增原因节点，也不会把当前异常指向自身。
+`throw; from error;` 和没有新异常表达式的其他 `from` 形式都非法。重新抛出不会新增原因节点，也不会把当前异常指向自身。
 
 ## 7. 原因链不参与捕获匹配
 
@@ -126,7 +134,7 @@ func cause() -> Optional<const ExceptionView&>;
 catch as error {
     log(error.type_name());
 
-    if let .some(cause) = error.cause() {
+    if match .some(cause) = error.cause() {
         log(cause.type_name());
     }
 }
@@ -181,7 +189,7 @@ catch as error {
 - `cause` 连接多个异常记录；
 - traceback 描述某个异常记录的抛出和传播位置。
 
-议题 41 规定 `throw;` 保留当前记录原有的抛出位置和 traceback，不把重新抛出位置写成新的起点。`throw NewError { ... } from error` 为新记录捕获新的位置与可选 traceback，同时完整保留原因记录自己的诊断数据，因此报告器可以分别显示包装异常和原因异常。
+议题 41 规定 `throw;` 保留当前记录原有的抛出位置和 traceback，不把重新抛出位置写成新的起点。`throw NewError { ... } from error;` 为新记录捕获新的位置与可选 traceback，同时完整保留原因记录自己的诊断数据，因此报告器可以分别显示包装异常和原因异常。
 
 ## 14. 成本与 LLVM 实现
 

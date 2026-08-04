@@ -1,6 +1,6 @@
 # Parser 议题 04：标准 EBNF 记法
 
-> 状态：已确认，非终结符统一使用 `snake_case`  
+> 状态：已确认，非终结符统一使用 `snake_case`；议题 27 补充上下文 Token 拼写
 > 确认日期：2026-08-03
 
 ## 1. 采用标准
@@ -20,7 +20,7 @@ qualified_name = identifier, { ".", identifier } ;
 
 optional_alias = [ "as", identifier ] ;
 
-binding_declaration = ( "let" | "var" ), identifier ;
+binding_declaration = ( "var" | "const" ), identifier ;
 ```
 
 其含义为：
@@ -71,6 +71,8 @@ Tokenizer 已经完成 Keyword、BuiltinType、Identifier 和 Symbol 的分类�
 - `"("` 匹配一个 `Symbol('(')` Token；
 - `"->"` 匹配直接相邻的 `Symbol('-')` 与 `Symbol('>')` 两个 Token。
 
+terminal string 不会覆盖 Tokenizer 已经确定的 TokenKind。需要按某个 Identifier 的准确拼写建立上下文语法角色时，必须使用下一节的 special sequence 明确写出，不能把该 Identifier 伪装成硬关键字。
+
 一个 terminal string 内的字符必须在源码中直接相邻，不能跨 Trivia。不同 EBNF syntactic term 之间则通过议题 02 的显著 Token 视图匹配，可以存在 Trivia。
 
 因此：
@@ -105,9 +107,14 @@ Identifier、字面量等开放集合通过标准 special sequence 引用 Tokeni
 identifier = ? Identifier Token ? ;
 integer_literal = ? IntegerLiteral Token ? ;
 string_literal = ? StringLiteral Token ? ;
+
+contextual_from =
+    ? Identifier Token whose spelling is exactly "from" ? ;
 ```
 
 special sequence 中的文字是对 Tokenizer 议题的引用，不是 Ink 源码，也不创建新的 TokenKind。
+
+`contextual_from` 是 Ink v0 唯一按 Identifier 拼写识别的上下文词。它只用于议题 06 的成员导入开头和议题 27 的异常原因子句；其他位置的同一 Token 仍是普通 `identifier`。上下文匹配不会修改 TokenKind，CST 继续保存原始 Identifier Token。
 
 EOF 可以定义为：
 
@@ -145,4 +152,4 @@ identifier = ? Identifier Token ? ;
 
 ## 8. 确认结论
 
-Ink Parser 的正式语法统一使用 ISO/IEC 14977 风格的标准 EBNF。所有非终结符使用不含空格的 `snake_case` 名称。可选、重复、分组、连接和分支使用标准记号；终结字符串表示准确源码拼写，多字符终结字符串要求底层 Symbol Token 直接相邻；开放 Token 类别使用标准 special sequence 引用 Tokenizer 定义。
+Ink Parser 的正式语法统一使用 ISO/IEC 14977 风格的标准 EBNF。所有非终结符使用不含空格的 `snake_case` 名称。可选、重复、分组、连接和分支使用标准记号；终结字符串表示具有规范 TokenKind 的准确源码拼写，多字符终结字符串要求底层 Symbol Token 直接相邻；开放 Token 类别和唯一的上下文 Identifier 拼写使用标准 special sequence 引用 Tokenizer 定义。

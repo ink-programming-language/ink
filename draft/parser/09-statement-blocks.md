@@ -1,6 +1,6 @@
 # Parser 议题 09：语句块与花括号
 
-> 状态：已确认，议题 20 补充 `if` 条件与完整语句规则  
+> 状态：已确认，议题 20、24—26、28 补充控制结构、清理与异常处理规则
 > 确认日期：2026-08-03
 
 ## 1. 普通语句块
@@ -26,7 +26,7 @@ block_item =
 
 ```ink
 {
-    let value = calculate();
+    const value = calculate();
     use(value);
 }
 
@@ -34,6 +34,8 @@ block_item =
 ```
 
 嵌套块可以遮蔽外层名称还是必须拒绝，将在名称绑定与局部声明议题中确定；本议题只确认块边界形成作用域。
+
+议题 28 确认 `try` body 和每个 `catch` body 都是独立 `statement_block`。`try` body 的局部名称不进入处理器作用域；捕获绑定只在对应处理器 block 内可见，也不进入后续处理器。
 
 ## 3. RAII 与 `defer`
 
@@ -60,6 +62,8 @@ func process() {
 
 正常到达 `}`、跳转离开块或异常展开离开块时，局部对象析构和 `defer` 遵守议题 03 已确认的逆序清理规则。
 
+议题 26 确认 `defer` 同时接受 `defer expression;` 和 `defer { ... }`。两种形态都注册到当前 `statement_block` 的清理栈，并在真正离开该作用域时执行；defer block 自身也建立一个嵌套词法作用域。
+
 ## 4. Block 不是表达式
 
 普通 `statement_block` 是语句结构，不是表达式，不产生隐式结果。块中最后一个表达式仍必须作为表达式语句以 `;` 结束：
@@ -73,12 +77,14 @@ func process() {
 以下形式不能把普通块的最后一个表达式作为值返回：
 
 ```ink
-let value = {
+const value = {
     calculate()
 };
 ```
 
-函数通过显式 `return` 返回值。议题 21 的 `if_expression` 使用 `if ... then ... else ...`，本身不使用花括号。聚合初始化、类型构造、`match` 分支或其他可能使用花括号的表达式拥有各自独立产生式和专用 CST 节点，不会把普通语句块自动变成有值 block expression。
+函数通过显式 `return` 返回值。议题 21 的 `if_expression` 使用 `if ... then ... else ...`，本身不使用花括号。聚合初始化、类型构造或其他可能使用花括号的表达式拥有各自独立产生式和专用 CST 节点，不会把普通语句块自动变成有值 block expression。
+
+议题 24 允许 `match_expression` 的分支使用 `statement_block`，但仅用于不能正常完成的分支。该块仍不产生值；如果它能到达结束 `}`，对应有值分支属于语义错误。
 
 ## 5. 控制流必须使用花括号
 
@@ -105,6 +111,8 @@ while condition update();
 
 该规则避免悬空 `else`，并保证增加第二条语句时不会静默改变控制范围。
 
+议题 25 进一步确认 `while`、`while match` 和普通 `for` 都使用该形状，不接受单语句省略花括号，也不支持循环 `else`。
+
 ## 6. `else if`
 
 `else if` 通过 `else` 后嵌套另一个完整 `if_statement` 支持：
@@ -127,7 +135,7 @@ if first {
 
 这里每个 `if` 的执行体仍然具有花括号；只有 `else` 与下一个 `if` 之间不额外增加一层块。
 
-议题 20 已确认条件不强制括号，并允许普通 `expression` 或 `let_condition`。本节 EBNF 只确认 block 形状和 `else` 归属，完整规则以议题 20 为准。
+议题 20 已确认条件不强制括号，并允许普通 `expression` 或 `match_condition`。本节 EBNF 只确认 block 形状和 `else` 归属，完整规则以议题 20 为准。
 
 ## 7. Block 自身结束结构
 

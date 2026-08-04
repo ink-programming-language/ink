@@ -1,6 +1,6 @@
 # 议题 37：catch-all、`ExceptionView` 与重新抛出
 
-> 状态：已确认，议题 38—43 补充  
+> 状态：已确认，议题 38—43 与 Parser 议题 27、28 补充
 > 确认日期：2026-08-02
 
 ## 1. 两种 catch-all 形式
@@ -30,7 +30,7 @@ catch          -> 匹配全部 Ink 异常，不建立绑定
 catch as name  -> 匹配全部 Ink 异常，name: const core.ExceptionView&
 ```
 
-`as` 在这里与 `catch Type as name` 一样表示处理器绑定，不表示类型转换。
+`as` 在这里与 `catch Type as name` 一样表示处理器绑定，不表示类型转换。Parser 议题 28 同时允许无绑定的 `catch Type { ... }`。
 
 catch-all 只匹配议题 34 定义的 Ink 语言异常。它不把原始指针 UB、PDB、trap、`abort`、硬件故障或进程终止转换成可捕获异常。
 
@@ -48,7 +48,7 @@ try {
 }
 ```
 
-`catch {}` 和 `catch as name` 都覆盖全部 Ink 异常，因此位于它们之后的任何处理器都静态不可达。编译器按照既定规则产生 warning：
+`catch {}` 和 `catch as name` 都覆盖全部 Ink 异常，因此最多出现一次且必须是最后一个处理器：
 
 ```ink
 try {
@@ -56,11 +56,11 @@ try {
 } catch {
     recover();
 } catch IoError as error {
-    // warning：该处理器不可达
+    // 编译错误：catch-all 后不能再有处理器
 }
 ```
 
-语法不强制 catch-all 必须写在最后，但后续处理器不会执行。
+Parser 议题 28 把该限制直接写入 `catch_sequence`。这与类型化基类或接口遮蔽后续类型化处理器时产生的 warning 不同；catch-all 后出现处理器是硬错误。
 
 议题 39 不允许给 catch-all 或类型化处理器附加过滤表达式，也不允许一个处理器列出多个异常类型。
 
@@ -165,7 +165,7 @@ catch as error {
 
 ```ink
 catch as error {
-    if let .some(type) = error.reflection() {
+    if match .some(type) = error.reflection() {
         inspect(type);
     }
 }
@@ -216,6 +216,8 @@ try {
     throw;
 }
 ```
+
+Parser 议题 27 将它定义为没有异常表达式、直接由真实分号结束的 `throw_statement` 分支；`throw expression;` 即使出现在同一处理器中，也属于创建新异常的另一分支。
 
 它只在 `catch` 处理器的当前函数体上下文中合法。在普通函数、处理器之外或处理器内部声明的另一个可独立调用函数中使用时产生编译错误；调用普通辅助函数不会把“当前异常”作为隐式动态状态传给该函数。
 

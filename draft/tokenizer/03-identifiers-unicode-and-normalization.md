@@ -48,7 +48,7 @@ user$name   // '$' 不是 IdentifierContinue
 例如由单个 `U+00E9` 组成的 NFC 拼写可以合法出现在：
 
 ```ink
-let café = 1;
+const café = 1;
 ```
 
 如果源码用 `U+0065 U+0301` 表示相同视觉字符但完整标识符不是 NFC，Tokenizer 产生标识符规范化诊断，并建议规范后的源码拼写。
@@ -95,8 +95,8 @@ Tokenizer 不能静默删除这些字符。诊断应给出准确原始字节跨�
 Ink 不把不同 Unicode script 出现在同一标识符中定义为词法错误：
 
 ```ink
-let user数量 = 10;
-let HTTP状态 = 200;
+const user数量 = 10;
+const HTTP状态 = 200;
 ```
 
 这类中英文组合在实际代码中有合理用途。Tokenizer 只应用 XID、NFC 和不可见字符规则，不根据 script 猜测作者意图。

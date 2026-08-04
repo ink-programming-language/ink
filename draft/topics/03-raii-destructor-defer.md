@@ -1,6 +1,6 @@
 # 议题 03：析构、RAII 与 `defer`
 
-> 状态：已确认，析构函数名称经议题 06 修订，动态销毁经议题 27 补充，枚举载荷经议题 32 补充，异常展开经议题 34、42 修订，议题 48、51、53、54 补充异步任务，Parser 议题 09、18 确认 block 与完整表达式清理边界  
+> 状态：已确认，2026-08-04 析构声明改为 `func ~ClassName()`；动态销毁经议题 27 补充，枚举载荷经议题 32 补充，异常展开经议题 34、42 修订，议题 48、51、53、54 补充异步任务，Parser 议题 09、18、25、26 确认 block、完整表达式、循环跳转与 `defer` 语法边界
 > 确认日期：2026-08-01
 
 ## 1. 确定性析构
@@ -26,14 +26,14 @@ Ink 对具有析构函数的局部对象采用 RAII 和确定性析构。
 
 ## 2. 析构函数的声明
 
-析构函数使用固定的内建名称 `destructor`，并保留 Ink 的 `func` 声明和显式接收者语法：
+析构函数在 `func` 后使用 `~` 加所属类名，不使用独立的 `destructor` 关键字。源码省略接收者参数，函数体内仍可使用隐式 `this`：
 
 ```ink
 [noncopyable]
 class File {
     handle: OsHandle;
 
-    func destructor(this: File&) {
+    func ~File() {
         if this.handle.is_valid() {
             os.close(this.handle);
         }
@@ -43,18 +43,23 @@ class File {
 
 析构函数必须满足以下规则：
 
-- 名称固定为 `destructor`；
-- 接收者固定为 `this: Type&`；
+- 名称固定为 `~` 加所属类名，并且必须与当前类名匹配；
+- 源码不声明接收者参数，语义上具有当前类的隐式可写 `this`；
 - 不接受其他参数；
 - 不返回值；
 - 隐式满足 `[nothrow]`，函数体和所调用清理不能让异常逃逸；
 - 不能重载；
 - 每个类型最多声明一个析构函数；
+- 必须提供语句块函数体，不能以 `;` 结束为无函数体声明；
 - 声明析构函数的类型必须显式标记 `[noncopyable]`。
+
+Parser 只为 `~ Identifier` 建立函数名称语法，不比较该 Identifier 与所属类名。语义分析负责确认声明位于类成员列表、名称与所属类完全匹配，并检查上述参数、返回类型、重载、函数体和属性约束。因而 `func ~Other()` 可以形成完整 CST，但若它位于 `class File` 中，必须产生语义错误并建议改为 `func ~File()`；`func ~File();` 同样形成 CST，随后因缺少函数体产生语义错误。
 
 析构函数可以读取和修改 `this`，但不得延长即将结束的对象生命周期。
 
-议题 54 的原始 `this` 捕获只适用于异步成员任务。同步 `destructor(this: Type&)` 仍使用本议题的短期接收者，不把引用保存到未来执行，也不因异步方法规则改变语法或 ABI。
+`~` 与类名按两个 Token 解析，中间允许空白、换行或注释 Trivia；规范格式固定为 `~Type`。
+
+议题 54 的原始 `this` 捕获只适用于异步成员任务。同步 `func ~Type()` 的隐式 `this` 仍是析构期间的短期非拥有接收者，不把引用保存到未来执行，也不因异步方法规则改变语法或 ABI。
 
 ## 3. 析构顺序
 
@@ -62,7 +67,7 @@ class File {
 
 对于具有用户析构函数的聚合体：
 
-1. 先执行用户定义的 `destructor`；
+1. 先执行用户定义的析构函数；
 2. 再按照字段声明顺序的逆序自动析构字段。
 
 ```ink
@@ -71,7 +76,7 @@ class Server {
     listener: Socket;
     log: File;
 
-    func destructor(this: Server&) {
+    func ~Server() {
         metrics.server_stopped();
     }
 }
@@ -80,16 +85,16 @@ class Server {
 `Server` 的销毁顺序是：
 
 ```text
-destructor(Server)
-destructor(File log)
-destructor(Socket listener)
+~Server()
+~File(log)
+~Socket(listener)
 ```
 
 用户析构函数不应直接析构字段；字段清理由编译器自动完成。
 
 销毁带载荷枚举时，编译器读取当前有效判别分支，并且只析构该活动分支中已经构造完成的载荷。非活动分支没有对象生命周期，不能执行其析构。具体枚举规则由议题 32 规定。
 
-派生类完整对象的销毁从最派生类开始，依次执行当前类的用户 `destructor`、当前类字段的逆序清理，然后进入直接父类，直到具体父类链结束。通过基类进行动态销毁时也必须保持相同顺序，具体入口由议题 27 规定。
+派生类完整对象的销毁从最派生类开始，依次执行当前类的用户析构函数、当前类字段的逆序清理，然后进入直接父类，直到具体父类链结束。通过基类进行动态销毁时也必须保持相同顺序，具体入口由议题 27 规定。
 
 ## 4. 部分初始化
 
@@ -102,14 +107,14 @@ var server = Server {
 };
 ```
 
-如果 `listener` 初始化成功而 `log` 初始化失败，编译器只析构 `listener`。由于完整的 `Server` 从未构造成功，不调用 `Server.destructor`。
+如果 `listener` 初始化成功而 `log` 初始化失败，编译器只析构 `listener`。由于完整的 `Server` 从未构造成功，不调用 `Server` 的析构函数。
 
 ## 5. 不允许直接调用析构函数
 
 析构函数只能由语言的生命周期机制调用，程序不能直接写：
 
 ```ink
-file.destructor(); // 编译错误
+file.~File(); // 编译错误
 ```
 
 允许直接调用析构函数会产生“对象已销毁但绑定仍然存在”的状态，与 Ink 不提供已移动变量的设计相冲突。
@@ -133,7 +138,7 @@ class File {
         }
     }
 
-    func destructor(this: File&) {
+    func ~File() {
         if this.handle.is_valid() {
             os.close(this.handle);
         }
@@ -141,7 +146,7 @@ class File {
 }
 ```
 
-`close()` 可以报告错误，并在成功后把对象变成合法的关闭状态。随后执行 `File.destructor` 时不会重复关闭资源。
+`close()` 可以报告错误，并在成功后把对象变成合法的关闭状态。随后执行 `File` 的析构函数时不会重复关闭资源。
 
 也可以通过嵌套作用域精确结束生命周期：
 
@@ -149,7 +154,7 @@ class File {
 {
     var file = File.open("data.txt");
     process(file);
-} // 自动执行 File.destructor
+} // 自动执行 File 的析构函数
 
 continue_work();
 ```
@@ -160,12 +165,14 @@ Parser 议题 09 正式确认这种独立 `{ ... }` 是合法的 `block statemen
 
 执行到 `defer` 语句时，编译器在当前作用域注册一个清理动作。局部对象析构和 `defer` 使用同一个后进先出的清理栈。
 
+Parser 议题 26 将表面语法固定为 `defer expression;` 和 `defer { ... }` 两种形态。注册时不执行表达式或 block，也不快照或复制其中访问的值；整个 body 在作用域清理时才执行。需要保存注册时的值必须先显式建立普通 `const` 副本或引用绑定。
+
 ```ink
 {
-    var first = Resource.create(); // 注册 destructor(first)
+    var first = Resource.create(); // 注册 first 的析构清理
     defer log("A");                // 注册 defer A
 
-    var second = Resource.create();// 注册 destructor(second)
+    var second = Resource.create();// 注册 second 的析构清理
     defer log("B");               // 注册 defer B
 }
 ```
@@ -174,14 +181,16 @@ Parser 议题 09 正式确认这种独立 `{ ... }` 是合法的 `block statemen
 
 ```text
 defer B
-destructor(second)
+second 的析构函数
 defer A
-destructor(first)
+first 的析构函数
 ```
 
 只执行控制流实际到达并成功注册的 `defer`。循环每次迭代建立的作用域拥有独立的清理记录。
 
-与析构函数相同，`defer` 清理隐式满足 `[nothrow]`，不得让异常逃逸。需要可靠处理的失败必须在正常控制流中提前完成，或者在清理体内捕获全部异常。
+Parser 议题 25 进一步确认：`continue;` 和 `break;` 离开当前迭代前，先按同一后进先出规则清理已经成功构造的局部对象和已经注册的 `defer`；完成清理后才开始下一轮或离开整个循环。
+
+与析构函数相同，`defer` 清理隐式满足 `[nothrow]`，不得让异常逃逸。需要可靠处理的失败必须在正常控制流中提前完成，或者由延迟表达式调用的 `[nothrow]` 辅助函数、defer block 内部的完整 `try`/`catch` 处理。defer body 也不能通过 `return`、指向外层循环的 `break`/`continue` 或 `await` 越过清理边界。
 
 ## 7. 清理期间的 trap
 

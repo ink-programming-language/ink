@@ -26,7 +26,7 @@ func wrap_fields<
 调用：
 
 ```ink
-let UserPatch: type =
+const UserPatch: type =
     wrap_fields<Optional, User>();
 ```
 
@@ -88,14 +88,14 @@ func make_cache<
     return Storage.instantiate<Key, Value>();
 }
 
-let CacheType =
+const CacheType =
     make_cache<HashMap, String, User>();
 ```
 
 编译期序列可以显式声明元素元类型：
 
 ```ink
-let Containers: comptime GenericTypeDecl[] = [
+const Containers: comptime GenericTypeDecl[] = [
     Vector,
     Deque,
     LinkedList,
@@ -111,10 +111,10 @@ let Containers: comptime GenericTypeDecl[] = [
 开放类型声明值使用编译期内建操作 `instantiate` 请求闭合类型：
 
 ```ink
-let First: type =
+const First: type =
     Container.instantiate<i32>();
 
-let Second: type =
+const Second: type =
     Matrix.instantiate<f32, 4, 4>();
 ```
 
@@ -185,7 +185,7 @@ has_default
 可以在实例化前给出定制诊断：
 
 ```ink
-let info = reflect(Container);
+const info = reflect(Container);
 
 if comptime info.parameters.length != 1 {
     compile_error("Container must accept one argument");
@@ -213,8 +213,8 @@ type -> type
 开放泛型函数名称在唯一确定且上下文要求时可以形成 `GenericFunctionDecl`：
 
 ```ink
-let SortDecl: comptime GenericFunctionDecl = sort;
-let SortI32: comptime FunctionDecl =
+const SortDecl: comptime GenericFunctionDecl = sort;
+const SortI32: comptime FunctionDecl =
     SortDecl.instantiate<i32>();
 ```
 

@@ -31,7 +31,7 @@ asynchronous execution
 ```ink
 task_constructor decorator observe(function) {
     log("creating");
-    let task = function(...);
+    const task = function(...);
     log("created");
     return task;
 }
@@ -83,7 +83,7 @@ func load_task(path: StringView) -> Task<Data*> {
 ```ink
 var task = load_task(path); // 运行同步工厂并创建惰性任务
 // load_impl 和其 async decorator 仍未运行
-let data = await task;
+const data = await task;
 ```
 
 真正的 `async func load_impl` 继续只建立任务；同步工厂负责额外创建期行为。语言不会把同步返回 `Task<T>` 的工厂重新分类为异步函数。
@@ -124,7 +124,7 @@ later await
 func load_task(path: StringView) -> Task<Data*> {
     try {
         return load_impl(path);
-    } catch AllocationError error {
+    } catch AllocationError as error {
         log_creation_failure(error);
         throw;
     }

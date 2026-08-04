@@ -38,14 +38,14 @@ class Player {
 
 ```ink
 comptime {
-    let type = reflect(Player);
+    const type = reflect(Player);
 
     print(type.name);
     print(type.size);
     print(type.alignment);
     print(type.visibility);
 
-    for field in type.fields {
+    for const field in type.fields {
         print(field.name);
         print(field.type);
         print(field.offset);
@@ -53,7 +53,7 @@ comptime {
         print(field.metadata);
     }
 
-    for function in type.functions {
+    for const function in type.functions {
         print(function.name);
         print(function.parameters);
         print(function.return_type);
@@ -169,12 +169,12 @@ class SaveGame {}
 带有 `[reflect]` 的类型进入运行时反射注册表，并按照议题 22 使用完全限定名称查找：
 
 ```ink
-if let .some(type) = reflection.find_type("game.Player") {
+if match .some(type) = reflection.find_type("game.Player") {
     print(type.name);
     print(type.size);
     print(type.alignment);
 
-    for property in type.properties {
+    for const property in type.properties {
         print(property.name);
         print(property.type_name);
     }
@@ -184,8 +184,8 @@ if let .some(type) = reflection.find_type("game.Player") {
 自定义元数据按其类型查询：
 
 ```ink
-if let .some(health) = type.property("health") {
-    if let .some(range) = health.metadata.get[Range]() {
+if match .some(health) = type.property("health") {
+    if match .some(range) = health.metadata.get[Range]() {
         print(range.min);
         print(range.max);
     }
@@ -203,8 +203,8 @@ if let .some(health) = type.property("health") {
 被反射字段可以通过编译器生成的适配器进行类型检查后的动态访问：
 
 ```ink
-if let .some(property) = type.property("health") {
-    let health = property.get[i32](&player);
+if match .some(property) = type.property("health") {
+    const health = property.get[i32](&player);
     property.set[i32](&player, 80);
 }
 ```
@@ -225,8 +225,8 @@ if let .some(property) = type.property("health") {
 被反射函数具有编译器生成的类型擦除调用适配器：
 
 ```ink
-if let .some(function) = type.function("take_damage") {
-    let damaged = function.call[bool](&player, 10);
+if match .some(function) = type.function("take_damage") {
+    const damaged = function.call[bool](&player, 10);
 }
 ```
 

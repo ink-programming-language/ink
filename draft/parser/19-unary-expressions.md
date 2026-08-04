@@ -1,6 +1,6 @@
 # Parser 议题 19：一元表达式
 
-> 状态：已确认  
+> 状态：已确认，议题 30 补充表达式末尾的类型构造含义
 > 确认日期：2026-08-03
 
 ## 1. 文法
@@ -33,7 +33,7 @@ unary_operator =
 `+value` 是数值正号，结果数值与操作数相同：
 
 ```ink
-let value = +input;
+const value = +input;
 ```
 
 它只适用于语义支持一元正号的数值类型。Parser 不根据操作数类型决定是否合法。
@@ -51,7 +51,7 @@ Tokenizer 产生 `Symbol('+')` 和 `IntegerLiteral("42")`，Parser 再建立一�
 `-value` 表示数值取负：
 
 ```ink
-let negative = -value;
+const negative = -value;
 ```
 
 负号同样不属于数值字面量 Token。固定宽度整数取负继续遵守议题 07 的按类型位宽回绕语义，包括最小有符号值和无符号整数。
@@ -84,7 +84,7 @@ pointer != null
 `~value` 表示逐位取反，只接受支持该操作的整数类型：
 
 ```ink
-let inverted = ~mask;
+const inverted = ~mask;
 ```
 
 `bool` 不使用按位非；布尔值使用 `!`。结果保持操作数的具体整数类型和位宽。
@@ -94,7 +94,7 @@ let inverted = ~mask;
 `*pointer` 解引用原始指针，并产生指向目标存储的 place：
 
 ```ink
-let value = *pointer;
+const value = *pointer;
 *pointer = replacement;
 ```
 
@@ -167,13 +167,13 @@ func make_object() -> Object;
 Ink 不通过取地址隐式物化一个只活到当前完整表达式结束的临时对象，也不为该指针进行临时生命周期延长。这避免产生在分号之后立即悬空的原始指针：
 
 ```ink
-let pointer = &make_object(); // 不允许建立这种立即悬空指针
+const pointer = &make_object(); // 不允许建立这种立即悬空指针
 ```
 
 需要地址时先建立具有明确词法生命周期的绑定：
 
 ```ink
-let object = make_object();
+const object = make_object();
 consume(&object);
 ```
 
@@ -181,24 +181,26 @@ consume(&object);
 
 ## 10. `&` 与 `*` 的上下文含义
 
-Tokenizer 始终产生单字符 Symbol Token。Parser 根据一元或二元语法位置区分同一符号：
+Tokenizer 始终产生单字符 Symbol Token。Parser 根据一元、二元或议题 30 的终止型类型构造位置区分同一符号：
 
 ```ink
 &value     // 一元取地址
 left & right // 二元按位与
+return T&; // 当前子表达式末尾的引用类型构造
 
 *pointer   // 一元解引用
 left * right // 二元乘法
+return T*; // 当前子表达式末尾的指针类型构造
 ```
 
-不需要为一元和二元拼写建立不同 TokenKind。
+类型构造候选不能到达当前表达式结束符时，Parser 回滚局部后缀试探并继续按本节的一元或议题 12 的二元运算解析。例如 `T**pointer` 解析为 `T * (*pointer)`。不需要为三种拼写建立不同 TokenKind，也不查询 `T` 是否确实表示类型。
 
 ## 11. `await`
 
 `await task` 是一元表达式，并使用与其他一元运算相同的右侧操作数结构：
 
 ```ink
-let value = await task;
+const value = await task;
 ```
 
 其任务启动、暂停、异常传播、取消和结果复制继续遵守既有异步议题。本节只确定它在表达式文法中的前缀位置和优先级。
@@ -229,4 +231,4 @@ Parser 不在 CST 中记录“可取址”“可写”“指针有效”或“�
 
 ## 14. 确认结论
 
-Ink 的一元运算符为 `+`、`-`、`!`、`~`、`*`、`&` 和 `await`，使用右递归 `snake_case` EBNF。Parser 对 `&unary_expression` 只建立语法节点；内建取地址在语义阶段要求操作数最终属于 place。`T&` 或 `const T&` 表达式结果都可以取址；按值临时对象不能取址且不会获得隐式生命周期延长。普通函数允许返回引用，但 Ink 不保证返回引用的目标仍然有效。
+Ink 的一元运算符为 `+`、`-`、`!`、`~`、`*`、`&` 和 `await`，使用右递归 `snake_case` EBNF。议题 30 在当前子表达式末尾为 `*`、`&` 增加类型构造含义，试探失败时仍回到本节和议题 12 的普通运算符结构。Parser 对 `&unary_expression` 只建立语法节点；内建取地址在语义阶段要求操作数最终属于 place。`T&` 或 `const T&` 表达式结果都可以取址；按值临时对象不能取址且不会获得隐式生命周期延长。普通函数允许返回引用，但 Ink 不保证返回引用的目标仍然有效。

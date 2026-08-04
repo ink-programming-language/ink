@@ -1,7 +1,7 @@
 # Parser 议题 20：`if` 语句
 
-> 状态：已确认  
-> 确认日期：2026-08-03
+> 状态：已确认，议题 23、25 补充条件模式并由 `while match` 复用
+> 确认日期：2026-08-04
 
 ## 1. 产生式
 
@@ -14,13 +14,13 @@ if_statement =
 
 if_condition =
       expression
-    | let_condition ;
+    | match_condition ;
 
-let_condition =
-    "let", pattern, "=", expression ;
+match_condition =
+    "match", conditional_match_pattern, "=", expression ;
 ```
 
-`statement_block` 由议题 09 定义，`expression` 使用已经确认的表达式文法。`pattern` 是模式语法的非终结符，其完整产生式由后续模式议题定义；本议题只确定 `if let` 中的位置。
+`statement_block` 由议题 09 定义，`expression` 使用已经确认的表达式文法。`conditional_match_pattern` 由议题 23 定义为顶层 `variant_pattern`，并由议题 25 的 `while match` 复用。
 
 ## 2. 条件不使用强制括号
 
@@ -86,17 +86,19 @@ if first {
 
 由于每个执行体都必须使用花括号，文法不存在悬空 `else`。每个 `else` 归属于直接包含它的 `if_statement`。
 
-## 5. `if let`
+## 5. `if match`
 
-模式条件使用显式的 `let`：
+模式条件使用显式的 `match`：
 
 ```ink
-if let .some(value) = optional {
+if match .some(value) = optional {
     use(value);
 }
 ```
 
-`let_condition` 在语法上由一个 `pattern`、单字符 `=` Symbol Token 和一个完整 `expression` 组成。它不是议题 10 的局部绑定声明，不以分号结束，也不能脱离条件位置成为普通语句。
+`match_condition` 在语法上由 `match`、一个 `conditional_match_pattern`、单字符 `=` Symbol Token 和一个完整 `expression` 组成。它不是议题 10 的局部绑定声明，不以分号结束，也不能脱离条件位置成为普通语句。
+
+`if match` 后若下一个显著 Token 是 `.`，Parser 进入 `match_condition`；普通 `match_expression` 必须先有一个被匹配表达式，不能以 `.` 开始，因此两种结构可以确定性区分。
 
 是否匹配成功、绑定哪些名称、模式是否适用于右侧值以及绑定的类型与可变性，都不由 Parser 判断。
 
@@ -122,7 +124,7 @@ if ready {
 
 CST 使用专用 `IfStatement` 节点，并完整保留：
 
-- `if`、`else` 和可选 `let` Token；
+- `if`、`else` 和可选 `match` Token；
 - 条件、模式和 `=` Token；
 - 每个 `StatementBlock`；
 - 块之间及内部的全部 Trivia；
@@ -132,4 +134,4 @@ Parser 只按产生式识别结构，不在 CST 中记录条件是否为 `bool`�
 
 ## 8. 确认结论
 
-Ink 的普通 `if_statement` 不强制条件括号，所有执行体必须使用无值 `statement_block`。`else` 可省略，`else if` 表示递归嵌套的 `if_statement`，整个结构不写结尾分号。条件可以是普通表达式，也可以是 `if let pattern = expression` 形式；模式的完整语法另行定义。
+Ink 的普通 `if_statement` 不强制条件括号，所有执行体必须使用无值 `statement_block`。`else` 可省略，`else if` 表示递归嵌套的 `if_statement`，整个结构不写结尾分号。条件可以是普通表达式，也可以是 `if match variant_pattern = expression` 形式；模式语法和访问能力传播由议题 23 定义。

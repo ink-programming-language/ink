@@ -14,8 +14,8 @@ func duplicate<T: comptime type>(
     return (value, value);
 }
 
-let pair = duplicate<i32>(&value); // 合法
-let pair = duplicate(&value);      // 编译错误：缺少 T
+const pair = duplicate<i32>(&value); // 合法
+const pair = duplicate(&value);      // 编译错误：缺少 T
 ```
 
 `value` 的准确类型即使显然是 `i32`，也不会隐式绑定 `T`。
@@ -49,8 +49,8 @@ array_length(&bytes);           // 编译错误：缺少 T、N
 ```ink
 func make<T: comptime type>() -> T;
 
-let first: i32 = make<i32>(); // 合法
-let second: i32 = make();     // 编译错误：缺少 T
+const first: i32 = make<i32>(); // 合法
+const second: i32 = make();     // 编译错误：缺少 T
 ```
 
 嵌套调用、函数返回、显式变量类型和其他预期类型上下文都不能补全未给出的泛型实参。
@@ -75,14 +75,14 @@ consume(&bytes);    // 不尝试求解 N + 1 = 10
 开放泛型类型不能仅凭构造函数实参闭合：
 
 ```ink
-let first = Box<i32>(10); // 合法
-let second = Box(10);     // 编译错误：Box 缺少类型实参
+const first = Box<i32>(10); // 合法
+const second = Box(10);     // 编译错误：Box 缺少类型实参
 ```
 
 Ink v0 不提供 C++ class template argument deduction 或 deduction guide。普通工厂函数如果自身是泛型，也仍须显式给出其泛型实参：
 
 ```ink
-let value = make_box<i32>(10);
+const value = make_box<i32>(10);
 ```
 
 ## 6. 参数包仍可显式为空

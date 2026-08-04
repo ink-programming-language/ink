@@ -1,52 +1,54 @@
-# Parser 议题 10：`let`、`var` 与 `const` 绑定声明
+# Parser 议题 10：`var`、`const` 与元组解构声明
 
-> 状态：已确认  
-> 确认日期：2026-08-03
+> 状态：已确认，2026-08-04 移除 `let`、分离编译期求值并接入元组解构；Parser 议题 25 复用 `var`/`const` 作为普通 `for` 绑定模式，议题 29 统一类型内部 `const`，议题 30 允许初始化表达式中的前置类型限定
+> 确认日期：2026-08-04
 
 ## 1. 基本文法
 
-普通绑定声明分为三种：
+普通绑定声明分为两种：
 
 ```ebnf
 binding_declaration =
-    let_declaration
-  | var_declaration
+    var_declaration
   | const_declaration ;
 
-let_declaration =
-    "let", identifier, [ ":", type ], "=", expression, ";" ;
-
 var_declaration =
-    "var", identifier,
-    ( ":", type, [ "=", expression ]
-    | "=", expression ),
+    "var",
+    ( identifier,
+      ( ":", type, [ "=", expression ]
+      | "=", expression )
+    | tuple_pattern, "=", expression ),
     ";" ;
 
 const_declaration =
-    "const", identifier, [ ":", type ], "=", expression, ";" ;
+    "const",
+    ( identifier, [ ":", type ]
+    | tuple_pattern ),
+    "=", expression, ";" ;
 ```
 
-三种声明都准确建立一个普通名称绑定，并按照 Parser 议题 08 以显式 `;` 结束。
+`tuple_pattern` 由议题 23 定义。两种声明都按照 Parser 议题 08 以显式 `;` 结束；名称形式建立一个绑定，元组形式可以在一次不可反驳解构中建立多个绑定。
 
-## 2. `let`
+## 2. 声明关键字不可省略
 
-`let` 建立运行时不可重新赋值的绑定，初始化表达式必需：
+每个普通名称绑定都必须以 `var` 或 `const` 开头：
 
 ```ink
-let size = calculate_size();
-let port: u16 = read_port();
+const size = calculate_size();
+var count: i32 = 0;
 ```
 
-类型标注可以省略；省略时从初始化表达式推导绑定类型。议题 64 禁止的是泛型实参推导，不禁止已经广泛用于既有 Ink 示例的局部值类型推导。
-
-以下形式非法：
+类似 C++ 的裸类型声明形状不属于 Ink 的普通绑定文法：
 
 ```ink
-let value: Data;
-let value;
+Count: int = 3; // 非法：缺少 var 或 const
 ```
 
-Ink 不提供“先声明一个未初始化的 `let`，以后恰好赋值一次”的普通绑定状态。
+这使 Parser 能从第一个 Token 直接识别声明，并避免名称表达式、类型标注和标签式语法之间的歧义。已经移除的 `let` 不是关键字，也不能用于声明。
+
+Parser 议题 25 的普通 `for` 绑定同样必须在 pattern 前显式写 `var` 或 `const`：`for const value in values { ... }`。该循环头没有 `=` 初始化器和结尾分号，因此不是本节的 `binding_declaration`，但两种关键字保持相同的顶层绑定含义。
+
+该限制只针对本议题的 module 或局部 `binding_declaration`。函数参数、泛型参数、字段等由各自声明产生式定界，仍可在对应位置使用 `name: type` 形状；它们不会被当成普通绑定声明。
 
 ## 3. `var`
 
@@ -70,47 +72,69 @@ var value;
 
 ## 4. `const`
 
-`const` 声明建立编译期常量，初始化表达式必需且必须在编译期求值得到结果：
+`const` 建立顶层不可重新赋值的绑定，初始化表达式必需：
 
 ```ink
 const default_port: u16 = 443;
-const capacity = calculate_capacity();
+const port: u16 = read_port();
+const result = calculate();
 ```
 
-第二个例子仅在 `calculate_capacity()` 能在当前编译期环境中成功执行时合法。类型标注可以省略并从编译期结果推导。
+初始化表达式可以在运行时求值；`const` 本身不要求编译期求值。类型标注可以省略，此时从初始化表达式推导绑定类型。议题 64 禁止的是泛型实参推导，不禁止普通局部值的类型推导。
 
-`const` 可以出现在 module 声明区或普通局部声明区；其值的存储、地址取得和目标文件表示由常量与布局议题确定，不改变本节语法。
-
-## 5. 绑定可变性
-
-`let` 和 `const` 不能作为普通重新赋值的目标；`var` 可以。绑定可变性只约束直接保存的值，不递归改变指针或引用目标已有的访问能力：
+以下形式非法：
 
 ```ink
-let pointer: Data* = get_data();
+const value: Data;
+const value;
+```
+
+Ink 不提供“先声明一个未初始化的不可变绑定，以后恰好赋值一次”的普通绑定状态。
+
+## 5. `comptime` 与绑定可变性正交
+
+是否可重新赋值由 `var` 或 `const` 决定；是否强制在编译期求值由初始化表达式中的 `comptime` 决定：
+
+```ink
+const size = calculate_size();              // 初始化可以在运行时执行
+const capacity = comptime calculate_size(); // 必须在编译期成功求值
+var table = comptime make_table();           // 编译期求值后建立可变绑定
+```
+
+第三种形式要求编译期结果可以作为普通运行时值建立 `table`；之后 `table` 仍然可以重新赋值。`const` 可以出现在 module 声明区或普通局部声明区，其值的存储、地址取得和目标文件表示由常量与布局议题确定，不改变本节语法。
+
+## 6. 顶层绑定与目标访问能力
+
+`const` 绑定不能作为普通重新赋值的目标；`var` 绑定可以。绑定可变性只约束直接保存的值，不递归改变指针或引用目标已有的访问能力：
+
+```ink
+const pointer: Data* = get_data();
 
 pointer->update(); // Data* 允许修改目标
 pointer = other;   // 非法：pointer 绑定不可重新赋值
 ```
 
-类似地，`let` 保存的 `T&` 或 `const T&` 继续分别遵守引用类型自身的可写或只读能力。绑定不可重新赋值不等同于递归深度不可变。
+`var`、`const` 是声明方式，`&`、`*` 和类型内部的 `const` 是类型构造，两层不能互相替代。`var data: Data` 建立拥有自身 `Data` 值的可变绑定；`const alias: Data&` 建立不能重新指向、但允许写目标的非拥有引用。引用类型自身“不能重新指向”的规则不会被外层声明关键字取消。
 
-## 6. `const` 声明与类型限定
-
-声明位置的 `const` 和类型内部的 `const` 由语法上下文区分：
+声明起始位置的 `const` 与类型内部的 `const` 由语法上下文区分，并表示两项独立能力：
 
 ```ink
-const limit: i32 = 100;       // const declaration
-let view: const Data* = ptr;   // const type qualifier
+var data: Data = make_data();                       // 拥有 Data，绑定可修改
+const writable_pointer: Data* = get_data();         // 绑定不可重写，目标可写
+var readonly_pointer: const Data* = get_data();     // 绑定可重写，目标只读
+const readonly_view: const Data* = get_data();      // 绑定不可重写，目标只读
+const writable_alias: Data& = data;                 // 引用绑定固定，目标可写
+const readonly_alias: const Data& = data;           // 引用绑定固定，目标只读
 ```
 
-Parser 在 `binding_declaration` 起始位置把 `const` 解析为常量声明；在冒号后的类型语法及其他类型位置把它解析为类型限定符。Tokenizer 仍只产生同一种 `Keyword(const)`。
+Parser 在 `binding_declaration` 起始位置把 `const` 解析为不可变绑定声明；在冒号后议题 29 的统一 `type` 及其他明确类型位置把它解析为前置目标类型限定符。议题 30 还允许同一限定符出现在初始化器、实参和 `return` 等普通表达式入口中：`const PointerType: type = const Data*;` 的第一个 `const` 建立绑定，第二个 `const` 限定 `Data`。Tokenizer 仍只产生同一种 `Keyword(Const)`。绑定不可重新赋值不等同于递归深度不可变。
 
-## 7. 一个声明只绑定一个名称
+## 7. 不支持逗号多声明
 
 普通绑定声明不接受逗号分隔的多名称、多初始化器形式：
 
 ```ink
-let a, b = 1, 2;
+const a, b = 1, 2;
 var x, y: i32;
 const left, right = 10, 20;
 ```
@@ -118,21 +142,50 @@ const left, right = 10, 20;
 这些形式都不符合 EBNF。应写成独立声明：
 
 ```ink
-let a = 1;
-let b = 2;
+const a = 1;
+const b = 2;
 ```
 
-每个声明因此具有独立的初始化时点、名称可见起点、失败清理和源码位置，不需要定义左右数量匹配或并行绑定规则。
+每个独立名称声明因此具有自己的初始化时点、名称可见起点、失败清理和源码位置，不需要定义逗号两侧的数量匹配或并行绑定规则。
 
-## 8. 解构不属于普通声明
-
-本议题只接受单个 `identifier`，不接受元组或枚举模式作为普通声明左侧：
+圆括号元组模式不是逗号多声明。它只有一个右侧表达式，并按第 8 节的规则解构该表达式产生的一个元组值：
 
 ```ink
-let (a, b) = pair;
+const (a, b) = pair;
 ```
 
-该形式是否增加，以及解构时如何处理借用、复制、不可复制值和临时对象，将由未来独立解构议题确定。当前已确认的 `if let` 与 `match` 模式绑定是各自控制结构的专用语法，不会让普通 `let_declaration` 自动接受任意模式。
+## 8. 元组解构声明
+
+普通绑定声明可以在关键字后使用议题 23 的 `tuple_pattern`：
+
+```ink
+const (left, right) = pair;          // 两个绑定都不可重新赋值
+var (x, y) = point;                  // 两个绑定都可修改
+const (header, (width, height)) = value;
+const (first, _) = pair;             // 第二个位置不建立绑定
+```
+
+规则为：
+
+- 外层 `var` 或 `const` 统一作用于模式中建立的全部名称；pattern 内不重复写声明关键字；
+- 右侧初始化表达式必需并且只求值一次；
+- 右侧求值完成后，绑定按 pattern 源码顺序从左到右、对嵌套元组深度优先初始化；
+- 整个声明成功后全部新名称才同时进入作用域，初始化过程不能观察到一组部分可见的绑定；
+- 初始化中途失败时，只清理已经成功建立的绑定，并按其建立逆序清理；
+- `_` 不建立绑定，嵌套元组继续递归使用同一规则；
+- 同一模式中重复名称、元组形状或元素数量不匹配属于语义错误；
+- v0 不在元组模式后接受整体或逐元素类型标注，各绑定类型从对应元素推导；
+- 枚举 `variant_pattern` 是可反驳模式，不能用于普通声明。
+
+因此以下形式非法：
+
+```ink
+const (left, var right) = pair;       // pattern 内不能重复声明关键字
+const (left: i32, right: i32) = pair; // v0 没有逐元素类型标注
+const .some(value) = optional;        // 可反驳模式只能用于匹配结构
+```
+
+Parser 只识别不可反驳的语法形状。元素按值初始化、引用元素、不可复制值和临时对象遵守议题 69 的普通元组解构语义；模式本身不隐式把值元素改成借用。
 
 ## 9. Module 与局部声明
 
@@ -147,8 +200,8 @@ LocalBindingDeclaration
 
 ## 10. CST 与恢复
 
-CST 保留关键字、名称、可选类型标注、初始化器和结尾分号。缺少名称、类型、`=`、表达式或分号时，Parser 按议题 03 使用 `MissingToken` 和 `ErrorNode` 恢复，不能把后续逗号解释为额外普通绑定。
+CST 分别建立 `NamedBindingDeclaration` 或 `TupleDestructuringDeclaration`，并保留关键字、名称或完整 `TuplePattern`、可选类型标注、初始化器和结尾分号。缺少名称、模式元素、逗号、右括号、类型、`=`、表达式或分号时，Parser 按议题 03 使用 `MissingToken` 和 `ErrorNode` 恢复，不能把元组模式外的后续逗号解释为额外普通绑定。
 
 ## 11. 确认结论
 
-Ink 使用 `let` 表示必须初始化的运行时不可重新赋值绑定，`var` 表示具有明确类型或初始化器的运行时可变绑定，`const` 表示必须在编译期求值的常量绑定。普通声明一次只绑定一个 Identifier，不支持 `let a, b = 1, 2`，解构绑定留给独立议题。
+Ink 的普通绑定声明必须以 `var` 或 `const` 开头，`Count: int = 3;` 之类的裸声明非法。普通 `for` 的每轮绑定也显式复用这两个关键字。`var` 表示可变绑定，`const` 表示不可重新赋值绑定；二者都可以接收运行时或编译期结果，`comptime` 独立负责强制编译期求值。普通声明的关键字后可以是单个 Identifier，也可以是不可反驳的 `tuple_pattern`；后者使用一个只求值一次的初始化器同时建立全部名称。

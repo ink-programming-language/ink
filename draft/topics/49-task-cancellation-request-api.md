@@ -60,7 +60,7 @@ not requested → requested
 var task = operation();
 
 task.request_cancel();
-let result = await task;
+const result = await task;
 ```
 
 `operation` 仍按照议题 44 开始执行，并可以从第一次用户代码开始观察：

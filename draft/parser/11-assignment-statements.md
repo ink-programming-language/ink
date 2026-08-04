@@ -43,7 +43,7 @@ pointer->field = value;
 var a = 0;
 a = 10;           // 合法
 
-let x = (a = 10); // 非法
+const x = (a = 10); // 非法
 consume(a = 10);  // 非法
 if a = 10 { }     // 非法
 ```
@@ -132,7 +132,7 @@ array[next_index()] = make_value();
 - 可写数组、切片或索引位置；
 - 通过 `T*`、`T&` 等可写访问路径取得的位置。
 
-`let` 和 `const` 绑定本身不能重新赋值；`const T*`、`const T&` 或其他只读访问路径不能用于写入目标。指针绑定是否可重新赋值与其指向对象是否可写仍是两项独立能力。
+`const` 绑定本身不能重新赋值；`const T*`、`const T&` 或其他只读访问路径不能用于写入目标。指针绑定是否可重新赋值与其指向对象是否可写仍是两项独立能力。
 
 可写性是语义检查，不改变 Parser 对 assignment target CST 的构造。
 

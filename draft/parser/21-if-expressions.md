@@ -13,7 +13,7 @@ if_expression =
 ```
 
 ```ink
-let value = if condition then first else second;
+const value = if condition then first else second;
 ```
 
 三个表达式依次表示条件、条件成立时的结果和条件不成立时的结果。`then` 与 `else` 是该结构的显式分隔 Token。
@@ -23,13 +23,13 @@ let value = if condition then first else second;
 `then` 和 `else` 后面各接一个完整 `expression`：
 
 ```ink
-let value = if ready then load() else fallback();
+const value = if ready then load() else fallback();
 ```
 
 分支不是 `statement_block`，因此不能在分支位置直接放置局部声明、普通语句序列或无值 `{ ... }`：
 
 ```ink
-let value = if ready then {
+const value = if ready then {
     log();
     load();
 } else {
@@ -37,14 +37,14 @@ let value = if ready then {
 };
 ```
 
-上面的花括号形式不是 `if_expression`。如果某种其他表达式自身使用花括号，例如未来完整定义的聚合初始化或 `match_expression`，它仍可以作为一个分支表达式出现；这不会把普通语句块变成表达式。
+上面的花括号形式不是 `if_expression`。如果某种其他表达式自身使用花括号，例如未来完整定义的聚合初始化或议题 24 的 `match_expression`，它仍可以作为一个分支表达式出现；这不会把普通语句块变成表达式。
 
 ## 3. `else` 必须存在
 
 `if_expression` 必须同时包含 `then` 和 `else`：
 
 ```ink
-let value = if ready then load();
+const value = if ready then load();
 ```
 
 该 Token 序列不能形成完整 `if_expression`。允许省略 `else` 的控制结构是议题 20 的 `if_statement`，它使用花括号语句块且不产生值。
@@ -54,7 +54,7 @@ let value = if ready then load();
 假分支本身可以是另一个 `if_expression`：
 
 ```ink
-let value =
+const value =
     if first then a
     else if second then b
     else c;
@@ -71,7 +71,7 @@ if condition {
     run();
 }
 
-let value = if condition then first else second;
+const value = if condition then first else second;
 ```
 
 - `if_statement` 在条件后进入 `statement_block`；

@@ -1,6 +1,6 @@
 # 议题 55：异步虚函数在任务创建时完成动态分派
 
-> 状态：已确认，议题 56—58、60 补充异步接口、反射、装饰器与结果不变型  
+> 状态：已确认，议题 56—58、60 补充异步接口、反射、装饰器与结果不变型；Parser 议题 29 补充异步函数类型
 > 确认日期：2026-08-02
 
 ## 1. 类可以声明异步虚函数
@@ -34,7 +34,7 @@ var loader: Loader* = &concrete;
 var task = loader->load(); // 此处选择 NetworkLoader.load
 // NetworkLoader.load 的异步函数体仍未执行
 
-let data = await task;     // 恢复已经选定的任务
+const data = await task;     // 恢复已经选定的任务
 ```
 
 概念顺序为：
@@ -100,7 +100,7 @@ async virtual slot:
 
 任务帧取得失败属于议题 44 的创建期同步失败：调用表达式可以抛出，且不会返回半构造任务。构造失败路径必须释放分派过程已经取得的模块版本固定。方法体以后抛出的异常仍由任务边界捕获为 `failed(ExceptionBox)`。
 
-## 6. `async` 是覆盖签名的一部分
+## 6. `async` 是函数种类、函数类型和覆盖签名的一部分
 
 覆盖必须同时满足既有虚函数签名规则和相同的函数种类：
 
@@ -123,6 +123,17 @@ class AlsoBad : Base {
 ```
 
 同步函数即使显式返回 `Task<T>`，也不是异步函数覆盖。两者的虚槽调用约定、创建期异常边界和语言语义不同。
+
+Parser 议题 29 使用 `async func(parameters) -> result` 表示异步函数值类型，其中箭头后的类型是逻辑结果，不是外层 `Task`：
+
+```ink
+async func fetch(path: StringView) -> Data;
+
+const entry: async func(StringView) -> Data = &fetch;
+var task: Task<Data> = entry("data.bin");
+```
+
+它与同步任务工厂类型 `func(StringView) -> Task<Data>` 不同，不能互相赋值或替代。这里的 `async` 是语言关键字和调用种类，不是像 `[nothrow]` 那样的声明属性。
 
 反方向同样禁止：`async func` 不能覆盖同步虚函数。返回类型、参数、可变性、可见性和 `[nothrow]` 等其他兼容规则继续服从普通虚覆盖规范；本议题不放宽它们。
 

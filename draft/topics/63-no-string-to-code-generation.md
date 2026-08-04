@@ -101,7 +101,7 @@ return class {
 声明生成必须能够根据反射数据给新声明命名，因此允许把编译期字符串验证为一个 `Identifier`：
 
 ```ink
-let getter_name = comptime Identifier.concat(
+const getter_name = comptime Identifier.concat(
     "get_",
     field.name,
 );

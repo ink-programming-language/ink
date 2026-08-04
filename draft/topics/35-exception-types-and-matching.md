@@ -1,6 +1,6 @@
 # 议题 35：异常类、异常接口与捕获匹配
 
-> 状态：已确认，议题 36—43 补充  
+> 状态：已确认，议题 36—43 与 Parser 议题 28 补充
 > 确认日期：2026-08-02
 
 ## 1. `[exception]` 是内建属性
@@ -69,7 +69,7 @@ interface RetryableError {
 - 不能实例化；
 - 不能作为一个新的异常对象直接 `throw`；
 - 可以作为 `catch` 的分类目标；
-- 继续遵守普通接口无实例字段、无构造函数和无 `destructor` 的规则；
+- 继续遵守普通接口无实例字段、无构造函数和无析构函数的规则；
 - 可以按照议题 29 提供默认方法；
 - 可以多继承其他异常接口。
 
@@ -105,7 +105,7 @@ catch Displayable as value { // 编译错误：Displayable 不是异常接口
 
 ## 5. 合法捕获类型
 
-`catch Type as name` 中的 `Type` 只能是：
+`catch Type [as name]` 中的 `Type` 只能是：
 
 - 异常类；
 - 异常接口。
@@ -115,10 +115,12 @@ try {
     connect();
 } catch NetworkTimeout as error {
     handle_timeout(error);
-} catch IoError as error {
-    log(error.message());
+} catch IoError {
+    record_io_failure();
 }
 ```
+
+Parser 议题 28 允许类型化处理器省略不需要的绑定。`catch Type { ... }` 与 `catch Type as name { ... }` 使用完全相同的类型匹配规则；前者只是不建立名称。
 
 普通类、普通接口、枚举、裸指针和其他类型不能用作捕获类型。异常接口引用也不能作为一个新的异常值直接抛出；`throw` 需要具体异常类对象。
 
@@ -198,12 +200,14 @@ try {
 
 ## 10. 捕获绑定
 
-类型化捕获绑定固定为运行时所拥有异常对象的只读普通引用：
+类型化处理器写出 `as name` 时，捕获绑定固定为运行时所拥有异常对象的只读普通引用：
 
 ```text
 catch ConcreteError as error  -> error: const ConcreteError&
 catch ErrorInterface as error -> error: const ErrorInterface&
 ```
+
+无绑定的 `catch ConcreteError { ... }` 和 `catch ErrorInterface { ... }` 不创建隐藏引用或占位名称。
 
 捕获不会复制或移动异常对象。议题 36 的异常记录在处理器执行期间保持载荷有效；绑定名称只在对应处理器作用域中可见。作为普通 `const T&` 或 `const Interface&`，引用值可以被返回、存入字段、全局、异步任务或逃逸闭包，但不会延长异常记录生命周期；处理器结束后通过该引用访问载荷属于 UB。
 

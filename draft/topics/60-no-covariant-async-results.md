@@ -62,7 +62,7 @@ Task<S> is compatible with Task<T>
 ```ink
 class CatFactory : Factory {
     override async func create() -> Animal* {
-        let cat: Cat* = await allocate_cat();
+        const cat: Cat* = await allocate_cat();
         return cat;
     }
 }

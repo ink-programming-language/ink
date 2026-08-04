@@ -1,11 +1,13 @@
 # 议题 04：指针、引用、数组与切片
 
-> 状态：已确认，普通引用修订为 C++ 风格非拥有别名；议题 31—33、43、44、54、61 与 Parser 议题 17、19 补充  
+> 状态：已确认，普通引用修订为 C++ 风格非拥有别名；议题 31—33、43、44、54、61 与 Parser 议题 17、19、25、29 补充
 > 确认日期：2026-08-01
 
 ## 1. 原始指针
 
 `T*` 表示可保存、可复制的原始地址。
+
+Parser 议题 29 规定 `*`、`&`、`[]` 和 `[N]` 作为类型后缀从左到右组合，类型内部只使用前置 `const`。Parser 议题 30 进一步允许这些复合类型作为普通表达式中的一等编译期值，并使用终止型尾链区分 `*`、`&` 与普通运算符。因此 `const T*` 表示指向只读 `T` 的指针；指针绑定自身是否可重新赋值由外层 `var` 或 `const` 声明决定，不使用 `T* const`。
 
 - `T*` 可以为空，使用 `null` 表示空指针；
 - 不使用“`T*` 非空、`T*?` 可空”的双层设计；
@@ -71,7 +73,7 @@ func current_file() -> File& {
     return application.current_file;
 }
 
-let file: File& = current_file();
+const file: File& = current_file();
 ```
 
 编译器不证明 `application.current_file` 比调用者保存的引用活得更久。程序员必须保证目标对象在每次引用访问时仍然存在且地址未失效。
@@ -94,11 +96,11 @@ func dangling_file() -> File& {
 Ink 不提供 `T?` 或 `T&?` 类型语法。需要表达“可能存在的引用”时，使用标准库泛型 `Optional<T&>` 或 `Optional<const T&>`：
 
 ```ink
-let result: Optional<File&> = try_cast<File&>(resource);
+const result: Optional<File&> = try_cast<File&>(resource);
 ```
 
 - 非空内容仍遵守普通引用的非拥有和可变性规则；
-- 使用成员前必须按照议题 33 通过 `if let .some(...)`、`match` 等模式语法解包；
+- 使用成员前必须按照议题 33 通过 `if match .some(...)`、`match` 等模式语法解包；
 - `Optional<T&>` 可以返回、存入字段、全局、闭包、任务或其他长期结构；
 - 它不会把内部引用变成拥有型对象，也不会延长目标生命周期；
 - 其中的引用失效后，解包并访问目标同样属于 UB；
@@ -119,7 +121,7 @@ var task = object.operation_async();
 
 ## 3. 固定长度数组
 
-`T[N]` 表示直接包含 `N` 个连续 `T` 元素的固定长度数组。`N` 是编译期常量，也是数组类型的一部分。
+`T[N]` 表示直接包含 `N` 个连续 `T` 元素的固定长度数组。Parser 议题 29 允许 `N` 使用完整表达式；语义分析要求它能够在编译期求值为合法整数。规范化后的长度是数组类型的一部分。
 
 ```ink
 var values: int[4] = [10, 20, 30, 40];
@@ -137,7 +139,7 @@ sizeof(T[N]) == sizeof(T) * N
 
 ## 4. 安全切片
 
-`T[]` 表示可写的非拥有切片，`const T[]` 表示只读非拥有切片。
+`T[]` 表示可写的非拥有切片，`const T[]` 表示只读非拥有切片。空方括号在明确类型入口和 Parser 议题 30 的普通表达式入口中始终构造切片；若普通表达式左侧不能在编译期产生 `type`，则产生语义错误。非空 `[expression]` 由 Parser 议题 29、30 中性保存，并由语义分析区分固定数组构造、编译期集合索引与普通运行时容器索引。
 
 切片是两个机器字的胖指针：
 
@@ -153,8 +155,8 @@ Slice<T> = {
 ```ink
 var numbers: int[5] = [10, 20, 30, 40, 50];
 
-let all: const int[] = numbers[:];
-let middle: const int[] = numbers[1:4];
+const all: const int[] = numbers[:];
+const middle: const int[] = numbers[1:4];
 ```
 
 概念表示为：
@@ -178,13 +180,15 @@ middle = { &numbers[1], 3 }
 func sum(values: const int[]) -> int {
     var result = 0;
 
-    for value in values {
+    for const value in values {
         result += value;
     }
 
     return result;
 }
 ```
+
+Parser 议题 25 规定普通 `for` 必须显式写 `var` 或 `const`，并且迭代源只计算一次、循环绑定不会隐式复制元素。上例从只读切片取得的 `value` 保持 `const int&`。从可写切片取得元素时可以保持 `int&`；外层 `const` 只让绑定不可重新赋值，不会把可写引用目标递归变成只读。确实需要独立可修改副本时必须在循环体中显式声明 `var copy: int = value;`。
 
 ## 5. 原始切片
 
@@ -205,11 +209,13 @@ class RawSlice<T: comptime type> {
 
 ```ink
 func process(values: RawSlice<int>) {
-    for index in 0 .. values.length {
+    for const index in 0 .. values.length {
         print(values.data[index]);
     }
 }
 ```
+
+这里的 `0 .. values.length` 是 Parser 议题 25 专门为 `for` 头定义的升序半开边界：包含 `0`，不包含 `values.length`。它不是普通范围表达式，不能脱离 `for ... in` 用来初始化变量或作为实参。
 
 `index < values.length` 只证明索引没有超过记录的长度，不能证明 `data` 实际指向这么多有效元素；构造错误的 `RawSlice<T>` 后进行访问可能产生 UB。
 

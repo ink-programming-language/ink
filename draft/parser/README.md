@@ -15,7 +15,7 @@
 | 07 | 逗号分隔列表 | 已确认 | [07-comma-separated-lists.md](07-comma-separated-lists.md) |
 | 08 | 分号与语句结束 | 已确认 | [08-semicolons-and-statement-termination.md](08-semicolons-and-statement-termination.md) |
 | 09 | 语句块与花括号 | 已确认 | [09-statement-blocks.md](09-statement-blocks.md) |
-| 10 | `let`、`var` 与 `const` 绑定声明 | 已确认 | [10-binding-declarations.md](10-binding-declarations.md) |
+| 10 | `var`、`const` 与元组解构声明 | 已确认 | [10-binding-declarations.md](10-binding-declarations.md) |
 | 11 | 赋值语句 | 已确认 | [11-assignment-statements.md](11-assignment-statements.md) |
 | 12 | 表达式运算符优先级 | 已确认 | [12-expression-operator-precedence.md](12-expression-operator-precedence.md) |
 | 13 | 表达式求值顺序 | 已确认 | [13-expression-evaluation-order.md](13-expression-evaluation-order.md) |
@@ -28,5 +28,13 @@
 | 20 | `if` 语句 | 已确认 | [20-if-statements.md](20-if-statements.md) |
 | 21 | 无块 `if` 表达式 | 已确认 | [21-if-expressions.md](21-if-expressions.md) |
 | 22 | `if` 表达式优先级 | 已确认 | [22-if-expression-precedence.md](22-if-expression-precedence.md) |
+| 23 | 模式语法与访问能力传播 | 已确认 | [23-pattern-syntax-and-access-propagation.md](23-pattern-syntax-and-access-propagation.md) |
+| 24 | `match` 语句与表达式 | 已确认 | [24-match-statements-and-expressions.md](24-match-statements-and-expressions.md) |
+| 25 | `while`、`while match`、`for` 与循环跳转 | 已确认 | [25-runtime-loops-and-loop-jumps.md](25-runtime-loops-and-loop-jumps.md) |
+| 26 | `return` 与 `defer` 语句 | 已确认 | [26-return-and-defer-statements.md](26-return-and-defer-statements.md) |
+| 27 | `throw`、重新抛出与显式原因 | 已确认 | [27-throw-and-rethrow-statements.md](27-throw-and-rethrow-statements.md) |
+| 28 | `try` 与 `catch` 语句 | 已确认 | [28-try-and-catch-statements.md](28-try-and-catch-statements.md) |
+| 29 | 统一类型语法与函数类型 | 已确认 | [29-type-syntax-and-function-types.md](29-type-syntax-and-function-types.md) |
+| 30 | 普通表达式中的复合类型值 | 已确认 | [30-compound-type-values-in-expressions.md](30-compound-type-values-in-expressions.md) |
 
 Parser 议题在本目录内独立编号，从 `01` 开始。Parser 消费 [`../tokenizer/README.md`](../tokenizer/README.md) 定义的完整 Token 流；语法树 lowering、名称绑定、类型检查和 InkIR 生成不属于本目录。

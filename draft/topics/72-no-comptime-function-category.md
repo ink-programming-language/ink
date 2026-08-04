@@ -12,8 +12,8 @@ func fibonacci(n: u32) -> u64 {
     // ...
 }
 
-let known = comptime fibonacci(20);
-let dynamic = fibonacci(input);
+const known = comptime fibonacci(20);
+const dynamic = fibonacci(input);
 ```
 
 第一个调用必须在编译期完成，第二个调用在运行时执行。两者引用同一个函数声明，不需要生成两个源码函数种类。
@@ -35,7 +35,7 @@ func helper() -> i32 {
     return 42;
 }
 
-let value = comptime helper();
+const value = comptime helper();
 ```
 
 编译期执行能力由 InkIR 操作、实参阶段和执行世界决定，而不是由函数声明上的类别修饰符决定。
@@ -88,7 +88,7 @@ func load_schema(path: StringView) -> String {
     return stdio.read_file(path);
 }
 
-let schema = comptime load_schema("schema.json");
+const schema = comptime load_schema("schema.json");
 ```
 
 编译期解释器进入普通 `load_schema`，直到 `stdio.read_file` lowering 的 `fs.read` 操作。若 `ComptimeWorld` 提供并授权文件处理器，则执行并记录构建依赖；否则在该操作处报告编译期执行错误。

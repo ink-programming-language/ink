@@ -35,7 +35,7 @@ func make_pair<
 调用：
 
 ```ink
-let PairType: type =
+const PairType: type =
     make_pair<i32, String>();
 ```
 

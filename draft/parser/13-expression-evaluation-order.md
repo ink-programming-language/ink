@@ -123,7 +123,7 @@ make_container().items[next_index()].read()
 `if` 表达式先计算条件，然后只计算被选择的一个分支：
 
 ```ink
-let value = if condition() then when_true() else when_false();
+const value = if condition() then when_true() else when_false();
 ```
 
 `condition()` 为 `true` 时只执行 `when_true()`；为 `false` 时只执行 `when_false()`。未选择的分支不产生任何运行时或编译期效果。

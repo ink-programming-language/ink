@@ -96,12 +96,12 @@ class Player : Entity {
 找到第一个同类别、同名称的反射成员后立即停止。
 
 ```ink
-if let .some(player_type) = reflection.find_type("game.Player") {
-    if let .some(function) = player_type.function("display_name") {
+if match .some(player_type) = reflection.find_type("game.Player") {
+    if match .some(function) = player_type.function("display_name") {
         print(function.qualified_name); // Player.display_name
     }
 
-    if let .some(property) = player_type.property("id") {
+    if match .some(property) = player_type.property("id") {
         print(property.qualified_name); // Player.id
     }
 }
@@ -110,12 +110,12 @@ if let .some(player_type) = reflection.find_type("game.Player") {
 在父类型自己的反射视图上查询仍得到父成员：
 
 ```ink
-if let .some(entity_type) = reflection.find_type("game.Entity") {
-    if let .some(function) = entity_type.function("display_name") {
+if match .some(entity_type) = reflection.find_type("game.Entity") {
+    if match .some(function) = entity_type.function("display_name") {
         print(function.qualified_name); // Entity.display_name
     }
 
-    if let .some(property) = entity_type.property("id") {
+    if match .some(property) = entity_type.property("id") {
         print(property.qualified_name); // Entity.id
     }
 }

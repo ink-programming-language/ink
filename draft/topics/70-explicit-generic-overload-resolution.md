@@ -78,8 +78,8 @@ consume<i32>(&number_ref); // 比较 const i32& 与 const i32* 候选
 func create<T: comptime type>() -> T;
 func create<T: comptime type>(count: ptrsize) -> Vector<T>;
 
-let value = create<i32>();
-let items = create<i32>(10);
+const value = create<i32>();
+const items = create<i32>(10);
 ```
 
 运行时默认实参按照议题 65 允许候选接收较少的尾随实参，但不会产生额外重载。运行时参数包按照议题 68 闭合为固定普通参数后参与同一解析。
@@ -164,7 +164,7 @@ parse<>(text); // 泛型声明，Base = 10
 普通直接调用具有普通实参，可以在泛型参数绑定后通过闭合签名完成重载解析；擦除的 `GenericFunctionDecl` 变量没有这些信息：
 
 ```ink
-let declaration: comptime GenericFunctionDecl = create;
+const declaration: comptime GenericFunctionDecl = create;
 // 编译错误：create 是泛型重载集合，无法唯一确定声明
 ```
 
@@ -177,7 +177,7 @@ func create_one<T: comptime type>() -> T {
     return create<T>();
 }
 
-let declaration: comptime GenericFunctionDecl = create_one;
+const declaration: comptime GenericFunctionDecl = create_one;
 ```
 
 普通闭合函数指针继续直接从函数名称取得，例如 `&create<i32>`，不经过擦除声明句柄。

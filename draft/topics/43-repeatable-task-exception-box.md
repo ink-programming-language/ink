@@ -41,8 +41,8 @@ TaskState<T> =
 ```ink
 var task = load_async();
 
-let first = await task;
-let second = await task;
+const first = await task;
+const second = await task;
 ```
 
 第一次 `await` 不会：
@@ -63,8 +63,8 @@ let second = await task;
 ```ink
 var task: Task<int> = calculate_async();
 
-let first: int = await task;
-let second: int = await task;
+const first: int = await task;
+const second: int = await task;
 ```
 
 这种复制不能隐藏：
@@ -210,7 +210,7 @@ shared ExceptionBox
 - 不从任务中移除失败状态；
 - 不重新复制异常载荷。
 
-处理器执行 `throw NewError { ... } from error` 时，议题 40 的新异常记录取得当前活动记录作为原因。该原因记录唯一属于新异常链，但它内部持有共享 box；因此原始不可复制载荷仍然不被复制，任务和其他等待者也仍可观察原失败。
+处理器执行 `throw NewError { ... } from error;` 时，议题 40 的新异常记录取得当前活动记录作为原因。该原因记录唯一属于新异常链，但它内部持有共享 box；因此原始不可复制载荷仍然不被复制，任务和其他等待者也仍可观察原失败。
 
 普通 `catch` 结束且没有继续传播时，只释放当前活动展开记录对 box 的内部持有。任务自己的失败状态仍然保留。
 

@@ -1,6 +1,6 @@
 # 议题 39：无异常过滤器与单类型捕获
 
-> 状态：已确认，议题 40—43 补充  
+> 状态：已确认，议题 40—43 与 Parser 议题 28 补充
 > 确认日期：2026-08-02
 
 ## 1. 一个处理器只有一个匹配目标
@@ -12,10 +12,12 @@ try {
     request();
 } catch NetworkTimeout as error {
     handle_timeout(error);
-} catch NetworkFailure as error {
-    handle_network_failure(error);
+} catch NetworkFailure {
+    mark_network_failure();
 }
 ```
+
+Parser 议题 28 允许类型化处理器选择是否写出 `as name`，但省略绑定不会改变“一个处理器只有一个匹配类型”的规则。
 
 议题 37 的两种 catch-all 是另外两个完整形式：
 

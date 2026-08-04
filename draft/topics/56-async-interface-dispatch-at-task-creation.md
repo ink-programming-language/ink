@@ -121,7 +121,7 @@ interface Storage {
     async func write(path: StringView, data: Data*);
 
     async func copy(source: StringView, destination: StringView) {
-        let data = await read(source);
+        const data = await read(source);
         await write(destination, data);
     }
 }

@@ -17,7 +17,7 @@ Ink 编译期反射可以查看全部声明的结构信息，包括私有类型�
 
 ```ink
 comptime {
-    let field = reflect(Account).field("balance");
+    const field = reflect(Account).field("balance");
 
     print(field.name);       // 允许：查看结构信息
     print(field.visibility); // 允许：得知它是 private

@@ -1,6 +1,6 @@
 # 议题 62：编译期参数包是普通编译期序列
 
-> 状态：已确认，议题 64、66、68—71 补充绑定、反射、运行时包、元组与重载  
+> 状态：已确认，议题 64、66、68—71 补充绑定、反射、运行时包、元组与重载；Parser 议题 29 统一列表展开
 > 确认日期：2026-08-02
 
 ## 1. 参数包只负责接收可变数量的编译期实参
@@ -49,7 +49,7 @@ Dimensions : comptime ptrsize[]
 comptime {
     print(Types.length);
 
-    for T in Types {
+    for const T in Types {
         print(reflect(T).name);
     }
 }
@@ -61,7 +61,7 @@ comptime {
 func total_size(Types: const type[]) -> ptrsize {
     var result: ptrsize = 0;
 
-    for T in Types {
+    for const T in Types {
         result += reflect(T).size;
     }
 
@@ -87,7 +87,7 @@ class Tuple<Types: comptime type...> {
 
 参数包顺序属于语义的一部分。`Tuple<i32, bool>` 与 `Tuple<bool, i32>` 是不同闭合类型；循环必须按照实参顺序观察元素。
 
-## 4. 显式展开只用于实参列表
+## 4. 显式展开只用于允许多个元素的列表
 
 已有编译期序列需要逐项传给另一个可变参数声明时，使用前缀展开：
 
@@ -101,9 +101,16 @@ Other<...Types>
 Other<Header, ...Types, Footer>
 ```
 
-`...Types` 只在允许多个实参的列表位置把序列展开成若干独立实参，不是普通一元运算符，不能产生运行时值，也不能用于创建同名重载候选。
+`...expression` 只在规范明确允许多个元素的列表位置把序列展开成若干独立元素，不是普通一元运算符，不能产生运行时值，也不能用于创建同名重载候选。Parser 议题 29 除泛型实参列表外，还允许类型序列在元组类型列表和函数类型参数列表中展开：
 
-如果被调用声明不接受对应数量或类型的实参，展开后的普通调用检查失败。展开空序列等价于在该位置没有实参。
+```ink
+(Header, ...Types, Footer)
+func(Context&, ...Types) -> Result
+```
+
+展开操作数可以是完整表达式，例如 `Other<...select_types()>`。对应位置要求它在编译期产生序列；元组和函数类型列表进一步要求每个展开元素都是 `type`。
+
+如果被调用声明或列表消费者不接受对应数量或类型的元素，展开后的普通检查失败。展开空序列等价于在该位置没有元素。
 
 ## 5. v0 的声明限制
 

@@ -91,7 +91,7 @@ class Packet {
 
 ## 4. 属性附着位置
 
-语法允许属性列表出现在编译器定义的属性目标之前，例如类型、函数、字段、参数、返回位置或语句块。具体属性只能出现在其规范允许的位置。
+语法允许属性列表出现在编译器定义的属性目标之前，例如类型声明、函数声明、字段、参数、返回位置或语句块。具体属性只能出现在其规范允许的位置。
 
 ```ink
 [noncopyable]
@@ -107,6 +107,8 @@ func calculate(value: f32) -> f32 {
 ```
 
 Ink v0 不支持给单个表达式添加属性，避免与数组字面量和索引语法产生歧义。语法可以为代码块保留属性附着位置，但是否允许参数、返回位置或代码块上的某个具体属性，仍由该属性自己的规范决定；本议题不提前规定 `[fast_math]` 等属性的块级作用域。
+
+属性列表是外层语法目标的元数据，不自动成为 Parser 议题 29 的 `type` 前缀或后缀，也不因为附着在函数声明上就进入普通重载签名或函数值类型。特别是 `[nothrow]` 只写在可调用声明之前，不提供 `[nothrow] func(...)` 类型拼写；其强静态检查和跨模块行为契约由议题 34 规定。
 
 ## 5. 属性元数据与反射
 
@@ -128,7 +130,7 @@ Ink v0 不支持给单个表达式添加属性，避免与数组字面量和索�
 decorator trace(function, name: comptime string) {
     log("enter", name);
 
-    let result = function(...);
+    const result = function(...);
 
     log("leave", name);
     return result;
@@ -212,7 +214,7 @@ outer.after
 概念上：
 
 ```ink
-let result = region {
+const result = region {
     // 原始函数体
     // 原始 return value 被改写为 region yield value
 };

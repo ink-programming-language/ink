@@ -8,9 +8,9 @@
 除抽象字面量的目标类型实例化外，两个不同的具体整数类型之间不进行隐式转换。
 
 ```ink
-let source: u8 = 10;
-let invalid: u16 = source;        // 编译错误
-let valid: u16 = cast<u16>(source);
+const source: u8 = 10;
+const invalid: u16 = source;        // 编译错误
+const valid: u16 = cast<u16>(source);
 ```
 
 该规则也适用于函数实参、返回值、字段初始化和数组元素初始化。
@@ -18,7 +18,7 @@ let valid: u16 = cast<u16>(source);
 ```ink
 func consume(value: i64) {}
 
-let value: i32 = 10;
+const value: i32 = 10;
 consume(value);             // 编译错误
 consume(cast<i64>(value));  // 合法
 ```
@@ -28,13 +28,13 @@ consume(cast<i64>(value));  // 合法
 抽象字面量继续遵守议题 06 的目标类型实例化规则：
 
 ```ink
-let value: u8 = 10; // 10 直接实例化为 u8
+const value: u8 = 10; // 10 直接实例化为 u8
 ```
 
 这里不存在从 `int` 到 `u8` 的隐式转换。目标类型不能表示字面量时产生编译错误。
 
 ```ink
-let value: u8 = 300; // 编译错误
+const value: u8 = 300; // 编译错误
 ```
 
 ## 3. 混合类型整数运算
@@ -42,19 +42,19 @@ let value: u8 = 300; // 编译错误
 普通二元整数运算要求两个操作数具有相同的具体类型。Ink 不采用 C/C++ 的整数提升和 usual arithmetic conversions。
 
 ```ink
-let small: u8 = 10;
-let large: u16 = 20;
+const small: u8 = 10;
+const large: u16 = 20;
 
-let first = small + 1;                  // 合法：1 实例化为 u8
-let second = small + large;             // 编译错误
-let third = cast<u16>(small) + large;   // 合法
+const first = small + 1;                  // 合法：1 实例化为 u8
+const second = small + large;             // 编译错误
+const third = cast<u16>(small) + large;   // 合法
 ```
 
 有符号整数与无符号整数也不会自动寻找共同类型：
 
 ```ink
-let signed: i32 = -1;
-let unsigned: u32 = 1;
+const signed: i32 = -1;
+const unsigned: u32 = 1;
 
 signed < unsigned; // 编译错误
 ```
@@ -64,23 +64,23 @@ signed < unsigned; // 编译错误
 Ink 使用编译器内建语法 `cast<T>(value)` 表示显式数值转换。
 
 ```ink
-let wider = cast<u64>(value);
-let narrower = cast<u8>(value);
+const wider = cast<u64>(value);
+const narrower = cast<u8>(value);
 ```
 
 `cast`：
 
 - 是保留的编译器内建语法，不是可被遮蔽或重载的普通函数；
-- 不调用用户定义的 `constructor`；
+- 不调用用户定义的构造函数；
 - 不参与用户定义的隐式构造链；
 - 不执行运行时范围检查；
 - 不因目标值超出范围而产生隐式 trap。
 
-用户类型继续通过 `Type(arguments)` 调用 `constructor`：
+用户类型继续通过 `Type(arguments)` 调用构造函数：
 
 ```ink
-let number = cast<u16>(source); // 内建数值转换
-let point = Point(10, 20);      // 用户构造函数
+const number = cast<u16>(source); // 内建数值转换
+const point = Point(10, 20);      // 用户构造函数
 ```
 
 整数与浮点数之间以及不同浮点宽度之间的 `cast` 由议题 13 规定。
@@ -101,9 +101,9 @@ let point = Point(10, 20);      // 用户构造函数
 - 同宽度有无符号转换保留全部位。
 
 ```ink
-let first = cast<i8>(255u16); // -1
-let second = cast<u8>(-1i32); // 255
-let third = cast<u8>(300);    // 44，并产生 warning
+const first = cast<i8>(255u16); // -1
+const second = cast<u8>(-1i32); // 255
+const third = cast<u8>(300);    // 44，并产生 warning
 ```
 
 这些结果是固定语义，不是 PDB。
@@ -113,7 +113,7 @@ let third = cast<u8>(300);    // 44，并产生 warning
 当编译器能够确定 `cast` 改变了源值的数学数值时，必须产生 warning，但仍生成规定的模转换结果。
 
 ```ink
-let value = cast<u8>(300);
+const value = cast<u8>(300);
 // warning: integer cast changes value from 300 to 44
 ```
 
@@ -134,9 +134,9 @@ value.saturating_to<u8>() // 饱和到目标边界
 `ptrsize` 与所有固定宽度整数类型之间也不进行隐式转换。
 
 ```ink
-let length: ptrsize = values.length;
-let fixed: u64 = cast<u64>(length);
-let native: ptrsize = cast<ptrsize>(fixed);
+const length: ptrsize = values.length;
+const fixed: u64 = cast<u64>(length);
+const native: ptrsize = cast<ptrsize>(fixed);
 ```
 
 转换使用目标平台上 `ptrsize` 的实际位宽，并遵守同一模转换规则。转换结果随 `ptrsize` 位宽改变是目标类型本身的性质，不构成 UB。
@@ -155,8 +155,8 @@ cast<u8>(flag);    // 编译错误
 程序必须明确表达所需逻辑：
 
 ```ink
-let flag = value != 0;
-let numeric: u8 = if flag { 1 } else { 0 };
+const flag = value != 0;
+const numeric: u8 = if flag { 1 } else { 0 };
 ```
 
 ## 9. 其他转换类别

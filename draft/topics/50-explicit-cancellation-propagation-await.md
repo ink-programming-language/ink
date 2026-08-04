@@ -8,7 +8,7 @@
 直接等待另一个任务只观察其结果，不建立取消请求传播关系：
 
 ```ink
-let result = await child;
+const result = await child;
 ```
 
 等待期间当前任务收到议题 49 的请求时：
@@ -25,7 +25,7 @@ let result = await child;
 需要把当前任务的取消请求转发给被等待任务时，使用核心组合操作：
 
 ```ink
-let result = await cancel_on_request(child);
+const result = await cancel_on_request(child);
 ```
 
 其含义是：在本次等待持续期间，如果当前任务已经收到或以后收到取消请求，则向 `child` 发出一次幂等的 `request_cancel()`。
@@ -41,7 +41,7 @@ if cancel_requested() {
     // 请求可能早于下一行发生
 }
 
-let result = await cancel_on_request(child);
+const result = await cancel_on_request(child);
 ```
 
 `cancel_on_request` 必须在登记传播关系时处理该情况。如果当前请求位已经设置，立即向 `child` 发布请求，然后继续等待其实际结束。
@@ -133,7 +133,7 @@ await cancel_on_request(grandchild);
 异步调用可以直接作为传播等待的参数：
 
 ```ink
-let result = await cancel_on_request(socket.read(buffer));
+const result = await cancel_on_request(socket.read(buffer));
 ```
 
 临时 `Task<T>` 必须直接构造在本次组合等待的稳定存储中，并至少存活到：

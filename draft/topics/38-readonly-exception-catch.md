@@ -1,11 +1,11 @@
 # 议题 38：只读异常捕获与载荷不可变性
 
-> 状态：已确认，议题 39—43 补充  
+> 状态：已确认，议题 39—43 与 Parser 议题 28 补充
 > 确认日期：2026-08-02
 
 ## 1. 所有捕获绑定永久只读
 
-Ink 的全部异常捕获绑定都固定为只读引用：
+Ink 的全部已建立异常捕获绑定都固定为只读引用：
 
 ```text
 catch ConcreteError as error  -> error: const ConcreteError&
@@ -14,6 +14,8 @@ catch as error                -> error: const core.ExceptionView&
 ```
 
 这不是可以由语法切换的默认模式。语言不提供可变异常捕获，也不允许处理器改变运行时拥有的活动异常载荷。
+
+Parser 议题 28 允许 `catch Type { ... }` 和 `catch { ... }` 省略绑定；这些形式不建立隐藏引用，因此不存在可变性选择。
 
 ```ink
 try {
@@ -73,8 +75,8 @@ catch OperationError as error {
 
 ```ink
 catch ParseError as error {
-    let pointer: const ParseError* = &error;
-    let writable = ptrcast<ParseError*>(pointer);
+    const pointer: const ParseError* = &error;
+    const writable = ptrcast<ParseError*>(pointer);
     writable->position = 10; // UB：写入运行时拥有的活动异常载荷
 }
 ```
@@ -89,8 +91,8 @@ catch ParseError as error {
 
 ```ink
 catch ReflectedError as error {
-    let dynamic = DynamicRef.from(&error);
-    let value = property.get[int](dynamic);       // 合法：读取
+    const dynamic = DynamicRef.from(&error);
+    const value = property.get[int](dynamic);       // 合法：读取
     property.set[int](dynamic, 10);               // 编译或动态检查失败
     property.borrow_mut[int](dynamic);            // 编译或动态检查失败
 }

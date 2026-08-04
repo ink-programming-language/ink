@@ -18,14 +18,14 @@ r"""..."""  多行，不处理转义
 源码示例：
 
 ```ink
-let escaped = "line 1\nline 2";
-let raw = r"C:\Users\Hello";
+const escaped = "line 1\nline 2";
+const raw = r"C:\Users\Hello";
 
-let escaped_block = """
+const escaped_block = """
     line 1\nline 2
     """;
 
-let raw_block = r"""
+const raw_block = r"""
     C:\Users\Hello
     \d+\.\d+
     """;
@@ -96,7 +96,7 @@ r"\n"
 `"""` 和 `r"""` 只表示多行字符串。开始定界符后必须立即出现 `LF` 或 `CRLF`：
 
 ```ink
-let text = """
+const text = """
     first line
     second line
     """;
@@ -118,7 +118,7 @@ r"""inline"""
 多行结束 `"""` 必须是其逻辑行上的第一个非 Space/Tab 内容：
 
 ```ink
-let text = """
+const text = """
     content
     """;
 ```
@@ -128,7 +128,7 @@ let text = """
 出现在正文行中部的三个引号不是结束定界符：
 
 ```ink
-let text = r"""
+const text = r"""
     this line contains """ in its middle
     """;
 ```
@@ -141,7 +141,7 @@ let text = r"""
 
 ```ink
 func example() {
-    let text = """
+    const text = """
         first
           second
         third
@@ -173,7 +173,7 @@ Space 和 Tab 按原始字符精确匹配，不按编辑器显示列宽互换。
 因此：
 
 ```ink
-let empty = """
+const empty = """
     """;
 ```
 
@@ -182,7 +182,7 @@ let empty = """
 示例：
 
 ```ink
-let text = """
+const text = """
     first
     second
     """;
@@ -212,7 +212,7 @@ Token 的 `raw` 仍保留原始一个或两个换行字节，因此编辑器和�
 无 `r` 前缀的 `"""` 多行字符串处理与普通单行字符串相同的转义：
 
 ```ink
-let text = """
+const text = """
     first\nsecond
     tab:\tvalue
     quote:\"
@@ -225,7 +225,7 @@ let text = """
 需要在一行开头产生三个双引号时，可以逐个转义：
 
 ```ink
-let text = """
+const text = """
     \"\"\" begins this value line
     """;
 ```
@@ -237,7 +237,7 @@ let text = """
 带 `r` 前缀的多行字符串不识别任何转义：
 
 ```ink
-let regex = r"""
+const regex = r"""
     ^\d+\.\d+$
     """;
 ```

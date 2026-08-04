@@ -25,13 +25,13 @@ if_expression =
 `then` 和 `else` 分支都使用完整 `expression`：
 
 ```ink
-let value = if condition then a + b else c * d;
+const value = if condition then a + b else c * d;
 ```
 
 按照已有运算符优先级，它等价于：
 
 ```ink
-let value = if condition then (a + b) else (c * d);
+const value = if condition then (a + b) else (c * d);
 ```
 
 `then` 和与当前 `if` 配对的 `else` 是条件结构的定界 Token，不属于任一分支表达式。
@@ -41,13 +41,13 @@ let value = if condition then (a + b) else (c * d);
 条件位置直接接受从逻辑或层开始的普通表达式：
 
 ```ink
-let value = if ready && enabled || forced then first else second;
+const value = if ready && enabled || forced then first else second;
 ```
 
 另一个无块 `if_expression` 不能不加括号直接成为条件。需要这种结构时使用普通加括号表达式：
 
 ```ink
-let value =
+const value =
     if (if choose_left then left_ready else right_ready)
     then first
     else second;
@@ -60,9 +60,9 @@ let value =
 由于 `if_expression` 低于所有中缀和后缀运算，它作为其他运算的操作数时必须使用括号：
 
 ```ink
-let total = value + (if condition then a else b);
-let field = (if condition then first else second).field;
-let item = (if condition then left else right)[index];
+const total = value + (if condition then a else b);
+const field = (if condition then first else second).field;
+const item = (if condition then left else right)[index];
 ```
 
 以下写法不会把条件结构自动提升为加法右操作数：
@@ -78,7 +78,7 @@ Parser 不为 `if` 提供中缀运算内部的特殊插入规则。
 假分支是完整 `expression`，因此可以直接包含另一个 `if_expression`：
 
 ```ink
-let value =
+const value =
     if first then a
     else if second then b
     else c;
@@ -97,7 +97,7 @@ if first then a else (if second then b else c)
 真分支同样接受完整 `expression`：
 
 ```ink
-let value =
+const value =
     if outer
     then if inner then a else b
     else c;

@@ -1,6 +1,6 @@
 # 议题 58：异步函数装饰器包围任务执行体
 
-> 状态：已确认，议题 59 确认 v0 不提供任务构造装饰器  
+> 状态：已确认，议题 24、59 补充；Parser 议题 27 同步抛出语法
 > 确认日期：2026-08-02
 
 ## 1. 异步装饰器属于任务执行体
@@ -40,7 +40,7 @@ await task
 ```ink
 decorator trace(function, name: comptime string) {
     log("enter", name);
-    let result = function(...);
+    const result = function(...);
     log("leave", name);
     return result;
 }
@@ -53,7 +53,7 @@ async decorator trace(function, name: comptime string) {
     log("enter", name);
     defer log("leave", name);
 
-    let result = await function(...);
+    const result = await function(...);
     return result;
 }
 ```
@@ -134,7 +134,7 @@ outer.after
 
 ```ink
 async decorator authorize(function) {
-    let allowed = await check_permission();
+    const allowed = await check_permission();
     if !allowed {
         throw PermissionDenied();
     }
@@ -164,8 +164,8 @@ Task catch-all boundary
 async decorator translate_error(function) {
     try {
         return await function(...);
-    } catch NetworkError error {
-        throw ServiceUnavailable(from error);
+    } catch NetworkError as error {
+        throw ServiceUnavailable {} from error;
     }
 }
 ```
@@ -234,6 +234,11 @@ task execution
 interface Loader {
     @trace
     async func load() -> Data*; // 编译错误：没有函数体可包围
+}
+
+class AbstractLoader {
+    @trace
+    virtual async func load() -> Data*; // 编译错误：抽象函数没有函数体可包围
 }
 ```
 

@@ -15,8 +15,8 @@ Ink 的所有固定宽度整数都使用按类型位宽取模的算术语义。
 - 目标指针宽度的 `ptrsize`。
 
 ```ink
-let unsigned: u8 = 255u8 + 1u8; // 0
-let signed: i8 = 127i8 + 1i8;   // -128
+const unsigned: u8 = 255u8 + 1u8; // 0
+const signed: i8 = 127i8 + 1i8;   // -128
 ```
 
 有符号整数使用二进制补码表示，其加减乘与同宽度无符号整数具有相同的底层模运算结果，再按照有符号二进制补码解释。
@@ -28,15 +28,15 @@ let signed: i8 = 127i8 + 1i8;   // -128
 一元负号同样按照类型位宽回绕。
 
 ```ink
-let minimum: i8 = -128i8;
-let result = -minimum; // -128
+const minimum: i8 = -128i8;
+const result = -minimum; // -128
 ```
 
 对于无符号整数，一元负号表示模 `2^N` 的加法逆元：
 
 ```ink
-let value: u8 = 1u8;
-let result = -value; // 255
+const value: u8 = 1u8;
+const result = -value; // 255
 ```
 
 ## 3. 编译期溢出诊断
@@ -44,7 +44,7 @@ let result = -value; // 255
 当编译器能够确定普通算术发生回绕时，必须产生 warning，但仍按照规定的回绕语义生成程序。
 
 ```ink
-let value: u8 = 255u8 + 1u8;
+const value: u8 = 255u8 + 1u8;
 // warning: integer arithmetic wraps from 255 + 1 to 0
 ```
 
@@ -63,8 +63,8 @@ warning：
 标准库仍可提供 `wrapping_add`、`wrapping_sub` 和 `wrapping_mul` 等方法，用于表达“此处有意依赖回绕”。它们与普通运算符具有相同的数值结果，但可以抑制“编译期可确定回绕”的默认 warning。
 
 ```ink
-let next = counter.wrapping_add(1);
-let hash = hash.wrapping_mul(prime);
+const next = counter.wrapping_add(1);
+const hash = hash.wrapping_mul(prime);
 ```
 
 标准库还可以提供：

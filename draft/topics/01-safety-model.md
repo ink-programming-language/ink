@@ -1,6 +1,6 @@
 # 议题 01：运行时检查、底层契约与未定义行为
 
-> 状态：已确认，后经议题 04、32、51、54 修订
+> 状态：已确认，后经议题 04、32、51、54 与 Parser 议题 25 修订
 > 确认日期：2026-08-01
 
 ## 1. 不提供 `unsafe` 关键字
@@ -18,7 +18,7 @@ Ink 是允许程序员直接管理地址和生命周期的系统编程语言。�
 func checksum(data: const byte*, length: ptrsize) -> u32 {
     var result: u32 = 0;
 
-    for index in 0 .. length {
+    for const index in 0 .. length {
         result += data[index];
     }
 

@@ -34,7 +34,7 @@ a + (b + c)
 普通乘法和加法分别完成各自的舍入：
 
 ```ink
-let result = a * b + c;
+const result = a * b + c;
 ```
 
 默认不能自动收缩成单次舍入的 fused multiply-add，因为两者可能产生不同结果。
@@ -42,7 +42,7 @@ let result = a * b + c;
 程序需要 FMA 语义时，应显式调用标准库或内建操作：
 
 ```ink
-let result = fma(a, b, c);
+const result = fma(a, b, c);
 ```
 
 `fma` 在目标具有对应指令时可以直接降低为硬件 FMA；没有对应指令时的库实现规则留给标准库与目标支持议题规定。

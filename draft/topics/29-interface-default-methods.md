@@ -31,7 +31,7 @@ interface Renderable {
 
 - 实例字段；
 - 构造函数；
-- `destructor`；
+- 析构函数；
 - 需要独立对象存储的状态。
 
 因此默认方法不能直接访问实现类字段，也不能假定实现类具有某个未在接口中声明的方法。
@@ -190,7 +190,7 @@ interface BinaryParser {
 类仅继承一个无冲突默认方法时，也可以通过类值调用该方法，编译器使用对应接口默认实现：
 
 ```ink
-let player = Player();
+const player = Player();
 player.is_visible();
 ```
 

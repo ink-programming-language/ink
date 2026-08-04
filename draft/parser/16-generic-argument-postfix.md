@@ -1,6 +1,6 @@
 # Parser 议题 16：泛型实参后缀与尖括号消歧
 
-> 状态：已确认，作为 Ink v0 当前规则；议题 17 补充切片后缀  
+> 状态：已确认，作为 Ink v0 当前规则；议题 17 补充切片后缀，议题 29 补充类型实参与列表展开，议题 30 允许普通表达式实参直接使用复合类型值
 > 确认日期：2026-08-03
 
 ## 1. 泛型实例化是后缀操作
@@ -20,7 +20,18 @@ generic_argument_suffix =
     "<", [ generic_argument_list ], ">" ;
 
 generic_argument_list =
-    expression, { ",", expression } ;
+    generic_argument, { ",", generic_argument } ;
+
+generic_argument =
+      type_or_expression
+    | list_expansion ;
+
+type_or_expression =
+      type
+    | expression ;
+
+list_expansion =
+    "...", expression ;
 ```
 
 其中 `ordinary_postfix_suffix` 由议题 15 定义，`slice_suffix` 由议题 17 定义。泛型后缀可以与调用、索引、切片和成员访问继续组合：
@@ -31,7 +42,11 @@ create<i32>(10)
 object.convert<T>().field
 &create<i32>
 Map<String, Vector<i32>>
+Vector<Data*>
+Other<Header, ...Types, Footer>
 ```
+
+议题 30 的类型构造尾链把当前泛型实参的 `>` 作为显式表达式结束符，因此 `Wrapper<T**>` 可以在不查询 `T` 的情况下确定为双重指针类型实参。若 `*` 或 `&` 后仍有当前实参内的普通操作数，则局部试探回滚并继续按本议题及表达式优先级解析。
 
 Parser 不要求泛型后缀后面立刻出现调用。闭合函数、闭合类型和其他闭合声明都可以作为后续语义允许的值或编译期实体。
 
@@ -110,7 +125,16 @@ Pair<i32, String>  // 合法
 Pair<i32, String,> // 非法
 ```
 
-每个实参都是编译期表达式，可以是类型、整数、布尔值、声明句柄或其他泛型形参允许的编译期值，不限于类型。
+每个普通实参可以是议题 29 的完整 `type`，也可以是编译期表达式，因此可以传入类型、整数、布尔值、声明句柄或其他泛型形参允许的编译期值。`list_expansion` 在绑定前把一个编译期序列展开为零个或多个实参：
+
+```ink
+Other<...Types>
+Other<Header, ...select_types(), Footer>
+```
+
+`...expression` 是列表元素而不是普通一元表达式。表达式是否能在编译期产生可展开序列，以及展开元素能否依次满足目标泛型形参，由语义分析检查。
+
+`type_or_expression` 复用议题 29 的中性结构。`Identifier`、内建类型、泛型应用和加括号内容可能同时符合两条识别路径，Parser 不通过符号表提前选择；CST 保存完整实参语法，语义阶段按照目标泛型形参要求解释并验证最终编译期值。
 
 ## 6. 嵌套结束符与 `>>`
 
@@ -151,7 +175,7 @@ Array<i32, N >> 1>
 
 ```ink
 func create<T: comptime type>() -> T;
-let entry = &create<i32>;
+const entry = &create<i32>;
 reflect(Vector<i32>);
 ```
 
@@ -165,10 +189,10 @@ reflect(Vector<i32>);
 
 ## 10. CST 与恢复
 
-泛型实参后缀 CST 保留开始 `<`、全部实参表达式、逗号、结束 `>` 和 Trivia。嵌套的相邻 `>` 始终作为各自真实 Token 保留，不能合并。
+泛型实参后缀 CST 保留开始 `<`、全部类型或表达式实参、列表展开节点、逗号、结束 `>` 和 Trivia。嵌套的相邻 `>` 始终作为各自真实 Token 保留，不能合并。
 
 对于不满足完整泛型后缀条件的邻接 `<`，规范解析回退为比较表达式。Parser 可以在诊断恢复中识别“疑似缺失 `>`”的局部形状，但不能通过查询符号表改变已经成功源码的规范 CST；具体诊断策略留给独立 diagnostics draft。
 
 ## 11. 确认结论
 
-Ink v0 保留 `name<arguments>` 泛型实例化形式。开始 `<` 必须紧邻左侧表达式；存在合法平衡列表时泛型后缀优先，否则作为比较运算符。空 `<>` 显式采用默认实参，非空列表不允许尾随逗号。嵌套 `>>` 在泛型上下文中逐个关闭列表，实参自身的 `>`、`>=`、`>>` 运算必须加括号。整个解析不依赖名称绑定。
+Ink v0 保留 `name<arguments>` 泛型实例化形式。开始 `<` 必须紧邻左侧表达式；存在合法平衡列表时泛型后缀优先，否则作为比较运算符。普通实参可以是完整类型或编译期表达式，也可以使用列表级 `...expression` 展开；空 `<>` 显式采用默认实参，非空源码列表不允许尾随逗号。嵌套 `>>` 在泛型上下文中逐个关闭列表，实参自身的 `>`、`>=`、`>>` 运算必须加括号。整个解析不依赖名称绑定。

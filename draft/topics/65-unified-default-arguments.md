@@ -1,6 +1,6 @@
 # 议题 65：普通参数与编译期参数统一使用默认实参
 
-> 状态：已确认，议题 70 补充默认实参与重载候选关系，Parser 议题 13 补充普通实参求值顺序  
+> 状态：已确认，议题 70 补充默认实参与重载候选关系，Parser 议题 13、29 补充普通实参求值顺序与函数类型语法
 > 确认日期：2026-08-02
 
 ## 1. 统一 `=` 语法
@@ -123,7 +123,7 @@ evaluate make_buffer() once
 默认表达式在函数声明的词法上下文中解析和进行访问检查，而不是捕获调用位置的同名局部变量：
 
 ```ink
-const default_port: u16 = 443;
+const default_port: u16 = comptime 443;
 
 func connect(
     host: StringView,
@@ -203,9 +203,11 @@ func output(value: i32, radix: u32 = 10);
 函数指针、裸稳定入口和其他只携带函数类型的调用必须提供全部参数：
 
 ```ink
-let entry: func(i32, u32) = &output;
+const entry: func(i32, u32) = &output;
 entry(10, 10); // 必须提供 radix
 ```
+
+Parser 议题 29 规定函数类型参数只写类型，不写名称或默认表达式；省略 `-> type` 等价于返回 `void`。因此上面的 `func(i32, u32)` 只记录实际二参数调用形状，不记录 `radix` 的默认值。
 
 默认值不编码进普通调用约定。`extern "C"` 声明即使供 Ink 源码直接调用时带有默认值，C ABI 消费者也看不到该默认值；它不是二进制接口的一部分。
 

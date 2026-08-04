@@ -1,6 +1,6 @@
 # 议题 71：现有元组直接承载异构编译期值
 
-> 状态：已确认  
+> 状态：已确认，Parser 议题 30 确认无期望类型时的类型值元组
 > 确认日期：2026-08-02
 
 ## 1. 不增加新的元值容器
@@ -8,11 +8,11 @@
 Ink 不为编译期元编程另外引入 `MetaTuple`、`ComptimeAny`、`ValueList` 或类型擦除容器。议题 69 的普通元组语法可以直接在 `comptime` 求值中保存异构编译期值：
 
 ```ink
-let specification = comptime (
+const specification = comptime (
     i32,
     cast<ptrsize>(16),
     Vector,
-    Identifier.from("items"),
+    Identifier.from("items")
 );
 ```
 
@@ -33,12 +33,21 @@ Identifier
 
 异构性由元组每个位置的准确静态类型表达，不需要把元素统一转换成 `Any`。
 
+Parser 议题 30 规定没有 `type` 期望时，圆括号中的多个类型值默认形成普通元组值，而不是合并成一个元组类型值。因此：
+
+```ink
+const Types = (i32, String);       // 值类型为 (type, type)
+const Pair: type = (i32, String);  // 值本身是元组类型 (i32, String)
+```
+
+本议题使用前一种普通元组值承载异构编译期元值。
+
 ## 2. `comptime` 只决定求值阶段
 
 元组不会因为在编译期构造就变成另一种语言类型：
 
 ```ink
-let dimensions = comptime (1920, 1080);
+const dimensions = comptime (1920, 1080);
 ```
 
 如果所有元素都是可运行时表示的普通值，编译器可以把已知结果作为普通 `(i32, i32)` 常量残留到运行时；它继续使用议题 69 的正常布局和生命周期规则。
@@ -46,7 +55,7 @@ let dimensions = comptime (1920, 1080);
 如果任一元素是 `type`、`GenericDecl`、`FunctionDecl` 或其他编译期专用值，完整元组不能物化到运行时：
 
 ```ink
-let metadata = comptime (i32, Vector);
+const metadata = comptime (i32, Vector);
 
 runtime_store(metadata); // 编译错误：元组包含编译期专用值
 ```
@@ -58,9 +67,9 @@ runtime_store(metadata); // 编译错误：元组包含编译期专用值
 位置访问沿用议题 69 的 `.0`、`.1` 以及编译期常量索引：
 
 ```ink
-let ElementType: type = specification.0;
-let Alignment: ptrsize = specification.1;
-let Container: GenericTypeDecl = specification.2;
+const ElementType: type = specification.0;
+const Alignment: ptrsize = specification.1;
+const Container: GenericTypeDecl = specification.2;
 ```
 
 每个投影的类型由位置静态确定。普通运行时整数不能索引异构编译期元组；编译期索引必须在访问被 elaboration 和类型检查之前成为已知常量。
@@ -107,7 +116,7 @@ iteration 3: element : Identifier
 编译期元组可以直接保存生成声明所需的语义值：
 
 ```ink
-let fields = comptime (
+const fields = comptime (
     (Identifier.from("id"), i64),
     (Identifier.from("name"), String),
     (Identifier.from("active"), bool),

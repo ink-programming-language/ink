@@ -32,9 +32,9 @@ Ink v0 不提供读取、清除或测试这些浮点异常标志的语言 API。
 例如：
 
 ```ink
-let positive = 1.0f64 / 0.0f64; // +Infinity
-let negative = -1.0f64 / 0.0f64; // -Infinity
-let invalid = 0.0f64 / 0.0f64;  // NaN
+const positive = 1.0f64 / 0.0f64; // +Infinity
+const negative = -1.0f64 / 0.0f64; // -Infinity
+const invalid = 0.0f64 / 0.0f64;  // NaN
 ```
 
 这些结果遵守严格浮点语义，不是整数除法 PDB，也不需要编译器插入除零检查。

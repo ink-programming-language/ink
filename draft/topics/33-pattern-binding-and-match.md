@@ -1,6 +1,6 @@
-# 议题 33：枚举模式绑定、`if let` 与 `match` 表达式
+# 议题 33：枚举模式绑定、`if match`、`while match` 与 `match` 表达式
 
-> 状态：已确认，议题 69 补充元组位置模式  
+> 状态：已确认，议题 69 补充元组位置模式；Parser 议题 23—25 完成模式传播、`match` 与循环条件语法
 > 确认日期：2026-08-02
 
 ## 1. 匹配不消费枚举
@@ -23,7 +23,7 @@ match resource {
 
 ## 2. 被匹配表达式只计算一次
 
-`match` 和 `if let` 都只计算被匹配表达式一次：
+`match` 和 `if match` 都只计算被匹配表达式一次：
 
 ```ink
 match next_event() {
@@ -34,72 +34,60 @@ match next_event() {
 
 如果表达式产生临时枚举值，编译器建立一个隐藏临时对象，其生命周期持续到整个匹配结构结束，匹配结束后按照普通 RAII 规则销毁活动载荷。分支中的引用绑定可以像普通引用一样被返回或保存，但不会延长该隐藏临时对象的生命周期；匹配结束后继续访问它将成为悬空引用 UB。
 
-## 3. 默认绑定是只读借用
+## 3. 模式绑定借用载荷并传播访问能力
 
-没有修饰的载荷绑定是对活动载荷存储的只读借用：
+名称模式始终借用活动载荷存储，不复制、移动或取得载荷所有权。绑定是否为 `T&` 或 `const T&`，由被匹配表达式到枚举存储的访问能力决定：
 
 ```ink
-match optional {
-    .some(value) => {
-        inspect(value);
+func inspect(optional: const Optional<Data>&) {
+    if match .some(value) = optional {
+        // value: const Data&
+        value.inspect();
     }
+}
 
-    .none => {}
+func update(optional: Optional<Data>&) {
+    if match .some(value) = optional {
+        // value: Data&
+        value.update();
+    }
 }
 ```
 
-对于普通值载荷 `T`，`value` 的访问能力等价于 `const T&`。它不能被重新赋值，也不能调用要求 `T&` 的可变操作。引用值本身可以被复制、返回或保存，但不会延长枚举载荷生命周期。
+具体规则为：
 
-默认借用使查看大型载荷没有隐藏复制成本，也允许查看不可复制载荷。
+- 可写枚举 place，包括通过 `Enum&` 获得的对象，产生可写载荷绑定；
+- 只读枚举 place，包括通过 `const Enum&` 获得的对象，产生只读载荷绑定；
+- 按值临时匹配对象的载荷只允许只读绑定；
+- pattern 不使用 `var` 修饰符，可写性不在每个载荷名称前重复声明。
+
+因此匹配大型载荷没有隐藏复制成本，也允许直接检查不可复制载荷。匹配绑定是非拥有引用，不会延长枚举或载荷的生命周期。
 
 ## 4. 引用和指针载荷不传播顶层 `const`
 
-默认绑定只禁止修改枚举中保存的载荷槽，不递归削弱载荷本身已经携带的访问能力：
+访问能力传播只约束枚举中保存的载荷槽，不递归削弱载荷本身已经携带的访问能力：
 
 - `Optional<T&>` 的 `.some(value)` 绑定为 `T&`，不会形成引用的引用；
 - `Optional<const T&>` 的 `.some(value)` 绑定为 `const T&`；
-- 指针载荷的绑定不能改写枚举中的指针值，但指针目标是否可写仍由 `T*` 或 `const T*` 决定。
+- 只读访问指针载荷时不能改写枚举中的指针值，但指针目标是否可写仍由 `T*` 或 `const T*` 决定；
+- 可写访问指针载荷槽时，可以按照普通赋值规则改写该槽。
 
 ```ink
-if let .some(player) = try_cast<Player&>(entity) {
+if match .some(player) = try_cast<Player&>(entity) {
     player.update(); // player 保持 Player& 的可变访问能力
 }
 ```
 
-这里的“默认只读”针对载荷槽本身，不等同于把指针或引用指向的对象递归改成 `const`。
+访问能力传播不能去掉引用或指针目标类型中的 `const`，也不会把不可重新绑定的引用变成可重新绑定引用。
 
-## 5. `var` 显式取得可变载荷借用
-
-需要修改枚举内保存的普通载荷时，在模式中显式使用 `var`：
-
-```ink
-match optional_count {
-    .some(var count) => {
-        count += 1;
-    }
-
-    .none => {}
-}
-```
-
-对于普通值载荷 `T`，`var count` 的访问能力等价于 `T&`。它直接修改原枚举的活动载荷，不建立副本。
-
-可变模式要求被匹配对象是可变、仍在生命周期内的左值。以下情况产生编译错误：
-
-- 被匹配对象是 `const`；
-- 被匹配表达式只是临时值；
-- 载荷类型自身只允许只读访问。
-
-`var` 不能去掉引用或指针目标类型中的 `const`，也不能把不可重新绑定的引用变成可重新绑定引用。
-
-## 6. 显式复制在分支体中完成
+## 5. 显式复制在分支体中完成
 
 模式语法不提供隐式复制或自动移动。确实需要独立副本时，在分支体中使用普通值初始化：
 
 ```ink
 match optional_data {
     .some(value) => {
-        let local: Data = value;
+        const local: Data = value;
         process(local);
     }
 
@@ -109,7 +97,7 @@ match optional_data {
 
 该初始化遵守议题 02：`Data` 必须可复制，复制成本由普通值语义明确承担。不可复制载荷不能通过模式绑定绕过复制限制。
 
-## 7. 绑定名称与引用生命周期
+## 6. 绑定名称与引用生命周期
 
 模式绑定名称采用普通词法作用域：从进入匹配分支开始，到该分支结束。绑定名称本身不是新对象，也不会取得载荷所有权。
 
@@ -122,12 +110,12 @@ match optional_data {
 
 这些操作不会被引用规则自动禁止，也不会自动修正已经保存的地址。此后若引用不再指向生命周期内的原载荷，继续访问属于 UB。Ink 不使用借用检查器或跨任意控制流的生命周期推导证明这些别名安全。
 
-## 8. `if let` 是单分支枚举匹配
+## 7. `if match` 是单分支枚举匹配
 
-`if let` 接受普通枚举分支模式：
+`if match` 接受普通枚举分支模式：
 
 ```ink
-if let .some(value) = optional {
+if match .some(value) = optional {
     use(value);
 }
 ```
@@ -139,19 +127,29 @@ if let .some(value) = optional {
 3. 不匹配时跳过条件体或进入 `else`；
 4. 绑定只在成功分支中可见。
 
-`if let` 不要求穷尽，因为失败路径由跳过或 `else` 表示：
+`if match` 不要求穷尽，因为失败路径由跳过或 `else` 表示：
 
 ```ink
-if let .ok(value) = result {
+if match .ok(value) = result {
     use(value);
 } else {
     handle_failure();
 }
 ```
 
-编译器不根据 `Optional` 的类型名称赋予 `if let` 特例。任何带载荷枚举都使用相同模式规则。
+编译器不根据 `Optional` 的类型名称赋予 `if match` 特例。任何带载荷枚举都使用相同模式规则。
 
-## 9. `match` 可以是语句或表达式
+Parser 议题 25 把同一条件模式扩展到循环：
+
+```ink
+while match .some(value) = iterator.next() {
+    use(value);
+}
+```
+
+每次尝试进入循环体时，右侧表达式只计算一次。匹配成功时，绑定只在本轮循环体中可见；匹配失败时结束循环。右侧产生的临时枚举值存活到本轮循环体结束，并在正常到达、`continue`、`break`、`return` 或异常离开本轮时按照普通 RAII 规则清理。`while match` 不支持 `else`。
+
+## 8. `match` 可以是语句或表达式
 
 `match` 作为语句时，各分支可以只执行控制流和副作用：
 
@@ -163,12 +161,26 @@ match state {
 }
 ```
 
+语句形式的每个分支体是一条 `statement`：简单语句保留自己的分号，多条语句或局部声明使用 `statement_block`，分支后不写逗号，整个 `match_statement` 后也不写分号。
+
 `match` 也可以产生值：
 
 ```ink
-let count: ptrsize = match optional_items {
+const count: ptrsize = match optional_items {
     .none => 0,
     .some(items) => items.length,
+};
+```
+
+表达式形式的每个分支都必须以逗号结束，包括最后一个分支。能够正常完成的分支体必须是表达式；需要直接 `return`、`break`、`continue` 或 `throw` 时，使用一个不能正常完成且同样以逗号结束的 `statement_block`：
+
+```ink
+const value = match result {
+    .ok(value) => value,
+    .error(error) => {
+        log(error);
+        throw error;
+    },
 };
 ```
 
@@ -176,31 +188,31 @@ let count: ptrsize = match optional_items {
 
 - 所有能够正常完成的分支必须产生兼容类型；
 - 类型合并只使用语言已经允许的普通类型规则，不引入新的隐式转换；
-- `return`、`break`、`continue`、trap 等不产生值的分支不参与结果类型合并；
+- 包含 `return`、`break`、`continue`、`throw` 或永久 trap 且不能正常完成的块分支不参与结果类型合并；
 - 结果值的复制、构造和析构遵守普通值语义；
 - 仍然必须满足议题 32 的穷尽检查。
 
-## 10. 分支模式和通配模式
+## 9. 分支模式和通配模式
 
 枚举分支模式使用上下文限定的 `.variant`：
 
 ```ink
 .none
 .some(value)
-.some(var value)
+.some(_)
 ```
 
 无载荷分支不能绑定载荷；带载荷分支的绑定数量必须与该分支声明兼容。`_` 匹配所有尚未覆盖的分支且不建立绑定。
 
 模式名称由被匹配表达式的静态枚举类型解析。模式不会执行用户函数、构造函数、隐式转换或动态反射查找。
 
-## 11. 控制流与清理
+## 10. 控制流与清理
 
 每个分支都是独立作用域。在分支内成功构造的局部值和注册的 `defer` 按照议题 03 在离开该分支时清理，包括通过 `return`、`break` 或 `continue` 离开。
 
 模式绑定本身不是新对象，因此分支结束时只结束名称作用域，不单独析构绑定。原枚举仍由其正常所有者在生命周期结束时销毁当前活动载荷；复制出去的引用不会改变该销毁时机。
 
-## 12. 成本模型
+## 11. 成本模型
 
 普通匹配通常降低为：
 
@@ -208,18 +220,17 @@ let count: ptrsize = match optional_items {
 2. 一个条件分支、跳转表或编译器证明后的静态分支；
 3. 对活动载荷地址的直接使用。
 
-默认绑定不复制载荷、不分配内存、不增加引用计数。niche 优化后的枚举直接检查对应 niche 位模式；不要求先恢复一个源码中不存在的独立判别字段。
+模式绑定不复制载荷、不分配内存、不增加引用计数。niche 优化后的枚举直接检查对应 niche 位模式；不要求先恢复一个源码中不存在的独立判别字段。
 
 编译器可以合并重复检查、消除已知分支或内联分支体，但不能因此访问非活动载荷。程序通过已经失效的引用访问非活动载荷属于 UB。
 
-## 13. 后续问题
+## 12. 后续问题
 
 以下内容留给后续议题：
 
 - 嵌套枚举、数组、类字段和字面量模式；
 - `match` guard；
 - 多模式 `|` 和范围模式；
-- `while let` 等循环简写；
 - 命名载荷的字段模式；
 - 对非枚举类型开放用户定义解构；
 - `match` 表达式结果类型的完整公共类型推导规则。

@@ -10,12 +10,12 @@ Ink 不提供 `[stable_id]` 属性，也不为反射声明定义需要跨重命�
 动态反射中的类型、字段、函数和元数据类型都以规范化的完全限定字符串名称作为语义身份。
 
 ```ink
-if let .some(type) = reflection.find_type("game.Player") {
-    if let .some(property) = type.property("health") {
+if match .some(type) = reflection.find_type("game.Player") {
+    if match .some(property) = type.property("health") {
         print(property.name);
     }
 
-    if let .some(function) = type.function("take_damage") {
+    if match .some(function) = type.function("take_damage") {
         print(function.name);
     }
 }
@@ -44,11 +44,11 @@ Module 议题 01 规定：包清单确定根 package 名，源码根下的子目
 运行时全局查找使用完全限定名称：
 
 ```ink
-if let .some(type) = reflection.find_type("game.Player") {
+if match .some(type) = reflection.find_type("game.Player") {
     print(type.name);
 }
 
-if let .some(function) = reflection.find_function(
+if match .some(function) = reflection.find_function(
     "game.Player.take_damage"
 ) {
     print(function.name);
@@ -58,11 +58,11 @@ if let .some(function) = reflection.find_function(
 已经取得 `TypeInfo` 后，可以使用成员局部名称查询：
 
 ```ink
-if let .some(health) = type.property("health") {
+if match .some(health) = type.property("health") {
     print(health.name);
 }
 
-if let .some(damage) = type.function("take_damage") {
+if match .some(damage) = type.function("take_damage") {
     print(damage.name);
 }
 ```
@@ -101,7 +101,7 @@ if let .some(damage) = type.function("take_damage") {
 需要兼容旧数据时，由应用显式提供迁移规则，例如：
 
 ```ink
-const type_migrations = {
+const type_migrations = comptime {
     "game.Player": "game.Character",
 };
 ```
@@ -113,7 +113,7 @@ const type_migrations = {
 `metadata.get[T]()` 由编译器取得 `T` 的完全限定名称，并按照该字符串查找元数据值：
 
 ```ink
-let range = property.metadata.get[editor.Range]();
+const range = property.metadata.get[editor.Range]();
 ```
 
 重命名元数据类型会使旧名称成为不存在的新旧边界。运行时枚举未知元数据时必须能够返回其保存的完全限定类型名称。

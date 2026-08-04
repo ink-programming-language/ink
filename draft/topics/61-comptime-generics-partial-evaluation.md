@@ -136,7 +136,7 @@ Runtime(ir_value)  运行时才能取得
 显式 `comptime` 上下文要求最终结果完全由 `Known` 值组成：
 
 ```ink
-let value = comptime fibonacci(20);
+const value = comptime fibonacci(20);
 ```
 
 如果必经执行路径读取 `Runtime` 值、进入没有编译期实现的操作，或者不能完成求值，则编译失败。
@@ -285,7 +285,7 @@ inline_assembly
 执行上下文为这些操作提供能力表和处理器。以文件读取为例：
 
 ```ink
-let schema = comptime stdio.read_file("schema.json");
+const schema = comptime stdio.read_file("schema.json");
 ```
 
 标准库最终进入 `fs.read` 内建操作；`ComptimeWorld` 的处理器通过编译器文件系统读取内容并记录路径和内容依赖，`RuntimeWorld` 使用运行环境适配器，LLVM lowering 则生成目标平台调用。

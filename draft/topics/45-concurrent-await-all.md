@@ -1,6 +1,6 @@
 # 议题 45：并发组合等待 `all`
 
-> 状态：已确认，议题 46—48、50、52、53、62、68、69 补充；动态任务集合属于库  
+> 状态：已确认，议题 46—48、50、52、53、62、68、69 与 Parser 议题 10、23 补充；动态任务集合属于库
 > 确认日期：2026-08-02
 
 ## 1. 设计目标
@@ -13,8 +13,10 @@ Ink 使用 `await all(...)` 明确表达一组惰性任务应当并发前进，�
 var charge = charge_card();
 var save = save_order();
 
-let (receipt, order) = await all(charge, save);
+const (receipt, order) = await all(charge, save);
 ```
+
+这里使用 Parser 议题 10、23 的不可反驳元组解构声明：`await all(...)` 只求值一次，`const` 同时作用于 `receipt` 和 `order`。需要可修改的结果绑定时可以改写为 `var (receipt, order) = ...;`，无需在每个名称前重复关键字。
 
 不需要在 `all` 返回后再次分别等待两个任务。
 
@@ -32,7 +34,7 @@ let (receipt, order) = await all(charge, save);
 完成先后不影响结果位置：
 
 ```ink
-let (slow_result, fast_result) = await all(slow(), fast());
+const (slow_result, fast_result) = await all(slow(), fast());
 ```
 
 即使 `fast()` 先完成，第二个返回值仍然对应第二个参数。
@@ -50,7 +52,7 @@ Task<A>, Task<B>, Task<C>
 因此可以直接进行多绑定初始化：
 
 ```ink
-let (user, config, content) =
+const (user, config, content) =
     await all(load_user(), load_config(), load_content());
 ```
 
@@ -61,7 +63,7 @@ let (user, config, content) =
 异步调用表达式可以直接作为 `all` 的参数：
 
 ```ink
-let (user, content) = await all(load_user(), load_content());
+const (user, content) = await all(load_user(), load_content());
 ```
 
 这些临时 `Task` 必须直接构造在组合等待所拥有的稳定存储中，并至少存活到整个组合等待结束。实现不能先建立命名任务，再通过复制或隐藏移动把 `[noncopyable] Task<T>` 放入组合对象。
@@ -76,14 +78,14 @@ let (user, content) = await all(load_user(), load_content());
 var first_task = calculate_a();
 var second_task = calculate_b();
 
-let (first, second) = await all(first_task, second_task);
-let first_again = await first_task;
+const (first, second) = await all(first_task, second_task);
+const first_again = await first_task;
 ```
 
 按值结果仍要求结果类型满足 `Copy`。`all` 从每个任务的只读结果存储产生对应值，不为不可复制结果引入隐藏移动。不可复制资源继续通过原始指针或未来显式拥有型指针返回：
 
 ```ink
-let (file, socket) = await all(open_file(), connect_server());
+const (file, socket) = await all(open_file(), connect_server());
 // 结果类型可以分别是 File* 与 Socket*
 ```
 
@@ -92,14 +94,14 @@ let (file, socket) = await all(open_file(), connect_server());
 下列代码顺序执行：
 
 ```ink
-let first = await load_a();
-let second = await load_b();
+const first = await load_a();
+const second = await load_b();
 ```
 
 下列代码允许两个任务并发前进：
 
 ```ink
-let (first, second) = await all(load_a(), load_b());
+const (first, second) = await all(load_a(), load_b());
 ```
 
 编译器不得把前一种写法自动改成后一种，也不得根据任务看似独立而推断并发。任务之间可能通过 I/O、原始指针、外部设备或其他副作用形成源码中不可见的顺序要求。

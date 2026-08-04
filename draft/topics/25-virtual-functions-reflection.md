@@ -37,9 +37,9 @@ class Player : Entity {
 2. 调用适配器验证接收对象和参数后，按照接收对象的动态类型执行普通虚派发。
 
 ```ink
-if let .some(type) = reflection.find_type("game.Entity") {
-    if let .some(function) = type.function("update") {
-        let entity: Entity& = player;
+if match .some(type) = reflection.find_type("game.Entity") {
+    if match .some(function) = type.function("update") {
+        const entity: Entity& = player;
         function.call[void](&entity, 0.016f32);
     }
 }
