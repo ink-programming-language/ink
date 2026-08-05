@@ -33,7 +33,7 @@ Package 和 subpackage 的目录包含关系不自动建立依赖边。只有实
 Parser 议题 05 先收集候选导入，再通过顶层 `comptime` 选择实际导入。无环检查只作用于当前构建激活后的 module 边。
 
 ```ink
-if comptime target.os == Os.windows {
+comptime if (target.os == Os.windows) {
     import platform.windows.runtime;
 } else {
     import platform.linux.runtime;

@@ -58,7 +58,7 @@ catch mut as error               // 非法
 ```ink
 [exception]
 class OperationError {
-    external_state: State*;
+    var external_state: State*;
 }
 
 catch OperationError as error {

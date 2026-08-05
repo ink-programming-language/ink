@@ -98,7 +98,7 @@ var valid: Task<File*>;   // 合法：复制并返回原始指针
 
 ```ink
 [noncopyable]
-class Task<T: comptime type> {
+class Task<T: type> {
     // 运行时私有状态
 }
 ```

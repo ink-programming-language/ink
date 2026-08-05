@@ -95,7 +95,7 @@ throw FileNotFound { path }; // 直接构造，不是移动
 ```ink
 [noncopyable]
 class File {
-    handle: OsHandle;
+    var handle: OsHandle;
 
     func ~File() {
         os.close(this.handle);
@@ -135,8 +135,8 @@ class File {
 }
 
 class Server {
-    log: File;
-    port: u16;
+    var log: File;
+    var port: u16;
 }
 
 // Server 自动不可复制
@@ -171,7 +171,7 @@ var second = first.clone(); // 显式深复制
 议题 61 不引入 `where T: Copy` 约束；泛型可以直接执行需要复制能力的操作，并在具体实例化时检查：
 
 ```ink
-func duplicate<T: comptime type>(value: const T&) -> (T, T) {
+func duplicate<T: type>(value: const T&) -> (T, T) {
     return (value, value);
 }
 ```

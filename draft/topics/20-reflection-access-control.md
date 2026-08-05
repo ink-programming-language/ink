@@ -38,7 +38,7 @@ comptime {
 ```ink
 // account.ink，Account 的定义模块
 func serialize_internal(value: const Account&) {
-    comptime for field in reflect(Account).fields {
+    comptime for (const field in reflect(Account).fields) {
         serialize(field.get(value)); // 允许访问本模块私有字段
     }
 }
@@ -52,8 +52,8 @@ func serialize_internal(value: const Account&) {
 
 ```ink
 // external_serializer.ink
-func serialize_all[T](value: const T&) {
-    comptime for field in reflect(T).fields {
+func serialize_all<T: type>(value: const T&) {
+    comptime for (const field in reflect(T).fields) {
         serialize(field.get(value));
     }
 }
@@ -75,7 +75,7 @@ func serialize_all[T](value: const T&) {
 [reflect]
 class Player {
     [reflect(DisplayName("Health"))]
-    private health: i32;
+    private var health: i32;
 
     [reflect]
     private func reset_health() {
@@ -116,7 +116,7 @@ class Player {
 ```ink
 [reflect]
 class Account {
-    private balance: i64;
+    private var balance: i64;
 
     [reflect]
     func get_balance() -> i64 {
@@ -125,7 +125,7 @@ class Account {
 
     [reflect]
     func set_balance(value: i64) -> bool {
-        if value < 0 {
+        if (value < 0) {
             return false;
         }
 

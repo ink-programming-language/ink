@@ -73,12 +73,12 @@ process(value)
 初始化表达式最后一个字符是 `}` 时，也不会替代外层声明分号：
 
 ```ink
-const value = construct {
+const value = Value {
     field: 10
 };
 ```
 
-具体 `construct` 或聚合初始化语法由后续议题定义；此例只说明外层绑定仍由 `;` 终止。
+聚合初始化使用已经确认的显式 `type { field: expression }` 形状；此例只说明外层绑定仍由 `;` 终止。
 
 ## 4. 不使用结尾分号的结构
 
@@ -95,12 +95,12 @@ func calculate() -> i32 {
 议题 24 的 `match_statement` 由自己的 `}` 结束，不写分号；`match_expression` 自身不包含外层分号，由包含它的绑定声明或表达式语句提供：
 
 ```ink
-match state {
+match (state) {
     .ready => run();
     _ => wait();
 }
 
-const code = match state {
+const code = match (state) {
     .ready => 1,
     _ => 0,
 };
@@ -126,7 +126,7 @@ const code = match state {
 因此带花括号体的结构后多写一个分号也非法：
 
 ```ink
-if condition {
+if (condition) {
     run();
 };
 ```

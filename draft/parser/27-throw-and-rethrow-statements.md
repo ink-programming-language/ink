@@ -207,7 +207,7 @@ consume(throw error);      // 非法
 `match_statement` 的分支可以直接使用 `throw_statement`：
 
 ```ink
-match result {
+match (result) {
     .ok(value) => consume(value);
     .error(error) => throw error;
 }
@@ -216,7 +216,7 @@ match result {
 `match_expression` 的分支若需要抛出，必须使用议题 24 允许的发散 `statement_block`：
 
 ```ink
-const value = match result {
+const value = match (result) {
     .ok(value) => value,
     .error(error) => {
         throw error;

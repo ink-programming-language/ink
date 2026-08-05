@@ -154,12 +154,12 @@ Parser 议题 07 规定普通逗号列表不允许尾随逗号，因此成员导
 
 ## 7. 作用域与冲突
 
-直接或条件激活的导入绑定都属于当前模块作用域，不属于顶层 `if comptime` 花括号形成的临时局部作用域。绑定的可见性不依赖导入声明在源文件中的文本位置。
+直接或条件激活的导入绑定都属于当前模块作用域，不属于顶层 `comptime if` 花括号形成的临时局部作用域。绑定的可见性不依赖导入声明在源文件中的文本位置。
 
 名称冲突只在 Parser 议题 05 完成条件筛选后，对同时激活的导入和声明进行检查。因此可以在互斥分支中建立同名绑定：
 
 ```ink
-if comptime target.os == Os.windows {
+comptime if (target.os == Os.windows) {
     from platform.windows import Window as NativeWindow;
 } else {
     from platform.linux import Window as NativeWindow;

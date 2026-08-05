@@ -102,19 +102,19 @@ Tokenizer 仍按照既有规则为 `_` 产生普通 `Identifier` Token。Parser 
 
 ## 5. 顶层模式上下文
 
-`if match` 和议题 25 的 `while match` 顶层模式必须是 `variant_pattern`：
+`if (match ...)` 和议题 25 的 `while (match ...)` 顶层模式必须是 `variant_pattern`：
 
 ```ebnf
 conditional_match_pattern = variant_pattern ;
 ```
 
 ```ink
-if match .some(value) = optional {
+if (match .some(value) = optional) {
     use(value);
 }
 ```
 
-这样不会接受永远成功的 `if match value = expression` 或 `while match value = expression`。
+这样不会接受永远成功的 `if (match value = expression)` 或 `while (match value = expression)`。
 
 议题 24 的 `match` 顶层分支模式只接受枚举分支或通配：
 
@@ -138,7 +138,7 @@ irrefutable_pattern = payload_pattern ;
 
 ## 6. 匹配绑定始终借用载荷
 
-`if match` 和 `match` 中的名称模式不会复制、移动或取得枚举载荷所有权。绑定是指向活动载荷存储的非拥有引用，其生命周期不会超过被匹配对象实际存储的生命周期。
+`if (match ...)` 和 `match (...)` 中的名称模式不会复制、移动或取得枚举载荷所有权。绑定是指向活动载荷存储的非拥有引用，其生命周期不会超过被匹配对象实际存储的生命周期。
 
 不在 pattern 中使用 `var` 修饰符，也不建立 `MutableBindingPattern`：
 
@@ -154,14 +154,14 @@ irrefutable_pattern = payload_pattern ;
 
 ```ink
 func inspect(optional: const Optional<Data>&) {
-    if match .some(value) = optional {
+    if (match .some(value) = optional) {
         // value: const Data&
         value.inspect();
     }
 }
 
 func update(optional: Optional<Data>&) {
-    if match .some(value) = optional {
+    if (match .some(value) = optional) {
         // value: Data&
         value.update();
     }
@@ -203,4 +203,4 @@ CST 使用独立节点保存：
 
 ## 10. 确认结论
 
-Ink v0 的模式由名称绑定、`_` 通配、递归元组和上下文限定的枚举分支组成。普通 `var`/`const` 声明接受不可反驳的顶层元组模式；普通 `for` 必须显式写 `var`/`const`，随后只接受单个名称或 `_`。`if match` 与 `while match` 顶层只接受枚举分支模式，`match` 顶层接受枚举分支或 `_`。匹配绑定始终借用载荷，不在 pattern 内使用 `var` 或 `const`；载荷绑定的可写性由被匹配对象的 `Enum&`、`const Enum&` 或 place 访问能力传播。
+Ink v0 的模式由名称绑定、`_` 通配、递归元组和上下文限定的枚举分支组成。普通 `var`/`const` 声明接受不可反驳的顶层元组模式；普通 `for` 必须显式写 `var`/`const`，随后只接受单个名称或 `_`。`if (match ...)` 与 `while (match ...)` 顶层只接受枚举分支模式，`match (...)` 顶层接受枚举分支或 `_`。匹配绑定始终借用载荷，不在 pattern 内使用 `var` 或 `const`；载荷绑定的可写性由被匹配对象的 `Enum&`、`const Enum&` 或 place 访问能力传播。

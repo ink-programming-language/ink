@@ -1,6 +1,6 @@
 # Parser 议题 24：`match` 语句与表达式
 
-> 状态：已确认
+> 状态：已确认；2026-08-05 增加 `comptime match` 语句形式，Parser 议题 32 统一区域控制并统一要求被匹配表达式括号
 > 确认日期：2026-08-04
 
 ## 1. 两种产生式
@@ -9,7 +9,7 @@ Ink 使用同一个 `match` 关键字提供无值语句和有值表达式，两�
 
 ```ebnf
 match_statement =
-    "match", expression, "{",
+    "match", "(", expression, ")", "{",
     match_statement_arm, { match_statement_arm },
     "}" ;
 
@@ -17,7 +17,7 @@ match_statement_arm =
     match_arm_pattern, "=>", statement ;
 
 match_expression =
-    "match", expression, "{",
+    "match", "(", expression, ")", "{",
     match_expression_arm, { match_expression_arm },
     "}" ;
 
@@ -28,6 +28,9 @@ match_expression_arm =
 match_expression_arm_body =
       expression
     | statement_block ;
+
+comptime_match_statement =
+    "comptime", match_statement ;
 ```
 
 `match_arm_pattern` 由议题 23 定义为 `variant_pattern` 或 `wildcard_pattern`。`statement`、`statement_block` 和 `expression` 使用已经确认的对应产生式。两种 `match` 都至少需要一个分支。
@@ -37,7 +40,7 @@ match_expression_arm_body =
 语句形式用于控制流和副作用，每个分支体准确是一条 `statement`：
 
 ```ink
-match state {
+match (state) {
     .idle => wait();
 
     .running(task) => {
@@ -54,7 +57,7 @@ match state {
 分支箭头后不能直接放置局部声明，因为声明不是 `statement`。需要声明或多条语句时使用块：
 
 ```ink
-match optional {
+match (optional) {
     .some(value) => {
         const copy = value;
         use(copy);
@@ -67,7 +70,7 @@ match optional {
 以下形式非法：
 
 ```ink
-match optional {
+match (optional) {
     .some(value) => const copy = value;
     .none => {},
 }
@@ -80,7 +83,7 @@ match optional {
 表达式形式在普通表达式位置产生值：
 
 ```ink
-const count: ptrsize = match optional_items {
+const count: ptrsize = match (optional_items) {
     .none => 0,
     .some(items) => items.length,
 };
@@ -91,7 +94,7 @@ const count: ptrsize = match optional_items {
 能够正常完成的分支体必须是 `expression`。`statement_block` 只用于不可能正常完成的分支，例如抛出、返回、跳出或永久 trap：
 
 ```ink
-const value = match result {
+const value = match (result) {
     .ok(value) => value,
 
     .error(error) => {
@@ -104,7 +107,7 @@ const value = match result {
 块在这里仍是议题 09 的无值 `statement_block`，不会把最后一条表达式变成隐式结果。类型和控制流检查必须证明该块不能正常到达结束 `}`；否则该分支不能满足有值表达式要求：
 
 ```ink
-const value = match optional {
+const value = match (optional) {
     .some(value) => value,
     .none => {
         log("missing");
@@ -126,12 +129,12 @@ Parser 不使用类型信息区分两种结构：
 例如：
 
 ```ink
-match state {
+match (state) {
     .ready => run();
     _ => wait();
 } // MatchStatement
 
-match state {
+match (state) {
     .ready => 1,
     _ => 0,
 }; // MatchExpression + 外层表达式语句分号
@@ -160,7 +163,7 @@ _
 裸名称不能成为顶层全匹配绑定：
 
 ```ink
-match value {
+match (value) {
     anything => use(anything); // 非法
 }
 ```
@@ -170,7 +173,7 @@ match value {
 v0 不接受 guard、多模式 `|`、范围、字面量、字段或嵌套枚举分支模式：
 
 ```ink
-.some(value) if value > 0 => use(value); // 非法：尚无 guard
+.some(value) if (value > 0) => use(value); // 非法：尚无 guard
 .red | .blue => use_color();             // 非法：尚无多模式
 ```
 
@@ -189,7 +192,7 @@ v0 不接受 guard、多模式 `|`、范围、字面量、字段或嵌套枚举�
 `match_statement` 和 `match_expression` 都必须对被匹配的闭合枚举穷尽。可以逐项列出全部分支，也可以使用 `_` 覆盖尚未出现的分支：
 
 ```ink
-match color {
+match (color) {
     .red => handle_red();
     _ => handle_other();
 }
@@ -200,7 +203,7 @@ match color {
 空分支集合不符合产生式：
 
 ```ink
-match value {} // 非法
+match (value) {} // 非法
 ```
 
 ## 8. `=>`、逗号与分号
@@ -228,7 +231,7 @@ match_expression     → 自身不含外层分号，由包含它的声明或表�
 `match_expression` 是议题 14 的 `structured_expression`，因此属于 `primary_expression`，可以作为调用、索引和成员访问的后缀基础：
 
 ```ink
-const length = (match optional {
+const length = (match (optional) {
     .none => empty_items,
     .some(items) => items,
 }).length;
@@ -238,7 +241,33 @@ const length = (match optional {
 
 `match_statement` 不进入表达式优先级，也不能直接作为初始化器、操作数或调用实参。
 
-## 10. CST 与错误恢复
+## 10. `comptime match`
+
+语句形式可以由 `comptime` 直接修饰：
+
+```ink
+comptime match (target.arch) {
+    .x86_64 => enable_x86_backend();
+    .arm64 => enable_arm_backend();
+    _ => compile_error("unsupported architecture");
+}
+```
+
+Parser 建立议题 32 的统一 `ComptimeMatchControl`，在普通函数体中使用 `RegionKind::Statement`，并继续复用完整 `match_statement` 的 header、标点和模式文法。被匹配值能否在编译期求出、只保留哪个分支以及分支中的运行时代码是否残留，由语义阶段决定。
+
+在 declaration region 中保留同一个 `comptime match (value) { ... }` 表面结构。Parser 议题 32 只替换 `RegionRules`，所以每个 arm 的 `=>` 后必须是当前区域的 declaration block，而不是 `statement`。顶层具体 EBNF 展开为 Parser 议题 05 的 `top_level_match_arm`；class、interface、enum 使用对应 member block。所有区域都不在 arm 之间写逗号。
+
+有值的 `match_expression` 已经属于表达式；需要强制整个表达式在编译期完成时使用普通表达式前缀，并可用圆括号明确范围：
+
+```ink
+const selected = comptime (match (target.arch) {
+    .x86_64 => x86_value,
+    .arm64 => arm_value,
+    _ => fallback_value,
+});
+```
+
+## 11. CST 与错误恢复
 
 CST 使用独立节点保存：
 
@@ -247,12 +276,13 @@ MatchStatement
 MatchStatementArm
 MatchExpression
 MatchExpressionArm
+ComptimeMatchControl
 ```
 
-每个节点按源码顺序保存 `match`、被匹配表达式、花括号、pattern、组成 `=>` 的两个 Symbol、分支体、表达式分支逗号以及全部 Trivia。Parser 不把两个 Symbol 合并成一个虚构 Token。
+每个节点按源码顺序保存 `match`、固定左右括号、被匹配表达式、花括号、pattern、组成 `=>` 的两个 Symbol、分支体、表达式分支逗号以及全部 Trivia。Parser 不把两个 Symbol 合并成一个虚构 Token。
 
 恢复时可以把下一个顶层 `.`、准确拼写为 `_` 的 Identifier 或外层 `}` 作为分支同步边界。表达式分支缺少逗号且下一 pattern 已经开始时，可以插入零宽度 `MissingToken(',')`；语句分支出现真实逗号时必须把它保存在 `ErrorNode` 中。缺少 pattern、箭头、分支体或结束花括号时继续使用议题 03 的 `MissingToken` 和 `ErrorNode`，不能删除真实 Token。
 
-## 11. 确认结论
+## 12. 确认结论
 
-Ink 的 `match_statement` 使用一条 `statement` 作为每个分支体，不使用分支逗号，也不在整个结构后写分号。`match_expression` 的正常分支产生表达式值，每个分支都必须以逗号结束；不正常完成的分支可以使用同样以逗号结束的 `statement_block`。两种结构至少包含一个分支，共享议题 23 的模式、一次求值、分支局部借用和穷尽检查规则，并完全通过语法上下文与分支结束符消歧。
+Ink 的 `match_statement` 和 `match_expression` 都把被匹配表达式放在固定括号内。语句形式使用一条 `statement` 作为每个分支体，不使用分支逗号，也不在整个结构后写分号；表达式形式的正常分支产生表达式值，每个分支都必须以逗号结束，不正常完成的分支可以使用同样以逗号结束的 `statement_block`。两种结构至少包含一个分支，共享议题 23 的模式、一次求值、分支局部借用和穷尽检查规则，并完全通过语法上下文与分支结束符消歧。`comptime match_statement` 复用同一语句结构；有值形式由普通 `comptime_expression` 覆盖。

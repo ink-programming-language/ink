@@ -48,8 +48,8 @@ cancel_requested() -> bool
 
 ```ink
 async func process() -> ProcessResult {
-    while has_more_work() {
-        if cancel_requested() {
+    while (has_more_work()) {
+        if (cancel_requested()) {
             cleanup_partial_work();
             return ProcessResult.cancelled;
         }
@@ -74,7 +74,7 @@ async func process() -> ProcessResult {
 任务可以返回完整结果、部分结果或显式包含取消分支的业务结果：
 
 ```ink
-if cancel_requested() {
+if (cancel_requested()) {
     return DownloadResult.partial(bytes_received);
 }
 ```
@@ -86,7 +86,7 @@ if cancel_requested() {
 如果当前 API 把中止操作视为失败，可以抛出自己声明的普通异常：
 
 ```ink
-if cancel_requested() {
+if (cancel_requested()) {
     throw DownloadAborted { url };
 }
 ```
@@ -115,7 +115,7 @@ async func work() -> WorkResult {
     var file = File.open("temp.dat");
     defer remove_temporary_file();
 
-    if cancel_requested() {
+    if (cancel_requested()) {
         return WorkResult.cancelled;
     }
 

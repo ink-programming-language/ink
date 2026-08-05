@@ -1,6 +1,6 @@
 # Tokenizer 议题 04：硬关键字、上下文 `from` 与内建类型 Token
 
-> 状态：已确认，2026-08-04 移除 `let`、`constructor`、`destructor` 硬关键字，并把 `from` 调整为唯一上下文词
+> 状态：已确认，2026-08-04 移除 `let`、`constructor`、`destructor` 硬关键字并把 `from` 调整为唯一上下文词；2026-08-05 确认 `operator` 无特殊语法，并补齐访问修饰符、`static` 与 `final`
 > 确认日期：2026-08-04
 
 ## 1. 唯一的上下文词 `from`
@@ -51,6 +51,7 @@ defer
 else
 enum
 extern
+final
 for
 func
 if
@@ -61,7 +62,10 @@ interface
 match
 override
 private
+protected
+public
 return
+static
 this
 throw
 try
@@ -72,11 +76,25 @@ while
 
 这些拼写在任何源码位置都产生 `Keyword`，不能作为普通声明名称、字段名、参数名或局部变量名。Ink 不提供转义标识符来绕过该表。
 
-`from`、`let`、`constructor` 和 `destructor` 都不在硬关键字表中：
+访问修饰符的三个拼写全部属于硬关键字：
+
+```ebnf
+access_modifier =
+      "public"
+    | "protected"
+    | "private" ;
+```
+
+因此函数或其他声明 Parser 可以直接按 TokenKind 识别访问修饰符，不需要读取 Identifier 文本或引入新的上下文关键字。它们能否出现在某种声明上、重复或冲突修饰符如何诊断，仍由相应 Parser 与语义规则决定。
+
+`static` 与 `final` 同样属于硬关键字。`static` 在类成员函数声明中表示该函数没有隐式接收者；`final` 可以封闭类的具体继承或封闭一个虚函数槽。Parser 议题 31 保存对应函数声明修饰符，能否出现在当前声明上下文以及它们与其他修饰符的组合是否合法，由语义分析检查。
+
+`from`、`let`、`constructor`、`destructor` 和 `operator` 都不在硬关键字表中：
 
 - `from` 始终产生 `Identifier("from")`，Parser 只在第 1 节列出的两个位置赋予上下文含义；
 - `let` 按普通标识符规则产生 `Identifier("let")`，Parser 不接受它作为绑定声明的起始 Token；
 - `constructor` 和 `destructor` 是普通 Identifier，可以作为普通声明或成员名称；它们不再标记生命周期函数。
+- `operator` 是普通 Identifier；Ink v0 不提供 `operator+`、`operator[]`、`operator()` 等运算符重载声明语法，也不把它解释成上下文关键字。
 
 因此以下普通标识符用法合法：
 
@@ -117,6 +135,16 @@ class Resource {
 ```
 
 Tokenizer 对两处 `Resource` 都产生普通 `Identifier("Resource")`，对 `~` 产生单字符 Symbol Token。Parser 只按 `Identifier` 或 `~ Identifier` 保存函数名称语法，不查询所属类名，也不在 CST 阶段决定生命周期身份。语义分析把类内与所属类同名的普通名称判定为构造函数，并把 `~ Identifier` 判定为析构函数候选。
+
+对应的 v0 函数名称产生式准确为：
+
+```ebnf
+function_name =
+      identifier
+    | "~", identifier ;
+```
+
+运算符符号不属于 `function_name`。由于 `operator` 仍是普通 Identifier，`func operator() {}` 只是一个名为 `operator` 的普通函数；在名称后继续出现 `+`、`[]` 或第二组 `()` 不能形成运算符声明。
 
 `~` 和类名是两个独立 Token，中间允许空白、换行或注释 Trivia；这些写法具有相同语法：
 
@@ -228,7 +256,7 @@ reflect(Player)
 
 同理：
 
-- 装饰器中的特殊 `function` 参数词法上是 Identifier；
+- 装饰器体内隐式 continuation 的 `function` 拼写词法上是 Identifier；
 - `[reflect]` 等属性名是 Identifier；
 - `String`、`UnicodeScalar` 等标准库类型是 Identifier；
 - 普通库函数和未来新增内建声明不自动进入硬关键字表。

@@ -16,8 +16,8 @@ task.request_cancel();
 概念签名为：
 
 ```ink
-class Task<T: comptime type> {
-    func request_cancel(this: Task<T>&);
+class Task<T: type> {
+    func request_cancel();
 }
 ```
 

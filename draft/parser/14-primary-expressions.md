@@ -1,6 +1,6 @@
 # Parser 议题 14：基础表达式
 
-> 状态：已确认，议题 21、22 定义无块 `if_expression`，议题 24 完成 `match_expression`，议题 29 补充元组列表展开，议题 30 补充复合类型值
+> 状态：已确认，议题 21、22 定义无块 `if_expression`，议题 24 完成 `match_expression`，议题 29 补充元组列表展开，议题 30 补充复合类型值，议题 35 加入聚合初始化表达式
 > 确认日期：2026-08-03
 
 ## 1. 定义
@@ -203,13 +203,15 @@ array_expression =
 ## 9. 结构化表达式
 
 ```ebnf
-structured_expression = match_expression ;
+structured_expression =
+      match_expression
+    | aggregate_initialization_expression ;
 ```
 
 `match_expression` 能在需要值的表达式位置出现：
 
 ```ink
-const result = match optional {
+const result = match (optional) {
     .none => fallback,
     .some(value) => value,
 };
@@ -217,16 +219,24 @@ const result = match optional {
 
 议题 24 定义其完整 EBNF：正常完成的分支产生表达式值并以逗号结束，不正常完成的分支可以使用同样以逗号结束的 `statement_block`。将它列入基础表达式确定整个结构可以成为完整表达式或后缀操作的基础。
 
+Parser 议题 35 的 `aggregate_initialization_expression` 同样属于结构化基础表达式：
+
+```ink
+const x = Point { x: 10, y: 20 }.x;
+```
+
+因此完整聚合初始化结果可以直接继续普通后缀链，不要求先增加额外圆括号。
+
 为提高可读性，`match_expression` 继续接后缀操作时建议使用括号，但语法不强制：
 
 ```ink
-(match optional {
+(match (optional) {
     .none => fallback,
     .some(value) => value,
 }).method()
 ```
 
-议题 21 已独立确认无块形式 `if condition then true_expression else false_expression`，议题 22 将它放在完整表达式最低层。它不属于最高优先级的 `primary_expression`；作为其他运算的操作数或后缀基础时必须先使用圆括号。
+议题 21 已独立确认无块形式 `if (condition) then true_expression else false_expression`，议题 22 将它放在完整表达式最低层。它不属于最高优先级的 `primary_expression`；作为其他运算的操作数或后缀基础时必须先使用圆括号。
 
 ## 10. 与后缀表达式的关系
 

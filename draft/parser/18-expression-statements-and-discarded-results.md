@@ -114,7 +114,7 @@ _ = calculate();     // 不是内建丢弃形式
 同一形状的 `match_expression` 如果直接作为表达式语句使用，外层仍必须以 `;` 结束，并允许像其他非 `void` 表达式一样丢弃结果：
 
 ```ink
-match optional {
+match (optional) {
     .none => 0,
     .some(value) => value,
 };

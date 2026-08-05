@@ -245,7 +245,7 @@ try {
 `catch` 头部不能附加布尔过滤器、模式守卫或任意用户谓词：
 
 ```ink
-catch HttpError as error if error.status == 404 { } // 非法
+catch HttpError as error if (error.status == 404) { } // 非法
 catch IoError as error when error.retryable() { }   // 非法
 ```
 

@@ -21,8 +21,8 @@ Ink 区分普通类值、虚类值和接口引用：
 
 ```ink
 class Point {
-    x: i32;
-    y: i32;
+    var x: i32;
+    var y: i32;
 }
 ```
 
@@ -234,6 +234,6 @@ vtable 和接口表中的可调用槽必须指向议题 16、17 和 25 所要求
 
 - 主 vptr 在各目标 ABI 中的精确偏移和对齐；
 - vtable 表头和槽位的精确二进制格式；
-- `virtual`、`override` 与 `final` 的完整语言规则；
+- `virtual` 与 `override` 的其余覆盖兼容性规则；
 - 拥有型接口容器；
 - 继承布局变化时的对象迁移协议。

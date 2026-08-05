@@ -1,6 +1,6 @@
 # Parser 议题 26：`return` 与 `defer` 语句
 
-> 状态：已确认
+> 状态：已确认，2026-08-05 确认省略函数返回类型固定为 `void`
 > 确认日期：2026-08-04
 
 ## 1. 基本产生式
@@ -44,6 +44,24 @@ return
 
 上例是一个有结果 `return_statement`。
 
+函数声明省略 `-> type` 时，语义上固定规范化为 `-> void`，不会扫描函数体并根据 `return` 推导结果类型：
+
+```ink
+func log() {
+    return;       // 合法，声明结果为 void
+}
+
+func calculate() {
+    return 42;    // 语义错误，不会推导为 i32
+}
+
+func calculate() -> i32 {
+    return 42;    // 合法
+}
+```
+
+Parser 对三处 `return` 仍只按本节统一产生式建立 CST。声明是否省略结果、`return;` 或 `return expression;` 是否符合结果契约，均由语义阶段检查。构造函数和析构函数继续由生命周期语义禁止显式结果类型以及有值 `return`。
+
 ## 3. 元组和完整表达式边界
 
 返回多个组成值时必须先构造一个元组表达式：
@@ -63,9 +81,9 @@ return left, right; // 非法：元组缺少圆括号
 `if_expression`、`match_expression` 和其他完整表达式可以直接作为返回结果：
 
 ```ink
-return if ready then value else fallback;
+return if (ready) then value else fallback;
 
-return match result {
+return match (result) {
     .ok(value) => value,
     .error(_) => fallback,
 };
@@ -237,4 +255,4 @@ block 形式缺少结束 `}` 时按照议题 09 插入零宽度 `MissingToken('}
 
 ## 12. 确认结论
 
-Ink 使用 `return;` 和 `return expression;` 表示函数返回，结果表达式只求值一次，成功建立返回结果后再执行离开路径上的逆序清理。元组结果必须显式写圆括号。延迟清理同时支持 `defer expression;` 和 `defer { ... }`；整个表达式或 block 在作用域清理时执行，注册时不建立接收者或实参快照。defer block 可以容纳多条普通语句，但不得让异常、返回、外层循环跳转或暂停越过清理边界。`return`、表达式式 `defer` 和 block 式 `defer` 都拥有确定的 CST 与错误恢复规则。
+Ink 使用 `return;` 和 `return expression;` 表示函数返回，结果表达式只求值一次，成功建立返回结果后再执行离开路径上的逆序清理。函数声明省略结果类型固定表示 `void`，不从函数体推导。元组结果必须显式写圆括号。延迟清理同时支持 `defer expression;` 和 `defer { ... }`；整个表达式或 block 在作用域清理时执行，注册时不建立接收者或实参快照。defer block 可以容纳多条普通语句，但不得让异常、返回、外层循环跳转或暂停越过清理边界。`return`、表达式式 `defer` 和 block 式 `defer` 都拥有确定的 CST 与错误恢复规则。

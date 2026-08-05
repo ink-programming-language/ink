@@ -16,7 +16,7 @@ interface Renderable {
     }
 
     func draw_if_visible(canvas: Canvas&) {
-        if is_visible() {
+        if (is_visible()) {
             render(canvas);
         }
     }

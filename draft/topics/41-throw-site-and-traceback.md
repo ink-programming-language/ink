@@ -19,7 +19,7 @@ Ink 把异常诊断分成两个层次：
 编译器为每个产生新异常的 `throw` 源码位置生成静态 `ThrowSite` 描述，并在创建 `ExceptionRecord` 时保存对它的引用：
 
 ```ink
-if !file.exists() {
+if (!file.exists()) {
     throw FileNotFound { path }; // 独立 throw site
 }
 ```

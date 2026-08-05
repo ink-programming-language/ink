@@ -18,7 +18,7 @@ Ink 是允许程序员直接管理地址和生命周期的系统编程语言。�
 func checksum(data: const byte*, length: ptrsize) -> u32 {
     var result: u32 = 0;
 
-    for const index in 0 .. length {
+    for (const index in 0 .. length) {
         result += data[index];
     }
 

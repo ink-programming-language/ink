@@ -36,7 +36,7 @@ Parser 议题 19 进一步规定，取地址语法始终解析为 `&unary_expres
 var pointer: File* = null;
 pointer = &file;
 
-if pointer != null {
+if (pointer != null) {
     pointer->read();
 }
 ```
@@ -100,7 +100,7 @@ const result: Optional<File&> = try_cast<File&>(resource);
 ```
 
 - 非空内容仍遵守普通引用的非拥有和可变性规则；
-- 使用成员前必须按照议题 33 通过 `if match .some(...)`、`match` 等模式语法解包；
+- 使用成员前必须按照议题 33 通过 `if (match .some(...) = value)`、`match (value)` 等模式语法解包；
 - `Optional<T&>` 可以返回、存入字段、全局、闭包、任务或其他长期结构；
 - 它不会把内部引用变成拥有型对象，也不会延长目标生命周期；
 - 其中的引用失效后，解包并访问目标同样属于 UB；
@@ -180,7 +180,7 @@ middle = { &numbers[1], 3 }
 func sum(values: const int[]) -> int {
     var result = 0;
 
-    for const value in values {
+    for (const value in values) {
         result += value;
     }
 
@@ -195,9 +195,9 @@ Parser 议题 25 规定普通 `for` 必须显式写 `var` 或 `const`，并且�
 需要长期保存“地址加长度”时，使用可复制的原始切片：
 
 ```ink
-class RawSlice<T: comptime type> {
-    data: T*;
-    length: ptrsize;
+class RawSlice<T: type> {
+    var data: T*;
+    var length: ptrsize;
 }
 ```
 
@@ -209,7 +209,7 @@ class RawSlice<T: comptime type> {
 
 ```ink
 func process(values: RawSlice<int>) {
-    for const index in 0 .. values.length {
+    for (const index in 0 .. values.length) {
         print(values.data[index]);
     }
 }

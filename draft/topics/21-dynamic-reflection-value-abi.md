@@ -22,13 +22,13 @@ Ink 的动态反射采用“编译器生成描述符与适配器，加借用型�
 用户侧 API 保持强类型外观：
 
 ```ink
-if match .some(type) = reflection.find_type("game.Player") {
-    if match .some(health) = type.property("health") {
+if (match .some(type) = reflection.find_type("game.Player")) {
+    if (match .some(health) = type.property("health")) {
         const value = health.get[i32](&player);
         health.set[i32](&player, 80);
     }
 
-    if match .some(function) = type.function("take_damage") {
+    if (match .some(function) = type.function("take_damage")) {
         const result = function.call[bool](&player, 10i32);
     }
 }
@@ -44,9 +44,9 @@ if match .some(type) = reflection.find_type("game.Player") {
 
 ```ink
 class DynamicRef {
-    data: void*;
-    type: TypeHandle;
-    mutable: bool;
+    var data: void*;
+    var type: TypeHandle;
+    var mutable: bool;
     // 实现还保存与借用和布局版本有关的状态
 }
 ```

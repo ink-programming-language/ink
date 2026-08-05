@@ -96,9 +96,9 @@ try {
 `catch` 头部不能包含布尔条件、模式守卫或用户谓词：
 
 ```ink
-catch HttpError as error if error.status == 404 // 非法
+catch HttpError as error if (error.status == 404) // 非法
 catch IoError as error when error.retryable()   // 非法
-catch as error if should_handle(error)           // 非法
+catch as error if (should_handle(error))           // 非法
 ```
 
 处理器匹配只读取异常描述符中的类型、父类和异常接口关系，不执行任意用户代码。
@@ -111,7 +111,7 @@ catch as error if should_handle(error)           // 非法
 try {
     request();
 } catch HttpError as error {
-    if error.status == 404 {
+    if (error.status == 404) {
         use_default_page();
     } else {
         report_http_error(error);
@@ -129,7 +129,7 @@ try {
 try {
     request();
 } catch HttpError as error {
-    if !error.retryable() {
+    if (!error.retryable()) {
         throw;
     }
 
@@ -148,7 +148,7 @@ try {
     try {
         request();
     } catch HttpError as error {
-        if error.retryable() {
+        if (error.retryable()) {
             retry();
         } else {
             throw;

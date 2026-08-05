@@ -41,10 +41,10 @@ Ink v0 暂不提供以下语法或等价能力：
 
 ### 3.1 静态候选集中的条件导入
 
-源码中直接写出的静态 `import` 可以位于顶层 `if comptime` 分支中：
+源码中直接写出的静态 `import` 可以位于顶层 `comptime if` 分支中：
 
 ```ink
-if comptime target.os == Os.windows {
+comptime if (target.os == Os.windows) {
     import platform.windows;
 } else {
     import platform.linux;
@@ -73,7 +73,7 @@ platform.linux
 
 ## 4. 保留结构化类型和声明构造
 
-本议题不撤销议题 61 已确认的结构化生成能力。议题 67 规定编译期代码通过普通类型表达式、声明区 `if comptime`、`comptime for` 和类型安全的结构化声明形式创建：
+本议题不撤销议题 61 已确认的结构化生成能力。议题 67 规定编译期代码通过普通类型表达式、声明区 `comptime if`、`comptime for` 和类型安全的结构化声明形式创建：
 
 - 类型；
 - 字段；
@@ -89,9 +89,9 @@ platform.linux
 ```ink
 return class {
     field(
-        name: Identifier.from(field_name),
-        type: FieldType,
-        visibility: .private,
+        name = Identifier.from(field_name),
+        type = FieldType,
+        visibility = .private
     );
 };
 ```
@@ -103,7 +103,7 @@ return class {
 ```ink
 const getter_name = comptime Identifier.concat(
     "get_",
-    field.name,
+    field.name
 );
 ```
 

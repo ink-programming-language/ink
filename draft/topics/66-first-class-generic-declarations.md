@@ -9,14 +9,14 @@ Ink 允许把开放泛型声明作为编译期实参、局部值和序列元素�
 
 ```ink
 func wrap_fields<
-    Wrapper: comptime GenericTypeDecl,
-    Source: comptime type,
+    Wrapper: GenericTypeDecl,
+    Source: type
 >() -> type {
     return class {
-        comptime for field in reflect(Source).fields {
+        comptime for (const field in reflect(Source).fields) {
             field(
-                name: Identifier.from(field.name),
-                type: Wrapper.instantiate<field.type>(),
+                name = Identifier.from(field.name),
+                type = Wrapper.instantiate<field.type>()
             );
         }
     };
@@ -52,7 +52,7 @@ FunctionDecl         已经闭合的函数声明句柄
 给定：
 
 ```ink
-class Vector<T: comptime type> {
+class Vector<T: type> {
     // ...
 }
 ```
@@ -67,8 +67,8 @@ Vector<i32> : type
 开放声明不是 `type`，不能用作字段类型、数组元素类型、函数运行时参数类型或 `sizeof` 的闭合操作数：
 
 ```ink
-field: Vector;              // 编译错误：开放声明不是 type
-field: Vector<i32>;         // 合法
+var field: Vector;              // 编译错误：开放声明不是 type
+var field: Vector<i32>;         // 合法
 reflect(Vector).size;       // 编译错误：开放声明没有对象大小
 reflect(Vector<i32>).size;  // 合法
 ```
@@ -81,9 +81,9 @@ reflect(Vector<i32>).size;  // 合法
 
 ```ink
 func make_cache<
-    Storage: comptime GenericTypeDecl,
-    Key: comptime type,
-    Value: comptime type,
+    Storage: GenericTypeDecl,
+    Key: type,
+    Value: type
 >() -> type {
     return Storage.instantiate<Key, Value>();
 }
@@ -95,7 +95,7 @@ const CacheType =
 编译期序列可以显式声明元素元类型：
 
 ```ink
-const Containers: comptime GenericTypeDecl[] = [
+const Containers: GenericTypeDecl[] = comptime [
     Vector,
     Deque,
     LinkedList,
@@ -147,8 +147,8 @@ Vector<i32>
 
 ```ink
 class Map<
-    Key: comptime type,
-    Value: comptime type,
+    Key: type,
+    Value: type
 > {}
 
 Map.instantiate<String>();       // 编译错误：缺少 Value
@@ -187,7 +187,7 @@ has_default
 ```ink
 const info = reflect(Container);
 
-if comptime info.parameters.length != 1 {
+comptime if (info.parameters.length != 1) {
     compile_error("Container must accept one argument");
 }
 ```
@@ -213,9 +213,9 @@ type -> type
 开放泛型函数名称在唯一确定且上下文要求时可以形成 `GenericFunctionDecl`：
 
 ```ink
-const SortDecl: comptime GenericFunctionDecl = sort;
-const SortI32: comptime FunctionDecl =
-    SortDecl.instantiate<i32>();
+const SortDecl: GenericFunctionDecl = comptime sort;
+const SortI32: FunctionDecl =
+    comptime SortDecl.instantiate<i32>();
 ```
 
 这会请求并返回闭合 `sort<i32>` 声明，可用于编译期反射、注册生成、验证和其他结构化声明构造。

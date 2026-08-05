@@ -36,14 +36,14 @@ try function()
 function()?
 ```
 
-均不属于最终 Ink 语法。`Optional<T>` 继续通过议题 33 的 `if match` 或 `match` 显式处理，也不使用异常传播语法解包。
+均不属于最终 Ink 语法。`Optional<T>` 继续通过议题 33 的 `if (match ...)` 或 `match (...)` 显式处理，也不使用异常传播语法解包。
 
 ## 3. `throw`
 
 函数使用 `throw` 产生异常：
 
 ```ink
-if !file.exists() {
+if (!file.exists()) {
     throw FileNotFound { path };
 }
 ```

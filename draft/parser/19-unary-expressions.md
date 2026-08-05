@@ -1,6 +1,6 @@
 # Parser 议题 19：一元表达式
 
-> 状态：已确认，议题 30 补充表达式末尾的类型构造含义
+> 状态：已确认，议题 30 补充表达式末尾的类型构造含义；2026-08-05 增加 `comptime` 表达式前缀，议题 32 与结构化区域控制统一阶段模型
 > 确认日期：2026-08-03
 
 ## 1. 文法
@@ -10,7 +10,11 @@
 ```ebnf
 unary_expression =
       postfix_expression
-    | unary_operator, unary_expression ;
+    | unary_operator, unary_expression
+    | comptime_expression ;
+
+comptime_expression =
+    "comptime", unary_expression ;
 
 unary_operator =
     "+" | "-" | "!" | "~" | "*" | "&" | "await" ;
@@ -61,7 +65,7 @@ const negative = -value;
 `!value` 表示布尔逻辑非，只接受 `bool` 并返回 `bool`：
 
 ```ink
-if !ready {
+if (!ready) {
     wait();
 }
 ```
@@ -205,7 +209,34 @@ const value = await task;
 
 其任务启动、暂停、异常传播、取消和结果复制继续遵守既有异步议题。本节只确定它在表达式文法中的前缀位置和优先级。
 
-## 12. 不支持自增与自减
+## 12. `comptime` 表达式前缀
+
+`comptime` 直接修饰一个 `unary_expression`，要求该操作数在编译期完成求值：
+
+```ink
+const value = comptime calculate();
+const object = comptime TypeName(arguments);
+const member = comptime object.make_value();
+```
+
+函数调用、构造调用和成员调用都是 postfix expression，因此不需要额外的“编译期调用”产生式。CST 使用专用 `ComptimeExpression` 节点保存 `comptime` Token 与右侧表达式；是否能在编译期完成属于语义分析和 Partial Evaluation，不由 Parser 判断。议题 32 把它视为统一阶段模型的 `ValueRegion` 形式；字段、局部和 module 初始化器都复用当前节点，类中不另建专用表达式节点。
+
+该前缀与其他一元结构具有相同的局部结合范围：
+
+```ink
+comptime f() + g()       // (comptime f()) + g()
+comptime (f() + g())     // 整个加法必须在编译期完成
+```
+
+最低优先级的 `if_expression` 或其他需要完整表达式边界的结构，可以通过圆括号明确作为操作数：
+
+```ink
+const selected = comptime (if (condition) then first else second);
+```
+
+`comptime if (condition) { ... }`、`comptime match (value) { ... }`、`comptime for (...) { ... }` 和 `comptime while (condition) { ... }` 是语句上下文中的结构化控制形式，不由本节的 `comptime_expression` 吞并。
+
+## 13. 不支持自增与自减
 
 议题 11 已经禁止 `++`、`--`。它们不属于 `unary_operator`：
 
@@ -223,12 +254,12 @@ value += 1;
 value -= 1;
 ```
 
-## 13. Parser、CST 与恢复
+## 14. Parser、CST 与恢复
 
 一元 CST 保存运算符的真实 Token 和右侧完整 `unary_expression`。连续一元运算可以保存为嵌套节点，也可以保存为有序前缀列表后在 lowering 时右结合；两者必须产生相同 AST。
 
 Parser 不在 CST 中记录“可取址”“可写”“指针有效”或“操作数是 bool”等语义结论。缺少右操作数时，按照议题 03 使用 `MissingToken` 或 `ErrorNode` 恢复。
 
-## 14. 确认结论
+## 15. 确认结论
 
-Ink 的一元运算符为 `+`、`-`、`!`、`~`、`*`、`&` 和 `await`，使用右递归 `snake_case` EBNF。议题 30 在当前子表达式末尾为 `*`、`&` 增加类型构造含义，试探失败时仍回到本节和议题 12 的普通运算符结构。Parser 对 `&unary_expression` 只建立语法节点；内建取地址在语义阶段要求操作数最终属于 place。`T&` 或 `const T&` 表达式结果都可以取址；按值临时对象不能取址且不会获得隐式生命周期延长。普通函数允许返回引用，但 Ink 不保证返回引用的目标仍然有效。
+Ink 的普通一元运算符为 `+`、`-`、`!`、`~`、`*`、`&` 和 `await`；`comptime` 在同一优先级层建立专用 `ComptimeExpression`。函数调用已经是表达式，因此 `comptime f()` 不需要特殊调用语法；需要扩大强制求值范围时使用圆括号。议题 30 在当前子表达式末尾为 `*`、`&` 增加类型构造含义，试探失败时仍回到本节和议题 12 的普通运算符结构。Parser 对 `&unary_expression` 只建立语法节点；内建取地址在语义阶段要求操作数最终属于 place。`T&` 或 `const T&` 表达式结果都可以取址；按值临时对象不能取址且不会获得隐式生命周期延长。普通函数允许返回引用，但 Ink 不保证返回引用的目标仍然有效。

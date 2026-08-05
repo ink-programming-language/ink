@@ -1,6 +1,6 @@
 # 议题 06：构造函数、隐式构造与字面量初始化
 
-> 状态：已确认，2026-08-04 构造声明改为 `func ClassName(...)`；议题 34、54、72 修订，Parser 议题 30 确认构造调用 CST
+> 状态：已确认，2026-08-04 构造声明改为 `func ClassName(...)`；议题 34、54、72 修订，Parser 议题 30、31、35 确认构造调用、函数声明与聚合初始化语法
 > 确认日期：2026-08-01
 
 ## 1. 构造函数使用所属类名
@@ -9,8 +9,8 @@ Ink 提供语言级构造函数。构造函数在 `func` 后使用所属类名�
 
 ```ink
 class Point {
-    x: int;
-    y: int;
+    var x: int;
+    var y: int;
 
     func Point(x: int, y: int) {
         this.x = x;
@@ -32,7 +32,7 @@ class Point {
 - 完整对象构造完成前，`this` 不能逃逸；
 - 构造函数不能作为已有对象的普通方法调用。
 
-Parser 对 `func Identifier(...)` 建立普通函数声明 CST，不读取所属类名来改变节点种类。语义分析看到类成员名称与所属类名完全相同时，将其判定为构造函数并检查上述约束；因此同名成员不能通过添加返回类型等方式变成普通方法。模块级的同名函数没有所属类，仍是普通函数。通用函数声明语法允许尾随 `;`，但类内同名声明一旦被判定为构造函数，缺少语句块函数体就必须产生语义错误。
+Parser 议题 31 对 `func Identifier(...)` 建立普通函数声明 CST，不读取所属类名来改变节点种类。语义分析看到类成员名称与所属类名完全相同时，将其判定为构造函数并检查上述约束；因此同名成员不能通过添加返回类型等方式变成普通方法。模块级的同名函数没有所属类，仍是普通函数。通用函数声明语法允许尾随 `;`，但类内同名声明一旦被判定为构造函数，缺少语句块函数体就必须产生语义错误。
 
 议题 54 的异步成员调用会把原始 `this` 指针保存进任务帧。构造函数内即使创建这种任务，也不得在完整对象构造完成前把它返回、存入外部对象或交给库设施，使它越过构造边界继续持有 `this`；这仍是本议题规定的构造期 `this` 逃逸编译错误。未被驱动且在构造函数内销毁的 `created` 任务不会执行方法体。
 
@@ -58,7 +58,7 @@ const value = SelectedType(argument);
 
 ```ink
 class Duration {
-    milliseconds: int;
+    var milliseconds: int;
 
     func Duration(milliseconds: int) {
         this.milliseconds = milliseconds;
@@ -98,7 +98,7 @@ const file = File("data.txt");
 
 ```ink
 class Duration {
-    milliseconds: int;
+    var milliseconds: int;
 
     implicit func Duration(milliseconds: int) {
         this.milliseconds = milliseconds;
@@ -139,11 +139,11 @@ func default_timeout() -> Duration {
 
 ```ink
 class Options {
-    timeout: Duration;
+    var timeout: Duration;
 }
 
 const options = Options {
-    timeout: 1000,
+    timeout: 1000
 };
 ```
 
@@ -172,10 +172,10 @@ duration = 2000; // 编译错误，除非以后另行定义已有对象赋值规
 
 ```ink
 class Port {
-    value: u16;
+    var value: u16;
 
     func Port(value: int) {
-        if value < 0 || value > 65535 {
+        if (value < 0 || value > 65535) {
             throw InvalidPort {};
         }
 
@@ -259,14 +259,14 @@ const target: u8 = source; // 编译错误，不是字面量初始化
 
 ```ink
 class UnicodeScalar {
-    private value: u32;
+    private var value: u32;
 
     implicit func UnicodeScalar(literal: ScalarLiteral) {
         this.value = literal.codepoint;
     }
 
     func UnicodeScalar(value: u32) {
-        if !is_valid_unicode_scalar(value) {
+        if (!is_valid_unicode_scalar(value)) {
             throw InvalidScalar {};
         }
 
@@ -297,3 +297,34 @@ Ink 不再需要独立的通用 `FromLiteral` 隐式转换接口。
 普通构造函数抛出异常并在部分字段初始化后失败时，只清理已经成功初始化的字段，顺序遵守议题 03 和 34。
 
 完整对象构造成功前不调用该对象自身的析构函数。构造成功以后，对象进入正常生命周期并按照 RAII 规则清理。
+
+## 10. 聚合初始化语法
+
+聚合初始化只提供显式类型形式，不引入 `construct` 关键字或省略目标类型的第二套入口：
+
+```ebnf
+aggregate_initialization_expression =
+    type, aggregate_initializer_body ;
+
+aggregate_initializer_body =
+    "{",
+    [
+        aggregate_field_initializer,
+        { ",", aggregate_field_initializer }
+    ],
+    "}" ;
+
+aggregate_field_initializer =
+    identifier, ":", expression ;
+```
+
+```ink
+const point = Point {
+    x: 10,
+    y: 20
+};
+
+const empty = EmptyError {};
+```
+
+v0 只支持命名字段，不提供位置初始化、字段名称简写、展开或基于另一个对象的更新语法。字段列表遵守普通逗号列表规则，不接受尾随逗号。字段是否存在、是否重复、是否可访问、类型是否匹配以及初始化是否完整，均不改变上述 Parser 形状。

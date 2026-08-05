@@ -1,4 +1,4 @@
-# 议题 33：枚举模式绑定、`if match`、`while match` 与 `match` 表达式
+# 议题 33：枚举模式绑定、`if (match ...)`、`while (match ...)` 与 `match (...)` 表达式
 
 > 状态：已确认，议题 69 补充元组位置模式；Parser 议题 23—25 完成模式传播、`match` 与循环条件语法
 > 确认日期：2026-08-02
@@ -15,7 +15,7 @@ Ink 的枚举匹配用于检查活动分支并借用载荷。匹配本身不会�
 因此可以直接匹配包含 `[noncopyable]` 载荷的枚举，不会让原枚举进入“已移动”状态：
 
 ```ink
-match resource {
+match (resource) {
     .none => {}
     .some(file) => file.flush();
 }
@@ -23,10 +23,10 @@ match resource {
 
 ## 2. 被匹配表达式只计算一次
 
-`match` 和 `if match` 都只计算被匹配表达式一次：
+`match (...)` 和 `if (match ...)` 都只计算被匹配表达式一次：
 
 ```ink
-match next_event() {
+match (next_event()) {
     .none => {}
     .some(event) => handle(event);
 }
@@ -40,14 +40,14 @@ match next_event() {
 
 ```ink
 func inspect(optional: const Optional<Data>&) {
-    if match .some(value) = optional {
+    if (match .some(value) = optional) {
         // value: const Data&
         value.inspect();
     }
 }
 
 func update(optional: Optional<Data>&) {
-    if match .some(value) = optional {
+    if (match .some(value) = optional) {
         // value: Data&
         value.update();
     }
@@ -73,7 +73,7 @@ func update(optional: Optional<Data>&) {
 - 可写访问指针载荷槽时，可以按照普通赋值规则改写该槽。
 
 ```ink
-if match .some(player) = try_cast<Player&>(entity) {
+if (match .some(player) = try_cast<Player&>(entity)) {
     player.update(); // player 保持 Player& 的可变访问能力
 }
 ```
@@ -85,7 +85,7 @@ if match .some(player) = try_cast<Player&>(entity) {
 模式语法不提供隐式复制或自动移动。确实需要独立副本时，在分支体中使用普通值初始化：
 
 ```ink
-match optional_data {
+match (optional_data) {
     .some(value) => {
         const local: Data = value;
         process(local);
@@ -110,12 +110,12 @@ match optional_data {
 
 这些操作不会被引用规则自动禁止，也不会自动修正已经保存的地址。此后若引用不再指向生命周期内的原载荷，继续访问属于 UB。Ink 不使用借用检查器或跨任意控制流的生命周期推导证明这些别名安全。
 
-## 7. `if match` 是单分支枚举匹配
+## 7. `if (match ...)` 是单分支枚举匹配
 
-`if match` 接受普通枚举分支模式：
+`if (match ...)` 接受普通枚举分支模式：
 
 ```ink
-if match .some(value) = optional {
+if (match .some(value) = optional) {
     use(value);
 }
 ```
@@ -127,34 +127,34 @@ if match .some(value) = optional {
 3. 不匹配时跳过条件体或进入 `else`；
 4. 绑定只在成功分支中可见。
 
-`if match` 不要求穷尽，因为失败路径由跳过或 `else` 表示：
+`if (match ...)` 不要求穷尽，因为失败路径由跳过或 `else` 表示：
 
 ```ink
-if match .ok(value) = result {
+if (match .ok(value) = result) {
     use(value);
 } else {
     handle_failure();
 }
 ```
 
-编译器不根据 `Optional` 的类型名称赋予 `if match` 特例。任何带载荷枚举都使用相同模式规则。
+编译器不根据 `Optional` 的类型名称赋予 `if (match ...)` 特例。任何带载荷枚举都使用相同模式规则。
 
 Parser 议题 25 把同一条件模式扩展到循环：
 
 ```ink
-while match .some(value) = iterator.next() {
+while (match .some(value) = iterator.next()) {
     use(value);
 }
 ```
 
-每次尝试进入循环体时，右侧表达式只计算一次。匹配成功时，绑定只在本轮循环体中可见；匹配失败时结束循环。右侧产生的临时枚举值存活到本轮循环体结束，并在正常到达、`continue`、`break`、`return` 或异常离开本轮时按照普通 RAII 规则清理。`while match` 不支持 `else`。
+每次尝试进入循环体时，右侧表达式只计算一次。匹配成功时，绑定只在本轮循环体中可见；匹配失败时结束循环。右侧产生的临时枚举值存活到本轮循环体结束，并在正常到达、`continue`、`break`、`return` 或异常离开本轮时按照普通 RAII 规则清理。`while (match ...)` 不支持 `else`。
 
 ## 8. `match` 可以是语句或表达式
 
 `match` 作为语句时，各分支可以只执行控制流和副作用：
 
 ```ink
-match state {
+match (state) {
     .idle => wait();
     .running(task) => poll(task);
     .stopped => cleanup();
@@ -166,7 +166,7 @@ match state {
 `match` 也可以产生值：
 
 ```ink
-const count: ptrsize = match optional_items {
+const count: ptrsize = match (optional_items) {
     .none => 0,
     .some(items) => items.length,
 };
@@ -175,7 +175,7 @@ const count: ptrsize = match optional_items {
 表达式形式的每个分支都必须以逗号结束，包括最后一个分支。能够正常完成的分支体必须是表达式；需要直接 `return`、`break`、`continue` 或 `throw` 时，使用一个不能正常完成且同样以逗号结束的 `statement_block`：
 
 ```ink
-const value = match result {
+const value = match (result) {
     .ok(value) => value,
     .error(error) => {
         log(error);

@@ -30,15 +30,15 @@ interface Renderable {
 运行时按照议题 22 的完全限定名称查找接口：
 
 ```ink
-if match .some(interface) = reflection.find_interface("game.Renderable") {
+if (match .some(interface) = reflection.find_interface("game.Renderable")) {
     print(interface.name);
 
-    if match .some(display_name) =
-        interface.metadata.get[DisplayName]() {
+    if (match .some(display_name) =
+        interface.metadata.get[DisplayName]()) {
         print(display_name);
     }
 
-    for const function in interface.functions {
+    for (const function in interface.functions) {
         print(function.name);
     }
 }
@@ -70,8 +70,8 @@ class Player : Renderable {
 const player = Player();
 const renderable: Renderable& = player;
 
-if match .some(interface) = reflection.find_interface("game.Renderable") {
-    if match .some(render) = interface.function("render") {
+if (match .some(interface) = reflection.find_interface("game.Renderable")) {
+    if (match .some(render) = interface.function("render")) {
         render.call[void](renderable, &canvas);
     }
 }
@@ -165,13 +165,13 @@ render.call[void](temporary, &canvas);
 一个 `[reflect]` 类可以枚举它实现的 `[reflect]` 接口：
 
 ```ink
-if match .some(player) = reflection.find_type("game.Player") {
-    for const interface in player.interfaces {
+if (match .some(player) = reflection.find_type("game.Player")) {
+    for (const interface in player.interfaces) {
         print(interface.name);
     }
 }
 
-if player.implements("game.Renderable") {
+if (player.implements("game.Renderable")) {
     // ...
 }
 ```
@@ -179,8 +179,8 @@ if player.implements("game.Renderable") {
 一个反射接口也可以枚举当前已加载的反射实现类：
 
 ```ink
-if match .some(renderable) = reflection.find_interface("game.Renderable") {
-    for const implementation in renderable.implementations {
+if (match .some(renderable) = reflection.find_interface("game.Renderable")) {
+    for (const implementation in renderable.implementations) {
         print(implementation.name);
     }
 }

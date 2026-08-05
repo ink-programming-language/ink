@@ -1,6 +1,6 @@
 # 议题 62：编译期参数包是普通编译期序列
 
-> 状态：已确认，议题 64、66、68—71 补充绑定、反射、运行时包、元组与重载；Parser 议题 29 统一列表展开
+> 状态：已确认，议题 64、66、68—71 补充绑定、反射、运行时包、元组与重载；Parser 议题 29、31 统一列表展开与泛型包声明
 > 确认日期：2026-08-02
 
 ## 1. 参数包只负责接收可变数量的编译期实参
@@ -8,17 +8,19 @@
 Ink 使用尾随 `...` 声明编译期参数包：
 
 ```ink
-class Tuple<Types: comptime type...> {
+class Tuple<Types: type...> {
     // ...
 }
 
 class Tensor<
-    Element: comptime type,
-    Dimensions: comptime ptrsize...,
+    Element: type,
+    Dimensions: ptrsize...
 > {
     // ...
 }
 ```
+
+泛型参数列表 `<...>` 天然要求编译期实参，所以这里只写 `Types: type...`、`Dimensions: ptrsize...`；旧写法 `Types: comptime type...` 不属于语法。
 
 调用时，参数包接收泛型实参列表中对应位置之后的零个或多个实参：
 
@@ -39,8 +41,8 @@ Tensor<f32, 3, 224, 224>
 参数绑定完成后，参数包不再是一种需要特殊展开规则的模板实体：
 
 ```text
-Types      : comptime type[]
-Dimensions : comptime ptrsize[]
+Types      : type[] known in the generic context
+Dimensions : ptrsize[] known in the generic context
 ```
 
 它们是不可变、编译器管理的编译期序列，可以使用普通序列操作：
@@ -49,7 +51,7 @@ Dimensions : comptime ptrsize[]
 comptime {
     print(Types.length);
 
-    for const T in Types {
+    for (const T in Types) {
         print(reflect(T).name);
     }
 }
@@ -61,7 +63,7 @@ comptime {
 func total_size(Types: const type[]) -> ptrsize {
     var result: ptrsize = 0;
 
-    for const T in Types {
+    for (const T in Types) {
         result += reflect(T).size;
     }
 
@@ -76,9 +78,9 @@ func total_size(Types: const type[]) -> ptrsize {
 需要为每个元素生成字段、方法或其他声明时，使用议题 61 的普通编译期循环和受控声明构造：
 
 ```ink
-class Tuple<Types: comptime type...> {
-    comptime for index, T in Types {
-        // 生成类型为 T、身份包含 index 的字段。
+class Tuple<Types: type...> {
+    comptime for (const T in Types) {
+        // 生成类型为 T 的字段。
     }
 }
 ```
@@ -127,8 +129,8 @@ func(Context&, ...Types) -> Result
 
 ```ink
 class Invalid<
-    Prefix: comptime type...,
-    Last: comptime type,
+    Prefix: type...,
+    Last: type
 > {}
 ```
 
@@ -136,17 +138,17 @@ class Invalid<
 
 ## 6. 参数包不改变重定义规则
 
-参数包的形参类型和位置参与普通泛型签名身份，但函数体中的 `if comptime` 和包长度条件不参与身份：
+参数包的形参类型和位置参与普通泛型签名身份，但函数体中的 `comptime if` 和包长度条件不参与身份：
 
 ```ink
-func inspect<Types: comptime type...>() {
-    if comptime Types.length == 1 {
+func inspect<Types: type...>() {
+    comptime if (Types.length == 1) {
         // ...
     }
 }
 
-func inspect<Types: comptime type...>() { // 编译错误：重定义
-    if comptime Types.length > 1 {
+func inspect<Types: type...>() { // 编译错误：重定义
+    comptime if (Types.length > 1) {
         // ...
     }
 }

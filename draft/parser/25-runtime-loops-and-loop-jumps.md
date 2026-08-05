@@ -1,6 +1,6 @@
-# Parser 议题 25：`while`、`while match`、`for` 与循环跳转
+# Parser 议题 25：`while (...)`、`while (match ...)`、`for (...)` 与循环跳转
 
-> 状态：已确认
+> 状态：已确认；2026-08-05 增加 `comptime for` 与 `comptime while`，Parser 议题 32 统一区域控制并统一要求循环头括号
 > 确认日期：2026-08-04
 
 ## 1. 基本产生式
@@ -9,7 +9,7 @@ Ink 的普通循环使用以下 EBNF：
 
 ```ebnf
 while_statement =
-    "while", while_condition, statement_block ;
+    "while", "(", while_condition, ")", statement_block ;
 
 while_condition =
       expression
@@ -19,8 +19,8 @@ while_match_condition =
     "match", conditional_match_pattern, "=", expression ;
 
 for_statement =
-    "for", for_binding_mode, for_pattern,
-    "in", for_source, statement_block ;
+    "for", "(", for_binding_mode, for_pattern,
+    "in", for_source, ")", statement_block ;
 
 for_binding_mode =
       "var"
@@ -32,6 +32,12 @@ for_pattern =
 
 for_source =
     expression, [ "..", expression ] ;
+
+comptime_while_statement =
+    "comptime", while_statement ;
+
+comptime_for_statement =
+    "comptime", for_statement ;
 
 break_statement =
     "break", ";" ;
@@ -47,15 +53,15 @@ continue_statement =
 `while` 在每次尝试进入循环体前求值一次条件：
 
 ```ink
-while has_more_work() {
+while (has_more_work()) {
     process_next();
 }
 ```
 
-条件不要求专用外层括号。普通加括号表达式仍然可以使用：
+外层括号是 `while_statement` 的固定组成部分；条件内部仍可使用普通加括号表达式：
 
 ```ink
-while (ready && enabled) {
+while ((ready && enabled) || forced) {
     run();
 }
 ```
@@ -65,21 +71,21 @@ while (ready && enabled) {
 循环体不能省略花括号，也不支持 `else`：
 
 ```ink
-while ready run(); // 非法
+while (ready) run(); // 非法
 
-while ready {
+while (ready) {
     run();
 } else {           // 非法：while 没有 else
     wait();
 }
 ```
 
-## 3. `while match`
+## 3. `while (match ...)`
 
-可反驳枚举模式循环使用与 `if match` 一致的显式形状：
+可反驳枚举模式循环使用与 `if (match ...)` 一致的显式形状：
 
 ```ink
-while match .some(value) = next_value() {
+while (match .some(value) = next_value()) {
     consume(value);
 }
 ```
@@ -94,7 +100,7 @@ while match .some(value) = next_value() {
 顶层只接受议题 23 的 `conditional_match_pattern`，因此必须是枚举 `variant_pattern`：
 
 ```ink
-while match .item(value) = iterator.next() {
+while (match .item(value) = iterator.next()) {
     use(value);
 }
 ```
@@ -102,11 +108,11 @@ while match .item(value) = iterator.next() {
 以下形式非法：
 
 ```ink
-while match value = expression {
+while (match value = expression) {
     use(value);
 }
 
-while match _ = expression {
+while (match _ = expression) {
     run();
 }
 ```
@@ -117,36 +123,36 @@ while match _ = expression {
 
 载荷绑定继续遵守议题 23 的访问传播：可写枚举 place 产生 `T&`，只读 place 或临时枚举产生 `const T&`。pattern 内不写 `var` 或 `const`。
 
-## 4. `while match` 与 `match_expression` 的消歧
+## 4. `while (match ...)` 与 `match_expression` 的消歧
 
-`while match` 后若下一个显著 Token 是 `.`，Parser 进入 `while_match_condition`。普通 `match_expression` 必须先有一个被匹配表达式，不能以 `.` 开始，因此普通表达式条件仍然可以是返回 `bool` 的 `match_expression`：
+`while (` 后若下一个显著 Token 是 `match`，且其后是 `.`，Parser 进入 `while_match_condition`。普通 `match_expression` 必须把被匹配表达式放在自己的括号内，不能以 `.` 开始，因此普通表达式条件仍然可以是返回 `bool` 的 `match_expression`：
 
 ```ink
-while match state {
+while (match (state) {
     .ready => true,
     _ => false,
-} {
+}) {
     run();
 }
 ```
 
-上例是 `while` 加一个普通 `match_expression` 条件，不是 `while match pattern = expression`。分支逗号和两个连续右花括号分别结束 `match_expression` 与外层循环体。
+上例是 `while` 加一个普通 `match_expression` 条件，不是 `while (match pattern = expression)`。分支逗号、match 右花括号、循环头右括号和循环体右花括号分别结束对应结构。
 
-## 5. 普通 `for ... in`
+## 5. 普通 `for (... in ...)`
 
 普通迭代循环必须先为一个名称或 `_` 显式选择 `var` 或 `const`：
 
 ```ink
-for const value in values {
+for (const value in values) {
     consume(value);
 }
 
-for var value in generated_values() {
+for (var value in generated_values()) {
     value = normalize(value);
     consume(value);
 }
 
-for const _ in events {
+for (const _ in events) {
     count += 1;
 }
 ```
@@ -154,15 +160,15 @@ for const _ in events {
 `for_binding_mode` 与议题 10 的普通绑定声明含义一致，但整个 `for` 头不是带初始化器和分号的 `binding_declaration`。关键字不可省略，也不接受类型标注：
 
 ```ink
-for value in values {}             // 非法：缺少 var 或 const
-for const value: Data in values {} // 非法：for 绑定不写类型标注
+for (value in values) {}             // 非法：缺少 var 或 const
+for (const value: Data in values) {} // 非法：for 绑定不写类型标注
 ```
 
 v0 不在普通 `for` 头中接受元组解构、多名称或枚举分支模式：
 
 ```ink
-for const (key, value) in entries {} // 非法
-for const index, value in values {}  // 非法
+for (const (key, value) in entries) {} // 非法
+for (const index, value in values) {}  // 非法
 ```
 
 需要解构时先绑定当前元素，再在循环体中使用议题 10 的普通解构声明。
@@ -188,7 +194,7 @@ for const index, value in values {}  // 非法
 为兼容既有索引循环，`for_source` 可以在两个表达式之间使用直接相邻的 `..`：
 
 ```ink
-for const index in 0 .. values.length {
+for (const index in 0 .. values.length) {
     use(values[index]);
 }
 ```
@@ -205,10 +211,10 @@ consume(0 .. length);      // 非法
 两个点必须直接相邻；点号两侧可以有 Trivia：
 
 ```ink
-for const index in 0..length {}
-for const index in 0 .. length {}
+for (const index in 0..length) {}
+for (const index in 0 .. length) {}
 
-for const index in 0 . . length {} // 非法
+for (const index in 0 . . length) {} // 非法
 ```
 
 解析 `for_source` 的第一个表达式时，位于当前定界深度的两个直接相邻点号是专用停止边界；Parser 不能先把第一个点号作为成员访问消费。单个 `.` 后接 Identifier 时仍属于普通成员后缀，因此 `object.start .. object.end` 可以确定性解析。
@@ -216,8 +222,8 @@ for const index in 0 . . length {} // 非法
 v0 不提供包含终点、反向或步长语法：
 
 ```ink
-for const index in 0 ..= length {}        // 非法
-for const index in length .. 0 step -1 {} // 非法
+for (const index in 0 ..= length) {}        // 非法
+for (const index in length .. 0 step -1) {} // 非法
 ```
 
 这些遍历使用普通 `while` 或显式库迭代视图表达。
@@ -227,12 +233,12 @@ for const index in length .. 0 step -1 {} // 非法
 `break;` 结束最内层 `while_statement` 或普通 `for_statement`，`continue;` 结束当前迭代并开始该循环的下一次条件或元素获取：
 
 ```ink
-while ready {
-    if should_stop() {
+while (ready) {
+    if (should_stop()) {
         break;
     }
 
-    if should_skip() {
+    if (should_skip()) {
         continue;
     }
 
@@ -250,18 +256,18 @@ continue outer;   // 非法
 
 在任何 `while_statement` 或普通 `for_statement` 之外使用它们属于语义错误。即使 Token 位于嵌套 `if`、`match` 或普通语句块内，也仍作用于词法上最内层包含它的循环。循环最终在运行时还是编译期执行不改变该词法归属。
 
-离开当前迭代前，已经成功构造的局部对象和 `defer` 按构造逆序清理。`continue` 完成清理后重新进入 `while` 条件、`while match` 右侧求值或 `for` 的下一元素步骤；`break` 完成清理后离开整个循环。
+离开当前迭代前，已经成功构造的局部对象和 `defer` 按构造逆序清理。`continue` 完成清理后重新进入 `while (...)` 条件、`while (match ...)` 右侧求值或 `for (...)` 的下一元素步骤；`break` 完成清理后离开整个循环。
 
 ## 9. 循环不是表达式
 
 `while_statement` 和 `for_statement` 都不产生值，不能作为初始化器、实参或其他表达式的操作数，也不支持带值 `break`：
 
 ```ink
-const value = while condition { // 非法
+const value = while (condition) { // 非法
     break;
 };
 
-consume(for const item in values { // 非法
+consume(for (const item in values) { // 非法
     use(item);
 });
 ```
@@ -271,32 +277,36 @@ consume(for const item in values { // 非法
 无限循环可以显式写为：
 
 ```ink
-while true {
+while (true) {
     run_once();
 }
 ```
 
-## 10. 与 `comptime for` 的边界
+## 10. `comptime for` 与 `comptime while`
 
-普通 `for` 语法本身不编码执行阶段。它出现在 `comptime { ... }` 中，或因编译期专用值而必须由 Partial Evaluation 执行时，仍使用相同的 `for (var | const) pattern in expression { ... }` 产生式：
+`comptime` 可以直接修饰完整的普通循环结构，并复用相同的条件、绑定和 body 文法：
 
 ```ink
-comptime {
-    for const T in Types {
-        print(reflect(T).name);
-    }
+comptime for (const T in Types) {
+    print(reflect(T).name);
+}
+
+comptime while (has_pending_work()) {
+    process_next();
 }
 ```
 
-源码前缀形式 `comptime for ...` 用于在 module、类型或其他声明区逐项生成声明，是不同的结构化 elaboration 产生式：
+因此 `comptime for` 仍然必须写 `var` 或 `const`，也不增加逗号多绑定：
 
 ```ink
-comptime for index, T in Types {
-    // 生成声明
-}
+comptime for (const T in Types) { ... } // 合法
+comptime for (T in Types) { ... }       // 缺少 var/const
+comptime for (index, T in Types) { ... } // 非法多绑定
 ```
 
-本议题不把它解析成普通 `for_statement`，也不把逗号多绑定加入普通 `for_pattern`。其上下文相关声明体、多绑定和生成结果规则由后续独立 Parser 议题完成。
+在普通语句上下文中，Parser 分别建立议题 32 的统一 `ComptimeForControl` 或 `ComptimeWhileControl`，并使用 `RegionKind::Statement`。循环源或每轮条件能否在编译期求值、循环是否收敛以及展开后的 body 是否残留运行时代码，由 Partial Evaluation 和资源预算检查。
+
+同样的源码前缀还可以出现在 module、类型或其他 declaration region 中逐项产生声明。它仍是议题 32 的同一个区域控制，只把 `RegionRules` 和输出 sink 换成当前声明区域。header 继续复用 `for_binding_mode`、单一 `for_pattern`、`for_source` 与 `while_condition`，花括号内部则是当前 region items，而不是 `statement_block`。Parser 议题 05 已给出 module 顶层的具体 EBNF 展开；class、interface、enum 使用对应 member block。它不会恢复旧的无 `var`/`const` 或逗号多绑定形式。
 
 ## 11. CST 与错误恢复
 
@@ -306,6 +316,8 @@ CST 至少使用以下节点：
 WhileStatement
 WhileMatchCondition
 ForStatement
+ComptimeWhileControl
+ComptimeForControl
 ForBindingMode
 ForBindingPattern
 ForWildcardPattern
@@ -314,10 +326,10 @@ BreakStatement
 ContinueStatement
 ```
 
-节点按源码顺序保留 `for`、`var`/`const`、pattern、`in`、表达式、组成 `..` 的两个 Symbol、花括号、分号和全部 Trivia。`..` 不合并成虚构 Token。
+节点按源码顺序保留 `for` 或 `while`、固定左右括号、`var`/`const`、pattern、`in`、表达式、组成 `..` 的两个 Symbol、花括号、分号和全部 Trivia。`..` 不合并成虚构 Token。
 
-缺少条件、`var`/`const` 绑定模式关键字、pattern、`in`、范围终点或循环体时，Parser 按议题 03 使用 `MissingToken` 和 `ErrorNode`。例如 `for value in values {}` 可以保留 `value` 并在它之前插入缺失的绑定模式关键字 Token。Parser 可以在循环体起始 `{`、结束 `}`、`in` 或后续明确语句起始处同步；真实的逗号、点号和分号不能被删除。`break` 或 `continue` 缺少分号时继续使用议题 08 的零宽度缺失 Token 恢复。
+缺少条件、`var`/`const` 绑定模式关键字、pattern、`in`、范围终点或循环体时，Parser 按议题 03 使用 `MissingToken` 和 `ErrorNode`。例如 `for (value in values) {}` 可以保留 `value` 并在它之前插入缺失的绑定模式关键字 Token。Parser 可以在循环体起始 `{`、结束 `}`、`in` 或后续明确语句起始处同步；真实的逗号、点号和分号不能被删除。`break` 或 `continue` 缺少分号时继续使用议题 08 的零宽度缺失 Token 恢复。
 
 ## 12. 确认结论
 
-Ink 的普通循环包括 `while expression { ... }`、`while match .variant(...) = expression { ... }` 和 `for (var | const) pattern in source { ... }`。所有循环体必须使用花括号，循环本身无值且不写结尾分号。普通 `for` 的绑定关键字不可省略，pattern 只接受一个名称或 `_`；`var`/`const` 控制顶层绑定，元素目标访问能力由迭代源产生的值、`T&` 或 `const T&` 决定。`start .. end` 只是在 `for` 头中的半开区间定界形式。`break;` 与 `continue;` 仅作用于最内层 `while_statement` 或普通 `for_statement`。声明生成用的 `comptime for` 保持独立，留给后续 Parser 议题。
+Ink 的普通循环包括 `while (expression) { ... }`、`while (match .variant(...) = expression) { ... }` 和 `for (binding_mode pattern in source) { ... }`。固定括号包围完整循环头，但不引入 C 风格三段式 `for`。所有循环体必须使用花括号，循环本身无值且不写结尾分号。普通 `for` 的绑定关键字不可省略，pattern 只接受一个名称或 `_`；`var`/`const` 控制顶层绑定，元素目标访问能力由迭代源产生的值、`T&` 或 `const T&` 决定。`start .. end` 只是在 `for` 头中的半开区间定界形式。`break;` 与 `continue;` 仅作用于最内层 `while_statement` 或普通 `for_statement`。`comptime` 可以直接修饰完整 `for_statement` 或 `while_statement`，且不改变 header 文法；module、语句和成员区域共享同一个控制节点，只替换 body 的 region item 类别。

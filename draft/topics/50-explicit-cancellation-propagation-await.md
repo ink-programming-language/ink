@@ -37,7 +37,7 @@ const result = await cancel_on_request(child);
 建立传播等待时，当前任务可能已经收到请求：
 
 ```ink
-if cancel_requested() {
+if (cancel_requested()) {
     // 请求可能早于下一行发生
 }
 

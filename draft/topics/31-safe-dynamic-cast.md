@@ -8,12 +8,12 @@
 Ink 使用编译器内建的 `try_cast<T>(value)` 表达可能失败的安全运行时类型转换：
 
 ```ink
-if match .some(player) = try_cast<Player&>(entity) {
+if (match .some(player) = try_cast<Player&>(entity)) {
     player.use_item();
 }
 
 const player_pointer: Player* = try_cast<Player*>(entity_pointer);
-if player_pointer != null {
+if (player_pointer != null) {
     player_pointer->use_item();
 }
 ```
@@ -85,7 +85,7 @@ class Player : Entity {
 }
 
 func inspect(entity: Entity&) {
-    if match .some(player) = try_cast<Player&>(entity) {
+    if (match .some(player) = try_cast<Player&>(entity)) {
         // entity 的动态具体类是 Player 或 Player 的派生类
     }
 }
@@ -113,7 +113,7 @@ Ink 不为支持这种转换而给所有普通类增加隐藏类型指针或建�
 ```ink
 const renderable: Renderable& = sprite;
 
-if match .some(sprite_ref) = try_cast<Sprite&>(renderable) {
+if (match .some(sprite_ref) = try_cast<Sprite&>(renderable)) {
     sprite_ref.set_frame(4);
 }
 ```
@@ -126,12 +126,12 @@ if match .some(sprite_ref) = try_cast<Sprite&>(renderable) {
 
 ```ink
 func inspect(reader: Reader&) {
-    if match .some(seekable) =
-        try_cast<SeekableReader&>(reader) {
+    if (match .some(seekable) =
+        try_cast<SeekableReader&>(reader)) {
         seekable.seek(0);
     }
 
-    if match .some(closable) = try_cast<Closable&>(reader) {
+    if (match .some(closable) = try_cast<Closable&>(reader)) {
         closable.close();
     }
 }
@@ -156,8 +156,8 @@ source { object, source_table }
 
 ```ink
 func inspect(entity: Entity&) {
-    if match .some(serializable) =
-        try_cast<Serializable&>(entity) {
+    if (match .some(serializable) =
+        try_cast<Serializable&>(entity)) {
         serializable.serialize();
     }
 }
@@ -261,7 +261,7 @@ const unchecked: Derived* = ptrcast<Derived*>(base_pointer);
 以下内容留给后续议题：
 
 - 标准库 `Optional<T>` 的完整便捷 API；议题 34 已确定不提供后缀 `?` 传播；
-- `final` 类或最终方法对转换静态证明的影响；
+- 基于最终类和最终虚槽进行更强去虚拟化或转换静态证明的优化边界；
 - 跨动态库的最小描述符 ABI 和缓存失效协议；
 - 最小描述符与调试信息、异常类型信息是否共享存储；
 - 拥有型动态对象和拥有型接口容器的转换 API。

@@ -143,7 +143,7 @@ error.record.descriptor.qualified_name
 
 ```ink
 catch as error {
-    if error.matches[IoError]() {
+    if (error.matches[IoError]()) {
         count_io_failure();
     }
 }
@@ -165,7 +165,7 @@ catch as error {
 
 ```ink
 catch as error {
-    if match .some(type) = error.reflection() {
+    if (match .some(type) = error.reflection()) {
         inspect(type);
     }
 }

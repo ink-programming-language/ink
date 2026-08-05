@@ -10,7 +10,7 @@
 ```ink
 const PointerType: type = Data*;
 
-func make_pointer_type<T: comptime type>() -> type {
+func make_pointer_type<T: type>() -> type {
     return T*;
 }
 

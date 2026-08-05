@@ -174,7 +174,7 @@ Array<i32, N >> 1>
 泛型声明自身的形参列表以及明确类型文法中的泛型应用，本来就由所在语法上下文识别。本议题的邻接和优先规则尤其用于普通表达式中的显式泛型后缀：
 
 ```ink
-func create<T: comptime type>() -> T;
+func create<T: type>() -> T;
 const entry = &create<i32>;
 reflect(Vector<i32>);
 ```

@@ -1,6 +1,6 @@
 # 议题 03：析构、RAII 与 `defer`
 
-> 状态：已确认，2026-08-04 析构声明改为 `func ~ClassName()`；动态销毁经议题 27 补充，枚举载荷经议题 32 补充，异常展开经议题 34、42 修订，议题 48、51、53、54 补充异步任务，Parser 议题 09、18、25、26 确认 block、完整表达式、循环跳转与 `defer` 语法边界
+> 状态：已确认，2026-08-04 析构声明改为 `func ~ClassName()`；动态销毁经议题 27 补充，枚举载荷经议题 32 补充，异常展开经议题 34、42 修订，议题 48、51、53、54 补充异步任务，Parser 议题 09、18、25、26、31 确认 block、表达式、循环跳转、`defer` 与函数声明边界
 > 确认日期：2026-08-01
 
 ## 1. 确定性析构
@@ -31,10 +31,10 @@ Ink 对具有析构函数的局部对象采用 RAII 和确定性析构。
 ```ink
 [noncopyable]
 class File {
-    handle: OsHandle;
+    var handle: OsHandle;
 
     func ~File() {
-        if this.handle.is_valid() {
+        if (this.handle.is_valid()) {
             os.close(this.handle);
         }
     }
@@ -73,8 +73,8 @@ Parser 只为 `~ Identifier` 建立函数名称语法，不比较该 Identifier 
 ```ink
 [noncopyable]
 class Server {
-    listener: Socket;
-    log: File;
+    var listener: Socket;
+    var log: File;
 
     func ~Server() {
         metrics.server_stopped();
@@ -129,17 +129,17 @@ file.~File(); // 编译错误
 ```ink
 [noncopyable]
 class File {
-    handle: OsHandle;
+    var handle: OsHandle;
 
-    func close(this: File&) {
-        if this.handle.is_valid() {
+    func close() {
+        if (this.handle.is_valid()) {
             os.close_checked(this.handle);
             this.handle = OsHandle.invalid;
         }
     }
 
     func ~File() {
-        if this.handle.is_valid() {
+        if (this.handle.is_valid()) {
             os.close(this.handle);
         }
     }

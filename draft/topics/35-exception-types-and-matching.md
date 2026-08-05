@@ -10,7 +10,7 @@ Ink 使用无参数内建属性 `[exception]` 声明能够参与异常体系的�
 ```ink
 [exception]
 class FileNotFound {
-    path: String;
+    var path: String;
 }
 
 [exception]
@@ -41,11 +41,11 @@ throw FileNotFound { path };
 ```ink
 [exception]
 class IoFailure {
-    code: int;
+    var code: int;
 }
 
 class FileNotFound : IoFailure {
-    path: String;
+    var path: String;
 } // 自动是异常类
 ```
 

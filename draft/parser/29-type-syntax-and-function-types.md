@@ -1,6 +1,6 @@
 # Parser 议题 29：统一类型语法与函数类型
 
-> 状态：已确认，议题 30 补充普通表达式中的复合类型值和运算符消歧
+> 状态：已确认，议题 30 补充普通表达式中的复合类型值和运算符消歧；Parser 议题 15 的命名实参规则同步到列表展开
 > 确认日期：2026-08-04
 
 ## 1. 统一 `type` 非终结符
@@ -176,8 +176,8 @@ type_or_expression =
 
 ```ink
 (Data)
-(if Use64 then i64 else i32)
-(if Use64 then i64 else i32)*
+(if (Use64) then i64 else i32)
+(if (Use64) then i64 else i32)*
 ```
 
 名称、成员访问、泛型实例化、调用和方括号后缀组成的类型值链可以直接出现；`if_expression`、中缀运算和其他不属于该后缀链的完整表达式必须使用括号。Parser 只确认结构，语义分析要求括号内容能够在编译期求值并且结果准确为 `type`。
@@ -269,6 +269,8 @@ func(i32 = 10)   // 语法错误
 
 省略 `-> type` 等价于返回 `void`。CST 不伪造一个不存在的 `void` Token；AST lowering 或类型语义把缺失结果规范化为 `void`。
 
+函数声明采用同一缺省规则：`func name(parameters) { ... }` 的公开结果类型固定为 `void`，不是待函数体分析后推导的占位。返回非 `void` 结果的声明必须显式书写 `-> type`。Parser 仍保留“返回类型子句缺失”的真实 CST 形状，lowering 才补入语义上的 `void`。
+
 `->` 后递归消费一个完整 `type`：
 
 ```ink
@@ -348,12 +350,22 @@ func(i32) -> i32 [nothrow]
 Parser 议题 15 的普通调用实参列表和议题 16 的泛型实参列表都需要识别前置展开：
 
 ```ebnf
-argument =
+positional_argument =
       expression
     | list_expansion ;
 
 argument_list =
-    argument, { ",", argument } ;
+      positional_argument_list, [ ",", named_argument_list ]
+    | named_argument_list ;
+
+positional_argument_list =
+    positional_argument, { ",", positional_argument } ;
+
+named_argument_list =
+    named_argument, { ",", named_argument } ;
+
+named_argument =
+    identifier, "=", expression ;
 
 generic_argument =
       type_or_expression
@@ -367,9 +379,12 @@ generic_argument_list =
 
 ```ink
 target(...values)
+target(prefix, ...values, mode = fast)
 Other<Header, ...Types, Footer>
 Vector<Data*>
 ```
+
+普通调用、attribute application 与 decorator application 的实参列表还支持 Parser 议题 15 的 `identifier = expression` 命名实参。位置实参和 `list_expansion` 必须位于全部命名实参之前；泛型实参列表 `<...>` 仍是独立语法，本节不为它增加命名泛型实参。
 
 `list_expansion` 的表达式可以是标识符、调用或其他完整表达式：
 

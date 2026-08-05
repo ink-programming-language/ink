@@ -1,6 +1,6 @@
 # 议题 54：异步成员函数的 `this` 是非拥有原始指针
 
-> 状态：已确认，议题 55—57 补充异步虚函数、接口与反射  
+> 状态：已确认，议题 55—57 补充异步虚函数、接口与反射；Parser 议题 31 确认异步成员声明与只读接收者语法
 > 确认日期：2026-08-02
 
 ## 1. 保留普通成员函数语法
@@ -38,7 +38,17 @@ connection.read()
     → do not execute method body yet
 ```
 
-在异步成员函数体中，显式 `this` 表达式具有指向当前类对象的原始指针语义，成员访问可以写成 `this->member`。接收者的只读限定必须保留为相应的 `const Type*` 语义，降低成原始指针不能丢失可变性限制。
+在异步成员函数体中，显式 `this` 表达式具有指向当前类对象的原始指针语义，成员访问可以写成 `this->member`。尾随 `const` 采用议题 24 的普通成员接收者规则：
+
+```ink
+class Connection {
+    async func state() const -> ConnectionState {
+        return this->current_state;
+    }
+}
+```
+
+该异步成员的接收者必须保留为 `const Connection*` 语义，降低并保存进任务帧的原始指针不能丢失只读限制。没有尾随 `const` 的异步成员继续使用可写接收者。
 
 ## 3. 不复制或延长对象生命周期
 

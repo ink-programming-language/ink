@@ -1,6 +1,6 @@
 # 议题 58：异步函数装饰器包围任务执行体
 
-> 状态：已确认，议题 24、59 补充；Parser 议题 27 同步抛出语法
+> 状态：已确认，异步 continuation 可调用零次或多次且 decorator 不生成模块生命周期钩子；议题 24、59 补充；Parser 议题 27、36、37 同步抛出、装饰器声明与全参数转发语法
 > 确认日期：2026-08-02
 
 ## 1. 异步装饰器属于任务执行体
@@ -38,7 +38,7 @@ await task
 现有同步装饰器继续使用 `decorator`：
 
 ```ink
-decorator trace(function, name: comptime string) {
+decorator trace(name: string) {
     log("enter", name);
     const result = function(...);
     log("leave", name);
@@ -49,7 +49,7 @@ decorator trace(function, name: comptime string) {
 只能应用于同步函数。异步版本使用显式 `async decorator`：
 
 ```ink
-async decorator trace(function, name: comptime string) {
+async decorator trace(name: string) {
     log("enter", name);
     defer log("leave", name);
 
@@ -86,20 +86,13 @@ one Task<T>
 
 `function` 仍然不能保存到变量、字段或全局对象，不能返回、被闭包捕获或传给普通运行时函数。装饰器不能把 continuation 交给另一个任务或调度器。
 
-## 4. 恰好进入一次
+## 4. 可以跳过或顺序重复进入
 
-议题 16 的恰好一次规则扩展到异步 continuation：在每条正常返回路径上，每层异步装饰器必须恰好执行一次 `await function(...)`。
+异步 decorator 可以在一条正常路径上零次、一次或多次执行 `await function(...)`，从而表达缓存命中、显式短路、普通包装或顺序重试。
 
-编译器禁止：
+每次进入都重新执行下一层 decorator 和最终异步函数体，但仍位于同一个最终 coroutine state machine 中。参数和局部值继续遵守普通复制、移动、借用和跨暂停生命周期检查；已经消费的不可复制参数不能被无条件再次转发。
 
-- 在循环中重复进入 continuation；
-- 同一正常路径进入多次；
-- 正常返回但完全跳过 continuation；
-- 保存 continuation 后延迟进入；
-- 从另一个异步函数、闭包或任务进入；
-- 通过并发组合器同时进入同一个 continuation。
-
-装饰器可以在进入 continuation 前抛出异常，或者捕获下一层异常后再次抛出；这些路径不属于跳过原函数并正常返回。基础异步装饰器不能实现缓存、短路成功、自动重试或多次执行原函数。需要这些能力时应设计另一种显式拦截机制。
+特殊 continuation 仍不能保存、逃逸、被闭包或其他任务捕获，也不能作为普通 `Task` 交给并发组合器。因此本规则允许当前异步 decorator 顺序控制进入次数，不允许把同一个 continuation 分发给其他任务并发进入。
 
 ## 5. 多层装饰器共享一个状态机
 
@@ -133,9 +126,9 @@ outer.after
 异步装饰器生成的代码属于目标异步状态机，因此除特殊 continuation 外还可以使用普通 `await`：
 
 ```ink
-async decorator authorize(function) {
+async decorator authorize() {
     const allowed = await check_permission();
-    if !allowed {
+    if (!allowed) {
         throw PermissionDenied();
     }
 
@@ -161,7 +154,7 @@ Task catch-all boundary
 因此装饰器可以按普通异常规则观察、捕获、转换或重新抛出下一层异常：
 
 ```ink
-async decorator translate_error(function) {
+async decorator translate_error() {
     try {
         return await function(...);
     } catch NetworkError as error {
@@ -298,15 +291,13 @@ construct V1 decorated task
 
 新任务使用 V2。旧任务不能执行 V1 前置装饰代码后切换到 V2 函数体或后置装饰代码。任务完全销毁前，运行时必须保持旧装饰器生成代码、帧析构入口和所需模块状态有效。
 
-装饰器生成的 `module_load`/`module_unload` 生命周期块仍属于模块版本，而不是任务执行 region。它们按照议题 17 在模块公开和卸载时运行，与某个任务是否被驱动无关。
-
-对于异步目标，生命周期块中的 `function.entry` 表示热更新稳定的任务构造入口。通过该入口调用只构造装饰后惰性任务，不直接进入 coroutine body 或首次 resume 入口。
+Decorator 不生成模块加载或卸载代码。它在编译期产生的强类型注册记录属于对应 module 版本，与某个任务是否被驱动无关。注册记录引用异步目标时，`function.entry` 表示最终装饰后惰性任务的稳定构造入口；调用该入口不直接进入 coroutine body 或首次 resume。
 
 ## 13. 成本模型
 
 异步装饰器不增加第二个任务对象或强制额外帧分配。它会使最终 coroutine frame 包含跨暂停点存活的装饰器局部状态，并增加装饰器生成代码本身的执行、子任务等待和异常处理成本。
 
-从未驱动的任务不支付装饰器运行时代码成本，但其具体帧布局可能已经为装饰器跨暂停状态预留存储。编译器可以合并不重叠的帧槽、内联 continuation region 和删除无可观察作用的生成代码，但不能提前执行装饰器副作用或改变恰好一次和异常边界语义。
+从未驱动的任务不支付装饰器运行时代码成本，但其具体帧布局可能已经为装饰器跨暂停状态预留存储。编译器可以合并不重叠的帧槽、内联 continuation region 和删除无可观察作用的生成代码，但不能提前执行装饰器副作用、改变源码确定的 continuation 进入次数或越过异常边界。
 
 普通未装饰异步函数、同步函数和其他任务不因为语言支持 `async decorator` 增加运行时字段或分派成本。
 
@@ -324,7 +315,6 @@ LLVM 无需把特殊 `function` continuation 表示成运行时函数指针或 `
 
 - 议题 59 已确认 v0 不提供任务构造装饰器，创建期行为使用显式同步任务工厂；
 - 同一个装饰器定义跨同步和异步目标复用的类型系统；
-- 允许短路、缓存、重试或多次 continuation 的显式拦截机制；
 - 异步装饰器静态状态的热更新迁移；
 - 生成器和异步生成器的 continuation 装饰器；
 - 装饰器参数、异构参数包和返回类型约束的完整规则。

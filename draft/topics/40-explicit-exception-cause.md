@@ -134,7 +134,7 @@ func cause() -> Optional<const ExceptionView&>;
 catch as error {
     log(error.type_name());
 
-    if match .some(cause) = error.cause() {
+    if (match .some(cause) = error.cause()) {
         log(cause.type_name());
     }
 }

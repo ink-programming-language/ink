@@ -1,6 +1,6 @@
 # Parser 议题 15：普通后缀表达式
 
-> 状态：已确认，议题 16、17 补充泛型实参和切片后缀；议题 29 补充列表展开；议题 30 补充类型值后缀和构造调用的中性解释
+> 状态：已确认，议题 16、17 补充泛型实参和切片后缀；议题 29 补充列表展开；议题 30 补充类型值后缀和构造调用的中性解释；议题 35 允许聚合初始化直接作为后缀起点；议题 37 增加裸 `...` 全参数转发；2026-08-05 增加统一命名实参
 > 确认日期：2026-08-03
 
 ## 1. 重复后缀结构
@@ -34,29 +34,65 @@ objects[index].method(argument).field
 ## 2. 调用后缀
 
 ```ebnf
-call_suffix = "(", [ argument_list ], ")" ;
+call_suffix =
+    "(", [ call_argument_sequence ], ")" ;
+
+call_argument_sequence =
+      argument_list
+    | forward_all_arguments ;
+
+forward_all_arguments =
+    "..." ;
 
 argument_list =
-    argument, { ",", argument } ;
+      positional_argument_list, [ ",", named_argument_list ]
+    | named_argument_list ;
 
-argument =
+positional_argument_list =
+    positional_argument, { ",", positional_argument } ;
+
+positional_argument =
       expression
     | list_expansion ;
+
+named_argument_list =
+    named_argument, { ",", named_argument } ;
+
+named_argument =
+    identifier, "=", expression ;
 
 list_expansion =
     "...", expression ;
 ```
 
-调用可以没有实参，也可以包含一个以上位置实参：
+调用可以没有实参，也可以包含位置实参、列表展开和命名实参：
 
 ```ink
 run()
 consume(value)
 combine(first(), second(), third())
 target(prefix, ...values)
+connect(host, timeout = 30)
+Point(x = 10, y = 20)
+function(...)
 ```
 
 `list_expansion` 由议题 29 确认为列表元素，不是普通一元表达式。该位置最终是否允许展开、表达式是否表示可展开运行时参数包以及展开后的实参数量，由议题 68 的语义规则检查。`"..."` 的三个点必须直接相邻，后续表达式前可以有普通 Trivia。
+
+`forward_all_arguments` 与 `list_expansion` 不同：裸 `...` 必须单独构成整个实参序列，不能与位置实参、命名实参或另一个展开混写。`target(...)` 和 `target(...values)` 分别形成全参数转发与普通列表展开。调用目标是否允许使用全参数转发由后续阶段判断，不改变调用后缀的中性 Parser 结构。
+
+`named_argument` 使用 `identifier = expression`。赋值不是表达式，因此 Parser 在实参起始位置看到 Identifier 后跟 `=` 时可以直接建立 `NamedArgument`，不需要名称绑定或任意回溯。普通位置实参和 `list_expansion` 必须全部位于命名实参之前；进入 `named_argument_list` 后不能返回位置阶段：
+
+```ink
+connect(host, 443, timeout = 30)  // 合法
+connect(host = host, timeout = 30) // 合法
+target(prefix, ...values, mode = fast) // 合法
+
+connect(timeout = 30, host)       // 语法错误
+target(mode = fast, ...values)    // 语法错误
+```
+
+命名实参自身可以按任意源码顺序出现。名称是否存在、是否重复绑定参数以及目标 callable 是否保留可用于命名调用的参数名称，由语义分析检查。所有显式实参仍按源码顺序从左到右求值。
 
 议题 07 的普通逗号列表规则适用，因此调用实参不允许尾随逗号：
 
@@ -64,7 +100,7 @@ target(prefix, ...values)
 consume(first, second,) // 非法
 ```
 
-Ink v0 没有普通命名实参。默认实参的省略和补全继续遵守议题 65；它不改变调用后缀的源码实参列表结构。
+attribute application 与 decorator application 复用同一 `argument_list`，不建立独立的属性或装饰器实参文法。它们不复用外层 `call_argument_sequence`，因此不接受裸 `...`。默认实参的省略和补全继续遵守议题 65；省略值不会在 CST 中伪造实参节点。
 
 调用目标在 Parser 阶段保持中性。`Point(10, 20)`、`factory(10, 20)` 和 `SelectedType(10, 20)` 都建立相同的 `CallExpression`；语义分析在解析 callee 后区分普通函数调用和议题 06 的显式构造调用。Parser 不建立单独的 `ConstructorExpression`。
 
@@ -197,7 +233,7 @@ make_container()
 Ink v0 不定义 `?.`、`?->` 或其他可选链后缀。原始指针需要显式检查 `null`，`Optional<T>` 等枚举值使用模式匹配或对应标准库 API 处理：
 
 ```ink
-if pointer != null {
+if (pointer != null) {
     pointer->process();
 }
 ```

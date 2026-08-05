@@ -1,6 +1,6 @@
 # Parser 议题 10：`var`、`const` 与元组解构声明
 
-> 状态：已确认，2026-08-04 移除 `let`、分离编译期求值并接入元组解构；Parser 议题 25 复用 `var`/`const` 作为普通 `for` 绑定模式，议题 29 统一类型内部 `const`，议题 30 允许初始化表达式中的前置类型限定
+> 状态：已确认，2026-08-04 移除 `let`、分离编译期求值并接入元组解构；Parser 议题 25 复用 `var`/`const` 作为普通 `for` 绑定模式，议题 29 统一类型内部 `const`，议题 30 允许初始化表达式中的前置类型限定；2026-08-05 确认字段同样必须显式写 `var` 或 `const`，完整字段产生式见议题 33
 > 确认日期：2026-08-04
 
 ## 1. 基本文法
@@ -46,9 +46,18 @@ Count: int = 3; // 非法：缺少 var 或 const
 
 这使 Parser 能从第一个 Token 直接识别声明，并避免名称表达式、类型标注和标签式语法之间的歧义。已经移除的 `let` 不是关键字，也不能用于声明。
 
-Parser 议题 25 的普通 `for` 绑定同样必须在 pattern 前显式写 `var` 或 `const`：`for const value in values { ... }`。该循环头没有 `=` 初始化器和结尾分号，因此不是本节的 `binding_declaration`，但两种关键字保持相同的顶层绑定含义。
+Parser 议题 25 的普通 `for` 绑定同样必须在 pattern 前显式写 `var` 或 `const`：`for (const value in values) { ... }`。该循环头没有 `=` 初始化器和结尾分号，因此不是本节的 `binding_declaration`，但两种关键字保持相同的顶层绑定含义。
 
-该限制只针对本议题的 module 或局部 `binding_declaration`。函数参数、泛型参数、字段等由各自声明产生式定界，仍可在对应位置使用 `name: type` 形状；它们不会被当成普通绑定声明。
+函数参数和泛型参数由各自声明产生式定界，仍使用 `name: type` 形状；它们不会被当成普通绑定声明。字段虽然由独立的成员声明产生式解析，但同样必须显式写 `var` 或 `const`：
+
+```ink
+class Point {
+    var x: i32;
+    const origin_id: i64 = 0;
+}
+```
+
+旧的裸字段 `x: i32;` 是语法错误。字段声明还必须显式标注类型，不允许写成 `var x = 1;` 或 `const x = 1;`。字段产生式允许 `var` 和 `const` 字段都省略初始化器；初始化是否充分由构造和类型语义检查。字段不直接继承本议题中局部与 module 绑定的全部形状。
 
 ## 3. `var`
 
@@ -204,4 +213,4 @@ CST 分别建立 `NamedBindingDeclaration` 或 `TupleDestructuringDeclaration`�
 
 ## 11. 确认结论
 
-Ink 的普通绑定声明必须以 `var` 或 `const` 开头，`Count: int = 3;` 之类的裸声明非法。普通 `for` 的每轮绑定也显式复用这两个关键字。`var` 表示可变绑定，`const` 表示不可重新赋值绑定；二者都可以接收运行时或编译期结果，`comptime` 独立负责强制编译期求值。普通声明的关键字后可以是单个 Identifier，也可以是不可反驳的 `tuple_pattern`；后者使用一个只求值一次的初始化器同时建立全部名称。
+Ink 的普通绑定声明必须以 `var` 或 `const` 开头，`Count: int = 3;` 之类的裸声明非法。普通 `for` 的每轮绑定和类字段也显式复用这两个关键字。`var` 表示可变绑定，`const` 表示不可重新赋值绑定；二者都可以接收运行时或编译期结果，`comptime` 独立负责强制编译期求值。普通声明的关键字后可以是单个 Identifier，也可以是不可反驳的 `tuple_pattern`；后者使用一个只求值一次的初始化器同时建立全部名称。
