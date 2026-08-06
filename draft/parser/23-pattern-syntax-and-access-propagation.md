@@ -100,6 +100,8 @@ Tokenizer 仍按照既有规则为 `_` 产生普通 `Identifier` Token。Parser 
 
 分支是否存在、载荷数量是否匹配以及载荷类型是否支持对应模式属于语义检查，不由 Parser 查询枚举声明决定。
 
+这里的前导点只存在于模式上下文，不是普通值表达式简写。构造或引用枚举值时必须写出类型限定名，例如 `Color.red`、`Optional<int>.some(value)`；普通表达式不能写 `.red` 或 `.some(value)`。
+
 ## 5. 顶层模式上下文
 
 `if (match ...)` 和议题 25 的 `while (match ...)` 顶层模式必须是 `variant_pattern`：

@@ -1,6 +1,6 @@
 # Parser 议题 30：普通表达式中的复合类型值
 
-> 状态：已确认
+> 状态：已确认；Parser 议题 40 补充复用普通 class 结构的类型表达式
 > 确认日期：2026-08-04
 
 ## 1. 目标
@@ -25,7 +25,7 @@ Parser 仍不查询名称是否表示类型，也不执行编译期求值。它�
 
 普通表达式不能简单增加一个完整 `type` 备选：
 
-```ebnf
+```text
 primary_expression =
       existing_primary_expression
     | type ;
@@ -33,14 +33,9 @@ primary_expression =
 
 该写法会使 `Identifier`、内建类型、圆括号、元组、调用、索引、成员和泛型后缀同时匹配 `expression` 与 `type`，迫使 Parser 保存两棵候选树或依赖符号表。
 
-Ink 改为复用现有表达式结构，只增加具有独特 Token 形状的类型值入口和类型构造后缀：
+Ink 改为复用现有表达式结构，只增加具有独特 Token 形状的类型值入口和类型构造后缀。议题 14 保存最终完整的 `primary_expression`；本议题直接定义新增分支：
 
 ```ebnf
-primary_expression =
-      existing_primary_expression
-    | const_type_value_expression
-    | function_type_expression ;
-
 const_type_value_expression =
     "const", type_primary ;
 
@@ -48,7 +43,7 @@ function_type_expression =
     function_type ;
 ```
 
-这里的 `existing_primary_expression` 指议题 14 已有的字面量、标识符、内建类型、`this`、圆括号或元组、数组以及结构化表达式。实现可以让 `const_type_value_expression` 与议题 29 的类型入口共享 `type_primary` 解析器，但不能再次接受第二个前置 `const`。
+实现可以让 `const_type_value_expression` 与议题 29 的类型入口共享 `type_primary` 解析器，但不能再次接受第二个前置 `const`。议题 40 进一步把 `class_type_expression` 加入议题 14 的 `structured_expression`，但仍不把整个 `type` 非终结符直接并入普通表达式。
 
 普通名称及其后缀继续形成中性表达式节点：
 
@@ -69,6 +64,8 @@ async func() -> Data    // FunctionTypeExpression
 Data[]                  // EmptyBracketTypeSuffix
 Data*                   // PointerTypeSuffix
 Data&                   // ReferenceTypeSuffix
+class { ... }           // ClassTypeExpression
+class Node { ... }      // 带内部递归名称的 ClassTypeExpression
 ```
 
 ## 3. 类型构造尾链
@@ -116,7 +113,7 @@ type_symbol_suffix = "*" | "&" ;
 调用和元组元素：                 , 或 )
 数组元素和索引内部：             , 或 ]
 泛型实参：                       , 或 >
-if 的 then 分支：                 else
+if_expression 真分支：            else
 文件或 REPL 完整表达式：          EOF
 ```
 
@@ -389,6 +386,6 @@ Incomplete 已开始能够继续闭合的类型结构，但在 REPL EOF 处结�
 
 ## 12. 确认结论
 
-Ink 允许完整复合类型作为普通一等编译期值。表达式文法不把整个 `type` 增加为重叠分支，而是复用标识符、圆括号、调用、索引、成员和泛型等中性表达式结构，并只增加 `const`、同步或异步函数类型、空 `[]` 以及受终止位置约束的 `*`、`&` 类型构造。
+Ink 允许完整复合类型作为普通一等编译期值。表达式文法不把整个 `type` 增加为重叠分支，而是复用标识符、圆括号、调用、索引、成员和泛型等中性表达式结构，并只增加 `const`、同步或异步函数类型、Parser 议题 40 的 class 类型表达式、空 `[]` 以及受终止位置约束的 `*`、`&` 类型构造。
 
 无括号 `*`、`&` 类型尾链必须结束于当前子表达式边界；继续调用、访问或参与运算时使用括号。空 `[]` 只构造切片类型，非空方括号继续由语义区分数组构造和容器索引。元组逗号结构由 CST 中性保存，并根据期望类型区分元组类型与包含类型值的普通元组。类型调用与普通函数调用共享 `CallExpression`，最终含义统一由语义分析确定。

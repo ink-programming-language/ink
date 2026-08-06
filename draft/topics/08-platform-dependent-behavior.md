@@ -67,7 +67,7 @@ PDB 是 Ink 程序语义的一部分，不是未定义行为（UB），也不是
 
 ```ink
 // 仅示意；目标条件编译语法由后续议题确定。
-comptime if (target.arch == .x86_64) {
+comptime if (target.arch == Arch.x86_64) {
     // 可以依赖 x86_64 目标配置记录的 PDB。
 }
 ```

@@ -1,6 +1,6 @@
 # Parser 议题 36：装饰器声明
 
-> 状态：已确认，只允许顶层声明；Parser 议题 37 补充隐式 continuation 的裸 `...` 全参数转发
+> 状态：已确认，只允许顶层声明；Parser 议题 37 补充隐式 continuation 的裸 `...` 全参数转发；Parser 议题 39 同步顶层绑定 wrapper
 > 确认日期：2026-08-05
 
 ## 1. 复用函数声明骨架
@@ -96,7 +96,7 @@ async decorator async_trace() {
 
 ```ebnf
 top_level_declaration =
-      binding_declaration
+      top_level_binding_declaration
     | function_declaration
     | decorator_declaration
     | class_declaration

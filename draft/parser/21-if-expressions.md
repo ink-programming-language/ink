@@ -1,36 +1,36 @@
 # Parser 议题 21：无块 `if` 表达式
 
-> 状态：已确认，议题 22 补充表达式优先级；2026-08-05 统一要求条件括号
+> 状态：已确认，议题 22 补充表达式优先级；2026-08-05 统一要求条件括号；2026-08-06 移除 `then`
 > 确认日期：2026-08-03
 
 ## 1. 基本形式
 
-有值条件表达式使用 `if (...) then ... else ...`，不使用花括号：
+有值条件表达式使用 `if (...) ... else ...`，不使用花括号：
 
 ```ebnf
 if_expression =
     "if", "(", logical_or_expression, ")",
-    "then", expression, "else", expression ;
+    expression, "else", expression ;
 ```
 
 ```ink
-const value = if (condition) then first else second;
+const value = if (condition) first else second;
 ```
 
-三个表达式依次表示条件、条件成立时的结果和条件不成立时的结果。`then` 与 `else` 是该结构的显式分隔 Token。
+三个表达式依次表示条件、条件成立时的结果和条件不成立时的结果。固定的右括号结束条件，`else` 结束真分支并开始假分支，不需要额外的 `then` 关键字。
 
 ## 2. 分支恰好是表达式
 
-`then` 和 `else` 后面各接一个完整 `expression`：
+右括号后的真分支和 `else` 后的假分支各是一个完整 `expression`：
 
 ```ink
-const value = if (ready) then load() else fallback();
+const value = if (ready) load() else fallback();
 ```
 
 分支不是 `statement_block`，因此不能在分支位置直接放置局部声明、普通语句序列或无值 `{ ... }`：
 
 ```ink
-const value = if (ready) then {
+const value = if (ready) {
     log();
     load();
 } else {
@@ -42,10 +42,10 @@ const value = if (ready) then {
 
 ## 3. `else` 必须存在
 
-`if_expression` 必须同时包含 `then` 和 `else`：
+`if_expression` 必须包含 `else`：
 
 ```ink
-const value = if (ready) then load();
+const value = if (ready) load();
 ```
 
 该 Token 序列不能形成完整 `if_expression`。允许省略 `else` 的控制结构是议题 20 的 `if_statement`，它使用花括号语句块且不产生值。
@@ -56,12 +56,12 @@ const value = if (ready) then load();
 
 ```ink
 const value =
-    if (first) then a
-    else if (second) then b
+    if (first) a
+    else if (second) b
     else c;
 ```
 
-这不需要专门的 `else_if_expression` 产生式；最后一个 `expression` 递归包含下一层 `if_expression`。每一层都必须具有自己的 `then` 和 `else`。
+这不需要专门的 `else_if_expression` 产生式；最后一个 `expression` 递归包含下一层 `if_expression`。每一层都必须具有自己的 `else`。
 
 ## 5. 与 `if_statement` 的区别
 
@@ -72,11 +72,11 @@ if (condition) {
     run();
 }
 
-const value = if (condition) then first else second;
+const value = if (condition) first else second;
 ```
 
 - `if_statement` 在条件后进入 `statement_block`；
-- `if_expression` 在条件后出现 `then`；
+- `if_expression` 在条件右括号后直接进入真分支表达式，并要求后续 `else`；
 - `if_statement` 自身不需要结尾分号；
 - `if_expression` 自身不包含结尾分号，外层绑定声明或表达式语句按自己的产生式提供 `;`。
 
@@ -87,7 +87,6 @@ CST 使用专用 `IfExpression` 节点并按源码顺序保存：
 - `if` Token；
 - 固定的左右括号；
 - 条件表达式；
-- `then` Token；
 - 真分支表达式；
 - `else` Token；
 - 假分支表达式；
@@ -101,4 +100,4 @@ Parser 不把任一分支包装成 `StatementBlock` 或此前预留的 `Conditio
 
 ## 8. 确认结论
 
-Ink 的有值条件表达式写作 `if (condition) then true_expression else false_expression`。条件括号是结构自身的固定定界符；表达式必须具有 `then` 和 `else`，两个分支各是一个表达式，不使用有值花括号分支，也不把普通语句块提升为表达式。假分支可以递归包含另一个 `if_expression` 形成链式条件。
+Ink 的有值条件表达式写作 `if (condition) true_expression else false_expression`。条件右括号直接结束条件并开始真分支，因此不需要 `then`；`else` 必须存在，两个分支各是一个表达式，不使用有值花括号分支，也不把普通语句块提升为表达式。假分支可以递归包含另一个 `if_expression` 形成链式条件。

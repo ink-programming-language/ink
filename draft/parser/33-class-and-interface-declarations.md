@@ -1,6 +1,6 @@
 # Parser 议题 33：类与接口声明
 
-> 状态：已确认，成员区域 `comptime` 展开同步固定控制头括号
+> 状态：已确认，成员区域 `comptime` 展开同步固定控制头括号；Parser 议题 40 抽取 class 公共尾部并在表达式上下文允许省略类名
 > 确认日期：2026-08-05
 
 ## 1. 目标
@@ -23,7 +23,7 @@ public final class Vector<T: type> : Sequence<T>, Serializable {
         var current: T*;
     }
 
-    comptime if (build.mode == .debug) {
+    comptime if (build.mode == BuildMode.debug) {
         var debug_id: u64;
     }
 }
@@ -41,6 +41,9 @@ public interface Sequence<T: type> : Iterable<T> {
 class_declaration =
     type_declaration_prefix,
     "class", identifier,
+    class_definition_tail ;
+
+class_definition_tail =
     [ generic_parameter_clause ],
     [ inheritance_clause ],
     class_member_block ;
@@ -232,7 +235,7 @@ class Buffer {}
 interface Reader {}
 ```
 
-匿名或局部命名的 `class { ... }`、`class Node { ... }` 类型表达式属于 Parser 议题 30 和语义议题 67，不进入本议题的命名声明入口。
+匿名或局部命名的 `class { ... }`、`class Node { ... }` 类型表达式由 Parser 议题 40 定义。它们复用本议题的 `type_declaration_prefix` 和 `class_definition_tail`，只在表达式上下文把 `identifier` 改为可选；本议题的命名声明入口仍然要求类名。
 
 泛型参数位于名称之后，继承列表之前：
 
@@ -371,7 +374,7 @@ nested enum declaration
 ComptimeRegionControl<ClassMemberRegion>
 ```
 
-成员位置的 `var` 或 `const` 总是字段，不会建立局部或 module 绑定。构造函数和析构函数仍然是 Parser 议题 31 的普通 `function_declaration`；名称是否等于所属类名、是否以 `~` 开头以及生命周期约束都在语义分析中确定。
+成员位置的 `var` 或 `const` 总是字段，不会建立局部或 module 绑定。构造函数和析构函数仍然是 Parser 议题 31 的普通 `function_declaration`；Parser 议题 38 允许 block 函数定义携带 C++ 风格构造初始化列表。名称是否等于所属类名、是否以 `~` 开头、初始化目标类别以及生命周期约束都在语义分析中确定。
 
 类成员块不接受：
 
@@ -587,4 +590,4 @@ Parser 不负责：
 
 ## 18. 确认结论
 
-命名类和接口共享 attribute、访问修饰符、泛型参数、完整 `type` 继承列表和强制成员块骨架。字段必须显式写 `var` 或 `const` 以及类型，初始化器对两者都可选；字段 attribute 位于访问修饰符之前。类和接口都允许嵌套类型，并使用逐声明访问修饰符而非 C++ 访问分区标签。接口 Parser 广泛接受完整成员声明形状，再由语义分析限制有效接口成员。所有条件成员都通过 Parser 议题 32 的统一 `ComptimeRegionControl` 实现，不存在类或接口专用的 `comptime` 语言。
+命名类和接口共享 attribute、访问修饰符、泛型参数、完整 `type` 继承列表和强制成员块骨架。Parser 议题 40 的 class 类型表达式进一步复用相同 class 尾部，只在表达式上下文允许省略类名。字段必须显式写 `var` 或 `const` 以及类型，初始化器对两者都可选；字段 attribute 位于访问修饰符之前。类和接口都允许嵌套类型，并使用逐声明访问修饰符而非 C++ 访问分区标签。接口 Parser 广泛接受完整成员声明形状，再由语义分析限制有效接口成员。所有条件成员都通过 Parser 议题 32 的统一 `ComptimeRegionControl` 实现，不存在类或接口专用的 `comptime` 语言。

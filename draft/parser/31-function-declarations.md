@@ -1,6 +1,6 @@
 # Parser 议题 31：函数声明
 
-> 状态：已确认
+> 状态：已确认，Parser 议题 38 增加 C++ 风格构造初始化列表
 > 确认日期：2026-08-05
 
 ## 1. 目标
@@ -121,11 +121,31 @@ return_clause =
     "->", type ;
 
 function_body =
-      statement_block
+      function_definition
     | ";" ;
+
+function_definition =
+    [ constructor_initializer_clause ],
+    statement_block ;
+
+constructor_initializer_clause =
+    ":", constructor_initializer,
+    { ",", constructor_initializer } ;
+
+constructor_initializer =
+    constructor_initializer_target,
+    call_suffix ;
+
+constructor_initializer_target =
+    identifier,
+    { constructor_initializer_target_suffix } ;
+
+constructor_initializer_target_suffix =
+      ".", identifier
+    | generic_argument_suffix ;
 ```
 
-`argument_list` 复用议题 15 的位置实参、列表展开和命名实参规则；`type` 复用议题 29；`expression` 复用议题 12—24、29、30；`statement_block` 复用议题 09。所有逗号列表继续遵守议题 07，不接受尾随逗号。
+`argument_list` 和 `call_suffix` 复用议题 15 的普通调用规则；`generic_argument_suffix` 复用议题 16；`type` 复用议题 29；`expression` 复用议题 12—24、29、30；`statement_block` 复用议题 09。所有逗号列表继续遵守议题 07，不接受尾随逗号。
 
 ## 3. Attribute、decorator 与修饰符顺序
 
@@ -381,6 +401,16 @@ func defined() {
 func declared();
 ```
 
+函数定义的语句块前可以出现 Parser 议题 38 的构造初始化列表：
+
+```ink
+func Player(id: i64, name: String)
+    : Entity(id), name(name)
+{}
+```
+
+Parser 不读取所属类名称来决定是否允许该子节点；只有语义分析确认当前函数为构造函数后，初始化目标才可以解释为直接具体基类或本类字段。初始化列表不能出现在以 `;` 结束的声明上。
+
 `function_body` 不使用自动分号插入，也不把缺少 body 的 EOF 当作隐式 `;`。分号 Token 或完整 `statement_block` 必须真实存在或通过议题 03 的恢复节点表示缺失。
 
 函数所处语义环境决定哪种 body 合法，例如：
@@ -406,7 +436,11 @@ if next token is <: parse non-empty generic parameter clause
 parse mandatory runtime parameter clause
 if next token is const: consume receiver qualifier
 if next adjacent symbols are ->: parse return type
-parse statement block or semicolon
+if next token is ':':
+    parse constructor initializer clause
+    parse mandatory statement block
+else:
+    parse statement block or semicolon
 ```
 
 声明区外层 Parser 可以先收集通用 annotation prefix，再根据后续关键字分派声明种类。`final class` 进入类声明；修饰符序列后出现 `func` 才进入本议题。`async func(` 在明确类型或表达式上下文中仍由议题 29、30 解析为函数类型，而在声明区域由外层调用者选择函数声明入口。
@@ -436,7 +470,11 @@ FunctionDeclaration
   parameters: FunctionParameterClause
   receiver_qualifier: ConstReceiverQualifier?
   return_clause: ReturnClause?
-  body: StatementBlock | SemicolonFunctionBody
+  body: FunctionDefinition | SemicolonFunctionBody
+
+FunctionDefinition
+  constructor_initializers: ConstructorInitializerClause?
+  body: StatementBlock
 
 GenericParameter
   name_token
@@ -461,6 +499,7 @@ Parser 不负责：
 
 - 判断 `identifier` 是否构造函数名称；
 - 判断 `~ identifier` 是否为合法析构函数；
+- 判断构造初始化目标是直接基类、本类字段还是非法名称；
 - 检查访问修饰符、`extern`、`static`、`virtual`、`override`、`final`、`async` 与 `implicit` 的重复、顺序或组合；
 - 检查 `static` 是否仅用于类成员；
 - 检查尾随 `const` 是否只用于非静态实例成员；
@@ -480,8 +519,9 @@ Parser 不负责：
 ```text
 attribute list:       ]  @  function modifier  func
 generic parameters:  ,  >  (
-runtime parameters:  ,  )  const  ->  {  ;
-return clause:       {  ;
+runtime parameters:  ,  )  const  ->  :  {  ;
+return clause:       :  {  ;
+initializer list:    ,  {  ;
 function body:       }  next declaration starter  EOF
 ```
 
@@ -515,6 +555,8 @@ func name(
 func name(value: i32
 func name() const
 func name() ->
+func name() :
+func name() : Base(
 func name() {
 ```
 
@@ -532,7 +574,7 @@ func ~123()
 
 ## 16. 确认结论
 
-Ink 函数声明按“annotation 序列、修饰符序列、`func`、名称、可选非空泛型形参、必需运行时参数、可选尾随 `const`、可选返回子句、block 或分号 body”的固定顺序解析。Attribute 与 decorator 必须全部位于修饰符之前；修饰符按源码顺序无损保存，合法组合交给语义分析。
+Ink 函数声明按“annotation 序列、修饰符序列、`func`、名称、可选非空泛型形参、必需运行时参数、可选尾随 `const`、可选返回子句、可选构造初始化列表、block 或分号 body”的固定顺序解析。初始化列表只伴随 block 定义；Attribute 与 decorator 必须全部位于修饰符之前，修饰符按源码顺序无损保存，合法组合交给语义分析。
 
 泛型和运行时形参统一使用 `name: type`、`= expression` 默认值与互斥的尾随 `...` 包标记。所有普通逗号列表禁止尾随逗号；泛型声明 `<>` 非法而运行时 `()` 合法。省略返回子句固定表示 `void`，不进行函数体返回类型推导。
 

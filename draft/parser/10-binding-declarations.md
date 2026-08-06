@@ -1,6 +1,6 @@
 # Parser 议题 10：`var`、`const` 与元组解构声明
 
-> 状态：已确认，2026-08-04 移除 `let`、分离编译期求值并接入元组解构；Parser 议题 25 复用 `var`/`const` 作为普通 `for` 绑定模式，议题 29 统一类型内部 `const`，议题 30 允许初始化表达式中的前置类型限定；2026-08-05 确认字段同样必须显式写 `var` 或 `const`，完整字段产生式见议题 33
+> 状态：已确认，2026-08-04 移除 `let`、分离编译期求值并接入元组解构；Parser 议题 25 复用 `var`/`const` 作为普通 `for` 绑定模式，议题 29 统一类型内部 `const`，议题 30 允许初始化表达式中的前置类型限定；2026-08-05 确认字段同样必须显式写 `var` 或 `const`，完整字段产生式见议题 33；2026-08-06 由议题 39 为 module 顶层绑定增加访问修饰 wrapper
 > 确认日期：2026-08-04
 
 ## 1. 基本文法
@@ -198,14 +198,48 @@ Parser 只识别不可反驳的语法形状。元素按值初始化、引用元�
 
 ## 9. Module 与局部声明
 
-相同绑定产生式可以在允许绑定的 module 声明区和普通 `StatementBlock` 中使用。Parser 根据父 CST 上下文建立不同节点：
+`binding_declaration` 仍是 module 与局部声明共用的核心形状。module 顶层在它外面增加议题 39 的访问修饰 wrapper：
 
-```text
-ModuleBindingDeclaration
-LocalBindingDeclaration
+```ebnf
+top_level_binding_declaration =
+    top_level_binding_modifier_sequence,
+    binding_declaration ;
+
+top_level_binding_modifier_sequence =
+    { access_modifier } ;
 ```
 
-作用域、访问权限、module 初始化顺序和局部 RAII 生命周期由对应语义规则处理；声明的 Token 顺序和基础语法保持一致。
+因此以下 module 顶层声明都符合语法：
+
+```ink
+public const api_version = 1;
+private var cache: Cache;
+const default_visibility = 0;
+```
+
+零个访问修饰符合法，省略时采用什么默认可见性不由 Parser 决定。`access_modifier` 复用议题 31 的 `public`、`protected`、`private` 产生式，以保持各类声明的前缀解析一致；module 顶层不允许 `protected`，重复或冲突修饰符也非法，但这些约束均在语义阶段检查。
+
+普通 `StatementBlock` 继续直接使用无访问前缀的绑定核心：
+
+```ink
+func update() {
+    var count = 0;
+    private var hidden = 0; // 非法：局部绑定没有访问前缀
+}
+```
+
+Parser 根据父 CST 上下文建立不同节点：
+
+```text
+TopLevelBindingDeclaration
+├─ AccessModifier*
+└─ NamedBindingDeclaration | TupleDestructuringDeclaration
+
+LocalBindingDeclaration
+└─ NamedBindingDeclaration | TupleDestructuringDeclaration
+```
+
+访问前缀只属于 `TopLevelBindingDeclaration` wrapper，不改变内部 `var`、`const`、类型标注、初始化器或元组模式的 Token 顺序。作用域、具体访问权限、module 初始化顺序和局部 RAII 生命周期由对应语义规则处理。
 
 ## 10. CST 与恢复
 
@@ -213,4 +247,4 @@ CST 分别建立 `NamedBindingDeclaration` 或 `TupleDestructuringDeclaration`�
 
 ## 11. 确认结论
 
-Ink 的普通绑定声明必须以 `var` 或 `const` 开头，`Count: int = 3;` 之类的裸声明非法。普通 `for` 的每轮绑定和类字段也显式复用这两个关键字。`var` 表示可变绑定，`const` 表示不可重新赋值绑定；二者都可以接收运行时或编译期结果，`comptime` 独立负责强制编译期求值。普通声明的关键字后可以是单个 Identifier，也可以是不可反驳的 `tuple_pattern`；后者使用一个只求值一次的初始化器同时建立全部名称。
+Ink 的普通绑定声明必须以 `var` 或 `const` 开头，`Count: int = 3;` 之类的裸声明非法。module 顶层可以在绑定核心前增加访问修饰符，局部绑定不能增加该前缀；省略时的默认可见性属于语义规则。普通 `for` 的每轮绑定和类字段也显式复用这两个关键字。`var` 表示可变绑定，`const` 表示不可重新赋值绑定；二者都可以接收运行时或编译期结果，`comptime` 独立负责强制编译期求值。普通声明的关键字后可以是单个 Identifier，也可以是不可反驳的 `tuple_pattern`；后者使用一个只求值一次的初始化器同时建立全部名称。

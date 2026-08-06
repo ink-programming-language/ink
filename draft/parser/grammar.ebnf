@@ -1,0 +1,909 @@
+source_file =
+    { top_level_item }, end_of_file ;
+
+top_level_item =
+      import_declaration
+    | top_level_declaration
+    | comptime_top_level_item ;
+
+top_level_declaration =
+      top_level_binding_declaration
+    | function_declaration
+    | decorator_declaration
+    | class_declaration
+    | interface_declaration
+    | enum_declaration ;
+
+top_level_binding_declaration =
+    top_level_binding_modifier_sequence,
+    binding_declaration ;
+
+top_level_binding_modifier_sequence =
+    { access_modifier } ;
+
+comptime_top_level_item =
+    "comptime",
+    ( top_level_block
+    | top_level_if_tail
+    | top_level_match_tail
+    | top_level_for_tail
+    | top_level_while_tail ) ;
+
+top_level_block =
+    "{", { top_level_item }, "}" ;
+
+top_level_if_tail =
+    "if", "(", if_condition, ")", top_level_block,
+    [ "else", ( top_level_block | top_level_if_tail ) ] ;
+
+top_level_match_tail =
+    "match", "(", expression, ")", "{",
+    top_level_match_arm, { top_level_match_arm },
+    "}" ;
+
+top_level_match_arm =
+    match_arm_pattern, "=>", top_level_block ;
+
+top_level_for_tail =
+    "for", "(", for_binding_mode, for_pattern,
+    "in", for_source, ")", top_level_block ;
+
+top_level_while_tail =
+    "while", "(", while_condition, ")", top_level_block ;
+
+import_declaration =
+      module_import_declaration
+    | member_import_declaration ;
+
+module_import_declaration =
+    "import", module_path, [ import_alias ], ";" ;
+
+member_import_declaration =
+    contextual_from, module_path, "import", imported_member,
+    { ",", imported_member }, ";" ;
+
+import_alias =
+    "as", identifier ;
+
+imported_member =
+    identifier, [ import_alias ] ;
+
+module_path =
+      absolute_module_path
+    | relative_module_path ;
+
+absolute_module_path =
+    identifier, ".", identifier, { ".", identifier } ;
+
+relative_module_path =
+    relative_prefix, identifier, { ".", identifier } ;
+
+binding_declaration =
+      var_declaration
+    | const_declaration ;
+
+var_declaration =
+    "var",
+    ( identifier,
+      ( ":", type, [ "=", expression ]
+      | "=", expression )
+    | tuple_pattern, "=", expression ),
+    ";" ;
+
+const_declaration =
+    "const",
+    ( identifier, [ ":", type ]
+    | tuple_pattern ),
+    "=", expression, ";" ;
+
+function_declaration =
+    function_annotation_sequence,
+    function_modifier_sequence,
+    "func",
+    function_name,
+    [ generic_parameter_clause ],
+    function_parameter_clause,
+    [ member_receiver_qualifier ],
+    [ return_clause ],
+    function_body ;
+
+function_annotation_sequence =
+    { attribute_list | decorator_application } ;
+
+attribute_list =
+    "[", attribute_application,
+    { ",", attribute_application }, "]" ;
+
+attribute_application =
+    identifier, [ application_argument_clause ] ;
+
+decorator_application =
+    "@", identifier, [ application_argument_clause ] ;
+
+application_argument_clause =
+    "(", [ argument_list ], ")" ;
+
+function_modifier_sequence =
+    { function_modifier } ;
+
+function_modifier =
+      access_modifier
+    | extern_modifier
+    | "static"
+    | "virtual"
+    | "override"
+    | "final"
+    | "async"
+    | "implicit" ;
+
+access_modifier =
+      "public"
+    | "protected"
+    | "private" ;
+
+extern_modifier =
+    "extern", string_literal ;
+
+function_name =
+      identifier
+    | "~", identifier ;
+
+generic_parameter_clause =
+    "<", generic_parameter_list, ">" ;
+
+generic_parameter_list =
+    generic_parameter, { ",", generic_parameter } ;
+
+generic_parameter =
+    identifier, ":", type, [ parameter_suffix ] ;
+
+function_parameter_clause =
+    "(", [ function_parameter_list ], ")" ;
+
+function_parameter_list =
+    function_parameter, { ",", function_parameter } ;
+
+function_parameter =
+    parameter_name, ":", type, [ parameter_suffix ] ;
+
+parameter_name =
+    identifier ;
+
+parameter_suffix =
+      parameter_pack_suffix
+    | default_argument ;
+
+parameter_pack_suffix =
+    "..." ;
+
+default_argument =
+    "=", expression ;
+
+member_receiver_qualifier =
+    "const" ;
+
+return_clause =
+    "->", type ;
+
+function_body =
+      function_definition
+    | ";" ;
+
+function_definition =
+    [ constructor_initializer_clause ],
+    statement_block ;
+
+constructor_initializer_clause =
+    ":", constructor_initializer,
+    { ",", constructor_initializer } ;
+
+constructor_initializer =
+    constructor_initializer_target,
+    call_suffix ;
+
+constructor_initializer_target =
+    identifier,
+    { constructor_initializer_target_suffix } ;
+
+constructor_initializer_target_suffix =
+      ".", identifier
+    | generic_argument_suffix ;
+
+decorator_declaration =
+    decorator_attribute_sequence,
+    function_modifier_sequence,
+    "decorator",
+    function_name,
+    [ generic_parameter_clause ],
+    function_parameter_clause,
+    [ member_receiver_qualifier ],
+    [ return_clause ],
+    function_body ;
+
+decorator_attribute_sequence =
+    { attribute_list } ;
+
+class_declaration =
+    type_declaration_prefix,
+    "class", identifier,
+    class_definition_tail ;
+
+class_type_expression =
+    type_declaration_prefix,
+    "class", [ identifier ],
+    class_definition_tail ;
+
+class_definition_tail =
+    [ generic_parameter_clause ],
+    [ inheritance_clause ],
+    class_member_block ;
+
+interface_declaration =
+    type_declaration_prefix,
+    "interface", identifier,
+    [ generic_parameter_clause ],
+    [ inheritance_clause ],
+    interface_member_block ;
+
+type_declaration_prefix =
+    type_annotation_sequence,
+    type_modifier_sequence ;
+
+type_annotation_sequence =
+    { attribute_list } ;
+
+type_modifier_sequence =
+    { type_modifier } ;
+
+type_modifier =
+      access_modifier
+    | "final" ;
+
+inheritance_clause =
+    ":", type, { ",", type } ;
+
+class_member_block =
+    "{", { class_member_item }, "}" ;
+
+class_member_item =
+      field_declaration
+    | function_declaration
+    | class_declaration
+    | interface_declaration
+    | enum_declaration
+    | class_member_comptime_item ;
+
+interface_member_block =
+    "{", { interface_member_item }, "}" ;
+
+interface_member_item =
+      field_declaration
+    | function_declaration
+    | class_declaration
+    | interface_declaration
+    | enum_declaration
+    | interface_member_comptime_item ;
+
+field_declaration =
+    field_annotation_sequence,
+    field_modifier_sequence,
+    field_binding_mode,
+    identifier,
+    ":", type,
+    [ field_initializer ],
+    ";" ;
+
+field_annotation_sequence =
+    { attribute_list } ;
+
+field_modifier_sequence =
+    { access_modifier } ;
+
+field_binding_mode =
+      "var"
+    | "const" ;
+
+field_initializer =
+    "=", expression ;
+
+class_member_comptime_item =
+    "comptime",
+    ( class_member_block
+    | class_member_if_tail
+    | class_member_match_tail
+    | class_member_for_tail
+    | class_member_while_tail ) ;
+
+class_member_if_tail =
+    "if", "(", if_condition, ")", class_member_block,
+    [ "else", ( class_member_block | class_member_if_tail ) ] ;
+
+class_member_match_tail =
+    "match", "(", expression, ")", "{",
+    class_member_match_arm, { class_member_match_arm },
+    "}" ;
+
+class_member_match_arm =
+    match_arm_pattern, "=>", class_member_block ;
+
+class_member_for_tail =
+    "for", "(", for_binding_mode, for_pattern,
+    "in", for_source, ")", class_member_block ;
+
+class_member_while_tail =
+    "while", "(", while_condition, ")", class_member_block ;
+
+interface_member_comptime_item =
+    "comptime",
+    ( interface_member_block
+    | interface_member_if_tail
+    | interface_member_match_tail
+    | interface_member_for_tail
+    | interface_member_while_tail ) ;
+
+interface_member_if_tail =
+    "if", "(", if_condition, ")", interface_member_block,
+    [ "else", ( interface_member_block | interface_member_if_tail ) ] ;
+
+interface_member_match_tail =
+    "match", "(", expression, ")", "{",
+    interface_member_match_arm, { interface_member_match_arm },
+    "}" ;
+
+interface_member_match_arm =
+    match_arm_pattern, "=>", interface_member_block ;
+
+interface_member_for_tail =
+    "for", "(", for_binding_mode, for_pattern,
+    "in", for_source, ")", interface_member_block ;
+
+interface_member_while_tail =
+    "while", "(", while_condition, ")", interface_member_block ;
+
+enum_declaration =
+    type_declaration_prefix,
+    "enum", identifier,
+    [ generic_parameter_clause ],
+    enum_body ;
+
+enum_body =
+    enum_member_block ;
+
+enum_member_block =
+    "{",
+    [ enum_member_item, { ",", enum_member_item } ],
+    "}" ;
+
+enum_member_item =
+      enum_branch
+    | enum_member_comptime_item ;
+
+enum_branch =
+    { attribute_list },
+    enum_branch_core ;
+
+enum_branch_core =
+    identifier,
+    [ enum_payload_clause ],
+    [ enum_discriminant_clause ] ;
+
+enum_payload_clause =
+    "(", type, { ",", type }, ")" ;
+
+enum_discriminant_clause =
+    "=", expression ;
+
+enum_member_comptime_item =
+    "comptime",
+    ( enum_member_block
+    | enum_member_if_tail
+    | enum_member_match_tail
+    | enum_member_for_tail
+    | enum_member_while_tail ) ;
+
+enum_member_if_tail =
+    "if", "(", if_condition, ")", enum_member_block,
+    [ "else", ( enum_member_block | enum_member_if_tail ) ] ;
+
+enum_member_match_tail =
+    "match", "(", expression, ")", "{",
+    enum_member_match_arm, { enum_member_match_arm },
+    "}" ;
+
+enum_member_match_arm =
+    match_arm_pattern, "=>", enum_member_block ;
+
+enum_member_for_tail =
+    "for", "(", for_binding_mode, for_pattern,
+    "in", for_source, ")", enum_member_block ;
+
+enum_member_while_tail =
+    "while", "(", while_condition, ")", enum_member_block ;
+
+statement_block =
+    "{", { block_item }, "}" ;
+
+block_item =
+      local_declaration
+    | statement ;
+
+local_declaration =
+    binding_declaration ;
+
+statement =
+      block_statement
+    | comptime_block_statement
+    | assignment_statement
+    | expression_statement
+    | if_statement
+    | comptime_if_statement
+    | match_statement
+    | comptime_match_statement
+    | while_statement
+    | comptime_while_statement
+    | for_statement
+    | comptime_for_statement
+    | break_statement
+    | continue_statement
+    | return_statement
+    | defer_statement
+    | throw_statement
+    | try_statement ;
+
+block_statement =
+    statement_block ;
+
+comptime_block_statement =
+    "comptime", statement_block ;
+
+assignment_statement =
+    expression, assignment_operator, expression, ";" ;
+
+assignment_operator =
+      "="
+    | "+=" | "-=" | "*=" | "/=" | "%="
+    | "&=" | "|=" | "^="
+    | "<<=" | ">>=" ;
+
+expression_statement =
+    expression, ";" ;
+
+if_statement =
+    "if", "(", if_condition, ")", statement_block,
+    [ "else", ( statement_block | if_statement ) ] ;
+
+if_condition =
+      expression
+    | match_condition ;
+
+match_condition =
+    "match", conditional_match_pattern, "=", expression ;
+
+comptime_if_statement =
+    "comptime", if_statement ;
+
+match_statement =
+    "match", "(", expression, ")", "{",
+    match_statement_arm, { match_statement_arm },
+    "}" ;
+
+match_statement_arm =
+    match_arm_pattern, "=>", statement ;
+
+comptime_match_statement =
+    "comptime", match_statement ;
+
+while_statement =
+    "while", "(", while_condition, ")", statement_block ;
+
+while_condition =
+      expression
+    | while_match_condition ;
+
+while_match_condition =
+    "match", conditional_match_pattern, "=", expression ;
+
+for_statement =
+    "for", "(", for_binding_mode, for_pattern,
+    "in", for_source, ")", statement_block ;
+
+for_binding_mode =
+      "var"
+    | "const" ;
+
+for_pattern =
+      binding_pattern
+    | wildcard_pattern ;
+
+for_source =
+    expression, [ "..", expression ] ;
+
+comptime_while_statement =
+    "comptime", while_statement ;
+
+comptime_for_statement =
+    "comptime", for_statement ;
+
+break_statement =
+    "break", ";" ;
+
+continue_statement =
+    "continue", ";" ;
+
+return_statement =
+    "return", [ expression ], ";" ;
+
+defer_statement =
+    "defer", ( expression, ";" | statement_block ) ;
+
+throw_statement =
+    "throw",
+    ( ";"
+    | expression, [ throw_cause_clause ], ";" ) ;
+
+throw_cause_clause =
+    contextual_from, identifier ;
+
+try_statement =
+    "try", statement_block, catch_sequence ;
+
+catch_sequence =
+      typed_catch_clause, { typed_catch_clause },
+      [ catch_all_clause ]
+    | catch_all_clause ;
+
+typed_catch_clause =
+    "catch", type, [ catch_binding ], statement_block ;
+
+catch_all_clause =
+    "catch", [ catch_binding ], statement_block ;
+
+catch_binding =
+    "as", identifier ;
+
+payload_pattern =
+      binding_pattern
+    | wildcard_pattern
+    | tuple_pattern ;
+
+binding_pattern =
+    ? Identifier Token whose spelling is not "_" ? ;
+
+wildcard_pattern =
+    ? Identifier Token whose spelling is exactly "_" ? ;
+
+tuple_pattern =
+      "(", ")"
+    | "(", payload_pattern, ",", ")"
+    | "(", payload_pattern, ",", payload_pattern,
+      { ",", payload_pattern }, ")" ;
+
+variant_pattern =
+    ".", identifier,
+    [ "(", payload_pattern,
+      { ",", payload_pattern }, ")" ] ;
+
+conditional_match_pattern =
+    variant_pattern ;
+
+match_arm_pattern =
+      variant_pattern
+    | wildcard_pattern ;
+
+expression =
+      if_expression
+    | logical_or_expression ;
+
+if_expression =
+    "if", "(", logical_or_expression, ")",
+    expression, "else", expression ;
+
+logical_or_expression =
+    logical_and_expression,
+    { "||", logical_and_expression } ;
+
+logical_and_expression =
+    comparison_expression,
+    { "&&", comparison_expression } ;
+
+comparison_expression =
+    bitwise_or_expression,
+    [ comparison_operator, bitwise_or_expression ] ;
+
+comparison_operator =
+      "<" | "<=" | ">" | ">=" | "==" | "!=" ;
+
+bitwise_or_expression =
+    bitwise_xor_expression,
+    { "|", bitwise_xor_expression } ;
+
+bitwise_xor_expression =
+    bitwise_and_expression,
+    { "^", bitwise_and_expression } ;
+
+bitwise_and_expression =
+    shift_expression,
+    { "&", shift_expression } ;
+
+shift_expression =
+    additive_expression,
+    { ( "<<" | ">>" ), additive_expression } ;
+
+additive_expression =
+    multiplicative_expression,
+    { ( "+" | "-" ), multiplicative_expression } ;
+
+multiplicative_expression =
+    unary_expression,
+    { ( "*" | "/" | "%" ), unary_expression } ;
+
+unary_expression =
+      postfix_expression
+    | unary_operator, unary_expression
+    | comptime_expression ;
+
+comptime_expression =
+    "comptime", unary_expression ;
+
+unary_operator =
+      "+" | "-" | "!" | "~" | "*" | "&" | "await" ;
+
+postfix_expression =
+    primary_expression,
+    { postfix_suffix },
+    [ terminal_type_constructor_tail ] ;
+
+postfix_suffix =
+      ordinary_postfix_suffix
+    | generic_argument_suffix
+    | slice_suffix ;
+
+ordinary_postfix_suffix =
+      call_suffix
+    | index_suffix
+    | member_suffix
+    | pointer_member_suffix ;
+
+call_suffix =
+    "(", [ call_argument_sequence ], ")" ;
+
+call_argument_sequence =
+      argument_list
+    | forward_all_arguments ;
+
+forward_all_arguments =
+    "..." ;
+
+argument_list =
+      positional_argument_list, [ ",", named_argument_list ]
+    | named_argument_list ;
+
+positional_argument_list =
+    positional_argument, { ",", positional_argument } ;
+
+positional_argument =
+      expression
+    | list_expansion ;
+
+named_argument_list =
+    named_argument, { ",", named_argument } ;
+
+named_argument =
+    identifier, "=", expression ;
+
+list_expansion =
+    "...", expression ;
+
+index_suffix =
+    "[", expression, "]" ;
+
+member_suffix =
+    ".", member_selector ;
+
+pointer_member_suffix =
+    "->", member_selector ;
+
+member_selector =
+      identifier
+    | tuple_position_selector ;
+
+generic_argument_suffix =
+    "<", [ generic_argument_list ], ">" ;
+
+generic_argument_list =
+    generic_argument, { ",", generic_argument } ;
+
+generic_argument =
+      type_or_expression
+    | list_expansion ;
+
+slice_suffix =
+    "[",
+    ( ":", [ expression ]
+    | expression, ":", [ expression ] ),
+    "]" ;
+
+terminal_type_constructor_tail =
+    type_constructor_start,
+    { type_symbol_suffix | empty_bracket_suffix | index_suffix } ;
+
+type_constructor_start =
+      type_symbol_suffix
+    | empty_bracket_suffix ;
+
+type_symbol_suffix =
+      "*"
+    | "&" ;
+
+primary_expression =
+      literal_expression
+    | identifier_expression
+    | builtin_type_expression
+    | this_expression
+    | parenthesized_expression
+    | parenthesized_comma_list
+    | array_expression
+    | structured_expression
+    | const_type_value_expression
+    | function_type_expression ;
+
+literal_expression =
+      integer_literal
+    | float_literal
+    | scalar_literal
+    | string_literal
+    | bool_literal
+    | null_literal ;
+
+identifier_expression =
+    identifier ;
+
+builtin_type_expression =
+    builtin_type ;
+
+this_expression =
+    "this" ;
+
+parenthesized_expression =
+    "(", expression, ")" ;
+
+parenthesized_comma_list =
+      "(", ")"
+    | "(", expression, ",", ")"
+    | "(", parenthesized_comma_item, ",",
+      parenthesized_comma_item,
+      { ",", parenthesized_comma_item }, ")"
+    | "(", list_expansion, ")" ;
+
+parenthesized_comma_item =
+      expression
+    | list_expansion ;
+
+array_expression =
+    "[", [ expression, { ",", expression } ], "]" ;
+
+structured_expression =
+      match_expression
+    | aggregate_initialization_expression
+    | class_type_expression ;
+
+match_expression =
+    "match", "(", expression, ")", "{",
+    match_expression_arm, { match_expression_arm },
+    "}" ;
+
+match_expression_arm =
+    match_arm_pattern, "=>",
+    match_expression_arm_body, "," ;
+
+match_expression_arm_body =
+      expression
+    | statement_block ;
+
+aggregate_initialization_expression =
+    type, aggregate_initializer_body ;
+
+aggregate_initializer_body =
+    "{",
+    [ aggregate_field_initializer,
+      { ",", aggregate_field_initializer } ],
+    "}" ;
+
+aggregate_field_initializer =
+    identifier, ":", expression ;
+
+const_type_value_expression =
+    "const", type_primary ;
+
+function_type_expression =
+    function_type ;
+
+type =
+    [ "const" ],
+    type_primary,
+    { type_postfix_suffix } ;
+
+type_primary =
+      type_name
+    | parenthesized_type_expression
+    | tuple_type
+    | function_type ;
+
+type_name =
+      identifier
+    | builtin_type ;
+
+type_postfix_suffix =
+      postfix_suffix
+    | "*"
+    | "&"
+    | empty_bracket_suffix ;
+
+empty_bracket_suffix =
+    "[", "]" ;
+
+parenthesized_type_expression =
+    "(", type_or_expression, ")" ;
+
+type_or_expression =
+      type
+    | expression ;
+
+tuple_type =
+      "(", ")"
+    | "(", type, ",", ")"
+    | "(", tuple_type_item, ",", tuple_type_item,
+      { ",", tuple_type_item }, ")"
+    | "(", list_expansion, ")" ;
+
+tuple_type_item =
+      type
+    | list_expansion ;
+
+function_type =
+    [ "async" ],
+    "func", "(",
+    [ function_type_parameter,
+      { ",", function_type_parameter } ],
+    ")",
+    [ "->", type ] ;
+
+function_type_parameter =
+      type
+    | list_expansion ;
+
+identifier =
+    ? Identifier Token ? ;
+
+integer_literal =
+    ? IntegerLiteral Token ? ;
+
+float_literal =
+    ? FloatLiteral Token ? ;
+
+scalar_literal =
+    ? ScalarLiteral Token ? ;
+
+string_literal =
+    ? StringLiteral Token ? ;
+
+bool_literal =
+    ? BoolLiteral Token ? ;
+
+null_literal =
+    ? NullLiteral Token ? ;
+
+builtin_type =
+    ? BuiltinType Token ? ;
+
+tuple_position_selector =
+    ? Unsuffixed decimal IntegerLiteral Token ? ;
+
+contextual_from =
+    ? Identifier Token whose spelling is exactly "from" ? ;
+
+relative_prefix =
+    ? One or more directly adjacent Symbol('.') Tokens ? ;
+
+end_of_file =
+    ? EndOfFile Token ? ;

@@ -1,6 +1,6 @@
 # Parser 议题 12：表达式运算符优先级
 
-> 状态：已确认，议题 19 补充一元表达式完整规则，议题 22 在逻辑或之外增加 `if_expression`，议题 30 补充终止型类型构造后缀；2026-08-05 为 `if_expression` 条件增加固定括号
+> 状态：已确认，议题 19 补充一元表达式完整规则，议题 22 在逻辑或之外增加 `if_expression`，议题 30 补充终止型类型构造后缀；2026-08-05 为 `if_expression` 条件增加固定括号；2026-08-06 移除 `then`
 > 确认日期：2026-08-03
 
 ## 1. 固定优先级
@@ -46,8 +46,7 @@ expression =
 
 if_expression =
     "if", "(", logical_or_expression, ")",
-    "then", expression,
-    "else", expression ;
+    expression, "else", expression ;
 
 logical_or_expression =
     logical_and_expression,

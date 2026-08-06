@@ -1,6 +1,6 @@
 # Parser 议题 09：语句块与花括号
 
-> 状态：已确认，议题 20、24—26、28 补充控制结构、清理与异常处理规则；2026-08-05 增加 `comptime` block statement，Parser 议题 32 统一区域控制
+> 状态：已确认，议题 20、24—28 补充全部控制流、清理与异常处理规则；2026-08-05 增加 `comptime` block statement，Parser 议题 32 统一区域控制；2026-08-06 汇总完整 `local_declaration` 与 `statement` 产生式
 > 确认日期：2026-08-03
 
 ## 1. 普通语句块
@@ -14,9 +14,34 @@ statement_block =
 block_item =
     local_declaration
   | statement ;
+
+local_declaration =
+    binding_declaration ;
+
+statement =
+    block_statement
+  | comptime_block_statement
+  | assignment_statement
+  | expression_statement
+  | if_statement
+  | comptime_if_statement
+  | match_statement
+  | comptime_match_statement
+  | while_statement
+  | comptime_while_statement
+  | for_statement
+  | comptime_for_statement
+  | break_statement
+  | continue_statement
+  | return_statement
+  | defer_statement
+  | throw_statement
+  | try_statement ;
 ```
 
-`local_declaration` 和各类 `statement` 的完整产生式在后续议题中定义。空语句块 `{}` 合法。
+`local_declaration` 当前只复用议题 10 的 `binding_declaration`，即以 `var` 或 `const` 开头的普通局部绑定。各个 statement 子产生式分别由议题 09、11、18、20、24—28 定义；这里仅汇总已经确认的规则，不引入新的语句形态。空语句块 `{}` 合法。
+
+赋值语句与表达式语句共享表达式前缀，按照议题 11 在解析完左侧表达式后由紧随的赋值运算符分流。`comptime` 开头的结构先按照议题 32 试探 block、if、match、while 或 for，试探失败后仍可回到含 `comptime_expression` 的普通表达式语句入口。
 
 换行和缩进仍然是 Trivia；只有真实的 `Symbol('{')` 与 `Symbol('}')` 建立和结束语句块。
 
@@ -96,7 +121,7 @@ const value = {
 };
 ```
 
-函数通过显式 `return` 返回值。议题 21 的 `if_expression` 使用 `if (...) then ... else ...`，本身不使用花括号。聚合初始化、类型构造或其他可能使用花括号的表达式拥有各自独立产生式和专用 CST 节点，不会把普通语句块自动变成有值 block expression。
+函数通过显式 `return` 返回值。议题 21 的 `if_expression` 使用 `if (...) ... else ...`，本身不使用花括号。聚合初始化、类型构造或其他可能使用花括号的表达式拥有各自独立产生式和专用 CST 节点，不会把普通语句块自动变成有值 block expression。
 
 议题 24 允许 `match_expression` 的分支使用 `statement_block`，但仅用于不能正常完成的分支。该块仍不产生值；如果它能到达结束 `}`，对应有值分支属于语义错误。
 

@@ -231,7 +231,7 @@ comptime (f() + g())     // 整个加法必须在编译期完成
 最低优先级的 `if_expression` 或其他需要完整表达式边界的结构，可以通过圆括号明确作为操作数：
 
 ```ink
-const selected = comptime (if (condition) then first else second);
+const selected = comptime (if (condition) first else second);
 ```
 
 `comptime if (condition) { ... }`、`comptime match (value) { ... }`、`comptime for (...) { ... }` 和 `comptime while (condition) { ... }` 是语句上下文中的结构化控制形式，不由本节的 `comptime_expression` 吞并。

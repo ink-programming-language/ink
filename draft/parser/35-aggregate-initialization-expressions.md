@@ -1,6 +1,6 @@
 # Parser 议题 35：聚合初始化表达式
 
-> 状态：已确认
+> 状态：已确认；Parser 议题 40 同步扩展 `structured_expression`
 > 确认日期：2026-08-05
 
 ## 1. 基本产生式
@@ -58,7 +58,8 @@ Point {
 ```ebnf
 structured_expression =
       match_expression
-    | aggregate_initialization_expression ;
+    | aggregate_initialization_expression
+    | class_type_expression ;
 ```
 
 因此它可以出现在任何普通表达式位置：

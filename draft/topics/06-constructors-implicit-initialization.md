@@ -1,6 +1,6 @@
 # 议题 06：构造函数、隐式构造与字面量初始化
 
-> 状态：已确认，2026-08-04 构造声明改为 `func ClassName(...)`；议题 34、54、72 修订，Parser 议题 30、31、35 确认构造调用、函数声明与聚合初始化语法
+> 状态：已确认，2026-08-04 构造声明改为 `func ClassName(...)`；议题 34、54、72 修订，Parser 议题 30、31、35、38 确认构造调用、函数声明、聚合初始化与 C++ 风格构造初始化列表
 > 确认日期：2026-08-01
 
 ## 1. 构造函数使用所属类名
@@ -12,10 +12,9 @@ class Point {
     var x: int;
     var y: int;
 
-    func Point(x: int, y: int) {
-        this.x = x;
-        this.y = y;
-    }
+    func Point(x: int, y: int)
+        : x(x), y(y)
+    {}
 }
 ```
 
@@ -33,6 +32,24 @@ class Point {
 - 构造函数不能作为已有对象的普通方法调用。
 
 Parser 议题 31 对 `func Identifier(...)` 建立普通函数声明 CST，不读取所属类名来改变节点种类。语义分析看到类成员名称与所属类名完全相同时，将其判定为构造函数并检查上述约束；因此同名成员不能通过添加返回类型等方式变成普通方法。模块级的同名函数没有所属类，仍是普通函数。通用函数声明语法允许尾随 `;`，但类内同名声明一旦被判定为构造函数，缺少语句块函数体就必须产生语义错误。
+
+### 1.1 C++ 风格构造初始化列表
+
+构造函数使用 Parser 议题 38 的冒号初始化列表直接初始化具体基类子对象和本类字段：
+
+```ink
+class Player : Entity {
+    var name: String;
+
+    func Player(id: i64, name: String)
+        : Entity(id), name(name)
+    {}
+}
+```
+
+初始化项复用普通调用实参规则，不增加 `base` 或 `super` 关键字。目标只能是直接具体基类或本类直接声明的实例字段。具体基类先初始化，字段随后按声明顺序初始化，最后进入构造函数体；源码列表顺序不改变该生命周期顺序。
+
+字段初始化项直接建立最终字段存储，不先默认构造再赋值，因此适用于 `const` 字段和不可复制字段。未列出的目标继续使用声明初始化器或默认初始化规则。
 
 议题 54 的异步成员调用会把原始 `this` 指针保存进任务帧。构造函数内即使创建这种任务，也不得在完整对象构造完成前把它返回、存入外部对象或交给库设施，使它越过构造边界继续持有 `this`；这仍是本议题规定的构造期 `this` 逃逸编译错误。未被驱动且在构造函数内销毁的 `created` 任务不会执行方法体。
 
@@ -60,9 +77,9 @@ const value = SelectedType(argument);
 class Duration {
     var milliseconds: int;
 
-    func Duration(milliseconds: int) {
-        this.milliseconds = milliseconds;
-    }
+    func Duration(milliseconds: int)
+        : milliseconds(milliseconds)
+    {}
 }
 ```
 
@@ -75,9 +92,9 @@ const duration: Duration = 1000; // 编译错误
 
 ```ink
 class File {
-    func File(path: string) {
-        this.handle = os.open(path);
-    }
+    func File(path: string)
+        : handle(os.open(path))
+    {}
 }
 
 const file = File("data.txt");
@@ -100,9 +117,9 @@ const file = File("data.txt");
 class Duration {
     var milliseconds: int;
 
-    implicit func Duration(milliseconds: int) {
-        this.milliseconds = milliseconds;
-    }
+    implicit func Duration(milliseconds: int)
+        : milliseconds(milliseconds)
+    {}
 }
 ```
 

@@ -1,6 +1,6 @@
 # 议题 66：开放泛型声明是一等编译期值
 
-> 状态：已确认，议题 67、70、71 补充结构化生成、泛型重载与元值元组  
+> 状态：已确认，议题 67、70、71 补充静态声明展开、泛型重载与元值元组；Parser 议题 40 定义 class 类型表达式
 > 确认日期：2026-08-02
 
 ## 1. 目的
@@ -8,17 +8,14 @@
 Ink 允许把开放泛型声明作为编译期实参、局部值和序列元素，以表达“把一个泛型交给另一个泛型”的高阶泛型能力：
 
 ```ink
-func wrap_fields<
+func wrap_value<
     Wrapper: GenericTypeDecl,
     Source: type
 >() -> type {
+    const Wrapped: type = Wrapper.instantiate<Source>();
+
     return class {
-        comptime for (const field in reflect(Source).fields) {
-            field(
-                name = Identifier.from(field.name),
-                type = Wrapper.instantiate<field.type>()
-            );
-        }
+        var value: Wrapped;
     };
 }
 ```
@@ -27,7 +24,7 @@ func wrap_fields<
 
 ```ink
 const UserPatch: type =
-    wrap_fields<Optional, User>();
+    wrap_value<Optional, User>();
 ```
 
 这里传递的是开放声明 `Optional`，不是某个已经闭合的 `Optional<T>`。
@@ -206,7 +203,7 @@ type -> type
 
 调用者通过反射查询形参，并在 `instantiate` 时接受准确检查。Ink v0 不引入 C++ `template<template<...>>`、高阶类型 kind、形状子类型或基于形参数量的重载身份。
 
-这样允许一个高阶生成器接收多种泛型声明，同时把错误保持在明确的编译期应用位置。
+这样允许一个高阶编译期函数接收多种泛型声明，同时把错误保持在明确的编译期应用位置。
 
 ## 10. 泛型函数声明
 
@@ -218,7 +215,7 @@ const SortI32: FunctionDecl =
     comptime SortDecl.instantiate<i32>();
 ```
 
-这会请求并返回闭合 `sort<i32>` 声明，可用于编译期反射、注册生成、验证和其他结构化声明构造。
+这会请求并返回闭合 `sort<i32>` 声明，可用于编译期反射、验证以及静态声明区域控制中的类型或表达式选择。
 
 擦除后的 `FunctionDecl` 不携带一个可由普通运行时类型检查器直接调用的静态函数签名，因此 v0 不规定：
 
@@ -261,7 +258,7 @@ generic declaration identity
 - 把声明句柄交给外部高阶泛型不会让该高阶泛型借用调用模块的私有权限；
 - 实例体的访问权限继续属于泛型定义模块，而不是实例化位置。
 
-结构化生成的新泛型声明只有在当前固定点轮次验证并提交后，才能形成稳定 `GenericTypeDecl` 或 `GenericFunctionDecl`；未完成 builder 不能冒充声明句柄。
+源码中声明的泛型只有在当前固定点轮次完成收集和验证后，才能形成稳定 `GenericTypeDecl` 或 `GenericFunctionDecl`；未完成的内部暂定声明不能冒充声明句柄。
 
 ## 13. 运行时禁止逃逸
 
@@ -283,13 +280,15 @@ FunctionDecl as a declaration handle
 - 序列化为可在另一编译中恢复的稳定声明句柄；
 - 在运行时提交新实参触发 JIT 实例化。
 
-运行时动态反射仍只观察编译期间已经生成并登记的闭合实例。
+运行时动态反射仍只观察编译期间已经实例化并登记的闭合实例。
 
-## 14. 结构化生成与声明构造器
+## 14. 高阶泛型与静态声明展开
 
-高阶泛型可以把闭合 `type` 和 `FunctionDecl` 交给议题 61、63、67 的普通类型表达式和结构化声明形式，生成字段、方法、注册项和其他语义声明。用户不操作 Builder，也不能把声明名称格式化成源码后重新解析。
+高阶泛型可以把闭合 `type` 和 `FunctionDecl` 交给议题 61、63、67 的普通类型表达式、编译期条件和静态声明展开。用户不操作 Builder，也不能把声明名称格式化成源码后重新解析。
 
-生成器根据反射批量实例化泛型时，每个请求都进入同一固定点队列和资源预算。无限地为新类型继续实例化同一泛型必须由实例栈、声明生成计数和固定点收敛检查诊断。
+议题 67 明确 v0 不提供 `field(...)`、`function(...)` 或动态声明名称。高阶泛型可以改变普通声明中使用的类型和值，但声明名称仍必须真实写在源码中。
+
+编译期代码根据反射批量实例化泛型时，每个请求都进入同一固定点队列和资源预算。无限地为新类型继续实例化同一泛型必须由实例栈、声明展开计数和固定点收敛检查诊断。
 
 ## 15. LLVM 与二进制边界
 

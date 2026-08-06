@@ -13,7 +13,7 @@ Ink 只有一个 `comptime` 阶段前缀，不为 module、函数、类、接口
 class Config {
     var capacity: int = comptime GetCapacity();
 
-    comptime if (build.mode == .debug) {
+    comptime if (build.mode == BuildMode.debug) {
         var debug_id: u64;
     }
 }
@@ -21,7 +21,7 @@ class Config {
 func run() {
     var capacity: int = comptime GetCapacity();
 
-    comptime if (build.mode == .debug) {
+    comptime if (build.mode == BuildMode.debug) {
         log_debug();
     }
 }
@@ -187,7 +187,7 @@ var second: int = comptime (GetXXX() + 1);
 comptime validate_configuration();
 ```
 
-此时 statement Parser 在结构化区域前缀试探失败后回到普通表达式语句入口，由表达式 Parser 消费 `comptime`。module、class、interface 和 enum item 区域不允许普通表达式语句，所以 `comptime generate();` 不能仅因带有前缀就成为声明；需要使用结构化声明区域或已经定义的类型化声明构造形式。
+此时 statement Parser 在结构化区域前缀试探失败后回到普通表达式语句入口，由表达式 Parser 消费 `comptime`。module、class、interface 和 enum item 区域不允许普通表达式语句，所以 `comptime generate();` 不能仅因带有前缀就成为声明；声明区域只能选择或重复其 `RegionRules` 已经允许、并且静态写在源码中的普通声明。Ink v0 不提供 `field(...)` 或其他声明构造表达式。
 
 在 `=` 之后不存在上述 item 歧义。字段初始化器调用普通表达式 Parser，因此：
 

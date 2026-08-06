@@ -1,6 +1,6 @@
 # Parser 议题 14：基础表达式
 
-> 状态：已确认，议题 21、22 定义无块 `if_expression`，议题 24 完成 `match_expression`，议题 29 补充元组列表展开，议题 30 补充复合类型值，议题 35 加入聚合初始化表达式
+> 状态：已确认，议题 21、22 定义无块 `if_expression`，议题 24 完成 `match_expression`，议题 29 补充元组列表展开，议题 30 补充复合类型值，议题 35 加入聚合初始化表达式，议题 40 加入复用普通 class 结构的类型表达式
 > 确认日期：2026-08-03
 
 ## 1. 定义
@@ -67,6 +67,15 @@ network
 ```
 
 同一个 `Identifier` CST 节点的具体含义由名称绑定和使用上下文决定。Parser 不根据命名风格或当前符号表改变表达式形状。
+
+普通值表达式不能由 `.` 开始。枚举值必须通过现有成员后缀写出类型限定名：
+
+```ink
+BuildMode.debug
+Optional<int>.some(10)
+```
+
+因此 `build.mode == .debug` 和值位置的 `.some(10)` 都不是合法表达式。前导点只属于议题 23 的上下文枚举分支模式，例如 `match (mode) { .debug => ... }`；模式不产生枚举值，也不会向 `primary_expression` 增加分支。
 
 ## 4. 内建类型表达式
 
@@ -205,7 +214,8 @@ array_expression =
 ```ebnf
 structured_expression =
       match_expression
-    | aggregate_initialization_expression ;
+    | aggregate_initialization_expression
+    | class_type_expression ;
 ```
 
 `match_expression` 能在需要值的表达式位置出现：
@@ -227,6 +237,20 @@ const x = Point { x: 10, y: 20 }.x;
 
 因此完整聚合初始化结果可以直接继续普通后缀链，不要求先增加额外圆括号。
 
+Parser 议题 40 的 `class_type_expression` 复用普通 class 的声明前缀、泛型参数、继承列表和成员块，只在表达式上下文把类名改为可选：
+
+```ink
+const Generated: type = class {
+    var value: i32;
+};
+
+return class Node {
+    var next: Node*;
+};
+```
+
+它产生编译期类型值，不在外层声明区域建立类名。带局部名称的形式只为类体内部的递归引用提供名称。
+
 为提高可读性，`match_expression` 继续接后缀操作时建议使用括号，但语法不强制：
 
 ```ink
@@ -236,7 +260,7 @@ const x = Point { x: 10, y: 20 }.x;
 }).method()
 ```
 
-议题 21 已独立确认无块形式 `if (condition) then true_expression else false_expression`，议题 22 将它放在完整表达式最低层。它不属于最高优先级的 `primary_expression`；作为其他运算的操作数或后缀基础时必须先使用圆括号。
+议题 21 已独立确认无块形式 `if (condition) true_expression else false_expression`，议题 22 将它放在完整表达式最低层。它不属于最高优先级的 `primary_expression`；作为其他运算的操作数或后缀基础时必须先使用圆括号。
 
 ## 10. 与后缀表达式的关系
 
@@ -266,12 +290,13 @@ ArrayExpression
 ListExpansion
 ConstTypeValueExpression
 FunctionTypeExpression
+ClassTypeExpression
 ```
 
-`match` 使用议题 24 的 `MatchExpression` 结构化节点；议题 21、22 的 `if_expression` 使用独立的最低优先级 `IfExpression` 节点，不归入基础表达式。`ParenthesizedExpression` 与带逗号的 `ParenthesizedCommaList` 必须保持不同节点类别；后者自身作为元组类型还是元组值才由期望类型决定。
+`match` 使用议题 24 的 `MatchExpression` 结构化节点，class 类型表达式使用议题 40 的 `ClassTypeExpression`；议题 21、22 的 `if_expression` 使用独立的最低优先级 `IfExpression` 节点，不归入基础表达式。`ParenthesizedExpression` 与带逗号的 `ParenthesizedCommaList` 必须保持不同节点类别；后者自身作为元组类型还是元组值才由期望类型决定。
 
 缺少表达式、逗号或右定界符时，Parser 按议题 03 使用 `MissingToken` 和 `ErrorNode` 恢复。所有实际 Token 和 Trivia 仍准确保留一次。
 
 ## 12. 确认结论
 
-Ink 的基础表达式包括字面量、标识符、内建类型、`this`、加括号表达式、圆括号逗号列表、数组、`const` 类型值、同步或异步函数类型以及 `match` 结构化表达式。类型作为一等编译期值在语法上允许出现在表达式位置；`()`、`(value)`、`(value,)`、`(...values)` 和多元素元组具有明确不同的 Token 形状，圆括号逗号列表的类型或值解释由议题 30 的期望类型规则决定。普通数组和多元素元组均不允许尾随逗号。`...expression` 只作为议题 29 确认的列表展开节点出现。无块 `if_expression` 不是基础表达式，而是议题 22 定义的完整表达式最低层。
+Ink 的基础表达式包括字面量、标识符、内建类型、`this`、加括号表达式、圆括号逗号列表、数组、`const` 类型值、同步或异步函数类型、class 类型表达式以及其他结构化表达式。类型作为一等编译期值在语法上允许出现在表达式位置；`()`、`(value)`、`(value,)`、`(...values)` 和多元素元组具有明确不同的 Token 形状，圆括号逗号列表的类型或值解释由议题 30 的期望类型规则决定。普通数组和多元素元组均不允许尾随逗号。`...expression` 只作为议题 29 确认的列表展开节点出现。无块 `if_expression` 不是基础表达式，而是议题 22 定义的完整表达式最低层。

@@ -306,7 +306,7 @@ CatchBinding
 ```text
 '{'       -> unbound catch-all
 Keyword(as) -> bound catch-all
-otherwise -> parse typed catch, then optional 'as' identifier
+otherwise -> parse typed catch, followed by optional 'as' identifier
 ```
 
 类型完成后必须遇到 `as` 或处理器的 `{`。这一分派不依赖名称解析、异常资格或 Parser 回溯。

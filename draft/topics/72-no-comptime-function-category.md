@@ -84,8 +84,8 @@ func create<
 普通函数可以接收或返回 `type`、`GenericDecl`、`FunctionDecl` 以及包含这些值的元组：
 
 ```ink
-func primary_field() -> (Identifier, type) {
-    return (Identifier.from("value"), i32);
+func primary_layout() -> (type, ptrsize) {
+    return (i32, cast<ptrsize>(4));
 }
 ```
 

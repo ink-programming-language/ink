@@ -11,8 +11,7 @@ Ink 不为编译期元编程另外引入 `MetaTuple`、`ComptimeAny`、`ValueLis
 const specification = comptime (
     i32,
     cast<ptrsize>(16),
-    Vector,
-    Identifier.from("items")
+    Vector
 );
 ```
 
@@ -22,7 +21,6 @@ const specification = comptime (
 type
 ptrsize
 GenericTypeDecl
-Identifier
 ```
 
 因此整个值具有结构化编译期元组类型：
@@ -110,40 +108,35 @@ iteration 3: element : Identifier
 - 失败迭代不能被静默丢弃；
 - 循环变量的迭代相关类型不能逃逸到循环外成为一个未知运行时类型。
 
-如果需要收集不同类型的结果，应生成另一个结构化元组、闭合声明或其他编译期已知结构，而不是要求运行时数组容纳它们。
+如果需要收集不同类型的结果，应构造另一个结构化元组、请求闭合声明或使用其他编译期已知结构，而不是要求运行时数组容纳它们。
 
-## 6. 结构化声明生成
+## 6. 驱动静态声明展开
 
-编译期元组可以直接保存生成声明所需的语义值：
+编译期元组可以保存若干类型值，再由 `comptime for` 将同一个静态声明按不同类型展开：
 
 ```ink
-const fields = comptime (
-    (Identifier.from("id"), i64),
-    (Identifier.from("name"), String),
-    (Identifier.from("active"), bool)
-);
+const supported_types = comptime (i64, String, bool);
 
 return class {
-    comptime for (const field_spec in fields) {
-        field(
-            name = field_spec.0,
-            type = field_spec.1
-        );
+    comptime for (const Element in supported_types) {
+        func encode(value: Element) -> String {
+            return encode_value(value);
+        }
     }
 };
 ```
 
-这里的 `field_spec.1` 是值为 `i64`、`String` 或 `bool` 的一等编译期 `type` 值。`field(...)` 继续接收结构化语义参数，不把字符串重新解析成源码，也不需要公开 Builder。
+每轮的 `Element` 是值为 `i64`、`String` 或 `bool` 的一等编译期 `type` 值。声明名称 `encode` 是源码中的真实 Identifier；循环只产生参数类型不同的普通重载。
 
-生成声明的身份、固定点提交、访问权限和资源预算继续使用议题 61、63、67 的规则。元组只组织输入数据，不绕过声明验证。
+展开声明的身份、固定点提交、访问权限和资源预算继续使用议题 61、63、67 的规则。元组只组织输入数据，不能把字符串或 `Identifier` 元值变成动态声明名称。
 
 ## 7. 编译期函数参数与返回值
 
 编译期可执行函数可以接收和返回准确的元组类型，包括含有元类型的元组：
 
 ```ink
-func primary_field() -> (Identifier, type) {
-    return (Identifier.from("value"), i32);
+func primary_layout() -> (type, ptrsize) {
+    return (i32, cast<ptrsize>(4));
 }
 ```
 
@@ -184,7 +177,7 @@ Ink 不自动计算“所有元类型的共同基类”，也不因控制流合�
 
 ## 11. 反射、规范化与缓存
 
-编译期反射可以观察元组的有序元素类型，并在元组值已知时逐项取得编译期值。元组作为泛型实参或声明生成输入时，规范化身份至少包含：
+编译期反射可以观察元组的有序元素类型，并在元组值已知时逐项取得编译期值。元组作为泛型实参或静态声明展开输入时，规范化身份至少包含：
 
 ```text
 ordered element types

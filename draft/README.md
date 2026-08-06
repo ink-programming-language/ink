@@ -13,7 +13,7 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 03 | 析构、RAII 与 `defer` | 已确认，析构声明改为 `func ~ClassName()`；议题 27、32、34、42、48、51、53、54 修订；Parser 议题 09、18、25、26、31 确认 block、表达式、跳转、`defer` 与函数声明边界 | [`topics/03-raii-destructor-defer.md`](./topics/03-raii-destructor-defer.md) |
 | 04 | 指针、引用、数组与切片 | 已确认，议题 31—33、43、44、54、61 与 Parser 议题 17、19、25、29、30 补充 | [`topics/04-pointers-references-arrays-slices.md`](./topics/04-pointers-references-arrays-slices.md) |
 | 05 | 基础类型与 `ptrsize` | 已确认 | [`topics/05-primitive-types-ptrsize.md`](./topics/05-primitive-types-ptrsize.md) |
-| 06 | 构造函数、隐式构造与字面量初始化 | 已确认，构造声明改为 `func ClassName(...)`；议题 34、54、72 修订，Parser 议题 30、31、35 确认构造调用、函数声明与聚合初始化语法 | [`topics/06-constructors-implicit-initialization.md`](./topics/06-constructors-implicit-initialization.md) |
+| 06 | 构造函数、隐式构造与字面量初始化 | 已确认，构造声明改为 `func ClassName(...)`，并采用 C++ 风格构造初始化列表；议题 34、54、72 修订，Parser 议题 30、31、35、38 确认相关语法 | [`topics/06-constructors-implicit-initialization.md`](./topics/06-constructors-implicit-initialization.md) |
 | 07 | 整数溢出与回绕算术 | 已确认 | [`topics/07-integer-overflow-wrapping.md`](./topics/07-integer-overflow-wrapping.md) |
 | 08 | 平台相关行为（PDB） | 已确认，议题 61 补充编译期执行 | [`topics/08-platform-dependent-behavior.md`](./topics/08-platform-dependent-behavior.md) |
 | 09 | 整数除法与移位 | 已确认 | [`topics/09-integer-division-shifts.md`](./topics/09-integer-division-shifts.md) |
@@ -31,7 +31,7 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 21 | 动态反射值传递与调用 ABI | 已确认，议题 22、23、25、28、34、38、57、65 补充，精确二进制布局待定 | [`topics/21-dynamic-reflection-value-abi.md`](./topics/21-dynamic-reflection-value-abi.md) |
 | 22 | 基于名称的动态反射身份 | 已确认，议题 23、31、35、37 补充；Module 议题 01、02 确认 package/module 路径身份 | [`topics/22-name-based-reflection-identity.md`](./topics/22-name-based-reflection-identity.md) |
 | 23 | 反射成员唯一性与继承覆盖 | 已确认，议题 24、25、28—30 补充 | [`topics/23-reflection-member-inheritance.md`](./topics/23-reflection-member-inheritance.md) |
-| 24 | `class`、单继承与多接口 | 已确认，支持 `static`、只读接收者、`final`、统一继承类型列表、显式字段、嵌套类型和成员区域；议题 25—31、35、54—58 与 Parser 议题 10、31—33 补充 | [`topics/24-class-inheritance-interfaces.md`](./topics/24-class-inheritance-interfaces.md) |
+| 24 | `class`、单继承与多接口 | 已确认，支持 `static`、只读接收者、`final`、统一继承类型列表、显式字段、嵌套类型、成员区域、class 类型表达式和 C++ 风格构造初始化列表；议题 25—31、35、54—58 与 Parser 议题 10、31—33、38、40 补充 | [`topics/24-class-inheritance-interfaces.md`](./topics/24-class-inheritance-interfaces.md) |
 | 25 | 虚函数与动态反射调用 | 已确认，函数级 `final` 封闭虚槽；议题 26、28、34、55、57、58、60、65 与 Parser 议题 31 补充 | [`topics/25-virtual-functions-reflection.md`](./topics/25-virtual-functions-reflection.md) |
 | 26 | vptr、vtable 与接口胖引用 ABI | 已确认，议题 24、27—31、35、55、56 补充 | [`topics/26-vtable-interface-abi.md`](./topics/26-vtable-interface-abi.md) |
 | 27 | 自动动态销毁与存储释放分离 | 已确认，议题 34、36、43 补充，拥有型多态容器 API 待定 | [`topics/27-dynamic-destruction.md`](./topics/27-dynamic-destruction.md) |
@@ -68,13 +68,13 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 58 | 异步函数装饰器包围任务执行体 | 已确认，异步 continuation 可零次或多次进入且不生成模块生命周期代码；议题 24、59 补充；Parser 议题 27、36、37 同步抛出、装饰器声明与全参数转发语法 | [`topics/58-async-decorators-wrap-task-body.md`](./topics/58-async-decorators-wrap-task-body.md) |
 | 59 | Ink v0 不提供任务构造装饰器 | 已确认，创建期自定义行为使用显式同步任务工厂 | [`topics/59-no-task-construction-decorators.md`](./topics/59-no-task-construction-decorators.md) |
 | 60 | 异步覆盖不支持协变结果 | 已确认，`Task<T>` 对结果类型不变型 | [`topics/60-no-covariant-async-results.md`](./topics/60-no-covariant-async-results.md) |
-| 61 | `comptime` 泛型、部分求值与编译期执行 | 已确认，议题 62—72 补充泛型、结构化生成、重载、元组元值与统一函数阶段；Parser 议题 31、32 确认泛型函数声明与统一区域控制 | [`topics/61-comptime-generics-partial-evaluation.md`](./topics/61-comptime-generics-partial-evaluation.md) |
+| 61 | `comptime` 泛型、部分求值与编译期执行 | 已确认，议题 62—72 补充泛型、静态声明展开、重载、元组元值与统一函数阶段；Parser 议题 31、32 确认泛型函数声明与统一区域控制 | [`topics/61-comptime-generics-partial-evaluation.md`](./topics/61-comptime-generics-partial-evaluation.md) |
 | 62 | 编译期参数包是普通编译期序列 | 已确认，议题 64、66、68—71 补充绑定、反射、运行时包、元组与重载；Parser 议题 29、31 统一展开与包声明 | [`topics/62-comptime-parameter-packs.md`](./topics/62-comptime-parameter-packs.md) |
-| 63 | Ink v0 不提供字符串到代码生成 | 已确认，议题 67 确认只使用结构化声明表达式；允许静态候选集条件导入 | [`topics/63-no-string-to-code-generation.md`](./topics/63-no-string-to-code-generation.md) |
+| 63 | Ink v0 不提供字符串到代码生成 | 已确认，议题 67 确认只选择或重复静态源码声明且不提供 Identifier splice；Parser 议题 40 定义 class 类型表达式；允许静态候选集条件导入 | [`topics/63-no-string-to-code-generation.md`](./topics/63-no-string-to-code-generation.md) |
 | 64 | Ink v0 不支持泛型实参推导 | 已确认，议题 65、70 补充默认值与重载候选规则 | [`topics/64-no-generic-argument-inference.md`](./topics/64-no-generic-argument-inference.md) |
 | 65 | 普通参数与编译期参数统一使用默认实参 | 已确认，议题 70 补充默认实参与重载候选关系；Parser 议题 13、15、29、31 确认求值、调用、函数类型与默认形参语法 | [`topics/65-unified-default-arguments.md`](./topics/65-unified-default-arguments.md) |
-| 66 | 开放泛型声明是一等编译期值 | 已确认，议题 67、70、71 补充结构化生成、泛型重载与元值元组 | [`topics/66-first-class-generic-declarations.md`](./topics/66-first-class-generic-declarations.md) |
-| 67 | `comptime` 直接生成结构化声明，不公开 Builder | 已确认，声明区通过 Parser 议题 32 的 `RegionKind` 统一支持 block、if、match、for、while；议题 71 补充元组输入 | [`topics/67-comptime-structured-declarations-no-builders.md`](./topics/67-comptime-structured-declarations-no-builders.md) |
+| 66 | 开放泛型声明是一等编译期值 | 已确认，议题 67、70、71 补充静态声明展开、泛型重载与元值元组；Parser 议题 40 定义 class 类型表达式 | [`topics/66-first-class-generic-declarations.md`](./topics/66-first-class-generic-declarations.md) |
+| 67 | `comptime` 只选择和展开源码声明，不公开 Builder | 已确认，v0 不提供 `field(...)`、动态声明名称或其他声明构造器；声明区通过 Parser 议题 32 的 `RegionKind` 统一支持 block、if、match、for、while | [`topics/67-comptime-structured-declarations-no-builders.md`](./topics/67-comptime-structured-declarations-no-builders.md) |
 | 68 | 运行时参数包与编译期类型包一一对应 | 已确认，议题 69、70 补充元组与闭合重载；Parser 议题 29、31 确认列表展开与包形参 | [`topics/68-runtime-parameter-packs.md`](./topics/68-runtime-parameter-packs.md) |
 | 69 | 元组是内建匿名结构值类型 | 已确认，议题 71 补充异构编译期元值与静态遍历；Parser 议题 07、10、14、23、26、29、30 确认相关语法 | [`topics/69-tuples-structural-values.md`](./topics/69-tuples-structural-values.md) |
 | 70 | 显式泛型实参与重载解析 | 已确认，先闭合候选签名再执行普通重载，不提供 SFINAE 回退 | [`topics/70-explicit-generic-overload-resolution.md`](./topics/70-explicit-generic-overload-resolution.md) |

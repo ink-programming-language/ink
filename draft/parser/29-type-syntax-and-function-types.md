@@ -176,8 +176,8 @@ type_or_expression =
 
 ```ink
 (Data)
-(if (Use64) then i64 else i32)
-(if (Use64) then i64 else i32)*
+(if (Use64) i64 else i32)
+(if (Use64) i64 else i32)*
 ```
 
 名称、成员访问、泛型实例化、调用和方括号后缀组成的类型值链可以直接出现；`if_expression`、中缀运算和其他不属于该后缀链的完整表达式必须使用括号。Parser 只确认结构，语义分析要求括号内容能够在编译期求值并且结果准确为 `type`。

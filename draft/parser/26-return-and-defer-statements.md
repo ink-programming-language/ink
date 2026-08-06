@@ -81,7 +81,7 @@ return left, right; // 非法：元组缺少圆括号
 `if_expression`、`match_expression` 和其他完整表达式可以直接作为返回结果：
 
 ```ink
-return if (ready) then value else fallback;
+return if (ready) value else fallback;
 
 return match (result) {
     .ok(value) => value,

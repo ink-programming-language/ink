@@ -1,6 +1,6 @@
 # Parser 议题 05：源文件与条件导入
 
-> 状态：已确认，2026-08-05 扩展声明区 `comptime` 控制结构；Parser 议题 32 统一为 `TopLevelRegion` 实例并同步固定控制头括号；Parser 议题 36 补全顶层声明集合
+> 状态：已确认，2026-08-05 扩展声明区 `comptime` 控制结构；Parser 议题 32 统一为 `TopLevelRegion` 实例并同步固定控制头括号；Parser 议题 36 补全顶层声明集合；Parser 议题 39 为 module 顶层绑定增加访问修饰前缀
 > 确认日期：2026-08-03
 
 ## 1. 源文件骨架
@@ -16,12 +16,19 @@ top_level_item =
   | comptime_top_level_item ;
 
 top_level_declaration =
-      binding_declaration
+      top_level_binding_declaration
     | function_declaration
     | decorator_declaration
     | class_declaration
     | interface_declaration
     | enum_declaration ;
+
+top_level_binding_declaration =
+    top_level_binding_modifier_sequence,
+    binding_declaration ;
+
+top_level_binding_modifier_sequence =
+    { access_modifier } ;
 
 end_of_file = ? EndOfFile Token ? ;
 ```
@@ -37,6 +44,16 @@ Module 议题 01 规定 package/module 身份由包清单、源码根和文件�
 - 普通静态导入；
 - 函数、类、接口、枚举、全局绑定和装饰器声明；
 - 在声明区域执行的 `comptime` block、条件、匹配和循环结构。
+
+module 顶层绑定可以在 `var` 或 `const` 前写访问修饰符：
+
+```ink
+public const api_version = 1;
+private var cache: Cache;
+const default_visibility = 0;
+```
+
+省略访问修饰符仍符合语法；其默认可见性由 module 名称绑定规则决定，不由 Parser 补成某个 Token。`access_modifier` 复用议题 31 的统一产生式。该产生式也包含 `protected`，Parser 会无损保留它以及重复或冲突的修饰符；`protected` 不适用于 module 顶层、重复修饰符和冲突组合均由后续语义检查拒绝。局部绑定不使用 `top_level_binding_declaration`，因此不能写访问前缀。
 
 顶层不允许普通运行时表达式或语句，也不允许单独的 `;` 充当空顶层声明。某种声明自身是否以 `;` 结束由该声明的 EBNF 决定。
 
@@ -81,13 +98,13 @@ top_level_block = "{", { top_level_item }, "}" ;
 
 `if_condition`、`match_arm_pattern`、`for_binding_mode`、`for_pattern`、`for_source` 和 `while_condition` 复用普通语句结构已经确认的非终结符。声明区 `comptime for` 因而同样必须显式写 `var` 或 `const`，且只接受一个名称或 `_`；声明区不会恢复无绑定关键字或逗号多绑定形式。
 
-这些结构不是运行时语句。它们在编译期决定哪些导入和普通声明进入后续模块，或者重复生成结构化声明。`comptime match` 的每个 arm body 必须是 `top_level_block`，arm 之间不写逗号。
+这些结构不是运行时语句。它们在编译期决定哪些导入和普通声明进入后续模块，或者重复展开源码中静态写出的普通声明。`comptime match` 的每个 arm body 必须是 `top_level_block`，arm 之间不写逗号。
 
 `comptime` 修饰完整条件链；后续分支写作普通 `else if`，由递归的 `top_level_if_tail` 表达，不重复 `comptime`。`comptime while` 是否终止、循环展开次数和生成声明数量都属于语义与资源预算，不改变 Parser 产生式。
 
 Parser 在进入 `parse_top_level_item` 时已经知道当前处于顶层声明区。消费 `comptime` 后，只需按下一个显著 Token `{`、`if`、`match`、`for` 或 `while` 确定分支；它不会先建立 `StatementBlock`，再根据内部内容改判为声明块。
 
-普通 `comptime expression` 仍是表达式结构，不会因此成为顶层声明。`comptime generate();` 之类的表达式语句在 module 或类型成员 declaration context 中非法；需要生成声明时使用本节结构或对应的结构化 declaration form。
+普通 `comptime expression` 仍是表达式结构，不会因此成为顶层声明。`comptime generate();` 之类的表达式语句在 module 或类型成员 declaration context 中非法；需要条件选择或重复声明时，必须把符合当前区域 EBNF 的普通声明直接写在本节控制结构的 body 中。Ink v0 不提供 `field(...)`、动态声明名称或其他声明构造表达式。
 
 ## 4. 条件导入示例
 
@@ -166,7 +183,7 @@ import comptime make_module_path();
 comptime generate_import("platform.windows");
 ```
 
-编译期代码不能通过字符串、反射、文件、网络或结构化声明构造器产生源码中不存在的导入位置或 package/module 目标。它只能保留或删除 Parser 已经看到的静态候选导入。
+编译期代码不能通过字符串、反射、文件、网络或其他机制产生源码中不存在的导入位置或 package/module 目标。它只能保留或删除 Parser 已经看到的静态候选导入。
 
 ## 8. 导入控制表达式的可用依赖
 
@@ -205,4 +222,4 @@ comptime if (platform.windows.is_available()) {
 
 ## 11. 确认结论
 
-Ink 源文件是顶层项序列，不含 package/module 声明头，也不要求导入集中在文件开头。顶层声明区实例化 Parser 议题 32 的统一区域控制，支持 `comptime {}`、`comptime if`、`comptime match`、`comptime for` 和 `comptime while`；每个 body 都是 `top_level_block`，不是 `statement_block`。它们可以控制普通声明和静态写出的导入。编译器在执行前收集有限候选导入集合，执行控制结构后只加载激活模块；编译期代码不能计算 module 导入路径或生成新的导入位置，因此模块发现不需要加入声明生成固定点循环。
+Ink 源文件是顶层项序列，不含 package/module 声明头，也不要求导入集中在文件开头。顶层声明区实例化 Parser 议题 32 的统一区域控制，支持 `comptime {}`、`comptime if`、`comptime match`、`comptime for` 和 `comptime while`；每个 body 都是 `top_level_block`，不是 `statement_block`。它们可以控制普通声明和静态写出的导入。编译器在执行前收集有限候选导入集合，执行控制结构后只加载激活模块；编译期代码不能计算 module 导入路径或产生新的导入位置，因此模块发现不需要加入声明展开固定点循环。

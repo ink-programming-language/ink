@@ -58,7 +58,7 @@ parse source files needed for import selection
 → topologically process active modules
 ```
 
-由于编译期结构化声明生成不能创建新的 import，实际依赖图通过该检查后不会在后续 Staged InkIR 声明固定点中增加未知边。
+由于编译期声明区域控制不能创建新的 import，实际依赖图通过该检查后不会在后续 Staged InkIR 声明固定点中增加未知边。
 
 ## 5. 生命周期顺序
 

@@ -61,7 +61,7 @@ if (ready) {
 if (ready) run();
 ```
 
-`statement_block` 是无值的普通语句块，不会因为出现在 `if` 后面而变成 block expression。议题 21 的有值 `if_expression` 使用 `if (...) then ... else ...`，不使用花括号分支。
+`statement_block` 是无值的普通语句块，不会因为出现在 `if` 后面而变成 block expression。议题 21 的有值 `if_expression` 使用 `if (...) ... else ...`，不使用花括号分支。
 
 ## 4. `else` 与 `else if`
 

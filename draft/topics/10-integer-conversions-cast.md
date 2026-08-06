@@ -156,7 +156,7 @@ cast<u8>(flag);    // 编译错误
 
 ```ink
 const flag = value != 0;
-const numeric: u8 = if (flag) then 1 else 0;
+const numeric: u8 = if (flag) 1 else 0;
 ```
 
 ## 9. 其他转换类别

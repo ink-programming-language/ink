@@ -131,7 +131,7 @@ make_container().items[next_index()].read()
 `if` 表达式先计算条件，然后只计算被选择的一个分支：
 
 ```ink
-const value = if (condition()) then when_true() else when_false();
+const value = if (condition()) when_true() else when_false();
 ```
 
 `condition()` 为 `true` 时只执行 `when_true()`；为 `false` 时只执行 `when_false()`。未选择的分支不产生任何运行时或编译期效果。
@@ -173,7 +173,7 @@ comptime compile_time_call(first(), second());
 runtime_call(first(), second());
 ```
 
-`comptime` 不能把实参顺序、短路行为或未选择分支改成另一套语义。编译期允许的文件读取、反射、声明生成等效果同样按照源码顺序发生。
+`comptime` 不能把实参顺序、短路行为或未选择分支改成另一套语义。编译期允许的文件读取、反射、声明展开等效果同样按照源码顺序发生。
 
 ## 11. 优化器边界
 
