@@ -1,6 +1,6 @@
 # 议题 39：无异常过滤器与单类型捕获
 
-> 状态：已确认，议题 40—43 补充  
+> 状态：已确认，议题 40—43 与 Parser 议题 28 补充
 > 确认日期：2026-08-02
 
 ## 1. 一个处理器只有一个匹配目标
@@ -12,10 +12,12 @@ try {
     request();
 } catch NetworkTimeout as error {
     handle_timeout(error);
-} catch NetworkFailure as error {
-    handle_network_failure(error);
+} catch NetworkFailure {
+    mark_network_failure();
 }
 ```
+
+Parser 议题 28 允许类型化处理器选择是否写出 `as name`，但省略绑定不会改变“一个处理器只有一个匹配类型”的规则。
 
 议题 37 的两种 catch-all 是另外两个完整形式：
 
@@ -94,9 +96,9 @@ try {
 `catch` 头部不能包含布尔条件、模式守卫或用户谓词：
 
 ```ink
-catch HttpError as error if error.status == 404 // 非法
+catch HttpError as error if (error.status == 404) // 非法
 catch IoError as error when error.retryable()   // 非法
-catch as error if should_handle(error)           // 非法
+catch as error if (should_handle(error))           // 非法
 ```
 
 处理器匹配只读取异常描述符中的类型、父类和异常接口关系，不执行任意用户代码。
@@ -109,7 +111,7 @@ catch as error if should_handle(error)           // 非法
 try {
     request();
 } catch HttpError as error {
-    if error.status == 404 {
+    if (error.status == 404) {
         use_default_page();
     } else {
         report_http_error(error);
@@ -127,7 +129,7 @@ try {
 try {
     request();
 } catch HttpError as error {
-    if !error.retryable() {
+    if (!error.retryable()) {
         throw;
     }
 
@@ -146,7 +148,7 @@ try {
     try {
         request();
     } catch HttpError as error {
-        if error.retryable() {
+        if (error.retryable()) {
             retry();
         } else {
             throw;

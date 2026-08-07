@@ -8,17 +8,17 @@
 Ink 使用编译器内建的 `try_cast<T>(value)` 表达可能失败的安全运行时类型转换：
 
 ```ink
-if let .some(player) = try_cast<Player&>(entity) {
+if (match .some(player) = try_cast<Player&>(entity)) {
     player.use_item();
 }
 
-let player_pointer: Player* = try_cast<Player*>(entity_pointer);
-if player_pointer != null {
+const player_pointer: Player* = try_cast<Player*>(entity_pointer);
+if (player_pointer != null) {
     player_pointer->use_item();
 }
 ```
 
-`try_cast` 不能被遮蔽或重载，不调用用户定义的 `constructor`，不复制对象，也不改变对象的所有权和生命周期。
+`try_cast` 不能被遮蔽或重载，不调用用户定义的构造函数，不复制对象，也不改变对象的所有权和生命周期。
 
 目标类型只能是本议题允许的类引用、类裸指针或接口引用，不能是按值类类型。安全转换不会产生按值切片。
 
@@ -48,7 +48,7 @@ try_cast<T*>(source_pointer) -> T*
 `try_cast` 不能去掉源观察路径的 `const`：
 
 ```ink
-let entity: const Entity& = value;
+const entity: const Entity& = value;
 
 try_cast<Player&>(entity);       // 编译错误：去掉 const
 try_cast<const Player&>(entity); // 合法
@@ -79,11 +79,13 @@ class Entity {
 }
 
 class Player : Entity {
-    override func update();
+    override func update() {
+        // ...
+    }
 }
 
 func inspect(entity: Entity&) {
-    if let .some(player) = try_cast<Player&>(entity) {
+    if (match .some(player) = try_cast<Player&>(entity)) {
         // entity 的动态具体类是 Player 或 Player 的派生类
     }
 }
@@ -109,9 +111,9 @@ Ink 不为支持这种转换而给所有普通类增加隐藏类型指针或建�
 接口引用的接口表与创建该视图的具体实现类型描述符关联，因此即使实现类本身没有虚函数，也可以安全转换回兼容具体类：
 
 ```ink
-let renderable: Renderable& = sprite;
+const renderable: Renderable& = sprite;
 
-if let .some(sprite_ref) = try_cast<Sprite&>(renderable) {
+if (match .some(sprite_ref) = try_cast<Sprite&>(renderable)) {
     sprite_ref.set_frame(4);
 }
 ```
@@ -124,12 +126,12 @@ if let .some(sprite_ref) = try_cast<Sprite&>(renderable) {
 
 ```ink
 func inspect(reader: Reader&) {
-    if let .some(seekable) =
-        try_cast<SeekableReader&>(reader) {
+    if (match .some(seekable) =
+        try_cast<SeekableReader&>(reader)) {
         seekable.seek(0);
     }
 
-    if let .some(closable) = try_cast<Closable&>(reader) {
+    if (match .some(closable) = try_cast<Closable&>(reader)) {
         closable.close();
     }
 }
@@ -154,8 +156,8 @@ source { object, source_table }
 
 ```ink
 func inspect(entity: Entity&) {
-    if let .some(serializable) =
-        try_cast<Serializable&>(entity) {
+    if (match .some(serializable) =
+        try_cast<Serializable&>(entity)) {
         serializable.serialize();
     }
 }
@@ -221,8 +223,8 @@ class InternalNode : Node, Visitable {
 `try_cast` 检查类型关系并在失败时返回空结果；`ptrcast` 只重解释裸指针地址位，不检查实际对象类型。
 
 ```ink
-let checked: Derived* = try_cast<Derived*>(base_pointer);
-let unchecked: Derived* = ptrcast<Derived*>(base_pointer);
+const checked: Derived* = try_cast<Derived*>(base_pointer);
+const unchecked: Derived* = ptrcast<Derived*>(base_pointer);
 ```
 
 第二种转换本身不验证 `base_pointer` 是否实际指向 `Derived`，也不计算通用的派生子对象地址。结果不满足目标对象访问前置条件时，后续访问可能产生 UB。
@@ -259,7 +261,7 @@ let unchecked: Derived* = ptrcast<Derived*>(base_pointer);
 以下内容留给后续议题：
 
 - 标准库 `Optional<T>` 的完整便捷 API；议题 34 已确定不提供后缀 `?` 传播；
-- `final` 类或最终方法对转换静态证明的影响；
+- 基于最终类和最终虚槽进行更强去虚拟化或转换静态证明的优化边界；
 - 跨动态库的最小描述符 ABI 和缓存失效协议；
 - 最小描述符与调试信息、异常类型信息是否共享存储；
 - 拥有型动态对象和拥有型接口容器的转换 API。

@@ -1,6 +1,6 @@
 # 议题 25：虚函数与动态反射调用
 
-> 状态：已确认，议题 26、28、34、55、57、58、60、65 补充  
+> 状态：已确认，2026-08-05 确认函数级 `final`；议题 26、28、34、55、57、58、60、65 与 Parser 议题 31 补充
 > 确认日期：2026-08-02
 
 ## 1. 虚函数可以标记 `[reflect]`
@@ -37,9 +37,9 @@ class Player : Entity {
 2. 调用适配器验证接收对象和参数后，按照接收对象的动态类型执行普通虚派发。
 
 ```ink
-if let .some(type) = reflection.find_type("game.Entity") {
-    if let .some(function) = type.function("update") {
-        let entity: Entity& = player;
+if (match .some(type) = reflection.find_type("game.Entity")) {
+    if (match .some(function) = type.function("update")) {
+        const entity: Entity& = player;
         function.call[void](&entity, 0.016f32);
     }
 }
@@ -191,10 +191,36 @@ class Player : Entity {
 
 反射查找决定描述符与元数据来源，创建期虚派发决定最终覆盖。任务构造完成后不再保留反射参数数组，也不在第一次 `await` 时重新查找描述符或读取 vtable。
 
-## 13. 后续问题
+## 13. `final` 虚函数
+
+`final` 函数修饰符封闭一个已经建立或正在建立的虚函数槽：
+
+```ink
+class Base {
+    virtual func update() {
+        // ...
+    }
+}
+
+class Derived : Base {
+    override final func update() {
+        // ...
+    }
+}
+```
+
+派生类不能再次覆盖 `Derived.update`。`final` 不属于函数签名，不参与重载区分，也不改变参数、结果、尾随 `const` 或 `[nothrow]` 契约；它只限制后续继承层级能够提供的覆盖。
+
+`final` 必须修饰一个虚函数槽，可以写成 `virtual final func` 或 `override final func`。普通非虚函数、`static func`、接口方法、构造函数和析构函数使用 `final` 均为语义错误。Ink 的析构函数不使用 `virtual`，动态销毁继续由议题 27 的编译器生成入口处理。
+
+Parser 议题 31 把 `final` 与其他函数修饰符按源码顺序保存，不负责确认目标是否为虚函数，也不查询父类槽。重复修饰符和冲突组合由语义分析诊断；格式化器的规范顺序为 `virtual final func` 或 `override final func`。
+
+`final class` 中的虚函数天然不能被更深派生类覆盖，显式再写函数级 `final` 合法但冗余。编译器可以利用最终类或最终槽去虚拟化，但仍须遵守热更新稳定入口和反射调用契约。
+
+## 14. 后续问题
 
 以下内容留给后续议题：
 
-- `virtual`、`override`、`final` 的全部语法和合法性规则；
+- `virtual` 与 `override` 的其余覆盖兼容性规则；
 - 同步虚函数的协变返回和其他覆盖兼容规则；
-- 虚析构和动态所有权销毁；
+- 拥有型动态对象容器的具体 API；

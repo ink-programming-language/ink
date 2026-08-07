@@ -17,6 +17,16 @@ var task = load();
 // 此处尚未打印 start
 ```
 
+异步函数声明省略 `-> type` 时逻辑结果固定为 `void`，调用产生 `Task<void>`，同样不根据函数体推导结果：
+
+```ink
+async func notify() {
+    return;
+}
+
+var task: Task<void> = notify();
+```
+
 异步函数体不会仅因为调用表达式完成而执行，也不会自动提交给线程池、事件循环或其他调度设施。
 
 议题 58 的普通异步装饰器属于该函数体。构造装饰后任务不会立即运行装饰器前置或后置代码；它们与原始函数体一起等到任务第一次被驱动。
@@ -59,7 +69,7 @@ created
 ```ink
 var task = load();
 
-let value = await task; // 第一次 await 开始执行 load
+const value = await task; // 第一次 await 开始执行 load
 ```
 
 概念行为为：
@@ -88,7 +98,7 @@ task.start(); // 编译错误：Task 没有公开 start 操作
 需要让多个惰性任务并发前进时，使用议题 45、46 的组合等待：
 
 ```ink
-let first, second = await all(load_a(), load_b());
+const first, second = await all(load_a(), load_b());
 ```
 
 需要在首个失败后请求取消其他未完成任务时，显式使用 `all_cancel_on_error(...)`。
@@ -225,8 +235,8 @@ create task under module version V1
 连续直接等待两个新任务时，第一项完成后才会创建并驱动第二项：
 
 ```ink
-let first = await load_a();
-let second = await load_b();
+const first = await load_a();
+const second = await load_b();
 ```
 
 即使先创建两个任务，直接等待仍然按照控制流顺序驱动：
@@ -235,8 +245,8 @@ let second = await load_b();
 var first_task = load_a();
 var second_task = load_b();
 
-let first = await first_task;
-let second = await second_task;
+const first = await first_task;
+const second = await second_task;
 ```
 
 第二个任务在执行到第二个 `await` 前仍处于 `created`。编译器不得根据未来的等待、最后一次使用、优化级别或目标平台擅自提前驱动它。

@@ -9,7 +9,7 @@
 | 01 | 源码编码与字符流 | 已确认，严格 UTF-8、确定换行与原始字节跨度 | [`01-source-encoding-and-character-stream.md`](./01-source-encoding-and-character-stream.md) |
 | 02 | 空白、注释与 Full-Fidelity Token 流 | 已确认，Trivia 也是 Token，单一列表可逐字节恢复源码 | [`02-comments-whitespace-and-full-fidelity-tokens.md`](./02-comments-whitespace-and-full-fidelity-tokens.md) |
 | 03 | Unicode 标识符与规范化 | 已确认，使用 XID、强制 NFC、排除不可见格式字符 | [`03-identifiers-unicode-and-normalization.md`](./03-identifiers-unicode-and-normalization.md) |
-| 04 | 硬关键字与内建类型 Token | 已确认，无上下文关键字，保留词与内建类型使用确定分类 | [`04-keywords-and-builtin-type-tokens.md`](./04-keywords-and-builtin-type-tokens.md) |
+| 04 | 硬关键字、上下文 `from` 与内建类型 Token | 已确认，`from` 是唯一上下文词；`operator` 为普通 Identifier；访问修饰符、`static` 与 `final` 均为硬关键字 | [`04-keywords-and-builtin-type-tokens.md`](./04-keywords-and-builtin-type-tokens.md) |
 | 05 | 数字字面量 | 已确认，四种整数进制、十进制浮点、严格分组下划线与类型后缀 | [`05-numeric-literals.md`](./05-numeric-literals.md) |
 | 06 | Unicode 标量字面量 | 已确认，单引号准确表示一个 Unicode scalar，支持固定转义 | [`06-unicode-scalar-literals.md`](./06-unicode-scalar-literals.md) |
 | 07 | 普通字符串字面量 | 已确认，双引号单行字符串、统一 Unicode 转义、无插值 | [`07-string-literals.md`](./07-string-literals.md) |

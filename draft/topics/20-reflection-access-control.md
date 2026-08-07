@@ -17,7 +17,7 @@ Ink 编译期反射可以查看全部声明的结构信息，包括私有类型�
 
 ```ink
 comptime {
-    let field = reflect(Account).field("balance");
+    const field = reflect(Account).field("balance");
 
     print(field.name);       // 允许：查看结构信息
     print(field.visibility); // 允许：得知它是 private
@@ -38,7 +38,7 @@ comptime {
 ```ink
 // account.ink，Account 的定义模块
 func serialize_internal(value: const Account&) {
-    comptime for field in reflect(Account).fields {
+    comptime for (const field in reflect(Account).fields) {
         serialize(field.get(value)); // 允许访问本模块私有字段
     }
 }
@@ -52,8 +52,8 @@ func serialize_internal(value: const Account&) {
 
 ```ink
 // external_serializer.ink
-func serialize_all[T](value: const T&) {
-    comptime for field in reflect(T).fields {
+func serialize_all<T: type>(value: const T&) {
+    comptime for (const field in reflect(T).fields) {
         serialize(field.get(value));
     }
 }
@@ -63,7 +63,7 @@ func serialize_all[T](value: const T&) {
 
 装饰器生成的代码默认继承装饰器定义模块的权限，而不是被装饰目标模块的权限。否则外部装饰器可以通过附着到目标声明来提升权限。未来如需由目标类型显式授权装饰器，必须设计独立的能力授予机制。
 
-议题 61 的编译期类型和声明构造遵循相同规则。生成声明不能通过把输出位置选在另一个模块而取得该模块的私有访问权限；权限由执行生成逻辑的词法定义模块决定，生成结果还必须通过正常的访问检查。
+议题 61、67 的编译期 class 类型表达式和静态声明展开遵循相同规则。被选择或重复展开的声明不能通过输出位置取得另一个模块的私有访问权限；权限由源码声明所在的词法定义模块决定，最终结果还必须通过正常的访问检查。
 
 议题 66 的开放泛型声明句柄也不携带可转授的私有访问能力。外部高阶泛型接收句柄后仍按自身词法权限操作；完整反射能够看到私有泛型声明的参数结构，不代表可以实例化、调用或把它公开转发。
 
@@ -75,7 +75,7 @@ func serialize_all[T](value: const T&) {
 [reflect]
 class Player {
     [reflect(DisplayName("Health"))]
-    private health: i32;
+    private var health: i32;
 
     [reflect]
     private func reset_health() {
@@ -116,7 +116,7 @@ class Player {
 ```ink
 [reflect]
 class Account {
-    private balance: i64;
+    private var balance: i64;
 
     [reflect]
     func get_balance() -> i64 {
@@ -125,7 +125,7 @@ class Account {
 
     [reflect]
     func set_balance(value: i64) -> bool {
-        if value < 0 {
+        if (value < 0) {
             return false;
         }
 

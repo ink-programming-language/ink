@@ -1,6 +1,6 @@
 # Parser 议题 08：分号与语句结束
 
-> 状态：已确认，议题 18 补充表达式语句结果丢弃语义  
+> 状态：已确认，议题 18、24—28 补充表达式、控制流、清理与异常语句边界
 > 确认日期：2026-08-03
 
 ## 1. 显式分号
@@ -13,6 +13,11 @@ Ink 不提供自动分号插入。所有由对应语法定义为简单语句的�
 expression_statement =
     expression, ";" ;
 
+defer_statement =
+    "defer",
+    ( expression, ";"
+    | statement_block ) ;
+
 return_statement =
     "return", [ expression ], ";" ;
 
@@ -23,17 +28,22 @@ continue_statement =
     "continue", ";" ;
 
 throw_statement =
-    "throw", expression, ";" ;
+    "throw",
+    ( ";"
+    | expression, [ throw_cause_clause ], ";" ) ;
+
+throw_cause_clause =
+    contextual_from, identifier ;
 ```
 
-这些产生式确认分号规则；议题 18 进一步规定表达式语句允许丢弃非 `void` 结果，并以分号作为未消费临时结果的销毁边界。`return`、`break`、`continue` 和 `throw` 的完整上下文限制由各自语句议题定义。
+这些产生式确认分号规则；议题 18 进一步规定表达式语句允许丢弃非 `void` 结果，并以分号作为未消费临时结果的销毁边界。议题 25 确认 `break;` 与 `continue;` 不接受值或标签，并只作用于最内层普通循环。议题 26 确认 `return` 的可选结果表达式，以及表达式和 block 两种 `defer`。议题 27 确认新异常、显式原因和 `throw;` 重新抛出都由真实分号结束；其中 `contextual_from` 是准确拼写为 `from` 的 Identifier Token。
 
 ## 2. 换行没有终止作用
 
 换行是 Trivia，不参与普通语句结束判断：
 
 ```ink
-let result =
+const result =
     first_value
     + second_value;
 ```
@@ -43,7 +53,7 @@ Parser 只在读到语法要求的 `Symbol(';')` 时结束该简单语句。换�
 因此：
 
 ```ink
-let value = calculate()
+const value = calculate()
 process(value)
 ```
 
@@ -57,17 +67,18 @@ process(value)
 - 局部或 module 级简单绑定声明；
 - 表达式语句；
 - `return`、`break`、`continue`、`throw` 等跳转语句；
+- 表达式式 `defer expression;` 延迟清理语句；
 - 以后定义为简单语句的其他结构。
 
 初始化表达式最后一个字符是 `}` 时，也不会替代外层声明分号：
 
 ```ink
-let value = construct {
+const value = Value {
     field: 10
 };
 ```
 
-具体 `construct` 或聚合初始化语法由后续议题定义；此例只说明外层绑定仍由 `;` 终止。
+聚合初始化使用已经确认的显式 `type { field: expression }` 形状；此例只说明外层绑定仍由 `;` 终止。
 
 ## 4. 不使用结尾分号的结构
 
@@ -80,6 +91,24 @@ func calculate() -> i32 {
 ```
 
 函数、类、接口、枚举、条件、循环以及其他带完整花括号体的结构是否属于此类，由对应 EBNF 明确写出；不能仅凭视觉上出现 `}` 猜测。
+
+议题 24 的 `match_statement` 由自己的 `}` 结束，不写分号；`match_expression` 自身不包含外层分号，由包含它的绑定声明或表达式语句提供：
+
+```ink
+match (state) {
+    .ready => run();
+    _ => wait();
+}
+
+const code = match (state) {
+    .ready => 1,
+    _ => 0,
+};
+```
+
+议题 26 的 `defer { ... }` 同样由自身 `statement_block` 的 `}` 结束，后面不写分号；`defer expression;` 则继续要求分号。
+
+议题 28 的 `try_statement` 由最后一个 `catch` 的 `statement_block` 结束，整个结构后不写分号。`try` body 和每个处理器 body 的结束 `}` 只结束各自 block；至少一个紧随其后的 `catch` 是 `try_statement` 自身的必需部分。
 
 没有源码体的函数、接口方法、`extern` 声明或其他特殊声明是否以 `;` 结束，由其具体产生式规定。它们不依赖自动分号规则。
 
@@ -97,7 +126,7 @@ func calculate() -> i32 {
 因此带花括号体的结构后多写一个分号也非法：
 
 ```ink
-if condition {
+if (condition) {
     run();
 };
 ```
@@ -125,4 +154,4 @@ ReturnStatement
 
 ## 8. 确认结论
 
-Ink 只使用显式 `;` 终止简单语句和简单声明，不提供自动分号插入，换行始终只是 Trivia。花括号体是否自终止由对应产生式决定；单独分号不形成空语句，多余或缺失分号都由普通 CST 错误恢复处理。
+Ink 只使用显式 `;` 终止简单语句和简单声明，不提供自动分号插入，换行始终只是 Trivia。`return`、表达式式 `defer`、`break`、`continue` 以及三种 `throw` 形态保留自己的结尾分号；block 式 `defer` 和完整 `try_statement` 由最终 `}` 自行结束。其他花括号体是否自终止也由对应产生式决定；`match_statement` 自行结束，`match_expression` 由外层消费者提供分号。单独分号不形成空语句，多余或缺失分号都由普通 CST 错误恢复处理。

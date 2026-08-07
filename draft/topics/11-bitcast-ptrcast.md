@@ -13,7 +13,7 @@ bitcast<u32>(float_value) // 位模式重解释
 ptrcast<Header*>(pointer) // 裸指针转换
 ```
 
-三者均为不能被遮蔽或重载的编译器内建语法。它们不调用用户定义的 `constructor`。
+三者均为不能被遮蔽或重载的编译器内建语法。它们不调用用户定义的构造函数。
 
 ## 2. `bitcast<T>(value)`
 
@@ -28,8 +28,8 @@ Ink v0 的 `bitcast` 只支持：
 源类型与目标类型必须具有完全相同的位宽：
 
 ```ink
-let bits: u32 = bitcast<u32>(1.0f32);
-let value: f32 = bitcast<f32>(bits);
+const bits: u32 = bitcast<u32>(1.0f32);
+const value: f32 = bitcast<f32>(bits);
 ```
 
 以下操作不合法：
@@ -52,9 +52,9 @@ bitcast<bool>(1u8);   // 编译错误：bool 不参与 bitcast
 - `ptrsize` 转换为对象裸指针。
 
 ```ink
-let bytes = ptrcast<byte*>(object_pointer);
-let address = ptrcast<ptrsize>(object_pointer);
-let restored = ptrcast<Object*>(address);
+const bytes = ptrcast<byte*>(object_pointer);
+const address = ptrcast<ptrsize>(object_pointer);
+const restored = ptrcast<Object*>(address);
 ```
 
 引用和安全切片不能直接作为 `ptrcast` 的输入或目标。函数指针、非默认地址空间指针和成员指针留给各自议题决定。
@@ -74,8 +74,8 @@ let restored = ptrcast<Object*>(address);
 转换本身合法。通过结果指针访问内存时，仍必须满足议题 01 和议题 04 的地址、范围、对齐、对象表示、生命周期与并发前置条件。
 
 ```ink
-let header = ptrcast<Header*>(bytes);
-let value = header->kind; // 只有地址、对齐、生命周期和对象表示均有效时才合法
+const header = ptrcast<Header*>(bytes);
+const value = header->kind; // 只有地址、对齐、生命周期和对象表示均有效时才合法
 ```
 
 ## 5. 指针与 `ptrsize`
@@ -85,8 +85,8 @@ let value = header->kind; // 只有地址、对齐、生命周期和对象表示
 将该 `ptrsize` 值未经改变地转换回兼容的对象裸指针类型时，必须恢复相同地址，包括 `null`。
 
 ```ink
-let address = ptrcast<ptrsize>(pointer);
-let restored = ptrcast<byte*>(address);
+const address = ptrcast<ptrsize>(pointer);
+const restored = ptrcast<byte*>(address);
 ```
 
 对地址整数进行算术以后仍允许转换成裸指针，但语言不保证所得地址指向有效对象。持有和比较该指针合法；不满足原始内存访问前置条件的解引用可能产生 UB。
@@ -96,8 +96,8 @@ let restored = ptrcast<byte*>(address);
 `ptrcast` 允许增加或去掉裸指针目标类型的 `const` 限定：
 
 ```ink
-let read_only: const Data* = pointer;
-let writable: Data* = ptrcast<Data*>(read_only);
+const read_only: const Data* = pointer;
+const writable: Data* = ptrcast<Data*>(read_only);
 ```
 
 去掉 `const` 的转换本身合法且不产生 warning。`const` 限制当前类型所允许的直接访问，不保证底层存储事实上可写。
@@ -106,15 +106,15 @@ let writable: Data* = ptrcast<Data*>(read_only);
 
 ```ink
 var data = Data {};
-let view: const Data* = &data;
-let writable = ptrcast<Data*>(view);
+const view: const Data* = &data;
+const writable = ptrcast<Data*>(view);
 writable->field = 1; // 合法：底层对象可写
 ```
 
 如果底层对象或存储本身不可写，去掉 `const` 后进行写入违反内存访问前置条件，并可能产生 UB：
 
 ```ink
-let writable = ptrcast<Data*>(actually_read_only_storage);
+const writable = ptrcast<Data*>(actually_read_only_storage);
 writable->field = 1; // UB：转换合法，但写入不可写存储
 ```
 
@@ -127,8 +127,8 @@ writable->field = 1; // UB：转换合法，但写入不可写存储
 从 `T*` 到 `const T*` 的转换可以隐式发生，因为它只减少当前访问路径的写权限：
 
 ```ink
-let writable: Data* = pointer;
-let read_only: const Data* = writable;
+const writable: Data* = pointer;
+const read_only: const Data* = writable;
 ```
 
 从 `const T*` 到 `T*` 不隐式发生，必须显式使用 `ptrcast<T*>`。

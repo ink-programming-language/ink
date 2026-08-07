@@ -1,49 +1,49 @@
 # 议题 61：`comptime` 泛型、部分求值与编译期执行
 
-> 状态：已确认，议题 62—72 补充泛型、结构化生成、重载、元组元值与统一函数阶段  
+> 状态：已确认，议题 62—72 补充泛型、声明区域控制、重载、元组元值与统一函数阶段；Parser 议题 31、32 确认泛型函数声明语法与统一区域控制；议题 67 明确 v0 不提供动态声明构造器
 > 确认日期：2026-08-02
 
 ## 1. 统一模型
 
-Ink 不建立独立于普通语言的模板元编程系统。普通 Ink 代码原则上都可以由编译器解释执行；`comptime` 表示某个参数、表达式或代码块必须在编译期求值。
+Ink 不建立独立于普通语言的模板元编程系统。普通 Ink 代码原则上都可以由编译器解释执行；`comptime` 直接修饰表达式、代码块或结构化控制流，要求相应部分在编译期求值或选择。
 
 泛型是接收编译期参数的普通声明：
 
 ```ink
-func duplicate<T: comptime type>(value: const T&) -> (T, T) {
+func duplicate<T: type>(value: const T&) -> (T, T) {
     return (value, value);
 }
 
 class Array<
-    T: comptime type,
-    N: comptime ptrsize,
+    T: type,
+    N: ptrsize
 > {
-    values: T[N];
+    var values: T[N];
 }
 ```
 
-这里的 `T` 是值为某个具体类型的编译期参数，`N` 是值为某个 `ptrsize` 常量的编译期参数。闭合声明由编译器在实例化位置进行部分求值，最终产生不含开放参数的运行时 InkIR。
+泛型尖括号天然形成编译期参数域。这里的 `T` 是值为某个具体类型的编译期参数，`N` 是值为某个 `ptrsize` 常量的编译期参数；形参类型前不再重复书写 `comptime`。闭合声明由编译器在实例化位置进行部分求值，最终产生不含开放参数的运行时 InkIR。
 
 ## 2. `comptime` 不构成新的类型
 
-`comptime` 是求值阶段要求，不是类型构造器，也不参与类型身份或重载身份：
+`comptime` 是表达式与控制结构的求值阶段要求，不是类型构造器、参数限定符，也不参与类型身份或重载身份：
 
 ```text
-comptime i32 is still i32
-comptime type is still type
+type_of(comptime i32_expression) == i32
+type_of(comptime type_expression) == type
 ```
 
-因此不能仅靠参数是否标有 `comptime` 建立重载。两个除此之外签名完全相同的声明属于重定义：
+因此不能靠是否在调用处使用 `comptime` 建立另一套重载。两个泛型形参和普通函数签名完全相同的声明属于重定义：
 
 ```ink
-func encode<T: comptime type>(value: const T&) {
-    if comptime is_integer(T) {
+func encode<T: type>(value: const T&) {
+    comptime if (is_integer(T)) {
         // 整数实现
     }
 }
 
-func encode<T: comptime type>(value: const T&) { // 编译错误：重定义
-    if comptime is_record(T) {
+func encode<T: type>(value: const T&) { // 编译错误：重定义
+    comptime if (is_record(T)) {
         // 记录实现
     }
 }
@@ -52,10 +52,10 @@ func encode<T: comptime type>(value: const T&) { // 编译错误：重定义
 需要按编译期条件选择实现时，使用一个泛型声明：
 
 ```ink
-func encode<T: comptime type>(value: const T&) {
-    if comptime is_integer(T) {
+func encode<T: type>(value: const T&) {
+    comptime if (is_integer(T)) {
         // 整数实现
-    } else if comptime is_record(T) {
+    } else if (is_record(T)) {
         // 记录实现
     } else {
         compile_error("unsupported encode type");
@@ -72,7 +72,7 @@ func encode<T: comptime type>(value: const T&) {
 Ink 泛型不要求 `where T: Printable` 一类声明式约束。泛型体可以直接使用依赖于编译期参数的操作，并在具体实例化时完成检查：
 
 ```ink
-func print<T: comptime type>(value: const T&) {
+func print<T: type>(value: const T&) {
     value.print();
 }
 ```
@@ -80,8 +80,8 @@ func print<T: comptime type>(value: const T&) {
 如果 `T` 没有兼容的 `print()`，对应实例产生编译错误。需要定制诊断时，可以使用完整编译期反射和 `compile_error`：
 
 ```ink
-func print<T: comptime type>(value: const T&) {
-    if comptime !reflect(T).has_method("print") {
+func print<T: type>(value: const T&) {
+    comptime if (!reflect(T).has_method("print")) {
         compile_error("T must provide print()");
     }
 
@@ -96,7 +96,7 @@ func print<T: comptime type>(value: const T&) {
 泛型实例化不再是编译后段的独立模板展开或单态化阶段，而是 Staged InkIR 展开循环中的 Partial Evaluation：
 
 ```ink
-func add_offset<N: comptime i32>(value: i32) -> i32 {
+func add_offset<N: i32>(value: i32) -> i32 {
     return value + N;
 }
 ```
@@ -122,7 +122,7 @@ func add_offset$10(value: i32) -> i32 {
 }
 ```
 
-类型参数遵循同一模型。`T: comptime type` 是已知的类型值；类型布局、成员解析、反射和 `if comptime` 可以依据它执行，尚未取得的普通函数参数和运行时状态继续残留为闭合 InkIR。
+类型参数遵循同一模型。generic parameter list 中的 `T: type` 是已知的类型值；类型布局、成员解析、反射和 `comptime if` 可以依据它执行，尚未取得的普通函数参数和运行时状态继续残留为闭合 InkIR。
 
 ## 5. 完整求值与残留化
 
@@ -133,13 +133,17 @@ Known(value)       编译期已知
 Runtime(ir_value)  运行时才能取得
 ```
 
-显式 `comptime` 上下文要求最终结果完全由 `Known` 值组成：
+显式 `comptime expression` 要求表达式最终结果完全由 `Known` 值组成；`comptime { ... }` 要求整个块在编译期执行完成：
 
 ```ink
-let value = comptime fibonacci(20);
+const value = comptime fibonacci(20);
 ```
 
-如果必经执行路径读取 `Runtime` 值、进入没有编译期实现的操作，或者不能完成求值，则编译失败。
+如果它们的必经执行路径读取 `Runtime` 值、进入没有编译期实现的操作，或者不能完成求值，则编译失败。
+
+结构化控制前缀采用较窄要求：`comptime if`、`comptime match` 和 `comptime for` 要求条件、被匹配值或迭代源在编译期已知，选中或展开的 body 仍可把依赖运行时输入的普通代码残留为 InkIR。`comptime while` 要求每轮条件都能在编译期决定，并受执行次数和生成代码量预算限制。
+
+Parser 议题 32 把这种控制统一表示为接收类型化输出区域的 `ComptimeRegionControl`。同一个选择或展开算法可以把结果交给 `StatementSink`、`TopLevelDeclarationSink`、`ClassMemberSink`、`InterfaceMemberSink` 或 `EnumMemberSink`；区域只约束 body item 和输出种类，不改变上述阶段要求。类中不存在另一种专门生成字段的 `comptime`。
 
 混合静态和动态输入的泛型实例进入残留化模式。已知的纯计算可以执行；依赖运行时值的运算生成新的 InkIR：
 
@@ -157,7 +161,7 @@ Runtime(x) + Known(10)   → residual `add x, 10`
 部分求值不能仅因实参已知就把普通运行时副作用移动到编译期：
 
 ```ink
-func calculate<N: comptime i32>(value: i32) -> i32 {
+func calculate<N: i32>(value: i32) -> i32 {
     stdio.write("running calculate\n");
     return value + N;
 }
@@ -166,14 +170,14 @@ func calculate<N: comptime i32>(value: i32) -> i32 {
 `calculate<10>` 的残留代码仍在每次运行时调用时输出文本。只有显式放入 `comptime` 上下文的副作用才在编译期发生：
 
 ```ink
-func calculate<N: comptime i32>(value: i32) -> i32 {
+func calculate<N: i32>(value: i32) -> i32 {
     comptime stdio.write("generating calculate\n");
     stdio.write("running calculate\n");
     return value + N;
 }
 ```
 
-实例化执行第一项输出；残留函数保存第二项输出。未被选择的 `if comptime` 分支不执行其中的副作用，也不会仅因其中存在目标专用操作而使已选择实例失败。
+实例化执行第一项输出；残留函数保存第二项输出。未被选择的 `comptime if` 分支不执行其中的副作用，也不会仅因其中存在目标专用操作而使已选择实例失败。
 
 ## 7. 一个执行器、多个执行环境
 
@@ -224,31 +228,31 @@ source
    → Obj
 ```
 
-泛型实例可以请求其他实例；新请求继续进入同一队列。编译器以“泛型声明身份 + 规范化编译期实参 + 目标配置”为基础缓存进行中的实例，并检测无法收敛的递归实例化和无限声明生成。
+泛型实例可以请求其他实例；新请求继续进入同一队列。编译器以“泛型声明身份 + 规范化编译期实参 + 目标配置”为基础缓存进行中的实例，并检测无法收敛的递归实例化和无限声明展开。
 
 固定点结束后，进入运行时代码生成的 InkIR 不再含有开放泛型参数。没有第二个泛型实例化或单态化阶段。
 
 运行时动态反射只能观察和调用编译期间已经生成并选择登记的闭合泛型实例，不能在运行时提交新的类型或值实参并触发编译器实例化。Ink v0 不要求运行时 JIT。
 
-## 9. 完整反射与声明生成
+## 9. 完整反射与静态声明展开
 
 为了让普通编译期代码覆盖传统模板元编程用途，Ink 支持：
 
 - `type` 作为一等编译期值；
 - 编译期函数返回 `type`；
 - 完整声明结构反射；
-- 反射结果重新用于类型和声明构造；
-- 类型和模块声明区中的 `if comptime`；
-- 通过 `comptime for` 生成字段、方法和其他声明；
-- 编译期构造器产生经过验证的新 InkIR。
+- 反射结果用于编译期条件、类型选择和普通表达式；
+- 类型和模块声明区中的 `comptime if`；
+- 通过 `comptime for` 重复源码中静态写出的普通声明；
+- class 类型表达式和静态声明展开产生经过验证的新 InkIR。
 
-生成结果必须重新经过名称绑定、访问检查、类型检查、布局依赖检查和 IR verifier。编译期代码不能取得可任意破坏编译器内部不变量的可写裸 IR 指针。
+选择或展开的声明必须重新经过名称绑定、访问检查、类型检查、布局依赖检查和 IR verifier。声明名称必须来自源码中的真实 Identifier Token；编译期代码不能用反射值或字符串替换名称，也不能取得可任意破坏编译器内部不变量的可写裸 IR 指针。
 
-同一轮执行看到确定的声明快照；本轮生成的声明在验证和提交后进入后续展开轮次。反射当前未完成类型、生成重复成员、形成无限大小布局或建立布局查询环均为编译错误。
+同一轮执行看到确定的声明快照；本轮选择或重复展开的普通声明在验证和提交后进入后续展开轮次。反射当前未完成类型、产生重复成员、形成无限大小布局或建立布局查询环均为编译错误。
 
 本议题不改变议题 19 已确认的边界：结构反射不会自动暴露函数体 AST、局部变量、注释或任意 token stream。
 
-议题 63 进一步禁止把编译期字符串重新解析为源码、token 或当前局部代码。声明生成只能使用受控的结构化构造器；字符串最多被验证为单个合法 `Identifier`，不能因此获得代码解释语义。
+议题 63 进一步禁止把编译期字符串重新解析为源码、Token、Identifier splice 或当前局部代码。议题 67 明确 v0 不提供 `field(...)`、`function(...)` 或其他声明构造器；`comptime` 只能选择或重复静态写出的普通声明。
 
 ## 10. 目标上下文与 PDB
 
@@ -268,7 +272,7 @@ Closed InkIR[target]
 
 Ink 不把普通函数永久分类为“编译期函数”或“运行时函数”。编译期解释器正常进入普通调用链，直到遇到具有环境效果的底层 InkIR 操作：
 
-议题 72 据此明确取消 `comptime func` 声明类别；`comptime` 只要求表达式、代码块、控制结构或参数绑定在编译期完成。
+议题 72 据此明确取消 `comptime func` 声明类别，也取消 `Name: comptime Type` 参数限定形式；`comptime` 只直接修饰表达式、代码块或结构化控制流。泛型形参、attribute/decorator 实参等位置是否天然要求编译期值，由各自上下文决定。
 
 ```text
 fs.read
@@ -285,7 +289,7 @@ inline_assembly
 执行上下文为这些操作提供能力表和处理器。以文件读取为例：
 
 ```ink
-let schema = comptime stdio.read_file("schema.json");
+const schema = comptime stdio.read_file("schema.json");
 ```
 
 标准库最终进入 `fs.read` 内建操作；`ComptimeWorld` 的处理器通过编译器文件系统读取内容并记录路径和内容依赖，`RuntimeWorld` 使用运行环境适配器，LLVM lowering 则生成目标平台调用。
@@ -307,7 +311,7 @@ Ink 不定义稳定的 Ink-to-Ink 二进制模块 ABI。可复用 Ink 模块和�
 ```ink
 extern "C" func image_create(
     width: u32,
-    height: u32,
+    height: u32
 ) -> ImageHandle;
 ```
 
@@ -323,7 +327,7 @@ extern "C" func image_create(
 - 执行到没有编译期处理器的环境操作；
 - 同签名泛型重定义；
 - 具体实例中的成员、调用或复制等依赖操作无效；
-- 无法收敛的实例化或声明生成；
+- 无法收敛的实例化或声明展开；
 - 编译期值包含不能残留的宿主地址或句柄；
 - 类型布局和反射生成形成阶段循环。
 
@@ -331,9 +335,9 @@ extern "C" func image_create(
 
 ## 14. LLVM 与实现边界
 
-LLVM 不需要理解 Ink 泛型、`comptime`、反射生成或 Partial Evaluation。前端固定点展开产生 `Closed InkIR[target]`，LLVM 后端只接收已经闭合的运行时程序，把前端确定的目标布局落实为 LLVM 类型，并完成 ABI lowering 和合法化。
+LLVM 不需要理解 Ink 泛型、`comptime`、反射或 Partial Evaluation。前端固定点展开产生 `Closed InkIR[target]`，LLVM 后端只接收已经闭合的运行时程序，把前端确定的目标布局落实为 LLVM 类型，并完成 ABI lowering 和合法化。
 
-InkIR 解释器、编译期处理器、声明构造器和固定点调度属于 Ink 编译器。未来即使替换 LLVM 后端，也不改变本议题的语言语义。
+InkIR 解释器、编译期处理器、声明区域展开器和固定点调度属于 Ink 编译器。未来即使替换 LLVM 后端，也不改变本议题的语言语义。
 
 ## 15. 后续问题
 

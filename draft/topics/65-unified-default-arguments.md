@@ -1,6 +1,6 @@
 # 议题 65：普通参数与编译期参数统一使用默认实参
 
-> 状态：已确认，议题 70 补充默认实参与重载候选关系，Parser 议题 13 补充普通实参求值顺序  
+> 状态：已确认，议题 70 补充默认实参与重载候选关系，Parser 议题 13、15、29、31 补充求值顺序、命名实参、函数类型与默认形参语法
 > 确认日期：2026-08-02
 
 ## 1. 统一 `=` 语法
@@ -11,7 +11,7 @@
 func connect(
     host: StringView,
     port: u16 = 443,
-    timeout: Duration = Duration.seconds(30),
+    timeout: Duration = Duration.seconds(30)
 ) {
     // ...
 }
@@ -21,14 +21,14 @@ func connect(
 
 ```ink
 func parse<
-    Base: comptime u32 = 10,
+    Base: u32 = 10
 >(text: StringView) -> i64 {
     // ...
 }
 
 class Buffer<
-    T: comptime type,
-    Alignment: comptime ptrsize = reflect(T).alignment,
+    T: type,
+    Alignment: ptrsize = reflect(T).alignment
 > {
     // ...
 }
@@ -38,12 +38,14 @@ class Buffer<
 
 ```text
 runtime parameter:  name: Type = expression
-comptime parameter: Name: comptime Type = expression
+generic parameter:  Name: Type = expression
 ```
 
-默认值不构成推导。它只在调用点明确省略具有声明默认值的尾随参数时补全实参。
+generic parameter list `<...>` 本身要求其中所有实参在声明闭合期间已知，因此不在形参类型前重复书写 `comptime`。`Name: comptime Type` 不属于 Ink 语法。
 
-## 2. 只能省略连续尾部参数
+默认值不构成推导。它只在调用点省略具有声明默认值的参数时补全实参；位置调用只能省略连续尾部参数，命名实参则可以显式绑定较后的参数并跳过中间已有默认值的参数。
+
+## 2. 位置调用省略尾部，命名实参可以跳过默认项
 
 具有默认值的参数必须位于所有无默认值的同类参数之后：
 
@@ -51,7 +53,7 @@ comptime parameter: Name: comptime Type = expression
 func valid(
     required: i32,
     first: i32 = 1,
-    second: i32 = 2,
+    second: i32 = 2
 );
 
 func invalid(
@@ -68,7 +70,16 @@ connect(host, 8080);
 connect(host, 8080, custom_timeout);
 ```
 
-Ink v0 不提供普通命名实参、命名泛型实参或“跳过当前默认值”的占位符。需要覆盖较后的默认参数时，必须显式写出它之前的全部实参。
+普通调用、构造调用、attribute application 和 decorator application 统一支持 `identifier = expression` 命名实参。全部位置实参和 `...` 展开必须位于命名实参之前；命名实参可以跳过具有默认值的较早参数：
+
+```ink
+connect(host, timeout = custom_timeout);
+connect(timeout = custom_timeout, host = host);
+```
+
+第二个调用仍按源码顺序先求值 `custom_timeout`，再求值 `host`；名称只改变形参绑定，不改变显式实参的求值顺序。未知名称、重复名称、位置实参与命名实参重复绑定同一形参，以及遗漏没有默认值的形参，均为编译错误。
+
+Ink v0 仍不提供命名泛型实参或“跳过当前位置”的匿名占位符。泛型 `<...>` 的默认值和参数包继续使用第 6、7 节的位置绑定规则。
 
 ## 3. 普通默认表达式在每次调用时求值
 
@@ -77,7 +88,7 @@ Ink v0 不提供普通命名实参、命名泛型实参或“跳过当前默认�
 ```ink
 func log(
     message: StringView,
-    timestamp: Timestamp = clock.now(),
+    timestamp: Timestamp = clock.now()
 ) {
     // ...
 }
@@ -94,7 +105,7 @@ func log(
 ```ink
 func read(
     buffer: byte[],
-    count: ptrsize = buffer.length,
+    count: ptrsize = buffer.length
 ) {
     // ...
 }
@@ -116,18 +127,18 @@ evaluate make_buffer() once
 → enter read(buffer, count)
 ```
 
-默认表达式不能引用自身或位于它之后的参数。按照 [`../parser/13-expression-evaluation-order.md`](../parser/13-expression-evaluation-order.md) 的统一规则，调用先从左到右计算所有显式实参，再从左到右计算省略的尾部默认表达式。前面的参数绑定在后续默认表达式执行前已经稳定，且不会为了计算默认值重复求值显式实参。
+默认表达式不能引用自身或位于它之后的参数。按照 [`../parser/13-expression-evaluation-order.md`](../parser/13-expression-evaluation-order.md) 的统一规则，调用先从左到右计算所有显式位置和命名实参，再按照形参声明顺序从左到右计算仍未绑定参数的默认表达式。前面的参数绑定在后续默认表达式执行前已经稳定，且不会为了计算默认值重复求值显式实参。
 
 ## 5. 名称解析和访问权限
 
 默认表达式在函数声明的词法上下文中解析和进行访问检查，而不是捕获调用位置的同名局部变量：
 
 ```ink
-const default_port: u16 = 443;
+const default_port: u16 = comptime 443;
 
 func connect(
     host: StringView,
-    port: u16 = default_port,
+    port: u16 = default_port
 );
 ```
 
@@ -156,7 +167,7 @@ parse(text); // 编译错误：没有显式请求开放泛型实例
 绑定顺序为：
 
 ```text
-bind explicit positional comptime arguments
+bind explicit positional generic arguments
 → evaluate omitted trailing defaults from left to right
 → canonicalize all comptime values
 → request closed instance
@@ -171,8 +182,8 @@ bind explicit positional comptime arguments
 
 ```ink
 class Values<
-    Element: comptime type = i32,
-    Rest: comptime type...,
+    Element: type = i32,
+    Rest: type...
 > {
     // ...
 }
@@ -186,7 +197,7 @@ Values<byte>       → Element = byte, Rest = []
 Values<byte, i32>  → Element = byte, Rest = [i32]
 ```
 
-因为 v0 没有命名实参或占位符，所以不能在使用 `Element` 默认值的同时为 `Rest` 提供非空位置实参。需要这种接口时应重新排列 API 或显式写出默认值。
+因为 v0 没有命名泛型实参或泛型占位符，所以不能在使用 `Element` 默认值的同时为 `Rest` 提供非空位置实参。普通调用已经支持的命名实参不进入泛型 `<...>`。需要这种泛型接口时应重新排列 API 或显式写出默认值。
 
 ## 8. 默认值不属于函数签名或 ABI
 
@@ -203,9 +214,13 @@ func output(value: i32, radix: u32 = 10);
 函数指针、裸稳定入口和其他只携带函数类型的调用必须提供全部参数：
 
 ```ink
-let entry: func(i32, u32) = &output;
+const entry: func(i32, u32) = &output;
 entry(10, 10); // 必须提供 radix
 ```
+
+Parser 议题 29 规定函数类型参数只写类型，不写名称或默认表达式；省略 `-> type` 等价于返回 `void`。因此上面的 `func(i32, u32)` 只记录实际二参数调用形状，不记录 `radix` 的默认值。
+
+同理，仅通过普通函数值或函数指针调用时没有可用于 `NamedArgument` 绑定的参数名称，必须使用位置实参并提供完整参数列表。命名实参只适用于能够静态确定声明参数名称的普通源码调用；参数名称是否属于公开源码调用契约由相应 API 和模块规则维护，但不进入函数类型或底层调用 ABI。
 
 默认值不编码进普通调用约定。`extern "C"` 声明即使供 Ink 源码直接调用时带有默认值，C ABI 消费者也看不到该默认值；它不是二进制接口的一部分。
 
@@ -268,7 +283,11 @@ evaluate explicit arguments
 编译器必须诊断：
 
 - 无默认参数出现在有默认参数之后；
-- 省略非尾部参数；
+- 位置调用省略非尾部参数；
+- 未知或重复的命名实参；
+- 位置与命名实参重复绑定同一形参；
+- 命名实参后继续出现位置实参或列表展开；
+- 省略没有默认值的必需参数；
 - 默认表达式引用自身或后续参数；
 - 默认表达式结果不能绑定目标类型；
 - 覆盖声明试图添加或改变默认值；
@@ -281,6 +300,6 @@ evaluate explicit arguments
 以下内容留给独立议题：
 
 - 多个独立接口槽具有不同默认值时的实现冲突；
-- 未来是否增加命名实参；
+- 跨模块 API 参数重命名的源码兼容性分类；
 - 未来是否让动态反射显式查询可静态编码的常量默认值；
 - 默认值变化在包版本工具中的兼容性分类。

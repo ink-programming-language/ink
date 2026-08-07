@@ -75,7 +75,7 @@ BlockComment
 Parser 使用过滤视图消费有效语法 token：
 
 ```text
-for token in tokens {
+for const token in tokens {
     if token.kind.is_trivia {
         continue;
     }
@@ -123,7 +123,7 @@ CRLF → raw length 2
 
 ```ink
 // comment
-let value = 10; // trailing comment
+const value = 10; // trailing comment
 ```
 
 `LineComment` Token 包含 `//` 和之后的正文，但不包含终止换行。换行随后形成独立的 `LineBreak` Token：
@@ -171,8 +171,8 @@ depth 0  → block comment ends
 反过来，字符串或字符字面量扫描状态中的 `//`、`/*` 和 `*/` 不形成注释：
 
 ```ink
-let url = "https://example.com";
-let text = "/* not a comment */";
+const url = "https://example.com";
+const text = "/* not a comment */";
 ```
 
 Tokenizer 必须根据当前词法状态决定注释定界符是否有效。
@@ -208,7 +208,7 @@ Parser 的过滤视图中仍是两个 `Identifier`，不会得到 `Identifier("f
 Ink 使用显式分号和成对定界符，不执行自动分号插入：
 
 ```ink
-let value
+const value
     =
     calculate
     (

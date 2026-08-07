@@ -6,7 +6,7 @@
 
 | 编号 | 议题 | 状态 | 文件 |
 | --- | --- | --- | --- |
-| 01 | 文件系统 package 与单文件 module | 已确认 | [01-filesystem-packages-and-file-modules.md](01-filesystem-packages-and-file-modules.md) |
+| 01 | 文件系统 package 与单文件 module | 已确认，不提供用户模块加载或卸载钩子 | [01-filesystem-packages-and-file-modules.md](01-filesystem-packages-and-file-modules.md) |
 | 02 | 相对 module 导入 | 已确认 | [02-relative-module-imports.md](02-relative-module-imports.md) |
 | 03 | 实际 module 依赖图无环 | 已确认 | [03-acyclic-active-module-dependencies.md](03-acyclic-active-module-dependencies.md) |
 

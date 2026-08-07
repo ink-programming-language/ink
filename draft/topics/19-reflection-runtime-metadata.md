@@ -1,6 +1,6 @@
 # 议题 19：编译期反射、动态反射与自定义元数据
 
-> 状态：已确认，议题 20—26、28、31—35、37、57、61、63、66 补充  
+> 状态：已确认，议题 20—26、28、31—35、37、57、61、63、66 与 Parser 议题 15 补充
 > 确认日期：2026-08-01
 
 ## 1. 两级反射模型
@@ -22,13 +22,16 @@ class EmptyMetadataType {
     // ...
 }
 
-[reflect(DisplayName("Player"), Serializable())]
+[reflect(
+    display_name = DisplayName("Player"),
+    serializable = Serializable()
+)]
 class Player {
     // ...
 }
 ```
 
-`[reflect]` 与 `[reflect()]` 含义相同。它们都要求编译器为目标声明生成动态反射描述符；括号内的零个或多个参数是附着到该声明的用户元数据值。
+`[reflect]` 与 `[reflect()]` 含义相同。它们都要求编译器为目标声明生成动态反射描述符；括号内的零个或多个位置或命名实参是附着到该声明的用户元数据值。命名形式使用统一调用语法 `identifier = expression`，例如 `display_name = DisplayName("Player")`；Parser 建立普通 `NamedArgument` 节点，不为反射属性建立专用赋值表达式。
 
 `reflect` 是语言内建属性名，用户不能重新定义其编译器语义。用户可以自由定义传入它的元数据类型。
 
@@ -38,14 +41,14 @@ class Player {
 
 ```ink
 comptime {
-    let type = reflect(Player);
+    const type = reflect(Player);
 
     print(type.name);
     print(type.size);
     print(type.alignment);
     print(type.visibility);
 
-    for field in type.fields {
+    for (const field in type.fields) {
         print(field.name);
         print(field.type);
         print(field.offset);
@@ -53,7 +56,7 @@ comptime {
         print(field.metadata);
     }
 
-    for function in type.functions {
+    for (const function in type.functions) {
         print(function.name);
         print(function.parameters);
         print(function.return_type);
@@ -84,24 +87,24 @@ comptime {
 类型、字段和函数分别选择是否生成动态反射信息：
 
 ```ink
-[reflect(DisplayName("Player"))]
+[reflect(display_name = DisplayName("Player"))]
 class Player {
     [reflect(
-        DisplayName("Health"),
-        Range(min: 0, max: 100),
-        SaveGame(),
+        display_name = DisplayName("Health"),
+        range = Range(min = 0, max = 100),
+        save_game = SaveGame()
     )]
-    health: i32;
+    var health: i32;
 
     [reflect(
-        DisplayName("Take Damage"),
-        Category("Combat"),
+        display_name = DisplayName("Take Damage"),
+        category = Category("Combat")
     )]
     func take_damage(amount: i32) -> bool {
         // ...
     }
 
-    secret: i32;
+    var secret: i32;
 }
 ```
 
@@ -124,18 +127,18 @@ class Player {
 ```ink
 [metadata]
 class DisplayName {
-    value: comptime string;
+    var value: string;
 }
 
 [metadata]
 class Range {
-    min: i64;
-    max: i64;
+    var min: i64;
+    var max: i64;
 }
 
 [metadata]
 class Category {
-    name: comptime string;
+    var name: string;
 }
 
 [metadata]
@@ -144,7 +147,7 @@ class SaveGame {}
 
 `[metadata]` 自身是语言内建属性；`DisplayName`、`Range` 等是普通用户类型。这不允许用户发明新的编译器属性，也不会让编译器把这些类型解释为布局、优化或类型检查指令。
 
-`[reflect(...)]` 的每个参数必须是在编译期完成构造并能静态编码的 `[metadata]` 值。允许的组成部分包括：
+`[reflect(...)]` 的每个位置或命名实参值必须是在编译期完成构造并能静态编码的 `[metadata]` 值。命名实参的名称与值一起保留在结构化元数据中；重复名称和同一声明不允许的名称由 `reflect` 属性语义检查。允许的值组成部分包括：
 
 - 布尔、整数、浮点数和静态字符串；
 - 枚举值；
@@ -152,7 +155,7 @@ class SaveGame {}
 - 其他元数据值；
 - 上述值构成的定长数组。
 
-`comptime string` 元数据在动态描述表中编码为指向模块静态只读数据的字符串视图，不要求引入核心语言内建的拥有型字符串。
+元数据构造上下文要求这些字段值在编译期已知；字段类型仍写作普通 `string`。静态字符串在动态描述表中编码为指向模块静态只读数据的字符串视图，不要求引入核心语言内建的拥有型字符串。
 
 元数据不能包含：
 
@@ -169,12 +172,12 @@ class SaveGame {}
 带有 `[reflect]` 的类型进入运行时反射注册表，并按照议题 22 使用完全限定名称查找：
 
 ```ink
-if let .some(type) = reflection.find_type("game.Player") {
+if (match .some(type) = reflection.find_type("game.Player")) {
     print(type.name);
     print(type.size);
     print(type.alignment);
 
-    for property in type.properties {
+    for (const property in type.properties) {
         print(property.name);
         print(property.type_name);
     }
@@ -184,13 +187,13 @@ if let .some(type) = reflection.find_type("game.Player") {
 自定义元数据按其类型查询：
 
 ```ink
-if let .some(health) = type.property("health") {
-    if let .some(range) = health.metadata.get[Range]() {
+if (match .some(health) = type.property("health")) {
+    if (match .some(range) = health.metadata.get[Range]()) {
         print(range.min);
         print(range.max);
     }
 
-    if health.metadata.has[SaveGame]() {
+    if (health.metadata.has[SaveGame]()) {
         save_property(health);
     }
 }
@@ -203,8 +206,8 @@ if let .some(health) = type.property("health") {
 被反射字段可以通过编译器生成的适配器进行类型检查后的动态访问：
 
 ```ink
-if let .some(property) = type.property("health") {
-    let health = property.get[i32](&player);
+if (match .some(property) = type.property("health")) {
+    const health = property.get[i32](&player);
     property.set[i32](&player, 80);
 }
 ```
@@ -225,8 +228,8 @@ if let .some(property) = type.property("health") {
 被反射函数具有编译器生成的类型擦除调用适配器：
 
 ```ink
-if let .some(function) = type.function("take_damage") {
-    let damaged = function.call[bool](&player, 10);
+if (match .some(function) = type.function("take_damage")) {
+    const damaged = function.call[bool](&player, 10);
 }
 ```
 

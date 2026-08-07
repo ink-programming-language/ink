@@ -8,14 +8,14 @@
 Ink v0 不从普通函数实参、返回类型、赋值目标或函数体使用方式推导泛型编译期参数。调用开放泛型声明时，调用者必须显式提供每个没有其他既定绑定方式的编译期实参：
 
 ```ink
-func duplicate<T: comptime type>(
-    value: const T&,
+func duplicate<T: type>(
+    value: const T&
 ) -> (T, T) {
     return (value, value);
 }
 
-let pair = duplicate<i32>(&value); // 合法
-let pair = duplicate(&value);      // 编译错误：缺少 T
+const pair = duplicate<i32>(&value); // 合法
+const pair = duplicate(&value);      // 编译错误：缺少 T
 ```
 
 `value` 的准确类型即使显然是 `i32`，也不会隐式绑定 `T`。
@@ -26,8 +26,8 @@ let pair = duplicate(&value);      // 编译错误：缺少 T
 
 ```ink
 func array_length<
-    T: comptime type,
-    N: comptime ptrsize,
+    T: type,
+    N: ptrsize
 >(value: const T[N]&) -> ptrsize {
     return N;
 }
@@ -47,10 +47,10 @@ array_length(&bytes);           // 编译错误：缺少 T、N
 返回类型和赋值目标不参与泛型绑定：
 
 ```ink
-func make<T: comptime type>() -> T;
+func make<T: type>() -> T;
 
-let first: i32 = make<i32>(); // 合法
-let second: i32 = make();     // 编译错误：缺少 T
+const first: i32 = make<i32>(); // 合法
+const second: i32 = make();     // 编译错误：缺少 T
 ```
 
 嵌套调用、函数返回、显式变量类型和其他预期类型上下文都不能补全未给出的泛型实参。
@@ -60,8 +60,8 @@ let second: i32 = make();     // 编译错误：缺少 T
 Ink v0 不从 `T[N]`、`Container<T>`、指针层级或其他类型模式中提取泛型参数，也不反向求解任意编译期表达式：
 
 ```ink
-func consume<N: comptime ptrsize>(
-    value: const byte[N + 1]&,
+func consume<N: ptrsize>(
+    value: const byte[N + 1]&
 ) {}
 
 consume<9>(&bytes); // 显式 N；随后验证 bytes 是 byte[10]
@@ -75,14 +75,14 @@ consume(&bytes);    // 不尝试求解 N + 1 = 10
 开放泛型类型不能仅凭构造函数实参闭合：
 
 ```ink
-let first = Box<i32>(10); // 合法
-let second = Box(10);     // 编译错误：Box 缺少类型实参
+const first = Box<i32>(10); // 合法
+const second = Box(10);     // 编译错误：Box 缺少类型实参
 ```
 
 Ink v0 不提供 C++ class template argument deduction 或 deduction guide。普通工厂函数如果自身是泛型，也仍须显式给出其泛型实参：
 
 ```ink
-let value = make_box<i32>(10);
+const value = make_box<i32>(10);
 ```
 
 ## 6. 参数包仍可显式为空
@@ -101,14 +101,14 @@ Tuple<i32, String, bool> // Types 明确绑定三个类型
 泛型候选缺少必需编译期实参时，不会根据普通调用实参尝试形成实例，也不会进入函数体后再决定是否可用：
 
 ```ink
-func inspect<T: comptime type>(value: const T&);
+func inspect<T: type>(value: const T&);
 func inspect(value: const i32&);
 
 inspect(&number);      // 只按普通非泛型候选处理
 inspect<i32>(&number); // 明确请求泛型实例
 ```
 
-函数体中的 `if comptime`、成员是否存在以及具体实例能否通过类型检查都不用于反推缺少的泛型实参。
+函数体中的 `comptime if`、成员是否存在以及具体实例能否通过类型检查都不用于反推缺少的泛型实参。
 
 议题 70 固定候选集合边界：`function(...)` 只考虑非泛型声明，`function<...>(...)` 才考虑能够绑定这些显式编译期实参的泛型声明。闭合签名或已选中函数体失败都不会触发 SFINAE 式回退。
 
@@ -117,7 +117,7 @@ inspect<i32>(&number); // 明确请求泛型实例
 议题 61 的 Partial Evaluation 只在泛型编译期参数已经由显式实参、议题 62 的包绑定或未来独立确认的其他规则完全绑定后开始。
 
 ```text
-explicit comptime arguments
+explicit generic arguments
 → canonical argument values
 → request closed instance
 → partial evaluation

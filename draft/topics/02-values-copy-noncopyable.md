@@ -1,6 +1,6 @@
 # 议题 02：值、复制与不可复制类型
 
-> 状态：已确认，议题 27、32、34、36、43—45、54、60、61、69 补充  
+> 状态：已确认，议题 27、32、34、36、43—45、54、60、61、69 与 Parser 议题 26、27 补充
 > 确认日期：2026-08-01
 
 ## 1. 不提供通用移动语义
@@ -31,8 +31,8 @@ file.read(); // 合法，inspect 不会消费 file
 对命名值执行按值赋值、按值传参或其他按值使用时，其语义是复制。只有可复制类型允许这些操作。
 
 ```ink
-let first: int = 10;
-let second = first; // 复制
+const first: int = 10;
+const second = first; // 复制
 print(first);       // first 仍然有效
 ```
 
@@ -71,6 +71,8 @@ var server = create_server(); // 直接构造在 server 的最终存储中
 
 对于不可复制类型，不能保证原地构造的代码必须被拒绝，不能退化为隐藏移动。
 
+Parser 议题 26 确认 `return expression;` 的表达式只求值一次。直接构造表达式先在返回位置完成构造，再清理函数局部对象；该顺序不把返回值变成需要隐藏移动的局部临时对象。
+
 议题 36 的异常抛出遵守同一规则。从命名变量抛出异常属于按值使用，必须把变量复制到运行时异常存储；因此只有可复制异常类允许这种写法，源变量不会被消费：
 
 ```ink
@@ -93,9 +95,9 @@ throw FileNotFound { path }; // 直接构造，不是移动
 ```ink
 [noncopyable]
 class File {
-    handle: OsHandle;
+    var handle: OsHandle;
 
-    func destructor(this: File&) {
+    func ~File() {
         os.close(this.handle);
     }
 }
@@ -122,7 +124,7 @@ copyable(T) =
 
 直接声明析构函数的类型必须显式标记 `[noncopyable]`，否则是编译错误。这可以防止资源类型在重构过程中意外获得复制能力。
 
-议题 27 为虚类 vtable 自动生成的动态销毁入口不是用户声明的 `destructor`，不会单独使类型变成 `[noncopyable]`。类是否可复制仍由其显式析构函数、父类、字段和 `[noncopyable]` 属性决定。
+议题 27 为虚类 vtable 自动生成的动态销毁入口不是用户声明的析构函数，不会单独使类型变成 `[noncopyable]`。类是否可复制仍由其显式析构函数、父类、字段和 `[noncopyable]` 属性决定。
 
 包含不可复制字段或载荷的外层类型自动不可复制，无须层层添加属性：
 
@@ -133,8 +135,8 @@ class File {
 }
 
 class Server {
-    log: File;
-    port: u16;
+    var log: File;
+    var port: u16;
 }
 
 // Server 自动不可复制
@@ -169,7 +171,7 @@ var second = first.clone(); // 显式深复制
 议题 61 不引入 `where T: Copy` 约束；泛型可以直接执行需要复制能力的操作，并在具体实例化时检查：
 
 ```ink
-func duplicate<T: comptime type>(value: const T&) -> (T, T) {
+func duplicate<T: type>(value: const T&) -> (T, T) {
     return (value, value);
 }
 ```

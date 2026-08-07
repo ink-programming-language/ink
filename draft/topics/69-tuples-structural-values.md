@@ -1,6 +1,6 @@
 # 议题 69：元组是内建匿名结构值类型
 
-> 状态：已确认，议题 71 补充异构编译期元值与静态遍历，Parser 议题 07、14 确认逗号与元组表达式语法  
+> 状态：已确认，议题 71 补充异构编译期元值与静态遍历，Parser 议题 07、10、14、23、26、29、30 确认相关语法
 > 确认日期：2026-08-02
 
 ## 1. 类型和值语法
@@ -8,31 +8,40 @@
 Ink 使用圆括号和逗号表示元组类型与元组值：
 
 ```ink
-let value: (i32, String) =
+const value: (i32, String) =
     (10, "hello");
 ```
 
 元组是语言内建的匿名结构值类型，不是标准库 `Tuple<Types...>` 类的语法糖，也不具有对象身份、继承、vptr 或隐藏堆分配。
 
-类型和值根据语法上下文区分：
+类型和值根据语法和期望类型上下文区分：
 
 ```text
 (i32, String)  tuple type
 (10, "hello") tuple value
 ```
 
+Parser 议题 30 让圆括号逗号结构共享中性 `ParenthesizedCommaList` CST。明确类型入口或期望结果为 `type` 时，它形成元组类型；期望普通元组时，它形成元组值；没有期望类型时默认按照普通元组值推导。因此：
+
+```ink
+const Pair: type = (i32, String); // 一个元组类型值
+const Types = (i32, String);      // 一个 (type, type) 元组值
+```
+
+Parser 不根据元素名称是否绑定到类型来选择 CST，具体解释在名称绑定后的语义 elaboration 中完成。
+
 ## 2. 空元组和单元素元组
 
 空元组使用 `()`：
 
 ```ink
-let unit: () = ();
+const unit: () = ();
 ```
 
 单元素元组必须保留尾随逗号：
 
 ```ink
-let one: (i32,) = (10,);
+const one: (i32,) = (10,);
 ```
 
 `(i32)` 只是带括号的 `i32` 类型，`(value)` 只是带括号的普通表达式，不构成元组。
@@ -58,6 +67,8 @@ func no_result() -> void {
 
 `()` 可以作为变量、字段、泛型实参和普通返回值；`void` 仍表示没有值。空元组的准确可寻址存储大小由目标布局规则决定，本议题不把“零元素”强制等同于“占用零字节”。
 
+Parser 议题 26 规定元组返回必须显式构造元组：`return (left, right);` 合法，`return left, right;` 非法。`return ();` 返回一个空元组值，而 `return;` 没有结果表达式。
+
 ## 3. 结构类型身份
 
 元组类型由规范化后的有序元素类型列表唯一确定：
@@ -78,14 +89,14 @@ Ink v0 不提供命名元组元素；局部绑定名称不进入元组类型身�
 元组不会仅因每个元素分别存在转换就自动整体转换：
 
 ```ink
-let source: (i32, i32) = (1, 2);
-let target: (i64, i64) = source; // 编译错误
+const source: (i32, i32) = (1, 2);
+const target: (i64, i64) = source; // 编译错误
 ```
 
 调用者必须显式构造目标元组并逐项执行所需转换：
 
 ```ink
-let target: (i64, i64) = (
+const target: (i64, i64) = (
     cast<i64>(source.0),
     cast<i64>(source.1)
 );
@@ -106,7 +117,7 @@ print(value.1);
 
 ```ink
 value.0 = 20;        // value 可变且元素可写时合法
-let first = &value.0; // 程序员负责 value 的剩余生命周期
+const first = &value.0; // 程序员负责 value 的剩余生命周期
 ```
 
 编译期已知索引也可以用于结构化元编程访问；索引必须在范围内，并在类型检查该访问前已知。普通运行时整数不能索引异构元组，因为结果无法具有一个确定静态类型：
@@ -133,7 +144,7 @@ value[index]; // index 是运行时值时编译错误
 - 元组不能通过属性覆盖某个元素的复制限制。
 
 ```ink
-let resources: (File, Socket);
+const resources: (File, Socket) = acquire_resources();
 ```
 
 如果 `File` 或 `Socket` 不可复制，整个 `(File, Socket)` 不可复制。原地构造和返回位置优化继续适用，但不产生通用移动语义。
@@ -143,7 +154,7 @@ let resources: (File, Socket);
 元组可以在普通类型规则允许的位置包含引用、原始指针、不可复制值和其他元素：
 
 ```ink
-let views: (const User&, const Config&);
+const views: (const User&, const Config&) = (user, config);
 ```
 
 包含普通 `T&` 或 `const T&` 的元组可以存入字段、全局状态、异步任务或其他长期存储，但不会让任何目标获得更长生命周期。复制元组只复制引用别名；目标失效后继续通过元素引用访问属于 UB。包含原始指针时遵守相同的程序员生命周期责任。
@@ -152,21 +163,31 @@ let views: (const User&, const Config&);
 
 ## 8. 模式绑定
 
-元组使用位置模式解构：
+元组使用带 `var` 或 `const` 的位置模式解构：
 
 ```ink
-let (number, text) = value;
+const (number, text) = value; // 两个绑定都不可重新赋值
+var (x, y) = point;           // 两个绑定都可修改
 ```
 
 嵌套元组可以使用嵌套位置模式：
 
 ```ink
-let (header, (left, right)) = nested;
+const (header, (left, right)) = nested;
+const (first, _) = pair;
 ```
 
-模式绑定不为元组引入特殊移动。按值、只读引用或可变引用绑定继续遵守普通值类别和复制能力；引用目标生命周期由程序员负责。不可复制元素不能通过无标记按值模式被隐藏复制。
+外层关键字统一作用于模式建立的全部名称，pattern 元素内部不重复写 `var` 或 `const`。右侧表达式只求值一次；完成求值后，各名称按 pattern 源码顺序从左到右、对嵌套元组深度优先初始化。整个声明成功后全部名称才同时进入作用域；中途失败时只按建立逆序清理已经成功初始化的绑定。`_` 不建立绑定，也不复制对应元素。
 
-模式元素数量必须与元组元素数量完全一致。忽略元素的占位模式以及更完整的 tuple pattern 语法留给模式系统后续细化。
+元组解构不隐式借用，也不引入特殊移动：
+
+- 对普通值元素 `T`，名称建立普通 `T` 值绑定，并遵守普通初始化和复制能力；
+- 对引用元素 `T&` 或 `const T&`，名称保存同一引用别名，不复制目标，目标访问能力继续由元素类型决定；
+- 从命名元组的不可复制值元素建立新的按值绑定仍然非法；
+- 普通返回位置构造或其他已经允许的初始化消除可以继续生效，但 tuple pattern 本身不提供额外移动语义；
+- 引用目标生命周期继续由程序员负责。
+
+模式元素数量必须与元组元素数量完全一致，嵌套位置的静态类型也必须是对应元组类型。同一模式中的重复名称、枚举分支模式和逐元素类型标注均非法。Parser 议题 10、23 定义完整 v0 形状。
 
 ## 9. 编译期类型包展开
 
@@ -174,6 +195,8 @@ let (header, (left, right)) = nested;
 
 ```ink
 (...Types)
+(Header, ...Types, Footer)
+(...select_types())
 ```
 
 例如 `Types = [i32, String, bool]` 时，结果类型为：
@@ -182,7 +205,9 @@ let (header, (left, right)) = nested;
 (i32, String, bool)
 ```
 
-空类型包展开产生 `()`，单元素类型包展开产生带有一个元素的元组类型，不会退化为元素自身。
+展开操作数可以是任意能够在编译期产生类型序列的完整表达式，不限于参数包名称。空类型序列展开产生 `()`，单元素类型序列展开产生带有一个元素的元组类型，不会退化为元素自身；普通类型和展开项可以在同一列表中混合，最终元组元素顺序等于源码列表逐项展开后的顺序。
+
+Parser 议题 29 规定 `...expression` 是元组类型列表元素而不是类型后缀。单独的 `(...Types)` 不需要尾随逗号；`(...Types,)` 和多元素元组尾随逗号仍然非法。
 
 ## 10. 运行时参数包展开
 
@@ -190,7 +215,7 @@ let (header, (left, right)) = nested;
 
 ```ink
 func make_tuple<
-    Types: comptime type...
+    Types: type...
 >(
     values: Types...
 ) -> (...Types) {
@@ -201,7 +226,7 @@ func make_tuple<
 调用：
 
 ```ink
-let tuple = make_tuple<i32, String>(
+const tuple = make_tuple<i32, String>(
     10,
     "hello"
 );
@@ -243,7 +268,7 @@ extern "C" func invalid() -> (i32, i32); // 编译错误
 议题 45 的异构组合等待按输入位置产生元组结果：
 
 ```ink
-let (user, permissions) = await all(
+const (user, permissions) = await all(
     load_user(),
     load_permissions()
 );

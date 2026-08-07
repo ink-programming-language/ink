@@ -44,9 +44,9 @@ class Service {
     virtual async func load(id: u64) -> Data*;
 }
 
-if let .some(function) = type.function("load") {
+if (match .some(function) = type.function("load")) {
     var task = function.call_async[Data*](&service, 42u64);
-    let data = await task;
+    const data = await task;
 }
 ```
 

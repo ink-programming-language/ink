@@ -1,6 +1,6 @@
 # Parser 议题 06：Import 语法
 
-> 状态：已确认  
+> 状态：已确认，议题 27 同步上下文 `from`；议题 39 明确 module 顶层绑定的显式访问前缀由名称绑定阶段解释
 > 确认日期：2026-08-03
 
 ## 1. 两种导入形式
@@ -16,7 +16,7 @@ module_import_declaration =
     "import", module_path, [ import_alias ], ";" ;
 
 member_import_declaration =
-    "from", module_path, "import", imported_member,
+    contextual_from, module_path, "import", imported_member,
     { ",", imported_member }, ";" ;
 
 import_alias = "as", identifier ;
@@ -37,7 +37,9 @@ relative_prefix =
     ? One or more directly adjacent Symbol('.') Tokens ? ;
 ```
 
-`identifier` 引用 Parser 议题 04 所定义的 Identifier Token 类别。所有关键字、路径分隔符、逗号和分号都由 Tokenizer 产生的现有 Token 匹配。
+`identifier` 和 `contextual_from` 引用 Parser 议题 04 所定义的 Token 类别。`from` 由 Tokenizer 产生为 `Identifier("from")`，只在允许导入声明的 source-item 位置开始 `member_import_declaration`；`import`、`as` 等硬关键字以及路径分隔符、逗号和分号继续匹配 Tokenizer 产生的规范 TokenKind。
+
+这一分派不需要回溯：module 顶层和条件导入体中允许 `import_declaration` 的位置若以 `Identifier("from")` 开始，就进入成员导入产生式；普通函数体中的同名变量、调用或成员访问仍按表达式语法处理。
 
 ## 2. 模块命名空间导入
 
@@ -84,7 +86,7 @@ from math.scalar import sin, cos, Vector as MathVector;
 from core.io import read_file as read;
 
 func load_config() {
-    let content = read("config.json");
+    const content = read("config.json");
 }
 ```
 
@@ -99,6 +101,8 @@ from core.io import File;
 ## 4. 导入对象
 
 `imported_member` 表示被导入模块中具有对应名称、且允许从当前模块访问的顶层导出声明。成员究竟是函数、类型、全局绑定、装饰器或其他声明，由名称绑定阶段确定，不由 Parser 判断。
+
+全局绑定可以按 Parser 议题 39 显式写 `public` 或 `private` 前缀，也可以省略访问修饰符。显式前缀和省略时的默认可见性都由名称绑定阶段决定是否构成可导入声明；`imported_member` 的 EBNF 不为不同声明种类增加分支。
 
 如果该名称表示函数重载集合，则成员导入引入该名称下可见的整个重载集合，后续调用仍按普通重载解析规则选择具体函数。
 
@@ -152,12 +156,12 @@ Parser 议题 07 规定普通逗号列表不允许尾随逗号，因此成员导
 
 ## 7. 作用域与冲突
 
-直接或条件激活的导入绑定都属于当前模块作用域，不属于顶层 `if comptime` 花括号形成的临时局部作用域。绑定的可见性不依赖导入声明在源文件中的文本位置。
+直接或条件激活的导入绑定都属于当前模块作用域，不属于顶层 `comptime if` 花括号形成的临时局部作用域。绑定的可见性不依赖导入声明在源文件中的文本位置。
 
 名称冲突只在 Parser 议题 05 完成条件筛选后，对同时激活的导入和声明进行检查。因此可以在互斥分支中建立同名绑定：
 
 ```ink
-if comptime target.os == Os.windows {
+comptime if (target.os == Os.windows) {
     from platform.windows import Window as NativeWindow;
 } else {
     from platform.linux import Window as NativeWindow;

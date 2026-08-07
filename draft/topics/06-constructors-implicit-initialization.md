@@ -1,29 +1,29 @@
 # 议题 06：构造函数、隐式构造与字面量初始化
 
-> 状态：已确认，议题 34、54、72 修订
+> 状态：已确认，2026-08-04 构造声明改为 `func ClassName(...)`；议题 34、54、72 修订，Parser 议题 30、31、35、38 确认构造调用、函数声明、聚合初始化与 C++ 风格构造初始化列表
 > 确认日期：2026-08-01
 
-## 1. 构造函数的内建名称
+## 1. 构造函数使用所属类名
 
-Ink 提供语言级构造函数。构造函数使用固定内建名称 `constructor`，不重复所属类型名称。
+Ink 提供语言级构造函数。构造函数在 `func` 后使用所属类名，不使用独立的 `constructor` 关键字：
 
 ```ink
 class Point {
-    x: int;
-    y: int;
+    var x: int;
+    var y: int;
 
-    func constructor(x: int, y: int) {
-        this.x = x;
-        this.y = y;
-    }
+    func Point(x: int, y: int)
+        : x(x), y(y)
+    {}
 }
 ```
 
 构造函数规则：
 
-- 名称固定为 `constructor`；
-- 必须声明在所属类型中；
+- 名称必须与所属类名相同；
+- 必须声明在该类的成员列表中；
 - 可以重载；
+- 必须提供语句块函数体，不能以 `;` 结束为无函数体声明；
 - 不声明返回类型；
 - 成功返回时必须完成全部字段初始化；
 - 构造期间具有隐式的目标对象 `this`；
@@ -31,45 +31,73 @@ class Point {
 - 完整对象构造完成前，`this` 不能逃逸；
 - 构造函数不能作为已有对象的普通方法调用。
 
+Parser 议题 31 对 `func Identifier(...)` 建立普通函数声明 CST，不读取所属类名来改变节点种类。语义分析看到类成员名称与所属类名完全相同时，将其判定为构造函数并检查上述约束；因此同名成员不能通过添加返回类型等方式变成普通方法。模块级的同名函数没有所属类，仍是普通函数。通用函数声明语法允许尾随 `;`，但类内同名声明一旦被判定为构造函数，缺少语句块函数体就必须产生语义错误。
+
+### 1.1 C++ 风格构造初始化列表
+
+构造函数使用 Parser 议题 38 的冒号初始化列表直接初始化具体基类子对象和本类字段：
+
+```ink
+class Player : Entity {
+    var name: String;
+
+    func Player(id: i64, name: String)
+        : Entity(id), name(name)
+    {}
+}
+```
+
+初始化项复用普通调用实参规则，不增加 `base` 或 `super` 关键字。目标只能是直接具体基类或本类直接声明的实例字段。具体基类先初始化，字段随后按声明顺序初始化，最后进入构造函数体；源码列表顺序不改变该生命周期顺序。
+
+字段初始化项直接建立最终字段存储，不先默认构造再赋值，因此适用于 `const` 字段和不可复制字段。未列出的目标继续使用声明初始化器或默认初始化规则。
+
 议题 54 的异步成员调用会把原始 `this` 指针保存进任务帧。构造函数内即使创建这种任务，也不得在完整对象构造完成前把它返回、存入外部对象或交给库设施，使它越过构造边界继续持有 `this`；这仍是本议题规定的构造期 `this` 逃逸编译错误。未被驱动且在构造函数内销毁的 `created` 任务不会执行方法体。
 
 显式构造使用类型调用语法：
 
 ```ink
-let point = Point(10, 20);
+const point = Point(10, 20);
 ```
+
+Parser 议题 30 规定该写法与普通函数调用共享 `CallExpression` CST。Parser 不查询 `Point` 是类型还是函数；名称绑定和语义分析确认 callee 为 `type` 后，才进入本议题的构造函数查找和重载解析。编译期计算得到的类型值使用相同规则：
+
+```ink
+const value = SelectedType(argument);
+```
+
+若 callee 是函数值则执行普通函数调用；既不是函数值也不是 `type` 时产生语义错误。Parser 不建立独立的 `ConstructorExpression`。
 
 构造函数直接初始化目标对象的最终存储，不产生要求移动的中间对象。
 
 ## 2. 普通构造函数
 
-普通 `constructor` 默认只能显式调用：
+普通构造函数默认只能显式调用：
 
 ```ink
 class Duration {
-    milliseconds: int;
+    var milliseconds: int;
 
-    func constructor(milliseconds: int) {
-        this.milliseconds = milliseconds;
-    }
+    func Duration(milliseconds: int)
+        : milliseconds(milliseconds)
+    {}
 }
 ```
 
 ```ink
-let duration = Duration(1000); // 合法
-let duration: Duration = 1000; // 编译错误
+const duration = Duration(1000); // 合法
+const duration: Duration = 1000; // 编译错误
 ```
 
 普通构造函数可以执行运行时代码，也可以像普通未标记函数一样抛出异常；函数签名不声明异常：
 
 ```ink
 class File {
-    func constructor(path: string) {
-        this.handle = os.open(path);
-    }
+    func File(path: string)
+        : handle(os.open(path))
+    {}
 }
 
-let file = File("data.txt");
+const file = File("data.txt");
 ```
 
 ## 3. `implicit` 构造函数
@@ -77,36 +105,36 @@ let file = File("data.txt");
 `implicit` 是构造函数修饰符，不是独立的函数类别。它扩大构造函数的可调用场景：
 
 ```text
-普通 constructor：
+普通构造函数：
     允许显式 Type(arguments) 调用
 
-implicit constructor：
+`implicit` 构造函数：
     允许显式 Type(arguments) 调用
     也允许目标类型明确时隐式调用
 ```
 
 ```ink
 class Duration {
-    milliseconds: int;
+    var milliseconds: int;
 
-    implicit func constructor(milliseconds: int) {
-        this.milliseconds = milliseconds;
-    }
+    implicit func Duration(milliseconds: int)
+        : milliseconds(milliseconds)
+    {}
 }
 ```
 
 以下两种形式都合法：
 
 ```ink
-let first = Duration(1000);
-let second: Duration = 1000;
+const first = Duration(1000);
+const second: Duration = 1000;
 ```
 
-如果类型只声明了 `implicit constructor`，显式 `Type(argument)` 调用仍然合法。任何允许编译器隐式调用的构造函数，也必须允许程序员显式调用。
+如果类型只声明了 `implicit` 构造函数，显式 `Type(argument)` 调用仍然合法。任何允许编译器隐式调用的构造函数，也必须允许程序员显式调用。
 
 ## 4. 隐式构造的目标位置
 
-`implicit constructor` 可以在目标类型已经独立明确的新对象初始化位置使用，包括：
+`implicit` 构造函数可以在目标类型已经独立明确的新对象初始化位置使用，包括：
 
 - 带显式类型的局部绑定；
 - 已确定形参类型的函数调用；
@@ -128,15 +156,15 @@ func default_timeout() -> Duration {
 
 ```ink
 class Options {
-    timeout: Duration;
+    var timeout: Duration;
 }
 
-let options = Options {
-    timeout: 1000,
+const options = Options {
+    timeout: 1000
 };
 ```
 
-`implicit constructor` 不用于修改已经存在的对象：
+`implicit` 构造函数不用于修改已经存在的对象：
 
 ```ink
 var duration: Duration = 1000;
@@ -145,7 +173,7 @@ duration = 2000; // 编译错误，除非以后另行定义已有对象赋值规
 
 已有对象赋值与新对象初始化是两个独立的语言行为。Ink v0 不允许用户重载已有对象的赋值运算符。
 
-## 5. `implicit constructor` 的限制
+## 5. `implicit` 构造函数的限制
 
 隐式构造函数：
 
@@ -161,10 +189,10 @@ duration = 2000; // 编译错误，除非以后另行定义已有对象赋值规
 
 ```ink
 class Port {
-    value: u16;
+    var value: u16;
 
-    func constructor(value: int) {
-        if value < 0 || value > 65535 {
+    func Port(value: int) {
+        if (value < 0 || value > 65535) {
             throw InvalidPort {};
         }
 
@@ -172,14 +200,14 @@ class Port {
     }
 }
 
-let port = Port(read_port());
+const port = Port(read_port());
 ```
 
 ## 6. 构造函数重载解析
 
-显式 `Type(argument)` 调用考虑普通构造函数和 `implicit constructor`。
+显式 `Type(argument)` 调用考虑普通构造函数和 `implicit` 构造函数。
 
-目标初始化只考虑 `implicit constructor`。
+目标初始化只考虑 `implicit` 构造函数。
 
 重载解析遵守以下原则：
 
@@ -191,27 +219,27 @@ let port = Port(read_port());
 
 ```ink
 class Value {
-    implicit func constructor(value: i32) {
+    implicit func Value(value: i32) {
         // ...
     }
 
-    implicit func constructor(value: i64) {
+    implicit func Value(value: i64) {
         // ...
     }
 }
 
-let value: Value = 10;    // 歧义
-let value: Value = 10i32; // 选择 i32 重载
+const value: Value = 10;    // 歧义
+const value: Value = 10i32; // 选择 i32 重载
 ```
 
-添加新的 `implicit constructor` 可能使已有源码产生歧义，因此属于需要进行源码兼容性评估的 API 变更。
+添加新的 `implicit` 构造函数可能使已有源码产生歧义，因此属于需要进行源码兼容性评估的 API 变更。
 
 ## 7. 字面量的抽象值与默认类型
 
 字面量在目标类型确定前是编译期抽象值，不先创建默认运行时值再进行隐式转换。
 
 ```ink
-let small: u8 = 10;
+const small: u8 = 10;
 ```
 
 这里的 `10` 直接实例化为 `u8`，不是先成为 `int` 再从 `int` 隐式转换到 `u8`。
@@ -238,24 +266,24 @@ Unicode 标量字面量 u32
 普通运行时变量不享受字面量实例化规则：
 
 ```ink
-let source: int = 10;
-let target: u8 = source; // 编译错误，不是字面量初始化
+const source: int = 10;
+const target: u8 = source; // 编译错误，不是字面量初始化
 ```
 
 ## 8. 标准库 `UnicodeScalar`
 
-标准库的 `UnicodeScalar` 通过参数类型为编译期专用 `ScalarLiteral` 的 `implicit constructor` 接收编译器标量字面量：
+标准库的 `UnicodeScalar` 通过参数类型为编译期专用 `ScalarLiteral` 的 `implicit` 构造函数接收编译器标量字面量：
 
 ```ink
 class UnicodeScalar {
-    private value: u32;
+    private var value: u32;
 
-    implicit func constructor(literal: ScalarLiteral) {
+    implicit func UnicodeScalar(literal: ScalarLiteral) {
         this.value = literal.codepoint;
     }
 
-    func constructor(value: u32) {
-        if !is_valid_unicode_scalar(value) {
+    func UnicodeScalar(value: u32) {
+        if (!is_valid_unicode_scalar(value)) {
             throw InvalidScalar {};
         }
 
@@ -267,16 +295,16 @@ class UnicodeScalar {
 以下形式都合法：
 
 ```ink
-let first = UnicodeScalar('A');
-let second: UnicodeScalar = '中';
+const first = UnicodeScalar('A');
+const second: UnicodeScalar = '中';
 ```
 
 运行时整数不会隐式调用可能失败的普通构造函数：
 
 ```ink
-let raw: u32 = read_codepoint();
-let third = UnicodeScalar(raw);     // 合法，可能抛出异常
-let fourth: UnicodeScalar = raw;    // 编译错误
+const raw: u32 = read_codepoint();
+const third = UnicodeScalar(raw);     // 合法，可能抛出异常
+const fourth: UnicodeScalar = raw;    // 编译错误
 ```
 
 Ink 不再需要独立的通用 `FromLiteral` 隐式转换接口。
@@ -285,4 +313,35 @@ Ink 不再需要独立的通用 `FromLiteral` 隐式转换接口。
 
 普通构造函数抛出异常并在部分字段初始化后失败时，只清理已经成功初始化的字段，顺序遵守议题 03 和 34。
 
-完整对象构造成功前不调用该对象自身的 `destructor`。构造成功以后，对象进入正常生命周期并按照 RAII 规则清理。
+完整对象构造成功前不调用该对象自身的析构函数。构造成功以后，对象进入正常生命周期并按照 RAII 规则清理。
+
+## 10. 聚合初始化语法
+
+聚合初始化只提供显式类型形式，不引入 `construct` 关键字或省略目标类型的第二套入口：
+
+```ebnf
+aggregate_initialization_expression =
+    type, aggregate_initializer_body ;
+
+aggregate_initializer_body =
+    "{",
+    [
+        aggregate_field_initializer,
+        { ",", aggregate_field_initializer }
+    ],
+    "}" ;
+
+aggregate_field_initializer =
+    identifier, ":", expression ;
+```
+
+```ink
+const point = Point {
+    x: 10,
+    y: 20
+};
+
+const empty = EmptyError {};
+```
+
+v0 只支持命名字段，不提供位置初始化、字段名称简写、展开或基于另一个对象的更新语法。字段列表遵守普通逗号列表规则，不接受尾随逗号。字段是否存在、是否重复、是否可访问、类型是否匹配以及初始化是否完整，均不改变上述 Parser 形状。

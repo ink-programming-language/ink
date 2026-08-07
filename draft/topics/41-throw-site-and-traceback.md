@@ -1,6 +1,6 @@
 # 议题 41：抛出位置与可配置 traceback
 
-> 状态：已确认，议题 42、43 补充，精确诊断 ABI 待定  
+> 状态：已确认，议题 42、43 与 Parser 议题 27 补充，精确诊断 ABI 待定
 > 确认日期：2026-08-02
 
 ## 1. 抛出位置与完整 traceback 分离
@@ -19,7 +19,7 @@ Ink 把异常诊断分成两个层次：
 编译器为每个产生新异常的 `throw` 源码位置生成静态 `ThrowSite` 描述，并在创建 `ExceptionRecord` 时保存对它的引用：
 
 ```ink
-if !file.exists() {
+if (!file.exists()) {
     throw FileNotFound { path }; // 独立 throw site
 }
 ```
@@ -57,7 +57,7 @@ ExceptionRecord {
 - 直接构造并抛出异常；
 - 从命名异常变量复制并抛出；
 - 在处理器中抛出一个新的包装异常；
-- 使用议题 40 的 `throw NewError { ... } from error`。
+- 使用议题 40 的 `throw NewError { ... } from error;`。
 
 被调用函数内部抛出的异常记录该函数自己的 `throw` 位置，而不是调用表达式的位置。异常从多少层普通函数传播都不会改变原始 `throw_site`。
 

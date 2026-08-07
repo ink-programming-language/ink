@@ -22,14 +22,14 @@ Ink 的动态反射采用“编译器生成描述符与适配器，加借用型�
 用户侧 API 保持强类型外观：
 
 ```ink
-if let .some(type) = reflection.find_type("game.Player") {
-    if let .some(health) = type.property("health") {
-        let value = health.get[i32](&player);
+if (match .some(type) = reflection.find_type("game.Player")) {
+    if (match .some(health) = type.property("health")) {
+        const value = health.get[i32](&player);
         health.set[i32](&player, 80);
     }
 
-    if let .some(function) = type.function("take_damage") {
-        let result = function.call[bool](&player, 10i32);
+    if (match .some(function) = type.function("take_damage")) {
+        const result = function.call[bool](&player, 10i32);
     }
 }
 ```
@@ -44,9 +44,9 @@ if let .some(type) = reflection.find_type("game.Player") {
 
 ```ink
 class DynamicRef {
-    data: void*;
-    type: TypeHandle;
-    mutable: bool;
+    var data: void*;
+    var type: TypeHandle;
+    var mutable: bool;
     // 实现还保存与借用和布局版本有关的状态
 }
 ```
@@ -70,8 +70,8 @@ class DynamicRef {
 安全构造入口只接受有效的普通 Ink 引用：
 
 ```ink
-let read_only = DynamicRef.from(&const_value);
-let writable = DynamicRef.from(&mutable_value);
+const read_only = DynamicRef.from(&const_value);
+const writable = DynamicRef.from(&mutable_value);
 ```
 
 从裸地址建立动态引用的底层入口必须要求调用者保证地址、对齐、类型、初始化状态、生命周期和可变性契约；违反契约属于普通原始指针 UB。常用反射 API 不使用该入口。
@@ -81,7 +81,7 @@ let writable = DynamicRef.from(&mutable_value);
 可复制字段可以按值读取：
 
 ```ink
-let health = property.get[i32](&player);
+const health = property.get[i32](&player);
 ```
 
 `get[T]` 只在运行时字段类型与 `T` 完全一致且 `T` 可复制时成功。它执行 Ink 的普通复制，不引入隐藏移动语义。
@@ -89,8 +89,8 @@ let health = property.get[i32](&player);
 任意字段，包括 `[noncopyable]` 字段，都可以按引用借用：
 
 ```ink
-let file: const File& = property.borrow[File](&object);
-let buffer: Buffer& = property.borrow_mut[Buffer](&mutable_object);
+const file: const File& = property.borrow[File](&object);
+const buffer: Buffer& = property.borrow_mut[Buffer](&mutable_object);
 ```
 
 - `borrow[T]` 返回只读引用；

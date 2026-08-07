@@ -16,8 +16,8 @@ task.request_cancel();
 概念签名为：
 
 ```ink
-class Task<T: comptime type> {
-    func request_cancel(this: Task<T>&);
+class Task<T: type> {
+    func request_cancel();
 }
 ```
 
@@ -60,7 +60,7 @@ not requested → requested
 var task = operation();
 
 task.request_cancel();
-let result = await task;
+const result = await task;
 ```
 
 `operation` 仍按照议题 44 开始执行，并可以从第一次用户代码开始观察：

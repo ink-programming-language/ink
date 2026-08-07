@@ -1,6 +1,6 @@
 # 议题 54：异步成员函数的 `this` 是非拥有原始指针
 
-> 状态：已确认，议题 55—57 补充异步虚函数、接口与反射  
+> 状态：已确认，议题 55—57 补充异步虚函数、接口与反射；Parser 议题 31 确认异步成员声明与只读接收者语法
 > 确认日期：2026-08-02
 
 ## 1. 保留普通成员函数语法
@@ -38,7 +38,17 @@ connection.read()
     → do not execute method body yet
 ```
 
-在异步成员函数体中，显式 `this` 表达式具有指向当前类对象的原始指针语义，成员访问可以写成 `this->member`。接收者的只读限定必须保留为相应的 `const Type*` 语义，降低成原始指针不能丢失可变性限制。
+在异步成员函数体中，显式 `this` 表达式具有指向当前类对象的原始指针语义，成员访问可以写成 `this->member`。尾随 `const` 采用议题 24 的普通成员接收者规则：
+
+```ink
+class Connection {
+    async func state() const -> ConnectionState {
+        return this->current_state;
+    }
+}
+```
+
+该异步成员的接收者必须保留为 `const Connection*` 语义，降低并保存进任务帧的原始指针不能丢失只读限制。没有尾随 `const` 的异步成员继续使用可写接收者。
 
 ## 3. 不复制或延长对象生命周期
 
@@ -62,7 +72,7 @@ async func inspect() -> ptrsize {
     var file = File.open("data.txt");
     var task = file.size_async();
 
-    let size = await task;
+    const size = await task;
     return size;
 } // task 已结束并先于 file 析构
 ```
@@ -80,7 +90,7 @@ func make_task() -> Task<ptrsize> {
 } // file 已析构，返回的 Task 仍保存 &file
 
 var task = make_task();
-let size = await task; // 解引用悬空 this：UB
+const size = await task; // 解引用悬空 this：UB
 ```
 
 错误不是“返回 `Task`”本身，也不是移动任务；返回位置可以按议题 02 原地构造任务。错误在于 `file` 早于其异步成员任务的最终状态结束生命周期，违反了第 3 节的接收者契约；任务以后通过原始 `this` 指针访问对象时会表现为悬空访问 UB。
@@ -118,7 +128,7 @@ let size = await task; // 解引用悬空 this：UB
 
 异步成员函数的隐式接收者固定表示为原始 `this` 指针，而不是普通引用。这是成员调用与任务帧 ABI 的选择，不是为了绕过引用限制。无论任务保存原始 `this` 指针还是某个显式普通引用参数，都不会延长目标生命周期；悬空后访问属于 UB。
 
-同步成员函数、`constructor` 和 `destructor` 的既有接收者 ABI 不因本议题改变。`destructor(this: Type&)` 的接收者本身只是析构期间的普通非拥有引用；如果程序把从它派生的引用或指针保存到对象生命周期之后，后续访问同样属于 UB。
+同步成员函数、构造函数和析构函数的既有接收者 ABI 不因本议题改变。`func ~Type()` 在源码中省略接收者，其隐式 `this` 本身只是析构期间的普通非拥有可写引用；如果程序把从它派生的引用或指针保存到对象生命周期之后，后续访问同样属于 UB。
 
 议题 06 禁止完整对象构造完成前让 `this` 逃逸。构造函数内创建异步成员任务并把它保存到构造边界之外，同样属于 `this` 逃逸并保持编译错误；不能因为帧内表示是原始指针而绕过构造期规则。
 

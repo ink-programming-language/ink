@@ -1,6 +1,6 @@
 # Parser 议题 07：逗号分隔列表
 
-> 状态：已确认  
+> 状态：已确认，议题 24 补充 `match_expression` 分支结束逗号；议题 27 同步上下文 `from`；议题 29 补充列表展开；2026-08-05 确认枚举分支继续禁止尾随逗号
 > 确认日期：2026-08-03
 
 ## 1. 普通列表规则
@@ -84,15 +84,31 @@ func run(
 
 某项语法如果使用分号或其他分隔符，不受本议题自动影响。未来增加的新逗号列表默认遵守本议题，除非其议题明确说明它属于元组消歧例外。
 
+枚举分支已经确认继续使用本规则：
+
+```ink
+enum Color {
+    red,
+    green,
+    blue
+}
+```
+
+`blue` 后不能添加尾随逗号。带载荷分支和显式判别值分支遵守同一分隔规则。
+
+枚举的外层 body 可以省略整个 `enum_branch_list` 形成 `{}`；这表示列表不存在，不是由空元素或尾随逗号表示空列表。
+
 ## 6. `from` 成员导入
 
 成员导入直接使用普通列表规则：
 
 ```ebnf
 member_import_declaration =
-    "from", module_path, "import", imported_member,
+    contextual_from, module_path, "import", imported_member,
     { ",", imported_member }, ";" ;
 ```
+
+`contextual_from` 是 Parser 议题 04 定义的准确拼写为 `from` 的 Identifier Token；它不改变本节的逗号列表规则。
 
 单行和多行均可：
 
@@ -141,12 +157,38 @@ multiple_element_tuple =
 
 单元素元组中的逗号承担语法消歧作用，不是普通列表的可选格式符号。
 
-## 8. CST 与恢复
+## 8. 列表展开不改变源码逗号规则
+
+议题 29 使用前置 `...expression` 作为调用、泛型、元组类型和元组值列表中的一个源码元素：
+
+```ink
+target(prefix, ...values)
+Other<Header, ...Types, Footer>
+(header, ...values, footer)
+(Header, ...Types, Footer)
+```
+
+Parser 先按照源码元素验证逗号，不提前展开元素数量。展开空序列不会使前导、连续或尾随逗号合法。单独的 `(...values)` 和 `(...Types)` 由 `...` 明确选择元组结构，不需要单元素尾随逗号；`(...values,)` 和 `(...Types,)` 仍然非法。
+
+## 9. `match_expression` 的分支结束逗号
+
+议题 24 要求每个 `match_expression_arm` 都以逗号结束，包括最后一个分支：
+
+```ink
+const value = match (optional) {
+    .none => 0,
+    .some(item) => item.value,
+};
+```
+
+这里的每个逗号都是对应 arm 产生式的必需结束 Token，不是普通逗号列表中的可选尾随逗号。因此最后一个逗号不能省略，`match_statement` 分支则完全不使用逗号。
+
+## 10. CST 与恢复
 
 每个逗号仍是独立的 `Symbol(',')` Token，并作为列表 CST 的真实叶节点保留。Parser 遇到连续、前导或尾随逗号时，按照议题 03 形成 `ErrorNode` 或缺失元素恢复结构，不能删除真实逗号。
 
 具体错误信息由未来独立 diagnostics draft 规定。
 
-## 9. 确认结论
+## 11. 确认结论
 
-Ink 的普通逗号列表由一个元素和零个或多个“逗号加元素”组成，不接受尾随逗号。多行布局不改变规则。唯一例外是 `(element,)` 形式的单元素元组，其中逗号用于区分括号结构；两个及以上元素的元组同样禁止尾随逗号。
+Ink 的普通逗号列表由一个元素和零个或多个“逗号加元素”组成，不接受尾随逗号。多行布局和语义阶段的列表展开不改变源码逗号规则。`(element,)` 的逗号用于单元素元组消歧；单独的 `(...expression)` 由展开标记完成消歧；`match_expression_arm` 的逗号用于结束每个分支。这些都由各自结构的专用产生式要求，不是普通列表的可选尾随格式。

@@ -1,6 +1,6 @@
 # Parser 议题 13：表达式求值顺序
 
-> 状态：已确认  
+> 状态：已确认，Parser 议题 15 补充命名实参与默认值求值顺序
 > 确认日期：2026-08-03
 
 ## 1. 统一规则
@@ -61,7 +61,7 @@ cached || load_cache()
 
 ## 4. 调用
 
-函数调用先计算被调用对象，再按照源码顺序从左到右计算实参：
+函数调用先计算被调用对象，再按照源码顺序从左到右计算全部显式位置实参、列表展开和命名实参：
 
 ```ink
 select_function()(first(), second(), third());
@@ -79,6 +79,14 @@ select_function()
 
 普通直接函数名本身通常不产生运行时动作，但仍占据被调用对象的位置；该规则同样适用于函数值、函数指针、虚函数、接口调用和其他可调用对象。
 
+命名实参改变参数绑定位置，不改变求值顺序：
+
+```ink
+connect(second = make_second(), first = make_first());
+```
+
+仍然先执行 `make_second()`，再执行 `make_first()`。参数名称是否重复、能否绑定目标声明以及省略位置如何由默认值补全，由语义分析确定。
+
 成员调用先计算接收对象，再从左到右计算实参：
 
 ```ink
@@ -87,7 +95,7 @@ make_object().process(first(), second());
 
 顺序固定为 `make_object()`、`first()`、`second()`，然后进入 `process`。
 
-省略的普通默认实参在对应调用处执行。由于 Ink 只允许省略连续的尾部参数，调用先从左到右计算所有显式实参，再从左到右计算省略参数的默认表达式。
+省略的普通默认实参在对应调用处执行。调用先从左到右计算全部显式实参，再按照形参声明顺序从左到右计算尚未绑定参数的默认表达式；命名实参可以跳过某个具有默认值的参数并显式绑定其后的参数。
 
 ## 5. 索引、成员访问与后缀链
 
@@ -123,7 +131,7 @@ make_container().items[next_index()].read()
 `if` 表达式先计算条件，然后只计算被选择的一个分支：
 
 ```ink
-let value = if condition() then when_true() else when_false();
+const value = if (condition()) when_true() else when_false();
 ```
 
 `condition()` 为 `true` 时只执行 `when_true()`；为 `false` 时只执行 `when_false()`。未选择的分支不产生任何运行时或编译期效果。
@@ -161,11 +169,11 @@ consume(first(), may_throw(), third());
 相同 Ink 表达式在编译期执行和运行时执行时使用相同的求值顺序：
 
 ```ink
-comptime_call(first(), second());
+comptime compile_time_call(first(), second());
 runtime_call(first(), second());
 ```
 
-`comptime` 不能把实参顺序、短路行为或未选择分支改成另一套语义。编译期允许的文件读取、反射、声明生成等效果同样按照源码顺序发生。
+`comptime` 不能把实参顺序、短路行为或未选择分支改成另一套语义。编译期允许的文件读取、反射、声明展开等效果同样按照源码顺序发生。
 
 ## 11. 优化器边界
 

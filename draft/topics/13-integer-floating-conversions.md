@@ -10,17 +10,17 @@
 具体整数与浮点类型之间不进行隐式转换：
 
 ```ink
-let integer: i32 = 10;
-let invalid: f32 = integer;           // 编译错误
-let valid: f32 = cast<f32>(integer);  // 合法
+const integer: i32 = 10;
+const invalid: f32 = integer;           // 编译错误
+const valid: f32 = cast<f32>(integer);  // 合法
 ```
 
 不同宽度的具体浮点类型之间也不进行隐式转换：
 
 ```ink
-let narrow: f32 = 1.5f32;
-let invalid: f64 = narrow;           // 编译错误
-let valid: f64 = cast<f64>(narrow);  // 合法
+const narrow: f32 = 1.5f32;
+const invalid: f64 = narrow;           // 编译错误
+const valid: f64 = cast<f64>(narrow);  // 合法
 ```
 
 抽象数字字面量仍按照议题 06 直接实例化为目标类型，不属于具体类型间的隐式转换。
@@ -30,16 +30,16 @@ let valid: f64 = cast<f64>(narrow);  // 合法
 普通算术运算要求两个操作数具有相同的具体数值类型。Ink 不自动把整数提升为浮点数，也不自动寻找共同浮点宽度。
 
 ```ink
-let integer: i32 = 10;
-let floating: f32 = 2.5f32;
+const integer: i32 = 10;
+const floating: f32 = 2.5f32;
 
 integer + floating;                    // 编译错误
 cast<f32>(integer) + floating;         // 合法
 ```
 
 ```ink
-let a: f32 = 1.0f32;
-let b: f64 = 2.0f64;
+const a: f32 = 1.0f32;
+const b: f64 = 2.0f64;
 
 a + b;                                 // 编译错误
 cast<f64>(a) + b;                      // 合法
@@ -56,8 +56,8 @@ cast<f64>(a) + b;                      // 合法
 - 不执行运行时精度检查。
 
 ```ink
-let exact = cast<f32>(16_777_216);   // 16_777_216.0
-let rounded = cast<f32>(16_777_217); // 16_777_216.0
+const exact = cast<f32>(16_777_216);   // 16_777_216.0
+const rounded = cast<f32>(16_777_217); // 16_777_216.0
 ```
 
 当编译器能够确定转换丢失精度或溢出为 Infinity 时，必须产生 warning，但仍生成规定结果。
@@ -67,8 +67,8 @@ let rounded = cast<f32>(16_777_217); // 16_777_216.0
 `cast<I>(floating)` 首先向零截断浮点数的小数部分：
 
 ```ink
-let positive = cast<i32>(12.9f64);  // 12
-let negative = cast<i32>(-12.9f64); // -12
+const positive = cast<i32>(12.9f64);  // 12
+const negative = cast<i32>(-12.9f64); // -12
 ```
 
 如果截断后的数学整数能由目标整数类型 I 表示，结果具有跨平台固定语义。
@@ -80,9 +80,9 @@ let negative = cast<i32>(-12.9f64); // -12
 - 向零截断后的整数超出目标整数类型的范围。
 
 ```ink
-let first = cast<i32>(f64.infinity); // PDB
-let second = cast<u8>(-1.0f32);      // PDB
-let third = cast<i8>(128.0f32);      // PDB
+const first = cast<i32>(f64.infinity); // PDB
+const second = cast<u8>(-1.0f32);      // PDB
+const third = cast<i8>(128.0f32);      // PDB
 ```
 
 编译器不为这些输入自动插入范围检查、饱和、回绕或 trap。它必须保留目标平台配置中记录的原生转换行为，并且不能把 PDB 输入当作 UB 或不可达路径。
@@ -97,8 +97,8 @@ let third = cast<i8>(128.0f32);      // PDB
 - 缩窄下溢遵守议题 12 及后续浮点环境议题规定的 subnormal 规则。
 
 ```ink
-let wider = cast<f64>(1.5f32);
-let narrower = cast<f32>(wider);
+const wider = cast<f64>(1.5f32);
+const narrower = cast<f32>(wider);
 ```
 
 NaN payload 的具体传播继续由议题 12 保留为后续问题。

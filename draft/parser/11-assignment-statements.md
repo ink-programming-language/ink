@@ -1,6 +1,6 @@
 # Parser 议题 11：赋值语句
 
-> 状态：已确认  
+> 状态：已确认；赋值左侧按普通 `expression` 解析，可写性由语义分析检查
 > 确认日期：2026-08-03
 
 ## 1. 赋值是语句
@@ -9,7 +9,7 @@ Ink 的赋值是独立语句，不是表达式：
 
 ```ebnf
 assignment_statement =
-    assignment_target, assignment_operator, expression, ";" ;
+    expression, assignment_operator, expression, ";" ;
 
 assignment_operator =
     "="
@@ -18,7 +18,18 @@ assignment_operator =
   | "<<=" | ">>=" ;
 ```
 
-`assignment_target` 的具体表达式形状由后续 `place_expression` 议题定义；语义上它必须表示一个可写存储位置。
+Parser 不定义 `assignment_target` 或 `place_expression` 非终结符。左侧先建立普通 Expression CST；名称绑定、重载选择和值类别确定以后，语义分析再检查它是否表示当前上下文中的可写存储位置。
+
+因此下列语句语法成立，但语义检查失败：
+
+```ink
+1 = 2;
+true = false;
+```
+
+反过来，若 `slot()` 的结果类型是可写 `T&`，`slot() = value;` 可以通过语义检查。仅凭函数调用的语法形状无法判断它是不是 place。
+
+这与取地址表达式采用相同边界：Parser 负责识别表达式结构，语义阶段负责判断表达式是否产生 place，以及该 place 是否可写。
 
 ## 2. 普通赋值
 
@@ -43,16 +54,16 @@ pointer->field = value;
 var a = 0;
 a = 10;           // 合法
 
-let x = (a = 10); // 非法
+const x = (a = 10); // 非法
 consume(a = 10);  // 非法
-if a = 10 { }     // 非法
+if (a = 10) { }     // 非法
 ```
 
 这避免把条件比较误写成赋值，也不需要定义赋值表达式返回目标引用、写入后的值还是原始右值。
 
 ## 4. 禁止链式赋值
 
-每条赋值语句准确包含一个 `assignment_target` 和一个 `assignment_operator`。链式赋值非法：
+每条赋值语句准确包含一个左侧表达式、一个 `assignment_operator` 和一个右侧表达式。链式赋值非法：
 
 ```ink
 a = b = value;
@@ -70,7 +81,7 @@ Ink 不定义链式赋值的右到左传播、中间类型转换、部分更新�
 
 ## 5. 禁止多目标赋值
 
-普通赋值左侧不能是逗号分隔目标或元组目标：
+普通赋值不提供逗号分隔目标或元组解构语义：
 
 ```ink
 a, b = 1, 2;
@@ -78,7 +89,9 @@ a, b = 1, 2;
 (a, b) = (b, a);
 ```
 
-这些形式不属于本议题。未来如果增加解构赋值，必须使用独立产生式并定义其复制、借用、临时对象和失败语义，不能改变普通单目标赋值。
+`a, b = 1, 2;` 不能组成上述单表达式 EBNF。`(a, b) = pair;` 和 `(a, b) = (b, a);` 的左侧可以先解析成普通元组表达式，但该表达式不是可写 place，因而语义检查失败。
+
+未来如果增加解构赋值，必须使用独立产生式并定义其复制、借用、临时对象和失败语义，不能把普通元组表达式悄然解释为多个写入目标。
 
 ## 6. 复合赋值
 
@@ -132,9 +145,9 @@ array[next_index()] = make_value();
 - 可写数组、切片或索引位置；
 - 通过 `T*`、`T&` 等可写访问路径取得的位置。
 
-`let` 和 `const` 绑定本身不能重新赋值；`const T*`、`const T&` 或其他只读访问路径不能用于写入目标。指针绑定是否可重新赋值与其指向对象是否可写仍是两项独立能力。
+`const` 绑定本身不能重新赋值；`const T*`、`const T&` 或其他只读访问路径不能用于写入目标。指针绑定是否可重新赋值与其指向对象是否可写仍是两项独立能力。
 
-可写性是语义检查，不改变 Parser 对 assignment target CST 的构造。
+可写性完全是语义检查，不改变 Parser 已经建立的左侧 Expression CST，也不要求 Parser 将表达式提前改写成专用目标节点。
 
 ## 9. 符号邻接
 
@@ -178,10 +191,25 @@ Tokenizer 仍会忠实地产生两个相邻的 `Symbol('+')` 或 `Symbol('-')` T
 
 ## 11. CST 与恢复
 
-赋值 CST 保留目标、构成运算符的全部单字符 Symbol Token、右侧表达式和结尾分号。Parser 在识别目标表达式后，根据下一个连续符号序列区分赋值语句与普通表达式语句。
+赋值 CST 保留左侧表达式、构成运算符的全部单字符 Symbol Token、右侧表达式和结尾分号，不建立 `AssignmentTarget` 节点。Parser 在 statement fallback 中先解析一个普通表达式，再根据紧随其后的连续符号序列区分赋值语句与普通表达式语句：
+
+```text
+left = parse_expression()
+
+if next tokens form assignment_operator:
+    operator = parse_assignment_operator()
+    right = parse_expression()
+    expect ";"
+    return AssignmentStatement(left, operator, right)
+
+expect ";"
+return ExpressionStatement(left)
+```
+
+赋值运算符不属于表达式优先级，所以 `parse_expression()` 会在 `=`、`+=` 等 Token 之前自然停止。该分流只发生在允许语句的入口；括号、实参、初始化器和条件内部仍只调用表达式 Parser，因此不会接受嵌入式赋值。
 
 如果一个赋值运算符之后再次遇到赋值运算符，Parser 不建立链式节点，而是按照议题 03 把后续非法结构保存在 `ErrorNode` 中并同步到语句结束位置。
 
 ## 12. 确认结论
 
-Ink 赋值是无结果的单目标语句。支持普通赋值和常用算术、位运算、移位复合赋值；目标位置与右侧各求值一次。链式赋值、多目标赋值、赋值表达式、复合赋值链以及 `++`、`--` 均不支持。
+Ink 赋值是无结果的单目标语句。左右两侧都按普通表达式解析，左侧是否产生可写 place 由语义分析检查。支持普通赋值和常用算术、位运算、移位复合赋值；目标位置与右侧各求值一次。链式赋值、多目标赋值、赋值表达式、复合赋值链以及 `++`、`--` 均不支持。

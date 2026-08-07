@@ -1,6 +1,6 @@
 # 议题 68：运行时参数包与编译期类型包一一对应
 
-> 状态：已确认，议题 69、70 补充元组构造、展开与闭合重载  
+> 状态：已确认，议题 69、70 补充元组构造、展开与闭合重载；Parser 议题 29、31 确认列表展开与运行时包形参语法
 > 确认日期：2026-08-02
 
 ## 1. 声明语法
@@ -9,11 +9,12 @@
 
 ```ink
 func print_all<
-    Types: comptime type...,
+    Types: type...
 >(
-    values: const Types&...,
+    values: const Types&...
 ) {
-    comptime for index, T in Types {
+    comptime for (const index in 0 .. Types.length) {
+        const T: type = Types[index];
         print(values[index]);
     }
 }
@@ -28,12 +29,12 @@ func print_all<
 ```ink
 print_all<i32, String>(
     &number,
-    &name,
+    &name
 ); // 合法
 
 print_all(
     &number,
-    &name,
+    &name
 ); // 编译错误：缺少显式 Types
 ```
 
@@ -46,7 +47,7 @@ print_all(
 ```ink
 func print_all$i32$String(
     first: const i32&,
-    second: const String&,
+    second: const String&
 ) {
     print(first);
     print(second);
@@ -72,15 +73,16 @@ func print_all$i32$String(
 异构包通过编译期循环逐项展开：
 
 ```ink
-comptime for index, T in Types {
-    let value: const T& = values[index];
+comptime for (const index in 0 .. Types.length) {
+    const T: type = Types[index];
+    const value: const T& = values[index];
     process<T>(&value);
 }
 ```
 
 循环体针对每个索引分别完成名称解析、类型检查和 Partial Evaluation。某一元素不支持循环体要求的操作时，对应闭合函数实例编译失败；Ink 不使用该失败建立 SFINAE 候选。
 
-运行时普通 `for value in values` 不合法，因为单个运行时循环变量无法具有随索引变化的静态类型。
+即使写成符合 Parser 议题 25 绑定形状的运行时普通 `for (const value in values)`，该循环仍不合法，因为单个运行时循环变量无法具有随索引变化的静态类型。
 
 ## 6. 传递方式逐项应用
 
@@ -110,18 +112,18 @@ print_all<>(); // 合法
 一个普通函数参数列表最多包含一个运行时参数包，并且它必须位于参数列表末尾：
 
 ```ink
-func valid<Types: comptime type...>(
+func valid<Types: type...>(
     prefix: StringView,
-    values: const Types&...,
+    values: const Types&...
 );
 ```
 
 以下形式非法：
 
 ```ink
-func invalid<Types: comptime type...>(
+func invalid<Types: type...>(
     values: const Types&...,
-    suffix: StringView,
+    suffix: StringView
 );
 ```
 
@@ -132,14 +134,16 @@ func invalid<Types: comptime type...>(
 已有运行时参数包可以在另一个普通实参列表中使用前缀展开：
 
 ```ink
-func forward<Types: comptime type...>(
-    values: const Types&...,
+func forward<Types: type...>(
+    values: const Types&...
 ) {
     target<...Types>(...values);
 }
 ```
 
 `...Types` 使用议题 62 的编译期列表展开，`...values` 按原顺序展开相应运行时实参。目标参数数量、类型和传递方式在展开后按照普通调用规则检查。
+
+Parser 议题 29 把两者统一识别为列表级 `...expression`，并在普通调用、泛型调用和元组构造中保留独立 `ListExpansion` CST 节点。它不是普通一元表达式；运行时位置只能展开本节定义的参数包或未来明确声明可展开的结构。
 
 包只能作为整体按原顺序展开。重新排序、筛选或重复元素应通过 `comptime for` 生成一个明确的普通调用，而不是依赖运行时包切片操作。
 
@@ -152,7 +156,7 @@ func forward<Types: comptime type...>(
 闭合实例具有固定普通函数类型：
 
 ```ink
-let entry = &print_all<i32, String>;
+const entry = &print_all<i32, String>;
 ```
 
 该函数值的参数是展开后的 `const i32&` 和 `const String&`，不携带开放参数包。取得开放泛型函数本身的声明句柄继续使用议题 66 的 `GenericFunctionDecl`，不能作为运行时可变参数函数指针调用。

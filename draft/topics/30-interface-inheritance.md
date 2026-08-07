@@ -1,6 +1,6 @@
 # 议题 30：接口继承、重新抽象与接口转换
 
-> 状态：已确认，议题 31、35、56、60 补充  
+> 状态：已确认，2026-08-05 确认泛型接口复用统一泛型参数语法；议题 31、35、56、60、66 与 Parser 议题 33 补充
 > 确认日期：2026-08-02
 
 ## 1. 接口允许多继承
@@ -21,7 +21,25 @@ interface SeekableReader : Reader, Seekable {
 }
 ```
 
-接口继承不受类的单一具体继承限制，因为接口没有实例字段、构造函数、`destructor` 或父类子对象。接口继承只组合方法契约、默认实现、元数据和接口转换关系。
+接口继承不受类的单一具体继承限制，因为接口没有实例字段、构造函数、析构函数或父类子对象。接口继承只组合方法契约、默认实现、元数据和接口转换关系。
+
+接口可以声明泛型参数，并与泛型类、泛型函数复用同一套泛型参数和实例化规则，不引入接口专用泛型语法：
+
+```ink
+interface Iterable<T: type> {
+    func iterator() -> Iterator<T>;
+}
+
+interface RandomAccessRange<T: type> : Iterable<T> {
+    func at(index: ptrsize) const -> const T&;
+}
+
+class Vector<T: type> : RandomAccessRange<T> {
+    // ...
+}
+```
+
+开放声明 `Iterable` 是议题 66 的 `GenericTypeDecl`，不是可直接用在继承列表中的闭合 `type`；`Iterable<i32>`、`Iterable<string>` 等实例分别形成不同的接口类型。泛型接口继承可以在父接口实参中引用当前接口的泛型参数，例如 `RandomAccessRange<T> : Iterable<T>`。Parser 只复用统一的 `generic_parameter_clause`，并按议题 24 的 `inheritance_clause` 把每个父接口位置解析为完整 `type`；实参数量、约束、开放声明误用以及实例化后的继承关系由语义分析检查。
 
 继承图必须是有向无环图。接口直接或间接继承自身时产生编译错误。
 

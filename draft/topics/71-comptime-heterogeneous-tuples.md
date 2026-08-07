@@ -1,6 +1,6 @@
 # 议题 71：现有元组直接承载异构编译期值
 
-> 状态：已确认  
+> 状态：已确认，Parser 议题 30 确认无期望类型时的类型值元组
 > 确认日期：2026-08-02
 
 ## 1. 不增加新的元值容器
@@ -8,11 +8,10 @@
 Ink 不为编译期元编程另外引入 `MetaTuple`、`ComptimeAny`、`ValueList` 或类型擦除容器。议题 69 的普通元组语法可以直接在 `comptime` 求值中保存异构编译期值：
 
 ```ink
-let specification = comptime (
+const specification = comptime (
     i32,
     cast<ptrsize>(16),
-    Vector,
-    Identifier.from("items"),
+    Vector
 );
 ```
 
@@ -22,7 +21,6 @@ let specification = comptime (
 type
 ptrsize
 GenericTypeDecl
-Identifier
 ```
 
 因此整个值具有结构化编译期元组类型：
@@ -33,12 +31,21 @@ Identifier
 
 异构性由元组每个位置的准确静态类型表达，不需要把元素统一转换成 `Any`。
 
+Parser 议题 30 规定没有 `type` 期望时，圆括号中的多个类型值默认形成普通元组值，而不是合并成一个元组类型值。因此：
+
+```ink
+const Types = (i32, String);       // 值类型为 (type, type)
+const Pair: type = (i32, String);  // 值本身是元组类型 (i32, String)
+```
+
+本议题使用前一种普通元组值承载异构编译期元值。
+
 ## 2. `comptime` 只决定求值阶段
 
 元组不会因为在编译期构造就变成另一种语言类型：
 
 ```ink
-let dimensions = comptime (1920, 1080);
+const dimensions = comptime (1920, 1080);
 ```
 
 如果所有元素都是可运行时表示的普通值，编译器可以把已知结果作为普通 `(i32, i32)` 常量残留到运行时；它继续使用议题 69 的正常布局和生命周期规则。
@@ -46,7 +53,7 @@ let dimensions = comptime (1920, 1080);
 如果任一元素是 `type`、`GenericDecl`、`FunctionDecl` 或其他编译期专用值，完整元组不能物化到运行时：
 
 ```ink
-let metadata = comptime (i32, Vector);
+const metadata = comptime (i32, Vector);
 
 runtime_store(metadata); // 编译错误：元组包含编译期专用值
 ```
@@ -58,9 +65,9 @@ runtime_store(metadata); // 编译错误：元组包含编译期专用值
 位置访问沿用议题 69 的 `.0`、`.1` 以及编译期常量索引：
 
 ```ink
-let ElementType: type = specification.0;
-let Alignment: ptrsize = specification.1;
-let Container: GenericTypeDecl = specification.2;
+const ElementType: type = specification.0;
+const Alignment: ptrsize = specification.1;
+const Container: GenericTypeDecl = specification.2;
 ```
 
 每个投影的类型由位置静态确定。普通运行时整数不能索引异构编译期元组；编译期索引必须在访问被 elaboration 和类型检查之前成为已知常量。
@@ -72,7 +79,8 @@ let Container: GenericTypeDecl = specification.2;
 异构元组可以使用 `comptime for` 静态遍历：
 
 ```ink
-comptime for index, element in specification {
+comptime for (const index in 0 .. specification.length) {
+    const element = specification[index];
     // 每轮的 index 和 element 都是编译期已知值。
 }
 ```
@@ -88,52 +96,47 @@ iteration 3: element : Identifier
 
 循环体不是先在一个虚构的公共元素类型下检查一次。每一轮都使用该位置的准确类型重新进行依赖名称绑定、类型检查和 Partial Evaluation，然后把仍依赖运行时值的部分残留为 InkIR。
 
-普通运行时 `for element in specification` 非法，因为单个运行时循环变量不能在不同迭代中改变静态类型。
+普通运行时 `for (const element in specification)` 非法，因为单个运行时循环变量不能在不同迭代中改变静态类型。
 
 ## 5. 循环体必须对实际每一项合法
 
 逐项 elaboration 不等于 SFINAE。循环体会执行的每个实例都必须合法：
 
 - 某轮调用了该元素类型不存在的操作，整个编译期循环失败；
-- `if comptime` 可以根据当前元素的类型或反射信息选择合法分支；
+- `comptime if` 可以根据当前元素的类型或反射信息选择合法分支；
 - 未选择的编译期分支不生成运行时代码；
 - 失败迭代不能被静默丢弃；
 - 循环变量的迭代相关类型不能逃逸到循环外成为一个未知运行时类型。
 
-如果需要收集不同类型的结果，应生成另一个结构化元组、闭合声明或其他编译期已知结构，而不是要求运行时数组容纳它们。
+如果需要收集不同类型的结果，应构造另一个结构化元组、请求闭合声明或使用其他编译期已知结构，而不是要求运行时数组容纳它们。
 
-## 6. 结构化声明生成
+## 6. 驱动静态声明展开
 
-编译期元组可以直接保存生成声明所需的语义值：
+编译期元组可以保存若干类型值，再由 `comptime for` 将同一个静态声明按不同类型展开：
 
 ```ink
-let fields = comptime (
-    (Identifier.from("id"), i64),
-    (Identifier.from("name"), String),
-    (Identifier.from("active"), bool),
-);
+const supported_types = comptime (i64, String, bool);
 
 return class {
-    comptime for field_spec in fields {
-        field(
-            name: field_spec.0,
-            type: field_spec.1,
-        );
+    comptime for (const Element in supported_types) {
+        func encode(value: Element) -> String {
+            return encode_value(value);
+        }
     }
 };
 ```
 
-这里的 `field_spec.1` 是值为 `i64`、`String` 或 `bool` 的一等编译期 `type` 值。`field(...)` 继续接收结构化语义参数，不把字符串重新解析成源码，也不需要公开 Builder。
+每轮的 `Element` 是值为 `i64`、`String` 或 `bool` 的一等编译期 `type` 值。声明名称 `encode` 是源码中的真实 Identifier；循环只产生参数类型不同的普通重载。
 
-生成声明的身份、固定点提交、访问权限和资源预算继续使用议题 61、63、67 的规则。元组只组织输入数据，不绕过声明验证。
+展开声明的身份、固定点提交、访问权限和资源预算继续使用议题 61、63、67 的规则。元组只组织输入数据，不能把字符串或 `Identifier` 元值变成动态声明名称。
 
 ## 7. 编译期函数参数与返回值
 
 编译期可执行函数可以接收和返回准确的元组类型，包括含有元类型的元组：
 
 ```ink
-func primary_field() -> (Identifier, type) {
-    return (Identifier.from("value"), i32);
+func primary_layout() -> (type, ptrsize) {
+    return (i32, cast<ptrsize>(4));
 }
 ```
 
@@ -146,8 +149,8 @@ func primary_field() -> (Identifier, type) {
 议题 62 的参数包仍是具有单一元素类型的不可变编译期序列：
 
 ```text
-Types      : comptime type[]
-Dimensions : comptime ptrsize[]
+Types      : type[] known in the generic context
+Dimensions : ptrsize[] known in the generic context
 ```
 
 它适合数量可变但元素元类型相同的情况。编译期元组适合长度和每个位置类型已经结构化确定的异构情况；两者不是同一个容器，也不互相隐式转换。本议题不增加二者之间的新展开或转换语法。
@@ -174,7 +177,7 @@ Ink 不自动计算“所有元类型的共同基类”，也不因控制流合�
 
 ## 11. 反射、规范化与缓存
 
-编译期反射可以观察元组的有序元素类型，并在元组值已知时逐项取得编译期值。元组作为泛型实参或声明生成输入时，规范化身份至少包含：
+编译期反射可以观察元组的有序元素类型，并在元组值已知时逐项取得编译期值。元组作为泛型实参或静态声明展开输入时，规范化身份至少包含：
 
 ```text
 ordered element types

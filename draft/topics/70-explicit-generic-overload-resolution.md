@@ -23,7 +23,7 @@
 
 ```ink
 func parse(text: StringView) -> Number;
-func parse<Base: comptime u32>(text: StringView) -> Number;
+func parse<Base: u32>(text: StringView) -> Number;
 
 parse(text);     // 只考虑非泛型 parse
 parse<16>(text); // 只考虑能够绑定 <16> 的泛型 parse
@@ -46,8 +46,8 @@ parse<16>(text); // 只考虑能够绑定 <16> 的泛型 parse
 编译期形参的值类型可以区分可绑定候选：
 
 ```ink
-func select<T: comptime type>(value: const T&);
-func select<N: comptime ptrsize>(value: const byte[N]&);
+func select<T: type>(value: const T&);
+func select<N: ptrsize>(value: const byte[N]&);
 
 select<i32>(&number); // 只有第一个声明能够绑定 i32 : type
 select<16>(&bytes);   // 只有第二个声明能够绑定 16 : ptrsize
@@ -60,8 +60,8 @@ select<16>(&bytes);   // 只有第二个声明能够绑定 16 : ptrsize
 完成编译期形参绑定后，编译器求值候选声明头中依赖这些参数的类型和常量，形成准确的闭合普通函数签名：
 
 ```ink
-func consume<T: comptime type>(value: const T&);
-func consume<T: comptime type>(value: const T*);
+func consume<T: type>(value: const T&);
+func consume<T: type>(value: const T*);
 
 consume<i32>(&number_ref); // 比较 const i32& 与 const i32* 候选
 ```
@@ -75,11 +75,11 @@ consume<i32>(&number_ref); // 比较 const i32& 与 const i32* 候选
 闭合候选根据普通实参的数量、参数绑定、限定性和转换等级执行普通重载解析：
 
 ```ink
-func create<T: comptime type>() -> T;
-func create<T: comptime type>(count: ptrsize) -> Vector<T>;
+func create<T: type>() -> T;
+func create<T: type>(count: ptrsize) -> Vector<T>;
 
-let value = create<i32>();
-let items = create<i32>(10);
+const value = create<i32>();
+const items = create<i32>(10);
 ```
 
 运行时默认实参按照议题 65 允许候选接收较少的尾随实参，但不会产生额外重载。运行时参数包按照议题 68 闭合为固定普通参数后参与同一解析。
@@ -93,8 +93,8 @@ let items = create<i32>(10);
 候选解析只需要闭合声明头。编译器选出唯一最佳候选后，才对该候选的函数体执行议题 61 的 Partial Evaluation、依赖名称检查和 InkIR 生成：
 
 ```ink
-func encode<T: comptime type>(value: const T&) {
-    if comptime reflect(T).is_integer {
+func encode<T: type>(value: const T&) {
+    comptime if (reflect(T).is_integer) {
         encode_integer(value);
     } else {
         compile_error("encode does not support this type");
@@ -112,20 +112,20 @@ Ink 不把下列失败静默转换为候选移除：
 
 - 依赖声明头求值失败；
 - 函数体中的成员访问不存在；
-- `if comptime` 走到错误分支；
+- `comptime if` 走到错误分支；
 - 参数包展开体对某一元素非法；
 - 用户显式触发 `compile_error`；
 - Partial Evaluation 超出资源预算或不能收敛。
 
-这些失败都不能用来模拟 C++ SFINAE、`requires` 或偏特化排序。需要按类型类别选择实现时，应在一个合法泛型函数体内使用 `if comptime`，或声明能够由普通闭合参数签名明确区分的重载。
+这些失败都不能用来模拟 C++ SFINAE、`requires` 或偏特化排序。需要按类型类别选择实现时，应在一个合法泛型函数体内使用 `comptime if`，或声明能够由普通闭合参数签名明确区分的重载。
 
 ## 8. 泛型声明的重定义判定
 
 泛型参数名称不参与声明身份。两个声明在泛型形参名称规范化后具有相同的泛型形参结构和相同普通函数签名模式时，属于同一签名的重定义：
 
 ```ink
-func encode<T: comptime type>(value: const T&);
-func encode<U: comptime type>(value: const U&); // 编译错误：重定义
+func encode<T: type>(value: const T&);
+func encode<U: type>(value: const U&); // 编译错误：重定义
 ```
 
 下列内容不能区分重载：
@@ -133,14 +133,14 @@ func encode<U: comptime type>(value: const U&); // 编译错误：重定义
 - 泛型形参名称；
 - 编译期或普通参数的默认表达式；
 - 返回类型；
-- 函数体中的 `if comptime` 条件；
+- 函数体中的 `comptime if` 条件；
 - 不参与普通签名身份的属性、元数据或函数体实现差异。
 
 泛型形参数量、每项编译期值类型、最终参数包形状，以及普通参数签名模式按照各自既定签名规则参与区分：
 
 ```ink
-func reserve<T: comptime type>(value: const T&);
-func reserve<N: comptime ptrsize>(value: const byte[N]&); // 可区分
+func reserve<T: type>(value: const T&);
+func reserve<N: ptrsize>(value: const byte[N]&); // 可区分
 ```
 
 不同的开放签名在某组显式实参下可能闭合成同样好的普通候选；这种情况在调用点报告歧义，而不是事后把两个源码声明判为重定义。
@@ -151,7 +151,7 @@ func reserve<N: comptime ptrsize>(value: const byte[N]&); // 可区分
 
 ```ink
 func parse(text: StringView) -> Number;
-func parse<Base: comptime u32 = 10>(text: StringView) -> Number;
+func parse<Base: u32 = 10>(text: StringView) -> Number;
 
 parse(text);   // 普通非泛型声明
 parse<>(text); // 泛型声明，Base = 10
@@ -164,7 +164,7 @@ parse<>(text); // 泛型声明，Base = 10
 普通直接调用具有普通实参，可以在泛型参数绑定后通过闭合签名完成重载解析；擦除的 `GenericFunctionDecl` 变量没有这些信息：
 
 ```ink
-let declaration: comptime GenericFunctionDecl = create;
+const declaration: GenericFunctionDecl = comptime create;
 // 编译错误：create 是泛型重载集合，无法唯一确定声明
 ```
 
@@ -173,11 +173,11 @@ let declaration: comptime GenericFunctionDecl = create;
 需要把其中一种行为作为 `GenericFunctionDecl` 传递时，用户定义名称唯一的普通泛型薄包装：
 
 ```ink
-func create_one<T: comptime type>() -> T {
+func create_one<T: type>() -> T {
     return create<T>();
 }
 
-let declaration: comptime GenericFunctionDecl = create_one;
+const declaration: GenericFunctionDecl = comptime create_one;
 ```
 
 普通闭合函数指针继续直接从函数名称取得，例如 `&create<i32>`，不经过擦除声明句柄。
