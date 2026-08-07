@@ -1,0 +1,8 @@
+[submodule "googletest"]
+	path = src/third_party/googletest
+	url = https://github.com/google/googletest.git
+	shallow = true
+[submodule "llvm"]
+	path = src/third_party/llvm
+	url = https://github.com/llvm/llvm-project.git
+	shallow = true
