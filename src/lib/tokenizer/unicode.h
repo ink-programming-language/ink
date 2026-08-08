@@ -6,22 +6,22 @@
 #include <string>
 #include <string_view>
 
-namespace ink::tokenizer::unicode {
+namespace ink::tokenizer::unicode
+{
+  struct DecodeResult
+  {
+    char32_t Value = 0;
+    std::size_t Length = 0;
+    bool Valid = false;
+  };
 
-struct DecodeResult {
-  char32_t value = 0;
-  std::size_t length = 0;
-  bool valid = false;
-};
-
-DecodeResult decode(std::string_view source, std::size_t offset) noexcept;
-bool is_xid_start(char32_t value) noexcept;
-bool is_xid_continue(char32_t value) noexcept;
-bool is_nfc(std::string_view source);
-bool is_default_ignorable(char32_t value) noexcept;
-bool is_unicode_whitespace(char32_t value) noexcept;
-void append_utf8(std::string& output, char32_t value);
-
-}  // namespace ink::tokenizer::unicode
+  DecodeResult decode(std::string_view Source, std::size_t Offset) noexcept;
+  bool isXidStart(char32_t Value) noexcept;
+  bool isXidContinue(char32_t Value) noexcept;
+  bool isNfc(std::string_view Source);
+  bool isDefaultIgnorable(char32_t Value) noexcept;
+  bool isUnicodeWhitespace(char32_t Value) noexcept;
+  void appendUtf8(std::string &Output, char32_t Value);
+} // namespace ink::tokenizer::unicode
 
 #endif

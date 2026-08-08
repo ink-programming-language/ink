@@ -1,6 +1,6 @@
 # 议题 40：显式异常原因链与 `from`
 
-> 状态：已确认，议题 41—43、47 与 Parser 议题 27 补充
+> 状态：已确认，议题 41—43、47 与 Parser 议题 27 补充；2026-08-08 将 `from` 确认为硬关键字
 > 确认日期：2026-08-02
 
 ## 1. `from` 显式建立原因
@@ -19,15 +19,17 @@ try {
 
 正在传播的新异常是 `ConfigurationError`，原 `ParseError` 记录成为它的直接 `cause`。
 
-`from` 是 `throw` 语句中位于新异常表达式之后的上下文关键字，不是普通二元运算符，也不能在其他表达式位置使用。Tokenizer 议题 04 规定它始终产生普通 `Identifier("from")`；Parser 议题 27 只在已经完成的新异常表达式之后按拼写识别原因子句。成员导入开头是 Parser 议题 06 已确认的另一个上下文位置。
+`from` 是硬关键字。在 `throw` 语句中，它位于已经完成的新异常表达式之后并开始原因子句；在成员导入中，它开始 Parser 议题 06 的成员导入产生式。它不是普通二元运算符，也不能在其他表达式位置使用。Tokenizer 始终为该拼写产生 `Keyword(From)`，Parser 不按 Identifier 拼写进行上下文重分类。
 
-因此普通声明、成员访问以及作为抛出表达式本身的同名标识符仍然合法：
+因此 `from` 不能作为声明名称、成员名称或被抛出的表达式：
 
 ```ink
 const from = fallback_error;
 const text = String.from("hello");
 throw from;
 ```
+
+以上三种写法均为语法错误；需要使用其他 Identifier 拼写。
 
 ## 2. 原因必须是当前处理器绑定
 

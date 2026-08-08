@@ -6,3 +6,7 @@
 	path = src/third_party/llvm
 	url = https://github.com/llvm/llvm-project.git
 	shallow = true
+[submodule "src/third_party/utf8proc"]
+	path = src/third_party/utf8proc
+	url = https://github.com/JuliaStrings/utf8proc.git
+	shallow = true

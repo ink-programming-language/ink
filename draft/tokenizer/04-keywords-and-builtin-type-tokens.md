@@ -1,20 +1,21 @@
-# Tokenizer 议题 04：硬关键字、上下文 `from` 与内建类型 Token
+# Tokenizer 议题 04：硬关键字与内建类型 Token
 
-> 状态：已确认，2026-08-04 移除 `let`、`constructor`、`destructor` 硬关键字并把 `from` 调整为唯一上下文词；2026-08-05 确认 `operator` 无特殊语法，并补齐访问修饰符、`static` 与 `final`
+> 状态：已确认，2026-08-04 移除 `constructor`、`destructor` 硬关键字；2026-08-05 确认 `operator` 无特殊语法，并补齐访问修饰符、`static` 与 `final`；2026-08-08 将 `from` 与 `let` 确认为硬关键字
 > 确认日期：2026-08-04
+> 最近更新：2026-08-08
 
-## 1. 唯一的上下文词 `from`
+## 1. 硬关键字 `from` 与 `let`
 
-Ink v0 只有一个 contextual keyword 拼写：`from`。Tokenizer 不为它建立 Keyword Token，也不根据前后语法环境改变 TokenKind；每次扫描到该完整拼写都产生普通 `Identifier("from")`。
+`from` 与 `let` 都是硬关键字。Tokenizer 每次扫描到这两个完整拼写都产生对应的 `Keyword` Token，不根据前后语法环境改变 TokenKind，也不把它们回退为 Identifier。
 
-Parser 只在两个已经确认的位置按准确拼写解释这个 Identifier：
+Parser 在两个已经确认的位置使用 `from`：
 
 - Parser 议题 06 的 `from module.path import member;` 成员导入开头；
 - Parser 议题 27 中已经完成的新异常表达式之后，即 `throw expression from catch_binding;` 的原因子句。
 
-其他位置的 `from` 都是普通标识符，包括声明名称、表达式起始位置和成员名。Ink v0 没有第二个上下文关键字。
+`let` 保留供语言使用，但当前 Parser 文法不以它引导绑定声明；现有绑定声明仍只使用 `var` 与 `const`。它与 `from` 一样不能作为声明名称、表达式中的普通名称或成员名；需要识别它时，Parser 可以直接检查 `KeywordKind`，不需要读取 Identifier 文本。
 
-除这一明确例外外，完整 ASCII 拼写要么始终按硬关键字或内建类型分类，要么始终是普通 Identifier。关键字分类只依赖议题 03 已经完成 XID 扫描和 NFC 验证后的完整拼写；Tokenizer 不进行 Parser 回退或语法猜测。类名构造函数和 `~类名` 析构函数由 Parser 在类成员声明上下文中识别，不改变类名 Identifier 的 TokenKind。
+Ink v0 没有上下文关键字。完整 ASCII 拼写要么始终按硬关键字或内建类型分类，要么始终是普通 Identifier。关键字分类只依赖议题 03 已经完成 XID 扫描和 NFC 验证后的完整拼写；Tokenizer 不进行 Parser 回退或语法猜测。类名构造函数和 `~类名` 析构函数由 Parser 在类成员声明上下文中识别，不改变类名 Identifier 的 TokenKind。
 
 ## 2. Token 分类
 
@@ -53,12 +54,14 @@ enum
 extern
 final
 for
+from
 func
 if
 implicit
 import
 in
 interface
+let
 match
 override
 private
@@ -89,22 +92,20 @@ access_modifier =
 
 `static` 与 `final` 同样属于硬关键字。`static` 在类成员函数声明中表示该函数没有隐式接收者；`final` 可以封闭类的具体继承或封闭一个虚函数槽。Parser 议题 31 保存对应函数声明修饰符，能否出现在当前声明上下文以及它们与其他修饰符的组合是否合法，由语义分析检查。
 
-`from`、`let`、`constructor`、`destructor` 和 `operator` 都不在硬关键字表中：
+`constructor`、`destructor` 和 `operator` 不在硬关键字表中：
 
-- `from` 始终产生 `Identifier("from")`，Parser 只在第 1 节列出的两个位置赋予上下文含义；
-- `let` 按普通标识符规则产生 `Identifier("let")`，Parser 不接受它作为绑定声明的起始 Token；
 - `constructor` 和 `destructor` 是普通 Identifier，可以作为普通声明或成员名称；它们不再标记生命周期函数。
 - `operator` 是普通 Identifier；Ink v0 不提供 `operator+`、`operator[]`、`operator()` 等运算符重载声明语法，也不把它解释成上下文关键字。
 
 因此以下普通标识符用法合法：
 
 ```ink
-const from = fallback_error;
-const text = String.from("hello");
-throw from;
+func constructor() {}
+object.destructor()
+func operator() {}
 ```
 
-最后一行中的 `from` 是新异常表达式的变量名，不是原因标记。相比之下，下面两个位置由 Parser 识别上下文含义，但其底层 Token 仍是 Identifier：
+相比之下，以下两个位置的 `from` 都产生硬关键字 Token：
 
 ```ink
 from core.io import File;
@@ -274,7 +275,7 @@ scan maximal IdentifierStart IdentifierContinue*
 → otherwise emit Identifier
 ```
 
-`from` 不在 hard-keyword lookup 中命中，因此总是走到最后一步。上下文识别发生在 Tokenizer 完成整个 Token 流之后，不改变上述扫描顺序。
+`from`、`let`、`public`、`protected`、`static` 与 `final` 都在 hard-keyword lookup 中命中。`constructor`、`destructor` 与 `operator` 不命中任何保留拼写，因而走到最后一步并产生 Identifier。
 
 所有保留拼写都是完整词匹配：
 
@@ -288,7 +289,7 @@ Tokenizer 议题 05 规定数字字面量紧邻类型后缀时，后缀属于同
 
 ## 10. 版本兼容性
 
-关键字表、上下文词位置和内建类型表都属于 Ink 语言版本。把一个既有 Identifier 拼写新增为硬关键字或 `BuiltinType` 会改变 token stream；增加新的上下文解释位置虽然不改变 TokenKind，也可能改变既有源码的 parse。两者都属于源码兼容性变更，不能在编译器补丁版本中静默发生。
+关键字表和内建类型表都属于 Ink 语言版本。把一个既有 Identifier 拼写新增为硬关键字或 `BuiltinType` 会改变 token stream，属于源码兼容性变更，不能在编译器补丁版本中静默发生。
 
 词法表只包含已经采用的语法和核心类型，不为尚未确定的功能预留普通英文单词。未来语言版本需要新增保留词时，应提供明确迁移诊断。
 
@@ -298,4 +299,4 @@ Tokenizer 只负责准确分类。硬关键字出现在需要 Identifier 的位�
 
 工具可以建议用户改名，但不能通过把关键字重新解释为 Identifier 继续正常构建。`BuiltinType` 出现在非法表达式或声明位置同样由 parser 或类型检查器根据语法阶段报告。
 
-对于 `from`，Tokenizer 不报告关键字诊断。Parser 只有在成员导入开头或新异常表达式之后匹配准确拼写时才建立对应上下文节点；其他位置按普通 Identifier 继续解析。上下文结构缺失后续 module path、`import`、原因绑定或分号时，也由相应 Parser 议题执行错误恢复。
+`from` 与 `let` 出现在需要 Identifier 的位置时遵循普通硬关键字诊断，不得按上下文回退为 Identifier。当前没有 Parser 产生式接受 `let`；成员导入或异常原因子句缺失后续语法时，由相应 Parser 议题执行错误恢复。

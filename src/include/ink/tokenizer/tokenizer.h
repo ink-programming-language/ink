@@ -1,6 +1,7 @@
 #ifndef INK_TOKENIZER_TOKENIZER_H
 #define INK_TOKENIZER_TOKENIZER_H
 
+#include "ink/core/diagnostic.h"
 #include "ink/tokenizer/token.h"
 
 #include <cstddef>
@@ -8,85 +9,62 @@
 #include <string_view>
 #include <vector>
 
-namespace ink::tokenizer {
+namespace ink::tokenizer
+{
+  struct TokenizerOptions
+  {
+    std::size_t MaxBlockCommentDepth = 1024;
+  };
 
-enum class DiagnosticKind {
-  InvalidUtf8,
-  UnexpectedBom,
-  LoneCarriageReturn,
-  NonAsciiWhitespace,
-  ForbiddenControlCharacter,
-  InvalidCharacter,
-  IdentifierNotNfc,
-  InvisibleCharacter,
-  MissingBaseDigits,
-  DigitOutOfRange,
-  MisplacedNumericSeparator,
-  MissingExponentDigits,
-  UnknownNumericSuffix,
-  InvalidNumericSuffix,
-  UnsupportedNonDecimalFloat,
-  EmptyScalarLiteral,
-  MultipleScalarValues,
-  UnterminatedScalarLiteral,
-  UnknownEscape,
-  InvalidHexEscape,
-  InvalidUnicodeEscape,
-  InvalidUnicodeScalar,
-  UnterminatedStringLiteral,
-  MultilineOpeningLineBreakRequired,
-  UnterminatedMultilineStringLiteral,
-  InvalidMultilineIndentation,
-  UnterminatedBlockComment,
-  BlockCommentNestingLimit,
-};
+  class LexedFile
+  {
+  public:
+    const std::string &source() const noexcept
+    {
+      return Source;
+    }
 
-struct Diagnostic {
-  DiagnosticKind kind = DiagnosticKind::InvalidCharacter;
-  ByteSpan span;
-  std::string message;
-};
+    const std::vector<Token> &tokens() const noexcept
+    {
+      return Tokens;
+    }
 
-inline bool operator==(const Diagnostic& left, const Diagnostic& right) { return left.kind == right.kind && left.span == right.span && left.message == right.message; }
-inline bool operator!=(const Diagnostic& left, const Diagnostic& right) { return !(left == right); }
+    const std::vector<core::Diagnostic> &diagnostics() const noexcept
+    {
+      return Diagnostics;
+    }
 
-struct TokenizerOptions {
-  std::size_t max_block_comment_depth = 1024;
-};
+    const std::vector<std::size_t> &lineStarts() const noexcept
+    {
+      return LineStarts;
+    }
 
-class LexedFile {
- public:
-  const std::string& source() const noexcept { return source_; }
-  const std::vector<Token>& tokens() const noexcept { return tokens_; }
-  const std::vector<Diagnostic>& diagnostics() const noexcept { return diagnostics_; }
-  const std::vector<std::size_t>& line_starts() const noexcept { return line_starts_; }
-  std::string_view raw(const Token& token) const noexcept;
-  std::size_t line_number(std::size_t byte_offset) const noexcept;
-  bool succeeded() const noexcept;
+    std::string_view raw(const Token &Token) const noexcept;
+    std::size_t lineNumber(std::size_t ByteOffset) const noexcept;
+    bool succeeded() const noexcept;
 
- private:
-  LexedFile() = default;
+  private:
+    LexedFile() = default;
 
-  std::string source_;
-  std::vector<Token> tokens_;
-  std::vector<Diagnostic> diagnostics_;
-  std::vector<std::size_t> line_starts_;
+    std::string Source;
+    std::vector<Token> Tokens;
+    std::vector<core::Diagnostic> Diagnostics;
+    std::vector<std::size_t> LineStarts;
 
-  friend class Tokenizer;
-};
+    friend class Tokenizer;
+  };
 
-class Tokenizer {
- public:
-  explicit Tokenizer(TokenizerOptions options = {});
-  LexedFile tokenize(std::string source) const;
+  class Tokenizer
+  {
+  public:
+    explicit Tokenizer(TokenizerOptions Options = {});
+    LexedFile tokenize(std::string Source) const;
 
- private:
-  TokenizerOptions options_;
-};
+  private:
+    TokenizerOptions Options;
+  };
 
-LexedFile tokenize(std::string source, TokenizerOptions options = {});
-const char* diagnostic_kind_name(DiagnosticKind kind) noexcept;
-
-}  // namespace ink::tokenizer
+  LexedFile tokenize(std::string Source, TokenizerOptions Options = {});
+} // namespace ink::tokenizer
 
 #endif

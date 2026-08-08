@@ -1,8 +1,40 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(ink LANGUAGES CXX)
+project(ink LANGUAGES C CXX)
+
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 include(CTest)
+
+set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "LLVM projects required by Ink" FORCE)
+set(LLVM_TARGETS_TO_BUILD "Native" CACHE STRING "LLVM targets required by Ink" FORCE)
+set(LLVM_BUILD_TOOLS OFF CACHE BOOL "Do not build LLVM tools by default" FORCE)
+set(LLVM_BUILD_UTILS OFF CACHE BOOL "Do not build LLVM utilities by default" FORCE)
+set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "Do not generate LLVM test targets" FORCE)
+set(LLVM_INCLUDE_EXAMPLES OFF CACHE BOOL "Do not generate LLVM example targets" FORCE)
+set(LLVM_INCLUDE_BENCHMARKS OFF CACHE BOOL "Do not generate LLVM benchmark targets" FORCE)
+set(LLVM_ENABLE_BINDINGS OFF CACHE BOOL "Do not generate LLVM language bindings" FORCE)
+set(CLANG_BUILD_TOOLS OFF CACHE BOOL "Do not build Clang tools by default" FORCE)
+set(CLANG_INCLUDE_TESTS OFF CACHE BOOL "Do not generate Clang test targets" FORCE)
+set(CLANG_INCLUDE_DOCS OFF CACHE BOOL "Do not generate Clang documentation targets" FORCE)
+set(CLANG_BUILD_EXAMPLES OFF CACHE BOOL "Do not build Clang examples" FORCE)
+set(UTF8PROC_INSTALL OFF CACHE BOOL "Do not install the bundled utf8proc" FORCE)
+set(UTF8PROC_ENABLE_TESTING OFF CACHE BOOL "Do not generate utf8proc test targets" FORCE)
+set(LLVM_DIR "${CMAKE_BINARY_DIR}/third_party/llvm/lib/cmake/llvm" CACHE PATH "LLVM build-tree package directory" FORCE)
+
+add_subdirectory(src/third_party)
+find_package(LLVM 22.1.8 EXACT REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+add_library(ink_llvm INTERFACE)
+add_library(ink::llvm ALIAS ink_llvm)
+target_include_directories(ink_llvm SYSTEM INTERFACE ${LLVM_INCLUDE_DIRS} "${CMAKE_CURRENT_SOURCE_DIR}/src/third_party/llvm/clang/lib/Lex")
+target_compile_options(ink_llvm INTERFACE ${LLVM_DEFINITIONS})
+target_link_libraries(ink_llvm INTERFACE LLVMSupport)
+
+add_custom_target(ink_llvm_components DEPENDS LLVMSupport clangBasic)
 
 add_subdirectory(src/lib)
 add_subdirectory(src/tools)
@@ -21,6 +53,5 @@ if(BUILD_TESTING)
 
   add_subdirectory("${INK_GOOGLETEST_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/third_party/googletest" EXCLUDE_FROM_ALL)
   add_subdirectory(src/testcase)
-  add_subdirectory(testcast)
-  add_custom_target(run_all_tests COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}" --build-config "$<CONFIG>" --output-on-failure DEPENDS ink_tests ink_tokenizer_tests COMMENT "Running all Ink tests" USES_TERMINAL VERBATIM)
+  add_custom_target(run_all_tests COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}" --build-config "$<CONFIG>" --output-on-failure DEPENDS ink_tests COMMENT "Running all Ink tests" USES_TERMINAL VERBATIM)
 endif()

@@ -12,965 +12,1298 @@
 #include <utility>
 #include <vector>
 
-namespace ink::tokenizer {
-namespace {
+namespace ink::tokenizer
+{
+  namespace
+  {
+    using core::Diagnostic;
+    using core::DiagnosticKind;
+    using unicode::DecodeResult;
 
-using unicode::DecodeResult;
+    struct KeywordEntry
+    {
+      std::string_view Spelling;
+      KeywordKind Kind;
+    };
 
-struct KeywordEntry {
-  std::string_view spelling;
-  KeywordKind kind;
-};
+    struct BuiltinTypeEntry
+    {
+      std::string_view Spelling;
+      BuiltinTypeKind Kind;
+    };
 
-struct BuiltinTypeEntry {
-  std::string_view spelling;
-  BuiltinTypeKind kind;
-};
+    struct SuffixEntry
+    {
+      std::string_view Spelling;
+      NumericSuffix Suffix;
+      bool Floating;
+    };
 
-struct SuffixEntry {
-  std::string_view spelling;
-  NumericSuffix suffix;
-  bool floating;
-};
+    constexpr KeywordEntry Keywords[] = {
+        {"as", KeywordKind::As},
+        {"async", KeywordKind::Async},
+        {"await", KeywordKind::Await},
+        {"break", KeywordKind::Break},
+        {"catch", KeywordKind::Catch},
+        {"class", KeywordKind::Class},
+        {"comptime", KeywordKind::Comptime},
+        {"const", KeywordKind::Const},
+        {"continue", KeywordKind::Continue},
+        {"decorator", KeywordKind::Decorator},
+        {"defer", KeywordKind::Defer},
+        {"else", KeywordKind::Else},
+        {"enum", KeywordKind::Enum},
+        {"extern", KeywordKind::Extern},
+        {"final", KeywordKind::Final},
+        {"for", KeywordKind::For},
+        {"from", KeywordKind::From},
+        {"func", KeywordKind::Func},
+        {"if", KeywordKind::If},
+        {"implicit", KeywordKind::Implicit},
+        {"import", KeywordKind::Import},
+        {"in", KeywordKind::In},
+        {"interface", KeywordKind::Interface},
+        {"let", KeywordKind::Let},
+        {"match", KeywordKind::Match},
+        {"override", KeywordKind::Override},
+        {"private", KeywordKind::Private},
+        {"protected", KeywordKind::Protected},
+        {"public", KeywordKind::Public},
+        {"return", KeywordKind::Return},
+        {"static", KeywordKind::Static},
+        {"this", KeywordKind::This},
+        {"throw", KeywordKind::Throw},
+        {"try", KeywordKind::Try},
+        {"var", KeywordKind::Var},
+        {"virtual", KeywordKind::Virtual},
+        {"while", KeywordKind::While},
+    };
 
-constexpr KeywordEntry kKeywords[] = {{"as", KeywordKind::As}, {"async", KeywordKind::Async}, {"await", KeywordKind::Await}, {"break", KeywordKind::Break}, {"catch", KeywordKind::Catch}, {"class", KeywordKind::Class}, {"comptime", KeywordKind::Comptime}, {"const", KeywordKind::Const}, {"continue", KeywordKind::Continue}, {"constructor", KeywordKind::Constructor}, {"decorator", KeywordKind::Decorator}, {"defer", KeywordKind::Defer}, {"destructor", KeywordKind::Destructor}, {"else", KeywordKind::Else}, {"enum", KeywordKind::Enum}, {"extern", KeywordKind::Extern}, {"for", KeywordKind::For}, {"from", KeywordKind::From}, {"func", KeywordKind::Func}, {"if", KeywordKind::If}, {"implicit", KeywordKind::Implicit}, {"import", KeywordKind::Import}, {"in", KeywordKind::In}, {"interface", KeywordKind::Interface}, {"let", KeywordKind::Let}, {"match", KeywordKind::Match}, {"override", KeywordKind::Override}, {"private", KeywordKind::Private}, {"return", KeywordKind::Return}, {"this", KeywordKind::This}, {"throw", KeywordKind::Throw}, {"try", KeywordKind::Try}, {"var", KeywordKind::Var}, {"virtual", KeywordKind::Virtual}, {"while", KeywordKind::While}};
+    constexpr BuiltinTypeEntry BuiltinTypes[] = {
+        {"i8", BuiltinTypeKind::I8},
+        {"i16", BuiltinTypeKind::I16},
+        {"i32", BuiltinTypeKind::I32},
+        {"i64", BuiltinTypeKind::I64},
+        {"i128", BuiltinTypeKind::I128},
+        {"u8", BuiltinTypeKind::U8},
+        {"u16", BuiltinTypeKind::U16},
+        {"u32", BuiltinTypeKind::U32},
+        {"u64", BuiltinTypeKind::U64},
+        {"u128", BuiltinTypeKind::U128},
+        {"int", BuiltinTypeKind::Int},
+        {"uint", BuiltinTypeKind::UInt},
+        {"ptrsize", BuiltinTypeKind::PtrSize},
+        {"f16", BuiltinTypeKind::F16},
+        {"f32", BuiltinTypeKind::F32},
+        {"f64", BuiltinTypeKind::F64},
+        {"bool", BuiltinTypeKind::Bool},
+        {"byte", BuiltinTypeKind::Byte},
+        {"void", BuiltinTypeKind::Void},
+        {"never", BuiltinTypeKind::Never},
+        {"type", BuiltinTypeKind::Type},
+    };
 
-constexpr BuiltinTypeEntry kBuiltinTypes[] = {{"i8", BuiltinTypeKind::I8}, {"i16", BuiltinTypeKind::I16}, {"i32", BuiltinTypeKind::I32}, {"i64", BuiltinTypeKind::I64}, {"i128", BuiltinTypeKind::I128}, {"u8", BuiltinTypeKind::U8}, {"u16", BuiltinTypeKind::U16}, {"u32", BuiltinTypeKind::U32}, {"u64", BuiltinTypeKind::U64}, {"u128", BuiltinTypeKind::U128}, {"int", BuiltinTypeKind::Int}, {"uint", BuiltinTypeKind::UInt}, {"ptrsize", BuiltinTypeKind::PtrSize}, {"f16", BuiltinTypeKind::F16}, {"f32", BuiltinTypeKind::F32}, {"f64", BuiltinTypeKind::F64}, {"bool", BuiltinTypeKind::Bool}, {"byte", BuiltinTypeKind::Byte}, {"void", BuiltinTypeKind::Void}, {"never", BuiltinTypeKind::Never}, {"type", BuiltinTypeKind::Type}};
+    constexpr SuffixEntry Suffixes[] = {
+        {"i8", NumericSuffix::I8, false},
+        {"i16", NumericSuffix::I16, false},
+        {"i32", NumericSuffix::I32, false},
+        {"i64", NumericSuffix::I64, false},
+        {"i128", NumericSuffix::I128, false},
+        {"u8", NumericSuffix::U8, false},
+        {"u16", NumericSuffix::U16, false},
+        {"u32", NumericSuffix::U32, false},
+        {"u64", NumericSuffix::U64, false},
+        {"u128", NumericSuffix::U128, false},
+        {"int", NumericSuffix::Int, false},
+        {"uint", NumericSuffix::UInt, false},
+        {"ptrsize", NumericSuffix::PtrSize, false},
+        {"byte", NumericSuffix::Byte, false},
+        {"f16", NumericSuffix::F16, true},
+        {"f32", NumericSuffix::F32, true},
+        {"f64", NumericSuffix::F64, true},
+    };
 
-constexpr SuffixEntry kSuffixes[] = {{"i8", NumericSuffix::I8, false}, {"i16", NumericSuffix::I16, false}, {"i32", NumericSuffix::I32, false}, {"i64", NumericSuffix::I64, false}, {"i128", NumericSuffix::I128, false}, {"u8", NumericSuffix::U8, false}, {"u16", NumericSuffix::U16, false}, {"u32", NumericSuffix::U32, false}, {"u64", NumericSuffix::U64, false}, {"u128", NumericSuffix::U128, false}, {"int", NumericSuffix::Int, false}, {"uint", NumericSuffix::UInt, false}, {"ptrsize", NumericSuffix::PtrSize, false}, {"byte", NumericSuffix::Byte, false}, {"f16", NumericSuffix::F16, true}, {"f32", NumericSuffix::F32, true}, {"f64", NumericSuffix::F64, true}};
+    constexpr std::string_view Symbols = "(){}[],;:.@+-*/%=!&|^~<>";
 
-constexpr std::string_view kSymbols = "(){}[],;:.@+-*/%=!&|^~<>";
-
-bool starts_with(std::string_view source, std::size_t offset, std::string_view expected) noexcept {
-  return offset <= source.size() && expected.size() <= source.size() - offset && source.compare(offset, expected.size(), expected) == 0;
-}
-
-bool is_ascii_digit(char value) noexcept { return value >= '0' && value <= '9'; }
-
-int digit_value(char value) noexcept {
-  if (value >= '0' && value <= '9') {
-    return value - '0';
-  }
-  if (value >= 'a' && value <= 'f') {
-    return value - 'a' + 10;
-  }
-  if (value >= 'A' && value <= 'F') {
-    return value - 'A' + 10;
-  }
-  return -1;
-}
-
-bool is_hex_digit(char value) noexcept { return digit_value(value) >= 0; }
-
-bool is_scalar_value(char32_t value) noexcept { return value <= 0x10FFFF && !(value >= 0xD800 && value <= 0xDFFF); }
-
-bool is_forbidden_control(char32_t value) noexcept { return (value <= 0x1F && value != U'\t' && value != U'\n' && value != U'\r') || value == 0x7F; }
-
-std::string diagnostic_message(DiagnosticKind kind) {
-  return diagnostic_kind_name(kind);
-}
-
-std::string code_point_name(char32_t value) {
-  constexpr char digits[] = "0123456789ABCDEF";
-  std::string result = "U+";
-  std::string hexadecimal;
-  do {
-    hexadecimal.push_back(digits[value & 0xFU]);
-    value >>= 4U;
-  } while (value != 0);
-  while (hexadecimal.size() < 4) {
-    hexadecimal.push_back('0');
-  }
-  result.append(hexadecimal.rbegin(), hexadecimal.rend());
-  return result;
-}
-
-class Scanner {
- public:
-  Scanner(const std::string& source, std::vector<Token>& tokens, std::vector<Diagnostic>& diagnostics, TokenizerOptions options) : source_(source), tokens_(tokens), diagnostics_(diagnostics), options_(options) {}
-
-  void run() {
-    if (starts_with(source_, 0, "\xEF\xBB\xBF")) {
-      tokens_.push_back(make_token(TokenKind::Utf8Bom, 0, 3));
-      position_ = 3;
+    bool startsWith(std::string_view Source, std::size_t Offset, std::string_view Expected) noexcept
+    {
+      return Offset <= Source.size() && Expected.size() <= Source.size() - Offset && Source.compare(Offset, Expected.size(), Expected) == 0;
     }
-    while (position_ < source_.size()) {
-      const std::size_t before = position_;
-      Token token = scan_token();
-      if (position_ <= before) {
-        add_diagnostic(DiagnosticKind::InvalidCharacter, {before, std::min(before + 1, source_.size())});
-        position_ = std::min(before + 1, source_.size());
-        token = make_token(TokenKind::InvalidCharacter, before, position_);
+
+    bool isAsciiDigit(char Value) noexcept
+    {
+      return Value >= '0' && Value <= '9';
+    }
+
+    int digitValue(char Value) noexcept
+    {
+      if (Value >= '0' && Value <= '9')
+      {
+        return Value - '0';
       }
-      tokens_.push_back(std::move(token));
-    }
-    tokens_.push_back(make_token(TokenKind::EndOfFile, source_.size(), source_.size()));
-  }
-
- private:
-  struct LiteralLine {
-    std::size_t start;
-    std::size_t end;
-  };
-
-  Token scan_token() {
-    const std::size_t start = position_;
-    const DecodeResult decoded = unicode::decode(source_, position_);
-    if (!decoded.valid) {
-      position_ += std::max<std::size_t>(decoded.length, 1);
-      add_diagnostic(DiagnosticKind::InvalidUtf8, {start, position_});
-      return make_token(TokenKind::InvalidEncoding, start, position_);
-    }
-
-    if (decoded.value == U'\r') {
-      if (starts_with(source_, position_, "\r\n")) {
-        position_ += 2;
-        return make_token(TokenKind::LineBreak, start, position_);
+      if (Value >= 'a' && Value <= 'f')
+      {
+        return Value - 'a' + 10;
       }
-      position_ += decoded.length;
-      add_diagnostic(DiagnosticKind::LoneCarriageReturn, {start, position_});
-      return make_token(TokenKind::InvalidCharacter, start, position_);
-    }
-    if (decoded.value == U'\n') {
-      ++position_;
-      return make_token(TokenKind::LineBreak, start, position_);
-    }
-    if (decoded.value == U' ' || decoded.value == U'\t') {
-      do {
-        ++position_;
-      } while (position_ < source_.size() && (source_[position_] == ' ' || source_[position_] == '\t'));
-      return make_token(TokenKind::SpacesAndTabs, start, position_);
-    }
-    if (decoded.value == 0xFEFF) {
-      position_ += decoded.length;
-      add_diagnostic(DiagnosticKind::UnexpectedBom, {start, position_});
-      return make_token(TokenKind::InvalidCharacter, start, position_);
-    }
-    if (is_forbidden_control(decoded.value)) {
-      position_ += decoded.length;
-      add_diagnostic(DiagnosticKind::ForbiddenControlCharacter, {start, position_});
-      return make_token(TokenKind::InvalidCharacter, start, position_);
-    }
-    if (unicode::is_unicode_whitespace(decoded.value)) {
-      position_ += decoded.length;
-      add_diagnostic(DiagnosticKind::NonAsciiWhitespace, {start, position_});
-      return make_token(TokenKind::InvalidCharacter, start, position_);
-    }
-    if (starts_with(source_, position_, "//")) {
-      return scan_line_comment();
-    }
-    if (starts_with(source_, position_, "/*")) {
-      return scan_block_comment();
-    }
-    if (starts_with(source_, position_, "r\"\"\"")) {
-      return scan_multiline_string(true);
-    }
-    if (starts_with(source_, position_, "r\"")) {
-      return scan_single_line_string(true);
-    }
-    if (starts_with(source_, position_, "\"\"\"")) {
-      return scan_multiline_string(false);
-    }
-    if (decoded.value == U'"') {
-      return scan_single_line_string(false);
-    }
-    if (decoded.value == U'\'') {
-      return scan_scalar_literal();
-    }
-    if (decoded.value >= U'0' && decoded.value <= U'9') {
-      return scan_number();
-    }
-    if (decoded.value == U'_' || unicode::is_xid_start(decoded.value)) {
-      return scan_identifier();
-    }
-    if (decoded.value <= 0x7F && kSymbols.find(static_cast<char>(decoded.value)) != std::string_view::npos) {
-      position_ += decoded.length;
-      return make_token(TokenKind::Symbol, start, position_, static_cast<char>(decoded.value));
+      if (Value >= 'A' && Value <= 'F')
+      {
+        return Value - 'A' + 10;
+      }
+      return -1;
     }
 
-    position_ += decoded.length;
-    if (unicode::is_default_ignorable(decoded.value)) {
-      add_invisible_diagnostic(start, decoded, previous_visible_scalar(start), next_visible_scalar(position_), false);
-    } else {
-      add_diagnostic(DiagnosticKind::InvalidCharacter, {start, position_});
+    bool isHexDigit(char Value) noexcept
+    {
+      return digitValue(Value) >= 0;
     }
-    return make_token(TokenKind::InvalidCharacter, start, position_);
-  }
 
-  Token scan_line_comment() {
-    const std::size_t start = position_;
-    position_ += 2;
-    while (position_ < source_.size() && source_[position_] != '\n' && !(source_[position_] == '\r' && position_ + 1 < source_.size() && source_[position_ + 1] == '\n')) {
-      ++position_;
+    bool isScalarValue(char32_t Value) noexcept
+    {
+      return Value <= 0x10FFFF && !(Value >= 0xD800 && Value <= 0xDFFF);
     }
-    const TokenKind validation = validate_raw_range(start, position_, true);
-    return make_token(validation == TokenKind::Identifier ? TokenKind::LineComment : validation, start, position_);
-  }
 
-  Token scan_block_comment() {
-    const std::size_t start = position_;
-    std::size_t depth = 1;
-    std::vector<std::size_t> opening_positions = {start};
-    bool nesting_limit_exceeded = options_.max_block_comment_depth < 1;
-    if (nesting_limit_exceeded) {
-      add_diagnostic(DiagnosticKind::BlockCommentNestingLimit, {start, start + 2});
+    bool isForbiddenControl(char32_t Value) noexcept
+    {
+      return (Value <= 0x1F && Value != U'\t' && Value != U'\n' && Value != U'\r') || Value == 0x7F;
     }
-    position_ += 2;
-    while (position_ < source_.size() && depth != 0) {
-      if (starts_with(source_, position_, "/*")) {
-        ++depth;
-        opening_positions.push_back(position_);
-        if (depth > options_.max_block_comment_depth && !nesting_limit_exceeded) {
-          nesting_limit_exceeded = true;
-          add_diagnostic(DiagnosticKind::BlockCommentNestingLimit, {position_, position_ + 2});
+
+    std::string diagnosticMessage(DiagnosticKind Kind)
+    {
+      return core::diagnosticKindName(Kind);
+    }
+
+    std::string codePointName(char32_t Value)
+    {
+      constexpr char Digits[] = "0123456789ABCDEF";
+      std::string Result = "U+";
+      std::string Hexadecimal;
+      do
+      {
+        Hexadecimal.push_back(Digits[Value & 0xFU]);
+        Value >>= 4U;
+      } while (Value != 0);
+      while (Hexadecimal.size() < 4)
+      {
+        Hexadecimal.push_back('0');
+      }
+      Result.append(Hexadecimal.rbegin(), Hexadecimal.rend());
+      return Result;
+    }
+
+    class Scanner
+    {
+    public:
+      Scanner(const std::string &Source, std::vector<Token> &Tokens, std::vector<Diagnostic> &Diagnostics, TokenizerOptions Options)
+          : Source(Source), Tokens(Tokens), Diagnostics(Diagnostics), Options(Options)
+      {
+      }
+
+      void run()
+      {
+        if (startsWith(Source, 0, "\xEF\xBB\xBF"))
+        {
+          Tokens.push_back(makeToken(TokenKind::Utf8Bom, 0, 3));
+          Position = 3;
         }
-        position_ += 2;
-      } else if (starts_with(source_, position_, "*/")) {
-        --depth;
-        opening_positions.pop_back();
-        position_ += 2;
-      } else {
-        ++position_;
+        while (Position < Source.size())
+        {
+          const std::size_t Before = Position;
+          Token Token = scanToken();
+          if (Position <= Before)
+          {
+            addDiagnostic(DiagnosticKind::InvalidCharacter, {Before, std::min(Before + 1, Source.size())});
+            Position = std::min(Before + 1, Source.size());
+            Token = makeToken(TokenKind::InvalidCharacter, Before, Position);
+          }
+          Tokens.push_back(std::move(Token));
+        }
+        Tokens.push_back(makeToken(TokenKind::EndOfFile, Source.size(), Source.size()));
       }
-    }
-    if (depth != 0) {
-      validate_raw_range(start, position_, true);
-      diagnostics_.push_back({DiagnosticKind::UnterminatedBlockComment, {start, std::min(start + 2, source_.size())}, std::string("block comment is not terminated; outermost opening byte: ") + std::to_string(start) + "; remaining nesting depth: " + std::to_string(depth) + "; most recent unclosed opening byte: " + std::to_string(opening_positions.back())});
-      return make_token(TokenKind::UnterminatedBlockComment, start, position_);
-    }
-    const TokenKind validation = validate_raw_range(start, position_, true);
-    if (nesting_limit_exceeded && validation == TokenKind::Identifier) {
-      return make_token(TokenKind::InvalidCharacter, start, position_);
-    }
-    return make_token(validation == TokenKind::Identifier ? TokenKind::BlockComment : validation, start, position_);
-  }
 
-  Token scan_identifier() {
-    const std::size_t start = position_;
-    bool invisible = false;
-    std::size_t previous_visible = std::string::npos;
-    while (position_ < source_.size()) {
-      const DecodeResult decoded = unicode::decode(source_, position_);
-      if (!decoded.valid || (decoded.value != U'_' && !unicode::is_xid_continue(decoded.value))) {
-        break;
+    private:
+      struct LiteralLine
+      {
+        std::size_t Start;
+        std::size_t End;
+      };
+
+      Token scanToken()
+      {
+        const std::size_t Start = Position;
+        const DecodeResult Decoded = unicode::decode(Source, Position);
+        if (!Decoded.Valid)
+        {
+          Position += std::max<std::size_t>(Decoded.Length, 1);
+          addDiagnostic(DiagnosticKind::InvalidUtf8, {Start, Position});
+          return makeToken(TokenKind::InvalidEncoding, Start, Position);
+        }
+
+        if (Decoded.Value == U'\r')
+        {
+          if (startsWith(Source, Position, "\r\n"))
+          {
+            Position += 2;
+            return makeToken(TokenKind::LineBreak, Start, Position);
+          }
+          Position += Decoded.Length;
+          addDiagnostic(DiagnosticKind::LoneCarriageReturn, {Start, Position});
+          return makeToken(TokenKind::InvalidCharacter, Start, Position);
+        }
+        if (Decoded.Value == U'\n')
+        {
+          ++Position;
+          return makeToken(TokenKind::LineBreak, Start, Position);
+        }
+        if (Decoded.Value == U' ' || Decoded.Value == U'\t')
+        {
+          do
+          {
+            ++Position;
+          } while (Position < Source.size() && (Source[Position] == ' ' || Source[Position] == '\t'));
+          return makeToken(TokenKind::SpacesAndTabs, Start, Position);
+        }
+        if (Decoded.Value == 0xFEFF)
+        {
+          Position += Decoded.Length;
+          addDiagnostic(DiagnosticKind::UnexpectedBom, {Start, Position});
+          return makeToken(TokenKind::InvalidCharacter, Start, Position);
+        }
+        if (isForbiddenControl(Decoded.Value))
+        {
+          Position += Decoded.Length;
+          addDiagnostic(DiagnosticKind::ForbiddenControlCharacter, {Start, Position});
+          return makeToken(TokenKind::InvalidCharacter, Start, Position);
+        }
+        if (unicode::isUnicodeWhitespace(Decoded.Value))
+        {
+          Position += Decoded.Length;
+          addDiagnostic(DiagnosticKind::NonAsciiWhitespace, {Start, Position});
+          return makeToken(TokenKind::InvalidCharacter, Start, Position);
+        }
+        if (startsWith(Source, Position, "//"))
+        {
+          return scanLineComment();
+        }
+        if (startsWith(Source, Position, "/*"))
+        {
+          return scanBlockComment();
+        }
+        if (startsWith(Source, Position, "r\"\"\""))
+        {
+          return scanMultilineString(true);
+        }
+        if (startsWith(Source, Position, "r\""))
+        {
+          return scanSingleLineString(true);
+        }
+        if (startsWith(Source, Position, "\"\"\""))
+        {
+          return scanMultilineString(false);
+        }
+        if (Decoded.Value == U'"')
+        {
+          return scanSingleLineString(false);
+        }
+        if (Decoded.Value == U'\'')
+        {
+          return scanScalarLiteral();
+        }
+        if (Decoded.Value >= U'0' && Decoded.Value <= U'9')
+        {
+          return scanNumber();
+        }
+        if (Decoded.Value == U'_' || unicode::isXidStart(Decoded.Value))
+        {
+          return scanIdentifier();
+        }
+        if (Decoded.Value <= 0x7F && Symbols.find(static_cast<char>(Decoded.Value)) != std::string_view::npos)
+        {
+          Position += Decoded.Length;
+          return makeToken(TokenKind::Symbol, Start, Position, static_cast<char>(Decoded.Value));
+        }
+
+        Position += Decoded.Length;
+        if (unicode::isDefaultIgnorable(Decoded.Value))
+        {
+          addInvisibleDiagnostic(Start, Decoded, previousVisibleScalar(Start), nextVisibleScalar(Position), false);
+        }
+        else
+        {
+          addDiagnostic(DiagnosticKind::InvalidCharacter, {Start, Position});
+        }
+        return makeToken(TokenKind::InvalidCharacter, Start, Position);
       }
-      if (unicode::is_default_ignorable(decoded.value) || unicode::is_unicode_whitespace(decoded.value)) {
-        invisible = true;
-        const std::size_t run_start = position_;
-        std::size_t run_end = position_;
-        while (run_end < source_.size()) {
-          const DecodeResult member = unicode::decode(source_, run_end);
-          if (!member.valid || (member.value != U'_' && !unicode::is_xid_continue(member.value)) || (!unicode::is_default_ignorable(member.value) && !unicode::is_unicode_whitespace(member.value))) {
+
+      Token scanLineComment()
+      {
+        const std::size_t Start = Position;
+        Position += 2;
+        while (Position < Source.size() && Source[Position] != '\n' && !(Source[Position] == '\r' && Position + 1 < Source.size() && Source[Position + 1] == '\n'))
+        {
+          ++Position;
+        }
+        const TokenKind Validation = validateRawRange(Start, Position, true);
+        return makeToken(Validation == TokenKind::Identifier ? TokenKind::LineComment : Validation, Start, Position);
+      }
+
+      Token scanBlockComment()
+      {
+        const std::size_t Start = Position;
+        std::size_t Depth = 1;
+        std::vector<std::size_t> OpeningPositions = {Start};
+        bool NestingLimitExceeded = Options.MaxBlockCommentDepth < 1;
+        if (NestingLimitExceeded)
+        {
+          addDiagnostic(DiagnosticKind::BlockCommentNestingLimit, {Start, Start + 2});
+        }
+        Position += 2;
+        while (Position < Source.size() && Depth != 0)
+        {
+          if (startsWith(Source, Position, "/*"))
+          {
+            ++Depth;
+            OpeningPositions.push_back(Position);
+            if (Depth > Options.MaxBlockCommentDepth && !NestingLimitExceeded)
+            {
+              NestingLimitExceeded = true;
+              addDiagnostic(DiagnosticKind::BlockCommentNestingLimit, {Position, Position + 2});
+            }
+            Position += 2;
+          }
+          else if (startsWith(Source, Position, "*/"))
+          {
+            --Depth;
+            OpeningPositions.pop_back();
+            Position += 2;
+          }
+          else
+          {
+            ++Position;
+          }
+        }
+        if (Depth != 0)
+        {
+          validateRawRange(Start, Position, true);
+          Diagnostics.push_back({DiagnosticKind::UnterminatedBlockComment, {Start, std::min(Start + 2, Source.size())}, std::string("block comment is not terminated; outermost opening byte: ") + std::to_string(Start) + "; remaining nesting depth: " + std::to_string(Depth) + "; most recent unclosed opening byte: " + std::to_string(OpeningPositions.back())});
+          return makeToken(TokenKind::UnterminatedBlockComment, Start, Position);
+        }
+        const TokenKind Validation = validateRawRange(Start, Position, true);
+        if (NestingLimitExceeded && Validation == TokenKind::Identifier)
+        {
+          return makeToken(TokenKind::InvalidCharacter, Start, Position);
+        }
+        return makeToken(Validation == TokenKind::Identifier ? TokenKind::BlockComment : Validation, Start, Position);
+      }
+
+      Token scanIdentifier()
+      {
+        const std::size_t Start = Position;
+        bool Invisible = false;
+        std::size_t PreviousVisible = std::string::npos;
+        while (Position < Source.size())
+        {
+          const DecodeResult Decoded = unicode::decode(Source, Position);
+          if (!Decoded.Valid || (Decoded.Value != U'_' && !unicode::isXidContinue(Decoded.Value)))
+          {
             break;
           }
-          run_end += member.length;
-        }
-        const DecodeResult next = unicode::decode(source_, run_end);
-        const std::size_t next_visible = run_end < source_.size() && next.valid && (next.value == U'_' || unicode::is_xid_continue(next.value)) ? run_end : std::string::npos;
-        for (std::size_t member_offset = run_start; member_offset < run_end;) {
-          const DecodeResult member = unicode::decode(source_, member_offset);
-          add_invisible_diagnostic(member_offset, member, previous_visible, next_visible, true);
-          member_offset += member.length;
-        }
-        position_ = run_end;
-        continue;
-      } else {
-        previous_visible = position_;
-      }
-      position_ += decoded.length;
-    }
-    const std::string_view spelling(source_.data() + start, position_ - start);
-    if (invisible) {
-      return make_token(TokenKind::InvalidIdentifier, start, position_);
-    }
-    if (!unicode::is_nfc(spelling)) {
-      add_diagnostic(DiagnosticKind::IdentifierNotNfc, {start, position_});
-      return make_token(TokenKind::InvalidIdentifier, start, position_);
-    }
-    for (const KeywordEntry& entry : kKeywords) {
-      if (entry.spelling == spelling) {
-        return make_token(TokenKind::Keyword, start, position_, entry.kind);
-      }
-    }
-    if (spelling == "true") {
-      return make_token(TokenKind::BoolLiteral, start, position_, true);
-    }
-    if (spelling == "false") {
-      return make_token(TokenKind::BoolLiteral, start, position_, false);
-    }
-    if (spelling == "null") {
-      return make_token(TokenKind::NullLiteral, start, position_);
-    }
-    for (const BuiltinTypeEntry& entry : kBuiltinTypes) {
-      if (entry.spelling == spelling) {
-        return make_token(TokenKind::BuiltinType, start, position_, entry.kind);
-      }
-    }
-    return make_token(TokenKind::Identifier, start, position_);
-  }
-
-  Token scan_number() {
-    const std::size_t start = position_;
-    unsigned base = 10;
-    bool explicit_base = false;
-    bool has_fraction = false;
-    bool has_exponent = false;
-    bool invalid = false;
-    NumericSuffix suffix = NumericSuffix::None;
-
-    if (position_ + 1 < source_.size() && source_[position_] == '0' && (source_[position_ + 1] == 'b' || source_[position_ + 1] == 'o' || source_[position_ + 1] == 'x')) {
-      explicit_base = true;
-      base = source_[position_ + 1] == 'b' ? 2U : source_[position_ + 1] == 'o' ? 8U : 16U;
-      position_ += 2;
-    }
-
-    bool saw_digit = false;
-    bool previous_digit = false;
-    while (position_ < source_.size()) {
-      const char current = source_[position_];
-      const int value = digit_value(current);
-      if (value >= 0 && (is_ascii_digit(current) || base == 16)) {
-        if (static_cast<unsigned>(value) >= base) {
-          invalid = true;
-          add_diagnostic(DiagnosticKind::DigitOutOfRange, {position_, position_ + 1});
-        } else {
-          saw_digit = true;
-        }
-        previous_digit = static_cast<unsigned>(value) < base;
-        ++position_;
-        continue;
-      }
-      if (current == '_') {
-        const bool next_is_digit = position_ + 1 < source_.size() && digit_value(source_[position_ + 1]) >= 0 && static_cast<unsigned>(digit_value(source_[position_ + 1])) < base;
-        if (!previous_digit || !next_is_digit) {
-          invalid = true;
-          add_diagnostic(DiagnosticKind::MisplacedNumericSeparator, {position_, position_ + 1});
-        }
-        previous_digit = false;
-        ++position_;
-        continue;
-      }
-      break;
-    }
-
-    if (explicit_base && !saw_digit) {
-      invalid = true;
-      add_diagnostic(DiagnosticKind::MissingBaseDigits, {start, position_});
-    }
-
-    if (!explicit_base && position_ < source_.size() && source_[position_] == '.' && position_ + 1 < source_.size() && is_ascii_digit(source_[position_ + 1])) {
-      has_fraction = true;
-      ++position_;
-      scan_decimal_component(invalid);
-    } else if (!explicit_base && position_ + 2 < source_.size() && source_[position_] == '.' && source_[position_ + 1] == '_' && is_ascii_digit(source_[position_ + 2])) {
-      has_fraction = true;
-      ++position_;
-      scan_decimal_component(invalid);
-    } else if (explicit_base && position_ < source_.size() && source_[position_] == '.' && position_ + 1 < source_.size() && (is_ascii_digit(source_[position_ + 1]) || (base == 16 && is_hex_digit(source_[position_ + 1])))) {
-      invalid = true;
-      add_diagnostic(DiagnosticKind::UnsupportedNonDecimalFloat, {position_, position_ + 1});
-      ++position_;
-      while (position_ < source_.size() && (is_ascii_digit(source_[position_]) || (base == 16 && is_hex_digit(source_[position_])) || source_[position_] == '_')) {
-        ++position_;
-      }
-    }
-
-    if (!explicit_base && position_ < source_.size() && (source_[position_] == 'e' || source_[position_] == 'E')) {
-      has_exponent = true;
-      const std::size_t exponent_start = position_++;
-      if (position_ < source_.size() && (source_[position_] == '+' || source_[position_] == '-')) {
-        ++position_;
-      }
-      const std::size_t digits_start = position_;
-      const bool exponent_has_digits = scan_decimal_component(invalid);
-      if (!exponent_has_digits) {
-        invalid = true;
-        add_diagnostic(DiagnosticKind::MissingExponentDigits, {exponent_start, std::max(position_, digits_start)});
-      }
-    }
-
-    const std::size_t suffix_start = position_;
-    if (position_ < source_.size()) {
-      const DecodeResult decoded = unicode::decode(source_, position_);
-      if (decoded.valid && (decoded.value == U'_' || unicode::is_xid_start(decoded.value))) {
-        if (unicode::is_default_ignorable(decoded.value)) {
-          invalid = true;
-          add_diagnostic(DiagnosticKind::InvisibleCharacter, {position_, position_ + decoded.length});
-        }
-        position_ += decoded.length;
-        while (position_ < source_.size()) {
-          const DecodeResult continued = unicode::decode(source_, position_);
-          if (!continued.valid || (continued.value != U'_' && !unicode::is_xid_continue(continued.value))) {
-            break;
-          }
-          if (unicode::is_default_ignorable(continued.value)) {
-            invalid = true;
-            add_diagnostic(DiagnosticKind::InvisibleCharacter, {position_, position_ + continued.length});
-          }
-          position_ += continued.length;
-        }
-        const std::string_view spelling(source_.data() + suffix_start, position_ - suffix_start);
-        const SuffixEntry* entry = nullptr;
-        for (const SuffixEntry& candidate : kSuffixes) {
-          if (candidate.spelling == spelling) {
-            entry = &candidate;
-            break;
-          }
-        }
-        if (entry == nullptr) {
-          invalid = true;
-          const bool looks_like_non_decimal_exponent = explicit_base && !spelling.empty() && (spelling.front() == 'e' || spelling.front() == 'E' || spelling.front() == 'p' || spelling.front() == 'P');
-          add_diagnostic(looks_like_non_decimal_exponent ? DiagnosticKind::UnsupportedNonDecimalFloat : DiagnosticKind::UnknownNumericSuffix, {suffix_start, position_});
-        } else if (explicit_base && entry->floating) {
-          invalid = true;
-          add_diagnostic(DiagnosticKind::InvalidNumericSuffix, {suffix_start, position_});
-        } else if ((has_fraction || has_exponent) && !entry->floating) {
-          invalid = true;
-          add_diagnostic(DiagnosticKind::InvalidNumericSuffix, {suffix_start, position_});
-        } else {
-          suffix = entry->suffix;
-          if (entry->floating) {
-            has_fraction = true;
-          }
-        }
-      }
-    }
-
-    if (invalid) {
-      return make_token(TokenKind::InvalidNumber, start, position_);
-    }
-    const TokenKind kind = has_fraction || has_exponent ? TokenKind::FloatLiteral : TokenKind::IntegerLiteral;
-    return make_token(kind, start, position_, NumericInfo{base, suffix});
-  }
-
-  bool scan_decimal_component(bool& invalid) {
-    bool saw_digit = false;
-    bool previous_digit = false;
-    while (position_ < source_.size()) {
-      if (is_ascii_digit(source_[position_])) {
-        saw_digit = true;
-        previous_digit = true;
-        ++position_;
-      } else if (source_[position_] == '_') {
-        const bool next_is_digit = position_ + 1 < source_.size() && is_ascii_digit(source_[position_ + 1]);
-        if (!previous_digit || !next_is_digit) {
-          invalid = true;
-          add_diagnostic(DiagnosticKind::MisplacedNumericSeparator, {position_, position_ + 1});
-        }
-        previous_digit = false;
-        ++position_;
-      } else {
-        break;
-      }
-    }
-    return saw_digit;
-  }
-
-  Token scan_scalar_literal() {
-    const std::size_t start = position_++;
-    std::vector<char32_t> values;
-    bool invalid = false;
-    bool closed = false;
-    while (position_ < source_.size()) {
-      if (source_[position_] == '\'') {
-        ++position_;
-        closed = true;
-        break;
-      }
-      if (source_[position_] == '\n' || (source_[position_] == '\r' && position_ + 1 < source_.size() && source_[position_ + 1] == '\n')) {
-        invalid = true;
-        add_diagnostic(DiagnosticKind::UnterminatedScalarLiteral, {start, position_});
-        break;
-      }
-      if (source_[position_] == '\\') {
-        char32_t value = 0;
-        bool produced = false;
-        if (!scan_escape(position_, source_.size(), value, produced)) {
-          invalid = true;
-        }
-        if (produced) {
-          values.push_back(value);
-        }
-        continue;
-      }
-      const DecodeResult decoded = unicode::decode(source_, position_);
-      if (!decoded.valid) {
-        invalid = true;
-        add_diagnostic(DiagnosticKind::InvalidUtf8, {position_, position_ + std::max<std::size_t>(decoded.length, 1)});
-        position_ += std::max<std::size_t>(decoded.length, 1);
-        continue;
-      }
-      if (is_forbidden_control(decoded.value) || decoded.value == U'\r') {
-        invalid = true;
-        add_diagnostic(decoded.value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {position_, position_ + decoded.length});
-      }
-      if (unicode::is_default_ignorable(decoded.value)) {
-        invalid = true;
-        add_diagnostic(DiagnosticKind::InvisibleCharacter, {position_, position_ + decoded.length});
-      }
-      values.push_back(decoded.value);
-      position_ += decoded.length;
-    }
-    if (!closed && position_ == source_.size()) {
-      invalid = true;
-      add_diagnostic(DiagnosticKind::UnterminatedScalarLiteral, {start, position_});
-    }
-    if (values.empty() && closed) {
-      invalid = true;
-      add_diagnostic(DiagnosticKind::EmptyScalarLiteral, {start, position_});
-    } else if (values.size() > 1) {
-      invalid = true;
-      add_diagnostic(DiagnosticKind::MultipleScalarValues, {start, position_});
-    }
-    if (invalid || !closed || values.size() != 1) {
-      return make_token(TokenKind::InvalidScalarLiteral, start, position_);
-    }
-    return make_token(TokenKind::ScalarLiteral, start, position_, values.front());
-  }
-
-  Token scan_single_line_string(bool raw_mode) {
-    const std::size_t start = position_;
-    position_ += raw_mode ? 2 : 1;
-    std::string decoded_value;
-    bool invalid = false;
-    bool closed = false;
-    while (position_ < source_.size()) {
-      if (source_[position_] == '"') {
-        ++position_;
-        closed = true;
-        break;
-      }
-      if (source_[position_] == '\n' || (source_[position_] == '\r' && position_ + 1 < source_.size() && source_[position_ + 1] == '\n')) {
-        invalid = true;
-        add_diagnostic(DiagnosticKind::UnterminatedStringLiteral, {start, position_});
-        break;
-      }
-      if (!raw_mode && source_[position_] == '\\') {
-        char32_t value = 0;
-        bool produced = false;
-        if (!scan_escape(position_, source_.size(), value, produced)) {
-          invalid = true;
-        }
-        if (produced) {
-          unicode::append_utf8(decoded_value, value);
-        }
-        continue;
-      }
-      if (!scan_literal_scalar(position_, source_.size(), decoded_value)) {
-        invalid = true;
-      }
-    }
-    if (!closed && position_ == source_.size()) {
-      invalid = true;
-      add_diagnostic(DiagnosticKind::UnterminatedStringLiteral, {start, position_});
-    }
-    if (invalid || !closed) {
-      return make_token(TokenKind::InvalidStringLiteral, start, position_);
-    }
-    const StringMode mode = raw_mode ? StringMode::RawSingleLine : StringMode::EscapedSingleLine;
-    return make_token(TokenKind::StringLiteral, start, position_, StringInfo{mode, std::move(decoded_value)});
-  }
-
-  Token scan_multiline_string(bool raw_mode) {
-    const std::size_t start = position_;
-    position_ += raw_mode ? 4 : 3;
-    std::size_t opening_line_break_length = logical_line_break_length(position_);
-    if (opening_line_break_length == 0) {
-      add_diagnostic(DiagnosticKind::MultilineOpeningLineBreakRequired, {start, position_});
-      std::size_t closing = std::string::npos;
-      for (std::size_t line_start = position_; line_start < source_.size();) {
-        const std::size_t line_break = source_.find('\n', line_start);
-        if (line_break == std::string::npos) {
-          break;
-        }
-        std::size_t candidate = line_break + 1;
-        while (candidate < source_.size() && (source_[candidate] == ' ' || source_[candidate] == '\t')) {
-          ++candidate;
-        }
-        if (starts_with(source_, candidate, "\"\"\"")) {
-          closing = candidate;
-          break;
-        }
-        line_start = line_break + 1;
-      }
-      if (closing == std::string::npos) {
-        closing = source_.find("\"\"\"", position_);
-      }
-      position_ = closing == std::string::npos ? source_.size() : closing + 3;
-      validate_raw_range(start, position_, false);
-      return make_token(TokenKind::InvalidStringLiteral, start, position_);
-    }
-    position_ += opening_line_break_length;
-
-    std::vector<LiteralLine> lines;
-    std::size_t closing_start = std::string::npos;
-    std::size_t closing_line_start = std::string::npos;
-    while (position_ < source_.size()) {
-      const std::size_t line_start = position_;
-      std::size_t line_end = position_;
-      while (line_end < source_.size() && source_[line_end] != '\n' && !(source_[line_end] == '\r' && line_end + 1 < source_.size() && source_[line_end + 1] == '\n')) {
-        ++line_end;
-      }
-      std::size_t first_content = line_start;
-      while (first_content < line_end && (source_[first_content] == ' ' || source_[first_content] == '\t')) {
-        ++first_content;
-      }
-      if (starts_with(source_, first_content, "\"\"\"")) {
-        closing_start = first_content;
-        closing_line_start = line_start;
-        position_ = first_content + 3;
-        break;
-      }
-      lines.push_back({line_start, line_end});
-      if (line_end == source_.size()) {
-        position_ = line_end;
-        break;
-      }
-      position_ = line_end + logical_line_break_length(line_end);
-    }
-
-    if (closing_start == std::string::npos) {
-      position_ = source_.size();
-      validate_raw_range(start, position_, false);
-      add_diagnostic(DiagnosticKind::UnterminatedMultilineStringLiteral, {start, position_});
-      return make_token(TokenKind::InvalidStringLiteral, start, position_);
-    }
-
-    const std::string_view indentation(source_.data() + closing_line_start, closing_start - closing_line_start);
-    std::string decoded_value;
-    bool invalid = false;
-    for (std::size_t line_index = 0; line_index < lines.size(); ++line_index) {
-      const LiteralLine line = lines[line_index];
-      std::size_t content_start = line.start;
-      const std::string_view raw_line(source_.data() + line.start, line.end - line.start);
-      const bool whitespace_only = std::all_of(raw_line.begin(), raw_line.end(), [](char value) { return value == ' ' || value == '\t'; });
-      if (raw_line.size() >= indentation.size() && raw_line.substr(0, indentation.size()) == indentation) {
-        content_start += indentation.size();
-      } else if (whitespace_only && indentation.size() >= raw_line.size() && indentation.substr(0, raw_line.size()) == raw_line) {
-        content_start = line.end;
-      } else {
-        invalid = true;
-        add_diagnostic(DiagnosticKind::InvalidMultilineIndentation, {line.start, line.end});
-      }
-
-      std::size_t cursor = content_start;
-      while (cursor < line.end) {
-        if (!raw_mode && source_[cursor] == '\\') {
-          char32_t value = 0;
-          bool produced = false;
-          if (!scan_escape(cursor, line.end, value, produced)) {
-            invalid = true;
-          }
-          if (produced) {
-            unicode::append_utf8(decoded_value, value);
-          }
-        } else if (!scan_literal_scalar(cursor, line.end, decoded_value)) {
-          invalid = true;
-        }
-      }
-      if (line_index + 1 < lines.size()) {
-        decoded_value.push_back('\n');
-      }
-    }
-
-    if (invalid) {
-      return make_token(TokenKind::InvalidStringLiteral, start, position_);
-    }
-    const StringMode mode = raw_mode ? StringMode::RawMultiline : StringMode::EscapedMultiline;
-    return make_token(TokenKind::StringLiteral, start, position_, StringInfo{mode, std::move(decoded_value)});
-  }
-
-  bool scan_escape(std::size_t& cursor, std::size_t limit, char32_t& value, bool& produced) {
-    const std::size_t start = cursor;
-    produced = false;
-    if (cursor + 1 >= limit) {
-      cursor = limit;
-      add_diagnostic(DiagnosticKind::UnknownEscape, {start, cursor});
-      return false;
-    }
-    const DecodeResult escaped_character = unicode::decode(source_, cursor + 1);
-    if (!escaped_character.valid) {
-      const std::size_t invalid_length = std::max<std::size_t>(escaped_character.length, 1);
-      cursor = std::min(cursor + 1 + invalid_length, limit);
-      add_diagnostic(DiagnosticKind::InvalidUtf8, {start + 1, cursor});
-      return false;
-    }
-    if (is_forbidden_control(escaped_character.value)) {
-      add_diagnostic(DiagnosticKind::ForbiddenControlCharacter, {cursor + 1, cursor + 1 + escaped_character.length});
-    }
-    if (unicode::is_default_ignorable(escaped_character.value)) {
-      add_diagnostic(DiagnosticKind::InvisibleCharacter, {cursor + 1, cursor + 1 + escaped_character.length});
-    }
-    const char kind = source_[cursor + 1];
-    if (kind == '\n' || kind == '\r') {
-      cursor = start + 1;
-      add_diagnostic(DiagnosticKind::UnknownEscape, {start, cursor});
-      return false;
-    }
-    switch (kind) {
-      case '\\': value = U'\\'; cursor += 2; produced = true; return true;
-      case '\'': value = U'\''; cursor += 2; produced = true; return true;
-      case '"': value = U'"'; cursor += 2; produced = true; return true;
-      case '0': value = U'\0'; cursor += 2; produced = true; return true;
-      case 'n': value = U'\n'; cursor += 2; produced = true; return true;
-      case 'r': value = U'\r'; cursor += 2; produced = true; return true;
-      case 't': value = U'\t'; cursor += 2; produced = true; return true;
-      case 'x': {
-        if (cursor + 3 >= limit || !is_hex_digit(source_[cursor + 2]) || !is_hex_digit(source_[cursor + 3])) {
-          cursor += 2;
-          while (cursor < limit && cursor < start + 4 && is_hex_digit(source_[cursor])) {
-            ++cursor;
-          }
-          add_diagnostic(DiagnosticKind::InvalidHexEscape, {start, cursor});
-          return false;
-        }
-        value = static_cast<char32_t>(digit_value(source_[cursor + 2]) * 16 + digit_value(source_[cursor + 3]));
-        cursor += 4;
-        produced = true;
-        return true;
-      }
-      case 'u': {
-        if (cursor + 2 >= limit || source_[cursor + 2] != '{') {
-          cursor += 2;
-          add_diagnostic(DiagnosticKind::InvalidUnicodeEscape, {start, cursor});
-          return false;
-        }
-        std::size_t index = cursor + 3;
-        std::size_t digit_count = 0;
-        char32_t scalar = 0;
-        bool valid_digits = true;
-        while (index < limit && source_[index] != '}' && source_[index] != '"' && source_[index] != '\'' && source_[index] != '\n' && source_[index] != '\r' && source_[index] != '\\') {
-          const DecodeResult escaped_digit = unicode::decode(source_, index);
-          if (!escaped_digit.valid) {
-            const std::size_t invalid_length = std::max<std::size_t>(escaped_digit.length, 1);
-            add_diagnostic(DiagnosticKind::InvalidUtf8, {index, std::min(index + invalid_length, limit)});
-            valid_digits = false;
-            ++digit_count;
-            index = std::min(index + invalid_length, limit);
+          if (unicode::isDefaultIgnorable(Decoded.Value) || unicode::isUnicodeWhitespace(Decoded.Value))
+          {
+            Invisible = true;
+            const std::size_t RunStart = Position;
+            std::size_t RunEnd = Position;
+            while (RunEnd < Source.size())
+            {
+              const DecodeResult Member = unicode::decode(Source, RunEnd);
+              if (!Member.Valid || (Member.Value != U'_' && !unicode::isXidContinue(Member.Value)) || (!unicode::isDefaultIgnorable(Member.Value) && !unicode::isUnicodeWhitespace(Member.Value)))
+              {
+                break;
+              }
+              RunEnd += Member.Length;
+            }
+            const DecodeResult Next = unicode::decode(Source, RunEnd);
+            const std::size_t NextVisible = RunEnd < Source.size() && Next.Valid && (Next.Value == U'_' || unicode::isXidContinue(Next.Value)) ? RunEnd : std::string::npos;
+            for (std::size_t MemberOffset = RunStart; MemberOffset < RunEnd;)
+            {
+              const DecodeResult Member = unicode::decode(Source, MemberOffset);
+              addInvisibleDiagnostic(MemberOffset, Member, PreviousVisible, NextVisible, true);
+              MemberOffset += Member.Length;
+            }
+            Position = RunEnd;
             continue;
           }
-          if (is_forbidden_control(escaped_digit.value) || escaped_digit.value == U'\r') {
-            add_diagnostic(escaped_digit.value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {index, index + escaped_digit.length});
-            valid_digits = false;
+          else
+          {
+            PreviousVisible = Position;
           }
-          if (unicode::is_default_ignorable(escaped_digit.value)) {
-            add_diagnostic(DiagnosticKind::InvisibleCharacter, {index, index + escaped_digit.length});
-            valid_digits = false;
-          }
-          const int digit = digit_value(source_[index]);
-          if (digit < 0) {
-            valid_digits = false;
-          } else if (digit_count < 7) {
-            scalar = static_cast<char32_t>((scalar << 4U) | digit);
-          }
-          ++digit_count;
-          index += escaped_digit.length;
+          Position += Decoded.Length;
         }
-        if (index >= limit || source_[index] != '}') {
-          cursor = index;
-          add_diagnostic(DiagnosticKind::InvalidUnicodeEscape, {start, cursor});
+        const std::string_view Spelling(Source.data() + Start, Position - Start);
+        if (Invisible)
+        {
+          return makeToken(TokenKind::InvalidIdentifier, Start, Position);
+        }
+        if (!unicode::isNfc(Spelling))
+        {
+          addDiagnostic(DiagnosticKind::IdentifierNotNfc, {Start, Position});
+          return makeToken(TokenKind::InvalidIdentifier, Start, Position);
+        }
+        for (const KeywordEntry &Entry : Keywords)
+        {
+          if (Entry.Spelling == Spelling)
+          {
+            return makeToken(TokenKind::Keyword, Start, Position, Entry.Kind);
+          }
+        }
+        if (Spelling == "true")
+        {
+          return makeToken(TokenKind::BoolLiteral, Start, Position, true);
+        }
+        if (Spelling == "false")
+        {
+          return makeToken(TokenKind::BoolLiteral, Start, Position, false);
+        }
+        if (Spelling == "null")
+        {
+          return makeToken(TokenKind::NullLiteral, Start, Position);
+        }
+        for (const BuiltinTypeEntry &Entry : BuiltinTypes)
+        {
+          if (Entry.Spelling == Spelling)
+          {
+            return makeToken(TokenKind::BuiltinType, Start, Position, Entry.Kind);
+          }
+        }
+        return makeToken(TokenKind::Identifier, Start, Position);
+      }
+
+      Token scanNumber()
+      {
+        const std::size_t Start = Position;
+        unsigned Base = 10;
+        bool ExplicitBase = false;
+        bool HasFraction = false;
+        bool HasExponent = false;
+        bool Invalid = false;
+        NumericSuffix Suffix = NumericSuffix::None;
+
+        if (Position + 1 < Source.size() && Source[Position] == '0' && (Source[Position + 1] == 'b' || Source[Position + 1] == 'o' || Source[Position + 1] == 'x'))
+        {
+          ExplicitBase = true;
+          Base = Source[Position + 1] == 'b' ? 2U : Source[Position + 1] == 'o' ? 8U
+                                                                                : 16U;
+          Position += 2;
+        }
+
+        bool SawDigit = false;
+        bool PreviousDigit = false;
+        while (Position < Source.size())
+        {
+          const char Current = Source[Position];
+          const int Value = digitValue(Current);
+          if (Value >= 0 && (isAsciiDigit(Current) || Base == 16))
+          {
+            if (static_cast<unsigned>(Value) >= Base)
+            {
+              Invalid = true;
+              addDiagnostic(DiagnosticKind::DigitOutOfRange, {Position, Position + 1});
+            }
+            else
+            {
+              SawDigit = true;
+            }
+            PreviousDigit = static_cast<unsigned>(Value) < Base;
+            ++Position;
+            continue;
+          }
+          if (Current == '_')
+          {
+            const bool NextIsDigit = Position + 1 < Source.size() && digitValue(Source[Position + 1]) >= 0 && static_cast<unsigned>(digitValue(Source[Position + 1])) < Base;
+            if (!PreviousDigit || !NextIsDigit)
+            {
+              Invalid = true;
+              addDiagnostic(DiagnosticKind::MisplacedNumericSeparator, {Position, Position + 1});
+            }
+            PreviousDigit = false;
+            ++Position;
+            continue;
+          }
+          break;
+        }
+
+        if (ExplicitBase && !SawDigit)
+        {
+          Invalid = true;
+          addDiagnostic(DiagnosticKind::MissingBaseDigits, {Start, Position});
+        }
+
+        if (!ExplicitBase && Position < Source.size() && Source[Position] == '.' && Position + 1 < Source.size() && isAsciiDigit(Source[Position + 1]))
+        {
+          HasFraction = true;
+          ++Position;
+          scanDecimalComponent(Invalid);
+        }
+        else if (!ExplicitBase && Position + 2 < Source.size() && Source[Position] == '.' && Source[Position + 1] == '_' && isAsciiDigit(Source[Position + 2]))
+        {
+          HasFraction = true;
+          ++Position;
+          scanDecimalComponent(Invalid);
+        }
+        else if (ExplicitBase && Position < Source.size() && Source[Position] == '.' && Position + 1 < Source.size() && (isAsciiDigit(Source[Position + 1]) || (Base == 16 && isHexDigit(Source[Position + 1]))))
+        {
+          Invalid = true;
+          addDiagnostic(DiagnosticKind::UnsupportedNonDecimalFloat, {Position, Position + 1});
+          ++Position;
+          while (Position < Source.size() && (isAsciiDigit(Source[Position]) || (Base == 16 && isHexDigit(Source[Position])) || Source[Position] == '_'))
+          {
+            ++Position;
+          }
+        }
+
+        if (!ExplicitBase && Position < Source.size() && (Source[Position] == 'e' || Source[Position] == 'E'))
+        {
+          HasExponent = true;
+          const std::size_t ExponentStart = Position++;
+          if (Position < Source.size() && (Source[Position] == '+' || Source[Position] == '-'))
+          {
+            ++Position;
+          }
+          const std::size_t DigitsStart = Position;
+          const bool ExponentHasDigits = scanDecimalComponent(Invalid);
+          if (!ExponentHasDigits)
+          {
+            Invalid = true;
+            addDiagnostic(DiagnosticKind::MissingExponentDigits, {ExponentStart, std::max(Position, DigitsStart)});
+          }
+        }
+
+        const std::size_t SuffixStart = Position;
+        if (Position < Source.size())
+        {
+          const DecodeResult Decoded = unicode::decode(Source, Position);
+          if (Decoded.Valid && (Decoded.Value == U'_' || unicode::isXidStart(Decoded.Value)))
+          {
+            if (unicode::isDefaultIgnorable(Decoded.Value))
+            {
+              Invalid = true;
+              addDiagnostic(DiagnosticKind::InvisibleCharacter, {Position, Position + Decoded.Length});
+            }
+            Position += Decoded.Length;
+            while (Position < Source.size())
+            {
+              const DecodeResult Continued = unicode::decode(Source, Position);
+              if (!Continued.Valid || (Continued.Value != U'_' && !unicode::isXidContinue(Continued.Value)))
+              {
+                break;
+              }
+              if (unicode::isDefaultIgnorable(Continued.Value))
+              {
+                Invalid = true;
+                addDiagnostic(DiagnosticKind::InvisibleCharacter, {Position, Position + Continued.Length});
+              }
+              Position += Continued.Length;
+            }
+            const std::string_view Spelling(Source.data() + SuffixStart, Position - SuffixStart);
+            const SuffixEntry *Entry = nullptr;
+            for (const SuffixEntry &Candidate : Suffixes)
+            {
+              if (Candidate.Spelling == Spelling)
+              {
+                Entry = &Candidate;
+                break;
+              }
+            }
+            if (Entry == nullptr)
+            {
+              Invalid = true;
+              const bool LooksLikeNonDecimalExponent = ExplicitBase && !Spelling.empty() && (Spelling.front() == 'e' || Spelling.front() == 'E' || Spelling.front() == 'p' || Spelling.front() == 'P');
+              addDiagnostic(LooksLikeNonDecimalExponent ? DiagnosticKind::UnsupportedNonDecimalFloat : DiagnosticKind::UnknownNumericSuffix, {SuffixStart, Position});
+            }
+            else if (ExplicitBase && Entry->Floating)
+            {
+              Invalid = true;
+              addDiagnostic(DiagnosticKind::InvalidNumericSuffix, {SuffixStart, Position});
+            }
+            else if ((HasFraction || HasExponent) && !Entry->Floating)
+            {
+              Invalid = true;
+              addDiagnostic(DiagnosticKind::InvalidNumericSuffix, {SuffixStart, Position});
+            }
+            else
+            {
+              Suffix = Entry->Suffix;
+              if (Entry->Floating)
+              {
+                HasFraction = true;
+              }
+            }
+          }
+        }
+
+        if (Invalid)
+        {
+          return makeToken(TokenKind::InvalidNumber, Start, Position);
+        }
+        const TokenKind Kind = HasFraction || HasExponent ? TokenKind::FloatLiteral : TokenKind::IntegerLiteral;
+        return makeToken(Kind, Start, Position, NumericInfo{Base, Suffix});
+      }
+
+      bool scanDecimalComponent(bool &Invalid)
+      {
+        bool SawDigit = false;
+        bool PreviousDigit = false;
+        while (Position < Source.size())
+        {
+          if (isAsciiDigit(Source[Position]))
+          {
+            SawDigit = true;
+            PreviousDigit = true;
+            ++Position;
+          }
+          else if (Source[Position] == '_')
+          {
+            const bool NextIsDigit = Position + 1 < Source.size() && isAsciiDigit(Source[Position + 1]);
+            if (!PreviousDigit || !NextIsDigit)
+            {
+              Invalid = true;
+              addDiagnostic(DiagnosticKind::MisplacedNumericSeparator, {Position, Position + 1});
+            }
+            PreviousDigit = false;
+            ++Position;
+          }
+          else
+          {
+            break;
+          }
+        }
+        return SawDigit;
+      }
+
+      Token scanScalarLiteral()
+      {
+        const std::size_t Start = Position++;
+        std::vector<char32_t> Values;
+        bool Invalid = false;
+        bool Closed = false;
+        while (Position < Source.size())
+        {
+          if (Source[Position] == '\'')
+          {
+            ++Position;
+            Closed = true;
+            break;
+          }
+          if (Source[Position] == '\n' || (Source[Position] == '\r' && Position + 1 < Source.size() && Source[Position + 1] == '\n'))
+          {
+            Invalid = true;
+            addDiagnostic(DiagnosticKind::UnterminatedScalarLiteral, {Start, Position});
+            break;
+          }
+          if (Source[Position] == '\\')
+          {
+            char32_t Value = 0;
+            bool Produced = false;
+            if (!scanEscape(Position, Source.size(), Value, Produced))
+            {
+              Invalid = true;
+            }
+            if (Produced)
+            {
+              Values.push_back(Value);
+            }
+            continue;
+          }
+          const DecodeResult Decoded = unicode::decode(Source, Position);
+          if (!Decoded.Valid)
+          {
+            Invalid = true;
+            addDiagnostic(DiagnosticKind::InvalidUtf8, {Position, Position + std::max<std::size_t>(Decoded.Length, 1)});
+            Position += std::max<std::size_t>(Decoded.Length, 1);
+            continue;
+          }
+          if (isForbiddenControl(Decoded.Value) || Decoded.Value == U'\r')
+          {
+            Invalid = true;
+            addDiagnostic(Decoded.Value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {Position, Position + Decoded.Length});
+          }
+          if (unicode::isDefaultIgnorable(Decoded.Value))
+          {
+            Invalid = true;
+            addDiagnostic(DiagnosticKind::InvisibleCharacter, {Position, Position + Decoded.Length});
+          }
+          Values.push_back(Decoded.Value);
+          Position += Decoded.Length;
+        }
+        if (!Closed && Position == Source.size())
+        {
+          Invalid = true;
+          addDiagnostic(DiagnosticKind::UnterminatedScalarLiteral, {Start, Position});
+        }
+        if (Values.empty() && Closed)
+        {
+          Invalid = true;
+          addDiagnostic(DiagnosticKind::EmptyScalarLiteral, {Start, Position});
+        }
+        else if (Values.size() > 1)
+        {
+          Invalid = true;
+          addDiagnostic(DiagnosticKind::MultipleScalarValues, {Start, Position});
+        }
+        if (Invalid || !Closed || Values.size() != 1)
+        {
+          return makeToken(TokenKind::InvalidScalarLiteral, Start, Position);
+        }
+        return makeToken(TokenKind::ScalarLiteral, Start, Position, Values.front());
+      }
+
+      Token scanSingleLineString(bool RawMode)
+      {
+        const std::size_t Start = Position;
+        Position += RawMode ? 2 : 1;
+        std::string DecodedValue;
+        bool Invalid = false;
+        bool Closed = false;
+        while (Position < Source.size())
+        {
+          if (Source[Position] == '"')
+          {
+            ++Position;
+            Closed = true;
+            break;
+          }
+          if (Source[Position] == '\n' || (Source[Position] == '\r' && Position + 1 < Source.size() && Source[Position + 1] == '\n'))
+          {
+            Invalid = true;
+            addDiagnostic(DiagnosticKind::UnterminatedStringLiteral, {Start, Position});
+            break;
+          }
+          if (!RawMode && Source[Position] == '\\')
+          {
+            char32_t Value = 0;
+            bool Produced = false;
+            if (!scanEscape(Position, Source.size(), Value, Produced))
+            {
+              Invalid = true;
+            }
+            if (Produced)
+            {
+              unicode::appendUtf8(DecodedValue, Value);
+            }
+            continue;
+          }
+          if (!scanLiteralScalar(Position, Source.size(), DecodedValue))
+          {
+            Invalid = true;
+          }
+        }
+        if (!Closed && Position == Source.size())
+        {
+          Invalid = true;
+          addDiagnostic(DiagnosticKind::UnterminatedStringLiteral, {Start, Position});
+        }
+        if (Invalid || !Closed)
+        {
+          return makeToken(TokenKind::InvalidStringLiteral, Start, Position);
+        }
+        const StringMode Mode = RawMode ? StringMode::RawSingleLine : StringMode::EscapedSingleLine;
+        return makeToken(TokenKind::StringLiteral, Start, Position, StringInfo{Mode, std::move(DecodedValue)});
+      }
+
+      Token scanMultilineString(bool RawMode)
+      {
+        const std::size_t Start = Position;
+        Position += RawMode ? 4 : 3;
+        std::size_t OpeningLineBreakLength = logicalLineBreakLength(Position);
+        if (OpeningLineBreakLength == 0)
+        {
+          addDiagnostic(DiagnosticKind::MultilineOpeningLineBreakRequired, {Start, Position});
+          std::size_t Closing = std::string::npos;
+          for (std::size_t LineStart = Position; LineStart < Source.size();)
+          {
+            const std::size_t LineBreak = Source.find('\n', LineStart);
+            if (LineBreak == std::string::npos)
+            {
+              break;
+            }
+            std::size_t Candidate = LineBreak + 1;
+            while (Candidate < Source.size() && (Source[Candidate] == ' ' || Source[Candidate] == '\t'))
+            {
+              ++Candidate;
+            }
+            if (startsWith(Source, Candidate, "\"\"\""))
+            {
+              Closing = Candidate;
+              break;
+            }
+            LineStart = LineBreak + 1;
+          }
+          if (Closing == std::string::npos)
+          {
+            Closing = Source.find("\"\"\"", Position);
+          }
+          Position = Closing == std::string::npos ? Source.size() : Closing + 3;
+          validateRawRange(Start, Position, false);
+          return makeToken(TokenKind::InvalidStringLiteral, Start, Position);
+        }
+        Position += OpeningLineBreakLength;
+
+        std::vector<LiteralLine> Lines;
+        std::size_t ClosingStart = std::string::npos;
+        std::size_t ClosingLineStart = std::string::npos;
+        while (Position < Source.size())
+        {
+          const std::size_t LineStart = Position;
+          std::size_t LineEnd = Position;
+          while (LineEnd < Source.size() && Source[LineEnd] != '\n' && !(Source[LineEnd] == '\r' && LineEnd + 1 < Source.size() && Source[LineEnd + 1] == '\n'))
+          {
+            ++LineEnd;
+          }
+          std::size_t FirstContent = LineStart;
+          while (FirstContent < LineEnd && (Source[FirstContent] == ' ' || Source[FirstContent] == '\t'))
+          {
+            ++FirstContent;
+          }
+          if (startsWith(Source, FirstContent, "\"\"\""))
+          {
+            ClosingStart = FirstContent;
+            ClosingLineStart = LineStart;
+            Position = FirstContent + 3;
+            break;
+          }
+          Lines.push_back({LineStart, LineEnd});
+          if (LineEnd == Source.size())
+          {
+            Position = LineEnd;
+            break;
+          }
+          Position = LineEnd + logicalLineBreakLength(LineEnd);
+        }
+
+        if (ClosingStart == std::string::npos)
+        {
+          Position = Source.size();
+          validateRawRange(Start, Position, false);
+          addDiagnostic(DiagnosticKind::UnterminatedMultilineStringLiteral, {Start, Position});
+          return makeToken(TokenKind::InvalidStringLiteral, Start, Position);
+        }
+
+        const std::string_view Indentation(Source.data() + ClosingLineStart, ClosingStart - ClosingLineStart);
+        std::string DecodedValue;
+        bool Invalid = false;
+        for (std::size_t LineIndex = 0; LineIndex < Lines.size(); ++LineIndex)
+        {
+          const LiteralLine Line = Lines[LineIndex];
+          std::size_t ContentStart = Line.Start;
+          const std::string_view RawLine(Source.data() + Line.Start, Line.End - Line.Start);
+          const bool WhitespaceOnly = std::all_of(RawLine.begin(), RawLine.end(), [](char Value)
+                                                  {
+                                                    return Value == ' ' || Value == '\t';
+                                                  });
+          if (RawLine.size() >= Indentation.size() && RawLine.substr(0, Indentation.size()) == Indentation)
+          {
+            ContentStart += Indentation.size();
+          }
+          else if (WhitespaceOnly && Indentation.size() >= RawLine.size() && Indentation.substr(0, RawLine.size()) == RawLine)
+          {
+            ContentStart = Line.End;
+          }
+          else
+          {
+            Invalid = true;
+            addDiagnostic(DiagnosticKind::InvalidMultilineIndentation, {Line.Start, Line.End});
+          }
+
+          std::size_t Cursor = ContentStart;
+          while (Cursor < Line.End)
+          {
+            if (!RawMode && Source[Cursor] == '\\')
+            {
+              char32_t Value = 0;
+              bool Produced = false;
+              if (!scanEscape(Cursor, Line.End, Value, Produced))
+              {
+                Invalid = true;
+              }
+              if (Produced)
+              {
+                unicode::appendUtf8(DecodedValue, Value);
+              }
+            }
+            else if (!scanLiteralScalar(Cursor, Line.End, DecodedValue))
+            {
+              Invalid = true;
+            }
+          }
+          if (LineIndex + 1 < Lines.size())
+          {
+            DecodedValue.push_back('\n');
+          }
+        }
+
+        if (Invalid)
+        {
+          return makeToken(TokenKind::InvalidStringLiteral, Start, Position);
+        }
+        const StringMode Mode = RawMode ? StringMode::RawMultiline : StringMode::EscapedMultiline;
+        return makeToken(TokenKind::StringLiteral, Start, Position, StringInfo{Mode, std::move(DecodedValue)});
+      }
+
+      bool scanEscape(std::size_t &Cursor, std::size_t Limit, char32_t &Value, bool &Produced)
+      {
+        const std::size_t Start = Cursor;
+        Produced = false;
+        if (Cursor + 1 >= Limit)
+        {
+          Cursor = Limit;
+          addDiagnostic(DiagnosticKind::UnknownEscape, {Start, Cursor});
           return false;
         }
-        cursor = index + 1;
-        if (!valid_digits || digit_count == 0 || digit_count > 6) {
-          add_diagnostic(DiagnosticKind::InvalidUnicodeEscape, {start, cursor});
+        const DecodeResult EscapedCharacter = unicode::decode(Source, Cursor + 1);
+        if (!EscapedCharacter.Valid)
+        {
+          const std::size_t InvalidLength = std::max<std::size_t>(EscapedCharacter.Length, 1);
+          Cursor = std::min(Cursor + 1 + InvalidLength, Limit);
+          addDiagnostic(DiagnosticKind::InvalidUtf8, {Start + 1, Cursor});
           return false;
         }
-        if (!is_scalar_value(scalar)) {
-          add_diagnostic(DiagnosticKind::InvalidUnicodeScalar, {start, cursor});
+        if (isForbiddenControl(EscapedCharacter.Value))
+        {
+          addDiagnostic(DiagnosticKind::ForbiddenControlCharacter, {Cursor + 1, Cursor + 1 + EscapedCharacter.Length});
+        }
+        if (unicode::isDefaultIgnorable(EscapedCharacter.Value))
+        {
+          addDiagnostic(DiagnosticKind::InvisibleCharacter, {Cursor + 1, Cursor + 1 + EscapedCharacter.Length});
+        }
+        const char Kind = Source[Cursor + 1];
+        if (Kind == '\n' || Kind == '\r')
+        {
+          Cursor = Start + 1;
+          addDiagnostic(DiagnosticKind::UnknownEscape, {Start, Cursor});
           return false;
         }
-        value = scalar;
-        produced = true;
-        return true;
-      }
-      default: {
-        const DecodeResult escaped = unicode::decode(source_, cursor + 1);
-        cursor += 1 + std::max<std::size_t>(escaped.length, 1);
-        add_diagnostic(DiagnosticKind::UnknownEscape, {start, cursor});
-        return false;
-      }
-    }
-  }
-
-  bool scan_literal_scalar(std::size_t& cursor, std::size_t limit, std::string& decoded_value) {
-    const DecodeResult decoded = unicode::decode(source_, cursor);
-    if (!decoded.valid || cursor + decoded.length > limit) {
-      const std::size_t length = std::max<std::size_t>(decoded.length, 1);
-      add_diagnostic(DiagnosticKind::InvalidUtf8, {cursor, std::min(cursor + length, limit)});
-      cursor = std::min(cursor + length, limit);
-      return false;
-    }
-    bool valid = true;
-    if (is_forbidden_control(decoded.value) || decoded.value == U'\r') {
-      valid = false;
-      add_diagnostic(decoded.value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {cursor, cursor + decoded.length});
-    }
-    if (unicode::is_default_ignorable(decoded.value)) {
-      valid = false;
-      add_diagnostic(DiagnosticKind::InvisibleCharacter, {cursor, cursor + decoded.length});
-    }
-    unicode::append_utf8(decoded_value, decoded.value);
-    cursor += decoded.length;
-    return valid;
-  }
-
-  TokenKind validate_raw_range(std::size_t start, std::size_t end, bool allow_invisible) {
-    TokenKind result = TokenKind::Identifier;
-    for (std::size_t cursor = start; cursor < end;) {
-      const DecodeResult decoded = unicode::decode(source_, cursor);
-      if (!decoded.valid) {
-        const std::size_t length = std::max<std::size_t>(decoded.length, 1);
-        add_diagnostic(DiagnosticKind::InvalidUtf8, {cursor, std::min(cursor + length, end)});
-        result = TokenKind::InvalidEncoding;
-        cursor = std::min(cursor + length, end);
-        continue;
-      }
-      if (is_forbidden_control(decoded.value) || (decoded.value == U'\r' && !(cursor + 1 < end && source_[cursor + 1] == '\n'))) {
-        add_diagnostic(decoded.value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {cursor, cursor + decoded.length});
-        if (result != TokenKind::InvalidEncoding) {
-          result = TokenKind::InvalidCharacter;
+        switch (Kind)
+        {
+        case '\\':
+          Value = U'\\';
+          Cursor += 2;
+          Produced = true;
+          return true;
+        case '\'':
+          Value = U'\'';
+          Cursor += 2;
+          Produced = true;
+          return true;
+        case '"':
+          Value = U'"';
+          Cursor += 2;
+          Produced = true;
+          return true;
+        case '0':
+          Value = U'\0';
+          Cursor += 2;
+          Produced = true;
+          return true;
+        case 'n':
+          Value = U'\n';
+          Cursor += 2;
+          Produced = true;
+          return true;
+        case 'r':
+          Value = U'\r';
+          Cursor += 2;
+          Produced = true;
+          return true;
+        case 't':
+          Value = U'\t';
+          Cursor += 2;
+          Produced = true;
+          return true;
+        case 'x':
+        {
+          if (Cursor + 3 >= Limit || !isHexDigit(Source[Cursor + 2]) || !isHexDigit(Source[Cursor + 3]))
+          {
+            Cursor += 2;
+            while (Cursor < Limit && Cursor < Start + 4 && isHexDigit(Source[Cursor]))
+            {
+              ++Cursor;
+            }
+            addDiagnostic(DiagnosticKind::InvalidHexEscape, {Start, Cursor});
+            return false;
+          }
+          Value = static_cast<char32_t>(digitValue(Source[Cursor + 2]) * 16 + digitValue(Source[Cursor + 3]));
+          Cursor += 4;
+          Produced = true;
+          return true;
+        }
+        case 'u':
+        {
+          if (Cursor + 2 >= Limit || Source[Cursor + 2] != '{')
+          {
+            Cursor += 2;
+            addDiagnostic(DiagnosticKind::InvalidUnicodeEscape, {Start, Cursor});
+            return false;
+          }
+          std::size_t Index = Cursor + 3;
+          std::size_t DigitCount = 0;
+          char32_t Scalar = 0;
+          bool ValidDigits = true;
+          while (Index < Limit && Source[Index] != '}' && Source[Index] != '"' && Source[Index] != '\'' && Source[Index] != '\n' && Source[Index] != '\r' && Source[Index] != '\\')
+          {
+            const DecodeResult EscapedDigit = unicode::decode(Source, Index);
+            if (!EscapedDigit.Valid)
+            {
+              const std::size_t InvalidLength = std::max<std::size_t>(EscapedDigit.Length, 1);
+              addDiagnostic(DiagnosticKind::InvalidUtf8, {Index, std::min(Index + InvalidLength, Limit)});
+              ValidDigits = false;
+              ++DigitCount;
+              Index = std::min(Index + InvalidLength, Limit);
+              continue;
+            }
+            if (isForbiddenControl(EscapedDigit.Value) || EscapedDigit.Value == U'\r')
+            {
+              addDiagnostic(EscapedDigit.Value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {Index, Index + EscapedDigit.Length});
+              ValidDigits = false;
+            }
+            if (unicode::isDefaultIgnorable(EscapedDigit.Value))
+            {
+              addDiagnostic(DiagnosticKind::InvisibleCharacter, {Index, Index + EscapedDigit.Length});
+              ValidDigits = false;
+            }
+            const int Digit = digitValue(Source[Index]);
+            if (Digit < 0)
+            {
+              ValidDigits = false;
+            }
+            else if (DigitCount < 7)
+            {
+              Scalar = static_cast<char32_t>((Scalar << 4U) | Digit);
+            }
+            ++DigitCount;
+            Index += EscapedDigit.Length;
+          }
+          if (Index >= Limit || Source[Index] != '}')
+          {
+            Cursor = Index;
+            addDiagnostic(DiagnosticKind::InvalidUnicodeEscape, {Start, Cursor});
+            return false;
+          }
+          Cursor = Index + 1;
+          if (!ValidDigits || DigitCount == 0 || DigitCount > 6)
+          {
+            addDiagnostic(DiagnosticKind::InvalidUnicodeEscape, {Start, Cursor});
+            return false;
+          }
+          if (!isScalarValue(Scalar))
+          {
+            addDiagnostic(DiagnosticKind::InvalidUnicodeScalar, {Start, Cursor});
+            return false;
+          }
+          Value = Scalar;
+          Produced = true;
+          return true;
+        }
+        default:
+        {
+          const DecodeResult Escaped = unicode::decode(Source, Cursor + 1);
+          Cursor += 1 + std::max<std::size_t>(Escaped.Length, 1);
+          addDiagnostic(DiagnosticKind::UnknownEscape, {Start, Cursor});
+          return false;
+        }
         }
       }
-      if (!allow_invisible && unicode::is_default_ignorable(decoded.value)) {
-        add_diagnostic(DiagnosticKind::InvisibleCharacter, {cursor, cursor + decoded.length});
-        if (result != TokenKind::InvalidEncoding) {
-          result = TokenKind::InvalidCharacter;
+
+      bool scanLiteralScalar(std::size_t &Cursor, std::size_t Limit, std::string &DecodedValue)
+      {
+        const DecodeResult Decoded = unicode::decode(Source, Cursor);
+        if (!Decoded.Valid || Cursor + Decoded.Length > Limit)
+        {
+          const std::size_t Length = std::max<std::size_t>(Decoded.Length, 1);
+          addDiagnostic(DiagnosticKind::InvalidUtf8, {Cursor, std::min(Cursor + Length, Limit)});
+          Cursor = std::min(Cursor + Length, Limit);
+          return false;
         }
+        bool Valid = true;
+        if (isForbiddenControl(Decoded.Value) || Decoded.Value == U'\r')
+        {
+          Valid = false;
+          addDiagnostic(Decoded.Value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {Cursor, Cursor + Decoded.Length});
+        }
+        if (unicode::isDefaultIgnorable(Decoded.Value))
+        {
+          Valid = false;
+          addDiagnostic(DiagnosticKind::InvisibleCharacter, {Cursor, Cursor + Decoded.Length});
+        }
+        unicode::appendUtf8(DecodedValue, Decoded.Value);
+        Cursor += Decoded.Length;
+        return Valid;
       }
-      cursor += decoded.length;
+
+      TokenKind validateRawRange(std::size_t Start, std::size_t End, bool AllowInvisible)
+      {
+        TokenKind Result = TokenKind::Identifier;
+        for (std::size_t Cursor = Start; Cursor < End;)
+        {
+          const DecodeResult Decoded = unicode::decode(Source, Cursor);
+          if (!Decoded.Valid)
+          {
+            const std::size_t Length = std::max<std::size_t>(Decoded.Length, 1);
+            addDiagnostic(DiagnosticKind::InvalidUtf8, {Cursor, std::min(Cursor + Length, End)});
+            Result = TokenKind::InvalidEncoding;
+            Cursor = std::min(Cursor + Length, End);
+            continue;
+          }
+          if (isForbiddenControl(Decoded.Value) || (Decoded.Value == U'\r' && !(Cursor + 1 < End && Source[Cursor + 1] == '\n')))
+          {
+            addDiagnostic(Decoded.Value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {Cursor, Cursor + Decoded.Length});
+            if (Result != TokenKind::InvalidEncoding)
+            {
+              Result = TokenKind::InvalidCharacter;
+            }
+          }
+          if (!AllowInvisible && unicode::isDefaultIgnorable(Decoded.Value))
+          {
+            addDiagnostic(DiagnosticKind::InvisibleCharacter, {Cursor, Cursor + Decoded.Length});
+            if (Result != TokenKind::InvalidEncoding)
+            {
+              Result = TokenKind::InvalidCharacter;
+            }
+          }
+          Cursor += Decoded.Length;
+        }
+        return Result;
+      }
+
+      std::size_t logicalLineBreakLength(std::size_t Offset) const noexcept
+      {
+        if (Offset < Source.size() && Source[Offset] == '\n')
+        {
+          return 1;
+        }
+        if (Offset + 1 < Source.size() && Source[Offset] == '\r' && Source[Offset + 1] == '\n')
+        {
+          return 2;
+        }
+        return 0;
+      }
+
+      void addDiagnostic(DiagnosticKind Kind, core::SourceRange Span)
+      {
+        Diagnostics.push_back({Kind, Span, diagnosticMessage(Kind)});
+      }
+
+      std::string describeScalar(std::size_t Offset) const
+      {
+        const DecodeResult Decoded = unicode::decode(Source, Offset);
+        if (!Decoded.Valid)
+        {
+          return "invalid UTF-8";
+        }
+        return codePointName(Decoded.Value) + " ('" + std::string(Source.data() + Offset, Decoded.Length) + "')";
+      }
+
+      std::size_t previousVisibleScalar(std::size_t Offset) const
+      {
+        if (Offset == 0)
+        {
+          return std::string::npos;
+        }
+        std::size_t Candidate = Offset - 1;
+        while (Candidate != 0 && (static_cast<unsigned char>(Source[Candidate]) & 0xC0U) == 0x80U)
+        {
+          --Candidate;
+        }
+        const DecodeResult Decoded = unicode::decode(Source, Candidate);
+        return Decoded.Valid && Candidate + Decoded.Length == Offset && !unicode::isDefaultIgnorable(Decoded.Value) && !isForbiddenControl(Decoded.Value) && Decoded.Value != U' ' && Decoded.Value != U'\t' && Decoded.Value != U'\r' && Decoded.Value != U'\n' && !unicode::isUnicodeWhitespace(Decoded.Value) ? Candidate : std::string::npos;
+      }
+
+      std::size_t nextVisibleScalar(std::size_t Offset) const
+      {
+        const DecodeResult Decoded = unicode::decode(Source, Offset);
+        return Offset < Source.size() && Decoded.Valid && !unicode::isDefaultIgnorable(Decoded.Value) && !isForbiddenControl(Decoded.Value) && Decoded.Value != U' ' && Decoded.Value != U'\t' && Decoded.Value != U'\r' && Decoded.Value != U'\n' && !unicode::isUnicodeWhitespace(Decoded.Value) ? Offset : std::string::npos;
+      }
+
+      void addInvisibleDiagnostic(std::size_t Offset, DecodeResult Decoded, std::size_t PreviousVisible, std::size_t NextVisible, bool IdentifierContext)
+      {
+        std::string Message = "invisible format character " + codePointName(Decoded.Value);
+        if (PreviousVisible != std::string::npos && NextVisible != std::string::npos)
+        {
+          Message += " appears between " + describeScalar(PreviousVisible) + " and " + describeScalar(NextVisible);
+        }
+        else if (PreviousVisible != std::string::npos)
+        {
+          Message += " appears after " + describeScalar(PreviousVisible);
+        }
+        else if (NextVisible != std::string::npos)
+        {
+          Message += " appears before " + describeScalar(NextVisible);
+        }
+        else
+        {
+          Message += IdentifierContext ? " appears in an identifier" : " appears in source text";
+        }
+        Diagnostics.push_back({DiagnosticKind::InvisibleCharacter, {Offset, Offset + Decoded.Length}, std::move(Message)});
+      }
+
+      Token makeToken(TokenKind Kind, std::size_t Start, std::size_t End, TokenPayload Payload = {}) const
+      {
+        return {Kind, {Start, End}, std::move(Payload)};
+      }
+
+      const std::string &Source;
+      std::vector<Token> &Tokens;
+      std::vector<Diagnostic> &Diagnostics;
+      TokenizerOptions Options;
+      std::size_t Position = 0;
+    };
+  } // namespace
+
+  std::string_view LexedFile::raw(const Token &Token) const noexcept
+  {
+    if (Token.Span.Start > Token.Span.End || Token.Span.End > Source.size())
+    {
+      return {};
     }
-    return result;
+    return std::string_view(Source.data() + Token.Span.Start, Token.Span.size());
   }
 
-  std::size_t logical_line_break_length(std::size_t offset) const noexcept {
-    if (offset < source_.size() && source_[offset] == '\n') {
-      return 1;
+  std::size_t LexedFile::lineNumber(std::size_t ByteOffset) const noexcept
+  {
+    const std::size_t ClampedOffset = std::min(ByteOffset, Source.size());
+    return static_cast<std::size_t>(std::upper_bound(LineStarts.begin(), LineStarts.end(), ClampedOffset) - LineStarts.begin());
+  }
+
+  bool LexedFile::succeeded() const noexcept
+  {
+    return Diagnostics.empty() && std::none_of(Tokens.begin(), Tokens.end(), [](const Token &Token)
+                                               {
+                                                 return Token.isError();
+                                               });
+  }
+
+  Tokenizer::Tokenizer(TokenizerOptions Options)
+      : Options(Options)
+  {
+  }
+
+  LexedFile Tokenizer::tokenize(std::string Source) const
+  {
+    LexedFile Result;
+    Result.Source = std::move(Source);
+    Result.LineStarts.push_back(0);
+    for (std::size_t Index = 0; Index < Result.Source.size(); ++Index)
+    {
+      if (Result.Source[Index] == '\n')
+      {
+        Result.LineStarts.push_back(Index + 1);
+      }
     }
-    if (offset + 1 < source_.size() && source_[offset] == '\r' && source_[offset + 1] == '\n') {
-      return 2;
-    }
-    return 0;
+    Scanner Scanner(Result.Source, Result.Tokens, Result.Diagnostics, Options);
+    Scanner.run();
+    return Result;
   }
 
-  void add_diagnostic(DiagnosticKind kind, ByteSpan span) { diagnostics_.push_back({kind, span, diagnostic_message(kind)}); }
-
-  std::string describe_scalar(std::size_t offset) const {
-    const DecodeResult decoded = unicode::decode(source_, offset);
-    if (!decoded.valid) {
-      return "invalid UTF-8";
-    }
-    return code_point_name(decoded.value) + " ('" + std::string(source_.data() + offset, decoded.length) + "')";
+  LexedFile tokenize(std::string Source, TokenizerOptions Options)
+  {
+    return Tokenizer(Options).tokenize(std::move(Source));
   }
-
-  std::size_t previous_visible_scalar(std::size_t offset) const {
-    if (offset == 0) {
-      return std::string::npos;
-    }
-    std::size_t candidate = offset - 1;
-    while (candidate != 0 && (static_cast<unsigned char>(source_[candidate]) & 0xC0U) == 0x80U) {
-      --candidate;
-    }
-    const DecodeResult decoded = unicode::decode(source_, candidate);
-    return decoded.valid && candidate + decoded.length == offset && !unicode::is_default_ignorable(decoded.value) && !is_forbidden_control(decoded.value) && decoded.value != U' ' && decoded.value != U'\t' && decoded.value != U'\r' && decoded.value != U'\n' && !unicode::is_unicode_whitespace(decoded.value) ? candidate : std::string::npos;
-  }
-
-  std::size_t next_visible_scalar(std::size_t offset) const {
-    const DecodeResult decoded = unicode::decode(source_, offset);
-    return offset < source_.size() && decoded.valid && !unicode::is_default_ignorable(decoded.value) && !is_forbidden_control(decoded.value) && decoded.value != U' ' && decoded.value != U'\t' && decoded.value != U'\r' && decoded.value != U'\n' && !unicode::is_unicode_whitespace(decoded.value) ? offset : std::string::npos;
-  }
-
-  void add_invisible_diagnostic(std::size_t offset, DecodeResult decoded, std::size_t previous_visible, std::size_t next_visible, bool identifier_context) {
-    std::string message = "invisible format character " + code_point_name(decoded.value);
-    if (previous_visible != std::string::npos && next_visible != std::string::npos) {
-      message += " appears between " + describe_scalar(previous_visible) + " and " + describe_scalar(next_visible);
-    } else if (previous_visible != std::string::npos) {
-      message += " appears after " + describe_scalar(previous_visible);
-    } else if (next_visible != std::string::npos) {
-      message += " appears before " + describe_scalar(next_visible);
-    } else {
-      message += identifier_context ? " appears in an identifier" : " appears in source text";
-    }
-    diagnostics_.push_back({DiagnosticKind::InvisibleCharacter, {offset, offset + decoded.length}, std::move(message)});
-  }
-
-  Token make_token(TokenKind kind, std::size_t start, std::size_t end, TokenPayload payload = {}) const { return {kind, {start, end}, std::move(payload)}; }
-
-  const std::string& source_;
-  std::vector<Token>& tokens_;
-  std::vector<Diagnostic>& diagnostics_;
-  TokenizerOptions options_;
-  std::size_t position_ = 0;
-};
-
-}  // namespace
-
-std::string_view LexedFile::raw(const Token& token) const noexcept {
-  if (token.span.start > token.span.end || token.span.end > source_.size()) {
-    return {};
-  }
-  return std::string_view(source_.data() + token.span.start, token.span.size());
-}
-
-std::size_t LexedFile::line_number(std::size_t byte_offset) const noexcept {
-  const std::size_t clamped_offset = std::min(byte_offset, source_.size());
-  return static_cast<std::size_t>(std::upper_bound(line_starts_.begin(), line_starts_.end(), clamped_offset) - line_starts_.begin());
-}
-
-bool LexedFile::succeeded() const noexcept {
-  return diagnostics_.empty() && std::none_of(tokens_.begin(), tokens_.end(), [](const Token& token) { return token.is_error(); });
-}
-
-Tokenizer::Tokenizer(TokenizerOptions options) : options_(options) {}
-
-LexedFile Tokenizer::tokenize(std::string source) const {
-  LexedFile result;
-  result.source_ = std::move(source);
-  result.line_starts_.push_back(0);
-  for (std::size_t index = 0; index < result.source_.size(); ++index) {
-    if (result.source_[index] == '\n') {
-      result.line_starts_.push_back(index + 1);
-    }
-  }
-  Scanner scanner(result.source_, result.tokens_, result.diagnostics_, options_);
-  scanner.run();
-  return result;
-}
-
-LexedFile tokenize(std::string source, TokenizerOptions options) { return Tokenizer(options).tokenize(std::move(source)); }
-
-const char* diagnostic_kind_name(DiagnosticKind kind) noexcept {
-  switch (kind) {
-    case DiagnosticKind::InvalidUtf8: return "invalid UTF-8";
-    case DiagnosticKind::UnexpectedBom: return "UTF-8 BOM is only allowed at the start of a file";
-    case DiagnosticKind::LoneCarriageReturn: return "carriage return must be followed by line feed";
-    case DiagnosticKind::NonAsciiWhitespace: return "only ASCII space and tab are source whitespace";
-    case DiagnosticKind::ForbiddenControlCharacter: return "forbidden raw control character";
-    case DiagnosticKind::InvalidCharacter: return "character cannot start an Ink token";
-    case DiagnosticKind::IdentifierNotNfc: return "identifier is not in Unicode NFC";
-    case DiagnosticKind::InvisibleCharacter: return "invisible format character must be written explicitly";
-    case DiagnosticKind::MissingBaseDigits: return "base prefix must be followed by a digit";
-    case DiagnosticKind::DigitOutOfRange: return "digit does not belong to the literal base";
-    case DiagnosticKind::MisplacedNumericSeparator: return "numeric separator must be between two digits";
-    case DiagnosticKind::MissingExponentDigits: return "exponent must contain a decimal digit";
-    case DiagnosticKind::UnknownNumericSuffix: return "unknown numeric literal suffix";
-    case DiagnosticKind::InvalidNumericSuffix: return "numeric suffix is not valid for this literal";
-    case DiagnosticKind::UnsupportedNonDecimalFloat: return "non-decimal floating-point literals are not supported";
-    case DiagnosticKind::EmptyScalarLiteral: return "scalar literal is empty";
-    case DiagnosticKind::MultipleScalarValues: return "scalar literal must contain exactly one Unicode scalar value";
-    case DiagnosticKind::UnterminatedScalarLiteral: return "scalar literal is not terminated on this source line";
-    case DiagnosticKind::UnknownEscape: return "unknown escape sequence";
-    case DiagnosticKind::InvalidHexEscape: return "hex escape requires exactly two hexadecimal digits";
-    case DiagnosticKind::InvalidUnicodeEscape: return "Unicode escape requires one to six hexadecimal digits in braces";
-    case DiagnosticKind::InvalidUnicodeScalar: return "escape does not designate a Unicode scalar value";
-    case DiagnosticKind::UnterminatedStringLiteral: return "single-line string is not terminated on this source line";
-    case DiagnosticKind::MultilineOpeningLineBreakRequired: return "multiline string opening delimiter must be followed by a line break";
-    case DiagnosticKind::UnterminatedMultilineStringLiteral: return "multiline string has no closing delimiter";
-    case DiagnosticKind::InvalidMultilineIndentation: return "multiline string line does not match the closing indentation";
-    case DiagnosticKind::UnterminatedBlockComment: return "block comment is not terminated";
-    case DiagnosticKind::BlockCommentNestingLimit: return "block comment nesting limit exceeded";
-  }
-  return "unknown tokenizer diagnostic";
-}
-
-}  // namespace ink::tokenizer
+} // namespace ink::tokenizer
