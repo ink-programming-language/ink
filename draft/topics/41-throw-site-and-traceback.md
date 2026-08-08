@@ -165,7 +165,7 @@ catch IoError as error {
 ```ink
 catch ParseError as error {
     throw ConfigurationError {
-        message: "invalid configuration",
+        message: "invalid configuration"
     } from error;
 }
 ```

@@ -31,7 +31,7 @@ result_type = Data*
 
 `async` 是反射调用约定的一部分。把已有函数从同步改成异步或从异步改成同步，属于反射和普通调用 ABI 变化。
 
-议题 60 规定异步覆盖不支持协变结果，`Task::<T>` 对 `T` 不变型。因此 `call_async[R]` 的 `R` 必须与描述符逻辑结果类型完全一致；最终动态实现不能改变 `DynamicTaskOut` 的结果类型。
+议题 60 规定异步覆盖不支持协变结果，`Task::<T>` 对 `T` 不变型。因此 `call_async::<R>` 的 `R` 必须与描述符逻辑结果类型完全一致；最终动态实现不能改变 `DynamicTaskOut` 的结果类型。
 
 ## 2. 异步反射使用独立的 `call_async`
 
@@ -44,19 +44,18 @@ class Service {
     virtual async func load(id: u64) -> Data*;
 }
 
-if (match .some(function) = type.function("load")) {
-    var task = function.call_async[Data*](&service, 42u64);
-    const data = await task;
+if (match .some(type_info) = reflection.find_type("game.Service")) {
+    if (match .some(function) = type_info.function("load")) {
+        var task = function.call_async::<Data*>(&service, 42u64);
+        const data = await task;
+    }
 }
 ```
 
 概念签名为：
 
-```ink
-func FunctionInfo.call_async[R](
-    receiver,
-    arguments...
-) -> Task::<R>;
+```text
+FunctionInfo.call_async::<R>(receiver, ...arguments) -> Task::<R>
 ```
 
 `call_async` 自身是同步函数和任务构造 API，不是 `async func`。它在调用表达式中完成描述符检查、动态分派和任务构造，然后返回处于 `created` 状态的 `Task::<R>`。把该 API 本身声明为异步会无意义地形成 `Task::<Task::<R>>`，因此禁止这种解释。
@@ -64,7 +63,7 @@ func FunctionInfo.call_async[R](
 概念流程为：
 
 ```text
-FunctionInfo.call_async[R]
+FunctionInfo.call_async::<R>
     → verify FunctionInfo.kind == async
     → verify logical result type == R
     → verify receiver and arguments
@@ -79,16 +78,16 @@ FunctionInfo.call_async[R]
 
 ## 3. `call` 与 `call_async` 不互相替代
 
-对异步描述符调用普通 `call[R]` 必须抛出结构化反射调用种类错误：
+对异步描述符调用普通 `call::<R>` 必须抛出结构化反射调用种类错误：
 
 ```ink
-function.call[Data*](&service, 42u64); // 错误：目标是 async
+function.call::<Data*>(&service, 42u64); // 错误：目标是 async
 ```
 
 正确调用为：
 
 ```ink
-function.call_async[Data*](&service, 42u64);
+function.call_async::<Data*>(&service, 42u64);
 ```
 
 反方向同样禁止：同步描述符不能通过 `call_async` 调用。反射层不能根据调用点是否立即出现 `await`、调用者期待的类型或函数名称猜测调用种类。
@@ -108,10 +107,10 @@ result_type = Task::<Data*>
 ```
 
 ```ink
-var task = function.call[Task::<Data*>](arguments...);
+var task = function.call::<Task::<Data*>>(...arguments);
 ```
 
-`call[Task::<T>]` 进入同步函数体并由该函数自行构造任务；`call_async[T]` 直接构造被反射异步函数的惰性任务。两种路径不能互相满足或自动转换。
+`call::<Task::<T>>` 进入同步函数体并由该函数自行构造任务；`call_async::<T>` 直接构造被反射异步函数的惰性任务。两种路径不能互相满足或自动转换。
 
 ## 4. `DynamicTaskOut` 直接承接最终任务
 
@@ -126,7 +125,7 @@ DynamicTaskOut {
 }
 ```
 
-强类型 `call_async[R]` 把自身隐藏的 `Task::<R>` 返回位置转换为 `DynamicTaskOut`。适配器验证逻辑结果类型和任务 ABI 后，让普通异步任务构造入口直接在 `address` 中建立最终任务：
+强类型 `call_async::<R>` 把自身隐藏的 `Task::<R>` 返回位置转换为 `DynamicTaskOut`。适配器验证逻辑结果类型和任务 ABI 后，让普通异步任务构造入口直接在 `address` 中建立最终任务：
 
 ```text
 async reflection adapter
@@ -242,7 +241,7 @@ Task::<R>.failed(ExceptionBox)
 
 ## 10. 不引入拥有型 `DynamicTask`
 
-普通用户通过 `call_async[R]` 已能在编译期指定期待的结果类型，并取得正常 `Task::<R>`。本议题不向核心语言增加拥有型、可复制或引用计数的 `DynamicTask`/`AnyTask`。
+普通用户通过 `call_async::<R>` 已能在编译期指定期待的结果类型，并取得正常 `Task::<R>`。本议题不向核心语言增加拥有型、可复制或引用计数的 `DynamicTask`/`AnyTask`。
 
 结果类型完全到运行时才知道的编辑器、RPC 框架或插件系统可以使用底层 `DynamicTaskOut`、类型描述符和未来确定的动态任务驱动 ABI。公开的拥有型动态任务封装如果需要，还必须单独决定：
 

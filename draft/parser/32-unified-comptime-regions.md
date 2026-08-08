@@ -1,6 +1,6 @@
 # Parser 议题 32：统一的 `comptime` 区域控制
 
-> 状态：已确认，所有结构化控制头使用固定括号
+> 状态：已确认，所有结构化控制头使用固定括号；2026-08-08 确认 statement entry 的 `comptime match` 不可回滚提交
 > 确认日期：2026-08-05
 
 ## 1. 目标
@@ -179,23 +179,33 @@ var second: int = comptime (GetXXX() + 1);
 
 ## 7. Item 起始位置
 
-在 item 起始位置，外层 Parser 已经知道当前区域。若 `comptime` 后的显著 Token 是 `{`、`if`、`match`、`for` 或 `while`，进入统一的区域控制 Parser。
+在 item 起始位置，外层 Parser 已经知道当前区域。若 `comptime` 后的显著 Token 是 `{`、`if`、`match`、`for` 或 `while`，进入统一的区域控制 Parser。对 statement entry 的 `comptime match`，这两个显著 Token 本身就是不可回滚的提交点；Parser 不继续查看 arm 的逗号或分号来决定是否改成值表达式。
 
 普通 statement context 还允许 `comptime_expression` 成为表达式语句的一部分：
 
 ```ink
 comptime validate_configuration();
+
+comptime (match (target.arch) {
+    .x86_64 => x86_value,
+    _ => fallback_value,
+});
 ```
 
-此时 statement Parser 在结构化区域前缀试探失败后回到普通表达式语句入口，由表达式 Parser 消费 `comptime`。module、class、interface 和 enum item 区域不允许普通表达式语句，所以 `comptime generate();` 不能仅因带有前缀就成为声明；声明区域只能选择或重复其 `RegionRules` 已经允许、并且静态写在源码中的普通声明。Ink v0 不提供 `field(...)` 或其他声明构造表达式。
+第一个示例的第二个显著 Token 是普通表达式起点，第二个示例的第二个显著 Token 是 `(`；它们都没有命中 `comptime match` 保留序列，因此 statement Parser 进入普通表达式语句入口，由 expression Parser 消费 `comptime`。这个判断只需要有限 Token 前瞻，不读取符号表。module、class、interface 和 enum item 区域不允许普通表达式语句，所以 `comptime generate();` 不能仅因带有前缀就成为声明；声明区域只能选择或重复其 `RegionRules` 已经允许、并且静态写在源码中的普通声明。Ink v0 不提供 `field(...)` 或其他声明构造表达式。
 
 在 `=` 之后不存在上述 item 歧义。字段初始化器调用普通表达式 Parser，因此：
 
 ```ink
 var capacity: int = comptime GetCapacity();
+
+var selected: int = comptime match (target.arch) {
+    .x86_64 => x86_value,
+    _ => fallback_value,
+};
 ```
 
-确定进入 `ComptimeExpression`。
+两者都确定进入 `ComptimeExpression`；第二个示例中的 `match` 由其操作数位置解析为 `MatchExpression`。
 
 ## 8. 递归下降实现
 
@@ -219,7 +229,7 @@ struct RegionRules {
 };
 ```
 
-统一入口为：
+统一入口只在外层 item dispatcher 已经通过当前区域和有限 Token 前瞻选定结构控制后调用；普通 expression context 不调用它。statement entry 一旦命中 `comptime match`，后续残缺也只在 `ComptimeMatchControl` 内恢复。统一入口为：
 
 ```cpp
 SyntaxNode Parser::parse_comptime_region_control(
@@ -319,10 +329,10 @@ sink 拒绝错误种类的输出。例如 `ClassMemberSink` 不接受普通 `ret
 - `TopLevelRegion` 同步到导入、顶层声明、`comptime` 或 EOF；
 - 类型成员区域同步到字段、函数、嵌套类型、`comptime` 或外层 `}`。
 
-每个 `region_block` 缺少 `}` 时使用当前区域的 block kind 插入对应 `MissingToken('}')`。不能先建立 `StatementBlock` 再根据其中内容改判，也不能因为未选中分支而忽略其语法错误。
+每个 `region_block` 缺少 `}` 时使用当前区域的 block kind 插入对应 `MissingToken('}')`。不能先建立 `StatementBlock` 再根据其中内容改判，也不能因为未选中分支而忽略其语法错误。已经由 statement entry 提交的 `comptime match` 即使出现表达式 arm 逗号或外层分号，也不得回退成 `ComptimeExpression`。
 
 REPL 在未闭合的 condition、match arm、loop header 或 region block 末尾返回 `Incomplete`。条件不能编译期求值、循环不收敛或选中成员语义非法都发生在 Parser 之后，不改变结构完整状态。
 
 ## 12. 确认结论
 
-Ink 的 `comptime` 是统一阶段前缀。表达式位置要求产生编译期已知值；结构化 block、`if`、`match`、`for` 和 `while` 使用同一个区域控制 schema。module、函数、类、接口和枚举只提供不同的 `RegionRules` 与输出 sink，不获得各自的 `comptime` 关键字或语义。标准 EBNF 可以机械展开区域适配非终结符，Parser、CST、Partial Evaluation 和诊断则共享同一套核心实现。
+Ink 的 `comptime` 是统一阶段前缀。表达式位置要求产生编译期已知值；结构化 block、`if`、`match`、`for` 和 `while` 使用同一个区域控制 schema。statement entry 的 `comptime match` 由两个显著 Token 的有限前瞻不可回滚地选择结构控制，表达式位置或 `comptime (` 则进入 `ComptimeExpression`，两者都不需要符号表。module、函数、类、接口和枚举只提供不同的 `RegionRules` 与输出 sink，不获得各自的 `comptime` 关键字或语义。标准 EBNF 可以机械展开区域适配非终结符，Parser、CST、Partial Evaluation 和诊断则共享同一套核心实现。

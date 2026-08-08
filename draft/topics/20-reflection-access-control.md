@@ -59,7 +59,7 @@ func serialize_all<T: type>(value: const T&) {
 }
 ```
 
-即使 `serialize_all[Account]` 在 `Account` 的定义模块中实例化或调用，函数体仍属于 `external_serializer`，不能借用调用者权限读取 `Account` 的私有字段。
+即使 `serialize_all::<Account>` 在 `Account` 的定义模块中实例化或调用，函数体仍属于 `external_serializer`，不能借用调用者权限读取 `Account` 的私有字段。
 
 装饰器生成的代码默认继承装饰器定义模块的权限，而不是被装饰目标模块的权限。否则外部装饰器可以通过附着到目标声明来提升权限。未来如需由目标类型显式授权装饰器，必须设计独立的能力授予机制。
 

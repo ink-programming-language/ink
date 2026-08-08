@@ -27,7 +27,7 @@ class Player : Entity {
 
 `[reflect]` 控制是否生成动态函数描述符和调用适配器；`virtual` 与 `override` 控制普通语言调用的动态分派。两套机制可以组合，但语义职责不同。
 
-本议题第 2—8、10、11 节的描述符选择、接收者检查和最终虚派发原则同时适用于同步与异步反射虚函数。同步函数使用议题 21 的 `call[R]`；议题 57 规定异步函数使用 `call_async[R]`，并在任务创建时进入议题 55 的虚槽任务构造 thunk。第 9 节仍只决定同步虚函数装饰器；异步函数装饰器留给后续议题。
+本议题第 2—8、10、11 节的描述符选择、接收者检查和最终虚派发原则同时适用于同步与异步反射虚函数。同步函数使用议题 21 的 `call::<R>`；议题 57 规定异步函数使用 `call_async::<R>`，并在任务创建时进入议题 55 的虚槽任务构造 thunk。第 9 节仍只决定同步虚函数装饰器；异步函数装饰器留给后续议题。
 
 ## 2. 两阶段调用
 
@@ -37,10 +37,10 @@ class Player : Entity {
 2. 调用适配器验证接收对象和参数后，按照接收对象的动态类型执行普通虚派发。
 
 ```ink
-if (match .some(type) = reflection.find_type("game.Entity")) {
-    if (match .some(function) = type.function("update")) {
+if (match .some(type_info) = reflection.find_type("game.Entity")) {
+    if (match .some(function) = type_info.function("update")) {
         const entity: Entity& = player;
-        function.call[void](&entity, 0.016f32);
+        function.call::<void>(&entity, 0.016f32);
     }
 }
 ```
@@ -187,7 +187,7 @@ class Player : Entity {
 
 已创建任务固定所选覆盖的模块版本、具体 coroutine frame、resume 和 destroy 入口。新热更新只影响以后创建的任务，不能改写已有任务的实现身份。
 
-议题 57 允许异步虚函数显式添加 `[reflect]`。其 `FunctionInfo` 记录 `kind = async` 和逻辑结果类型 `T`；`call_async[T]` 验证动态接收者和实参后，通过同一 vtable 任务构造槽选择最终覆盖，并把 `Task::<T>` 直接建立在调用者最终返回位置。普通 `call[Task::<T>]` 不能替代该路径。
+议题 57 允许异步虚函数显式添加 `[reflect]`。其 `FunctionInfo` 记录 `kind = async` 和逻辑结果类型 `T`；`call_async::<T>` 验证动态接收者和实参后，通过同一 vtable 任务构造槽选择最终覆盖，并把 `Task::<T>` 直接建立在调用者最终返回位置。普通 `call::<Task::<T>>` 不能替代该路径。
 
 反射查找决定描述符与元数据来源，创建期虚派发决定最终覆盖。任务构造完成后不再保留反射参数数组，也不在第一次 `await` 时重新查找描述符或读取 vtable。
 

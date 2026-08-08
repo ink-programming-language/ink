@@ -254,7 +254,7 @@ interface Loader {
 
 ## 11. 反射只构造最终装饰后任务
 
-议题 57 的 `FunctionInfo.call_async[R]` 在调用点完成反射检查和普通虚或接口分派，并直接构造最终实现的装饰后任务：
+议题 57 的 `FunctionInfo.call_async::<R>` 在调用点完成反射检查和普通虚或接口分派，并直接构造最终实现的装饰后任务：
 
 ```text
 call_async

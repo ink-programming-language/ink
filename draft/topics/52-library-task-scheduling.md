@@ -42,7 +42,7 @@ Ink 核心语言不定义下列高层调度设施：
 例如某个库可以自行定义：
 
 ```ink
-var scheduler = library::ThreadPool(...);
+var scheduler = library.ThreadPool(worker_count);
 var job = scheduler.submit(work_factory);
 ```
 

@@ -1,6 +1,6 @@
 # Parser 议题 09：语句块与花括号
 
-> 状态：已确认，议题 20、24—28 补充全部控制流、清理与异常处理规则；2026-08-05 增加 `comptime` block statement，Parser 议题 32 统一区域控制；2026-08-06 汇总完整 `local_declaration` 与 `statement` 产生式；2026-08-08 确认 `var`/`const` 在 block item 起点提交到局部声明
+> 状态：已确认，议题 20、24—28 补充全部控制流、清理与异常处理规则；2026-08-05 增加 `comptime` block statement，Parser 议题 32 统一区域控制；2026-08-06 汇总完整 `local_declaration` 与 `statement` 产生式；2026-08-08 确认声明与 `match` 结构在 block item 起点确定性提交
 > 确认日期：2026-08-03
 
 ## 1. 普通语句块
@@ -41,9 +41,11 @@ statement =
 
 `local_declaration` 当前只复用议题 10 的 `binding_declaration`，即以 `var` 或 `const` 开头的普通局部绑定。各个 statement 子产生式分别由议题 09、11、18、20、24—28 定义；这里仅汇总已经确认的规则，不引入新的语句形态。空语句块 `{}` 合法。
 
-`block_item` 的分派以首个显著 Token 为准：看到 `Keyword(Var)` 或 `Keyword(Const)` 时立即提交到 `local_declaration`，即使后续声明残缺也不能回退成赋值语句或表达式语句。其他开头进入 `statement`。只允许 `statement` 而不允许 `block_item` 的位置若遇到这两个声明关键字，应报告“声明必须放入语句块”并按声明形状恢复，不能把同一 Token 序列重新解释成表达式。
+`block_item` 的分派使用忽略 Trivia 的有限 Token 前瞻：看到 `Keyword(Var)` 或 `Keyword(Const)` 时立即提交到 `local_declaration`，即使后续声明残缺也不能回退成赋值语句或表达式语句。其他开头进入 `statement`。只允许 `statement` 而不允许 `block_item` 的位置若遇到这两个声明关键字，应报告“声明必须放入语句块”并按声明形状恢复，不能把同一 Token 序列重新解释成表达式。
 
-赋值语句与表达式语句共享表达式前缀，按照议题 11 在解析完左侧表达式后由紧随的赋值运算符分流。`comptime` 开头的结构先按照议题 32 试探 block、if、match、while 或 for，试探失败后仍可回到含 `comptime_expression` 的普通表达式语句入口。
+语句入口看到裸 `Keyword(Match)` 时立即且不可回滚地提交到 `match_statement`；看到连续两个显著 Token `Keyword(Comptime)`、`Keyword(Match)` 时同样立即提交到 `StatementRegion` 的 `ComptimeMatchControl`。后续 arm 的逗号、分号或语法错误只用于校验和恢复，不得改变节点种类。`(match (...) { ... });` 与 `comptime (match (...) { ... });` 分别以 `(` 和 `comptime (` 开始，因此进入普通表达式语句。
+
+赋值语句与表达式语句共享其余表达式前缀，按照议题 11 在解析完左侧表达式后由紧随的赋值运算符分流。其他 `comptime` 开头的结构继续按照议题 32 通过有限前瞻分派 block、if、while 或 for；未命中保留结构起点时仍可进入含 `comptime_expression` 的普通表达式语句。
 
 换行和缩进仍然是 Trivia；只有真实的 `Symbol('{')` 与 `Symbol('}')` 建立和结束语句块。
 
@@ -123,7 +125,7 @@ const value = {
 };
 ```
 
-函数通过显式 `return` 返回值。议题 21 的 `if_expression` 使用 `if (...) ... else ...`，本身不使用花括号。聚合初始化、类型构造或其他可能使用花括号的表达式拥有各自独立产生式和专用 CST 节点，不会把普通语句块自动变成有值 block expression。
+函数通过显式 `return` 返回值。议题 21 的 `if_expression` 使用 `if (...) ... else ...`，本身不使用花括号。聚合初始化拥有议题 35 的表达式专用 postfix 后缀和专用 CST 节点；类型构造及其他可能使用花括号的表达式同样拥有各自规则，不会把普通语句块自动变成有值 block expression。
 
 议题 24 允许 `match_expression` 的分支使用 `statement_block`，但仅用于不能正常完成的分支。该块仍不产生值；如果它能到达结束 `}`，对应有值分支属于语义错误。
 

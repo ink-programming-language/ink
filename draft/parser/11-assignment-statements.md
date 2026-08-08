@@ -1,6 +1,6 @@
 # Parser 议题 11：赋值语句
 
-> 状态：已确认；赋值左侧经声明起点守卫后按普通 `expression` 解析，可写性由语义分析检查
+> 状态：已确认；赋值左侧经声明与保留结构起点守卫后按普通 `expression` 解析，可写性由语义分析检查
 > 确认日期：2026-08-03
 
 ## 1. 赋值是语句
@@ -12,7 +12,7 @@ assignment_statement =
     statement_expression, assignment_operator, expression, ";" ;
 
 statement_expression =
-    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
+    ? next significant Token is neither Keyword(Var), Keyword(Const), nor Keyword(Match), and the next two significant Tokens are not Keyword(Comptime) followed by Keyword(Match) ?,
     expression ;
 
 assignment_operator =
@@ -22,7 +22,7 @@ assignment_operator =
   | "<<=" | ">>=" ;
 ```
 
-Parser 不定义 `assignment_target` 或 `place_expression` 非终结符。`statement_expression` 只在语句起点排除为声明保留的 `var` 和 `const`，其余输入仍建立普通 Expression CST；名称绑定、重载选择和值类别确定以后，语义分析再检查它是否表示当前上下文中的可写存储位置。声明关键字一旦出现在块项起点就按议题 09、10 提交到声明，不能因声明残缺而回退为赋值。
+Parser 不定义 `assignment_target` 或 `place_expression` 非终结符。`statement_expression` 在语句起点排除为声明保留的 `var`、`const`，也排除为结构化语句保留的裸 `match` 与 `comptime match`；其他输入仍建立普通 Expression CST。名称绑定、重载选择和值类别确定以后，语义分析再检查它是否表示当前上下文中的可写存储位置。声明关键字一旦出现在块项起点就按议题 09、10 提交到声明，结构起点则按议题 24、32 提交到对应控制节点，均不能因后续残缺而回退为赋值。
 
 因此下列语句语法成立，但语义检查失败：
 
@@ -208,7 +208,7 @@ value + +other;            // 合法的加法和一元正号
 
 ## 11. CST 与恢复
 
-赋值 CST 保留左侧表达式、构成运算符的全部单字符 Symbol Token、右侧表达式和结尾分号，不建立 `AssignmentTarget` 节点。Parser 在已经排除声明起点的 statement fallback 中先解析一个普通表达式，再根据紧随其后的连续符号序列区分赋值语句与普通表达式语句：
+赋值 CST 保留左侧表达式、构成运算符的全部单字符 Symbol Token、右侧表达式和结尾分号，不建立 `AssignmentTarget` 节点。Parser 在已经排除声明与保留结构起点的 statement fallback 中先解析一个普通表达式，再根据紧随其后的连续符号序列区分赋值语句与普通表达式语句：
 
 ```text
 left = parse_statement_expression()
@@ -229,4 +229,4 @@ return ExpressionStatement(left)
 
 ## 12. 确认结论
 
-Ink 赋值是无结果的单目标语句。左侧先通过排除 `var`、`const` 的声明起点守卫，再与右侧一样按普通表达式解析；左侧是否产生可写 place 由语义分析检查。支持普通赋值和常用算术、位运算、移位复合赋值；目标位置与右侧各求值一次。复合赋值运算符按全语言最长匹配保持为不可拆分的 Parser 符号序列。链式赋值、多目标赋值、赋值表达式、复合赋值链以及 `++`、`--` 均不支持；相邻 `++`、`--` 是保留的非法序列，不能退回成普通运算符组合。
+Ink 赋值是无结果的单目标语句。左侧先通过排除 `var`、`const` 声明起点及裸 `match`、`comptime match` 结构起点的守卫，再与右侧一样按普通表达式解析；左侧是否产生可写 place 由语义分析检查。支持普通赋值和常用算术、位运算、移位复合赋值；目标位置与右侧各求值一次。复合赋值运算符按全语言最长匹配保持为不可拆分的 Parser 符号序列。链式赋值、多目标赋值、赋值表达式、复合赋值链以及 `++`、`--` 均不支持；相邻 `++`、`--` 是保留的非法序列，不能退回成普通运算符组合。

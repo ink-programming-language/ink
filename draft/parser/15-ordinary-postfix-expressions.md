@@ -1,6 +1,6 @@
 # Parser 议题 15：普通后缀表达式
 
-> 状态：已确认，议题 16、17 补充泛型实参和切片后缀；议题 29 补充列表展开；议题 30 补充类型值后缀和构造调用的中性解释；议题 35 允许聚合初始化直接作为后缀起点；议题 37 增加裸 `...` 全参数转发；2026-08-05 增加统一命名实参
+> 状态：已确认，议题 16、17 补充泛型实参和切片后缀；议题 29 补充列表展开；议题 30 补充类型值后缀和构造调用的中性解释；议题 35 增加普通表达式专用的聚合初始化后缀；议题 37 增加裸 `...` 全参数转发；2026-08-05 增加统一命名实参
 > 确认日期：2026-08-03
 
 ## 1. 重复后缀结构
@@ -11,8 +11,12 @@
 postfix_expression =
       direct_function_type_expression
     | postfixable_primary_expression,
-      { postfix_suffix },
-      [ terminal_type_constructor_tail ] ;
+      { expression_postfix_suffix },
+      terminal_type_constructor_tail_decision ;
+
+expression_postfix_suffix =
+      postfix_suffix
+    | aggregate_initialization_suffix ;
 
 ordinary_postfix_suffix =
       call_suffix
@@ -21,7 +25,7 @@ ordinary_postfix_suffix =
     | pointer_member_suffix ;
 ```
 
-`postfixable_primary_expression` 和 `direct_function_type_expression` 由议题 14 定义，完整 `postfix_suffix` 由本议题与议题 16、17 共同组成，末尾类型构造尾链由议题 30 定义。本议题重点规定可后缀分支中的调用、索引、成员访问和指针成员访问。
+`postfixable_primary_expression` 和 `direct_function_type_expression` 由议题 14 定义，共享的 `postfix_suffix` 由本议题与议题 16、17 共同组成；普通表达式专用的 `expression_postfix_suffix` 再加入议题 35 的聚合初始化后缀，末尾的 `terminal_type_constructor_tail_decision` 由议题 30 定义为“完整最大尾链”与零宽度否定守卫的互斥选择。本议题重点规定可后缀分支中的调用、索引、成员访问和指针成员访问。
 
 直接写出的函数类型是封闭分支，不能给整个函数类型直接附加本节或其他 postfix suffix；需要先用圆括号把函数类型变成 `parenthesized_expression`：
 
@@ -42,7 +46,9 @@ objects[index].method(argument).field
 
 本议题中的“链式”仅指对前一表达式结果继续应用后缀，不是议题 11 已禁止的链式赋值。
 
-议题 30 在可后缀分支末尾加入空 `[]` 以及受当前子表达式结束位置约束的 `*`、`&` 类型构造尾链。它们不改变本节四种普通后缀的内部结构，也不解除直接函数类型分支的封闭性。
+议题 30 在可后缀分支末尾加入空 `[]` 以及受当前子表达式结束位置约束的 `*`、`&` 类型构造尾链。若完整最大尾链能够到达调用者的 `EndSet`，正守卫必须消费它，零宽度否定守卫不成立；只有不存在这种尾链时才继续普通运算符解析。它们不改变本节四种普通后缀的内部结构，也不解除直接函数类型分支的封闭性。
+
+议题 35 把聚合初始化加入普通表达式专用的 `expression_postfix_suffix` 循环。聚合结果可以继续调用、成员访问等普通后缀；这些操作若再次产生 `type`，还可以继续应用另一个聚合后缀。聚合后缀不能加入共享的 `postfix_suffix`，因为明确 `type` 文法会复用后者，而聚合初始化只属于表达式入口。
 
 ## 2. 调用后缀
 
@@ -265,7 +271,7 @@ Tokenizer 仍会分别产生源码中的单字符 Symbol Token，但 Parser 不�
 
 ## 10. CST 与恢复
 
-CST 应保存基础表达式以及有序后缀节点。每个调用括号、索引方括号、成员点、`->` 的两个单字符 Token、列表展开的三个点、分隔逗号和全部 Trivia 均准确保留。
+CST 应保存基础表达式以及有序后缀节点。每个调用括号、索引方括号、成员点、`->` 的两个单字符 Token、聚合初始化花括号、列表展开的三个点、分隔逗号和全部 Trivia 均准确保留。
 
 Parser 可以使用嵌套的 `CallExpression`、`IndexExpression`、`MemberExpression` 节点，也可以在 full-fidelity CST 中保存一个基础节点加有序 suffix 列表，再在 lowering 时建立嵌套 AST。两种表示必须产生相同结合方向和源码范围。
 
@@ -273,4 +279,4 @@ Parser 可以使用嵌套的 `CallExpression`、`IndexExpression`、`MemberExpre
 
 ## 11. 确认结论
 
-Ink 的可后缀基础表达式从 `postfixable_primary_expression` 开始，可重复附加调用、单表达式索引、`.` 成员访问和 `->` 原始指针成员访问。直接函数类型表达式是封闭的 `postfix_expression` 分支，对整个函数类型应用后缀必须先加括号。后缀具有最高优先级并从左到右组合；调用参数不允许尾随逗号，可以使用前置 `...expression` 作为展开元素；带索引的方括号必须准确包含一个表达式，空 `[]` 由议题 30 单独作为类型构造后缀；指针成员不能通过 `.` 隐式解引用，v0 不提供可选链。议题 16、17 分别以独立规则加入 `::<...>` 泛型实例化和切片，议题 30 进一步加入复合类型值尾链并让类型构造调用复用普通 `CallExpression`。
+Ink 的可后缀基础表达式从 `postfixable_primary_expression` 开始，可在普通表达式专用的 `expression_postfix_suffix` 循环中重复附加调用、索引、成员访问、显式泛型应用、切片和议题 35 的聚合初始化。共享的 `postfix_suffix` 不包含聚合初始化，显式 `type` 不会吞入花括号 body。直接函数类型表达式是封闭的 `postfix_expression` 分支，对整个函数类型应用后缀必须先加括号。后缀具有最高优先级并从左到右组合；调用参数不允许尾随逗号，可以使用前置 `...expression` 作为展开元素；带索引的方括号必须准确包含一个表达式，空 `[]` 由议题 30 单独作为类型构造后缀；指针成员不能通过 `.` 隐式解引用，v0 不提供可选链。议题 30 进一步加入复合类型值尾链并让类型构造调用复用普通 `CallExpression`。

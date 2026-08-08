@@ -154,8 +154,8 @@ FunctionInfo.result_type = Animal*
 调用者必须使用相同类型：
 
 ```ink
-function.call_async[Animal*](receiver); // 合法
-function.call_async[Cat*](receiver);    // 结构化反射结果类型错误
+function.call_async::<Animal*>(receiver); // 合法
+function.call_async::<Cat*>(receiver);    // 结构化反射结果类型错误
 ```
 
 即使最终动态实现创建的是 `Cat`，反射描述符和 `DynamicTaskOut` 仍只承接 `Task::<Animal*>`。反射层不根据最终覆盖改变调用者期待类型，也不构造协变代理任务。

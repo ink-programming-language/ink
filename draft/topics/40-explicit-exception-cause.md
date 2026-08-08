@@ -12,7 +12,7 @@ try {
     parse_config();
 } catch ParseError as error {
     throw ConfigurationError {
-        message: "invalid configuration",
+        message: "invalid configuration"
     } from error;
 }
 ```
@@ -86,7 +86,7 @@ new ExceptionRecord
 ```ink
 catch ParseError as error {
     throw ConfigurationError {
-        message: "invalid configuration",
+        message: "invalid configuration"
     }; // 没有 cause
 }
 ```

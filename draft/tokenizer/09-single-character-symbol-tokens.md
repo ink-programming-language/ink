@@ -74,7 +74,7 @@ Ink 当前接受以下单字符 Symbol：
 示例：
 
 ```ink
-library::ThreadPool
+library::ThreadPool // Tokenizer 可切分；Parser 不接受 `::` 限定名
 0 .. length
 target::<...Types>(...values)
 func read() -> Data*;

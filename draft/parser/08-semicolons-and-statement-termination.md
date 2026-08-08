@@ -1,6 +1,6 @@
 # Parser 议题 08：分号与语句结束
 
-> 状态：已确认，议题 18、24—28 补充表达式、控制流、清理与异常语句边界；2026-08-08 同步声明起点守卫
+> 状态：已确认，议题 18、24—28 补充表达式、控制流、清理与异常语句边界；2026-08-08 同步声明与 `match` 结构起点守卫
 > 确认日期：2026-08-03
 
 ## 1. 显式分号
@@ -14,7 +14,7 @@ expression_statement =
     statement_expression, ";" ;
 
 statement_expression =
-    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
+    ? next significant Token is neither Keyword(Var), Keyword(Const), nor Keyword(Match), and the next two significant Tokens are not Keyword(Comptime) followed by Keyword(Match) ?,
     expression ;
 
 defer_statement =
@@ -82,7 +82,7 @@ const value = Value {
 };
 ```
 
-聚合初始化使用已经确认的显式 `type { field: expression }` 形状；此例只说明外层绑定仍由 `;` 终止。
+聚合初始化使用议题 35 已确认的 `expression { field: expression }` postfix 形状，并在语义阶段要求左侧产生支持聚合初始化的 `type`；此例只说明外层绑定仍由 `;` 终止。
 
 ## 4. 不使用结尾分号的结构
 
@@ -96,7 +96,7 @@ func calculate() -> i32 {
 
 函数、类、接口、枚举、条件、循环以及其他带完整花括号体的结构是否属于此类，由对应 EBNF 明确写出；不能仅凭视觉上出现 `}` 猜测。
 
-议题 24 的 `match_statement` 由自己的 `}` 结束，不写分号；`match_expression` 自身不包含外层分号，由包含它的绑定声明或表达式语句提供：
+议题 24 的 `match_statement` 由自己的 `}` 结束，不写分号；`match_expression` 自身不包含外层分号，由包含它的绑定声明或表达式语句提供。语句入口的裸 `match` 固定选择 `match_statement`，所以把整个 `match_expression` 直接作为表达式语句丢弃时必须先用括号建立明确的表达式上下文：
 
 ```ink
 match (state) {
@@ -108,6 +108,11 @@ const code = match (state) {
     .ready => 1,
     _ => 0,
 };
+
+(match (state) {
+    .ready => 1,
+    _ => 0,
+});
 ```
 
 议题 26 的 `defer { ... }` 同样由自身 `statement_block` 的 `}` 结束，后面不写分号；`defer expression;` 则继续要求分号。
@@ -158,4 +163,4 @@ ReturnStatement
 
 ## 8. 确认结论
 
-Ink 只使用显式 `;` 终止简单语句和简单声明，不提供自动分号插入，换行始终只是 Trivia。`return`、表达式式 `defer`、`break`、`continue` 以及三种 `throw` 形态保留自己的结尾分号；block 式 `defer` 和完整 `try_statement` 由最终 `}` 自行结束。其他花括号体是否自终止也由对应产生式决定；`match_statement` 自行结束，`match_expression` 由外层消费者提供分号。单独分号不形成空语句，多余或缺失分号都由普通 CST 错误恢复处理。
+Ink 只使用显式 `;` 终止简单语句和简单声明，不提供自动分号插入，换行始终只是 Trivia。`return`、表达式式 `defer`、`break`、`continue` 以及三种 `throw` 形态保留自己的结尾分号；block 式 `defer` 和完整 `try_statement` 由最终 `}` 自行结束。其他花括号体是否自终止也由对应产生式决定；`match_statement` 自行结束，`match_expression` 由外层消费者提供分号，并在整体作为表达式语句时先用括号离开裸 `match` 语句起点。单独分号不形成空语句，多余或缺失分号都由普通 CST 错误恢复处理。

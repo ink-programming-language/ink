@@ -108,7 +108,7 @@ try {
 需要取得每个任务的成功或失败状态时，不应依赖普通 `all` 抛出一个聚合异常。未来可以提供概念上的显式操作：
 
 ```ink
-const first_state, second_state =
+const (first_state, second_state) =
     await all_settled(first_async(), second_async());
 ```
 

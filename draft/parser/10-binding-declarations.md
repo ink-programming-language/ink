@@ -142,7 +142,7 @@ Parser 在 `binding_declaration` 起始位置把 `const` 解析为不可变绑�
 
 在 `statement_block` 的 `block_item` 入口，下一个显著 Token 一旦是 `var` 或 `const`，Parser 就必须提交到 `binding_declaration`。后续即使缺少名称、类型、初始化器或分号，也只在该声明内恢复，不得回退为赋值语句或表达式语句。因此 `const x = value;` 始终只有声明解释，不会把 `const x` 解释为可赋值的限定类型值。
 
-在只接受 `statement` 而不接受 `block_item` 的位置，例如 `match_statement` 的 `=>` 之后，遇到 `var` 或 `const` 必须报告“声明需要放入语句块”，并保留原始 Token 进行恢复；同样不得回退为赋值或表达式。
+在调用者已经选定只接受 `statement` 而不接受 `block_item` 的位置，例如 statement dispatcher 已提交的 `match_statement` 的 `=>` 之后，遇到 `var` 或 `const` 必须报告“声明需要放入语句块”，并保留原始 Token 进行恢复；同样不得回退为赋值或表达式。这项规则不作用于已经由 expression context 选定的 `match_expression` arm，后者仍可用 `const` 开始前置限定类型值。
 
 这个提交点仅位于语句或块项起始位置，不影响初始化器、实参或 `return` 后的前置类型限定表达式。如果确实需要把一个前置 `const` 类型值作为无使用结果的表达式语句，必须先用括号移除声明起点形状：
 

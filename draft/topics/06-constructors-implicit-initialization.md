@@ -317,11 +317,11 @@ Ink 不再需要独立的通用 `FromLiteral` 隐式转换接口。
 
 ## 10. 聚合初始化语法
 
-聚合初始化只提供显式类型形式，不引入 `construct` 关键字或省略目标类型的第二套入口：
+聚合初始化只提供显式左侧操作数形式，不引入 `construct` 关键字或省略目标的第二套入口。Parser 议题 35 把初始化体放在普通表达式 postfix 层；Parser 不以完整 `type` 非终结符重新解析左侧，语义阶段要求左侧在编译期准确产生支持命名聚合初始化的 `type`：
 
 ```ebnf
-aggregate_initialization_expression =
-    type, aggregate_initializer_body ;
+aggregate_initialization_suffix =
+    aggregate_initializer_body ;
 
 aggregate_initializer_body =
     "{",
@@ -332,16 +332,17 @@ aggregate_initializer_body =
     "}" ;
 
 aggregate_field_initializer =
-    identifier, ":", expression ;
+    identifier, [ ":", expression ] ;
 ```
 
 ```ink
+const x = 10;
 const point = Point {
-    x: 10,
+    x,
     y: 20
 };
 
 const empty = EmptyError {};
 ```
 
-v0 只支持命名字段，不提供位置初始化、字段名称简写、展开或基于另一个对象的更新语法。字段列表遵守普通逗号列表规则，不接受尾随逗号。字段是否存在、是否重复、是否可访问、类型是否匹配以及初始化是否完整，均不改变上述 Parser 形状。
+v0 只支持命名字段，可以显式写出 `x: expression`，也可以使用同名简写 `x`；简写在语义上等价于 `x: x`，字段名和初始值名称来自同一个 Identifier Token。v0 不提供位置初始化、展开或基于另一个对象的更新语法。字段列表遵守普通逗号列表规则，不接受尾随逗号。字段是否存在、是否重复、是否可访问、类型是否匹配以及初始化是否完整，均不改变上述 Parser 形状。

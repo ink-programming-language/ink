@@ -30,15 +30,15 @@ interface Renderable {
 运行时按照议题 22 的完全限定名称查找接口：
 
 ```ink
-if (match .some(interface) = reflection.find_interface("game.Renderable")) {
-    print(interface.name);
+if (match .some(interface_info) = reflection.find_interface("game.Renderable")) {
+    print(interface_info.name);
 
     if (match .some(display_name) =
-        interface.metadata.get[DisplayName]()) {
+        interface_info.metadata.get::<DisplayName>()) {
         print(display_name);
     }
 
-    for (const function in interface.functions) {
+    for (const function in interface_info.functions) {
         print(function.name);
     }
 }
@@ -70,9 +70,9 @@ class Player : Renderable {
 const player = Player();
 const renderable: Renderable& = player;
 
-if (match .some(interface) = reflection.find_interface("game.Renderable")) {
-    if (match .some(render) = interface.function("render")) {
-        render.call[void](renderable, &canvas);
+if (match .some(interface_info) = reflection.find_interface("game.Renderable")) {
+    if (match .some(render) = interface_info.function("render")) {
+        render.call::<void>(renderable, &canvas);
     }
 }
 ```
@@ -89,7 +89,7 @@ Renderable.render FunctionInfo
 
 接口反射适配器不能直接绑定某个具体实现函数，因为同一个 `Renderable.render` 描述符必须适用于所有当前和未来实现类。
 
-议题 57 允许接口方法声明为 `[reflect] async func`。其 `FunctionInfo` 记录异步种类和逻辑结果类型；调用者使用同步任务构造 API `call_async[R]`。适配器验证或构造接口视图后，在调用表达式中读取议题 56 的异步接口槽并直接建立最终惰性任务，不能把接口分派推迟到第一次 `await`。
+议题 57 允许接口方法声明为 `[reflect] async func`。其 `FunctionInfo` 记录异步种类和逻辑结果类型；调用者使用同步任务构造 API `call_async::<R>`。适配器验证或构造接口视图后，在调用表达式中读取议题 56 的异步接口槽并直接建立最终惰性任务，不能把接口分派推迟到第一次 `await`。
 
 ## 4. 实现方法不自动成为类反射函数
 
@@ -137,14 +137,14 @@ game.Player.render
 调用者静态知道具体类时，强类型反射便捷层可以自动建立临时接口视图：
 
 ```ink
-render.call[void](&player, &canvas);
+render.call::<void>(&player, &canvas);
 ```
 
 编译器验证 `Player` 实现 `Renderable`，并把该调用降低为：
 
 ```ink
 const temporary: Renderable& = player;
-render.call[void](temporary, &canvas);
+render.call::<void>(temporary, &canvas);
 ```
 
 这种调用不要求 `Player` 自身带有 `[reflect]`，因为具体类型和接口转换在编译期已知。
@@ -165,14 +165,14 @@ render.call[void](temporary, &canvas);
 一个 `[reflect]` 类可以枚举它实现的 `[reflect]` 接口：
 
 ```ink
-if (match .some(player) = reflection.find_type("game.Player")) {
-    for (const interface in player.interfaces) {
-        print(interface.name);
+if (match .some(player_type_info) = reflection.find_type("game.Player")) {
+    for (const interface_info in player_type_info.interfaces) {
+        print(interface_info.name);
     }
-}
 
-if (player.implements("game.Renderable")) {
-    // ...
+    if (player_type_info.implements("game.Renderable")) {
+        // ...
+    }
 }
 ```
 

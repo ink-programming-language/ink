@@ -66,9 +66,10 @@ class 类型表达式属于结构化基础表达式：
 ```ebnf
 structured_expression =
       match_expression
-    | aggregate_initialization_expression
     | class_type_expression ;
 ```
+
+Parser 议题 35 的聚合初始化已经改为普通表达式专用 postfix 后缀，不再占用 `structured_expression` 分支。class 类型表达式本身仍是可后缀基础表达式，因此可以直接作为聚合目标：`class { var value: i32; } { value: 1 }`。
 
 它可以出现在任何普通表达式入口：
 

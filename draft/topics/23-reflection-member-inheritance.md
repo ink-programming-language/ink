@@ -48,8 +48,8 @@ class Parser {
 字段/属性与函数使用不同的反射查询类别：
 
 ```ink
-type.property("value")
-type.function("value")
+type_info.property("value")
+type_info.function("value")
 ```
 
 因此同一个类型可以具有同名反射属性和反射函数；它们不会在各自的查询表中产生歧义。
@@ -123,14 +123,14 @@ if (match .some(entity_type) = reflection.find_type("game.Entity")) {
 
 ## 5. 有效成员视图与直接声明视图
 
-`type.functions` 和 `type.properties` 返回覆盖完成后的有效成员集合。同一类别中每个名称最多出现一次，子类型成员取代父类型同名成员。
+`type_info.functions` 和 `type_info.properties` 返回覆盖完成后的有效成员集合。同一类别中每个名称最多出现一次，子类型成员取代父类型同名成员。
 
 需要工具查看继承来源时，反射 API 同时提供：
 
 ```ink
-type.declared_functions  // 只包含当前类型直接声明的反射函数
-type.declared_properties // 只包含当前类型直接声明的反射属性
-type.base                // 显式取得父类型描述
+type_info.declared_functions  // 只包含当前类型直接声明的反射函数
+type_info.declared_properties // 只包含当前类型直接声明的反射属性
+type_info.base                // 显式取得父类型描述
 ```
 
 每个有效成员描述符必须保留 `declaring_type`，使编辑器和调试器能够显示该成员实际来自哪个类型。
@@ -159,7 +159,7 @@ class Player : Entity {
 }
 ```
 
-需要读取父成员元数据时，工具显式沿 `type.base` 查询。以后如果某种内建属性需要继承，必须由该属性自己的规范单独声明，不能由反射系统普遍推断。
+需要读取父成员元数据时，工具显式沿 `type_info.base` 查询。以后如果某种内建属性需要继承，必须由该属性自己的规范单独声明，不能由反射系统普遍推断。
 
 ## 7. 未标记的子成员
 

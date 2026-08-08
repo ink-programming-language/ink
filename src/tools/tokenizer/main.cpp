@@ -1,62 +1,99 @@
+#include "ink/cli/application.h"
+#include "ink/cli/io.h"
 #include "ink/tokenizer/tokenizer.h"
 
-#include <cstdio>
+#include <array>
 #include <fstream>
 #include <iostream>
-#include <iterator>
 #include <string>
 #include <utility>
 
-#ifdef _WIN32
-#include <fcntl.h>
-#include <io.h>
-#endif
-
-int main(int argc, char **argv)
+namespace
 {
-  std::string Source;
-  if (argc == 1)
+  bool readSource(std::istream &Input, std::string &Source)
   {
-#ifdef _WIN32
-    _setmode(_fileno(stdin), _O_BINARY);
-#endif
-    Source.assign(std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>());
-  }
-  else if (argc == 2)
-  {
-    std::ifstream Input(argv[1], std::ios::binary);
-    if (!Input)
+    std::array<char, 64 * 1024> Buffer;
+    while (Input)
     {
-      std::cerr << "cannot open " << argv[1] << '\n';
-      return 2;
+      Input.read(Buffer.data(), static_cast<std::streamsize>(Buffer.size()));
+      const std::streamsize Count = Input.gcount();
+      if (Count > 0)
+      {
+        Source.append(Buffer.data(), static_cast<std::size_t>(Count));
+      }
     }
-    Source.assign(std::istreambuf_iterator<char>(Input), std::istreambuf_iterator<char>());
-  }
-  else
-  {
-    std::cerr << "usage: ink_tokenize [source-file]\n";
-    return 2;
+    return Input.eof() && !Input.bad();
   }
 
-  const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenize(std::move(Source));
-  for (const ink::tokenizer::Token &Token : Result.tokens())
+  int runTokenizer(int ArgumentCount, char **ArgumentValues)
   {
-    std::cout << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";
-  }
-  const ink::core::DiagnosticFormatter Formatter;
-  for (const ink::core::Diagnostic &Diagnostic : Result.diagnostics())
-  {
-    const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
-    std::cerr << ink::core::diagnosticSeverityName(Formatted.Severity) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
-    for (const ink::core::FormattedDiagnosticNote &Note : Formatted.Notes)
+    ink::cli::Application Command({"ink-tokenize", "Tokenize Ink source and print the token stream.", "development"});
+    std::string SourceFile = "-";
+    Command.app().add_option("INPUT", SourceFile, "Input file, or '-' for standard input")->type_name("FILE");
+    const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
+    if (ParsedArguments.ShouldExit)
     {
-      std::cerr << "note: " << Note.Message;
-      if (Note.Span)
-      {
-        std::cerr << " [" << Note.Span->Start << ", " << Note.Span->End << ")";
-      }
-      std::cerr << '\n';
+      return ink::cli::exitStatus(ParsedArguments.Code);
     }
+
+    std::string Source;
+    if (SourceFile == "-")
+    {
+      if (!ink::cli::useBinaryStandardInput() || !readSource(std::cin, Source))
+      {
+        std::cerr << "ink-tokenize: error: cannot read standard input\n";
+        return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+      }
+    }
+    else
+    {
+      std::ifstream Input(ink::cli::pathFromUtf8(SourceFile), std::ios::binary);
+      if (!Input)
+      {
+        std::cerr << "ink-tokenize: error: cannot open '" << SourceFile << "'\n";
+        return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+      }
+      if (!readSource(Input, Source))
+      {
+        std::cerr << "ink-tokenize: error: cannot read '" << SourceFile << "'\n";
+        return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+      }
+    }
+
+    const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenize(std::move(Source));
+    for (const ink::tokenizer::Token &Token : Result.tokens())
+    {
+      std::cout << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";
+    }
+    const ink::core::DiagnosticFormatter Formatter;
+    for (const ink::core::Diagnostic &Diagnostic : Result.diagnostics())
+    {
+      const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
+      std::cerr << ink::core::diagnosticSeverityName(Formatted.Severity) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
+      for (const ink::core::FormattedDiagnosticNote &Note : Formatted.Notes)
+      {
+        std::cerr << "note: " << Note.Message;
+        if (Note.Span)
+        {
+          std::cerr << " [" << Note.Span->Start << ", " << Note.Span->End << ")";
+        }
+        std::cerr << '\n';
+      }
+    }
+    std::cout.flush();
+    std::cerr.flush();
+    if (!std::cout || !std::cerr)
+    {
+      return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+    }
+    return ink::cli::exitStatus(Result.succeeded() ? ink::cli::ExitCode::Success : ink::cli::ExitCode::SourceError);
   }
-  return Result.succeeded() ? 0 : 1;
+} // namespace
+
+int main(int ArgumentCount, char **ArgumentValues)
+{
+  return ink::cli::runMain("ink-tokenize", [ArgumentCount, ArgumentValues]()
+  {
+    return runTokenizer(ArgumentCount, ArgumentValues);
+  });
 }

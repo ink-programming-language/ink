@@ -92,7 +92,7 @@ ExceptionView
 func type_name() -> StringView;
 
 [nothrow]
-func matches[T]() -> bool;
+func matches<T: type>() -> bool;
 
 [nothrow]
 func reflection() -> Optional::<TypeInfo>;
@@ -137,13 +137,13 @@ error.record.descriptor.qualified_name
 
 返回的 `StringView` 借用当前活动描述符中的名称存储。它继承 `ExceptionView` 的短期不逃逸限制，只能在当前处理器及其同步调用中使用，不能保存到全局、长期字段、逃逸闭包或异步任务。
 
-## 6. `matches[T]()`
+## 6. `matches::<T>()`
 
-`matches[T]()` 使用与 `catch T as name` 完全相同的匹配规则：
+`matches::<T>()` 使用与 `catch T as name` 完全相同的匹配规则：
 
 ```ink
 catch as error {
-    if (error.matches[IoError]()) {
+    if (error.matches::<IoError>()) {
         count_io_failure();
     }
 }
@@ -157,7 +157,7 @@ catch as error {
 
 该查询只返回分类结果，不把载荷转换成可访问的具体引用。需要读取字段或调用接口方法时，应优先在 catch-all 之前使用类型化处理器。
 
-`matches[T]()` 可以使用当前加载代次的描述符指针、哈希或索引加速，但语义身份仍以完全限定字符串名称及兼容模块布局为准。
+`matches::<T>()` 可以使用当前加载代次的描述符指针、哈希或索引加速，但语义身份仍以完全限定字符串名称及兼容模块布局为准。
 
 ## 7. `reflection()`
 
@@ -165,15 +165,15 @@ catch as error {
 
 ```ink
 catch as error {
-    if (match .some(type) = error.reflection()) {
-        inspect(type);
+    if (match .some(type_info) = error.reflection()) {
+        inspect(type_info);
     }
 }
 ```
 
 返回的 `TypeInfo` 必须对应异常记录固定的同一模块和布局版本。运行时不能只使用 `type_name()` 在当前全局注册表中查找最新同名类型，再用新描述符解释旧异常载荷。
 
-该查询用于检查类型、声明和用户元数据，不把异常载荷自动转换成 `DynamicRef`，也不授予字段读写权限。反射句柄不能逃逸当前异常处理生命周期。没有 `[reflect]` 的异常仍然可以使用 `type_name()`、`matches[T]()` 和普通异常匹配。
+该查询用于检查类型、声明和用户元数据，不把异常载荷自动转换成 `DynamicRef`，也不授予字段读写权限。反射句柄不能逃逸当前异常处理生命周期。没有 `[reflect]` 的异常仍然可以使用 `type_name()`、`matches::<T>()` 和普通异常匹配。
 
 `cause()` 不要求当前异常或原因异常具有 `[reflect]`。它在存在直接原因时返回 `some(const ExceptionView&)`，否则返回 `none`；返回引用继承当前处理器的短期不逃逸限制。完整原因链语义由议题 40 规定。
 
@@ -288,7 +288,7 @@ func boundary() {
 
 catch-all 不需要逐项检查异常类或接口。无绑定的 `catch {}` 不构造用户可见视图；`catch as name` 只建立一个短期记录视图，不分配、不复制载荷，也不增加引用计数。
 
-`type_name()` 和 `matches[T]()` 读取已经存在的最小异常描述符。`reflection()` 仅在实际调用时查询记录固定的反射关联。没有异常发生时，这些操作不给正常路径增加执行成本。
+`type_name()` 和 `matches::<T>()` 读取已经存在的最小异常描述符。`reflection()` 仅在实际调用时查询记录固定的反射关联。没有异常发生时，这些操作不给正常路径增加执行成本。
 
 LLVM 已有异常处理 IR 足以实现这些语义：catch-all 由 Ink personality 和目标 catch-all/handler 形式匹配，`throw;` 恢复同一个展开对象并继续展开，`ExceptionView` 由前端在处理器入口建立。无需修改 LLVM 源码。
 

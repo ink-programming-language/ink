@@ -10,3 +10,7 @@
 	path = src/third_party/utf8proc
 	url = https://github.com/JuliaStrings/utf8proc.git
 	shallow = true
+[submodule "cli11"]
+	path = src/third_party/cli11
+	url = https://github.com/CLIUtils/CLI11.git
+	shallow = true

@@ -74,7 +74,7 @@ async virtual slot:
     construct_task(
         result_storage: Task::<T>*,
         dispatch_this: DeclaringClass*,
-        arguments...
+        ...arguments
     )
 ```
 
@@ -173,7 +173,7 @@ V1 vtable selects V1 NetworkLoader.load
 
 议题 56 规定接口胖引用调用异步方法时也在任务创建阶段完成一次接口槽分派。接口槽最终选择类实现时，任务仍保存本议题和议题 54 的调整后原始 `this`；接口默认实现则保存规范化胖接收者。两种分派都不能推迟到第一次 `await`，但接口调用不会为了进入同时为虚函数的类实现而再读取一次主 vtable。
 
-议题 57 规定 `[reflect]` 异步虚函数使用独立的 `call_async[T]` 和 `DynamicTaskOut`。反射适配器在调用点验证参数并进入本议题的同一虚槽任务构造入口；函数体保持惰性，任务失败继续由 `ExceptionBox` 表示。它不把 `Task::<T>` 强行塞进同步反射返回槽。
+议题 57 规定 `[reflect]` 异步虚函数使用独立的 `call_async::<T>` 和 `DynamicTaskOut`。反射适配器在调用点验证参数并进入本议题的同一虚槽任务构造入口；函数体保持惰性，任务失败继续由 `ExceptionBox` 表示。它不把 `Task::<T>` 强行塞进同步反射返回槽。
 
 议题 58 规定异步函数装饰器包围最终覆盖的任务执行体，不包围本议题的同步任务构造过程。虚槽选择最终覆盖时直接建立该覆盖完整的装饰后 coroutine frame；第一次 `await` 才进入装饰器链和原始函数体。基类装饰器不会沿覆盖关系自动叠加。
 

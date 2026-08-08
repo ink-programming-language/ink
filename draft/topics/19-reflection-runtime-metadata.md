@@ -41,22 +41,22 @@ class Player {
 
 ```ink
 comptime {
-    const type = reflect(Player);
+    const type_info = reflect(Player);
 
-    print(type.name);
-    print(type.size);
-    print(type.alignment);
-    print(type.visibility);
+    print(type_info.name);
+    print(type_info.size);
+    print(type_info.alignment);
+    print(type_info.visibility);
 
-    for (const field in type.fields) {
+    for (const field in type_info.fields) {
         print(field.name);
-        print(field.type);
+        print(field.field_type);
         print(field.offset);
         print(field.attributes);
         print(field.metadata);
     }
 
-    for (const function in type.functions) {
+    for (const function in type_info.functions) {
         print(function.name);
         print(function.parameters);
         print(function.return_type);
@@ -165,19 +165,19 @@ class SaveGame {}
 - 依赖特定加载地址才有意义的数据；
 - 循环对象图。
 
-同一个 `[reflect(...)]` 列表默认不能出现两个相同元数据类型的值；需要表达多个同类项目时，应在一个元数据值中使用定长数组。这样 `metadata.get[T]()` 始终没有歧义。
+同一个 `[reflect(...)]` 列表默认不能出现两个相同元数据类型的值；需要表达多个同类项目时，应在一个元数据值中使用定长数组。这样 `metadata.get::<T>()` 始终没有歧义。
 
 ## 6. 动态反射查询
 
 带有 `[reflect]` 的类型进入运行时反射注册表，并按照议题 22 使用完全限定名称查找：
 
 ```ink
-if (match .some(type) = reflection.find_type("game.Player")) {
-    print(type.name);
-    print(type.size);
-    print(type.alignment);
+if (match .some(type_info) = reflection.find_type("game.Player")) {
+    print(type_info.name);
+    print(type_info.size);
+    print(type_info.alignment);
 
-    for (const property in type.properties) {
+    for (const property in type_info.properties) {
         print(property.name);
         print(property.type_name);
     }
@@ -187,13 +187,13 @@ if (match .some(type) = reflection.find_type("game.Player")) {
 自定义元数据按其类型查询：
 
 ```ink
-if (match .some(health) = type.property("health")) {
-    if (match .some(range) = health.metadata.get[Range]()) {
+if (match .some(health) = type_info.property("health")) {
+    if (match .some(range) = health.metadata.get::<Range>()) {
         print(range.min);
         print(range.max);
     }
 
-    if (health.metadata.has[SaveGame]()) {
+    if (health.metadata.has::<SaveGame>()) {
         save_property(health);
     }
 }
@@ -206,9 +206,9 @@ if (match .some(health) = type.property("health")) {
 被反射字段可以通过编译器生成的适配器进行类型检查后的动态访问：
 
 ```ink
-if (match .some(property) = type.property("health")) {
-    const health = property.get[i32](&player);
-    property.set[i32](&player, 80);
+if (match .some(property) = type_info.property("health")) {
+    const health = property.get::<i32>(&player);
+    property.set::<i32>(&player, 80);
 }
 ```
 
@@ -228,14 +228,14 @@ if (match .some(property) = type.property("health")) {
 被反射函数具有编译器生成的类型擦除调用适配器：
 
 ```ink
-if (match .some(function) = type.function("take_damage")) {
-    const damaged = function.call[bool](&player, 10);
+if (match .some(function) = type_info.function("take_damage")) {
+    const damaged = function.call::<bool>(&player, 10);
 }
 ```
 
 适配器必须检查接收对象、参数数量、参数类型、返回类型和调用约定。反射调用失败抛出明确异常，不以类型不匹配作为 UB。
 
-适配器可以使用调用者提供的栈上动态值数组，不要求为每次调用进行堆分配。不可复制参数和引用参数的适配遵守议题 21；异步函数使用议题 57 的独立 `call_async[R]` 和 `DynamicTaskOut`。可变参数、生成器以及尚未确定的特殊调用边界留给后续议题。
+适配器可以使用调用者提供的栈上动态值数组，不要求为每次调用进行堆分配。不可复制参数和引用参数的适配遵守议题 21；异步函数使用议题 57 的独立 `call_async::<R>` 和 `DynamicTaskOut`。可变参数、生成器以及尚未确定的特殊调用边界留给后续议题。
 
 普通同步函数的动态参数与返回值 ABI 由 [`21-dynamic-reflection-value-abi.md`](./21-dynamic-reflection-value-abi.md) 规定。
 

@@ -476,7 +476,7 @@ expression_statement =
     statement_expression, ";" ;
 
 statement_expression =
-    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
+    ? next significant Token is neither Keyword(Var), Keyword(Const), nor Keyword(Match), and the next two significant Tokens are not Keyword(Comptime) followed by Keyword(Match) ?,
     expression ;
 
 if_statement =
@@ -662,8 +662,16 @@ unary_operator =
 postfix_expression =
       direct_function_type_expression
     | postfixable_primary_expression,
-      { postfix_suffix },
-      [ terminal_type_constructor_tail ] ;
+      { expression_postfix_suffix },
+      terminal_type_constructor_tail_decision ;
+
+terminal_type_constructor_tail_decision =
+      terminal_type_constructor_tail
+    | ? no terminal_type_constructor_tail satisfying its final predicate starts at the current position ? ;
+
+expression_postfix_suffix =
+      postfix_suffix
+    | aggregate_initialization_suffix ;
 
 postfix_suffix =
       ordinary_postfix_suffix
@@ -838,7 +846,6 @@ array_expression =
 
 structured_expression =
       match_expression
-    | aggregate_initialization_expression
     | class_type_expression ;
 
 match_expression =
@@ -854,8 +861,8 @@ match_expression_arm_body =
       expression
     | statement_block ;
 
-aggregate_initialization_expression =
-    type, aggregate_initializer_body ;
+aggregate_initialization_suffix =
+    aggregate_initializer_body ;
 
 aggregate_initializer_body =
     "{",

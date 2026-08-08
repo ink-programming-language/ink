@@ -1,6 +1,6 @@
 # Parser 议题 19：一元表达式
 
-> 状态：已确认，议题 30 补充表达式末尾的类型构造含义；2026-08-05 增加 `comptime` 表达式前缀，议题 32 与结构化区域控制统一阶段模型
+> 状态：已确认，议题 30 补充表达式末尾的类型构造含义；2026-08-05 增加 `comptime` 表达式前缀，议题 32 与结构化区域控制统一阶段模型；2026-08-08 同步 `comptime match` 的上下文提交规则
 > 确认日期：2026-08-03
 
 ## 1. 文法
@@ -243,7 +243,21 @@ comptime (f() + g())     // 整个加法必须在编译期完成
 const selected = comptime (if (condition) first else second);
 ```
 
-`comptime if (condition) { ... }`、`comptime match (value) { ... }`、`comptime for (...) { ... }` 和 `comptime while (condition) { ... }` 是语句上下文中的结构化控制形式，不由本节的 `comptime_expression` 吞并。
+`comptime if (condition) { ... }`、`comptime match (value) { ... }`、`comptime for (...) { ... }` 和 `comptime while (condition) { ... }` 是语句上下文中的结构化控制形式。尤其是 statement entry 的显著 Token 序列 `comptime match` 会立即且不可回滚地提交到 `ComptimeMatchControl`，不根据后续 arm 标点改判为本节的 `comptime_expression`。
+
+初始化器等已经要求表达式的位置仍可直接把 `match_expression` 作为一元操作数；如果要在 statement context 丢弃其值，则用括号避开保留起点：
+
+```ink
+const selected = comptime match (mode) {
+    .fast => fast_value,
+    _ => fallback_value,
+};
+
+comptime (match (mode) {
+    .fast => fast_value,
+    _ => fallback_value,
+});
+```
 
 ## 13. 不支持自增与自减
 

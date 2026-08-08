@@ -66,7 +66,7 @@ async interface slot:
         result_storage: Task::<T>*,
         object: void*,
         dispatch_table: InterfaceTable*,
-        arguments...
+        ...arguments
     )
 ```
 

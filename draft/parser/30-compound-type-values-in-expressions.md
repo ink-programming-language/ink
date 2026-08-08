@@ -1,6 +1,6 @@
 # Parser 议题 30：普通表达式中的复合类型值
 
-> 状态：已确认；Parser 议题 40 补充复用普通 class 结构的类型表达式
+> 状态：已确认；Parser 议题 35 把聚合初始化放入普通 postfix 层，议题 40 补充复用普通 class 结构的类型表达式；2026-08-08 把终止型类型构造尾链改为互补 EndSet 守卫并补全规范调用矩阵
 > 确认日期：2026-08-04
 
 ## 1. 目标
@@ -46,7 +46,7 @@ direct_function_type_expression =
     [ "const" ], function_type_expression ;
 ```
 
-实现可以让 `const_type_value_expression` 与议题 29 的类型入口共享可接后缀的 `postfixable_type_primary` 解析器，但不能再次接受第二个前置 `const`。直接函数类型及其可选 `const` 包装使用封闭的 `direct_function_type_expression` 分支，不进入普通 postfix 循环；它在 CST 中仍分别保存 `FunctionTypeExpression` 和存在时的 `ConstTypeValueExpression`。议题 40 进一步把 `class_type_expression` 加入议题 14 的 `structured_expression`，但仍不把整个 `type` 非终结符直接并入普通表达式。
+实现可以让 `const_type_value_expression` 与议题 29 的类型入口共享可接后缀的 `postfixable_type_primary` 解析器，但不能再次接受第二个前置 `const`。直接函数类型及其可选 `const` 包装使用封闭的 `direct_function_type_expression` 分支，不进入普通 postfix 循环；它在 CST 中仍分别保存 `FunctionTypeExpression` 和存在时的 `ConstTypeValueExpression`。议题 35 把聚合初始化定义为当前 postfix 操作数之后的表达式专用后缀，议题 40 进一步把 `class_type_expression` 加入议题 14 的 `structured_expression`；两者都不把整个 `type` 非终结符直接并入普通表达式。
 
 明确类型位置中的圆括号以及泛型实参等混合位置也只解析一次中性表达式，不再建立 `type_or_expression` 一类重叠分支：
 
@@ -95,8 +95,16 @@ class Node { ... }      // 带内部递归名称的 ClassTypeExpression
 postfix_expression =
       direct_function_type_expression
     | postfixable_primary_expression,
-      { postfix_suffix },
-      [ terminal_type_constructor_tail ] ;
+      { expression_postfix_suffix },
+      terminal_type_constructor_tail_decision ;
+
+terminal_type_constructor_tail_decision =
+      terminal_type_constructor_tail
+    | ? no terminal_type_constructor_tail satisfying its final predicate starts at the current position ? ;
+
+expression_postfix_suffix =
+      postfix_suffix
+    | aggregate_initialization_suffix ;
 
 terminal_type_constructor_tail =
     type_constructor_start,
@@ -112,11 +120,13 @@ type_symbol_suffix =
     ? this Symbol is consumed as a type-constructor suffix; an explicit type context may consume adjacent suffix Symbols character by character, while an expression tail additionally obeys terminal_type_constructor_tail, and no compound assignment operator is split ? ;
 ```
 
-这里的 `postfixable_primary_expression` 表示议题 14 的普通基础表达式以及非函数 `const_type_value_expression`，但排除 `direct_function_type_expression`。函数类型自身的返回 `type` 可以包含完整后缀，封闭限制只阻止后缀越过整个直接函数类型的右边界。
+这里的 `postfixable_primary_expression` 表示议题 14 的普通基础表达式以及非函数 `const_type_value_expression`，但排除 `direct_function_type_expression`。函数类型自身的返回 `type` 可以包含完整后缀，封闭限制只阻止后缀越过整个直接函数类型的右边界。议题 35 的聚合初始化后缀只属于普通表达式的 `expression_postfix_suffix`；它可以与普通 `postfix_suffix` 从左到右重复组合，但不进入被明确 `type` 复用的共享后缀集合。
 
-上述 EBNF 还必须满足以下语法谓词：
+`terminal_type_constructor_tail_decision` 的两个分支是逻辑互补的规范性语法守卫，不是按书写顺序尝试的有序选择：
 
-> `terminal_type_constructor_tail` 只有在完整尾链之后立即到达当前子表达式的显式结束符时才成立。
+> 若从当前位置能够消费一条完整最大 `terminal_type_constructor_tail`，且该尾链不拆分复合赋值运算符并在其后立即到达当前子表达式的显式结束符，则正分支成立并必须消费整条尾链，零宽度否定分支不成立；否则正分支不成立，只有零宽度否定分支成立。
+
+因此不能把该决定重新写成 `[ terminal_type_constructor_tail ]`，也不能在实现中允许成功的正分支与无条件空分支同时成立。以 `T*[];` 为例，完整候选尾链 `*[]` 到达 `;`，所以 `T` 后的否定守卫失败；同一 Token 串不能再把 `T` 提前结束为乘法左操作数，并把 `[]` 解释为空数组右操作数。该互斥关系属于接受语言和 CST 归属本身，不依赖递归下降实现先试哪条分支。
 
 具体实现可以把空 `[]` 与其他普通后缀放在同一个循环中；产生式只用于表达“空 `[]` 是类型构造而不是普通索引”。一旦无括号的 `*`、`&` 或空 `[]` 开始构造类型，后面只继续接受 `*`、`&`、`[]` 和用于数组构造的非空 `[expression]`。调用、成员、泛型、切片或其他表达式运算要作用于已构造的完整类型值时，必须先加括号：
 
@@ -131,29 +141,72 @@ type_symbol_suffix =
 
 ## 4. `parseExpression(EndSet)` 与局部试解析
 
-表达式 Parser 的规范入口为 `parseExpression(EndSet)`，调用者必须传入当前入口的显式结束符集合。例如：
+表达式 Parser 的规范入口为 `parseExpression(EndSet)`，调用者必须传入当前入口在同一嵌套层次允许紧随完整表达式的显式结束符。所有语法调用点遵守下表；“继承”表示沿用当前外层调用者的 `EndSet`：
 
-```text
-绑定初始化器、return、表达式语句： ; 或 }
-调用和元组元素：                 , 或 )
-数组元素和索引内部：             , 或 ]
-泛型实参：                       , 或 >
-if_expression 真分支：            else
-文件或 REPL 完整表达式：          EOF
-```
+| 表达式调用点 | 规范 `EndSet` |
+|---|---|
+| 文件、工具 API 或 REPL 的独立完整表达式 | `EOF` |
+| 表达式内部各优先级层的一元或中缀操作数 | 继承；当前运算符不加入 `EndSet` |
+| `var`、`const` 和字段初始化器，赋值右侧，表达式语句，`defer` 表达式，`return` 表达式 | `;` |
+| `throw` 的被抛出表达式 | `from`、`;` |
+| 赋值左侧的 `statement_expression` | `=`、`+=`、`-=`、`*=`、`/=`、`%=`、`&=`、`|=`、`^=`、`<<=`、`>>=`，每项均作为不可拆分的完整终端 |
+| `if`、`while`、`match` 的圆括号条件或 scrutinee，match condition 的右侧，`parenthesized_expression`，`parenthesized_type_expression` | `)` |
+| `if_expression` 或 `generic_argument_if_expression` 的条件 | `)` |
+| `if_expression` 或 `generic_argument_if_expression` 的真分支 | `else` |
+| `if_expression` 或 `generic_argument_if_expression` 的假分支 | 继承 |
+| `for_source` 的第一项 | `..`、`)` |
+| `for_source` 中 `..` 后的第二项 | `)` |
+| 调用、attribute application、decorator application、函数形参默认值、圆括号逗号列表、tuple type 和 function type 参数列表中的普通表达式或 `list_expansion` 操作数 | `,`、`)` |
+| 普通索引内的表达式 | `]` |
+| slice 下界 | `:` |
+| slice 上界 | `]` |
+| 数组字面量的每个元素 | `,`、`]` |
+| 泛型实参、`generic_list_expansion` 操作数和泛型形参默认实参的顶层 `generic_argument_expression` | `,`、`>` |
+| enum discriminant | `,`、`}` |
+| match-expression arm 的表达式 body | `,` |
+| 聚合初始化的显式字段值 | `,`、`}` |
 
-这些集合由真实外层产生式确定，不能把任意“当前不是中缀运算符”的 Token 当成结束符。标识符、字面量、`(`、`[` 以及一元运算符都可能开始 `*` 或 `&` 的右操作数。
+逗号列表最后一个元素仍把右定界符纳入集合；这只表示表达式可以在该处结束，不表示列表接受尾随逗号。形参默认值、实参、圆括号逗号列表、数组元素、泛型实参、enum 成员和聚合字段是否允许省略、是否要求逗号以及是否允许尾随逗号，继续由各自外层产生式决定。
 
-遇到候选 `*`、`&` 或空 `[]` 时，Parser 执行局部 checkpoint：
+表中只列出成功解析所需的语法结束符。批处理错误恢复可以在调用者已经报告缺失 `;`、`)`、`]`、`,` 等错误后，把 `}`、外层 StopSet 或 `EOF` 加入同步集合；这些恢复锚点不能反向成为合法源码的额外结束符，也不能改变在真实语法结束符前的尾链决定。REPL 的 `EOF` 只有在当前入口本来接受完整表达式，或者未闭合结构按第 11 节返回 `Incomplete` 时参与判定。
+
+这些集合由真实外层产生式确定，不能把任意“当前不是中缀运算符”的 Token 当成结束符。标识符、字面量、`(`、`[` 以及一元运算符都可能开始 `*` 或 `&` 的右操作数；`{` 是聚合初始化 postfix 的起点，也不是类型尾链结束符。嵌套括号、方括号、泛型列表或聚合体内使用该嵌套入口自身的集合，不得把更外层的同形 Token 提前当作结束符。
+
+遇到候选 `*`、`&` 或空 `[]` 时，Parser 必须计算 `terminal_type_constructor_tail_decision` 的互补守卫。可以使用如下局部 checkpoint 实现：
 
 ```text
 1. 保存 Token 游标、临时 CST、诊断缓冲区位置、错误恢复和 REPL 状态；
 2. 试解析从当前位置能够形成的最大完整 type constructor tail；
-3. 若尾链后的下一显著 Token 属于 EndSet，则原子提交整个尾链；
-4. 否则完整回滚所有临时状态，并让普通表达式优先级层从原位置解析。
+3. 若尾链后的下一显著 Token 属于 EndSet，则正守卫成立，原子提交整个尾链，并禁止零宽度否定分支；
+4. 否则正守卫失败，完整回滚所有临时状态，否定守卫成立，并让普通表达式优先级层从原位置解析。
 ```
 
 “最大完整”表示只要下一个后缀仍能属于同一类型构造尾链，就不能提前提交较短前缀。失败时也不得保留部分后缀、临时 CST 节点或试探诊断。
+
+以下 Token 串必须作为消歧回归测试。前四行各自只允许一棵类型尾链 CST；空白不能把它们改成乘法或按位与。第五行用括号明确要求空数组作为乘法右操作数：
+
+```ink
+return T*[];        // SliceType(PointerType(T))
+return T*[N];       // ArrayType(PointerType(T), N)
+return T&[];        // SliceType(ReferenceType(T))
+return T&[N];       // ArrayType(ReferenceType(T), N)
+return T * ([]);    // T 乘以空数组值
+```
+
+下列用例覆盖不能由通用 `;`、`)`、`,` 推导出的调用点，防止调用者漏传 `from`、`..`、`:`、`else` 或外层右定界符：
+
+```ink
+throw T* from cause;
+for (const item in T* .. U*) {}
+values[T*:U*]
+if (condition) T* else U*
+Wrapper::<T*[N]>
+enum Kind { Pointer = T*, Other }
+match (value) { .some => T*, .none => U*, }
+Record { field: T* }
+```
+
+这些用例中的每条无括号尾链都必须在对应调用点的结束符前提交。若移除该结束符、换成能够开始右操作数的 Token，或者候选尾链后仍有普通 postfix 或中缀操作，则正守卫失败并走普通表达式路径；如果回滚后的普通表达式也不能消费完整 Token 串，才报告语法错误。
 
 例如：
 
@@ -193,6 +246,15 @@ T * ; // 同样是 T* 类型值
 ```ink
 T*(value)   // T * (value)
 (T*)(value) // Call(Parenthesized(T*), value)
+```
+
+聚合初始化同样是继续作用于当前表达式结果的 postfix 操作，左花括号不属于 `terminal_type_constructor_tail` 的 `EndSet`。因此类型尾链后继续聚合初始化必须分组，而中缀运算右侧的聚合后缀只绑定右操作数：
+
+```ink
+T* {}           // 语法错误
+(T*) {}         // 对分组后的 T* 应用聚合后缀；语义通常拒绝指针类型
+T*(value) {}    // T * AggregateInitialization((value), {})
+(T*(value)) {}  // 对完整乘法结果应用聚合后缀
 ```
 
 复合类型位于后续运算左侧时同样分组：
@@ -430,4 +492,4 @@ Incomplete 已开始能够继续闭合的类型结构，但在 REPL EOF 处结�
 
 Ink 允许完整复合类型作为普通一等编译期值。表达式文法不把整个 `type` 增加为重叠分支，而是复用标识符、圆括号、调用、索引、成员和以连续 `::<` 引导的泛型等中性表达式结构，并只增加 `const`、同步或异步函数类型、Parser 议题 40 的 class 类型表达式、空 `[]` 以及受终止位置约束的 `*`、`&` 类型构造。
 
-无括号 `*`、`&` 类型尾链必须结束于当前子表达式边界；继续调用、访问或参与运算时使用括号。空 `[]` 只构造切片类型，非空方括号继续由语义区分数组构造和容器索引。元组逗号结构由 CST 中性保存，并根据期望类型区分元组类型与包含类型值的普通元组。类型调用与普通函数调用共享 `CallExpression`，最终含义统一由语义分析确定。
+无括号 `*`、`&` 类型尾链必须结束于当前子表达式边界；继续调用、访问、聚合初始化或参与运算时使用括号。空 `[]` 只构造切片类型，非空方括号继续由语义区分数组构造和容器索引。元组逗号结构由 CST 中性保存，并根据期望类型区分元组类型与包含类型值的普通元组。类型调用与普通函数调用共享 `CallExpression`，聚合初始化同样只在语义阶段要求左侧结果为支持该初始化形式的 `type`，最终含义统一由语义分析确定。

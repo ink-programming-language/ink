@@ -531,7 +531,7 @@ class Account {
     private var balance: i64;
 
     public func get_balance() const -> i64 {
-        return this.balance;
+        return this->balance;
     }
 }
 ```

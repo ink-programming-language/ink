@@ -103,7 +103,7 @@ class Server {
 ```ink
 var server = Server {
     listener: Socket.listen(8080),
-    log: File.open("server.log"),
+    log: File.open("server.log")
 };
 ```
 
@@ -132,9 +132,9 @@ class File {
     var handle: OsHandle;
 
     func close() {
-        if (this.handle.is_valid()) {
-            os.close_checked(this.handle);
-            this.handle = OsHandle.invalid;
+        if (this->handle.is_valid()) {
+            os.close_checked(this->handle);
+            this->handle = OsHandle.invalid;
         }
     }
 

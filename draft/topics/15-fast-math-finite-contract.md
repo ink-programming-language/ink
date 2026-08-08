@@ -11,12 +11,12 @@ Ink 将“允许近似浮点变换”与“承诺不存在 NaN/Infinity”拆成
 
 ```ink
 [fast_math]
-func approximate(...) {
+func approximate(value: f64) {
     // 允许宽松浮点变换。
 }
 
 [assume_finite]
-func finite_only(...) {
+func finite_only(value: f64) {
     // 承诺相关浮点值始终为有限值。
 }
 ```

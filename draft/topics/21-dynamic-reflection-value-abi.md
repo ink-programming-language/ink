@@ -22,19 +22,19 @@ Ink 的动态反射采用“编译器生成描述符与适配器，加借用型�
 用户侧 API 保持强类型外观：
 
 ```ink
-if (match .some(type) = reflection.find_type("game.Player")) {
-    if (match .some(health) = type.property("health")) {
-        const value = health.get[i32](&player);
-        health.set[i32](&player, 80);
+if (match .some(type_info) = reflection.find_type("game.Player")) {
+    if (match .some(health) = type_info.property("health")) {
+        const value = health.get::<i32>(&player);
+        health.set::<i32>(&player, 80);
     }
 
-    if (match .some(function) = type.function("take_damage")) {
-        const result = function.call[bool](&player, 10i32);
+    if (match .some(function) = type_info.function("take_damage")) {
+        const result = function.call::<bool>(&player, 10i32);
     }
 }
 ```
 
-方括号中的类型参数表达调用者期待的字段类型或返回类型。运行时描述符必须与该静态期待完全匹配。
+`::<...>` 中的类型参数表达调用者期待的字段类型或返回类型。运行时描述符必须与该静态期待完全匹配。
 
 反射 API 不默认执行数值转换、用户定义隐式构造或基于字符串的动态强制转换。需要转换时，调用者先在普通 Ink 代码中显式构造或 `cast` 到准确类型。
 
@@ -45,7 +45,7 @@ if (match .some(type) = reflection.find_type("game.Player")) {
 ```ink
 class DynamicRef {
     var data: void*;
-    var type: TypeHandle;
+    var type_handle: TypeHandle;
     var mutable: bool;
     // 实现还保存与借用和布局版本有关的状态
 }
@@ -81,20 +81,20 @@ const writable = DynamicRef.create(&mutable_value);
 可复制字段可以按值读取：
 
 ```ink
-const health = property.get[i32](&player);
+const health = property.get::<i32>(&player);
 ```
 
-`get[T]` 只在运行时字段类型与 `T` 完全一致且 `T` 可复制时成功。它执行 Ink 的普通复制，不引入隐藏移动语义。
+`get::<T>` 只在运行时字段类型与 `T` 完全一致且 `T` 可复制时成功。它执行 Ink 的普通复制，不引入隐藏移动语义。
 
 任意字段，包括 `[noncopyable]` 字段，都可以按引用借用：
 
 ```ink
-const file: const File& = property.borrow[File](&object);
-const buffer: Buffer& = property.borrow_mut[Buffer](&mutable_object);
+const file: const File& = property.borrow::<File>(&object);
+const buffer: Buffer& = property.borrow_mut::<Buffer>(&mutable_object);
 ```
 
-- `borrow[T]` 返回只读引用；
-- `borrow_mut[T]` 要求接收对象可变，并返回可变引用；
+- `borrow::<T>` 返回只读引用；
+- `borrow_mut::<T>` 要求接收对象可变，并返回可变引用；
 - 返回引用不会延长接收对象、字段或反射描述符视图的有效期；引用可以被保存或返回，但在任一相关对象失效后继续访问属于 UB；
 - 议题 20 的可见性与动态暴露规则仍然适用。
 
@@ -105,7 +105,7 @@ const buffer: Buffer& = property.borrow_mut[Buffer](&mutable_object);
 字段写入使用已有对象的普通赋值语义：
 
 ```ink
-property.set[i32](&player, 80);
+property.set::<i32>(&player, 80);
 ```
 
 它要求：
@@ -141,7 +141,7 @@ arguments: DynamicRef[]
 
 目标是接口反射函数时，适配器按照议题 28 取得或验证接口胖引用，并通过对应接口表槽调用具体实现。
 
-目标是异步函数时，议题 57 要求使用独立的同步任务构造 API `call_async[R]`。适配器仍在调用点验证并捕获参数，不能把临时 `DynamicRef[]` 保存到任务中；最终任务由普通静态、虚或接口任务构造入口直接建立。
+目标是异步函数时，议题 57 要求使用独立的同步任务构造 API `call_async::<R>`。适配器仍在调用点验证并捕获参数，不能把临时 `DynamicRef[]` 保存到任务中；最终任务由普通静态、虚或接口任务构造入口直接建立。
 
 按值参数按照 Ink 的普通调用规则复制到调用帧。不可复制类型不能通过反射按值传递，但可以传给对应的引用参数。引用参数直接传递非拥有别名，不延长原值生命周期，并保持原有可变性限制。
 
@@ -167,9 +167,9 @@ result: DynamicOut {
 - 返回 `[noncopyable]` 值不要求隐藏移动；
 - 返回引用时，结果只是可复制、可保存的非拥有别名，不是拥有对象；调用者负责保证以后每次访问时目标仍然有效。
 
-`call[R](...)` 是对上述结果存储协议的强类型便捷封装。
+`call::<R>(...)` 是对上述结果存储协议的强类型便捷封装。
 
-议题 57 为异步反射增加独立的 `DynamicTaskOut`。其地址指向未初始化的最终 `Task::<R>` 存储，期待类型记录逻辑结果 `R` 而不是 `Task::<R>`；`call_async[R]` 通过该协议原地构造惰性任务。同步函数显式返回 `Task::<R>` 时仍使用本节的普通 `DynamicOut` 和 `call[Task::<R>]`。
+议题 57 为异步反射增加独立的 `DynamicTaskOut`。其地址指向未初始化的最终 `Task::<R>` 存储，期待类型记录逻辑结果 `R` 而不是 `Task::<R>`；`call_async::<R>` 通过该协议原地构造惰性任务。同步函数显式返回 `Task::<R>` 时仍使用本节的普通 `DynamicOut` 和 `call::<Task::<R>>`。
 
 ## 8. 异常语义
 
@@ -226,12 +226,12 @@ result: DynamicOut {
 标准库应把以下接口作为普通用户首选：
 
 ```ink
-property.get[T](object)
-property.borrow[T](object)
-property.borrow_mut[T](object)
-property.set[T](object, value)
-function.call[R](receiver, arguments...)
-function.call_async[R](receiver, arguments...)
+property.get::<T>(object)
+property.borrow::<T>(object)
+property.borrow_mut::<T>(object)
+property.set::<T>(object, value)
+function.call::<R>(receiver, ...arguments)
+function.call_async::<R>(receiver, ...arguments)
 ```
 
 `DynamicRef`、`DynamicOut`、`DynamicTaskOut` 和原始适配器入口属于反射运行时 ABI。可以向框架作者开放，但应放在明显的底层命名空间中，普通反射代码不需要手动构造它们。

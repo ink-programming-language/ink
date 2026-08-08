@@ -92,9 +92,9 @@ catch ParseError as error {
 ```ink
 catch ReflectedError as error {
     const dynamic = DynamicRef.create(&error);
-    const value = property.get[int](dynamic);       // 合法：读取
-    property.set[int](dynamic, 10);               // 编译或动态检查失败
-    property.borrow_mut[int](dynamic);            // 编译或动态检查失败
+    const value = property.get::<int>(dynamic);       // 合法：读取
+    property.set::<int>(dynamic, 10);                  // 编译或动态检查失败
+    property.borrow_mut::<int>(dynamic);               // 编译或动态检查失败
 }
 ```
 
@@ -129,7 +129,7 @@ try {
 } catch ParseError as error {
     throw ConfigurationError {
         position: error.position,
-        message: "configuration parsing failed",
+        message: "configuration parsing failed"
     };
 }
 ```

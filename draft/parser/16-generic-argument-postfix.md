@@ -1,6 +1,6 @@
 # Parser 议题 16：显式泛型实参后缀
 
-> 状态：已确认，Ink v0 使用 `name::<arguments>` 显式泛型应用；泛型声明仍使用 `name<parameters>`；议题 17 补充切片后缀，议题 29 补充列表展开，议题 30 允许泛型实参表达式使用复合类型值
+> 状态：已确认，Ink v0 使用 `name::<arguments>` 显式泛型应用；泛型声明仍使用 `name<parameters>`；议题 17 补充切片后缀，议题 29 补充列表展开，议题 30 允许泛型实参表达式使用复合类型值，议题 35 增加表达式专用聚合初始化后缀
 > 确认日期：2026-08-03
 
 ## 1. 泛型实例化是后缀操作
@@ -11,8 +11,12 @@
 postfix_expression =
       direct_function_type_expression
     | postfixable_primary_expression,
-      { postfix_suffix },
-      [ terminal_type_constructor_tail ] ;
+      { expression_postfix_suffix },
+      terminal_type_constructor_tail_decision ;
+
+expression_postfix_suffix =
+      postfix_suffix
+    | aggregate_initialization_suffix ;
 
 postfix_suffix =
       ordinary_postfix_suffix
@@ -72,7 +76,7 @@ generic_argument_shift_expression =
     { "<<", additive_expression } ;
 ```
 
-其中 `postfixable_primary_expression` 与封闭的 `direct_function_type_expression` 由议题 14 定义，`ordinary_postfix_suffix` 由议题 15 定义，`slice_suffix` 由议题 17 定义。泛型后缀只进入可后缀基础表达式分支，并可以与调用、索引、切片和成员访问继续组合；直接函数类型要应用泛型或其他后缀仍须先加括号。
+其中 `postfixable_primary_expression` 与封闭的 `direct_function_type_expression` 由议题 14 定义，`ordinary_postfix_suffix` 由议题 15 定义，`slice_suffix` 由议题 17 定义，`terminal_type_constructor_tail_decision` 由议题 30 定义为正尾链与零宽度否定守卫的互斥选择。泛型后缀只进入可后缀基础表达式分支，并可以与调用、索引、切片和成员访问继续组合；直接函数类型要应用泛型或其他后缀仍须先加括号。
 
 ```ink
 Vector::<i32>
@@ -86,7 +90,7 @@ Other::<Header, ...Types, Footer>
 
 议题 30 已将类型纳入普通表达式值，因此 `generic_argument` 不再并列选择 `type` 和 `expression`，也不再存在 `type_or_expression`。`generic_argument_expression` 复用普通表达式从逻辑或到加法及以下的同一结构，但在当前泛型列表顶层排除 `>`、`>=` 和 `>>`；需要这些运算时按第 7 节加括号。类型实参、整数、布尔值和其他编译期值统一建立 Expression CST；目标泛型形参最终要求哪一类编译期值，由语义分析检查。
 
-类型构造尾链把当前泛型实参的顶层 `>` 作为显式表达式结束符，因此 `Wrapper::<T**>` 可以在不查询 `T` 的情况下确定为双重指针类型实参。若 `*` 或 `&` 后仍有当前实参内的普通操作数，则局部试探回滚并继续按本议题及表达式优先级解析。
+类型构造尾链把当前泛型实参的顶层 `>` 作为显式表达式结束符，因此 `Wrapper::<T**>` 可以在不查询 `T` 的情况下确定为双重指针类型实参。若完整最大尾链能够到达 `>`，议题 30 的正守卫必须提交它，不能同时走零宽度分支；因此 `Wrapper::<T*[N]>` 也唯一形成数组类型实参，而不是 `T * [N]`。若 `*` 或 `&` 后仍有当前实参内的普通操作数，则正守卫失败，局部试探回滚并继续按本议题及表达式优先级解析。
 
 Parser 不要求泛型后缀后面立刻出现调用。闭合函数、闭合类型和其他闭合声明都可以作为后续语义允许的值或编译期实体。
 

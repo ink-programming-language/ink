@@ -8,9 +8,9 @@
 一个并发任务失败后，“继续等待其他任务自然完成”和“请求其他任务取消”是两种可观察行为。Ink 不让同一个名称根据实现、运行时调度方式或优化级别隐式选择策略，而是提供两个语义明确的组合操作：
 
 ```ink
-const a, b = await all(task_a(), task_b());
+const (a, b) = await all(task_a(), task_b());
 
-const c, d = await all_cancel_on_error(task_c(), task_d());
+const (c, d) = await all_cancel_on_error(task_c(), task_d());
 ```
 
 - `all`：不因某个输入失败而取消其他输入；
@@ -23,7 +23,7 @@ const c, d = await all_cancel_on_error(task_c(), task_d());
 `all` 明确表示全部输入任务都应当完成。某个任务失败不会改变其他任务的执行意图：
 
 ```ink
-const log_result, save_result =
+const (log_result, save_result) =
     await all(write_log(), save_data());
 ```
 
@@ -55,7 +55,7 @@ await all(flush_metrics(), persist_snapshot());
 `all_cancel_on_error` 在观察到第一个失败终态后，对其他尚未结束的输入发出取消请求：
 
 ```ink
-const left, right = await all_cancel_on_error(load_left(), load_right());
+const (left, right) = await all_cancel_on_error(load_left(), load_right());
 ```
 
 议题 48 确定取消只是协作式请求，不是从外部线程强制销毁任务，也不是立即释放协程帧。Ink 不增加 `cancelled` 任务终态或内建取消异常。一个任务可以：

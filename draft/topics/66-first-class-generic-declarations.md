@@ -95,7 +95,7 @@ const CacheType =
 const Containers: GenericTypeDecl[] = comptime [
     Vector,
     Deque,
-    LinkedList,
+    LinkedList
 ];
 ```
 

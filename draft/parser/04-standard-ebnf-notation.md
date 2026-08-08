@@ -1,6 +1,6 @@
 # Parser 议题 04：标准 EBNF 记法
 
-> 状态：已确认，非终结符统一使用 `snake_case`；议题 02 规定复合 Symbol 终结字符串的全语言最长匹配；议题 27 同步 `from` 硬关键字的终结字符串记法
+> 状态：已确认，非终结符统一使用 `snake_case`；议题 02 规定复合 Symbol 终结字符串的全语言最长匹配；议题 27 同步 `from` 硬关键字的终结字符串记法；2026-08-08 补充 statement context 的保留结构起点谓词以及终止型类型构造尾链的互补守卫
 > 确认日期：2026-08-03
 
 ## 1. 采用标准
@@ -127,11 +127,13 @@ end_of_file = ? EndOfFile Token ? ;
 
 ```ebnf
 statement_expression =
-    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
+    ? next significant Token is neither Keyword(Var), Keyword(Const), nor Keyword(Match), and the next two significant Tokens are not Keyword(Comptime) followed by Keyword(Match) ?,
     expression ;
 ```
 
-这种 special sequence 是不消费 Token 的谓词，其准确含义必须由对应 Parser 议题完整定义。汇总文法当前只把它用于声明起点排除、类型构造 Symbol 后缀的受限逐字符消费、函数返回类型最大消费以及终止型类型构造尾链的 EndSet 提交；实现不得把它推广为依赖名称绑定或语义类型的任意判定。
+这种 special sequence 是不消费 Token 的谓词，其准确含义必须由对应 Parser 议题完整定义。上例只做忽略 Trivia 的有限 Token 前瞻：它既排除 `var`、`const` 声明起点，也排除语句入口保留给结构控制的裸 `match` 与 `comptime match`；不查询名称、符号表或类型。汇总文法当前只把 special sequence 用于这类声明或结构起点排除、类型构造 Symbol 后缀的受限逐字符消费、函数返回类型最大消费以及终止型类型构造尾链的互补 EndSet 判定；实现不得把它推广为依赖名称绑定或语义类型的任意判定。
+
+当一个可空位置必须与一个受谓词约束的非空分支互斥时，不能写成无条件的 `[ nonempty_branch ]`。本 draft 使用一对逻辑互补的 special sequence 守卫：正分支只在对应谓词成立时接受并消费 Token，零宽度空分支只在不存在满足同一谓词的正分支时成立。例如议题 30 的 `terminal_type_constructor_tail_decision` 在完整最大尾链能够到达调用者提供的 `EndSet` 时必须选择并消费该尾链；只有不存在这样的尾链时，否定守卫才允许消费零个 Token。两条 EBNF 分支因此在规范上互斥，不依赖备选顺序、Parser checkpoint 的尝试顺序或错误恢复策略。实现可以使用事务性 checkpoint 计算该谓词，但 checkpoint 只是实现规范谓词的手段，不能改变接受的 Token 序列或 CST 归属。
 
 Trivia 不出现在每条产生式中；它由议题 02 的统一游标规则隐式跳过并完整写入 CST。
 
@@ -157,7 +159,7 @@ identifier = ? Identifier Token ? ;
 
 能够由上下文无关语法准确表达的结构必须写入 EBNF。名称可见性、类型相容性、重复声明、`comptime` 求值成功等语义条件不写入 EBNF，而在对应语义规则中单独规定。
 
-当某项合法性确实依赖无法由上下文无关产生式表达的上下文条件时，对应议题必须以明确文字列出规范性约束；汇总文法可以使用标准 special sequence 在准确检查位置引用该约束，不能发明未定义的 EBNF 运算符。议题 02 的全语言 Symbol 最长匹配、泛型顶层 `>` 定界覆盖和终止型类型构造尾链的事务性 EndSet 守卫属于所有相关产生式共同遵守的 Token 匹配约束。
+当某项合法性确实依赖无法由上下文无关产生式表达的上下文条件时，对应议题必须以明确文字列出规范性约束；汇总文法可以使用标准 special sequence 在准确检查位置引用该约束，不能发明未定义的 EBNF 运算符。议题 02 的全语言 Symbol 最长匹配、泛型顶层 `>` 定界覆盖和终止型类型构造尾链的互补 EndSet 守卫属于所有相关产生式共同遵守的 Token 匹配约束。受守卫的非空分支与其零宽度否定分支必须准确互补；不得保留一个绕过正谓词的无条件空分支。
 
 表达式优先级和结合性也必须最终对应到无歧义的标准 EBNF 分层产生式；实现可以使用 Pratt Parser 或其他等价算法，但实现算法不改变规范文法。
 

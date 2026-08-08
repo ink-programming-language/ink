@@ -42,7 +42,7 @@ concat(token.raw for token in tokens)
 
 ## 3. Token 跨度构成源码分区
 
-除可选的零长度 EOF Token 外，Token 跨度按照 `start_byte` 严格递增，并对原始文件形成无重叠、无空洞的连续分区：
+除唯一的零长度 EOF Token 外，Token 跨度按照 `start_byte` 严格递增，并对原始文件形成无重叠、无空洞的连续分区：
 
 ```text
 tokens[0].start_byte == 0
@@ -50,13 +50,13 @@ tokens[i].end_byte == tokens[i + 1].start_byte
 tokens[last].end_byte == source_byte_length
 ```
 
-空文件可以没有非零长度 Token。若实现产生 EOF Token，其跨度为：
+空文件没有非零长度 Token，但仍然具有准确一个 EOF Token。EOF Token 的跨度固定为：
 
 ```text
 [source_byte_length, source_byte_length)
 ```
 
-EOF Token 不参与源码字节拼接，也不破坏分区规则。
+Token 列表必须准确地以这一个 EOF Token 结束；Tokenizer 不能省略 EOF、在列表中间产生 EOF 或产生多个 EOF。EOF Token 不参与源码字节拼接，也不破坏分区规则。
 
 ## 4. Trivia TokenKind
 

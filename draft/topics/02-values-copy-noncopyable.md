@@ -62,7 +62,7 @@ file.read(); // 仍然有效
 func create_server() -> Server {
     return Server {
         listener: Socket.listen(8080),
-        log: File.open("server.log"),
+        log: File.open("server.log")
     };
 }
 
@@ -108,7 +108,7 @@ class File {
 - 禁止类型的隐式复制和复制赋值；
 - 禁止从命名变量按值传参；
 - 不改变类型的内存布局；
-- 可以用于 `class`、`enum` 和 `newtype`；
+- 可以用于 `class` 和 `enum`；
 - 是公开 API 的组成部分；
 - 会进入类型元数据和 API 摘要；
 - 不能被下游代码移除或覆盖。
