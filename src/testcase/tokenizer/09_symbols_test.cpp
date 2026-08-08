@@ -16,7 +16,7 @@ namespace ink::tokenizer
     using core::DiagnosticKind;
     using core::SourceRange;
 
-    void expectPartition(const LexedFile &File)
+    void expectPartition(const TokenizedBuffer &File)
     {
       ASSERT_FALSE(File.tokens().empty());
       std::size_t Cursor = 0;
@@ -42,14 +42,14 @@ namespace ink::tokenizer
       EXPECT_EQ(File.tokens().back().Kind, TokenKind::EndOfFile);
     }
 
-    void expectToken(const LexedFile &File, std::size_t Index, TokenKind Kind, std::string_view Raw)
+    void expectToken(const TokenizedBuffer &File, std::size_t Index, TokenKind Kind, std::string_view Raw)
     {
       ASSERT_LT(Index, File.tokens().size());
       EXPECT_EQ(File.tokens()[Index].Kind, Kind);
       EXPECT_EQ(std::string(File.raw(File.tokens()[Index])), std::string(Raw));
     }
 
-    bool hasDiagnostic(const LexedFile &File, DiagnosticKind Kind)
+    bool hasDiagnostic(const TokenizedBuffer &File, DiagnosticKind Kind)
     {
       return std::any_of(File.diagnostics().begin(), File.diagnostics().end(), [Kind](const Diagnostic &CurrentDiagnostic)
                          {
@@ -61,7 +61,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, LexesEveryAcceptedSymbolAsOneByteToken)
     {
       const std::string Symbols = "(){}[],;:.@+-*/%=!&|^~<>";
-      const LexedFile File = tokenize(Symbols);
+      const TokenizedBuffer File = tokenize(Symbols);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), Symbols.size() + 1);
@@ -100,7 +100,7 @@ namespace ink::tokenizer
       for (const std::string &Spelling : Spellings)
       {
         SCOPED_TRACE(Spelling);
-        const LexedFile File = tokenize(Spelling);
+        const TokenizedBuffer File = tokenize(Spelling);
         ASSERT_TRUE(File.succeeded());
         ASSERT_EQ(File.tokens().size(), Spelling.size() + 1);
         for (std::size_t Index = 0; Index < Spelling.size(); ++Index)
@@ -116,9 +116,9 @@ namespace ink::tokenizer
     // Verifies that whitespace and comments preserve the boundaries between neighboring symbols.
     TEST(SymbolTokenTest, TriviaPreservesCompoundSymbolBoundaries)
     {
-      const LexedFile Adjacent = tokenize("a<=b");
-      const LexedFile Spaced = tokenize("a < = b");
-      const LexedFile Commented = tokenize("a < /*c*/ = b");
+      const TokenizedBuffer Adjacent = tokenize("a<=b");
+      const TokenizedBuffer Spaced = tokenize("a < = b");
+      const TokenizedBuffer Commented = tokenize("a < /*c*/ = b");
 
       ASSERT_TRUE(Adjacent.succeeded());
       ASSERT_EQ(Adjacent.tokens().size(), 5u);
@@ -147,8 +147,8 @@ namespace ink::tokenizer
     // Verifies that adjacent generic closing brackets and assignment remain separate symbol tokens.
     TEST(SymbolTokenTest, NestedGenericClosersRemainSeparateSymbols)
     {
-      const LexedFile Nested = tokenize("Vector<Vector<i32>>");
-      const LexedFile Assignment = tokenize("Container<Item<T>>=value");
+      const TokenizedBuffer Nested = tokenize("Vector<Vector<i32>>");
+      const TokenizedBuffer Assignment = tokenize("Container<Item<T>>=value");
 
       ASSERT_TRUE(Nested.succeeded());
       ASSERT_EQ(Nested.tokens().size(), 8u);
@@ -171,7 +171,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, NumericScannerOwnsOnlyDecimalPointFollowedByDigit)
     {
       const std::string Source = "1.member 1..10 0...value";
-      const LexedFile File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 15u);
@@ -194,7 +194,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, CommentDelimitersTakePriorityOverSlashSymbols)
     {
       const std::string Source = "//line\n/* block */ / / / * */";
-      const LexedFile File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 15u);
@@ -214,7 +214,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, LiteralDelimitersTakePriorityOverSymbolScanning)
     {
       const std::string Source = R"ink('/' "/" r"/*")ink";
-      const LexedFile File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 6u);
@@ -228,7 +228,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, SameSymbolPayloadIsIndependentOfSyntacticRole)
     {
       const std::string Source = "a*b value:T* *pointer a&b value:T& &value a<b Vector<i32>";
-      const LexedFile File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_TRUE(File.succeeded());
       std::vector<char> SymbolValues;
@@ -256,7 +256,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Sources)
       {
         SCOPED_TRACE(Source);
-        const LexedFile File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(Source);
         ASSERT_FALSE(File.succeeded());
         ASSERT_EQ(File.tokens().size(), 2u);
         expectToken(File, 0, TokenKind::InvalidCharacter, Source);
@@ -270,7 +270,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, RejectsNonIdentifierUnicodeCharacterAsOneErrorToken)
     {
       const std::string Emoji = "\xF0\x9F\x98\x80";
-      const LexedFile File = tokenize(Emoji);
+      const TokenizedBuffer File = tokenize(Emoji);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 2u);

@@ -70,8 +70,8 @@ class DynamicRef {
 安全构造入口只接受有效的普通 Ink 引用：
 
 ```ink
-const read_only = DynamicRef.from(&const_value);
-const writable = DynamicRef.from(&mutable_value);
+const read_only = DynamicRef.create(&const_value);
+const writable = DynamicRef.create(&mutable_value);
 ```
 
 从裸地址建立动态引用的底层入口必须要求调用者保证地址、对齐、类型、初始化状态、生命周期和可变性契约；违反契约属于普通原始指针 UB。常用反射 API 不使用该入口。
@@ -203,7 +203,7 @@ result: DynamicOut {
 
 ## 10. 对象布局与动态类型
 
-`[reflect]` 本身不改变对象布局。`DynamicRef.from(&value)` 由静态引用捕获类型身份和当前布局版本；对象中不需要存在隐藏 `TypeInfo*`。
+`[reflect]` 本身不改变对象布局。`DynamicRef.create(&value)` 由静态引用捕获类型身份和当前布局版本；对象中不需要存在隐藏 `TypeInfo*`。
 
 已经丢失类型信息的 `void*` 不能自动恢复成安全 `DynamicRef`。需要长期携带动态类型的 `AnyRef`、接口对象或插件句柄必须在其自身 ABI 中显式保存类型身份、布局版本和生命周期契约。
 

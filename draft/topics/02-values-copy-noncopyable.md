@@ -161,7 +161,7 @@ class Server {
 深复制使用普通的显式 `clone()` 函数：
 
 ```ink
-var first = String.from("hello");
+var first = String.create("hello");
 var second = first;         // 编译错误：String 不可复制
 var second = first.clone(); // 显式深复制
 ```

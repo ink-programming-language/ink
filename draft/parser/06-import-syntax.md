@@ -1,6 +1,6 @@
 # Parser 议题 06：Import 语法
 
-> 状态：已确认，议题 27 同步上下文 `from`；议题 39 明确 module 顶层绑定的显式访问前缀由名称绑定阶段解释
+> 状态：已确认，议题 27 同步 `from` 硬关键字；议题 39 明确 module 顶层绑定的显式访问前缀由名称绑定阶段解释
 > 确认日期：2026-08-03
 
 ## 1. 两种导入形式
@@ -16,7 +16,7 @@ module_import_declaration =
     "import", module_path, [ import_alias ], ";" ;
 
 member_import_declaration =
-    contextual_from, module_path, "import", imported_member,
+    "from", module_path, "import", imported_member,
     { ",", imported_member }, ";" ;
 
 import_alias = "as", identifier ;
@@ -37,9 +37,9 @@ relative_prefix =
     ? One or more directly adjacent Symbol('.') Tokens ? ;
 ```
 
-`identifier` 和 `contextual_from` 引用 Parser 议题 04 所定义的 Token 类别。`from` 由 Tokenizer 产生为 `Identifier("from")`，只在允许导入声明的 source-item 位置开始 `member_import_declaration`；`import`、`as` 等硬关键字以及路径分隔符、逗号和分号继续匹配 Tokenizer 产生的规范 TokenKind。
+`identifier` 引用 Parser 议题 04 所定义的 Token 类别。`from`、`import` 和 `as` 都是硬关键字，产生式中的终结字符串直接匹配 Tokenizer 产生的相应 Keyword Token；路径分隔符、逗号和分号继续匹配规范 Symbol Token。
 
-这一分派不需要回溯：module 顶层和条件导入体中允许 `import_declaration` 的位置若以 `Identifier("from")` 开始，就进入成员导入产生式；普通函数体中的同名变量、调用或成员访问仍按表达式语法处理。
+这一分派不需要回溯：module 顶层和条件导入体中允许 `import_declaration` 的位置若以 `Keyword(from)` 开始，就进入成员导入产生式。`from` 不能匹配 `identifier`，Parser 不在其他位置把它重新解释为变量、函数或成员名称。
 
 ## 2. 模块命名空间导入
 

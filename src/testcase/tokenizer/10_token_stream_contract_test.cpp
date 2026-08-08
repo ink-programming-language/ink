@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <limits>
 #include <random>
 #include <string>
 #include <string_view>
@@ -20,9 +21,9 @@ namespace ink::tokenizer
     using core::DiagnosticKind;
     using core::SourceRange;
 
-    static_assert(!std::is_default_constructible_v<LexedFile>);
+    static_assert(!std::is_default_constructible_v<TokenizedBuffer>);
 
-    void expectPartition(const LexedFile &File)
+    void expectPartition(const TokenizedBuffer &File)
     {
       ASSERT_FALSE(File.tokens().empty());
       std::size_t Cursor = 0;
@@ -50,7 +51,7 @@ namespace ink::tokenizer
       EXPECT_EQ(EofCount, 1u);
     }
 
-    void expectToken(const LexedFile &File, std::size_t Index, TokenKind Kind, std::string_view Raw, SourceRange Span)
+    void expectToken(const TokenizedBuffer &File, std::size_t Index, TokenKind Kind, std::string_view Raw, SourceRange Span)
     {
       ASSERT_LT(Index, File.tokens().size());
       EXPECT_EQ(File.tokens()[Index].Kind, Kind);
@@ -58,7 +59,7 @@ namespace ink::tokenizer
       EXPECT_EQ(File.tokens()[Index].Span, Span);
     }
 
-    bool hasDiagnostic(const LexedFile &File, DiagnosticKind Kind)
+    bool hasDiagnostic(const TokenizedBuffer &File, DiagnosticKind Kind)
     {
       return std::any_of(File.diagnostics().begin(), File.diagnostics().end(), [Kind](const Diagnostic &CurrentDiagnostic)
                          {
@@ -66,7 +67,7 @@ namespace ink::tokenizer
                          });
     }
 
-    std::vector<const Token *> syntaxTokens(const LexedFile &File)
+    std::vector<const Token *> syntaxTokens(const TokenizedBuffer &File)
     {
       std::vector<const Token *> Result;
       for (const Token &CurrentToken : File.tokens())
@@ -82,7 +83,7 @@ namespace ink::tokenizer
     // Verifies the sentinel-only token stream produced for an empty source buffer.
     TEST(TokenStreamContractTest, EmptySourceHasExactlyOneEofToken)
     {
-      const LexedFile File = tokenize("");
+      const TokenizedBuffer File = tokenize("");
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 1u);
@@ -98,7 +99,7 @@ namespace ink::tokenizer
     TEST(TokenStreamContractTest, MixedSourceIsAnExactContiguousBytePartition)
     {
       const std::string Source = "\xEF\xBB\xBFlet x = \"v\";\r\n//tail";
-      const LexedFile File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 12u);
@@ -117,16 +118,81 @@ namespace ink::tokenizer
       expectPartition(File);
     }
 
-    // Verifies that LexedFile retains ownership of temporary source storage used by raw views.
-    TEST(TokenStreamContractTest, LexedFileOwnsSourceUsedByRawViews)
+    // Verifies that TokenizedBuffer retains ownership of temporary source storage used by raw views.
+    TEST(TokenStreamContractTest, TokenizedBufferOwnsSourceUsedByRawViews)
     {
-      LexedFile File = tokenize(std::string("persistent identifier"));
+      TokenizedBuffer File = tokenize(std::string("persistent identifier"));
 
       ASSERT_TRUE(File.succeeded());
       EXPECT_EQ(File.source(), "persistent identifier");
       expectToken(File, 0, TokenKind::Identifier, "persistent", SourceRange{0, 10});
       expectToken(File, 2, TokenKind::Identifier, "identifier", SourceRange{11, 21});
       expectPartition(File);
+    }
+
+    // Verifies defensive raw-view handling for externally supplied tokens whose spans are not valid source slices.
+    TEST(TokenStreamContractTest, RawViewRejectsReversedAndOutOfBoundsExternalSpans)
+    {
+      const TokenizedBuffer File = tokenize("abc");
+      const Token Reversed{TokenKind::Identifier, SourceRange{2, 1}, {}};
+      const Token PastEnd{TokenKind::Identifier, SourceRange{1, 4}, {}};
+
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_TRUE(File.raw(Reversed).empty());
+      EXPECT_TRUE(File.raw(PastEnd).empty());
+      expectPartition(File);
+    }
+
+    // Verifies line lookup for empty input, trailing logical lines, CRLF byte positions, and offsets beyond end of file.
+    TEST(TokenStreamContractTest, LineLookupClampsOffsetsAndRetainsATrailingEmptyLine)
+    {
+      const TokenizedBuffer Empty = tokenize("");
+      const TokenizedBuffer File = tokenize("a\r\nb\n");
+
+      ASSERT_TRUE(Empty.succeeded());
+      EXPECT_EQ(Empty.lineStarts(), (std::vector<std::size_t>{0}));
+      EXPECT_EQ(Empty.lineNumber(std::numeric_limits<std::size_t>::max()), 1U);
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_EQ(File.lineStarts(), (std::vector<std::size_t>{0, 3, 5}));
+      EXPECT_EQ(File.lineNumber(1), 1U);
+      EXPECT_EQ(File.lineNumber(2), 1U);
+      EXPECT_EQ(File.lineNumber(3), 2U);
+      EXPECT_EQ(File.lineNumber(5), 3U);
+      EXPECT_EQ(File.lineNumber(std::numeric_limits<std::size_t>::max()), 3U);
+      expectPartition(File);
+    }
+
+    // Verifies that physical line starts remain queryable inside block comments and multiline string tokens.
+    TEST(TokenStreamContractTest, LineLookupIncludesBreaksInsideOpaqueMultilineTokens)
+    {
+      const std::string Source = "/* first\nsecond */\n\"\"\"\nbody\n\"\"\"";
+      const TokenizedBuffer File = tokenize(Source);
+
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_EQ(File.lineStarts(), (std::vector<std::size_t>{0, 9, 19, 23, 28}));
+      EXPECT_EQ(File.lineNumber(File.tokens()[0].Span.Start), 1U);
+      EXPECT_EQ(File.lineNumber(File.tokens()[0].Span.End - 1), 2U);
+      EXPECT_EQ(File.lineNumber(File.tokens()[2].Span.Start), 3U);
+      EXPECT_EQ(File.lineNumber(File.tokens()[2].Span.End - 1), 5U);
+      expectPartition(File);
+    }
+
+    // Verifies that one Tokenizer instance can be reused and preserves its configured comment-depth limit across calls.
+    TEST(TokenStreamContractTest, TokenizerInstanceIsReusableAndRetainsOptions)
+    {
+      const Tokenizer Scanner(TokenizerOptions{1});
+      const TokenizedBuffer First = Scanner.tokenize("let");
+      const TokenizedBuffer Limited = Scanner.tokenize("/* outer /* inner */ outer */");
+      const TokenizedBuffer Second = Scanner.tokenize("let");
+
+      ASSERT_TRUE(First.succeeded());
+      ASSERT_FALSE(Limited.succeeded());
+      ASSERT_TRUE(Second.succeeded());
+      EXPECT_EQ(First.tokens(), Second.tokens());
+      EXPECT_TRUE(hasDiagnostic(Limited, DiagnosticKind::BlockCommentNestingLimit));
+      expectPartition(First);
+      expectPartition(Limited);
+      expectPartition(Second);
     }
 
     // Verifies exhaustive, disjoint trivia and error classification for every token kind.
@@ -185,11 +251,48 @@ namespace ink::tokenizer
       }
     }
 
+    // Verifies the stable public name returned for every token kind and for an out-of-range defensive value.
+    TEST(TokenStreamContractTest, TokenKindNamesMatchEveryPublicEnumerationValue)
+    {
+      const std::array<std::pair<TokenKind, const char *>, 23> Cases = {
+          std::pair{TokenKind::Utf8Bom, "Utf8Bom"},
+          std::pair{TokenKind::SpacesAndTabs, "SpacesAndTabs"},
+          std::pair{TokenKind::LineBreak, "LineBreak"},
+          std::pair{TokenKind::LineComment, "LineComment"},
+          std::pair{TokenKind::BlockComment, "BlockComment"},
+          std::pair{TokenKind::Identifier, "Identifier"},
+          std::pair{TokenKind::Keyword, "Keyword"},
+          std::pair{TokenKind::BuiltinType, "BuiltinType"},
+          std::pair{TokenKind::BoolLiteral, "BoolLiteral"},
+          std::pair{TokenKind::NullLiteral, "NullLiteral"},
+          std::pair{TokenKind::IntegerLiteral, "IntegerLiteral"},
+          std::pair{TokenKind::FloatLiteral, "FloatLiteral"},
+          std::pair{TokenKind::ScalarLiteral, "ScalarLiteral"},
+          std::pair{TokenKind::StringLiteral, "StringLiteral"},
+          std::pair{TokenKind::Symbol, "Symbol"},
+          std::pair{TokenKind::InvalidEncoding, "InvalidEncoding"},
+          std::pair{TokenKind::InvalidCharacter, "InvalidCharacter"},
+          std::pair{TokenKind::InvalidIdentifier, "InvalidIdentifier"},
+          std::pair{TokenKind::InvalidNumber, "InvalidNumber"},
+          std::pair{TokenKind::InvalidScalarLiteral, "InvalidScalarLiteral"},
+          std::pair{TokenKind::InvalidStringLiteral, "InvalidStringLiteral"},
+          std::pair{TokenKind::UnterminatedBlockComment, "UnterminatedBlockComment"},
+          std::pair{TokenKind::EndOfFile, "EndOfFile"},
+      };
+
+      for (const auto &TestCase : Cases)
+      {
+        SCOPED_TRACE(TestCase.second);
+        EXPECT_STREQ(tokenKindName(TestCase.first), TestCase.second);
+      }
+      EXPECT_STREQ(tokenKindName(static_cast<TokenKind>(-1)), "Unknown");
+    }
+
     // Verifies that each syntax token's typed payload agrees with its raw lexical spelling.
     TEST(TokenStreamContractTest, DerivedPayloadsMatchTheirRawTokens)
     {
       const std::string Source = "let i32 true false null 0xFFu8 1.5f32 'A' \"x\" +";
-      const LexedFile File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(Source);
       const std::vector<const Token *> Tokens = syntaxTokens(File);
 
       ASSERT_TRUE(File.succeeded());
@@ -237,7 +340,7 @@ namespace ink::tokenizer
       for (const auto &TestCase : Cases)
       {
         SCOPED_TRACE(TestCase.first);
-        const LexedFile File = tokenize(TestCase.first);
+        const TokenizedBuffer File = tokenize(TestCase.first);
         ASSERT_FALSE(File.succeeded());
         ASSERT_FALSE(File.diagnostics().empty());
         ASSERT_GE(File.tokens().size(), 2u);
@@ -253,7 +356,7 @@ namespace ink::tokenizer
     {
       std::string Source(1, static_cast<char>(0x80));
       Source += "let";
-      const LexedFile File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 3u);
@@ -270,7 +373,7 @@ namespace ink::tokenizer
       Source.push_back(static_cast<char>(0xE2));
       Source.push_back(static_cast<char>(0x82));
       Source += "x";
-      const LexedFile File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 3u);
@@ -283,7 +386,7 @@ namespace ink::tokenizer
     // Verifies that an invalid character between identifiers does not prevent scanning the suffix.
     TEST(TokenStreamContractTest, InvalidCharacterBetweenIdentifiersDoesNotPreventRecovery)
     {
-      const LexedFile File = tokenize("before?after");
+      const TokenizedBuffer File = tokenize("before?after");
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 4u);
@@ -297,7 +400,7 @@ namespace ink::tokenizer
     TEST(TokenStreamContractTest, ScannerAlwaysAdvancesAcrossRepeatedInvalidInput)
     {
       const std::string Source = "????$$$$####````\\\\";
-      const LexedFile File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_GE(File.tokens().size(), 2u);
@@ -327,7 +430,7 @@ namespace ink::tokenizer
           Value = static_cast<char>(ByteDistribution(Generator));
         }
         SCOPED_TRACE(CaseIndex);
-        const LexedFile File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(Source);
         ASSERT_LE(File.tokens().size(), Source.size() + 1);
         expectPartition(File);
       }
@@ -337,7 +440,7 @@ namespace ink::tokenizer
     TEST(TokenStreamContractTest, DiagnosticsUseSourceByteSpans)
     {
       const std::string Source = "ok ? 0x \"unterminated";
-      const LexedFile File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_FALSE(File.diagnostics().empty());
@@ -349,27 +452,24 @@ namespace ink::tokenizer
       expectPartition(File);
     }
 
-    // Verifies that repeated tokenization produces identical kinds, spans, payload alternatives, and diagnostics.
+    // Verifies that repeated tokenization produces identical complete tokens, raw slices, and diagnostics.
     TEST(TokenStreamContractTest, RepeatedTokenizationIsDeterministic)
     {
       const std::string Source = "let value: i32 = 0xFFu8; // comment\r\n\"text\\n\"";
-      const LexedFile First = tokenize(Source);
-      const LexedFile Second = tokenize(Source);
+      const TokenizedBuffer First = tokenize(Source);
+      const TokenizedBuffer Second = tokenize(Source);
 
       ASSERT_EQ(First.succeeded(), Second.succeeded());
       ASSERT_EQ(First.tokens().size(), Second.tokens().size());
       ASSERT_EQ(First.diagnostics().size(), Second.diagnostics().size());
       for (std::size_t Index = 0; Index < First.tokens().size(); ++Index)
       {
-        EXPECT_EQ(First.tokens()[Index].Kind, Second.tokens()[Index].Kind);
-        EXPECT_EQ(First.tokens()[Index].Span, Second.tokens()[Index].Span);
+        EXPECT_EQ(First.tokens()[Index], Second.tokens()[Index]);
         EXPECT_EQ(First.raw(First.tokens()[Index]), Second.raw(Second.tokens()[Index]));
-        EXPECT_EQ(First.tokens()[Index].Payload.index(), Second.tokens()[Index].Payload.index());
       }
       for (std::size_t Index = 0; Index < First.diagnostics().size(); ++Index)
       {
-        EXPECT_EQ(First.diagnostics()[Index].Kind, Second.diagnostics()[Index].Kind);
-        EXPECT_EQ(First.diagnostics()[Index].Span, Second.diagnostics()[Index].Span);
+        EXPECT_EQ(First.diagnostics()[Index], Second.diagnostics()[Index]);
       }
       expectPartition(First);
       expectPartition(Second);
@@ -391,7 +491,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Sources)
       {
         SCOPED_TRACE(Source);
-        const LexedFile File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(Source);
         EXPECT_TRUE(File.succeeded());
         EXPECT_TRUE(File.diagnostics().empty());
         EXPECT_TRUE(std::none_of(File.tokens().begin(), File.tokens().end(), [](const Token &CurrentToken)
@@ -408,7 +508,7 @@ namespace ink::tokenizer
       const std::string Source = "/* outer /* inner */ outer */ after";
       TokenizerOptions Options;
       Options.MaxBlockCommentDepth = 1;
-      const LexedFile File = tokenize(Source, Options);
+      const TokenizedBuffer File = tokenize(Source, Options);
 
       ASSERT_FALSE(File.succeeded());
       EXPECT_TRUE(hasDiagnostic(File, DiagnosticKind::BlockCommentNestingLimit));

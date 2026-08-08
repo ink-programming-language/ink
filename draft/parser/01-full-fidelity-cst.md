@@ -10,7 +10,7 @@ Parser 消费 Tokenizer 产生的 full-fidelity Token 流，首先生成无损�
 ```text
 SourceText
     ↓
-Success(LexedFile { source, tokens })
+Success(TokenizedBuffer { source, tokens })
     ↓ Parser
 ParsedFile { lexed_file, cst }
     ↓ CST lowering
@@ -55,7 +55,7 @@ CstElement =
 
 `Node` 表示嵌套语法结构；`Token` 表示一个真实的 Tokenizer Token；`Missing` 表示 Parser 为错误恢复合成的零宽度 Token。
 
-`TokenRef` 在逻辑上引用当前 `LexedFile.tokens` 中的 Token。CST 不复制原始源码字符串。具体实现可以采用 arena、不可变 green tree 或其他等价表示，但对外必须保持本议题定义的语义。
+`TokenRef` 在逻辑上引用当前 `TokenizedBuffer.tokens` 中的 Token。CST 不复制原始源码字符串。具体实现可以采用 arena、不可变 green tree 或其他等价表示，但对外必须保持本议题定义的语义。
 
 ## 3. 节点种类
 
@@ -83,10 +83,10 @@ Error
 一个有效 CST 必须满足：
 
 1. 成功词法结果中的每个真实 Token，包括 BOM、Whitespace、Comment 和 EOF，都在根节点下准确出现一次；
-2. 真实 Token 叶节点的深度优先遍历顺序与 `LexedFile.tokens` 顺序完全一致；
+2. 真实 Token 叶节点的深度优先遍历顺序与 `TokenizedBuffer.tokens` 顺序完全一致；
 3. 真实 Token 不被 Parser 拆分、合并、复制或重写；
 4. CST 节点只能覆盖连续的 Token 区间；
-5. `MissingToken` 没有对应源码字节，不属于 `LexedFile.tokens`；
+5. `MissingToken` 没有对应源码字节，不属于 `TokenizedBuffer.tokens`；
 6. 忽略 EOF 和 `MissingToken` 后，依次拼接所有真实 Token 的 `raw`，必须逐字节恢复原始源文件。
 
 因此 Token 列表负责保存源码，CST 负责在不破坏源码顺序的前提下增加语法关系。
@@ -155,7 +155,7 @@ BinaryExpression {
 }
 ```
 
-AST 不负责恢复原始源码；需要原始格式、注释或精确 Token 位置的功能必须使用 CST 和 `LexedFile`。
+AST 不负责恢复原始源码；需要原始格式、注释或精确 Token 位置的功能必须使用 CST 和 `TokenizedBuffer`。
 
 ## 8. 必须支持的工具能力
 

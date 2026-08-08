@@ -1,6 +1,6 @@
 # Parser 议题 07：逗号分隔列表
 
-> 状态：已确认，议题 24 补充 `match_expression` 分支结束逗号；议题 27 同步上下文 `from`；议题 29 补充列表展开；2026-08-05 确认枚举分支继续禁止尾随逗号
+> 状态：已确认，议题 24 补充 `match_expression` 分支结束逗号；议题 27 同步 `from` 硬关键字；议题 29 补充列表展开；2026-08-05 确认枚举分支继续禁止尾随逗号
 > 确认日期：2026-08-03
 
 ## 1. 普通列表规则
@@ -104,11 +104,11 @@ enum Color {
 
 ```ebnf
 member_import_declaration =
-    contextual_from, module_path, "import", imported_member,
+    "from", module_path, "import", imported_member,
     { ",", imported_member }, ";" ;
 ```
 
-`contextual_from` 是 Parser 议题 04 定义的准确拼写为 `from` 的 Identifier Token；它不改变本节的逗号列表规则。
+`"from"` 直接匹配硬关键字 Token；它不改变本节的逗号列表规则。
 
 单行和多行均可：
 

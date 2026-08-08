@@ -191,7 +191,7 @@ Attribute 只能附着整个函数声明；decorator 继续只应用于整个函
 
 ## 4. 函数修饰符
 
-Tokenizer 议题 04 把访问修饰符、`extern`、`static`、`virtual`、`override`、`final`、`async` 和 `implicit` 都产生为硬关键字。Parser 在 `func` 之前按源码顺序重复收集 `function_modifier`：
+Tokenizer 议题 04 把 `public`、`protected`、`private`、`extern`、`static`、`virtual`、`override`、`final`、`async` 和 `implicit` 都产生为硬关键字。Parser 在 `func` 之前按源码顺序重复收集 `function_modifier`：
 
 ```ink
 public async func read() -> Data;
@@ -233,7 +233,7 @@ func
 
 ## 5. 函数名称与生命周期候选
 
-普通名称是一个 Identifier Token；析构形状是两个独立 Token：
+`constructor` 和 `destructor` 都不是关键字。普通名称是一个 Identifier Token；析构形状是两个独立 Token：
 
 ```ink
 func calculate() {}

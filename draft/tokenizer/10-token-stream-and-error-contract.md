@@ -3,14 +3,14 @@
 > 状态：已确认  
 > 确认日期：2026-08-03
 
-## 1. LexedFile
+## 1. TokenizedBuffer
 
 Tokenizer 对每个独立源文件产生：
 
 ```text
-LexResult = Success(LexedFile) | Failure(LexedFile)
+TokenizationResult = Success(TokenizedBuffer) | Failure(TokenizedBuffer)
 
-LexedFile {
+TokenizedBuffer {
     source: SourceText
     tokens: Token[]
 }
@@ -18,7 +18,7 @@ LexedFile {
 
 `source` 持有不可变原始字节；`tokens` 是议题 02 确定的 full-fidelity 单一 Token 列表。成功与失败结果都保留完整 Token 分区；错误诊断的公共模型与具体数据结构将在独立的 diagnostics draft 中讨论。
 
-Tokenizer 不读取 `import` 指向的文件，不执行宏展开、条件编译、名称绑定或类型检查。每个物理源文件独立产生一个 `LexedFile`。
+Tokenizer 不读取 `import` 指向的文件，不执行宏展开、条件编译、名称绑定或类型检查。每个物理源文件独立产生一个 `TokenizedBuffer`。
 
 ## 2. Token 基本结构
 
@@ -38,7 +38,7 @@ Token {
 token.raw = source.bytes[token.span]
 ```
 
-`raw` 可以按需构造为对 `SourceText` 的借用切片，不要求每个 Token 复制一份字符串；`LexedFile` 必须保证 source buffer 在所有 Token 被使用期间有效。
+`raw` 可以按需构造为对 `SourceText` 的借用切片，不要求每个 Token 复制一份字符串；`TokenizedBuffer` 必须保证 source buffer 在所有 Token 被使用期间有效。
 
 ## 3. 源码字节连续分区
 
@@ -169,11 +169,11 @@ UnterminatedBlockComment
 
 ## 10. Parser 视图
 
-Parser 只接收 `Success(LexedFile)` 的完整 Token 列表，并可以建立跳过 `is_trivia` Token 的游标或索引，但不得删除底层 Token。
+Parser 只接收 `Success(TokenizedBuffer)` 的完整 Token 列表，并可以建立跳过 `is_trivia` Token 的游标或索引，但不得删除底层 Token。
 
 由于议题 09 把每个符号保存成一个 `Symbol(character)`，Parser 识别 `<=`、`...`、`->` 等连续序列时必须检查原始 Token 邻接，不能跨 Trivia 组合。
 
-`Failure(LexedFile)` 保留错误 Token 用于源码还原和工具展示，但不进入 Parser。Parser 的错误恢复只处理词法有效 Token 组成的语法错误。
+`Failure(TokenizedBuffer)` 保留错误 Token 用于源码还原和工具展示，但不进入 Parser。Parser 的错误恢复只处理词法有效 Token 组成的语法错误。
 
 ## 11. 确定性
 

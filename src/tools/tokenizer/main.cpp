@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     return 2;
   }
 
-  const ink::tokenizer::LexedFile Result = ink::tokenizer::tokenize(std::move(Source));
+  const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenize(std::move(Source));
   for (const ink::tokenizer::Token &Token : Result.tokens())
   {
     std::cout << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";

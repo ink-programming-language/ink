@@ -33,10 +33,10 @@ throw_statement =
     | expression, [ throw_cause_clause ], ";" ) ;
 
 throw_cause_clause =
-    contextual_from, identifier ;
+    "from", identifier ;
 ```
 
-这些产生式确认分号规则；议题 18 进一步规定表达式语句允许丢弃非 `void` 结果，并以分号作为未消费临时结果的销毁边界。议题 25 确认 `break;` 与 `continue;` 不接受值或标签，并只作用于最内层普通循环。议题 26 确认 `return` 的可选结果表达式，以及表达式和 block 两种 `defer`。议题 27 确认新异常、显式原因和 `throw;` 重新抛出都由真实分号结束；其中 `contextual_from` 是准确拼写为 `from` 的 Identifier Token。
+这些产生式确认分号规则；议题 18 进一步规定表达式语句允许丢弃非 `void` 结果，并以分号作为未消费临时结果的销毁边界。议题 25 确认 `break;` 与 `continue;` 不接受值或标签，并只作用于最内层普通循环。议题 26 确认 `return` 的可选结果表达式，以及表达式和 block 两种 `defer`。议题 27 确认新异常、显式原因和 `throw;` 重新抛出都由真实分号结束；其中 `"from"` 直接匹配硬关键字 Token。
 
 ## 2. 换行没有终止作用
 

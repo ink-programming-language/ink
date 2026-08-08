@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <new>
+#include <stdexcept>
 
 #include <UnicodeCharSets.h>
 #include <utf8proc.h>
@@ -140,9 +142,22 @@ namespace ink::tokenizer::unicode
     {
       return true;
     }
+    bool IsAscii = true;
+    for (const char Character : Source)
+    {
+      if (static_cast<unsigned char>(Character) > 0x7F)
+      {
+        IsAscii = false;
+        break;
+      }
+    }
+    if (IsAscii)
+    {
+      return true;
+    }
     if (Source.size() > static_cast<std::size_t>(std::numeric_limits<utf8proc_ssize_t>::max()))
     {
-      return false;
+      throw std::length_error("UTF-8 input is too large for utf8proc NFC normalization");
     }
 
     utf8proc_uint8_t *NormalizedData = nullptr;
@@ -151,7 +166,15 @@ namespace ink::tokenizer::unicode
     if (NormalizedLength < 0)
     {
       std::free(NormalizedData);
-      return false;
+      if (NormalizedLength == UTF8PROC_ERROR_NOMEM)
+      {
+        throw std::bad_alloc();
+      }
+      if (NormalizedLength == UTF8PROC_ERROR_OVERFLOW)
+      {
+        throw std::length_error("utf8proc NFC normalization overflowed its supported output length");
+      }
+      throw std::runtime_error(utf8proc_errmsg(NormalizedLength));
     }
 
     const std::string_view Normalized(reinterpret_cast<const char *>(NormalizedData), static_cast<std::size_t>(NormalizedLength));

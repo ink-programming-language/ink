@@ -1,5 +1,7 @@
 #include "ink/tokenizer/tokenizer.h"
 
+#include "utf8_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <string>
@@ -70,7 +72,7 @@ namespace ink::tokenizer
       for (const KeywordCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const LexedFile Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -102,7 +104,7 @@ namespace ink::tokenizer
       for (const LiteralCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const LexedFile Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -150,7 +152,7 @@ namespace ink::tokenizer
       for (const BuiltinTypeCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const LexedFile Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -180,20 +182,24 @@ namespace ink::tokenizer
           "try_cast",
           "reflect",
           "function",
+          "operator",
           "String",
           "UnicodeScalar",
           "f128",
           "u256",
+          utf8(u8"func\u7528\u6237"),
+          utf8(u8"i32\u53D8\u91CF"),
       };
 
       for (const std::string &Spelling : Spellings)
       {
         SCOPED_TRACE(Spelling);
-        const LexedFile Result = tokenize(Spelling);
+        const TokenizedBuffer Result = tokenize(Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
         EXPECT_EQ(Token.Kind, TokenKind::Identifier);
+        EXPECT_EQ(Token.Span, (SourceRange{0, Spelling.size()}));
         EXPECT_EQ(Result.raw(Token), Spelling);
         EXPECT_TRUE(std::holds_alternative<std::monostate>(Token.Payload));
       }
@@ -202,7 +208,7 @@ namespace ink::tokenizer
     // Verifies that surrounding punctuation and trivia do not alter keyword classification.
     TEST(KeywordsAndBuiltinTypesTest, ClassificationDoesNotDependOnSurroundingSyntax)
     {
-      const LexedFile Result = tokenize("func func: func");
+      const TokenizedBuffer Result = tokenize("func func: func");
       ASSERT_TRUE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 7U);
       EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::Keyword);

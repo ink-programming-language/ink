@@ -31,7 +31,7 @@ namespace ink::tokenizer
       DiagnosticKind Diagnostic;
     };
 
-    bool hasDiagnostic(const LexedFile &Result, DiagnosticKind Kind)
+    bool hasDiagnostic(const TokenizedBuffer &Result, DiagnosticKind Kind)
     {
       return std::any_of(Result.diagnostics().begin(), Result.diagnostics().end(), [Kind](const Diagnostic &Diagnostic)
                          {
@@ -39,7 +39,7 @@ namespace ink::tokenizer
                          });
     }
 
-    std::vector<const Token *> syntaxTokens(const LexedFile &Result)
+    std::vector<const Token *> syntaxTokens(const TokenizedBuffer &Result)
     {
       std::vector<const Token *> Tokens;
       for (const Token &Token : Result.tokens())
@@ -72,7 +72,7 @@ namespace ink::tokenizer
       for (const ValidNumericCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const LexedFile Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -110,7 +110,7 @@ namespace ink::tokenizer
       for (const ValidNumericCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const LexedFile Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -144,7 +144,7 @@ namespace ink::tokenizer
       for (const ValidNumericCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const LexedFile Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -159,7 +159,7 @@ namespace ink::tokenizer
     // Verifies that hexadecimal digits take precedence over suffix-like trailing text.
     TEST(NumericLiteralsTest, UsesTheLongestHexDigitSequenceBeforeConsideringSuffixes)
     {
-      const LexedFile Result = tokenize("0x10f32");
+      const TokenizedBuffer Result = tokenize("0x10f32");
       ASSERT_TRUE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 2U);
       const Token &Token = Result.tokens().front();
@@ -173,7 +173,7 @@ namespace ink::tokenizer
     // Verifies that signs and incomplete decimal points remain separate syntax tokens.
     TEST(NumericLiteralsTest, KeepsLeadingSignsAndIncompleteDecimalPointsInSeparateTokens)
     {
-      const LexedFile Result = tokenize("-128i8 +10 .5 1. 1.member 1..10");
+      const TokenizedBuffer Result = tokenize("-128i8 +10 .5 1. 1.member 1..10");
       ASSERT_TRUE(Result.succeeded());
       const std::vector<const Token *> Tokens = syntaxTokens(Result);
       ASSERT_EQ(Tokens.size(), 15U);
@@ -213,7 +213,7 @@ namespace ink::tokenizer
     TEST(NumericLiteralsTest, PreservesArbitrarilyLongCoefficientsWithoutHostOverflow)
     {
       const std::string Spelling = "1234567890123456789012345678901234567890123456789012345678901234567890";
-      const LexedFile Result = tokenize(Spelling);
+      const TokenizedBuffer Result = tokenize(Spelling);
       ASSERT_TRUE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 2U);
       EXPECT_EQ(Result.tokens().front().Kind, TokenKind::IntegerLiteral);
@@ -247,14 +247,18 @@ namespace ink::tokenizer
           {utf8(u8"10\u7528\u6237"), DiagnosticKind::UnknownNumericSuffix},
           {"1.0i32", DiagnosticKind::InvalidNumericSuffix},
           {"1e3u8", DiagnosticKind::InvalidNumericSuffix},
+          {"0b1f32", DiagnosticKind::InvalidNumericSuffix},
+          {"0o7f64", DiagnosticKind::InvalidNumericSuffix},
           {"0b1.0", DiagnosticKind::UnsupportedNonDecimalFloat},
           {"0xA.F", DiagnosticKind::UnsupportedNonDecimalFloat},
+          {"0b1e2", DiagnosticKind::UnsupportedNonDecimalFloat},
+          {"0x1p4", DiagnosticKind::UnsupportedNonDecimalFloat},
       };
 
       for (const InvalidNumericCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const LexedFile Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(Test.Spelling);
         ASSERT_FALSE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -263,6 +267,70 @@ namespace ink::tokenizer
         EXPECT_EQ(Result.raw(Token), Test.Spelling);
         EXPECT_TRUE(hasDiagnostic(Result, Test.Diagnostic));
         EXPECT_EQ(Result.tokens().back().Kind, TokenKind::EndOfFile);
+      }
+    }
+
+    // Verifies exact recovery across malformed numbers followed by a delimiter, trivia, and a valid type token.
+    TEST(NumericLiteralsTest, RecoversAfterMalformedNumbersAtDelimiterAndTriviaBoundaries)
+    {
+      const std::string Source = "0b1f32, 0x1p4 i32";
+      const TokenizedBuffer Result = tokenize(Source);
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.tokens().size(), 7U);
+      EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::InvalidNumber);
+      EXPECT_EQ(Result.tokens()[0].Span, (SourceRange{0, 6}));
+      EXPECT_EQ(Result.raw(Result.tokens()[0]), "0b1f32");
+      EXPECT_EQ(Result.tokens()[1].Kind, TokenKind::Symbol);
+      EXPECT_EQ(Result.tokens()[1].Span, (SourceRange{6, 7}));
+      EXPECT_EQ(Result.raw(Result.tokens()[1]), ",");
+      ASSERT_TRUE(std::holds_alternative<char>(Result.tokens()[1].Payload));
+      EXPECT_EQ(std::get<char>(Result.tokens()[1].Payload), ',');
+      EXPECT_EQ(Result.tokens()[2].Kind, TokenKind::SpacesAndTabs);
+      EXPECT_EQ(Result.tokens()[2].Span, (SourceRange{7, 8}));
+      EXPECT_EQ(Result.raw(Result.tokens()[2]), " ");
+      EXPECT_EQ(Result.tokens()[3].Kind, TokenKind::InvalidNumber);
+      EXPECT_EQ(Result.tokens()[3].Span, (SourceRange{8, 13}));
+      EXPECT_EQ(Result.raw(Result.tokens()[3]), "0x1p4");
+      EXPECT_EQ(Result.tokens()[4].Kind, TokenKind::SpacesAndTabs);
+      EXPECT_EQ(Result.tokens()[4].Span, (SourceRange{13, 14}));
+      EXPECT_EQ(Result.raw(Result.tokens()[4]), " ");
+      EXPECT_EQ(Result.tokens()[5].Kind, TokenKind::BuiltinType);
+      EXPECT_EQ(Result.tokens()[5].Span, (SourceRange{14, 17}));
+      EXPECT_EQ(Result.raw(Result.tokens()[5]), "i32");
+      ASSERT_TRUE(std::holds_alternative<BuiltinTypeKind>(Result.tokens()[5].Payload));
+      EXPECT_EQ(std::get<BuiltinTypeKind>(Result.tokens()[5].Payload), BuiltinTypeKind::I32);
+      EXPECT_EQ(Result.tokens()[6].Kind, TokenKind::EndOfFile);
+      EXPECT_EQ(Result.tokens()[6].Span, (SourceRange{17, 17}));
+      EXPECT_EQ(Result.raw(Result.tokens()[6]), "");
+
+      const std::vector<Diagnostic> ExpectedDiagnostics = {
+          {DiagnosticKind::InvalidNumericSuffix, {3, 6}, "numeric suffix is not valid for this literal"},
+          {DiagnosticKind::UnsupportedNonDecimalFloat, {11, 13}, "non-decimal floating-point literals are not supported"},
+      };
+      EXPECT_EQ(Result.diagnostics(), ExpectedDiagnostics);
+    }
+
+    // Verifies that malformed base digits and exponent tails report only their primary numeric diagnostic.
+    TEST(NumericLiteralsTest, ReportsOnlyThePrimaryDiagnosticForMalformedNumericCandidates)
+    {
+      const std::vector<InvalidNumericCase> Cases = {
+          {"0b2", DiagnosticKind::DigitOutOfRange},
+          {"0o8", DiagnosticKind::DigitOutOfRange},
+          {"0xG", DiagnosticKind::MissingBaseDigits},
+          {"1efoo", DiagnosticKind::MissingExponentDigits},
+      };
+
+      for (const InvalidNumericCase &Test : Cases)
+      {
+        SCOPED_TRACE(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        ASSERT_FALSE(Result.succeeded());
+        ASSERT_EQ(Result.tokens().size(), 2U);
+        EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidNumber);
+        EXPECT_EQ(Result.raw(Result.tokens().front()), Test.Spelling);
+        ASSERT_EQ(Result.diagnostics().size(), 1U);
+        EXPECT_EQ(Result.diagnostics().front().Kind, Test.Diagnostic);
       }
     }
 
@@ -278,7 +346,7 @@ namespace ink::tokenizer
       for (const std::string &Spelling : Spellings)
       {
         SCOPED_TRACE(Spelling);
-        const LexedFile Result = tokenize(Spelling);
+        const TokenizedBuffer Result = tokenize(Spelling);
         ASSERT_FALSE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidNumber);
@@ -290,20 +358,20 @@ namespace ink::tokenizer
     TEST(NumericLiteralsTest, RejectsInvisibleCharactersInsideNumericSuffixCandidates)
     {
       const std::string Source = utf8(u8"1a\u200Cb");
-      const LexedFile Result = tokenize(Source);
+      const TokenizedBuffer Result = tokenize(Source);
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 2U);
       EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidNumber);
       EXPECT_EQ(Result.raw(Result.tokens().front()), Source);
-      EXPECT_TRUE(hasDiagnostic(Result, DiagnosticKind::UnknownNumericSuffix));
-      EXPECT_TRUE(hasDiagnostic(Result, DiagnosticKind::InvisibleCharacter));
+      ASSERT_EQ(Result.diagnostics().size(), 1U);
+      EXPECT_EQ(Result.diagnostics().front().Kind, DiagnosticKind::InvisibleCharacter);
     }
 
     // Verifies that trivia prevents a following built-in type from becoming a numeric suffix.
     TEST(NumericLiteralsTest, TriviaSeparatesATypeNameFromTheLiteralSuffixCandidate)
     {
-      const LexedFile Result = tokenize("10 i32");
+      const TokenizedBuffer Result = tokenize("10 i32");
       ASSERT_TRUE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 4U);
       EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::IntegerLiteral);

@@ -1,6 +1,6 @@
 # Parser 议题 04：标准 EBNF 记法
 
-> 状态：已确认，非终结符统一使用 `snake_case`；议题 27 补充上下文 Token 拼写
+> 状态：已确认，非终结符统一使用 `snake_case`；议题 27 同步 `from` 硬关键字的终结字符串记法
 > 确认日期：2026-08-03
 
 ## 1. 采用标准
@@ -107,14 +107,9 @@ Identifier、字面量等开放集合通过标准 special sequence 引用 Tokeni
 identifier = ? Identifier Token ? ;
 integer_literal = ? IntegerLiteral Token ? ;
 string_literal = ? StringLiteral Token ? ;
-
-contextual_from =
-    ? Identifier Token whose spelling is exactly "from" ? ;
 ```
 
 special sequence 中的文字是对 Tokenizer 议题的引用，不是 Ink 源码，也不创建新的 TokenKind。
-
-`contextual_from` 是 Ink v0 唯一按 Identifier 拼写识别的上下文词。它只用于议题 06 的成员导入开头和议题 27 的异常原因子句；其他位置的同一 Token 仍是普通 `identifier`。上下文匹配不会修改 TokenKind，CST 继续保存原始 Identifier Token。
 
 EOF 可以定义为：
 
@@ -152,4 +147,4 @@ identifier = ? Identifier Token ? ;
 
 ## 8. 确认结论
 
-Ink Parser 的正式语法统一使用 ISO/IEC 14977 风格的标准 EBNF。所有非终结符使用不含空格的 `snake_case` 名称。可选、重复、分组、连接和分支使用标准记号；终结字符串表示具有规范 TokenKind 的准确源码拼写，多字符终结字符串要求底层 Symbol Token 直接相邻；开放 Token 类别和唯一的上下文 Identifier 拼写使用标准 special sequence 引用 Tokenizer 定义。
+Ink Parser 的正式语法统一使用 ISO/IEC 14977 风格的标准 EBNF。所有非终结符使用不含空格的 `snake_case` 名称。可选、重复、分组、连接和分支使用标准记号；终结字符串表示具有规范 TokenKind 的准确源码拼写，多字符终结字符串要求底层 Symbol Token 直接相邻；开放 Token 类别使用标准 special sequence 引用 Tokenizer 定义。

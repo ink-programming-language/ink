@@ -59,7 +59,7 @@ module_import_declaration =
     "import", module_path, [ import_alias ], ";" ;
 
 member_import_declaration =
-    contextual_from, module_path, "import", imported_member,
+    "from", module_path, "import", imported_member,
     { ",", imported_member }, ";" ;
 
 import_alias =
@@ -542,7 +542,7 @@ throw_statement =
     | expression, [ throw_cause_clause ], ";" ) ;
 
 throw_cause_clause =
-    contextual_from, identifier ;
+    "from", identifier ;
 
 try_statement =
     "try", statement_block, catch_sequence ;
@@ -898,9 +898,6 @@ builtin_type =
 
 tuple_position_selector =
     ? Unsuffixed decimal IntegerLiteral Token ? ;
-
-contextual_from =
-    ? Identifier Token whose spelling is exactly "from" ? ;
 
 relative_prefix =
     ? One or more directly adjacent Symbol('.') Tokens ? ;

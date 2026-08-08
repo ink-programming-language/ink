@@ -14,13 +14,10 @@ throw_statement =
     | expression, [ throw_cause_clause ], ";" ) ;
 
 throw_cause_clause =
-    contextual_from, identifier ;
-
-contextual_from =
-    ? Identifier Token whose spelling is exactly "from" ? ;
+    "from", identifier ;
 ```
 
-`throw` 是硬关键字。`from` 不是硬关键字；Tokenizer 始终把该拼写产生为 `Identifier("from")`，Parser 只在本议题规定的原因子句位置把它解释为 `contextual_from`。议题 06 的成员导入开头是另一个已经确认的上下文位置。
+`throw` 和 `from` 都是硬关键字。产生式中的 `"from"` 直接匹配 `Keyword(from)`；Parser 不按 Identifier 拼写建立上下文词，也不重新分类 Token。
 
 `expression` 使用已经确认的完整表达式文法，`identifier` 表示任意普通 Identifier Token。三种 `throw_statement` 都以真实分号结束，换行与注释仍然只是 Trivia。
 
@@ -55,7 +52,7 @@ try {
 }
 ```
 
-`throw expression;`、`throw expression from identifier;` 和 `throw;` 是同一个语句节点的三种语法形状，不引入三种不同的关键字。
+`throw expression;`、`throw expression from identifier;` 和 `throw;` 是同一个语句节点的三种语法形状；三者共享 `throw`，原因形态额外使用硬关键字 `from`。
 
 ## 3. `throw expression;` 创建新异常
 
@@ -107,32 +104,23 @@ catch {
 
 新异常表达式成功建立载荷后，运行时才把当前异常记录提交为新记录的 `cause`，然后开始传播；不会复制或移动原异常载荷。精确记录所有权继续由议题 36 和 40 规定。
 
-## 5. 上下文 `from` 的确定性边界
+## 5. 硬关键字 `from` 的确定性边界
 
-`from` 在 Token 流中始终是普通 Identifier，因此以下用法保持合法：
+`from` 在 Token 流中始终是 Keyword Token，不能匹配普通 `identifier`。因此以下把它用作绑定名、操作数或成员名的形式都是语法错误：
 
 ```ink
-const from = fallback_error;
-const text = String.from("hello");
-throw from;
+const from = fallback_error;       // 非法：绑定名必须是 identifier
+throw wrap(from);                  // 非法：from 不能作为操作数
+throw factory.from(error);         // 非法：from 不能作为成员名
 ```
 
-最后一行把名为 `from` 的变量作为新异常表达式抛出，不是缺少左操作数的原因子句。只有 Parser 已经在 `throw` 后完成一个表达式，并且在该语句最外层定界深度遇到下一个显著 Token `Identifier("from")` 时，才开始解析 `throw_cause_clause`：
+只有 Parser 已经在 `throw` 后完成一个表达式，并且在该语句最外层定界深度遇到下一个显著 Token `Keyword(from)` 时，才开始解析 `throw_cause_clause`：
 
 ```ink
 throw Wrapper {} from error;
-throw from from error;
 ```
 
-第二行的第一个 `from` 是被抛出的变量，第二个 `from` 是上下文标记。表达式仍可在需要操作数或成员名的位置正常消费同名 Identifier：
-
-```ink
-throw wrap(from);
-throw left + from;
-throw factory.from(error);
-```
-
-实现不需要回溯。`throw` 后立即遇到 `;` 时选择重新抛出分支；否则先按正常表达式状态完成 `expression`，再检查当前定界深度的下一个显著 Token 是否为准确拼写的 `from`。嵌套圆括号、方括号、花括号或成员后缀中的 `from` 不能提前结束外层表达式。
+实现不需要回溯。`throw` 后立即遇到 `;` 时选择重新抛出分支；否则先按正常表达式状态完成 `expression`，再检查当前定界深度的下一个显著 Token 是否为 `Keyword(from)`。表达式文法本身不能消费该 Keyword 作为名称，因此不存在“表达式中的同名 Identifier”与原因标记之间的歧义；嵌套定界结构内出现非法的 `from` 仍在其所在表达式位置报告，不能提前结束外层表达式。
 
 ## 6. `throw;` 重新抛出当前记录
 
@@ -237,18 +225,18 @@ ThrowCauseClause
 
 `ThrowStatement` 按源码顺序保存 `throw`、可选 `Expression`、可选 `ThrowCauseClause`、`;` 和全部 Trivia。重新抛出由 Expression 与原因子句同时缺席表示，不需要伪造一个异常表达式或额外 Token。
 
-`ThrowCauseClause` 保存作为真实 Identifier Token 的 `from`、来源 `identifier` 以及两者之间的 Trivia。上下文解释不会把 Tokenizer 的 `Identifier("from")` 改写成 Keyword Token，也不会影响 full-fidelity 源码恢复。
+`ThrowCauseClause` 保存真实的 `Keyword(from)`、来源 `identifier` 以及两者之间的 Trivia，不需要伪造或改写 Token，并保持 full-fidelity 源码恢复。
 
 确定性分派顺序为：
 
 ```text
 consume Keyword(throw)
 → next significant token is ';' ? rethrow : parse expression
-→ expression complete and next outer token is Identifier("from") ? parse cause clause
+→ expression complete and next outer token is Keyword(from) ? parse cause clause
 → expect ';'
 ```
 
-不存在“先把 `from` 当关键字，失败后再退回 Identifier”的 Tokenizer 或 Parser 回溯。
+`Keyword(from)` 与 Identifier 的 TokenKind 已经不同，Tokenizer 和 Parser 都不需要尝试重分类或回溯。
 
 ## 11. 错误恢复
 
@@ -267,10 +255,10 @@ throw ServiceError {} from error.cause;
 throw ServiceError {} from current();
 ```
 
-`throw; from error;` 中第一个分号已经形成完整的重新抛出语句，后续 Token 必须作为新的非法结构保留。`throw from error;` 则必须先把第一个 `from` 当作异常表达式的 Identifier，不能为了猜测用户意图而把它改写成原因标记。
+`throw; from error;` 中第一个分号已经形成完整的重新抛出语句，后续 Token 必须作为新的非法结构保留。`throw from error;` 则在 `from` 前缺少新异常表达式；Parser 不能为了猜测用户意图而把原因子句直接附着到 `throw`，也不能伪造 Identifier 表达式。
 
 Parser 恢复不能删除真实的 `from`、来源标识符或分号，也不能把 `throw expression` 静默改成 `throw;`。
 
 ## 12. 确认结论
 
-Ink 使用 `throw expression;` 创建并传播新异常，使用 `throw expression from identifier;` 显式连接词法上最近活动处理器的异常记录，并使用 `throw;` 复用和重新传播当前记录。`throw` 是硬关键字，`from` 始终由 Tokenizer 产生为普通 Identifier，只在成员导入开头与新异常表达式之后的两个既定语法位置按拼写解释。三个 `throw` 形态都是必须带真实分号的发散语句；Parser 通过 `;`、完整表达式边界和上下文 `from` 确定解析，不依赖回溯或 Token 重分类。
+Ink 使用 `throw expression;` 创建并传播新异常，使用 `throw expression from identifier;` 显式连接词法上最近活动处理器的异常记录，并使用 `throw;` 复用和重新传播当前记录。`throw` 与 `from` 都是硬关键字；`from` 在成员导入开头与新异常表达式之后直接作为终结字符串匹配，不作为 Identifier 使用。三个 `throw` 形态都是必须带真实分号的发散语句；Parser 通过 `;`、完整表达式边界和 `Keyword(from)` 确定解析，不依赖回溯或 Token 重分类。

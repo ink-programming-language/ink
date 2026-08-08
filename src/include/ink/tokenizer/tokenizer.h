@@ -16,7 +16,7 @@ namespace ink::tokenizer
     std::size_t MaxBlockCommentDepth = 1024;
   };
 
-  class LexedFile
+  class TokenizedBuffer
   {
   public:
     const std::string &source() const noexcept
@@ -44,7 +44,7 @@ namespace ink::tokenizer
     bool succeeded() const noexcept;
 
   private:
-    LexedFile() = default;
+    TokenizedBuffer() = default;
 
     std::string Source;
     std::vector<Token> Tokens;
@@ -58,13 +58,13 @@ namespace ink::tokenizer
   {
   public:
     explicit Tokenizer(TokenizerOptions Options = {});
-    LexedFile tokenize(std::string Source) const;
+    TokenizedBuffer tokenize(std::string Source) const;
 
   private:
     TokenizerOptions Options;
   };
 
-  LexedFile tokenize(std::string Source, TokenizerOptions Options = {});
+  TokenizedBuffer tokenize(std::string Source, TokenizerOptions Options = {});
 } // namespace ink::tokenizer
 
 #endif

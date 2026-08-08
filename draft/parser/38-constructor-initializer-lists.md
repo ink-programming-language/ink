@@ -25,7 +25,7 @@ class Player : Entity {
 }
 ```
 
-初始化项使用与普通调用相同的圆括号实参结构。Ink 不为构造初始化列表增加 `base`、`super`、`constructor` 或其他关键字。
+初始化项使用与普通调用相同的圆括号实参结构。Ink 不为构造初始化列表增加 `base`、`super`、`constructor`、`destructor` 或其他关键字；`constructor` 和 `destructor` 都只是普通 Identifier 拼写。
 
 ## 2. EBNF
 

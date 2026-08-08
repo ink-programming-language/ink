@@ -221,12 +221,6 @@ namespace ink::tokenizer
       }
 
     private:
-      struct LiteralLine
-      {
-        std::size_t Start;
-        std::size_t End;
-      };
-
       Token scanToken()
       {
         const std::size_t Start = Position;
@@ -351,6 +345,7 @@ namespace ink::tokenizer
         const std::size_t Start = Position;
         std::size_t Depth = 1;
         std::vector<std::size_t> OpeningPositions = {Start};
+        const std::size_t TrackedDepthLimit = std::max<std::size_t>(Options.MaxBlockCommentDepth, 1);
         bool NestingLimitExceeded = Options.MaxBlockCommentDepth < 1;
         if (NestingLimitExceeded)
         {
@@ -362,7 +357,10 @@ namespace ink::tokenizer
           if (startsWith(Source, Position, "/*"))
           {
             ++Depth;
-            OpeningPositions.push_back(Position);
+            if (Depth <= TrackedDepthLimit)
+            {
+              OpeningPositions.push_back(Position);
+            }
             if (Depth > Options.MaxBlockCommentDepth && !NestingLimitExceeded)
             {
               NestingLimitExceeded = true;
@@ -372,8 +370,11 @@ namespace ink::tokenizer
           }
           else if (startsWith(Source, Position, "*/"))
           {
+            if (Depth <= TrackedDepthLimit)
+            {
+              OpeningPositions.pop_back();
+            }
             --Depth;
-            OpeningPositions.pop_back();
             Position += 2;
           }
           else
@@ -384,7 +385,16 @@ namespace ink::tokenizer
         if (Depth != 0)
         {
           validateRawRange(Start, Position, true);
-          Diagnostics.push_back({DiagnosticKind::UnterminatedBlockComment, {Start, std::min(Start + 2, Source.size())}, std::string("block comment is not terminated; outermost opening byte: ") + std::to_string(Start) + "; remaining nesting depth: " + std::to_string(Depth) + "; most recent unclosed opening byte: " + std::to_string(OpeningPositions.back())});
+          std::string Message = std::string("block comment is not terminated; outermost opening byte: ") + std::to_string(Start) + "; remaining nesting depth: " + std::to_string(Depth);
+          if (Depth <= TrackedDepthLimit)
+          {
+            Message += "; most recent unclosed opening byte: " + std::to_string(OpeningPositions.back());
+          }
+          else
+          {
+            Message += "; most recent unclosed opening byte was not retained after the nesting limit was exceeded";
+          }
+          Diagnostics.push_back({DiagnosticKind::UnterminatedBlockComment, {Start, std::min(Start + 2, Source.size())}, std::move(Message)});
           return makeToken(TokenKind::UnterminatedBlockComment, Start, Position);
         }
         const TokenKind Validation = validateRawRange(Start, Position, true);
@@ -503,14 +513,11 @@ namespace ink::tokenizer
           const int Value = digitValue(Current);
           if (Value >= 0 && (isAsciiDigit(Current) || Base == 16))
           {
+            SawDigit = true;
             if (static_cast<unsigned>(Value) >= Base)
             {
               Invalid = true;
               addDiagnostic(DiagnosticKind::DigitOutOfRange, {Position, Position + 1});
-            }
-            else
-            {
-              SawDigit = true;
             }
             PreviousDigit = static_cast<unsigned>(Value) < Base;
             ++Position;
@@ -613,28 +620,31 @@ namespace ink::tokenizer
                 break;
               }
             }
-            if (Entry == nullptr)
+            if (!Invalid)
             {
-              Invalid = true;
-              const bool LooksLikeNonDecimalExponent = ExplicitBase && !Spelling.empty() && (Spelling.front() == 'e' || Spelling.front() == 'E' || Spelling.front() == 'p' || Spelling.front() == 'P');
-              addDiagnostic(LooksLikeNonDecimalExponent ? DiagnosticKind::UnsupportedNonDecimalFloat : DiagnosticKind::UnknownNumericSuffix, {SuffixStart, Position});
-            }
-            else if (ExplicitBase && Entry->Floating)
-            {
-              Invalid = true;
-              addDiagnostic(DiagnosticKind::InvalidNumericSuffix, {SuffixStart, Position});
-            }
-            else if ((HasFraction || HasExponent) && !Entry->Floating)
-            {
-              Invalid = true;
-              addDiagnostic(DiagnosticKind::InvalidNumericSuffix, {SuffixStart, Position});
-            }
-            else
-            {
-              Suffix = Entry->Suffix;
-              if (Entry->Floating)
+              if (Entry == nullptr)
               {
-                HasFraction = true;
+                Invalid = true;
+                const bool LooksLikeNonDecimalExponent = ExplicitBase && !Spelling.empty() && (Spelling.front() == 'e' || Spelling.front() == 'E' || Spelling.front() == 'p' || Spelling.front() == 'P');
+                addDiagnostic(LooksLikeNonDecimalExponent ? DiagnosticKind::UnsupportedNonDecimalFloat : DiagnosticKind::UnknownNumericSuffix, {SuffixStart, Position});
+              }
+              else if (ExplicitBase && Entry->Floating)
+              {
+                Invalid = true;
+                addDiagnostic(DiagnosticKind::InvalidNumericSuffix, {SuffixStart, Position});
+              }
+              else if ((HasFraction || HasExponent) && !Entry->Floating)
+              {
+                Invalid = true;
+                addDiagnostic(DiagnosticKind::InvalidNumericSuffix, {SuffixStart, Position});
+              }
+              else
+              {
+                Suffix = Entry->Suffix;
+                if (Entry->Floating)
+                {
+                  HasFraction = true;
+                }
               }
             }
           }
@@ -682,7 +692,9 @@ namespace ink::tokenizer
       Token scanScalarLiteral()
       {
         const std::size_t Start = Position++;
-        std::vector<char32_t> Values;
+        char32_t FirstValue = 0;
+        unsigned ValueCount = 0;
+        bool HasBody = false;
         bool Invalid = false;
         bool Closed = false;
         while (Position < Source.size())
@@ -701,6 +713,7 @@ namespace ink::tokenizer
           }
           if (Source[Position] == '\\')
           {
+            HasBody = true;
             char32_t Value = 0;
             bool Produced = false;
             if (!scanEscape(Position, Source.size(), Value, Produced))
@@ -709,10 +722,15 @@ namespace ink::tokenizer
             }
             if (Produced)
             {
-              Values.push_back(Value);
+              if (ValueCount == 0)
+              {
+                FirstValue = Value;
+              }
+              ValueCount = std::min(ValueCount + 1, 2U);
             }
             continue;
           }
+          HasBody = true;
           const DecodeResult Decoded = unicode::decode(Source, Position);
           if (!Decoded.Valid)
           {
@@ -731,7 +749,11 @@ namespace ink::tokenizer
             Invalid = true;
             addDiagnostic(DiagnosticKind::InvisibleCharacter, {Position, Position + Decoded.Length});
           }
-          Values.push_back(Decoded.Value);
+          if (ValueCount == 0)
+          {
+            FirstValue = Decoded.Value;
+          }
+          ValueCount = std::min(ValueCount + 1, 2U);
           Position += Decoded.Length;
         }
         if (!Closed && Position == Source.size())
@@ -739,21 +761,21 @@ namespace ink::tokenizer
           Invalid = true;
           addDiagnostic(DiagnosticKind::UnterminatedScalarLiteral, {Start, Position});
         }
-        if (Values.empty() && Closed)
+        if (!HasBody && Closed)
         {
           Invalid = true;
           addDiagnostic(DiagnosticKind::EmptyScalarLiteral, {Start, Position});
         }
-        else if (Values.size() > 1)
+        else if (ValueCount > 1)
         {
           Invalid = true;
           addDiagnostic(DiagnosticKind::MultipleScalarValues, {Start, Position});
         }
-        if (Invalid || !Closed || Values.size() != 1)
+        if (Invalid || !Closed || ValueCount != 1)
         {
           return makeToken(TokenKind::InvalidScalarLiteral, Start, Position);
         }
-        return makeToken(TokenKind::ScalarLiteral, Start, Position, Values.front());
+        return makeToken(TokenKind::ScalarLiteral, Start, Position, FirstValue);
       }
 
       Token scanSingleLineString(bool RawMode)
@@ -841,13 +863,20 @@ namespace ink::tokenizer
           {
             Closing = Source.find("\"\"\"", Position);
           }
-          Position = Closing == std::string::npos ? Source.size() : Closing + 3;
+          if (Closing == std::string::npos)
+          {
+            Position = Source.size();
+            validateRawRange(Start, Position, false);
+            addDiagnostic(DiagnosticKind::UnterminatedMultilineStringLiteral, {Start, Position});
+            return makeToken(TokenKind::InvalidStringLiteral, Start, Position);
+          }
+          Position = Closing + 3;
           validateRawRange(Start, Position, false);
           return makeToken(TokenKind::InvalidStringLiteral, Start, Position);
         }
         Position += OpeningLineBreakLength;
 
-        std::vector<LiteralLine> Lines;
+        const std::size_t BodyStart = Position;
         std::size_t ClosingStart = std::string::npos;
         std::size_t ClosingLineStart = std::string::npos;
         while (Position < Source.size())
@@ -870,7 +899,6 @@ namespace ink::tokenizer
             Position = FirstContent + 3;
             break;
           }
-          Lines.push_back({LineStart, LineEnd});
           if (LineEnd == Source.size())
           {
             Position = LineEnd;
@@ -890,11 +918,15 @@ namespace ink::tokenizer
         const std::string_view Indentation(Source.data() + ClosingLineStart, ClosingStart - ClosingLineStart);
         std::string DecodedValue;
         bool Invalid = false;
-        for (std::size_t LineIndex = 0; LineIndex < Lines.size(); ++LineIndex)
+        for (std::size_t LineStart = BodyStart; LineStart < ClosingLineStart;)
         {
-          const LiteralLine Line = Lines[LineIndex];
-          std::size_t ContentStart = Line.Start;
-          const std::string_view RawLine(Source.data() + Line.Start, Line.End - Line.Start);
+          std::size_t LineEnd = LineStart;
+          while (LineEnd < ClosingLineStart && Source[LineEnd] != '\n' && !(Source[LineEnd] == '\r' && LineEnd + 1 < ClosingLineStart && Source[LineEnd + 1] == '\n'))
+          {
+            ++LineEnd;
+          }
+          std::size_t ContentStart = LineStart;
+          const std::string_view RawLine(Source.data() + LineStart, LineEnd - LineStart);
           const bool WhitespaceOnly = std::all_of(RawLine.begin(), RawLine.end(), [](char Value)
                                                   {
                                                     return Value == ' ' || Value == '\t';
@@ -905,22 +937,22 @@ namespace ink::tokenizer
           }
           else if (WhitespaceOnly && Indentation.size() >= RawLine.size() && Indentation.substr(0, RawLine.size()) == RawLine)
           {
-            ContentStart = Line.End;
+            ContentStart = LineEnd;
           }
           else
           {
             Invalid = true;
-            addDiagnostic(DiagnosticKind::InvalidMultilineIndentation, {Line.Start, Line.End});
+            addDiagnostic(DiagnosticKind::InvalidMultilineIndentation, {LineStart, LineEnd});
           }
 
           std::size_t Cursor = ContentStart;
-          while (Cursor < Line.End)
+          while (Cursor < LineEnd)
           {
             if (!RawMode && Source[Cursor] == '\\')
             {
               char32_t Value = 0;
               bool Produced = false;
-              if (!scanEscape(Cursor, Line.End, Value, Produced))
+              if (!scanEscape(Cursor, LineEnd, Value, Produced))
               {
                 Invalid = true;
               }
@@ -929,12 +961,13 @@ namespace ink::tokenizer
                 unicode::appendUtf8(DecodedValue, Value);
               }
             }
-            else if (!scanLiteralScalar(Cursor, Line.End, DecodedValue))
+            else if (!scanLiteralScalar(Cursor, LineEnd, DecodedValue))
             {
               Invalid = true;
             }
           }
-          if (LineIndex + 1 < Lines.size())
+          LineStart = LineEnd + logicalLineBreakLength(LineEnd);
+          if (LineStart < ClosingLineStart)
           {
             DecodedValue.push_back('\n');
           }
@@ -1257,7 +1290,7 @@ namespace ink::tokenizer
     };
   } // namespace
 
-  std::string_view LexedFile::raw(const Token &Token) const noexcept
+  std::string_view TokenizedBuffer::raw(const Token &Token) const noexcept
   {
     if (Token.Span.Start > Token.Span.End || Token.Span.End > Source.size())
     {
@@ -1266,13 +1299,13 @@ namespace ink::tokenizer
     return std::string_view(Source.data() + Token.Span.Start, Token.Span.size());
   }
 
-  std::size_t LexedFile::lineNumber(std::size_t ByteOffset) const noexcept
+  std::size_t TokenizedBuffer::lineNumber(std::size_t ByteOffset) const noexcept
   {
     const std::size_t ClampedOffset = std::min(ByteOffset, Source.size());
     return static_cast<std::size_t>(std::upper_bound(LineStarts.begin(), LineStarts.end(), ClampedOffset) - LineStarts.begin());
   }
 
-  bool LexedFile::succeeded() const noexcept
+  bool TokenizedBuffer::succeeded() const noexcept
   {
     return Diagnostics.empty() && std::none_of(Tokens.begin(), Tokens.end(), [](const Token &Token)
                                                {
@@ -1285,9 +1318,9 @@ namespace ink::tokenizer
   {
   }
 
-  LexedFile Tokenizer::tokenize(std::string Source) const
+  TokenizedBuffer Tokenizer::tokenize(std::string Source) const
   {
-    LexedFile Result;
+    TokenizedBuffer Result;
     Result.Source = std::move(Source);
     Result.LineStarts.push_back(0);
     for (std::size_t Index = 0; Index < Result.Source.size(); ++Index)
@@ -1302,7 +1335,7 @@ namespace ink::tokenizer
     return Result;
   }
 
-  LexedFile tokenize(std::string Source, TokenizerOptions Options)
+  TokenizedBuffer tokenize(std::string Source, TokenizerOptions Options)
   {
     return Tokenizer(Options).tokenize(std::move(Source));
   }

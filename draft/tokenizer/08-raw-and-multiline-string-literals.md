@@ -52,7 +52,7 @@ r"""
 r "text"
 ```
 
-该源码产生 `Identifier("r")`、Trivia 和普通 `StringLiteral`，随后通常由 parser 报告缺少运算符。
+该源码产生 `Identifier("r")`、Trivia 和普通 `StringLiteral`。这不是词法错误；是否缺少运算符，以及是否应建议移除 Trivia 以形成 Raw 前缀，由 parser 根据语法上下文诊断。
 
 最大 Identifier 扫描仍优先保证：
 
@@ -308,7 +308,6 @@ r"""  before r"
 
 诊断至少应区分：
 
-- `r` 与引号之间错误插入 Trivia；
 - 三引号后没有立即换行；
 - 单行字符串遇到物理换行；
 - 多行结束定界符缺失；
