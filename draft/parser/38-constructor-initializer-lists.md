@@ -55,7 +55,7 @@ constructor_initializer_target_suffix =
     | generic_argument_suffix ;
 ```
 
-`call_suffix` 复用 Parser 议题 15、37 的完整普通调用实参规则，因此支持位置实参、`...expression` 列表展开、命名实参以及独占实参序列的裸 `...`。某个初始化目标是否允许全参数转发由后续语义检查决定。`generic_argument_suffix` 复用议题 16，使 `Base<T>(arguments)`、`module.Base<T>(arguments)` 等限定基类名称保持普通泛型拼写。
+`call_suffix` 复用 Parser 议题 15、37 的完整普通调用实参规则，因此支持位置实参、`...expression` 列表展开、命名实参以及独占实参序列的裸 `...`。某个初始化目标是否允许全参数转发由后续语义检查决定。`generic_argument_suffix` 复用议题 16，使 `Base::<T>(arguments)`、`module.Base::<T>(arguments)` 等限定基类名称保持普通泛型拼写。
 
 冒号后至少存在一个初始化项，列表不允许尾随逗号。初始化列表只能伴随真实 `statement_block`；以 `;` 结束的无函数体声明不能携带初始化列表。
 

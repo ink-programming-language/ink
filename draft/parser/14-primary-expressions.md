@@ -1,14 +1,14 @@
 # Parser 议题 14：基础表达式
 
-> 状态：已确认，议题 21、22 定义无块 `if_expression`，议题 24 完成 `match_expression`，议题 29 补充元组列表展开，议题 30 补充复合类型值，议题 35 加入聚合初始化表达式，议题 40 加入复用普通 class 结构的类型表达式
+> 状态：已确认，议题 21、22 定义无块 `if_expression`，议题 24 完成 `match_expression`，议题 29 补充元组列表展开，议题 30 补充复合类型值并把直接函数类型改为封闭表达式，议题 35 加入聚合初始化表达式，议题 40 加入复用普通 class 结构的类型表达式
 > 确认日期：2026-08-03
 
 ## 1. 定义
 
-基础表达式是能够独立产生值或编译期实体，并能够作为调用、索引、成员访问等后缀操作起点的表达式。
+可后缀基础表达式能够独立产生值或编译期实体，并能够作为调用、索引、成员访问等后缀操作起点。直接写出的函数类型是独立的封闭 postfix expression；要对整个函数类型继续应用后缀，必须先加括号。
 
 ```ebnf
-primary_expression =
+postfixable_primary_expression =
       literal_expression
     | identifier_expression
     | builtin_type_expression
@@ -17,8 +17,10 @@ primary_expression =
     | parenthesized_comma_list
     | array_expression
     | structured_expression
-    | const_type_value_expression
-    | function_type_expression ;
+    | const_type_value_expression ;
+
+direct_function_type_expression =
+    [ "const" ], function_type_expression ;
 ```
 
 名称解析、类型和值类别判断不由 Parser 完成。Parser 只根据 Token 形状构造对应 CST。
@@ -72,10 +74,10 @@ network
 
 ```ink
 BuildMode.debug
-Optional<int>.some(10)
+Optional::<int>.some(10)
 ```
 
-因此 `build.mode == .debug` 和值位置的 `.some(10)` 都不是合法表达式。前导点只属于议题 23 的上下文枚举分支模式，例如 `match (mode) { .debug => ... }`；模式不产生枚举值，也不会向 `primary_expression` 增加分支。
+因此 `build.mode == .debug` 和值位置的 `.some(10)` 都不是合法表达式。前导点只属于议题 23 的上下文枚举分支模式，例如 `match (mode) { .debug => ... }`；模式不产生枚举值，也不会向 `postfixable_primary_expression` 增加分支。
 
 ## 4. 内建类型表达式
 
@@ -87,7 +89,7 @@ builtin_type_expression = ? BuiltinType Token ? ;
 
 ```ink
 reflect(i32)
-Buffer<i32>
+Buffer::<i32>
 ```
 
 因此 Parser 允许 `BuiltinType` Token 出现在基础表达式位置。它能否在具体位置物化为运行时值属于后续编译期阶段和类型检查，不由语法限制。
@@ -98,7 +100,7 @@ Buffer<i32>
 
 ```ebnf
 const_type_value_expression =
-    "const", type_primary ;
+    "const", postfixable_type_primary ;
 
 function_type_expression =
     function_type ;
@@ -112,7 +114,7 @@ func(i32) -> bool
 async func(Path&) -> Data
 ```
 
-表达式中的 `const` 只表示前置类型限定且最多出现一次；它不是通用一元运算符。函数类型直接复用议题 29 的完整参数和结果类型文法。`*`、`&` 的表达式消歧以及空 `[]` 由议题 30 的后缀规则完成。
+表达式中的 `const` 只表示前置类型限定且最多出现一次；它不是通用一元运算符。函数类型直接复用议题 29 的完整参数和结果类型文法，但直接函数类型不进入普通 postfix 循环；`(func(i32) -> bool)*` 才能让 `*` 作用于整个函数类型。`*`、`&` 的表达式消歧以及空 `[]` 由议题 30 的后缀规则完成。
 
 ## 5. `this` 表达式
 
@@ -260,11 +262,11 @@ return class Node {
 }).method()
 ```
 
-议题 21 已独立确认无块形式 `if (condition) true_expression else false_expression`，议题 22 将它放在完整表达式最低层。它不属于最高优先级的 `primary_expression`；作为其他运算的操作数或后缀基础时必须先使用圆括号。
+议题 21 已独立确认无块形式 `if (condition) true_expression else false_expression`，议题 22 将它放在完整表达式最低层。它不属于最高优先级的 `postfixable_primary_expression`；作为其他运算的操作数或后缀基础时必须先使用圆括号。
 
 ## 10. 与后缀表达式的关系
 
-所有基础表达式都可以作为后续调用、索引或成员访问的起点：
+所有可后缀基础表达式都可以作为后续调用、索引或成员访问的起点：
 
 ```ink
 make_object().field
@@ -299,4 +301,4 @@ ClassTypeExpression
 
 ## 12. 确认结论
 
-Ink 的基础表达式包括字面量、标识符、内建类型、`this`、加括号表达式、圆括号逗号列表、数组、`const` 类型值、同步或异步函数类型、class 类型表达式以及其他结构化表达式。类型作为一等编译期值在语法上允许出现在表达式位置；`()`、`(value)`、`(value,)`、`(...values)` 和多元素元组具有明确不同的 Token 形状，圆括号逗号列表的类型或值解释由议题 30 的期望类型规则决定。普通数组和多元素元组均不允许尾随逗号。`...expression` 只作为议题 29 确认的列表展开节点出现。无块 `if_expression` 不是基础表达式，而是议题 22 定义的完整表达式最低层。
+Ink 的可后缀基础表达式包括字面量、标识符、内建类型、`this`、加括号表达式、圆括号逗号列表、数组、非函数 `const` 类型值、class 类型表达式以及其他结构化表达式；同步或异步的直接函数类型是封闭 postfix expression，必须加括号后才能对整个类型继续应用后缀。类型作为一等编译期值在语法上允许出现在表达式位置；`()`、`(value)`、`(value,)`、`(...values)` 和多元素元组具有明确不同的 Token 形状，圆括号逗号列表的类型或值解释由议题 30 的期望类型规则决定。普通数组和多元素元组均不允许尾随逗号。`...expression` 只作为议题 29 确认的列表展开节点出现。无块 `if_expression` 不是基础表达式，而是议题 22 定义的完整表达式最低层。

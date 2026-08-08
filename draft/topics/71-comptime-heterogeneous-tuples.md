@@ -10,7 +10,7 @@ Ink 不为编译期元编程另外引入 `MetaTuple`、`ComptimeAny`、`ValueLis
 ```ink
 const specification = comptime (
     i32,
-    cast<ptrsize>(16),
+    cast::<ptrsize>(16),
     Vector
 );
 ```
@@ -136,7 +136,7 @@ return class {
 
 ```ink
 func primary_layout() -> (type, ptrsize) {
-    return (i32, cast<ptrsize>(4));
+    return (i32, cast::<ptrsize>(4));
 }
 ```
 

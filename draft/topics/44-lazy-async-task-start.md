@@ -5,7 +5,7 @@
 
 ## 1. 调用异步函数只创建任务
 
-调用 Ink 异步函数时，默认只创建一个尚未执行的惰性 `Task<T>`：
+调用 Ink 异步函数时，默认只创建一个尚未执行的惰性 `Task::<T>`：
 
 ```ink
 async func load() -> int {
@@ -17,21 +17,21 @@ var task = load();
 // 此处尚未打印 start
 ```
 
-异步函数声明省略 `-> type` 时逻辑结果固定为 `void`，调用产生 `Task<void>`，同样不根据函数体推导结果：
+异步函数声明省略 `-> type` 时逻辑结果固定为 `void`，调用产生 `Task::<void>`，同样不根据函数体推导结果：
 
 ```ink
 async func notify() {
     return;
 }
 
-var task: Task<void> = notify();
+var task: Task::<void> = notify();
 ```
 
 异步函数体不会仅因为调用表达式完成而执行，也不会自动提交给线程池、事件循环或其他调度设施。
 
 议题 58 的普通异步装饰器属于该函数体。构造装饰后任务不会立即运行装饰器前置或后置代码；它们与原始函数体一起等到任务第一次被驱动。
 
-议题 59 确认 v0 不开放围绕本节同步创建阶段的任务构造装饰器。需要创建期用户逻辑时使用显式同步任务工厂返回 `Task<T>`；该工厂的同步副作用在调用时运行，返回任务的异步函数体仍保持惰性。
+议题 59 确认 v0 不开放围绕本节同步创建阶段的任务构造装饰器。需要创建期用户逻辑时使用显式同步任务工厂返回 `Task::<T>`；该工厂的同步副作用在调用时运行，返回任务的异步函数体仍保持惰性。
 
 议题 65 的省略默认实参也在调用点同步求值，并在进入任务构造入口前补全。默认表达式的副作用和异常不属于惰性异步函数体；默认求值失败时任务尚未成功创建，也不会产生保存该失败的 `ExceptionBox`。
 
@@ -42,10 +42,10 @@ var task: Task<void> = notify();
 议题 43 的任务状态补充为：
 
 ```text
-TaskState<T> =
+TaskState::<T> =
     created
     pending
-    succeeded(ResultStorage<T>)
+    succeeded(ResultStorage::<T>)
     failed(ExceptionBox)
 ```
 
@@ -86,7 +86,7 @@ await task
 
 ## 4. 不提供公开的 `Task.start()`
 
-`Task<T>` 不提供只启动而不等待的公开 `start()` 操作：
+`Task::<T>` 不提供只启动而不等待的公开 `start()` 操作：
 
 ```ink
 var task = load();
@@ -109,7 +109,7 @@ const first, second = await all(load_a(), load_b());
 
 ## 5. 并发首次等待只驱动一次
 
-多个等待者可能通过 `Task<T>*` 同时对一个 `created` 任务执行第一次 `await`：
+多个等待者可能通过 `Task::<T>*` 同时对一个 `created` 任务执行第一次 `await`：
 
 ```text
 waiter A ─┐
@@ -257,7 +257,7 @@ const second = await second_task;
 
 议题 52 规定核心语言不提供内建 `Executor`、`spawn`、`spawn_detached`、任务组或控制句柄。标准库和第三方库可以使用普通类型与函数提供这些功能，并自行定义调度、所有权、失败、回收和关闭策略。
 
-库不能因此隐式移动已经存在的命名 `Task<T>`。它必须使用 `Task<T>*` 并要求有效生命周期，或者通过底层任务驱动 ABI 在库拥有的稳定存储中直接构造任务。局部 `Task<T>` 仍然没有公开 `start()`。
+库不能因此隐式移动已经存在的命名 `Task::<T>`。它必须使用 `Task::<T>*` 并要求有效生命周期，或者通过底层任务驱动 ABI 在库拥有的稳定存储中直接构造任务。局部 `Task::<T>` 仍然没有公开 `start()`。
 
 ## 13. 与任务销毁和取消的关系
 
@@ -271,9 +271,9 @@ func example() {
 
 议题 45 的 `all` 必须负责其驱动的全部任务直到它们结束。任何允许后台执行的库 API 也必须先取得足够长的存储和明确的生命周期责任；核心语言不允许局部代码把任务启动后立即遗忘。
 
-议题 48 确定取消请求不产生特殊任务终态或内建异常。议题 49 确定普通任务通过线程安全的 `Task.request_cancel()` 接收请求；调度库如果提供额外控制句柄，其取消和销毁策略属于库契约，但不能破坏底层 `Task<T>` 的语言级状态规则。
+议题 48 确定取消请求不产生特殊任务终态或内建异常。议题 49 确定普通任务通过线程安全的 `Task.request_cancel()` 接收请求；调度库如果提供额外控制句柄，其取消和销毁策略属于库契约，但不能破坏底层 `Task::<T>` 的语言级状态规则。
 
-议题 51 规定局部 `Task<T>` 只有在 `created`、`succeeded` 或 `failed` 状态下才能正常析构；析构 `pending` 任务立即触发致命 trap。请求取消不能代替等待任务结束。
+议题 51 规定局部 `Task::<T>` 只有在 `created`、`succeeded` 或 `failed` 状态下才能正常析构；析构 `pending` 任务立即触发致命 trap。请求取消不能代替等待任务结束。
 
 ## 14. 成本模型
 
@@ -299,7 +299,7 @@ async call:
     evaluate arguments
     construct coroutine frame in suspended initial state
     record stable entry and module version
-    return Task<T>
+    return Task::<T>
 
 first direct await / all / library task driver:
     atomic created → pending

@@ -119,6 +119,43 @@ namespace ink::tokenizer
       expectPartition(File);
     }
 
+    // Verifies that NEL, LINE SEPARATOR, and PARAGRAPH SEPARATOR stay within raw single-line and both multiline modes without adding logical lines.
+    TEST(RawAndMultilineStringTest, UnicodeSeparatorsRemainContentInRawAndMultilineModes)
+    {
+      const std::vector<std::string> Separators = {
+          "\xC2\x85",
+          "\xE2\x80\xA8",
+          "\xE2\x80\xA9",
+      };
+
+      for (const std::string &Separator : Separators)
+      {
+        SCOPED_TRACE(Separator);
+        const std::string RawSingleSource = "r\"a" + Separator + "b\"";
+        const std::string EscapedMultilineSource = "\"\"\"\n  a" + Separator + "b\n  \"\"\"";
+        const std::string RawMultilineSource = "r\"\"\"\n  a" + Separator + "b\n  \"\"\"";
+        const TokenizedBuffer RawSingleFile = tokenize(RawSingleSource);
+        const TokenizedBuffer EscapedMultilineFile = tokenize(EscapedMultilineSource);
+        const TokenizedBuffer RawMultilineFile = tokenize(RawMultilineSource);
+
+        ASSERT_TRUE(RawSingleFile.succeeded());
+        ASSERT_TRUE(EscapedMultilineFile.succeeded());
+        ASSERT_TRUE(RawMultilineFile.succeeded());
+        EXPECT_EQ(stringPayload(RawSingleFile.tokens().front()).Mode, StringMode::RawSingleLine);
+        EXPECT_EQ(stringPayload(EscapedMultilineFile.tokens().front()).Mode, StringMode::EscapedMultiline);
+        EXPECT_EQ(stringPayload(RawMultilineFile.tokens().front()).Mode, StringMode::RawMultiline);
+        EXPECT_EQ(stringPayload(RawSingleFile.tokens().front()).Decoded, "a" + Separator + "b");
+        EXPECT_EQ(stringPayload(EscapedMultilineFile.tokens().front()).Decoded, "a" + Separator + "b");
+        EXPECT_EQ(stringPayload(RawMultilineFile.tokens().front()).Decoded, "a" + Separator + "b");
+        EXPECT_EQ(RawSingleFile.lineStarts(), (std::vector<std::size_t>{0}));
+        EXPECT_EQ(EscapedMultilineFile.lineStarts(), (std::vector<std::size_t>{0, 4, 9 + Separator.size()}));
+        EXPECT_EQ(RawMultilineFile.lineStarts(), (std::vector<std::size_t>{0, 5, 10 + Separator.size()}));
+        expectPartition(RawSingleFile);
+        expectPartition(EscapedMultilineFile);
+        expectPartition(RawMultilineFile);
+      }
+    }
+
     // Verifies that a backslash has no escaping power before a raw string's closing quote.
     TEST(RawAndMultilineStringTest, BackslashCannotEscapeRawClosingQuote)
     {
@@ -190,6 +227,47 @@ namespace ink::tokenizer
       expectPartition(File);
     }
 
+    // Verifies that non-ASCII spaces are body data and never substitute for the ASCII indentation used to recognize multiline closers.
+    TEST(RawAndMultilineStringTest, NonAsciiWhitespaceDoesNotActAsMultilineIndentation)
+    {
+      const std::vector<std::string> Spaces = {
+          "\xC2\xA0",
+          "\xE2\x80\x83",
+          "\xE3\x80\x80",
+      };
+
+      for (const std::string &Space : Spaces)
+      {
+        SCOPED_TRACE(Space);
+        const std::string BodySource = "\"\"\"\n  " + Space + "value\n  \"\"\"";
+        const TokenizedBuffer BodyFile = tokenize(BodySource);
+        ASSERT_TRUE(BodyFile.succeeded());
+        ASSERT_EQ(BodyFile.tokens().size(), 2U);
+        EXPECT_EQ(stringPayload(BodyFile.tokens().front()).Decoded, Space + "value");
+        expectPartition(BodyFile);
+
+        const std::string IndentationSource = "\"\"\"\n" + Space + "  value\n  \"\"\"";
+        const TokenizedBuffer IndentationFile = tokenize(IndentationSource);
+        ASSERT_FALSE(IndentationFile.succeeded());
+        ASSERT_EQ(IndentationFile.tokens().size(), 2U);
+        expectToken(IndentationFile, 0, TokenKind::InvalidStringLiteral, IndentationSource);
+        ASSERT_EQ(IndentationFile.diagnostics().size(), 1U);
+        EXPECT_EQ(IndentationFile.diagnostics().front().Kind, DiagnosticKind::InvalidMultilineIndentation);
+        EXPECT_EQ(IndentationFile.diagnostics().front().Span, (SourceRange{4, 4 + Space.size() + 7}));
+        expectPartition(IndentationFile);
+
+        const std::string ClosingSource = "\"\"\"\n  value\n  " + Space + "\"\"\"";
+        const TokenizedBuffer ClosingFile = tokenize(ClosingSource);
+        ASSERT_FALSE(ClosingFile.succeeded());
+        ASSERT_EQ(ClosingFile.tokens().size(), 2U);
+        expectToken(ClosingFile, 0, TokenKind::InvalidStringLiteral, ClosingSource);
+        ASSERT_EQ(ClosingFile.diagnostics().size(), 1U);
+        EXPECT_EQ(ClosingFile.diagnostics().front().Kind, DiagnosticKind::UnterminatedMultilineStringLiteral);
+        EXPECT_EQ(ClosingFile.diagnostics().front().Span, (SourceRange{0, ClosingSource.size()}));
+        expectPartition(ClosingFile);
+      }
+    }
+
     // Verifies decoding and full-fidelity partitioning across many whitespace-only multiline body lines.
     TEST(RawAndMultilineStringTest, HandlesManyWhitespaceOnlyMultilineBodyLines)
     {
@@ -227,6 +305,26 @@ namespace ink::tokenizer
       EXPECT_NE(std::string(LfFile.raw(LfFile.tokens()[0])), std::string(CrlfFile.raw(CrlfFile.tokens()[0])));
       expectPartition(LfFile);
       expectPartition(CrlfFile);
+    }
+
+    // Verifies normalization and byte-based line starts when LF and CRLF alternate within escaped and raw multiline strings.
+    TEST(RawAndMultilineStringTest, NormalizesMixedLfAndCrlfAndRetainsExactLineStarts)
+    {
+      const std::string EscapedSource = "\"\"\"\r\n  first\n  second\r\n  third\n  \"\"\"";
+      const std::string RawSource = "r\"\"\"\r\n  first\n  second\r\n  third\n  \"\"\"";
+      const TokenizedBuffer EscapedFile = tokenize(EscapedSource);
+      const TokenizedBuffer RawFile = tokenize(RawSource);
+
+      ASSERT_TRUE(EscapedFile.succeeded());
+      ASSERT_TRUE(RawFile.succeeded());
+      ASSERT_EQ(EscapedFile.tokens().size(), 2U);
+      ASSERT_EQ(RawFile.tokens().size(), 2U);
+      EXPECT_EQ(stringPayload(EscapedFile.tokens().front()).Decoded, "first\nsecond\nthird");
+      EXPECT_EQ(stringPayload(RawFile.tokens().front()).Decoded, "first\nsecond\nthird");
+      EXPECT_EQ(EscapedFile.lineStarts(), (std::vector<std::size_t>{0, 5, 13, 23, 31}));
+      EXPECT_EQ(RawFile.lineStarts(), (std::vector<std::size_t>{0, 6, 14, 24, 32}));
+      expectPartition(EscapedFile);
+      expectPartition(RawFile);
     }
 
     // Verifies that triple quotes in the middle of a body line remain raw multiline text.
@@ -391,6 +489,38 @@ namespace ink::tokenizer
       expectPartition(CrlfFile);
     }
 
+    // Verifies that lone CR bytes remain inside closed raw or multiline tokens and are diagnosed without creating line starts.
+    TEST(RawAndMultilineStringTest, LoneCarriageReturnIsDiagnosedInsideRawAndMultilineModes)
+    {
+      struct LoneCarriageReturnCase
+      {
+        std::string Source;
+        std::size_t CarriageReturnOffset;
+        std::vector<std::size_t> LineStarts;
+      };
+
+      const std::vector<LoneCarriageReturnCase> Cases = {
+          {"r\"a\rb\"", 3, {0}},
+          {"\"\"\"\n  a\rb\n  \"\"\"", 7, {0, 4, 10}},
+          {"r\"\"\"\n  a\rb\n  \"\"\"", 8, {0, 5, 11}},
+      };
+
+      for (const LoneCarriageReturnCase &Test : Cases)
+      {
+        SCOPED_TRACE(Test.Source);
+        const TokenizedBuffer File = tokenize(Test.Source);
+        ASSERT_FALSE(File.succeeded());
+        ASSERT_EQ(File.tokens().size(), 2U);
+        expectToken(File, 0, TokenKind::InvalidStringLiteral, Test.Source);
+        EXPECT_EQ(File.tokens().front().Span, (SourceRange{0, Test.Source.size()}));
+        ASSERT_EQ(File.diagnostics().size(), 1U);
+        EXPECT_EQ(File.diagnostics().front().Kind, DiagnosticKind::LoneCarriageReturn);
+        EXPECT_EQ(File.diagnostics().front().Span, (SourceRange{Test.CarriageReturnOffset, Test.CarriageReturnOffset + 1}));
+        EXPECT_EQ(File.lineStarts(), Test.LineStarts);
+        expectPartition(File);
+      }
+    }
+
     // Verifies that a raw single-line string reaching end of file remains one invalid token with one unterminated diagnostic.
     TEST(RawAndMultilineStringTest, RejectsRawSingleLineAtEofWithoutClosingQuote)
     {
@@ -466,6 +596,59 @@ namespace ink::tokenizer
       ASSERT_FALSE(File.succeeded());
       EXPECT_TRUE(hasDiagnostic(File, DiagnosticKind::UnknownEscape));
       expectPartition(File);
+    }
+
+    // Verifies that a closed escaped multiline token containing an invalid escape does not consume following syntax.
+    TEST(RawAndMultilineStringTest, InvalidMultilineEscapeRecoversAfterTheClosingDelimiter)
+    {
+      const std::string Source = "\"\"\"\n  before\\qafter\n  \"\"\";next";
+      const std::size_t EscapeStart = Source.find("\\q");
+      const std::size_t Semicolon = Source.find(';');
+      const TokenizedBuffer File = tokenize(Source);
+
+      ASSERT_FALSE(File.succeeded());
+      ASSERT_EQ(File.tokens().size(), 4U);
+      expectToken(File, 0, TokenKind::InvalidStringLiteral, std::string_view(Source.data(), Semicolon));
+      EXPECT_EQ(File.tokens()[0].Span, (SourceRange{0, Semicolon}));
+      expectToken(File, 1, TokenKind::Symbol, ";");
+      EXPECT_EQ(File.tokens()[1].Span, (SourceRange{Semicolon, Semicolon + 1}));
+      expectToken(File, 2, TokenKind::Identifier, "next");
+      EXPECT_EQ(File.tokens()[2].Span, (SourceRange{Semicolon + 1, Source.size()}));
+      ASSERT_EQ(File.diagnostics().size(), 1U);
+      EXPECT_EQ(File.diagnostics().front().Kind, DiagnosticKind::UnknownEscape);
+      EXPECT_EQ(File.diagnostics().front().Span, (SourceRange{EscapeStart, EscapeStart + 2}));
+      expectPartition(File);
+    }
+
+    // Verifies that invalid UTF-8 in a closed escaped or raw multiline token is contained and later syntax remains tokenizable.
+    TEST(RawAndMultilineStringTest, ClosedMultilineInvalidUtf8RecoversAfterTheClosingDelimiter)
+    {
+      const std::vector<std::string> Prefixes = {
+          "",
+          "r",
+      };
+
+      for (const std::string &Prefix : Prefixes)
+      {
+        std::string Source = Prefix + "\"\"\"\n  before";
+        const std::size_t InvalidOffset = Source.size();
+        Source.push_back(static_cast<char>(0x80));
+        Source += "after\n  \"\"\";next";
+        const std::size_t Semicolon = Source.find(';');
+        SCOPED_TRACE(Source);
+        const TokenizedBuffer File = tokenize(Source);
+
+        ASSERT_FALSE(File.succeeded());
+        ASSERT_EQ(File.tokens().size(), 4U);
+        expectToken(File, 0, TokenKind::InvalidStringLiteral, std::string_view(Source.data(), Semicolon));
+        EXPECT_EQ(File.tokens()[0].Span, (SourceRange{0, Semicolon}));
+        expectToken(File, 1, TokenKind::Symbol, ";");
+        expectToken(File, 2, TokenKind::Identifier, "next");
+        ASSERT_EQ(File.diagnostics().size(), 1U);
+        EXPECT_EQ(File.diagnostics().front().Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(File.diagnostics().front().Span, (SourceRange{InvalidOffset, InvalidOffset + 1}));
+        expectPartition(File);
+      }
     }
 
     // Verifies exact diagnostics for malformed hexadecimal and missing-brace Unicode escapes in escaped multiline mode.

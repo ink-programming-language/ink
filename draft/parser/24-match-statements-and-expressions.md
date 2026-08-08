@@ -1,6 +1,6 @@
 # Parser 议题 24：`match` 语句与表达式
 
-> 状态：已确认；2026-08-05 增加 `comptime match` 语句形式，Parser 议题 32 统一区域控制并统一要求被匹配表达式括号
+> 状态：已确认；2026-08-05 增加 `comptime match` 语句形式，Parser 议题 32 统一区域控制并统一要求被匹配表达式括号；2026-08-08 确认语句分支起点的声明关键字不得回退为表达式
 > 确认日期：2026-08-04
 
 ## 1. 两种产生式
@@ -76,7 +76,7 @@ match (optional) {
 }
 ```
 
-第一处分支体是未包在块中的声明；第二处给语句分支增加了逗号。
+第一处分支体是未包在块中的声明；第二处给语句分支增加了逗号。`=>` 后是只接受 `statement` 的位置；下一个显著 Token 是 `var` 或 `const` 时，Parser 必须报告“声明需要放入语句块”，保留该分支的原始 Token 并按分支边界恢复。它不得把 `const copy = value;` 回退为限定类型值赋值或表达式语句，也不在错误分支中建立局部绑定。
 
 ## 3. `match_expression`
 
@@ -228,7 +228,7 @@ match_expression     → 自身不含外层分号，由包含它的声明或表�
 
 ## 9. 表达式优先级与后缀
 
-`match_expression` 是议题 14 的 `structured_expression`，因此属于 `primary_expression`，可以作为调用、索引和成员访问的后缀基础：
+`match_expression` 是议题 14 的 `structured_expression`，因此属于 `postfixable_primary_expression`，可以作为调用、索引和成员访问的后缀基础：
 
 ```ink
 const length = (match (optional) {
@@ -285,4 +285,4 @@ ComptimeMatchControl
 
 ## 12. 确认结论
 
-Ink 的 `match_statement` 和 `match_expression` 都把被匹配表达式放在固定括号内。语句形式使用一条 `statement` 作为每个分支体，不使用分支逗号，也不在整个结构后写分号；表达式形式的正常分支产生表达式值，每个分支都必须以逗号结束，不正常完成的分支可以使用同样以逗号结束的 `statement_block`。两种结构至少包含一个分支，共享议题 23 的模式、一次求值、分支局部借用和穷尽检查规则，并完全通过语法上下文与分支结束符消歧。`comptime match_statement` 复用同一语句结构；有值形式由普通 `comptime_expression` 覆盖。
+Ink 的 `match_statement` 和 `match_expression` 都把被匹配表达式放在固定括号内。语句形式使用一条 `statement` 作为每个分支体，不使用分支逗号，也不在整个结构后写分号；分支起点的 `var` 或 `const` 必须定向诊断为需要外包语句块，不能回退成赋值或表达式。表达式形式的正常分支产生表达式值，每个分支都必须以逗号结束，不正常完成的分支可以使用同样以逗号结束的 `statement_block`。两种结构至少包含一个分支，共享议题 23 的模式、一次求值、分支局部借用和穷尽检查规则，并完全通过语法上下文与分支结束符消歧。`comptime match_statement` 复用同一语句结构；有值形式由普通 `comptime_expression` 覆盖。

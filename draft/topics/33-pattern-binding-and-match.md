@@ -39,14 +39,14 @@ match (next_event()) {
 名称模式始终借用活动载荷存储，不复制、移动或取得载荷所有权。绑定是否为 `T&` 或 `const T&`，由被匹配表达式到枚举存储的访问能力决定：
 
 ```ink
-func inspect(optional: const Optional<Data>&) {
+func inspect(optional: const Optional::<Data>&) {
     if (match .some(value) = optional) {
         // value: const Data&
         value.inspect();
     }
 }
 
-func update(optional: Optional<Data>&) {
+func update(optional: Optional::<Data>&) {
     if (match .some(value) = optional) {
         // value: Data&
         value.update();
@@ -67,13 +67,13 @@ func update(optional: Optional<Data>&) {
 
 访问能力传播只约束枚举中保存的载荷槽，不递归削弱载荷本身已经携带的访问能力：
 
-- `Optional<T&>` 的 `.some(value)` 绑定为 `T&`，不会形成引用的引用；
-- `Optional<const T&>` 的 `.some(value)` 绑定为 `const T&`；
+- `Optional::<T&>` 的 `.some(value)` 绑定为 `T&`，不会形成引用的引用；
+- `Optional::<const T&>` 的 `.some(value)` 绑定为 `const T&`；
 - 只读访问指针载荷时不能改写枚举中的指针值，但指针目标是否可写仍由 `T*` 或 `const T*` 决定；
 - 可写访问指针载荷槽时，可以按照普通赋值规则改写该槽。
 
 ```ink
-if (match .some(player) = try_cast<Player&>(entity)) {
+if (match .some(player) = try_cast::<Player&>(entity)) {
     player.update(); // player 保持 Player& 的可变访问能力
 }
 ```

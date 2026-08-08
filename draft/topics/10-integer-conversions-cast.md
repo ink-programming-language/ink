@@ -10,7 +10,7 @@
 ```ink
 const source: u8 = 10;
 const invalid: u16 = source;        // 编译错误
-const valid: u16 = cast<u16>(source);
+const valid: u16 = cast::<u16>(source);
 ```
 
 该规则也适用于函数实参、返回值、字段初始化和数组元素初始化。
@@ -20,7 +20,7 @@ func consume(value: i64) {}
 
 const value: i32 = 10;
 consume(value);             // 编译错误
-consume(cast<i64>(value));  // 合法
+consume(cast::<i64>(value));  // 合法
 ```
 
 ## 2. 字面量不是整数隐式转换
@@ -47,7 +47,7 @@ const large: u16 = 20;
 
 const first = small + 1;                  // 合法：1 实例化为 u8
 const second = small + large;             // 编译错误
-const third = cast<u16>(small) + large;   // 合法
+const third = cast::<u16>(small) + large;   // 合法
 ```
 
 有符号整数与无符号整数也不会自动寻找共同类型：
@@ -59,13 +59,13 @@ const unsigned: u32 = 1;
 signed < unsigned; // 编译错误
 ```
 
-## 4. `cast<T>(value)`
+## 4. `cast::<T>(value)`
 
-Ink 使用编译器内建语法 `cast<T>(value)` 表示显式数值转换。
+Ink 使用编译器内建语法 `cast::<T>(value)` 表示显式数值转换。
 
 ```ink
-const wider = cast<u64>(value);
-const narrower = cast<u8>(value);
+const wider = cast::<u64>(value);
+const narrower = cast::<u8>(value);
 ```
 
 `cast`：
@@ -79,7 +79,7 @@ const narrower = cast<u8>(value);
 用户类型继续通过 `Type(arguments)` 调用构造函数：
 
 ```ink
-const number = cast<u16>(source); // 内建数值转换
+const number = cast::<u16>(source); // 内建数值转换
 const point = Point(10, 20);      // 用户构造函数
 ```
 
@@ -101,9 +101,9 @@ const point = Point(10, 20);      // 用户构造函数
 - 同宽度有无符号转换保留全部位。
 
 ```ink
-const first = cast<i8>(255u16); // -1
-const second = cast<u8>(-1i32); // 255
-const third = cast<u8>(300);    // 44，并产生 warning
+const first = cast::<i8>(255u16); // -1
+const second = cast::<u8>(-1i32); // 255
+const third = cast::<u8>(300);    // 44，并产生 warning
 ```
 
 这些结果是固定语义，不是 PDB。
@@ -113,7 +113,7 @@ const third = cast<u8>(300);    // 44，并产生 warning
 当编译器能够确定 `cast` 改变了源值的数学数值时，必须产生 warning，但仍生成规定的模转换结果。
 
 ```ink
-const value = cast<u8>(300);
+const value = cast::<u8>(300);
 // warning: integer cast changes value from 300 to 44
 ```
 
@@ -122,9 +122,9 @@ warning 不阻止编译，也不允许优化器把该路径视为不可达。
 标准库可以提供显式回绕、检查和饱和转换，以表达意图或获得不同语义：
 
 ```ink
-value.wrapping_to<u8>()   // 与 cast 数值结果相同，抑制回绕 warning
-value.checked_to<u8>()    // 不能表示时返回可选结果
-value.saturating_to<u8>() // 饱和到目标边界
+value.wrapping_to::<u8>()   // 与 cast 数值结果相同，抑制回绕 warning
+value.checked_to::<u8>()    // 不能表示时返回可选结果
+value.saturating_to::<u8>() // 饱和到目标边界
 ```
 
 这些 API 的最终命名留给标准库议题确认。
@@ -135,8 +135,8 @@ value.saturating_to<u8>() // 饱和到目标边界
 
 ```ink
 const length: ptrsize = values.length;
-const fixed: u64 = cast<u64>(length);
-const native: ptrsize = cast<ptrsize>(fixed);
+const fixed: u64 = cast::<u64>(length);
+const native: ptrsize = cast::<ptrsize>(fixed);
 ```
 
 转换使用目标平台上 `ptrsize` 的实际位宽，并遵守同一模转换规则。转换结果随 `ptrsize` 位宽改变是目标类型本身的性质，不构成 UB。
@@ -148,8 +148,8 @@ const native: ptrsize = cast<ptrsize>(fixed);
 `bool` 不是整数，不能通过普通 `cast` 与整数互相转换。
 
 ```ink
-cast<bool>(value); // 编译错误
-cast<u8>(flag);    // 编译错误
+cast::<bool>(value); // 编译错误
+cast::<u8>(flag);    // 编译错误
 ```
 
 程序必须明确表达所需逻辑：
@@ -164,8 +164,8 @@ const numeric: u8 = if (flag) 1 else 0;
 数值转换以外的转换不复用普通 `cast` 语义。议题 11 已确认以下独立内建转换：
 
 ```ink
-bitcast<T>(value) // 位模式重解释
-ptrcast<T>(value) // 裸指针类型和地址整数转换
+bitcast::<T>(value) // 位模式重解释
+ptrcast::<T>(value) // 裸指针类型和地址整数转换
 ```
 
 详见 [`11-bitcast-ptrcast.md`](./11-bitcast-ptrcast.md)。

@@ -12,7 +12,7 @@ synchronous creation
     → evaluate and capture arguments
     → select the final implementation
     → allocate and construct the task
-    → return created Task<T>
+    → return created Task::<T>
 
 asynchronous execution
     → run async decorator regions
@@ -37,12 +37,12 @@ task_constructor decorator observe() {
 }
 ```
 
-Ink v0 不接受该声明。`Task<T>` 是议题 43 的不可复制对象，普通局部 `task` 不能复制或隐式移动到最终返回位置。若要支持该语法，特殊 continuation 必须直接取得调用者隐藏返回位置，并额外定义：
+Ink v0 不接受该声明。`Task::<T>` 是议题 43 的不可复制对象，普通局部 `task` 不能复制或隐式移动到最终返回位置。若要支持该语法，特殊 continuation 必须直接取得调用者隐藏返回位置，并额外定义：
 
 - 多层装饰器如何共享任务初始化状态；
 - 后置代码抛出时如何销毁已经构造的任务；
 - 部分帧、参数和版本固定失败时由哪层清理；
-- `Task<void>` 和不同 `Task<T>` 布局如何验证；
+- `Task::<void>` 和不同 `Task::<T>` 布局如何验证；
 - 虚槽、接口槽与 `DynamicTaskOut` 如何转发最终存储；
 - 热更新如何固定构造装饰器和最终 coroutine frame 的一致版本。
 
@@ -50,7 +50,7 @@ Ink v0 不接受该声明。`Task<T>` 是议题 43 的不可复制对象，普�
 
 ## 3. 可变调用次数不解决任务构造所有权
 
-议题 16 允许普通函数 decorator 零次、一次或多次进入调用 continuation，但这不能直接扩展到任务构造阶段。任务构造 continuation 操作的是调用者最终返回存储和不可复制的具体 `Task<T>` 身份，而不是一次普通函数体进入。
+议题 16 允许普通函数 decorator 零次、一次或多次进入调用 continuation，但这不能直接扩展到任务构造阶段。任务构造 continuation 操作的是调用者最终返回存储和不可复制的具体 `Task::<T>` 身份，而不是一次普通函数体进入。
 
 任务构造装饰器通常会试图：
 
@@ -65,14 +65,14 @@ Ink v0 不接受该声明。`Task<T>` 是议题 43 的不可复制对象，普�
 
 ## 4. 创建期逻辑使用同步任务工厂
 
-需要在任务创建前后执行用户代码时，程序显式声明同步函数返回 `Task<T>`：
+需要在任务创建前后执行用户代码时，程序显式声明同步函数返回 `Task::<T>`：
 
 ```ink
 async func load_impl(path: StringView) -> Data* {
     return await read_data(path);
 }
 
-func load_task(path: StringView) -> Task<Data*> {
+func load_task(path: StringView) -> Task::<Data*> {
     log("creating load task");
     return load_impl(path);
 }
@@ -86,7 +86,7 @@ var task = load_task(path); // 运行同步工厂并创建惰性任务
 const data = await task;
 ```
 
-真正的 `async func load_impl` 继续只建立任务；同步工厂负责额外创建期行为。语言不会把同步返回 `Task<T>` 的工厂重新分类为异步函数。
+真正的 `async func load_impl` 继续只建立任务；同步工厂负责额外创建期行为。语言不会把同步返回 `Task::<T>` 的工厂重新分类为异步函数。
 
 ## 5. 同步工厂可以使用已有装饰器
 
@@ -94,7 +94,7 @@ const data = await task;
 
 ```ink
 @trace_task_creation
-func load_task(path: StringView) -> Task<Data*> {
+func load_task(path: StringView) -> Task::<Data*> {
     return load_impl(path);
 }
 ```
@@ -121,7 +121,7 @@ later await
 同步任务工厂可以按普通异常规则观察或转换创建期失败：
 
 ```ink
-func load_task(path: StringView) -> Task<Data*> {
+func load_task(path: StringView) -> Task::<Data*> {
     try {
         return load_impl(path);
     } catch AllocationError as error {
@@ -158,12 +158,12 @@ interface Loader {
 static, virtual, interface, or reflection dispatch
     → selected implementation task-construction thunk
     → construct one decorated coroutine frame
-    → return one Task<T>
+    → return one Task::<T>
 ```
 
 vtable 和接口表不增加构造装饰器槽；议题 57 的 `DynamicTaskOut` 不需要多层转发初始化状态。最终实现的 `async decorator` 已经编译进其具体 coroutine frame，但在任务创建期间不执行。
 
-同步任务工厂如果自身是普通虚函数或普通接口方法，只遵守同步虚/接口调用规则。它显式返回 `Task<T>`，仍不覆盖或满足 `async func ... -> T`。
+同步任务工厂如果自身是普通虚函数或普通接口方法，只遵守同步虚/接口调用规则。它显式返回 `Task::<T>`，仍不覆盖或满足 `async func ... -> T`。
 
 ## 9. 热更新和稳定入口保持现有含义
 

@@ -1,6 +1,6 @@
 # Parser 议题 11：赋值语句
 
-> 状态：已确认；赋值左侧按普通 `expression` 解析，可写性由语义分析检查
+> 状态：已确认；赋值左侧经声明起点守卫后按普通 `expression` 解析，可写性由语义分析检查
 > 确认日期：2026-08-03
 
 ## 1. 赋值是语句
@@ -9,7 +9,11 @@ Ink 的赋值是独立语句，不是表达式：
 
 ```ebnf
 assignment_statement =
-    expression, assignment_operator, expression, ";" ;
+    statement_expression, assignment_operator, expression, ";" ;
+
+statement_expression =
+    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
+    expression ;
 
 assignment_operator =
     "="
@@ -18,7 +22,7 @@ assignment_operator =
   | "<<=" | ">>=" ;
 ```
 
-Parser 不定义 `assignment_target` 或 `place_expression` 非终结符。左侧先建立普通 Expression CST；名称绑定、重载选择和值类别确定以后，语义分析再检查它是否表示当前上下文中的可写存储位置。
+Parser 不定义 `assignment_target` 或 `place_expression` 非终结符。`statement_expression` 只在语句起点排除为声明保留的 `var` 和 `const`，其余输入仍建立普通 Expression CST；名称绑定、重载选择和值类别确定以后，语义分析再检查它是否表示当前上下文中的可写存储位置。声明关键字一旦出现在块项起点就按议题 09、10 提交到声明，不能因声明残缺而回退为赋值。
 
 因此下列语句语法成立，但语义检查失败：
 
@@ -151,11 +155,12 @@ array[next_index()] = make_value();
 
 ## 9. 符号邻接
 
-Tokenizer 将符号逐字符输出。Parser 根据议题 02 识别直接相邻的复合赋值符号：
+Tokenizer 将符号逐字符输出。Parser 根据议题 02 的全语言复合符号集合和最长匹配规则识别直接相邻的复合赋值符号：
 
 ```ink
 value += 1;  // "+="
 value <<= 2; // "<<="
+value*=2;    // "*="，不是乘法后接普通赋值
 ```
 
 符号内部不能包含 Trivia：
@@ -166,6 +171,10 @@ value < < = 2;
 ```
 
 这些形式不匹配复合赋值运算符。
+
+表达式 Parser 在 `value*=2` 中看到的是完整 `*=`，乘法层不能先消费其 `*` 前缀。因此左侧表达式准确结束在 `value` 后，statement fallback 再把 `*=` 作为赋值运算符消费。同理，移位层不能拆开 `<<=` 或 `>>=`，按位层不能拆开 `&=`、`|=` 或 `^=`。
+
+该规则也先于议题 30 的终止型类型构造尾链：`T*=value;` 的 `*=` 是复合赋值运算符，不能解释为 `T*` 后接 `=`。`T* = value;` 中 Trivia 打断 `*=`，才可能按类型构造尾链和普通赋值分别解析；该左侧最终是否为可写 place 仍由语义分析检查。
 
 ## 10. 不支持自增与自减运算符
 
@@ -187,14 +196,22 @@ value -= 1;
 
 因此 Ink 不需要区分前缀与后缀形式，也不存在“返回修改前的值”或“返回修改后的值”的自增、自减表达式。副作用不能借此嵌入初始化器、索引、实参或其他表达式。
 
-Tokenizer 仍会忠实地产生两个相邻的 `Symbol('+')` 或 `Symbol('-')` Token；Parser 不把它们组合成自增、自减运算符。
+Tokenizer 仍会忠实地产生两个相邻的 `Symbol('+')` 或 `Symbol('-')` Token；Parser 按议题 02 将它们识别为保留的非法 `++` 或 `--` 序列。该序列不能退回成两个较短的一元或二元运算符，因此以上四种形式都必须产生语法诊断。
+
+Trivia 会打断复合符号序列，所以分开的普通运算符仍可按既有优先级组合：
+
+```ink
+const positive = + +value; // 合法的两个一元正号
+const restored = - -value; // 合法的两次数值取负
+value + +other;            // 合法的加法和一元正号
+```
 
 ## 11. CST 与恢复
 
-赋值 CST 保留左侧表达式、构成运算符的全部单字符 Symbol Token、右侧表达式和结尾分号，不建立 `AssignmentTarget` 节点。Parser 在 statement fallback 中先解析一个普通表达式，再根据紧随其后的连续符号序列区分赋值语句与普通表达式语句：
+赋值 CST 保留左侧表达式、构成运算符的全部单字符 Symbol Token、右侧表达式和结尾分号，不建立 `AssignmentTarget` 节点。Parser 在已经排除声明起点的 statement fallback 中先解析一个普通表达式，再根据紧随其后的连续符号序列区分赋值语句与普通表达式语句：
 
 ```text
-left = parse_expression()
+left = parse_statement_expression()
 
 if next tokens form assignment_operator:
     operator = parse_assignment_operator()
@@ -206,10 +223,10 @@ expect ";"
 return ExpressionStatement(left)
 ```
 
-赋值运算符不属于表达式优先级，所以 `parse_expression()` 会在 `=`、`+=` 等 Token 之前自然停止。该分流只发生在允许语句的入口；括号、实参、初始化器和条件内部仍只调用表达式 Parser，因此不会接受嵌入式赋值。
+赋值运算符不属于表达式优先级，所以 `parse_statement_expression()` 内部的普通表达式解析会在 `=`、`+=` 等完整符号序列之前停止。议题 02 的全语言最长匹配保证较高优先级表达式层不能先吞掉复合赋值运算符的前缀。该分流只发生在允许语句的入口；括号、实参、初始化器和条件内部仍只调用表达式 Parser，因此不会接受嵌入式赋值。
 
 如果一个赋值运算符之后再次遇到赋值运算符，Parser 不建立链式节点，而是按照议题 03 把后续非法结构保存在 `ErrorNode` 中并同步到语句结束位置。
 
 ## 12. 确认结论
 
-Ink 赋值是无结果的单目标语句。左右两侧都按普通表达式解析，左侧是否产生可写 place 由语义分析检查。支持普通赋值和常用算术、位运算、移位复合赋值；目标位置与右侧各求值一次。链式赋值、多目标赋值、赋值表达式、复合赋值链以及 `++`、`--` 均不支持。
+Ink 赋值是无结果的单目标语句。左侧先通过排除 `var`、`const` 的声明起点守卫，再与右侧一样按普通表达式解析；左侧是否产生可写 place 由语义分析检查。支持普通赋值和常用算术、位运算、移位复合赋值；目标位置与右侧各求值一次。复合赋值运算符按全语言最长匹配保持为不可拆分的 Parser 符号序列。链式赋值、多目标赋值、赋值表达式、复合赋值链以及 `++`、`--` 均不支持；相邻 `++`、`--` 是保留的非法序列，不能退回成普通运算符组合。

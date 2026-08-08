@@ -43,9 +43,20 @@ int main(int argc, char **argv)
   {
     std::cout << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";
   }
+  const ink::core::DiagnosticFormatter Formatter;
   for (const ink::core::Diagnostic &Diagnostic : Result.diagnostics())
   {
-    std::cerr << Diagnostic.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
+    const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
+    std::cerr << ink::core::diagnosticSeverityName(Formatted.Severity) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
+    for (const ink::core::FormattedDiagnosticNote &Note : Formatted.Notes)
+    {
+      std::cerr << "note: " << Note.Message;
+      if (Note.Span)
+      {
+        std::cerr << " [" << Note.Span->Start << ", " << Note.Span->End << ")";
+      }
+      std::cerr << '\n';
+    }
   }
   return Result.succeeded() ? 0 : 1;
 }

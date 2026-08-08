@@ -1,6 +1,6 @@
 # Parser 议题 04：标准 EBNF 记法
 
-> 状态：已确认，非终结符统一使用 `snake_case`；议题 27 同步 `from` 硬关键字的终结字符串记法
+> 状态：已确认，非终结符统一使用 `snake_case`；议题 02 规定复合 Symbol 终结字符串的全语言最长匹配；议题 27 同步 `from` 硬关键字的终结字符串记法
 > 确认日期：2026-08-03
 
 ## 1. 采用标准
@@ -34,7 +34,7 @@ binding_declaration = ( "var" | "const" ), identifier ;
 - `( ... )` 只用于分组；
 - `n * primary` 表示准确重复 `n` 次；
 - `(* ... *)` 是 EBNF 规范自身的注释；
-- `? ... ?` 是标准 EBNF special sequence，仅用于引用 Tokenizer 已经定义、但不适合在 Parser 文法中按字符重写的 Token 类别。
+- `? ... ?` 是标准 EBNF special sequence，用于引用 Tokenizer 已经定义的开放 Token 类别，或在准确位置引用对应议题已经规范定义的零宽度语法谓词。
 
 至少出现一次写为一个元素后接它的重复，而不使用后缀 `+`：
 
@@ -62,6 +62,7 @@ return_type
 "func"
 "("
 "->"
+"::<"
 ```
 
 Tokenizer 已经完成 Keyword、BuiltinType、Identifier 和 Symbol 的分类，因此：
@@ -69,11 +70,16 @@ Tokenizer 已经完成 Keyword、BuiltinType、Identifier 和 Symbol 的分类�
 - `"func"` 匹配拼写为 `func` 的 Keyword Token；
 - `"i32"` 匹配拼写为 `i32` 的 BuiltinType Token；
 - `"("` 匹配一个 `Symbol('(')` Token；
-- `"->"` 匹配直接相邻的 `Symbol('-')` 与 `Symbol('>')` 两个 Token。
+- `"->"` 匹配直接相邻的 `Symbol('-')` 与 `Symbol('>')` 两个 Token；
+- `"::<"` 匹配依次直接相邻的两个 `Symbol(':')` 与一个 `Symbol('<')` Token。
 
 terminal string 不会覆盖 Tokenizer 已经确定的 TokenKind。需要按某个 Identifier 的准确拼写建立上下文语法角色时，必须使用下一节的 special sequence 明确写出，不能把该 Identifier 伪装成硬关键字。
 
 一个 terminal string 内的字符必须在源码中直接相邻，不能跨 Trivia。不同 EBNF syntactic term 之间则通过议题 02 的显著 Token 视图匹配，可以存在 Trivia。
+
+Symbol terminal string 还必须遵守议题 02 的全语言最长匹配。普通上下文不能用较短 terminal string 消费一个已注册较长序列的前缀，例如 `"&"` 不能消费 `&&` 的第一个字符，`"*"` 不能消费 `*=` 的第一个字符。`++`、`--` 虽然不是合法表达式运算符，也注册为保留的非法序列，因此不能分别匹配成两个一元 `"+"` 或 `"-"`。
+
+全语言最长匹配只有两类受限的规范覆盖：已经进入泛型列表并在顶层期待右定界符时，单个 `">"` 可以逐字符关闭列表；类型构造后缀可以逐字符消费 `*` 和 `&`。后一类在已经提交的显式 `type` 上下文中直接生效；在普通表达式中，议题 30 的 `terminal_type_constructor_tail` 必须在 checkpoint 内试探，并且只有完整最大尾链到达调用者 EndSet 时才提交。表达式试探失败时必须完整回滚，随后恢复普通最长匹配；`*=`、`&=` 等赋值复合终端在任何情况下都不能被类型后缀拆开。两类覆盖都不改变任何真实 Token。
 
 因此：
 
@@ -99,7 +105,7 @@ return_type = "->", type ;
 separated_symbols = "-", ">" ;
 ```
 
-## 5. Token 类别
+## 5. Token 类别与零宽度谓词
 
 Identifier、字面量等开放集合通过标准 special sequence 引用 Tokenizer TokenKind：
 
@@ -116,6 +122,16 @@ EOF 可以定义为：
 ```ebnf
 end_of_file = ? EndOfFile Token ? ;
 ```
+
+少数依赖调用者上下文的确定性语法规则也使用 special sequence 放在实际检查位置。例如：
+
+```ebnf
+statement_expression =
+    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
+    expression ;
+```
+
+这种 special sequence 是不消费 Token 的谓词，其准确含义必须由对应 Parser 议题完整定义。汇总文法当前只把它用于声明起点排除、类型构造 Symbol 后缀的受限逐字符消费、函数返回类型最大消费以及终止型类型构造尾链的 EndSet 提交；实现不得把它推广为依赖名称绑定或语义类型的任意判定。
 
 Trivia 不出现在每条产生式中；它由议题 02 的统一游标规则隐式跳过并完整写入 CST。
 
@@ -141,10 +157,10 @@ identifier = ? Identifier Token ? ;
 
 能够由上下文无关语法准确表达的结构必须写入 EBNF。名称可见性、类型相容性、重复声明、`comptime` 求值成功等语义条件不写入 EBNF，而在对应语义规则中单独规定。
 
-当某项合法性确实依赖无法由标准 EBNF 表达的上下文条件时，产生式之后必须以明确文字列出约束，不能发明未定义的 EBNF 运算符。
+当某项合法性确实依赖无法由上下文无关产生式表达的上下文条件时，对应议题必须以明确文字列出规范性约束；汇总文法可以使用标准 special sequence 在准确检查位置引用该约束，不能发明未定义的 EBNF 运算符。议题 02 的全语言 Symbol 最长匹配、泛型顶层 `>` 定界覆盖和终止型类型构造尾链的事务性 EndSet 守卫属于所有相关产生式共同遵守的 Token 匹配约束。
 
 表达式优先级和结合性也必须最终对应到无歧义的标准 EBNF 分层产生式；实现可以使用 Pratt Parser 或其他等价算法，但实现算法不改变规范文法。
 
 ## 8. 确认结论
 
-Ink Parser 的正式语法统一使用 ISO/IEC 14977 风格的标准 EBNF。所有非终结符使用不含空格的 `snake_case` 名称。可选、重复、分组、连接和分支使用标准记号；终结字符串表示具有规范 TokenKind 的准确源码拼写，多字符终结字符串要求底层 Symbol Token 直接相邻；开放 Token 类别使用标准 special sequence 引用 Tokenizer 定义。
+Ink Parser 的正式语法统一使用 ISO/IEC 14977 风格的标准 EBNF。所有非终结符使用不含空格的 `snake_case` 名称。可选、重复、分组、连接和分支使用标准记号；终结字符串表示具有规范 TokenKind 的准确源码拼写，多字符终结字符串要求底层 Symbol Token 直接相邻，并遵守议题 02 的全语言最长匹配；special sequence 引用 Tokenizer 的开放 Token 类别或对应议题明确定义的零宽度语法谓词。无法写入上下文无关产生式的 Token 匹配约束必须在对应议题中明确列为规范规则。

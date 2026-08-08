@@ -205,6 +205,58 @@ namespace ink::tokenizer
       }
     }
 
+    // Verifies that scanning the complete Unicode identifier precedes keyword, Boolean, null, and built-in classification.
+    TEST(KeywordsAndBuiltinTypesTest, UnicodeContinuationPreventsReservedSpellingClassification)
+    {
+      const std::vector<std::string> Spellings = {
+          utf8(u8"func\u7528\u6237"),
+          utf8(u8"true\u503C"),
+          utf8(u8"false\u503C"),
+          utf8(u8"null\u503C"),
+          utf8(u8"i32\u53D8\u91CF"),
+      };
+
+      for (const std::string &Spelling : Spellings)
+      {
+        SCOPED_TRACE(Spelling);
+        const TokenizedBuffer Result = tokenize(Spelling);
+        ASSERT_TRUE(Result.succeeded());
+        ASSERT_EQ(Result.tokens().size(), 2U);
+        EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::Identifier);
+        EXPECT_EQ(Result.tokens()[0].Span, (SourceRange{0, Spelling.size()}));
+        EXPECT_EQ(Result.raw(Result.tokens()[0]), Spelling);
+        EXPECT_TRUE(std::holds_alternative<std::monostate>(Result.tokens()[0].Payload));
+        EXPECT_TRUE(Result.diagnostics().empty());
+        EXPECT_EQ(Result.tokens()[1].Kind, TokenKind::EndOfFile);
+      }
+    }
+
+    // Verifies that NFC-stable spellings with only compatibility equivalents remain identifiers rather than reserved ASCII spellings.
+    TEST(KeywordsAndBuiltinTypesTest, CompatibilityEquivalentUnicodeSpellingsRemainIdentifiers)
+    {
+      const std::vector<std::string> Spellings = {
+          utf8(u8"\uFF46\uFF55\uFF4E\uFF43"),
+          utf8(u8"\uFF54\uFF52\uFF55\uFF45"),
+          utf8(u8"\uFF46\uFF41\uFF4C\uFF53\uFF45"),
+          utf8(u8"\uFF4E\uFF55\uFF4C\uFF4C"),
+          utf8(u8"\uFF49\uFF13\uFF12"),
+      };
+
+      for (const std::string &Spelling : Spellings)
+      {
+        SCOPED_TRACE(Spelling);
+        const TokenizedBuffer Result = tokenize(Spelling);
+        ASSERT_TRUE(Result.succeeded());
+        ASSERT_EQ(Result.tokens().size(), 2U);
+        EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::Identifier);
+        EXPECT_EQ(Result.tokens()[0].Span, (SourceRange{0, Spelling.size()}));
+        EXPECT_EQ(Result.raw(Result.tokens()[0]), Spelling);
+        EXPECT_TRUE(std::holds_alternative<std::monostate>(Result.tokens()[0].Payload));
+        EXPECT_TRUE(Result.diagnostics().empty());
+        EXPECT_EQ(Result.tokens()[1].Kind, TokenKind::EndOfFile);
+      }
+    }
+
     // Verifies that surrounding punctuation and trivia do not alter keyword classification.
     TEST(KeywordsAndBuiltinTypesTest, ClassificationDoesNotDependOnSurroundingSyntax)
     {

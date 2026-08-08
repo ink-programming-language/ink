@@ -10,10 +10,10 @@ Ink 把取消定义为对正在执行任务的一项协作式请求。请求本�
 议题 43、44 的状态集合保持不变：
 
 ```text
-TaskState<T> =
+TaskState::<T> =
     created
     pending
-    succeeded(ResultStorage<T>)
+    succeeded(ResultStorage::<T>)
     failed(ExceptionBox)
 ```
 
@@ -214,7 +214,7 @@ cancel_requested():
 - 请求状态在热更新和调试器中的表示；
 - freestanding 目标是否只提供轮询查询。
 
-议题 49 已确定普通 `Task<T>.request_cancel()` 的公开请求语义，以及对 `created`、`pending` 和最终状态任务的行为。
+议题 49 已确定普通 `Task::<T>.request_cancel()` 的公开请求语义，以及对 `created`、`pending` 和最终状态任务的行为。
 
 后台调度设施由谁持有请求控制对象、关闭时如何请求任务停止，均由议题 52 划归具体库契约。
 

@@ -41,7 +41,7 @@ runtime parameter:  name: Type = expression
 generic parameter:  Name: Type = expression
 ```
 
-generic parameter list `<...>` 本身要求其中所有实参在声明闭合期间已知，因此不在形参类型前重复书写 `comptime`。`Name: comptime Type` 不属于 Ink 语法。
+generic declaration parameter list `<...>` 本身声明编译期形参，因此不在形参类型前重复书写 `comptime`。`Name: comptime Type` 不属于 Ink 语法。
 
 默认值不构成推导。它只在调用点省略具有声明默认值的参数时补全实参；位置调用只能省略连续尾部参数，命名实参则可以显式绑定较后的参数并跳过中间已有默认值的参数。
 
@@ -79,7 +79,7 @@ connect(timeout = custom_timeout, host = host);
 
 第二个调用仍按源码顺序先求值 `custom_timeout`，再求值 `host`；名称只改变形参绑定，不改变显式实参的求值顺序。未知名称、重复名称、位置实参与命名实参重复绑定同一形参，以及遗漏没有默认值的形参，均为编译错误。
 
-Ink v0 仍不提供命名泛型实参或“跳过当前位置”的匿名占位符。泛型 `<...>` 的默认值和参数包继续使用第 6、7 节的位置绑定规则。
+Ink v0 仍不提供命名泛型实参或“跳过当前位置”的匿名占位符。泛型声明参数的默认值和参数包继续使用第 6、7 节的位置绑定规则。
 
 ## 3. 普通默认表达式在每次调用时求值
 
@@ -151,14 +151,14 @@ func connect(
 编译期默认表达式在泛型实参绑定阶段执行：
 
 ```ink
-parse<>(text);   // Base = 10
-parse<16>(text); // Base = 16
+parse::<>(text);   // Base = 10
+parse::<16>(text); // Base = 16
 
-Buffer<i32>;     // Alignment = reflect(i32).alignment
-Buffer<i32, 16>; // Alignment = 16
+Buffer::<i32>;     // Alignment = reflect(i32).alignment
+Buffer::<i32, 16>; // Alignment = 16
 ```
 
-即使所有编译期参数都有默认值，调用开放泛型函数仍须写出 `<>`，明确请求使用默认编译期实参。议题 64 的无推导规则继续有效：
+即使所有编译期参数都有默认值，调用开放泛型函数仍须写出 `::<>`，明确请求使用默认编译期实参。议题 64 的无推导规则继续有效：
 
 ```ink
 parse(text); // 编译错误：没有显式请求开放泛型实例
@@ -192,12 +192,12 @@ class Values<
 位置绑定优先填充固定参数：
 
 ```text
-Values<>           → Element = i32, Rest = []
-Values<byte>       → Element = byte, Rest = []
-Values<byte, i32>  → Element = byte, Rest = [i32]
+Values::<>           → Element = i32, Rest = []
+Values::<byte>       → Element = byte, Rest = []
+Values::<byte, i32>  → Element = byte, Rest = [i32]
 ```
 
-因为 v0 没有命名泛型实参或泛型占位符，所以不能在使用 `Element` 默认值的同时为 `Rest` 提供非空位置实参。普通调用已经支持的命名实参不进入泛型 `<...>`。需要这种泛型接口时应重新排列 API 或显式写出默认值。
+因为 v0 没有命名泛型实参或泛型占位符，所以不能在使用 `Element` 默认值的同时为 `Rest` 提供非空位置实参。普通调用已经支持的命名实参不进入泛型应用的 `::<...>`。需要这种泛型接口时应重新排列 API 或显式写出默认值。
 
 ## 8. 默认值不属于函数签名或 ABI
 
@@ -209,7 +209,7 @@ func output(value: i32, radix: u32 = 10);
 
 它仍然只有一个二参数函数，不会隐式生成一参数重载。两个完整签名相同、只有默认表达式不同的声明属于重定义。
 
-议题 70 规定，普通默认实参只影响闭合候选能否接收当前实参数量，不进入签名或产生额外候选；编译期默认实参只有在调用者显式写出 `<>` 选择泛型候选后才参与绑定。
+议题 70 规定，普通默认实参只影响闭合候选能否接收当前实参数量，不进入签名或产生额外候选；编译期默认实参只有在调用者显式写出 `::<>` 选择泛型候选后才参与绑定。
 
 函数指针、裸稳定入口和其他只携带函数类型的调用必须提供全部参数：
 
@@ -292,7 +292,7 @@ evaluate explicit arguments
 - 默认表达式结果不能绑定目标类型；
 - 覆盖声明试图添加或改变默认值；
 - 函数指针或动态反射调用缺少完整实参；
-- 省略泛型默认实参却没有写出 `<>`；
+- 省略泛型默认实参却没有写出 `::<>`；
 - 参数包绑定与默认固定参数不符合位置规则。
 
 ## 14. 后续问题

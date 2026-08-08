@@ -84,6 +84,54 @@ namespace ink::tokenizer
       expectPartition(File);
     }
 
+    // Verifies that NEL, LINE SEPARATOR, and PARAGRAPH SEPARATOR remain escaped single-line string content without creating logical lines.
+    TEST(StringLiteralTest, UnicodeSeparatorsRemainSingleLineContentWithoutCreatingLines)
+    {
+      const std::vector<std::string> Separators = {
+          "\xC2\x85",
+          "\xE2\x80\xA8",
+          "\xE2\x80\xA9",
+      };
+
+      for (const std::string &Separator : Separators)
+      {
+        const std::string Source = "\"a" + Separator + "b\"";
+        SCOPED_TRACE(Source);
+        const TokenizedBuffer File = tokenize(Source);
+        ASSERT_TRUE(File.succeeded());
+        ASSERT_EQ(File.tokens().size(), 2U);
+        expectToken(File, 0, TokenKind::StringLiteral, Source);
+        EXPECT_EQ(stringPayload(File.tokens().front()).Mode, StringMode::EscapedSingleLine);
+        EXPECT_EQ(stringPayload(File.tokens().front()).Decoded, "a" + Separator + "b");
+        EXPECT_EQ(File.lineStarts(), (std::vector<std::size_t>{0}));
+        EXPECT_EQ(File.lineNumber(Source.size()), 1U);
+        expectPartition(File);
+      }
+    }
+
+    // Verifies that Unicode spaces are ordinary single-line string data rather than source trivia.
+    TEST(StringLiteralTest, NonAsciiWhitespaceRemainsSingleLineStringContent)
+    {
+      const std::vector<std::string> Spaces = {
+          "\xC2\xA0",
+          "\xE2\x80\x83",
+          "\xE3\x80\x80",
+      };
+
+      for (const std::string &Space : Spaces)
+      {
+        const std::string Source = "\"left" + Space + "right\"";
+        SCOPED_TRACE(Source);
+        const TokenizedBuffer File = tokenize(Source);
+        ASSERT_TRUE(File.succeeded());
+        ASSERT_EQ(File.tokens().size(), 2U);
+        expectToken(File, 0, TokenKind::StringLiteral, Source);
+        EXPECT_EQ(stringPayload(File.tokens().front()).Decoded, "left" + Space + "right");
+        EXPECT_EQ(File.lineStarts(), (std::vector<std::size_t>{0}));
+        expectPartition(File);
+      }
+    }
+
     // Verifies decoding of every supported simple escape in a string literal.
     TEST(StringLiteralTest, DecodesEverySimpleEscape)
     {
@@ -344,6 +392,23 @@ namespace ink::tokenizer
       expectPartition(File);
     }
 
+    // Verifies that a lone CR is retained inside one closed escaped string token and diagnosed at its exact byte.
+    TEST(StringLiteralTest, LoneCarriageReturnDoesNotTerminateAClosedSingleLineString)
+    {
+      const std::string Source = "\"a\rb\"";
+      const TokenizedBuffer File = tokenize(Source);
+
+      ASSERT_FALSE(File.succeeded());
+      ASSERT_EQ(File.tokens().size(), 2U);
+      expectToken(File, 0, TokenKind::InvalidStringLiteral, Source);
+      EXPECT_EQ(File.tokens().front().Span, (SourceRange{0, Source.size()}));
+      ASSERT_EQ(File.diagnostics().size(), 1U);
+      EXPECT_EQ(File.diagnostics().front().Kind, DiagnosticKind::LoneCarriageReturn);
+      EXPECT_EQ(File.diagnostics().front().Span, (SourceRange{2, 3}));
+      EXPECT_EQ(File.lineStarts(), (std::vector<std::size_t>{0}));
+      expectPartition(File);
+    }
+
     // Verifies that a backslash does not continue a single-line string across LF or CRLF.
     TEST(StringLiteralTest, BackslashDoesNotContinueASingleLineStringAcrossLf)
     {
@@ -387,9 +452,12 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, RejectsDirectInvisibleFormatCharacters)
     {
       const std::vector<std::string> InvisibleCharacters = {
+          "\xC2\xAD",
           "\xE2\x80\x8B",
           "\xE2\x80\xAE",
           "\xEF\xB8\x8F",
+          "\xEF\xBB\xBF",
+          "\xF3\xA0\x84\x80",
       };
 
       for (const std::string &Invisible : InvisibleCharacters)
@@ -397,8 +465,13 @@ namespace ink::tokenizer
         const std::string Source = std::string("\"a") + Invisible + "b\"";
         SCOPED_TRACE(Source);
         const TokenizedBuffer File = tokenize(Source);
-        EXPECT_FALSE(File.succeeded());
-        EXPECT_TRUE(hasDiagnostic(File, DiagnosticKind::InvisibleCharacter));
+        ASSERT_FALSE(File.succeeded());
+        ASSERT_EQ(File.tokens().size(), 2U);
+        expectToken(File, 0, TokenKind::InvalidStringLiteral, Source);
+        EXPECT_EQ(File.tokens().front().Span, (SourceRange{0, Source.size()}));
+        ASSERT_EQ(File.diagnostics().size(), 1U);
+        EXPECT_EQ(File.diagnostics().front().Kind, DiagnosticKind::InvisibleCharacter);
+        EXPECT_EQ(File.diagnostics().front().Span, (SourceRange{2, 2 + Invisible.size()}));
         expectPartition(File);
       }
     }
@@ -425,8 +498,8 @@ namespace ink::tokenizer
     // Verifies that invisible values are allowed when represented through Unicode escapes.
     TEST(StringLiteralTest, AllowsInvisibleValuesThroughUnicodeEscapes)
     {
-      const std::string Source = R"ink("\u{200B}\u{202E}\u{FE0F}")ink";
-      const std::string Expected = "\xE2\x80\x8B\xE2\x80\xAE\xEF\xB8\x8F";
+      const std::string Source = R"ink("\u{AD}\u{200B}\u{202E}\u{FE0F}\u{FEFF}\u{E0100}")ink";
+      const std::string Expected = "\xC2\xAD\xE2\x80\x8B\xE2\x80\xAE\xEF\xB8\x8F\xEF\xBB\xBF\xF3\xA0\x84\x80";
       const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_TRUE(File.succeeded());

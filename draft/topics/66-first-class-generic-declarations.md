@@ -12,7 +12,7 @@ func wrap_value<
     Wrapper: GenericTypeDecl,
     Source: type
 >() -> type {
-    const Wrapped: type = Wrapper.instantiate<Source>();
+    const Wrapped: type = Wrapper.instantiate::<Source>();
 
     return class {
         var value: Wrapped;
@@ -24,10 +24,10 @@ func wrap_value<
 
 ```ink
 const UserPatch: type =
-    wrap_value<Optional, User>();
+    wrap_value::<Optional, User>();
 ```
 
-这里传递的是开放声明 `Optional`，不是某个已经闭合的 `Optional<T>`。
+这里传递的是开放声明 `Optional`，不是某个已经闭合的 `Optional::<T>`。
 
 ## 2. 内建编译期元类型
 
@@ -58,23 +58,23 @@ class Vector<T: type> {
 
 ```text
 Vector      : GenericTypeDecl
-Vector<i32> : type
+Vector::<i32> : type
 ```
 
 开放声明不是 `type`，不能用作字段类型、数组元素类型、函数运行时参数类型或 `sizeof` 的闭合操作数：
 
 ```ink
 var field: Vector;              // 编译错误：开放声明不是 type
-var field: Vector<i32>;         // 合法
+var field: Vector::<i32>;         // 合法
 reflect(Vector).size;       // 编译错误：开放声明没有对象大小
-reflect(Vector<i32>).size;  // 合法
+reflect(Vector::<i32>).size;  // 合法
 ```
 
 同理，`GenericFunctionDecl` 不是可直接进入运行时调用约定的闭合函数值。
 
 ## 4. 取得开放声明值
 
-当表达式位置明确要求 `GenericTypeDecl` 时，可以直接使用未带尖括号的开放泛型名称：
+当表达式位置明确要求 `GenericTypeDecl` 时，可以直接使用未应用 `::<...>` 的开放泛型名称：
 
 ```ink
 func make_cache<
@@ -82,11 +82,11 @@ func make_cache<
     Key: type,
     Value: type
 >() -> type {
-    return Storage.instantiate<Key, Value>();
+    return Storage.instantiate::<Key, Value>();
 }
 
 const CacheType =
-    make_cache<HashMap, String, User>();
+    make_cache::<HashMap, String, User>();
 ```
 
 编译期序列可以显式声明元素元类型：
@@ -109,25 +109,25 @@ const Containers: GenericTypeDecl[] = comptime [
 
 ```ink
 const First: type =
-    Container.instantiate<i32>();
+    Container.instantiate::<i32>();
 
 const Second: type =
-    Matrix.instantiate<f32, 4, 4>();
+    Matrix.instantiate::<f32, 4, 4>();
 ```
 
-`instantiate<...>()` 的尖括号是异构编译期实参列表，由目标声明自己的形参逐项检查；它不要求先把不同类型的实参擦除进一个运行时 `Any[]`。`instantiate` 不是可取得地址的普通运行时方法，而是编译器识别的编译期声明应用操作。
+`instantiate::<...>()` 的 `::<` 引导异构编译期实参列表，由目标声明自己的形参逐项检查；它不要求先把不同类型的实参擦除进一个运行时 `Any[]`。`instantiate` 不是可取得地址的普通运行时方法，而是编译器识别的编译期声明应用操作。
 
 直接写出的泛型名称继续使用普通简写：
 
 ```ink
-Vector<i32>
+Vector::<i32>
 ```
 
-只有通过变量、参数或序列元素持有开放声明时才需要显式 `.instantiate<i32>()`。
+只有通过变量、参数或序列元素持有开放声明时才需要显式 `.instantiate::<i32>()`。
 
 ## 6. 使用统一泛型绑定规则
 
-`instantiate<...>()` 完全复用已经确认的泛型绑定规则：
+`instantiate::<...>()` 完全复用已经确认的泛型绑定规则：
 
 1. 议题 64：不从其他值推导缺少的实参；
 2. 显式实参按照位置绑定固定形参；
@@ -148,8 +148,8 @@ class Map<
     Value: type
 > {}
 
-Map.instantiate<String>();       // 编译错误：缺少 Value
-Map.instantiate<String, User>(); // 合法，返回 type
+Map.instantiate::<String>();       // 编译错误：缺少 Value
+Map.instantiate::<String, User>(); // 合法，返回 type
 ```
 
 Ink v0 不定义柯里化、占位参数、泛型 lambda 或高阶 kind 运算。需要预绑定一部分参数时，用户显式写一个新的普通泛型包装声明。
@@ -212,10 +212,10 @@ type -> type
 ```ink
 const SortDecl: GenericFunctionDecl = comptime sort;
 const SortI32: FunctionDecl =
-    comptime SortDecl.instantiate<i32>();
+    comptime SortDecl.instantiate::<i32>();
 ```
 
-这会请求并返回闭合 `sort<i32>` 声明，可用于编译期反射、验证以及静态声明区域控制中的类型或表达式选择。
+这会请求并返回闭合 `sort::<i32>` 声明，可用于编译期反射、验证以及静态声明区域控制中的类型或表达式选择。
 
 擦除后的 `FunctionDecl` 不携带一个可由普通运行时类型检查器直接调用的静态函数签名，因此 v0 不规定：
 
@@ -226,7 +226,7 @@ SortI32(values); // 不由本议题允许
 普通源码需要调用时直接使用类型明确的泛型调用：
 
 ```ink
-sort<i32>(values);
+sort::<i32>(values);
 ```
 
 未来若需要从声明句柄得到带准确签名的函数值，必须设计独立的类型化函数声明或函数指针转换，不得通过擦除句柄绕过参数检查。
@@ -244,7 +244,7 @@ generic declaration identity
 + tracked comptime dependencies
 ```
 
-从开放声明值和从直接 `Vector<i32>` 语法请求相同规范化实例时得到同一闭合类型身份。
+从开放声明值和从直接 `Vector::<i32>` 语法请求相同规范化实例时得到同一闭合类型身份。
 
 源码分发时，声明身份由当前兼容编译中的源码模块和声明位置建立。它不是可跨编译器版本保存或通过 C ABI 交换的稳定整数 ID。
 

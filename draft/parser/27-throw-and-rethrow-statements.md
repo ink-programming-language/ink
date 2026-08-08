@@ -36,7 +36,7 @@ try {
     parse_config();
 } catch ParseError as error {
     throw ConfigurationError {
-        message: "invalid configuration",
+        message: "invalid configuration"
     } from error;
 }
 ```
@@ -53,6 +53,8 @@ try {
 ```
 
 `throw expression;`、`throw expression from identifier;` 和 `throw;` 是同一个语句节点的三种语法形状；三者共享 `throw`，原因形态额外使用硬关键字 `from`。
+
+上述 `FileNotFound { path }` 使用聚合字段简写。聚合初始化器正式接受 `identifier` 作为独立字段初始化项，语义等价于同名的 `identifier: identifier`；因此 `FileNotFound { path }` 等价于 `FileNotFound { path: path }`。Parser 必须为简写保留独立的 `AggregateFieldShorthand` CST 节点，不伪造冒号或第二个标识符。显式字段初始化项和简写项都遵守议题 07 的普通逗号列表规则，v0 不允许尾随逗号。
 
 ## 3. `throw expression;` 创建新异常
 

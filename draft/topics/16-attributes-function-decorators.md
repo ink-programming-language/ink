@@ -149,7 +149,7 @@ func invalid_return() -> [attribute] Result;     // 语法错误
 从类型关系看，一个 decorator 在编译期执行：
 
 ```text
-Function<Signature> → Function<Signature>
+Function::<Signature> → Function::<Signature>
 ```
 
 输入和输出具有同一参数、返回类型、receiver、调用约定和 ABI。Decorator 可以改变调用过程和正常结果值，但不能改变目标函数的公开签名。
@@ -175,7 +175,7 @@ decorator trace(name: string) {
 
 议题 58 使用显式 `async decorator` 装饰异步函数。其生成代码属于目标 coroutine 的执行体，不属于同步任务构造入口；特殊 continuation 写成 `await function(...)`，但降低为同一个状态机内的 region，不创建第二个任务。
 
-议题 59 确认 Ink v0 不提供任务构造装饰器。需要在惰性任务建立前后运行用户代码时，显式编写同步函数返回 `Task<T>`，并可对该同步任务工厂应用本议题的普通 `decorator`。
+议题 59 确认 Ink v0 不提供任务构造装饰器。需要在惰性任务建立前后运行用户代码时，显式编写同步函数返回 `Task::<T>`，并可对该同步任务工厂应用本议题的普通 `decorator`。
 
 装饰器不是：
 

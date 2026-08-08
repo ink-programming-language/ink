@@ -49,7 +49,7 @@ evaluate interface receiver and arguments
     → read the async interface slot and acquire the selected version pin
     → invoke the slot's task-construction thunk
     → normalize or adjust the receiver required by the selected implementation
-    → construct the selected implementation's lazy Task<T>
+    → construct the selected implementation's lazy Task::<T>
     → transfer all required implementation/table pins into the task
     → return the created task
 ```
@@ -63,14 +63,14 @@ evaluate interface receiver and arguments
 ```text
 async interface slot:
     construct_task(
-        result_storage: Task<T>*,
+        result_storage: Task::<T>*,
         object: void*,
         dispatch_table: InterfaceTable*,
         arguments...
     )
 ```
 
-`object` 和 `dispatch_table` 来自议题 26 的两字接口胖引用。`Task<T>*` 是隐藏最终返回位置，不表示把已有命名任务借给方法，也不引入任务移动。
+`object` 和 `dispatch_table` 来自议题 26 的两字接口胖引用。`Task::<T>*` 是隐藏最终返回位置，不表示把已有命名任务借给方法，也不引入任务移动。
 
 议题 57 的异步接口反射适配器在调用点验证 `DynamicRef`、逻辑结果类型和接口实现关系，然后进入同一个槽构造 ABI。反射路径不能改变任务接收者表示，也不能推迟接口分派。
 
@@ -83,9 +83,9 @@ async interface slot:
 - 建立最终实现所需的具体 coroutine frame；
 - 保存对应 resume、destroy 和异常边界入口；
 - 转移受保护分派已经取得的版本固定；
-- 在调用方提供的最终 `Task<T>` 存储中完成构造。
+- 在调用方提供的最终 `Task::<T>` 存储中完成构造。
 
-不同接口实现和默认方法可以具有不同帧布局。调用方只依赖统一的 `Task<T>` 表示和接口槽构造 ABI，不依赖具体帧大小。
+不同接口实现和默认方法可以具有不同帧布局。调用方只依赖统一的 `Task::<T>` 表示和接口槽构造 ABI，不依赖具体帧大小。
 
 ## 4. 类实现只保存调整后的原始 `this`
 
@@ -182,11 +182,11 @@ class BadSync : Reader {
 }
 
 class AlsoBad : Reader {
-    override func read() -> Task<Data*>; // 编译错误
+    override func read() -> Task::<Data*>; // 编译错误
 }
 ```
 
-同步返回 `Task<T>` 的普通函数是任务工厂，不是 `async func`。它可能在调用表达式中执行同步函数体，并具有不同的接口槽调用约定和创建期异常边界。
+同步返回 `Task::<T>` 的普通函数是任务工厂，不是 `async func`。它可能在调用表达式中执行同步函数体，并具有不同的接口槽调用约定和创建期异常边界。
 
 异步默认方法只与兼容的异步要求和异步默认方法参与议题 29、30 的满足、覆盖、合并、冲突消解及重新抽象。同步方法不能静默满足异步要求，异步方法也不能静默满足同步要求。同步与异步同名声明能否作为普通重载共存，继续服从完整函数重载规则；本议题不使用 `await` 是否出现或期望的 `Task` 结果来隐式消歧。
 

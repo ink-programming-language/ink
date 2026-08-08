@@ -11,7 +11,7 @@
 failed(ExceptionBox)
 ```
 
-核心 `Task<T>` 不把它细分为 `unobserved_failed`、`observed_failed` 等状态，也不保存 `observed` 标志、观察次数或“第一个观察者”。
+核心 `Task::<T>` 不把它细分为 `unobserved_failed`、`observed_failed` 等状态，也不保存 `observed` 标志、观察次数或“第一个观察者”。
 
 任务是否失败是任务自身的不可变结果；某个等待者是否读取、捕获或继续传播该失败，是该等待者的一次控制流事件，不写回任务。
 
@@ -60,7 +60,7 @@ try {
 议题 51 的失败析构分支最终确定为：
 
 ```text
-destroy failed Task<T>:
+destroy failed Task::<T>:
     release task's hold on ExceptionBox
     destroy remaining frame state
     unpin compatible module version
@@ -78,7 +78,7 @@ destroy failed Task<T>:
 
 ## 5. 析构期间不能报告失败
 
-`Task<T>` 可能因为普通作用域退出，也可能在另一个异常已经展开时析构。若失败任务析构尝试抛出、调用任意用户处理器或执行复杂日志，会引入：
+`Task::<T>` 可能因为普通作用域退出，也可能在另一个异常已经展开时析构。若失败任务析构尝试抛出、调用任意用户处理器或执行复杂日志，会引入：
 
 - 析构期间的第二个异常；
 - 隐藏 I/O、分配和锁；
@@ -115,7 +115,7 @@ destroy failed Task<T>:
 - 在库的 join 或 shutdown API 中返回失败；
 - 采用库明确说明的 fail-fast 策略。
 
-这些字段、原子操作、引用计数和报告成本属于该库对象，不写入核心 `Task<T>`，也不改变普通 `Task` 析构语义。
+这些字段、原子操作、引用计数和报告成本属于该库对象，不写入核心 `Task::<T>`，也不改变普通 `Task` 析构语义。
 
 ## 9. 编译器诊断
 
@@ -132,7 +132,7 @@ destroy failed Task<T>:
 
 ## 10. 成本模型
 
-本设计不会为核心 `Task<T>` 增加：
+本设计不会为核心 `Task::<T>` 增加：
 
 - observation bit 或观察计数；
 - 每次成功或失败 `await` 的原子写入；

@@ -45,6 +45,8 @@ namespace ink::tokenizer
           {"'A'", U'A'},
           {utf8(u8"'\u00E9'"), U'\u00E9'},
           {utf8(u8"'\u4E2D'"), U'\u4E2D'},
+          {utf8(u8"'\uD7FF'"), U'\uD7FF'},
+          {utf8(u8"'\uE000'"), U'\uE000'},
           {utf8(u8"'\U0001F600'"), U'\U0001F600'},
       };
 
@@ -60,6 +62,30 @@ namespace ink::tokenizer
         EXPECT_EQ(Result.raw(Token), Test.Spelling);
         ASSERT_TRUE(std::holds_alternative<char32_t>(Token.Payload));
         EXPECT_EQ(std::get<char32_t>(Token.Payload), Test.Value);
+      }
+    }
+
+    // Verifies that NEL, LINE SEPARATOR, and PARAGRAPH SEPARATOR are scalar contents rather than logical source line breaks.
+    TEST(ScalarLiteralsTest, UnicodeSeparatorsRemainScalarValuesWithoutCreatingLines)
+    {
+      const std::vector<ValidScalarCase> Cases = {
+          {std::string("'\xC2\x85'", 4), static_cast<char32_t>(0x0085)},
+          {utf8(u8"'\u2028'"), U'\u2028'},
+          {utf8(u8"'\u2029'"), U'\u2029'},
+      };
+
+      for (const ValidScalarCase &Test : Cases)
+      {
+        SCOPED_TRACE(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        ASSERT_TRUE(Result.succeeded());
+        ASSERT_EQ(Result.tokens().size(), 2U);
+        EXPECT_EQ(Result.tokens().front().Kind, TokenKind::ScalarLiteral);
+        EXPECT_EQ(Result.raw(Result.tokens().front()), Test.Spelling);
+        ASSERT_TRUE(std::holds_alternative<char32_t>(Result.tokens().front().Payload));
+        EXPECT_EQ(std::get<char32_t>(Result.tokens().front().Payload), Test.Value);
+        EXPECT_EQ(Result.lineStarts(), (std::vector<std::size_t>{0}));
+        EXPECT_EQ(Result.lineNumber(Test.Spelling.size()), 1U);
       }
     }
 
@@ -101,10 +127,15 @@ namespace ink::tokenizer
           {"'\\u{0}'", U'\0'},
           {"'\\u{41}'", U'A'},
           {"'\\u{4E2D}'", U'\u4E2D'},
+          {"'\\u{D7FF}'", U'\uD7FF'},
+          {"'\\u{E000}'", U'\uE000'},
           {"'\\u{1F600}'", U'\U0001F600'},
           {"'\\u{10FFFF}'", U'\U0010FFFF'},
+          {"'\\u{AD}'", static_cast<char32_t>(0x00AD)},
           {"'\\u{200B}'", U'\u200B'},
           {"'\\u{202E}'", U'\u202E'},
+          {"'\\u{FEFF}'", U'\uFEFF'},
+          {"'\\u{E0100}'", static_cast<char32_t>(0xE0100)},
       };
 
       for (const ValidScalarCase &Test : Cases)
@@ -321,20 +352,28 @@ namespace ink::tokenizer
     // Verifies that direct invisible and control characters require explicit escape spellings.
     TEST(ScalarLiteralsTest, RequiresInvisibleAndControlCharactersToBeEscaped)
     {
-      const std::vector<std::string> InvisibleSpellings = {
-          utf8(u8"'\u200B'"),
-          utf8(u8"'\u202E'"),
-          utf8(u8"'\uFE0F'"),
+      const std::vector<std::string> InvisibleCharacters = {
+          "\xC2\xAD",
+          "\xE2\x80\x8B",
+          "\xE2\x80\xAE",
+          "\xEF\xB8\x8F",
+          "\xEF\xBB\xBF",
+          "\xF3\xA0\x84\x80",
       };
 
-      for (const std::string &Spelling : InvisibleSpellings)
+      for (const std::string &Invisible : InvisibleCharacters)
       {
+        const std::string Spelling = "'" + Invisible + "'";
         SCOPED_TRACE(Spelling);
         const TokenizedBuffer Result = tokenize(Spelling);
         ASSERT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasDiagnostic(Result, DiagnosticKind::InvisibleCharacter));
-        ASSERT_FALSE(Result.tokens().empty());
+        ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
+        EXPECT_EQ(Result.tokens().front().Span, (SourceRange{0, Spelling.size()}));
+        EXPECT_EQ(Result.raw(Result.tokens().front()), Spelling);
+        ASSERT_EQ(Result.diagnostics().size(), 1U);
+        EXPECT_EQ(Result.diagnostics().front().Kind, DiagnosticKind::InvisibleCharacter);
+        EXPECT_EQ(Result.diagnostics().front().Span, (SourceRange{1, 1 + Invisible.size()}));
       }
 
       std::string ControlSpelling = "'";
@@ -351,9 +390,14 @@ namespace ink::tokenizer
       CarriageReturnSpelling.push_back('\'');
       const TokenizedBuffer CarriageReturnResult = tokenize(CarriageReturnSpelling);
       ASSERT_FALSE(CarriageReturnResult.succeeded());
-      EXPECT_TRUE(hasDiagnostic(CarriageReturnResult, DiagnosticKind::LoneCarriageReturn));
-      ASSERT_FALSE(CarriageReturnResult.tokens().empty());
+      ASSERT_EQ(CarriageReturnResult.tokens().size(), 2U);
       EXPECT_EQ(CarriageReturnResult.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
+      EXPECT_EQ(CarriageReturnResult.tokens().front().Span, (SourceRange{0, 3}));
+      EXPECT_EQ(CarriageReturnResult.raw(CarriageReturnResult.tokens().front()), CarriageReturnSpelling);
+      ASSERT_EQ(CarriageReturnResult.diagnostics().size(), 1U);
+      EXPECT_EQ(CarriageReturnResult.diagnostics().front().Kind, DiagnosticKind::LoneCarriageReturn);
+      EXPECT_EQ(CarriageReturnResult.diagnostics().front().Span, (SourceRange{1, 2}));
+      EXPECT_EQ(CarriageReturnResult.lineStarts(), (std::vector<std::size_t>{0}));
     }
 
     // Verifies that an unterminated scalar stops before LF or CRLF and tokenization then resumes.

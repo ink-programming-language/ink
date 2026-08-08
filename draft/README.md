@@ -67,7 +67,7 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 57 | 异步动态反射调用返回惰性任务 | 已确认，议题 58、60、61 补充；拥有型动态任务 API 待定 | [`topics/57-async-dynamic-reflection-call.md`](./topics/57-async-dynamic-reflection-call.md) |
 | 58 | 异步函数装饰器包围任务执行体 | 已确认，异步 continuation 可零次或多次进入且不生成模块生命周期代码；议题 24、59 补充；Parser 议题 27、36、37 同步抛出、装饰器声明与全参数转发语法 | [`topics/58-async-decorators-wrap-task-body.md`](./topics/58-async-decorators-wrap-task-body.md) |
 | 59 | Ink v0 不提供任务构造装饰器 | 已确认，创建期自定义行为使用显式同步任务工厂 | [`topics/59-no-task-construction-decorators.md`](./topics/59-no-task-construction-decorators.md) |
-| 60 | 异步覆盖不支持协变结果 | 已确认，`Task<T>` 对结果类型不变型 | [`topics/60-no-covariant-async-results.md`](./topics/60-no-covariant-async-results.md) |
+| 60 | 异步覆盖不支持协变结果 | 已确认，`Task::<T>` 对结果类型不变型 | [`topics/60-no-covariant-async-results.md`](./topics/60-no-covariant-async-results.md) |
 | 61 | `comptime` 泛型、部分求值与编译期执行 | 已确认，议题 62—72 补充泛型、静态声明展开、重载、元组元值与统一函数阶段；Parser 议题 31、32 确认泛型函数声明与统一区域控制 | [`topics/61-comptime-generics-partial-evaluation.md`](./topics/61-comptime-generics-partial-evaluation.md) |
 | 62 | 编译期参数包是普通编译期序列 | 已确认，议题 64、66、68—71 补充绑定、反射、运行时包、元组与重载；Parser 议题 29、31 统一展开与包声明 | [`topics/62-comptime-parameter-packs.md`](./topics/62-comptime-parameter-packs.md) |
 | 63 | Ink v0 不提供字符串到代码生成 | 已确认，议题 67 确认只选择或重复静态源码声明且不提供 Identifier splice；Parser 议题 40 定义 class 类型表达式；允许静态候选集条件导入 | [`topics/63-no-string-to-code-generation.md`](./topics/63-no-string-to-code-generation.md) |

@@ -257,8 +257,8 @@ Ink v0 不再引入第二套 `union` 或 `variant` 关键字。带载荷 `enum` 
 
 ```ink
 const color = Color.red;
-const value = Optional<int>.some(10);
-const empty = Optional<int>.none;
+const value = Optional::<int>.some(10);
+const empty = Optional::<int>.none;
 ```
 
 只有活动分支的载荷处于对象生命周期内。程序不能直接读取、写入或析构非活动分支的存储，也不能把默认枚举布局当作无判别的内存覆盖区使用。
@@ -274,7 +274,7 @@ const empty = Optional<int>.none;
 ```ink
 enum InvalidList<T: type> {
     end,
-    node(T, InvalidList<T>) // 编译错误：无限递归布局
+    node(T, InvalidList::<T>) // 编译错误：无限递归布局
 }
 ```
 
@@ -369,28 +369,28 @@ enum storage = {
 
 如果某个载荷类型存在语言和目标 ABI 明确认定为无效的位模式，编译器可以使用这些位模式编码其他枚举分支，从而省略独立判别字段。
 
-例如非空引用的空地址模式不能表示有效 `T&`，因此可以编码 `Optional<T&>.none`：
+例如非空引用的空地址模式不能表示有效 `T&`，因此可以编码 `Optional::<T&>.none`：
 
 ```text
-Optional<T&>.none        = null address
-Optional<T&>.some(value) = non-null reference address
+Optional::<T&>.none        = null address
+Optional::<T&>.some(value) = non-null reference address
 ```
 
-接口引用的有效值要求规范对象地址和接口表有效，因此 `Optional<Interface&>` 可以使用空接口引用作为 `none`，而不增加第三个机器字。
+接口引用的有效值要求规范对象地址和接口表有效，因此 `Optional::<Interface&>` 可以使用空接口引用作为 `none`，而不增加第三个机器字。
 
 并非所有类型都有 niche：
 
-- `u8` 的全部位模式都是有效数值，`Optional<u8>` 通常需要额外状态；
-- `T*` 自身允许 `null`，如果 `Optional<T*>` 需要区分 `none` 和 `some(null)`，不能直接用空指针同时表示二者；
+- `u8` 的全部位模式都是有效数值，`Optional::<u8>` 通常需要额外状态；
+- `T*` 自身允许 `null`，如果 `Optional::<T*>` 需要区分 `none` 和 `some(null)`，不能直接用空指针同时表示二者；
 - 嵌套枚举需要足够多的不同状态，单个 niche 未必够用。
 
 niche 优化是所有枚举都可使用的通用布局优化，不根据 `Optional` 的名称触发。它通常减少存储、复制量和缓存压力，但不会消除读取活动分支时必要的状态检查。
 
 除非某个目标 ABI 或显式表示属性另有保证，源码不能把某项 niche 选择当作可移植 FFI 布局承诺。
 
-## 9. 标准库 `Optional<T>`
+## 9. 标准库 `Optional::<T>`
 
-Ink 不提供 `T?` 类型语法，也不把 `Optional<T>` 定义成编译器内建类型。核心标准库使用普通 Ink 泛型枚举定义：
+Ink 不提供 `T?` 类型语法，也不把 `Optional::<T>` 定义成编译器内建类型。核心标准库使用普通 Ink 泛型枚举定义：
 
 ```ink
 enum Optional<T: type> {
@@ -399,9 +399,9 @@ enum Optional<T: type> {
 }
 ```
 
-编译器内建的 `try_cast<T&>` 返回 `core.Optional<T&>`，但该返回类型仍是标准库声明。最小核心库环境必须提供规范的 `core.Optional`；用户定义的同名类型不能替换内建操作所引用的核心声明。
+编译器内建的 `try_cast::<T&>` 返回 `core.Optional::<T&>`，但该返回类型仍是标准库声明。最小核心库环境必须提供规范的 `core.Optional`；用户定义的同名类型不能替换内建操作所引用的核心声明。
 
-`Optional<T&>` 可以像其他包含引用的值一样返回或长期保存，但不会因被包在枚举载荷中而延长目标生命周期。引用失效后解包并访问目标属于 UB。
+`Optional::<T&>` 可以像其他包含引用的值一样返回或长期保存，但不会因被包在枚举载荷中而延长目标生命周期。引用失效后解包并访问目标属于 UB。
 
 `Optional` 的 `if (match ...)` 解包和 `match (...)` 规则由议题 33 规定。议题 34 已确定不提供后缀 `?` 传播；便捷方法和额外构造 API 不属于枚举布局本身，留给标准库议题。
 

@@ -3,16 +3,16 @@
 > 状态：已确认，议题 32—34 补充  
 > 确认日期：2026-08-02
 
-## 1. `try_cast<T>(value)`
+## 1. `try_cast::<T>(value)`
 
-Ink 使用编译器内建的 `try_cast<T>(value)` 表达可能失败的安全运行时类型转换：
+Ink 使用编译器内建的 `try_cast::<T>(value)` 表达可能失败的安全运行时类型转换：
 
 ```ink
-if (match .some(player) = try_cast<Player&>(entity)) {
+if (match .some(player) = try_cast::<Player&>(entity)) {
     player.use_item();
 }
 
-const player_pointer: Player* = try_cast<Player*>(entity_pointer);
+const player_pointer: Player* = try_cast::<Player*>(entity_pointer);
 if (player_pointer != null) {
     player_pointer->use_item();
 }
@@ -27,16 +27,16 @@ if (player_pointer != null) {
 引用目标返回标准库 `Optional`：
 
 ```text
-try_cast<T&>(source)       -> Optional<T&>
-try_cast<const T&>(source) -> Optional<const T&>
+try_cast::<T&>(source)       -> Optional::<T&>
+try_cast::<const T&>(source) -> Optional::<const T&>
 ```
 
-Ink 不提供 `T?` 或 `T&?` 类型语法。`Optional<T>` 由标准库使用议题 32 的普通泛型枚举实现。成功的 `Optional<T&>` 包含指向原对象相应视图的非拥有引用，失败时为 `none`，必须按照议题 33 通过普通枚举模式解包。该 Optional 可以返回和长期保存，但不会延长目标生命周期；目标失效后继续使用其中引用属于 UB。
+Ink 不提供 `T?` 或 `T&?` 类型语法。`Optional::<T>` 由标准库使用议题 32 的普通泛型枚举实现。成功的 `Optional::<T&>` 包含指向原对象相应视图的非拥有引用，失败时为 `none`，必须按照议题 33 通过普通枚举模式解包。该 Optional 可以返回和长期保存，但不会延长目标生命周期；目标失效后继续使用其中引用属于 UB。
 
 类裸指针目标继续使用已经可空的 `T*`：
 
 ```text
-try_cast<T*>(source_pointer) -> T*
+try_cast::<T*>(source_pointer) -> T*
 ```
 
 源指针为 `null` 时直接返回 `null`，不读取类型信息。非空源指针上的类型检查失败也返回 `null`。
@@ -50,8 +50,8 @@ try_cast<T*>(source_pointer) -> T*
 ```ink
 const entity: const Entity& = value;
 
-try_cast<Player&>(entity);       // 编译错误：去掉 const
-try_cast<const Player&>(entity); // 合法
+try_cast::<Player&>(entity);       // 编译错误：去掉 const
+try_cast::<const Player&>(entity); // 合法
 ```
 
 裸指针目标遵守相同规则。确实需要显式去掉裸指针 `const` 时仍使用议题 11 的 `ptrcast`，并由程序员承担底层存储可写性的前置条件。
@@ -85,7 +85,7 @@ class Player : Entity {
 }
 
 func inspect(entity: Entity&) {
-    if (match .some(player) = try_cast<Player&>(entity)) {
+    if (match .some(player) = try_cast::<Player&>(entity)) {
         // entity 的动态具体类是 Player 或 Player 的派生类
     }
 }
@@ -100,7 +100,7 @@ class Base {}
 class Derived : Base {}
 
 func inspect(base: Base&) {
-    try_cast<Derived&>(base); // 编译错误：Base 不是动态类型源
+    try_cast::<Derived&>(base); // 编译错误：Base 不是动态类型源
 }
 ```
 
@@ -113,7 +113,7 @@ Ink 不为支持这种转换而给所有普通类增加隐藏类型指针或建�
 ```ink
 const renderable: Renderable& = sprite;
 
-if (match .some(sprite_ref) = try_cast<Sprite&>(renderable)) {
+if (match .some(sprite_ref) = try_cast::<Sprite&>(renderable)) {
     sprite_ref.set_frame(4);
 }
 ```
@@ -127,11 +127,11 @@ if (match .some(sprite_ref) = try_cast<Sprite&>(renderable)) {
 ```ink
 func inspect(reader: Reader&) {
     if (match .some(seekable) =
-        try_cast<SeekableReader&>(reader)) {
+        try_cast::<SeekableReader&>(reader)) {
         seekable.seek(0);
     }
 
-    if (match .some(closable) = try_cast<Closable&>(reader)) {
+    if (match .some(closable) = try_cast::<Closable&>(reader)) {
         closable.close();
     }
 }
@@ -157,7 +157,7 @@ source { object, source_table }
 ```ink
 func inspect(entity: Entity&) {
     if (match .some(serializable) =
-        try_cast<Serializable&>(entity)) {
+        try_cast::<Serializable&>(entity)) {
         serializable.serialize();
     }
 }
@@ -191,7 +191,7 @@ class InternalNode : Node, Visitable {
 
 `[reflect]` 只控制用户可见的完整运行时反射描述符、名称注册、动态字段访问和动态函数调用。如果类型同时具有 `[reflect]`，完整 `TypeInfo` 可以引用或复用最小描述符中的身份、布局版本和关系数据，但两种能力在语言层面不互相隐含。
 
-完全动态的 `DynamicRef` 已经携带或可以定位动态反射类型描述符。对它执行强类型 `try_cast<T&>` 时使用相同的关系检查和布局版本规则。
+完全动态的 `DynamicRef` 已经携带或可以定位动态反射类型描述符。对它执行强类型 `try_cast::<T&>` 时使用相同的关系检查和布局版本规则。
 
 ## 11. 名称身份和快速缓存
 
@@ -223,8 +223,8 @@ class InternalNode : Node, Visitable {
 `try_cast` 检查类型关系并在失败时返回空结果；`ptrcast` 只重解释裸指针地址位，不检查实际对象类型。
 
 ```ink
-const checked: Derived* = try_cast<Derived*>(base_pointer);
-const unchecked: Derived* = ptrcast<Derived*>(base_pointer);
+const checked: Derived* = try_cast::<Derived*>(base_pointer);
+const unchecked: Derived* = ptrcast::<Derived*>(base_pointer);
 ```
 
 第二种转换本身不验证 `base_pointer` 是否实际指向 `Derived`，也不计算通用的派生子对象地址。结果不满足目标对象访问前置条件时，后续访问可能产生 UB。
@@ -260,7 +260,7 @@ const unchecked: Derived* = ptrcast<Derived*>(base_pointer);
 
 以下内容留给后续议题：
 
-- 标准库 `Optional<T>` 的完整便捷 API；议题 34 已确定不提供后缀 `?` 传播；
+- 标准库 `Optional::<T>` 的完整便捷 API；议题 34 已确定不提供后缀 `?` 传播；
 - 基于最终类和最终虚槽进行更强去虚拟化或转换静态证明的优化边界；
 - 跨动态库的最小描述符 ABI 和缓存失效协议；
 - 最小描述符与调试信息、异常类型信息是否共享存储；

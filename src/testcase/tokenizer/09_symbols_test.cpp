@@ -82,6 +82,7 @@ namespace ink::tokenizer
     {
       const std::vector<std::string> Spellings = {
           "::",
+          "::<",
           "..",
           "...",
           "->",
@@ -96,6 +97,8 @@ namespace ink::tokenizer
           ">>",
           "+=",
           ">>=",
+          "++",
+          "--",
       };
       for (const std::string &Spelling : Spellings)
       {
@@ -147,14 +150,14 @@ namespace ink::tokenizer
     // Verifies that adjacent generic closing brackets and assignment remain separate symbol tokens.
     TEST(SymbolTokenTest, NestedGenericClosersRemainSeparateSymbols)
     {
-      const TokenizedBuffer Nested = tokenize("Vector<Vector<i32>>");
-      const TokenizedBuffer Assignment = tokenize("Container<Item<T>>=value");
+      const TokenizedBuffer Nested = tokenize("Vector::<Vector::<i32>>");
+      const TokenizedBuffer Assignment = tokenize("Container::<Item::<T>>=value");
 
       ASSERT_TRUE(Nested.succeeded());
-      ASSERT_EQ(Nested.tokens().size(), 8u);
-      expectToken(Nested, 5, TokenKind::Symbol, ">");
-      expectToken(Nested, 6, TokenKind::Symbol, ">");
-      EXPECT_EQ(Nested.tokens()[5].Span.End, Nested.tokens()[6].Span.Start);
+      ASSERT_EQ(Nested.tokens().size(), 12u);
+      expectToken(Nested, 9, TokenKind::Symbol, ">");
+      expectToken(Nested, 10, TokenKind::Symbol, ">");
+      EXPECT_EQ(Nested.tokens()[9].Span.End, Nested.tokens()[10].Span.Start);
 
       ASSERT_TRUE(Assignment.succeeded());
       ASSERT_GE(Assignment.tokens().size(), 5u);
@@ -227,7 +230,7 @@ namespace ink::tokenizer
     // Verifies that a symbol payload depends only on its byte and not on its apparent syntactic role.
     TEST(SymbolTokenTest, SameSymbolPayloadIsIndependentOfSyntacticRole)
     {
-      const std::string Source = "a*b value:T* *pointer a&b value:T& &value a<b Vector<i32>";
+      const std::string Source = "a*b value:T* *pointer a&b value:T& &value a<b Vector::<i32>";
       const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_TRUE(File.succeeded());
@@ -239,7 +242,7 @@ namespace ink::tokenizer
           SymbolValues.push_back(std::get<char>(CurrentToken.Payload));
         }
       }
-      EXPECT_EQ(SymbolValues, (std::vector<char>{'*', ':', '*', '*', '&', ':', '&', '&', '<', '<', '>'}));
+      EXPECT_EQ(SymbolValues, (std::vector<char>{'*', ':', '*', '*', '&', ':', '&', '&', '<', ':', ':', '<', '>'}));
       expectPartition(File);
     }
 

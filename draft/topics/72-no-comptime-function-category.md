@@ -85,7 +85,7 @@ func create<
 
 ```ink
 func primary_layout() -> (type, ptrsize) {
-    return (i32, cast<ptrsize>(4));
+    return (i32, cast::<ptrsize>(4));
 }
 ```
 

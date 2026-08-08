@@ -104,7 +104,7 @@ func add_offset<N: i32>(value: i32) -> i32 {
 实例化：
 
 ```ink
-add_offset<10>(runtime_value);
+add_offset::<10>(runtime_value);
 ```
 
 部分求值器看到：
@@ -167,7 +167,7 @@ func calculate<N: i32>(value: i32) -> i32 {
 }
 ```
 
-`calculate<10>` 的残留代码仍在每次运行时调用时输出文本。只有显式放入 `comptime` 上下文的副作用才在编译期发生：
+`calculate::<10>` 的残留代码仍在每次运行时调用时输出文本。只有显式放入 `comptime` 上下文的副作用才在编译期发生：
 
 ```ink
 func calculate<N: i32>(value: i32) -> i32 {
@@ -315,7 +315,7 @@ extern "C" func image_create(
 ) -> ImageHandle;
 ```
 
-该边界只能直接使用 C ABI 可表示的类型和约定。Ink 类、接口、异常、开放泛型、`Task<T>` 和其他 Ink 私有 ABI 必须通过不透明句柄、错误码、回调和具体闭合包装显式适配，不能作为稳定二进制接口直接导出。
+该边界只能直接使用 C ABI 可表示的类型和约定。Ink 类、接口、异常、开放泛型、`Task::<T>` 和其他 Ink 私有 ABI 必须通过不透明句柄、错误码、回调和具体闭合包装显式适配，不能作为稳定二进制接口直接导出。
 
 最终可执行文件、普通目标文件和由同一次兼容构建协调的内部模块镜像仍然可以是二进制；本规则禁止的是把私有 Ink ABI 当作跨编译器、跨构建的稳定库分发协议。
 

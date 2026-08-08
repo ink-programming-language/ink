@@ -249,7 +249,7 @@ reflect
 它们的表面形式与普通函数或泛型函数调用一致，例如：
 
 ```ink
-cast<u16>(value)
+cast::<u16>(value)
 reflect(Player)
 ```
 

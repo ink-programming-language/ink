@@ -22,7 +22,7 @@ async func load() -> Data* {
 load()
     → capture arguments
     → construct decorated coroutine frame
-    → return created Task<Data*>
+    → return created Task::<Data*>
 
 await task
     → enter task exception boundary
@@ -60,7 +60,7 @@ async decorator trace(name: string) {
 
 只能应用于 `async func`。类型检查器在装饰器应用处验证函数种类，不能根据装饰器名称、调用点是否出现 `await` 或期待结果类型自动转换同步与异步装饰器。
 
-`async decorator` 描述生成到目标异步状态机中的 continuation region，不是一个运行时可独立调用并返回 `Task<T>` 的普通异步函数。同步、异步通用的单一装饰器模板以及同名装饰器重载的完整规则留给后续装饰器类型系统议题。
+`async decorator` 描述生成到目标异步状态机中的 continuation region，不是一个运行时可独立调用并返回 `Task::<T>` 的普通异步函数。同步、异步通用的单一装饰器模板以及同名装饰器重载的完整规则留给后续装饰器类型系统议题。
 
 ## 3. `await function(...)` 是特殊异步 continuation
 
@@ -75,14 +75,14 @@ await function(...)
 该表达式不调用一个普通异步函数，也不构造中间任务。编译器把它降低为同一个 coroutine frame 内的嵌套 continuation region：
 
 ```text
-one Task<T>
+one Task::<T>
     one coroutine frame
         outer decorator state
         inner decorator state
         original body state
 ```
 
-因此 `await function(...)` 不产生第二个 `Task<T>`、`Task<Task<T>>`、第二次帧分配、隐藏任务移动或第二次面向对象分派。它的逻辑结果类型是目标异步函数声明的 `T`；`void` 目标只执行 `await function(...)` 而不取得值。
+因此 `await function(...)` 不产生第二个 `Task::<T>`、`Task::<Task::<T>>`、第二次帧分配、隐藏任务移动或第二次面向对象分派。它的逻辑结果类型是目标异步函数声明的 `T`；`void` 目标只执行 `await function(...)` 而不取得值。
 
 `function` 仍然不能保存到变量、字段或全局对象，不能返回、被闭包捕获或传给普通运行时函数。装饰器不能把 continuation 交给另一个任务或调度器。
 
@@ -117,7 +117,7 @@ outer.after
 
 最靠近函数声明的异步装饰器最先包裹原始函数体。每层 continuation 指向下一层，不会通过函数稳定入口递归调用当前装饰器。
 
-装饰器局部变量如果跨越 `await function(...)` 或其他暂停点仍然存活，编译器把它们纳入同一个具体 coroutine frame。不同装饰器组合可以产生不同帧布局；调用者仍只依赖统一的 `Task<T>` 任务构造 ABI。
+装饰器局部变量如果跨越 `await function(...)` 或其他暂停点仍然存活，编译器把它们纳入同一个具体 coroutine frame。不同装饰器组合可以产生不同帧布局；调用者仍只依赖统一的 `Task::<T>` 任务构造 ABI。
 
 原始函数体中的 `return` 结束其 continuation region并把逻辑结果交给内层装饰器，而不是越过全部后置代码直接发布任务成功状态。每层装饰器可以在保持公开结果类型不变时检查或修改正常结果。
 
@@ -260,7 +260,7 @@ interface Loader {
 call_async
     → reflection validation
     → static, virtual, or interface dispatch
-    → construct selected decorated Task<R>
+    → construct selected decorated Task::<R>
     → return created task
 
 await task
@@ -307,7 +307,7 @@ Decorator 不生成模块加载或卸载代码。它在编译期产生的强类�
 
 coroutine lowering 统一计算原始函数体和全部装饰器跨暂停状态所需帧布局。任务 catch-all 边界包围最终状态机；未捕获异常使用现有 LLVM `invoke`、landing pad、personality 或 Windows funclet 路径进入 `ExceptionBox`。
 
-LLVM 无需把特殊 `function` continuation 表示成运行时函数指针或 `Task<T>`。展开来源映射必须同时保留被装饰函数、装饰器应用和装饰器定义位置，以支持诊断、traceback 和调试器。
+LLVM 无需把特殊 `function` continuation 表示成运行时函数指针或 `Task::<T>`。展开来源映射必须同时保留被装饰函数、装饰器应用和装饰器定义位置，以支持诊断、traceback 和调试器。
 
 ## 15. 后续问题
 

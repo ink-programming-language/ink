@@ -8,7 +8,7 @@
 泛型函数调用先使用显式编译期实参形成闭合候选签名，再对这些签名执行普通函数重载解析：
 
 ```text
-显式 `<...>`
+显式 `::<...>`
 → 绑定每个泛型候选的编译期形参
 → 求值并闭合候选的普通参数与返回类型
 → 使用普通实参执行普通重载解析
@@ -17,25 +17,25 @@
 
 `comptime` 不产生另一套运行时重载系统。闭合后的候选就是具有确定普通参数类型、返回类型和调用约定的普通函数候选。
 
-## 2. 有无 `<>` 决定候选集合
+## 2. 有无 `::<...>` 决定候选集合
 
-不带尖括号的调用只考虑普通非泛型函数：
+未写 `::<...>` 的调用只考虑普通非泛型函数：
 
 ```ink
 func parse(text: StringView) -> Number;
 func parse<Base: u32>(text: StringView) -> Number;
 
 parse(text);     // 只考虑非泛型 parse
-parse<16>(text); // 只考虑能够绑定 <16> 的泛型 parse
+parse::<16>(text); // 只考虑能够绑定显式实参 16 的泛型 parse
 ```
 
-该规则落实议题 64 的“无泛型实参推导”：编译器不能因为普通实参看起来足以确定泛型参数，就把开放泛型声明加入无 `<>` 的候选集合。
+该规则落实议题 64 的“无泛型实参推导”：编译器不能因为普通实参看起来足以确定泛型参数，就把开放泛型声明加入未写 `::<...>` 的候选集合。
 
-如果名称下只有泛型声明，`function(args)` 应诊断缺少显式泛型实参列表，而不是尝试推导。写出 `function<>(args)` 则明确请求泛型候选，并允许议题 65 的编译期默认实参和议题 62 的空参数包参与绑定。
+如果名称下只有泛型声明，`function(args)` 应诊断缺少显式泛型实参列表，而不是尝试推导。写出 `function::<>(args)` 则明确请求泛型候选，并允许议题 65 的编译期默认实参和议题 62 的空参数包参与绑定。
 
 ## 3. 显式编译期实参先完成绑定
 
-对 `function<arguments>(...)`，编译器枚举同名泛型函数，并按照各声明的编译期形参列表绑定 `arguments`：
+对 `function::<arguments>(...)`，编译器枚举同名泛型函数，并按照各声明的编译期形参列表绑定 `arguments`：
 
 - 显式实参按位置绑定固定形参；
 - 省略的尾随固定形参可以使用默认值；
@@ -49,8 +49,8 @@ parse<16>(text); // 只考虑能够绑定 <16> 的泛型 parse
 func select<T: type>(value: const T&);
 func select<N: ptrsize>(value: const byte[N]&);
 
-select<i32>(&number); // 只有第一个声明能够绑定 i32 : type
-select<16>(&bytes);   // 只有第二个声明能够绑定 16 : ptrsize
+select::<i32>(&number); // 只有第一个声明能够绑定 i32 : type
+select::<16>(&bytes);   // 只有第二个声明能够绑定 16 : ptrsize
 ```
 
 这只是显式实参与形参列表的普通类型检查，不是从运行时调用推导泛型参数。
@@ -63,7 +63,7 @@ select<16>(&bytes);   // 只有第二个声明能够绑定 16 : ptrsize
 func consume<T: type>(value: const T&);
 func consume<T: type>(value: const T*);
 
-consume<i32>(&number_ref); // 比较 const i32& 与 const i32* 候选
+consume::<i32>(&number_ref); // 比较 const i32& 与 const i32* 候选
 ```
 
 声明头包括普通参数类型、返回类型、调用约定以及普通重载规则所需的其他签名信息。默认普通实参不是闭合签名的一部分，但会影响候选能否接收当前普通实参数量。
@@ -76,10 +76,10 @@ consume<i32>(&number_ref); // 比较 const i32& 与 const i32* 候选
 
 ```ink
 func create<T: type>() -> T;
-func create<T: type>(count: ptrsize) -> Vector<T>;
+func create<T: type>(count: ptrsize) -> Vector::<T>;
 
-const value = create<i32>();
-const items = create<i32>(10);
+const value = create::<i32>();
+const items = create::<i32>(10);
 ```
 
 运行时默认实参按照议题 65 允许候选接收较少的尾随实参，但不会产生额外重载。运行时参数包按照议题 68 闭合为固定普通参数后参与同一解析。
@@ -102,7 +102,7 @@ func encode<T: type>(value: const T&) {
 }
 ```
 
-如果选中的 `encode<MyType>` 函数体失败，整个调用编译失败。编译器不能返回重载集合，改选一个参数匹配较差但函数体能够通过的候选。
+如果选中的 `encode::<MyType>` 函数体失败，整个调用编译失败。编译器不能返回重载集合，改选一个参数匹配较差但函数体能够通过的候选。
 
 未选中候选的函数体不实例化，因此其中依赖具体编译期参数的代码不因本次调用产生诊断或代码膨胀。
 
@@ -145,7 +145,7 @@ func reserve<N: ptrsize>(value: const byte[N]&); // 可区分
 
 不同的开放签名在某组显式实参下可能闭合成同样好的普通候选；这种情况在调用点报告歧义，而不是事后把两个源码声明判为重定义。
 
-## 9. 全默认泛型仍要求 `<>`
+## 9. 全默认泛型仍要求 `::<>`
 
 即使所有编译期形参都有默认值，调用者仍必须显式选择泛型候选集合：
 
@@ -154,10 +154,10 @@ func parse(text: StringView) -> Number;
 func parse<Base: u32 = 10>(text: StringView) -> Number;
 
 parse(text);   // 普通非泛型声明
-parse<>(text); // 泛型声明，Base = 10
+parse::<>(text); // 泛型调用，Base = 10
 ```
 
-这使以后新增一个全默认泛型重载不会改变既有无尖括号调用的解析结果。
+这使以后新增一个全默认泛型重载不会改变既有未写 `::<...>` 调用的解析结果。
 
 ## 10. 重载泛型声明句柄
 
@@ -174,17 +174,17 @@ const declaration: GenericFunctionDecl = comptime create;
 
 ```ink
 func create_one<T: type>() -> T {
-    return create<T>();
+    return create::<T>();
 }
 
 const declaration: GenericFunctionDecl = comptime create_one;
 ```
 
-普通闭合函数指针继续直接从函数名称取得，例如 `&create<i32>`，不经过擦除声明句柄。
+普通闭合函数指针继续直接从函数名称取得，例如 `&create::<i32>`，不经过擦除声明句柄。
 
 ## 11. 成员函数、异步函数与接口
 
-成员泛型函数和异步泛型函数使用同一顺序：显式绑定泛型参数、闭合普通调用签名、执行普通重载解析，再实例化选中函数体。异步函数闭合后的返回类型仍是准确的 `Task<T>`，但返回类型不用于区分仅返回类型不同的重载。
+成员泛型函数和异步泛型函数使用同一顺序：显式绑定泛型参数、闭合普通调用签名、执行普通重载解析，再实例化选中函数体。异步函数闭合后的返回类型仍是准确的 `Task::<T>`，但返回类型不用于区分仅返回类型不同的重载。
 
 虚函数和接口槽能否为泛型声明、如何形成稳定 vtable 槽与二进制边界，不由本议题新增。已有覆盖、接口唯一性和源码分发规则继续生效；不能借助泛型实例失败改变虚分派或接口槽集合。
 
@@ -198,7 +198,7 @@ const declaration: GenericFunctionDecl = comptime create_one;
 
 泛型重载诊断至少应区分：
 
-- 调用未写 `<>`，因此泛型候选未参与；
+- 调用未写 `::<...>`，因此泛型候选未参与；
 - 没有泛型声明能够绑定给定显式编译期实参；
 - 候选完成绑定后在声明头闭合期间发生硬错误；
 - 没有闭合候选能接收普通实参；

@@ -1,6 +1,6 @@
 # Parser 议题 08：分号与语句结束
 
-> 状态：已确认，议题 18、24—28 补充表达式、控制流、清理与异常语句边界
+> 状态：已确认，议题 18、24—28 补充表达式、控制流、清理与异常语句边界；2026-08-08 同步声明起点守卫
 > 确认日期：2026-08-03
 
 ## 1. 显式分号
@@ -11,7 +11,11 @@ Ink 不提供自动分号插入。所有由对应语法定义为简单语句的�
 
 ```ebnf
 expression_statement =
-    expression, ";" ;
+    statement_expression, ";" ;
+
+statement_expression =
+    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
+    expression ;
 
 defer_statement =
     "defer",

@@ -210,7 +210,7 @@ Parser 议题 25 进一步确认：`continue;` 和 `break;` 离开当前迭代�
 
 ## 9. `Task` 析构不能等待
 
-议题 51 规定内建 `Task<T>` 在 `created`、`succeeded` 或 `failed` 状态下执行确定性清理；若析构时仍为 `pending`，立即触发致命 trap。
+议题 51 规定内建 `Task::<T>` 在 `created`、`succeeded` 或 `failed` 状态下执行确定性清理；若析构时仍为 `pending`，立即触发致命 trap。
 
 析构函数不隐式 join、detach 或请求取消。`request_cancel()` 不保证任务结束，程序必须在正常异步控制流中显式 `await` 后再让运行中的任务离开生命周期。
 

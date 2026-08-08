@@ -94,7 +94,7 @@ current task receives request
 
 ## 7. 对共享任务的影响是显式的
 
-同一个命名任务可以被多个等待者通过 `Task<T>*` 观察：
+同一个命名任务可以被多个等待者通过 `Task::<T>*` 观察：
 
 ```ink
 var child = operation();
@@ -136,13 +136,13 @@ await cancel_on_request(grandchild);
 const result = await cancel_on_request(socket.read(buffer));
 ```
 
-临时 `Task<T>` 必须直接构造在本次组合等待的稳定存储中，并至少存活到：
+临时 `Task::<T>` 必须直接构造在本次组合等待的稳定存储中，并至少存活到：
 
 - 子任务到达最终状态；
 - 传播登记已经解除；
 - 当前等待不再可能向其发送请求。
 
-实现不能通过复制或隐藏移动保存 `[noncopyable] Task<T>`。`cancel_on_request(...)` 中间对象能否脱离直接 `await` 保存，留给组合器 ABI。若组合器内部保存普通引用或指针，它不延长任务对象生命周期，调用者必须保证目标在组合操作结束前有效。
+实现不能通过复制或隐藏移动保存 `[noncopyable] Task::<T>`。`cancel_on_request(...)` 中间对象能否脱离直接 `await` 保存，留给组合器 ABI。若组合器内部保存普通引用或指针，它不延长任务对象生命周期，调用者必须保证目标在组合操作结束前有效。
 
 ## 10. 运行时通知不能执行任意用户代码
 

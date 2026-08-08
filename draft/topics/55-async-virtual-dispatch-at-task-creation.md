@@ -21,7 +21,7 @@ class NetworkLoader : Loader {
 }
 ```
 
-该语法只把既有虚派发与议题 43、44 的惰性 `Task<T>` 结合，不让异步函数体在调用表达式中立即执行。
+该语法只把既有虚派发与议题 43、44 的惰性 `Task::<T>` 结合，不让异步函数体在调用表达式中立即执行。
 
 ## 2. 动态分派发生在调用时
 
@@ -45,7 +45,7 @@ evaluate receiver and arguments
     → select the final override slot and acquire its module-version pin
     → invoke that slot's task-construction thunk with the source receiver
     → let the thunk adjust this for the selected override
-    → construct that override's lazy Task<T> in the final result storage
+    → construct that override's lazy Task::<T> in the final result storage
     → transfer the acquired pin into the completed task
     → return created task
 ```
@@ -72,7 +72,7 @@ evaluate receiver and arguments
 ```text
 async virtual slot:
     construct_task(
-        result_storage: Task<T>*,
+        result_storage: Task::<T>*,
         dispatch_this: DeclaringClass*,
         arguments...
     )
@@ -88,15 +88,15 @@ async virtual slot:
 - 建立最终覆盖所需的具体 coroutine frame；
 - 保存对应 resume、destroy 和异常边界入口；
 - 把分派过程已经取得的模块版本固定转移给任务；
-- 在调用方提供的最终 `Task<T>` 存储中完成构造。
+- 在调用方提供的最终 `Task::<T>` 存储中完成构造。
 
-这里的 `Task<T>*` 是概念上的隐藏返回位置，不是把一个已经存在的命名任务通过指针交给方法，也不引入任务移动。
+这里的 `Task::<T>*` 是概念上的隐藏返回位置，不是把一个已经存在的命名任务通过指针交给方法，也不引入任务移动。
 
 ## 5. 具体帧布局可以不同
 
-不同覆盖的方法体可以拥有不同数量和类型的局部变量，因此其 coroutine frame 大小与布局不必相同。调用方只依赖统一的 `Task<T>` 公开表示和虚槽任务构造 ABI，不直接假定具体帧布局。
+不同覆盖的方法体可以拥有不同数量和类型的局部变量，因此其 coroutine frame 大小与布局不必相同。调用方只依赖统一的 `Task::<T>` 公开表示和虚槽任务构造 ABI，不直接假定具体帧布局。
 
-最终覆盖的任务构造入口可以取得所需帧存储，并把类型擦除后的 resume、destroy 和状态信息放入 `Task<T>` 控制状态。这样无需让所有覆盖共享最大帧大小，也不需要在 vtable 中公开具体帧结构。
+最终覆盖的任务构造入口可以取得所需帧存储，并把类型擦除后的 resume、destroy 和状态信息放入 `Task::<T>` 控制状态。这样无需让所有覆盖共享最大帧大小，也不需要在 vtable 中公开具体帧结构。
 
 任务帧取得失败属于议题 44 的创建期同步失败：调用表达式可以抛出，且不会返回半构造任务。构造失败路径必须释放分派过程已经取得的模块版本固定。方法体以后抛出的异常仍由任务边界捕获为 `failed(ExceptionBox)`。
 
@@ -118,11 +118,11 @@ class BadSync : Base {
 }
 
 class AlsoBad : Base {
-    override func read() -> Task<Data*>; // 编译错误
+    override func read() -> Task::<Data*>; // 编译错误
 }
 ```
 
-同步函数即使显式返回 `Task<T>`，也不是异步函数覆盖。两者的虚槽调用约定、创建期异常边界和语言语义不同。
+同步函数即使显式返回 `Task::<T>`，也不是异步函数覆盖。两者的虚槽调用约定、创建期异常边界和语言语义不同。
 
 Parser 议题 29 使用 `async func(parameters) -> result` 表示异步函数值类型，其中箭头后的类型是逻辑结果，不是外层 `Task`：
 
@@ -130,14 +130,14 @@ Parser 议题 29 使用 `async func(parameters) -> result` 表示异步函数值
 async func fetch(path: StringView) -> Data;
 
 const entry: async func(StringView) -> Data = &fetch;
-var task: Task<Data> = entry("data.bin");
+var task: Task::<Data> = entry("data.bin");
 ```
 
-它与同步任务工厂类型 `func(StringView) -> Task<Data>` 不同，不能互相赋值或替代。这里的 `async` 是语言关键字和调用种类，不是像 `[nothrow]` 那样的声明属性。
+它与同步任务工厂类型 `func(StringView) -> Task::<Data>` 不同，不能互相赋值或替代。这里的 `async` 是语言关键字和调用种类，不是像 `[nothrow]` 那样的声明属性。
 
 反方向同样禁止：`async func` 不能覆盖同步虚函数。返回类型、参数、可变性、可见性和 `[nothrow]` 等其他兼容规则继续服从普通虚覆盖规范；本议题不放宽它们。
 
-议题 60 进一步要求异步覆盖的逻辑结果类型完全一致。即使覆盖结果可以转换为基槽结果，也不能让 `Task<Derived*>` 代替 `Task<Base*>`；实现应在自身返回前完成普通结果上转型并直接构造基槽声明的准确任务类型。
+议题 60 进一步要求异步覆盖的逻辑结果类型完全一致。即使覆盖结果可以转换为基槽结果，也不能让 `Task::<Derived*>` 代替 `Task::<Base*>`；实现应在自身返回前完成普通结果上转型并直接构造基槽声明的准确任务类型。
 
 ## 7. 接收对象生命周期
 
@@ -173,7 +173,7 @@ V1 vtable selects V1 NetworkLoader.load
 
 议题 56 规定接口胖引用调用异步方法时也在任务创建阶段完成一次接口槽分派。接口槽最终选择类实现时，任务仍保存本议题和议题 54 的调整后原始 `this`；接口默认实现则保存规范化胖接收者。两种分派都不能推迟到第一次 `await`，但接口调用不会为了进入同时为虚函数的类实现而再读取一次主 vtable。
 
-议题 57 规定 `[reflect]` 异步虚函数使用独立的 `call_async[T]` 和 `DynamicTaskOut`。反射适配器在调用点验证参数并进入本议题的同一虚槽任务构造入口；函数体保持惰性，任务失败继续由 `ExceptionBox` 表示。它不把 `Task<T>` 强行塞进同步反射返回槽。
+议题 57 规定 `[reflect]` 异步虚函数使用独立的 `call_async[T]` 和 `DynamicTaskOut`。反射适配器在调用点验证参数并进入本议题的同一虚槽任务构造入口；函数体保持惰性，任务失败继续由 `ExceptionBox` 表示。它不把 `Task::<T>` 强行塞进同步反射返回槽。
 
 议题 58 规定异步函数装饰器包围最终覆盖的任务执行体，不包围本议题的同步任务构造过程。虚槽选择最终覆盖时直接建立该覆盖完整的装饰后 coroutine frame；第一次 `await` 才进入装饰器链和原始函数体。基类装饰器不会沿覆盖关系自动叠加。
 
@@ -181,7 +181,7 @@ V1 vtable selects V1 NetworkLoader.load
 
 未去虚拟化的异步虚调用在任务创建时承担一次普通 vtable 槽间接调用，以及本来就需要的任务和帧构造成本。
 
-任务以后每次恢复不再读取 vptr。恢复仍可能通过 `Task<T>` 保存的 resume 入口进行一次普通间接调用；非虚异步任务也可能需要相同机制，因此它不是重复虚派发成本。
+任务以后每次恢复不再读取 vptr。恢复仍可能通过 `Task::<T>` 保存的 resume 入口进行一次普通间接调用；非虚异步任务也可能需要相同机制，因此它不是重复虚派发成本。
 
 编译器知道接收对象最终动态类型且不破坏热更新语义时，可以去虚拟化任务构造入口。普通非虚异步方法和同步非虚调用不因为语言支持异步虚函数增加对象或调用成本。
 

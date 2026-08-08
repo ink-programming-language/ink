@@ -9,7 +9,7 @@
 
 ```ink
 [reflect]
-public final class Vector<T: type> : Sequence<T>, Serializable {
+public final class Vector<T: type> : Sequence::<T>, Serializable {
     [align(16)]
     private var data: T*;
 
@@ -28,7 +28,7 @@ public final class Vector<T: type> : Sequence<T>, Serializable {
     }
 }
 
-public interface Sequence<T: type> : Iterable<T> {
+public interface Sequence<T: type> : Iterable::<T> {
     func at(index: ptrsize) const -> const T&;
 }
 ```
@@ -240,11 +240,11 @@ interface Reader {}
 泛型参数位于名称之后，继承列表之前：
 
 ```ink
-class Vector<T: type> : Sequence<T> {}
-interface Range<T: type> : Iterable<T> {}
+class Vector<T: type> : Sequence::<T> {}
+interface Range<T: type> : Iterable::<T> {}
 ```
 
-声明位置的 `<` 确定开始 `generic_parameter_clause`，不需要表达式泛型后缀的名称绑定消歧。空 `<>` 和尾随逗号都不合法；泛型默认值、最终参数包和参数语义继续复用既有统一规则。
+声明位置的 `<` 确定开始 `generic_parameter_clause`；表达式泛型应用则由连续 `::<` 引导，两者不会竞争同一终端。空 `<>` 和尾随逗号都不合法；泛型默认值、最终参数包和参数语义继续复用既有统一规则。
 
 ## 6. 继承列表
 
@@ -259,7 +259,7 @@ inheritance_clause =
 
 ```ink
 class Player : Entity, Renderable, Serializable {}
-interface Range<T: type> : Iterable<T> {}
+interface Range<T: type> : Iterable::<T> {}
 
 class BadPointerBase : Base* {}
 class BadMultipleBase : FirstBase, SecondBase {}
@@ -371,7 +371,7 @@ function declaration
 nested class declaration
 nested interface declaration
 nested enum declaration
-ComptimeRegionControl<ClassMemberRegion>
+ComptimeRegionControl::<ClassMemberRegion>
 ```
 
 成员位置的 `var` 或 `const` 总是字段，不会建立局部或 module 绑定。构造函数和析构函数仍然是 Parser 议题 31 的普通 `function_declaration`；Parser 议题 38 允许 block 函数定义携带 C++ 风格构造初始化列表。名称是否等于所属类名、是否以 `~` 开头、初始化目标类别以及生命周期约束都在语义分析中确定。

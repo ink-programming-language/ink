@@ -10,14 +10,16 @@
 ```ebnf
 type =
     [ "const" ],
-    type_primary,
-    { type_postfix_suffix } ;
+    type_body ;
 
-type_primary =
+type_body =
+      function_type
+    | postfixable_type_primary, { type_postfix_suffix } ;
+
+postfixable_type_primary =
       type_name
     | parenthesized_type_expression
-    | tuple_type
-    | function_type ;
+    | tuple_type ;
 
 type_name =
       identifier
@@ -49,7 +51,7 @@ Data const*  // 语法错误
 Data* const  // 语法错误
 ```
 
-前置 `const` 先作用于 `type_primary`，随后才依次应用后缀：
+前置 `const` 先作用于所选 `type_body`。对于可接后缀分支，它先限定 `postfixable_type_primary`，随后才依次应用后缀：
 
 ```text
 const Data*    = (const Data)*
@@ -65,7 +67,7 @@ const pointer: Data* = get_data();
 
 这里第一个 `const` 属于绑定声明，不属于 `Data*`。声明开头和类型开头的同一 `Keyword(Const)` 由语法上下文区分。
 
-Parser 只限制前置 `const` 最多一个，不按直接可见的 `type_primary` 种类判断限定是否合法。该判断必须在别名展开、泛型替换和计算类型求值后统一完成：
+Parser 只限制前置 `const` 最多一个，不按直接可见的 `type_body` 种类判断限定是否合法。该判断必须在别名展开、泛型替换和计算类型求值后统一完成：
 
 ```ink
 const Data           // 语法和语义均合法
@@ -78,14 +80,17 @@ const const Data     // 语法错误
 
 ## 3. 类型后缀链
 
-类型值可以继续使用已经确认的调用、索引、切片、成员和泛型后缀，并增加指针、引用和空方括号类型构造：
+除直接 `function_type` 外，类型值可以继续使用已经确认的调用、索引、切片、成员和泛型后缀，并增加指针、引用和空方括号类型构造：
 
 ```ebnf
 type_postfix_suffix =
       postfix_suffix
-    | "*"
-    | "&"
+    | type_symbol_suffix
     | empty_bracket_suffix ;
+
+type_symbol_suffix =
+    ( "*" | "&" ),
+    ? this Symbol is consumed as a type-constructor suffix; an explicit type context may consume adjacent suffix Symbols character by character, while an expression tail additionally obeys terminal_type_constructor_tail, and no compound assignment operator is split ? ;
 
 empty_bracket_suffix =
     "[", "]" ;
@@ -113,19 +118,20 @@ Data*[4]                       // (Data*)[4]
 Data[4]*                       // (Data[4])*
 Data[4]&                       // (Data[4])&
 Data*[]                        // (Data*)[]
-make_pair<i32, String>()&      // 对调用产生的 type 构造引用
-Container.instantiate<i32>()*  // 对实例化结果构造指针
+make_pair::<i32, String>()&      // 对调用产生的 type 构造引用
+Container.instantiate::<i32>()*  // 对实例化结果构造指针
 ```
 
-Parser 固定拼写和结合方向，不判断每种组合是否是合法类型。`Data&&`、`Data&*`、`Data&[4]`、`(Data&)*` 等 Token 序列都可以形成完整类型 CST；引用是否允许再次引用、成为数组元素或被指针包装，由语义分析在别名展开和泛型替换后统一验证。
+Parser 固定拼写和结合方向，不判断每种组合是否是合法类型。显式类型入口一旦提交到 `type`，`type_postfix_suffix` 就按单个 Symbol 消费 `*` 和 `&`；这是议题 02 的受限类型构造后缀覆盖，因此直接相邻的 `Data&&` 形成两个 `ReferenceTypeSuffix`，而不是逻辑与运算符。`Data&&`、`Data&*`、`Data&[4]`、`(Data&)*` 等 Token 序列都可以形成完整类型 CST；引用是否允许再次引用、成为数组元素或被指针包装，由语义分析在别名展开和泛型替换后统一验证。该覆盖不能拆开 `*=`、`&=` 等复合赋值终端。
 
-议题 30 将这些构造加入普通表达式时，不会把 `type_postfix_suffix` 整体作为另一个表达式分支。`*`、`&` 使用必须结束于当前子表达式边界的局部试解析；空 `[]` 使用独立类型构造后缀。无括号类型构造后再调用、访问成员、应用泛型或参与运算时必须分组，而 `[expression]` 可以继续完成 `T*[N]` 一类数组类型尾链：
+议题 30 将这些构造加入普通表达式时，不会把 `type_postfix_suffix` 整体作为另一个表达式分支。`*`、`&` 使用必须结束于当前子表达式边界的局部试解析；空 `[]` 使用独立类型构造后缀。无括号类型构造后再调用、访问成员、应用泛型或参与运算时必须分组，而 `[expression]` 可以继续完成 `T*[N]` 一类数组类型尾链。直接 `function_type` 是封闭分支，同样只有先用圆括号分组后才能给整个函数类型应用后缀：
 
 ```ink
 T*[N]        // (T*)[N]
 T*(value)    // 普通表达式中是 T * (value)
 (T*)(value)  // 对完整 T* 类型值应用调用后缀
 (T*).metadata
+(func() -> T)*
 ```
 
 ## 4. 非空方括号保持中性
@@ -165,11 +171,7 @@ byte[runtime_length]           // 语法合法，不能编译期求值时语义�
 
 ```ebnf
 parenthesized_type_expression =
-    "(", type_or_expression, ")" ;
-
-type_or_expression =
-      type
-    | expression ;
+    "(", expression, ")" ;
 ```
 
 例如：
@@ -182,7 +184,7 @@ type_or_expression =
 
 名称、成员访问、泛型实例化、调用和方括号后缀组成的类型值链可以直接出现；`if_expression`、中缀运算和其他不属于该后缀链的完整表达式必须使用括号。Parser 只确认结构，语义分析要求括号内容能够在编译期求值并且结果准确为 `type`。
 
-圆括号入口使用一个中性 CST 节点，不通过符号表判断 `(Name)` 是“括号类型”还是“返回 type 的括号表达式”。两种来源都必须满足相同的最终 `type` 要求。遇到顶层逗号时则进入下一节的专用元组类型结构。
+圆括号入口只解析一次中性 `expression` CST，不设置 `type | expression` 重叠分支，也不通过符号表判断 `(Name)` 是“括号类型”还是“返回 type 的括号表达式”。语义阶段统一要求该表达式在编译期准确产生 `type`。遇到顶层逗号时则进入下一节的专用元组类型结构。
 
 议题 30 已把复合类型值加入完全普通的表达式入口。名称、调用、成员、泛型、非空方括号和圆括号继续复用中性表达式 CST；`const`、函数类型、空 `[]` 以及受子表达式结束位置约束的 `*`、`&` 才增加专门结构。复杂中缀或 `if_expression` 计算类型时仍使用本节的圆括号形式。
 
@@ -248,7 +250,11 @@ function_type =
     [ function_type_parameter,
       { ",", function_type_parameter } ],
     ")",
-    [ "->", type ] ;
+    [ function_type_result ] ;
+
+function_type_result =
+    "->", type,
+    ? type consumed the maximal valid type prefix at this position ? ;
 
 function_type_parameter =
       type
@@ -271,7 +277,7 @@ func(i32 = 10)   // 语法错误
 
 函数声明采用同一缺省规则：`func name(parameters) { ... }` 的公开结果类型固定为 `void`，不是待函数体分析后推导的占位。返回非 `void` 结果的声明必须显式书写 `-> type`。Parser 仍保留“返回类型子句缺失”的真实 CST 形状，lowering 才补入语义上的 `void`。
 
-`->` 后递归消费一个完整 `type`：
+函数参数列表后的 `->` 一旦出现，Parser 就提交到 `function_type_result`，不能回退并把它解释成作用于整个函数类型的 `pointer_member_suffix`。`->` 后递归且最大化地消费一个完整 `type`；缺少结果类型时直接按函数结果类型错误恢复：
 
 ```ink
 func() -> Data*             // 返回 Data*
@@ -280,7 +286,7 @@ func() -> (Data, Error)     // 返回元组
 func() -> func(i32) -> bool // 返回另一个函数值
 ```
 
-如果需要把后缀应用于整个函数类型，必须使用圆括号：
+直接 `function_type` 是封闭分支，不能无括号继续应用任何类型或表达式后缀。因此 `func() -> Data*` 中的 `*` 唯一属于返回类型，`func()*` 是语法错误。如果需要把后缀应用于整个函数类型，必须使用圆括号：
 
 ```ink
 (func() -> Data)*
@@ -293,16 +299,16 @@ func() -> func(i32) -> bool // 返回另一个函数值
 
 ```ink
 const loader: async func(Path&) -> Data = &load_async;
-var task: Task<Data> = loader(path);
+var task: Task::<Data> = loader(path);
 ```
 
 它不等同于同步任务工厂：
 
 ```ink
-func(Path&) -> Task<Data>
+func(Path&) -> Task::<Data>
 ```
 
-两种类型不能互相赋值。`async func()` 省略结果时逻辑结果为 `void`，调用产生 `Task<void>`。
+两种类型不能互相赋值。`async func()` 省略结果时逻辑结果为 `void`，调用产生 `Task::<void>`。
 
 函数参数类型列表允许在编译期展开：
 
@@ -368,8 +374,11 @@ named_argument =
     identifier, "=", expression ;
 
 generic_argument =
-      type_or_expression
-    | list_expansion ;
+      generic_argument_expression
+    | generic_list_expansion ;
+
+generic_list_expansion =
+    "...", generic_argument_expression ;
 
 generic_argument_list =
     generic_argument, { ",", generic_argument } ;
@@ -380,18 +389,20 @@ generic_argument_list =
 ```ink
 target(...values)
 target(prefix, ...values, mode = fast)
-Other<Header, ...Types, Footer>
-Vector<Data*>
+Other::<Header, ...Types, Footer>
+Vector::<Data*>
 ```
 
-普通调用、attribute application 与 decorator application 的实参列表还支持 Parser 议题 15 的 `identifier = expression` 命名实参。位置实参和 `list_expansion` 必须位于全部命名实参之前；泛型实参列表 `<...>` 仍是独立语法，本节不为它增加命名泛型实参。
+普通调用、attribute application 与 decorator application 的实参列表还支持 Parser 议题 15 的 `identifier = expression` 命名实参。位置实参和 `list_expansion` 必须位于全部命名实参之前；泛型应用的实参列表由连续复合终端 `::<` 引入，本节不为它增加命名泛型实参。三个字符之间不得出现 Trivia，`name:: <T>` 是语法错误；泛型声明仍使用原有的 `<...>`。
 
-`list_expansion` 的表达式可以是标识符、调用或其他完整表达式：
+`list_expansion` 与 `generic_list_expansion` 的操作数可以是标识符、调用或其他符合各自结束符规则的完整表达式：
 
 ```ink
-Other<...select_types()>
+Other::<...select_types()>
 (...select_types())
 ```
+
+`generic_argument_expression` 是只为顶层泛型实参结束符定界的中性表达式入口，不包含 `type` 备选，也不再使用 `type_or_expression`。它在当前泛型实参的顶层排除 `>`、`>=` 和 `>>` 运算；圆括号、调用实参、索引等嵌套定界结构内部仍复用普通 `expression`，所以需要这些运算时必须加括号。`generic_list_expansion` 对展开操作数应用相同规则。左侧表达式与 `::<` 之间可以存在 Trivia，格式化器规范输出时不留空格。
 
 具体列表要求编译期类型序列、普通编译期实参序列还是运行时参数包，由该列表的语义消费者检查。展开不是一般表达式，因此以下源码是语法错误：
 
@@ -436,7 +447,7 @@ Parser 不负责：
 缺少类型主项、右括号、右方括号、泛型结束符、函数参数类型或函数结果类型时，Parser 按议题 03 插入零宽度 `MissingToken` 或建立 `ErrorNode`，并保留已经消费的真实 Token：
 
 ```ink
-var a: const ;          // 缺少 type_primary
+var a: const ;          // 缺少 type_body
 var b: Data[;           // 缺少长度表达式和 ]
 var c: func(i32,);      // 非法尾随逗号
 var d: func() -> ;      // 缺少结果 type
@@ -449,6 +460,6 @@ REPL 在类型结构可能通过继续输入闭合时报告 `Incomplete`，例�
 
 ## 12. 确认结论
 
-Ink 使用一个统一的 `type` 非终结符。类型内部 `const` 只使用一个前置拼写，限定是否适用于最终类型由语义分析判断；名称或计算得到的类型值可以按源码从左到右继续应用普通后缀以及 `*`、`&`、`[]` 类型构造。议题 30 进一步允许这些复合类型进入普通表达式，并使用终止型尾链消除 `*`、`&` 与普通运算符的歧义。非空方括号由 CST 中性保存，数组构造、编译期索引或运行时容器索引交给语义分析；固定数组长度接受完整表达式并在语义阶段要求编译期整数。
+Ink 使用一个统一的 `type` 非终结符。类型内部 `const` 只使用一个前置拼写，限定是否适用于最终类型由语义分析判断；名称或计算得到的类型值可以按源码从左到右继续应用普通后缀以及 `*`、`&`、`[]` 类型构造，泛型应用使用连续复合终端 `::<`。议题 30 进一步允许这些复合类型进入普通表达式，并使用终止型尾链消除 `*`、`&` 与普通运算符的歧义。非空方括号由 CST 中性保存，数组构造、编译期索引或运行时容器索引交给语义分析；固定数组长度接受完整表达式并在语义阶段要求编译期整数。
 
-`()`、`(T,)` 和多元素元组保持明确区分并共享中性圆括号逗号列表 CST，类型序列使用列表级 `...expression` 展开。函数类型写作 `[async] func(types) [-> type]`，可以作为普通表达式中的类型值；省略结果等价于 `void`，`async` 属于函数类型而 `[nothrow]` 只属于声明属性。函数、元组、泛型和普通实参列表可以在各自确认的位置使用前置展开，但 `...` 不成为普通表达式或类型后缀。
+`()`、`(T,)` 和多元素元组保持明确区分并共享中性圆括号逗号列表 CST，类型序列使用列表级展开；泛型展开的操作数使用 `generic_argument_expression` 定界。函数类型写作 `[async] func(types) [-> type]`，可以作为普通表达式中的类型值；省略结果等价于 `void`，`async` 属于函数类型而 `[nothrow]` 只属于声明属性。函数、元组、泛型和普通实参列表可以在各自确认的位置使用前置展开，但 `...` 不成为普通表达式或类型后缀。

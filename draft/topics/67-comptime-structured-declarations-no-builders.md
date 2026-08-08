@@ -34,7 +34,7 @@ func make_pair<
 调用者取得正常的编译期 `type` 值：
 
 ```ink
-const PairType: type = make_pair<i32, String>();
+const PairType: type = make_pair::<i32, String>();
 ```
 
 `class { ... }` 复用普通 class 的完整 Parser，只在表达式上下文把类名改为可选。成员名称 `first`、`second` 必须真实写在源码中，不能由字符串、反射或循环元素替换。
@@ -205,7 +205,7 @@ source declaration identity
 返回类型的编译期函数本身可以具有编译期参数，但一次执行返回的 class 类型表达式以及最终保留的函数和成员必须能够在固定点结束前闭合：
 
 ```ink
-make_pair<i32, String>() -> closed type
+make_pair::<i32, String>() -> closed type
 ```
 
 Ink v0 不通过动态声明构造器创建新的开放泛型形参列表。用户需要开放泛型时，直接在源码中声明普通泛型，再让其闭合实例内部执行 `comptime` 控制。

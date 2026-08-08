@@ -4,7 +4,9 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace ink::tokenizer
@@ -12,7 +14,23 @@ namespace ink::tokenizer
   namespace
   {
     using core::Diagnostic;
+    using core::DiagnosticArgument;
+    using core::DiagnosticArgumentName;
     using core::DiagnosticKind;
+    using core::DiagnosticRelatedKind;
+
+    template <typename ValueType>
+    const ValueType *findArgumentValue(const std::vector<DiagnosticArgument> &Arguments, DiagnosticArgumentName Name)
+    {
+      for (const DiagnosticArgument &Argument : Arguments)
+      {
+        if (Argument.Name == Name)
+        {
+          return std::get_if<ValueType>(&Argument.Value);
+        }
+      }
+      return nullptr;
+    }
 
     bool hasTokenKind(const TokenizedBuffer &Buffer, TokenKind Kind)
     {
@@ -194,6 +212,56 @@ namespace ink::tokenizer
       expectFullFidelity(Buffer);
     }
 
+    // Tests that all specified Unicode whitespace and line-separator lookalikes remain comment text and do not create source lines.
+    TEST(TriviaCommentsTest, UnicodeWhitespaceInsideCommentsIsPreservedWithoutChangingLineStarts)
+    {
+      const std::string UnicodeWhitespace = utf8(u8"\u0085\u00A0\u1680\u2000\u2003\u200A\u2028\u2029\u202F\u205F\u3000");
+      const std::string LineComment = std::string("//line") + UnicodeWhitespace;
+      const std::string BlockComment = std::string("/*block") + UnicodeWhitespace + "*/";
+      const std::string Source = LineComment + "\r\n" + BlockComment;
+      const std::size_t BlockStart = LineComment.size() + 2;
+      const TokenizedBuffer Buffer = tokenize(Source);
+
+      ASSERT_TRUE(Buffer.succeeded());
+      ASSERT_TRUE(Buffer.diagnostics().empty());
+      ASSERT_EQ(Buffer.tokens().size(), 4U);
+      EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::LineComment);
+      EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), LineComment);
+      EXPECT_EQ(Buffer.tokens()[1].Kind, TokenKind::LineBreak);
+      EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), "\r\n");
+      EXPECT_EQ(Buffer.tokens()[2].Kind, TokenKind::BlockComment);
+      EXPECT_EQ(Buffer.raw(Buffer.tokens()[2]), BlockComment);
+      EXPECT_EQ(Buffer.lineStarts(), (std::vector<std::size_t>{0, BlockStart}));
+      EXPECT_EQ(Buffer.lineNumber(LineComment.find(utf8(u8"\u2028"))), 1U);
+      EXPECT_EQ(Buffer.lineNumber(BlockStart + BlockComment.find(utf8(u8"\u2029"))), 2U);
+      expectFullFidelity(Buffer);
+    }
+
+    // Tests that a lone carriage return remains inside a line-comment token but receives an exact diagnostic before LF recovery.
+    TEST(TriviaCommentsTest, LoneCarriageReturnInsideLineCommentIsDiagnosedPrecisely)
+    {
+      const std::string Source = "//a\rb\nx";
+      const TokenizedBuffer Buffer = tokenize(Source);
+
+      ASSERT_FALSE(Buffer.succeeded());
+      ASSERT_EQ(Buffer.tokens().size(), 4U);
+      EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::InvalidCharacter);
+      EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
+      EXPECT_EQ(Buffer.tokens()[0].Span.End, 5U);
+      EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), "//a\rb");
+      EXPECT_EQ(Buffer.tokens()[1].Kind, TokenKind::LineBreak);
+      EXPECT_EQ(Buffer.tokens()[1].Span.Start, 5U);
+      EXPECT_EQ(Buffer.tokens()[1].Span.End, 6U);
+      EXPECT_EQ(Buffer.tokens()[2].Kind, TokenKind::Identifier);
+      EXPECT_EQ(Buffer.raw(Buffer.tokens()[2]), "x");
+      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
+      EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::LoneCarriageReturn);
+      EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 3U);
+      EXPECT_EQ(Buffer.diagnostics()[0].Span.End, 4U);
+      EXPECT_EQ(Buffer.lineStarts(), (std::vector<std::size_t>{0, 6}));
+      expectFullFidelity(Buffer);
+    }
+
     // Tests nested block-comment scanning as one token across internal line breaks.
     TEST(TriviaCommentsTest, NestedBlockCommentIsOneTokenIncludingInternalLineBreaks)
     {
@@ -208,6 +276,82 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), "tail");
       EXPECT_FALSE(hasTokenKind(Buffer, TokenKind::LineBreak));
       expectFullFidelity(Buffer);
+    }
+
+    // Tests line mapping for LF and CRLF bytes hidden inside one opaque block-comment token.
+    TEST(TriviaCommentsTest, BlockCommentInternalLineBreaksPopulateExactLineStarts)
+    {
+      const std::string BlockComment = "/*first\r\nsecond\nthird*/";
+      const std::string Source = BlockComment + "tail";
+      const std::size_t SecondLineStart = BlockComment.find("\r\n") + 2;
+      const std::size_t ThirdLineStart = BlockComment.find('\n', SecondLineStart) + 1;
+      const TokenizedBuffer Buffer = tokenize(Source);
+
+      ASSERT_TRUE(Buffer.succeeded());
+      ASSERT_EQ(Buffer.tokens().size(), 3U);
+      EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::BlockComment);
+      EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
+      EXPECT_EQ(Buffer.tokens()[0].Span.End, BlockComment.size());
+      EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), BlockComment);
+      EXPECT_EQ(Buffer.tokens()[1].Kind, TokenKind::Identifier);
+      EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), "tail");
+      EXPECT_FALSE(hasTokenKind(Buffer, TokenKind::LineBreak));
+      EXPECT_EQ(Buffer.lineStarts(), (std::vector<std::size_t>{0, SecondLineStart, ThirdLineStart}));
+      EXPECT_EQ(Buffer.lineNumber(SecondLineStart - 1), 1U);
+      EXPECT_EQ(Buffer.lineNumber(SecondLineStart), 2U);
+      EXPECT_EQ(Buffer.lineNumber(ThirdLineStart - 1), 2U);
+      EXPECT_EQ(Buffer.lineNumber(ThirdLineStart), 3U);
+      EXPECT_EQ(Buffer.lineNumber(Source.size()), 3U);
+      expectFullFidelity(Buffer);
+    }
+
+    // Tests exact invalid UTF-8 recovery inside closed line and block comments without consuming following valid tokens.
+    TEST(TriviaCommentsTest, ClosedCommentsReportInvalidUtf8WithExactSpansAndRecovery)
+    {
+      std::string InvalidSequence;
+      InvalidSequence.push_back(static_cast<char>(0xE2));
+      InvalidSequence.push_back(static_cast<char>(0x82));
+
+      const std::string LinePrefix = "//before";
+      const std::string LineComment = LinePrefix + InvalidSequence + "after";
+      const std::string LineSource = LineComment + "\nnext";
+      const TokenizedBuffer LineBuffer = tokenize(LineSource);
+
+      ASSERT_FALSE(LineBuffer.succeeded());
+      ASSERT_EQ(LineBuffer.tokens().size(), 4U);
+      EXPECT_EQ(LineBuffer.tokens()[0].Kind, TokenKind::InvalidEncoding);
+      EXPECT_EQ(LineBuffer.tokens()[0].Span.Start, 0U);
+      EXPECT_EQ(LineBuffer.tokens()[0].Span.End, LineComment.size());
+      EXPECT_EQ(LineBuffer.raw(LineBuffer.tokens()[0]), LineComment);
+      EXPECT_EQ(LineBuffer.tokens()[1].Kind, TokenKind::LineBreak);
+      EXPECT_EQ(LineBuffer.tokens()[1].Span.Start, LineComment.size());
+      EXPECT_EQ(LineBuffer.tokens()[1].Span.End, LineComment.size() + 1);
+      EXPECT_EQ(LineBuffer.tokens()[2].Kind, TokenKind::Identifier);
+      EXPECT_EQ(LineBuffer.raw(LineBuffer.tokens()[2]), "next");
+      ASSERT_EQ(LineBuffer.diagnostics().size(), 1U);
+      EXPECT_EQ(LineBuffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
+      EXPECT_EQ(LineBuffer.diagnostics()[0].Span.Start, LinePrefix.size());
+      EXPECT_EQ(LineBuffer.diagnostics()[0].Span.End, LinePrefix.size() + InvalidSequence.size());
+      expectFullFidelity(LineBuffer);
+
+      const std::string BlockPrefix = "/*before";
+      const std::string BlockComment = BlockPrefix + InvalidSequence + "after*/";
+      const std::string BlockSource = BlockComment + "next";
+      const TokenizedBuffer BlockBuffer = tokenize(BlockSource);
+
+      ASSERT_FALSE(BlockBuffer.succeeded());
+      ASSERT_EQ(BlockBuffer.tokens().size(), 3U);
+      EXPECT_EQ(BlockBuffer.tokens()[0].Kind, TokenKind::InvalidEncoding);
+      EXPECT_EQ(BlockBuffer.tokens()[0].Span.Start, 0U);
+      EXPECT_EQ(BlockBuffer.tokens()[0].Span.End, BlockComment.size());
+      EXPECT_EQ(BlockBuffer.raw(BlockBuffer.tokens()[0]), BlockComment);
+      EXPECT_EQ(BlockBuffer.tokens()[1].Kind, TokenKind::Identifier);
+      EXPECT_EQ(BlockBuffer.raw(BlockBuffer.tokens()[1]), "next");
+      ASSERT_EQ(BlockBuffer.diagnostics().size(), 1U);
+      EXPECT_EQ(BlockBuffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
+      EXPECT_EQ(BlockBuffer.diagnostics()[0].Span.Start, BlockPrefix.size());
+      EXPECT_EQ(BlockBuffer.diagnostics()[0].Span.End, BlockPrefix.size() + InvalidSequence.size());
+      expectFullFidelity(BlockBuffer);
     }
 
     // Tests acceptance of an empty block comment.
@@ -306,6 +450,24 @@ namespace ink::tokenizer
       expectFullFidelity(Buffer);
     }
 
+    // Tests that a single unterminated block comment reports its remaining depth without a redundant related range at the primary opening.
+    TEST(TriviaCommentsTest, SingleUnterminatedBlockCommentHasNoRedundantRelatedOpening)
+    {
+      const TokenizedBuffer Buffer = tokenize("/* text");
+
+      ASSERT_FALSE(Buffer.succeeded());
+      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
+      const Diagnostic &DiagnosticEntry = Buffer.diagnostics().front();
+      EXPECT_EQ(DiagnosticEntry.Kind, DiagnosticKind::UnterminatedBlockComment);
+      EXPECT_EQ(DiagnosticEntry.Span, (core::SourceRange{0, 2}));
+      ASSERT_EQ(DiagnosticEntry.Arguments.size(), 1U);
+      const std::uint64_t *RemainingNestingDepth = findArgumentValue<std::uint64_t>(DiagnosticEntry.Arguments, DiagnosticArgumentName::RemainingNestingDepth);
+      ASSERT_NE(RemainingNestingDepth, nullptr);
+      EXPECT_EQ(*RemainingNestingDepth, 1U);
+      EXPECT_TRUE(DiagnosticEntry.Related.empty());
+      expectFullFidelity(Buffer);
+    }
+
     // Tests unterminated nested-comment coverage and detailed nesting diagnostics.
     TEST(TriviaCommentsTest, UnterminatedNestedBlockCommentCoversFromOutermostStartToEof)
     {
@@ -318,16 +480,19 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
       EXPECT_EQ(Buffer.tokens()[0].Span.End, Source.size());
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), Source);
-      EXPECT_TRUE(hasDiagnosticKind(Buffer, DiagnosticKind::UnterminatedBlockComment));
-      bool DetailedDiagnosticFound = false;
-      for (const Diagnostic &DiagnosticEntry : Buffer.diagnostics())
-      {
-        if (DiagnosticEntry.Kind == DiagnosticKind::UnterminatedBlockComment && DiagnosticEntry.Message.find("outermost opening byte: 0") != std::string::npos && DiagnosticEntry.Message.find("remaining nesting depth: 2") != std::string::npos && DiagnosticEntry.Message.find("most recent unclosed opening byte: 9") != std::string::npos)
-        {
-          DetailedDiagnosticFound = true;
-        }
-      }
-      EXPECT_TRUE(DetailedDiagnosticFound);
+      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
+      const Diagnostic &DiagnosticEntry = Buffer.diagnostics().front();
+      EXPECT_EQ(DiagnosticEntry.Kind, DiagnosticKind::UnterminatedBlockComment);
+      EXPECT_EQ(DiagnosticEntry.Span, (core::SourceRange{0, 2}));
+      ASSERT_EQ(DiagnosticEntry.Arguments.size(), 1U);
+      const std::uint64_t *RemainingNestingDepth = findArgumentValue<std::uint64_t>(DiagnosticEntry.Arguments, DiagnosticArgumentName::RemainingNestingDepth);
+      ASSERT_NE(RemainingNestingDepth, nullptr);
+      EXPECT_EQ(*RemainingNestingDepth, 2U);
+      EXPECT_EQ(findArgumentValue<bool>(DiagnosticEntry.Arguments, DiagnosticArgumentName::MostRecentOpeningUnavailable), nullptr);
+      ASSERT_EQ(DiagnosticEntry.Related.size(), 1U);
+      EXPECT_EQ(DiagnosticEntry.Related[0].Kind, DiagnosticRelatedKind::MostRecentUnclosedBlockComment);
+      EXPECT_EQ(DiagnosticEntry.Related[0].Span, (core::SourceRange{9, 11}));
+      EXPECT_TRUE(DiagnosticEntry.Related[0].Arguments.empty());
       expectFullFidelity(Buffer);
     }
 
@@ -350,11 +515,19 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::BlockCommentNestingLimit);
       EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, OverLimitOpening);
       EXPECT_EQ(Buffer.diagnostics()[0].Span.End, OverLimitOpening + 2);
-      EXPECT_EQ(Buffer.diagnostics()[0].Message, "block comment nesting limit exceeded");
+      EXPECT_TRUE(Buffer.diagnostics()[0].Arguments.empty());
+      EXPECT_TRUE(Buffer.diagnostics()[0].Related.empty());
       EXPECT_EQ(Buffer.diagnostics()[1].Kind, DiagnosticKind::UnterminatedBlockComment);
       EXPECT_EQ(Buffer.diagnostics()[1].Span.Start, 0U);
       EXPECT_EQ(Buffer.diagnostics()[1].Span.End, 2U);
-      EXPECT_EQ(Buffer.diagnostics()[1].Message, "block comment is not terminated; outermost opening byte: 0; remaining nesting depth: 3; most recent unclosed opening byte was not retained after the nesting limit was exceeded");
+      ASSERT_EQ(Buffer.diagnostics()[1].Arguments.size(), 2U);
+      const std::uint64_t *RemainingNestingDepth = findArgumentValue<std::uint64_t>(Buffer.diagnostics()[1].Arguments, DiagnosticArgumentName::RemainingNestingDepth);
+      ASSERT_NE(RemainingNestingDepth, nullptr);
+      EXPECT_EQ(*RemainingNestingDepth, 3U);
+      const bool *MostRecentOpeningUnavailable = findArgumentValue<bool>(Buffer.diagnostics()[1].Arguments, DiagnosticArgumentName::MostRecentOpeningUnavailable);
+      ASSERT_NE(MostRecentOpeningUnavailable, nullptr);
+      EXPECT_TRUE(*MostRecentOpeningUnavailable);
+      EXPECT_TRUE(Buffer.diagnostics()[1].Related.empty());
       expectFullFidelity(Buffer);
     }
 

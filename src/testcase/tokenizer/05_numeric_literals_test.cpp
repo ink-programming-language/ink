@@ -305,8 +305,8 @@ namespace ink::tokenizer
       EXPECT_EQ(Result.raw(Result.tokens()[6]), "");
 
       const std::vector<Diagnostic> ExpectedDiagnostics = {
-          {DiagnosticKind::InvalidNumericSuffix, {3, 6}, "numeric suffix is not valid for this literal"},
-          {DiagnosticKind::UnsupportedNonDecimalFloat, {11, 13}, "non-decimal floating-point literals are not supported"},
+          {DiagnosticKind::InvalidNumericSuffix, {3, 6}, {}, {}},
+          {DiagnosticKind::UnsupportedNonDecimalFloat, {11, 13}, {}, {}},
       };
       EXPECT_EQ(Result.diagnostics(), ExpectedDiagnostics);
     }

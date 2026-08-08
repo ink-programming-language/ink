@@ -26,30 +26,49 @@ Parser 仍不查询名称是否表示类型，也不执行编译期求值。它�
 普通表达式不能简单增加一个完整 `type` 备选：
 
 ```text
-primary_expression =
-      existing_primary_expression
+postfixable_primary_expression =
+      existing_postfixable_primary_expression
     | type ;
 ```
 
 该写法会使 `Identifier`、内建类型、圆括号、元组、调用、索引、成员和泛型后缀同时匹配 `expression` 与 `type`，迫使 Parser 保存两棵候选树或依赖符号表。
 
-Ink 改为复用现有表达式结构，只增加具有独特 Token 形状的类型值入口和类型构造后缀。议题 14 保存最终完整的 `primary_expression`；本议题直接定义新增分支：
+Ink 改为复用现有表达式结构，只增加具有独特 Token 形状的类型值入口和类型构造后缀。议题 14 保存最终完整的 `postfixable_primary_expression`，直接函数类型则进入封闭分支；本议题直接定义新增分支：
 
 ```ebnf
 const_type_value_expression =
-    "const", type_primary ;
+    "const", postfixable_type_primary ;
 
 function_type_expression =
     function_type ;
+
+direct_function_type_expression =
+    [ "const" ], function_type_expression ;
 ```
 
-实现可以让 `const_type_value_expression` 与议题 29 的类型入口共享 `type_primary` 解析器，但不能再次接受第二个前置 `const`。议题 40 进一步把 `class_type_expression` 加入议题 14 的 `structured_expression`，但仍不把整个 `type` 非终结符直接并入普通表达式。
+实现可以让 `const_type_value_expression` 与议题 29 的类型入口共享可接后缀的 `postfixable_type_primary` 解析器，但不能再次接受第二个前置 `const`。直接函数类型及其可选 `const` 包装使用封闭的 `direct_function_type_expression` 分支，不进入普通 postfix 循环；它在 CST 中仍分别保存 `FunctionTypeExpression` 和存在时的 `ConstTypeValueExpression`。议题 40 进一步把 `class_type_expression` 加入议题 14 的 `structured_expression`，但仍不把整个 `type` 非终结符直接并入普通表达式。
+
+明确类型位置中的圆括号以及泛型实参等混合位置也只解析一次中性表达式，不再建立 `type_or_expression` 一类重叠分支：
+
+```ebnf
+parenthesized_type_expression =
+    "(", expression, ")" ;
+
+generic_argument =
+      generic_argument_expression
+    | generic_list_expansion ;
+
+generic_list_expansion =
+    "...", generic_argument_expression ;
+```
+
+`generic_argument_expression` 仅在当前泛型实参的顶层排除 `>`、`>=` 和 `>>` 运算，嵌套定界结构内部仍复用普通 `expression`；它仍然建立中性表达式 CST，而不是另设类型分支。这些位置最终是否准确产生 `type` 或满足对应泛型形参，由期望类型和语义分析检查。
 
 普通名称及其后缀继续形成中性表达式节点：
 
 ```ink
 Data                    // IdentifierExpression
-Vector<i32>             // GenericPostfixExpression
+Vector::<i32>           // GenericPostfixExpression
 make_type()             // CallExpression
 Data[4]                 // BracketPostfixExpression
 (i32, String)           // ParenthesizedCommaList
@@ -74,20 +93,26 @@ class Node { ... }      // 带内部递归名称的 ClassTypeExpression
 
 ```ebnf
 postfix_expression =
-    primary_expression,
-    { postfix_suffix },
-    [ terminal_type_constructor_tail ] ;
+      direct_function_type_expression
+    | postfixable_primary_expression,
+      { postfix_suffix },
+      [ terminal_type_constructor_tail ] ;
 
 terminal_type_constructor_tail =
     type_constructor_start,
-    { type_symbol_suffix | empty_bracket_suffix | index_suffix } ;
+    { type_symbol_suffix | empty_bracket_suffix | index_suffix },
+    ? this is the maximal complete type-constructor tail, it did not split a compound assignment operator, and the next significant Token at the current nesting level belongs to the caller-provided expression terminator set without being consumed ? ;
 
 type_constructor_start =
       type_symbol_suffix
     | empty_bracket_suffix ;
 
-type_symbol_suffix = "*" | "&" ;
+type_symbol_suffix =
+    ( "*" | "&" ),
+    ? this Symbol is consumed as a type-constructor suffix; an explicit type context may consume adjacent suffix Symbols character by character, while an expression tail additionally obeys terminal_type_constructor_tail, and no compound assignment operator is split ? ;
 ```
+
+这里的 `postfixable_primary_expression` 表示议题 14 的普通基础表达式以及非函数 `const_type_value_expression`，但排除 `direct_function_type_expression`。函数类型自身的返回 `type` 可以包含完整后缀，封闭限制只阻止后缀越过整个直接函数类型的右边界。
 
 上述 EBNF 还必须满足以下语法谓词：
 
@@ -98,15 +123,15 @@ type_symbol_suffix = "*" | "&" ;
 ```ink
 (T*)(value)
 (T*).metadata
-(T*)<Argument>
+(T*)::<Argument>
 (T*) == OtherType
 ```
 
 `T*[N]` 是专门保留的类型构造尾链，因此不要求把 `T*` 单独括起来。
 
-## 4. 表达式结束符与局部试解析
+## 4. `parseExpression(EndSet)` 与局部试解析
 
-表达式 Parser 必须由调用者传入当前入口的显式结束符集合。例如：
+表达式 Parser 的规范入口为 `parseExpression(EndSet)`，调用者必须传入当前入口的显式结束符集合。例如：
 
 ```text
 绑定初始化器、return、表达式语句： ; 或 }
@@ -119,27 +144,42 @@ if_expression 真分支：            else
 
 这些集合由真实外层产生式确定，不能把任意“当前不是中缀运算符”的 Token 当成结束符。标识符、字面量、`(`、`[` 以及一元运算符都可能开始 `*` 或 `&` 的右操作数。
 
-遇到候选 `*` 或 `&` 时，Parser 执行局部 checkpoint：
+遇到候选 `*`、`&` 或空 `[]` 时，Parser 执行局部 checkpoint：
 
 ```text
-1. 保存 Token 游标、诊断缓冲区位置和 REPL 状态；
-2. 试解析完整 type constructor tail；
-3. 若下一 Token 属于当前显式结束符集合，则提交；
-4. 否则回滚，并让普通表达式优先级层解析运算符。
+1. 保存 Token 游标、临时 CST、诊断缓冲区位置、错误恢复和 REPL 状态；
+2. 试解析从当前位置能够形成的最大完整 type constructor tail；
+3. 若尾链后的下一显著 Token 属于 EndSet，则原子提交整个尾链；
+4. 否则完整回滚所有临时状态，并让普通表达式优先级层从原位置解析。
 ```
+
+“最大完整”表示只要下一个后缀仍能属于同一类型构造尾链，就不能提前提交较短前缀。失败时也不得保留部分后缀、临时 CST 节点或试探诊断。
 
 例如：
 
 ```ink
 return T*;        // * 后到达 ;，PointerTypeValue(T)
 inspect(T&)       // & 后到达 )，ReferenceTypeValue(T)
-Wrapper<T**>      // ** 后到达 >，Pointer(Pointer(T))
+Wrapper::<T**>    // ** 后到达 >，Pointer(Pointer(T))
 
 var x = T * n;    // n 不是结束符，乘法
 var y = T & mask; // mask 不是结束符，按位与
 var z = T**p;     // 试探 ** 后仍有 p，回滚为 T * (*p)
 T*&x              // 回滚为 T * (&x)
+T[]+x             // 空 [] 无普通索引含义，且尾链未到结束符，语法错误
+(T[])+x           // 分组后的切片类型值参与加法；运算是否合法由语义检查
 ```
+
+赋值入口把完整赋值运算符作为 `EndSet` 中不可拆分的复合终端。类型尾链不得抢走 `*=`、`&=` 等运算符的首字符：
+
+```ink
+T*=value  // T *= value
+T&=mask   // T &= mask
+T* = value // T* 类型值后接普通 =；左侧是否可赋值由语义检查
+T& = value // T& 类型值后接普通 =；左侧是否可赋值由语义检查
+```
+
+前两行的复合终端要求字符直接相邻；后两行存在 Trivia，因而分别形成类型构造后缀与普通 `=`。同一不可拆分规则适用于全部已登记复合赋值运算符。
 
 空白和注释不参与判定：
 
@@ -162,7 +202,7 @@ T*(value)   // T * (value)
 T* == U*     // 第一处 * 不在当前子表达式末尾
 ```
 
-该规则只需要对短后缀链进行有界试解析，不回溯已经完成的整个表达式，也不查询符号表。
+该规则只需要对短后缀链进行有界试解析，不回溯已经完成的整个表达式，也不查询符号表。泛型应用由连续复合终端 `::<` 明确引导，不再需要用 `<` 的邻接或试解析在泛型应用与比较运算之间消歧；`::<` 内部三个字符不得包含 Trivia，左侧表达式与该复合终端之间可以存在 Trivia，格式化器规范输出时不留空格。
 
 ## 5. `const` 类型值
 
@@ -186,7 +226,7 @@ const ReadOnlyPointer: type = const Data*;
 const const Data // 语法错误
 ```
 
-Parser 统一允许 `const` 后出现任意结构合法的 `type_primary`。限定目标是否有意义由语义分析在别名展开、泛型替换和计算类型求值后判断：
+Parser 统一允许 `const` 后出现任意结构合法的 `type_body`。非函数目标复用可接后缀的 `postfixable_type_primary` 分支；直接函数类型进入封闭分支。限定目标是否有意义由语义分析在别名展开、泛型替换和计算类型求值后判断：
 
 ```ink
 const Data*          // 语法和语义均合法
@@ -210,13 +250,15 @@ inspect_type(async func() -> Data);
 
 函数声明入口的 `func identifier` 与函数类型的 `func (` 由 Token 形状区分。Ink v0 不使用相同开头定义匿名函数表达式。
 
-箭头右侧继续递归消费完整 `type`：
+函数参数列表后的 `->` 一旦出现就提交为返回类型子句，不能回退为对整个函数类型的 `pointer_member_suffix`。箭头右侧继续递归并最大化地消费完整 `type`：
 
 ```ink
 func() -> Data*        // 返回 Data* 的函数类型
 func() -> func(i32)    // 返回另一个函数值的函数类型
 (func() -> Data)*      // 后缀作用于整个函数类型
 ```
+
+直接函数类型是封闭表达式分支，因此 `func() -> Data*` 中的 `*` 唯一属于返回类型，`func()*` 是语法错误。需要对整个函数类型构造指针、引用、数组或应用其他后缀时，必须先写成 `(func())*`、`(func())&` 等加括号形式。
 
 `[nothrow]` 仍是声明属性，不进入函数类型值：
 
@@ -252,10 +294,10 @@ Parser 不因空索引看起来不适用于某个名称而拒绝节点；语义�
 容器索引不受空 `[]` 规则影响：
 
 ```ink
-var values: Vector<i32>;
+var values: Vector::<i32>;
 var value = values[index];
 
-var users: Map<String, User>;
+var users: Map::<String, User>;
 var user = users[name];
 ```
 
@@ -335,8 +377,8 @@ CallExpression {
 泛型类型同样复用普通后缀：
 
 ```ink
-Vector<i32>(capacity)
-Map<String, User>()
+Vector::<i32>(capacity)
+Map::<String, User>()
 ```
 
 Parser 不建立 `ConstructorExpression`，也不通过构造函数表改变调用 CST。解析后的语义节点可以记录已选择的函数或构造函数候选。
@@ -386,6 +428,6 @@ Incomplete 已开始能够继续闭合的类型结构，但在 REPL EOF 处结�
 
 ## 12. 确认结论
 
-Ink 允许完整复合类型作为普通一等编译期值。表达式文法不把整个 `type` 增加为重叠分支，而是复用标识符、圆括号、调用、索引、成员和泛型等中性表达式结构，并只增加 `const`、同步或异步函数类型、Parser 议题 40 的 class 类型表达式、空 `[]` 以及受终止位置约束的 `*`、`&` 类型构造。
+Ink 允许完整复合类型作为普通一等编译期值。表达式文法不把整个 `type` 增加为重叠分支，而是复用标识符、圆括号、调用、索引、成员和以连续 `::<` 引导的泛型等中性表达式结构，并只增加 `const`、同步或异步函数类型、Parser 议题 40 的 class 类型表达式、空 `[]` 以及受终止位置约束的 `*`、`&` 类型构造。
 
 无括号 `*`、`&` 类型尾链必须结束于当前子表达式边界；继续调用、访问或参与运算时使用括号。空 `[]` 只构造切片类型，非空方括号继续由语义区分数组构造和容器索引。元组逗号结构由 CST 中性保存，并根据期望类型区分元组类型与包含类型值的普通元组。类型调用与普通函数调用共享 `CallExpression`，最终含义统一由语义分析确定。

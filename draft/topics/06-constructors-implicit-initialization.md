@@ -196,7 +196,7 @@ class Port {
             throw InvalidPort {};
         }
 
-        this.value = cast<u16>(value);
+        this.value = cast::<u16>(value);
     }
 }
 

@@ -155,7 +155,14 @@ generic_parameter_list =
     generic_parameter, { ",", generic_parameter } ;
 
 generic_parameter =
-    identifier, ":", type, [ parameter_suffix ] ;
+    identifier, ":", type, [ generic_parameter_suffix ] ;
+
+generic_parameter_suffix =
+      parameter_pack_suffix
+    | generic_default_argument ;
+
+generic_default_argument =
+    "=", generic_argument_expression ;
 
 function_parameter_clause =
     "(", [ function_parameter_list ], ")" ;
@@ -457,7 +464,7 @@ comptime_block_statement =
     "comptime", statement_block ;
 
 assignment_statement =
-    expression, assignment_operator, expression, ";" ;
+    statement_expression, assignment_operator, expression, ";" ;
 
 assignment_operator =
       "="
@@ -466,7 +473,11 @@ assignment_operator =
     | "<<=" | ">>=" ;
 
 expression_statement =
-    expression, ";" ;
+    statement_expression, ";" ;
+
+statement_expression =
+    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
+    expression ;
 
 if_statement =
     "if", "(", if_condition, ")", statement_block,
@@ -649,9 +660,10 @@ unary_operator =
       "+" | "-" | "!" | "~" | "*" | "&" | "await" ;
 
 postfix_expression =
-    primary_expression,
-    { postfix_suffix },
-    [ terminal_type_constructor_tail ] ;
+      direct_function_type_expression
+    | postfixable_primary_expression,
+      { postfix_suffix },
+      [ terminal_type_constructor_tail ] ;
 
 postfix_suffix =
       ordinary_postfix_suffix
@@ -708,14 +720,56 @@ member_selector =
     | tuple_position_selector ;
 
 generic_argument_suffix =
-    "<", [ generic_argument_list ], ">" ;
+    "::<", [ generic_argument_list ], ">" ;
 
 generic_argument_list =
     generic_argument, { ",", generic_argument } ;
 
 generic_argument =
-      type_or_expression
-    | list_expansion ;
+      generic_argument_expression
+    | generic_list_expansion ;
+
+generic_list_expansion =
+    "...", generic_argument_expression ;
+
+generic_argument_expression =
+      generic_argument_if_expression
+    | generic_argument_logical_or_expression ;
+
+generic_argument_if_expression =
+    "if", "(", logical_or_expression, ")",
+    generic_argument_expression, "else", generic_argument_expression ;
+
+generic_argument_logical_or_expression =
+    generic_argument_logical_and_expression,
+    { "||", generic_argument_logical_and_expression } ;
+
+generic_argument_logical_and_expression =
+    generic_argument_comparison_expression,
+    { "&&", generic_argument_comparison_expression } ;
+
+generic_argument_comparison_expression =
+    generic_argument_bitwise_or_expression,
+    [ generic_argument_comparison_operator, generic_argument_bitwise_or_expression ] ;
+
+generic_argument_comparison_operator =
+      "<" | "<=" | "==" | "!=" ;
+
+generic_argument_bitwise_or_expression =
+    generic_argument_bitwise_xor_expression,
+    { "|", generic_argument_bitwise_xor_expression } ;
+
+generic_argument_bitwise_xor_expression =
+    generic_argument_bitwise_and_expression,
+    { "^", generic_argument_bitwise_and_expression } ;
+
+generic_argument_bitwise_and_expression =
+    generic_argument_shift_expression,
+    { "&", generic_argument_shift_expression } ;
+
+generic_argument_shift_expression =
+    additive_expression,
+    { "<<", additive_expression } ;
 
 slice_suffix =
     "[",
@@ -725,17 +779,18 @@ slice_suffix =
 
 terminal_type_constructor_tail =
     type_constructor_start,
-    { type_symbol_suffix | empty_bracket_suffix | index_suffix } ;
+    { type_symbol_suffix | empty_bracket_suffix | index_suffix },
+    ? this is the maximal complete type-constructor tail, it did not split a compound assignment operator, and the next significant Token at the current nesting level belongs to the caller-provided expression terminator set without being consumed ? ;
 
 type_constructor_start =
       type_symbol_suffix
     | empty_bracket_suffix ;
 
 type_symbol_suffix =
-      "*"
-    | "&" ;
+    ( "*" | "&" ),
+    ? this Symbol is consumed as a type-constructor suffix; an explicit type context may consume adjacent suffix Symbols character by character, while an expression tail additionally obeys terminal_type_constructor_tail, and no compound assignment operator is split ? ;
 
-primary_expression =
+postfixable_primary_expression =
       literal_expression
     | identifier_expression
     | builtin_type_expression
@@ -744,8 +799,7 @@ primary_expression =
     | parenthesized_comma_list
     | array_expression
     | structured_expression
-    | const_type_value_expression
-    | function_type_expression ;
+    | const_type_value_expression ;
 
 literal_expression =
       integer_literal
@@ -810,24 +864,28 @@ aggregate_initializer_body =
     "}" ;
 
 aggregate_field_initializer =
-    identifier, ":", expression ;
+    identifier, [ ":", expression ] ;
 
 const_type_value_expression =
-    "const", type_primary ;
+    "const", postfixable_type_primary ;
+
+direct_function_type_expression =
+    [ "const" ], function_type_expression ;
 
 function_type_expression =
     function_type ;
 
 type =
-    [ "const" ],
-    type_primary,
-    { type_postfix_suffix } ;
+    [ "const" ], type_body ;
 
-type_primary =
+type_body =
+      function_type
+    | postfixable_type_primary, { type_postfix_suffix } ;
+
+postfixable_type_primary =
       type_name
     | parenthesized_type_expression
-    | tuple_type
-    | function_type ;
+    | tuple_type ;
 
 type_name =
       identifier
@@ -835,19 +893,14 @@ type_name =
 
 type_postfix_suffix =
       postfix_suffix
-    | "*"
-    | "&"
+    | type_symbol_suffix
     | empty_bracket_suffix ;
 
 empty_bracket_suffix =
     "[", "]" ;
 
 parenthesized_type_expression =
-    "(", type_or_expression, ")" ;
-
-type_or_expression =
-      type
-    | expression ;
+    "(", expression, ")" ;
 
 tuple_type =
       "(", ")"
@@ -866,7 +919,11 @@ function_type =
     [ function_type_parameter,
       { ",", function_type_parameter } ],
     ")",
-    [ "->", type ] ;
+    [ function_type_result ] ;
+
+function_type_result =
+    "->", type,
+    ? type consumed the maximal valid type prefix at this position ? ;
 
 function_type_parameter =
       type

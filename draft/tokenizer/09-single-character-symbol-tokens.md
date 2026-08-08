@@ -1,6 +1,6 @@
 # Tokenizer 议题 09：单字符 Symbol Token
 
-> 状态：已确认，根据后续讨论修订为单字符模型；Parser 议题 24 使用 `=>`
+> 状态：已确认，根据后续讨论修订为单字符模型；Parser 议题 24 使用 `=>`；Parser 议题 16 使用 `::<` 引导泛型实参后缀
 > 确认日期：2026-08-02
 
 ## 1. 所有语法符号按单字符扫描
@@ -64,6 +64,7 @@ Ink 当前接受以下单字符 Symbol：
 
 ```text
 ::   → ':' ':'
+::<  → ':' ':' '<'
 ..   → '.' '.'
 ...  → '.' '.' '.'
 ->   → '-' '>'
@@ -75,7 +76,7 @@ Ink 当前接受以下单字符 Symbol：
 ```ink
 library::ThreadPool
 0 .. length
-target<...Types>(...values)
+target::<...Types>(...values)
 func read() -> Data*;
 .ready => run();
 ```
@@ -123,12 +124,20 @@ a < /* comment */ = b
 
 即使 parser 使用“跳过 Trivia”的语法视图，也必须保留原始 Token 索引或跨度邻接信息，不能跨 Trivia 重组复合符号。
 
-## 6. 嵌套泛型不再需要 Token 拆分
+## 6. `::<` 与嵌套泛型不需要 Token 拆分
+
+显式泛型实参后缀由三个直接相邻字符 `::<` 引导。Tokenizer 对它仍产生三个单字符 Symbol；Parser 把完整连续拼写识别成一个复合终结字符串。左侧表达式与 `::<` 之间可以存在 Trivia，格式化器的规范输出不保留该空白：
+
+```ink
+Vector::<i32>
+Vector ::<i32> // 语法等价，规范格式为 Vector::<i32>
+Vector:: <i32> // 非法：::< 内部不能出现 Trivia
+```
 
 源码：
 
 ```ink
-Vector<Vector<i32>>
+Vector::<Vector::<i32>>
 ```
 
 末尾始终产生两个独立 Token：
@@ -145,7 +154,7 @@ Tokenizer 不产生 `ShiftRight`，因此不存在先合并再虚拟拆分的特
 同理：
 
 ```ink
-Container<Item<T>>=value
+Container::<Item::<T>>=value
 ```
 
 产生三个末尾 Symbol：
@@ -219,8 +228,8 @@ a & b       // bitwise AND
 value: T&   // reference type
 &value      // address/reference expression
 
-a < b       // comparison
-Vector<i32> // generic delimiters
+a < b         // comparison
+Vector::<i32> // generic delimiters
 ```
 
 Tokenizer 对这些示例中的 `*`、`&`、`<`、`>` 产生完全相同的 `Symbol` TokenKind 和字符值。

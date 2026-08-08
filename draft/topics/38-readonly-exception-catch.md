@@ -76,7 +76,7 @@ catch OperationError as error {
 ```ink
 catch ParseError as error {
     const pointer: const ParseError* = &error;
-    const writable = ptrcast<ParseError*>(pointer);
+    const writable = ptrcast::<ParseError*>(pointer);
     writable->position = 10; // UB：写入运行时拥有的活动异常载荷
 }
 ```

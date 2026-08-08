@@ -34,7 +34,7 @@ var second = connection_pointer->read();
 connection.read()
     → evaluate receiver
     → capture raw pointer &connection as this
-    → construct lazy Task<Result>
+    → construct lazy Task::<Result>
     → do not execute method body yet
 ```
 
@@ -84,7 +84,7 @@ async func inspect() -> ptrsize {
 惰性任务可以把接收者地址带出创建它的作用域：
 
 ```ink
-func make_task() -> Task<ptrsize> {
+func make_task() -> Task::<ptrsize> {
     var file = File.open("data.txt");
     return file.size_async();
 } // file 已析构，返回的 Task 仍保存 &file

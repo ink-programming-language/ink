@@ -133,10 +133,12 @@ ErrorType
 
 局部确定的恢复策略有利于 IDE 编辑时保持未修改区域的 CST 稳定，也有利于增量解析复用子树。
 
-## 10. 错误报告不属于本议题
+相同输入产生的结构化 Parser 诊断也必须具有相同的 Kind、`PrimarySpan`、类型化 `Arguments` 和 `Related`。格式化后的自然语言正文、有效 severity 和具体输出布局不属于 Parser 恢复结构。
 
-本议题只定义 `MissingToken`、`ErrorNode`、同步集合和前进规则等语法树行为。错误码、消息文本、位置展示、修复建议以及错误集合的数据结构将在独立的 diagnostics draft 中讨论，不属于本 Parser 议题。
+## 10. 公共诊断模型
+
+本议题只定义 `MissingToken`、`ErrorNode`、同步集合和前进规则等语法树行为。Parser 诊断使用 [`Diagnostics 议题 01`](../diagnostics/01-diagnostic-model-and-codes.md) 定义的公共模型，并在 Parser 域中登记稳定 `INK-P` 编号。Parser 作为 producer 只提交 Kind、`PrimarySpan`、类型化 `Arguments` 和结构化 `Related`；最终正文、note 和默认 severity 由公共 `DiagnosticFormatter` 生成，行列号及 terminal、JSON、LSP 布局由对应 Renderer/Consumer 决定。
 
 ## 11. 确认结论
 
-Ink Parser 只恢复词法有效输入中的语法错误。缺失内容用零宽度 `MissingToken` 表示，多余内容完整保存在 `ErrorNode` 中；上下文同步集合和外层停止集合限制恢复范围，强制前进规则保证 Parser 终止。具体错误诊断基础设施留给独立 diagnostics draft。
+Ink Parser 只恢复词法有效输入中的语法错误。缺失内容用零宽度 `MissingToken` 表示，多余内容完整保存在 `ErrorNode` 中；上下文同步集合和外层停止集合限制恢复范围，强制前进规则保证 Parser 终止。具体错误诊断统一使用公共 DiagnosticKind 和稳定 `INK-P` 编号。

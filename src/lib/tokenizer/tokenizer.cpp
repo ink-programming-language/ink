@@ -17,7 +17,11 @@ namespace ink::tokenizer
   namespace
   {
     using core::Diagnostic;
+    using core::DiagnosticArgumentName;
+    using core::DiagnosticBuilder;
     using core::DiagnosticKind;
+    using core::DiagnosticRelatedKind;
+    using core::DiagnosticSourceContext;
     using unicode::DecodeResult;
 
     struct KeywordEntry
@@ -165,29 +169,6 @@ namespace ink::tokenizer
     bool isForbiddenControl(char32_t Value) noexcept
     {
       return (Value <= 0x1F && Value != U'\t' && Value != U'\n' && Value != U'\r') || Value == 0x7F;
-    }
-
-    std::string diagnosticMessage(DiagnosticKind Kind)
-    {
-      return core::diagnosticKindName(Kind);
-    }
-
-    std::string codePointName(char32_t Value)
-    {
-      constexpr char Digits[] = "0123456789ABCDEF";
-      std::string Result = "U+";
-      std::string Hexadecimal;
-      do
-      {
-        Hexadecimal.push_back(Digits[Value & 0xFU]);
-        Value >>= 4U;
-      } while (Value != 0);
-      while (Hexadecimal.size() < 4)
-      {
-        Hexadecimal.push_back('0');
-      }
-      Result.append(Hexadecimal.rbegin(), Hexadecimal.rend());
-      return Result;
     }
 
     class Scanner
@@ -385,16 +366,21 @@ namespace ink::tokenizer
         if (Depth != 0)
         {
           validateRawRange(Start, Position, true);
-          std::string Message = std::string("block comment is not terminated; outermost opening byte: ") + std::to_string(Start) + "; remaining nesting depth: " + std::to_string(Depth);
+          DiagnosticBuilder Builder(DiagnosticKind::UnterminatedBlockComment, {Start, std::min(Start + 2, Source.size())});
+          Builder.argument(DiagnosticArgumentName::RemainingNestingDepth, static_cast<std::uint64_t>(Depth));
           if (Depth <= TrackedDepthLimit)
           {
-            Message += "; most recent unclosed opening byte: " + std::to_string(OpeningPositions.back());
+            const std::size_t MostRecentOpening = OpeningPositions.back();
+            if (MostRecentOpening != Start)
+            {
+              Builder.related(DiagnosticRelatedKind::MostRecentUnclosedBlockComment, {MostRecentOpening, MostRecentOpening + 2});
+            }
           }
           else
           {
-            Message += "; most recent unclosed opening byte was not retained after the nesting limit was exceeded";
+            Builder.argument(DiagnosticArgumentName::MostRecentOpeningUnavailable, true);
           }
-          Diagnostics.push_back({DiagnosticKind::UnterminatedBlockComment, {Start, std::min(Start + 2, Source.size())}, std::move(Message)});
+          Diagnostics.push_back(std::move(Builder).build());
           return makeToken(TokenKind::UnterminatedBlockComment, Start, Position);
         }
         const TokenKind Validation = validateRawRange(Start, Position, true);
@@ -1221,17 +1207,7 @@ namespace ink::tokenizer
 
       void addDiagnostic(DiagnosticKind Kind, core::SourceRange Span)
       {
-        Diagnostics.push_back({Kind, Span, diagnosticMessage(Kind)});
-      }
-
-      std::string describeScalar(std::size_t Offset) const
-      {
-        const DecodeResult Decoded = unicode::decode(Source, Offset);
-        if (!Decoded.Valid)
-        {
-          return "invalid UTF-8";
-        }
-        return codePointName(Decoded.Value) + " ('" + std::string(Source.data() + Offset, Decoded.Length) + "')";
+        Diagnostics.push_back(DiagnosticBuilder(Kind, Span).build());
       }
 
       std::size_t previousVisibleScalar(std::size_t Offset) const
@@ -1257,24 +1233,20 @@ namespace ink::tokenizer
 
       void addInvisibleDiagnostic(std::size_t Offset, DecodeResult Decoded, std::size_t PreviousVisible, std::size_t NextVisible, bool IdentifierContext)
       {
-        std::string Message = "invisible format character " + codePointName(Decoded.Value);
-        if (PreviousVisible != std::string::npos && NextVisible != std::string::npos)
+        DiagnosticBuilder Builder(DiagnosticKind::InvisibleCharacter, {Offset, Offset + Decoded.Length});
+        Builder.argument(DiagnosticArgumentName::Character, Decoded.Value);
+        Builder.argument(DiagnosticArgumentName::Context, IdentifierContext ? DiagnosticSourceContext::Identifier : DiagnosticSourceContext::SourceText);
+        if (PreviousVisible != std::string::npos)
         {
-          Message += " appears between " + describeScalar(PreviousVisible) + " and " + describeScalar(NextVisible);
+          const DecodeResult Previous = unicode::decode(Source, PreviousVisible);
+          Builder.related(DiagnosticRelatedKind::PreviousVisibleCharacter, {PreviousVisible, PreviousVisible + Previous.Length}, {{DiagnosticArgumentName::Character, Previous.Value}});
         }
-        else if (PreviousVisible != std::string::npos)
+        if (NextVisible != std::string::npos)
         {
-          Message += " appears after " + describeScalar(PreviousVisible);
+          const DecodeResult Next = unicode::decode(Source, NextVisible);
+          Builder.related(DiagnosticRelatedKind::NextVisibleCharacter, {NextVisible, NextVisible + Next.Length}, {{DiagnosticArgumentName::Character, Next.Value}});
         }
-        else if (NextVisible != std::string::npos)
-        {
-          Message += " appears before " + describeScalar(NextVisible);
-        }
-        else
-        {
-          Message += IdentifierContext ? " appears in an identifier" : " appears in source text";
-        }
-        Diagnostics.push_back({DiagnosticKind::InvisibleCharacter, {Offset, Offset + Decoded.Length}, std::move(Message)});
+        Diagnostics.push_back(std::move(Builder).build());
       }
 
       Token makeToken(TokenKind Kind, std::size_t Start, std::size_t End, TokenPayload Payload = {}) const

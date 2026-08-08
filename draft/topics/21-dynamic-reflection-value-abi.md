@@ -169,7 +169,7 @@ result: DynamicOut {
 
 `call[R](...)` 是对上述结果存储协议的强类型便捷封装。
 
-议题 57 为异步反射增加独立的 `DynamicTaskOut`。其地址指向未初始化的最终 `Task<R>` 存储，期待类型记录逻辑结果 `R` 而不是 `Task<R>`；`call_async[R]` 通过该协议原地构造惰性任务。同步函数显式返回 `Task<R>` 时仍使用本节的普通 `DynamicOut` 和 `call[Task<R>]`。
+议题 57 为异步反射增加独立的 `DynamicTaskOut`。其地址指向未初始化的最终 `Task::<R>` 存储，期待类型记录逻辑结果 `R` 而不是 `Task::<R>`；`call_async[R]` 通过该协议原地构造惰性任务。同步函数显式返回 `Task::<R>` 时仍使用本节的普通 `DynamicOut` 和 `call[Task::<R>]`。
 
 ## 8. 异常语义
 

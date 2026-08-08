@@ -1,6 +1,6 @@
 # Parser 议题 09：语句块与花括号
 
-> 状态：已确认，议题 20、24—28 补充全部控制流、清理与异常处理规则；2026-08-05 增加 `comptime` block statement，Parser 议题 32 统一区域控制；2026-08-06 汇总完整 `local_declaration` 与 `statement` 产生式
+> 状态：已确认，议题 20、24—28 补充全部控制流、清理与异常处理规则；2026-08-05 增加 `comptime` block statement，Parser 议题 32 统一区域控制；2026-08-06 汇总完整 `local_declaration` 与 `statement` 产生式；2026-08-08 确认 `var`/`const` 在 block item 起点提交到局部声明
 > 确认日期：2026-08-03
 
 ## 1. 普通语句块
@@ -40,6 +40,8 @@ statement =
 ```
 
 `local_declaration` 当前只复用议题 10 的 `binding_declaration`，即以 `var` 或 `const` 开头的普通局部绑定。各个 statement 子产生式分别由议题 09、11、18、20、24—28 定义；这里仅汇总已经确认的规则，不引入新的语句形态。空语句块 `{}` 合法。
+
+`block_item` 的分派以首个显著 Token 为准：看到 `Keyword(Var)` 或 `Keyword(Const)` 时立即提交到 `local_declaration`，即使后续声明残缺也不能回退成赋值语句或表达式语句。其他开头进入 `statement`。只允许 `statement` 而不允许 `block_item` 的位置若遇到这两个声明关键字，应报告“声明必须放入语句块”并按声明形状恢复，不能把同一 Token 序列重新解释成表达式。
 
 赋值语句与表达式语句共享表达式前缀，按照议题 11 在解析完左侧表达式后由紧随的赋值运算符分流。`comptime` 开头的结构先按照议题 32 试探 block、if、match、while 或 for，试探失败后仍可回到含 `comptime_expression` 的普通表达式语句入口。
 

@@ -27,19 +27,19 @@ interface SeekableReader : Reader, Seekable {
 
 ```ink
 interface Iterable<T: type> {
-    func iterator() -> Iterator<T>;
+    func iterator() -> Iterator::<T>;
 }
 
-interface RandomAccessRange<T: type> : Iterable<T> {
+interface RandomAccessRange<T: type> : Iterable::<T> {
     func at(index: ptrsize) const -> const T&;
 }
 
-class Vector<T: type> : RandomAccessRange<T> {
+class Vector<T: type> : RandomAccessRange::<T> {
     // ...
 }
 ```
 
-开放声明 `Iterable` 是议题 66 的 `GenericTypeDecl`，不是可直接用在继承列表中的闭合 `type`；`Iterable<i32>`、`Iterable<string>` 等实例分别形成不同的接口类型。泛型接口继承可以在父接口实参中引用当前接口的泛型参数，例如 `RandomAccessRange<T> : Iterable<T>`。Parser 只复用统一的 `generic_parameter_clause`，并按议题 24 的 `inheritance_clause` 把每个父接口位置解析为完整 `type`；实参数量、约束、开放声明误用以及实例化后的继承关系由语义分析检查。
+开放声明 `Iterable` 是议题 66 的 `GenericTypeDecl`，不是可直接用在继承列表中的闭合 `type`；`Iterable::<i32>`、`Iterable::<string>` 等实例分别形成不同的接口类型。泛型接口继承可以在父接口实参中引用当前接口的泛型参数，例如 `RandomAccessRange<T: type> : Iterable::<T>`。Parser 只复用统一的 `generic_parameter_clause`，并按议题 24 的 `inheritance_clause` 把每个父接口位置解析为完整 `type`；实参数量、约束、开放声明误用以及实例化后的继承关系由语义分析检查。
 
 继承图必须是有向无环图。接口直接或间接继承自身时产生编译错误。
 

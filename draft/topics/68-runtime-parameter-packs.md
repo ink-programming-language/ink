@@ -27,7 +27,7 @@ func print_all<
 议题 64 的无推导规则同样适用于运行时参数包：
 
 ```ink
-print_all<i32, String>(
+print_all::<i32, String>(
     &number,
     &name
 ); // 合法
@@ -42,7 +42,7 @@ print_all(
 
 ## 3. 闭合后是普通固定参数函数
 
-`print_all<i32, String>` 概念上形成：
+`print_all::<i32, String>` 概念上形成：
 
 ```ink
 func print_all$i32$String(
@@ -76,7 +76,7 @@ func print_all$i32$String(
 comptime for (const index in 0 .. Types.length) {
     const T: type = Types[index];
     const value: const T& = values[index];
-    process<T>(&value);
+    process::<T>(&value);
 }
 ```
 
@@ -102,7 +102,7 @@ values: Types*...       // 每项原始指针值
 空编译期类型包对应零个运行时参数：
 
 ```ink
-print_all<>(); // 合法
+print_all::<>(); // 合法
 ```
 
 闭合函数中针对包的 `comptime for` 执行零次。空包不是省略默认运行时实参，也不产生零长度运行时数组。
@@ -137,7 +137,7 @@ func invalid<Types: type...>(
 func forward<Types: type...>(
     values: const Types&...
 ) {
-    target<...Types>(...values);
+    target::<...Types>(...values);
 }
 ```
 
@@ -156,7 +156,7 @@ Parser 议题 29 把两者统一识别为列表级 `...expression`，并在普�
 闭合实例具有固定普通函数类型：
 
 ```ink
-const entry = &print_all<i32, String>;
+const entry = &print_all::<i32, String>;
 ```
 
 该函数值的参数是展开后的 `const i32&` 和 `const String&`，不携带开放参数包。取得开放泛型函数本身的声明句柄继续使用议题 66 的 `GenericFunctionDecl`，不能作为运行时可变参数函数指针调用。
@@ -186,7 +186,7 @@ const entry = &print_all<i32, String>;
 
 ## 13. 与 `all` 的关系
 
-议题 45 的异构 `all(task1, task2, ...)` 可以使用本议题的静态运行时参数包表示闭合调用边界。每个任务保持准确 `Task<T>` 类型，结果类型由对应编译期类型包生成。
+议题 45 的异构 `all(task1, task2, ...)` 可以使用本议题的静态运行时参数包表示闭合调用边界。每个任务保持准确 `Task::<T>` 类型，结果类型由对应编译期类型包生成。
 
 `all` 对不可复制任务的精确按值原地构造、引用或隐藏输出位置签名，以及结果元组布局，仍由 `all` API 和元组议题确定；本议题只提供无类型擦除的固定参数展开机制。
 

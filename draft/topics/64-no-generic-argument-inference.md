@@ -14,7 +14,7 @@ func duplicate<T: type>(
     return (value, value);
 }
 
-const pair = duplicate<i32>(&value); // 合法
+const pair = duplicate::<i32>(&value); // 合法
 const pair = duplicate(&value);      // 编译错误：缺少 T
 ```
 
@@ -36,7 +36,7 @@ func array_length<
 调用者必须写出完整实参：
 
 ```ink
-array_length<byte, 16>(&bytes); // 合法
+array_length::<byte, 16>(&bytes); // 合法
 array_length(&bytes);           // 编译错误：缺少 T、N
 ```
 
@@ -49,7 +49,7 @@ array_length(&bytes);           // 编译错误：缺少 T、N
 ```ink
 func make<T: type>() -> T;
 
-const first: i32 = make<i32>(); // 合法
+const first: i32 = make::<i32>(); // 合法
 const second: i32 = make();     // 编译错误：缺少 T
 ```
 
@@ -57,14 +57,14 @@ const second: i32 = make();     // 编译错误：缺少 T
 
 ## 4. 不求解类型模式或编译期方程
 
-Ink v0 不从 `T[N]`、`Container<T>`、指针层级或其他类型模式中提取泛型参数，也不反向求解任意编译期表达式：
+Ink v0 不从 `T[N]`、`Container::<T>`、指针层级或其他类型模式中提取泛型参数，也不反向求解任意编译期表达式：
 
 ```ink
 func consume<N: ptrsize>(
     value: const byte[N + 1]&
 ) {}
 
-consume<9>(&bytes); // 显式 N；随后验证 bytes 是 byte[10]
+consume::<9>(&bytes); // 显式 N；随后验证 bytes 是 byte[10]
 consume(&bytes);    // 不尝试求解 N + 1 = 10
 ```
 
@@ -75,14 +75,14 @@ consume(&bytes);    // 不尝试求解 N + 1 = 10
 开放泛型类型不能仅凭构造函数实参闭合：
 
 ```ink
-const first = Box<i32>(10); // 合法
+const first = Box::<i32>(10); // 合法
 const second = Box(10);     // 编译错误：Box 缺少类型实参
 ```
 
 Ink v0 不提供 C++ class template argument deduction 或 deduction guide。普通工厂函数如果自身是泛型，也仍须显式给出其泛型实参：
 
 ```ink
-const value = make_box<i32>(10);
+const value = make_box::<i32>(10);
 ```
 
 ## 6. 参数包仍可显式为空
@@ -90,8 +90,8 @@ const value = make_box<i32>(10);
 议题 62 的尾随参数包可以接收调用点明确提供的剩余泛型实参：
 
 ```ink
-Tuple<>                  // Types 明确绑定为空序列
-Tuple<i32, String, bool> // Types 明确绑定三个类型
+Tuple::<>                  // Types 明确绑定为空序列
+Tuple::<i32, String, bool> // Types 明确绑定三个类型
 ```
 
 空包不是推导结果，而是泛型实参列表在包位置没有剩余元素时的确定绑定。
@@ -105,12 +105,12 @@ func inspect<T: type>(value: const T&);
 func inspect(value: const i32&);
 
 inspect(&number);      // 只按普通非泛型候选处理
-inspect<i32>(&number); // 明确请求泛型实例
+inspect::<i32>(&number); // 明确请求泛型实例
 ```
 
 函数体中的 `comptime if`、成员是否存在以及具体实例能否通过类型检查都不用于反推缺少的泛型实参。
 
-议题 70 固定候选集合边界：`function(...)` 只考虑非泛型声明，`function<...>(...)` 才考虑能够绑定这些显式编译期实参的泛型声明。闭合签名或已选中函数体失败都不会触发 SFINAE 式回退。
+议题 70 固定候选集合边界：`function(...)` 只考虑非泛型声明，`function::<...>(...)` 才考虑能够绑定这些显式编译期实参的泛型声明。闭合签名或已选中函数体失败都不会触发 SFINAE 式回退。
 
 ## 8. Partial Evaluation
 
@@ -140,6 +140,6 @@ explicit generic arguments
 
 未来可以独立增加有限的函数泛型实参推导，但不能改变已经显式写出实参的程序所选择的闭合实例。
 
-议题 65 允许参数声明使用尾随默认值，但不把默认值视为推导。调用者必须写出泛型 `<>`，随后才能按声明规则省略有默认值的尾部编译期参数；v0 不支持名称绑定。
+议题 65 允许参数声明使用尾随默认值，但不把默认值视为推导。调用者必须写出泛型应用引导符 `::<>`，随后才能按声明规则省略有默认值的尾部编译期参数；v0 不支持名称绑定。
 
 未来推导是否只限函数输入的直接类型位置仍须独立讨论。

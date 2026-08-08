@@ -13,10 +13,11 @@ TokenizationResult = Success(TokenizedBuffer) | Failure(TokenizedBuffer)
 TokenizedBuffer {
     source: SourceText
     tokens: Token[]
+    diagnostics: Diagnostic[]
 }
 ```
 
-`source` 持有不可变原始字节；`tokens` 是议题 02 确定的 full-fidelity 单一 Token 列表。成功与失败结果都保留完整 Token 分区；错误诊断的公共模型与具体数据结构将在独立的 diagnostics draft 中讨论。
+`source` 持有不可变原始字节；`tokens` 是议题 02 确定的 full-fidelity 单一 Token 列表；`diagnostics` 保存 Tokenizer 提交的结构化公共诊断。成功与失败结果都保留完整 Token 分区；错误诊断使用 [`../diagnostics/01-diagnostic-model-and-codes.md`](../diagnostics/01-diagnostic-model-and-codes.md) 定义的公共模型和稳定 `INK-T` 编号。
 
 Tokenizer 不读取 `import` 指向的文件，不执行宏展开、条件编译、名称绑定或类型检查。每个物理源文件独立产生一个 `TokenizedBuffer`。
 
@@ -163,7 +164,9 @@ UnterminatedBlockComment
 
 ## 9. 错误报告边界
 
-各词法议题负责确定哪些输入不合法，以及错误 Token 必须覆盖哪些原始字节。错误码、消息、相关位置、修复建议以及错误集合的数据结构将在独立的 diagnostics draft 中讨论，不属于本 Tokenizer 议题。
+各词法议题负责确定哪些输入不合法，以及错误 Token 必须覆盖哪些原始字节。每种可发出的词法诊断必须在 [`Diagnostics 议题 01`](../diagnostics/01-diagnostic-model-and-codes.md) 的 Tokenizer 域中登记稳定编号。
+
+Tokenizer 作为 producer 只提交已登记的 Kind、以原始 UTF-8 字节表示的 `PrimarySpan`、符合该 Kind schema 的类型化 `Arguments` 以及结构化 `Related`。它不在 `Diagnostic` 中保存最终 `Message`，也不生成参数化正文、note、默认 severity、行列号或 terminal、JSON、LSP 布局；这些职责分别属于公共 `DiagnosticFormatter` 和对应 Renderer/Consumer。
 
 无论实现如何报告错误，Token 的原始 UTF-8 字节跨度始终是源码位置的权威依据。
 
@@ -194,7 +197,7 @@ Tokenizer 不能依赖：
 - 名称是否已经声明；
 - 运行时或编译期求值结果。
 
-相同输入和语言版本必须产生相同 TokenKind、跨度、派生 payload 与诊断种类。
+相同输入和语言版本必须产生相同 TokenKind、跨度、派生 payload，以及诊断的 Kind、`PrimarySpan`、类型化 `Arguments` 和 `Related`。格式化后的自然语言正文、有效 severity 和具体输出布局不属于 Tokenizer 确定性结果。
 
 ## 12. 资源限制
 

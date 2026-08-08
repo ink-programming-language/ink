@@ -95,10 +95,10 @@ func type_name() -> StringView;
 func matches[T]() -> bool;
 
 [nothrow]
-func reflection() -> Optional<TypeInfo>;
+func reflection() -> Optional::<TypeInfo>;
 
 [nothrow]
-func cause() -> Optional<const ExceptionView&>;
+func cause() -> Optional::<const ExceptionView&>;
 
 [nothrow]
 func throw_site() -> ThrowSiteView;

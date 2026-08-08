@@ -90,7 +90,14 @@ generic_parameter_list =
     generic_parameter, { ",", generic_parameter } ;
 
 generic_parameter =
-    identifier, ":", type, [ parameter_suffix ] ;
+    identifier, ":", type, [ generic_parameter_suffix ] ;
+
+generic_parameter_suffix =
+      parameter_pack_suffix
+    | generic_default_argument ;
+
+generic_default_argument =
+    "=", generic_argument_expression ;
 
 function_parameter_clause =
     "(", [ function_parameter_list ], ")" ;
@@ -288,14 +295,14 @@ func make_pair<
 >() {}
 ```
 
-`generic_parameter` 与运行时形参共享 `name: type`、默认值和尾随包标记的 Token 结构：
+`generic_parameter` 与运行时形参共享 `name: type`、默认值和尾随包标记的 Token 结构，但泛型默认值使用由右尖括号定界的 `generic_argument_expression`：
 
 ```ink
 func parse<Base: u32 = 10>(text: StringView) -> i64;
 func visit<Types: type...>() {}
 ```
 
-泛型列表本身已经建立编译期参数域，因此 `T: comptime type` 不属于语法。参数包和默认值由 `parameter_suffix` 的互斥分支表示，不能同时出现。
+泛型列表本身已经建立编译期参数域，因此 `T: comptime type` 不属于语法。参数包和默认值由 `generic_parameter_suffix` 的互斥分支表示，不能同时出现；运行时参数继续使用 `parameter_suffix` 和普通 `default_argument`。
 
 一个列表最多一个包、包必须最后、包不能有默认值、无默认参数必须位于默认参数之前，这些都需要查看同一列表中的其他形参，统一由语义分析报告。Parser 保留每个节点及其源码位置，不为了满足顺序约束移动或删除形参。
 
@@ -337,7 +344,7 @@ func print_all<Types: type...>(values: const Types&...) {}
 
 ## 8. 默认表达式的结束位置
 
-`default_argument` 使用完整 `expression`，但外层参数列表提供明确的顶层停止集合：
+运行时形参的 `default_argument` 使用完整 `expression`；泛型形参的 `generic_default_argument` 使用议题 16 同构的 `generic_argument_expression`。两者由外层参数列表提供不同的顶层停止集合：
 
 ```text
 泛型形参默认值： , 或 >
@@ -352,7 +359,7 @@ func f<Limit: bool = (left > right)>(
 ) {}
 ```
 
-为了让泛型声明的闭合 `>` 保持确定，默认表达式顶层出现比较 `>`、`>=` 或移位 `>>` 时必须加括号：
+`generic_argument_expression` 在当前泛型形参默认值顶层排除比较 `>`、`>=` 和移位 `>>`，从文法上保证第一个顶层 `>` 关闭声明列表；需要这些运算时必须加括号：
 
 ```ink
 func good<N: bool = (left > right)>() {}
@@ -445,7 +452,7 @@ else:
 
 声明区外层 Parser 可以先收集通用 annotation prefix，再根据后续关键字分派声明种类。`final class` 进入类声明；修饰符序列后出现 `func` 才进入本议题。`async func(` 在明确类型或表达式上下文中仍由议题 29、30 解析为函数类型，而在声明区域由外层调用者选择函数声明入口。
 
-函数名称之后的 `<` 不需要议题 16 的表达式泛型后缀邻接消歧：声明上下文中它只能开始 `generic_parameter_clause`。名称与 `<` 之间允许普通 Trivia。
+函数名称之后的 `<` 在声明上下文中只能开始 `generic_parameter_clause`。它与议题 16 由连续 `::<` 明确引导的表达式泛型应用是不同产生式；名称与声明形参列表的 `<` 之间允许普通 Trivia。
 
 解析不需要查询：
 

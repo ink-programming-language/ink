@@ -1,10 +1,215 @@
 #include "ink/core/diagnostic.h"
 
+#include <utility>
+
 namespace ink::core
 {
+  namespace
+  {
+    template <typename ValueType>
+    const ValueType *findArgument(const std::vector<DiagnosticArgument> &Arguments, DiagnosticArgumentName Name)
+    {
+      for (const DiagnosticArgument &Argument : Arguments)
+      {
+        if (Argument.Name == Name)
+        {
+          return std::get_if<ValueType>(&Argument.Value);
+        }
+      }
+      return nullptr;
+    }
+
+    std::string codePointName(char32_t Value)
+    {
+      constexpr char Digits[] = "0123456789ABCDEF";
+      std::string Result = "U+";
+      std::string Hexadecimal;
+      do
+      {
+        Hexadecimal.push_back(Digits[Value & 0xFU]);
+        Value >>= 4U;
+      } while (Value != 0);
+      while (Hexadecimal.size() < 4)
+      {
+        Hexadecimal.push_back('0');
+      }
+      Result.append(Hexadecimal.rbegin(), Hexadecimal.rend());
+      return Result;
+    }
+
+    void formatUnterminatedBlockComment(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
+    {
+      if (const std::uint64_t *RemainingDepth = findArgument<std::uint64_t>(DiagnosticEntry.Arguments, DiagnosticArgumentName::RemainingNestingDepth))
+      {
+        Result.Message += "; remaining nesting depth: " + std::to_string(*RemainingDepth);
+      }
+      for (const DiagnosticRelatedInformation &RelatedEntry : DiagnosticEntry.Related)
+      {
+        if (RelatedEntry.Kind == DiagnosticRelatedKind::MostRecentUnclosedBlockComment)
+        {
+          Result.Notes.push_back({RelatedEntry.Span, "most recent unclosed block comment opening is here"});
+        }
+      }
+      if (const bool *Unavailable = findArgument<bool>(DiagnosticEntry.Arguments, DiagnosticArgumentName::MostRecentOpeningUnavailable); Unavailable != nullptr && *Unavailable)
+      {
+        Result.Notes.push_back({std::nullopt, "most recent unclosed opening was not retained after the nesting limit was exceeded"});
+      }
+    }
+
+    void formatInvisibleCharacter(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
+    {
+      if (const char32_t *Character = findArgument<char32_t>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Character))
+      {
+        Result.Message = "invisible format character " + codePointName(*Character);
+        if (const DiagnosticSourceContext *Context = findArgument<DiagnosticSourceContext>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Context))
+        {
+          if (*Context == DiagnosticSourceContext::Identifier)
+          {
+            Result.Message += " appears in an identifier";
+          }
+          else if (*Context == DiagnosticSourceContext::SourceText)
+          {
+            Result.Message += " appears in source text";
+          }
+        }
+      }
+      for (const DiagnosticRelatedInformation &RelatedEntry : DiagnosticEntry.Related)
+      {
+        const bool IsPrevious = RelatedEntry.Kind == DiagnosticRelatedKind::PreviousVisibleCharacter;
+        const bool IsNext = RelatedEntry.Kind == DiagnosticRelatedKind::NextVisibleCharacter;
+        if (!IsPrevious && !IsNext)
+        {
+          continue;
+        }
+        std::string Message = IsPrevious ? "previous visible character" : "next visible character";
+        if (const char32_t *Character = findArgument<char32_t>(RelatedEntry.Arguments, DiagnosticArgumentName::Character))
+        {
+          Message += " is " + codePointName(*Character);
+        }
+        else
+        {
+          Message += " is here";
+        }
+        Result.Notes.push_back({RelatedEntry.Span, std::move(Message)});
+      }
+    }
+  } // namespace
+
+  std::uint32_t diagnosticNumber(DiagnosticKind Kind) noexcept
+  {
+    switch (Kind)
+    {
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return Number;
+#include "ink/core/diagnostic.def"
+#undef INK_DIAGNOSTIC
+    }
+    return 0;
+  }
+
+  const char *diagnosticCode(DiagnosticKind Kind) noexcept
+  {
+    switch (Kind)
+    {
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return Code;
+#include "ink/core/diagnostic.def"
+#undef INK_DIAGNOSTIC
+    }
+    return "INK-0000";
+  }
+
+  const char *diagnosticKindName(DiagnosticKind Kind) noexcept
+  {
+    switch (Kind)
+    {
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return #Name;
+#include "ink/core/diagnostic.def"
+#undef INK_DIAGNOSTIC
+    }
+    return "Unknown";
+  }
+
+  const char *diagnosticDefaultMessage(DiagnosticKind Kind) noexcept
+  {
+    switch (Kind)
+    {
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return DefaultMessage;
+#include "ink/core/diagnostic.def"
+#undef INK_DIAGNOSTIC
+    }
+    return "unknown diagnostic";
+  }
+
+  DiagnosticDomain diagnosticDomain(DiagnosticKind Kind) noexcept
+  {
+    switch (Kind)
+    {
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return DiagnosticDomain::Domain;
+#include "ink/core/diagnostic.def"
+#undef INK_DIAGNOSTIC
+    }
+    return DiagnosticDomain::Unknown;
+  }
+
+  DiagnosticSeverity diagnosticDefaultSeverity(DiagnosticKind Kind) noexcept
+  {
+    switch (Kind)
+    {
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return DiagnosticSeverity::DefaultSeverity;
+#include "ink/core/diagnostic.def"
+#undef INK_DIAGNOSTIC
+    }
+    return DiagnosticSeverity::Unknown;
+  }
+
+  const char *diagnosticSeverityName(DiagnosticSeverity Severity) noexcept
+  {
+    switch (Severity)
+    {
+    case DiagnosticSeverity::Unknown:
+      return "unknown";
+    case DiagnosticSeverity::Error:
+      return "error";
+    case DiagnosticSeverity::Warning:
+      return "warning";
+    case DiagnosticSeverity::Note:
+      return "note";
+    }
+    return "unknown";
+  }
+
+  bool operator==(const DiagnosticArgument &Left, const DiagnosticArgument &Right)
+  {
+    return Left.Name == Right.Name && Left.Value == Right.Value;
+  }
+
+  bool operator!=(const DiagnosticArgument &Left, const DiagnosticArgument &Right)
+  {
+    return !(Left == Right);
+  }
+
+  bool operator==(const DiagnosticRelatedInformation &Left, const DiagnosticRelatedInformation &Right)
+  {
+    return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Arguments == Right.Arguments;
+  }
+
+  bool operator!=(const DiagnosticRelatedInformation &Left, const DiagnosticRelatedInformation &Right)
+  {
+    return !(Left == Right);
+  }
+
+  std::uint32_t Diagnostic::number() const noexcept
+  {
+    return diagnosticNumber(Kind);
+  }
+
+  const char *Diagnostic::code() const noexcept
+  {
+    return diagnosticCode(Kind);
+  }
+
   bool operator==(const Diagnostic &Left, const Diagnostic &Right)
   {
-    return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Message == Right.Message;
+    return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Arguments == Right.Arguments && Left.Related == Right.Related;
   }
 
   bool operator!=(const Diagnostic &Left, const Diagnostic &Right)
@@ -12,69 +217,70 @@ namespace ink::core
     return !(Left == Right);
   }
 
-  const char *diagnosticKindName(DiagnosticKind Kind) noexcept
+  DiagnosticBuilder::DiagnosticBuilder(DiagnosticKind Kind, SourceRange Span) : Result{Kind, Span, {}, {}}
   {
-    switch (Kind)
+  }
+
+  DiagnosticBuilder &DiagnosticBuilder::argument(DiagnosticArgumentName Name, DiagnosticArgumentValue Value) &
+  {
+    Result.Arguments.push_back({Name, std::move(Value)});
+    return *this;
+  }
+
+  DiagnosticBuilder &&DiagnosticBuilder::argument(DiagnosticArgumentName Name, DiagnosticArgumentValue Value) &&
+  {
+    argument(Name, std::move(Value));
+    return std::move(*this);
+  }
+
+  DiagnosticBuilder &DiagnosticBuilder::related(DiagnosticRelatedKind Kind, SourceRange Span, std::vector<DiagnosticArgument> Arguments) &
+  {
+    Result.Related.push_back({Kind, Span, std::move(Arguments)});
+    return *this;
+  }
+
+  DiagnosticBuilder &&DiagnosticBuilder::related(DiagnosticRelatedKind Kind, SourceRange Span, std::vector<DiagnosticArgument> Arguments) &&
+  {
+    related(Kind, Span, std::move(Arguments));
+    return std::move(*this);
+  }
+
+  Diagnostic DiagnosticBuilder::build() &&
+  {
+    return std::move(Result);
+  }
+
+  bool operator==(const FormattedDiagnosticNote &Left, const FormattedDiagnosticNote &Right)
+  {
+    return Left.Span == Right.Span && Left.Message == Right.Message;
+  }
+
+  bool operator!=(const FormattedDiagnosticNote &Left, const FormattedDiagnosticNote &Right)
+  {
+    return !(Left == Right);
+  }
+
+  bool operator==(const FormattedDiagnostic &Left, const FormattedDiagnostic &Right)
+  {
+    return Left.Severity == Right.Severity && Left.Message == Right.Message && Left.Notes == Right.Notes;
+  }
+
+  bool operator!=(const FormattedDiagnostic &Left, const FormattedDiagnostic &Right)
+  {
+    return !(Left == Right);
+  }
+
+  FormattedDiagnostic DiagnosticFormatter::format(const Diagnostic &DiagnosticEntry) const
+  {
+    FormattedDiagnostic Result{diagnosticDefaultSeverity(DiagnosticEntry.Kind), diagnosticDefaultMessage(DiagnosticEntry.Kind), {}};
+    if (DiagnosticEntry.Kind == DiagnosticKind::UnterminatedBlockComment)
     {
-    case DiagnosticKind::Unknown:
-      return "unknown diagnostic";
-    case DiagnosticKind::InvalidUtf8:
-      return "invalid UTF-8";
-    case DiagnosticKind::UnexpectedBom:
-      return "UTF-8 BOM is only allowed at the start of a file";
-    case DiagnosticKind::LoneCarriageReturn:
-      return "carriage return must be followed by line feed";
-    case DiagnosticKind::NonAsciiWhitespace:
-      return "only ASCII space and tab are source whitespace";
-    case DiagnosticKind::ForbiddenControlCharacter:
-      return "forbidden raw control character";
-    case DiagnosticKind::InvalidCharacter:
-      return "character cannot start an Ink token";
-    case DiagnosticKind::IdentifierNotNfc:
-      return "identifier is not in Unicode NFC";
-    case DiagnosticKind::InvisibleCharacter:
-      return "invisible format character must be written explicitly";
-    case DiagnosticKind::MissingBaseDigits:
-      return "base prefix must be followed by a digit";
-    case DiagnosticKind::DigitOutOfRange:
-      return "digit does not belong to the literal base";
-    case DiagnosticKind::MisplacedNumericSeparator:
-      return "numeric separator must be between two digits";
-    case DiagnosticKind::MissingExponentDigits:
-      return "exponent must contain a decimal digit";
-    case DiagnosticKind::UnknownNumericSuffix:
-      return "unknown numeric literal suffix";
-    case DiagnosticKind::InvalidNumericSuffix:
-      return "numeric suffix is not valid for this literal";
-    case DiagnosticKind::UnsupportedNonDecimalFloat:
-      return "non-decimal floating-point literals are not supported";
-    case DiagnosticKind::EmptyScalarLiteral:
-      return "scalar literal is empty";
-    case DiagnosticKind::MultipleScalarValues:
-      return "scalar literal must contain exactly one Unicode scalar value";
-    case DiagnosticKind::UnterminatedScalarLiteral:
-      return "scalar literal is not terminated on this source line";
-    case DiagnosticKind::UnknownEscape:
-      return "unknown escape sequence";
-    case DiagnosticKind::InvalidHexEscape:
-      return "hex escape requires exactly two hexadecimal digits";
-    case DiagnosticKind::InvalidUnicodeEscape:
-      return "Unicode escape requires one to six hexadecimal digits in braces";
-    case DiagnosticKind::InvalidUnicodeScalar:
-      return "escape does not designate a Unicode scalar value";
-    case DiagnosticKind::UnterminatedStringLiteral:
-      return "single-line string is not terminated on this source line";
-    case DiagnosticKind::MultilineOpeningLineBreakRequired:
-      return "multiline string opening delimiter must be followed by a line break";
-    case DiagnosticKind::UnterminatedMultilineStringLiteral:
-      return "multiline string has no closing delimiter";
-    case DiagnosticKind::InvalidMultilineIndentation:
-      return "multiline string line does not match the closing indentation";
-    case DiagnosticKind::UnterminatedBlockComment:
-      return "block comment is not terminated";
-    case DiagnosticKind::BlockCommentNestingLimit:
-      return "block comment nesting limit exceeded";
+      formatUnterminatedBlockComment(DiagnosticEntry, Result);
     }
-    return "unknown diagnostic";
+    else if (DiagnosticEntry.Kind == DiagnosticKind::InvisibleCharacter)
+    {
+      formatInvisibleCharacter(DiagnosticEntry, Result);
+    }
+    return Result;
   }
 } // namespace ink::core

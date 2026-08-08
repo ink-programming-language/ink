@@ -100,7 +100,7 @@ Tokenizer 仍按照既有规则为 `_` 产生普通 `Identifier` Token。Parser 
 
 分支是否存在、载荷数量是否匹配以及载荷类型是否支持对应模式属于语义检查，不由 Parser 查询枚举声明决定。
 
-这里的前导点只存在于模式上下文，不是普通值表达式简写。构造或引用枚举值时必须写出类型限定名，例如 `Color.red`、`Optional<int>.some(value)`；普通表达式不能写 `.red` 或 `.some(value)`。
+这里的前导点只存在于模式上下文，不是普通值表达式简写。构造或引用枚举值时必须写出类型限定名，例如 `Color.red`、`Optional::<int>.some(value)`；普通表达式不能写 `.red` 或 `.some(value)`。
 
 ## 5. 顶层模式上下文
 
@@ -155,14 +155,14 @@ irrefutable_pattern = payload_pattern ;
 载荷绑定是否为 `T&` 或 `const T&`，由被匹配表达式对枚举存储的访问能力决定，而不是由 pattern 关键字决定：
 
 ```ink
-func inspect(optional: const Optional<Data>&) {
+func inspect(optional: const Optional::<Data>&) {
     if (match .some(value) = optional) {
         // value: const Data&
         value.inspect();
     }
 }
 
-func update(optional: Optional<Data>&) {
+func update(optional: Optional::<Data>&) {
     if (match .some(value) = optional) {
         // value: Data&
         value.update();
@@ -183,8 +183,8 @@ func update(optional: Optional<Data>&) {
 
 访问能力传播只约束枚举中的载荷槽，不递归削弱载荷本身携带的访问能力：
 
-- `Optional<T&>` 的绑定保持为 `T&`，不会形成引用的引用；
-- `Optional<const T&>` 的绑定保持为 `const T&`；
+- `Optional::<T&>` 的绑定保持为 `T&`，不会形成引用的引用；
+- `Optional::<const T&>` 的绑定保持为 `const T&`；
 - 对指针载荷只读访问时不能改写枚举中保存的指针值，但指针目标是否可写仍由 `T*` 或 `const T*` 决定；
 - 对可写指针载荷槽的引用允许按照普通赋值规则改写该槽。
 

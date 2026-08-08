@@ -5,6 +5,7 @@
 
 #include <initializer_list>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace ink::tokenizer
@@ -23,6 +24,32 @@ namespace ink::tokenizer
         Result.push_back(static_cast<char>(Value));
       }
       return Result;
+    }
+
+    void appendUtf8Scalar(std::string &Result, char32_t Value)
+    {
+      if (Value <= 0x7F)
+      {
+        Result.push_back(static_cast<char>(Value));
+      }
+      else if (Value <= 0x7FF)
+      {
+        Result.push_back(static_cast<char>(0xC0 | (Value >> 6U)));
+        Result.push_back(static_cast<char>(0x80 | (Value & 0x3F)));
+      }
+      else if (Value <= 0xFFFF)
+      {
+        Result.push_back(static_cast<char>(0xE0 | (Value >> 12U)));
+        Result.push_back(static_cast<char>(0x80 | ((Value >> 6U) & 0x3F)));
+        Result.push_back(static_cast<char>(0x80 | (Value & 0x3F)));
+      }
+      else
+      {
+        Result.push_back(static_cast<char>(0xF0 | (Value >> 18U)));
+        Result.push_back(static_cast<char>(0x80 | ((Value >> 12U) & 0x3F)));
+        Result.push_back(static_cast<char>(0x80 | ((Value >> 6U) & 0x3F)));
+        Result.push_back(static_cast<char>(0x80 | (Value & 0x3F)));
+      }
     }
 
     bool hasTokenKind(const TokenizedBuffer &Buffer, TokenKind Kind)
@@ -102,10 +129,13 @@ namespace ink::tokenizer
       const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
+      ASSERT_TRUE(Buffer.diagnostics().empty());
       ASSERT_EQ(Buffer.tokens().size(), 6U);
       EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::Utf8Bom);
       EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
       EXPECT_EQ(Buffer.tokens()[0].Span.End, 3U);
+      EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), bytes({0xEF, 0xBB, 0xBF}));
+      EXPECT_TRUE(Buffer.tokens()[0].isTrivia());
       EXPECT_EQ(Buffer.tokens()[1].Kind, TokenKind::Identifier);
       EXPECT_EQ(Buffer.tokens()[1].Span.Start, 3U);
       EXPECT_EQ(Buffer.tokens()[1].Span.End, 9U);
@@ -135,6 +165,135 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::LineComment);
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), Source);
       expectFullFidelity(Buffer);
+    }
+
+    // Tests every byte-length transition and the surrogate-gap boundaries of valid strict UTF-8.
+    TEST(SourceEncodingTest, StrictUtf8AcceptsExactScalarBoundaryEncodings)
+    {
+      struct ValidUtf8BoundaryCase
+      {
+        const char *Name;
+        std::string Encoding;
+      };
+      const std::vector<ValidUtf8BoundaryCase> Cases = {
+          {"lowest two-byte scalar", bytes({0xC2, 0x80})},
+          {"highest two-byte scalar", bytes({0xDF, 0xBF})},
+          {"lowest three-byte scalar", bytes({0xE0, 0xA0, 0x80})},
+          {"last scalar before surrogates", bytes({0xED, 0x9F, 0xBF})},
+          {"first scalar after surrogates", bytes({0xEE, 0x80, 0x80})},
+          {"highest three-byte scalar", bytes({0xEF, 0xBF, 0xBF})},
+          {"lowest four-byte scalar", bytes({0xF0, 0x90, 0x80, 0x80})},
+          {"highest unicode scalar", bytes({0xF4, 0x8F, 0xBF, 0xBF})},
+      };
+
+      for (const ValidUtf8BoundaryCase &TestCase : Cases)
+      {
+        SCOPED_TRACE(TestCase.Name);
+        const std::string Source = std::string("//") + TestCase.Encoding;
+        const TokenizedBuffer Buffer = tokenize(Source);
+
+        ASSERT_TRUE(Buffer.succeeded());
+        ASSERT_TRUE(Buffer.diagnostics().empty());
+        ASSERT_EQ(Buffer.tokens().size(), 2U);
+        EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::LineComment);
+        EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
+        EXPECT_EQ(Buffer.tokens()[0].Span.End, Source.size());
+        EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), Source);
+        expectFullFidelity(Buffer);
+      }
+    }
+
+    // Tests that strict UTF-8 decoding accepts every Unicode scalar value allowed in raw comment text.
+    TEST(SourceEncodingTest, StrictUtf8AcceptsEveryUnicodeScalarAllowedInRawCommentText)
+    {
+      std::string Source = "//";
+      for (char32_t Value = 0; Value <= 0x10FFFF; ++Value)
+      {
+        if ((Value <= 0x1F && Value != U'\t') || Value == 0x7F || (Value >= 0xD800 && Value <= 0xDFFF))
+        {
+          continue;
+        }
+        appendUtf8Scalar(Source, Value);
+      }
+      const TokenizedBuffer Buffer = tokenize(Source);
+
+      ASSERT_TRUE(Buffer.succeeded());
+      ASSERT_TRUE(Buffer.diagnostics().empty());
+      ASSERT_EQ(Buffer.tokens().size(), 2U);
+      EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::LineComment);
+      EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
+      EXPECT_EQ(Buffer.tokens()[0].Span.End, Source.size());
+      EXPECT_EQ(Buffer.lineStarts(), (std::vector<std::size_t>{0}));
+      expectFullFidelity(Buffer);
+    }
+
+    // Tests every disallowed UTF-8 leading byte as an isolated byte with an exact recovery span.
+    TEST(SourceEncodingTest, StrictUtf8RejectsEveryInvalidLeadingBytePrecisely)
+    {
+      std::vector<unsigned int> InvalidLeaders;
+      for (unsigned int Value = 0x80; Value <= 0xBF; ++Value)
+      {
+        InvalidLeaders.push_back(Value);
+      }
+      InvalidLeaders.push_back(0xC0);
+      InvalidLeaders.push_back(0xC1);
+      for (unsigned int Value = 0xF5; Value <= 0xFF; ++Value)
+      {
+        InvalidLeaders.push_back(Value);
+      }
+
+      for (const unsigned int Leader : InvalidLeaders)
+      {
+        SCOPED_TRACE(Leader);
+        const std::string Source = bytes({Leader});
+        const TokenizedBuffer Buffer = tokenize(Source);
+
+        ASSERT_FALSE(Buffer.succeeded());
+        ASSERT_EQ(Buffer.tokens().size(), 2U);
+        EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::InvalidEncoding);
+        EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
+        EXPECT_EQ(Buffer.tokens()[0].Span.End, 1U);
+        EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), Source);
+        ASSERT_EQ(Buffer.diagnostics().size(), 1U);
+        EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 0U);
+        EXPECT_EQ(Buffer.diagnostics()[0].Span.End, 1U);
+        expectFullFidelity(Buffer);
+      }
+    }
+
+    // Tests the strict second-byte constraints around overlongs, surrogates, and the Unicode maximum.
+    TEST(SourceEncodingTest, StrictUtf8RejectsRestrictedSecondByteBoundariesPrecisely)
+    {
+      struct InvalidUtf8BoundaryCase
+      {
+        const char *Name;
+        std::string Encoding;
+      };
+      const std::vector<InvalidUtf8BoundaryCase> Cases = {
+          {"three-byte overlong boundary", bytes({0xE0, 0x9F, 0xBF})},
+          {"first surrogate", bytes({0xED, 0xA0, 0x80})},
+          {"four-byte overlong boundary", bytes({0xF0, 0x8F, 0xBF, 0xBF})},
+          {"first scalar above unicode maximum", bytes({0xF4, 0x90, 0x80, 0x80})},
+      };
+
+      for (const InvalidUtf8BoundaryCase &TestCase : Cases)
+      {
+        SCOPED_TRACE(TestCase.Name);
+        const TokenizedBuffer Buffer = tokenize(TestCase.Encoding);
+
+        ASSERT_FALSE(Buffer.succeeded());
+        ASSERT_EQ(Buffer.tokens().size(), 2U);
+        EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::InvalidEncoding);
+        EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
+        EXPECT_EQ(Buffer.tokens()[0].Span.End, TestCase.Encoding.size());
+        EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), TestCase.Encoding);
+        ASSERT_EQ(Buffer.diagnostics().size(), 1U);
+        EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 0U);
+        EXPECT_EQ(Buffer.diagnostics()[0].Span.End, TestCase.Encoding.size());
+        expectFullFidelity(Buffer);
+      }
     }
 
     // Tests rejection and recovery for every major class of malformed UTF-8 sequence.
@@ -208,27 +367,58 @@ namespace ink::tokenizer
       }
     }
 
-    // Tests that malformed UTF-8 recovery preserves the following valid token.
-    TEST(SourceEncodingTest, InvalidUtf8RecoveryDoesNotConsumeFollowingToken)
+    // Tests every truncated UTF-8 prefix both at EOF and before a non-continuation byte with exact recovery.
+    TEST(SourceEncodingTest, EveryTruncatedUtf8PrefixHasAnExactRecoverySpan)
     {
-      const std::vector<std::string> InvalidPrefixes = {
-          bytes({0xE2}),
-          bytes({0xE2, 0x82}),
-          bytes({0xF0, 0x80}),
-      };
-      for (const std::string &InvalidPrefix : InvalidPrefixes)
+      struct TruncatedUtf8Case
       {
-        std::string Source = InvalidPrefix;
-        Source.push_back('x');
-        const TokenizedBuffer Buffer = tokenize(Source);
+        const char *Name;
+        std::string Prefix;
+      };
+      const std::vector<TruncatedUtf8Case> Cases = {
+          {"two-byte sequence missing its second byte", bytes({0xC2})},
+          {"three-byte sequence missing its second and third bytes", bytes({0xE2})},
+          {"three-byte sequence missing its third byte", bytes({0xE2, 0x82})},
+          {"four-byte sequence missing its second through fourth bytes", bytes({0xF0})},
+          {"four-byte sequence missing its third and fourth bytes", bytes({0xF0, 0x90})},
+          {"four-byte sequence missing its fourth byte", bytes({0xF0, 0x90, 0x80})},
+      };
 
-        ASSERT_FALSE(Buffer.succeeded());
-        ASSERT_EQ(Buffer.tokens().size(), 3U);
-        EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::InvalidEncoding);
-        EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), InvalidPrefix);
-        EXPECT_EQ(Buffer.tokens()[1].Kind, TokenKind::Identifier);
-        EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), "x");
-        expectFullFidelity(Buffer);
+      for (const TruncatedUtf8Case &TestCase : Cases)
+      {
+        SCOPED_TRACE(TestCase.Name);
+        const TokenizedBuffer EofBuffer = tokenize(TestCase.Prefix);
+
+        ASSERT_FALSE(EofBuffer.succeeded());
+        ASSERT_EQ(EofBuffer.tokens().size(), 2U);
+        EXPECT_EQ(EofBuffer.tokens()[0].Kind, TokenKind::InvalidEncoding);
+        EXPECT_EQ(EofBuffer.tokens()[0].Span.Start, 0U);
+        EXPECT_EQ(EofBuffer.tokens()[0].Span.End, TestCase.Prefix.size());
+        EXPECT_EQ(EofBuffer.raw(EofBuffer.tokens()[0]), TestCase.Prefix);
+        ASSERT_EQ(EofBuffer.diagnostics().size(), 1U);
+        EXPECT_EQ(EofBuffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(EofBuffer.diagnostics()[0].Span.Start, 0U);
+        EXPECT_EQ(EofBuffer.diagnostics()[0].Span.End, TestCase.Prefix.size());
+        expectFullFidelity(EofBuffer);
+
+        const std::string InterruptedSource = TestCase.Prefix + "x";
+        const TokenizedBuffer InterruptedBuffer = tokenize(InterruptedSource);
+
+        ASSERT_FALSE(InterruptedBuffer.succeeded());
+        ASSERT_EQ(InterruptedBuffer.tokens().size(), 3U);
+        EXPECT_EQ(InterruptedBuffer.tokens()[0].Kind, TokenKind::InvalidEncoding);
+        EXPECT_EQ(InterruptedBuffer.tokens()[0].Span.Start, 0U);
+        EXPECT_EQ(InterruptedBuffer.tokens()[0].Span.End, TestCase.Prefix.size());
+        EXPECT_EQ(InterruptedBuffer.raw(InterruptedBuffer.tokens()[0]), TestCase.Prefix);
+        EXPECT_EQ(InterruptedBuffer.tokens()[1].Kind, TokenKind::Identifier);
+        EXPECT_EQ(InterruptedBuffer.tokens()[1].Span.Start, TestCase.Prefix.size());
+        EXPECT_EQ(InterruptedBuffer.tokens()[1].Span.End, InterruptedSource.size());
+        EXPECT_EQ(InterruptedBuffer.raw(InterruptedBuffer.tokens()[1]), "x");
+        ASSERT_EQ(InterruptedBuffer.diagnostics().size(), 1U);
+        EXPECT_EQ(InterruptedBuffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(InterruptedBuffer.diagnostics()[0].Span.Start, 0U);
+        EXPECT_EQ(InterruptedBuffer.diagnostics()[0].Span.End, TestCase.Prefix.size());
+        expectFullFidelity(InterruptedBuffer);
       }
     }
 
@@ -256,22 +446,43 @@ namespace ink::tokenizer
       }
     }
 
-    // Tests rejection of UTF-16 and UTF-32 byte-order marks.
+    // Tests rejection of every UTF-16 and UTF-32 byte-order mark byte with exact tokens and diagnostics.
     TEST(SourceEncodingTest, Utf16AndUtf32ByteOrderMarksAreRejected)
     {
-      const std::vector<std::string> Cases = {
-          bytes({0xFF, 0xFE}),
-          bytes({0xFE, 0xFF}),
-          bytes({0xFF, 0xFE, 0x00, 0x00}),
-          bytes({0x00, 0x00, 0xFE, 0xFF}),
+      struct RejectedBomCase
+      {
+        const char *Name;
+        std::string Source;
+        std::vector<TokenKind> TokenKinds;
+        std::vector<DiagnosticKind> DiagnosticKinds;
+      };
+      const std::vector<RejectedBomCase> Cases = {
+          {"utf16 little endian", bytes({0xFF, 0xFE}), {TokenKind::InvalidEncoding, TokenKind::InvalidEncoding}, {DiagnosticKind::InvalidUtf8, DiagnosticKind::InvalidUtf8}},
+          {"utf16 big endian", bytes({0xFE, 0xFF}), {TokenKind::InvalidEncoding, TokenKind::InvalidEncoding}, {DiagnosticKind::InvalidUtf8, DiagnosticKind::InvalidUtf8}},
+          {"utf32 little endian", bytes({0xFF, 0xFE, 0x00, 0x00}), {TokenKind::InvalidEncoding, TokenKind::InvalidEncoding, TokenKind::InvalidCharacter, TokenKind::InvalidCharacter}, {DiagnosticKind::InvalidUtf8, DiagnosticKind::InvalidUtf8, DiagnosticKind::ForbiddenControlCharacter, DiagnosticKind::ForbiddenControlCharacter}},
+          {"utf32 big endian", bytes({0x00, 0x00, 0xFE, 0xFF}), {TokenKind::InvalidCharacter, TokenKind::InvalidCharacter, TokenKind::InvalidEncoding, TokenKind::InvalidEncoding}, {DiagnosticKind::ForbiddenControlCharacter, DiagnosticKind::ForbiddenControlCharacter, DiagnosticKind::InvalidUtf8, DiagnosticKind::InvalidUtf8}},
       };
 
-      for (const std::string &Source : Cases)
+      for (const RejectedBomCase &TestCase : Cases)
       {
-        SCOPED_TRACE(Source.size());
-        const TokenizedBuffer Buffer = tokenize(Source);
-        EXPECT_FALSE(Buffer.succeeded());
-        EXPECT_TRUE(hasTokenKind(Buffer, TokenKind::InvalidEncoding) || hasTokenKind(Buffer, TokenKind::InvalidCharacter));
+        SCOPED_TRACE(TestCase.Name);
+        const TokenizedBuffer Buffer = tokenize(TestCase.Source);
+
+        ASSERT_FALSE(Buffer.succeeded());
+        ASSERT_EQ(TestCase.TokenKinds.size(), TestCase.Source.size());
+        ASSERT_EQ(TestCase.DiagnosticKinds.size(), TestCase.Source.size());
+        ASSERT_EQ(Buffer.tokens().size(), TestCase.Source.size() + 1);
+        ASSERT_EQ(Buffer.diagnostics().size(), TestCase.Source.size());
+        for (std::size_t Index = 0; Index < TestCase.Source.size(); ++Index)
+        {
+          EXPECT_EQ(Buffer.tokens()[Index].Kind, TestCase.TokenKinds[Index]);
+          EXPECT_EQ(Buffer.tokens()[Index].Span.Start, Index);
+          EXPECT_EQ(Buffer.tokens()[Index].Span.End, Index + 1);
+          EXPECT_EQ(Buffer.raw(Buffer.tokens()[Index]), std::string_view(TestCase.Source).substr(Index, 1));
+          EXPECT_EQ(Buffer.diagnostics()[Index].Kind, TestCase.DiagnosticKinds[Index]);
+          EXPECT_EQ(Buffer.diagnostics()[Index].Span.Start, Index);
+          EXPECT_EQ(Buffer.diagnostics()[Index].Span.End, Index + 1);
+        }
         expectFullFidelity(Buffer);
       }
     }
@@ -285,10 +496,19 @@ namespace ink::tokenizer
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 4U);
       EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::Identifier);
+      EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
+      EXPECT_EQ(Buffer.tokens()[0].Span.End, 1U);
       EXPECT_EQ(Buffer.tokens()[1].Kind, TokenKind::InvalidCharacter);
+      EXPECT_EQ(Buffer.tokens()[1].Span.Start, 1U);
+      EXPECT_EQ(Buffer.tokens()[1].Span.End, 4U);
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), utf8(u8"\uFEFF"));
       EXPECT_EQ(Buffer.tokens()[2].Kind, TokenKind::Identifier);
-      EXPECT_TRUE(hasDiagnosticKind(Buffer, DiagnosticKind::UnexpectedBom));
+      EXPECT_EQ(Buffer.tokens()[2].Span.Start, 4U);
+      EXPECT_EQ(Buffer.tokens()[2].Span.End, 5U);
+      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
+      EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::UnexpectedBom);
+      EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 1U);
+      EXPECT_EQ(Buffer.diagnostics()[0].Span.End, 4U);
       expectFullFidelity(Buffer);
     }
 
@@ -343,15 +563,15 @@ namespace ink::tokenizer
     // Tests the allowed C0 source characters and the forbidden control boundaries through DELETE.
     TEST(SourceEncodingTest, C0AndDeleteBoundariesFollowTheSourceCharacterPolicy)
     {
-      const std::vector<unsigned int> ForbiddenValues = {
-          0x00,
-          0x08,
-          0x0B,
-          0x0C,
-          0x0E,
-          0x1F,
-          0x7F,
-      };
+      std::vector<unsigned int> ForbiddenValues;
+      for (unsigned int Value = 0; Value <= 0x1F; ++Value)
+      {
+        if (Value != 0x09 && Value != 0x0A && Value != 0x0D)
+        {
+          ForbiddenValues.push_back(Value);
+        }
+      }
+      ForbiddenValues.push_back(0x7F);
       for (const unsigned int Value : ForbiddenValues)
       {
         SCOPED_TRACE(Value);
