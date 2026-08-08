@@ -1,7 +1,7 @@
 # 议题 13：整数与浮点转换
 
-> 状态：已确认
-> 确认日期：2026-08-01
+> 状态：已确认，2026-08-08 确认 NaN 转换结果遵守目标 `nan_mode`
+> 确认日期：2026-08-08
 
 本议题使用议题 08 定义的 PDB，并使用议题 10 定义的 `cast::<T>(value)` 内建语法。
 
@@ -101,7 +101,7 @@ const wider = cast::<f64>(1.5f32);
 const narrower = cast::<f32>(wider);
 ```
 
-NaN payload 的具体传播继续由议题 12 保留为后续问题。
+NaN payload、符号和 signaling NaN quiet 的具体结果遵守议题 12 已确认的 `TargetContext.nan_mode`，并在同一 TargetKey 下由 comptime、解释器和 AOT lowering 一致实现。
 
 ## 6. 编译期诊断
 

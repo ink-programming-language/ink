@@ -24,10 +24,12 @@ Closed InkIR[target]
 
 - CST 保留完整源码结构、Trivia、错误节点和缺失 Token；
 - AST 只承载后续语义分析所需的抽象结构；
-- Staged InkIR 可以包含开放泛型、编译期元值和阶段控制；
+- StagedModule 由完整类型化的 Core InkIR、ElaborationPlan 和 source-backed deferred template 组成；开放泛型、编译期元值和阶段控制只存在于后两者，不伪装成 Core InkIR operation；
 - 固定点展开和部分求值产生目标相关的 Closed InkIR；
 - RuntimeWorld 解释器和 LLVM AOT 后端都只执行或接收 Closed InkIR；
 - LLVM 不负责理解 Ink 泛型、反射、`comptime` 或声明展开。
+
+InkIR 的完整设计基线见 [`draft/IR/README.md`](../draft/IR/README.md)，v0 的数字 tag、record/payload、opcode schema 与 canonical text 唯一来源见 [`draft/IR/10-schema-registry.md`](../draft/IR/10-schema-registry.md)。实现首个纵切片时应从该 registry 生成或校验枚举、encoder/decoder、printer 和 verifier，避免在各组件中复制不一致的指令定义。
 
 实现顺序采用“解释器优先、AOT 早期薄验证、comptime 主体随后、AOT 最终产品化”的策略：
 
@@ -130,7 +132,7 @@ AST 和 HIR 不应成为两棵内容高度重复的树。初期优先采用“�
 工作内容：
 
 - 定义 module、declaration、function、basic block、operation 和 value 的稳定身份；
-- Staged InkIR 从一开始就是强类型 IR；
+- StagedModule 中已经完成 elaboration 的 Core InkIR 从一开始就是强类型 IR；未选择或仍 dependent 的源码体保存在 source-backed deferred template 中，不提前执行名称绑定或类型检查；
 - 首批操作覆盖常量、算术、比较、转换、place、load/store、call、branch、return 和 trap；
 - 每个操作记录类型、效果类别和源码 origin；
 - 建立 Staged InkIR verifier 和 Closed InkIR verifier；
@@ -138,7 +140,7 @@ AST 和 HIR 不应成为两棵内容高度重复的树。初期优先采用“�
 - 实现 RuntimeWorld 参考解释器；
 - 目标整数、浮点、指针和内存语义读取 TargetContext，不使用宿主 C++ 类型偶然代替。
 
-初期可以使用 typed CFG、虚拟寄存器和显式内存操作，不要求一开始完成优化型 SSA。可变局部变量可以先通过 place/load/store 表示，后续再做提升。
+Core InkIR 从一开始使用 block-argument SSA；可变局部变量可以先通过 place/load/store 表示，后续再做 mem2reg，不要求首个纵切片立即完成全部 SSA 提升与优化。
 
 完成门槛：
 
