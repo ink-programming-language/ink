@@ -93,6 +93,22 @@ namespace ink::core
         Result.Notes.push_back({RelatedEntry.Span, std::move(Message)});
       }
     }
+
+    void formatExpected(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
+    {
+      if (const std::string *Expected = findArgument<std::string>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Expected))
+      {
+        Result.Message += " '" + *Expected + "'";
+      }
+    }
+
+    void formatActual(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
+    {
+      if (const std::string *Actual = findArgument<std::string>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Actual))
+      {
+        Result.Message += " '" + *Actual + "'";
+      }
+    }
   } // namespace
 
   std::uint32_t diagnosticNumber(DiagnosticKind Kind) noexcept
@@ -280,6 +296,14 @@ namespace ink::core
     else if (DiagnosticEntry.Kind == DiagnosticKind::InvisibleCharacter)
     {
       formatInvisibleCharacter(DiagnosticEntry, Result);
+    }
+    else if (DiagnosticEntry.Kind == DiagnosticKind::ExpectedToken || DiagnosticEntry.Kind == DiagnosticKind::ExpectedSyntax)
+    {
+      formatExpected(DiagnosticEntry, Result);
+    }
+    else if (DiagnosticEntry.Kind == DiagnosticKind::UnexpectedToken || DiagnosticEntry.Kind == DiagnosticKind::ReservedSymbolSequence)
+    {
+      formatActual(DiagnosticEntry, Result);
     }
     return Result;
   }

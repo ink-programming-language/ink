@@ -1,0 +1,18 @@
+17
+typedef void* b
+typedef b* c
+typeof b
+typeof c
+typedef &amp;b b
+typeof b
+typeof c
+typedef &amp;&amp;b* c
+typeof c
+typedef &amp;b* c
+typeof c
+typedef &amp;void b
+typeof b
+typedef b******* c
+typeof c
+typedef &amp;&amp;b* c
+typeof c

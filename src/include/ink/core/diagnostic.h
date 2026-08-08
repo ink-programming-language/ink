@@ -41,6 +41,8 @@ namespace ink::core
     Context,
     RemainingNestingDepth,
     MostRecentOpeningUnavailable,
+    Expected,
+    Actual,
   };
 
   enum class DiagnosticRelatedKind : std::uint8_t

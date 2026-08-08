@@ -56,6 +56,13 @@ namespace ink::core
         {DiagnosticKind::InvalidMultilineIndentation, 0x0100001AU, DiagnosticDomain::Tokenizer, DiagnosticSeverity::Error, "INK-T0026", "InvalidMultilineIndentation", "multiline string line does not match the closing indentation"},
         {DiagnosticKind::UnterminatedBlockComment, 0x0100001BU, DiagnosticDomain::Tokenizer, DiagnosticSeverity::Error, "INK-T0027", "UnterminatedBlockComment", "block comment is not terminated"},
         {DiagnosticKind::BlockCommentNestingLimit, 0x0100001CU, DiagnosticDomain::Tokenizer, DiagnosticSeverity::Error, "INK-T0028", "BlockCommentNestingLimit", "block comment nesting limit exceeded"},
+        {DiagnosticKind::UnexpectedToken, 0x02000001U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0001", "UnexpectedToken", "unexpected token"},
+        {DiagnosticKind::ExpectedToken, 0x02000002U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0002", "ExpectedToken", "expected token"},
+        {DiagnosticKind::ExpectedSyntax, 0x02000003U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0003", "ExpectedSyntax", "expected syntax"},
+        {DiagnosticKind::ReservedSymbolSequence, 0x02000004U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0004", "ReservedSymbolSequence", "reserved symbol sequence is not valid here"},
+        {DiagnosticKind::TrailingComma, 0x02000005U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0005", "TrailingComma", "trailing comma is not allowed here"},
+        {DiagnosticKind::DeclarationRequiresBlock, 0x02000006U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0006", "DeclarationRequiresBlock", "a declaration in this position must be enclosed in a statement block"},
+        {DiagnosticKind::SyntaxNestingLimit, 0x02000007U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0007", "SyntaxNestingLimit", "syntax nesting limit exceeded"},
     };
 
     constexpr DiagnosticKind RegisteredDiagnosticKinds[] = {
@@ -195,6 +202,26 @@ namespace ink::core
       const Diagnostic Value{DiagnosticKind::InvalidUtf8, {2, 4}, {}, {}};
 
       EXPECT_EQ(DiagnosticFormatter().format(Value), (FormattedDiagnostic{DiagnosticSeverity::Error, "invalid UTF-8", {}}));
+    }
+
+    // Verifies that Parser diagnostics append a typed Expected string to their registered default messages.
+    TEST(DiagnosticFormatterTest, FormatsParserExpectedStringArguments)
+    {
+      const Diagnostic ExpectedTokenValue = DiagnosticBuilder(DiagnosticKind::ExpectedToken, {8, 8}).argument(DiagnosticArgumentName::Expected, std::string(")")).build();
+      const Diagnostic ExpectedSyntaxValue = DiagnosticBuilder(DiagnosticKind::ExpectedSyntax, {12, 12}).argument(DiagnosticArgumentName::Expected, std::string("expression")).build();
+
+      EXPECT_EQ(DiagnosticFormatter().format(ExpectedTokenValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "expected token ')'", {}}));
+      EXPECT_EQ(DiagnosticFormatter().format(ExpectedSyntaxValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "expected syntax 'expression'", {}}));
+    }
+
+    // Verifies that Parser diagnostics append a typed Actual string without allowing producers to replace the registered message.
+    TEST(DiagnosticFormatterTest, FormatsParserActualStringArguments)
+    {
+      const Diagnostic UnexpectedTokenValue = DiagnosticBuilder(DiagnosticKind::UnexpectedToken, {3, 4}).argument(DiagnosticArgumentName::Actual, std::string("}")).build();
+      const Diagnostic ReservedSymbolValue = DiagnosticBuilder(DiagnosticKind::ReservedSymbolSequence, {6, 8}).argument(DiagnosticArgumentName::Actual, std::string("++")).build();
+
+      EXPECT_EQ(DiagnosticFormatter().format(UnexpectedTokenValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "unexpected token '}'", {}}));
+      EXPECT_EQ(DiagnosticFormatter().format(ReservedSymbolValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "reserved symbol sequence is not valid here '++'", {}}));
     }
 
     // Verifies that an unterminated block comment formats its remaining depth and most recent opening as a located note.

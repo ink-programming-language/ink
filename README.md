@@ -12,7 +12,7 @@ git submodule update --init --recursive
 
 ```powershell
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
-cmake --build build --config Release --target ink_llvm_components ink_tokenize ink_tests
+cmake --build build --config Release --target ink_llvm_components ink_tokenize ink_parse ink_tests
 ctest --test-dir build -C Release --output-on-failure
 ```
 

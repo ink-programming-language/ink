@@ -5,6 +5,7 @@ project(ink LANGUAGES C CXX)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 include(CTest)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/InkParserCoverage.cmake")
 
 set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "LLVM projects required by Ink" FORCE)
 set(LLVM_TARGETS_TO_BUILD "Native" CACHE STRING "LLVM targets required by Ink" FORCE)
@@ -61,5 +62,6 @@ if(BUILD_TESTING)
 
   add_subdirectory("${INK_GOOGLETEST_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/third_party/googletest" EXCLUDE_FROM_ALL)
   add_subdirectory(src/testcase)
+  ink_add_parser_coverage()
   add_custom_target(run_all_tests COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}" --build-config "$<CONFIG>" --output-on-failure DEPENDS ink_tests COMMENT "Running all Ink tests" USES_TERMINAL VERBATIM)
 endif()
