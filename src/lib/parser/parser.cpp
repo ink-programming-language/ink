@@ -1445,7 +1445,7 @@ namespace ink::parser
   {
     const std::size_t Anchor = anchorOffset();
     Builder.missing({Kind, std::string(Expected), Anchor});
-    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::ExpectedToken, {Anchor, Anchor}).argument(DiagnosticArgumentName::Expected, std::string(Expected)).build());
+    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::ExpectedToken, LexedFile.sourceFileId(), {Anchor, Anchor}).argument(DiagnosticArgumentName::Expected, std::string(Expected)).build());
     if (!atEnd())
     {
       SawDefinitiveError = true;
@@ -1460,7 +1460,7 @@ namespace ink::parser
   {
     const std::size_t Anchor = anchorOffset();
     Builder.missing({TokenKind::Identifier, std::string(Expected), Anchor});
-    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::ExpectedSyntax, {Anchor, Anchor}).argument(DiagnosticArgumentName::Expected, std::string(Expected)).build());
+    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::ExpectedSyntax, LexedFile.sourceFileId(), {Anchor, Anchor}).argument(DiagnosticArgumentName::Expected, std::string(Expected)).build());
     if (!atEnd())
     {
       SawDefinitiveError = true;
@@ -1475,7 +1475,7 @@ namespace ink::parser
   {
     const Token &Current = peekSignificant();
     const std::string Actual = Current.Kind == TokenKind::EndOfFile ? "end of file" : std::string(raw(Current));
-    Diagnostics.push_back(DiagnosticBuilder(Kind, Current.Span).argument(DiagnosticArgumentName::Actual, Actual).build());
+    Diagnostics.push_back(DiagnosticBuilder(Kind, LexedFile.sourceFileId(), Current.Span).argument(DiagnosticArgumentName::Actual, Actual).build());
     if (Current.Kind != TokenKind::EndOfFile)
     {
       SawDefinitiveError = true;
@@ -1514,7 +1514,7 @@ namespace ink::parser
     startNode(CstKind::Error);
     const std::size_t FirstToken = significantIndex();
     const SourceRange Span = {LexedFile.tokens()[FirstToken].Span.Start, LexedFile.tokens()[FirstToken + Sequence.size() - 1].Span.End};
-    Diagnostics.push_back(DiagnosticBuilder(Kind, Span).argument(DiagnosticArgumentName::Actual, Sequence).build());
+    Diagnostics.push_back(DiagnosticBuilder(Kind, LexedFile.sourceFileId(), Span).argument(DiagnosticArgumentName::Actual, Sequence).build());
     SawDefinitiveError = true;
     consumeSymbols(Sequence);
     finishNode();
@@ -1534,7 +1534,7 @@ namespace ink::parser
   void ParserImpl::recoverSyntaxNesting()
   {
     const Token &Current = peekSignificant();
-    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::SyntaxNestingLimit, Current.Span).build());
+    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::SyntaxNestingLimit, LexedFile.sourceFileId(), Current.Span).build());
     SawDefinitiveError = true;
     startNode(CstKind::Error);
     if (!atEnd())
@@ -3086,7 +3086,7 @@ namespace ink::parser
     if (atKeyword(KeywordKind::Var) || atKeyword(KeywordKind::Const))
     {
       const SourceRange Span = peekSignificant().Span;
-      Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::DeclarationRequiresBlock, Span).build());
+      Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::DeclarationRequiresBlock, LexedFile.sourceFileId(), Span).build());
       SawDefinitiveError = true;
       startNode(CstKind::Error);
       StopSet DeclarationStop;
@@ -3271,7 +3271,7 @@ namespace ink::parser
     if (atKeyword(KeywordKind::Var) || atKeyword(KeywordKind::Const))
     {
       const SourceRange Span = peekSignificant().Span;
-      Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::DeclarationRequiresBlock, Span).build());
+      Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::DeclarationRequiresBlock, LexedFile.sourceFileId(), Span).build());
       SawDefinitiveError = true;
       startNode(CstKind::Error);
       parseBindingCore({{",", "}"}, {}, false, true});
@@ -4110,7 +4110,7 @@ namespace ink::parser
         finishNode();
         return true;
       }
-      const CstNodeId Suffix = wrapLast(CstKind::BracketPostfixSuffix);
+      const CstNodeId Suffix = wrapLast(TypeContext ? CstKind::BracketPostfixSuffix : CstKind::IndexExpression);
       if (parseIndexOrSliceSuffix())
       {
         Builder.setKind(Suffix, CstKind::SliceExpression);

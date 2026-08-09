@@ -1,6 +1,7 @@
 #include "ink/cli/application.h"
+#include "ink/cli/diagnostic.h"
 #include "ink/cli/io.h"
-#include "ink/tokenizer/tokenizer.h"
+#include "ink/frontend/compilation_session.h"
 
 #include <array>
 #include <fstream>
@@ -35,13 +36,14 @@ namespace
     {
       return ink::cli::exitStatus(ParsedArguments.Code);
     }
+    ink::cli::DiagnosticConsumer Diagnostics("ink-tokenize", std::cerr);
 
     std::string Source;
     if (SourceFile == "-")
     {
       if (!ink::cli::useBinaryStandardInput() || !readSource(std::cin, Source))
       {
-        std::cerr << "ink-tokenize: error: cannot read standard input\n";
+        Diagnostics.reportError("cannot read standard input");
         return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
       }
     }
@@ -50,39 +52,30 @@ namespace
       std::ifstream Input(ink::cli::pathFromUtf8(SourceFile), std::ios::binary);
       if (!Input)
       {
-        std::cerr << "ink-tokenize: error: cannot open '" << SourceFile << "'\n";
+        Diagnostics.reportError("cannot open '" + SourceFile + "'");
         return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
       }
       if (!readSource(Input, Source))
       {
-        std::cerr << "ink-tokenize: error: cannot read '" << SourceFile << "'\n";
+        Diagnostics.reportError("cannot read '" + SourceFile + "'");
         return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
       }
     }
 
-    const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenize(std::move(Source));
+    ink::frontend::CompilationSession Session;
+    const ink::core::SourceFileId File = Session.addSource(SourceFile, std::move(Source));
+    const ink::tokenizer::TokenizedBuffer Result = Session.tokenize(File);
     for (const ink::tokenizer::Token &Token : Result.tokens())
     {
       std::cout << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";
     }
-    const ink::core::DiagnosticFormatter Formatter;
     for (const ink::core::Diagnostic &Diagnostic : Result.diagnostics())
     {
-      const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
-      std::cerr << ink::core::diagnosticSeverityName(Formatted.Severity) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
-      for (const ink::core::FormattedDiagnosticNote &Note : Formatted.Notes)
-      {
-        std::cerr << "note: " << Note.Message;
-        if (Note.Span)
-        {
-          std::cerr << " [" << Note.Span->Start << ", " << Note.Span->End << ")";
-        }
-        std::cerr << '\n';
-      }
+      Diagnostics.report(Diagnostic, Session.sourceManager());
     }
     std::cout.flush();
-    std::cerr.flush();
-    if (!std::cout || !std::cerr)
+    Diagnostics.flush();
+    if (!std::cout || !Diagnostics.good())
     {
       return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
     }

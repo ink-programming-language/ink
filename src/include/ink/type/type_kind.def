@@ -1,0 +1,14 @@
+#ifndef INK_TYPE_KIND
+#error "Define INK_TYPE_KIND before including type_kind.def"
+#endif
+
+INK_TYPE_KIND(Error)
+INK_TYPE_KIND(Unit)
+INK_TYPE_KIND(Bool)
+INK_TYPE_KIND(I32)
+INK_TYPE_KIND(I64)
+INK_TYPE_KIND(U32)
+INK_TYPE_KIND(U64)
+INK_TYPE_KIND(Void)
+INK_TYPE_KIND(Never)
+INK_TYPE_KIND(Function)

@@ -16,6 +16,8 @@ namespace ink::parser
 {
   namespace
   {
+    inline constexpr core::SourceFileId TestSourceFileId = core::SourceFileId::fromValue(0);
+
     struct IntegrationTestCase
     {
       std::string DirectoryName;
@@ -74,7 +76,7 @@ namespace ink::parser
       ASSERT_TRUE(SourceStream.is_open()) << "unable to open " << TestCase.SolutionPath.string();
       std::string Source{std::istreambuf_iterator<char>(SourceStream), std::istreambuf_iterator<char>()};
 
-      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(std::move(Source));
+      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(TestSourceFileId, std::move(Source));
       ASSERT_TRUE(LexedFile.succeeded()) << "tokenizer rejected " << TestCase.SolutionPath.string();
 
       const ParsedFile File = parse(std::move(LexedFile));

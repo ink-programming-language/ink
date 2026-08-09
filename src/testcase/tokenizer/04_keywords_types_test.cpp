@@ -1,4 +1,5 @@
 #include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include "utf8_test_support.h"
 
@@ -72,7 +73,7 @@ namespace ink::tokenizer
       for (const KeywordCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -104,7 +105,7 @@ namespace ink::tokenizer
       for (const LiteralCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -152,7 +153,7 @@ namespace ink::tokenizer
       for (const BuiltinTypeCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -194,7 +195,7 @@ namespace ink::tokenizer
       for (const std::string &Spelling : Spellings)
       {
         SCOPED_TRACE(Spelling);
-        const TokenizedBuffer Result = tokenize(Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -219,7 +220,7 @@ namespace ink::tokenizer
       for (const std::string &Spelling : Spellings)
       {
         SCOPED_TRACE(Spelling);
-        const TokenizedBuffer Result = tokenize(Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::Identifier);
@@ -245,7 +246,7 @@ namespace ink::tokenizer
       for (const std::string &Spelling : Spellings)
       {
         SCOPED_TRACE(Spelling);
-        const TokenizedBuffer Result = tokenize(Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::Identifier);
@@ -260,7 +261,7 @@ namespace ink::tokenizer
     // Verifies that surrounding punctuation and trivia do not alter keyword classification.
     TEST(KeywordsAndBuiltinTypesTest, ClassificationDoesNotDependOnSurroundingSyntax)
     {
-      const TokenizedBuffer Result = tokenize("func func: func");
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, "func func: func");
       ASSERT_TRUE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 7U);
       EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::Keyword);

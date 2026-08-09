@@ -1,4 +1,5 @@
 #include "ink/cli/application.h"
+#include "ink/cli/diagnostic.h"
 
 #include <algorithm>
 #include <exception>
@@ -482,6 +483,10 @@ namespace ink::cli
     try
     {
       return Body();
+    }
+    catch (const InternalCompilerError &Error)
+    {
+      ErrorOutput << ProgramName << ": internal error: " << Error.what() << '\n';
     }
     catch (const std::exception &Error)
     {

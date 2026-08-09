@@ -1,4 +1,5 @@
 #include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include <gtest/gtest.h>
 
@@ -83,7 +84,7 @@ namespace ink::tokenizer
     // Verifies the sentinel-only token stream produced for an empty source buffer.
     TEST(TokenStreamContractTest, EmptySourceHasExactlyOneEofToken)
     {
-      const TokenizedBuffer File = tokenize("");
+      const TokenizedBuffer File = tokenize(TestSourceFileId, "");
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 1u);
@@ -99,7 +100,7 @@ namespace ink::tokenizer
     TEST(TokenStreamContractTest, MixedSourceIsAnExactContiguousBytePartition)
     {
       const std::string Source = "\xEF\xBB\xBFlet x = \"v\";\r\n//tail";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 12u);
@@ -121,7 +122,7 @@ namespace ink::tokenizer
     // Verifies that TokenizedBuffer retains ownership of temporary source storage used by raw views.
     TEST(TokenStreamContractTest, TokenizedBufferOwnsSourceUsedByRawViews)
     {
-      TokenizedBuffer File = tokenize(std::string("persistent identifier"));
+      TokenizedBuffer File = tokenize(TestSourceFileId, std::string("persistent identifier"));
 
       ASSERT_TRUE(File.succeeded());
       EXPECT_EQ(File.source(), "persistent identifier");
@@ -133,7 +134,7 @@ namespace ink::tokenizer
     // Verifies defensive raw-view handling for externally supplied tokens whose spans are not valid source slices.
     TEST(TokenStreamContractTest, RawViewRejectsReversedAndOutOfBoundsExternalSpans)
     {
-      const TokenizedBuffer File = tokenize("abc");
+      const TokenizedBuffer File = tokenize(TestSourceFileId, "abc");
       const Token Reversed{TokenKind::Identifier, SourceRange{2, 1}, {}};
       const Token PastEnd{TokenKind::Identifier, SourceRange{1, 4}, {}};
 
@@ -146,8 +147,8 @@ namespace ink::tokenizer
     // Verifies line lookup for empty input, trailing logical lines, CRLF byte positions, and offsets beyond end of file.
     TEST(TokenStreamContractTest, LineLookupClampsOffsetsAndRetainsATrailingEmptyLine)
     {
-      const TokenizedBuffer Empty = tokenize("");
-      const TokenizedBuffer File = tokenize("a\r\nb\n");
+      const TokenizedBuffer Empty = tokenize(TestSourceFileId, "");
+      const TokenizedBuffer File = tokenize(TestSourceFileId, "a\r\nb\n");
 
       ASSERT_TRUE(Empty.succeeded());
       EXPECT_EQ(Empty.lineStarts(), (std::vector<std::size_t>{0}));
@@ -166,7 +167,7 @@ namespace ink::tokenizer
     TEST(TokenStreamContractTest, LineLookupIncludesBreaksInsideOpaqueMultilineTokens)
     {
       const std::string Source = "/* first\nsecond */\n\"\"\"\nbody\n\"\"\"";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       EXPECT_EQ(File.lineStarts(), (std::vector<std::size_t>{0, 9, 19, 23, 28}));
@@ -181,9 +182,9 @@ namespace ink::tokenizer
     TEST(TokenStreamContractTest, TokenizerInstanceIsReusableAndRetainsOptions)
     {
       const Tokenizer Scanner(TokenizerOptions{1});
-      const TokenizedBuffer First = Scanner.tokenize("let");
-      const TokenizedBuffer Limited = Scanner.tokenize("/* outer /* inner */ outer */");
-      const TokenizedBuffer Second = Scanner.tokenize("let");
+      const TokenizedBuffer First = Scanner.tokenize(TestSourceFileId, "let");
+      const TokenizedBuffer Limited = Scanner.tokenize(TestSourceFileId, "/* outer /* inner */ outer */");
+      const TokenizedBuffer Second = Scanner.tokenize(TestSourceFileId, "let");
 
       ASSERT_TRUE(First.succeeded());
       ASSERT_FALSE(Limited.succeeded());
@@ -292,7 +293,7 @@ namespace ink::tokenizer
     TEST(TokenStreamContractTest, DerivedPayloadsMatchTheirRawTokens)
     {
       const std::string Source = "let i32 true false null 0xFFu8 1.5f32 'A' \"x\" +";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
       const std::vector<const Token *> Tokens = syntaxTokens(File);
 
       ASSERT_TRUE(File.succeeded());
@@ -340,7 +341,7 @@ namespace ink::tokenizer
       for (const auto &TestCase : Cases)
       {
         SCOPED_TRACE(TestCase.first);
-        const TokenizedBuffer File = tokenize(TestCase.first);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, TestCase.first);
         ASSERT_FALSE(File.succeeded());
         ASSERT_FALSE(File.diagnostics().empty());
         ASSERT_GE(File.tokens().size(), 2u);
@@ -356,7 +357,7 @@ namespace ink::tokenizer
     {
       std::string Source(1, static_cast<char>(0x80));
       Source += "let";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 3u);
@@ -373,7 +374,7 @@ namespace ink::tokenizer
       Source.push_back(static_cast<char>(0xE2));
       Source.push_back(static_cast<char>(0x82));
       Source += "x";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 3u);
@@ -386,7 +387,7 @@ namespace ink::tokenizer
     // Verifies that an invalid character between identifiers does not prevent scanning the suffix.
     TEST(TokenStreamContractTest, InvalidCharacterBetweenIdentifiersDoesNotPreventRecovery)
     {
-      const TokenizedBuffer File = tokenize("before?after");
+      const TokenizedBuffer File = tokenize(TestSourceFileId, "before?after");
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 4u);
@@ -400,7 +401,7 @@ namespace ink::tokenizer
     TEST(TokenStreamContractTest, ScannerAlwaysAdvancesAcrossRepeatedInvalidInput)
     {
       const std::string Source = "????$$$$####````\\\\";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_GE(File.tokens().size(), 2u);
@@ -430,24 +431,32 @@ namespace ink::tokenizer
           Value = static_cast<char>(ByteDistribution(Generator));
         }
         SCOPED_TRACE(CaseIndex);
-        const TokenizedBuffer File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
         ASSERT_LE(File.tokens().size(), Source.size() + 1);
         expectPartition(File);
       }
     }
 
-    // Verifies that every diagnostic span is ordered and bounded in source-byte coordinates.
+    // Verifies that every diagnostic and related span retains the token buffer's file ID and bounded source-byte coordinates.
     TEST(TokenStreamContractTest, DiagnosticsUseSourceByteSpans)
     {
       const std::string Source = "ok ? 0x \"unterminated";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_FALSE(File.diagnostics().empty());
+      EXPECT_EQ(File.sourceFileId(), TestSourceFileId);
       for (const Diagnostic &CurrentDiagnostic : File.diagnostics())
       {
+        EXPECT_EQ(CurrentDiagnostic.File, TestSourceFileId);
         EXPECT_LE(CurrentDiagnostic.Span.Start, CurrentDiagnostic.Span.End);
         EXPECT_LE(CurrentDiagnostic.Span.End, Source.size());
+        for (const core::DiagnosticRelatedInformation &Related : CurrentDiagnostic.Related)
+        {
+          EXPECT_EQ(Related.File, TestSourceFileId);
+          EXPECT_LE(Related.Span.Start, Related.Span.End);
+          EXPECT_LE(Related.Span.End, Source.size());
+        }
       }
       expectPartition(File);
     }
@@ -456,8 +465,8 @@ namespace ink::tokenizer
     TEST(TokenStreamContractTest, RepeatedTokenizationIsDeterministic)
     {
       const std::string Source = "let value: i32 = 0xFFu8; // comment\r\n\"text\\n\"";
-      const TokenizedBuffer First = tokenize(Source);
-      const TokenizedBuffer Second = tokenize(Source);
+      const TokenizedBuffer First = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Second = tokenize(TestSourceFileId, Source);
 
       ASSERT_EQ(First.succeeded(), Second.succeeded());
       ASSERT_EQ(First.tokens().size(), Second.tokens().size());
@@ -491,7 +500,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Sources)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
         EXPECT_TRUE(File.succeeded());
         EXPECT_TRUE(File.diagnostics().empty());
         EXPECT_TRUE(std::none_of(File.tokens().begin(), File.tokens().end(), [](const Token &CurrentToken)
@@ -508,7 +517,7 @@ namespace ink::tokenizer
       const std::string Source = "/* outer /* inner */ outer */ after";
       TokenizerOptions Options;
       Options.MaxBlockCommentDepth = 1;
-      const TokenizedBuffer File = tokenize(Source, Options);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source, Options);
 
       ASSERT_FALSE(File.succeeded());
       EXPECT_TRUE(hasDiagnostic(File, DiagnosticKind::BlockCommentNestingLimit));

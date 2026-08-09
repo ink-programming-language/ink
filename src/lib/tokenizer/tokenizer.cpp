@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cstdint>
 #include <iterator>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -174,8 +175,8 @@ namespace ink::tokenizer
     class Scanner
     {
     public:
-      Scanner(const std::string &Source, std::vector<Token> &Tokens, std::vector<Diagnostic> &Diagnostics, TokenizerOptions Options)
-          : Source(Source), Tokens(Tokens), Diagnostics(Diagnostics), Options(Options)
+      Scanner(core::SourceFileId File, const std::string &Source, std::vector<Token> &Tokens, std::vector<Diagnostic> &Diagnostics, TokenizerOptions Options)
+          : File(File), Source(Source), Tokens(Tokens), Diagnostics(Diagnostics), Options(Options)
       {
       }
 
@@ -366,14 +367,14 @@ namespace ink::tokenizer
         if (Depth != 0)
         {
           validateRawRange(Start, Position, true);
-          DiagnosticBuilder Builder(DiagnosticKind::UnterminatedBlockComment, {Start, std::min(Start + 2, Source.size())});
+          DiagnosticBuilder Builder(DiagnosticKind::UnterminatedBlockComment, File, {Start, std::min(Start + 2, Source.size())});
           Builder.argument(DiagnosticArgumentName::RemainingNestingDepth, static_cast<std::uint64_t>(Depth));
           if (Depth <= TrackedDepthLimit)
           {
             const std::size_t MostRecentOpening = OpeningPositions.back();
             if (MostRecentOpening != Start)
             {
-              Builder.related(DiagnosticRelatedKind::MostRecentUnclosedBlockComment, {MostRecentOpening, MostRecentOpening + 2});
+              Builder.related(DiagnosticRelatedKind::MostRecentUnclosedBlockComment, File, {MostRecentOpening, MostRecentOpening + 2});
             }
           }
           else
@@ -1207,7 +1208,7 @@ namespace ink::tokenizer
 
       void addDiagnostic(DiagnosticKind Kind, core::SourceRange Span)
       {
-        Diagnostics.push_back(DiagnosticBuilder(Kind, Span).build());
+        Diagnostics.push_back(DiagnosticBuilder(Kind, File, Span).build());
       }
 
       std::size_t previousVisibleScalar(std::size_t Offset) const
@@ -1233,18 +1234,18 @@ namespace ink::tokenizer
 
       void addInvisibleDiagnostic(std::size_t Offset, DecodeResult Decoded, std::size_t PreviousVisible, std::size_t NextVisible, bool IdentifierContext)
       {
-        DiagnosticBuilder Builder(DiagnosticKind::InvisibleCharacter, {Offset, Offset + Decoded.Length});
+        DiagnosticBuilder Builder(DiagnosticKind::InvisibleCharacter, File, {Offset, Offset + Decoded.Length});
         Builder.argument(DiagnosticArgumentName::Character, Decoded.Value);
         Builder.argument(DiagnosticArgumentName::Context, IdentifierContext ? DiagnosticSourceContext::Identifier : DiagnosticSourceContext::SourceText);
         if (PreviousVisible != std::string::npos)
         {
           const DecodeResult Previous = unicode::decode(Source, PreviousVisible);
-          Builder.related(DiagnosticRelatedKind::PreviousVisibleCharacter, {PreviousVisible, PreviousVisible + Previous.Length}, {{DiagnosticArgumentName::Character, Previous.Value}});
+          Builder.related(DiagnosticRelatedKind::PreviousVisibleCharacter, File, {PreviousVisible, PreviousVisible + Previous.Length}, {{DiagnosticArgumentName::Character, Previous.Value}});
         }
         if (NextVisible != std::string::npos)
         {
           const DecodeResult Next = unicode::decode(Source, NextVisible);
-          Builder.related(DiagnosticRelatedKind::NextVisibleCharacter, {NextVisible, NextVisible + Next.Length}, {{DiagnosticArgumentName::Character, Next.Value}});
+          Builder.related(DiagnosticRelatedKind::NextVisibleCharacter, File, {NextVisible, NextVisible + Next.Length}, {{DiagnosticArgumentName::Character, Next.Value}});
         }
         Diagnostics.push_back(std::move(Builder).build());
       }
@@ -1254,6 +1255,7 @@ namespace ink::tokenizer
         return {Kind, {Start, End}, std::move(Payload)};
       }
 
+      core::SourceFileId File;
       const std::string &Source;
       std::vector<Token> &Tokens;
       std::vector<Diagnostic> &Diagnostics;
@@ -1290,9 +1292,14 @@ namespace ink::tokenizer
   {
   }
 
-  TokenizedBuffer Tokenizer::tokenize(std::string Source) const
+  TokenizedBuffer Tokenizer::tokenize(core::SourceFileId File, std::string Source) const
   {
+    if (!File.isValid())
+    {
+      throw std::invalid_argument("ink tokenizer requires a valid source file ID");
+    }
     TokenizedBuffer Result;
+    Result.File = File;
     Result.Source = std::move(Source);
     Result.LineStarts.push_back(0);
     for (std::size_t Index = 0; Index < Result.Source.size(); ++Index)
@@ -1302,13 +1309,13 @@ namespace ink::tokenizer
         Result.LineStarts.push_back(Index + 1);
       }
     }
-    Scanner Scanner(Result.Source, Result.Tokens, Result.Diagnostics, Options);
+    Scanner Scanner(Result.File, Result.Source, Result.Tokens, Result.Diagnostics, Options);
     Scanner.run();
     return Result;
   }
 
-  TokenizedBuffer tokenize(std::string Source, TokenizerOptions Options)
+  TokenizedBuffer tokenize(core::SourceFileId File, std::string Source, TokenizerOptions Options)
   {
-    return Tokenizer(Options).tokenize(std::move(Source));
+    return Tokenizer(Options).tokenize(File, std::move(Source));
   }
 } // namespace ink::tokenizer

@@ -1,4 +1,5 @@
 #include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include "utf8_test_support.h"
 
@@ -53,7 +54,7 @@ namespace ink::tokenizer
       for (const ValidScalarCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -77,7 +78,7 @@ namespace ink::tokenizer
       for (const ValidScalarCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::ScalarLiteral);
@@ -105,7 +106,7 @@ namespace ink::tokenizer
       for (const ValidScalarCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -141,7 +142,7 @@ namespace ink::tokenizer
       for (const ValidScalarCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -165,7 +166,7 @@ namespace ink::tokenizer
       for (const InvalidScalarCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_FALSE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
@@ -196,7 +197,7 @@ namespace ink::tokenizer
       for (const RootDiagnosticCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_FALSE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
@@ -207,7 +208,7 @@ namespace ink::tokenizer
         EXPECT_FALSE(hasDiagnostic(Result, DiagnosticKind::EmptyScalarLiteral));
       }
 
-      const TokenizedBuffer Empty = tokenize("''");
+      const TokenizedBuffer Empty = tokenize(TestSourceFileId, "''");
       ASSERT_FALSE(Empty.succeeded());
       ASSERT_EQ(Empty.diagnostics().size(), 1U);
       EXPECT_EQ(Empty.diagnostics().front().Kind, DiagnosticKind::EmptyScalarLiteral);
@@ -220,7 +221,7 @@ namespace ink::tokenizer
       std::string Spelling = "'";
       Spelling.append(4096, 'a');
       Spelling.push_back('\'');
-      const TokenizedBuffer Result = tokenize(Spelling);
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, Spelling);
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 2U);
@@ -248,7 +249,7 @@ namespace ink::tokenizer
       for (const InvalidScalarCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_FALSE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
@@ -256,7 +257,7 @@ namespace ink::tokenizer
         EXPECT_TRUE(hasDiagnostic(Result, Test.Diagnostic));
       }
 
-      const TokenizedBuffer ExtraScalar = tokenize("'\\x123'");
+      const TokenizedBuffer ExtraScalar = tokenize(TestSourceFileId, "'\\x123'");
       ASSERT_FALSE(ExtraScalar.succeeded());
       ASSERT_EQ(ExtraScalar.tokens().size(), 2U);
       EXPECT_EQ(ExtraScalar.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
@@ -271,7 +272,7 @@ namespace ink::tokenizer
     TEST(ScalarLiteralsTest, MissingUnicodeEscapeBraceRecoversAtClosingQuote)
     {
       const std::string Source = "'\\u{41'next";
-      const TokenizedBuffer Result = tokenize(Source);
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 3U);
@@ -291,7 +292,7 @@ namespace ink::tokenizer
     TEST(ScalarLiteralsTest, TrailingBackslashAtEofReportsBothRootDiagnostics)
     {
       const std::string Source = "'\\";
-      const TokenizedBuffer Result = tokenize(Source);
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 2U);
@@ -312,7 +313,7 @@ namespace ink::tokenizer
       std::string Source = "'\\";
       Source.push_back(static_cast<char>(0x80));
       Source += "'next";
-      const TokenizedBuffer Result = tokenize(Source);
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 3U);
@@ -340,7 +341,7 @@ namespace ink::tokenizer
       for (const std::string &Spelling : Spellings)
       {
         SCOPED_TRACE(Spelling);
-        const TokenizedBuffer Result = tokenize(Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Spelling);
         ASSERT_FALSE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
@@ -365,7 +366,7 @@ namespace ink::tokenizer
       {
         const std::string Spelling = "'" + Invisible + "'";
         SCOPED_TRACE(Spelling);
-        const TokenizedBuffer Result = tokenize(Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Spelling);
         ASSERT_FALSE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
@@ -379,7 +380,7 @@ namespace ink::tokenizer
       std::string ControlSpelling = "'";
       ControlSpelling.push_back('\x01');
       ControlSpelling.push_back('\'');
-      const TokenizedBuffer ControlResult = tokenize(ControlSpelling);
+      const TokenizedBuffer ControlResult = tokenize(TestSourceFileId, ControlSpelling);
       ASSERT_FALSE(ControlResult.succeeded());
       EXPECT_TRUE(hasDiagnostic(ControlResult, DiagnosticKind::ForbiddenControlCharacter));
       ASSERT_FALSE(ControlResult.tokens().empty());
@@ -388,7 +389,7 @@ namespace ink::tokenizer
       std::string CarriageReturnSpelling = "'";
       CarriageReturnSpelling.push_back('\r');
       CarriageReturnSpelling.push_back('\'');
-      const TokenizedBuffer CarriageReturnResult = tokenize(CarriageReturnSpelling);
+      const TokenizedBuffer CarriageReturnResult = tokenize(TestSourceFileId, CarriageReturnSpelling);
       ASSERT_FALSE(CarriageReturnResult.succeeded());
       ASSERT_EQ(CarriageReturnResult.tokens().size(), 2U);
       EXPECT_EQ(CarriageReturnResult.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
@@ -403,7 +404,7 @@ namespace ink::tokenizer
     // Verifies that an unterminated scalar stops before LF or CRLF and tokenization then resumes.
     TEST(ScalarLiteralsTest, StopsAnUnterminatedLiteralBeforeThePhysicalLineBreakAndContinuesScanning)
     {
-      const TokenizedBuffer LfResult = tokenize("'a\nnext");
+      const TokenizedBuffer LfResult = tokenize(TestSourceFileId, "'a\nnext");
       ASSERT_FALSE(LfResult.succeeded());
       ASSERT_EQ(LfResult.tokens().size(), 4U);
       EXPECT_EQ(LfResult.tokens()[0].Kind, TokenKind::InvalidScalarLiteral);
@@ -414,7 +415,7 @@ namespace ink::tokenizer
       EXPECT_EQ(LfResult.tokens()[2].Kind, TokenKind::Identifier);
       EXPECT_EQ(LfResult.raw(LfResult.tokens()[2]), "next");
 
-      const TokenizedBuffer CrlfResult = tokenize("'a\r\nnext");
+      const TokenizedBuffer CrlfResult = tokenize(TestSourceFileId, "'a\r\nnext");
       ASSERT_FALSE(CrlfResult.succeeded());
       ASSERT_EQ(CrlfResult.tokens().size(), 4U);
       EXPECT_EQ(CrlfResult.tokens()[0].Kind, TokenKind::InvalidScalarLiteral);
@@ -427,7 +428,7 @@ namespace ink::tokenizer
     // Verifies that end of file before a closing quote produces an unterminated scalar token.
     TEST(ScalarLiteralsTest, RejectsEndOfFileBeforeTheClosingQuote)
     {
-      const TokenizedBuffer Result = tokenize("'a");
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, "'a");
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 2U);
       EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
@@ -438,7 +439,7 @@ namespace ink::tokenizer
     // Verifies that adjacent scalar literals and following identifiers remain distinct tokens.
     TEST(ScalarLiteralsTest, KeepsAdjacentLiteralsAndFollowingIdentifiersAsSeparateTokens)
     {
-      const TokenizedBuffer Adjacent = tokenize("'a''b'");
+      const TokenizedBuffer Adjacent = tokenize(TestSourceFileId, "'a''b'");
       ASSERT_TRUE(Adjacent.succeeded());
       ASSERT_EQ(Adjacent.tokens().size(), 3U);
       EXPECT_EQ(Adjacent.tokens()[0].Kind, TokenKind::ScalarLiteral);
@@ -447,7 +448,7 @@ namespace ink::tokenizer
       EXPECT_EQ(Adjacent.raw(Adjacent.tokens()[1]), "'b'");
       EXPECT_EQ(Adjacent.tokens()[2].Kind, TokenKind::EndOfFile);
 
-      const TokenizedBuffer Suffixed = tokenize("'a'name");
+      const TokenizedBuffer Suffixed = tokenize(TestSourceFileId, "'a'name");
       ASSERT_TRUE(Suffixed.succeeded());
       ASSERT_EQ(Suffixed.tokens().size(), 3U);
       EXPECT_EQ(Suffixed.tokens()[0].Kind, TokenKind::ScalarLiteral);

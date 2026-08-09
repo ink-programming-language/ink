@@ -15,9 +15,11 @@
 
 namespace ink::parser::test
 {
+  inline constexpr core::SourceFileId TestSourceFileId = core::SourceFileId::fromValue(0);
+
   inline ParsedFile parseSource(std::string Source, ParserOptions Options = {})
   {
-    tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(std::move(Source));
+    tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(TestSourceFileId, std::move(Source));
     if (!LexedFile.succeeded())
     {
       throw std::runtime_error("parser test source must tokenize successfully");

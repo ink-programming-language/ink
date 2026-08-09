@@ -1,14 +1,16 @@
 #include "ink/cli/application.h"
+#include "ink/cli/diagnostic.h"
 #include "ink/cli/io.h"
 #include "ink/core/diagnostic.h"
+#include "ink/frontend/compilation_session.h"
 #include "ink/parser/parser.h"
-#include "ink/tokenizer/tokenizer.h"
 
 #include <array>
 #include <cstddef>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -129,22 +131,11 @@ namespace
         printNode(Tree, Result.lexedFile(), Tree.root(), 0, ActiveNodes, Output);
     }
 
-    void printDiagnostics(const std::vector<ink::core::Diagnostic>& Diagnostics, std::ostream& ErrorOutput)
+    void reportDiagnostics(const std::vector<ink::core::Diagnostic>& DiagnosticEntries, const ink::core::SourceManager& Sources, ink::cli::DiagnosticConsumer& Diagnostics)
     {
-        const ink::core::DiagnosticFormatter Formatter;
-        for (const ink::core::Diagnostic& Diagnostic : Diagnostics)
+        for (const ink::core::Diagnostic& Diagnostic : DiagnosticEntries)
         {
-            const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
-            ErrorOutput << ink::core::diagnosticSeverityName(Formatted.Severity) << '[' << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
-            for (const ink::core::FormattedDiagnosticNote& Note : Formatted.Notes)
-            {
-                ErrorOutput << "note: " << Note.Message;
-                if (Note.Span)
-                {
-                    ErrorOutput << " [" << Note.Span->Start << ", " << Note.Span->End << ")";
-                }
-                ErrorOutput << '\n';
-            }
+            Diagnostics.report(Diagnostic, Sources);
         }
     }
 
@@ -158,13 +149,14 @@ namespace
         {
             return ink::cli::exitStatus(ParsedArguments.Code);
         }
+        ink::cli::DiagnosticConsumer Diagnostics("ink-parse", std::cerr);
 
         std::string Source;
         if (SourceFile == "-")
         {
             if (!ink::cli::useBinaryStandardInput() || !readSource(std::cin, Source))
             {
-                std::cerr << "ink-parse: error: cannot read standard input\n";
+                Diagnostics.reportError("cannot read standard input");
                 return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
             }
         }
@@ -173,34 +165,35 @@ namespace
             std::ifstream Input(ink::cli::pathFromUtf8(SourceFile), std::ios::binary);
             if (!Input)
             {
-                std::cerr << "ink-parse: error: cannot open '" << SourceFile << "'\n";
+                Diagnostics.reportError("cannot open '" + SourceFile + "'");
                 return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
             }
             if (!readSource(Input, Source))
             {
-                std::cerr << "ink-parse: error: cannot read '" << SourceFile << "'\n";
+                Diagnostics.reportError("cannot read '" + SourceFile + "'");
                 return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
             }
         }
 
-        ink::tokenizer::TokenizedBuffer LexedFile = ink::tokenizer::tokenize(std::move(Source));
-        if (!LexedFile.succeeded())
+        ink::frontend::CompilationSession Session;
+        const ink::core::SourceFileId File = Session.addSource(SourceFile, std::move(Source));
+        std::optional<ink::parser::ParsedFile> Result = Session.parse(File);
+        if (!Result)
         {
-            printDiagnostics(LexedFile.diagnostics(), std::cerr);
-            std::cerr.flush();
-            return ink::cli::exitStatus(std::cerr ? ink::cli::ExitCode::SourceError : ink::cli::ExitCode::InvocationError);
+            reportDiagnostics(Session.diagnostics(), Session.sourceManager(), Diagnostics);
+            Diagnostics.flush();
+            return ink::cli::exitStatus(Diagnostics.good() ? ink::cli::ExitCode::SourceError : ink::cli::ExitCode::InvocationError);
         }
 
-        const ink::parser::ParsedFile Result = ink::parser::parse(std::move(LexedFile));
-        printCst(Result, std::cout);
-        printDiagnostics(Result.diagnostics(), std::cerr);
+        printCst(*Result, std::cout);
+        reportDiagnostics(Result->diagnostics(), Session.sourceManager(), Diagnostics);
         std::cout.flush();
-        std::cerr.flush();
-        if (!std::cout || !std::cerr)
+        Diagnostics.flush();
+        if (!std::cout || !Diagnostics.good())
         {
             return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
         }
-        return ink::cli::exitStatus(Result.succeeded() ? ink::cli::ExitCode::Success : ink::cli::ExitCode::SourceError);
+        return ink::cli::exitStatus(Result->succeeded() ? ink::cli::ExitCode::Success : ink::cli::ExitCode::SourceError);
     }
 } // namespace
 

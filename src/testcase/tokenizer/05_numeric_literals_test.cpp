@@ -1,4 +1,5 @@
 #include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include "utf8_test_support.h"
 
@@ -72,7 +73,7 @@ namespace ink::tokenizer
       for (const ValidNumericCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -110,7 +111,7 @@ namespace ink::tokenizer
       for (const ValidNumericCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -144,7 +145,7 @@ namespace ink::tokenizer
       for (const ValidNumericCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_TRUE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -159,7 +160,7 @@ namespace ink::tokenizer
     // Verifies that hexadecimal digits take precedence over suffix-like trailing text.
     TEST(NumericLiteralsTest, UsesTheLongestHexDigitSequenceBeforeConsideringSuffixes)
     {
-      const TokenizedBuffer Result = tokenize("0x10f32");
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, "0x10f32");
       ASSERT_TRUE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 2U);
       const Token &Token = Result.tokens().front();
@@ -173,7 +174,7 @@ namespace ink::tokenizer
     // Verifies that signs and incomplete decimal points remain separate syntax tokens.
     TEST(NumericLiteralsTest, KeepsLeadingSignsAndIncompleteDecimalPointsInSeparateTokens)
     {
-      const TokenizedBuffer Result = tokenize("-128i8 +10 .5 1. 1.member 1..10");
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, "-128i8 +10 .5 1. 1.member 1..10");
       ASSERT_TRUE(Result.succeeded());
       const std::vector<const Token *> Tokens = syntaxTokens(Result);
       ASSERT_EQ(Tokens.size(), 15U);
@@ -213,7 +214,7 @@ namespace ink::tokenizer
     TEST(NumericLiteralsTest, PreservesArbitrarilyLongCoefficientsWithoutHostOverflow)
     {
       const std::string Spelling = "1234567890123456789012345678901234567890123456789012345678901234567890";
-      const TokenizedBuffer Result = tokenize(Spelling);
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, Spelling);
       ASSERT_TRUE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 2U);
       EXPECT_EQ(Result.tokens().front().Kind, TokenKind::IntegerLiteral);
@@ -258,7 +259,7 @@ namespace ink::tokenizer
       for (const InvalidNumericCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_FALSE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         const Token &Token = Result.tokens().front();
@@ -274,7 +275,7 @@ namespace ink::tokenizer
     TEST(NumericLiteralsTest, RecoversAfterMalformedNumbersAtDelimiterAndTriviaBoundaries)
     {
       const std::string Source = "0b1f32, 0x1p4 i32";
-      const TokenizedBuffer Result = tokenize(Source);
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 7U);
@@ -305,8 +306,8 @@ namespace ink::tokenizer
       EXPECT_EQ(Result.raw(Result.tokens()[6]), "");
 
       const std::vector<Diagnostic> ExpectedDiagnostics = {
-          {DiagnosticKind::InvalidNumericSuffix, {3, 6}, {}, {}},
-          {DiagnosticKind::UnsupportedNonDecimalFloat, {11, 13}, {}, {}},
+          {DiagnosticKind::InvalidNumericSuffix, TestSourceFileId, {3, 6}, {}, {}},
+          {DiagnosticKind::UnsupportedNonDecimalFloat, TestSourceFileId, {11, 13}, {}, {}},
       };
       EXPECT_EQ(Result.diagnostics(), ExpectedDiagnostics);
     }
@@ -324,7 +325,7 @@ namespace ink::tokenizer
       for (const InvalidNumericCase &Test : Cases)
       {
         SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Test.Spelling);
         ASSERT_FALSE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidNumber);
@@ -346,7 +347,7 @@ namespace ink::tokenizer
       for (const std::string &Spelling : Spellings)
       {
         SCOPED_TRACE(Spelling);
-        const TokenizedBuffer Result = tokenize(Spelling);
+        const TokenizedBuffer Result = tokenize(TestSourceFileId, Spelling);
         ASSERT_FALSE(Result.succeeded());
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidNumber);
@@ -358,7 +359,7 @@ namespace ink::tokenizer
     TEST(NumericLiteralsTest, RejectsInvisibleCharactersInsideNumericSuffixCandidates)
     {
       const std::string Source = utf8(u8"1a\u200Cb");
-      const TokenizedBuffer Result = tokenize(Source);
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 2U);
@@ -371,7 +372,7 @@ namespace ink::tokenizer
     // Verifies that trivia prevents a following built-in type from becoming a numeric suffix.
     TEST(NumericLiteralsTest, TriviaSeparatesATypeNameFromTheLiteralSuffixCandidate)
     {
-      const TokenizedBuffer Result = tokenize("10 i32");
+      const TokenizedBuffer Result = tokenize(TestSourceFileId, "10 i32");
       ASSERT_TRUE(Result.succeeded());
       ASSERT_EQ(Result.tokens().size(), 4U);
       EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::IntegerLiteral);

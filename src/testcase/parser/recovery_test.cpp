@@ -20,6 +20,7 @@ namespace ink::parser
     using test::missingTokens;
     using test::nodeTextsOfKind;
     using test::parseSource;
+    using test::TestSourceFileId;
 
     struct MissingSyntaxCase
     {
@@ -712,7 +713,7 @@ namespace ink::parser
     // Verifies the Parser enforces its successful-tokenization precondition instead of accepting lexical Error tokens.
     TEST(ParserApiTest, RejectsLexicallyFailedTokenBuffers)
     {
-      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize("?");
+      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(TestSourceFileId, "?");
 
       ASSERT_FALSE(LexedFile.succeeded());
       EXPECT_THROW(ink::parser::parse(std::move(LexedFile)), std::invalid_argument);
@@ -722,8 +723,8 @@ namespace ink::parser
     TEST(ParserApiTest, ParserInstanceIsReusableAcrossFiles)
     {
       const Parser Reusable(ParserOptions{ParseMode::Batch});
-      const ParsedFile First = Reusable.parse(tokenizer::tokenize("const First = 1;"));
-      const ParsedFile Second = Reusable.parse(tokenizer::tokenize("func Second() { return; }"));
+      const ParsedFile First = Reusable.parse(tokenizer::tokenize(TestSourceFileId, "const First = 1;"));
+      const ParsedFile Second = Reusable.parse(tokenizer::tokenize(TestSourceFileId, "func Second() { return; }"));
 
       ASSERT_TRUE(First.succeeded());
       ASSERT_TRUE(Second.succeeded());

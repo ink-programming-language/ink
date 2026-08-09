@@ -32,6 +32,11 @@ namespace ink::parser
   class ParsedFile
   {
   public:
+    core::SourceFileId sourceFileId() const noexcept
+    {
+      return LexedFile.sourceFileId();
+    }
+
     const tokenizer::TokenizedBuffer &lexedFile() const noexcept
     {
       return LexedFile;

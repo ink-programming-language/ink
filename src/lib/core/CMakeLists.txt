@@ -1,4 +1,4 @@
-add_library(ink_core STATIC diagnostic.cpp)
+add_library(ink_core STATIC diagnostic.cpp source_manager.cpp string_interner.cpp)
 add_library(ink::core ALIAS ink_core)
 
 target_compile_features(ink_core PUBLIC cxx_std_17)

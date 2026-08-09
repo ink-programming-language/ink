@@ -203,7 +203,7 @@ stderr  源码诊断、CLI 错误、I/O 错误和显式开启的进度信息
 - `auto` 只在 stderr 是可着色终端且 `NO_COLOR` 未设置时启用颜色。
 - 显式 `--color` 优先于 `NO_COLOR`，`NO_COLOR` 优先于自动检测。
 
-诊断必须沿既有公共流水线输出：
+源码、module、运行时和后端的可恢复诊断必须沿既有公共流水线输出：
 
 ```text
 producer
@@ -212,7 +212,7 @@ producer
 → terminal / short / JSON Consumer
 ```
 
-CLI 层不得重新分配 `INK-T/P/S` 编号、复制消息模板或让不同工具为同一诊断生成不同语义。主输出格式和 `--diagnostic-format` 是正交概念；token/CST JSON 不能与诊断 JSON 混为一个开关。
+CLI 层不得重新分配 `INK-T/P/S/D/R/B` 编号、复制消息模板或让不同工具为同一诊断生成不同语义。工具只把结构化诊断交给公共 Consumer，不得自行拼接路径、severity、诊断码、范围或 note；主输出格式和 `--diagnostic-format` 是正交概念，token/CST JSON 不能与诊断 JSON 混为一个开关。
 
 JSON schema 正式发布前必须标记版本；发布后删除字段或改变字段语义需要提升 schema version。
 
@@ -225,7 +225,7 @@ ink-tokenize: error: unknown option '--foo'
 Try 'ink-tokenize --help' for more information.
 ```
 
-响应文件错误和未进入公共 Diagnostic registry 的 I/O 错误沿用相同的 `<program>: error: <message>` 首行，但不附加帮助提示。所有调用错误只写 stderr，并返回 `2`；默认不附带整份帮助，以免淹没真正错误。
+响应文件错误和未进入公共 Diagnostic registry 的 I/O 错误沿用相同的 `<program>: error: <message>` 首行，但不附加帮助提示。它们必须通过公共 driver diagnostic Consumer 输出，工具不得直接写 stderr 或伪造源码诊断码。所有调用错误只写 stderr，并返回 `2`；默认不附带整份帮助，以免淹没真正错误。
 
 ## 12. 响应文件
 
@@ -269,7 +269,9 @@ v0 不提供通用 CLI 配置文件，也不自动扫描用户目录或当前目
 
 多个失败同时发生时优先级为 `3 > 2 > 1`。warning 默认不改变退出码；warning-as-error 策略产生有效 error 时返回 `1`。外部 linker 等子进程的任意状态不得直接成为 Ink 的公共退出码；原始状态进入诊断，进程状态映射到本表。
 
-`ink::cli::Application` 把用户参数错误返回为 `ParseResult`；非法 option 定义、禁用的 CLI11 配置源或其他注册不变量会抛出异常，并由所有官方入口的 `runMain` 边界统一报告为 internal error 和退出码 `3`。
+`ink::cli::Application` 把用户参数错误返回为 `ParseResult`；非法 option 定义、禁用的 CLI11 配置源或其他注册不变量会抛出异常。编译器阶段发现已验证结构不可能出现的状态、verifier 之后的非法 IR 或成功结果缺失必需载荷时，必须调用统一的 `internalCompilerError` 机制。所有官方入口只允许最外层 `runMain` 边界格式化 internal error 并返回 `3`，内部代码不得手写 internal-error 文本后直接返回状态。
+
+外部 linker 返回非零、文件不可读或平台能力不受支持并不自动构成 ICE；能够归因于用户输入或环境的失败必须保留为诊断或调用错误，只有编译器内部不变量确实破坏时才使用退出码 `3`。
 
 被信号或外部强制终止时保留平台原生状态，不伪装成 `1`。
 

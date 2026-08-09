@@ -1,4 +1,5 @@
 #include "ink/cli/application.h"
+#include "ink/cli/diagnostic.h"
 #include "ink/cli/io.h"
 
 #include <gtest/gtest.h>
@@ -37,6 +38,40 @@ namespace ink::cli
 
       EXPECT_EQ(Result, exitStatus(ExitCode::InternalError));
       EXPECT_EQ(ErrorOutput.str(), "ink-test: internal error: broken invariant\n");
+    }
+
+    // Verifies that an explicit compiler invariant failure crosses the shared process boundary as the single ICE rendering.
+    TEST(ApplicationTest, MapsExplicitCompilerInvariantFailuresToInternalErrors)
+    {
+      std::ostringstream ErrorOutput;
+      const int Result = runMain("ink-test", []() -> int
+      {
+        internalCompilerError("verified module lost its entry block");
+      }, ErrorOutput);
+
+      EXPECT_EQ(Result, exitStatus(ExitCode::InternalError));
+      EXPECT_EQ(ErrorOutput.str(), "ink-test: internal error: verified module lost its entry block\n");
+    }
+
+    // Verifies that the shared diagnostic consumer owns source location, severity, stable code, message, and note rendering.
+    TEST(ApplicationTest, FormatsStructuredDiagnosticsAndNotes)
+    {
+      std::ostringstream ErrorOutput;
+      DiagnosticConsumer Diagnostics("ink-test", ErrorOutput);
+      Diagnostics.report({core::DiagnosticSeverity::Error, core::DiagnosticKind::InvalidEntryPoint, core::diagnosticDefaultMessage(core::DiagnosticKind::InvalidEntryPoint), DiagnosticLocation{"main.ink", core::SourceRange{4, 12}}, {{"entry function is selected by the compiler driver", std::nullopt}}});
+
+      EXPECT_TRUE(Diagnostics.good());
+      EXPECT_EQ(ErrorOutput.str(), "main.ink: error[INK-D0002]: entry function must have signature 'func main() -> i32' and a body [4, 12)\nink-test: note: entry function is selected by the compiler driver\n");
+    }
+
+    // Verifies that source-free invocation and I/O failures use the shared driver diagnostic prefix without inventing a source code.
+    TEST(ApplicationTest, FormatsSourceFreeDriverErrors)
+    {
+      std::ostringstream ErrorOutput;
+      DiagnosticConsumer Diagnostics("ink-test", ErrorOutput);
+      Diagnostics.reportError("cannot open output file");
+
+      EXPECT_EQ(ErrorOutput.str(), "ink-test: error: cannot open output file\n");
     }
 
     // Verifies that help is a successful primary result written only to stdout.

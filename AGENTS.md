@@ -34,6 +34,14 @@ add_subdirectory(
 - `SourceLocation` 只用于表示源码中的单个位置；包含 `Start` 和 `End` 的半开区间 `[Start, End)` 必须命名为 `SourceRange`，不得把范围命名为 `SourceLocation`。
 - `Diagnostic`、`DiagnosticKind` 和诊断名称转换等公共诊断 API 归 Core 模块所有，具体前端模块不得重复定义同类公共容器。
 
+## 错误处理与诊断
+
+- 用户源码、module、语义、运行时 trap、资源限制和可恢复的代码生成失败必须先表示为结构化诊断，再交给公共 Diagnostic Consumer 输出；适用公共 registry 的源码诊断必须注册稳定的 `DiagnosticKind`，不得只传递一段临时错误字符串。
+- CLI 参数、显式输入输出 I/O、manifest 定位和工具链启动等没有源码位置的失败使用公共 driver diagnostic 入口，不得伪造源码位置或稳定诊断码。
+- 已验证结构不可能出现的状态、编译器不变量破坏、verifier 之后的非法 IR，以及成功结果缺失必需载荷属于 Internal Compiler Error；官方工具必须调用统一的 `internalCompilerError` 机制，由最外层 `runMain` 边界唯一格式化并映射到退出码 `3`，不得在内部手写 `internal error` 后直接返回。
+- 工具和编译阶段不得用 `std::cerr`、`fprintf(stderr, ...)` 或相邻字符串拼接自行排版错误；路径、severity、稳定诊断码、源码范围、note 和 driver 前缀只能由公共 Consumer 生成。向 Consumer 传入 stderr 不属于自行排版。
+- 外部 linker、进程或文件系统操作失败本身不等于 ICE；能够归因于用户输入或环境时必须生成对应诊断，只有证明编译器内部不变量已经破坏时才能升级为 ICE。
+
 ## 命名风格
 
 - C++ 命名参考 LLVM Coding Standards。

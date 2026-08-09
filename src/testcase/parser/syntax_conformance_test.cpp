@@ -9,6 +9,7 @@ namespace ink::parser
 {
   namespace
   {
+    using test::countKind;
     using test::expectFullFidelity;
     using test::hasKind;
     using test::parseSource;
@@ -133,9 +134,24 @@ namespace ink::parser
     // Verifies primary, unary, binary, conditional, match, postfix, aggregate, collection, and type-valued expressions.
     TEST(ParserExpressionSyntaxTest, ParsesExpressionFamiliesAndPostfixChains)
     {
-      const ValidSyntaxCase TestCase = {"Expressions", "func expressions() { const Precedence = A + B * C << D & E ^ F | G && H || I; const Conditional = if (Ready) First else Second; const Matched = match (Value) { .some(Item) => Item, _ => Fallback, }; const Postfix = Object.method::<T>(Value, ...Arguments, name = Named)[Index][Low:High].field->next; const Aggregate = Record { First, Second: Value }; const Tuple = (1, 2, ...Items); const Array = [1, 2, 3]; const Unary = comptime await - + ! ~ * & Value; const Literals = (true, false, null, 1, 1.0, 'a', \"text\"); const Builtins = (i32, this); const FunctionType = func(i32, ...Types) -> bool; const ConstantType = const Data*; const Anonymous = class { var Value: i32; }; }", {CstKind::BinaryExpression, CstKind::IfExpression, CstKind::MatchExpression, CstKind::MatchExpressionArm, CstKind::CallExpression, CstKind::PositionalArgument, CstKind::NamedArgument, CstKind::ListExpansion, CstKind::BracketPostfixSuffix, CstKind::SliceExpression, CstKind::MemberExpression, CstKind::PointerMemberExpression, CstKind::GenericArgumentClause, CstKind::AggregateInitializationExpression, CstKind::AggregateFieldInitializer, CstKind::ArrayExpression, CstKind::ParenthesizedCommaList, CstKind::UnaryExpression, CstKind::ComptimeExpression, CstKind::LiteralExpression, CstKind::BuiltinTypeExpression, CstKind::ThisExpression, CstKind::FunctionTypeExpression, CstKind::ConstTypeValueExpression, CstKind::ClassTypeExpression}};
+      const ValidSyntaxCase TestCase = {"Expressions", "func expressions() { const Precedence = A + B * C << D & E ^ F | G && H || I; const Conditional = if (Ready) First else Second; const Matched = match (Value) { .some(Item) => Item, _ => Fallback, }; const Postfix = Object.method::<T>(Value, ...Arguments, name = Named)[Index][Low:High].field->next; const Aggregate = Record { First, Second: Value }; const Tuple = (1, 2, ...Items); const Array = [1, 2, 3]; const Unary = comptime await - + ! ~ * & Value; const Literals = (true, false, null, 1, 1.0, 'a', \"text\"); const Builtins = (i32, this); const FunctionType = func(i32, ...Types) -> bool; const ConstantType = const Data*; const Anonymous = class { var Value: i32; }; }", {CstKind::BinaryExpression, CstKind::IfExpression, CstKind::MatchExpression, CstKind::MatchExpressionArm, CstKind::CallExpression, CstKind::PositionalArgument, CstKind::NamedArgument, CstKind::ListExpansion, CstKind::IndexExpression, CstKind::SliceExpression, CstKind::MemberExpression, CstKind::PointerMemberExpression, CstKind::GenericArgumentClause, CstKind::AggregateInitializationExpression, CstKind::AggregateFieldInitializer, CstKind::ArrayExpression, CstKind::ParenthesizedCommaList, CstKind::UnaryExpression, CstKind::ComptimeExpression, CstKind::LiteralExpression, CstKind::BuiltinTypeExpression, CstKind::ThisExpression, CstKind::FunctionTypeExpression, CstKind::ConstTypeValueExpression, CstKind::ClassTypeExpression}};
 
       expectValidSyntax(TestCase);
+    }
+
+    // Verifies that value indexing and slicing use expression CST kinds while a sized type suffix keeps the type-only bracket kind.
+    TEST(ParserExpressionSyntaxTest, DistinguishesValueBracketsFromTypeBrackets)
+    {
+      const ParsedFile File = parseSource("func brackets() { Value[Index]; Value[Low:High]; var X: i32[4]; }");
+
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_EQ(countKind(File, CstKind::IndexExpression), 1u);
+      EXPECT_EQ(countKind(File, CstKind::SliceExpression), 1u);
+      EXPECT_EQ(countKind(File, CstKind::BracketPostfixSuffix), 1u);
+      EXPECT_EQ(test::nodeTextsOfKind(File, CstKind::IndexExpression), (std::vector<std::string>{"Value[Index]"}));
+      EXPECT_EQ(test::nodeTextsOfKind(File, CstKind::SliceExpression), (std::vector<std::string>{"Value[Low:High]"}));
+      EXPECT_EQ(test::nodeTextsOfKind(File, CstKind::BracketPostfixSuffix), (std::vector<std::string>{"i32[4]"}));
+      expectFullFidelity(File);
     }
 
     // Verifies explicit type syntax for qualifiers, tuples, functions, generics, arrays, slices, pointers, and references.

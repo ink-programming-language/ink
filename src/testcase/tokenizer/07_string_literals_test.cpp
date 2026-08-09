@@ -1,4 +1,5 @@
 #include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include <gtest/gtest.h>
 
@@ -68,7 +69,7 @@ namespace ink::tokenizer
       const std::string Chinese = "\xE4\xBD\xA0\xE5\xA5\xBD";
       const std::string Emoji = "\xF0\x9F\x98\x80";
       const std::string Source = "\"\" \"hello\" \"" + Chinese + "\" \"" + Emoji + "\"";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 8U);
@@ -97,7 +98,7 @@ namespace ink::tokenizer
       {
         const std::string Source = "\"a" + Separator + "b\"";
         SCOPED_TRACE(Source);
-        const TokenizedBuffer File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
         ASSERT_TRUE(File.succeeded());
         ASSERT_EQ(File.tokens().size(), 2U);
         expectToken(File, 0, TokenKind::StringLiteral, Source);
@@ -122,7 +123,7 @@ namespace ink::tokenizer
       {
         const std::string Source = "\"left" + Space + "right\"";
         SCOPED_TRACE(Source);
-        const TokenizedBuffer File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
         ASSERT_TRUE(File.succeeded());
         ASSERT_EQ(File.tokens().size(), 2U);
         expectToken(File, 0, TokenKind::StringLiteral, Source);
@@ -145,7 +146,7 @@ namespace ink::tokenizer
       Expected.push_back('\r');
       Expected.push_back('\t');
 
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 2U);
@@ -160,7 +161,7 @@ namespace ink::tokenizer
       const std::string Source = R"ink("\x00\xFF" "\u{0}\u{4E2D}\u{1F600}\u{10FFFF}")ink";
       const std::string ExpectedHex("\0\xC3\xBF", 3);
       const std::string ExpectedUnicode = std::string("\0", 1) + "\xE4\xB8\xAD\xF0\x9F\x98\x80\xF4\x8F\xBF\xBF";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 4U);
@@ -173,7 +174,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, HexEscapeConsumesExactlyTwoDigits)
     {
       const std::string Source = R"ink("\x123")ink";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 2U);
@@ -187,7 +188,7 @@ namespace ink::tokenizer
       const std::string Precomposed = "\xC3\xA9";
       const std::string Decomposed = "e\xCC\x81";
       const std::string Source = std::string("\"") + Precomposed + "\" \"e\\u{301}\"";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 4U);
@@ -201,7 +202,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, TreatsInterpolationAndCommentDelimitersAsText)
     {
       const std::string Source = R"ink("${value} // /* not comments */")ink";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 2U);
@@ -213,7 +214,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, KeepsAdjacentStringsAndSuffixIdentifierSeparate)
     {
       const std::string Source = R"ink("first""second"name)ink";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 4U);
@@ -227,7 +228,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, RejectsUnknownSimpleEscape)
     {
       const std::string Source = R"ink("\q")ink";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       expectToken(File, 0, TokenKind::InvalidStringLiteral, Source);
@@ -248,7 +249,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Sources)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
         EXPECT_FALSE(File.succeeded());
         ASSERT_GE(File.tokens().size(), 2U);
         EXPECT_EQ(File.tokens()[0].Kind, TokenKind::InvalidStringLiteral);
@@ -273,7 +274,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Sources)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
         EXPECT_FALSE(File.succeeded());
         ASSERT_GE(File.tokens().size(), 2U);
         EXPECT_EQ(File.tokens()[0].Kind, TokenKind::InvalidStringLiteral);
@@ -294,7 +295,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Sources)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
         EXPECT_FALSE(File.succeeded());
         ASSERT_GE(File.tokens().size(), 2U);
         EXPECT_EQ(File.tokens()[0].Kind, TokenKind::InvalidStringLiteral);
@@ -307,7 +308,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, MissingUnicodeEscapeBraceRecoversAtClosingQuote)
     {
       const std::string Source = "\"\\u{41\"next";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 3U);
@@ -326,7 +327,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, TrailingBackslashAtEofReportsBothRootDiagnostics)
     {
       const std::string Source = "\"\\";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 2U);
@@ -347,7 +348,7 @@ namespace ink::tokenizer
       std::string Source = "\"\\";
       Source.push_back(static_cast<char>(0x80));
       Source += "\"next";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 3U);
@@ -366,7 +367,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, StopsInvalidSingleLineStringBeforeLfAndRecovers)
     {
       const std::string Source = "\"oops\nnext";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 4U);
@@ -381,7 +382,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, StopsInvalidSingleLineStringBeforeCrlfAndRecovers)
     {
       const std::string Source = "\"oops\r\nnext";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 4U);
@@ -396,7 +397,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, LoneCarriageReturnDoesNotTerminateAClosedSingleLineString)
     {
       const std::string Source = "\"a\rb\"";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 2U);
@@ -413,7 +414,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, BackslashDoesNotContinueASingleLineStringAcrossLf)
     {
       const std::string Source = "\"oops\\\nnext";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 4U);
@@ -425,7 +426,7 @@ namespace ink::tokenizer
       expectPartition(File);
 
       const std::string CrlfSource = "\"oops\\\r\nnext";
-      const TokenizedBuffer CrlfFile = tokenize(CrlfSource);
+      const TokenizedBuffer CrlfFile = tokenize(TestSourceFileId, CrlfSource);
       ASSERT_FALSE(CrlfFile.succeeded());
       ASSERT_EQ(CrlfFile.tokens().size(), 4U);
       expectToken(CrlfFile, 0, TokenKind::InvalidStringLiteral, "\"oops\\");
@@ -440,7 +441,7 @@ namespace ink::tokenizer
     TEST(StringLiteralTest, RejectsEofBeforeClosingQuote)
     {
       const std::string Source = "\"unterminated";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       expectToken(File, 0, TokenKind::InvalidStringLiteral, Source);
@@ -464,7 +465,7 @@ namespace ink::tokenizer
       {
         const std::string Source = std::string("\"a") + Invisible + "b\"";
         SCOPED_TRACE(Source);
-        const TokenizedBuffer File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
         ASSERT_FALSE(File.succeeded());
         ASSERT_EQ(File.tokens().size(), 2U);
         expectToken(File, 0, TokenKind::InvalidStringLiteral, Source);
@@ -488,7 +489,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Sources)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
         EXPECT_FALSE(File.succeeded());
         EXPECT_TRUE(hasDiagnostic(File, DiagnosticKind::InvisibleCharacter));
         expectPartition(File);
@@ -500,7 +501,7 @@ namespace ink::tokenizer
     {
       const std::string Source = R"ink("\u{AD}\u{200B}\u{202E}\u{FE0F}\u{FEFF}\u{E0100}")ink";
       const std::string Expected = "\xC2\xAD\xE2\x80\x8B\xE2\x80\xAE\xEF\xB8\x8F\xEF\xBB\xBF\xF3\xA0\x84\x80";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 2U);
@@ -514,7 +515,7 @@ namespace ink::tokenizer
       std::string Source = "\"before";
       Source.push_back('\0');
       Source += "after\"";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(File.succeeded());
       EXPECT_TRUE(hasDiagnostic(File, DiagnosticKind::ForbiddenControlCharacter));

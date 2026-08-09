@@ -2,6 +2,7 @@
 #define INK_TOKENIZER_TOKENIZER_H
 
 #include "ink/core/diagnostic.h"
+#include "ink/core/source_file_id.h"
 #include "ink/tokenizer/token.h"
 
 #include <cstddef>
@@ -19,6 +20,11 @@ namespace ink::tokenizer
   class TokenizedBuffer
   {
   public:
+    core::SourceFileId sourceFileId() const noexcept
+    {
+      return File;
+    }
+
     const std::string &source() const noexcept
     {
       return Source;
@@ -46,6 +52,7 @@ namespace ink::tokenizer
   private:
     TokenizedBuffer() = default;
 
+    core::SourceFileId File;
     std::string Source;
     std::vector<Token> Tokens;
     std::vector<core::Diagnostic> Diagnostics;
@@ -58,13 +65,13 @@ namespace ink::tokenizer
   {
   public:
     explicit Tokenizer(TokenizerOptions Options = {});
-    TokenizedBuffer tokenize(std::string Source) const;
+    TokenizedBuffer tokenize(core::SourceFileId File, std::string Source) const;
 
   private:
     TokenizerOptions Options;
   };
 
-  TokenizedBuffer tokenize(std::string Source, TokenizerOptions Options = {});
+  TokenizedBuffer tokenize(core::SourceFileId File, std::string Source, TokenizerOptions Options = {});
 } // namespace ink::tokenizer
 
 #endif

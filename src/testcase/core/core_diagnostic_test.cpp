@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -15,6 +16,9 @@ namespace ink::core
 {
   namespace
   {
+    inline constexpr SourceFileId FirstFile = SourceFileId::fromValue(0);
+    inline constexpr SourceFileId SecondFile = SourceFileId::fromValue(1);
+
     struct DiagnosticExpectation
     {
       DiagnosticKind Kind;
@@ -63,6 +67,27 @@ namespace ink::core
         {DiagnosticKind::TrailingComma, 0x02000005U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0005", "TrailingComma", "trailing comma is not allowed here"},
         {DiagnosticKind::DeclarationRequiresBlock, 0x02000006U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0006", "DeclarationRequiresBlock", "a declaration in this position must be enclosed in a statement block"},
         {DiagnosticKind::SyntaxNestingLimit, 0x02000007U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0007", "SyntaxNestingLimit", "syntax nesting limit exceeded"},
+        {DiagnosticKind::UnsupportedSemanticFeature, 0x03000001U, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0001", "UnsupportedSemanticFeature", "semantic feature is not enabled"},
+        {DiagnosticKind::RedefinedName, 0x03000002U, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0002", "RedefinedName", "name is already defined in this scope"},
+        {DiagnosticKind::UnknownTypeName, 0x03000003U, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0003", "UnknownTypeName", "unknown type name"},
+        {DiagnosticKind::UnresolvedName, 0x03000004U, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0004", "UnresolvedName", "name cannot be resolved"},
+        {DiagnosticKind::AmbiguousName, 0x03000005U, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0005", "AmbiguousName", "name resolves ambiguously"},
+        {DiagnosticKind::TypeMismatch, 0x03000006U, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0006", "TypeMismatch", "types do not match"},
+        {DiagnosticKind::NotCallable, 0x03000007U, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0007", "NotCallable", "expression is not callable"},
+        {DiagnosticKind::ArgumentCountMismatch, 0x03000008U, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0008", "ArgumentCountMismatch", "call argument count does not match the function signature"},
+        {DiagnosticKind::InvalidAssignmentTarget, 0x03000009U, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0009", "InvalidAssignmentTarget", "assignment target is not a writable place"},
+        {DiagnosticKind::AssignmentToImmutable, 0x0300000AU, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0010", "AssignmentToImmutable", "cannot assign to an immutable binding"},
+        {DiagnosticKind::ReturnTypeMismatch, 0x0300000BU, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0011", "ReturnTypeMismatch", "return value does not match the function result type"},
+        {DiagnosticKind::MissingReturn, 0x0300000CU, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0012", "MissingReturn", "not every control-flow path returns a value"},
+        {DiagnosticKind::InvalidConditionType, 0x0300000DU, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0013", "InvalidConditionType", "condition expression must have type bool"},
+        {DiagnosticKind::InvalidUnaryOperator, 0x0300000EU, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0014", "InvalidUnaryOperator", "unary operator is not defined for the operand type"},
+        {DiagnosticKind::InvalidBinaryOperator, 0x0300000FU, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0015", "InvalidBinaryOperator", "binary operator is not defined for the operand types"},
+        {DiagnosticKind::InvalidControlFlow, 0x03000010U, DiagnosticDomain::Semantic, DiagnosticSeverity::Error, "INK-S0016", "InvalidControlFlow", "control-flow statement is not valid in this context"},
+        {DiagnosticKind::MissingEntryPoint, 0x04000001U, DiagnosticDomain::Driver, DiagnosticSeverity::Error, "INK-D0001", "MissingEntryPoint", "program does not define 'func main() -> i32'"},
+        {DiagnosticKind::InvalidEntryPoint, 0x04000002U, DiagnosticDomain::Driver, DiagnosticSeverity::Error, "INK-D0002", "InvalidEntryPoint", "entry function must have signature 'func main() -> i32' and a body"},
+        {DiagnosticKind::InvalidModuleImport, 0x04000003U, DiagnosticDomain::Driver, DiagnosticSeverity::Error, "INK-D0003", "InvalidModuleImport", "invalid module import"},
+        {DiagnosticKind::RuntimeExecutionFailed, 0x05000001U, DiagnosticDomain::Runtime, DiagnosticSeverity::Error, "INK-R0001", "RuntimeExecutionFailed", "program execution failed"},
+        {DiagnosticKind::BackendEmissionFailed, 0x06000001U, DiagnosticDomain::Backend, DiagnosticSeverity::Error, "INK-B0001", "BackendEmissionFailed", "native executable emission failed"},
     };
 
     constexpr DiagnosticKind RegisteredDiagnosticKinds[] = {
@@ -96,6 +121,7 @@ namespace ink::core
       const DiagnosticRelatedInformation Related;
 
       EXPECT_EQ(Value.Kind, DiagnosticKind::Unknown);
+      EXPECT_FALSE(Value.File.isValid());
       EXPECT_EQ(Value.Span, (SourceRange{}));
       EXPECT_TRUE(Value.Arguments.empty());
       EXPECT_TRUE(Value.Related.empty());
@@ -105,6 +131,7 @@ namespace ink::core
       EXPECT_TRUE(std::holds_alternative<bool>(Argument.Value));
       EXPECT_FALSE(std::get<bool>(Argument.Value));
       EXPECT_EQ(Related.Kind, DiagnosticRelatedKind::Unknown);
+      EXPECT_FALSE(Related.File.isValid());
       EXPECT_EQ(Related.Span, (SourceRange{}));
       EXPECT_TRUE(Related.Arguments.empty());
     }
@@ -112,14 +139,16 @@ namespace ink::core
     // Verifies that diagnostic equality compares argument values and related information rather than a rendered message.
     TEST(DiagnosticTest, ComparesStructuredValues)
     {
-      const Diagnostic Left = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, {2, 5}).argument(DiagnosticArgumentName::Character, U'\u200B').related(DiagnosticRelatedKind::PreviousVisibleCharacter, {1, 2}, {{DiagnosticArgumentName::Character, U'a'}}).build();
-      const Diagnostic Equal = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, {2, 5}).argument(DiagnosticArgumentName::Character, U'\u200B').related(DiagnosticRelatedKind::PreviousVisibleCharacter, {1, 2}, {{DiagnosticArgumentName::Character, U'a'}}).build();
-      const Diagnostic DifferentArgument = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, {2, 5}).argument(DiagnosticArgumentName::Character, U'\u200C').related(DiagnosticRelatedKind::PreviousVisibleCharacter, {1, 2}, {{DiagnosticArgumentName::Character, U'a'}}).build();
-      const Diagnostic DifferentRelated = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, {2, 5}).argument(DiagnosticArgumentName::Character, U'\u200B').related(DiagnosticRelatedKind::NextVisibleCharacter, {5, 6}, {{DiagnosticArgumentName::Character, U'b'}}).build();
+      const Diagnostic Left = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, FirstFile, {2, 5}).argument(DiagnosticArgumentName::Character, U'\u200B').related(DiagnosticRelatedKind::PreviousVisibleCharacter, SecondFile, {1, 2}, {{DiagnosticArgumentName::Character, U'a'}}).build();
+      const Diagnostic Equal = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, FirstFile, {2, 5}).argument(DiagnosticArgumentName::Character, U'\u200B').related(DiagnosticRelatedKind::PreviousVisibleCharacter, SecondFile, {1, 2}, {{DiagnosticArgumentName::Character, U'a'}}).build();
+      const Diagnostic DifferentArgument = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, FirstFile, {2, 5}).argument(DiagnosticArgumentName::Character, U'\u200C').related(DiagnosticRelatedKind::PreviousVisibleCharacter, SecondFile, {1, 2}, {{DiagnosticArgumentName::Character, U'a'}}).build();
+      const Diagnostic DifferentRelated = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, FirstFile, {2, 5}).argument(DiagnosticArgumentName::Character, U'\u200B').related(DiagnosticRelatedKind::NextVisibleCharacter, SecondFile, {5, 6}, {{DiagnosticArgumentName::Character, U'b'}}).build();
+      const Diagnostic DifferentFile = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, SecondFile, {2, 5}).argument(DiagnosticArgumentName::Character, U'\u200B').related(DiagnosticRelatedKind::PreviousVisibleCharacter, SecondFile, {1, 2}, {{DiagnosticArgumentName::Character, U'a'}}).build();
 
       EXPECT_EQ(Left, Equal);
       EXPECT_NE(Left, DifferentArgument);
       EXPECT_NE(Left, DifferentRelated);
+      EXPECT_NE(Left, DifferentFile);
     }
 
     // Verifies every registered diagnostic kind against its stable metadata and default severity.
@@ -168,7 +197,7 @@ namespace ink::core
     TEST(DiagnosticTest, FallsBackToUnknownMetadataForInvalidKinds)
     {
       constexpr DiagnosticKind InvalidKind = static_cast<DiagnosticKind>(0xFFFFFFFFU);
-      const Diagnostic Value{InvalidKind, {1, 2}, {}, {}};
+      const Diagnostic Value{InvalidKind, FirstFile, {1, 2}, {}, {}};
       const FormattedDiagnostic Formatted = DiagnosticFormatter().format(Value);
 
       EXPECT_EQ(diagnosticNumber(InvalidKind), 0U);
@@ -185,21 +214,30 @@ namespace ink::core
     // Verifies that the builder appends typed arguments and related source information without rendering text.
     TEST(DiagnosticTest, BuilderCreatesStructuredDiagnostics)
     {
-      DiagnosticBuilder Builder(DiagnosticKind::UnterminatedBlockComment, {4, 6});
+      DiagnosticBuilder Builder(DiagnosticKind::UnterminatedBlockComment, FirstFile, {4, 6});
       Builder.argument(DiagnosticArgumentName::RemainingNestingDepth, std::uint64_t{3});
-      Builder.related(DiagnosticRelatedKind::MostRecentUnclosedBlockComment, {10, 12});
+      Builder.related(DiagnosticRelatedKind::MostRecentUnclosedBlockComment, SecondFile, {10, 12});
       const Diagnostic Value = std::move(Builder).build();
 
       ASSERT_EQ(Value.Arguments.size(), 1u);
       EXPECT_EQ(Value.Arguments[0], (DiagnosticArgument{DiagnosticArgumentName::RemainingNestingDepth, std::uint64_t{3}}));
       ASSERT_EQ(Value.Related.size(), 1u);
-      EXPECT_EQ(Value.Related[0], (DiagnosticRelatedInformation{DiagnosticRelatedKind::MostRecentUnclosedBlockComment, {10, 12}, {}}));
+      EXPECT_EQ(Value.File, FirstFile);
+      EXPECT_EQ(Value.Related[0], (DiagnosticRelatedInformation{DiagnosticRelatedKind::MostRecentUnclosedBlockComment, SecondFile, {10, 12}, {}}));
+    }
+
+    // Verifies that structured diagnostic construction rejects unowned primary and related locations.
+    TEST(DiagnosticTest, BuilderRejectsInvalidSourceFileIds)
+    {
+      EXPECT_THROW(DiagnosticBuilder(DiagnosticKind::InvalidUtf8, {}, {0, 1}), std::invalid_argument);
+      DiagnosticBuilder Builder(DiagnosticKind::InvalidUtf8, FirstFile, {0, 1});
+      EXPECT_THROW(Builder.related(DiagnosticRelatedKind::PreviousVisibleCharacter, {}, {0, 1}), std::invalid_argument);
     }
 
     // Verifies that ordinary diagnostics format their registered default severity and message without notes.
     TEST(DiagnosticFormatterTest, FormatsOrdinaryDiagnosticsFromRegisteredDefaults)
     {
-      const Diagnostic Value{DiagnosticKind::InvalidUtf8, {2, 4}, {}, {}};
+      const Diagnostic Value{DiagnosticKind::InvalidUtf8, FirstFile, {2, 4}, {}, {}};
 
       EXPECT_EQ(DiagnosticFormatter().format(Value), (FormattedDiagnostic{DiagnosticSeverity::Error, "invalid UTF-8", {}}));
     }
@@ -207,8 +245,8 @@ namespace ink::core
     // Verifies that Parser diagnostics append a typed Expected string to their registered default messages.
     TEST(DiagnosticFormatterTest, FormatsParserExpectedStringArguments)
     {
-      const Diagnostic ExpectedTokenValue = DiagnosticBuilder(DiagnosticKind::ExpectedToken, {8, 8}).argument(DiagnosticArgumentName::Expected, std::string(")")).build();
-      const Diagnostic ExpectedSyntaxValue = DiagnosticBuilder(DiagnosticKind::ExpectedSyntax, {12, 12}).argument(DiagnosticArgumentName::Expected, std::string("expression")).build();
+      const Diagnostic ExpectedTokenValue = DiagnosticBuilder(DiagnosticKind::ExpectedToken, FirstFile, {8, 8}).argument(DiagnosticArgumentName::Expected, std::string(")")).build();
+      const Diagnostic ExpectedSyntaxValue = DiagnosticBuilder(DiagnosticKind::ExpectedSyntax, FirstFile, {12, 12}).argument(DiagnosticArgumentName::Expected, std::string("expression")).build();
 
       EXPECT_EQ(DiagnosticFormatter().format(ExpectedTokenValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "expected token ')'", {}}));
       EXPECT_EQ(DiagnosticFormatter().format(ExpectedSyntaxValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "expected syntax 'expression'", {}}));
@@ -217,18 +255,27 @@ namespace ink::core
     // Verifies that Parser diagnostics append a typed Actual string without allowing producers to replace the registered message.
     TEST(DiagnosticFormatterTest, FormatsParserActualStringArguments)
     {
-      const Diagnostic UnexpectedTokenValue = DiagnosticBuilder(DiagnosticKind::UnexpectedToken, {3, 4}).argument(DiagnosticArgumentName::Actual, std::string("}")).build();
-      const Diagnostic ReservedSymbolValue = DiagnosticBuilder(DiagnosticKind::ReservedSymbolSequence, {6, 8}).argument(DiagnosticArgumentName::Actual, std::string("++")).build();
+      const Diagnostic UnexpectedTokenValue = DiagnosticBuilder(DiagnosticKind::UnexpectedToken, FirstFile, {3, 4}).argument(DiagnosticArgumentName::Actual, std::string("}")).build();
+      const Diagnostic ReservedSymbolValue = DiagnosticBuilder(DiagnosticKind::ReservedSymbolSequence, FirstFile, {6, 8}).argument(DiagnosticArgumentName::Actual, std::string("++")).build();
 
       EXPECT_EQ(DiagnosticFormatter().format(UnexpectedTokenValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "unexpected token '}'", {}}));
       EXPECT_EQ(DiagnosticFormatter().format(ReservedSymbolValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "reserved symbol sequence is not valid here '++'", {}}));
     }
 
+    // Verifies semantic diagnostics render structured expected/actual values and a located previous-definition note deterministically.
+    TEST(DiagnosticFormatterTest, FormatsSemanticArgumentsAndPreviousDefinition)
+    {
+      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::RedefinedName, FirstFile, {8, 13}).argument(DiagnosticArgumentName::Expected, std::string("a unique name")).argument(DiagnosticArgumentName::Actual, std::string("Value")).related(DiagnosticRelatedKind::PreviousDefinition, SecondFile, {1, 6}).build();
+      const FormattedDiagnostic Expected{DiagnosticSeverity::Error, "name is already defined in this scope; expected a unique name; actual Value", {{SecondFile, SourceRange{1, 6}, "previous definition is here"}}};
+
+      EXPECT_EQ(DiagnosticFormatter().format(Value), Expected);
+    }
+
     // Verifies that an unterminated block comment formats its remaining depth and most recent opening as a located note.
     TEST(DiagnosticFormatterTest, FormatsUnterminatedBlockCommentWithRelatedOpening)
     {
-      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::UnterminatedBlockComment, {0, 2}).argument(DiagnosticArgumentName::RemainingNestingDepth, std::uint64_t{2}).related(DiagnosticRelatedKind::MostRecentUnclosedBlockComment, {8, 10}).build();
-      const FormattedDiagnostic Expected{DiagnosticSeverity::Error, "block comment is not terminated; remaining nesting depth: 2", {{SourceRange{8, 10}, "most recent unclosed block comment opening is here"}}};
+      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::UnterminatedBlockComment, FirstFile, {0, 2}).argument(DiagnosticArgumentName::RemainingNestingDepth, std::uint64_t{2}).related(DiagnosticRelatedKind::MostRecentUnclosedBlockComment, SecondFile, {8, 10}).build();
+      const FormattedDiagnostic Expected{DiagnosticSeverity::Error, "block comment is not terminated; remaining nesting depth: 2", {{SecondFile, SourceRange{8, 10}, "most recent unclosed block comment opening is here"}}};
 
       EXPECT_EQ(DiagnosticFormatter().format(Value), Expected);
     }
@@ -236,8 +283,8 @@ namespace ink::core
     // Verifies that unavailable block-comment opening history becomes an unlocated explanatory note.
     TEST(DiagnosticFormatterTest, FormatsUnavailableBlockCommentOpeningAsAnUnlocatedNote)
     {
-      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::UnterminatedBlockComment, {0, 2}).argument(DiagnosticArgumentName::RemainingNestingDepth, std::uint64_t{4096}).argument(DiagnosticArgumentName::MostRecentOpeningUnavailable, true).build();
-      const FormattedDiagnostic Expected{DiagnosticSeverity::Error, "block comment is not terminated; remaining nesting depth: 4096", {{std::nullopt, "most recent unclosed opening was not retained after the nesting limit was exceeded"}}};
+      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::UnterminatedBlockComment, FirstFile, {0, 2}).argument(DiagnosticArgumentName::RemainingNestingDepth, std::uint64_t{4096}).argument(DiagnosticArgumentName::MostRecentOpeningUnavailable, true).build();
+      const FormattedDiagnostic Expected{DiagnosticSeverity::Error, "block comment is not terminated; remaining nesting depth: 4096", {{{}, std::nullopt, "most recent unclosed opening was not retained after the nesting limit was exceeded"}}};
 
       EXPECT_EQ(DiagnosticFormatter().format(Value), Expected);
     }
@@ -245,8 +292,8 @@ namespace ink::core
     // Verifies that invisible-character formatting uses structured context and renders adjacent characters as located notes.
     TEST(DiagnosticFormatterTest, FormatsInvisibleCharacterContextAndAdjacentCharacterNotes)
     {
-      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, {4, 7}).argument(DiagnosticArgumentName::Character, U'\U000E0100').argument(DiagnosticArgumentName::Context, DiagnosticSourceContext::Identifier).related(DiagnosticRelatedKind::PreviousVisibleCharacter, {3, 4}, {{DiagnosticArgumentName::Character, U'a'}}).related(DiagnosticRelatedKind::NextVisibleCharacter, {7, 11}, {{DiagnosticArgumentName::Character, U'\U0001F600'}}).build();
-      const FormattedDiagnostic Expected{DiagnosticSeverity::Error, "invisible format character U+E0100 appears in an identifier", {{SourceRange{3, 4}, "previous visible character is U+0061"}, {SourceRange{7, 11}, "next visible character is U+1F600"}}};
+      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, FirstFile, {4, 7}).argument(DiagnosticArgumentName::Character, U'\U000E0100').argument(DiagnosticArgumentName::Context, DiagnosticSourceContext::Identifier).related(DiagnosticRelatedKind::PreviousVisibleCharacter, FirstFile, {3, 4}, {{DiagnosticArgumentName::Character, U'a'}}).related(DiagnosticRelatedKind::NextVisibleCharacter, SecondFile, {7, 11}, {{DiagnosticArgumentName::Character, U'\U0001F600'}}).build();
+      const FormattedDiagnostic Expected{DiagnosticSeverity::Error, "invisible format character U+E0100 appears in an identifier", {{FirstFile, SourceRange{3, 4}, "previous visible character is U+0061"}, {SecondFile, SourceRange{7, 11}, "next visible character is U+1F600"}}};
 
       EXPECT_EQ(DiagnosticFormatter().format(Value), Expected);
     }
@@ -254,7 +301,7 @@ namespace ink::core
     // Verifies that an invisible character outside an identifier uses the distinct source-text context wording.
     TEST(DiagnosticFormatterTest, FormatsInvisibleCharacterInSourceText)
     {
-      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, {0, 3}).argument(DiagnosticArgumentName::Character, U'\u200B').argument(DiagnosticArgumentName::Context, DiagnosticSourceContext::SourceText).build();
+      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, FirstFile, {0, 3}).argument(DiagnosticArgumentName::Character, U'\u200B').argument(DiagnosticArgumentName::Context, DiagnosticSourceContext::SourceText).build();
 
       EXPECT_EQ(DiagnosticFormatter().format(Value), (FormattedDiagnostic{DiagnosticSeverity::Error, "invisible format character U+200B appears in source text", {}}));
     }
@@ -262,7 +309,7 @@ namespace ink::core
     // Verifies that a malformed typed argument cannot inject producer text and falls back to the registered default message.
     TEST(DiagnosticFormatterTest, FallsBackForMalformedStructuredArguments)
     {
-      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, {0, 3}).argument(DiagnosticArgumentName::Character, std::string("producer supplied text")).build();
+      const Diagnostic Value = DiagnosticBuilder(DiagnosticKind::InvisibleCharacter, FirstFile, {0, 3}).argument(DiagnosticArgumentName::Character, std::string("producer supplied text")).build();
 
       EXPECT_EQ(DiagnosticFormatter().format(Value), (FormattedDiagnostic{DiagnosticSeverity::Error, "invisible format character must be written explicitly", {}}));
     }

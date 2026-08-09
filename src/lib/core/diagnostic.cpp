@@ -1,5 +1,6 @@
 #include "ink/core/diagnostic.h"
 
+#include <stdexcept>
 #include <utility>
 
 namespace ink::core
@@ -47,12 +48,12 @@ namespace ink::core
       {
         if (RelatedEntry.Kind == DiagnosticRelatedKind::MostRecentUnclosedBlockComment)
         {
-          Result.Notes.push_back({RelatedEntry.Span, "most recent unclosed block comment opening is here"});
+          Result.Notes.push_back({RelatedEntry.File, RelatedEntry.Span, "most recent unclosed block comment opening is here"});
         }
       }
       if (const bool *Unavailable = findArgument<bool>(DiagnosticEntry.Arguments, DiagnosticArgumentName::MostRecentOpeningUnavailable); Unavailable != nullptr && *Unavailable)
       {
-        Result.Notes.push_back({std::nullopt, "most recent unclosed opening was not retained after the nesting limit was exceeded"});
+        Result.Notes.push_back({{}, std::nullopt, "most recent unclosed opening was not retained after the nesting limit was exceeded"});
       }
     }
 
@@ -90,7 +91,7 @@ namespace ink::core
         {
           Message += " is here";
         }
-        Result.Notes.push_back({RelatedEntry.Span, std::move(Message)});
+        Result.Notes.push_back({RelatedEntry.File, RelatedEntry.Span, std::move(Message)});
       }
     }
 
@@ -107,6 +108,25 @@ namespace ink::core
       if (const std::string *Actual = findArgument<std::string>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Actual))
       {
         Result.Message += " '" + *Actual + "'";
+      }
+    }
+
+    void formatSemantic(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
+    {
+      if (const std::string *Expected = findArgument<std::string>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Expected))
+      {
+        Result.Message += "; expected " + *Expected;
+      }
+      if (const std::string *Actual = findArgument<std::string>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Actual))
+      {
+        Result.Message += "; actual " + *Actual;
+      }
+      for (const DiagnosticRelatedInformation &RelatedEntry : DiagnosticEntry.Related)
+      {
+        if (RelatedEntry.Kind == DiagnosticRelatedKind::PreviousDefinition)
+        {
+          Result.Notes.push_back({RelatedEntry.File, RelatedEntry.Span, "previous definition is here"});
+        }
       }
     }
   } // namespace
@@ -205,7 +225,7 @@ namespace ink::core
 
   bool operator==(const DiagnosticRelatedInformation &Left, const DiagnosticRelatedInformation &Right)
   {
-    return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Arguments == Right.Arguments;
+    return Left.Kind == Right.Kind && Left.File == Right.File && Left.Span == Right.Span && Left.Arguments == Right.Arguments;
   }
 
   bool operator!=(const DiagnosticRelatedInformation &Left, const DiagnosticRelatedInformation &Right)
@@ -225,7 +245,7 @@ namespace ink::core
 
   bool operator==(const Diagnostic &Left, const Diagnostic &Right)
   {
-    return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Arguments == Right.Arguments && Left.Related == Right.Related;
+    return Left.Kind == Right.Kind && Left.File == Right.File && Left.Span == Right.Span && Left.Arguments == Right.Arguments && Left.Related == Right.Related;
   }
 
   bool operator!=(const Diagnostic &Left, const Diagnostic &Right)
@@ -233,8 +253,12 @@ namespace ink::core
     return !(Left == Right);
   }
 
-  DiagnosticBuilder::DiagnosticBuilder(DiagnosticKind Kind, SourceRange Span) : Result{Kind, Span, {}, {}}
+  DiagnosticBuilder::DiagnosticBuilder(DiagnosticKind Kind, SourceFileId File, SourceRange Span) : Result{Kind, File, Span, {}, {}}
   {
+    if (!File.isValid())
+    {
+      throw std::invalid_argument("diagnostic requires a valid source file ID");
+    }
   }
 
   DiagnosticBuilder &DiagnosticBuilder::argument(DiagnosticArgumentName Name, DiagnosticArgumentValue Value) &
@@ -249,15 +273,19 @@ namespace ink::core
     return std::move(*this);
   }
 
-  DiagnosticBuilder &DiagnosticBuilder::related(DiagnosticRelatedKind Kind, SourceRange Span, std::vector<DiagnosticArgument> Arguments) &
+  DiagnosticBuilder &DiagnosticBuilder::related(DiagnosticRelatedKind Kind, SourceFileId File, SourceRange Span, std::vector<DiagnosticArgument> Arguments) &
   {
-    Result.Related.push_back({Kind, Span, std::move(Arguments)});
+    if (!File.isValid())
+    {
+      throw std::invalid_argument("related diagnostic information requires a valid source file ID");
+    }
+    Result.Related.push_back({Kind, File, Span, std::move(Arguments)});
     return *this;
   }
 
-  DiagnosticBuilder &&DiagnosticBuilder::related(DiagnosticRelatedKind Kind, SourceRange Span, std::vector<DiagnosticArgument> Arguments) &&
+  DiagnosticBuilder &&DiagnosticBuilder::related(DiagnosticRelatedKind Kind, SourceFileId File, SourceRange Span, std::vector<DiagnosticArgument> Arguments) &&
   {
-    related(Kind, Span, std::move(Arguments));
+    related(Kind, File, Span, std::move(Arguments));
     return std::move(*this);
   }
 
@@ -268,7 +296,7 @@ namespace ink::core
 
   bool operator==(const FormattedDiagnosticNote &Left, const FormattedDiagnosticNote &Right)
   {
-    return Left.Span == Right.Span && Left.Message == Right.Message;
+    return Left.File == Right.File && Left.Span == Right.Span && Left.Message == Right.Message;
   }
 
   bool operator!=(const FormattedDiagnosticNote &Left, const FormattedDiagnosticNote &Right)
@@ -304,6 +332,10 @@ namespace ink::core
     else if (DiagnosticEntry.Kind == DiagnosticKind::UnexpectedToken || DiagnosticEntry.Kind == DiagnosticKind::ReservedSymbolSequence)
     {
       formatActual(DiagnosticEntry, Result);
+    }
+    else if (diagnosticDomain(DiagnosticEntry.Kind) == DiagnosticDomain::Semantic)
+    {
+      formatSemantic(DiagnosticEntry, Result);
     }
     return Result;
   }

@@ -1,6 +1,7 @@
 #ifndef INK_CORE_DIAGNOSTIC_H
 #define INK_CORE_DIAGNOSTIC_H
 
+#include "ink/core/source_file_id.h"
 #include "ink/core/source_range.h"
 
 #include <cstdint>
@@ -17,6 +18,9 @@ namespace ink::core
     Tokenizer = 0x01,
     Parser = 0x02,
     Semantic = 0x03,
+    Driver = 0x04,
+    Runtime = 0x05,
+    Backend = 0x06,
   };
 
   enum class DiagnosticSeverity : std::uint8_t
@@ -51,6 +55,7 @@ namespace ink::core
     MostRecentUnclosedBlockComment,
     PreviousVisibleCharacter,
     NextVisibleCharacter,
+    PreviousDefinition,
   };
 
   enum class DiagnosticKind : std::uint32_t
@@ -82,6 +87,7 @@ namespace ink::core
   struct DiagnosticRelatedInformation
   {
     DiagnosticRelatedKind Kind = DiagnosticRelatedKind::Unknown;
+    SourceFileId File;
     SourceRange Span;
     std::vector<DiagnosticArgument> Arguments;
   };
@@ -92,6 +98,7 @@ namespace ink::core
   struct Diagnostic
   {
     DiagnosticKind Kind = DiagnosticKind::Unknown;
+    SourceFileId File;
     SourceRange Span;
     std::vector<DiagnosticArgument> Arguments;
     std::vector<DiagnosticRelatedInformation> Related;
@@ -106,11 +113,11 @@ namespace ink::core
   class DiagnosticBuilder
   {
   public:
-    DiagnosticBuilder(DiagnosticKind Kind, SourceRange Span);
+    DiagnosticBuilder(DiagnosticKind Kind, SourceFileId File, SourceRange Span);
     DiagnosticBuilder &argument(DiagnosticArgumentName Name, DiagnosticArgumentValue Value) &;
     DiagnosticBuilder &&argument(DiagnosticArgumentName Name, DiagnosticArgumentValue Value) &&;
-    DiagnosticBuilder &related(DiagnosticRelatedKind Kind, SourceRange Span, std::vector<DiagnosticArgument> Arguments = {}) &;
-    DiagnosticBuilder &&related(DiagnosticRelatedKind Kind, SourceRange Span, std::vector<DiagnosticArgument> Arguments = {}) &&;
+    DiagnosticBuilder &related(DiagnosticRelatedKind Kind, SourceFileId File, SourceRange Span, std::vector<DiagnosticArgument> Arguments = {}) &;
+    DiagnosticBuilder &&related(DiagnosticRelatedKind Kind, SourceFileId File, SourceRange Span, std::vector<DiagnosticArgument> Arguments = {}) &&;
     Diagnostic build() &&;
 
   private:
@@ -119,6 +126,7 @@ namespace ink::core
 
   struct FormattedDiagnosticNote
   {
+    SourceFileId File;
     std::optional<SourceRange> Span;
     std::string Message;
   };

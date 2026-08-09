@@ -1,4 +1,5 @@
 #include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include <gtest/gtest.h>
 
@@ -61,7 +62,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, LexesEveryAcceptedSymbolAsOneByteToken)
     {
       const std::string Symbols = "(){}[],;:.@+-*/%=!&|^~<>";
-      const TokenizedBuffer File = tokenize(Symbols);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Symbols);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), Symbols.size() + 1);
@@ -103,7 +104,7 @@ namespace ink::tokenizer
       for (const std::string &Spelling : Spellings)
       {
         SCOPED_TRACE(Spelling);
-        const TokenizedBuffer File = tokenize(Spelling);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Spelling);
         ASSERT_TRUE(File.succeeded());
         ASSERT_EQ(File.tokens().size(), Spelling.size() + 1);
         for (std::size_t Index = 0; Index < Spelling.size(); ++Index)
@@ -119,9 +120,9 @@ namespace ink::tokenizer
     // Verifies that whitespace and comments preserve the boundaries between neighboring symbols.
     TEST(SymbolTokenTest, TriviaPreservesCompoundSymbolBoundaries)
     {
-      const TokenizedBuffer Adjacent = tokenize("a<=b");
-      const TokenizedBuffer Spaced = tokenize("a < = b");
-      const TokenizedBuffer Commented = tokenize("a < /*c*/ = b");
+      const TokenizedBuffer Adjacent = tokenize(TestSourceFileId, "a<=b");
+      const TokenizedBuffer Spaced = tokenize(TestSourceFileId, "a < = b");
+      const TokenizedBuffer Commented = tokenize(TestSourceFileId, "a < /*c*/ = b");
 
       ASSERT_TRUE(Adjacent.succeeded());
       ASSERT_EQ(Adjacent.tokens().size(), 5u);
@@ -150,8 +151,8 @@ namespace ink::tokenizer
     // Verifies that adjacent generic closing brackets and assignment remain separate symbol tokens.
     TEST(SymbolTokenTest, NestedGenericClosersRemainSeparateSymbols)
     {
-      const TokenizedBuffer Nested = tokenize("Vector::<Vector::<i32>>");
-      const TokenizedBuffer Assignment = tokenize("Container::<Item::<T>>=value");
+      const TokenizedBuffer Nested = tokenize(TestSourceFileId, "Vector::<Vector::<i32>>");
+      const TokenizedBuffer Assignment = tokenize(TestSourceFileId, "Container::<Item::<T>>=value");
 
       ASSERT_TRUE(Nested.succeeded());
       ASSERT_EQ(Nested.tokens().size(), 12u);
@@ -174,7 +175,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, NumericScannerOwnsOnlyDecimalPointFollowedByDigit)
     {
       const std::string Source = "1.member 1..10 0...value";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 15u);
@@ -197,7 +198,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, CommentDelimitersTakePriorityOverSlashSymbols)
     {
       const std::string Source = "//line\n/* block */ / / / * */";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 15u);
@@ -217,7 +218,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, LiteralDelimitersTakePriorityOverSymbolScanning)
     {
       const std::string Source = R"ink('/' "/" r"/*")ink";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 6u);
@@ -231,7 +232,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, SameSymbolPayloadIsIndependentOfSyntacticRole)
     {
       const std::string Source = "a*b value:T* *pointer a&b value:T& &value a<b Vector::<i32>";
-      const TokenizedBuffer File = tokenize(Source);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(File.succeeded());
       std::vector<char> SymbolValues;
@@ -259,7 +260,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Sources)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer File = tokenize(Source);
+        const TokenizedBuffer File = tokenize(TestSourceFileId, Source);
         ASSERT_FALSE(File.succeeded());
         ASSERT_EQ(File.tokens().size(), 2u);
         expectToken(File, 0, TokenKind::InvalidCharacter, Source);
@@ -273,7 +274,7 @@ namespace ink::tokenizer
     TEST(SymbolTokenTest, RejectsNonIdentifierUnicodeCharacterAsOneErrorToken)
     {
       const std::string Emoji = "\xF0\x9F\x98\x80";
-      const TokenizedBuffer File = tokenize(Emoji);
+      const TokenizedBuffer File = tokenize(TestSourceFileId, Emoji);
 
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(File.tokens().size(), 2u);

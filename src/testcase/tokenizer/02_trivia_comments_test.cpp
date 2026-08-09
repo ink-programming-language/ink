@@ -1,4 +1,5 @@
 #include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include "utf8_test_support.h"
 
@@ -106,7 +107,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, TriviaTokensShareTheSingleOrderedTokenList)
     {
       const std::string Source = utf8(u8"\uFEFF \tlet\r\n//comment\n/**/");
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 8U);
@@ -134,7 +135,7 @@ namespace ink::tokenizer
     // Tests maximal grouping of adjacent ASCII spaces and tabs.
     TEST(TriviaCommentsTest, AdjacentSpacesAndTabsFormOneMaximalTriviaToken)
     {
-      const TokenizedBuffer Buffer = tokenize(" \t  \t");
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, " \t  \t");
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -160,7 +161,7 @@ namespace ink::tokenizer
       for (const LineEndingCase &TestCase : Cases)
       {
         SCOPED_TRACE(TestCase.LineBreak);
-        const TokenizedBuffer Buffer = tokenize(TestCase.Source);
+        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, TestCase.Source);
         ASSERT_TRUE(Buffer.succeeded());
         ASSERT_EQ(Buffer.tokens().size(), 3U);
         EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::LineComment);
@@ -174,7 +175,7 @@ namespace ink::tokenizer
     // Tests that a line comment can terminate directly at end of file.
     TEST(TriviaCommentsTest, LineCommentMayEndAtEof)
     {
-      const TokenizedBuffer Buffer = tokenize("// no final line break");
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "// no final line break");
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -187,7 +188,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, UnicodeNewlineLookalikesDoNotEndLineComments)
     {
       const std::string Source = utf8(u8"//a\u0085b\u2028c\u2029d\nx");
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 4U);
@@ -203,7 +204,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, NonInitialByteOrderMarkIsPreservedAsCommentText)
     {
       const std::string Source = utf8(u8"//a\uFEFFb");
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -220,7 +221,7 @@ namespace ink::tokenizer
       const std::string BlockComment = std::string("/*block") + UnicodeWhitespace + "*/";
       const std::string Source = LineComment + "\r\n" + BlockComment;
       const std::size_t BlockStart = LineComment.size() + 2;
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_TRUE(Buffer.diagnostics().empty());
@@ -241,7 +242,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, LoneCarriageReturnInsideLineCommentIsDiagnosedPrecisely)
     {
       const std::string Source = "//a\rb\nx";
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 4U);
@@ -266,7 +267,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, NestedBlockCommentIsOneTokenIncludingInternalLineBreaks)
     {
       const std::string Source = "/* outer\n/* inner */ \" // still outer */tail";
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 3U);
@@ -285,7 +286,7 @@ namespace ink::tokenizer
       const std::string Source = BlockComment + "tail";
       const std::size_t SecondLineStart = BlockComment.find("\r\n") + 2;
       const std::size_t ThirdLineStart = BlockComment.find('\n', SecondLineStart) + 1;
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 3U);
@@ -315,7 +316,7 @@ namespace ink::tokenizer
       const std::string LinePrefix = "//before";
       const std::string LineComment = LinePrefix + InvalidSequence + "after";
       const std::string LineSource = LineComment + "\nnext";
-      const TokenizedBuffer LineBuffer = tokenize(LineSource);
+      const TokenizedBuffer LineBuffer = tokenize(TestSourceFileId, LineSource);
 
       ASSERT_FALSE(LineBuffer.succeeded());
       ASSERT_EQ(LineBuffer.tokens().size(), 4U);
@@ -337,7 +338,7 @@ namespace ink::tokenizer
       const std::string BlockPrefix = "/*before";
       const std::string BlockComment = BlockPrefix + InvalidSequence + "after*/";
       const std::string BlockSource = BlockComment + "next";
-      const TokenizedBuffer BlockBuffer = tokenize(BlockSource);
+      const TokenizedBuffer BlockBuffer = tokenize(TestSourceFileId, BlockSource);
 
       ASSERT_FALSE(BlockBuffer.succeeded());
       ASSERT_EQ(BlockBuffer.tokens().size(), 3U);
@@ -357,7 +358,7 @@ namespace ink::tokenizer
     // Tests acceptance of an empty block comment.
     TEST(TriviaCommentsTest, EmptyBlockCommentIsLegal)
     {
-      const TokenizedBuffer Buffer = tokenize("/**/");
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "/**/");
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -370,7 +371,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, CommentDelimitersOnlyActInTheActiveLexicalState)
     {
       const std::string Source = "// /* not a block */ \"not a string\"\n\"https://example.com/*text*/\" /* // nested text */";
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 6U);
@@ -386,7 +387,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, TriviaForcesIdentifierAndSymbolBoundaries)
     {
       const std::string Source = "first/* comment */second +/* comment */+";
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       const std::vector<TokenKind> Expected = {
@@ -415,7 +416,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, DocumentationLikeCommentsRemainOrdinaryComments)
     {
       const std::string Source = "/// line\n//! inner\n/** block */ /*! inner */";
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       const std::vector<TokenKind> Expected = {
@@ -439,7 +440,7 @@ namespace ink::tokenizer
     // Tests that a closing block-comment delimiter outside a comment becomes two symbols.
     TEST(TriviaCommentsTest, StarSlashOutsideBlockCommentIsTwoSymbols)
     {
-      const TokenizedBuffer Buffer = tokenize("*/");
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "*/");
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 3U);
@@ -453,7 +454,7 @@ namespace ink::tokenizer
     // Tests that a single unterminated block comment reports its remaining depth without a redundant related range at the primary opening.
     TEST(TriviaCommentsTest, SingleUnterminatedBlockCommentHasNoRedundantRelatedOpening)
     {
-      const TokenizedBuffer Buffer = tokenize("/* text");
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "/* text");
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.diagnostics().size(), 1U);
@@ -472,7 +473,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, UnterminatedNestedBlockCommentCoversFromOutermostStartToEof)
     {
       const std::string Source = "/* outer /* inner";
-      const TokenizedBuffer Buffer = tokenize(Source);
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -501,7 +502,7 @@ namespace ink::tokenizer
     {
       const std::string Source = "/* outer /* inner /* too deep";
       const std::size_t OverLimitOpening = Source.rfind("/*");
-      const TokenizedBuffer Buffer = tokenize(Source, TokenizerOptions{2});
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source, TokenizerOptions{2});
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -535,7 +536,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, ZeroBlockCommentDepthLimitRejectsTheOutermostComment)
     {
       const std::string Source = "/**/tail";
-      const TokenizedBuffer Buffer = tokenize(Source, TokenizerOptions{0});
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source, TokenizerOptions{0});
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 3U);
@@ -552,7 +553,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, ExactBlockCommentDepthLimitIsAccepted)
     {
       const std::string Source = "/* outer /* inner */ outer */tail";
-      const TokenizedBuffer Buffer = tokenize(Source, TokenizerOptions{2});
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source, TokenizerOptions{2});
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 3U);
@@ -568,7 +569,7 @@ namespace ink::tokenizer
     TEST(TriviaCommentsTest, ConfiguredBlockCommentNestingLimitProducesAnErrorWithoutLosingBytes)
     {
       const std::string Source = "/* one /* two /* three */ two */ one */tail";
-      const TokenizedBuffer Buffer = tokenize(Source, TokenizerOptions{2});
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source, TokenizerOptions{2});
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 3U);
@@ -585,7 +586,7 @@ namespace ink::tokenizer
     // Tests that a backslash cannot continue a physical source line.
     TEST(TriviaCommentsTest, BackslashBeforeLineBreakDoesNotContinueTheLine)
     {
-      const TokenizedBuffer Buffer = tokenize("a\\\nb");
+      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "a\\\nb");
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 5U);
