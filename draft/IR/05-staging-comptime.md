@@ -25,7 +25,7 @@ StagedModule
 |- Typed Core InkIR
 |- ElaborationPlan
 |- NormalizedTemplateTable
-`- committed ModuleRegistrationTable
+`- committed TypedRegistrations
 
 fixed-point elaboration + partial evaluation
     -> ClosedModule[target]
@@ -40,18 +40,20 @@ fixed-point elaboration + partial evaluation
 ```text
 StagedModule = {
     Header,
-    TargetContext,
+    TargetKeyAndTargetContextDigest,
     ActiveModuleGraph,
     TypedCoreModule,
     ElaborationPlan,
     NormalizedTemplateTable,
-    ModuleRegistrationTable,
+    TypedRegistrations,
     SourceFileTable,
     OriginTable,
     DependencyManifest,
-    CapabilityPolicy,
+    CapabilityPolicyRevisionAndDigest,
 }
 ```
+
+`TargetContext`、已解析dependency artifacts、`CapabilityPolicy`、comptime handler registry与pass implementation是trusted、immutable、nonserialized execution bindings，不是上述artifact payload。`StagedVerificationContext`/`ClosedVerificationContext`必须按 07 的API把这些对象与Manifest中的key/revision/digest、Section 17 ActiveModuleGraph逐项匹配；Verified token保存不可伪造的只读关联，执行器不再从路径或全局注册表重选同名对象。
 
 其不变量为：
 
@@ -63,7 +65,7 @@ StagedModule = {
 - `TargetContext` 在任何 target-dependent 查询或执行前已经确定；
 - capability 只授予实际执行到的 effect operation，不按函数名称预授予；
 - StagedModule 可以含 meta type、开放声明句柄和 dependent template，但这些内容必须在形成 ClosedModule 前消失。
-- `ModuleRegistrationTable` 只包含 fixed-point transaction 已原子提交的强类型记录；仍在执行或验证的 emission 只存在于当前 pending batch，对同轮其他 work item 不可见。
+- `TypedRegistrations` 只包含 fixed-point transaction 已原子提交的强类型记录；仍在执行或验证的 emission 只存在于当前 pending batch，对同轮其他 work item 不可见。artifact 中对应的 canonical section 名为 `ModuleRegistrations`。
 
 只有 `verifyStaged` 成功返回的 `VerifiedStagedModule` 可以交给 fixed-point elaborator。给普通 module 设置一个可修改的 `StageKind` 字段不能替代该能力边界。
 
@@ -73,23 +75,29 @@ StagedModule = {
 
 `NormalizedTemplateTable` 保存重新 elaboration 所需的最小、source-backed 语义模板。它不复制 full-fidelity CST 的 Trivia，也不保存可由用户修改的 AST 或 IR Builder。
 
-每个模板至少记录：
+每个模板按 10 中央注册表的 required 顺序恰好记录：
 
 ```text
 NormalizedTemplate = {
-    TemplateId,
     TemplateKind,
     RegionKind,
     SourceDeclarationKey,
-    NormalizedHirRoot,
+    TemplateRolePath,
+    SourceFile,
+    SourceRange,
+    NormalizedHirSchemaVersion,
+    NormalizedHirPayload,
+    VisibleBindings[],
     LexicalEnvironmentKey,
-    ExplicitCaptures[],
-    OriginId,
+    Captures[],
+    Origin,
     SemanticDigest,
 }
 ```
 
-`TemplateKind` 至少区分：
+`TemplateId` 只是 `NormalizedTemplateTable` 的 dense table id，不是上述 record payload。`SourceDeclarationKey` 的 canonical module/source-role/logical-path stable tuple 必须与 `SourceFile` 逐项相等，当前 module version 中该 tuple 唯一；具体 revision 由 `SourceFile.ContentDigest` 绑定。`SourceRange` 必须满足 `Start <= End <= SourceFile.ByteLength`，`NormalizedHirSchemaVersion` 必须匹配 structural registry；不得用另一个同 content digest 文件、artifact-local root id 或旧拼写 `ExplicitCaptures` 替代这些字段。
+
+v0 `TemplateKind` 的闭集为以下八种，numeric tag 以 10 §10.2 为准：
 
 ```text
 ValueExpression
@@ -111,11 +119,97 @@ TopLevel
 ClassMember
 InterfaceMember
 EnumMember
+ModuleRegistration
 ```
+
+其中 `ModuleRegistration` 的 schema 名称为 `module_registration`，只用于承载 decorator module-registration body；它不能退化成普通 `TopLevel` declaration sink。
 
 模板必须已经通过 Tokenizer、Parser 和语法恢复检查。未选择模板仍须词法和语法正确，但不得仅为建立模板而执行依赖名称绑定、成员查找或类型检查。
 
-### 3.2 Normalized HIR 的允许内容
+### 3.2 Normalized HIR 子 schema
+
+`NormalizedHirPayload` 不是可以由实现任意解释的 AST blob。`NormalizedHirSchemaVersion = 1` 时，它必须按以下逻辑子 schema 解码；二进制层仍由 [`10-schema-registry.md`](./10-schema-registry.md) 的 `Template.NormalizedHirPayload : Bytes` 承载，但该字段的每个 byte 都受本节约束：
+
+```text
+NormalizedHirPayloadV1 = {
+    NodeCount : U,
+    RootNodeId : HirNodeId,
+    Nodes[NodeCount] : NormalizedHirNode,
+}
+
+NormalizedHirNode = {
+    NodeByteLength : U,
+    NodeTag : NormalizedHirNodeTag,
+    Fields : exact fields selected by NodeTag,
+    OriginId : U,
+}
+
+HirNodeId = U
+OptionalHirNodeId = 0 | HirNodeId + 1
+OptionalTemplateId = 0 | TemplateId + 1
+HirNodeVector = Count : U, Items[Count] : HirNodeId
+ControlTargetPath = Count : U, StructuralOrdinals[Count] : U
+```
+
+`NodeByteLength` 只覆盖本 node 在 `NodeTag` 后的 fields 与 `OriginId`，使 decoder 能在预算内检查准确消费；它不允许跳过未知 tag。`HirNodeId` 是从零开始的 dense index。每个 child node 必须先于 parent，`RootNodeId` 必须是最后一个 node，每个非 root node 必须恰好被一个 node field 引用；因此 v1 payload 是一棵规范后序树，不允许环、共享子树或不可达 node。重复源码片段必须重复编码，不能靠进程内 uniquing 改变语义字节。
+
+v1 的 `NormalizedHirNodeTag` 是闭集：
+
+| Tag | 名称 | `Fields`，按编码顺序 |
+| --- | --- | --- |
+| 1 | `identifier` | `IdentifierStringId : U, IdentifierRoleTag : U` |
+| 2 | `literal` | `LiteralKindTag : U, ConstantId : U` |
+| 3 | `resolved_reference` | `ReferenceKindTag : U, SymbolId : U` |
+| 4 | `dependent_reference` | `LookupKindTag : U, Qualifiers : HirNodeVector, Identifier : HirNodeId` |
+| 5 | `capture_reference` | `CaptureIndex : U` |
+| 6 | `type_expression` | `TypeExpressionKindTag : U, ResolvedType : OptionalTypeId, Operands : HirNodeVector` |
+| 7 | `unary_expression` | `UnaryOperatorTag : U, Operand : HirNodeId` |
+| 8 | `binary_expression` | `BinaryOperatorTag : U, Left : HirNodeId, Right : HirNodeId` |
+| 9 | `call_expression` | `Callee : HirNodeId, Arguments : HirNodeVector` |
+| 10 | `member_expression` | `MemberAccessTag : U, Base : HirNodeId, Member : HirNodeId` |
+| 11 | `index_expression` | `Base : HirNodeId, Indices : HirNodeVector` |
+| 12 | `aggregate_expression` | `AggregateKindTag : U, Elements : HirNodeVector` |
+| 13 | `generic_application` | `Generic : HirNodeId, Arguments : HirNodeVector` |
+| 14 | `attribute_application` | `Attribute : HirNodeId, Arguments : HirNodeVector, Target : HirNodeId` |
+| 15 | `pattern` | `PatternKindTag : U, Binder : OptionalHirNodeId, TypeOrValue : OptionalHirNodeId, Children : HirNodeVector` |
+| 16 | `expression_statement` | `Expression : HirNodeId` |
+| 17 | `binding_declaration` | `BindingKindTag : U, Name : HirNodeId, TypeExpression : OptionalHirNodeId, Initializer : OptionalHirNodeId, DeclarationStructuralPath : SourceStructuralPath` |
+| 18 | `assignment_statement` | `AssignmentOperatorTag : U, Destination : HirNodeId, Source : HirNodeId` |
+| 19 | `block` | `RegionKindTag : U, Items : HirNodeVector` |
+| 20 | `if_control` | `Condition : HirNodeId, ThenTemplateId : U, ElseTemplateId : OptionalTemplateId, ControlNodeKey : D32` |
+| 21 | `match_control` | `Selector : HirNodeId, Arms : MatchArmVector, ControlNodeKey : D32` |
+| 22 | `for_control` | `BindingPattern : HirNodeId, Iterable : HirNodeId, BodyTemplateId : U, ControlNodeKey : D32` |
+| 23 | `while_control` | `Condition : HirNodeId, BodyTemplateId : U, ControlNodeKey : D32` |
+| 24 | `return_statement` | `Value : OptionalHirNodeId, Target : ControlTargetPath` |
+| 25 | `break_statement` | `Value : OptionalHirNodeId, Target : ControlTargetPath` |
+| 26 | `continue_statement` | `Target : ControlTargetPath` |
+| 27 | `throw_statement` | `Value : HirNodeId` |
+| 28 | `try_control` | `BodyTemplateId : U, Catches : CatchClauseVector, FinallyTemplateId : OptionalTemplateId` |
+| 29 | `defer_statement` | `BodyTemplateId : U` |
+| 30 | `declaration_template` | `DeclarationKindTag : U, DeclarationStructuralPath : SourceStructuralPath, TemplateId : U` |
+
+辅助 record 也属于该闭合子 schema：
+
+```text
+OptionalTypeId = 0 | TypeId + 1
+MatchArm = {
+    Pattern : HirNodeId,
+    Guard : OptionalHirNodeId,
+    BodyTemplateId : U,
+    SourceOrdinal : U,
+}
+MatchArmVector = Count : U, Items[Count] : MatchArm
+CatchClause = {
+    Pattern : HirNodeId,
+    BodyTemplateId : U,
+    SourceOrdinal : U,
+}
+CatchClauseVector = Count : U, Items[Count] : CatchClause
+```
+
+`MatchArm.SourceOrdinal`和`CatchClause.SourceOrdinal`必须逐项等于所在vector的zero-based index；它们是源码顺序的冗余完整性编码，不允许跳号、重复或用另一种排序重编号。
+
+所有 `*KindTag`、`*RoleTag` 和 operator tag 都必须使用10 §10.2为`NormalizedHirSchemaVersion = 1`注册的闭合数值表；`TemplateRolePath`的`OwnerSyntaxKindTag`/`ChildRoleTag`也使用同一中央表。实现不得把枚举名、localized spelling、C++ enum ordinal 或 parser 私有数值直接写入 payload。v1 遇到未知 node/tag、非规范 optional、错误 field 数量、错误 node 长度或尾随 byte 必须拒绝，不能保留为 opaque extension。
 
 Normalized HIR 可以包含：
 
@@ -137,6 +231,22 @@ Normalized HIR 可以包含：
 
 非依赖代码仍应在最早可行阶段完成绑定和类型检查。只有真正依赖尚未知编译期输入的部分保留为 dependent template；实现不得把所有泛型体无条件退化为无类型 AST。
 
+每个 `identifier` 必须引用 Strings section 中 NFC 规范化、由真实源码 Identifier token 建立的 spelling；合成的展示文本不能成为 identifier。每个 `resolved_reference` 必须指向当前 artifact 中稳定、可验证的 symbol record；每个 `capture_reference` 的 index 必须落在 `ExplicitCaptures` 内，并与其期望语义类型和 access mode 一致。外部 `TemplateId`、`TypeId`、`ConstantId`、`StringId`、`SymbolId` 和 `OriginId` 引用都必须先做 bounds/type/category 检查。HIR 中的 `TemplateId` 只能指向 `TemplateRolePath` 的严格 source-backed descendant；所有 template-reference edge 必须形成 DAG，禁止 self-reference、ancestor edge 和仅靠解码顺序打破的 digest cycle。
+
+decoder 在分配或递归前必须同时检查以下独立预算：`NormalizedHirPayload` 总 byte 数、node 数、单 node byte 数、树深度、单 vector arity、总 child edge 数、identifier/structural-path 总 byte 数、template/type/constant/symbol/origin 引用数以及解码后总内存。每个 `Count` 必须先与剩余 byte 和对应上限交叉检查；`NodeByteLength`、长度加法和 `Id + 1` 必须使用 checked arithmetic。超限是 artifact/资源诊断，不能截断、延迟到 elaboration 或当作 cache miss。
+
+Normalized HIR 的摘要投影为：
+
+```text
+NormalizedHirSemanticDigest = H(
+    "ink.normalized-hir.v1",
+    NormalizedHirSchemaVersion,
+    canonical node tree with every OriginId omitted,
+    referenced strings/constants/types/symbols/templates by canonical semantic identity)
+```
+
+摘要覆盖 node tag、所有其他 fields、vector 顺序、optional presence、结构路径和语言语法 registry revision；不覆盖 `NodeByteLength`、dense `HirNodeId` 数字、artifact-local table index 或 source range。计算时按规范树结构递归投影，不能直接 hash artifact-local payload bytes。`NormalizedTemplate.SemanticDigest` 必须进一步覆盖 `TemplateKind`、`RegionKind`、`SourceDeclarationKey`、`TemplateRolePath`、`SourceFileContentDigest`、`NormalizedHirSemanticDigest`、`LexicalEnvironmentKey` 以及按序投影的 captures；capture 的 `OriginId` 同样不进入语义摘要。origin/debug table 虽不进入摘要，仍必须绑定同一 module content digest，并在 cache materialization 时验证。exact domain 与 ordered preimage 以 10 §2.3 为准。
+
 ### 3.3 显式 capture
 
 模板对外层环境的依赖必须显式编码为 capture：
@@ -144,18 +254,31 @@ Normalized HIR 可以包含：
 ```text
 TemplateCapture = {
     CaptureKind,
-    CanonicalKey,
+    TaggedCaptureSource,
     ExpectedSemanticType,
     AccessMode,
     OriginId,
 }
 ```
 
-`CaptureKind` 可以是 compile-time value、runtime SSA value、place、type、declaration handle、lexical declaration 或 target/config query。capture 顺序按照模板中建立的规范首次使用顺序固定；序列化和 hash 不得依赖 map 迭代顺序。
+`CaptureKind` 可以是 compile-time value、runtime SSA value、place、type、declaration handle、lexical declaration 或 target/config query；`TaggedCaptureSource` 必须是 10 §10.2 的闭合 constant/PlanResult/CoreValue/type/declaration/lexical-binding/target-config/instance-argument variant之一，而不是 opaque key。PlanResult source携带producer和result index，CoreValue携带owner/RegionPath/ValueId，lexical binding携带VisibleBindings index，因此选中后可以机械重建值与lazy dependency。capture 顺序按照模板中建立的规范首次使用顺序固定；序列化和 hash 不得依赖 map 迭代顺序。
 
-运行时 SSA value 或 place 可以被结构化 `comptime if/for` 的选中 body 捕获，因为该 body 可以残留普通运行时代码。相同值进入 `stage.force_value` 或 `stage.force_block` 时若成为必经依赖，则强制求值失败。
+运行时 SSA value 或 place 可以被 `stage.select_if`、`stage.select_match`、`stage.expand_for` 或 `stage.expand_while` 实际选中的 body 捕获，因为该 body 可以残留普通运行时代码。相同值进入 `stage.force_value` 或 `stage.force_block` 时若成为必经依赖，则强制求值失败。
 
 ### 3.4 模板身份
+
+`TemplateRolePath` 是 declaration 内稳定、不可为空的结构角色路径：
+
+```text
+TemplateRolePath = StepCount : U (must be greater than zero), Steps[StepCount] : TemplateRoleStep
+TemplateRoleStep = {
+    OwnerSyntaxKindTag : U,
+    ChildRoleTag : U,
+    ChildOrdinal : U,
+}
+```
+
+`OwnerSyntaxKindTag` 和 `ChildRoleTag` 来自 `SourceDeclarationKey.SourceStructuralSchemaVersion` 对应的语法 registry；Staged中该version必须等于`NormalizedHirSchemaVersion`。`ChildOrdinal` 只在同一 owner、同一 role 的 source-backed children 内计数。路径不得使用 source offset、AST 地址、parser arena ID、当前 `TemplateId` 或遍历 map 的顺序。decoder 必须验证它准确解析到 `SourceDeclarationKey` 内当前模板的语法角色，且同一 declaration 内没有重复路径。
 
 `TemplateId` 只是当前 artifact 内的紧凑引用。跨进程缓存中的规范模板身份为：
 
@@ -173,7 +296,7 @@ canonical module identity
 
 ### 4.1 Plan node 模型
 
-`ElaborationPlan` 是具有显式依赖边的有向图。每个 node 至少记录：
+`ElaborationPlan` 是具有显式依赖边的有向图。每个 node 的 required payload 精确引用 10 §10.3；摘要如下，不得再缩减为第三套 schema：
 
 ```text
 PlanNode = {
@@ -181,14 +304,17 @@ PlanNode = {
     StageOpcode,
     Inputs[],
     TemplateRefs[],
-    SinkKind,
-    ParentElaborationContext,
+    ResultTypes[],
+    Sink {Kind, OwnerSymbol, RegionStructuralPath, SourceBackedAnchor : SourceBackedAnchorIdentityPayload, InsertionPosition},
+    ParentElaborationContext {ParentCanonicalWorkKey?, EnclosingInstance : InstanceIdentityPayload?, DecoratorApplication : DecoratorApplicationIdentityPayload?, DynamicControlPath, Digest},
     RequiredCapabilities[],
+    DependencyPlanNodes[],
+    CanonicalWorkKey,
     OriginId,
 }
 ```
 
-plan dependency 必须无非法环。普通函数递归不表现为 plan graph 环；泛型实例递归通过实例状态机和 provisional declaration 处理。
+plan dependency 必须无非法环。无环检查使用10 §10.3的统一`WorkKeyDependencyGraph`：`DependencyPlanNodes`中的eager PlanResult producer、present `ParentCanonicalWorkKey` parent，以及所有`TemplateRefs.SemanticCaptureProjection`中直接出现的PlanResult producer三类边取并集后整体做dependency-first stable Kahn，不能分别无环却在交叉后形成hash环。最后一类`TemplateKeyDependencies`只形成可重算的key dependency；未选template绝不因此执行、观察值或产生effect，只有template实际activation后才把对应capture producer加入child执行依赖。普通函数递归不表现为 plan graph 环；泛型实例递归通过实例状态机和 provisional declaration 处理。
 
 `stage.*` 名称是 plan schema 的 opcode，不是可以出现在 Closed CFG 中的 RuntimeWorld operation。selector、普通函数调用和 body 中已经 elaboration 的代码仍由 typed Core operation 执行。
 
@@ -228,12 +354,14 @@ PlanInput =
   | PlanResult(PlanNodeId, ResultIndex)
   | CoreValue(OwnerSymbol, RegionPath, ValueId)
   | TemplateCapture(TemplateId, CaptureIndex)
-  | InstanceArgument(InstanceIdentity, ArgumentIndex)
+  | InstanceArgument(InstanceIdentityPayload, ArgumentIndex)
 ```
 
 每个 input 同时记录准确 semantic type。`PlanResult` 自动形成从 producer 到 consumer 的 dependency edge，producer 必须唯一且 result index 合法。`CoreValue` 的 `%vN` 只在 owner function/region 内有意义，因而序列化时必须带 `OwnerSymbol + RegionPath`；只保存裸 `ValueId` 不合法。该引用还必须满足 Typed Core 的 dominance、place lifetime 和 stage-capture 规则。
 
-Known selector、`stage.force_value` 和 `stage.force_block` 的必经输入不得是 Residual `CoreValue`。`stage.select_if`/`stage.expand_for` 选中后允许 residual code 的 body 可以通过显式 `TemplateCapture` 捕获运行时 value/place；这不使 selector 本身变为 runtime 条件。
+Known selector/condition/iterable、`stage.force_value` 和 `stage.force_block` 的必经输入不得是 Residual `CoreValue`。`stage.select_if`、`stage.select_match`、`stage.expand_for` 与 `stage.expand_while` 实际选中或执行后允许 residual code 的 body 可以通过显式 `TemplateCapture` 捕获运行时 value/place；这不使 selector、condition 或 iterable 本身变为 runtime 值。
+
+序列化 parent PlanNode 的 `Inputs` 禁止 `TemplateCapture` variant；它只在某个 TemplateRef 实际选中并建立 child work item 时由 resolver 按 `(TemplateId, CaptureIndex)` 物化。若 TaggedCaptureSource 是 PlanResult，准确 producer/index 只进入 child 的 direct dependency vector并先完成该producer；未选template不解析source、不建边、不调度producer也不触发effect。其他source按10 §10.2重建为canonical实体、Known值或经scope/dominance/lifetime验证的Residual CoreValue/place。
 
 Statement 或 declaration sink 的插入位置使用：
 
@@ -241,12 +369,12 @@ Statement 或 declaration sink 的插入位置使用：
 InsertionAnchor = {
     OwnerSymbol,
     RegionStructuralPath,
-    SourceBackedAnchorKey,
+    SourceBackedAnchorIdentityPayload,
     Position,                 // before, after, replace 或 append
 }
 ```
 
-artifact 内可以附带 canonical `BlockId/OperationOrdinal` 作为快速索引，但 verifier 必须确认其解析到同一 `SourceBackedAnchorKey`。work key 和跨进程 cache identity 使用 source-backed anchor，不使用优化前对象地址、临时 block 指针或当前容器下标。
+decoder/verifier 可以在进程内为已解析的 sink 派生 canonical `BlockId/OperationOrdinal` 快速索引，并必须确认其解析到同一结构化SourceBackedAnchor及重算key；该payload内的OwnerSymbol/RegionStructuralPath还必须与InsertionAnchor外层字段相等。快速索引不属于PlanNode required payload、不得序列化或进入digest。work key和跨进程cache identity使用完整source-backed anchor preimage，不使用优化前对象地址、临时block指针或当前容器下标。
 
 ## 5. Stage opcode
 
@@ -293,14 +421,14 @@ elaborate selected value template
 示意：
 
 ```text
-#p0 = stage.force_value template #tmpl0 sink Value origin(#o7)
+#p0 = plan_node {stage_opcode = stage.force_value, inputs = [], template_refs = [#tmpl0], result_types = [i64], sink = value(@owner, [0], sha256"0000000000000000000000000000000000000000000000000000000000000000", replace), parent_elaboration_context = sha256"0000000000000000000000000000000000000000000000000000000000000000", required_capabilities = [], dependency_plan_nodes = [], canonical_work_key = sha256"0000000000000000000000000000000000000000000000000000000000000000", origin = #o7}
 ```
 
-该文本是 ElaborationPlan 记录，不是一条 `%v = ...` Core instruction。
+该文本使用PlanNode的canonical record envelope；digest与sink positional values仅为格式示例，真实artifact必须按10的公式重算。它不是一条`%v = ...` Core instruction。
 
 ### 5.3 `stage.force_block`
 
-`stage.force_block` 对应 StatementRegion 的 `comptime { ... }`。block 中的绑定、赋值、普通调用、`try`、`defer`、`return`、`break`、`continue` 和 `throw` 继承 ComptimeWorld。
+`stage.force_block` 对应 StatementRegion 的 `comptime { ... }`。block 中的绑定、赋值、普通调用、`try`、`defer` 和 `throw` 继承 ComptimeWorld；嵌套函数 activation 内部的 `return` 以及模板内部循环的 `break`/`continue` 仍按其正常控制目标执行。
 
 要求：
 
@@ -309,6 +437,8 @@ elaborate selected value template
 - 局部对象、虚拟目标内存和 cleanup 必须按普通语言语义执行；
 - 离开 block 后仍被使用的结果必须是可合法逃逸的 Known value；
 - comptime allocation 地址、host handle 和临时引用不得逃逸；
+- `return` 不得以包围该模板的源码函数为 target，`break`/`continue` 不得以模板外的循环或 label 为 target；`ControlTargetPath` 必须完全解析在当前模板或其内部新建的函数 activation 内；
+- 任何试图从模板逃逸的 `return`、`break` 或 `continue` 都是 staging 诊断，不能把 surrounding runtime activation 当作 ComptimeWorld continuation，也不能隐式 residualize 该 control transfer；
 - 未执行路径不触发 capability 检查或效果。
 
 declaration region 中表面相同的 `comptime { declarations }` 不是“执行每个函数体”。它无条件选择其中静态写出的声明并提交给当前 declaration sink；每个声明自己的 initializer、函数体和阶段要求仍按正常规则 elaboration。
@@ -383,11 +513,13 @@ bind explicit positional arguments
 
 请求相同 `InstanceIdentity` 时复用同一个进行中或已完成实例。相同机器码不能使两个语义身份不同的闭合类型相等。
 
+revision 1不提供跨module template/code staging interface：`stage.instantiate`的开放GenericDeclarationSymbol必须是当前Manifest module的source-backed declaration并携带10 §9.2的GenericDeclarationProvenance marker，其全部Template也必须属于当前module；generated open generic与active dependency open generic都不能作为candidate。dependency只能export provider已生成并验证的closed type/stable function instance，consumer把它作为普通typed direct import使用，不再执行stage.instantiate。decorator application同样要求DecoratorDeclarationSymbol属于当前module；dependency decorator、其body/template或“仅公开signature”的decorator都不能在consumer执行。未来若开放generated/cross-module template能力，必须新增显式ComptimeExecutionExports及其完整body/template/dependency/capability closure，不能复用Runtime Exports猜测。
+
 ### 5.9 `ct.register_module_item`
 
 源码 compiler builtin `register_module_item(value)` lowering 为显式 Staged-only typed Core operation `ct.register_module_item`，不是 RuntimeWorld call、用户可取地址函数或隐式编译器回调。它只允许在 active decorator application 的 `ParentElaborationContext` 内由 ComptimeWorld 真正执行；普通 comptime CFG 未到达该 operation 时不产生记录。该 operation 不可 residualize，形成 ClosedModule 前必须被执行并消除，或因所在模板未选择而随模板消失。
 
-operation 有无结果的两个 operand schema：单标量或 unit 直接传 `T`；address-only 值传只读 `!place<ro,T>`。opcode payload 还保存不可由用户指定的 `SourceBackedCallsiteKey`。执行器要求 operand 是完整 Known 值，把它按准确逻辑类型 canonicalize 到 ConstantTable，然后向当前 work item 的 pending `ModuleRegistration` sink 提交恰好一条记录；它不把 place、ComptimeWorld allocation 地址或宿主对象保存进记录。
+operation 有无结果的两个 operand schema：单标量或 unit 直接传 `T`；address-only 值传只读 `!place<ro,T>`。opcode payload还保存不可由用户指定且内嵌key重算的完整`SourceBackedCallsiteIdentityPayload`。执行器要求 operand 是完整 Known 值，把它按准确逻辑类型 canonicalize 到 ConstantTable，然后向当前 work item 的 pending `ModuleRegistration` sink 提交恰好一条记录；它不把 place、ComptimeWorld allocation 地址或宿主对象保存进记录。
 
 提交记录至少固定：
 
@@ -397,9 +529,9 @@ ModuleRegistrationRecord = {
     RegistrationType,
     RegistrationValueConstant,
     ProducerSymbol,
-    DecoratorApplicationKey,
+    DecoratorApplicationIdentityPayload,
     DecoratorApplicationOrderPath,
-    SourceBackedCallsiteKey,
+    SourceBackedCallsiteIdentityPayload,
     DynamicControlPath,
     EmissionOrdinal,
     ProtocolSchemaDigest,
@@ -410,10 +542,10 @@ ModuleRegistrationRecord = {
 `ProducerSymbol` 是本次 decorator application 的最终声明身份，不是 decorator 定义函数本身；注册值中的 `function.entry` 必须解析到最终装饰后的 stable entry。`DynamicControlPath` 是下列结构化 tagged step 序列，不是 opaque hash：
 
 ```text
-Expansion(ExpansionContextKey)
-Call(CallSiteKey, InvocationOrdinal)
-Branch(ControlNodeKey, ArmOrdinal)
-Loop(ControlNodeKey, IterationOrdinal, IterationIdentityDigest)
+Expansion(ExpansionContextIdentityPayload)
+Call(CallSiteIdentityPayload, InvocationOrdinal)
+Branch(ControlNodeIdentityPayload, ArmOrdinal)
+Loop(IterationIdentityPayload)
 ```
 
 call/recursion 在同一 site 的多次动态进入由当前 work item 源码执行顺序的 `InvocationOrdinal` 区分；相等 loop element仍由 `IterationOrdinal` 区分。`DecoratorApplicationOrderPath` 是非空奇数长度 `Vec<U>`：root application 是按 [08](./08-text-binary-format.md) 的唯一 source-file 顺序和文件内 lexical decorator-application traversal 得到的 `[RootApplicationOrdinal]`；生成的 child 是 `ParentPath ++ [ParentSemanticOutputOrdinal, ChildLocalApplicationOrdinal]`。`ParentSemanticOutputOrdinal` 统一计数 parent transaction 的全部 ordered semantic-output event，不是 registration-only 计数；路径按无符号数字典序比较，短前缀先于其 child。`EmissionOrdinal` 则是同一 active application 内每次实际到达 `ct.register_module_item` 时从零连续递增的 application-wide 序号。batch 按 `(DecoratorApplicationOrderPath, EmissionOrdinal, RegistrationIdentity)` 排序；不得把 D32 hash字节序冒充程序顺序。线程、fixed-point round、work queue 和容器插入顺序都不得进入，cache replay必须重现相同路径和两套 ordinal。
@@ -426,16 +558,16 @@ RegistrationIdentity = H(
     CanonicalModuleIdentity,
     ModuleContentDigest,
     ProducerSymbol.SymbolKey,
-    DecoratorApplicationKey,
+    DecoratorApplicationIdentityPayload.DecoratorApplicationKey,
     DecoratorApplicationOrderPath,
-    SourceBackedCallsiteKey,
+    SourceBackedCallsiteIdentityPayload.SourceBackedCallsiteKey,
     DynamicControlPath,
     EmissionOrdinal)
 ```
 
 相同 artifact/work item 内相同 identity 的重放只有在完整 logical record（包括 canonical Origin structure）逐字段相同时才能由 pending-batch commit 在writer之前去重；任何差异都是 determinism/compiler error。canonical section本身不得含重复identity或重复 `(DecoratorApplicationOrderPath, EmissionOrdinal)`，decoder不负责规范化。identity 是 module-content/version-local：value变化即使不作为独立 identity字段，也通常会经 `ModuleContentDigest` 产生新 identity。跨版本替换依靠不可伪造 version owner 下整套 registration set 的原子 publish/retire，不承诺同一 lexical site 保持相同 RegistrationIdentity。
 
-`StaticRegistrationEncodable(T, Constant)` 是中央 verifier 派生谓词，而不是用户可随意声明的 attribute。它要求 closed、`LayoutComplete` 的准确 typed constant 具有只读 frozen module-image encoding，不需要在安装或撤销时运行用户 constructor、destructor 或 rollback。v0 闭包允许 scalar/unit、受支持 enum/tuple/array/nominal aggregate、受控 symbol relocation，以及中央 registry 明确支持的 built-in String frozen encoding；String 的 module-owned immutable bytes/length 表示必须布局合法且没有独立释放责任。用户 destructor、资源字段、runtime/meta/host handle、runtime object/opaque object、place、exception、checked reference/interface/no-escape 值和宿主/comptime pointer 默认拒绝，除非中央 registry 明确给出无用户代码、无释放责任的准确 frozen encoding。非空 raw/function pointer 只能由获准 symbol relocation 产生；函数目标必须是 stable entry，其他 static relocation 的存活期必须覆盖所属 module version，version-local body 裸地址非法。
+`StaticRegistrationEncodable(T, Constant)` 是中央 verifier 派生谓词，而不是用户可随意声明的 attribute。它要求 closed、`LayoutComplete` 的准确 typed constant 具有只读 frozen module-image encoding，不需要在安装或撤销时运行用户 constructor、destructor 或 rollback。v0 闭包允许 scalar/unit、受支持 enum/tuple/array/nominal aggregate、受控 symbol relocation，以及中央 registry 明确支持的 built-in String frozen encoding；String 的 module-owned immutable bytes/length 表示必须布局合法且没有独立释放责任。用户 destructor、资源字段、runtime/meta/host handle、runtime object/opaque object、place、exception、checked reference/interface/no-escape 值和宿主/comptime pointer 默认拒绝，除非中央 registry 明确给出无用户代码、无释放责任的准确 frozen encoding。address space 0 raw pointer可以是canonical null；非null raw pointer与全部function pointer只能由获准symbol relocation产生。函数目标必须是stable entry，其他static relocation的存活期必须覆盖所属module version，version-local body裸地址非法。每个 relocation target identity、`FrozenEncodingDescriptor` selector 及它们递归可达的 Type/Constant/Symbol/producer/callsite/decorator identity 还必须通过 10 的 `RegistrationContextIndependent` 谓词；任一 `versioned_owner|module_version_root|versioned_entity_owner` parent 或 transitive `ModuleVersionContextKey` 都使整条 registration 非法，不得只以“存活期足够长”放行。
 
 该 operation 的 effect 是 `DeclarationSink(module_registration)`；address-only variant 另有 `ReadMemory(typed)`，schema trait 为 `OrderedSemanticEmit`。它不可删除、CSE、复制、推测或跨另一 semantic emit 重排，但该 trait本身不使结果不可缓存。内部 module semantic sink authority 只在上述 decorator context 授予，不是可配置的 host 写权限。记录 emission 是可缓存、可事务重放的 semantic output，不等同于 `build.log`、`fs.write` 或用户可观察宿主写；operand 求值实际发生的其他效果仍按其自身依赖与 cacheability 分类。
 
@@ -477,7 +609,7 @@ PartialValue =
 - 任一必要 operand Residual 时，生成同语义 typed Core operation；
 - aggregate 可以逐元素混合 Known 和 Residual，只有最终消费要求完整物化时才整体 materialize；
 - target-dependent operation 只有在 TargetContext 完整时才能折叠；
-- MayTrap、MayUnwind、TargetPDB 和 effect operation 不能仅因结果未使用而提前执行、删除或推测；
+- MayTrap、MayUnwind、PdbBoundary 和其他不可消去 effect operation 不能仅因结果未使用而提前执行、删除或推测；`TargetDependent` 本身只约束 TargetContext identity，不单独禁止合法推测；
 - 编译期专用值不能作为 residual operand 写入 Closed IR。
 
 示例：
@@ -490,6 +622,8 @@ Residual(%v0) + Known(i32 10) -> residual `arith.add %v0, const.int 10`
 ### 6.3 控制流
 
 普通 `cf.cond_br` 的条件 Known 时只 residualize 被选择 successor。条件 Residual 时保留 runtime branch，并分别 residualize 两条可达路径；不得执行任一分支中的 RuntimeEffect。
+
+“Residual control” 包括 selector、循环继续条件、异常 successor、间接调用目标或其他控制决定含 Residual 的所有区域。在其支配的任何可能路径上，编译器不得执行、复制、延迟或推测执行任何 comptime-only operation，也不得发生任何编译期可观察效果；tracked read、declaration sink、module-registration emission、diagnostic/build log 和 host write 都在禁止之列。普通 RuntimeWorld effect 可以作为已经类型检查的 Core operation 原样 residualize，但绝不能因另一 operand Known 而在编译期发生。若源码语义要求在该 Residual control 下执行 comptime-only operation 或编译期可观察效果，当前 staging 请求必须报错，而不是选择一条路径、执行两条路径或把效果丢弃。
 
 `stage.select_if` 与普通 `cf.cond_br` 不可混同：前者的 selector 必须 Known，而且未选 template 不进入语义分析；后者是已经完成类型检查的普通运行时 CFG。
 
@@ -564,7 +698,7 @@ ResidualizeWorld 的输出仍然是未验证 Core module。只有 fixed point �
 
 effect 属性由 opcode schema 推导。调用者不得根据函数名称、源码属性或缓存 summary 猜测整个调用是否可在编译期执行。
 
-典型 capability key 为：
+v0 的可配置 `CapabilityTag` 对应的典型 policy key 为：
 
 ```text
 build.log
@@ -575,9 +709,9 @@ network.request
 clock.now
 random.read
 process.spawn
-target.extern_call
-inline_assembly
 ```
+
+`target.extern_call` 和 `inline_assembly` 不是 v0 `CapabilityTag`，也不会进入 capability context、policy digest 的授权集合或 handler dispatch。ComptimeWorld 遇到目标 extern call 或 inline assembly 一律拒绝；配置文件、命令行或插件不能授权它们。未来若要支持，必须通过新的 IR semantics/schema revision 定义可验证 ABI、target 状态、效果和 cache 规则，不能复用未知 capability 字符串绕过本条。
 
 target triple、layout、PDB 和语言内建反射查询由 TargetContext 或编译器语义 handler 提供，不读取宿主平台偶然状态。
 
@@ -593,17 +727,15 @@ v0 默认允许：
 - 编译器内部类型、声明和结构反射；
 - 显式授权并记录依赖的只读输入。
 
-v0 默认拒绝：
+v0 默认拒绝以下已注册 capability：
 
 - 网络；
 - 进程创建；
-- 目标 extern call；
-- inline assembly；
 - 未跟踪环境读取；
 - 时钟和随机数；
 - 没有显式构建权限的文件写入。
 
-构建配置可以显式增加 capability，但 policy 本身及 handler revision 必须进入 cache identity。授权不表示结果可缓存。
+构建配置只能显式增加 schema registry 已注册的 `CapabilityTag`，且 policy 本身及 handler revision 必须进入 cache identity。授权不表示结果可缓存；它尤其不能授权 `target.extern_call` 或 `inline_assembly`。
 
 ### 8.3 外部资源不得逃逸
 
@@ -619,7 +751,32 @@ host file handle、socket、process handle、host pointer、ComptimeWorld alloca
 
 ## 9. 可观察效果、确定性与缓存
 
-### 9.1 Cacheability 分类
+### 9.1 `BuildInputSnapshot` 与输出隔离
+
+每次 Staged build 在进入 fixed point 前必须冻结一个只读 `BuildInputSnapshot`：
+
+```text
+BuildInputSnapshot = {
+    SnapshotIdentity,
+    SnapshotDigest,
+    CanonicalModuleInputs,
+    TrackedFileInputs,
+    TrackedConfigInputs,
+    TrackedEnvironmentInputs,
+    TrackedDirectoryInputs,
+    HandlerRevisionDigest,
+}
+```
+
+snapshot entry 使用规范 resource identity、存在性/类型、content 或 listing bytes、metadata policy 和 digest 表示；不能只保存稍后重新打开 live host resource 的路径。允许实现惰性 materialize 大文件，但第一次读取前必须取得稳定 snapshot token，读取前后验证同一版本，并把准确 bytes/digest 固定到当前 snapshot；无法证明稳定时读取失败，不能接受竞态结果。
+
+所有可缓存 tracked-read handler 只能查询当前 `BuildInputSnapshot`，并把 snapshot entry identity、observed digest 和读取范围写入 `DependencyManifest`。handler 不得绕过 snapshot 重新读取 live filesystem、process environment、config store 或目录；untracked read 即使已获 capability 也不可缓存，并仍受 ordered-lane 规则约束。revision 1没有`UntrackedObservationDigest`或build-instance nonce；因此任一work item实际执行network/process/clock/random或其他untracked read后，整次module elaboration只能用于当前编译器进程内的诊断/一次性试算，`closeAndVerify`必须拒绝生成、序列化、装载或hot-reload publish Closed artifact。仅“跳过FinalModuleKey缓存”不足以避免两个不同观察共享同一ModuleVersionContextKey。
+
+host write 只能写入与 `BuildInputSnapshot` 隔离的 `BuildOutputNamespace`。当前 build 任一轮已计划、正在写或已写的 output identity 都不得作为 tracked/untracked read 的来源；若 read identity 与当前 build 的 output identity 规范化后 alias，则 staging 诊断并终止该 work item。该 output 不会在后续 fixed-point round 注入当前 snapshot，因而不存在同一 build 的 read-your-write；只有一个独立的后续 build 可以把已发布输出重新冻结为新的输入。临时文件、symlink、大小写折叠和 `..` 不能绕过 identity alias 检查。
+
+`SnapshotIdentity` 和 `SnapshotDigest` 绑定本次 work-item execution record，但不作为把所有外部输入粗粒度塞入 base cache key 的替代品。候选 cache entry 的 `DependencyManifest` 必须针对当前 snapshot 逐项复验，只有实际 tracked-read 的 entry identity、observed digest 和读取范围参与该结果的依赖投影；未读取 snapshot entry 的变化不应强制 miss。host output path、临时 staging path 和写入完成时间不进入输入 snapshot identity。
+
+### 9.2 Cacheability 分类
 
 编译期执行按实际走到的 effect 分类：
 
@@ -633,7 +790,7 @@ host file handle、socket、process handle、host pointer、ComptimeWorld alloca
 | `build.log`、主动 warning 或其他可观察编译输出 | 本次 work item 不可缓存 |
 | `fs.write` | 本次 work item 不可缓存 |
 | network、process、clock、random | 默认拒绝；即使授权也不可缓存 |
-| host/target extern effect、inline assembly execution | 默认拒绝且不可缓存 |
+| target extern call、inline assembly execution | v0 非法；没有 capability、handler 或 cacheability 分类 |
 
 cacheability 是本次动态执行路径的属性，不是函数声明的永久属性。未执行分支中的写 effect 不会使当前结果不可缓存。
 
@@ -645,13 +802,13 @@ registration emission有两个不同缓存层。generic/instance IR cache只保�
 
 v0 不记录或重放 effect transcript。cache hit 因而永远不会吞掉、重复或重新排列一次可观察写效果。
 
-### 9.2 Build log 通道
+### 9.3 Build log 通道
 
 编译期 `stdio.write` 一类显式输出由 ComptimeWorld 映射到 `build.log` capability。它写入编译器的 build-log/diagnostic side channel；CLI Consumer 最终输出到 stderr 或显式日志文件，不得污染 `--emit=ink-ir`、LLVM IR 或其他主结果使用的 stdout。
 
 build log 保持调用内源码顺序，实际执行后使 work item 不可缓存。实现不能因为命中旧 cache 而省略本次应发生的 log。
 
-### 9.3 规范 work-item 顺序
+### 9.4 规范 work-item 顺序
 
 效果和提交采用以下规范顺序：
 
@@ -663,9 +820,11 @@ canonical topological module order
 -> dynamic execution source order
 ```
 
-canonical module order 使用稳定 Kahn 拓扑排序：每一步从当前所有零入度 module 中选择规范 module identity 最小者。fixed-point round 只参与调度，不进入语义声明身份。
+canonical module order对10 Section 17的`module -> dependency`边使用dependency-first稳定Kahn：每一步从当前所有零出度module中选择规范`(CanonicalModuleIdentity UTF-8 bytes, ModuleContentDigest bytes)`最小者，追加后删除所有指向它的edge；无ready node表示有环。fixed-point round只参与调度，不进入语义声明身份。ExpansionIdentity按10 §2.3规定的结构化payload逐字段比较，InstanceIdentity按其canonical preimage比较；两者都禁止用摘要字节、worker完成顺序或容器顺序替代。plan node按CanonicalWorkKey的完整preimage排序，digest只用于完整性确认。
 
-Pure 和 tracked-read work item 可以并行计算。以下内容必须通过 ordered commit sequencer 按上述顺序发布：
+调度前必须根据 plan、模板、可达 Core opcode、已解析 callee effect summary 和 capability handler schema 计算每个 work item 的保守 `EffectUpperBound`。只要 upper bound 含任何可能的 host I/O、编译期可观察效果、untracked read 或 unknown/indirect callee，该 work item 就必须从开始执行起进入 ordered lane，即使实际动态路径最终没有到达该 effect；不得先在并行 worker 执行，再根据实际 trace 补排顺序。只有被证明为 Pure、TargetContext-only 或仅从 `BuildInputSnapshot` tracked-read 的 work item 可以并行计算。effect summary 不完整、递归尚未收敛或 handler 未声明精确 upper bound 时按可能 host I/O 处理。
+
+实际动态路径仍决定 9.2 节的 cacheability；保守进入 ordered lane 本身不会使纯结果不可缓存。以下内容必须通过 ordered commit sequencer 按上述顺序发布：
 
 - 生成声明事务；
 - generic instance 可见性；
@@ -673,7 +832,7 @@ Pure 和 tracked-read work item 可以并行计算。以下内容必须通过 or
 - 可观察 host write effect；
 - 最终 Core IR 表项。
 
-实际执行可观察 host effect 的 work item 必须在其规范顺序槽中串行运行，不能先在任意 worker 上执行后仅对日志重新排序。外部效果一旦执行，后续源码或验证失败不保证回滚；事务性只保证编译器声明图和 cache 不会部分提交。
+upper bound 可能执行可观察 host effect 的 work item 必须在其规范顺序槽中串行运行。外部效果一旦执行，后续源码或验证失败不保证回滚；事务性只保证编译器声明图和 cache 不会部分提交。
 
 ## 10. 固定点展开
 
@@ -682,7 +841,8 @@ Pure 和 tracked-read work item 可以并行计算。以下内容必须通过 or
 普通 Staged fixed point 开始前必须已经完成：
 
 ```text
-parse source files needed for import selection
+freeze BuildInputSnapshot
+-> parse source files needed for import selection
 -> collect finite static candidate import sites
 -> execute restricted import guards
 -> normalize active module paths
@@ -690,7 +850,11 @@ parse source files needed for import selection
 -> freeze ActiveModuleGraph
 ```
 
-后续 plan、template、reflection 和 capability handler 都不得增加 import 或 module dependency。试图这样做是 Staged verifier 错误，而不是启动第二次 module discovery。
+冻结结果必须按 10 Section 17 的`module -> dependency`边与零出度ready-set stable-Kahn算法序列化，不得使用零入度导致反向初始化/链接顺序。后续 plan、template、reflection 和 capability handler 都不得增加 import 或 module dependency。试图这样做是 Staged verifier 错误，而不是启动第二次 module discovery。
+
+`ImportSelectionProfile`是建立StagedModule之前唯一允许执行import guard的闭合子语言。candidate import sites按10 §2.1规范source-file order与文件内lexical structural path严格排序并恰好执行一次；表达式只允许bool、定宽integer、NFC string/enum常量、纯比较/布尔组合、已冻结SemanticOptions值，以及TargetContext中`target_triple_component|cpu_name|required_feature_present`三类标量查询。它禁止sizeof/alignof/layout/PDB/runtime ABI storage查询、用户/extern/decorator/generic函数调用、reflection、循环/递归、声明/registration sink、allocation与pointer/address观察。
+
+guard的外部读取只允许当前BuildInputSnapshot上的FileRead、DirectoryRead、EnvironmentRead、ConfigRead或ToolResourceRead typed tracked handler，并必须把每次实际读取的完整Dependency S projection合并进最终DependencyManifest；读取不能改变candidate site集合或产生新import路径，只能在预收集有限候选中返回bool。fs/network/process/clock/random/build-log等写或untracked effect、live-host绕过snapshot、missing capability、budget耗尽和未处理异常都使import selection失败且不产生Staged artifact。evaluation fuel/stack/byte budget是LanguageRevision登记的固定profile常量，只决定受控失败，不进入成功语义；不得按worker、wall clock或host环境改变。所有guard完成后才按结果形成、验证并冻结ActiveModuleGraph，后续staging不得重开profile。
 
 ### 10.2 Work item
 
@@ -698,8 +862,8 @@ fixed-point work item 至少包括：
 
 ```text
 GenericInstanceWork(InstanceIdentity)
-RegionSelectionWork(ExpansionContext, PlanNodeId)
-RegionExpansionWork(ExpansionContext, PlanNodeId, IterationIdentity)
+RegionSelectionWork(ExpansionIdentity, PlanNodeId)
+RegionExpansionWork(ExpansionIdentity, PlanNodeId)
 GeneratedDeclarationValidationWork(PendingBatchId)
 ModuleRegistrationValidationWork(PendingBatchId)
 LayoutCompletionWork(TypeIdentity)
@@ -712,11 +876,11 @@ LayoutCompletionWork(TypeIdentity)
 每轮执行：
 
 ```text
-1. freeze current declaration/type/instance snapshot
+1. retain the immutable build-wide BuildInputSnapshot and freeze current declaration/type/instance snapshot
 2. collect every request visible at round start
 3. deduplicate by canonical work-item key
 4. sort by canonical order
-5. execute pure/read-only items in parallel and effectful items on the ordered lane
+5. compute conservative EffectUpperBound, execute proven pure/snapshot-read-only items in parallel, and execute every potentially host-I/O/observable item on the ordered lane
 6. place generated declarations, types, Core IR and module registration records in pending transactions
 7. bind names and check access against the round snapshot plus the batch's own declared scope rules
 8. type-check, resolve layout dependencies, verify generated Core IR and validate every frozen registration constant/relocation
@@ -727,6 +891,8 @@ LayoutCompletionWork(TypeIdentity)
 ```
 
 同一轮不得通过反射观察另一 work item 尚未提交的声明或 registration record。pending batch 失败时不得留下部分 symbol、type、instance、registration、diagnostic cache 或 Closed IR。
+
+同一轮以及同一 build 的后续轮都不得通过 tracked read、untracked read、反射或 handler 观察当前 build 的 host output；所有输入查询仍绑定第 9.1 节冻结的 `BuildInputSnapshot`。这条隔离独立于 declaration snapshot 的逐轮可见性。
 
 外部效果与声明事务边界不同：已经在规范 effect lane 上实际发生的 build log 或宿主写入不会因为第 8 步失败而回滚，但相应 work item 永远不可缓存。
 
@@ -758,34 +924,42 @@ any non-committed state -> Failed
 泛型实例的语义身份为：
 
 ```text
-InstanceIdentity =
-    GenericDeclarationIdentity
-  + CanonicalComptimeArguments
-  + TargetKey
+InstanceIdentityPayload = {
+    GenericDeclarationSymbol,  // source-backed GenericDeclarationProvenance parent snapshot
+    CanonicalClosedGenericArguments : Vec<TaggedClosedGenericArgument>,
+    TargetKey,
+    InstanceIdentityDigest = H("ink.instance-identity.v0", GenericDeclarationSymbolKey, CanonicalClosedGenericArguments, TargetKey),
+}
 ```
 
-生成声明的身份为：
+生成声明的展开上下文身份精确复用 10 §2.3 的结构化 schema：
 
 ```text
 ExpansionIdentity =
-    SourceDeclarationIdentity
-  + EnclosingInstanceIdentity?
-  + CanonicalControlPath
-  + IterationIdentity*
-  + TargetSelectionKey?
+    SourceDeclarationKey : canonical structured bytes
+  + ExpansionSiteIdentityPayload {SourceFileContentDigest, SourceDeclarationKey, TemplateRolePath, NormalizedHirStructuralNodePath, ExpansionRoleTag}
+  + optional EnclosingInstance : InstanceIdentityPayload
+  + CanonicalControlPath : Vec<TaggedCanonicalExpansionControlStep>
+  + TargetKey
+  + recomputed ExpansionIdentityDigest
 ```
 
-`IterationIdentity` 为：
+上述`InstanceIdentityPayload.TargetKey`、`ExpansionIdentity.TargetKey`以及它们经parent/decorator/dynamic-control/registration context递归携带的每一份副本，都必须逐字节等于当前Manifest.target_key；不能嵌入另一目标的自洽identity再仅重算末尾digest。dependency预生成identity只能在provider Manifest.target_key与consumer当前TargetKey相同且DirectImportBinding固定该provider时镜像。
+
+`CanonicalControlPath` 的 branch step携带`ControlNodeIdentityPayload + ArmOrdinal`；loop step携带下列结构化`IterationIdentityPayload`：
 
 ```text
-ControlNodeIdentity
+ControlNodeIdentityPayload
++ LoopKindTag(for | while)
 + zero-based semantic iteration ordinal
-+ canonical element/key/value
++ optional TaggedClosedGenericArgument iterated element
 ```
 
-ordinal 用来区分相等元素产生的两次真实展开，例如 `(i32, i32)`。两次展开随后仍可能按普通声明规则形成重定义诊断。ordinal 是稳定迭代序列中的位置，不是 worker 完成序号。
+`for` 的iterated element必须present并使用准确TaggedClosedGenericArgument canonical projection；`while`固定absent并在digest中映射为empty bytes，轮次只由ordinal区分。ordinal也用来区分相等元素产生的两次真实展开，例如 `(i32, i32)`；两次展开随后仍可能按普通声明规则形成重定义诊断。ordinal 是稳定迭代序列中的位置，不是 worker 完成序号。
 
-`CanonicalControlPath` 使用 source-backed control node、arm/branch 身份和嵌套路径；不得使用 fixed-point round、本轮第几个结果或对象地址。
+`CanonicalControlPath` 使用 source-backed control node、numeric arm/branch identity和嵌套路径；ExpansionIdentity按结构化字段排序，摘要只重算核对。不得使用 fixed-point round、本轮第几个结果、digest字节序或对象地址。
+
+`ExpansionIdentity`是work/cache provenance，不替代最终Symbol.DeclarationIdentity。decorator产生的每个root declaration各占一个连续ordered semantic-output event，并使用10 §9.2的generated `decorator_expansion`、parent=`expansion_context(ExpansionContextIdentityPayload)`、`SemanticOutputOrdinal=0`；nested declaration改用`owner_symbol`直接指向同一expansion lineage中的generated lexical parent，ordinal恰为该parent的direct generated-child canonical semantic-output index。这条parent chain必须最终到达root expansion_context，因而nested declaration在generated owner之间移动一定改变identity，不得把仅能定位源码HIR site的`ExpansionSite.NormalizedHirStructuralNodePath`当作generated output tree path。source-backed generic declaration的ClosedGenericArguments固定empty并携带从source binder顺序重建的GenericDeclarationProvenance marker；删除open entity/dependent Type/Template之前，closeAndVerify必须冻结并逐字段核对tag-2 `GenericDeclarationSignatureSurfaceVector`，其binder-relative parameter/pack、inline dependent-expression和self sentinel使Closed仍可按`ink.declaration-signature.v0`独立重算SignatureDigest，而不是只比较两个相同D32或保留当前SymbolKey回边。闭合instance唯一使用generated `generic_instance`、该parent snapshot的owner_symbol、与ParameterKinds逐项匹配的non-empty arguments、marker absent和固定ordinal 0，相同owner/arguments/role必须intern，不能靠source-backed+arguments或另一个ordinal重复。ProducedSymbolKind=stable_entry的泛型function实例本身是logical stable symbol并拥有独立StableEntry/version-local body mapping；parent marker自身不是LogicalStableCallable或可执行entity。形成Closed时open generic entity、dependent types和Template删除，只保留至少被一个instance引用且不能lookup/call/export的private parent snapshot。所有其他generated kind按10 §9.2的owner-slot矩阵反向重算，任何发现顺序或worker编号都非法。
 
 5.9 节的 `RegistrationIdentity` 使用同一套 canonical application/control/iteration ordinal规则。`DecoratorApplicationOrderPath` 来自规范源码/生成输出层次；application-wide `EmissionOrdinal` 来自每次实际到达 registration emission 的确定性 execution trace。二者都不是全局调度计数器，也不能因缓存重放、线程数、fixed-point round或提交次序改变。
 
@@ -828,9 +1002,12 @@ InstanceCacheKey =
   + SchemaRegistryDigest
   + RegistrationEncodingRevision
   + GenericDeclarationCacheKey
-  + CanonicalComptimeArguments
+  + CanonicalClosedGenericArguments : Vec<TaggedClosedGenericArgument>
   + TargetKey
+  + TargetContextDigest
+  + CanonicalRequiredFeatureSet
   + SemanticOptionsDigest
+  + ActiveModuleDagDigest
   + ActiveDependencyInterfaceDigest
   + CapabilityPolicyRevision
   + CapabilityPolicyDigest
@@ -838,13 +1015,16 @@ InstanceCacheKey =
   + HandlerRevisionDigest
   + PassPipelineRevision
   + PassPipelineDigest
+  + InstanceDependencyManifestDigest
 ```
 
-revision 标识对应 schema/语义规则版本，digest 标识本次构建规范化后的实际配置内容，两者不能互相替代。`CapabilityPolicyDigest` 覆盖准确授权集合、作用域与参数；`HandlerRevisionDigest` 覆盖已注册 handler identity、各自 revision 和会改变结果的规范配置；`PassPipelineDigest` 覆盖实际 pass 序列及其语义选项。相同 compiler build 下切换授权、handler 配置或 pass pipeline 必须 cache miss。
+revision 标识对应 schema/语义规则版本，digest 标识本次构建规范化后的实际配置内容，两者不能互相替代。`CapabilityPolicyDigest` 覆盖准确授权集合、作用域与参数；`HandlerRevisionDigest` 覆盖已注册 handler identity、各自 revision 和会改变结果的规范配置；`PassPipelineDigest` 覆盖实际 pass 序列及其语义选项。相同 compiler build 下切换target context/required feature、active module DAG、授权、handler 配置或 pass pipeline 必须 cache miss；不能只靠active dependency的export interface掩盖provider集合、边或root变化。
+
+`InstanceDependencyManifest` 是该实例求值实际观察到的tracked Dependency record的canonical ordered subset，并递归并入被缓存callee返回结果所声明的subset；它使用10 §10.1的完整Dependency S projection，以完整canonical bytes严格递增、无重复，编码为`Count : U`后逐项`ProjectionLength : U + ProjectionBytes`。`InstanceDependencyManifestDigest = H("ink.instance-dependency-manifest.v0", InstanceDependencyManifest)`。首次执行尚不知道该digest时，只能用上述key去掉最后一项所得的`InstanceCacheLookupPrefix`枚举候选；每个候选必须先按其保存的manifest逐项在当前BuildInputSnapshot重放验证，再重算digest并与完整key相等，之后才可命中。空subset仍编码`Count=0`并具有真实digest；不得使用全零哨兵、模块级DependencyManifestDigest替代、只记录direct reads或在命中后才验证。
 
 `GenericDeclarationCacheKey` 使用规范 module identity、完整 module content digest 和 declaration structural path。v0 采用 module 级粗粒度失效：module 任意内容变化可以使其全部 Staged IR 和实例 cache miss；不承诺无关编辑后保持命中。
 
-tracked external input 通过 [`08-text-binary-format.md`](./08-text-binary-format.md) 定义的 DependencyManifest 在候选 entry 命中后复验。物理 checkout 路径、当前进程 ID、arena ID、诊断展示路径和 origin 打印编号不得进入语义 key。
+module artifact的全部tracked external input仍通过 [`08-text-binary-format.md`](./08-text-binary-format.md) 定义的完整DependencyManifest闭合；instance候选则按上段更精确的per-entry subset在返回缓存结果前复验。物理 checkout 路径、当前进程 ID、arena ID、诊断展示路径和 origin 打印编号不得进入语义 key。
 
 origin/debug table 默认不进入 semantic digest，但必须绑定准确 module/source content digest。去掉 origin 不得使来自另一份源码内容的 cache entry 错误映射到当前文件。
 
@@ -884,7 +1064,7 @@ fixed point 收敛后，close pass：
 2. 将所有可 runtime-representable Known value 物化为规范 constant 或普通 initialization IR；
 3. 删除 ElaborationPlan、NormalizedTemplateTable、`ct.register_module_item`、编译期 sequence、meta value 和 host capability；已提交 registration record 作为 Closed module entity 保留；
 4. 确认 active module DAG、TargetKey、layout 和 runtime ABI revision；
-5. 拒绝任何 Residual 强制边界、未决 name/type/layout、open generic 或 stage node；
+5. 拒绝任何 Residual 强制边界、未决 name/type/layout、open generic entity/template 或 stage node；仅允许10 §9.2规定且被closed instance引用的private GenericDeclarationProvenance Symbol snapshot；
 6. canonicalize Core tables 和 origin；
 7. 运行完整 Closed verifier；
 8. 只在成功后构造 `VerifiedClosedModule<TargetKey>`。
@@ -913,4 +1093,4 @@ RuntimeWorld、TargetABI 和 LLVM backend 只能接收上述验证结果。LLVM 
 
 ## 15. 确认结论
 
-InkIR 使用组合式 `StagedModule`：已 elaboration 的代码始终是 typed Core InkIR，尚未选择或仍 dependent 的源码体保存在自包含、source-backed 的 `NormalizedTemplateTable` 中，由 `ElaborationPlan` 的 `stage.force_value`、`stage.force_block`、`stage.select_if`、`stage.select_match`、`stage.expand_for`、`stage.expand_while` 和 `stage.instantiate` 驱动。ComptimeWorld、ResidualizeWorld 与 RuntimeWorld 共享普通 operation 语义；Known/Residual 只属于部分求值器，不能进入 Closed 类型系统。`ct.register_module_item` 作为真正受 typed CFG 到达性控制的 Staged-only operation，向同一 fixed-point transaction 提交 frozen typed registration record；operation 关闭前消失，记录作为版本拥有的 Closed module entity 保留。声明固定点按稳定快照、pending transaction 和下一轮可见性运行，所有可观察编译期效果按规范 work-item 顺序执行并使该 work item 不可缓存；纯计算、受跟踪只读效果和可事务重放的 registration emission 可以缓存，不做 host effect replay。固定点收敛后必须完全消除 plan、template、meta value、开放泛型和 host resource，再由 Closed verifier 建立唯一可供解释器和 LLVM backend 使用的能力对象。
+InkIR 使用组合式 `StagedModule`：已 elaboration 的代码始终是 typed Core InkIR，尚未选择或仍 dependent 的源码体保存在自包含、source-backed 的 `NormalizedTemplateTable` 中，由 `ElaborationPlan` 的 `stage.force_value`、`stage.force_block`、`stage.select_if`、`stage.select_match`、`stage.expand_for`、`stage.expand_while` 和 `stage.instantiate` 驱动。ComptimeWorld、ResidualizeWorld 与 RuntimeWorld 共享普通 operation 语义；Known/Residual 只属于部分求值器，不能进入 Closed 类型系统。`ct.register_module_item` 作为真正受 typed CFG 到达性控制的 Staged-only operation，向同一 fixed-point transaction 提交 frozen typed registration record；operation 关闭前消失，记录作为版本拥有的 Closed module entity 保留。声明固定点按稳定快照、pending transaction 和下一轮可见性运行，所有可观察编译期效果按规范 work-item 顺序执行并使该 work item 不可缓存；纯计算、受跟踪只读效果和可事务重放的 registration emission 可以缓存，不做 host effect replay。固定点收敛后必须完全消除plan、template、meta value、开放泛型entity与host resource；仅可保留被closed instance引用的非执行GenericDeclarationProvenance Symbol snapshot，再由Closed verifier建立唯一可供解释器和LLVM backend使用的能力对象。

@@ -8,7 +8,7 @@
 
 ## 2. 类型身份与规范表示
 
-### 2.1 内建标量类型
+### 2.1 内建标量与特殊类型
 
 Core InkIR 直接使用以下规范类型名：
 
@@ -20,7 +20,7 @@ f16 f32 f64
 bool
 void
 never
-()
+unit
 ```
 
 源码别名在进入 Core InkIR 前规范化：
@@ -31,7 +31,7 @@ uint -> u64
 byte -> u8
 ```
 
-`void` 表示函数没有结果值；`never` 表示控制流不能正常返回；`()` 是具有一个普通零元素值的空元组类型。三者不得合并。
+`void` 表示函数没有结果值；`never` 表示控制流不能正常返回；`unit` 是具有唯一零载荷值的 builtin 类型。源码类型拼写 `()` 在进入 Core InkIR 前规范化为 builtin `unit`；它不形成 tuple record。三者不得合并。
 
 整数类型携带准确位宽与 signedness。`ptrsize` 是独立语义类型，宽度由目标默认地址空间决定，数值语义为同宽无符号整数。`bool` 只有 `false` 和 `true` 两个有效值，不能与整数隐式互换。
 
@@ -47,7 +47,7 @@ ref<ro, T>
 slice<rw, T>
 slice<ro, T>
 array<T, N>
-tuple<T0, T1, ...>
+tuple<T0, T1, ...> where element-count >= 1
 nominal.class<@type-symbol>
 nominal.enum<@type-symbol>
 nominal.interface<@interface-symbol>
@@ -57,13 +57,13 @@ runtime.object<@runtime-kind, type-arguments...>
 runtime.opaque<@runtime-type-symbol>
 ```
 
-`rw` 与 `ro` 只描述当前访问路径。它们不递归改变内部指针或引用目标，也不隐含唯一别名、线程安全或底层存储事实上可写。
+`ValueAccess = ro | rw` 用于 pointer、reference、slice 和 interface-reference 等普通值类型，只描述当前访问路径。`PlaceAccess = init | ro | rw` 只用于 `!place` capability；`init` 表示尚未发布的构造权限，不是可编码进普通值类型的访问方式。两种 access 都不递归改变内部指针或引用目标，也不隐含唯一别名、线程安全或底层存储事实上可写。verifier 必须拒绝 `ptr<init,...>`、`ref<init,...>`、`slice<init,...>` 和其他把 `PlaceAccess.init` 用作 `ValueAccess` 的类型。
 
-named class、enum 与 interface 使用名义身份。tuple 使用规范化后的有序元素类型列表作为结构身份。数组长度是类型身份的一部分。类型别名不得产生第二个 Core 类型身份。
+named class、enum 与 interface 使用名义身份。非空 tuple 使用规范化后的有序元素类型列表作为结构身份；tuple record 的元素数必须大于零，空列表必须规范化为 builtin `unit`，不得产生第二个零载荷类型身份。数组长度是类型身份的一部分。类型别名不得产生第二个 Core 类型身份。
 
 `ptr<A,T,S>` 允许 T 是 `void`、`never`、函数、incomplete nominal 或 `runtime.opaque`，但这只建立带类型标签的数值地址。`ref<A,T>`、`slice<A,T>`、`array<T,N>`、普通对象字段和 `!place<A,T>` 要求相应对象/元素满足下文的 `SizedObjectType`；function pointer 使用独立 `function-pointer<function-type>`，不把函数签名伪装成可解引用对象。
 
-`runtime.object<kind,args...>` 与 `runtime.opaque`、`!runtime-handle` 是三个不同类别。runtime object 是能占据 caller/storage 的 address-only、noncopyable、stable-address 语义对象；TargetContext 与 `RuntimeAbiRevision` 为闭合 kind/arguments 提供有限 size、alignment 与 `RuntimeStorageAbiHash`，所以它可以满足 `LayoutComplete`/`SizedObjectType`，并恒有 `SealedRuntimeStorage`。其字段、有效字节表示和私有状态仍不可见，只能由该 kind 注册的 runtime opcode 创建、查询和销毁；禁止普通 field projection、aggregate constant、`place.addr`/`place.deref`、typed/raw load/store、`obj.init.copy`、`obj.assign.copy` 或任意 byte-count memory operation 访问或重叠其 active/partial storage。需要把地址交给私有 runtime 时，由对应 schema 直接接受 typed place，不先暴露通用 raw pointer。`Task<T>` 属于 runtime object；v0 只允许 `T` 为 `void`、`never` 或闭合 runtime-representable `Copyable(T)`，并且 `ContainsNoEscapeValue(T)` 必须为 false，所以 `Task<File>` 与 `Task<safe-slice>` 都在 type/function verification 时拒绝，而不是生成一个永远无法合法 await 的 Task。`runtime.opaque` 没有可供 Core 使用的 size/alignment，仍只能作为 opaque pointer pointee；`!runtime-handle` 是不可存储的 verifier/runtime capability，不是对象类型。
+`runtime.object<kind,args...>` 与 `runtime.opaque`、`!runtime-handle` 是三个不同类别。runtime object 是能占据 caller/storage 的 address-only、noncopyable、stable-address 语义对象；TargetContext 与 `RuntimeAbiRevision` 为闭合 kind/arguments 提供有限 size、alignment 与 `RuntimeStorageAbiHash`，所以它可以满足 `LayoutComplete`/`SizedObjectType`，并恒有 `SealedRuntimeStorage`。其字段、有效字节表示和私有状态仍不可见，只能由该 kind 注册的 runtime opcode 创建、查询和销毁；禁止普通 field projection、aggregate constant、`place.addr`/`place.deref`、typed/raw load/store、`obj.init.copy`、`obj.assign.copy` 或任意 byte-count memory operation 访问或重叠其 active/partial storage。需要把地址交给私有 runtime 时，由对应 schema 直接接受 typed place，不先暴露通用 raw pointer。`Task<T>` 属于 runtime object；v0 只允许 `T` 为 `void`、`never` 或闭合 runtime-representable、`Copyable(T)` 且 `CopyConstructionEnabled(T)` 的类型，并且 `ContainsNoEscapeValue(T)` 必须为 false，所以 `Task<File>`、copy-construction-disabled result 与 `Task<safe-slice>` 都在 type/function verification 时拒绝，而不是生成一个永远无法合法 await 的 Task。`runtime.opaque` 没有可供 Core 使用的 size/alignment，仍只能作为 opaque pointer pointee；`!runtime-handle` 是不可存储的 verifier/runtime capability，不是对象类型。
 
 `StaticRegistrationEncodable(T, Constant)` 是独立的中央派生谓词，不等于 `Copyable(T)`、`NeedsDestroy(T) = false` 或普通对象可以跳过生命周期。它只证明某个准确 typed constant能形成 readonly frozen module-image representation，且安装/撤销不需要执行用户代码或承担独立释放责任。v0可内建支持 String 的 module-owned immutable bytes/length frozen encoding以及递归aggregate；用户类型不能仅靠attribute自行声称该性质。frozen record在table中按只读T view使用，不获得普通可变对象、copy、assign或destroy语义。
 
@@ -86,7 +86,7 @@ named class、enum 与 interface 使用名义身份。tuple 使用规范化后�
 - `object`：语义上按值，但必须物化在准确最终存储中；
 - `result-place`：由调用者提供的最终结果位置。
 
-`FunctionSignature` 的规范 parameter-passing 枚举为 `value|object|const_reference|mutable_reference|raw_pointer`，result-passing 枚举为 `value|result_destination|void`。`value` 与 `object` 分别承载上述同名逻辑分类；`const_reference`、`mutable_reference` 和 `raw_pointer` 明确表示不建立按值参数对象的引用或裸指针通道。`result_destination` 是本文概念术语 `result-place` 在函数签名、规范文本与二进制记录中的拼写，不是第四种对象分类。`void` 不产生值或结果位置。`()` 具有一个逻辑 unit 值，但没有物理载荷；它可以使用专用 unit 常量表达，不得借此承载任意聚合。多字 descriptor 和任何聚合都不得归入 `value` 模式。
+`FunctionSignature` 的规范 parameter-passing 枚举为 `value|object|const_reference|mutable_reference|raw_pointer`，result-passing 枚举为 `value|result_destination|void`。`value` 与 `object` 分别承载上述同名逻辑分类；`const_reference`、`mutable_reference` 和 `raw_pointer` 明确表示不建立按值参数对象的引用或裸指针通道。`result_destination` 是本文概念术语 `result-place` 在函数签名、规范文本与二进制记录中的拼写，不是第四种对象分类。`void` 不产生值或结果位置。builtin `unit` 具有一个逻辑值，但没有物理载荷；它可以使用专用 unit 常量表达，不得借此承载任意聚合。多字 descriptor 和任何聚合都不得归入 `value` 模式。
 
 具体寄存器、栈、隐藏参数和 C ABI 分类不进入函数类型身份，由 [`06-calling-convention-runtime.md`](./06-calling-convention-runtime.md) 与 TargetABI lowering 决定。
 
@@ -95,7 +95,7 @@ named class、enum 与 interface 使用名义身份。tuple 使用规范化后�
 以下类型只用于 IR 验证和执行，不是用户可声明的普通值类型：
 
 ```text
-!place<access, T>
+!place<PlaceAccess, T>
 !exception
 !runtime-handle<kind>
 ```
@@ -131,7 +131,7 @@ SealedRuntimeStorage
 - raw pointer、reference 和 function pointer；
 - TargetABI 明确声明为单标量表示的无载荷 enum。
 
-`()` 是没有物理载荷的专用 unit 值，不计入单标量 ABI 分类；`void` 完全不产生值。slice、interface reference、非空 tuple、array、class、带载荷 enum 和其他多字或聚合值即使很小、可复制或能被某个目标拆进寄存器，也不是普通 SSA value。
+builtin `unit` 是没有物理载荷的专用值，不计入单标量 ABI 分类；`void` 完全不产生值。slice、interface reference、非空 tuple、array、class、带载荷 enum 和其他多字或聚合值即使很小、可复制或能被某个目标拆进寄存器，也不是普通 SSA value。
 
 ### 3.2 AddressOnly
 
@@ -157,7 +157,7 @@ TargetABI 可以把不可观察地址的 copyable aggregate 或多字 descriptor
 - `runtime.opaque<...>`，即使某个 runtime 私下知道其表示；
 - 只表示 interface 声明身份而不是具体 interface-reference descriptor 的 nominal interface 类型。
 
-整数、浮点、`bool`、`ptrsize`、unit/空 tuple、raw pointer、reference、function pointer、闭合 `runtime.object`，以及 layout complete 的 array、非空 tuple、class、enum、slice/interface-reference descriptor 可以是 SizedObjectType。runtime object 的 LayoutComplete 只公开不透明 storage shell 的 size/alignment/ABI hash，不授予字段或 raw representation 访问。这里判断的是 T 自身：例如 `ptr<rw, void, 0>` 这个 pointer value自身是 SizedObjectType，但它的 pointee `void` 不是，所以可以存取该 pointer value，却不能对它执行元素缩放或形成 `!place<...,void>`。
+整数、浮点、`bool`、`ptrsize`、builtin `unit`、raw pointer、reference、function pointer、闭合 `runtime.object`，以及 layout complete 的 array、非空 tuple、class、enum、slice/interface-reference descriptor 可以是 SizedObjectType。runtime object 的 LayoutComplete 只公开不透明 storage shell 的 size/alignment/ABI hash，不授予字段或 raw representation 访问。这里判断的是 T 自身：例如 `ptr<rw, void, 0>` 这个 pointer value自身是 SizedObjectType，但它的 pointee `void` 不是，所以可以存取该 pointer value，却不能对它执行元素缩放或形成 `!place<...,void>`。
 
 raw pointer 类型允许 unsized pointee，以便表示 C opaque handle、函数/不完整对象地址和纯字节地址。凡 operation 需要 `sizeof(T)`、`alignof(T)`、typed object lifetime、有效表示或 typed dereference，其 T 必须满足 `SizedObjectType(T)`；只观察/变换地址 bits 的 `const.null`、`cast.ptr`、`cast.ptr_access`、`ptr.byte_offset` 和 `ptr.cmp` 不要求 pointee sized。byte-count `raw.memcpy`/`raw.memmove`/`raw.memset` 同样不依赖 pointee layout，但不会因此建立 typed 访问权。
 
@@ -171,7 +171,7 @@ Core InkIR 常量包括：
 - `bool`；
 - 准确 IEEE 位模式的浮点常量；
 - `null` raw pointer；
-- `()`；
+- builtin `unit` 的唯一值；
 - 符号地址与目标重定位 addend；
 - 全部组成部分均可静态编码的常量对象描述；
 - TargetContext 已经解析的布局、判别或 PDB 结果。
@@ -218,7 +218,7 @@ place 至少携带：
 
 ```text
 ElementType
-Access = init | ro | rw
+PlaceAccess = init | ro | rw
 AddressSpace
 KnownAlignment
 AllocationAssociation?
@@ -242,7 +242,7 @@ place 与 raw pointer 不同：
 
 global 的完整 lifecycle authority 由 module runtime 按 module-instance/version（thread-local 另含 thread identity）建立，且只作为对应 GlobalRecord 指定 initializer/finalizer function 的 hidden `global_lifecycle` entry place 出现。v0 每个这种 function 恰好服务一个 global，不能同时被另一个 GlobalRecord 引用，也不能兼任 initializer 与 finalizer：initializer 取得 `!place<init,T>` owner，finalizer 取得 Alive `!place<ro/rw,T>` owner。普通函数反复执行 `mem.global_place` 只得到可别名 borrow，不能因此 destroy、reinitialize 或取得第二份 cleanup obligation。
 
-`ro` place 只能读取或建立进一步只读借用。`rw` place 可以读取、赋值和建立可写借用。`init` place 只允许构造操作，不能读取旧值。`InitializationTransactionId` 不是用户可读的运行时字段；它是 verifier/执行器沿 CFG 跟踪的线性事实。fresh init place 在 `obj.init.begin` 前没有 transaction identity，已开始的 root 或 child destination 携带准确 identity，转发调用必须保留它。
+`ro` place 只能读取或建立进一步只读借用。`rw` place 可以读取、赋值和建立可写借用。`init` place 只允许构造操作，不能读取旧值；它只属于 `PlaceAccess`，不能通过 cast、serialization 或 type interning 泄漏为普通 `ValueAccess`。`InitializationTransactionId` 不是用户可读的运行时字段；它是 verifier/执行器沿 CFG 跟踪的线性事实。fresh init place 在 `obj.init.begin` 前没有 transaction identity，已开始的 root 或 child destination 携带准确 identity，转发调用必须保留它。
 
 生命周期状态变化与可访问 place capability 的物化分离。`obj.init.commit` 或 caller-destination call 的 normal postcondition 先把准确对象状态变为 `Alive`；随后 `place.as_alive` 才能把同地址、同 allocation/subobject path 的 `!place<init,T>` 重绑定为 `!place<ro,T>` 或 `!place<rw,T>`。结果访问权不能超过 allocation/binding 的 mutability，且不再携带 active transaction identity。反向地，`obj.destroy*` 先把对象状态变为 `AllocatedUninitialized`；只有持有拥有销毁与重新初始化权限的 `!place<rw,T>`、没有存活 borrow/child capability 且 verifier 已证明准确状态时，`place.as_uninitialized` 才能把同一 place 重绑定为 fresh `!place<init,T>`。只读 place 永远不能通过该 operation 升级为初始化权限。这两个 operation 都不开始、提交、销毁或 rollback 生命周期，只物化 verifier 已有的路径事实，并在 target lowering 中消除。
 
@@ -278,7 +278,7 @@ VersionAssociation?
 
 `mem.alloca` 只分配 storage，不自动产生用户可观察的对象值。global storage 的分配、初始化与析构由 module initializer/finalizer 使用相同对象操作完成。
 
-Core InkIR 不提供无来源的通用 `mem.alloc`/`mem.dealloc` token 对。stack allocation 的 storage 在 activation teardown 时由执行模型释放，但其 Alive 对象必须先按 cleanup plan 显式销毁。heap、GC、arena、Task frame、exception record、module pin 等 storage 只能由具体已注册 runtime owner schema 成对取得和释放；该 schema 持有不可伪造且 allocator kind/version 匹配的 owner token，并声明 `Allocate`/`Deallocate` effect。普通 place、raw pointer 或 `mem.alloca` 结果不能伪造这种 owner token。
+Core InkIR 不提供无来源的通用 `mem.alloc`/`mem.dealloc` token 对。stack allocation 的 storage 在 activation teardown 时由执行模型释放，但其 Alive 对象必须先按 cleanup plan 显式销毁。revision 1 的 Task frame和exception record/box由具体已注册 runtime storage schema取得和释放，并只在实际分配/释放storage的operation上声明匹配的 `Allocate`/`Deallocate` effect；version pin则是专用线性runtime owner/lease，只声明registry规定的memory与runtime effects，不虚构storage分配。所有 owner都携带不可伪造且kind/version匹配的token。`StorageKind=heap` 只能出现在受信 extern/runtime 的保守 effect summary，不授权用户对象分配；通用 heap、GC、arena、collector root/barrier/safepoint 均未注册并必须拒绝。普通 place、raw pointer 或 `mem.alloca` 结果不能伪造 owner token。
 
 ComptimeWorld 使用虚拟目标内存。虚拟地址、offset、对齐、字节序和 pointer wrap 必须使用 TargetContext，不能把宿主地址或宿主 `sizeof` 当作目标结果。
 
@@ -296,7 +296,7 @@ Deallocated
 
 正常状态转换为 `AllocatedUninitialized -> PartiallyInitialized -> Alive -> Destroying -> AllocatedUninitialized`；只有尚无活动对象的 allocation root 才能进一步进入 `Deallocated`。除 allocation-only 的 `Deallocated` 外，这些状态属于 `ActiveObjectTree` 的每个对象节点，而不只是整块 allocation：因此一个 `PartiallyInitialized` parent 可以包含若干已经 `Alive` 的 child。
 
-`InitializationTransactionTree` 是映射到声明对象包含树的动态 identity tree：每条 live parent/child edge 必须对应准确的直接 subobject 关系，rollback 后为同一路径创建的新 identity 则作为新的历史节点。每个 transaction 节点至少记录 `TransactionId`、准确 `SubobjectPath`、可选 `ParentTransactionId`、状态 `Active|Committed|RolledBack`、`InitializedLeafMask`、`CommittedChildMask` 和构造顺序。allocation/root destination 的 transaction 没有 parent；非平凡 base、field、array/tuple element 或 enum payload 的 storage owner 在 parent transaction active 时，对准确 child init place 执行 `obj.init.begin`，从而建立一个 fresh child identity。由 `obj.init` 等不展开的内建操作直接建立的标量/unit leaf 进入 `InitializedLeafMask`，不为每个标量额外创建 transaction identity。
+`InitializationTransactionTree` 是映射到声明对象包含树的动态 identity tree：每条 live parent/child edge 必须对应准确的直接 subobject 关系，rollback 后为同一路径创建的新 identity 则作为新的历史节点。每个 transaction 节点至少记录 `TransactionId`、准确 `SubobjectPath`、可选 `ParentTransactionId`、状态 `Active|Committed|RolledBack`、`InitializedLeafMask`、每个 initialized leaf 的 `(SubobjectPath, ObjectLifetimeGeneration, ConstructionOrdinal)`、`CommittedChildMask` 和构造顺序。allocation/root destination 的 transaction 没有 parent；非平凡 base、field、array/tuple element 或 enum payload 的 storage owner 在 parent transaction active 时，对准确 child init place 执行 `obj.init.begin`，从而建立一个 fresh child identity。由 `obj.init` 等不展开的内建操作直接建立的标量/unit leaf 不额外创建 transaction identity；若它是 active aggregate parent 的 direct leaf，该 operation 必须原子把 leaf 节点转为 `Alive`、建立 fresh leaf generation 并把上述三元组登记进 mask/tree。若目标本身就是 scalar/unit transaction root，`obj.init` 只填充 root，root generation 仍唯一由随后 `obj.init.commit` 建立。
 
 active transaction 必须满足严格嵌套和栈纪律：
 
@@ -306,11 +306,11 @@ active transaction 必须满足严格嵌套和栈纪律：
 - 已经 Alive/Committed 的 child、其 descendant 或与 active child 重叠的路径不能再次 begin；
 - child commit/rollback 后其 identity 进入终态；若 child rollback，owner 可以在同一未初始化 child path 上以新的 identity 重试，旧 identity 不得复活。
 
-child `obj.init.commit` 只把该 child object 转为 `Alive`，并按构造顺序把它登记进仍 active parent 的 `CommittedChildMask`；它不提交 parent。parent 只能在没有 active child、全部必需 child 已进入 `CommittedChildMask` 或 `InitializedLeafMask`、且自身 constructor body 正常结束时 commit。最外层 root commit 才把完整结果提交为用户可观察的 `Alive` binding。
+child `obj.init.commit` 只把该 child object 转为 `Alive`，并按构造顺序把它登记进仍 active parent 的 `CommittedChildMask`；它不提交 parent。parent 只能在没有 active child、全部必需 child 已进入 `CommittedChildMask` 或 `InitializedLeafMask`、且自身 constructor body 正常结束时 commit。parent commit 不替换已登记 direct leaf 或 committed child 的 generation，只为 parent 自身建立 fresh generation；最外层 root commit 才把完整结果提交为用户可观察的 `Alive` binding。
 
-每次 root 或 child 从非 Alive 状态成功 commit 都为该准确对象节点建立 fresh `ObjectLifetimeGeneration`。所有从该对象形成的 reference、safe slice、interface/DynamicRef view 和 borrowed place 记录这代抽象身份；destroy 终结它，rollback 因对象从未 Alive 而不产生 generation。generation 与 `TransactionId`、`PlaceCapabilityGeneration` 相互独立：transaction 标识一次构造尝试，object generation 标识一次已提交生命周期，place generation 标识当前可用的线性 capability 代际。
+每次 root/child commit 或 direct trivial leaf 被 `obj.init` 原子建立都为该准确对象节点建立 fresh `ObjectLifetimeGeneration`。所有从该对象形成的 reference、safe slice、interface view、reflection adapter 临时借用描述符和 borrowed place 记录这代抽象身份；完整对象 destroy 在终结 parent generation 时还必须按析构顺序终结其全部存活 descendant generation，构造 rollback 同样按逆构造顺序终结已建立 leaf/child generation。generation 与 `TransactionId`、`PlaceCapabilityGeneration` 相互独立：transaction 标识一次构造尝试，object generation 标识一次已建立的对象或 subobject 生命周期，place generation 标识当前可用的线性 capability 代际。
 
-初始化失败时，最终失败的 child callee 先逆序清理该 child transaction 内已经提交的 descendant，再由 callee outward-unwind schema postcondition 把 child 标为 `RolledBack` 并使 child path 回到 `AllocatedUninitialized`；parent 仍保持 active，先前提交的 sibling 仍 Alive，因此本地 catch 可以对该 child 创建 fresh transaction 后重试。若 parent 自身继续 outward unwind，它必须逆序销毁自己 `CommittedChildMask` 中的所有 Alive child，再由自己的 outward-unwind postcondition rollback；trivial leaf 只丢弃 lifetime/initialization fact，不调用析构。该回退不是普通可写的生命周期边，也不由名为 `obj.init.abort` 的 opcode 表示。
+初始化失败时，最终失败的 child callee 先逆序清理该 child transaction 内已经提交的 descendant，再由 callee outward-unwind schema postcondition 把 child 标为 `RolledBack` 并使 child path 回到 `AllocatedUninitialized`；parent 仍保持 active，先前提交的 sibling 仍 Alive，因此本地 catch 可以对该 child 创建 fresh transaction 后重试。若 parent 自身继续 outward unwind，它必须逆序销毁自己 `CommittedChildMask` 中的所有 Alive child，再按逆构造顺序终结 `InitializedLeafMask` 中的 leaf generation，最后由自己的 outward-unwind postcondition rollback；trivial leaf 不调用析构，但其 generation 必须终结，从而构造期形成的旧 borrow 不会在重试时复活。该回退不是普通可写的生命周期边，也不由名为 `obj.init.abort` 的 opcode 表示。
 
 聚合的 `ActiveObjectTree` 记录已经成功初始化的基类、字段、tuple/array 元素以及 enum 活动载荷；它与 transaction tree 的 `InitializedLeafMask` 和 `CommittedChildMask` 必须一致。只有 `Alive` 对象可以执行普通 load、赋值和完整销毁。构造期间只能访问已经初始化的 child，并受构造期 `this` 不逃逸规则限制。
 
@@ -351,6 +351,7 @@ expose %buffer as the binding place
 - endian 与 address-space data layout；
 - pointer width、alignment 和整数表示；
 - class、enum、tuple、array、slice 与 interface 布局版本；
+- 不含TargetKey/LayoutDigest派生值的target-opaque constant raw ABI rules；完整TargetBlobConstantAbiTable只能在TargetKey确定后派生；
 - PDB table revision；
 - strict float、subnormal 与 `nan_mode`；
 - RuntimeABI 和 TargetABI revision。
@@ -374,7 +375,7 @@ interface table、vtable 和 function pointer 的目标代码地址表示不必�
 
 array 直接内联 `N` 个元素，元素 stride 与目标 `sizeof(T)` 一致。布局服务必须检查长度、stride 和总大小乘法能够由目标对象大小模型表示；不能让宿主整数溢出决定布局。
 
-tuple 的逻辑和物理元素顺序均为源码顺序。TargetContext 可以在元素之间和结尾插入 padding，但不得静默重排元素。空元组的可寻址大小和 alignment 由目标布局版本决定。
+非空 tuple 的逻辑和物理元素顺序均为源码顺序。TargetContext 可以在元素之间和结尾插入 padding，但不得静默重排元素。builtin `unit` 不是 tuple；需要为其建立 typed storage 时，其零载荷 storage shell 的可寻址大小和 alignment 由目标布局版本单独决定，不能通过创建零元素 tuple record取得第二套布局。
 
 ### 7.4 Class
 
@@ -395,7 +396,7 @@ enum 在语义上始终具有一个活动分支，但物理布局不承诺独立
 - niche 编码；
 - 显式 `[repr]` 已授权的固定编码。
 
-`enum.discriminant` 返回规范的语义分支序号，而不是直接暴露物理 tag bits。普通 payload place 只能在活动分支证明下形成。默认 enum 布局不得直接用于稳定 C ABI。
+`enum.discriminant` 返回规范的语义分支序号，而不是直接暴露物理 tag bits。`representation=ink`的每个required Discriminant record固定为builtin ptrsize Constant且值等于SourceOrdinal；`c|fixed_discriminant`才使用present DiscriminantType和source-declared显式值，但运行时语义分支结果仍是SourceOrdinal。普通 payload place 只能在活动分支证明下形成。默认 enum 布局不得直接用于稳定 C ABI。
 
 ## 8. 裸指针、引用与切片
 
@@ -414,7 +415,7 @@ element offset 只有在 pointee `SizedObjectType(T)` 时才定义，因为它�
 
 因此普通 raw pointer operation 不自动产生 LLVM `inbounds`、`nuw`、`nsw`、`nonnull`、`dereferenceable`、`noalias` 或 `readonly`。只有独立分析证明相应事实时，TargetABI lowering 才可增加这些属性。
 
-v0 的规则不承诺支持 capability pointer 或具有不可由 `ptrsize` 表示之 provenance 的目标。非默认地址空间必须由后续目标扩展给出完整整数往返和比较规则。
+revision 1 只注册默认 integral address space `AddressSpace=0`，且没有注册任何非默认 address-space extension；Staged/Closed verifier 必须拒绝所有非零 address-space type、constant 和 operation，不能把未知空间按默认空间解释。未来语义 revision 若增加 extension，必须同时定义地址位宽、null、比较、整数往返、允许的 cast、layout、raw memory、lowering 和 feature identity，不能只放宽整数 tag。v0 不支持 capability pointer 或具有不可由 `ptrsize` 表示之 provenance 的目标。
 
 ### 8.2 Reference
 
@@ -449,7 +450,7 @@ slice<T> = { data: ptr<T>, length: ptrsize }
 
 safe slice 类型携带独立的 `ContainsNoEscapeValue` 性质。它不能进入 global、普通对象字段、Task 完成存储或其他被对应 no-escape verifier 认定为长期存储的位置。具体跨函数和受限 view 边界由 verifier 文档集中规定，不能通过把 slice 降为匿名两字段 tuple 绕过。
 
-safe slice 的 subslice 把 generation set 限制到对应子范围。销毁并在同址重建任一 backing object 后，旧 slice 即使 data/length 数值相同也已失效。interface reference、checked reflection/DynamicRef view 和其他语义上受检查的非拥有 descriptor 同样关联准确 complete object generation；descriptor copy 保留它。raw pointer 与用户 `RawSlice<T>` 不携带 generation，继续遵守扁平数值地址和每次访问时的 raw memory 前置条件。
+safe slice 的 subslice 把 generation set 限制到对应子范围。销毁并在同址重建任一 backing object 后，旧 slice 即使 data/length 数值相同也已失效。interface reference、checked reflection adapter 临时 view 和其他语义上受检查的非拥有 descriptor 同样关联准确 complete object generation；descriptor copy 保留它。该临时 view 不是 Core type/value，不能进入 CFG 或序列化。raw pointer 与用户 `RawSlice<T>` 不携带 generation，继续遵守扁平数值地址和每次访问时的 raw memory 前置条件。
 
 长期保存地址与长度使用普通用户类型 `RawSlice<T>`，其字段只是 raw pointer 与 `ptrsize`，不获得 safe slice 的检查保证。
 
@@ -522,7 +523,7 @@ caller destination 可以是 allocation root，也可以是 active parent 内的
 
 ### 10.3 Typed copy
 
-typed copy 只对 `Copyable(T)` 合法，并执行类型结构定义的语义复制：
+typed copy 首先要求 `Copyable(T)`，但构造与赋值是两个独立授权位：`obj.init.copy` 还要求 `CopyConstructionEnabled(T)`，`obj.assign.copy` 还要求 `CopyAssignmentEnabled(T)`，任一位不得由另一位推断。nominal class 的两个谓词直接取其 `NominalSemanticProperties`字段并递归检查全部 base/field；结构类型则由组成部分递归唯一派生。合法 typed copy 执行类型结构定义的语义复制：
 
 - scalar：复制准确语义位模式；
 - pointer/reference/slice/interface reference：复制非拥有 descriptor；
@@ -533,11 +534,13 @@ typed copy 只对 `Copyable(T)` 合法，并执行类型结构定义的语义复
 
 typed copy 不调用任意用户代码、不分配、不增加引用计数，也不执行可能失败的系统操作。
 
-单标量 typed copy 先产生准确 SSA value，再用 `obj.init` 初始化或 `mem.store` 赋值。`obj.init.copy` 只在当前 active root/child transaction 的准确目标中填充 address-only 新对象，随后仍须由该 transaction 的最终完成者执行 `obj.init.commit`；child copy commit 只登记 child，不能提交 parent。`obj.assign.copy` 替换已经初始化且支持普通赋值的 address-only 目标。初始化与赋值两类 operation 不能互换。
+单标量 typed copy 先产生准确 SSA value，再用 `obj.init` 初始化或 `mem.store` 赋值。`obj.init.copy` 只在 `CopyConstructionEnabled(T)=true` 时向当前 active root/child transaction 的准确 address-only 新对象填充。它是不可失败的结构化原子 copy-construction：按声明顺序为每个逻辑 descendant object 建立 fresh generation，direct trivial leaf 记入 `InitializedLeafMask`，需要独立对象生命周期的 child 记入 `CommittedChildMask` 并保留其完整 ActiveObjectTree；最外层 destination object 自身仍由当前 transaction 的最终完成者执行唯一 `obj.init.commit` 才建立 generation。因此 parent 后续 unwind 能从两个 mask 完整逆序清理，不得把 aggregate copy 缩减为没有 descendant lifetime facts 的 bytes write。`obj.assign.copy` 只在 `CopyAssignmentEnabled(T)=true` 时替换已经初始化的 address-only 目标。初始化与赋值两类 operation 不能互换。
+
+enum 的 `CopyAssignmentEnabled` 额外要求每个 payload 递归可 copy-assign/copy-construct 且 `NeedsDestroy=false`。source/destination 分支相同时递归 assign；分支不同时原子终结旧 payload 的 descendant generation tree，再按新分支建立 fresh payload generation tree，因而该变体的 effect 额外包含 `EndLifetime` 与 `BeginLifetime`。只要任一 payload `NeedsDestroy`，分支切换必须在 Core 前展开为显式 switch + `obj.destroy` + `obj.init.copy`/commit CFG，不得经 `obj.assign.copy` 隐式调用析构或丢失 generation。
 
 ### 10.4 销毁与释放
 
-`obj.destroy` 执行静态已知完整类型的析构链。`obj.destroy_dynamic` 通过动态销毁入口结束最派生对象生命周期。两者都只结束对象生命周期，不释放 storage。
+`obj.destroy` 执行静态已知完整类型的唯一析构链：nominal class 的 `NominalSemanticProperties.Destructor` present 时必须从该准确 special member 开始，再按声明逆序递归执行准确 field/base 销毁；absent 时仅执行递归需要的 field/base 链，不得选择另一个同签名 function。`obj.destroy_dynamic` 通过动态销毁入口结束最派生对象生命周期。两者都只结束对象生命周期，不释放 storage。
 
 销毁完成后，相应 place 回到未初始化 storage 状态。stack storage 随 activation teardown 释放；其他 storage 只能由持有匹配 owner token 的具体 runtime release schema 释放，并遵守原始分配地址、大小、alignment、allocator 和 module version 契约。Core registry 不提供通用 `mem.dealloc`。
 
@@ -595,12 +598,13 @@ Staged Core InkIR 可以引用已经完整类型化的 meta value，但普通 ru
 
 Closed verifier 至少检查：
 
-- 所有类型身份闭合；每个被物化为 storage object 或被查询 layout 的类型都 `LayoutComplete`；
+- 所有类型身份闭合；builtin `unit` 是唯一零载荷类型身份，tuple record 元素数大于零；每个被物化为 storage object 或被查询 layout 的类型都 `LayoutComplete`；
 - 每个需要 sizeof/alignment、typed dereference、typed access 或 object lifetime 的 T 都满足 `SizedObjectType(T)`；unsized-pointee pointer 只用于获准的 address/byte operation；
 - TargetKey 与全部 layout/PDB/float 结果一致；
 - SSA use 满足支配与准确类型一致性；
 - address-only 对象没有隐藏 SSA copy；
-- place access、alignment 和初始化状态与 opcode 匹配；
+- 普通 pointer/reference/slice/interface-reference 只使用 `ValueAccess = ro|rw`，place 使用 `PlaceAccess = init|ro|rw`；place access、alignment 和初始化状态与 opcode 匹配；
+- 所有 pointer type 的 `AddressSpace` 均为 0；revision 1 对任何非默认 address space 一律拒绝；
 - initialization transaction identity 形成与对象包含关系一致的严格树；begin/commit/rollback 保持栈纪律，没有重复 identity、非法重叠或越序 child；
 - child commit 只更新 parent `CommittedChildMask`，parent/root commit 前没有 active child 且所有必需 child 已完成；child rollback 后旧 identity 不可复活，retry 使用 fresh identity；
 - load 不读取未初始化 storage；

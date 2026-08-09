@@ -31,7 +31,7 @@ InkIR 不承担以下职责：
 
 1. 自研轻量 IR，采用 block-argument SSA、显式 operation/region、命名空间 opcode 和分层 verifier，不引入 MLIR 运行依赖。
 2. `StagedModule` 是强类型 Core InkIR、`ElaborationPlan` 和 source-backed `NormalizedTemplateTable` 的组合容器；只有 Core InkIR operation 保证已经完整类型化。
-3. `ClosedModule[target]` 不含 deferred template、开放泛型、meta value 或任何 stage plan node。
+3. `ClosedModule[target]` 不含 deferred template、开放泛型 entity、dependent Type、meta value 或任何 stage plan node；只允许为 closed instance identity 保留不可执行、不可查找的 source-backed generic provenance Symbol snapshot，其中用binder-relative、可exact-decode的泛型签名投影保留SignatureDigest完整preimage。
 4. 标量优先使用 SSA；聚合、不可复制类型和 address-only 类型使用调用者提供的最终结果位置。
 5. Closed InkIR 是 target-aware 的语义 IR；TargetABI lowering 可以直接生成 LLVM IR，v0 不要求额外的稳定 Codegen IR。
 6. 文本格式是规范、确定的 dump/golden 格式；二进制格式只作精确版本匹配的内部缓存；两者都不是公开输入格式或稳定 ABI。
@@ -40,7 +40,7 @@ InkIR 不承担以下职责：
 9. strict 浮点的 NaN 和 sNaN 位级行为由 `TargetContext.nan_mode` 精确规定；`[fast_math]` v0 只授予重结合、收缩、忽略有符号零、FTZ 和 DAZ，不授予近似倒数、近似函数或有限值假设。
 10. padding 默认未初始化且不属于语义值；typed copy 与 `raw.memcpy` 是两套不可混用的语义。
 11. 可观察的 comptime 写效果使本次执行不可缓存，并按规范 work-item 顺序提交；纯计算与受跟踪只读效果可以并行和缓存，不做 effect replay。
-12. `[nothrow] async` 的同步 Task 构造和异步完成是两个独立效果维度：构造仍可 unwind，Task 本身不得进入 failed。
+12. async 的同步 Task 构造与异步完成是两个独立契约维度：源码 `[nothrow] async` 要求 `body_no_fail`，但不隐含 `construction_nothrow`；只有后者成立时构造边界才不得 unwind。
 13. v0 热更新只允许 ABI 和布局完全相同的代码替换；反射 handle 固定取得时的版本快照；同步和异步 virtual/interface override 都要求结果类型完全一致。
 14. decorator 驱动的 module registration 由 typed-Core comptime operation 发射为确定性、可缓存的 semantic records；Staged/Closed artifact 都携带 `ModuleRegistrations`，运行时按 module version 原子发布或替换。
 
@@ -58,6 +58,9 @@ InkIR 不承担以下职责：
 | [08-text-binary-format.md](./08-text-binary-format.md) | canonical text、sectioned binary、registration records、版本字段、cache identity 与安全解码 |
 | [09-llvm-lowering.md](./09-llvm-lowering.md) | TargetABI/LLVM 映射、首个纵切片和递增实现顺序 |
 | [10-schema-registry.md](./10-schema-registry.md) | v0 数字 tag、record/payload、opcode schema、effect/trait/stage 与 canonical text 的唯一 source of truth |
+| [11-instruction-reference.md](./11-instruction-reference.md) | 从中央registry生成的137条Core opcode与7条Plan opcode逐指令手册；首页仅为可跳转指令索引，详情含renderer格式、作用、用法、效果、阶段与约束 |
+
+`11-instruction-reference.md` 由 [`tools/generate-instruction-reference.py`](./tools/generate-instruction-reference.py) 生成；修改中央 schema 后必须重新生成，并以 `python -B draft/IR/tools/generate-instruction-reference.py --check` 作为一致性门槛，不直接手改生成文档。
 
 ## 4. 规范用语
 
@@ -80,9 +83,13 @@ InkIR 不承担以下职责：
 - `CompilerBuildId`：编译器实现构建；
 - `TargetAbiRevision`：目标 lowering 和布局规则；
 - `RuntimeAbiRevision`：同一次兼容构建中的私有运行时契约；
+- `CapabilityPolicyRevision`：编译期 capability policy schema；
+- `ComptimeHandlerRevision`：编译期 effect handler 协议；
+- `PassPipelineRevision`：pipeline 配置 schema，只参与缓存/构建身份而不改变逻辑 module 语义投影；
+- `NormalizedHirSchemaVersion`：Normalized HIR 子 schema；
 - `RegistrationEncodingRevision`：module registration frozen value、relocation、application order path、动态路径与 protocol schema 编码语义。
 
-v0 二进制缓存要求关键版本和摘要精确匹配。版本不匹配是 cache miss，不是源码错误。文本 dump 在正式对外发布前也不承诺跨版本可读取。
+Manifest 还分别记录实际 TargetContext、capability grants、handler set/config、pass 序列、依赖、schema registry、active dependency interface 与 registration set/interface 的规范摘要；revision 和 digest 不能互相替代。v0 二进制缓存要求这些身份精确匹配。版本或构建身份不匹配是 cache miss，不是源码错误；artifact 自身声明与内容重算不一致则是无效 artifact。文本 dump 在正式对外发布前也不承诺跨版本可读取。
 
 ## 6. 最高级不变量
 
@@ -91,9 +98,10 @@ v0 二进制缓存要求关键版本和摘要精确匹配。版本不匹配是 c
 - Core InkIR operation 始终具有完整、规范化的语义类型；
 - 未选择的 dependent template 不提前绑定或类型检查；
 - Closed InkIR 只包含目标世界可表示、可执行和可 lowering 的内容；
-- `void`、`never` 与空元组 `()` 是三种不同类型；
+- `void`、`never` 与 builtin `unit` 是三种不同类型；源码 `()` 唯一规范化为 `unit`，不建立第二个空 tuple type/constant；
 - SSA value、place、未初始化存储和已开始生命周期的对象不能混为一类；
 - InkIR 没有 LLVM 风格的 `undef` 或 `poison` 值；PDB 必须由 TargetContext 解析为具体结果或 trap；
+- `TargetDependent` 只标记 TargetContext 依赖；`PdbBoundary` 才是不可推测、复制、CSE 或删除的 partial-domain 边界，且必须同时具有 `TargetDependent`；
 - 语言级 copy 不等于字节复制，不可复制类型不能因 lowering 而出现隐藏 copy；
 - 可能 unwind 的调用具有显式 unwind 后继；trap 和 fatal 不执行语言清理；
 - operation 的效果、可抛出性、可 trap 性和阶段合法性由 opcode 重新推导，不能信任缓存中的摘要；

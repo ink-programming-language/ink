@@ -100,7 +100,7 @@ InkIR 不使用独立 `phi` instruction。控制流合流值由 block argument �
 
 SSA value 由 block argument 或 operation result 定义；function receiver、logical parameters和隐藏result/runtime channels都已经是entry block arguments，没有独立 parameter ValueId。定义在所属 region 的支配规则下使用。SSA value 不等同于对象存储：
 
-- 只有单标量表示的整数、浮点、`bool`、raw pointer、reference、function pointer、TargetABI 明确为单标量的无载荷 enum，以及无物理载荷的专用 unit `()` 直接作为 SSA value；
+- 只有单标量表示的整数、浮点、`bool`、raw pointer、reference、function pointer、TargetABI 明确为单标量的无载荷 enum，以及无物理载荷的 builtin `unit` 直接作为 SSA value；源码 `()` 在进入 Core 前规范化为该 builtin，不建立空 tuple type；
 - slice、interface reference、非空 tuple、array、class、带载荷 enum、其他多字 aggregate、noncopyable、address-only 或需要稳定地址的值通过 place 和最终存储操作；
 - SSA value 不拥有隐式析构责任；对象生命周期附着于 place 中的已初始化对象。
 
@@ -134,15 +134,16 @@ SymbolTable
 GlobalTable
 FunctionTable
 RuntimeDeclarationTable
-ModuleRegistrationTable
+TypedRegistrations
 DependencyManifest
-ElaborationPlan?          // Staged only
-NormalizedTemplateTable? // Staged only
+ActiveModuleGraph
+ElaborationPlan          // Staged required; Closed forbidden
+NormalizedTemplateTable // Staged required; Closed forbidden
 ```
 
-Staged 和 Closed module 都必须携带完整 `TargetKey` 与相应 `TargetContext`。不需要目标布局的受限 import-selection profile 发生在 `StagedModule` 建立之前，其状态称为 pre-Staged profile state，不得序列化或伪装成本规范的 Staged artifact。
+Staged 和 Closed module 都序列化完整 `TargetKey`、`TargetContextDigest` 与required semantic `ActiveModuleGraph`，但不把可执行的 TargetContext object、dependency provider object、CapabilityPolicy object 或 handler registry 序列化进artifact。`verifyStaged`、`closeAndVerify`、`verifyClosed`、interpreter 和lowering只能从验证能力绑定的trusted context取得这些只读对象，并逐项重算/匹配Manifest与ActiveModuleGraph。不需要目标布局的受限 import-selection profile 发生在 `StagedModule` 建立之前，其状态称为 pre-Staged profile state，不得序列化或伪装成本规范的 Staged artifact。
 
-`ModuleRegistrationTable` 是逻辑 module entity；binary 中使用独立 required semantic section。Staged artifact 只含已经 fixed-point commit 的记录，Closed artifact 含最终全集。每条记录的运行时 version owner由 loader从当前 artifact/publish transaction附加，不把可伪造的进程内 handle序列化进 IR。
+`TypedRegistrations` 是逻辑 module collection；binary 中使用名为 `ModuleRegistrations` 的独立 required semantic section。Staged artifact 只含已经 fixed-point commit 的记录，Closed artifact 含最终全集。每条记录的运行时 version owner由 loader从当前 artifact/publish transaction附加，不把可伪造的进程内 handle序列化进 IR。
 
 ## 5. 符号与身份
 
@@ -213,7 +214,8 @@ EndLifetime
 MayUnwind
 MayTrap
 MayDiverge
-TargetPDB
+TargetDependent
+PdbBoundary
 ComptimeEffect(capability)
 RuntimeEffect(handler)
 Control
@@ -235,6 +237,7 @@ TargetContext 至少提供：
 - target triple、ABI、CPU 与 feature set；
 - data layout、endianness、各 address space 指针宽度和对齐；
 - primitive/aggregate/class/enum/interface 的布局服务；
+- target-opaque constant的raw ABI rule projection；它不含TargetKey/LayoutDigest，完整derived table在TargetKey确定后形成并进入TargetContextDigest；
 - PDB 操作表及其 lowering revision；
 - strict float、subnormal 和 `nan_mode`；
 - C ABI 分类和平台异常 ABI 选择；
@@ -248,8 +251,9 @@ TargetContext 至少提供：
 核心 API 应当以验证后的能力类型表达阶段边界：
 
 ```text
-verifyStaged(UnverifiedStagedModule) -> VerifiedStagedModule
-closeAndVerify(VerifiedStagedModule, TargetContext, ComptimePolicy) -> VerifiedClosedModule<TargetKey>
+verifyStaged(UnverifiedStagedModule, StagedVerificationContext) -> VerifiedStagedModule
+closeAndVerify(VerifiedStagedModule, StagedVerificationContext) -> VerifiedClosedModule<TargetKey>
+verifyClosed(UnverifiedClosedModule, ClosedVerificationContext) -> VerifiedClosedModule<TargetKey>
 interpret(VerifiedClosedModule<TargetKey>, EntrySymbol, RuntimeWorld)
 lowerToLLVM(VerifiedClosedModule<TargetKey>, TargetABI)
 ```
