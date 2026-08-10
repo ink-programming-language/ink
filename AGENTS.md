@@ -140,6 +140,12 @@ constexpr KeywordEntry Keywords[] = {{"as", KeywordKind::As}, {"async", KeywordK
 
 - 每个 `TEST` 宏前必须写一条具体注释，说明该测试验证的功能、边界或错误场景；禁止使用“测试 tokenizer”一类无法区分测试意图的泛化注释。
 
+## 输出与日志
+
+- 仓库固定使用 `src/third_party/spdlog` 中的 spdlog 1.17.0 作为统一文本输出和日志库，不得引入第二套日志库。
+- 本仓库自有 C++ 代码产生的所有进程文本输出和运行时日志都必须经过 spdlog；CLI 的 stdout、stderr 输出统一调用 `ink::cli::writeOutput`，其他日志场景使用 spdlog logger 与对应 sink。
+- 禁止直接通过 `std::cout <<`、`std::cerr <<`、`std::clog`、`printf`、`fprintf`、`puts`、`fputs`、`llvm::outs()` 或 `llvm::errs()` 产生进程输出或日志。允许使用 `std::ostringstream` 仅在内存中组装完整消息，再交给 spdlog 输出。
+
 ## Unicode 数据
 
 - Tokenizer 的 `XID_Start` 和 `XID_Continue` 必须直接复用仓库固定版本 Clang 的 `clang/lib/Lex/UnicodeCharSets.h`，不得复制或生成一份本项目自有的 XID 表。

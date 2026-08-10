@@ -5,6 +5,7 @@
 #include <array>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -41,7 +42,7 @@ namespace
     {
       if (!ink::cli::useBinaryStandardInput() || !readSource(std::cin, Source))
       {
-        std::cerr << "ink-tokenize: error: cannot read standard input\n";
+        ink::cli::writeOutput(std::cerr, "ink-tokenize: error: cannot read standard input\n");
         return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
       }
     }
@@ -50,39 +51,41 @@ namespace
       std::ifstream Input(ink::cli::pathFromUtf8(SourceFile), std::ios::binary);
       if (!Input)
       {
-        std::cerr << "ink-tokenize: error: cannot open '" << SourceFile << "'\n";
+        ink::cli::writeOutput(std::cerr, "ink-tokenize: error: cannot open '" + SourceFile + "'\n");
         return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
       }
       if (!readSource(Input, Source))
       {
-        std::cerr << "ink-tokenize: error: cannot read '" << SourceFile << "'\n";
+        ink::cli::writeOutput(std::cerr, "ink-tokenize: error: cannot read '" + SourceFile + "'\n");
         return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
       }
     }
 
     const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenize(std::move(Source));
+    std::ostringstream BufferedOutput;
+    std::ostringstream BufferedErrorOutput;
     for (const ink::tokenizer::Token &Token : Result.tokens())
     {
-      std::cout << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";
+      BufferedOutput << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";
     }
     const ink::core::DiagnosticFormatter Formatter;
     for (const ink::core::Diagnostic &Diagnostic : Result.diagnostics())
     {
       const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
-      std::cerr << ink::core::diagnosticSeverityName(Formatted.Severity) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
+      BufferedErrorOutput << ink::core::diagnosticSeverityName(Formatted.Severity) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
       for (const ink::core::FormattedDiagnosticNote &Note : Formatted.Notes)
       {
-        std::cerr << "note: " << Note.Message;
+        BufferedErrorOutput << "note: " << Note.Message;
         if (Note.Span)
         {
-          std::cerr << " [" << Note.Span->Start << ", " << Note.Span->End << ")";
+          BufferedErrorOutput << " [" << Note.Span->Start << ", " << Note.Span->End << ")";
         }
-        std::cerr << '\n';
+        BufferedErrorOutput << '\n';
       }
     }
-    std::cout.flush();
-    std::cerr.flush();
-    if (!std::cout || !std::cerr)
+    const bool OutputSucceeded = ink::cli::writeOutput(std::cout, BufferedOutput.str());
+    const bool ErrorOutputSucceeded = ink::cli::writeOutput(std::cerr, BufferedErrorOutput.str());
+    if (!OutputSucceeded || !ErrorOutputSucceeded)
     {
       return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
     }

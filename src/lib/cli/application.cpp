@@ -1,8 +1,10 @@
 #include "ink/cli/application.h"
+#include "ink/cli/io.h"
 
 #include <algorithm>
 #include <exception>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string_view>
 #include <utility>
@@ -365,7 +367,7 @@ namespace ink::cli
     }
     catch (const std::runtime_error &)
     {
-      ErrorOutput << App.get_name() << ": error: cannot decode process arguments as UTF-8\nTry '" << App.get_name() << " --help' for more information.\n";
+      writeOutput(ErrorOutput, App.get_name() + ": error: cannot decode process arguments as UTF-8\nTry '" + App.get_name() + " --help' for more information.\n");
       return {true, ExitCode::InvocationError};
     }
     std::vector<std::string> Arguments;
@@ -408,10 +410,12 @@ namespace ink::cli
   {
     try
     {
-      const int ParserExitCode = App.exit(Error, Output, ErrorOutput);
-      Output.flush();
-      ErrorOutput.flush();
-      if (ParserExitCode == 0 && !Output)
+      std::ostringstream BufferedOutput;
+      std::ostringstream BufferedErrorOutput;
+      const int ParserExitCode = App.exit(Error, BufferedOutput, BufferedErrorOutput);
+      const bool OutputSucceeded = writeOutput(Output, BufferedOutput.str());
+      const bool ErrorOutputSucceeded = writeOutput(ErrorOutput, BufferedErrorOutput.str());
+      if ((ParserExitCode == 0 && !OutputSucceeded) || !ErrorOutputSucceeded)
       {
         return {true, ExitCode::InvocationError};
       }
@@ -485,11 +489,11 @@ namespace ink::cli
     }
     catch (const std::exception &Error)
     {
-      ErrorOutput << ProgramName << ": internal error: " << Error.what() << '\n';
+      writeOutput(ErrorOutput, std::string(ProgramName) + ": internal error: " + Error.what() + "\n");
     }
     catch (...)
     {
-      ErrorOutput << ProgramName << ": internal error: unknown exception\n";
+      writeOutput(ErrorOutput, std::string(ProgramName) + ": internal error: unknown exception\n");
     }
     return exitStatus(ExitCode::InternalError);
   }
