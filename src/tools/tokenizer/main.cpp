@@ -61,7 +61,11 @@ namespace
       }
     }
 
-    const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenize(std::move(Source));
+    ink::core::CompilationContext Compilation;
+    ink::core::FrontendContext Context(Compilation);
+    ink::core::CollectingDiagnosticConsumer Diagnostics;
+    Compilation.diagnosticEngine().addConsumer(Diagnostics);
+    const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenize(Context, std::move(Source));
     std::ostringstream BufferedOutput;
     std::ostringstream BufferedErrorOutput;
     for (const ink::tokenizer::Token &Token : Result.tokens())
@@ -69,7 +73,7 @@ namespace
       BufferedOutput << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";
     }
     const ink::core::DiagnosticFormatter Formatter;
-    for (const ink::core::Diagnostic &Diagnostic : Result.diagnostics())
+    for (const ink::core::Diagnostic &Diagnostic : Diagnostics.diagnostics())
     {
       const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
       BufferedErrorOutput << ink::core::diagnosticSeverityName(Formatted.Severity) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";

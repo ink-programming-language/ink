@@ -1,5 +1,6 @@
 #include "ink/core/diagnostic.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace ink::core
@@ -109,13 +110,23 @@ namespace ink::core
         Result.Message += " '" + *Actual + "'";
       }
     }
+
+    void formatDetail(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
+    {
+      if (const std::string *Detail = findArgument<std::string>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Detail))
+      {
+        Result.Message += ": " + *Detail;
+      }
+    }
   } // namespace
 
   std::uint32_t diagnosticNumber(DiagnosticKind Kind) noexcept
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return Number;
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
+  case DiagnosticKind::Name:                                                        \
+    return Number;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
     }
@@ -126,7 +137,9 @@ namespace ink::core
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return Code;
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
+  case DiagnosticKind::Name:                                                        \
+    return Code;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
     }
@@ -137,7 +150,9 @@ namespace ink::core
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return #Name;
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
+  case DiagnosticKind::Name:                                                        \
+    return #Name;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
     }
@@ -148,7 +163,9 @@ namespace ink::core
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return DefaultMessage;
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
+  case DiagnosticKind::Name:                                                        \
+    return DefaultMessage;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
     }
@@ -159,7 +176,9 @@ namespace ink::core
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return DiagnosticDomain::Domain;
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
+  case DiagnosticKind::Name:                                                        \
+    return DiagnosticDomain::Domain;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
     }
@@ -170,7 +189,9 @@ namespace ink::core
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) case DiagnosticKind::Name: return DiagnosticSeverity::DefaultSeverity;
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
+  case DiagnosticKind::Name:                                                        \
+    return DiagnosticSeverity::DefaultSeverity;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
     }
@@ -233,7 +254,8 @@ namespace ink::core
     return !(Left == Right);
   }
 
-  DiagnosticBuilder::DiagnosticBuilder(DiagnosticKind Kind, SourceRange Span) : Result{Kind, Span, {}, {}}
+  DiagnosticBuilder::DiagnosticBuilder(DiagnosticKind Kind, SourceRange Span)
+      : Result{Kind, Span, {}, {}}
   {
   }
 
@@ -305,6 +327,37 @@ namespace ink::core
     {
       formatActual(DiagnosticEntry, Result);
     }
+    else if (DiagnosticEntry.Kind == DiagnosticKind::InvalidIrText || DiagnosticEntry.Kind == DiagnosticKind::InvalidIrModule || DiagnosticEntry.Kind == DiagnosticKind::ExecutionFailed)
+    {
+      formatDetail(DiagnosticEntry, Result);
+    }
     return Result;
+  }
+
+  void DiagnosticEngine::addConsumer(DiagnosticConsumer &Consumer)
+  {
+    if (std::find(Consumers.begin(), Consumers.end(), &Consumer) == Consumers.end())
+    {
+      Consumers.push_back(&Consumer);
+    }
+  }
+
+  void DiagnosticEngine::removeConsumer(DiagnosticConsumer &Consumer) noexcept
+  {
+    Consumers.erase(std::remove(Consumers.begin(), Consumers.end(), &Consumer), Consumers.end());
+  }
+
+  void DiagnosticEngine::report(const Diagnostic &DiagnosticEntry) const
+  {
+    const std::vector<DiagnosticConsumer *> Snapshot = Consumers;
+    for (DiagnosticConsumer *Consumer : Snapshot)
+    {
+      Consumer->consume(DiagnosticEntry);
+    }
+  }
+
+  void CollectingDiagnosticConsumer::consume(const Diagnostic &DiagnosticEntry)
+  {
+    Diagnostics.push_back(DiagnosticEntry);
   }
 } // namespace ink::core

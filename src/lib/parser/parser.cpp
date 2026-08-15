@@ -4965,8 +4965,8 @@ namespace ink::parser
     return {Anchor, End.value_or(Anchor)};
   }
 
-  Parser::Parser(ParserOptions Options)
-      : Options(Options)
+  Parser::Parser(core::FrontendContext &Context, ParserOptions Options)
+      : Context(Context), Options(Options)
   {
   }
 
@@ -4979,11 +4979,22 @@ namespace ink::parser
     ParserImpl Implementation(LexedFile, Options);
     CstTree Tree = Implementation.run();
     std::vector<Diagnostic> ParserDiagnostics = Implementation.takeDiagnostics();
+    for (const Diagnostic &DiagnosticEntry : ParserDiagnostics)
+    {
+      Context.diagnosticEngine().report(DiagnosticEntry);
+    }
     return ParsedFile(std::move(LexedFile), std::move(Tree), std::move(ParserDiagnostics), Implementation.completeness());
+  }
+
+  ParsedFile parse(core::FrontendContext &Context, TokenizedBuffer LexedFile, ParserOptions Options)
+  {
+    return Parser(Context, Options).parse(std::move(LexedFile));
   }
 
   ParsedFile parse(TokenizedBuffer LexedFile, ParserOptions Options)
   {
-    return Parser(Options).parse(std::move(LexedFile));
+    core::CompilationContext Compilation;
+    core::FrontendContext Context(Compilation);
+    return parse(Context, std::move(LexedFile), Options);
   }
 } // namespace ink::parser

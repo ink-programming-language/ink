@@ -1285,8 +1285,8 @@ namespace ink::tokenizer
                                                });
   }
 
-  Tokenizer::Tokenizer(TokenizerOptions Options)
-      : Options(Options)
+  Tokenizer::Tokenizer(core::FrontendContext &Context, TokenizerOptions Options)
+      : Context(Context), Options(Options)
   {
   }
 
@@ -1304,11 +1304,22 @@ namespace ink::tokenizer
     }
     Scanner Scanner(Result.Source, Result.Tokens, Result.Diagnostics, Options);
     Scanner.run();
+    for (const Diagnostic &DiagnosticEntry : Result.Diagnostics)
+    {
+      Context.diagnosticEngine().report(DiagnosticEntry);
+    }
     return Result;
+  }
+
+  TokenizedBuffer tokenize(core::FrontendContext &Context, std::string Source, TokenizerOptions Options)
+  {
+    return Tokenizer(Context, Options).tokenize(std::move(Source));
   }
 
   TokenizedBuffer tokenize(std::string Source, TokenizerOptions Options)
   {
-    return Tokenizer(Options).tokenize(std::move(Source));
+    core::CompilationContext Compilation;
+    core::FrontendContext Context(Compilation);
+    return tokenize(Context, std::move(Source), Options);
   }
 } // namespace ink::tokenizer

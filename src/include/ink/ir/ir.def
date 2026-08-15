@@ -1,0 +1,29 @@
+#ifndef INK_IR_TYPE
+#define INK_IR_TYPE(Name, Spelling)
+#endif
+
+#ifndef INK_IR_INSTRUCTION
+#define INK_IR_INSTRUCTION(Name, Mnemonic, Terminator)
+#endif
+
+#ifndef INK_IR_VALUE
+#define INK_IR_VALUE(Name)
+#endif
+
+INK_IR_TYPE(Void, "void")
+INK_IR_TYPE(Bool, "bool")
+INK_IR_TYPE(Byte, "byte")
+INK_IR_TYPE(I32, "i32")
+INK_IR_TYPE(PointerSize, "ptrsize")
+INK_IR_TYPE(ConstBytePointer, "const byte*")
+
+INK_IR_VALUE(IntegerConstant)
+INK_IR_VALUE(ValueOperand)
+INK_IR_VALUE(GlobalAddressOperand)
+
+INK_IR_INSTRUCTION(Call, "call", false)
+INK_IR_INSTRUCTION(Return, "ret", true)
+
+#undef INK_IR_TYPE
+#undef INK_IR_VALUE
+#undef INK_IR_INSTRUCTION

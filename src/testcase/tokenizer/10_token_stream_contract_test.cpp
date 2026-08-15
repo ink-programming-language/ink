@@ -180,7 +180,11 @@ namespace ink::tokenizer
     // Verifies that one Tokenizer instance can be reused and preserves its configured comment-depth limit across calls.
     TEST(TokenStreamContractTest, TokenizerInstanceIsReusableAndRetainsOptions)
     {
-      const Tokenizer Scanner(TokenizerOptions{1});
+      core::CompilationContext Compilation;
+      core::FrontendContext Context(Compilation);
+      core::CollectingDiagnosticConsumer Diagnostics;
+      Compilation.diagnosticEngine().addConsumer(Diagnostics);
+      const Tokenizer Scanner(Context, TokenizerOptions{1});
       const TokenizedBuffer First = Scanner.tokenize("let");
       const TokenizedBuffer Limited = Scanner.tokenize("/* outer /* inner */ outer */");
       const TokenizedBuffer Second = Scanner.tokenize("let");
@@ -190,6 +194,7 @@ namespace ink::tokenizer
       ASSERT_TRUE(Second.succeeded());
       EXPECT_EQ(First.tokens(), Second.tokens());
       EXPECT_TRUE(hasDiagnostic(Limited, DiagnosticKind::BlockCommentNestingLimit));
+      EXPECT_EQ(Diagnostics.diagnostics(), Limited.diagnostics());
       expectPartition(First);
       expectPartition(Limited);
       expectPartition(Second);

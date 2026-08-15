@@ -1,7 +1,7 @@
 #ifndef INK_TOKENIZER_TOKENIZER_H
 #define INK_TOKENIZER_TOKENIZER_H
 
-#include "ink/core/diagnostic.h"
+#include "ink/core/context.h"
 #include "ink/tokenizer/token.h"
 
 #include <cstddef>
@@ -57,13 +57,15 @@ namespace ink::tokenizer
   class Tokenizer
   {
   public:
-    explicit Tokenizer(TokenizerOptions Options = {});
+    explicit Tokenizer(core::FrontendContext &Context, TokenizerOptions Options = {});
     TokenizedBuffer tokenize(std::string Source) const;
 
   private:
+    core::FrontendContext &Context;
     TokenizerOptions Options;
   };
 
+  TokenizedBuffer tokenize(core::FrontendContext &Context, std::string Source, TokenizerOptions Options = {});
   TokenizedBuffer tokenize(std::string Source, TokenizerOptions Options = {});
 } // namespace ink::tokenizer
 

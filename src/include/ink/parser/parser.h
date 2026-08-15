@@ -1,7 +1,7 @@
 #ifndef INK_PARSER_PARSER_H
 #define INK_PARSER_PARSER_H
 
-#include "ink/core/diagnostic.h"
+#include "ink/core/context.h"
 #include "ink/core/source_range.h"
 #include "ink/parser/cst.h"
 #include "ink/tokenizer/tokenizer.h"
@@ -69,13 +69,15 @@ namespace ink::parser
   class Parser
   {
   public:
-    explicit Parser(ParserOptions Options = {});
+    explicit Parser(core::FrontendContext &Context, ParserOptions Options = {});
     ParsedFile parse(tokenizer::TokenizedBuffer LexedFile) const;
 
   private:
+    core::FrontendContext &Context;
     ParserOptions Options;
   };
 
+  ParsedFile parse(core::FrontendContext &Context, tokenizer::TokenizedBuffer LexedFile, ParserOptions Options = {});
   ParsedFile parse(tokenizer::TokenizedBuffer LexedFile, ParserOptions Options = {});
 } // namespace ink::parser
 

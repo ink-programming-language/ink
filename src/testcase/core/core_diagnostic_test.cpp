@@ -1,4 +1,4 @@
-#include "ink/core/diagnostic.h"
+#include "ink/core/context.h"
 
 #include <gtest/gtest.h>
 
@@ -63,6 +63,9 @@ namespace ink::core
         {DiagnosticKind::TrailingComma, 0x02000005U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0005", "TrailingComma", "trailing comma is not allowed here"},
         {DiagnosticKind::DeclarationRequiresBlock, 0x02000006U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0006", "DeclarationRequiresBlock", "a declaration in this position must be enclosed in a statement block"},
         {DiagnosticKind::SyntaxNestingLimit, 0x02000007U, DiagnosticDomain::Parser, DiagnosticSeverity::Error, "INK-P0007", "SyntaxNestingLimit", "syntax nesting limit exceeded"},
+        {DiagnosticKind::InvalidIrText, 0x04000001U, DiagnosticDomain::IR, DiagnosticSeverity::Error, "INK-I0001", "InvalidIrText", "invalid InkIR text"},
+        {DiagnosticKind::InvalidIrModule, 0x04000002U, DiagnosticDomain::IR, DiagnosticSeverity::Error, "INK-I0002", "InvalidIrModule", "invalid InkIR module"},
+        {DiagnosticKind::ExecutionFailed, 0x05000001U, DiagnosticDomain::Execution, DiagnosticSeverity::Error, "INK-E0001", "ExecutionFailed", "execution failed"},
     };
 
     constexpr DiagnosticKind RegisteredDiagnosticKinds[] = {
@@ -222,6 +225,48 @@ namespace ink::core
 
       EXPECT_EQ(DiagnosticFormatter().format(UnexpectedTokenValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "unexpected token '}'", {}}));
       EXPECT_EQ(DiagnosticFormatter().format(ReservedSymbolValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "reserved symbol sequence is not valid here '++'", {}}));
+    }
+
+    // Verifies that IR diagnostics append their structured detail while preserving the registered diagnostic prefix.
+    TEST(DiagnosticFormatterTest, FormatsIrDetailArguments)
+    {
+      const Diagnostic TextValue = DiagnosticBuilder(DiagnosticKind::InvalidIrText, {4, 5}).argument(DiagnosticArgumentName::Detail, std::string("expected ')'")).build();
+      const Diagnostic ModuleValue = DiagnosticBuilder(DiagnosticKind::InvalidIrModule, {}).argument(DiagnosticArgumentName::Detail, std::string("block has no terminator")).build();
+
+      EXPECT_EQ(DiagnosticFormatter().format(TextValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "invalid InkIR text: expected ')'", {}}));
+      EXPECT_EQ(DiagnosticFormatter().format(ModuleValue), (FormattedDiagnostic{DiagnosticSeverity::Error, "invalid InkIR module: block has no terminator", {}}));
+    }
+
+    // Verifies that one diagnostic engine broadcasts to multiple consumers, ignores duplicate registration, and supports removal.
+    TEST(DiagnosticEngineTest, BroadcastsToRegisteredConsumers)
+    {
+      DiagnosticEngine Engine;
+      CollectingDiagnosticConsumer First;
+      CollectingDiagnosticConsumer Second;
+      const Diagnostic Value{DiagnosticKind::InvalidUtf8, {2, 3}, {}, {}};
+      Engine.addConsumer(First);
+      Engine.addConsumer(First);
+      Engine.addConsumer(Second);
+
+      Engine.report(Value);
+      Engine.removeConsumer(First);
+      Engine.report(Value);
+
+      ASSERT_EQ(First.diagnostics().size(), 1u);
+      ASSERT_EQ(Second.diagnostics().size(), 2u);
+      EXPECT_EQ(First.diagnostics()[0], Value);
+      EXPECT_EQ(Second.diagnostics()[0], Value);
+      EXPECT_EQ(Second.diagnostics()[1], Value);
+    }
+
+    // Verifies that phase contexts compose around one compilation context and expose the same diagnostic engine.
+    TEST(ContextTest, SharesCompilationDiagnosticEngineWithFrontend)
+    {
+      CompilationContext Compilation;
+      FrontendContext Frontend(Compilation);
+
+      EXPECT_EQ(&Frontend.compilationContext(), &Compilation);
+      EXPECT_EQ(&Frontend.diagnosticEngine(), &Compilation.diagnosticEngine());
     }
 
     // Verifies that an unterminated block comment formats its remaining depth and most recent opening as a located note.

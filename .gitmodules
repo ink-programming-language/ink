@@ -18,3 +18,7 @@
 	path = src/third_party/spdlog
 	url = https://github.com/gabime/spdlog.git
 	shallow = true
+[submodule "src/third_party/libffi"]
+	path = src/third_party/libffi
+	url = https://github.com/libffi/libffi.git
+	shallow = true

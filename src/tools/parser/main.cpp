@@ -184,20 +184,24 @@ namespace
             }
         }
 
-        ink::tokenizer::TokenizedBuffer LexedFile = ink::tokenizer::tokenize(std::move(Source));
+        ink::core::CompilationContext Compilation;
+        ink::core::FrontendContext Context(Compilation);
+        ink::core::CollectingDiagnosticConsumer Diagnostics;
+        Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        ink::tokenizer::TokenizedBuffer LexedFile = ink::tokenizer::tokenize(Context, std::move(Source));
         if (!LexedFile.succeeded())
         {
             std::ostringstream BufferedErrorOutput;
-            printDiagnostics(LexedFile.diagnostics(), BufferedErrorOutput);
+            printDiagnostics(Diagnostics.diagnostics(), BufferedErrorOutput);
             const bool ErrorOutputSucceeded = ink::cli::writeOutput(std::cerr, BufferedErrorOutput.str());
             return ink::cli::exitStatus(ErrorOutputSucceeded ? ink::cli::ExitCode::SourceError : ink::cli::ExitCode::InvocationError);
         }
 
-        const ink::parser::ParsedFile Result = ink::parser::parse(std::move(LexedFile));
+        const ink::parser::ParsedFile Result = ink::parser::parse(Context, std::move(LexedFile));
         std::ostringstream BufferedOutput;
         std::ostringstream BufferedErrorOutput;
         printCst(Result, BufferedOutput);
-        printDiagnostics(Result.diagnostics(), BufferedErrorOutput);
+        printDiagnostics(Diagnostics.diagnostics(), BufferedErrorOutput);
         const bool OutputSucceeded = ink::cli::writeOutput(std::cout, BufferedOutput.str());
         const bool ErrorOutputSucceeded = ink::cli::writeOutput(std::cerr, BufferedErrorOutput.str());
         if (!OutputSucceeded || !ErrorOutputSucceeded)

@@ -38,3 +38,6 @@ INK_DIAGNOSTIC(ReservedSymbolSequence, 0x02000004U, Parser, "INK-P0004", Error, 
 INK_DIAGNOSTIC(TrailingComma, 0x02000005U, Parser, "INK-P0005", Error, "trailing comma is not allowed here")
 INK_DIAGNOSTIC(DeclarationRequiresBlock, 0x02000006U, Parser, "INK-P0006", Error, "a declaration in this position must be enclosed in a statement block")
 INK_DIAGNOSTIC(SyntaxNestingLimit, 0x02000007U, Parser, "INK-P0007", Error, "syntax nesting limit exceeded")
+INK_DIAGNOSTIC(InvalidIrText, 0x04000001U, IR, "INK-I0001", Error, "invalid InkIR text")
+INK_DIAGNOSTIC(InvalidIrModule, 0x04000002U, IR, "INK-I0002", Error, "invalid InkIR module")
+INK_DIAGNOSTIC(ExecutionFailed, 0x05000001U, Execution, "INK-E0001", Error, "execution failed")

@@ -4,7 +4,7 @@ list(SORT INK_TEST_SOURCES)
 add_executable(ink_tests ${INK_TEST_SOURCES})
 add_dependencies(ink_tests ink_tokenize ink_parse inkc)
 target_compile_features(ink_tests PRIVATE cxx_std_17)
-target_link_libraries(ink_tests PRIVATE ink::cli ink::core ink::tokenizer ink::parser GTest::gmock_main)
+target_link_libraries(ink_tests PRIVATE ink::cli ink::core ink::tokenizer ink::parser ink::ir ink::execution GTest::gmock_main)
 
 if(MSVC)
   target_compile_options(ink_tests PRIVATE /utf-8)

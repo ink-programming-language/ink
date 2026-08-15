@@ -721,9 +721,11 @@ namespace ink::parser
     // Verifies one configured Parser instance can parse multiple independent token buffers without retaining prior state.
     TEST(ParserApiTest, ParserInstanceIsReusableAcrossFiles)
     {
-      const Parser Reusable(ParserOptions{ParseMode::Batch});
-      const ParsedFile First = Reusable.parse(tokenizer::tokenize("const First = 1;"));
-      const ParsedFile Second = Reusable.parse(tokenizer::tokenize("func Second() { return; }"));
+      core::CompilationContext Compilation;
+      core::FrontendContext Context(Compilation);
+      const Parser Reusable(Context, ParserOptions{ParseMode::Batch});
+      const ParsedFile First = Reusable.parse(tokenizer::tokenize(Context, "const First = 1;"));
+      const ParsedFile Second = Reusable.parse(tokenizer::tokenize(Context, "func Second() { return; }"));
 
       ASSERT_TRUE(First.succeeded());
       ASSERT_TRUE(Second.succeeded());
@@ -733,6 +735,22 @@ namespace ink::parser
       EXPECT_FALSE(hasKind(Second, CstKind::TopLevelBindingDeclaration));
       expectFullFidelity(First);
       expectFullFidelity(Second);
+    }
+
+    // Verifies that finalized Parser diagnostics are both retained in the parsed result and published through the shared frontend context.
+    TEST(ParserApiTest, PublishesDiagnosticsThroughFrontendContext)
+    {
+      core::CompilationContext Compilation;
+      core::FrontendContext Context(Compilation);
+      core::CollectingDiagnosticConsumer Diagnostics;
+      Compilation.diagnosticEngine().addConsumer(Diagnostics);
+      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(Context, "const Value = ;");
+
+      ASSERT_TRUE(LexedFile.succeeded());
+      const ParsedFile File = parse(Context, std::move(LexedFile));
+
+      ASSERT_FALSE(File.diagnostics().empty());
+      EXPECT_EQ(Diagnostics.diagnostics(), File.diagnostics());
     }
 
     // Verifies deterministic recovery and mandatory forward progress over many lexically valid but arbitrarily ordered token streams.

@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -17,6 +18,8 @@ namespace ink::core
     Tokenizer = 0x01,
     Parser = 0x02,
     Semantic = 0x03,
+    IR = 0x04,
+    Execution = 0x05,
   };
 
   enum class DiagnosticSeverity : std::uint8_t
@@ -43,6 +46,7 @@ namespace ink::core
     MostRecentOpeningUnavailable,
     Expected,
     Actual,
+    Detail,
   };
 
   enum class DiagnosticRelatedKind : std::uint8_t
@@ -140,6 +144,54 @@ namespace ink::core
   {
   public:
     FormattedDiagnostic format(const Diagnostic &DiagnosticEntry) const;
+  };
+
+  class DiagnosticConsumer
+  {
+  public:
+    virtual ~DiagnosticConsumer() = default;
+    virtual void consume(const Diagnostic &DiagnosticEntry) = 0;
+  };
+
+  class DiagnosticEngine
+  {
+  public:
+    DiagnosticEngine() = default;
+    DiagnosticEngine(const DiagnosticEngine &) = delete;
+    DiagnosticEngine &operator=(const DiagnosticEngine &) = delete;
+    DiagnosticEngine(DiagnosticEngine &&) = delete;
+    DiagnosticEngine &operator=(DiagnosticEngine &&) = delete;
+
+    void addConsumer(DiagnosticConsumer &Consumer);
+    void removeConsumer(DiagnosticConsumer &Consumer) noexcept;
+    void report(const Diagnostic &DiagnosticEntry) const;
+
+  private:
+    std::vector<DiagnosticConsumer *> Consumers;
+  };
+
+  class CollectingDiagnosticConsumer final : public DiagnosticConsumer
+  {
+  public:
+    void consume(const Diagnostic &DiagnosticEntry) override;
+
+    const std::vector<Diagnostic> &diagnostics() const noexcept
+    {
+      return Diagnostics;
+    }
+
+    std::vector<Diagnostic> takeDiagnostics() noexcept
+    {
+      return std::move(Diagnostics);
+    }
+
+    void clear() noexcept
+    {
+      Diagnostics.clear();
+    }
+
+  private:
+    std::vector<Diagnostic> Diagnostics;
   };
 } // namespace ink::core
 
