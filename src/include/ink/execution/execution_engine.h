@@ -4,8 +4,9 @@
 #include "ink/core/diagnostic.h"
 #include "ink/execution/context.h"
 #include "ink/execution/native_symbol_registry.h"
-#include "ink/ir/ir.h"
+#include "ink/ir/module.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -14,21 +15,29 @@
 
 namespace ink::execution
 {
+  class RuntimeAggregateStorage;
+
   class RuntimeValue
   {
   public:
-    static RuntimeValue voidValue() noexcept;
-    static RuntimeValue integerValue(ir::TypeKind Type, std::uint64_t Value) noexcept;
-    static RuntimeValue pointerValue(ir::TypeKind Type, const void *Value) noexcept;
+    static RuntimeValue voidValue(const ir::Type &ValueType) noexcept;
+    static RuntimeValue integerValue(const ir::Type &ValueType, std::uint64_t Value) noexcept;
+    static RuntimeValue pointerValue(const ir::Type &ValueType, const void *Value) noexcept;
+    static RuntimeValue aggregateValue(const ir::StructType &ValueType, std::vector<RuntimeValue> Fields);
 
-    ir::TypeKind type() const noexcept;
+    const ir::Type &type() const noexcept;
     std::optional<std::uint64_t> integer() const noexcept;
     const void *pointer() const noexcept;
+    std::size_t fieldCount() const noexcept;
+    const RuntimeValue *field(std::size_t FieldIndex) const noexcept;
 
   private:
-    ir::TypeKind Type = ir::TypeKind::Void;
+    explicit RuntimeValue(const ir::Type &ValueType) noexcept;
+
+    const ir::Type *ValueType;
     std::uint64_t Integer = 0;
     const void *Pointer = nullptr;
+    std::shared_ptr<const RuntimeAggregateStorage> Aggregate;
   };
 
   class InitializationResult

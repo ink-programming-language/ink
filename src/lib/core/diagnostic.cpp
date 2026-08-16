@@ -1,6 +1,10 @@
 #include "ink/core/diagnostic.h"
 
+#include <spdlog/fmt/bundled/args.h>
+#include <spdlog/fmt/fmt.h>
+
 #include <algorithm>
+#include <string_view>
 #include <utility>
 
 namespace ink::core
@@ -38,42 +42,117 @@ namespace ink::core
       return Result;
     }
 
-    void formatUnterminatedBlockComment(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
+    const char *sourceContextText(DiagnosticSourceContext Context) noexcept
     {
-      if (const std::uint64_t *RemainingDepth = findArgument<std::uint64_t>(DiagnosticEntry.Arguments, DiagnosticArgumentName::RemainingNestingDepth))
+      switch (Context)
       {
-        Result.Message += "; remaining nesting depth: " + std::to_string(*RemainingDepth);
+      case DiagnosticSourceContext::SourceText:
+        return "appears in source text";
+      case DiagnosticSourceContext::Identifier:
+        return "appears in an identifier";
+      case DiagnosticSourceContext::Unknown:
+        break;
       }
+      return "appears in an unknown source context";
+    }
+
+    template <typename Specification>
+    bool hasArgument(const std::vector<DiagnosticArgument> &Arguments)
+    {
+      using ValueType = typename Specification::ValueType;
+      std::size_t MatchCount = 0;
+      for (const DiagnosticArgument &Argument : Arguments)
+      {
+        if (Argument.Name == Specification::Name && std::holds_alternative<ValueType>(Argument.Value))
+        {
+          ++MatchCount;
+        }
+      }
+      return MatchCount == 1;
+    }
+
+    template <typename... Specifications>
+    bool matchesSchema(DiagnosticArgumentSchema<Specifications...>, const std::vector<DiagnosticArgument> &Arguments)
+    {
+      return Arguments.size() == sizeof...(Specifications) && (hasArgument<Specifications>(Arguments) && ...);
+    }
+
+    using FormatArgumentStore = fmt::dynamic_format_arg_store<fmt::format_context>;
+
+    void addFormatArgument(FormatArgumentStore &Store, const DiagnosticArgument &Argument)
+    {
+      const char *Name = diagnosticArgumentName(Argument.Name);
+      std::visit([&Store, Name](const auto &Value)
+                 {
+                   using ValueType = std::decay_t<decltype(Value)>;
+                   if constexpr (std::is_same_v<ValueType, char32_t>)
+                   {
+                     Store.push_back(fmt::arg(Name, codePointName(Value)));
+                   }
+                   else if constexpr (std::is_same_v<ValueType, DiagnosticSourceContext>)
+                   {
+                     Store.push_back(fmt::arg(Name, sourceContextText(Value)));
+                   }
+                   else
+                   {
+                     Store.push_back(fmt::arg(Name, Value));
+                   }
+                 },
+                 Argument.Value);
+    }
+
+    template <typename... Specifications>
+    std::string formatMessage(DiagnosticArgumentSchema<Specifications...> Schema, const Diagnostic &DiagnosticEntry, const char *FormatPattern, const char *FallbackMessage)
+    {
+      if (!matchesSchema(Schema, DiagnosticEntry.Arguments))
+      {
+        return FallbackMessage;
+      }
+      FormatArgumentStore Store;
+      for (const DiagnosticArgument &Argument : DiagnosticEntry.Arguments)
+      {
+        addFormatArgument(Store, Argument);
+      }
+      try
+      {
+        return fmt::vformat(FormatPattern, Store);
+      }
+      catch (const fmt::format_error &)
+      {
+        return FallbackMessage;
+      }
+    }
+
+    std::string formatRegisteredMessage(const Diagnostic &DiagnosticEntry)
+    {
+      switch (DiagnosticEntry.Kind)
+      {
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
+  case DiagnosticKind::Name:                                                                                         \
+    return formatMessage(typename DiagnosticTraits<DiagnosticKind::Name>::Arguments{}, DiagnosticEntry, FormatPattern, DefaultMessage);
+#include "ink/core/diagnostic.def"
+#undef INK_DIAGNOSTIC
+      }
+      return "unknown diagnostic";
+    }
+
+    void appendUnterminatedBlockCommentNotes(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
+    {
       for (const DiagnosticRelatedInformation &RelatedEntry : DiagnosticEntry.Related)
       {
         if (RelatedEntry.Kind == DiagnosticRelatedKind::MostRecentUnclosedBlockComment)
         {
           Result.Notes.push_back({RelatedEntry.Span, "most recent unclosed block comment opening is here"});
         }
-      }
-      if (const bool *Unavailable = findArgument<bool>(DiagnosticEntry.Arguments, DiagnosticArgumentName::MostRecentOpeningUnavailable); Unavailable != nullptr && *Unavailable)
-      {
-        Result.Notes.push_back({std::nullopt, "most recent unclosed opening was not retained after the nesting limit was exceeded"});
+        else if (RelatedEntry.Kind == DiagnosticRelatedKind::MostRecentBlockCommentOpeningUnavailable)
+        {
+          Result.Notes.push_back({std::nullopt, "most recent unclosed opening was not retained after the nesting limit was exceeded"});
+        }
       }
     }
 
-    void formatInvisibleCharacter(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
+    void appendInvisibleCharacterNotes(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
     {
-      if (const char32_t *Character = findArgument<char32_t>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Character))
-      {
-        Result.Message = "invisible format character " + codePointName(*Character);
-        if (const DiagnosticSourceContext *Context = findArgument<DiagnosticSourceContext>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Context))
-        {
-          if (*Context == DiagnosticSourceContext::Identifier)
-          {
-            Result.Message += " appears in an identifier";
-          }
-          else if (*Context == DiagnosticSourceContext::SourceText)
-          {
-            Result.Message += " appears in source text";
-          }
-        }
-      }
       for (const DiagnosticRelatedInformation &RelatedEntry : DiagnosticEntry.Related)
       {
         const bool IsPrevious = RelatedEntry.Kind == DiagnosticRelatedKind::PreviousVisibleCharacter;
@@ -94,38 +173,14 @@ namespace ink::core
         Result.Notes.push_back({RelatedEntry.Span, std::move(Message)});
       }
     }
-
-    void formatExpected(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
-    {
-      if (const std::string *Expected = findArgument<std::string>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Expected))
-      {
-        Result.Message += " '" + *Expected + "'";
-      }
-    }
-
-    void formatActual(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
-    {
-      if (const std::string *Actual = findArgument<std::string>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Actual))
-      {
-        Result.Message += " '" + *Actual + "'";
-      }
-    }
-
-    void formatDetail(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
-    {
-      if (const std::string *Detail = findArgument<std::string>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Detail))
-      {
-        Result.Message += ": " + *Detail;
-      }
-    }
   } // namespace
 
   std::uint32_t diagnosticNumber(DiagnosticKind Kind) noexcept
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
-  case DiagnosticKind::Name:                                                        \
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
+  case DiagnosticKind::Name:                                                                                         \
     return Number;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -137,8 +192,8 @@ namespace ink::core
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
-  case DiagnosticKind::Name:                                                        \
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
+  case DiagnosticKind::Name:                                                                                         \
     return Code;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -150,8 +205,8 @@ namespace ink::core
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
-  case DiagnosticKind::Name:                                                        \
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
+  case DiagnosticKind::Name:                                                                                         \
     return #Name;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -163,9 +218,22 @@ namespace ink::core
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
-  case DiagnosticKind::Name:                                                        \
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
+  case DiagnosticKind::Name:                                                                                         \
     return DefaultMessage;
+#include "ink/core/diagnostic.def"
+#undef INK_DIAGNOSTIC
+    }
+    return "unknown diagnostic";
+  }
+
+  const char *diagnosticFormatPattern(DiagnosticKind Kind) noexcept
+  {
+    switch (Kind)
+    {
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
+  case DiagnosticKind::Name:                                                                                         \
+    return FormatPattern;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
     }
@@ -176,8 +244,8 @@ namespace ink::core
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
-  case DiagnosticKind::Name:                                                        \
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
+  case DiagnosticKind::Name:                                                                                         \
     return DiagnosticDomain::Domain;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -185,17 +253,44 @@ namespace ink::core
     return DiagnosticDomain::Unknown;
   }
 
+  DiagnosticClass diagnosticClass(DiagnosticKind Kind) noexcept
+  {
+    switch (Kind)
+    {
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
+  case DiagnosticKind::Name:                                                                                         \
+    return DiagnosticClass::Class;
+#include "ink/core/diagnostic.def"
+#undef INK_DIAGNOSTIC
+    }
+    return DiagnosticClass::Unknown;
+  }
+
   DiagnosticSeverity diagnosticDefaultSeverity(DiagnosticKind Kind) noexcept
   {
     switch (Kind)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, DefaultSeverity, DefaultMessage) \
-  case DiagnosticKind::Name:                                                        \
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
+  case DiagnosticKind::Name:                                                                                         \
     return DiagnosticSeverity::DefaultSeverity;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
     }
     return DiagnosticSeverity::Unknown;
+  }
+
+  const char *diagnosticClassName(DiagnosticClass Class) noexcept
+  {
+    switch (Class)
+    {
+    case DiagnosticClass::Unknown:
+      return "unknown";
+    case DiagnosticClass::User:
+      return "user";
+    case DiagnosticClass::InternalCompilerError:
+      return "internal compiler error";
+    }
+    return "unknown";
   }
 
   const char *diagnosticSeverityName(DiagnosticSeverity Severity) noexcept
@@ -212,6 +307,82 @@ namespace ink::core
       return "note";
     }
     return "unknown";
+  }
+
+  const char *diagnosticArgumentName(DiagnosticArgumentName Name) noexcept
+  {
+    switch (Name)
+    {
+    case DiagnosticArgumentName::Unknown:
+      return "Unknown";
+    case DiagnosticArgumentName::Character:
+      return "Character";
+    case DiagnosticArgumentName::Context:
+      return "Context";
+    case DiagnosticArgumentName::RemainingNestingDepth:
+      return "RemainingNestingDepth";
+    case DiagnosticArgumentName::Expected:
+      return "Expected";
+    case DiagnosticArgumentName::Actual:
+      return "Actual";
+    case DiagnosticArgumentName::Description:
+      return "Description";
+    case DiagnosticArgumentName::TypeName:
+      return "TypeName";
+    case DiagnosticArgumentName::StructName:
+      return "StructName";
+    case DiagnosticArgumentName::SymbolName:
+      return "SymbolName";
+    case DiagnosticArgumentName::FunctionName:
+      return "FunctionName";
+    case DiagnosticArgumentName::BlockName:
+      return "BlockName";
+    case DiagnosticArgumentName::CalleeName:
+      return "CalleeName";
+    case DiagnosticArgumentName::Operation:
+      return "Operation";
+    case DiagnosticArgumentName::ArgumentIndex:
+      return "ArgumentIndex";
+    case DiagnosticArgumentName::ParameterIndex:
+      return "ParameterIndex";
+    case DiagnosticArgumentName::FieldIndex:
+      return "FieldIndex";
+    case DiagnosticArgumentName::ValueId:
+      return "ValueId";
+    case DiagnosticArgumentName::GlobalId:
+      return "GlobalId";
+    case DiagnosticArgumentName::ExpectedCount:
+      return "ExpectedCount";
+    case DiagnosticArgumentName::ActualCount:
+      return "ActualCount";
+    case DiagnosticArgumentName::DeclaredSize:
+      return "DeclaredSize";
+    case DiagnosticArgumentName::ActualSize:
+      return "ActualSize";
+    case DiagnosticArgumentName::FieldCount:
+      return "FieldCount";
+    case DiagnosticArgumentName::Offset:
+      return "Offset";
+    case DiagnosticArgumentName::Size:
+      return "Size";
+    case DiagnosticArgumentName::ActualVersion:
+      return "ActualVersion";
+    case DiagnosticArgumentName::SupportedVersion:
+      return "SupportedVersion";
+    case DiagnosticArgumentName::Alignment:
+      return "Alignment";
+    case DiagnosticArgumentName::MaximumAlignment:
+      return "MaximumAlignment";
+    case DiagnosticArgumentName::BlockCount:
+      return "BlockCount";
+    case DiagnosticArgumentName::CallDepthLimit:
+      return "CallDepthLimit";
+    case DiagnosticArgumentName::InstructionName:
+      return "InstructionName";
+    case DiagnosticArgumentName::ExceptionMessage:
+      return "ExceptionMessage";
+    }
+    return "Unknown";
   }
 
   bool operator==(const DiagnosticArgument &Left, const DiagnosticArgument &Right)
@@ -244,9 +415,14 @@ namespace ink::core
     return diagnosticCode(Kind);
   }
 
+  DiagnosticClass Diagnostic::classification() const noexcept
+  {
+    return Class == DiagnosticClass::Unknown ? diagnosticClass(Kind) : Class;
+  }
+
   bool operator==(const Diagnostic &Left, const Diagnostic &Right)
   {
-    return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Arguments == Right.Arguments && Left.Related == Right.Related;
+    return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Arguments == Right.Arguments && Left.Related == Right.Related && Left.Class == Right.Class;
   }
 
   bool operator!=(const Diagnostic &Left, const Diagnostic &Right)
@@ -254,20 +430,19 @@ namespace ink::core
     return !(Left == Right);
   }
 
-  DiagnosticBuilder::DiagnosticBuilder(DiagnosticKind Kind, SourceRange Span)
-      : Result{Kind, Span, {}, {}}
+  DiagnosticBuilder::DiagnosticBuilder(Diagnostic Result) : Result(std::move(Result))
   {
   }
 
-  DiagnosticBuilder &DiagnosticBuilder::argument(DiagnosticArgumentName Name, DiagnosticArgumentValue Value) &
+  DiagnosticBuilder &DiagnosticBuilder::classification(DiagnosticClass Class) &
   {
-    Result.Arguments.push_back({Name, std::move(Value)});
+    Result.Class = Class;
     return *this;
   }
 
-  DiagnosticBuilder &&DiagnosticBuilder::argument(DiagnosticArgumentName Name, DiagnosticArgumentValue Value) &&
+  DiagnosticBuilder &&DiagnosticBuilder::classification(DiagnosticClass Class) &&
   {
-    argument(Name, std::move(Value));
+    classification(Class);
     return std::move(*this);
   }
 
@@ -310,26 +485,14 @@ namespace ink::core
 
   FormattedDiagnostic DiagnosticFormatter::format(const Diagnostic &DiagnosticEntry) const
   {
-    FormattedDiagnostic Result{diagnosticDefaultSeverity(DiagnosticEntry.Kind), diagnosticDefaultMessage(DiagnosticEntry.Kind), {}};
+    FormattedDiagnostic Result{diagnosticDefaultSeverity(DiagnosticEntry.Kind), formatRegisteredMessage(DiagnosticEntry), {}};
     if (DiagnosticEntry.Kind == DiagnosticKind::UnterminatedBlockComment)
     {
-      formatUnterminatedBlockComment(DiagnosticEntry, Result);
+      appendUnterminatedBlockCommentNotes(DiagnosticEntry, Result);
     }
-    else if (DiagnosticEntry.Kind == DiagnosticKind::InvisibleCharacter)
+    else if (DiagnosticEntry.Kind == DiagnosticKind::InvisibleCharacterInContext)
     {
-      formatInvisibleCharacter(DiagnosticEntry, Result);
-    }
-    else if (DiagnosticEntry.Kind == DiagnosticKind::ExpectedToken || DiagnosticEntry.Kind == DiagnosticKind::ExpectedSyntax)
-    {
-      formatExpected(DiagnosticEntry, Result);
-    }
-    else if (DiagnosticEntry.Kind == DiagnosticKind::UnexpectedToken || DiagnosticEntry.Kind == DiagnosticKind::ReservedSymbolSequence)
-    {
-      formatActual(DiagnosticEntry, Result);
-    }
-    else if (DiagnosticEntry.Kind == DiagnosticKind::InvalidIrText || DiagnosticEntry.Kind == DiagnosticKind::InvalidIrModule || DiagnosticEntry.Kind == DiagnosticKind::ExecutionFailed)
-    {
-      formatDetail(DiagnosticEntry, Result);
+      appendInvisibleCharacterNotes(DiagnosticEntry, Result);
     }
     return Result;
   }

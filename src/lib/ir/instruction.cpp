@@ -1,33 +1,8 @@
-#include "ink/ir/ir.h"
+#include "ink/ir/instruction.h"
 
 namespace ink::ir
 {
-  Value::~Value() = default;
   Instruction::~Instruction() = default;
-
-  const char *typeKindName(TypeKind Kind) noexcept
-  {
-    switch (Kind)
-    {
-#define INK_IR_TYPE(Name, Spelling) \
-  case TypeKind::Name:              \
-    return Spelling;
-#include "ink/ir/ir.def"
-    }
-    return "unknown";
-  }
-
-  const char *valueKindName(ValueKind Kind) noexcept
-  {
-    switch (Kind)
-    {
-#define INK_IR_VALUE(Name) \
-  case ValueKind::Name:    \
-    return #Name;
-#include "ink/ir/ir.def"
-    }
-    return "Unknown";
-  }
 
   const char *instructionKindName(InstructionKind Kind) noexcept
   {

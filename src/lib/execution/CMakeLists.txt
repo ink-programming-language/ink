@@ -1,4 +1,4 @@
-add_library(ink_execution STATIC execution_engine.cpp native_symbol_registry.cpp runtime.cpp)
+add_library(ink_execution STATIC execution_engine.cpp execution_frame.cpp native_symbol_registry.cpp runtime.cpp)
 add_library(ink::execution ALIAS ink_execution)
 
 target_compile_features(ink_execution PUBLIC cxx_std_17)

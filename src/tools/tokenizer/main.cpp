@@ -76,7 +76,7 @@ namespace
     for (const ink::core::Diagnostic &Diagnostic : Diagnostics.diagnostics())
     {
       const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
-      BufferedErrorOutput << ink::core::diagnosticSeverityName(Formatted.Severity) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
+      BufferedErrorOutput << (Diagnostic.classification() == ink::core::DiagnosticClass::InternalCompilerError ? ink::core::diagnosticClassName(Diagnostic.classification()) : ink::core::diagnosticSeverityName(Formatted.Severity)) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
       for (const ink::core::FormattedDiagnosticNote &Note : Formatted.Notes)
       {
         BufferedErrorOutput << "note: " << Note.Message;

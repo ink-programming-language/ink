@@ -18,10 +18,10 @@ namespace ink::tokenizer
   {
     using core::Diagnostic;
     using core::DiagnosticArgumentName;
-    using core::DiagnosticBuilder;
     using core::DiagnosticKind;
     using core::DiagnosticRelatedKind;
     using core::DiagnosticSourceContext;
+    using core::makeDiagnosticBuilder;
     using unicode::DecodeResult;
 
     struct KeywordEntry
@@ -192,7 +192,7 @@ namespace ink::tokenizer
           Token Token = scanToken();
           if (Position <= Before)
           {
-            addDiagnostic(DiagnosticKind::InvalidCharacter, {Before, std::min(Before + 1, Source.size())});
+            addDiagnostic<DiagnosticKind::InvalidCharacter>({Before, std::min(Before + 1, Source.size())});
             Position = std::min(Before + 1, Source.size());
             Token = makeToken(TokenKind::InvalidCharacter, Before, Position);
           }
@@ -209,7 +209,7 @@ namespace ink::tokenizer
         if (!Decoded.Valid)
         {
           Position += std::max<std::size_t>(Decoded.Length, 1);
-          addDiagnostic(DiagnosticKind::InvalidUtf8, {Start, Position});
+          addDiagnostic<DiagnosticKind::InvalidUtf8>({Start, Position});
           return makeToken(TokenKind::InvalidEncoding, Start, Position);
         }
 
@@ -221,7 +221,7 @@ namespace ink::tokenizer
             return makeToken(TokenKind::LineBreak, Start, Position);
           }
           Position += Decoded.Length;
-          addDiagnostic(DiagnosticKind::LoneCarriageReturn, {Start, Position});
+          addDiagnostic<DiagnosticKind::LoneCarriageReturn>({Start, Position});
           return makeToken(TokenKind::InvalidCharacter, Start, Position);
         }
         if (Decoded.Value == U'\n')
@@ -240,19 +240,19 @@ namespace ink::tokenizer
         if (Decoded.Value == 0xFEFF)
         {
           Position += Decoded.Length;
-          addDiagnostic(DiagnosticKind::UnexpectedBom, {Start, Position});
+          addDiagnostic<DiagnosticKind::UnexpectedBom>({Start, Position});
           return makeToken(TokenKind::InvalidCharacter, Start, Position);
         }
         if (isForbiddenControl(Decoded.Value))
         {
           Position += Decoded.Length;
-          addDiagnostic(DiagnosticKind::ForbiddenControlCharacter, {Start, Position});
+          addDiagnostic<DiagnosticKind::ForbiddenControlCharacter>({Start, Position});
           return makeToken(TokenKind::InvalidCharacter, Start, Position);
         }
         if (unicode::isUnicodeWhitespace(Decoded.Value))
         {
           Position += Decoded.Length;
-          addDiagnostic(DiagnosticKind::NonAsciiWhitespace, {Start, Position});
+          addDiagnostic<DiagnosticKind::NonAsciiWhitespace>({Start, Position});
           return makeToken(TokenKind::InvalidCharacter, Start, Position);
         }
         if (startsWith(Source, Position, "//"))
@@ -304,7 +304,7 @@ namespace ink::tokenizer
         }
         else
         {
-          addDiagnostic(DiagnosticKind::InvalidCharacter, {Start, Position});
+          addDiagnostic<DiagnosticKind::InvalidCharacter>({Start, Position});
         }
         return makeToken(TokenKind::InvalidCharacter, Start, Position);
       }
@@ -330,7 +330,7 @@ namespace ink::tokenizer
         bool NestingLimitExceeded = Options.MaxBlockCommentDepth < 1;
         if (NestingLimitExceeded)
         {
-          addDiagnostic(DiagnosticKind::BlockCommentNestingLimit, {Start, Start + 2});
+          addDiagnostic<DiagnosticKind::BlockCommentNestingLimit>({Start, Start + 2});
         }
         Position += 2;
         while (Position < Source.size() && Depth != 0)
@@ -345,7 +345,7 @@ namespace ink::tokenizer
             if (Depth > Options.MaxBlockCommentDepth && !NestingLimitExceeded)
             {
               NestingLimitExceeded = true;
-              addDiagnostic(DiagnosticKind::BlockCommentNestingLimit, {Position, Position + 2});
+              addDiagnostic<DiagnosticKind::BlockCommentNestingLimit>({Position, Position + 2});
             }
             Position += 2;
           }
@@ -366,8 +366,7 @@ namespace ink::tokenizer
         if (Depth != 0)
         {
           validateRawRange(Start, Position, true);
-          DiagnosticBuilder Builder(DiagnosticKind::UnterminatedBlockComment, {Start, std::min(Start + 2, Source.size())});
-          Builder.argument(DiagnosticArgumentName::RemainingNestingDepth, static_cast<std::uint64_t>(Depth));
+          auto Builder = makeDiagnosticBuilder<DiagnosticKind::UnterminatedBlockComment>({Start, std::min(Start + 2, Source.size())}, static_cast<std::uint64_t>(Depth));
           if (Depth <= TrackedDepthLimit)
           {
             const std::size_t MostRecentOpening = OpeningPositions.back();
@@ -378,7 +377,7 @@ namespace ink::tokenizer
           }
           else
           {
-            Builder.argument(DiagnosticArgumentName::MostRecentOpeningUnavailable, true);
+            Builder.related(DiagnosticRelatedKind::MostRecentBlockCommentOpeningUnavailable, {});
           }
           Diagnostics.push_back(std::move(Builder).build());
           return makeToken(TokenKind::UnterminatedBlockComment, Start, Position);
@@ -441,7 +440,7 @@ namespace ink::tokenizer
         }
         if (!unicode::isNfc(Spelling))
         {
-          addDiagnostic(DiagnosticKind::IdentifierNotNfc, {Start, Position});
+          addDiagnostic<DiagnosticKind::IdentifierNotNfc>({Start, Position});
           return makeToken(TokenKind::InvalidIdentifier, Start, Position);
         }
         for (const KeywordEntry &Entry : Keywords)
@@ -503,7 +502,7 @@ namespace ink::tokenizer
             if (static_cast<unsigned>(Value) >= Base)
             {
               Invalid = true;
-              addDiagnostic(DiagnosticKind::DigitOutOfRange, {Position, Position + 1});
+              addDiagnostic<DiagnosticKind::DigitOutOfRange>({Position, Position + 1});
             }
             PreviousDigit = static_cast<unsigned>(Value) < Base;
             ++Position;
@@ -515,7 +514,7 @@ namespace ink::tokenizer
             if (!PreviousDigit || !NextIsDigit)
             {
               Invalid = true;
-              addDiagnostic(DiagnosticKind::MisplacedNumericSeparator, {Position, Position + 1});
+              addDiagnostic<DiagnosticKind::MisplacedNumericSeparator>({Position, Position + 1});
             }
             PreviousDigit = false;
             ++Position;
@@ -527,7 +526,7 @@ namespace ink::tokenizer
         if (ExplicitBase && !SawDigit)
         {
           Invalid = true;
-          addDiagnostic(DiagnosticKind::MissingBaseDigits, {Start, Position});
+          addDiagnostic<DiagnosticKind::MissingBaseDigits>({Start, Position});
         }
 
         if (!ExplicitBase && Position < Source.size() && Source[Position] == '.' && Position + 1 < Source.size() && isAsciiDigit(Source[Position + 1]))
@@ -545,7 +544,7 @@ namespace ink::tokenizer
         else if (ExplicitBase && Position < Source.size() && Source[Position] == '.' && Position + 1 < Source.size() && (isAsciiDigit(Source[Position + 1]) || (Base == 16 && isHexDigit(Source[Position + 1]))))
         {
           Invalid = true;
-          addDiagnostic(DiagnosticKind::UnsupportedNonDecimalFloat, {Position, Position + 1});
+          addDiagnostic<DiagnosticKind::UnsupportedNonDecimalFloat>({Position, Position + 1});
           ++Position;
           while (Position < Source.size() && (isAsciiDigit(Source[Position]) || (Base == 16 && isHexDigit(Source[Position])) || Source[Position] == '_'))
           {
@@ -566,7 +565,7 @@ namespace ink::tokenizer
           if (!ExponentHasDigits)
           {
             Invalid = true;
-            addDiagnostic(DiagnosticKind::MissingExponentDigits, {ExponentStart, std::max(Position, DigitsStart)});
+            addDiagnostic<DiagnosticKind::MissingExponentDigits>({ExponentStart, std::max(Position, DigitsStart)});
           }
         }
 
@@ -579,7 +578,7 @@ namespace ink::tokenizer
             if (unicode::isDefaultIgnorable(Decoded.Value))
             {
               Invalid = true;
-              addDiagnostic(DiagnosticKind::InvisibleCharacter, {Position, Position + Decoded.Length});
+              addDiagnostic<DiagnosticKind::InvisibleCharacter>({Position, Position + Decoded.Length});
             }
             Position += Decoded.Length;
             while (Position < Source.size())
@@ -592,7 +591,7 @@ namespace ink::tokenizer
               if (unicode::isDefaultIgnorable(Continued.Value))
               {
                 Invalid = true;
-                addDiagnostic(DiagnosticKind::InvisibleCharacter, {Position, Position + Continued.Length});
+                addDiagnostic<DiagnosticKind::InvisibleCharacter>({Position, Position + Continued.Length});
               }
               Position += Continued.Length;
             }
@@ -612,17 +611,24 @@ namespace ink::tokenizer
               {
                 Invalid = true;
                 const bool LooksLikeNonDecimalExponent = ExplicitBase && !Spelling.empty() && (Spelling.front() == 'e' || Spelling.front() == 'E' || Spelling.front() == 'p' || Spelling.front() == 'P');
-                addDiagnostic(LooksLikeNonDecimalExponent ? DiagnosticKind::UnsupportedNonDecimalFloat : DiagnosticKind::UnknownNumericSuffix, {SuffixStart, Position});
+                if (LooksLikeNonDecimalExponent)
+                {
+                  addDiagnostic<DiagnosticKind::UnsupportedNonDecimalFloat>({SuffixStart, Position});
+                }
+                else
+                {
+                  addDiagnostic<DiagnosticKind::UnknownNumericSuffix>({SuffixStart, Position});
+                }
               }
               else if (ExplicitBase && Entry->Floating)
               {
                 Invalid = true;
-                addDiagnostic(DiagnosticKind::InvalidNumericSuffix, {SuffixStart, Position});
+                addDiagnostic<DiagnosticKind::InvalidNumericSuffix>({SuffixStart, Position});
               }
               else if ((HasFraction || HasExponent) && !Entry->Floating)
               {
                 Invalid = true;
-                addDiagnostic(DiagnosticKind::InvalidNumericSuffix, {SuffixStart, Position});
+                addDiagnostic<DiagnosticKind::InvalidNumericSuffix>({SuffixStart, Position});
               }
               else
               {
@@ -662,7 +668,7 @@ namespace ink::tokenizer
             if (!PreviousDigit || !NextIsDigit)
             {
               Invalid = true;
-              addDiagnostic(DiagnosticKind::MisplacedNumericSeparator, {Position, Position + 1});
+              addDiagnostic<DiagnosticKind::MisplacedNumericSeparator>({Position, Position + 1});
             }
             PreviousDigit = false;
             ++Position;
@@ -694,7 +700,7 @@ namespace ink::tokenizer
           if (Source[Position] == '\n' || (Source[Position] == '\r' && Position + 1 < Source.size() && Source[Position + 1] == '\n'))
           {
             Invalid = true;
-            addDiagnostic(DiagnosticKind::UnterminatedScalarLiteral, {Start, Position});
+            addDiagnostic<DiagnosticKind::UnterminatedScalarLiteral>({Start, Position});
             break;
           }
           if (Source[Position] == '\\')
@@ -721,19 +727,26 @@ namespace ink::tokenizer
           if (!Decoded.Valid)
           {
             Invalid = true;
-            addDiagnostic(DiagnosticKind::InvalidUtf8, {Position, Position + std::max<std::size_t>(Decoded.Length, 1)});
+            addDiagnostic<DiagnosticKind::InvalidUtf8>({Position, Position + std::max<std::size_t>(Decoded.Length, 1)});
             Position += std::max<std::size_t>(Decoded.Length, 1);
             continue;
           }
           if (isForbiddenControl(Decoded.Value) || Decoded.Value == U'\r')
           {
             Invalid = true;
-            addDiagnostic(Decoded.Value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {Position, Position + Decoded.Length});
+            if (Decoded.Value == U'\r')
+            {
+              addDiagnostic<DiagnosticKind::LoneCarriageReturn>({Position, Position + Decoded.Length});
+            }
+            else
+            {
+              addDiagnostic<DiagnosticKind::ForbiddenControlCharacter>({Position, Position + Decoded.Length});
+            }
           }
           if (unicode::isDefaultIgnorable(Decoded.Value))
           {
             Invalid = true;
-            addDiagnostic(DiagnosticKind::InvisibleCharacter, {Position, Position + Decoded.Length});
+            addDiagnostic<DiagnosticKind::InvisibleCharacter>({Position, Position + Decoded.Length});
           }
           if (ValueCount == 0)
           {
@@ -745,17 +758,17 @@ namespace ink::tokenizer
         if (!Closed && Position == Source.size())
         {
           Invalid = true;
-          addDiagnostic(DiagnosticKind::UnterminatedScalarLiteral, {Start, Position});
+          addDiagnostic<DiagnosticKind::UnterminatedScalarLiteral>({Start, Position});
         }
         if (!HasBody && Closed)
         {
           Invalid = true;
-          addDiagnostic(DiagnosticKind::EmptyScalarLiteral, {Start, Position});
+          addDiagnostic<DiagnosticKind::EmptyScalarLiteral>({Start, Position});
         }
         else if (ValueCount > 1)
         {
           Invalid = true;
-          addDiagnostic(DiagnosticKind::MultipleScalarValues, {Start, Position});
+          addDiagnostic<DiagnosticKind::MultipleScalarValues>({Start, Position});
         }
         if (Invalid || !Closed || ValueCount != 1)
         {
@@ -782,7 +795,7 @@ namespace ink::tokenizer
           if (Source[Position] == '\n' || (Source[Position] == '\r' && Position + 1 < Source.size() && Source[Position + 1] == '\n'))
           {
             Invalid = true;
-            addDiagnostic(DiagnosticKind::UnterminatedStringLiteral, {Start, Position});
+            addDiagnostic<DiagnosticKind::UnterminatedStringLiteral>({Start, Position});
             break;
           }
           if (!RawMode && Source[Position] == '\\')
@@ -807,7 +820,7 @@ namespace ink::tokenizer
         if (!Closed && Position == Source.size())
         {
           Invalid = true;
-          addDiagnostic(DiagnosticKind::UnterminatedStringLiteral, {Start, Position});
+          addDiagnostic<DiagnosticKind::UnterminatedStringLiteral>({Start, Position});
         }
         if (Invalid || !Closed)
         {
@@ -824,7 +837,7 @@ namespace ink::tokenizer
         std::size_t OpeningLineBreakLength = logicalLineBreakLength(Position);
         if (OpeningLineBreakLength == 0)
         {
-          addDiagnostic(DiagnosticKind::MultilineOpeningLineBreakRequired, {Start, Position});
+          addDiagnostic<DiagnosticKind::MultilineOpeningLineBreakRequired>({Start, Position});
           std::size_t Closing = std::string::npos;
           for (std::size_t LineStart = Position; LineStart < Source.size();)
           {
@@ -853,7 +866,7 @@ namespace ink::tokenizer
           {
             Position = Source.size();
             validateRawRange(Start, Position, false);
-            addDiagnostic(DiagnosticKind::UnterminatedMultilineStringLiteral, {Start, Position});
+            addDiagnostic<DiagnosticKind::UnterminatedMultilineStringLiteral>({Start, Position});
             return makeToken(TokenKind::InvalidStringLiteral, Start, Position);
           }
           Position = Closing + 3;
@@ -897,7 +910,7 @@ namespace ink::tokenizer
         {
           Position = Source.size();
           validateRawRange(Start, Position, false);
-          addDiagnostic(DiagnosticKind::UnterminatedMultilineStringLiteral, {Start, Position});
+          addDiagnostic<DiagnosticKind::UnterminatedMultilineStringLiteral>({Start, Position});
           return makeToken(TokenKind::InvalidStringLiteral, Start, Position);
         }
 
@@ -928,7 +941,7 @@ namespace ink::tokenizer
           else
           {
             Invalid = true;
-            addDiagnostic(DiagnosticKind::InvalidMultilineIndentation, {LineStart, LineEnd});
+            addDiagnostic<DiagnosticKind::InvalidMultilineIndentation>({LineStart, LineEnd});
           }
 
           std::size_t Cursor = ContentStart;
@@ -974,7 +987,7 @@ namespace ink::tokenizer
         if (Cursor + 1 >= Limit)
         {
           Cursor = Limit;
-          addDiagnostic(DiagnosticKind::UnknownEscape, {Start, Cursor});
+          addDiagnostic<DiagnosticKind::UnknownEscape>({Start, Cursor});
           return false;
         }
         const DecodeResult EscapedCharacter = unicode::decode(Source, Cursor + 1);
@@ -982,22 +995,22 @@ namespace ink::tokenizer
         {
           const std::size_t InvalidLength = std::max<std::size_t>(EscapedCharacter.Length, 1);
           Cursor = std::min(Cursor + 1 + InvalidLength, Limit);
-          addDiagnostic(DiagnosticKind::InvalidUtf8, {Start + 1, Cursor});
+          addDiagnostic<DiagnosticKind::InvalidUtf8>({Start + 1, Cursor});
           return false;
         }
         if (isForbiddenControl(EscapedCharacter.Value))
         {
-          addDiagnostic(DiagnosticKind::ForbiddenControlCharacter, {Cursor + 1, Cursor + 1 + EscapedCharacter.Length});
+          addDiagnostic<DiagnosticKind::ForbiddenControlCharacter>({Cursor + 1, Cursor + 1 + EscapedCharacter.Length});
         }
         if (unicode::isDefaultIgnorable(EscapedCharacter.Value))
         {
-          addDiagnostic(DiagnosticKind::InvisibleCharacter, {Cursor + 1, Cursor + 1 + EscapedCharacter.Length});
+          addDiagnostic<DiagnosticKind::InvisibleCharacter>({Cursor + 1, Cursor + 1 + EscapedCharacter.Length});
         }
         const char Kind = Source[Cursor + 1];
         if (Kind == '\n' || Kind == '\r')
         {
           Cursor = Start + 1;
-          addDiagnostic(DiagnosticKind::UnknownEscape, {Start, Cursor});
+          addDiagnostic<DiagnosticKind::UnknownEscape>({Start, Cursor});
           return false;
         }
         switch (Kind)
@@ -1046,7 +1059,7 @@ namespace ink::tokenizer
             {
               ++Cursor;
             }
-            addDiagnostic(DiagnosticKind::InvalidHexEscape, {Start, Cursor});
+            addDiagnostic<DiagnosticKind::InvalidHexEscape>({Start, Cursor});
             return false;
           }
           Value = static_cast<char32_t>(digitValue(Source[Cursor + 2]) * 16 + digitValue(Source[Cursor + 3]));
@@ -1059,7 +1072,7 @@ namespace ink::tokenizer
           if (Cursor + 2 >= Limit || Source[Cursor + 2] != '{')
           {
             Cursor += 2;
-            addDiagnostic(DiagnosticKind::InvalidUnicodeEscape, {Start, Cursor});
+            addDiagnostic<DiagnosticKind::InvalidUnicodeEscape>({Start, Cursor});
             return false;
           }
           std::size_t Index = Cursor + 3;
@@ -1072,7 +1085,7 @@ namespace ink::tokenizer
             if (!EscapedDigit.Valid)
             {
               const std::size_t InvalidLength = std::max<std::size_t>(EscapedDigit.Length, 1);
-              addDiagnostic(DiagnosticKind::InvalidUtf8, {Index, std::min(Index + InvalidLength, Limit)});
+              addDiagnostic<DiagnosticKind::InvalidUtf8>({Index, std::min(Index + InvalidLength, Limit)});
               ValidDigits = false;
               ++DigitCount;
               Index = std::min(Index + InvalidLength, Limit);
@@ -1080,12 +1093,19 @@ namespace ink::tokenizer
             }
             if (isForbiddenControl(EscapedDigit.Value) || EscapedDigit.Value == U'\r')
             {
-              addDiagnostic(EscapedDigit.Value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {Index, Index + EscapedDigit.Length});
+              if (EscapedDigit.Value == U'\r')
+              {
+                addDiagnostic<DiagnosticKind::LoneCarriageReturn>({Index, Index + EscapedDigit.Length});
+              }
+              else
+              {
+                addDiagnostic<DiagnosticKind::ForbiddenControlCharacter>({Index, Index + EscapedDigit.Length});
+              }
               ValidDigits = false;
             }
             if (unicode::isDefaultIgnorable(EscapedDigit.Value))
             {
-              addDiagnostic(DiagnosticKind::InvisibleCharacter, {Index, Index + EscapedDigit.Length});
+              addDiagnostic<DiagnosticKind::InvisibleCharacter>({Index, Index + EscapedDigit.Length});
               ValidDigits = false;
             }
             const int Digit = digitValue(Source[Index]);
@@ -1103,18 +1123,18 @@ namespace ink::tokenizer
           if (Index >= Limit || Source[Index] != '}')
           {
             Cursor = Index;
-            addDiagnostic(DiagnosticKind::InvalidUnicodeEscape, {Start, Cursor});
+            addDiagnostic<DiagnosticKind::InvalidUnicodeEscape>({Start, Cursor});
             return false;
           }
           Cursor = Index + 1;
           if (!ValidDigits || DigitCount == 0 || DigitCount > 6)
           {
-            addDiagnostic(DiagnosticKind::InvalidUnicodeEscape, {Start, Cursor});
+            addDiagnostic<DiagnosticKind::InvalidUnicodeEscape>({Start, Cursor});
             return false;
           }
           if (!isScalarValue(Scalar))
           {
-            addDiagnostic(DiagnosticKind::InvalidUnicodeScalar, {Start, Cursor});
+            addDiagnostic<DiagnosticKind::InvalidUnicodeScalar>({Start, Cursor});
             return false;
           }
           Value = Scalar;
@@ -1125,7 +1145,7 @@ namespace ink::tokenizer
         {
           const DecodeResult Escaped = unicode::decode(Source, Cursor + 1);
           Cursor += 1 + std::max<std::size_t>(Escaped.Length, 1);
-          addDiagnostic(DiagnosticKind::UnknownEscape, {Start, Cursor});
+          addDiagnostic<DiagnosticKind::UnknownEscape>({Start, Cursor});
           return false;
         }
         }
@@ -1137,7 +1157,7 @@ namespace ink::tokenizer
         if (!Decoded.Valid || Cursor + Decoded.Length > Limit)
         {
           const std::size_t Length = std::max<std::size_t>(Decoded.Length, 1);
-          addDiagnostic(DiagnosticKind::InvalidUtf8, {Cursor, std::min(Cursor + Length, Limit)});
+          addDiagnostic<DiagnosticKind::InvalidUtf8>({Cursor, std::min(Cursor + Length, Limit)});
           Cursor = std::min(Cursor + Length, Limit);
           return false;
         }
@@ -1145,12 +1165,19 @@ namespace ink::tokenizer
         if (isForbiddenControl(Decoded.Value) || Decoded.Value == U'\r')
         {
           Valid = false;
-          addDiagnostic(Decoded.Value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {Cursor, Cursor + Decoded.Length});
+          if (Decoded.Value == U'\r')
+          {
+            addDiagnostic<DiagnosticKind::LoneCarriageReturn>({Cursor, Cursor + Decoded.Length});
+          }
+          else
+          {
+            addDiagnostic<DiagnosticKind::ForbiddenControlCharacter>({Cursor, Cursor + Decoded.Length});
+          }
         }
         if (unicode::isDefaultIgnorable(Decoded.Value))
         {
           Valid = false;
-          addDiagnostic(DiagnosticKind::InvisibleCharacter, {Cursor, Cursor + Decoded.Length});
+          addDiagnostic<DiagnosticKind::InvisibleCharacter>({Cursor, Cursor + Decoded.Length});
         }
         unicode::appendUtf8(DecodedValue, Decoded.Value);
         Cursor += Decoded.Length;
@@ -1166,14 +1193,21 @@ namespace ink::tokenizer
           if (!Decoded.Valid)
           {
             const std::size_t Length = std::max<std::size_t>(Decoded.Length, 1);
-            addDiagnostic(DiagnosticKind::InvalidUtf8, {Cursor, std::min(Cursor + Length, End)});
+            addDiagnostic<DiagnosticKind::InvalidUtf8>({Cursor, std::min(Cursor + Length, End)});
             Result = TokenKind::InvalidEncoding;
             Cursor = std::min(Cursor + Length, End);
             continue;
           }
           if (isForbiddenControl(Decoded.Value) || (Decoded.Value == U'\r' && !(Cursor + 1 < End && Source[Cursor + 1] == '\n')))
           {
-            addDiagnostic(Decoded.Value == U'\r' ? DiagnosticKind::LoneCarriageReturn : DiagnosticKind::ForbiddenControlCharacter, {Cursor, Cursor + Decoded.Length});
+            if (Decoded.Value == U'\r')
+            {
+              addDiagnostic<DiagnosticKind::LoneCarriageReturn>({Cursor, Cursor + Decoded.Length});
+            }
+            else
+            {
+              addDiagnostic<DiagnosticKind::ForbiddenControlCharacter>({Cursor, Cursor + Decoded.Length});
+            }
             if (Result != TokenKind::InvalidEncoding)
             {
               Result = TokenKind::InvalidCharacter;
@@ -1181,7 +1215,7 @@ namespace ink::tokenizer
           }
           if (!AllowInvisible && unicode::isDefaultIgnorable(Decoded.Value))
           {
-            addDiagnostic(DiagnosticKind::InvisibleCharacter, {Cursor, Cursor + Decoded.Length});
+            addDiagnostic<DiagnosticKind::InvisibleCharacter>({Cursor, Cursor + Decoded.Length});
             if (Result != TokenKind::InvalidEncoding)
             {
               Result = TokenKind::InvalidCharacter;
@@ -1205,9 +1239,10 @@ namespace ink::tokenizer
         return 0;
       }
 
-      void addDiagnostic(DiagnosticKind Kind, core::SourceRange Span)
+      template <DiagnosticKind Kind>
+      void addDiagnostic(core::SourceRange Span)
       {
-        Diagnostics.push_back(DiagnosticBuilder(Kind, Span).build());
+        Diagnostics.push_back(core::makeDiagnostic<Kind>(Span));
       }
 
       std::size_t previousVisibleScalar(std::size_t Offset) const
@@ -1233,9 +1268,7 @@ namespace ink::tokenizer
 
       void addInvisibleDiagnostic(std::size_t Offset, DecodeResult Decoded, std::size_t PreviousVisible, std::size_t NextVisible, bool IdentifierContext)
       {
-        DiagnosticBuilder Builder(DiagnosticKind::InvisibleCharacter, {Offset, Offset + Decoded.Length});
-        Builder.argument(DiagnosticArgumentName::Character, Decoded.Value);
-        Builder.argument(DiagnosticArgumentName::Context, IdentifierContext ? DiagnosticSourceContext::Identifier : DiagnosticSourceContext::SourceText);
+        auto Builder = makeDiagnosticBuilder<DiagnosticKind::InvisibleCharacterInContext>({Offset, Offset + Decoded.Length}, Decoded.Value, IdentifierContext ? DiagnosticSourceContext::Identifier : DiagnosticSourceContext::SourceText);
         if (PreviousVisible != std::string::npos)
         {
           const DecodeResult Previous = unicode::decode(Source, PreviousVisible);

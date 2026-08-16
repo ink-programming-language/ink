@@ -3,7 +3,7 @@
 
 #include "ink/core/diagnostic.h"
 #include "ink/ir/context.h"
-#include "ink/ir/ir.h"
+#include "ink/ir/module.h"
 
 #include <cstddef>
 #include <optional>
@@ -76,7 +76,6 @@ namespace ink::ir
   SerializeResult serialize(IRContext &Context, const Module &ModuleValue);
   SerializeResult serialize(const Module &ModuleValue);
   DeserializeResult deserialize(IRContext &Context, std::string_view Text);
-  DeserializeResult deserialize(std::string_view Text);
 } // namespace ink::ir
 
 #endif

@@ -6,6 +6,10 @@
 #define INK_IR_INSTRUCTION(Name, Mnemonic, Terminator)
 #endif
 
+#ifndef INK_IR_DERIVED_TYPE
+#define INK_IR_DERIVED_TYPE(Name, Spelling)
+#endif
+
 #ifndef INK_IR_VALUE
 #define INK_IR_VALUE(Name)
 #endif
@@ -16,14 +20,19 @@ INK_IR_TYPE(Byte, "byte")
 INK_IR_TYPE(I32, "i32")
 INK_IR_TYPE(PointerSize, "ptrsize")
 INK_IR_TYPE(ConstBytePointer, "const byte*")
+INK_IR_DERIVED_TYPE(Struct, "struct")
 
 INK_IR_VALUE(IntegerConstant)
 INK_IR_VALUE(ValueOperand)
 INK_IR_VALUE(GlobalAddressOperand)
+INK_IR_VALUE(ZeroInitializer)
 
 INK_IR_INSTRUCTION(Call, "call", false)
+INK_IR_INSTRUCTION(InsertValue, "insertvalue", false)
+INK_IR_INSTRUCTION(ExtractValue, "extractvalue", false)
 INK_IR_INSTRUCTION(Return, "ret", true)
 
 #undef INK_IR_TYPE
+#undef INK_IR_DERIVED_TYPE
 #undef INK_IR_VALUE
 #undef INK_IR_INSTRUCTION

@@ -20,7 +20,7 @@ namespace ink::execution
 {
   namespace
   {
-    extern "C" std::int32_t inkRuntimeWriteStdout(const std::uint8_t *Data, std::size_t Size)
+    extern "C" std::int32_t print(const std::uint8_t *Data, std::size_t Size)
     {
       if ((Data == nullptr && Size != 0) || Size > static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
       {
@@ -70,10 +70,10 @@ namespace ink::execution
 
   bool registerRuntimeSymbols(NativeSymbolRegistry &Registry)
   {
-    if (Registry.findAddress("ink_rt_write_stdout") != nullptr)
+    if (Registry.findAddress("print") != nullptr)
     {
       return true;
     }
-    return Registry.registerSymbol("ink_rt_write_stdout", reinterpret_cast<NativeFunctionAddress>(&inkRuntimeWriteStdout));
+    return Registry.registerSymbol("print", reinterpret_cast<NativeFunctionAddress>(&print));
   }
 } // namespace ink::execution

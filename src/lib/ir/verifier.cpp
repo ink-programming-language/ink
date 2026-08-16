@@ -1,5 +1,6 @@
 #include "ink/ir/verifier.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cstdint>
 #include <limits>
@@ -12,22 +13,75 @@
 namespace ink::ir
 {
   using core::Diagnostic;
-  using core::DiagnosticArgumentName;
-  using core::DiagnosticBuilder;
+  using core::DiagnosticClass;
   using core::DiagnosticKind;
 
   namespace
   {
-    bool isValidType(TypeKind Kind)
+    class DiagnosticCollector
     {
-      switch (Kind)
+    public:
+      explicit DiagnosticCollector(DiagnosticClass Class) : Class(Class)
+      {
+      }
+
+      template <DiagnosticKind Kind, typename... ArgumentTypes>
+      void add(ArgumentTypes &&...Arguments)
+      {
+        Diagnostic DiagnosticEntry = core::makeDiagnostic<Kind>({}, std::forward<ArgumentTypes>(Arguments)...);
+        DiagnosticEntry.Class = Class;
+        Diagnostics.push_back(std::move(DiagnosticEntry));
+      }
+
+      void report(IRContext &Context) const
+      {
+        for (const Diagnostic &DiagnosticEntry : Diagnostics)
+        {
+          Context.diagnosticEngine().report(DiagnosticEntry);
+        }
+      }
+
+      std::vector<Diagnostic> takeDiagnostics()
+      {
+        return std::move(Diagnostics);
+      }
+
+    private:
+      DiagnosticClass Class;
+      std::vector<Diagnostic> Diagnostics;
+    };
+
+    bool isValidType(const Type *TypeValue)
+    {
+      if (TypeValue == nullptr)
+      {
+        return false;
+      }
+      switch (TypeValue->kind())
       {
 #define INK_IR_TYPE(Name, Spelling) \
   case TypeKind::Name:              \
     return true;
 #include "ink/ir/ir.def"
+      case TypeKind::Struct:
+        return true;
+      case TypeKind::Count:
+        return false;
       }
       return false;
+    }
+
+    bool isValidType(const Module &ModuleValue, const Type *TypeValue)
+    {
+      if (!isValidType(TypeValue))
+      {
+        return false;
+      }
+      if (TypeValue->kind() != TypeKind::Struct)
+      {
+        return true;
+      }
+      return std::find(ModuleValue.StructTypes.begin(), ModuleValue.StructTypes.end(), static_cast<const StructType *>(TypeValue)) != ModuleValue.StructTypes.end();
     }
 
     bool isNameStart(char Character)
@@ -58,64 +112,58 @@ namespace ink::ir
       return true;
     }
 
-    void addError(std::vector<Diagnostic> &Diagnostics, std::string Message)
-    {
-      Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::InvalidIrModule, {}).argument(DiagnosticArgumentName::Detail, std::move(Message)).build());
-    }
-
-    bool verifyIntegerConstant(const IntegerConstant &Constant, std::string &Message)
+    void verifyIntegerConstant(const IntegerConstant &Constant, const std::string &FunctionName, DiagnosticCollector &Diagnostics)
     {
       const std::int64_t Value = Constant.value();
-      switch (Constant.type())
+      switch (Constant.type().kind())
       {
       case TypeKind::Bool:
         if (Value != 0 && Value != 1)
         {
-          Message = "bool integer constant must be 0 or 1";
-          return false;
+          Diagnostics.add<DiagnosticKind::IrBoolConstantOutOfRange>(FunctionName, Value);
         }
-        return true;
+        return;
       case TypeKind::Byte:
         if (Value < 0 || Value > 255)
         {
-          Message = "byte integer constant is outside the range 0...255";
-          return false;
+          Diagnostics.add<DiagnosticKind::IrByteConstantOutOfRange>(FunctionName, Value);
         }
-        return true;
+        return;
       case TypeKind::I32:
         if (Value < std::numeric_limits<std::int32_t>::min() || Value > std::numeric_limits<std::int32_t>::max())
         {
-          Message = "i32 integer constant is outside the signed 32-bit range";
-          return false;
+          Diagnostics.add<DiagnosticKind::IrI32ConstantOutOfRange>(FunctionName, Value);
         }
-        return true;
+        return;
       case TypeKind::PointerSize:
         if (Value < 0)
         {
-          Message = "ptrsize integer constant cannot be negative";
-          return false;
+          Diagnostics.add<DiagnosticKind::IrPointerSizeConstantNegative>(FunctionName, Value);
         }
-        return true;
+        return;
       case TypeKind::Void:
       case TypeKind::ConstBytePointer:
-        Message = std::string("integer constant cannot have type '") + typeKindName(Constant.type()) + "'";
-        return false;
+      case TypeKind::Struct:
+        Diagnostics.add<DiagnosticKind::IrIntegerConstantInvalidType>(FunctionName, typeKindName(Constant.type().kind()));
+        return;
+      case TypeKind::Count:
+        break;
       }
-      Message = "integer constant has an unknown type";
-      return false;
+      Diagnostics.add<DiagnosticKind::IrUnknownIntegerConstantType>(FunctionName);
     }
 
-    bool verifyOperand(const Module &ModuleValue, const Value &OperandValue, const std::unordered_map<std::size_t, TypeKind> &AvailableValues, std::string &Message)
+    void verifyOperand(const Module &ModuleValue, const Value &OperandValue, const std::unordered_map<std::size_t, const Type *> &AvailableValues, const std::string &FunctionName, DiagnosticCollector &Diagnostics)
     {
-      if (!isValidType(OperandValue.type()) || OperandValue.type() == TypeKind::Void)
+      if (!isValidType(ModuleValue, &OperandValue.type()) || OperandValue.type().kind() == TypeKind::Void)
       {
-        Message = "operand must have a valid non-void type";
-        return false;
+        Diagnostics.add<DiagnosticKind::IrOperandInvalidType>(FunctionName);
+        return;
       }
 
       if (OperandValue.kind() == ValueKind::IntegerConstant)
       {
-        return verifyIntegerConstant(static_cast<const IntegerConstant &>(OperandValue), Message);
+        verifyIntegerConstant(static_cast<const IntegerConstant &>(OperandValue), FunctionName, Diagnostics);
+        return;
       }
 
       if (OperandValue.kind() == ValueKind::ValueOperand)
@@ -124,91 +172,98 @@ namespace ink::ir
         const auto Definition = AvailableValues.find(Id.value());
         if (!Id.valid() || Definition == AvailableValues.end())
         {
-          Message = "operand references an unavailable SSA value %" + std::to_string(Id.value());
-          return false;
+          Diagnostics.add<DiagnosticKind::IrUnavailableSsaValue>(FunctionName, Id.value());
+          return;
         }
-        if (Definition->second != OperandValue.type())
+        if (Definition->second != &OperandValue.type())
         {
-          Message = "operand type does not match the type of SSA value %" + std::to_string(Id.value());
-          return false;
+          Diagnostics.add<DiagnosticKind::IrSsaOperandTypeMismatch>(FunctionName, Id.value());
         }
-        return true;
+        return;
+      }
+
+      if (OperandValue.kind() == ValueKind::ZeroInitializer)
+      {
+        return;
       }
 
       if (OperandValue.kind() != ValueKind::GlobalAddressOperand)
       {
-        Message = "operand has an unknown value kind";
-        return false;
+        Diagnostics.add<DiagnosticKind::IrUnknownOperandKind>(FunctionName);
+        return;
       }
 
       const GlobalAddressOperand &Address = static_cast<const GlobalAddressOperand &>(OperandValue);
-      if (OperandValue.type() != TypeKind::ConstBytePointer)
+      if (OperandValue.type().kind() != TypeKind::ConstBytePointer)
       {
-        Message = "global byte address must have type 'const byte*'";
-        return false;
+        Diagnostics.add<DiagnosticKind::IrGlobalAddressWrongType>(FunctionName);
+        return;
       }
       if (!Address.global().valid() || Address.global().value() >= ModuleValue.ByteConstants.size())
       {
-        Message = "operand references an invalid global byte constant";
-        return false;
+        Diagnostics.add<DiagnosticKind::IrInvalidGlobalByteConstantReference>(FunctionName, Address.global().value());
+        return;
       }
       if (Address.byteOffset() > ModuleValue.ByteConstants[Address.global().value()].Data.size())
       {
-        Message = "global byte address offset is outside the constant";
-        return false;
+        Diagnostics.add<DiagnosticKind::IrGlobalAddressOffsetOutOfRange>(FunctionName, Address.byteOffset(), ModuleValue.ByteConstants[Address.global().value()].Data.size());
       }
-      return true;
     }
 
-    void verifyFunctionSignature(const Function &FunctionValue, std::vector<Diagnostic> &Diagnostics)
+    void verifyFunctionSignature(const Module &ModuleValue, const Function &FunctionValue, DiagnosticCollector &Diagnostics)
     {
-      if (!isValidType(FunctionValue.ResultType))
+      if (!isValidType(ModuleValue, FunctionValue.ResultType))
       {
-        addError(Diagnostics, "function @" + FunctionValue.Name + " has an unknown result type");
+        Diagnostics.add<DiagnosticKind::IrFunctionUnknownResultType>(FunctionValue.Name);
       }
-      for (const TypeKind ParameterType : FunctionValue.ParameterTypes)
+      for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.ParameterTypes.size(); ++ParameterIndex)
       {
-        if (!isValidType(ParameterType) || ParameterType == TypeKind::Void)
+        const Type *ParameterType = FunctionValue.ParameterTypes[ParameterIndex];
+        if (!isValidType(ModuleValue, ParameterType) || ParameterType->kind() == TypeKind::Void)
         {
-          addError(Diagnostics, "function @" + FunctionValue.Name + " has a void or unknown parameter type");
+          Diagnostics.add<DiagnosticKind::IrFunctionInvalidParameterType>(FunctionValue.Name, ParameterIndex);
         }
       }
       if (FunctionValue.Kind != FunctionKind::Definition && FunctionValue.Kind != FunctionKind::External)
       {
-        addError(Diagnostics, "function @" + FunctionValue.Name + " has an unknown function kind");
+        Diagnostics.add<DiagnosticKind::IrFunctionUnknownKind>(FunctionValue.Name);
         return;
       }
       if (FunctionValue.Kind == FunctionKind::External)
       {
         if (FunctionValue.Convention != CallingConvention::C)
         {
-          addError(Diagnostics, "external function @" + FunctionValue.Name + " must use the C calling convention");
+          Diagnostics.add<DiagnosticKind::IrExternalFunctionWrongCallingConvention>(FunctionValue.Name);
         }
         if (!FunctionValue.Blocks.empty())
         {
-          addError(Diagnostics, "external function @" + FunctionValue.Name + " cannot contain basic blocks");
+          Diagnostics.add<DiagnosticKind::IrExternalFunctionHasBasicBlocks>(FunctionValue.Name);
         }
       }
       else
       {
         if (FunctionValue.Convention != CallingConvention::Ink)
         {
-          addError(Diagnostics, "defined function @" + FunctionValue.Name + " must use the Ink calling convention");
+          Diagnostics.add<DiagnosticKind::IrDefinedFunctionWrongCallingConvention>(FunctionValue.Name);
         }
         if (FunctionValue.HasSideEffects)
         {
-          addError(Diagnostics, "defined function @" + FunctionValue.Name + " cannot carry an external side-effect declaration");
+          Diagnostics.add<DiagnosticKind::IrDefinedFunctionHasExternalSideEffects>(FunctionValue.Name);
         }
         if (FunctionValue.Blocks.empty())
         {
-          addError(Diagnostics, "defined function @" + FunctionValue.Name + " must contain at least one basic block");
+          Diagnostics.add<DiagnosticKind::IrDefinedFunctionHasNoBasicBlocks>(FunctionValue.Name);
         }
       }
     }
 
-    void verifyFunctionBody(const Module &ModuleValue, const Function &FunctionValue, std::vector<Diagnostic> &Diagnostics)
+    void verifyFunctionBody(const Module &ModuleValue, const Function &FunctionValue, DiagnosticCollector &Diagnostics)
     {
       if (FunctionValue.Kind != FunctionKind::Definition)
+      {
+        return;
+      }
+      if (!isValidType(ModuleValue, FunctionValue.ResultType))
       {
         return;
       }
@@ -224,19 +279,19 @@ namespace ink::ir
       {
         if (!isValidName(Block.Name))
         {
-          addError(Diagnostics, "function @" + FunctionValue.Name + " has an invalid basic block name '" + Block.Name + "'");
+          Diagnostics.add<DiagnosticKind::IrInvalidBasicBlockName>(FunctionValue.Name, Block.Name);
         }
         else if (!BlockNames.insert(Block.Name).second)
         {
-          addError(Diagnostics, "function @" + FunctionValue.Name + " has duplicate basic block name '" + Block.Name + "'");
+          Diagnostics.add<DiagnosticKind::IrDuplicateBasicBlockName>(FunctionValue.Name, Block.Name);
         }
         if (Block.Instructions.empty())
         {
-          addError(Diagnostics, "basic block " + Block.Name + " in function @" + FunctionValue.Name + " is empty");
+          Diagnostics.add<DiagnosticKind::IrEmptyBasicBlock>(FunctionValue.Name, Block.Name);
           continue;
         }
 
-        std::unordered_map<std::size_t, TypeKind> AvailableValues;
+        std::unordered_map<std::size_t, const Type *> AvailableValues;
         for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.ParameterTypes.size(); ++ParameterIndex)
         {
           AvailableValues.emplace(ParameterIndex, FunctionValue.ParameterTypes[ParameterIndex]);
@@ -247,20 +302,27 @@ namespace ink::ir
           const std::unique_ptr<Instruction> &InstructionPointer = Block.Instructions[InstructionIndex];
           if (!InstructionPointer)
           {
-            addError(Diagnostics, "basic block " + Block.Name + " in function @" + FunctionValue.Name + " contains a null instruction");
+            Diagnostics.add<DiagnosticKind::IrNullInstruction>(FunctionValue.Name, Block.Name);
             continue;
           }
           const Instruction &InstructionValue = *InstructionPointer;
           const bool IsLast = InstructionIndex + 1 == Block.Instructions.size();
           const InstructionKind Kind = InstructionValue.kind();
-          if (Kind != InstructionKind::Call && Kind != InstructionKind::Return)
+          if (Kind != InstructionKind::Call && Kind != InstructionKind::InsertValue && Kind != InstructionKind::ExtractValue && Kind != InstructionKind::Return)
           {
-            addError(Diagnostics, "basic block " + Block.Name + " in function @" + FunctionValue.Name + " contains an instruction with an unknown kind");
+            Diagnostics.add<DiagnosticKind::IrUnknownInstructionKind>(FunctionValue.Name, Block.Name);
             continue;
           }
           if (isTerminator(Kind) != IsLast)
           {
-            addError(Diagnostics, "basic block " + Block.Name + " in function @" + FunctionValue.Name + (IsLast ? " does not end with a terminator" : " contains a terminator before its final instruction"));
+            if (IsLast)
+            {
+              Diagnostics.add<DiagnosticKind::IrBlockMissingTerminator>(FunctionValue.Name, Block.Name);
+            }
+            else
+            {
+              Diagnostics.add<DiagnosticKind::IrEarlyTerminator>(FunctionValue.Name, Block.Name);
+            }
           }
 
           if (Kind == InstructionKind::Call)
@@ -268,45 +330,53 @@ namespace ink::ir
             const CallInstruction *Call = static_cast<const CallInstruction *>(&InstructionValue);
             if (!Call->Callee.valid() || Call->Callee.value() >= ModuleValue.Functions.size())
             {
-              addError(Diagnostics, "call in function @" + FunctionValue.Name + " references an invalid callee");
+              Diagnostics.add<DiagnosticKind::IrCallInvalidCallee>(FunctionValue.Name);
               continue;
             }
             const Function &Callee = ModuleValue.Functions[Call->Callee.value()];
+            if (!isValidType(ModuleValue, Call->ResultType))
+            {
+              Diagnostics.add<DiagnosticKind::IrCallUnknownResultType>(Callee.Name);
+              continue;
+            }
             if (Call->ResultType != Callee.ResultType)
             {
-              addError(Diagnostics, "call to @" + Callee.Name + " has a result type that does not match the callee signature");
+              Diagnostics.add<DiagnosticKind::IrCallResultTypeMismatch>(Callee.Name);
             }
-            if ((Call->ResultType == TypeKind::Void) == Call->Result.has_value())
+            if ((Call->ResultType->kind() == TypeKind::Void) == Call->Result.has_value())
             {
-              addError(Diagnostics, "call to @" + Callee.Name + (Call->ResultType == TypeKind::Void ? " cannot define an SSA result" : " must define an SSA result"));
+              if (Call->ResultType->kind() == TypeKind::Void)
+              {
+                Diagnostics.add<DiagnosticKind::IrVoidCallDefinesResult>(Callee.Name);
+              }
+              else
+              {
+                Diagnostics.add<DiagnosticKind::IrNonVoidCallMissingResult>(Callee.Name);
+              }
             }
             if (Call->Arguments.size() != Callee.ParameterTypes.size())
             {
-              addError(Diagnostics, "call to @" + Callee.Name + " has the wrong number of arguments");
+              Diagnostics.add<DiagnosticKind::IrCallArgumentCountMismatch>(Callee.Name, Callee.ParameterTypes.size(), Call->Arguments.size());
             }
             const std::size_t CheckedArgumentCount = Call->Arguments.size() < Callee.ParameterTypes.size() ? Call->Arguments.size() : Callee.ParameterTypes.size();
             for (std::size_t ArgumentIndex = 0; ArgumentIndex < Call->Arguments.size(); ++ArgumentIndex)
             {
               if (!Call->Arguments[ArgumentIndex])
               {
-                addError(Diagnostics, "argument " + std::to_string(ArgumentIndex) + " of call to @" + Callee.Name + " is null");
+                Diagnostics.add<DiagnosticKind::IrNullCallArgument>(Callee.Name, ArgumentIndex);
                 continue;
               }
-              std::string Message;
-              if (!verifyOperand(ModuleValue, *Call->Arguments[ArgumentIndex], AvailableValues, Message))
+              verifyOperand(ModuleValue, *Call->Arguments[ArgumentIndex], AvailableValues, FunctionValue.Name, Diagnostics);
+              if (ArgumentIndex < CheckedArgumentCount && &Call->Arguments[ArgumentIndex]->type() != Callee.ParameterTypes[ArgumentIndex])
               {
-                addError(Diagnostics, "argument " + std::to_string(ArgumentIndex) + " of call to @" + Callee.Name + " is invalid: " + Message);
-              }
-              if (ArgumentIndex < CheckedArgumentCount && Call->Arguments[ArgumentIndex]->type() != Callee.ParameterTypes[ArgumentIndex])
-              {
-                addError(Diagnostics, "argument " + std::to_string(ArgumentIndex) + " of call to @" + Callee.Name + " does not match the parameter type");
+                Diagnostics.add<DiagnosticKind::IrCallArgumentTypeMismatch>(Callee.Name, ArgumentIndex);
               }
             }
             if (Call->Result.has_value())
             {
               if (!Call->Result->valid() || !DefinedValues.insert(Call->Result->value()).second)
               {
-                addError(Diagnostics, "call to @" + Callee.Name + " defines an invalid or duplicate SSA value");
+                Diagnostics.add<DiagnosticKind::IrInvalidOrDuplicateSsaResult>("call", FunctionValue.Name, Call->Result->value());
               }
               else
               {
@@ -316,28 +386,124 @@ namespace ink::ir
             continue;
           }
 
+          if (Kind == InstructionKind::InsertValue)
+          {
+            const InsertValueInstruction &Insert = static_cast<const InsertValueInstruction &>(InstructionValue);
+            const StructType *AggregateType = nullptr;
+            if (!isValidType(ModuleValue, Insert.ResultType) || Insert.ResultType->kind() != TypeKind::Struct)
+            {
+              Diagnostics.add<DiagnosticKind::IrInsertResultMustBeStruct>(FunctionValue.Name);
+            }
+            else
+            {
+              AggregateType = static_cast<const StructType *>(Insert.ResultType);
+            }
+            if (!Insert.Aggregate)
+            {
+              Diagnostics.add<DiagnosticKind::IrInsertNullAggregate>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *Insert.Aggregate, AvailableValues, FunctionValue.Name, Diagnostics);
+              if (&Insert.Aggregate->type() != Insert.ResultType)
+              {
+                Diagnostics.add<DiagnosticKind::IrInsertAggregateTypeMismatch>(FunctionValue.Name);
+              }
+            }
+            if (!Insert.Element)
+            {
+              Diagnostics.add<DiagnosticKind::IrInsertNullElement>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *Insert.Element, AvailableValues, FunctionValue.Name, Diagnostics);
+            }
+            if (AggregateType != nullptr)
+            {
+              if (Insert.FieldIndex >= AggregateType->fieldTypes().size())
+              {
+                Diagnostics.add<DiagnosticKind::IrInsertFieldIndexOutOfRange>(FunctionValue.Name, Insert.FieldIndex, AggregateType->fieldTypes().size());
+              }
+              else if (Insert.Element && &Insert.Element->type() != AggregateType->fieldTypes()[Insert.FieldIndex])
+              {
+                Diagnostics.add<DiagnosticKind::IrInsertElementTypeMismatch>(FunctionValue.Name);
+              }
+            }
+            if (!Insert.Result.valid() || !DefinedValues.insert(Insert.Result.value()).second)
+            {
+              Diagnostics.add<DiagnosticKind::IrInvalidOrDuplicateSsaResult>("insertvalue", FunctionValue.Name, Insert.Result.value());
+            }
+            else if (isValidType(ModuleValue, Insert.ResultType))
+            {
+              AvailableValues.emplace(Insert.Result.value(), Insert.ResultType);
+            }
+            continue;
+          }
+
+          if (Kind == InstructionKind::ExtractValue)
+          {
+            const ExtractValueInstruction &Extract = static_cast<const ExtractValueInstruction &>(InstructionValue);
+            const StructType *AggregateType = nullptr;
+            if (!Extract.Aggregate)
+            {
+              Diagnostics.add<DiagnosticKind::IrExtractNullAggregate>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *Extract.Aggregate, AvailableValues, FunctionValue.Name, Diagnostics);
+              if (Extract.Aggregate->type().kind() != TypeKind::Struct)
+              {
+                Diagnostics.add<DiagnosticKind::IrExtractAggregateMustBeStruct>();
+              }
+              else
+              {
+                AggregateType = static_cast<const StructType *>(&Extract.Aggregate->type());
+              }
+            }
+            if (!isValidType(ModuleValue, Extract.ResultType) || Extract.ResultType->kind() == TypeKind::Void)
+            {
+              Diagnostics.add<DiagnosticKind::IrExtractInvalidResultType>(FunctionValue.Name);
+            }
+            if (AggregateType != nullptr)
+            {
+              if (Extract.FieldIndex >= AggregateType->fieldTypes().size())
+              {
+                Diagnostics.add<DiagnosticKind::IrExtractFieldIndexOutOfRange>(FunctionValue.Name, Extract.FieldIndex, AggregateType->fieldTypes().size());
+              }
+              else if (Extract.ResultType != AggregateType->fieldTypes()[Extract.FieldIndex])
+              {
+                Diagnostics.add<DiagnosticKind::IrExtractResultTypeMismatch>(FunctionValue.Name);
+              }
+            }
+            if (!Extract.Result.valid() || !DefinedValues.insert(Extract.Result.value()).second)
+            {
+              Diagnostics.add<DiagnosticKind::IrInvalidOrDuplicateSsaResult>("extractvalue", FunctionValue.Name, Extract.Result.value());
+            }
+            else if (isValidType(ModuleValue, Extract.ResultType))
+            {
+              AvailableValues.emplace(Extract.Result.value(), Extract.ResultType);
+            }
+            continue;
+          }
+
           const ReturnInstruction &Return = static_cast<const ReturnInstruction &>(InstructionValue);
-          if (FunctionValue.ResultType == TypeKind::Void)
+          if (FunctionValue.ResultType->kind() == TypeKind::Void)
           {
             if (Return.ReturnValue)
             {
-              addError(Diagnostics, "void function @" + FunctionValue.Name + " cannot return a value");
+              Diagnostics.add<DiagnosticKind::IrVoidFunctionReturnsValue>(FunctionValue.Name);
             }
             continue;
           }
           if (!Return.ReturnValue)
           {
-            addError(Diagnostics, "non-void function @" + FunctionValue.Name + " must return a value");
+            Diagnostics.add<DiagnosticKind::IrNonVoidFunctionMissingReturnValue>(FunctionValue.Name);
             continue;
           }
-          std::string Message;
-          if (!verifyOperand(ModuleValue, *Return.ReturnValue, AvailableValues, Message))
+          verifyOperand(ModuleValue, *Return.ReturnValue, AvailableValues, FunctionValue.Name, Diagnostics);
+          if (&Return.ReturnValue->type() != FunctionValue.ResultType)
           {
-            addError(Diagnostics, "return in function @" + FunctionValue.Name + " is invalid: " + Message);
-          }
-          if (Return.ReturnValue->type() != FunctionValue.ResultType)
-          {
-            addError(Diagnostics, "return type in function @" + FunctionValue.Name + " does not match the function result type");
+            Diagnostics.add<DiagnosticKind::IrReturnTypeMismatch>(FunctionValue.Name);
           }
         }
       }
@@ -346,18 +512,62 @@ namespace ink::ir
 
   VerificationResult verify(IRContext &Context, const Module &ModuleValue)
   {
-    std::vector<Diagnostic> Diagnostics;
+    return verify(Context, ModuleValue, DiagnosticClass::InternalCompilerError);
+  }
+
+  VerificationResult verify(IRContext &Context, const Module &ModuleValue, DiagnosticClass Class)
+  {
+    DiagnosticCollector Diagnostics(Class);
     std::unordered_set<std::string> GlobalNames;
+    std::unordered_set<std::string> TypeNames;
+    std::unordered_set<const StructType *> DeclaredStructTypes;
+
+    for (const StructType *TypeValue : ModuleValue.StructTypes)
+    {
+      if (TypeValue == nullptr)
+      {
+        Diagnostics.add<DiagnosticKind::IrNullStructTypeDeclaration>();
+        continue;
+      }
+      if (!DeclaredStructTypes.insert(TypeValue).second)
+      {
+        Diagnostics.add<DiagnosticKind::IrStructTypeDeclaredMoreThanOnce>(TypeValue->name());
+      }
+      if (!isValidName(TypeValue->name()))
+      {
+        Diagnostics.add<DiagnosticKind::IrInvalidStructTypeName>(TypeValue->name());
+      }
+      else if (!TypeNames.insert(TypeValue->name()).second)
+      {
+        Diagnostics.add<DiagnosticKind::IrDuplicateStructType>(TypeValue->name());
+      }
+      if (TypeValue->fieldTypes().empty())
+      {
+        Diagnostics.add<DiagnosticKind::IrEmptyStructType>(TypeValue->name());
+      }
+      for (std::size_t FieldIndex = 0; FieldIndex < TypeValue->fieldTypes().size(); ++FieldIndex)
+      {
+        const Type *FieldType = TypeValue->fieldTypes()[FieldIndex];
+        if (!isValidType(ModuleValue, FieldType) || FieldType->kind() == TypeKind::Void)
+        {
+          Diagnostics.add<DiagnosticKind::IrInvalidStructFieldType>(TypeValue->name(), FieldIndex);
+        }
+        else if (FieldType->kind() == TypeKind::Struct && (FieldType == TypeValue || DeclaredStructTypes.find(static_cast<const StructType *>(FieldType)) == DeclaredStructTypes.end()))
+        {
+          Diagnostics.add<DiagnosticKind::IrStructFieldForwardOrSelfReference>(TypeValue->name(), FieldIndex);
+        }
+      }
+    }
 
     for (const ByteConstant &Constant : ModuleValue.ByteConstants)
     {
       if (!isValidName(Constant.Name))
       {
-        addError(Diagnostics, "invalid global byte constant name '" + Constant.Name + "'");
+        Diagnostics.add<DiagnosticKind::IrInvalidGlobalByteConstantName>(Constant.Name);
       }
       else if (!GlobalNames.insert(Constant.Name).second)
       {
-        addError(Diagnostics, "duplicate global symbol @" + Constant.Name);
+        Diagnostics.add<DiagnosticKind::IrDuplicateGlobalSymbol>(Constant.Name);
       }
     }
 
@@ -365,29 +575,24 @@ namespace ink::ir
     {
       if (!isValidName(FunctionValue.Name))
       {
-        addError(Diagnostics, "invalid function name '" + FunctionValue.Name + "'");
+        Diagnostics.add<DiagnosticKind::IrInvalidFunctionName>(FunctionValue.Name);
       }
       else if (!GlobalNames.insert(FunctionValue.Name).second)
       {
-        addError(Diagnostics, "duplicate global symbol @" + FunctionValue.Name);
+        Diagnostics.add<DiagnosticKind::IrDuplicateGlobalSymbol>(FunctionValue.Name);
       }
-      verifyFunctionSignature(FunctionValue, Diagnostics);
+      verifyFunctionSignature(ModuleValue, FunctionValue, Diagnostics);
     }
     for (const Function &FunctionValue : ModuleValue.Functions)
     {
       verifyFunctionBody(ModuleValue, FunctionValue, Diagnostics);
     }
-    for (const Diagnostic &DiagnosticEntry : Diagnostics)
-    {
-      Context.diagnosticEngine().report(DiagnosticEntry);
-    }
-    return VerificationResult(std::move(Diagnostics));
+    Diagnostics.report(Context);
+    return VerificationResult(Diagnostics.takeDiagnostics());
   }
 
   VerificationResult verify(const Module &ModuleValue)
   {
-    core::CompilationContext Compilation;
-    IRContext Context(Compilation);
-    return verify(Context, ModuleValue);
+    return verify(ModuleValue.context(), ModuleValue);
   }
 } // namespace ink::ir

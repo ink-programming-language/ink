@@ -488,7 +488,6 @@ namespace ink::tokenizer
       const std::uint64_t *RemainingNestingDepth = findArgumentValue<std::uint64_t>(DiagnosticEntry.Arguments, DiagnosticArgumentName::RemainingNestingDepth);
       ASSERT_NE(RemainingNestingDepth, nullptr);
       EXPECT_EQ(*RemainingNestingDepth, 2U);
-      EXPECT_EQ(findArgumentValue<bool>(DiagnosticEntry.Arguments, DiagnosticArgumentName::MostRecentOpeningUnavailable), nullptr);
       ASSERT_EQ(DiagnosticEntry.Related.size(), 1U);
       EXPECT_EQ(DiagnosticEntry.Related[0].Kind, DiagnosticRelatedKind::MostRecentUnclosedBlockComment);
       EXPECT_EQ(DiagnosticEntry.Related[0].Span, (core::SourceRange{9, 11}));
@@ -520,14 +519,13 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.diagnostics()[1].Kind, DiagnosticKind::UnterminatedBlockComment);
       EXPECT_EQ(Buffer.diagnostics()[1].Span.Start, 0U);
       EXPECT_EQ(Buffer.diagnostics()[1].Span.End, 2U);
-      ASSERT_EQ(Buffer.diagnostics()[1].Arguments.size(), 2U);
+      ASSERT_EQ(Buffer.diagnostics()[1].Arguments.size(), 1U);
       const std::uint64_t *RemainingNestingDepth = findArgumentValue<std::uint64_t>(Buffer.diagnostics()[1].Arguments, DiagnosticArgumentName::RemainingNestingDepth);
       ASSERT_NE(RemainingNestingDepth, nullptr);
       EXPECT_EQ(*RemainingNestingDepth, 3U);
-      const bool *MostRecentOpeningUnavailable = findArgumentValue<bool>(Buffer.diagnostics()[1].Arguments, DiagnosticArgumentName::MostRecentOpeningUnavailable);
-      ASSERT_NE(MostRecentOpeningUnavailable, nullptr);
-      EXPECT_TRUE(*MostRecentOpeningUnavailable);
-      EXPECT_TRUE(Buffer.diagnostics()[1].Related.empty());
+      ASSERT_EQ(Buffer.diagnostics()[1].Related.size(), 1U);
+      EXPECT_EQ(Buffer.diagnostics()[1].Related[0].Kind, DiagnosticRelatedKind::MostRecentBlockCommentOpeningUnavailable);
+      EXPECT_TRUE(Buffer.diagnostics()[1].Related[0].Arguments.empty());
       expectFullFidelity(Buffer);
     }
 

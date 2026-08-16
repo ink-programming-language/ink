@@ -1,5 +1,6 @@
 #include "ink/cli/application.h"
 #include "ink/cli/io.h"
+#include "ink/core/diagnostic.h"
 
 #include <algorithm>
 #include <exception>
@@ -22,6 +23,14 @@ namespace ink::cli
         Message.erase(0, ExistingPrefix.size());
       }
       return App->get_name() + ": error: " + Message + "\nTry '" + App->get_name() + " --help' for more information.\n";
+    }
+
+    void writeDiagnostic(std::ostream &ErrorOutput, std::string_view ProgramName, const core::Diagnostic &DiagnosticEntry)
+    {
+      const core::FormattedDiagnostic Formatted = core::DiagnosticFormatter().format(DiagnosticEntry);
+      std::ostringstream BufferedOutput;
+      BufferedOutput << ProgramName << ": " << core::diagnosticClassName(DiagnosticEntry.classification()) << '[' << DiagnosticEntry.code() << "]: " << Formatted.Message << '\n';
+      writeOutput(ErrorOutput, BufferedOutput.str());
     }
 
     bool isUtf8Continuation(unsigned char Byte) noexcept
@@ -489,11 +498,11 @@ namespace ink::cli
     }
     catch (const std::exception &Error)
     {
-      writeOutput(ErrorOutput, std::string(ProgramName) + ": internal error: " + Error.what() + "\n");
+      writeDiagnostic(ErrorOutput, ProgramName, core::makeDiagnostic<core::DiagnosticKind::UnhandledException>({}, Error.what()));
     }
     catch (...)
     {
-      writeOutput(ErrorOutput, std::string(ProgramName) + ": internal error: unknown exception\n");
+      writeDiagnostic(ErrorOutput, ProgramName, core::makeDiagnostic<core::DiagnosticKind::UnknownUnhandledException>({}));
     }
     return exitStatus(ExitCode::InternalError);
   }

@@ -2,15 +2,25 @@
 #define INK_IR_CONTEXT_H
 
 #include "ink/core/context.h"
+#include "ink/ir/type.h"
+
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace ink::ir
 {
   class IRContext
   {
   public:
-    explicit IRContext(core::CompilationContext &Compilation) : Compilation(Compilation)
-    {
-    }
+    explicit IRContext(core::CompilationContext &Compilation);
+    ~IRContext();
+    IRContext(const IRContext &) = delete;
+    IRContext &operator=(const IRContext &) = delete;
+    IRContext(IRContext &&) = delete;
+    IRContext &operator=(IRContext &&) = delete;
 
     core::CompilationContext &compilationContext() noexcept
     {
@@ -32,8 +42,13 @@ namespace ink::ir
       return Compilation.diagnosticEngine();
     }
 
+    const Type &getType(TypeKind Kind) const noexcept;
+    const StructType &createStructType(std::string Name, std::vector<const Type *> FieldTypes);
+
   private:
     core::CompilationContext &Compilation;
+    std::array<std::unique_ptr<Type>, static_cast<std::size_t>(TypeKind::Struct)> PrimitiveTypes;
+    std::vector<std::unique_ptr<StructType>> StructTypes;
   };
 } // namespace ink::ir
 

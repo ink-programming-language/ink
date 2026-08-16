@@ -3,6 +3,7 @@ Language: Cpp
 ColumnLimit: 0
 BreakBeforeBraces: Allman
 NamespaceIndentation: All
+IndentAccessModifiers: true
 KeepEmptyLines:
   AtEndOfFile: false
   AtStartOfBlock: false

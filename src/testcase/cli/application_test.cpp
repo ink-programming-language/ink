@@ -26,7 +26,7 @@ namespace ink::cli
       EXPECT_EQ(exitStatus(ExitCode::InternalError), 3);
     }
 
-    // Verifies that the shared process boundary maps unexpected exceptions to a concise internal error and exit status 3.
+    // Verifies that the shared process boundary maps standard exceptions to a registered ICE diagnostic and exit status 3.
     TEST(ApplicationTest, MapsUnhandledExceptionsToInternalErrors)
     {
       std::ostringstream ErrorOutput;
@@ -36,7 +36,20 @@ namespace ink::cli
       }, ErrorOutput);
 
       EXPECT_EQ(Result, exitStatus(ExitCode::InternalError));
-      EXPECT_EQ(ErrorOutput.str(), "ink-test: internal error: broken invariant\n");
+      EXPECT_EQ(ErrorOutput.str(), "ink-test: internal compiler error[INK-D0001]: unhandled exception: broken invariant\n");
+    }
+
+    // Verifies that a non-standard exception uses the distinct zero-argument ICE diagnostic.
+    TEST(ApplicationTest, MapsUnknownUnhandledExceptionsToInternalErrors)
+    {
+      std::ostringstream ErrorOutput;
+      const int Result = runMain("ink-test", []() -> int
+      {
+        throw 7;
+      }, ErrorOutput);
+
+      EXPECT_EQ(Result, exitStatus(ExitCode::InternalError));
+      EXPECT_EQ(ErrorOutput.str(), "ink-test: internal compiler error[INK-D0002]: unknown unhandled exception\n");
     }
 
     // Verifies that help is a successful primary result written only to stdout.
@@ -198,7 +211,7 @@ namespace ink::cli
 
       EXPECT_EQ(Result, exitStatus(ExitCode::InternalError));
       EXPECT_TRUE(Output.str().empty());
-      EXPECT_NE(ErrorOutput.str().find("ink-test: internal error: invalid command-line definition"), std::string::npos);
+      EXPECT_NE(ErrorOutput.str().find("ink-test: internal compiler error[INK-D0001]: unhandled exception: invalid command-line definition"), std::string::npos);
       EXPECT_EQ(ErrorOutput.str().find("Try 'ink-test --help'"), std::string::npos);
     }
 

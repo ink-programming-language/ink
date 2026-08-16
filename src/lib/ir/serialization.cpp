@@ -17,8 +17,6 @@
 namespace ink::ir
 {
   using core::Diagnostic;
-  using core::DiagnosticArgumentName;
-  using core::DiagnosticBuilder;
   using core::DiagnosticKind;
   using core::SourceRange;
 
@@ -28,6 +26,7 @@ namespace ink::ir
     {
       Identifier,
       GlobalName,
+      TypeName,
       ValueName,
       Integer,
       String,
@@ -50,11 +49,6 @@ namespace ink::ir
       std::string Text;
       SourceRange Span;
     };
-
-    Diagnostic makeTextDiagnostic(SourceRange Span, std::string Message)
-    {
-      return DiagnosticBuilder(DiagnosticKind::InvalidIrText, Span).argument(DiagnosticArgumentName::Detail, std::move(Message)).build();
-    }
 
     bool isNameStart(char Character)
     {
@@ -115,7 +109,7 @@ namespace ink::ir
             advance();
             if (Position == Text.size() || !isNameStart(Text[Position]))
             {
-              Error = makeTextDiagnostic({Start, Position}, "expected a global symbol name after '@'");
+              Error = core::makeDiagnostic<DiagnosticKind::IrExpectedGlobalNameAfterAt>({Start, Position});
               return false;
             }
             Token Name = readName(TokenKind::GlobalName);
@@ -126,6 +120,13 @@ namespace ink::ir
           if (Character == '%')
           {
             advance();
+            if (Position < Text.size() && isNameStart(Text[Position]))
+            {
+              Token Name = readName(TokenKind::TypeName);
+              Name.Span.Start = Start;
+              Tokens.push_back(std::move(Name));
+              continue;
+            }
             const std::size_t DigitsStart = Position;
             while (Position < Text.size() && std::isdigit(static_cast<unsigned char>(Text[Position])) != 0)
             {
@@ -133,7 +134,7 @@ namespace ink::ir
             }
             if (DigitsStart == Position)
             {
-              Error = makeTextDiagnostic({Start, Position}, "expected a numeric SSA value name after '%'");
+              Error = core::makeDiagnostic<DiagnosticKind::IrExpectedTypeOrSsaNameAfterPercent>({Start, Position});
               return false;
             }
             Tokens.push_back({TokenKind::ValueName, std::string(Text.substr(DigitsStart, Position - DigitsStart)), {Start, Position}});
@@ -143,7 +144,7 @@ namespace ink::ir
           {
             if (Character == '-' && (Position + 1 == Text.size() || std::isdigit(static_cast<unsigned char>(Text[Position + 1])) == 0))
             {
-              Error = makeTextDiagnostic({Start, Start + 1}, "'-' must be followed by a decimal integer");
+              Error = core::makeDiagnostic<DiagnosticKind::IrMinusRequiresDecimalInteger>({Start, Start + 1});
               return false;
             }
             advance();
@@ -199,7 +200,7 @@ namespace ink::ir
             Kind = TokenKind::Star;
             break;
           default:
-            Error = makeTextDiagnostic({Start, Start + 1}, std::string("unexpected character '") + Character + "'");
+            Error = core::makeDiagnostic<DiagnosticKind::IrUnexpectedCharacter>({Start, Start + 1}, std::string(1, Character));
             return false;
           }
           advance();
@@ -255,7 +256,7 @@ namespace ink::ir
           const char Character = Text[Position];
           if (Character == '\n' || Character == '\r')
           {
-            Error = makeTextDiagnostic({Start, Position + 1}, "string literal cannot contain a raw line break");
+            Error = core::makeDiagnostic<DiagnosticKind::IrStringLiteralRawLineBreak>({Start, Position + 1});
             return false;
           }
           if (Character != '\\')
@@ -268,7 +269,7 @@ namespace ink::ir
           advance();
           if (Position == Text.size())
           {
-            Error = makeTextDiagnostic({Start, Position}, "unterminated string escape");
+            Error = core::makeDiagnostic<DiagnosticKind::IrUnterminatedStringEscape>({Start, Position});
             return false;
           }
           const int FirstHexadecimal = hexadecimalValue(Text[Position]);
@@ -276,13 +277,13 @@ namespace ink::ir
           {
             if (Position + 1 >= Text.size())
             {
-              Error = makeTextDiagnostic({Position, Text.size()}, "hexadecimal byte escape requires two digits");
+              Error = core::makeDiagnostic<DiagnosticKind::IrInvalidHexByteEscape>({Position, Text.size()});
               return false;
             }
             const int SecondHexadecimal = hexadecimalValue(Text[Position + 1]);
             if (SecondHexadecimal < 0)
             {
-              Error = makeTextDiagnostic({Position, Position + 2}, "hexadecimal byte escape requires two digits");
+              Error = core::makeDiagnostic<DiagnosticKind::IrInvalidHexByteEscape>({Position, Position + 2});
               return false;
             }
             Value.push_back(static_cast<char>((FirstHexadecimal << 4) | SecondHexadecimal));
@@ -309,14 +310,14 @@ namespace ink::ir
             Value.push_back('"');
             break;
           default:
-            Error = makeTextDiagnostic({Position, Position + 1}, "unknown string escape");
+            Error = core::makeDiagnostic<DiagnosticKind::IrUnknownStringEscape>({Position, Position + 1}, std::string(1, Text[Position]));
             return false;
           }
           advance();
         }
         if (Position == Text.size())
         {
-          Error = makeTextDiagnostic({Start, Position}, "unterminated string literal");
+          Error = core::makeDiagnostic<DiagnosticKind::IrUnterminatedStringLiteral>({Start, Position});
           return false;
         }
         advance();
@@ -337,13 +338,22 @@ namespace ink::ir
       Token Location;
     };
 
+    enum class GlobalFixupTarget
+    {
+      CallArgument,
+      ReturnValue,
+      InsertAggregate,
+      InsertElement,
+      ExtractAggregate,
+    };
+
     struct GlobalFixup
     {
       std::size_t FunctionIndex = 0;
       std::size_t BlockIndex = 0;
       std::size_t InstructionIndex = 0;
       std::size_t OperandIndex = 0;
-      bool IsReturn = false;
+      GlobalFixupTarget Target = GlobalFixupTarget::CallArgument;
       std::string GlobalName;
       Token Location;
     };
@@ -358,7 +368,7 @@ namespace ink::ir
     class TextParser
     {
     public:
-      explicit TextParser(std::vector<Token> Tokens) : Tokens(std::move(Tokens))
+      TextParser(IRContext &Context, std::vector<Token> Tokens) : Context(Context), Tokens(std::move(Tokens)), ModuleValue(Context)
       {
       }
 
@@ -392,12 +402,19 @@ namespace ink::ir
         }
         if (*VersionNumber != 1)
         {
-          return fail(*Version, "unsupported InkIR format version");
+          return fail<DiagnosticKind::IrUnsupportedFormatVersion>(*Version, *VersionNumber, std::uint64_t{1});
         }
 
         while (!at(TokenKind::End))
         {
-          if (at(TokenKind::GlobalName))
+          if (at(TokenKind::TypeName))
+          {
+            if (!parseStructType())
+            {
+              return false;
+            }
+          }
+          else if (at(TokenKind::GlobalName))
           {
             if (!parseByteConstant())
             {
@@ -420,7 +437,7 @@ namespace ink::ir
           }
           else
           {
-            return fail(current(), "expected a global constant, external declaration, or function definition");
+            return fail<DiagnosticKind::IrExpectedTopLevelDeclaration>(current());
           }
         }
         return resolveReferences();
@@ -451,7 +468,7 @@ namespace ink::ir
       {
         if (!at(Kind))
         {
-          fail(current(), "expected " + std::string(Expected));
+          fail<DiagnosticKind::IrExpected>(current(), Expected);
           return nullptr;
         }
         return &consume();
@@ -461,15 +478,16 @@ namespace ink::ir
       {
         if (!atIdentifier(Name))
         {
-          return fail(current(), "expected '" + std::string(Name) + "'");
+          return fail<DiagnosticKind::IrExpectedIdentifier>(current(), Name);
         }
         consume();
         return true;
       }
 
-      bool fail(const Token &Location, std::string Message)
+      template <DiagnosticKind Kind, typename... ArgumentTypes>
+      bool fail(const Token &Location, ArgumentTypes &&...Arguments)
       {
-        ParseDiagnostic = makeTextDiagnostic(Location.Span, std::move(Message));
+        ParseDiagnostic = core::makeDiagnostic<Kind>(Location.Span, std::forward<ArgumentTypes>(Arguments)...);
         return false;
       }
 
@@ -477,7 +495,7 @@ namespace ink::ir
       {
         if (!TokenValue.Text.empty() && TokenValue.Text.front() == '-')
         {
-          fail(TokenValue, std::string(Description) + " cannot be negative");
+          fail<DiagnosticKind::IrNegativeNumericValue>(TokenValue, Description);
           return std::nullopt;
         }
         std::uint64_t Result = 0;
@@ -486,7 +504,7 @@ namespace ink::ir
         const auto Conversion = std::from_chars(Begin, End, Result);
         if (Conversion.ec != std::errc() || Conversion.ptr != End)
         {
-          fail(TokenValue, std::string(Description) + " is outside the supported range");
+          fail<DiagnosticKind::IrNumericValueOutOfRange>(TokenValue, Description);
           return std::nullopt;
         }
         return Result;
@@ -500,7 +518,7 @@ namespace ink::ir
         const auto Conversion = std::from_chars(Begin, End, Result);
         if (Conversion.ec != std::errc() || Conversion.ptr != End)
         {
-          fail(TokenValue, std::string(Description) + " is outside the supported range");
+          fail<DiagnosticKind::IrNumericValueOutOfRange>(TokenValue, Description);
           return std::nullopt;
         }
         return Result;
@@ -515,14 +533,25 @@ namespace ink::ir
         }
         if (*Value > std::numeric_limits<std::size_t>::max())
         {
-          fail(TokenValue, std::string(Description) + " is outside the supported range");
+          fail<DiagnosticKind::IrNumericValueOutOfRange>(TokenValue, Description);
           return std::nullopt;
         }
         return static_cast<std::size_t>(*Value);
       }
 
-      std::optional<TypeKind> parseType()
+      std::optional<const Type *> parseType()
       {
+        if (at(TokenKind::TypeName))
+        {
+          const Token &Name = consume();
+          const auto Type = TypeNames.find(Name.Text);
+          if (Type == TypeNames.end())
+          {
+            fail<DiagnosticKind::IrUnknownStructType>(Name, Name.Text);
+            return std::nullopt;
+          }
+          return Type->second;
+        }
         if (atIdentifier("const"))
         {
           consume();
@@ -530,28 +559,75 @@ namespace ink::ir
           {
             return std::nullopt;
           }
-          return TypeKind::ConstBytePointer;
+          return &Context.getType(TypeKind::ConstBytePointer);
         }
         const Token *Type = expect(TokenKind::Identifier, "an IR type");
         if (Type == nullptr)
         {
           return std::nullopt;
         }
-#define INK_IR_TYPE(Name, Spelling) \
-  if (Type->Text == Spelling)       \
-  {                                 \
-    return TypeKind::Name;          \
+#define INK_IR_TYPE(Name, Spelling)          \
+  if (Type->Text == Spelling)                \
+  {                                          \
+    return &Context.getType(TypeKind::Name); \
   }
 #include "ink/ir/ir.def"
-        fail(*Type, "unknown IR type '" + Type->Text + "'");
+        fail<DiagnosticKind::IrUnknownType>(*Type, Type->Text);
         return std::nullopt;
+      }
+
+      bool parseStructType()
+      {
+        const Token *Name = expect(TokenKind::TypeName, "a struct type name");
+        if (Name == nullptr)
+        {
+          return false;
+        }
+        if (TypeNames.find(Name->Text) != TypeNames.end())
+        {
+          return fail<DiagnosticKind::IrDuplicateStructType>(*Name, Name->Text);
+        }
+        if (expect(TokenKind::Equal, "'='") == nullptr || !expectIdentifier("type") || expect(TokenKind::LeftBrace, "'{'") == nullptr)
+        {
+          return false;
+        }
+
+        std::vector<const Type *> FieldTypes;
+        if (!at(TokenKind::RightBrace))
+        {
+          const std::optional<const Type *> FirstField = parseType();
+          if (!FirstField)
+          {
+            return false;
+          }
+          FieldTypes.push_back(*FirstField);
+          while (at(TokenKind::Comma))
+          {
+            consume();
+            const std::optional<const Type *> Field = parseType();
+            if (!Field)
+            {
+              return false;
+            }
+            FieldTypes.push_back(*Field);
+          }
+        }
+        if (expect(TokenKind::RightBrace, "'}'") == nullptr)
+        {
+          return false;
+        }
+
+        const StructType &TypeValue = Context.createStructType(Name->Text, std::move(FieldTypes));
+        TypeNames.emplace(Name->Text, &TypeValue);
+        ModuleValue.StructTypes.push_back(&TypeValue);
+        return true;
       }
 
       bool reserveGlobalSymbol(const Token &Name)
       {
         if (!GlobalSymbolNames.insert(Name.Text).second)
         {
-          return fail(Name, "duplicate global symbol @" + Name.Text);
+          return fail<DiagnosticKind::IrDuplicateGlobalSymbol>(Name, Name.Text);
         }
         return true;
       }
@@ -580,7 +656,7 @@ namespace ink::ir
         }
         if (Data->Text.size() != *DeclaredSize)
         {
-          return fail(*SizeToken, "declared byte constant size does not match the decoded string length");
+          return fail<DiagnosticKind::IrByteConstantSizeMismatch>(*SizeToken, *DeclaredSize, Data->Text.size());
         }
         const GlobalId Id{ModuleValue.ByteConstants.size()};
         GlobalNames.emplace(Name->Text, Id);
@@ -588,14 +664,14 @@ namespace ink::ir
         return true;
       }
 
-      std::optional<std::vector<TypeKind>> parseExternalParameterTypes()
+      std::optional<std::vector<const Type *>> parseExternalParameterTypes()
       {
-        std::vector<TypeKind> Result;
+        std::vector<const Type *> Result;
         if (at(TokenKind::RightParenthesis))
         {
           return Result;
         }
-        const std::optional<TypeKind> FirstType = parseType();
+        const std::optional<const Type *> FirstType = parseType();
         if (!FirstType)
         {
           return std::nullopt;
@@ -604,7 +680,7 @@ namespace ink::ir
         while (at(TokenKind::Comma))
         {
           consume();
-          const std::optional<TypeKind> Type = parseType();
+          const std::optional<const Type *> Type = parseType();
           if (!Type)
           {
             return std::nullopt;
@@ -627,24 +703,23 @@ namespace ink::ir
         }
         if (Convention->Text != "C")
         {
-          return fail(*Convention, "only the external calling convention \"C\" is supported");
+          return fail<DiagnosticKind::IrUnsupportedCallingConvention>(*Convention, Convention->Text);
         }
-        Function FunctionValue;
-        FunctionValue.Kind = FunctionKind::External;
-        FunctionValue.Convention = CallingConvention::C;
-        const std::optional<TypeKind> ResultType = parseType();
+        const std::optional<const Type *> ResultType = parseType();
         if (!ResultType)
         {
           return false;
         }
-        FunctionValue.ResultType = *ResultType;
+        Function FunctionValue(**ResultType);
+        FunctionValue.Kind = FunctionKind::External;
+        FunctionValue.Convention = CallingConvention::C;
         const Token *Name = expect(TokenKind::GlobalName, "an external function name");
         if (Name == nullptr || !reserveGlobalSymbol(*Name) || expect(TokenKind::LeftParenthesis, "'('") == nullptr)
         {
           return false;
         }
         FunctionValue.Name = Name->Text;
-        std::optional<std::vector<TypeKind>> ParameterTypes = parseExternalParameterTypes();
+        std::optional<std::vector<const Type *>> ParameterTypes = parseExternalParameterTypes();
         if (!ParameterTypes || expect(TokenKind::RightParenthesis, "')'") == nullptr)
         {
           return false;
@@ -665,16 +740,16 @@ namespace ink::ir
         return true;
       }
 
-      std::optional<std::vector<TypeKind>> parseDefinitionParameterTypes()
+      std::optional<std::vector<const Type *>> parseDefinitionParameterTypes()
       {
-        std::vector<TypeKind> Result;
+        std::vector<const Type *> Result;
         if (at(TokenKind::RightParenthesis))
         {
           return Result;
         }
         while (true)
         {
-          const std::optional<TypeKind> Type = parseType();
+          const std::optional<const Type *> Type = parseType();
           if (!Type)
           {
             return std::nullopt;
@@ -692,7 +767,7 @@ namespace ink::ir
           }
           if (*ParameterIndex != Result.size() - 1)
           {
-            fail(*ValueName, "function parameter SSA values must be numbered consecutively from %0");
+            fail<DiagnosticKind::IrNonConsecutiveParameterSsa>(*ValueName, Result.size() - 1, *ParameterIndex);
             return std::nullopt;
           }
           if (!at(TokenKind::Comma))
@@ -712,7 +787,7 @@ namespace ink::ir
       std::optional<ParsedOperand> parseOperand()
       {
         ParsedOperand Result;
-        const std::optional<TypeKind> Type = parseType();
+        const std::optional<const Type *> Type = parseType();
         if (!Type)
         {
           return std::nullopt;
@@ -726,7 +801,7 @@ namespace ink::ir
           {
             return std::nullopt;
           }
-          Result.ParsedValue = std::make_unique<ValueOperand>(*Type, ValueId{*Id});
+          Result.ParsedValue = std::make_unique<ValueOperand>(**Type, ValueId{*Id});
           return Result;
         }
         if (at(TokenKind::Integer))
@@ -737,7 +812,13 @@ namespace ink::ir
           {
             return std::nullopt;
           }
-          Result.ParsedValue = std::make_unique<IntegerConstant>(*Type, *Value);
+          Result.ParsedValue = std::make_unique<IntegerConstant>(**Type, *Value);
+          return Result;
+        }
+        if (atIdentifier("zeroinitializer"))
+        {
+          consume();
+          Result.ParsedValue = std::make_unique<ZeroInitializer>(**Type);
           return Result;
         }
         if (at(TokenKind::GlobalName))
@@ -757,12 +838,12 @@ namespace ink::ir
           {
             return std::nullopt;
           }
-          Result.ParsedValue = std::make_unique<GlobalAddressOperand>(*Type, GlobalId{}, *ByteOffset);
+          Result.ParsedValue = std::make_unique<GlobalAddressOperand>(**Type, GlobalId{}, *ByteOffset);
           Result.GlobalName = Global.Text;
           Result.Location = Global;
           return Result;
         }
-        fail(current(), "expected an SSA value, integer constant, or global byte address");
+        fail<DiagnosticKind::IrExpectedOperand>(current());
         return std::nullopt;
       }
 
@@ -798,14 +879,13 @@ namespace ink::ir
         {
           return nullptr;
         }
-        auto Call = std::make_unique<CallInstruction>();
-        Call->Result = ResultValue;
-        const std::optional<TypeKind> ResultType = parseType();
+        const std::optional<const Type *> ResultType = parseType();
         if (!ResultType)
         {
           return nullptr;
         }
-        Call->ResultType = *ResultType;
+        auto Call = std::make_unique<CallInstruction>(**ResultType);
+        Call->Result = ResultValue;
         const Token *Callee = expect(TokenKind::GlobalName, "a call target");
         if (Callee == nullptr || expect(TokenKind::LeftParenthesis, "'('") == nullptr)
         {
@@ -820,7 +900,7 @@ namespace ink::ir
         {
           if ((*Arguments)[ArgumentIndex].GlobalName.has_value())
           {
-            GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, ArgumentIndex, false, *(*Arguments)[ArgumentIndex].GlobalName, (*Arguments)[ArgumentIndex].Location});
+            GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, ArgumentIndex, GlobalFixupTarget::CallArgument, *(*Arguments)[ArgumentIndex].GlobalName, (*Arguments)[ArgumentIndex].Location});
           }
           Call->Arguments.push_back(std::move((*Arguments)[ArgumentIndex].ParsedValue));
         }
@@ -847,10 +927,107 @@ namespace ink::ir
         }
         if (Value->GlobalName.has_value())
         {
-          GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, 0, true, *Value->GlobalName, Value->Location});
+          GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, 0, GlobalFixupTarget::ReturnValue, *Value->GlobalName, Value->Location});
         }
         Return->ReturnValue = std::move(Value->ParsedValue);
         return Return;
+      }
+
+      std::unique_ptr<Instruction> parseInsertValue(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex, std::optional<ValueId> ResultValue)
+      {
+        if (!ResultValue.has_value())
+        {
+          fail<DiagnosticKind::IrInsertValueRequiresResult>(current());
+          return nullptr;
+        }
+        if (!expectIdentifier("insertvalue"))
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Aggregate = parseOperand();
+        if (!Aggregate || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Element = parseOperand();
+        if (!Element || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        const Token *FieldIndex = expect(TokenKind::Integer, "a struct field index");
+        if (FieldIndex == nullptr)
+        {
+          return nullptr;
+        }
+        const std::optional<std::size_t> ParsedFieldIndex = parseIndex(*FieldIndex, "struct field index");
+        if (!ParsedFieldIndex)
+        {
+          return nullptr;
+        }
+
+        auto Insert = std::make_unique<InsertValueInstruction>(Aggregate->ParsedValue->type());
+        Insert->Result = *ResultValue;
+        Insert->Aggregate = std::move(Aggregate->ParsedValue);
+        Insert->Element = std::move(Element->ParsedValue);
+        Insert->FieldIndex = *ParsedFieldIndex;
+        if (Aggregate->GlobalName.has_value())
+        {
+          GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, 0, GlobalFixupTarget::InsertAggregate, *Aggregate->GlobalName, Aggregate->Location});
+        }
+        if (Element->GlobalName.has_value())
+        {
+          GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, 0, GlobalFixupTarget::InsertElement, *Element->GlobalName, Element->Location});
+        }
+        return Insert;
+      }
+
+      std::unique_ptr<Instruction> parseExtractValue(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex, std::optional<ValueId> ResultValue)
+      {
+        if (!ResultValue.has_value())
+        {
+          fail<DiagnosticKind::IrExtractValueRequiresResult>(current());
+          return nullptr;
+        }
+        if (!expectIdentifier("extractvalue"))
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Aggregate = parseOperand();
+        if (!Aggregate || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        const Token *FieldIndex = expect(TokenKind::Integer, "a struct field index");
+        if (FieldIndex == nullptr)
+        {
+          return nullptr;
+        }
+        const std::optional<std::size_t> ParsedFieldIndex = parseIndex(*FieldIndex, "struct field index");
+        if (!ParsedFieldIndex)
+        {
+          return nullptr;
+        }
+        if (Aggregate->ParsedValue->type().kind() != TypeKind::Struct)
+        {
+          fail<DiagnosticKind::IrExtractAggregateMustBeStruct>(Aggregate->Location);
+          return nullptr;
+        }
+        const StructType &AggregateType = static_cast<const StructType &>(Aggregate->ParsedValue->type());
+        if (*ParsedFieldIndex >= AggregateType.fieldTypes().size())
+        {
+          fail<DiagnosticKind::IrFieldIndexOutOfRange>(*FieldIndex, *ParsedFieldIndex, AggregateType.fieldTypes().size());
+          return nullptr;
+        }
+
+        auto Extract = std::make_unique<ExtractValueInstruction>(*AggregateType.fieldTypes()[*ParsedFieldIndex]);
+        Extract->Result = *ResultValue;
+        Extract->Aggregate = std::move(Aggregate->ParsedValue);
+        Extract->FieldIndex = *ParsedFieldIndex;
+        if (Aggregate->GlobalName.has_value())
+        {
+          GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, 0, GlobalFixupTarget::ExtractAggregate, *Aggregate->GlobalName, Aggregate->Location});
+        }
+        return Extract;
       }
 
       std::unique_ptr<Instruction> parseInstruction(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex)
@@ -870,16 +1047,24 @@ namespace ink::ir
         {
           return parseCall(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
         }
+        if (atIdentifier("insertvalue"))
+        {
+          return parseInsertValue(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
+        }
+        if (atIdentifier("extractvalue"))
+        {
+          return parseExtractValue(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
+        }
         if (ResultValue.has_value())
         {
-          fail(current(), "only call instructions can define an SSA result in this InkIR version");
+          fail<DiagnosticKind::IrExpectedValueProducingInstruction>(current());
           return nullptr;
         }
         if (atIdentifier("ret"))
         {
           return parseReturn(FunctionIndex, BlockIndex, InstructionIndex);
         }
-        fail(current(), "expected a call or ret instruction");
+        fail<DiagnosticKind::IrExpectedInstruction>(current());
         return nullptr;
       }
 
@@ -910,20 +1095,19 @@ namespace ink::ir
         {
           return false;
         }
-        Function FunctionValue;
-        const std::optional<TypeKind> ResultType = parseType();
+        const std::optional<const Type *> ResultType = parseType();
         if (!ResultType)
         {
           return false;
         }
-        FunctionValue.ResultType = *ResultType;
+        Function FunctionValue(**ResultType);
         const Token *Name = expect(TokenKind::GlobalName, "a function name");
         if (Name == nullptr || !reserveGlobalSymbol(*Name) || expect(TokenKind::LeftParenthesis, "'('") == nullptr)
         {
           return false;
         }
         FunctionValue.Name = Name->Text;
-        std::optional<std::vector<TypeKind>> ParameterTypes = parseDefinitionParameterTypes();
+        std::optional<std::vector<const Type *>> ParameterTypes = parseDefinitionParameterTypes();
         if (!ParameterTypes || expect(TokenKind::RightParenthesis, "')'") == nullptr || expect(TokenKind::LeftBrace, "'{'") == nullptr)
         {
           return false;
@@ -934,7 +1118,7 @@ namespace ink::ir
         {
           if (at(TokenKind::End))
           {
-            return fail(current(), "expected '}' to end the function definition");
+            return fail<DiagnosticKind::IrUnterminatedFunctionDefinition>(current());
           }
           std::optional<BasicBlock> Block = parseBasicBlock(FunctionIndex, FunctionValue.Blocks.size());
           if (!Block)
@@ -953,9 +1137,18 @@ namespace ink::ir
       std::unique_ptr<Value> &valueAt(const GlobalFixup &Fixup)
       {
         Instruction &InstructionValue = *ModuleValue.Functions[Fixup.FunctionIndex].Blocks[Fixup.BlockIndex].Instructions[Fixup.InstructionIndex];
-        if (Fixup.IsReturn)
+        switch (Fixup.Target)
         {
+        case GlobalFixupTarget::CallArgument:
+          return static_cast<CallInstruction &>(InstructionValue).Arguments[Fixup.OperandIndex];
+        case GlobalFixupTarget::ReturnValue:
           return static_cast<ReturnInstruction &>(InstructionValue).ReturnValue;
+        case GlobalFixupTarget::InsertAggregate:
+          return static_cast<InsertValueInstruction &>(InstructionValue).Aggregate;
+        case GlobalFixupTarget::InsertElement:
+          return static_cast<InsertValueInstruction &>(InstructionValue).Element;
+        case GlobalFixupTarget::ExtractAggregate:
+          return static_cast<ExtractValueInstruction &>(InstructionValue).Aggregate;
         }
         return static_cast<CallInstruction &>(InstructionValue).Arguments[Fixup.OperandIndex];
       }
@@ -967,7 +1160,7 @@ namespace ink::ir
           const auto Callee = FunctionNames.find(Fixup.CalleeName);
           if (Callee == FunctionNames.end())
           {
-            return fail(Fixup.Location, "unknown call target @" + Fixup.CalleeName);
+            return fail<DiagnosticKind::IrUnknownCallTarget>(Fixup.Location, Fixup.CalleeName);
           }
           Instruction &InstructionValue = *ModuleValue.Functions[Fixup.FunctionIndex].Blocks[Fixup.BlockIndex].Instructions[Fixup.InstructionIndex];
           static_cast<CallInstruction &>(InstructionValue).Callee = Callee->second;
@@ -977,7 +1170,7 @@ namespace ink::ir
           const auto Global = GlobalNames.find(Fixup.GlobalName);
           if (Global == GlobalNames.end())
           {
-            return fail(Fixup.Location, "unknown global byte constant @" + Fixup.GlobalName);
+            return fail<DiagnosticKind::IrUnknownGlobalByteConstant>(Fixup.Location, Fixup.GlobalName);
           }
           std::unique_ptr<Value> &ValuePointer = valueAt(Fixup);
           const GlobalAddressOperand &Address = static_cast<const GlobalAddressOperand &>(*ValuePointer);
@@ -986,10 +1179,12 @@ namespace ink::ir
         return true;
       }
 
+      IRContext &Context;
       std::vector<Token> Tokens;
       std::size_t Index = 0;
       Module ModuleValue;
       std::unordered_set<std::string> GlobalSymbolNames;
+      std::unordered_map<std::string, const StructType *> TypeNames;
       std::unordered_map<std::string, GlobalId> GlobalNames;
       std::unordered_map<std::string, FunctionId> FunctionNames;
       std::vector<CallFixup> CallFixups;
@@ -1017,9 +1212,14 @@ namespace ink::ir
       return Result;
     }
 
-    void writeType(std::ostringstream &Output, TypeKind Type)
+    void writeType(std::ostringstream &Output, const Type &TypeValue)
     {
-      Output << typeKindName(Type);
+      if (TypeValue.kind() == TypeKind::Struct)
+      {
+        Output << '%' << static_cast<const StructType &>(TypeValue).name();
+        return;
+      }
+      Output << typeKindName(TypeValue.kind());
     }
 
     void writeOperandValue(std::ostringstream &Output, const Module &ModuleValue, const Value &OperandValue)
@@ -1032,10 +1232,14 @@ namespace ink::ir
       {
         Output << '%' << static_cast<const ValueOperand &>(OperandValue).id().value();
       }
-      else
+      else if (OperandValue.kind() == ValueKind::GlobalAddressOperand)
       {
         const GlobalAddressOperand &Address = static_cast<const GlobalAddressOperand &>(OperandValue);
         Output << '@' << ModuleValue.ByteConstants[Address.global().value()].Name << '[' << Address.byteOffset() << ']';
+      }
+      else
+      {
+        Output << "zeroinitializer";
       }
     }
 
@@ -1054,7 +1258,7 @@ namespace ink::ir
         Output << '%' << Call.Result->value() << " = ";
       }
       Output << "call ";
-      writeType(Output, Call.ResultType);
+      writeType(Output, *Call.ResultType);
       Output << " @" << ModuleValue.Functions[Call.Callee.value()].Name << '(';
       for (std::size_t ArgumentIndex = 0; ArgumentIndex < Call.Arguments.size(); ++ArgumentIndex)
       {
@@ -1079,7 +1283,23 @@ namespace ink::ir
       Output << '\n';
     }
 
-    void writeParameterTypes(std::ostringstream &Output, const std::vector<TypeKind> &ParameterTypes, bool IncludeNames)
+    void writeInsertValue(std::ostringstream &Output, const Module &ModuleValue, const InsertValueInstruction &Insert)
+    {
+      Output << "  %" << Insert.Result.value() << " = insertvalue ";
+      writeOperand(Output, ModuleValue, *Insert.Aggregate);
+      Output << ", ";
+      writeOperand(Output, ModuleValue, *Insert.Element);
+      Output << ", " << Insert.FieldIndex << '\n';
+    }
+
+    void writeExtractValue(std::ostringstream &Output, const Module &ModuleValue, const ExtractValueInstruction &Extract)
+    {
+      Output << "  %" << Extract.Result.value() << " = extractvalue ";
+      writeOperand(Output, ModuleValue, *Extract.Aggregate);
+      Output << ", " << Extract.FieldIndex << '\n';
+    }
+
+    void writeParameterTypes(std::ostringstream &Output, const std::vector<const Type *> &ParameterTypes, bool IncludeNames)
     {
       for (std::size_t ParameterIndex = 0; ParameterIndex < ParameterTypes.size(); ++ParameterIndex)
       {
@@ -1087,7 +1307,7 @@ namespace ink::ir
         {
           Output << ", ";
         }
-        writeType(Output, ParameterTypes[ParameterIndex]);
+        writeType(Output, *ParameterTypes[ParameterIndex]);
         if (IncludeNames)
         {
           Output << " %" << ParameterIndex;
@@ -1108,6 +1328,19 @@ namespace ink::ir
 
     std::ostringstream Output;
     Output << "inkir 1\n";
+    for (const StructType *TypeValue : ModuleValue.StructTypes)
+    {
+      Output << "\n%" << TypeValue->name() << " = type {";
+      for (std::size_t FieldIndex = 0; FieldIndex < TypeValue->fieldTypes().size(); ++FieldIndex)
+      {
+        if (FieldIndex != 0)
+        {
+          Output << ", ";
+        }
+        writeType(Output, *TypeValue->fieldTypes()[FieldIndex]);
+      }
+      Output << "}\n";
+    }
     for (const ByteConstant &Constant : ModuleValue.ByteConstants)
     {
       Output << "\n@" << Constant.Name << " = private constant [" << Constant.Data.size() << " x byte] c\"" << escapeBytes(Constant.Data) << "\"\n";
@@ -1119,7 +1352,7 @@ namespace ink::ir
         continue;
       }
       Output << "\ndeclare extern \"C\" ";
-      writeType(Output, FunctionValue.ResultType);
+      writeType(Output, *FunctionValue.ResultType);
       Output << " @" << FunctionValue.Name << '(';
       writeParameterTypes(Output, FunctionValue.ParameterTypes, false);
       Output << ')';
@@ -1136,7 +1369,7 @@ namespace ink::ir
         continue;
       }
       Output << "\ndefine ";
-      writeType(Output, FunctionValue.ResultType);
+      writeType(Output, *FunctionValue.ResultType);
       Output << " @" << FunctionValue.Name << '(';
       writeParameterTypes(Output, FunctionValue.ParameterTypes, true);
       Output << ") {\n";
@@ -1149,6 +1382,14 @@ namespace ink::ir
           if (InstructionValue.kind() == InstructionKind::Call)
           {
             writeCall(Output, ModuleValue, static_cast<const CallInstruction &>(InstructionValue));
+          }
+          else if (InstructionValue.kind() == InstructionKind::InsertValue)
+          {
+            writeInsertValue(Output, ModuleValue, static_cast<const InsertValueInstruction &>(InstructionValue));
+          }
+          else if (InstructionValue.kind() == InstructionKind::ExtractValue)
+          {
+            writeExtractValue(Output, ModuleValue, static_cast<const ExtractValueInstruction &>(InstructionValue));
           }
           else
           {
@@ -1164,9 +1405,7 @@ namespace ink::ir
 
   SerializeResult serialize(const Module &ModuleValue)
   {
-    core::CompilationContext Compilation;
-    IRContext Context(Compilation);
-    return serialize(Context, ModuleValue);
+    return serialize(ModuleValue.context(), ModuleValue);
   }
 
   DeserializeResult deserialize(IRContext &Context, std::string_view Text)
@@ -1181,15 +1420,15 @@ namespace ink::ir
       return Result;
     }
 
-    Module ModuleValue;
-    if (!TextParser(std::move(Tokens)).parse(ModuleValue, Error))
+    Module ModuleValue(Context);
+    if (!TextParser(Context, std::move(Tokens)).parse(ModuleValue, Error))
     {
       Context.diagnosticEngine().report(Error);
       Result.Diagnostics.push_back(std::move(Error));
       return Result;
     }
 
-    const VerificationResult Verification = verify(Context, ModuleValue);
+    const VerificationResult Verification = verify(Context, ModuleValue, core::DiagnosticClass::User);
     if (!Verification.succeeded())
     {
       Result.Diagnostics = Verification.diagnostics();
@@ -1199,10 +1438,4 @@ namespace ink::ir
     return Result;
   }
 
-  DeserializeResult deserialize(std::string_view Text)
-  {
-    core::CompilationContext Compilation;
-    IRContext Context(Compilation);
-    return deserialize(Context, Text);
-  }
 } // namespace ink::ir

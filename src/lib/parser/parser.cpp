@@ -12,10 +12,9 @@
 namespace ink::parser
 {
   using core::Diagnostic;
-  using core::DiagnosticArgumentName;
-  using core::DiagnosticBuilder;
   using core::DiagnosticKind;
   using core::SourceRange;
+  using core::makeDiagnostic;
   using tokenizer::KeywordKind;
   using tokenizer::Token;
   using tokenizer::TokenizedBuffer;
@@ -1445,7 +1444,7 @@ namespace ink::parser
   {
     const std::size_t Anchor = anchorOffset();
     Builder.missing({Kind, std::string(Expected), Anchor});
-    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::ExpectedToken, {Anchor, Anchor}).argument(DiagnosticArgumentName::Expected, std::string(Expected)).build());
+    Diagnostics.push_back(makeDiagnostic<DiagnosticKind::ExpectedToken>({Anchor, Anchor}, Expected));
     if (!atEnd())
     {
       SawDefinitiveError = true;
@@ -1460,7 +1459,7 @@ namespace ink::parser
   {
     const std::size_t Anchor = anchorOffset();
     Builder.missing({TokenKind::Identifier, std::string(Expected), Anchor});
-    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::ExpectedSyntax, {Anchor, Anchor}).argument(DiagnosticArgumentName::Expected, std::string(Expected)).build());
+    Diagnostics.push_back(makeDiagnostic<DiagnosticKind::ExpectedSyntax>({Anchor, Anchor}, Expected));
     if (!atEnd())
     {
       SawDefinitiveError = true;
@@ -1475,7 +1474,18 @@ namespace ink::parser
   {
     const Token &Current = peekSignificant();
     const std::string Actual = Current.Kind == TokenKind::EndOfFile ? "end of file" : std::string(raw(Current));
-    Diagnostics.push_back(DiagnosticBuilder(Kind, Current.Span).argument(DiagnosticArgumentName::Actual, Actual).build());
+    if (Kind == DiagnosticKind::ReservedSymbolSequence)
+    {
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::ReservedSymbolSequence>(Current.Span, Actual));
+    }
+    else if (Kind == DiagnosticKind::TrailingComma)
+    {
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::TrailingComma>(Current.Span));
+    }
+    else
+    {
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::UnexpectedToken>(Current.Span, Actual));
+    }
     if (Current.Kind != TokenKind::EndOfFile)
     {
       SawDefinitiveError = true;
@@ -1514,7 +1524,14 @@ namespace ink::parser
     startNode(CstKind::Error);
     const std::size_t FirstToken = significantIndex();
     const SourceRange Span = {LexedFile.tokens()[FirstToken].Span.Start, LexedFile.tokens()[FirstToken + Sequence.size() - 1].Span.End};
-    Diagnostics.push_back(DiagnosticBuilder(Kind, Span).argument(DiagnosticArgumentName::Actual, Sequence).build());
+    if (Kind == DiagnosticKind::ReservedSymbolSequence)
+    {
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::ReservedSymbolSequence>(Span, Sequence));
+    }
+    else
+    {
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::UnexpectedToken>(Span, Sequence));
+    }
     SawDefinitiveError = true;
     consumeSymbols(Sequence);
     finishNode();
@@ -1534,7 +1551,7 @@ namespace ink::parser
   void ParserImpl::recoverSyntaxNesting()
   {
     const Token &Current = peekSignificant();
-    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::SyntaxNestingLimit, Current.Span).build());
+    Diagnostics.push_back(makeDiagnostic<DiagnosticKind::SyntaxNestingLimit>(Current.Span));
     SawDefinitiveError = true;
     startNode(CstKind::Error);
     if (!atEnd())
@@ -3086,7 +3103,7 @@ namespace ink::parser
     if (atKeyword(KeywordKind::Var) || atKeyword(KeywordKind::Const))
     {
       const SourceRange Span = peekSignificant().Span;
-      Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::DeclarationRequiresBlock, Span).build());
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::DeclarationRequiresBlock>(Span));
       SawDefinitiveError = true;
       startNode(CstKind::Error);
       StopSet DeclarationStop;
@@ -3271,7 +3288,7 @@ namespace ink::parser
     if (atKeyword(KeywordKind::Var) || atKeyword(KeywordKind::Const))
     {
       const SourceRange Span = peekSignificant().Span;
-      Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::DeclarationRequiresBlock, Span).build());
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::DeclarationRequiresBlock>(Span));
       SawDefinitiveError = true;
       startNode(CstKind::Error);
       parseBindingCore({{",", "}"}, {}, false, true});

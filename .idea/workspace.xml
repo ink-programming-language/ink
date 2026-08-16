@@ -4,6 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="BackendCodeEditorMiscSettings">
+    <option name="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue" value="4" type="long" />
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
   </component>
   <component name="CMakePresetLoader"><![CDATA[{
@@ -763,6 +764,7 @@
       <config projectName="ink" targetName="ink_core" />
       <config projectName="ink" targetName="clangStaticAnalyzerCore" folderName="Clang/Libraries" />
       <config projectName="ink" targetName="OtoolOptsTableGen" folderName="LLVM/Tablegenning" />
+      <config projectName="ink" targetName="ink_interpreter" />
       <config projectName="ink" targetName="mips-resource-headers" folderName="Clang/Resources" />
       <config projectName="ink" targetName="LLVMDTLTO" folderName="LLVM/Libraries" />
       <config projectName="ink" targetName="ClangDiagnosticCommonCompatIDs" folderName="Clang/Tablegenning" />
@@ -1048,24 +1050,34 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="75c92d51-4c7b-4d11-8d7d-8de7163a5f4a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitmodules" beforeDir="false" afterPath="$PROJECT_DIR$/.gitmodules" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.clang-format" beforeDir="false" afterPath="$PROJECT_DIR$/.clang-format" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/core/diagnostic.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/diagnostic.def" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/core/diagnostic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/diagnostic.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/parser/parser.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/parser/parser.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/tokenizer/tokenizer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/tokenizer/tokenizer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/execution_engine.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/execution_engine.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/context.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/ir.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/ir.def" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/ir.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/ir.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/serialization.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/serialization.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/verifier.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/verifier.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/core/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/core/diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/core/diagnostic.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/execution_engine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/execution_engine.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/runtime.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/ir.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/serialization.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/serialization.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/verifier.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/verifier.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/parser/parser.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/parser/parser.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/tokenizer/tokenizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/tokenizer/tokenizer.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/core/core_diagnostic_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/core/core_diagnostic_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/parser/recovery_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/recovery_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/10_token_stream_contract_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/10_token_stream_contract_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/third_party/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/third_party/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/execution/execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/execution_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/ir/ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/ir_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/02_trivia_comments_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/02_trivia_comments_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/03_identifiers_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/03_identifiers_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tools/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tools/parser/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/parser/main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tools/tokenizer/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/tokenizer/main.cpp" afterDir="false" />
     </list>
@@ -1078,12 +1090,74 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/src/include/ink/ir/ir.h" root0="FORCE_HIGHLIGHTING" />
+  </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="v7dQL6JS" />
   </component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.0" />
+      <entry key="S10" value="1.0" />
+      <entry key="S30" value="1.0" />
+      <entry key="S60" value="1.0" />
+      <entry key="M2" value="1.0" />
+      <entry key="M5" value="1.0" />
+      <entry key="M10" value="1.0" />
+      <entry key="M15" value="1.0" />
+      <entry key="M30" value="1.0000000014973254" />
+      <entry key="H1" value="1.0000863774637792" />
+      <entry key="H2" value="1.02077309462435" />
+      <entry key="H4" value="1.322247687359692" />
+      <entry key="D1" value="4.165922628391566" />
+      <entry key="W1" value="5.684001591288645" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="0.0" />
+      <entry key="S60" value="0.0" />
+      <entry key="M2" value="0.0" />
+      <entry key="M5" value="0.0" />
+      <entry key="M10" value="0.0" />
+      <entry key="M15" value="0.0" />
+      <entry key="M30" value="0.0" />
+      <entry key="H1" value="0.0" />
+      <entry key="H2" value="0.0" />
+      <entry key="H4" value="0.0" />
+      <entry key="D1" value="0.0" />
+      <entry key="W1" value="0.0" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="3.457287247606807E-5" />
+      <entry key="MS500" value="0.12815840473607423" />
+      <entry key="S2" value="0.5983244816153572" />
+      <entry key="S5" value="0.8142817649255766" />
+      <entry key="S10" value="0.9023756229672744" />
+      <entry key="S30" value="0.9663381340978877" />
+      <entry key="S60" value="0.9830249915937477" />
+      <entry key="M2" value="0.9914761679403836" />
+      <entry key="M5" value="0.9965817086341128" />
+      <entry key="M10" value="0.9982893912258674" />
+      <entry key="M15" value="0.9988592687717681" />
+      <entry key="M30" value="0.9994294731315979" />
+      <entry key="H1" value="0.9998010639861092" />
+      <entry key="H2" value="1.0206294066964938" />
+      <entry key="H4" value="1.322168429177464" />
+      <entry key="D1" value="4.165897799243499" />
+      <entry key="W1" value="5.683997159100825" />
+    </decayedShown>
   </component>
   <component name="ProjectApplicationVersion">
     <option name="ide" value="CLion" />
@@ -1103,6 +1177,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "CidrDebugProfileConversion": "true",
+    "Google Test.ink_tests.executor": "Debug",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.RadMigrateCodeStyle": "true",
@@ -1125,7 +1200,7 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
-  <component name="RunManager" selected="CMake Application.clang-check">
+  <component name="RunManager" selected="Google Test.ink_tests">
     <configuration name="ink_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ink" RUN_TARGET_NAME="ink_tests" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -3318,6 +3393,11 @@
       </method>
     </configuration>
     <configuration name="ink_execution" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_execution" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ink_interpreter" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_interpreter" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ink" RUN_TARGET_NAME="ink_interpreter">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -7267,6 +7347,7 @@
       <item itemvalue="CMake Application.spdlog" />
       <item itemvalue="CMake Application.utf8proc" />
       <item itemvalue="CMake Application.inkc" />
+      <item itemvalue="CMake Application.ink_interpreter" />
       <item itemvalue="CMake Application.ink_parse" />
       <item itemvalue="CMake Application.ink_tokenize" />
       <item itemvalue="CMake Application.ink_libffi" />
@@ -7282,9 +7363,23 @@
         "cmake": "CMakeBuildProfile:Debug"
       },
       "second": "4454788b-606e-418f-b72d-84eab0e7fd28"
+    },
+    {
+      "first": {
+        "##RUN_CONFIGURATION##": "CMake Application.ink_interpreter",
+        "cmake": "CMakeBuildProfile:Debug"
+      },
+      "second": "4454788b-606e-418f-b72d-84eab0e7fd28"
+    },
+    {
+      "first": {
+        "##RUN_CONFIGURATION##": "Google Test.ink_tests",
+        "cmake": "CMakeBuildProfile:Debug"
+      },
+      "second": "4454788b-606e-418f-b72d-84eab0e7fd28"
     }
   ],
-  "modificationCount": 3
+  "modificationCount": 7
 }]]></component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">

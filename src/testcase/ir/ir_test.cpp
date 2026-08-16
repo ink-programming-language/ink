@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -16,8 +17,8 @@ namespace ink::ir
   {
     struct TestContext
     {
-      core::CompilationContext Compilation;
-      IRContext IR{Compilation};
+        core::CompilationContext Compilation;
+        IRContext IR{Compilation};
     };
 
     std::string formatMessage(const core::Diagnostic &DiagnosticEntry)
@@ -36,28 +37,30 @@ namespace ink::ir
       return std::move(*Result.text());
     }
 
-    Module makeHelloWorldModule()
+    Module makeHelloWorldModule(IRContext &Context)
     {
-      Module Result;
+      const Type &VoidType = Context.getType(TypeKind::Void);
+      const Type &I32Type = Context.getType(TypeKind::I32);
+      const Type &PointerSizeType = Context.getType(TypeKind::PointerSize);
+      const Type &ConstBytePointerType = Context.getType(TypeKind::ConstBytePointer);
+      Module Result(Context);
       Result.ByteConstants.push_back({"str.0", "Hello, world!\n"});
 
-      Function WriteStdout;
-      WriteStdout.Name = "ink_rt_write_stdout";
+      Function WriteStdout(I32Type);
+      WriteStdout.Name = "print";
       WriteStdout.Kind = FunctionKind::External;
       WriteStdout.Convention = CallingConvention::C;
-      WriteStdout.ResultType = TypeKind::I32;
-      WriteStdout.ParameterTypes = {TypeKind::ConstBytePointer, TypeKind::PointerSize};
+      WriteStdout.ParameterTypes = {&ConstBytePointerType, &PointerSizeType};
       WriteStdout.HasSideEffects = true;
       Result.Functions.push_back(std::move(WriteStdout));
 
-      auto Call = std::make_unique<CallInstruction>();
+      auto Call = std::make_unique<CallInstruction>(I32Type);
       Call->Result = ValueId{0};
-      Call->ResultType = TypeKind::I32;
       Call->Callee = FunctionId{0};
-      Call->Arguments.push_back(std::make_unique<GlobalAddressOperand>(TypeKind::ConstBytePointer, GlobalId{0}, 0));
-      Call->Arguments.push_back(std::make_unique<IntegerConstant>(TypeKind::PointerSize, 14));
+      Call->Arguments.push_back(std::make_unique<GlobalAddressOperand>(ConstBytePointerType, GlobalId{0}, 0));
+      Call->Arguments.push_back(std::make_unique<IntegerConstant>(PointerSizeType, 14));
 
-      Function Main;
+      Function Main(VoidType);
       Main.Name = "main";
       BasicBlock Entry;
       Entry.Name = "entry";
@@ -73,12 +76,25 @@ namespace ink::ir
         "\n"
         "@str.0 = private constant [14 x byte] c\"Hello, world!\\0A\"\n"
         "\n"
-        "declare extern \"C\" i32 @ink_rt_write_stdout(const byte*, ptrsize) [sideeffect]\n"
+        "declare extern \"C\" i32 @print(const byte*, ptrsize) [sideeffect]\n"
         "\n"
         "define void @main() {\n"
         "entry:\n"
-        "  %0 = call i32 @ink_rt_write_stdout(const byte* @str.0[0], ptrsize 14)\n"
+        "  %0 = call i32 @print(const byte* @str.0[0], ptrsize 14)\n"
         "  ret void\n"
+        "}\n";
+
+    const std::string StructText =
+        "inkir 1\n"
+        "\n"
+        "%Pair = type {i32, i32}\n"
+        "\n"
+        "define i32 @sum_second() {\n"
+        "entry:\n"
+        "  %0 = insertvalue %Pair zeroinitializer, i32 20, 0\n"
+        "  %1 = insertvalue %Pair %0, i32 22, 1\n"
+        "  %2 = extractvalue %Pair %1, 1\n"
+        "  ret i32 %2\n"
         "}\n";
 
     // Verifies that IRContext composes around the compilation context and reuses its diagnostic engine.
@@ -90,6 +106,36 @@ namespace ink::ir
       EXPECT_EQ(&Context.IR.diagnosticEngine(), &Context.Compilation.diagnosticEngine());
     }
 
+    // Verifies that IRContext owns one stable Type object for each primitive TypeKind.
+    TEST(IrContextTest, OwnsCanonicalPrimitiveTypes)
+    {
+      TestContext Context;
+      const Type &FirstI32 = Context.IR.getType(TypeKind::I32);
+      const Type &SecondI32 = Context.IR.getType(TypeKind::I32);
+      const Type &VoidType = Context.IR.getType(TypeKind::Void);
+
+      static_assert(!std::is_abstract_v<Type>);
+      EXPECT_EQ(&FirstI32, &SecondI32);
+      EXPECT_NE(&FirstI32, &VoidType);
+      EXPECT_EQ(FirstI32.kind(), TypeKind::I32);
+      EXPECT_EQ(VoidType.kind(), TypeKind::Void);
+    }
+
+    // Verifies that IRContext owns distinct named struct types even when their field lists are identical.
+    TEST(IrContextTest, OwnsDistinctNamedStructTypes)
+    {
+      TestContext Context;
+      const Type &I32Type = Context.IR.getType(TypeKind::I32);
+      const StructType &First = Context.IR.createStructType("First", {&I32Type});
+      const StructType &Second = Context.IR.createStructType("Second", {&I32Type});
+
+      EXPECT_NE(&First, &Second);
+      EXPECT_EQ(First.kind(), TypeKind::Struct);
+      EXPECT_EQ(First.name(), "First");
+      ASSERT_EQ(First.fieldTypes().size(), 1u);
+      EXPECT_EQ(First.fieldTypes()[0], &I32Type);
+    }
+
     // Verifies that all instruction metadata comes from the centralized IR definition table.
     TEST(IrDefinitionTest, ExposesRegisteredInstructionMetadata)
     {
@@ -99,9 +145,12 @@ namespace ink::ir
       EXPECT_STREQ(instructionKindName(InstructionKind::Return), "Return");
       EXPECT_STREQ(instructionMnemonic(InstructionKind::Return), "ret");
       EXPECT_TRUE(isTerminator(InstructionKind::Return));
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::InsertValue), "insertvalue");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::ExtractValue), "extractvalue");
       EXPECT_STREQ(valueKindName(ValueKind::IntegerConstant), "IntegerConstant");
       EXPECT_STREQ(valueKindName(ValueKind::ValueOperand), "ValueOperand");
       EXPECT_STREQ(valueKindName(ValueKind::GlobalAddressOperand), "GlobalAddressOperand");
+      EXPECT_STREQ(valueKindName(ValueKind::ZeroInitializer), "ZeroInitializer");
     }
 
     // Verifies that strong IDs expose their index without allowing direct mutation of the stored representation.
@@ -131,26 +180,30 @@ namespace ink::ir
     // Verifies that every operand value carries its type through the abstract Value base class.
     TEST(IrValueTest, OwnsTypedOperandsThroughValueBase)
     {
+      TestContext Context;
       static_assert(std::is_abstract_v<Value>);
       static_assert(std::is_base_of_v<Value, IntegerConstant>);
       static_assert(std::is_base_of_v<Value, ValueOperand>);
       static_assert(std::is_base_of_v<Value, GlobalAddressOperand>);
 
-      std::unique_ptr<Value> Constant = std::make_unique<IntegerConstant>(TypeKind::I32, 42);
+      const Type &I32Type = Context.IR.getType(TypeKind::I32);
+      std::unique_ptr<Value> Constant = std::make_unique<IntegerConstant>(I32Type, 42);
 
       EXPECT_EQ(Constant->kind(), ValueKind::IntegerConstant);
-      EXPECT_EQ(Constant->type(), TypeKind::I32);
+      EXPECT_EQ(&Constant->type(), &I32Type);
+      EXPECT_EQ(Constant->type().kind(), TypeKind::I32);
       EXPECT_EQ(static_cast<const IntegerConstant &>(*Constant).value(), 42);
     }
 
     // Verifies that concrete instructions are polymorphically owned and retain their registered instruction kinds.
     TEST(IrInstructionTest, OwnsConcreteInstructionsThroughAbstractBase)
     {
+      TestContext Context;
       static_assert(std::is_abstract_v<Instruction>);
       static_assert(std::is_base_of_v<Instruction, CallInstruction>);
       static_assert(std::is_base_of_v<Instruction, ReturnInstruction>);
 
-      std::unique_ptr<Instruction> Call = std::make_unique<CallInstruction>();
+      std::unique_ptr<Instruction> Call = std::make_unique<CallInstruction>(Context.IR.getType(TypeKind::Void));
       std::unique_ptr<Instruction> Return = std::make_unique<ReturnInstruction>();
 
       EXPECT_EQ(Call->kind(), InstructionKind::Call);
@@ -161,7 +214,7 @@ namespace ink::ir
     TEST(IrVerifierTest, AcceptsExternHelloWorldModule)
     {
       TestContext Context;
-      const VerificationResult Result = verify(Context.IR, makeHelloWorldModule());
+      const VerificationResult Result = verify(Context.IR, makeHelloWorldModule(Context.IR));
 
       EXPECT_TRUE(Result.succeeded());
       EXPECT_TRUE(Result.diagnostics().empty());
@@ -172,7 +225,7 @@ namespace ink::ir
     {
       TestContext Context;
 
-      EXPECT_EQ(serializeSuccessfully(Context.IR, makeHelloWorldModule()), HelloWorldText);
+      EXPECT_EQ(serializeSuccessfully(Context.IR, makeHelloWorldModule(Context.IR)), HelloWorldText);
     }
 
     // Verifies that serialized Hello World IR round-trips without changing its canonical text.
@@ -187,6 +240,19 @@ namespace ink::ir
       EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), HelloWorldText);
     }
 
+    // Verifies that named struct declarations and aggregate SSA instructions round-trip through canonical InkIR text.
+    TEST(IrSerializationTest, RoundTripsNamedStructAndAggregateInstructions)
+    {
+      TestContext Context;
+      DeserializeResult Result = deserialize(Context.IR, StructText);
+
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_TRUE(Result.module().has_value());
+      ASSERT_EQ(Result.module()->StructTypes.size(), 1u);
+      EXPECT_EQ(Result.module()->StructTypes[0]->name(), "Pair");
+      EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), StructText);
+    }
+
     // Verifies that deserialization resolves function and global references declared later in the text.
     TEST(IrSerializationTest, ResolvesForwardGlobalAndExternReferences)
     {
@@ -195,10 +261,10 @@ namespace ink::ir
           "inkir 1\n"
           "define void @main() {\n"
           "entry:\n"
-          "  %0 = call i32 @ink_rt_write_stdout(const byte* @str.0[0], ptrsize 14)\n"
+          "  %0 = call i32 @print(const byte* @str.0[0], ptrsize 14)\n"
           "  ret void\n"
           "}\n"
-          "declare extern \"C\" i32 @ink_rt_write_stdout(const byte*, ptrsize) [sideeffect]\n"
+          "declare extern \"C\" i32 @print(const byte*, ptrsize) [sideeffect]\n"
           "@str.0 = private constant [14 x byte] c\"Hello, world!\\0A\"\n";
 
       DeserializeResult Result = deserialize(Context.IR, ForwardReferenceText);
@@ -211,9 +277,9 @@ namespace ink::ir
     TEST(IrSerializationTest, RoundTripsEveryEscapedByteShapeUsedByConstants)
     {
       TestContext Context;
-      Module ModuleValue = makeHelloWorldModule();
+      Module ModuleValue = makeHelloWorldModule(Context.IR);
       ModuleValue.ByteConstants[0].Data = std::string("\0\"\\\xC3\xA9", 5);
-      static_cast<CallInstruction &>(*ModuleValue.Functions[1].Blocks[0].Instructions[0]).Arguments[1] = std::make_unique<IntegerConstant>(TypeKind::PointerSize, 5);
+      static_cast<CallInstruction &>(*ModuleValue.Functions[1].Blocks[0].Instructions[0]).Arguments[1] = std::make_unique<IntegerConstant>(Context.IR.getType(TypeKind::PointerSize), 5);
 
       const std::string Text = serializeSuccessfully(Context.IR, ModuleValue);
       DeserializeResult Result = deserialize(Context.IR, Text);
@@ -232,8 +298,10 @@ namespace ink::ir
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidIrText);
-      EXPECT_NE(formatMessage(Result.diagnostics()[0]).find("does not match"), std::string::npos);
+      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrByteConstantSizeMismatch>({35, 36}, std::uint64_t{2}, std::uint64_t{1});
+      EXPECT_EQ(Result.diagnostics()[0], Expected);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "declared byte constant size 2 does not match decoded string length 1");
     }
 
     // Verifies that the InkIR lexer returns a located Core diagnostic and publishes the same value through IRContext.
@@ -246,8 +314,10 @@ namespace ink::ir
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidIrText);
-      EXPECT_EQ(Result.diagnostics()[0].Span, (core::SourceRange{8, 9}));
+      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrUnexpectedCharacter>({8, 9}, "?");
+      EXPECT_EQ(Result.diagnostics()[0], Expected);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "unexpected character '?'");
       EXPECT_EQ(Consumer.diagnostics(), Result.diagnostics());
     }
 
@@ -259,8 +329,10 @@ namespace ink::ir
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Span, (core::SourceRange{6, 7}));
-      EXPECT_NE(formatMessage(Result.diagnostics()[0]).find("unsupported InkIR format version"), std::string::npos);
+      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrUnsupportedFormatVersion>({6, 7}, std::uint64_t{2}, std::uint64_t{1});
+      EXPECT_EQ(Result.diagnostics()[0], Expected);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "unsupported InkIR format version 2; expected 1");
     }
 
     // Verifies that unresolved external call targets are rejected during reference resolution.
@@ -271,8 +343,10 @@ namespace ink::ir
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidIrText);
-      EXPECT_NE(formatMessage(Result.diagnostics()[0]).find("unknown call target"), std::string::npos);
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrUnknownCallTarget);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrUnknownCallTarget>({}, "missing").Arguments);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "unknown call target @missing");
     }
 
     // Verifies that type annotations on global-address operands are checked against the extern signature.
@@ -288,8 +362,10 @@ namespace ink::ir
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_FALSE(Result.diagnostics().empty());
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidIrModule);
-      EXPECT_NE(formatMessage(Result.diagnostics()[0]).find("global byte address"), std::string::npos);
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrGlobalAddressWrongType);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrGlobalAddressWrongType>({}, "main").Arguments);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "global byte address in function @main must have type 'const byte*'");
     }
 
     // Verifies that a programmatically constructed block without a terminator is rejected and cannot be serialized.
@@ -298,15 +374,18 @@ namespace ink::ir
       TestContext Context;
       core::CollectingDiagnosticConsumer Consumer;
       Context.Compilation.diagnosticEngine().addConsumer(Consumer);
-      Module ModuleValue = makeHelloWorldModule();
+      Module ModuleValue = makeHelloWorldModule(Context.IR);
       ModuleValue.Functions[1].Blocks[0].Instructions.pop_back();
 
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Consumer.diagnostics(), Result.diagnostics());
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidIrModule);
-      EXPECT_NE(formatMessage(Result.diagnostics()[0]).find("does not end with a terminator"), std::string::npos);
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrBlockMissingTerminator);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrBlockMissingTerminator>({}, "main", "entry").Arguments);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "basic block entry in function @main does not end with a terminator");
       const SerializeResult Serialized = serialize(Context.IR, ModuleValue);
       EXPECT_FALSE(Serialized.succeeded());
       EXPECT_FALSE(Serialized.text().has_value());

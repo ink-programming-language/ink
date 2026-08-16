@@ -1,4 +1,4 @@
-add_library(ink_ir STATIC ir.cpp serialization.cpp verifier.cpp)
+add_library(ink_ir STATIC context.cpp instruction.cpp serialization.cpp type.cpp value.cpp verifier.cpp)
 add_library(ink::ir ALIAS ink_ir)
 
 target_compile_features(ink_ir PUBLIC cxx_std_17)
