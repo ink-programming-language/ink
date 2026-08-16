@@ -142,6 +142,7 @@ namespace ink::ir
         }
         return;
       case TypeKind::Void:
+      case TypeKind::BytePointer:
       case TypeKind::ConstBytePointer:
       case TypeKind::Struct:
         Diagnostics.add<DiagnosticKind::IrIntegerConstantInvalidType>(FunctionName, typeKindName(Constant.type().kind()));
@@ -257,6 +258,23 @@ namespace ink::ir
       }
     }
 
+    bool verifySsaResult(ValueId Id, const char *Operation, const std::string &FunctionName, std::size_t &ExpectedValueId, std::unordered_set<std::size_t> &DefinedValues, DiagnosticCollector &Diagnostics)
+    {
+      const bool IsValidAndUnique = Id.valid() && DefinedValues.insert(Id.value()).second;
+      if (!IsValidAndUnique)
+      {
+        Diagnostics.add<DiagnosticKind::IrInvalidOrDuplicateSsaResult>(Operation, FunctionName, Id.value());
+        ++ExpectedValueId;
+        return false;
+      }
+      if (Id.value() != ExpectedValueId)
+      {
+        Diagnostics.add<DiagnosticKind::IrNonConsecutiveSsaResult>(Operation, FunctionName, ExpectedValueId, Id.value());
+      }
+      ++ExpectedValueId;
+      return IsValidAndUnique;
+    }
+
     void verifyFunctionBody(const Module &ModuleValue, const Function &FunctionValue, DiagnosticCollector &Diagnostics)
     {
       if (FunctionValue.Kind != FunctionKind::Definition)
@@ -274,6 +292,7 @@ namespace ink::ir
       {
         DefinedValues.insert(ParameterIndex);
       }
+      std::size_t ExpectedValueId = FunctionValue.ParameterTypes.size();
 
       for (const BasicBlock &Block : FunctionValue.Blocks)
       {
@@ -374,11 +393,7 @@ namespace ink::ir
             }
             if (Call->Result.has_value())
             {
-              if (!Call->Result->valid() || !DefinedValues.insert(Call->Result->value()).second)
-              {
-                Diagnostics.add<DiagnosticKind::IrInvalidOrDuplicateSsaResult>("call", FunctionValue.Name, Call->Result->value());
-              }
-              else
+              if (verifySsaResult(*Call->Result, "call", FunctionValue.Name, ExpectedValueId, DefinedValues, Diagnostics))
               {
                 AvailableValues.emplace(Call->Result->value(), Call->ResultType);
               }
@@ -429,11 +444,7 @@ namespace ink::ir
                 Diagnostics.add<DiagnosticKind::IrInsertElementTypeMismatch>(FunctionValue.Name);
               }
             }
-            if (!Insert.Result.valid() || !DefinedValues.insert(Insert.Result.value()).second)
-            {
-              Diagnostics.add<DiagnosticKind::IrInvalidOrDuplicateSsaResult>("insertvalue", FunctionValue.Name, Insert.Result.value());
-            }
-            else if (isValidType(ModuleValue, Insert.ResultType))
+            if (verifySsaResult(Insert.Result, "insertvalue", FunctionValue.Name, ExpectedValueId, DefinedValues, Diagnostics) && isValidType(ModuleValue, Insert.ResultType))
             {
               AvailableValues.emplace(Insert.Result.value(), Insert.ResultType);
             }
@@ -475,11 +486,7 @@ namespace ink::ir
                 Diagnostics.add<DiagnosticKind::IrExtractResultTypeMismatch>(FunctionValue.Name);
               }
             }
-            if (!Extract.Result.valid() || !DefinedValues.insert(Extract.Result.value()).second)
-            {
-              Diagnostics.add<DiagnosticKind::IrInvalidOrDuplicateSsaResult>("extractvalue", FunctionValue.Name, Extract.Result.value());
-            }
-            else if (isValidType(ModuleValue, Extract.ResultType))
+            if (verifySsaResult(Extract.Result, "extractvalue", FunctionValue.Name, ExpectedValueId, DefinedValues, Diagnostics) && isValidType(ModuleValue, Extract.ResultType))
             {
               AvailableValues.emplace(Extract.Result.value(), Extract.ResultType);
             }

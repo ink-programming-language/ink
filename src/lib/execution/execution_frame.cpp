@@ -1,29 +1,23 @@
 #include "execution_frame.h"
 
-#include <utility>
-
 namespace ink::execution
 {
-  ExecutionFrame::ExecutionFrame(const std::vector<RuntimeValue> &Arguments)
+  ExecutionFrame::ExecutionFrame(const std::vector<RuntimeValueRef> &Arguments) : Values(Arguments)
   {
-    for (std::size_t ArgumentIndex = 0; ArgumentIndex < Arguments.size(); ++ArgumentIndex)
-    {
-      Values.emplace(ArgumentIndex, Arguments[ArgumentIndex]);
-    }
   }
 
-  const RuntimeValue *ExecutionFrame::find(ir::ValueId Id) const noexcept
+  RuntimeValueRef ExecutionFrame::find(ir::ValueId Id) const noexcept
   {
-    if (!Id.valid())
-    {
-      return nullptr;
-    }
-    const auto Stored = Values.find(Id.value());
-    return Stored == Values.end() ? nullptr : &Stored->second;
+    return Id.valid() && Id.value() < Values.size() ? Values[Id.value()] : nullptr;
   }
 
-  bool ExecutionFrame::define(ir::ValueId Id, RuntimeValue Value)
+  bool ExecutionFrame::define(ir::ValueId Id, RuntimeValueRef Value)
   {
-    return Id.valid() && Values.emplace(Id.value(), std::move(Value)).second;
+    if (!Id.valid() || Id.value() != Values.size() || Value == nullptr)
+    {
+      return false;
+    }
+    Values.push_back(Value);
+    return true;
   }
 } // namespace ink::execution

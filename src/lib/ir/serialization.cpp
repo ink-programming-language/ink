@@ -561,6 +561,12 @@ namespace ink::ir
           }
           return &Context.getType(TypeKind::ConstBytePointer);
         }
+        if (atIdentifier("byte") && at(TokenKind::Star, 1))
+        {
+          consume();
+          consume();
+          return &Context.getType(TypeKind::BytePointer);
+        }
         const Token *Type = expect(TokenKind::Identifier, "an IR type");
         if (Type == nullptr)
         {

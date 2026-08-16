@@ -1,6 +1,7 @@
 #include "ink/cli/application.h"
 #include "ink/cli/io.h"
 #include "ink/execution/execution_engine.h"
+#include "ink/execution/runtime_symbols.h"
 #include "ink/ir/serialization.h"
 
 #include <algorithm>
@@ -107,6 +108,12 @@ namespace
 
     ink::ir::Module ModuleValue = std::move(*Deserialized.module());
     ink::execution::ExecutionContext ExecutionContext(Compilation);
+    if (!ink::execution::registerRuntimeSymbols(ExecutionContext.nativeSymbols()))
+    {
+      Compilation.diagnosticEngine().report<ink::core::DiagnosticKind::RuntimeSymbolRegistrationFailed>({});
+      const bool OutputSucceeded = writeDiagnostics(Diagnostics.diagnostics());
+      return ink::cli::exitStatus(OutputSucceeded ? ink::cli::ExitCode::InternalError : ink::cli::ExitCode::InvocationError);
+    }
     ink::execution::ExecutionEngine Engine(ExecutionContext, ModuleValue);
     const ink::execution::ExecutionResult Executed = Engine.execute("main");
     if (!Executed.succeeded())

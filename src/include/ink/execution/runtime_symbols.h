@@ -1,5 +1,5 @@
-#ifndef INK_EXECUTION_RUNTIME_H
-#define INK_EXECUTION_RUNTIME_H
+#ifndef INK_EXECUTION_RUNTIME_SYMBOLS_H
+#define INK_EXECUTION_RUNTIME_SYMBOLS_H
 
 #include "ink/execution/native_symbol_registry.h"
 

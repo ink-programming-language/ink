@@ -1,11 +1,10 @@
 #ifndef INK_EXECUTION_EXECUTION_FRAME_H
 #define INK_EXECUTION_EXECUTION_FRAME_H
 
-#include "ink/execution/execution_engine.h"
+#include "ink/execution/runtime_value.h"
 #include "ink/ir/id.h"
 
 #include <cstddef>
-#include <unordered_map>
 #include <vector>
 
 namespace ink::execution
@@ -13,13 +12,13 @@ namespace ink::execution
   class ExecutionFrame
   {
   public:
-    explicit ExecutionFrame(const std::vector<RuntimeValue> &Arguments);
+    explicit ExecutionFrame(const std::vector<RuntimeValueRef> &Arguments);
 
-    const RuntimeValue *find(ir::ValueId Id) const noexcept;
-    bool define(ir::ValueId Id, RuntimeValue Value);
+    RuntimeValueRef find(ir::ValueId Id) const noexcept;
+    bool define(ir::ValueId Id, RuntimeValueRef Value);
 
   private:
-    std::unordered_map<std::size_t, RuntimeValue> Values;
+    std::vector<RuntimeValueRef> Values;
   };
 } // namespace ink::execution
 

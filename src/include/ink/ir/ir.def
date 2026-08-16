@@ -19,6 +19,7 @@ INK_IR_TYPE(Bool, "bool")
 INK_IR_TYPE(Byte, "byte")
 INK_IR_TYPE(I32, "i32")
 INK_IR_TYPE(PointerSize, "ptrsize")
+INK_IR_TYPE(BytePointer, "byte*")
 INK_IR_TYPE(ConstBytePointer, "const byte*")
 INK_IR_DERIVED_TYPE(Struct, "struct")
 

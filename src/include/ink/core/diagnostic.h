@@ -83,6 +83,8 @@ namespace ink::core
     CallDepthLimit,
     InstructionName,
     ExceptionMessage,
+    ExpectedValue,
+    ActualValue,
   };
 
   enum class DiagnosticArgumentType : std::uint8_t

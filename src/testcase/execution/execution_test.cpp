@@ -33,6 +33,62 @@ namespace ink::execution
         std::int32_t Second;
     };
 
+    class CountingPointerValue final : public RuntimeValue
+    {
+    public:
+      CountingPointerValue(const ir::Type &ValueType, const void *Value, std::size_t &PointerReadCount) : ValueType(&ValueType), Value(Value), PointerReadCount(&PointerReadCount)
+      {
+      }
+
+      RuntimeValueKind kind() const noexcept override
+      {
+        return RuntimeValueKind::Pointer;
+      }
+
+      const ir::Type &type() const noexcept override
+      {
+        return *ValueType;
+      }
+
+      const void *pointer() const noexcept override
+      {
+        ++*PointerReadCount;
+        return Value;
+      }
+
+    private:
+      const ir::Type *ValueType;
+      const void *Value;
+      std::size_t *PointerReadCount;
+    };
+
+    class UncheckedIntegerValue final : public RuntimeValue
+    {
+    public:
+      UncheckedIntegerValue(const ir::Type &ValueType, std::uint64_t Value) : ValueType(&ValueType), Value(Value)
+      {
+      }
+
+      RuntimeValueKind kind() const noexcept override
+      {
+        return RuntimeValueKind::Integer;
+      }
+
+      const ir::Type &type() const noexcept override
+      {
+        return *ValueType;
+      }
+
+      std::optional<std::uint64_t> integer() const noexcept override
+      {
+        return Value;
+      }
+
+    private:
+      const ir::Type *ValueType;
+      std::uint64_t Value;
+    };
+
     extern "C" std::int32_t captureOutput(const std::uint8_t *Data, std::size_t Size)
     {
       if (Size > static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
@@ -65,7 +121,7 @@ namespace ink::execution
       RecordedValue = Value;
     }
 
-    ir::Module makeHelloWorldModule(ir::IRContext &Context, std::string ExternalName = "print")
+    ir::Module makeHelloWorldModule(ir::IRContext &Context, std::string ExternalName = "capture_output")
     {
       const ir::Type &VoidType = Context.getType(ir::TypeKind::Void);
       const ir::Type &I32Type = Context.getType(ir::TypeKind::I32);
@@ -199,30 +255,146 @@ namespace ink::execution
       const ir::Type &I32Type = Context.IR.getType(ir::TypeKind::I32);
       const ir::Type &PointerType = Context.IR.getType(ir::TypeKind::ConstBytePointer);
       const ir::StructType &PairType = Context.IR.createStructType("Pair", {&I32Type, &I32Type});
-      const RuntimeValue Integer = RuntimeValue::integerValue(I32Type, 42);
+      RuntimeValueArena Values;
+      const RuntimeValueRef Integer = Values.integerValue(I32Type, 42);
       const std::uint8_t Byte = 7;
-      const RuntimeValue Pointer = RuntimeValue::pointerValue(PointerType, &Byte);
-      const RuntimeValue Pair = RuntimeValue::aggregateValue(PairType, {RuntimeValue::integerValue(I32Type, 1), RuntimeValue::integerValue(I32Type, 2)});
+      const RuntimeValueRef Pointer = Values.pointerValue(PointerType, &Byte);
+      const RuntimeValueRef First = Values.integerValue(I32Type, 1);
+      const RuntimeValueRef Second = Values.integerValue(I32Type, 2);
+      const RuntimeValueRef Pair = Values.aggregateValue(PairType, {First, Second});
 
-      EXPECT_EQ(&Integer.type(), &I32Type);
-      EXPECT_EQ(Integer.integer(), 42u);
-      EXPECT_EQ(Integer.pointer(), nullptr);
-      EXPECT_EQ(Pointer.pointer(), &Byte);
-      EXPECT_FALSE(Pointer.integer().has_value());
-      ASSERT_EQ(Pair.fieldCount(), 2u);
-      ASSERT_NE(Pair.field(0), nullptr);
-      EXPECT_EQ(Pair.field(0)->integer(), 1u);
-      EXPECT_EQ(Pair.field(1)->integer(), 2u);
-      EXPECT_EQ(Pair.field(2), nullptr);
+      ASSERT_NE(Integer, nullptr);
+      ASSERT_NE(Pointer, nullptr);
+      ASSERT_NE(Pair, nullptr);
+      EXPECT_EQ(&Integer->type(), &I32Type);
+      EXPECT_EQ(Integer->kind(), RuntimeValueKind::Integer);
+      EXPECT_EQ(Integer->integer(), 42u);
+      EXPECT_EQ(Integer->pointer(), nullptr);
+      EXPECT_EQ(Pointer->kind(), RuntimeValueKind::Pointer);
+      EXPECT_EQ(Pointer->pointer(), &Byte);
+      EXPECT_FALSE(Pointer->integer().has_value());
+      ASSERT_EQ(Pair->fieldCount(), 2u);
+      ASSERT_NE(Pair->field(0), nullptr);
+      EXPECT_EQ(Pair->field(0)->integer(), 1u);
+      EXPECT_EQ(Pair->field(1)->integer(), 2u);
+      EXPECT_EQ(Pair->field(2), nullptr);
+      EXPECT_TRUE(Values.owns(Integer));
+      EXPECT_TRUE(Values.owns(Pair));
     }
 
-    // Verifies that ExecutionContext composes around the shared compilation diagnostics service.
+    // Verifies that arena factories reject payload/type mismatches and aggregate fields that are null, mistyped, or owned by another arena.
+    TEST(RuntimeValueTest, RejectsInvalidFactoriesAndForeignAggregateFields)
+    {
+      TestContext Context;
+      const ir::Type &VoidType = Context.IR.getType(ir::TypeKind::Void);
+      const ir::Type &ByteType = Context.IR.getType(ir::TypeKind::Byte);
+      const ir::Type &I32Type = Context.IR.getType(ir::TypeKind::I32);
+      const ir::Type &PointerType = Context.IR.getType(ir::TypeKind::ConstBytePointer);
+      const ir::StructType &PairType = Context.IR.createStructType("Pair", {&I32Type, &I32Type});
+      RuntimeValueArena Values;
+      RuntimeValueArena ForeignValues;
+      const RuntimeValueRef First = Values.integerValue(I32Type, 1);
+      const RuntimeValueRef Second = Values.integerValue(I32Type, 2);
+      const RuntimeValueRef Byte = Values.integerValue(ByteType, 2);
+      const RuntimeValueRef Foreign = ForeignValues.integerValue(I32Type, 3);
+
+      EXPECT_EQ(Values.voidValue(I32Type), nullptr);
+      EXPECT_EQ(Values.integerValue(VoidType, 1), nullptr);
+      EXPECT_EQ(Values.integerValue(PointerType, 1), nullptr);
+      EXPECT_EQ(Values.pointerValue(I32Type, nullptr), nullptr);
+      EXPECT_EQ(Values.aggregateValue(PairType, {First}), nullptr);
+      EXPECT_EQ(Values.aggregateValue(PairType, {First, nullptr}), nullptr);
+      EXPECT_EQ(Values.aggregateValue(PairType, {First, Byte}), nullptr);
+      EXPECT_EQ(Values.aggregateValue(PairType, {First, Foreign}), nullptr);
+      EXPECT_NE(Values.aggregateValue(PairType, {First, Second}), nullptr);
+    }
+
+    // Verifies the exact accepted integer domains for bool, byte, i32, and the native pointer-sized integer type.
+    TEST(RuntimeValueTest, EnforcesIntegerPayloadRanges)
+    {
+      TestContext Context;
+      const ir::Type &BoolType = Context.IR.getType(ir::TypeKind::Bool);
+      const ir::Type &ByteType = Context.IR.getType(ir::TypeKind::Byte);
+      const ir::Type &I32Type = Context.IR.getType(ir::TypeKind::I32);
+      const ir::Type &PointerSizeType = Context.IR.getType(ir::TypeKind::PointerSize);
+      RuntimeValueArena Values;
+      const std::uint64_t I32Minimum = static_cast<std::uint64_t>(static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::min()));
+      const std::uint64_t I32Maximum = static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max());
+
+      EXPECT_NE(Values.integerValue(BoolType, 0), nullptr);
+      EXPECT_NE(Values.integerValue(BoolType, 1), nullptr);
+      EXPECT_EQ(Values.integerValue(BoolType, 2), nullptr);
+      EXPECT_NE(Values.integerValue(ByteType, std::numeric_limits<std::uint8_t>::max()), nullptr);
+      EXPECT_EQ(Values.integerValue(ByteType, static_cast<std::uint64_t>(std::numeric_limits<std::uint8_t>::max()) + 1), nullptr);
+      EXPECT_NE(Values.integerValue(I32Type, I32Minimum), nullptr);
+      EXPECT_NE(Values.integerValue(I32Type, I32Maximum), nullptr);
+      EXPECT_EQ(Values.integerValue(I32Type, I32Maximum + 1), nullptr);
+      EXPECT_NE(Values.integerValue(PointerSizeType, std::numeric_limits<std::size_t>::max()), nullptr);
+      if constexpr (sizeof(std::size_t) < sizeof(std::uint64_t))
+      {
+        EXPECT_EQ(Values.integerValue(PointerSizeType, static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max()) + 1), nullptr);
+      }
+    }
+
+    // Verifies that cloning recursively moves a shared aggregate graph into another arena while preserving graph sharing and borrowed pointer payloads.
+    TEST(RuntimeValueTest, DeepClonesAggregateGraphsIntoAnotherArena)
+    {
+      TestContext Context;
+      const ir::Type &I32Type = Context.IR.getType(ir::TypeKind::I32);
+      const ir::Type &PointerType = Context.IR.getType(ir::TypeKind::ConstBytePointer);
+      const ir::StructType &PairType = Context.IR.createStructType("Pair", {&I32Type, &PointerType});
+      const ir::StructType &OuterType = Context.IR.createStructType("Outer", {&PairType, &PairType});
+      const std::uint8_t Byte = 9;
+      RuntimeValueArena ClonedValues;
+      RuntimeValueRef ClonedOuter = nullptr;
+      {
+        RuntimeValueArena SourceValues;
+        const RuntimeValueRef Integer = SourceValues.integerValue(I32Type, 17);
+        const RuntimeValueRef Pointer = SourceValues.pointerValue(PointerType, &Byte);
+        const RuntimeValueRef Pair = SourceValues.aggregateValue(PairType, {Integer, Pointer});
+        const RuntimeValueRef Outer = SourceValues.aggregateValue(OuterType, {Pair, Pair});
+
+        ClonedOuter = ClonedValues.clone(*Outer);
+
+        ASSERT_NE(ClonedOuter, nullptr);
+        EXPECT_NE(ClonedOuter, Outer);
+        EXPECT_NE(ClonedOuter->field(0), Pair);
+      }
+
+      ASSERT_TRUE(ClonedValues.owns(ClonedOuter));
+      ASSERT_NE(ClonedOuter->field(0), nullptr);
+      EXPECT_EQ(ClonedOuter->field(0), ClonedOuter->field(1));
+      EXPECT_TRUE(ClonedValues.owns(ClonedOuter->field(0)));
+      ASSERT_NE(ClonedOuter->field(0)->field(0), nullptr);
+      ASSERT_NE(ClonedOuter->field(0)->field(1), nullptr);
+      EXPECT_TRUE(ClonedValues.owns(ClonedOuter->field(0)->field(0)));
+      EXPECT_TRUE(ClonedValues.owns(ClonedOuter->field(0)->field(1)));
+      EXPECT_EQ(ClonedOuter->field(0)->field(0)->integer(), 17u);
+      EXPECT_EQ(ClonedOuter->field(0)->field(1)->pointer(), &Byte);
+    }
+
+    // Verifies that ExecutionContext composes around the shared compilation diagnostics service and owns its native registry.
     TEST(ExecutionContextTest, SharesCompilationDiagnosticEngine)
     {
       TestContext Context;
 
       EXPECT_EQ(&Context.Execution.compilationContext(), &Context.Compilation);
       EXPECT_EQ(&Context.Execution.diagnosticEngine(), &Context.Compilation.diagnosticEngine());
+      EXPECT_TRUE(Context.Execution.nativeSymbols().symbols().empty());
+    }
+
+    // Verifies that native symbols registered in one ExecutionContext do not leak into another context.
+    TEST(ExecutionContextTest, OwnsIndependentNativeSymbolRegistries)
+    {
+      TestContext First;
+      TestContext Second;
+      const NativeFunctionAddress FirstAddress = reinterpret_cast<NativeFunctionAddress>(&captureOutput);
+      const NativeFunctionAddress SecondAddress = reinterpret_cast<NativeFunctionAddress>(&recordValue);
+
+      ASSERT_TRUE(First.Execution.nativeSymbols().registerSymbol("probe", FirstAddress));
+      ASSERT_TRUE(Second.Execution.nativeSymbols().registerSymbol("probe", SecondAddress));
+      EXPECT_EQ(First.Execution.nativeSymbols().findAddress("probe"), FirstAddress);
+      EXPECT_EQ(Second.Execution.nativeSymbols().findAddress("probe"), SecondAddress);
     }
 
     // Verifies that native symbols retain both lookup directions and that platform lookup registers a system write function once.
@@ -252,7 +424,7 @@ namespace ink::execution
 #endif
     }
 
-    // Verifies that repeated initialization is idempotent and registers the built-in print runtime symbol exactly once.
+    // Verifies that repeated initialization is idempotent and does not mutate the native symbol registry.
     TEST(ExecutionEngineTest, InitializesIdempotently)
     {
       TestContext Context;
@@ -260,34 +432,33 @@ namespace ink::execution
       ExecutionEngine Engine(Context.Execution, ModuleValue);
 
       const InitializationResult First = Engine.initialize();
-      const std::size_t FirstSymbolCount = Engine.nativeSymbols().symbols().size();
+      const std::size_t FirstSymbolCount = Context.Execution.nativeSymbols().symbols().size();
       const InitializationResult Second = Engine.initialize();
 
       EXPECT_TRUE(First.succeeded());
       EXPECT_TRUE(Second.succeeded());
-      EXPECT_NE(Engine.nativeSymbols().findAddress("print"), nullptr);
-      EXPECT_EQ(Engine.nativeSymbols().symbols().size(), FirstSymbolCount);
+      EXPECT_EQ(Context.Execution.nativeSymbols().symbols().size(), FirstSymbolCount);
     }
 
     // Verifies that Hello World crosses the extern boundary through libffi while preserving the byte constant and ptrsize arguments.
     TEST(ExecutionEngineTest, ExecutesExternHelloWorldThroughLibffi)
     {
       TestContext Context;
-      ir::Module ModuleValue = makeHelloWorldModule(Context.IR, "print");
+      ir::Module ModuleValue = makeHelloWorldModule(Context.IR);
       ExecutionEngine Engine(Context.Execution, ModuleValue);
       CapturedOutput.clear();
       const NativeFunctionAddress CaptureAddress = reinterpret_cast<NativeFunctionAddress>(&captureOutput);
-      ASSERT_TRUE(Engine.nativeSymbols().registerSymbol("print", CaptureAddress));
+      ASSERT_TRUE(Context.Execution.nativeSymbols().registerSymbol("capture_output", CaptureAddress));
 
       const InitializationResult Initialization = Engine.initialize();
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_TRUE(Initialization.succeeded());
       ASSERT_TRUE(Result.succeeded());
-      ASSERT_TRUE(Result.returnValue().has_value());
+      ASSERT_NE(Result.returnValue(), nullptr);
       EXPECT_EQ(&Result.returnValue()->type(), &Context.IR.getType(ir::TypeKind::Void));
       EXPECT_EQ(CapturedOutput, "Hello, world!\n");
-      EXPECT_EQ(Engine.nativeSymbols().findAddress("print"), CaptureAddress);
+      EXPECT_EQ(Context.Execution.nativeSymbols().findAddress("capture_output"), CaptureAddress);
     }
 
     // Verifies that bool, byte, i32, ptrsize, and pointer arguments plus a ptrsize result are marshalled through libffi without representation leakage.
@@ -306,12 +477,12 @@ namespace ink::execution
       ir::DeserializeResult Deserialized = ir::deserialize(Context.IR, Text);
       ASSERT_TRUE(Deserialized.succeeded());
       ExecutionEngine Engine(Context.Execution, *Deserialized.module());
-      ASSERT_TRUE(Engine.nativeSymbols().registerSymbol("combine_primitive_values", reinterpret_cast<NativeFunctionAddress>(&combinePrimitiveValues)));
+      ASSERT_TRUE(Context.Execution.nativeSymbols().registerSymbol("combine_primitive_values", reinterpret_cast<NativeFunctionAddress>(&combinePrimitiveValues)));
 
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_TRUE(Result.succeeded());
-      ASSERT_TRUE(Result.returnValue().has_value());
+      ASSERT_NE(Result.returnValue(), nullptr);
       EXPECT_EQ(&Result.returnValue()->type(), &Context.IR.getType(ir::TypeKind::PointerSize));
       EXPECT_EQ(Result.returnValue()->integer(), 15u);
     }
@@ -333,12 +504,12 @@ namespace ink::execution
       ASSERT_TRUE(Deserialized.succeeded());
       const void *ExpectedAddress = Deserialized.module()->ByteConstants[0].Data.data();
       ExecutionEngine Engine(Context.Execution, *Deserialized.module());
-      ASSERT_TRUE(Engine.nativeSymbols().registerSymbol("identity_pointer", reinterpret_cast<NativeFunctionAddress>(&identityPointer)));
+      ASSERT_TRUE(Context.Execution.nativeSymbols().registerSymbol("identity_pointer", reinterpret_cast<NativeFunctionAddress>(&identityPointer)));
 
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_TRUE(Result.succeeded());
-      ASSERT_TRUE(Result.returnValue().has_value());
+      ASSERT_NE(Result.returnValue(), nullptr);
       EXPECT_EQ(Result.returnValue()->pointer(), ExpectedAddress);
       EXPECT_FALSE(Result.returnValue()->integer().has_value());
     }
@@ -358,35 +529,15 @@ namespace ink::execution
       ir::DeserializeResult Deserialized = ir::deserialize(Context.IR, Text);
       ASSERT_TRUE(Deserialized.succeeded());
       ExecutionEngine Engine(Context.Execution, *Deserialized.module());
-      ASSERT_TRUE(Engine.nativeSymbols().registerSymbol("record_value", reinterpret_cast<NativeFunctionAddress>(&recordValue)));
+      ASSERT_TRUE(Context.Execution.nativeSymbols().registerSymbol("record_value", reinterpret_cast<NativeFunctionAddress>(&recordValue)));
       RecordedValue = 0;
 
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_TRUE(Result.succeeded());
-      ASSERT_TRUE(Result.returnValue().has_value());
+      ASSERT_NE(Result.returnValue(), nullptr);
       EXPECT_EQ(Result.returnValue()->type().kind(), ir::TypeKind::Void);
       EXPECT_EQ(RecordedValue, 73);
-    }
-
-    // Verifies that the default runtime extern writes Hello World through the platform stdout interface and returns the written byte count.
-    TEST(ExecutionEngineTest, ExecutesHelloWorldThroughDefaultPlatformRuntime)
-    {
-      TestContext Context;
-      ir::Module ModuleValue = makeHelloWorldModule(Context.IR);
-      ir::Function &Main = ModuleValue.Functions[1];
-      Main.ResultType = &Context.IR.getType(ir::TypeKind::I32);
-      auto &Return = static_cast<ir::ReturnInstruction &>(*Main.Blocks[0].Instructions[1]);
-      Return.ReturnValue = std::make_unique<ir::ValueOperand>(Context.IR.getType(ir::TypeKind::I32), ir::ValueId{0});
-      ExecutionEngine Engine(Context.Execution, ModuleValue);
-
-      const ExecutionResult Result = Engine.execute("main");
-
-      ASSERT_TRUE(Result.succeeded());
-      ASSERT_TRUE(Result.returnValue().has_value());
-      EXPECT_EQ(&Result.returnValue()->type(), &Context.IR.getType(ir::TypeKind::I32));
-      EXPECT_EQ(Result.returnValue()->integer(), 14u);
-      EXPECT_NE(Engine.nativeSymbols().findAddress("print"), nullptr);
     }
 
     // Verifies that an internal call creates a callee frame, maps parameter %0, and returns the caller's SSA result.
@@ -399,7 +550,7 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_TRUE(Result.succeeded());
-      ASSERT_TRUE(Result.returnValue().has_value());
+      ASSERT_NE(Result.returnValue(), nullptr);
       EXPECT_EQ(&Result.returnValue()->type(), &Context.IR.getType(ir::TypeKind::I32));
       EXPECT_EQ(Result.returnValue()->integer(), 42u);
     }
@@ -412,11 +563,132 @@ namespace ink::execution
       ExecutionEngine Engine(Context.Execution, ModuleValue);
       const ir::Type &I32Type = Context.IR.getType(ir::TypeKind::I32);
 
-      const ExecutionResult Result = Engine.execute("identity", {RuntimeValue::integerValue(I32Type, 91)});
+      const ExecutionResult Result = [&Engine, &I32Type]()
+      {
+        RuntimeValueArena Arguments;
+        return Engine.execute("identity", {Arguments.integerValue(I32Type, 91)});
+      }();
 
       ASSERT_TRUE(Result.succeeded());
-      ASSERT_TRUE(Result.returnValue().has_value());
+      ASSERT_NE(Result.returnValue(), nullptr);
       EXPECT_EQ(Result.returnValue()->integer(), 91u);
+    }
+
+    // Verifies that an unused borrowed argument is not eagerly cloned or asked to materialize its pointer payload.
+    TEST(ExecutionEngineTest, DoesNotCloneUnusedBorrowedArgument)
+    {
+      TestContext Context;
+      const ir::Type &I32Type = Context.IR.getType(ir::TypeKind::I32);
+      const ir::Type &PointerType = Context.IR.getType(ir::TypeKind::ConstBytePointer);
+      ir::Module ModuleValue(Context.IR);
+      ir::Function Ignore(I32Type);
+      Ignore.Name = "ignore";
+      Ignore.ParameterTypes = {&PointerType};
+      ir::BasicBlock Entry;
+      Entry.Name = "entry";
+      auto Return = std::make_unique<ir::ReturnInstruction>();
+      Return->ReturnValue = std::make_unique<ir::IntegerConstant>(I32Type, 42);
+      Entry.Instructions.push_back(std::move(Return));
+      Ignore.Blocks.push_back(std::move(Entry));
+      ModuleValue.Functions.push_back(std::move(Ignore));
+      ExecutionEngine Engine(Context.Execution, ModuleValue);
+      const std::uint8_t Byte = 7;
+      std::size_t PointerReadCount = 0;
+      const CountingPointerValue Argument(PointerType, &Byte, PointerReadCount);
+
+      const ExecutionResult Result = Engine.execute("ignore", {&Argument});
+
+      ASSERT_TRUE(Result.succeeded());
+      EXPECT_EQ(Result.returnValue()->integer(), 42u);
+      EXPECT_EQ(PointerReadCount, 0u);
+    }
+
+    // Verifies that removing eager argument cloning does not allow an unused borrowed integer with an out-of-range payload to enter execution.
+    TEST(ExecutionEngineTest, RejectsOutOfRangeUnusedBorrowedArgument)
+    {
+      TestContext Context;
+      const ir::Type &BoolType = Context.IR.getType(ir::TypeKind::Bool);
+      const ir::Type &I32Type = Context.IR.getType(ir::TypeKind::I32);
+      ir::Module ModuleValue(Context.IR);
+      ir::Function Ignore(I32Type);
+      Ignore.Name = "ignore";
+      Ignore.ParameterTypes = {&BoolType};
+      ir::BasicBlock Entry;
+      Entry.Name = "entry";
+      auto Return = std::make_unique<ir::ReturnInstruction>();
+      Return->ReturnValue = std::make_unique<ir::IntegerConstant>(I32Type, 42);
+      Entry.Instructions.push_back(std::move(Return));
+      Ignore.Blocks.push_back(std::move(Entry));
+      ModuleValue.Functions.push_back(std::move(Ignore));
+      ExecutionEngine Engine(Context.Execution, ModuleValue);
+      const UncheckedIntegerValue Argument(BoolType, 2);
+
+      const ExecutionResult Result = Engine.execute("ignore", {&Argument});
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::EntryArgumentInvalid);
+    }
+
+    // Verifies that parameter SSA value zero and the immediately following instruction result at value one map directly to consecutive frame indices.
+    TEST(ExecutionEngineTest, UsesDenseSsaValueIdsAsFrameIndicesAfterParameters)
+    {
+      TestContext Context;
+      const std::string Text =
+          "inkir 1\n"
+          "define i32 @identity(i32 %0) {\n"
+          "entry:\n"
+          "  ret i32 %0\n"
+          "}\n"
+          "define i32 @call_identity(i32 %0) {\n"
+          "entry:\n"
+          "  %1 = call i32 @identity(i32 %0)\n"
+          "  ret i32 %1\n"
+          "}\n";
+      ir::DeserializeResult Deserialized = ir::deserialize(Context.IR, Text);
+      ASSERT_TRUE(Deserialized.succeeded());
+      ExecutionEngine Engine(Context.Execution, *Deserialized.module());
+      RuntimeValueArena Arguments;
+      const RuntimeValueRef Argument = Arguments.integerValue(Context.IR.getType(ir::TypeKind::I32), 37);
+
+      const ExecutionResult Result = Engine.execute("call_identity", {Argument});
+
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_NE(Result.returnValue(), nullptr);
+      EXPECT_EQ(Result.returnValue()->integer(), 37u);
+    }
+
+    // Verifies that result copies and moves retain the arena owning the returned value and clear moved-from raw references.
+    TEST(ExecutionEngineTest, KeepsReturnedValueAliveAcrossResultCopiesAndMoves)
+    {
+      TestContext Context;
+      ExecutionResult Original;
+      {
+        ir::Module ModuleValue = makeInternalCallModule(Context.IR);
+        ExecutionEngine Engine(Context.Execution, ModuleValue);
+        Original = Engine.execute("main");
+      }
+      ASSERT_TRUE(Original.succeeded());
+      const RuntimeValueRef Expected = Original.returnValue();
+
+      ExecutionResult Copied = Original;
+      ExecutionResult CopyAssigned;
+      CopyAssigned = Original;
+      ExecutionResult Moved(std::move(Original));
+      ExecutionResult MoveAssigned;
+      MoveAssigned = std::move(Copied);
+
+      EXPECT_EQ(Original.returnValue(), nullptr);
+      EXPECT_EQ(Copied.returnValue(), nullptr);
+      ASSERT_TRUE(Moved.succeeded());
+      ASSERT_TRUE(MoveAssigned.succeeded());
+      ASSERT_TRUE(CopyAssigned.succeeded());
+      EXPECT_EQ(Moved.returnValue(), Expected);
+      EXPECT_EQ(MoveAssigned.returnValue(), Expected);
+      EXPECT_EQ(CopyAssigned.returnValue(), Expected);
+      EXPECT_EQ(Moved.returnValue()->integer(), 42u);
+      EXPECT_EQ(MoveAssigned.returnValue()->integer(), 42u);
+      EXPECT_EQ(CopyAssigned.returnValue()->integer(), 42u);
     }
 
     // Verifies that entry invocation rejects both an incorrect argument count and a RuntimeValue with the wrong canonical Type object.
@@ -425,9 +697,10 @@ namespace ink::execution
       TestContext Context;
       ir::Module ModuleValue = makeInternalCallModule(Context.IR);
       ExecutionEngine Engine(Context.Execution, ModuleValue);
+      RuntimeValueArena Arguments;
 
       const ExecutionResult WrongCount = Engine.execute("identity");
-      const ExecutionResult WrongType = Engine.execute("identity", {RuntimeValue::integerValue(Context.IR.getType(ir::TypeKind::Byte), 1)});
+      const ExecutionResult WrongType = Engine.execute("identity", {Arguments.integerValue(Context.IR.getType(ir::TypeKind::Byte), 1)});
 
       ASSERT_FALSE(WrongCount.succeeded());
       ASSERT_EQ(WrongCount.diagnostics().size(), 1u);
@@ -472,7 +745,7 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_TRUE(Result.succeeded());
-      ASSERT_TRUE(Result.returnValue().has_value());
+      ASSERT_NE(Result.returnValue(), nullptr);
       EXPECT_EQ(Result.returnValue()->integer(), 0u);
     }
 
@@ -495,18 +768,58 @@ namespace ink::execution
       Echo.Blocks.push_back(std::move(Entry));
       ModuleValue.Functions.push_back(std::move(Echo));
       ExecutionEngine Engine(Context.Execution, ModuleValue);
-      const RuntimeValue Argument = RuntimeValue::aggregateValue(PairType, {RuntimeValue::integerValue(I32Type, 7), RuntimeValue::integerValue(I32Type, 8)});
 
-      const ExecutionResult Result = Engine.execute("echo", {Argument});
+      const ExecutionResult Result = [&Engine, &I32Type, &PairType]()
+      {
+        RuntimeValueArena Arguments;
+        const RuntimeValueRef First = Arguments.integerValue(I32Type, 7);
+        const RuntimeValueRef Second = Arguments.integerValue(I32Type, 8);
+        const RuntimeValueRef Argument = Arguments.aggregateValue(PairType, {First, Second});
+        return Engine.execute("echo", {Argument});
+      }();
 
-      ASSERT_TRUE(Result.succeeded());
-      ASSERT_TRUE(Result.returnValue().has_value());
+      ASSERT_TRUE(Result.succeeded()) << (Result.diagnostics().empty() ? std::string() : executionMessage(Result.diagnostics()));
+      ASSERT_NE(Result.returnValue(), nullptr);
       ASSERT_EQ(Result.returnValue()->fieldCount(), 2u);
       EXPECT_EQ(Result.returnValue()->field(0)->integer(), 7u);
       EXPECT_EQ(Result.returnValue()->field(1)->integer(), 8u);
     }
 
-    // Verifies that an entry argument with the correct StructType but missing fields is rejected before a malformed aggregate enters an execution frame.
+    // Verifies that insertvalue lazily imports a borrowed aggregate into the execution arena before constructing its replacement value.
+    TEST(ExecutionEngineTest, LazilyImportsBorrowedAggregateForInsertValue)
+    {
+      TestContext Context;
+      const std::string Text =
+          "inkir 1\n"
+          "%Pair = type {i32, i32}\n"
+          "define %Pair @replace_second(%Pair %0) {\n"
+          "entry:\n"
+          "  %1 = insertvalue %Pair %0, i32 99, 1\n"
+          "  ret %Pair %1\n"
+          "}\n";
+      ir::DeserializeResult Deserialized = ir::deserialize(Context.IR, Text);
+      ASSERT_TRUE(Deserialized.succeeded());
+      const ir::Type &I32Type = Context.IR.getType(ir::TypeKind::I32);
+      const ir::StructType &PairType = *Deserialized.module()->StructTypes[0];
+      ExecutionEngine Engine(Context.Execution, *Deserialized.module());
+
+      const ExecutionResult Result = [&Engine, &I32Type, &PairType]()
+      {
+        RuntimeValueArena Arguments;
+        const RuntimeValueRef First = Arguments.integerValue(I32Type, 7);
+        const RuntimeValueRef Second = Arguments.integerValue(I32Type, 8);
+        const RuntimeValueRef Pair = Arguments.aggregateValue(PairType, {First, Second});
+        return Engine.execute("replace_second", {Pair});
+      }();
+
+      ASSERT_TRUE(Result.succeeded()) << (Result.diagnostics().empty() ? std::string() : executionMessage(Result.diagnostics()));
+      ASSERT_NE(Result.returnValue(), nullptr);
+      ASSERT_EQ(Result.returnValue()->fieldCount(), 2u);
+      EXPECT_EQ(Result.returnValue()->field(0)->integer(), 7u);
+      EXPECT_EQ(Result.returnValue()->field(1)->integer(), 99u);
+    }
+
+    // Verifies that an arena rejects a struct with missing fields and that a null value cannot enter an execution frame.
     TEST(ExecutionEngineTest, RejectsMalformedStructRuntimeArgument)
     {
       TestContext Context;
@@ -520,7 +833,10 @@ namespace ink::execution
       ir::DeserializeResult Deserialized = ir::deserialize(Context.IR, Text);
       ASSERT_TRUE(Deserialized.succeeded());
       const ir::StructType &PairType = *Deserialized.module()->StructTypes[0];
-      const RuntimeValue Malformed = RuntimeValue::aggregateValue(PairType, {RuntimeValue::integerValue(Context.IR.getType(ir::TypeKind::I32), 1)});
+      RuntimeValueArena Arguments;
+      const RuntimeValueRef Field = Arguments.integerValue(Context.IR.getType(ir::TypeKind::I32), 1);
+      const RuntimeValueRef Malformed = Arguments.aggregateValue(PairType, {Field});
+      ASSERT_EQ(Malformed, nullptr);
       ExecutionEngine Engine(Context.Execution, *Deserialized.module());
 
       const ExecutionResult Result = Engine.execute("echo", {Malformed});
@@ -555,12 +871,12 @@ namespace ink::execution
       ir::DeserializeResult Deserialized = ir::deserialize(Context.IR, Text);
       ASSERT_TRUE(Deserialized.succeeded());
       ExecutionEngine Engine(Context.Execution, *Deserialized.module());
-      ASSERT_TRUE(Engine.nativeSymbols().registerSymbol("increment_pair", reinterpret_cast<NativeFunctionAddress>(&incrementPair)));
+      ASSERT_TRUE(Context.Execution.nativeSymbols().registerSymbol("increment_pair", reinterpret_cast<NativeFunctionAddress>(&incrementPair)));
 
       const ExecutionResult Result = Engine.execute("main");
 
-      ASSERT_TRUE(Result.succeeded());
-      ASSERT_TRUE(Result.returnValue().has_value());
+      ASSERT_TRUE(Result.succeeded()) << (Result.diagnostics().empty() ? std::string() : executionMessage(Result.diagnostics()));
+      ASSERT_NE(Result.returnValue(), nullptr);
       EXPECT_EQ(&Result.returnValue()->type(), &Context.IR.getType(ir::TypeKind::I32));
       EXPECT_EQ(Result.returnValue()->integer(), 42u);
     }
@@ -590,8 +906,9 @@ namespace ink::execution
       TestContext Context;
       ir::Module ModuleValue = makeHelloWorldModule(Context.IR);
       ExecutionEngine Engine(Context.Execution, ModuleValue);
+      ASSERT_TRUE(Context.Execution.nativeSymbols().registerSymbol("capture_output", reinterpret_cast<NativeFunctionAddress>(&captureOutput)));
 
-      const ExecutionResult Result = Engine.execute("print");
+      const ExecutionResult Result = Engine.execute("capture_output");
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.diagnostics().size(), 1u);
@@ -599,8 +916,8 @@ namespace ink::execution
       EXPECT_EQ(DiagnosticEntry.Kind, core::DiagnosticKind::EntryFunctionMustBeDefined);
       EXPECT_EQ(DiagnosticEntry.classification(), core::DiagnosticClass::User);
       ASSERT_EQ(DiagnosticEntry.Arguments.size(), 1u);
-      expectStringArgument(DiagnosticEntry, 0, core::DiagnosticArgumentName::FunctionName, "print");
-      EXPECT_EQ(executionMessage(Result.diagnostics()), "entry function @print must be defined in InkIR");
+      expectStringArgument(DiagnosticEntry, 0, core::DiagnosticArgumentName::FunctionName, "capture_output");
+      EXPECT_EQ(executionMessage(Result.diagnostics()), "entry function @capture_output must be defined in InkIR");
     }
 
     // Verifies that recursive InkIR calls stop at the engine depth limit and report the active function rather than overflowing the host stack.
@@ -666,7 +983,23 @@ namespace ink::execution
       EXPECT_EQ(executionMessage(Result.diagnostics()), "defined function @main must contain at least one basic block");
     }
 
-    // Verifies that unresolved externs stop initialization and broadcast a structured execution diagnostic.
+    // Verifies that a declared but unreachable external function neither changes the context registry nor prevents execution.
+    TEST(ExecutionEngineTest, DoesNotResolveUnusedExternalFunction)
+    {
+      TestContext Context;
+      ir::Module ModuleValue = makeHelloWorldModule(Context.IR, "ink_test_unused_external");
+      ModuleValue.Functions[1].Blocks[0].Instructions.erase(ModuleValue.Functions[1].Blocks[0].Instructions.begin());
+      ExecutionEngine Engine(Context.Execution, ModuleValue);
+
+      const InitializationResult Initialization = Engine.initialize();
+      const ExecutionResult Result = Engine.execute("main");
+
+      EXPECT_TRUE(Initialization.succeeded());
+      EXPECT_TRUE(Result.succeeded());
+      EXPECT_TRUE(Context.Execution.nativeSymbols().symbols().empty());
+    }
+
+    // Verifies that an external address missing from this ExecutionContext is reported only when its call is reached.
     TEST(ExecutionEngineTest, ReportsUnresolvedExternalThroughExecutionContext)
     {
       TestContext Context;
@@ -675,8 +1008,11 @@ namespace ink::execution
       ir::Module ModuleValue = makeHelloWorldModule(Context.IR, "ink_test_symbol_that_does_not_exist");
       ExecutionEngine Engine(Context.Execution, ModuleValue);
 
-      const InitializationResult Result = Engine.initialize();
+      const InitializationResult Initialization = Engine.initialize();
+      const ExecutionResult Result = Engine.execute("main");
 
+      ASSERT_TRUE(Initialization.succeeded());
+      EXPECT_TRUE(Initialization.diagnostics().empty());
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Result.diagnostics().size(), 1u);
       const core::Diagnostic &DiagnosticEntry = Result.diagnostics()[0];
@@ -686,6 +1022,27 @@ namespace ink::execution
       expectStringArgument(DiagnosticEntry, 0, core::DiagnosticArgumentName::FunctionName, "ink_test_symbol_that_does_not_exist");
       EXPECT_EQ(Consumer.diagnostics(), Result.diagnostics());
       EXPECT_EQ(core::DiagnosticFormatter().format(DiagnosticEntry).Message, "could not resolve external function @ink_test_symbol_that_does_not_exist");
+    }
+
+    // Verifies that a missing external lookup is retried after its address is registered in the same ExecutionContext.
+    TEST(ExecutionEngineTest, ResolvesExternalRegisteredAfterPreviousFailure)
+    {
+      TestContext Context;
+      ir::Module ModuleValue = makeHelloWorldModule(Context.IR);
+      ExecutionEngine Engine(Context.Execution, ModuleValue);
+      CapturedOutput.clear();
+
+      const InitializationResult Initialization = Engine.initialize();
+      const ExecutionResult Missing = Engine.execute("main");
+      ASSERT_TRUE(Context.Execution.nativeSymbols().registerSymbol("capture_output", reinterpret_cast<NativeFunctionAddress>(&captureOutput)));
+      const ExecutionResult Resolved = Engine.execute("main");
+
+      ASSERT_TRUE(Initialization.succeeded());
+      ASSERT_FALSE(Missing.succeeded());
+      ASSERT_EQ(Missing.diagnostics().size(), 1u);
+      EXPECT_EQ(Missing.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionNotFound);
+      EXPECT_TRUE(Resolved.succeeded());
+      EXPECT_EQ(CapturedOutput, "Hello, world!\n");
     }
   } // namespace
 } // namespace ink::execution

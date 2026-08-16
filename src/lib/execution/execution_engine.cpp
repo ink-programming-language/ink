@@ -1,9 +1,8 @@
 #include "ink/execution/execution_engine.h"
 
-#include "execution_frame.h"
+#include "function_executor.h"
 #include "ink/ir/context.h"
 #include "ink/ir/verifier.h"
-#include "runtime.h"
 
 #include <ffi.h>
 
@@ -13,6 +12,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -20,8 +20,6 @@ namespace ink::execution
 {
   namespace
   {
-    constexpr std::size_t MaximumCallDepth = 256;
-
     class NativeTypeCache
     {
       public:
@@ -38,6 +36,7 @@ namespace ink::execution
             return &ffi_type_sint32;
           case ir::TypeKind::PointerSize:
             return sizeof(std::size_t) == sizeof(std::uint64_t) ? &ffi_type_uint64 : &ffi_type_uint32;
+          case ir::TypeKind::BytePointer:
           case ir::TypeKind::ConstBytePointer:
             return &ffi_type_pointer;
           case ir::TypeKind::Struct:
@@ -160,6 +159,12 @@ namespace ink::execution
         std::memcpy(Destination, &NativeValue, sizeof(NativeValue));
         return true;
       }
+      case ir::TypeKind::BytePointer:
+      {
+        void *NativeValue = Value.mutablePointer();
+        std::memcpy(Destination, &NativeValue, sizeof(NativeValue));
+        return true;
+      }
       case ir::TypeKind::ConstBytePointer:
       {
         const void *NativeValue = Value.pointer();
@@ -192,36 +197,42 @@ namespace ink::execution
       return false;
     }
 
-    std::optional<RuntimeValue> loadNativeValue(const ir::Type &TypeValue, NativeTypeCache &Types, const void *Source)
+    RuntimeValueRef loadNativeValue(const ir::Type &TypeValue, NativeTypeCache &Types, const void *Source, RuntimeValueArena &Values)
     {
       switch (TypeValue.kind())
       {
       case ir::TypeKind::Void:
-        return RuntimeValue::voidValue(TypeValue);
+        return Values.voidValue(TypeValue);
       case ir::TypeKind::Bool:
       case ir::TypeKind::Byte:
       {
         std::uint8_t NativeValue = 0;
         std::memcpy(&NativeValue, Source, sizeof(NativeValue));
-        return RuntimeValue::integerValue(TypeValue, NativeValue);
+        return Values.integerValue(TypeValue, NativeValue);
       }
       case ir::TypeKind::I32:
       {
         std::int32_t NativeValue = 0;
         std::memcpy(&NativeValue, Source, sizeof(NativeValue));
-        return RuntimeValue::integerValue(TypeValue, static_cast<std::uint64_t>(static_cast<std::int64_t>(NativeValue)));
+        return Values.integerValue(TypeValue, static_cast<std::uint64_t>(static_cast<std::int64_t>(NativeValue)));
       }
       case ir::TypeKind::PointerSize:
       {
         std::size_t NativeValue = 0;
         std::memcpy(&NativeValue, Source, sizeof(NativeValue));
-        return RuntimeValue::integerValue(TypeValue, NativeValue);
+        return Values.integerValue(TypeValue, NativeValue);
+      }
+      case ir::TypeKind::BytePointer:
+      {
+        void *NativeValue = nullptr;
+        std::memcpy(&NativeValue, Source, sizeof(NativeValue));
+        return Values.mutablePointerValue(TypeValue, NativeValue);
       }
       case ir::TypeKind::ConstBytePointer:
       {
         const void *NativeValue = nullptr;
         std::memcpy(&NativeValue, Source, sizeof(NativeValue));
-        return RuntimeValue::pointerValue(TypeValue, NativeValue);
+        return Values.pointerValue(TypeValue, NativeValue);
       }
       case ir::TypeKind::Struct:
       {
@@ -229,66 +240,91 @@ namespace ink::execution
         const std::vector<std::size_t> *Offsets = Types.offsets(Struct);
         if (Offsets == nullptr)
         {
-          return std::nullopt;
+          return nullptr;
         }
         const auto *Bytes = static_cast<const std::byte *>(Source);
-        std::vector<RuntimeValue> Fields;
+        std::vector<RuntimeValueRef> Fields;
         Fields.reserve(Struct.fieldTypes().size());
         for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldTypes().size(); ++FieldIndex)
         {
-          std::optional<RuntimeValue> Field = loadNativeValue(*Struct.fieldTypes()[FieldIndex], Types, Bytes + (*Offsets)[FieldIndex]);
-          if (!Field.has_value())
+          RuntimeValueRef Field = loadNativeValue(*Struct.fieldTypes()[FieldIndex], Types, Bytes + (*Offsets)[FieldIndex], Values);
+          if (Field == nullptr)
           {
-            return std::nullopt;
+            return nullptr;
           }
-          Fields.push_back(*Field);
+          Fields.push_back(Field);
         }
-        return RuntimeValue::aggregateValue(Struct, std::move(Fields));
+        return Values.aggregateValue(Struct, std::move(Fields));
       }
       case ir::TypeKind::Count:
-        return std::nullopt;
+        return nullptr;
       }
-      return std::nullopt;
+      return nullptr;
     }
 
-    bool hasValidRuntimeShape(const RuntimeValue &Value, const ir::Type &ExpectedType)
+    bool hasValidRuntimeShape(const RuntimeValue &Value, const ir::Type &ExpectedType, std::unordered_set<const RuntimeValue *> &ValidatedValues, std::unordered_set<const RuntimeValue *> &ActiveValues)
     {
       if (&Value.type() != &ExpectedType)
       {
         return false;
       }
-      if (ExpectedType.kind() != ir::TypeKind::Struct)
+      if (ValidatedValues.find(&Value) != ValidatedValues.end())
       {
         return true;
       }
+      bool IsValid = false;
+      switch (ExpectedType.kind())
+      {
+      case ir::TypeKind::Void:
+        IsValid = Value.kind() == RuntimeValueKind::Void;
+        break;
+      case ir::TypeKind::Bool:
+      case ir::TypeKind::Byte:
+      case ir::TypeKind::I32:
+      case ir::TypeKind::PointerSize:
+      {
+        const std::optional<std::uint64_t> Integer = Value.integer();
+        IsValid = Value.kind() == RuntimeValueKind::Integer && Integer.has_value() && isValidRuntimeIntegerValue(ExpectedType, *Integer);
+        break;
+      }
+      case ir::TypeKind::BytePointer:
+      case ir::TypeKind::ConstBytePointer:
+        IsValid = Value.kind() == RuntimeValueKind::Pointer;
+        break;
+      case ir::TypeKind::Struct:
+        break;
+      case ir::TypeKind::Count:
+        return false;
+      }
+      if (ExpectedType.kind() != ir::TypeKind::Struct)
+      {
+        return IsValid;
+      }
+      if (Value.kind() != RuntimeValueKind::Aggregate)
+      {
+        return false;
+      }
       const ir::StructType &Struct = static_cast<const ir::StructType &>(ExpectedType);
-      if (Value.fieldCount() != Struct.fieldTypes().size())
+      if (Value.fieldCount() != Struct.fieldTypes().size() || !ActiveValues.insert(&Value).second)
       {
         return false;
       }
       for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldTypes().size(); ++FieldIndex)
       {
         const RuntimeValue *Field = Value.field(FieldIndex);
-        if (Field == nullptr || !hasValidRuntimeShape(*Field, *Struct.fieldTypes()[FieldIndex]))
+        if (Field == nullptr || !hasValidRuntimeShape(*Field, *Struct.fieldTypes()[FieldIndex], ValidatedValues, ActiveValues))
         {
+          ActiveValues.erase(&Value);
           return false;
         }
       }
+      ActiveValues.erase(&Value);
+      ValidatedValues.insert(&Value);
       return true;
     }
   } // namespace
 
-  class RuntimeAggregateStorage
-  {
-    public:
-      explicit RuntimeAggregateStorage(std::vector<RuntimeValue> Fields) : Fields(std::move(Fields))
-      {
-      }
-
-      std::vector<RuntimeValue> Fields;
-  };
-
-  class ExecutionEngine::Impl
+  class ExecutionEngine::Impl : public ExternalFunctionInvoker
   {
     public:
       Impl(ExecutionContext &Context, const ir::Module &ModuleValue) : Context(Context), ModuleValue(ModuleValue), PreparedFunctions(ModuleValue.Functions.size())
@@ -311,12 +347,6 @@ namespace ink::execution
           Result.Diagnostics = Verification.diagnostics();
           return Result;
         }
-        if (!registerRuntimeSymbols(Symbols))
-        {
-          addFailure<core::DiagnosticKind::RuntimeSymbolRegistrationFailed>(Result.Diagnostics);
-          return Result;
-        }
-
         for (std::size_t FunctionIndex = 0; FunctionIndex < ModuleValue.Functions.size(); ++FunctionIndex)
         {
           const ir::Function &FunctionValue = ModuleValue.Functions[FunctionIndex];
@@ -324,14 +354,8 @@ namespace ink::execution
           {
             continue;
           }
-          if (!Symbols.resolveAndRegister(FunctionValue.Name))
-          {
-            addFailure<core::DiagnosticKind::ExternalFunctionNotFound>(Result.Diagnostics, FunctionValue.Name);
-            continue;
-          }
 
           auto Prepared = std::make_unique<PreparedFunction>();
-          Prepared->Address = Symbols.findAddress(FunctionValue.Name);
           Prepared->ArgumentTypes.reserve(FunctionValue.ParameterTypes.size());
           bool HasUnsupportedType = false;
           for (const ir::Type *ParameterType : FunctionValue.ParameterTypes)
@@ -361,7 +385,7 @@ namespace ink::execution
         return Result;
       }
 
-      ExecutionResult execute(std::string_view EntryName, const std::vector<RuntimeValue> &Arguments)
+      ExecutionResult execute(std::string_view EntryName, const std::vector<RuntimeValueRef> &Arguments)
       {
         ExecutionResult Result;
         InitializationResult Initialization = initialize();
@@ -396,20 +420,39 @@ namespace ink::execution
           addFailure<core::DiagnosticKind::EntryArgumentCountMismatch>(Result.Diagnostics, Entry.Name, Entry.ParameterTypes.size(), Arguments.size());
           return Result;
         }
+        std::unordered_set<const RuntimeValue *> ValidatedValues;
+        std::unordered_set<const RuntimeValue *> ActiveValues;
         for (std::size_t ArgumentIndex = 0; ArgumentIndex < Arguments.size(); ++ArgumentIndex)
         {
-          if (!hasValidRuntimeShape(Arguments[ArgumentIndex], *Entry.ParameterTypes[ArgumentIndex]))
+          if (Arguments[ArgumentIndex] == nullptr || !hasValidRuntimeShape(*Arguments[ArgumentIndex], *Entry.ParameterTypes[ArgumentIndex], ValidatedValues, ActiveValues))
           {
             addFailure<core::DiagnosticKind::EntryArgumentInvalid>(Result.Diagnostics, Entry.Name, ArgumentIndex);
             return Result;
           }
         }
 
-        executeFunction(EntryIndex, Arguments, 0, Result.ReturnValue, Result.Diagnostics);
+        FunctionExecutor Executor(Context, ModuleValue, *this, Result.Diagnostics);
+        RuntimeValueRef ReturnValue = nullptr;
+        if (!Executor.execute(EntryIndex, Arguments, ReturnValue))
+        {
+          return Result;
+        }
+        if (ReturnValue == nullptr)
+        {
+          addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>(Result.Diagnostics);
+          return Result;
+        }
+        std::shared_ptr<RuntimeValueArena> ResultValues = std::make_shared<RuntimeValueArena>();
+        RuntimeValueRef StableReturnValue = ResultValues->clone(*ReturnValue);
+        if (StableReturnValue == nullptr)
+        {
+          addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>(Result.Diagnostics);
+          return Result;
+        }
+        Result.ValueArena = std::move(ResultValues);
+        Result.ReturnValue = StableReturnValue;
         return Result;
       }
-
-      NativeSymbolRegistry Symbols;
 
     private:
       struct PreparedFunction
@@ -428,79 +471,7 @@ namespace ink::execution
         Diagnostics.push_back(std::move(DiagnosticEntry));
       }
 
-      std::optional<RuntimeValue> zeroValue(const ir::Type &TypeValue)
-      {
-        switch (TypeValue.kind())
-        {
-        case ir::TypeKind::Void:
-          return RuntimeValue::voidValue(TypeValue);
-        case ir::TypeKind::Bool:
-        case ir::TypeKind::Byte:
-        case ir::TypeKind::I32:
-        case ir::TypeKind::PointerSize:
-          return RuntimeValue::integerValue(TypeValue, 0);
-        case ir::TypeKind::ConstBytePointer:
-          return RuntimeValue::pointerValue(TypeValue, nullptr);
-        case ir::TypeKind::Struct:
-        {
-          const ir::StructType &Struct = static_cast<const ir::StructType &>(TypeValue);
-          std::vector<RuntimeValue> Fields;
-          Fields.reserve(Struct.fieldTypes().size());
-          for (const ir::Type *FieldType : Struct.fieldTypes())
-          {
-            std::optional<RuntimeValue> Field = zeroValue(*FieldType);
-            if (!Field.has_value())
-            {
-              return std::nullopt;
-            }
-            Fields.push_back(*Field);
-          }
-          return RuntimeValue::aggregateValue(Struct, std::move(Fields));
-        }
-        case ir::TypeKind::Count:
-          return std::nullopt;
-        }
-        return std::nullopt;
-      }
-
-      std::optional<RuntimeValue> evaluateValue(const ir::Value &Value, const ExecutionFrame &Frame, std::vector<core::Diagnostic> &Diagnostics)
-      {
-        if (Value.kind() == ir::ValueKind::IntegerConstant)
-        {
-          const std::int64_t Integer = static_cast<const ir::IntegerConstant &>(Value).value();
-          return RuntimeValue::integerValue(Value.type(), static_cast<std::uint64_t>(Integer));
-        }
-        if (Value.kind() == ir::ValueKind::ValueOperand)
-        {
-          const ir::ValueId Id = static_cast<const ir::ValueOperand &>(Value).id();
-          const RuntimeValue *Stored = Frame.find(Id);
-          if (Stored == nullptr)
-          {
-            addFailure<core::DiagnosticKind::SsaValueUnavailableDuringExecution>(Diagnostics, Id.value());
-            return std::nullopt;
-          }
-          return *Stored;
-        }
-        if (Value.kind() == ir::ValueKind::GlobalAddressOperand)
-        {
-          const ir::GlobalAddressOperand &Address = static_cast<const ir::GlobalAddressOperand &>(Value);
-          const std::string &Data = ModuleValue.ByteConstants[Address.global().value()].Data;
-          return RuntimeValue::pointerValue(Value.type(), Data.data() + Address.byteOffset());
-        }
-        if (Value.kind() == ir::ValueKind::ZeroInitializer)
-        {
-          std::optional<RuntimeValue> Result = zeroValue(Value.type());
-          if (!Result.has_value())
-          {
-            addFailure<core::DiagnosticKind::ZeroInitializerConstructionFailed>(Diagnostics, ir::typeKindName(Value.type().kind()));
-          }
-          return Result;
-        }
-        addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>(Diagnostics);
-        return std::nullopt;
-      }
-
-      bool callExternal(std::size_t FunctionIndex, const std::vector<RuntimeValue> &Arguments, std::optional<RuntimeValue> &Result, std::vector<core::Diagnostic> &Diagnostics)
+      bool invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result, std::vector<core::Diagnostic> &Diagnostics) override
       {
         const ir::Function &FunctionValue = ModuleValue.Functions[FunctionIndex];
         const std::unique_ptr<PreparedFunction> &Prepared = PreparedFunctions[FunctionIndex];
@@ -508,6 +479,16 @@ namespace ink::execution
         {
           addFailure<core::DiagnosticKind::ExternalFunctionNotPrepared>(Diagnostics, FunctionValue.Name);
           return false;
+        }
+
+        if (Prepared->Address == nullptr)
+        {
+          Prepared->Address = Context.nativeSymbols().findAddress(FunctionValue.Name);
+          if (Prepared->Address == nullptr)
+          {
+            addFailure<core::DiagnosticKind::ExternalFunctionNotFound>(Diagnostics, FunctionValue.Name);
+            return false;
+          }
         }
 
         std::vector<NativeCallSlot> ArgumentStorage;
@@ -524,7 +505,7 @@ namespace ink::execution
           }
           ArgumentStorage.emplace_back(ArgumentType->size);
           void *ArgumentAddress = ArgumentStorage.back().data();
-          if (!storeNativeValue(Arguments[ArgumentIndex], NativeTypes, ArgumentAddress))
+          if (Arguments[ArgumentIndex] == nullptr || !storeNativeValue(*Arguments[ArgumentIndex], NativeTypes, ArgumentAddress))
           {
             addFailure<core::DiagnosticKind::NativeArgumentMarshalFailed>(Diagnostics, FunctionValue.Name, ArgumentIndex);
             return false;
@@ -545,144 +526,13 @@ namespace ink::execution
           ReturnAddress = ReturnStorage->data();
         }
         ffi_call(&Prepared->Interface, FFI_FN(Prepared->Address), ReturnAddress, NativeArguments.data());
-        Result = loadNativeValue(*FunctionValue.ResultType, NativeTypes, ReturnStorage ? ReturnStorage->data() : nullptr);
-        if (!Result.has_value())
+        Result = loadNativeValue(*FunctionValue.ResultType, NativeTypes, ReturnStorage ? ReturnStorage->data() : nullptr, Values);
+        if (Result == nullptr)
         {
           addFailure<core::DiagnosticKind::NativeResultUnmarshalFailed>(Diagnostics, FunctionValue.Name);
           return false;
         }
         return true;
-      }
-
-      bool executeFunction(std::size_t FunctionIndex, const std::vector<RuntimeValue> &Arguments, std::size_t Depth, std::optional<RuntimeValue> &Result, std::vector<core::Diagnostic> &Diagnostics)
-      {
-        const ir::Function &FunctionValue = ModuleValue.Functions[FunctionIndex];
-        if (Depth >= MaximumCallDepth)
-        {
-          addFailure<core::DiagnosticKind::CallDepthLimitExceeded>(Diagnostics, FunctionValue.Name, MaximumCallDepth);
-          return false;
-        }
-        if (FunctionValue.Kind == ir::FunctionKind::External)
-        {
-          return callExternal(FunctionIndex, Arguments, Result, Diagnostics);
-        }
-        if (FunctionValue.Blocks.size() != 1)
-        {
-          addFailure<core::DiagnosticKind::MultipleBasicBlocksUnsupported>(Diagnostics, FunctionValue.Name, FunctionValue.Blocks.size());
-          return false;
-        }
-
-        ExecutionFrame Frame(Arguments);
-
-        for (const std::unique_ptr<ir::Instruction> &InstructionPointer : FunctionValue.Blocks[0].Instructions)
-        {
-          if (InstructionPointer->kind() == ir::InstructionKind::Call)
-          {
-            const ir::CallInstruction &Call = static_cast<const ir::CallInstruction &>(*InstructionPointer);
-            std::vector<RuntimeValue> CallArguments;
-            CallArguments.reserve(Call.Arguments.size());
-            for (const std::unique_ptr<ir::Value> &Argument : Call.Arguments)
-            {
-              std::optional<RuntimeValue> ArgumentValue = evaluateValue(*Argument, Frame, Diagnostics);
-              if (!ArgumentValue.has_value())
-              {
-                return false;
-              }
-              CallArguments.push_back(*ArgumentValue);
-            }
-
-            std::optional<RuntimeValue> CallResult;
-            if (!executeFunction(Call.Callee.value(), CallArguments, Depth + 1, CallResult, Diagnostics))
-            {
-              return false;
-            }
-            if (Call.Result.has_value())
-            {
-              if (!CallResult.has_value())
-              {
-                addFailure<core::DiagnosticKind::CallResultMissing>(Diagnostics, FunctionValue.Name);
-                return false;
-              }
-              if (!Frame.define(*Call.Result, *CallResult))
-              {
-                addFailure<core::DiagnosticKind::SsaValueRedefinedDuringExecution>(Diagnostics, "call", FunctionValue.Name, Call.Result->value());
-                return false;
-              }
-            }
-            continue;
-          }
-
-          if (InstructionPointer->kind() == ir::InstructionKind::InsertValue)
-          {
-            const ir::InsertValueInstruction &Insert = static_cast<const ir::InsertValueInstruction &>(*InstructionPointer);
-            std::optional<RuntimeValue> Aggregate = evaluateValue(*Insert.Aggregate, Frame, Diagnostics);
-            std::optional<RuntimeValue> Element = evaluateValue(*Insert.Element, Frame, Diagnostics);
-            if (!Aggregate.has_value() || !Element.has_value())
-            {
-              return false;
-            }
-            const ir::StructType &Struct = static_cast<const ir::StructType &>(*Insert.ResultType);
-            std::vector<RuntimeValue> Fields;
-            Fields.reserve(Struct.fieldTypes().size());
-            for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldTypes().size(); ++FieldIndex)
-            {
-              const RuntimeValue *Field = Aggregate->field(FieldIndex);
-              if (Field == nullptr)
-              {
-                addFailure<core::DiagnosticKind::InvalidRuntimeAggregate>(Diagnostics, "insertvalue", FunctionValue.Name);
-                return false;
-              }
-              Fields.push_back(FieldIndex == Insert.FieldIndex ? *Element : *Field);
-            }
-            RuntimeValue InsertResult = RuntimeValue::aggregateValue(Struct, std::move(Fields));
-            if (!Frame.define(Insert.Result, std::move(InsertResult)))
-            {
-              addFailure<core::DiagnosticKind::SsaValueRedefinedDuringExecution>(Diagnostics, "insertvalue", FunctionValue.Name, Insert.Result.value());
-              return false;
-            }
-            continue;
-          }
-
-          if (InstructionPointer->kind() == ir::InstructionKind::ExtractValue)
-          {
-            const ir::ExtractValueInstruction &Extract = static_cast<const ir::ExtractValueInstruction &>(*InstructionPointer);
-            std::optional<RuntimeValue> Aggregate = evaluateValue(*Extract.Aggregate, Frame, Diagnostics);
-            if (!Aggregate.has_value())
-            {
-              return false;
-            }
-            const RuntimeValue *Field = Aggregate->field(Extract.FieldIndex);
-            if (Field == nullptr)
-            {
-              addFailure<core::DiagnosticKind::InvalidRuntimeAggregate>(Diagnostics, "extractvalue", FunctionValue.Name);
-              return false;
-            }
-            if (!Frame.define(Extract.Result, *Field))
-            {
-              addFailure<core::DiagnosticKind::SsaValueRedefinedDuringExecution>(Diagnostics, "extractvalue", FunctionValue.Name, Extract.Result.value());
-              return false;
-            }
-            continue;
-          }
-
-          if (InstructionPointer->kind() == ir::InstructionKind::Return)
-          {
-            const ir::ReturnInstruction &Return = static_cast<const ir::ReturnInstruction &>(*InstructionPointer);
-            if (!Return.ReturnValue)
-            {
-              Result = RuntimeValue::voidValue(*FunctionValue.ResultType);
-              return true;
-            }
-            Result = evaluateValue(*Return.ReturnValue, Frame, Diagnostics);
-            return Result.has_value();
-          }
-
-          addFailure<core::DiagnosticKind::UnsupportedInstructionDuringExecution>(Diagnostics, FunctionValue.Name, ir::instructionKindName(InstructionPointer->kind()));
-          return false;
-        }
-
-        addFailure<core::DiagnosticKind::FunctionMissingReturnDuringExecution>(Diagnostics, FunctionValue.Name);
-        return false;
       }
 
       ExecutionContext &Context;
@@ -691,66 +541,6 @@ namespace ink::execution
       std::vector<std::unique_ptr<PreparedFunction>> PreparedFunctions;
       bool Initialized = false;
   };
-
-  RuntimeValue::RuntimeValue(const ir::Type &ValueType) noexcept : ValueType(&ValueType)
-  {
-  }
-
-  RuntimeValue RuntimeValue::voidValue(const ir::Type &ValueType) noexcept
-  {
-    return RuntimeValue(ValueType);
-  }
-
-  RuntimeValue RuntimeValue::integerValue(const ir::Type &ValueType, std::uint64_t Value) noexcept
-  {
-    RuntimeValue Result(ValueType);
-    Result.Integer = Value;
-    return Result;
-  }
-
-  RuntimeValue RuntimeValue::pointerValue(const ir::Type &ValueType, const void *Value) noexcept
-  {
-    RuntimeValue Result(ValueType);
-    Result.Pointer = Value;
-    return Result;
-  }
-
-  RuntimeValue RuntimeValue::aggregateValue(const ir::StructType &ValueType, std::vector<RuntimeValue> Fields)
-  {
-    RuntimeValue Result(ValueType);
-    Result.Aggregate = std::make_shared<RuntimeAggregateStorage>(std::move(Fields));
-    return Result;
-  }
-
-  const ir::Type &RuntimeValue::type() const noexcept
-  {
-    return *ValueType;
-  }
-
-  std::optional<std::uint64_t> RuntimeValue::integer() const noexcept
-  {
-    const ir::TypeKind Kind = ValueType->kind();
-    if (Kind == ir::TypeKind::Bool || Kind == ir::TypeKind::Byte || Kind == ir::TypeKind::I32 || Kind == ir::TypeKind::PointerSize)
-    {
-      return Integer;
-    }
-    return std::nullopt;
-  }
-
-  const void *RuntimeValue::pointer() const noexcept
-  {
-    return ValueType->kind() == ir::TypeKind::ConstBytePointer ? Pointer : nullptr;
-  }
-
-  std::size_t RuntimeValue::fieldCount() const noexcept
-  {
-    return Aggregate ? Aggregate->Fields.size() : 0;
-  }
-
-  const RuntimeValue *RuntimeValue::field(std::size_t FieldIndex) const noexcept
-  {
-    return Aggregate && FieldIndex < Aggregate->Fields.size() ? &Aggregate->Fields[FieldIndex] : nullptr;
-  }
 
   bool InitializationResult::succeeded() const noexcept
   {
@@ -762,12 +552,29 @@ namespace ink::execution
     return Diagnostics;
   }
 
-  bool ExecutionResult::succeeded() const noexcept
+  ExecutionResult::ExecutionResult(ExecutionResult &&Other) noexcept : ValueArena(std::move(Other.ValueArena)), ReturnValue(Other.ReturnValue), Diagnostics(std::move(Other.Diagnostics))
   {
-    return ReturnValue.has_value() && Diagnostics.empty();
+    Other.ReturnValue = nullptr;
   }
 
-  const std::optional<RuntimeValue> &ExecutionResult::returnValue() const noexcept
+  ExecutionResult &ExecutionResult::operator=(ExecutionResult &&Other) noexcept
+  {
+    if (this != &Other)
+    {
+      ValueArena = std::move(Other.ValueArena);
+      ReturnValue = Other.ReturnValue;
+      Diagnostics = std::move(Other.Diagnostics);
+      Other.ReturnValue = nullptr;
+    }
+    return *this;
+  }
+
+  bool ExecutionResult::succeeded() const noexcept
+  {
+    return ReturnValue != nullptr && Diagnostics.empty();
+  }
+
+  RuntimeValueRef ExecutionResult::returnValue() const & noexcept
   {
     return ReturnValue;
   }
@@ -783,22 +590,12 @@ namespace ink::execution
 
   ExecutionEngine::~ExecutionEngine() = default;
 
-  NativeSymbolRegistry &ExecutionEngine::nativeSymbols() noexcept
-  {
-    return Implementation->Symbols;
-  }
-
-  const NativeSymbolRegistry &ExecutionEngine::nativeSymbols() const noexcept
-  {
-    return Implementation->Symbols;
-  }
-
   InitializationResult ExecutionEngine::initialize()
   {
     return Implementation->initialize();
   }
 
-  ExecutionResult ExecutionEngine::execute(std::string_view EntryName, const std::vector<RuntimeValue> &Arguments)
+  ExecutionResult ExecutionEngine::execute(std::string_view EntryName, const std::vector<RuntimeValueRef> &Arguments)
   {
     return Implementation->execute(EntryName, Arguments);
   }

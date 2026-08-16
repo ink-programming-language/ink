@@ -351,6 +351,10 @@ namespace ink::core
       return "ValueId";
     case DiagnosticArgumentName::GlobalId:
       return "GlobalId";
+    case DiagnosticArgumentName::ExpectedValue:
+      return "ExpectedValue";
+    case DiagnosticArgumentName::ActualValue:
+      return "ActualValue";
     case DiagnosticArgumentName::ExpectedCount:
       return "ExpectedCount";
     case DiagnosticArgumentName::ActualCount:

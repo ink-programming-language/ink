@@ -4,6 +4,7 @@ endif()
 
 file(MAKE_DIRECTORY "${INK_TEST_DIRECTORY}")
 set(HelloInput "${INK_TEST_DIRECTORY}/hello.ir")
+set(StandardErrorInput "${INK_TEST_DIRECTORY}/standard_error.ir")
 set(ReturnInput "${INK_TEST_DIRECTORY}/return.ir")
 set(InvalidInput "${INK_TEST_DIRECTORY}/invalid.ir")
 set(UnresolvedInput "${INK_TEST_DIRECTORY}/unresolved.ir")
@@ -12,11 +13,23 @@ file(WRITE "${HelloInput}" [=[inkir 1
 
 @str.0 = private constant [14 x byte] c"Hello, world!\0A"
 
-declare extern "C" i32 @print(const byte*, ptrsize) [sideeffect]
+declare extern "C" i32 @write(i32, const byte*, ptrsize) [sideeffect]
 
 define void @main() {
 entry:
-  %0 = call i32 @print(const byte* @str.0[0], ptrsize 14)
+  %0 = call i32 @write(i32 1, const byte* @str.0[0], ptrsize 14)
+  ret void
+}
+]=])
+file(WRITE "${StandardErrorInput}" [=[inkir 1
+
+@str.0 = private constant [14 x byte] c"Runtime error\0A"
+
+declare extern "C" i32 @write(i32, const byte*, ptrsize) [sideeffect]
+
+define void @main() {
+entry:
+  %0 = call i32 @write(i32 2, const byte* @str.0[0], ptrsize 14)
   ret void
 }
 ]=])
@@ -52,6 +65,11 @@ endif()
 execute_process(COMMAND "${INK_INTERPRETER}" -i "${HelloInput}" RESULT_VARIABLE HelloResult OUTPUT_VARIABLE HelloOutput ERROR_VARIABLE HelloError)
 if(NOT HelloResult EQUAL 0 OR NOT "${HelloOutput}" STREQUAL "Hello, world!\n" OR NOT "${HelloError}" STREQUAL "")
   message(FATAL_ERROR "Hello World execution failed: result=${HelloResult}\nstdout=${HelloOutput}\nstderr=${HelloError}")
+endif()
+
+execute_process(COMMAND "${INK_INTERPRETER}" -i "${StandardErrorInput}" RESULT_VARIABLE StandardErrorResult OUTPUT_VARIABLE StandardErrorOutput ERROR_VARIABLE StandardErrorError)
+if(NOT StandardErrorResult EQUAL 0 OR NOT "${StandardErrorOutput}" STREQUAL "" OR NOT "${StandardErrorError}" STREQUAL "Runtime error\n")
+  message(FATAL_ERROR "Runtime stderr execution failed: result=${StandardErrorResult}\nstdout=${StandardErrorOutput}\nstderr=${StandardErrorError}")
 endif()
 
 execute_process(COMMAND "${INK_INTERPRETER}" -i "${ReturnInput}" RESULT_VARIABLE ReturnResult OUTPUT_VARIABLE ReturnOutput ERROR_VARIABLE ReturnError)

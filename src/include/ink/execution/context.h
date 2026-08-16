@@ -2,14 +2,14 @@
 #define INK_EXECUTION_CONTEXT_H
 
 #include "ink/core/context.h"
+#include "ink/execution/native_symbol_registry.h"
 
 namespace ink::execution
 {
   class ExecutionContext
   {
   public:
-    explicit ExecutionContext(core::CompilationContext &Compilation)
-        : Compilation(Compilation)
+    explicit ExecutionContext(core::CompilationContext &Compilation) : Compilation(Compilation)
     {
     }
 
@@ -33,8 +33,19 @@ namespace ink::execution
       return Compilation.diagnosticEngine();
     }
 
+    NativeSymbolRegistry &nativeSymbols() noexcept
+    {
+      return Symbols;
+    }
+
+    const NativeSymbolRegistry &nativeSymbols() const noexcept
+    {
+      return Symbols;
+    }
+
   private:
     core::CompilationContext &Compilation;
+    NativeSymbolRegistry Symbols;
   };
 } // namespace ink::execution
 
