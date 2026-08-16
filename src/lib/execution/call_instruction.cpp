@@ -7,11 +7,17 @@ namespace ink::execution
 {
   FunctionExecutor::InstructionFlow FunctionExecutor::executeCallInstruction(const ir::CallInstruction &Call, FunctionExecutionState &State)
   {
+    if (Call.Callee.valid() && Call.Callee.value() < ModuleValue.Functions.size() && ModuleValue.Functions[Call.Callee.value()].Kind == ir::FunctionKind::External && !Context.compilationContext().targetContext().isNativeAbiCompatible())
+    {
+      addFailure<core::DiagnosticKind::ExternalFunctionTargetUnsupported>(ModuleValue.Functions[Call.Callee.value()].Name);
+      return InstructionFlow::Failed;
+    }
+
     std::vector<RuntimeValueRef> CallArguments;
     CallArguments.reserve(Call.Arguments.size());
     for (const std::unique_ptr<ir::Value> &Argument : Call.Arguments)
     {
-      RuntimeValueRef ArgumentValue = evaluateValue(*Argument, State.Frame);
+      RuntimeValueRef ArgumentValue = evaluateValue(*Argument, State.Frame, State.FunctionValue.Name);
       if (ArgumentValue == nullptr)
       {
         return InstructionFlow::Failed;

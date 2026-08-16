@@ -74,6 +74,39 @@ namespace ink::ir
     std::size_t Value = InvalidId;
   };
 
+  class BlockId
+  {
+  public:
+    constexpr BlockId() noexcept = default;
+
+    explicit constexpr BlockId(std::size_t Value) noexcept : Value(Value)
+    {
+    }
+
+    constexpr bool valid() const noexcept
+    {
+      return Value != InvalidId;
+    }
+
+    constexpr std::size_t value() const noexcept
+    {
+      return Value;
+    }
+
+    friend constexpr bool operator==(BlockId Left, BlockId Right) noexcept
+    {
+      return Left.Value == Right.Value;
+    }
+
+    friend constexpr bool operator!=(BlockId Left, BlockId Right) noexcept
+    {
+      return !(Left == Right);
+    }
+
+  private:
+    std::size_t Value = InvalidId;
+  };
+
   class ValueId
   {
   public:

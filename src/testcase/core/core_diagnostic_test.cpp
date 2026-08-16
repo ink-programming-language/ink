@@ -109,7 +109,7 @@ namespace ink::core
       EXPECT_TRUE(Related.Arguments.empty());
     }
 
-    // Verifies every registered diagnostic kind against its generated metadata and stable number layout.
+    // Verifies every registered diagnostic kind against its generated name, message, format schema, and stable number layout.
     TEST(DiagnosticTest, ExposesEveryRegisteredMapping)
     {
       for (const DiagnosticExpectation &Expectation : DiagnosticExpectations)

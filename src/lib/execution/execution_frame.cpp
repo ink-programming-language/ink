@@ -13,11 +13,15 @@ namespace ink::execution
 
   bool ExecutionFrame::define(ir::ValueId Id, RuntimeValueRef Value)
   {
-    if (!Id.valid() || Id.value() != Values.size() || Value == nullptr)
+    if (!Id.valid() || Value == nullptr)
     {
       return false;
     }
-    Values.push_back(Value);
+    if (Id.value() >= Values.size())
+    {
+      Values.resize(Id.value() + 1, nullptr);
+    }
+    Values[Id.value()] = Value;
     return true;
   }
 } // namespace ink::execution

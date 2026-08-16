@@ -1,4 +1,4 @@
-add_library(ink_execution STATIC aggregate_instruction.cpp call_instruction.cpp execution_engine.cpp execution_frame.cpp function_executor.cpp instruction_dispatch.cpp native_symbol_registry.cpp return_instruction.cpp runtime.cpp runtime/read.cpp runtime/write.cpp runtime_value.cpp)
+add_library(ink_execution STATIC aggregate_instruction.cpp arithmetic_instruction.cpp branch_instruction.cpp call_instruction.cpp comparison_instruction.cpp execution_engine.cpp execution_frame.cpp function_executor.cpp instruction_dispatch.cpp memory_instruction.cpp native_symbol_registry.cpp return_instruction.cpp runtime.cpp runtime/read.cpp runtime/write.cpp runtime_memory.cpp runtime_value.cpp)
 add_library(ink::execution ALIAS ink_execution)
 
 target_compile_features(ink_execution PUBLIC cxx_std_17)

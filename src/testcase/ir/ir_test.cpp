@@ -121,12 +121,17 @@ namespace ink::ir
       const Type &FirstI32 = Context.IR.getType(TypeKind::I32);
       const Type &SecondI32 = Context.IR.getType(TypeKind::I32);
       const Type &VoidType = Context.IR.getType(TypeKind::Void);
+      const Type &ByteSliceType = Context.IR.getType(TypeKind::ByteSlice);
+      const Type &ConstByteSliceType = Context.IR.getType(TypeKind::ConstByteSlice);
 
       static_assert(!std::is_abstract_v<Type>);
       EXPECT_EQ(&FirstI32, &SecondI32);
       EXPECT_NE(&FirstI32, &VoidType);
       EXPECT_EQ(FirstI32.kind(), TypeKind::I32);
       EXPECT_EQ(VoidType.kind(), TypeKind::Void);
+      EXPECT_NE(&ByteSliceType, &ConstByteSliceType);
+      EXPECT_EQ(ByteSliceType.kind(), TypeKind::ByteSlice);
+      EXPECT_EQ(ConstByteSliceType.kind(), TypeKind::ConstByteSlice);
     }
 
     // Verifies that IRContext owns distinct named struct types even when their field lists are identical.
@@ -150,11 +155,27 @@ namespace ink::ir
       EXPECT_STREQ(instructionKindName(InstructionKind::Call), "Call");
       EXPECT_STREQ(instructionMnemonic(InstructionKind::Call), "call");
       EXPECT_FALSE(isTerminator(InstructionKind::Call));
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Alloca), "alloca");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::GetElementPointer), "getelementptr");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Load), "load");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Store), "store");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::LifetimeEnd), "lifetime.end");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::SliceData), "slice.data");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::SliceLength), "slice.length");
+      EXPECT_STREQ(instructionKindName(InstructionKind::Phi), "Phi");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Phi), "phi");
+      EXPECT_FALSE(isTerminator(InstructionKind::Phi));
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Add), "add");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Compare), "icmp");
       EXPECT_STREQ(instructionKindName(InstructionKind::Return), "Return");
       EXPECT_STREQ(instructionMnemonic(InstructionKind::Return), "ret");
       EXPECT_TRUE(isTerminator(InstructionKind::Return));
       EXPECT_STREQ(instructionMnemonic(InstructionKind::InsertValue), "insertvalue");
       EXPECT_STREQ(instructionMnemonic(InstructionKind::ExtractValue), "extractvalue");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Branch), "br");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::ConditionalBranch), "condbr");
+      EXPECT_TRUE(isTerminator(InstructionKind::Branch));
+      EXPECT_TRUE(isTerminator(InstructionKind::ConditionalBranch));
       EXPECT_STREQ(valueKindName(ValueKind::IntegerConstant), "IntegerConstant");
       EXPECT_STREQ(valueKindName(ValueKind::ValueOperand), "ValueOperand");
       EXPECT_STREQ(valueKindName(ValueKind::GlobalAddressOperand), "GlobalAddressOperand");
@@ -166,22 +187,28 @@ namespace ink::ir
     {
       constexpr GlobalId Global{3};
       constexpr FunctionId Function{4};
-      constexpr ValueId Value{5};
+      constexpr BlockId Block{5};
+      constexpr ValueId Value{6};
 
       static_assert(Global.valid());
       static_assert(Function.valid());
+      static_assert(Block.valid());
       static_assert(Value.valid());
       static_assert(!std::is_aggregate_v<GlobalId>);
       static_assert(!std::is_aggregate_v<FunctionId>);
+      static_assert(!std::is_aggregate_v<BlockId>);
       static_assert(!std::is_aggregate_v<ValueId>);
       static_assert(!std::is_convertible_v<std::size_t, GlobalId>);
       static_assert(!std::is_convertible_v<std::size_t, FunctionId>);
+      static_assert(!std::is_convertible_v<std::size_t, BlockId>);
       static_assert(!std::is_convertible_v<std::size_t, ValueId>);
       static_assert(Global.value() == 3);
       static_assert(Function.value() == 4);
-      static_assert(Value.value() == 5);
+      static_assert(Block.value() == 5);
+      static_assert(Value.value() == 6);
       static_assert(!GlobalId{}.valid());
       static_assert(!FunctionId{}.valid());
+      static_assert(!BlockId{}.valid());
       static_assert(!ValueId{}.valid());
     }
 

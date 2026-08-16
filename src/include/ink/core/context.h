@@ -2,17 +2,30 @@
 #define INK_CORE_CONTEXT_H
 
 #include "ink/core/diagnostic.h"
+#include "ink/core/target_context.h"
 
 namespace ink::core
 {
   class CompilationContext
   {
   public:
-    CompilationContext() = default;
+    CompilationContext() : Target(TargetContext::native())
+    {
+    }
+
+    explicit CompilationContext(TargetContext Target) : Target(Target)
+    {
+    }
+
     CompilationContext(const CompilationContext &) = delete;
     CompilationContext &operator=(const CompilationContext &) = delete;
     CompilationContext(CompilationContext &&) = delete;
     CompilationContext &operator=(CompilationContext &&) = delete;
+
+    const TargetContext &targetContext() const noexcept
+    {
+      return Target;
+    }
 
     DiagnosticEngine &diagnosticEngine() noexcept
     {
@@ -25,6 +38,7 @@ namespace ink::core
     }
 
   private:
+    TargetContext Target;
     DiagnosticEngine Diagnostics;
   };
 

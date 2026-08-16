@@ -9,7 +9,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -20,6 +22,9 @@ namespace ink::execution
 {
   namespace
   {
+    static_assert(sizeof(float) == sizeof(std::uint32_t) && std::numeric_limits<float>::is_iec559);
+    static_assert(sizeof(double) == sizeof(std::uint64_t) && std::numeric_limits<double>::is_iec559);
+
     class NativeTypeCache
     {
       public:
@@ -34,11 +39,20 @@ namespace ink::execution
             return &ffi_type_uint8;
           case ir::TypeKind::I32:
             return &ffi_type_sint32;
+          case ir::TypeKind::F16:
+            return nullptr;
+          case ir::TypeKind::F32:
+            return &ffi_type_float;
+          case ir::TypeKind::F64:
+            return &ffi_type_double;
           case ir::TypeKind::PointerSize:
             return sizeof(std::size_t) == sizeof(std::uint64_t) ? &ffi_type_uint64 : &ffi_type_uint32;
           case ir::TypeKind::BytePointer:
           case ir::TypeKind::ConstBytePointer:
             return &ffi_type_pointer;
+          case ir::TypeKind::ByteSlice:
+          case ir::TypeKind::ConstByteSlice:
+            return nullptr;
           case ir::TypeKind::Struct:
             return getStruct(static_cast<const ir::StructType &>(TypeValue));
           case ir::TypeKind::Count:
@@ -126,6 +140,7 @@ namespace ink::execution
     bool storeNativeValue(const RuntimeValue &Value, NativeTypeCache &Types, void *Destination)
     {
       const std::optional<std::uint64_t> Integer = Value.integer();
+      const std::optional<std::uint64_t> FloatingPointBits = Value.floatingPointBits();
       switch (Value.type().kind())
       {
       case ir::TypeKind::Bool:
@@ -149,6 +164,27 @@ namespace ink::execution
         std::memcpy(Destination, &NativeValue, sizeof(NativeValue));
         return true;
       }
+      case ir::TypeKind::F16:
+        return false;
+      case ir::TypeKind::F32:
+      {
+        if (!FloatingPointBits.has_value() || !isValidRuntimeFloatingPointValue(Value.type(), *FloatingPointBits))
+        {
+          return false;
+        }
+        const std::uint32_t NativeBits = static_cast<std::uint32_t>(*FloatingPointBits);
+        std::memcpy(Destination, &NativeBits, sizeof(NativeBits));
+        return true;
+      }
+      case ir::TypeKind::F64:
+      {
+        if (!FloatingPointBits.has_value() || !isValidRuntimeFloatingPointValue(Value.type(), *FloatingPointBits))
+        {
+          return false;
+        }
+        std::memcpy(Destination, &*FloatingPointBits, sizeof(*FloatingPointBits));
+        return true;
+      }
       case ir::TypeKind::PointerSize:
       {
         if (!Integer.has_value())
@@ -161,13 +197,33 @@ namespace ink::execution
       }
       case ir::TypeKind::BytePointer:
       {
+        if (!Value.memoryAlive())
+        {
+          return false;
+        }
         void *NativeValue = Value.mutablePointer();
+        const std::optional<std::size_t> Length = Value.byteLength();
+        const std::optional<std::uint64_t> Offset = runtimePointerByteOffset(Value);
+        if (Length.has_value() && (!Offset.has_value() || *Offset > *Length || (NativeValue == nullptr && *Length != 0)))
+        {
+          return false;
+        }
         std::memcpy(Destination, &NativeValue, sizeof(NativeValue));
         return true;
       }
       case ir::TypeKind::ConstBytePointer:
       {
+        if (!Value.memoryAlive())
+        {
+          return false;
+        }
         const void *NativeValue = Value.pointer();
+        const std::optional<std::size_t> Length = Value.byteLength();
+        const std::optional<std::uint64_t> Offset = runtimePointerByteOffset(Value);
+        if (Length.has_value() && (!Offset.has_value() || *Offset > *Length || (NativeValue == nullptr && *Length != 0)))
+        {
+          return false;
+        }
         std::memcpy(Destination, &NativeValue, sizeof(NativeValue));
         return true;
       }
@@ -191,6 +247,8 @@ namespace ink::execution
         return true;
       }
       case ir::TypeKind::Void:
+      case ir::TypeKind::ByteSlice:
+      case ir::TypeKind::ConstByteSlice:
       case ir::TypeKind::Count:
         return false;
       }
@@ -216,6 +274,20 @@ namespace ink::execution
         std::memcpy(&NativeValue, Source, sizeof(NativeValue));
         return Values.integerValue(TypeValue, static_cast<std::uint64_t>(static_cast<std::int64_t>(NativeValue)));
       }
+      case ir::TypeKind::F16:
+        return nullptr;
+      case ir::TypeKind::F32:
+      {
+        std::uint32_t NativeBits = 0;
+        std::memcpy(&NativeBits, Source, sizeof(NativeBits));
+        return Values.floatingPointValue(TypeValue, NativeBits);
+      }
+      case ir::TypeKind::F64:
+      {
+        std::uint64_t NativeBits = 0;
+        std::memcpy(&NativeBits, Source, sizeof(NativeBits));
+        return Values.floatingPointValue(TypeValue, NativeBits);
+      }
       case ir::TypeKind::PointerSize:
       {
         std::size_t NativeValue = 0;
@@ -234,6 +306,9 @@ namespace ink::execution
         std::memcpy(&NativeValue, Source, sizeof(NativeValue));
         return Values.pointerValue(TypeValue, NativeValue);
       }
+      case ir::TypeKind::ByteSlice:
+      case ir::TypeKind::ConstByteSlice:
+        return nullptr;
       case ir::TypeKind::Struct:
       {
         const ir::StructType &Struct = static_cast<const ir::StructType &>(TypeValue);
@@ -262,7 +337,7 @@ namespace ink::execution
       return nullptr;
     }
 
-    bool hasValidRuntimeShape(const RuntimeValue &Value, const ir::Type &ExpectedType, std::unordered_set<const RuntimeValue *> &ValidatedValues, std::unordered_set<const RuntimeValue *> &ActiveValues)
+    bool hasValidRuntimeShape(const RuntimeValue &Value, const ir::Type &ExpectedType, const core::TargetContext &Target, std::unordered_set<const RuntimeValue *> &ValidatedValues, std::unordered_set<const RuntimeValue *> &ActiveValues)
     {
       if (&Value.type() != &ExpectedType)
       {
@@ -284,13 +359,49 @@ namespace ink::execution
       case ir::TypeKind::PointerSize:
       {
         const std::optional<std::uint64_t> Integer = Value.integer();
-        IsValid = Value.kind() == RuntimeValueKind::Integer && Integer.has_value() && isValidRuntimeIntegerValue(ExpectedType, *Integer);
+        IsValid = Value.kind() == RuntimeValueKind::Integer && Integer.has_value() && isValidRuntimeIntegerValue(ExpectedType, *Integer, Target);
+        break;
+      }
+      case ir::TypeKind::F16:
+      case ir::TypeKind::F32:
+      case ir::TypeKind::F64:
+      {
+        const std::optional<std::uint64_t> Bits = Value.floatingPointBits();
+        IsValid = Value.kind() == RuntimeValueKind::FloatingPoint && Bits.has_value() && isValidRuntimeFloatingPointValue(ExpectedType, *Bits);
         break;
       }
       case ir::TypeKind::BytePointer:
       case ir::TypeKind::ConstBytePointer:
-        IsValid = Value.kind() == RuntimeValueKind::Pointer;
+      {
+        const std::optional<std::size_t> Length = Value.byteLength();
+        if (Value.kind() != RuntimeValueKind::Pointer || !Value.memoryAlive())
+        {
+          IsValid = false;
+        }
+        else if (!Length.has_value())
+        {
+          IsValid = Target.isNativeAbiCompatible() || Value.pointer() == nullptr;
+        }
+        else
+        {
+          const std::optional<std::uint64_t> Offset = runtimePointerByteOffset(Value);
+          const void *Address = ExpectedType.kind() == ir::TypeKind::BytePointer ? Value.mutablePointer() : Value.pointer();
+          IsValid = Offset.has_value() && *Offset <= *Length && *Length <= Target.maximumPointerSizeValue() && (*Length == 0 || Address != nullptr);
+        }
         break;
+      }
+      case ir::TypeKind::ByteSlice:
+      {
+        const std::optional<std::size_t> Length = Value.byteLength();
+        IsValid = Value.kind() == RuntimeValueKind::ByteSlice && Length.has_value() && *Length <= Target.maximumPointerSizeValue() && Value.memoryAlive() && (*Length == 0 || Value.mutablePointer() != nullptr);
+        break;
+      }
+      case ir::TypeKind::ConstByteSlice:
+      {
+        const std::optional<std::size_t> Length = Value.byteLength();
+        IsValid = Value.kind() == RuntimeValueKind::ByteSlice && Length.has_value() && *Length <= Target.maximumPointerSizeValue() && Value.memoryAlive() && (*Length == 0 || Value.pointer() != nullptr);
+        break;
+      }
       case ir::TypeKind::Struct:
         break;
       case ir::TypeKind::Count:
@@ -312,7 +423,7 @@ namespace ink::execution
       for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldTypes().size(); ++FieldIndex)
       {
         const RuntimeValue *Field = Value.field(FieldIndex);
-        if (Field == nullptr || !hasValidRuntimeShape(*Field, *Struct.fieldTypes()[FieldIndex], ValidatedValues, ActiveValues))
+        if (Field == nullptr || !hasValidRuntimeShape(*Field, *Struct.fieldTypes()[FieldIndex], Target, ValidatedValues, ActiveValues))
         {
           ActiveValues.erase(&Value);
           return false;
@@ -334,6 +445,11 @@ namespace ink::execution
       InitializationResult initialize()
       {
         InitializationResult Result;
+        if (ModuleValue.context().compilationContext().targetContext() != Context.compilationContext().targetContext())
+        {
+          addFailure<core::DiagnosticKind::ExecutionTargetMismatch>(Result.Diagnostics);
+          return Result;
+        }
         if (Initialized)
         {
           Result.Succeeded = true;
@@ -424,7 +540,7 @@ namespace ink::execution
         std::unordered_set<const RuntimeValue *> ActiveValues;
         for (std::size_t ArgumentIndex = 0; ArgumentIndex < Arguments.size(); ++ArgumentIndex)
         {
-          if (Arguments[ArgumentIndex] == nullptr || !hasValidRuntimeShape(*Arguments[ArgumentIndex], *Entry.ParameterTypes[ArgumentIndex], ValidatedValues, ActiveValues))
+          if (Arguments[ArgumentIndex] == nullptr || !hasValidRuntimeShape(*Arguments[ArgumentIndex], *Entry.ParameterTypes[ArgumentIndex], Context.compilationContext().targetContext(), ValidatedValues, ActiveValues))
           {
             addFailure<core::DiagnosticKind::EntryArgumentInvalid>(Result.Diagnostics, Entry.Name, ArgumentIndex);
             return Result;
@@ -442,7 +558,7 @@ namespace ink::execution
           addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>(Result.Diagnostics);
           return Result;
         }
-        std::shared_ptr<RuntimeValueArena> ResultValues = std::make_shared<RuntimeValueArena>();
+        std::shared_ptr<RuntimeValueArena> ResultValues = std::make_shared<RuntimeValueArena>(Context.compilationContext().targetContext());
         RuntimeValueRef StableReturnValue = ResultValues->clone(*ReturnValue);
         if (StableReturnValue == nullptr)
         {
@@ -474,6 +590,11 @@ namespace ink::execution
       bool invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result, std::vector<core::Diagnostic> &Diagnostics) override
       {
         const ir::Function &FunctionValue = ModuleValue.Functions[FunctionIndex];
+        if (!Context.compilationContext().targetContext().isNativeAbiCompatible())
+        {
+          addFailure<core::DiagnosticKind::ExternalFunctionTargetUnsupported>(Diagnostics, FunctionValue.Name);
+          return false;
+        }
         const std::unique_ptr<PreparedFunction> &Prepared = PreparedFunctions[FunctionIndex];
         if (!Prepared)
         {

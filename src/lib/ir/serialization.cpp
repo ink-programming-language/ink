@@ -1,5 +1,8 @@
 #include "ink/ir/serialization.h"
 
+#include "ink/ir/arithmetic.h"
+#include "ink/ir/control_flow.h"
+#include "ink/ir/memory.h"
 #include "ink/ir/verifier.h"
 
 #include <cctype>
@@ -29,6 +32,7 @@ namespace ink::ir
       TypeName,
       ValueName,
       Integer,
+      Hexadecimal,
       String,
       LeftParenthesis,
       RightParenthesis,
@@ -138,6 +142,23 @@ namespace ink::ir
               return false;
             }
             Tokens.push_back({TokenKind::ValueName, std::string(Text.substr(DigitsStart, Position - DigitsStart)), {Start, Position}});
+            continue;
+          }
+          if (Character == '0' && Position + 1 < Text.size() && (Text[Position + 1] == 'x' || Text[Position + 1] == 'X'))
+          {
+            advance();
+            advance();
+            const std::size_t DigitsStart = Position;
+            while (Position < Text.size() && std::isxdigit(static_cast<unsigned char>(Text[Position])) != 0)
+            {
+              advance();
+            }
+            if (DigitsStart == Position)
+            {
+              Error = core::makeDiagnostic<DiagnosticKind::IrFloatBitPatternRequiresDigits>({Start, Position});
+              return false;
+            }
+            Tokens.push_back({TokenKind::Hexadecimal, std::string(Text.substr(DigitsStart, Position - DigitsStart)), {Start, Position}});
             continue;
           }
           if (Character == '-' || std::isdigit(static_cast<unsigned char>(Character)) != 0)
@@ -338,22 +359,36 @@ namespace ink::ir
       Token Location;
     };
 
-    enum class GlobalFixupTarget
+    enum class BranchFixupTarget
     {
-      CallArgument,
-      ReturnValue,
-      InsertAggregate,
-      InsertElement,
-      ExtractAggregate,
+      Branch,
+      ConditionalTrue,
+      ConditionalFalse,
     };
 
-    struct GlobalFixup
+    struct BranchFixup
     {
       std::size_t FunctionIndex = 0;
       std::size_t BlockIndex = 0;
       std::size_t InstructionIndex = 0;
-      std::size_t OperandIndex = 0;
-      GlobalFixupTarget Target = GlobalFixupTarget::CallArgument;
+      BranchFixupTarget Target = BranchFixupTarget::Branch;
+      std::string BlockName;
+      Token Location;
+    };
+
+    struct PhiFixup
+    {
+      std::size_t FunctionIndex = 0;
+      std::size_t BlockIndex = 0;
+      std::size_t InstructionIndex = 0;
+      std::size_t IncomingIndex = 0;
+      std::string BlockName;
+      Token Location;
+    };
+
+    struct GlobalFixup
+    {
+      GlobalAddressOperand *Address = nullptr;
       std::string GlobalName;
       Token Location;
     };
@@ -361,7 +396,6 @@ namespace ink::ir
     struct ParsedOperand
     {
       std::unique_ptr<Value> ParsedValue;
-      std::optional<std::string> GlobalName;
       Token Location;
     };
 
@@ -524,6 +558,43 @@ namespace ink::ir
         return Result;
       }
 
+      std::optional<std::uint64_t> parseHexadecimal(const Token &TokenValue, std::string_view Description)
+      {
+        std::uint64_t Result = 0;
+        const char *Begin = TokenValue.Text.data();
+        const char *End = Begin + TokenValue.Text.size();
+        const auto Conversion = std::from_chars(Begin, End, Result, 16);
+        if (Conversion.ec != std::errc() || Conversion.ptr != End)
+        {
+          fail<DiagnosticKind::IrNumericValueOutOfRange>(TokenValue, Description);
+          return std::nullopt;
+        }
+        return Result;
+      }
+
+      std::optional<FloatFormat> parseFloatFormat()
+      {
+        const Token *Format = expect(TokenKind::Identifier, "a floating-point format");
+        if (Format == nullptr)
+        {
+          return std::nullopt;
+        }
+        if (Format->Text == "f16")
+        {
+          return FloatFormat::F16;
+        }
+        if (Format->Text == "f32")
+        {
+          return FloatFormat::F32;
+        }
+        if (Format->Text == "f64")
+        {
+          return FloatFormat::F64;
+        }
+        fail<DiagnosticKind::IrUnknownFloatFormat>(*Format, Format->Text);
+        return std::nullopt;
+      }
+
       std::optional<std::size_t> parseIndex(const Token &TokenValue, std::string_view Description)
       {
         const std::optional<std::uint64_t> Value = parseUnsigned(TokenValue, Description);
@@ -555,17 +626,36 @@ namespace ink::ir
         if (atIdentifier("const"))
         {
           consume();
-          if (!expectIdentifier("byte") || expect(TokenKind::Star, "'*'") == nullptr)
+          if (!expectIdentifier("byte"))
           {
             return std::nullopt;
           }
-          return &Context.getType(TypeKind::ConstBytePointer);
+          if (at(TokenKind::Star))
+          {
+            consume();
+            return &Context.getType(TypeKind::ConstBytePointer);
+          }
+          if (at(TokenKind::LeftBracket) && at(TokenKind::RightBracket, 1))
+          {
+            consume();
+            consume();
+            return &Context.getType(TypeKind::ConstByteSlice);
+          }
+          fail<DiagnosticKind::IrExpected>(current(), "'*' or '[]' after 'const byte'");
+          return std::nullopt;
         }
         if (atIdentifier("byte") && at(TokenKind::Star, 1))
         {
           consume();
           consume();
           return &Context.getType(TypeKind::BytePointer);
+        }
+        if (atIdentifier("byte") && at(TokenKind::LeftBracket, 1) && at(TokenKind::RightBracket, 2))
+        {
+          consume();
+          consume();
+          consume();
+          return &Context.getType(TypeKind::ByteSlice);
         }
         const Token *Type = expect(TokenKind::Identifier, "an IR type");
         if (Type == nullptr)
@@ -790,14 +880,9 @@ namespace ink::ir
         return at(TokenKind::Identifier) && at(TokenKind::Colon, 1);
       }
 
-      std::optional<ParsedOperand> parseOperand()
+      std::optional<ParsedOperand> parseOperandValue(const Type &OperandType)
       {
         ParsedOperand Result;
-        const std::optional<const Type *> Type = parseType();
-        if (!Type)
-        {
-          return std::nullopt;
-        }
         Result.Location = current();
         if (at(TokenKind::ValueName))
         {
@@ -807,24 +892,105 @@ namespace ink::ir
           {
             return std::nullopt;
           }
-          Result.ParsedValue = std::make_unique<ValueOperand>(**Type, ValueId{*Id});
+          Result.ParsedValue = std::make_unique<ValueOperand>(OperandType, ValueId{*Id});
           return Result;
         }
         if (at(TokenKind::Integer))
         {
           const Token &Integer = consume();
+          if (OperandType.kind() == TypeKind::PointerSize && (Integer.Text.empty() || Integer.Text.front() != '-'))
+          {
+            const std::optional<std::uint64_t> Value = parseUnsigned(Integer, "integer constant");
+            if (!Value)
+            {
+              return std::nullopt;
+            }
+            Result.ParsedValue = std::make_unique<IntegerConstant>(OperandType, *Value);
+            return Result;
+          }
           const std::optional<std::int64_t> Value = parseSigned(Integer, "integer constant");
           if (!Value)
           {
             return std::nullopt;
           }
-          Result.ParsedValue = std::make_unique<IntegerConstant>(**Type, *Value);
+          Result.ParsedValue = std::make_unique<IntegerConstant>(OperandType, *Value);
+          return Result;
+        }
+        if (atIdentifier("floatbits"))
+        {
+          consume();
+          if (expect(TokenKind::LeftParenthesis, "'(' after 'floatbits'") == nullptr)
+          {
+            return std::nullopt;
+          }
+          const std::optional<FloatFormat> Format = parseFloatFormat();
+          if (!Format || expect(TokenKind::Comma, "',' after a floating-point format") == nullptr)
+          {
+            return std::nullopt;
+          }
+          const Token *BitPatternToken = expect(TokenKind::Hexadecimal, "a hexadecimal floating-point bit pattern");
+          if (BitPatternToken == nullptr)
+          {
+            return std::nullopt;
+          }
+          const std::size_t ExpectedDigits = floatFormatBitWidth(*Format) / 4;
+          if (BitPatternToken->Text.size() != ExpectedDigits)
+          {
+            fail<DiagnosticKind::IrFloatBitPatternWidthMismatch>(*BitPatternToken, floatFormatName(*Format), ExpectedDigits, BitPatternToken->Text.size());
+            return std::nullopt;
+          }
+          const std::optional<std::uint64_t> BitPattern = parseHexadecimal(*BitPatternToken, "floating-point bit pattern");
+          if (!BitPattern || expect(TokenKind::RightParenthesis, "')' after a floating-point bit pattern") == nullptr)
+          {
+            return std::nullopt;
+          }
+          Result.ParsedValue = std::make_unique<FloatConstant>(OperandType, *Format, *BitPattern);
+          return Result;
+        }
+        if (atIdentifier("c") && at(TokenKind::String, 1))
+        {
+          consume();
+          Result.ParsedValue = std::make_unique<StringConstant>(OperandType, consume().Text);
+          return Result;
+        }
+        if (atIdentifier("null"))
+        {
+          consume();
+          Result.ParsedValue = std::make_unique<NullConstant>(OperandType);
+          return Result;
+        }
+        if (at(TokenKind::LeftBrace))
+        {
+          consume();
+          std::vector<std::unique_ptr<Value>> Elements;
+          if (!at(TokenKind::RightBrace))
+          {
+            while (true)
+            {
+              std::optional<ParsedOperand> Element = parseOperand();
+              if (!Element)
+              {
+                return std::nullopt;
+              }
+              Elements.push_back(std::move(Element->ParsedValue));
+              if (!at(TokenKind::Comma))
+              {
+                break;
+              }
+              consume();
+            }
+          }
+          if (expect(TokenKind::RightBrace, "'}' after an aggregate constant") == nullptr)
+          {
+            return std::nullopt;
+          }
+          Result.ParsedValue = std::make_unique<AggregateConstant>(OperandType, std::move(Elements));
           return Result;
         }
         if (atIdentifier("zeroinitializer"))
         {
           consume();
-          Result.ParsedValue = std::make_unique<ZeroInitializer>(**Type);
+          Result.ParsedValue = std::make_unique<ZeroInitializer>(OperandType);
           return Result;
         }
         if (at(TokenKind::GlobalName))
@@ -844,13 +1010,24 @@ namespace ink::ir
           {
             return std::nullopt;
           }
-          Result.ParsedValue = std::make_unique<GlobalAddressOperand>(**Type, GlobalId{}, *ByteOffset);
-          Result.GlobalName = Global.Text;
+          auto Address = std::make_unique<GlobalAddressOperand>(OperandType, GlobalId{}, *ByteOffset);
+          GlobalFixups.push_back({Address.get(), Global.Text, Global});
+          Result.ParsedValue = std::move(Address);
           Result.Location = Global;
           return Result;
         }
         fail<DiagnosticKind::IrExpectedOperand>(current());
         return std::nullopt;
+      }
+
+      std::optional<ParsedOperand> parseOperand()
+      {
+        const std::optional<const Type *> Type = parseType();
+        if (!Type)
+        {
+          return std::nullopt;
+        }
+        return parseOperandValue(**Type);
       }
 
       std::optional<std::vector<ParsedOperand>> parseArguments()
@@ -904,17 +1081,13 @@ namespace ink::ir
         }
         for (std::size_t ArgumentIndex = 0; ArgumentIndex < Arguments->size(); ++ArgumentIndex)
         {
-          if ((*Arguments)[ArgumentIndex].GlobalName.has_value())
-          {
-            GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, ArgumentIndex, GlobalFixupTarget::CallArgument, *(*Arguments)[ArgumentIndex].GlobalName, (*Arguments)[ArgumentIndex].Location});
-          }
           Call->Arguments.push_back(std::move((*Arguments)[ArgumentIndex].ParsedValue));
         }
         CallFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, Callee->Text, *Callee});
         return Call;
       }
 
-      std::unique_ptr<Instruction> parseReturn(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex)
+      std::unique_ptr<Instruction> parseReturn(std::size_t, std::size_t, std::size_t)
       {
         if (!expectIdentifier("ret"))
         {
@@ -931,15 +1104,11 @@ namespace ink::ir
         {
           return nullptr;
         }
-        if (Value->GlobalName.has_value())
-        {
-          GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, 0, GlobalFixupTarget::ReturnValue, *Value->GlobalName, Value->Location});
-        }
         Return->ReturnValue = std::move(Value->ParsedValue);
         return Return;
       }
 
-      std::unique_ptr<Instruction> parseInsertValue(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex, std::optional<ValueId> ResultValue)
+      std::unique_ptr<Instruction> parseInsertValue(std::size_t, std::size_t, std::size_t, std::optional<ValueId> ResultValue)
       {
         if (!ResultValue.has_value())
         {
@@ -976,18 +1145,10 @@ namespace ink::ir
         Insert->Aggregate = std::move(Aggregate->ParsedValue);
         Insert->Element = std::move(Element->ParsedValue);
         Insert->FieldIndex = *ParsedFieldIndex;
-        if (Aggregate->GlobalName.has_value())
-        {
-          GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, 0, GlobalFixupTarget::InsertAggregate, *Aggregate->GlobalName, Aggregate->Location});
-        }
-        if (Element->GlobalName.has_value())
-        {
-          GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, 0, GlobalFixupTarget::InsertElement, *Element->GlobalName, Element->Location});
-        }
         return Insert;
       }
 
-      std::unique_ptr<Instruction> parseExtractValue(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex, std::optional<ValueId> ResultValue)
+      std::unique_ptr<Instruction> parseExtractValue(std::size_t, std::size_t, std::size_t, std::optional<ValueId> ResultValue)
       {
         if (!ResultValue.has_value())
         {
@@ -1029,11 +1190,392 @@ namespace ink::ir
         Extract->Result = *ResultValue;
         Extract->Aggregate = std::move(Aggregate->ParsedValue);
         Extract->FieldIndex = *ParsedFieldIndex;
-        if (Aggregate->GlobalName.has_value())
-        {
-          GlobalFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, 0, GlobalFixupTarget::ExtractAggregate, *Aggregate->GlobalName, Aggregate->Location});
-        }
         return Extract;
+      }
+
+      std::unique_ptr<Instruction> parseAlloca(std::size_t, std::size_t, std::size_t, std::optional<ValueId> ResultValue)
+      {
+        if (!ResultValue.has_value())
+        {
+          fail<DiagnosticKind::IrAllocaRequiresResult>(current());
+          return nullptr;
+        }
+        if (!expectIdentifier("alloca"))
+        {
+          return nullptr;
+        }
+        const std::optional<const Type *> ResultType = parseType();
+        if (!ResultType)
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Size = parseOperand();
+        if (!Size)
+        {
+          return nullptr;
+        }
+        auto Alloca = std::make_unique<AllocaInstruction>(**ResultType);
+        Alloca->Result = *ResultValue;
+        Alloca->Size = std::move(Size->ParsedValue);
+        return Alloca;
+      }
+
+      std::unique_ptr<Instruction> parseLoad(std::size_t, std::size_t, std::size_t, std::optional<ValueId> ResultValue)
+      {
+        if (!ResultValue.has_value())
+        {
+          fail<DiagnosticKind::IrLoadRequiresResult>(current());
+          return nullptr;
+        }
+        if (!expectIdentifier("load"))
+        {
+          return nullptr;
+        }
+        const std::optional<const Type *> ResultType = parseType();
+        if (!ResultType || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Pointer = parseOperand();
+        if (!Pointer)
+        {
+          return nullptr;
+        }
+        auto Load = std::make_unique<LoadInstruction>(**ResultType);
+        Load->Result = *ResultValue;
+        Load->Pointer = std::move(Pointer->ParsedValue);
+        return Load;
+      }
+
+      std::unique_ptr<Instruction> parseGetElementPointer(std::size_t, std::size_t, std::size_t, std::optional<ValueId> ResultValue)
+      {
+        if (!ResultValue.has_value())
+        {
+          fail<DiagnosticKind::IrGetElementPointerRequiresResult>(current());
+          return nullptr;
+        }
+        if (!expectIdentifier("getelementptr"))
+        {
+          return nullptr;
+        }
+        const std::optional<const Type *> ElementType = parseType();
+        if (!ElementType || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Pointer = parseOperand();
+        if (!Pointer || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> IndexValue = parseOperand();
+        if (!IndexValue)
+        {
+          return nullptr;
+        }
+        auto GetElementPointer = std::make_unique<GetElementPointerInstruction>(Pointer->ParsedValue->type(), **ElementType);
+        GetElementPointer->Result = *ResultValue;
+        GetElementPointer->Pointer = std::move(Pointer->ParsedValue);
+        GetElementPointer->Index = std::move(IndexValue->ParsedValue);
+        while (at(TokenKind::Comma))
+        {
+          consume();
+          std::optional<ParsedOperand> FieldIndex = parseOperand();
+          if (!FieldIndex)
+          {
+            return nullptr;
+          }
+          GetElementPointer->FieldIndices.push_back(std::move(FieldIndex->ParsedValue));
+        }
+        return GetElementPointer;
+      }
+
+      std::unique_ptr<Instruction> parseStore(std::size_t, std::size_t, std::size_t)
+      {
+        if (!expectIdentifier("store"))
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> StoredValue = parseOperand();
+        if (!StoredValue || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Pointer = parseOperand();
+        if (!Pointer)
+        {
+          return nullptr;
+        }
+        auto Store = std::make_unique<StoreInstruction>();
+        Store->StoredValue = std::move(StoredValue->ParsedValue);
+        Store->Pointer = std::move(Pointer->ParsedValue);
+        return Store;
+      }
+
+      std::unique_ptr<Instruction> parseLifetimeEnd(std::size_t, std::size_t, std::size_t)
+      {
+        if (!expectIdentifier("lifetime.end"))
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Slice = parseOperand();
+        if (!Slice)
+        {
+          return nullptr;
+        }
+        auto LifetimeEnd = std::make_unique<LifetimeEndInstruction>();
+        LifetimeEnd->Slice = std::move(Slice->ParsedValue);
+        return LifetimeEnd;
+      }
+
+      std::unique_ptr<Instruction> parseSliceData(std::size_t, std::size_t, std::size_t, std::optional<ValueId> ResultValue)
+      {
+        if (!ResultValue.has_value())
+        {
+          fail<DiagnosticKind::IrSliceDataRequiresResult>(current());
+          return nullptr;
+        }
+        if (!expectIdentifier("slice.data"))
+        {
+          return nullptr;
+        }
+        const std::optional<const Type *> ResultType = parseType();
+        if (!ResultType)
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Slice = parseOperand();
+        if (!Slice)
+        {
+          return nullptr;
+        }
+        auto SliceData = std::make_unique<SliceDataInstruction>(**ResultType);
+        SliceData->Result = *ResultValue;
+        SliceData->Slice = std::move(Slice->ParsedValue);
+        return SliceData;
+      }
+
+      std::unique_ptr<Instruction> parseSliceLength(std::size_t, std::size_t, std::size_t, std::optional<ValueId> ResultValue)
+      {
+        if (!ResultValue.has_value())
+        {
+          fail<DiagnosticKind::IrSliceLengthRequiresResult>(current());
+          return nullptr;
+        }
+        if (!expectIdentifier("slice.length"))
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Slice = parseOperand();
+        if (!Slice)
+        {
+          return nullptr;
+        }
+        auto SliceLength = std::make_unique<SliceLengthInstruction>(Context.getType(TypeKind::PointerSize));
+        SliceLength->Result = *ResultValue;
+        SliceLength->Slice = std::move(Slice->ParsedValue);
+        return SliceLength;
+      }
+
+      std::unique_ptr<Instruction> parseAdd(std::size_t, std::size_t, std::size_t, std::optional<ValueId> ResultValue)
+      {
+        if (!ResultValue.has_value())
+        {
+          fail<DiagnosticKind::IrAddRequiresResult>(current());
+          return nullptr;
+        }
+        if (!expectIdentifier("add"))
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Left = parseOperand();
+        if (!Left || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Right = parseOperand();
+        if (!Right)
+        {
+          return nullptr;
+        }
+        auto Add = std::make_unique<AddInstruction>(Left->ParsedValue->type());
+        Add->Result = *ResultValue;
+        Add->Left = std::move(Left->ParsedValue);
+        Add->Right = std::move(Right->ParsedValue);
+        return Add;
+      }
+
+      std::optional<ComparePredicate> parseComparePredicate()
+      {
+        const Token *Predicate = expect(TokenKind::Identifier, "an integer comparison predicate");
+        if (Predicate == nullptr)
+        {
+          return std::nullopt;
+        }
+        if (Predicate->Text == "eq")
+        {
+          return ComparePredicate::Equal;
+        }
+        if (Predicate->Text == "ne")
+        {
+          return ComparePredicate::NotEqual;
+        }
+        if (Predicate->Text == "lt")
+        {
+          return ComparePredicate::LessThan;
+        }
+        if (Predicate->Text == "le")
+        {
+          return ComparePredicate::LessEqual;
+        }
+        if (Predicate->Text == "gt")
+        {
+          return ComparePredicate::GreaterThan;
+        }
+        if (Predicate->Text == "ge")
+        {
+          return ComparePredicate::GreaterEqual;
+        }
+        fail<DiagnosticKind::IrUnknownComparePredicate>(*Predicate, Predicate->Text);
+        return std::nullopt;
+      }
+
+      std::unique_ptr<Instruction> parseCompare(std::size_t, std::size_t, std::size_t, std::optional<ValueId> ResultValue)
+      {
+        if (!ResultValue.has_value())
+        {
+          fail<DiagnosticKind::IrCompareRequiresResult>(current());
+          return nullptr;
+        }
+        if (!expectIdentifier("icmp"))
+        {
+          return nullptr;
+        }
+        const std::optional<ComparePredicate> Predicate = parseComparePredicate();
+        if (!Predicate)
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Left = parseOperand();
+        if (!Left || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Right = parseOperand();
+        if (!Right)
+        {
+          return nullptr;
+        }
+        auto Compare = std::make_unique<CompareInstruction>(Context.getType(TypeKind::Bool));
+        Compare->Result = *ResultValue;
+        Compare->Predicate = *Predicate;
+        Compare->Left = std::move(Left->ParsedValue);
+        Compare->Right = std::move(Right->ParsedValue);
+        return Compare;
+      }
+
+      std::unique_ptr<Instruction> parsePhi(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex, std::optional<ValueId> ResultValue)
+      {
+        if (!ResultValue.has_value())
+        {
+          fail<DiagnosticKind::IrPhiRequiresResult>(current());
+          return nullptr;
+        }
+        if (!expectIdentifier("phi"))
+        {
+          return nullptr;
+        }
+        const std::optional<const Type *> ResultType = parseType();
+        if (!ResultType)
+        {
+          return nullptr;
+        }
+
+        auto Phi = std::make_unique<PhiInstruction>(**ResultType);
+        Phi->Result = *ResultValue;
+        while (true)
+        {
+          if (expect(TokenKind::LeftBracket, "'[' to begin a phi incoming value") == nullptr)
+          {
+            return nullptr;
+          }
+          std::optional<ParsedOperand> IncomingValue = parseOperandValue(**ResultType);
+          if (!IncomingValue || expect(TokenKind::Comma, "',' between a phi value and predecessor") == nullptr)
+          {
+            return nullptr;
+          }
+          const Token *Predecessor = expect(TokenKind::Identifier, "a phi predecessor block");
+          if (Predecessor == nullptr || expect(TokenKind::RightBracket, "']' to end a phi incoming value") == nullptr)
+          {
+            return nullptr;
+          }
+
+          const std::size_t IncomingIndex = Phi->IncomingValues.size();
+          Phi->IncomingValues.push_back({std::move(IncomingValue->ParsedValue), BlockId{}});
+          PhiFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, IncomingIndex, Predecessor->Text, *Predecessor});
+          if (!at(TokenKind::Comma))
+          {
+            break;
+          }
+          consume();
+        }
+        return Phi;
+      }
+
+      std::optional<BlockTarget> parseBlockTarget(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex, BranchFixupTarget FixupTarget)
+      {
+        const Token *Name = expect(TokenKind::Identifier, "a basic block target");
+        if (Name == nullptr)
+        {
+          return std::nullopt;
+        }
+        BlockTarget Result;
+        BranchFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, FixupTarget, Name->Text, *Name});
+        return Result;
+      }
+
+      std::unique_ptr<Instruction> parseBranch(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex)
+      {
+        if (!expectIdentifier("br"))
+        {
+          return nullptr;
+        }
+        std::optional<BlockTarget> Target = parseBlockTarget(FunctionIndex, BlockIndex, InstructionIndex, BranchFixupTarget::Branch);
+        if (!Target)
+        {
+          return nullptr;
+        }
+        auto Branch = std::make_unique<BranchInstruction>();
+        Branch->Target = std::move(*Target);
+        return Branch;
+      }
+
+      std::unique_ptr<Instruction> parseConditionalBranch(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex)
+      {
+        if (!expectIdentifier("condbr"))
+        {
+          return nullptr;
+        }
+        std::optional<ParsedOperand> Condition = parseOperand();
+        if (!Condition || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        std::optional<BlockTarget> TrueTarget = parseBlockTarget(FunctionIndex, BlockIndex, InstructionIndex, BranchFixupTarget::ConditionalTrue);
+        if (!TrueTarget || expect(TokenKind::Comma, "','") == nullptr)
+        {
+          return nullptr;
+        }
+        std::optional<BlockTarget> FalseTarget = parseBlockTarget(FunctionIndex, BlockIndex, InstructionIndex, BranchFixupTarget::ConditionalFalse);
+        if (!FalseTarget)
+        {
+          return nullptr;
+        }
+        auto Branch = std::make_unique<ConditionalBranchInstruction>();
+        Branch->Condition = std::move(Condition->ParsedValue);
+        Branch->TrueTarget = std::move(*TrueTarget);
+        Branch->FalseTarget = std::move(*FalseTarget);
+        return Branch;
       }
 
       std::unique_ptr<Instruction> parseInstruction(std::size_t FunctionIndex, std::size_t BlockIndex, std::size_t InstructionIndex)
@@ -1053,6 +1595,38 @@ namespace ink::ir
         {
           return parseCall(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
         }
+        if (atIdentifier("phi"))
+        {
+          return parsePhi(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
+        }
+        if (atIdentifier("alloca"))
+        {
+          return parseAlloca(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
+        }
+        if (atIdentifier("getelementptr"))
+        {
+          return parseGetElementPointer(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
+        }
+        if (atIdentifier("load"))
+        {
+          return parseLoad(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
+        }
+        if (atIdentifier("slice.data"))
+        {
+          return parseSliceData(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
+        }
+        if (atIdentifier("slice.length"))
+        {
+          return parseSliceLength(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
+        }
+        if (atIdentifier("add"))
+        {
+          return parseAdd(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
+        }
+        if (atIdentifier("icmp"))
+        {
+          return parseCompare(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
+        }
         if (atIdentifier("insertvalue"))
         {
           return parseInsertValue(FunctionIndex, BlockIndex, InstructionIndex, ResultValue);
@@ -1063,8 +1637,29 @@ namespace ink::ir
         }
         if (ResultValue.has_value())
         {
+          if (atIdentifier("store") || atIdentifier("lifetime.end") || atIdentifier("br") || atIdentifier("condbr") || atIdentifier("ret"))
+          {
+            fail<DiagnosticKind::IrInstructionCannotDefineResult>(current(), current().Text);
+            return nullptr;
+          }
           fail<DiagnosticKind::IrExpectedValueProducingInstruction>(current());
           return nullptr;
+        }
+        if (atIdentifier("store"))
+        {
+          return parseStore(FunctionIndex, BlockIndex, InstructionIndex);
+        }
+        if (atIdentifier("lifetime.end"))
+        {
+          return parseLifetimeEnd(FunctionIndex, BlockIndex, InstructionIndex);
+        }
+        if (atIdentifier("br"))
+        {
+          return parseBranch(FunctionIndex, BlockIndex, InstructionIndex);
+        }
+        if (atIdentifier("condbr"))
+        {
+          return parseConditionalBranch(FunctionIndex, BlockIndex, InstructionIndex);
         }
         if (atIdentifier("ret"))
         {
@@ -1078,11 +1673,15 @@ namespace ink::ir
       {
         BasicBlock Result;
         const Token *Name = expect(TokenKind::Identifier, "a basic block label");
-        if (Name == nullptr || expect(TokenKind::Colon, "':' after a basic block label") == nullptr)
+        if (Name == nullptr)
         {
           return std::nullopt;
         }
         Result.Name = Name->Text;
+        if (expect(TokenKind::Colon, "':' after a basic block label") == nullptr)
+        {
+          return std::nullopt;
+        }
         while (!at(TokenKind::RightBrace) && !startsBasicBlock())
         {
           std::unique_ptr<Instruction> InstructionValue = parseInstruction(FunctionIndex, BlockIndex, Result.Instructions.size());
@@ -1140,23 +1739,19 @@ namespace ink::ir
         return true;
       }
 
-      std::unique_ptr<Value> &valueAt(const GlobalFixup &Fixup)
+      BlockTarget &blockTargetAt(const BranchFixup &Fixup)
       {
         Instruction &InstructionValue = *ModuleValue.Functions[Fixup.FunctionIndex].Blocks[Fixup.BlockIndex].Instructions[Fixup.InstructionIndex];
         switch (Fixup.Target)
         {
-        case GlobalFixupTarget::CallArgument:
-          return static_cast<CallInstruction &>(InstructionValue).Arguments[Fixup.OperandIndex];
-        case GlobalFixupTarget::ReturnValue:
-          return static_cast<ReturnInstruction &>(InstructionValue).ReturnValue;
-        case GlobalFixupTarget::InsertAggregate:
-          return static_cast<InsertValueInstruction &>(InstructionValue).Aggregate;
-        case GlobalFixupTarget::InsertElement:
-          return static_cast<InsertValueInstruction &>(InstructionValue).Element;
-        case GlobalFixupTarget::ExtractAggregate:
-          return static_cast<ExtractValueInstruction &>(InstructionValue).Aggregate;
+        case BranchFixupTarget::Branch:
+          return static_cast<BranchInstruction &>(InstructionValue).Target;
+        case BranchFixupTarget::ConditionalTrue:
+          return static_cast<ConditionalBranchInstruction &>(InstructionValue).TrueTarget;
+        case BranchFixupTarget::ConditionalFalse:
+          return static_cast<ConditionalBranchInstruction &>(InstructionValue).FalseTarget;
         }
-        return static_cast<CallInstruction &>(InstructionValue).Arguments[Fixup.OperandIndex];
+        return static_cast<BranchInstruction &>(InstructionValue).Target;
       }
 
       bool resolveReferences()
@@ -1178,9 +1773,44 @@ namespace ink::ir
           {
             return fail<DiagnosticKind::IrUnknownGlobalByteConstant>(Fixup.Location, Fixup.GlobalName);
           }
-          std::unique_ptr<Value> &ValuePointer = valueAt(Fixup);
-          const GlobalAddressOperand &Address = static_cast<const GlobalAddressOperand &>(*ValuePointer);
-          ValuePointer = std::make_unique<GlobalAddressOperand>(Address.type(), Global->second, Address.byteOffset());
+          Fixup.Address->resolveGlobal(Global->second);
+        }
+        for (const BranchFixup &Fixup : BranchFixups)
+        {
+          const Function &FunctionValue = ModuleValue.Functions[Fixup.FunctionIndex];
+          std::size_t TargetIndex = FunctionValue.Blocks.size();
+          for (std::size_t BlockIndex = 0; BlockIndex < FunctionValue.Blocks.size(); ++BlockIndex)
+          {
+            if (FunctionValue.Blocks[BlockIndex].Name == Fixup.BlockName)
+            {
+              TargetIndex = BlockIndex;
+              break;
+            }
+          }
+          if (TargetIndex == FunctionValue.Blocks.size())
+          {
+            return fail<DiagnosticKind::IrUnknownBasicBlockTarget>(Fixup.Location, Fixup.BlockName);
+          }
+          blockTargetAt(Fixup).Block = BlockId{TargetIndex};
+        }
+        for (const PhiFixup &Fixup : PhiFixups)
+        {
+          const Function &FunctionValue = ModuleValue.Functions[Fixup.FunctionIndex];
+          std::size_t PredecessorIndex = FunctionValue.Blocks.size();
+          for (std::size_t BlockIndex = 0; BlockIndex < FunctionValue.Blocks.size(); ++BlockIndex)
+          {
+            if (FunctionValue.Blocks[BlockIndex].Name == Fixup.BlockName)
+            {
+              PredecessorIndex = BlockIndex;
+              break;
+            }
+          }
+          if (PredecessorIndex == FunctionValue.Blocks.size())
+          {
+            return fail<DiagnosticKind::IrUnknownBasicBlockTarget>(Fixup.Location, Fixup.BlockName);
+          }
+          Instruction &InstructionValue = *ModuleValue.Functions[Fixup.FunctionIndex].Blocks[Fixup.BlockIndex].Instructions[Fixup.InstructionIndex];
+          static_cast<PhiInstruction &>(InstructionValue).IncomingValues[Fixup.IncomingIndex].Predecessor = BlockId{PredecessorIndex};
         }
         return true;
       }
@@ -1194,6 +1824,8 @@ namespace ink::ir
       std::unordered_map<std::string, GlobalId> GlobalNames;
       std::unordered_map<std::string, FunctionId> FunctionNames;
       std::vector<CallFixup> CallFixups;
+      std::vector<BranchFixup> BranchFixups;
+      std::vector<PhiFixup> PhiFixups;
       std::vector<GlobalFixup> GlobalFixups;
       Diagnostic ParseDiagnostic;
     };
@@ -1228,24 +1860,77 @@ namespace ink::ir
       Output << typeKindName(TypeValue.kind());
     }
 
+    void writeOperand(std::ostringstream &Output, const Module &ModuleValue, const Value &OperandValue);
+
+    void writeHexadecimalBitPattern(std::ostringstream &Output, std::uint64_t BitPattern, std::size_t BitWidth)
+    {
+      constexpr char HexadecimalDigits[] = "0123456789ABCDEF";
+      Output << "0x";
+      for (std::size_t DigitIndex = BitWidth / 4; DigitIndex > 0; --DigitIndex)
+      {
+        const std::size_t Shift = (DigitIndex - 1) * 4;
+        Output << HexadecimalDigits[(BitPattern >> Shift) & 0x0FU];
+      }
+    }
+
     void writeOperandValue(std::ostringstream &Output, const Module &ModuleValue, const Value &OperandValue)
     {
-      if (OperandValue.kind() == ValueKind::IntegerConstant)
+      switch (OperandValue.kind())
       {
-        Output << static_cast<const IntegerConstant &>(OperandValue).value();
+      case ValueKind::IntegerConstant:
+      {
+        const IntegerConstant &Constant = static_cast<const IntegerConstant &>(OperandValue);
+        if (Constant.isNegative())
+        {
+          Output << Constant.signedValue();
+        }
+        else
+        {
+          Output << Constant.unsignedValue();
+        }
+        return;
       }
-      else if (OperandValue.kind() == ValueKind::ValueOperand)
-      {
+      case ValueKind::ValueOperand:
         Output << '%' << static_cast<const ValueOperand &>(OperandValue).id().value();
-      }
-      else if (OperandValue.kind() == ValueKind::GlobalAddressOperand)
+        return;
+      case ValueKind::GlobalAddressOperand:
       {
         const GlobalAddressOperand &Address = static_cast<const GlobalAddressOperand &>(OperandValue);
         Output << '@' << ModuleValue.ByteConstants[Address.global().value()].Name << '[' << Address.byteOffset() << ']';
+        return;
       }
-      else
-      {
+      case ValueKind::ZeroInitializer:
         Output << "zeroinitializer";
+        return;
+      case ValueKind::FloatConstant:
+      {
+        const FloatConstant &Constant = static_cast<const FloatConstant &>(OperandValue);
+        Output << "floatbits(" << floatFormatName(Constant.format()) << ',';
+        writeHexadecimalBitPattern(Output, Constant.bitPattern(), floatFormatBitWidth(Constant.format()));
+        Output << ')';
+        return;
+      }
+      case ValueKind::StringConstant:
+        Output << "c\"" << escapeBytes(static_cast<const StringConstant &>(OperandValue).data()) << '"';
+        return;
+      case ValueKind::NullConstant:
+        Output << "null";
+        return;
+      case ValueKind::AggregateConstant:
+      {
+        const AggregateConstant &Constant = static_cast<const AggregateConstant &>(OperandValue);
+        Output << '{';
+        for (std::size_t ElementIndex = 0; ElementIndex < Constant.elements().size(); ++ElementIndex)
+        {
+          if (ElementIndex != 0)
+          {
+            Output << ", ";
+          }
+          writeOperand(Output, ModuleValue, *Constant.elements()[ElementIndex]);
+        }
+        Output << '}';
+        return;
+      }
       }
     }
 
@@ -1275,6 +1960,132 @@ namespace ink::ir
         writeOperand(Output, ModuleValue, *Call.Arguments[ArgumentIndex]);
       }
       Output << ")\n";
+    }
+
+    void writeAlloca(std::ostringstream &Output, const Module &ModuleValue, const AllocaInstruction &Alloca)
+    {
+      Output << "  %" << Alloca.Result.value() << " = alloca ";
+      writeType(Output, *Alloca.ResultType);
+      Output << ' ';
+      writeOperand(Output, ModuleValue, *Alloca.Size);
+      Output << '\n';
+    }
+
+    void writeLoad(std::ostringstream &Output, const Module &ModuleValue, const LoadInstruction &Load)
+    {
+      Output << "  %" << Load.Result.value() << " = load ";
+      writeType(Output, *Load.ResultType);
+      Output << ", ";
+      writeOperand(Output, ModuleValue, *Load.Pointer);
+      Output << '\n';
+    }
+
+    void writeGetElementPointer(std::ostringstream &Output, const Module &ModuleValue, const GetElementPointerInstruction &GetElementPointer)
+    {
+      Output << "  %" << GetElementPointer.Result.value() << " = getelementptr ";
+      writeType(Output, *GetElementPointer.ElementType);
+      Output << ", ";
+      writeOperand(Output, ModuleValue, *GetElementPointer.Pointer);
+      Output << ", ";
+      writeOperand(Output, ModuleValue, *GetElementPointer.Index);
+      for (const std::unique_ptr<Value> &FieldIndex : GetElementPointer.FieldIndices)
+      {
+        Output << ", ";
+        writeOperand(Output, ModuleValue, *FieldIndex);
+      }
+      Output << '\n';
+    }
+
+    void writeStore(std::ostringstream &Output, const Module &ModuleValue, const StoreInstruction &Store)
+    {
+      Output << "  store ";
+      writeOperand(Output, ModuleValue, *Store.StoredValue);
+      Output << ", ";
+      writeOperand(Output, ModuleValue, *Store.Pointer);
+      Output << '\n';
+    }
+
+    void writeLifetimeEnd(std::ostringstream &Output, const Module &ModuleValue, const LifetimeEndInstruction &LifetimeEnd)
+    {
+      Output << "  lifetime.end ";
+      writeOperand(Output, ModuleValue, *LifetimeEnd.Slice);
+      Output << '\n';
+    }
+
+    void writeSliceData(std::ostringstream &Output, const Module &ModuleValue, const SliceDataInstruction &SliceData)
+    {
+      Output << "  %" << SliceData.Result.value() << " = slice.data ";
+      writeType(Output, *SliceData.ResultType);
+      Output << ' ';
+      writeOperand(Output, ModuleValue, *SliceData.Slice);
+      Output << '\n';
+    }
+
+    void writeSliceLength(std::ostringstream &Output, const Module &ModuleValue, const SliceLengthInstruction &SliceLength)
+    {
+      Output << "  %" << SliceLength.Result.value() << " = slice.length ";
+      writeOperand(Output, ModuleValue, *SliceLength.Slice);
+      Output << '\n';
+    }
+
+    void writePhi(std::ostringstream &Output, const Module &ModuleValue, const Function &FunctionValue, const PhiInstruction &Phi)
+    {
+      Output << "  %" << Phi.Result.value() << " = phi ";
+      writeType(Output, *Phi.ResultType);
+      Output << ' ';
+      for (std::size_t IncomingIndex = 0; IncomingIndex < Phi.IncomingValues.size(); ++IncomingIndex)
+      {
+        if (IncomingIndex != 0)
+        {
+          Output << ", ";
+        }
+        const PhiIncoming &Incoming = Phi.IncomingValues[IncomingIndex];
+        Output << '[';
+        writeOperandValue(Output, ModuleValue, *Incoming.Value);
+        Output << ", " << FunctionValue.Blocks[Incoming.Predecessor.value()].Name << ']';
+      }
+      Output << '\n';
+    }
+
+    void writeAdd(std::ostringstream &Output, const Module &ModuleValue, const AddInstruction &Add)
+    {
+      Output << "  %" << Add.Result.value() << " = add ";
+      writeOperand(Output, ModuleValue, *Add.Left);
+      Output << ", ";
+      writeOperand(Output, ModuleValue, *Add.Right);
+      Output << '\n';
+    }
+
+    void writeCompare(std::ostringstream &Output, const Module &ModuleValue, const CompareInstruction &Compare)
+    {
+      Output << "  %" << Compare.Result.value() << " = icmp " << comparePredicateName(Compare.Predicate) << ' ';
+      writeOperand(Output, ModuleValue, *Compare.Left);
+      Output << ", ";
+      writeOperand(Output, ModuleValue, *Compare.Right);
+      Output << '\n';
+    }
+
+    void writeBlockTarget(std::ostringstream &Output, const Function &FunctionValue, const BlockTarget &Target)
+    {
+      Output << FunctionValue.Blocks[Target.Block.value()].Name;
+    }
+
+    void writeBranch(std::ostringstream &Output, const Function &FunctionValue, const BranchInstruction &Branch)
+    {
+      Output << "  br ";
+      writeBlockTarget(Output, FunctionValue, Branch.Target);
+      Output << '\n';
+    }
+
+    void writeConditionalBranch(std::ostringstream &Output, const Module &ModuleValue, const Function &FunctionValue, const ConditionalBranchInstruction &Branch)
+    {
+      Output << "  condbr ";
+      writeOperand(Output, ModuleValue, *Branch.Condition);
+      Output << ", ";
+      writeBlockTarget(Output, FunctionValue, Branch.TrueTarget);
+      Output << ", ";
+      writeBlockTarget(Output, FunctionValue, Branch.FalseTarget);
+      Output << '\n';
     }
 
     void writeReturn(std::ostringstream &Output, const Module &ModuleValue, const ReturnInstruction &Return)
@@ -1385,21 +2196,56 @@ namespace ink::ir
         for (const std::unique_ptr<Instruction> &InstructionPointer : Block.Instructions)
         {
           const Instruction &InstructionValue = *InstructionPointer;
-          if (InstructionValue.kind() == InstructionKind::Call)
+          switch (InstructionValue.kind())
           {
+          case InstructionKind::Call:
             writeCall(Output, ModuleValue, static_cast<const CallInstruction &>(InstructionValue));
-          }
-          else if (InstructionValue.kind() == InstructionKind::InsertValue)
-          {
+            break;
+          case InstructionKind::Alloca:
+            writeAlloca(Output, ModuleValue, static_cast<const AllocaInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::GetElementPointer:
+            writeGetElementPointer(Output, ModuleValue, static_cast<const GetElementPointerInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::Load:
+            writeLoad(Output, ModuleValue, static_cast<const LoadInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::Store:
+            writeStore(Output, ModuleValue, static_cast<const StoreInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::LifetimeEnd:
+            writeLifetimeEnd(Output, ModuleValue, static_cast<const LifetimeEndInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::SliceData:
+            writeSliceData(Output, ModuleValue, static_cast<const SliceDataInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::SliceLength:
+            writeSliceLength(Output, ModuleValue, static_cast<const SliceLengthInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::Phi:
+            writePhi(Output, ModuleValue, FunctionValue, static_cast<const PhiInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::Add:
+            writeAdd(Output, ModuleValue, static_cast<const AddInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::Compare:
+            writeCompare(Output, ModuleValue, static_cast<const CompareInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::InsertValue:
             writeInsertValue(Output, ModuleValue, static_cast<const InsertValueInstruction &>(InstructionValue));
-          }
-          else if (InstructionValue.kind() == InstructionKind::ExtractValue)
-          {
+            break;
+          case InstructionKind::ExtractValue:
             writeExtractValue(Output, ModuleValue, static_cast<const ExtractValueInstruction &>(InstructionValue));
-          }
-          else
-          {
+            break;
+          case InstructionKind::Branch:
+            writeBranch(Output, FunctionValue, static_cast<const BranchInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::ConditionalBranch:
+            writeConditionalBranch(Output, ModuleValue, FunctionValue, static_cast<const ConditionalBranchInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::Return:
             writeReturn(Output, ModuleValue, static_cast<const ReturnInstruction &>(InstructionValue));
+            break;
           }
         }
       }

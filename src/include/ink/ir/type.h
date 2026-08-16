@@ -1,6 +1,7 @@
 #ifndef INK_IR_TYPE_H
 #define INK_IR_TYPE_H
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -19,6 +20,8 @@ namespace ink::ir
   };
 
   const char *typeKindName(TypeKind Kind) noexcept;
+  bool isFloatingPointType(TypeKind Kind) noexcept;
+  std::size_t floatingPointBitWidth(TypeKind Kind) noexcept;
 
   class Type
   {

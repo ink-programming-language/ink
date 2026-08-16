@@ -1,14 +1,21 @@
 #include "ink/ir/verifier.h"
 
+#include "ink/ir/arithmetic.h"
+#include "ink/ir/control_flow.h"
+#include "ink/ir/memory.h"
+#include "ink/ir/type_layout.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace ink::ir
 {
@@ -84,6 +91,30 @@ namespace ink::ir
       return std::find(ModuleValue.StructTypes.begin(), ModuleValue.StructTypes.end(), static_cast<const StructType *>(TypeValue)) != ModuleValue.StructTypes.end();
     }
 
+    bool isByteSliceType(const Type *TypeValue)
+    {
+      return TypeValue != nullptr && (TypeValue->kind() == TypeKind::ByteSlice || TypeValue->kind() == TypeKind::ConstByteSlice);
+    }
+
+    bool isBytePointerType(const Type *TypeValue)
+    {
+      return TypeValue != nullptr && (TypeValue->kind() == TypeKind::BytePointer || TypeValue->kind() == TypeKind::ConstBytePointer);
+    }
+
+    bool isAddType(const Type *TypeValue)
+    {
+      return TypeValue != nullptr && (TypeValue->kind() == TypeKind::Byte || TypeValue->kind() == TypeKind::I32 || TypeValue->kind() == TypeKind::PointerSize);
+    }
+
+    bool isComparableType(const Type *TypeValue)
+    {
+      if (TypeValue == nullptr)
+      {
+        return false;
+      }
+      return TypeValue->kind() == TypeKind::Bool || TypeValue->kind() == TypeKind::Byte || TypeValue->kind() == TypeKind::I32 || TypeValue->kind() == TypeKind::PointerSize || TypeValue->kind() == TypeKind::BytePointer || TypeValue->kind() == TypeKind::ConstBytePointer;
+    }
+
     bool isNameStart(char Character)
     {
       const unsigned char Value = static_cast<unsigned char>(Character);
@@ -112,38 +143,205 @@ namespace ink::ir
       return true;
     }
 
-    void verifyIntegerConstant(const IntegerConstant &Constant, const std::string &FunctionName, DiagnosticCollector &Diagnostics)
+    struct SsaDefinition
     {
-      const std::int64_t Value = Constant.value();
+      const Type *DefinitionType = nullptr;
+      std::size_t BlockIndex = InvalidId;
+      std::size_t InstructionIndex = 0;
+    };
+
+    using SsaDefinitionMap = std::unordered_map<std::size_t, SsaDefinition>;
+
+    struct FunctionControlFlow
+    {
+      std::vector<std::vector<std::size_t>> Predecessors;
+      std::vector<std::vector<std::size_t>> Successors;
+      std::vector<bool> Reachable;
+      std::vector<std::vector<bool>> Dominators;
+    };
+
+    struct InstructionResult
+    {
+      ValueId Id;
+      const Type *ResultType = nullptr;
+      const char *Operation = nullptr;
+    };
+
+    std::optional<InstructionResult> instructionResult(const Instruction &InstructionValue)
+    {
+      switch (InstructionValue.kind())
+      {
+      case InstructionKind::Call:
+      {
+        const CallInstruction &Call = static_cast<const CallInstruction &>(InstructionValue);
+        if (Call.Result.has_value())
+        {
+          return InstructionResult{*Call.Result, Call.ResultType, "call"};
+        }
+        return std::nullopt;
+      }
+      case InstructionKind::Alloca:
+      {
+        const AllocaInstruction &Alloca = static_cast<const AllocaInstruction &>(InstructionValue);
+        return InstructionResult{Alloca.Result, Alloca.ResultType, "alloca"};
+      }
+      case InstructionKind::GetElementPointer:
+      {
+        const GetElementPointerInstruction &GetElementPointer = static_cast<const GetElementPointerInstruction &>(InstructionValue);
+        return InstructionResult{GetElementPointer.Result, GetElementPointer.ResultType, "getelementptr"};
+      }
+      case InstructionKind::Load:
+      {
+        const LoadInstruction &Load = static_cast<const LoadInstruction &>(InstructionValue);
+        return InstructionResult{Load.Result, Load.ResultType, "load"};
+      }
+      case InstructionKind::SliceData:
+      {
+        const SliceDataInstruction &SliceData = static_cast<const SliceDataInstruction &>(InstructionValue);
+        return InstructionResult{SliceData.Result, SliceData.ResultType, "slice.data"};
+      }
+      case InstructionKind::SliceLength:
+      {
+        const SliceLengthInstruction &SliceLength = static_cast<const SliceLengthInstruction &>(InstructionValue);
+        return InstructionResult{SliceLength.Result, SliceLength.ResultType, "slice.length"};
+      }
+      case InstructionKind::Phi:
+      {
+        const PhiInstruction &Phi = static_cast<const PhiInstruction &>(InstructionValue);
+        return InstructionResult{Phi.Result, Phi.ResultType, "phi"};
+      }
+      case InstructionKind::Add:
+      {
+        const AddInstruction &Add = static_cast<const AddInstruction &>(InstructionValue);
+        return InstructionResult{Add.Result, Add.ResultType, "add"};
+      }
+      case InstructionKind::Compare:
+      {
+        const CompareInstruction &Compare = static_cast<const CompareInstruction &>(InstructionValue);
+        return InstructionResult{Compare.Result, Compare.ResultType, "icmp"};
+      }
+      case InstructionKind::InsertValue:
+      {
+        const InsertValueInstruction &Insert = static_cast<const InsertValueInstruction &>(InstructionValue);
+        return InstructionResult{Insert.Result, Insert.ResultType, "insertvalue"};
+      }
+      case InstructionKind::ExtractValue:
+      {
+        const ExtractValueInstruction &Extract = static_cast<const ExtractValueInstruction &>(InstructionValue);
+        return InstructionResult{Extract.Result, Extract.ResultType, "extractvalue"};
+      }
+      case InstructionKind::Store:
+      case InstructionKind::LifetimeEnd:
+      case InstructionKind::Branch:
+      case InstructionKind::ConditionalBranch:
+      case InstructionKind::Return:
+        return std::nullopt;
+      }
+      return std::nullopt;
+    }
+
+    bool sameValue(const Value &Left, const Value &Right)
+    {
+      if (Left.kind() != Right.kind() || &Left.type() != &Right.type())
+      {
+        return false;
+      }
+      switch (Left.kind())
+      {
+      case ValueKind::IntegerConstant:
+      {
+        const IntegerConstant &LeftInteger = static_cast<const IntegerConstant &>(Left);
+        const IntegerConstant &RightInteger = static_cast<const IntegerConstant &>(Right);
+        return LeftInteger.unsignedValue() == RightInteger.unsignedValue() && LeftInteger.isNegative() == RightInteger.isNegative();
+      }
+      case ValueKind::ValueOperand:
+        return static_cast<const ValueOperand &>(Left).id() == static_cast<const ValueOperand &>(Right).id();
+      case ValueKind::GlobalAddressOperand:
+      {
+        const GlobalAddressOperand &LeftAddress = static_cast<const GlobalAddressOperand &>(Left);
+        const GlobalAddressOperand &RightAddress = static_cast<const GlobalAddressOperand &>(Right);
+        return LeftAddress.global() == RightAddress.global() && LeftAddress.byteOffset() == RightAddress.byteOffset();
+      }
+      case ValueKind::ZeroInitializer:
+        return true;
+      case ValueKind::FloatConstant:
+      {
+        const FloatConstant &LeftFloat = static_cast<const FloatConstant &>(Left);
+        const FloatConstant &RightFloat = static_cast<const FloatConstant &>(Right);
+        return LeftFloat.format() == RightFloat.format() && LeftFloat.bitPattern() == RightFloat.bitPattern();
+      }
+      case ValueKind::StringConstant:
+        return static_cast<const StringConstant &>(Left).data() == static_cast<const StringConstant &>(Right).data();
+      case ValueKind::NullConstant:
+        return true;
+      case ValueKind::AggregateConstant:
+      {
+        const AggregateConstant &LeftAggregate = static_cast<const AggregateConstant &>(Left);
+        const AggregateConstant &RightAggregate = static_cast<const AggregateConstant &>(Right);
+        if (LeftAggregate.elements().size() != RightAggregate.elements().size())
+        {
+          return false;
+        }
+        for (std::size_t ElementIndex = 0; ElementIndex < LeftAggregate.elements().size(); ++ElementIndex)
+        {
+          const std::unique_ptr<Value> &LeftElement = LeftAggregate.elements()[ElementIndex];
+          const std::unique_ptr<Value> &RightElement = RightAggregate.elements()[ElementIndex];
+          if (static_cast<bool>(LeftElement) != static_cast<bool>(RightElement) || (LeftElement && !sameValue(*LeftElement, *RightElement)))
+          {
+            return false;
+          }
+        }
+        return true;
+      }
+      }
+      return false;
+    }
+
+    void verifyIntegerConstant(const IntegerConstant &Constant, const core::TargetContext &Target, const std::string &FunctionName, DiagnosticCollector &Diagnostics)
+    {
+      const std::int64_t SignedValue = Constant.signedValue();
+      const std::uint64_t UnsignedValue = Constant.unsignedValue();
       switch (Constant.type().kind())
       {
       case TypeKind::Bool:
-        if (Value != 0 && Value != 1)
+        if (Constant.isNegative() || UnsignedValue > 1)
         {
-          Diagnostics.add<DiagnosticKind::IrBoolConstantOutOfRange>(FunctionName, Value);
+          Diagnostics.add<DiagnosticKind::IrBoolConstantOutOfRange>(FunctionName, SignedValue);
         }
         return;
       case TypeKind::Byte:
-        if (Value < 0 || Value > 255)
+        if (Constant.isNegative() || UnsignedValue > 255)
         {
-          Diagnostics.add<DiagnosticKind::IrByteConstantOutOfRange>(FunctionName, Value);
+          Diagnostics.add<DiagnosticKind::IrByteConstantOutOfRange>(FunctionName, SignedValue);
         }
         return;
       case TypeKind::I32:
-        if (Value < std::numeric_limits<std::int32_t>::min() || Value > std::numeric_limits<std::int32_t>::max())
+        if ((Constant.isNegative() && SignedValue < std::numeric_limits<std::int32_t>::min()) || (!Constant.isNegative() && UnsignedValue > static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max())))
         {
-          Diagnostics.add<DiagnosticKind::IrI32ConstantOutOfRange>(FunctionName, Value);
+          Diagnostics.add<DiagnosticKind::IrI32ConstantOutOfRange>(FunctionName, SignedValue);
         }
         return;
       case TypeKind::PointerSize:
-        if (Value < 0)
+      {
+        const std::uint64_t MaximumValue = Target.maximumPointerSizeValue();
+        if (Constant.isNegative())
         {
-          Diagnostics.add<DiagnosticKind::IrPointerSizeConstantNegative>(FunctionName, Value);
+          Diagnostics.add<DiagnosticKind::IrPointerSizeConstantNegative>(FunctionName, SignedValue);
+        }
+        else if (UnsignedValue > MaximumValue)
+        {
+          Diagnostics.add<DiagnosticKind::IrPointerSizeConstantOutOfRange>(FunctionName, UnsignedValue, MaximumValue);
         }
         return;
+      }
       case TypeKind::Void:
       case TypeKind::BytePointer:
       case TypeKind::ConstBytePointer:
+      case TypeKind::ByteSlice:
+      case TypeKind::ConstByteSlice:
+      case TypeKind::F16:
+      case TypeKind::F32:
+      case TypeKind::F64:
       case TypeKind::Struct:
         Diagnostics.add<DiagnosticKind::IrIntegerConstantInvalidType>(FunctionName, typeKindName(Constant.type().kind()));
         return;
@@ -153,7 +351,82 @@ namespace ink::ir
       Diagnostics.add<DiagnosticKind::IrUnknownIntegerConstantType>(FunctionName);
     }
 
-    void verifyOperand(const Module &ModuleValue, const Value &OperandValue, const std::unordered_map<std::size_t, const Type *> &AvailableValues, const std::string &FunctionName, DiagnosticCollector &Diagnostics)
+    void verifyFloatConstant(const FloatConstant &Constant, const std::string &FunctionName, DiagnosticCollector &Diagnostics)
+    {
+      if (!isFloatingPointType(Constant.type().kind()))
+      {
+        Diagnostics.add<DiagnosticKind::IrFloatConstantInvalidType>(FunctionName, typeKindName(Constant.type().kind()));
+        return;
+      }
+      const std::size_t FormatBitWidth = floatFormatBitWidth(Constant.format());
+      if (FormatBitWidth == 0)
+      {
+        Diagnostics.add<DiagnosticKind::IrFloatConstantUnknownFormat>(FunctionName);
+        return;
+      }
+      if (FormatBitWidth != floatingPointBitWidth(Constant.type().kind()))
+      {
+        Diagnostics.add<DiagnosticKind::IrFloatConstantFormatMismatch>(FunctionName, floatFormatName(Constant.format()), typeKindName(Constant.type().kind()));
+        return;
+      }
+      if (FormatBitWidth < 64 && Constant.bitPattern() >= (std::uint64_t{1} << FormatBitWidth))
+      {
+        Diagnostics.add<DiagnosticKind::IrFloatConstantBitPatternOutOfRange>(FunctionName, floatFormatName(Constant.format()));
+      }
+    }
+
+    void verifyStringConstant(const StringConstant &Constant, const core::TargetContext &Target, const std::string &FunctionName, DiagnosticCollector &Diagnostics)
+    {
+      if (Constant.type().kind() != TypeKind::ConstByteSlice)
+      {
+        Diagnostics.add<DiagnosticKind::IrStringConstantInvalidType>(FunctionName, typeKindName(Constant.type().kind()));
+        return;
+      }
+      if (Constant.data().size() > Target.maximumPointerSizeValue())
+      {
+        Diagnostics.add<DiagnosticKind::IrStringConstantTooLarge>(FunctionName, Constant.data().size(), Target.maximumPointerSizeValue());
+      }
+    }
+
+    void verifyNullConstant(const NullConstant &Constant, const std::string &FunctionName, DiagnosticCollector &Diagnostics)
+    {
+      if (Constant.type().kind() != TypeKind::BytePointer && Constant.type().kind() != TypeKind::ConstBytePointer)
+      {
+        Diagnostics.add<DiagnosticKind::IrNullConstantInvalidType>(FunctionName, typeKindName(Constant.type().kind()));
+      }
+    }
+
+    bool isConstantValue(const Value &ValueEntry)
+    {
+      return ValueEntry.kind() != ValueKind::ValueOperand;
+    }
+
+    bool definitionDominatesUse(const SsaDefinition &Definition, std::size_t UseBlockIndex, std::size_t UseInstructionIndex, const FunctionControlFlow &ControlFlow)
+    {
+      if (Definition.BlockIndex == InvalidId)
+      {
+        return true;
+      }
+      if (Definition.BlockIndex == UseBlockIndex)
+      {
+        return Definition.InstructionIndex < UseInstructionIndex;
+      }
+      if (UseBlockIndex >= ControlFlow.Reachable.size())
+      {
+        return false;
+      }
+      if (!ControlFlow.Reachable[UseBlockIndex])
+      {
+        return true;
+      }
+      if (Definition.BlockIndex >= ControlFlow.Reachable.size() || !ControlFlow.Reachable[Definition.BlockIndex])
+      {
+        return false;
+      }
+      return ControlFlow.Dominators[UseBlockIndex][Definition.BlockIndex];
+    }
+
+    void verifyOperand(const Module &ModuleValue, const Value &OperandValue, const SsaDefinitionMap &Definitions, const FunctionControlFlow &ControlFlow, std::size_t UseBlockIndex, std::size_t UseInstructionIndex, const std::string &FunctionName, DiagnosticCollector &Diagnostics)
     {
       if (!isValidType(ModuleValue, &OperandValue.type()) || OperandValue.type().kind() == TypeKind::Void)
       {
@@ -163,20 +436,73 @@ namespace ink::ir
 
       if (OperandValue.kind() == ValueKind::IntegerConstant)
       {
-        verifyIntegerConstant(static_cast<const IntegerConstant &>(OperandValue), FunctionName, Diagnostics);
+        verifyIntegerConstant(static_cast<const IntegerConstant &>(OperandValue), ModuleValue.context().compilationContext().targetContext(), FunctionName, Diagnostics);
+        return;
+      }
+
+      if (OperandValue.kind() == ValueKind::FloatConstant)
+      {
+        verifyFloatConstant(static_cast<const FloatConstant &>(OperandValue), FunctionName, Diagnostics);
+        return;
+      }
+
+      if (OperandValue.kind() == ValueKind::StringConstant)
+      {
+        verifyStringConstant(static_cast<const StringConstant &>(OperandValue), ModuleValue.context().compilationContext().targetContext(), FunctionName, Diagnostics);
+        return;
+      }
+
+      if (OperandValue.kind() == ValueKind::NullConstant)
+      {
+        verifyNullConstant(static_cast<const NullConstant &>(OperandValue), FunctionName, Diagnostics);
+        return;
+      }
+
+      if (OperandValue.kind() == ValueKind::AggregateConstant)
+      {
+        const AggregateConstant &Aggregate = static_cast<const AggregateConstant &>(OperandValue);
+        if (Aggregate.type().kind() != TypeKind::Struct)
+        {
+          Diagnostics.add<DiagnosticKind::IrAggregateConstantInvalidType>(FunctionName);
+          return;
+        }
+        const StructType &Struct = static_cast<const StructType &>(Aggregate.type());
+        if (Aggregate.elements().size() != Struct.fieldTypes().size())
+        {
+          Diagnostics.add<DiagnosticKind::IrAggregateConstantFieldCountMismatch>(FunctionName, Struct.fieldTypes().size(), Aggregate.elements().size());
+        }
+        for (std::size_t ElementIndex = 0; ElementIndex < Aggregate.elements().size(); ++ElementIndex)
+        {
+          const std::unique_ptr<Value> &Element = Aggregate.elements()[ElementIndex];
+          if (!Element)
+          {
+            Diagnostics.add<DiagnosticKind::IrAggregateConstantNullElement>(FunctionName, ElementIndex);
+            continue;
+          }
+          if (ElementIndex < Struct.fieldTypes().size() && &Element->type() != Struct.fieldTypes()[ElementIndex])
+          {
+            Diagnostics.add<DiagnosticKind::IrAggregateConstantElementTypeMismatch>(FunctionName, ElementIndex);
+          }
+          if (!isConstantValue(*Element))
+          {
+            Diagnostics.add<DiagnosticKind::IrAggregateConstantNonConstantElement>(FunctionName, ElementIndex);
+            continue;
+          }
+          verifyOperand(ModuleValue, *Element, Definitions, ControlFlow, UseBlockIndex, UseInstructionIndex, FunctionName, Diagnostics);
+        }
         return;
       }
 
       if (OperandValue.kind() == ValueKind::ValueOperand)
       {
         const ValueId Id = static_cast<const ValueOperand &>(OperandValue).id();
-        const auto Definition = AvailableValues.find(Id.value());
-        if (!Id.valid() || Definition == AvailableValues.end())
+        const auto Definition = Definitions.find(Id.value());
+        if (!Id.valid() || Definition == Definitions.end() || !definitionDominatesUse(Definition->second, UseBlockIndex, UseInstructionIndex, ControlFlow))
         {
           Diagnostics.add<DiagnosticKind::IrUnavailableSsaValue>(FunctionName, Id.value());
           return;
         }
-        if (Definition->second != &OperandValue.type())
+        if (Definition->second.DefinitionType != &OperandValue.type())
         {
           Diagnostics.add<DiagnosticKind::IrSsaOperandTypeMismatch>(FunctionName, Id.value());
         }
@@ -217,12 +543,20 @@ namespace ink::ir
       {
         Diagnostics.add<DiagnosticKind::IrFunctionUnknownResultType>(FunctionValue.Name);
       }
+      else if (isByteSliceType(FunctionValue.ResultType))
+      {
+        Diagnostics.add<DiagnosticKind::IrSliceFunctionResultForbidden>(FunctionValue.Name, typeKindName(FunctionValue.ResultType->kind()));
+      }
       for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.ParameterTypes.size(); ++ParameterIndex)
       {
         const Type *ParameterType = FunctionValue.ParameterTypes[ParameterIndex];
         if (!isValidType(ModuleValue, ParameterType) || ParameterType->kind() == TypeKind::Void)
         {
           Diagnostics.add<DiagnosticKind::IrFunctionInvalidParameterType>(FunctionValue.Name, ParameterIndex);
+        }
+        else if (FunctionValue.Kind == FunctionKind::External && isByteSliceType(ParameterType))
+        {
+          Diagnostics.add<DiagnosticKind::IrSliceInExternalSignature>(FunctionValue.Name, typeKindName(ParameterType->kind()));
         }
       }
       if (FunctionValue.Kind != FunctionKind::Definition && FunctionValue.Kind != FunctionKind::External)
@@ -275,6 +609,240 @@ namespace ink::ir
       return IsValidAndUnique;
     }
 
+    SsaDefinitionMap collectSsaDefinitions(const Function &FunctionValue, DiagnosticCollector &Diagnostics)
+    {
+      SsaDefinitionMap Definitions;
+      std::unordered_set<std::size_t> DefinedValues;
+      for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.ParameterTypes.size(); ++ParameterIndex)
+      {
+        DefinedValues.insert(ParameterIndex);
+        Definitions.emplace(ParameterIndex, SsaDefinition{FunctionValue.ParameterTypes[ParameterIndex], InvalidId, 0});
+      }
+      std::size_t ExpectedValueId = FunctionValue.ParameterTypes.size();
+      for (std::size_t BlockIndex = 0; BlockIndex < FunctionValue.Blocks.size(); ++BlockIndex)
+      {
+        const BasicBlock &Block = FunctionValue.Blocks[BlockIndex];
+        for (std::size_t InstructionIndex = 0; InstructionIndex < Block.Instructions.size(); ++InstructionIndex)
+        {
+          const std::unique_ptr<Instruction> &InstructionPointer = Block.Instructions[InstructionIndex];
+          if (!InstructionPointer)
+          {
+            continue;
+          }
+          const std::optional<InstructionResult> Result = instructionResult(*InstructionPointer);
+          if (!Result.has_value())
+          {
+            continue;
+          }
+          if (verifySsaResult(Result->Id, Result->Operation, FunctionValue.Name, ExpectedValueId, DefinedValues, Diagnostics))
+          {
+            Definitions.emplace(Result->Id.value(), SsaDefinition{Result->ResultType, BlockIndex, InstructionIndex});
+          }
+        }
+      }
+      return Definitions;
+    }
+
+    bool validControlFlowTarget(const Function &FunctionValue, const BlockTarget &Target)
+    {
+      return Target.Block.valid() && Target.Block.value() != 0 && Target.Block.value() < FunctionValue.Blocks.size();
+    }
+
+    void addControlFlowEdge(std::size_t SourceBlock, const BlockTarget &Target, const Function &FunctionValue, FunctionControlFlow &ControlFlow)
+    {
+      if (!validControlFlowTarget(FunctionValue, Target))
+      {
+        return;
+      }
+      ControlFlow.Successors[SourceBlock].push_back(Target.Block.value());
+      ControlFlow.Predecessors[Target.Block.value()].push_back(SourceBlock);
+    }
+
+    FunctionControlFlow buildControlFlow(const Function &FunctionValue)
+    {
+      FunctionControlFlow Result;
+      Result.Predecessors.resize(FunctionValue.Blocks.size());
+      Result.Successors.resize(FunctionValue.Blocks.size());
+      for (std::size_t BlockIndex = 0; BlockIndex < FunctionValue.Blocks.size(); ++BlockIndex)
+      {
+        const BasicBlock &Block = FunctionValue.Blocks[BlockIndex];
+        if (Block.Instructions.empty() || !Block.Instructions.back())
+        {
+          continue;
+        }
+        const Instruction &Terminator = *Block.Instructions.back();
+        if (Terminator.kind() == InstructionKind::Branch)
+        {
+          addControlFlowEdge(BlockIndex, static_cast<const BranchInstruction &>(Terminator).Target, FunctionValue, Result);
+        }
+        else if (Terminator.kind() == InstructionKind::ConditionalBranch)
+        {
+          const ConditionalBranchInstruction &Branch = static_cast<const ConditionalBranchInstruction &>(Terminator);
+          addControlFlowEdge(BlockIndex, Branch.TrueTarget, FunctionValue, Result);
+          addControlFlowEdge(BlockIndex, Branch.FalseTarget, FunctionValue, Result);
+        }
+      }
+
+      Result.Reachable.assign(FunctionValue.Blocks.size(), false);
+      if (!FunctionValue.Blocks.empty())
+      {
+        std::vector<std::size_t> Worklist{0};
+        Result.Reachable[0] = true;
+        while (!Worklist.empty())
+        {
+          const std::size_t BlockIndex = Worklist.back();
+          Worklist.pop_back();
+          for (const std::size_t Successor : Result.Successors[BlockIndex])
+          {
+            if (!Result.Reachable[Successor])
+            {
+              Result.Reachable[Successor] = true;
+              Worklist.push_back(Successor);
+            }
+          }
+        }
+      }
+
+      const std::size_t BlockCount = FunctionValue.Blocks.size();
+      Result.Dominators.assign(BlockCount, std::vector<bool>(BlockCount, false));
+      if (BlockCount == 0)
+      {
+        return Result;
+      }
+      Result.Dominators[0][0] = true;
+      for (std::size_t BlockIndex = 1; BlockIndex < BlockCount; ++BlockIndex)
+      {
+        if (!Result.Reachable[BlockIndex])
+        {
+          continue;
+        }
+        for (std::size_t Candidate = 0; Candidate < BlockCount; ++Candidate)
+        {
+          Result.Dominators[BlockIndex][Candidate] = Result.Reachable[Candidate];
+        }
+      }
+      bool Changed = true;
+      while (Changed)
+      {
+        Changed = false;
+        for (std::size_t BlockIndex = 1; BlockIndex < BlockCount; ++BlockIndex)
+        {
+          if (!Result.Reachable[BlockIndex])
+          {
+            continue;
+          }
+          std::vector<bool> NewDominators(BlockCount, false);
+          bool HasReachablePredecessor = false;
+          for (const std::size_t Predecessor : Result.Predecessors[BlockIndex])
+          {
+            if (!Result.Reachable[Predecessor])
+            {
+              continue;
+            }
+            if (!HasReachablePredecessor)
+            {
+              NewDominators = Result.Dominators[Predecessor];
+              HasReachablePredecessor = true;
+            }
+            else
+            {
+              for (std::size_t Candidate = 0; Candidate < BlockCount; ++Candidate)
+              {
+                NewDominators[Candidate] = NewDominators[Candidate] && Result.Dominators[Predecessor][Candidate];
+              }
+            }
+          }
+          NewDominators[BlockIndex] = true;
+          if (NewDominators != Result.Dominators[BlockIndex])
+          {
+            Result.Dominators[BlockIndex] = std::move(NewDominators);
+            Changed = true;
+          }
+        }
+      }
+      return Result;
+    }
+
+    void verifyBlockTarget(const Function &FunctionValue, const BlockTarget &Target, DiagnosticCollector &Diagnostics)
+    {
+      if (!Target.Block.valid() || Target.Block.value() >= FunctionValue.Blocks.size())
+      {
+        Diagnostics.add<DiagnosticKind::IrBranchInvalidTarget>(FunctionValue.Name);
+        return;
+      }
+      if (Target.Block.value() == 0)
+      {
+        Diagnostics.add<DiagnosticKind::IrBranchTargetsEntryBlock>(FunctionValue.Name);
+      }
+    }
+
+    void verifyPhiInstruction(const Module &ModuleValue, const Function &FunctionValue, std::size_t BlockIndex, const PhiInstruction &Phi, const SsaDefinitionMap &Definitions, const FunctionControlFlow &ControlFlow, DiagnosticCollector &Diagnostics)
+    {
+      const BasicBlock &Block = FunctionValue.Blocks[BlockIndex];
+      if (!isValidType(ModuleValue, Phi.ResultType) || Phi.ResultType->kind() == TypeKind::Void)
+      {
+        Diagnostics.add<DiagnosticKind::IrPhiInvalidResultType>(FunctionValue.Name, Block.Name);
+      }
+      if (BlockIndex == 0)
+      {
+        Diagnostics.add<DiagnosticKind::IrPhiInEntryBlock>(FunctionValue.Name, Block.Name);
+      }
+      if (Phi.IncomingValues.empty())
+      {
+        Diagnostics.add<DiagnosticKind::IrPhiHasNoIncomingValues>(FunctionValue.Name, Block.Name);
+      }
+      const std::vector<std::size_t> &Predecessors = ControlFlow.Predecessors[BlockIndex];
+      if (Phi.IncomingValues.size() != Predecessors.size())
+      {
+        Diagnostics.add<DiagnosticKind::IrPhiIncomingCountMismatch>(FunctionValue.Name, Block.Name, Predecessors.size(), Phi.IncomingValues.size());
+      }
+
+      std::vector<std::size_t> ExpectedCounts(FunctionValue.Blocks.size(), 0);
+      std::vector<std::size_t> SeenCounts(FunctionValue.Blocks.size(), 0);
+      std::vector<const Value *> FirstIncomingValues(FunctionValue.Blocks.size(), nullptr);
+      for (const std::size_t Predecessor : Predecessors)
+      {
+        ++ExpectedCounts[Predecessor];
+      }
+      for (std::size_t IncomingIndex = 0; IncomingIndex < Phi.IncomingValues.size(); ++IncomingIndex)
+      {
+        const PhiIncoming &Incoming = Phi.IncomingValues[IncomingIndex];
+        if (!Incoming.Value)
+        {
+          Diagnostics.add<DiagnosticKind::IrPhiNullIncomingValue>(FunctionValue.Name, Block.Name, IncomingIndex);
+        }
+        else if (&Incoming.Value->type() != Phi.ResultType)
+        {
+          Diagnostics.add<DiagnosticKind::IrPhiIncomingTypeMismatch>(FunctionValue.Name, Block.Name, IncomingIndex);
+        }
+
+        if (!Incoming.Predecessor.valid() || Incoming.Predecessor.value() >= FunctionValue.Blocks.size())
+        {
+          Diagnostics.add<DiagnosticKind::IrPhiInvalidIncomingBlock>(FunctionValue.Name, Block.Name, IncomingIndex);
+          continue;
+        }
+        const std::size_t Predecessor = Incoming.Predecessor.value();
+        ++SeenCounts[Predecessor];
+        if (SeenCounts[Predecessor] > ExpectedCounts[Predecessor])
+        {
+          Diagnostics.add<DiagnosticKind::IrPhiIncomingBlockNotPredecessor>(FunctionValue.Name, Block.Name, IncomingIndex);
+        }
+        if (Incoming.Value)
+        {
+          if (FirstIncomingValues[Predecessor] != nullptr && !sameValue(*FirstIncomingValues[Predecessor], *Incoming.Value))
+          {
+            Diagnostics.add<DiagnosticKind::IrPhiDuplicateIncomingBlock>(FunctionValue.Name, Block.Name, IncomingIndex);
+          }
+          else if (FirstIncomingValues[Predecessor] == nullptr)
+          {
+            FirstIncomingValues[Predecessor] = Incoming.Value.get();
+          }
+          const std::size_t UseInstructionIndex = FunctionValue.Blocks[Predecessor].Instructions.size();
+          verifyOperand(ModuleValue, *Incoming.Value, Definitions, ControlFlow, Predecessor, UseInstructionIndex, FunctionValue.Name, Diagnostics);
+        }
+      }
+    }
+
     void verifyFunctionBody(const Module &ModuleValue, const Function &FunctionValue, DiagnosticCollector &Diagnostics)
     {
       if (FunctionValue.Kind != FunctionKind::Definition)
@@ -286,16 +854,13 @@ namespace ink::ir
         return;
       }
 
+      const SsaDefinitionMap Definitions = collectSsaDefinitions(FunctionValue, Diagnostics);
+      const FunctionControlFlow ControlFlow = buildControlFlow(FunctionValue);
       std::unordered_set<std::string> BlockNames;
-      std::unordered_set<std::size_t> DefinedValues;
-      for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.ParameterTypes.size(); ++ParameterIndex)
-      {
-        DefinedValues.insert(ParameterIndex);
-      }
-      std::size_t ExpectedValueId = FunctionValue.ParameterTypes.size();
 
-      for (const BasicBlock &Block : FunctionValue.Blocks)
+      for (std::size_t BlockIndex = 0; BlockIndex < FunctionValue.Blocks.size(); ++BlockIndex)
       {
+        const BasicBlock &Block = FunctionValue.Blocks[BlockIndex];
         if (!isValidName(Block.Name))
         {
           Diagnostics.add<DiagnosticKind::IrInvalidBasicBlockName>(FunctionValue.Name, Block.Name);
@@ -310,27 +875,35 @@ namespace ink::ir
           continue;
         }
 
-        std::unordered_map<std::size_t, const Type *> AvailableValues;
-        for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.ParameterTypes.size(); ++ParameterIndex)
-        {
-          AvailableValues.emplace(ParameterIndex, FunctionValue.ParameterTypes[ParameterIndex]);
-        }
-
+        bool SeenNonPhi = false;
         for (std::size_t InstructionIndex = 0; InstructionIndex < Block.Instructions.size(); ++InstructionIndex)
         {
           const std::unique_ptr<Instruction> &InstructionPointer = Block.Instructions[InstructionIndex];
           if (!InstructionPointer)
           {
             Diagnostics.add<DiagnosticKind::IrNullInstruction>(FunctionValue.Name, Block.Name);
+            SeenNonPhi = true;
             continue;
           }
           const Instruction &InstructionValue = *InstructionPointer;
           const bool IsLast = InstructionIndex + 1 == Block.Instructions.size();
           const InstructionKind Kind = InstructionValue.kind();
-          if (Kind != InstructionKind::Call && Kind != InstructionKind::InsertValue && Kind != InstructionKind::ExtractValue && Kind != InstructionKind::Return)
+          if (Kind != InstructionKind::Call && Kind != InstructionKind::Alloca && Kind != InstructionKind::GetElementPointer && Kind != InstructionKind::Load && Kind != InstructionKind::Store && Kind != InstructionKind::LifetimeEnd && Kind != InstructionKind::SliceData && Kind != InstructionKind::SliceLength && Kind != InstructionKind::Phi && Kind != InstructionKind::Add && Kind != InstructionKind::Compare && Kind != InstructionKind::InsertValue && Kind != InstructionKind::ExtractValue && Kind != InstructionKind::Branch && Kind != InstructionKind::ConditionalBranch && Kind != InstructionKind::Return)
           {
             Diagnostics.add<DiagnosticKind::IrUnknownInstructionKind>(FunctionValue.Name, Block.Name);
+            SeenNonPhi = true;
             continue;
+          }
+          if (Kind == InstructionKind::Phi)
+          {
+            if (SeenNonPhi)
+            {
+              Diagnostics.add<DiagnosticKind::IrPhiMustBeFirstInBlock>(FunctionValue.Name, Block.Name);
+            }
+          }
+          else
+          {
+            SeenNonPhi = true;
           }
           if (isTerminator(Kind) != IsLast)
           {
@@ -342,6 +915,318 @@ namespace ink::ir
             {
               Diagnostics.add<DiagnosticKind::IrEarlyTerminator>(FunctionValue.Name, Block.Name);
             }
+          }
+
+          if (Kind == InstructionKind::Phi)
+          {
+            verifyPhiInstruction(ModuleValue, FunctionValue, BlockIndex, static_cast<const PhiInstruction &>(InstructionValue), Definitions, ControlFlow, Diagnostics);
+            continue;
+          }
+
+          if (Kind == InstructionKind::Alloca)
+          {
+            const AllocaInstruction &Alloca = static_cast<const AllocaInstruction &>(InstructionValue);
+            if (!isValidType(ModuleValue, Alloca.ResultType) || Alloca.ResultType->kind() != TypeKind::ByteSlice)
+            {
+              Diagnostics.add<DiagnosticKind::IrAllocaInvalidResultType>(FunctionValue.Name);
+            }
+            if (BlockIndex != 0)
+            {
+              Diagnostics.add<DiagnosticKind::IrAllocaOutsideEntryBlock>(FunctionValue.Name);
+            }
+            if (!Alloca.Size)
+            {
+              Diagnostics.add<DiagnosticKind::IrAllocaNullSize>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *Alloca.Size, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (Alloca.Size->type().kind() != TypeKind::PointerSize)
+              {
+                Diagnostics.add<DiagnosticKind::IrAllocaSizeNotPointerSize>(FunctionValue.Name);
+              }
+            }
+            continue;
+          }
+
+          if (Kind == InstructionKind::GetElementPointer)
+          {
+            const GetElementPointerInstruction &GetElementPointer = static_cast<const GetElementPointerInstruction &>(InstructionValue);
+            if (!isValidType(ModuleValue, GetElementPointer.ResultType) || !isBytePointerType(GetElementPointer.ResultType))
+            {
+              Diagnostics.add<DiagnosticKind::IrGetElementPointerInvalidResultType>(FunctionValue.Name);
+            }
+            if (!isValidType(ModuleValue, GetElementPointer.ElementType) || !computeTypeLayout(*GetElementPointer.ElementType, ModuleValue.context().compilationContext().targetContext()).has_value())
+            {
+              Diagnostics.add<DiagnosticKind::IrGetElementPointerUnsupportedElementType>(FunctionValue.Name);
+            }
+            if (!GetElementPointer.Pointer)
+            {
+              Diagnostics.add<DiagnosticKind::IrGetElementPointerNullPointer>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *GetElementPointer.Pointer, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (!isBytePointerType(&GetElementPointer.Pointer->type()))
+              {
+                Diagnostics.add<DiagnosticKind::IrGetElementPointerInvalidPointerType>(FunctionValue.Name);
+              }
+              if (GetElementPointer.ResultType != &GetElementPointer.Pointer->type())
+              {
+                Diagnostics.add<DiagnosticKind::IrGetElementPointerResultTypeMismatch>(FunctionValue.Name);
+              }
+            }
+            if (!GetElementPointer.Index)
+            {
+              Diagnostics.add<DiagnosticKind::IrGetElementPointerNullIndex>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *GetElementPointer.Index, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (GetElementPointer.Index->type().kind() != TypeKind::PointerSize)
+              {
+                Diagnostics.add<DiagnosticKind::IrGetElementPointerIndexNotPointerSize>(FunctionValue.Name);
+              }
+            }
+            const Type *IndexedType = isValidType(ModuleValue, GetElementPointer.ElementType) ? GetElementPointer.ElementType : nullptr;
+            for (std::size_t FieldIndexPosition = 0; FieldIndexPosition < GetElementPointer.FieldIndices.size(); ++FieldIndexPosition)
+            {
+              const std::size_t PathIndex = FieldIndexPosition + 1;
+              const std::unique_ptr<Value> &FieldIndexValue = GetElementPointer.FieldIndices[FieldIndexPosition];
+              if (!FieldIndexValue)
+              {
+                Diagnostics.add<DiagnosticKind::IrGetElementPointerNullFieldIndex>(FunctionValue.Name, PathIndex);
+                IndexedType = nullptr;
+                continue;
+              }
+              verifyOperand(ModuleValue, *FieldIndexValue, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (FieldIndexValue->type().kind() != TypeKind::I32)
+              {
+                Diagnostics.add<DiagnosticKind::IrGetElementPointerFieldIndexNotI32>(FunctionValue.Name, PathIndex);
+                IndexedType = nullptr;
+                continue;
+              }
+              if (FieldIndexValue->kind() != ValueKind::IntegerConstant)
+              {
+                Diagnostics.add<DiagnosticKind::IrGetElementPointerFieldIndexNotConstant>(FunctionValue.Name, PathIndex);
+                IndexedType = nullptr;
+                continue;
+              }
+              const IntegerConstant &FieldIndexConstant = static_cast<const IntegerConstant &>(*FieldIndexValue);
+              if (FieldIndexConstant.isNegative())
+              {
+                Diagnostics.add<DiagnosticKind::IrGetElementPointerFieldIndexNegative>(FunctionValue.Name, PathIndex, FieldIndexConstant.signedValue());
+                IndexedType = nullptr;
+                continue;
+              }
+              if (FieldIndexConstant.unsignedValue() > static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max()))
+              {
+                IndexedType = nullptr;
+                continue;
+              }
+              if (IndexedType == nullptr)
+              {
+                continue;
+              }
+              if (IndexedType->kind() != TypeKind::Struct)
+              {
+                Diagnostics.add<DiagnosticKind::IrGetElementPointerFieldIndexIntoNonStruct>(FunctionValue.Name, PathIndex);
+                IndexedType = nullptr;
+                continue;
+              }
+              const StructType &Struct = static_cast<const StructType &>(*IndexedType);
+              const std::size_t FieldIndex = static_cast<std::size_t>(FieldIndexConstant.unsignedValue());
+              if (FieldIndex >= Struct.fieldTypes().size())
+              {
+                Diagnostics.add<DiagnosticKind::IrGetElementPointerFieldIndexOutOfRange>(FunctionValue.Name, PathIndex, FieldIndex, Struct.fieldTypes().size());
+                IndexedType = nullptr;
+                continue;
+              }
+              IndexedType = Struct.fieldTypes()[FieldIndex];
+            }
+            continue;
+          }
+
+          if (Kind == InstructionKind::Load)
+          {
+            const LoadInstruction &Load = static_cast<const LoadInstruction &>(InstructionValue);
+            if (!isValidType(ModuleValue, Load.ResultType) || !isMemoryValueType(*Load.ResultType))
+            {
+              Diagnostics.add<DiagnosticKind::IrLoadUnsupportedResultType>(FunctionValue.Name);
+            }
+            if (!Load.Pointer)
+            {
+              Diagnostics.add<DiagnosticKind::IrLoadNullPointer>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *Load.Pointer, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (!isBytePointerType(&Load.Pointer->type()))
+              {
+                Diagnostics.add<DiagnosticKind::IrLoadInvalidPointerType>(FunctionValue.Name);
+              }
+            }
+            continue;
+          }
+
+          if (Kind == InstructionKind::Store)
+          {
+            const StoreInstruction &Store = static_cast<const StoreInstruction &>(InstructionValue);
+            if (!Store.StoredValue)
+            {
+              Diagnostics.add<DiagnosticKind::IrStoreNullValue>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *Store.StoredValue, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (!isMemoryValueType(Store.StoredValue->type()))
+              {
+                Diagnostics.add<DiagnosticKind::IrStoreUnsupportedValueType>(FunctionValue.Name);
+              }
+            }
+            if (!Store.Pointer)
+            {
+              Diagnostics.add<DiagnosticKind::IrStoreNullPointer>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *Store.Pointer, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (Store.Pointer->type().kind() != TypeKind::BytePointer)
+              {
+                Diagnostics.add<DiagnosticKind::IrStoreDestinationNotMutablePointer>(FunctionValue.Name);
+              }
+            }
+            continue;
+          }
+
+          if (Kind == InstructionKind::LifetimeEnd)
+          {
+            const LifetimeEndInstruction &LifetimeEnd = static_cast<const LifetimeEndInstruction &>(InstructionValue);
+            if (!LifetimeEnd.Slice)
+            {
+              Diagnostics.add<DiagnosticKind::IrLifetimeEndNullSlice>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *LifetimeEnd.Slice, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (LifetimeEnd.Slice->type().kind() != TypeKind::ByteSlice)
+              {
+                Diagnostics.add<DiagnosticKind::IrLifetimeEndInvalidSliceType>(FunctionValue.Name);
+              }
+            }
+            continue;
+          }
+
+          if (Kind == InstructionKind::SliceData)
+          {
+            const SliceDataInstruction &SliceData = static_cast<const SliceDataInstruction &>(InstructionValue);
+            const bool HasValidResultType = isValidType(ModuleValue, SliceData.ResultType) && (SliceData.ResultType->kind() == TypeKind::BytePointer || SliceData.ResultType->kind() == TypeKind::ConstBytePointer);
+            if (!HasValidResultType)
+            {
+              Diagnostics.add<DiagnosticKind::IrSliceDataInvalidResultType>(FunctionValue.Name);
+            }
+            if (!SliceData.Slice)
+            {
+              Diagnostics.add<DiagnosticKind::IrSliceDataNullSlice>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *SliceData.Slice, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (!isByteSliceType(&SliceData.Slice->type()))
+              {
+                Diagnostics.add<DiagnosticKind::IrSliceDataInvalidSliceType>(FunctionValue.Name);
+              }
+              else if (SliceData.Slice->type().kind() == TypeKind::ConstByteSlice && HasValidResultType && SliceData.ResultType->kind() == TypeKind::BytePointer)
+              {
+                Diagnostics.add<DiagnosticKind::IrSliceDataDropsConst>(FunctionValue.Name);
+              }
+            }
+            continue;
+          }
+
+          if (Kind == InstructionKind::SliceLength)
+          {
+            const SliceLengthInstruction &SliceLength = static_cast<const SliceLengthInstruction &>(InstructionValue);
+            if (!isValidType(ModuleValue, SliceLength.ResultType) || SliceLength.ResultType->kind() != TypeKind::PointerSize)
+            {
+              Diagnostics.add<DiagnosticKind::IrSliceLengthInvalidResultType>(FunctionValue.Name);
+            }
+            if (!SliceLength.Slice)
+            {
+              Diagnostics.add<DiagnosticKind::IrSliceLengthNullSlice>(FunctionValue.Name);
+            }
+            else
+            {
+              verifyOperand(ModuleValue, *SliceLength.Slice, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (!isByteSliceType(&SliceLength.Slice->type()))
+              {
+                Diagnostics.add<DiagnosticKind::IrSliceLengthInvalidSliceType>(FunctionValue.Name);
+              }
+            }
+            continue;
+          }
+
+          if (Kind == InstructionKind::Add)
+          {
+            const AddInstruction &Add = static_cast<const AddInstruction &>(InstructionValue);
+            if (!isValidType(ModuleValue, Add.ResultType) || !isAddType(Add.ResultType))
+            {
+              Diagnostics.add<DiagnosticKind::IrAddInvalidResultType>(FunctionValue.Name);
+            }
+            const Value *Operands[] = {Add.Left.get(), Add.Right.get()};
+            for (std::size_t OperandIndex = 0; OperandIndex < 2; ++OperandIndex)
+            {
+              if (Operands[OperandIndex] == nullptr)
+              {
+                Diagnostics.add<DiagnosticKind::IrAddNullOperand>(FunctionValue.Name, OperandIndex);
+                continue;
+              }
+              verifyOperand(ModuleValue, *Operands[OperandIndex], Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (&Operands[OperandIndex]->type() != Add.ResultType)
+              {
+                Diagnostics.add<DiagnosticKind::IrAddOperandTypeMismatch>(FunctionValue.Name, OperandIndex);
+              }
+            }
+            continue;
+          }
+
+          if (Kind == InstructionKind::Compare)
+          {
+            const CompareInstruction &Compare = static_cast<const CompareInstruction &>(InstructionValue);
+            if (!isValidType(ModuleValue, Compare.ResultType) || Compare.ResultType->kind() != TypeKind::Bool)
+            {
+              Diagnostics.add<DiagnosticKind::IrCompareInvalidResultType>(FunctionValue.Name);
+            }
+            if (Compare.Predicate >= ComparePredicate::Count)
+            {
+              Diagnostics.add<DiagnosticKind::IrCompareInvalidPredicate>(FunctionValue.Name);
+            }
+            const Value *Operands[] = {Compare.Left.get(), Compare.Right.get()};
+            for (std::size_t OperandIndex = 0; OperandIndex < 2; ++OperandIndex)
+            {
+              if (Operands[OperandIndex] == nullptr)
+              {
+                Diagnostics.add<DiagnosticKind::IrCompareNullOperand>(FunctionValue.Name, OperandIndex);
+                continue;
+              }
+              verifyOperand(ModuleValue, *Operands[OperandIndex], Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+            }
+            if (Compare.Left && Compare.Right)
+            {
+              if (&Compare.Left->type() != &Compare.Right->type())
+              {
+                Diagnostics.add<DiagnosticKind::IrCompareOperandTypeMismatch>(FunctionValue.Name);
+              }
+              else if (!isComparableType(&Compare.Left->type()))
+              {
+                Diagnostics.add<DiagnosticKind::IrCompareUnsupportedType>(FunctionValue.Name, typeKindName(Compare.Left->type().kind()));
+              }
+              else if ((Compare.Left->type().kind() == TypeKind::Bool || Compare.Left->type().kind() == TypeKind::BytePointer || Compare.Left->type().kind() == TypeKind::ConstBytePointer) && Compare.Predicate != ComparePredicate::Equal && Compare.Predicate != ComparePredicate::NotEqual && Compare.Predicate < ComparePredicate::Count)
+              {
+                Diagnostics.add<DiagnosticKind::IrComparePredicateUnsupportedForType>(FunctionValue.Name, comparePredicateName(Compare.Predicate), typeKindName(Compare.Left->type().kind()));
+              }
+            }
+            continue;
           }
 
           if (Kind == InstructionKind::Call)
@@ -385,17 +1270,10 @@ namespace ink::ir
                 Diagnostics.add<DiagnosticKind::IrNullCallArgument>(Callee.Name, ArgumentIndex);
                 continue;
               }
-              verifyOperand(ModuleValue, *Call->Arguments[ArgumentIndex], AvailableValues, FunctionValue.Name, Diagnostics);
+              verifyOperand(ModuleValue, *Call->Arguments[ArgumentIndex], Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
               if (ArgumentIndex < CheckedArgumentCount && &Call->Arguments[ArgumentIndex]->type() != Callee.ParameterTypes[ArgumentIndex])
               {
                 Diagnostics.add<DiagnosticKind::IrCallArgumentTypeMismatch>(Callee.Name, ArgumentIndex);
-              }
-            }
-            if (Call->Result.has_value())
-            {
-              if (verifySsaResult(*Call->Result, "call", FunctionValue.Name, ExpectedValueId, DefinedValues, Diagnostics))
-              {
-                AvailableValues.emplace(Call->Result->value(), Call->ResultType);
               }
             }
             continue;
@@ -419,7 +1297,7 @@ namespace ink::ir
             }
             else
             {
-              verifyOperand(ModuleValue, *Insert.Aggregate, AvailableValues, FunctionValue.Name, Diagnostics);
+              verifyOperand(ModuleValue, *Insert.Aggregate, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
               if (&Insert.Aggregate->type() != Insert.ResultType)
               {
                 Diagnostics.add<DiagnosticKind::IrInsertAggregateTypeMismatch>(FunctionValue.Name);
@@ -431,7 +1309,7 @@ namespace ink::ir
             }
             else
             {
-              verifyOperand(ModuleValue, *Insert.Element, AvailableValues, FunctionValue.Name, Diagnostics);
+              verifyOperand(ModuleValue, *Insert.Element, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
             }
             if (AggregateType != nullptr)
             {
@@ -443,10 +1321,6 @@ namespace ink::ir
               {
                 Diagnostics.add<DiagnosticKind::IrInsertElementTypeMismatch>(FunctionValue.Name);
               }
-            }
-            if (verifySsaResult(Insert.Result, "insertvalue", FunctionValue.Name, ExpectedValueId, DefinedValues, Diagnostics) && isValidType(ModuleValue, Insert.ResultType))
-            {
-              AvailableValues.emplace(Insert.Result.value(), Insert.ResultType);
             }
             continue;
           }
@@ -461,7 +1335,7 @@ namespace ink::ir
             }
             else
             {
-              verifyOperand(ModuleValue, *Extract.Aggregate, AvailableValues, FunctionValue.Name, Diagnostics);
+              verifyOperand(ModuleValue, *Extract.Aggregate, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
               if (Extract.Aggregate->type().kind() != TypeKind::Struct)
               {
                 Diagnostics.add<DiagnosticKind::IrExtractAggregateMustBeStruct>();
@@ -486,10 +1360,33 @@ namespace ink::ir
                 Diagnostics.add<DiagnosticKind::IrExtractResultTypeMismatch>(FunctionValue.Name);
               }
             }
-            if (verifySsaResult(Extract.Result, "extractvalue", FunctionValue.Name, ExpectedValueId, DefinedValues, Diagnostics) && isValidType(ModuleValue, Extract.ResultType))
+            continue;
+          }
+
+          if (Kind == InstructionKind::Branch)
+          {
+            const BranchInstruction &Branch = static_cast<const BranchInstruction &>(InstructionValue);
+            verifyBlockTarget(FunctionValue, Branch.Target, Diagnostics);
+            continue;
+          }
+
+          if (Kind == InstructionKind::ConditionalBranch)
+          {
+            const ConditionalBranchInstruction &Branch = static_cast<const ConditionalBranchInstruction &>(InstructionValue);
+            if (!Branch.Condition)
             {
-              AvailableValues.emplace(Extract.Result.value(), Extract.ResultType);
+              Diagnostics.add<DiagnosticKind::IrConditionalBranchNullCondition>(FunctionValue.Name);
             }
+            else
+            {
+              verifyOperand(ModuleValue, *Branch.Condition, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
+              if (Branch.Condition->type().kind() != TypeKind::Bool)
+              {
+                Diagnostics.add<DiagnosticKind::IrConditionalBranchConditionNotBool>(FunctionValue.Name);
+              }
+            }
+            verifyBlockTarget(FunctionValue, Branch.TrueTarget, Diagnostics);
+            verifyBlockTarget(FunctionValue, Branch.FalseTarget, Diagnostics);
             continue;
           }
 
@@ -507,7 +1404,7 @@ namespace ink::ir
             Diagnostics.add<DiagnosticKind::IrNonVoidFunctionMissingReturnValue>(FunctionValue.Name);
             continue;
           }
-          verifyOperand(ModuleValue, *Return.ReturnValue, AvailableValues, FunctionValue.Name, Diagnostics);
+          verifyOperand(ModuleValue, *Return.ReturnValue, Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
           if (&Return.ReturnValue->type() != FunctionValue.ResultType)
           {
             Diagnostics.add<DiagnosticKind::IrReturnTypeMismatch>(FunctionValue.Name);
@@ -558,6 +1455,10 @@ namespace ink::ir
         if (!isValidType(ModuleValue, FieldType) || FieldType->kind() == TypeKind::Void)
         {
           Diagnostics.add<DiagnosticKind::IrInvalidStructFieldType>(TypeValue->name(), FieldIndex);
+        }
+        else if (isByteSliceType(FieldType))
+        {
+          Diagnostics.add<DiagnosticKind::IrSliceStructFieldForbidden>(TypeValue->name(), FieldIndex, typeKindName(FieldType->kind()));
         }
         else if (FieldType->kind() == TypeKind::Struct && (FieldType == TypeValue || DeclaredStructTypes.find(static_cast<const StructType *>(FieldType)) == DeclaredStructTypes.end()))
         {

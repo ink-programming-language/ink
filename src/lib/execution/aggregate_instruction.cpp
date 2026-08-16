@@ -8,8 +8,8 @@ namespace ink::execution
 {
   FunctionExecutor::InstructionFlow FunctionExecutor::executeInsertValueInstruction(const ir::InsertValueInstruction &Insert, FunctionExecutionState &State)
   {
-    RuntimeValueRef Aggregate = evaluateValue(*Insert.Aggregate, State.Frame);
-    RuntimeValueRef Element = evaluateValue(*Insert.Element, State.Frame);
+    RuntimeValueRef Aggregate = evaluateValue(*Insert.Aggregate, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Element = evaluateValue(*Insert.Element, State.Frame, State.FunctionValue.Name);
     if (Aggregate == nullptr || Element == nullptr)
     {
       return InstructionFlow::Failed;
@@ -50,7 +50,7 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeExtractValueInstruction(const ir::ExtractValueInstruction &Extract, FunctionExecutionState &State)
   {
-    RuntimeValueRef Aggregate = evaluateValue(*Extract.Aggregate, State.Frame);
+    RuntimeValueRef Aggregate = evaluateValue(*Extract.Aggregate, State.Frame, State.FunctionValue.Name);
     if (Aggregate == nullptr)
     {
       return InstructionFlow::Failed;

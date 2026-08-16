@@ -462,7 +462,7 @@ namespace ink::execution
     }
 
     // Verifies that bool, byte, i32, ptrsize, and pointer arguments plus a ptrsize result are marshalled through libffi without representation leakage.
-    TEST(ExecutionEngineTest, MarshalsEveryPrimitiveExternType)
+    TEST(ExecutionEngineTest, MarshalsEveryCAbiPrimitiveExternType)
     {
       TestContext Context;
       const std::string Text =
@@ -940,8 +940,8 @@ namespace ink::execution
       EXPECT_EQ(executionMessage(Result.diagnostics()), "maximum InkIR call depth 256 exceeded in function @recurse");
     }
 
-    // Verifies that the interpreter explicitly rejects multi-block functions until branch and control-flow execution are implemented.
-    TEST(ExecutionEngineTest, RejectsMultipleBasicBlocks)
+    // Verifies that an unreachable block does not prevent a multi-block function from returning through its entry block.
+    TEST(ExecutionEngineTest, IgnoresUnreachableBasicBlock)
     {
       TestContext Context;
       ir::Module ModuleValue = makeMultipleBlockModule(Context.IR);
@@ -949,15 +949,8 @@ namespace ink::execution
 
       const ExecutionResult Result = Engine.execute("main");
 
-      ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      const core::Diagnostic &DiagnosticEntry = Result.diagnostics()[0];
-      EXPECT_EQ(DiagnosticEntry.Kind, core::DiagnosticKind::MultipleBasicBlocksUnsupported);
-      EXPECT_EQ(DiagnosticEntry.classification(), core::DiagnosticClass::User);
-      ASSERT_EQ(DiagnosticEntry.Arguments.size(), 2u);
-      expectStringArgument(DiagnosticEntry, 0, core::DiagnosticArgumentName::FunctionName, "main");
-      expectUnsignedArgument(DiagnosticEntry, 1, core::DiagnosticArgumentName::BlockCount, 2);
-      EXPECT_EQ(executionMessage(Result.diagnostics()), "function @main cannot execute until InkIR has control-flow instructions because it contains 2 basic blocks");
+      EXPECT_TRUE(Result.succeeded());
+      EXPECT_TRUE(Result.diagnostics().empty());
     }
 
     // Verifies that initialization forwards verifier diagnostics and never attempts to execute an invalid definition without a body.
@@ -1043,6 +1036,102 @@ namespace ink::execution
       EXPECT_EQ(Missing.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionNotFound);
       EXPECT_TRUE(Resolved.succeeded());
       EXPECT_EQ(CapturedOutput, "Hello, world!\n");
+    }
+
+    // Verifies that execution rejects a module whose frozen target differs from the ExecutionContext target.
+    TEST(ExecutionEngineTest, RejectsMismatchedModuleAndExecutionTargets)
+    {
+      core::CompilationContext ModuleCompilation(core::TargetContext(core::PointerWidth::Bits32, core::ByteOrder::LittleEndian));
+      ir::IRContext ModuleIR(ModuleCompilation);
+      const ir::DeserializeResult Parsed = ir::deserialize(ModuleIR, "inkir 1\ndefine void @main() {\nentry:\n  ret void\n}\n");
+      core::CompilationContext ExecutionCompilation(core::TargetContext(core::PointerWidth::Bits32, core::ByteOrder::BigEndian));
+      ExecutionContext Execution(ExecutionCompilation);
+      ASSERT_TRUE(Parsed.succeeded());
+      ASSERT_TRUE(Parsed.module().has_value());
+      ExecutionEngine Engine(Execution, *Parsed.module());
+
+      const InitializationResult Result = Engine.initialize();
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1U);
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ExecutionTargetMismatch);
+    }
+
+    // Verifies that a ptrsize entry argument is revalidated against the destination target rather than its source arena.
+    TEST(ExecutionEngineTest, RejectsEntryPointerSizeOutsideTargetRange)
+    {
+      const core::TargetContext Target32(core::PointerWidth::Bits32, core::ByteOrder::LittleEndian);
+      core::CompilationContext Compilation(Target32);
+      ir::IRContext IR(Compilation);
+      ExecutionContext Execution(Compilation);
+      const ir::DeserializeResult Parsed = ir::deserialize(IR, "inkir 1\ndefine ptrsize @main(ptrsize %0) {\nentry:\n  ret ptrsize %0\n}\n");
+      ASSERT_TRUE(Parsed.succeeded());
+      ASSERT_TRUE(Parsed.module().has_value());
+      ExecutionEngine Engine(Execution, *Parsed.module());
+      RuntimeValueArena SourceValues(core::TargetContext(core::PointerWidth::Bits64, core::ByteOrder::LittleEndian));
+      const RuntimeValueRef TooWide = SourceValues.integerValue(IR.getType(ir::TypeKind::PointerSize), 0x100000000ULL);
+      ASSERT_NE(TooWide, nullptr);
+
+      const ExecutionResult Result = Engine.execute("main", {TooWide});
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1U);
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::EntryArgumentInvalid);
+    }
+
+    // Verifies that a bounded global address remains available to typed load when executing for a non-native target with compatible byte representation.
+    TEST(ExecutionEngineTest, LoadsGlobalAddressForSyntheticTarget)
+    {
+      const core::TargetContext Native = core::TargetContext::native();
+      core::CompilationContext Compilation(core::TargetContext(Native.pointerWidth(), Native.byteOrder()));
+      ir::IRContext IR(Compilation);
+      ExecutionContext Execution(Compilation);
+      const std::string Text =
+          "inkir 1\n"
+          "@data = private constant [1 x byte] c\"x\"\n"
+          "define byte @main() {\n"
+          "entry:\n"
+          "  %0 = load byte, const byte* @data[0]\n"
+          "  ret byte %0\n"
+          "}\n";
+      const ir::DeserializeResult Parsed = ir::deserialize(IR, Text);
+      ASSERT_TRUE(Parsed.succeeded());
+      ASSERT_TRUE(Parsed.module().has_value());
+      ExecutionEngine Engine(Execution, *Parsed.module());
+
+      const ExecutionResult Result = Engine.execute("main");
+
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_NE(Result.returnValue(), nullptr);
+      EXPECT_EQ(Result.returnValue()->integer(), static_cast<std::uint64_t>('x'));
+    }
+
+    // Verifies that a synthetic target rejects an external call before evaluating its global-address argument or crossing libffi.
+    TEST(ExecutionEngineTest, RejectsExternalCallForSyntheticTarget)
+    {
+      const core::TargetContext Native = core::TargetContext::native();
+      core::CompilationContext Compilation(core::TargetContext(Native.pointerWidth(), Native.byteOrder()));
+      ir::IRContext IR(Compilation);
+      ExecutionContext Execution(Compilation);
+      const std::string Text =
+          "inkir 1\n"
+          "@data = private constant [1 x byte] c\"x\"\n"
+          "declare extern \"C\" void @external(const byte*) [sideeffect]\n"
+          "define void @main() {\n"
+          "entry:\n"
+          "  call void @external(const byte* @data[0])\n"
+          "  ret void\n"
+          "}\n";
+      const ir::DeserializeResult Parsed = ir::deserialize(IR, Text);
+      ASSERT_TRUE(Parsed.succeeded());
+      ASSERT_TRUE(Parsed.module().has_value());
+      ExecutionEngine Engine(Execution, *Parsed.module());
+
+      const ExecutionResult Result = Engine.execute("main");
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1U);
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionTargetUnsupported);
     }
   } // namespace
 } // namespace ink::execution
