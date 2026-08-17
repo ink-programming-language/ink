@@ -4,6 +4,8 @@
 #include "ink/ir/instruction/arithmetic.h"
 #include "ink/ir/instruction/control_flow.h"
 #include "ink/ir/instruction/memory.h"
+#include "ink/ir/model/constant.h"
+#include "ink/ir/model/operand.h"
 #include "ink/tokenizer/unicode.h"
 
 #include <cctype>

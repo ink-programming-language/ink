@@ -243,8 +243,10 @@ namespace ink::ir
       TestContext Context;
       static_assert(std::is_abstract_v<Value>);
       static_assert(std::is_base_of_v<Value, IntegerConstant>);
-      static_assert(std::is_base_of_v<Value, ValueOperand>);
-      static_assert(std::is_base_of_v<Value, GlobalAddressOperand>);
+      static_assert(std::is_base_of_v<Value, Operand>);
+      static_assert(std::is_base_of_v<Operand, ValueOperand>);
+      static_assert(std::is_base_of_v<Operand, GlobalAddressOperand>);
+      static_assert(std::is_base_of_v<Operand, GlobalVariableAddressOperand>);
 
       const Type &I32Type = Context.IR.getType(TypeKind::I32);
       std::unique_ptr<Value> Constant = std::make_unique<IntegerConstant>(I32Type, 42);

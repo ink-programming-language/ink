@@ -2,9 +2,9 @@
 
 #include "ink/execution/module/module_loader.h"
 #include "ink/ir/analysis/type_layout.h"
+#include "ink/ir/model/constant.h"
 #include "ink/ir/model/context.h"
 #include "ink/ir/model/module.h"
-#include "ink/ir/model/value.h"
 
 #include <algorithm>
 #include <condition_variable>

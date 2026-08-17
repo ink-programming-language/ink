@@ -18,6 +18,11 @@
 #include <utility>
 #include <vector>
 
+namespace ink::ir
+{
+  class GlobalVariableAddressOperand;
+}
+
 namespace ink::execution
 {
   class ExternalFunctionInvoker

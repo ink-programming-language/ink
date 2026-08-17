@@ -1,6 +1,8 @@
 #include "engine/function_executor.h"
 
+#include "ink/ir/model/constant.h"
 #include "ink/ir/model/context.h"
+#include "ink/ir/model/operand.h"
 
 #include <cstddef>
 #include <cstdint>

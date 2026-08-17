@@ -1,6 +1,7 @@
 #include "engine/function_executor.h"
 
 #include "ink/execution/module/module_loader.h"
+#include "ink/ir/model/operand.h"
 
 namespace ink::execution
 {

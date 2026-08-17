@@ -1,5 +1,7 @@
 #include "ink/execution/execution_engine.h"
+#include "ink/ir/model/constant.h"
 #include "ink/ir/model/context.h"
+#include "ink/ir/model/operand.h"
 #include "ink/ir/serialization.h"
 
 #include <gtest/gtest.h>

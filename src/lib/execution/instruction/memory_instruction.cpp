@@ -1,6 +1,7 @@
 #include "engine/function_executor.h"
 
 #include "ink/ir/analysis/type_layout.h"
+#include "ink/ir/model/constant.h"
 
 #include <cstddef>
 #include <cstdint>

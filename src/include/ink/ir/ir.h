@@ -9,6 +9,7 @@
 #include "ink/ir/instruction/instruction.h"
 #include "ink/ir/instruction/memory.h"
 #include "ink/ir/model/basic_block.h"
+#include "ink/ir/model/constant.h"
 #include "ink/ir/model/context.h"
 #include "ink/ir/model/function.h"
 #include "ink/ir/model/global_variable.h"
@@ -16,6 +17,7 @@
 #include "ink/ir/model/import_info.h"
 #include "ink/ir/model/module.h"
 #include "ink/ir/model/name.h"
+#include "ink/ir/model/operand.h"
 #include "ink/ir/model/type.h"
 #include "ink/ir/model/value.h"
 

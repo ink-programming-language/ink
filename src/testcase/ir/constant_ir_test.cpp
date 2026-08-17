@@ -69,14 +69,16 @@ namespace ink::ir
       return static_cast<const ReturnInstruction &>(*ModuleValue.Functions[FunctionIndex].Blocks[0].Instructions.back());
     }
 
-    // Verifies that all four constant classes retain their type-specific payloads through the abstract Value interface.
+    // Verifies that every constant kind shares the Constant base and retains its type-specific payload through Value.
     TEST(ConstantIrValueTest, ExposesTypedPayloadsForEveryConstantKind)
     {
       ConstantIrTestContext Context;
-      static_assert(std::is_base_of_v<Value, FloatConstant>);
-      static_assert(std::is_base_of_v<Value, StringConstant>);
-      static_assert(std::is_base_of_v<Value, NullConstant>);
-      static_assert(std::is_base_of_v<Value, AggregateConstant>);
+      static_assert(std::is_base_of_v<Value, Constant>);
+      static_assert(std::is_base_of_v<Constant, IntegerConstant>);
+      static_assert(std::is_base_of_v<Constant, FloatConstant>);
+      static_assert(std::is_base_of_v<Constant, StringConstant>);
+      static_assert(std::is_base_of_v<Constant, NullConstant>);
+      static_assert(std::is_base_of_v<Constant, AggregateConstant>);
       const Type &F16Type = Context.IR.getType(TypeKind::F16);
       const Type &F32Type = Context.IR.getType(TypeKind::F32);
       const Type &F64Type = Context.IR.getType(TypeKind::F64);

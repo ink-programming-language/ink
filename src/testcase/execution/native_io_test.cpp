@@ -1,6 +1,8 @@
 #include "ink/execution/execution_engine.h"
 #include "ink/execution/runtime/runtime_symbols.h"
+#include "ink/ir/model/constant.h"
 #include "ink/ir/model/context.h"
+#include "ink/ir/model/operand.h"
 
 #include <gtest/gtest.h>
 
