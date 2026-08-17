@@ -9,6 +9,9 @@ set(ReturnInput "${INK_TEST_DIRECTORY}/return.ir")
 set(InvalidInput "${INK_TEST_DIRECTORY}/invalid.ir")
 set(UnresolvedInput "${INK_TEST_DIRECTORY}/unresolved.ir")
 set(MissingInput "${INK_TEST_DIRECTORY}/missing.ir")
+set(ModuleEntryInput "${INK_TEST_DIRECTORY}/module-entry.ir")
+set(ModuleRoot "${INK_TEST_DIRECTORY}/modules")
+set(ModuleDependencyInput "${ModuleRoot}/package/dependency.ir")
 file(WRITE "${HelloInput}" [=[inkir 1
 
 @str.0 = private constant [14 x byte] c"Hello, world!\0A"
@@ -51,6 +54,27 @@ entry:
   ret void
 }
 ]=])
+file(MAKE_DIRECTORY "${ModuleRoot}/package")
+file(WRITE "${ModuleEntryInput}" [=[inkir 1
+module package.entry
+
+declare import i32 @dependency.answer() from module package.dependency, symbol @answer
+
+define i32 @main() {
+entry:
+  import package.dependency
+  %0 = call i32 @dependency.answer()
+  ret i32 %0
+}
+]=])
+file(WRITE "${ModuleDependencyInput}" [=[inkir 1
+module package.dependency
+
+define i32 @answer() {
+entry:
+  ret i32 42
+}
+]=])
 file(REMOVE "${MissingInput}")
 
 execute_process(COMMAND "${INK_INTERPRETER}" --help RESULT_VARIABLE HelpResult OUTPUT_VARIABLE HelpOutput ERROR_VARIABLE HelpError)
@@ -75,6 +99,16 @@ endif()
 execute_process(COMMAND "${INK_INTERPRETER}" -i "${ReturnInput}" RESULT_VARIABLE ReturnResult OUTPUT_VARIABLE ReturnOutput ERROR_VARIABLE ReturnError)
 if(NOT ReturnResult EQUAL 7 OR NOT "${ReturnOutput}" STREQUAL "" OR NOT "${ReturnError}" STREQUAL "")
   message(FATAL_ERROR "i32 main result was not forwarded to the process: result=${ReturnResult}\nstdout=${ReturnOutput}\nstderr=${ReturnError}")
+endif()
+
+execute_process(COMMAND "${INK_INTERPRETER}" -i "${ModuleEntryInput}" -I "${ModuleRoot}" RESULT_VARIABLE ModulePathResult OUTPUT_VARIABLE ModulePathOutput ERROR_VARIABLE ModulePathError)
+if(NOT ModulePathResult EQUAL 42 OR NOT "${ModulePathOutput}" STREQUAL "" OR NOT "${ModulePathError}" STREQUAL "")
+  message(FATAL_ERROR "module path import failed: result=${ModulePathResult}\nstdout=${ModulePathOutput}\nstderr=${ModulePathError}")
+endif()
+
+execute_process(COMMAND "${CMAKE_COMMAND}" -E env "INK_MODULE_PATH=${ModuleRoot}" "${INK_INTERPRETER}" -i "${ModuleEntryInput}" RESULT_VARIABLE EnvironmentModulePathResult OUTPUT_VARIABLE EnvironmentModulePathOutput ERROR_VARIABLE EnvironmentModulePathError)
+if(NOT EnvironmentModulePathResult EQUAL 42 OR NOT "${EnvironmentModulePathOutput}" STREQUAL "" OR NOT "${EnvironmentModulePathError}" STREQUAL "")
+  message(FATAL_ERROR "INK_MODULE_PATH import failed: result=${EnvironmentModulePathResult}\nstdout=${EnvironmentModulePathOutput}\nstderr=${EnvironmentModulePathError}")
 endif()
 
 execute_process(COMMAND "${INK_INTERPRETER}" -i "${InvalidInput}" RESULT_VARIABLE InvalidResult OUTPUT_VARIABLE InvalidOutput ERROR_VARIABLE InvalidError)

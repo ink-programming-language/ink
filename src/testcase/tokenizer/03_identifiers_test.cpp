@@ -23,9 +23,9 @@ namespace ink::tokenizer
 
     struct RelatedCharacterExpectation
     {
-      DiagnosticRelatedKind Kind;
-      SourceRange Span;
-      char32_t Character;
+        DiagnosticRelatedKind Kind;
+        SourceRange Span;
+        char32_t Character;
     };
 
     template <typename ValueType>
@@ -205,8 +205,8 @@ namespace ink::tokenizer
     {
       struct ContinueCase
       {
-        const char *Name;
-        std::string Scalar;
+          const char *Name;
+          std::string Scalar;
       };
       const std::vector<ContinueCase> Cases = {
           {"middle dot", utf8(u8"\u00B7")},
@@ -442,12 +442,12 @@ namespace ink::tokenizer
     {
       struct InvisibleCase
       {
-        const char *Name;
-        std::string Source;
-        std::string Invisible;
-        char32_t ExpectedCharacter;
-        DiagnosticSourceContext ExpectedContext;
-        TokenKind ExpectedErrorKind;
+          const char *Name;
+          std::string Source;
+          std::string Invisible;
+          char32_t ExpectedCharacter;
+          DiagnosticSourceContext ExpectedContext;
+          TokenKind ExpectedErrorKind;
       };
       const std::vector<InvisibleCase> Cases = {
           {"zero width non joiner", utf8(u8"a\u200Cb"), utf8(u8"\u200C"), U'\u200C', DiagnosticSourceContext::Identifier, TokenKind::InvalidIdentifier},
@@ -533,12 +533,12 @@ namespace ink::tokenizer
     {
       struct InvisibleXidCase
       {
-        const char *Name;
-        std::string Source;
-        std::string Invisible;
-        char32_t ExpectedCharacter;
-        char32_t PreviousCharacter;
-        char32_t NextCharacter;
+          const char *Name;
+          std::string Source;
+          std::string Invisible;
+          char32_t ExpectedCharacter;
+          char32_t PreviousCharacter;
+          char32_t NextCharacter;
       };
       const std::vector<InvisibleXidCase> Cases = {
           {"Hangul choseong filler", utf8(u8"\u115Fa"), utf8(u8"\u115F"), U'\u115F', U'\0', U'a'},

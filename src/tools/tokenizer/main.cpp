@@ -107,7 +107,7 @@ namespace
 int main(int ArgumentCount, char **ArgumentValues)
 {
   return ink::cli::runMain("ink-tokenize", [ArgumentCount, ArgumentValues]()
-  {
-    return runTokenizer(ArgumentCount, ArgumentValues);
-  });
+                           {
+                             return runTokenizer(ArgumentCount, ArgumentValues);
+                           });
 }

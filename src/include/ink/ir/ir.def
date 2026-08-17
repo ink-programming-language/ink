@@ -38,39 +38,22 @@ INK_IR_VALUE(StringConstant)
 INK_IR_VALUE(NullConstant)
 INK_IR_VALUE(AggregateConstant)
 
-// Formats: call void @callee(<type> <argument>, ...); %result = call <non-void-type> @callee(<type> <argument>, ...)
 INK_IR_INSTRUCTION(Call, "call", false)
-// Format: import <module-id>
 INK_IR_INSTRUCTION(Import, "import", false)
-// Format: %result = alloca byte[] ptrsize <size>
 INK_IR_INSTRUCTION(Alloca, "alloca", false)
-// Format: %result = getelementptr <element-type>, <pointer-type> <pointer>, ptrsize <element-index>[, i32 <constant-field-index>]...
 INK_IR_INSTRUCTION(GetElementPointer, "getelementptr", false)
-// Format: %result = load <memory-value-type>, <pointer-type> <pointer>
 INK_IR_INSTRUCTION(Load, "load", false)
-// Format: store <memory-value-type> <value>, byte* <pointer>
 INK_IR_INSTRUCTION(Store, "store", false)
-// Format: lifetime.end byte[] <slice>
 INK_IR_INSTRUCTION(LifetimeEnd, "lifetime.end", false)
-// Format: %result = slice.data <pointer-type> <slice-type> <slice>
 INK_IR_INSTRUCTION(SliceData, "slice.data", false)
-// Format: %result = slice.length <slice-type> <slice>
 INK_IR_INSTRUCTION(SliceLength, "slice.length", false)
-// Format: %result = phi <type> [<value>, <predecessor>], ...
 INK_IR_INSTRUCTION(Phi, "phi", false)
-// Format: %result = add <integer-type> <left>, <integer-type> <right>
 INK_IR_INSTRUCTION(Add, "add", false)
-// Format: %result = icmp <predicate> <comparable-type> <left>, <comparable-type> <right>
 INK_IR_INSTRUCTION(Compare, "icmp", false)
-// Format: %result = insertvalue <struct-type> <aggregate>, <field-type> <element>, <field-index>
 INK_IR_INSTRUCTION(InsertValue, "insertvalue", false)
-// Format: %result = extractvalue <struct-type> <aggregate>, <field-index>
 INK_IR_INSTRUCTION(ExtractValue, "extractvalue", false)
-// Format: br <target>
 INK_IR_INSTRUCTION(Branch, "br", true)
-// Format: condbr bool <condition>, <true-target>, <false-target>
 INK_IR_INSTRUCTION(ConditionalBranch, "condbr", true)
-// Formats: ret void; ret <type> <value>
 INK_IR_INSTRUCTION(Return, "ret", true)
 
 #undef INK_IR_TYPE

@@ -121,7 +121,7 @@ namespace ink::core
       switch (DiagnosticEntry.Kind)
       {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                         \
+  case DiagnosticKind::Name:                                                                                              \
     return formatMessage(typename DiagnosticTraits<DiagnosticKind::Name>::Arguments{}, DiagnosticEntry, FormatPattern, DefaultMessage);
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -173,7 +173,7 @@ namespace ink::core
     switch (Kind)
     {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                         \
+  case DiagnosticKind::Name:                                                                                              \
     return Number;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -186,7 +186,7 @@ namespace ink::core
     switch (Kind)
     {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                         \
+  case DiagnosticKind::Name:                                                                                              \
     return Code;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -199,7 +199,7 @@ namespace ink::core
     switch (Kind)
     {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                         \
+  case DiagnosticKind::Name:                                                                                              \
     return #Name;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -212,7 +212,7 @@ namespace ink::core
     switch (Kind)
     {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                         \
+  case DiagnosticKind::Name:                                                                                              \
     return DefaultMessage;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -225,7 +225,7 @@ namespace ink::core
     switch (Kind)
     {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                         \
+  case DiagnosticKind::Name:                                                                                              \
     return FormatPattern;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -238,7 +238,7 @@ namespace ink::core
     switch (Kind)
     {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                         \
+  case DiagnosticKind::Name:                                                                                              \
     return DiagnosticDomain::Domain;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -251,7 +251,7 @@ namespace ink::core
     switch (Kind)
     {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                         \
+  case DiagnosticKind::Name:                                                                                              \
     return DiagnosticClass::Class;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -264,7 +264,7 @@ namespace ink::core
     switch (Kind)
     {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                         \
+  case DiagnosticKind::Name:                                                                                              \
     return DiagnosticSeverity::DefaultSeverity;
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -344,14 +344,14 @@ namespace ink::core
       return "ValueId";
     case DiagnosticArgumentName::GlobalId:
       return "GlobalId";
-    case DiagnosticArgumentName::ModuleId:
-      return "ModuleId";
-    case DiagnosticArgumentName::RelatedModuleId:
-      return "RelatedModuleId";
-    case DiagnosticArgumentName::ExpectedModuleId:
-      return "ExpectedModuleId";
-    case DiagnosticArgumentName::ActualModuleId:
-      return "ActualModuleId";
+    case DiagnosticArgumentName::ModuleName:
+      return "ModuleName";
+    case DiagnosticArgumentName::RelatedModuleName:
+      return "RelatedModuleName";
+    case DiagnosticArgumentName::ExpectedModuleName:
+      return "ExpectedModuleName";
+    case DiagnosticArgumentName::ActualModuleName:
+      return "ActualModuleName";
     case DiagnosticArgumentName::FunctionId:
       return "FunctionId";
     case DiagnosticArgumentName::ExpectedValue:

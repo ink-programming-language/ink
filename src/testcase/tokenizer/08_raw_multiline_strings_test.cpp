@@ -494,9 +494,9 @@ namespace ink::tokenizer
     {
       struct LoneCarriageReturnCase
       {
-        std::string Source;
-        std::size_t CarriageReturnOffset;
-        std::vector<std::size_t> LineStarts;
+          std::string Source;
+          std::size_t CarriageReturnOffset;
+          std::vector<std::size_t> LineStarts;
       };
 
       const std::vector<LoneCarriageReturnCase> Cases = {
@@ -656,9 +656,9 @@ namespace ink::tokenizer
     {
       struct MalformedEscapeCase
       {
-        std::string Source;
-        DiagnosticKind Kind;
-        SourceRange Span;
+          std::string Source;
+          DiagnosticKind Kind;
+          SourceRange Span;
       };
 
       const std::string InvalidHex = "\"\"\"\n  bad:\\xG0\n  \"\"\"";

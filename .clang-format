@@ -1,6 +1,7 @@
 BasedOnStyle: LLVM
 Language: Cpp
 ColumnLimit: 0
+SortIncludes: Never
 BreakBeforeBraces: Allman
 NamespaceIndentation: All
 IndentAccessModifiers: true

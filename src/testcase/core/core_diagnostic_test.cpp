@@ -18,15 +18,15 @@ namespace ink::core
   {
     struct DiagnosticExpectation
     {
-      DiagnosticKind Kind;
-      std::uint32_t Number;
-      DiagnosticDomain Domain;
-      DiagnosticClass Class;
-      DiagnosticSeverity Severity;
-      const char *Code;
-      const char *Name;
-      const char *DefaultMessage;
-      const char *FormatPattern;
+        DiagnosticKind Kind;
+        std::uint32_t Number;
+        DiagnosticDomain Domain;
+        DiagnosticClass Class;
+        DiagnosticSeverity Severity;
+        const char *Code;
+        const char *Name;
+        const char *DefaultMessage;
+        const char *FormatPattern;
     };
 
     constexpr DiagnosticExpectation DiagnosticExpectations[] = {
@@ -202,14 +202,14 @@ namespace ink::core
     // Verifies every registered format pattern accepts a representative value for each declared schema entry.
     TEST(DiagnosticFormatterTest, FormatsEveryRegisteredSchema)
     {
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema)                         \
-  {                                                                                                                                              \
-    const Diagnostic Value = makeSampleDiagnostic<DiagnosticKind::Name>(typename DiagnosticTraits<DiagnosticKind::Name>::Arguments{});           \
-    const FormattedDiagnostic Formatted = DiagnosticFormatter().format(Value);                                                                    \
-    if (std::strcmp(DefaultMessage, FormatPattern) != 0)                                                                                           \
-    {                                                                                                                                              \
-      EXPECT_NE(Formatted.Message, DefaultMessage) << #Name;                                                                                       \
-    }                                                                                                                                              \
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema)              \
+  {                                                                                                                                    \
+    const Diagnostic Value = makeSampleDiagnostic<DiagnosticKind::Name>(typename DiagnosticTraits<DiagnosticKind::Name>::Arguments{}); \
+    const FormattedDiagnostic Formatted = DiagnosticFormatter().format(Value);                                                         \
+    if (std::strcmp(DefaultMessage, FormatPattern) != 0)                                                                               \
+    {                                                                                                                                  \
+      EXPECT_NE(Formatted.Message, DefaultMessage) << #Name;                                                                           \
+    }                                                                                                                                  \
   }
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC

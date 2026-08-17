@@ -148,6 +148,45 @@ auto Handler = []() {
 };
 ```
 
+## 类访问控制与成员缩进
+
+- `class` 和 `struct` 中，`public:`、`protected:`、`private:` 必须相对类型声明缩进一级。
+- 每个访问控制区段内的成员声明、成员定义、友元声明、嵌套类型和其他内容必须相对访问控制标签再缩进一级；成员函数体内部继续按代码块层级递增缩进。
+- 没有显式访问控制标签的 `class` 或 `struct` 成员按对应的隐式访问区段处理，其缩进必须与存在访问控制标签时的成员缩进一致。
+- 不得把访问控制标签与类型声明或类型体右花括号对齐。本节规则适用于头文件、实现文件和测试代码，不适用于 `src/third_party`。
+
+正确：
+
+```cpp
+class ByteConstantId
+{
+  public:
+    constexpr bool valid() const noexcept
+    {
+      return Value != InvalidId;
+    }
+
+  private:
+    std::size_t Value = InvalidId;
+};
+```
+
+错误：
+
+```cpp
+class ByteConstantId
+{
+public:
+  constexpr bool valid() const noexcept
+  {
+    return Value != InvalidId;
+  }
+
+private:
+  std::size_t Value = InvalidId;
+};
+```
+
 ## 数据定义
 
 - 大型 `constexpr` 数据、查找表和其他表格型初始化定义必须展开为多行，每个表项单独一行，并保留尾随逗号以便维护。

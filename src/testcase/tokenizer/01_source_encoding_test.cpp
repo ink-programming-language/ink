@@ -172,8 +172,8 @@ namespace ink::tokenizer
     {
       struct ValidUtf8BoundaryCase
       {
-        const char *Name;
-        std::string Encoding;
+          const char *Name;
+          std::string Encoding;
       };
       const std::vector<ValidUtf8BoundaryCase> Cases = {
           {"lowest two-byte scalar", bytes({0xC2, 0x80})},
@@ -267,8 +267,8 @@ namespace ink::tokenizer
     {
       struct InvalidUtf8BoundaryCase
       {
-        const char *Name;
-        std::string Encoding;
+          const char *Name;
+          std::string Encoding;
       };
       const std::vector<InvalidUtf8BoundaryCase> Cases = {
           {"three-byte overlong boundary", bytes({0xE0, 0x9F, 0xBF})},
@@ -301,8 +301,8 @@ namespace ink::tokenizer
     {
       struct InvalidUtf8Case
       {
-        const char *Name;
-        std::string Bytes;
+          const char *Name;
+          std::string Bytes;
       };
       const std::vector<InvalidUtf8Case> Cases = {
           {"invalid leading byte", bytes({0x80})},
@@ -333,9 +333,9 @@ namespace ink::tokenizer
     {
       struct InvalidUtf8RecoveryCase
       {
-        const char *Name;
-        std::string InvalidPrefix;
-        std::string FollowingIdentifier;
+          const char *Name;
+          std::string InvalidPrefix;
+          std::string FollowingIdentifier;
       };
       const std::vector<InvalidUtf8RecoveryCase> Cases = {
           {"four byte overlong encoding", bytes({0xF0, 0x8F, 0xBF, 0xBF}), "x"},
@@ -372,8 +372,8 @@ namespace ink::tokenizer
     {
       struct TruncatedUtf8Case
       {
-        const char *Name;
-        std::string Prefix;
+          const char *Name;
+          std::string Prefix;
       };
       const std::vector<TruncatedUtf8Case> Cases = {
           {"two-byte sequence missing its second byte", bytes({0xC2})},
@@ -451,10 +451,10 @@ namespace ink::tokenizer
     {
       struct RejectedBomCase
       {
-        const char *Name;
-        std::string Source;
-        std::vector<TokenKind> TokenKinds;
-        std::vector<DiagnosticKind> DiagnosticKinds;
+          const char *Name;
+          std::string Source;
+          std::vector<TokenKind> TokenKinds;
+          std::vector<DiagnosticKind> DiagnosticKinds;
       };
       const std::vector<RejectedBomCase> Cases = {
           {"utf16 little endian", bytes({0xFF, 0xFE}), {TokenKind::InvalidEncoding, TokenKind::InvalidEncoding}, {DiagnosticKind::InvalidUtf8, DiagnosticKind::InvalidUtf8}},

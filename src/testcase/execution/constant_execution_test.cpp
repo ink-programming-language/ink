@@ -1,5 +1,5 @@
 #include "ink/execution/execution_engine.h"
-#include "ink/ir/context.h"
+#include "ink/ir/model/context.h"
 #include "ink/ir/serialization.h"
 
 #include <gtest/gtest.h>
@@ -13,9 +13,9 @@ namespace ink::execution
   {
     struct ConstantExecutionTestContext
     {
-      core::CompilationContext Compilation;
-      ir::IRContext IR{Compilation};
-      ExecutionContext Execution{Compilation};
+        core::CompilationContext Compilation;
+        ir::IRContext IR{Compilation};
+        ExecutionContext Execution{Compilation};
     };
 
     // Verifies that f16, both signed f32 zeroes, and an f64 NaN payload reach RuntimeValue without numeric conversion.
@@ -46,9 +46,9 @@ namespace ink::execution
       ExecutionEngine Engine(Context.Execution, *Parsed.module());
       struct Case
       {
-        const char *FunctionName;
-        ir::TypeKind Type;
-        std::uint64_t Bits;
+          const char *FunctionName;
+          ir::TypeKind Type;
+          std::uint64_t Bits;
       };
       const Case Cases[] = {
           {"half_one", ir::TypeKind::F16, 0x3C00U},

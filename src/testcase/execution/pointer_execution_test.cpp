@@ -1,5 +1,5 @@
 #include "ink/execution/execution_engine.h"
-#include "ink/ir/memory.h"
+#include "ink/ir/instruction/memory.h"
 #include "ink/ir/serialization.h"
 
 #include <gtest/gtest.h>
@@ -16,16 +16,16 @@ namespace ink::execution
   {
     struct PointerExecutionTestContext
     {
-      PointerExecutionTestContext() = default;
+        PointerExecutionTestContext() = default;
 
-      explicit PointerExecutionTestContext(core::TargetContext Target)
-          : Compilation(Target)
-      {
-      }
+        explicit PointerExecutionTestContext(core::TargetContext Target)
+            : Compilation(Target)
+        {
+        }
 
-      core::CompilationContext Compilation;
-      ir::IRContext IR{Compilation};
-      ExecutionContext Execution{Compilation};
+        core::CompilationContext Compilation;
+        ir::IRContext IR{Compilation};
+        ExecutionContext Execution{Compilation};
     };
 
     ExecutionResult executePointerText(PointerExecutionTestContext &Context, const std::string &Text)
@@ -54,8 +54,8 @@ namespace ink::execution
     {
       struct Case
       {
-        const char *ElementType;
-        std::uint64_t ExpectedByteOffset;
+          const char *ElementType;
+          std::uint64_t ExpectedByteOffset;
       };
       const Case Cases[] = {
           {"bool", 2},

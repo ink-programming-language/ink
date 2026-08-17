@@ -32,9 +32,11 @@ namespace ink::cli
     {
       std::ostringstream ErrorOutput;
       EXPECT_EQ(runMain("ink-test", []()
-      {
-        return 7;
-      }, ErrorOutput), 7);
+                        {
+                          return 7;
+                        },
+                        ErrorOutput),
+                7);
       EXPECT_TRUE(ErrorOutput.str().empty());
     }
 

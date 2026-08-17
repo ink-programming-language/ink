@@ -7,18 +7,18 @@ namespace ink::core
 {
   struct SourceRange
   {
-    std::size_t Start = 0;
-    std::size_t End = 0;
+      std::size_t Start = 0;
+      std::size_t End = 0;
 
-    constexpr std::size_t size() const noexcept
-    {
-      return End - Start;
-    }
+      constexpr std::size_t size() const noexcept
+      {
+        return End - Start;
+      }
 
-    constexpr bool empty() const noexcept
-    {
-      return Start == End;
-    }
+      constexpr bool empty() const noexcept
+      {
+        return Start == End;
+      }
   };
 
   constexpr bool operator==(SourceRange Left, SourceRange Right) noexcept

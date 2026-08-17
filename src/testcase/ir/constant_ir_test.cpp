@@ -1,6 +1,6 @@
+#include "ink/ir/analysis/verifier.h"
 #include "ink/ir/ir.h"
 #include "ink/ir/serialization.h"
-#include "ink/ir/verifier.h"
 
 #include <gtest/gtest.h>
 
@@ -18,8 +18,8 @@ namespace ink::ir
   {
     struct ConstantIrTestContext
     {
-      core::CompilationContext Compilation;
-      IRContext IR{Compilation};
+        core::CompilationContext Compilation;
+        IRContext IR{Compilation};
     };
 
     void expectCanonicalRoundTrip(IRContext &Context, const std::string &Text)

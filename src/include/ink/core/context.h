@@ -8,72 +8,72 @@ namespace ink::core
 {
   class CompilationContext
   {
-  public:
-    CompilationContext()
-        : Target(TargetContext::native())
-    {
-    }
+    public:
+      CompilationContext()
+          : Target(TargetContext::native())
+      {
+      }
 
-    explicit CompilationContext(TargetContext Target)
-        : Target(Target)
-    {
-    }
+      explicit CompilationContext(TargetContext Target)
+          : Target(Target)
+      {
+      }
 
-    CompilationContext(const CompilationContext &) = delete;
-    CompilationContext &operator=(const CompilationContext &) = delete;
-    CompilationContext(CompilationContext &&) = delete;
-    CompilationContext &operator=(CompilationContext &&) = delete;
+      CompilationContext(const CompilationContext &) = delete;
+      CompilationContext &operator=(const CompilationContext &) = delete;
+      CompilationContext(CompilationContext &&) = delete;
+      CompilationContext &operator=(CompilationContext &&) = delete;
 
-    const TargetContext &targetContext() const noexcept
-    {
-      return Target;
-    }
+      const TargetContext &targetContext() const noexcept
+      {
+        return Target;
+      }
 
-    DiagnosticEngine &diagnosticEngine() noexcept
-    {
-      return Diagnostics;
-    }
+      DiagnosticEngine &diagnosticEngine() noexcept
+      {
+        return Diagnostics;
+      }
 
-    const DiagnosticEngine &diagnosticEngine() const noexcept
-    {
-      return Diagnostics;
-    }
+      const DiagnosticEngine &diagnosticEngine() const noexcept
+      {
+        return Diagnostics;
+      }
 
-  private:
-    TargetContext Target;
-    DiagnosticEngine Diagnostics;
+    private:
+      TargetContext Target;
+      DiagnosticEngine Diagnostics;
   };
 
   class FrontendContext
   {
-  public:
-    explicit FrontendContext(CompilationContext &Compilation)
-        : Compilation(Compilation)
-    {
-    }
+    public:
+      explicit FrontendContext(CompilationContext &Compilation)
+          : Compilation(Compilation)
+      {
+      }
 
-    CompilationContext &compilationContext() noexcept
-    {
-      return Compilation;
-    }
+      CompilationContext &compilationContext() noexcept
+      {
+        return Compilation;
+      }
 
-    const CompilationContext &compilationContext() const noexcept
-    {
-      return Compilation;
-    }
+      const CompilationContext &compilationContext() const noexcept
+      {
+        return Compilation;
+      }
 
-    DiagnosticEngine &diagnosticEngine() noexcept
-    {
-      return Compilation.diagnosticEngine();
-    }
+      DiagnosticEngine &diagnosticEngine() noexcept
+      {
+        return Compilation.diagnosticEngine();
+      }
 
-    const DiagnosticEngine &diagnosticEngine() const noexcept
-    {
-      return Compilation.diagnosticEngine();
-    }
+      const DiagnosticEngine &diagnosticEngine() const noexcept
+      {
+        return Compilation.diagnosticEngine();
+      }
 
-  private:
-    CompilationContext &Compilation;
+    private:
+      CompilationContext &Compilation;
   };
 } // namespace ink::core
 

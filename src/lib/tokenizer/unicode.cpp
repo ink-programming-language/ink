@@ -1,4 +1,4 @@
-#include "unicode.h"
+#include "ink/tokenizer/unicode.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -18,8 +18,8 @@ namespace ink::tokenizer::unicode
 
     struct CodePointRange
     {
-      char32_t Lower;
-      char32_t Upper;
+        char32_t Lower;
+        char32_t Upper;
     };
 
     template <typename Range, std::size_t Size>

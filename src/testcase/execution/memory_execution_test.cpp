@@ -1,5 +1,5 @@
 #include "ink/execution/execution_engine.h"
-#include "ink/ir/memory.h"
+#include "ink/ir/instruction/memory.h"
 #include "ink/ir/serialization.h"
 
 #include <gtest/gtest.h>
@@ -19,16 +19,16 @@ namespace ink::execution
   {
     struct MemoryExecutionTestContext
     {
-      MemoryExecutionTestContext() = default;
+        MemoryExecutionTestContext() = default;
 
-      explicit MemoryExecutionTestContext(core::TargetContext Target)
-          : Compilation(Target)
-      {
-      }
+        explicit MemoryExecutionTestContext(core::TargetContext Target)
+            : Compilation(Target)
+        {
+        }
 
-      core::CompilationContext Compilation;
-      ir::IRContext IR{Compilation};
-      ExecutionContext Execution{Compilation};
+        core::CompilationContext Compilation;
+        ir::IRContext IR{Compilation};
+        ExecutionContext Execution{Compilation};
     };
 
     std::vector<std::uint8_t> CapturedManagedBytes;
@@ -116,9 +116,9 @@ namespace ink::execution
     {
       struct Case
       {
-        const char *Type;
-        const char *StoredValue;
-        std::uint64_t ExpectedValue;
+          const char *Type;
+          const char *StoredValue;
+          std::uint64_t ExpectedValue;
       };
       const Case Cases[] = {
           {"bool", "1", 1},
@@ -143,8 +143,8 @@ namespace ink::execution
     {
       struct Case
       {
-        core::ByteOrder Order;
-        std::uint64_t ExpectedFirstByte;
+          core::ByteOrder Order;
+          std::uint64_t ExpectedFirstByte;
       };
       const Case Cases[] = {
           {core::ByteOrder::LittleEndian, 4},
@@ -295,11 +295,11 @@ namespace ink::execution
     {
       struct Case
       {
-        const char *Instruction;
-        const char *Operation;
-        std::size_t SliceLength;
-        std::size_t AccessSize;
-        std::size_t Index;
+          const char *Instruction;
+          const char *Operation;
+          std::size_t SliceLength;
+          std::size_t AccessSize;
+          std::size_t Index;
       };
       const Case Cases[] = {
           {"%3 = load byte, byte* %2", "load", 1, 1, 1},
@@ -325,8 +325,8 @@ namespace ink::execution
     {
       struct Case
       {
-        const char *Instruction;
-        const char *Operation;
+          const char *Instruction;
+          const char *Operation;
       };
       const Case Cases[] = {
           {"%3 = load byte, byte* %2", "load"},
@@ -379,9 +379,9 @@ namespace ink::execution
     {
       struct Case
       {
-        const char *BeforeLifetimeEnd;
-        const char *AfterLifetimeEnd;
-        const char *Operation;
+          const char *BeforeLifetimeEnd;
+          const char *AfterLifetimeEnd;
+          const char *Operation;
       };
       const Case Cases[] = {
           {"  %1 = slice.data byte* byte[] %0\n", "  %2 = load byte, byte* %1\n", "load"},

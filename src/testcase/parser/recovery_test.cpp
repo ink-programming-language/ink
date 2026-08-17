@@ -22,31 +22,31 @@ namespace ink::parser
 
     struct MissingSyntaxCase
     {
-      const char *Name;
-      const char *Source;
-      const char *ExpectedSpelling;
+        const char *Name;
+        const char *Source;
+        const char *ExpectedSpelling;
     };
 
     struct RegionMatchRecoveryCase
     {
-      const char *Name;
-      const char *Source;
-      CstKind BlockKind;
+        const char *Name;
+        const char *Source;
+        CstKind BlockKind;
     };
 
     struct StructuredMatchRecoveryCase
     {
-      const char *Name;
-      const char *Source;
-      CstKind ArmKind;
+        const char *Name;
+        const char *Source;
+        CstKind ArmKind;
     };
 
     struct InheritanceRecoveryCase
     {
-      const char *Name;
-      const char *Source;
-      CstKind OwnerKind;
-      CstKind BlockKind;
+        const char *Name;
+        const char *Source;
+        CstKind OwnerKind;
+        CstKind BlockKind;
     };
 
     // Verifies missing delimiters, terminators, and required clauses become zero-width MissingToken leaves with diagnostics.
@@ -82,10 +82,10 @@ namespace ink::parser
 
     struct ErrorRecoveryCase
     {
-      const char *Name;
-      const char *Source;
-      core::DiagnosticKind ExpectedDiagnostic;
-      CstKind RecoveredKind;
+        const char *Name;
+        const char *Source;
+        core::DiagnosticKind ExpectedDiagnostic;
+        CstKind RecoveredKind;
     };
 
     // Verifies unexpected tokens, reserved sequences, trailing commas, and declaration-placement errors recover into Error nodes and continue parsing.
@@ -168,8 +168,8 @@ namespace ink::parser
 
     struct InteractiveCase
     {
-      const char *Name;
-      const char *Source;
+        const char *Name;
+        const char *Source;
     };
 
     // Verifies EOF in a construct that can be completed by more input is Incomplete interactively but remains Complete in batch mode.

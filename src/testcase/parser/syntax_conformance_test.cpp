@@ -15,9 +15,9 @@ namespace ink::parser
 
     struct ValidSyntaxCase
     {
-      const char *Name;
-      const char *Source;
-      std::vector<CstKind> ExpectedKinds;
+        const char *Name;
+        const char *Source;
+        std::vector<CstKind> ExpectedKinds;
     };
 
     void expectValidSyntax(const ValidSyntaxCase &TestCase)

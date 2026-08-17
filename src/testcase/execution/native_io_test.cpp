@@ -1,6 +1,6 @@
 #include "ink/execution/execution_engine.h"
-#include "ink/execution/runtime_symbols.h"
-#include "ink/ir/context.h"
+#include "ink/execution/runtime/runtime_symbols.h"
+#include "ink/ir/model/context.h"
 
 #include <gtest/gtest.h>
 
@@ -20,9 +20,9 @@ namespace ink::execution
   {
     struct NativeIoTestContext
     {
-      core::CompilationContext Compilation;
-      ir::IRContext IR{Compilation};
-      ExecutionContext Execution{Compilation};
+        core::CompilationContext Compilation;
+        ir::IRContext IR{Compilation};
+        ExecutionContext Execution{Compilation};
     };
 
     std::vector<std::uint8_t> CapturedBytes;

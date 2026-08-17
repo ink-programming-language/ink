@@ -19,9 +19,9 @@ namespace ink::parser
   {
     struct IntegrationTestCase
     {
-      std::string DirectoryName;
-      std::filesystem::path SolutionPath;
-      std::string SetupError;
+        std::string DirectoryName;
+        std::filesystem::path SolutionPath;
+        std::string SetupError;
     };
 
     std::filesystem::path integrationDirectory()
@@ -78,7 +78,8 @@ namespace ink::parser
       std::ostringstream Result;
       for (const core::Diagnostic &Diagnostic : Diagnostics)
       {
-        Result << '\n' << Diagnostic.code() << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ')';
+        Result << '\n'
+               << Diagnostic.code() << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ')';
       }
       return Result.str();
     }

@@ -6,11 +6,16 @@
 
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
+#include <limits>
 #include <memory>
 #include <ostream>
 #include <string>
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
 #include <fcntl.h>
 #include <io.h>
 #endif
@@ -87,6 +92,76 @@ namespace ink::cli
     return true;
   }
 
+  EnvironmentVariableStatus readEnvironmentVariable(std::string_view Name, std::string &Value) noexcept
+  {
+    Value.clear();
+    if (Name.empty() || !isValidUtf8(Name))
+    {
+      return EnvironmentVariableStatus::Invalid;
+    }
+#ifdef _WIN32
+    if (Name.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+    {
+      return EnvironmentVariableStatus::Invalid;
+    }
+    const int WideNameLength = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Name.data(), static_cast<int>(Name.size()), nullptr, 0);
+    if (WideNameLength <= 0)
+    {
+      return EnvironmentVariableStatus::Invalid;
+    }
+    std::wstring WideName(static_cast<std::size_t>(WideNameLength), L'\0');
+    if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Name.data(), static_cast<int>(Name.size()), WideName.data(), WideNameLength) != WideNameLength)
+    {
+      return EnvironmentVariableStatus::Invalid;
+    }
+    SetLastError(ERROR_SUCCESS);
+    const DWORD RequiredLength = GetEnvironmentVariableW(WideName.c_str(), nullptr, 0);
+    if (RequiredLength == 0)
+    {
+      return GetLastError() == ERROR_ENVVAR_NOT_FOUND ? EnvironmentVariableStatus::NotFound : EnvironmentVariableStatus::Invalid;
+    }
+    std::wstring WideValue(static_cast<std::size_t>(RequiredLength), L'\0');
+    const DWORD WrittenLength = GetEnvironmentVariableW(WideName.c_str(), WideValue.data(), RequiredLength);
+    if (WrittenLength >= RequiredLength)
+    {
+      return EnvironmentVariableStatus::Invalid;
+    }
+    WideValue.resize(static_cast<std::size_t>(WrittenLength));
+    if (WideValue.empty())
+    {
+      return EnvironmentVariableStatus::Found;
+    }
+    if (WideValue.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+    {
+      return EnvironmentVariableStatus::Invalid;
+    }
+    const int Utf8Length = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, WideValue.data(), static_cast<int>(WideValue.size()), nullptr, 0, nullptr, nullptr);
+    if (Utf8Length <= 0)
+    {
+      return EnvironmentVariableStatus::Invalid;
+    }
+    Value.resize(static_cast<std::size_t>(Utf8Length));
+    if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, WideValue.data(), static_cast<int>(WideValue.size()), Value.data(), Utf8Length, nullptr, nullptr) != Utf8Length)
+    {
+      Value.clear();
+      return EnvironmentVariableStatus::Invalid;
+    }
+    return EnvironmentVariableStatus::Found;
+#else
+    const char *EnvironmentValue = std::getenv(std::string(Name).c_str());
+    if (EnvironmentValue == nullptr)
+    {
+      return EnvironmentVariableStatus::NotFound;
+    }
+    if (!isValidUtf8(EnvironmentValue))
+    {
+      return EnvironmentVariableStatus::Invalid;
+    }
+    Value = EnvironmentValue;
+    return EnvironmentVariableStatus::Found;
+#endif
+  }
+
   bool useBinaryStandardInput() noexcept
   {
 #ifdef _WIN32
@@ -102,9 +177,9 @@ namespace ink::cli
     spdlog::logger Logger("ink-output", Sink);
     bool Failed = false;
     Logger.set_error_handler([&Failed](const std::string &)
-    {
-      Failed = true;
-    });
+                             {
+                               Failed = true;
+                             });
     Logger.set_formatter(std::make_unique<spdlog::pattern_formatter>("%v", spdlog::pattern_time_type::local, ""));
     Logger.log(spdlog::level::info, spdlog::string_view_t(Message.data(), Message.size()));
     return !Failed && static_cast<bool>(Output);

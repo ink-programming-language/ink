@@ -1,6 +1,6 @@
-#include "ink/execution/runtime_value.h"
-#include "ink/ir/context.h"
-#include "ink/ir/type_layout.h"
+#include "ink/execution/runtime/runtime_value.h"
+#include "ink/ir/analysis/type_layout.h"
+#include "ink/ir/model/context.h"
 
 #include <gtest/gtest.h>
 
@@ -16,8 +16,8 @@ namespace ink::execution
   {
     struct RuntimeMemoryTestContext
     {
-      core::CompilationContext Compilation;
-      ir::IRContext IR{Compilation};
+        core::CompilationContext Compilation;
+        ir::IRContext IR{Compilation};
     };
 
     RuntimeValueRef pointerAtByteOffset(RuntimeValueArena &Values, const ir::Type &PointerType, const RuntimeValue &Slice, const ir::Type &ByteType, std::uint64_t ByteOffset, RuntimeMemoryStatus &Status)
@@ -216,8 +216,8 @@ namespace ink::execution
     {
       struct Case
       {
-        core::ByteOrder Order;
-        std::array<std::uint8_t, 12> ExpectedBytes;
+          core::ByteOrder Order;
+          std::array<std::uint8_t, 12> ExpectedBytes;
       };
       const Case Cases[] = {
           {core::ByteOrder::LittleEndian, {0x78, 0x56, 0x34, 0x12, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01}},

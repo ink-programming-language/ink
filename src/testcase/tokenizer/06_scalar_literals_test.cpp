@@ -20,14 +20,14 @@ namespace ink::tokenizer
 
     struct ValidScalarCase
     {
-      std::string Spelling;
-      char32_t Value;
+        std::string Spelling;
+        char32_t Value;
     };
 
     struct InvalidScalarCase
     {
-      std::string Spelling;
-      DiagnosticKind Diagnostic;
+        std::string Spelling;
+        DiagnosticKind Diagnostic;
     };
 
     bool hasDiagnostic(const TokenizedBuffer &Result, DiagnosticKind Kind)
@@ -179,9 +179,9 @@ namespace ink::tokenizer
     {
       struct RootDiagnosticCase
       {
-        std::string Spelling;
-        DiagnosticKind Kind;
-        SourceRange Span;
+          std::string Spelling;
+          DiagnosticKind Kind;
+          SourceRange Span;
       };
 
       std::string InvalidUtf8 = "'";

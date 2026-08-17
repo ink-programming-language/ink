@@ -12,8 +12,8 @@ namespace ink::parser
   {
     using test::countKind;
     using test::expectFullFidelity;
-    using test::nodeText;
     using test::nodesOfKind;
+    using test::nodeText;
     using test::parseSource;
 
     std::vector<CstNodeId> directChildrenOfKind(const ParsedFile &File, CstNodeId Parent, CstKind Kind)

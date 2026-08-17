@@ -16,14 +16,14 @@ namespace ink::tokenizer
 
     struct KeywordCase
     {
-      const char *Spelling;
-      KeywordKind Value;
+        const char *Spelling;
+        KeywordKind Value;
     };
 
     struct BuiltinTypeCase
     {
-      const char *Spelling;
-      BuiltinTypeKind Value;
+        const char *Spelling;
+        BuiltinTypeKind Value;
     };
 
     // Verifies that every reserved keyword is recognized only by its complete spelling.
@@ -90,9 +90,9 @@ namespace ink::tokenizer
     {
       struct LiteralCase
       {
-        const char *Spelling;
-        TokenKind Kind;
-        bool BooleanValue;
+          const char *Spelling;
+          TokenKind Kind;
+          bool BooleanValue;
       };
 
       const std::vector<LiteralCase> Cases = {

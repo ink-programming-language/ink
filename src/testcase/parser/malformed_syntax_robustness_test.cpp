@@ -19,12 +19,12 @@ namespace ink::parser
 
     struct MalformedSyntaxCase
     {
-      const char *Name;
-      const char *Source;
-      core::DiagnosticKind ExpectedDiagnostic;
-      bool ExpectsErrorNode;
-      bool ExpectsMissingToken;
-      CstKind RecoveredKind = CstKind::Unknown;
+        const char *Name;
+        const char *Source;
+        core::DiagnosticKind ExpectedDiagnostic;
+        bool ExpectsErrorNode;
+        bool ExpectsMissingToken;
+        CstKind RecoveredKind = CstKind::Unknown;
     };
 
     bool containsRecoveredAfterDeclaration(const ParsedFile &File)

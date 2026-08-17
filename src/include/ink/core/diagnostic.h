@@ -68,10 +68,10 @@ namespace ink::core
     FieldIndex,
     ValueId,
     GlobalId,
-    ModuleId,
-    RelatedModuleId,
-    ExpectedModuleId,
-    ActualModuleId,
+    ModuleName,
+    RelatedModuleName,
+    ExpectedModuleName,
+    ActualModuleName,
     FunctionId,
     ExpectedCount,
     ActualCount,
@@ -148,45 +148,45 @@ namespace ink::core
   template <>
   struct DiagnosticArgumentTypeTraits<DiagnosticArgumentType::Boolean>
   {
-    using ValueType = bool;
+      using ValueType = bool;
   };
 
   template <>
   struct DiagnosticArgumentTypeTraits<DiagnosticArgumentType::SignedInteger>
   {
-    using ValueType = std::int64_t;
+      using ValueType = std::int64_t;
   };
 
   template <>
   struct DiagnosticArgumentTypeTraits<DiagnosticArgumentType::UnsignedInteger>
   {
-    using ValueType = std::uint64_t;
+      using ValueType = std::uint64_t;
   };
 
   template <>
   struct DiagnosticArgumentTypeTraits<DiagnosticArgumentType::Character>
   {
-    using ValueType = char32_t;
+      using ValueType = char32_t;
   };
 
   template <>
   struct DiagnosticArgumentTypeTraits<DiagnosticArgumentType::String>
   {
-    using ValueType = std::string;
+      using ValueType = std::string;
   };
 
   template <>
   struct DiagnosticArgumentTypeTraits<DiagnosticArgumentType::SourceContext>
   {
-    using ValueType = DiagnosticSourceContext;
+      using ValueType = DiagnosticSourceContext;
   };
 
   template <DiagnosticArgumentName NameValue, DiagnosticArgumentType TypeValue>
   struct DiagnosticArgumentSpecification
   {
-    static constexpr DiagnosticArgumentName Name = NameValue;
-    static constexpr DiagnosticArgumentType Type = TypeValue;
-    using ValueType = typename DiagnosticArgumentTypeTraits<TypeValue>::ValueType;
+      static constexpr DiagnosticArgumentName Name = NameValue;
+      static constexpr DiagnosticArgumentType Type = TypeValue;
+      using ValueType = typename DiagnosticArgumentTypeTraits<TypeValue>::ValueType;
   };
 
   template <typename... Specifications>
@@ -200,10 +200,10 @@ namespace ink::core
 #define INK_DIAGNOSTIC_ARGUMENT(Name, Type) DiagnosticArgumentSpecification<DiagnosticArgumentName::Name, DiagnosticArgumentType::Type>
 #define INK_DIAGNOSTIC_ARGUMENTS(...) DiagnosticArgumentSchema<__VA_ARGS__>
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, Schema) \
-  template <>                                                                                                    \
-  struct DiagnosticTraits<DiagnosticKind::Name>                                                                  \
-  {                                                                                                                \
-    using Arguments = Schema;                                                                                     \
+  template <>                                                                                                     \
+  struct DiagnosticTraits<DiagnosticKind::Name>                                                                   \
+  {                                                                                                               \
+      using Arguments = Schema;                                                                                   \
   };
 #include "ink/core/diagnostic.def"
 #undef INK_DIAGNOSTIC
@@ -214,8 +214,8 @@ namespace ink::core
 
   struct DiagnosticArgument
   {
-    DiagnosticArgumentName Name = DiagnosticArgumentName::Unknown;
-    DiagnosticArgumentValue Value;
+      DiagnosticArgumentName Name = DiagnosticArgumentName::Unknown;
+      DiagnosticArgumentValue Value;
   };
 
   bool operator==(const DiagnosticArgument &Left, const DiagnosticArgument &Right);
@@ -223,9 +223,9 @@ namespace ink::core
 
   struct DiagnosticRelatedInformation
   {
-    DiagnosticRelatedKind Kind = DiagnosticRelatedKind::Unknown;
-    SourceRange Span;
-    std::vector<DiagnosticArgument> Arguments;
+      DiagnosticRelatedKind Kind = DiagnosticRelatedKind::Unknown;
+      SourceRange Span;
+      std::vector<DiagnosticArgument> Arguments;
   };
 
   bool operator==(const DiagnosticRelatedInformation &Left, const DiagnosticRelatedInformation &Right);
@@ -233,15 +233,15 @@ namespace ink::core
 
   struct Diagnostic
   {
-    DiagnosticKind Kind = DiagnosticKind::Unknown;
-    SourceRange Span;
-    std::vector<DiagnosticArgument> Arguments;
-    std::vector<DiagnosticRelatedInformation> Related;
-    DiagnosticClass Class = DiagnosticClass::Unknown;
+      DiagnosticKind Kind = DiagnosticKind::Unknown;
+      SourceRange Span;
+      std::vector<DiagnosticArgument> Arguments;
+      std::vector<DiagnosticRelatedInformation> Related;
+      DiagnosticClass Class = DiagnosticClass::Unknown;
 
-    std::uint32_t number() const noexcept;
-    const char *code() const noexcept;
-    DiagnosticClass classification() const noexcept;
+      std::uint32_t number() const noexcept;
+      const char *code() const noexcept;
+      DiagnosticClass classification() const noexcept;
   };
 
   bool operator==(const Diagnostic &Left, const Diagnostic &Right);
@@ -299,16 +299,16 @@ namespace ink::core
 
   class DiagnosticBuilder
   {
-  public:
-    explicit DiagnosticBuilder(Diagnostic Result);
-    DiagnosticBuilder &classification(DiagnosticClass Class) &;
-    DiagnosticBuilder &&classification(DiagnosticClass Class) &&;
-    DiagnosticBuilder &related(DiagnosticRelatedKind Kind, SourceRange Span, std::vector<DiagnosticArgument> Arguments = {}) &;
-    DiagnosticBuilder &&related(DiagnosticRelatedKind Kind, SourceRange Span, std::vector<DiagnosticArgument> Arguments = {}) &&;
-    Diagnostic build() &&;
+    public:
+      explicit DiagnosticBuilder(Diagnostic Result);
+      DiagnosticBuilder &classification(DiagnosticClass Class) &;
+      DiagnosticBuilder &&classification(DiagnosticClass Class) &&;
+      DiagnosticBuilder &related(DiagnosticRelatedKind Kind, SourceRange Span, std::vector<DiagnosticArgument> Arguments = {}) &;
+      DiagnosticBuilder &&related(DiagnosticRelatedKind Kind, SourceRange Span, std::vector<DiagnosticArgument> Arguments = {}) &&;
+      Diagnostic build() &&;
 
-  private:
-    Diagnostic Result;
+    private:
+      Diagnostic Result;
   };
 
   template <DiagnosticKind Kind, typename... ArgumentTypes>
@@ -319,8 +319,8 @@ namespace ink::core
 
   struct FormattedDiagnosticNote
   {
-    std::optional<SourceRange> Span;
-    std::string Message;
+      std::optional<SourceRange> Span;
+      std::string Message;
   };
 
   bool operator==(const FormattedDiagnosticNote &Left, const FormattedDiagnosticNote &Right);
@@ -328,9 +328,9 @@ namespace ink::core
 
   struct FormattedDiagnostic
   {
-    DiagnosticSeverity Severity = DiagnosticSeverity::Unknown;
-    std::string Message;
-    std::vector<FormattedDiagnosticNote> Notes;
+      DiagnosticSeverity Severity = DiagnosticSeverity::Unknown;
+      std::string Message;
+      std::vector<FormattedDiagnosticNote> Notes;
   };
 
   bool operator==(const FormattedDiagnostic &Left, const FormattedDiagnostic &Right);
@@ -338,62 +338,62 @@ namespace ink::core
 
   class DiagnosticFormatter
   {
-  public:
-    FormattedDiagnostic format(const Diagnostic &DiagnosticEntry) const;
+    public:
+      FormattedDiagnostic format(const Diagnostic &DiagnosticEntry) const;
   };
 
   class DiagnosticConsumer
   {
-  public:
-    virtual ~DiagnosticConsumer() = default;
-    virtual void consume(const Diagnostic &DiagnosticEntry) = 0;
+    public:
+      virtual ~DiagnosticConsumer() = default;
+      virtual void consume(const Diagnostic &DiagnosticEntry) = 0;
   };
 
   class DiagnosticEngine
   {
-  public:
-    DiagnosticEngine() = default;
-    DiagnosticEngine(const DiagnosticEngine &) = delete;
-    DiagnosticEngine &operator=(const DiagnosticEngine &) = delete;
-    DiagnosticEngine(DiagnosticEngine &&) = delete;
-    DiagnosticEngine &operator=(DiagnosticEngine &&) = delete;
+    public:
+      DiagnosticEngine() = default;
+      DiagnosticEngine(const DiagnosticEngine &) = delete;
+      DiagnosticEngine &operator=(const DiagnosticEngine &) = delete;
+      DiagnosticEngine(DiagnosticEngine &&) = delete;
+      DiagnosticEngine &operator=(DiagnosticEngine &&) = delete;
 
-    void addConsumer(DiagnosticConsumer &Consumer);
-    void removeConsumer(DiagnosticConsumer &Consumer) noexcept;
-    void report(const Diagnostic &DiagnosticEntry) const;
+      void addConsumer(DiagnosticConsumer &Consumer);
+      void removeConsumer(DiagnosticConsumer &Consumer) noexcept;
+      void report(const Diagnostic &DiagnosticEntry) const;
 
-    template <DiagnosticKind Kind, typename... ArgumentTypes>
-    void report(SourceRange Span, ArgumentTypes &&...Arguments) const
-    {
-      report(makeDiagnostic<Kind>(Span, std::forward<ArgumentTypes>(Arguments)...));
-    }
+      template <DiagnosticKind Kind, typename... ArgumentTypes>
+      void report(SourceRange Span, ArgumentTypes &&...Arguments) const
+      {
+        report(makeDiagnostic<Kind>(Span, std::forward<ArgumentTypes>(Arguments)...));
+      }
 
-  private:
-    std::vector<DiagnosticConsumer *> Consumers;
+    private:
+      std::vector<DiagnosticConsumer *> Consumers;
   };
 
   class CollectingDiagnosticConsumer final : public DiagnosticConsumer
   {
-  public:
-    void consume(const Diagnostic &DiagnosticEntry) override;
+    public:
+      void consume(const Diagnostic &DiagnosticEntry) override;
 
-    const std::vector<Diagnostic> &diagnostics() const noexcept
-    {
-      return Diagnostics;
-    }
+      const std::vector<Diagnostic> &diagnostics() const noexcept
+      {
+        return Diagnostics;
+      }
 
-    std::vector<Diagnostic> takeDiagnostics() noexcept
-    {
-      return std::move(Diagnostics);
-    }
+      std::vector<Diagnostic> takeDiagnostics() noexcept
+      {
+        return std::move(Diagnostics);
+      }
 
-    void clear() noexcept
-    {
-      Diagnostics.clear();
-    }
+      void clear() noexcept
+      {
+        Diagnostics.clear();
+      }
 
-  private:
-    std::vector<Diagnostic> Diagnostics;
+    private:
+      std::vector<Diagnostic> Diagnostics;
   };
 } // namespace ink::core
 

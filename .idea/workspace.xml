@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="BackendCodeEditorMiscSettings">
-    <option name="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue" value="6" type="long" />
+    <option name="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue" value="8" type="long" />
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
   </component>
   <component name="CMakePresetLoader">{
@@ -1052,82 +1052,120 @@
       <change beforePath="$PROJECT_DIR$/.clang-format" beforeDir="false" afterPath="$PROJECT_DIR$/.clang-format" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/AGENTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/AGENTS.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/command-line.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/command-line.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/cli/application.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/cli/application.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/cli/io.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/cli/io.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/core/context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/context.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/core/diagnostic.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/diagnostic.def" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/core/diagnostic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/diagnostic.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/core/source_range.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/source_range.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/core/target_context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/target_context.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/execution/context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/context.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/execution/execution_engine.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/execution_engine.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/runtime_value.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/runtime_value.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/arithmetic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/arithmetic.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/control_flow.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/control_flow.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/function.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/function.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/id.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/id.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/instruction.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/instruction.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/module_instance.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/module_loader.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/module_provider.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/native_symbol_registry.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/runtime_symbols.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/runtime_value.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/arithmetic.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/basic_block.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/context.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/control_flow.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/function.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/id.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/instruction.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/ir/ir.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/ir.def" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/memory.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/memory.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/module.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/module.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/type.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/type.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/value.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/value.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/verifier.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/verifier.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/ir.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/ir.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/memory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/module.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/serialization.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/serialization.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/type.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/type_layout.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/value.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/verifier.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/parser/cst.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/parser/cst.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/cli/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/cli/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/parser/parser.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/parser/parser.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/tokenizer/token.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/tokenizer/token.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/tokenizer/tokenizer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/tokenizer/tokenizer.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/cli/application.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/cli/application.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/cli/io.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/cli/io.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/core/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/core/diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/core/diagnostic.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/execution/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/aggregate_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/aggregate_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/arithmetic_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/arithmetic_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/branch_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/branch_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/call_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/call_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/comparison_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/comparison_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/execution_engine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/execution_engine.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/execution_frame.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/execution_frame.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/function_executor.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/function_executor.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/function_executor.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/function_executor.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/instruction_dispatch.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/instruction_dispatch.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/memory_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/memory_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/native_abi.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/native_abi.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/return_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/return_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime_value.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/runtime_value.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/aggregate_instruction.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/arithmetic_instruction.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/branch_instruction.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/call_instruction.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/comparison_instruction.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/execution_engine.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/execution_frame.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/execution_frame.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/function_executor.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/function_executor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/instruction_dispatch.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/memory_instruction.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/module_instance.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/module_instruction.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/module_loader.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/native_abi.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/native_abi.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/native_symbol_registry.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/return_instruction.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime/read.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/runtime/read.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime/runtime_symbols.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/runtime/runtime_symbols.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime/write.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/runtime/write.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime_memory.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime_memory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime_value.cpp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/ir/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/ir/context.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/context.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/context.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/control_flow.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/instruction.cpp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/ir/serialization.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/serialization.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/ir/verifier.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/verifier.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/parser/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/parser/cst.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/parser/cst.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/type.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/type_layout.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/value.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/verifier.cpp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/parser/parser.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/parser/parser.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/tokenizer/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/tokenizer/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/tokenizer/tokenizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/tokenizer/tokenizer.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/tokenizer/unicode.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/tokenizer/unicode.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/tokenizer/unicode.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/tokenizer/unicode.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/tokenizer/unicode.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/cli/application_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/cli/application_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/cli/interpreter_process_test.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/cli/interpreter_process_test.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/core/core_diagnostic_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/core/core_diagnostic_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/execution/constant_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/constant_execution_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/execution/control_flow_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/control_flow_execution_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/execution/execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/execution_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/execution/memory_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/memory_execution_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/execution/module_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/module_execution_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/execution/native_io_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/native_io_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/execution/pointer_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/pointer_execution_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/execution/runtime_memory_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/runtime_memory_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/ir/constant_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/constant_ir_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/ir/control_flow_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/control_flow_ir_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/ir/ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/ir_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/ir/memory_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/memory_ir_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/ir/module_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/module_ir_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/ir/type_layout_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/type_layout_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/parser/integration_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/integration_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/parser/malformed_syntax_robustness_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/malformed_syntax_robustness_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/parser/nesting_limit_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/nesting_limit_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/parser/parser_test_support.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/parser_test_support.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/parser/recovery_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/recovery_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/third_party/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/third_party/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tools/inkc/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/inkc/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/parser/symbol_and_type_tail_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/symbol_and_type_tail_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/parser/syntax_conformance_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/syntax_conformance_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/parser/syntax_edge_conformance_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/syntax_edge_conformance_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/01_source_encoding_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/01_source_encoding_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/02_trivia_comments_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/02_trivia_comments_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/03_identifiers_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/03_identifiers_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/04_keywords_types_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/04_keywords_types_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/05_numeric_literals_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/05_numeric_literals_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/06_scalar_literals_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/06_scalar_literals_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/08_raw_multiline_strings_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/08_raw_multiline_strings_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tools/inkc/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/inkc/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tools/interpreter/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/interpreter/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tools/interpreter/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/interpreter/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tools/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/parser/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tools/parser/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/parser/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tools/tokenizer/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/tokenizer/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tools/tokenizer/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/tokenizer/main.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -1143,7 +1181,14 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/src/include/ink/execution/compiling_module_provider.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/include/ink/ir/ir.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/lib/execution/call_instruction.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/lib/execution/execution_engine.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/lib/execution/function_executor.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/lib/execution/module_instance.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/lib/execution/module_instruction.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/lib/execution/module_loader.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/lib/execution/runtime/read.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/lib/execution/runtime/write.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/ir/control_flow.h" root0="SKIP_HIGHLIGHTING" />

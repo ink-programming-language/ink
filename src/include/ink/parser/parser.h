@@ -25,56 +25,56 @@ namespace ink::parser
 
   struct ParserOptions
   {
-    ParseMode Mode = ParseMode::Batch;
-    std::size_t MaxSyntaxNestingDepth = 128;
+      ParseMode Mode = ParseMode::Batch;
+      std::size_t MaxSyntaxNestingDepth = 128;
   };
 
   class ParsedFile
   {
-  public:
-    const tokenizer::TokenizedBuffer &lexedFile() const noexcept
-    {
-      return LexedFile;
-    }
+    public:
+      const tokenizer::TokenizedBuffer &lexedFile() const noexcept
+      {
+        return LexedFile;
+      }
 
-    const CstTree &cst() const noexcept
-    {
-      return Tree;
-    }
+      const CstTree &cst() const noexcept
+      {
+        return Tree;
+      }
 
-    const std::vector<core::Diagnostic> &diagnostics() const noexcept
-    {
-      return Diagnostics;
-    }
+      const std::vector<core::Diagnostic> &diagnostics() const noexcept
+      {
+        return Diagnostics;
+      }
 
-    bool succeeded() const noexcept;
-    ParseCompleteness completeness() const noexcept
-    {
-      return Completeness;
-    }
+      bool succeeded() const noexcept;
+      ParseCompleteness completeness() const noexcept
+      {
+        return Completeness;
+      }
 
-    core::SourceRange span(CstNodeId Id) const;
+      core::SourceRange span(CstNodeId Id) const;
 
-  private:
-    ParsedFile(tokenizer::TokenizedBuffer LexedFile, CstTree Tree, std::vector<core::Diagnostic> Diagnostics, ParseCompleteness Completeness);
+    private:
+      ParsedFile(tokenizer::TokenizedBuffer LexedFile, CstTree Tree, std::vector<core::Diagnostic> Diagnostics, ParseCompleteness Completeness);
 
-    tokenizer::TokenizedBuffer LexedFile;
-    CstTree Tree;
-    std::vector<core::Diagnostic> Diagnostics;
-    ParseCompleteness Completeness = ParseCompleteness::Complete;
+      tokenizer::TokenizedBuffer LexedFile;
+      CstTree Tree;
+      std::vector<core::Diagnostic> Diagnostics;
+      ParseCompleteness Completeness = ParseCompleteness::Complete;
 
-    friend class Parser;
+      friend class Parser;
   };
 
   class Parser
   {
-  public:
-    explicit Parser(core::FrontendContext &Context, ParserOptions Options = {});
-    ParsedFile parse(tokenizer::TokenizedBuffer LexedFile) const;
+    public:
+      explicit Parser(core::FrontendContext &Context, ParserOptions Options = {});
+      ParsedFile parse(tokenizer::TokenizedBuffer LexedFile) const;
 
-  private:
-    core::FrontendContext &Context;
-    ParserOptions Options;
+    private:
+      core::FrontendContext &Context;
+      ParserOptions Options;
   };
 
   ParsedFile parse(core::FrontendContext &Context, tokenizer::TokenizedBuffer LexedFile, ParserOptions Options = {});

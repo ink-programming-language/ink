@@ -3,12 +3,21 @@
 
 #include <filesystem>
 #include <iosfwd>
+#include <string>
 #include <string_view>
 
 namespace ink::cli
 {
+  enum class EnvironmentVariableStatus
+  {
+    Found,
+    NotFound,
+    Invalid,
+  };
+
   bool isValidUtf8(std::string_view Text) noexcept;
   bool pathFromUtf8(std::string_view Path, std::filesystem::path &Result) noexcept;
+  EnvironmentVariableStatus readEnvironmentVariable(std::string_view Name, std::string &Value) noexcept;
   bool useBinaryStandardInput() noexcept;
   bool writeOutput(std::ostream &Output, std::string_view Message);
 } // namespace ink::cli

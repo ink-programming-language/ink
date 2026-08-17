@@ -1,6 +1,6 @@
+#include "ink/ir/analysis/verifier.h"
 #include "ink/ir/ir.h"
 #include "ink/ir/serialization.h"
-#include "ink/ir/verifier.h"
 
 #include <gtest/gtest.h>
 
@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <unordered_set>
 #include <utility>
 
 namespace ink::ir
@@ -20,6 +21,30 @@ namespace ink::ir
         core::CompilationContext Compilation;
         IRContext IR{Compilation};
     };
+
+    // Verifies that Name owns text, applies the shared Unicode XID rules, preserves IR extension characters, and hashes by spelling.
+    TEST(NameTest, ValidatesAndHashesIrNames)
+    {
+      const Name UnicodeName(u8"\u8BA1\u7B97\u00B7\u503C2");
+      const Name ExtendedName(".entry$0");
+
+      EXPECT_TRUE(Name("value").valid());
+      EXPECT_TRUE(UnicodeName.valid());
+      EXPECT_TRUE(ExtendedName.valid());
+      EXPECT_FALSE(Name().valid());
+      EXPECT_FALSE(Name("0value").valid());
+      EXPECT_FALSE(Name(u8"\u0301value").valid());
+      EXPECT_FALSE(Name("bad-name").valid());
+      EXPECT_EQ(UnicodeName.text(), u8"\u8BA1\u7B97\u00B7\u503C2");
+
+      const std::unordered_set<Name> Names = {
+          Name("value"),
+          UnicodeName,
+          ExtendedName,
+      };
+      EXPECT_EQ(Names.count(Name("value")), 1U);
+      EXPECT_EQ(Names.count(UnicodeName), 1U);
+    }
 
     std::string formatMessage(const core::Diagnostic &DiagnosticEntry)
     {
@@ -379,6 +404,29 @@ namespace ink::ir
       EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), HelloWorldText);
     }
 
+    // Verifies that Unicode XID names, including a continue-only middle dot after the first scalar, round-trip canonically.
+    TEST(IrSerializationTest, RoundTripsUnicodeXidNames)
+    {
+      TestContext Context;
+      const std::string Text =
+          u8"inkir 1\n"
+          u8"module \u5E94\u7528.\u4E3B\u6A21\u57572\n"
+          u8"\n"
+          u8"%\u8BB0\u5F55\u00B72 = type {i32}\n"
+          u8"\n"
+          u8"define i32 @\u8BA1\u7B97\u00B7\u503C(i32 %0) {\n"
+          u8"\u5165\u53E3:\n"
+          u8"  %1 = add i32 %0, i32 1\n"
+          u8"  ret i32 %1\n"
+          u8"}\n";
+
+      DeserializeResult Result = deserialize(Context.IR, Text);
+
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_TRUE(Result.module().has_value());
+      EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), Text);
+    }
+
     // Verifies that mutable byte pointers in native read and write declarations survive canonical InkIR serialization and deserialization.
     TEST(IrSerializationTest, RoundTripsNativeIoDeclarations)
     {
@@ -473,6 +521,17 @@ namespace ink::ir
       EXPECT_EQ(Result.diagnostics()[0], Expected);
       EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
       EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "declared byte constant size 2 does not match decoded string length 1");
+    }
+
+    // Verifies that a Unicode XID_Continue-only scalar cannot begin an InkIR name.
+    TEST(IrDeserializationTest, RejectsXidContinueOnlyNameStart)
+    {
+      TestContext Context;
+      DeserializeResult Result = deserialize(Context.IR, u8"inkir 1\ndefine void @\u0301name() {\nentry:\n  ret void\n}\n");
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_FALSE(Result.diagnostics().empty());
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrExpectedGlobalNameAfterAt);
     }
 
     // Verifies that the InkIR lexer returns a located Core diagnostic and publishes the same value through IRContext.

@@ -1,6 +1,6 @@
+#include "ink/ir/analysis/verifier.h"
 #include "ink/ir/ir.h"
 #include "ink/ir/serialization.h"
-#include "ink/ir/verifier.h"
 
 #include <gtest/gtest.h>
 
@@ -18,20 +18,20 @@ namespace ink::ir
   {
     struct MemoryIrTestContext
     {
-      MemoryIrTestContext()
-          : Compilation(),
-            IR(Compilation)
-      {
-      }
+        MemoryIrTestContext()
+            : Compilation(),
+              IR(Compilation)
+        {
+        }
 
-      explicit MemoryIrTestContext(core::TargetContext Target)
-          : Compilation(Target),
-            IR(Compilation)
-      {
-      }
+        explicit MemoryIrTestContext(core::TargetContext Target)
+            : Compilation(Target),
+              IR(Compilation)
+        {
+        }
 
-      core::CompilationContext Compilation;
-      IRContext IR;
+        core::CompilationContext Compilation;
+        IRContext IR;
     };
 
     bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
@@ -744,8 +744,8 @@ namespace ink::ir
     {
       struct Case
       {
-        const char *InstructionText;
-        core::DiagnosticKind Expected;
+          const char *InstructionText;
+          core::DiagnosticKind Expected;
       };
       const Case Cases[] = {
           {"alloca byte[] ptrsize 1", core::DiagnosticKind::IrAllocaRequiresResult},

@@ -151,9 +151,9 @@ namespace ink::parser
 
     struct TypeTailCase
     {
-      const char *Name;
-      const char *Source;
-      std::size_t ExpectedTypeConstructors;
+        const char *Name;
+        const char *Source;
+        std::size_t ExpectedTypeConstructors;
     };
 
     // Verifies type-constructor tail commitment at every caller-specific expression terminator defined by the grammar.

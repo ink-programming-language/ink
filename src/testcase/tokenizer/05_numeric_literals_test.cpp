@@ -19,16 +19,16 @@ namespace ink::tokenizer
 
     struct ValidNumericCase
     {
-      const char *Spelling;
-      TokenKind Kind;
-      unsigned Base;
-      NumericSuffix Suffix;
+        const char *Spelling;
+        TokenKind Kind;
+        unsigned Base;
+        NumericSuffix Suffix;
     };
 
     struct InvalidNumericCase
     {
-      std::string Spelling;
-      DiagnosticKind Diagnostic;
+        std::string Spelling;
+        DiagnosticKind Diagnostic;
     };
 
     bool hasDiagnostic(const TokenizedBuffer &Result, DiagnosticKind Kind)

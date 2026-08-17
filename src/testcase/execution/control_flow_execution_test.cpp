@@ -1,6 +1,6 @@
 #include "ink/execution/execution_engine.h"
-#include "ink/ir/arithmetic.h"
-#include "ink/ir/control_flow.h"
+#include "ink/ir/instruction/arithmetic.h"
+#include "ink/ir/instruction/control_flow.h"
 #include "ink/ir/serialization.h"
 
 #include <gtest/gtest.h>
@@ -17,16 +17,16 @@ namespace ink::execution
   {
     struct ControlFlowExecutionTestContext
     {
-      ControlFlowExecutionTestContext() = default;
+        ControlFlowExecutionTestContext() = default;
 
-      explicit ControlFlowExecutionTestContext(core::TargetContext Target)
-          : Compilation(Target)
-      {
-      }
+        explicit ControlFlowExecutionTestContext(core::TargetContext Target)
+            : Compilation(Target)
+        {
+        }
 
-      core::CompilationContext Compilation;
-      ir::IRContext IR{Compilation};
-      ExecutionContext Execution{Compilation};
+        core::CompilationContext Compilation;
+        ir::IRContext IR{Compilation};
+        ExecutionContext Execution{Compilation};
     };
 
     ExecutionResult executeText(ControlFlowExecutionTestContext &Context, const std::string &Text, const std::vector<RuntimeValueRef> &Arguments = {})
@@ -162,15 +162,16 @@ namespace ink::execution
             "entry:\n"
             "  br loop\n"
             "loop:\n"
-            "  %0 = phi i32 [" + std::to_string(InitialValue) + ", entry], [%2, body]\n"
-            "  %1 = icmp lt i32 %0, i32 5\n"
-            "  condbr bool %1, body, exit\n"
-            "body:\n"
-            "  %2 = add i32 %0, i32 1\n"
-            "  br loop\n"
-            "exit:\n"
-            "  ret i32 %0\n"
-            "}\n";
+            "  %0 = phi i32 [" +
+            std::to_string(InitialValue) + ", entry], [%2, body]\n"
+                                           "  %1 = icmp lt i32 %0, i32 5\n"
+                                           "  condbr bool %1, body, exit\n"
+                                           "body:\n"
+                                           "  %2 = add i32 %0, i32 1\n"
+                                           "  br loop\n"
+                                           "exit:\n"
+                                           "  ret i32 %0\n"
+                                           "}\n";
 
         const ExecutionResult Result = executeText(Context, Text);
 
@@ -183,10 +184,10 @@ namespace ink::execution
     {
       struct Case
       {
-        const char *TypeName;
-        const char *Left;
-        const char *Right;
-        std::uint64_t Expected;
+          const char *TypeName;
+          const char *Left;
+          const char *Right;
+          std::uint64_t Expected;
       };
       const Case Cases[] = {
           {"byte", "255", "1", 0},
@@ -236,8 +237,8 @@ namespace ink::execution
     {
       struct Case
       {
-        const char *Predicate;
-        std::uint64_t Expected;
+          const char *Predicate;
+          std::uint64_t Expected;
       };
       const Case Cases[] = {
           {"eq", 0},
@@ -262,7 +263,7 @@ namespace ink::execution
     {
       struct Case
       {
-        const char *Expression;
+          const char *Expression;
       };
       const Case Cases[] = {
           {"icmp gt byte 255, byte 1"},
@@ -285,8 +286,8 @@ namespace ink::execution
     {
       struct Case
       {
-        const char *Predicate;
-        std::uint64_t Expected;
+          const char *Predicate;
+          std::uint64_t Expected;
       };
       const Case Cases[] = {
           {"eq", 1},

@@ -1,5 +1,5 @@
 #include "ink/execution/execution_engine.h"
-#include "ink/ir/context.h"
+#include "ink/ir/model/context.h"
 #include "ink/ir/serialization.h"
 
 #include <gtest/gtest.h>
@@ -35,63 +35,63 @@ namespace ink::execution
 
     class CountingPointerValue final : public RuntimeValue
     {
-    public:
-      CountingPointerValue(const ir::Type &ValueType, const void *Value, std::size_t &PointerReadCount)
-          : ValueType(&ValueType),
-            Value(Value),
-            PointerReadCount(&PointerReadCount)
-      {
-      }
+      public:
+        CountingPointerValue(const ir::Type &ValueType, const void *Value, std::size_t &PointerReadCount)
+            : ValueType(&ValueType),
+              Value(Value),
+              PointerReadCount(&PointerReadCount)
+        {
+        }
 
-      RuntimeValueKind kind() const noexcept override
-      {
-        return RuntimeValueKind::Pointer;
-      }
+        RuntimeValueKind kind() const noexcept override
+        {
+          return RuntimeValueKind::Pointer;
+        }
 
-      const ir::Type &type() const noexcept override
-      {
-        return *ValueType;
-      }
+        const ir::Type &type() const noexcept override
+        {
+          return *ValueType;
+        }
 
-      const void *pointer() const noexcept override
-      {
-        ++*PointerReadCount;
-        return Value;
-      }
+        const void *pointer() const noexcept override
+        {
+          ++*PointerReadCount;
+          return Value;
+        }
 
-    private:
-      const ir::Type *ValueType;
-      const void *Value;
-      std::size_t *PointerReadCount;
+      private:
+        const ir::Type *ValueType;
+        const void *Value;
+        std::size_t *PointerReadCount;
     };
 
     class UncheckedIntegerValue final : public RuntimeValue
     {
-    public:
-      UncheckedIntegerValue(const ir::Type &ValueType, std::uint64_t Value)
-          : ValueType(&ValueType),
-            Value(Value)
-      {
-      }
+      public:
+        UncheckedIntegerValue(const ir::Type &ValueType, std::uint64_t Value)
+            : ValueType(&ValueType),
+              Value(Value)
+        {
+        }
 
-      RuntimeValueKind kind() const noexcept override
-      {
-        return RuntimeValueKind::Integer;
-      }
+        RuntimeValueKind kind() const noexcept override
+        {
+          return RuntimeValueKind::Integer;
+        }
 
-      const ir::Type &type() const noexcept override
-      {
-        return *ValueType;
-      }
+        const ir::Type &type() const noexcept override
+        {
+          return *ValueType;
+        }
 
-      std::optional<std::uint64_t> integer() const noexcept override
-      {
-        return Value;
-      }
+        std::optional<std::uint64_t> integer() const noexcept override
+        {
+          return Value;
+        }
 
-    private:
-      const ir::Type *ValueType;
-      std::uint64_t Value;
+      private:
+        const ir::Type *ValueType;
+        std::uint64_t Value;
     };
 
     extern "C" std::int32_t captureOutput(const std::uint8_t *Data, std::size_t Size)

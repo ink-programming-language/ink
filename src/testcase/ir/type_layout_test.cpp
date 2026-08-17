@@ -1,5 +1,5 @@
-#include "ink/ir/context.h"
-#include "ink/ir/type_layout.h"
+#include "ink/ir/analysis/type_layout.h"
+#include "ink/ir/model/context.h"
 
 #include <gtest/gtest.h>
 
@@ -13,8 +13,8 @@ namespace ink::ir
   {
     struct TypeLayoutTestContext
     {
-      core::CompilationContext Compilation;
-      IRContext IR{Compilation};
+        core::CompilationContext Compilation;
+        IRContext IR{Compilation};
     };
 
     // Verifies that every fixed-width integer and floating-point scalar has identical size, alignment, and stride.
@@ -22,8 +22,8 @@ namespace ink::ir
     {
       struct Case
       {
-        TypeKind Kind;
-        std::size_t Width;
+          TypeKind Kind;
+          std::size_t Width;
       };
       const Case Cases[] = {
           {TypeKind::Bool, 1},

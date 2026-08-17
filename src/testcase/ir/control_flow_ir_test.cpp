@@ -1,6 +1,6 @@
+#include "ink/ir/analysis/verifier.h"
 #include "ink/ir/ir.h"
 #include "ink/ir/serialization.h"
-#include "ink/ir/verifier.h"
 
 #include <gtest/gtest.h>
 
@@ -15,8 +15,8 @@ namespace ink::ir
   {
     struct ControlFlowIrTestContext
     {
-      core::CompilationContext Compilation;
-      IRContext IR{Compilation};
+        core::CompilationContext Compilation;
+        IRContext IR{Compilation};
     };
 
     bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
@@ -127,8 +127,8 @@ namespace ink::ir
     {
       struct Case
       {
-        const char *Predicate;
-        const char *PointerType;
+          const char *Predicate;
+          const char *PointerType;
       };
       const Case Cases[] = {
           {"eq", "byte*"},
@@ -238,6 +238,28 @@ namespace ink::ir
           "  br join\n"
           "join:\n"
           "  ret i32 %1\n"
+          "}\n";
+
+      const DeserializeResult Result = deserialize(Context.IR, Text);
+
+      ASSERT_FALSE(Result.succeeded());
+      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrUnavailableSsaValue));
+    }
+
+    // Verifies that an unreachable block cannot bypass cross-block SSA dominance requirements.
+    TEST(ControlFlowIrVerifierTest, RejectsCrossBlockSsaUseInUnreachableBlock)
+    {
+      ControlFlowIrTestContext Context;
+      const std::string Text =
+          "inkir 1\n"
+          "define i32 @main() {\n"
+          "entry:\n"
+          "  %0 = add i32 1, i32 2\n"
+          "  br exit\n"
+          "unreachable:\n"
+          "  ret i32 %0\n"
+          "exit:\n"
+          "  ret i32 %0\n"
           "}\n";
 
       const DeserializeResult Result = deserialize(Context.IR, Text);
@@ -453,7 +475,10 @@ namespace ink::ir
       const Type &BoolType = Context.IR.getType(TypeKind::Bool);
       const Type &ByteType = Context.IR.getType(TypeKind::Byte);
       const Type &I32Type = Context.IR.getType(TypeKind::I32);
-      const auto I32Zero = [&]() { return std::make_unique<IntegerConstant>(I32Type, 0); };
+      const auto I32Zero = [&]()
+      {
+        return std::make_unique<IntegerConstant>(I32Type, 0);
+      };
       const auto ExpectDiagnostic = [&](std::unique_ptr<Instruction> InstructionValue, core::DiagnosticKind Expected)
       {
         const VerificationResult Result = verifySingleControlInstruction(Context, std::move(InstructionValue));

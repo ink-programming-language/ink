@@ -149,8 +149,8 @@ namespace ink::tokenizer
     {
       struct LineEndingCase
       {
-        const char *Source;
-        const char *LineBreak;
+          const char *Source;
+          const char *LineBreak;
       };
       const std::vector<LineEndingCase> Cases = {
           {"// comment\n", "\n"},

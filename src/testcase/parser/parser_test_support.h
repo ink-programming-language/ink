@@ -63,8 +63,8 @@ namespace ink::parser::test
   {
     struct NodeLocationFrame
     {
-      CstNodeId Id;
-      std::size_t NodeStart;
+        CstNodeId Id;
+        std::size_t NodeStart;
     };
 
     inline std::size_t nodeTokenStart(const ParsedFile &File, CstNodeId Target)
@@ -130,10 +130,10 @@ namespace ink::parser::test
 
     struct TextFrame
     {
-      CstNodeId Id;
-      std::size_t NodeStart;
-      std::size_t NextChild = 0;
-      std::size_t ConsumedTokens = 0;
+        CstNodeId Id;
+        std::size_t NodeStart;
+        std::size_t NextChild = 0;
+        std::size_t ConsumedTokens = 0;
     };
   } // namespace detail
 
@@ -243,18 +243,18 @@ namespace ink::parser::test
   {
     struct MeasuredNode
     {
-      std::size_t TokenCount = 0;
-      std::size_t TextLength = 0;
-      CstNodeFlags Flags = CstNodeFlags::None;
+        std::size_t TokenCount = 0;
+        std::size_t TextLength = 0;
+        CstNodeFlags Flags = CstNodeFlags::None;
     };
 
     struct MeasureFrame
     {
-      CstNodeId Id;
-      std::size_t NodeStart;
-      std::size_t NextChild = 0;
-      std::size_t ConsumedTokens = 0;
-      MeasuredNode Result;
+        CstNodeId Id;
+        std::size_t NodeStart;
+        std::size_t NextChild = 0;
+        std::size_t ConsumedTokens = 0;
+        MeasuredNode Result;
     };
 
     inline bool pushMeasureFrame(const ParsedFile &File, CstNodeId Id, std::size_t NodeStart, std::vector<std::size_t> &NodeVisits, std::vector<MeasureFrame> &Frames)

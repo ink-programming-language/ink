@@ -24,7 +24,7 @@ namespace
 int main(int ArgumentCount, char **ArgumentValues)
 {
   return ink::cli::runMain("inkc", [ArgumentCount, ArgumentValues]()
-  {
-    return runCompiler(ArgumentCount, ArgumentValues);
-  });
+                           {
+                             return runCompiler(ArgumentCount, ArgumentValues);
+                           });
 }
