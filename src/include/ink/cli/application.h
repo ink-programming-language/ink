@@ -1,10 +1,9 @@
 #ifndef INK_CLI_APPLICATION_H
 #define INK_CLI_APPLICATION_H
 
-#include <CLI/CLI.hpp>
-
 #include <functional>
 #include <iosfwd>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -28,37 +27,81 @@ namespace ink::cli
 
   struct ApplicationInfo
   {
-    std::string Name;
-    std::string Description;
-    std::string Version;
+      std::string Name;
+      std::string Description;
+      std::string Version;
   };
 
   struct ParseResult
   {
-    bool ShouldExit = false;
-    ExitCode Code = ExitCode::Success;
+      bool ShouldExit = false;
+      ExitCode Code = ExitCode::Success;
+  };
+
+  class Application;
+  class CommandLineParser;
+
+  class Option
+  {
+    public:
+      Option &required() noexcept;
+      Option &typeName(std::string Name);
+      Option &repeatPolicy(RepeatPolicy Policy) noexcept;
+      Option &excludes(Option &Other);
+
+    private:
+      enum class ValueKind
+      {
+        Flag,
+        String,
+        StringList,
+      };
+
+      Option(Application &Owner, std::string Names, bool &Storage, std::string Description);
+      Option(Application &Owner, std::string Names, std::string &Storage, std::string Description);
+      Option(Application &Owner, std::string Names, std::vector<std::string> &Storage, std::string Description);
+
+      friend class Application;
+      friend class CommandLineParser;
+
+      Application *Owner;
+      std::string Names;
+      std::vector<std::string> Spellings;
+      std::string Description;
+      std::string ValueTypeName;
+      ValueKind Kind;
+      bool *FlagStorage = nullptr;
+      std::string *StringStorage = nullptr;
+      std::vector<std::string> *StringListStorage = nullptr;
+      RepeatPolicy Policy = RepeatPolicy::Single;
+      bool IsRequired = false;
+      std::vector<Option *> Exclusions;
   };
 
   class Application
   {
-  public:
-    explicit Application(ApplicationInfo Info);
+    public:
+      explicit Application(ApplicationInfo Info);
+      Application(const Application &) = delete;
+      Application &operator=(const Application &) = delete;
+      Application(Application &&) = delete;
+      Application &operator=(Application &&) = delete;
 
-    CLI::App &app() noexcept;
-    const CLI::App &app() const noexcept;
+      Option &addFlag(std::string Names, bool &Storage, std::string Description = {});
+      Option &addOption(std::string Names, std::string &Storage, std::string Description = {});
+      Option &addOption(std::string Names, std::vector<std::string> &Storage, std::string Description = {});
 
-    // User invocation errors are returned as ParseResult; invalid command definitions throw std::logic_error for runMain to report as internal errors.
-    ParseResult parse(int ArgumentCount, char **ArgumentValues);
-    ParseResult parse(int ArgumentCount, char **ArgumentValues, std::ostream &Output, std::ostream &ErrorOutput);
-    ParseResult parseArguments(const std::vector<std::string> &Arguments, std::ostream &Output, std::ostream &ErrorOutput);
+      ParseResult parse(int ArgumentCount, char **ArgumentValues);
+      ParseResult parse(int ArgumentCount, char **ArgumentValues, std::ostream &Output, std::ostream &ErrorOutput);
+      ParseResult parseArguments(const std::vector<std::string> &Arguments, std::ostream &Output, std::ostream &ErrorOutput);
 
-  private:
-    ParseResult handleParseError(const CLI::ParseError &Error, std::ostream &Output, std::ostream &ErrorOutput) const;
+    private:
+      friend class CommandLineParser;
 
-    CLI::App App;
+      ApplicationInfo Info;
+      std::vector<std::unique_ptr<Option>> Options;
   };
 
-  CLI::Option &setRepeatPolicy(CLI::Option &Option, RepeatPolicy Policy);
   int runMain(std::string_view ProgramName, const std::function<int()> &Body);
   int runMain(std::string_view ProgramName, const std::function<int()> &Body, std::ostream &ErrorOutput);
 

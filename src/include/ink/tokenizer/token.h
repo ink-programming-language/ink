@@ -136,8 +136,8 @@ namespace ink::tokenizer
 
   struct NumericInfo
   {
-    unsigned Base = 10;
-    NumericSuffix Suffix = NumericSuffix::None;
+      unsigned Base = 10;
+      NumericSuffix Suffix = NumericSuffix::None;
   };
 
   inline bool operator==(const NumericInfo &Left, const NumericInfo &Right) noexcept
@@ -152,8 +152,8 @@ namespace ink::tokenizer
 
   struct StringInfo
   {
-    StringMode Mode = StringMode::EscapedSingleLine;
-    std::string Decoded;
+      StringMode Mode = StringMode::EscapedSingleLine;
+      std::string Decoded;
   };
 
   inline bool operator==(const StringInfo &Left, const StringInfo &Right) noexcept
@@ -170,12 +170,12 @@ namespace ink::tokenizer
 
   struct Token
   {
-    TokenKind Kind = TokenKind::InvalidCharacter;
-    core::SourceRange Span;
-    TokenPayload Payload;
+      TokenKind Kind = TokenKind::InvalidCharacter;
+      core::SourceRange Span;
+      TokenPayload Payload;
 
-    bool isTrivia() const noexcept;
-    bool isError() const noexcept;
+      bool isTrivia() const noexcept;
+      bool isError() const noexcept;
   };
 
   inline bool operator==(const Token &Left, const Token &Right)

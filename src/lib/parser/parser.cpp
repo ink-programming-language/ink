@@ -4,7 +4,6 @@
 #include <cassert>
 #include <initializer_list>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -12,9 +11,8 @@
 namespace ink::parser
 {
   using core::Diagnostic;
-  using core::DiagnosticArgumentName;
-  using core::DiagnosticBuilder;
   using core::DiagnosticKind;
+  using core::makeDiagnostic;
   using core::SourceRange;
   using tokenizer::KeywordKind;
   using tokenizer::Token;
@@ -23,244 +21,303 @@ namespace ink::parser
 
   class CstBuilder
   {
-  public:
-    struct TemporaryNode
-    {
-      CstKind Kind = CstKind::Unknown;
-      std::vector<CstElement> Children;
-    };
-
-    struct Checkpoint
-    {
-      std::size_t NodesSize = 0;
-      std::vector<CstNodeId> Stack;
-      CstNodeId Parent = 0;
-      std::size_t ParentChildCount = 0;
-      std::optional<CstElement> LastChild;
-    };
-
-    CstNodeId start(CstKind Kind)
-    {
-      const CstNodeId Id = Nodes.size();
-      Nodes.push_back({Kind, {}});
-      if (!Stack.empty())
+    public:
+      struct TemporaryNode
       {
-        Nodes[Stack.back()].Children.push_back(CstNodeRef{Id});
-      }
-      Stack.push_back(Id);
-      return Id;
-    }
-
-    void finish()
-    {
-      assert(!Stack.empty());
-      Stack.pop_back();
-    }
-
-    CstNodeId wrapLast(CstKind Kind)
-    {
-      assert(!Stack.empty());
-      const CstNodeId Parent = Stack.back();
-      std::vector<CstElement> &ParentChildren = Nodes[Parent].Children;
-      assert(!ParentChildren.empty());
-      CstElement Previous = std::move(ParentChildren.back());
-      ParentChildren.pop_back();
-      const CstNodeId Id = Nodes.size();
-      Nodes.push_back({Kind, {std::move(Previous)}});
-      Nodes[Parent].Children.push_back(CstNodeRef{Id});
-      Stack.push_back(Id);
-      return Id;
-    }
-
-    void setKind(CstNodeId Id, CstKind Kind)
-    {
-      Nodes.at(Id).Kind = Kind;
-    }
-
-    void token(std::size_t TokenIndex)
-    {
-      assert(!Stack.empty());
-      Nodes[Stack.back()].Children.push_back(CstTokenRef{TokenIndex});
-    }
-
-    void missing(MissingToken Token)
-    {
-      assert(!Stack.empty());
-      Nodes[Stack.back()].Children.push_back(std::move(Token));
-    }
-
-    Checkpoint checkpoint() const
-    {
-      assert(!Stack.empty());
-      const CstNodeId Parent = Stack.back();
-      const std::vector<CstElement> &ParentChildren = Nodes[Parent].Children;
-      return {Nodes.size(), Stack, Parent, ParentChildren.size(), ParentChildren.empty() ? std::optional<CstElement>() : std::optional<CstElement>(ParentChildren.back())};
-    }
-
-    void restore(Checkpoint State)
-    {
-      Nodes.resize(State.NodesSize);
-      assert(State.Parent < Nodes.size());
-      std::vector<CstElement> &ParentChildren = Nodes[State.Parent].Children;
-      ParentChildren.resize(State.ParentChildCount);
-      if (State.LastChild)
-      {
-        assert(!ParentChildren.empty());
-        ParentChildren.back() = std::move(*State.LastChild);
-      }
-      Stack = std::move(State.Stack);
-    }
-
-    CstTree build(const TokenizedBuffer &LexedFile) const
-    {
-      CstTree Result;
-      Result.Nodes.resize(Nodes.size());
-      Result.Root = 0;
-      for (std::size_t Index = 0; Index < Nodes.size(); ++Index)
-      {
-        const TemporaryNode &Temporary = Nodes[Index];
-        CstNode &Node = Result.Nodes[Index];
-        Node.Kind = Temporary.Kind;
-        Node.FirstChild = Result.Children.size();
-        Node.ChildCount = Temporary.Children.size();
-        Result.Children.insert(Result.Children.end(), Temporary.Children.begin(), Temporary.Children.end());
-      }
-      struct Frame
-      {
-        std::size_t NodeIndex = 0;
-        std::size_t NextChild = 0;
+          CstKind Kind = CstKind::Unknown;
+          std::vector<CstElement> Children;
       };
-      std::vector<std::uint8_t> State(Nodes.size(), 0);
-      std::vector<Frame> Work;
-      for (std::size_t Start = 0; Start < Nodes.size(); ++Start)
+
+      struct Checkpoint
       {
-        if (State[Start] != 0)
+          std::size_t NodesSize = 0;
+          std::vector<CstNodeId> Stack;
+          CstNodeId Parent = 0;
+          std::size_t ParentChildCount = 0;
+          std::optional<CstElement> LastChild;
+      };
+
+      CstNodeId start(CstKind Kind)
+      {
+        const CstNodeId Id = Nodes.size();
+        Nodes.push_back({Kind, {}});
+        if (!Stack.empty())
         {
-          continue;
+          Nodes[Stack.back()].Children.push_back(CstNodeRef{Id});
         }
-        State[Start] = 1;
-        Work.push_back({Start, 0});
-        while (!Work.empty())
+        Stack.push_back(Id);
+        return Id;
+      }
+
+      void finish()
+      {
+        assert(!Stack.empty());
+        Stack.pop_back();
+      }
+
+      CstNodeId wrapLast(CstKind Kind)
+      {
+        assert(!Stack.empty());
+        const CstNodeId Parent = Stack.back();
+        std::vector<CstElement> &ParentChildren = Nodes[Parent].Children;
+        assert(!ParentChildren.empty());
+        CstElement Previous = std::move(ParentChildren.back());
+        ParentChildren.pop_back();
+        const CstNodeId Id = Nodes.size();
+        Nodes.push_back({Kind, {std::move(Previous)}});
+        Nodes[Parent].Children.push_back(CstNodeRef{Id});
+        Stack.push_back(Id);
+        return Id;
+      }
+
+      void setKind(CstNodeId Id, CstKind Kind)
+      {
+        assert(Id < Nodes.size());
+        if (Id < Nodes.size())
         {
-          Frame &Current = Work.back();
-          const TemporaryNode &Temporary = Nodes[Current.NodeIndex];
-          bool Descended = false;
-          while (Current.NextChild < Temporary.Children.size())
-          {
-            const CstElement &Element = Temporary.Children[Current.NextChild++];
-            const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element);
-            if (Child == nullptr || State[Child->Id] == 2)
-            {
-              continue;
-            }
-            if (State[Child->Id] == 1)
-            {
-              throw std::logic_error("CST contains a node-reference cycle");
-            }
-            State[Child->Id] = 1;
-            Work.push_back({Child->Id, 0});
-            Descended = true;
-            break;
-          }
-          if (Descended)
+          Nodes[Id].Kind = Kind;
+        }
+      }
+
+      void token(std::size_t TokenIndex)
+      {
+        assert(!Stack.empty());
+        Nodes[Stack.back()].Children.push_back(CstTokenRef{TokenIndex});
+      }
+
+      void missing(MissingToken Token)
+      {
+        assert(!Stack.empty());
+        Nodes[Stack.back()].Children.push_back(std::move(Token));
+      }
+
+      Checkpoint checkpoint() const
+      {
+        assert(!Stack.empty());
+        const CstNodeId Parent = Stack.back();
+        const std::vector<CstElement> &ParentChildren = Nodes[Parent].Children;
+        return {Nodes.size(), Stack, Parent, ParentChildren.size(), ParentChildren.empty() ? std::optional<CstElement>() : std::optional<CstElement>(ParentChildren.back())};
+      }
+
+      void restore(Checkpoint State)
+      {
+        Nodes.resize(State.NodesSize);
+        assert(State.Parent < Nodes.size());
+        std::vector<CstElement> &ParentChildren = Nodes[State.Parent].Children;
+        ParentChildren.resize(State.ParentChildCount);
+        if (State.LastChild)
+        {
+          assert(!ParentChildren.empty());
+          ParentChildren.back() = std::move(*State.LastChild);
+        }
+        Stack = std::move(State.Stack);
+      }
+
+      CstTree build(const TokenizedBuffer &LexedFile) const
+      {
+        assert(!Nodes.empty());
+        if (Nodes.empty())
+        {
+          return {};
+        }
+        CstTree Result;
+        Result.Nodes.resize(Nodes.size());
+        Result.Root = 0;
+        for (std::size_t Index = 0; Index < Nodes.size(); ++Index)
+        {
+          const TemporaryNode &Temporary = Nodes[Index];
+          CstNode &Node = Result.Nodes[Index];
+          Node.Kind = Temporary.Kind;
+          Node.FirstChild = Result.Children.size();
+          Node.ChildCount = Temporary.Children.size();
+          Result.Children.insert(Result.Children.end(), Temporary.Children.begin(), Temporary.Children.end());
+        }
+        struct Frame
+        {
+            std::size_t NodeIndex = 0;
+            std::size_t NextChild = 0;
+        };
+        std::vector<std::uint8_t> State(Nodes.size(), 0);
+        std::vector<Frame> Work;
+        for (std::size_t Start = 0; Start < Nodes.size(); ++Start)
+        {
+          if (State[Start] != 0)
           {
             continue;
           }
+          State[Start] = 1;
+          Work.push_back({Start, 0});
+          while (!Work.empty())
+          {
+            Frame &Current = Work.back();
+            const TemporaryNode &Temporary = Nodes[Current.NodeIndex];
+            bool Descended = false;
+            while (Current.NextChild < Temporary.Children.size())
+            {
+              const CstElement &Element = Temporary.Children[Current.NextChild++];
+              const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element);
+              if (Child == nullptr)
+              {
+                continue;
+              }
+              assert(Child->Id < State.size());
+              if (Child->Id >= State.size())
+              {
+                return {};
+              }
+              if (State[Child->Id] == 2)
+              {
+                continue;
+              }
+              if (State[Child->Id] == 1)
+              {
+                assert(false && "CST contains a node-reference cycle");
+                return {};
+              }
+              State[Child->Id] = 1;
+              Work.push_back({Child->Id, 0});
+              Descended = true;
+              break;
+            }
+            if (Descended)
+            {
+              continue;
+            }
 
-          CstNode &Node = Result.Nodes[Current.NodeIndex];
-          if (Node.Kind == CstKind::Error)
-          {
-            Node.Flags |= CstNodeFlags::HasError;
+            CstNode &Node = Result.Nodes[Current.NodeIndex];
+            if (Node.Kind == CstKind::Error)
+            {
+              Node.Flags |= CstNodeFlags::HasError;
+            }
+            for (const CstElement &Element : Temporary.Children)
+            {
+              if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
+              {
+                assert(Child->Id < Result.Nodes.size());
+                if (Child->Id >= Result.Nodes.size())
+                {
+                  return {};
+                }
+                const CstNode &ChildNode = Result.Nodes[Child->Id];
+                Node.TokenCount += ChildNode.TokenCount;
+                Node.TextLength += ChildNode.TextLength;
+                Node.Flags |= ChildNode.Flags;
+              }
+              else if (const CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
+              {
+                assert(TokenReference->TokenOffset < LexedFile.tokens().size());
+                if (TokenReference->TokenOffset >= LexedFile.tokens().size())
+                {
+                  return {};
+                }
+                const Token &ReferencedToken = LexedFile.tokens()[TokenReference->TokenOffset];
+                ++Node.TokenCount;
+                Node.TextLength += ReferencedToken.Span.size();
+              }
+              else
+              {
+                Node.Flags |= CstNodeFlags::HasMissing;
+              }
+            }
+            State[Current.NodeIndex] = 2;
+            Work.pop_back();
           }
-          for (const CstElement &Element : Temporary.Children)
-          {
-            if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
-            {
-              const CstNode &ChildNode = Result.Nodes.at(Child->Id);
-              Node.TokenCount += ChildNode.TokenCount;
-              Node.TextLength += ChildNode.TextLength;
-              Node.Flags |= ChildNode.Flags;
-            }
-            else if (const CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
-            {
-              const Token &ReferencedToken = LexedFile.tokens().at(TokenReference->TokenOffset);
-              ++Node.TokenCount;
-              Node.TextLength += ReferencedToken.Span.size();
-            }
-            else
-            {
-              Node.Flags |= CstNodeFlags::HasMissing;
-            }
-          }
-          State[Current.NodeIndex] = 2;
-          Work.pop_back();
         }
+
+        struct OffsetFrame
+        {
+            CstNodeId NodeId = 0;
+            std::size_t NodeStartToken = 0;
+            std::size_t NextChild = 0;
+            std::size_t ConsumedTokens = 0;
+        };
+        std::vector<std::uint8_t> OffsetState(Result.Nodes.size(), 0);
+        std::vector<OffsetFrame> OffsetWork;
+        OffsetState[Result.Root] = 1;
+        OffsetWork.push_back({Result.Root, 0, 0, 0});
+        while (!OffsetWork.empty())
+        {
+          OffsetFrame &Current = OffsetWork.back();
+          assert(Current.NodeId < Result.Nodes.size());
+          if (Current.NodeId >= Result.Nodes.size())
+          {
+            return {};
+          }
+          const CstNode &Node = Result.Nodes[Current.NodeId];
+          if (Current.NextChild == Node.ChildCount)
+          {
+            assert(Current.ConsumedTokens == Node.TokenCount);
+            if (Current.ConsumedTokens != Node.TokenCount)
+            {
+              return {};
+            }
+            OffsetState[Current.NodeId] = 2;
+            OffsetWork.pop_back();
+            continue;
+          }
+          assert(Node.FirstChild <= Result.Children.size() && Node.ChildCount <= Result.Children.size() - Node.FirstChild);
+          if (Node.FirstChild > Result.Children.size() || Node.ChildCount > Result.Children.size() - Node.FirstChild)
+          {
+            return {};
+          }
+          CstElement &Element = Result.Children[Node.FirstChild + Current.NextChild++];
+          if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
+          {
+            assert(Child->Id < Result.Nodes.size());
+            if (Child->Id >= Result.Nodes.size())
+            {
+              return {};
+            }
+            const CstNode &ChildNode = Result.Nodes[Child->Id];
+            const std::size_t ChildStartToken = Current.NodeStartToken + Current.ConsumedTokens;
+            Current.ConsumedTokens += ChildNode.TokenCount;
+            if (OffsetState[Child->Id] == 1)
+            {
+              assert(false && "CST contains a node-reference cycle");
+              return {};
+            }
+            if (OffsetState[Child->Id] == 0)
+            {
+              OffsetState[Child->Id] = 1;
+              OffsetWork.push_back({Child->Id, ChildStartToken, 0, 0});
+            }
+          }
+          else if (CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
+          {
+            assert(TokenReference->TokenOffset == Current.NodeStartToken + Current.ConsumedTokens);
+            if (TokenReference->TokenOffset != Current.NodeStartToken + Current.ConsumedTokens)
+            {
+              return {};
+            }
+            TokenReference->TokenOffset = Current.ConsumedTokens;
+            ++Current.ConsumedTokens;
+          }
+        }
+        for (const std::uint8_t NodeState : OffsetState)
+        {
+          if (NodeState != 2)
+          {
+            assert(false && "CST contains a node that is not reachable from the root");
+            return {};
+          }
+        }
+        return Result;
       }
 
-      struct OffsetFrame
-      {
-        CstNodeId NodeId = 0;
-        std::size_t NodeStartToken = 0;
-        std::size_t NextChild = 0;
-        std::size_t ConsumedTokens = 0;
-      };
-      assert(!Result.Nodes.empty());
-      std::vector<std::uint8_t> OffsetState(Result.Nodes.size(), 0);
-      std::vector<OffsetFrame> OffsetWork;
-      OffsetState[Result.Root] = 1;
-      OffsetWork.push_back({Result.Root, 0, 0, 0});
-      while (!OffsetWork.empty())
-      {
-        OffsetFrame &Current = OffsetWork.back();
-        const CstNode &Node = Result.Nodes.at(Current.NodeId);
-        if (Current.NextChild == Node.ChildCount)
-        {
-          assert(Current.ConsumedTokens == Node.TokenCount);
-          OffsetState[Current.NodeId] = 2;
-          OffsetWork.pop_back();
-          continue;
-        }
-
-        CstElement &Element = Result.Children.at(Node.FirstChild + Current.NextChild++);
-        if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
-        {
-          const CstNode &ChildNode = Result.Nodes.at(Child->Id);
-          const std::size_t ChildStartToken = Current.NodeStartToken + Current.ConsumedTokens;
-          Current.ConsumedTokens += ChildNode.TokenCount;
-          if (OffsetState[Child->Id] == 1)
-          {
-            throw std::logic_error("CST contains a node-reference cycle");
-          }
-          if (OffsetState[Child->Id] == 0)
-          {
-            OffsetState[Child->Id] = 1;
-            OffsetWork.push_back({Child->Id, ChildStartToken, 0, 0});
-          }
-        }
-        else if (CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
-        {
-          assert(TokenReference->TokenOffset == Current.NodeStartToken + Current.ConsumedTokens);
-          TokenReference->TokenOffset = Current.ConsumedTokens;
-          ++Current.ConsumedTokens;
-        }
-      }
-      for (const std::uint8_t NodeState : OffsetState)
-      {
-        if (NodeState != 2)
-        {
-          throw std::logic_error("CST contains a node that is not reachable from the root");
-        }
-      }
-      return Result;
-    }
-
-  private:
-    std::vector<TemporaryNode> Nodes;
-    std::vector<CstNodeId> Stack;
+    private:
+      std::vector<TemporaryNode> Nodes;
+      std::vector<CstNodeId> Stack;
   };
 
   namespace
   {
+    KeywordKind keywordKind(const Token &TokenValue) noexcept
+    {
+      const KeywordKind *Kind = std::get_if<KeywordKind>(&TokenValue.Payload);
+      assert(Kind != nullptr);
+      return Kind == nullptr ? KeywordKind::As : *Kind;
+    }
+
     enum class RegionKind
     {
       Statement,
@@ -283,10 +340,10 @@ namespace ink::parser
 
     struct StopSet
     {
-      std::vector<std::string_view> Symbols;
-      std::vector<KeywordKind> Keywords;
-      bool EndOfFile = false;
-      bool MatchArm = false;
+        std::vector<std::string_view> Symbols;
+        std::vector<KeywordKind> Keywords;
+        bool EndOfFile = false;
+        bool MatchArm = false;
     };
 
     StopSet withKeyword(const StopSet &Original, KeywordKind Keyword)
@@ -367,273 +424,275 @@ namespace ink::parser
 
     class SyntaxNestingGuard
     {
-    public:
-      explicit SyntaxNestingGuard(std::size_t &Depth)
-          : Depth(Depth)
-      {
-        ++Depth;
-      }
+      public:
+        explicit SyntaxNestingGuard(std::size_t &Depth)
+            : Depth(Depth)
+        {
+          ++Depth;
+        }
 
-      ~SyntaxNestingGuard()
-      {
-        --Depth;
-      }
+        ~SyntaxNestingGuard()
+        {
+          --Depth;
+        }
 
-      SyntaxNestingGuard(const SyntaxNestingGuard &) = delete;
-      SyntaxNestingGuard &operator=(const SyntaxNestingGuard &) = delete;
+        SyntaxNestingGuard(const SyntaxNestingGuard &) = delete;
+        SyntaxNestingGuard &operator=(const SyntaxNestingGuard &) = delete;
 
-    private:
-      std::size_t &Depth;
+      private:
+        std::size_t &Depth;
     };
 
     struct MatchArmBoundaryState
     {
-      std::size_t DelimiterDepth = 0;
-      std::size_t BoundaryDepth = 0;
+        std::size_t DelimiterDepth = 0;
+        std::size_t BoundaryDepth = 0;
     };
 
     class MatchArmBoundaryGuard
     {
-    public:
-      MatchArmBoundaryGuard(std::vector<MatchArmBoundaryState> &States, bool Active, std::size_t BoundaryDepth)
-          : States(States), Active(Active)
-      {
-        if (Active)
+      public:
+        MatchArmBoundaryGuard(std::vector<MatchArmBoundaryState> &States, bool Active, std::size_t BoundaryDepth)
+            : States(States),
+              Active(Active)
         {
-          States.push_back({0, BoundaryDepth});
+          if (Active)
+          {
+            States.push_back({0, BoundaryDepth});
+          }
         }
-      }
 
-      ~MatchArmBoundaryGuard()
-      {
-        if (Active)
+        ~MatchArmBoundaryGuard()
         {
-          assert(!States.empty());
-          States.pop_back();
+          if (Active)
+          {
+            assert(!States.empty());
+            States.pop_back();
+          }
         }
-      }
 
-      MatchArmBoundaryGuard(const MatchArmBoundaryGuard &) = delete;
-      MatchArmBoundaryGuard &operator=(const MatchArmBoundaryGuard &) = delete;
+        MatchArmBoundaryGuard(const MatchArmBoundaryGuard &) = delete;
+        MatchArmBoundaryGuard &operator=(const MatchArmBoundaryGuard &) = delete;
 
-    private:
-      std::vector<MatchArmBoundaryState> &States;
-      bool Active;
+      private:
+        std::vector<MatchArmBoundaryState> &States;
+        bool Active;
     };
   } // namespace
 
   class ParserImpl
   {
-  public:
-    ParserImpl(const TokenizedBuffer &LexedFile, ParserOptions Options)
-        : LexedFile(LexedFile), Options(Options)
-    {
-    }
+    public:
+      ParserImpl(const TokenizedBuffer &LexedFile, ParserOptions Options)
+          : LexedFile(LexedFile),
+            Options(Options)
+      {
+      }
 
-    CstTree run();
+      CstTree run();
 
-    std::vector<Diagnostic> takeDiagnostics()
-    {
-      return std::move(Diagnostics);
-    }
+      std::vector<Diagnostic> takeDiagnostics()
+      {
+        return std::move(Diagnostics);
+      }
 
-    ParseCompleteness completeness() const noexcept
-    {
-      return Completeness;
-    }
+      ParseCompleteness completeness() const noexcept
+      {
+        return Completeness;
+      }
 
-  private:
-    struct Checkpoint
-    {
+    private:
+      struct Checkpoint
+      {
+          std::size_t RawIndex = 0;
+          CstBuilder::Checkpoint BuilderState;
+          std::size_t DiagnosticCount = 0;
+          ParseCompleteness Completeness = ParseCompleteness::Complete;
+          bool SawDefinitiveError = false;
+          std::vector<MatchArmBoundaryState> MatchArmBoundaries;
+      };
+
+      const Token &peekRaw(std::size_t Offset = 0) const;
+      std::size_t significantIndex(std::size_t Offset = 0) const;
+      const Token &peekSignificant(std::size_t Offset = 0) const;
+      std::string_view raw(const Token &TokenValue) const;
+      bool atMatchArmBoundary() const;
+      void trackMatchArmDelimiter(const Token &TokenValue);
+      bool atEnd() const;
+      bool atToken(TokenKind Kind) const;
+      bool atKeyword(KeywordKind Kind) const;
+      bool atIdentifier() const;
+      bool atIdentifierSpelling(std::string_view Spelling) const;
+      bool atBuiltinType() const;
+      bool rawSymbolAt(std::size_t Index, char Symbol) const;
+      bool symbolRunMatches(std::size_t Index, std::string_view Sequence) const;
+      std::string longestSymbolSequenceAt(std::size_t Index) const;
+      std::string longestSymbolSequence() const;
+      bool atSymbols(std::string_view Sequence) const;
+      bool atSingleSymbol(char Symbol) const;
+      bool atTypeSymbol(char Symbol) const;
+      bool atStop(const StopSet &Stop) const;
+      bool isExpressionStart(std::size_t Offset = 0) const;
+      bool isTypeStart(std::size_t Offset = 0) const;
+      bool isPatternStart() const;
+      bool isStatementStart() const;
+      bool isTopLevelStart() const;
+      bool isMemberStart() const;
+      bool isClassTypeExpressionStart(std::size_t Offset = 0) const;
+      bool shouldCommitClassTypeExpression();
+      bool isNamedArgumentStart() const;
+      bool isMatchArmStart() const;
+      bool isIfStatementStart() const;
+      bool isUnsuffixedDecimalInteger(const Token &TokenValue) const;
+      DeclarationKind classifyDeclaration(std::size_t Offset = 0) const;
+      bool hasIncompleteDeclarationPrefix() const;
+
+      CstNodeId startNode(CstKind Kind);
+      CstNodeId wrapLast(CstKind Kind);
+      void finishNode();
+      void flushTrivia();
+      void consumeCurrent();
+      bool consumeToken(TokenKind Kind);
+      bool consumeKeyword(KeywordKind Kind);
+      bool consumeSymbols(std::string_view Sequence);
+      bool consumeSingleSymbol(char Symbol);
+      void consumeOperator(std::string_view Sequence);
+      void expectToken(TokenKind Kind, std::string_view Expected);
+      void expectKeyword(KeywordKind Kind, std::string_view Expected);
+      void expectSymbols(std::string_view Sequence);
+      void expectSingleSymbol(char Symbol);
+      void addMissing(TokenKind Kind, std::string_view Expected, bool MarksIncompleteAtEof = true);
+      void addExpectedSyntax(std::string_view Expected);
+      void addUnexpected(DiagnosticKind Kind = DiagnosticKind::UnexpectedToken);
+      void consumeUnexpected(DiagnosticKind Kind = DiagnosticKind::UnexpectedToken);
+      void consumeUnexpectedSymbols(DiagnosticKind Kind = DiagnosticKind::UnexpectedToken);
+      bool consumeUnexpectedCommas();
+      void recoverSyntaxNesting();
+      std::size_t anchorOffset() const;
+      Checkpoint checkpoint() const;
+      void restore(Checkpoint State);
+
+      void parseSourceFile();
+      void parseTopLevelItem(bool MatchArmBody = false);
+      void parseImportDeclaration();
+      void parseModulePath();
+      void parseImportAlias();
+      void parseImportedMember();
+      void parseIncompleteDeclarationPrefix();
+      void parseTopLevelDeclaration(DeclarationKind Kind);
+      void parseBindingDeclaration(bool TopLevel, const StopSet &Stop = {});
+      void parseBindingCore(const StopSet &Stop);
+      void parseAttributeList();
+      void parseAttributeApplication();
+      void parseDecoratorApplication();
+      void parseApplicationArgumentClause();
+      void parseFunctionDeclaration(bool Decorator);
+      void parseFunctionModifier();
+      void parseFunctionName();
+      void parseGenericParameterClause();
+      void parseGenericParameter();
+      void parseFunctionParameterClause();
+      void parseFunctionParameter();
+      void parseReturnClause(const StopSet &Stop);
+      void parseFunctionBody();
+      void parseConstructorInitializerClause();
+      void parseConstructorInitializer();
+      void parseConstructorInitializerTarget();
+      void parseTypeDeclaration(DeclarationKind Kind, bool ExpressionClass = false);
+      void parseInvalidDeclarationPrefixElement();
+      void parseTypeDeclarationPrefix();
+      void parseInheritanceClause();
+      void parseClassMemberBlock(bool Interface, bool MatchArmBody = false);
+      void parseClassMemberItem(bool Interface, bool MatchArmBody = false);
+      void parseFieldDeclaration(const StopSet &Stop = {});
+      void parseEnumMemberBlock(bool MatchArmBody = false);
+      void parseEnumMemberItem(bool MatchArmBody = false);
+      void parseEnumBranch(const StopSet &Stop = {});
+
+      void parseComptimeRegion(RegionKind Region);
+      void parseRegionBlock(RegionKind Region, bool MatchArmBody = false);
+      void parseRegionIfTail(RegionKind Region);
+      void parseRegionMatchTail(RegionKind Region);
+      void parseRegionForTail(RegionKind Region);
+      void parseRegionWhileTail(RegionKind Region);
+
+      void parseStatementBlock(bool MatchArmBody = false);
+      void parseBlockItem(bool MatchArmBody = false);
+      void parseStatement(bool MatchArmBody = false);
+      void parseExpressionOrAssignmentStatement(bool MatchArmBody = false);
+      void parseIfStatement();
+      void parseIfCondition(CstKind MatchConditionKind = CstKind::MatchCondition);
+      void parseMatchStatement();
+      void parseMatchStatementArm();
+      void parseWhileStatement();
+      void parseWhileCondition();
+      void parseForStatement();
+      void parseForHeader();
+      void parseBreakStatement();
+      void parseContinueStatement();
+      void parseReturnStatement(bool MatchArmBody = false);
+      void parseDeferStatement(bool MatchArmBody = false);
+      void parseThrowStatement(bool MatchArmBody = false);
+      void parseTryStatement();
+      void parseCatchClause(bool CatchAll);
+
+      void parsePayloadPattern();
+      void parseTuplePattern();
+      void parseVariantPattern();
+      void parseConditionalMatchPattern();
+      void parseMatchArmPattern();
+      void parseForPattern();
+
+      void parseExpression(const StopSet &Stop);
+      void parseIfExpression(const StopSet &Stop, bool Generic);
+      void parseGenericArgumentExpression(const StopSet &Stop);
+      void parseLogicalOrExpression(const StopSet &Stop, bool Generic);
+      void parseLogicalAndExpression(const StopSet &Stop, bool Generic);
+      void parseComparisonExpression(const StopSet &Stop, bool Generic);
+      void parseBitwiseOrExpression(const StopSet &Stop, bool Generic);
+      void parseBitwiseXorExpression(const StopSet &Stop, bool Generic);
+      void parseBitwiseAndExpression(const StopSet &Stop, bool Generic);
+      void parseShiftExpression(const StopSet &Stop, bool Generic);
+      void parseAdditiveExpression(const StopSet &Stop);
+      void parseMultiplicativeExpression(const StopSet &Stop);
+      void parseUnaryExpression(const StopSet &Stop);
+      void parsePostfixExpression(const StopSet &Stop);
+      void parsePrimaryExpression(const StopSet &Stop);
+      void parseParenthesizedExpression();
+      void parseArrayExpression();
+      void parseMatchExpression();
+      void parseMatchExpressionArm();
+      bool parsePostfixSuffix(const StopSet &Stop, bool TypeContext);
+      void parseCallSuffix(bool AllowForwardAll = true);
+      void parseArgumentList();
+      void parsePositionalArgument();
+      void parseNamedArgument();
+      void parseListExpansion(const StopSet &Stop, bool Generic);
+      bool parseIndexOrSliceSuffix();
+      void parseMemberSuffix(bool Pointer);
+      void parseGenericArgumentClause();
+      void parseGenericArgument();
+      void parseAggregateInitializationSuffix(const StopSet &Stop);
+      void parseTypeConstructorTail(const StopSet &Stop);
+
+      void parseType(const StopSet &Stop);
+      void parsePostfixableTypePrimary(const StopSet &Stop);
+      void parseTupleType();
+      void parseFunctionType(const StopSet &Stop);
+      void parseFunctionTypeParameter();
+      void parseTypeSymbolSuffix();
+      void parseEmptyBracketSuffix();
+      bool parenthesisContainsTopLevelCommaOrExpansion() const;
+
+      const TokenizedBuffer &LexedFile;
+      ParserOptions Options;
       std::size_t RawIndex = 0;
-      CstBuilder::Checkpoint BuilderState;
-      std::size_t DiagnosticCount = 0;
+      CstBuilder Builder;
+      std::vector<Diagnostic> Diagnostics;
       ParseCompleteness Completeness = ParseCompleteness::Complete;
       bool SawDefinitiveError = false;
+      std::size_t SyntaxNestingDepth = 0;
       std::vector<MatchArmBoundaryState> MatchArmBoundaries;
-    };
-
-    const Token &peekRaw(std::size_t Offset = 0) const;
-    std::size_t significantIndex(std::size_t Offset = 0) const;
-    const Token &peekSignificant(std::size_t Offset = 0) const;
-    std::string_view raw(const Token &TokenValue) const;
-    bool atMatchArmBoundary() const;
-    void trackMatchArmDelimiter(const Token &TokenValue);
-    bool atEnd() const;
-    bool atToken(TokenKind Kind) const;
-    bool atKeyword(KeywordKind Kind) const;
-    bool atIdentifier() const;
-    bool atIdentifierSpelling(std::string_view Spelling) const;
-    bool atBuiltinType() const;
-    bool rawSymbolAt(std::size_t Index, char Symbol) const;
-    bool symbolRunMatches(std::size_t Index, std::string_view Sequence) const;
-    std::string longestSymbolSequenceAt(std::size_t Index) const;
-    std::string longestSymbolSequence() const;
-    bool atSymbols(std::string_view Sequence) const;
-    bool atSingleSymbol(char Symbol) const;
-    bool atTypeSymbol(char Symbol) const;
-    bool atStop(const StopSet &Stop) const;
-    bool isExpressionStart(std::size_t Offset = 0) const;
-    bool isTypeStart(std::size_t Offset = 0) const;
-    bool isPatternStart() const;
-    bool isStatementStart() const;
-    bool isTopLevelStart() const;
-    bool isMemberStart() const;
-    bool isClassTypeExpressionStart(std::size_t Offset = 0) const;
-    bool shouldCommitClassTypeExpression();
-    bool isNamedArgumentStart() const;
-    bool isMatchArmStart() const;
-    bool isIfStatementStart() const;
-    bool isUnsuffixedDecimalInteger(const Token &TokenValue) const;
-    DeclarationKind classifyDeclaration(std::size_t Offset = 0) const;
-    bool hasIncompleteDeclarationPrefix() const;
-
-    CstNodeId startNode(CstKind Kind);
-    CstNodeId wrapLast(CstKind Kind);
-    void finishNode();
-    void flushTrivia();
-    void consumeCurrent();
-    bool consumeToken(TokenKind Kind);
-    bool consumeKeyword(KeywordKind Kind);
-    bool consumeSymbols(std::string_view Sequence);
-    bool consumeSingleSymbol(char Symbol);
-    void consumeOperator(std::string_view Sequence);
-    void expectToken(TokenKind Kind, std::string_view Expected);
-    void expectKeyword(KeywordKind Kind, std::string_view Expected);
-    void expectSymbols(std::string_view Sequence);
-    void expectSingleSymbol(char Symbol);
-    void addMissing(TokenKind Kind, std::string_view Expected, bool MarksIncompleteAtEof = true);
-    void addExpectedSyntax(std::string_view Expected);
-    void addUnexpected(DiagnosticKind Kind = DiagnosticKind::UnexpectedToken);
-    void consumeUnexpected(DiagnosticKind Kind = DiagnosticKind::UnexpectedToken);
-    void consumeUnexpectedSymbols(DiagnosticKind Kind = DiagnosticKind::UnexpectedToken);
-    bool consumeUnexpectedCommas();
-    void recoverSyntaxNesting();
-    std::size_t anchorOffset() const;
-    Checkpoint checkpoint() const;
-    void restore(Checkpoint State);
-
-    void parseSourceFile();
-    void parseTopLevelItem(bool MatchArmBody = false);
-    void parseImportDeclaration();
-    void parseModulePath();
-    void parseImportAlias();
-    void parseImportedMember();
-    void parseIncompleteDeclarationPrefix();
-    void parseTopLevelDeclaration(DeclarationKind Kind);
-    void parseBindingDeclaration(bool TopLevel, const StopSet &Stop = {});
-    void parseBindingCore(const StopSet &Stop);
-    void parseAttributeList();
-    void parseAttributeApplication();
-    void parseDecoratorApplication();
-    void parseApplicationArgumentClause();
-    void parseFunctionDeclaration(bool Decorator);
-    void parseFunctionModifier();
-    void parseFunctionName();
-    void parseGenericParameterClause();
-    void parseGenericParameter();
-    void parseFunctionParameterClause();
-    void parseFunctionParameter();
-    void parseReturnClause(const StopSet &Stop);
-    void parseFunctionBody();
-    void parseConstructorInitializerClause();
-    void parseConstructorInitializer();
-    void parseConstructorInitializerTarget();
-    void parseTypeDeclaration(DeclarationKind Kind, bool ExpressionClass = false);
-    void parseInvalidDeclarationPrefixElement();
-    void parseTypeDeclarationPrefix();
-    void parseInheritanceClause();
-    void parseClassMemberBlock(bool Interface, bool MatchArmBody = false);
-    void parseClassMemberItem(bool Interface, bool MatchArmBody = false);
-    void parseFieldDeclaration(const StopSet &Stop = {});
-    void parseEnumMemberBlock(bool MatchArmBody = false);
-    void parseEnumMemberItem(bool MatchArmBody = false);
-    void parseEnumBranch(const StopSet &Stop = {});
-
-    void parseComptimeRegion(RegionKind Region);
-    void parseRegionBlock(RegionKind Region, bool MatchArmBody = false);
-    void parseRegionIfTail(RegionKind Region);
-    void parseRegionMatchTail(RegionKind Region);
-    void parseRegionForTail(RegionKind Region);
-    void parseRegionWhileTail(RegionKind Region);
-
-    void parseStatementBlock(bool MatchArmBody = false);
-    void parseBlockItem(bool MatchArmBody = false);
-    void parseStatement(bool MatchArmBody = false);
-    void parseExpressionOrAssignmentStatement(bool MatchArmBody = false);
-    void parseIfStatement();
-    void parseIfCondition(CstKind MatchConditionKind = CstKind::MatchCondition);
-    void parseMatchStatement();
-    void parseMatchStatementArm();
-    void parseWhileStatement();
-    void parseWhileCondition();
-    void parseForStatement();
-    void parseForHeader();
-    void parseBreakStatement();
-    void parseContinueStatement();
-    void parseReturnStatement(bool MatchArmBody = false);
-    void parseDeferStatement(bool MatchArmBody = false);
-    void parseThrowStatement(bool MatchArmBody = false);
-    void parseTryStatement();
-    void parseCatchClause(bool CatchAll);
-
-    void parsePayloadPattern();
-    void parseTuplePattern();
-    void parseVariantPattern();
-    void parseConditionalMatchPattern();
-    void parseMatchArmPattern();
-    void parseForPattern();
-
-    void parseExpression(const StopSet &Stop);
-    void parseIfExpression(const StopSet &Stop, bool Generic);
-    void parseGenericArgumentExpression(const StopSet &Stop);
-    void parseLogicalOrExpression(const StopSet &Stop, bool Generic);
-    void parseLogicalAndExpression(const StopSet &Stop, bool Generic);
-    void parseComparisonExpression(const StopSet &Stop, bool Generic);
-    void parseBitwiseOrExpression(const StopSet &Stop, bool Generic);
-    void parseBitwiseXorExpression(const StopSet &Stop, bool Generic);
-    void parseBitwiseAndExpression(const StopSet &Stop, bool Generic);
-    void parseShiftExpression(const StopSet &Stop, bool Generic);
-    void parseAdditiveExpression(const StopSet &Stop);
-    void parseMultiplicativeExpression(const StopSet &Stop);
-    void parseUnaryExpression(const StopSet &Stop);
-    void parsePostfixExpression(const StopSet &Stop);
-    void parsePrimaryExpression(const StopSet &Stop);
-    void parseParenthesizedExpression();
-    void parseArrayExpression();
-    void parseMatchExpression();
-    void parseMatchExpressionArm();
-    bool parsePostfixSuffix(const StopSet &Stop, bool TypeContext);
-    void parseCallSuffix(bool AllowForwardAll = true);
-    void parseArgumentList();
-    void parsePositionalArgument();
-    void parseNamedArgument();
-    void parseListExpansion(const StopSet &Stop, bool Generic);
-    bool parseIndexOrSliceSuffix();
-    void parseMemberSuffix(bool Pointer);
-    void parseGenericArgumentClause();
-    void parseGenericArgument();
-    void parseAggregateInitializationSuffix(const StopSet &Stop);
-    void parseTypeConstructorTail(const StopSet &Stop);
-
-    void parseType(const StopSet &Stop);
-    void parsePostfixableTypePrimary(const StopSet &Stop);
-    void parseTupleType();
-    void parseFunctionType(const StopSet &Stop);
-    void parseFunctionTypeParameter();
-    void parseTypeSymbolSuffix();
-    void parseEmptyBracketSuffix();
-    bool parenthesisContainsTopLevelCommaOrExpansion() const;
-
-    const TokenizedBuffer &LexedFile;
-    ParserOptions Options;
-    std::size_t RawIndex = 0;
-    CstBuilder Builder;
-    std::vector<Diagnostic> Diagnostics;
-    ParseCompleteness Completeness = ParseCompleteness::Complete;
-    bool SawDefinitiveError = false;
-    std::size_t SyntaxNestingDepth = 0;
-    std::vector<MatchArmBoundaryState> MatchArmBoundaries;
   };
   const Token &ParserImpl::peekRaw(std::size_t Offset) const
   {
@@ -875,7 +934,7 @@ namespace ink::parser
     }
     if (Current.Kind == TokenKind::Keyword)
     {
-      const KeywordKind Kind = std::get<KeywordKind>(Current.Payload);
+      const KeywordKind Kind = keywordKind(Current);
       return Kind == KeywordKind::This || Kind == KeywordKind::If || Kind == KeywordKind::Match || Kind == KeywordKind::Const || Kind == KeywordKind::Func || Kind == KeywordKind::Async || Kind == KeywordKind::Class || Kind == KeywordKind::Comptime || Kind == KeywordKind::Await;
     }
     if (Current.Kind != TokenKind::Symbol)
@@ -900,7 +959,7 @@ namespace ink::parser
     }
     if (Current.Kind == TokenKind::Keyword)
     {
-      const KeywordKind Kind = std::get<KeywordKind>(Current.Payload);
+      const KeywordKind Kind = keywordKind(Current);
       return Kind == KeywordKind::Const || Kind == KeywordKind::Async || Kind == KeywordKind::Func;
     }
     return Current.Kind == TokenKind::Symbol && longestSymbolSequenceAt(significantIndex(Offset)) == "(";
@@ -919,7 +978,7 @@ namespace ink::parser
     }
     if (peekSignificant().Kind == TokenKind::Keyword)
     {
-      const KeywordKind Kind = std::get<KeywordKind>(peekSignificant().Payload);
+      const KeywordKind Kind = keywordKind(peekSignificant());
       switch (Kind)
       {
       case KeywordKind::Var:
@@ -962,7 +1021,7 @@ namespace ink::parser
       {
         return false;
       }
-      const KeywordKind Kind = std::get<KeywordKind>(Current.Payload);
+      const KeywordKind Kind = keywordKind(Current);
       if (Kind == KeywordKind::Class)
       {
         return true;
@@ -1121,7 +1180,7 @@ namespace ink::parser
       }
       if (Current.Kind == TokenKind::Keyword)
       {
-        const KeywordKind Kind = std::get<KeywordKind>(Current.Payload);
+        const KeywordKind Kind = keywordKind(Current);
         switch (Kind)
         {
         case KeywordKind::Var:
@@ -1301,7 +1360,7 @@ namespace ink::parser
       {
         return false;
       }
-      const KeywordKind Kind = std::get<KeywordKind>(Current.Payload);
+      const KeywordKind Kind = keywordKind(Current);
       const bool Modifier = Kind == KeywordKind::Public || Kind == KeywordKind::Protected || Kind == KeywordKind::Private || Kind == KeywordKind::Extern || Kind == KeywordKind::Static || Kind == KeywordKind::Virtual || Kind == KeywordKind::Override || Kind == KeywordKind::Final || Kind == KeywordKind::Async || Kind == KeywordKind::Implicit;
       if (!Modifier)
       {
@@ -1445,7 +1504,7 @@ namespace ink::parser
   {
     const std::size_t Anchor = anchorOffset();
     Builder.missing({Kind, std::string(Expected), Anchor});
-    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::ExpectedToken, LexedFile.sourceFileId(), {Anchor, Anchor}).argument(DiagnosticArgumentName::Expected, std::string(Expected)).build());
+    Diagnostics.push_back(makeDiagnostic<DiagnosticKind::ExpectedToken>({Anchor, Anchor}, Expected));
     if (!atEnd())
     {
       SawDefinitiveError = true;
@@ -1460,7 +1519,7 @@ namespace ink::parser
   {
     const std::size_t Anchor = anchorOffset();
     Builder.missing({TokenKind::Identifier, std::string(Expected), Anchor});
-    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::ExpectedSyntax, LexedFile.sourceFileId(), {Anchor, Anchor}).argument(DiagnosticArgumentName::Expected, std::string(Expected)).build());
+    Diagnostics.push_back(makeDiagnostic<DiagnosticKind::ExpectedSyntax>({Anchor, Anchor}, Expected));
     if (!atEnd())
     {
       SawDefinitiveError = true;
@@ -1475,7 +1534,18 @@ namespace ink::parser
   {
     const Token &Current = peekSignificant();
     const std::string Actual = Current.Kind == TokenKind::EndOfFile ? "end of file" : std::string(raw(Current));
-    Diagnostics.push_back(DiagnosticBuilder(Kind, LexedFile.sourceFileId(), Current.Span).argument(DiagnosticArgumentName::Actual, Actual).build());
+    if (Kind == DiagnosticKind::ReservedSymbolSequence)
+    {
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::ReservedSymbolSequence>(Current.Span, Actual));
+    }
+    else if (Kind == DiagnosticKind::TrailingComma)
+    {
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::TrailingComma>(Current.Span));
+    }
+    else
+    {
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::UnexpectedToken>(Current.Span, Actual));
+    }
     if (Current.Kind != TokenKind::EndOfFile)
     {
       SawDefinitiveError = true;
@@ -1514,7 +1584,14 @@ namespace ink::parser
     startNode(CstKind::Error);
     const std::size_t FirstToken = significantIndex();
     const SourceRange Span = {LexedFile.tokens()[FirstToken].Span.Start, LexedFile.tokens()[FirstToken + Sequence.size() - 1].Span.End};
-    Diagnostics.push_back(DiagnosticBuilder(Kind, LexedFile.sourceFileId(), Span).argument(DiagnosticArgumentName::Actual, Sequence).build());
+    if (Kind == DiagnosticKind::ReservedSymbolSequence)
+    {
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::ReservedSymbolSequence>(Span, Sequence));
+    }
+    else
+    {
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::UnexpectedToken>(Span, Sequence));
+    }
     SawDefinitiveError = true;
     consumeSymbols(Sequence);
     finishNode();
@@ -1534,7 +1611,7 @@ namespace ink::parser
   void ParserImpl::recoverSyntaxNesting()
   {
     const Token &Current = peekSignificant();
-    Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::SyntaxNestingLimit, LexedFile.sourceFileId(), Current.Span).build());
+    Diagnostics.push_back(makeDiagnostic<DiagnosticKind::SyntaxNestingLimit>(Current.Span));
     SawDefinitiveError = true;
     startNode(CstKind::Error);
     if (!atEnd())
@@ -2633,7 +2710,7 @@ namespace ink::parser
     {
       if (const Token &Operand = peekSignificant(1); Operand.Kind == TokenKind::Keyword)
       {
-        switch (std::get<KeywordKind>(Operand.Payload))
+        switch (keywordKind(Operand))
         {
         case KeywordKind::If:
           Kind = CstKind::ComptimeIfControl;
@@ -3025,7 +3102,7 @@ namespace ink::parser
     if (atKeyword(KeywordKind::Comptime))
     {
       const Token &Operand = peekSignificant(1);
-      const bool StructuredKeyword = Operand.Kind == TokenKind::Keyword && (std::get<KeywordKind>(Operand.Payload) == KeywordKind::If || std::get<KeywordKind>(Operand.Payload) == KeywordKind::Match || std::get<KeywordKind>(Operand.Payload) == KeywordKind::For || std::get<KeywordKind>(Operand.Payload) == KeywordKind::While);
+      const bool StructuredKeyword = Operand.Kind == TokenKind::Keyword && (keywordKind(Operand) == KeywordKind::If || keywordKind(Operand) == KeywordKind::Match || keywordKind(Operand) == KeywordKind::For || keywordKind(Operand) == KeywordKind::While);
       const bool StructuredBlock = Operand.Kind == TokenKind::Symbol && longestSymbolSequenceAt(significantIndex(1)) == "{";
       if (StructuredKeyword || StructuredBlock)
       {
@@ -3086,7 +3163,7 @@ namespace ink::parser
     if (atKeyword(KeywordKind::Var) || atKeyword(KeywordKind::Const))
     {
       const SourceRange Span = peekSignificant().Span;
-      Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::DeclarationRequiresBlock, LexedFile.sourceFileId(), Span).build());
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::DeclarationRequiresBlock>(Span));
       SawDefinitiveError = true;
       startNode(CstKind::Error);
       StopSet DeclarationStop;
@@ -3271,7 +3348,7 @@ namespace ink::parser
     if (atKeyword(KeywordKind::Var) || atKeyword(KeywordKind::Const))
     {
       const SourceRange Span = peekSignificant().Span;
-      Diagnostics.push_back(DiagnosticBuilder(DiagnosticKind::DeclarationRequiresBlock, LexedFile.sourceFileId(), Span).build());
+      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::DeclarationRequiresBlock>(Span));
       SawDefinitiveError = true;
       startNode(CstKind::Error);
       parseBindingCore({{",", "}"}, {}, false, true});
@@ -3498,7 +3575,7 @@ namespace ink::parser
     bool SawCatchAll = false;
     while (atKeyword(KeywordKind::Catch))
     {
-      const bool CatchAll = longestSymbolSequenceAt(significantIndex(1)) == "{" || (peekSignificant(1).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(1).Payload) == KeywordKind::As);
+      const bool CatchAll = longestSymbolSequenceAt(significantIndex(1)) == "{" || (peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::As);
       if (SawCatchAll)
       {
         startNode(CstKind::Error);
@@ -3783,9 +3860,9 @@ namespace ink::parser
 
   void ParserImpl::parsePostfixExpression(const StopSet &Stop)
   {
-    const bool StartsWithAsyncFunction = atKeyword(KeywordKind::Async) && peekSignificant(1).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(1).Payload) == KeywordKind::Func;
-    const bool StartsWithConstFunction = atKeyword(KeywordKind::Const) && peekSignificant(1).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(1).Payload) == KeywordKind::Func;
-    const bool StartsWithConstAsyncFunction = atKeyword(KeywordKind::Const) && peekSignificant(1).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(1).Payload) == KeywordKind::Async && peekSignificant(2).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(2).Payload) == KeywordKind::Func;
+    const bool StartsWithAsyncFunction = atKeyword(KeywordKind::Async) && peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::Func;
+    const bool StartsWithConstFunction = atKeyword(KeywordKind::Const) && peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::Func;
+    const bool StartsWithConstAsyncFunction = atKeyword(KeywordKind::Const) && peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::Async && peekSignificant(2).Kind == TokenKind::Keyword && keywordKind(peekSignificant(2)) == KeywordKind::Func;
     const bool DirectFunctionType = atKeyword(KeywordKind::Func) || StartsWithAsyncFunction || StartsWithConstFunction || StartsWithConstAsyncFunction;
     if (DirectFunctionType)
     {
@@ -4110,7 +4187,7 @@ namespace ink::parser
         finishNode();
         return true;
       }
-      const CstNodeId Suffix = wrapLast(TypeContext ? CstKind::BracketPostfixSuffix : CstKind::IndexExpression);
+      const CstNodeId Suffix = wrapLast(CstKind::BracketPostfixSuffix);
       if (parseIndexOrSliceSuffix())
       {
         Builder.setKind(Suffix, CstKind::SliceExpression);
@@ -4541,7 +4618,7 @@ namespace ink::parser
       consumeKeyword(KeywordKind::Const);
       finishNode();
     }
-    if (atKeyword(KeywordKind::Func) || (atKeyword(KeywordKind::Async) && peekSignificant(1).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(1).Payload) == KeywordKind::Func))
+    if (atKeyword(KeywordKind::Func) || (atKeyword(KeywordKind::Async) && peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::Func))
     {
       parseFunctionType(Stop);
       finishNode();
@@ -4793,9 +4870,9 @@ namespace ink::parser
     std::size_t BraceDepth = 0;
     struct GenericDepth
     {
-      std::size_t Parenthesis = 0;
-      std::size_t Bracket = 0;
-      std::size_t Brace = 0;
+        std::size_t Parenthesis = 0;
+        std::size_t Bracket = 0;
+        std::size_t Brace = 0;
     };
     std::vector<GenericDepth> GenericDepths;
     for (std::size_t Offset = 0;; ++Offset)
@@ -4855,24 +4932,31 @@ namespace ink::parser
   }
 
   ParsedFile::ParsedFile(TokenizedBuffer LexedFile, CstTree Tree, std::vector<Diagnostic> Diagnostics, ParseCompleteness Completeness)
-      : LexedFile(std::move(LexedFile)), Tree(std::move(Tree)), Diagnostics(std::move(Diagnostics)), Completeness(Completeness)
+      : LexedFile(std::move(LexedFile)),
+        Tree(std::move(Tree)),
+        Diagnostics(std::move(Diagnostics)),
+        Completeness(Completeness)
   {
   }
 
   bool ParsedFile::succeeded() const noexcept
   {
-    return LexedFile.succeeded() && Diagnostics.empty();
+    return LexedFile.succeeded() && !Tree.nodes().empty() && Diagnostics.empty();
   }
 
   SourceRange ParsedFile::span(CstNodeId Id) const
   {
-    Tree.node(Id);
+    assert(Id < Tree.nodes().size() && Tree.root() < Tree.nodes().size());
+    if (Id >= Tree.nodes().size() || Tree.root() >= Tree.nodes().size())
+    {
+      return {};
+    }
     struct TraversalFrame
     {
-      CstNodeId NodeId = 0;
-      std::size_t NodeStartToken = 0;
-      std::size_t NextChild = 0;
-      std::size_t ConsumedTokens = 0;
+        CstNodeId NodeId = 0;
+        std::size_t NodeStartToken = 0;
+        std::size_t NextChild = 0;
+        std::size_t ConsumedTokens = 0;
     };
 
     std::size_t RequestedNodeStartToken = 0;
@@ -4882,17 +4966,36 @@ namespace ink::parser
     while (!FoundRequestedNode && !Work.empty())
     {
       TraversalFrame &Current = Work.back();
+      assert(Current.NodeId < Tree.nodes().size());
+      if (Current.NodeId >= Tree.nodes().size())
+      {
+        return {};
+      }
       const CstNode &Node = Tree.node(Current.NodeId);
       if (Current.NextChild == Node.ChildCount)
       {
         assert(Current.ConsumedTokens == Node.TokenCount);
+        if (Current.ConsumedTokens != Node.TokenCount)
+        {
+          return {};
+        }
         Work.pop_back();
         continue;
       }
 
-      const CstElement &Element = Tree.children().at(Node.FirstChild + Current.NextChild++);
+      assert(Node.FirstChild <= Tree.children().size() && Node.ChildCount <= Tree.children().size() - Node.FirstChild);
+      if (Node.FirstChild > Tree.children().size() || Node.ChildCount > Tree.children().size() - Node.FirstChild)
+      {
+        return {};
+      }
+      const CstElement &Element = Tree.children()[Node.FirstChild + Current.NextChild++];
       if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
       {
+        assert(Child->Id < Tree.nodes().size());
+        if (Child->Id >= Tree.nodes().size())
+        {
+          return {};
+        }
         const CstNode &ChildNode = Tree.node(Child->Id);
         const std::size_t ChildStartToken = Current.NodeStartToken + Current.ConsumedTokens;
         Current.ConsumedTokens += ChildNode.TokenCount;
@@ -4904,15 +5007,20 @@ namespace ink::parser
         }
         Work.push_back({Child->Id, ChildStartToken, 0, 0});
       }
-      else if (std::holds_alternative<CstTokenRef>(Element))
+      else if (const CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
       {
-        assert(std::get<CstTokenRef>(Element).TokenOffset == Current.ConsumedTokens);
+        assert(TokenReference->TokenOffset == Current.ConsumedTokens);
+        if (TokenReference->TokenOffset != Current.ConsumedTokens)
+        {
+          return {};
+        }
         ++Current.ConsumedTokens;
       }
     }
     if (!FoundRequestedNode)
     {
-      throw std::logic_error("CST node is not reachable from the root");
+      assert(false && "CST node is not reachable from the root");
+      return {};
     }
 
     std::optional<std::size_t> Start;
@@ -4922,17 +5030,36 @@ namespace ink::parser
     while (!Work.empty())
     {
       TraversalFrame &Current = Work.back();
+      assert(Current.NodeId < Tree.nodes().size());
+      if (Current.NodeId >= Tree.nodes().size())
+      {
+        return {};
+      }
       const CstNode &Node = Tree.node(Current.NodeId);
       if (Current.NextChild == Node.ChildCount)
       {
         assert(Current.ConsumedTokens == Node.TokenCount);
+        if (Current.ConsumedTokens != Node.TokenCount)
+        {
+          return {};
+        }
         Work.pop_back();
         continue;
       }
 
-      const CstElement &Element = Tree.children().at(Node.FirstChild + Current.NextChild++);
+      assert(Node.FirstChild <= Tree.children().size() && Node.ChildCount <= Tree.children().size() - Node.FirstChild);
+      if (Node.FirstChild > Tree.children().size() || Node.ChildCount > Tree.children().size() - Node.FirstChild)
+      {
+        return {};
+      }
+      const CstElement &Element = Tree.children()[Node.FirstChild + Current.NextChild++];
       if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
       {
+        assert(Child->Id < Tree.nodes().size());
+        if (Child->Id >= Tree.nodes().size())
+        {
+          return {};
+        }
         const CstNode &ChildNode = Tree.node(Child->Id);
         const std::size_t ChildStartToken = Current.NodeStartToken + Current.ConsumedTokens;
         Current.ConsumedTokens += ChildNode.TokenCount;
@@ -4941,7 +5068,11 @@ namespace ink::parser
       else if (const CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
       {
         assert(TokenReference->TokenOffset == Current.ConsumedTokens);
-        const Token &TokenValue = LexedFile.tokens().at(Current.NodeStartToken + TokenReference->TokenOffset);
+        if (TokenReference->TokenOffset != Current.ConsumedTokens || Current.NodeStartToken > LexedFile.tokens().size() || TokenReference->TokenOffset >= LexedFile.tokens().size() - Current.NodeStartToken)
+        {
+          return {};
+        }
+        const Token &TokenValue = LexedFile.tokens()[Current.NodeStartToken + TokenReference->TokenOffset];
         ++Current.ConsumedTokens;
         if (!Start)
         {
@@ -4965,8 +5096,9 @@ namespace ink::parser
     return {Anchor, End.value_or(Anchor)};
   }
 
-  Parser::Parser(ParserOptions Options)
-      : Options(Options)
+  Parser::Parser(core::FrontendContext &Context, ParserOptions Options)
+      : Context(Context),
+        Options(Options)
   {
   }
 
@@ -4974,16 +5106,27 @@ namespace ink::parser
   {
     if (!LexedFile.succeeded())
     {
-      throw std::invalid_argument("ink parser requires a successful tokenized buffer");
+      return ParsedFile(std::move(LexedFile), {}, {}, ParseCompleteness::Complete);
     }
     ParserImpl Implementation(LexedFile, Options);
     CstTree Tree = Implementation.run();
     std::vector<Diagnostic> ParserDiagnostics = Implementation.takeDiagnostics();
+    for (const Diagnostic &DiagnosticEntry : ParserDiagnostics)
+    {
+      Context.diagnosticEngine().report(DiagnosticEntry);
+    }
     return ParsedFile(std::move(LexedFile), std::move(Tree), std::move(ParserDiagnostics), Implementation.completeness());
+  }
+
+  ParsedFile parse(core::FrontendContext &Context, TokenizedBuffer LexedFile, ParserOptions Options)
+  {
+    return Parser(Context, Options).parse(std::move(LexedFile));
   }
 
   ParsedFile parse(TokenizedBuffer LexedFile, ParserOptions Options)
   {
-    return Parser(Options).parse(std::move(LexedFile));
+    core::CompilationContext Compilation;
+    core::FrontendContext Context(Compilation);
+    return parse(Context, std::move(LexedFile), Options);
   }
 } // namespace ink::parser

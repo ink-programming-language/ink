@@ -8,21 +8,19 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace ink::parser::test
 {
-  inline constexpr core::SourceFileId TestSourceFileId = core::SourceFileId::fromValue(0);
-
   inline ParsedFile parseSource(std::string Source, ParserOptions Options = {})
   {
-    tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(TestSourceFileId, std::move(Source));
+    tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(std::move(Source));
     if (!LexedFile.succeeded())
     {
-      throw std::runtime_error("parser test source must tokenize successfully");
+      ADD_FAILURE() << "parser test source must tokenize successfully";
+      return ink::parser::parse(tokenizer::tokenize(std::string()), Options);
     }
     return ink::parser::parse(std::move(LexedFile), Options);
   }
@@ -65,8 +63,8 @@ namespace ink::parser::test
   {
     struct NodeLocationFrame
     {
-      CstNodeId Id;
-      std::size_t NodeStart;
+        CstNodeId Id;
+        std::size_t NodeStart;
     };
 
     inline std::size_t nodeTokenStart(const ParsedFile &File, CstNodeId Target)
@@ -74,7 +72,8 @@ namespace ink::parser::test
       const CstTree &Tree = File.cst();
       if (Target >= Tree.nodes().size())
       {
-        throw std::out_of_range("requested CST node is out of range");
+        ADD_FAILURE() << "requested CST node is out of range";
+        return 0;
       }
 
       std::vector<NodeLocationFrame> Work = {{Tree.root(), 0}};
@@ -85,11 +84,13 @@ namespace ink::parser::test
         Work.pop_back();
         if (Current.Id >= Tree.nodes().size())
         {
-          throw std::out_of_range("CST contains an out-of-range node reference");
+          ADD_FAILURE() << "CST contains an out-of-range node reference";
+          return 0;
         }
         if (Visited[Current.Id])
         {
-          throw std::logic_error("CST node is reachable more than once");
+          ADD_FAILURE() << "CST node is reachable more than once";
+          return 0;
         }
         Visited[Current.Id] = true;
         if (Current.Id == Target)
@@ -100,7 +101,8 @@ namespace ink::parser::test
         const CstNode &Node = Tree.node(Current.Id);
         if (Node.FirstChild > Tree.children().size() || Node.ChildCount > Tree.children().size() - Node.FirstChild)
         {
-          throw std::out_of_range("CST child range is out of bounds");
+          ADD_FAILURE() << "CST child range is out of bounds";
+          return 0;
         }
         std::size_t ConsumedTokens = 0;
         for (std::size_t Offset = 0; Offset < Node.ChildCount; ++Offset)
@@ -110,7 +112,8 @@ namespace ink::parser::test
           {
             if (Child->Id >= Tree.nodes().size())
             {
-              throw std::out_of_range("CST contains an out-of-range node reference");
+              ADD_FAILURE() << "CST contains an out-of-range node reference";
+              return 0;
             }
             Work.push_back({Child->Id, Current.NodeStart + ConsumedTokens});
             ConsumedTokens += Tree.node(Child->Id).TokenCount;
@@ -121,21 +124,27 @@ namespace ink::parser::test
           }
         }
       }
-      throw std::logic_error("requested CST node is unreachable from the root");
+      ADD_FAILURE() << "requested CST node is unreachable from the root";
+      return 0;
     }
 
     struct TextFrame
     {
-      CstNodeId Id;
-      std::size_t NodeStart;
-      std::size_t NextChild = 0;
-      std::size_t ConsumedTokens = 0;
+        CstNodeId Id;
+        std::size_t NodeStart;
+        std::size_t NextChild = 0;
+        std::size_t ConsumedTokens = 0;
     };
   } // namespace detail
 
   inline void appendNodeText(const ParsedFile &File, CstNodeId Id, std::string &Result)
   {
     const CstTree &Tree = File.cst();
+    if (Id >= Tree.nodes().size())
+    {
+      ADD_FAILURE() << "requested CST node is out of range";
+      return;
+    }
     const std::size_t NodeStart = detail::nodeTokenStart(File, Id);
     std::vector<detail::TextFrame> Frames = {{Id, NodeStart}};
     std::vector<bool> ActiveNodes(Tree.nodes().size(), false);
@@ -143,10 +152,16 @@ namespace ink::parser::test
     while (!Frames.empty())
     {
       detail::TextFrame &Frame = Frames.back();
+      if (Frame.Id >= Tree.nodes().size())
+      {
+        ADD_FAILURE() << "CST contains an out-of-range node reference";
+        return;
+      }
       const CstNode &Node = Tree.node(Frame.Id);
       if (Node.FirstChild > Tree.children().size() || Node.ChildCount > Tree.children().size() - Node.FirstChild)
       {
-        throw std::out_of_range("CST child range is out of bounds");
+        ADD_FAILURE() << "CST child range is out of bounds";
+        return;
       }
       if (Frame.NextChild == Node.ChildCount)
       {
@@ -161,11 +176,13 @@ namespace ink::parser::test
       {
         if (Child->Id >= Tree.nodes().size())
         {
-          throw std::out_of_range("CST contains an out-of-range node reference");
+          ADD_FAILURE() << "CST contains an out-of-range node reference";
+          return;
         }
         if (ActiveNodes[Child->Id])
         {
-          throw std::logic_error("CST contains a node-reference cycle");
+          ADD_FAILURE() << "CST contains a node-reference cycle";
+          return;
         }
         const std::size_t ChildStart = Frame.NodeStart + Frame.ConsumedTokens;
         Frame.ConsumedTokens += Tree.node(Child->Id).TokenCount;
@@ -176,10 +193,16 @@ namespace ink::parser::test
       {
         if (TokenReference->TokenOffset != Frame.ConsumedTokens)
         {
-          throw std::logic_error("CST token offset does not match child order");
+          ADD_FAILURE() << "CST token offset does not match child order";
+          return;
         }
         const std::size_t TokenIndex = Frame.NodeStart + TokenReference->TokenOffset;
-        const tokenizer::Token &Token = File.lexedFile().tokens().at(TokenIndex);
+        if (TokenIndex >= File.lexedFile().tokens().size())
+        {
+          ADD_FAILURE() << "CST token reference is out of range";
+          return;
+        }
+        const tokenizer::Token &Token = File.lexedFile().tokens()[TokenIndex];
         Result.append(File.lexedFile().raw(Token));
         ++Frame.ConsumedTokens;
       }
@@ -220,18 +243,18 @@ namespace ink::parser::test
   {
     struct MeasuredNode
     {
-      std::size_t TokenCount = 0;
-      std::size_t TextLength = 0;
-      CstNodeFlags Flags = CstNodeFlags::None;
+        std::size_t TokenCount = 0;
+        std::size_t TextLength = 0;
+        CstNodeFlags Flags = CstNodeFlags::None;
     };
 
     struct MeasureFrame
     {
-      CstNodeId Id;
-      std::size_t NodeStart;
-      std::size_t NextChild = 0;
-      std::size_t ConsumedTokens = 0;
-      MeasuredNode Result;
+        CstNodeId Id;
+        std::size_t NodeStart;
+        std::size_t NextChild = 0;
+        std::size_t ConsumedTokens = 0;
+        MeasuredNode Result;
     };
 
     inline bool pushMeasureFrame(const ParsedFile &File, CstNodeId Id, std::size_t NodeStart, std::vector<std::size_t> &NodeVisits, std::vector<MeasureFrame> &Frames)

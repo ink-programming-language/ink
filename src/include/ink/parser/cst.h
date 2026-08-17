@@ -47,12 +47,12 @@ namespace ink::parser
 
   struct CstNode
   {
-    CstKind Kind = CstKind::Unknown;
-    std::size_t FirstChild = 0;
-    std::size_t ChildCount = 0;
-    std::size_t TokenCount = 0;
-    std::size_t TextLength = 0;
-    CstNodeFlags Flags = CstNodeFlags::None;
+      CstKind Kind = CstKind::Unknown;
+      std::size_t FirstChild = 0;
+      std::size_t ChildCount = 0;
+      std::size_t TokenCount = 0;
+      std::size_t TextLength = 0;
+      CstNodeFlags Flags = CstNodeFlags::None;
   };
 
   inline bool operator==(const CstNode &Left, const CstNode &Right) noexcept
@@ -67,7 +67,7 @@ namespace ink::parser
 
   struct CstNodeRef
   {
-    CstNodeId Id = 0;
+      CstNodeId Id = 0;
   };
 
   inline bool operator==(CstNodeRef Left, CstNodeRef Right) noexcept
@@ -82,8 +82,8 @@ namespace ink::parser
 
   struct CstTokenRef
   {
-    // Token offset from the beginning of the node that directly owns this element.
-    std::size_t TokenOffset = 0;
+      // Token offset from the beginning of the node that directly owns this element.
+      std::size_t TokenOffset = 0;
   };
 
   inline bool operator==(CstTokenRef Left, CstTokenRef Right) noexcept
@@ -98,9 +98,9 @@ namespace ink::parser
 
   struct MissingToken
   {
-    tokenizer::TokenKind ExpectedKind = tokenizer::TokenKind::InvalidCharacter;
-    std::string ExpectedSpelling;
-    std::size_t AnchorByteOffset = 0;
+      tokenizer::TokenKind ExpectedKind = tokenizer::TokenKind::InvalidCharacter;
+      std::string ExpectedSpelling;
+      std::size_t AnchorByteOffset = 0;
   };
 
   inline bool operator==(const MissingToken &Left, const MissingToken &Right)
@@ -117,31 +117,31 @@ namespace ink::parser
 
   class CstTree
   {
-  public:
-    const std::vector<CstNode> &nodes() const noexcept
-    {
-      return Nodes;
-    }
+    public:
+      const std::vector<CstNode> &nodes() const noexcept
+      {
+        return Nodes;
+      }
 
-    const std::vector<CstElement> &children() const noexcept
-    {
-      return Children;
-    }
+      const std::vector<CstElement> &children() const noexcept
+      {
+        return Children;
+      }
 
-    CstNodeId root() const noexcept
-    {
-      return Root;
-    }
+      CstNodeId root() const noexcept
+      {
+        return Root;
+      }
 
-    const CstNode &node(CstNodeId Id) const;
+      const CstNode &node(CstNodeId Id) const noexcept;
 
-  private:
-    std::vector<CstNode> Nodes;
-    std::vector<CstElement> Children;
-    CstNodeId Root = 0;
+    private:
+      std::vector<CstNode> Nodes;
+      std::vector<CstElement> Children;
+      CstNodeId Root = 0;
 
-    friend class ParserImpl;
-    friend class CstBuilder;
+      friend class ParserImpl;
+      friend class CstBuilder;
   };
 } // namespace ink::parser
 

@@ -1,6 +1,6 @@
 #include "ink/parser/cst.h"
 
-#include <stdexcept>
+#include <cassert>
 
 namespace ink::parser
 {
@@ -17,8 +17,9 @@ namespace ink::parser
     return "Unknown";
   }
 
-  const CstNode &CstTree::node(CstNodeId Id) const
+  const CstNode &CstTree::node(CstNodeId Id) const noexcept
   {
-    return Nodes.at(Id);
+    assert(Id < Nodes.size());
+    return Nodes[Id];
   }
 } // namespace ink::parser

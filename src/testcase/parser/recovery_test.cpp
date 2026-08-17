@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,35 +19,34 @@ namespace ink::parser
     using test::missingTokens;
     using test::nodeTextsOfKind;
     using test::parseSource;
-    using test::TestSourceFileId;
 
     struct MissingSyntaxCase
     {
-      const char *Name;
-      const char *Source;
-      const char *ExpectedSpelling;
+        const char *Name;
+        const char *Source;
+        const char *ExpectedSpelling;
     };
 
     struct RegionMatchRecoveryCase
     {
-      const char *Name;
-      const char *Source;
-      CstKind BlockKind;
+        const char *Name;
+        const char *Source;
+        CstKind BlockKind;
     };
 
     struct StructuredMatchRecoveryCase
     {
-      const char *Name;
-      const char *Source;
-      CstKind ArmKind;
+        const char *Name;
+        const char *Source;
+        CstKind ArmKind;
     };
 
     struct InheritanceRecoveryCase
     {
-      const char *Name;
-      const char *Source;
-      CstKind OwnerKind;
-      CstKind BlockKind;
+        const char *Name;
+        const char *Source;
+        CstKind OwnerKind;
+        CstKind BlockKind;
     };
 
     // Verifies missing delimiters, terminators, and required clauses become zero-width MissingToken leaves with diagnostics.
@@ -84,10 +82,10 @@ namespace ink::parser
 
     struct ErrorRecoveryCase
     {
-      const char *Name;
-      const char *Source;
-      core::DiagnosticKind ExpectedDiagnostic;
-      CstKind RecoveredKind;
+        const char *Name;
+        const char *Source;
+        core::DiagnosticKind ExpectedDiagnostic;
+        CstKind RecoveredKind;
     };
 
     // Verifies unexpected tokens, reserved sequences, trailing commas, and declaration-placement errors recover into Error nodes and continue parsing.
@@ -170,8 +168,8 @@ namespace ink::parser
 
     struct InteractiveCase
     {
-      const char *Name;
-      const char *Source;
+        const char *Name;
+        const char *Source;
     };
 
     // Verifies EOF in a construct that can be completed by more input is Incomplete interactively but remains Complete in batch mode.
@@ -710,21 +708,26 @@ namespace ink::parser
       expectFullFidelity(File);
     }
 
-    // Verifies the Parser enforces its successful-tokenization precondition instead of accepting lexical Error tokens.
+    // Verifies the Parser returns a safe unsuccessful result for a token buffer that already contains lexical errors.
     TEST(ParserApiTest, RejectsLexicallyFailedTokenBuffers)
     {
-      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(TestSourceFileId, "?");
+      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize("?");
 
       ASSERT_FALSE(LexedFile.succeeded());
-      EXPECT_THROW(ink::parser::parse(std::move(LexedFile)), std::invalid_argument);
+      const ParsedFile File = ink::parser::parse(std::move(LexedFile));
+      EXPECT_FALSE(File.succeeded());
+      EXPECT_TRUE(File.cst().nodes().empty());
+      EXPECT_TRUE(File.cst().children().empty());
     }
 
     // Verifies one configured Parser instance can parse multiple independent token buffers without retaining prior state.
     TEST(ParserApiTest, ParserInstanceIsReusableAcrossFiles)
     {
-      const Parser Reusable(ParserOptions{ParseMode::Batch});
-      const ParsedFile First = Reusable.parse(tokenizer::tokenize(TestSourceFileId, "const First = 1;"));
-      const ParsedFile Second = Reusable.parse(tokenizer::tokenize(TestSourceFileId, "func Second() { return; }"));
+      core::CompilationContext Compilation;
+      core::FrontendContext Context(Compilation);
+      const Parser Reusable(Context, ParserOptions{ParseMode::Batch});
+      const ParsedFile First = Reusable.parse(tokenizer::tokenize(Context, "const First = 1;"));
+      const ParsedFile Second = Reusable.parse(tokenizer::tokenize(Context, "func Second() { return; }"));
 
       ASSERT_TRUE(First.succeeded());
       ASSERT_TRUE(Second.succeeded());
@@ -734,6 +737,22 @@ namespace ink::parser
       EXPECT_FALSE(hasKind(Second, CstKind::TopLevelBindingDeclaration));
       expectFullFidelity(First);
       expectFullFidelity(Second);
+    }
+
+    // Verifies that finalized Parser diagnostics are both retained in the parsed result and published through the shared frontend context.
+    TEST(ParserApiTest, PublishesDiagnosticsThroughFrontendContext)
+    {
+      core::CompilationContext Compilation;
+      core::FrontendContext Context(Compilation);
+      core::CollectingDiagnosticConsumer Diagnostics;
+      Compilation.diagnosticEngine().addConsumer(Diagnostics);
+      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(Context, "const Value = ;");
+
+      ASSERT_TRUE(LexedFile.succeeded());
+      const ParsedFile File = parse(Context, std::move(LexedFile));
+
+      ASSERT_FALSE(File.diagnostics().empty());
+      EXPECT_EQ(Diagnostics.diagnostics(), File.diagnostics());
     }
 
     // Verifies deterministic recovery and mandatory forward progress over many lexically valid but arbitrarily ordered token streams.

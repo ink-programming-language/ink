@@ -24,6 +24,39 @@ add_subdirectory(
 )
 ```
 
+## 构造函数初始化列表
+
+- 所有带初始化列表的 C++ 构造函数都必须展开为多行，包括类内定义、类外定义、单项初始化、委托构造函数以及带 `noexcept`、`requires` 等说明的构造函数。
+- 构造函数头必须完整保留在同一物理行，并在初始化列表前结束；下一行相对构造函数声明缩进 4 个空格，以 `:` 和首个初始化项开头。
+- 每个后续初始化项必须单独占一行并与首个初始化项对齐；每个非末项的逗号放在该项行末，末项不加逗号。
+- 每个初始化项及其完整初始化表达式必须保持在同一物理行，不得把初始化表达式的实参逐项换行；函数体左花括号另起一行并与构造函数头对齐。
+
+正确：
+
+```cpp
+Impl(ExecutionContext &Context, const ir::Module &ModuleValue)
+    : Context(Context),
+      OwnedProvider(std::make_unique<SingleModuleProvider>(ModuleValue)),
+      Provider(OwnedProvider.get()),
+      EntryModule(static_cast<SingleModuleProvider &>(*Provider).id()),
+      Loader(*Provider, *this, Context.compilationContext().targetContext())
+{
+}
+```
+
+错误：
+
+```cpp
+Impl(ExecutionContext &Context, const ir::Module &ModuleValue) : Context(Context), OwnedProvider(std::make_unique<SingleModuleProvider>(ModuleValue)), Provider(OwnedProvider.get()), EntryModule(static_cast<SingleModuleProvider &>(*Provider).id()), Loader(*Provider, *this, Context.compilationContext().targetContext())
+{
+}
+
+Impl(ExecutionContext &Context, const ir::Module &ModuleValue)
+    : Context(Context), OwnedProvider(std::make_unique<SingleModuleProvider>(ModuleValue)), Provider(OwnedProvider.get()), EntryModule(static_cast<SingleModuleProvider &>(*Provider).id()), Loader(*Provider, *this, Context.compilationContext().targetContext())
+{
+}
+```
+
 ## 目录约定
 
 - Tokenizer 单元测试固定放在 `src/testcase/tokenizer`，不得使用 `testcast/tokenizer` 或另建同类测试目录。
@@ -33,14 +66,6 @@ add_subdirectory(
 - 可被 tokenizer、parser 等多个前端阶段复用的源码位置和诊断类型放在 `src/include/ink/core`，实现放在 `src/lib/core`。
 - `SourceLocation` 只用于表示源码中的单个位置；包含 `Start` 和 `End` 的半开区间 `[Start, End)` 必须命名为 `SourceRange`，不得把范围命名为 `SourceLocation`。
 - `Diagnostic`、`DiagnosticKind` 和诊断名称转换等公共诊断 API 归 Core 模块所有，具体前端模块不得重复定义同类公共容器。
-
-## 错误处理与诊断
-
-- 用户源码、module、语义、运行时 trap、资源限制和可恢复的代码生成失败必须先表示为结构化诊断，再交给公共 Diagnostic Consumer 输出；适用公共 registry 的源码诊断必须注册稳定的 `DiagnosticKind`，不得只传递一段临时错误字符串。
-- CLI 参数、显式输入输出 I/O、manifest 定位和工具链启动等没有源码位置的失败使用公共 driver diagnostic 入口，不得伪造源码位置或稳定诊断码。
-- 已验证结构不可能出现的状态、编译器不变量破坏、verifier 之后的非法 IR，以及成功结果缺失必需载荷属于 Internal Compiler Error；官方工具必须调用统一的 `internalCompilerError` 机制，由最外层 `runMain` 边界唯一格式化并映射到退出码 `3`，不得在内部手写 `internal error` 后直接返回。
-- 工具和编译阶段不得用 `std::cerr`、`fprintf(stderr, ...)` 或相邻字符串拼接自行排版错误；路径、severity、稳定诊断码、源码范围、note 和 driver 前缀只能由公共 Consumer 生成。向 Consumer 传入 stderr 不属于自行排版。
-- 外部 linker、进程或文件系统操作失败本身不等于 ICE；能够归因于用户输入或环境时必须生成对应诊断，只有证明编译器内部不变量已经破坏时才能升级为 ICE。
 
 ## 命名风格
 
@@ -123,6 +148,45 @@ auto Handler = []() {
 };
 ```
 
+## 类访问控制与成员缩进
+
+- `class` 和 `struct` 中，`public:`、`protected:`、`private:` 必须相对类型声明缩进一级。
+- 每个访问控制区段内的成员声明、成员定义、友元声明、嵌套类型和其他内容必须相对访问控制标签再缩进一级；成员函数体内部继续按代码块层级递增缩进。
+- 没有显式访问控制标签的 `class` 或 `struct` 成员按对应的隐式访问区段处理，其缩进必须与存在访问控制标签时的成员缩进一致。
+- 不得把访问控制标签与类型声明或类型体右花括号对齐。本节规则适用于头文件、实现文件和测试代码，不适用于 `src/third_party`。
+
+正确：
+
+```cpp
+class ByteConstantId
+{
+  public:
+    constexpr bool valid() const noexcept
+    {
+      return Value != InvalidId;
+    }
+
+  private:
+    std::size_t Value = InvalidId;
+};
+```
+
+错误：
+
+```cpp
+class ByteConstantId
+{
+public:
+  constexpr bool valid() const noexcept
+  {
+    return Value != InvalidId;
+  }
+
+private:
+  std::size_t Value = InvalidId;
+};
+```
+
 ## 数据定义
 
 - 大型 `constexpr` 数据、查找表和其他表格型初始化定义必须展开为多行，每个表项单独一行，并保留尾随逗号以便维护。
@@ -147,6 +211,21 @@ constexpr KeywordEntry Keywords[] = {{"as", KeywordKind::As}, {"async", KeywordK
 ## 单元测试
 
 - 每个 `TEST` 宏前必须写一条具体注释，说明该测试验证的功能、边界或错误场景；禁止使用“测试 tokenizer”一类无法区分测试意图的泛化注释。
+
+## 输出与日志
+
+- 仓库固定使用 `src/third_party/spdlog` 中的 spdlog 1.17.0 作为统一文本输出和日志库，不得引入第二套日志库。
+- 本仓库自有 C++ 代码产生的所有进程文本输出和运行时日志都必须经过 spdlog；CLI 的 stdout、stderr 输出统一调用 `ink::cli::writeOutput`，其他日志场景使用 spdlog logger 与对应 sink。
+- 禁止直接通过 `std::cout <<`、`std::cerr <<`、`std::clog`、`printf`、`fprintf`、`puts`、`fputs`、`llvm::outs()` 或 `llvm::errs()` 产生进程输出或日志。允许使用 `std::ostringstream` 仅在内存中组装完整消息，再交给 spdlog 输出。
+
+## 异常机制
+
+- 本仓库自有 C++ 代码（包括库、命令行工具和测试）不得使用或依赖 C++ 异常处理。禁止 `try`、`catch`、`throw`（包括无操作数重抛）、函数级 try 块、动态异常说明、`std::exception_ptr`、`std::current_exception`、`std::rethrow_exception`，以及 `EXPECT_THROW`、`ASSERT_THROW`、`EXPECT_ANY_THROW`、`ASSERT_ANY_THROW`、`EXPECT_NO_THROW`、`ASSERT_NO_THROW` 等异常测试宏；也不得使用 Windows SEH、`setjmp`/`longjmp` 等机制绕过本规则。
+- 所有可恢复失败必须通过显式返回值、状态或结果类型、错误码或诊断报告；清理和回滚必须通过 RAII 或显式控制流完成，不得依赖异常栈展开。不得调用以抛异常作为预期失败通道的接口。
+- `noexcept` 声明不属于被禁止的异常处理机制，但不得用 `noexcept` 把本应显式报告的可恢复失败静默转换为进程终止。宿主内存耗尽、标准库分配失败和同步原语失效等无法可靠恢复的宿主级故障按进程级致命错误处理，不得为捕获这些故障重新启用异常。
+- 所有本仓库自有 C++ 编译目标必须在目标级关闭异常；不得通过全局编译选项影响 `src/third_party` 下的外部目标，也不得为单个自有目标重新启用异常。
+- `src/third_party` 中未修改的上游实现可以保留自身异常代码，但异常不得越过第三方边界进入本仓库自有代码。本仓库只能调用具有受支持无异常模式或显式错误返回接口的依赖；不满足该条件的依赖必须替换或移除，不得在本仓库代码中用 `catch` 包装。
+- Ink 语言自身的 `try`、`catch`、`throw` 语法仍属于语言功能；对应的 Token、CST、Parser 实现、测试源码字符串和语言文档不受本节限制，不得为了本节规则删除或改名。
 
 ## Unicode 数据
 

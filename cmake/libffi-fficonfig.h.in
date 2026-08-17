@@ -1,0 +1,32 @@
+#ifndef INK_LIBFFI_CONFIG_H
+#define INK_LIBFFI_CONFIG_H
+
+#define HAVE_ALLOCA 1
+#define HAVE_ALLOCA_H 0
+#define HAVE_MEMCPY 1
+#define SIZEOF_DOUBLE 8
+#define SIZEOF_LONG_DOUBLE @INK_LIBFFI_SIZEOF_LONG_DOUBLE@
+#define SIZEOF_SIZE_T @CMAKE_SIZEOF_VOID_P@
+#define STDC_HEADERS 1
+
+#if @INK_LIBFFI_HAVE_AS_CFI_PSEUDO_OP@
+#define HAVE_AS_CFI_PSEUDO_OP 1
+#endif
+
+#if @INK_LIBFFI_HAVE_AS_X86_PCREL@
+#define HAVE_AS_X86_PCREL 1
+#endif
+
+#if @INK_LIBFFI_HAVE_INT128@
+#define HAVE_INT128 1
+#endif
+
+#if defined(_MSC_VER)
+#define FFI_HIDDEN
+#elif defined(LIBFFI_ASM)
+#define FFI_HIDDEN(Name) .hidden Name
+#else
+#define FFI_HIDDEN __attribute__((visibility("hidden")))
+#endif
+
+#endif

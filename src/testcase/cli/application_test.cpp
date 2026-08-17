@@ -1,11 +1,11 @@
 #include "ink/cli/application.h"
-#include "ink/cli/diagnostic.h"
 #include "ink/cli/io.h"
 
 #include <gtest/gtest.h>
 
+#include <filesystem>
+#include <functional>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -27,59 +27,37 @@ namespace ink::cli
       EXPECT_EQ(exitStatus(ExitCode::InternalError), 3);
     }
 
-    // Verifies that the shared process boundary maps unexpected exceptions to a concise internal error and exit status 3.
-    TEST(ApplicationTest, MapsUnhandledExceptionsToInternalErrors)
+    // Verifies that the shared process boundary forwards the body result without hidden control flow.
+    TEST(ApplicationTest, ForwardsProcessBodyResult)
     {
       std::ostringstream ErrorOutput;
-      const int Result = runMain("ink-test", []() -> int
-      {
-        throw std::runtime_error("broken invariant");
-      }, ErrorOutput);
-
-      EXPECT_EQ(Result, exitStatus(ExitCode::InternalError));
-      EXPECT_EQ(ErrorOutput.str(), "ink-test: internal error: broken invariant\n");
+      EXPECT_EQ(runMain("ink-test", []()
+                        {
+                          return 7;
+                        },
+                        ErrorOutput),
+                7);
+      EXPECT_TRUE(ErrorOutput.str().empty());
     }
 
-    // Verifies that an explicit compiler invariant failure crosses the shared process boundary as the single ICE rendering.
-    TEST(ApplicationTest, MapsExplicitCompilerInvariantFailuresToInternalErrors)
+    // Verifies that an absent process body is reported explicitly instead of invoking std::function's exceptional empty state.
+    TEST(ApplicationTest, RejectsAnEmptyProcessBody)
     {
       std::ostringstream ErrorOutput;
-      const int Result = runMain("ink-test", []() -> int
-      {
-        internalCompilerError("verified module lost its entry block");
-      }, ErrorOutput);
+      const std::function<int()> EmptyBody;
 
-      EXPECT_EQ(Result, exitStatus(ExitCode::InternalError));
-      EXPECT_EQ(ErrorOutput.str(), "ink-test: internal error: verified module lost its entry block\n");
+      EXPECT_EQ(runMain("ink-test", EmptyBody, ErrorOutput), exitStatus(ExitCode::InternalError));
+      EXPECT_EQ(ErrorOutput.str(), "ink-test: internal error: process body is empty\n");
     }
 
-    // Verifies that the shared diagnostic consumer owns source location, severity, stable code, message, and note rendering.
-    TEST(ApplicationTest, FormatsStructuredDiagnosticsAndNotes)
-    {
-      std::ostringstream ErrorOutput;
-      DiagnosticConsumer Diagnostics("ink-test", ErrorOutput);
-      Diagnostics.report({core::DiagnosticSeverity::Error, core::DiagnosticKind::InvalidEntryPoint, core::diagnosticDefaultMessage(core::DiagnosticKind::InvalidEntryPoint), DiagnosticLocation{"main.ink", core::SourceRange{4, 12}}, {{"entry function is selected by the compiler driver", std::nullopt}}});
-
-      EXPECT_TRUE(Diagnostics.good());
-      EXPECT_EQ(ErrorOutput.str(), "main.ink: error[INK-D0002]: entry function must have signature 'func main() -> i32' and a body [4, 12)\nink-test: note: entry function is selected by the compiler driver\n");
-    }
-
-    // Verifies that source-free invocation and I/O failures use the shared driver diagnostic prefix without inventing a source code.
-    TEST(ApplicationTest, FormatsSourceFreeDriverErrors)
-    {
-      std::ostringstream ErrorOutput;
-      DiagnosticConsumer Diagnostics("ink-test", ErrorOutput);
-      Diagnostics.reportError("cannot open output file");
-
-      EXPECT_EQ(ErrorOutput.str(), "ink-test: error: cannot open output file\n");
-    }
-
-    // Verifies that help is a successful primary result written only to stdout.
+    // Verifies that help is successful, bypasses required operands, and documents the public invocation spelling.
     TEST(ApplicationTest, WritesHelpToStandardOutput)
     {
       Application Command = makeApplication();
-      std::string RequiredInput;
-      Command.app().add_option("INPUT", RequiredInput)->required();
+      std::string Input;
+      std::string OutputPath;
+      Command.addOption("INPUT", Input, "Input file").required().typeName("FILE");
+      Command.addOption("-o,--output", OutputPath, "Output file").typeName("FILE");
       std::ostringstream Output;
       std::ostringstream ErrorOutput;
       const ParseResult Result = Command.parseArguments({"--help"}, Output, ErrorOutput);
@@ -87,11 +65,12 @@ namespace ink::cli
       EXPECT_TRUE(Result.ShouldExit);
       EXPECT_EQ(Result.Code, ExitCode::Success);
       EXPECT_NE(Output.str().find("Exercise the shared Ink command-line policy."), std::string::npos);
-      EXPECT_NE(Output.str().find("--help"), std::string::npos);
+      EXPECT_NE(Output.str().find("Usage: ink-test [OPTIONS] INPUT"), std::string::npos);
+      EXPECT_NE(Output.str().find("-o, --output FILE"), std::string::npos);
       EXPECT_TRUE(ErrorOutput.str().empty());
     }
 
-    // Verifies that a failed help-output stream changes the successful informational result into an I/O invocation error.
+    // Verifies that a failed help-output stream changes the informational result into an invocation error.
     TEST(ApplicationTest, RejectsFailedInformationalOutput)
     {
       Application Command = makeApplication();
@@ -105,21 +84,23 @@ namespace ink::cli
       EXPECT_TRUE(ErrorOutput.str().empty());
     }
 
-    // Verifies that version uses the reserved -V/--version spelling and exits successfully.
+    // Verifies that version uses both reserved spellings and writes only to standard output.
     TEST(ApplicationTest, WritesVersionToStandardOutput)
     {
-      Application Command = makeApplication();
-      std::ostringstream Output;
-      std::ostringstream ErrorOutput;
-      const ParseResult Result = Command.parseArguments({"-V"}, Output, ErrorOutput);
-
-      EXPECT_TRUE(Result.ShouldExit);
-      EXPECT_EQ(Result.Code, ExitCode::Success);
-      EXPECT_EQ(Output.str(), "ink-test development\n");
-      EXPECT_TRUE(ErrorOutput.str().empty());
+      for (const std::string &Spelling : {std::string("-V"), std::string("--version")})
+      {
+        Application Command = makeApplication();
+        std::ostringstream Output;
+        std::ostringstream ErrorOutput;
+        const ParseResult Result = Command.parseArguments({Spelling}, Output, ErrorOutput);
+        EXPECT_TRUE(Result.ShouldExit);
+        EXPECT_EQ(Result.Code, ExitCode::Success);
+        EXPECT_EQ(Output.str(), "ink-test development\n");
+        EXPECT_TRUE(ErrorOutput.str().empty());
+      }
     }
 
-    // Verifies that the process entry point safely accepts the argc-zero form permitted by CLI11.
+    // Verifies that argc zero with a null argv represents an empty invocation.
     TEST(ApplicationTest, AcceptsAnEmptyProcessArgumentVector)
     {
       Application Command = makeApplication();
@@ -133,34 +114,22 @@ namespace ink::cli
       EXPECT_TRUE(ErrorOutput.str().empty());
     }
 
-    // Verifies that unknown options become Ink invocation errors with the shared concise diagnostic.
-    TEST(ApplicationTest, MapsUnknownOptionsToInvocationErrors)
+    // Verifies that unknown options are rejected before a later informational flag can hide them.
+    TEST(ApplicationTest, RejectsUnknownOptionsBeforeHelp)
     {
       Application Command = makeApplication();
       std::ostringstream Output;
       std::ostringstream ErrorOutput;
-      const ParseResult Result = Command.parseArguments({"--unknown"}, Output, ErrorOutput);
+      const ParseResult Result = Command.parseArguments({"--unknown", "--help"}, Output, ErrorOutput);
 
       EXPECT_TRUE(Result.ShouldExit);
       EXPECT_EQ(Result.Code, ExitCode::InvocationError);
       EXPECT_TRUE(Output.str().empty());
-      EXPECT_NE(ErrorOutput.str().find("ink-test: error:"), std::string::npos);
+      EXPECT_NE(ErrorOutput.str().find("ink-test: error: unrecognized option '--unknown'"), std::string::npos);
       EXPECT_NE(ErrorOutput.str().find("Try 'ink-test --help'"), std::string::npos);
     }
 
-    // Verifies that Windows slash options are disabled so parsing policy is identical on every host.
-    TEST(ApplicationTest, RejectsWindowsStyleOptionsWhenNoOperandAcceptsThem)
-    {
-      Application Command = makeApplication();
-      std::ostringstream Output;
-      std::ostringstream ErrorOutput;
-      const ParseResult Result = Command.parseArguments({"/help"}, Output, ErrorOutput);
-
-      EXPECT_TRUE(Result.ShouldExit);
-      EXPECT_EQ(Result.Code, ExitCode::InvocationError);
-    }
-
-    // Verifies that option names are case-sensitive and do not accept underscore or prefix aliases.
+    // Verifies that long names remain case-sensitive and reject underscore and prefix aliases.
     TEST(ApplicationTest, RejectsUnregisteredOptionSpellings)
     {
       const std::vector<std::string> InvalidSpellings = {"--Feature-name", "--feature_name", "--feature"};
@@ -168,464 +137,267 @@ namespace ink::cli
       {
         Application Command = makeApplication();
         bool FeatureEnabled = false;
-        Command.app().add_flag("--feature-name", FeatureEnabled);
+        Command.addFlag("--feature-name", FeatureEnabled);
         std::ostringstream Output;
         std::ostringstream ErrorOutput;
         const ParseResult Result = Command.parseArguments({Spelling}, Output, ErrorOutput);
         EXPECT_TRUE(Result.ShouldExit) << Spelling;
         EXPECT_EQ(Result.Code, ExitCode::InvocationError) << Spelling;
+        EXPECT_FALSE(FeatureEnabled) << Spelling;
       }
     }
 
-    // Verifies that direct CLI11 customization cannot re-enable permissive parsing or register nonstandard option names.
-    TEST(ApplicationTest, EnforcesPoliciesAfterDirectParserCustomization)
-    {
-      Application SpellingCommand = makeApplication();
-      bool FeatureEnabled = false;
-      CLI::Option *FeatureOption = SpellingCommand.app().add_flag("--feature-name", FeatureEnabled);
-      SpellingCommand.app().ignore_case(true);
-      FeatureOption->ignore_case(true);
-      std::ostringstream SpellingOutput;
-      std::ostringstream SpellingErrorOutput;
-      const ParseResult SpellingResult = SpellingCommand.parseArguments({"--FEATURE-NAME"}, SpellingOutput, SpellingErrorOutput);
-      EXPECT_TRUE(SpellingResult.ShouldExit);
-      EXPECT_EQ(SpellingResult.Code, ExitCode::InvocationError);
-
-      Application DefinitionCommand = makeApplication();
-      bool InvalidEnabled = false;
-      DefinitionCommand.app().add_flag("--Invalid_name", InvalidEnabled);
-      std::ostringstream DefinitionOutput;
-      std::ostringstream DefinitionErrorOutput;
-      EXPECT_THROW(DefinitionCommand.parseArguments({"--help"}, DefinitionOutput, DefinitionErrorOutput), std::logic_error);
-      EXPECT_TRUE(DefinitionOutput.str().empty());
-
-      Application ShortNameCommand = makeApplication();
-      bool ShortNameEnabled = false;
-      ShortNameCommand.app().allow_non_standard_option_names();
-      ShortNameCommand.app().add_flag("-feature", ShortNameEnabled);
-      std::ostringstream ShortNameOutput;
-      std::ostringstream ShortNameErrorOutput;
-      EXPECT_THROW(ShortNameCommand.parseArguments({"--help"}, ShortNameOutput, ShortNameErrorOutput), std::logic_error);
-      EXPECT_TRUE(ShortNameOutput.str().empty());
-
-      Application PrefixCommand = makeApplication();
-      PrefixCommand.app().prefix_command();
-      std::ostringstream PrefixOutput;
-      std::ostringstream PrefixErrorOutput;
-      const ParseResult PrefixResult = PrefixCommand.parseArguments({"unexpected", "arguments"}, PrefixOutput, PrefixErrorOutput);
-      EXPECT_TRUE(PrefixResult.ShouldExit);
-      EXPECT_EQ(PrefixResult.Code, ExitCode::InvocationError);
-    }
-
-    // Verifies that invalid command definitions cross the shared process boundary as internal errors instead of user invocation errors.
-    TEST(ApplicationTest, MapsInvalidDefinitionsToInternalErrors)
-    {
-      std::ostringstream Output;
-      std::ostringstream ErrorOutput;
-      const int Result = runMain("ink-test", [&Output, &ErrorOutput]()
-      {
-        Application Command = makeApplication();
-        bool InvalidEnabled = false;
-        Command.app().add_flag("--Invalid_name", InvalidEnabled);
-        Command.parseArguments({"--help"}, Output, ErrorOutput);
-        return exitStatus(ExitCode::Success);
-      }, ErrorOutput);
-
-      EXPECT_EQ(Result, exitStatus(ExitCode::InternalError));
-      EXPECT_TRUE(Output.str().empty());
-      EXPECT_NE(ErrorOutput.str().find("ink-test: internal error: invalid command-line definition"), std::string::npos);
-      EXPECT_EQ(ErrorOutput.str().find("Try 'ink-test --help'"), std::string::npos);
-    }
-
-    // Verifies that scalar options reject duplicates instead of silently selecting one value.
-    TEST(ApplicationTest, RejectsRepeatedScalarOptions)
+    // Verifies separated, equals-attached, and short-attached values together with clustered flags.
+    TEST(ApplicationTest, ParsesNamedOptionsAndFlags)
     {
       Application Command = makeApplication();
       std::string OutputPath;
-      Command.app().add_option("-o,--output", OutputPath)->type_name("FILE");
-      std::ostringstream Output;
-      std::ostringstream ErrorOutput;
-      const ParseResult Result = Command.parseArguments({"--output", "first", "-o", "second"}, Output, ErrorOutput);
-
-      EXPECT_TRUE(Result.ShouldExit);
-      EXPECT_EQ(Result.Code, ExitCode::InvocationError);
-    }
-
-    // Verifies that Ink Append preserves order while LastWins keeps the final value of a scalar option.
-    TEST(ApplicationTest, AppliesInkRepeatPolicies)
-    {
-      Application Command = makeApplication();
       std::vector<std::string> IncludePaths;
-      std::string OptimizationLevel;
-      setRepeatPolicy(*Command.app().add_option("-I,--include", IncludePaths), RepeatPolicy::Append);
-      setRepeatPolicy(*Command.app().add_option("--optimization-level", OptimizationLevel), RepeatPolicy::LastWins);
+      bool Verbose = false;
+      bool Force = false;
+      Command.addOption("-o,--output", OutputPath).required().typeName("FILE");
+      Command.addOption("-I,--include", IncludePaths).typeName("DIRECTORY");
+      Command.addFlag("-v,--verbose", Verbose);
+      Command.addFlag("-f,--force", Force);
       std::ostringstream Output;
       std::ostringstream ErrorOutput;
-      const ParseResult Result = Command.parseArguments({"-Ifirst", "--include", "second", "--optimization-level=0", "--optimization-level", "3"}, Output, ErrorOutput);
+      const ParseResult Result = Command.parseArguments({"-Ifirst", "--include=second", "-vf", "--output", "result.ir"}, Output, ErrorOutput);
 
       EXPECT_FALSE(Result.ShouldExit);
+      EXPECT_EQ(Result.Code, ExitCode::Success);
+      EXPECT_EQ(OutputPath, "result.ir");
       EXPECT_EQ(IncludePaths, (std::vector<std::string>{"first", "second"}));
-      EXPECT_EQ(OptimizationLevel, "3");
+      EXPECT_TRUE(Verbose);
+      EXPECT_TRUE(Force);
+      EXPECT_TRUE(Output.str().empty());
+      EXPECT_TRUE(ErrorOutput.str().empty());
     }
 
-    // Verifies that raw CLI11 repeat policies outside Ink's three public policies are rejected.
-    TEST(ApplicationTest, RejectsUnsupportedRepeatPolicies)
+    // Verifies that LastWins keeps the final scalar value while Single rejects duplicates atomically.
+    TEST(ApplicationTest, AppliesScalarRepeatPolicies)
+    {
+      Application LastWinsCommand = makeApplication();
+      std::string OptimizationLevel;
+      LastWinsCommand.addOption("--optimization-level", OptimizationLevel).repeatPolicy(RepeatPolicy::LastWins);
+      std::ostringstream LastWinsOutput;
+      std::ostringstream LastWinsErrorOutput;
+      const ParseResult LastWinsResult = LastWinsCommand.parseArguments({"--optimization-level=0", "--optimization-level", "3"}, LastWinsOutput, LastWinsErrorOutput);
+      EXPECT_FALSE(LastWinsResult.ShouldExit);
+      EXPECT_EQ(OptimizationLevel, "3");
+
+      Application SingleCommand = makeApplication();
+      std::string OutputPath = "unchanged";
+      SingleCommand.addOption("-o,--output", OutputPath);
+      std::ostringstream SingleOutput;
+      std::ostringstream SingleErrorOutput;
+      const ParseResult SingleResult = SingleCommand.parseArguments({"--output", "first", "-o", "second"}, SingleOutput, SingleErrorOutput);
+      EXPECT_TRUE(SingleResult.ShouldExit);
+      EXPECT_EQ(SingleResult.Code, ExitCode::InvocationError);
+      EXPECT_EQ(OutputPath, "unchanged");
+    }
+
+    // Verifies that string-array options append one physical argv value per occurrence in encounter order.
+    TEST(ApplicationTest, AppendsStringArrayValues)
     {
       Application Command = makeApplication();
-      std::string Value;
-      Command.app().add_option("--value", Value)->take_first();
+      std::vector<std::string> IncludePaths = {"default"};
+      Command.addOption("-I,--include", IncludePaths);
       std::ostringstream Output;
       std::ostringstream ErrorOutput;
-      EXPECT_THROW(Command.parseArguments({"--value", "first"}, Output, ErrorOutput), std::logic_error);
-      EXPECT_TRUE(Value.empty());
+      const ParseResult Result = Command.parseArguments({"-Ifirst", "--include", "second"}, Output, ErrorOutput);
+
+      EXPECT_FALSE(Result.ShouldExit);
+      EXPECT_EQ(IncludePaths, (std::vector<std::string>{"default", "first", "second"}));
     }
 
-    // Verifies that the Ink repeat-policy API only permits Single for Boolean flags.
-    TEST(ApplicationTest, RejectsRepeatableBooleanFlags)
+    // Verifies attached dash-leading values and the separated standard-stream marker for value options.
+    TEST(ApplicationTest, AcceptsExplicitDashLeadingOptionValues)
     {
       Application Command = makeApplication();
-      bool FeatureEnabled = false;
-      CLI::Option *FeatureOption = Command.app().add_flag("--feature-name", FeatureEnabled);
+      std::string LongValue;
+      std::string ShortValue;
+      std::string StreamValue;
+      Command.addOption("--long-value", LongValue);
+      Command.addOption("-s", ShortValue);
+      Command.addOption("--stream", StreamValue);
+      std::ostringstream Output;
+      std::ostringstream ErrorOutput;
+      const ParseResult Result = Command.parseArguments({"--long-value=--flag", "-s-2", "--stream", "-"}, Output, ErrorOutput);
 
-      EXPECT_THROW(setRepeatPolicy(*FeatureOption, RepeatPolicy::Append), std::invalid_argument);
-      EXPECT_THROW(setRepeatPolicy(*FeatureOption, RepeatPolicy::LastWins), std::invalid_argument);
-
-      Application RawCommand = makeApplication();
-      bool RawFeatureEnabled = false;
-      RawCommand.app().add_flag("--feature-name", RawFeatureEnabled)->take_first();
-      std::ostringstream RawOutput;
-      std::ostringstream RawErrorOutput;
-      EXPECT_THROW(RawCommand.parseArguments({"--help"}, RawOutput, RawErrorOutput), std::logic_error);
+      EXPECT_FALSE(Result.ShouldExit);
+      EXPECT_EQ(LongValue, "--flag");
+      EXPECT_EQ(ShortValue, "-2");
+      EXPECT_EQ(StreamValue, "-");
     }
 
-    // Verifies that a required option value cannot consume an empty value, a following option, or the option terminator.
-    TEST(ApplicationTest, RejectsInvalidSeparatedOptionValues)
+    // Verifies empty and ambiguous separated values are rejected before any bound storage changes.
+    TEST(ApplicationTest, RejectsInvalidSeparatedValuesAtomically)
     {
       const std::vector<std::vector<std::string>> InvalidArguments = {
           {"--output="},
-          {"--output=", "--help"},
           {"--output", ""},
-          {"-o", ""},
-          {"--output", "--unknown"},
-          {"--output", "--feature-name"},
-          {"-o", "--help"},
-          {"--output", "--help", "--version"},
-          {"--output", "--", "--unknown", "--help"},
+          {"--output", "--help"},
+          {"--output", "--"},
       };
       for (const std::vector<std::string> &Arguments : InvalidArguments)
       {
         Application Command = makeApplication();
-        std::string OutputPath;
-        bool FeatureEnabled = false;
-        Command.app().add_option("-o,--output", OutputPath);
-        Command.app().add_flag("--feature-name", FeatureEnabled);
+        std::string OutputPath = "unchanged";
+        Command.addOption("-o,--output", OutputPath);
         std::ostringstream Output;
         std::ostringstream ErrorOutput;
         const ParseResult Result = Command.parseArguments(Arguments, Output, ErrorOutput);
         EXPECT_TRUE(Result.ShouldExit);
         EXPECT_EQ(Result.Code, ExitCode::InvocationError);
+        EXPECT_EQ(OutputPath, "unchanged");
         EXPECT_TRUE(Output.str().empty());
-        EXPECT_TRUE(OutputPath.empty());
-        EXPECT_FALSE(FeatureEnabled);
       }
     }
 
-    // Verifies that v0 rejects optional-value options instead of guessing whether the next token is their value.
-    TEST(ApplicationTest, RejectsOptionalOptionValues)
-    {
-      Application Command = makeApplication();
-      std::vector<std::string> Values;
-      Command.app().add_option("--maybe", Values)->expected(0, 1);
-      std::ostringstream Output;
-      std::ostringstream ErrorOutput;
-      EXPECT_THROW(Command.parseArguments({"--help"}, Output, ErrorOutput), std::logic_error);
-      EXPECT_TRUE(Output.str().empty());
-      EXPECT_TRUE(Values.empty());
-    }
-
-    // Verifies that every value-taking non-positional option consumes exactly one physical argv token per occurrence.
-    TEST(ApplicationTest, RejectsNonUnitOptionValueDefinitions)
-    {
-      Application VectorCommand = makeApplication();
-      std::vector<std::string> VectorValues;
-      VectorCommand.app().add_option("--value", VectorValues);
-      std::ostringstream VectorOutput;
-      std::ostringstream VectorErrorOutput;
-      EXPECT_THROW(VectorCommand.parseArguments({"--help"}, VectorOutput, VectorErrorOutput), std::logic_error);
-
-      Application RangeCommand = makeApplication();
-      std::string RangeValue;
-      RangeCommand.app().add_option("--value", RangeValue)->expected(1, 2);
-      std::ostringstream RangeOutput;
-      std::ostringstream RangeErrorOutput;
-      EXPECT_THROW(RangeCommand.parseArguments({"--help"}, RangeOutput, RangeErrorOutput), std::logic_error);
-
-      Application ExtraCommand = makeApplication();
-      std::string ExtraValue;
-      ExtraCommand.app().add_option("--value", ExtraValue)->allow_extra_args();
-      std::ostringstream ExtraOutput;
-      std::ostringstream ExtraErrorOutput;
-      EXPECT_THROW(ExtraCommand.parseArguments({"--help"}, ExtraOutput, ExtraErrorOutput), std::logic_error);
-
-      Application DelimiterCommand = makeApplication();
-      std::string DelimiterValue;
-      DelimiterCommand.app().add_option("--value", DelimiterValue)->delimiter(',');
-      std::ostringstream DelimiterOutput;
-      std::ostringstream DelimiterErrorOutput;
-      EXPECT_THROW(DelimiterCommand.parseArguments({"--help"}, DelimiterOutput, DelimiterErrorOutput), std::logic_error);
-
-      Application SeparatorCommand = makeApplication();
-      std::string SeparatorValue;
-      SeparatorCommand.app().add_option("--value", SeparatorValue)->inject_separator();
-      std::ostringstream SeparatorOutput;
-      std::ostringstream SeparatorErrorOutput;
-      EXPECT_THROW(SeparatorCommand.parseArguments({"--help"}, SeparatorOutput, SeparatorErrorOutput), std::logic_error);
-
-      Application PolicyCommand = makeApplication();
-      std::string PolicyValue;
-      CLI::Option *PolicyOption = PolicyCommand.app().add_option("--value", PolicyValue)->expected(0, 1);
-      EXPECT_THROW(setRepeatPolicy(*PolicyOption, RepeatPolicy::LastWins), std::invalid_argument);
-      EXPECT_EQ(PolicyOption->get_expected_min(), 0);
-      EXPECT_EQ(PolicyOption->get_expected_max(), 1);
-
-      Application RangePolicyCommand = makeApplication();
-      std::string RangePolicyValue;
-      CLI::Option *RangePolicyOption = RangePolicyCommand.app().add_option("--value", RangePolicyValue)->expected(1, 2);
-      EXPECT_THROW(setRepeatPolicy(*RangePolicyOption, RepeatPolicy::Append), std::invalid_argument);
-      EXPECT_EQ(RangePolicyOption->get_expected_min(), 1);
-      EXPECT_EQ(RangePolicyOption->get_expected_max(), 2);
-    }
-
-    // Verifies that CLI11 environment and config-file injection cannot become implicit Ink argument sources.
-    TEST(ApplicationTest, RejectsImplicitConfigurationSources)
-    {
-      Application EnvironmentCommand = makeApplication();
-      std::string EnvironmentValue;
-      EnvironmentCommand.app().add_option("--value", EnvironmentValue)->envname("INK_TEST_VALUE");
-      std::ostringstream EnvironmentOutput;
-      std::ostringstream EnvironmentErrorOutput;
-      EXPECT_THROW(EnvironmentCommand.parseArguments({"--help"}, EnvironmentOutput, EnvironmentErrorOutput), std::logic_error);
-
-      Application ConfigCommand = makeApplication();
-      ConfigCommand.app().set_config("--config");
-      std::ostringstream ConfigOutput;
-      std::ostringstream ConfigErrorOutput;
-      EXPECT_THROW(ConfigCommand.parseArguments({"--help"}, ConfigOutput, ConfigErrorOutput), std::logic_error);
-    }
-
-    // Verifies that every Append occurrence consumes one value and leaves the following source operand for the command.
-    TEST(ApplicationTest, LimitsEachAppendOccurrenceToOneValue)
-    {
-      Application AcceptedCommand = makeApplication();
-      std::vector<std::string> IncludePaths;
-      std::string Input;
-      setRepeatPolicy(*AcceptedCommand.app().add_option("--include", IncludePaths), RepeatPolicy::Append);
-      AcceptedCommand.app().add_option("INPUT", Input)->required();
-      std::ostringstream AcceptedOutput;
-      std::ostringstream AcceptedErrorOutput;
-      const ParseResult AcceptedResult = AcceptedCommand.parseArguments({"--include", "first", "source.ink"}, AcceptedOutput, AcceptedErrorOutput);
-      EXPECT_FALSE(AcceptedResult.ShouldExit);
-      EXPECT_EQ(IncludePaths, (std::vector<std::string>{"first"}));
-      EXPECT_EQ(Input, "source.ink");
-
-      Application RejectedCommand = makeApplication();
-      std::vector<std::string> RejectedIncludePaths;
-      setRepeatPolicy(*RejectedCommand.app().add_option("--include", RejectedIncludePaths), RepeatPolicy::Append);
-      std::ostringstream RejectedOutput;
-      std::ostringstream RejectedErrorOutput;
-      const ParseResult RejectedResult = RejectedCommand.parseArguments({"--include", "first", ""}, RejectedOutput, RejectedErrorOutput);
-      EXPECT_TRUE(RejectedResult.ShouldExit);
-      EXPECT_EQ(RejectedResult.Code, ExitCode::InvocationError);
-      EXPECT_EQ(RejectedIncludePaths, (std::vector<std::string>{"first"}));
-    }
-
-    // Verifies attached dash-leading values and the separated standard-stream marker for long and short options.
-    TEST(ApplicationTest, AcceptsExplicitDashLeadingOptionValues)
-    {
-      Application LongCommand = makeApplication();
-      std::string LongOutputPath;
-      bool FeatureEnabled = false;
-      LongCommand.app().add_option("-o,--output", LongOutputPath);
-      LongCommand.app().add_flag("--feature-name", FeatureEnabled);
-      std::ostringstream LongOutput;
-      std::ostringstream LongErrorOutput;
-      const ParseResult LongResult = LongCommand.parseArguments({"--output=--feature-name"}, LongOutput, LongErrorOutput);
-      EXPECT_FALSE(LongResult.ShouldExit);
-      EXPECT_EQ(LongOutputPath, "--feature-name");
-      EXPECT_FALSE(FeatureEnabled);
-
-      Application ShortCommand = makeApplication();
-      std::string ShortOutputPath;
-      ShortCommand.app().add_option("-o,--output", ShortOutputPath);
-      std::ostringstream ShortOutput;
-      std::ostringstream ShortErrorOutput;
-      const ParseResult ShortResult = ShortCommand.parseArguments({"-o-"}, ShortOutput, ShortErrorOutput);
-      EXPECT_FALSE(ShortResult.ShouldExit);
-      EXPECT_EQ(ShortOutputPath, "-");
-
-      Application StreamCommand = makeApplication();
-      std::string StreamOutputPath;
-      StreamCommand.app().add_option("-o,--output", StreamOutputPath);
-      std::ostringstream StreamOutput;
-      std::ostringstream StreamErrorOutput;
-      const ParseResult StreamResult = StreamCommand.parseArguments({"-o", "-"}, StreamOutput, StreamErrorOutput);
-      EXPECT_FALSE(StreamResult.ShouldExit);
-      EXPECT_EQ(StreamOutputPath, "-");
-    }
-
-    // Verifies that Boolean flags are valueless and use the default single-occurrence policy.
-    TEST(ApplicationTest, RejectsFlagValuesAndRepeatedFlags)
+    // Verifies flags reject explicit values, duplicate occurrences, and conflicts with version.
+    TEST(ApplicationTest, RejectsInvalidInformationalAndFlagCombinations)
     {
       const std::vector<std::vector<std::string>> InvalidArguments = {
-          {"--feature-name=true"},
-          {"--feature-name", "--feature-name"},
+          {"--feature=true"},
+          {"--feature", "--feature"},
           {"-h", "--help"},
-          {"-V", "--version"},
           {"--help", "--version"},
       };
       for (const std::vector<std::string> &Arguments : InvalidArguments)
       {
         Application Command = makeApplication();
-        bool FeatureEnabled = false;
-        Command.app().add_flag("--feature-name", FeatureEnabled);
+        bool Feature = false;
+        Command.addFlag("--feature", Feature);
         std::ostringstream Output;
         std::ostringstream ErrorOutput;
         const ParseResult Result = Command.parseArguments(Arguments, Output, ErrorOutput);
         EXPECT_TRUE(Result.ShouldExit);
         EXPECT_EQ(Result.Code, ExitCode::InvocationError);
-      }
-    }
-
-    // Verifies that informational flags do not conceal unknown option spelling mistakes.
-    TEST(ApplicationTest, RejectsUnknownOptionsEvenWhenHelpOrVersionIsPresent)
-    {
-      const std::vector<std::vector<std::string>> InvalidArguments = {
-          {"--unknown", "--help"},
-          {"--unknown", "--version"},
-      };
-      for (const std::vector<std::string> &Arguments : InvalidArguments)
-      {
-        Application Command = makeApplication();
-        std::ostringstream Output;
-        std::ostringstream ErrorOutput;
-        const ParseResult Result = Command.parseArguments(Arguments, Output, ErrorOutput);
-        EXPECT_TRUE(Result.ShouldExit);
-        EXPECT_EQ(Result.Code, ExitCode::InvocationError);
+        EXPECT_FALSE(Feature);
         EXPECT_TRUE(Output.str().empty());
       }
     }
 
-    // Verifies that help cannot hide repeated scalar options or explicitly excluded option pairs.
-    TEST(ApplicationTest, ValidatesSingleAndExcludedOptionsBeforeHelp)
-    {
-      Application ScalarCommand = makeApplication();
-      std::string OutputPath;
-      ScalarCommand.app().add_option("-o,--output", OutputPath);
-      std::ostringstream ScalarOutput;
-      std::ostringstream ScalarErrorOutput;
-      const ParseResult ScalarResult = ScalarCommand.parseArguments({"--output", "first", "--output", "second", "--help"}, ScalarOutput, ScalarErrorOutput);
-      EXPECT_TRUE(ScalarResult.ShouldExit);
-      EXPECT_EQ(ScalarResult.Code, ExitCode::InvocationError);
-      EXPECT_TRUE(ScalarOutput.str().empty());
-
-      Application ConflictCommand = makeApplication();
-      bool FirstEnabled = false;
-      bool SecondEnabled = false;
-      CLI::Option *FirstOption = ConflictCommand.app().add_flag("--first", FirstEnabled);
-      CLI::Option *SecondOption = ConflictCommand.app().add_flag("--second", SecondEnabled);
-      FirstOption->excludes(SecondOption);
-      std::ostringstream ConflictOutput;
-      std::ostringstream ConflictErrorOutput;
-      const ParseResult ConflictResult = ConflictCommand.parseArguments({"--first", "--second", "--help"}, ConflictOutput, ConflictErrorOutput);
-      EXPECT_TRUE(ConflictResult.ShouldExit);
-      EXPECT_EQ(ConflictResult.Code, ExitCode::InvocationError);
-      EXPECT_TRUE(ConflictOutput.str().empty());
-    }
-
-    // Verifies that dash-leading operands require the option terminator while a lone dash remains available for stdin.
-    TEST(ApplicationTest, RequiresOptionTerminatorForDashLeadingOperands)
-    {
-      Application RejectedCommand = makeApplication();
-      std::string RejectedInput;
-      RejectedCommand.app().add_option("INPUT", RejectedInput);
-      std::ostringstream RejectedOutput;
-      std::ostringstream RejectedErrorOutput;
-      const ParseResult RejectedResult = RejectedCommand.parseArguments({"-1"}, RejectedOutput, RejectedErrorOutput);
-      EXPECT_TRUE(RejectedResult.ShouldExit);
-      EXPECT_EQ(RejectedResult.Code, ExitCode::InvocationError);
-
-      Application AcceptedCommand = makeApplication();
-      std::string AcceptedInput;
-      AcceptedCommand.app().add_option("INPUT", AcceptedInput);
-      std::ostringstream AcceptedOutput;
-      std::ostringstream AcceptedErrorOutput;
-      const ParseResult AcceptedResult = AcceptedCommand.parseArguments({"--", "-1"}, AcceptedOutput, AcceptedErrorOutput);
-      EXPECT_FALSE(AcceptedResult.ShouldExit);
-      EXPECT_EQ(AcceptedInput, "-1");
-    }
-
-    // Verifies that registered options remain valid after an ordinary positional operand.
-    TEST(ApplicationTest, AcceptsOptionsAfterOperands)
+    // Verifies required named and positional values report invocation errors when absent.
+    TEST(ApplicationTest, EnforcesRequiredOptionsAndOperands)
     {
       Application Command = makeApplication();
+      std::string OutputPath;
       std::string Input;
-      bool FeatureEnabled = false;
-      Command.app().add_option("INPUT", Input)->required();
-      Command.app().add_flag("--feature-name", FeatureEnabled);
+      Command.addOption("-o", OutputPath).required();
+      Command.addOption("INPUT", Input).required();
       std::ostringstream Output;
       std::ostringstream ErrorOutput;
-      const ParseResult Result = Command.parseArguments({"source.ink", "--feature-name"}, Output, ErrorOutput);
+      const ParseResult Result = Command.parseArguments({"-o", "result"}, Output, ErrorOutput);
+
+      EXPECT_TRUE(Result.ShouldExit);
+      EXPECT_EQ(Result.Code, ExitCode::InvocationError);
+      EXPECT_NE(ErrorOutput.str().find("required argument 'INPUT' is missing"), std::string::npos);
+      EXPECT_TRUE(OutputPath.empty());
+    }
+
+    // Verifies the option terminator admits dash-leading operands and options may follow ordinary operands.
+    TEST(ApplicationTest, ParsesPositionalsAndOptionTerminator)
+    {
+      Application TerminatedCommand = makeApplication();
+      std::string DashInput;
+      TerminatedCommand.addOption("INPUT", DashInput).required();
+      std::ostringstream TerminatedOutput;
+      std::ostringstream TerminatedErrorOutput;
+      const ParseResult TerminatedResult = TerminatedCommand.parseArguments({"--", "-generated.ink"}, TerminatedOutput, TerminatedErrorOutput);
+      EXPECT_FALSE(TerminatedResult.ShouldExit);
+      EXPECT_EQ(DashInput, "-generated.ink");
+
+      Application IntermixedCommand = makeApplication();
+      std::string Input;
+      bool Verbose = false;
+      IntermixedCommand.addOption("INPUT", Input).required();
+      IntermixedCommand.addFlag("--verbose", Verbose);
+      std::ostringstream IntermixedOutput;
+      std::ostringstream IntermixedErrorOutput;
+      const ParseResult IntermixedResult = IntermixedCommand.parseArguments({"source.ink", "--verbose"}, IntermixedOutput, IntermixedErrorOutput);
+      EXPECT_FALSE(IntermixedResult.ShouldExit);
+      EXPECT_EQ(Input, "source.ink");
+      EXPECT_TRUE(Verbose);
+    }
+
+    // Verifies a string-array positional captures all remaining operands in order.
+    TEST(ApplicationTest, CollectsStringArrayPositionals)
+    {
+      Application Command = makeApplication();
+      std::vector<std::string> Inputs;
+      Command.addOption("INPUTS", Inputs);
+      std::ostringstream Output;
+      std::ostringstream ErrorOutput;
+      const ParseResult Result = Command.parseArguments({"first.ink", "second.ink"}, Output, ErrorOutput);
 
       EXPECT_FALSE(Result.ShouldExit);
-      EXPECT_EQ(Result.Code, ExitCode::Success);
-      EXPECT_EQ(Input, "source.ink");
-      EXPECT_TRUE(FeatureEnabled);
+      EXPECT_EQ(Inputs, (std::vector<std::string>{"first.ink", "second.ink"}));
     }
 
-    // Verifies that shared lookup and single-occurrence policies apply to options placed in help groups.
-    TEST(ApplicationTest, AppliesPoliciesInsideOptionGroups)
-    {
-      Application AcceptedCommand = makeApplication();
-      std::string OutputPath;
-      bool FeatureEnabled = false;
-      CLI::App *AcceptedGroup = AcceptedCommand.app().add_option_group("Output");
-      AcceptedGroup->add_option("-o,--output", OutputPath);
-      AcceptedGroup->add_flag("--feature-name", FeatureEnabled);
-      std::ostringstream AcceptedOutput;
-      std::ostringstream AcceptedErrorOutput;
-      const ParseResult AcceptedResult = AcceptedCommand.parseArguments({"--output", "result", "--feature-name"}, AcceptedOutput, AcceptedErrorOutput);
-      EXPECT_FALSE(AcceptedResult.ShouldExit);
-      EXPECT_EQ(OutputPath, "result");
-      EXPECT_TRUE(FeatureEnabled);
-
-      Application RejectedCommand = makeApplication();
-      bool RepeatedFeatureEnabled = false;
-      CLI::App *RejectedGroup = RejectedCommand.app().add_option_group("Features");
-      RejectedGroup->add_flag("--feature-name", RepeatedFeatureEnabled);
-      std::ostringstream RejectedOutput;
-      std::ostringstream RejectedErrorOutput;
-      const ParseResult RejectedResult = RejectedCommand.parseArguments({"--feature-name", "--feature-name"}, RejectedOutput, RejectedErrorOutput);
-      EXPECT_TRUE(RejectedResult.ShouldExit);
-      EXPECT_EQ(RejectedResult.Code, ExitCode::InvocationError);
-    }
-
-    // Verifies that v0 rejects named subcommands instead of partially relying on CLI11 subcommand behavior.
-    TEST(ApplicationTest, RejectsNamedSubcommands)
+    // Verifies explicitly excluded options fail before either bound flag is changed.
+    TEST(ApplicationTest, EnforcesOptionExclusions)
     {
       Application Command = makeApplication();
-      Command.app().add_subcommand("build");
+      bool First = false;
+      bool Second = false;
+      Option &FirstOption = Command.addFlag("--first", First);
+      Option &SecondOption = Command.addFlag("--second", Second);
+      FirstOption.excludes(SecondOption);
       std::ostringstream Output;
       std::ostringstream ErrorOutput;
-      EXPECT_THROW(Command.parseArguments({"build"}, Output, ErrorOutput), std::logic_error);
+      const ParseResult Result = Command.parseArguments({"--first", "--second"}, Output, ErrorOutput);
 
-      Application AliasCommand = makeApplication();
-      AliasCommand.app().add_option_group("Output")->alias("build");
-      std::ostringstream AliasOutput;
-      std::ostringstream AliasErrorOutput;
-      EXPECT_THROW(AliasCommand.parseArguments({"--help"}, AliasOutput, AliasErrorOutput), std::logic_error);
+      EXPECT_TRUE(Result.ShouldExit);
+      EXPECT_EQ(Result.Code, ExitCode::InvocationError);
+      EXPECT_FALSE(First);
+      EXPECT_FALSE(Second);
     }
 
-    // Verifies that malformed UTF-8 argv is rejected before option parsing without echoing invalid bytes.
+    // Verifies malformed names and incompatible repeat policies return explicit internal definition errors.
+    TEST(ApplicationTest, ReportsInvalidDefinitionsWithoutNonlocalControlFlow)
+    {
+      Application NameCommand = makeApplication();
+      bool Invalid = false;
+      NameCommand.addFlag("--Invalid_name", Invalid);
+      std::ostringstream NameOutput;
+      std::ostringstream NameErrorOutput;
+      const ParseResult NameResult = NameCommand.parseArguments({"--help"}, NameOutput, NameErrorOutput);
+      EXPECT_TRUE(NameResult.ShouldExit);
+      EXPECT_EQ(NameResult.Code, ExitCode::InternalError);
+      EXPECT_TRUE(NameOutput.str().empty());
+      EXPECT_NE(NameErrorOutput.str().find("invalid command-line definition"), std::string::npos);
+
+      Application PolicyCommand = makeApplication();
+      std::string Value;
+      PolicyCommand.addOption("--value", Value).repeatPolicy(RepeatPolicy::Append);
+      std::ostringstream PolicyOutput;
+      std::ostringstream PolicyErrorOutput;
+      const ParseResult PolicyResult = PolicyCommand.parseArguments({"--help"}, PolicyOutput, PolicyErrorOutput);
+      EXPECT_TRUE(PolicyResult.ShouldExit);
+      EXPECT_EQ(PolicyResult.Code, ExitCode::InternalError);
+    }
+
+    // Verifies exclusions cannot reference an option owned by another application.
+    TEST(ApplicationTest, RejectsCrossApplicationExclusions)
+    {
+      Application FirstCommand = makeApplication();
+      Application SecondCommand = makeApplication();
+      bool First = false;
+      bool Second = false;
+      Option &FirstOption = FirstCommand.addFlag("--first", First);
+      Option &SecondOption = SecondCommand.addFlag("--second", Second);
+      FirstOption.excludes(SecondOption);
+      std::ostringstream Output;
+      std::ostringstream ErrorOutput;
+      const ParseResult Result = FirstCommand.parseArguments({"--help"}, Output, ErrorOutput);
+
+      EXPECT_TRUE(Result.ShouldExit);
+      EXPECT_EQ(Result.Code, ExitCode::InternalError);
+      EXPECT_TRUE(Output.str().empty());
+    }
+
+    // Verifies malformed UTF-8 is rejected without copying invalid bytes into the diagnostic.
     TEST(ApplicationTest, RejectsInvalidUtf8Arguments)
     {
       const std::vector<std::string> InvalidValues = {
@@ -639,7 +411,7 @@ namespace ink::cli
       {
         Application Command = makeApplication();
         std::string Input;
-        Command.app().add_option("INPUT", Input);
+        Command.addOption("INPUT", Input);
         std::ostringstream Output;
         std::ostringstream ErrorOutput;
         const ParseResult Result = Command.parseArguments({InvalidValue}, Output, ErrorOutput);
@@ -650,12 +422,12 @@ namespace ink::cli
       }
     }
 
-    // Verifies that the option terminator preserves a dash-prefixed UTF-8 operand byte-for-byte.
+    // Verifies the option terminator preserves a dash-prefixed UTF-8 operand byte-for-byte.
     TEST(ApplicationTest, PreservesUtf8OperandsAfterOptionTerminator)
     {
       Application Command = makeApplication();
       std::string Input;
-      Command.app().add_option("INPUT", Input)->required();
+      Command.addOption("INPUT", Input).required();
       std::ostringstream Output;
       std::ostringstream ErrorOutput;
       const std::string Expected = u8"-源文件.ink";
@@ -672,7 +444,19 @@ namespace ink::cli
     TEST(ApplicationIoTest, ConvertsUtf8PathsWithoutLosingText)
     {
       const std::string Expected = u8"源文件.ink";
-      EXPECT_EQ(pathFromUtf8(Expected).u8string(), Expected);
+      std::filesystem::path Converted;
+
+      ASSERT_TRUE(pathFromUtf8(Expected, Converted));
+      EXPECT_EQ(Converted.u8string(), Expected);
+    }
+
+    // Verifies invalid UTF-8 paths are rejected before invoking the filesystem conversion API.
+    TEST(ApplicationIoTest, RejectsInvalidUtf8Paths)
+    {
+      std::filesystem::path Converted = "unchanged";
+
+      EXPECT_FALSE(pathFromUtf8(std::string("\xC0\xAF", 2), Converted));
+      EXPECT_EQ(Converted, std::filesystem::path("unchanged"));
     }
   } // namespace
 } // namespace ink::cli

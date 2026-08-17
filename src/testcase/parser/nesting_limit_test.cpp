@@ -129,8 +129,8 @@ namespace ink::parser
 
     struct DeepSyntaxCase
     {
-      const char *Name;
-      std::string Source;
+        const char *Name;
+        std::string Source;
     };
 
     // Verifies syntax within the configured recursion budget remains valid while the first expression beyond it reports the dedicated limit diagnostic.

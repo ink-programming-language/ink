@@ -1,368 +1,649 @@
+#include "ink/ir/analysis/verifier.h"
 #include "ink/ir/ir.h"
+#include "ink/ir/serialization.h"
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
+#include <type_traits>
+#include <unordered_set>
 #include <utility>
-#include <vector>
 
 namespace ink::ir
 {
   namespace
   {
-    target::TargetKey testTargetKey()
+    struct TestContext
     {
-      return {"x86_64-pc-windows-msvc", "generic", "+sse2", 64, target::TargetEndianness::Little};
+        core::CompilationContext Compilation;
+        IRContext IR{Compilation};
+    };
+
+    // Verifies that Name owns text, applies the shared Unicode XID rules, preserves IR extension characters, and hashes by spelling.
+    TEST(NameTest, ValidatesAndHashesIrNames)
+    {
+      const Name UnicodeName(u8"\u8BA1\u7B97\u00B7\u503C2");
+      const Name ExtendedName(".entry$0");
+
+      EXPECT_TRUE(Name("value").valid());
+      EXPECT_TRUE(UnicodeName.valid());
+      EXPECT_TRUE(ExtendedName.valid());
+      EXPECT_FALSE(Name().valid());
+      EXPECT_FALSE(Name("0value").valid());
+      EXPECT_FALSE(Name(u8"\u0301value").valid());
+      EXPECT_FALSE(Name("bad-name").valid());
+      EXPECT_EQ(UnicodeName.text(), u8"\u8BA1\u7B97\u00B7\u503C2");
+
+      const std::unordered_set<Name> Names = {
+          Name("value"),
+          UnicodeName,
+          ExtendedName,
+      };
+      EXPECT_EQ(Names.count(Name("value")), 1U);
+      EXPECT_EQ(Names.count(UnicodeName), 1U);
     }
 
-    bool hasError(const std::vector<IrVerificationError> &Errors, IrVerificationErrorCode Code)
+    std::string formatMessage(const core::Diagnostic &DiagnosticEntry)
     {
-      return std::any_of(Errors.begin(), Errors.end(), [Code](const IrVerificationError &Error) { return Error.Code == Code; });
+      return core::DiagnosticFormatter().format(DiagnosticEntry).Message;
     }
 
-    // Verifies the generated registries expose the required C0 Core and elaboration-plan opcodes with their stage metadata.
-    TEST(IrSchemaTest, ExposesGeneratedCoreAndPlanMetadata)
+    std::string serializeSuccessfully(IRContext &Context, const Module &ModuleValue)
     {
-      EXPECT_STREQ(irOpcodeName(IrOpcode::IntNeg), "arith.neg");
-      EXPECT_STREQ(irOpcodeName(IrOpcode::CastInt), "cast.int");
-      EXPECT_STREQ(irOpcodeName(IrOpcode::Unreachable), "cf.unreachable");
-      const auto *CastMetadata = irOpcodeMetadata(IrOpcode::CastInt);
-      ASSERT_NE(CastMetadata, nullptr);
-      EXPECT_EQ(CastMetadata->Payload, IrPayloadKind::Type);
-      EXPECT_TRUE(hasStage(CastMetadata->Stages, IrStage::Closed));
-      const auto *ForceMetadata = irPlanOpcodeMetadata(IrPlanOpcode::ForceValue);
-      ASSERT_NE(ForceMetadata, nullptr);
-      EXPECT_STREQ(ForceMetadata->Mnemonic, "stage.force_value");
-      EXPECT_TRUE(hasStage(ForceMetadata->Stages, IrStage::Staged));
-      EXPECT_FALSE(hasStage(ForceMetadata->Stages, IrStage::Closed));
+      SerializeResult Result = serialize(Context, ModuleValue);
+      if (!Result.succeeded())
+      {
+        ADD_FAILURE() << "expected InkIR serialization to succeed";
+        return {};
+      }
+      return std::move(*Result.text());
     }
 
-    // Verifies a first-slice module crosses the unverified, staged, and target-bound closed capability boundary only after every force-value plan node is resolved.
-    TEST(IrCapabilityTest, ResolvesForceValueAndBindsTargetBeforeClosing)
+    Module makeHelloWorldModule(IRContext &Context)
     {
-      IrBuilder Builder;
-      const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-      const auto CalleeSignature = Builder.functionType({I32}, I32);
-      const auto Callee = Builder.addFunction("identity", CalleeSignature, IrFunctionKind::External);
-      const auto MainSignature = Builder.functionType({}, I32);
-      const auto Main = Builder.addFunction("main", MainSignature, IrFunctionKind::Definition);
-      const auto Entry = Builder.addBlock(Main);
-      const auto TrueBlock = Builder.addBlock(Main, {I32});
-      const auto FalseBlock = Builder.addBlock(Main, {I32});
-      const auto MergeBlock = Builder.addBlock(Main, {I32});
-      const auto OneConstant = Builder.integerConstant(I32, 1);
-      const auto ZeroConstant = Builder.integerConstant(I32, 0);
-      const auto TrueConstant = Builder.boolConstant(true);
-      const auto One = Builder.createIntegerConstant(Entry.Block, OneConstant);
-      const auto ResolvedValue = Builder.createIntegerConstant(Entry.Block, ZeroConstant);
-      const auto Place = Builder.createAlloca(Entry.Block, I32, IrPlaceAccess::ReadWrite);
-      Builder.createStore(Entry.Block, Place, One);
-      const auto Loaded = Builder.createLoad(Entry.Block, Place);
-      const auto Negated = Builder.createIntegerNegate(Entry.Block, Loaded);
-      const auto Wide = Builder.integerType(64, IrSignedness::Signed);
-      Builder.createIntegerCast(Entry.Block, Negated, Wide);
-      const auto Condition = Builder.createBoolConstant(Entry.Block, TrueConstant);
-      Builder.createConditionalBranch(Entry.Block, Condition, TrueBlock.Block, {ResolvedValue}, FalseBlock.Block, {Loaded});
-      const auto Call = Builder.createDirectCall(TrueBlock.Block, Callee, {TrueBlock.Arguments[0]});
-      ASSERT_EQ(Call.Results.size(), 1U);
-      Builder.createBranch(TrueBlock.Block, MergeBlock.Block, {Call.Results[0]});
-      Builder.createBranch(FalseBlock.Block, MergeBlock.Block, {FalseBlock.Arguments[0]});
-      Builder.createReturn(MergeBlock.Block, MergeBlock.Arguments[0]);
-      const auto Force = Builder.addForceValuePlan(One, ResolvedValue);
+      const Type &VoidType = Context.getType(TypeKind::Void);
+      const Type &I32Type = Context.getType(TypeKind::I32);
+      const Type &PointerSizeType = Context.getType(TypeKind::PointerSize);
+      const Type &ConstBytePointerType = Context.getType(TypeKind::ConstBytePointer);
+      Module Result(Context);
+      Result.ByteConstants.push_back({"str.0", "Hello, world!\n"});
 
-      auto Unverified = Builder.finish();
-      EXPECT_TRUE(verifyFunction(Unverified.module(), Main, IrStage::Staged).empty());
-      auto StagedResult = verifyStaged(Unverified);
-      ASSERT_TRUE(StagedResult.succeeded());
-      auto Staged = StagedResult.takeVerified();
-      auto MissingResolution = closeAndVerify(Staged, testTargetKey());
-      EXPECT_FALSE(MissingResolution.succeeded());
-      EXPECT_TRUE(hasError(MissingResolution.errors(), IrVerificationErrorCode::InvalidStage));
+      Function WriteStdout(I32Type);
+      WriteStdout.Name = "write";
+      WriteStdout.Kind = FunctionKind::External;
+      WriteStdout.Convention = CallingConvention::C;
+      WriteStdout.ParameterTypes = {&I32Type, &ConstBytePointerType, &PointerSizeType};
+      WriteStdout.HasSideEffects = true;
+      Result.Functions.push_back(std::move(WriteStdout));
 
-      auto InvalidTarget = testTargetKey();
-      InvalidTarget.Endianness = static_cast<target::TargetEndianness>(255);
-      auto InvalidTargetResult = closeAndVerify(Staged, InvalidTarget, {{Force, I32, IrConstantKind::Integer, 1}});
-      EXPECT_FALSE(InvalidTargetResult.succeeded());
-      EXPECT_TRUE(hasError(InvalidTargetResult.errors(), IrVerificationErrorCode::InvalidStage));
+      auto Call = std::make_unique<CallInstruction>(I32Type);
+      Call->Result = ValueId{0};
+      Call->Callee = FunctionId{0};
+      Call->Arguments.push_back(std::make_unique<IntegerConstant>(I32Type, 1));
+      Call->Arguments.push_back(std::make_unique<GlobalAddressOperand>(ConstBytePointerType, GlobalId{0}, 0));
+      Call->Arguments.push_back(std::make_unique<IntegerConstant>(PointerSizeType, 14));
 
-      auto ClosedResult = closeAndVerify(Staged, testTargetKey(), {{Force, I32, IrConstantKind::Integer, 1}});
-      ASSERT_TRUE(ClosedResult.succeeded());
-      const auto Closed = ClosedResult.takeVerified();
-      EXPECT_EQ(Closed.targetKey(), testTargetKey());
-      EXPECT_EQ(Closed.module().planNodeCount(), 0U);
-      EXPECT_TRUE(verifyModule(Closed.module(), IrStage::Closed).empty());
+      Function Main(VoidType);
+      Main.Name = "main";
+      BasicBlock Entry;
+      Entry.Name = "entry";
+      Entry.Instructions.push_back(std::move(Call));
+      Entry.Instructions.push_back(std::make_unique<ReturnInstruction>());
+      Main.Blocks.push_back(std::move(Entry));
+      Result.Functions.push_back(std::move(Main));
+      return Result;
     }
 
-    // Verifies the canonical printer uses stable table order and exact IDs for a small function.
-    TEST(IrPrinterTest, PrintsDeterministicGoldenText)
+    const std::string HelloWorldText =
+        "inkir 1\n"
+        "\n"
+        "@str.0 = private constant [14 x byte] c\"Hello, world!\\0A\"\n"
+        "\n"
+        "declare extern \"C\" i32 @write(i32, const byte*, ptrsize) [sideeffect]\n"
+        "\n"
+        "define void @main() {\n"
+        "entry:\n"
+        "  %0 = call i32 @write(i32 1, const byte* @str.0[0], ptrsize 14)\n"
+        "  ret void\n"
+        "}\n";
+
+    const std::string NativeIoText =
+        "inkir 1\n"
+        "\n"
+        "declare extern \"C\" i32 @read(i32, byte*, ptrsize) [sideeffect]\n"
+        "\n"
+        "declare extern \"C\" i32 @write(i32, const byte*, ptrsize) [sideeffect]\n";
+
+    const std::string StructText =
+        "inkir 1\n"
+        "\n"
+        "%Pair = type {i32, i32}\n"
+        "\n"
+        "define i32 @sum_second() {\n"
+        "entry:\n"
+        "  %0 = insertvalue %Pair zeroinitializer, i32 20, 0\n"
+        "  %1 = insertvalue %Pair %0, i32 22, 1\n"
+        "  %2 = extractvalue %Pair %1, 1\n"
+        "  ret i32 %2\n"
+        "}\n";
+
+    // Verifies that IRContext composes around the compilation context and reuses its diagnostic engine.
+    TEST(IrContextTest, SharesCompilationDiagnosticEngine)
     {
-      IrBuilder Builder;
-      const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-      const auto Signature = Builder.functionType({}, I32);
-      const auto Function = Builder.addFunction("answer", Signature, IrFunctionKind::Definition);
-      const auto Entry = Builder.addBlock(Function);
-      const auto Constant = Builder.integerConstant(I32, 42);
-      const auto Value = Builder.createIntegerConstant(Entry.Block, Constant);
-      Builder.createReturn(Entry.Block, Value);
-      const auto Module = Builder.finish();
-      const std::string Expected = "ink.module stage=unverified-staged {\n  types {\n    !t0 = i32\n    !t1 = fn() -> !t0\n  }\n  constants {\n    #c0 = 0x000000000000002a : !t0\n  }\n  origins {\n  }\n  func @f0 \"answer\" : !t1 {\n    ^bb0():\n      %v0 = const.int {constant=#c0} : !t0\n      cf.return %v0\n  }\n}\n";
-      EXPECT_EQ(printIr(Module), Expected);
-      EXPECT_EQ(printIr(Module), printIr(Module));
+      TestContext Context;
+
+      EXPECT_EQ(&Context.IR.compilationContext(), &Context.Compilation);
+      EXPECT_EQ(&Context.IR.diagnosticEngine(), &Context.Compilation.diagnosticEngine());
     }
 
-    // Verifies a defined block without a terminator is rejected instead of acquiring a verified capability.
-    TEST(IrVerifierTest, RejectsMissingTerminator)
+    // Verifies that IRContext owns one stable Type object for each primitive TypeKind.
+    TEST(IrContextTest, OwnsCanonicalPrimitiveTypes)
     {
-      IrBuilder Builder;
-      const auto Signature = Builder.functionType({}, std::nullopt);
-      const auto Function = Builder.addFunction("unterminated", Signature, IrFunctionKind::Definition);
-      Builder.addBlock(Function);
-      const auto Result = verifyStaged(Builder.finish());
-      EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::MissingTerminator));
+      TestContext Context;
+      const Type &FirstI32 = Context.IR.getType(TypeKind::I32);
+      const Type &SecondI32 = Context.IR.getType(TypeKind::I32);
+      const Type &VoidType = Context.IR.getType(TypeKind::Void);
+      const Type &ByteSliceType = Context.IR.getType(TypeKind::ByteSlice);
+      const Type &ConstByteSliceType = Context.IR.getType(TypeKind::ConstByteSlice);
+
+      static_assert(!std::is_abstract_v<Type>);
+      EXPECT_EQ(&FirstI32, &SecondI32);
+      EXPECT_NE(&FirstI32, &VoidType);
+      EXPECT_EQ(FirstI32.kind(), TypeKind::I32);
+      EXPECT_EQ(VoidType.kind(), TypeKind::Void);
+      EXPECT_NE(&ByteSliceType, &ConstByteSliceType);
+      EXPECT_EQ(ByteSliceType.kind(), TypeKind::ByteSlice);
+      EXPECT_EQ(ConstByteSliceType.kind(), TypeKind::ConstByteSlice);
     }
 
-    // Verifies every enum accepted through the public IR builder is rejected at verification when its underlying value is outside the declared domain.
-    TEST(IrVerifierTest, RejectsOutOfDomainPublicBuilderEnums)
+    // Verifies that IRContext owns distinct named struct types even when their field lists are identical.
+    TEST(IrContextTest, OwnsDistinctNamedStructTypes)
     {
-      {
-        SCOPED_TRACE("IrSignedness");
-        IrBuilder Builder;
-        const auto InvalidInteger = Builder.integerType(32, static_cast<IrSignedness>(255));
-        const auto Signature = Builder.functionType({}, InvalidInteger);
-        const auto Function = Builder.addFunction("invalid_signedness", Signature, IrFunctionKind::Definition);
-        const auto Entry = Builder.addBlock(Function);
-        const auto Value = Builder.createIntegerConstant(Entry.Block, Builder.integerConstant(InvalidInteger, 0));
-        Builder.createReturn(Entry.Block, Value);
-        const auto Result = verifyStaged(Builder.finish());
-        EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidType));
-      }
-      {
-        SCOPED_TRACE("IrPlaceAccess");
-        IrBuilder Builder;
-        const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-        const auto Signature = Builder.functionType({}, std::nullopt);
-        const auto Function = Builder.addFunction("invalid_place_access", Signature, IrFunctionKind::Definition);
-        const auto Entry = Builder.addBlock(Function);
-        Builder.createAlloca(Entry.Block, I32, static_cast<IrPlaceAccess>(255));
-        Builder.createReturn(Entry.Block);
-        const auto Result = verifyStaged(Builder.finish());
-        EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidType));
-      }
-      {
-        SCOPED_TRACE("IrFunctionKind");
-        IrBuilder Builder;
-        const auto Signature = Builder.functionType({}, std::nullopt);
-        const auto Function = Builder.addFunction("invalid_function_kind", Signature, static_cast<IrFunctionKind>(255));
-        const auto Entry = Builder.addBlock(Function);
-        Builder.createReturn(Entry.Block);
-        const auto Result = verifyStaged(Builder.finish());
-        EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidFunction));
-      }
-      {
-        SCOPED_TRACE("IrComparePredicate");
-        IrBuilder Builder;
-        const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-        const auto Bool = Builder.boolType();
-        const auto Signature = Builder.functionType({}, Bool);
-        const auto Function = Builder.addFunction("invalid_compare_predicate", Signature, IrFunctionKind::Definition);
-        const auto Entry = Builder.addBlock(Function);
-        const auto One = Builder.createIntegerConstant(Entry.Block, Builder.integerConstant(I32, 1));
-        const auto Compared = Builder.createIntegerCompare(Entry.Block, static_cast<IrComparePredicate>(255), One, One);
-        Builder.createReturn(Entry.Block, Compared);
-        const auto Result = verifyStaged(Builder.finish());
-        EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidPayload));
-      }
-      {
-        SCOPED_TRACE("IrTrapKind");
-        IrBuilder Builder;
-        const auto Signature = Builder.functionType({}, std::nullopt);
-        const auto Function = Builder.addFunction("invalid_trap_kind", Signature, IrFunctionKind::Definition);
-        const auto Entry = Builder.addBlock(Function);
-        Builder.createTrap(Entry.Block, static_cast<IrTrapKind>(255));
-        const auto Result = verifyStaged(Builder.finish());
-        EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidPayload));
-      }
-      {
-        SCOPED_TRACE("IrOpcode");
-        IrBuilder Builder;
-        const auto Signature = Builder.functionType({}, std::nullopt);
-        const auto Function = Builder.addFunction("invalid_opcode", Signature, IrFunctionKind::Definition);
-        const auto Entry = Builder.addBlock(Function);
-        IrOperationSpec InvalidOperation;
-        InvalidOperation.Opcode = static_cast<IrOpcode>(255);
-        Builder.appendOperation(Entry.Block, std::move(InvalidOperation));
-        Builder.createReturn(Entry.Block);
-        const auto Result = verifyStaged(Builder.finish());
-        EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidOperation));
-      }
+      TestContext Context;
+      const Type &I32Type = Context.IR.getType(TypeKind::I32);
+      const StructType &First = Context.IR.createStructType("First", {&I32Type});
+      const StructType &Second = Context.IR.createStructType("Second", {&I32Type});
+
+      EXPECT_NE(&First, &Second);
+      EXPECT_EQ(First.kind(), TypeKind::Struct);
+      EXPECT_EQ(First.name(), "First");
+      ASSERT_EQ(First.fieldTypes().size(), 1u);
+      EXPECT_EQ(First.fieldTypes()[0], &I32Type);
     }
 
-    // Verifies place values cannot cross function or block argument boundaries and that alloca cannot manufacture a read-only place.
-    TEST(IrVerifierTest, RejectsPlaceValuesAtCapabilityBoundaries)
+    // Verifies that all instruction metadata comes from the centralized IR definition table.
+    TEST(IrDefinitionTest, ExposesRegisteredInstructionMetadata)
     {
-      {
-        SCOPED_TRACE("function place parameter");
-        IrBuilder Builder;
-        const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-        const auto Place = Builder.placeType(I32, IrPlaceAccess::ReadWrite);
-        const auto Signature = Builder.functionType({Place}, std::nullopt);
-        const auto Function = Builder.addFunction("place_parameter", Signature, IrFunctionKind::Definition);
-        const auto Entry = Builder.addBlock(Function, {Place});
-        Builder.createReturn(Entry.Block);
-        const auto Result = verifyStaged(Builder.finish());
-        EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidType));
-      }
-      {
-        SCOPED_TRACE("non-entry place block argument");
-        IrBuilder Builder;
-        const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-        const auto Place = Builder.placeType(I32, IrPlaceAccess::ReadWrite);
-        const auto Signature = Builder.functionType({}, std::nullopt);
-        const auto Function = Builder.addFunction("place_block_argument", Signature, IrFunctionKind::Definition);
-        const auto Entry = Builder.addBlock(Function);
-        const auto Target = Builder.addBlock(Function, {Place});
-        const auto Allocation = Builder.createAlloca(Entry.Block, I32, IrPlaceAccess::ReadWrite);
-        Builder.createBranch(Entry.Block, Target.Block, {Allocation});
-        Builder.createReturn(Target.Block);
-        const auto Result = verifyStaged(Builder.finish());
-        EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidType));
-      }
-      {
-        SCOPED_TRACE("read-only alloca");
-        IrBuilder Builder;
-        const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-        const auto Signature = Builder.functionType({}, std::nullopt);
-        const auto Function = Builder.addFunction("read_only_alloca", Signature, IrFunctionKind::Definition);
-        const auto Entry = Builder.addBlock(Function);
-        Builder.createAlloca(Entry.Block, I32, IrPlaceAccess::ReadOnly);
-        Builder.createReturn(Entry.Block);
-        const auto Result = verifyStaged(Builder.finish());
-        EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidType));
-      }
+      EXPECT_STREQ(instructionKindName(InstructionKind::Call), "Call");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Call), "call");
+      EXPECT_FALSE(isTerminator(InstructionKind::Call));
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Alloca), "alloca");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::GetElementPointer), "getelementptr");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Load), "load");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Store), "store");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::LifetimeEnd), "lifetime.end");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::SliceData), "slice.data");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::SliceLength), "slice.length");
+      EXPECT_STREQ(instructionKindName(InstructionKind::Phi), "Phi");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Phi), "phi");
+      EXPECT_FALSE(isTerminator(InstructionKind::Phi));
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Add), "add");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Compare), "icmp");
+      EXPECT_STREQ(instructionKindName(InstructionKind::Return), "Return");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Return), "ret");
+      EXPECT_TRUE(isTerminator(InstructionKind::Return));
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::InsertValue), "insertvalue");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::ExtractValue), "extractvalue");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::Branch), "br");
+      EXPECT_STREQ(instructionMnemonic(InstructionKind::ConditionalBranch), "condbr");
+      EXPECT_TRUE(isTerminator(InstructionKind::Branch));
+      EXPECT_TRUE(isTerminator(InstructionKind::ConditionalBranch));
+      EXPECT_STREQ(valueKindName(ValueKind::IntegerConstant), "IntegerConstant");
+      EXPECT_STREQ(valueKindName(ValueKind::ValueOperand), "ValueOperand");
+      EXPECT_STREQ(valueKindName(ValueKind::GlobalAddressOperand), "GlobalAddressOperand");
+      EXPECT_STREQ(valueKindName(ValueKind::ZeroInitializer), "ZeroInitializer");
     }
 
-    // Verifies a store that occurs only after a load does not initialize the alloca for that earlier read.
-    TEST(IrVerifierTest, RejectsLoadBeforeStoreToSameAlloca)
+    // Verifies that strong IDs expose their index without allowing direct mutation of the stored representation.
+    TEST(IrValueTest, EncapsulatesStrongIds)
     {
-      IrBuilder Builder;
-      const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-      const auto Signature = Builder.functionType({}, I32);
-      const auto Function = Builder.addFunction("load_before_store", Signature, IrFunctionKind::Definition);
-      const auto Entry = Builder.addBlock(Function);
-      const auto Allocation = Builder.createAlloca(Entry.Block, I32, IrPlaceAccess::ReadWrite);
-      const auto Loaded = Builder.createLoad(Entry.Block, Allocation);
-      const auto Value = Builder.createIntegerConstant(Entry.Block, Builder.integerConstant(I32, 7));
-      Builder.createStore(Entry.Block, Allocation, Value);
-      Builder.createReturn(Entry.Block, Loaded);
-      const auto Result = verifyStaged(Builder.finish());
-      EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidOperation));
+      constexpr GlobalId Global{3};
+      constexpr FunctionId Function{4};
+      constexpr BlockId Block{5};
+      constexpr ValueId Value{6};
+
+      static_assert(Global.valid());
+      static_assert(Function.valid());
+      static_assert(Block.valid());
+      static_assert(Value.valid());
+      static_assert(!std::is_aggregate_v<GlobalId>);
+      static_assert(!std::is_aggregate_v<FunctionId>);
+      static_assert(!std::is_aggregate_v<BlockId>);
+      static_assert(!std::is_aggregate_v<ValueId>);
+      static_assert(!std::is_convertible_v<std::size_t, GlobalId>);
+      static_assert(!std::is_convertible_v<std::size_t, FunctionId>);
+      static_assert(!std::is_convertible_v<std::size_t, BlockId>);
+      static_assert(!std::is_convertible_v<std::size_t, ValueId>);
+      static_assert(Global.value() == 3);
+      static_assert(Function.value() == 4);
+      static_assert(Block.value() == 5);
+      static_assert(Value.value() == 6);
+      static_assert(!GlobalId{}.valid());
+      static_assert(!FunctionId{}.valid());
+      static_assert(!BlockId{}.valid());
+      static_assert(!ValueId{}.valid());
     }
 
-    // Verifies a store in a dominating block initializes the same alloca for a load in its successor block.
-    TEST(IrVerifierTest, AcceptsLoadAfterDominatingStoreToSameAlloca)
+    // Verifies that every operand value carries its type through the abstract Value base class.
+    TEST(IrValueTest, OwnsTypedOperandsThroughValueBase)
     {
-      IrBuilder Builder;
-      const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-      const auto Signature = Builder.functionType({}, I32);
-      const auto Function = Builder.addFunction("dominating_store", Signature, IrFunctionKind::Definition);
-      const auto Entry = Builder.addBlock(Function);
-      const auto Target = Builder.addBlock(Function);
-      const auto Allocation = Builder.createAlloca(Entry.Block, I32, IrPlaceAccess::ReadWrite);
-      const auto Value = Builder.createIntegerConstant(Entry.Block, Builder.integerConstant(I32, 7));
-      Builder.createStore(Entry.Block, Allocation, Value);
-      Builder.createBranch(Entry.Block, Target.Block);
-      const auto Loaded = Builder.createLoad(Target.Block, Allocation);
-      Builder.createReturn(Target.Block, Loaded);
-      const auto Result = verifyStaged(Builder.finish());
+      TestContext Context;
+      static_assert(std::is_abstract_v<Value>);
+      static_assert(std::is_base_of_v<Value, IntegerConstant>);
+      static_assert(std::is_base_of_v<Value, ValueOperand>);
+      static_assert(std::is_base_of_v<Value, GlobalAddressOperand>);
+
+      const Type &I32Type = Context.IR.getType(TypeKind::I32);
+      std::unique_ptr<Value> Constant = std::make_unique<IntegerConstant>(I32Type, 42);
+
+      EXPECT_EQ(Constant->kind(), ValueKind::IntegerConstant);
+      EXPECT_EQ(&Constant->type(), &I32Type);
+      EXPECT_EQ(Constant->type().kind(), TypeKind::I32);
+      EXPECT_EQ(static_cast<const IntegerConstant &>(*Constant).value(), 42);
+    }
+
+    // Verifies that concrete instructions are polymorphically owned and retain their registered instruction kinds.
+    TEST(IrInstructionTest, OwnsConcreteInstructionsThroughAbstractBase)
+    {
+      TestContext Context;
+      static_assert(std::is_abstract_v<Instruction>);
+      static_assert(std::is_base_of_v<Instruction, CallInstruction>);
+      static_assert(std::is_base_of_v<Instruction, ReturnInstruction>);
+
+      std::unique_ptr<Instruction> Call = std::make_unique<CallInstruction>(Context.IR.getType(TypeKind::Void));
+      std::unique_ptr<Instruction> Return = std::make_unique<ReturnInstruction>();
+
+      EXPECT_EQ(Call->kind(), InstructionKind::Call);
+      EXPECT_EQ(Return->kind(), InstructionKind::Return);
+    }
+
+    // Verifies that the minimum extern-based Hello World module satisfies every current IR invariant.
+    TEST(IrVerifierTest, AcceptsExternHelloWorldModule)
+    {
+      TestContext Context;
+      const VerificationResult Result = verify(Context.IR, makeHelloWorldModule(Context.IR));
+
       EXPECT_TRUE(Result.succeeded());
+      EXPECT_TRUE(Result.diagnostics().empty());
     }
 
-    // Verifies return operands must exactly match the declared function result type.
-    TEST(IrVerifierTest, RejectsReturnTypeMismatch)
+    // Verifies that a function without parameters cannot skip SSA value zero for its first instruction result.
+    TEST(IrVerifierTest, RejectsSkippedFirstSsaResultWithoutParameters)
     {
-      IrBuilder Builder;
-      const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-      const auto Signature = Builder.functionType({}, I32);
-      const auto Function = Builder.addFunction("bad_return", Signature, IrFunctionKind::Definition);
-      const auto Entry = Builder.addBlock(Function);
-      const auto BooleanConstant = Builder.boolConstant(false);
-      const auto Boolean = Builder.createBoolConstant(Entry.Block, BooleanConstant);
-      Builder.createReturn(Entry.Block, Boolean);
-      const auto Result = verifyStaged(Builder.finish());
-      EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidType));
+      TestContext Context;
+      Module ModuleValue = makeHelloWorldModule(Context.IR);
+      CallInstruction &Call = static_cast<CallInstruction &>(*ModuleValue.Functions[1].Blocks[0].Instructions[0]);
+      Call.Result = ValueId{1};
+
+      const VerificationResult Result = verify(Context.IR, ModuleValue);
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrNonConsecutiveSsaResult>({}, "call", "main", std::uint64_t{0}, std::uint64_t{1});
+      EXPECT_EQ(Result.diagnostics()[0].Kind, Expected.Kind);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, Expected.Arguments);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "call in function @main defines SSA value %1; expected %0");
     }
 
-    // Verifies each CFG edge supplies the exact argument count required by its destination block.
-    TEST(IrVerifierTest, RejectsBranchArgumentMismatch)
+    // Verifies that the first instruction result after one parameter cannot skip the next SSA value one.
+    TEST(IrVerifierTest, RejectsSkippedFirstSsaResultAfterParameter)
     {
-      IrBuilder Builder;
-      const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-      const auto Signature = Builder.functionType({}, std::nullopt);
-      const auto Function = Builder.addFunction("bad_branch", Signature, IrFunctionKind::Definition);
-      const auto Entry = Builder.addBlock(Function);
-      const auto Target = Builder.addBlock(Function, {I32});
-      Builder.createBranch(Entry.Block, Target.Block);
-      Builder.createReturn(Target.Block);
-      const auto Result = verifyStaged(Builder.finish());
-      EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::InvalidControlFlow));
+      TestContext Context;
+      Module ModuleValue = makeHelloWorldModule(Context.IR);
+      Function &Main = ModuleValue.Functions[1];
+      Main.ParameterTypes.push_back(&Context.IR.getType(TypeKind::I32));
+      CallInstruction &Call = static_cast<CallInstruction &>(*Main.Blocks[0].Instructions[0]);
+      Call.Result = ValueId{2};
+
+      const VerificationResult Result = verify(Context.IR, ModuleValue);
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrNonConsecutiveSsaResult>({}, "call", "main", std::uint64_t{1}, std::uint64_t{2});
+      EXPECT_EQ(Result.diagnostics()[0].Kind, Expected.Kind);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, Expected.Arguments);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "call in function @main defines SSA value %2; expected %1");
     }
 
-    // Verifies a value defined in an unrelated block cannot be consumed where its definition does not dominate the use.
-    TEST(IrVerifierTest, RejectsNonDominatingValue)
+    // Verifies that a huge valid SSA result after a parameter is rejected as non-consecutive without indexing storage by that value.
+    TEST(IrVerifierTest, RejectsHugeFirstSsaResultAfterParameter)
     {
-      IrBuilder Builder;
-      const auto I32 = Builder.integerType(32, IrSignedness::Signed);
-      const auto Signature = Builder.functionType({}, I32);
-      const auto Function = Builder.addFunction("bad_dominance", Signature, IrFunctionKind::Definition);
-      const auto Entry = Builder.addBlock(Function);
-      const auto Producer = Builder.addBlock(Function);
-      const auto Constant = Builder.integerConstant(I32, 7);
-      const auto ForeignValue = Builder.createIntegerConstant(Producer.Block, Constant);
-      Builder.createReturn(Producer.Block, ForeignValue);
-      const auto Sum = Builder.createIntegerBinary(Entry.Block, IrOpcode::IntAdd, ForeignValue, ForeignValue);
-      Builder.createReturn(Entry.Block, Sum);
-      const auto Result = verifyStaged(Builder.finish());
-      EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasError(Result.errors(), IrVerificationErrorCode::NonDominatingValue));
+      TestContext Context;
+      Module ModuleValue = makeHelloWorldModule(Context.IR);
+      Function &Main = ModuleValue.Functions[1];
+      Main.ParameterTypes.push_back(&Context.IR.getType(TypeKind::I32));
+      CallInstruction &Call = static_cast<CallInstruction &>(*Main.Blocks[0].Instructions[0]);
+      Call.Result = ValueId{InvalidId - 1};
+
+      const VerificationResult Result = verify(Context.IR, ModuleValue);
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrNonConsecutiveSsaResult>({}, "call", "main", std::uint64_t{1}, static_cast<std::uint64_t>(InvalidId - 1));
+      EXPECT_EQ(Result.diagnostics()[0].Kind, Expected.Kind);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, Expected.Arguments);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "call in function @main defines SSA value %" + std::to_string(InvalidId - 1) + "; expected %1");
     }
 
-    // Verifies a reachable unreachable terminator is accepted only when the preceding direct call has a never result.
-    TEST(IrVerifierTest, DistinguishesNeverCallFromArbitraryUnreachable)
+    // Verifies that a parameter at SSA value zero followed by an instruction result at value one remains valid.
+    TEST(IrVerifierTest, AcceptsConsecutiveFirstSsaResultAfterParameter)
     {
-      IrBuilder InvalidBuilder;
-      const auto VoidSignature = InvalidBuilder.functionType({}, std::nullopt);
-      const auto InvalidFunction = InvalidBuilder.addFunction("invalid_unreachable", VoidSignature, IrFunctionKind::Definition);
-      const auto InvalidEntry = InvalidBuilder.addBlock(InvalidFunction);
-      InvalidBuilder.createUnreachable(InvalidEntry.Block);
-      const auto InvalidResult = verifyStaged(InvalidBuilder.finish());
-      EXPECT_FALSE(InvalidResult.succeeded());
-      EXPECT_TRUE(hasError(InvalidResult.errors(), IrVerificationErrorCode::InvalidControlFlow));
+      TestContext Context;
+      Module ModuleValue = makeHelloWorldModule(Context.IR);
+      Function &Main = ModuleValue.Functions[1];
+      Main.ParameterTypes.push_back(&Context.IR.getType(TypeKind::I32));
+      CallInstruction &Call = static_cast<CallInstruction &>(*Main.Blocks[0].Instructions[0]);
+      Call.Result = ValueId{1};
 
-      IrBuilder ValidBuilder;
-      const auto Never = ValidBuilder.neverType();
-      const auto NeverSignature = ValidBuilder.functionType({}, Never);
-      const auto Abort = ValidBuilder.addFunction("abort", NeverSignature, IrFunctionKind::External);
-      const auto Wrapper = ValidBuilder.addFunction("wrapper", NeverSignature, IrFunctionKind::Definition);
-      const auto Entry = ValidBuilder.addBlock(Wrapper);
-      const auto Call = ValidBuilder.createDirectCall(Entry.Block, Abort, {});
-      EXPECT_TRUE(Call.Results.empty());
-      ValidBuilder.createUnreachable(Entry.Block);
-      const auto ValidResult = verifyStaged(ValidBuilder.finish());
-      EXPECT_TRUE(ValidResult.succeeded());
+      const VerificationResult Result = verify(Context.IR, ModuleValue);
+
+      EXPECT_TRUE(Result.succeeded());
+      EXPECT_TRUE(Result.diagnostics().empty());
+    }
+
+    // Verifies that a gap after an already valid instruction result reports the next missing SSA value rather than only validating the first result.
+    TEST(IrVerifierTest, RejectsGapAfterFirstSsaResult)
+    {
+      TestContext Context;
+      Module ModuleValue = makeHelloWorldModule(Context.IR);
+      Function &Main = ModuleValue.Functions[1];
+      const Type &I32Type = Context.IR.getType(TypeKind::I32);
+      const Type &PointerSizeType = Context.IR.getType(TypeKind::PointerSize);
+      const Type &ConstBytePointerType = Context.IR.getType(TypeKind::ConstBytePointer);
+      auto SecondCall = std::make_unique<CallInstruction>(I32Type);
+      SecondCall->Result = ValueId{2};
+      SecondCall->Callee = FunctionId{0};
+      SecondCall->Arguments.push_back(std::make_unique<IntegerConstant>(I32Type, 1));
+      SecondCall->Arguments.push_back(std::make_unique<GlobalAddressOperand>(ConstBytePointerType, GlobalId{0}, 0));
+      SecondCall->Arguments.push_back(std::make_unique<IntegerConstant>(PointerSizeType, 14));
+      Main.Blocks[0].Instructions.insert(Main.Blocks[0].Instructions.end() - 1, std::move(SecondCall));
+
+      const VerificationResult Result = verify(Context.IR, ModuleValue);
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrNonConsecutiveSsaResult>({}, "call", "main", std::uint64_t{1}, std::uint64_t{2});
+      EXPECT_EQ(Result.diagnostics()[0].Kind, Expected.Kind);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, Expected.Arguments);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "call in function @main defines SSA value %2; expected %1");
+    }
+
+    // Verifies the deterministic LLVM-style text form for a byte constant, extern call, and void return.
+    TEST(IrSerializationTest, SerializesExternHelloWorldDeterministically)
+    {
+      TestContext Context;
+
+      EXPECT_EQ(serializeSuccessfully(Context.IR, makeHelloWorldModule(Context.IR)), HelloWorldText);
+    }
+
+    // Verifies that serialized Hello World IR round-trips without changing its canonical text.
+    TEST(IrSerializationTest, RoundTripsExternHelloWorld)
+    {
+      TestContext Context;
+      DeserializeResult Result = deserialize(Context.IR, HelloWorldText);
+
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_TRUE(Result.module().has_value());
+      EXPECT_TRUE(Result.diagnostics().empty());
+      EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), HelloWorldText);
+    }
+
+    // Verifies that Unicode XID names, including a continue-only middle dot after the first scalar, round-trip canonically.
+    TEST(IrSerializationTest, RoundTripsUnicodeXidNames)
+    {
+      TestContext Context;
+      const std::string Text =
+          u8"inkir 1\n"
+          u8"module \u5E94\u7528.\u4E3B\u6A21\u57572\n"
+          u8"\n"
+          u8"%\u8BB0\u5F55\u00B72 = type {i32}\n"
+          u8"\n"
+          u8"define i32 @\u8BA1\u7B97\u00B7\u503C(i32 %0) {\n"
+          u8"\u5165\u53E3:\n"
+          u8"  %1 = add i32 %0, i32 1\n"
+          u8"  ret i32 %1\n"
+          u8"}\n";
+
+      DeserializeResult Result = deserialize(Context.IR, Text);
+
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_TRUE(Result.module().has_value());
+      EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), Text);
+    }
+
+    // Verifies that mutable byte pointers in native read and write declarations survive canonical InkIR serialization and deserialization.
+    TEST(IrSerializationTest, RoundTripsNativeIoDeclarations)
+    {
+      TestContext Context;
+      DeserializeResult Result = deserialize(Context.IR, NativeIoText);
+
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_TRUE(Result.module().has_value());
+      ASSERT_EQ(Result.module()->Functions.size(), 2u);
+      const Function &Read = Result.module()->Functions[0];
+      const Function &Write = Result.module()->Functions[1];
+      EXPECT_EQ(Read.Convention, CallingConvention::C);
+      ASSERT_EQ(Read.ParameterTypes.size(), 3u);
+      EXPECT_EQ(Read.ParameterTypes[1]->kind(), TypeKind::BytePointer);
+      EXPECT_EQ(Write.Convention, CallingConvention::C);
+      ASSERT_EQ(Write.ParameterTypes.size(), 3u);
+      EXPECT_EQ(Write.ParameterTypes[1]->kind(), TypeKind::ConstBytePointer);
+      EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), NativeIoText);
+    }
+
+    // Verifies that named struct declarations and aggregate SSA instructions round-trip through canonical InkIR text.
+    TEST(IrSerializationTest, RoundTripsNamedStructAndAggregateInstructions)
+    {
+      TestContext Context;
+      DeserializeResult Result = deserialize(Context.IR, StructText);
+
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_TRUE(Result.module().has_value());
+      ASSERT_EQ(Result.module()->StructTypes.size(), 1u);
+      EXPECT_EQ(Result.module()->StructTypes[0]->name(), "Pair");
+      EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), StructText);
+    }
+
+    // Verifies that deserialization resolves later function and global declarations while serialization preserves FunctionId order.
+    TEST(IrSerializationTest, ResolvesForwardGlobalAndExternReferences)
+    {
+      TestContext Context;
+      const std::string ForwardReferenceText =
+          "inkir 1\n"
+          "define void @main() {\n"
+          "entry:\n"
+          "  %0 = call i32 @write(i32 1, const byte* @str.0[0], ptrsize 14)\n"
+          "  ret void\n"
+          "}\n"
+          "declare extern \"C\" i32 @write(i32, const byte*, ptrsize) [sideeffect]\n"
+          "@str.0 = private constant [14 x byte] c\"Hello, world!\\0A\"\n";
+      const std::string ExpectedText =
+          "inkir 1\n"
+          "\n"
+          "@str.0 = private constant [14 x byte] c\"Hello, world!\\0A\"\n"
+          "\n"
+          "define void @main() {\n"
+          "entry:\n"
+          "  %0 = call i32 @write(i32 1, const byte* @str.0[0], ptrsize 14)\n"
+          "  ret void\n"
+          "}\n"
+          "\n"
+          "declare extern \"C\" i32 @write(i32, const byte*, ptrsize) [sideeffect]\n";
+
+      DeserializeResult Result = deserialize(Context.IR, ForwardReferenceText);
+
+      ASSERT_TRUE(Result.succeeded());
+      EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), ExpectedText);
+    }
+
+    // Verifies that byte serialization preserves embedded zero, quotes, backslashes, and non-ASCII bytes.
+    TEST(IrSerializationTest, RoundTripsEveryEscapedByteShapeUsedByConstants)
+    {
+      TestContext Context;
+      Module ModuleValue = makeHelloWorldModule(Context.IR);
+      ModuleValue.ByteConstants[0].Data = std::string("\0\"\\\xC3\xA9", 5);
+      static_cast<CallInstruction &>(*ModuleValue.Functions[1].Blocks[0].Instructions[0]).Arguments[2] = std::make_unique<IntegerConstant>(Context.IR.getType(TypeKind::PointerSize), 5);
+
+      const std::string Text = serializeSuccessfully(Context.IR, ModuleValue);
+      DeserializeResult Result = deserialize(Context.IR, Text);
+
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_TRUE(Result.module().has_value());
+      EXPECT_EQ(Result.module()->ByteConstants[0].Data, ModuleValue.ByteConstants[0].Data);
+      EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), Text);
+    }
+
+    // Verifies that the textual array size must match the decoded byte-string payload.
+    TEST(IrDeserializationTest, RejectsMismatchedByteConstantSize)
+    {
+      TestContext Context;
+      DeserializeResult Result = deserialize(Context.IR, "inkir 1\n@value = private constant [2 x byte] c\"x\"\n");
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrByteConstantSizeMismatch>({35, 36}, std::uint64_t{2}, std::uint64_t{1});
+      EXPECT_EQ(Result.diagnostics()[0], Expected);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "declared byte constant size 2 does not match decoded string length 1");
+    }
+
+    // Verifies that a Unicode XID_Continue-only scalar cannot begin an InkIR name.
+    TEST(IrDeserializationTest, RejectsXidContinueOnlyNameStart)
+    {
+      TestContext Context;
+      DeserializeResult Result = deserialize(Context.IR, u8"inkir 1\ndefine void @\u0301name() {\nentry:\n  ret void\n}\n");
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_FALSE(Result.diagnostics().empty());
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrExpectedGlobalNameAfterAt);
+    }
+
+    // Verifies that the InkIR lexer returns a located Core diagnostic and publishes the same value through IRContext.
+    TEST(IrDeserializationTest, ReportsLocatedLexerDiagnosticThroughIrContext)
+    {
+      TestContext Context;
+      core::CollectingDiagnosticConsumer Consumer;
+      Context.Compilation.diagnosticEngine().addConsumer(Consumer);
+      DeserializeResult Result = deserialize(Context.IR, "inkir 1\n?");
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrUnexpectedCharacter>({8, 9}, "?");
+      EXPECT_EQ(Result.diagnostics()[0], Expected);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "unexpected character '?'");
+      EXPECT_EQ(Consumer.diagnostics(), Result.diagnostics());
+    }
+
+    // Verifies that recursive-descent failure propagates explicitly and retains the offending version token range.
+    TEST(IrDeserializationTest, RejectsUnsupportedVersionWithoutExceptionControlFlow)
+    {
+      TestContext Context;
+      DeserializeResult Result = deserialize(Context.IR, "inkir 2\n");
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrUnsupportedFormatVersion>({6, 7}, std::uint64_t{2}, std::uint64_t{1});
+      EXPECT_EQ(Result.diagnostics()[0], Expected);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "unsupported InkIR format version 2; expected 1");
+    }
+
+    // Verifies that unresolved external call targets are rejected during reference resolution.
+    TEST(IrDeserializationTest, RejectsUnknownCallTarget)
+    {
+      TestContext Context;
+      DeserializeResult Result = deserialize(Context.IR, "inkir 1\ndefine void @main() {\nentry:\n  call void @missing()\n  ret void\n}\n");
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrUnknownCallTarget);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrUnknownCallTarget>({}, "missing").Arguments);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "unknown call target @missing");
+    }
+
+    // Verifies that type annotations on global-address operands are checked against the extern signature.
+    TEST(IrDeserializationTest, RejectsMismatchedExternArgumentType)
+    {
+      TestContext Context;
+      std::string InvalidText = HelloWorldText;
+      const std::size_t TypeOffset = InvalidText.find("const byte* @str.0[0]");
+      ASSERT_NE(TypeOffset, std::string::npos);
+      InvalidText.replace(TypeOffset, std::string("const byte*").size(), "ptrsize");
+
+      DeserializeResult Result = deserialize(Context.IR, InvalidText);
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_FALSE(Result.diagnostics().empty());
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrGlobalAddressWrongType);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrGlobalAddressWrongType>({}, "main").Arguments);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "global byte address in function @main must have type 'const byte*'");
+    }
+
+    // Verifies that immutable global byte storage cannot be presented as a mutable byte pointer to a native read call.
+    TEST(IrDeserializationTest, RejectsMutableAddressOfGlobalByteConstant)
+    {
+      TestContext Context;
+      const std::string InvalidText =
+          "inkir 1\n"
+          "@data = private constant [1 x byte] c\"x\"\n"
+          "declare extern \"C\" i32 @read(i32, byte*, ptrsize) [sideeffect]\n"
+          "define i32 @main() {\n"
+          "entry:\n"
+          "  %0 = call i32 @read(i32 0, byte* @data[0], ptrsize 1)\n"
+          "  ret i32 %0\n"
+          "}\n";
+
+      DeserializeResult Result = deserialize(Context.IR, InvalidText);
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrGlobalAddressWrongType);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrGlobalAddressWrongType>({}, "main").Arguments);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "global byte address in function @main must have type 'const byte*'");
+    }
+
+    // Verifies that a programmatically constructed block without a terminator is rejected and cannot be serialized.
+    TEST(IrVerifierTest, RejectsBlockWithoutTerminator)
+    {
+      TestContext Context;
+      core::CollectingDiagnosticConsumer Consumer;
+      Context.Compilation.diagnosticEngine().addConsumer(Consumer);
+      Module ModuleValue = makeHelloWorldModule(Context.IR);
+      ModuleValue.Functions[1].Blocks[0].Instructions.pop_back();
+
+      const VerificationResult Result = verify(Context.IR, ModuleValue);
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Consumer.diagnostics(), Result.diagnostics());
+      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrBlockMissingTerminator);
+      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrBlockMissingTerminator>({}, "main", "entry").Arguments);
+      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
+      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "basic block entry in function @main does not end with a terminator");
+      const SerializeResult Serialized = serialize(Context.IR, ModuleValue);
+      EXPECT_FALSE(Serialized.succeeded());
+      EXPECT_FALSE(Serialized.text().has_value());
+      EXPECT_EQ(Serialized.diagnostics(), Result.diagnostics());
     }
   } // namespace
 } // namespace ink::ir

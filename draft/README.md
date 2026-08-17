@@ -2,7 +2,7 @@
 
 Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存；只有全部议题完成并经过一致性检查后，才合并生成 `language-draft.md`。
 
-基础语言前端、模块规则与中间表示分别在 [`tokenizer/README.md`](./tokenizer/README.md)、[`parser/README.md`](./parser/README.md)、[`modules/README.md`](./modules/README.md) 与 [`IR/README.md`](./IR/README.md) 中独立讨论；本表继续保存此前已经确认的语义议题。
+基础语言前端与模块规则在 [`tokenizer/README.md`](./tokenizer/README.md)、[`parser/README.md`](./parser/README.md) 与 [`modules/README.md`](./modules/README.md) 中独立讨论；本表继续保存此前已经确认的语义议题。
 
 ## 议题状态
 
@@ -19,31 +19,31 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 09 | 整数除法与移位 | 已确认 | [`topics/09-integer-division-shifts.md`](./topics/09-integer-division-shifts.md) |
 | 10 | 整数转换与 `cast` | 已确认，议题 34、37 确认异常绑定中的 `as`，其他用途待定 | [`topics/10-integer-conversions-cast.md`](./topics/10-integer-conversions-cast.md) |
 | 11 | 位模式转换与指针转换 | 已确认，议题 31、32、38 补充 | [`topics/11-bitcast-ptrcast.md`](./topics/11-bitcast-ptrcast.md) |
-| 12 | 浮点语义与显式 fast-math | 已确认，2026-08-08 确认目标 `nan_mode` 与 v0 收窄许可 | [`topics/12-floating-point-fast-math.md`](./topics/12-floating-point-fast-math.md) |
-| 13 | 整数与浮点转换 | 已确认，2026-08-08 确认 NaN 转换遵守目标 `nan_mode` | [`topics/13-integer-floating-conversions.md`](./topics/13-integer-floating-conversions.md) |
+| 12 | 浮点语义与显式 fast-math | 已确认，细分规则待定 | [`topics/12-floating-point-fast-math.md`](./topics/12-floating-point-fast-math.md) |
+| 13 | 整数与浮点转换 | 已确认 | [`topics/13-integer-floating-conversions.md`](./topics/13-integer-floating-conversions.md) |
 | 14 | 浮点运行环境与 subnormal | 已确认 | [`topics/14-floating-environment-subnormal.md`](./topics/14-floating-environment-subnormal.md) |
 | 15 | fast-math 与有限值契约 | 已确认函数声明作用域；用户定义数值类型目标待定 | [`topics/15-fast-math-finite-contract.md`](./topics/15-fast-math-finite-contract.md) |
 | 16 | 内建属性与函数装饰器 | 已确认，decorator 是编译期实例化的强类型签名保持包装模板，可跳过或重复调用 continuation；声明不接受 meta-decorator；Parser 议题 15、29、31、33、36、37 补充 | [`topics/16-attributes-function-decorators.md`](./topics/16-attributes-function-decorators.md) |
-| 17 | 模块版本、强类型注册记录与热更新 | 已确认，不提供用户模块加载或卸载钩子；2026-08-08 确认 v0 只允许 ABI/布局不变的代码热更新 | [`topics/17-module-lifecycle-decorator-registration.md`](./topics/17-module-lifecycle-decorator-registration.md) |
+| 17 | 模块版本、强类型注册记录与热更新 | 已确认，不提供用户模块加载或卸载钩子；议题 18、22、34、36、42—45、55、58、61 与 Module 议题 03 补充 | [`topics/17-module-lifecycle-decorator-registration.md`](./topics/17-module-lifecycle-decorator-registration.md) |
 | 18 | 模块初始化、注册与清理顺序 | 已确认，不提供用户生命周期钩子排序；议题 34、42 补充；Module 议题 01 确认单文件 module，Module 议题 03 禁止实际依赖环 | [`topics/18-module-lifecycle-hook-order.md`](./topics/18-module-lifecycle-hook-order.md) |
-| 19 | 编译期反射、动态反射与自定义元数据 | 已确认，2026-08-08 确认动态反射句柄固定版本快照 | [`topics/19-reflection-runtime-metadata.md`](./topics/19-reflection-runtime-metadata.md) |
+| 19 | 编译期反射、动态反射与自定义元数据 | 已确认，议题 20—26、28、31—35、37、57、61、63、66 与 Parser 议题 15 补充 | [`topics/19-reflection-runtime-metadata.md`](./topics/19-reflection-runtime-metadata.md) |
 | 20 | 反射访问权限与封装 | 已确认，议题 34、61、66 补充 | [`topics/20-reflection-access-control.md`](./topics/20-reflection-access-control.md) |
-| 21 | 动态反射值传递与调用 ABI | 已确认，2026-08-08 确认动态值与描述符固定版本快照；精确物理布局保持运行时私有 | [`topics/21-dynamic-reflection-value-abi.md`](./topics/21-dynamic-reflection-value-abi.md) |
+| 21 | 动态反射值传递与调用 ABI | 已确认，议题 22、23、25、28、34、38、57、65 补充，精确二进制布局待定 | [`topics/21-dynamic-reflection-value-abi.md`](./topics/21-dynamic-reflection-value-abi.md) |
 | 22 | 基于名称的动态反射身份 | 已确认，议题 23、31、35、37 补充；Module 议题 01、02 确认 package/module 路径身份 | [`topics/22-name-based-reflection-identity.md`](./topics/22-name-based-reflection-identity.md) |
 | 23 | 反射成员唯一性与继承覆盖 | 已确认，议题 24、25、28—30 补充 | [`topics/23-reflection-member-inheritance.md`](./topics/23-reflection-member-inheritance.md) |
 | 24 | `class`、单继承与多接口 | 已确认，支持 `static`、只读接收者、`final`、统一继承类型列表、显式字段、嵌套类型、成员区域、class 类型表达式和 C++ 风格构造初始化列表；议题 25—31、35、54—58 与 Parser 议题 10、31—33、38、40 补充 | [`topics/24-class-inheritance-interfaces.md`](./topics/24-class-inheritance-interfaces.md) |
-| 25 | 虚函数与动态反射调用 | 已确认，函数级 `final` 封闭虚槽；2026-08-08 确认 v0 同步覆盖结果类型必须准确一致 | [`topics/25-virtual-functions-reflection.md`](./topics/25-virtual-functions-reflection.md) |
+| 25 | 虚函数与动态反射调用 | 已确认，函数级 `final` 封闭虚槽；议题 26、28、34、55、57、58、60、65 与 Parser 议题 31 补充 | [`topics/25-virtual-functions-reflection.md`](./topics/25-virtual-functions-reflection.md) |
 | 26 | vptr、vtable 与接口胖引用 ABI | 已确认，议题 24、27—31、35、55、56 补充 | [`topics/26-vtable-interface-abi.md`](./topics/26-vtable-interface-abi.md) |
-| 27 | 自动动态销毁与存储释放分离 | 已确认，2026-08-08 确认 v0 普通布局兼容对象经 stable destroy slot 使用当前实现；拥有型多态容器 API 待定 | [`topics/27-dynamic-destruction.md`](./topics/27-dynamic-destruction.md) |
+| 27 | 自动动态销毁与存储释放分离 | 已确认，议题 34、36、43 补充，拥有型多态容器 API 待定 | [`topics/27-dynamic-destruction.md`](./topics/27-dynamic-destruction.md) |
 | 28 | 接口动态反射 | 已确认，议题 29—31、34、56、57 补充 | [`topics/28-interface-reflection.md`](./topics/28-interface-reflection.md) |
 | 29 | 接口默认方法与冲突消解 | 已确认，议题 30、56、65 补充 | [`topics/29-interface-default-methods.md`](./topics/29-interface-default-methods.md) |
-| 30 | 接口继承、重新抽象与接口转换 | 已确认，支持泛型接口并复用统一泛型参数语法；2026-08-08 确认 v0 同步/异步接口覆盖结果类型必须准确一致 | [`topics/30-interface-inheritance.md`](./topics/30-interface-inheritance.md) |
+| 30 | 接口继承、重新抽象与接口转换 | 已确认，支持泛型接口并复用统一泛型参数语法；议题 31、35、56、60、66 与 Parser 议题 33 补充 | [`topics/30-interface-inheritance.md`](./topics/30-interface-inheritance.md) |
 | 31 | 安全下转型与动态接口转换 | 已确认，议题 32—34 补充 | [`topics/31-safe-dynamic-cast.md`](./topics/31-safe-dynamic-cast.md) |
 | 32 | 枚举、判别联合与通用 niche 优化 | 已确认，统一类型前缀与泛型声明头、无继承子句、枚举分支无尾随逗号；议题 33、34、61 与 Parser 议题 07、23、24、33、34 补充 | [`topics/32-enums-tagged-unions.md`](./topics/32-enums-tagged-unions.md) |
 | 33 | 枚举模式绑定、`if (match ...)`、`while (match ...)` 与 `match (...)` 表达式 | 已确认，议题 69 补充元组位置模式；Parser 议题 23—25 完成访问传播、`match` 与循环条件语法 | [`topics/33-pattern-binding-and-match.md`](./topics/33-pattern-binding-and-match.md) |
 | 34 | 未检查异常、展开与 `[nothrow]` | 已确认，议题 35—48、52、58 与 Parser 议题 27—29 补充 | [`topics/34-unchecked-exceptions-nothrow.md`](./topics/34-unchecked-exceptions-nothrow.md) |
 | 35 | 异常类、异常接口与捕获匹配 | 已确认，议题 36—43 与 Parser 议题 28 补充 | [`topics/35-exception-types-and-matching.md`](./topics/35-exception-types-and-matching.md) |
-| 36 | 异常记录、对象存储与释放 | 已确认，精确物理布局保持 TargetABI/runtime-private，不由 InkIR v0 冻结 | [`topics/36-exception-record-storage.md`](./topics/36-exception-record-storage.md) |
+| 36 | 异常记录、对象存储与释放 | 已确认，议题 37、38、40—43 与 Parser 议题 27 补充，精确运行时 ABI 待定 | [`topics/36-exception-record-storage.md`](./topics/36-exception-record-storage.md) |
 | 37 | catch-all、`ExceptionView` 与重新抛出 | 已确认，议题 38—43 与 Parser 议题 27、28 补充 | [`topics/37-catch-all-exception-view-rethrow.md`](./topics/37-catch-all-exception-view-rethrow.md) |
 | 38 | 只读异常捕获与载荷不可变性 | 已确认，议题 39—43 与 Parser 议题 28 补充 | [`topics/38-readonly-exception-catch.md`](./topics/38-readonly-exception-catch.md) |
 | 39 | 无异常过滤器与单类型捕获 | 已确认，议题 40—43 与 Parser 议题 28 补充 | [`topics/39-no-exception-filters-or-multi-catch.md`](./topics/39-no-exception-filters-or-multi-catch.md) |
@@ -67,7 +67,7 @@ Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存�
 | 57 | 异步动态反射调用返回惰性任务 | 已确认，议题 58、60、61 补充；拥有型动态任务 API 待定 | [`topics/57-async-dynamic-reflection-call.md`](./topics/57-async-dynamic-reflection-call.md) |
 | 58 | 异步函数装饰器包围任务执行体 | 已确认，异步 continuation 可零次或多次进入且不生成模块生命周期代码；议题 24、59 补充；Parser 议题 27、36、37 同步抛出、装饰器声明与全参数转发语法 | [`topics/58-async-decorators-wrap-task-body.md`](./topics/58-async-decorators-wrap-task-body.md) |
 | 59 | Ink v0 不提供任务构造装饰器 | 已确认，创建期自定义行为使用显式同步任务工厂 | [`topics/59-no-task-construction-decorators.md`](./topics/59-no-task-construction-decorators.md) |
-| 60 | 覆盖结果不支持协变 | 已确认，`Task::<T>` 对结果类型不变型；2026-08-08 确认 v0 同步 virtual/interface override 也要求准确结果类型 | [`topics/60-no-covariant-async-results.md`](./topics/60-no-covariant-async-results.md) |
+| 60 | 异步覆盖不支持协变结果 | 已确认，`Task::<T>` 对结果类型不变型 | [`topics/60-no-covariant-async-results.md`](./topics/60-no-covariant-async-results.md) |
 | 61 | `comptime` 泛型、部分求值与编译期执行 | 已确认，议题 62—72 补充泛型、静态声明展开、重载、元组元值与统一函数阶段；Parser 议题 31、32 确认泛型函数声明与统一区域控制 | [`topics/61-comptime-generics-partial-evaluation.md`](./topics/61-comptime-generics-partial-evaluation.md) |
 | 62 | 编译期参数包是普通编译期序列 | 已确认，议题 64、66、68—71 补充绑定、反射、运行时包、元组与重载；Parser 议题 29、31 统一展开与包声明 | [`topics/62-comptime-parameter-packs.md`](./topics/62-comptime-parameter-packs.md) |
 | 63 | Ink v0 不提供字符串到代码生成 | 已确认，议题 67 确认只选择或重复静态源码声明且不提供 Identifier splice；Parser 议题 40 定义 class 类型表达式；允许静态候选集条件导入 | [`topics/63-no-string-to-code-generation.md`](./topics/63-no-string-to-code-generation.md) |

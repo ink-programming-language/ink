@@ -2,7 +2,7 @@
 
 > 状态：v0 基础契约已确认
 >
-> 确认日期：2026-08-08
+> 确认日期：2026-08-17
 
 ## 1. 范围与目标
 
@@ -10,15 +10,15 @@ Ink 的 Tokenizer、Parser、完整编译器以及未来其他官方命令行工
 
 “共用”表示同一概念始终使用同一名称和语义，而不是让每个阶段接受所有选项。Tokenizer 和 Parser 不得接受 `--target` 一类无意义参数后静默忽略；完整编译器也不得重新定义 `-`、`--`、诊断格式或退出码。
 
-所有工具必须复用 `ink::cli::Application` 配置 CLI11。Tokenizer、Parser、Core 和其他语言阶段库本身不得依赖 CLI11，也不得复制命令行解析和退出码映射。
+所有工具必须复用 `ink::cli::Application` 完成参数解析。Tokenizer、Parser、Core 和其他语言阶段库本身不得依赖命令行解析实现，也不得复制参数解析和退出码映射。
 
 本文件同时记录已经实现的 v0 基础契约和为完整驱动预先确定的扩展规则。尚未实现的选项必须被拒绝，不能先提供不生效的空壳参数。
 
-### 解析库选择
+### 解析实现
 
-v0 选用 CLI11 2.7.2，并通过 git submodule 固定到提交 `cbd58a3696887b34c70949aef21a71735a0c2ad5`。它是无额外运行时依赖的 header-only C++ 库，提供 CMake target、跨平台 option/operand 解析、帮助与校验，以及 Windows UTF-8 argv 重建，适合 Ink 的 C++17、CMake 和 Windows/Linux 构建环境。
+v0 使用仓库自有的 `ink::cli::Application` 实现 option、operand、帮助、校验和退出码映射。解析与定义错误均通过 `ParseResult` 显式返回，不使用 C++ 异常，也不依赖以异常作为解析协议的第三方命令行库。
 
-CLI11 只负责底层参数解析，不直接定义 Ink 的公共界面。`ink::cli` 负责固定严格拼写、重复策略、UTF-8、标准流和退出码；语言阶段库不链接 CLI11。这样既保留成熟解析器的能力，也避免让第三方默认行为成为 Ink 的兼容性契约。
+`ink::cli` 统一固定严格拼写、重复策略、UTF-8、标准流和退出码。Windows 入口通过 Win32 宽字符命令行重建 UTF-8 argv，POSIX 入口校验传入 argv；语言阶段库只接收解析后的值，不链接 CLI 实现。这样可以让公共命令行契约独立于第三方默认行为，并保证所有自有目标在关闭 C++ 异常后仍使用同一套解析路径。
 
 ## 2. 工具与编译阶段
 
@@ -44,7 +44,7 @@ ink --emit=exe source.ink
 
 只有 `build`、`run`、`test`、`fmt`、`doc`、`package` 和 `lsp` 一类独立工作流才可以在未来成为单独命令或子命令；它们不改变本规范的公共参数规则。
 
-v0 的 `ink::cli::Application` 只承载一个叶命令；Tokenizer、Parser 和完整编译驱动都属于叶命令。未来若引入带子命令的工作流，必须先让共享解析层按活动子命令解析 option 上下文并补齐一致性测试，不能直接依赖 CLI11 的另一组默认行为。
+v0 的 `ink::cli::Application` 只承载一个叶命令；Tokenizer、Parser 和完整编译驱动都属于叶命令。未来若引入带子命令的工作流，必须先让共享解析层按活动子命令解析 option 上下文并补齐一致性测试，不能由单个工具自行引入另一套默认行为。
 
 独立阶段工具和完整驱动必须调用同一份阶段 option 注册代码，不能维护近似但不同的别名、默认值或验证逻辑。
 
@@ -53,9 +53,9 @@ v0 的 `ink::cli::Application` 只承载一个叶命令；Tokenizer、Parser 和
 参数采用平台无关的 GNU 风格：
 
 - 长选项使用小写 ASCII kebab-case，例如 `--diagnostic-format`。
-- 短选项名恰好是一个 ASCII 字母或数字；不接受 `-long-name` 一类多字符短选项。
+- 常规短选项名恰好是一个 ASCII 字母或数字。为兼容已经公开的工具界面，共享层也允许显式注册 `-oir` 一类小写 ASCII 多字符单横线名称；它们必须完整匹配，不能作为前缀缩写，新增公共选项仍优先使用 `--long-name`。
 - 选项名和枚举值区分大小写，不把下划线视为连字符，也不接受前缀缩写。
-- `/option` 不作为选项拼写；若当前位置允许 operand，它按普通路径处理。`-long-option` 不作为长选项别名匹配；如果首个已注册短选项需要值，它仍可按短选项附加值语法解释，例如注册 `-o` 后，`-output` 等价于 `-o utput`。
+- `/option` 不作为选项拼写；若当前位置允许 operand，它按普通路径处理。`-long-option` 只有在作为完整单横线名称显式注册时才直接匹配；否则，如果首个已注册短选项需要值，它仍可按短选项附加值语法解释，例如只注册 `-o` 时，`-output` 等价于 `-o utput`。
 - 长选项值同时接受 `--name=value` 和 `--name value`；文档使用 `--name=value` 作为规范拼写。
 - option 值不能为空；`--name=` 是调用错误，不能继续从下一 token 补值。
 - 非 positional option 必须是无值 flag，或每次出现恰好接收一个非空 argv 值；v0 不使用可选值、单次多值、分隔符拆值或隐式追加值，列表必须通过重复 `Append` option 累积。
@@ -92,9 +92,9 @@ v0 的 `ink::cli::Application` 只承载一个叶命令；Tokenizer、Parser 和
 - `Append`：列表项按展开后的参数顺序累加，例如未来的 `-I`、`-L` 和多种 `--emit`。
 - `LastWins`：只用于明确具有顺序覆盖语义的单一带值 option，例如优化级别；最后一个匹配项生效。
 
-默认策略是 `Single`；正式实现需要非默认策略时必须调用 `ink::cli::setRepeatPolicy` 选择 `Append` 或 `LastWins`。共享层只接受这三种最终语义，并拒绝 CLI11 的 `TakeFirst`、`Join`、`Sum` 和 `Reverse` 等额外策略，避免第三方细节进入 Ink 契约。
+默认策略是 `Single`；正式实现需要非默认策略时必须调用 `Option::repeatPolicy` 选择 `Append` 或 `LastWins`。共享层只接受这三种最终语义，其他枚举值属于无效命令行定义并显式返回 internal error。
 
-`-o a --output=b` 是同一个 `Single` option 的重复。直接参数和响应文件展开后的参数属于同一个序列，应用相同规则。工具不得依赖 CLI11 对某个 C++ 绑定类型的偶然默认策略。
+`-o a --output=b` 是同一个 `Single` option 的重复。直接参数和响应文件展开后的参数属于同一个序列，应用相同规则。工具不得根据某个 C++ 绑定类型暗中改变重复策略。
 
 真正互斥的模式优先设计成一个枚举选项。若必须提供 `--foo` 和 `--no-foo`，两者同时出现属于冲突，不能产生两个互不相干的状态。
 
@@ -203,7 +203,7 @@ stderr  源码诊断、CLI 错误、I/O 错误和显式开启的进度信息
 - `auto` 只在 stderr 是可着色终端且 `NO_COLOR` 未设置时启用颜色。
 - 显式 `--color` 优先于 `NO_COLOR`，`NO_COLOR` 优先于自动检测。
 
-源码、module、运行时和后端的可恢复诊断必须沿既有公共流水线输出：
+诊断必须沿既有公共流水线输出：
 
 ```text
 producer
@@ -212,20 +212,20 @@ producer
 → terminal / short / JSON Consumer
 ```
 
-CLI 层不得重新分配 `INK-T/P/S/D/R/B` 编号、复制消息模板或让不同工具为同一诊断生成不同语义。工具只把结构化诊断交给公共 Consumer，不得自行拼接路径、severity、诊断码、范围或 note；主输出格式和 `--diagnostic-format` 是正交概念，token/CST JSON 不能与诊断 JSON 混为一个开关。
+CLI 层不得重新分配 `INK-T/P/S` 编号、复制消息模板或让不同工具为同一诊断生成不同语义。主输出格式和 `--diagnostic-format` 是正交概念；token/CST JSON 不能与诊断 JSON 混为一个开关。
 
 JSON schema 正式发布前必须标记版本；发布后删除字段或改变字段语义需要提升 schema version。
 
 ## 11. 调用错误
 
-CLI11 解析错误使用统一 driver 文本，不伪造源码诊断码：
+共享命令行解析层使用统一 driver 文本报告解析错误，不伪造源码诊断码：
 
 ```text
 ink-tokenize: error: unknown option '--foo'
 Try 'ink-tokenize --help' for more information.
 ```
 
-响应文件错误和未进入公共 Diagnostic registry 的 I/O 错误沿用相同的 `<program>: error: <message>` 首行，但不附加帮助提示。它们必须通过公共 driver diagnostic Consumer 输出，工具不得直接写 stderr 或伪造源码诊断码。所有调用错误只写 stderr，并返回 `2`；默认不附带整份帮助，以免淹没真正错误。
+响应文件错误和未进入公共 Diagnostic registry 的 I/O 错误沿用相同的 `<program>: error: <message>` 首行，但不附加帮助提示。所有调用错误只写 stderr，并返回 `2`；默认不附带整份帮助，以免淹没真正错误。
 
 ## 12. 响应文件
 
@@ -245,15 +245,15 @@ ink @compile.rsp
 - 允许嵌套，但最大深度为 16；包含环、缺失文件、非法 UTF-8、NUL 或超限均返回 `2`。
 - 展开在 `--` 和 option 解析前完成，展开后再执行重复、冲突、arity 和未知选项检查。
 
-响应文件展开器落地前，工具不得把 CLI11 config file 或另一种 quoting 规则作为临时公共协议。
+响应文件展开器落地前，工具不得把第三方 config file 或另一种 quoting 规则作为临时公共协议。
 
 ## 13. 配置文件与环境变量
 
-v0 不提供通用 CLI 配置文件，也不自动扫描用户目录或当前目录。Package manifest 是显式项目输入，不是 CLI11 config file。
+v0 不提供通用 CLI 配置文件，也不自动扫描用户目录或当前目录。Package manifest 是显式项目输入，不是命令行解析器的隐式 config file。
 
 不提供 `INKFLAGS` 一类把自由文本隐式注入命令行的环境变量。影响 target、语言版本、条件 import、诊断策略或代码生成的参数必须显式来自 CLI 或 manifest，并进入构建缓存键。
 
-当前唯一采用的展示环境约定是 `NO_COLOR`。未来若增加显式 `--config=PATH`，格式、版本、列表清空和优先级必须先单独规范，不能直接暴露 CLI11 的内部配置格式。
+当前唯一采用的展示环境约定是 `NO_COLOR`。未来若增加显式 `--config=PATH`，格式、版本、列表清空和优先级必须先单独规范，不能直接暴露某个解析实现的内部配置格式。
 
 ## 14. 退出状态
 
@@ -264,14 +264,12 @@ v0 不提供通用 CLI 配置文件，也不自动扫描用户目录或当前目
 | `0` | 成功；也用于成功的 help 和 version |
 | `1` | 调用有效，但源码、语法、module、语义或代码生成诊断使请求失败 |
 | `2` | CLI、响应文件、显式输入输出 I/O、manifest 定位或工具链启动错误 |
-| `3` | 已捕获的 Internal Compiler Error 或不变量破坏 |
+| `3` | 已报告的 Internal Compiler Error、无效内部定义或不变量破坏 |
 | `4`—`125` | 保留，v0 不主动返回 |
 
 多个失败同时发生时优先级为 `3 > 2 > 1`。warning 默认不改变退出码；warning-as-error 策略产生有效 error 时返回 `1`。外部 linker 等子进程的任意状态不得直接成为 Ink 的公共退出码；原始状态进入诊断，进程状态映射到本表。
 
-`ink::cli::Application` 把用户参数错误返回为 `ParseResult`；非法 option 定义、禁用的 CLI11 配置源或其他注册不变量会抛出异常。编译器阶段发现已验证结构不可能出现的状态、verifier 之后的非法 IR 或成功结果缺失必需载荷时，必须调用统一的 `internalCompilerError` 机制。所有官方入口只允许最外层 `runMain` 边界格式化 internal error 并返回 `3`，内部代码不得手写 internal-error 文本后直接返回状态。
-
-外部 linker 返回非零、文件不可读或平台能力不受支持并不自动构成 ICE；能够归因于用户输入或环境的失败必须保留为诊断或调用错误，只有编译器内部不变量确实破坏时才使用退出码 `3`。
+`ink::cli::Application` 把用户参数错误和内部 option 定义错误都返回为 `ParseResult`：前者使用 `InvocationError` 和退出码 `2`，后者使用 `InternalError` 和退出码 `3`。所有官方入口显式传播该结果；不得抛出或捕获 C++ 异常，也不得调用以异常表示预期解析失败的接口。
 
 被信号或外部强制终止时保留平台原生状态，不伪装成 `1`。
 
@@ -300,7 +298,7 @@ human 帮助排列和诊断自然语言措辞不是机器接口。实验能力�
 - `--` 和 UTF-8 argv；
 - UTF-8 到原生文件系统路径转换；
 - CLI 错误格式和 `0/1/2/3` 退出码；
-- 顶层未预期 C++ 异常的统一 internal-error 报告和退出码 `3`；
+- 无效内部命令行定义的显式 internal-error 报告和退出码 `3`；
 - 单源码工具省略输入或使用 `-` 时读取 binary stdin。
 
 以下能力只有在对应 Consumer 或 driver 真正实现后才可以暴露：
@@ -317,4 +315,4 @@ human 帮助排列和诊断自然语言措辞不是机器接口。实验能力�
 - [POSIX Utility Syntax Guidelines](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html) 提供 `--`、`-` 和 operand 的基础约定。
 - [Clang Command Guide](https://clang.llvm.org/docs/CommandGuide/clang.html) 与 [GCC Overall Options](https://gcc.gnu.org/onlinedocs/gcc/Overall-Options.html) 展示编译阶段由 driver option 选择而不是拆成子命令的惯例。
 - [rustc command-line arguments](https://doc.rust-lang.org/rustc/command-line-arguments.html) 提供 `--emit`、输出、诊断格式和逐行 UTF-8 响应文件的成熟参考。
-- [CLI11](https://github.com/CLIUtils/CLI11) 负责 option 解析、帮助生成和 Windows UTF-8 argv 重建；Ink 的共享层在其上固定更严格的拼写、重复和退出码契约。
+- Windows 使用系统宽字符命令行作为 Unicode 来源；共享层负责 UTF-8 转换、参数解析、帮助生成和退出码契约。

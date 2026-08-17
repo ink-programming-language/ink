@@ -1,5 +1,4 @@
 #include "ink/tokenizer/tokenizer.h"
-#include "tokenizer_test_support.h"
 
 #include "utf8_test_support.h"
 
@@ -24,9 +23,9 @@ namespace ink::tokenizer
 
     struct RelatedCharacterExpectation
     {
-      DiagnosticRelatedKind Kind;
-      SourceRange Span;
-      char32_t Character;
+        DiagnosticRelatedKind Kind;
+        SourceRange Span;
+        char32_t Character;
     };
 
     template <typename ValueType>
@@ -44,7 +43,7 @@ namespace ink::tokenizer
 
     void expectInvisibleDiagnostic(const Diagnostic &DiagnosticEntry, SourceRange Span, char32_t Character, DiagnosticSourceContext Context, const std::vector<RelatedCharacterExpectation> &ExpectedRelated)
     {
-      EXPECT_EQ(DiagnosticEntry.Kind, DiagnosticKind::InvisibleCharacter);
+      EXPECT_EQ(DiagnosticEntry.Kind, DiagnosticKind::InvisibleCharacterInContext);
       EXPECT_EQ(DiagnosticEntry.Span, Span);
       ASSERT_EQ(DiagnosticEntry.Arguments.size(), 2U);
       const char32_t *ActualCharacter = findArgumentValue<char32_t>(DiagnosticEntry.Arguments, DiagnosticArgumentName::Character);
@@ -147,7 +146,7 @@ namespace ink::tokenizer
       for (const std::string &IdentifierText : Identifiers)
       {
         SCOPED_TRACE(IdentifierText);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, IdentifierText);
+        const TokenizedBuffer Buffer = tokenize(IdentifierText);
         ASSERT_TRUE(Buffer.succeeded());
         ASSERT_EQ(Buffer.tokens().size(), 2U);
         EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::Identifier);
@@ -167,7 +166,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Accepted)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+        const TokenizedBuffer Buffer = tokenize(Source);
         ASSERT_TRUE(Buffer.succeeded());
         ASSERT_EQ(Buffer.tokens().size(), 2U);
         EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::Identifier);
@@ -186,7 +185,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Rejected)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+        const TokenizedBuffer Buffer = tokenize(Source);
         ASSERT_FALSE(Buffer.succeeded());
         ASSERT_EQ(Buffer.tokens().size(), 2U);
         EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::InvalidCharacter);
@@ -206,8 +205,8 @@ namespace ink::tokenizer
     {
       struct ContinueCase
       {
-        const char *Name;
-        std::string Scalar;
+          const char *Name;
+          std::string Scalar;
       };
       const std::vector<ContinueCase> Cases = {
           {"middle dot", utf8(u8"\u00B7")},
@@ -219,7 +218,7 @@ namespace ink::tokenizer
       {
         SCOPED_TRACE(TestCase.Name);
         const std::string ContinuedSource = "q" + TestCase.Scalar + "z";
-        const TokenizedBuffer Continued = tokenize(TestSourceFileId, ContinuedSource);
+        const TokenizedBuffer Continued = tokenize(ContinuedSource);
         ASSERT_TRUE(Continued.succeeded());
         ASSERT_EQ(Continued.tokens().size(), 2U);
         EXPECT_EQ(Continued.tokens()[0].Kind, TokenKind::Identifier);
@@ -230,7 +229,7 @@ namespace ink::tokenizer
         expectFullFidelity(Continued);
 
         const std::string InitialSource = TestCase.Scalar + "q";
-        const TokenizedBuffer Initial = tokenize(TestSourceFileId, InitialSource);
+        const TokenizedBuffer Initial = tokenize(InitialSource);
         ASSERT_FALSE(Initial.succeeded());
         ASSERT_EQ(Initial.tokens().size(), 3U);
         EXPECT_EQ(Initial.tokens()[0].Kind, TokenKind::InvalidCharacter);
@@ -252,7 +251,7 @@ namespace ink::tokenizer
     // Tests that an underscore followed by digits is an identifier rather than a number.
     TEST(IdentifiersTest, LeadingUnderscoreFollowedByDigitsRemainsAnIdentifier)
     {
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "_100");
+      const TokenizedBuffer Buffer = tokenize("_100");
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -264,7 +263,7 @@ namespace ink::tokenizer
     // Tests rejection of a digit-led identifier candidate as an invalid numeric token.
     TEST(IdentifiersTest, AsciiDigitCannotStartAnIdentifierAndTheNumericCandidateIsRejected)
     {
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "2value");
+      const TokenizedBuffer Buffer = tokenize("2value");
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -278,7 +277,7 @@ namespace ink::tokenizer
     // Tests that a valid symbol cleanly terminates an identifier.
     TEST(IdentifiersTest, ValidSymbolEndsAnIdentifierWithoutProducingALexicalError)
     {
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "hello-world");
+      const TokenizedBuffer Buffer = tokenize("hello-world");
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 4U);
@@ -294,7 +293,7 @@ namespace ink::tokenizer
     // Tests recovery around an invalid identifier-continuation character.
     TEST(IdentifiersTest, InvalidContinuationCharacterIsDiagnosedAndRecoveryKeepsBothIdentifiers)
     {
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "user$name");
+      const TokenizedBuffer Buffer = tokenize("user$name");
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 4U);
@@ -312,7 +311,7 @@ namespace ink::tokenizer
     TEST(IdentifiersTest, CombiningMarkCannotStartAnIdentifier)
     {
       const std::string Source = utf8(u8"\u0301name");
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 3U);
@@ -327,7 +326,7 @@ namespace ink::tokenizer
     TEST(IdentifiersTest, EmojiCannotStartAnIdentifierAndDoesNotConsumeFollowingIdentifier)
     {
       const std::string Source = utf8(u8"\U0001F600value");
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 3U);
@@ -342,7 +341,7 @@ namespace ink::tokenizer
     TEST(IdentifiersTest, NfcIdentifierIsAcceptedWithoutChangingItsRawSpelling)
     {
       const std::string Source = utf8(u8"caf\u00E9");
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -355,7 +354,7 @@ namespace ink::tokenizer
     TEST(IdentifiersTest, CanonicallyEquivalentButNonNfcIdentifierIsRejectedAsOneCandidate)
     {
       const std::string Source = utf8(u8"cafe\u0301");
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -369,7 +368,7 @@ namespace ink::tokenizer
     TEST(IdentifiersTest, NfcValidationCoversCanonicalOrderingAndHangulComposition)
     {
       const std::string CanonicallyOrdered = utf8(u8"q\u0327\u0301");
-      const TokenizedBuffer Ordered = tokenize(TestSourceFileId, CanonicallyOrdered);
+      const TokenizedBuffer Ordered = tokenize(CanonicallyOrdered);
       ASSERT_TRUE(Ordered.succeeded());
       ASSERT_EQ(Ordered.tokens().size(), 2U);
       EXPECT_EQ(Ordered.tokens()[0].Kind, TokenKind::Identifier);
@@ -380,7 +379,7 @@ namespace ink::tokenizer
       expectFullFidelity(Ordered);
 
       const std::string OutOfCanonicalOrder = utf8(u8"q\u0301\u0327");
-      const TokenizedBuffer Reordered = tokenize(TestSourceFileId, OutOfCanonicalOrder);
+      const TokenizedBuffer Reordered = tokenize(OutOfCanonicalOrder);
       ASSERT_FALSE(Reordered.succeeded());
       ASSERT_EQ(Reordered.tokens().size(), 2U);
       EXPECT_EQ(Reordered.tokens()[0].Kind, TokenKind::InvalidIdentifier);
@@ -394,7 +393,7 @@ namespace ink::tokenizer
       expectFullFidelity(Reordered);
 
       const std::string ComposedHangul = utf8(u8"\uAC00");
-      const TokenizedBuffer Composed = tokenize(TestSourceFileId, ComposedHangul);
+      const TokenizedBuffer Composed = tokenize(ComposedHangul);
       ASSERT_TRUE(Composed.succeeded());
       ASSERT_EQ(Composed.tokens().size(), 2U);
       EXPECT_EQ(Composed.tokens()[0].Kind, TokenKind::Identifier);
@@ -405,7 +404,7 @@ namespace ink::tokenizer
       expectFullFidelity(Composed);
 
       const std::string DecomposedHangul = utf8(u8"\u1100\u1161");
-      const TokenizedBuffer Decomposed = tokenize(TestSourceFileId, DecomposedHangul);
+      const TokenizedBuffer Decomposed = tokenize(DecomposedHangul);
       ASSERT_FALSE(Decomposed.succeeded());
       ASSERT_EQ(Decomposed.tokens().size(), 2U);
       EXPECT_EQ(Decomposed.tokens()[0].Kind, TokenKind::InvalidIdentifier);
@@ -423,7 +422,7 @@ namespace ink::tokenizer
     TEST(IdentifiersTest, IdentifierComparisonAndKeywordLookupAreCaseSensitive)
     {
       const std::string Source = "value Value VALUE func Func function functional";
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 14U);
@@ -443,12 +442,12 @@ namespace ink::tokenizer
     {
       struct InvisibleCase
       {
-        const char *Name;
-        std::string Source;
-        std::string Invisible;
-        char32_t ExpectedCharacter;
-        DiagnosticSourceContext ExpectedContext;
-        TokenKind ExpectedErrorKind;
+          const char *Name;
+          std::string Source;
+          std::string Invisible;
+          char32_t ExpectedCharacter;
+          DiagnosticSourceContext ExpectedContext;
+          TokenKind ExpectedErrorKind;
       };
       const std::vector<InvisibleCase> Cases = {
           {"zero width non joiner", utf8(u8"a\u200Cb"), utf8(u8"\u200C"), U'\u200C', DiagnosticSourceContext::Identifier, TokenKind::InvalidIdentifier},
@@ -461,10 +460,10 @@ namespace ink::tokenizer
       for (const InvisibleCase &TestCase : Cases)
       {
         SCOPED_TRACE(TestCase.Name);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, TestCase.Source);
+        const TokenizedBuffer Buffer = tokenize(TestCase.Source);
         ASSERT_FALSE(Buffer.succeeded());
         EXPECT_TRUE(hasTokenKind(Buffer, TestCase.ExpectedErrorKind));
-        ASSERT_TRUE(hasDiagnosticKind(Buffer, DiagnosticKind::InvisibleCharacter));
+        ASSERT_TRUE(hasDiagnosticKind(Buffer, DiagnosticKind::InvisibleCharacterInContext));
         const std::size_t ExpectedStart = TestCase.Source.find(TestCase.Invisible);
         ASSERT_NE(ExpectedStart, std::string::npos);
         ASSERT_EQ(Buffer.diagnostics().size(), 1U);
@@ -477,16 +476,16 @@ namespace ink::tokenizer
       }
 
       const std::string StandaloneSource = utf8(u8"\u00AD");
-      const TokenizedBuffer Standalone = tokenize(TestSourceFileId, StandaloneSource);
+      const TokenizedBuffer Standalone = tokenize(StandaloneSource);
       ASSERT_FALSE(Standalone.succeeded());
       ASSERT_EQ(Standalone.diagnostics().size(), 1U);
       expectInvisibleDiagnostic(Standalone.diagnostics().front(), {0, StandaloneSource.size()}, U'\u00AD', DiagnosticSourceContext::SourceText, {});
       expectFullFidelity(Standalone);
 
-      const TokenizedBuffer AfterSpace = tokenize(TestSourceFileId, utf8(u8" \u00ADa"));
+      const TokenizedBuffer AfterSpace = tokenize(utf8(u8" \u00ADa"));
       ASSERT_FALSE(AfterSpace.succeeded());
       ASSERT_EQ(AfterSpace.diagnostics().size(), 1U);
-      EXPECT_EQ(AfterSpace.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacter);
+      EXPECT_EQ(AfterSpace.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
       EXPECT_EQ(AfterSpace.diagnostics()[0].Span.Start, 1U);
       EXPECT_EQ(AfterSpace.diagnostics()[0].Span.End, 3U);
       const std::vector<RelatedCharacterExpectation> AfterSpaceRelated = {
@@ -495,12 +494,12 @@ namespace ink::tokenizer
       expectInvisibleDiagnostic(AfterSpace.diagnostics()[0], {1, 3}, U'\u00AD', DiagnosticSourceContext::SourceText, AfterSpaceRelated);
       expectFullFidelity(AfterSpace);
 
-      const TokenizedBuffer Trailing = tokenize(TestSourceFileId, utf8(u8"a\u200C"));
+      const TokenizedBuffer Trailing = tokenize(utf8(u8"a\u200C"));
       ASSERT_FALSE(Trailing.succeeded());
       ASSERT_EQ(Trailing.tokens().size(), 2U);
       EXPECT_EQ(Trailing.tokens()[0].Kind, TokenKind::InvalidIdentifier);
       ASSERT_EQ(Trailing.diagnostics().size(), 1U);
-      EXPECT_EQ(Trailing.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacter);
+      EXPECT_EQ(Trailing.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
       EXPECT_EQ(Trailing.diagnostics()[0].Span.Start, 1U);
       EXPECT_EQ(Trailing.diagnostics()[0].Span.End, 4U);
       const std::vector<RelatedCharacterExpectation> TrailingRelated = {
@@ -509,15 +508,15 @@ namespace ink::tokenizer
       expectInvisibleDiagnostic(Trailing.diagnostics()[0], {1, 4}, U'\u200C', DiagnosticSourceContext::Identifier, TrailingRelated);
       expectFullFidelity(Trailing);
 
-      const TokenizedBuffer Consecutive = tokenize(TestSourceFileId, utf8(u8"a\u200C\u200Db"));
+      const TokenizedBuffer Consecutive = tokenize(utf8(u8"a\u200C\u200Db"));
       ASSERT_FALSE(Consecutive.succeeded());
       ASSERT_EQ(Consecutive.tokens().size(), 2U);
       EXPECT_EQ(Consecutive.tokens()[0].Kind, TokenKind::InvalidIdentifier);
       ASSERT_EQ(Consecutive.diagnostics().size(), 2U);
-      EXPECT_EQ(Consecutive.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacter);
+      EXPECT_EQ(Consecutive.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
       EXPECT_EQ(Consecutive.diagnostics()[0].Span.Start, 1U);
       EXPECT_EQ(Consecutive.diagnostics()[0].Span.End, 4U);
-      EXPECT_EQ(Consecutive.diagnostics()[1].Kind, DiagnosticKind::InvisibleCharacter);
+      EXPECT_EQ(Consecutive.diagnostics()[1].Kind, DiagnosticKind::InvisibleCharacterInContext);
       EXPECT_EQ(Consecutive.diagnostics()[1].Span.Start, 4U);
       EXPECT_EQ(Consecutive.diagnostics()[1].Span.End, 7U);
       const std::vector<RelatedCharacterExpectation> ConsecutiveRelated = {
@@ -534,12 +533,12 @@ namespace ink::tokenizer
     {
       struct InvisibleXidCase
       {
-        const char *Name;
-        std::string Source;
-        std::string Invisible;
-        char32_t ExpectedCharacter;
-        char32_t PreviousCharacter;
-        char32_t NextCharacter;
+          const char *Name;
+          std::string Source;
+          std::string Invisible;
+          char32_t ExpectedCharacter;
+          char32_t PreviousCharacter;
+          char32_t NextCharacter;
       };
       const std::vector<InvisibleXidCase> Cases = {
           {"Hangul choseong filler", utf8(u8"\u115Fa"), utf8(u8"\u115F"), U'\u115F', U'\0', U'a'},
@@ -550,7 +549,7 @@ namespace ink::tokenizer
       for (const InvisibleXidCase &TestCase : Cases)
       {
         SCOPED_TRACE(TestCase.Name);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, TestCase.Source);
+        const TokenizedBuffer Buffer = tokenize(TestCase.Source);
         ASSERT_FALSE(Buffer.succeeded());
         ASSERT_EQ(Buffer.tokens().size(), 2U);
         EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::InvalidIdentifier);
@@ -560,7 +559,7 @@ namespace ink::tokenizer
         const std::size_t InvisibleStart = TestCase.Source.find(TestCase.Invisible);
         ASSERT_NE(InvisibleStart, std::string::npos);
         ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacter);
+        EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
         EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, InvisibleStart);
         EXPECT_EQ(Buffer.diagnostics()[0].Span.End, InvisibleStart + TestCase.Invisible.size());
         std::vector<RelatedCharacterExpectation> ExpectedRelated;
@@ -583,7 +582,7 @@ namespace ink::tokenizer
     {
       const std::string Isolate = utf8(u8"\u2066");
       const std::string Source = "a" + Isolate + "b";
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 4U);
@@ -600,7 +599,7 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.tokens()[2].Span.End, Source.size());
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[2]), "b");
       ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-      EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacter);
+      EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
       EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 1U);
       EXPECT_EQ(Buffer.diagnostics()[0].Span.End, 1U + Isolate.size());
       const std::vector<RelatedCharacterExpectation> ExpectedRelated = {
@@ -622,7 +621,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Cases)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+        const TokenizedBuffer Buffer = tokenize(Source);
         ASSERT_TRUE(Buffer.succeeded());
         ASSERT_EQ(Buffer.tokens().size(), 2U);
         EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::Identifier);
@@ -634,7 +633,7 @@ namespace ink::tokenizer
     // Tests that punctuation spellings cannot escape hard-keyword classification.
     TEST(IdentifiersTest, BacktickHashAndAtSignDoNotEscapeHardKeywords)
     {
-      const TokenizedBuffer Backtick = tokenize(TestSourceFileId, "`func`");
+      const TokenizedBuffer Backtick = tokenize("`func`");
       ASSERT_FALSE(Backtick.succeeded());
       ASSERT_EQ(Backtick.tokens().size(), 4U);
       EXPECT_EQ(Backtick.tokens()[0].Kind, TokenKind::InvalidCharacter);
@@ -642,7 +641,7 @@ namespace ink::tokenizer
       EXPECT_EQ(Backtick.tokens()[2].Kind, TokenKind::InvalidCharacter);
       expectFullFidelity(Backtick);
 
-      const TokenizedBuffer Hash = tokenize(TestSourceFileId, "r#func");
+      const TokenizedBuffer Hash = tokenize("r#func");
       ASSERT_FALSE(Hash.succeeded());
       ASSERT_EQ(Hash.tokens().size(), 4U);
       EXPECT_EQ(Hash.tokens()[0].Kind, TokenKind::Identifier);
@@ -650,7 +649,7 @@ namespace ink::tokenizer
       EXPECT_EQ(Hash.tokens()[2].Kind, TokenKind::Keyword);
       expectFullFidelity(Hash);
 
-      const TokenizedBuffer AtSign = tokenize(TestSourceFileId, "@func");
+      const TokenizedBuffer AtSign = tokenize("@func");
       ASSERT_TRUE(AtSign.succeeded());
       ASSERT_EQ(AtSign.tokens().size(), 3U);
       EXPECT_EQ(AtSign.tokens()[0].Kind, TokenKind::Symbol);
@@ -665,7 +664,7 @@ namespace ink::tokenizer
       EXPECT_STREQ(UnicodeVersion, "15.1.0");
 
       const std::string Unicode16OnlyLetter = "\xE1\xB2\x89";
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Unicode16OnlyLetter);
+      const TokenizedBuffer Buffer = tokenize(Unicode16OnlyLetter);
       ASSERT_FALSE(Buffer.succeeded());
       EXPECT_FALSE(hasTokenKind(Buffer, TokenKind::Identifier));
       EXPECT_FALSE(hasDiagnosticKind(Buffer, DiagnosticKind::InvalidUtf8));
@@ -677,7 +676,7 @@ namespace ink::tokenizer
     TEST(IdentifiersTest, MultibyteIdentifierSpanIsMeasuredInUtf8Bytes)
     {
       const std::string Source = utf8(u8"\u7528\u6237ID");
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);

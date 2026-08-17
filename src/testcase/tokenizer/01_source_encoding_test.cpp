@@ -1,5 +1,4 @@
 #include "ink/tokenizer/tokenizer.h"
-#include "tokenizer_test_support.h"
 #include "utf8_test_support.h"
 
 #include <gtest/gtest.h>
@@ -114,7 +113,7 @@ namespace ink::tokenizer
     // Tests that an empty source produces only the mandatory end-of-file token.
     TEST(SourceEncodingTest, EmptyFileHasExactlyOneEofToken)
     {
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "");
+      const TokenizedBuffer Buffer = tokenize("");
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_TRUE(Buffer.diagnostics().empty());
@@ -127,7 +126,7 @@ namespace ink::tokenizer
     TEST(SourceEncodingTest, InitialBomAndMultibyteCharactersUseOriginalByteSpans)
     {
       const std::string Source = utf8(u8"\uFEFF\u7528\u6237\r\n\tname");
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_TRUE(Buffer.diagnostics().empty());
@@ -159,7 +158,7 @@ namespace ink::tokenizer
       std::string Source = "//";
       Source.append(utf8(u8"\u00E9\u4E2D\U0001F600"));
       Source.append(bytes({0xF4, 0x8F, 0xBF, 0xBF}));
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -173,8 +172,8 @@ namespace ink::tokenizer
     {
       struct ValidUtf8BoundaryCase
       {
-        const char *Name;
-        std::string Encoding;
+          const char *Name;
+          std::string Encoding;
       };
       const std::vector<ValidUtf8BoundaryCase> Cases = {
           {"lowest two-byte scalar", bytes({0xC2, 0x80})},
@@ -191,7 +190,7 @@ namespace ink::tokenizer
       {
         SCOPED_TRACE(TestCase.Name);
         const std::string Source = std::string("//") + TestCase.Encoding;
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+        const TokenizedBuffer Buffer = tokenize(Source);
 
         ASSERT_TRUE(Buffer.succeeded());
         ASSERT_TRUE(Buffer.diagnostics().empty());
@@ -216,7 +215,7 @@ namespace ink::tokenizer
         }
         appendUtf8Scalar(Source, Value);
       }
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_TRUE(Buffer.diagnostics().empty());
@@ -247,7 +246,7 @@ namespace ink::tokenizer
       {
         SCOPED_TRACE(Leader);
         const std::string Source = bytes({Leader});
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+        const TokenizedBuffer Buffer = tokenize(Source);
 
         ASSERT_FALSE(Buffer.succeeded());
         ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -268,8 +267,8 @@ namespace ink::tokenizer
     {
       struct InvalidUtf8BoundaryCase
       {
-        const char *Name;
-        std::string Encoding;
+          const char *Name;
+          std::string Encoding;
       };
       const std::vector<InvalidUtf8BoundaryCase> Cases = {
           {"three-byte overlong boundary", bytes({0xE0, 0x9F, 0xBF})},
@@ -281,7 +280,7 @@ namespace ink::tokenizer
       for (const InvalidUtf8BoundaryCase &TestCase : Cases)
       {
         SCOPED_TRACE(TestCase.Name);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, TestCase.Encoding);
+        const TokenizedBuffer Buffer = tokenize(TestCase.Encoding);
 
         ASSERT_FALSE(Buffer.succeeded());
         ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -302,8 +301,8 @@ namespace ink::tokenizer
     {
       struct InvalidUtf8Case
       {
-        const char *Name;
-        std::string Bytes;
+          const char *Name;
+          std::string Bytes;
       };
       const std::vector<InvalidUtf8Case> Cases = {
           {"invalid leading byte", bytes({0x80})},
@@ -321,7 +320,7 @@ namespace ink::tokenizer
       for (const InvalidUtf8Case &TestCase : Cases)
       {
         SCOPED_TRACE(TestCase.Name);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, TestCase.Bytes);
+        const TokenizedBuffer Buffer = tokenize(TestCase.Bytes);
         EXPECT_FALSE(Buffer.succeeded());
         EXPECT_TRUE(hasTokenKind(Buffer, TokenKind::InvalidEncoding));
         EXPECT_TRUE(hasDiagnosticKind(Buffer, DiagnosticKind::InvalidUtf8));
@@ -334,9 +333,9 @@ namespace ink::tokenizer
     {
       struct InvalidUtf8RecoveryCase
       {
-        const char *Name;
-        std::string InvalidPrefix;
-        std::string FollowingIdentifier;
+          const char *Name;
+          std::string InvalidPrefix;
+          std::string FollowingIdentifier;
       };
       const std::vector<InvalidUtf8RecoveryCase> Cases = {
           {"four byte overlong encoding", bytes({0xF0, 0x8F, 0xBF, 0xBF}), "x"},
@@ -348,7 +347,7 @@ namespace ink::tokenizer
       {
         SCOPED_TRACE(TestCase.Name);
         const std::string Source = TestCase.InvalidPrefix + TestCase.FollowingIdentifier;
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+        const TokenizedBuffer Buffer = tokenize(Source);
 
         ASSERT_FALSE(Buffer.succeeded());
         ASSERT_EQ(Buffer.tokens().size(), 3U);
@@ -373,8 +372,8 @@ namespace ink::tokenizer
     {
       struct TruncatedUtf8Case
       {
-        const char *Name;
-        std::string Prefix;
+          const char *Name;
+          std::string Prefix;
       };
       const std::vector<TruncatedUtf8Case> Cases = {
           {"two-byte sequence missing its second byte", bytes({0xC2})},
@@ -388,7 +387,7 @@ namespace ink::tokenizer
       for (const TruncatedUtf8Case &TestCase : Cases)
       {
         SCOPED_TRACE(TestCase.Name);
-        const TokenizedBuffer EofBuffer = tokenize(TestSourceFileId, TestCase.Prefix);
+        const TokenizedBuffer EofBuffer = tokenize(TestCase.Prefix);
 
         ASSERT_FALSE(EofBuffer.succeeded());
         ASSERT_EQ(EofBuffer.tokens().size(), 2U);
@@ -403,7 +402,7 @@ namespace ink::tokenizer
         expectFullFidelity(EofBuffer);
 
         const std::string InterruptedSource = TestCase.Prefix + "x";
-        const TokenizedBuffer InterruptedBuffer = tokenize(TestSourceFileId, InterruptedSource);
+        const TokenizedBuffer InterruptedBuffer = tokenize(InterruptedSource);
 
         ASSERT_FALSE(InterruptedBuffer.succeeded());
         ASSERT_EQ(InterruptedBuffer.tokens().size(), 3U);
@@ -440,7 +439,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Cases)
       {
         SCOPED_TRACE(Source.size());
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+        const TokenizedBuffer Buffer = tokenize(Source);
         EXPECT_FALSE(Buffer.succeeded());
         EXPECT_TRUE(hasDiagnosticKind(Buffer, DiagnosticKind::InvalidUtf8));
         expectFullFidelity(Buffer);
@@ -452,10 +451,10 @@ namespace ink::tokenizer
     {
       struct RejectedBomCase
       {
-        const char *Name;
-        std::string Source;
-        std::vector<TokenKind> TokenKinds;
-        std::vector<DiagnosticKind> DiagnosticKinds;
+          const char *Name;
+          std::string Source;
+          std::vector<TokenKind> TokenKinds;
+          std::vector<DiagnosticKind> DiagnosticKinds;
       };
       const std::vector<RejectedBomCase> Cases = {
           {"utf16 little endian", bytes({0xFF, 0xFE}), {TokenKind::InvalidEncoding, TokenKind::InvalidEncoding}, {DiagnosticKind::InvalidUtf8, DiagnosticKind::InvalidUtf8}},
@@ -467,7 +466,7 @@ namespace ink::tokenizer
       for (const RejectedBomCase &TestCase : Cases)
       {
         SCOPED_TRACE(TestCase.Name);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, TestCase.Source);
+        const TokenizedBuffer Buffer = tokenize(TestCase.Source);
 
         ASSERT_FALSE(Buffer.succeeded());
         ASSERT_EQ(TestCase.TokenKinds.size(), TestCase.Source.size());
@@ -492,7 +491,7 @@ namespace ink::tokenizer
     TEST(SourceEncodingTest, BomOutsideTheInitialPositionIsAnErrorAndNotWhitespace)
     {
       const std::string Source = utf8(u8"a\uFEFFb");
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 4U);
@@ -517,7 +516,7 @@ namespace ink::tokenizer
     TEST(SourceEncodingTest, LfAndCrLfAreSingleLogicalLineBreakTokensWithDistinctRawBytes)
     {
       const std::string Source = "a \t\tb\nc\r\nd";
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 8U);
@@ -534,7 +533,7 @@ namespace ink::tokenizer
     TEST(SourceEncodingTest, LogicalLineStartsRetainOriginalByteOffsets)
     {
       const std::string Source = utf8(u8"用户\r\nname\nlast");
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       EXPECT_EQ(Buffer.lineStarts(), (std::vector<std::size_t>{0, 8, 13}));
@@ -549,7 +548,7 @@ namespace ink::tokenizer
     // Tests diagnosis of a lone carriage return and continued tokenization afterward.
     TEST(SourceEncodingTest, LoneCarriageReturnIsAnErrorAndRecoveryContinues)
     {
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, "a\rb");
+      const TokenizedBuffer Buffer = tokenize("a\rb");
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 4U);
@@ -576,7 +575,7 @@ namespace ink::tokenizer
       for (const unsigned int Value : ForbiddenValues)
       {
         SCOPED_TRACE(Value);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, bytes({Value}));
+        const TokenizedBuffer Buffer = tokenize(bytes({Value}));
 
         ASSERT_FALSE(Buffer.succeeded());
         ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -590,7 +589,7 @@ namespace ink::tokenizer
         expectFullFidelity(Buffer);
       }
 
-      const TokenizedBuffer Allowed = tokenize(TestSourceFileId, "\t\n\r\n ~");
+      const TokenizedBuffer Allowed = tokenize("\t\n\r\n ~");
       ASSERT_TRUE(Allowed.succeeded());
       ASSERT_EQ(Allowed.tokens().size(), 6U);
       EXPECT_EQ(Allowed.tokens()[0].Kind, TokenKind::SpacesAndTabs);
@@ -603,7 +602,7 @@ namespace ink::tokenizer
       EXPECT_EQ(std::get<char>(Allowed.tokens()[4].Payload), '~');
       expectFullFidelity(Allowed);
 
-      const TokenizedBuffer LoneCarriageReturn = tokenize(TestSourceFileId, "\r");
+      const TokenizedBuffer LoneCarriageReturn = tokenize("\r");
       ASSERT_FALSE(LoneCarriageReturn.succeeded());
       ASSERT_EQ(LoneCarriageReturn.diagnostics().size(), 1U);
       EXPECT_EQ(LoneCarriageReturn.diagnostics()[0].Kind, DiagnosticKind::LoneCarriageReturn);
@@ -631,7 +630,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Cases)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+        const TokenizedBuffer Buffer = tokenize(Source);
         EXPECT_FALSE(Buffer.succeeded());
         EXPECT_TRUE(hasDiagnosticKind(Buffer, DiagnosticKind::NonAsciiWhitespace));
         EXPECT_FALSE(hasTokenKind(Buffer, TokenKind::LineBreak));
@@ -656,7 +655,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Cases)
       {
         SCOPED_TRACE(Source);
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+        const TokenizedBuffer Buffer = tokenize(Source);
         EXPECT_FALSE(hasDiagnosticKind(Buffer, DiagnosticKind::NonAsciiWhitespace));
         expectFullFidelity(Buffer);
       }
@@ -697,7 +696,7 @@ namespace ink::tokenizer
       for (const std::string &Source : Cases)
       {
         SCOPED_TRACE(Source.size());
-        const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+        const TokenizedBuffer Buffer = tokenize(Source);
         EXPECT_FALSE(Buffer.succeeded());
         EXPECT_TRUE(hasDiagnosticKind(Buffer, DiagnosticKind::ForbiddenControlCharacter));
         expectFullFidelity(Buffer);
@@ -708,7 +707,7 @@ namespace ink::tokenizer
     TEST(SourceEncodingTest, TokenizerDoesNotNormalizeTheWholeSource)
     {
       const std::string Source = utf8(u8"//\u00E9 e\u0301");
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
@@ -722,7 +721,7 @@ namespace ink::tokenizer
     TEST(SourceEncodingTest, AUnicodeScalarThatCannotStartAnyTokenProducesAnErrorToken)
     {
       const std::string Source = utf8(u8"\U0001F600value");
-      const TokenizedBuffer Buffer = tokenize(TestSourceFileId, Source);
+      const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_FALSE(Buffer.succeeded());
       ASSERT_EQ(Buffer.tokens().size(), 3U);

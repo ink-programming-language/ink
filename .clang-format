@@ -1,8 +1,10 @@
 BasedOnStyle: LLVM
 Language: Cpp
 ColumnLimit: 0
+SortIncludes: Never
 BreakBeforeBraces: Allman
 NamespaceIndentation: All
+IndentAccessModifiers: true
 KeepEmptyLines:
   AtEndOfFile: false
   AtStartOfBlock: false
@@ -14,3 +16,7 @@ AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: None
 AllowShortLoopsOnASingleLine: false
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerIndentWidth: 4
+PackConstructorInitializers: Never
+RequiresClausePosition: WithPreceding

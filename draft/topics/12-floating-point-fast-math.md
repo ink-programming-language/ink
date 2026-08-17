@@ -1,7 +1,7 @@
 # 议题 12：浮点语义与显式 fast-math
 
-> 状态：已确认，2026-08-08 确认 strict NaN 使用目标配置规则，并收窄 v0 fast-math 许可
-> 确认日期：2026-08-08
+> 状态：已确认，fast-math 细分规则待定
+> 确认日期：2026-08-01
 
 ## 1. 默认严格浮点语义
 
@@ -58,7 +58,7 @@ const result = fma(a, b, c);
 - NaN 参与 `<`、`<=`、`>`、`>=` 时结果为 `false`；
 - `+0.0 == -0.0` 为 `true`，但后续运算仍可观察其符号差异。
 
-NaN payload、符号、多个 NaN operand 的选择、signaling NaN quiet 以及无 NaN 输入却产生 invalid 结果时的位模式，由 `TargetContext.nan_mode` 针对目标配置精确定义。同一 TargetKey 下，comptime、解释执行和 AOT lowering 必须使用相同规则；这些规则不得随优化级别变化。浮点异常标志、舍入模式和 subnormal 由议题 14 规定。
+NaN payload 的传播和 signaling NaN 不由本议题提前规定。浮点异常标志、舍入模式和 subnormal 由议题 14 规定。
 
 ## 4. 显式 `[fast_math]`
 
@@ -71,15 +71,7 @@ func approximate(a: f32, b: f32, c: f32) -> f32 {
 }
 ```
 
-在 `[fast_math]` 范围内，Ink v0 只授予以下许可：
-
-- 浮点重结合；
-- 乘加收缩为 FMA；
-- 忽略正零与负零的部分差异；
-- flush-to-zero；
-- denormals-are-zero。
-
-v0 的 `[fast_math]` 不授予近似倒数或近似数学函数，也不承诺值是有限的。近似倒数和近似函数以后只能通过具有明确误差契约的独立属性、内建操作或库 API 增加；有限值假设继续由 `[assume_finite]` 独立提供。
+在 `[fast_math]` 范围内，编译器可以按照该属性最终规定的契约执行重结合、FMA 收缩、近似运算和其他宽松浮点优化。
 
 `[fast_math]` 是程序语义的一部分，不只是后端调优提示。API 作者必须把它可能造成的数值差异视为函数实现行为。
 
@@ -108,7 +100,7 @@ debug / release 不能改变普通浮点表达式的语义
 
 - 浮点重结合；
 - 自动 FMA 收缩；
-- 倒数近似；v0 即使启用 `[fast_math]` 也仍不授予该许可；
+- 倒数近似；
 - 基于“没有 NaN/Infinity/负零”的简化；
 - 部分依赖这些变换的自动向量化。
 
@@ -118,6 +110,7 @@ debug / release 不能改变普通浮点表达式的语义
 
 以下内容需要独立讨论：
 
+- signaling NaN 与 NaN payload 的传播；
 - fast-math 是否允许应用到单个表达式或语句块；
 - `f16` 在没有原生算术支持的目标上的具体软件实现。
 

@@ -1,10 +1,8 @@
-#include "unicode.h"
+#include "ink/tokenizer/unicode.h"
 
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
-#include <new>
-#include <stdexcept>
 
 #include <UnicodeCharSets.h>
 #include <utf8proc.h>
@@ -20,8 +18,8 @@ namespace ink::tokenizer::unicode
 
     struct CodePointRange
     {
-      char32_t Lower;
-      char32_t Upper;
+        char32_t Lower;
+        char32_t Upper;
     };
 
     template <typename Range, std::size_t Size>
@@ -136,11 +134,11 @@ namespace ink::tokenizer::unicode
     return isXidStart(Value) || XidContinueCharacters.contains(static_cast<std::uint32_t>(Value));
   }
 
-  bool isNfc(std::string_view Source)
+  NfcCheckResult checkNfc(std::string_view Source) noexcept
   {
     if (Source.empty())
     {
-      return true;
+      return NfcCheckResult::Normalized;
     }
     bool IsAscii = true;
     for (const char Character : Source)
@@ -153,11 +151,11 @@ namespace ink::tokenizer::unicode
     }
     if (IsAscii)
     {
-      return true;
+      return NfcCheckResult::Normalized;
     }
     if (Source.size() > static_cast<std::size_t>(std::numeric_limits<utf8proc_ssize_t>::max()))
     {
-      throw std::length_error("UTF-8 input is too large for utf8proc NFC normalization");
+      return NfcCheckResult::Failed;
     }
 
     utf8proc_uint8_t *NormalizedData = nullptr;
@@ -166,21 +164,13 @@ namespace ink::tokenizer::unicode
     if (NormalizedLength < 0)
     {
       std::free(NormalizedData);
-      if (NormalizedLength == UTF8PROC_ERROR_NOMEM)
-      {
-        throw std::bad_alloc();
-      }
-      if (NormalizedLength == UTF8PROC_ERROR_OVERFLOW)
-      {
-        throw std::length_error("utf8proc NFC normalization overflowed its supported output length");
-      }
-      throw std::runtime_error(utf8proc_errmsg(NormalizedLength));
+      return NfcCheckResult::Failed;
     }
 
     const std::string_view Normalized(reinterpret_cast<const char *>(NormalizedData), static_cast<std::size_t>(NormalizedLength));
     const bool IsNormalized = Source == Normalized;
     std::free(NormalizedData);
-    return IsNormalized;
+    return IsNormalized ? NfcCheckResult::Normalized : NfcCheckResult::NotNormalized;
   }
 
   bool isDefaultIgnorable(char32_t Value) noexcept
