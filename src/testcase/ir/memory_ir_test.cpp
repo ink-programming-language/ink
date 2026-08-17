@@ -157,14 +157,14 @@ namespace ink::ir
       const auto &Pointer = static_cast<const GetElementPointerInstruction &>(*Parsed.module()->Functions[0].Blocks[0].Instructions[0]);
       ASSERT_NE(Pointer.ResultType, nullptr);
       ASSERT_NE(Pointer.ElementType, nullptr);
-      ASSERT_NE(Pointer.Index, nullptr);
+      ASSERT_TRUE(Pointer.Index);
       EXPECT_EQ(Pointer.ResultType->kind(), TypeKind::ConstBytePointer);
       EXPECT_EQ(Pointer.ElementType->kind(), TypeKind::Struct);
       EXPECT_EQ(Pointer.Index->kind(), ValueKind::ValueOperand);
       ASSERT_EQ(Pointer.FieldIndices.size(), 2U);
-      for (const std::unique_ptr<Value> &FieldIndex : Pointer.FieldIndices)
+      for (const ValueHandle &FieldIndex : Pointer.FieldIndices)
       {
-        ASSERT_NE(FieldIndex, nullptr);
+        ASSERT_TRUE(FieldIndex);
         EXPECT_EQ(FieldIndex->type().kind(), TypeKind::I32);
         ASSERT_EQ(FieldIndex->kind(), ValueKind::IntegerConstant);
         EXPECT_EQ(static_cast<const IntegerConstant &>(*FieldIndex).unsignedValue(), 1U);
@@ -252,14 +252,14 @@ namespace ink::ir
         const StructType *ReferencedStructType = UnsupportedType->kind() == TypeKind::Struct ? &AggregateType : nullptr;
         auto Load = std::make_unique<LoadInstruction>(*UnsupportedType);
         Load->Result = ValueId{0};
-        Load->Pointer = std::make_unique<NullConstant>(ConstBytePointerType);
+        Load->Pointer = Context.IR.constantPool().getNullConstant(ConstBytePointerType);
         const VerificationResult LoadResult = verifySingleMemoryInstruction(Context, std::move(Load), ReferencedStructType);
         EXPECT_FALSE(LoadResult.succeeded()) << typeKindName(UnsupportedType->kind());
         EXPECT_TRUE(hasDiagnostic(LoadResult.diagnostics(), core::DiagnosticKind::IrLoadUnsupportedResultType)) << typeKindName(UnsupportedType->kind());
 
         auto Store = std::make_unique<StoreInstruction>();
-        Store->StoredValue = std::make_unique<ZeroInitializer>(*UnsupportedType);
-        Store->Pointer = std::make_unique<NullConstant>(BytePointerType);
+        Store->StoredValue = Context.IR.constantPool().getZeroInitializer(*UnsupportedType);
+        Store->Pointer = Context.IR.constantPool().getNullConstant(BytePointerType);
         const VerificationResult StoreResult = verifySingleMemoryInstruction(Context, std::move(Store), ReferencedStructType);
         EXPECT_FALSE(StoreResult.succeeded()) << typeKindName(UnsupportedType->kind());
         EXPECT_TRUE(hasDiagnostic(StoreResult.diagnostics(), core::DiagnosticKind::IrStoreUnsupportedValueType)) << typeKindName(UnsupportedType->kind());
@@ -290,7 +290,7 @@ namespace ink::ir
       const DeserializeResult NegativeResult = deserialize(Target64.IR, "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte[] ptrsize -1\n  ret void\n}\n");
       auto ProgrammaticAlloca = std::make_unique<AllocaInstruction>(Target64.IR.getType(TypeKind::ByteSlice));
       ProgrammaticAlloca->Result = ValueId{0};
-      ProgrammaticAlloca->Size = std::make_unique<IntegerConstant>(Target64.IR.getType(TypeKind::PointerSize), Maximum64);
+      ProgrammaticAlloca->Size = Target64.IR.constantPool().getIntegerConstant(Target64.IR.getType(TypeKind::PointerSize), Maximum64);
       const VerificationResult ProgrammaticMaximum64Result = verifySingleMemoryInstruction(Target64, std::move(ProgrammaticAlloca));
 
       EXPECT_EQ(Target32.Compilation.targetContext().pointerWidth(), core::PointerWidth::Bits32);
@@ -498,22 +498,10 @@ namespace ink::ir
       const Type &ConstBytePointerType = Context.IR.getType(TypeKind::ConstBytePointer);
       const Type &ByteSliceType = Context.IR.getType(TypeKind::ByteSlice);
       const Type &ConstByteSliceType = Context.IR.getType(TypeKind::ConstByteSlice);
-      const auto PointerSizeZero = [&]()
-      {
-        return std::make_unique<IntegerConstant>(PointerSizeType, 0);
-      };
-      const auto MutableSlice = [&]()
-      {
-        return std::make_unique<ZeroInitializer>(ByteSliceType);
-      };
-      const auto MutablePointer = [&]()
-      {
-        return std::make_unique<NullConstant>(BytePointerType);
-      };
-      const auto ConstPointer = [&]()
-      {
-        return std::make_unique<NullConstant>(ConstBytePointerType);
-      };
+      const IntegerConstant &PointerSizeZero = Context.IR.constantPool().getIntegerConstant(PointerSizeType, 0);
+      const ZeroInitializer &MutableSlice = Context.IR.constantPool().getZeroInitializer(ByteSliceType);
+      const NullConstant &MutablePointer = Context.IR.constantPool().getNullConstant(BytePointerType);
+      const NullConstant &ConstPointer = Context.IR.constantPool().getNullConstant(ConstBytePointerType);
       const auto ExpectDiagnostic = [&](std::unique_ptr<Instruction> InstructionValue, core::DiagnosticKind Expected)
       {
         const VerificationResult Result = verifySingleMemoryInstruction(Context, std::move(InstructionValue));
@@ -524,7 +512,7 @@ namespace ink::ir
       {
         auto InstructionValue = std::make_unique<AllocaInstruction>(BoolType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Size = PointerSizeZero();
+        InstructionValue->Size = PointerSizeZero;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrAllocaInvalidResultType);
       }
       {
@@ -535,68 +523,68 @@ namespace ink::ir
       {
         auto InstructionValue = std::make_unique<AllocaInstruction>(ByteSliceType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Size = std::make_unique<IntegerConstant>(BoolType, 0);
+        InstructionValue->Size = Context.IR.constantPool().getIntegerConstant(BoolType, 0);
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrAllocaSizeNotPointerSize);
       }
       {
         auto InstructionValue = std::make_unique<GetElementPointerInstruction>(I32Type, ByteType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Pointer = MutablePointer();
-        InstructionValue->Index = PointerSizeZero();
+        InstructionValue->Pointer = MutablePointer;
+        InstructionValue->Index = PointerSizeZero;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerInvalidResultType);
       }
       {
         auto InstructionValue = std::make_unique<GetElementPointerInstruction>(BytePointerType, Context.IR.getType(TypeKind::Void));
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Pointer = MutablePointer();
-        InstructionValue->Index = PointerSizeZero();
+        InstructionValue->Pointer = MutablePointer;
+        InstructionValue->Index = PointerSizeZero;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerUnsupportedElementType);
       }
       {
         auto InstructionValue = std::make_unique<GetElementPointerInstruction>(BytePointerType, ByteType);
         InstructionValue->Result = ValueId{0};
         InstructionValue->ElementType = nullptr;
-        InstructionValue->Pointer = MutablePointer();
-        InstructionValue->Index = PointerSizeZero();
+        InstructionValue->Pointer = MutablePointer;
+        InstructionValue->Index = PointerSizeZero;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerUnsupportedElementType);
       }
       {
         auto InstructionValue = std::make_unique<GetElementPointerInstruction>(BytePointerType, ByteType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Index = PointerSizeZero();
+        InstructionValue->Index = PointerSizeZero;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerNullPointer);
       }
       {
         auto InstructionValue = std::make_unique<GetElementPointerInstruction>(BytePointerType, ByteType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Pointer = std::make_unique<IntegerConstant>(ByteType, 0);
-        InstructionValue->Index = PointerSizeZero();
+        InstructionValue->Pointer = Context.IR.constantPool().getIntegerConstant(ByteType, 0);
+        InstructionValue->Index = PointerSizeZero;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerInvalidPointerType);
       }
       {
         auto InstructionValue = std::make_unique<GetElementPointerInstruction>(BytePointerType, ByteType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Pointer = ConstPointer();
-        InstructionValue->Index = PointerSizeZero();
+        InstructionValue->Pointer = ConstPointer;
+        InstructionValue->Index = PointerSizeZero;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerResultTypeMismatch);
       }
       {
         auto InstructionValue = std::make_unique<GetElementPointerInstruction>(BytePointerType, ByteType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Pointer = MutablePointer();
+        InstructionValue->Pointer = MutablePointer;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerNullIndex);
       }
       {
         auto InstructionValue = std::make_unique<GetElementPointerInstruction>(BytePointerType, ByteType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Pointer = MutablePointer();
-        InstructionValue->Index = std::make_unique<IntegerConstant>(BoolType, 0);
+        InstructionValue->Pointer = MutablePointer;
+        InstructionValue->Index = Context.IR.constantPool().getIntegerConstant(BoolType, 0);
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerIndexNotPointerSize);
       }
       {
         auto InstructionValue = std::make_unique<LoadInstruction>(BytePointerType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Pointer = ConstPointer();
+        InstructionValue->Pointer = ConstPointer;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrLoadUnsupportedResultType);
       }
       {
@@ -607,35 +595,35 @@ namespace ink::ir
       {
         auto InstructionValue = std::make_unique<LoadInstruction>(ByteType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Pointer = std::make_unique<IntegerConstant>(ByteType, 0);
+        InstructionValue->Pointer = Context.IR.constantPool().getIntegerConstant(ByteType, 0);
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrLoadInvalidPointerType);
       }
       {
         auto InstructionValue = std::make_unique<StoreInstruction>();
-        InstructionValue->Pointer = MutablePointer();
+        InstructionValue->Pointer = MutablePointer;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrStoreNullValue);
       }
       {
         auto InstructionValue = std::make_unique<StoreInstruction>();
-        InstructionValue->StoredValue = std::make_unique<ZeroInitializer>(BytePointerType);
-        InstructionValue->Pointer = MutablePointer();
+        InstructionValue->StoredValue = Context.IR.constantPool().getZeroInitializer(BytePointerType);
+        InstructionValue->Pointer = MutablePointer;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrStoreUnsupportedValueType);
       }
       {
         auto InstructionValue = std::make_unique<StoreInstruction>();
-        InstructionValue->StoredValue = std::make_unique<IntegerConstant>(ByteType, 1);
+        InstructionValue->StoredValue = Context.IR.constantPool().getIntegerConstant(ByteType, 1);
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrStoreNullPointer);
       }
       {
         auto InstructionValue = std::make_unique<StoreInstruction>();
-        InstructionValue->StoredValue = std::make_unique<IntegerConstant>(ByteType, 1);
-        InstructionValue->Pointer = std::make_unique<IntegerConstant>(ByteType, 0);
+        InstructionValue->StoredValue = Context.IR.constantPool().getIntegerConstant(ByteType, 1);
+        InstructionValue->Pointer = Context.IR.constantPool().getIntegerConstant(ByteType, 0);
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrStoreDestinationNotMutablePointer);
       }
       {
         auto InstructionValue = std::make_unique<StoreInstruction>();
-        InstructionValue->StoredValue = std::make_unique<IntegerConstant>(ByteType, 1);
-        InstructionValue->Pointer = ConstPointer();
+        InstructionValue->StoredValue = Context.IR.constantPool().getIntegerConstant(ByteType, 1);
+        InstructionValue->Pointer = ConstPointer;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrStoreDestinationNotMutablePointer);
       }
       {
@@ -643,13 +631,13 @@ namespace ink::ir
       }
       {
         auto InstructionValue = std::make_unique<LifetimeEndInstruction>();
-        InstructionValue->Slice = std::make_unique<ZeroInitializer>(ConstByteSliceType);
+        InstructionValue->Slice = Context.IR.constantPool().getZeroInitializer(ConstByteSliceType);
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrLifetimeEndInvalidSliceType);
       }
       {
         auto InstructionValue = std::make_unique<SliceDataInstruction>(I32Type);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Slice = MutableSlice();
+        InstructionValue->Slice = MutableSlice;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrSliceDataInvalidResultType);
       }
       {
@@ -660,13 +648,13 @@ namespace ink::ir
       {
         auto InstructionValue = std::make_unique<SliceDataInstruction>(BytePointerType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Slice = std::make_unique<ZeroInitializer>(ByteType);
+        InstructionValue->Slice = Context.IR.constantPool().getZeroInitializer(ByteType);
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrSliceDataInvalidSliceType);
       }
       {
         auto InstructionValue = std::make_unique<SliceLengthInstruction>(I32Type);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Slice = MutableSlice();
+        InstructionValue->Slice = MutableSlice;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrSliceLengthInvalidResultType);
       }
       {
@@ -677,7 +665,7 @@ namespace ink::ir
       {
         auto InstructionValue = std::make_unique<SliceLengthInstruction>(PointerSizeType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Slice = std::make_unique<ZeroInitializer>(ByteType);
+        InstructionValue->Slice = Context.IR.constantPool().getZeroInitializer(ByteType);
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrSliceLengthInvalidSliceType);
       }
     }
@@ -695,8 +683,8 @@ namespace ink::ir
       {
         auto InstructionValue = std::make_unique<GetElementPointerInstruction>(BytePointerType, PairType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Pointer = std::make_unique<NullConstant>(BytePointerType);
-        InstructionValue->Index = std::make_unique<IntegerConstant>(PointerSizeType, 0);
+        InstructionValue->Pointer = Context.IR.constantPool().getNullConstant(BytePointerType);
+        InstructionValue->Index = Context.IR.constantPool().getIntegerConstant(PointerSizeType, 0);
         return InstructionValue;
       };
       const auto ExpectDiagnostic = [&](std::unique_ptr<GetElementPointerInstruction> InstructionValue, core::DiagnosticKind Expected)
@@ -708,33 +696,33 @@ namespace ink::ir
 
       {
         auto InstructionValue = CreatePointer();
-        InstructionValue->FieldIndices.push_back(nullptr);
+        InstructionValue->FieldIndices.emplace_back();
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerNullFieldIndex);
       }
       {
         auto InstructionValue = CreatePointer();
-        InstructionValue->FieldIndices.push_back(std::make_unique<IntegerConstant>(PointerSizeType, 0));
+        InstructionValue->FieldIndices.emplace_back(Context.IR.constantPool().getIntegerConstant(PointerSizeType, 0));
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerFieldIndexNotI32);
       }
       {
         auto InstructionValue = CreatePointer();
-        InstructionValue->FieldIndices.push_back(std::make_unique<ZeroInitializer>(I32Type));
+        InstructionValue->FieldIndices.emplace_back(Context.IR.constantPool().getZeroInitializer(I32Type));
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerFieldIndexNotConstant);
       }
       {
         auto InstructionValue = CreatePointer();
-        InstructionValue->FieldIndices.push_back(std::make_unique<IntegerConstant>(I32Type, -1));
+        InstructionValue->FieldIndices.emplace_back(Context.IR.constantPool().getIntegerConstant(I32Type, -1));
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerFieldIndexNegative);
       }
       {
         auto InstructionValue = CreatePointer();
-        InstructionValue->FieldIndices.push_back(std::make_unique<IntegerConstant>(I32Type, 2));
+        InstructionValue->FieldIndices.emplace_back(Context.IR.constantPool().getIntegerConstant(I32Type, 2));
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerFieldIndexOutOfRange);
       }
       {
         auto InstructionValue = CreatePointer();
-        InstructionValue->FieldIndices.push_back(std::make_unique<IntegerConstant>(I32Type, 1));
-        InstructionValue->FieldIndices.push_back(std::make_unique<IntegerConstant>(I32Type, 0));
+        InstructionValue->FieldIndices.emplace_back(Context.IR.constantPool().getIntegerConstant(I32Type, 1));
+        InstructionValue->FieldIndices.emplace_back(Context.IR.constantPool().getIntegerConstant(I32Type, 0));
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrGetElementPointerFieldIndexIntoNonStruct);
       }
     }

@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace ink::ir
@@ -151,6 +152,91 @@ namespace ink::ir
       EXPECT_EQ(Layout->Size, 9U);
       EXPECT_EQ(Layout->Alignment, 4U);
       EXPECT_EQ(Layout->StrideSize, 12U);
+    }
+
+    // Verifies that struct packing lowers natural field alignment and removes the padding before a naturally aligned integer field.
+    TEST(TypeLayoutTest, AppliesStructPackingConstraints)
+    {
+      TypeLayoutTestContext Context;
+      const Type &ByteType = Context.IR.getType(TypeKind::Byte);
+      const Type &I32Type = Context.IR.getType(TypeKind::I32);
+      std::vector<StructField> Fields;
+      Fields.emplace_back("Tag", &ByteType);
+      Fields.emplace_back("Value", &I32Type);
+      StructLayoutConstraints Constraints;
+      Constraints.Packing = 1;
+      const StructType &Struct = Context.IR.createStructType("Packed", std::move(Fields), Constraints);
+      const core::TargetContext Target(core::PointerWidth::Bits64, core::ByteOrder::LittleEndian);
+
+      const std::optional<TypeLayout> Layout = computeTypeLayout(Struct, Target);
+
+      ASSERT_TRUE(Layout.has_value());
+      EXPECT_EQ(Layout->FieldOffsets, (std::vector<std::size_t>{0, 1}));
+      EXPECT_EQ(Layout->Size, 5U);
+      EXPECT_EQ(Layout->Alignment, 1U);
+      EXPECT_EQ(Layout->StrideSize, 5U);
+    }
+
+    // Verifies that field alignment and explicit offsets compose with an independently stronger struct alignment.
+    TEST(TypeLayoutTest, AppliesFieldOffsetAndAlignmentConstraints)
+    {
+      TypeLayoutTestContext Context;
+      const Type &ByteType = Context.IR.getType(TypeKind::Byte);
+      const Type &I32Type = Context.IR.getType(TypeKind::I32);
+      FieldLayoutConstraints ValueConstraints;
+      ValueConstraints.ExplicitAlignment = 8;
+      ValueConstraints.ExplicitOffset = 8;
+      std::vector<StructField> Fields;
+      Fields.emplace_back("Tag", &ByteType);
+      Fields.emplace_back("Value", &I32Type, std::vector<Attribute>{}, ValueConstraints);
+      StructLayoutConstraints Constraints;
+      Constraints.ExplicitAlignment = 16;
+      const StructType &Struct = Context.IR.createStructType("Aligned", std::move(Fields), Constraints);
+      const core::TargetContext Target(core::PointerWidth::Bits64, core::ByteOrder::LittleEndian);
+
+      const std::optional<TypeLayout> Layout = computeTypeLayout(Struct, Target);
+
+      ASSERT_TRUE(Layout.has_value());
+      EXPECT_EQ(Layout->FieldOffsets, (std::vector<std::size_t>{0, 8}));
+      EXPECT_EQ(Layout->Size, 12U);
+      EXPECT_EQ(Layout->Alignment, 16U);
+      EXPECT_EQ(Layout->StrideSize, 16U);
+    }
+
+    // Verifies that zero or non-power-of-two alignments, overlapping offsets, and offsets violating effective alignment make layout computation fail.
+    TEST(TypeLayoutTest, RejectsInvalidLayoutConstraints)
+    {
+      TypeLayoutTestContext Context;
+      const Type &ByteType = Context.IR.getType(TypeKind::Byte);
+      const Type &I32Type = Context.IR.getType(TypeKind::I32);
+      StructLayoutConstraints InvalidPacking;
+      InvalidPacking.Packing = 3;
+      std::vector<StructField> PackedFields;
+      PackedFields.emplace_back("Value", &I32Type);
+      const StructType &Packed = Context.IR.createStructType("InvalidPacking", std::move(PackedFields), InvalidPacking);
+      FieldLayoutConstraints OverlapConstraints;
+      OverlapConstraints.ExplicitOffset = 0;
+      std::vector<StructField> OverlapFields;
+      OverlapFields.emplace_back("First", &ByteType);
+      OverlapFields.emplace_back("Second", &I32Type, std::vector<Attribute>{}, OverlapConstraints);
+      const StructType &Overlap = Context.IR.createStructType("Overlap", std::move(OverlapFields));
+      FieldLayoutConstraints MisalignedConstraints;
+      MisalignedConstraints.ExplicitOffset = 2;
+      std::vector<StructField> MisalignedFields;
+      MisalignedFields.emplace_back("First", &ByteType);
+      MisalignedFields.emplace_back("Second", &I32Type, std::vector<Attribute>{}, MisalignedConstraints);
+      const StructType &Misaligned = Context.IR.createStructType("Misaligned", std::move(MisalignedFields));
+      StructLayoutConstraints InvalidAlignment;
+      InvalidAlignment.ExplicitAlignment = 0;
+      std::vector<StructField> AlignedFields;
+      AlignedFields.emplace_back("Value", &I32Type);
+      const StructType &Aligned = Context.IR.createStructType("InvalidAlignment", std::move(AlignedFields), InvalidAlignment);
+      const core::TargetContext Target(core::PointerWidth::Bits64, core::ByteOrder::LittleEndian);
+
+      EXPECT_FALSE(computeTypeLayout(Packed, Target).has_value());
+      EXPECT_FALSE(computeTypeLayout(Overlap, Target).has_value());
+      EXPECT_FALSE(computeTypeLayout(Misaligned, Target).has_value());
+      EXPECT_FALSE(computeTypeLayout(Aligned, Target).has_value());
     }
 
     // Verifies that void, slices, null fields, and structs containing unsized fields have no computable memory layout.

@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -36,7 +37,7 @@ namespace ink::ir
       EXPECT_EQ(*Serialized.text(), Text);
     }
 
-    VerificationResult verifyReturnedConstant(ConstantIrTestContext &Context, const Type &ResultType, std::unique_ptr<Value> Constant, std::vector<const StructType *> StructTypes = {})
+    VerificationResult verifyReturnedConstant(ConstantIrTestContext &Context, const Type &ResultType, const Constant &ConstantValue, std::vector<const StructType *> StructTypes = {})
     {
       Module ModuleValue(Context.IR);
       ModuleValue.StructTypes = std::move(StructTypes);
@@ -45,7 +46,7 @@ namespace ink::ir
       BasicBlock Entry;
       Entry.Name = "entry";
       auto Return = std::make_unique<ReturnInstruction>();
-      Return->ReturnValue = std::move(Constant);
+      Return->ReturnValue = ConstantValue;
       Entry.Instructions.push_back(std::move(Return));
       Main.Blocks.push_back(std::move(Entry));
       ModuleValue.Functions.push_back(std::move(Main));
@@ -78,6 +79,7 @@ namespace ink::ir
       static_assert(std::is_base_of_v<Constant, FloatConstant>);
       static_assert(std::is_base_of_v<Constant, StringConstant>);
       static_assert(std::is_base_of_v<Constant, NullConstant>);
+      static_assert(std::is_base_of_v<Constant, ZeroInitializer>);
       static_assert(std::is_base_of_v<Constant, AggregateConstant>);
       const Type &F16Type = Context.IR.getType(TypeKind::F16);
       const Type &F32Type = Context.IR.getType(TypeKind::F32);
@@ -86,15 +88,15 @@ namespace ink::ir
       const Type &ConstBytePointerType = Context.IR.getType(TypeKind::ConstBytePointer);
       const Type &I32Type = Context.IR.getType(TypeKind::I32);
       const StructType &PairType = Context.IR.createStructType("Pair", {&I32Type, &F32Type});
-      FloatConstant Half(F16Type, FloatFormat::F16, 0x3C00U);
-      FloatConstant Single(F32Type, FloatFormat::F32, 0x80000000ULL);
-      FloatConstant Double(F64Type, FloatFormat::F64, 0x7FF8000000000042ULL);
-      StringConstant String(ConstByteSliceType, std::string("\0\"\\\xFF", 4));
-      NullConstant Null(ConstBytePointerType);
-      std::vector<std::unique_ptr<Value>> Elements;
-      Elements.push_back(std::make_unique<IntegerConstant>(I32Type, 7));
-      Elements.push_back(std::make_unique<FloatConstant>(F32Type, FloatFormat::F32, 0x3F800000ULL));
-      AggregateConstant Aggregate(PairType, std::move(Elements));
+      ConstantPool &Pool = Context.IR.constantPool();
+      const FloatConstant &Half = Pool.getFloatConstant(F16Type, FloatFormat::F16, 0x3C00U);
+      const FloatConstant &Single = Pool.getFloatConstant(F32Type, FloatFormat::F32, 0x80000000ULL);
+      const FloatConstant &Double = Pool.getFloatConstant(F64Type, FloatFormat::F64, 0x7FF8000000000042ULL);
+      const StringConstant &String = Pool.getStringConstant(ConstByteSliceType, std::string("\0\"\\\xFF", 4));
+      const NullConstant &Null = Pool.getNullConstant(ConstBytePointerType);
+      const IntegerConstant &Seven = Pool.getIntegerConstant(I32Type, 7);
+      const FloatConstant &One = Pool.getFloatConstant(F32Type, FloatFormat::F32, 0x3F800000ULL);
+      const AggregateConstant &Aggregate = Pool.getAggregateConstant(PairType, {Seven, One});
 
       EXPECT_EQ(Half.kind(), ValueKind::FloatConstant);
       EXPECT_EQ(&Half.type(), &F16Type);
@@ -112,9 +114,9 @@ namespace ink::ir
       EXPECT_EQ(Aggregate.kind(), ValueKind::AggregateConstant);
       EXPECT_EQ(&Aggregate.type(), &PairType);
       ASSERT_EQ(Aggregate.elements().size(), 2U);
-      EXPECT_EQ(Aggregate.elements()[0]->kind(), ValueKind::IntegerConstant);
-      EXPECT_EQ(Aggregate.elements()[1]->kind(), ValueKind::FloatConstant);
-      EXPECT_EQ(static_cast<const FloatConstant &>(*Aggregate.elements()[1]).bitPattern(), 0x3F800000ULL);
+      EXPECT_EQ(Aggregate.elements()[0].get().kind(), ValueKind::IntegerConstant);
+      EXPECT_EQ(Aggregate.elements()[1].get().kind(), ValueKind::FloatConstant);
+      EXPECT_EQ(static_cast<const FloatConstant &>(Aggregate.elements()[1].get()).bitPattern(), 0x3F800000ULL);
     }
 
     // Verifies that f16, both signed f32 zeroes, and an f64 NaN payload use fixed-width canonical bit-pattern text.
@@ -180,7 +182,7 @@ namespace ink::ir
       ASSERT_TRUE(Parsed.succeeded());
       ASSERT_TRUE(Parsed.module().has_value());
       const SliceLengthInstruction &Length = static_cast<const SliceLengthInstruction &>(*Parsed.module()->Functions[0].Blocks[0].Instructions[0]);
-      ASSERT_NE(Length.Slice, nullptr);
+      ASSERT_TRUE(Length.Slice);
       ASSERT_EQ(Length.Slice->kind(), ValueKind::StringConstant);
       EXPECT_EQ(static_cast<const StringConstant &>(*Length.Slice).data(), std::string("\0\"\\\xFF", 4));
     }
@@ -234,11 +236,11 @@ namespace ink::ir
       ASSERT_TRUE(Parsed.module().has_value());
       const AggregateConstant &Outer = static_cast<const AggregateConstant &>(*returnInstruction(*Parsed.module(), 0).ReturnValue);
       ASSERT_EQ(Outer.elements().size(), 2U);
-      ASSERT_EQ(Outer.elements()[1]->kind(), ValueKind::AggregateConstant);
-      const AggregateConstant &Inner = static_cast<const AggregateConstant &>(*Outer.elements()[1]);
+      ASSERT_EQ(Outer.elements()[1].get().kind(), ValueKind::AggregateConstant);
+      const AggregateConstant &Inner = static_cast<const AggregateConstant &>(Outer.elements()[1].get());
       ASSERT_EQ(Inner.elements().size(), 2U);
-      EXPECT_EQ(static_cast<const FloatConstant &>(*Inner.elements()[0]).bitPattern(), 0x7FC00042ULL);
-      EXPECT_EQ(Inner.elements()[1]->kind(), ValueKind::NullConstant);
+      EXPECT_EQ(static_cast<const FloatConstant &>(Inner.elements()[0].get()).bitPattern(), 0x7FC00042ULL);
+      EXPECT_EQ(Inner.elements()[1].get().kind(), ValueKind::NullConstant);
     }
 
     // Verifies that every new constant kind is rejected when its declared IR type belongs to a different value category.
@@ -246,13 +248,13 @@ namespace ink::ir
     {
       ConstantIrTestContext Context;
       const Type &I32Type = Context.IR.getType(TypeKind::I32);
-      std::vector<std::unique_ptr<Value>> Elements;
-      Elements.push_back(std::make_unique<IntegerConstant>(I32Type, 1));
+      ConstantPool &Pool = Context.IR.constantPool();
+      const IntegerConstant &One = Pool.getIntegerConstant(I32Type, 1);
 
-      const VerificationResult FloatResult = verifyReturnedConstant(Context, I32Type, std::make_unique<FloatConstant>(I32Type, FloatFormat::F32, 0x3F800000ULL));
-      const VerificationResult StringResult = verifyReturnedConstant(Context, I32Type, std::make_unique<StringConstant>(I32Type, "text"));
-      const VerificationResult NullResult = verifyReturnedConstant(Context, I32Type, std::make_unique<NullConstant>(I32Type));
-      const VerificationResult AggregateResult = verifyReturnedConstant(Context, I32Type, std::make_unique<AggregateConstant>(I32Type, std::move(Elements)));
+      const VerificationResult FloatResult = verifyReturnedConstant(Context, I32Type, Pool.getFloatConstant(I32Type, FloatFormat::F32, 0x3F800000ULL));
+      const VerificationResult StringResult = verifyReturnedConstant(Context, I32Type, Pool.getStringConstant(I32Type, "text"));
+      const VerificationResult NullResult = verifyReturnedConstant(Context, I32Type, Pool.getNullConstant(I32Type));
+      const VerificationResult AggregateResult = verifyReturnedConstant(Context, I32Type, Pool.getAggregateConstant(I32Type, {One}));
 
       EXPECT_FALSE(FloatResult.succeeded());
       EXPECT_FALSE(StringResult.succeeded());
@@ -271,8 +273,8 @@ namespace ink::ir
       const Type &F16Type = Context.IR.getType(TypeKind::F16);
       const Type &F32Type = Context.IR.getType(TypeKind::F32);
 
-      const VerificationResult FormatMismatch = verifyReturnedConstant(Context, F32Type, std::make_unique<FloatConstant>(F32Type, FloatFormat::F64, 0x3FF0000000000000ULL));
-      const VerificationResult OversizedBits = verifyReturnedConstant(Context, F16Type, std::make_unique<FloatConstant>(F16Type, FloatFormat::F16, 0x10000ULL));
+      const VerificationResult FormatMismatch = verifyReturnedConstant(Context, F32Type, Context.IR.constantPool().getFloatConstant(F32Type, FloatFormat::F64, 0x3FF0000000000000ULL));
+      const VerificationResult OversizedBits = verifyReturnedConstant(Context, F16Type, Context.IR.constantPool().getFloatConstant(F16Type, FloatFormat::F16, 0x10000ULL));
 
       EXPECT_FALSE(FormatMismatch.succeeded());
       EXPECT_FALSE(OversizedBits.succeeded());
@@ -280,7 +282,21 @@ namespace ink::ir
       EXPECT_TRUE(hasDiagnostic(OversizedBits.diagnostics(), core::DiagnosticKind::IrFloatConstantBitPatternOutOfRange));
     }
 
-    // Verifies that aggregate constants reject missing, null, mistyped, and recursively malformed fields.
+    // Verifies that an instruction cannot borrow a constant from a pool other than its module IR context.
+    TEST(ConstantIrVerifierTest, RejectsConstantFromAnotherPool)
+    {
+      ConstantIrTestContext Context;
+      ConstantPool ForeignPool;
+      const Type &I32Type = Context.IR.getType(TypeKind::I32);
+      const IntegerConstant &ForeignConstant = ForeignPool.getIntegerConstant(I32Type, 5);
+
+      const VerificationResult Result = verifyReturnedConstant(Context, I32Type, ForeignConstant);
+
+      EXPECT_FALSE(Result.succeeded());
+      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrConstantPoolMismatch));
+    }
+
+    // Verifies that aggregate constants reject missing, mistyped, and recursively malformed fields while null and nonconstant fields are unrepresentable.
     TEST(ConstantIrVerifierTest, RejectsEveryMalformedAggregateShape)
     {
       ConstantIrTestContext Context;
@@ -288,43 +304,26 @@ namespace ink::ir
       const Type &I32Type = Context.IR.getType(TypeKind::I32);
       const Type &F32Type = Context.IR.getType(TypeKind::F32);
       const StructType &PairType = Context.IR.createStructType("Pair", {&I32Type, &F32Type});
-      const auto VerifyElements = [&](std::vector<std::unique_ptr<Value>> Elements)
+      ConstantPool &Pool = Context.IR.constantPool();
+      const IntegerConstant &I32One = Pool.getIntegerConstant(I32Type, 1);
+      const IntegerConstant &ByteOne = Pool.getIntegerConstant(ByteType, 1);
+      const FloatConstant &ValidFloat = Pool.getFloatConstant(F32Type, FloatFormat::F32, 0);
+      const FloatConstant &MalformedFloat = Pool.getFloatConstant(F32Type, FloatFormat::F64, 0);
+      const auto VerifyElements = [&](const std::vector<std::reference_wrapper<const Constant>> &Elements)
       {
-        return verifyReturnedConstant(Context, PairType, std::make_unique<AggregateConstant>(PairType, std::move(Elements)), {&PairType});
+        return verifyReturnedConstant(Context, PairType, Pool.getAggregateConstant(PairType, Elements), {&PairType});
       };
 
-      std::vector<std::unique_ptr<Value>> Missing;
-      Missing.push_back(std::make_unique<IntegerConstant>(I32Type, 1));
-      std::vector<std::unique_ptr<Value>> Null;
-      Null.push_back(std::make_unique<IntegerConstant>(I32Type, 1));
-      Null.push_back(nullptr);
-      std::vector<std::unique_ptr<Value>> Mistyped;
-      Mistyped.push_back(std::make_unique<IntegerConstant>(ByteType, 1));
-      Mistyped.push_back(std::make_unique<FloatConstant>(F32Type, FloatFormat::F32, 0));
-      std::vector<std::unique_ptr<Value>> MalformedLeaf;
-      MalformedLeaf.push_back(std::make_unique<IntegerConstant>(I32Type, 1));
-      MalformedLeaf.push_back(std::make_unique<FloatConstant>(F32Type, FloatFormat::F64, 0));
-
-      std::vector<std::unique_ptr<Value>> NonConstant;
-      NonConstant.push_back(std::make_unique<ValueOperand>(I32Type, ValueId{0}));
-      NonConstant.push_back(std::make_unique<FloatConstant>(F32Type, FloatFormat::F32, 0));
-
-      const VerificationResult MissingResult = VerifyElements(std::move(Missing));
-      const VerificationResult NullResult = VerifyElements(std::move(Null));
-      const VerificationResult MistypedResult = VerifyElements(std::move(Mistyped));
-      const VerificationResult MalformedLeafResult = VerifyElements(std::move(MalformedLeaf));
-      const VerificationResult NonConstantResult = VerifyElements(std::move(NonConstant));
+      const VerificationResult MissingResult = VerifyElements({I32One});
+      const VerificationResult MistypedResult = VerifyElements({ByteOne, ValidFloat});
+      const VerificationResult MalformedLeafResult = VerifyElements({I32One, MalformedFloat});
 
       EXPECT_FALSE(MissingResult.succeeded());
-      EXPECT_FALSE(NullResult.succeeded());
       EXPECT_FALSE(MistypedResult.succeeded());
       EXPECT_FALSE(MalformedLeafResult.succeeded());
-      EXPECT_FALSE(NonConstantResult.succeeded());
       EXPECT_TRUE(hasDiagnostic(MissingResult.diagnostics(), core::DiagnosticKind::IrAggregateConstantFieldCountMismatch));
-      EXPECT_TRUE(hasDiagnostic(NullResult.diagnostics(), core::DiagnosticKind::IrAggregateConstantNullElement));
       EXPECT_TRUE(hasDiagnostic(MistypedResult.diagnostics(), core::DiagnosticKind::IrAggregateConstantElementTypeMismatch));
       EXPECT_TRUE(hasDiagnostic(MalformedLeafResult.diagnostics(), core::DiagnosticKind::IrFloatConstantFormatMismatch));
-      EXPECT_TRUE(hasDiagnostic(NonConstantResult.diagnostics(), core::DiagnosticKind::IrAggregateConstantNonConstantElement));
     }
 
     // Verifies that each floatbits spelling contains exactly the hexadecimal digit count required by its declared format.

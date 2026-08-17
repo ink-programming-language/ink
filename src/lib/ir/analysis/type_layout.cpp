@@ -1,5 +1,7 @@
 #include "ink/ir/analysis/type_layout.h"
 
+#include "ink/ir/model/struct_type.h"
+
 #include <algorithm>
 #include <limits>
 
@@ -24,6 +26,11 @@ namespace ink::ir
       }
       const std::size_t Remainder = Value % Alignment;
       return Remainder == 0 ? std::optional<std::size_t>(Value) : checkedAdd(Value, Alignment - Remainder);
+    }
+
+    bool isValidAlignment(std::size_t Alignment) noexcept
+    {
+      return Alignment != 0 && (Alignment & (Alignment - 1)) == 0;
     }
 
     TypeLayout scalarLayout(std::size_t Size)
@@ -55,9 +62,15 @@ namespace ink::ir
       const StructType &Struct = static_cast<const StructType &>(TypeValue);
       TypeLayout Result;
       std::size_t NextFieldOffset = 0;
-      Result.FieldOffsets.reserve(Struct.fieldTypes().size());
-      for (const Type *FieldType : Struct.fieldTypes())
+      const StructLayoutConstraints &StructConstraints = Struct.layoutConstraints();
+      if ((StructConstraints.Packing.has_value() && !isValidAlignment(*StructConstraints.Packing)) || (StructConstraints.ExplicitAlignment.has_value() && !isValidAlignment(*StructConstraints.ExplicitAlignment)))
       {
+        return std::nullopt;
+      }
+      Result.FieldOffsets.reserve(Struct.fieldCount());
+      for (const StructField &Field : Struct.fields())
+      {
+        const Type *FieldType = Field.type();
         if (FieldType == nullptr)
         {
           return std::nullopt;
@@ -67,8 +80,22 @@ namespace ink::ir
         {
           return std::nullopt;
         }
-        const std::optional<std::size_t> FieldOffset = checkedAlign(NextFieldOffset, FieldLayout->Alignment);
+        const FieldLayoutConstraints &FieldConstraints = Field.layoutConstraints();
+        if (FieldConstraints.ExplicitAlignment.has_value() && !isValidAlignment(*FieldConstraints.ExplicitAlignment))
+        {
+          return std::nullopt;
+        }
+        std::size_t FieldAlignment = StructConstraints.Packing.has_value() ? std::min(FieldLayout->Alignment, *StructConstraints.Packing) : FieldLayout->Alignment;
+        if (FieldConstraints.ExplicitAlignment.has_value())
+        {
+          FieldAlignment = std::max(FieldAlignment, *FieldConstraints.ExplicitAlignment);
+        }
+        std::optional<std::size_t> FieldOffset = FieldConstraints.ExplicitOffset;
         if (!FieldOffset.has_value())
+        {
+          FieldOffset = checkedAlign(NextFieldOffset, FieldAlignment);
+        }
+        if (!FieldOffset.has_value() || *FieldOffset < NextFieldOffset || *FieldOffset % FieldAlignment != 0)
         {
           return std::nullopt;
         }
@@ -81,7 +108,11 @@ namespace ink::ir
         Result.FieldOffsets.push_back(*FieldOffset);
         Result.Size = *OccupiedEnd;
         NextFieldOffset = *AllocationEnd;
-        Result.Alignment = std::max(Result.Alignment, FieldLayout->Alignment);
+        Result.Alignment = std::max(Result.Alignment, FieldAlignment);
+      }
+      if (StructConstraints.ExplicitAlignment.has_value())
+      {
+        Result.Alignment = std::max(Result.Alignment, *StructConstraints.ExplicitAlignment);
       }
       const std::optional<std::size_t> StrideSize = checkedAlign(Result.Size, Result.Alignment);
       if (!StrideSize.has_value())
@@ -115,8 +146,9 @@ namespace ink::ir
     case TypeKind::Struct:
     {
       const StructType &Struct = static_cast<const StructType &>(TypeValue);
-      for (const Type *FieldType : Struct.fieldTypes())
+      for (const StructField &Field : Struct.fields())
       {
+        const Type *FieldType = Field.type();
         if (FieldType == nullptr || !isMemoryValueType(*FieldType))
         {
           return false;

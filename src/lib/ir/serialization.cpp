@@ -6,11 +6,13 @@
 #include "ink/ir/instruction/memory.h"
 #include "ink/ir/model/constant.h"
 #include "ink/ir/model/operand.h"
+#include "ink/ir/model/struct_type.h"
 #include "ink/tokenizer/unicode.h"
 
 #include <cctype>
 #include <charconv>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <sstream>
@@ -403,7 +405,7 @@ namespace ink::ir
 
     struct ParsedOperand
     {
-        std::unique_ptr<Value> ParsedValue;
+        ValueHandle ParsedValue;
         Token Location;
     };
 
@@ -786,29 +788,52 @@ namespace ink::ir
           {
             return fail<DiagnosticKind::IrDuplicateStructType>(*Name, Name->Text);
           }
-          if (expect(TokenKind::Equal, "'='") == nullptr || !expectIdentifier("type") || expect(TokenKind::LeftBrace, "'{'") == nullptr)
+          if (expect(TokenKind::Equal, "'='") == nullptr || !expectIdentifier("type"))
+          {
+            return false;
+          }
+          StructLayoutConstraints LayoutConstraints;
+          while (atIdentifier("align") || atIdentifier("pack"))
+          {
+            const bool IsAlignment = atIdentifier("align");
+            consume();
+            const std::optional<std::size_t> Value = parseParenthesizedLayoutValue(IsAlignment ? "struct alignment" : "struct packing");
+            if (!Value)
+            {
+              return false;
+            }
+            if (IsAlignment)
+            {
+              LayoutConstraints.ExplicitAlignment = *Value;
+            }
+            else
+            {
+              LayoutConstraints.Packing = *Value;
+            }
+          }
+          if (expect(TokenKind::LeftBrace, "'{'") == nullptr)
           {
             return false;
           }
 
-          std::vector<const Type *> FieldTypes;
+          std::vector<StructField> Fields;
           if (!at(TokenKind::RightBrace))
           {
-            const std::optional<const Type *> FirstField = parseType();
-            if (!FirstField)
+            std::optional<StructField> FirstField = parseStructField();
+            if (!FirstField.has_value())
             {
               return false;
             }
-            FieldTypes.push_back(*FirstField);
+            Fields.push_back(std::move(*FirstField));
             while (at(TokenKind::Comma))
             {
               consume();
-              const std::optional<const Type *> Field = parseType();
-              if (!Field)
+              std::optional<StructField> Field = parseStructField();
+              if (!Field.has_value())
               {
                 return false;
               }
-              FieldTypes.push_back(*Field);
+              Fields.push_back(std::move(*Field));
             }
           }
           if (expect(TokenKind::RightBrace, "'}'") == nullptr)
@@ -816,10 +841,155 @@ namespace ink::ir
             return false;
           }
 
-          const StructType &TypeValue = Context.createStructType(Name->Text, std::move(FieldTypes));
+          const StructType &TypeValue = Context.createStructType(Name->Text, std::move(Fields), std::move(LayoutConstraints));
           TypeNames.emplace(Name->Text, &TypeValue);
           ModuleValue.StructTypes.push_back(&TypeValue);
           return true;
+        }
+
+        std::optional<std::size_t> parseParenthesizedLayoutValue(std::string_view Description)
+        {
+          if (expect(TokenKind::LeftParenthesis, "'('") == nullptr)
+          {
+            return std::nullopt;
+          }
+          const Token *ValueToken = expect(TokenKind::Integer, Description);
+          if (ValueToken == nullptr)
+          {
+            return std::nullopt;
+          }
+          const std::optional<std::size_t> Value = parseIndex(*ValueToken, Description);
+          if (!Value || expect(TokenKind::RightParenthesis, "')'") == nullptr)
+          {
+            return std::nullopt;
+          }
+          return Value;
+        }
+
+        std::optional<Attribute> parseStructFieldAttribute()
+        {
+          const Token *KindToken = expect(TokenKind::Identifier, "a built-in attribute name");
+          if (KindToken == nullptr)
+          {
+            return std::nullopt;
+          }
+          const std::optional<AttributeKind> Kind = attributeKindFromSpelling(KindToken->Text);
+          if (!Kind.has_value())
+          {
+            fail<DiagnosticKind::IrExpected>(*KindToken, "a known built-in attribute name");
+            return std::nullopt;
+          }
+          std::vector<AttributeArgument> Arguments;
+          if (at(TokenKind::LeftParenthesis))
+          {
+            consume();
+            if (!at(TokenKind::RightParenthesis))
+            {
+              while (true)
+              {
+                const Token *Key = expect(TokenKind::Identifier, "an attribute argument name");
+                if (Key == nullptr || expect(TokenKind::Equal, "'='") == nullptr)
+                {
+                  return std::nullopt;
+                }
+                const Token ValueLocation = current();
+                const std::optional<const Type *> ValueType = parseType();
+                if (!ValueType.has_value())
+                {
+                  return std::nullopt;
+                }
+                const std::optional<const Constant *> Value = parseConstantValue(**ValueType);
+                if (!Value.has_value())
+                {
+                  fail<DiagnosticKind::IrExpected>(ValueLocation, "a constant attribute argument value");
+                  return std::nullopt;
+                }
+                Arguments.emplace_back(Key->Text, **Value);
+                if (!at(TokenKind::Comma))
+                {
+                  break;
+                }
+                consume();
+              }
+            }
+            if (expect(TokenKind::RightParenthesis, "')'") == nullptr)
+            {
+              return std::nullopt;
+            }
+          }
+          return Attribute(*Kind, std::move(Arguments));
+        }
+
+        std::optional<std::vector<Attribute>> parseStructFieldAttributes()
+        {
+          std::vector<Attribute> Attributes;
+          if (!at(TokenKind::LeftBracket))
+          {
+            return Attributes;
+          }
+          consume();
+          if (!at(TokenKind::RightBracket))
+          {
+            while (true)
+            {
+              std::optional<Attribute> AttributeValue = parseStructFieldAttribute();
+              if (!AttributeValue.has_value())
+              {
+                return std::nullopt;
+              }
+              Attributes.push_back(std::move(*AttributeValue));
+              if (!at(TokenKind::Comma))
+              {
+                break;
+              }
+              consume();
+            }
+          }
+          if (expect(TokenKind::RightBracket, "']'") == nullptr)
+          {
+            return std::nullopt;
+          }
+          return Attributes;
+        }
+
+        std::optional<StructField> parseStructField()
+        {
+          ink::ir::Name Name;
+          if (at(TokenKind::Identifier) && at(TokenKind::Colon, 1))
+          {
+            Name = consume().Text;
+            consume();
+          }
+          const std::optional<const Type *> FieldType = parseType();
+          if (!FieldType.has_value())
+          {
+            return std::nullopt;
+          }
+          FieldLayoutConstraints LayoutConstraints;
+          while (atIdentifier("align") || atIdentifier("offset"))
+          {
+            const bool IsAlignment = atIdentifier("align");
+            consume();
+            const std::optional<std::size_t> Value = parseParenthesizedLayoutValue(IsAlignment ? "field alignment" : "field offset");
+            if (!Value)
+            {
+              return std::nullopt;
+            }
+            if (IsAlignment)
+            {
+              LayoutConstraints.ExplicitAlignment = *Value;
+            }
+            else
+            {
+              LayoutConstraints.ExplicitOffset = *Value;
+            }
+          }
+          std::optional<std::vector<Attribute>> Attributes = parseStructFieldAttributes();
+          if (!Attributes.has_value())
+          {
+            return std::nullopt;
+          }
+          return StructField(std::move(Name), *FieldType, std::move(*Attributes), std::move(LayoutConstraints));
         }
 
         bool reserveGlobalSymbol(const Token &Name)
@@ -1122,41 +1292,23 @@ namespace ink::ir
           return at(TokenKind::Identifier) && at(TokenKind::Colon, 1);
         }
 
-        std::optional<ParsedOperand> parseOperandValue(const Type &OperandType)
+        bool startsConstantValue() const
         {
-          ParsedOperand Result;
-          Result.Location = current();
-          if (at(TokenKind::ValueName))
-          {
-            const Token &Value = consume();
-            const std::optional<std::size_t> Id = parseId(Value, "SSA value");
-            if (!Id)
-            {
-              return std::nullopt;
-            }
-            Result.ParsedValue = std::make_unique<ValueOperand>(OperandType, ValueId{*Id});
-            return Result;
-          }
+          return at(TokenKind::Integer) || atIdentifier("floatbits") || (atIdentifier("c") && at(TokenKind::String, 1)) || atIdentifier("null") || at(TokenKind::LeftBrace) || atIdentifier("zeroinitializer");
+        }
+
+        std::optional<const Constant *> parseConstantValue(const Type &ConstantType)
+        {
           if (at(TokenKind::Integer))
           {
             const Token &Integer = consume();
-            if (OperandType.kind() == TypeKind::PointerSize && (Integer.Text.empty() || Integer.Text.front() != '-'))
+            if (ConstantType.kind() == TypeKind::PointerSize && (Integer.Text.empty() || Integer.Text.front() != '-'))
             {
               const std::optional<std::uint64_t> Value = parseUnsigned(Integer, "integer constant");
-              if (!Value)
-              {
-                return std::nullopt;
-              }
-              Result.ParsedValue = std::make_unique<IntegerConstant>(OperandType, *Value);
-              return Result;
+              return Value.has_value() ? std::optional<const Constant *>(&Context.constantPool().getIntegerConstant(ConstantType, *Value)) : std::nullopt;
             }
             const std::optional<std::int64_t> Value = parseSigned(Integer, "integer constant");
-            if (!Value)
-            {
-              return std::nullopt;
-            }
-            Result.ParsedValue = std::make_unique<IntegerConstant>(OperandType, *Value);
-            return Result;
+            return Value.has_value() ? std::optional<const Constant *>(&Context.constantPool().getIntegerConstant(ConstantType, *Value)) : std::nullopt;
           }
           if (atIdentifier("floatbits"))
           {
@@ -1186,35 +1338,41 @@ namespace ink::ir
             {
               return std::nullopt;
             }
-            Result.ParsedValue = std::make_unique<FloatConstant>(OperandType, *Format, *BitPattern);
-            return Result;
+            return &Context.constantPool().getFloatConstant(ConstantType, *Format, *BitPattern);
           }
           if (atIdentifier("c") && at(TokenKind::String, 1))
           {
             consume();
-            Result.ParsedValue = std::make_unique<StringConstant>(OperandType, consume().Text);
-            return Result;
+            return &Context.constantPool().getStringConstant(ConstantType, consume().Text);
           }
           if (atIdentifier("null"))
           {
             consume();
-            Result.ParsedValue = std::make_unique<NullConstant>(OperandType);
-            return Result;
+            return &Context.constantPool().getNullConstant(ConstantType);
           }
           if (at(TokenKind::LeftBrace))
           {
             consume();
-            std::vector<std::unique_ptr<Value>> Elements;
+            std::vector<std::reference_wrapper<const Constant>> Elements;
             if (!at(TokenKind::RightBrace))
             {
               while (true)
               {
-                std::optional<ParsedOperand> Element = parseOperand();
-                if (!Element)
+                const std::optional<const Type *> ElementType = parseType();
+                if (!ElementType.has_value())
                 {
                   return std::nullopt;
                 }
-                Elements.push_back(std::move(Element->ParsedValue));
+                const std::optional<const Constant *> Element = parseConstantValue(**ElementType);
+                if (!Element.has_value())
+                {
+                  if (!startsConstantValue())
+                  {
+                    fail<DiagnosticKind::IrExpected>(current(), "a constant aggregate element");
+                  }
+                  return std::nullopt;
+                }
+                Elements.emplace_back(**Element);
                 if (!at(TokenKind::Comma))
                 {
                   break;
@@ -1226,13 +1384,39 @@ namespace ink::ir
             {
               return std::nullopt;
             }
-            Result.ParsedValue = std::make_unique<AggregateConstant>(OperandType, std::move(Elements));
-            return Result;
+            return &Context.constantPool().getAggregateConstant(ConstantType, Elements);
           }
           if (atIdentifier("zeroinitializer"))
           {
             consume();
-            Result.ParsedValue = std::make_unique<ZeroInitializer>(OperandType);
+            return &Context.constantPool().getZeroInitializer(ConstantType);
+          }
+          return std::nullopt;
+        }
+
+        std::optional<ParsedOperand> parseOperandValue(const Type &OperandType)
+        {
+          ParsedOperand Result;
+          Result.Location = current();
+          if (at(TokenKind::ValueName))
+          {
+            const Token &Value = consume();
+            const std::optional<std::size_t> Id = parseId(Value, "SSA value");
+            if (!Id)
+            {
+              return std::nullopt;
+            }
+            Result.ParsedValue = std::make_unique<ValueOperand>(OperandType, ValueId{*Id});
+            return Result;
+          }
+          if (startsConstantValue())
+          {
+            const std::optional<const Constant *> ConstantValue = parseConstantValue(OperandType);
+            if (!ConstantValue.has_value())
+            {
+              return std::nullopt;
+            }
+            Result.ParsedValue = **ConstantValue;
             return Result;
           }
           if (at(TokenKind::GlobalName))
@@ -1445,13 +1629,13 @@ namespace ink::ir
             return nullptr;
           }
           const StructType &AggregateType = static_cast<const StructType &>(Aggregate->ParsedValue->type());
-          if (*ParsedFieldIndex >= AggregateType.fieldTypes().size())
+          if (*ParsedFieldIndex >= AggregateType.fieldCount())
           {
-            fail<DiagnosticKind::IrFieldIndexOutOfRange>(*FieldIndex, *ParsedFieldIndex, AggregateType.fieldTypes().size());
+            fail<DiagnosticKind::IrFieldIndexOutOfRange>(*FieldIndex, *ParsedFieldIndex, AggregateType.fieldCount());
             return nullptr;
           }
 
-          auto Extract = std::make_unique<ExtractValueInstruction>(*AggregateType.fieldTypes()[*ParsedFieldIndex]);
+          auto Extract = std::make_unique<ExtractValueInstruction>(*AggregateType.fieldType(*ParsedFieldIndex));
           Extract->Result = *ResultValue;
           Extract->Aggregate = std::move(Aggregate->ParsedValue);
           Extract->FieldIndex = *ParsedFieldIndex;
@@ -2235,7 +2419,7 @@ namespace ink::ir
           {
             Output << ", ";
           }
-          writeOperand(Output, ModuleValue, *Constant.elements()[ElementIndex]);
+          writeOperand(Output, ModuleValue, Constant.elements()[ElementIndex].get());
         }
         Output << '}';
         return;
@@ -2248,6 +2432,27 @@ namespace ink::ir
       writeType(Output, OperandValue.type());
       Output << ' ';
       writeOperandValue(Output, ModuleValue, OperandValue);
+    }
+
+    void writeAttribute(std::ostringstream &Output, const Module &ModuleValue, const Attribute &AttributeValue)
+    {
+      Output << attributeKindSpelling(AttributeValue.kind());
+      if (AttributeValue.arguments().empty())
+      {
+        return;
+      }
+      Output << '(';
+      for (std::size_t ArgumentIndex = 0; ArgumentIndex < AttributeValue.arguments().size(); ++ArgumentIndex)
+      {
+        if (ArgumentIndex != 0)
+        {
+          Output << ", ";
+        }
+        const AttributeArgument &Argument = AttributeValue.arguments()[ArgumentIndex];
+        Output << Argument.key() << " = ";
+        writeOperand(Output, ModuleValue, Argument.value());
+      }
+      Output << ')';
     }
 
     void writeCall(std::ostringstream &Output, const Module &ModuleValue, const CallInstruction &Call)
@@ -2303,7 +2508,7 @@ namespace ink::ir
       writeOperand(Output, ModuleValue, *GetElementPointer.Pointer);
       Output << ", ";
       writeOperand(Output, ModuleValue, *GetElementPointer.Index);
-      for (const std::unique_ptr<Value> &FieldIndex : GetElementPointer.FieldIndices)
+      for (const ValueHandle &FieldIndex : GetElementPointer.FieldIndices)
       {
         Output << ", ";
         writeOperand(Output, ModuleValue, *FieldIndex);
@@ -2474,14 +2679,49 @@ namespace ink::ir
     }
     for (const StructType *TypeValue : ModuleValue.StructTypes)
     {
-      Output << "\n%" << TypeValue->name() << " = type {";
-      for (std::size_t FieldIndex = 0; FieldIndex < TypeValue->fieldTypes().size(); ++FieldIndex)
+      Output << "\n%" << TypeValue->name() << " = type";
+      if (TypeValue->layoutConstraints().ExplicitAlignment.has_value())
+      {
+        Output << " align(" << *TypeValue->layoutConstraints().ExplicitAlignment << ')';
+      }
+      if (TypeValue->layoutConstraints().Packing.has_value())
+      {
+        Output << " pack(" << *TypeValue->layoutConstraints().Packing << ')';
+      }
+      Output << " {";
+      for (std::size_t FieldIndex = 0; FieldIndex < TypeValue->fieldCount(); ++FieldIndex)
       {
         if (FieldIndex != 0)
         {
           Output << ", ";
         }
-        writeType(Output, *TypeValue->fieldTypes()[FieldIndex]);
+        const StructField &Field = TypeValue->field(FieldIndex);
+        if (!Field.name().empty())
+        {
+          Output << Field.name() << ": ";
+        }
+        writeType(Output, *Field.type());
+        if (Field.layoutConstraints().ExplicitAlignment.has_value())
+        {
+          Output << " align(" << *Field.layoutConstraints().ExplicitAlignment << ')';
+        }
+        if (Field.layoutConstraints().ExplicitOffset.has_value())
+        {
+          Output << " offset(" << *Field.layoutConstraints().ExplicitOffset << ')';
+        }
+        if (!Field.attributes().empty())
+        {
+          Output << " [";
+          for (std::size_t AttributeIndex = 0; AttributeIndex < Field.attributes().size(); ++AttributeIndex)
+          {
+            if (AttributeIndex != 0)
+            {
+              Output << ", ";
+            }
+            writeAttribute(Output, ModuleValue, Field.attributes()[AttributeIndex]);
+          }
+          Output << ']';
+        }
       }
       Output << "}\n";
     }

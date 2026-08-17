@@ -42,16 +42,6 @@ namespace ink::ir
 
       friend class Constant;
       friend class Operand;
-      friend class ZeroInitializer;
-  };
-
-  class ZeroInitializer final : public Value
-  {
-    public:
-      explicit ZeroInitializer(const Type &ValueType) noexcept
-          : Value(ValueKind::ZeroInitializer, ValueType)
-      {
-      }
   };
 } // namespace ink::ir
 

@@ -101,7 +101,7 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeLoadInstruction(const ir::LoadInstruction &Load, FunctionExecutionState &State)
   {
-    if (Load.Pointer == nullptr || Load.ResultType == nullptr)
+    if (!Load.Pointer || Load.ResultType == nullptr)
     {
       addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "load", State.FunctionValue.Name, 0, 0);
       return InstructionFlow::Failed;
@@ -142,7 +142,7 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeStoreInstruction(const ir::StoreInstruction &Store, FunctionExecutionState &State)
   {
-    if (Store.Pointer == nullptr || Store.StoredValue == nullptr)
+    if (!Store.Pointer || !Store.StoredValue)
     {
       addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "store", State.FunctionValue.Name, 0, 0);
       return InstructionFlow::Failed;
@@ -188,7 +188,7 @@ namespace ink::execution
     }
     std::vector<std::uint32_t> FieldIndices;
     FieldIndices.reserve(GetElementPointer.FieldIndices.size());
-    for (const std::unique_ptr<ir::Value> &FieldIndexValue : GetElementPointer.FieldIndices)
+    for (const ir::ValueHandle &FieldIndexValue : GetElementPointer.FieldIndices)
     {
       if (!FieldIndexValue || FieldIndexValue->type().kind() != ir::TypeKind::I32 || FieldIndexValue->kind() != ir::ValueKind::IntegerConstant)
       {

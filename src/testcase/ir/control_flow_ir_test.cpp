@@ -195,7 +195,7 @@ namespace ink::ir
       DeserializeResult Parsed = deserialize(Context.IR, Text);
       ASSERT_TRUE(Parsed.succeeded());
       auto &Phi = static_cast<PhiInstruction &>(*Parsed.module()->Functions[0].Blocks[1].Instructions[0]);
-      Phi.IncomingValues[0].Value = std::make_unique<IntegerConstant>(ByteType, 1);
+      Phi.IncomingValues[0].Value = Context.IR.constantPool().getIntegerConstant(ByteType, 1);
 
       const VerificationResult Result = verify(Context.IR, *Parsed.module());
 
@@ -475,10 +475,7 @@ namespace ink::ir
       const Type &BoolType = Context.IR.getType(TypeKind::Bool);
       const Type &ByteType = Context.IR.getType(TypeKind::Byte);
       const Type &I32Type = Context.IR.getType(TypeKind::I32);
-      const auto I32Zero = [&]()
-      {
-        return std::make_unique<IntegerConstant>(I32Type, 0);
-      };
+      const IntegerConstant &I32Zero = Context.IR.constantPool().getIntegerConstant(I32Type, 0);
       const auto ExpectDiagnostic = [&](std::unique_ptr<Instruction> InstructionValue, core::DiagnosticKind Expected)
       {
         const VerificationResult Result = verifySingleControlInstruction(Context, std::move(InstructionValue));
@@ -489,53 +486,65 @@ namespace ink::ir
       {
         auto InstructionValue = std::make_unique<AddInstruction>(BoolType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Left = std::make_unique<IntegerConstant>(BoolType, 0);
-        InstructionValue->Right = std::make_unique<IntegerConstant>(BoolType, 1);
+        InstructionValue->Left = Context.IR.constantPool().getIntegerConstant(BoolType, 0);
+        InstructionValue->Right = Context.IR.constantPool().getIntegerConstant(BoolType, 1);
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrAddInvalidResultType);
       }
       for (std::size_t NullOperand = 0; NullOperand < 2; ++NullOperand)
       {
         auto InstructionValue = std::make_unique<AddInstruction>(I32Type);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Left = NullOperand == 0 ? nullptr : I32Zero();
-        InstructionValue->Right = NullOperand == 1 ? nullptr : I32Zero();
+        if (NullOperand != 0)
+        {
+          InstructionValue->Left = I32Zero;
+        }
+        if (NullOperand != 1)
+        {
+          InstructionValue->Right = I32Zero;
+        }
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrAddNullOperand);
       }
       {
         auto InstructionValue = std::make_unique<AddInstruction>(I32Type);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Left = std::make_unique<IntegerConstant>(ByteType, 0);
-        InstructionValue->Right = I32Zero();
+        InstructionValue->Left = Context.IR.constantPool().getIntegerConstant(ByteType, 0);
+        InstructionValue->Right = I32Zero;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrAddOperandTypeMismatch);
       }
       {
         auto InstructionValue = std::make_unique<CompareInstruction>(I32Type);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Left = I32Zero();
-        InstructionValue->Right = I32Zero();
+        InstructionValue->Left = I32Zero;
+        InstructionValue->Right = I32Zero;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrCompareInvalidResultType);
       }
       {
         auto InstructionValue = std::make_unique<CompareInstruction>(BoolType);
         InstructionValue->Result = ValueId{0};
         InstructionValue->Predicate = ComparePredicate::Count;
-        InstructionValue->Left = I32Zero();
-        InstructionValue->Right = I32Zero();
+        InstructionValue->Left = I32Zero;
+        InstructionValue->Right = I32Zero;
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrCompareInvalidPredicate);
       }
       for (std::size_t NullOperand = 0; NullOperand < 2; ++NullOperand)
       {
         auto InstructionValue = std::make_unique<CompareInstruction>(BoolType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Left = NullOperand == 0 ? nullptr : I32Zero();
-        InstructionValue->Right = NullOperand == 1 ? nullptr : I32Zero();
+        if (NullOperand != 0)
+        {
+          InstructionValue->Left = I32Zero;
+        }
+        if (NullOperand != 1)
+        {
+          InstructionValue->Right = I32Zero;
+        }
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrCompareNullOperand);
       }
       {
         auto InstructionValue = std::make_unique<CompareInstruction>(BoolType);
         InstructionValue->Result = ValueId{0};
-        InstructionValue->Left = I32Zero();
-        InstructionValue->Right = std::make_unique<IntegerConstant>(ByteType, 0);
+        InstructionValue->Left = I32Zero;
+        InstructionValue->Right = Context.IR.constantPool().getIntegerConstant(ByteType, 0);
         ExpectDiagnostic(std::move(InstructionValue), core::DiagnosticKind::IrCompareOperandTypeMismatch);
       }
     }
@@ -558,7 +567,7 @@ namespace ink::ir
         Target.Name = "target";
         auto Phi = std::make_unique<PhiInstruction>(VoidType);
         Phi->Result = ValueId{0};
-        Phi->IncomingValues.push_back({std::make_unique<ZeroInitializer>(VoidType), BlockId{0}});
+        Phi->IncomingValues.push_back({Context.IR.constantPool().getZeroInitializer(VoidType), BlockId{0}});
         Target.Instructions.push_back(std::move(Phi));
         Target.Instructions.push_back(std::make_unique<ReturnInstruction>());
         Main.Blocks.push_back(std::move(Entry));
@@ -583,7 +592,7 @@ namespace ink::ir
         Target.Name = "target";
         auto Phi = std::make_unique<PhiInstruction>(I32Type);
         Phi->Result = ValueId{0};
-        Phi->IncomingValues.push_back({nullptr, BlockId{0}});
+        Phi->IncomingValues.push_back({ValueHandle{}, BlockId{0}});
         Target.Instructions.push_back(std::move(Phi));
         Target.Instructions.push_back(std::make_unique<ReturnInstruction>());
         Main.Blocks.push_back(std::move(Entry));
@@ -605,7 +614,7 @@ namespace ink::ir
         auto Branch = std::make_unique<ConditionalBranchInstruction>();
         if (!NullCondition)
         {
-          Branch->Condition = std::make_unique<IntegerConstant>(I32Type, 1);
+          Branch->Condition = Context.IR.constantPool().getIntegerConstant(I32Type, 1);
         }
         Branch->TrueTarget.Block = BlockId{1};
         Branch->FalseTarget.Block = BlockId{2};

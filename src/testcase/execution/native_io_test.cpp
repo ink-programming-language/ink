@@ -76,7 +76,7 @@ namespace ink::execution
       auto Call = std::make_unique<ir::CallInstruction>(I32Type);
       Call->Result = ir::ValueId{2};
       Call->Callee = ir::FunctionId{0};
-      Call->Arguments.push_back(std::make_unique<ir::IntegerConstant>(I32Type, 0));
+      Call->Arguments.emplace_back(Context.constantPool().getIntegerConstant(I32Type, 0));
       Call->Arguments.push_back(std::make_unique<ir::ValueOperand>(BytePointerType, ir::ValueId{0}));
       Call->Arguments.push_back(std::make_unique<ir::ValueOperand>(PointerSizeType, ir::ValueId{1}));
       auto Return = std::make_unique<ir::ReturnInstruction>();
@@ -113,9 +113,9 @@ namespace ink::execution
       auto Call = std::make_unique<ir::CallInstruction>(I32Type);
       Call->Result = ir::ValueId{0};
       Call->Callee = ir::FunctionId{0};
-      Call->Arguments.push_back(std::make_unique<ir::IntegerConstant>(I32Type, 2));
+      Call->Arguments.emplace_back(Context.constantPool().getIntegerConstant(I32Type, 2));
       Call->Arguments.push_back(std::make_unique<ir::GlobalAddressOperand>(ConstBytePointerType, ir::GlobalId{0}, 0));
-      Call->Arguments.push_back(std::make_unique<ir::IntegerConstant>(PointerSizeType, 3));
+      Call->Arguments.emplace_back(Context.constantPool().getIntegerConstant(PointerSizeType, 3));
       auto Return = std::make_unique<ir::ReturnInstruction>();
       Return->ReturnValue = std::make_unique<ir::ValueOperand>(I32Type, ir::ValueId{0});
 

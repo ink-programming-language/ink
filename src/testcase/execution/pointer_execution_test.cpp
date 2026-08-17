@@ -493,7 +493,7 @@ namespace ink::execution
       ExecutionEngine Engine(Context.Execution, *Parsed.module());
       ASSERT_TRUE(Engine.initialize().succeeded());
       auto &GetElementPointer = static_cast<ir::GetElementPointerInstruction &>(*Parsed.module()->Functions[0].Blocks[0].Instructions[2]);
-      GetElementPointer.Index = std::make_unique<ir::IntegerConstant>(Context.IR.getType(ir::TypeKind::Byte), 0);
+      GetElementPointer.Index = Context.IR.constantPool().getIntegerConstant(Context.IR.getType(ir::TypeKind::Byte), 0);
 
       const ExecutionResult Result = Engine.execute("main");
 

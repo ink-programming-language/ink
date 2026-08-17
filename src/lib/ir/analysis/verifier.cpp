@@ -7,6 +7,7 @@
 #include "ink/ir/instruction/memory.h"
 #include "ink/ir/model/constant.h"
 #include "ink/ir/model/operand.h"
+#include "ink/ir/model/struct_type.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -239,11 +240,12 @@ namespace ink::ir
       switch (Left.kind())
       {
       case ValueKind::IntegerConstant:
-      {
-        const IntegerConstant &LeftInteger = static_cast<const IntegerConstant &>(Left);
-        const IntegerConstant &RightInteger = static_cast<const IntegerConstant &>(Right);
-        return LeftInteger.unsignedValue() == RightInteger.unsignedValue() && LeftInteger.isNegative() == RightInteger.isNegative();
-      }
+      case ValueKind::FloatConstant:
+      case ValueKind::StringConstant:
+      case ValueKind::NullConstant:
+      case ValueKind::ZeroInitializer:
+      case ValueKind::AggregateConstant:
+        return constantsEqual(static_cast<const Constant &>(Left), static_cast<const Constant &>(Right));
       case ValueKind::ValueOperand:
         return static_cast<const ValueOperand &>(Left).id() == static_cast<const ValueOperand &>(Right).id();
       case ValueKind::GlobalAddressOperand:
@@ -254,37 +256,6 @@ namespace ink::ir
       }
       case ValueKind::GlobalVariableAddressOperand:
         return static_cast<const GlobalVariableAddressOperand &>(Left).global() == static_cast<const GlobalVariableAddressOperand &>(Right).global();
-      case ValueKind::ZeroInitializer:
-        return true;
-      case ValueKind::FloatConstant:
-      {
-        const FloatConstant &LeftFloat = static_cast<const FloatConstant &>(Left);
-        const FloatConstant &RightFloat = static_cast<const FloatConstant &>(Right);
-        return LeftFloat.format() == RightFloat.format() && LeftFloat.bitPattern() == RightFloat.bitPattern();
-      }
-      case ValueKind::StringConstant:
-        return static_cast<const StringConstant &>(Left).data() == static_cast<const StringConstant &>(Right).data();
-      case ValueKind::NullConstant:
-        return true;
-      case ValueKind::AggregateConstant:
-      {
-        const AggregateConstant &LeftAggregate = static_cast<const AggregateConstant &>(Left);
-        const AggregateConstant &RightAggregate = static_cast<const AggregateConstant &>(Right);
-        if (LeftAggregate.elements().size() != RightAggregate.elements().size())
-        {
-          return false;
-        }
-        for (std::size_t ElementIndex = 0; ElementIndex < LeftAggregate.elements().size(); ++ElementIndex)
-        {
-          const std::unique_ptr<Value> &LeftElement = LeftAggregate.elements()[ElementIndex];
-          const std::unique_ptr<Value> &RightElement = RightAggregate.elements()[ElementIndex];
-          if (static_cast<bool>(LeftElement) != static_cast<bool>(RightElement) || (LeftElement && !sameValue(*LeftElement, *RightElement)))
-          {
-            return false;
-          }
-        }
-        return true;
-      }
       }
       return false;
     }
@@ -388,9 +359,64 @@ namespace ink::ir
       }
     }
 
-    bool isConstantValue(const Value &ValueEntry)
+    void verifyConstant(const Module &ModuleValue, const Constant &ConstantValue, const Name &OwnerName, DiagnosticCollector &Diagnostics)
     {
-      return ValueEntry.kind() != ValueKind::ValueOperand;
+      if (!isValidType(ModuleValue, &ConstantValue.type()) || ConstantValue.type().kind() == TypeKind::Void)
+      {
+        Diagnostics.add<DiagnosticKind::IrOperandInvalidType>(OwnerName);
+        return;
+      }
+      if (!ModuleValue.context().constantPool().owns(ConstantValue))
+      {
+        Diagnostics.add<DiagnosticKind::IrConstantPoolMismatch>(OwnerName);
+        return;
+      }
+      switch (ConstantValue.kind())
+      {
+      case ValueKind::IntegerConstant:
+        verifyIntegerConstant(static_cast<const IntegerConstant &>(ConstantValue), ModuleValue.context().compilationContext().targetContext(), OwnerName, Diagnostics);
+        return;
+      case ValueKind::FloatConstant:
+        verifyFloatConstant(static_cast<const FloatConstant &>(ConstantValue), OwnerName, Diagnostics);
+        return;
+      case ValueKind::StringConstant:
+        verifyStringConstant(static_cast<const StringConstant &>(ConstantValue), ModuleValue.context().compilationContext().targetContext(), OwnerName, Diagnostics);
+        return;
+      case ValueKind::NullConstant:
+        verifyNullConstant(static_cast<const NullConstant &>(ConstantValue), OwnerName, Diagnostics);
+        return;
+      case ValueKind::ZeroInitializer:
+        return;
+      case ValueKind::AggregateConstant:
+      {
+        const AggregateConstant &Aggregate = static_cast<const AggregateConstant &>(ConstantValue);
+        if (Aggregate.type().kind() != TypeKind::Struct)
+        {
+          Diagnostics.add<DiagnosticKind::IrAggregateConstantInvalidType>(OwnerName);
+          return;
+        }
+        const StructType &Struct = static_cast<const StructType &>(Aggregate.type());
+        if (Aggregate.elements().size() != Struct.fieldCount())
+        {
+          Diagnostics.add<DiagnosticKind::IrAggregateConstantFieldCountMismatch>(OwnerName, Struct.fieldCount(), Aggregate.elements().size());
+        }
+        for (std::size_t ElementIndex = 0; ElementIndex < Aggregate.elements().size(); ++ElementIndex)
+        {
+          const Constant &Element = Aggregate.elements()[ElementIndex].get();
+          if (ElementIndex < Struct.fieldCount() && &Element.type() != Struct.fieldType(ElementIndex))
+          {
+            Diagnostics.add<DiagnosticKind::IrAggregateConstantElementTypeMismatch>(OwnerName, ElementIndex);
+          }
+          verifyConstant(ModuleValue, Element, OwnerName, Diagnostics);
+        }
+        return;
+      }
+      case ValueKind::ValueOperand:
+      case ValueKind::GlobalAddressOperand:
+      case ValueKind::GlobalVariableAddressOperand:
+        Diagnostics.add<DiagnosticKind::IrUnknownOperandKind>(OwnerName);
+        return;
+      }
     }
 
     bool definitionDominatesUse(const SsaDefinition &Definition, std::size_t UseBlockIndex, std::size_t UseInstructionIndex, const FunctionControlFlow &ControlFlow)
@@ -416,68 +442,14 @@ namespace ink::ir
 
     void verifyOperand(const Module &ModuleValue, const Value &OperandValue, const SsaDefinitionMap &Definitions, const FunctionControlFlow &ControlFlow, std::size_t UseBlockIndex, std::size_t UseInstructionIndex, const Name &FunctionName, DiagnosticCollector &Diagnostics)
     {
+      if (isConstantKind(OperandValue.kind()))
+      {
+        verifyConstant(ModuleValue, static_cast<const Constant &>(OperandValue), FunctionName, Diagnostics);
+        return;
+      }
       if (!isValidType(ModuleValue, &OperandValue.type()) || OperandValue.type().kind() == TypeKind::Void)
       {
         Diagnostics.add<DiagnosticKind::IrOperandInvalidType>(FunctionName);
-        return;
-      }
-
-      if (OperandValue.kind() == ValueKind::IntegerConstant)
-      {
-        verifyIntegerConstant(static_cast<const IntegerConstant &>(OperandValue), ModuleValue.context().compilationContext().targetContext(), FunctionName, Diagnostics);
-        return;
-      }
-
-      if (OperandValue.kind() == ValueKind::FloatConstant)
-      {
-        verifyFloatConstant(static_cast<const FloatConstant &>(OperandValue), FunctionName, Diagnostics);
-        return;
-      }
-
-      if (OperandValue.kind() == ValueKind::StringConstant)
-      {
-        verifyStringConstant(static_cast<const StringConstant &>(OperandValue), ModuleValue.context().compilationContext().targetContext(), FunctionName, Diagnostics);
-        return;
-      }
-
-      if (OperandValue.kind() == ValueKind::NullConstant)
-      {
-        verifyNullConstant(static_cast<const NullConstant &>(OperandValue), FunctionName, Diagnostics);
-        return;
-      }
-
-      if (OperandValue.kind() == ValueKind::AggregateConstant)
-      {
-        const AggregateConstant &Aggregate = static_cast<const AggregateConstant &>(OperandValue);
-        if (Aggregate.type().kind() != TypeKind::Struct)
-        {
-          Diagnostics.add<DiagnosticKind::IrAggregateConstantInvalidType>(FunctionName);
-          return;
-        }
-        const StructType &Struct = static_cast<const StructType &>(Aggregate.type());
-        if (Aggregate.elements().size() != Struct.fieldTypes().size())
-        {
-          Diagnostics.add<DiagnosticKind::IrAggregateConstantFieldCountMismatch>(FunctionName, Struct.fieldTypes().size(), Aggregate.elements().size());
-        }
-        for (std::size_t ElementIndex = 0; ElementIndex < Aggregate.elements().size(); ++ElementIndex)
-        {
-          const std::unique_ptr<Value> &Element = Aggregate.elements()[ElementIndex];
-          if (!Element)
-          {
-            Diagnostics.add<DiagnosticKind::IrAggregateConstantNullElement>(FunctionName, ElementIndex);
-            continue;
-          }
-          if (ElementIndex < Struct.fieldTypes().size() && &Element->type() != Struct.fieldTypes()[ElementIndex])
-          {
-            Diagnostics.add<DiagnosticKind::IrAggregateConstantElementTypeMismatch>(FunctionName, ElementIndex);
-          }
-          if (!isConstantValue(*Element))
-          {
-            Diagnostics.add<DiagnosticKind::IrAggregateConstantNonConstantElement>(FunctionName, ElementIndex);
-            continue;
-          }
-          verifyOperand(ModuleValue, *Element, Definitions, ControlFlow, UseBlockIndex, UseInstructionIndex, FunctionName, Diagnostics);
-        }
         return;
       }
 
@@ -494,11 +466,6 @@ namespace ink::ir
         {
           Diagnostics.add<DiagnosticKind::IrSsaOperandTypeMismatch>(FunctionName, Id.value());
         }
-        return;
-      }
-
-      if (OperandValue.kind() == ValueKind::ZeroInitializer)
-      {
         return;
       }
 
@@ -1044,7 +1011,7 @@ namespace ink::ir
             for (std::size_t FieldIndexPosition = 0; FieldIndexPosition < GetElementPointer.FieldIndices.size(); ++FieldIndexPosition)
             {
               const std::size_t PathIndex = FieldIndexPosition + 1;
-              const std::unique_ptr<Value> &FieldIndexValue = GetElementPointer.FieldIndices[FieldIndexPosition];
+              const ValueHandle &FieldIndexValue = GetElementPointer.FieldIndices[FieldIndexPosition];
               if (!FieldIndexValue)
               {
                 Diagnostics.add<DiagnosticKind::IrGetElementPointerNullFieldIndex>(FunctionValue.Name, PathIndex);
@@ -1088,13 +1055,13 @@ namespace ink::ir
               }
               const StructType &Struct = static_cast<const StructType &>(*IndexedType);
               const std::size_t FieldIndex = static_cast<std::size_t>(FieldIndexConstant.unsignedValue());
-              if (FieldIndex >= Struct.fieldTypes().size())
+              if (FieldIndex >= Struct.fieldCount())
               {
-                Diagnostics.add<DiagnosticKind::IrGetElementPointerFieldIndexOutOfRange>(FunctionValue.Name, PathIndex, FieldIndex, Struct.fieldTypes().size());
+                Diagnostics.add<DiagnosticKind::IrGetElementPointerFieldIndexOutOfRange>(FunctionValue.Name, PathIndex, FieldIndex, Struct.fieldCount());
                 IndexedType = nullptr;
                 continue;
               }
-              IndexedType = Struct.fieldTypes()[FieldIndex];
+              IndexedType = Struct.fieldType(FieldIndex);
             }
             continue;
           }
@@ -1380,11 +1347,11 @@ namespace ink::ir
             }
             if (AggregateType != nullptr)
             {
-              if (Insert.FieldIndex >= AggregateType->fieldTypes().size())
+              if (Insert.FieldIndex >= AggregateType->fieldCount())
               {
-                Diagnostics.add<DiagnosticKind::IrInsertFieldIndexOutOfRange>(FunctionValue.Name, Insert.FieldIndex, AggregateType->fieldTypes().size());
+                Diagnostics.add<DiagnosticKind::IrInsertFieldIndexOutOfRange>(FunctionValue.Name, Insert.FieldIndex, AggregateType->fieldCount());
               }
-              else if (Insert.Element && &Insert.Element->type() != AggregateType->fieldTypes()[Insert.FieldIndex])
+              else if (Insert.Element && &Insert.Element->type() != AggregateType->fieldType(Insert.FieldIndex))
               {
                 Diagnostics.add<DiagnosticKind::IrInsertElementTypeMismatch>(FunctionValue.Name);
               }
@@ -1418,11 +1385,11 @@ namespace ink::ir
             }
             if (AggregateType != nullptr)
             {
-              if (Extract.FieldIndex >= AggregateType->fieldTypes().size())
+              if (Extract.FieldIndex >= AggregateType->fieldCount())
               {
-                Diagnostics.add<DiagnosticKind::IrExtractFieldIndexOutOfRange>(FunctionValue.Name, Extract.FieldIndex, AggregateType->fieldTypes().size());
+                Diagnostics.add<DiagnosticKind::IrExtractFieldIndexOutOfRange>(FunctionValue.Name, Extract.FieldIndex, AggregateType->fieldCount());
               }
-              else if (Extract.ResultType != AggregateType->fieldTypes()[Extract.FieldIndex])
+              else if (Extract.ResultType != AggregateType->fieldType(Extract.FieldIndex))
               {
                 Diagnostics.add<DiagnosticKind::IrExtractResultTypeMismatch>(FunctionValue.Name);
               }
@@ -1516,13 +1483,23 @@ namespace ink::ir
       {
         Diagnostics.add<DiagnosticKind::IrDuplicateStructType>(TypeValue->name());
       }
-      if (TypeValue->fieldTypes().empty())
+      if (TypeValue->fields().empty())
       {
         Diagnostics.add<DiagnosticKind::IrEmptyStructType>(TypeValue->name());
       }
-      for (std::size_t FieldIndex = 0; FieldIndex < TypeValue->fieldTypes().size(); ++FieldIndex)
+      std::unordered_set<Name> FieldNames;
+      for (std::size_t FieldIndex = 0; FieldIndex < TypeValue->fieldCount(); ++FieldIndex)
       {
-        const Type *FieldType = TypeValue->fieldTypes()[FieldIndex];
+        const StructField &Field = TypeValue->field(FieldIndex);
+        const Type *FieldType = Field.type();
+        if (!Field.name().empty() && !Field.name().valid())
+        {
+          Diagnostics.add<DiagnosticKind::IrInvalidStructFieldName>(TypeValue->name(), FieldIndex, Field.name());
+        }
+        else if (!Field.name().empty() && !FieldNames.insert(Field.name()).second)
+        {
+          Diagnostics.add<DiagnosticKind::IrDuplicateStructFieldName>(TypeValue->name(), Field.name());
+        }
         if (!isValidType(ModuleValue, FieldType) || FieldType->kind() == TypeKind::Void)
         {
           Diagnostics.add<DiagnosticKind::IrInvalidStructFieldType>(TypeValue->name(), FieldIndex);
@@ -1535,6 +1512,37 @@ namespace ink::ir
         {
           Diagnostics.add<DiagnosticKind::IrStructFieldForwardOrSelfReference>(TypeValue->name(), FieldIndex);
         }
+        for (const Attribute &AttributeValue : Field.attributes())
+        {
+          if (AttributeValue.kind() >= AttributeKind::Count)
+          {
+            Diagnostics.add<DiagnosticKind::IrUnknownStructFieldAttribute>(TypeValue->name(), FieldIndex);
+            continue;
+          }
+          std::unordered_set<Name> ArgumentNames;
+          for (const AttributeArgument &Argument : AttributeValue.arguments())
+          {
+            if (!Argument.key().valid())
+            {
+              Diagnostics.add<DiagnosticKind::IrInvalidStructFieldAttributeArgumentName>(TypeValue->name(), FieldIndex, attributeKindSpelling(AttributeValue.kind()), Argument.key());
+            }
+            else if (!ArgumentNames.insert(Argument.key()).second)
+            {
+              Diagnostics.add<DiagnosticKind::IrDuplicateStructFieldAttributeArgumentName>(TypeValue->name(), FieldIndex, attributeKindSpelling(AttributeValue.kind()), Argument.key());
+            }
+            verifyConstant(ModuleValue, Argument.value(), TypeValue->name(), Diagnostics);
+          }
+        }
+      }
+      const StructLayoutConstraints &StructConstraints = TypeValue->layoutConstraints();
+      bool HasLayoutConstraints = StructConstraints.ExplicitAlignment.has_value() || StructConstraints.Packing.has_value();
+      for (const StructField &Field : TypeValue->fields())
+      {
+        HasLayoutConstraints = HasLayoutConstraints || Field.layoutConstraints().ExplicitAlignment.has_value() || Field.layoutConstraints().ExplicitOffset.has_value();
+      }
+      if (HasLayoutConstraints && !computeTypeLayout(*TypeValue, ModuleValue.context().compilationContext().targetContext()).has_value())
+      {
+        Diagnostics.add<DiagnosticKind::IrInvalidStructLayoutConstraints>(TypeValue->name());
       }
     }
 

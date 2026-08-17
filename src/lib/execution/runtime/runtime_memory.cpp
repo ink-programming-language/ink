@@ -1,6 +1,7 @@
 #include "runtime/runtime_memory.h"
 
 #include "ink/ir/analysis/type_layout.h"
+#include "ink/ir/model/struct_type.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -87,16 +88,16 @@ namespace ink::execution::detail
 
       const ir::StructType &Struct = static_cast<const ir::StructType &>(ValueType);
       const std::optional<ir::TypeLayout> Layout = ir::computeTypeLayout(ValueType, Target);
-      if (!Layout.has_value() || Layout->FieldOffsets.size() != Struct.fieldTypes().size())
+      if (!Layout.has_value() || Layout->FieldOffsets.size() != Struct.fieldCount())
       {
         return RuntimeMemoryStatus::InvalidValue;
       }
       std::vector<RuntimeValueRef> Fields;
-      Fields.reserve(Struct.fieldTypes().size());
-      for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldTypes().size(); ++FieldIndex)
+      Fields.reserve(Struct.fieldCount());
+      for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldCount(); ++FieldIndex)
       {
         RuntimeValueRef Field = nullptr;
-        const RuntimeMemoryStatus Status = decodeValue(Values, *Struct.fieldTypes()[FieldIndex], Data + Layout->FieldOffsets[FieldIndex], Target, Field);
+        const RuntimeMemoryStatus Status = decodeValue(Values, *Struct.fieldType(FieldIndex), Data + Layout->FieldOffsets[FieldIndex], Target, Field);
         if (Status != RuntimeMemoryStatus::Ok)
         {
           return Status;
@@ -132,14 +133,14 @@ namespace ink::execution::detail
 
       const ir::StructType &Struct = static_cast<const ir::StructType &>(ValueType);
       const std::optional<ir::TypeLayout> Layout = ir::computeTypeLayout(ValueType, Target);
-      if (!Layout.has_value() || Layout->FieldOffsets.size() != Struct.fieldTypes().size() || Value.fieldCount() != Struct.fieldTypes().size())
+      if (!Layout.has_value() || Layout->FieldOffsets.size() != Struct.fieldCount() || Value.fieldCount() != Struct.fieldCount())
       {
         return RuntimeMemoryStatus::InvalidValue;
       }
-      for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldTypes().size(); ++FieldIndex)
+      for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldCount(); ++FieldIndex)
       {
         const RuntimeValue *Field = Value.field(FieldIndex);
-        if (Field == nullptr || &Field->type() != Struct.fieldTypes()[FieldIndex])
+        if (Field == nullptr || &Field->type() != Struct.fieldType(FieldIndex))
         {
           return RuntimeMemoryStatus::InvalidValue;
         }
@@ -176,7 +177,7 @@ namespace ink::execution::detail
       }
       const ir::StructType &Struct = static_cast<const ir::StructType &>(*IndexedType);
       const std::optional<ir::TypeLayout> StructLayout = ir::computeTypeLayout(Struct, Target);
-      if (!StructLayout.has_value() || StructLayout->FieldOffsets.size() != Struct.fieldTypes().size() || FieldIndex >= Struct.fieldTypes().size() || Struct.fieldTypes()[FieldIndex] == nullptr)
+      if (!StructLayout.has_value() || StructLayout->FieldOffsets.size() != Struct.fieldCount() || FieldIndex >= Struct.fieldCount() || Struct.fieldType(FieldIndex) == nullptr)
       {
         return RuntimeMemoryStatus::InvalidValue;
       }
@@ -186,7 +187,7 @@ namespace ink::execution::detail
         return RuntimeMemoryStatus::AddressOverflow;
       }
       ByteOffset += static_cast<std::uint64_t>(FieldOffset);
-      IndexedType = Struct.fieldTypes()[FieldIndex];
+      IndexedType = Struct.fieldType(FieldIndex);
     }
     return RuntimeMemoryStatus::Ok;
   }

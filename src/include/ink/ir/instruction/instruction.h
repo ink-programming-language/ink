@@ -5,6 +5,7 @@
 #include "ink/ir/model/name.h"
 #include "ink/ir/model/type.h"
 #include "ink/ir/model/value.h"
+#include "ink/ir/model/value_handle.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -62,7 +63,7 @@ namespace ink::ir
       std::optional<ValueId> Result;
       const Type *ResultType;
       FunctionId Callee;
-      std::vector<std::unique_ptr<Value>> Arguments;
+      std::vector<ValueHandle> Arguments;
   };
 
   class ImportInstruction final : public Instruction
@@ -90,7 +91,7 @@ namespace ink::ir
       {
       }
 
-      std::unique_ptr<Value> ReturnValue;
+      ValueHandle ReturnValue;
   };
 
   class InsertValueInstruction final : public Instruction
@@ -104,8 +105,8 @@ namespace ink::ir
 
       ValueId Result;
       const Type *ResultType;
-      std::unique_ptr<Value> Aggregate;
-      std::unique_ptr<Value> Element;
+      ValueHandle Aggregate;
+      ValueHandle Element;
       std::size_t FieldIndex = 0;
   };
 
@@ -120,7 +121,7 @@ namespace ink::ir
 
       ValueId Result;
       const Type *ResultType;
-      std::unique_ptr<Value> Aggregate;
+      ValueHandle Aggregate;
       std::size_t FieldIndex = 0;
   };
 } // namespace ink::ir

@@ -18,8 +18,8 @@ namespace ink::ir
 
       ValueId Result;
       const Type *ResultType;
-      std::unique_ptr<Value> Left;
-      std::unique_ptr<Value> Right;
+      ValueHandle Left;
+      ValueHandle Right;
   };
 } // namespace ink::ir
 

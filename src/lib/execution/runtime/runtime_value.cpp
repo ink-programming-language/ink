@@ -1,6 +1,7 @@
 #include "ink/execution/runtime/runtime_value.h"
 
 #include "ink/ir/analysis/type_layout.h"
+#include "ink/ir/model/struct_type.h"
 #include "runtime/runtime_memory.h"
 
 #include <algorithm>
@@ -1092,13 +1093,13 @@ namespace ink::execution
 
   RuntimeValueRef RuntimeValueArena::aggregateValue(const ir::StructType &ValueType, std::vector<RuntimeValueRef> Fields)
   {
-    if (Fields.size() != ValueType.fieldTypes().size())
+    if (Fields.size() != ValueType.fieldCount())
     {
       return nullptr;
     }
     for (std::size_t FieldIndex = 0; FieldIndex < Fields.size(); ++FieldIndex)
     {
-      if (!owns(Fields[FieldIndex]) || &Fields[FieldIndex]->type() != ValueType.fieldTypes()[FieldIndex] || !hasCompatiblePayload(*Fields[FieldIndex]))
+      if (!owns(Fields[FieldIndex]) || &Fields[FieldIndex]->type() != ValueType.fieldType(FieldIndex) || !hasCompatiblePayload(*Fields[FieldIndex]))
       {
         return nullptr;
       }
@@ -1199,16 +1200,16 @@ namespace ink::execution
       case RuntimeValueKind::Aggregate:
       {
         const auto *Struct = dynamic_cast<const ir::StructType *>(&Source.type());
-        if (Struct == nullptr || Source.fieldCount() != Struct->fieldTypes().size() || !ActiveValues.insert(&Source).second)
+        if (Struct == nullptr || Source.fieldCount() != Struct->fieldCount() || !ActiveValues.insert(&Source).second)
         {
           return nullptr;
         }
         std::vector<RuntimeValueRef> Fields;
-        Fields.reserve(Struct->fieldTypes().size());
-        for (std::size_t FieldIndex = 0; FieldIndex < Struct->fieldTypes().size(); ++FieldIndex)
+        Fields.reserve(Struct->fieldCount());
+        for (std::size_t FieldIndex = 0; FieldIndex < Struct->fieldCount(); ++FieldIndex)
         {
           const RuntimeValue *Field = Source.field(FieldIndex);
-          if (Field == nullptr || &Field->type() != Struct->fieldTypes()[FieldIndex])
+          if (Field == nullptr || &Field->type() != Struct->fieldType(FieldIndex))
           {
             ActiveValues.erase(&Source);
             return nullptr;

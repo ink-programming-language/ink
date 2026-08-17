@@ -19,7 +19,7 @@ namespace ink::ir
 
       ValueId Result;
       const Type *ResultType;
-      std::unique_ptr<Value> Size;
+      ValueHandle Size;
   };
 
   class GetElementPointerInstruction final : public Instruction
@@ -35,10 +35,10 @@ namespace ink::ir
       ValueId Result;
       const Type *ResultType;
       const Type *ElementType;
-      std::unique_ptr<Value> Pointer;
+      ValueHandle Pointer;
       // The root index advances by ElementType stride; each following constant i32 index selects one struct field.
-      std::unique_ptr<Value> Index;
-      std::vector<std::unique_ptr<Value>> FieldIndices;
+      ValueHandle Index;
+      std::vector<ValueHandle> FieldIndices;
   };
 
   class LoadInstruction final : public Instruction
@@ -52,7 +52,7 @@ namespace ink::ir
 
       ValueId Result;
       const Type *ResultType;
-      std::unique_ptr<Value> Pointer;
+      ValueHandle Pointer;
   };
 
   class StoreInstruction final : public Instruction
@@ -63,8 +63,8 @@ namespace ink::ir
       {
       }
 
-      std::unique_ptr<Value> StoredValue;
-      std::unique_ptr<Value> Pointer;
+      ValueHandle StoredValue;
+      ValueHandle Pointer;
   };
 
   class LifetimeEndInstruction final : public Instruction
@@ -75,7 +75,7 @@ namespace ink::ir
       {
       }
 
-      std::unique_ptr<Value> Slice;
+      ValueHandle Slice;
   };
 
   class SliceDataInstruction final : public Instruction
@@ -89,7 +89,7 @@ namespace ink::ir
 
       ValueId Result;
       const Type *ResultType;
-      std::unique_ptr<Value> Slice;
+      ValueHandle Slice;
   };
 
   class SliceLengthInstruction final : public Instruction
@@ -103,7 +103,7 @@ namespace ink::ir
 
       ValueId Result;
       const Type *ResultType;
-      std::unique_ptr<Value> Slice;
+      ValueHandle Slice;
   };
 } // namespace ink::ir
 

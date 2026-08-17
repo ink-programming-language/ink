@@ -102,14 +102,14 @@ namespace ink::execution
         return false;
       }
       const ir::StructType &Struct = static_cast<const ir::StructType &>(ExpectedType);
-      if (Value.fieldCount() != Struct.fieldTypes().size() || !ActiveValues.insert(&Value).second)
+      if (Value.fieldCount() != Struct.fieldCount() || !ActiveValues.insert(&Value).second)
       {
         return false;
       }
-      for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldTypes().size(); ++FieldIndex)
+      for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldCount(); ++FieldIndex)
       {
         const RuntimeValue *Field = Value.field(FieldIndex);
-        if (Field == nullptr || !hasValidRuntimeShape(*Field, *Struct.fieldTypes()[FieldIndex], Target, ValidatedValues, ActiveValues))
+        if (Field == nullptr || !hasValidRuntimeShape(*Field, *Struct.fieldType(FieldIndex), Target, ValidatedValues, ActiveValues))
         {
           ActiveValues.erase(&Value);
           return false;

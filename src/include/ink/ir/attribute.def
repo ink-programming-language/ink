@@ -1,0 +1,11 @@
+#ifndef INK_IR_ATTRIBUTE
+#define INK_IR_ATTRIBUTE(Name, Spelling)
+#endif
+
+INK_IR_ATTRIBUTE(Align, "align")
+INK_IR_ATTRIBUTE(Offset, "offset")
+INK_IR_ATTRIBUTE(Reflect, "reflect")
+INK_IR_ATTRIBUTE(Serialize, "serialize")
+INK_IR_ATTRIBUTE(Stored, "stored")
+
+#undef INK_IR_ATTRIBUTE

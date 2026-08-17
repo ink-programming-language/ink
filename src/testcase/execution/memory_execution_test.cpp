@@ -366,7 +366,7 @@ namespace ink::execution
       ExecutionEngine Engine(Context.Execution, *Parsed.module());
       ASSERT_TRUE(Engine.initialize().succeeded());
       auto &Load = static_cast<ir::LoadInstruction &>(*Parsed.module()->Functions[0].Blocks[0].Instructions[2]);
-      Load.Pointer = std::make_unique<ir::IntegerConstant>(Context.IR.getType(ir::TypeKind::Byte), 0);
+      Load.Pointer = Context.IR.constantPool().getIntegerConstant(Context.IR.getType(ir::TypeKind::Byte), 0);
 
       const ExecutionResult Result = Engine.execute("main");
 

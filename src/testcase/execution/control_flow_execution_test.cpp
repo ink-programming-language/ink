@@ -360,7 +360,7 @@ namespace ink::execution
       ExecutionEngine Engine(Context.Execution, *Parsed.module());
       ASSERT_TRUE(Engine.initialize().succeeded());
       auto &Add = static_cast<ir::AddInstruction &>(*Parsed.module()->Functions[0].Blocks[0].Instructions[0]);
-      Add.Left = std::make_unique<ir::ZeroInitializer>(Context.IR.getType(ir::TypeKind::ByteSlice));
+      Add.Left = Context.IR.constantPool().getZeroInitializer(Context.IR.getType(ir::TypeKind::ByteSlice));
 
       const ExecutionResult Result = Engine.execute("main");
 
@@ -380,7 +380,7 @@ namespace ink::execution
       ExecutionEngine Engine(Context.Execution, *Parsed.module());
       ASSERT_TRUE(Engine.initialize().succeeded());
       auto &Compare = static_cast<ir::CompareInstruction &>(*Parsed.module()->Functions[0].Blocks[0].Instructions[0]);
-      Compare.Left = std::make_unique<ir::ZeroInitializer>(Context.IR.getType(ir::TypeKind::ByteSlice));
+      Compare.Left = Context.IR.constantPool().getZeroInitializer(Context.IR.getType(ir::TypeKind::ByteSlice));
 
       const ExecutionResult Result = Engine.execute("main");
 

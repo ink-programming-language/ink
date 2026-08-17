@@ -82,9 +82,9 @@ namespace ink::ir
       auto Call = std::make_unique<CallInstruction>(I32Type);
       Call->Result = ValueId{0};
       Call->Callee = FunctionId{0};
-      Call->Arguments.push_back(std::make_unique<IntegerConstant>(I32Type, 1));
+      Call->Arguments.emplace_back(Context.constantPool().getIntegerConstant(I32Type, 1));
       Call->Arguments.push_back(std::make_unique<GlobalAddressOperand>(ConstBytePointerType, GlobalId{0}, 0));
-      Call->Arguments.push_back(std::make_unique<IntegerConstant>(PointerSizeType, 14));
+      Call->Arguments.emplace_back(Context.constantPool().getIntegerConstant(PointerSizeType, 14));
 
       Function Main(VoidType);
       Main.Name = "main";
@@ -170,8 +170,8 @@ namespace ink::ir
       EXPECT_NE(&First, &Second);
       EXPECT_EQ(First.kind(), TypeKind::Struct);
       EXPECT_EQ(First.name(), "First");
-      ASSERT_EQ(First.fieldTypes().size(), 1u);
-      EXPECT_EQ(First.fieldTypes()[0], &I32Type);
+      ASSERT_EQ(First.fieldCount(), 1u);
+      EXPECT_EQ(First.fieldType(0), &I32Type);
     }
 
     // Verifies that all instruction metadata comes from the centralized IR definition table.
@@ -249,12 +249,12 @@ namespace ink::ir
       static_assert(std::is_base_of_v<Operand, GlobalVariableAddressOperand>);
 
       const Type &I32Type = Context.IR.getType(TypeKind::I32);
-      std::unique_ptr<Value> Constant = std::make_unique<IntegerConstant>(I32Type, 42);
+      const IntegerConstant &Constant = Context.IR.constantPool().getIntegerConstant(I32Type, 42);
 
-      EXPECT_EQ(Constant->kind(), ValueKind::IntegerConstant);
-      EXPECT_EQ(&Constant->type(), &I32Type);
-      EXPECT_EQ(Constant->type().kind(), TypeKind::I32);
-      EXPECT_EQ(static_cast<const IntegerConstant &>(*Constant).value(), 42);
+      EXPECT_EQ(Constant.kind(), ValueKind::IntegerConstant);
+      EXPECT_EQ(&Constant.type(), &I32Type);
+      EXPECT_EQ(Constant.type().kind(), TypeKind::I32);
+      EXPECT_EQ(Constant.value(), 42);
     }
 
     // Verifies that concrete instructions are polymorphically owned and retain their registered instruction kinds.
@@ -371,9 +371,9 @@ namespace ink::ir
       auto SecondCall = std::make_unique<CallInstruction>(I32Type);
       SecondCall->Result = ValueId{2};
       SecondCall->Callee = FunctionId{0};
-      SecondCall->Arguments.push_back(std::make_unique<IntegerConstant>(I32Type, 1));
+      SecondCall->Arguments.emplace_back(Context.IR.constantPool().getIntegerConstant(I32Type, 1));
       SecondCall->Arguments.push_back(std::make_unique<GlobalAddressOperand>(ConstBytePointerType, GlobalId{0}, 0));
-      SecondCall->Arguments.push_back(std::make_unique<IntegerConstant>(PointerSizeType, 14));
+      SecondCall->Arguments.emplace_back(Context.IR.constantPool().getIntegerConstant(PointerSizeType, 14));
       Main.Blocks[0].Instructions.insert(Main.Blocks[0].Instructions.end() - 1, std::move(SecondCall));
 
       const VerificationResult Result = verify(Context.IR, ModuleValue);
@@ -500,7 +500,7 @@ namespace ink::ir
       TestContext Context;
       Module ModuleValue = makeHelloWorldModule(Context.IR);
       ModuleValue.ByteConstants[0].Data = std::string("\0\"\\\xC3\xA9", 5);
-      static_cast<CallInstruction &>(*ModuleValue.Functions[1].Blocks[0].Instructions[0]).Arguments[2] = std::make_unique<IntegerConstant>(Context.IR.getType(TypeKind::PointerSize), 5);
+      static_cast<CallInstruction &>(*ModuleValue.Functions[1].Blocks[0].Instructions[0]).Arguments[2] = Context.IR.constantPool().getIntegerConstant(Context.IR.getType(TypeKind::PointerSize), 5);
 
       const std::string Text = serializeSuccessfully(Context.IR, ModuleValue);
       DeserializeResult Result = deserialize(Context.IR, Text);

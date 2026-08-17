@@ -1,5 +1,7 @@
 #include "native/native_abi.h"
 
+#include "ink/ir/model/struct_type.h"
+
 #include <ffi.h>
 
 #include <cstddef>
@@ -82,9 +84,10 @@ namespace ink::execution
           }
 
           auto Result = std::make_unique<NativeStructType>();
-          Result->Elements.reserve(TypeValue.fieldTypes().size() + 1);
-          for (const ir::Type *FieldType : TypeValue.fieldTypes())
+          Result->Elements.reserve(TypeValue.fieldCount() + 1);
+          for (const ir::StructField &Field : TypeValue.fields())
           {
+            const ir::Type *FieldType = Field.type();
             ffi_type *NativeFieldType = get(*FieldType);
             if (NativeFieldType == nullptr)
             {
@@ -97,7 +100,7 @@ namespace ink::execution
           Result->Type.alignment = 0;
           Result->Type.type = FFI_TYPE_STRUCT;
           Result->Type.elements = Result->Elements.data();
-          Result->Offsets.resize(TypeValue.fieldTypes().size());
+          Result->Offsets.resize(TypeValue.fieldCount());
           if (ffi_get_struct_offsets(FFI_DEFAULT_ABI, &Result->Type, Result->Offsets.data()) != FFI_OK)
           {
             return nullptr;
@@ -226,15 +229,15 @@ namespace ink::execution
       {
         const ir::StructType &Struct = static_cast<const ir::StructType &>(Value.type());
         const std::vector<std::size_t> *Offsets = Types.offsets(Struct);
-        if (Offsets == nullptr || Value.fieldCount() != Struct.fieldTypes().size())
+        if (Offsets == nullptr || Value.fieldCount() != Struct.fieldCount())
         {
           return false;
         }
         auto *Bytes = static_cast<std::byte *>(Destination);
-        for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldTypes().size(); ++FieldIndex)
+        for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldCount(); ++FieldIndex)
         {
           const RuntimeValue *Field = Value.field(FieldIndex);
-          if (Field == nullptr || &Field->type() != Struct.fieldTypes()[FieldIndex] || !storeNativeValue(*Field, Types, Bytes + (*Offsets)[FieldIndex]))
+          if (Field == nullptr || &Field->type() != Struct.fieldType(FieldIndex) || !storeNativeValue(*Field, Types, Bytes + (*Offsets)[FieldIndex]))
           {
             return false;
           }
@@ -314,10 +317,10 @@ namespace ink::execution
         }
         const auto *Bytes = static_cast<const std::byte *>(Source);
         std::vector<RuntimeValueRef> Fields;
-        Fields.reserve(Struct.fieldTypes().size());
-        for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldTypes().size(); ++FieldIndex)
+        Fields.reserve(Struct.fieldCount());
+        for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldCount(); ++FieldIndex)
         {
-          RuntimeValueRef Field = loadNativeValue(*Struct.fieldTypes()[FieldIndex], Types, Bytes + (*Offsets)[FieldIndex], Values);
+          RuntimeValueRef Field = loadNativeValue(*Struct.fieldType(FieldIndex), Types, Bytes + (*Offsets)[FieldIndex], Values);
           if (Field == nullptr)
           {
             return nullptr;

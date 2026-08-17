@@ -1,16 +1,13 @@
 #ifndef INK_IR_TYPE_H
 #define INK_IR_TYPE_H
 
-#include "ink/ir/model/name.h"
-
 #include <cstddef>
 #include <cstdint>
-#include <utility>
-#include <vector>
 
 namespace ink::ir
 {
   class IRContext;
+  class StructType;
 
   enum class TypeKind : std::uint8_t
   {
@@ -42,33 +39,6 @@ namespace ink::ir
 
     private:
       TypeKind Kind;
-
-      friend class IRContext;
-  };
-
-  class StructType final : public Type
-  {
-    public:
-      const Name &name() const noexcept
-      {
-        return Name;
-      }
-
-      const std::vector<const Type *> &fieldTypes() const noexcept
-      {
-        return FieldTypes;
-      }
-
-    private:
-      StructType(Name Name, std::vector<const Type *> FieldTypes)
-          : Type(TypeKind::Struct),
-            Name(std::move(Name)),
-            FieldTypes(std::move(FieldTypes))
-      {
-      }
-
-      ink::ir::Name Name;
-      std::vector<const Type *> FieldTypes;
 
       friend class IRContext;
   };

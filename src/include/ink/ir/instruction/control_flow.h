@@ -29,7 +29,7 @@ namespace ink::ir
 
   struct PhiIncoming
   {
-      std::unique_ptr<Value> Value;
+      ValueHandle Value;
       BlockId Predecessor;
   };
 
@@ -59,8 +59,8 @@ namespace ink::ir
       ValueId Result;
       const Type *ResultType;
       ComparePredicate Predicate = ComparePredicate::Equal;
-      std::unique_ptr<Value> Left;
-      std::unique_ptr<Value> Right;
+      ValueHandle Left;
+      ValueHandle Right;
   };
 
   class BranchInstruction final : public Instruction
@@ -82,7 +82,7 @@ namespace ink::ir
       {
       }
 
-      std::unique_ptr<Value> Condition;
+      ValueHandle Condition;
       BlockTarget TrueTarget;
       BlockTarget FalseTarget;
   };

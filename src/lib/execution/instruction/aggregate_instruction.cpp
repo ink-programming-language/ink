@@ -1,5 +1,7 @@
 #include "engine/function_executor.h"
 
+#include "ink/ir/model/struct_type.h"
+
 #include <cstddef>
 #include <utility>
 #include <vector>
@@ -23,8 +25,8 @@ namespace ink::execution
     }
     const ir::StructType &Struct = static_cast<const ir::StructType &>(*Insert.ResultType);
     std::vector<RuntimeValueRef> Fields;
-    Fields.reserve(Struct.fieldTypes().size());
-    for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldTypes().size(); ++FieldIndex)
+    Fields.reserve(Struct.fieldCount());
+    for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldCount(); ++FieldIndex)
     {
       RuntimeValueRef Field = Aggregate->field(FieldIndex);
       if (Field == nullptr)

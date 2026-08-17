@@ -5,8 +5,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <limits>
-#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -14,6 +14,8 @@
 
 namespace ink::ir
 {
+  class ConstantPool;
+
   enum class FloatFormat : std::uint8_t
   {
     F16,
@@ -26,6 +28,12 @@ namespace ink::ir
 
   class Constant : public Value
   {
+    public:
+      Constant(const Constant &) = delete;
+      Constant &operator=(const Constant &) = delete;
+      Constant(Constant &&) = delete;
+      Constant &operator=(Constant &&) = delete;
+
     protected:
       Constant(ValueKind Kind, const Type &ValueType) noexcept
           : Value(Kind, ValueType)
@@ -36,14 +44,6 @@ namespace ink::ir
   class IntegerConstant final : public Constant
   {
     public:
-      template <typename IntegerType, std::enable_if_t<std::is_integral_v<IntegerType>, int> = 0>
-      IntegerConstant(const Type &ValueType, IntegerType Integer) noexcept
-          : Constant(ValueKind::IntegerConstant, ValueType),
-            Payload(static_cast<std::uint64_t>(Integer)),
-            Negative(isNegativeInteger(Integer))
-      {
-      }
-
       std::int64_t value() const noexcept
       {
         return signedValue();
@@ -65,6 +65,14 @@ namespace ink::ir
       }
 
     private:
+      template <typename IntegerType, std::enable_if_t<std::is_integral_v<IntegerType>, int> = 0>
+      IntegerConstant(const Type &ValueType, IntegerType Integer) noexcept
+          : Constant(ValueKind::IntegerConstant, ValueType),
+            Payload(static_cast<std::uint64_t>(Integer)),
+            Negative(isNegativeInteger(Integer))
+      {
+      }
+
       template <typename IntegerType>
       static constexpr bool isNegativeInteger(IntegerType Integer) noexcept
       {
@@ -80,18 +88,13 @@ namespace ink::ir
 
       std::uint64_t Payload;
       bool Negative;
+
+      friend class ConstantPool;
   };
 
   class FloatConstant final : public Constant
   {
     public:
-      FloatConstant(const Type &ValueType, FloatFormat Format, std::uint64_t BitPattern) noexcept
-          : Constant(ValueKind::FloatConstant, ValueType),
-            Format(Format),
-            BitPattern(BitPattern)
-      {
-      }
-
       FloatFormat format() const noexcept
       {
         return Format;
@@ -103,54 +106,83 @@ namespace ink::ir
       }
 
     private:
+      FloatConstant(const Type &ValueType, FloatFormat Format, std::uint64_t BitPattern) noexcept
+          : Constant(ValueKind::FloatConstant, ValueType),
+            Format(Format),
+            BitPattern(BitPattern)
+      {
+      }
+
       FloatFormat Format;
       std::uint64_t BitPattern;
+
+      friend class ConstantPool;
   };
 
   class StringConstant final : public Constant
   {
     public:
-      StringConstant(const Type &ValueType, std::string Data) noexcept
-          : Constant(ValueKind::StringConstant, ValueType),
-            Data(std::move(Data))
-      {
-      }
-
       const std::string &data() const noexcept
       {
         return Data;
       }
 
     private:
+      StringConstant(const Type &ValueType, std::string Data) noexcept
+          : Constant(ValueKind::StringConstant, ValueType),
+            Data(std::move(Data))
+      {
+      }
+
       std::string Data;
+
+      friend class ConstantPool;
   };
 
   class NullConstant final : public Constant
   {
-    public:
+    private:
       explicit NullConstant(const Type &ValueType) noexcept
           : Constant(ValueKind::NullConstant, ValueType)
       {
       }
+
+      friend class ConstantPool;
+  };
+
+  class ZeroInitializer final : public Constant
+  {
+    private:
+      explicit ZeroInitializer(const Type &ValueType) noexcept
+          : Constant(ValueKind::ZeroInitializer, ValueType)
+      {
+      }
+
+      friend class ConstantPool;
   };
 
   class AggregateConstant final : public Constant
   {
     public:
-      AggregateConstant(const Type &ValueType, std::vector<std::unique_ptr<Value>> Elements) noexcept
-          : Constant(ValueKind::AggregateConstant, ValueType),
-            Elements(std::move(Elements))
-      {
-      }
-
-      const std::vector<std::unique_ptr<Value>> &elements() const noexcept
+      const std::vector<std::reference_wrapper<const Constant>> &elements() const noexcept
       {
         return Elements;
       }
 
     private:
-      std::vector<std::unique_ptr<Value>> Elements;
+      AggregateConstant(const Type &ValueType, std::vector<std::reference_wrapper<const Constant>> Elements) noexcept
+          : Constant(ValueKind::AggregateConstant, ValueType),
+            Elements(std::move(Elements))
+      {
+      }
+
+      std::vector<std::reference_wrapper<const Constant>> Elements;
+
+      friend class ConstantPool;
   };
+
+  bool isConstantKind(ValueKind Kind) noexcept;
+  bool constantsEqual(const Constant &Left, const Constant &Right) noexcept;
 } // namespace ink::ir
 
 #endif

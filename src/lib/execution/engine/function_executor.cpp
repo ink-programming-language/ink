@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -79,15 +80,16 @@ namespace ink::execution
     {
       const ir::StructType &Struct = static_cast<const ir::StructType &>(TypeValue);
       std::vector<RuntimeValueRef> Fields;
-      Fields.reserve(Struct.fieldTypes().size());
-      for (const ir::Type *FieldType : Struct.fieldTypes())
+      Fields.reserve(Struct.fieldCount());
+      for (const ir::StructField &FieldDescriptor : Struct.fields())
       {
-        RuntimeValueRef Field = zeroValue(*FieldType);
-        if (Field == nullptr)
+        const ir::Type *FieldType = FieldDescriptor.type();
+        RuntimeValueRef FieldValue = zeroValue(*FieldType);
+        if (FieldValue == nullptr)
         {
           return nullptr;
         }
-        Fields.push_back(Field);
+        Fields.push_back(FieldValue);
       }
       return Values.aggregateValue(Struct, std::move(Fields));
     }
@@ -141,14 +143,9 @@ namespace ink::execution
       const ir::AggregateConstant &Constant = static_cast<const ir::AggregateConstant &>(Value);
       std::vector<RuntimeValueRef> Elements;
       Elements.reserve(Constant.elements().size());
-      for (const auto &Element : Constant.elements())
+      for (const std::reference_wrapper<const ir::Constant> Element : Constant.elements())
       {
-        if (!Element)
-        {
-          addFailure<core::DiagnosticKind::InvalidRuntimeAggregate>("aggregate constant", FunctionName);
-          return nullptr;
-        }
-        RuntimeValueRef RuntimeElement = evaluateValue(*Element, Module, Frame, FunctionName);
+        RuntimeValueRef RuntimeElement = evaluateValue(Element.get(), Module, Frame, FunctionName);
         if (RuntimeElement == nullptr)
         {
           return nullptr;

@@ -65,8 +65,8 @@ namespace ink::execution
     CallArguments.reserve(Call.Arguments.size());
     for (std::size_t ArgumentIndex = 0; ArgumentIndex < Call.Arguments.size(); ++ArgumentIndex)
     {
-      const std::unique_ptr<ir::Value> &Argument = Call.Arguments[ArgumentIndex];
-      if (Argument == nullptr || &Argument->type() != Callee->ParameterTypes[ArgumentIndex])
+      const ir::ValueHandle &Argument = Call.Arguments[ArgumentIndex];
+      if (!Argument || &Argument->type() != Callee->ParameterTypes[ArgumentIndex])
       {
         addFailure<core::DiagnosticKind::ModuleFunctionReferenceInvalid>(CalleeModule->name(), CalleeFunction.value());
         return InstructionFlow::Failed;

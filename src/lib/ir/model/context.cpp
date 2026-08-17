@@ -22,9 +22,25 @@ namespace ink::ir
     return *PrimitiveTypes[Index];
   }
 
+  const StructType &IRContext::createStructType(Name Name, std::initializer_list<const Type *> FieldTypes)
+  {
+    return createStructType(std::move(Name), std::vector<const Type *>(FieldTypes));
+  }
+
   const StructType &IRContext::createStructType(Name Name, std::vector<const Type *> FieldTypes)
   {
-    auto Result = std::unique_ptr<StructType>(new StructType(std::move(Name), std::move(FieldTypes)));
+    std::vector<StructField> Fields;
+    Fields.reserve(FieldTypes.size());
+    for (const Type *FieldType : FieldTypes)
+    {
+      Fields.emplace_back(FieldType);
+    }
+    return createStructType(std::move(Name), std::move(Fields));
+  }
+
+  const StructType &IRContext::createStructType(Name Name, std::vector<StructField> Fields, StructLayoutConstraints LayoutConstraints)
+  {
+    auto Result = std::unique_ptr<StructType>(new StructType(std::move(Name), std::move(Fields), std::move(LayoutConstraints)));
     const StructType &Reference = *Result;
     StructTypes.push_back(std::move(Result));
     return Reference;

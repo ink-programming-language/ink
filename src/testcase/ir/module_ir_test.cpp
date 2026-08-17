@@ -489,7 +489,7 @@ namespace ink::ir
       const Type &I32Type = Context.IR.getType(TypeKind::I32);
       const Type &BytePointerType = Context.IR.getType(TypeKind::BytePointer);
       auto Store = std::make_unique<StoreInstruction>();
-      Store->StoredValue = std::make_unique<IntegerConstant>(I32Type, 1);
+      Store->StoredValue = Context.IR.constantPool().getIntegerConstant(I32Type, 1);
       Store->Pointer = std::make_unique<GlobalVariableAddressOperand>(BytePointerType, GlobalId{0});
       Module ModuleValue = makeVoidFunctionModule(Context.IR, std::move(Store));
       ModuleValue.Globals.push_back({"value", &I32Type, false});
