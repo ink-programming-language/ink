@@ -423,6 +423,26 @@ namespace ink::execution
       EXPECT_EQ(ConstPointer->byteLength(), 1U);
     }
 
+    // Verifies that native pointer re-association preserves a known borrowed backing's read-only capability.
+    TEST(RuntimeMemoryTest, RejectsMutablePointerForKnownReadOnlyBacking)
+    {
+      RuntimeMemoryTestContext Context;
+      const ir::Type &BytePointerType = Context.IR.getType(ir::TypeKind::BytePointer);
+      const ir::Type &ConstBytePointerType = Context.IR.getType(ir::TypeKind::ConstBytePointer);
+      const ir::Type &ConstByteSliceType = Context.IR.getType(ir::TypeKind::ConstByteSlice);
+      const std::uint8_t Byte = 17;
+      RuntimeValueArena Values;
+      const RuntimeValueRef Slice = Values.byteSliceValue(ConstByteSliceType, &Byte, 1);
+      ASSERT_NE(Slice, nullptr);
+
+      const RuntimeValueRef ConstPointer = Values.pointerValue(ConstBytePointerType, &Byte);
+
+      ASSERT_NE(ConstPointer, nullptr);
+      EXPECT_EQ(ConstPointer->byteLength(), 1U);
+      EXPECT_EQ(runtimePointerByteOffset(*ConstPointer), 0U);
+      EXPECT_EQ(Values.mutablePointerValue(BytePointerType, const_cast<std::uint8_t *>(&Byte)), nullptr);
+    }
+
     // Verifies that typed memory access rejects untracked native pointers instead of dereferencing arbitrary host memory.
     TEST(RuntimeMemoryTest, RejectsTypedAccessThroughUntrackedNativePointer)
     {

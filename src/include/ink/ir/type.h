@@ -34,7 +34,8 @@ namespace ink::ir
     }
 
   protected:
-    explicit Type(TypeKind Kind) noexcept : Kind(Kind)
+    explicit Type(TypeKind Kind) noexcept
+        : Kind(Kind)
     {
     }
 
@@ -58,7 +59,10 @@ namespace ink::ir
     }
 
   private:
-    StructType(std::string Name, std::vector<const Type *> FieldTypes) : Type(TypeKind::Struct), Name(std::move(Name)), FieldTypes(std::move(FieldTypes))
+    StructType(std::string Name, std::vector<const Type *> FieldTypes)
+        : Type(TypeKind::Struct),
+          Name(std::move(Name)),
+          FieldTypes(std::move(FieldTypes))
     {
     }
 

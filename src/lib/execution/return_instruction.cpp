@@ -10,7 +10,7 @@ namespace ink::execution
     }
     else
     {
-      State.ReturnValue = evaluateValue(*Return.ReturnValue, State.Frame, State.FunctionValue.Name);
+      State.ReturnValue = evaluateValue(*Return.ReturnValue, State.Module, State.Frame, State.FunctionValue.Name);
     }
     return State.ReturnValue == nullptr ? InstructionFlow::Failed : InstructionFlow::Return;
   }

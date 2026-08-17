@@ -5,7 +5,8 @@
 
 namespace ink::ir
 {
-  IRContext::IRContext(core::CompilationContext &Compilation) : Compilation(Compilation)
+  IRContext::IRContext(core::CompilationContext &Compilation)
+      : Compilation(Compilation)
   {
 #define INK_IR_TYPE(Name, Spelling) PrimitiveTypes[static_cast<std::size_t>(TypeKind::Name)] = std::unique_ptr<Type>(new Type(TypeKind::Name));
 #include "ink/ir/ir.def"

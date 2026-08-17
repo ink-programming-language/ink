@@ -75,7 +75,7 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeAllocaInstruction(const ir::AllocaInstruction &Alloca, FunctionExecutionState &State)
   {
-    RuntimeValueRef SizeValue = evaluateValue(*Alloca.Size, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef SizeValue = evaluateValue(*Alloca.Size, State.Module, State.Frame, State.FunctionValue.Name);
     const std::optional<std::uint64_t> Size = runtimeIndex(SizeValue);
     if (!Size.has_value())
     {
@@ -100,8 +100,17 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeLoadInstruction(const ir::LoadInstruction &Load, FunctionExecutionState &State)
   {
-    RuntimeValueRef Pointer = evaluateValue(*Load.Pointer, State.Frame, State.FunctionValue.Name);
-    if (Pointer == nullptr || Load.ResultType == nullptr)
+    if (Load.Pointer == nullptr || Load.ResultType == nullptr)
+    {
+      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "load", State.FunctionValue.Name, 0, 0);
+      return InstructionFlow::Failed;
+    }
+    if (!validateGlobalVariableAccessType(*Load.Pointer, State.Module, *Load.ResultType))
+    {
+      return InstructionFlow::Failed;
+    }
+    RuntimeValueRef Pointer = evaluateValue(*Load.Pointer, State.Module, State.Frame, State.FunctionValue.Name);
+    if (Pointer == nullptr)
     {
       addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "load", State.FunctionValue.Name, 0, Pointer == nullptr ? 0 : Pointer->byteLength().value_or(0));
       return InstructionFlow::Failed;
@@ -132,8 +141,17 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeStoreInstruction(const ir::StoreInstruction &Store, FunctionExecutionState &State)
   {
-    RuntimeValueRef StoredValue = evaluateValue(*Store.StoredValue, State.Frame, State.FunctionValue.Name);
-    RuntimeValueRef Pointer = evaluateValue(*Store.Pointer, State.Frame, State.FunctionValue.Name);
+    if (Store.Pointer == nullptr || Store.StoredValue == nullptr)
+    {
+      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "store", State.FunctionValue.Name, 0, 0);
+      return InstructionFlow::Failed;
+    }
+    if (!validateGlobalVariableAccessType(*Store.Pointer, State.Module, Store.StoredValue->type()))
+    {
+      return InstructionFlow::Failed;
+    }
+    RuntimeValueRef StoredValue = evaluateValue(*Store.StoredValue, State.Module, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Pointer = evaluateValue(*Store.Pointer, State.Module, State.Frame, State.FunctionValue.Name);
     if (Pointer == nullptr || StoredValue == nullptr)
     {
       addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "store", State.FunctionValue.Name, 0, Pointer == nullptr ? 0 : Pointer->byteLength().value_or(0));
@@ -159,8 +177,8 @@ namespace ink::execution
       addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "getelementptr", State.FunctionValue.Name, 0, 0);
       return InstructionFlow::Failed;
     }
-    RuntimeValueRef Pointer = evaluateValue(*GetElementPointer.Pointer, State.Frame, State.FunctionValue.Name);
-    RuntimeValueRef IndexValue = evaluateValue(*GetElementPointer.Index, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Pointer = evaluateValue(*GetElementPointer.Pointer, State.Module, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef IndexValue = evaluateValue(*GetElementPointer.Index, State.Module, State.Frame, State.FunctionValue.Name);
     const std::optional<std::uint64_t> Index = runtimeIndex(IndexValue);
     if (Pointer == nullptr || IndexValue == nullptr || IndexValue->type().kind() != ir::TypeKind::PointerSize || !Index.has_value())
     {
@@ -202,7 +220,7 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeLifetimeEndInstruction(const ir::LifetimeEndInstruction &LifetimeEnd, FunctionExecutionState &State)
   {
-    RuntimeValueRef Slice = evaluateValue(*LifetimeEnd.Slice, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Slice = evaluateValue(*LifetimeEnd.Slice, State.Module, State.Frame, State.FunctionValue.Name);
     if (Slice == nullptr)
     {
       addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "lifetime.end", State.FunctionValue.Name, 0, 0);
@@ -220,7 +238,7 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeSliceDataInstruction(const ir::SliceDataInstruction &SliceData, FunctionExecutionState &State)
   {
-    RuntimeValueRef Slice = evaluateValue(*SliceData.Slice, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Slice = evaluateValue(*SliceData.Slice, State.Module, State.Frame, State.FunctionValue.Name);
     if (Slice == nullptr)
     {
       addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "slice.data", State.FunctionValue.Name, 0, 0);
@@ -248,7 +266,7 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeSliceLengthInstruction(const ir::SliceLengthInstruction &SliceLength, FunctionExecutionState &State)
   {
-    RuntimeValueRef Slice = evaluateValue(*SliceLength.Slice, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Slice = evaluateValue(*SliceLength.Slice, State.Module, State.Frame, State.FunctionValue.Name);
     const std::optional<std::size_t> Size = Slice == nullptr ? std::nullopt : Slice->byteLength();
     if (!Size.has_value())
     {

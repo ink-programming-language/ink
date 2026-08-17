@@ -4,6 +4,7 @@
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/ostream_sink.h>
 
+#include <cstddef>
 #include <cstdio>
 #include <memory>
 #include <ostream>
@@ -16,9 +17,74 @@
 
 namespace ink::cli
 {
-  std::filesystem::path pathFromUtf8(std::string_view Path)
+  namespace
   {
-    return std::filesystem::u8path(Path.begin(), Path.end());
+    bool isUtf8Continuation(unsigned char Byte) noexcept
+    {
+      return Byte >= 0x80 && Byte <= 0xBF;
+    }
+  } // namespace
+
+  bool isValidUtf8(std::string_view Text) noexcept
+  {
+    std::size_t Offset = 0;
+    while (Offset < Text.size())
+    {
+      const unsigned char First = static_cast<unsigned char>(Text[Offset]);
+      if (First <= 0x7F)
+      {
+        ++Offset;
+        continue;
+      }
+
+      std::size_t Length = 0;
+      if (First >= 0xC2 && First <= 0xDF)
+      {
+        Length = 2;
+      }
+      else if (First >= 0xE0 && First <= 0xEF)
+      {
+        Length = 3;
+      }
+      else if (First >= 0xF0 && First <= 0xF4)
+      {
+        Length = 4;
+      }
+      else
+      {
+        return false;
+      }
+
+      if (Offset + Length > Text.size())
+      {
+        return false;
+      }
+      for (std::size_t Index = 1; Index < Length; ++Index)
+      {
+        if (!isUtf8Continuation(static_cast<unsigned char>(Text[Offset + Index])))
+        {
+          return false;
+        }
+      }
+
+      const unsigned char Second = static_cast<unsigned char>(Text[Offset + 1]);
+      if ((First == 0xE0 && Second < 0xA0) || (First == 0xED && Second > 0x9F) || (First == 0xF0 && Second < 0x90) || (First == 0xF4 && Second > 0x8F))
+      {
+        return false;
+      }
+      Offset += Length;
+    }
+    return true;
+  }
+
+  bool pathFromUtf8(std::string_view Path, std::filesystem::path &Result) noexcept
+  {
+    if (!isValidUtf8(Path))
+    {
+      return false;
+    }
+    Result = std::filesystem::u8path(Path.begin(), Path.end());
+    return true;
   }
 
   bool useBinaryStandardInput() noexcept

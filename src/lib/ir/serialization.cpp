@@ -86,7 +86,8 @@ namespace ink::ir
     class Lexer
     {
     public:
-      explicit Lexer(std::string_view Text) : Text(Text)
+      explicit Lexer(std::string_view Text)
+          : Text(Text)
       {
       }
 
@@ -393,6 +394,13 @@ namespace ink::ir
       Token Location;
     };
 
+    struct GlobalVariableFixup
+    {
+      GlobalVariableAddressOperand *Address = nullptr;
+      std::string GlobalName;
+      Token Location;
+    };
+
     struct ParsedOperand
     {
       std::unique_ptr<Value> ParsedValue;
@@ -402,7 +410,10 @@ namespace ink::ir
     class TextParser
     {
     public:
-      TextParser(IRContext &Context, std::vector<Token> Tokens) : Context(Context), Tokens(std::move(Tokens)), ModuleValue(Context)
+      TextParser(IRContext &Context, std::vector<Token> Tokens)
+          : Context(Context),
+            Tokens(std::move(Tokens)),
+            ModuleValue(Context)
       {
       }
 
@@ -441,7 +452,28 @@ namespace ink::ir
 
         while (!at(TokenKind::End))
         {
-          if (at(TokenKind::TypeName))
+          if (atIdentifier("module"))
+          {
+            if (!parseModuleDeclaration())
+            {
+              return false;
+            }
+          }
+          else if (atIdentifier("initializer"))
+          {
+            if (!parseLifecycleFunction(true))
+            {
+              return false;
+            }
+          }
+          else if (atIdentifier("finalizer"))
+          {
+            if (!parseLifecycleFunction(false))
+            {
+              return false;
+            }
+          }
+          else if (at(TokenKind::TypeName))
           {
             if (!parseStructType())
             {
@@ -450,7 +482,14 @@ namespace ink::ir
           }
           else if (at(TokenKind::GlobalName))
           {
-            if (!parseByteConstant())
+            if (atIdentifier("global", 2))
+            {
+              if (!parseGlobalVariable())
+              {
+                return false;
+              }
+            }
+            else if (!parseByteConstant())
             {
               return false;
             }
@@ -475,6 +514,47 @@ namespace ink::ir
           }
         }
         return resolveReferences();
+      }
+
+      bool parseModuleDeclaration()
+      {
+        const Token Keyword = consume();
+        if (HasModuleDeclaration)
+        {
+          return fail<DiagnosticKind::IrExpected>(Keyword, "only one module declaration");
+        }
+        const Token *Id = expect(TokenKind::Integer, "a module id");
+        if (Id == nullptr)
+        {
+          return false;
+        }
+        const std::optional<std::size_t> ParsedId = parseId(*Id, "module id");
+        if (!ParsedId)
+        {
+          return false;
+        }
+        ModuleValue.Id = ModuleId{*ParsedId};
+        HasModuleDeclaration = true;
+        return true;
+      }
+
+      bool parseLifecycleFunction(bool IsInitializer)
+      {
+        const Token Keyword = consume();
+        std::optional<std::string> &Name = IsInitializer ? InitializerName : FinalizerName;
+        Token &Location = IsInitializer ? InitializerLocation : FinalizerLocation;
+        if (Name.has_value())
+        {
+          return fail<DiagnosticKind::IrExpected>(Keyword, IsInitializer ? "only one initializer declaration" : "only one finalizer declaration");
+        }
+        const Token *FunctionName = expect(TokenKind::GlobalName, "a lifecycle function name");
+        if (FunctionName == nullptr)
+        {
+          return false;
+        }
+        Name = FunctionName->Text;
+        Location = *FunctionName;
+        return true;
       }
 
       const Token &current(std::size_t Offset = 0) const
@@ -608,6 +688,20 @@ namespace ink::ir
           return std::nullopt;
         }
         return static_cast<std::size_t>(*Value);
+      }
+
+      std::optional<std::size_t> parseId(const Token &TokenValue, std::string_view Description)
+      {
+        const std::optional<std::size_t> Value = parseIndex(TokenValue, Description);
+        if (!Value || *Value == InvalidId)
+        {
+          if (Value)
+          {
+            fail<DiagnosticKind::IrNumericValueOutOfRange>(TokenValue, Description);
+          }
+          return std::nullopt;
+        }
+        return Value;
       }
 
       std::optional<const Type *> parseType()
@@ -754,9 +848,44 @@ namespace ink::ir
         {
           return fail<DiagnosticKind::IrByteConstantSizeMismatch>(*SizeToken, *DeclaredSize, Data->Text.size());
         }
-        const GlobalId Id{ModuleValue.ByteConstants.size()};
-        GlobalNames.emplace(Name->Text, Id);
+        const ByteConstantId Id{ModuleValue.ByteConstants.size()};
+        ByteConstantNames.emplace(Name->Text, Id);
         ModuleValue.ByteConstants.push_back({Name->Text, Data->Text});
+        return true;
+      }
+
+      bool parseGlobalVariable()
+      {
+        const Token *Name = expect(TokenKind::GlobalName, "a global variable name");
+        if (Name == nullptr || !reserveGlobalSymbol(*Name) || expect(TokenKind::Equal, "'='") == nullptr || !expectIdentifier("global"))
+        {
+          return false;
+        }
+
+        bool Mutable;
+        if (atIdentifier("mutable"))
+        {
+          consume();
+          Mutable = true;
+        }
+        else if (atIdentifier("constant"))
+        {
+          consume();
+          Mutable = false;
+        }
+        else
+        {
+          return fail<DiagnosticKind::IrExpected>(current(), "'mutable' or 'constant'");
+        }
+
+        const std::optional<const Type *> ValueType = parseType();
+        if (!ValueType)
+        {
+          return false;
+        }
+        const GlobalId Id{ModuleValue.Globals.size()};
+        GlobalVariableNames.emplace(Name->Text, Id);
+        ModuleValue.Globals.push_back({Name->Text, *ValueType, Mutable});
         return true;
       }
 
@@ -856,7 +985,7 @@ namespace ink::ir
           {
             return std::nullopt;
           }
-          const std::optional<std::size_t> ParameterIndex = parseIndex(*ValueName, "function parameter SSA value");
+          const std::optional<std::size_t> ParameterIndex = parseId(*ValueName, "function parameter SSA value");
           if (!ParameterIndex)
           {
             return std::nullopt;
@@ -887,7 +1016,7 @@ namespace ink::ir
         if (at(TokenKind::ValueName))
         {
           const Token &Value = consume();
-          const std::optional<std::size_t> Id = parseIndex(Value, "SSA value");
+          const std::optional<std::size_t> Id = parseId(Value, "SSA value");
           if (!Id)
           {
             return std::nullopt;
@@ -996,10 +1125,15 @@ namespace ink::ir
         if (at(TokenKind::GlobalName))
         {
           const Token &Global = consume();
-          if (expect(TokenKind::LeftBracket, "'[' after a global byte constant") == nullptr)
+          if (!at(TokenKind::LeftBracket))
           {
-            return std::nullopt;
+            auto Address = std::make_unique<GlobalVariableAddressOperand>(OperandType, GlobalRef{});
+            GlobalVariableFixups.push_back({Address.get(), Global.Text, Global});
+            Result.ParsedValue = std::move(Address);
+            Result.Location = Global;
+            return Result;
           }
+          consume();
           const Token *Offset = expect(TokenKind::Integer, "a global byte offset");
           if (Offset == nullptr)
           {
@@ -1010,10 +1144,37 @@ namespace ink::ir
           {
             return std::nullopt;
           }
-          auto Address = std::make_unique<GlobalAddressOperand>(OperandType, GlobalId{}, *ByteOffset);
+          auto Address = std::make_unique<GlobalAddressOperand>(OperandType, ByteConstantId{}, *ByteOffset);
           GlobalFixups.push_back({Address.get(), Global.Text, Global});
           Result.ParsedValue = std::move(Address);
           Result.Location = Global;
+          return Result;
+        }
+        if (atIdentifier("global"))
+        {
+          const Token Location = consume();
+          if (expect(TokenKind::LeftParenthesis, "'(' after 'global'") == nullptr)
+          {
+            return std::nullopt;
+          }
+          const Token *Module = expect(TokenKind::Integer, "a module id");
+          if (Module == nullptr || expect(TokenKind::Comma, "','") == nullptr)
+          {
+            return std::nullopt;
+          }
+          const Token *Global = expect(TokenKind::Integer, "a global variable id");
+          if (Global == nullptr || expect(TokenKind::RightParenthesis, "')'") == nullptr)
+          {
+            return std::nullopt;
+          }
+          const std::optional<std::size_t> ModuleIndex = parseId(*Module, "module id");
+          const std::optional<std::size_t> GlobalIndex = parseId(*Global, "global variable id");
+          if (!ModuleIndex || !GlobalIndex)
+          {
+            return std::nullopt;
+          }
+          Result.ParsedValue = std::make_unique<GlobalVariableAddressOperand>(OperandType, GlobalRef{ModuleId{*ModuleIndex}, GlobalId{*GlobalIndex}});
+          Result.Location = Location;
           return Result;
         }
         fail<DiagnosticKind::IrExpectedOperand>(current());
@@ -1069,8 +1230,36 @@ namespace ink::ir
         }
         auto Call = std::make_unique<CallInstruction>(**ResultType);
         Call->Result = ResultValue;
-        const Token *Callee = expect(TokenKind::GlobalName, "a call target");
-        if (Callee == nullptr || expect(TokenKind::LeftParenthesis, "'('") == nullptr)
+        if (at(TokenKind::GlobalName))
+        {
+          const Token Callee = consume();
+          CallFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, Callee.Text, Callee});
+        }
+        else
+        {
+          if (!expectIdentifier("module") || expect(TokenKind::LeftParenthesis, "'(' after 'module'") == nullptr)
+          {
+            return nullptr;
+          }
+          const Token *Module = expect(TokenKind::Integer, "a module id");
+          if (Module == nullptr || expect(TokenKind::Comma, "','") == nullptr)
+          {
+            return nullptr;
+          }
+          const Token *Function = expect(TokenKind::Integer, "a function id");
+          if (Function == nullptr || expect(TokenKind::RightParenthesis, "')'") == nullptr)
+          {
+            return nullptr;
+          }
+          const std::optional<std::size_t> ModuleIndex = parseId(*Module, "module id");
+          const std::optional<std::size_t> FunctionIndexValue = parseId(*Function, "function id");
+          if (!ModuleIndex || !FunctionIndexValue)
+          {
+            return nullptr;
+          }
+          Call->Callee = FunctionRef{ModuleId{*ModuleIndex}, FunctionId{*FunctionIndexValue}};
+        }
+        if (expect(TokenKind::LeftParenthesis, "'('") == nullptr)
         {
           return nullptr;
         }
@@ -1083,8 +1272,26 @@ namespace ink::ir
         {
           Call->Arguments.push_back(std::move((*Arguments)[ArgumentIndex].ParsedValue));
         }
-        CallFixups.push_back({FunctionIndex, BlockIndex, InstructionIndex, Callee->Text, *Callee});
         return Call;
+      }
+
+      std::unique_ptr<Instruction> parseImport()
+      {
+        if (!expectIdentifier("import"))
+        {
+          return nullptr;
+        }
+        const Token *Module = expect(TokenKind::Integer, "a module id");
+        if (Module == nullptr)
+        {
+          return nullptr;
+        }
+        const std::optional<std::size_t> ModuleIndex = parseId(*Module, "module id");
+        if (!ModuleIndex)
+        {
+          return nullptr;
+        }
+        return std::make_unique<ImportInstruction>(ModuleId{*ModuleIndex});
       }
 
       std::unique_ptr<Instruction> parseReturn(std::size_t, std::size_t, std::size_t)
@@ -1584,7 +1791,7 @@ namespace ink::ir
         if (at(TokenKind::ValueName))
         {
           const Token &Result = consume();
-          const std::optional<std::size_t> Id = parseIndex(Result, "SSA result");
+          const std::optional<std::size_t> Id = parseId(Result, "SSA result");
           if (!Id || expect(TokenKind::Equal, "'=' after an SSA result") == nullptr)
           {
             return nullptr;
@@ -1637,7 +1844,7 @@ namespace ink::ir
         }
         if (ResultValue.has_value())
         {
-          if (atIdentifier("store") || atIdentifier("lifetime.end") || atIdentifier("br") || atIdentifier("condbr") || atIdentifier("ret"))
+          if (atIdentifier("import") || atIdentifier("store") || atIdentifier("lifetime.end") || atIdentifier("br") || atIdentifier("condbr") || atIdentifier("ret"))
           {
             fail<DiagnosticKind::IrInstructionCannotDefineResult>(current(), current().Text);
             return nullptr;
@@ -1648,6 +1855,10 @@ namespace ink::ir
         if (atIdentifier("store"))
         {
           return parseStore(FunctionIndex, BlockIndex, InstructionIndex);
+        }
+        if (atIdentifier("import"))
+        {
+          return parseImport();
         }
         if (atIdentifier("lifetime.end"))
         {
@@ -1768,12 +1979,21 @@ namespace ink::ir
         }
         for (const GlobalFixup &Fixup : GlobalFixups)
         {
-          const auto Global = GlobalNames.find(Fixup.GlobalName);
-          if (Global == GlobalNames.end())
+          const auto Global = ByteConstantNames.find(Fixup.GlobalName);
+          if (Global == ByteConstantNames.end())
           {
             return fail<DiagnosticKind::IrUnknownGlobalByteConstant>(Fixup.Location, Fixup.GlobalName);
           }
-          Fixup.Address->resolveGlobal(Global->second);
+          Fixup.Address->resolveByteConstant(Global->second);
+        }
+        for (const GlobalVariableFixup &Fixup : GlobalVariableFixups)
+        {
+          const auto Global = GlobalVariableNames.find(Fixup.GlobalName);
+          if (Global == GlobalVariableNames.end())
+          {
+            return fail<DiagnosticKind::IrExpected>(Fixup.Location, "a declared global variable");
+          }
+          Fixup.Address->resolveGlobal(GlobalRef{Global->second});
         }
         for (const BranchFixup &Fixup : BranchFixups)
         {
@@ -1812,6 +2032,24 @@ namespace ink::ir
           Instruction &InstructionValue = *ModuleValue.Functions[Fixup.FunctionIndex].Blocks[Fixup.BlockIndex].Instructions[Fixup.InstructionIndex];
           static_cast<PhiInstruction &>(InstructionValue).IncomingValues[Fixup.IncomingIndex].Predecessor = BlockId{PredecessorIndex};
         }
+        if (InitializerName.has_value())
+        {
+          const auto InitializerFunction = FunctionNames.find(*InitializerName);
+          if (InitializerFunction == FunctionNames.end())
+          {
+            return fail<DiagnosticKind::IrUnknownCallTarget>(InitializerLocation, *InitializerName);
+          }
+          ModuleValue.Initializer = InitializerFunction->second;
+        }
+        if (FinalizerName.has_value())
+        {
+          const auto FinalizerFunction = FunctionNames.find(*FinalizerName);
+          if (FinalizerFunction == FunctionNames.end())
+          {
+            return fail<DiagnosticKind::IrUnknownCallTarget>(FinalizerLocation, *FinalizerName);
+          }
+          ModuleValue.Finalizer = FinalizerFunction->second;
+        }
         return true;
       }
 
@@ -1821,12 +2059,19 @@ namespace ink::ir
       Module ModuleValue;
       std::unordered_set<std::string> GlobalSymbolNames;
       std::unordered_map<std::string, const StructType *> TypeNames;
-      std::unordered_map<std::string, GlobalId> GlobalNames;
+      std::unordered_map<std::string, ByteConstantId> ByteConstantNames;
+      std::unordered_map<std::string, GlobalId> GlobalVariableNames;
       std::unordered_map<std::string, FunctionId> FunctionNames;
       std::vector<CallFixup> CallFixups;
       std::vector<BranchFixup> BranchFixups;
       std::vector<PhiFixup> PhiFixups;
       std::vector<GlobalFixup> GlobalFixups;
+      std::vector<GlobalVariableFixup> GlobalVariableFixups;
+      bool HasModuleDeclaration = false;
+      std::optional<std::string> InitializerName;
+      std::optional<std::string> FinalizerName;
+      Token InitializerLocation;
+      Token FinalizerLocation;
       Diagnostic ParseDiagnostic;
     };
 
@@ -1899,6 +2144,19 @@ namespace ink::ir
         Output << '@' << ModuleValue.ByteConstants[Address.global().value()].Name << '[' << Address.byteOffset() << ']';
         return;
       }
+      case ValueKind::GlobalVariableAddressOperand:
+      {
+        const GlobalRef Global = static_cast<const GlobalVariableAddressOperand &>(OperandValue).global();
+        if (!Global.Module.valid() || (ModuleValue.Id.valid() && Global.Module == ModuleValue.Id))
+        {
+          Output << '@' << ModuleValue.Globals[Global.Global.value()].Name;
+        }
+        else
+        {
+          Output << "global(" << Global.Module.value() << ", " << Global.Global.value() << ')';
+        }
+        return;
+      }
       case ValueKind::ZeroInitializer:
         Output << "zeroinitializer";
         return;
@@ -1950,7 +2208,15 @@ namespace ink::ir
       }
       Output << "call ";
       writeType(Output, *Call.ResultType);
-      Output << " @" << ModuleValue.Functions[Call.Callee.value()].Name << '(';
+      if (!Call.Callee.Module.valid() || (ModuleValue.Id.valid() && Call.Callee.Module == ModuleValue.Id))
+      {
+        Output << " @" << ModuleValue.Functions[Call.Callee.Function.value()].Name;
+      }
+      else
+      {
+        Output << " module(" << Call.Callee.Module.value() << ", " << Call.Callee.Function.value() << ')';
+      }
+      Output << '(';
       for (std::size_t ArgumentIndex = 0; ArgumentIndex < Call.Arguments.size(); ++ArgumentIndex)
       {
         if (ArgumentIndex != 0)
@@ -1960,6 +2226,11 @@ namespace ink::ir
         writeOperand(Output, ModuleValue, *Call.Arguments[ArgumentIndex]);
       }
       Output << ")\n";
+    }
+
+    void writeImport(std::ostringstream &Output, const ImportInstruction &Import)
+    {
+      Output << "  import " << Import.Module.value() << '\n';
     }
 
     void writeAlloca(std::ostringstream &Output, const Module &ModuleValue, const AllocaInstruction &Alloca)
@@ -2145,6 +2416,18 @@ namespace ink::ir
 
     std::ostringstream Output;
     Output << "inkir 1\n";
+    if (ModuleValue.Id.valid())
+    {
+      Output << "module " << ModuleValue.Id.value() << '\n';
+    }
+    if (ModuleValue.Initializer.has_value())
+    {
+      Output << "initializer @" << ModuleValue.Functions[ModuleValue.Initializer->value()].Name << '\n';
+    }
+    if (ModuleValue.Finalizer.has_value())
+    {
+      Output << "finalizer @" << ModuleValue.Functions[ModuleValue.Finalizer->value()].Name << '\n';
+    }
     for (const StructType *TypeValue : ModuleValue.StructTypes)
     {
       Output << "\n%" << TypeValue->name() << " = type {";
@@ -2162,27 +2445,26 @@ namespace ink::ir
     {
       Output << "\n@" << Constant.Name << " = private constant [" << Constant.Data.size() << " x byte] c\"" << escapeBytes(Constant.Data) << "\"\n";
     }
-    for (const Function &FunctionValue : ModuleValue.Functions)
+    for (const GlobalVariable &Global : ModuleValue.Globals)
     {
-      if (FunctionValue.Kind != FunctionKind::External)
-      {
-        continue;
-      }
-      Output << "\ndeclare extern \"C\" ";
-      writeType(Output, *FunctionValue.ResultType);
-      Output << " @" << FunctionValue.Name << '(';
-      writeParameterTypes(Output, FunctionValue.ParameterTypes, false);
-      Output << ')';
-      if (FunctionValue.HasSideEffects)
-      {
-        Output << " [sideeffect]";
-      }
+      Output << "\n@" << Global.Name << " = global " << (Global.Mutable ? "mutable " : "constant ");
+      writeType(Output, *Global.ValueType);
       Output << '\n';
     }
     for (const Function &FunctionValue : ModuleValue.Functions)
     {
-      if (FunctionValue.Kind != FunctionKind::Definition)
+      if (FunctionValue.Kind == FunctionKind::External)
       {
+        Output << "\ndeclare extern \"C\" ";
+        writeType(Output, *FunctionValue.ResultType);
+        Output << " @" << FunctionValue.Name << '(';
+        writeParameterTypes(Output, FunctionValue.ParameterTypes, false);
+        Output << ')';
+        if (FunctionValue.HasSideEffects)
+        {
+          Output << " [sideeffect]";
+        }
+        Output << '\n';
         continue;
       }
       Output << "\ndefine ";
@@ -2200,6 +2482,9 @@ namespace ink::ir
           {
           case InstructionKind::Call:
             writeCall(Output, ModuleValue, static_cast<const CallInstruction &>(InstructionValue));
+            break;
+          case InstructionKind::Import:
+            writeImport(Output, static_cast<const ImportInstruction &>(InstructionValue));
             break;
           case InstructionKind::Alloca:
             writeAlloca(Output, ModuleValue, static_cast<const AllocaInstruction &>(InstructionValue));

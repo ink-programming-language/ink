@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <new>
@@ -124,7 +125,8 @@ namespace ink::execution
     class RuntimeVoidValue final : public RuntimeValue
     {
     public:
-      explicit RuntimeVoidValue(const ir::Type &ValueType) noexcept : ValueType(&ValueType)
+      explicit RuntimeVoidValue(const ir::Type &ValueType) noexcept
+          : ValueType(&ValueType)
       {
       }
       ~RuntimeVoidValue() = default;
@@ -146,7 +148,9 @@ namespace ink::execution
     class RuntimeIntegerValue final : public RuntimeValue
     {
     public:
-      RuntimeIntegerValue(const ir::Type &ValueType, std::uint64_t Value) noexcept : ValueType(&ValueType), Value(Value)
+      RuntimeIntegerValue(const ir::Type &ValueType, std::uint64_t Value) noexcept
+          : ValueType(&ValueType),
+            Value(Value)
       {
       }
       ~RuntimeIntegerValue() = default;
@@ -174,7 +178,9 @@ namespace ink::execution
     class RuntimeFloatingPointValue final : public RuntimeValue
     {
     public:
-      RuntimeFloatingPointValue(const ir::Type &ValueType, std::uint64_t Bits) noexcept : ValueType(&ValueType), Bits(Bits)
+      RuntimeFloatingPointValue(const ir::Type &ValueType, std::uint64_t Bits) noexcept
+          : ValueType(&ValueType),
+            Bits(Bits)
       {
       }
       ~RuntimeFloatingPointValue() = default;
@@ -201,11 +207,20 @@ namespace ink::execution
 
     struct RuntimeMemoryBacking : std::enable_shared_from_this<RuntimeMemoryBacking>
     {
-      RuntimeMemoryBacking(const void *Data, std::size_t Size, bool Writable) noexcept : Data(static_cast<const std::uint8_t *>(Data)), Size(Size), Writable(Writable)
+      RuntimeMemoryBacking(const void *Data, std::size_t Size, bool Writable) noexcept
+          : Data(static_cast<const std::uint8_t *>(Data)),
+            Size(Size),
+            Writable(Writable)
       {
       }
 
-      RuntimeMemoryBacking(std::size_t Size, std::size_t OwnerFrame) : OwnedData(std::make_unique<std::uint8_t[]>(Size)), Data(OwnedData.get()), Size(Size), OwnerFrame(OwnerFrame), Managed(true), Writable(true)
+      RuntimeMemoryBacking(std::size_t Size, std::size_t OwnerFrame, bool Writable)
+          : OwnedData(std::make_unique<std::uint8_t[]>(Size)),
+            Data(OwnedData.get()),
+            Size(Size),
+            OwnerFrame(OwnerFrame),
+            Managed(true),
+            Writable(Writable)
       {
       }
 
@@ -221,11 +236,16 @@ namespace ink::execution
     class RuntimePointerValue final : public RuntimeValue
     {
     public:
-      RuntimePointerValue(const ir::Type &ValueType, const void *RawAddress) noexcept : ValueType(&ValueType), RawAddress(RawAddress)
+      RuntimePointerValue(const ir::Type &ValueType, const void *RawAddress) noexcept
+          : ValueType(&ValueType),
+            RawAddress(RawAddress)
       {
       }
 
-      RuntimePointerValue(const ir::Type &ValueType, RuntimeMemoryBacking *Backing, std::uint64_t ByteOffset) noexcept : ValueType(&ValueType), Backing(Backing), ByteOffset(ByteOffset)
+      RuntimePointerValue(const ir::Type &ValueType, RuntimeMemoryBacking *Backing, std::uint64_t ByteOffset) noexcept
+          : ValueType(&ValueType),
+            Backing(Backing),
+            ByteOffset(ByteOffset)
       {
       }
       ~RuntimePointerValue() = default;
@@ -313,7 +333,9 @@ namespace ink::execution
     class RuntimeByteSliceValue final : public RuntimeValue
     {
     public:
-      RuntimeByteSliceValue(const ir::Type &ValueType, RuntimeMemoryBacking *Backing) noexcept : ValueType(&ValueType), Backing(Backing)
+      RuntimeByteSliceValue(const ir::Type &ValueType, RuntimeMemoryBacking *Backing) noexcept
+          : ValueType(&ValueType),
+            Backing(Backing)
       {
       }
       ~RuntimeByteSliceValue() = default;
@@ -376,7 +398,10 @@ namespace ink::execution
     class RuntimeAggregateValue final : public RuntimeValue
     {
     public:
-      RuntimeAggregateValue(const ir::StructType &ValueType, RuntimeValueRef const *Fields, std::size_t FieldCount) noexcept : ValueType(&ValueType), Fields(Fields), FieldCount(FieldCount)
+      RuntimeAggregateValue(const ir::StructType &ValueType, RuntimeValueRef const *Fields, std::size_t FieldCount) noexcept
+          : ValueType(&ValueType),
+            Fields(Fields),
+            FieldCount(FieldCount)
       {
       }
       ~RuntimeAggregateValue() = default;
@@ -435,7 +460,7 @@ namespace ink::execution
       static_assert(std::is_trivially_destructible_v<ValueType>);
       static_assert(std::is_nothrow_constructible_v<ValueType, ArgumentTypes...>);
       void *Storage = allocate(sizeof(ValueType), alignof(ValueType));
-      return new (Storage) ValueType(std::forward<ArgumentTypes>(Arguments)...);
+      return Storage == nullptr ? nullptr : new (Storage) ValueType(std::forward<ArgumentTypes>(Arguments)...);
     }
 
     RuntimeValueRef *copyFields(const std::vector<RuntimeValueRef> &Fields)
@@ -444,7 +469,15 @@ namespace ink::execution
       {
         return nullptr;
       }
+      if (Fields.size() > std::numeric_limits<std::size_t>::max() / sizeof(RuntimeValueRef))
+      {
+        return nullptr;
+      }
       auto *Result = static_cast<RuntimeValueRef *>(allocate(sizeof(RuntimeValueRef) * Fields.size(), alignof(RuntimeValueRef)));
+      if (Result == nullptr)
+      {
+        return nullptr;
+      }
       for (std::size_t FieldIndex = 0; FieldIndex < Fields.size(); ++FieldIndex)
       {
         new (Result + FieldIndex) RuntimeValueRef(Fields[FieldIndex]);
@@ -488,7 +521,37 @@ namespace ink::execution
       MemoryBackings.push_back(std::move(RetainedBacking));
     }
 
-    RuntimeValueRef allocateManagedByteSlice(const ir::Type &ValueType, std::uint64_t Size, std::size_t OwnerFrame, RuntimeMemoryStatus &Status)
+    RuntimeValueRef trackedPointerValue(const ir::Type &ValueType, const void *Value, bool RequireWritable, bool &Found)
+    {
+      Found = false;
+      if (Value == nullptr)
+      {
+        return nullptr;
+      }
+      const std::uintptr_t Address = reinterpret_cast<std::uintptr_t>(Value);
+      for (auto BackingIterator = MemoryBackings.rbegin(); BackingIterator != MemoryBackings.rend(); ++BackingIterator)
+      {
+        RuntimeMemoryBacking *Backing = BackingIterator->get();
+        if (Backing->Data == nullptr)
+        {
+          continue;
+        }
+        const std::uintptr_t BaseAddress = reinterpret_cast<std::uintptr_t>(Backing->Data);
+        if (Address >= BaseAddress && Address - BaseAddress <= Backing->Size)
+        {
+          Found = true;
+          if (RequireWritable && !Backing->Writable)
+          {
+            return nullptr;
+          }
+          // A dead backing remains a deliberate match so a cached native address cannot be resurrected as an untracked live pointer.
+          return create<RuntimePointerValue>(ValueType, Backing, static_cast<std::uint64_t>(Address - BaseAddress));
+        }
+      }
+      return nullptr;
+    }
+
+    RuntimeValueRef allocateManagedByteSlice(const ir::Type &ValueType, std::uint64_t Size, std::optional<std::size_t> OwnerFrame, RuntimeMemoryStatus &Status)
     {
       if (Size > MaximumRuntimeByteAllocationSize || Size > std::numeric_limits<std::size_t>::max())
       {
@@ -507,21 +570,49 @@ namespace ink::execution
       }
 
       const std::size_t HostSize = static_cast<std::size_t>(Size);
-      std::vector<RuntimeMemoryBacking *> &FrameAllocationList = FrameAllocations[OwnerFrame];
-      reserveForAppend(FrameAllocationList);
+      if (OwnerFrame.has_value())
+      {
+        reserveForAppend(FrameAllocations[*OwnerFrame]);
+      }
+      else
+      {
+        reserveForAppend(PersistentBackings);
+      }
       reserveForAppend(MemoryBackings);
       reserveForAppend(ManagedBackings);
-      auto Backing = std::make_shared<RuntimeMemoryBacking>(HostSize, OwnerFrame);
+      auto Backing = std::make_shared<RuntimeMemoryBacking>(HostSize, OwnerFrame.value_or(0), ValueType.kind() == ir::TypeKind::ByteSlice);
       RuntimeMemoryBacking *BackingValue = Backing.get();
       RuntimeValueRef Result = create<RuntimeByteSliceValue>(ValueType, BackingValue);
+      if (Result == nullptr)
+      {
+        Status = RuntimeMemoryStatus::InvalidValue;
+        return nullptr;
+      }
       MemoryBackings.push_back(std::move(Backing));
       RetainedBackings.insert(BackingValue);
       ManagedBackings.push_back(BackingValue);
-      FrameAllocationList.push_back(BackingValue);
+      if (OwnerFrame.has_value())
+      {
+        FrameAllocations[*OwnerFrame].push_back(BackingValue);
+      }
+      else
+      {
+        PersistentBackings.push_back(BackingValue);
+      }
       ++ManagedAllocationCount;
       ByteStorageSize += HostSize;
       Status = RuntimeMemoryStatus::Ok;
       return Result;
+    }
+
+    void endPersistentLifetimes() noexcept
+    {
+      for (RuntimeMemoryBacking *Backing : PersistentBackings)
+      {
+        Backing->Alive = false;
+        Backing->OwnedData.reset();
+      }
+      PersistentBackings.clear();
     }
 
     void endFrameLifetimes(std::size_t OwnerFrame) noexcept
@@ -547,7 +638,9 @@ namespace ink::execution
   private:
     struct Block
     {
-      explicit Block(std::size_t Capacity) : Data(std::make_unique<std::byte[]>(Capacity)), Capacity(Capacity)
+      explicit Block(std::size_t Capacity)
+          : Data(std::make_unique<std::byte[]>(Capacity)),
+            Capacity(Capacity)
       {
       }
 
@@ -573,7 +666,7 @@ namespace ink::execution
       constexpr std::size_t InitialBlockSize = 256;
       if (Size > std::numeric_limits<std::size_t>::max() - (Alignment - 1))
       {
-        throw std::bad_alloc();
+        return nullptr;
       }
       const std::size_t RequiredCapacity = Size + Alignment - 1;
       std::size_t Capacity = InitialBlockSize;
@@ -588,7 +681,8 @@ namespace ink::execution
       std::size_t Space = Current.Capacity;
       if (std::align(Alignment, Size, Address, Space) == nullptr)
       {
-        throw std::bad_alloc();
+        Blocks.pop_back();
+        return nullptr;
       }
       Current.Used = static_cast<std::size_t>(static_cast<std::byte *>(Address) - Current.Data.get()) + Size;
       return Address;
@@ -598,6 +692,7 @@ namespace ink::execution
     std::vector<std::shared_ptr<RuntimeMemoryBacking>> MemoryBackings;
     std::unordered_set<RuntimeMemoryBacking *> RetainedBackings;
     std::vector<RuntimeMemoryBacking *> ManagedBackings;
+    std::vector<RuntimeMemoryBacking *> PersistentBackings;
     std::unordered_map<std::size_t, std::vector<RuntimeMemoryBacking *>> FrameAllocations;
     std::size_t ManagedAllocationCount = 0;
     std::size_t ByteStorageSize = 0;
@@ -643,11 +738,14 @@ namespace ink::execution
     return nullptr;
   }
 
-  RuntimeValueArena::RuntimeValueArena() : RuntimeValueArena(core::TargetContext::native())
+  RuntimeValueArena::RuntimeValueArena()
+      : RuntimeValueArena(core::TargetContext::native())
   {
   }
 
-  RuntimeValueArena::RuntimeValueArena(core::TargetContext Target) : Target(Target), Implementation(std::make_unique<Impl>())
+  RuntimeValueArena::RuntimeValueArena(core::TargetContext Target)
+      : Target(Target),
+        Implementation(std::make_unique<Impl>())
   {
   }
 
@@ -705,12 +803,24 @@ namespace ink::execution
 
   RuntimeValueRef RuntimeValueArena::pointerValue(const ir::Type &ValueType, const void *Value)
   {
-    return ValueType.kind() == ir::TypeKind::ConstBytePointer && (Value == nullptr || Target.isNativeAbiCompatible()) ? Implementation->create<RuntimePointerValue>(ValueType, Value) : nullptr;
+    if (ValueType.kind() != ir::TypeKind::ConstBytePointer || (Value != nullptr && !Target.isNativeAbiCompatible()))
+    {
+      return nullptr;
+    }
+    bool Found = false;
+    RuntimeValueRef Tracked = Implementation->trackedPointerValue(ValueType, Value, false, Found);
+    return Found ? Tracked : Implementation->create<RuntimePointerValue>(ValueType, Value);
   }
 
   RuntimeValueRef RuntimeValueArena::mutablePointerValue(const ir::Type &ValueType, void *Value)
   {
-    return ValueType.kind() == ir::TypeKind::BytePointer && (Value == nullptr || Target.isNativeAbiCompatible()) ? Implementation->create<RuntimePointerValue>(ValueType, Value) : nullptr;
+    if (ValueType.kind() != ir::TypeKind::BytePointer || (Value != nullptr && !Target.isNativeAbiCompatible()))
+    {
+      return nullptr;
+    }
+    bool Found = false;
+    RuntimeValueRef Tracked = Implementation->trackedPointerValue(ValueType, Value, true, Found);
+    return Found ? Tracked : Implementation->create<RuntimePointerValue>(ValueType, Value);
   }
 
   RuntimeValueRef RuntimeValueArena::borrowedPointerValue(const ir::Type &ValueType, const void *Data, std::size_t Size)
@@ -774,6 +884,38 @@ namespace ink::execution
     return Implementation->create<RuntimePointerValue>(ValueType, Backing, 0);
   }
 
+  RuntimeValueRef RuntimeValueArena::allocatePersistentByteSlice(const ir::Type &ValueType, std::uint64_t Size, RuntimeMemoryStatus &Status)
+  {
+    if (ValueType.kind() != ir::TypeKind::ByteSlice || Size > Target.maximumPointerSizeValue())
+    {
+      Status = RuntimeMemoryStatus::InvalidValue;
+      return nullptr;
+    }
+    return Implementation->allocateManagedByteSlice(ValueType, Size, std::nullopt, Status);
+  }
+
+  RuntimeValueRef RuntimeValueArena::copyPersistentByteSlice(const ir::Type &ValueType, const void *Data, std::uint64_t Size, RuntimeMemoryStatus &Status)
+  {
+    if ((ValueType.kind() != ir::TypeKind::ByteSlice && ValueType.kind() != ir::TypeKind::ConstByteSlice) || (Data == nullptr && Size != 0) || Size > Target.maximumPointerSizeValue())
+    {
+      Status = RuntimeMemoryStatus::InvalidValue;
+      return nullptr;
+    }
+    RuntimeValueRef Result = Implementation->allocateManagedByteSlice(ValueType, Size, std::nullopt, Status);
+    if (Result == nullptr || Status != RuntimeMemoryStatus::Ok || Size == 0)
+    {
+      return Result;
+    }
+    auto *Slice = dynamic_cast<const RuntimeByteSliceValue *>(Result);
+    if (Slice == nullptr || Slice->backing() == nullptr || Slice->backing()->OwnedData == nullptr)
+    {
+      Status = RuntimeMemoryStatus::InvalidValue;
+      return nullptr;
+    }
+    std::memcpy(Slice->backing()->OwnedData.get(), Data, static_cast<std::size_t>(Size));
+    return Result;
+  }
+
   RuntimeValueRef RuntimeValueArena::allocateByteSlice(const ir::Type &ValueType, std::uint64_t Size, std::size_t OwnerFrame, RuntimeMemoryStatus &Status)
   {
     if (ValueType.kind() != ir::TypeKind::ByteSlice || Size > Target.maximumPointerSizeValue())
@@ -819,7 +961,7 @@ namespace ink::execution
       }
       Implementation->retainBacking(PointerValue->backing());
       RuntimeValueRef Result = Implementation->create<RuntimePointerValue>(ResultType, PointerValue->backing(), PointerValue->byteOffset() + ElementByteOffset);
-      Status = RuntimeMemoryStatus::Ok;
+      Status = Result == nullptr ? RuntimeMemoryStatus::InvalidValue : RuntimeMemoryStatus::Ok;
       return Result;
     }
 
@@ -830,7 +972,7 @@ namespace ink::execution
       return nullptr;
     }
     RuntimeValueRef Result = Implementation->create<RuntimePointerValue>(ResultType, reinterpret_cast<const void *>(BaseAddress + static_cast<std::uintptr_t>(ElementByteOffset)));
-    Status = RuntimeMemoryStatus::Ok;
+    Status = Result == nullptr ? RuntimeMemoryStatus::InvalidValue : RuntimeMemoryStatus::Ok;
     return Result;
   }
 
@@ -918,6 +1060,31 @@ namespace ink::execution
     return RuntimeMemoryStatus::Ok;
   }
 
+  RuntimeMemoryStatus RuntimeValueArena::makeByteSliceReadOnly(const RuntimeValue &Slice) noexcept
+  {
+    const auto *SliceValue = dynamic_cast<const RuntimeByteSliceValue *>(&Slice);
+    if (SliceValue == nullptr || Slice.type().kind() != ir::TypeKind::ByteSlice)
+    {
+      return RuntimeMemoryStatus::InvalidValue;
+    }
+    RuntimeMemoryBacking *Backing = SliceValue->backing();
+    if (!Implementation->owns(&Slice) || Backing == nullptr || !Implementation->ownsManagedBacking(Backing))
+    {
+      return RuntimeMemoryStatus::NotOwned;
+    }
+    if (!Backing->Alive)
+    {
+      return RuntimeMemoryStatus::LifetimeEnded;
+    }
+    Backing->Writable = false;
+    return RuntimeMemoryStatus::Ok;
+  }
+
+  void RuntimeValueArena::endPersistentLifetimes() noexcept
+  {
+    Implementation->endPersistentLifetimes();
+  }
+
   void RuntimeValueArena::endFrameLifetimes(std::size_t OwnerFrame) noexcept
   {
     Implementation->endFrameLifetimes(OwnerFrame);
@@ -937,6 +1104,10 @@ namespace ink::execution
       }
     }
     RuntimeValueRef *StoredFields = Implementation->copyFields(Fields);
+    if (!Fields.empty() && StoredFields == nullptr)
+    {
+      return nullptr;
+    }
     return Implementation->create<RuntimeAggregateValue>(ValueType, StoredFields, Fields.size());
   }
 

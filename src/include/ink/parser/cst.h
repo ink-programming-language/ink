@@ -133,7 +133,7 @@ namespace ink::parser
       return Root;
     }
 
-    const CstNode &node(CstNodeId Id) const;
+    const CstNode &node(CstNodeId Id) const noexcept;
 
   private:
     std::vector<CstNode> Nodes;

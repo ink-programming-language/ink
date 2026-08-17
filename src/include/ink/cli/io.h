@@ -7,7 +7,8 @@
 
 namespace ink::cli
 {
-  std::filesystem::path pathFromUtf8(std::string_view Path);
+  bool isValidUtf8(std::string_view Text) noexcept;
+  bool pathFromUtf8(std::string_view Path, std::filesystem::path &Result) noexcept;
   bool useBinaryStandardInput() noexcept;
   bool writeOutput(std::ostream &Output, std::string_view Message);
 } // namespace ink::cli

@@ -24,7 +24,8 @@ namespace ink::ir
     }
 
   private:
-    explicit VerificationResult(std::vector<core::Diagnostic> Diagnostics) : Diagnostics(std::move(Diagnostics))
+    explicit VerificationResult(std::vector<core::Diagnostic> Diagnostics)
+        : Diagnostics(std::move(Diagnostics))
     {
     }
 

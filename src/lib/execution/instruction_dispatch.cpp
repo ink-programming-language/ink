@@ -10,6 +10,8 @@ namespace ink::execution
       return InstructionFlow::Continue;
     case ir::InstructionKind::Call:
       return executeCallInstruction(static_cast<const ir::CallInstruction &>(InstructionValue), State);
+    case ir::InstructionKind::Import:
+      return executeImportInstruction(static_cast<const ir::ImportInstruction &>(InstructionValue), State);
     case ir::InstructionKind::Alloca:
       return executeAllocaInstruction(static_cast<const ir::AllocaInstruction &>(InstructionValue), State);
     case ir::InstructionKind::GetElementPointer:

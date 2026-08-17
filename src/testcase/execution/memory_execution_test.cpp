@@ -21,7 +21,8 @@ namespace ink::execution
     {
       MemoryExecutionTestContext() = default;
 
-      explicit MemoryExecutionTestContext(core::TargetContext Target) : Compilation(Target)
+      explicit MemoryExecutionTestContext(core::TargetContext Target)
+          : Compilation(Target)
       {
       }
 

@@ -87,12 +87,16 @@ namespace ink::execution
     RuntimeValueRef byteSliceValue(const ir::Type &ValueType, const void *Data, std::size_t Size);
     RuntimeValueRef mutableByteSliceValue(const ir::Type &ValueType, void *Data, std::size_t Size);
     RuntimeValueRef pointerFromByteSlice(const ir::Type &ValueType, const RuntimeValue &Slice);
+    RuntimeValueRef allocatePersistentByteSlice(const ir::Type &ValueType, std::uint64_t Size, RuntimeMemoryStatus &Status);
+    RuntimeValueRef copyPersistentByteSlice(const ir::Type &ValueType, const void *Data, std::uint64_t Size, RuntimeMemoryStatus &Status);
     RuntimeValueRef allocateByteSlice(const ir::Type &ValueType, std::uint64_t Size, std::size_t OwnerFrame, RuntimeMemoryStatus &Status);
     RuntimeValueRef getElementPointer(const ir::Type &ResultType, const RuntimeValue &Pointer, const ir::Type &ElementType, std::uint64_t Index, RuntimeMemoryStatus &Status);
     RuntimeValueRef getElementPointer(const ir::Type &ResultType, const RuntimeValue &Pointer, const ir::Type &ElementType, std::uint64_t Index, const std::vector<std::uint32_t> &FieldIndices, RuntimeMemoryStatus &Status);
     RuntimeMemoryStatus loadValue(const RuntimeValue &Pointer, const ir::Type &ValueType, RuntimeValueRef &Value);
     RuntimeMemoryStatus storeValue(const RuntimeValue &Pointer, const RuntimeValue &Value);
     RuntimeMemoryStatus endByteSliceLifetime(const RuntimeValue &Slice, std::size_t OwnerFrame) noexcept;
+    RuntimeMemoryStatus makeByteSliceReadOnly(const RuntimeValue &Slice) noexcept;
+    void endPersistentLifetimes() noexcept;
     void endFrameLifetimes(std::size_t OwnerFrame) noexcept;
     RuntimeValueRef aggregateValue(const ir::StructType &ValueType, std::vector<RuntimeValueRef> Fields);
     RuntimeValueRef clone(const RuntimeValue &Value);

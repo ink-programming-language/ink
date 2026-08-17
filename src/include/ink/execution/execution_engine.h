@@ -3,6 +3,7 @@
 
 #include "ink/core/diagnostic.h"
 #include "ink/execution/context.h"
+#include "ink/execution/module_provider.h"
 #include "ink/execution/runtime_value.h"
 #include "ink/ir/module.h"
 
@@ -47,10 +48,26 @@ namespace ink::execution
     friend class ExecutionEngine;
   };
 
+  class ShutdownResult
+  {
+  public:
+    bool succeeded() const noexcept;
+    const std::vector<core::Diagnostic> &diagnostics() const noexcept;
+
+  private:
+    bool Succeeded = false;
+    std::vector<core::Diagnostic> Diagnostics;
+
+    friend class ExecutionEngine;
+  };
+
   class ExecutionEngine
   {
   public:
+    // Calls on one engine instance must be externally serialized.
     ExecutionEngine(ExecutionContext &Context, const ir::Module &ModuleValue);
+    // Provider images are loaded on reached imports and must share one IRContext and target within this engine.
+    ExecutionEngine(ExecutionContext &Context, ModuleProvider &Provider, ir::ModuleId EntryModule);
     ~ExecutionEngine();
     ExecutionEngine(const ExecutionEngine &) = delete;
     ExecutionEngine &operator=(const ExecutionEngine &) = delete;
@@ -60,6 +77,7 @@ namespace ink::execution
     InitializationResult initialize();
     // Argument values are borrowed and must remain alive and immutable until this synchronous call returns.
     ExecutionResult execute(std::string_view EntryName, const std::vector<RuntimeValueRef> &Arguments = {});
+    ShutdownResult shutdown();
 
   private:
     class Impl;

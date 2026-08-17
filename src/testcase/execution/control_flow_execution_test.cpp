@@ -19,7 +19,8 @@ namespace ink::execution
     {
       ControlFlowExecutionTestContext() = default;
 
-      explicit ControlFlowExecutionTestContext(core::TargetContext Target) : Compilation(Target)
+      explicit ControlFlowExecutionTestContext(core::TargetContext Target)
+          : Compilation(Target)
       {
       }
 

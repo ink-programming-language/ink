@@ -8,6 +8,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -75,14 +76,20 @@ namespace
   {
     ink::cli::Application Command({"ink_interpreter", "Interpret and execute an InkIR module.", "development"});
     std::string InputFile;
-    Command.app().add_option("-i", InputFile, "InkIR input file")->required()->type_name("FILE");
+    Command.addOption("-i", InputFile, "InkIR input file").required().typeName("FILE");
     const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
     if (ParsedArguments.ShouldExit)
     {
       return ink::cli::exitStatus(ParsedArguments.Code);
     }
 
-    std::ifstream Input(ink::cli::pathFromUtf8(InputFile), std::ios::binary);
+    std::filesystem::path InputPath;
+    if (!ink::cli::pathFromUtf8(InputFile, InputPath))
+    {
+      ink::cli::writeOutput(std::cerr, "ink_interpreter: error: input path is not valid UTF-8\n");
+      return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+    }
+    std::ifstream Input(InputPath, std::ios::binary);
     if (!Input)
     {
       ink::cli::writeOutput(std::cerr, "ink_interpreter: error: cannot open '" + InputFile + "'\n");

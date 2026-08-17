@@ -412,7 +412,7 @@ namespace ink::ir
       EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), StructText);
     }
 
-    // Verifies that deserialization resolves function and global references declared later in the text.
+    // Verifies that deserialization resolves later function and global declarations while serialization preserves FunctionId order.
     TEST(IrSerializationTest, ResolvesForwardGlobalAndExternReferences)
     {
       TestContext Context;
@@ -425,11 +425,23 @@ namespace ink::ir
           "}\n"
           "declare extern \"C\" i32 @write(i32, const byte*, ptrsize) [sideeffect]\n"
           "@str.0 = private constant [14 x byte] c\"Hello, world!\\0A\"\n";
+      const std::string ExpectedText =
+          "inkir 1\n"
+          "\n"
+          "@str.0 = private constant [14 x byte] c\"Hello, world!\\0A\"\n"
+          "\n"
+          "define void @main() {\n"
+          "entry:\n"
+          "  %0 = call i32 @write(i32 1, const byte* @str.0[0], ptrsize 14)\n"
+          "  ret void\n"
+          "}\n"
+          "\n"
+          "declare extern \"C\" i32 @write(i32, const byte*, ptrsize) [sideeffect]\n";
 
       DeserializeResult Result = deserialize(Context.IR, ForwardReferenceText);
 
       ASSERT_TRUE(Result.succeeded());
-      EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), HelloWorldText);
+      EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), ExpectedText);
     }
 
     // Verifies that byte serialization preserves embedded zero, quotes, backslashes, and non-ASCII bytes.

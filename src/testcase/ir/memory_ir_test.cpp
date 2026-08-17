@@ -18,11 +18,15 @@ namespace ink::ir
   {
     struct MemoryIrTestContext
     {
-      MemoryIrTestContext() : Compilation(), IR(Compilation)
+      MemoryIrTestContext()
+          : Compilation(),
+            IR(Compilation)
       {
       }
 
-      explicit MemoryIrTestContext(core::TargetContext Target) : Compilation(Target), IR(Compilation)
+      explicit MemoryIrTestContext(core::TargetContext Target)
+          : Compilation(Target),
+            IR(Compilation)
       {
       }
 

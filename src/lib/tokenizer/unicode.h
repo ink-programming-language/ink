@@ -15,10 +15,17 @@ namespace ink::tokenizer::unicode
     bool Valid = false;
   };
 
+  enum class NfcCheckResult
+  {
+    Normalized,
+    NotNormalized,
+    Failed,
+  };
+
   DecodeResult decode(std::string_view Source, std::size_t Offset) noexcept;
   bool isXidStart(char32_t Value) noexcept;
   bool isXidContinue(char32_t Value) noexcept;
-  bool isNfc(std::string_view Source);
+  NfcCheckResult checkNfc(std::string_view Source) noexcept;
   bool isDefaultIgnorable(char32_t Value) noexcept;
   bool isUnicodeWhitespace(char32_t Value) noexcept;
   void appendUtf8(std::string &Output, char32_t Value);

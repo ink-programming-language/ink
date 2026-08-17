@@ -31,6 +31,7 @@ INK_IR_DERIVED_TYPE(Struct, "struct")
 INK_IR_VALUE(IntegerConstant)
 INK_IR_VALUE(ValueOperand)
 INK_IR_VALUE(GlobalAddressOperand)
+INK_IR_VALUE(GlobalVariableAddressOperand)
 INK_IR_VALUE(ZeroInitializer)
 INK_IR_VALUE(FloatConstant)
 INK_IR_VALUE(StringConstant)
@@ -39,6 +40,8 @@ INK_IR_VALUE(AggregateConstant)
 
 // Formats: call void @callee(<type> <argument>, ...); %result = call <non-void-type> @callee(<type> <argument>, ...)
 INK_IR_INSTRUCTION(Call, "call", false)
+// Format: import <module-id>
+INK_IR_INSTRUCTION(Import, "import", false)
 // Format: %result = alloca byte[] ptrsize <size>
 INK_IR_INSTRUCTION(Alloca, "alloca", false)
 // Format: %result = getelementptr <element-type>, <pointer-type> <pointer>, ptrsize <element-index>[, i32 <constant-field-index>]...

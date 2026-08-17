@@ -3,6 +3,7 @@
 #include "ink/tokenizer/tokenizer.h"
 
 #include <array>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -30,7 +31,7 @@ namespace
   {
     ink::cli::Application Command({"ink-tokenize", "Tokenize Ink source and print the token stream.", "development"});
     std::string SourceFile = "-";
-    Command.app().add_option("INPUT", SourceFile, "Input file, or '-' for standard input")->type_name("FILE");
+    Command.addOption("INPUT", SourceFile, "Input file, or '-' for standard input").typeName("FILE");
     const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
     if (ParsedArguments.ShouldExit)
     {
@@ -48,7 +49,13 @@ namespace
     }
     else
     {
-      std::ifstream Input(ink::cli::pathFromUtf8(SourceFile), std::ios::binary);
+      std::filesystem::path SourcePath;
+      if (!ink::cli::pathFromUtf8(SourceFile, SourcePath))
+      {
+        ink::cli::writeOutput(std::cerr, "ink-tokenize: error: input path is not valid UTF-8\n");
+        return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+      }
+      std::ifstream Input(SourcePath, std::ios::binary);
       if (!Input)
       {
         ink::cli::writeOutput(std::cerr, "ink-tokenize: error: cannot open '" + SourceFile + "'\n");

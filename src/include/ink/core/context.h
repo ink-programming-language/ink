@@ -9,11 +9,13 @@ namespace ink::core
   class CompilationContext
   {
   public:
-    CompilationContext() : Target(TargetContext::native())
+    CompilationContext()
+        : Target(TargetContext::native())
     {
     }
 
-    explicit CompilationContext(TargetContext Target) : Target(Target)
+    explicit CompilationContext(TargetContext Target)
+        : Target(Target)
     {
     }
 
@@ -45,7 +47,8 @@ namespace ink::core
   class FrontendContext
   {
   public:
-    explicit FrontendContext(CompilationContext &Compilation) : Compilation(Compilation)
+    explicit FrontendContext(CompilationContext &Compilation)
+        : Compilation(Compilation)
     {
     }
 

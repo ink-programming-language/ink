@@ -10,7 +10,9 @@ namespace ink::ir
   class AddInstruction final : public Instruction
   {
   public:
-    explicit AddInstruction(const Type &ResultType) noexcept : Instruction(InstructionKind::Add), ResultType(&ResultType)
+    explicit AddInstruction(const Type &ResultType) noexcept
+        : Instruction(InstructionKind::Add),
+          ResultType(&ResultType)
     {
     }
 

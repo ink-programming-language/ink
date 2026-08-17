@@ -29,7 +29,7 @@ namespace ink::execution
       addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>();
       return InstructionFlow::Failed;
     }
-    RuntimeValueRef Condition = evaluateValue(*Branch.Condition, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Condition = evaluateValue(*Branch.Condition, State.Module, State.Frame, State.FunctionValue.Name);
     if (Condition == nullptr)
     {
       return InstructionFlow::Failed;

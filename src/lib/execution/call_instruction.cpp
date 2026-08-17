@@ -7,18 +7,47 @@ namespace ink::execution
 {
   FunctionExecutor::InstructionFlow FunctionExecutor::executeCallInstruction(const ir::CallInstruction &Call, FunctionExecutionState &State)
   {
-    if (Call.Callee.valid() && Call.Callee.value() < ModuleValue.Functions.size() && ModuleValue.Functions[Call.Callee.value()].Kind == ir::FunctionKind::External && !Context.compilationContext().targetContext().isNativeAbiCompatible())
+    ModuleInstance *CalleeModule = Runtime.resolveReferencedModule(State.Module, Call.Callee.Module, Diagnostics);
+    if (CalleeModule == nullptr)
     {
-      addFailure<core::DiagnosticKind::ExternalFunctionTargetUnsupported>(ModuleValue.Functions[Call.Callee.value()].Name);
+      return InstructionFlow::Failed;
+    }
+    const ir::Module &CalleeDefinition = CalleeModule->definition();
+    if (!Call.Callee.Function.valid() || Call.Callee.Function.value() >= CalleeDefinition.Functions.size())
+    {
+      addFailure<core::DiagnosticKind::ModuleFunctionReferenceInvalid>(CalleeModule->id().value(), Call.Callee.Function.valid() ? Call.Callee.Function.value() : ir::InvalidId);
+      return InstructionFlow::Failed;
+    }
+    if ((CalleeDefinition.Initializer.has_value() && *CalleeDefinition.Initializer == Call.Callee.Function) || (CalleeDefinition.Finalizer.has_value() && *CalleeDefinition.Finalizer == Call.Callee.Function))
+    {
+      addFailure<core::DiagnosticKind::ModuleFunctionReferenceInvalid>(CalleeModule->id().value(), Call.Callee.Function.value());
+      return InstructionFlow::Failed;
+    }
+
+    const ir::Function &Callee = CalleeDefinition.Functions[Call.Callee.Function.value()];
+    if (Call.ResultType != Callee.ResultType || Call.Arguments.size() != Callee.ParameterTypes.size())
+    {
+      addFailure<core::DiagnosticKind::ModuleFunctionReferenceInvalid>(CalleeModule->id().value(), Call.Callee.Function.value());
+      return InstructionFlow::Failed;
+    }
+    if (Callee.Kind == ir::FunctionKind::External && !Context.compilationContext().targetContext().isNativeAbiCompatible())
+    {
+      addFailure<core::DiagnosticKind::ExternalFunctionTargetUnsupported>(Callee.Name);
       return InstructionFlow::Failed;
     }
 
     std::vector<RuntimeValueRef> CallArguments;
     CallArguments.reserve(Call.Arguments.size());
-    for (const std::unique_ptr<ir::Value> &Argument : Call.Arguments)
+    for (std::size_t ArgumentIndex = 0; ArgumentIndex < Call.Arguments.size(); ++ArgumentIndex)
     {
-      RuntimeValueRef ArgumentValue = evaluateValue(*Argument, State.Frame, State.FunctionValue.Name);
-      if (ArgumentValue == nullptr)
+      const std::unique_ptr<ir::Value> &Argument = Call.Arguments[ArgumentIndex];
+      if (Argument == nullptr || &Argument->type() != Callee.ParameterTypes[ArgumentIndex])
+      {
+        addFailure<core::DiagnosticKind::ModuleFunctionReferenceInvalid>(CalleeModule->id().value(), Call.Callee.Function.value());
+        return InstructionFlow::Failed;
+      }
+      RuntimeValueRef ArgumentValue = evaluateValue(*Argument, State.Module, State.Frame, State.FunctionValue.Name);
+      if (ArgumentValue == nullptr || &ArgumentValue->type() != Callee.ParameterTypes[ArgumentIndex])
       {
         return InstructionFlow::Failed;
       }
@@ -26,7 +55,7 @@ namespace ink::execution
     }
 
     RuntimeValueRef CallResult = nullptr;
-    if (!executeFunction(Call.Callee.value(), CallArguments, State.Depth + 1, CallResult))
+    if (!executeFunction(*CalleeModule, Call.Callee.Function, CallArguments, State.Depth + 1, CallResult))
     {
       return InstructionFlow::Failed;
     }
@@ -34,7 +63,7 @@ namespace ink::execution
     {
       return InstructionFlow::Continue;
     }
-    if (CallResult == nullptr)
+    if (CallResult == nullptr || &CallResult->type() != Call.ResultType)
     {
       addFailure<core::DiagnosticKind::CallResultMissing>(State.FunctionValue.Name);
       return InstructionFlow::Failed;

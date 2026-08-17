@@ -4,7 +4,6 @@
 #include <cassert>
 #include <initializer_list>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -73,7 +72,11 @@ namespace ink::parser
 
     void setKind(CstNodeId Id, CstKind Kind)
     {
-      Nodes.at(Id).Kind = Kind;
+      assert(Id < Nodes.size());
+      if (Id < Nodes.size())
+      {
+        Nodes[Id].Kind = Kind;
+      }
     }
 
     void token(std::size_t TokenIndex)
@@ -112,6 +115,11 @@ namespace ink::parser
 
     CstTree build(const TokenizedBuffer &LexedFile) const
     {
+      assert(!Nodes.empty());
+      if (Nodes.empty())
+      {
+        return {};
+      }
       CstTree Result;
       Result.Nodes.resize(Nodes.size());
       Result.Root = 0;
@@ -148,13 +156,23 @@ namespace ink::parser
           {
             const CstElement &Element = Temporary.Children[Current.NextChild++];
             const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element);
-            if (Child == nullptr || State[Child->Id] == 2)
+            if (Child == nullptr)
+            {
+              continue;
+            }
+            assert(Child->Id < State.size());
+            if (Child->Id >= State.size())
+            {
+              return {};
+            }
+            if (State[Child->Id] == 2)
             {
               continue;
             }
             if (State[Child->Id] == 1)
             {
-              throw std::logic_error("CST contains a node-reference cycle");
+              assert(false && "CST contains a node-reference cycle");
+              return {};
             }
             State[Child->Id] = 1;
             Work.push_back({Child->Id, 0});
@@ -175,14 +193,24 @@ namespace ink::parser
           {
             if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
             {
-              const CstNode &ChildNode = Result.Nodes.at(Child->Id);
+              assert(Child->Id < Result.Nodes.size());
+              if (Child->Id >= Result.Nodes.size())
+              {
+                return {};
+              }
+              const CstNode &ChildNode = Result.Nodes[Child->Id];
               Node.TokenCount += ChildNode.TokenCount;
               Node.TextLength += ChildNode.TextLength;
               Node.Flags |= ChildNode.Flags;
             }
             else if (const CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
             {
-              const Token &ReferencedToken = LexedFile.tokens().at(TokenReference->TokenOffset);
+              assert(TokenReference->TokenOffset < LexedFile.tokens().size());
+              if (TokenReference->TokenOffset >= LexedFile.tokens().size())
+              {
+                return {};
+              }
+              const Token &ReferencedToken = LexedFile.tokens()[TokenReference->TokenOffset];
               ++Node.TokenCount;
               Node.TextLength += ReferencedToken.Span.size();
             }
@@ -203,7 +231,6 @@ namespace ink::parser
         std::size_t NextChild = 0;
         std::size_t ConsumedTokens = 0;
       };
-      assert(!Result.Nodes.empty());
       std::vector<std::uint8_t> OffsetState(Result.Nodes.size(), 0);
       std::vector<OffsetFrame> OffsetWork;
       OffsetState[Result.Root] = 1;
@@ -211,24 +238,43 @@ namespace ink::parser
       while (!OffsetWork.empty())
       {
         OffsetFrame &Current = OffsetWork.back();
-        const CstNode &Node = Result.Nodes.at(Current.NodeId);
+        assert(Current.NodeId < Result.Nodes.size());
+        if (Current.NodeId >= Result.Nodes.size())
+        {
+          return {};
+        }
+        const CstNode &Node = Result.Nodes[Current.NodeId];
         if (Current.NextChild == Node.ChildCount)
         {
           assert(Current.ConsumedTokens == Node.TokenCount);
+          if (Current.ConsumedTokens != Node.TokenCount)
+          {
+            return {};
+          }
           OffsetState[Current.NodeId] = 2;
           OffsetWork.pop_back();
           continue;
         }
-
-        CstElement &Element = Result.Children.at(Node.FirstChild + Current.NextChild++);
+        assert(Node.FirstChild <= Result.Children.size() && Node.ChildCount <= Result.Children.size() - Node.FirstChild);
+        if (Node.FirstChild > Result.Children.size() || Node.ChildCount > Result.Children.size() - Node.FirstChild)
+        {
+          return {};
+        }
+        CstElement &Element = Result.Children[Node.FirstChild + Current.NextChild++];
         if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
         {
-          const CstNode &ChildNode = Result.Nodes.at(Child->Id);
+          assert(Child->Id < Result.Nodes.size());
+          if (Child->Id >= Result.Nodes.size())
+          {
+            return {};
+          }
+          const CstNode &ChildNode = Result.Nodes[Child->Id];
           const std::size_t ChildStartToken = Current.NodeStartToken + Current.ConsumedTokens;
           Current.ConsumedTokens += ChildNode.TokenCount;
           if (OffsetState[Child->Id] == 1)
           {
-            throw std::logic_error("CST contains a node-reference cycle");
+            assert(false && "CST contains a node-reference cycle");
+            return {};
           }
           if (OffsetState[Child->Id] == 0)
           {
@@ -239,6 +285,10 @@ namespace ink::parser
         else if (CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
         {
           assert(TokenReference->TokenOffset == Current.NodeStartToken + Current.ConsumedTokens);
+          if (TokenReference->TokenOffset != Current.NodeStartToken + Current.ConsumedTokens)
+          {
+            return {};
+          }
           TokenReference->TokenOffset = Current.ConsumedTokens;
           ++Current.ConsumedTokens;
         }
@@ -247,7 +297,8 @@ namespace ink::parser
       {
         if (NodeState != 2)
         {
-          throw std::logic_error("CST contains a node that is not reachable from the root");
+          assert(false && "CST contains a node that is not reachable from the root");
+          return {};
         }
       }
       return Result;
@@ -260,6 +311,13 @@ namespace ink::parser
 
   namespace
   {
+    KeywordKind keywordKind(const Token &TokenValue) noexcept
+    {
+      const KeywordKind *Kind = std::get_if<KeywordKind>(&TokenValue.Payload);
+      assert(Kind != nullptr);
+      return Kind == nullptr ? KeywordKind::As : *Kind;
+    }
+
     enum class RegionKind
     {
       Statement,
@@ -395,7 +453,8 @@ namespace ink::parser
     {
     public:
       MatchArmBoundaryGuard(std::vector<MatchArmBoundaryState> &States, bool Active, std::size_t BoundaryDepth)
-          : States(States), Active(Active)
+          : States(States),
+            Active(Active)
       {
         if (Active)
         {
@@ -425,7 +484,8 @@ namespace ink::parser
   {
   public:
     ParserImpl(const TokenizedBuffer &LexedFile, ParserOptions Options)
-        : LexedFile(LexedFile), Options(Options)
+        : LexedFile(LexedFile),
+          Options(Options)
     {
     }
 
@@ -874,7 +934,7 @@ namespace ink::parser
     }
     if (Current.Kind == TokenKind::Keyword)
     {
-      const KeywordKind Kind = std::get<KeywordKind>(Current.Payload);
+      const KeywordKind Kind = keywordKind(Current);
       return Kind == KeywordKind::This || Kind == KeywordKind::If || Kind == KeywordKind::Match || Kind == KeywordKind::Const || Kind == KeywordKind::Func || Kind == KeywordKind::Async || Kind == KeywordKind::Class || Kind == KeywordKind::Comptime || Kind == KeywordKind::Await;
     }
     if (Current.Kind != TokenKind::Symbol)
@@ -899,7 +959,7 @@ namespace ink::parser
     }
     if (Current.Kind == TokenKind::Keyword)
     {
-      const KeywordKind Kind = std::get<KeywordKind>(Current.Payload);
+      const KeywordKind Kind = keywordKind(Current);
       return Kind == KeywordKind::Const || Kind == KeywordKind::Async || Kind == KeywordKind::Func;
     }
     return Current.Kind == TokenKind::Symbol && longestSymbolSequenceAt(significantIndex(Offset)) == "(";
@@ -918,7 +978,7 @@ namespace ink::parser
     }
     if (peekSignificant().Kind == TokenKind::Keyword)
     {
-      const KeywordKind Kind = std::get<KeywordKind>(peekSignificant().Payload);
+      const KeywordKind Kind = keywordKind(peekSignificant());
       switch (Kind)
       {
       case KeywordKind::Var:
@@ -961,7 +1021,7 @@ namespace ink::parser
       {
         return false;
       }
-      const KeywordKind Kind = std::get<KeywordKind>(Current.Payload);
+      const KeywordKind Kind = keywordKind(Current);
       if (Kind == KeywordKind::Class)
       {
         return true;
@@ -1120,7 +1180,7 @@ namespace ink::parser
       }
       if (Current.Kind == TokenKind::Keyword)
       {
-        const KeywordKind Kind = std::get<KeywordKind>(Current.Payload);
+        const KeywordKind Kind = keywordKind(Current);
         switch (Kind)
         {
         case KeywordKind::Var:
@@ -1300,7 +1360,7 @@ namespace ink::parser
       {
         return false;
       }
-      const KeywordKind Kind = std::get<KeywordKind>(Current.Payload);
+      const KeywordKind Kind = keywordKind(Current);
       const bool Modifier = Kind == KeywordKind::Public || Kind == KeywordKind::Protected || Kind == KeywordKind::Private || Kind == KeywordKind::Extern || Kind == KeywordKind::Static || Kind == KeywordKind::Virtual || Kind == KeywordKind::Override || Kind == KeywordKind::Final || Kind == KeywordKind::Async || Kind == KeywordKind::Implicit;
       if (!Modifier)
       {
@@ -2650,7 +2710,7 @@ namespace ink::parser
     {
       if (const Token &Operand = peekSignificant(1); Operand.Kind == TokenKind::Keyword)
       {
-        switch (std::get<KeywordKind>(Operand.Payload))
+        switch (keywordKind(Operand))
         {
         case KeywordKind::If:
           Kind = CstKind::ComptimeIfControl;
@@ -3042,7 +3102,7 @@ namespace ink::parser
     if (atKeyword(KeywordKind::Comptime))
     {
       const Token &Operand = peekSignificant(1);
-      const bool StructuredKeyword = Operand.Kind == TokenKind::Keyword && (std::get<KeywordKind>(Operand.Payload) == KeywordKind::If || std::get<KeywordKind>(Operand.Payload) == KeywordKind::Match || std::get<KeywordKind>(Operand.Payload) == KeywordKind::For || std::get<KeywordKind>(Operand.Payload) == KeywordKind::While);
+      const bool StructuredKeyword = Operand.Kind == TokenKind::Keyword && (keywordKind(Operand) == KeywordKind::If || keywordKind(Operand) == KeywordKind::Match || keywordKind(Operand) == KeywordKind::For || keywordKind(Operand) == KeywordKind::While);
       const bool StructuredBlock = Operand.Kind == TokenKind::Symbol && longestSymbolSequenceAt(significantIndex(1)) == "{";
       if (StructuredKeyword || StructuredBlock)
       {
@@ -3515,7 +3575,7 @@ namespace ink::parser
     bool SawCatchAll = false;
     while (atKeyword(KeywordKind::Catch))
     {
-      const bool CatchAll = longestSymbolSequenceAt(significantIndex(1)) == "{" || (peekSignificant(1).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(1).Payload) == KeywordKind::As);
+      const bool CatchAll = longestSymbolSequenceAt(significantIndex(1)) == "{" || (peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::As);
       if (SawCatchAll)
       {
         startNode(CstKind::Error);
@@ -3800,9 +3860,9 @@ namespace ink::parser
 
   void ParserImpl::parsePostfixExpression(const StopSet &Stop)
   {
-    const bool StartsWithAsyncFunction = atKeyword(KeywordKind::Async) && peekSignificant(1).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(1).Payload) == KeywordKind::Func;
-    const bool StartsWithConstFunction = atKeyword(KeywordKind::Const) && peekSignificant(1).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(1).Payload) == KeywordKind::Func;
-    const bool StartsWithConstAsyncFunction = atKeyword(KeywordKind::Const) && peekSignificant(1).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(1).Payload) == KeywordKind::Async && peekSignificant(2).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(2).Payload) == KeywordKind::Func;
+    const bool StartsWithAsyncFunction = atKeyword(KeywordKind::Async) && peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::Func;
+    const bool StartsWithConstFunction = atKeyword(KeywordKind::Const) && peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::Func;
+    const bool StartsWithConstAsyncFunction = atKeyword(KeywordKind::Const) && peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::Async && peekSignificant(2).Kind == TokenKind::Keyword && keywordKind(peekSignificant(2)) == KeywordKind::Func;
     const bool DirectFunctionType = atKeyword(KeywordKind::Func) || StartsWithAsyncFunction || StartsWithConstFunction || StartsWithConstAsyncFunction;
     if (DirectFunctionType)
     {
@@ -4558,7 +4618,7 @@ namespace ink::parser
       consumeKeyword(KeywordKind::Const);
       finishNode();
     }
-    if (atKeyword(KeywordKind::Func) || (atKeyword(KeywordKind::Async) && peekSignificant(1).Kind == TokenKind::Keyword && std::get<KeywordKind>(peekSignificant(1).Payload) == KeywordKind::Func))
+    if (atKeyword(KeywordKind::Func) || (atKeyword(KeywordKind::Async) && peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::Func))
     {
       parseFunctionType(Stop);
       finishNode();
@@ -4872,18 +4932,25 @@ namespace ink::parser
   }
 
   ParsedFile::ParsedFile(TokenizedBuffer LexedFile, CstTree Tree, std::vector<Diagnostic> Diagnostics, ParseCompleteness Completeness)
-      : LexedFile(std::move(LexedFile)), Tree(std::move(Tree)), Diagnostics(std::move(Diagnostics)), Completeness(Completeness)
+      : LexedFile(std::move(LexedFile)),
+        Tree(std::move(Tree)),
+        Diagnostics(std::move(Diagnostics)),
+        Completeness(Completeness)
   {
   }
 
   bool ParsedFile::succeeded() const noexcept
   {
-    return LexedFile.succeeded() && Diagnostics.empty();
+    return LexedFile.succeeded() && !Tree.nodes().empty() && Diagnostics.empty();
   }
 
   SourceRange ParsedFile::span(CstNodeId Id) const
   {
-    Tree.node(Id);
+    assert(Id < Tree.nodes().size() && Tree.root() < Tree.nodes().size());
+    if (Id >= Tree.nodes().size() || Tree.root() >= Tree.nodes().size())
+    {
+      return {};
+    }
     struct TraversalFrame
     {
       CstNodeId NodeId = 0;
@@ -4899,17 +4966,36 @@ namespace ink::parser
     while (!FoundRequestedNode && !Work.empty())
     {
       TraversalFrame &Current = Work.back();
+      assert(Current.NodeId < Tree.nodes().size());
+      if (Current.NodeId >= Tree.nodes().size())
+      {
+        return {};
+      }
       const CstNode &Node = Tree.node(Current.NodeId);
       if (Current.NextChild == Node.ChildCount)
       {
         assert(Current.ConsumedTokens == Node.TokenCount);
+        if (Current.ConsumedTokens != Node.TokenCount)
+        {
+          return {};
+        }
         Work.pop_back();
         continue;
       }
 
-      const CstElement &Element = Tree.children().at(Node.FirstChild + Current.NextChild++);
+      assert(Node.FirstChild <= Tree.children().size() && Node.ChildCount <= Tree.children().size() - Node.FirstChild);
+      if (Node.FirstChild > Tree.children().size() || Node.ChildCount > Tree.children().size() - Node.FirstChild)
+      {
+        return {};
+      }
+      const CstElement &Element = Tree.children()[Node.FirstChild + Current.NextChild++];
       if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
       {
+        assert(Child->Id < Tree.nodes().size());
+        if (Child->Id >= Tree.nodes().size())
+        {
+          return {};
+        }
         const CstNode &ChildNode = Tree.node(Child->Id);
         const std::size_t ChildStartToken = Current.NodeStartToken + Current.ConsumedTokens;
         Current.ConsumedTokens += ChildNode.TokenCount;
@@ -4921,15 +5007,20 @@ namespace ink::parser
         }
         Work.push_back({Child->Id, ChildStartToken, 0, 0});
       }
-      else if (std::holds_alternative<CstTokenRef>(Element))
+      else if (const CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
       {
-        assert(std::get<CstTokenRef>(Element).TokenOffset == Current.ConsumedTokens);
+        assert(TokenReference->TokenOffset == Current.ConsumedTokens);
+        if (TokenReference->TokenOffset != Current.ConsumedTokens)
+        {
+          return {};
+        }
         ++Current.ConsumedTokens;
       }
     }
     if (!FoundRequestedNode)
     {
-      throw std::logic_error("CST node is not reachable from the root");
+      assert(false && "CST node is not reachable from the root");
+      return {};
     }
 
     std::optional<std::size_t> Start;
@@ -4939,17 +5030,36 @@ namespace ink::parser
     while (!Work.empty())
     {
       TraversalFrame &Current = Work.back();
+      assert(Current.NodeId < Tree.nodes().size());
+      if (Current.NodeId >= Tree.nodes().size())
+      {
+        return {};
+      }
       const CstNode &Node = Tree.node(Current.NodeId);
       if (Current.NextChild == Node.ChildCount)
       {
         assert(Current.ConsumedTokens == Node.TokenCount);
+        if (Current.ConsumedTokens != Node.TokenCount)
+        {
+          return {};
+        }
         Work.pop_back();
         continue;
       }
 
-      const CstElement &Element = Tree.children().at(Node.FirstChild + Current.NextChild++);
+      assert(Node.FirstChild <= Tree.children().size() && Node.ChildCount <= Tree.children().size() - Node.FirstChild);
+      if (Node.FirstChild > Tree.children().size() || Node.ChildCount > Tree.children().size() - Node.FirstChild)
+      {
+        return {};
+      }
+      const CstElement &Element = Tree.children()[Node.FirstChild + Current.NextChild++];
       if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
       {
+        assert(Child->Id < Tree.nodes().size());
+        if (Child->Id >= Tree.nodes().size())
+        {
+          return {};
+        }
         const CstNode &ChildNode = Tree.node(Child->Id);
         const std::size_t ChildStartToken = Current.NodeStartToken + Current.ConsumedTokens;
         Current.ConsumedTokens += ChildNode.TokenCount;
@@ -4958,7 +5068,11 @@ namespace ink::parser
       else if (const CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
       {
         assert(TokenReference->TokenOffset == Current.ConsumedTokens);
-        const Token &TokenValue = LexedFile.tokens().at(Current.NodeStartToken + TokenReference->TokenOffset);
+        if (TokenReference->TokenOffset != Current.ConsumedTokens || Current.NodeStartToken > LexedFile.tokens().size() || TokenReference->TokenOffset >= LexedFile.tokens().size() - Current.NodeStartToken)
+        {
+          return {};
+        }
+        const Token &TokenValue = LexedFile.tokens()[Current.NodeStartToken + TokenReference->TokenOffset];
         ++Current.ConsumedTokens;
         if (!Start)
         {
@@ -4983,7 +5097,8 @@ namespace ink::parser
   }
 
   Parser::Parser(core::FrontendContext &Context, ParserOptions Options)
-      : Context(Context), Options(Options)
+      : Context(Context),
+        Options(Options)
   {
   }
 
@@ -4991,7 +5106,7 @@ namespace ink::parser
   {
     if (!LexedFile.succeeded())
     {
-      throw std::invalid_argument("ink parser requires a successful tokenized buffer");
+      return ParsedFile(std::move(LexedFile), {}, {}, ParseCompleteness::Complete);
     }
     ParserImpl Implementation(LexedFile, Options);
     CstTree Tree = Implementation.run();

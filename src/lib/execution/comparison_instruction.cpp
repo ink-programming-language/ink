@@ -52,8 +52,8 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeCompareInstruction(const ir::CompareInstruction &Compare, FunctionExecutionState &State)
   {
-    RuntimeValueRef Left = evaluateValue(*Compare.Left, State.Frame, State.FunctionValue.Name);
-    RuntimeValueRef Right = evaluateValue(*Compare.Right, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Left = evaluateValue(*Compare.Left, State.Module, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Right = evaluateValue(*Compare.Right, State.Module, State.Frame, State.FunctionValue.Name);
     if (Left == nullptr || Right == nullptr || Compare.ResultType == nullptr || Compare.ResultType->kind() != ir::TypeKind::Bool)
     {
       return InstructionFlow::Failed;

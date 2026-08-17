@@ -18,7 +18,8 @@ namespace ink::execution
     {
       PointerExecutionTestContext() = default;
 
-      explicit PointerExecutionTestContext(core::TargetContext Target) : Compilation(Target)
+      explicit PointerExecutionTestContext(core::TargetContext Target)
+          : Compilation(Target)
       {
       }
 

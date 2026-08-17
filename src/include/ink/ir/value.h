@@ -49,7 +49,9 @@ namespace ink::ir
     }
 
   private:
-    Value(ValueKind Kind, const Type &ValueType) noexcept : Kind(Kind), ValueType(&ValueType)
+    Value(ValueKind Kind, const Type &ValueType) noexcept
+        : Kind(Kind),
+          ValueType(&ValueType)
     {
     }
 
@@ -64,7 +66,10 @@ namespace ink::ir
   {
   public:
     template <typename IntegerType, std::enable_if_t<std::is_integral_v<IntegerType>, int> = 0>
-    IntegerConstant(const Type &ValueType, IntegerType Integer) noexcept : Value(ValueKind::IntegerConstant, ValueType), Payload(static_cast<std::uint64_t>(Integer)), Negative(isNegativeInteger(Integer))
+    IntegerConstant(const Type &ValueType, IntegerType Integer) noexcept
+        : Value(ValueKind::IntegerConstant, ValueType),
+          Payload(static_cast<std::uint64_t>(Integer)),
+          Negative(isNegativeInteger(Integer))
     {
     }
 
@@ -109,7 +114,9 @@ namespace ink::ir
   class ValueOperand final : public Value
   {
   public:
-    ValueOperand(const Type &ValueType, ValueId Id) noexcept : Value(ValueKind::ValueOperand, ValueType), Id(Id)
+    ValueOperand(const Type &ValueType, ValueId Id) noexcept
+        : Value(ValueKind::ValueOperand, ValueType),
+          Id(Id)
     {
     }
 
@@ -125,13 +132,26 @@ namespace ink::ir
   class GlobalAddressOperand final : public Value
   {
   public:
-    GlobalAddressOperand(const Type &ValueType, GlobalId Global, std::size_t ByteOffset) noexcept : Value(ValueKind::GlobalAddressOperand, ValueType), Global(Global), ByteOffset(ByteOffset)
+    GlobalAddressOperand(const Type &ValueType, ByteConstantId Constant, std::size_t ByteOffset) noexcept
+        : Value(ValueKind::GlobalAddressOperand, ValueType),
+          Constant(Constant),
+          ByteOffset(ByteOffset)
     {
     }
 
-    GlobalId global() const noexcept
+    GlobalAddressOperand(const Type &ValueType, GlobalId Constant, std::size_t ByteOffset) noexcept
+        : GlobalAddressOperand(ValueType, ByteConstantId{Constant.value()}, ByteOffset)
     {
-      return Global;
+    }
+
+    ByteConstantId byteConstant() const noexcept
+    {
+      return Constant;
+    }
+
+    ByteConstantId global() const noexcept
+    {
+      return byteConstant();
     }
 
     std::size_t byteOffset() const noexcept
@@ -139,20 +159,49 @@ namespace ink::ir
       return ByteOffset;
     }
 
-    void resolveGlobal(GlobalId ResolvedGlobal) noexcept
+    void resolveByteConstant(ByteConstantId ResolvedConstant) noexcept
+    {
+      Constant = ResolvedConstant;
+    }
+
+    void resolveGlobal(GlobalId ResolvedConstant) noexcept
+    {
+      resolveByteConstant(ByteConstantId{ResolvedConstant.value()});
+    }
+
+  private:
+    ByteConstantId Constant;
+    std::size_t ByteOffset;
+  };
+
+  class GlobalVariableAddressOperand final : public Value
+  {
+  public:
+    GlobalVariableAddressOperand(const Type &ValueType, GlobalRef Global) noexcept
+        : Value(ValueKind::GlobalVariableAddressOperand, ValueType),
+          Global(Global)
+    {
+    }
+
+    GlobalRef global() const noexcept
+    {
+      return Global;
+    }
+
+    void resolveGlobal(GlobalRef ResolvedGlobal) noexcept
     {
       Global = ResolvedGlobal;
     }
 
   private:
-    GlobalId Global;
-    std::size_t ByteOffset;
+    GlobalRef Global;
   };
 
   class ZeroInitializer final : public Value
   {
   public:
-    explicit ZeroInitializer(const Type &ValueType) noexcept : Value(ValueKind::ZeroInitializer, ValueType)
+    explicit ZeroInitializer(const Type &ValueType) noexcept
+        : Value(ValueKind::ZeroInitializer, ValueType)
     {
     }
   };
@@ -160,7 +209,10 @@ namespace ink::ir
   class FloatConstant final : public Value
   {
   public:
-    FloatConstant(const Type &ValueType, FloatFormat Format, std::uint64_t BitPattern) noexcept : Value(ValueKind::FloatConstant, ValueType), Format(Format), BitPattern(BitPattern)
+    FloatConstant(const Type &ValueType, FloatFormat Format, std::uint64_t BitPattern) noexcept
+        : Value(ValueKind::FloatConstant, ValueType),
+          Format(Format),
+          BitPattern(BitPattern)
     {
     }
 
@@ -182,7 +234,9 @@ namespace ink::ir
   class StringConstant final : public Value
   {
   public:
-    StringConstant(const Type &ValueType, std::string Data) noexcept : Value(ValueKind::StringConstant, ValueType), Data(std::move(Data))
+    StringConstant(const Type &ValueType, std::string Data) noexcept
+        : Value(ValueKind::StringConstant, ValueType),
+          Data(std::move(Data))
     {
     }
 
@@ -198,7 +252,8 @@ namespace ink::ir
   class NullConstant final : public Value
   {
   public:
-    explicit NullConstant(const Type &ValueType) noexcept : Value(ValueKind::NullConstant, ValueType)
+    explicit NullConstant(const Type &ValueType) noexcept
+        : Value(ValueKind::NullConstant, ValueType)
     {
     }
   };
@@ -206,7 +261,9 @@ namespace ink::ir
   class AggregateConstant final : public Value
   {
   public:
-    AggregateConstant(const Type &ValueType, std::vector<std::unique_ptr<Value>> Elements) noexcept : Value(ValueKind::AggregateConstant, ValueType), Elements(std::move(Elements))
+    AggregateConstant(const Type &ValueType, std::vector<std::unique_ptr<Value>> Elements) noexcept
+        : Value(ValueKind::AggregateConstant, ValueType),
+          Elements(std::move(Elements))
     {
     }
 

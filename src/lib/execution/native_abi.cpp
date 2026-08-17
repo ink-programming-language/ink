@@ -113,7 +113,8 @@ namespace ink::execution
     class NativeCallSlot
     {
     public:
-      explicit NativeCallSlot(std::size_t Size) : Storage((Size + sizeof(std::max_align_t) - 1) / sizeof(std::max_align_t))
+      explicit NativeCallSlot(std::size_t Size)
+          : Storage((Size + sizeof(std::max_align_t) - 1) / sizeof(std::max_align_t))
       {
       }
 
@@ -335,7 +336,10 @@ namespace ink::execution
   class NativeCallAdapter::Impl
   {
   public:
-    Impl(ExecutionContext &Context, const ir::Module &ModuleValue) : Context(Context), ModuleValue(ModuleValue), PreparedFunctions(ModuleValue.Functions.size())
+    Impl(ExecutionContext &Context, const ir::Module &ModuleValue)
+        : Context(Context),
+          ModuleValue(ModuleValue),
+          PreparedFunctions(ModuleValue.Functions.size())
     {
     }
 
@@ -349,6 +353,7 @@ namespace ink::execution
         {
           continue;
         }
+
 
         auto Prepared = std::make_unique<PreparedFunction>();
         Prepared->ArgumentTypes.reserve(FunctionValue.ParameterTypes.size());
@@ -471,7 +476,8 @@ namespace ink::execution
     std::vector<std::unique_ptr<PreparedFunction>> PreparedFunctions;
   };
 
-  NativeCallAdapter::NativeCallAdapter(ExecutionContext &Context, const ir::Module &ModuleValue) : Implementation(std::make_unique<Impl>(Context, ModuleValue))
+  NativeCallAdapter::NativeCallAdapter(ExecutionContext &Context, const ir::Module &ModuleValue)
+      : Implementation(std::make_unique<Impl>(Context, ModuleValue))
   {
   }
 

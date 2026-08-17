@@ -16,8 +16,8 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeAddInstruction(const ir::AddInstruction &Add, FunctionExecutionState &State)
   {
-    RuntimeValueRef Left = evaluateValue(*Add.Left, State.Frame, State.FunctionValue.Name);
-    RuntimeValueRef Right = evaluateValue(*Add.Right, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Left = evaluateValue(*Add.Left, State.Module, State.Frame, State.FunctionValue.Name);
+    RuntimeValueRef Right = evaluateValue(*Add.Right, State.Module, State.Frame, State.FunctionValue.Name);
     if (Left == nullptr || Right == nullptr || Add.ResultType == nullptr)
     {
       return InstructionFlow::Failed;

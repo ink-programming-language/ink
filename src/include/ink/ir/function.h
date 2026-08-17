@@ -24,7 +24,8 @@ namespace ink::ir
 
   struct Function
   {
-    explicit Function(const Type &ResultType) noexcept : ResultType(&ResultType)
+    explicit Function(const Type &ResultType) noexcept
+        : ResultType(&ResultType)
     {
     }
 

@@ -23,7 +23,8 @@ namespace ink::core
   class TargetContext final
   {
   public:
-    constexpr TargetContext(PointerWidth Width, ByteOrder Order) noexcept : TargetContext(Width, Order, false)
+    constexpr TargetContext(PointerWidth Width, ByteOrder Order) noexcept
+        : TargetContext(Width, Order, false)
     {
     }
 
@@ -73,7 +74,10 @@ namespace ink::core
     }
 
   private:
-    constexpr TargetContext(PointerWidth Width, ByteOrder Order, bool NativeAbiCompatible) noexcept : Width(Width), Order(Order), NativeAbiCompatible(NativeAbiCompatible)
+    constexpr TargetContext(PointerWidth Width, ByteOrder Order, bool NativeAbiCompatible) noexcept
+        : Width(Width),
+          Order(Order),
+          NativeAbiCompatible(NativeAbiCompatible)
     {
     }
 

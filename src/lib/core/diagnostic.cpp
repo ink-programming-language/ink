@@ -113,14 +113,7 @@ namespace ink::core
       {
         addFormatArgument(Store, Argument);
       }
-      try
-      {
-        return fmt::vformat(FormatPattern, Store);
-      }
-      catch (const fmt::format_error &)
-      {
-        return FallbackMessage;
-      }
+      return fmt::vformat(FormatPattern, Store);
     }
 
     std::string formatRegisteredMessage(const Diagnostic &DiagnosticEntry)
@@ -351,6 +344,16 @@ namespace ink::core
       return "ValueId";
     case DiagnosticArgumentName::GlobalId:
       return "GlobalId";
+    case DiagnosticArgumentName::ModuleId:
+      return "ModuleId";
+    case DiagnosticArgumentName::RelatedModuleId:
+      return "RelatedModuleId";
+    case DiagnosticArgumentName::ExpectedModuleId:
+      return "ExpectedModuleId";
+    case DiagnosticArgumentName::ActualModuleId:
+      return "ActualModuleId";
+    case DiagnosticArgumentName::FunctionId:
+      return "FunctionId";
     case DiagnosticArgumentName::ExpectedValue:
       return "ExpectedValue";
     case DiagnosticArgumentName::ActualValue:
@@ -405,10 +408,10 @@ namespace ink::core
       return "MaximumAlignment";
     case DiagnosticArgumentName::CallDepthLimit:
       return "CallDepthLimit";
+    case DiagnosticArgumentName::ImportDepthLimit:
+      return "ImportDepthLimit";
     case DiagnosticArgumentName::InstructionName:
       return "InstructionName";
-    case DiagnosticArgumentName::ExceptionMessage:
-      return "ExceptionMessage";
     }
     return "Unknown";
   }
@@ -458,7 +461,8 @@ namespace ink::core
     return !(Left == Right);
   }
 
-  DiagnosticBuilder::DiagnosticBuilder(Diagnostic Result) : Result(std::move(Result))
+  DiagnosticBuilder::DiagnosticBuilder(Diagnostic Result)
+      : Result(std::move(Result))
   {
   }
 

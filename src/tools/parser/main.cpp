@@ -6,11 +6,11 @@
 
 #include <array>
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <variant>
@@ -50,38 +50,47 @@ namespace
         std::size_t ConsumedTokens = 0;
     };
 
-    void pushPrintFrame(const ink::parser::CstTree& Tree, ink::parser::CstNodeId Id, std::size_t Depth, std::size_t NodeStart, std::vector<bool>& ActiveNodes, std::vector<PrintFrame>& Frames, std::ostream& Output)
+    bool pushPrintFrame(const ink::parser::CstTree& Tree, ink::parser::CstNodeId Id, std::size_t Depth, std::size_t NodeStart, std::vector<bool>& ActiveNodes, std::vector<PrintFrame>& Frames, std::ostream& Output)
     {
         if (Id >= ActiveNodes.size())
         {
-            throw std::out_of_range("CST node reference is out of range");
+            return false;
         }
         if (ActiveNodes[Id])
         {
-            throw std::logic_error("CST contains a node-reference cycle");
+            return false;
         }
         ActiveNodes[Id] = true;
 
-        const ink::parser::CstNode& Node = Tree.node(Id);
+        const ink::parser::CstNode& Node = Tree.nodes()[Id];
         printIndent(Output, Depth);
         Output << "Node " << Id << ' ' << ink::parser::cstKindName(Node.Kind) << " tokens=" << Node.TokenCount << " text=" << Node.TextLength << " flags=" << static_cast<unsigned int>(Node.Flags) << '\n';
 
         const std::vector<ink::parser::CstElement>& Children = Tree.children();
         if (Node.FirstChild > Children.size() || Node.ChildCount > Children.size() - Node.FirstChild)
         {
-            throw std::out_of_range("CST child range is out of bounds");
+            ActiveNodes[Id] = false;
+            return false;
         }
         Frames.push_back({Id, Depth, NodeStart});
+        return true;
     }
 
-    void printNode(const ink::parser::CstTree& Tree, const ink::tokenizer::TokenizedBuffer& LexedFile, ink::parser::CstNodeId Id, std::size_t NodeStart, std::vector<bool>& ActiveNodes, std::ostream& Output)
+    bool printNode(const ink::parser::CstTree& Tree, const ink::tokenizer::TokenizedBuffer& LexedFile, ink::parser::CstNodeId Id, std::size_t NodeStart, std::vector<bool>& ActiveNodes, std::ostream& Output)
     {
         std::vector<PrintFrame> Frames;
-        pushPrintFrame(Tree, Id, 0, NodeStart, ActiveNodes, Frames, Output);
+        if (!pushPrintFrame(Tree, Id, 0, NodeStart, ActiveNodes, Frames, Output))
+        {
+            return false;
+        }
         while (!Frames.empty())
         {
             PrintFrame& Frame = Frames.back();
-            const ink::parser::CstNode& Node = Tree.node(Frame.Id);
+            if (Frame.Id >= Tree.nodes().size())
+            {
+                return false;
+            }
+            const ink::parser::CstNode& Node = Tree.nodes()[Frame.Id];
             if (Frame.NextChild == Node.ChildCount)
             {
                 ActiveNodes[Frame.Id] = false;
@@ -95,39 +104,55 @@ namespace
             {
                 if (NodeRef->Id >= Tree.nodes().size())
                 {
-                    throw std::out_of_range("CST node reference is out of range");
+                    return false;
                 }
                 const std::size_t ChildStart = Frame.NodeStart + Frame.ConsumedTokens;
-                Frame.ConsumedTokens += Tree.node(NodeRef->Id).TokenCount;
-                pushPrintFrame(Tree, NodeRef->Id, Frame.Depth + 1, ChildStart, ActiveNodes, Frames, Output);
+                Frame.ConsumedTokens += Tree.nodes()[NodeRef->Id].TokenCount;
+                if (!pushPrintFrame(Tree, NodeRef->Id, Frame.Depth + 1, ChildStart, ActiveNodes, Frames, Output))
+                {
+                    return false;
+                }
                 continue;
             }
             if (const ink::parser::CstTokenRef* TokenRef = std::get_if<ink::parser::CstTokenRef>(&Element))
             {
                 const std::size_t TokenIndex = Frame.NodeStart + TokenRef->TokenOffset;
-                const ink::tokenizer::Token& Token = LexedFile.tokens().at(TokenIndex);
+                if (TokenIndex >= LexedFile.tokens().size())
+                {
+                    return false;
+                }
+                const ink::tokenizer::Token& Token = LexedFile.tokens()[TokenIndex];
                 printIndent(Output, Frame.Depth + 1);
                 Output << "Token " << TokenIndex << ' ' << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";
                 ++Frame.ConsumedTokens;
                 continue;
             }
 
-            const ink::parser::MissingToken& Missing = std::get<ink::parser::MissingToken>(Element);
-            printIndent(Output, Frame.Depth + 1);
-            Output << "Missing " << ink::tokenizer::tokenKindName(Missing.ExpectedKind);
-            if (!Missing.ExpectedSpelling.empty())
+            const ink::parser::MissingToken* Missing = std::get_if<ink::parser::MissingToken>(&Element);
+            if (Missing == nullptr)
             {
-                Output << ' ' << std::quoted(Missing.ExpectedSpelling);
+                return false;
             }
-            Output << " [" << Missing.AnchorByteOffset << ", " << Missing.AnchorByteOffset << ")\n";
+            printIndent(Output, Frame.Depth + 1);
+            Output << "Missing " << ink::tokenizer::tokenKindName(Missing->ExpectedKind);
+            if (!Missing->ExpectedSpelling.empty())
+            {
+                Output << ' ' << std::quoted(Missing->ExpectedSpelling);
+            }
+            Output << " [" << Missing->AnchorByteOffset << ", " << Missing->AnchorByteOffset << ")\n";
         }
+        return true;
     }
 
-    void printCst(const ink::parser::ParsedFile& Result, std::ostream& Output)
+    bool printCst(const ink::parser::ParsedFile& Result, std::ostream& Output)
     {
         const ink::parser::CstTree& Tree = Result.cst();
+        if (Tree.root() >= Tree.nodes().size())
+        {
+            return false;
+        }
         std::vector<bool> ActiveNodes(Tree.nodes().size(), false);
-        printNode(Tree, Result.lexedFile(), Tree.root(), 0, ActiveNodes, Output);
+        return printNode(Tree, Result.lexedFile(), Tree.root(), 0, ActiveNodes, Output);
     }
 
     void printDiagnostics(const std::vector<ink::core::Diagnostic>& Diagnostics, std::ostream& ErrorOutput)
@@ -153,7 +178,7 @@ namespace
     {
         ink::cli::Application Command({"ink-parse", "Parse Ink source and print the concrete syntax tree.", "development"});
         std::string SourceFile = "-";
-        Command.app().add_option("INPUT", SourceFile, "Input file, or '-' for standard input")->type_name("FILE");
+        Command.addOption("INPUT", SourceFile, "Input file, or '-' for standard input").typeName("FILE");
         const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
         if (ParsedArguments.ShouldExit)
         {
@@ -171,7 +196,13 @@ namespace
         }
         else
         {
-            std::ifstream Input(ink::cli::pathFromUtf8(SourceFile), std::ios::binary);
+            std::filesystem::path SourcePath;
+            if (!ink::cli::pathFromUtf8(SourceFile, SourcePath))
+            {
+                ink::cli::writeOutput(std::cerr, "ink-parse: error: input path is not valid UTF-8\n");
+                return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+            }
+            std::ifstream Input(SourcePath, std::ios::binary);
             if (!Input)
             {
                 ink::cli::writeOutput(std::cerr, "ink-parse: error: cannot open '" + SourceFile + "'\n");
@@ -200,7 +231,11 @@ namespace
         const ink::parser::ParsedFile Result = ink::parser::parse(Context, std::move(LexedFile));
         std::ostringstream BufferedOutput;
         std::ostringstream BufferedErrorOutput;
-        printCst(Result, BufferedOutput);
+        if (!printCst(Result, BufferedOutput))
+        {
+            ink::cli::writeOutput(std::cerr, "ink-parse: internal compiler error: concrete syntax tree cannot be traversed\n");
+            return ink::cli::exitStatus(ink::cli::ExitCode::InternalError);
+        }
         printDiagnostics(Diagnostics.diagnostics(), BufferedErrorOutput);
         const bool OutputSucceeded = ink::cli::writeOutput(std::cout, BufferedOutput.str());
         const bool ErrorOutputSucceeded = ink::cli::writeOutput(std::cerr, BufferedErrorOutput.str());

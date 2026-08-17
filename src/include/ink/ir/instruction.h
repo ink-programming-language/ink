@@ -37,7 +37,8 @@ namespace ink::ir
     }
 
   private:
-    explicit Instruction(InstructionKind Kind) noexcept : Kind(Kind)
+    explicit Instruction(InstructionKind Kind) noexcept
+        : Kind(Kind)
     {
     }
 
@@ -50,20 +51,40 @@ namespace ink::ir
   class CallInstruction final : public Instruction
   {
   public:
-    explicit CallInstruction(const Type &ResultType) noexcept : Instruction(InstructionKind::Call), ResultType(&ResultType)
+    explicit CallInstruction(const Type &ResultType) noexcept
+        : Instruction(InstructionKind::Call),
+          ResultType(&ResultType)
     {
     }
 
     std::optional<ValueId> Result;
     const Type *ResultType;
-    FunctionId Callee;
+    FunctionRef Callee;
     std::vector<std::unique_ptr<Value>> Arguments;
+  };
+
+  class ImportInstruction final : public Instruction
+  {
+  public:
+    ImportInstruction() noexcept
+        : Instruction(InstructionKind::Import)
+    {
+    }
+
+    explicit ImportInstruction(ModuleId Module) noexcept
+        : Instruction(InstructionKind::Import),
+          Module(Module)
+    {
+    }
+
+    ModuleId Module;
   };
 
   class ReturnInstruction final : public Instruction
   {
   public:
-    ReturnInstruction() noexcept : Instruction(InstructionKind::Return)
+    ReturnInstruction() noexcept
+        : Instruction(InstructionKind::Return)
     {
     }
 
@@ -73,7 +94,9 @@ namespace ink::ir
   class InsertValueInstruction final : public Instruction
   {
   public:
-    explicit InsertValueInstruction(const Type &ResultType) noexcept : Instruction(InstructionKind::InsertValue), ResultType(&ResultType)
+    explicit InsertValueInstruction(const Type &ResultType) noexcept
+        : Instruction(InstructionKind::InsertValue),
+          ResultType(&ResultType)
     {
     }
 
@@ -87,7 +110,9 @@ namespace ink::ir
   class ExtractValueInstruction final : public Instruction
   {
   public:
-    explicit ExtractValueInstruction(const Type &ResultType) noexcept : Instruction(InstructionKind::ExtractValue), ResultType(&ResultType)
+    explicit ExtractValueInstruction(const Type &ResultType) noexcept
+        : Instruction(InstructionKind::ExtractValue),
+          ResultType(&ResultType)
     {
     }
 

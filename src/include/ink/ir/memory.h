@@ -11,7 +11,9 @@ namespace ink::ir
   class AllocaInstruction final : public Instruction
   {
   public:
-    explicit AllocaInstruction(const Type &ResultType) noexcept : Instruction(InstructionKind::Alloca), ResultType(&ResultType)
+    explicit AllocaInstruction(const Type &ResultType) noexcept
+        : Instruction(InstructionKind::Alloca),
+          ResultType(&ResultType)
     {
     }
 
@@ -23,7 +25,10 @@ namespace ink::ir
   class GetElementPointerInstruction final : public Instruction
   {
   public:
-    GetElementPointerInstruction(const Type &ResultType, const Type &ElementType) noexcept : Instruction(InstructionKind::GetElementPointer), ResultType(&ResultType), ElementType(&ElementType)
+    GetElementPointerInstruction(const Type &ResultType, const Type &ElementType) noexcept
+        : Instruction(InstructionKind::GetElementPointer),
+          ResultType(&ResultType),
+          ElementType(&ElementType)
     {
     }
 
@@ -39,7 +44,9 @@ namespace ink::ir
   class LoadInstruction final : public Instruction
   {
   public:
-    explicit LoadInstruction(const Type &ResultType) noexcept : Instruction(InstructionKind::Load), ResultType(&ResultType)
+    explicit LoadInstruction(const Type &ResultType) noexcept
+        : Instruction(InstructionKind::Load),
+          ResultType(&ResultType)
     {
     }
 
@@ -51,7 +58,8 @@ namespace ink::ir
   class StoreInstruction final : public Instruction
   {
   public:
-    StoreInstruction() noexcept : Instruction(InstructionKind::Store)
+    StoreInstruction() noexcept
+        : Instruction(InstructionKind::Store)
     {
     }
 
@@ -62,7 +70,8 @@ namespace ink::ir
   class LifetimeEndInstruction final : public Instruction
   {
   public:
-    LifetimeEndInstruction() noexcept : Instruction(InstructionKind::LifetimeEnd)
+    LifetimeEndInstruction() noexcept
+        : Instruction(InstructionKind::LifetimeEnd)
     {
     }
 
@@ -72,7 +81,9 @@ namespace ink::ir
   class SliceDataInstruction final : public Instruction
   {
   public:
-    explicit SliceDataInstruction(const Type &ResultType) noexcept : Instruction(InstructionKind::SliceData), ResultType(&ResultType)
+    explicit SliceDataInstruction(const Type &ResultType) noexcept
+        : Instruction(InstructionKind::SliceData),
+          ResultType(&ResultType)
     {
     }
 
@@ -84,7 +95,9 @@ namespace ink::ir
   class SliceLengthInstruction final : public Instruction
   {
   public:
-    explicit SliceLengthInstruction(const Type &ResultType) noexcept : Instruction(InstructionKind::SliceLength), ResultType(&ResultType)
+    explicit SliceLengthInstruction(const Type &ResultType) noexcept
+        : Instruction(InstructionKind::SliceLength),
+          ResultType(&ResultType)
     {
     }
 

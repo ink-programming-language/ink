@@ -36,7 +36,9 @@ namespace ink::ir
   class PhiInstruction final : public Instruction
   {
   public:
-    explicit PhiInstruction(const Type &ResultType) noexcept : Instruction(InstructionKind::Phi), ResultType(&ResultType)
+    explicit PhiInstruction(const Type &ResultType) noexcept
+        : Instruction(InstructionKind::Phi),
+          ResultType(&ResultType)
     {
     }
 
@@ -48,7 +50,9 @@ namespace ink::ir
   class CompareInstruction final : public Instruction
   {
   public:
-    explicit CompareInstruction(const Type &ResultType) noexcept : Instruction(InstructionKind::Compare), ResultType(&ResultType)
+    explicit CompareInstruction(const Type &ResultType) noexcept
+        : Instruction(InstructionKind::Compare),
+          ResultType(&ResultType)
     {
     }
 
@@ -62,7 +66,8 @@ namespace ink::ir
   class BranchInstruction final : public Instruction
   {
   public:
-    BranchInstruction() noexcept : Instruction(InstructionKind::Branch)
+    BranchInstruction() noexcept
+        : Instruction(InstructionKind::Branch)
     {
     }
 
@@ -72,7 +77,8 @@ namespace ink::ir
   class ConditionalBranchInstruction final : public Instruction
   {
   public:
-    ConditionalBranchInstruction() noexcept : Instruction(InstructionKind::ConditionalBranch)
+    ConditionalBranchInstruction() noexcept
+        : Instruction(InstructionKind::ConditionalBranch)
     {
     }
 

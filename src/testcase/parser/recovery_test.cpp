@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -709,13 +708,16 @@ namespace ink::parser
       expectFullFidelity(File);
     }
 
-    // Verifies the Parser enforces its successful-tokenization precondition instead of accepting lexical Error tokens.
+    // Verifies the Parser returns a safe unsuccessful result for a token buffer that already contains lexical errors.
     TEST(ParserApiTest, RejectsLexicallyFailedTokenBuffers)
     {
       tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize("?");
 
       ASSERT_FALSE(LexedFile.succeeded());
-      EXPECT_THROW(ink::parser::parse(std::move(LexedFile)), std::invalid_argument);
+      const ParsedFile File = ink::parser::parse(std::move(LexedFile));
+      EXPECT_FALSE(File.succeeded());
+      EXPECT_TRUE(File.cst().nodes().empty());
+      EXPECT_TRUE(File.cst().children().empty());
     }
 
     // Verifies one configured Parser instance can parse multiple independent token buffers without retaining prior state.

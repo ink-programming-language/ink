@@ -175,7 +175,10 @@ namespace ink::tokenizer
     {
     public:
       Scanner(const std::string &Source, std::vector<Token> &Tokens, std::vector<Diagnostic> &Diagnostics, TokenizerOptions Options)
-          : Source(Source), Tokens(Tokens), Diagnostics(Diagnostics), Options(Options)
+          : Source(Source),
+            Tokens(Tokens),
+            Diagnostics(Diagnostics),
+            Options(Options)
       {
       }
 
@@ -438,7 +441,13 @@ namespace ink::tokenizer
         {
           return makeToken(TokenKind::InvalidIdentifier, Start, Position);
         }
-        if (!unicode::isNfc(Spelling))
+        const unicode::NfcCheckResult NfcResult = unicode::checkNfc(Spelling);
+        if (NfcResult == unicode::NfcCheckResult::Failed)
+        {
+          addDiagnostic<DiagnosticKind::InvalidUtf8>({Start, Position});
+          return makeToken(TokenKind::InvalidEncoding, Start, Position);
+        }
+        if (NfcResult == unicode::NfcCheckResult::NotNormalized)
         {
           addDiagnostic<DiagnosticKind::IdentifierNotNfc>({Start, Position});
           return makeToken(TokenKind::InvalidIdentifier, Start, Position);
@@ -1319,7 +1328,8 @@ namespace ink::tokenizer
   }
 
   Tokenizer::Tokenizer(core::FrontendContext &Context, TokenizerOptions Options)
-      : Context(Context), Options(Options)
+      : Context(Context),
+        Options(Options)
   {
   }
 

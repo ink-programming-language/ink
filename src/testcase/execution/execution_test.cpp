@@ -36,7 +36,10 @@ namespace ink::execution
     class CountingPointerValue final : public RuntimeValue
     {
     public:
-      CountingPointerValue(const ir::Type &ValueType, const void *Value, std::size_t &PointerReadCount) : ValueType(&ValueType), Value(Value), PointerReadCount(&PointerReadCount)
+      CountingPointerValue(const ir::Type &ValueType, const void *Value, std::size_t &PointerReadCount)
+          : ValueType(&ValueType),
+            Value(Value),
+            PointerReadCount(&PointerReadCount)
       {
       }
 
@@ -65,7 +68,9 @@ namespace ink::execution
     class UncheckedIntegerValue final : public RuntimeValue
     {
     public:
-      UncheckedIntegerValue(const ir::Type &ValueType, std::uint64_t Value) : ValueType(&ValueType), Value(Value)
+      UncheckedIntegerValue(const ir::Type &ValueType, std::uint64_t Value)
+          : ValueType(&ValueType),
+            Value(Value)
       {
       }
 
@@ -487,7 +492,7 @@ namespace ink::execution
       EXPECT_EQ(Result.returnValue()->integer(), 15u);
     }
 
-    // Verifies that a null-free const byte pointer can be returned from an extern and remains the same address in RuntimeValue.
+    // Verifies that a module byte-constant pointer retains tracked provenance through an extern and expires on Engine shutdown.
     TEST(ExecutionEngineTest, MarshalsPointerExternResult)
     {
       TestContext Context;
@@ -502,7 +507,6 @@ namespace ink::execution
           "}\n";
       ir::DeserializeResult Deserialized = ir::deserialize(Context.IR, Text);
       ASSERT_TRUE(Deserialized.succeeded());
-      const void *ExpectedAddress = Deserialized.module()->ByteConstants[0].Data.data();
       ExecutionEngine Engine(Context.Execution, *Deserialized.module());
       ASSERT_TRUE(Context.Execution.nativeSymbols().registerSymbol("identity_pointer", reinterpret_cast<NativeFunctionAddress>(&identityPointer)));
 
@@ -510,8 +514,13 @@ namespace ink::execution
 
       ASSERT_TRUE(Result.succeeded());
       ASSERT_NE(Result.returnValue(), nullptr);
-      EXPECT_EQ(Result.returnValue()->pointer(), ExpectedAddress);
+      EXPECT_TRUE(Result.returnValue()->memoryAlive());
+      ASSERT_NE(Result.returnValue()->pointer(), nullptr);
+      EXPECT_EQ(*static_cast<const char *>(Result.returnValue()->pointer()), 'x');
       EXPECT_FALSE(Result.returnValue()->integer().has_value());
+      EXPECT_TRUE(Engine.shutdown().succeeded());
+      EXPECT_FALSE(Result.returnValue()->memoryAlive());
+      EXPECT_EQ(Result.returnValue()->pointer(), nullptr);
     }
 
     // Verifies that a void extern receives its argument, produces no SSA result, and still yields a typed void function result.

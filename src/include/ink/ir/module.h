@@ -3,6 +3,7 @@
 
 #include "ink/ir/function.h"
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -16,10 +17,18 @@ namespace ink::ir
     std::string Data;
   };
 
+  struct GlobalVariable
+  {
+    std::string Name;
+    const Type *ValueType = nullptr;
+    bool Mutable = true;
+  };
+
   class Module
   {
   public:
-    explicit Module(IRContext &Context) noexcept : Context(&Context)
+    explicit Module(IRContext &Context) noexcept
+        : Context(&Context)
     {
     }
 
@@ -33,9 +42,13 @@ namespace ink::ir
       return *Context;
     }
 
+    ModuleId Id;
     std::vector<ByteConstant> ByteConstants;
+    std::vector<GlobalVariable> Globals;
     std::vector<const StructType *> StructTypes;
     std::vector<Function> Functions;
+    std::optional<FunctionId> Initializer;
+    std::optional<FunctionId> Finalizer;
 
   private:
     IRContext *Context;

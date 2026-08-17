@@ -4,6 +4,7 @@
 #include "execution_frame.h"
 #include "ink/core/diagnostic.h"
 #include "ink/execution/context.h"
+#include "ink/execution/module_instance.h"
 #include "ink/execution/runtime_value.h"
 #include "ink/ir/arithmetic.h"
 #include "ink/ir/control_flow.h"
@@ -26,12 +27,21 @@ namespace ink::execution
     virtual bool invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result, std::vector<core::Diagnostic> &Diagnostics) = 0;
   };
 
+  class ModuleExecutionRuntime
+  {
+  public:
+    virtual ~ModuleExecutionRuntime() = default;
+    virtual bool importModule(ModuleInstance &Importer, ir::ModuleId Target, std::vector<core::Diagnostic> &Diagnostics) = 0;
+    virtual ModuleInstance *resolveReferencedModule(ModuleInstance &Importer, ir::ModuleId Target, std::vector<core::Diagnostic> &Diagnostics) = 0;
+    virtual ExternalFunctionInvoker *externalInvoker(ModuleInstance &Module) noexcept = 0;
+  };
+
   class FunctionExecutor
   {
   public:
-    FunctionExecutor(ExecutionContext &Context, const ir::Module &ModuleValue, ExternalFunctionInvoker &ExternalInvoker, std::vector<core::Diagnostic> &Diagnostics);
+    FunctionExecutor(ExecutionContext &Context, ModuleExecutionRuntime &Runtime, ModuleInstance &EntryModule, std::vector<core::Diagnostic> &Diagnostics);
 
-    bool execute(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueRef &Result);
+    bool execute(ir::FunctionId Function, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueRef &Result);
 
   private:
     enum class InstructionFlow
@@ -44,10 +54,16 @@ namespace ink::execution
 
     struct FunctionExecutionState
     {
-      FunctionExecutionState(const ir::Function &FunctionValue, const std::vector<RuntimeValueRef> &Arguments, std::size_t Depth, std::size_t FrameId) : FunctionValue(FunctionValue), Frame(Arguments), Depth(Depth), FrameId(FrameId)
+      FunctionExecutionState(ModuleInstance &Module, const ir::Function &FunctionValue, const std::vector<RuntimeValueRef> &Arguments, std::size_t Depth, std::size_t FrameId)
+          : Module(Module),
+            FunctionValue(FunctionValue),
+            Frame(Arguments),
+            Depth(Depth),
+            FrameId(FrameId)
       {
       }
 
+      ModuleInstance &Module;
       const ir::Function &FunctionValue;
       ExecutionFrame Frame;
       std::size_t Depth;
@@ -67,9 +83,12 @@ namespace ink::execution
 
     RuntimeValueRef importValue(RuntimeValueRef Value);
     RuntimeValueRef zeroValue(const ir::Type &TypeValue);
-    RuntimeValueRef evaluateValue(const ir::Value &Value, const ExecutionFrame &Frame, const std::string &FunctionName);
+    RuntimeValueRef evaluateValue(const ir::Value &Value, ModuleInstance &Module, const ExecutionFrame &Frame, const std::string &FunctionName);
+    RuntimeValueRef evaluateGlobalVariableAddress(const ir::GlobalVariableAddressOperand &Address, ModuleInstance &Module, const std::string &FunctionName);
+    bool validateGlobalVariableAccessType(const ir::Value &Pointer, ModuleInstance &Module, const ir::Type &AccessType);
     InstructionFlow executeInstruction(const ir::Instruction &InstructionValue, FunctionExecutionState &State);
     InstructionFlow executeCallInstruction(const ir::CallInstruction &Call, FunctionExecutionState &State);
+    InstructionFlow executeImportInstruction(const ir::ImportInstruction &Import, FunctionExecutionState &State);
     InstructionFlow executeAllocaInstruction(const ir::AllocaInstruction &Alloca, FunctionExecutionState &State);
     InstructionFlow executeGetElementPointerInstruction(const ir::GetElementPointerInstruction &GetElementPointer, FunctionExecutionState &State);
     InstructionFlow executeLoadInstruction(const ir::LoadInstruction &Load, FunctionExecutionState &State);
@@ -87,15 +106,15 @@ namespace ink::execution
     bool selectBlockTarget(const ir::BlockTarget &Target, FunctionExecutionState &State);
     bool enterBlock(FunctionExecutionState &State);
     bool consumeInstructionStep(const ir::Function &FunctionValue);
-    bool executeFunction(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, std::size_t Depth, RuntimeValueRef &Result);
+    bool executeFunction(ModuleInstance &Module, ir::FunctionId Function, const std::vector<RuntimeValueRef> &Arguments, std::size_t Depth, RuntimeValueRef &Result);
 
     ExecutionContext &Context;
-    const ir::Module &ModuleValue;
-    ExternalFunctionInvoker &ExternalInvoker;
+    ModuleExecutionRuntime &Runtime;
+    ModuleInstance &EntryModule;
     std::vector<core::Diagnostic> &Diagnostics;
     RuntimeValueArena Values;
     std::unordered_map<RuntimeValueRef, RuntimeValueRef> ImportedValues;
-    std::unordered_map<std::size_t, RuntimeValueRef> GlobalPointers;
+    std::unordered_map<const ir::ByteConstant *, RuntimeValueRef> GlobalPointers;
     std::size_t NextFrameId = 0;
     std::size_t ExecutedInstructionCount = 0;
   };

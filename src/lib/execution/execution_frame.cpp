@@ -2,7 +2,8 @@
 
 namespace ink::execution
 {
-  ExecutionFrame::ExecutionFrame(const std::vector<RuntimeValueRef> &Arguments) : Values(Arguments)
+  ExecutionFrame::ExecutionFrame(const std::vector<RuntimeValueRef> &Arguments)
+      : Values(Arguments)
   {
   }
 

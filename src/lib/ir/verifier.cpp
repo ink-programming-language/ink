@@ -28,7 +28,8 @@ namespace ink::ir
     class DiagnosticCollector
     {
     public:
-      explicit DiagnosticCollector(DiagnosticClass Class) : Class(Class)
+      explicit DiagnosticCollector(DiagnosticClass Class)
+          : Class(Class)
       {
       }
 
@@ -99,6 +100,25 @@ namespace ink::ir
     bool isBytePointerType(const Type *TypeValue)
     {
       return TypeValue != nullptr && (TypeValue->kind() == TypeKind::BytePointer || TypeValue->kind() == TypeKind::ConstBytePointer);
+    }
+
+    bool isLocalReference(const Module &ModuleValue, ModuleId ReferencedModule)
+    {
+      return !ReferencedModule.valid() || (ModuleValue.Id.valid() && ReferencedModule == ModuleValue.Id);
+    }
+
+    const GlobalVariable *referencedLocalGlobal(const Module &ModuleValue, const Value &OperandValue)
+    {
+      if (OperandValue.kind() != ValueKind::GlobalVariableAddressOperand)
+      {
+        return nullptr;
+      }
+      const GlobalRef Global = static_cast<const GlobalVariableAddressOperand &>(OperandValue).global();
+      if (!Global.valid() || !isLocalReference(ModuleValue, Global.Module) || Global.Global.value() >= ModuleValue.Globals.size())
+      {
+        return nullptr;
+      }
+      return &ModuleValue.Globals[Global.Global.value()];
     }
 
     bool isAddType(const Type *TypeValue)
@@ -231,6 +251,7 @@ namespace ink::ir
         return InstructionResult{Extract.Result, Extract.ResultType, "extractvalue"};
       }
       case InstructionKind::Store:
+      case InstructionKind::Import:
       case InstructionKind::LifetimeEnd:
       case InstructionKind::Branch:
       case InstructionKind::ConditionalBranch:
@@ -262,6 +283,8 @@ namespace ink::ir
         const GlobalAddressOperand &RightAddress = static_cast<const GlobalAddressOperand &>(Right);
         return LeftAddress.global() == RightAddress.global() && LeftAddress.byteOffset() == RightAddress.byteOffset();
       }
+      case ValueKind::GlobalVariableAddressOperand:
+        return static_cast<const GlobalVariableAddressOperand &>(Left).global() == static_cast<const GlobalVariableAddressOperand &>(Right).global();
       case ValueKind::ZeroInitializer:
         return true;
       case ValueKind::FloatConstant:
@@ -511,6 +534,32 @@ namespace ink::ir
 
       if (OperandValue.kind() == ValueKind::ZeroInitializer)
       {
+        return;
+      }
+
+      if (OperandValue.kind() == ValueKind::GlobalVariableAddressOperand)
+      {
+        const GlobalRef Global = static_cast<const GlobalVariableAddressOperand &>(OperandValue).global();
+        if (!isBytePointerType(&OperandValue.type()) || !Global.valid())
+        {
+          Diagnostics.add<DiagnosticKind::InvalidIrModule>();
+          return;
+        }
+        if (!isLocalReference(ModuleValue, Global.Module))
+        {
+          return;
+        }
+        if (Global.Global.value() >= ModuleValue.Globals.size())
+        {
+          Diagnostics.add<DiagnosticKind::InvalidIrModule>();
+          return;
+        }
+        const GlobalVariable &Variable = ModuleValue.Globals[Global.Global.value()];
+        const bool IsInitializer = ModuleValue.Initializer.has_value() && ModuleValue.Initializer->valid() && ModuleValue.Initializer->value() < ModuleValue.Functions.size() && ModuleValue.Functions[ModuleValue.Initializer->value()].Name == FunctionName;
+        if (!Variable.Mutable && OperandValue.type().kind() == TypeKind::BytePointer && !IsInitializer)
+        {
+          Diagnostics.add<DiagnosticKind::InvalidIrModule>();
+        }
         return;
       }
 
@@ -857,6 +906,7 @@ namespace ink::ir
       const SsaDefinitionMap Definitions = collectSsaDefinitions(FunctionValue, Diagnostics);
       const FunctionControlFlow ControlFlow = buildControlFlow(FunctionValue);
       std::unordered_set<std::string> BlockNames;
+      const bool IsInitializer = ModuleValue.Initializer.has_value() && ModuleValue.Initializer->valid() && ModuleValue.Initializer->value() < ModuleValue.Functions.size() && &ModuleValue.Functions[ModuleValue.Initializer->value()] == &FunctionValue;
 
       for (std::size_t BlockIndex = 0; BlockIndex < FunctionValue.Blocks.size(); ++BlockIndex)
       {
@@ -888,7 +938,7 @@ namespace ink::ir
           const Instruction &InstructionValue = *InstructionPointer;
           const bool IsLast = InstructionIndex + 1 == Block.Instructions.size();
           const InstructionKind Kind = InstructionValue.kind();
-          if (Kind != InstructionKind::Call && Kind != InstructionKind::Alloca && Kind != InstructionKind::GetElementPointer && Kind != InstructionKind::Load && Kind != InstructionKind::Store && Kind != InstructionKind::LifetimeEnd && Kind != InstructionKind::SliceData && Kind != InstructionKind::SliceLength && Kind != InstructionKind::Phi && Kind != InstructionKind::Add && Kind != InstructionKind::Compare && Kind != InstructionKind::InsertValue && Kind != InstructionKind::ExtractValue && Kind != InstructionKind::Branch && Kind != InstructionKind::ConditionalBranch && Kind != InstructionKind::Return)
+          if (Kind != InstructionKind::Call && Kind != InstructionKind::Import && Kind != InstructionKind::Alloca && Kind != InstructionKind::GetElementPointer && Kind != InstructionKind::Load && Kind != InstructionKind::Store && Kind != InstructionKind::LifetimeEnd && Kind != InstructionKind::SliceData && Kind != InstructionKind::SliceLength && Kind != InstructionKind::Phi && Kind != InstructionKind::Add && Kind != InstructionKind::Compare && Kind != InstructionKind::InsertValue && Kind != InstructionKind::ExtractValue && Kind != InstructionKind::Branch && Kind != InstructionKind::ConditionalBranch && Kind != InstructionKind::Return)
           {
             Diagnostics.add<DiagnosticKind::IrUnknownInstructionKind>(FunctionValue.Name, Block.Name);
             SeenNonPhi = true;
@@ -920,6 +970,16 @@ namespace ink::ir
           if (Kind == InstructionKind::Phi)
           {
             verifyPhiInstruction(ModuleValue, FunctionValue, BlockIndex, static_cast<const PhiInstruction &>(InstructionValue), Definitions, ControlFlow, Diagnostics);
+            continue;
+          }
+
+          if (Kind == InstructionKind::Import)
+          {
+            const ImportInstruction &Import = static_cast<const ImportInstruction &>(InstructionValue);
+            if (!Import.Module.valid() || !IsInitializer)
+            {
+              Diagnostics.add<DiagnosticKind::InvalidIrModule>();
+            }
             continue;
           }
 
@@ -1065,6 +1125,11 @@ namespace ink::ir
               {
                 Diagnostics.add<DiagnosticKind::IrLoadInvalidPointerType>(FunctionValue.Name);
               }
+              const GlobalVariable *Global = referencedLocalGlobal(ModuleValue, *Load.Pointer);
+              if (Global != nullptr && Load.ResultType != Global->ValueType)
+              {
+                Diagnostics.add<DiagnosticKind::InvalidIrModule>();
+              }
             }
             continue;
           }
@@ -1094,6 +1159,11 @@ namespace ink::ir
               if (Store.Pointer->type().kind() != TypeKind::BytePointer)
               {
                 Diagnostics.add<DiagnosticKind::IrStoreDestinationNotMutablePointer>(FunctionValue.Name);
+              }
+              const GlobalVariable *Global = referencedLocalGlobal(ModuleValue, *Store.Pointer);
+              if (Global != nullptr && Store.StoredValue && &Store.StoredValue->type() != Global->ValueType)
+              {
+                Diagnostics.add<DiagnosticKind::InvalidIrModule>();
               }
             }
             continue;
@@ -1232,48 +1302,63 @@ namespace ink::ir
           if (Kind == InstructionKind::Call)
           {
             const CallInstruction *Call = static_cast<const CallInstruction *>(&InstructionValue);
-            if (!Call->Callee.valid() || Call->Callee.value() >= ModuleValue.Functions.size())
+            if (!Call->Callee.valid())
             {
               Diagnostics.add<DiagnosticKind::IrCallInvalidCallee>(FunctionValue.Name);
               continue;
             }
-            const Function &Callee = ModuleValue.Functions[Call->Callee.value()];
+            const bool IsLocalCallee = isLocalReference(ModuleValue, Call->Callee.Module);
+            const Function *Callee = nullptr;
+            if (IsLocalCallee)
+            {
+              if (Call->Callee.Function.value() >= ModuleValue.Functions.size())
+              {
+                Diagnostics.add<DiagnosticKind::IrCallInvalidCallee>(FunctionValue.Name);
+                continue;
+              }
+              Callee = &ModuleValue.Functions[Call->Callee.Function.value()];
+              if ((ModuleValue.Initializer.has_value() && *ModuleValue.Initializer == Call->Callee.Function) || (ModuleValue.Finalizer.has_value() && *ModuleValue.Finalizer == Call->Callee.Function))
+              {
+                Diagnostics.add<DiagnosticKind::InvalidIrModule>();
+              }
+            }
+            const std::string &CalleeName = Callee == nullptr ? FunctionValue.Name : Callee->Name;
             if (!isValidType(ModuleValue, Call->ResultType))
             {
-              Diagnostics.add<DiagnosticKind::IrCallUnknownResultType>(Callee.Name);
+              Diagnostics.add<DiagnosticKind::IrCallUnknownResultType>(CalleeName);
               continue;
             }
-            if (Call->ResultType != Callee.ResultType)
+            if (Callee != nullptr && Call->ResultType != Callee->ResultType)
             {
-              Diagnostics.add<DiagnosticKind::IrCallResultTypeMismatch>(Callee.Name);
+              Diagnostics.add<DiagnosticKind::IrCallResultTypeMismatch>(CalleeName);
             }
             if ((Call->ResultType->kind() == TypeKind::Void) == Call->Result.has_value())
             {
               if (Call->ResultType->kind() == TypeKind::Void)
               {
-                Diagnostics.add<DiagnosticKind::IrVoidCallDefinesResult>(Callee.Name);
+                Diagnostics.add<DiagnosticKind::IrVoidCallDefinesResult>(CalleeName);
               }
               else
               {
-                Diagnostics.add<DiagnosticKind::IrNonVoidCallMissingResult>(Callee.Name);
+                Diagnostics.add<DiagnosticKind::IrNonVoidCallMissingResult>(CalleeName);
               }
             }
-            if (Call->Arguments.size() != Callee.ParameterTypes.size())
+            if (Callee != nullptr && Call->Arguments.size() != Callee->ParameterTypes.size())
             {
-              Diagnostics.add<DiagnosticKind::IrCallArgumentCountMismatch>(Callee.Name, Callee.ParameterTypes.size(), Call->Arguments.size());
+              Diagnostics.add<DiagnosticKind::IrCallArgumentCountMismatch>(CalleeName, Callee->ParameterTypes.size(), Call->Arguments.size());
             }
-            const std::size_t CheckedArgumentCount = Call->Arguments.size() < Callee.ParameterTypes.size() ? Call->Arguments.size() : Callee.ParameterTypes.size();
+            const std::size_t CheckedArgumentCount = Callee == nullptr ? 0 : (Call->Arguments.size() < Callee->ParameterTypes.size() ? Call->Arguments.size() : Callee->ParameterTypes.size());
             for (std::size_t ArgumentIndex = 0; ArgumentIndex < Call->Arguments.size(); ++ArgumentIndex)
             {
               if (!Call->Arguments[ArgumentIndex])
               {
-                Diagnostics.add<DiagnosticKind::IrNullCallArgument>(Callee.Name, ArgumentIndex);
+                Diagnostics.add<DiagnosticKind::IrNullCallArgument>(CalleeName, ArgumentIndex);
                 continue;
               }
               verifyOperand(ModuleValue, *Call->Arguments[ArgumentIndex], Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
-              if (ArgumentIndex < CheckedArgumentCount && &Call->Arguments[ArgumentIndex]->type() != Callee.ParameterTypes[ArgumentIndex])
+              if (ArgumentIndex < CheckedArgumentCount && &Call->Arguments[ArgumentIndex]->type() != Callee->ParameterTypes[ArgumentIndex])
               {
-                Diagnostics.add<DiagnosticKind::IrCallArgumentTypeMismatch>(Callee.Name, ArgumentIndex);
+                Diagnostics.add<DiagnosticKind::IrCallArgumentTypeMismatch>(CalleeName, ArgumentIndex);
               }
             }
             continue;
@@ -1479,6 +1564,22 @@ namespace ink::ir
       }
     }
 
+    for (const GlobalVariable &Global : ModuleValue.Globals)
+    {
+      if (!isValidName(Global.Name))
+      {
+        Diagnostics.add<DiagnosticKind::InvalidIrModule>();
+      }
+      else if (!GlobalNames.insert(Global.Name).second)
+      {
+        Diagnostics.add<DiagnosticKind::IrDuplicateGlobalSymbol>(Global.Name);
+      }
+      if (!isValidType(ModuleValue, Global.ValueType) || !isMemoryValueType(*Global.ValueType))
+      {
+        Diagnostics.add<DiagnosticKind::InvalidIrModule>();
+      }
+    }
+
     for (const Function &FunctionValue : ModuleValue.Functions)
     {
       if (!isValidName(FunctionValue.Name))
@@ -1491,6 +1592,25 @@ namespace ink::ir
       }
       verifyFunctionSignature(ModuleValue, FunctionValue, Diagnostics);
     }
+    const auto VerifyLifecycleFunction = [&ModuleValue, &Diagnostics](const std::optional<FunctionId> &FunctionIdValue)
+    {
+      if (!FunctionIdValue.has_value())
+      {
+        return;
+      }
+      if (!FunctionIdValue->valid() || FunctionIdValue->value() >= ModuleValue.Functions.size())
+      {
+        Diagnostics.add<DiagnosticKind::InvalidIrModule>();
+        return;
+      }
+      const Function &FunctionValue = ModuleValue.Functions[FunctionIdValue->value()];
+      if (FunctionValue.Kind != FunctionKind::Definition || FunctionValue.ResultType == nullptr || FunctionValue.ResultType->kind() != TypeKind::Void || !FunctionValue.ParameterTypes.empty())
+      {
+        Diagnostics.add<DiagnosticKind::InvalidIrModule>();
+      }
+    };
+    VerifyLifecycleFunction(ModuleValue.Initializer);
+    VerifyLifecycleFunction(ModuleValue.Finalizer);
     for (const Function &FunctionValue : ModuleValue.Functions)
     {
       verifyFunctionBody(ModuleValue, FunctionValue, Diagnostics);

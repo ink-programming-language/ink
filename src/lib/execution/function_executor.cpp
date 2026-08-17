@@ -17,13 +17,18 @@ namespace ink::execution
     constexpr std::size_t MaximumInstructionCount = 1000000;
   } // namespace
 
-  FunctionExecutor::FunctionExecutor(ExecutionContext &Context, const ir::Module &ModuleValue, ExternalFunctionInvoker &ExternalInvoker, std::vector<core::Diagnostic> &Diagnostics) : Context(Context), ModuleValue(ModuleValue), ExternalInvoker(ExternalInvoker), Diagnostics(Diagnostics), Values(Context.compilationContext().targetContext())
+  FunctionExecutor::FunctionExecutor(ExecutionContext &Context, ModuleExecutionRuntime &Runtime, ModuleInstance &EntryModule, std::vector<core::Diagnostic> &Diagnostics)
+      : Context(Context),
+        Runtime(Runtime),
+        EntryModule(EntryModule),
+        Diagnostics(Diagnostics),
+        Values(Context.compilationContext().targetContext())
   {
   }
 
-  bool FunctionExecutor::execute(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueRef &Result)
+  bool FunctionExecutor::execute(ir::FunctionId Function, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueRef &Result)
   {
-    return executeFunction(FunctionIndex, Arguments, 0, Result);
+    return executeFunction(EntryModule, Function, Arguments, 0, Result);
   }
 
   RuntimeValueRef FunctionExecutor::importValue(RuntimeValueRef Value)
@@ -90,7 +95,7 @@ namespace ink::execution
     return nullptr;
   }
 
-  RuntimeValueRef FunctionExecutor::evaluateValue(const ir::Value &Value, const ExecutionFrame &Frame, const std::string &FunctionName)
+  RuntimeValueRef FunctionExecutor::evaluateValue(const ir::Value &Value, ModuleInstance &Module, const ExecutionFrame &Frame, const std::string &FunctionName)
   {
     if (Value.kind() == ir::ValueKind::IntegerConstant)
     {
@@ -104,8 +109,12 @@ namespace ink::execution
     }
     if (Value.kind() == ir::ValueKind::StringConstant)
     {
-      const auto &Data = static_cast<const ir::StringConstant &>(Value).data();
-      return Values.byteSliceValue(Value.type(), Data.data(), Data.size());
+      RuntimeValueRef Result = importValue(Module.stringConstantValue(static_cast<const ir::StringConstant &>(Value)));
+      if (Result == nullptr)
+      {
+        addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>();
+      }
+      return Result;
     }
     if (Value.kind() == ir::ValueKind::NullConstant)
     {
@@ -137,7 +146,7 @@ namespace ink::execution
           addFailure<core::DiagnosticKind::InvalidRuntimeAggregate>("aggregate constant", FunctionName);
           return nullptr;
         }
-        RuntimeValueRef RuntimeElement = evaluateValue(*Element, Frame, FunctionName);
+        RuntimeValueRef RuntimeElement = evaluateValue(*Element, Module, Frame, FunctionName);
         if (RuntimeElement == nullptr)
         {
           return nullptr;
@@ -160,28 +169,39 @@ namespace ink::execution
         addFailure<core::DiagnosticKind::SsaValueUnavailableDuringExecution>(Id.value());
         return nullptr;
       }
-      return Stored;
+      RuntimeValueRef Result = importValue(Stored);
+      if (Result == nullptr)
+      {
+        addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>();
+      }
+      return Result;
     }
     if (Value.kind() == ir::ValueKind::GlobalAddressOperand)
     {
       const ir::GlobalAddressOperand &Address = static_cast<const ir::GlobalAddressOperand &>(Value);
-      const std::size_t GlobalIndex = Address.global().value();
+      const ir::Module &ModuleValue = Module.definition();
+      const std::size_t GlobalIndex = Address.byteConstant().value();
+      if (!Address.byteConstant().valid() || GlobalIndex >= ModuleValue.ByteConstants.size())
+      {
+        addFailure<core::DiagnosticKind::InvalidRuntimeMemoryValue>("global address", FunctionName);
+        return nullptr;
+      }
+      const ir::ByteConstant *Constant = &ModuleValue.ByteConstants[GlobalIndex];
       RuntimeValueRef BasePointer = nullptr;
-      const auto Existing = GlobalPointers.find(GlobalIndex);
+      const auto Existing = GlobalPointers.find(Constant);
       if (Existing != GlobalPointers.end())
       {
         BasePointer = Existing->second;
       }
       else
       {
-        const std::string &Data = ModuleValue.ByteConstants[GlobalIndex].Data;
-        BasePointer = Values.borrowedPointerValue(Value.type(), Data.data(), Data.size());
+        BasePointer = importValue(Module.byteConstantAddress(Address.byteConstant()));
         if (BasePointer == nullptr)
         {
           addFailure<core::DiagnosticKind::InvalidRuntimeMemoryValue>("global address", FunctionName);
           return nullptr;
         }
-        GlobalPointers.emplace(GlobalIndex, BasePointer);
+        GlobalPointers.emplace(Constant, BasePointer);
       }
       if (Address.byteOffset() == 0)
       {
@@ -202,6 +222,10 @@ namespace ink::execution
       }
       return Result;
     }
+    if (Value.kind() == ir::ValueKind::GlobalVariableAddressOperand)
+    {
+      return evaluateGlobalVariableAddress(static_cast<const ir::GlobalVariableAddressOperand &>(Value), Module, FunctionName);
+    }
     if (Value.kind() == ir::ValueKind::ZeroInitializer)
     {
       RuntimeValueRef Result = zeroValue(Value.type());
@@ -215,9 +239,15 @@ namespace ink::execution
     return nullptr;
   }
 
-  bool FunctionExecutor::executeFunction(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, std::size_t Depth, RuntimeValueRef &Result)
+  bool FunctionExecutor::executeFunction(ModuleInstance &Module, ir::FunctionId Function, const std::vector<RuntimeValueRef> &Arguments, std::size_t Depth, RuntimeValueRef &Result)
   {
-    const ir::Function &FunctionValue = ModuleValue.Functions[FunctionIndex];
+    const ir::Module &ModuleValue = Module.definition();
+    if (!Function.valid() || Function.value() >= ModuleValue.Functions.size())
+    {
+      addFailure<core::DiagnosticKind::ModuleFunctionReferenceInvalid>(Module.id().value(), Function.valid() ? Function.value() : ir::InvalidId);
+      return false;
+    }
+    const ir::Function &FunctionValue = ModuleValue.Functions[Function.value()];
     if (Depth >= MaximumCallDepth)
     {
       addFailure<core::DiagnosticKind::CallDepthLimitExceeded>(FunctionValue.Name, MaximumCallDepth);
@@ -225,10 +255,16 @@ namespace ink::execution
     }
     if (FunctionValue.Kind == ir::FunctionKind::External)
     {
-      return ExternalInvoker.invokeExternal(FunctionIndex, Arguments, Values, Result, Diagnostics);
+      ExternalFunctionInvoker *Invoker = Runtime.externalInvoker(Module);
+      if (Invoker == nullptr)
+      {
+        addFailure<core::DiagnosticKind::ModuleLoadFailed>(Module.id().value());
+        return false;
+      }
+      return Invoker->invokeExternal(Function.value(), Arguments, Values, Result, Diagnostics);
     }
 
-    FunctionExecutionState State(FunctionValue, Arguments, Depth, NextFrameId++);
+    FunctionExecutionState State(Module, FunctionValue, Arguments, Depth, NextFrameId++);
     State.NextBlock = ir::BlockId{0};
     if (!enterBlock(State))
     {
@@ -338,7 +374,7 @@ namespace ink::execution
         return false;
       }
 
-      RuntimeValueRef IncomingValue = evaluateValue(*SelectedIncoming->Value, State.Frame, State.FunctionValue.Name);
+      RuntimeValueRef IncomingValue = evaluateValue(*SelectedIncoming->Value, State.Module, State.Frame, State.FunctionValue.Name);
       if (IncomingValue == nullptr)
       {
         return false;

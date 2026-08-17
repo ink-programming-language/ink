@@ -9,7 +9,8 @@ namespace ink::execution
   class ExecutionContext
   {
   public:
-    explicit ExecutionContext(core::CompilationContext &Compilation) : Compilation(Compilation)
+    explicit ExecutionContext(core::CompilationContext &Compilation)
+        : Compilation(Compilation)
     {
     }
 
