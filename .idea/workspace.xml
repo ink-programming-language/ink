@@ -1050,41 +1050,23 @@
   <component name="ChangeListManager">
     <list default="true" id="75c92d51-4c7b-4d11-8d7d-8de7163a5f4a" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/ir.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/ir.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/core/diagnostic.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/diagnostic.def" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/instruction/arithmetic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/instruction/arithmetic.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/instruction/control_flow.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/instruction/control_flow.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/instruction/instruction.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/instruction/instruction.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/instruction/memory.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/instruction/memory.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/attribute.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/attribute.def" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/ir/ir.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/ir.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/model/constant.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/model/constant.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/model/context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/model/context.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/model/type.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/model/type.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/model/value.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/model/value.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/model/attribute.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/model/attribute.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/model/function.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/model/function.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/execution/engine/execution_engine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/engine/execution_engine.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/engine/function_executor.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/engine/function_executor.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/instruction/aggregate_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/instruction/aggregate_instruction.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/execution/instruction/call_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/instruction/call_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/instruction/memory_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/instruction/memory_instruction.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/execution/native/native_abi.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/native/native_abi.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime/runtime_memory.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/runtime/runtime_memory.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/runtime/runtime_value.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/runtime/runtime_value.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/ir/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/ir/analysis/type_layout.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/analysis/type_layout.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/ir/analysis/verifier.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/analysis/verifier.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/ir/model/constant.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/model/constant.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/ir/model/context.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/model/context.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ir/model/attribute.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/model/attribute.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/ir/serialization.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/serialization.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/execution/control_flow_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/control_flow_execution_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/execution/execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/execution_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/execution/memory_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/memory_execution_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/execution/native_io_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/native_io_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/execution/pointer_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/pointer_execution_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/constant_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/constant_ir_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/control_flow_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/control_flow_ir_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/ir/ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/ir_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/ir/memory_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/memory_ir_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/module_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/module_ir_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/type_layout_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/type_layout_test.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -1110,14 +1092,20 @@
     <setting file="file://$PROJECT_DIR$/src/lib/execution/runtime/read.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/lib/execution/runtime/write.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/ir/control_flow.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/include/ink/ir/model/attribute.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/include/ink/ir/model/function.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/ir/module.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/execution/aggregate_instruction.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/execution/branch_instruction.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/lib/execution/engine/execution_engine.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/execution/engine/function_executor.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/execution/instruction/aggregate_instruction.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/execution/instruction/call_instruction.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/execution/instruction/memory_instruction.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/lib/ir/model/attribute.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/lib/ir/serialization.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/testcase/execution/execution_test.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/testcase/execution/native_io_test.cpp" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="v7dQL6JS" />

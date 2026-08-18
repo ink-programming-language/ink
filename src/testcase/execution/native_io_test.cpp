@@ -69,8 +69,10 @@ namespace ink::execution
       Read.Name = "read";
       Read.Kind = ir::FunctionKind::External;
       Read.Convention = ir::CallingConvention::C;
-      Read.ParameterTypes = {&I32Type, &BytePointerType, &PointerSizeType};
-      Read.HasSideEffects = true;
+      Read.Parameters.emplace_back(&I32Type);
+      Read.Parameters.emplace_back(&BytePointerType);
+      Read.Parameters.emplace_back(&PointerSizeType);
+      Read.Attributes.emplace_back(ir::AttributeKind::SideEffect);
       Result.Functions.push_back(std::move(Read));
 
       auto Call = std::make_unique<ir::CallInstruction>(I32Type);
@@ -84,7 +86,8 @@ namespace ink::execution
 
       ir::Function Main(I32Type);
       Main.Name = "main";
-      Main.ParameterTypes = {&BytePointerType, &PointerSizeType};
+      Main.Parameters.emplace_back(&BytePointerType);
+      Main.Parameters.emplace_back(&PointerSizeType);
       ir::BasicBlock Entry;
       Entry.Name = "entry";
       Entry.Instructions.push_back(std::move(Call));
@@ -106,8 +109,10 @@ namespace ink::execution
       Write.Name = "write";
       Write.Kind = ir::FunctionKind::External;
       Write.Convention = ir::CallingConvention::C;
-      Write.ParameterTypes = {&I32Type, &ConstBytePointerType, &PointerSizeType};
-      Write.HasSideEffects = true;
+      Write.Parameters.emplace_back(&I32Type);
+      Write.Parameters.emplace_back(&ConstBytePointerType);
+      Write.Parameters.emplace_back(&PointerSizeType);
+      Write.Attributes.emplace_back(ir::AttributeKind::SideEffect);
       Result.Functions.push_back(std::move(Write));
 
       auto Call = std::make_unique<ir::CallInstruction>(I32Type);

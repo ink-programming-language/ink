@@ -75,8 +75,10 @@ namespace ink::ir
       WriteStdout.Name = "write";
       WriteStdout.Kind = FunctionKind::External;
       WriteStdout.Convention = CallingConvention::C;
-      WriteStdout.ParameterTypes = {&I32Type, &ConstBytePointerType, &PointerSizeType};
-      WriteStdout.HasSideEffects = true;
+      WriteStdout.Parameters.emplace_back(&I32Type);
+      WriteStdout.Parameters.emplace_back(&ConstBytePointerType);
+      WriteStdout.Parameters.emplace_back(&PointerSizeType);
+      WriteStdout.Attributes.emplace_back(AttributeKind::SideEffect);
       Result.Functions.push_back(std::move(WriteStdout));
 
       auto Call = std::make_unique<CallInstruction>(I32Type);
@@ -307,7 +309,7 @@ namespace ink::ir
       TestContext Context;
       Module ModuleValue = makeHelloWorldModule(Context.IR);
       Function &Main = ModuleValue.Functions[1];
-      Main.ParameterTypes.push_back(&Context.IR.getType(TypeKind::I32));
+      Main.Parameters.emplace_back(&Context.IR.getType(TypeKind::I32));
       CallInstruction &Call = static_cast<CallInstruction &>(*Main.Blocks[0].Instructions[0]);
       Call.Result = ValueId{2};
 
@@ -328,7 +330,7 @@ namespace ink::ir
       TestContext Context;
       Module ModuleValue = makeHelloWorldModule(Context.IR);
       Function &Main = ModuleValue.Functions[1];
-      Main.ParameterTypes.push_back(&Context.IR.getType(TypeKind::I32));
+      Main.Parameters.emplace_back(&Context.IR.getType(TypeKind::I32));
       CallInstruction &Call = static_cast<CallInstruction &>(*Main.Blocks[0].Instructions[0]);
       Call.Result = ValueId{InvalidId - 1};
 
@@ -349,7 +351,7 @@ namespace ink::ir
       TestContext Context;
       Module ModuleValue = makeHelloWorldModule(Context.IR);
       Function &Main = ModuleValue.Functions[1];
-      Main.ParameterTypes.push_back(&Context.IR.getType(TypeKind::I32));
+      Main.Parameters.emplace_back(&Context.IR.getType(TypeKind::I32));
       CallInstruction &Call = static_cast<CallInstruction &>(*Main.Blocks[0].Instructions[0]);
       Call.Result = ValueId{1};
 
@@ -441,11 +443,11 @@ namespace ink::ir
       const Function &Read = Result.module()->Functions[0];
       const Function &Write = Result.module()->Functions[1];
       EXPECT_EQ(Read.Convention, CallingConvention::C);
-      ASSERT_EQ(Read.ParameterTypes.size(), 3u);
-      EXPECT_EQ(Read.ParameterTypes[1]->kind(), TypeKind::BytePointer);
+      ASSERT_EQ(Read.parameterCount(), 3u);
+      EXPECT_EQ(Read.parameterType(1)->kind(), TypeKind::BytePointer);
       EXPECT_EQ(Write.Convention, CallingConvention::C);
-      ASSERT_EQ(Write.ParameterTypes.size(), 3u);
-      EXPECT_EQ(Write.ParameterTypes[1]->kind(), TypeKind::ConstBytePointer);
+      ASSERT_EQ(Write.parameterCount(), 3u);
+      EXPECT_EQ(Write.parameterType(1)->kind(), TypeKind::ConstBytePointer);
       EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), NativeIoText);
     }
 

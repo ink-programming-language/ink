@@ -419,6 +419,75 @@ namespace ink::ir
       }
     }
 
+    struct FunctionAttributeDiagnosticReporter
+    {
+        const Name &FunctionName;
+        DiagnosticCollector &Diagnostics;
+
+        void unknownAttribute() const
+        {
+          Diagnostics.add<DiagnosticKind::IrUnknownFunctionAttribute>(FunctionName);
+        }
+
+        void invalidArgumentName(const Attribute &AttributeValue, const AttributeArgument &Argument) const
+        {
+          Diagnostics.add<DiagnosticKind::IrInvalidFunctionAttributeArgumentName>(FunctionName, attributeKindSpelling(AttributeValue.kind()), Argument.key());
+        }
+
+        void duplicateArgumentName(const Attribute &AttributeValue, const AttributeArgument &Argument) const
+        {
+          Diagnostics.add<DiagnosticKind::IrDuplicateFunctionAttributeArgumentName>(FunctionName, attributeKindSpelling(AttributeValue.kind()), Argument.key());
+        }
+    };
+
+    struct StructFieldAttributeDiagnosticReporter
+    {
+        const Name &TypeName;
+        std::size_t FieldIndex;
+        DiagnosticCollector &Diagnostics;
+
+        void unknownAttribute() const
+        {
+          Diagnostics.add<DiagnosticKind::IrUnknownStructFieldAttribute>(TypeName, FieldIndex);
+        }
+
+        void invalidArgumentName(const Attribute &AttributeValue, const AttributeArgument &Argument) const
+        {
+          Diagnostics.add<DiagnosticKind::IrInvalidStructFieldAttributeArgumentName>(TypeName, FieldIndex, attributeKindSpelling(AttributeValue.kind()), Argument.key());
+        }
+
+        void duplicateArgumentName(const Attribute &AttributeValue, const AttributeArgument &Argument) const
+        {
+          Diagnostics.add<DiagnosticKind::IrDuplicateStructFieldAttributeArgumentName>(TypeName, FieldIndex, attributeKindSpelling(AttributeValue.kind()), Argument.key());
+        }
+    };
+
+    template <typename DiagnosticReporter>
+    void verifyAttributes(const Module &ModuleValue, const std::vector<Attribute> &Attributes, const Name &OwnerName, DiagnosticCollector &Diagnostics, const DiagnosticReporter &Reporter)
+    {
+      for (const Attribute &AttributeValue : Attributes)
+      {
+        if (AttributeValue.kind() >= AttributeKind::Count)
+        {
+          Reporter.unknownAttribute();
+          continue;
+        }
+        std::unordered_set<Name> ArgumentNames;
+        for (const AttributeArgument &Argument : AttributeValue.arguments())
+        {
+          if (!Argument.key().valid())
+          {
+            Reporter.invalidArgumentName(AttributeValue, Argument);
+          }
+          else if (!ArgumentNames.insert(Argument.key()).second)
+          {
+            Reporter.duplicateArgumentName(AttributeValue, Argument);
+          }
+          verifyConstant(ModuleValue, Argument.value(), OwnerName, Diagnostics);
+        }
+      }
+    }
+
     bool definitionDominatesUse(const SsaDefinition &Definition, std::size_t UseBlockIndex, std::size_t UseInstructionIndex, const FunctionControlFlow &ControlFlow)
     {
       if (Definition.BlockIndex == InvalidId)
@@ -524,9 +593,19 @@ namespace ink::ir
       {
         Diagnostics.add<DiagnosticKind::IrSliceFunctionResultForbidden>(FunctionValue.Name, typeKindName(FunctionValue.ResultType->kind()));
       }
-      for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.ParameterTypes.size(); ++ParameterIndex)
+      std::unordered_set<Name> ParameterNames;
+      for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.parameterCount(); ++ParameterIndex)
       {
-        const Type *ParameterType = FunctionValue.ParameterTypes[ParameterIndex];
+        const Parameter &ParameterValue = FunctionValue.parameter(ParameterIndex);
+        const Type *ParameterType = ParameterValue.type();
+        if (!ParameterValue.name().empty() && !ParameterValue.name().valid())
+        {
+          Diagnostics.add<DiagnosticKind::IrInvalidFunctionParameterName>(FunctionValue.Name, ParameterIndex, ParameterValue.name());
+        }
+        else if (!ParameterValue.name().empty() && !ParameterNames.insert(ParameterValue.name()).second)
+        {
+          Diagnostics.add<DiagnosticKind::IrDuplicateFunctionParameterName>(FunctionValue.Name, ParameterValue.name());
+        }
         if (!isValidType(ModuleValue, ParameterType) || ParameterType->kind() == TypeKind::Void)
         {
           Diagnostics.add<DiagnosticKind::IrFunctionInvalidParameterType>(FunctionValue.Name, ParameterIndex);
@@ -535,7 +614,17 @@ namespace ink::ir
         {
           Diagnostics.add<DiagnosticKind::IrSliceInExternalSignature>(FunctionValue.Name, typeKindName(ParameterType->kind()));
         }
+        if (ParameterValue.defaultValue() != nullptr)
+        {
+          if (ParameterType == nullptr || &ParameterValue.defaultValue()->type() != ParameterType)
+          {
+            Diagnostics.add<DiagnosticKind::IrFunctionParameterDefaultTypeMismatch>(FunctionValue.Name, ParameterIndex);
+          }
+          verifyConstant(ModuleValue, *ParameterValue.defaultValue(), FunctionValue.Name, Diagnostics);
+        }
       }
+      const FunctionAttributeDiagnosticReporter AttributeReporter{FunctionValue.Name, Diagnostics};
+      verifyAttributes(ModuleValue, FunctionValue.Attributes, FunctionValue.Name, Diagnostics, AttributeReporter);
       if (FunctionValue.Kind != FunctionKind::Definition && FunctionValue.Kind != FunctionKind::Imported && FunctionValue.Kind != FunctionKind::External)
       {
         Diagnostics.add<DiagnosticKind::IrFunctionUnknownKind>(FunctionValue.Name);
@@ -589,7 +678,7 @@ namespace ink::ir
         {
           Diagnostics.add<DiagnosticKind::IrDefinedFunctionWrongCallingConvention>(FunctionValue.Name);
         }
-        if (FunctionValue.HasSideEffects)
+        if (FunctionValue.hasAttribute(AttributeKind::SideEffect))
         {
           Diagnostics.add<DiagnosticKind::IrDefinedFunctionHasExternalSideEffects>(FunctionValue.Name);
         }
@@ -621,12 +710,12 @@ namespace ink::ir
     {
       SsaDefinitionMap Definitions;
       std::unordered_set<std::size_t> DefinedValues;
-      for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.ParameterTypes.size(); ++ParameterIndex)
+      for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.parameterCount(); ++ParameterIndex)
       {
         DefinedValues.insert(ParameterIndex);
-        Definitions.emplace(ParameterIndex, SsaDefinition{FunctionValue.ParameterTypes[ParameterIndex], InvalidId, 0});
+        Definitions.emplace(ParameterIndex, SsaDefinition{FunctionValue.parameterType(ParameterIndex), InvalidId, 0});
       }
-      std::size_t ExpectedValueId = FunctionValue.ParameterTypes.size();
+      std::size_t ExpectedValueId = FunctionValue.parameterCount();
       for (std::size_t BlockIndex = 0; BlockIndex < FunctionValue.Blocks.size(); ++BlockIndex)
       {
         const BasicBlock &Block = FunctionValue.Blocks[BlockIndex];
@@ -1292,11 +1381,11 @@ namespace ink::ir
                 Diagnostics.add<DiagnosticKind::IrNonVoidCallMissingResult>(CalleeName);
               }
             }
-            if (Call->Arguments.size() != Callee->ParameterTypes.size())
+            if (Call->Arguments.size() != Callee->parameterCount())
             {
-              Diagnostics.add<DiagnosticKind::IrCallArgumentCountMismatch>(CalleeName, Callee->ParameterTypes.size(), Call->Arguments.size());
+              Diagnostics.add<DiagnosticKind::IrCallArgumentCountMismatch>(CalleeName, Callee->parameterCount(), Call->Arguments.size());
             }
-            const std::size_t CheckedArgumentCount = Call->Arguments.size() < Callee->ParameterTypes.size() ? Call->Arguments.size() : Callee->ParameterTypes.size();
+            const std::size_t CheckedArgumentCount = Call->Arguments.size() < Callee->parameterCount() ? Call->Arguments.size() : Callee->parameterCount();
             for (std::size_t ArgumentIndex = 0; ArgumentIndex < Call->Arguments.size(); ++ArgumentIndex)
             {
               if (!Call->Arguments[ArgumentIndex])
@@ -1305,7 +1394,7 @@ namespace ink::ir
                 continue;
               }
               verifyOperand(ModuleValue, *Call->Arguments[ArgumentIndex], Definitions, ControlFlow, BlockIndex, InstructionIndex, FunctionValue.Name, Diagnostics);
-              if (ArgumentIndex < CheckedArgumentCount && &Call->Arguments[ArgumentIndex]->type() != Callee->ParameterTypes[ArgumentIndex])
+              if (ArgumentIndex < CheckedArgumentCount && &Call->Arguments[ArgumentIndex]->type() != Callee->parameterType(ArgumentIndex))
               {
                 Diagnostics.add<DiagnosticKind::IrCallArgumentTypeMismatch>(CalleeName, ArgumentIndex);
               }
@@ -1512,27 +1601,8 @@ namespace ink::ir
         {
           Diagnostics.add<DiagnosticKind::IrStructFieldForwardOrSelfReference>(TypeValue->name(), FieldIndex);
         }
-        for (const Attribute &AttributeValue : Field.attributes())
-        {
-          if (AttributeValue.kind() >= AttributeKind::Count)
-          {
-            Diagnostics.add<DiagnosticKind::IrUnknownStructFieldAttribute>(TypeValue->name(), FieldIndex);
-            continue;
-          }
-          std::unordered_set<Name> ArgumentNames;
-          for (const AttributeArgument &Argument : AttributeValue.arguments())
-          {
-            if (!Argument.key().valid())
-            {
-              Diagnostics.add<DiagnosticKind::IrInvalidStructFieldAttributeArgumentName>(TypeValue->name(), FieldIndex, attributeKindSpelling(AttributeValue.kind()), Argument.key());
-            }
-            else if (!ArgumentNames.insert(Argument.key()).second)
-            {
-              Diagnostics.add<DiagnosticKind::IrDuplicateStructFieldAttributeArgumentName>(TypeValue->name(), FieldIndex, attributeKindSpelling(AttributeValue.kind()), Argument.key());
-            }
-            verifyConstant(ModuleValue, Argument.value(), TypeValue->name(), Diagnostics);
-          }
-        }
+        const StructFieldAttributeDiagnosticReporter AttributeReporter{TypeValue->name(), FieldIndex, Diagnostics};
+        verifyAttributes(ModuleValue, Field.attributes(), TypeValue->name(), Diagnostics, AttributeReporter);
       }
       const StructLayoutConstraints &StructConstraints = TypeValue->layoutConstraints();
       bool HasLayoutConstraints = StructConstraints.ExplicitAlignment.has_value() || StructConstraints.Packing.has_value();
@@ -1625,7 +1695,7 @@ namespace ink::ir
         return;
       }
       const Function &FunctionValue = ModuleValue.Functions[FunctionIdValue->value()];
-      if (FunctionValue.Kind != FunctionKind::Definition || FunctionValue.ResultType == nullptr || FunctionValue.ResultType->kind() != TypeKind::Void || !FunctionValue.ParameterTypes.empty())
+      if (FunctionValue.Kind != FunctionKind::Definition || FunctionValue.ResultType == nullptr || FunctionValue.ResultType->kind() != TypeKind::Void || FunctionValue.parameterCount() != 0)
       {
         Diagnostics.add<DiagnosticKind::InvalidIrModule>();
       }

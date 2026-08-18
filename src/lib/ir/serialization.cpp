@@ -866,7 +866,7 @@ namespace ink::ir
           return Value;
         }
 
-        std::optional<Attribute> parseStructFieldAttribute()
+        std::optional<Attribute> parseAttribute()
         {
           const Token *KindToken = expect(TokenKind::Identifier, "a built-in attribute name");
           if (KindToken == nullptr)
@@ -920,7 +920,7 @@ namespace ink::ir
           return Attribute(*Kind, std::move(Arguments));
         }
 
-        std::optional<std::vector<Attribute>> parseStructFieldAttributes()
+        std::optional<std::vector<Attribute>> parseAttributes()
         {
           std::vector<Attribute> Attributes;
           if (!at(TokenKind::LeftBracket))
@@ -932,7 +932,7 @@ namespace ink::ir
           {
             while (true)
             {
-              std::optional<Attribute> AttributeValue = parseStructFieldAttribute();
+              std::optional<Attribute> AttributeValue = parseAttribute();
               if (!AttributeValue.has_value())
               {
                 return std::nullopt;
@@ -984,7 +984,7 @@ namespace ink::ir
               LayoutConstraints.ExplicitOffset = *Value;
             }
           }
-          std::optional<std::vector<Attribute>> Attributes = parseStructFieldAttributes();
+          std::optional<std::vector<Attribute>> Attributes = parseAttributes();
           if (!Attributes.has_value())
           {
             return std::nullopt;
@@ -1121,28 +1121,78 @@ namespace ink::ir
           return true;
         }
 
-        std::optional<std::vector<const Type *>> parseExternalParameterTypes()
+        std::optional<Parameter> parseParameter(bool IncludeSsaName, std::size_t ParameterIndex)
         {
-          std::vector<const Type *> Result;
+          ink::ir::Name ParameterName;
+          if (at(TokenKind::Identifier) && at(TokenKind::Colon, 1))
+          {
+            ParameterName = consume().Text;
+            consume();
+          }
+          const std::optional<const Type *> ParameterType = parseType();
+          if (!ParameterType.has_value())
+          {
+            return std::nullopt;
+          }
+          if (IncludeSsaName)
+          {
+            const Token *ValueName = expect(TokenKind::ValueName, "a function parameter SSA value");
+            if (ValueName == nullptr)
+            {
+              return std::nullopt;
+            }
+            const std::optional<std::size_t> ParsedParameterIndex = parseId(*ValueName, "function parameter SSA value");
+            if (!ParsedParameterIndex.has_value())
+            {
+              return std::nullopt;
+            }
+            if (*ParsedParameterIndex != ParameterIndex)
+            {
+              fail<DiagnosticKind::IrNonConsecutiveParameterSsa>(*ValueName, ParameterIndex, *ParsedParameterIndex);
+              return std::nullopt;
+            }
+          }
+          const Constant *DefaultValue = nullptr;
+          if (at(TokenKind::Equal))
+          {
+            consume();
+            const Token ValueLocation = current();
+            const std::optional<const Type *> DefaultType = parseType();
+            if (!DefaultType.has_value())
+            {
+              return std::nullopt;
+            }
+            const std::optional<const Constant *> ParsedDefaultValue = parseConstantValue(**DefaultType);
+            if (!ParsedDefaultValue.has_value())
+            {
+              fail<DiagnosticKind::IrExpected>(ValueLocation, "a constant function parameter default value");
+              return std::nullopt;
+            }
+            DefaultValue = *ParsedDefaultValue;
+          }
+          return Parameter(std::move(ParameterName), *ParameterType, DefaultValue);
+        }
+
+        std::optional<std::vector<Parameter>> parseParameters(bool IncludeSsaNames)
+        {
+          std::vector<Parameter> Result;
           if (at(TokenKind::RightParenthesis))
           {
             return Result;
           }
-          const std::optional<const Type *> FirstType = parseType();
-          if (!FirstType)
+          while (true)
           {
-            return std::nullopt;
-          }
-          Result.push_back(*FirstType);
-          while (at(TokenKind::Comma))
-          {
-            consume();
-            const std::optional<const Type *> Type = parseType();
-            if (!Type)
+            std::optional<Parameter> ParameterValue = parseParameter(IncludeSsaNames, Result.size());
+            if (!ParameterValue.has_value())
             {
               return std::nullopt;
             }
-            Result.push_back(*Type);
+            Result.push_back(std::move(*ParameterValue));
+            if (!at(TokenKind::Comma))
+            {
+              break;
+            }
+            consume();
           }
           return Result;
         }
@@ -1176,21 +1226,18 @@ namespace ink::ir
             return false;
           }
           FunctionValue.Name = Name->Text;
-          std::optional<std::vector<const Type *>> ParameterTypes = parseExternalParameterTypes();
-          if (!ParameterTypes || expect(TokenKind::RightParenthesis, "')'") == nullptr)
+          std::optional<std::vector<Parameter>> Parameters = parseParameters(false);
+          if (!Parameters.has_value() || expect(TokenKind::RightParenthesis, "')'") == nullptr)
           {
             return false;
           }
-          FunctionValue.ParameterTypes = std::move(*ParameterTypes);
-          if (at(TokenKind::LeftBracket))
+          FunctionValue.Parameters = std::move(*Parameters);
+          std::optional<std::vector<Attribute>> Attributes = parseAttributes();
+          if (!Attributes.has_value())
           {
-            consume();
-            if (!expectIdentifier("sideeffect") || expect(TokenKind::RightBracket, "']'") == nullptr)
-            {
-              return false;
-            }
-            FunctionValue.HasSideEffects = true;
+            return false;
           }
+          FunctionValue.Attributes = std::move(*Attributes);
           const FunctionId Id{ModuleValue.Functions.size()};
           FunctionNames.emplace(FunctionValue.Name, Id);
           ModuleValue.Functions.push_back(std::move(FunctionValue));
@@ -1216,12 +1263,12 @@ namespace ink::ir
             return false;
           }
           FunctionValue.Name = Name->Text;
-          std::optional<std::vector<const Type *>> ParameterTypes = parseExternalParameterTypes();
-          if (!ParameterTypes || expect(TokenKind::RightParenthesis, "')'") == nullptr || !expectIdentifier("from") || !expectIdentifier("module"))
+          std::optional<std::vector<Parameter>> Parameters = parseParameters(false);
+          if (!Parameters.has_value() || expect(TokenKind::RightParenthesis, "')'") == nullptr || !expectIdentifier("from") || !expectIdentifier("module"))
           {
             return false;
           }
-          FunctionValue.ParameterTypes = std::move(*ParameterTypes);
+          FunctionValue.Parameters = std::move(*Parameters);
           const Token *Module = expect(TokenKind::Identifier, "an imported module name");
           if (Module == nullptr || expect(TokenKind::Comma, "','") == nullptr || !expectIdentifier("symbol"))
           {
@@ -1233,58 +1280,16 @@ namespace ink::ir
             return false;
           }
           FunctionValue.Import = ImportInfo{Module->Text, ImportName->Text};
-          if (at(TokenKind::LeftBracket))
+          std::optional<std::vector<Attribute>> Attributes = parseAttributes();
+          if (!Attributes.has_value())
           {
-            consume();
-            if (!expectIdentifier("sideeffect") || expect(TokenKind::RightBracket, "']'") == nullptr)
-            {
-              return false;
-            }
-            FunctionValue.HasSideEffects = true;
+            return false;
           }
+          FunctionValue.Attributes = std::move(*Attributes);
           const FunctionId Id{ModuleValue.Functions.size()};
           FunctionNames.emplace(FunctionValue.Name, Id);
           ModuleValue.Functions.push_back(std::move(FunctionValue));
           return true;
-        }
-
-        std::optional<std::vector<const Type *>> parseDefinitionParameterTypes()
-        {
-          std::vector<const Type *> Result;
-          if (at(TokenKind::RightParenthesis))
-          {
-            return Result;
-          }
-          while (true)
-          {
-            const std::optional<const Type *> Type = parseType();
-            if (!Type)
-            {
-              return std::nullopt;
-            }
-            Result.push_back(*Type);
-            const Token *ValueName = expect(TokenKind::ValueName, "a function parameter SSA value");
-            if (ValueName == nullptr)
-            {
-              return std::nullopt;
-            }
-            const std::optional<std::size_t> ParameterIndex = parseId(*ValueName, "function parameter SSA value");
-            if (!ParameterIndex)
-            {
-              return std::nullopt;
-            }
-            if (*ParameterIndex != Result.size() - 1)
-            {
-              fail<DiagnosticKind::IrNonConsecutiveParameterSsa>(*ValueName, Result.size() - 1, *ParameterIndex);
-              return std::nullopt;
-            }
-            if (!at(TokenKind::Comma))
-            {
-              break;
-            }
-            consume();
-          }
-          return Result;
         }
 
         bool startsBasicBlock() const
@@ -2165,12 +2170,18 @@ namespace ink::ir
             return false;
           }
           FunctionValue.Name = Name->Text;
-          std::optional<std::vector<const Type *>> ParameterTypes = parseDefinitionParameterTypes();
-          if (!ParameterTypes || expect(TokenKind::RightParenthesis, "')'") == nullptr || expect(TokenKind::LeftBrace, "'{'") == nullptr)
+          std::optional<std::vector<Parameter>> Parameters = parseParameters(true);
+          if (!Parameters.has_value() || expect(TokenKind::RightParenthesis, "')'") == nullptr)
           {
             return false;
           }
-          FunctionValue.ParameterTypes = std::move(*ParameterTypes);
+          FunctionValue.Parameters = std::move(*Parameters);
+          std::optional<std::vector<Attribute>> Attributes = parseAttributes();
+          if (!Attributes.has_value() || expect(TokenKind::LeftBrace, "'{'") == nullptr)
+          {
+            return false;
+          }
+          FunctionValue.Attributes = std::move(*Attributes);
           const std::size_t FunctionIndex = ModuleValue.Functions.size();
           while (!at(TokenKind::RightBrace))
           {
@@ -2455,6 +2466,24 @@ namespace ink::ir
       Output << ')';
     }
 
+    void writeAttributes(std::ostringstream &Output, const Module &ModuleValue, const std::vector<Attribute> &Attributes)
+    {
+      if (Attributes.empty())
+      {
+        return;
+      }
+      Output << " [";
+      for (std::size_t AttributeIndex = 0; AttributeIndex < Attributes.size(); ++AttributeIndex)
+      {
+        if (AttributeIndex != 0)
+        {
+          Output << ", ";
+        }
+        writeAttribute(Output, ModuleValue, Attributes[AttributeIndex]);
+      }
+      Output << ']';
+    }
+
     void writeCall(std::ostringstream &Output, const Module &ModuleValue, const CallInstruction &Call)
     {
       Output << "  ";
@@ -2636,18 +2665,28 @@ namespace ink::ir
       Output << ", " << Extract.FieldIndex << '\n';
     }
 
-    void writeParameterTypes(std::ostringstream &Output, const std::vector<const Type *> &ParameterTypes, bool IncludeNames)
+    void writeParameters(std::ostringstream &Output, const Module &ModuleValue, const std::vector<Parameter> &Parameters, bool IncludeSsaNames)
     {
-      for (std::size_t ParameterIndex = 0; ParameterIndex < ParameterTypes.size(); ++ParameterIndex)
+      for (std::size_t ParameterIndex = 0; ParameterIndex < Parameters.size(); ++ParameterIndex)
       {
         if (ParameterIndex != 0)
         {
           Output << ", ";
         }
-        writeType(Output, *ParameterTypes[ParameterIndex]);
-        if (IncludeNames)
+        const Parameter &ParameterValue = Parameters[ParameterIndex];
+        if (!ParameterValue.name().empty())
+        {
+          Output << ParameterValue.name() << ": ";
+        }
+        writeType(Output, *ParameterValue.type());
+        if (IncludeSsaNames)
         {
           Output << " %" << ParameterIndex;
+        }
+        if (ParameterValue.defaultValue() != nullptr)
+        {
+          Output << " = ";
+          writeOperand(Output, ModuleValue, *ParameterValue.defaultValue());
         }
       }
     }
@@ -2709,19 +2748,7 @@ namespace ink::ir
         {
           Output << " offset(" << *Field.layoutConstraints().ExplicitOffset << ')';
         }
-        if (!Field.attributes().empty())
-        {
-          Output << " [";
-          for (std::size_t AttributeIndex = 0; AttributeIndex < Field.attributes().size(); ++AttributeIndex)
-          {
-            if (AttributeIndex != 0)
-            {
-              Output << ", ";
-            }
-            writeAttribute(Output, ModuleValue, Field.attributes()[AttributeIndex]);
-          }
-          Output << ']';
-        }
+        writeAttributes(Output, ModuleValue, Field.attributes());
       }
       Output << "}\n";
     }
@@ -2749,12 +2776,9 @@ namespace ink::ir
         Output << "\ndeclare import ";
         writeType(Output, *FunctionValue.ResultType);
         Output << " @" << FunctionValue.Name << '(';
-        writeParameterTypes(Output, FunctionValue.ParameterTypes, false);
+        writeParameters(Output, ModuleValue, FunctionValue.Parameters, false);
         Output << ") from module " << FunctionValue.Import->Module << ", symbol @" << FunctionValue.Import->Symbol;
-        if (FunctionValue.HasSideEffects)
-        {
-          Output << " [sideeffect]";
-        }
+        writeAttributes(Output, ModuleValue, FunctionValue.Attributes);
         Output << '\n';
         continue;
       }
@@ -2763,20 +2787,19 @@ namespace ink::ir
         Output << "\ndeclare extern \"C\" ";
         writeType(Output, *FunctionValue.ResultType);
         Output << " @" << FunctionValue.Name << '(';
-        writeParameterTypes(Output, FunctionValue.ParameterTypes, false);
+        writeParameters(Output, ModuleValue, FunctionValue.Parameters, false);
         Output << ')';
-        if (FunctionValue.HasSideEffects)
-        {
-          Output << " [sideeffect]";
-        }
+        writeAttributes(Output, ModuleValue, FunctionValue.Attributes);
         Output << '\n';
         continue;
       }
       Output << "\ndefine ";
       writeType(Output, *FunctionValue.ResultType);
       Output << " @" << FunctionValue.Name << '(';
-      writeParameterTypes(Output, FunctionValue.ParameterTypes, true);
-      Output << ") {\n";
+      writeParameters(Output, ModuleValue, FunctionValue.Parameters, true);
+      Output << ')';
+      writeAttributes(Output, ModuleValue, FunctionValue.Attributes);
+      Output << " {\n";
       for (const BasicBlock &Block : FunctionValue.Blocks)
       {
         Output << Block.Name << ":\n";

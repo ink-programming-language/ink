@@ -340,9 +340,9 @@ namespace ink::ir
       ASSERT_TRUE(Result.succeeded());
       ASSERT_TRUE(Result.module().has_value());
       ASSERT_EQ(Result.module()->Functions.size(), 1u);
-      ASSERT_EQ(Result.module()->Functions[0].ParameterTypes.size(), 2u);
-      EXPECT_EQ(Result.module()->Functions[0].ParameterTypes[0]->kind(), TypeKind::ByteSlice);
-      EXPECT_EQ(Result.module()->Functions[0].ParameterTypes[1]->kind(), TypeKind::ConstByteSlice);
+      ASSERT_EQ(Result.module()->Functions[0].parameterCount(), 2u);
+      EXPECT_EQ(Result.module()->Functions[0].parameterType(0)->kind(), TypeKind::ByteSlice);
+      EXPECT_EQ(Result.module()->Functions[0].parameterType(1)->kind(), TypeKind::ConstByteSlice);
     }
 
     // Verifies that safe slices cannot cross a C external ABI boundary.
@@ -356,7 +356,7 @@ namespace ink::ir
       External.Name = "external";
       External.Kind = FunctionKind::External;
       External.Convention = CallingConvention::C;
-      External.ParameterTypes = {&SliceType};
+      External.Parameters.emplace_back(&SliceType);
       ModuleValue.Functions.push_back(std::move(External));
 
       const VerificationResult Result = verify(Context.IR, ModuleValue);
@@ -373,7 +373,7 @@ namespace ink::ir
       Module ModuleValue(Context.IR);
       Function FunctionValue(SliceType);
       FunctionValue.Name = "escape";
-      FunctionValue.ParameterTypes = {&SliceType};
+      FunctionValue.Parameters.emplace_back(&SliceType);
       BasicBlock Entry;
       Entry.Name = "entry";
       auto Return = std::make_unique<ReturnInstruction>();

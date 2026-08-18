@@ -358,10 +358,11 @@ namespace ink::execution
           }
 
           auto Prepared = std::make_unique<PreparedFunction>();
-          Prepared->ArgumentTypes.reserve(FunctionValue.ParameterTypes.size());
+          Prepared->ArgumentTypes.reserve(FunctionValue.parameterCount());
           bool HasUnsupportedType = false;
-          for (const ir::Type *ParameterType : FunctionValue.ParameterTypes)
+          for (const ir::Parameter &ParameterValue : FunctionValue.Parameters)
           {
+            const ir::Type *ParameterType = ParameterValue.type();
             ffi_type *NativeParameterType = NativeTypes.get(*ParameterType);
             HasUnsupportedType = HasUnsupportedType || NativeParameterType == nullptr;
             Prepared->ArgumentTypes.push_back(NativeParameterType);

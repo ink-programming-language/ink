@@ -141,8 +141,9 @@ namespace ink::execution
       WriteStdout.Name = std::move(ExternalName);
       WriteStdout.Kind = ir::FunctionKind::External;
       WriteStdout.Convention = ir::CallingConvention::C;
-      WriteStdout.ParameterTypes = {&ConstBytePointerType, &PointerSizeType};
-      WriteStdout.HasSideEffects = true;
+      WriteStdout.Parameters.emplace_back(&ConstBytePointerType);
+      WriteStdout.Parameters.emplace_back(&PointerSizeType);
+      WriteStdout.Attributes.emplace_back(ir::AttributeKind::SideEffect);
       Result.Functions.push_back(std::move(WriteStdout));
 
       auto Call = std::make_unique<ir::CallInstruction>(I32Type);
@@ -169,7 +170,7 @@ namespace ink::execution
 
       ir::Function Identity(I32Type);
       Identity.Name = "identity";
-      Identity.ParameterTypes = {&I32Type};
+      Identity.Parameters.emplace_back(&I32Type);
       ir::BasicBlock IdentityEntry;
       IdentityEntry.Name = "entry";
       auto IdentityReturn = std::make_unique<ir::ReturnInstruction>();
@@ -585,6 +586,34 @@ namespace ink::execution
       EXPECT_EQ(Result.returnValue()->integer(), 91u);
     }
 
+    // Verifies that parameter names and defaults do not alter SSA binding and that InkIR execution still requires every explicit argument.
+    TEST(ExecutionEngineTest, ExecutesParameterMetadataWithoutImplicitDefaults)
+    {
+      TestContext Context;
+      const std::string Text =
+          "inkir 1\n"
+          "define i32 @identity(Value: i32 %0 = i32 7) {\n"
+          "entry:\n"
+          "  ret i32 %0\n"
+          "}\n";
+      ir::DeserializeResult Deserialized = ir::deserialize(Context.IR, Text);
+      ASSERT_TRUE(Deserialized.succeeded());
+      ExecutionEngine Engine(Context.Execution, *Deserialized.module());
+      const ir::Type &I32Type = Context.IR.getType(ir::TypeKind::I32);
+
+      const ExecutionResult ExplicitResult = [&Engine, &I32Type]()
+      {
+        RuntimeValueArena Arguments;
+        return Engine.execute("identity", {Arguments.integerValue(I32Type, 91)});
+      }();
+      const ExecutionResult MissingResult = Engine.execute("identity");
+
+      ASSERT_TRUE(ExplicitResult.succeeded());
+      ASSERT_NE(ExplicitResult.returnValue(), nullptr);
+      EXPECT_EQ(ExplicitResult.returnValue()->integer(), 91u);
+      EXPECT_FALSE(MissingResult.succeeded());
+    }
+
     // Verifies that an unused borrowed argument is not eagerly cloned or asked to materialize its pointer payload.
     TEST(ExecutionEngineTest, DoesNotCloneUnusedBorrowedArgument)
     {
@@ -594,7 +623,7 @@ namespace ink::execution
       ir::Module ModuleValue(Context.IR);
       ir::Function Ignore(I32Type);
       Ignore.Name = "ignore";
-      Ignore.ParameterTypes = {&PointerType};
+      Ignore.Parameters.emplace_back(&PointerType);
       ir::BasicBlock Entry;
       Entry.Name = "entry";
       auto Return = std::make_unique<ir::ReturnInstruction>();
@@ -623,7 +652,7 @@ namespace ink::execution
       ir::Module ModuleValue(Context.IR);
       ir::Function Ignore(I32Type);
       Ignore.Name = "ignore";
-      Ignore.ParameterTypes = {&BoolType};
+      Ignore.Parameters.emplace_back(&BoolType);
       ir::BasicBlock Entry;
       Entry.Name = "entry";
       auto Return = std::make_unique<ir::ReturnInstruction>();
@@ -770,7 +799,7 @@ namespace ink::execution
       ModuleValue.StructTypes.push_back(&PairType);
       ir::Function Echo(PairType);
       Echo.Name = "echo";
-      Echo.ParameterTypes = {&PairType};
+      Echo.Parameters.emplace_back(&PairType);
       ir::BasicBlock Entry;
       Entry.Name = "entry";
       auto Return = std::make_unique<ir::ReturnInstruction>();

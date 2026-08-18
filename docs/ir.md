@@ -208,6 +208,16 @@ struct-declaration = type-name "=" "type" "{" type {"," type} "}";
 
 有效结构体必须至少有一个字段。字段不能是 `void`、`byte[]` 或 `const byte[]`。结构体不能直接引用自身，也不能引用尚未出现的结构体声明；按声明顺序引用先前的结构体可以形成嵌套，但不能形成递归类型。
 
+结构体字段和函数共用同一种 attribute 列表语法：
+
+```ebnf
+attribute-list     = "[" [attribute {"," attribute}] "]";
+attribute          = identifier ["(" attribute-argument {"," attribute-argument} ")"];
+attribute-argument = identifier "=" operand;
+```
+
+attribute 名称来自固定的内建注册表；参数名由使用方选择，参数值必须是带类型常量。attribute 和参数的顺序都会在 InkIR 文本往返中保留。
+
 ### 4.3 内存值类型
 
 `load`、`store` 和全局变量只接受内存值类型。当前内存值类型为：
@@ -384,8 +394,9 @@ declare import global constant i32 @dependency.answer from module dependency.api
 
 ```ebnf
 external-function-declaration = "declare" "extern" string-literal type global-name
-                                "(" [type {"," type}] ")"
-                                ["[" "sideeffect" "]"];
+                                "(" [declaration-parameter {"," declaration-parameter}] ")"
+                                [attribute-list];
+declaration-parameter = [identifier ":"] type ["=" operand];
 ```
 
 当前唯一支持的外部调用约定字符串是精确的 `"C"`：
@@ -394,15 +405,15 @@ external-function-declaration = "declare" "extern" string-literal type global-na
 declare extern "C" i32 @write(i32, const byte*, ptrsize) [sideeffect]
 ```
 
-声明中的参数只写类型，不写 SSA 名称。外部函数没有函数体。`[sideeffect]` 是可选的外部副作用标记。
+声明参数可以携带名称和带类型常量默认值，但不写 SSA 名称。外部函数没有函数体。函数 attribute 使用有序 attribute 列表和带类型常量参数；`[sideeffect]` 是外部副作用标记。
 
 ### 6.5 导入 Ink 函数
 
 ```ebnf
 imported-function-declaration = "declare" "import" type global-name
-                                "(" [type {"," type}] ")"
+                                "(" [declaration-parameter {"," declaration-parameter}] ")"
                                 "from" "module" module-name "," "symbol" global-name
-                                ["[" "sideeffect" "]"];
+                                [attribute-list];
 ```
 
 ```text
@@ -418,8 +429,9 @@ declare import void @dependency.hook() from module dependency.api, symbol @hook 
 ```ebnf
 function-definition = "define" type global-name
                       "(" [definition-parameter {"," definition-parameter}] ")"
+                      [attribute-list]
                       "{" basic-block {basic-block} "}";
-definition-parameter = type ssa-name;
+definition-parameter = [identifier ":"] type ssa-name ["=" operand];
 ```
 
 ```text
@@ -430,7 +442,7 @@ entry:
 }
 ```
 
-参数 SSA 编号必须按 `%0`、`%1`、……连续出现。定义函数不能使用 `[sideeffect]`，并且必须至少包含一个基本块。
+参数 SSA 编号必须按 `%0`、`%1`、……连续出现。参数名称是可选的签名元数据；默认值必须是与参数类型相同的带类型常量。默认值不省略 InkIR `call` 的显式实参，调用处仍须传入全部参数。定义函数可以携带普通 function attribute，但不能使用 `[sideeffect]`，并且必须至少包含一个基本块。
 
 ### 7.2 基本块
 

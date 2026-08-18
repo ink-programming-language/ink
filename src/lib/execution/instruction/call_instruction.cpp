@@ -22,7 +22,7 @@ namespace ink::execution
     }
 
     const ir::Function &DeclaredCallee = CallerDefinition.Functions[Call.Callee.value()];
-    if (Call.ResultType != DeclaredCallee.ResultType || Call.Arguments.size() != DeclaredCallee.ParameterTypes.size())
+    if (Call.ResultType != DeclaredCallee.ResultType || Call.Arguments.size() != DeclaredCallee.parameterCount())
     {
       addFailure<core::DiagnosticKind::ModuleFunctionReferenceInvalid>(State.Module.name(), Call.Callee.value());
       return InstructionFlow::Failed;
@@ -50,7 +50,7 @@ namespace ink::execution
       }
       Callee = &CalleeDefinition.Functions[CalleeFunction.value()];
     }
-    if (Call.ResultType != Callee->ResultType || Call.Arguments.size() != Callee->ParameterTypes.size())
+    if (Call.ResultType != Callee->ResultType || Call.Arguments.size() != Callee->parameterCount())
     {
       addFailure<core::DiagnosticKind::ModuleFunctionReferenceInvalid>(CalleeModule->name(), CalleeFunction.value());
       return InstructionFlow::Failed;
@@ -66,13 +66,13 @@ namespace ink::execution
     for (std::size_t ArgumentIndex = 0; ArgumentIndex < Call.Arguments.size(); ++ArgumentIndex)
     {
       const ir::ValueHandle &Argument = Call.Arguments[ArgumentIndex];
-      if (!Argument || &Argument->type() != Callee->ParameterTypes[ArgumentIndex])
+      if (!Argument || &Argument->type() != Callee->parameterType(ArgumentIndex))
       {
         addFailure<core::DiagnosticKind::ModuleFunctionReferenceInvalid>(CalleeModule->name(), CalleeFunction.value());
         return InstructionFlow::Failed;
       }
       RuntimeValueRef ArgumentValue = evaluateValue(*Argument, State.Module, State.Frame, State.FunctionValue.Name);
-      if (ArgumentValue == nullptr || &ArgumentValue->type() != Callee->ParameterTypes[ArgumentIndex])
+      if (ArgumentValue == nullptr || &ArgumentValue->type() != Callee->parameterType(ArgumentIndex))
       {
         return InstructionFlow::Failed;
       }

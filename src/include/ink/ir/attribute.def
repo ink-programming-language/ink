@@ -7,5 +7,6 @@ INK_IR_ATTRIBUTE(Offset, "offset")
 INK_IR_ATTRIBUTE(Reflect, "reflect")
 INK_IR_ATTRIBUTE(Serialize, "serialize")
 INK_IR_ATTRIBUTE(Stored, "stored")
+INK_IR_ATTRIBUTE(SideEffect, "sideeffect")
 
 #undef INK_IR_ATTRIBUTE

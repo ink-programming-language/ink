@@ -20,6 +20,7 @@
 #include "ink/ir/model/module.h"
 #include "ink/ir/model/name.h"
 #include "ink/ir/model/operand.h"
+#include "ink/ir/model/parameter.h"
 #include "ink/ir/model/struct_type.h"
 #include "ink/ir/model/type.h"
 #include "ink/ir/model/value.h"

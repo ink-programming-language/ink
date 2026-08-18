@@ -49,6 +49,9 @@ namespace ink::ir
       AttributeKind Kind;
       std::vector<AttributeArgument> Arguments;
   };
+
+  const Attribute *findAttribute(const std::vector<Attribute> &Attributes, AttributeKind Kind) noexcept;
+  bool hasAttribute(const std::vector<Attribute> &Attributes, AttributeKind Kind) noexcept;
 } // namespace ink::ir
 
 #endif

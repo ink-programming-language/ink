@@ -1,5 +1,7 @@
 #include "ink/ir/model/attribute.h"
 
+#include <algorithm>
+
 namespace ink::ir
 {
   const char *attributeKindName(AttributeKind Kind) noexcept
@@ -73,5 +75,19 @@ namespace ink::ir
   const std::vector<AttributeArgument> &Attribute::arguments() const noexcept
   {
     return Arguments;
+  }
+
+  const Attribute *findAttribute(const std::vector<Attribute> &Attributes, AttributeKind Kind) noexcept
+  {
+    const auto Result = std::find_if(Attributes.begin(), Attributes.end(), [Kind](const Attribute &AttributeValue)
+    {
+      return AttributeValue.kind() == Kind;
+    });
+    return Result == Attributes.end() ? nullptr : &*Result;
+  }
+
+  bool hasAttribute(const std::vector<Attribute> &Attributes, AttributeKind Kind) noexcept
+  {
+    return findAttribute(Attributes, Kind) != nullptr;
   }
 } // namespace ink::ir

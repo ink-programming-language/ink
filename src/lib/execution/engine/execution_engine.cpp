@@ -135,7 +135,7 @@ namespace ink::execution
 
     RuntimeArgumentValidationResult validateRuntimeArguments(const ir::Function &FunctionValue, const std::vector<RuntimeValueRef> &Arguments, const core::TargetContext &Target)
     {
-      if (FunctionValue.ParameterTypes.size() != Arguments.size())
+      if (FunctionValue.parameterCount() != Arguments.size())
       {
         return {RuntimeArgumentValidationKind::CountMismatch};
       }
@@ -143,7 +143,7 @@ namespace ink::execution
       std::unordered_set<const RuntimeValue *> ActiveValues;
       for (std::size_t ArgumentIndex = 0; ArgumentIndex < Arguments.size(); ++ArgumentIndex)
       {
-        if (Arguments[ArgumentIndex] == nullptr || !hasValidRuntimeShape(*Arguments[ArgumentIndex], *FunctionValue.ParameterTypes[ArgumentIndex], Target, ValidatedValues, ActiveValues))
+        if (Arguments[ArgumentIndex] == nullptr || !hasValidRuntimeShape(*Arguments[ArgumentIndex], *FunctionValue.parameterType(ArgumentIndex), Target, ValidatedValues, ActiveValues))
         {
           return {RuntimeArgumentValidationKind::InvalidArgument, ArgumentIndex};
         }
@@ -153,7 +153,18 @@ namespace ink::execution
 
     bool sameFunctionSignature(const ir::Function &Left, const ir::Function &Right)
     {
-      return Left.ResultType == Right.ResultType && Left.ParameterTypes == Right.ParameterTypes;
+      if (Left.ResultType != Right.ResultType || Left.parameterCount() != Right.parameterCount())
+      {
+        return false;
+      }
+      for (std::size_t ParameterIndex = 0; ParameterIndex < Left.parameterCount(); ++ParameterIndex)
+      {
+        if (Left.parameterType(ParameterIndex) != Right.parameterType(ParameterIndex))
+        {
+          return false;
+        }
+      }
+      return true;
     }
 
     ir::Name effectiveModuleName(const ir::Module &ModuleValue)
@@ -737,7 +748,7 @@ namespace ink::execution
         const RuntimeArgumentValidationResult ArgumentValidation = validateRuntimeArguments(Entry, Arguments, Context.compilationContext().targetContext());
         if (ArgumentValidation.Kind == RuntimeArgumentValidationKind::CountMismatch)
         {
-          addFailure<core::DiagnosticKind::EntryArgumentCountMismatch>(Diagnostics, Entry.Name, Entry.ParameterTypes.size(), Arguments.size());
+          addFailure<core::DiagnosticKind::EntryArgumentCountMismatch>(Diagnostics, Entry.Name, Entry.parameterCount(), Arguments.size());
           return std::nullopt;
         }
         if (ArgumentValidation.Kind == RuntimeArgumentValidationKind::InvalidArgument)
