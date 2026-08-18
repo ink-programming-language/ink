@@ -3,7 +3,7 @@
 #endif
 
 #ifndef INK_IR_INSTRUCTION
-#define INK_IR_INSTRUCTION(Name, Mnemonic, Terminator)
+#define INK_IR_INSTRUCTION(Name, Mnemonic, Terminator, ResultPolicy)
 #endif
 
 #ifndef INK_IR_DERIVED_TYPE
@@ -38,23 +38,23 @@ INK_IR_VALUE(StringConstant)
 INK_IR_VALUE(NullConstant)
 INK_IR_VALUE(AggregateConstant)
 
-INK_IR_INSTRUCTION(Call, "call", false)
-INK_IR_INSTRUCTION(Import, "import", false)
-INK_IR_INSTRUCTION(Alloca, "alloca", false)
-INK_IR_INSTRUCTION(GetElementPointer, "getelementptr", false)
-INK_IR_INSTRUCTION(Load, "load", false)
-INK_IR_INSTRUCTION(Store, "store", false)
-INK_IR_INSTRUCTION(LifetimeEnd, "lifetime.end", false)
-INK_IR_INSTRUCTION(SliceData, "slice.data", false)
-INK_IR_INSTRUCTION(SliceLength, "slice.length", false)
-INK_IR_INSTRUCTION(Phi, "phi", false)
-INK_IR_INSTRUCTION(Add, "add", false)
-INK_IR_INSTRUCTION(Compare, "icmp", false)
-INK_IR_INSTRUCTION(InsertValue, "insertvalue", false)
-INK_IR_INSTRUCTION(ExtractValue, "extractvalue", false)
-INK_IR_INSTRUCTION(Branch, "br", true)
-INK_IR_INSTRUCTION(ConditionalBranch, "condbr", true)
-INK_IR_INSTRUCTION(Return, "ret", true)
+INK_IR_INSTRUCTION(Call, "call", false, Optional)
+INK_IR_INSTRUCTION(Import, "import", false, Forbidden)
+INK_IR_INSTRUCTION(Alloca, "alloca", false, Required)
+INK_IR_INSTRUCTION(GetElementPointer, "getelementptr", false, Required)
+INK_IR_INSTRUCTION(Load, "load", false, Required)
+INK_IR_INSTRUCTION(Store, "store", false, Forbidden)
+INK_IR_INSTRUCTION(LifetimeEnd, "lifetime.end", false, Forbidden)
+INK_IR_INSTRUCTION(SliceData, "slice.data", false, Required)
+INK_IR_INSTRUCTION(SliceLength, "slice.length", false, Required)
+INK_IR_INSTRUCTION(Phi, "phi", false, Required)
+INK_IR_INSTRUCTION(Add, "add", false, Required)
+INK_IR_INSTRUCTION(Compare, "icmp", false, Required)
+INK_IR_INSTRUCTION(InsertValue, "insertvalue", false, Required)
+INK_IR_INSTRUCTION(ExtractValue, "extractvalue", false, Required)
+INK_IR_INSTRUCTION(Branch, "br", true, Forbidden)
+INK_IR_INSTRUCTION(ConditionalBranch, "condbr", true, Forbidden)
+INK_IR_INSTRUCTION(Return, "ret", true, Forbidden)
 
 #undef INK_IR_TYPE
 #undef INK_IR_DERIVED_TYPE

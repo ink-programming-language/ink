@@ -2,13 +2,15 @@
 
 > 状态：当前实现的文本格式版本 1
 >
-> 更新日期：2026-08-17
+> 更新日期：2026-08-18
 
 ## 1. 范围
 
 本文档规定 InkIR 的文本词法、模块级声明、类型、操作数、SSA 值、基本块和指令格式，并记录当前 verifier 对这些结构施加的有效性约束。
 
-`src/include/ink/ir/ir.def` 只维护类型、值和指令的枚举元数据，不再承担文本格式文档的职责。文本的读取和规范化输出由 `src/lib/ir/serialization.cpp` 实现，有效性约束由 `src/lib/ir/analysis/verifier.cpp` 实现。能够被 lexer 和 parser 接受但不能通过 verifier 的文本不是有效 InkIR。
+`src/include/ink/ir/ir.def` 只维护类型、值和指令的枚举元数据，不再承担文本格式文档的职责。指令元数据同时记录助记符、终结指令属性和 SSA 结果策略。文本的 lexer、parser、resolver 和规范化 printer 分别实现在 `src/lib/ir/text` 中，`src/lib/ir/serialization.cpp` 只负责编排这些阶段以及调用 verifier。能够被 lexer 和 parser 接受但不能通过 verifier 的文本不是有效 InkIR。
+
+文本 parser 使用 detached instruction 和临时基本块保留文本中显式给出的 SSA 编号与未解析引用，在完成一个函数的语法解析后通过公共 `ink::ir::IRBuilder` 提交模块结构。面向编译器其他阶段的 `IRBuilder` 提供 `createFunction`、`createBlock` 以及覆盖全部指令种类的类型化 `createXxx` 接口；这些接口会在插入前完整初始化指令，并为值指令自动分配 SSA 编号。后续 AST lowering 因而不依赖任何文本 token 或文本格式实现。
 
 本文使用以下 EBNF 记号：
 

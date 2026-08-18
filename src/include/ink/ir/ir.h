@@ -2,6 +2,7 @@
 #define INK_IR_IR_H
 
 #include "ink/ir/analysis/type_layout.h"
+#include "ink/ir/builder.h"
 #include "ink/ir/compilation/compilation_session.h"
 #include "ink/ir/compilation/module_name.h"
 #include "ink/ir/instruction/arithmetic.h"

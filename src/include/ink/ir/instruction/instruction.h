@@ -11,22 +11,35 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 namespace ink::ir
 {
+  class Instruction;
+
   enum class InstructionKind : std::uint8_t
   {
-#define INK_IR_INSTRUCTION(Name, Mnemonic, Terminator) Name,
+#define INK_IR_INSTRUCTION(Name, Mnemonic, Terminator, ResultPolicy) Name,
 #include "ink/ir/ir.def"
+  };
+
+  enum class InstructionResultPolicy : std::uint8_t
+  {
+    Forbidden,
+    Required,
+    Optional,
   };
 
   const char *instructionKindName(InstructionKind Kind) noexcept;
   const char *instructionMnemonic(InstructionKind Kind) noexcept;
+  std::optional<InstructionKind> instructionKindFromMnemonic(std::string_view Mnemonic) noexcept;
+  InstructionResultPolicy instructionResultPolicy(InstructionKind Kind) noexcept;
+  std::optional<ValueId> instructionResultId(const Instruction &InstructionValue) noexcept;
   bool isTerminator(InstructionKind Kind) noexcept;
 
-#define INK_IR_INSTRUCTION(Name, Mnemonic, Terminator) class Name##Instruction;
+#define INK_IR_INSTRUCTION(Name, Mnemonic, Terminator, ResultPolicy) class Name##Instruction;
 #include "ink/ir/ir.def"
 
   class Instruction
@@ -47,7 +60,7 @@ namespace ink::ir
 
       InstructionKind Kind;
 
-#define INK_IR_INSTRUCTION(Name, Mnemonic, Terminator) friend class Name##Instruction;
+#define INK_IR_INSTRUCTION(Name, Mnemonic, Terminator, ResultPolicy) friend class Name##Instruction;
 #include "ink/ir/ir.def"
   };
 

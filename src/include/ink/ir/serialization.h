@@ -40,6 +40,7 @@ namespace ink::ir
       std::optional<std::string> Text;
       std::vector<core::Diagnostic> Diagnostics;
 
+      friend SerializeResult printText(IRContext &Context, const Module &ModuleValue);
       friend SerializeResult serialize(IRContext &Context, const Module &ModuleValue);
   };
 
@@ -70,9 +71,13 @@ namespace ink::ir
       std::optional<Module> Value;
       std::vector<core::Diagnostic> Diagnostics;
 
+      friend DeserializeResult parseText(IRContext &Context, std::string_view Text);
       friend DeserializeResult deserialize(IRContext &Context, std::string_view Text);
   };
 
+  SerializeResult printText(IRContext &Context, const Module &ModuleValue);
+  SerializeResult printText(const Module &ModuleValue);
+  DeserializeResult parseText(IRContext &Context, std::string_view Text);
   SerializeResult serialize(IRContext &Context, const Module &ModuleValue);
   SerializeResult serialize(const Module &ModuleValue);
   DeserializeResult deserialize(IRContext &Context, std::string_view Text);
