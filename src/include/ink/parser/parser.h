@@ -42,11 +42,6 @@ namespace ink::parser
         return Tree;
       }
 
-      const std::vector<core::Diagnostic> &diagnostics() const noexcept
-      {
-        return Diagnostics;
-      }
-
       bool succeeded() const noexcept;
       ParseCompleteness completeness() const noexcept
       {
@@ -56,11 +51,11 @@ namespace ink::parser
       core::SourceRange span(CstNodeId Id) const;
 
     private:
-      ParsedFile(tokenizer::TokenizedBuffer LexedFile, CstTree Tree, std::vector<core::Diagnostic> Diagnostics, ParseCompleteness Completeness);
+      ParsedFile(tokenizer::TokenizedBuffer LexedFile, CstTree Tree, bool Succeeded, ParseCompleteness Completeness);
 
       tokenizer::TokenizedBuffer LexedFile;
       CstTree Tree;
-      std::vector<core::Diagnostic> Diagnostics;
+      bool Succeeded = false;
       ParseCompleteness Completeness = ParseCompleteness::Complete;
 
       friend class Parser;
@@ -78,7 +73,6 @@ namespace ink::parser
   };
 
   ParsedFile parse(core::FrontendContext &Context, tokenizer::TokenizedBuffer LexedFile, ParserOptions Options = {});
-  ParsedFile parse(tokenizer::TokenizedBuffer LexedFile, ParserOptions Options = {});
 } // namespace ink::parser
 
 #endif

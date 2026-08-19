@@ -1,5 +1,4 @@
-#include "ink/parser/parser.h"
-#include "ink/tokenizer/tokenizer.h"
+#include "parser_test_support.h"
 
 #include <gtest/gtest.h>
 
@@ -116,8 +115,8 @@ namespace ink::parser
       ASSERT_TRUE(LexedFile.succeeded()) << "tokenizer rejected " << TestCase.SolutionPath.string();
 
       const ParsedFile File = parse(std::move(LexedFile));
-      EXPECT_TRUE(File.succeeded()) << diagnosticSummary(File.diagnostics());
-      EXPECT_TRUE(File.diagnostics().empty()) << diagnosticSummary(File.diagnostics());
+      EXPECT_TRUE(File.succeeded()) << diagnosticSummary(test::testDiagnostics(File));
+      EXPECT_TRUE(test::testDiagnostics(File).empty()) << diagnosticSummary(test::testDiagnostics(File));
       EXPECT_EQ(File.completeness(), ParseCompleteness::Complete);
     }
 

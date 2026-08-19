@@ -342,6 +342,8 @@ namespace ink::core
       return "FieldIndex";
     case DiagnosticArgumentName::ValueId:
       return "ValueId";
+    case DiagnosticArgumentName::ByteConstantId:
+      return "ByteConstantId";
     case DiagnosticArgumentName::GlobalId:
       return "GlobalId";
     case DiagnosticArgumentName::ModuleName:
@@ -453,7 +455,7 @@ namespace ink::core
 
   bool operator==(const Diagnostic &Left, const Diagnostic &Right)
   {
-    return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Arguments == Right.Arguments && Left.Related == Right.Related && Left.Class == Right.Class;
+    return Left.Kind == Right.Kind && Left.Source == Right.Source && Left.Span == Right.Span && Left.Arguments == Right.Arguments && Left.Related == Right.Related && Left.Class == Right.Class;
   }
 
   bool operator!=(const Diagnostic &Left, const Diagnostic &Right)

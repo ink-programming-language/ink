@@ -1321,10 +1321,7 @@ namespace ink::tokenizer
 
   bool TokenizedBuffer::succeeded() const noexcept
   {
-    return Diagnostics.empty() && std::none_of(Tokens.begin(), Tokens.end(), [](const Token &Token)
-                                               {
-                                                 return Token.isError();
-                                               });
+    return Succeeded;
   }
 
   Tokenizer::Tokenizer(core::FrontendContext &Context, TokenizerOptions Options)
@@ -1336,6 +1333,7 @@ namespace ink::tokenizer
   TokenizedBuffer Tokenizer::tokenize(std::string Source) const
   {
     TokenizedBuffer Result;
+    Result.SourceId = Context.compilationContext().createSourceId();
     Result.Source = std::move(Source);
     Result.LineStarts.push_back(0);
     for (std::size_t Index = 0; Index < Result.Source.size(); ++Index)
@@ -1345,10 +1343,16 @@ namespace ink::tokenizer
         Result.LineStarts.push_back(Index + 1);
       }
     }
-    Scanner Scanner(Result.Source, Result.Tokens, Result.Diagnostics, Options);
+    std::vector<Diagnostic> Diagnostics;
+    Scanner Scanner(Result.Source, Result.Tokens, Diagnostics, Options);
     Scanner.run();
-    for (const Diagnostic &DiagnosticEntry : Result.Diagnostics)
+    Result.Succeeded = Diagnostics.empty() && std::none_of(Result.Tokens.begin(), Result.Tokens.end(), [](const Token &Token)
+                                                           {
+                                                             return Token.isError();
+                                                           });
+    for (Diagnostic &DiagnosticEntry : Diagnostics)
     {
+      DiagnosticEntry.Source = Result.SourceId;
       Context.diagnosticEngine().report(DiagnosticEntry);
     }
     return Result;
@@ -1359,10 +1363,4 @@ namespace ink::tokenizer
     return Tokenizer(Context, Options).tokenize(std::move(Source));
   }
 
-  TokenizedBuffer tokenize(std::string Source, TokenizerOptions Options)
-  {
-    core::CompilationContext Compilation;
-    core::FrontendContext Context(Compilation);
-    return tokenize(Context, std::move(Source), Options);
-  }
 } // namespace ink::tokenizer

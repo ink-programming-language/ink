@@ -98,7 +98,7 @@ namespace ink::parser
       const ParsedFile File = parseSource("func reserved() { ++value; --value; }");
 
       ASSERT_FALSE(File.succeeded());
-      EXPECT_EQ(static_cast<std::size_t>(std::count_if(File.diagnostics().begin(), File.diagnostics().end(), [](const core::Diagnostic &Diagnostic)
+      EXPECT_EQ(static_cast<std::size_t>(std::count_if(test::testDiagnostics(File).begin(), test::testDiagnostics(File).end(), [](const core::Diagnostic &Diagnostic)
                                                        {
                                                          return Diagnostic.Kind == core::DiagnosticKind::ReservedSymbolSequence;
                                                        })),

@@ -9,7 +9,7 @@ namespace ink::ir
 {
   ModuleCompilationResult ModuleCompilationResult::found(std::shared_ptr<const Module> ModuleValue) noexcept
   {
-    return {ModuleCompilationStatus::Found, std::move(ModuleValue), {}};
+    return {ModuleCompilationStatus::Found, std::move(ModuleValue)};
   }
 
   ModuleCompilationResult ModuleCompilationResult::notFound() noexcept
@@ -17,9 +17,9 @@ namespace ink::ir
     return {};
   }
 
-  ModuleCompilationResult ModuleCompilationResult::failure(std::vector<core::Diagnostic> Diagnostics) noexcept
+  ModuleCompilationResult ModuleCompilationResult::failure() noexcept
   {
-    return {ModuleCompilationStatus::Failed, nullptr, std::move(Diagnostics)};
+    return {ModuleCompilationStatus::Failed, nullptr};
   }
 
   class CompilationSession::Impl
@@ -67,7 +67,7 @@ namespace ink::ir
     ModuleCompilationResult Result = Compiler.compileModule(*this, ModuleName);
     if (Result.Status == ModuleCompilationStatus::Found && (Result.ModuleValue == nullptr || &Result.ModuleValue->context() != &IR))
     {
-      Result = ModuleCompilationResult::failure(std::move(Result.Diagnostics));
+      Result = ModuleCompilationResult::failure();
     }
     Impl::ModuleEntry &Entry = Implementation->Modules.find(ModuleName)->second;
     Entry.Compiling = false;

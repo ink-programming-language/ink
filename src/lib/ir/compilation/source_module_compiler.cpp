@@ -61,9 +61,7 @@ namespace ink::ir
     {
       core::Diagnostic Error = core::makeDiagnostic<Kind>({}, ModuleName);
       Session.irContext().diagnosticEngine().report(Error);
-      std::vector<core::Diagnostic> Diagnostics;
-      Diagnostics.push_back(std::move(Error));
-      return ModuleCompilationResult::failure(std::move(Diagnostics));
+      return ModuleCompilationResult::failure();
     }
   } // namespace
 
@@ -130,7 +128,7 @@ namespace ink::ir
       DeserializeResult Parsed = deserialize(Session.irContext(), Text);
       if (!Parsed.succeeded())
       {
-        return ModuleCompilationResult::failure(Parsed.diagnostics());
+        return ModuleCompilationResult::failure();
       }
       return ModuleCompilationResult::found(std::make_shared<Module>(std::move(*Parsed.module())));
     }

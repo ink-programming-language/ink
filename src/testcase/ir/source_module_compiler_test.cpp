@@ -3,6 +3,8 @@
 #include "ink/core/context.h"
 #include "ink/ir/model/module.h"
 
+#include "../diagnostic_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <atomic>
@@ -115,15 +117,16 @@ entry:
       Options.ModuleSearchPaths.push_back(Directory.path());
       SourceModuleCompiler Compiler(std::move(Options));
       core::CompilationContext Compilation;
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       CompilationSession Session(Compilation, Compiler);
 
       const ModuleCompilationResult Result = Session.getOrCompileModule("package.missing");
 
       EXPECT_EQ(Result.Status, ModuleCompilationStatus::NotFound);
-      EXPECT_TRUE(Result.Diagnostics.empty());
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
     }
 
-    // Verifies that malformed InkIR found through a search path preserves the deserializer diagnostic.
+    // Verifies that malformed InkIR found through a search path reports the deserializer diagnostic through the compilation context.
     TEST(SourceModuleCompilerTest, PreservesMalformedModuleDiagnostics)
     {
       TemporaryDirectory Directory;
@@ -133,12 +136,13 @@ entry:
       Options.ModuleSearchPaths.push_back(Directory.path());
       SourceModuleCompiler Compiler(std::move(Options));
       core::CompilationContext Compilation;
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       CompilationSession Session(Compilation, Compiler);
 
       const ModuleCompilationResult Result = Session.getOrCompileModule("package.broken");
 
       EXPECT_EQ(Result.Status, ModuleCompilationStatus::Failed);
-      EXPECT_FALSE(Result.Diagnostics.empty());
+      EXPECT_FALSE(Diagnostics.diagnostics().empty());
     }
 
     // Verifies that a caller-provided entry image participates in the same compilation session as searched dependencies.

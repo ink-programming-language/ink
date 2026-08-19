@@ -29,24 +29,24 @@ namespace ink::execution
   {
     public:
       virtual ~ExternalFunctionInvoker() = default;
-      virtual bool invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result, std::vector<core::Diagnostic> &Diagnostics) = 0;
+      virtual bool invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result) = 0;
   };
 
   class ModuleExecutionRuntime
   {
     public:
       virtual ~ModuleExecutionRuntime() = default;
-      virtual bool importModule(ModuleInstance &Importer, const ir::Name &Target, std::vector<core::Diagnostic> &Diagnostics) = 0;
-      virtual ModuleInstance *resolveReferencedModule(ModuleInstance &Importer, ModuleId Target, std::vector<core::Diagnostic> &Diagnostics) = 0;
-      virtual bool resolveImportedFunction(ModuleInstance &Importer, ir::FunctionId Import, ModuleInstance *&TargetModule, ir::FunctionId &TargetFunction, std::vector<core::Diagnostic> &Diagnostics) = 0;
-      virtual bool resolveImportedGlobal(ModuleInstance &Importer, ir::GlobalId Import, ModuleInstance *&TargetModule, ir::GlobalId &TargetGlobal, std::vector<core::Diagnostic> &Diagnostics) = 0;
+      virtual bool importModule(ModuleInstance &Importer, const ir::Name &Target) = 0;
+      virtual ModuleInstance *resolveReferencedModule(ModuleInstance &Importer, ModuleId Target) = 0;
+      virtual bool resolveImportedFunction(ModuleInstance &Importer, ir::FunctionId Import, ModuleInstance *&TargetModule, ir::FunctionId &TargetFunction) = 0;
+      virtual bool resolveImportedGlobal(ModuleInstance &Importer, ir::GlobalId Import, ModuleInstance *&TargetModule, ir::GlobalId &TargetGlobal) = 0;
       virtual ExternalFunctionInvoker *externalInvoker(ModuleInstance &Module) noexcept = 0;
   };
 
   class FunctionExecutor
   {
     public:
-      FunctionExecutor(ExecutionContext &Context, ModuleExecutionRuntime &Runtime, ModuleInstance &EntryModule, std::vector<core::Diagnostic> &Diagnostics);
+      FunctionExecutor(ExecutionContext &Context, ModuleExecutionRuntime &Runtime, ModuleInstance &EntryModule);
 
       bool execute(ir::FunctionId Function, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueRef &Result);
 
@@ -85,7 +85,6 @@ namespace ink::execution
       {
         core::Diagnostic DiagnosticEntry = core::makeDiagnostic<Kind>({}, std::forward<ArgumentTypes>(Arguments)...);
         Context.diagnosticEngine().report(DiagnosticEntry);
-        Diagnostics.push_back(std::move(DiagnosticEntry));
       }
 
       RuntimeValueRef importValue(RuntimeValueRef Value);
@@ -118,7 +117,6 @@ namespace ink::execution
       ExecutionContext &Context;
       ModuleExecutionRuntime &Runtime;
       ModuleInstance &EntryModule;
-      std::vector<core::Diagnostic> &Diagnostics;
       RuntimeValueArena Values;
       std::unordered_map<RuntimeValueRef, RuntimeValueRef> ImportedValues;
       std::unordered_map<const ir::ByteConstant *, RuntimeValueRef> GlobalPointers;

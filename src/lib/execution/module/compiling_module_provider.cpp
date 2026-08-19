@@ -24,7 +24,7 @@ namespace ink::execution
     case ir::ModuleCompilationStatus::NotFound:
       return ModuleProvisionResult::notFound();
     case ir::ModuleCompilationStatus::Failed:
-      return ModuleProvisionResult::failure(std::move(Result.Diagnostics));
+      return ModuleProvisionResult::failure(true);
     }
     return ModuleProvisionResult::failure();
   }

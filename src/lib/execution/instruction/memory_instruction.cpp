@@ -18,50 +18,49 @@ namespace ink::execution
   namespace
   {
     template <core::DiagnosticKind Kind, typename... ArgumentTypes>
-    void addExecutionFailure(ExecutionContext &Context, std::vector<core::Diagnostic> &Diagnostics, ArgumentTypes &&...Arguments)
+    void addExecutionFailure(ExecutionContext &Context, ArgumentTypes &&...Arguments)
     {
       core::Diagnostic DiagnosticEntry = core::makeDiagnostic<Kind>({}, std::forward<ArgumentTypes>(Arguments)...);
       Context.diagnosticEngine().report(DiagnosticEntry);
-      Diagnostics.push_back(std::move(DiagnosticEntry));
     }
 
-    void addMemoryFailure(ExecutionContext &Context, std::vector<core::Diagnostic> &Diagnostics, RuntimeMemoryStatus Status, std::string_view Operation, const ir::Name &FunctionName, std::uint64_t Index, std::uint64_t RegionLength, std::uint64_t AccessSize = 0)
+    void addMemoryFailure(ExecutionContext &Context, RuntimeMemoryStatus Status, std::string_view Operation, const ir::Name &FunctionName, std::uint64_t Index, std::uint64_t RegionLength, std::uint64_t AccessSize = 0)
     {
       switch (Status)
       {
       case RuntimeMemoryStatus::AllocationSizeLimitExceeded:
-        addExecutionFailure<core::DiagnosticKind::MemoryAllocationLimitExceeded>(Context, Diagnostics, RegionLength, MaximumRuntimeByteAllocationSize);
+        addExecutionFailure<core::DiagnosticKind::MemoryAllocationLimitExceeded>(Context, RegionLength, MaximumRuntimeByteAllocationSize);
         return;
       case RuntimeMemoryStatus::AllocationCountLimitExceeded:
-        addExecutionFailure<core::DiagnosticKind::MemoryAllocationCountLimitExceeded>(Context, Diagnostics, MaximumRuntimeByteAllocationCount);
+        addExecutionFailure<core::DiagnosticKind::MemoryAllocationCountLimitExceeded>(Context, MaximumRuntimeByteAllocationCount);
         return;
       case RuntimeMemoryStatus::StorageLimitExceeded:
-        addExecutionFailure<core::DiagnosticKind::MemoryStorageLimitExceeded>(Context, Diagnostics, RegionLength, MaximumRuntimeByteStorage);
+        addExecutionFailure<core::DiagnosticKind::MemoryStorageLimitExceeded>(Context, RegionLength, MaximumRuntimeByteStorage);
         return;
       case RuntimeMemoryStatus::OutOfBounds:
-        addExecutionFailure<core::DiagnosticKind::MemoryAccessOutOfBounds>(Context, Diagnostics, Operation, FunctionName, Index, AccessSize, RegionLength);
+        addExecutionFailure<core::DiagnosticKind::MemoryAccessOutOfBounds>(Context, Operation, FunctionName, Index, AccessSize, RegionLength);
         return;
       case RuntimeMemoryStatus::AddressOverflow:
-        addExecutionFailure<core::DiagnosticKind::MemoryAddressOverflow>(Context, Diagnostics, Operation, FunctionName);
+        addExecutionFailure<core::DiagnosticKind::MemoryAddressOverflow>(Context, Operation, FunctionName);
         return;
       case RuntimeMemoryStatus::UntrackedPointer:
-        addExecutionFailure<core::DiagnosticKind::MemoryAccessRequiresTrackedPointer>(Context, Diagnostics, Operation, FunctionName);
+        addExecutionFailure<core::DiagnosticKind::MemoryAccessRequiresTrackedPointer>(Context, Operation, FunctionName);
         return;
       case RuntimeMemoryStatus::InvalidRepresentation:
-        addExecutionFailure<core::DiagnosticKind::MemoryInvalidRepresentation>(Context, Diagnostics, Operation, FunctionName, Index);
+        addExecutionFailure<core::DiagnosticKind::MemoryInvalidRepresentation>(Context, Operation, FunctionName, Index);
         return;
       case RuntimeMemoryStatus::LifetimeEnded:
-        addExecutionFailure<core::DiagnosticKind::MemoryLifetimeEnded>(Context, Diagnostics, Operation, FunctionName);
+        addExecutionFailure<core::DiagnosticKind::MemoryLifetimeEnded>(Context, Operation, FunctionName);
         return;
       case RuntimeMemoryStatus::NotOwned:
-        addExecutionFailure<core::DiagnosticKind::MemoryLifetimeNotOwned>(Context, Diagnostics, FunctionName);
+        addExecutionFailure<core::DiagnosticKind::MemoryLifetimeNotOwned>(Context, FunctionName);
         return;
       case RuntimeMemoryStatus::Ok:
       case RuntimeMemoryStatus::InvalidValue:
-        addExecutionFailure<core::DiagnosticKind::InvalidRuntimeMemoryValue>(Context, Diagnostics, Operation, FunctionName);
+        addExecutionFailure<core::DiagnosticKind::InvalidRuntimeMemoryValue>(Context, Operation, FunctionName);
         return;
       }
-      addExecutionFailure<core::DiagnosticKind::InvalidRuntimeMemoryValue>(Context, Diagnostics, Operation, FunctionName);
+      addExecutionFailure<core::DiagnosticKind::InvalidRuntimeMemoryValue>(Context, Operation, FunctionName);
     }
 
     std::optional<std::uint64_t> runtimeIndex(RuntimeValueRef Value) noexcept
@@ -80,7 +79,7 @@ namespace ink::execution
     const std::optional<std::uint64_t> Size = runtimeIndex(SizeValue);
     if (!Size.has_value())
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "alloca", State.FunctionValue.Name, 0, 0);
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "alloca", State.FunctionValue.Name, 0, 0);
       return InstructionFlow::Failed;
     }
 
@@ -88,7 +87,7 @@ namespace ink::execution
     RuntimeValueRef Result = Values.allocateByteSlice(*Alloca.ResultType, *Size, State.FrameId, Status);
     if (Status != RuntimeMemoryStatus::Ok || Result == nullptr)
     {
-      addMemoryFailure(Context, Diagnostics, Status == RuntimeMemoryStatus::Ok ? RuntimeMemoryStatus::InvalidValue : Status, "alloca", State.FunctionValue.Name, 0, *Size);
+      addMemoryFailure(Context, Status == RuntimeMemoryStatus::Ok ? RuntimeMemoryStatus::InvalidValue : Status, "alloca", State.FunctionValue.Name, 0, *Size);
       return InstructionFlow::Failed;
     }
     if (!State.Frame.define(Alloca.Result, Result))
@@ -103,7 +102,7 @@ namespace ink::execution
   {
     if (!Load.Pointer || Load.ResultType == nullptr)
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "load", State.FunctionValue.Name, 0, 0);
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "load", State.FunctionValue.Name, 0, 0);
       return InstructionFlow::Failed;
     }
     if (!validateGlobalVariableAccessType(*Load.Pointer, State.Module, *Load.ResultType))
@@ -113,7 +112,7 @@ namespace ink::execution
     RuntimeValueRef Pointer = evaluateValue(*Load.Pointer, State.Module, State.Frame, State.FunctionValue.Name);
     if (Pointer == nullptr)
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "load", State.FunctionValue.Name, 0, Pointer == nullptr ? 0 : Pointer->byteLength().value_or(0));
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "load", State.FunctionValue.Name, 0, Pointer == nullptr ? 0 : Pointer->byteLength().value_or(0));
       return InstructionFlow::Failed;
     }
 
@@ -124,12 +123,12 @@ namespace ink::execution
     const RuntimeMemoryStatus Status = Values.loadValue(*Pointer, *Load.ResultType, Result);
     if (Status != RuntimeMemoryStatus::Ok)
     {
-      addMemoryFailure(Context, Diagnostics, Status, "load", State.FunctionValue.Name, ByteOffset, Pointer->byteLength().value_or(0), AccessSize);
+      addMemoryFailure(Context, Status, "load", State.FunctionValue.Name, ByteOffset, Pointer->byteLength().value_or(0), AccessSize);
       return InstructionFlow::Failed;
     }
     if (Result == nullptr)
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "load", State.FunctionValue.Name, ByteOffset, Pointer->byteLength().value_or(0));
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "load", State.FunctionValue.Name, ByteOffset, Pointer->byteLength().value_or(0));
       return InstructionFlow::Failed;
     }
     if (!State.Frame.define(Load.Result, Result))
@@ -144,7 +143,7 @@ namespace ink::execution
   {
     if (!Store.Pointer || !Store.StoredValue)
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "store", State.FunctionValue.Name, 0, 0);
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "store", State.FunctionValue.Name, 0, 0);
       return InstructionFlow::Failed;
     }
     if (!validateGlobalVariableAccessType(*Store.Pointer, State.Module, Store.StoredValue->type()))
@@ -155,7 +154,7 @@ namespace ink::execution
     RuntimeValueRef Pointer = evaluateValue(*Store.Pointer, State.Module, State.Frame, State.FunctionValue.Name);
     if (Pointer == nullptr || StoredValue == nullptr)
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "store", State.FunctionValue.Name, 0, Pointer == nullptr ? 0 : Pointer->byteLength().value_or(0));
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "store", State.FunctionValue.Name, 0, Pointer == nullptr ? 0 : Pointer->byteLength().value_or(0));
       return InstructionFlow::Failed;
     }
 
@@ -165,7 +164,7 @@ namespace ink::execution
     const RuntimeMemoryStatus Status = Values.storeValue(*Pointer, *StoredValue);
     if (Status != RuntimeMemoryStatus::Ok)
     {
-      addMemoryFailure(Context, Diagnostics, Status, "store", State.FunctionValue.Name, ByteOffset, Pointer->byteLength().value_or(0), AccessSize);
+      addMemoryFailure(Context, Status, "store", State.FunctionValue.Name, ByteOffset, Pointer->byteLength().value_or(0), AccessSize);
       return InstructionFlow::Failed;
     }
     return InstructionFlow::Continue;
@@ -175,7 +174,7 @@ namespace ink::execution
   {
     if (!GetElementPointer.Pointer || !GetElementPointer.Index || GetElementPointer.ResultType == nullptr || GetElementPointer.ElementType == nullptr || GetElementPointer.Index->type().kind() != ir::TypeKind::PointerSize)
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "getelementptr", State.FunctionValue.Name, 0, 0);
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "getelementptr", State.FunctionValue.Name, 0, 0);
       return InstructionFlow::Failed;
     }
     RuntimeValueRef Pointer = evaluateValue(*GetElementPointer.Pointer, State.Module, State.Frame, State.FunctionValue.Name);
@@ -183,7 +182,7 @@ namespace ink::execution
     const std::optional<std::uint64_t> Index = runtimeIndex(IndexValue);
     if (Pointer == nullptr || IndexValue == nullptr || IndexValue->type().kind() != ir::TypeKind::PointerSize || !Index.has_value())
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "getelementptr", State.FunctionValue.Name, Index.value_or(0), Pointer == nullptr ? 0 : Pointer->byteLength().value_or(0));
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "getelementptr", State.FunctionValue.Name, Index.value_or(0), Pointer == nullptr ? 0 : Pointer->byteLength().value_or(0));
       return InstructionFlow::Failed;
     }
     std::vector<std::uint32_t> FieldIndices;
@@ -192,13 +191,13 @@ namespace ink::execution
     {
       if (!FieldIndexValue || FieldIndexValue->type().kind() != ir::TypeKind::I32 || FieldIndexValue->kind() != ir::ValueKind::IntegerConstant)
       {
-        addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "getelementptr", State.FunctionValue.Name, *Index, Pointer->byteLength().value_or(0));
+        addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "getelementptr", State.FunctionValue.Name, *Index, Pointer->byteLength().value_or(0));
         return InstructionFlow::Failed;
       }
       const ir::IntegerConstant &FieldIndex = static_cast<const ir::IntegerConstant &>(*FieldIndexValue);
       if (FieldIndex.isNegative() || FieldIndex.unsignedValue() > static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max()))
       {
-        addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "getelementptr", State.FunctionValue.Name, *Index, Pointer->byteLength().value_or(0));
+        addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "getelementptr", State.FunctionValue.Name, *Index, Pointer->byteLength().value_or(0));
         return InstructionFlow::Failed;
       }
       FieldIndices.push_back(static_cast<std::uint32_t>(FieldIndex.unsignedValue()));
@@ -208,7 +207,7 @@ namespace ink::execution
     RuntimeValueRef Result = Values.getElementPointer(*GetElementPointer.ResultType, *Pointer, *GetElementPointer.ElementType, *Index, FieldIndices, Status);
     if (Status != RuntimeMemoryStatus::Ok || Result == nullptr)
     {
-      addMemoryFailure(Context, Diagnostics, Status == RuntimeMemoryStatus::Ok ? RuntimeMemoryStatus::InvalidValue : Status, "getelementptr", State.FunctionValue.Name, *Index, Pointer->byteLength().value_or(0));
+      addMemoryFailure(Context, Status == RuntimeMemoryStatus::Ok ? RuntimeMemoryStatus::InvalidValue : Status, "getelementptr", State.FunctionValue.Name, *Index, Pointer->byteLength().value_or(0));
       return InstructionFlow::Failed;
     }
     if (!State.Frame.define(GetElementPointer.Result, Result))
@@ -224,14 +223,14 @@ namespace ink::execution
     RuntimeValueRef Slice = evaluateValue(*LifetimeEnd.Slice, State.Module, State.Frame, State.FunctionValue.Name);
     if (Slice == nullptr)
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "lifetime.end", State.FunctionValue.Name, 0, 0);
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "lifetime.end", State.FunctionValue.Name, 0, 0);
       return InstructionFlow::Failed;
     }
 
     const RuntimeMemoryStatus Status = Values.endByteSliceLifetime(*Slice, State.FrameId);
     if (Status != RuntimeMemoryStatus::Ok)
     {
-      addMemoryFailure(Context, Diagnostics, Status, "lifetime.end", State.FunctionValue.Name, 0, Slice->byteLength().value_or(0));
+      addMemoryFailure(Context, Status, "lifetime.end", State.FunctionValue.Name, 0, Slice->byteLength().value_or(0));
       return InstructionFlow::Failed;
     }
     return InstructionFlow::Continue;
@@ -242,19 +241,19 @@ namespace ink::execution
     RuntimeValueRef Slice = evaluateValue(*SliceData.Slice, State.Module, State.Frame, State.FunctionValue.Name);
     if (Slice == nullptr)
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "slice.data", State.FunctionValue.Name, 0, 0);
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "slice.data", State.FunctionValue.Name, 0, 0);
       return InstructionFlow::Failed;
     }
     if (!Slice->memoryAlive())
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::LifetimeEnded, "slice.data", State.FunctionValue.Name, 0, Slice->byteLength().value_or(0));
+      addMemoryFailure(Context, RuntimeMemoryStatus::LifetimeEnded, "slice.data", State.FunctionValue.Name, 0, Slice->byteLength().value_or(0));
       return InstructionFlow::Failed;
     }
 
     RuntimeValueRef Result = Values.pointerFromByteSlice(*SliceData.ResultType, *Slice);
     if (Result == nullptr)
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "slice.data", State.FunctionValue.Name, 0, Slice->byteLength().value_or(0));
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "slice.data", State.FunctionValue.Name, 0, Slice->byteLength().value_or(0));
       return InstructionFlow::Failed;
     }
     if (!State.Frame.define(SliceData.Result, Result))
@@ -271,14 +270,14 @@ namespace ink::execution
     const std::optional<std::size_t> Size = Slice == nullptr ? std::nullopt : Slice->byteLength();
     if (!Size.has_value())
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "slice.length", State.FunctionValue.Name, 0, 0);
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "slice.length", State.FunctionValue.Name, 0, 0);
       return InstructionFlow::Failed;
     }
 
     RuntimeValueRef Result = Values.integerValue(*SliceLength.ResultType, *Size);
     if (Result == nullptr)
     {
-      addMemoryFailure(Context, Diagnostics, RuntimeMemoryStatus::InvalidValue, "slice.length", State.FunctionValue.Name, 0, *Size);
+      addMemoryFailure(Context, RuntimeMemoryStatus::InvalidValue, "slice.length", State.FunctionValue.Name, 0, *Size);
       return InstructionFlow::Failed;
     }
     if (!State.Frame.define(SliceLength.Result, Result))

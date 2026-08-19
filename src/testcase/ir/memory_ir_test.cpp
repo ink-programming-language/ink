@@ -22,16 +22,24 @@ namespace ink::ir
             : Compilation(),
               IR(Compilation)
         {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
         }
 
         explicit MemoryIrTestContext(core::TargetContext Target)
             : Compilation(Target),
               IR(Compilation)
         {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~MemoryIrTestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
         }
 
         core::CompilationContext Compilation;
         IRContext IR;
+        core::CollectingDiagnosticConsumer Diagnostics;
     };
 
     bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
@@ -191,7 +199,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrGetElementPointerFieldIndexNotConstant));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrGetElementPointerFieldIndexNotConstant));
     }
 
     // Verifies that load and store accept every integer, floating-point, and recursively valid aggregate memory value type.
@@ -255,14 +263,14 @@ namespace ink::ir
         Load->Pointer = Context.IR.constantPool().getNullConstant(ConstBytePointerType);
         const VerificationResult LoadResult = verifySingleMemoryInstruction(Context, std::move(Load), ReferencedStructType);
         EXPECT_FALSE(LoadResult.succeeded()) << typeKindName(UnsupportedType->kind());
-        EXPECT_TRUE(hasDiagnostic(LoadResult.diagnostics(), core::DiagnosticKind::IrLoadUnsupportedResultType)) << typeKindName(UnsupportedType->kind());
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrLoadUnsupportedResultType)) << typeKindName(UnsupportedType->kind());
 
         auto Store = std::make_unique<StoreInstruction>();
         Store->StoredValue = Context.IR.constantPool().getZeroInitializer(*UnsupportedType);
         Store->Pointer = Context.IR.constantPool().getNullConstant(BytePointerType);
         const VerificationResult StoreResult = verifySingleMemoryInstruction(Context, std::move(Store), ReferencedStructType);
         EXPECT_FALSE(StoreResult.succeeded()) << typeKindName(UnsupportedType->kind());
-        EXPECT_TRUE(hasDiagnostic(StoreResult.diagnostics(), core::DiagnosticKind::IrStoreUnsupportedValueType)) << typeKindName(UnsupportedType->kind());
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrStoreUnsupportedValueType)) << typeKindName(UnsupportedType->kind());
       }
     }
 
@@ -310,9 +318,9 @@ namespace ink::ir
       EXPECT_EQ(SyntheticNativeLayout, core::TargetContext(NativeTarget.pointerWidth(), NativeTarget.byteOrder()));
       EXPECT_TRUE(Maximum32Result.succeeded());
       ASSERT_FALSE(Overflow32Result.succeeded());
-      ASSERT_EQ(Overflow32Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Overflow32Result.diagnostics()[0].Kind, core::DiagnosticKind::IrPointerSizeConstantOutOfRange);
-      EXPECT_EQ(core::DiagnosticFormatter().format(Overflow32Result.diagnostics()[0]).Message, "ptrsize integer constant 4294967296 in function @main exceeds the target maximum 4294967295");
+      ASSERT_EQ(Target32.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Target32.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrPointerSizeConstantOutOfRange);
+      EXPECT_EQ(core::DiagnosticFormatter().format(Target32.Diagnostics.diagnostics()[0]).Message, "ptrsize integer constant 4294967296 in function @main exceeds the target maximum 4294967295");
       EXPECT_TRUE(Extended64Result.succeeded());
       ASSERT_TRUE(Maximum64Result.succeeded());
       ASSERT_TRUE(Maximum64Result.module().has_value());
@@ -326,9 +334,9 @@ namespace ink::ir
       EXPECT_FALSE(Maximum64Constant.isNegative());
       EXPECT_TRUE(ProgrammaticMaximum64Result.succeeded());
       ASSERT_FALSE(NegativeResult.succeeded());
-      ASSERT_EQ(NegativeResult.diagnostics().size(), 1U);
-      EXPECT_EQ(NegativeResult.diagnostics()[0].Kind, core::DiagnosticKind::IrPointerSizeConstantNegative);
-      EXPECT_EQ(core::DiagnosticFormatter().format(NegativeResult.diagnostics()[0]).Message, "ptrsize integer constant -1 in function @main cannot be negative");
+      ASSERT_EQ(Target64.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Target64.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrPointerSizeConstantNegative);
+      EXPECT_EQ(core::DiagnosticFormatter().format(Target64.Diagnostics.diagnostics()[0]).Message, "ptrsize integer constant -1 in function @main cannot be negative");
     }
 
     // Verifies that safe byte slices remain valid internal parameters while their data pointers feed typed memory operations.
@@ -362,7 +370,7 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrSliceInExternalSignature));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrSliceInExternalSignature));
     }
 
     // Verifies that a safe slice cannot escape through a function result.
@@ -385,7 +393,7 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrSliceFunctionResultForbidden));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrSliceFunctionResultForbidden));
     }
 
     // Verifies that a safe slice cannot be hidden inside a struct and thereby escape its frame lifetime.
@@ -400,7 +408,7 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrSliceStructFieldForbidden));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrSliceStructFieldForbidden));
     }
 
     // Verifies that store cannot mutate memory through a const byte pointer.
@@ -418,7 +426,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrStoreDestinationNotMutablePointer));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrStoreDestinationNotMutablePointer));
     }
 
     // Verifies that getelementptr derives mutable and const result pointers without changing either base pointer's mutability.
@@ -463,7 +471,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrSliceDataDropsConst));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrSliceDataDropsConst));
     }
 
     // Verifies that frame-owned allocation is restricted to the function entry block.
@@ -483,7 +491,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrAllocaOutsideEntryBlock));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrAllocaOutsideEntryBlock));
     }
 
     // Verifies every null, result-type, source-type, value-type, constness, and index-type invariant for all pointer and slice memory instructions.
@@ -504,9 +512,10 @@ namespace ink::ir
       const NullConstant &ConstPointer = Context.IR.constantPool().getNullConstant(ConstBytePointerType);
       const auto ExpectDiagnostic = [&](std::unique_ptr<Instruction> InstructionValue, core::DiagnosticKind Expected)
       {
+        Context.Diagnostics.clear();
         const VerificationResult Result = verifySingleMemoryInstruction(Context, std::move(InstructionValue));
         EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), Expected)) << static_cast<unsigned int>(Expected);
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), Expected)) << static_cast<unsigned int>(Expected);
       };
 
       {
@@ -689,9 +698,10 @@ namespace ink::ir
       };
       const auto ExpectDiagnostic = [&](std::unique_ptr<GetElementPointerInstruction> InstructionValue, core::DiagnosticKind Expected)
       {
+        Context.Diagnostics.clear();
         const VerificationResult Result = verifySingleMemoryInstruction(Context, std::move(InstructionValue), &PairType);
         EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), Expected)) << static_cast<unsigned int>(Expected);
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), Expected)) << static_cast<unsigned int>(Expected);
       };
 
       {
@@ -751,8 +761,8 @@ namespace ink::ir
         const std::string Text = "inkir 1\ndefine void @main(byte[] %0, byte* %1) {\nentry:\n  " + std::string(CaseValue.InstructionText) + "\n  ret void\n}\n";
         const DeserializeResult Result = deserialize(Context.IR, Text);
         ASSERT_FALSE(Result.succeeded()) << CaseValue.InstructionText;
-        ASSERT_FALSE(Result.diagnostics().empty()) << CaseValue.InstructionText;
-        EXPECT_EQ(Result.diagnostics()[0].Kind, CaseValue.Expected) << CaseValue.InstructionText;
+        ASSERT_FALSE(Context.Diagnostics.diagnostics().empty()) << CaseValue.InstructionText;
+        EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, CaseValue.Expected) << CaseValue.InstructionText;
       }
     }
 
@@ -773,8 +783,8 @@ namespace ink::ir
         const std::string Text = "inkir 1\ndefine void @main(byte[] %0, byte* %1) {\nentry:\n  " + std::string(InstructionText) + "\nexit:\n  ret void\n}\n";
         const DeserializeResult Result = deserialize(Context.IR, Text);
         ASSERT_FALSE(Result.succeeded()) << InstructionText;
-        ASSERT_FALSE(Result.diagnostics().empty()) << InstructionText;
-        EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrInstructionCannotDefineResult) << InstructionText;
+        ASSERT_FALSE(Context.Diagnostics.diagnostics().empty()) << InstructionText;
+        EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrInstructionCannotDefineResult) << InstructionText;
       }
     }
   } // namespace

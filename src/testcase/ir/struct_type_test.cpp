@@ -5,6 +5,8 @@
 #include "ink/ir/model/struct_type.h"
 #include "ink/ir/serialization.h"
 
+#include "../diagnostic_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -219,6 +221,7 @@ namespace ink::ir
     TEST(StructTypeVerifierTest, RejectsMalformedFieldAttributeMetadata)
     {
       core::CompilationContext Compilation;
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       IRContext Context(Compilation);
       core::CompilationContext ForeignCompilation;
       IRContext ForeignContext(ForeignCompilation);
@@ -244,25 +247,26 @@ namespace ink::ir
       const VerificationResult Result = verify(Context, ModuleValue);
 
       EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrInvalidStructFieldName));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrDuplicateStructFieldName));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrUnknownStructFieldAttribute));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrInvalidStructFieldAttributeArgumentName));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrDuplicateStructFieldAttributeArgumentName));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrConstantPoolMismatch));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrInvalidStructLayoutConstraints));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrInvalidStructFieldName));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrDuplicateStructFieldName));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrUnknownStructFieldAttribute));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrInvalidStructFieldAttributeArgumentName));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrDuplicateStructFieldAttributeArgumentName));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrConstantPoolMismatch));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrInvalidStructLayoutConstraints));
     }
 
     // Verifies that the text parser rejects names outside the fixed built-in attribute registry instead of treating them as user-defined attributes.
     TEST(StructTypeSerializationTest, RejectsUnknownAttributeKinds)
     {
       core::CompilationContext Compilation;
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       IRContext Context(Compilation);
 
       const DeserializeResult Result = deserialize(Context, "inkir 1\n%Record = type {Value: i32 [userDefined(Key = i32 1)]}\n");
 
       EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrExpected));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrExpected));
     }
   } // namespace
 } // namespace ink::ir

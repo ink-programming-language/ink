@@ -20,11 +20,10 @@ namespace ink::execution
     constexpr std::size_t MaximumInstructionCount = 1000000;
   } // namespace
 
-  FunctionExecutor::FunctionExecutor(ExecutionContext &Context, ModuleExecutionRuntime &Runtime, ModuleInstance &EntryModule, std::vector<core::Diagnostic> &Diagnostics)
+  FunctionExecutor::FunctionExecutor(ExecutionContext &Context, ModuleExecutionRuntime &Runtime, ModuleInstance &EntryModule)
       : Context(Context),
         Runtime(Runtime),
         EntryModule(EntryModule),
-        Diagnostics(Diagnostics),
         Values(Context.compilationContext().targetContext())
   {
   }
@@ -260,7 +259,7 @@ namespace ink::execution
         addFailure<core::DiagnosticKind::ModuleLoadFailed>(Module.name());
         return false;
       }
-      return Invoker->invokeExternal(Function.value(), Arguments, Values, Result, Diagnostics);
+      return Invoker->invokeExternal(Function.value(), Arguments, Values, Result);
     }
 
     FunctionExecutionState State(Module, FunctionValue, Arguments, Depth, NextFrameId++);

@@ -171,7 +171,7 @@ namespace ink::core
     TEST(DiagnosticTest, FallsBackToUnknownMetadataForInvalidKinds)
     {
       constexpr DiagnosticKind InvalidKind = static_cast<DiagnosticKind>(0xFFFFFFFFU);
-      const Diagnostic Value{InvalidKind, {1, 2}, {}, {}};
+      const Diagnostic Value{InvalidKind, {}, {1, 2}, {}, {}};
       const FormattedDiagnostic Formatted = DiagnosticFormatter().format(Value);
 
       EXPECT_EQ(diagnosticNumber(InvalidKind), 0U);
@@ -218,10 +218,10 @@ namespace ink::core
     // Verifies missing, extra, duplicate, and wrongly typed arguments all use the registered safe fallback.
     TEST(DiagnosticFormatterTest, RejectsMalformedStructuredArguments)
     {
-      const Diagnostic Missing{DiagnosticKind::InvisibleCharacterInContext, {0, 3}, {{DiagnosticArgumentName::Character, U'\u200B'}}, {}};
-      const Diagnostic Extra{DiagnosticKind::InvisibleCharacterInContext, {0, 3}, {{DiagnosticArgumentName::Character, U'\u200B'}, {DiagnosticArgumentName::Context, DiagnosticSourceContext::Identifier}, {DiagnosticArgumentName::Actual, std::string("injected")}}, {}};
-      const Diagnostic Duplicate{DiagnosticKind::InvisibleCharacterInContext, {0, 3}, {{DiagnosticArgumentName::Character, U'\u200B'}, {DiagnosticArgumentName::Character, U'\u200C'}}, {}};
-      const Diagnostic WrongType{DiagnosticKind::InvisibleCharacterInContext, {0, 3}, {{DiagnosticArgumentName::Character, std::string("producer supplied text")}, {DiagnosticArgumentName::Context, DiagnosticSourceContext::Identifier}}, {}};
+      const Diagnostic Missing{DiagnosticKind::InvisibleCharacterInContext, {}, {0, 3}, {{DiagnosticArgumentName::Character, U'\u200B'}}, {}};
+      const Diagnostic Extra{DiagnosticKind::InvisibleCharacterInContext, {}, {0, 3}, {{DiagnosticArgumentName::Character, U'\u200B'}, {DiagnosticArgumentName::Context, DiagnosticSourceContext::Identifier}, {DiagnosticArgumentName::Actual, std::string("injected")}}, {}};
+      const Diagnostic Duplicate{DiagnosticKind::InvisibleCharacterInContext, {}, {0, 3}, {{DiagnosticArgumentName::Character, U'\u200B'}, {DiagnosticArgumentName::Character, U'\u200C'}}, {}};
+      const Diagnostic WrongType{DiagnosticKind::InvisibleCharacterInContext, {}, {0, 3}, {{DiagnosticArgumentName::Character, std::string("producer supplied text")}, {DiagnosticArgumentName::Context, DiagnosticSourceContext::Identifier}}, {}};
 
       EXPECT_EQ(DiagnosticFormatter().format(Missing).Message, "invisible format character must be written explicitly");
       EXPECT_EQ(DiagnosticFormatter().format(Extra).Message, "invisible format character must be written explicitly");

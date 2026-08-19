@@ -38,7 +38,7 @@ namespace ink::execution
         addFailure<core::DiagnosticKind::ModuleFunctionReferenceInvalid>(CalleeModule->name(), CalleeFunction.value());
         return InstructionFlow::Failed;
       }
-      if (!Runtime.resolveImportedFunction(*CalleeModule, CalleeFunction, CalleeModule, CalleeFunction, Diagnostics))
+      if (!Runtime.resolveImportedFunction(*CalleeModule, CalleeFunction, CalleeModule, CalleeFunction))
       {
         return InstructionFlow::Failed;
       }

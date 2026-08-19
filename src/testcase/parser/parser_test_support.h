@@ -3,6 +3,9 @@
 
 #include "ink/parser/parser.h"
 
+#include "../diagnostic_test_support.h"
+#include "../tokenizer/tokenizer_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -12,17 +15,67 @@
 #include <utility>
 #include <vector>
 
+namespace ink::parser
+{
+  inline ParsedFile parse(tokenizer::TokenizedBuffer LexedFile, ParserOptions Options = {})
+  {
+    ink::test::SharedDiagnosticTestContext &TestContext = ink::test::sharedDiagnosticTestContext();
+    const std::vector<core::Diagnostic> LexicalDiagnostics = tokenizer::testDiagnostics(LexedFile);
+    const std::size_t Checkpoint = TestContext.checkpoint();
+    const core::SourceId Source = LexedFile.sourceId();
+    core::FrontendContext Context(TestContext.compilationContext());
+    ParsedFile Result = parse(Context, std::move(LexedFile), Options);
+    TestContext.record(Source, Checkpoint, LexicalDiagnostics);
+    return Result;
+  }
+} // namespace ink::parser
+
 namespace ink::parser::test
 {
   inline ParsedFile parseSource(std::string Source, ParserOptions Options = {})
   {
-    tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(std::move(Source));
+    ink::test::SharedDiagnosticTestContext &TestContext = ink::test::sharedDiagnosticTestContext();
+    const std::size_t Checkpoint = TestContext.checkpoint();
+    core::FrontendContext Context(TestContext.compilationContext());
+    tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(Context, std::move(Source));
     if (!LexedFile.succeeded())
     {
       ADD_FAILURE() << "parser test source must tokenize successfully";
-      return ink::parser::parse(tokenizer::tokenize(std::string()), Options);
+      tokenizer::TokenizedBuffer EmptyFile = tokenizer::tokenize(Context, std::string());
+      ParsedFile Result = ink::parser::parse(Context, std::move(EmptyFile), Options);
+      TestContext.record(Result.lexedFile().sourceId(), Checkpoint);
+      return Result;
     }
-    return ink::parser::parse(std::move(LexedFile), Options);
+    ParsedFile Result = ink::parser::parse(Context, std::move(LexedFile), Options);
+    TestContext.record(Result.lexedFile().sourceId(), Checkpoint);
+    return Result;
+  }
+
+  inline const std::vector<core::Diagnostic> &testDiagnostics(const ParsedFile &File) noexcept
+  {
+    return ink::test::sharedDiagnosticTestContext().diagnostics(File.lexedFile().sourceId());
+  }
+
+  inline bool diagnosticsEqual(const ParsedFile &Left, const ParsedFile &Right)
+  {
+    const std::vector<core::Diagnostic> &LeftDiagnostics = testDiagnostics(Left);
+    const std::vector<core::Diagnostic> &RightDiagnostics = testDiagnostics(Right);
+    if (LeftDiagnostics.size() != RightDiagnostics.size())
+    {
+      return false;
+    }
+    for (std::size_t Index = 0; Index < LeftDiagnostics.size(); ++Index)
+    {
+      core::Diagnostic LeftDiagnostic = LeftDiagnostics[Index];
+      core::Diagnostic RightDiagnostic = RightDiagnostics[Index];
+      LeftDiagnostic.Source = {};
+      RightDiagnostic.Source = {};
+      if (LeftDiagnostic != RightDiagnostic)
+      {
+        return false;
+      }
+    }
+    return true;
   }
 
   inline std::vector<CstNodeId> nodesOfKind(const ParsedFile &File, CstKind Kind)
@@ -53,7 +106,7 @@ namespace ink::parser::test
 
   inline bool hasDiagnostic(const ParsedFile &File, core::DiagnosticKind Kind)
   {
-    return std::any_of(File.diagnostics().begin(), File.diagnostics().end(), [Kind](const core::Diagnostic &Diagnostic)
+    return std::any_of(testDiagnostics(File).begin(), testDiagnostics(File).end(), [Kind](const core::Diagnostic &Diagnostic)
                        {
                          return Diagnostic.Kind == Kind;
                        });

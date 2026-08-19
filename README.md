@@ -21,3 +21,5 @@ LLVM 的构建树包会生成到 `build/third_party/llvm/lib/cmake/llvm`，主�
 Ink 所有工具共用的参数拼写、输入输出、诊断和退出码规则见 [`docs/command-line.md`](docs/command-line.md)。
 
 InkIR 的文本词法、类型、值、模块声明和指令格式见 [`docs/ir.md`](docs/ir.md)。
+
+Ink 跨 module 函数、成员函数、闭合实例、全局变量、Imported 符号和 `extern "C"` 的链接名称规则见 [`docs/name-mangling.md`](docs/name-mangling.md)。

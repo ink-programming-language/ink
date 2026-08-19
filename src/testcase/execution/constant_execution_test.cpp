@@ -13,9 +13,20 @@ namespace ink::execution
   {
     struct ConstantExecutionTestContext
     {
+        ConstantExecutionTestContext()
+        {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~ConstantExecutionTestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
+        }
+
         core::CompilationContext Compilation;
         ir::IRContext IR{Compilation};
         ExecutionContext Execution{Compilation};
+        core::CollectingDiagnosticConsumer Diagnostics;
     };
 
     // Verifies that f16, both signed f32 zeroes, and an f64 NaN payload reach RuntimeValue without numeric conversion.
@@ -169,8 +180,8 @@ namespace ink::execution
       ASSERT_NE(EquivalentOffset.returnValue(), nullptr);
       EXPECT_EQ(EquivalentOffset.returnValue()->integer(), 1U);
       ASSERT_FALSE(OutOfBounds.succeeded());
-      ASSERT_EQ(OutOfBounds.diagnostics().size(), 1U);
-      EXPECT_EQ(OutOfBounds.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessOutOfBounds);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessOutOfBounds);
     }
 
     // Verifies that both raw byte-pointer null constant types materialize as pointer RuntimeValues with null addresses.

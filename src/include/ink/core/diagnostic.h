@@ -1,6 +1,7 @@
 #ifndef INK_CORE_DIAGNOSTIC_H
 #define INK_CORE_DIAGNOSTIC_H
 
+#include "ink/core/source_id.h"
 #include "ink/core/source_range.h"
 
 #include <cstdint>
@@ -23,6 +24,7 @@ namespace ink::core
     IR = 0x04,
     Execution = 0x05,
     Driver = 0x06,
+    Backend = 0x07,
   };
 
   enum class DiagnosticClass : std::uint8_t
@@ -67,6 +69,7 @@ namespace ink::core
     ParameterIndex,
     FieldIndex,
     ValueId,
+    ByteConstantId,
     GlobalId,
     ModuleName,
     RelatedModuleName,
@@ -234,6 +237,7 @@ namespace ink::core
   struct Diagnostic
   {
       DiagnosticKind Kind = DiagnosticKind::Unknown;
+      SourceId Source;
       SourceRange Span;
       std::vector<DiagnosticArgument> Arguments;
       std::vector<DiagnosticRelatedInformation> Related;
@@ -294,7 +298,7 @@ namespace ink::core
   Diagnostic makeDiagnostic(SourceRange Span, ArgumentTypes &&...Arguments)
   {
     using ArgumentSchema = typename DiagnosticTraits<Kind>::Arguments;
-    return {Kind, Span, detail::makeDiagnosticArguments(ArgumentSchema{}, std::forward<ArgumentTypes>(Arguments)...), {}, DiagnosticClass::Unknown};
+    return {Kind, {}, Span, detail::makeDiagnosticArguments(ArgumentSchema{}, std::forward<ArgumentTypes>(Arguments)...), {}, DiagnosticClass::Unknown};
   }
 
   class DiagnosticBuilder

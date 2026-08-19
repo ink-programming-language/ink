@@ -20,16 +20,26 @@ namespace ink::execution
   {
     struct MemoryExecutionTestContext
     {
-        MemoryExecutionTestContext() = default;
+        MemoryExecutionTestContext()
+        {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
 
         explicit MemoryExecutionTestContext(core::TargetContext Target)
             : Compilation(Target)
         {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~MemoryExecutionTestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
         }
 
         core::CompilationContext Compilation;
         ir::IRContext IR{Compilation};
         ExecutionContext Execution{Compilation};
+        core::CollectingDiagnosticConsumer Diagnostics;
     };
 
     std::vector<std::uint8_t> CapturedManagedBytes;
@@ -224,8 +234,8 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryInvalidRepresentation);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryInvalidRepresentation);
     }
 
     // Verifies that slice.length exposes the exact allocation length including a zero-length allocation.
@@ -315,9 +325,9 @@ namespace ink::execution
         const std::string Text = "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte[] ptrsize " + std::to_string(CaseValue.SliceLength) + "\n  %1 = slice.data byte* byte[] %0\n  %2 = getelementptr byte, byte* %1, ptrsize 1\n  " + std::string(CaseValue.Instruction) + "\n  ret void\n}\n";
         const ExecutionResult Result = executeText(Context, Text);
         ASSERT_FALSE(Result.succeeded()) << CaseValue.Operation;
-        ASSERT_EQ(Result.diagnostics().size(), 1u) << CaseValue.Operation;
-        EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessOutOfBounds) << CaseValue.Operation;
-        EXPECT_EQ(core::DiagnosticFormatter().format(Result.diagnostics()[0]).Message, std::string(CaseValue.Operation) + " in function @main attempted a " + std::to_string(CaseValue.AccessSize) + "-byte access at byte offset " + std::to_string(CaseValue.Index) + " in a memory region with length " + std::to_string(CaseValue.SliceLength));
+        ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u) << CaseValue.Operation;
+        EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessOutOfBounds) << CaseValue.Operation;
+        EXPECT_EQ(core::DiagnosticFormatter().format(Context.Diagnostics.diagnostics()[0]).Message, std::string(CaseValue.Operation) + " in function @main attempted a " + std::to_string(CaseValue.AccessSize) + "-byte access at byte offset " + std::to_string(CaseValue.Index) + " in a memory region with length " + std::to_string(CaseValue.SliceLength));
       }
     }
 
@@ -341,9 +351,9 @@ namespace ink::execution
         const ExecutionResult Result = executeText(Context, Text);
 
         ASSERT_FALSE(Result.succeeded()) << CaseValue.Operation;
-        ASSERT_EQ(Result.diagnostics().size(), 1u) << CaseValue.Operation;
-        EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessOutOfBounds) << CaseValue.Operation;
-        EXPECT_EQ(core::DiagnosticFormatter().format(Result.diagnostics()[0]).Message, std::string(CaseValue.Operation) + " in function @main attempted a 1-byte access at byte offset 4294967296 in a memory region with length 1");
+        ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u) << CaseValue.Operation;
+        EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessOutOfBounds) << CaseValue.Operation;
+        EXPECT_EQ(core::DiagnosticFormatter().format(Context.Diagnostics.diagnostics()[0]).Message, std::string(CaseValue.Operation) + " in function @main attempted a 1-byte access at byte offset 4294967296 in a memory region with length 1");
       }
     }
 
@@ -371,8 +381,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidRuntimeMemoryValue);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::InvalidRuntimeMemoryValue);
     }
 
     // Verifies that load and store through a previously derived pointer, plus a late slice.data, all reject a managed allocation after lifetime.end.
@@ -396,8 +406,8 @@ namespace ink::execution
         const std::string Text = "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte[] ptrsize 1\n" + std::string(CaseValue.BeforeLifetimeEnd) + "  lifetime.end byte[] %0\n" + CaseValue.AfterLifetimeEnd + "  ret void\n}\n";
         const ExecutionResult Result = executeText(Context, Text);
         ASSERT_FALSE(Result.succeeded()) << CaseValue.Operation;
-        ASSERT_EQ(Result.diagnostics().size(), 1u) << CaseValue.Operation;
-        EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryLifetimeEnded) << CaseValue.Operation;
+        ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u) << CaseValue.Operation;
+        EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryLifetimeEnded) << CaseValue.Operation;
       }
     }
 
@@ -418,8 +428,8 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryLifetimeEnded);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryLifetimeEnded);
     }
 
     // Verifies that lifetime.end invalidates storage access while leaving immutable slice length metadata available.
@@ -459,8 +469,8 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text, {Slice});
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryLifetimeNotOwned);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryLifetimeNotOwned);
     }
 
     // Verifies that an internal callee can mutate caller-owned storage while ownership remains with the caller frame.
@@ -532,8 +542,8 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryLifetimeNotOwned);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryLifetimeNotOwned);
     }
 
     // Verifies that a single alloca larger than 16 MiB fails before allocating host storage.
@@ -551,8 +561,8 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAllocationLimitExceeded);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAllocationLimitExceeded);
     }
 
     // Verifies that a 64-bit target alloca size above UINT32_MAX reaches the allocation limiter before any host-size conversion.
@@ -570,9 +580,9 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAllocationLimitExceeded);
-      EXPECT_EQ(core::DiagnosticFormatter().format(Result.diagnostics()[0]).Message, "requested byte allocation size 4294967296 exceeds the per-allocation limit 16777216");
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAllocationLimitExceeded);
+      EXPECT_EQ(core::DiagnosticFormatter().format(Context.Diagnostics.diagnostics()[0]).Message, "requested byte allocation size 4294967296 exceeds the per-allocation limit 16777216");
     }
 
     // Verifies that cumulative storage exhaustion is distinguished from the per-allocation size limit.
@@ -594,9 +604,9 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryStorageLimitExceeded);
-      EXPECT_EQ(core::DiagnosticFormatter().format(Result.diagnostics()[0]).Message, "a 1-byte allocation would exceed the execution byte-storage limit of 67108864 bytes");
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryStorageLimitExceeded);
+      EXPECT_EQ(core::DiagnosticFormatter().format(Context.Diagnostics.diagnostics()[0]).Message, "a 1-byte allocation would exceed the execution byte-storage limit of 67108864 bytes");
     }
 
     // Verifies that repeated zero-byte frame allocations stop at the independent allocation-count limit before the instruction limit.
@@ -628,8 +638,8 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAllocationCountLimitExceeded);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAllocationCountLimitExceeded);
     }
 
     // Verifies that a pointer returned from a callee retains allocation provenance and cannot load after the callee frame lifetime ends.
@@ -654,8 +664,8 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryLifetimeEnded);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryLifetimeEnded);
     }
 
     // Verifies that returning a raw pointer derived from caller-borrowed storage preserves the caller-owned address.
@@ -696,8 +706,8 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::UnsupportedRuntimeValueKind);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::UnsupportedRuntimeValueKind);
     }
 
     // Verifies that an expired managed pointer cannot cross the native ABI boundary as either a stale address or an accidental null pointer.

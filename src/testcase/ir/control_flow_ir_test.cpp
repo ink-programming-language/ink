@@ -15,8 +15,19 @@ namespace ink::ir
   {
     struct ControlFlowIrTestContext
     {
+        ControlFlowIrTestContext()
+        {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~ControlFlowIrTestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
+        }
+
         core::CompilationContext Compilation;
         IRContext IR{Compilation};
+        core::CollectingDiagnosticConsumer Diagnostics;
     };
 
     bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
@@ -160,7 +171,7 @@ namespace ink::ir
         const std::string Text = "inkir 1\ndefine void @main() {\nentry:\n" + std::string(Body) + "}\n";
         const DeserializeResult Result = deserialize(Context.IR, Text);
         ASSERT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrBranchTargetsEntryBlock));
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrBranchTargetsEntryBlock));
       }
     }
 
@@ -183,7 +194,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrPhiIncomingCountMismatch));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrPhiIncomingCountMismatch));
     }
 
     // Verifies that every phi incoming value has the exact canonical type of its result.
@@ -200,7 +211,7 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, *Parsed.module());
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrPhiIncomingTypeMismatch));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrPhiIncomingTypeMismatch));
     }
 
     // Verifies that a definition may be used directly in a block it dominates.
@@ -243,7 +254,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrUnavailableSsaValue));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrUnavailableSsaValue));
     }
 
     // Verifies that an unreachable block cannot bypass cross-block SSA dominance requirements.
@@ -265,7 +276,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrUnavailableSsaValue));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrUnavailableSsaValue));
     }
 
     // Verifies that function parameters remain visible in every block without an edge argument.
@@ -302,7 +313,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrPhiInEntryBlock));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrPhiInEntryBlock));
     }
 
     // Verifies that phi instructions are contiguous at the start of their basic block.
@@ -323,7 +334,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrPhiMustBeFirstInBlock));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrPhiMustBeFirstInBlock));
     }
 
     // Verifies that phi incoming labels must identify actual CFG predecessors.
@@ -345,7 +356,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrPhiIncomingBlockNotPredecessor));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrPhiIncomingBlockNotPredecessor));
     }
 
     // Verifies LLVM-compatible duplicate predecessor edges accept identical phi values.
@@ -384,7 +395,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrPhiDuplicateIncomingBlock));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrPhiDuplicateIncomingBlock));
     }
 
     // Verifies a phi incoming SSA value is available on its named predecessor edge rather than merely in the destination block.
@@ -409,7 +420,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrUnavailableSsaValue));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrUnavailableSsaValue));
     }
 
     // Verifies that ordered predicates are rejected for bool while equality remains the only ordered-free relation.
@@ -427,7 +438,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrComparePredicateUnsupportedForType));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrComparePredicateUnsupportedForType));
     }
 
     // Verifies that opaque logical pointers only support equality because distinct backing regions have no target-stable ordering.
@@ -445,7 +456,7 @@ namespace ink::ir
           const DeserializeResult Result = deserialize(Context.IR, Text);
 
           ASSERT_FALSE(Result.succeeded()) << Predicate << ' ' << PointerType;
-          EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrComparePredicateUnsupportedForType)) << Predicate << ' ' << PointerType;
+          EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrComparePredicateUnsupportedForType)) << Predicate << ' ' << PointerType;
         }
       }
     }
@@ -465,7 +476,7 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrCompareUnsupportedType));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrCompareUnsupportedType));
     }
 
     // Verifies every invalid result, predicate, null operand, and operand-type shape for add and icmp.
@@ -478,9 +489,10 @@ namespace ink::ir
       const IntegerConstant &I32Zero = Context.IR.constantPool().getIntegerConstant(I32Type, 0);
       const auto ExpectDiagnostic = [&](std::unique_ptr<Instruction> InstructionValue, core::DiagnosticKind Expected)
       {
+        Context.Diagnostics.clear();
         const VerificationResult Result = verifySingleControlInstruction(Context, std::move(InstructionValue));
         EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), Expected)) << static_cast<unsigned int>(Expected);
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), Expected)) << static_cast<unsigned int>(Expected);
       };
 
       {
@@ -574,7 +586,7 @@ namespace ink::ir
         Main.Blocks.push_back(std::move(Target));
         ModuleValue.Functions.push_back(std::move(Main));
         const VerificationResult Result = verify(Context.IR, ModuleValue);
-        EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrPhiInvalidResultType));
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrPhiInvalidResultType));
       }
       {
         ControlFlowIrTestContext Context;
@@ -599,7 +611,7 @@ namespace ink::ir
         Main.Blocks.push_back(std::move(Target));
         ModuleValue.Functions.push_back(std::move(Main));
         const VerificationResult Result = verify(Context.IR, ModuleValue);
-        EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrPhiNullIncomingValue));
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrPhiNullIncomingValue));
       }
       for (bool NullCondition : {true, false})
       {
@@ -630,7 +642,7 @@ namespace ink::ir
         Main.Blocks.push_back(std::move(FalseBlock));
         ModuleValue.Functions.push_back(std::move(Main));
         const VerificationResult Result = verify(Context.IR, ModuleValue);
-        EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), NullCondition ? core::DiagnosticKind::IrConditionalBranchNullCondition : core::DiagnosticKind::IrConditionalBranchConditionNotBool));
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), NullCondition ? core::DiagnosticKind::IrConditionalBranchNullCondition : core::DiagnosticKind::IrConditionalBranchConditionNotBool));
       }
     }
 
@@ -647,7 +659,7 @@ namespace ink::ir
         const std::string Text = "inkir 1\ndefine void @main() {\nentry:\n" + std::string(Body) + "exit:\n  ret void\n}\n";
         const DeserializeResult Result = deserialize(Context.IR, Text);
         ASSERT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrEarlyTerminator));
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrEarlyTerminator));
       }
     }
 
@@ -660,8 +672,8 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_FALSE(Result.diagnostics().empty());
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrUnknownComparePredicate);
+      ASSERT_FALSE(Context.Diagnostics.diagnostics().empty());
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrUnknownComparePredicate);
     }
 
     // Verifies that phi is rejected during parsing when it does not define an SSA result.
@@ -673,8 +685,8 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_FALSE(Result.diagnostics().empty());
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrPhiRequiresResult);
+      ASSERT_FALSE(Context.Diagnostics.diagnostics().empty());
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrPhiRequiresResult);
     }
 
     // Verifies that unresolved forward branch names are rejected after the complete function has been parsed.
@@ -686,8 +698,8 @@ namespace ink::ir
       const DeserializeResult Result = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_FALSE(Result.diagnostics().empty());
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrUnknownBasicBlockTarget);
+      ASSERT_FALSE(Context.Diagnostics.diagnostics().empty());
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrUnknownBasicBlockTarget);
     }
 
     // Verifies that an out-of-range programmatic BlockId is rejected even when no textual fixup is involved.
@@ -709,7 +721,7 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrBranchInvalidTarget));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrBranchInvalidTarget));
     }
   } // namespace
 } // namespace ink::ir

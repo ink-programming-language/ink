@@ -1,7 +1,6 @@
 #ifndef INK_EXECUTION_EXECUTION_ENGINE_H
 #define INK_EXECUTION_EXECUTION_ENGINE_H
 
-#include "ink/core/diagnostic.h"
 #include "ink/execution/context.h"
 #include "ink/execution/module/dynamic_module_load_result.h"
 #include "ink/execution/module/module_provider.h"
@@ -17,11 +16,9 @@ namespace ink::execution
   {
     public:
       bool succeeded() const noexcept;
-      const std::vector<core::Diagnostic> &diagnostics() const noexcept;
 
     private:
       bool Succeeded = false;
-      std::vector<core::Diagnostic> Diagnostics;
 
       friend class ExecutionEngine;
   };
@@ -38,12 +35,11 @@ namespace ink::execution
       bool succeeded() const noexcept;
       RuntimeValueRef returnValue() const & noexcept;
       RuntimeValueRef returnValue() const && = delete;
-      const std::vector<core::Diagnostic> &diagnostics() const noexcept;
 
     private:
+      bool Succeeded = false;
       std::shared_ptr<RuntimeValueArena> ValueArena;
       RuntimeValueRef ReturnValue = nullptr;
-      std::vector<core::Diagnostic> Diagnostics;
 
       friend class ExecutionEngine;
   };
@@ -52,11 +48,9 @@ namespace ink::execution
   {
     public:
       bool succeeded() const noexcept;
-      const std::vector<core::Diagnostic> &diagnostics() const noexcept;
 
     private:
       bool Succeeded = false;
-      std::vector<core::Diagnostic> Diagnostics;
 
       friend class ExecutionEngine;
   };

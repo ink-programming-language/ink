@@ -9,8 +9,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <vector>
-
 namespace ink::ir
 {
   class SerializeResult
@@ -18,7 +16,7 @@ namespace ink::ir
     public:
       bool succeeded() const noexcept
       {
-        return Text.has_value() && Diagnostics.empty();
+        return Text.has_value();
       }
 
       const std::optional<std::string> &text() const noexcept
@@ -31,14 +29,8 @@ namespace ink::ir
         return Text;
       }
 
-      const std::vector<core::Diagnostic> &diagnostics() const noexcept
-      {
-        return Diagnostics;
-      }
-
     private:
       std::optional<std::string> Text;
-      std::vector<core::Diagnostic> Diagnostics;
 
       friend SerializeResult printText(IRContext &Context, const Module &ModuleValue);
       friend SerializeResult serialize(IRContext &Context, const Module &ModuleValue);
@@ -49,7 +41,7 @@ namespace ink::ir
     public:
       bool succeeded() const noexcept
       {
-        return Value.has_value() && Diagnostics.empty();
+        return Value.has_value();
       }
 
       const std::optional<Module> &module() const noexcept
@@ -62,14 +54,8 @@ namespace ink::ir
         return Value;
       }
 
-      const std::vector<core::Diagnostic> &diagnostics() const noexcept
-      {
-        return Diagnostics;
-      }
-
     private:
       std::optional<Module> Value;
-      std::vector<core::Diagnostic> Diagnostics;
 
       friend DeserializeResult parseText(IRContext &Context, std::string_view Text);
       friend DeserializeResult deserialize(IRContext &Context, std::string_view Text);

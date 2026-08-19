@@ -1,7 +1,6 @@
 #ifndef INK_IR_COMPILATION_SESSION_H
 #define INK_IR_COMPILATION_SESSION_H
 
-#include "ink/core/diagnostic.h"
 #include "ink/ir/model/context.h"
 #include "ink/ir/model/name.h"
 
@@ -9,8 +8,6 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <vector>
-
 namespace ink::ir
 {
   class Module;
@@ -26,11 +23,10 @@ namespace ink::ir
   {
       ModuleCompilationStatus Status = ModuleCompilationStatus::NotFound;
       std::shared_ptr<const Module> ModuleValue;
-      std::vector<core::Diagnostic> Diagnostics;
 
       static ModuleCompilationResult found(std::shared_ptr<const Module> ModuleValue) noexcept;
       static ModuleCompilationResult notFound() noexcept;
-      static ModuleCompilationResult failure(std::vector<core::Diagnostic> Diagnostics = {}) noexcept;
+      static ModuleCompilationResult failure() noexcept;
   };
 
   class CompilationSession;

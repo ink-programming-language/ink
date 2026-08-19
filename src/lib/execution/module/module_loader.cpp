@@ -232,7 +232,6 @@ namespace ink::execution
         std::thread::id ResolverThread;
         std::shared_ptr<ModuleInstance> Instance;
         ModuleLoadError Failure;
-        std::vector<core::Diagnostic> Diagnostics;
     };
 
     struct WaitEdge
@@ -387,10 +386,9 @@ namespace ink::execution
     return {};
   }
 
-  ModuleLoadResult::ModuleLoadResult(std::shared_ptr<ModuleInstance> Instance, ModuleLoadError Error, std::vector<core::Diagnostic> Diagnostics) noexcept
+  ModuleLoadResult::ModuleLoadResult(std::shared_ptr<ModuleInstance> Instance, ModuleLoadError Error) noexcept
       : Instance(std::move(Instance)),
-        Error(Error),
-        Diagnostics(std::move(Diagnostics))
+        Error(Error)
   {
   }
 
@@ -407,11 +405,6 @@ namespace ink::execution
   const ModuleLoadError &ModuleLoadResult::error() const noexcept
   {
     return Error;
-  }
-
-  const std::vector<core::Diagnostic> &ModuleLoadResult::diagnostics() const noexcept
-  {
-    return Diagnostics;
   }
 
   ModuleLoader::ModuleLoader(ModuleProvider &Provider, ModuleLifecycle &Lifecycle, core::TargetContext Target)
@@ -776,7 +769,7 @@ namespace ink::execution
       }
       if (Entry->Failure.failed())
       {
-        return failedResult(Entry->Failure, nullptr, Entry->Diagnostics);
+        return failedResult(Entry->Failure);
       }
       Entry->Resolving = true;
       Entry->ResolverThread = std::this_thread::get_id();
@@ -802,7 +795,7 @@ namespace ink::execution
       Error = ModuleLoadError::failure(ModuleLoadErrorKind::ModuleNotFound, Target);
       break;
     case ModuleProvisionStatus::Failed:
-      Error = ModuleLoadError::failure(ModuleLoadErrorKind::ProviderFailure, Target);
+      Error = ModuleLoadError::failure(ModuleLoadErrorKind::ProviderFailure, Target, {}, Provision.DiagnosticReported);
       break;
     }
     if (!Error.failed() && Definition->Name.has_value() && *Definition->Name != TargetName)
@@ -819,17 +812,16 @@ namespace ink::execution
       const std::lock_guard<std::mutex> Lock(Entry->Mutex);
       Entry->Instance = Instance;
       Entry->Failure = Error;
-      Entry->Diagnostics = Provision.Diagnostics;
       Entry->Resolving = false;
       Entry->ResolverThread = {};
       Entry->Resolved.notify_all();
     }
-    return Error.failed() ? failedResult(Error, nullptr, std::move(Provision.Diagnostics)) : successfulResult(std::move(Instance));
+    return Error.failed() ? failedResult(Error) : successfulResult(std::move(Instance));
   }
 
-  ModuleLoadResult ModuleLoader::failedResult(ModuleLoadError Error, std::shared_ptr<ModuleInstance> Instance, std::vector<core::Diagnostic> Diagnostics) const noexcept
+  ModuleLoadResult ModuleLoader::failedResult(ModuleLoadError Error, std::shared_ptr<ModuleInstance> Instance) const noexcept
   {
-    return ModuleLoadResult(std::move(Instance), Error, std::move(Diagnostics));
+    return ModuleLoadResult(std::move(Instance), Error);
   }
 
   ModuleLoadResult ModuleLoader::successfulResult(std::shared_ptr<ModuleInstance> Instance) const noexcept

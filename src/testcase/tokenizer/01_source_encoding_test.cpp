@@ -1,4 +1,4 @@
-#include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 #include "utf8_test_support.h"
 
 #include <gtest/gtest.h>
@@ -66,7 +66,7 @@ namespace ink::tokenizer
 
     bool hasDiagnosticKind(const TokenizedBuffer &Buffer, DiagnosticKind Kind)
     {
-      for (const Diagnostic &DiagnosticEntry : Buffer.diagnostics())
+      for (const Diagnostic &DiagnosticEntry : testDiagnostics(Buffer))
       {
         if (DiagnosticEntry.Kind == Kind)
         {
@@ -116,7 +116,7 @@ namespace ink::tokenizer
       const TokenizedBuffer Buffer = tokenize("");
 
       ASSERT_TRUE(Buffer.succeeded());
-      ASSERT_TRUE(Buffer.diagnostics().empty());
+      ASSERT_TRUE(testDiagnostics(Buffer).empty());
       ASSERT_EQ(Buffer.tokens().size(), 1U);
       EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::EndOfFile);
       expectFullFidelity(Buffer);
@@ -129,7 +129,7 @@ namespace ink::tokenizer
       const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
-      ASSERT_TRUE(Buffer.diagnostics().empty());
+      ASSERT_TRUE(testDiagnostics(Buffer).empty());
       ASSERT_EQ(Buffer.tokens().size(), 6U);
       EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::Utf8Bom);
       EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
@@ -193,7 +193,7 @@ namespace ink::tokenizer
         const TokenizedBuffer Buffer = tokenize(Source);
 
         ASSERT_TRUE(Buffer.succeeded());
-        ASSERT_TRUE(Buffer.diagnostics().empty());
+        ASSERT_TRUE(testDiagnostics(Buffer).empty());
         ASSERT_EQ(Buffer.tokens().size(), 2U);
         EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::LineComment);
         EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
@@ -218,7 +218,7 @@ namespace ink::tokenizer
       const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
-      ASSERT_TRUE(Buffer.diagnostics().empty());
+      ASSERT_TRUE(testDiagnostics(Buffer).empty());
       ASSERT_EQ(Buffer.tokens().size(), 2U);
       EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::LineComment);
       EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
@@ -254,10 +254,10 @@ namespace ink::tokenizer
         EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
         EXPECT_EQ(Buffer.tokens()[0].Span.End, 1U);
         EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), Source);
-        ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 0U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.End, 1U);
+        ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.Start, 0U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.End, 1U);
         expectFullFidelity(Buffer);
       }
     }
@@ -288,10 +288,10 @@ namespace ink::tokenizer
         EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
         EXPECT_EQ(Buffer.tokens()[0].Span.End, TestCase.Encoding.size());
         EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), TestCase.Encoding);
-        ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 0U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.End, TestCase.Encoding.size());
+        ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.Start, 0U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.End, TestCase.Encoding.size());
         expectFullFidelity(Buffer);
       }
     }
@@ -359,10 +359,10 @@ namespace ink::tokenizer
         EXPECT_EQ(Buffer.tokens()[1].Span.Start, TestCase.InvalidPrefix.size());
         EXPECT_EQ(Buffer.tokens()[1].Span.End, Source.size());
         EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), TestCase.FollowingIdentifier);
-        ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 0U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.End, TestCase.InvalidPrefix.size());
+        ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.Start, 0U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.End, TestCase.InvalidPrefix.size());
         expectFullFidelity(Buffer);
       }
     }
@@ -395,10 +395,10 @@ namespace ink::tokenizer
         EXPECT_EQ(EofBuffer.tokens()[0].Span.Start, 0U);
         EXPECT_EQ(EofBuffer.tokens()[0].Span.End, TestCase.Prefix.size());
         EXPECT_EQ(EofBuffer.raw(EofBuffer.tokens()[0]), TestCase.Prefix);
-        ASSERT_EQ(EofBuffer.diagnostics().size(), 1U);
-        EXPECT_EQ(EofBuffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
-        EXPECT_EQ(EofBuffer.diagnostics()[0].Span.Start, 0U);
-        EXPECT_EQ(EofBuffer.diagnostics()[0].Span.End, TestCase.Prefix.size());
+        ASSERT_EQ(testDiagnostics(EofBuffer).size(), 1U);
+        EXPECT_EQ(testDiagnostics(EofBuffer)[0].Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(testDiagnostics(EofBuffer)[0].Span.Start, 0U);
+        EXPECT_EQ(testDiagnostics(EofBuffer)[0].Span.End, TestCase.Prefix.size());
         expectFullFidelity(EofBuffer);
 
         const std::string InterruptedSource = TestCase.Prefix + "x";
@@ -414,10 +414,10 @@ namespace ink::tokenizer
         EXPECT_EQ(InterruptedBuffer.tokens()[1].Span.Start, TestCase.Prefix.size());
         EXPECT_EQ(InterruptedBuffer.tokens()[1].Span.End, InterruptedSource.size());
         EXPECT_EQ(InterruptedBuffer.raw(InterruptedBuffer.tokens()[1]), "x");
-        ASSERT_EQ(InterruptedBuffer.diagnostics().size(), 1U);
-        EXPECT_EQ(InterruptedBuffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
-        EXPECT_EQ(InterruptedBuffer.diagnostics()[0].Span.Start, 0U);
-        EXPECT_EQ(InterruptedBuffer.diagnostics()[0].Span.End, TestCase.Prefix.size());
+        ASSERT_EQ(testDiagnostics(InterruptedBuffer).size(), 1U);
+        EXPECT_EQ(testDiagnostics(InterruptedBuffer)[0].Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(testDiagnostics(InterruptedBuffer)[0].Span.Start, 0U);
+        EXPECT_EQ(testDiagnostics(InterruptedBuffer)[0].Span.End, TestCase.Prefix.size());
         expectFullFidelity(InterruptedBuffer);
       }
     }
@@ -472,16 +472,16 @@ namespace ink::tokenizer
         ASSERT_EQ(TestCase.TokenKinds.size(), TestCase.Source.size());
         ASSERT_EQ(TestCase.DiagnosticKinds.size(), TestCase.Source.size());
         ASSERT_EQ(Buffer.tokens().size(), TestCase.Source.size() + 1);
-        ASSERT_EQ(Buffer.diagnostics().size(), TestCase.Source.size());
+        ASSERT_EQ(testDiagnostics(Buffer).size(), TestCase.Source.size());
         for (std::size_t Index = 0; Index < TestCase.Source.size(); ++Index)
         {
           EXPECT_EQ(Buffer.tokens()[Index].Kind, TestCase.TokenKinds[Index]);
           EXPECT_EQ(Buffer.tokens()[Index].Span.Start, Index);
           EXPECT_EQ(Buffer.tokens()[Index].Span.End, Index + 1);
           EXPECT_EQ(Buffer.raw(Buffer.tokens()[Index]), std::string_view(TestCase.Source).substr(Index, 1));
-          EXPECT_EQ(Buffer.diagnostics()[Index].Kind, TestCase.DiagnosticKinds[Index]);
-          EXPECT_EQ(Buffer.diagnostics()[Index].Span.Start, Index);
-          EXPECT_EQ(Buffer.diagnostics()[Index].Span.End, Index + 1);
+          EXPECT_EQ(testDiagnostics(Buffer)[Index].Kind, TestCase.DiagnosticKinds[Index]);
+          EXPECT_EQ(testDiagnostics(Buffer)[Index].Span.Start, Index);
+          EXPECT_EQ(testDiagnostics(Buffer)[Index].Span.End, Index + 1);
         }
         expectFullFidelity(Buffer);
       }
@@ -505,10 +505,10 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.tokens()[2].Kind, TokenKind::Identifier);
       EXPECT_EQ(Buffer.tokens()[2].Span.Start, 4U);
       EXPECT_EQ(Buffer.tokens()[2].Span.End, 5U);
-      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-      EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::UnexpectedBom);
-      EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 1U);
-      EXPECT_EQ(Buffer.diagnostics()[0].Span.End, 4U);
+      ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Kind, DiagnosticKind::UnexpectedBom);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Span.Start, 1U);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Span.End, 4U);
       expectFullFidelity(Buffer);
     }
 
@@ -582,10 +582,10 @@ namespace ink::tokenizer
         EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::InvalidCharacter);
         EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
         EXPECT_EQ(Buffer.tokens()[0].Span.End, 1U);
-        ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::ForbiddenControlCharacter);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 0U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.End, 1U);
+        ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Kind, DiagnosticKind::ForbiddenControlCharacter);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.Start, 0U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.End, 1U);
         expectFullFidelity(Buffer);
       }
 
@@ -604,8 +604,8 @@ namespace ink::tokenizer
 
       const TokenizedBuffer LoneCarriageReturn = tokenize("\r");
       ASSERT_FALSE(LoneCarriageReturn.succeeded());
-      ASSERT_EQ(LoneCarriageReturn.diagnostics().size(), 1U);
-      EXPECT_EQ(LoneCarriageReturn.diagnostics()[0].Kind, DiagnosticKind::LoneCarriageReturn);
+      ASSERT_EQ(testDiagnostics(LoneCarriageReturn).size(), 1U);
+      EXPECT_EQ(testDiagnostics(LoneCarriageReturn)[0].Kind, DiagnosticKind::LoneCarriageReturn);
       EXPECT_FALSE(hasDiagnosticKind(LoneCarriageReturn, DiagnosticKind::ForbiddenControlCharacter));
       expectFullFidelity(LoneCarriageReturn);
     }

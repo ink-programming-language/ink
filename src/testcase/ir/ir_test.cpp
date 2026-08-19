@@ -18,8 +18,19 @@ namespace ink::ir
   {
     struct TestContext
     {
+        TestContext()
+        {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~TestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
+        }
+
         core::CompilationContext Compilation;
         IRContext IR{Compilation};
+        core::CollectingDiagnosticConsumer Diagnostics;
     };
 
     // Verifies that Name owns text, applies the shared Unicode XID rules, preserves IR extension characters, and hashes by spelling.
@@ -281,7 +292,7 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, makeHelloWorldModule(Context.IR));
 
       EXPECT_TRUE(Result.succeeded());
-      EXPECT_TRUE(Result.diagnostics().empty());
+      EXPECT_TRUE(Context.Diagnostics.diagnostics().empty());
     }
 
     // Verifies that a function without parameters cannot skip SSA value zero for its first instruction result.
@@ -295,12 +306,12 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
       const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrNonConsecutiveSsaResult>({}, "call", "main", std::uint64_t{0}, std::uint64_t{1});
-      EXPECT_EQ(Result.diagnostics()[0].Kind, Expected.Kind);
-      EXPECT_EQ(Result.diagnostics()[0].Arguments, Expected.Arguments);
-      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "call in function @main defines SSA value %1; expected %0");
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, Expected.Kind);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Arguments, Expected.Arguments);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "call in function @main defines SSA value %1; expected %0");
     }
 
     // Verifies that the first instruction result after one parameter cannot skip the next SSA value one.
@@ -316,12 +327,12 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
       const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrNonConsecutiveSsaResult>({}, "call", "main", std::uint64_t{1}, std::uint64_t{2});
-      EXPECT_EQ(Result.diagnostics()[0].Kind, Expected.Kind);
-      EXPECT_EQ(Result.diagnostics()[0].Arguments, Expected.Arguments);
-      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "call in function @main defines SSA value %2; expected %1");
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, Expected.Kind);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Arguments, Expected.Arguments);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "call in function @main defines SSA value %2; expected %1");
     }
 
     // Verifies that a huge valid SSA result after a parameter is rejected as non-consecutive without indexing storage by that value.
@@ -337,12 +348,12 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
       const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrNonConsecutiveSsaResult>({}, "call", "main", std::uint64_t{1}, static_cast<std::uint64_t>(InvalidId - 1));
-      EXPECT_EQ(Result.diagnostics()[0].Kind, Expected.Kind);
-      EXPECT_EQ(Result.diagnostics()[0].Arguments, Expected.Arguments);
-      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "call in function @main defines SSA value %" + std::to_string(InvalidId - 1) + "; expected %1");
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, Expected.Kind);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Arguments, Expected.Arguments);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "call in function @main defines SSA value %" + std::to_string(InvalidId - 1) + "; expected %1");
     }
 
     // Verifies that a parameter at SSA value zero followed by an instruction result at value one remains valid.
@@ -358,7 +369,7 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       EXPECT_TRUE(Result.succeeded());
-      EXPECT_TRUE(Result.diagnostics().empty());
+      EXPECT_TRUE(Context.Diagnostics.diagnostics().empty());
     }
 
     // Verifies that a gap after an already valid instruction result reports the next missing SSA value rather than only validating the first result.
@@ -381,11 +392,11 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
       const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrNonConsecutiveSsaResult>({}, "call", "main", std::uint64_t{1}, std::uint64_t{2});
-      EXPECT_EQ(Result.diagnostics()[0].Kind, Expected.Kind);
-      EXPECT_EQ(Result.diagnostics()[0].Arguments, Expected.Arguments);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "call in function @main defines SSA value %2; expected %1");
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, Expected.Kind);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Arguments, Expected.Arguments);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "call in function @main defines SSA value %2; expected %1");
     }
 
     // Verifies the deterministic LLVM-style text form for a byte constant, extern call, and void return.
@@ -404,7 +415,7 @@ namespace ink::ir
 
       ASSERT_TRUE(Result.succeeded());
       ASSERT_TRUE(Result.module().has_value());
-      EXPECT_TRUE(Result.diagnostics().empty());
+      EXPECT_TRUE(Context.Diagnostics.diagnostics().empty());
       EXPECT_EQ(serializeSuccessfully(Context.IR, *Result.module()), HelloWorldText);
     }
 
@@ -520,11 +531,11 @@ namespace ink::ir
       DeserializeResult Result = deserialize(Context.IR, "inkir 1\n@value = private constant [2 x byte] c\"x\"\n");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
       const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrByteConstantSizeMismatch>({35, 36}, std::uint64_t{2}, std::uint64_t{1});
-      EXPECT_EQ(Result.diagnostics()[0], Expected);
-      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "declared byte constant size 2 does not match decoded string length 1");
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0], Expected);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "declared byte constant size 2 does not match decoded string length 1");
     }
 
     // Verifies that a Unicode XID_Continue-only scalar cannot begin an InkIR name.
@@ -534,8 +545,8 @@ namespace ink::ir
       DeserializeResult Result = deserialize(Context.IR, u8"inkir 1\ndefine void @\u0301name() {\nentry:\n  ret void\n}\n");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_FALSE(Result.diagnostics().empty());
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrExpectedGlobalNameAfterAt);
+      ASSERT_FALSE(Context.Diagnostics.diagnostics().empty());
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrExpectedGlobalNameAfterAt);
     }
 
     // Verifies that the InkIR lexer returns a located Core diagnostic and publishes the same value through IRContext.
@@ -547,12 +558,12 @@ namespace ink::ir
       DeserializeResult Result = deserialize(Context.IR, "inkir 1\n?");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
       const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrUnexpectedCharacter>({8, 9}, "?");
-      EXPECT_EQ(Result.diagnostics()[0], Expected);
-      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "unexpected character '?'");
-      EXPECT_EQ(Consumer.diagnostics(), Result.diagnostics());
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0], Expected);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "unexpected character '?'");
+      EXPECT_EQ(Consumer.diagnostics(), Context.Diagnostics.diagnostics());
     }
 
     // Verifies that recursive-descent failure propagates explicitly and retains the offending version token range.
@@ -562,11 +573,11 @@ namespace ink::ir
       DeserializeResult Result = deserialize(Context.IR, "inkir 2\n");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
       const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrUnsupportedFormatVersion>({6, 7}, std::uint64_t{2}, std::uint64_t{1});
-      EXPECT_EQ(Result.diagnostics()[0], Expected);
-      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "unsupported InkIR format version 2; expected 1");
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0], Expected);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "unsupported InkIR format version 2; expected 1");
     }
 
     // Verifies that unresolved external call targets are rejected during reference resolution.
@@ -576,11 +587,11 @@ namespace ink::ir
       DeserializeResult Result = deserialize(Context.IR, "inkir 1\ndefine void @main() {\nentry:\n  call void @missing()\n  ret void\n}\n");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrUnknownCallTarget);
-      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrUnknownCallTarget>({}, "missing").Arguments);
-      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "unknown call target @missing");
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrUnknownCallTarget);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrUnknownCallTarget>({}, "missing").Arguments);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "unknown call target @missing");
     }
 
     // Verifies that type annotations on global-address operands are checked against the extern signature.
@@ -595,11 +606,11 @@ namespace ink::ir
       DeserializeResult Result = deserialize(Context.IR, InvalidText);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_FALSE(Result.diagnostics().empty());
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrGlobalAddressWrongType);
-      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrGlobalAddressWrongType>({}, "main").Arguments);
-      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "global byte address in function @main must have type 'const byte*'");
+      ASSERT_FALSE(Context.Diagnostics.diagnostics().empty());
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrGlobalAddressWrongType);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrGlobalAddressWrongType>({}, "main").Arguments);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "global byte address in function @main must have type 'const byte*'");
     }
 
     // Verifies that immutable global byte storage cannot be presented as a mutable byte pointer to a native read call.
@@ -619,11 +630,11 @@ namespace ink::ir
       DeserializeResult Result = deserialize(Context.IR, InvalidText);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrGlobalAddressWrongType);
-      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrGlobalAddressWrongType>({}, "main").Arguments);
-      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::User);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "global byte address in function @main must have type 'const byte*'");
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrGlobalAddressWrongType);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrGlobalAddressWrongType>({}, "main").Arguments);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "global byte address in function @main must have type 'const byte*'");
     }
 
     // Verifies that a programmatically constructed block without a terminator is rejected and cannot be serialized.
@@ -638,16 +649,16 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Consumer.diagnostics(), Result.diagnostics());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::IrBlockMissingTerminator);
-      EXPECT_EQ(Result.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrBlockMissingTerminator>({}, "main", "entry").Arguments);
-      EXPECT_EQ(Result.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
-      EXPECT_EQ(formatMessage(Result.diagnostics()[0]), "basic block entry in function @main does not end with a terminator");
+      ASSERT_EQ(Consumer.diagnostics(), Context.Diagnostics.diagnostics());
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrBlockMissingTerminator);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Arguments, core::makeDiagnostic<core::DiagnosticKind::IrBlockMissingTerminator>({}, "main", "entry").Arguments);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
+      EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "basic block entry in function @main does not end with a terminator");
       const SerializeResult Serialized = serialize(Context.IR, ModuleValue);
       EXPECT_FALSE(Serialized.succeeded());
       EXPECT_FALSE(Serialized.text().has_value());
-      EXPECT_EQ(Serialized.diagnostics(), Result.diagnostics());
+      EXPECT_EQ(Consumer.diagnostics(), Context.Diagnostics.diagnostics());
     }
   } // namespace
 } // namespace ink::ir

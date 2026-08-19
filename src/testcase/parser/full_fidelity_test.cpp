@@ -37,7 +37,7 @@ namespace ink::parser
       const ParsedFile File = parseSource(Source);
 
       ASSERT_TRUE(File.succeeded());
-      EXPECT_TRUE(File.diagnostics().empty());
+      EXPECT_TRUE(test::testDiagnostics(File).empty());
       EXPECT_EQ(File.completeness(), ParseCompleteness::Complete);
       EXPECT_TRUE(hasKind(File, CstKind::ModuleImportDeclaration));
       EXPECT_TRUE(hasKind(File, CstKind::TopLevelBindingDeclaration));
@@ -52,7 +52,7 @@ namespace ink::parser
       const ParsedFile File = parseSource("func broken(value: i32 { ++value; return value }");
 
       ASSERT_FALSE(File.succeeded());
-      ASSERT_FALSE(File.diagnostics().empty());
+      ASSERT_FALSE(test::testDiagnostics(File).empty());
       const CstNode &Root = File.cst().node(File.cst().root());
       EXPECT_TRUE(hasFlag(Root.Flags, CstNodeFlags::HasError));
       EXPECT_TRUE(hasFlag(Root.Flags, CstNodeFlags::HasMissing));

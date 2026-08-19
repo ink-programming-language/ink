@@ -57,7 +57,7 @@ target_include_directories(ink_llvm SYSTEM INTERFACE ${LLVM_INCLUDE_DIRS} "${CMA
 target_compile_options(ink_llvm INTERFACE ${LLVM_DEFINITIONS})
 target_link_libraries(ink_llvm INTERFACE LLVMSupport)
 
-add_custom_target(ink_llvm_components DEPENDS LLVMSupport clangBasic)
+add_custom_target(ink_llvm_components DEPENDS LLVMSupport LLVMCore clangBasic)
 
 add_subdirectory(src/lib)
 add_subdirectory(src/tools)

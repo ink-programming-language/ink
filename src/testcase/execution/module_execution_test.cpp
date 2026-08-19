@@ -4,6 +4,8 @@
 #include "ink/ir/model/context.h"
 #include "ink/ir/serialization.h"
 
+#include "../diagnostic_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -24,9 +26,20 @@ namespace ink::execution
   {
     struct ModuleExecutionTestContext
     {
+        ModuleExecutionTestContext()
+        {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~ModuleExecutionTestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
+        }
+
         core::CompilationContext Compilation;
         ir::IRContext IR{Compilation};
         ExecutionContext Execution{Compilation};
+        core::CollectingDiagnosticConsumer Diagnostics;
     };
 
     std::vector<std::int32_t> RecordedModuleEvents;
@@ -278,14 +291,14 @@ namespace ink::execution
               ir::ModuleCompilationResult CompiledDependency = Session.getOrCompileModule(Dependency);
               if (CompiledDependency.Status != ir::ModuleCompilationStatus::Found)
               {
-                return ir::ModuleCompilationResult::failure(std::move(CompiledDependency.Diagnostics));
+                return ir::ModuleCompilationResult::failure();
               }
             }
           }
           ir::DeserializeResult Parsed = ir::deserialize(Session.irContext(), Found->second);
           if (!Parsed.succeeded())
           {
-            return ir::ModuleCompilationResult::failure(Parsed.diagnostics());
+            return ir::ModuleCompilationResult::failure();
           }
           return ir::ModuleCompilationResult::found(std::make_shared<ir::Module>(std::move(*Parsed.module())));
         }
@@ -914,9 +927,12 @@ namespace ink::execution
 
       ASSERT_FALSE(Initial.succeeded());
       ASSERT_FALSE(Repeated.succeeded());
-      ASSERT_EQ(Initial.diagnostics().size(), 1U);
-      EXPECT_EQ(Initial.diagnostics()[0].Kind, core::DiagnosticKind::ModuleImportCycle);
-      EXPECT_EQ(Repeated.diagnostics(), Initial.diagnostics());
+      for (const core::Diagnostic &DiagnosticEntry : Context.Diagnostics.diagnostics())
+      {
+        EXPECT_EQ(DiagnosticEntry.Kind, core::DiagnosticKind::ModuleImportCycle);
+      }
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ModuleImportCycle);
       EXPECT_EQ(RecordedModuleEvents, (std::vector<std::int32_t>{1, 2}));
     }
 
@@ -1016,8 +1032,8 @@ namespace ink::execution
       const InitializationResult Result = Engine.initialize();
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ImportedFunctionNotFound);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ImportedFunctionNotFound);
       EXPECT_EQ(Provider.requestCount(moduleName(2)), 1U);
     }
 
@@ -1057,8 +1073,8 @@ namespace ink::execution
       const InitializationResult Result = Engine.initialize();
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ImportedFunctionSignatureMismatch);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ImportedFunctionSignatureMismatch);
     }
 
     // Verifies that binding rejects an imported global declaration whose value type differs from the resolved target.
@@ -1094,8 +1110,8 @@ namespace ink::execution
       const InitializationResult Result = Engine.initialize();
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ImportedGlobalTypeMismatch);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ImportedGlobalTypeMismatch);
     }
 
     // Verifies that binding fails when an imported global names no global in the imported dependency.
@@ -1131,8 +1147,8 @@ namespace ink::execution
       const InitializationResult Result = Engine.initialize();
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ImportedGlobalNotFound);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ImportedGlobalNotFound);
     }
 
     // Verifies that a mutable imported capability cannot bind to constant dependency storage.
@@ -1168,8 +1184,8 @@ namespace ink::execution
       const InitializationResult Result = Engine.initialize();
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ImportedGlobalMutabilityMismatch);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ImportedGlobalMutabilityMismatch);
     }
 
     // Verifies that imported globals can re-export another imported global and resolve through the complete alias chain.
@@ -1283,6 +1299,7 @@ namespace ink::execution
     TEST(ModuleExecutionTest, CompilesMissingModuleOnDynamicImport)
     {
       core::CompilationContext Compilation;
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       ExecutionContext Execution(Compilation);
       TextModuleCompiler Compiler;
       Compiler.addModule(moduleName(1),
@@ -1424,14 +1441,15 @@ namespace ink::execution
       const InitializationResult Result = Engine.initialize();
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ModuleIrContextMismatch);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ModuleIrContextMismatch);
     }
 
     // Verifies that compiler diagnostics from a failed on-demand module compilation are returned without being replaced by a generic provider error.
     TEST(ModuleExecutionTest, PreservesDynamicCompilationDiagnostics)
     {
       core::CompilationContext Compilation;
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       ExecutionContext Execution(Compilation);
       TextModuleCompiler Compiler;
       Compiler.addModule(moduleName(1), "not valid InkIR");
@@ -1442,8 +1460,8 @@ namespace ink::execution
       const InitializationResult Result = Engine.initialize();
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_FALSE(Result.diagnostics().empty());
-      EXPECT_NE(Result.diagnostics()[0].Kind, core::DiagnosticKind::ModuleProviderFailed);
+      ASSERT_FALSE(Diagnostics.diagnostics().empty());
+      EXPECT_NE(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ModuleProviderFailed);
       EXPECT_EQ(Compiler.compilationCount(moduleName(1)), 1U);
     }
 
@@ -1482,8 +1500,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ImportedFunctionNotBound);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ImportedFunctionNotBound);
       EXPECT_EQ(Provider.requestCount(moduleName(2)), 0U);
     }
 
@@ -1529,15 +1547,15 @@ namespace ink::execution
 
       const InitializationResult Initial = FailedEngine.initialize();
       ASSERT_FALSE(Initial.succeeded());
-      ASSERT_EQ(Initial.diagnostics().size(), 1U);
-      EXPECT_EQ(Initial.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionNotFound);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionNotFound);
       EXPECT_EQ(RecordedModuleEvents, (std::vector<std::int32_t>{9}));
       EXPECT_EQ(LateModuleInitializerCallCount, 0U);
       ASSERT_TRUE(Context.Execution.nativeSymbols().registerSymbol("late_module_initializer", reinterpret_cast<NativeFunctionAddress>(&lateModuleInitializer)));
       const InitializationResult Repeated = FailedEngine.initialize();
 
       ASSERT_FALSE(Repeated.succeeded());
-      EXPECT_EQ(Repeated.diagnostics(), Initial.diagnostics());
+      EXPECT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
       EXPECT_EQ(RecordedModuleEvents, (std::vector<std::int32_t>{9}));
       EXPECT_EQ(LateModuleInitializerCallCount, 0U);
       ExecutionEngine FreshEngine(Context.Execution, Provider, moduleName(1));
@@ -1657,8 +1675,8 @@ namespace ink::execution
       const ShutdownResult Result = Engine.shutdown();
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionNotFound);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionNotFound);
     }
 
     // Verifies that module global storage reserves a padded struct's full stride so initializer store and entry load preserve both fields.
@@ -1849,8 +1867,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::NativeResultUnmarshalFailed);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::NativeResultUnmarshalFailed);
     }
 
     // Verifies that an immutable global is writable by its initializer but sealed before native code can return a mutable alias.
@@ -1885,8 +1903,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::NativeResultUnmarshalFailed);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::NativeResultUnmarshalFailed);
     }
 
     // Verifies that a pointer derived from a reached inline string is owned by its ModuleInstance and becomes dead without dangling after shutdown.

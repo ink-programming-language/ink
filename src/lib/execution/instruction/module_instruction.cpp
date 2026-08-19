@@ -42,7 +42,7 @@ namespace ink::execution
         addFailure<core::DiagnosticKind::ModuleGlobalReferenceInvalid>(Target->name(), TargetGlobal.value());
         return nullptr;
       }
-      if (!Runtime.resolveImportedGlobal(*Target, TargetGlobal, Target, TargetGlobal, Diagnostics))
+      if (!Runtime.resolveImportedGlobal(*Target, TargetGlobal, Target, TargetGlobal))
       {
         return nullptr;
       }
@@ -84,6 +84,6 @@ namespace ink::execution
 
   FunctionExecutor::InstructionFlow FunctionExecutor::executeImportInstruction(const ir::ImportInstruction &Import, FunctionExecutionState &State)
   {
-    return Runtime.importModule(State.Module, Import.Module, Diagnostics) ? InstructionFlow::Continue : InstructionFlow::Failed;
+    return Runtime.importModule(State.Module, Import.Module) ? InstructionFlow::Continue : InstructionFlow::Failed;
   }
 } // namespace ink::execution

@@ -23,6 +23,29 @@ namespace ink::execution
 {
   namespace
   {
+    struct ModuleLoadFailureKey
+    {
+        ModuleLoadErrorKind Kind;
+        ModuleId Module;
+        ModuleId RelatedModule;
+
+        bool operator==(const ModuleLoadFailureKey &Other) const noexcept
+        {
+          return Kind == Other.Kind && Module == Other.Module && RelatedModule == Other.RelatedModule;
+        }
+    };
+
+    struct ModuleLoadFailureKeyHash
+    {
+        std::size_t operator()(const ModuleLoadFailureKey &Key) const noexcept
+        {
+          std::size_t Result = static_cast<std::size_t>(Key.Kind);
+          Result ^= Key.Module.value() + 0x9E3779B9U + (Result << 6U) + (Result >> 2U);
+          Result ^= Key.RelatedModule.value() + 0x9E3779B9U + (Result << 6U) + (Result >> 2U);
+          return Result;
+        }
+    };
+
     bool hasValidRuntimeShape(const RuntimeValue &Value, const ir::Type &ExpectedType, const core::TargetContext &Target, std::unordered_set<const RuntimeValue *> &ValidatedValues, std::unordered_set<const RuntimeValue *> &ActiveValues)
     {
       if (&Value.type() != &ExpectedType)
@@ -207,16 +230,6 @@ namespace ink::execution
         ir::Name Name;
     };
 
-    void appendUniqueDiagnostics(std::vector<core::Diagnostic> &Destination, const std::vector<core::Diagnostic> &Source)
-    {
-      for (const core::Diagnostic &DiagnosticEntry : Source)
-      {
-        if (std::find(Destination.begin(), Destination.end(), DiagnosticEntry) == Destination.end())
-        {
-          Destination.push_back(DiagnosticEntry);
-        }
-      }
-    }
   } // namespace
 
   class ExecutionEngine::Impl final : public ModuleLifecycle, public ModuleExecutionRuntime
@@ -249,14 +262,9 @@ namespace ink::execution
         const std::vector<ModuleLoadError> Errors = Loader.shutdown();
         for (const ModuleLoadError &Error : Errors)
         {
-          const std::size_t PreviousDiagnosticCount = Result.Diagnostics.size();
-          if (Error.Module.valid())
+          if (!Error.DiagnosticReported)
           {
-            appendUniqueDiagnostics(Result.Diagnostics, moduleDiagnostics(Error.Module));
-          }
-          if (Result.Diagnostics.size() == PreviousDiagnosticCount)
-          {
-            addLoadFailure(Result.Diagnostics, Error);
+            addLoadFailure(Error);
           }
         }
         Result.Succeeded = Errors.empty();
@@ -269,14 +277,9 @@ namespace ink::execution
         const ModuleLoadResult Load = Loader.loadModule(EntryModule);
         if (!Load.succeeded())
         {
-          appendUniqueDiagnostics(Result.Diagnostics, Load.diagnostics());
-          if (Load.instance() != nullptr)
+          if (!Load.error().DiagnosticReported)
           {
-            appendUniqueDiagnostics(Result.Diagnostics, moduleDiagnostics(Load.instance()->id()));
-          }
-          if (Result.Diagnostics.empty())
-          {
-            addLoadFailure(Result.Diagnostics, Load.error());
+            addLoadFailure(Load.error());
           }
           return Result;
         }
@@ -291,14 +294,9 @@ namespace ink::execution
         const ModuleLoadResult Load = Loader.loadModule(ModuleName);
         if (!Load.succeeded())
         {
-          appendUniqueDiagnostics(Result.Diagnostics, Load.diagnostics());
-          if (Load.instance() != nullptr)
+          if (!Load.error().DiagnosticReported)
           {
-            appendUniqueDiagnostics(Result.Diagnostics, moduleDiagnostics(Load.instance()->id()));
-          }
-          if (Result.Diagnostics.empty())
-          {
-            addLoadFailure(Result.Diagnostics, Load.error());
+            addLoadFailure(Load.error());
           }
           return Result;
         }
@@ -312,17 +310,16 @@ namespace ink::execution
         InitializationResult Initialization = initialize();
         if (!Initialization.succeeded())
         {
-          Result.Diagnostics = Initialization.diagnostics();
           return Result;
         }
 
-        const std::optional<ir::FunctionId> Entry = prepareEntryInvocation(*EntryInstance, EntryName, Arguments, Result.Diagnostics);
+        const std::optional<ir::FunctionId> Entry = prepareEntryInvocation(*EntryInstance, EntryName, Arguments);
         if (!Entry.has_value())
         {
           return Result;
         }
 
-        FunctionExecutor Executor(Context, *this, *EntryInstance, Result.Diagnostics);
+        FunctionExecutor Executor(Context, *this, *EntryInstance);
         RuntimeValueRef ReturnValue = nullptr;
         if (!Executor.execute(*Entry, Arguments, ReturnValue))
         {
@@ -332,6 +329,7 @@ namespace ink::execution
         {
           return Result;
         }
+        Result.Succeeded = true;
         return Result;
       }
 
@@ -353,66 +351,57 @@ namespace ink::execution
           std::shared_ptr<NativeCallAdapter> NativeCalls;
           std::vector<std::optional<ImportedFunctionBinding>> ImportedFunctions;
           std::vector<std::optional<ImportedGlobalBinding>> ImportedGlobals;
-          std::vector<core::Diagnostic> Diagnostics;
       };
 
       template <core::DiagnosticKind Kind, typename... ArgumentTypes>
-      void addFailure(std::vector<core::Diagnostic> &Diagnostics, ArgumentTypes &&...Arguments)
+      void addFailure(ArgumentTypes &&...Arguments)
       {
         core::Diagnostic DiagnosticEntry = core::makeDiagnostic<Kind>({}, std::forward<ArgumentTypes>(Arguments)...);
         Context.diagnosticEngine().report(DiagnosticEntry);
-        Diagnostics.push_back(std::move(DiagnosticEntry));
       }
 
       ModuleLoadError prepare(ModuleInstance &Instance) noexcept override
       {
-        std::vector<core::Diagnostic> Diagnostics;
         const ir::Module &Definition = Instance.definition();
         if (Definition.context().compilationContext().targetContext() != Context.compilationContext().targetContext())
         {
-          addFailure<core::DiagnosticKind::ExecutionTargetMismatch>(Diagnostics);
-          recordModuleDiagnostics(Instance.id(), Diagnostics);
-          return ModuleLoadError::failure(ModuleLoadErrorKind::PreparationFailed, Instance.id());
+          addFailure<core::DiagnosticKind::ExecutionTargetMismatch>();
+          return ModuleLoadError::failure(ModuleLoadErrorKind::PreparationFailed, Instance.id(), {}, true);
         }
 
         if (&Definition.context() != &IRContext)
         {
-          addFailure<core::DiagnosticKind::ModuleIrContextMismatch>(Diagnostics, Instance.name());
-          recordModuleDiagnostics(Instance.id(), Diagnostics);
-          return ModuleLoadError::failure(ModuleLoadErrorKind::PreparationFailed, Instance.id());
+          addFailure<core::DiagnosticKind::ModuleIrContextMismatch>(Instance.name());
+          return ModuleLoadError::failure(ModuleLoadErrorKind::PreparationFailed, Instance.id(), {}, true);
         }
 
         ir::IRContext DiagnosticContext(Context.compilationContext());
         const ir::VerificationResult Verification = ir::verify(DiagnosticContext, Definition);
         if (!Verification.succeeded())
         {
-          Diagnostics = Verification.diagnostics();
-          recordModuleDiagnostics(Instance.id(), Diagnostics);
-          return ModuleLoadError::failure(ModuleLoadErrorKind::PreparationFailed, Instance.id());
+          return ModuleLoadError::failure(ModuleLoadErrorKind::PreparationFailed, Instance.id(), {}, true);
         }
 
         std::shared_ptr<NativeCallAdapter> NativeCalls = std::make_shared<NativeCallAdapter>(Context, Definition);
-        if (!NativeCalls->initialize(Diagnostics))
+        if (!NativeCalls->initialize())
         {
-          recordModuleData(Instance.id(), Definition.Functions.size(), Definition.Globals.size(), std::move(NativeCalls), Diagnostics);
-          return ModuleLoadError::failure(ModuleLoadErrorKind::PreparationFailed, Instance.id());
+          recordModuleData(Instance.id(), Definition.Functions.size(), Definition.Globals.size(), std::move(NativeCalls));
+          return ModuleLoadError::failure(ModuleLoadErrorKind::PreparationFailed, Instance.id(), {}, true);
         }
-        recordModuleData(Instance.id(), Definition.Functions.size(), Definition.Globals.size(), std::move(NativeCalls), {});
+        recordModuleData(Instance.id(), Definition.Functions.size(), Definition.Globals.size(), std::move(NativeCalls));
         return {};
       }
 
       ModuleLoadError initialize(ModuleLoader &, ModuleInstance &Instance) noexcept override
       {
         const ir::Module &Definition = Instance.definition();
-        std::vector<core::Diagnostic> Diagnostics;
         if (Definition.Initializer.has_value())
         {
-          FunctionExecutor Executor(Context, *this, Instance, Diagnostics);
+          FunctionExecutor Executor(Context, *this, Instance);
           RuntimeValueRef Result = nullptr;
           if (!Executor.execute(*Definition.Initializer, {}, Result))
           {
-            recordModuleDiagnostics(Instance.id(), Diagnostics);
-            return ModuleLoadError::failure(ModuleLoadErrorKind::InitializationFailed, Instance.id());
+            return ModuleLoadError::failure(ModuleLoadErrorKind::InitializationFailed, Instance.id(), {}, true);
           }
         }
         return {};
@@ -425,37 +414,30 @@ namespace ink::execution
         {
           return {};
         }
-        std::vector<core::Diagnostic> Diagnostics;
-        FunctionExecutor Executor(Context, *this, Instance, Diagnostics);
+        FunctionExecutor Executor(Context, *this, Instance);
         RuntimeValueRef Result = nullptr;
         if (!Executor.execute(*Definition.Finalizer, {}, Result))
         {
-          recordModuleDiagnostics(Instance.id(), Diagnostics);
-          return ModuleLoadError::failure(ModuleLoadErrorKind::FinalizationFailed, Instance.id());
+          return ModuleLoadError::failure(ModuleLoadErrorKind::FinalizationFailed, Instance.id(), {}, true);
         }
         return {};
       }
 
-      bool importModule(ModuleInstance &Importer, const ir::Name &Target, std::vector<core::Diagnostic> &Diagnostics) override
+      bool importModule(ModuleInstance &Importer, const ir::Name &Target) override
       {
         const ModuleLoadResult Load = Loader.importModule(Importer, Target);
-        appendUniqueDiagnostics(Diagnostics, Load.diagnostics());
         if (Load.succeeded())
         {
-          return bindImportedSymbols(Importer, Target, Load.instance()->id(), Diagnostics);
+          return bindImportedSymbols(Importer, Target, Load.instance()->id());
         }
-        if (Load.instance() != nullptr)
+        if (!Load.error().DiagnosticReported)
         {
-          appendUniqueDiagnostics(Diagnostics, moduleDiagnostics(Load.instance()->id()));
-        }
-        if (Diagnostics.empty())
-        {
-          addLoadFailure(Diagnostics, Load.error());
+          addLoadFailure(Load.error());
         }
         return false;
       }
 
-      ModuleInstance *resolveReferencedModule(ModuleInstance &Importer, ModuleId Target, std::vector<core::Diagnostic> &Diagnostics) override
+      ModuleInstance *resolveReferencedModule(ModuleInstance &Importer, ModuleId Target) override
       {
         if (!Target.valid() || Target == Importer.id())
         {
@@ -464,19 +446,19 @@ namespace ink::execution
         const std::vector<ModuleId> Dependencies = Importer.activeDependencies();
         if (std::find(Dependencies.begin(), Dependencies.end(), Target) == Dependencies.end())
         {
-          addFailure<core::DiagnosticKind::ModuleReferenceUnavailable>(Diagnostics, Loader.moduleName(Target));
+          addFailure<core::DiagnosticKind::ModuleReferenceUnavailable>(Loader.moduleName(Target));
           return nullptr;
         }
         const std::shared_ptr<ModuleInstance> Instance = Loader.findModule(Target);
         if (Instance == nullptr || Instance->state() != ModuleState::Ready)
         {
-          addFailure<core::DiagnosticKind::ModuleReferenceUnavailable>(Diagnostics, Loader.moduleName(Target));
+          addFailure<core::DiagnosticKind::ModuleReferenceUnavailable>(Loader.moduleName(Target));
           return nullptr;
         }
         return Instance.get();
       }
 
-      bool resolveImportedFunction(ModuleInstance &Importer, ir::FunctionId Import, ModuleInstance *&TargetModule, ir::FunctionId &TargetFunction, std::vector<core::Diagnostic> &Diagnostics) override
+      bool resolveImportedFunction(ModuleInstance &Importer, ir::FunctionId Import, ModuleInstance *&TargetModule, ir::FunctionId &TargetFunction) override
       {
         std::optional<ImportedFunctionBinding> Binding;
         {
@@ -491,15 +473,15 @@ namespace ink::execution
         {
           const ir::Module &Definition = Importer.definition();
           const ir::Name FunctionName = Import.valid() && Import.value() < Definition.Functions.size() ? Definition.Functions[Import.value()].Name : ir::Name{};
-          addFailure<core::DiagnosticKind::ImportedFunctionNotBound>(Diagnostics, FunctionName, Importer.name());
+          addFailure<core::DiagnosticKind::ImportedFunctionNotBound>(FunctionName, Importer.name());
           return false;
         }
-        TargetModule = resolveReferencedModule(Importer, Binding->Module, Diagnostics);
+        TargetModule = resolveReferencedModule(Importer, Binding->Module);
         TargetFunction = Binding->Function;
         return TargetModule != nullptr;
       }
 
-      bool resolveImportedGlobal(ModuleInstance &Importer, ir::GlobalId Import, ModuleInstance *&TargetModule, ir::GlobalId &TargetGlobal, std::vector<core::Diagnostic> &Diagnostics) override
+      bool resolveImportedGlobal(ModuleInstance &Importer, ir::GlobalId Import, ModuleInstance *&TargetModule, ir::GlobalId &TargetGlobal) override
       {
         std::optional<ImportedGlobalBinding> Binding;
         {
@@ -514,17 +496,17 @@ namespace ink::execution
         {
           const ir::Module &Definition = Importer.definition();
           const ir::Name GlobalName = Import.valid() && Import.value() < Definition.Globals.size() ? Definition.Globals[Import.value()].Name : ir::Name{};
-          addFailure<core::DiagnosticKind::ImportedGlobalNotBound>(Diagnostics, GlobalName, Importer.name());
+          addFailure<core::DiagnosticKind::ImportedGlobalNotBound>(GlobalName, Importer.name());
           return false;
         }
-        TargetModule = resolveReferencedModule(Importer, Binding->Module, Diagnostics);
+        TargetModule = resolveReferencedModule(Importer, Binding->Module);
         TargetGlobal = Binding->Global;
         return TargetModule != nullptr;
       }
 
-      bool bindImportedFunctions(ModuleInstance &Importer, const ir::Name &TargetName, ModuleId Target, std::vector<core::Diagnostic> &Diagnostics)
+      bool bindImportedFunctions(ModuleInstance &Importer, const ir::Name &TargetName, ModuleId Target)
       {
-        ModuleInstance *TargetInstance = resolveReferencedModule(Importer, Target, Diagnostics);
+        ModuleInstance *TargetInstance = resolveReferencedModule(Importer, Target);
         if (TargetInstance == nullptr)
         {
           return false;
@@ -542,12 +524,12 @@ namespace ink::execution
           const std::optional<ir::FunctionId> TargetFunction = TargetDefinition.findFunction(ImportedFunction.Import->Symbol);
           if (!TargetFunction.has_value() || (TargetDefinition.Initializer.has_value() && *TargetDefinition.Initializer == *TargetFunction) || (TargetDefinition.Finalizer.has_value() && *TargetDefinition.Finalizer == *TargetFunction))
           {
-            addFailure<core::DiagnosticKind::ImportedFunctionNotFound>(Diagnostics, ImportedFunction.Name, ImportedFunction.Import->Symbol, TargetName);
+            addFailure<core::DiagnosticKind::ImportedFunctionNotFound>(ImportedFunction.Name, ImportedFunction.Import->Symbol, TargetName);
             return false;
           }
           if (!sameFunctionSignature(ImportedFunction, TargetDefinition.Functions[TargetFunction->value()]))
           {
-            addFailure<core::DiagnosticKind::ImportedFunctionSignatureMismatch>(Diagnostics, ImportedFunction.Name, ImportedFunction.Import->Symbol, TargetName);
+            addFailure<core::DiagnosticKind::ImportedFunctionSignatureMismatch>(ImportedFunction.Name, ImportedFunction.Import->Symbol, TargetName);
             return false;
           }
           Bindings.push_back({FunctionIndex, {Target, *TargetFunction}});
@@ -567,14 +549,14 @@ namespace ink::execution
         }
         if (!Bound)
         {
-          addFailure<core::DiagnosticKind::ModuleLoadFailed>(Diagnostics, Importer.name());
+          addFailure<core::DiagnosticKind::ModuleLoadFailed>(Importer.name());
         }
         return Bound;
       }
 
-      bool bindImportedGlobals(ModuleInstance &Importer, const ir::Name &TargetName, ModuleId Target, std::vector<core::Diagnostic> &Diagnostics)
+      bool bindImportedGlobals(ModuleInstance &Importer, const ir::Name &TargetName, ModuleId Target)
       {
-        ModuleInstance *TargetInstance = resolveReferencedModule(Importer, Target, Diagnostics);
+        ModuleInstance *TargetInstance = resolveReferencedModule(Importer, Target);
         if (TargetInstance == nullptr)
         {
           return false;
@@ -592,18 +574,18 @@ namespace ink::execution
           const std::optional<ir::GlobalId> TargetGlobalId = TargetDefinition.findGlobal(ImportedGlobal.Import->Symbol);
           if (!TargetGlobalId.has_value())
           {
-            addFailure<core::DiagnosticKind::ImportedGlobalNotFound>(Diagnostics, ImportedGlobal.Name, ImportedGlobal.Import->Symbol, TargetName);
+            addFailure<core::DiagnosticKind::ImportedGlobalNotFound>(ImportedGlobal.Name, ImportedGlobal.Import->Symbol, TargetName);
             return false;
           }
           const ir::GlobalVariable &TargetGlobal = TargetDefinition.Globals[TargetGlobalId->value()];
           if (ImportedGlobal.ValueType != TargetGlobal.ValueType)
           {
-            addFailure<core::DiagnosticKind::ImportedGlobalTypeMismatch>(Diagnostics, ImportedGlobal.Name, ImportedGlobal.Import->Symbol, TargetName);
+            addFailure<core::DiagnosticKind::ImportedGlobalTypeMismatch>(ImportedGlobal.Name, ImportedGlobal.Import->Symbol, TargetName);
             return false;
           }
           if (ImportedGlobal.Mutable && !TargetGlobal.Mutable)
           {
-            addFailure<core::DiagnosticKind::ImportedGlobalMutabilityMismatch>(Diagnostics, ImportedGlobal.Name, ImportedGlobal.Import->Symbol, TargetName);
+            addFailure<core::DiagnosticKind::ImportedGlobalMutabilityMismatch>(ImportedGlobal.Name, ImportedGlobal.Import->Symbol, TargetName);
             return false;
           }
           Bindings.push_back({GlobalIndex, {Target, *TargetGlobalId}});
@@ -623,14 +605,14 @@ namespace ink::execution
         }
         if (!Bound)
         {
-          addFailure<core::DiagnosticKind::ModuleLoadFailed>(Diagnostics, Importer.name());
+          addFailure<core::DiagnosticKind::ModuleLoadFailed>(Importer.name());
         }
         return Bound;
       }
 
-      bool bindImportedSymbols(ModuleInstance &Importer, const ir::Name &TargetName, ModuleId Target, std::vector<core::Diagnostic> &Diagnostics)
+      bool bindImportedSymbols(ModuleInstance &Importer, const ir::Name &TargetName, ModuleId Target)
       {
-        return bindImportedFunctions(Importer, TargetName, Target, Diagnostics) && bindImportedGlobals(Importer, TargetName, Target, Diagnostics);
+        return bindImportedFunctions(Importer, TargetName, Target) && bindImportedGlobals(Importer, TargetName, Target);
       }
 
       ExternalFunctionInvoker *externalInvoker(ModuleInstance &Module) noexcept override
@@ -644,37 +626,44 @@ namespace ink::execution
         return Found->second->NativeCalls.get();
       }
 
-      void addLoadFailure(std::vector<core::Diagnostic> &Diagnostics, const ModuleLoadError &Error)
+      void addLoadFailure(const ModuleLoadError &Error)
       {
+        {
+          const std::lock_guard<std::mutex> Lock(ReportedLoadFailuresMutex);
+          if (!ReportedLoadFailures.insert({Error.Kind, Error.Module, Error.RelatedModule}).second)
+          {
+            return;
+          }
+        }
         if (!Error.Module.valid())
         {
-          addFailure<core::DiagnosticKind::ExecutionFailed>(Diagnostics);
+          addFailure<core::DiagnosticKind::ExecutionFailed>();
           return;
         }
         switch (Error.Kind)
         {
         case ModuleLoadErrorKind::ModuleNotFound:
-          addFailure<core::DiagnosticKind::ModuleNotFound>(Diagnostics, Loader.moduleName(Error.Module));
+          addFailure<core::DiagnosticKind::ModuleNotFound>(Loader.moduleName(Error.Module));
           return;
         case ModuleLoadErrorKind::ProviderFailure:
-          addFailure<core::DiagnosticKind::ModuleProviderFailed>(Diagnostics, Loader.moduleName(Error.Module));
+          addFailure<core::DiagnosticKind::ModuleProviderFailed>(Loader.moduleName(Error.Module));
           return;
         case ModuleLoadErrorKind::ModuleIdentityMismatch:
           if (Error.RelatedModule.valid())
           {
-            addFailure<core::DiagnosticKind::ModuleIdentityMismatch>(Diagnostics, Loader.moduleName(Error.Module), Loader.moduleName(Error.RelatedModule));
+            addFailure<core::DiagnosticKind::ModuleIdentityMismatch>(Loader.moduleName(Error.Module), Loader.moduleName(Error.RelatedModule));
             return;
           }
           break;
         case ModuleLoadErrorKind::CircularImport:
           if (Error.RelatedModule.valid())
           {
-            addFailure<core::DiagnosticKind::ModuleImportCycle>(Diagnostics, Loader.moduleName(Error.Module), Loader.moduleName(Error.RelatedModule));
+            addFailure<core::DiagnosticKind::ModuleImportCycle>(Loader.moduleName(Error.Module), Loader.moduleName(Error.RelatedModule));
             return;
           }
           break;
         case ModuleLoadErrorKind::ImportDepthLimitExceeded:
-          addFailure<core::DiagnosticKind::ModuleImportDepthLimitExceeded>(Diagnostics, Loader.moduleName(Error.Module), MaximumModuleImportDepth);
+          addFailure<core::DiagnosticKind::ModuleImportDepthLimitExceeded>(Loader.moduleName(Error.Module), MaximumModuleImportDepth);
           return;
         case ModuleLoadErrorKind::None:
         case ModuleLoadErrorKind::InvalidGlobalStorage:
@@ -688,10 +677,10 @@ namespace ink::execution
         case ModuleLoadErrorKind::ShutdownDuringFinalization:
           break;
         }
-        addFailure<core::DiagnosticKind::ModuleLoadFailed>(Diagnostics, Loader.moduleName(Error.Module));
+        addFailure<core::DiagnosticKind::ModuleLoadFailed>(Loader.moduleName(Error.Module));
       }
 
-      void recordModuleData(ModuleId Module, std::size_t FunctionCount, std::size_t GlobalCount, std::shared_ptr<NativeCallAdapter> NativeCalls, std::vector<core::Diagnostic> Diagnostics)
+      void recordModuleData(ModuleId Module, std::size_t FunctionCount, std::size_t GlobalCount, std::shared_ptr<NativeCallAdapter> NativeCalls)
       {
         const std::lock_guard<std::mutex> Lock(RuntimeMutex);
         std::shared_ptr<RuntimeModuleData> &Data = RuntimeModules[Module.value()];
@@ -702,58 +691,39 @@ namespace ink::execution
         Data->NativeCalls = std::move(NativeCalls);
         Data->ImportedFunctions.resize(FunctionCount);
         Data->ImportedGlobals.resize(GlobalCount);
-        Data->Diagnostics = std::move(Diagnostics);
       }
 
-      void recordModuleDiagnostics(ModuleId Module, const std::vector<core::Diagnostic> &Diagnostics)
-      {
-        const std::lock_guard<std::mutex> Lock(RuntimeMutex);
-        std::shared_ptr<RuntimeModuleData> &Data = RuntimeModules[Module.value()];
-        if (Data == nullptr)
-        {
-          Data = std::make_shared<RuntimeModuleData>();
-        }
-        Data->Diagnostics = Diagnostics;
-      }
-
-      std::vector<core::Diagnostic> moduleDiagnostics(ModuleId Module) const
-      {
-        const std::lock_guard<std::mutex> Lock(RuntimeMutex);
-        const auto Found = RuntimeModules.find(Module.value());
-        return Found == RuntimeModules.end() ? std::vector<core::Diagnostic>{} : Found->second->Diagnostics;
-      }
-
-      std::optional<ir::FunctionId> prepareEntryInvocation(ModuleInstance &Module, const ir::Name &EntryName, const std::vector<RuntimeValueRef> &Arguments, std::vector<core::Diagnostic> &Diagnostics)
+      std::optional<ir::FunctionId> prepareEntryInvocation(ModuleInstance &Module, const ir::Name &EntryName, const std::vector<RuntimeValueRef> &Arguments)
       {
         const ir::Module &Definition = Module.definition();
         const std::optional<ir::FunctionId> EntryId = Definition.findFunction(EntryName);
         if (!EntryId.has_value())
         {
-          addFailure<core::DiagnosticKind::EntryFunctionNotFound>(Diagnostics, EntryName);
+          addFailure<core::DiagnosticKind::EntryFunctionNotFound>(EntryName);
           return std::nullopt;
         }
 
         const ir::Function &Entry = Definition.Functions[EntryId->value()];
         if ((Definition.Initializer.has_value() && *Definition.Initializer == *EntryId) || (Definition.Finalizer.has_value() && *Definition.Finalizer == *EntryId))
         {
-          addFailure<core::DiagnosticKind::EntryFunctionIsModuleLifecycle>(Diagnostics, Entry.Name);
+          addFailure<core::DiagnosticKind::EntryFunctionIsModuleLifecycle>(Entry.Name);
           return std::nullopt;
         }
         if (Entry.Kind != ir::FunctionKind::Definition)
         {
-          addFailure<core::DiagnosticKind::EntryFunctionMustBeDefined>(Diagnostics, Entry.Name);
+          addFailure<core::DiagnosticKind::EntryFunctionMustBeDefined>(Entry.Name);
           return std::nullopt;
         }
 
         const RuntimeArgumentValidationResult ArgumentValidation = validateRuntimeArguments(Entry, Arguments, Context.compilationContext().targetContext());
         if (ArgumentValidation.Kind == RuntimeArgumentValidationKind::CountMismatch)
         {
-          addFailure<core::DiagnosticKind::EntryArgumentCountMismatch>(Diagnostics, Entry.Name, Entry.parameterCount(), Arguments.size());
+          addFailure<core::DiagnosticKind::EntryArgumentCountMismatch>(Entry.Name, Entry.parameterCount(), Arguments.size());
           return std::nullopt;
         }
         if (ArgumentValidation.Kind == RuntimeArgumentValidationKind::InvalidArgument)
         {
-          addFailure<core::DiagnosticKind::EntryArgumentInvalid>(Diagnostics, Entry.Name, ArgumentValidation.ArgumentIndex);
+          addFailure<core::DiagnosticKind::EntryArgumentInvalid>(Entry.Name, ArgumentValidation.ArgumentIndex);
           return std::nullopt;
         }
         return *EntryId;
@@ -763,14 +733,14 @@ namespace ink::execution
       {
         if (ReturnValue == nullptr)
         {
-          addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>(Result.Diagnostics);
+          addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>();
           return false;
         }
         std::shared_ptr<RuntimeValueArena> ResultValues = std::make_shared<RuntimeValueArena>(Context.compilationContext().targetContext());
         RuntimeValueRef StableReturnValue = ResultValues->clone(*ReturnValue);
         if (StableReturnValue == nullptr)
         {
-          addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>(Result.Diagnostics);
+          addFailure<core::DiagnosticKind::UnsupportedRuntimeValueKind>();
           return false;
         }
         Result.ValueArena = std::move(ResultValues);
@@ -784,6 +754,8 @@ namespace ink::execution
       ir::IRContext &IRContext;
       ir::Name EntryModule;
       mutable std::mutex RuntimeMutex;
+      std::mutex ReportedLoadFailuresMutex;
+      std::unordered_set<ModuleLoadFailureKey, ModuleLoadFailureKeyHash> ReportedLoadFailures;
       std::unordered_map<std::size_t, std::shared_ptr<RuntimeModuleData>> RuntimeModules;
       std::shared_ptr<ModuleInstance> EntryInstance;
       ModuleLoader Loader;
@@ -791,19 +763,15 @@ namespace ink::execution
 
   bool InitializationResult::succeeded() const noexcept
   {
-    return Succeeded && Diagnostics.empty();
-  }
-
-  const std::vector<core::Diagnostic> &InitializationResult::diagnostics() const noexcept
-  {
-    return Diagnostics;
+    return Succeeded;
   }
 
   ExecutionResult::ExecutionResult(ExecutionResult &&Other) noexcept
-      : ValueArena(std::move(Other.ValueArena)),
-        ReturnValue(Other.ReturnValue),
-        Diagnostics(std::move(Other.Diagnostics))
+      : Succeeded(Other.Succeeded),
+        ValueArena(std::move(Other.ValueArena)),
+        ReturnValue(Other.ReturnValue)
   {
+    Other.Succeeded = false;
     Other.ReturnValue = nullptr;
   }
 
@@ -811,9 +779,10 @@ namespace ink::execution
   {
     if (this != &Other)
     {
+      Succeeded = Other.Succeeded;
       ValueArena = std::move(Other.ValueArena);
       ReturnValue = Other.ReturnValue;
-      Diagnostics = std::move(Other.Diagnostics);
+      Other.Succeeded = false;
       Other.ReturnValue = nullptr;
     }
     return *this;
@@ -821,7 +790,7 @@ namespace ink::execution
 
   bool ExecutionResult::succeeded() const noexcept
   {
-    return ReturnValue != nullptr && Diagnostics.empty();
+    return Succeeded;
   }
 
   RuntimeValueRef ExecutionResult::returnValue() const & noexcept
@@ -829,19 +798,9 @@ namespace ink::execution
     return ReturnValue;
   }
 
-  const std::vector<core::Diagnostic> &ExecutionResult::diagnostics() const noexcept
-  {
-    return Diagnostics;
-  }
-
   bool ShutdownResult::succeeded() const noexcept
   {
-    return Succeeded && Diagnostics.empty();
-  }
-
-  const std::vector<core::Diagnostic> &ShutdownResult::diagnostics() const noexcept
-  {
-    return Diagnostics;
+    return Succeeded;
   }
 
   ExecutionEngine::ExecutionEngine(ExecutionContext &Context, const ir::Module &ModuleValue)

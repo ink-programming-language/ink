@@ -52,9 +52,9 @@ namespace ink::ir
           }
         }
 
-        std::vector<Diagnostic> takeDiagnostics()
+        bool empty() const noexcept
         {
-          return std::move(Diagnostics);
+          return Diagnostics.empty();
         }
 
       private:
@@ -1706,8 +1706,9 @@ namespace ink::ir
     {
       verifyFunctionBody(ModuleValue, FunctionValue, Diagnostics);
     }
+    const bool Succeeded = Diagnostics.empty();
     Diagnostics.report(Context);
-    return VerificationResult(Diagnostics.takeDiagnostics());
+    return VerificationResult(Succeeded);
   }
 
   VerificationResult verify(const Module &ModuleValue)

@@ -1,4 +1,4 @@
-#include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include "utf8_test_support.h"
 
@@ -226,7 +226,7 @@ namespace ink::tokenizer
         EXPECT_EQ(Result.tokens()[0].Span, (SourceRange{0, Spelling.size()}));
         EXPECT_EQ(Result.raw(Result.tokens()[0]), Spelling);
         EXPECT_TRUE(std::holds_alternative<std::monostate>(Result.tokens()[0].Payload));
-        EXPECT_TRUE(Result.diagnostics().empty());
+        EXPECT_TRUE(testDiagnostics(Result).empty());
         EXPECT_EQ(Result.tokens()[1].Kind, TokenKind::EndOfFile);
       }
     }
@@ -252,7 +252,7 @@ namespace ink::tokenizer
         EXPECT_EQ(Result.tokens()[0].Span, (SourceRange{0, Spelling.size()}));
         EXPECT_EQ(Result.raw(Result.tokens()[0]), Spelling);
         EXPECT_TRUE(std::holds_alternative<std::monostate>(Result.tokens()[0].Payload));
-        EXPECT_TRUE(Result.diagnostics().empty());
+        EXPECT_TRUE(testDiagnostics(Result).empty());
         EXPECT_EQ(Result.tokens()[1].Kind, TokenKind::EndOfFile);
       }
     }

@@ -6,6 +6,8 @@
 #include "ink/ir/model/parameter.h"
 #include "ink/ir/serialization.h"
 
+#include "../diagnostic_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -107,6 +109,7 @@ namespace ink::ir
     TEST(FunctionParameterVerifierTest, RejectsMalformedParameterMetadata)
     {
       core::CompilationContext Compilation;
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       IRContext Context(Compilation);
       core::CompilationContext ForeignCompilation;
       IRContext ForeignContext(ForeignCompilation);
@@ -128,10 +131,10 @@ namespace ink::ir
       const VerificationResult Result = verify(Context, ModuleValue);
 
       EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasParameterDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrInvalidFunctionParameterName));
-      EXPECT_TRUE(hasParameterDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrDuplicateFunctionParameterName));
-      EXPECT_TRUE(hasParameterDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrFunctionParameterDefaultTypeMismatch));
-      EXPECT_TRUE(hasParameterDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrConstantPoolMismatch));
+      EXPECT_TRUE(hasParameterDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrInvalidFunctionParameterName));
+      EXPECT_TRUE(hasParameterDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrDuplicateFunctionParameterName));
+      EXPECT_TRUE(hasParameterDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrFunctionParameterDefaultTypeMismatch));
+      EXPECT_TRUE(hasParameterDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrConstantPoolMismatch));
     }
 
     // Verifies that parsed defaults on every function form must match their parameter type.
@@ -145,12 +148,13 @@ namespace ink::ir
       for (const auto &Case : Cases)
       {
         core::CompilationContext Compilation;
+        ink::test::DiagnosticCapture Diagnostics(Compilation);
         IRContext Context(Compilation);
 
         const DeserializeResult Result = deserialize(Context, Case.first);
 
         EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasParameterDiagnostic(Result.diagnostics(), Case.second));
+        EXPECT_TRUE(hasParameterDiagnostic(Diagnostics.diagnostics(), Case.second));
       }
     }
 
@@ -165,12 +169,13 @@ namespace ink::ir
       for (const std::string &Text : InvalidTexts)
       {
         core::CompilationContext Compilation;
+        ink::test::DiagnosticCapture Diagnostics(Compilation);
         IRContext Context(Compilation);
 
         const DeserializeResult Result = deserialize(Context, Text);
 
         EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasParameterDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrExpected));
+        EXPECT_TRUE(hasParameterDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrExpected));
       }
     }
   } // namespace

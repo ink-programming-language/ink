@@ -1,4 +1,4 @@
-#include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include "utf8_test_support.h"
 
@@ -46,7 +46,7 @@ namespace ink::tokenizer
 
     bool hasDiagnosticKind(const TokenizedBuffer &Buffer, DiagnosticKind Kind)
     {
-      for (const Diagnostic &DiagnosticEntry : Buffer.diagnostics())
+      for (const Diagnostic &DiagnosticEntry : testDiagnostics(Buffer))
       {
         if (DiagnosticEntry.Kind == Kind)
         {
@@ -223,7 +223,7 @@ namespace ink::tokenizer
       const TokenizedBuffer Buffer = tokenize(Source);
 
       ASSERT_TRUE(Buffer.succeeded());
-      ASSERT_TRUE(Buffer.diagnostics().empty());
+      ASSERT_TRUE(testDiagnostics(Buffer).empty());
       ASSERT_EQ(Buffer.tokens().size(), 4U);
       EXPECT_EQ(Buffer.tokens()[0].Kind, TokenKind::LineComment);
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), LineComment);
@@ -254,10 +254,10 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.tokens()[1].Span.End, 6U);
       EXPECT_EQ(Buffer.tokens()[2].Kind, TokenKind::Identifier);
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[2]), "x");
-      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-      EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::LoneCarriageReturn);
-      EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 3U);
-      EXPECT_EQ(Buffer.diagnostics()[0].Span.End, 4U);
+      ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Kind, DiagnosticKind::LoneCarriageReturn);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Span.Start, 3U);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Span.End, 4U);
       EXPECT_EQ(Buffer.lineStarts(), (std::vector<std::size_t>{0, 6}));
       expectFullFidelity(Buffer);
     }
@@ -328,10 +328,10 @@ namespace ink::tokenizer
       EXPECT_EQ(LineBuffer.tokens()[1].Span.End, LineComment.size() + 1);
       EXPECT_EQ(LineBuffer.tokens()[2].Kind, TokenKind::Identifier);
       EXPECT_EQ(LineBuffer.raw(LineBuffer.tokens()[2]), "next");
-      ASSERT_EQ(LineBuffer.diagnostics().size(), 1U);
-      EXPECT_EQ(LineBuffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
-      EXPECT_EQ(LineBuffer.diagnostics()[0].Span.Start, LinePrefix.size());
-      EXPECT_EQ(LineBuffer.diagnostics()[0].Span.End, LinePrefix.size() + InvalidSequence.size());
+      ASSERT_EQ(testDiagnostics(LineBuffer).size(), 1U);
+      EXPECT_EQ(testDiagnostics(LineBuffer)[0].Kind, DiagnosticKind::InvalidUtf8);
+      EXPECT_EQ(testDiagnostics(LineBuffer)[0].Span.Start, LinePrefix.size());
+      EXPECT_EQ(testDiagnostics(LineBuffer)[0].Span.End, LinePrefix.size() + InvalidSequence.size());
       expectFullFidelity(LineBuffer);
 
       const std::string BlockPrefix = "/*before";
@@ -347,10 +347,10 @@ namespace ink::tokenizer
       EXPECT_EQ(BlockBuffer.raw(BlockBuffer.tokens()[0]), BlockComment);
       EXPECT_EQ(BlockBuffer.tokens()[1].Kind, TokenKind::Identifier);
       EXPECT_EQ(BlockBuffer.raw(BlockBuffer.tokens()[1]), "next");
-      ASSERT_EQ(BlockBuffer.diagnostics().size(), 1U);
-      EXPECT_EQ(BlockBuffer.diagnostics()[0].Kind, DiagnosticKind::InvalidUtf8);
-      EXPECT_EQ(BlockBuffer.diagnostics()[0].Span.Start, BlockPrefix.size());
-      EXPECT_EQ(BlockBuffer.diagnostics()[0].Span.End, BlockPrefix.size() + InvalidSequence.size());
+      ASSERT_EQ(testDiagnostics(BlockBuffer).size(), 1U);
+      EXPECT_EQ(testDiagnostics(BlockBuffer)[0].Kind, DiagnosticKind::InvalidUtf8);
+      EXPECT_EQ(testDiagnostics(BlockBuffer)[0].Span.Start, BlockPrefix.size());
+      EXPECT_EQ(testDiagnostics(BlockBuffer)[0].Span.End, BlockPrefix.size() + InvalidSequence.size());
       expectFullFidelity(BlockBuffer);
     }
 
@@ -456,8 +456,8 @@ namespace ink::tokenizer
       const TokenizedBuffer Buffer = tokenize("/* text");
 
       ASSERT_FALSE(Buffer.succeeded());
-      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-      const Diagnostic &DiagnosticEntry = Buffer.diagnostics().front();
+      ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+      const Diagnostic &DiagnosticEntry = testDiagnostics(Buffer).front();
       EXPECT_EQ(DiagnosticEntry.Kind, DiagnosticKind::UnterminatedBlockComment);
       EXPECT_EQ(DiagnosticEntry.Span, (core::SourceRange{0, 2}));
       ASSERT_EQ(DiagnosticEntry.Arguments.size(), 1U);
@@ -480,8 +480,8 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
       EXPECT_EQ(Buffer.tokens()[0].Span.End, Source.size());
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), Source);
-      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-      const Diagnostic &DiagnosticEntry = Buffer.diagnostics().front();
+      ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+      const Diagnostic &DiagnosticEntry = testDiagnostics(Buffer).front();
       EXPECT_EQ(DiagnosticEntry.Kind, DiagnosticKind::UnterminatedBlockComment);
       EXPECT_EQ(DiagnosticEntry.Span, (core::SourceRange{0, 2}));
       ASSERT_EQ(DiagnosticEntry.Arguments.size(), 1U);
@@ -510,22 +510,22 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), Source);
       EXPECT_EQ(Buffer.tokens()[1].Kind, TokenKind::EndOfFile);
 
-      ASSERT_EQ(Buffer.diagnostics().size(), 2U);
-      EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::BlockCommentNestingLimit);
-      EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, OverLimitOpening);
-      EXPECT_EQ(Buffer.diagnostics()[0].Span.End, OverLimitOpening + 2);
-      EXPECT_TRUE(Buffer.diagnostics()[0].Arguments.empty());
-      EXPECT_TRUE(Buffer.diagnostics()[0].Related.empty());
-      EXPECT_EQ(Buffer.diagnostics()[1].Kind, DiagnosticKind::UnterminatedBlockComment);
-      EXPECT_EQ(Buffer.diagnostics()[1].Span.Start, 0U);
-      EXPECT_EQ(Buffer.diagnostics()[1].Span.End, 2U);
-      ASSERT_EQ(Buffer.diagnostics()[1].Arguments.size(), 1U);
-      const std::uint64_t *RemainingNestingDepth = findArgumentValue<std::uint64_t>(Buffer.diagnostics()[1].Arguments, DiagnosticArgumentName::RemainingNestingDepth);
+      ASSERT_EQ(testDiagnostics(Buffer).size(), 2U);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Kind, DiagnosticKind::BlockCommentNestingLimit);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Span.Start, OverLimitOpening);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Span.End, OverLimitOpening + 2);
+      EXPECT_TRUE(testDiagnostics(Buffer)[0].Arguments.empty());
+      EXPECT_TRUE(testDiagnostics(Buffer)[0].Related.empty());
+      EXPECT_EQ(testDiagnostics(Buffer)[1].Kind, DiagnosticKind::UnterminatedBlockComment);
+      EXPECT_EQ(testDiagnostics(Buffer)[1].Span.Start, 0U);
+      EXPECT_EQ(testDiagnostics(Buffer)[1].Span.End, 2U);
+      ASSERT_EQ(testDiagnostics(Buffer)[1].Arguments.size(), 1U);
+      const std::uint64_t *RemainingNestingDepth = findArgumentValue<std::uint64_t>(testDiagnostics(Buffer)[1].Arguments, DiagnosticArgumentName::RemainingNestingDepth);
       ASSERT_NE(RemainingNestingDepth, nullptr);
       EXPECT_EQ(*RemainingNestingDepth, 3U);
-      ASSERT_EQ(Buffer.diagnostics()[1].Related.size(), 1U);
-      EXPECT_EQ(Buffer.diagnostics()[1].Related[0].Kind, DiagnosticRelatedKind::MostRecentBlockCommentOpeningUnavailable);
-      EXPECT_TRUE(Buffer.diagnostics()[1].Related[0].Arguments.empty());
+      ASSERT_EQ(testDiagnostics(Buffer)[1].Related.size(), 1U);
+      EXPECT_EQ(testDiagnostics(Buffer)[1].Related[0].Kind, DiagnosticRelatedKind::MostRecentBlockCommentOpeningUnavailable);
+      EXPECT_TRUE(testDiagnostics(Buffer)[1].Related[0].Arguments.empty());
       expectFullFidelity(Buffer);
     }
 
@@ -541,8 +541,8 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), "/**/");
       EXPECT_EQ(Buffer.tokens()[1].Kind, TokenKind::Identifier);
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), "tail");
-      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-      EXPECT_EQ(Buffer.diagnostics().front().Kind, DiagnosticKind::BlockCommentNestingLimit);
+      ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Buffer).front().Kind, DiagnosticKind::BlockCommentNestingLimit);
       expectFullFidelity(Buffer);
     }
 
@@ -558,7 +558,7 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), "/* outer /* inner */ outer */");
       EXPECT_EQ(Buffer.tokens()[1].Kind, TokenKind::Identifier);
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), "tail");
-      EXPECT_TRUE(Buffer.diagnostics().empty());
+      EXPECT_TRUE(testDiagnostics(Buffer).empty());
       expectFullFidelity(Buffer);
     }
 
@@ -574,8 +574,8 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), "/* one /* two /* three */ two */ one */");
       EXPECT_EQ(Buffer.tokens()[1].Kind, TokenKind::Identifier);
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), "tail");
-      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-      EXPECT_EQ(Buffer.diagnostics().front().Kind, DiagnosticKind::BlockCommentNestingLimit);
+      ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Buffer).front().Kind, DiagnosticKind::BlockCommentNestingLimit);
       EXPECT_TRUE(hasErrorToken(Buffer));
       expectFullFidelity(Buffer);
     }

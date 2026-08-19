@@ -1,6 +1,8 @@
+add_subdirectory(abi)
 add_subdirectory(core)
 add_subdirectory(cli)
 add_subdirectory(tokenizer)
 add_subdirectory(parser)
 add_subdirectory(ir)
+add_subdirectory(backend)
 add_subdirectory(execution)

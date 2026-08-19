@@ -1,4 +1,4 @@
-#include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include <gtest/gtest.h>
 
@@ -51,7 +51,7 @@ namespace ink::tokenizer
 
     bool hasDiagnostic(const TokenizedBuffer &File, DiagnosticKind Kind)
     {
-      return std::any_of(File.diagnostics().begin(), File.diagnostics().end(), [Kind](const Diagnostic &CurrentDiagnostic)
+      return std::any_of(testDiagnostics(File).begin(), testDiagnostics(File).end(), [Kind](const Diagnostic &CurrentDiagnostic)
                          {
                            return CurrentDiagnostic.Kind == Kind;
                          });
@@ -251,9 +251,9 @@ namespace ink::tokenizer
         ASSERT_FALSE(IndentationFile.succeeded());
         ASSERT_EQ(IndentationFile.tokens().size(), 2U);
         expectToken(IndentationFile, 0, TokenKind::InvalidStringLiteral, IndentationSource);
-        ASSERT_EQ(IndentationFile.diagnostics().size(), 1U);
-        EXPECT_EQ(IndentationFile.diagnostics().front().Kind, DiagnosticKind::InvalidMultilineIndentation);
-        EXPECT_EQ(IndentationFile.diagnostics().front().Span, (SourceRange{4, 4 + Space.size() + 7}));
+        ASSERT_EQ(testDiagnostics(IndentationFile).size(), 1U);
+        EXPECT_EQ(testDiagnostics(IndentationFile).front().Kind, DiagnosticKind::InvalidMultilineIndentation);
+        EXPECT_EQ(testDiagnostics(IndentationFile).front().Span, (SourceRange{4, 4 + Space.size() + 7}));
         expectPartition(IndentationFile);
 
         const std::string ClosingSource = "\"\"\"\n  value\n  " + Space + "\"\"\"";
@@ -261,9 +261,9 @@ namespace ink::tokenizer
         ASSERT_FALSE(ClosingFile.succeeded());
         ASSERT_EQ(ClosingFile.tokens().size(), 2U);
         expectToken(ClosingFile, 0, TokenKind::InvalidStringLiteral, ClosingSource);
-        ASSERT_EQ(ClosingFile.diagnostics().size(), 1U);
-        EXPECT_EQ(ClosingFile.diagnostics().front().Kind, DiagnosticKind::UnterminatedMultilineStringLiteral);
-        EXPECT_EQ(ClosingFile.diagnostics().front().Span, (SourceRange{0, ClosingSource.size()}));
+        ASSERT_EQ(testDiagnostics(ClosingFile).size(), 1U);
+        EXPECT_EQ(testDiagnostics(ClosingFile).front().Kind, DiagnosticKind::UnterminatedMultilineStringLiteral);
+        EXPECT_EQ(testDiagnostics(ClosingFile).front().Span, (SourceRange{0, ClosingSource.size()}));
         expectPartition(ClosingFile);
       }
     }
@@ -435,7 +435,7 @@ namespace ink::tokenizer
         ASSERT_EQ(File.tokens().size(), 2U);
         EXPECT_EQ(File.tokens().front().Kind, TokenKind::InvalidStringLiteral);
         EXPECT_EQ(File.raw(File.tokens().front()), Source);
-        ASSERT_EQ(File.diagnostics().size(), 2U);
+        ASSERT_EQ(testDiagnostics(File).size(), 2U);
         EXPECT_TRUE(hasDiagnostic(File, DiagnosticKind::MultilineOpeningLineBreakRequired));
         EXPECT_TRUE(hasDiagnostic(File, DiagnosticKind::UnterminatedMultilineStringLiteral));
         expectPartition(File);
@@ -469,9 +469,9 @@ namespace ink::tokenizer
       EXPECT_EQ(LfFile.tokens()[0].Span, (SourceRange{0, 6}));
       expectToken(LfFile, 1, TokenKind::LineBreak, "\n");
       expectToken(LfFile, 2, TokenKind::Identifier, "next");
-      ASSERT_EQ(LfFile.diagnostics().size(), 1U);
-      EXPECT_EQ(LfFile.diagnostics().front().Kind, DiagnosticKind::UnterminatedStringLiteral);
-      EXPECT_EQ(LfFile.diagnostics().front().Span, (SourceRange{0, 6}));
+      ASSERT_EQ(testDiagnostics(LfFile).size(), 1U);
+      EXPECT_EQ(testDiagnostics(LfFile).front().Kind, DiagnosticKind::UnterminatedStringLiteral);
+      EXPECT_EQ(testDiagnostics(LfFile).front().Span, (SourceRange{0, 6}));
       expectPartition(LfFile);
 
       const std::string CrlfSource = "r\"oops\r\nnext";
@@ -483,9 +483,9 @@ namespace ink::tokenizer
       EXPECT_EQ(CrlfFile.tokens()[0].Span, (SourceRange{0, 6}));
       expectToken(CrlfFile, 1, TokenKind::LineBreak, "\r\n");
       expectToken(CrlfFile, 2, TokenKind::Identifier, "next");
-      ASSERT_EQ(CrlfFile.diagnostics().size(), 1U);
-      EXPECT_EQ(CrlfFile.diagnostics().front().Kind, DiagnosticKind::UnterminatedStringLiteral);
-      EXPECT_EQ(CrlfFile.diagnostics().front().Span, (SourceRange{0, 6}));
+      ASSERT_EQ(testDiagnostics(CrlfFile).size(), 1U);
+      EXPECT_EQ(testDiagnostics(CrlfFile).front().Kind, DiagnosticKind::UnterminatedStringLiteral);
+      EXPECT_EQ(testDiagnostics(CrlfFile).front().Span, (SourceRange{0, 6}));
       expectPartition(CrlfFile);
     }
 
@@ -513,9 +513,9 @@ namespace ink::tokenizer
         ASSERT_EQ(File.tokens().size(), 2U);
         expectToken(File, 0, TokenKind::InvalidStringLiteral, Test.Source);
         EXPECT_EQ(File.tokens().front().Span, (SourceRange{0, Test.Source.size()}));
-        ASSERT_EQ(File.diagnostics().size(), 1U);
-        EXPECT_EQ(File.diagnostics().front().Kind, DiagnosticKind::LoneCarriageReturn);
-        EXPECT_EQ(File.diagnostics().front().Span, (SourceRange{Test.CarriageReturnOffset, Test.CarriageReturnOffset + 1}));
+        ASSERT_EQ(testDiagnostics(File).size(), 1U);
+        EXPECT_EQ(testDiagnostics(File).front().Kind, DiagnosticKind::LoneCarriageReturn);
+        EXPECT_EQ(testDiagnostics(File).front().Span, (SourceRange{Test.CarriageReturnOffset, Test.CarriageReturnOffset + 1}));
         EXPECT_EQ(File.lineStarts(), Test.LineStarts);
         expectPartition(File);
       }
@@ -532,9 +532,9 @@ namespace ink::tokenizer
       expectToken(File, 0, TokenKind::InvalidStringLiteral, Source);
       EXPECT_EQ(File.tokens()[0].Span, (SourceRange{0, Source.size()}));
       EXPECT_EQ(File.tokens()[1].Kind, TokenKind::EndOfFile);
-      ASSERT_EQ(File.diagnostics().size(), 1U);
-      EXPECT_EQ(File.diagnostics().front().Kind, DiagnosticKind::UnterminatedStringLiteral);
-      EXPECT_EQ(File.diagnostics().front().Span, (SourceRange{0, Source.size()}));
+      ASSERT_EQ(testDiagnostics(File).size(), 1U);
+      EXPECT_EQ(testDiagnostics(File).front().Kind, DiagnosticKind::UnterminatedStringLiteral);
+      EXPECT_EQ(testDiagnostics(File).front().Span, (SourceRange{0, Source.size()}));
       expectPartition(File);
     }
 
@@ -614,9 +614,9 @@ namespace ink::tokenizer
       EXPECT_EQ(File.tokens()[1].Span, (SourceRange{Semicolon, Semicolon + 1}));
       expectToken(File, 2, TokenKind::Identifier, "next");
       EXPECT_EQ(File.tokens()[2].Span, (SourceRange{Semicolon + 1, Source.size()}));
-      ASSERT_EQ(File.diagnostics().size(), 1U);
-      EXPECT_EQ(File.diagnostics().front().Kind, DiagnosticKind::UnknownEscape);
-      EXPECT_EQ(File.diagnostics().front().Span, (SourceRange{EscapeStart, EscapeStart + 2}));
+      ASSERT_EQ(testDiagnostics(File).size(), 1U);
+      EXPECT_EQ(testDiagnostics(File).front().Kind, DiagnosticKind::UnknownEscape);
+      EXPECT_EQ(testDiagnostics(File).front().Span, (SourceRange{EscapeStart, EscapeStart + 2}));
       expectPartition(File);
     }
 
@@ -644,9 +644,9 @@ namespace ink::tokenizer
         EXPECT_EQ(File.tokens()[0].Span, (SourceRange{0, Semicolon}));
         expectToken(File, 1, TokenKind::Symbol, ";");
         expectToken(File, 2, TokenKind::Identifier, "next");
-        ASSERT_EQ(File.diagnostics().size(), 1U);
-        EXPECT_EQ(File.diagnostics().front().Kind, DiagnosticKind::InvalidUtf8);
-        EXPECT_EQ(File.diagnostics().front().Span, (SourceRange{InvalidOffset, InvalidOffset + 1}));
+        ASSERT_EQ(testDiagnostics(File).size(), 1U);
+        EXPECT_EQ(testDiagnostics(File).front().Kind, DiagnosticKind::InvalidUtf8);
+        EXPECT_EQ(testDiagnostics(File).front().Span, (SourceRange{InvalidOffset, InvalidOffset + 1}));
         expectPartition(File);
       }
     }
@@ -679,9 +679,9 @@ namespace ink::tokenizer
         expectToken(File, 0, TokenKind::InvalidStringLiteral, Test.Source);
         EXPECT_EQ(File.tokens()[0].Span, (SourceRange{0, Test.Source.size()}));
         EXPECT_EQ(File.tokens()[1].Kind, TokenKind::EndOfFile);
-        ASSERT_EQ(File.diagnostics().size(), 1U);
-        EXPECT_EQ(File.diagnostics().front().Kind, Test.Kind);
-        EXPECT_EQ(File.diagnostics().front().Span, Test.Span);
+        ASSERT_EQ(testDiagnostics(File).size(), 1U);
+        EXPECT_EQ(testDiagnostics(File).front().Kind, Test.Kind);
+        EXPECT_EQ(testDiagnostics(File).front().Span, Test.Span);
         expectPartition(File);
       }
     }
@@ -705,9 +705,9 @@ namespace ink::tokenizer
         expectToken(File, 0, TokenKind::InvalidStringLiteral, Source);
         EXPECT_EQ(File.tokens()[0].Span, (SourceRange{0, Source.size()}));
         EXPECT_EQ(File.tokens()[1].Kind, TokenKind::EndOfFile);
-        ASSERT_EQ(File.diagnostics().size(), 1U);
-        EXPECT_EQ(File.diagnostics().front().Kind, DiagnosticKind::InvalidUnicodeScalar);
-        EXPECT_EQ(File.diagnostics().front().Span, EscapeSpan);
+        ASSERT_EQ(testDiagnostics(File).size(), 1U);
+        EXPECT_EQ(testDiagnostics(File).front().Kind, DiagnosticKind::InvalidUnicodeScalar);
+        EXPECT_EQ(testDiagnostics(File).front().Span, EscapeSpan);
         expectPartition(File);
       }
     }

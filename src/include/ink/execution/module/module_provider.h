@@ -1,14 +1,11 @@
 #ifndef INK_EXECUTION_MODULE_PROVIDER_H
 #define INK_EXECUTION_MODULE_PROVIDER_H
 
-#include "ink/core/diagnostic.h"
 #include "ink/ir/model/name.h"
 
 #include <cstdint>
 #include <memory>
 #include <utility>
-#include <vector>
-
 namespace ink::ir
 {
   class IRContext;
@@ -28,11 +25,11 @@ namespace ink::execution
   {
       ModuleProvisionStatus Status = ModuleProvisionStatus::NotFound;
       std::shared_ptr<const ir::Module> Module;
-      std::vector<core::Diagnostic> Diagnostics;
+      bool DiagnosticReported = false;
 
       static ModuleProvisionResult found(std::shared_ptr<const ir::Module> Module) noexcept
       {
-        return {ModuleProvisionStatus::Found, std::move(Module), {}};
+        return {ModuleProvisionStatus::Found, std::move(Module), false};
       }
 
       static ModuleProvisionResult notFound() noexcept
@@ -40,9 +37,9 @@ namespace ink::execution
         return {};
       }
 
-      static ModuleProvisionResult failure(std::vector<core::Diagnostic> Diagnostics = {}) noexcept
+      static ModuleProvisionResult failure(bool DiagnosticReported = false) noexcept
       {
-        return {ModuleProvisionStatus::Failed, nullptr, std::move(Diagnostics)};
+        return {ModuleProvisionStatus::Failed, nullptr, DiagnosticReported};
       }
   };
 

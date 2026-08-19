@@ -59,15 +59,16 @@ namespace ink::execution
       ModuleLoadErrorKind Kind = ModuleLoadErrorKind::None;
       ModuleId Module;
       ModuleId RelatedModule;
+      bool DiagnosticReported = false;
 
       bool failed() const noexcept
       {
         return Kind != ModuleLoadErrorKind::None;
       }
 
-      static ModuleLoadError failure(ModuleLoadErrorKind Kind, ModuleId Module, ModuleId RelatedModule = {}) noexcept
+      static ModuleLoadError failure(ModuleLoadErrorKind Kind, ModuleId Module, ModuleId RelatedModule = {}, bool DiagnosticReported = false) noexcept
       {
-        return {Kind, Module, RelatedModule};
+        return {Kind, Module, RelatedModule, DiagnosticReported};
       }
   };
 

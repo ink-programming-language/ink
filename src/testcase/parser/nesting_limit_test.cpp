@@ -170,7 +170,7 @@ namespace ink::parser
         EXPECT_TRUE(hasDiagnostic(First, core::DiagnosticKind::SyntaxNestingLimit));
         EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
         EXPECT_EQ(First.cst().children(), Second.cst().children());
-        EXPECT_EQ(First.diagnostics(), Second.diagnostics());
+        EXPECT_TRUE(test::diagnosticsEqual(First, Second));
         EXPECT_EQ(nodeText(First, First.cst().root()), TestCase.Source);
         expectFullFidelity(First);
       }
@@ -204,7 +204,7 @@ namespace ink::parser
         EXPECT_TRUE(hasDiagnostic(First, core::DiagnosticKind::SyntaxNestingLimit));
         EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
         EXPECT_EQ(First.cst().children(), Second.cst().children());
-        EXPECT_EQ(First.diagnostics(), Second.diagnostics());
+        EXPECT_TRUE(test::diagnosticsEqual(First, Second));
         EXPECT_EQ(nodeText(First, First.cst().root()), TestCase.Source);
         expectFullFidelity(First);
       }

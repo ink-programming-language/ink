@@ -63,7 +63,7 @@ namespace ink::parser
       EXPECT_EQ(First.completeness(), Second.completeness());
       EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
       EXPECT_EQ(First.cst().children(), Second.cst().children());
-      EXPECT_EQ(First.diagnostics(), Second.diagnostics());
+      EXPECT_TRUE(test::diagnosticsEqual(First, Second));
       expectFullFidelity(First);
       expectFullFidelity(Second);
     }
@@ -241,14 +241,14 @@ namespace ink::parser
       const ParsedFile Second = parseSource(Source);
 
       ASSERT_TRUE(First.succeeded());
-      EXPECT_TRUE(First.diagnostics().empty());
+      EXPECT_TRUE(test::testDiagnostics(First).empty());
       EXPECT_TRUE(hasKind(First, CstKind::ExpressionStatement));
       EXPECT_TRUE(hasKind(First, CstKind::MatchExpression));
       EXPECT_FALSE(hasKind(First, CstKind::MatchStatement));
       EXPECT_TRUE(containsRecoveredAfterDeclaration(First));
       EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
       EXPECT_EQ(First.cst().children(), Second.cst().children());
-      EXPECT_EQ(First.diagnostics(), Second.diagnostics());
+      EXPECT_TRUE(test::diagnosticsEqual(First, Second));
       expectFullFidelity(First);
       expectFullFidelity(Second);
     }
@@ -270,7 +270,7 @@ namespace ink::parser
       EXPECT_TRUE(containsRecoveredAfterDeclaration(First));
       EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
       EXPECT_EQ(First.cst().children(), Second.cst().children());
-      EXPECT_EQ(First.diagnostics(), Second.diagnostics());
+      EXPECT_TRUE(test::diagnosticsEqual(First, Second));
       expectFullFidelity(First);
       expectFullFidelity(Second);
     }

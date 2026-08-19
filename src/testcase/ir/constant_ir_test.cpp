@@ -2,6 +2,8 @@
 #include "ink/ir/ir.h"
 #include "ink/ir/serialization.h"
 
+#include "../diagnostic_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -19,25 +21,53 @@ namespace ink::ir
   {
     struct ConstantIrTestContext
     {
+        ConstantIrTestContext()
+        {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~ConstantIrTestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
+        }
+
         core::CompilationContext Compilation;
         IRContext IR{Compilation};
+        core::CollectingDiagnosticConsumer Diagnostics;
+    };
+
+    struct CapturedVerificationResult
+    {
+        VerificationResult Status;
+        std::vector<core::Diagnostic> Diagnostics;
+
+        bool succeeded() const noexcept
+        {
+          return Status.succeeded();
+        }
+
+        const std::vector<core::Diagnostic> &diagnostics() const noexcept
+        {
+          return Diagnostics;
+        }
     };
 
     void expectCanonicalRoundTrip(IRContext &Context, const std::string &Text)
     {
+      ink::test::DiagnosticCapture Diagnostics(Context.compilationContext());
       DeserializeResult Parsed = deserialize(Context, Text);
       ASSERT_TRUE(Parsed.succeeded());
       ASSERT_TRUE(Parsed.module().has_value());
-      EXPECT_TRUE(Parsed.diagnostics().empty());
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
 
       SerializeResult Serialized = serialize(Context, *Parsed.module());
       ASSERT_TRUE(Serialized.succeeded());
       ASSERT_TRUE(Serialized.text().has_value());
-      EXPECT_TRUE(Serialized.diagnostics().empty());
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
       EXPECT_EQ(*Serialized.text(), Text);
     }
 
-    VerificationResult verifyReturnedConstant(ConstantIrTestContext &Context, const Type &ResultType, const Constant &ConstantValue, std::vector<const StructType *> StructTypes = {})
+    CapturedVerificationResult verifyReturnedConstant(ConstantIrTestContext &Context, const Type &ResultType, const Constant &ConstantValue, std::vector<const StructType *> StructTypes = {})
     {
       Module ModuleValue(Context.IR);
       ModuleValue.StructTypes = std::move(StructTypes);
@@ -50,7 +80,9 @@ namespace ink::ir
       Entry.Instructions.push_back(std::move(Return));
       Main.Blocks.push_back(std::move(Entry));
       ModuleValue.Functions.push_back(std::move(Main));
-      return verify(Context.IR, ModuleValue);
+      Context.Diagnostics.clear();
+      VerificationResult Result = verify(Context.IR, ModuleValue);
+      return {Result, Context.Diagnostics.diagnostics()};
     }
 
     bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
@@ -251,10 +283,10 @@ namespace ink::ir
       ConstantPool &Pool = Context.IR.constantPool();
       const IntegerConstant &One = Pool.getIntegerConstant(I32Type, 1);
 
-      const VerificationResult FloatResult = verifyReturnedConstant(Context, I32Type, Pool.getFloatConstant(I32Type, FloatFormat::F32, 0x3F800000ULL));
-      const VerificationResult StringResult = verifyReturnedConstant(Context, I32Type, Pool.getStringConstant(I32Type, "text"));
-      const VerificationResult NullResult = verifyReturnedConstant(Context, I32Type, Pool.getNullConstant(I32Type));
-      const VerificationResult AggregateResult = verifyReturnedConstant(Context, I32Type, Pool.getAggregateConstant(I32Type, {One}));
+      const CapturedVerificationResult FloatResult = verifyReturnedConstant(Context, I32Type, Pool.getFloatConstant(I32Type, FloatFormat::F32, 0x3F800000ULL));
+      const CapturedVerificationResult StringResult = verifyReturnedConstant(Context, I32Type, Pool.getStringConstant(I32Type, "text"));
+      const CapturedVerificationResult NullResult = verifyReturnedConstant(Context, I32Type, Pool.getNullConstant(I32Type));
+      const CapturedVerificationResult AggregateResult = verifyReturnedConstant(Context, I32Type, Pool.getAggregateConstant(I32Type, {One}));
 
       EXPECT_FALSE(FloatResult.succeeded());
       EXPECT_FALSE(StringResult.succeeded());
@@ -273,8 +305,8 @@ namespace ink::ir
       const Type &F16Type = Context.IR.getType(TypeKind::F16);
       const Type &F32Type = Context.IR.getType(TypeKind::F32);
 
-      const VerificationResult FormatMismatch = verifyReturnedConstant(Context, F32Type, Context.IR.constantPool().getFloatConstant(F32Type, FloatFormat::F64, 0x3FF0000000000000ULL));
-      const VerificationResult OversizedBits = verifyReturnedConstant(Context, F16Type, Context.IR.constantPool().getFloatConstant(F16Type, FloatFormat::F16, 0x10000ULL));
+      const CapturedVerificationResult FormatMismatch = verifyReturnedConstant(Context, F32Type, Context.IR.constantPool().getFloatConstant(F32Type, FloatFormat::F64, 0x3FF0000000000000ULL));
+      const CapturedVerificationResult OversizedBits = verifyReturnedConstant(Context, F16Type, Context.IR.constantPool().getFloatConstant(F16Type, FloatFormat::F16, 0x10000ULL));
 
       EXPECT_FALSE(FormatMismatch.succeeded());
       EXPECT_FALSE(OversizedBits.succeeded());
@@ -290,7 +322,7 @@ namespace ink::ir
       const Type &I32Type = Context.IR.getType(TypeKind::I32);
       const IntegerConstant &ForeignConstant = ForeignPool.getIntegerConstant(I32Type, 5);
 
-      const VerificationResult Result = verifyReturnedConstant(Context, I32Type, ForeignConstant);
+      const CapturedVerificationResult Result = verifyReturnedConstant(Context, I32Type, ForeignConstant);
 
       EXPECT_FALSE(Result.succeeded());
       EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrConstantPoolMismatch));
@@ -314,9 +346,9 @@ namespace ink::ir
         return verifyReturnedConstant(Context, PairType, Pool.getAggregateConstant(PairType, Elements), {&PairType});
       };
 
-      const VerificationResult MissingResult = VerifyElements({I32One});
-      const VerificationResult MistypedResult = VerifyElements({ByteOne, ValidFloat});
-      const VerificationResult MalformedLeafResult = VerifyElements({I32One, MalformedFloat});
+      const CapturedVerificationResult MissingResult = VerifyElements({I32One});
+      const CapturedVerificationResult MistypedResult = VerifyElements({ByteOne, ValidFloat});
+      const CapturedVerificationResult MalformedLeafResult = VerifyElements({I32One, MalformedFloat});
 
       EXPECT_FALSE(MissingResult.succeeded());
       EXPECT_FALSE(MistypedResult.succeeded());
@@ -346,7 +378,7 @@ namespace ink::ir
         const DeserializeResult Result = deserialize(Context.IR, Text);
 
         EXPECT_FALSE(Result.succeeded()) << InvalidValue;
-        EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrFloatBitPatternWidthMismatch)) << InvalidValue;
+        EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrFloatBitPatternWidthMismatch)) << InvalidValue;
       }
     }
   } // namespace

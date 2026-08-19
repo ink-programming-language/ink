@@ -1,4 +1,4 @@
-#include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include <gtest/gtest.h>
 
@@ -61,7 +61,7 @@ namespace ink::tokenizer
 
     bool hasDiagnostic(const TokenizedBuffer &File, DiagnosticKind Kind)
     {
-      return std::any_of(File.diagnostics().begin(), File.diagnostics().end(), [Kind](const Diagnostic &CurrentDiagnostic)
+      return std::any_of(testDiagnostics(File).begin(), testDiagnostics(File).end(), [Kind](const Diagnostic &CurrentDiagnostic)
                          {
                            return CurrentDiagnostic.Kind == Kind;
                          });
@@ -193,8 +193,8 @@ namespace ink::tokenizer
       ASSERT_FALSE(Limited.succeeded());
       ASSERT_TRUE(Second.succeeded());
       EXPECT_EQ(First.tokens(), Second.tokens());
-      EXPECT_TRUE(hasDiagnostic(Limited, DiagnosticKind::BlockCommentNestingLimit));
-      EXPECT_EQ(Diagnostics.diagnostics(), Limited.diagnostics());
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, DiagnosticKind::BlockCommentNestingLimit);
       expectPartition(First);
       expectPartition(Limited);
       expectPartition(Second);
@@ -347,7 +347,7 @@ namespace ink::tokenizer
         SCOPED_TRACE(TestCase.first);
         const TokenizedBuffer File = tokenize(TestCase.first);
         ASSERT_FALSE(File.succeeded());
-        ASSERT_FALSE(File.diagnostics().empty());
+        ASSERT_FALSE(testDiagnostics(File).empty());
         ASSERT_GE(File.tokens().size(), 2u);
         EXPECT_EQ(File.tokens()[0].Kind, TestCase.second);
         EXPECT_TRUE(File.tokens()[0].isError());
@@ -448,8 +448,8 @@ namespace ink::tokenizer
       const TokenizedBuffer File = tokenize(Source);
 
       ASSERT_FALSE(File.succeeded());
-      ASSERT_FALSE(File.diagnostics().empty());
-      for (const Diagnostic &CurrentDiagnostic : File.diagnostics())
+      ASSERT_FALSE(testDiagnostics(File).empty());
+      for (const Diagnostic &CurrentDiagnostic : testDiagnostics(File))
       {
         EXPECT_LE(CurrentDiagnostic.Span.Start, CurrentDiagnostic.Span.End);
         EXPECT_LE(CurrentDiagnostic.Span.End, Source.size());
@@ -466,15 +466,15 @@ namespace ink::tokenizer
 
       ASSERT_EQ(First.succeeded(), Second.succeeded());
       ASSERT_EQ(First.tokens().size(), Second.tokens().size());
-      ASSERT_EQ(First.diagnostics().size(), Second.diagnostics().size());
+      ASSERT_EQ(testDiagnostics(First).size(), testDiagnostics(Second).size());
       for (std::size_t Index = 0; Index < First.tokens().size(); ++Index)
       {
         EXPECT_EQ(First.tokens()[Index], Second.tokens()[Index]);
         EXPECT_EQ(First.raw(First.tokens()[Index]), Second.raw(Second.tokens()[Index]));
       }
-      for (std::size_t Index = 0; Index < First.diagnostics().size(); ++Index)
+      for (std::size_t Index = 0; Index < testDiagnostics(First).size(); ++Index)
       {
-        EXPECT_EQ(First.diagnostics()[Index], Second.diagnostics()[Index]);
+        EXPECT_EQ(testDiagnostics(First)[Index], testDiagnostics(Second)[Index]);
       }
       expectPartition(First);
       expectPartition(Second);
@@ -498,7 +498,7 @@ namespace ink::tokenizer
         SCOPED_TRACE(Source);
         const TokenizedBuffer File = tokenize(Source);
         EXPECT_TRUE(File.succeeded());
-        EXPECT_TRUE(File.diagnostics().empty());
+        EXPECT_TRUE(testDiagnostics(File).empty());
         EXPECT_TRUE(std::none_of(File.tokens().begin(), File.tokens().end(), [](const Token &CurrentToken)
                                  {
                                    return CurrentToken.isError();

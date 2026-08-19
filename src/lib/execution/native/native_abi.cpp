@@ -346,7 +346,7 @@ namespace ink::execution
       {
       }
 
-      bool prepare(std::vector<core::Diagnostic> &Diagnostics)
+      bool prepare()
       {
         bool Succeeded = true;
         for (std::size_t FunctionIndex = 0; FunctionIndex < ModuleValue.Functions.size(); ++FunctionIndex)
@@ -371,7 +371,7 @@ namespace ink::execution
           HasUnsupportedType = HasUnsupportedType || Prepared->ResultType == nullptr;
           if (HasUnsupportedType || ffi_prep_cif(&Prepared->Interface, FFI_DEFAULT_ABI, static_cast<unsigned int>(Prepared->ArgumentTypes.size()), Prepared->ResultType, Prepared->ArgumentTypes.data()) != FFI_OK)
           {
-            addFailure<core::DiagnosticKind::ExternalFunctionSignatureUnsupported>(Diagnostics, FunctionValue.Name);
+            addFailure<core::DiagnosticKind::ExternalFunctionSignatureUnsupported>(FunctionValue.Name);
             Succeeded = false;
             continue;
           }
@@ -386,18 +386,18 @@ namespace ink::execution
         return Succeeded;
       }
 
-      bool invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result, std::vector<core::Diagnostic> &Diagnostics)
+      bool invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result)
       {
         const ir::Function &FunctionValue = ModuleValue.Functions[FunctionIndex];
         if (!Context.compilationContext().targetContext().isNativeAbiCompatible())
         {
-          addFailure<core::DiagnosticKind::ExternalFunctionTargetUnsupported>(Diagnostics, FunctionValue.Name);
+          addFailure<core::DiagnosticKind::ExternalFunctionTargetUnsupported>(FunctionValue.Name);
           return false;
         }
         const std::unique_ptr<PreparedFunction> &Prepared = PreparedFunctions[FunctionIndex];
         if (!Prepared)
         {
-          addFailure<core::DiagnosticKind::ExternalFunctionNotPrepared>(Diagnostics, FunctionValue.Name);
+          addFailure<core::DiagnosticKind::ExternalFunctionNotPrepared>(FunctionValue.Name);
           return false;
         }
 
@@ -406,7 +406,7 @@ namespace ink::execution
           Prepared->Address = Context.nativeSymbols().findAddress(FunctionValue.Name);
           if (Prepared->Address == nullptr)
           {
-            addFailure<core::DiagnosticKind::ExternalFunctionNotFound>(Diagnostics, FunctionValue.Name);
+            addFailure<core::DiagnosticKind::ExternalFunctionNotFound>(FunctionValue.Name);
             return false;
           }
         }
@@ -420,14 +420,14 @@ namespace ink::execution
           ffi_type *ArgumentType = Prepared->ArgumentTypes[ArgumentIndex];
           if (ArgumentType->alignment > alignof(std::max_align_t))
           {
-            addFailure<core::DiagnosticKind::NativeArgumentOveraligned>(Diagnostics, FunctionValue.Name, ArgumentIndex, ArgumentType->alignment, alignof(std::max_align_t));
+            addFailure<core::DiagnosticKind::NativeArgumentOveraligned>(FunctionValue.Name, ArgumentIndex, ArgumentType->alignment, alignof(std::max_align_t));
             return false;
           }
           ArgumentStorage.emplace_back(ArgumentType->size);
           void *ArgumentAddress = ArgumentStorage.back().data();
           if (Arguments[ArgumentIndex] == nullptr || !storeNativeValue(*Arguments[ArgumentIndex], NativeTypes, ArgumentAddress))
           {
-            addFailure<core::DiagnosticKind::NativeArgumentMarshalFailed>(Diagnostics, FunctionValue.Name, ArgumentIndex);
+            addFailure<core::DiagnosticKind::NativeArgumentMarshalFailed>(FunctionValue.Name, ArgumentIndex);
             return false;
           }
           NativeArguments.push_back(ArgumentAddress);
@@ -439,7 +439,7 @@ namespace ink::execution
         {
           if (Prepared->ResultType->alignment > alignof(std::max_align_t))
           {
-            addFailure<core::DiagnosticKind::NativeResultOveraligned>(Diagnostics, FunctionValue.Name, Prepared->ResultType->alignment, alignof(std::max_align_t));
+            addFailure<core::DiagnosticKind::NativeResultOveraligned>(FunctionValue.Name, Prepared->ResultType->alignment, alignof(std::max_align_t));
             return false;
           }
           ReturnStorage.emplace(Prepared->ResultType->size);
@@ -449,7 +449,7 @@ namespace ink::execution
         Result = loadNativeValue(*FunctionValue.ResultType, NativeTypes, ReturnStorage ? ReturnStorage->data() : nullptr, Values);
         if (Result == nullptr)
         {
-          addFailure<core::DiagnosticKind::NativeResultUnmarshalFailed>(Diagnostics, FunctionValue.Name);
+          addFailure<core::DiagnosticKind::NativeResultUnmarshalFailed>(FunctionValue.Name);
           return false;
         }
         return true;
@@ -465,11 +465,10 @@ namespace ink::execution
       };
 
       template <core::DiagnosticKind Kind, typename... ArgumentTypes>
-      void addFailure(std::vector<core::Diagnostic> &Diagnostics, ArgumentTypes &&...Arguments)
+      void addFailure(ArgumentTypes &&...Arguments)
       {
         core::Diagnostic DiagnosticEntry = core::makeDiagnostic<Kind>({}, std::forward<ArgumentTypes>(Arguments)...);
         Context.diagnosticEngine().report(DiagnosticEntry);
-        Diagnostics.push_back(std::move(DiagnosticEntry));
       }
 
       ExecutionContext &Context;
@@ -486,13 +485,13 @@ namespace ink::execution
 
   NativeCallAdapter::~NativeCallAdapter() = default;
 
-  bool NativeCallAdapter::initialize(std::vector<core::Diagnostic> &Diagnostics)
+  bool NativeCallAdapter::initialize()
   {
-    return Implementation->prepare(Diagnostics);
+    return Implementation->prepare();
   }
 
-  bool NativeCallAdapter::invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result, std::vector<core::Diagnostic> &Diagnostics)
+  bool NativeCallAdapter::invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result)
   {
-    return Implementation->invokeExternal(FunctionIndex, Arguments, Values, Result, Diagnostics);
+    return Implementation->invokeExternal(FunctionIndex, Arguments, Values, Result);
   }
 } // namespace ink::execution

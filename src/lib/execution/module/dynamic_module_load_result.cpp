@@ -4,7 +4,7 @@ namespace ink::execution
 {
   bool DynamicModuleLoadResult::succeeded() const noexcept
   {
-    return Module.valid() && Diagnostics.empty();
+    return Module.valid();
   }
 
   ModuleId DynamicModuleLoadResult::moduleId() const noexcept
@@ -12,8 +12,4 @@ namespace ink::execution
     return Module;
   }
 
-  const std::vector<core::Diagnostic> &DynamicModuleLoadResult::diagnostics() const noexcept
-  {
-    return Diagnostics;
-  }
 } // namespace ink::execution

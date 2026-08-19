@@ -5,9 +5,6 @@
 #include "ink/ir/model/context.h"
 #include "ink/ir/model/module.h"
 
-#include <utility>
-#include <vector>
-
 namespace ink::ir
 {
   class VerificationResult
@@ -15,21 +12,16 @@ namespace ink::ir
     public:
       bool succeeded() const noexcept
       {
-        return Diagnostics.empty();
-      }
-
-      const std::vector<core::Diagnostic> &diagnostics() const noexcept
-      {
-        return Diagnostics;
+        return Succeeded;
       }
 
     private:
-      explicit VerificationResult(std::vector<core::Diagnostic> Diagnostics)
-          : Diagnostics(std::move(Diagnostics))
+      explicit VerificationResult(bool Succeeded)
+          : Succeeded(Succeeded)
       {
       }
 
-      std::vector<core::Diagnostic> Diagnostics;
+      bool Succeeded;
 
       friend VerificationResult verify(IRContext &Context, const Module &ModuleValue, core::DiagnosticClass Class);
   };

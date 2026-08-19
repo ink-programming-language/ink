@@ -17,16 +17,26 @@ namespace ink::execution
   {
     struct ControlFlowExecutionTestContext
     {
-        ControlFlowExecutionTestContext() = default;
+        ControlFlowExecutionTestContext()
+        {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
 
         explicit ControlFlowExecutionTestContext(core::TargetContext Target)
             : Compilation(Target)
         {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~ControlFlowExecutionTestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
         }
 
         core::CompilationContext Compilation;
         ir::IRContext IR{Compilation};
         ExecutionContext Execution{Compilation};
+        core::CollectingDiagnosticConsumer Diagnostics;
     };
 
     ExecutionResult executeText(ControlFlowExecutionTestContext &Context, const std::string &Text, const std::vector<RuntimeValueRef> &Arguments = {})
@@ -325,8 +335,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidBranchTargetDuringExecution);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::InvalidBranchTargetDuringExecution);
     }
 
     // Verifies that removing the selected phi incoming after initialization receives the dedicated runtime diagnostic.
@@ -345,8 +355,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::PhiIncomingMismatchDuringExecution);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::PhiIncomingMismatchDuringExecution);
     }
 
     // Verifies that an add operand corrupted after module verification receives the dedicated runtime integer-operation diagnostic.
@@ -365,8 +375,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidIntegerOperationDuringExecution);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::InvalidIntegerOperationDuringExecution);
     }
 
     // Verifies that an icmp operand corrupted after module verification receives the dedicated runtime comparison diagnostic.
@@ -385,8 +395,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidComparisonDuringExecution);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::InvalidComparisonDuringExecution);
     }
 
     // Verifies that a non-terminating backedge stops at the global one-million-instruction execution limit.
@@ -405,9 +415,9 @@ namespace ink::execution
       const ExecutionResult Result = executeText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ExecutionStepLimitExceeded);
-      EXPECT_EQ(core::DiagnosticFormatter().format(Result.diagnostics()[0]).Message, "function @main exceeded the execution limit of 1000000 instructions");
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ExecutionStepLimitExceeded);
+      EXPECT_EQ(core::DiagnosticFormatter().format(Context.Diagnostics.diagnostics()[0]).Message, "function @main exceeded the execution limit of 1000000 instructions");
     }
   } // namespace
 } // namespace ink::execution

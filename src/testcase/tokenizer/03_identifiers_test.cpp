@@ -1,4 +1,4 @@
-#include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include "utf8_test_support.h"
 
@@ -82,7 +82,7 @@ namespace ink::tokenizer
 
     bool hasDiagnosticKind(const TokenizedBuffer &Buffer, DiagnosticKind Kind)
     {
-      for (const Diagnostic &DiagnosticEntry : Buffer.diagnostics())
+      for (const Diagnostic &DiagnosticEntry : testDiagnostics(Buffer))
       {
         if (DiagnosticEntry.Kind == Kind)
         {
@@ -174,7 +174,7 @@ namespace ink::tokenizer
         EXPECT_EQ(Buffer.tokens()[0].Span.End, Source.size());
         EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), Source);
         EXPECT_TRUE(std::holds_alternative<std::monostate>(Buffer.tokens()[0].Payload));
-        EXPECT_TRUE(Buffer.diagnostics().empty());
+        EXPECT_TRUE(testDiagnostics(Buffer).empty());
         expectFullFidelity(Buffer);
       }
 
@@ -192,10 +192,10 @@ namespace ink::tokenizer
         EXPECT_EQ(Buffer.tokens()[0].Span.Start, 0U);
         EXPECT_EQ(Buffer.tokens()[0].Span.End, Source.size());
         EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), Source);
-        ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvalidCharacter);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 0U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.End, Source.size());
+        ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Kind, DiagnosticKind::InvalidCharacter);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.Start, 0U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.End, Source.size());
         expectFullFidelity(Buffer);
       }
     }
@@ -225,7 +225,7 @@ namespace ink::tokenizer
         EXPECT_EQ(Continued.tokens()[0].Span.Start, 0U);
         EXPECT_EQ(Continued.tokens()[0].Span.End, ContinuedSource.size());
         EXPECT_EQ(Continued.raw(Continued.tokens()[0]), ContinuedSource);
-        EXPECT_TRUE(Continued.diagnostics().empty());
+        EXPECT_TRUE(testDiagnostics(Continued).empty());
         expectFullFidelity(Continued);
 
         const std::string InitialSource = TestCase.Scalar + "q";
@@ -240,10 +240,10 @@ namespace ink::tokenizer
         EXPECT_EQ(Initial.tokens()[1].Span.Start, TestCase.Scalar.size());
         EXPECT_EQ(Initial.tokens()[1].Span.End, InitialSource.size());
         EXPECT_EQ(Initial.raw(Initial.tokens()[1]), "q");
-        ASSERT_EQ(Initial.diagnostics().size(), 1U);
-        EXPECT_EQ(Initial.diagnostics()[0].Kind, DiagnosticKind::InvalidCharacter);
-        EXPECT_EQ(Initial.diagnostics()[0].Span.Start, 0U);
-        EXPECT_EQ(Initial.diagnostics()[0].Span.End, TestCase.Scalar.size());
+        ASSERT_EQ(testDiagnostics(Initial).size(), 1U);
+        EXPECT_EQ(testDiagnostics(Initial)[0].Kind, DiagnosticKind::InvalidCharacter);
+        EXPECT_EQ(testDiagnostics(Initial)[0].Span.Start, 0U);
+        EXPECT_EQ(testDiagnostics(Initial)[0].Span.End, TestCase.Scalar.size());
         expectFullFidelity(Initial);
       }
     }
@@ -375,7 +375,7 @@ namespace ink::tokenizer
       EXPECT_EQ(Ordered.tokens()[0].Span.Start, 0U);
       EXPECT_EQ(Ordered.tokens()[0].Span.End, CanonicallyOrdered.size());
       EXPECT_EQ(Ordered.raw(Ordered.tokens()[0]), CanonicallyOrdered);
-      EXPECT_TRUE(Ordered.diagnostics().empty());
+      EXPECT_TRUE(testDiagnostics(Ordered).empty());
       expectFullFidelity(Ordered);
 
       const std::string OutOfCanonicalOrder = utf8(u8"q\u0301\u0327");
@@ -386,10 +386,10 @@ namespace ink::tokenizer
       EXPECT_EQ(Reordered.tokens()[0].Span.Start, 0U);
       EXPECT_EQ(Reordered.tokens()[0].Span.End, OutOfCanonicalOrder.size());
       EXPECT_EQ(Reordered.raw(Reordered.tokens()[0]), OutOfCanonicalOrder);
-      ASSERT_EQ(Reordered.diagnostics().size(), 1U);
-      EXPECT_EQ(Reordered.diagnostics()[0].Kind, DiagnosticKind::IdentifierNotNfc);
-      EXPECT_EQ(Reordered.diagnostics()[0].Span.Start, 0U);
-      EXPECT_EQ(Reordered.diagnostics()[0].Span.End, OutOfCanonicalOrder.size());
+      ASSERT_EQ(testDiagnostics(Reordered).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Reordered)[0].Kind, DiagnosticKind::IdentifierNotNfc);
+      EXPECT_EQ(testDiagnostics(Reordered)[0].Span.Start, 0U);
+      EXPECT_EQ(testDiagnostics(Reordered)[0].Span.End, OutOfCanonicalOrder.size());
       expectFullFidelity(Reordered);
 
       const std::string ComposedHangul = utf8(u8"\uAC00");
@@ -400,7 +400,7 @@ namespace ink::tokenizer
       EXPECT_EQ(Composed.tokens()[0].Span.Start, 0U);
       EXPECT_EQ(Composed.tokens()[0].Span.End, ComposedHangul.size());
       EXPECT_EQ(Composed.raw(Composed.tokens()[0]), ComposedHangul);
-      EXPECT_TRUE(Composed.diagnostics().empty());
+      EXPECT_TRUE(testDiagnostics(Composed).empty());
       expectFullFidelity(Composed);
 
       const std::string DecomposedHangul = utf8(u8"\u1100\u1161");
@@ -411,10 +411,10 @@ namespace ink::tokenizer
       EXPECT_EQ(Decomposed.tokens()[0].Span.Start, 0U);
       EXPECT_EQ(Decomposed.tokens()[0].Span.End, DecomposedHangul.size());
       EXPECT_EQ(Decomposed.raw(Decomposed.tokens()[0]), DecomposedHangul);
-      ASSERT_EQ(Decomposed.diagnostics().size(), 1U);
-      EXPECT_EQ(Decomposed.diagnostics()[0].Kind, DiagnosticKind::IdentifierNotNfc);
-      EXPECT_EQ(Decomposed.diagnostics()[0].Span.Start, 0U);
-      EXPECT_EQ(Decomposed.diagnostics()[0].Span.End, DecomposedHangul.size());
+      ASSERT_EQ(testDiagnostics(Decomposed).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Decomposed)[0].Kind, DiagnosticKind::IdentifierNotNfc);
+      EXPECT_EQ(testDiagnostics(Decomposed)[0].Span.Start, 0U);
+      EXPECT_EQ(testDiagnostics(Decomposed)[0].Span.End, DecomposedHangul.size());
       expectFullFidelity(Decomposed);
     }
 
@@ -466,65 +466,65 @@ namespace ink::tokenizer
         ASSERT_TRUE(hasDiagnosticKind(Buffer, DiagnosticKind::InvisibleCharacterInContext));
         const std::size_t ExpectedStart = TestCase.Source.find(TestCase.Invisible);
         ASSERT_NE(ExpectedStart, std::string::npos);
-        ASSERT_EQ(Buffer.diagnostics().size(), 1U);
+        ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
         const std::vector<RelatedCharacterExpectation> ExpectedRelated = {
             {DiagnosticRelatedKind::PreviousVisibleCharacter, {0, 1}, U'a'},
             {DiagnosticRelatedKind::NextVisibleCharacter, {ExpectedStart + TestCase.Invisible.size(), ExpectedStart + TestCase.Invisible.size() + 1}, U'b'},
         };
-        expectInvisibleDiagnostic(Buffer.diagnostics().front(), {ExpectedStart, ExpectedStart + TestCase.Invisible.size()}, TestCase.ExpectedCharacter, TestCase.ExpectedContext, ExpectedRelated);
+        expectInvisibleDiagnostic(testDiagnostics(Buffer).front(), {ExpectedStart, ExpectedStart + TestCase.Invisible.size()}, TestCase.ExpectedCharacter, TestCase.ExpectedContext, ExpectedRelated);
         expectFullFidelity(Buffer);
       }
 
       const std::string StandaloneSource = utf8(u8"\u00AD");
       const TokenizedBuffer Standalone = tokenize(StandaloneSource);
       ASSERT_FALSE(Standalone.succeeded());
-      ASSERT_EQ(Standalone.diagnostics().size(), 1U);
-      expectInvisibleDiagnostic(Standalone.diagnostics().front(), {0, StandaloneSource.size()}, U'\u00AD', DiagnosticSourceContext::SourceText, {});
+      ASSERT_EQ(testDiagnostics(Standalone).size(), 1U);
+      expectInvisibleDiagnostic(testDiagnostics(Standalone).front(), {0, StandaloneSource.size()}, U'\u00AD', DiagnosticSourceContext::SourceText, {});
       expectFullFidelity(Standalone);
 
       const TokenizedBuffer AfterSpace = tokenize(utf8(u8" \u00ADa"));
       ASSERT_FALSE(AfterSpace.succeeded());
-      ASSERT_EQ(AfterSpace.diagnostics().size(), 1U);
-      EXPECT_EQ(AfterSpace.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
-      EXPECT_EQ(AfterSpace.diagnostics()[0].Span.Start, 1U);
-      EXPECT_EQ(AfterSpace.diagnostics()[0].Span.End, 3U);
+      ASSERT_EQ(testDiagnostics(AfterSpace).size(), 1U);
+      EXPECT_EQ(testDiagnostics(AfterSpace)[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
+      EXPECT_EQ(testDiagnostics(AfterSpace)[0].Span.Start, 1U);
+      EXPECT_EQ(testDiagnostics(AfterSpace)[0].Span.End, 3U);
       const std::vector<RelatedCharacterExpectation> AfterSpaceRelated = {
           {DiagnosticRelatedKind::NextVisibleCharacter, {3, 4}, U'a'},
       };
-      expectInvisibleDiagnostic(AfterSpace.diagnostics()[0], {1, 3}, U'\u00AD', DiagnosticSourceContext::SourceText, AfterSpaceRelated);
+      expectInvisibleDiagnostic(testDiagnostics(AfterSpace)[0], {1, 3}, U'\u00AD', DiagnosticSourceContext::SourceText, AfterSpaceRelated);
       expectFullFidelity(AfterSpace);
 
       const TokenizedBuffer Trailing = tokenize(utf8(u8"a\u200C"));
       ASSERT_FALSE(Trailing.succeeded());
       ASSERT_EQ(Trailing.tokens().size(), 2U);
       EXPECT_EQ(Trailing.tokens()[0].Kind, TokenKind::InvalidIdentifier);
-      ASSERT_EQ(Trailing.diagnostics().size(), 1U);
-      EXPECT_EQ(Trailing.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
-      EXPECT_EQ(Trailing.diagnostics()[0].Span.Start, 1U);
-      EXPECT_EQ(Trailing.diagnostics()[0].Span.End, 4U);
+      ASSERT_EQ(testDiagnostics(Trailing).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Trailing)[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
+      EXPECT_EQ(testDiagnostics(Trailing)[0].Span.Start, 1U);
+      EXPECT_EQ(testDiagnostics(Trailing)[0].Span.End, 4U);
       const std::vector<RelatedCharacterExpectation> TrailingRelated = {
           {DiagnosticRelatedKind::PreviousVisibleCharacter, {0, 1}, U'a'},
       };
-      expectInvisibleDiagnostic(Trailing.diagnostics()[0], {1, 4}, U'\u200C', DiagnosticSourceContext::Identifier, TrailingRelated);
+      expectInvisibleDiagnostic(testDiagnostics(Trailing)[0], {1, 4}, U'\u200C', DiagnosticSourceContext::Identifier, TrailingRelated);
       expectFullFidelity(Trailing);
 
       const TokenizedBuffer Consecutive = tokenize(utf8(u8"a\u200C\u200Db"));
       ASSERT_FALSE(Consecutive.succeeded());
       ASSERT_EQ(Consecutive.tokens().size(), 2U);
       EXPECT_EQ(Consecutive.tokens()[0].Kind, TokenKind::InvalidIdentifier);
-      ASSERT_EQ(Consecutive.diagnostics().size(), 2U);
-      EXPECT_EQ(Consecutive.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
-      EXPECT_EQ(Consecutive.diagnostics()[0].Span.Start, 1U);
-      EXPECT_EQ(Consecutive.diagnostics()[0].Span.End, 4U);
-      EXPECT_EQ(Consecutive.diagnostics()[1].Kind, DiagnosticKind::InvisibleCharacterInContext);
-      EXPECT_EQ(Consecutive.diagnostics()[1].Span.Start, 4U);
-      EXPECT_EQ(Consecutive.diagnostics()[1].Span.End, 7U);
+      ASSERT_EQ(testDiagnostics(Consecutive).size(), 2U);
+      EXPECT_EQ(testDiagnostics(Consecutive)[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
+      EXPECT_EQ(testDiagnostics(Consecutive)[0].Span.Start, 1U);
+      EXPECT_EQ(testDiagnostics(Consecutive)[0].Span.End, 4U);
+      EXPECT_EQ(testDiagnostics(Consecutive)[1].Kind, DiagnosticKind::InvisibleCharacterInContext);
+      EXPECT_EQ(testDiagnostics(Consecutive)[1].Span.Start, 4U);
+      EXPECT_EQ(testDiagnostics(Consecutive)[1].Span.End, 7U);
       const std::vector<RelatedCharacterExpectation> ConsecutiveRelated = {
           {DiagnosticRelatedKind::PreviousVisibleCharacter, {0, 1}, U'a'},
           {DiagnosticRelatedKind::NextVisibleCharacter, {7, 8}, U'b'},
       };
-      expectInvisibleDiagnostic(Consecutive.diagnostics()[0], {1, 4}, U'\u200C', DiagnosticSourceContext::Identifier, ConsecutiveRelated);
-      expectInvisibleDiagnostic(Consecutive.diagnostics()[1], {4, 7}, U'\u200D', DiagnosticSourceContext::Identifier, ConsecutiveRelated);
+      expectInvisibleDiagnostic(testDiagnostics(Consecutive)[0], {1, 4}, U'\u200C', DiagnosticSourceContext::Identifier, ConsecutiveRelated);
+      expectInvisibleDiagnostic(testDiagnostics(Consecutive)[1], {4, 7}, U'\u200D', DiagnosticSourceContext::Identifier, ConsecutiveRelated);
       expectFullFidelity(Consecutive);
     }
 
@@ -558,10 +558,10 @@ namespace ink::tokenizer
         EXPECT_EQ(Buffer.raw(Buffer.tokens()[0]), TestCase.Source);
         const std::size_t InvisibleStart = TestCase.Source.find(TestCase.Invisible);
         ASSERT_NE(InvisibleStart, std::string::npos);
-        ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-        EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, InvisibleStart);
-        EXPECT_EQ(Buffer.diagnostics()[0].Span.End, InvisibleStart + TestCase.Invisible.size());
+        ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.Start, InvisibleStart);
+        EXPECT_EQ(testDiagnostics(Buffer)[0].Span.End, InvisibleStart + TestCase.Invisible.size());
         std::vector<RelatedCharacterExpectation> ExpectedRelated;
         if (TestCase.PreviousCharacter != U'\0')
         {
@@ -572,7 +572,7 @@ namespace ink::tokenizer
           const std::size_t NextStart = InvisibleStart + TestCase.Invisible.size();
           ExpectedRelated.push_back({DiagnosticRelatedKind::NextVisibleCharacter, {NextStart, NextStart + 1}, TestCase.NextCharacter});
         }
-        expectInvisibleDiagnostic(Buffer.diagnostics()[0], {InvisibleStart, InvisibleStart + TestCase.Invisible.size()}, TestCase.ExpectedCharacter, DiagnosticSourceContext::Identifier, ExpectedRelated);
+        expectInvisibleDiagnostic(testDiagnostics(Buffer)[0], {InvisibleStart, InvisibleStart + TestCase.Invisible.size()}, TestCase.ExpectedCharacter, DiagnosticSourceContext::Identifier, ExpectedRelated);
         expectFullFidelity(Buffer);
       }
     }
@@ -598,15 +598,15 @@ namespace ink::tokenizer
       EXPECT_EQ(Buffer.tokens()[2].Span.Start, 1U + Isolate.size());
       EXPECT_EQ(Buffer.tokens()[2].Span.End, Source.size());
       EXPECT_EQ(Buffer.raw(Buffer.tokens()[2]), "b");
-      ASSERT_EQ(Buffer.diagnostics().size(), 1U);
-      EXPECT_EQ(Buffer.diagnostics()[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
-      EXPECT_EQ(Buffer.diagnostics()[0].Span.Start, 1U);
-      EXPECT_EQ(Buffer.diagnostics()[0].Span.End, 1U + Isolate.size());
+      ASSERT_EQ(testDiagnostics(Buffer).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Kind, DiagnosticKind::InvisibleCharacterInContext);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Span.Start, 1U);
+      EXPECT_EQ(testDiagnostics(Buffer)[0].Span.End, 1U + Isolate.size());
       const std::vector<RelatedCharacterExpectation> ExpectedRelated = {
           {DiagnosticRelatedKind::PreviousVisibleCharacter, {0, 1}, U'a'},
           {DiagnosticRelatedKind::NextVisibleCharacter, {1 + Isolate.size(), 2 + Isolate.size()}, U'b'},
       };
-      expectInvisibleDiagnostic(Buffer.diagnostics()[0], {1, 1 + Isolate.size()}, U'\u2066', DiagnosticSourceContext::SourceText, ExpectedRelated);
+      expectInvisibleDiagnostic(testDiagnostics(Buffer)[0], {1, 1 + Isolate.size()}, U'\u2066', DiagnosticSourceContext::SourceText, ExpectedRelated);
       expectFullFidelity(Buffer);
     }
 

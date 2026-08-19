@@ -25,7 +25,7 @@ namespace ink::parser
       SCOPED_TRACE(TestCase.Name);
       const ParsedFile File = parseSource(TestCase.Source);
       ASSERT_TRUE(File.succeeded());
-      EXPECT_TRUE(File.diagnostics().empty());
+      EXPECT_TRUE(test::testDiagnostics(File).empty());
       EXPECT_EQ(File.completeness(), ParseCompleteness::Complete);
       for (CstKind Kind : TestCase.ExpectedKinds)
       {

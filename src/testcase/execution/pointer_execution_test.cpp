@@ -11,6 +11,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace ink::execution
 {
@@ -18,16 +19,26 @@ namespace ink::execution
   {
     struct PointerExecutionTestContext
     {
-        PointerExecutionTestContext() = default;
+        PointerExecutionTestContext()
+        {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
 
         explicit PointerExecutionTestContext(core::TargetContext Target)
             : Compilation(Target)
         {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~PointerExecutionTestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
         }
 
         core::CompilationContext Compilation;
         ir::IRContext IR{Compilation};
         ExecutionContext Execution{Compilation};
+        core::CollectingDiagnosticConsumer Diagnostics;
     };
 
     ExecutionResult executePointerText(PointerExecutionTestContext &Context, const std::string &Text)
@@ -425,8 +436,8 @@ namespace ink::execution
       const ExecutionResult Result = executePointerText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessOutOfBounds);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessOutOfBounds);
     }
 
     // Verifies that GEP rejects an element-stride multiplication that overflows the configured 64-bit target address width.
@@ -446,8 +457,8 @@ namespace ink::execution
       const ExecutionResult Result = executePointerText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAddressOverflow);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAddressOverflow);
     }
 
     // Verifies that GEP rejects overflow when a struct field offset is added to an already maximally offset tracked pointer.
@@ -469,8 +480,8 @@ namespace ink::execution
       const ExecutionResult Result = executePointerText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAddressOverflow);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAddressOverflow);
     }
 
     // Verifies that execution rejects a GEP root index whose declared type is corrupted after module verification.
@@ -498,8 +509,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidRuntimeMemoryValue);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::InvalidRuntimeMemoryValue);
     }
 
     // Verifies that execution rejects a ptrsize-typed GEP operand if module corruption makes it resolve to a byte-typed runtime SSA value.
@@ -528,8 +539,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::InvalidRuntimeMemoryValue);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::InvalidRuntimeMemoryValue);
     }
 
     // Verifies that recursively loading a struct reports an invalid representation when an embedded bool byte is not zero or one.
@@ -553,8 +564,8 @@ namespace ink::execution
       const ExecutionResult Result = executePointerText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryInvalidRepresentation);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryInvalidRepresentation);
     }
 
     // Verifies that typed load rejects an untracked raw pointer produced from null-pointer arithmetic instead of dereferencing host address one.
@@ -573,8 +584,8 @@ namespace ink::execution
       const ExecutionResult Result = executePointerText(Context, Text);
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessRequiresTrackedPointer);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessRequiresTrackedPointer);
     }
 
     // Verifies that GEP cannot turn an untracked native entry pointer into a loadable or writable pointer and that a rejected store leaves host memory unchanged.
@@ -605,14 +616,16 @@ namespace ink::execution
       ASSERT_NE(Pointer, nullptr);
 
       const ExecutionResult LoadResult = Engine.execute("read", {Pointer});
+      const std::vector<core::Diagnostic> LoadDiagnostics = Context.Diagnostics.diagnostics();
+      Context.Diagnostics.clear();
       const ExecutionResult StoreResult = Engine.execute("write", {Pointer});
 
       ASSERT_FALSE(LoadResult.succeeded());
-      ASSERT_EQ(LoadResult.diagnostics().size(), 1u);
-      EXPECT_EQ(LoadResult.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessRequiresTrackedPointer);
+      ASSERT_EQ(LoadDiagnostics.size(), 1u);
+      EXPECT_EQ(LoadDiagnostics[0].Kind, core::DiagnosticKind::MemoryAccessRequiresTrackedPointer);
       ASSERT_FALSE(StoreResult.succeeded());
-      ASSERT_EQ(StoreResult.diagnostics().size(), 1u);
-      EXPECT_EQ(StoreResult.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessRequiresTrackedPointer);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::MemoryAccessRequiresTrackedPointer);
       EXPECT_EQ(Byte, 19);
     }
   } // namespace

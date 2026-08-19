@@ -4,6 +4,8 @@
 #include "ink/ir/model/operand.h"
 #include "ink/ir/serialization.h"
 
+#include "../diagnostic_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -14,6 +16,7 @@
 #include <string_view>
 #include <utility>
 #include <variant>
+#include <vector>
 
 namespace ink::execution
 {
@@ -21,9 +24,20 @@ namespace ink::execution
   {
     struct TestContext
     {
+        TestContext()
+        {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~TestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
+        }
+
         core::CompilationContext Compilation;
         ir::IRContext IR{Compilation};
         ExecutionContext Execution{Compilation};
+        core::CollectingDiagnosticConsumer Diagnostics;
     };
 
     std::string CapturedOutput;
@@ -666,8 +680,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("ignore", {&Argument});
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::EntryArgumentInvalid);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::EntryArgumentInvalid);
     }
 
     // Verifies that parameter SSA value zero and the immediately following instruction result at value one map directly to consecutive frame indices.
@@ -740,28 +754,30 @@ namespace ink::execution
       RuntimeValueArena Arguments;
 
       const ExecutionResult WrongCount = Engine.execute("identity");
+      const std::vector<core::Diagnostic> WrongCountDiagnostics = Context.Diagnostics.diagnostics();
+      Context.Diagnostics.clear();
       const ExecutionResult WrongType = Engine.execute("identity", {Arguments.integerValue(Context.IR.getType(ir::TypeKind::Byte), 1)});
 
       ASSERT_FALSE(WrongCount.succeeded());
-      ASSERT_EQ(WrongCount.diagnostics().size(), 1u);
-      const core::Diagnostic &WrongCountDiagnostic = WrongCount.diagnostics()[0];
+      ASSERT_EQ(WrongCountDiagnostics.size(), 1u);
+      const core::Diagnostic &WrongCountDiagnostic = WrongCountDiagnostics[0];
       EXPECT_EQ(WrongCountDiagnostic.Kind, core::DiagnosticKind::EntryArgumentCountMismatch);
       EXPECT_EQ(WrongCountDiagnostic.classification(), core::DiagnosticClass::User);
       ASSERT_EQ(WrongCountDiagnostic.Arguments.size(), 3u);
       expectStringArgument(WrongCountDiagnostic, 0, core::DiagnosticArgumentName::FunctionName, "identity");
       expectUnsignedArgument(WrongCountDiagnostic, 1, core::DiagnosticArgumentName::ExpectedCount, 1);
       expectUnsignedArgument(WrongCountDiagnostic, 2, core::DiagnosticArgumentName::ActualCount, 0);
-      EXPECT_EQ(executionMessage(WrongCount.diagnostics()), "entry function @identity received 0 arguments; expected 1");
+      EXPECT_EQ(executionMessage(WrongCountDiagnostics), "entry function @identity received 0 arguments; expected 1");
 
       ASSERT_FALSE(WrongType.succeeded());
-      ASSERT_EQ(WrongType.diagnostics().size(), 1u);
-      const core::Diagnostic &WrongTypeDiagnostic = WrongType.diagnostics()[0];
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      const core::Diagnostic &WrongTypeDiagnostic = Context.Diagnostics.diagnostics()[0];
       EXPECT_EQ(WrongTypeDiagnostic.Kind, core::DiagnosticKind::EntryArgumentInvalid);
       EXPECT_EQ(WrongTypeDiagnostic.classification(), core::DiagnosticClass::User);
       ASSERT_EQ(WrongTypeDiagnostic.Arguments.size(), 2u);
       expectStringArgument(WrongTypeDiagnostic, 0, core::DiagnosticArgumentName::FunctionName, "identity");
       expectUnsignedArgument(WrongTypeDiagnostic, 1, core::DiagnosticArgumentName::ArgumentIndex, 0);
-      EXPECT_EQ(executionMessage(WrongType.diagnostics()), "argument 0 of entry function @identity has the wrong type or runtime shape");
+      EXPECT_EQ(executionMessage(Context.Diagnostics.diagnostics()), "argument 0 of entry function @identity has the wrong type or runtime shape");
     }
 
     // Verifies that zeroinitializer recursively constructs nested struct fields that can be extracted one aggregate level at a time.
@@ -818,7 +834,7 @@ namespace ink::execution
         return Engine.execute("echo", {Argument});
       }();
 
-      ASSERT_TRUE(Result.succeeded()) << (Result.diagnostics().empty() ? std::string() : executionMessage(Result.diagnostics()));
+      ASSERT_TRUE(Result.succeeded()) << (Context.Diagnostics.diagnostics().empty() ? std::string() : executionMessage(Context.Diagnostics.diagnostics()));
       ASSERT_NE(Result.returnValue(), nullptr);
       ASSERT_EQ(Result.returnValue()->fieldCount(), 2u);
       EXPECT_EQ(Result.returnValue()->field(0)->integer(), 7u);
@@ -852,7 +868,7 @@ namespace ink::execution
         return Engine.execute("replace_second", {Pair});
       }();
 
-      ASSERT_TRUE(Result.succeeded()) << (Result.diagnostics().empty() ? std::string() : executionMessage(Result.diagnostics()));
+      ASSERT_TRUE(Result.succeeded()) << (Context.Diagnostics.diagnostics().empty() ? std::string() : executionMessage(Context.Diagnostics.diagnostics()));
       ASSERT_NE(Result.returnValue(), nullptr);
       ASSERT_EQ(Result.returnValue()->fieldCount(), 2u);
       EXPECT_EQ(Result.returnValue()->field(0)->integer(), 7u);
@@ -882,14 +898,14 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("echo", {Malformed});
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      const core::Diagnostic &DiagnosticEntry = Result.diagnostics()[0];
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      const core::Diagnostic &DiagnosticEntry = Context.Diagnostics.diagnostics()[0];
       EXPECT_EQ(DiagnosticEntry.Kind, core::DiagnosticKind::EntryArgumentInvalid);
       EXPECT_EQ(DiagnosticEntry.classification(), core::DiagnosticClass::User);
       ASSERT_EQ(DiagnosticEntry.Arguments.size(), 2u);
       expectStringArgument(DiagnosticEntry, 0, core::DiagnosticArgumentName::FunctionName, "echo");
       expectUnsignedArgument(DiagnosticEntry, 1, core::DiagnosticArgumentName::ArgumentIndex, 0);
-      EXPECT_EQ(executionMessage(Result.diagnostics()), "argument 0 of entry function @echo has the wrong type or runtime shape");
+      EXPECT_EQ(executionMessage(Context.Diagnostics.diagnostics()), "argument 0 of entry function @echo has the wrong type or runtime shape");
     }
 
     // Verifies that struct SSA construction and extraction cross a real libffi by-value argument and result boundary with platform ABI layout.
@@ -915,7 +931,7 @@ namespace ink::execution
 
       const ExecutionResult Result = Engine.execute("main");
 
-      ASSERT_TRUE(Result.succeeded()) << (Result.diagnostics().empty() ? std::string() : executionMessage(Result.diagnostics()));
+      ASSERT_TRUE(Result.succeeded()) << (Context.Diagnostics.diagnostics().empty() ? std::string() : executionMessage(Context.Diagnostics.diagnostics()));
       ASSERT_NE(Result.returnValue(), nullptr);
       EXPECT_EQ(&Result.returnValue()->type(), &Context.IR.getType(ir::TypeKind::I32));
       EXPECT_EQ(Result.returnValue()->integer(), 42u);
@@ -931,13 +947,13 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("missing");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      const core::Diagnostic &DiagnosticEntry = Result.diagnostics()[0];
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      const core::Diagnostic &DiagnosticEntry = Context.Diagnostics.diagnostics()[0];
       EXPECT_EQ(DiagnosticEntry.Kind, core::DiagnosticKind::EntryFunctionNotFound);
       EXPECT_EQ(DiagnosticEntry.classification(), core::DiagnosticClass::User);
       ASSERT_EQ(DiagnosticEntry.Arguments.size(), 1u);
       expectStringArgument(DiagnosticEntry, 0, core::DiagnosticArgumentName::FunctionName, "missing");
-      EXPECT_EQ(executionMessage(Result.diagnostics()), "entry function @missing does not exist");
+      EXPECT_EQ(executionMessage(Context.Diagnostics.diagnostics()), "entry function @missing does not exist");
     }
 
     // Verifies that a resolved extern cannot be selected as the interpreter entry because it has no InkIR body.
@@ -951,13 +967,13 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("capture_output");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      const core::Diagnostic &DiagnosticEntry = Result.diagnostics()[0];
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      const core::Diagnostic &DiagnosticEntry = Context.Diagnostics.diagnostics()[0];
       EXPECT_EQ(DiagnosticEntry.Kind, core::DiagnosticKind::EntryFunctionMustBeDefined);
       EXPECT_EQ(DiagnosticEntry.classification(), core::DiagnosticClass::User);
       ASSERT_EQ(DiagnosticEntry.Arguments.size(), 1u);
       expectStringArgument(DiagnosticEntry, 0, core::DiagnosticArgumentName::FunctionName, "capture_output");
-      EXPECT_EQ(executionMessage(Result.diagnostics()), "entry function @capture_output must be defined in InkIR");
+      EXPECT_EQ(executionMessage(Context.Diagnostics.diagnostics()), "entry function @capture_output must be defined in InkIR");
     }
 
     // Verifies that recursive InkIR calls stop at the engine depth limit and report the active function rather than overflowing the host stack.
@@ -970,14 +986,14 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("recurse");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      const core::Diagnostic &DiagnosticEntry = Result.diagnostics()[0];
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      const core::Diagnostic &DiagnosticEntry = Context.Diagnostics.diagnostics()[0];
       EXPECT_EQ(DiagnosticEntry.Kind, core::DiagnosticKind::CallDepthLimitExceeded);
       EXPECT_EQ(DiagnosticEntry.classification(), core::DiagnosticClass::User);
       ASSERT_EQ(DiagnosticEntry.Arguments.size(), 2u);
       expectStringArgument(DiagnosticEntry, 0, core::DiagnosticArgumentName::FunctionName, "recurse");
       expectUnsignedArgument(DiagnosticEntry, 1, core::DiagnosticArgumentName::CallDepthLimit, 256);
-      EXPECT_EQ(executionMessage(Result.diagnostics()), "maximum InkIR call depth 256 exceeded in function @recurse");
+      EXPECT_EQ(executionMessage(Context.Diagnostics.diagnostics()), "maximum InkIR call depth 256 exceeded in function @recurse");
     }
 
     // Verifies that an unreachable block does not prevent a multi-block function from returning through its entry block.
@@ -990,7 +1006,7 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       EXPECT_TRUE(Result.succeeded());
-      EXPECT_TRUE(Result.diagnostics().empty());
+      EXPECT_TRUE(Context.Diagnostics.diagnostics().empty());
     }
 
     // Verifies that initialization forwards verifier diagnostics and never attempts to execute an invalid definition without a body.
@@ -1007,13 +1023,13 @@ namespace ink::execution
       const InitializationResult Result = Engine.initialize();
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      const core::Diagnostic &DiagnosticEntry = Result.diagnostics()[0];
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      const core::Diagnostic &DiagnosticEntry = Context.Diagnostics.diagnostics()[0];
       EXPECT_EQ(DiagnosticEntry.Kind, core::DiagnosticKind::IrDefinedFunctionHasNoBasicBlocks);
       EXPECT_EQ(DiagnosticEntry.classification(), core::DiagnosticClass::InternalCompilerError);
       ASSERT_EQ(DiagnosticEntry.Arguments.size(), 1u);
       expectStringArgument(DiagnosticEntry, 0, core::DiagnosticArgumentName::FunctionName, "main");
-      EXPECT_EQ(executionMessage(Result.diagnostics()), "defined function @main must contain at least one basic block");
+      EXPECT_EQ(executionMessage(Context.Diagnostics.diagnostics()), "defined function @main must contain at least one basic block");
     }
 
     // Verifies that a declared but unreachable external function neither changes the context registry nor prevents execution.
@@ -1042,18 +1058,17 @@ namespace ink::execution
       ExecutionEngine Engine(Context.Execution, ModuleValue);
 
       const InitializationResult Initialization = Engine.initialize();
-      const ExecutionResult Result = Engine.execute("main");
-
       ASSERT_TRUE(Initialization.succeeded());
-      EXPECT_TRUE(Initialization.diagnostics().empty());
+      EXPECT_TRUE(Context.Diagnostics.diagnostics().empty());
+      const ExecutionResult Result = Engine.execute("main");
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1u);
-      const core::Diagnostic &DiagnosticEntry = Result.diagnostics()[0];
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      const core::Diagnostic &DiagnosticEntry = Context.Diagnostics.diagnostics()[0];
       EXPECT_EQ(DiagnosticEntry.Kind, core::DiagnosticKind::ExternalFunctionNotFound);
       EXPECT_EQ(DiagnosticEntry.classification(), core::DiagnosticClass::User);
       ASSERT_EQ(DiagnosticEntry.Arguments.size(), 1u);
       expectStringArgument(DiagnosticEntry, 0, core::DiagnosticArgumentName::FunctionName, "ink_test_symbol_that_does_not_exist");
-      EXPECT_EQ(Consumer.diagnostics(), Result.diagnostics());
+      EXPECT_EQ(Consumer.diagnostics(), Context.Diagnostics.diagnostics());
       EXPECT_EQ(core::DiagnosticFormatter().format(DiagnosticEntry).Message, "could not resolve external function @ink_test_symbol_that_does_not_exist");
     }
 
@@ -1072,8 +1087,8 @@ namespace ink::execution
 
       ASSERT_TRUE(Initialization.succeeded());
       ASSERT_FALSE(Missing.succeeded());
-      ASSERT_EQ(Missing.diagnostics().size(), 1u);
-      EXPECT_EQ(Missing.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionNotFound);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionNotFound);
       EXPECT_TRUE(Resolved.succeeded());
       EXPECT_EQ(CapturedOutput, "Hello, world!\n");
     }
@@ -1085,6 +1100,7 @@ namespace ink::execution
       ir::IRContext ModuleIR(ModuleCompilation);
       const ir::DeserializeResult Parsed = ir::deserialize(ModuleIR, "inkir 1\ndefine void @main() {\nentry:\n  ret void\n}\n");
       core::CompilationContext ExecutionCompilation(core::TargetContext(core::PointerWidth::Bits32, core::ByteOrder::BigEndian));
+      ink::test::DiagnosticCapture Diagnostics(ExecutionCompilation);
       ExecutionContext Execution(ExecutionCompilation);
       ASSERT_TRUE(Parsed.succeeded());
       ASSERT_TRUE(Parsed.module().has_value());
@@ -1093,8 +1109,8 @@ namespace ink::execution
       const InitializationResult Result = Engine.initialize();
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ExecutionTargetMismatch);
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ExecutionTargetMismatch);
     }
 
     // Verifies that a ptrsize entry argument is revalidated against the destination target rather than its source arena.
@@ -1102,6 +1118,7 @@ namespace ink::execution
     {
       const core::TargetContext Target32(core::PointerWidth::Bits32, core::ByteOrder::LittleEndian);
       core::CompilationContext Compilation(Target32);
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       ir::IRContext IR(Compilation);
       ExecutionContext Execution(Compilation);
       const ir::DeserializeResult Parsed = ir::deserialize(IR, "inkir 1\ndefine ptrsize @main(ptrsize %0) {\nentry:\n  ret ptrsize %0\n}\n");
@@ -1115,8 +1132,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main", {TooWide});
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::EntryArgumentInvalid);
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::EntryArgumentInvalid);
     }
 
     // Verifies that a bounded global address remains available to typed load when executing for a non-native target with compatible byte representation.
@@ -1124,6 +1141,7 @@ namespace ink::execution
     {
       const core::TargetContext Native = core::TargetContext::native();
       core::CompilationContext Compilation(core::TargetContext(Native.pointerWidth(), Native.byteOrder()));
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       ir::IRContext IR(Compilation);
       ExecutionContext Execution(Compilation);
       const std::string Text =
@@ -1151,6 +1169,7 @@ namespace ink::execution
     {
       const core::TargetContext Native = core::TargetContext::native();
       core::CompilationContext Compilation(core::TargetContext(Native.pointerWidth(), Native.byteOrder()));
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       ir::IRContext IR(Compilation);
       ExecutionContext Execution(Compilation);
       const std::string Text =
@@ -1170,8 +1189,8 @@ namespace ink::execution
       const ExecutionResult Result = Engine.execute("main");
 
       ASSERT_FALSE(Result.succeeded());
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionTargetUnsupported);
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ExternalFunctionTargetUnsupported);
     }
   } // namespace
 } // namespace ink::execution

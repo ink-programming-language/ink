@@ -19,7 +19,6 @@ namespace ink::ir
     const VerificationResult Verification = verify(Context, ModuleValue);
     if (!Verification.succeeded())
     {
-      Result.Diagnostics = Verification.diagnostics();
       return Result;
     }
     Result.Text = text::printModule(ModuleValue);
@@ -39,7 +38,6 @@ namespace ink::ir
     if (!text::tokenize(Text, Tokens, Error))
     {
       Context.diagnosticEngine().report(Error);
-      Result.Diagnostics.push_back(std::move(Error));
       return Result;
     }
 
@@ -47,7 +45,6 @@ namespace ink::ir
     if (!text::parse(Draft, std::move(Tokens), Error) || !text::resolveReferences(Draft, Error))
     {
       Context.diagnosticEngine().report(Error);
-      Result.Diagnostics.push_back(std::move(Error));
       return Result;
     }
 
@@ -55,7 +52,6 @@ namespace ink::ir
     const VerificationResult Verification = verify(Context, ModuleValue, core::DiagnosticClass::User);
     if (!Verification.succeeded())
     {
-      Result.Diagnostics = Verification.diagnostics();
       return Result;
     }
     Result.Value = std::move(ModuleValue);

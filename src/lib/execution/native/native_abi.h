@@ -19,10 +19,10 @@ namespace ink::execution
       NativeCallAdapter(NativeCallAdapter &&) = delete;
       NativeCallAdapter &operator=(NativeCallAdapter &&) = delete;
 
-      bool initialize(std::vector<core::Diagnostic> &Diagnostics);
+      bool initialize();
 
     private:
-      bool invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result, std::vector<core::Diagnostic> &Diagnostics) override;
+      bool invokeExternal(std::size_t FunctionIndex, const std::vector<RuntimeValueRef> &Arguments, RuntimeValueArena &Values, RuntimeValueRef &Result) override;
 
       class Impl;
       std::unique_ptr<Impl> Implementation;

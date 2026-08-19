@@ -447,11 +447,11 @@ namespace ink::parser
 
       EXPECT_FALSE(EmptyMatch.succeeded());
       EXPECT_TRUE(hasFlag(EmptyMatch.cst().node(EmptyMatch.cst().root()).Flags, CstNodeFlags::HasMissing));
-      const auto Diagnostic = std::find_if(Reserved.diagnostics().begin(), Reserved.diagnostics().end(), [](const core::Diagnostic &Entry)
+      const auto Diagnostic = std::find_if(test::testDiagnostics(Reserved).begin(), test::testDiagnostics(Reserved).end(), [](const core::Diagnostic &Entry)
                                            {
                                              return Entry.Kind == core::DiagnosticKind::ReservedSymbolSequence;
                                            });
-      ASSERT_NE(Diagnostic, Reserved.diagnostics().end());
+      ASSERT_NE(Diagnostic, test::testDiagnostics(Reserved).end());
       const std::size_t ReservedStart = Reserved.lexedFile().source().find("++");
       ASSERT_NE(ReservedStart, std::string::npos);
       EXPECT_EQ(Diagnostic->Span, (core::SourceRange{ReservedStart, ReservedStart + 2}));
@@ -739,7 +739,7 @@ namespace ink::parser
       expectFullFidelity(Second);
     }
 
-    // Verifies that finalized Parser diagnostics are both retained in the parsed result and published through the shared frontend context.
+    // Verifies that finalized Parser diagnostics are published through the shared frontend context.
     TEST(ParserApiTest, PublishesDiagnosticsThroughFrontendContext)
     {
       core::CompilationContext Compilation;
@@ -751,8 +751,7 @@ namespace ink::parser
       ASSERT_TRUE(LexedFile.succeeded());
       const ParsedFile File = parse(Context, std::move(LexedFile));
 
-      ASSERT_FALSE(File.diagnostics().empty());
-      EXPECT_EQ(Diagnostics.diagnostics(), File.diagnostics());
+      ASSERT_FALSE(Diagnostics.diagnostics().empty());
     }
 
     // Verifies deterministic recovery and mandatory forward progress over many lexically valid but arbitrarily ordered token streams.
@@ -830,7 +829,7 @@ namespace ink::parser
         EXPECT_EQ(First.completeness(), ParseCompleteness::Complete);
         EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
         EXPECT_EQ(First.cst().children(), Second.cst().children());
-        EXPECT_EQ(First.diagnostics(), Second.diagnostics());
+        EXPECT_TRUE(test::diagnosticsEqual(First, Second));
         expectFullFidelity(First);
       }
     }

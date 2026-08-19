@@ -1,4 +1,4 @@
-#include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include <gtest/gtest.h>
 
@@ -51,7 +51,7 @@ namespace ink::tokenizer
 
     bool hasDiagnostic(const TokenizedBuffer &File, DiagnosticKind Kind)
     {
-      return std::any_of(File.diagnostics().begin(), File.diagnostics().end(), [Kind](const Diagnostic &CurrentDiagnostic)
+      return std::any_of(testDiagnostics(File).begin(), testDiagnostics(File).end(), [Kind](const Diagnostic &CurrentDiagnostic)
                          {
                            return CurrentDiagnostic.Kind == Kind;
                          });

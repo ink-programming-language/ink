@@ -31,14 +31,12 @@ namespace ink::execution
       bool succeeded() const noexcept;
       std::shared_ptr<ModuleInstance> instance() const noexcept;
       const ModuleLoadError &error() const noexcept;
-      const std::vector<core::Diagnostic> &diagnostics() const noexcept;
 
     private:
-      ModuleLoadResult(std::shared_ptr<ModuleInstance> Instance, ModuleLoadError Error, std::vector<core::Diagnostic> Diagnostics = {}) noexcept;
+      ModuleLoadResult(std::shared_ptr<ModuleInstance> Instance, ModuleLoadError Error) noexcept;
 
       std::shared_ptr<ModuleInstance> Instance;
       ModuleLoadError Error;
-      std::vector<core::Diagnostic> Diagnostics;
 
       friend class ModuleLoader;
   };
@@ -70,7 +68,7 @@ namespace ink::execution
       ModuleLoadError shutdownImpl() noexcept;
       ModuleLoadResult loadModuleImpl(const ir::Name &TargetName, ModuleId Target, ModuleInstance *Importer);
       ModuleLoadResult resolveModule(const ir::Name &TargetName, ModuleId Target);
-      ModuleLoadResult failedResult(ModuleLoadError Error, std::shared_ptr<ModuleInstance> Instance = nullptr, std::vector<core::Diagnostic> Diagnostics = {}) const noexcept;
+      ModuleLoadResult failedResult(ModuleLoadError Error, std::shared_ptr<ModuleInstance> Instance = nullptr) const noexcept;
       ModuleLoadResult successfulResult(std::shared_ptr<ModuleInstance> Instance) const noexcept;
       ModuleLoadError normalizeLifecycleError(ModuleLoadError Error, ModuleLoadErrorKind Fallback, ModuleId Module) const noexcept;
 

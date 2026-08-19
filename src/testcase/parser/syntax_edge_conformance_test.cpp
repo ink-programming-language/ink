@@ -87,7 +87,7 @@ namespace ink::parser
     void expectSuccessfulCompleteParse(const ParsedFile &File)
     {
       EXPECT_TRUE(File.succeeded());
-      EXPECT_TRUE(File.diagnostics().empty());
+      EXPECT_TRUE(test::testDiagnostics(File).empty());
       EXPECT_EQ(File.completeness(), ParseCompleteness::Complete);
       expectFullFidelity(File);
     }

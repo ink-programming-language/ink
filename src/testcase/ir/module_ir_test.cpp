@@ -15,8 +15,19 @@ namespace ink::ir
   {
     struct ModuleIrTestContext
     {
+        ModuleIrTestContext()
+        {
+          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        }
+
+        ~ModuleIrTestContext()
+        {
+          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
+        }
+
         core::CompilationContext Compilation;
         IRContext IR{Compilation};
+        core::CollectingDiagnosticConsumer Diagnostics;
     };
 
     bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
@@ -232,8 +243,8 @@ namespace ink::ir
       const DeserializeResult Parsed = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Parsed.succeeded());
-      ASSERT_EQ(Parsed.diagnostics().size(), 1U);
-      EXPECT_EQ(Parsed.diagnostics()[0].Kind, core::DiagnosticKind::IrExpected);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrExpected);
     }
 
     // Verifies that global operands no longer accept an embedded module/global numeric pair.
@@ -253,8 +264,8 @@ namespace ink::ir
       const DeserializeResult Parsed = deserialize(Context.IR, Text);
 
       ASSERT_FALSE(Parsed.succeeded());
-      ASSERT_EQ(Parsed.diagnostics().size(), 1U);
-      EXPECT_EQ(Parsed.diagnostics()[0].Kind, core::DiagnosticKind::IrExpectedOperand);
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrExpectedOperand);
     }
 
     // Verifies that serialization preserves FunctionId values when external declarations and definitions are interleaved programmatically.
@@ -311,10 +322,11 @@ namespace ink::ir
       for (const std::string &Text : Texts)
       {
         SCOPED_TRACE(Text);
+        Context.Diagnostics.clear();
         const DeserializeResult Parsed = deserialize(Context.IR, Text);
         ASSERT_FALSE(Parsed.succeeded());
-        ASSERT_EQ(Parsed.diagnostics().size(), 1U);
-        EXPECT_EQ(Parsed.diagnostics()[0].Kind, core::DiagnosticKind::IrExpected);
+        ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+        EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::IrExpected);
       }
     }
 
@@ -384,10 +396,10 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrImportedFunctionWrongCallingConvention));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrImportedFunctionHasBasicBlocks));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrImportedFunctionInvalidModule));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrImportedFunctionInvalidTargetName));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrImportedFunctionWrongCallingConvention));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrImportedFunctionHasBasicBlocks));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrImportedFunctionInvalidModule));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrImportedFunctionInvalidTargetName));
     }
 
     // Verifies that imported globals must name a valid symbol in a different valid module.
@@ -406,8 +418,8 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrImportedGlobalInvalidModule));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrImportedGlobalInvalidTargetName));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrImportedGlobalInvalidModule));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrImportedGlobalInvalidTargetName));
     }
 
     // Verifies that imported functions and globals cannot omit their complete import information.
@@ -429,10 +441,10 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, ModuleValue);
 
       ASSERT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrImportedFunctionInvalidModule));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrImportedFunctionInvalidTargetName));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrImportedGlobalInvalidModule));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrImportedGlobalInvalidTargetName));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrImportedFunctionInvalidModule));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrImportedFunctionInvalidTargetName));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrImportedGlobalInvalidModule));
+      EXPECT_TRUE(hasDiagnostic(Context.Diagnostics.diagnostics(), core::DiagnosticKind::IrImportedGlobalInvalidTargetName));
     }
 
     // Verifies that definitions reject import information that would otherwise be discarded during serialization.

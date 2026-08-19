@@ -1,4 +1,4 @@
-#include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include "utf8_test_support.h"
 
@@ -32,7 +32,7 @@ namespace ink::tokenizer
 
     bool hasDiagnostic(const TokenizedBuffer &Result, DiagnosticKind Kind)
     {
-      return std::any_of(Result.diagnostics().begin(), Result.diagnostics().end(), [Kind](const Diagnostic &Diagnostic)
+      return std::any_of(testDiagnostics(Result).begin(), testDiagnostics(Result).end(), [Kind](const Diagnostic &Diagnostic)
                          {
                            return Diagnostic.Kind == Kind;
                          });
@@ -201,17 +201,17 @@ namespace ink::tokenizer
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
         EXPECT_EQ(Result.raw(Result.tokens().front()), Test.Spelling);
-        ASSERT_EQ(Result.diagnostics().size(), 1U);
-        EXPECT_EQ(Result.diagnostics().front().Kind, Test.Kind);
-        EXPECT_EQ(Result.diagnostics().front().Span, Test.Span);
+        ASSERT_EQ(testDiagnostics(Result).size(), 1U);
+        EXPECT_EQ(testDiagnostics(Result).front().Kind, Test.Kind);
+        EXPECT_EQ(testDiagnostics(Result).front().Span, Test.Span);
         EXPECT_FALSE(hasDiagnostic(Result, DiagnosticKind::EmptyScalarLiteral));
       }
 
       const TokenizedBuffer Empty = tokenize("''");
       ASSERT_FALSE(Empty.succeeded());
-      ASSERT_EQ(Empty.diagnostics().size(), 1U);
-      EXPECT_EQ(Empty.diagnostics().front().Kind, DiagnosticKind::EmptyScalarLiteral);
-      EXPECT_EQ(Empty.diagnostics().front().Span, (SourceRange{0, 2}));
+      ASSERT_EQ(testDiagnostics(Empty).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Empty).front().Kind, DiagnosticKind::EmptyScalarLiteral);
+      EXPECT_EQ(testDiagnostics(Empty).front().Span, (SourceRange{0, 2}));
     }
 
     // Verifies that a large but reasonable scalar body is rejected as multiple values without truncation or extra diagnostics.
@@ -226,8 +226,8 @@ namespace ink::tokenizer
       ASSERT_EQ(Result.tokens().size(), 2U);
       EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
       EXPECT_EQ(Result.raw(Result.tokens().front()), Spelling);
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics().front().Kind, DiagnosticKind::MultipleScalarValues);
+      ASSERT_EQ(testDiagnostics(Result).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Result).front().Kind, DiagnosticKind::MultipleScalarValues);
     }
 
     // Verifies diagnostics for unknown escapes and malformed hexadecimal or Unicode escapes.
@@ -262,9 +262,9 @@ namespace ink::tokenizer
       EXPECT_EQ(ExtraScalar.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
       EXPECT_EQ(ExtraScalar.raw(ExtraScalar.tokens().front()), "'\\x123'");
       EXPECT_EQ(ExtraScalar.tokens().front().Span, (SourceRange{0, 7}));
-      ASSERT_EQ(ExtraScalar.diagnostics().size(), 1U);
-      EXPECT_EQ(ExtraScalar.diagnostics().front().Kind, DiagnosticKind::MultipleScalarValues);
-      EXPECT_EQ(ExtraScalar.diagnostics().front().Span, (SourceRange{0, 7}));
+      ASSERT_EQ(testDiagnostics(ExtraScalar).size(), 1U);
+      EXPECT_EQ(testDiagnostics(ExtraScalar).front().Kind, DiagnosticKind::MultipleScalarValues);
+      EXPECT_EQ(testDiagnostics(ExtraScalar).front().Span, (SourceRange{0, 7}));
     }
 
     // Verifies that a Unicode escape missing its right brace stops at the scalar quote and scanning resumes afterward.
@@ -282,9 +282,9 @@ namespace ink::tokenizer
       EXPECT_EQ(Result.tokens()[1].Span, (SourceRange{7, 11}));
       EXPECT_EQ(Result.raw(Result.tokens()[1]), "next");
       EXPECT_EQ(Result.tokens()[2].Kind, TokenKind::EndOfFile);
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics().front().Kind, DiagnosticKind::InvalidUnicodeEscape);
-      EXPECT_EQ(Result.diagnostics().front().Span, (SourceRange{1, 6}));
+      ASSERT_EQ(testDiagnostics(Result).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Result).front().Kind, DiagnosticKind::InvalidUnicodeEscape);
+      EXPECT_EQ(testDiagnostics(Result).front().Span, (SourceRange{1, 6}));
     }
 
     // Verifies that a trailing backslash at end of file reports both the incomplete escape and unterminated scalar.
@@ -299,11 +299,11 @@ namespace ink::tokenizer
       EXPECT_EQ(Result.tokens()[0].Span, (SourceRange{0, 2}));
       EXPECT_EQ(Result.raw(Result.tokens()[0]), Source);
       EXPECT_EQ(Result.tokens()[1].Kind, TokenKind::EndOfFile);
-      ASSERT_EQ(Result.diagnostics().size(), 2U);
-      EXPECT_EQ(Result.diagnostics()[0].Kind, DiagnosticKind::UnknownEscape);
-      EXPECT_EQ(Result.diagnostics()[0].Span, (SourceRange{1, 2}));
-      EXPECT_EQ(Result.diagnostics()[1].Kind, DiagnosticKind::UnterminatedScalarLiteral);
-      EXPECT_EQ(Result.diagnostics()[1].Span, (SourceRange{0, 2}));
+      ASSERT_EQ(testDiagnostics(Result).size(), 2U);
+      EXPECT_EQ(testDiagnostics(Result)[0].Kind, DiagnosticKind::UnknownEscape);
+      EXPECT_EQ(testDiagnostics(Result)[0].Span, (SourceRange{1, 2}));
+      EXPECT_EQ(testDiagnostics(Result)[1].Kind, DiagnosticKind::UnterminatedScalarLiteral);
+      EXPECT_EQ(testDiagnostics(Result)[1].Span, (SourceRange{0, 2}));
     }
 
     // Verifies that invalid UTF-8 immediately after a backslash is contained within the scalar and later tokens survive recovery.
@@ -323,9 +323,9 @@ namespace ink::tokenizer
       EXPECT_EQ(Result.tokens()[1].Span, (SourceRange{4, 8}));
       EXPECT_EQ(Result.raw(Result.tokens()[1]), "next");
       EXPECT_EQ(Result.tokens()[2].Kind, TokenKind::EndOfFile);
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics().front().Kind, DiagnosticKind::InvalidUtf8);
-      EXPECT_EQ(Result.diagnostics().front().Span, (SourceRange{2, 3}));
+      ASSERT_EQ(testDiagnostics(Result).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Result).front().Kind, DiagnosticKind::InvalidUtf8);
+      EXPECT_EQ(testDiagnostics(Result).front().Span, (SourceRange{2, 3}));
     }
 
     // Verifies that surrogate code points and values above the Unicode range are rejected.
@@ -371,9 +371,9 @@ namespace ink::tokenizer
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
         EXPECT_EQ(Result.tokens().front().Span, (SourceRange{0, Spelling.size()}));
         EXPECT_EQ(Result.raw(Result.tokens().front()), Spelling);
-        ASSERT_EQ(Result.diagnostics().size(), 1U);
-        EXPECT_EQ(Result.diagnostics().front().Kind, DiagnosticKind::InvisibleCharacter);
-        EXPECT_EQ(Result.diagnostics().front().Span, (SourceRange{1, 1 + Invisible.size()}));
+        ASSERT_EQ(testDiagnostics(Result).size(), 1U);
+        EXPECT_EQ(testDiagnostics(Result).front().Kind, DiagnosticKind::InvisibleCharacter);
+        EXPECT_EQ(testDiagnostics(Result).front().Span, (SourceRange{1, 1 + Invisible.size()}));
       }
 
       std::string ControlSpelling = "'";
@@ -394,9 +394,9 @@ namespace ink::tokenizer
       EXPECT_EQ(CarriageReturnResult.tokens().front().Kind, TokenKind::InvalidScalarLiteral);
       EXPECT_EQ(CarriageReturnResult.tokens().front().Span, (SourceRange{0, 3}));
       EXPECT_EQ(CarriageReturnResult.raw(CarriageReturnResult.tokens().front()), CarriageReturnSpelling);
-      ASSERT_EQ(CarriageReturnResult.diagnostics().size(), 1U);
-      EXPECT_EQ(CarriageReturnResult.diagnostics().front().Kind, DiagnosticKind::LoneCarriageReturn);
-      EXPECT_EQ(CarriageReturnResult.diagnostics().front().Span, (SourceRange{1, 2}));
+      ASSERT_EQ(testDiagnostics(CarriageReturnResult).size(), 1U);
+      EXPECT_EQ(testDiagnostics(CarriageReturnResult).front().Kind, DiagnosticKind::LoneCarriageReturn);
+      EXPECT_EQ(testDiagnostics(CarriageReturnResult).front().Span, (SourceRange{1, 2}));
       EXPECT_EQ(CarriageReturnResult.lineStarts(), (std::vector<std::size_t>{0}));
     }
 

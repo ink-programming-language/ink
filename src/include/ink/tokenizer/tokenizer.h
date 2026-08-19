@@ -29,9 +29,9 @@ namespace ink::tokenizer
         return Tokens;
       }
 
-      const std::vector<core::Diagnostic> &diagnostics() const noexcept
+      core::SourceId sourceId() const noexcept
       {
-        return Diagnostics;
+        return SourceId;
       }
 
       const std::vector<std::size_t> &lineStarts() const noexcept
@@ -48,8 +48,9 @@ namespace ink::tokenizer
 
       std::string Source;
       std::vector<Token> Tokens;
-      std::vector<core::Diagnostic> Diagnostics;
       std::vector<std::size_t> LineStarts;
+      core::SourceId SourceId;
+      bool Succeeded = false;
 
       friend class Tokenizer;
   };
@@ -66,7 +67,6 @@ namespace ink::tokenizer
   };
 
   TokenizedBuffer tokenize(core::FrontendContext &Context, std::string Source, TokenizerOptions Options = {});
-  TokenizedBuffer tokenize(std::string Source, TokenizerOptions Options = {});
 } // namespace ink::tokenizer
 
 #endif

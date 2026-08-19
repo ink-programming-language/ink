@@ -1,4 +1,4 @@
-#include "ink/tokenizer/tokenizer.h"
+#include "tokenizer_test_support.h"
 
 #include "utf8_test_support.h"
 
@@ -33,7 +33,7 @@ namespace ink::tokenizer
 
     bool hasDiagnostic(const TokenizedBuffer &Result, DiagnosticKind Kind)
     {
-      return std::any_of(Result.diagnostics().begin(), Result.diagnostics().end(), [Kind](const Diagnostic &Diagnostic)
+      return std::any_of(testDiagnostics(Result).begin(), testDiagnostics(Result).end(), [Kind](const Diagnostic &Diagnostic)
                          {
                            return Diagnostic.Kind == Kind;
                          });
@@ -305,10 +305,10 @@ namespace ink::tokenizer
       EXPECT_EQ(Result.raw(Result.tokens()[6]), "");
 
       const std::vector<Diagnostic> ExpectedDiagnostics = {
-          {DiagnosticKind::InvalidNumericSuffix, {3, 6}, {}, {}},
-          {DiagnosticKind::UnsupportedNonDecimalFloat, {11, 13}, {}, {}},
+          {DiagnosticKind::InvalidNumericSuffix, Result.sourceId(), {3, 6}, {}, {}},
+          {DiagnosticKind::UnsupportedNonDecimalFloat, Result.sourceId(), {11, 13}, {}, {}},
       };
-      EXPECT_EQ(Result.diagnostics(), ExpectedDiagnostics);
+      EXPECT_EQ(testDiagnostics(Result), ExpectedDiagnostics);
     }
 
     // Verifies that malformed base digits and exponent tails report only their primary numeric diagnostic.
@@ -329,8 +329,8 @@ namespace ink::tokenizer
         ASSERT_EQ(Result.tokens().size(), 2U);
         EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidNumber);
         EXPECT_EQ(Result.raw(Result.tokens().front()), Test.Spelling);
-        ASSERT_EQ(Result.diagnostics().size(), 1U);
-        EXPECT_EQ(Result.diagnostics().front().Kind, Test.Diagnostic);
+        ASSERT_EQ(testDiagnostics(Result).size(), 1U);
+        EXPECT_EQ(testDiagnostics(Result).front().Kind, Test.Diagnostic);
       }
     }
 
@@ -364,8 +364,8 @@ namespace ink::tokenizer
       ASSERT_EQ(Result.tokens().size(), 2U);
       EXPECT_EQ(Result.tokens().front().Kind, TokenKind::InvalidNumber);
       EXPECT_EQ(Result.raw(Result.tokens().front()), Source);
-      ASSERT_EQ(Result.diagnostics().size(), 1U);
-      EXPECT_EQ(Result.diagnostics().front().Kind, DiagnosticKind::InvisibleCharacter);
+      ASSERT_EQ(testDiagnostics(Result).size(), 1U);
+      EXPECT_EQ(testDiagnostics(Result).front().Kind, DiagnosticKind::InvisibleCharacter);
     }
 
     // Verifies that trivia prevents a following built-in type from becoming a numeric suffix.

@@ -4931,17 +4931,17 @@ namespace ink::parser
     }
   }
 
-  ParsedFile::ParsedFile(TokenizedBuffer LexedFile, CstTree Tree, std::vector<Diagnostic> Diagnostics, ParseCompleteness Completeness)
+  ParsedFile::ParsedFile(TokenizedBuffer LexedFile, CstTree Tree, bool Succeeded, ParseCompleteness Completeness)
       : LexedFile(std::move(LexedFile)),
         Tree(std::move(Tree)),
-        Diagnostics(std::move(Diagnostics)),
+        Succeeded(Succeeded),
         Completeness(Completeness)
   {
   }
 
   bool ParsedFile::succeeded() const noexcept
   {
-    return LexedFile.succeeded() && !Tree.nodes().empty() && Diagnostics.empty();
+    return Succeeded;
   }
 
   SourceRange ParsedFile::span(CstNodeId Id) const
@@ -5106,16 +5106,18 @@ namespace ink::parser
   {
     if (!LexedFile.succeeded())
     {
-      return ParsedFile(std::move(LexedFile), {}, {}, ParseCompleteness::Complete);
+      return ParsedFile(std::move(LexedFile), {}, false, ParseCompleteness::Complete);
     }
     ParserImpl Implementation(LexedFile, Options);
     CstTree Tree = Implementation.run();
     std::vector<Diagnostic> ParserDiagnostics = Implementation.takeDiagnostics();
-    for (const Diagnostic &DiagnosticEntry : ParserDiagnostics)
+    const bool Succeeded = !Tree.nodes().empty() && ParserDiagnostics.empty();
+    for (Diagnostic &DiagnosticEntry : ParserDiagnostics)
     {
+      DiagnosticEntry.Source = LexedFile.sourceId();
       Context.diagnosticEngine().report(DiagnosticEntry);
     }
-    return ParsedFile(std::move(LexedFile), std::move(Tree), std::move(ParserDiagnostics), Implementation.completeness());
+    return ParsedFile(std::move(LexedFile), std::move(Tree), Succeeded, Implementation.completeness());
   }
 
   ParsedFile parse(core::FrontendContext &Context, TokenizedBuffer LexedFile, ParserOptions Options)
@@ -5123,10 +5125,4 @@ namespace ink::parser
     return Parser(Context, Options).parse(std::move(LexedFile));
   }
 
-  ParsedFile parse(TokenizedBuffer LexedFile, ParserOptions Options)
-  {
-    core::CompilationContext Compilation;
-    core::FrontendContext Context(Compilation);
-    return parse(Context, std::move(LexedFile), Options);
-  }
 } // namespace ink::parser

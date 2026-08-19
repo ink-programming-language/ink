@@ -6,6 +6,8 @@
 #include "ink/ir/model/module.h"
 #include "ink/ir/serialization.h"
 
+#include "../diagnostic_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -114,6 +116,7 @@ namespace ink::ir
     TEST(FunctionAttributeVerifierTest, RejectsMalformedAttributeMetadata)
     {
       core::CompilationContext Compilation;
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       IRContext Context(Compilation);
       core::CompilationContext ForeignCompilation;
       IRContext ForeignContext(ForeignCompilation);
@@ -136,16 +139,17 @@ namespace ink::ir
       const VerificationResult Result = verify(Context, ModuleValue);
 
       EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrUnknownFunctionAttribute));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrInvalidFunctionAttributeArgumentName));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrDuplicateFunctionAttributeArgumentName));
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrConstantPoolMismatch));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrUnknownFunctionAttribute));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrInvalidFunctionAttributeArgumentName));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrDuplicateFunctionAttributeArgumentName));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrConstantPoolMismatch));
     }
 
     // Verifies that the sideeffect attribute retains the old declaration-only rule when represented through the common attribute model.
     TEST(FunctionAttributeVerifierTest, RejectsSideEffectOnDefinedFunction)
     {
       core::CompilationContext Compilation;
+      ink::test::DiagnosticCapture Diagnostics(Compilation);
       IRContext Context(Compilation);
       const Type &VoidType = Context.getType(TypeKind::Void);
       Function Defined(VoidType);
@@ -161,14 +165,15 @@ namespace ink::ir
       const VerificationResult Result = verify(Context, ModuleValue);
 
       EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrDefinedFunctionHasExternalSideEffects));
+      EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrDefinedFunctionHasExternalSideEffects));
 
       core::CompilationContext TextCompilation;
+      ink::test::DiagnosticCapture TextDiagnostics(TextCompilation);
       IRContext TextContext(TextCompilation);
       const DeserializeResult Parsed = deserialize(TextContext, "inkir 1\ndefine void @defined() [sideeffect] {\nentry:\n  ret void\n}\n");
 
       EXPECT_FALSE(Parsed.succeeded());
-      EXPECT_TRUE(hasDiagnostic(Parsed.diagnostics(), core::DiagnosticKind::IrDefinedFunctionHasExternalSideEffects));
+      EXPECT_TRUE(hasDiagnostic(TextDiagnostics.diagnostics(), core::DiagnosticKind::IrDefinedFunctionHasExternalSideEffects));
     }
 
     // Verifies that every function syntax rejects names outside the fixed built-in attribute registry.
@@ -182,12 +187,13 @@ namespace ink::ir
       for (const std::string &Text : InvalidTexts)
       {
         core::CompilationContext Compilation;
+        ink::test::DiagnosticCapture Diagnostics(Compilation);
         IRContext Context(Compilation);
 
         const DeserializeResult Result = deserialize(Context, Text);
 
         EXPECT_FALSE(Result.succeeded());
-        EXPECT_TRUE(hasDiagnostic(Result.diagnostics(), core::DiagnosticKind::IrExpected));
+        EXPECT_TRUE(hasDiagnostic(Diagnostics.diagnostics(), core::DiagnosticKind::IrExpected));
       }
     }
   } // namespace
