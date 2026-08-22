@@ -10,7 +10,6 @@ namespace ink::parser
 {
   namespace
   {
-    using test::countKind;
     using test::expectFullFidelity;
     using test::hasDiagnostic;
     using test::nodeText;
@@ -77,19 +76,6 @@ namespace ink::parser
         Source += "comptime {";
       }
       Source.append(Depth, '}');
-      return Source;
-    }
-
-    std::string nestedMatchStatementSource(std::size_t Depth)
-    {
-      std::string Source = "func deep() {";
-      for (std::size_t Index = 0; Index < Depth; ++Index)
-      {
-        Source += "match (Value) { _ => ";
-      }
-      Source += "return;";
-      Source.append(Depth, '}');
-      Source += '}';
       return Source;
     }
 
@@ -187,7 +173,6 @@ namespace ink::parser
           {"TuplePattern", nestedTuplePatternSource(Depth)},
           {"TypeDeclaration", nestedTypeDeclarationSource(Depth)},
           {"ComptimeRegion", nestedComptimeRegionSource(Depth)},
-          {"MatchStatement", nestedMatchStatementSource(Depth)},
           {"ElseIfStatement", elseIfStatementSource(Depth)},
           {"ElseIfRegion", elseIfRegionSource(Depth)},
           {"GenericArgument", nestedGenericArgumentSource(Depth)},
@@ -208,22 +193,6 @@ namespace ink::parser
         EXPECT_EQ(nodeText(First, First.cst().root()), TestCase.Source);
         expectFullFidelity(First);
       }
-    }
-
-    // Verifies nesting-limit recovery treats a complete following match arm as a hard boundary even after an unmatched or mismatched delimiter.
-    TEST(ParserNestingLimitTest, PreservesMatchArmsAfterUnbalancedLimitRecovery)
-    {
-      ParserOptions Options;
-      Options.MaxSyntaxNestingDepth = 2;
-      const std::string Source = "func recover() { match (Value) { .first => (] .second => return; } }";
-      const ParsedFile File = parseSource(Source, Options);
-
-      EXPECT_FALSE(File.succeeded());
-      EXPECT_TRUE(hasDiagnostic(File, core::DiagnosticKind::SyntaxNestingLimit));
-      EXPECT_EQ(countKind(File, CstKind::MatchStatementArm), 2u);
-      EXPECT_EQ(countKind(File, CstKind::VariantPattern), 2u);
-      EXPECT_EQ(nodeText(File, File.cst().root()), Source);
-      expectFullFidelity(File);
     }
 
     // Verifies missing expressions, types, and generic arguments at synchronization tokens do not consume those tokens or masquerade as nesting-limit failures.

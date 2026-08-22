@@ -1,6 +1,6 @@
 # Parser 议题 09：语句块与花括号
 
-> 状态：已确认，议题 20、24—28 补充全部控制流、清理与异常处理规则；2026-08-05 增加 `comptime` block statement，Parser 议题 32 统一区域控制；2026-08-06 汇总完整 `local_declaration` 与 `statement` 产生式；2026-08-08 确认声明与 `match` 结构在 block item 起点确定性提交
+> 状态：已确认，议题 20、25、26 补充全部控制流与清理规则；2026-08-05 增加 `comptime` block statement，Parser 议题 32 统一区域控制；2026-08-06 汇总完整 `local_declaration` 与 `statement` 产生式；2026-08-08 确认声明在 block item 起点确定性提交
 > 确认日期：2026-08-03
 
 ## 1. 普通语句块
@@ -25,8 +25,6 @@ statement =
   | expression_statement
   | if_statement
   | comptime_if_statement
-  | match_statement
-  | comptime_match_statement
   | while_statement
   | comptime_while_statement
   | for_statement
@@ -34,16 +32,12 @@ statement =
   | break_statement
   | continue_statement
   | return_statement
-  | defer_statement
-  | throw_statement
-  | try_statement ;
+  | defer_statement ;
 ```
 
-`local_declaration` 当前只复用议题 10 的 `binding_declaration`，即以 `var` 或 `const` 开头的普通局部绑定。各个 statement 子产生式分别由议题 09、11、18、20、24—28 定义；这里仅汇总已经确认的规则，不引入新的语句形态。空语句块 `{}` 合法。
+`local_declaration` 当前只复用议题 10 的 `binding_declaration`，即以 `var` 或 `const` 开头的普通局部绑定。各个 statement 子产生式分别由议题 09、11、18、20、25、26 定义；这里仅汇总已经确认的规则，不引入新的语句形态。空语句块 `{}` 合法。
 
 `block_item` 的分派使用忽略 Trivia 的有限 Token 前瞻：看到 `Keyword(Var)` 或 `Keyword(Const)` 时立即提交到 `local_declaration`，即使后续声明残缺也不能回退成赋值语句或表达式语句。其他开头进入 `statement`。只允许 `statement` 而不允许 `block_item` 的位置若遇到这两个声明关键字，应报告“声明必须放入语句块”并按声明形状恢复，不能把同一 Token 序列重新解释成表达式。
-
-语句入口看到裸 `Keyword(Match)` 时立即且不可回滚地提交到 `match_statement`；看到连续两个显著 Token `Keyword(Comptime)`、`Keyword(Match)` 时同样立即提交到 `StatementRegion` 的 `ComptimeMatchControl`。后续 arm 的逗号、分号或语法错误只用于校验和恢复，不得改变节点种类。`(match (...) { ... });` 与 `comptime (match (...) { ... });` 分别以 `(` 和 `comptime (` 开始，因此进入普通表达式语句。
 
 赋值语句与表达式语句共享其余表达式前缀，按照议题 11 在解析完左侧表达式后由紧随的赋值运算符分流。其他 `comptime` 开头的结构继续按照议题 32 通过有限前瞻分派 block、if、while 或 for；未命中保留结构起点时仍可进入含 `comptime_expression` 的普通表达式语句。
 
@@ -63,8 +57,6 @@ statement =
 ```
 
 嵌套块可以遮蔽外层名称还是必须拒绝，将在名称绑定与局部声明议题中确定；本议题只确认块边界形成作用域。
-
-议题 28 确认 `try` body 和每个 `catch` body 都是独立 `statement_block`。`try` body 的局部名称不进入处理器作用域；捕获绑定只在对应处理器 block 内可见，也不进入后续处理器。
 
 ## 3. RAII 与 `defer`
 
@@ -101,9 +93,9 @@ comptime {
 }
 ```
 
-块中的绑定、赋值、`try`、`defer`、`return`、`break`、`continue` 和 `throw` 继承该执行上下文，不分别增加 `comptime var`、`comptime return` 等语法。Parser 仍按普通 `statement_block` 解析内部项目，并建立 Parser 议题 32 的统一 `ComptimeBlockControl`，其区域为 `StatementRegion`。
+块中的绑定、赋值、`defer`、`return`、`break` 和 `continue` 继承该执行上下文，不分别增加 `comptime var`、`comptime return` 等语法。Parser 仍按普通 `statement_block` 解析内部项目，并建立 Parser 议题 32 的统一 `ComptimeBlockControl`，其区域为 `StatementRegion`。
 
-正常到达 `}`、跳转离开块或异常展开离开块时，局部对象析构和 `defer` 遵守议题 03 已确认的逆序清理规则。
+正常到达 `}` 或通过跳转离开块时，局部对象析构和 `defer` 遵守议题 03 已确认的逆序清理规则。
 
 议题 26 确认 `defer` 同时接受 `defer expression;` 和 `defer { ... }`。两种形态都注册到当前 `statement_block` 的清理栈，并在真正离开该作用域时执行；defer block 自身也建立一个嵌套词法作用域。
 
@@ -126,8 +118,6 @@ const value = {
 ```
 
 函数通过显式 `return` 返回值。议题 21 的 `if_expression` 使用 `if (...) ... else ...`，本身不使用花括号。聚合初始化拥有议题 35 的表达式专用 postfix 后缀和专用 CST 节点；类型构造及其他可能使用花括号的表达式同样拥有各自规则，不会把普通语句块自动变成有值 block expression。
-
-议题 24 允许 `match_expression` 的分支使用 `statement_block`，但仅用于不能正常完成的分支。该块仍不产生值；如果它能到达结束 `}`，对应有值分支属于语义错误。
 
 ## 5. 控制流必须使用花括号
 
@@ -154,7 +144,7 @@ while (condition) update();
 
 该规则避免悬空 `else`，并保证增加第二条语句时不会静默改变控制范围。
 
-议题 25 进一步确认 `while (...)`、`while (match ...)` 和普通 `for (...)` 都使用该形状，不接受单语句省略花括号，也不支持循环 `else`。
+议题 25 进一步确认 `while (...)` 和普通 `for (...)` 都使用该形状，不接受单语句省略花括号，也不支持循环 `else`。
 
 ## 6. `else if`
 
@@ -178,7 +168,7 @@ if (first) {
 
 这里每个 `if` 的执行体仍然具有花括号；只有 `else` 与下一个 `if` 之间不额外增加一层块。
 
-议题 20 已确认固定条件括号，并允许括号内使用普通 `expression` 或 `match_condition`。本节 EBNF 只确认 block 形状和 `else` 归属，完整规则以议题 20 为准。
+议题 20 已确认固定条件括号。本节 EBNF 只确认 block 形状和 `else` 归属，完整规则以议题 20 为准。
 
 ## 7. Block 自身结束结构
 

@@ -152,7 +152,7 @@ constructor_initializer_target_suffix =
     | generic_argument_suffix ;
 ```
 
-`argument_list` 和 `call_suffix` 复用议题 15 的普通调用规则；`generic_argument_suffix` 复用议题 16；`type` 复用议题 29；`expression` 复用议题 12—24、29、30；`statement_block` 复用议题 09。所有逗号列表继续遵守议题 07，不接受尾随逗号。
+`argument_list` 和 `call_suffix` 复用议题 15 的普通调用规则；`generic_argument_suffix` 复用议题 16；`type` 复用议题 29；`expression` 复用议题 12—23、29、30；`statement_block` 复用议题 09。所有逗号列表继续遵守议题 07，不接受尾随逗号。
 
 ## 3. Attribute、decorator 与修饰符顺序
 
@@ -161,7 +161,6 @@ constructor_initializer_target_suffix =
 ```ink
 [reflect(info = meta("network", "async"))]
 @trace(level = 2)
-[nothrow]
 public async func load() -> Data {
     // ...
 }
@@ -514,7 +513,7 @@ Parser 不负责：
 - 检查泛型或运行时参数包数量、位置和对应关系；
 - 检查 `_` 的忽略绑定语义和命名调用限制；
 - 判断返回类型、函数体或分号在当前声明上下文是否合法；
-- 执行重载、覆盖、接口实现、异常或 `[nothrow]` 检查；
+- 执行重载、覆盖或接口实现检查；
 - 判断 attribute 与 decorator 是否存在、参数是否合法或是否允许附着当前函数。
 
 上述错误不能反向改变已经确定的 Token 归属、参数边界、修饰符顺序或 body 形状。

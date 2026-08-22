@@ -1,6 +1,6 @@
 # Parser 议题 32：统一的 `comptime` 区域控制
 
-> 状态：已确认，所有结构化控制头使用固定括号；2026-08-08 确认 statement entry 的 `comptime match` 不可回滚提交
+> 状态：已确认，所有结构化控制头使用固定括号
 > 确认日期：2026-08-05
 
 ## 1. 目标
@@ -63,7 +63,6 @@ comptime_operand<ValueRegion> :=
 comptime_operand<ItemRegion R> :=
       region_block<R>
     | region_if_tail<R>
-    | region_match_tail<R>
     | region_for_tail<R>
     | region_while_tail<R>
 
@@ -83,7 +82,6 @@ class_member_comptime_item =
     (
         class_member_block
       | class_member_if_tail
-      | class_member_match_tail
       | class_member_for_tail
       | class_member_while_tail
     ) ;
@@ -94,14 +92,6 @@ class_member_if_tail =
         "else",
         ( class_member_block | class_member_if_tail )
     ] ;
-
-class_member_match_tail =
-    "match", "(", expression, ")", "{",
-    class_member_match_arm, { class_member_match_arm },
-    "}" ;
-
-class_member_match_arm =
-    match_arm_pattern, "=>", class_member_block ;
 
 class_member_for_tail =
     "for", "(", for_binding_mode, for_pattern,
@@ -117,7 +107,6 @@ class_member_while_tail =
 
 ```text
 if_condition
-match_arm_pattern
 for_binding_mode
 for_pattern
 for_source
@@ -135,7 +124,6 @@ while_condition
 | expression | 整个表达式产生 `Known(value)` | `ValueRegion` 接收一个值 |
 | block | 整个 block 在编译期区域中执行 | 当前区域接收执行产生的结果 |
 | `if` | 条件在编译期已知 | 当前区域接收选中分支 |
-| `match` | 被匹配值和 arm 选择在编译期已知 | 当前区域接收选中 arm |
 | `for` | 迭代源和展开次数在编译期已知 | 当前区域按迭代顺序接收展开结果 |
 | `while` | 每次条件和展开过程均在编译期决定 | 当前区域接收每轮结果 |
 
@@ -179,33 +167,23 @@ var second: int = comptime (GetXXX() + 1);
 
 ## 7. Item 起始位置
 
-在 item 起始位置，外层 Parser 已经知道当前区域。若 `comptime` 后的显著 Token 是 `{`、`if`、`match`、`for` 或 `while`，进入统一的区域控制 Parser。对 statement entry 的 `comptime match`，这两个显著 Token 本身就是不可回滚的提交点；Parser 不继续查看 arm 的逗号或分号来决定是否改成值表达式。
+在 item 起始位置，外层 Parser 已经知道当前区域。若 `comptime` 后的显著 Token 是 `{`、`if`、`for` 或 `while`，进入统一的区域控制 Parser。
 
 普通 statement context 还允许 `comptime_expression` 成为表达式语句的一部分：
 
 ```ink
 comptime validate_configuration();
-
-comptime (match (target.arch) {
-    .x86_64 => x86_value,
-    _ => fallback_value,
-});
 ```
 
-第一个示例的第二个显著 Token 是普通表达式起点，第二个示例的第二个显著 Token 是 `(`；它们都没有命中 `comptime match` 保留序列，因此 statement Parser 进入普通表达式语句入口，由 expression Parser 消费 `comptime`。这个判断只需要有限 Token 前瞻，不读取符号表。module、class、interface 和 enum item 区域不允许普通表达式语句，所以 `comptime generate();` 不能仅因带有前缀就成为声明；声明区域只能选择或重复其 `RegionRules` 已经允许、并且静态写在源码中的普通声明。Ink v0 不提供 `field(...)` 或其他声明构造表达式。
+该示例的第二个显著 Token 是普通表达式起点，因此 statement Parser 进入普通表达式语句入口，由 expression Parser 消费 `comptime`。这个判断只需要有限 Token 前瞻，不读取符号表。module、class、interface 和 enum item 区域不允许普通表达式语句，所以 `comptime generate();` 不能仅因带有前缀就成为声明；声明区域只能选择或重复其 `RegionRules` 已经允许、并且静态写在源码中的普通声明。Ink v0 不提供 `field(...)` 或其他声明构造表达式。
 
 在 `=` 之后不存在上述 item 歧义。字段初始化器调用普通表达式 Parser，因此：
 
 ```ink
 var capacity: int = comptime GetCapacity();
-
-var selected: int = comptime match (target.arch) {
-    .x86_64 => x86_value,
-    _ => fallback_value,
-};
 ```
 
-两者都确定进入 `ComptimeExpression`；第二个示例中的 `match` 由其操作数位置解析为 `MatchExpression`。
+该初始化器确定进入 `ComptimeExpression`。
 
 ## 8. 递归下降实现
 
@@ -229,7 +207,7 @@ struct RegionRules {
 };
 ```
 
-统一入口只在外层 item dispatcher 已经通过当前区域和有限 Token 前瞻选定结构控制后调用；普通 expression context 不调用它。statement entry 一旦命中 `comptime match`，后续残缺也只在 `ComptimeMatchControl` 内恢复。统一入口为：
+统一入口只在外层 item dispatcher 已经通过当前区域和有限 Token 前瞻选定结构控制后调用；普通 expression context 不调用它。统一入口为：
 
 ```cpp
 SyntaxNode Parser::parse_comptime_region_control(
@@ -241,8 +219,6 @@ SyntaxNode Parser::parse_comptime_region_control(
         return parse_comptime_block(comptime, region);
     case TokenKind::If:
         return parse_comptime_if(comptime, region);
-    case TokenKind::Match:
-        return parse_comptime_match(comptime, region);
     case TokenKind::For:
         return parse_comptime_for(comptime, region);
     case TokenKind::While:
@@ -269,7 +245,7 @@ SyntaxNode Parser::parse_region_block(const RegionRules& region) {
 }
 ```
 
-`parse_comptime_if`、`parse_comptime_match`、`parse_comptime_for` 和 `parse_comptime_while` 只接收 `RegionRules` 并把它传给每个 body；header Parser 与普通控制结构完全复用。
+`parse_comptime_if`、`parse_comptime_for` 和 `parse_comptime_while` 只接收 `RegionRules` 并把它传给每个 body；header Parser 与普通控制结构完全复用。
 
 ## 9. CST
 
@@ -279,7 +255,6 @@ CST 使用统一的结构节点：
 ComptimeExpression
 ComptimeBlockControl
 ComptimeIfControl
-ComptimeMatchControl
 ComptimeForControl
 ComptimeWhileControl
 ```
@@ -329,10 +304,10 @@ sink 拒绝错误种类的输出。例如 `ClassMemberSink` 不接受普通 `ret
 - `TopLevelRegion` 同步到导入、顶层声明、`comptime` 或 EOF；
 - 类型成员区域同步到字段、函数、嵌套类型、`comptime` 或外层 `}`。
 
-每个 `region_block` 缺少 `}` 时使用当前区域的 block kind 插入对应 `MissingToken('}')`。不能先建立 `StatementBlock` 再根据其中内容改判，也不能因为未选中分支而忽略其语法错误。已经由 statement entry 提交的 `comptime match` 即使出现表达式 arm 逗号或外层分号，也不得回退成 `ComptimeExpression`。
+每个 `region_block` 缺少 `}` 时使用当前区域的 block kind 插入对应 `MissingToken('}')`。不能先建立 `StatementBlock` 再根据其中内容改判，也不能因为未选中分支而忽略其语法错误。
 
-REPL 在未闭合的 condition、match arm、loop header 或 region block 末尾返回 `Incomplete`。条件不能编译期求值、循环不收敛或选中成员语义非法都发生在 Parser 之后，不改变结构完整状态。
+REPL 在未闭合的 condition、loop header 或 region block 末尾返回 `Incomplete`。条件不能编译期求值、循环不收敛或选中成员语义非法都发生在 Parser 之后，不改变结构完整状态。
 
 ## 12. 确认结论
 
-Ink 的 `comptime` 是统一阶段前缀。表达式位置要求产生编译期已知值；结构化 block、`if`、`match`、`for` 和 `while` 使用同一个区域控制 schema。statement entry 的 `comptime match` 由两个显著 Token 的有限前瞻不可回滚地选择结构控制，表达式位置或 `comptime (` 则进入 `ComptimeExpression`，两者都不需要符号表。module、函数、类、接口和枚举只提供不同的 `RegionRules` 与输出 sink，不获得各自的 `comptime` 关键字或语义。标准 EBNF 可以机械展开区域适配非终结符，Parser、CST、Partial Evaluation 和诊断则共享同一套核心实现。
+Ink 的 `comptime` 是统一阶段前缀。表达式位置要求产生编译期已知值；结构化 block、`if`、`for` 和 `while` 使用同一个区域控制 schema。item 起始位置通过有限 Token 前瞻选择结构控制，其他表达式位置则进入 `ComptimeExpression`，两者都不需要符号表。module、函数、类、接口和枚举只提供不同的 `RegionRules` 与输出 sink，不获得各自的 `comptime` 关键字或语义。标准 EBNF 可以机械展开区域适配非终结符，Parser、CST、Partial Evaluation 和诊断则共享同一套核心实现。

@@ -1,6 +1,6 @@
 # 议题 28：接口动态反射
 
-> 状态：已确认，议题 29—31、34、56、57 补充  
+> 状态：已确认，议题 29—31、56、57 补充
 > 确认日期：2026-08-02
 
 ## 1. 接口可以显式生成动态反射信息
@@ -30,11 +30,14 @@ interface Renderable {
 运行时按照议题 22 的完全限定名称查找接口：
 
 ```ink
-if (match .some(interface_info) = reflection.find_interface("game.Renderable")) {
+const interface_result = reflection.find_interface("game.Renderable");
+if (interface_result.has_value()) {
+    const interface_info = interface_result.value();
     print(interface_info.name);
 
-    if (match .some(display_name) =
-        interface_info.metadata.get::<DisplayName>()) {
+    const display_name_result = interface_info.metadata.get::<DisplayName>();
+    if (display_name_result.has_value()) {
+        const display_name = display_name_result.value();
         print(display_name);
     }
 
@@ -70,8 +73,12 @@ class Player : Renderable {
 const player = Player();
 const renderable: Renderable& = player;
 
-if (match .some(interface_info) = reflection.find_interface("game.Renderable")) {
-    if (match .some(render) = interface_info.function("render")) {
+const interface_result = reflection.find_interface("game.Renderable");
+if (interface_result.has_value()) {
+    const interface_info = interface_result.value();
+    const render_result = interface_info.function("render");
+    if (render_result.has_value()) {
+        const render = render_result.value();
         render.call::<void>(renderable, &canvas);
     }
 }
@@ -158,14 +165,16 @@ render.call::<void>(temporary, &canvas);
 3. 构造临时接口胖引用；
 4. 通过接口槽执行调用。
 
-这种路径要求具体类具有 `[reflect]`，并且其与目标反射接口的实现关系已经注册。否则运行时不能从无类型地址猜测接口实现，必须抛出“接口未实现或未反射”异常。
+这种路径要求具体类具有 `[reflect]`，并且其与目标反射接口的实现关系已经注册。否则运行时不能从无类型地址猜测接口实现，必须返回“接口未实现或未反射”的显式失败结果。
 
 ## 7. 类与接口实现关系
 
 一个 `[reflect]` 类可以枚举它实现的 `[reflect]` 接口：
 
 ```ink
-if (match .some(player_type_info) = reflection.find_type("game.Player")) {
+const player_type_result = reflection.find_type("game.Player");
+if (player_type_result.has_value()) {
+    const player_type_info = player_type_result.value();
     for (const interface_info in player_type_info.interfaces) {
         print(interface_info.name);
     }
@@ -179,7 +188,9 @@ if (match .some(player_type_info) = reflection.find_type("game.Player")) {
 一个反射接口也可以枚举当前已加载的反射实现类：
 
 ```ink
-if (match .some(renderable) = reflection.find_interface("game.Renderable")) {
+const renderable_result = reflection.find_interface("game.Renderable");
+if (renderable_result.has_value()) {
+    const renderable = renderable_result.value();
     for (const implementation in renderable.implementations) {
         print(implementation.name);
     }

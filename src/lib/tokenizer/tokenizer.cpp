@@ -48,7 +48,6 @@ namespace ink::tokenizer
         {"async", KeywordKind::Async},
         {"await", KeywordKind::Await},
         {"break", KeywordKind::Break},
-        {"catch", KeywordKind::Catch},
         {"class", KeywordKind::Class},
         {"comptime", KeywordKind::Comptime},
         {"const", KeywordKind::Const},
@@ -68,7 +67,6 @@ namespace ink::tokenizer
         {"in", KeywordKind::In},
         {"interface", KeywordKind::Interface},
         {"let", KeywordKind::Let},
-        {"match", KeywordKind::Match},
         {"override", KeywordKind::Override},
         {"private", KeywordKind::Private},
         {"protected", KeywordKind::Protected},
@@ -76,8 +74,6 @@ namespace ink::tokenizer
         {"return", KeywordKind::Return},
         {"static", KeywordKind::Static},
         {"this", KeywordKind::This},
-        {"throw", KeywordKind::Throw},
-        {"try", KeywordKind::Try},
         {"var", KeywordKind::Var},
         {"virtual", KeywordKind::Virtual},
         {"while", KeywordKind::While},
@@ -1304,19 +1300,47 @@ namespace ink::tokenizer
     };
   } // namespace
 
+  const std::string &TokenizedBuffer::source() const noexcept
+  {
+    static const std::string Empty;
+    return Source == nullptr ? Empty : Source->text();
+  }
+
+  const std::string &TokenizedBuffer::sourceName() const noexcept
+  {
+    static const std::string Empty;
+    return Source == nullptr ? Empty : Source->name();
+  }
+
+  core::SourceId TokenizedBuffer::sourceId() const noexcept
+  {
+    return Source == nullptr ? core::SourceId{} : Source->id();
+  }
+
+  const std::vector<std::size_t> &TokenizedBuffer::lineStarts() const noexcept
+  {
+    static const std::vector<std::size_t> Empty;
+    return Source == nullptr ? Empty : Source->lineStarts();
+  }
+
   std::string_view TokenizedBuffer::raw(const Token &Token) const noexcept
   {
-    if (Token.Span.Start > Token.Span.End || Token.Span.End > Source.size())
+    if (Token.Span.Start > Token.Span.End || Token.Span.End > source().size())
     {
       return {};
     }
-    return std::string_view(Source.data() + Token.Span.Start, Token.Span.size());
+    return std::string_view(source().data() + Token.Span.Start, Token.Span.size());
   }
 
   std::size_t TokenizedBuffer::lineNumber(std::size_t ByteOffset) const noexcept
   {
-    const std::size_t ClampedOffset = std::min(ByteOffset, Source.size());
-    return static_cast<std::size_t>(std::upper_bound(LineStarts.begin(), LineStarts.end(), ClampedOffset) - LineStarts.begin());
+    return Source == nullptr ? 0 : Source->lineNumber(ByteOffset);
+  }
+
+  bool TokenizedBuffer::isRegisteredWith(const core::SourceManager &Sources) const noexcept
+  {
+    const std::shared_ptr<const core::SourceBuffer> Registered = Sources.findSource(sourceId());
+    return Registered != nullptr && Registered == Source;
   }
 
   bool TokenizedBuffer::succeeded() const noexcept
@@ -1332,19 +1356,20 @@ namespace ink::tokenizer
 
   TokenizedBuffer Tokenizer::tokenize(std::string Source) const
   {
+    const core::SourceId Id = Context.sourceManager().addSource("<memory>", std::move(Source));
+    return tokenizeSource(Id);
+  }
+
+  TokenizedBuffer Tokenizer::tokenizeSource(core::SourceId Source) const
+  {
     TokenizedBuffer Result;
-    Result.SourceId = Context.compilationContext().createSourceId();
-    Result.Source = std::move(Source);
-    Result.LineStarts.push_back(0);
-    for (std::size_t Index = 0; Index < Result.Source.size(); ++Index)
+    Result.Source = Context.sourceManager().findSource(Source);
+    if (Result.Source == nullptr)
     {
-      if (Result.Source[Index] == '\n')
-      {
-        Result.LineStarts.push_back(Index + 1);
-      }
+      return Result;
     }
     std::vector<Diagnostic> Diagnostics;
-    Scanner Scanner(Result.Source, Result.Tokens, Diagnostics, Options);
+    Scanner Scanner(Result.Source->text(), Result.Tokens, Diagnostics, Options);
     Scanner.run();
     Result.Succeeded = Diagnostics.empty() && std::none_of(Result.Tokens.begin(), Result.Tokens.end(), [](const Token &Token)
                                                            {
@@ -1352,7 +1377,7 @@ namespace ink::tokenizer
                                                            });
     for (Diagnostic &DiagnosticEntry : Diagnostics)
     {
-      DiagnosticEntry.Source = Result.SourceId;
+      DiagnosticEntry.Source = Result.sourceId();
       Context.diagnosticEngine().report(DiagnosticEntry);
     }
     return Result;
@@ -1361,6 +1386,11 @@ namespace ink::tokenizer
   TokenizedBuffer tokenize(core::FrontendContext &Context, std::string Source, TokenizerOptions Options)
   {
     return Tokenizer(Context, Options).tokenize(std::move(Source));
+  }
+
+  TokenizedBuffer tokenizeSource(core::FrontendContext &Context, core::SourceId Source, TokenizerOptions Options)
+  {
+    return Tokenizer(Context, Options).tokenizeSource(Source);
   }
 
 } // namespace ink::tokenizer

@@ -108,8 +108,8 @@ namespace ink::execution
           "inkir 1\n"
           "define byte @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 2\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 2\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  %2 = getelementptr byte, byte* %1, ptrsize 1\n"
           "  %3 = load byte, byte* %2\n"
           "  store byte 171, byte* %2\n"
@@ -141,7 +141,7 @@ namespace ink::execution
       for (const Case &CaseValue : Cases)
       {
         MemoryExecutionTestContext Context;
-        const std::string Text = "inkir 1\ndefine " + std::string(CaseValue.Type) + " @main() {\nentry:\n  %0 = alloca byte[] ptrsize " + std::to_string(1 + Context.Compilation.targetContext().pointerByteWidth()) + "\n  %1 = slice.data byte* byte[] %0\n  %2 = getelementptr byte, byte* %1, ptrsize 1\n  store " + std::string(CaseValue.Type) + " " + CaseValue.StoredValue + ", byte* %2\n  %3 = load " + CaseValue.Type + ", byte* %2\n  ret " + CaseValue.Type + " %3\n}\n";
+        const std::string Text = "inkir 1\ndefine " + std::string(CaseValue.Type) + " @main() {\nentry:\n  %0 = alloca byte slice ptrsize " + std::to_string(1 + Context.Compilation.targetContext().pointerByteWidth()) + "\n  %1 = slice.data byte* byte slice %0\n  %2 = getelementptr byte, byte* %1, ptrsize 1\n  store " + std::string(CaseValue.Type) + " " + CaseValue.StoredValue + ", byte* %2\n  %3 = load " + CaseValue.Type + ", byte* %2\n  ret " + CaseValue.Type + " %3\n}\n";
 
         const ExecutionResult Result = executeText(Context, Text);
 
@@ -165,8 +165,8 @@ namespace ink::execution
           "inkir 1\n"
           "define byte @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 4\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 4\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  store i32 16909060, byte* %1\n"
           "  %2 = load byte, byte* %1\n"
           "  ret byte %2\n"
@@ -204,8 +204,8 @@ namespace ink::execution
           "inkir 1\n"
           "define byte @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 4\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 4\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  store i32 16909060, byte* %1\n"
           "  %2 = load byte, byte* %1\n"
           "  ret byte %2\n"
@@ -224,8 +224,8 @@ namespace ink::execution
           "inkir 1\n"
           "define bool @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  store byte 2, byte* %1\n"
           "  %2 = load bool, byte* %1\n"
           "  ret bool %2\n"
@@ -246,8 +246,8 @@ namespace ink::execution
           "inkir 1\n"
           "define ptrsize @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 0\n"
-          "  %1 = slice.length byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 0\n"
+          "  %1 = slice.length byte slice %0\n"
           "  ret ptrsize %1\n"
           "}\n";
 
@@ -262,9 +262,9 @@ namespace ink::execution
       MemoryExecutionTestContext Context;
       const std::string Text =
           "inkir 1\n"
-          "define byte @main(const byte[] %0) {\n"
+          "define byte @main(const byte slice %0) {\n"
           "entry:\n"
-          "  %1 = slice.data const byte* const byte[] %0\n"
+          "  %1 = slice.data const byte* const byte slice %0\n"
           "  %2 = getelementptr byte, const byte* %1, ptrsize 2\n"
           "  %3 = load byte, const byte* %2\n"
           "  ret byte %3\n"
@@ -284,9 +284,9 @@ namespace ink::execution
       MemoryExecutionTestContext Context;
       const std::string Text =
           "inkir 1\n"
-          "define void @main(byte[] %0) {\n"
+          "define void @main(byte slice %0) {\n"
           "entry:\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  %2 = getelementptr byte, byte* %1, ptrsize 1\n"
           "  store byte 255, byte* %2\n"
           "  ret void\n"
@@ -322,7 +322,7 @@ namespace ink::execution
       for (const Case &CaseValue : Cases)
       {
         MemoryExecutionTestContext Context;
-        const std::string Text = "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte[] ptrsize " + std::to_string(CaseValue.SliceLength) + "\n  %1 = slice.data byte* byte[] %0\n  %2 = getelementptr byte, byte* %1, ptrsize 1\n  " + std::string(CaseValue.Instruction) + "\n  ret void\n}\n";
+        const std::string Text = "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte slice ptrsize " + std::to_string(CaseValue.SliceLength) + "\n  %1 = slice.data byte* byte slice %0\n  %2 = getelementptr byte, byte* %1, ptrsize 1\n  " + std::string(CaseValue.Instruction) + "\n  ret void\n}\n";
         const ExecutionResult Result = executeText(Context, Text);
         ASSERT_FALSE(Result.succeeded()) << CaseValue.Operation;
         ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u) << CaseValue.Operation;
@@ -347,7 +347,7 @@ namespace ink::execution
       for (const Case &CaseValue : Cases)
       {
         MemoryExecutionTestContext Context(core::TargetContext(core::PointerWidth::Bits64, core::ByteOrder::LittleEndian));
-        const std::string Text = "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte[] ptrsize 1\n  %1 = slice.data byte* byte[] %0\n  %2 = getelementptr byte, byte* %1, ptrsize 4294967296\n  " + std::string(CaseValue.Instruction) + "\n  ret void\n}\n";
+        const std::string Text = "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte slice ptrsize 1\n  %1 = slice.data byte* byte slice %0\n  %2 = getelementptr byte, byte* %1, ptrsize 4294967296\n  " + std::string(CaseValue.Instruction) + "\n  ret void\n}\n";
         const ExecutionResult Result = executeText(Context, Text);
 
         ASSERT_FALSE(Result.succeeded()) << CaseValue.Operation;
@@ -365,8 +365,8 @@ namespace ink::execution
           "inkir 1\n"
           "define byte @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  %2 = load byte, byte* %1\n"
           "  ret byte %2\n"
           "}\n";
@@ -395,15 +395,15 @@ namespace ink::execution
           const char *Operation;
       };
       const Case Cases[] = {
-          {"  %1 = slice.data byte* byte[] %0\n", "  %2 = load byte, byte* %1\n", "load"},
-          {"  %1 = slice.data byte* byte[] %0\n", "  store byte 1, byte* %1\n", "store"},
-          {"", "  %1 = slice.data byte* byte[] %0\n", "slice.data"},
+          {"  %1 = slice.data byte* byte slice %0\n", "  %2 = load byte, byte* %1\n", "load"},
+          {"  %1 = slice.data byte* byte slice %0\n", "  store byte 1, byte* %1\n", "store"},
+          {"", "  %1 = slice.data byte* byte slice %0\n", "slice.data"},
       };
 
       for (const Case &CaseValue : Cases)
       {
         MemoryExecutionTestContext Context;
-        const std::string Text = "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte[] ptrsize 1\n" + std::string(CaseValue.BeforeLifetimeEnd) + "  lifetime.end byte[] %0\n" + CaseValue.AfterLifetimeEnd + "  ret void\n}\n";
+        const std::string Text = "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte slice ptrsize 1\n" + std::string(CaseValue.BeforeLifetimeEnd) + "  lifetime.end byte slice %0\n" + CaseValue.AfterLifetimeEnd + "  ret void\n}\n";
         const ExecutionResult Result = executeText(Context, Text);
         ASSERT_FALSE(Result.succeeded()) << CaseValue.Operation;
         ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u) << CaseValue.Operation;
@@ -419,9 +419,9 @@ namespace ink::execution
           "inkir 1\n"
           "define void @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
-          "  lifetime.end byte[] %0\n"
-          "  lifetime.end byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
+          "  lifetime.end byte slice %0\n"
+          "  lifetime.end byte slice %0\n"
           "  ret void\n"
           "}\n";
 
@@ -440,9 +440,9 @@ namespace ink::execution
           "inkir 1\n"
           "define ptrsize @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 3\n"
-          "  lifetime.end byte[] %0\n"
-          "  %1 = slice.length byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 3\n"
+          "  lifetime.end byte slice %0\n"
+          "  %1 = slice.length byte slice %0\n"
           "  ret ptrsize %1\n"
           "}\n";
 
@@ -457,9 +457,9 @@ namespace ink::execution
       MemoryExecutionTestContext Context;
       const std::string Text =
           "inkir 1\n"
-          "define void @main(byte[] %0) {\n"
+          "define void @main(byte slice %0) {\n"
           "entry:\n"
-          "  lifetime.end byte[] %0\n"
+          "  lifetime.end byte slice %0\n"
           "  ret void\n"
           "}\n";
       std::uint8_t Byte = 0;
@@ -479,17 +479,17 @@ namespace ink::execution
       MemoryExecutionTestContext Context;
       const std::string Text =
           "inkir 1\n"
-          "define void @set(byte[] %0) {\n"
+          "define void @set(byte slice %0) {\n"
           "entry:\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  store byte 42, byte* %1\n"
           "  ret void\n"
           "}\n"
           "define byte @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
-          "  call void @set(byte[] %0)\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
+          "  call void @set(byte slice %0)\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  %2 = load byte, byte* %1\n"
           "  ret byte %2\n"
           "}\n";
@@ -507,8 +507,8 @@ namespace ink::execution
           "inkir 1\n"
           "define byte @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  store byte 77, byte* %1\n"
           "  br next\n"
           "next:\n"
@@ -527,15 +527,15 @@ namespace ink::execution
       MemoryExecutionTestContext Context;
       const std::string Text =
           "inkir 1\n"
-          "define void @end(byte[] %0) {\n"
+          "define void @end(byte slice %0) {\n"
           "entry:\n"
-          "  lifetime.end byte[] %0\n"
+          "  lifetime.end byte slice %0\n"
           "  ret void\n"
           "}\n"
           "define void @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
-          "  call void @end(byte[] %0)\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
+          "  call void @end(byte slice %0)\n"
           "  ret void\n"
           "}\n";
 
@@ -554,7 +554,7 @@ namespace ink::execution
           "inkir 1\n"
           "define void @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 16777217\n"
+          "  %0 = alloca byte slice ptrsize 16777217\n"
           "  ret void\n"
           "}\n";
 
@@ -573,7 +573,7 @@ namespace ink::execution
           "inkir 1\n"
           "define void @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 4294967296\n"
+          "  %0 = alloca byte slice ptrsize 4294967296\n"
           "  ret void\n"
           "}\n";
 
@@ -593,11 +593,11 @@ namespace ink::execution
           "inkir 1\n"
           "define void @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 16777216\n"
-          "  %1 = alloca byte[] ptrsize 16777216\n"
-          "  %2 = alloca byte[] ptrsize 16777216\n"
-          "  %3 = alloca byte[] ptrsize 16777216\n"
-          "  %4 = alloca byte[] ptrsize 1\n"
+          "  %0 = alloca byte slice ptrsize 16777216\n"
+          "  %1 = alloca byte slice ptrsize 16777216\n"
+          "  %2 = alloca byte slice ptrsize 16777216\n"
+          "  %3 = alloca byte slice ptrsize 16777216\n"
+          "  %4 = alloca byte slice ptrsize 1\n"
           "  ret void\n"
           "}\n";
 
@@ -617,7 +617,7 @@ namespace ink::execution
           "inkir 1\n"
           "define void @allocate() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 0\n"
+          "  %0 = alloca byte slice ptrsize 0\n"
           "  ret void\n"
           "}\n"
           "define void @main() {\n"
@@ -650,8 +650,8 @@ namespace ink::execution
           "inkir 1\n"
           "define byte* @local() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  ret byte* %1\n"
           "}\n"
           "define byte @main() {\n"
@@ -674,9 +674,9 @@ namespace ink::execution
       MemoryExecutionTestContext Context;
       const std::string Text =
           "inkir 1\n"
-          "define byte* @main(byte[] %0) {\n"
+          "define byte* @main(byte slice %0) {\n"
           "entry:\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  ret byte* %1\n"
           "}\n";
       std::uint8_t Byte = 9;
@@ -698,8 +698,8 @@ namespace ink::execution
           "inkir 1\n"
           "define byte* @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  ret byte* %1\n"
           "}\n";
 
@@ -719,8 +719,8 @@ namespace ink::execution
           "declare extern \"C\" void @consume(byte*) [sideeffect]\n"
           "define byte* @local() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  ret byte* %1\n"
           "}\n"
           "define void @main() {\n"
@@ -746,8 +746,8 @@ namespace ink::execution
           "inkir 1\n"
           "define byte* @local() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  ret byte* %1\n"
           "}\n"
           "define bool @main() {\n"
@@ -769,9 +769,9 @@ namespace ink::execution
       const std::string Text =
           "inkir 1\n"
           "declare extern \"C\" void @consume(byte*) [sideeffect]\n"
-          "define void @main(byte[] %0) {\n"
+          "define void @main(byte slice %0) {\n"
           "entry:\n"
-          "  %1 = slice.data byte* byte[] %0\n"
+          "  %1 = slice.data byte* byte slice %0\n"
           "  call void @consume(byte* %1)\n"
           "  ret void\n"
           "}\n";
@@ -800,11 +800,11 @@ namespace ink::execution
           "declare extern \"C\" i32 @write(i32, const byte*, ptrsize) [sideeffect]\n"
           "define byte @main() {\n"
           "entry:\n"
-          "  %0 = alloca byte[] ptrsize 3\n"
-          "  %1 = slice.data byte* byte[] %0\n"
-          "  %2 = slice.length byte[] %0\n"
+          "  %0 = alloca byte slice ptrsize 3\n"
+          "  %1 = slice.data byte* byte slice %0\n"
+          "  %2 = slice.length byte slice %0\n"
           "  %3 = call i32 @read(i32 0, byte* %1, ptrsize %2)\n"
-          "  %4 = slice.data const byte* byte[] %0\n"
+          "  %4 = slice.data const byte* byte slice %0\n"
           "  %5 = call i32 @write(i32 1, const byte* %4, ptrsize %2)\n"
           "  %6 = getelementptr byte, byte* %1, ptrsize 2\n"
           "  %7 = load byte, byte* %6\n"

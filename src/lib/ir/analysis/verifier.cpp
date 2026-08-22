@@ -31,8 +31,9 @@ namespace ink::ir
     class DiagnosticCollector
     {
       public:
-        explicit DiagnosticCollector(DiagnosticClass Class)
-            : Class(Class)
+        DiagnosticCollector(DiagnosticClass Class, core::SourceId Source)
+            : Class(Class),
+              Source(Source)
         {
         }
 
@@ -40,6 +41,7 @@ namespace ink::ir
         void add(ArgumentTypes &&...Arguments)
         {
           Diagnostic DiagnosticEntry = core::makeDiagnostic<Kind>({}, std::forward<ArgumentTypes>(Arguments)...);
+          DiagnosticEntry.Source = Source;
           DiagnosticEntry.Class = Class;
           Diagnostics.push_back(std::move(DiagnosticEntry));
         }
@@ -59,6 +61,7 @@ namespace ink::ir
 
       private:
         DiagnosticClass Class;
+        core::SourceId Source;
         std::vector<Diagnostic> Diagnostics;
     };
 
@@ -1544,7 +1547,16 @@ namespace ink::ir
 
   VerificationResult verify(IRContext &Context, const Module &ModuleValue, DiagnosticClass Class)
   {
-    DiagnosticCollector Diagnostics(Class);
+    return verify(Context, ModuleValue, Class, {});
+  }
+
+  VerificationResult verify(IRContext &Context, const Module &ModuleValue, DiagnosticClass Class, core::SourceId Source)
+  {
+    if (Source.valid() && Context.sourceManager().findSource(Source) == nullptr)
+    {
+      return VerificationResult(false);
+    }
+    DiagnosticCollector Diagnostics(Class, Source);
     std::unordered_set<Name> GlobalNames;
     std::unordered_set<Name> TypeNames;
     std::unordered_set<const StructType *> DeclaredStructTypes;

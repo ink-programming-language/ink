@@ -1,6 +1,6 @@
 # 议题 06：构造函数、隐式构造与字面量初始化
 
-> 状态：已确认，2026-08-04 构造声明改为 `func ClassName(...)`；议题 34、54、72 修订，Parser 议题 30、31、35、38 确认构造调用、函数声明、聚合初始化与 C++ 风格构造初始化列表
+> 状态：已确认，2026-08-04 构造声明改为 `func ClassName(...)`；议题 54、72 修订，Parser 议题 30、31、35、38 确认构造调用、函数声明、聚合初始化与 C++ 风格构造初始化列表
 > 确认日期：2026-08-01
 
 ## 1. 构造函数使用所属类名
@@ -88,7 +88,7 @@ const duration = Duration(1000); // 合法
 const duration: Duration = 1000; // 编译错误
 ```
 
-普通构造函数可以执行运行时代码，也可以像普通未标记函数一样抛出异常；函数签名不声明异常：
+普通构造函数可以执行运行时代码：
 
 ```ink
 class File {
@@ -178,30 +178,14 @@ duration = 2000; // 编译错误，除非以后另行定义已有对象赋值规
 隐式构造函数：
 
 - 必须恰好接受一个参数；
-- 隐式满足议题 34 的 `[nothrow]`，异常不能逃逸；
+- 必须保证初始化不会发生可恢复失败；
 - 可以是 `comptime`，也可以在运行时执行；
 - 可以由普通运行时值触发，不限于编译器字面量；
 - 不允许形成连续的隐式构造链；
 - 不帮助推断原本未知的目标类型；
 - 多个同级候选都可行时必须报告歧义。
 
-隐式构造可以执行运行时代码和产生运行时副作用，但 `[nothrow]` 保证异常不能逃逸。API 作者应当优先把它用于不会失败、语义自然且成本可预期的初始化。可能抛出异常的构造必须保持显式。
-
-```ink
-class Port {
-    var value: u16;
-
-    func Port(value: int) {
-        if (value < 0 || value > 65535) {
-            throw InvalidPort {};
-        }
-
-        this.value = cast::<u16>(value);
-    }
-}
-
-const port = Port(read_port());
-```
+隐式构造可以执行运行时代码和产生运行时副作用，但只能用于不会失败、语义自然且成本可预期的初始化。需要报告可恢复失败的转换必须使用返回显式状态或结果值的普通 API，不能由构造函数隐式触发。
 
 ## 6. 构造函数重载解析
 
@@ -281,14 +265,6 @@ class UnicodeScalar {
     implicit func UnicodeScalar(literal: ScalarLiteral) {
         this.value = literal.codepoint;
     }
-
-    func UnicodeScalar(value: u32) {
-        if (!is_valid_unicode_scalar(value)) {
-            throw InvalidScalar {};
-        }
-
-        this.value = value;
-    }
 }
 ```
 
@@ -299,21 +275,19 @@ const first = UnicodeScalar('A');
 const second: UnicodeScalar = '中';
 ```
 
-运行时整数不会隐式调用可能失败的普通构造函数：
+运行时整数不会隐式调用字面量专用构造函数；标准库必须通过显式校验 API 报告非法码点：
 
 ```ink
 const raw: u32 = read_codepoint();
-const third = UnicodeScalar(raw);     // 合法，可能抛出异常
-const fourth: UnicodeScalar = raw;    // 编译错误
+const scalar = UnicodeScalar.validate(raw); // 显式返回校验结果
+const invalid: UnicodeScalar = raw;         // 编译错误
 ```
 
 Ink 不再需要独立的通用 `FromLiteral` 隐式转换接口。
 
-## 9. 构造失败与部分初始化
+## 9. 构造完成与对象生命周期
 
-普通构造函数抛出异常并在部分字段初始化后失败时，只清理已经成功初始化的字段，顺序遵守议题 03 和 34。
-
-完整对象构造成功前不调用该对象自身的析构函数。构造成功以后，对象进入正常生命周期并按照 RAII 规则清理。
+完整对象构造成功前不调用该对象自身的析构函数。构造成功以后，对象进入正常生命周期并按照 RAII 规则清理。需要报告可恢复失败的初始化流程必须在进入构造函数前通过显式 API 完成。
 
 ## 10. 聚合初始化语法
 

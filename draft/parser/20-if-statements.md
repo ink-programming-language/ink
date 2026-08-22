@@ -1,6 +1,6 @@
 # Parser 议题 20：`if` 语句
 
-> 状态：已确认，议题 23、25 补充条件模式并由 `while (match ...)` 复用；2026-08-05 增加 `comptime if`，Parser 议题 32 统一区域控制；2026-08-05 统一要求控制头括号
+> 状态：已确认；2026-08-05 增加 `comptime if`，Parser 议题 32 统一区域控制；2026-08-05 统一要求控制头括号
 > 确认日期：2026-08-04
 
 ## 1. 产生式
@@ -13,17 +13,13 @@ if_statement =
     [ "else", ( statement_block | if_statement ) ] ;
 
 if_condition =
-      expression
-    | match_condition ;
-
-match_condition =
-    "match", conditional_match_pattern, "=", expression ;
+    expression ;
 
 comptime_if_statement =
     "comptime", if_statement ;
 ```
 
-`statement_block` 由议题 09 定义，`expression` 使用已经确认的表达式文法。`conditional_match_pattern` 由议题 23 定义为顶层 `variant_pattern`，并由议题 25 的 `while (match ...)` 复用。
+`statement_block` 由议题 09 定义，`expression` 使用已经确认的表达式文法。
 
 ## 2. 条件必须使用括号
 
@@ -35,7 +31,7 @@ if (ready) {
 }
 ```
 
-这对普通表达式和 `match_condition` 使用同一组固定定界符。条件内部若要额外分组，继续使用普通加括号表达式：
+条件内部若要额外分组，继续使用普通加括号表达式：
 
 ```ink
 if ((left || right) && enabled) {
@@ -89,22 +85,6 @@ if (first) {
 
 由于每个执行体都必须使用花括号，文法不存在悬空 `else`。每个 `else` 归属于直接包含它的 `if_statement`。
 
-## 5. `if (match ...)`
-
-模式条件使用显式的 `match`：
-
-```ink
-if (match .some(value) = optional) {
-    use(value);
-}
-```
-
-`match_condition` 在语法上由 `match`、一个 `conditional_match_pattern`、单字符 `=` Symbol Token 和一个完整 `expression` 组成。它不是议题 10 的局部绑定声明，不以分号结束，也不能脱离条件位置成为普通语句。
-
-`if (` 后若下一个显著 Token 是 `match`，且其后是 `.`，Parser 进入 `match_condition`；普通 `match_expression` 的被匹配表达式位于自己的括号内，不能以 `.` 开始，因此两种结构可以确定性区分。
-
-是否匹配成功、绑定哪些名称、模式是否适用于右侧值以及绑定的类型与可变性，都不由 Parser 判断。
-
 ## 6. `comptime if`
 
 编译期条件结构直接在完整 `if_statement` 前添加 `comptime`：
@@ -145,14 +125,14 @@ if (ready) {
 
 CST 使用专用 `IfStatement` 节点，并完整保留：
 
-- `if`、固定左右括号、`else` 和可选 `match` Token；
-- 条件、模式和 `=` Token；
+- `if`、固定左右括号和 `else` Token；
+- 条件表达式；
 - 每个 `StatementBlock`；
 - 块之间及内部的全部 Trivia；
 - 嵌套 `else if` 对应的子 `IfStatement`。
 
-Parser 只按产生式识别结构，不在 CST 中记录条件是否为 `bool`、模式是否可匹配或分支是否可达等语义结论。
+Parser 只按产生式识别结构，不在 CST 中记录条件是否为 `bool` 或分支是否可达等语义结论。
 
 ## 9. 确认结论
 
-Ink 的普通 `if_statement` 强制使用 `if (condition) statement_block`，所有执行体必须是无值 `statement_block`。`else` 可省略，`else if` 表示递归嵌套的 `if_statement`，整个结构不写结尾分号。括号内条件可以是普通表达式，也可以是 `match variant_pattern = expression` 形式；模式语法和访问能力传播由议题 23 定义。`comptime if` 直接要求整条条件链在编译期选择分支，链中的 `else if` 不重复 `comptime`；module、语句和类型成员位置都降低为同一个区域控制节点。
+Ink 的普通 `if_statement` 强制使用 `if (condition) statement_block`，所有执行体必须是无值 `statement_block`。`else` 可省略，`else if` 表示递归嵌套的 `if_statement`，整个结构不写结尾分号。括号内条件是普通表达式。`comptime if` 直接要求整条条件链在编译期选择分支，链中的 `else if` 不重复 `comptime`；module、语句和类型成员位置都降低为同一个区域控制节点。

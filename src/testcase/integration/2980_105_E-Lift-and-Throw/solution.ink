@@ -29,7 +29,7 @@ class state
         {
           if ((P[i].pos >= 64))
           {
-            throw logic_error("@L21");
+            return -1;
           }
           res = (((res << 1)) | P[i].thr);
           res = (((res << 1)) | P[i].moved);
@@ -88,6 +88,10 @@ var res: dynamic;
 func dfs(s: dynamic)
 {
   var hval = s.to_int();
+  if ((hval < 0))
+  {
+    return;
+  }
   if ((S.find(hval) != S.end()))
   {
     return;

@@ -2,7 +2,7 @@
 #include "ink/ir/ir.h"
 #include "ink/ir/serialization.h"
 
-#include "../diagnostic_test_support.h"
+#include "ir_test_support.h"
 
 #include <gtest/gtest.h>
 
@@ -19,22 +19,8 @@ namespace ink::ir
 {
   namespace
   {
-    struct ConstantIrTestContext
-    {
-        ConstantIrTestContext()
-        {
-          Compilation.diagnosticEngine().addConsumer(Diagnostics);
-        }
-
-        ~ConstantIrTestContext()
-        {
-          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
-        }
-
-        core::CompilationContext Compilation;
-        IRContext IR{Compilation};
-        core::CollectingDiagnosticConsumer Diagnostics;
-    };
+    using ConstantIrTestContext = test::IRTestContext;
+    using ink::test::hasDiagnostic;
 
     struct CapturedVerificationResult
     {
@@ -83,18 +69,6 @@ namespace ink::ir
       Context.Diagnostics.clear();
       VerificationResult Result = verify(Context.IR, ModuleValue);
       return {Result, Context.Diagnostics.diagnostics()};
-    }
-
-    bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
-    {
-      for (const core::Diagnostic &DiagnosticEntry : Diagnostics)
-      {
-        if (DiagnosticEntry.Kind == Kind)
-        {
-          return true;
-        }
-      }
-      return false;
     }
 
     const ReturnInstruction &returnInstruction(const Module &ModuleValue, std::size_t FunctionIndex)
@@ -205,7 +179,7 @@ namespace ink::ir
           "\n"
           "define ptrsize @main() {\n"
           "entry:\n"
-          "  %0 = slice.length const byte[] c\"\\00\\22\\5C\\FF\"\n"
+          "  %0 = slice.length const byte slice c\"\\00\\22\\5C\\FF\"\n"
           "  ret ptrsize %0\n"
           "}\n";
 

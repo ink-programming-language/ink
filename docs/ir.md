@@ -166,7 +166,7 @@ finalizer-declaration   = "finalizer" global-name;
 
 ```ebnf
 byte-pointer-type = ["const"] "byte" "*";
-byte-slice-type   = ["const"] "byte" "[" "]";
+byte-slice-type   = ["const"] "byte" "slice";
 
 type = "void"
      | "bool"
@@ -190,17 +190,20 @@ type = "void"
 | `ptrsize` | 目标指针宽度的无符号整数，范围由目标上下文决定 |
 | `byte*` | 可写字节指针 |
 | `const byte*` | 只读字节指针 |
-| `byte[]` | 带长度的可写安全字节切片 |
-| `const byte[]` | 带长度的只读安全字节切片 |
+| `byte slice` | 带长度的可写安全字节切片 |
+| `const byte slice` | 带长度的只读安全字节切片 |
 | `f16`、`f32`、`f64` | 16、32、64 位浮点数；文本常量保存精确位模式 |
 | `%Name` | 当前模块内已声明的具名结构体类型 |
 
-类型修饰符中的空白在输入时不敏感，但规范拼写固定为 `const byte*` 和 `const byte[]`。
+类型修饰符中的空白在输入时不敏感，但规范拼写固定为 `const byte*` 和 `const byte slice`。
 
 ### 4.2 结构体
 
 ```ebnf
-struct-declaration = type-name "=" "type" "{" type {"," type} "}";
+struct-declaration        = type-name "=" "type" {struct-layout-constraint} "{" struct-field {"," struct-field} "}";
+struct-layout-constraint = ("align" | "pack") "(" unsigned-integer ")";
+struct-field              = [identifier ":"] type {field-layout-constraint} [attribute-list];
+field-layout-constraint   = ("align" | "offset") "(" unsigned-integer ")";
 ```
 
 ```text
@@ -208,7 +211,7 @@ struct-declaration = type-name "=" "type" "{" type {"," type} "}";
 %Record = type {byte, %Pair, const byte*}
 ```
 
-有效结构体必须至少有一个字段。字段不能是 `void`、`byte[]` 或 `const byte[]`。结构体不能直接引用自身，也不能引用尚未出现的结构体声明；按声明顺序引用先前的结构体可以形成嵌套，但不能形成递归类型。
+有效结构体必须至少有一个字段。字段不能是 `void`、`byte slice` 或 `const byte slice`。结构体不能直接引用自身，也不能引用尚未出现的结构体声明；按声明顺序引用先前的结构体可以形成嵌套，但不能形成递归类型。
 
 结构体字段和函数共用同一种 attribute 列表语法：
 
@@ -218,7 +221,7 @@ attribute          = identifier ["(" attribute-argument {"," attribute-argument}
 attribute-argument = identifier "=" operand;
 ```
 
-attribute 名称来自固定的内建注册表；参数名由使用方选择，参数值必须是带类型常量。attribute 和参数的顺序都会在 InkIR 文本往返中保留。
+attribute 名称来自固定的内建注册表；参数名由使用方选择，参数值必须是带类型常量。attribute 和参数的顺序都会在 InkIR 文本往返中保留。空 attribute 列表合法但没有语义效果，规范序列化时会被省略。
 
 ### 4.3 内存值类型
 
@@ -230,7 +233,7 @@ bool, byte, i32, ptrsize, f16, f32, f64
 
 字段全部递归满足同一条件的结构体也是内存值类型。`void`、指针、切片以及包含这些字段的结构体不是内存值类型。
 
-函数返回类型不能是 `byte[]` 或 `const byte[]`。函数参数不能是 `void`；此外，`extern "C"` 函数的参数不能是切片。Ink 定义函数和导入函数可以接收切片参数。
+函数返回类型不能是 `byte slice` 或 `const byte slice`。函数参数不能是 `void`；此外，`extern "C"` 函数的参数不能是切片。Ink 定义函数和导入函数可以接收切片参数。
 
 ## 5. 值和操作数
 
@@ -290,10 +293,10 @@ f64 floatbits(f64,0x7FF8000000000042)
 string-value = "c" string-literal;
 ```
 
-字符串值的操作数类型必须是 `const byte[]`：
+字符串值的操作数类型必须是 `const byte slice`：
 
 ```text
-const byte[] c"hello\0A"
+const byte slice c"hello\0A"
 ```
 
 ### 5.5 空指针和零初始化
@@ -493,13 +496,13 @@ import dependency.runtime
 ### 8.3 `alloca`
 
 ```text
-%N = alloca byte[] ptrsize <size>
+%N = alloca byte slice ptrsize <size>
 ```
 
-`alloca` 分配指定字节数的栈存储并返回可写 `byte[]`。它只能出现在函数入口块中，大小操作数必须是 `ptrsize`。
+`alloca` 分配指定字节数的栈存储并返回可写 `byte slice`。它只能出现在函数入口块中，大小操作数必须是 `ptrsize`。
 
 ```text
-%0 = alloca byte[] ptrsize 64
+%0 = alloca byte slice ptrsize 64
 ```
 
 ### 8.4 `getelementptr`
@@ -543,10 +546,10 @@ store i32 42, byte* @counter
 ### 8.7 `lifetime.end`
 
 ```text
-lifetime.end byte[] <slice-value>
+lifetime.end byte slice <slice-value>
 ```
 
-该指令结束一个可写安全字节切片的生命周期。它不接受 `const byte[]`，不产生结果，也不是终结指令。
+该指令结束一个可写安全字节切片的生命周期。它不接受 `const byte slice`，不产生结果，也不是终结指令。
 
 ### 8.8 `slice.data`
 
@@ -554,11 +557,11 @@ lifetime.end byte[] <slice-value>
 %N = slice.data <pointer-type> <slice-operand>
 ```
 
-结果类型必须是 `byte*` 或 `const byte*`，操作数必须是 `byte[]` 或 `const byte[]`。从 `const byte[]` 提取数据时结果必须保持为 `const byte*`；从 `byte[]` 提取时可以得到可写或只读指针。
+结果类型必须是 `byte*` 或 `const byte*`，操作数必须是 `byte slice` 或 `const byte slice`。从 `const byte slice` 提取数据时结果必须保持为 `const byte*`；从 `byte slice` 提取时可以得到可写或只读指针。
 
 ```text
-%1 = slice.data byte* byte[] %0
-%3 = slice.data const byte* const byte[] %2
+%1 = slice.data byte* byte slice %0
+%3 = slice.data const byte* const byte slice %2
 ```
 
 ### 8.9 `slice.length`
@@ -567,10 +570,10 @@ lifetime.end byte[] <slice-value>
 %N = slice.length <slice-operand>
 ```
 
-操作数必须是 `byte[]` 或 `const byte[]`，结果类型固定为 `ptrsize`，因此助记符后不再单独写结果类型。
+操作数必须是 `byte slice` 或 `const byte slice`，结果类型固定为 `ptrsize`，因此助记符后不再单独写结果类型。
 
 ```text
-%1 = slice.length byte[] %0
+%1 = slice.length byte slice %0
 ```
 
 ### 8.10 `phi`

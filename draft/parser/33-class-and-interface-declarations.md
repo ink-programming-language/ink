@@ -129,7 +129,6 @@ class_member_comptime_item =
     (
         class_member_block
       | class_member_if_tail
-      | class_member_match_tail
       | class_member_for_tail
       | class_member_while_tail
     ) ;
@@ -140,14 +139,6 @@ class_member_if_tail =
         "else",
         ( class_member_block | class_member_if_tail )
     ] ;
-
-class_member_match_tail =
-    "match", "(", expression, ")", "{",
-    class_member_match_arm, { class_member_match_arm },
-    "}" ;
-
-class_member_match_arm =
-    match_arm_pattern, "=>", class_member_block ;
 
 class_member_for_tail =
     "for", "(", for_binding_mode, for_pattern,
@@ -165,7 +156,6 @@ interface_member_comptime_item =
     (
         interface_member_block
       | interface_member_if_tail
-      | interface_member_match_tail
       | interface_member_for_tail
       | interface_member_while_tail
     ) ;
@@ -176,15 +166,6 @@ interface_member_if_tail =
         "else",
         ( interface_member_block | interface_member_if_tail )
     ] ;
-
-interface_member_match_tail =
-    "match", "(", expression, ")", "{",
-    interface_member_match_arm,
-    { interface_member_match_arm },
-    "}" ;
-
-interface_member_match_arm =
-    match_arm_pattern, "=>", interface_member_block ;
 
 interface_member_for_tail =
     "for", "(", for_binding_mode, for_pattern,
@@ -205,8 +186,8 @@ interface_member_while_tail =
 [noncopyable]
 private final class Resource {}
 
-[exception]
-public interface Error {}
+[reflect]
+public interface Service {}
 ```
 
 一旦进入 modifier 阶段就不能返回 annotation 阶段：

@@ -1,4 +1,4 @@
-# Parser 议题 25：`while (...)`、`while (match ...)`、`for (...)` 与循环跳转
+# Parser 议题 25：`while (...)`、`for (...)` 与循环跳转
 
 > 状态：已确认；2026-08-05 增加 `comptime for` 与 `comptime while`，Parser 议题 32 统一区域控制并统一要求循环头括号
 > 确认日期：2026-08-04
@@ -12,11 +12,7 @@ while_statement =
     "while", "(", while_condition, ")", statement_block ;
 
 while_condition =
-      expression
-    | while_match_condition ;
-
-while_match_condition =
-    "match", conditional_match_pattern, "=", expression ;
+    expression ;
 
 for_statement =
     "for", "(", for_binding_mode, for_pattern,
@@ -46,7 +42,7 @@ continue_statement =
     "continue", ";" ;
 ```
 
-`conditional_match_pattern`、`binding_pattern` 和 `wildcard_pattern` 由议题 23 定义。`for_binding_mode` 复用议题 10 已确认的 `var`/`const` 绑定含义。所有循环体都必须是议题 09 的完整 `statement_block`；循环结构本身不以分号结束。
+`binding_pattern` 和 `wildcard_pattern` 由议题 23 定义。`for_binding_mode` 复用议题 10 已确认的 `var`/`const` 绑定含义。所有循环体都必须是议题 09 的完整 `statement_block`；循环结构本身不以分号结束。
 
 ## 2. 普通 `while`
 
@@ -66,7 +62,7 @@ while ((ready && enabled) || forced) {
 }
 ```
 
-条件必须在语义检查后具有 `bool` 类型。条件为 `false` 时循环结束；条件求值产生异常、trap 或其他控制流时，不进入本轮循环体。
+条件必须在语义检查后具有 `bool` 类型。条件为 `false` 时循环结束；条件求值触发 trap 时，不进入本轮循环体。
 
 循环体不能省略花括号，也不支持 `else`：
 
@@ -79,64 +75,6 @@ while (ready) {
     wait();
 }
 ```
-
-## 3. `while (match ...)`
-
-可反驳枚举模式循环使用与 `if (match ...)` 一致的显式形状：
-
-```ink
-while (match .some(value) = next_value()) {
-    consume(value);
-}
-```
-
-每次迭代尝试按以下顺序执行：
-
-1. 求值右侧表达式一次；
-2. 检查活动枚举分支；
-3. 匹配成功时建立载荷绑定并执行循环体；
-4. 匹配失败时结束循环。
-
-顶层只接受议题 23 的 `conditional_match_pattern`，因此必须是枚举 `variant_pattern`：
-
-```ink
-while (match .item(value) = iterator.next()) {
-    use(value);
-}
-```
-
-以下形式非法：
-
-```ink
-while (match value = expression) {
-    use(value);
-}
-
-while (match _ = expression) {
-    run();
-}
-```
-
-两者都是永远成功的模式，不属于条件匹配语法。
-
-如果右侧产生临时枚举值，该临时值存活到当前迭代的循环体结束。`continue`、`break`、`return` 或异常离开本轮时，先按普通规则清理本轮局部对象并结束该临时值，再决定是否开始下一次条件求值。
-
-载荷绑定继续遵守议题 23 的访问传播：可写枚举 place 产生 `T&`，只读 place 或临时枚举产生 `const T&`。pattern 内不写 `var` 或 `const`。
-
-## 4. `while (match ...)` 与 `match_expression` 的消歧
-
-`while (` 后若下一个显著 Token 是 `match`，且其后是 `.`，Parser 进入 `while_match_condition`。普通 `match_expression` 必须把被匹配表达式放在自己的括号内，不能以 `.` 开始，因此普通表达式条件仍然可以是返回 `bool` 的 `match_expression`：
-
-```ink
-while (match (state) {
-    .ready => true,
-    _ => false,
-}) {
-    run();
-}
-```
-
-上例是 `while` 加一个普通 `match_expression` 条件，不是 `while (match pattern = expression)`。分支逗号、match 右花括号、循环头右括号和循环体右花括号分别结束对应结构。
 
 ## 5. 普通 `for (... in ...)`
 
@@ -164,7 +102,7 @@ for (value in values) {}             // 非法：缺少 var 或 const
 for (const value: Data in values) {} // 非法：for 绑定不写类型标注
 ```
 
-v0 不在普通 `for` 头中接受元组解构、多名称或枚举分支模式：
+v0 不在普通 `for` 头中接受元组解构或多名称：
 
 ```ink
 for (const (key, value) in entries) {} // 非法
@@ -187,7 +125,7 @@ for (const index, value in values) {}  // 非法
 
 数组和安全切片按从低索引到高索引的顺序迭代。可写元素访问可以产生 `T&`，只读元素访问产生 `const T&`。其他类型通过何种迭代协议产生值或引用属于后续迭代协议议题；Parser 对 `for_source` 只要求一个表达式形状。
 
-迭代源表达式在进入循环前只求值一次。每轮绑定只在对应循环体中可见，并在本轮结束、`continue`、`break`、`return` 或异常离开时按照普通生命周期规则结束。
+迭代源表达式在进入循环前只求值一次。每轮绑定只在对应循环体中可见，并在本轮正常结束或通过 `continue`、`break`、`return` 离开时按照普通生命周期规则结束。
 
 ## 7. `for` 专用半开区间
 
@@ -254,9 +192,9 @@ break outer;      // 非法
 continue outer;   // 非法
 ```
 
-在任何 `while_statement` 或普通 `for_statement` 之外使用它们属于语义错误。即使 Token 位于嵌套 `if`、`match` 或普通语句块内，也仍作用于词法上最内层包含它的循环。循环最终在运行时还是编译期执行不改变该词法归属。
+在任何 `while_statement` 或普通 `for_statement` 之外使用它们属于语义错误。即使 Token 位于嵌套 `if` 或普通语句块内，也仍作用于词法上最内层包含它的循环。循环最终在运行时还是编译期执行不改变该词法归属。
 
-离开当前迭代前，已经成功构造的局部对象和 `defer` 按构造逆序清理。`continue` 完成清理后重新进入 `while (...)` 条件、`while (match ...)` 右侧求值或 `for (...)` 的下一元素步骤；`break` 完成清理后离开整个循环。
+离开当前迭代前，已经成功构造的局部对象和 `defer` 按构造逆序清理。`continue` 完成清理后重新进入 `while (...)` 条件求值或 `for (...)` 的下一元素步骤；`break` 完成清理后离开整个循环。
 
 ## 9. 循环不是表达式
 
@@ -314,7 +252,6 @@ CST 至少使用以下节点：
 
 ```text
 WhileStatement
-WhileMatchCondition
 ForStatement
 ComptimeWhileControl
 ComptimeForControl
@@ -332,4 +269,4 @@ ContinueStatement
 
 ## 12. 确认结论
 
-Ink 的普通循环包括 `while (expression) { ... }`、`while (match .variant(...) = expression) { ... }` 和 `for (binding_mode pattern in source) { ... }`。固定括号包围完整循环头，但不引入 C 风格三段式 `for`。所有循环体必须使用花括号，循环本身无值且不写结尾分号。普通 `for` 的绑定关键字不可省略，pattern 只接受一个名称或 `_`；`var`/`const` 控制顶层绑定，元素目标访问能力由迭代源产生的值、`T&` 或 `const T&` 决定。`start .. end` 只是在 `for` 头中的半开区间定界形式。`break;` 与 `continue;` 仅作用于最内层 `while_statement` 或普通 `for_statement`。`comptime` 可以直接修饰完整 `for_statement` 或 `while_statement`，且不改变 header 文法；module、语句和成员区域共享同一个控制节点，只替换 body 的 region item 类别。
+Ink 的普通循环包括 `while (expression) { ... }` 和 `for (binding_mode pattern in source) { ... }`。固定括号包围完整循环头，但不引入 C 风格三段式 `for`。所有循环体必须使用花括号，循环本身无值且不写结尾分号。普通 `for` 的绑定关键字不可省略，pattern 只接受一个名称或 `_`；`var`/`const` 控制顶层绑定，元素目标访问能力由迭代源产生的值、`T&` 或 `const T&` 决定。`start .. end` 只是在 `for` 头中的半开区间定界形式。`break;` 与 `continue;` 仅作用于最内层 `while_statement` 或普通 `for_statement`。`comptime` 可以直接修饰完整 `for_statement` 或 `while_statement`，且不改变 header 文法；module、语句和成员区域共享同一个控制节点，只替换 body 的 region item 类别。

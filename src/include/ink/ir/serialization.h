@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+
 namespace ink::ir
 {
   class SerializeResult
@@ -58,15 +59,19 @@ namespace ink::ir
       std::optional<Module> Value;
 
       friend DeserializeResult parseText(IRContext &Context, std::string_view Text);
+      friend DeserializeResult parseSource(IRContext &Context, core::SourceId Source);
       friend DeserializeResult deserialize(IRContext &Context, std::string_view Text);
+      friend DeserializeResult deserializeSource(IRContext &Context, core::SourceId Source);
   };
 
   SerializeResult printText(IRContext &Context, const Module &ModuleValue);
   SerializeResult printText(const Module &ModuleValue);
   DeserializeResult parseText(IRContext &Context, std::string_view Text);
+  DeserializeResult parseSource(IRContext &Context, core::SourceId Source);
   SerializeResult serialize(IRContext &Context, const Module &ModuleValue);
   SerializeResult serialize(const Module &ModuleValue);
   DeserializeResult deserialize(IRContext &Context, std::string_view Text);
+  DeserializeResult deserializeSource(IRContext &Context, core::SourceId Source);
 } // namespace ink::ir
 
 #endif

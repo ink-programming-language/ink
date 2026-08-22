@@ -38,13 +38,18 @@ namespace
     return Input.eof() && !Input.bad();
   }
 
-  bool writeDiagnostics(const std::vector<ink::core::Diagnostic> &Diagnostics)
+  bool writeDiagnostics(const ink::core::SourceManager &Sources, const std::vector<ink::core::Diagnostic> &Diagnostics)
   {
     std::ostringstream BufferedErrorOutput;
     const ink::core::DiagnosticFormatter Formatter;
     for (const ink::core::Diagnostic &Diagnostic : Diagnostics)
     {
       const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
+      const std::shared_ptr<const ink::core::SourceBuffer> DiagnosticSource = Sources.findSource(Diagnostic.Source);
+      if (DiagnosticSource != nullptr)
+      {
+        BufferedErrorOutput << DiagnosticSource->name() << ':' << DiagnosticSource->lineNumber(Diagnostic.Span.Start) << ": ";
+      }
       BufferedErrorOutput << (Diagnostic.classification() == ink::core::DiagnosticClass::InternalCompilerError ? ink::core::diagnosticClassName(Diagnostic.classification()) : ink::core::diagnosticSeverityName(Formatted.Severity)) << '[' << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
       for (const ink::core::FormattedDiagnosticNote &Note : Formatted.Notes)
       {
@@ -166,10 +171,11 @@ namespace
     Compilation.diagnosticEngine().addConsumer(Diagnostics);
     ink::ir::SourceModuleCompiler Compiler(std::move(CompilerOptions));
     ink::ir::CompilationSession Session(Compilation, Compiler);
-    ink::ir::DeserializeResult Deserialized = ink::ir::deserialize(Session.irContext(), Text);
+    const ink::core::SourceId Source = Compilation.sourceManager().addSource(InputFile, std::move(Text));
+    ink::ir::DeserializeResult Deserialized = ink::ir::deserializeSource(Session.irContext(), Source);
     if (!Deserialized.succeeded())
     {
-      const bool OutputSucceeded = writeDiagnostics(Diagnostics.diagnostics());
+      const bool OutputSucceeded = writeDiagnostics(Compilation.sourceManager(), Diagnostics.diagnostics());
       return ink::cli::exitStatus(OutputSucceeded ? diagnosticExitCode(Diagnostics.diagnostics()) : ink::cli::ExitCode::InvocationError);
     }
 
@@ -184,7 +190,7 @@ namespace
     if (!ink::execution::registerRuntimeSymbols(ExecutionContext.nativeSymbols()))
     {
       Compilation.diagnosticEngine().report<ink::core::DiagnosticKind::RuntimeSymbolRegistrationFailed>({});
-      const bool OutputSucceeded = writeDiagnostics(Diagnostics.diagnostics());
+      const bool OutputSucceeded = writeDiagnostics(Compilation.sourceManager(), Diagnostics.diagnostics());
       return ink::cli::exitStatus(OutputSucceeded ? ink::cli::ExitCode::InternalError : ink::cli::ExitCode::InvocationError);
     }
     ink::execution::CompilingModuleProvider Provider(Session);
@@ -192,7 +198,7 @@ namespace
     const ink::execution::ExecutionResult Executed = Engine.execute("main");
     if (!Executed.succeeded())
     {
-      const bool OutputSucceeded = writeDiagnostics(Diagnostics.diagnostics());
+      const bool OutputSucceeded = writeDiagnostics(Compilation.sourceManager(), Diagnostics.diagnostics());
       return ink::cli::exitStatus(OutputSucceeded ? diagnosticExitCode(Diagnostics.diagnostics()) : ink::cli::ExitCode::InvocationError);
     }
     return successfulExitStatus(*Executed.returnValue());

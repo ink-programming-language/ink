@@ -1,6 +1,6 @@
 # 议题 58：异步函数装饰器包围任务执行体
 
-> 状态：已确认，异步 continuation 可调用零次或多次且 decorator 不生成模块生命周期钩子；议题 24、59 补充；Parser 议题 27、36、37 同步抛出、装饰器声明与全参数转发语法
+> 状态：已确认，异步 continuation 可调用零次或多次且 decorator 不生成模块生命周期钩子；议题 24、59 补充；Parser 第 36、37 号议题确认装饰器声明与全参数转发语法
 > 确认日期：2026-08-02
 
 ## 1. 异步装饰器属于任务执行体
@@ -25,10 +25,10 @@ load()
     → return created Task::<Data*>
 
 await task
-    → enter task exception boundary
+    → enter the decorated coroutine state machine
     → run decorator regions
     → run original async body
-    → publish final task state
+    → publish the succeeded result
 ```
 
 因此从未被驱动的任务既不执行原始函数体，也不执行普通异步装饰器代码。装饰器不能把惰性异步调用重新解释为调用点立即执行的包装函数。
@@ -129,7 +129,7 @@ outer.after
 async decorator authorize() {
     const allowed = await check_permission();
     if (!allowed) {
-        throw PermissionDenied();
+        return LoadResult.permission_denied();
     }
 
     return await function(...);
@@ -138,50 +138,52 @@ async decorator authorize() {
 
 `check_permission()` 创建并等待普通子任务；`await function(...)` 进入同一装饰后状态机的下一 continuation。二者具有不同 ABI，编译器不能把特殊 continuation 当作可保存的普通 `Task`。
 
-这允许装饰器实现异步权限检查、追踪、指标、限流等待和调用前后资源管理。取消请求仍遵守议题 48—50：装饰器不会自动收到特殊取消异常，也不会自动把请求传播给它等待的子任务，除非生成代码显式采用相应传播形式。
+该装饰器只能应用于逻辑结果 `T` 能够表示权限拒绝状态的目标；类型检查器不为不兼容的结果类型添加隐藏转换。这允许装饰器实现异步权限检查、追踪、指标、限流等待和调用前后资源管理。取消请求仍遵守议题 48—50：装饰器不会自动把请求转换成某个业务结果，也不会自动把请求传播给它等待的子任务，除非生成代码显式采用相应传播形式。
 
-## 7. 任务异常边界位于最外层装饰器之外
+## 7. 显式结果经过完整装饰器链
 
-异步任务的内部 catch-all 边界包围最终实现的完整装饰器链：
+最终实现的完整装饰器链共同产生目标函数声明的逻辑结果 `T`：
 
 ```text
-Task catch-all boundary
-    → outer async decorator
-        → inner async decorator
-            → original async body
+outer async decorator
+    → inner async decorator
+        → original async body
+    → publish T through ordinary return
 ```
 
-因此装饰器可以按普通异常规则观察、捕获、转换或重新抛出下一层异常：
+`await function(...)` 取得下一层的普通 `T`。如果 `T` 自身包含业务状态，装饰器可以显式检查并转换该状态，但不会获得隐藏的第二条完成通道：
 
 ```ink
-async decorator translate_error() {
-    try {
-        return await function(...);
-    } catch NetworkError as error {
-        throw ServiceUnavailable {} from error;
+async decorator translate_status() {
+    const result: LoadResult = await function(...);
+    if (result.status() == LoadStatus::NetworkUnavailable) {
+        return LoadResult.service_unavailable();
     }
+
+    return result;
 }
 ```
 
-只有逃出最外层装饰器的异常才由任务边界保存为 `failed(ExceptionBox)`。装饰器自己的运行期异常采用相同规则，并保留正常动态类型、异常接口、原因链、抛出位置和 traceback。
+装饰器自己的异步操作同样通过普通返回值表达业务结果。任何一层忽略状态或选择映射状态都属于该层可见的普通控制流；运行时不会自动越过外层装饰器传播某个枚举项。
 
-实参求值、参数捕获、coroutine frame 取得和任务基础状态建立发生在进入任务边界前。这些创建期异常同步传播，普通异步装饰器不能观察或捕获它们。
+实参求值、参数捕获、coroutine frame 取得和任务基础状态建立发生在装饰器执行前。需要同步检查可恢复条件时，程序使用显式同步工厂返回普通状态，再决定是否创建任务；普通异步装饰器不能观察这个创建决定。
 
-普通后置语句只处理正常结果。需要覆盖异常展开和其他适用退出路径时使用 `defer`、RAII 或显式 `try`；其作用域和析构顺序遵守装饰器 region 与原始函数体的正常嵌套关系。
+普通后置语句可以检查下一层返回的 `T`。`defer` 和 RAII 继续按照装饰器 region 与原始函数体的正常嵌套作用域执行清理，不引入另一条结果通道。
 
-## 8. `[nothrow]` 检查完整装饰后状态机
+## 8. 完整装饰后状态机保持结果类型
 
-异步装饰器不能削弱目标函数的公开属性和签名。装饰器应用于 `[nothrow] async func` 时，编译器必须对完整展开后的状态机重新执行议题 34 的不抛出检查：
+异步装饰器不能削弱或改变目标函数的公开签名。编译器必须对完整展开后的状态机检查同一个逻辑结果类型：
 
 ```text
 outer decorator generated code
     inner decorator generated code
         original async body
+    → exactly T
 ```
 
-装饰器中的前置代码、普通 `await`、特殊 continuation、后置代码、析构和 `defer` 都不能让异常越过完整异步函数边界。可能失败的操作必须在装饰器内部捕获，或者使该装饰器不能应用于 `[nothrow]` 目标。
+装饰器中的前置代码、普通 `await`、特殊 continuation、后置代码、析构和 `defer` 都必须保持显式结果约定。等待的子任务返回项目定义的状态时，生成代码必须像普通用户代码一样检查或转发该值，不能增加隐式失败语义。
 
-装饰器定义本身的编译期展开失败仍是编译错误，不是任务异常。
+装饰器定义本身无法完成编译期展开、返回值类型不兼容或遗漏必需结果时，均按普通编译错误处理。
 
 ## 9. 虚函数只执行最终覆盖的装饰器
 
@@ -254,14 +256,15 @@ interface Loader {
 
 ## 11. 反射只构造最终装饰后任务
 
-议题 57 的 `FunctionInfo.call_async::<R>` 在调用点完成反射检查和普通虚或接口分派，并直接构造最终实现的装饰后任务：
+议题 57 的 `FunctionInfo.call_async::<R>` 在调用点完成反射检查和普通虚或接口分派；状态为 `Ready` 时，在 `AsyncReflectionCall::<R>` 中直接构造最终实现的装饰后任务：
 
 ```text
 call_async
     → reflection validation
+    → return a rejection status without a task, or continue
     → static, virtual, or interface dispatch
     → construct selected decorated Task::<R>
-    → return created task
+    → return Ready with the created task
 
 await task
     → selected implementation decorators
@@ -270,7 +273,7 @@ await task
 
 反射适配器本身不进入异步装饰器，也不增加描述符来源处的装饰器层。描述符来自基类或接口时，仍然只执行最终选中实现自身的装饰器链。
 
-创建期反射异常发生在任务建立前，不能被目标函数装饰器捕获。任务创建成功后，反射参数数组和描述符借用不进入装饰器帧。
+创建期反射校验在任务建立前返回显式状态，不能由目标函数装饰器处理。任务创建成功后，反射参数数组和描述符借用不进入装饰器帧。
 
 ## 12. 热更新固定完整装饰后版本
 
@@ -279,8 +282,8 @@ await task
 - 完整装饰器展开结果；
 - 原始函数体；
 - coroutine frame 布局；
-- resume、destroy 和异常边界入口；
-- 异常描述符、调试信息和必要接口表。
+- resume、destroy 和完成状态发布入口；
+- 类型元数据、调试信息和必要接口表。
 
 ```text
 construct V1 decorated task
@@ -295,9 +298,9 @@ Decorator 不生成模块加载或卸载代码。它在编译期产生的强类�
 
 ## 13. 成本模型
 
-异步装饰器不增加第二个任务对象或强制额外帧分配。它会使最终 coroutine frame 包含跨暂停点存活的装饰器局部状态，并增加装饰器生成代码本身的执行、子任务等待和异常处理成本。
+异步装饰器不增加第二个任务对象或强制额外帧分配。它会使最终 coroutine frame 包含跨暂停点存活的装饰器局部状态，并增加装饰器生成代码本身的执行、子任务等待以及显式结果检查和转换成本。
 
-从未驱动的任务不支付装饰器运行时代码成本，但其具体帧布局可能已经为装饰器跨暂停状态预留存储。编译器可以合并不重叠的帧槽、内联 continuation region 和删除无可观察作用的生成代码，但不能提前执行装饰器副作用、改变源码确定的 continuation 进入次数或越过异常边界。
+从未驱动的任务不支付装饰器运行时代码成本，但其具体帧布局可能已经为装饰器跨暂停状态预留存储。编译器可以合并不重叠的帧槽、内联 continuation region 和删除无可观察作用的生成代码，但不能提前执行装饰器副作用、改变源码确定的 continuation 进入次数或绕过显式结果检查。
 
 普通未装饰异步函数、同步函数和其他任务不因为语言支持 `async decorator` 增加运行时字段或分派成本。
 
@@ -305,9 +308,9 @@ Decorator 不生成模块加载或卸载代码。它在编译期产生的强类�
 
 该设计不需要修改 LLVM 源码。前端在 HIR/MIR 中把异步装饰器降低为嵌套 continuation region，并把 `await function(...)` 转换为同一协程状态机内部的 region 进入和结果传递。
 
-coroutine lowering 统一计算原始函数体和全部装饰器跨暂停状态所需帧布局。任务 catch-all 边界包围最终状态机；未捕获异常使用现有 LLVM `invoke`、landing pad、personality 或 Windows funclet 路径进入 `ExceptionBox`。
+coroutine lowering 统一计算原始函数体和全部装饰器跨暂停状态所需帧布局。最终状态机通过普通分支和结果存储发布 `T`；装饰器对业务状态的检查与转换不需要额外的运行时控制流协议。
 
-LLVM 无需把特殊 `function` continuation 表示成运行时函数指针或 `Task::<T>`。展开来源映射必须同时保留被装饰函数、装饰器应用和装饰器定义位置，以支持诊断、traceback 和调试器。
+LLVM 无需把特殊 `function` continuation 表示成运行时函数指针或 `Task::<T>`。展开来源映射必须同时保留被装饰函数、装饰器应用和装饰器定义位置，以支持诊断和调试器。
 
 ## 15. 后续问题
 

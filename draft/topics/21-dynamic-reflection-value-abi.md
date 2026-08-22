@@ -1,6 +1,6 @@
 # 议题 21：动态反射值传递与调用 ABI
 
-> 状态：已确认，议题 22、23、25、28、34、38、57、65 补充，精确二进制布局待定  
+> 状态：已确认，议题 22、23、25、28、57、65 补充，精确二进制布局待定
 > 确认日期：2026-08-01
 
 ## 1. 定位
@@ -15,20 +15,26 @@ Ink 的动态反射采用“编译器生成描述符与适配器，加借用型�
 - 不为了反射复制或装箱 `[noncopyable]` 对象；
 - 不要求每次字段访问或函数调用进行堆分配；
 - 在动态边界检查类型和可变性；
-- 让错误反射调用抛出结构化反射异常，而不是破坏内存。
+- 让错误反射调用返回结构化失败结果，而不是破坏内存。
 
 ## 2. 常用 API
 
 用户侧 API 保持强类型外观：
 
 ```ink
-if (match .some(type_info) = reflection.find_type("game.Player")) {
-    if (match .some(health) = type_info.property("health")) {
+const type_result = reflection.find_type("game.Player");
+if (type_result.has_value()) {
+    const type_info = type_result.value();
+    const health_result = type_info.property("health");
+    if (health_result.has_value()) {
+        const health = health_result.value();
         const value = health.get::<i32>(&player);
         health.set::<i32>(&player, 80);
     }
 
-    if (match .some(function) = type_info.function("take_damage")) {
+    const function_result = type_info.function("take_damage");
+    if (function_result.has_value()) {
+        const function = function_result.value();
         const result = function.call::<bool>(&player, 10i32);
     }
 }
@@ -64,8 +70,6 @@ class DynamicRef {
 - 不能在原对象生命周期结束后继续使用；
 - 不能把只读借用提升为可变借用；
 - 不能从任意地址安全伪造。
-
-议题 38 的异常捕获绑定永久只读。即使异常类具有 `[reflect]`，从捕获引用建立的 `DynamicRef` 也只能是只读借用；`borrow_mut`、`set` 或要求可变接收者的动态调用必须拒绝，不能借助反射绕过异常载荷不可变性。
 
 安全构造入口只接受有效的普通 Ink 引用：
 
@@ -171,9 +175,9 @@ result: DynamicOut {
 
 议题 57 为异步反射增加独立的 `DynamicTaskOut`。其地址指向未初始化的最终 `Task::<R>` 存储，期待类型记录逻辑结果 `R` 而不是 `Task::<R>`；`call_async::<R>` 通过该协议原地构造惰性任务。同步函数显式返回 `Task::<R>` 时仍使用本节的普通 `DynamicOut` 和 `call::<Task::<R>>`。
 
-## 8. 异常语义
+## 8. 显式失败语义
 
-来自合法反射 API 输入的以下问题必须抛出结构化反射异常：
+来自合法反射 API 输入的以下问题必须通过结构化失败结果报告：
 
 - 类型或成员不存在；
 - 接收对象类型错误；
@@ -185,7 +189,7 @@ result: DynamicOut {
 - 描述符、对象布局版本或模块版本不兼容；
 - 目标模块已经开始卸载。
 
-这些异常按照议题 34 的普通未检查异常规则传播，不能退化成错误偏移访问、错误 ABI 调用或 UB。只有绕过安全入口并伪造裸地址、类型或生命周期契约时，才适用 Ink 的原始指针 UB 规则。
+这些失败不能退化成错误偏移访问、错误 ABI 调用或 UB。只有绕过安全入口并伪造裸地址、类型或生命周期契约时，才适用 Ink 的原始指针 UB 规则。
 
 ## 9. 分配与性能
 
@@ -215,7 +219,7 @@ result: DynamicOut {
 
 - 使用与该对象布局版本兼容的描述符；
 - 先通过已定义的状态迁移把对象转换到新布局；
-- 或抛出版本不兼容异常。
+- 或报告显式的版本不兼容结果。
 
 取得描述符视图时，实现必须在借用期间固定相应模块版本，防止适配器正在执行时其代码或描述表被卸载。新旧版本的注册与切换仍遵守议题 17。
 

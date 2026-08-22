@@ -72,7 +72,7 @@ const Container: GenericTypeDecl = specification.2;
 
 每个投影的类型由位置静态确定。普通运行时整数不能索引异构编译期元组；编译期索引必须在访问被 elaboration 和类型检查之前成为已知常量。
 
-访问越界是编译错误，不产生运行时检查或可捕获异常。
+访问越界是编译错误，不产生运行时检查或可恢复的运行时结果。
 
 ## 4. `comptime for` 逐项展开异构元组
 

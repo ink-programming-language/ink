@@ -2,6 +2,8 @@
 #include "ink/ir/ir.h"
 #include "ink/ir/serialization.h"
 
+#include "ir_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <memory>
@@ -13,34 +15,8 @@ namespace ink::ir
 {
   namespace
   {
-    struct ControlFlowIrTestContext
-    {
-        ControlFlowIrTestContext()
-        {
-          Compilation.diagnosticEngine().addConsumer(Diagnostics);
-        }
-
-        ~ControlFlowIrTestContext()
-        {
-          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
-        }
-
-        core::CompilationContext Compilation;
-        IRContext IR{Compilation};
-        core::CollectingDiagnosticConsumer Diagnostics;
-    };
-
-    bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
-    {
-      for (const core::Diagnostic &DiagnosticEntry : Diagnostics)
-      {
-        if (DiagnosticEntry.Kind == Kind)
-        {
-          return true;
-        }
-      }
-      return false;
-    }
+    using ControlFlowIrTestContext = test::IRTestContext;
+    using ink::test::hasDiagnostic;
 
     VerificationResult verifySingleControlInstruction(ControlFlowIrTestContext &Context, std::unique_ptr<Instruction> InstructionValue)
     {
@@ -467,9 +443,9 @@ namespace ink::ir
       ControlFlowIrTestContext Context;
       const std::string Text =
           "inkir 1\n"
-          "define bool @main(byte[] %0, byte[] %1) {\n"
+          "define bool @main(byte slice %0, byte slice %1) {\n"
           "entry:\n"
-          "  %2 = icmp eq byte[] %0, byte[] %1\n"
+          "  %2 = icmp eq byte slice %0, byte slice %1\n"
           "  ret bool %2\n"
           "}\n";
 

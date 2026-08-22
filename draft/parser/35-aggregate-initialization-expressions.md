@@ -74,8 +74,7 @@ Point { x, y: 20, } // 非法：尾随逗号
 
 ```ebnf
 structured_expression =
-      match_expression
-    | class_type_expression ;
+    class_type_expression ;
 ```
 
 聚合后缀与调用、索引和成员访问处于同一最高绑定层，只包装紧邻左侧已经完成的 postfix 操作数，不能跨过中缀运算符抢占更大的表达式：
@@ -134,13 +133,12 @@ Matrix { data: values }[row]
 
 ## 5. 与控制结构的边界
 
-Parser 议题 20、21、24、25 和 32 已统一要求控制头使用圆括号：
+Parser 议题 20、21、25 和 32 已统一要求控制头使用圆括号：
 
 ```ink
 if (condition) {}
 while (condition) {}
 for (const item in items) {}
-match (value) {}
 ```
 
 因此控制条件后的语句块或分支块具有固定边界，不会与 `expression { ... }` 的聚合初始化后缀共用同一无括号控制头形状。
@@ -150,11 +148,10 @@ match (value) {}
 ```ink
 func make() -> Result {}
 class Derived : Base {}
-catch Error {}
 func Derived() : Base() {}
 ```
 
-上述花括号分别属于函数体、类成员块、处理器语句块和构造函数体，不会被前面的 `Result`、`Base`、`Error` 或 `Base()` 吞成聚合初始化。
+上述花括号分别属于函数体、类成员块和构造函数体，不会被前面的 `Result`、`Base` 或 `Base()` 吞成聚合初始化。
 
 ## 6. CST 与恢复
 

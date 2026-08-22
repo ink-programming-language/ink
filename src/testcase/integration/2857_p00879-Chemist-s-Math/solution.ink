@@ -163,7 +163,7 @@ func get(i: dynamic, j: dynamic)
     return matrix[i][j];
   }
   write("get(", i, ",", j, ")is not exist.", "\n");
-  throw;
+  return 0;
 }
 
 func set(i: dynamic, j: dynamic, k: dynamic)
@@ -174,7 +174,7 @@ func set(i: dynamic, j: dynamic, k: dynamic)
     return;
   }
   write("set(", i, ",", j, ")is not exist.", "\n");
-  throw;
+  return;
 }
 
 func operator_add(rhs: dynamic)

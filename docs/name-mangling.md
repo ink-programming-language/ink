@@ -8,7 +8,7 @@
 
 本文档规定 Ink 函数和全局变量的规范链接身份以及 ASCII linkage name 编码。该编码用于让独立 lowering 的 Ink module 在 LLVM IR、object 和最终链接阶段引用同一个符号，并避免不同 package、module、类型、重载和闭合实例之间发生名称冲突。
 
-本文档只规定链接名称，不规定 class 内存布局、目标平台参数传递、vtable 布局、异常 ABI、异步 frame ABI 或 object 格式细节。LLVM target backend 仍负责目标平台要求的 object-level symbol decoration。
+本文档只规定链接名称，不规定 class 内存布局、目标平台参数传递、vtable 布局、异步 frame ABI 或 object 格式细节。LLVM target backend 仍负责目标平台要求的 object-level symbol decoration。
 
 ## 2. 阶段边界
 

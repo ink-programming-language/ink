@@ -148,9 +148,8 @@ type_symbol_suffix =
 | 文件、工具 API 或 REPL 的独立完整表达式 | `EOF` |
 | 表达式内部各优先级层的一元或中缀操作数 | 继承；当前运算符不加入 `EndSet` |
 | `var`、`const` 和字段初始化器，赋值右侧，表达式语句，`defer` 表达式，`return` 表达式 | `;` |
-| `throw` 的被抛出表达式 | `from`、`;` |
 | 赋值左侧的 `statement_expression` | `=`、`+=`、`-=`、`*=`、`/=`、`%=`、`&=`、`|=`、`^=`、`<<=`、`>>=`，每项均作为不可拆分的完整终端 |
-| `if`、`while`、`match` 的圆括号条件或 scrutinee，match condition 的右侧，`parenthesized_expression`，`parenthesized_type_expression` | `)` |
+| `if`、`while` 的圆括号条件，`parenthesized_expression`，`parenthesized_type_expression` | `)` |
 | `if_expression` 或 `generic_argument_if_expression` 的条件 | `)` |
 | `if_expression` 或 `generic_argument_if_expression` 的真分支 | `else` |
 | `if_expression` 或 `generic_argument_if_expression` 的假分支 | 继承 |
@@ -163,7 +162,6 @@ type_symbol_suffix =
 | 数组字面量的每个元素 | `,`、`]` |
 | 泛型实参、`generic_list_expansion` 操作数和泛型形参默认实参的顶层 `generic_argument_expression` | `,`、`>` |
 | enum discriminant | `,`、`}` |
-| match-expression arm 的表达式 body | `,` |
 | 聚合初始化的显式字段值 | `,`、`}` |
 
 逗号列表最后一个元素仍把右定界符纳入集合；这只表示表达式可以在该处结束，不表示列表接受尾随逗号。形参默认值、实参、圆括号逗号列表、数组元素、泛型实参、enum 成员和聚合字段是否允许省略、是否要求逗号以及是否允许尾随逗号，继续由各自外层产生式决定。
@@ -193,16 +191,14 @@ return T&[N];       // ArrayType(ReferenceType(T), N)
 return T * ([]);    // T 乘以空数组值
 ```
 
-下列用例覆盖不能由通用 `;`、`)`、`,` 推导出的调用点，防止调用者漏传 `from`、`..`、`:`、`else` 或外层右定界符：
+下列用例覆盖不能由通用 `;`、`)`、`,` 推导出的调用点，防止调用者漏传 `..`、`:`、`else` 或外层右定界符：
 
 ```ink
-throw T* from cause;
 for (const item in T* .. U*) {}
 values[T*:U*]
 if (condition) T* else U*
 Wrapper::<T*[N]>
 enum Kind { Pointer = T*, Other }
-match (value) { .some => T*, .none => U*, }
 Record { field: T* }
 ```
 
@@ -321,12 +317,6 @@ func() -> func(i32)    // 返回另一个函数值的函数类型
 ```
 
 直接函数类型是封闭表达式分支，因此 `func() -> Data*` 中的 `*` 唯一属于返回类型，`func()*` 是语法错误。需要对整个函数类型构造指针、引用、数组或应用其他后缀时，必须先写成 `(func())*`、`(func())&` 等加括号形式。
-
-`[nothrow]` 仍是声明属性，不进入函数类型值：
-
-```ink
-[nothrow] func(i32) -> bool // 不是函数类型表达式
-```
 
 ## 7. 空方括号、数组构造与普通索引
 

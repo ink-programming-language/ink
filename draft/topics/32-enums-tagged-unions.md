@@ -1,6 +1,6 @@
 # 议题 32：枚举、判别联合与通用 niche 优化
 
-> 状态：已确认，议题 33、34、61 补充；Parser 议题 23、24、34 完成模式、`match` 与枚举声明语法
+> 状态：已确认，议题 61 补充；Parser 议题 34 完成枚举声明语法
 > 确认日期：2026-08-02
 
 ## 1. 一个 `enum` 同时覆盖两种枚举
@@ -107,7 +107,6 @@ enum_member_comptime_item =
     (
         enum_member_block
       | enum_member_if_tail
-      | enum_member_match_tail
       | enum_member_for_tail
       | enum_member_while_tail
     ) ;
@@ -118,15 +117,6 @@ enum_member_if_tail =
         "else",
         ( enum_member_block | enum_member_if_tail )
     ] ;
-
-enum_member_match_tail =
-    "match", "(", expression, ")", "{",
-    enum_member_match_arm,
-    { enum_member_match_arm },
-    "}" ;
-
-enum_member_match_arm =
-    match_arm_pattern, "=>", enum_member_block ;
 
 enum_member_for_tail =
     "for", "(",
@@ -154,7 +144,7 @@ enum TokenKind {
 }
 ```
 
-同一个结构也允许 `comptime { ... }`、`comptime match`、`comptime for` 和 `comptime while`。`match` 至少包含一个 arm，arm 之间不写逗号；`for` 绑定继续强制写 `var` 或 `const`。这些名称只是统一 `ComptimeRegionControl` 对 `EnumMemberRegion` 的标准 EBNF 展开，不建立 enum 专用的阶段语义。
+同一个结构也允许 `comptime { ... }`、`comptime for` 和 `comptime while`。`for` 绑定继续强制写 `var` 或 `const`。这些名称只是统一 `ComptimeRegionControl` 对 `EnumMemberRegion` 的标准 EBNF 展开，不建立 enum 专用的阶段语义。
 
 Ink v0 的枚举成员块不接受字段、函数、嵌套类型或普通表达式语句。因此 `comptime generate();` 也不能仅凭 `comptime` 前缀成为枚举成员；枚举结构生成必须使用上述结构化区域控制。以后增加枚举方法时，可以扩展 `enum_member_item`，不改变现有分支语法。
 
@@ -185,7 +175,7 @@ EnumBranchSyntax
 
 `EnumPayloadClauseSyntax` 不复用函数参数节点。函数参数还可以包含名称、默认值和参数包，而位置枚举载荷只保存非空的 `TypeSyntax` 逗号列表；实现只复用 `parse_type()` 与通用 `SeparatedSyntaxList`。
 
-`enum_member_comptime_item` 也不建立 enum 专用 CST 节点。它继续产生统一的 `ComptimeBlockControl`、`ComptimeIfControl`、`ComptimeMatchControl`、`ComptimeForControl` 或 `ComptimeWhileControl`，解析调用携带的区域种类为 `EnumMember`。
+`enum_member_comptime_item` 也不建立 enum 专用 CST 节点。它继续产生统一的 `ComptimeBlockControl`、`ComptimeIfControl`、`ComptimeForControl` 或 `ComptimeWhileControl`，解析调用携带的区域种类为 `EnumMember`。
 
 enum 成员递归下降 Parser 依靠首 Token 即可确定入口，不需要回溯：
 
@@ -265,7 +255,7 @@ const empty = Optional::<int>.none;
 
 分支的完全限定名称由枚举类型和分支名称组成。是否允许同一枚举中的不同分支使用同名载荷字段，留给命名载荷语法议题确定。
 
-普通值表达式必须使用这种完全限定名称；Ink 不提供根据期望类型推导 `.red` 或 `.some(value)` 的值简写。前导点形式只用于 `match`、`if (match ...)` 和 `while (match ...)` 中由被匹配值提供枚举类型的分支模式。
+普通值表达式必须使用这种完全限定名称；Ink 不提供根据期望类型推导 `.red` 或 `.some(value)` 的值简写。构造或引用枚举分支时都必须写出 `Color.red`、`Optional::<int>.some(value)` 这样的完整形式。
 
 ## 3. 递归枚举
 
@@ -289,36 +279,23 @@ enum Node {
 
 编译器必须对类型布局依赖图执行递归检查；不能仅对源码中的直接自引用做字符串检查。
 
-## 4. `match` 和穷尽检查
+## 4. 显式状态与载荷访问
 
-枚举使用 `match` 按活动分支访问：
+枚举值的活动分支检查和载荷读取通过普通 API 显式完成。调用者必须先查询判别状态，再调用与该状态对应的载荷访问器；读取非活动分支的存储不因使用 API 而变得合法。
+
+核心标准库的 `Optional` 使用显式 API 提供这种两步访问：
 
 ```ink
-match (optional) {
-    .none => {
-        print("empty");
-    }
-
-    .some(value) => {
-        print(value);
-    }
+const optional = Optional::<int>.some(10);
+if (optional.has_value()) {
+    const value = optional.value();
+    print(value);
+} else {
+    print("empty");
 }
 ```
 
-这是 Parser 议题 24 的 `match_statement`：每个分支体是一条普通语句或语句块，分支之间不写逗号，整个结构也不追加分号。有值的 `match_expression` 则要求每个分支以逗号结束。
-
-分支模式中的 `.name` 由被匹配枚举类型提供上下文，不按照全局名称查找。
-
-对闭合枚举的 `match` 必须覆盖全部分支，否则编译错误。可以使用 `_` 覆盖剩余分支：
-
-```ink
-match (color) {
-    .red => handle_red();
-    _ => handle_other();
-}
-```
-
-匹配过程读取判别状态并只进入对应分支，不复制或构造非活动载荷。议题 33 与 Parser 议题 23 规定模式绑定借用载荷，其可写性由被匹配对象的 `Enum&`、`const Enum&` 或 place 访问能力传播；匹配不会隐式消费或移动不可复制载荷。
+`has_value` 和 `value` 是标准库 API，不是枚举专用语法。其他判别联合可以提供等价的分支查询与载荷访问函数；具体命名、错误返回形式和便捷封装属于相应库 API。显式访问只读取当前判别状态和活动载荷，不复制或构造非活动载荷，也不会隐式消费或移动不可复制载荷。
 
 ## 5. 复制能力
 
@@ -403,7 +380,7 @@ enum Optional<T: type> {
 
 `Optional::<T&>` 可以像其他包含引用的值一样返回或长期保存，但不会因被包在枚举载荷中而延长目标生命周期。引用失效后解包并访问目标属于 UB。
 
-`Optional` 的 `if (match ...)` 解包和 `match (...)` 规则由议题 33 规定。议题 34 已确定不提供后缀 `?` 传播；便捷方法和额外构造 API 不属于枚举布局本身，留给标准库议题。
+核心标准库必须提供明确的状态查询和载荷访问 API；本文使用 `has_value` 和 `value` 作为示例名称。Ink v0 不提供后缀 `?` 传播；额外便捷函数和构造 API 不属于枚举布局本身，留给标准库议题。
 
 ## 10. 无载荷枚举和 `[repr]`
 

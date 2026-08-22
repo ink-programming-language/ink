@@ -1,17 +1,16 @@
 # Tokenizer 议题 04：硬关键字与内建类型 Token
 
-> 状态：已确认，2026-08-04 移除 `constructor`、`destructor` 硬关键字；2026-08-05 确认 `operator` 无特殊语法，并补齐访问修饰符、`static` 与 `final`；2026-08-08 将 `from` 与 `let` 确认为硬关键字
+> 状态：已确认，2026-08-04 移除 `constructor`、`destructor` 硬关键字；2026-08-05 确认 `operator` 无特殊语法，并补齐访问修饰符、`static` 与 `final`；2026-08-08 将 `from` 与 `let` 确认为硬关键字；2026-08-22 将 `catch`、`match`、`throw` 与 `try` 改为普通 Identifier
 > 确认日期：2026-08-04
-> 最近更新：2026-08-08
+> 最近更新：2026-08-22
 
 ## 1. 硬关键字 `from` 与 `let`
 
 `from` 与 `let` 都是硬关键字。Tokenizer 每次扫描到这两个完整拼写都产生对应的 `Keyword` Token，不根据前后语法环境改变 TokenKind，也不把它们回退为 Identifier。
 
-Parser 在两个已经确认的位置使用 `from`：
+Parser 在已经确认的成员导入位置使用 `from`：
 
 - Parser 议题 06 的 `from module.path import member;` 成员导入开头；
-- Parser 议题 27 中已经完成的新异常表达式之后，即 `throw expression from catch_binding;` 的原因子句。
 
 `let` 保留供语言使用，但当前 Parser 文法不以它引导绑定声明；现有绑定声明仍只使用 `var` 与 `const`。它与 `from` 一样不能作为声明名称、表达式中的普通名称或成员名；需要识别它时，Parser 可以直接检查 `KeywordKind`，不需要读取 Identifier 文本。
 
@@ -42,7 +41,6 @@ as
 async
 await
 break
-catch
 class
 comptime
 const
@@ -62,7 +60,6 @@ import
 in
 interface
 let
-match
 override
 private
 protected
@@ -70,8 +67,6 @@ public
 return
 static
 this
-throw
-try
 var
 virtual
 while
@@ -92,10 +87,11 @@ access_modifier =
 
 `static` 与 `final` 同样属于硬关键字。`static` 在类成员函数声明中表示该函数没有隐式接收者；`final` 可以封闭类的具体继承或封闭一个虚函数槽。Parser 议题 31 保存对应函数声明修饰符，能否出现在当前声明上下文以及它们与其他修饰符的组合是否合法，由语义分析检查。
 
-`constructor`、`destructor` 和 `operator` 不在硬关键字表中：
+`constructor`、`destructor`、`operator`、`catch`、`match`、`throw` 和 `try` 不在硬关键字表中：
 
 - `constructor` 和 `destructor` 是普通 Identifier，可以作为普通声明或成员名称；它们不再标记生命周期函数。
 - `operator` 是普通 Identifier；Ink v0 不提供 `operator+`、`operator[]`、`operator()` 等运算符重载声明语法，也不把它解释成上下文关键字。
+- `catch`、`match`、`throw` 和 `try` 是普通 Identifier；Ink v0 没有使用这些拼写的专用语法。
 
 因此以下普通标识符用法合法：
 
@@ -103,13 +99,16 @@ access_modifier =
 func constructor() {}
 object.destructor()
 func operator() {}
+func catch() {}
+func match() {}
+func throw() {}
+func try() {}
 ```
 
-相比之下，以下两个位置的 `from` 都产生硬关键字 Token：
+相比之下，以下位置的 `from` 产生硬关键字 Token：
 
 ```ink
 from core.io import File;
-throw WrapperError {} from error;
 ```
 
 关键字全部由小写 ASCII 字母组成，并按大小写精确匹配：
@@ -275,7 +274,7 @@ scan maximal IdentifierStart IdentifierContinue*
 → otherwise emit Identifier
 ```
 
-`from`、`let`、`public`、`protected`、`static` 与 `final` 都在 hard-keyword lookup 中命中。`constructor`、`destructor` 与 `operator` 不命中任何保留拼写，因而走到最后一步并产生 Identifier。
+`from`、`let`、`public`、`protected`、`static` 与 `final` 都在 hard-keyword lookup 中命中。`constructor`、`destructor`、`operator`、`catch`、`match`、`throw` 与 `try` 不命中任何保留拼写，因而走到最后一步并产生 Identifier。
 
 所有保留拼写都是完整词匹配：
 
@@ -299,4 +298,4 @@ Tokenizer 只负责准确分类。硬关键字出现在需要 Identifier 的位�
 
 工具可以建议用户改名，但不能通过把关键字重新解释为 Identifier 继续正常构建。`BuiltinType` 出现在非法表达式或声明位置同样由 parser 或类型检查器根据语法阶段报告。
 
-`from` 与 `let` 出现在需要 Identifier 的位置时遵循普通硬关键字诊断，不得按上下文回退为 Identifier。当前没有 Parser 产生式接受 `let`；成员导入或异常原因子句缺失后续语法时，由相应 Parser 议题执行错误恢复。
+`from` 与 `let` 出现在需要 Identifier 的位置时遵循普通硬关键字诊断，不得按上下文回退为 Identifier。当前没有 Parser 产生式接受 `let`；成员导入缺失后续语法时，由相应 Parser 议题执行错误恢复。

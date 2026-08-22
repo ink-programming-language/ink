@@ -17,12 +17,12 @@ synchronous creation
 asynchronous execution
     → run async decorator regions
     → run the original async body
-    → publish the final task state
+    → publish the succeeded result
 ```
 
 议题 58 的 `async decorator` 只参与第二阶段。语言不提供 `task_constructor decorator`、`task decorator` 或其他能够围绕同步任务构造 thunk 插入用户代码的装饰器种类。
 
-因此创建期异常始终按照议题 44 同步传播；异步装饰器和原始函数体的未捕获异常始终由任务边界保存为 `failed(ExceptionBox)`。不增加同时跨越两个阶段的第三种用户 continuation 边界。
+任务只有在参数、帧和运行时状态完整建立后才从创建阶段返回。需要表达可恢复的创建决定时，程序先调用显式同步准备 API 并检查其普通返回状态；异步装饰器和原始函数体需要表达的业务结果则编码在逻辑结果 `T` 中。不增加同时跨越两个阶段的第三种用户 continuation 边界。
 
 ## 2. 任务构造不开放用户 continuation
 
@@ -40,13 +40,13 @@ task_constructor decorator observe() {
 Ink v0 不接受该声明。`Task::<T>` 是议题 43 的不可复制对象，普通局部 `task` 不能复制或隐式移动到最终返回位置。若要支持该语法，特殊 continuation 必须直接取得调用者隐藏返回位置，并额外定义：
 
 - 多层装饰器如何共享任务初始化状态；
-- 后置代码抛出时如何销毁已经构造的任务；
-- 部分帧、参数和版本固定失败时由哪层清理；
+- 后置代码决定拒绝创建时如何销毁已经构造的任务；
+- 未完成的帧、参数和版本固定由哪层清理；
 - `Task::<void>` 和不同 `Task::<T>` 布局如何验证；
 - 虚槽、接口槽与 `DynamicTaskOut` 如何转发最终存储；
 - 热更新如何固定构造装饰器和最终 coroutine frame 的一致版本。
 
-这些规则会形成第二套任务构造 continuation 系统。现有普通任务构造 thunk 只需在最终存储中成功建立一个任务或同步失败，v0 保持该模型。
+这些规则会形成第二套任务构造 continuation 系统。现有普通任务构造 thunk 只需在最终存储中完整建立一个任务；可恢复的准备问题在进入 thunk 前通过显式状态处理，v0 保持该模型。
 
 ## 3. 可变调用次数不解决任务构造所有权
 
@@ -61,7 +61,7 @@ Ink v0 不接受该声明。`Task::<T>` 是议题 43 的不可复制对象，普
 - 把一个任务同时交给多个独立所有者；
 - 隐式建立引用计数任务句柄。
 
-这些行为会直接改变任务身份、所有权、异常和析构协议。普通 decorator 的可变调用次数不提供缓存任务共享、隐藏返回位置重绑定或部分 coroutine frame 回滚能力，因此 v0 仍不增加任务构造 decorator。
+这些行为会直接改变任务身份、所有权、结果和析构协议。普通 decorator 的可变调用次数不提供缓存任务共享、隐藏返回位置重绑定或部分 coroutine frame 回滚能力，因此 v0 仍不增加任务构造 decorator。
 
 ## 4. 创建期逻辑使用同步任务工厂
 
@@ -99,7 +99,7 @@ func load_task(path: StringView) -> Task::<Data*> {
 }
 ```
 
-普通 `decorator` 围绕同步工厂体运行。它可以记录调用、检查参数或使用 `try` 观察工厂抛出的同步创建异常。返回任务内部的 `async decorator` 仍等到该任务被驱动后运行。
+普通 `decorator` 围绕同步工厂体运行。它可以记录调用或检查已经成立的前置条件。需要可恢复的准备判断时，应把普通 `decorator` 应用于返回普通状态的同步准备 API，再由调用者显式检查该状态。返回任务内部的 `async decorator` 仍等到该任务被驱动后运行。
 
 两层语义显式可见：
 
@@ -114,26 +114,49 @@ later await
         → async body
 ```
 
-同步工厂装饰器不能捕获以后发生的任务失败；异步装饰器不能捕获任务成功建立前的工厂或帧构造失败。
+同步工厂装饰器不能观察以后才由任务产生的业务结果；异步装饰器也不参与任务创建前的同步准备状态检查。
 
-## 6. 创建异常由工厂显式处理
+## 6. 可恢复的创建决定由准备 API 显式返回状态
 
-同步任务工厂可以按普通异常规则观察或转换创建期失败：
+返回 `Task::<T>` 的同步工厂一旦被调用，就必须完整建立任务。需要在创建前验证参数、准备可恢复资源或决定是否创建任务时，程序使用一个显式同步准备 API 返回项目定义的普通状态：
 
 ```ink
-func load_task(path: StringView) -> Task::<Data*> {
-    try {
-        return load_impl(path);
-    } catch AllocationError as error {
-        log_creation_failure(error);
-        throw;
-    }
+enum LoadPreparationStatus {
+    Ready,
+    InvalidPath,
+    ResourceUnavailable,
+}
+
+func prepare_load(path: StringView) -> LoadPreparationStatus {
+    // 同步检查并返回普通状态。
+}
+
+const status = prepare_load(path);
+if (status == LoadPreparationStatus::Ready) {
+    var task = load_task(path);
+    const data = await task;
+} else {
+    handle_load_preparation(status);
 }
 ```
 
-它可以处理实参转换之前由工厂自己执行的逻辑，以及调用异步实现时的参数捕获、帧取得、模块固定和任务基础状态创建失败。任务成功返回后，异步函数体异常只存在于该任务的 `ExceptionBox`，不会再次展开到已经返回的同步工厂。
+准备 API 可以使用自己的普通同步装饰器记录或转换 `LoadPreparationStatus`。调用者显式检查状态后才进入 `load_task`，所以不存在尚未初始化却对用户可见的 `Task::<T>`，也不会把某个状态隐式传播到调用者。
 
-工厂本身标记 `[nothrow]` 时，完整同步工厂和同步装饰器链继续遵守议题 34；它不能让任务创建异常越过公开不抛出边界。
+任务构造入口只有在参数、帧、模块固定和基础状态都完整建立后才返回。内部未完成构造的清理路径负责释放已经取得的状态；宿主内存耗尽或运行时状态损坏属于进程级致命错误，不转换为普通准备状态。
+
+任务成功返回后，异步函数体需要报告的业务问题编码在其逻辑结果 `T` 中：
+
+```ink
+async func load_result_impl(path: StringView) -> LoadResult {
+    if (!can_read(path)) {
+        return LoadResult.unavailable();
+    }
+
+    return LoadResult.ready(await read_data(path));
+}
+```
+
+同步工厂和异步装饰器都不会自动解释 `LoadResult`。等待者取得普通结果值后，按照该类型的访问 API 显式处理其状态。
 
 ## 7. 不建立接口契约级构造拦截
 
@@ -185,7 +208,7 @@ task completed
 task destroyed
 ```
 
-这类事件可以由调试构建、profiling hook 或运行时遥测设施实现。它们不能在语言语义上替换任务、改变参数、吞掉构造失败或参与普通用户异常控制流，因此不构成 `task_constructor decorator`。
+这类事件可以由调试构建、profiling hook 或运行时遥测设施实现。它们不能在语言语义上替换任务、改变参数、覆盖显式工厂状态或参与普通用户业务结果控制流，因此不构成 `task_constructor decorator`。
 
 工具插桩必须保持程序在关闭插桩时的语言行为，并遵守模块卸载、线程安全和重入约束；精确工具 API 不由本议题决定。
 

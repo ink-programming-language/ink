@@ -130,23 +130,14 @@ namespace ink::parser
       }
     }
 
-    // Verifies malformed loop headers, missing control-flow blocks, throw causes, and unsupported handler forms do not absorb following statements or declarations.
-    TEST(ParserMalformedSyntaxRobustnessTest, RecoversControlFlowAndExceptionSyntax)
+    // Verifies malformed loop headers and missing control-flow blocks do not absorb following statements or declarations.
+    TEST(ParserMalformedSyntaxRobustnessTest, RecoversControlFlowSyntax)
     {
       const std::vector<MalformedSyntaxCase> Cases = {
           {"TupleForPattern", "func Broken() { for (var (First, Second) in Values) {} return; } const After = 1;", core::DiagnosticKind::ExpectedToken, true, true, CstKind::ReturnStatement},
           {"ForMissingModeAndPattern", "func Broken() { for (in Values) {} return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
           {"IfMissingBlock", "func Broken() { if (Ready) return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
           {"WhileMissingBlock", "func Broken() { while (Ready) return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"ThrowNumericCause", "func Broken() { throw Failure from 1; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, true, true, CstKind::ReturnStatement},
-          {"ThrowPostfixCause", "func Broken() { throw Failure from Cause.member; return; } const After = 1;", core::DiagnosticKind::UnexpectedToken, true, false, CstKind::ReturnStatement},
-          {"ThrowMissingCause", "func Broken() { throw Failure from; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"TryMissingCatch", "func Broken() { try {} return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"UnsupportedTryFilter", "func Broken() { try {} filter (Ready) {} return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"UnsupportedFinally", "func Broken() { try {} finally {} return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"UnsupportedCatchFilter", "func Broken() { try {} catch Failure if (Ready) {} return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"TypedCatchAfterCatchAll", "func Broken() { try {} catch {} catch Failure {} return; } const After = 1;", core::DiagnosticKind::UnexpectedToken, true, false, CstKind::ReturnStatement},
-          {"DeclarationAsDirectMatchArm", "func Broken() { match (Value) { _ => var Local = 1; .next => return; } return; } const After = 1;", core::DiagnosticKind::DeclarationRequiresBlock, true, false, CstKind::ReturnStatement},
       };
 
       for (const MalformedSyntaxCase &TestCase : Cases)
@@ -175,14 +166,10 @@ namespace ink::parser
       }
     }
 
-    // Verifies invalid patterns, assignment nesting, and unsupported comptime operands retain their tokens and recover through the next valid construct.
-    TEST(ParserMalformedSyntaxRobustnessTest, RecoversPatternsAssignmentsAndComptimeOperands)
+    // Verifies assignment nesting and unsupported comptime operands retain their tokens and recover through the next valid construct.
+    TEST(ParserMalformedSyntaxRobustnessTest, RecoversAssignmentsAndComptimeOperands)
     {
       const std::vector<MalformedSyntaxCase> Cases = {
-          {"EmptyVariantPayloadPattern", "func Broken() { match (Value) { .some() => return; _ => return; } return; } const After = 1;", core::DiagnosticKind::ExpectedSyntax, false, true, CstKind::ReturnStatement},
-          {"TrailingVariantPayloadComma", "func Broken() { match (Value) { .some(Item,) => return; _ => return; } return; } const After = 1;", core::DiagnosticKind::TrailingComma, true, false, CstKind::ReturnStatement},
-          {"TuplePatternMissingComma", "func Broken() { if (match .some((Item)) = Value) {} return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"TuplePatternLeadingComma", "func Broken() { if (match .some((,Item)) = Value) {} return; } const After = 1;", core::DiagnosticKind::UnexpectedToken, true, true, CstKind::ReturnStatement},
           {"EmbeddedAssignment", "const Broken = (Left = Right); const After = 1;", core::DiagnosticKind::ExpectedToken, true, true},
           {"ChainedAssignment", "func Broken() { Left = Middle = Right; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, true, true, CstKind::ReturnStatement},
           {"TopLevelComptimeValue", "comptime Value; const After = 1;", core::DiagnosticKind::ExpectedSyntax, true, true},
@@ -229,28 +216,6 @@ namespace ink::parser
       {
         expectMalformedSyntax(TestCase);
       }
-    }
-
-    // Verifies statement entry commits a bare match to statement grammar while parentheses force the same value-form match into an expression statement.
-    TEST(ParserMalformedSyntaxRobustnessTest, DistinguishesBareAndParenthesizedMatchValues)
-    {
-      expectMalformedSyntax({"BareMatchAtStatementEntry", "func Broken() { match (Value) { _ => 1, }; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, true, true, CstKind::MatchStatement});
-
-      const std::string Source = "func Valid() { (match (Value) { _ => 1, }); } const After = 1;";
-      const ParsedFile First = parseSource(Source);
-      const ParsedFile Second = parseSource(Source);
-
-      ASSERT_TRUE(First.succeeded());
-      EXPECT_TRUE(test::testDiagnostics(First).empty());
-      EXPECT_TRUE(hasKind(First, CstKind::ExpressionStatement));
-      EXPECT_TRUE(hasKind(First, CstKind::MatchExpression));
-      EXPECT_FALSE(hasKind(First, CstKind::MatchStatement));
-      EXPECT_TRUE(containsRecoveredAfterDeclaration(First));
-      EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
-      EXPECT_EQ(First.cst().children(), Second.cst().children());
-      EXPECT_TRUE(test::diagnosticsEqual(First, Second));
-      expectFullFidelity(First);
-      expectFullFidelity(Second);
     }
 
     // Verifies configured syntax-depth exhaustion reports its dedicated diagnostic, preserves an Error node, and resumes after the bounded expression.

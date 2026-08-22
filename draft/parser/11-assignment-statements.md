@@ -1,6 +1,6 @@
 # Parser 议题 11：赋值语句
 
-> 状态：已确认；赋值左侧经声明与保留结构起点守卫后按普通 `expression` 解析，可写性由语义分析检查
+> 状态：已确认；赋值左侧经声明起点守卫后按普通 `expression` 解析，可写性由语义分析检查
 > 确认日期：2026-08-03
 
 ## 1. 赋值是语句
@@ -12,7 +12,7 @@ assignment_statement =
     statement_expression, assignment_operator, expression, ";" ;
 
 statement_expression =
-    ? next significant Token is neither Keyword(Var), Keyword(Const), nor Keyword(Match), and the next two significant Tokens are not Keyword(Comptime) followed by Keyword(Match) ?,
+    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
     expression ;
 
 assignment_operator =
@@ -22,7 +22,7 @@ assignment_operator =
   | "<<=" | ">>=" ;
 ```
 
-Parser 不定义 `assignment_target` 或 `place_expression` 非终结符。`statement_expression` 在语句起点排除为声明保留的 `var`、`const`，也排除为结构化语句保留的裸 `match` 与 `comptime match`；其他输入仍建立普通 Expression CST。名称绑定、重载选择和值类别确定以后，语义分析再检查它是否表示当前上下文中的可写存储位置。声明关键字一旦出现在块项起点就按议题 09、10 提交到声明，结构起点则按议题 24、32 提交到对应控制节点，均不能因后续残缺而回退为赋值。
+Parser 不定义 `assignment_target` 或 `place_expression` 非终结符。`statement_expression` 在语句起点排除为声明保留的 `var`、`const`；其他输入仍建立普通 Expression CST。名称绑定、重载选择和值类别确定以后，语义分析再检查它是否表示当前上下文中的可写存储位置。声明关键字一旦出现在块项起点就按议题 09、10 提交到声明，不能因后续残缺而回退为赋值。
 
 因此下列语句语法成立，但语义检查失败：
 
@@ -48,7 +48,7 @@ pointer->field = value;
 
 右侧表达式按照既有构造、复制、类型转换和不可复制规则写入目标。赋值不会通过隐藏移动消费一个命名右值。
 
-覆盖已有值时的赋值操作、析构与异常安全由值和类型语义决定，不改变本节的单目标语法。
+覆盖已有值时的赋值操作与析构由值和类型语义决定，不改变本节的单目标语法。
 
 ## 3. 赋值不产生结果值
 
@@ -229,4 +229,4 @@ return ExpressionStatement(left)
 
 ## 12. 确认结论
 
-Ink 赋值是无结果的单目标语句。左侧先通过排除 `var`、`const` 声明起点及裸 `match`、`comptime match` 结构起点的守卫，再与右侧一样按普通表达式解析；左侧是否产生可写 place 由语义分析检查。支持普通赋值和常用算术、位运算、移位复合赋值；目标位置与右侧各求值一次。复合赋值运算符按全语言最长匹配保持为不可拆分的 Parser 符号序列。链式赋值、多目标赋值、赋值表达式、复合赋值链以及 `++`、`--` 均不支持；相邻 `++`、`--` 是保留的非法序列，不能退回成普通运算符组合。
+Ink 赋值是无结果的单目标语句。左侧先通过排除 `var`、`const` 声明起点的守卫，再与右侧一样按普通表达式解析；左侧是否产生可写 place 由语义分析检查。支持普通赋值和常用算术、位运算、移位复合赋值；目标位置与右侧各求值一次。复合赋值运算符按全语言最长匹配保持为不可拆分的 Parser 符号序列。链式赋值、多目标赋值、赋值表达式、复合赋值链以及 `++`、`--` 均不支持；相邻 `++`、`--` 是保留的非法序列，不能退回成普通运算符组合。

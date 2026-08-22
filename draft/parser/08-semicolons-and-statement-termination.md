@@ -1,6 +1,6 @@
 # Parser 议题 08：分号与语句结束
 
-> 状态：已确认，议题 18、24—28 补充表达式、控制流、清理与异常语句边界；2026-08-08 同步声明与 `match` 结构起点守卫
+> 状态：已确认，议题 18、25、26 补充表达式、控制流与清理语句边界；2026-08-08 同步声明起点守卫
 > 确认日期：2026-08-03
 
 ## 1. 显式分号
@@ -14,7 +14,7 @@ expression_statement =
     statement_expression, ";" ;
 
 statement_expression =
-    ? next significant Token is neither Keyword(Var), Keyword(Const), nor Keyword(Match), and the next two significant Tokens are not Keyword(Comptime) followed by Keyword(Match) ?,
+    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
     expression ;
 
 defer_statement =
@@ -30,17 +30,9 @@ break_statement =
 
 continue_statement =
     "continue", ";" ;
-
-throw_statement =
-    "throw",
-    ( ";"
-    | expression, [ throw_cause_clause ], ";" ) ;
-
-throw_cause_clause =
-    "from", identifier ;
 ```
 
-这些产生式确认分号规则；议题 18 进一步规定表达式语句允许丢弃非 `void` 结果，并以分号作为未消费临时结果的销毁边界。议题 25 确认 `break;` 与 `continue;` 不接受值或标签，并只作用于最内层普通循环。议题 26 确认 `return` 的可选结果表达式，以及表达式和 block 两种 `defer`。议题 27 确认新异常、显式原因和 `throw;` 重新抛出都由真实分号结束；其中 `"from"` 直接匹配硬关键字 Token。
+这些产生式确认分号规则；议题 18 进一步规定表达式语句允许丢弃非 `void` 结果，并以分号作为未消费临时结果的销毁边界。议题 25 确认 `break;` 与 `continue;` 不接受值或标签，并只作用于最内层普通循环。议题 26 确认 `return` 的可选结果表达式，以及表达式和 block 两种 `defer`。
 
 ## 2. 换行没有终止作用
 
@@ -70,7 +62,7 @@ process(value)
 - `import` 与 `from ... import ...`；
 - 局部或 module 级简单绑定声明；
 - 表达式语句；
-- `return`、`break`、`continue`、`throw` 等跳转语句；
+- `return`、`break`、`continue` 等跳转语句；
 - 表达式式 `defer expression;` 延迟清理语句；
 - 以后定义为简单语句的其他结构。
 
@@ -96,28 +88,7 @@ func calculate() -> i32 {
 
 函数、类、接口、枚举、条件、循环以及其他带完整花括号体的结构是否属于此类，由对应 EBNF 明确写出；不能仅凭视觉上出现 `}` 猜测。
 
-议题 24 的 `match_statement` 由自己的 `}` 结束，不写分号；`match_expression` 自身不包含外层分号，由包含它的绑定声明或表达式语句提供。语句入口的裸 `match` 固定选择 `match_statement`，所以把整个 `match_expression` 直接作为表达式语句丢弃时必须先用括号建立明确的表达式上下文：
-
-```ink
-match (state) {
-    .ready => run();
-    _ => wait();
-}
-
-const code = match (state) {
-    .ready => 1,
-    _ => 0,
-};
-
-(match (state) {
-    .ready => 1,
-    _ => 0,
-});
-```
-
 议题 26 的 `defer { ... }` 同样由自身 `statement_block` 的 `}` 结束，后面不写分号；`defer expression;` 则继续要求分号。
-
-议题 28 的 `try_statement` 由最后一个 `catch` 的 `statement_block` 结束，整个结构后不写分号。`try` body 和每个处理器 body 的结束 `}` 只结束各自 block；至少一个紧随其后的 `catch` 是 `try_statement` 自身的必需部分。
 
 没有源码体的函数、接口方法、`extern` 声明或其他特殊声明是否以 `;` 结束，由其具体产生式规定。它们不依赖自动分号规则。
 
@@ -163,4 +134,4 @@ ReturnStatement
 
 ## 8. 确认结论
 
-Ink 只使用显式 `;` 终止简单语句和简单声明，不提供自动分号插入，换行始终只是 Trivia。`return`、表达式式 `defer`、`break`、`continue` 以及三种 `throw` 形态保留自己的结尾分号；block 式 `defer` 和完整 `try_statement` 由最终 `}` 自行结束。其他花括号体是否自终止也由对应产生式决定；`match_statement` 自行结束，`match_expression` 由外层消费者提供分号，并在整体作为表达式语句时先用括号离开裸 `match` 语句起点。单独分号不形成空语句，多余或缺失分号都由普通 CST 错误恢复处理。
+Ink 只使用显式 `;` 终止简单语句和简单声明，不提供自动分号插入，换行始终只是 Trivia。`return`、表达式式 `defer`、`break` 和 `continue` 保留自己的结尾分号，block 式 `defer` 由最终 `}` 自行结束。其他花括号体是否自终止也由对应产生式决定。单独分号不形成空语句，多余或缺失分号都由普通 CST 错误恢复处理。

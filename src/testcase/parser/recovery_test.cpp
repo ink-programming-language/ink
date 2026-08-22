@@ -27,20 +27,6 @@ namespace ink::parser
         const char *ExpectedSpelling;
     };
 
-    struct RegionMatchRecoveryCase
-    {
-        const char *Name;
-        const char *Source;
-        CstKind BlockKind;
-    };
-
-    struct StructuredMatchRecoveryCase
-    {
-        const char *Name;
-        const char *Source;
-        CstKind ArmKind;
-    };
-
     struct InheritanceRecoveryCase
     {
         const char *Name;
@@ -55,7 +41,6 @@ namespace ink::parser
       const std::vector<MissingSyntaxCase> Cases = {
           {"ParameterCloser", "func broken(Value: i32 { return Value; }", ")"},
           {"StatementTerminator", "func broken() { return Value }", ";"},
-          {"RequiredCatch", "func broken() { try {} }", "catch"},
       };
 
       for (const MissingSyntaxCase &TestCase : Cases)
@@ -95,7 +80,6 @@ namespace ink::parser
           {"UnexpectedTopLevelToken", "; const After = 1;", core::DiagnosticKind::UnexpectedToken, CstKind::TopLevelBindingDeclaration},
           {"ImportTrailingComma", "from core.io import File,; const After = 1;", core::DiagnosticKind::TrailingComma, CstKind::TopLevelBindingDeclaration},
           {"ReservedUnarySequence", "func broken() { ++Value; return; }", core::DiagnosticKind::ReservedSymbolSequence, CstKind::ReturnStatement},
-          {"DeclarationNeedsArmBlock", "func broken() { match (Value) { _ => var Local = 1; } return; }", core::DiagnosticKind::DeclarationRequiresBlock, CstKind::ReturnStatement},
           {"ChainedComparison", "func broken() { Left < Middle < Right; return; }", core::DiagnosticKind::UnexpectedToken, CstKind::ReturnStatement},
       };
 
@@ -224,12 +208,11 @@ namespace ink::parser
       }
     }
 
-    // Verifies misplaced annotations, duplicate receiver qualifiers, and handlers after catch-all stay inside their committed declaration or try structure.
+    // Verifies misplaced annotations and duplicate receiver qualifiers stay inside their committed declarations.
     TEST(ParserRecoveryTest, PreservesCommittedRecoveryShapes)
     {
       const ParsedFile MisplacedAnnotation = parseSource("public [reflect] func annotated() {}");
       const ParsedFile DuplicateQualifier = parseSource("func qualified() const const {}");
-      const ParsedFile CatchAfterCatchAll = parseSource("func handled() { try {} catch {} catch Failure {} }");
       const ParsedFile MisplacedTypeAnnotation = parseSource("public [reflect] class Annotated {}");
       const ParsedFile InvalidTypeDecorator = parseSource("@trace class Decorated {}");
       const ParsedFile MisplacedFieldAnnotation = parseSource("class Holder { public [reflect] var Value: i32; }");
@@ -244,10 +227,6 @@ namespace ink::parser
       EXPECT_EQ(countKind(DuplicateQualifier, CstKind::FunctionDeclaration), 1u);
       EXPECT_EQ(countKind(DuplicateQualifier, CstKind::StatementBlock), 1u);
       EXPECT_TRUE(hasKind(DuplicateQualifier, CstKind::Error));
-      EXPECT_FALSE(CatchAfterCatchAll.succeeded());
-      EXPECT_EQ(countKind(CatchAfterCatchAll, CstKind::TypedCatchClause), 1u);
-      EXPECT_EQ(countKind(CatchAfterCatchAll, CstKind::CatchAllClause), 1u);
-      EXPECT_TRUE(hasKind(CatchAfterCatchAll, CstKind::Error));
       EXPECT_FALSE(MisplacedTypeAnnotation.succeeded());
       EXPECT_EQ(countKind(MisplacedTypeAnnotation, CstKind::ClassDeclaration), 1u);
       EXPECT_TRUE(hasKind(MisplacedTypeAnnotation, CstKind::Error));
@@ -265,7 +244,6 @@ namespace ink::parser
       EXPECT_TRUE(hasKind(InvalidBindingAnnotation, CstKind::Error));
       expectFullFidelity(MisplacedAnnotation);
       expectFullFidelity(DuplicateQualifier);
-      expectFullFidelity(CatchAfterCatchAll);
       expectFullFidelity(MisplacedTypeAnnotation);
       expectFullFidelity(InvalidTypeDecorator);
       expectFullFidelity(MisplacedFieldAnnotation);
@@ -395,13 +373,12 @@ namespace ink::parser
       expectFullFidelity(File);
     }
 
-    // Verifies aggregate field separators take precedence when the enclosing call, array, or match-arm expression also terminates at a comma.
+    // Verifies aggregate field separators take precedence when the enclosing call or array expression also terminates at a comma.
     TEST(ParserRecoveryTest, PrioritizesAggregateCommasOverOverlappingOuterStops)
     {
       const std::vector<std::string> Sources = {
           "const Value = consume(Point { X: 1, Y: 2 });",
           "const Value = [Point { X: 1, Y: 2 }, Other];",
-          "const Value = match (Input) { .some => Point { X: 1, Y: 2 }, };",
       };
 
       for (const std::string &Source : Sources)
@@ -439,14 +416,11 @@ namespace ink::parser
       }
     }
 
-    // Verifies syntax-only omissions carry a structural missing marker and a compound reserved sequence uses its complete source span.
-    TEST(ParserRecoveryTest, RecordsStructuralErrorsAndCompoundDiagnosticSpans)
+    // Verifies a compound reserved sequence uses its complete source span.
+    TEST(ParserRecoveryTest, RecordsCompoundDiagnosticSpan)
     {
-      const ParsedFile EmptyMatch = parseSource("func empty() { match (Value) {} }");
       const ParsedFile Reserved = parseSource("func reserved() { ++Value; }");
 
-      EXPECT_FALSE(EmptyMatch.succeeded());
-      EXPECT_TRUE(hasFlag(EmptyMatch.cst().node(EmptyMatch.cst().root()).Flags, CstNodeFlags::HasMissing));
       const auto Diagnostic = std::find_if(test::testDiagnostics(Reserved).begin(), test::testDiagnostics(Reserved).end(), [](const core::Diagnostic &Entry)
                                            {
                                              return Entry.Kind == core::DiagnosticKind::ReservedSymbolSequence;
@@ -455,7 +429,6 @@ namespace ink::parser
       const std::size_t ReservedStart = Reserved.lexedFile().source().find("++");
       ASSERT_NE(ReservedStart, std::string::npos);
       EXPECT_EQ(Diagnostic->Span, (core::SourceRange{ReservedStart, ReservedStart + 2}));
-      expectFullFidelity(EmptyMatch);
       expectFullFidelity(Reserved);
     }
 
@@ -468,232 +441,6 @@ namespace ink::parser
       ASSERT_FALSE(File.succeeded());
       ASSERT_EQ(ParameterClauses.size(), 1u);
       EXPECT_EQ(ParameterClauses.front().find("/* gap */"), std::string::npos);
-      expectFullFidelity(File);
-    }
-
-    // Verifies a complete next match-arm pattern stops a preceding body that is missing its required terminator.
-    TEST(ParserRecoveryTest, SynchronizesBeforeFollowingMatchArms)
-    {
-      const ParsedFile Statement = parseSource("func recover() { match (Value) { .first => Result .second => return; } }");
-      const ParsedFile Expression = parseSource("const Result = match (Value) { .first => Value .second => Other, };");
-
-      EXPECT_FALSE(Statement.succeeded());
-      EXPECT_EQ(countKind(Statement, CstKind::MatchStatementArm), 2u);
-      EXPECT_EQ(countKind(Statement, CstKind::VariantPattern), 2u);
-      EXPECT_FALSE(Expression.succeeded());
-      EXPECT_EQ(countKind(Expression, CstKind::MatchExpressionArm), 2u);
-      EXPECT_EQ(countKind(Expression, CstKind::VariantPattern), 2u);
-      expectFullFidelity(Statement);
-      expectFullFidelity(Expression);
-    }
-
-    // Verifies wholly missing arm bodies and wrong-form separators remain in the selected match form without creating synthetic extra arms.
-    TEST(ParserRecoveryTest, RecoversMatchBodiesAndSeparatorsWithoutFakeArms)
-    {
-      const std::vector<ParsedFile> Files = {
-          parseSource("func recover() { match (Value) { .first => .second => return; } }"),
-          parseSource("func recover() { match (Value) { .first => return;, .second => return; } }"),
-          parseSource("const Result = match (Value) { .first => .second => Other, };"),
-          parseSource("const Result = match (Value) { .first => First;, .second => Second, };"),
-      };
-
-      for (std::size_t Index = 0; Index < Files.size(); ++Index)
-      {
-        SCOPED_TRACE(Index);
-        const ParsedFile &File = Files[Index];
-        EXPECT_FALSE(File.succeeded());
-        EXPECT_EQ(countKind(File, Index < 2 ? CstKind::MatchStatementArm : CstKind::MatchExpressionArm), 2u);
-        EXPECT_EQ(countKind(File, CstKind::VariantPattern), 2u);
-        EXPECT_TRUE(hasKind(File, CstKind::Error) || hasFlag(File.cst().node(File.cst().root()).Flags, CstNodeFlags::HasMissing));
-        expectFullFidelity(File);
-      }
-    }
-
-    // Verifies match-arm synchronization propagates through missing operands, value statements, and recovery-only declarations without consuming the next pattern.
-    TEST(ParserRecoveryTest, PreservesFollowingPatternsAcrossIncompleteMatchBodies)
-    {
-      const std::vector<std::pair<const char *, CstKind>> Cases = {
-          {"const Result = match (Value) { .first => _ => Other, };", CstKind::MatchExpressionArm},
-          {"const Result = match (Value) { .first => First + _ => Other, };", CstKind::MatchExpressionArm},
-          {"const Result = match (Value) { .first => First; junk .second => Other, };", CstKind::MatchExpressionArm},
-          {"func recover() { match (Value) { .first => First + _ => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => return First .second => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => return First, junk .second => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => defer First .second(Value) => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => throw First .second => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => throw First from Cause() .second => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => throw First from Cause.field .second => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => throw First from Cause->field .second => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => throw First from Cause::<Type> .second => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => var Local = First .second => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => var Local: Type .second => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => const Local: Type = First .second(Value) => return; } }", CstKind::MatchStatementArm},
-          {"func recover() { match (Value) { .first => Record { Field: Value .inner => Other } .second => return; } }", CstKind::MatchStatementArm},
-          {"const Result = match (Value) { .first => Record { Field: Value .inner => Other }, .second => Final, };", CstKind::MatchExpressionArm},
-      };
-
-      for (const auto &TestCase : Cases)
-      {
-        SCOPED_TRACE(TestCase.first);
-        const ParsedFile File = parseSource(TestCase.first);
-        EXPECT_FALSE(File.succeeded());
-        EXPECT_EQ(countKind(File, TestCase.second), 2u);
-        EXPECT_EQ(countKind(File, CstKind::VariantPattern) + countKind(File, CstKind::WildcardPattern), 2u);
-        expectFullFidelity(File);
-      }
-    }
-
-    // Verifies incomplete structured statement and expression bodies stop at a complete following arm without flattening nested delimiters or losing its pattern.
-    TEST(ParserRecoveryTest, PreservesArmBoundariesAcrossIncompleteStructuredBodies)
-    {
-      const std::vector<StructuredMatchRecoveryCase> Cases = {
-          {"CatchTypeBody", "func recover() { match (Value) { .first => try {} catch Error .second(Payload) => return; } }", CstKind::MatchStatementArm},
-          {"CatchBindingBody", "func recover() { match (Value) { .first => try {} catch Error as Failure .second => return; } }", CstKind::MatchStatementArm},
-          {"ClassTypeBody", "func recover() { match (Value) { .first => class Local .second => return; } }", CstKind::MatchStatementArm},
-          {"IfBody", "func recover() { match (Value) { .first => if (Ready) .second => return; } }", CstKind::MatchStatementArm},
-          {"WhileBody", "func recover() { match (Value) { .first => while (Ready) .second => return; } }", CstKind::MatchStatementArm},
-          {"ForBody", "func recover() { match (Value) { .first => for (Item in Items) .second => return; } }", CstKind::MatchStatementArm},
-          {"NestedMatchBody", "func recover() { match (Value) { .first => match (Other) .second => return; } }", CstKind::MatchStatementArm},
-          {"ComptimeIfBody", "func recover() { match (Value) { .first => comptime if (Ready) .second => return; } }", CstKind::MatchStatementArm},
-          {"ComptimeMatchBody", "func recover() { match (Value) { .first => comptime match (Other) .second => return; } }", CstKind::MatchStatementArm},
-          {"IfExpressionBody", "const Result = match (Value) { .first => if (Ready) First else .second => Other, };", CstKind::MatchExpressionArm},
-          {"NestedMatchExpressionBody", "const Result = match (Value) { .first => match (Other) .second => Other, };", CstKind::MatchExpressionArm},
-          {"ClassExpressionBody", "const Result = match (Value) { .first => class Local .second => Other, };", CstKind::MatchExpressionArm},
-      };
-
-      for (const StructuredMatchRecoveryCase &TestCase : Cases)
-      {
-        SCOPED_TRACE(TestCase.Name);
-        const ParsedFile File = parseSource(TestCase.Source);
-        EXPECT_FALSE(File.succeeded());
-        EXPECT_EQ(countKind(File, TestCase.ArmKind), 2u);
-        EXPECT_EQ(countKind(File, CstKind::VariantPattern) + countKind(File, CstKind::WildcardPattern), 2u);
-        EXPECT_TRUE(hasFlag(File.cst().node(File.cst().root()).Flags, CstNodeFlags::HasMissing) || hasFlag(File.cst().node(File.cst().root()).Flags, CstNodeFlags::HasError));
-        expectFullFidelity(File);
-      }
-    }
-
-    // Verifies optional return and rethrow operands stay absent at an arm boundary while defer still records its required missing body.
-    TEST(ParserRecoveryTest, DistinguishesOptionalAndRequiredBodiesAtMatchArmBoundaries)
-    {
-      const ParsedFile Return = parseSource("func recover() { match (Value) { .first => return, .second => return; } }");
-      const ParsedFile Throw = parseSource("func recover() { match (Value) { .first => throw, .second => return; } }");
-      const ParsedFile Defer = parseSource("func recover() { match (Value) { .first => defer, .second => return; } }");
-      const auto HasMissingExpression = [](const ParsedFile &File)
-      {
-        const std::vector<MissingToken> Missing = missingTokens(File);
-        return std::any_of(Missing.begin(), Missing.end(), [](const MissingToken &Token)
-                           {
-                             return Token.ExpectedSpelling.find("expression") != std::string::npos;
-                           });
-      };
-
-      EXPECT_FALSE(HasMissingExpression(Return));
-      EXPECT_FALSE(HasMissingExpression(Throw));
-      EXPECT_TRUE(HasMissingExpression(Defer));
-      EXPECT_EQ(countKind(Return, CstKind::MatchStatementArm), 2u);
-      EXPECT_EQ(countKind(Throw, CstKind::MatchStatementArm), 2u);
-      EXPECT_EQ(countKind(Defer, CstKind::MatchStatementArm), 2u);
-      expectFullFidelity(Return);
-      expectFullFidelity(Throw);
-      expectFullFidelity(Defer);
-    }
-
-    // Verifies a missing comptime-match region block synchronizes before the next arm and preserves the block kind selected by every enclosing region.
-    TEST(ParserRecoveryTest, SynchronizesMissingComptimeMatchBlocksInEveryRegion)
-    {
-      const std::vector<RegionMatchRecoveryCase> Cases = {
-          {"StatementMissingBlock", "func recover() { comptime match (Value) { .first => .second => {} } }", CstKind::StatementBlock},
-          {"StatementJunkBeforeArm", "func recover() { comptime match (Value) { .first => junk .second => {} } }", CstKind::StatementBlock},
-          {"StatementJunkAfterBlock", "func recover() { comptime match (Value) { .first => {} junk .second => {} } }", CstKind::StatementBlock},
-          {"StatementMissingCloser", "func recover() { comptime match (Value) { .first => { return; .second => {} } }", CstKind::StatementBlock},
-          {"TopLevelMissingBlock", "comptime match (Value) { .first => .second => {} }", CstKind::TopLevelBlock},
-          {"TopLevelJunkBeforeArm", "comptime match (Value) { .first => junk .second => {} }", CstKind::TopLevelBlock},
-          {"TopLevelMissingCloser", "comptime match (Value) { .first => { const First = 1; .second => {} }", CstKind::TopLevelBlock},
-          {"ClassMissingBlock", "class Recover { comptime match (Value) { .first => .second => {} } }", CstKind::ClassMemberBlock},
-          {"ClassJunkBeforeArm", "class Recover { comptime match (Value) { .first => junk .second => {} } }", CstKind::ClassMemberBlock},
-          {"ClassMissingCloser", "class Recover { comptime match (Value) { .first => { var First: i32; .second => {} } }", CstKind::ClassMemberBlock},
-          {"InterfaceMissingBlock", "interface Recover { comptime match (Value) { .first => .second => {} } }", CstKind::InterfaceMemberBlock},
-          {"InterfaceJunkBeforeArm", "interface Recover { comptime match (Value) { .first => junk .second => {} } }", CstKind::InterfaceMemberBlock},
-          {"InterfaceMissingCloser", "interface Recover { comptime match (Value) { .first => { func First(); .second => {} } }", CstKind::InterfaceMemberBlock},
-          {"EnumMissingBlock", "enum Recover { comptime match (Value) { .first => .second => {} } }", CstKind::EnumMemberBlock},
-          {"EnumJunkBeforeArm", "enum Recover { comptime match (Value) { .first => junk .second => {} } }", CstKind::EnumMemberBlock},
-          {"EnumMissingCloser", "enum Recover { comptime match (Value) { .first => { First .second => {} } }", CstKind::EnumMemberBlock},
-      };
-
-      for (const RegionMatchRecoveryCase &TestCase : Cases)
-      {
-        SCOPED_TRACE(TestCase.Name);
-        const ParsedFile File = parseSource(TestCase.Source);
-        EXPECT_FALSE(File.succeeded());
-        EXPECT_EQ(countKind(File, CstKind::RegionArm), 2u);
-        EXPECT_EQ(countKind(File, CstKind::VariantPattern), 2u);
-        EXPECT_GE(countKind(File, TestCase.BlockKind), 2u);
-        EXPECT_TRUE(hasFlag(File.cst().node(File.cst().root()).Flags, CstNodeFlags::HasMissing) || hasFlag(File.cst().node(File.cst().root()).Flags, CstNodeFlags::HasError));
-        expectFullFidelity(File);
-      }
-    }
-
-    // Verifies incomplete declarations and control constructs inside every comptime region stop at the next outer arm while the missing region-block closer is synthesized.
-    TEST(ParserRecoveryTest, PreservesRegionArmBoundariesAcrossIncompleteItems)
-    {
-      const std::vector<RegionMatchRecoveryCase> Cases = {
-          {"StatementTry", "func recover() { comptime match (Value) { .first => { try {} catch Error .second => {} } }", CstKind::StatementBlock},
-          {"TopLevelImport", "comptime match (Value) { .first => { import core.io .second => {} }", CstKind::TopLevelBlock},
-          {"TopLevelFunction", "comptime match (Value) { .first => { func broken() .second => {} }", CstKind::TopLevelBlock},
-          {"TopLevelClass", "comptime match (Value) { .first => { class Broken .second => {} }", CstKind::TopLevelBlock},
-          {"TopLevelDecorator", "comptime match (Value) { .first => { @trace .second => {} }", CstKind::TopLevelBlock},
-          {"ClassFunction", "class Host { comptime match (Value) { .first => { func broken() .second => {} } }", CstKind::ClassMemberBlock},
-          {"InterfaceFunction", "interface Host { comptime match (Value) { .first => { func broken() .second => {} } }", CstKind::InterfaceMemberBlock},
-          {"EnumNestedComptime", "enum Host { comptime match (Value) { .first => { comptime if (Ready) .second => {} } }", CstKind::EnumMemberBlock},
-      };
-
-      for (const RegionMatchRecoveryCase &TestCase : Cases)
-      {
-        SCOPED_TRACE(TestCase.Name);
-        const ParsedFile File = parseSource(TestCase.Source);
-        EXPECT_FALSE(File.succeeded());
-        EXPECT_EQ(countKind(File, CstKind::RegionArm), 2u);
-        EXPECT_EQ(countKind(File, CstKind::VariantPattern), 2u);
-        EXPECT_GE(countKind(File, TestCase.BlockKind), 2u);
-        EXPECT_TRUE(hasFlag(File.cst().node(File.cst().root()).Flags, CstNodeFlags::HasMissing));
-        expectFullFidelity(File);
-      }
-    }
-
-    // Verifies a try statement without any handler retains a missing catch-clause node with placeholders for its introducer and body delimiters.
-    TEST(ParserRecoveryTest, SynthesizesMissingCatchClauseStructure)
-    {
-      const ParsedFile File = parseSource("func recover() { try {} }");
-      const std::vector<MissingToken> Missing = missingTokens(File);
-
-      EXPECT_FALSE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::TryStatement), 1u);
-      EXPECT_EQ(countKind(File, CstKind::CatchClause), 1u);
-      EXPECT_EQ(countKind(File, CstKind::TypedCatchClause), 0u);
-      EXPECT_EQ(countKind(File, CstKind::CatchAllClause), 0u);
-      for (const std::string &Expected : {std::string("catch"), std::string("{"), std::string("}")})
-      {
-        EXPECT_TRUE(std::any_of(Missing.begin(), Missing.end(), [&Expected](const MissingToken &Token)
-                                {
-                                  return Token.ExpectedSpelling == Expected;
-                                }))
-            << "missing placeholder for " << Expected;
-      }
-      expectFullFidelity(File);
-    }
-
-    // Verifies a direct var or const match-arm body is recovered as a binding core inside Error without manufacturing the block-only LocalBindingDeclaration wrapper.
-    TEST(ParserRecoveryTest, KeepsStatementOnlyMatchBindingsOutOfLocalDeclarations)
-    {
-      const ParsedFile File = parseSource("func recover() { match (Value) { _ => var Item = Value; .next => return; } }");
-
-      EXPECT_FALSE(File.succeeded());
-      EXPECT_TRUE(hasDiagnostic(File, core::DiagnosticKind::DeclarationRequiresBlock));
-      EXPECT_EQ(countKind(File, CstKind::MatchStatementArm), 2u);
-      EXPECT_EQ(countKind(File, CstKind::NamedBindingDeclaration), 1u);
-      EXPECT_EQ(countKind(File, CstKind::LocalBindingDeclaration), 0u);
-      EXPECT_GE(countKind(File, CstKind::Error), 1u);
       expectFullFidelity(File);
     }
 
@@ -739,6 +486,23 @@ namespace ink::parser
       expectFullFidelity(Second);
     }
 
+    // Verifies a parser rejects a token buffer registered with a different compilation context instead of publishing unresolvable diagnostics.
+    TEST(ParserApiTest, RejectsTokenBufferFromAnotherCompilationContext)
+    {
+      core::CompilationContext FirstCompilation;
+      core::CompilationContext SecondCompilation;
+      core::FrontendContext FirstContext(FirstCompilation);
+      core::FrontendContext SecondContext(SecondCompilation);
+      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(FirstContext, "const Value = 1;");
+
+      ASSERT_TRUE(LexedFile.succeeded());
+      const ParsedFile File = ink::parser::parse(SecondContext, std::move(LexedFile));
+
+      EXPECT_FALSE(File.succeeded());
+      EXPECT_TRUE(File.cst().nodes().empty());
+      EXPECT_TRUE(File.cst().children().empty());
+    }
+
     // Verifies that finalized Parser diagnostics are published through the shared frontend context.
     TEST(ParserApiTest, PublishesDiagnosticsThroughFrontendContext)
     {
@@ -772,14 +536,10 @@ namespace ink::parser
           "const",
           "if",
           "else",
-          "match",
           "while",
           "for",
           "in",
           "return",
-          "throw",
-          "try",
-          "catch",
           "comptime",
           "public",
           "final",

@@ -1,6 +1,6 @@
 # Parser 议题 18：表达式语句与丢弃结果
 
-> 状态：已确认，议题 24—26 完成 `match`、循环、`defer` 与表达式语句的边界；2026-08-08 排除以声明关键字或保留 `match` 结构起点直接开始的 statement expression
+> 状态：已确认，议题 25、26 完成循环、`defer` 与表达式语句的边界；2026-08-08 排除以声明关键字直接开始的 statement expression
 > 确认日期：2026-08-03
 
 ## 1. 表达式语句
@@ -11,11 +11,11 @@
 expression_statement = statement_expression, ";" ;
 
 statement_expression =
-    ? next significant Token is neither Keyword(Var), Keyword(Const), nor Keyword(Match), and the next two significant Tokens are not Keyword(Comptime) followed by Keyword(Match) ?,
+    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
     expression ;
 ```
 
-除直接以 `var`、`const`、`match` 开始的形状，以及以显著 Token 序列 `comptime match` 开始的形状外，任何能够按照表达式文法完成解析的表达式都可以在允许普通语句的位置形成表达式语句：
+除直接以 `var` 或 `const` 开始的形状外，任何能够按照表达式文法完成解析的表达式都可以在允许普通语句的位置形成表达式语句：
 
 ```ink
 log("started");
@@ -27,8 +27,6 @@ Parser 不根据表达式的结果类型、纯度或副作用判断它能否成�
 
 该入口限制只负责确定性语法分派，不做名称或类型查询。`var` 不能开始普通表达式；`const` 在其他表达式位置仍可开始前置限定类型值，但在 statement 起点固定保留给绑定声明。确实需要丢弃这一类型值时必须先分组，例如 `(const Data*);`。声明解析一旦由关键字选中，即使声明残缺也不回退到表达式语句。
 
-同理，语句入口的裸 `match` 固定保留给 `MatchStatement`，显著 Token 序列 `comptime match` 固定保留给 `ComptimeMatchControl`。这个守卫只检查整个 statement expression 的外层起点，不会递归屏蔽已经进入表达式上下文后的 `match`，也不会屏蔽 `MatchExpression` arm 中合法的 `const` 类型值。圆括号、初始化器、`return` 操作数和调用实参等位置都能先建立明确的表达式上下文。
-
 ## 2. 允许丢弃非 `void` 结果
 
 表达式语句会完整计算表达式。表达式产生非 `void` 结果但没有其他消费者时，该结果被丢弃：
@@ -38,9 +36,9 @@ container.insert(value); // 即使返回 bool，也允许直接忽略
 calculate();             // 即使返回整数，也形成合法表达式语句
 ```
 
-丢弃结果不等于跳过表达式求值。函数调用、副作用、边界检查、trap、异常以及其他语言规定的可观察行为仍必须发生。
+丢弃结果不等于跳过表达式求值。函数调用、副作用、边界检查、trap 以及其他语言规定的可观察行为仍必须发生。
 
-编译器不能仅因最终值未使用，就删除一个可能产生副作用、异常、trap 或编译期效果的表达式。
+编译器不能仅因最终值未使用，就删除一个可能产生副作用、trap 或编译期效果的表达式。
 
 ## 3. `void` 表达式
 
@@ -71,7 +69,7 @@ continue_work();
 → 调用 continue_work()
 ```
 
-如果同一表达式产生多个需要清理的临时对象，它们按照成功构造顺序的逆序销毁。较早求值抛出异常时，只清理已经成功构造的临时对象，尚未开始的子表达式不执行。
+如果同一表达式产生多个需要清理的临时对象，它们按照构造顺序的逆序销毁；各子表达式继续遵守议题 13 的从左到右求值顺序。
 
 返回值优化或直接构造可以消除不具有独立语义身份的中间临时对象，但不能把表达式语句最终丢弃结果的析构推迟到后续语句或外层作用域结束。
 
@@ -111,33 +109,11 @@ _ = calculate();     // 不是内建丢弃形式
 
 ## 8. 结构化语句边界
 
-本议题不改变以花括号自行结束的专用语句。议题 24 的 `match_statement` 由自己的 `}` 结束，不需要结尾分号。
-
 议题 25 的 `while_statement` 和 `for_statement` 同样由循环体的 `}` 结束，并且不是可以丢弃结果的表达式；在循环后增加分号会形成非法空语句 Token。
 
 议题 26 的 `defer expression;` 虽然包含表达式并丢弃其最终结果，但它是独立 `DeferStatement`：表达式在作用域清理时才求值，不是在注册位置立即执行的普通 `ExpressionStatement`。
 
 同一议题的 `defer { ... }` 不包含待丢弃结果，是由 `StatementBlock` 的 `}` 自行结束的结构化语句，后面不写分号。
-
-如果要把整个 `match_expression` 作为表达式语句使用并丢弃其结果，必须先用括号使 statement entry 不再直接以 `match` 开始；外层仍以 `;` 结束：
-
-```ink
-(match (optional) {
-    .none => 0,
-    .some(value) => value,
-});
-```
-
-在初始化器等已经要求表达式的位置不需要这层消歧括号，arm 中也可以合法使用以 `const` 开始的类型值：
-
-```ink
-const selected: type = match (mode) {
-    .readonly => const Data*,
-    _ => Data*,
-};
-```
-
-分支逗号只验证已经选定的 `MatchExpression`，不参与选择节点种类。未加外层括号的 `match (optional) { ... };` 在语句入口始终先成为 `MatchStatement`，其中的真实逗号和结构后的分号都是语法错误，Parser 不得回退重建为表达式语句。
 
 ## 9. CST 与恢复
 
@@ -147,4 +123,4 @@ const selected: type = match (mode) {
 
 ## 10. 确认结论
 
-Ink 允许未命中声明或保留结构起点守卫的语法正确表达式形成以分号结束的表达式语句，并允许直接丢弃非 `void` 结果；以 `const` 开始的类型值和作为完整表达式语句的 `match_expression` 需要先加括号，裸 `match` 与 `comptime match` 在语句入口固定提交到结构控制。普通表达式语句立即完整求值，未消费临时结果在分号处析构；`defer expression;` 使用独立节点和延迟求值时点，`defer { ... }` 则延迟执行完整语句块。v0 不增加 `discard` 或 `_ =` 特殊语法；明显无效果表达式和专用 must-use 检查留给 diagnostics 与后续语义议题。
+Ink 允许未命中声明起点守卫的语法正确表达式形成以分号结束的表达式语句，并允许直接丢弃非 `void` 结果；以 `const` 开始的类型值需要先加括号。普通表达式语句立即完整求值，未消费临时结果在分号处析构；`defer expression;` 使用独立节点和延迟求值时点，`defer { ... }` 则延迟执行完整语句块。v0 不增加 `discard` 或 `_ =` 特殊语法；明显无效果表达式和专用 must-use 检查留给 diagnostics 与后续语义议题。

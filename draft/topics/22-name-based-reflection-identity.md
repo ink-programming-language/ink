@@ -1,6 +1,6 @@
 # 议题 22：基于名称的动态反射身份
 
-> 状态：已确认，议题 23、31、35、37 补充，Module 议题 01、02 确认路径身份  
+> 状态：已确认，议题 23、31 补充，Module 议题 01、02 确认路径身份
 > 确认日期：2026-08-01
 
 ## 1. 不提供稳定声明 ID
@@ -10,12 +10,18 @@ Ink 不提供 `[stable_id]` 属性，也不为反射声明定义需要跨重命�
 动态反射中的类型、字段、函数和元数据类型都以规范化的完全限定字符串名称作为语义身份。
 
 ```ink
-if (match .some(type_info) = reflection.find_type("game.Player")) {
-    if (match .some(property) = type_info.property("health")) {
+const type_result = reflection.find_type("game.Player");
+if (type_result.has_value()) {
+    const type_info = type_result.value();
+    const property_result = type_info.property("health");
+    if (property_result.has_value()) {
+        const property = property_result.value();
         print(property.name);
     }
 
-    if (match .some(function) = type_info.function("take_damage")) {
+    const function_result = type_info.function("take_damage");
+    if (function_result.has_value()) {
+        const function = function_result.value();
         print(function.name);
     }
 }
@@ -44,13 +50,15 @@ Module 议题 01 规定：包清单确定根 package 名，源码根下的子目
 运行时全局查找使用完全限定名称：
 
 ```ink
-if (match .some(type_info) = reflection.find_type("game.Player")) {
+const type_result = reflection.find_type("game.Player");
+if (type_result.has_value()) {
+    const type_info = type_result.value();
     print(type_info.name);
 }
 
-if (match .some(function) = reflection.find_function(
-    "game.Player.take_damage"
-)) {
+const function_result = reflection.find_function("game.Player.take_damage");
+if (function_result.has_value()) {
+    const function = function_result.value();
     print(function.name);
 }
 ```
@@ -58,11 +66,15 @@ if (match .some(function) = reflection.find_function(
 已经取得 `TypeInfo` 后，可以使用成员局部名称查询：
 
 ```ink
-if (match .some(health) = type_info.property("health")) {
+const health_result = type_info.property("health");
+if (health_result.has_value()) {
+    const health = health_result.value();
     print(health.name);
 }
 
-if (match .some(damage) = type_info.function("take_damage")) {
+const damage_result = type_info.function("take_damage");
+if (damage_result.has_value()) {
+    const damage = damage_result.value();
     print(damage.name);
 }
 ```
@@ -137,8 +149,6 @@ const range = property.metadata.get::<editor.Range>();
 - 对外可观察的身份判断最终必须与完整名称一致。
 
 因此 `DynamicRef` 可以保存紧凑的进程内 `TypeHandle`，不需要在每个临时引用中复制完整类型名称，也不改变本议题的字符串身份语义。
-
-议题 37 的 `ExceptionView.type_name()` 返回活动异常描述符保存的规范化完全限定名称。该操作不要求异常类具有 `[reflect]`，也不把描述符指针或模块版本编号暴露为稳定身份；返回的安全字符串视图继承当前异常处理器的短期不逃逸限制。
 
 ## 9. 名称冲突
 

@@ -143,13 +143,14 @@ namespace ink::ir
         "  ret i32 %2\n"
         "}\n";
 
-    // Verifies that IRContext composes around the compilation context and reuses its diagnostic engine.
-    TEST(IrContextTest, SharesCompilationDiagnosticEngine)
+    // Verifies that IRContext reuses the compilation context's diagnostics and registered source storage.
+    TEST(IrContextTest, SharesCompilationServices)
     {
       TestContext Context;
 
       EXPECT_EQ(&Context.IR.compilationContext(), &Context.Compilation);
       EXPECT_EQ(&Context.IR.diagnosticEngine(), &Context.Compilation.diagnosticEngine());
+      EXPECT_EQ(&Context.IR.sourceManager(), &Context.Compilation.sourceManager());
     }
 
     // Verifies that IRContext owns one stable Type object for each primitive TypeKind.
@@ -292,6 +293,19 @@ namespace ink::ir
       const VerificationResult Result = verify(Context.IR, makeHelloWorldModule(Context.IR));
 
       EXPECT_TRUE(Result.succeeded());
+      EXPECT_TRUE(Context.Diagnostics.diagnostics().empty());
+    }
+
+    // Verifies source-aware IR verification rejects identities that cannot be resolved by its compilation context.
+    TEST(IrVerifierTest, RejectsSourceFromAnotherCompilationContext)
+    {
+      TestContext Context;
+      core::CompilationContext OtherCompilation;
+      const core::SourceId ForeignSource = OtherCompilation.sourceManager().addSource("foreign.ir", "inkir 1\n");
+
+      const VerificationResult Result = verify(Context.IR, makeHelloWorldModule(Context.IR), core::DiagnosticClass::User, ForeignSource);
+
+      EXPECT_FALSE(Result.succeeded());
       EXPECT_TRUE(Context.Diagnostics.diagnostics().empty());
     }
 
@@ -532,7 +546,8 @@ namespace ink::ir
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
-      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrByteConstantSizeMismatch>({35, 36}, std::uint64_t{2}, std::uint64_t{1});
+      core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrByteConstantSizeMismatch>({35, 36}, std::uint64_t{2}, std::uint64_t{1});
+      Expected.Source = Context.Diagnostics.diagnostics()[0].Source;
       EXPECT_EQ(Context.Diagnostics.diagnostics()[0], Expected);
       EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
       EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "declared byte constant size 2 does not match decoded string length 1");
@@ -559,8 +574,13 @@ namespace ink::ir
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
-      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrUnexpectedCharacter>({8, 9}, "?");
+      core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrUnexpectedCharacter>({8, 9}, "?");
+      Expected.Source = Context.Diagnostics.diagnostics()[0].Source;
       EXPECT_EQ(Context.Diagnostics.diagnostics()[0], Expected);
+      const std::shared_ptr<const core::SourceBuffer> Source = Context.Compilation.sourceManager().findSource(Expected.Source);
+      ASSERT_NE(Source, nullptr);
+      EXPECT_EQ(Source->name(), "<memory>");
+      EXPECT_EQ(Source->text(), "inkir 1\n?");
       EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
       EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "unexpected character '?'");
       EXPECT_EQ(Consumer.diagnostics(), Context.Diagnostics.diagnostics());
@@ -574,10 +594,37 @@ namespace ink::ir
 
       ASSERT_FALSE(Result.succeeded());
       ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1u);
-      const core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrUnsupportedFormatVersion>({6, 7}, std::uint64_t{2}, std::uint64_t{1});
+      core::Diagnostic Expected = core::makeDiagnostic<core::DiagnosticKind::IrUnsupportedFormatVersion>({6, 7}, std::uint64_t{2}, std::uint64_t{1});
+      Expected.Source = Context.Diagnostics.diagnostics()[0].Source;
       EXPECT_EQ(Context.Diagnostics.diagnostics()[0], Expected);
       EXPECT_EQ(Context.Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
       EXPECT_EQ(formatMessage(Context.Diagnostics.diagnostics()[0]), "unsupported InkIR format version 2; expected 1");
+    }
+
+    // Verifies a named SourceManager entry is retained on diagnostics produced through the explicit InkIR source API.
+    TEST(IrDeserializationTest, ReportsNamedSourceIdentity)
+    {
+      TestContext Context;
+      const core::SourceId Source = Context.Compilation.sourceManager().addSource("module.ir", "inkir 2\n");
+
+      const DeserializeResult Result = deserializeSource(Context.IR, Source);
+
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Context.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Context.Diagnostics.diagnostics()[0].Source, Source);
+      ASSERT_NE(Context.Compilation.sourceManager().findSource(Source), nullptr);
+      EXPECT_EQ(Context.Compilation.sourceManager().findSource(Source)->name(), "module.ir");
+    }
+
+    // Verifies the explicit InkIR source API rejects an identity absent from its SourceManager without publishing an unrelated diagnostic.
+    TEST(IrDeserializationTest, RejectsUnknownSourceIdentity)
+    {
+      TestContext Context;
+
+      const DeserializeResult Result = deserializeSource(Context.IR, core::SourceId(1));
+
+      EXPECT_FALSE(Result.succeeded());
+      EXPECT_TRUE(Context.Diagnostics.diagnostics().empty());
     }
 
     // Verifies that unresolved external call targets are rejected during reference resolution.

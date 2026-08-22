@@ -282,14 +282,15 @@ namespace ink::core
       EXPECT_EQ(Second.diagnostics()[1].Kind, DiagnosticKind::InvalidUtf8);
     }
 
-    // Verifies phase contexts compose around one compilation context and expose the same diagnostic engine.
-    TEST(ContextTest, SharesCompilationDiagnosticEngineWithFrontend)
+    // Verifies phase contexts expose the same compilation-wide diagnostic engine and source manager.
+    TEST(ContextTest, SharesCompilationServicesWithFrontend)
     {
       CompilationContext Compilation;
       FrontendContext Frontend(Compilation);
 
       EXPECT_EQ(&Frontend.compilationContext(), &Compilation);
       EXPECT_EQ(&Frontend.diagnosticEngine(), &Compilation.diagnosticEngine());
+      EXPECT_EQ(&Frontend.sourceManager(), &Compilation.sourceManager());
     }
   } // namespace
 } // namespace ink::core

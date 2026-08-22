@@ -125,7 +125,8 @@ namespace ink::ir
         return sourceFailure<core::DiagnosticKind::IrModuleSourceReadFailed>(Session, ModuleName);
       }
 
-      DeserializeResult Parsed = deserialize(Session.irContext(), Text);
+      const core::SourceId Source = Session.irContext().sourceManager().addSource(Candidate.u8string(), std::move(Text));
+      DeserializeResult Parsed = deserializeSource(Session.irContext(), Source);
       if (!Parsed.succeeded())
       {
         return ModuleCompilationResult::failure();

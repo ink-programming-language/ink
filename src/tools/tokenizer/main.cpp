@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -72,7 +73,8 @@ namespace
     ink::core::FrontendContext Context(Compilation);
     ink::core::CollectingDiagnosticConsumer Diagnostics;
     Compilation.diagnosticEngine().addConsumer(Diagnostics);
-    const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenize(Context, std::move(Source));
+    const ink::core::SourceId SourceId = Compilation.sourceManager().addSource(SourceFile == "-" ? "<stdin>" : SourceFile, std::move(Source));
+    const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenizeSource(Context, SourceId);
     std::ostringstream BufferedOutput;
     std::ostringstream BufferedErrorOutput;
     for (const ink::tokenizer::Token &Token : Result.tokens())
@@ -83,6 +85,11 @@ namespace
     for (const ink::core::Diagnostic &Diagnostic : Diagnostics.diagnostics())
     {
       const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
+      const std::shared_ptr<const ink::core::SourceBuffer> DiagnosticSource = Compilation.sourceManager().findSource(Diagnostic.Source);
+      if (DiagnosticSource != nullptr)
+      {
+        BufferedErrorOutput << DiagnosticSource->name() << ':' << DiagnosticSource->lineNumber(Diagnostic.Span.Start) << ": ";
+      }
       BufferedErrorOutput << (Diagnostic.classification() == ink::core::DiagnosticClass::InternalCompilerError ? ink::core::diagnosticClassName(Diagnostic.classification()) : ink::core::diagnosticSeverityName(Formatted.Severity)) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
       for (const ink::core::FormattedDiagnosticNote &Note : Formatted.Notes)
       {

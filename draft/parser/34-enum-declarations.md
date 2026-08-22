@@ -111,7 +111,7 @@ enum Color {
 
 ## 4. 枚举成员区域的 `comptime`
 
-枚举成员区域复用 Parser 议题 32 的五种结构化控制形式，控制头继续使用固定括号：
+枚举成员区域复用 Parser 议题 32 的四种结构化控制形式，控制头继续使用固定括号：
 
 ```ebnf
 enum_member_comptime_item =
@@ -119,7 +119,6 @@ enum_member_comptime_item =
     (
         enum_member_block
       | enum_member_if_tail
-      | enum_member_match_tail
       | enum_member_for_tail
       | enum_member_while_tail
     ) ;
@@ -130,15 +129,6 @@ enum_member_if_tail =
         "else",
         ( enum_member_block | enum_member_if_tail )
     ] ;
-
-enum_member_match_tail =
-    "match", "(", expression, ")", "{",
-    enum_member_match_arm,
-    { enum_member_match_arm },
-    "}" ;
-
-enum_member_match_arm =
-    match_arm_pattern, "=>", enum_member_block ;
 
 enum_member_for_tail =
     "for", "(",
@@ -166,7 +156,7 @@ enum TokenKind {
 }
 ```
 
-`comptime { ... }`、`comptime match (...)`、`comptime for (...)` 和 `comptime while (...)` 使用同一成员列表规则。
+`comptime { ... }`、`comptime if (...)`、`comptime for (...)` 和 `comptime while (...)` 使用同一成员列表规则。
 
 ## 5. v0 成员边界
 
@@ -182,4 +172,4 @@ enum Invalid {
 
 ## 6. 结论
 
-枚举由必需的命名声明头和必需的成员块组成，可以为空或包含无尾随逗号的成员列表。分支支持前置 attribute、非空位置类型载荷和可选判别表达式；枚举成员区域同时支持统一的五种 `comptime` 结构。
+枚举由必需的命名声明头和必需的成员块组成，可以为空或包含无尾随逗号的成员列表。分支支持前置 attribute、非空位置类型载荷和可选判别表达式；枚举成员区域同时支持统一的四种 `comptime` 结构。

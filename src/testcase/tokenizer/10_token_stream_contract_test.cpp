@@ -200,6 +200,57 @@ namespace ink::tokenizer
       expectPartition(Second);
     }
 
+    // Verifies tokenization of a pre-registered source preserves its SourceManager identity, name, text, and shared storage.
+    TEST(TokenStreamContractTest, TokenizesNamedSourceManagerEntries)
+    {
+      core::CompilationContext Compilation;
+      core::FrontendContext Context(Compilation);
+      const core::SourceId Source = Compilation.sourceManager().addSource("named.ink", "let value = 1;");
+      TokenizedBuffer File = tokenizeSource(Context, Source);
+
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_EQ(File.sourceId(), Source);
+      EXPECT_EQ(File.sourceName(), "named.ink");
+      EXPECT_EQ(File.source(), "let value = 1;");
+      ASSERT_NE(Compilation.sourceManager().findSource(File.sourceId()), nullptr);
+      EXPECT_EQ(Compilation.sourceManager().findSource(File.sourceId())->name(), "named.ink");
+      expectPartition(File);
+    }
+
+    // Verifies a TokenizedBuffer keeps its registered source storage alive after the originating compilation context is destroyed.
+    TEST(TokenStreamContractTest, KeepsSourceAliveBeyondCompilationContext)
+    {
+      const TokenizedBuffer File = []()
+      {
+        core::CompilationContext Compilation;
+        core::FrontendContext Context(Compilation);
+        const core::SourceId Source = Compilation.sourceManager().addSource("temporary.ink", "persistent");
+        return tokenizeSource(Context, Source);
+      }();
+
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_EQ(File.sourceName(), "temporary.ink");
+      EXPECT_EQ(File.source(), "persistent");
+      EXPECT_EQ(File.raw(File.tokens().front()), "persistent");
+      expectPartition(File);
+    }
+
+    // Verifies an unknown SourceId produces a safe unsuccessful token buffer instead of aliasing another registered source.
+    TEST(TokenStreamContractTest, RejectsUnknownSourceManagerEntries)
+    {
+      core::CompilationContext Compilation;
+      core::FrontendContext Context(Compilation);
+      const TokenizedBuffer File = tokenizeSource(Context, core::SourceId(1));
+
+      EXPECT_FALSE(File.succeeded());
+      EXPECT_FALSE(File.sourceId().valid());
+      EXPECT_TRUE(File.sourceName().empty());
+      EXPECT_TRUE(File.source().empty());
+      EXPECT_TRUE(File.tokens().empty());
+      EXPECT_TRUE(File.lineStarts().empty());
+      EXPECT_EQ(File.lineNumber(0), 0U);
+    }
+
     // Verifies exhaustive, disjoint trivia and error classification for every token kind.
     TEST(TokenStreamContractTest, TriviaAndErrorClassificationsAreOrthogonalAndExhaustive)
     {

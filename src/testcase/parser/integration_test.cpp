@@ -111,8 +111,9 @@ namespace ink::parser
       ASSERT_TRUE(SourceStream.is_open()) << "unable to open " << TestCase.SolutionPath.string();
       std::string Source{std::istreambuf_iterator<char>(SourceStream), std::istreambuf_iterator<char>()};
 
-      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(std::move(Source));
+      tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenizeNamedSource(TestCase.SolutionPath.u8string(), std::move(Source));
       ASSERT_TRUE(LexedFile.succeeded()) << "tokenizer rejected " << TestCase.SolutionPath.string();
+      EXPECT_EQ(LexedFile.sourceName(), TestCase.SolutionPath.u8string());
 
       const ParsedFile File = parse(std::move(LexedFile));
       EXPECT_TRUE(File.succeeded()) << diagnosticSummary(test::testDiagnostics(File));

@@ -2,6 +2,8 @@
 #include "ink/ir/ir.h"
 #include "ink/ir/serialization.h"
 
+#include "ir_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -16,43 +18,8 @@ namespace ink::ir
 {
   namespace
   {
-    struct MemoryIrTestContext
-    {
-        MemoryIrTestContext()
-            : Compilation(),
-              IR(Compilation)
-        {
-          Compilation.diagnosticEngine().addConsumer(Diagnostics);
-        }
-
-        explicit MemoryIrTestContext(core::TargetContext Target)
-            : Compilation(Target),
-              IR(Compilation)
-        {
-          Compilation.diagnosticEngine().addConsumer(Diagnostics);
-        }
-
-        ~MemoryIrTestContext()
-        {
-          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
-        }
-
-        core::CompilationContext Compilation;
-        IRContext IR;
-        core::CollectingDiagnosticConsumer Diagnostics;
-    };
-
-    bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
-    {
-      for (const core::Diagnostic &DiagnosticEntry : Diagnostics)
-      {
-        if (DiagnosticEntry.Kind == Kind)
-        {
-          return true;
-        }
-      }
-      return false;
-    }
+    using MemoryIrTestContext = test::IRTestContext;
+    using ink::test::hasDiagnostic;
 
     VerificationResult verifySingleMemoryInstruction(MemoryIrTestContext &Context, std::unique_ptr<Instruction> InstructionValue, const StructType *ReferencedStructType = nullptr)
     {
@@ -76,18 +43,18 @@ namespace ink::ir
     const std::string MemoryText =
         "inkir 1\n"
         "\n"
-        "define i32 @memory(byte[] %0, const byte[] %1) {\n"
+        "define i32 @memory(byte slice %0, const byte slice %1) {\n"
         "entry:\n"
-        "  %2 = alloca byte[] ptrsize 8\n"
-        "  %3 = slice.data byte* byte[] %2\n"
+        "  %2 = alloca byte slice ptrsize 8\n"
+        "  %3 = slice.data byte* byte slice %2\n"
         "  %4 = getelementptr i32, byte* %3, ptrsize 1\n"
         "  store i32 65, byte* %4\n"
         "  %5 = load i32, byte* %4\n"
-        "  %6 = slice.data const byte* const byte[] %1\n"
+        "  %6 = slice.data const byte* const byte slice %1\n"
         "  %7 = getelementptr byte, const byte* %6, ptrsize 0\n"
         "  %8 = load byte, const byte* %7\n"
-        "  %9 = slice.length byte[] %2\n"
-        "  lifetime.end byte[] %2\n"
+        "  %9 = slice.length byte slice %2\n"
+        "  lifetime.end byte slice %2\n"
         "  ret i32 %5\n"
         "}\n";
 
@@ -282,7 +249,7 @@ namespace ink::ir
       constexpr std::uint64_t Maximum64 = std::numeric_limits<std::uint64_t>::max();
       const auto TextWithValue = [](std::uint64_t Value)
       {
-        return "inkir 1\n\ndefine void @main() {\nentry:\n  %0 = alloca byte[] ptrsize " + std::to_string(Value) + "\n  ret void\n}\n";
+        return "inkir 1\n\ndefine void @main() {\nentry:\n  %0 = alloca byte slice ptrsize " + std::to_string(Value) + "\n  ret void\n}\n";
       };
       MemoryIrTestContext Target32(core::TargetContext(core::PointerWidth::Bits32, core::ByteOrder::LittleEndian));
       MemoryIrTestContext Target64(core::TargetContext(core::PointerWidth::Bits64, core::ByteOrder::BigEndian));
@@ -295,7 +262,7 @@ namespace ink::ir
       const DeserializeResult Extended64Result = deserialize(Target64.IR, TextWithValue(First64Only));
       const std::string Maximum64Text = TextWithValue(Maximum64);
       const DeserializeResult Maximum64Result = deserialize(Target64.IR, Maximum64Text);
-      const DeserializeResult NegativeResult = deserialize(Target64.IR, "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte[] ptrsize -1\n  ret void\n}\n");
+      const DeserializeResult NegativeResult = deserialize(Target64.IR, "inkir 1\ndefine void @main() {\nentry:\n  %0 = alloca byte slice ptrsize -1\n  ret void\n}\n");
       auto ProgrammaticAlloca = std::make_unique<AllocaInstruction>(Target64.IR.getType(TypeKind::ByteSlice));
       ProgrammaticAlloca->Result = ValueId{0};
       ProgrammaticAlloca->Size = Target64.IR.constantPool().getIntegerConstant(Target64.IR.getType(TypeKind::PointerSize), Maximum64);
@@ -462,9 +429,9 @@ namespace ink::ir
       MemoryIrTestContext Context;
       const std::string Text =
           "inkir 1\n"
-          "define void @main(const byte[] %0) {\n"
+          "define void @main(const byte slice %0) {\n"
           "entry:\n"
-          "  %1 = slice.data byte* const byte[] %0\n"
+          "  %1 = slice.data byte* const byte slice %0\n"
           "  ret void\n"
           "}\n";
 
@@ -484,7 +451,7 @@ namespace ink::ir
           "entry:\n"
           "  br body\n"
           "body:\n"
-          "  %0 = alloca byte[] ptrsize 1\n"
+          "  %0 = alloca byte slice ptrsize 1\n"
           "  ret void\n"
           "}\n";
 
@@ -746,11 +713,11 @@ namespace ink::ir
           core::DiagnosticKind Expected;
       };
       const Case Cases[] = {
-          {"alloca byte[] ptrsize 1", core::DiagnosticKind::IrAllocaRequiresResult},
+          {"alloca byte slice ptrsize 1", core::DiagnosticKind::IrAllocaRequiresResult},
           {"getelementptr byte, byte* %1, ptrsize 0", core::DiagnosticKind::IrGetElementPointerRequiresResult},
           {"load byte, byte* %1", core::DiagnosticKind::IrLoadRequiresResult},
-          {"slice.data byte* byte[] %0", core::DiagnosticKind::IrSliceDataRequiresResult},
-          {"slice.length byte[] %0", core::DiagnosticKind::IrSliceLengthRequiresResult},
+          {"slice.data byte* byte slice %0", core::DiagnosticKind::IrSliceDataRequiresResult},
+          {"slice.length byte slice %0", core::DiagnosticKind::IrSliceLengthRequiresResult},
           {"add byte 1, byte 2", core::DiagnosticKind::IrAddRequiresResult},
           {"icmp eq byte 1, byte 2", core::DiagnosticKind::IrCompareRequiresResult},
       };
@@ -758,7 +725,7 @@ namespace ink::ir
       for (const Case &CaseValue : Cases)
       {
         MemoryIrTestContext Context;
-        const std::string Text = "inkir 1\ndefine void @main(byte[] %0, byte* %1) {\nentry:\n  " + std::string(CaseValue.InstructionText) + "\n  ret void\n}\n";
+        const std::string Text = "inkir 1\ndefine void @main(byte slice %0, byte* %1) {\nentry:\n  " + std::string(CaseValue.InstructionText) + "\n  ret void\n}\n";
         const DeserializeResult Result = deserialize(Context.IR, Text);
         ASSERT_FALSE(Result.succeeded()) << CaseValue.InstructionText;
         ASSERT_FALSE(Context.Diagnostics.diagnostics().empty()) << CaseValue.InstructionText;
@@ -771,7 +738,7 @@ namespace ink::ir
     {
       const char *Instructions[] = {
           "%2 = store byte 1, byte* %1",
-          "%2 = lifetime.end byte[] %0",
+          "%2 = lifetime.end byte slice %0",
           "%2 = br exit",
           "%2 = condbr bool 1, exit, exit",
           "%2 = ret void",
@@ -780,7 +747,7 @@ namespace ink::ir
       for (const char *InstructionText : Instructions)
       {
         MemoryIrTestContext Context;
-        const std::string Text = "inkir 1\ndefine void @main(byte[] %0, byte* %1) {\nentry:\n  " + std::string(InstructionText) + "\nexit:\n  ret void\n}\n";
+        const std::string Text = "inkir 1\ndefine void @main(byte slice %0, byte* %1) {\nentry:\n  " + std::string(InstructionText) + "\nexit:\n  ret void\n}\n";
         const DeserializeResult Result = deserialize(Context.IR, Text);
         ASSERT_FALSE(Result.succeeded()) << InstructionText;
         ASSERT_FALSE(Context.Diagnostics.diagnostics().empty()) << InstructionText;

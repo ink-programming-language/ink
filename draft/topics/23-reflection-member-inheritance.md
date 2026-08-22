@@ -96,12 +96,18 @@ class Player : Entity {
 找到第一个同类别、同名称的反射成员后立即停止。
 
 ```ink
-if (match .some(player_type) = reflection.find_type("game.Player")) {
-    if (match .some(function) = player_type.function("display_name")) {
+const player_type_result = reflection.find_type("game.Player");
+if (player_type_result.has_value()) {
+    const player_type = player_type_result.value();
+    const function_result = player_type.function("display_name");
+    if (function_result.has_value()) {
+        const function = function_result.value();
         print(function.qualified_name); // Player.display_name
     }
 
-    if (match .some(property) = player_type.property("id")) {
+    const property_result = player_type.property("id");
+    if (property_result.has_value()) {
+        const property = property_result.value();
         print(property.qualified_name); // Player.id
     }
 }
@@ -110,12 +116,18 @@ if (match .some(player_type) = reflection.find_type("game.Player")) {
 在父类型自己的反射视图上查询仍得到父成员：
 
 ```ink
-if (match .some(entity_type) = reflection.find_type("game.Entity")) {
-    if (match .some(function) = entity_type.function("display_name")) {
+const entity_type_result = reflection.find_type("game.Entity");
+if (entity_type_result.has_value()) {
+    const entity_type = entity_type_result.value();
+    const function_result = entity_type.function("display_name");
+    if (function_result.has_value()) {
+        const function = function_result.value();
         print(function.qualified_name); // Entity.display_name
     }
 
-    if (match .some(property) = entity_type.property("id")) {
+    const property_result = entity_type.property("id");
+    if (property_result.has_value()) {
+        const property = property_result.value();
         print(property.qualified_name); // Entity.id
     }
 }

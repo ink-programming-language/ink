@@ -78,15 +78,10 @@ return ();
 return left, right; // 非法：元组缺少圆括号
 ```
 
-`if_expression`、`match_expression` 和其他完整表达式可以直接作为返回结果：
+`if_expression` 和其他完整表达式可以直接作为返回结果：
 
 ```ink
 return if (ready) value else fallback;
-
-return match (result) {
-    .ok(value) => value,
-    .error(_) => fallback,
-};
 ```
 
 结果表达式自身以 `}` 结束时也不能省略外层 `return_statement` 的分号。
@@ -104,7 +99,7 @@ Parser 在允许 `statement` 的位置统一建立 `ReturnStatement`；当前是
 → 把控制权交还调用方
 ```
 
-返回表达式抛出异常或触发 trap 时不会完成返回。直接构造到返回位置、命名值复制和不可复制类型限制继续遵守议题 02，不因 `return` 语法增加隐藏移动。
+返回表达式触发 trap 时不会完成返回。直接构造到返回位置、命名值复制和不可复制类型限制继续遵守议题 02，不因 `return` 语法增加隐藏移动。
 
 `return;` 与 `return ();` 不等价：前者没有结果表达式，后者返回议题 69 的空元组值。语义检查分别要求相应的 `void` 或 `()` 结果契约。
 
@@ -117,7 +112,7 @@ defer file.close();
 defer log("leaving scope");
 ```
 
-需要多条语句、局部声明、赋值或本地异常处理时使用 block 形式：
+需要多条语句、局部声明、赋值或局部控制流时使用 block 形式：
 
 ```ink
 defer {
@@ -137,12 +132,11 @@ defer {
 
 `defer;` 仍然非法，因为它既没有表达式，也没有 `statement_block`。
 
-`return`、`break`、`continue` 和 `throw` 是语句而不是表达式，不能直接作为表达式式 `defer` 的 body：
+`return`、`break` 和 `continue` 是语句而不是表达式，不能直接作为表达式式 `defer` 的 body：
 
 ```ink
 defer return;      // 非法
 defer break;       // 非法
-defer throw error; // 非法
 ```
 
 议题 11 的赋值也是专用语句，因此 `defer target = value;` 不符合表达式形式；需要赋值时写入 block：
@@ -201,22 +195,21 @@ defer {
 
 上例依次记录 `"first"`、`"second"`。defer block 建立普通嵌套词法作用域；其中声明的局部对象在清理动作执行时构造，并在该 block 结束时逆序清理。嵌套 `defer` 若出现在 defer block 内，则在执行到它时注册到该 block 自己的清理栈。
 
-从未执行到的外层 `defer` 不注册；循环每次迭代、匹配分支和嵌套 block 各自遵守对应作用域边界。
+从未执行到的外层 `defer` 不注册；循环每次迭代和嵌套 block 各自遵守对应作用域边界。
 
 表达式形式产生的普通结果被丢弃。它在清理时形成一个完整表达式，其临时对象在该动作结束时逆序销毁，然后才继续执行清理栈中的下一个动作。
 
 ## 8. 清理动作的语义限制
 
-按照议题 03，整个 `defer` 动作隐式满足 `[nothrow]`，异常不得从延迟表达式或 block 逃逸。block 内可以使用能够在本地捕获全部异常的 `try`/`catch`，但任何仍可能越过结束 `}` 的异常路径都属于语义错误。清理期间触发 trap 则立即终止，不保证继续执行剩余清理动作。
+`defer` 动作必须在清理过程中完整执行，不能暂停或把控制流转移到 body 之外。清理期间触发 trap 则立即终止，不保证继续执行剩余清理动作。
 
 defer body 不能把控制流转移到该 body 之外：
 
 - `return` 始终非法；
 - `break` 或 `continue` 只能指向 defer block 内部声明的循环，不能指向注册点外层的循环；
-- `throw` 只有在同一 defer block 内被完整捕获时才满足 `[nothrow]`；
 - `await`、yield 或其他可能暂停清理过程的操作非法。
 
-这些是 defer body 的语义检查。Parser 仍为 block 中出现的真实语句建立完整 CST，再由控制流检查报告非法外跳；它不根据调用目标、纯度或 `[nothrow]` 属性改变 `DeferStatement` 的解析形状。
+这些是 defer body 的语义检查。Parser 仍为 block 中出现的真实语句建立完整 CST，再由控制流检查报告非法外跳；它不根据调用目标或纯度改变 `DeferStatement` 的解析形状。
 
 ## 9. 两种结构都不是表达式
 
@@ -255,4 +248,4 @@ block 形式缺少结束 `}` 时按照议题 09 插入零宽度 `MissingToken('}
 
 ## 12. 确认结论
 
-Ink 使用 `return;` 和 `return expression;` 表示函数返回，结果表达式只求值一次，成功建立返回结果后再执行离开路径上的逆序清理。函数声明省略结果类型固定表示 `void`，不从函数体推导。元组结果必须显式写圆括号。延迟清理同时支持 `defer expression;` 和 `defer { ... }`；整个表达式或 block 在作用域清理时执行，注册时不建立接收者或实参快照。defer block 可以容纳多条普通语句，但不得让异常、返回、外层循环跳转或暂停越过清理边界。`return`、表达式式 `defer` 和 block 式 `defer` 都拥有确定的 CST 与错误恢复规则。
+Ink 使用 `return;` 和 `return expression;` 表示函数返回，结果表达式只求值一次，成功建立返回结果后再执行离开路径上的逆序清理。函数声明省略结果类型固定表示 `void`，不从函数体推导。元组结果必须显式写圆括号。延迟清理同时支持 `defer expression;` 和 `defer { ... }`；整个表达式或 block 在作用域清理时执行，注册时不建立接收者或实参快照。defer block 可以容纳多条普通语句，但不得让返回、外层循环跳转或暂停越过清理边界。`return`、表达式式 `defer` 和 block 式 `defer` 都拥有确定的 CST 与错误恢复规则。

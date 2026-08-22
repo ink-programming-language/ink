@@ -44,6 +44,16 @@ namespace ink::ir
         return Compilation.diagnosticEngine();
       }
 
+      core::SourceManager &sourceManager() noexcept
+      {
+        return Compilation.sourceManager();
+      }
+
+      const core::SourceManager &sourceManager() const noexcept
+      {
+        return Compilation.sourceManager();
+      }
+
       const Type &getType(TypeKind Kind) const noexcept;
       const StructType &createStructType(Name Name, std::initializer_list<const Type *> FieldTypes);
       const StructType &createStructType(Name Name, std::vector<const Type *> FieldTypes);

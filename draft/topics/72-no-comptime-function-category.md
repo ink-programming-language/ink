@@ -48,7 +48,6 @@ const value = comptime helper();
 comptime expression
 comptime { ... }
 comptime if (condition) { ... }
-comptime match (value) { ... }
 comptime for (binding_mode element in values) { ... }
 comptime while (condition) { ... }
 ```
@@ -60,7 +59,7 @@ const value = comptime helper();
 const object = comptime Object(arguments);
 ```
 
-不增加 `comptime call` 或其他专用调用语法。赋值、局部绑定、`try`、`defer`、`return`、`break`、`continue` 和 `throw` 等非表达式语句在需要编译期执行时放入 `comptime { ... }`，并继承外层执行阶段；不增加 `comptime var`、`comptime return` 等逐项前缀。
+不增加 `comptime call` 或其他专用调用语法。赋值、局部绑定、`defer`、`return`、`break` 和 `continue` 等非表达式语句在需要编译期执行时放入 `comptime { ... }`，并继承外层执行阶段；不增加 `comptime var`、`comptime return` 等逐项前缀。
 
 泛型尖括号本身就是编译期参数域，所以泛型形参只写普通值类型：
 
@@ -77,7 +76,7 @@ func create<
 
 这不会把 `create` 变成特殊函数类型，也不参与运行时函数签名。
 
-同一组 `comptime {}`、`if`、`match`、`for`、`while` 表面形式也可以位于 module 或类型成员声明区。Parser 议题 32 使用同一个 `ComptimeRegionControl`，由外层提供 `StatementRegion`、`TopLevelRegion`、`ClassMemberRegion`、`InterfaceMemberRegion` 或 `EnumMemberRegion`；对应 `{ ... }` 直接解析成该区域的 block，body 只接受当前区域允许的 items。区域种类只决定 item parser 和输出 sink，执行阶段仍由同一 Partial Evaluation 模型决定，不为声明区另设第二个 `comptime` 关键字或宏系统。
+同一组 `comptime {}`、`if`、`for`、`while` 表面形式也可以位于 module 或类型成员声明区。Parser 议题 32 使用同一个 `ComptimeRegionControl`，由外层提供 `StatementRegion`、`TopLevelRegion`、`ClassMemberRegion`、`InterfaceMemberRegion` 或 `EnumMemberRegion`；对应 `{ ... }` 直接解析成该区域的 block，body 只接受当前区域允许的 items。区域种类只决定 item parser 和输出 sink，执行阶段仍由同一 Partial Evaluation 模型决定，不为声明区另设第二个 `comptime` 关键字或宏系统。
 
 ## 4. 含元类型的签名自然只能在编译期使用
 
@@ -126,7 +125,7 @@ Known and Runtime inputs
 
 递归、循环、普通辅助调用、泛型实例和反射调用遵守同一规则，并继续受编译期资源预算与固定点收敛检查约束。
 
-`comptime if`、`comptime match` 和 `comptime for` 可以在选择或展开后残留所选 body 中依赖运行时输入的普通 InkIR；它们只要求控制条件、被匹配值或迭代源在编译期已知。`comptime while` 要求每轮条件都能在编译期决定，并必须受迭代次数、生成代码量和总执行 fuel 限制。
+`comptime if` 和 `comptime for` 可以在选择或展开后残留所选 body 中依赖运行时输入的普通 InkIR；它们只要求控制条件或迭代源在编译期已知。`comptime while` 要求每轮条件都能在编译期决定，并必须受迭代次数、生成代码量和总执行 fuel 限制。
 
 ## 7. 函数类型、重载与 ABI
 

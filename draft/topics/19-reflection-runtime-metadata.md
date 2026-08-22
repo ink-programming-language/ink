@@ -1,6 +1,6 @@
 # 议题 19：编译期反射、动态反射与自定义元数据
 
-> 状态：已确认，议题 20—26、28、31—35、37、57、61、63、66 与 Parser 议题 15 补充
+> 状态：已确认，议题 20—26、28、31、32、57、61、63、66 与 Parser 议题 15 补充
 > 确认日期：2026-08-01
 
 ## 1. 两级反射模型
@@ -172,7 +172,9 @@ class SaveGame {}
 带有 `[reflect]` 的类型进入运行时反射注册表，并按照议题 22 使用完全限定名称查找：
 
 ```ink
-if (match .some(type_info) = reflection.find_type("game.Player")) {
+const type_result = reflection.find_type("game.Player");
+if (type_result.has_value()) {
+    const type_info = type_result.value();
     print(type_info.name);
     print(type_info.size);
     print(type_info.alignment);
@@ -187,8 +189,12 @@ if (match .some(type_info) = reflection.find_type("game.Player")) {
 自定义元数据按其类型查询：
 
 ```ink
-if (match .some(health) = type_info.property("health")) {
-    if (match .some(range) = health.metadata.get::<Range>()) {
+const health_result = type_info.property("health");
+if (health_result.has_value()) {
+    const health = health_result.value();
+    const range_result = health.metadata.get::<Range>();
+    if (range_result.has_value()) {
+        const range = range_result.value();
         print(range.min);
         print(range.max);
     }
@@ -206,7 +212,9 @@ if (match .some(health) = type_info.property("health")) {
 被反射字段可以通过编译器生成的适配器进行类型检查后的动态访问：
 
 ```ink
-if (match .some(property) = type_info.property("health")) {
+const property_result = type_info.property("health");
+if (property_result.has_value()) {
+    const property = property_result.value();
     const health = property.get::<i32>(&player);
     property.set::<i32>(&player, 80);
 }
@@ -219,7 +227,7 @@ if (match .some(property) = type_info.property("health")) {
 - 写入操作满足字段可变性；
 - 对象和描述符仍属于有效模块版本。
 
-不匹配必须抛出明确的反射异常，不能因为反射适配器中的错误类型、错误偏移或错误对象产生 UB。异常按照议题 34 自动传播。对不可复制字段取得值、借用字段以及字段访问控制的具体 API 留给后续议题细化。
+不匹配必须通过反射 API 的显式失败结果报告，不能因为反射适配器中的错误类型、错误偏移或错误对象产生 UB。对不可复制字段取得值、借用字段以及字段访问控制的具体 API 留给后续议题细化。
 
 字段按值读取、借用、写入以及内部类型擦除表示由 [`21-dynamic-reflection-value-abi.md`](./21-dynamic-reflection-value-abi.md) 规定。
 
@@ -228,12 +236,14 @@ if (match .some(property) = type_info.property("health")) {
 被反射函数具有编译器生成的类型擦除调用适配器：
 
 ```ink
-if (match .some(function) = type_info.function("take_damage")) {
+const function_result = type_info.function("take_damage");
+if (function_result.has_value()) {
+    const function = function_result.value();
     const damaged = function.call::<bool>(&player, 10);
 }
 ```
 
-适配器必须检查接收对象、参数数量、参数类型、返回类型和调用约定。反射调用失败抛出明确异常，不以类型不匹配作为 UB。
+适配器必须检查接收对象、参数数量、参数类型、返回类型和调用约定。反射调用失败通过显式结果报告，不以类型不匹配作为 UB。
 
 适配器可以使用调用者提供的栈上动态值数组，不要求为每次调用进行堆分配。不可复制参数和引用参数的适配遵守议题 21；异步函数使用议题 57 的独立 `call_async::<R>` 和 `DynamicTaskOut`。可变参数、生成器以及尚未确定的特殊调用边界留给后续议题。
 
@@ -273,9 +283,7 @@ if (match .some(function) = type_info.function("take_damage")) {
 - 模块加载时的事务式注册项；
 - 动态查询和动态调用本身的检查成本。
 
-没有 `[reflect]` 的声明不生成上述完整动态反射信息。议题 31 为 `try_cast`、议题 35 为异常匹配分别定义的最小类型描述符不包含成员列表、用户元数据或动态调用适配器，不属于这里的完整反射表。链接器可以删除不可达模块版本的全部反射表。`[reflect]` 不改变普通直接字段访问和普通直接函数调用的性能。
-
-议题 37 的 `ExceptionView.reflection()` 只在动态异常类具有 `[reflect]` 信息时返回与该异常记录模块版本相匹配的 `TypeInfo`；否则返回 `none`。它不能仅按名称查找并把旧异常载荷交给不兼容的新版本反射描述符。
+没有 `[reflect]` 的声明不生成上述完整动态反射信息。议题 31 为 `try_cast` 定义的最小类型描述符不包含成员列表、用户元数据或动态调用适配器，不属于这里的完整反射表。链接器可以删除不可达模块版本的全部反射表。`[reflect]` 不改变普通直接字段访问和普通直接函数调用的性能。
 
 ## 12. 与内建属性和装饰器的关系
 

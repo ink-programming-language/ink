@@ -9,7 +9,6 @@
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <type_traits>
@@ -19,13 +18,7 @@ namespace ink::ir
 {
   namespace
   {
-    bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
-    {
-      return std::any_of(Diagnostics.begin(), Diagnostics.end(), [Kind](const core::Diagnostic &Diagnostic)
-      {
-        return Diagnostic.Kind == Kind;
-      });
-    }
+    using ink::test::hasDiagnostic;
 
     void expectUserDefinedReflectArgument(const IRContext &Context, const Module &ModuleValue)
     {
@@ -143,7 +136,7 @@ namespace ink::ir
       const std::string Text =
           "inkir 1\n"
           "%Meta = type {i32}\n"
-          "%Record = type align(16) pack(4) {Value: byte align(2) offset(0) [reflect(Level = i32 7, Label = const byte[] c\"ink\", Bits = f32 floatbits(f32,0x3F800000), Pointer = byte* null, Default = i32 zeroinitializer, Metadata = %Meta {i32 1}), stored]}\n";
+          "%Record = type align(16) pack(4) {Value: byte align(2) offset(0) [reflect(Level = i32 7, Label = const byte slice c\"ink\", Bits = f32 floatbits(f32,0x3F800000), Pointer = byte* null, Default = i32 zeroinitializer, Metadata = %Meta {i32 1}), stored]}\n";
 
       DeserializeResult FirstResult = deserialize(FirstContext, Text);
 

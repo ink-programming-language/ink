@@ -2,10 +2,8 @@
 #define INK_CORE_CONTEXT_H
 
 #include "ink/core/diagnostic.h"
-#include "ink/core/source_id.h"
+#include "ink/core/source_manager.h"
 #include "ink/core/target_context.h"
-
-#include <atomic>
 
 namespace ink::core
 {
@@ -42,15 +40,20 @@ namespace ink::core
         return Diagnostics;
       }
 
-      SourceId createSourceId() noexcept
+      SourceManager &sourceManager() noexcept
       {
-        return SourceId(NextSourceId.fetch_add(1, std::memory_order_relaxed));
+        return Sources;
+      }
+
+      const SourceManager &sourceManager() const noexcept
+      {
+        return Sources;
       }
 
     private:
       TargetContext Target;
       DiagnosticEngine Diagnostics;
-      std::atomic<std::uint64_t> NextSourceId{1};
+      SourceManager Sources;
   };
 
   class FrontendContext
@@ -79,6 +82,16 @@ namespace ink::core
       const DiagnosticEngine &diagnosticEngine() const noexcept
       {
         return Compilation.diagnosticEngine();
+      }
+
+      SourceManager &sourceManager() noexcept
+      {
+        return Compilation.sourceManager();
+      }
+
+      const SourceManager &sourceManager() const noexcept
+      {
+        return Compilation.sourceManager();
       }
 
     private:

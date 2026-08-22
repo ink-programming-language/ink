@@ -1,6 +1,6 @@
 # 议题 31：安全下转型与动态接口转换
 
-> 状态：已确认，议题 32—34 补充  
+> 状态：已确认，议题 32 补充
 > 确认日期：2026-08-02
 
 ## 1. `try_cast::<T>(value)`
@@ -8,7 +8,9 @@
 Ink 使用编译器内建的 `try_cast::<T>(value)` 表达可能失败的安全运行时类型转换：
 
 ```ink
-if (match .some(player) = try_cast::<Player&>(entity)) {
+const player_result = try_cast::<Player&>(entity);
+if (player_result.has_value()) {
+    const player = player_result.value();
     player.use_item();
 }
 
@@ -31,7 +33,7 @@ try_cast::<T&>(source)       -> Optional::<T&>
 try_cast::<const T&>(source) -> Optional::<const T&>
 ```
 
-Ink 不提供 `T?` 或 `T&?` 类型语法。`Optional::<T>` 由标准库使用议题 32 的普通泛型枚举实现。成功的 `Optional::<T&>` 包含指向原对象相应视图的非拥有引用，失败时为 `none`，必须按照议题 33 通过普通枚举模式解包。该 Optional 可以返回和长期保存，但不会延长目标生命周期；目标失效后继续使用其中引用属于 UB。
+Ink 不提供 `T?` 或 `T&?` 类型语法。`Optional::<T>` 由标准库使用议题 32 的普通泛型枚举实现。成功的 `Optional::<T&>` 包含指向原对象相应视图的非拥有引用，失败时为 `none`，必须通过标准库的显式状态查询和载荷访问 API 解包。该 Optional 可以返回和长期保存，但不会延长目标生命周期；目标失效后继续使用其中引用属于 UB。
 
 类裸指针目标继续使用已经可空的 `T*`：
 
@@ -41,7 +43,7 @@ try_cast::<T*>(source_pointer) -> T*
 
 源指针为 `null` 时直接返回 `null`，不读取类型信息。非空源指针上的类型检查失败也返回 `null`。
 
-对满足源类型、地址、对齐和生命周期前置条件的输入，转换失败是普通定义行为，不是 UB，也不触发隐式异常或陷阱。
+对满足源类型、地址、对齐和生命周期前置条件的输入，转换失败是普通定义行为，不是 UB，也不会触发 trap。
 
 ## 3. 保持 `const`
 
@@ -85,7 +87,9 @@ class Player : Entity {
 }
 
 func inspect(entity: Entity&) {
-    if (match .some(player) = try_cast::<Player&>(entity)) {
+    const player_result = try_cast::<Player&>(entity);
+    if (player_result.has_value()) {
+        const player = player_result.value();
         // entity 的动态具体类是 Player 或 Player 的派生类
     }
 }
@@ -113,7 +117,9 @@ Ink 不为支持这种转换而给所有普通类增加隐藏类型指针或建�
 ```ink
 const renderable: Renderable& = sprite;
 
-if (match .some(sprite_ref) = try_cast::<Sprite&>(renderable)) {
+const sprite_result = try_cast::<Sprite&>(renderable);
+if (sprite_result.has_value()) {
+    const sprite_ref = sprite_result.value();
     sprite_ref.set_frame(4);
 }
 ```
@@ -126,12 +132,15 @@ if (match .some(sprite_ref) = try_cast::<Sprite&>(renderable)) {
 
 ```ink
 func inspect(reader: Reader&) {
-    if (match .some(seekable) =
-        try_cast::<SeekableReader&>(reader)) {
+    const seekable_result = try_cast::<SeekableReader&>(reader);
+    if (seekable_result.has_value()) {
+        const seekable = seekable_result.value();
         seekable.seek(0);
     }
 
-    if (match .some(closable) = try_cast::<Closable&>(reader)) {
+    const closable_result = try_cast::<Closable&>(reader);
+    if (closable_result.has_value()) {
+        const closable = closable_result.value();
         closable.close();
     }
 }
@@ -156,8 +165,9 @@ source { object, source_table }
 
 ```ink
 func inspect(entity: Entity&) {
-    if (match .some(serializable) =
-        try_cast::<Serializable&>(entity)) {
+    const serializable_result = try_cast::<Serializable&>(entity);
+    if (serializable_result.has_value()) {
+        const serializable = serializable_result.value();
         serializable.serialize();
     }
 }
@@ -260,8 +270,8 @@ const unchecked: Derived* = ptrcast::<Derived*>(base_pointer);
 
 以下内容留给后续议题：
 
-- 标准库 `Optional::<T>` 的完整便捷 API；议题 34 已确定不提供后缀 `?` 传播；
+- 标准库 `Optional::<T>` 的完整便捷 API；
 - 基于最终类和最终虚槽进行更强去虚拟化或转换静态证明的优化边界；
 - 跨动态库的最小描述符 ABI 和缓存失效协议；
-- 最小描述符与调试信息、异常类型信息是否共享存储；
+- 最小描述符与调试信息是否共享存储；
 - 拥有型动态对象和拥有型接口容器的转换 API。

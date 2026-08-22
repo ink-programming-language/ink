@@ -131,7 +131,8 @@ entry:
     {
       TemporaryDirectory Directory;
       ASSERT_TRUE(Directory.ready());
-      ASSERT_TRUE(writeTextFile(Directory.path() / "package" / "broken.ir", "not valid InkIR"));
+      const std::filesystem::path SourcePath = Directory.path() / "package" / "broken.ir";
+      ASSERT_TRUE(writeTextFile(SourcePath, "not valid InkIR"));
       SourceModuleCompilerOptions Options;
       Options.ModuleSearchPaths.push_back(Directory.path());
       SourceModuleCompiler Compiler(std::move(Options));
@@ -142,7 +143,12 @@ entry:
       const ModuleCompilationResult Result = Session.getOrCompileModule("package.broken");
 
       EXPECT_EQ(Result.Status, ModuleCompilationStatus::Failed);
-      EXPECT_FALSE(Diagnostics.diagnostics().empty());
+      ASSERT_FALSE(Diagnostics.diagnostics().empty());
+      const core::SourceId Source = Diagnostics.diagnostics().front().Source;
+      const std::shared_ptr<const core::SourceBuffer> Buffer = Compilation.sourceManager().findSource(Source);
+      ASSERT_NE(Buffer, nullptr);
+      EXPECT_EQ(Buffer->name(), SourcePath.u8string());
+      EXPECT_EQ(Buffer->text(), "not valid InkIR");
     }
 
     // Verifies that a caller-provided entry image participates in the same compilation session as searched dependencies.

@@ -343,7 +343,6 @@ namespace ink::parser
         std::vector<std::string_view> Symbols;
         std::vector<KeywordKind> Keywords;
         bool EndOfFile = false;
-        bool MatchArm = false;
     };
 
     StopSet withKeyword(const StopSet &Original, KeywordKind Keyword)
@@ -362,7 +361,6 @@ namespace ink::parser
         "--",
         "..",
         "->",
-        "=>",
         "<=",
         ">=",
         "==",
@@ -443,41 +441,6 @@ namespace ink::parser
         std::size_t &Depth;
     };
 
-    struct MatchArmBoundaryState
-    {
-        std::size_t DelimiterDepth = 0;
-        std::size_t BoundaryDepth = 0;
-    };
-
-    class MatchArmBoundaryGuard
-    {
-      public:
-        MatchArmBoundaryGuard(std::vector<MatchArmBoundaryState> &States, bool Active, std::size_t BoundaryDepth)
-            : States(States),
-              Active(Active)
-        {
-          if (Active)
-          {
-            States.push_back({0, BoundaryDepth});
-          }
-        }
-
-        ~MatchArmBoundaryGuard()
-        {
-          if (Active)
-          {
-            assert(!States.empty());
-            States.pop_back();
-          }
-        }
-
-        MatchArmBoundaryGuard(const MatchArmBoundaryGuard &) = delete;
-        MatchArmBoundaryGuard &operator=(const MatchArmBoundaryGuard &) = delete;
-
-      private:
-        std::vector<MatchArmBoundaryState> &States;
-        bool Active;
-    };
   } // namespace
 
   class ParserImpl
@@ -509,15 +472,12 @@ namespace ink::parser
           std::size_t DiagnosticCount = 0;
           ParseCompleteness Completeness = ParseCompleteness::Complete;
           bool SawDefinitiveError = false;
-          std::vector<MatchArmBoundaryState> MatchArmBoundaries;
       };
 
       const Token &peekRaw(std::size_t Offset = 0) const;
       std::size_t significantIndex(std::size_t Offset = 0) const;
       const Token &peekSignificant(std::size_t Offset = 0) const;
       std::string_view raw(const Token &TokenValue) const;
-      bool atMatchArmBoundary() const;
-      void trackMatchArmDelimiter(const Token &TokenValue);
       bool atEnd() const;
       bool atToken(TokenKind Kind) const;
       bool atKeyword(KeywordKind Kind) const;
@@ -534,14 +494,12 @@ namespace ink::parser
       bool atStop(const StopSet &Stop) const;
       bool isExpressionStart(std::size_t Offset = 0) const;
       bool isTypeStart(std::size_t Offset = 0) const;
-      bool isPatternStart() const;
       bool isStatementStart() const;
       bool isTopLevelStart() const;
       bool isMemberStart() const;
       bool isClassTypeExpressionStart(std::size_t Offset = 0) const;
       bool shouldCommitClassTypeExpression();
       bool isNamedArgumentStart() const;
-      bool isMatchArmStart() const;
       bool isIfStatementStart() const;
       bool isUnsuffixedDecimalInteger(const Token &TokenValue) const;
       DeclarationKind classifyDeclaration(std::size_t Offset = 0) const;
@@ -573,7 +531,7 @@ namespace ink::parser
       void restore(Checkpoint State);
 
       void parseSourceFile();
-      void parseTopLevelItem(bool MatchArmBody = false);
+      void parseTopLevelItem();
       void parseImportDeclaration();
       void parseModulePath();
       void parseImportAlias();
@@ -602,45 +560,36 @@ namespace ink::parser
       void parseInvalidDeclarationPrefixElement();
       void parseTypeDeclarationPrefix();
       void parseInheritanceClause();
-      void parseClassMemberBlock(bool Interface, bool MatchArmBody = false);
-      void parseClassMemberItem(bool Interface, bool MatchArmBody = false);
+      void parseClassMemberBlock(bool Interface);
+      void parseClassMemberItem(bool Interface);
       void parseFieldDeclaration(const StopSet &Stop = {});
-      void parseEnumMemberBlock(bool MatchArmBody = false);
-      void parseEnumMemberItem(bool MatchArmBody = false);
+      void parseEnumMemberBlock();
+      void parseEnumMemberItem();
       void parseEnumBranch(const StopSet &Stop = {});
 
       void parseComptimeRegion(RegionKind Region);
-      void parseRegionBlock(RegionKind Region, bool MatchArmBody = false);
+      void parseRegionBlock(RegionKind Region);
       void parseRegionIfTail(RegionKind Region);
-      void parseRegionMatchTail(RegionKind Region);
       void parseRegionForTail(RegionKind Region);
       void parseRegionWhileTail(RegionKind Region);
 
-      void parseStatementBlock(bool MatchArmBody = false);
-      void parseBlockItem(bool MatchArmBody = false);
-      void parseStatement(bool MatchArmBody = false);
-      void parseExpressionOrAssignmentStatement(bool MatchArmBody = false);
+      void parseStatementBlock();
+      void parseBlockItem();
+      void parseStatement();
+      void parseExpressionOrAssignmentStatement();
       void parseIfStatement();
-      void parseIfCondition(CstKind MatchConditionKind = CstKind::MatchCondition);
-      void parseMatchStatement();
-      void parseMatchStatementArm();
+      void parseIfCondition();
       void parseWhileStatement();
       void parseWhileCondition();
       void parseForStatement();
       void parseForHeader();
       void parseBreakStatement();
       void parseContinueStatement();
-      void parseReturnStatement(bool MatchArmBody = false);
-      void parseDeferStatement(bool MatchArmBody = false);
-      void parseThrowStatement(bool MatchArmBody = false);
-      void parseTryStatement();
-      void parseCatchClause(bool CatchAll);
+      void parseReturnStatement();
+      void parseDeferStatement();
 
       void parsePayloadPattern();
       void parseTuplePattern();
-      void parseVariantPattern();
-      void parseConditionalMatchPattern();
-      void parseMatchArmPattern();
       void parseForPattern();
 
       void parseExpression(const StopSet &Stop);
@@ -660,8 +609,6 @@ namespace ink::parser
       void parsePrimaryExpression(const StopSet &Stop);
       void parseParenthesizedExpression();
       void parseArrayExpression();
-      void parseMatchExpression();
-      void parseMatchExpressionArm();
       bool parsePostfixSuffix(const StopSet &Stop, bool TypeContext);
       void parseCallSuffix(bool AllowForwardAll = true);
       void parseArgumentList();
@@ -692,7 +639,6 @@ namespace ink::parser
       ParseCompleteness Completeness = ParseCompleteness::Complete;
       bool SawDefinitiveError = false;
       std::size_t SyntaxNestingDepth = 0;
-      std::vector<MatchArmBoundaryState> MatchArmBoundaries;
   };
   const Token &ParserImpl::peekRaw(std::size_t Offset) const
   {
@@ -728,41 +674,6 @@ namespace ink::parser
     return LexedFile.raw(TokenValue);
   }
 
-  bool ParserImpl::atMatchArmBoundary() const
-  {
-    return !MatchArmBoundaries.empty() && MatchArmBoundaries.back().DelimiterDepth == MatchArmBoundaries.back().BoundaryDepth && isMatchArmStart();
-  }
-
-  void ParserImpl::trackMatchArmDelimiter(const Token &TokenValue)
-  {
-    if (TokenValue.Kind != TokenKind::Symbol)
-    {
-      return;
-    }
-    const char *Symbol = std::get_if<char>(&TokenValue.Payload);
-    if (Symbol == nullptr)
-    {
-      return;
-    }
-    const bool Opening = *Symbol == '(' || *Symbol == '[' || *Symbol == '{';
-    const bool Closing = *Symbol == ')' || *Symbol == ']' || *Symbol == '}';
-    if (!Opening && !Closing)
-    {
-      return;
-    }
-    for (MatchArmBoundaryState &State : MatchArmBoundaries)
-    {
-      if (Opening)
-      {
-        ++State.DelimiterDepth;
-      }
-      else if (State.DelimiterDepth != 0)
-      {
-        --State.DelimiterDepth;
-      }
-    }
-  }
-
   bool ParserImpl::atEnd() const
   {
     return peekSignificant().Kind == TokenKind::EndOfFile;
@@ -770,7 +681,7 @@ namespace ink::parser
 
   bool ParserImpl::atToken(TokenKind Kind) const
   {
-    return !atMatchArmBoundary() && peekSignificant().Kind == Kind;
+    return peekSignificant().Kind == Kind;
   }
 
   bool ParserImpl::atKeyword(KeywordKind Kind) const
@@ -850,20 +761,16 @@ namespace ink::parser
 
   bool ParserImpl::atSymbols(std::string_view Sequence) const
   {
-    return !atMatchArmBoundary() && longestSymbolSequence() == Sequence;
+    return longestSymbolSequence() == Sequence;
   }
 
   bool ParserImpl::atSingleSymbol(char Symbol) const
   {
-    return !atMatchArmBoundary() && rawSymbolAt(significantIndex(), Symbol);
+    return rawSymbolAt(significantIndex(), Symbol);
   }
 
   bool ParserImpl::atTypeSymbol(char Symbol) const
   {
-    if (atMatchArmBoundary())
-    {
-      return false;
-    }
     const std::size_t Index = significantIndex();
     if (!rawSymbolAt(Index, Symbol))
     {
@@ -878,10 +785,6 @@ namespace ink::parser
 
   bool ParserImpl::atStop(const StopSet &Stop) const
   {
-    if (atMatchArmBoundary())
-    {
-      return true;
-    }
     if (Stop.EndOfFile && atEnd())
     {
       return true;
@@ -900,19 +803,11 @@ namespace ink::parser
         return true;
       }
     }
-    if (Stop.MatchArm && isMatchArmStart())
-    {
-      return true;
-    }
     return false;
   }
 
   bool ParserImpl::isExpressionStart(std::size_t Offset) const
   {
-    if (Offset == 0 && atMatchArmBoundary())
-    {
-      return false;
-    }
     if (isClassTypeExpressionStart(Offset))
     {
       return true;
@@ -935,7 +830,7 @@ namespace ink::parser
     if (Current.Kind == TokenKind::Keyword)
     {
       const KeywordKind Kind = keywordKind(Current);
-      return Kind == KeywordKind::This || Kind == KeywordKind::If || Kind == KeywordKind::Match || Kind == KeywordKind::Const || Kind == KeywordKind::Func || Kind == KeywordKind::Async || Kind == KeywordKind::Class || Kind == KeywordKind::Comptime || Kind == KeywordKind::Await;
+      return Kind == KeywordKind::This || Kind == KeywordKind::If || Kind == KeywordKind::Const || Kind == KeywordKind::Func || Kind == KeywordKind::Async || Kind == KeywordKind::Class || Kind == KeywordKind::Comptime || Kind == KeywordKind::Await;
     }
     if (Current.Kind != TokenKind::Symbol)
     {
@@ -948,10 +843,6 @@ namespace ink::parser
 
   bool ParserImpl::isTypeStart(std::size_t Offset) const
   {
-    if (Offset == 0 && atMatchArmBoundary())
-    {
-      return false;
-    }
     const Token &Current = peekSignificant(Offset);
     if (Current.Kind == TokenKind::Identifier || Current.Kind == TokenKind::BuiltinType)
     {
@@ -963,11 +854,6 @@ namespace ink::parser
       return Kind == KeywordKind::Const || Kind == KeywordKind::Async || Kind == KeywordKind::Func;
     }
     return Current.Kind == TokenKind::Symbol && longestSymbolSequenceAt(significantIndex(Offset)) == "(";
-  }
-
-  bool ParserImpl::isPatternStart() const
-  {
-    return atIdentifier() || atSymbols("(") || atSymbols(".");
   }
 
   bool ParserImpl::isStatementStart() const
@@ -984,15 +870,12 @@ namespace ink::parser
       case KeywordKind::Var:
       case KeywordKind::Const:
       case KeywordKind::If:
-      case KeywordKind::Match:
       case KeywordKind::While:
       case KeywordKind::For:
       case KeywordKind::Break:
       case KeywordKind::Continue:
       case KeywordKind::Return:
       case KeywordKind::Defer:
-      case KeywordKind::Throw:
-      case KeywordKind::Try:
       case KeywordKind::Comptime:
         return true;
       default:
@@ -1066,60 +949,6 @@ namespace ink::parser
       return false;
     }
     return longestSymbolSequenceAt(significantIndex(1)) == "=";
-  }
-
-  bool ParserImpl::isMatchArmStart() const
-  {
-    std::size_t Offset = 0;
-    const Token &First = peekSignificant();
-    if (First.Kind == TokenKind::Identifier && raw(First) == "_")
-    {
-      ++Offset;
-    }
-    else if (longestSymbolSequenceAt(significantIndex()) == ".")
-    {
-      ++Offset;
-      if (peekSignificant(Offset).Kind != TokenKind::Identifier)
-      {
-        return false;
-      }
-      ++Offset;
-      if (longestSymbolSequenceAt(significantIndex(Offset)) == "(")
-      {
-        std::size_t Depth = 0;
-        do
-        {
-          const Token &Current = peekSignificant(Offset);
-          if (Current.Kind == TokenKind::EndOfFile)
-          {
-            return false;
-          }
-          const std::string Sequence = longestSymbolSequenceAt(significantIndex(Offset));
-          if (Sequence == "(")
-          {
-            ++Depth;
-          }
-          else if (Sequence == ")")
-          {
-            if (Depth == 0)
-            {
-              return false;
-            }
-            --Depth;
-          }
-          else if (Sequence == "]" || Sequence == "}")
-          {
-            return false;
-          }
-          ++Offset;
-        } while (Depth != 0);
-      }
-    }
-    else
-    {
-      return false;
-    }
-    return longestSymbolSequenceAt(significantIndex(Offset)) == "=>";
   }
 
   bool ParserImpl::isIfStatementStart() const
@@ -1402,14 +1231,9 @@ namespace ink::parser
 
   void ParserImpl::consumeCurrent()
   {
-    if (atMatchArmBoundary())
-    {
-      return;
-    }
     flushTrivia();
     if (RawIndex < LexedFile.tokens().size())
     {
-      trackMatchArmDelimiter(LexedFile.tokens()[RawIndex]);
       Builder.token(RawIndex);
       ++RawIndex;
     }
@@ -1444,7 +1268,6 @@ namespace ink::parser
     flushTrivia();
     for (std::size_t Index = 0; Index < Sequence.size(); ++Index)
     {
-      trackMatchArmDelimiter(LexedFile.tokens()[RawIndex]);
       Builder.token(RawIndex);
       ++RawIndex;
     }
@@ -1554,10 +1377,6 @@ namespace ink::parser
 
   void ParserImpl::consumeUnexpected(DiagnosticKind Kind)
   {
-    if (atMatchArmBoundary())
-    {
-      return;
-    }
     if (atEnd())
     {
       addUnexpected(Kind);
@@ -1571,10 +1390,6 @@ namespace ink::parser
 
   void ParserImpl::consumeUnexpectedSymbols(DiagnosticKind Kind)
   {
-    if (atMatchArmBoundary())
-    {
-      return;
-    }
     if (atEnd() || peekSignificant().Kind != TokenKind::Symbol)
     {
       consumeUnexpected(Kind);
@@ -1636,12 +1451,6 @@ namespace ink::parser
         consumeCurrent();
         while (!Delimiters.empty() && !atEnd())
         {
-          if (!MatchArmBoundaries.empty() && isMatchArmStart())
-          {
-            MatchArmBoundaryState &Boundary = MatchArmBoundaries.back();
-            Boundary.DelimiterDepth = Boundary.BoundaryDepth;
-            break;
-          }
           const std::size_t CurrentIndex = significantIndex();
           char NestedOpening = '\0';
           for (const char Candidate : {'(', '[', '{'})
@@ -1679,7 +1488,7 @@ namespace ink::parser
 
   ParserImpl::Checkpoint ParserImpl::checkpoint() const
   {
-    return {RawIndex, Builder.checkpoint(), Diagnostics.size(), Completeness, SawDefinitiveError, MatchArmBoundaries};
+    return {RawIndex, Builder.checkpoint(), Diagnostics.size(), Completeness, SawDefinitiveError};
   }
 
   void ParserImpl::restore(Checkpoint State)
@@ -1689,7 +1498,6 @@ namespace ink::parser
     Diagnostics.resize(State.DiagnosticCount);
     Completeness = State.Completeness;
     SawDefinitiveError = State.SawDefinitiveError;
-    MatchArmBoundaries = std::move(State.MatchArmBoundaries);
   }
   CstTree ParserImpl::run()
   {
@@ -1713,7 +1521,7 @@ namespace ink::parser
     expectToken(TokenKind::EndOfFile, "end of file");
   }
 
-  void ParserImpl::parseTopLevelItem(bool MatchArmBody)
+  void ParserImpl::parseTopLevelItem()
   {
     if (atKeyword(KeywordKind::Import) || atKeyword(KeywordKind::From))
     {
@@ -1728,11 +1536,6 @@ namespace ink::parser
     const DeclarationKind Kind = classifyDeclaration();
     if (Kind != DeclarationKind::Unknown)
     {
-      if (Kind == DeclarationKind::Binding && MatchArmBody)
-      {
-        parseBindingDeclaration(true, {{}, {}, false, true});
-        return;
-      }
       parseTopLevelDeclaration(Kind);
       return;
     }
@@ -1788,7 +1591,7 @@ namespace ink::parser
       flushTrivia();
       bool First = true;
       std::size_t PreviousEnd = 0;
-      while (!atMatchArmBoundary() && RawIndex < LexedFile.tokens().size() && rawSymbolAt(RawIndex, '.') && (First || LexedFile.tokens()[RawIndex].Span.Start == PreviousEnd))
+      while (RawIndex < LexedFile.tokens().size() && rawSymbolAt(RawIndex, '.') && (First || LexedFile.tokens()[RawIndex].Span.Start == PreviousEnd))
       {
         First = false;
         PreviousEnd = LexedFile.tokens()[RawIndex].Span.End;
@@ -1833,7 +1636,7 @@ namespace ink::parser
   void ParserImpl::parseIncompleteDeclarationPrefix()
   {
     startNode(CstKind::Error);
-    while (!atMatchArmBoundary() && !atEnd())
+    while (!atEnd())
     {
       if (atSymbols("["))
       {
@@ -2462,7 +2265,7 @@ namespace ink::parser
     finishNode();
   }
 
-  void ParserImpl::parseClassMemberBlock(bool Interface, bool MatchArmBody)
+  void ParserImpl::parseClassMemberBlock(bool Interface)
   {
     startNode(Interface ? CstKind::InterfaceMemberBlock : CstKind::ClassMemberBlock);
     expectSymbols("{");
@@ -2473,10 +2276,10 @@ namespace ink::parser
       finishNode();
       return;
     }
-    while (!atMatchArmBoundary() && !atSymbols("}") && !(MatchArmBody && isMatchArmStart()) && !atEnd())
+    while (!atSymbols("}") && !atEnd())
     {
       const std::size_t Before = RawIndex;
-      parseClassMemberItem(Interface, MatchArmBody);
+      parseClassMemberItem(Interface);
       if (RawIndex == Before)
       {
         consumeUnexpected();
@@ -2486,7 +2289,7 @@ namespace ink::parser
     finishNode();
   }
 
-  void ParserImpl::parseClassMemberItem(bool Interface, bool MatchArmBody)
+  void ParserImpl::parseClassMemberItem(bool Interface)
   {
     if (atKeyword(KeywordKind::Comptime))
     {
@@ -2497,7 +2300,7 @@ namespace ink::parser
     switch (Kind)
     {
     case DeclarationKind::Binding:
-      parseFieldDeclaration(MatchArmBody ? StopSet{{}, {}, false, true} : StopSet{});
+      parseFieldDeclaration();
       return;
     case DeclarationKind::Function:
       parseFunctionDeclaration(false);
@@ -2586,7 +2389,7 @@ namespace ink::parser
     finishNode();
   }
 
-  void ParserImpl::parseEnumMemberBlock(bool MatchArmBody)
+  void ParserImpl::parseEnumMemberBlock()
   {
     startNode(CstKind::EnumMemberBlock);
     expectSymbols("{");
@@ -2598,10 +2401,10 @@ namespace ink::parser
       return;
     }
     consumeUnexpectedCommas();
-    if (!atMatchArmBoundary() && !atSymbols("}") && !(MatchArmBody && isMatchArmStart()) && !atEnd())
+    if (!atSymbols("}") && !atEnd())
     {
-      parseEnumMemberItem(MatchArmBody);
-      while (!atMatchArmBoundary() && !atSymbols("}") && !(MatchArmBody && isMatchArmStart()) && !atEnd())
+      parseEnumMemberItem();
+      while (!atSymbols("}") && !atEnd())
       {
         if (atSymbols(","))
         {
@@ -2612,16 +2415,12 @@ namespace ink::parser
           }
           consumeSymbols(",");
           consumeUnexpectedCommas();
-          if (MatchArmBody && isMatchArmStart())
-          {
-            break;
-          }
-          parseEnumMemberItem(MatchArmBody);
+          parseEnumMemberItem();
         }
         else if (atIdentifier() || atSymbols("[") || atKeyword(KeywordKind::Comptime))
         {
           addMissing(TokenKind::Symbol, ",");
-          parseEnumMemberItem(MatchArmBody);
+          parseEnumMemberItem();
         }
         else
         {
@@ -2633,14 +2432,14 @@ namespace ink::parser
     finishNode();
   }
 
-  void ParserImpl::parseEnumMemberItem(bool MatchArmBody)
+  void ParserImpl::parseEnumMemberItem()
   {
     if (atKeyword(KeywordKind::Comptime))
     {
       parseComptimeRegion(RegionKind::EnumMember);
       return;
     }
-    parseEnumBranch(MatchArmBody ? StopSet{{}, {}, false, true} : StopSet{});
+    parseEnumBranch();
   }
 
   void ParserImpl::parseEnumBranch(const StopSet &Stop)
@@ -2715,9 +2514,6 @@ namespace ink::parser
         case KeywordKind::If:
           Kind = CstKind::ComptimeIfControl;
           break;
-        case KeywordKind::Match:
-          Kind = CstKind::ComptimeMatchControl;
-          break;
         case KeywordKind::For:
           Kind = CstKind::ComptimeForControl;
           break;
@@ -2739,10 +2535,6 @@ namespace ink::parser
     {
       parseRegionIfTail(Region);
     }
-    else if (atKeyword(KeywordKind::Match))
-    {
-      parseRegionMatchTail(Region);
-    }
     else if (atKeyword(KeywordKind::For))
     {
       parseRegionForTail(Region);
@@ -2762,50 +2554,20 @@ namespace ink::parser
     finishNode();
   }
 
-  void ParserImpl::parseRegionBlock(RegionKind Region, bool MatchArmBody)
+  void ParserImpl::parseRegionBlock(RegionKind Region)
   {
-    if (MatchArmBody && !atSymbols("{"))
-    {
-      switch (Region)
-      {
-      case RegionKind::Statement:
-        startNode(CstKind::StatementBlock);
-        break;
-      case RegionKind::TopLevel:
-        startNode(CstKind::TopLevelBlock);
-        break;
-      case RegionKind::ClassMember:
-        startNode(CstKind::ClassMemberBlock);
-        break;
-      case RegionKind::InterfaceMember:
-        startNode(CstKind::InterfaceMemberBlock);
-        break;
-      case RegionKind::EnumMember:
-        startNode(CstKind::EnumMemberBlock);
-        break;
-      }
-      addMissing(TokenKind::Symbol, "{");
-      while (!isMatchArmStart() && !atSymbols(",") && !atSymbols(";") && !atSymbols("}") && !atEnd())
-      {
-        consumeUnexpected();
-      }
-      addMissing(TokenKind::Symbol, "}");
-      finishNode();
-      return;
-    }
-    MatchArmBoundaryGuard Boundary(MatchArmBoundaries, MatchArmBody, 1);
     switch (Region)
     {
     case RegionKind::Statement:
-      parseStatementBlock(MatchArmBody);
+      parseStatementBlock();
       return;
     case RegionKind::TopLevel:
       startNode(CstKind::TopLevelBlock);
       expectSymbols("{");
-      while (!atMatchArmBoundary() && !atSymbols("}") && !(MatchArmBody && isMatchArmStart()) && !atEnd())
+      while (!atSymbols("}") && !atEnd())
       {
         const std::size_t Before = RawIndex;
-        parseTopLevelItem(MatchArmBody);
+        parseTopLevelItem();
         if (RawIndex == Before)
         {
           consumeUnexpected();
@@ -2815,13 +2577,13 @@ namespace ink::parser
       finishNode();
       return;
     case RegionKind::ClassMember:
-      parseClassMemberBlock(false, MatchArmBody);
+      parseClassMemberBlock(false);
       return;
     case RegionKind::InterfaceMember:
-      parseClassMemberBlock(true, MatchArmBody);
+      parseClassMemberBlock(true);
       return;
     case RegionKind::EnumMember:
-      parseEnumMemberBlock(MatchArmBody);
+      parseEnumMemberBlock();
       return;
     }
   }
@@ -2853,42 +2615,6 @@ namespace ink::parser
       parseRegionBlock(Region);
       break;
     }
-  }
-
-  void ParserImpl::parseRegionMatchTail(RegionKind Region)
-  {
-    expectKeyword(KeywordKind::Match, "match");
-    expectSymbols("(");
-    parseExpression({{")"}, {}, false});
-    expectSymbols(")");
-    expectSymbols("{");
-    if (atSymbols("}"))
-    {
-      addExpectedSyntax("match arm");
-    }
-    while (!atMatchArmBoundary() && !atSymbols("}") && !atEnd())
-    {
-      if (atSymbols(",") || atSymbols(";"))
-      {
-        consumeUnexpected();
-        continue;
-      }
-      const std::size_t Before = RawIndex;
-      startNode(CstKind::RegionArm);
-      parseMatchArmPattern();
-      expectSymbols("=>");
-      parseRegionBlock(Region, true);
-      while (!isMatchArmStart() && !atSymbols("}") && !atEnd())
-      {
-        consumeUnexpected();
-      }
-      finishNode();
-      if (RawIndex == Before)
-      {
-        consumeUnexpected();
-      }
-    }
-    expectSymbols("}");
   }
 
   void ParserImpl::parseRegionForTail(RegionKind Region)
@@ -2969,72 +2695,6 @@ namespace ink::parser
     finishNode();
   }
 
-  void ParserImpl::parseVariantPattern()
-  {
-    startNode(CstKind::VariantPattern);
-    expectSymbols(".");
-    expectToken(TokenKind::Identifier, "identifier");
-    if (consumeSymbols("("))
-    {
-      consumeUnexpectedCommas();
-      if (atSymbols(")"))
-      {
-        addExpectedSyntax("payload pattern");
-      }
-      else
-      {
-        parsePayloadPattern();
-        while (atSymbols(","))
-        {
-          if (longestSymbolSequenceAt(significantIndex(1)) == ")")
-          {
-            consumeUnexpected(DiagnosticKind::TrailingComma);
-            break;
-          }
-          consumeSymbols(",");
-          consumeUnexpectedCommas();
-          parsePayloadPattern();
-        }
-      }
-      expectSymbols(")");
-    }
-    finishNode();
-  }
-
-  void ParserImpl::parseConditionalMatchPattern()
-  {
-    if (atSymbols("."))
-    {
-      parseVariantPattern();
-    }
-    else
-    {
-      addExpectedSyntax("variant pattern");
-    }
-  }
-
-  void ParserImpl::parseMatchArmPattern()
-  {
-    if (atSymbols("."))
-    {
-      parseVariantPattern();
-    }
-    else if (atIdentifierSpelling("_"))
-    {
-      startNode(CstKind::WildcardPattern);
-      consumeCurrent();
-      finishNode();
-    }
-    else
-    {
-      addExpectedSyntax("match arm pattern");
-      if (!atEnd() && !atSymbols("=>"))
-      {
-        consumeUnexpected();
-      }
-    }
-  }
-
   void ParserImpl::parseForPattern()
   {
     if (atIdentifier())
@@ -3048,14 +2708,14 @@ namespace ink::parser
       addMissing(TokenKind::Identifier, "for pattern");
     }
   }
-  void ParserImpl::parseStatementBlock(bool MatchArmBody)
+  void ParserImpl::parseStatementBlock()
   {
     startNode(CstKind::StatementBlock);
     expectSymbols("{");
-    while (!atMatchArmBoundary() && !atSymbols("}") && !(MatchArmBody && isMatchArmStart()) && !atEnd())
+    while (!atSymbols("}") && !atEnd())
     {
       const std::size_t Before = RawIndex;
-      parseBlockItem(MatchArmBody);
+      parseBlockItem();
       if (RawIndex == Before)
       {
         consumeUnexpected();
@@ -3065,29 +2725,18 @@ namespace ink::parser
     finishNode();
   }
 
-  void ParserImpl::parseBlockItem(bool MatchArmBody)
+  void ParserImpl::parseBlockItem()
   {
     if (atKeyword(KeywordKind::Var) || atKeyword(KeywordKind::Const))
     {
-      StopSet DeclarationStop;
-      DeclarationStop.MatchArm = MatchArmBody;
-      if (MatchArmBody)
-      {
-        DeclarationStop.Symbols = {",", "}"};
-      }
-      parseBindingDeclaration(false, DeclarationStop);
+      parseBindingDeclaration(false);
       return;
     }
-    parseStatement(MatchArmBody);
+    parseStatement();
   }
 
-  void ParserImpl::parseStatement(bool MatchArmBody)
+  void ParserImpl::parseStatement()
   {
-    if (MatchArmBody && isMatchArmStart())
-    {
-      addExpectedSyntax("statement");
-      return;
-    }
     if (SyntaxNestingDepth >= Options.MaxSyntaxNestingDepth)
     {
       recoverSyntaxNesting();
@@ -3102,7 +2751,7 @@ namespace ink::parser
     if (atKeyword(KeywordKind::Comptime))
     {
       const Token &Operand = peekSignificant(1);
-      const bool StructuredKeyword = Operand.Kind == TokenKind::Keyword && (keywordKind(Operand) == KeywordKind::If || keywordKind(Operand) == KeywordKind::Match || keywordKind(Operand) == KeywordKind::For || keywordKind(Operand) == KeywordKind::While);
+      const bool StructuredKeyword = Operand.Kind == TokenKind::Keyword && (keywordKind(Operand) == KeywordKind::If || keywordKind(Operand) == KeywordKind::For || keywordKind(Operand) == KeywordKind::While);
       const bool StructuredBlock = Operand.Kind == TokenKind::Symbol && longestSymbolSequenceAt(significantIndex(1)) == "{";
       if (StructuredKeyword || StructuredBlock)
       {
@@ -3113,11 +2762,6 @@ namespace ink::parser
     if (atKeyword(KeywordKind::If) && isIfStatementStart())
     {
       parseIfStatement();
-      return;
-    }
-    if (atKeyword(KeywordKind::Match))
-    {
-      parseMatchStatement();
       return;
     }
     if (atKeyword(KeywordKind::While))
@@ -3142,48 +2786,17 @@ namespace ink::parser
     }
     if (atKeyword(KeywordKind::Return))
     {
-      parseReturnStatement(MatchArmBody);
+      parseReturnStatement();
       return;
     }
     if (atKeyword(KeywordKind::Defer))
     {
-      parseDeferStatement(MatchArmBody);
-      return;
-    }
-    if (atKeyword(KeywordKind::Throw))
-    {
-      parseThrowStatement(MatchArmBody);
-      return;
-    }
-    if (atKeyword(KeywordKind::Try))
-    {
-      parseTryStatement();
-      return;
-    }
-    if (atKeyword(KeywordKind::Var) || atKeyword(KeywordKind::Const))
-    {
-      const SourceRange Span = peekSignificant().Span;
-      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::DeclarationRequiresBlock>(Span));
-      SawDefinitiveError = true;
-      startNode(CstKind::Error);
-      StopSet DeclarationStop;
-      DeclarationStop.MatchArm = MatchArmBody;
-      if (MatchArmBody)
-      {
-        DeclarationStop.Symbols = {",", "}"};
-      }
-      parseBindingDeclaration(false, DeclarationStop);
-      finishNode();
-      return;
-    }
-    if (MatchArmBody && (isMatchArmStart() || atSymbols(",") || atSymbols(";") || atSymbols("}")))
-    {
-      addExpectedSyntax("statement");
+      parseDeferStatement();
       return;
     }
     if (isExpressionStart())
     {
-      parseExpressionOrAssignmentStatement(MatchArmBody);
+      parseExpressionOrAssignmentStatement();
       return;
     }
     addExpectedSyntax("statement");
@@ -3193,13 +2806,12 @@ namespace ink::parser
     }
   }
 
-  void ParserImpl::parseExpressionOrAssignmentStatement(bool MatchArmBody)
+  void ParserImpl::parseExpressionOrAssignmentStatement()
   {
     const CstNodeId Statement = startNode(CstKind::ExpressionStatement);
     StopSet LeftStop;
     LeftStop.Symbols.assign(std::begin(AssignmentOperators), std::end(AssignmentOperators));
     LeftStop.Symbols.push_back(";");
-    LeftStop.MatchArm = MatchArmBody;
     parseExpression(LeftStop);
     const std::string Sequence = longestSymbolSequence();
     if (contains(Sequence, std::begin(AssignmentOperators), std::end(AssignmentOperators)))
@@ -3208,7 +2820,7 @@ namespace ink::parser
       consumeOperator(Sequence);
       if (isExpressionStart())
       {
-        parseExpression({{";"}, {}, false, MatchArmBody});
+        parseExpression({{";"}, {}, false});
       }
       else
       {
@@ -3274,25 +2886,9 @@ namespace ink::parser
     }
   }
 
-  void ParserImpl::parseIfCondition(CstKind MatchConditionKind)
+  void ParserImpl::parseIfCondition()
   {
-    if (atKeyword(KeywordKind::Match) && longestSymbolSequenceAt(significantIndex(1)) == ".")
-    {
-      startNode(MatchConditionKind);
-      consumeKeyword(KeywordKind::Match);
-      parseConditionalMatchPattern();
-      expectSymbols("=");
-      if (isExpressionStart())
-      {
-        parseExpression({{")"}, {}, false});
-      }
-      else
-      {
-        addMissing(TokenKind::Identifier, "expression");
-      }
-      finishNode();
-    }
-    else if (isExpressionStart())
+    if (isExpressionStart())
     {
       parseExpression({{")"}, {}, false});
     }
@@ -3300,69 +2896,6 @@ namespace ink::parser
     {
       addMissing(TokenKind::Identifier, "condition");
     }
-  }
-
-  void ParserImpl::parseMatchStatement()
-  {
-    startNode(CstKind::MatchStatement);
-    expectKeyword(KeywordKind::Match, "match");
-    expectSymbols("(");
-    if (isExpressionStart())
-    {
-      parseExpression({{")"}, {}, false});
-    }
-    else
-    {
-      addMissing(TokenKind::Identifier, "expression");
-    }
-    expectSymbols(")");
-    expectSymbols("{");
-    if (atSymbols("}"))
-    {
-      addExpectedSyntax("match arm");
-    }
-    while (!atMatchArmBoundary() && !atSymbols("}") && !atEnd())
-    {
-      if (atSymbols(",") || atSymbols(";"))
-      {
-        consumeUnexpected();
-        continue;
-      }
-      const std::size_t Before = RawIndex;
-      parseMatchStatementArm();
-      if (RawIndex == Before)
-      {
-        consumeUnexpected();
-      }
-    }
-    expectSymbols("}");
-    finishNode();
-  }
-
-  void ParserImpl::parseMatchStatementArm()
-  {
-    startNode(CstKind::MatchStatementArm);
-    parseMatchArmPattern();
-    expectSymbols("=>");
-    MatchArmBoundaryGuard Boundary(MatchArmBoundaries, true, 0);
-    if (atKeyword(KeywordKind::Var) || atKeyword(KeywordKind::Const))
-    {
-      const SourceRange Span = peekSignificant().Span;
-      Diagnostics.push_back(makeDiagnostic<DiagnosticKind::DeclarationRequiresBlock>(Span));
-      SawDefinitiveError = true;
-      startNode(CstKind::Error);
-      parseBindingCore({{",", "}"}, {}, false, true});
-      finishNode();
-    }
-    else
-    {
-      parseStatement(true);
-    }
-    while (!isMatchArmStart() && !atSymbols("}") && !atEnd())
-    {
-      consumeUnexpected();
-    }
-    finishNode();
   }
 
   void ParserImpl::parseWhileStatement()
@@ -3386,7 +2919,7 @@ namespace ink::parser
 
   void ParserImpl::parseWhileCondition()
   {
-    parseIfCondition(CstKind::WhileMatchCondition);
+    parseIfCondition();
   }
 
   void ParserImpl::parseForStatement()
@@ -3462,16 +2995,15 @@ namespace ink::parser
     finishNode();
   }
 
-  void ParserImpl::parseReturnStatement(bool MatchArmBody)
+  void ParserImpl::parseReturnStatement()
   {
     startNode(CstKind::ReturnStatement);
     expectKeyword(KeywordKind::Return, "return");
-    const bool AtArmBoundary = MatchArmBody && (isMatchArmStart() || atSymbols(",") || atSymbols("}"));
-    if (!atSymbols(";") && !atEnd() && !AtArmBoundary)
+    if (!atSymbols(";") && !atEnd())
     {
       if (isExpressionStart())
       {
-        parseExpression({{";"}, {}, false, MatchArmBody});
+        parseExpression({{";"}, {}, false});
       }
       else
       {
@@ -3482,7 +3014,7 @@ namespace ink::parser
     finishNode();
   }
 
-  void ParserImpl::parseDeferStatement(bool MatchArmBody)
+  void ParserImpl::parseDeferStatement()
   {
     startNode(CstKind::DeferStatement);
     expectKeyword(KeywordKind::Defer, "defer");
@@ -3492,129 +3024,15 @@ namespace ink::parser
     }
     else
     {
-      if (MatchArmBody && isMatchArmStart())
+      if (isExpressionStart())
       {
-        addMissing(TokenKind::Identifier, "expression or statement block");
-      }
-      else if (isExpressionStart())
-      {
-        parseExpression({{";"}, {}, false, MatchArmBody});
+        parseExpression({{";"}, {}, false});
       }
       else
       {
         addMissing(TokenKind::Identifier, "expression or statement block");
       }
       expectSymbols(";");
-    }
-    finishNode();
-  }
-
-  void ParserImpl::parseThrowStatement(bool MatchArmBody)
-  {
-    startNode(CstKind::ThrowStatement);
-    expectKeyword(KeywordKind::Throw, "throw");
-    const bool AtArmBoundary = MatchArmBody && (isMatchArmStart() || atSymbols(",") || atSymbols("}"));
-    bool ParsedExpression = false;
-    if (!atSymbols(";") && !atEnd() && !AtArmBoundary)
-    {
-      if (isExpressionStart())
-      {
-        parseExpression({{";"}, {KeywordKind::From}, false, MatchArmBody});
-        ParsedExpression = true;
-      }
-      else
-      {
-        addMissing(TokenKind::Identifier, "expression");
-      }
-      if (ParsedExpression && atKeyword(KeywordKind::From))
-      {
-        startNode(CstKind::ThrowCauseClause);
-        consumeKeyword(KeywordKind::From);
-        if (MatchArmBody && isMatchArmStart())
-        {
-          addMissing(TokenKind::Identifier, "identifier");
-        }
-        else
-        {
-          expectToken(TokenKind::Identifier, "identifier");
-        }
-        finishNode();
-        while (!atSymbols(";") && !atSymbols("}") && !(MatchArmBody && (isMatchArmStart() || atSymbols(","))) && !atEnd())
-        {
-          consumeUnexpected();
-        }
-      }
-    }
-    expectSymbols(";");
-    finishNode();
-  }
-
-  void ParserImpl::parseTryStatement()
-  {
-    startNode(CstKind::TryStatement);
-    expectKeyword(KeywordKind::Try, "try");
-    if (atSymbols("{"))
-    {
-      parseStatementBlock();
-    }
-    else
-    {
-      addMissing(TokenKind::Symbol, "{");
-      addMissing(TokenKind::Symbol, "}");
-    }
-    if (!atKeyword(KeywordKind::Catch))
-    {
-      startNode(CstKind::CatchClause);
-      addMissing(TokenKind::Keyword, "catch");
-      addMissing(TokenKind::Symbol, "{");
-      addMissing(TokenKind::Symbol, "}");
-      finishNode();
-      finishNode();
-      return;
-    }
-    bool SawCatchAll = false;
-    while (atKeyword(KeywordKind::Catch))
-    {
-      const bool CatchAll = longestSymbolSequenceAt(significantIndex(1)) == "{" || (peekSignificant(1).Kind == TokenKind::Keyword && keywordKind(peekSignificant(1)) == KeywordKind::As);
-      if (SawCatchAll)
-      {
-        startNode(CstKind::Error);
-        addUnexpected();
-        parseCatchClause(CatchAll);
-        finishNode();
-      }
-      else
-      {
-        parseCatchClause(CatchAll);
-      }
-      SawCatchAll = SawCatchAll || CatchAll;
-    }
-    finishNode();
-  }
-
-  void ParserImpl::parseCatchClause(bool CatchAll)
-  {
-    startNode(CatchAll ? CstKind::CatchAllClause : CstKind::TypedCatchClause);
-    expectKeyword(KeywordKind::Catch, "catch");
-    if (!CatchAll)
-    {
-      parseType({{"{"}, {KeywordKind::As}, false});
-    }
-    if (atKeyword(KeywordKind::As))
-    {
-      startNode(CstKind::CatchBinding);
-      consumeKeyword(KeywordKind::As);
-      expectToken(TokenKind::Identifier, "identifier");
-      finishNode();
-    }
-    if (atSymbols("{"))
-    {
-      parseStatementBlock();
-    }
-    else
-    {
-      addMissing(TokenKind::Symbol, "{");
-      addMissing(TokenKind::Symbol, "}");
     }
     finishNode();
   }
@@ -3931,11 +3349,6 @@ namespace ink::parser
       }
       return;
     }
-    if (atKeyword(KeywordKind::Match))
-    {
-      parseMatchExpression();
-      return;
-    }
     if (shouldCommitClassTypeExpression())
     {
       parseTypeDeclaration(DeclarationKind::Class, true);
@@ -4094,70 +3507,6 @@ namespace ink::parser
       }
     }
     expectSymbols("]");
-    finishNode();
-  }
-
-  void ParserImpl::parseMatchExpression()
-  {
-    startNode(CstKind::MatchExpression);
-    expectKeyword(KeywordKind::Match, "match");
-    expectSymbols("(");
-    parseExpression({{")"}, {}, false});
-    expectSymbols(")");
-    expectSymbols("{");
-    if (atSymbols("}"))
-    {
-      addExpectedSyntax("match arm");
-    }
-    while (!atMatchArmBoundary() && !atSymbols("}") && !atEnd())
-    {
-      if (atSymbols(",") || atSymbols(";"))
-      {
-        consumeUnexpected();
-        continue;
-      }
-      const std::size_t Before = RawIndex;
-      parseMatchExpressionArm();
-      if (RawIndex == Before)
-      {
-        consumeUnexpected();
-      }
-    }
-    expectSymbols("}");
-    finishNode();
-  }
-
-  void ParserImpl::parseMatchExpressionArm()
-  {
-    startNode(CstKind::MatchExpressionArm);
-    parseMatchArmPattern();
-    expectSymbols("=>");
-    MatchArmBoundaryGuard Boundary(MatchArmBoundaries, true, 0);
-    if (atSymbols("{"))
-    {
-      parseStatementBlock();
-    }
-    else if (isMatchArmStart())
-    {
-      addMissing(TokenKind::Identifier, "expression or statement block");
-    }
-    else if (isExpressionStart())
-    {
-      parseExpression({{","}, {}, false, true});
-    }
-    else
-    {
-      addMissing(TokenKind::Identifier, "expression or statement block");
-    }
-    while (atSymbols(";"))
-    {
-      consumeUnexpected();
-    }
-    expectSymbols(",");
-    while (!isMatchArmStart() && !atSymbols("}") && !atEnd())
-    {
-      consumeUnexpected();
-    }
     finishNode();
   }
 
@@ -4486,7 +3835,7 @@ namespace ink::parser
         {
           break;
         }
-      } while (!atMatchArmBoundary() && !atEnd());
+      } while (!atEnd());
       finishNode();
     };
 
@@ -4919,7 +4268,7 @@ namespace ink::parser
       {
         GenericDepths.push_back({ParenthesisDepth, BracketDepth, BraceDepth});
       }
-      const bool GreaterBelongsToArrow = TokenIndex > 0 && (symbolRunMatches(TokenIndex - 1, "->") || symbolRunMatches(TokenIndex - 1, "=>"));
+      const bool GreaterBelongsToArrow = TokenIndex > 0 && symbolRunMatches(TokenIndex - 1, "->");
       if (!GenericDepths.empty() && rawSymbolAt(TokenIndex, '>') && !GreaterBelongsToArrow && GenericDepths.back().Parenthesis == ParenthesisDepth && GenericDepths.back().Bracket == BracketDepth && GenericDepths.back().Brace == BraceDepth)
       {
         GenericDepths.pop_back();
@@ -5105,6 +4454,10 @@ namespace ink::parser
   ParsedFile Parser::parse(TokenizedBuffer LexedFile) const
   {
     if (!LexedFile.succeeded())
+    {
+      return ParsedFile(std::move(LexedFile), {}, false, ParseCompleteness::Complete);
+    }
+    if (!LexedFile.isRegisteredWith(Context.sourceManager()))
     {
       return ParsedFile(std::move(LexedFile), {}, false, ParseCompleteness::Complete);
     }

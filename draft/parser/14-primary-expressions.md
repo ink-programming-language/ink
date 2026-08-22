@@ -1,6 +1,6 @@
 # Parser 议题 14：基础表达式
 
-> 状态：已确认，议题 21、22 定义无块 `if_expression`，议题 24 完成 `match_expression`，议题 29 补充元组列表展开，议题 30 补充复合类型值并把直接函数类型改为封闭表达式，议题 35 加入 postfix 聚合初始化，议题 40 加入复用普通 class 结构的类型表达式；2026-08-08 同步 statement entry 的 `match` 上下文分派
+> 状态：已确认，议题 21、22 定义无块 `if_expression`，议题 29 补充元组列表展开，议题 30 补充复合类型值并把直接函数类型改为封闭表达式，议题 35 加入 postfix 聚合初始化，议题 40 加入复用普通 class 结构的类型表达式
 > 确认日期：2026-08-03
 
 ## 1. 定义
@@ -77,7 +77,7 @@ BuildMode.debug
 Optional::<int>.some(10)
 ```
 
-因此 `build.mode == .debug` 和值位置的 `.some(10)` 都不是合法表达式。前导点只属于议题 23 的上下文枚举分支模式，例如 `match (mode) { .debug => ... }`；模式不产生枚举值，也不会向 `postfixable_primary_expression` 增加分支。
+因此 `build.mode == .debug` 和值位置的 `.some(10)` 都不是合法表达式。
 
 ## 4. 内建类型表达式
 
@@ -215,20 +215,8 @@ array_expression =
 
 ```ebnf
 structured_expression =
-      match_expression
-    | class_type_expression ;
+    class_type_expression ;
 ```
-
-`match_expression` 能在需要值的表达式位置出现：
-
-```ink
-const result = match (optional) {
-    .none => fallback,
-    .some(value) => value,
-};
-```
-
-议题 24 定义其完整 EBNF：正常完成的分支产生表达式值并以逗号结束，不正常完成的分支可以使用同样以逗号结束的 `statement_block`。将它列入基础表达式确定整个结构可以成为完整表达式或后缀操作的基础。
 
 Parser 议题 35 的聚合初始化不再属于结构化基础表达式，而是在普通 postfix 层用真实 `{` 包装已经完成的当前操作数：
 
@@ -251,17 +239,6 @@ return class Node {
 ```
 
 它产生编译期类型值，不在外层声明区域建立类名。带局部名称的形式只为类体内部的递归引用提供名称。
-
-在调用者已经要求表达式的上下文中，`match_expression` 继续接后缀操作时只为提高可读性而建议使用括号，后缀语法本身不强制：
-
-```ink
-(match (optional) {
-    .none => fallback,
-    .some(value) => value,
-}).method()
-```
-
-如果完整后缀表达式直接位于 statement entry，裸 `match` 已为 `MatchStatement` 保留，因此必须像上例一样把整个 `match_expression` 括起来；这项限制来自议题 18 的 `statement_expression` 起点守卫，不改变表达式内部的 postfix 产生式。
 
 议题 21 已独立确认无块形式 `if (condition) true_expression else false_expression`，议题 22 将它放在完整表达式最低层。它不属于最高优先级的 `postfixable_primary_expression`；作为其他运算的操作数或后缀基础时必须先使用圆括号。
 
@@ -296,7 +273,7 @@ FunctionTypeExpression
 ClassTypeExpression
 ```
 
-`match` 使用议题 24 的 `MatchExpression` 结构化节点，class 类型表达式使用议题 40 的 `ClassTypeExpression`；聚合初始化由议题 35 的 postfix accumulator 建立 `AggregateInitializationExpression`。议题 21、22 的 `if_expression` 使用独立的最低优先级 `IfExpression` 节点，不归入基础表达式。`ParenthesizedExpression` 与带逗号的 `ParenthesizedCommaList` 必须保持不同节点类别；后者自身作为元组类型还是元组值才由期望类型决定。
+class 类型表达式使用议题 40 的 `ClassTypeExpression`；聚合初始化由议题 35 的 postfix accumulator 建立 `AggregateInitializationExpression`。议题 21、22 的 `if_expression` 使用独立的最低优先级 `IfExpression` 节点，不归入基础表达式。`ParenthesizedExpression` 与带逗号的 `ParenthesizedCommaList` 必须保持不同节点类别；后者自身作为元组类型还是元组值才由期望类型决定。
 
 缺少表达式、逗号或右定界符时，Parser 按议题 03 使用 `MissingToken` 和 `ErrorNode` 恢复。所有实际 Token 和 Trivia 仍准确保留一次。
 

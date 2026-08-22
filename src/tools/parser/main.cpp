@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -155,12 +156,17 @@ namespace
     return printNode(Tree, Result.lexedFile(), Tree.root(), 0, ActiveNodes, Output);
   }
 
-  void printDiagnostics(const std::vector<ink::core::Diagnostic> &Diagnostics, std::ostream &ErrorOutput)
+  void printDiagnostics(const ink::core::SourceManager &Sources, const std::vector<ink::core::Diagnostic> &Diagnostics, std::ostream &ErrorOutput)
   {
     const ink::core::DiagnosticFormatter Formatter;
     for (const ink::core::Diagnostic &Diagnostic : Diagnostics)
     {
       const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
+      const std::shared_ptr<const ink::core::SourceBuffer> DiagnosticSource = Sources.findSource(Diagnostic.Source);
+      if (DiagnosticSource != nullptr)
+      {
+        ErrorOutput << DiagnosticSource->name() << ':' << DiagnosticSource->lineNumber(Diagnostic.Span.Start) << ": ";
+      }
       ErrorOutput << (Diagnostic.classification() == ink::core::DiagnosticClass::InternalCompilerError ? ink::core::diagnosticClassName(Diagnostic.classification()) : ink::core::diagnosticSeverityName(Formatted.Severity)) << '[' << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
       for (const ink::core::FormattedDiagnosticNote &Note : Formatted.Notes)
       {
@@ -219,11 +225,12 @@ namespace
     ink::core::FrontendContext Context(Compilation);
     ink::core::CollectingDiagnosticConsumer Diagnostics;
     Compilation.diagnosticEngine().addConsumer(Diagnostics);
-    ink::tokenizer::TokenizedBuffer LexedFile = ink::tokenizer::tokenize(Context, std::move(Source));
+    const ink::core::SourceId SourceId = Compilation.sourceManager().addSource(SourceFile == "-" ? "<stdin>" : SourceFile, std::move(Source));
+    ink::tokenizer::TokenizedBuffer LexedFile = ink::tokenizer::tokenizeSource(Context, SourceId);
     if (!LexedFile.succeeded())
     {
       std::ostringstream BufferedErrorOutput;
-      printDiagnostics(Diagnostics.diagnostics(), BufferedErrorOutput);
+      printDiagnostics(Compilation.sourceManager(), Diagnostics.diagnostics(), BufferedErrorOutput);
       const bool ErrorOutputSucceeded = ink::cli::writeOutput(std::cerr, BufferedErrorOutput.str());
       return ink::cli::exitStatus(ErrorOutputSucceeded ? ink::cli::ExitCode::SourceError : ink::cli::ExitCode::InvocationError);
     }
@@ -236,7 +243,7 @@ namespace
       ink::cli::writeOutput(std::cerr, "ink-parse: internal compiler error: concrete syntax tree cannot be traversed\n");
       return ink::cli::exitStatus(ink::cli::ExitCode::InternalError);
     }
-    printDiagnostics(Diagnostics.diagnostics(), BufferedErrorOutput);
+    printDiagnostics(Compilation.sourceManager(), Diagnostics.diagnostics(), BufferedErrorOutput);
     const bool OutputSucceeded = ink::cli::writeOutput(std::cout, BufferedOutput.str());
     const bool ErrorOutputSucceeded = ink::cli::writeOutput(std::cerr, BufferedErrorOutput.str());
     if (!OutputSucceeded || !ErrorOutputSucceeded)

@@ -1917,7 +1917,7 @@ namespace ink::execution
           "\n"
           "define const byte* @main() {\n"
           "entry:\n"
-          "  %0 = slice.data const byte* const byte[] c\"ink\"\n"
+          "  %0 = slice.data const byte* const byte slice c\"ink\"\n"
           "  ret const byte* %0\n"
           "}\n";
       const std::shared_ptr<ir::Module> ModuleValue = parseModule(Context.IR, ModuleText);

@@ -34,7 +34,6 @@ namespace ink::tokenizer
           {"async", KeywordKind::Async},
           {"await", KeywordKind::Await},
           {"break", KeywordKind::Break},
-          {"catch", KeywordKind::Catch},
           {"class", KeywordKind::Class},
           {"comptime", KeywordKind::Comptime},
           {"const", KeywordKind::Const},
@@ -54,7 +53,6 @@ namespace ink::tokenizer
           {"in", KeywordKind::In},
           {"interface", KeywordKind::Interface},
           {"let", KeywordKind::Let},
-          {"match", KeywordKind::Match},
           {"override", KeywordKind::Override},
           {"private", KeywordKind::Private},
           {"protected", KeywordKind::Protected},
@@ -62,8 +60,6 @@ namespace ink::tokenizer
           {"return", KeywordKind::Return},
           {"static", KeywordKind::Static},
           {"this", KeywordKind::This},
-          {"throw", KeywordKind::Throw},
-          {"try", KeywordKind::Try},
           {"var", KeywordKind::Var},
           {"virtual", KeywordKind::Virtual},
           {"while", KeywordKind::While},
@@ -163,10 +159,14 @@ namespace ink::tokenizer
       }
     }
 
-    // Verifies that case variants, near misses, and function-style built-ins remain identifiers.
-    TEST(KeywordsAndBuiltinTypesTest, KeepsCaseVariantsNearMissesAndFunctionStyleBuiltinsAsIdentifiers)
+    // Verifies that removed language spellings, case variants, near misses, and function-style built-ins remain identifiers.
+    TEST(KeywordsAndBuiltinTypesTest, KeepsRemovedSpellingsCaseVariantsNearMissesAndFunctionStyleBuiltinsAsIdentifiers)
     {
       const std::vector<std::string> Spellings = {
+          "catch",
+          "match",
+          "throw",
+          "try",
           "Func",
           "TRUE",
           "Null",

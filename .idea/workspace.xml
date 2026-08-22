@@ -1052,76 +1052,141 @@
   <component name="ChangeListManager">
     <list default="true" id="75c92d51-4c7b-4d11-8d7d-8de7163a5f4a" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AGENTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/AGENTS.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/name-mangling.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/name-mangling.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/04-standard-ebnf-notation.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/04-standard-ebnf-notation.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/05-source-file-and-conditional-imports.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/05-source-file-and-conditional-imports.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/06-import-syntax.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/06-import-syntax.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/07-comma-separated-lists.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/07-comma-separated-lists.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/08-semicolons-and-statement-termination.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/08-semicolons-and-statement-termination.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/09-statement-blocks.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/09-statement-blocks.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/10-binding-declarations.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/10-binding-declarations.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/11-assignment-statements.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/11-assignment-statements.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/13-expression-evaluation-order.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/13-expression-evaluation-order.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/14-primary-expressions.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/14-primary-expressions.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/15-ordinary-postfix-expressions.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/15-ordinary-postfix-expressions.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/17-slice-postfix.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/17-slice-postfix.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/18-expression-statements-and-discarded-results.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/18-expression-statements-and-discarded-results.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/19-unary-expressions.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/19-unary-expressions.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/20-if-statements.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/20-if-statements.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/21-if-expressions.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/21-if-expressions.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/23-pattern-syntax-and-access-propagation.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/23-pattern-syntax-and-access-propagation.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/24-match-statements-and-expressions.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/25-runtime-loops-and-loop-jumps.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/25-runtime-loops-and-loop-jumps.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/26-return-and-defer-statements.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/26-return-and-defer-statements.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/27-throw-and-rethrow-statements.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/28-try-and-catch-statements.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/29-type-syntax-and-function-types.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/29-type-syntax-and-function-types.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/30-compound-type-values-in-expressions.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/30-compound-type-values-in-expressions.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/31-function-declarations.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/31-function-declarations.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/32-unified-comptime-regions.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/32-unified-comptime-regions.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/33-class-and-interface-declarations.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/33-class-and-interface-declarations.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/34-enum-declarations.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/34-enum-declarations.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/35-aggregate-initialization-expressions.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/35-aggregate-initialization-expressions.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/38-constructor-initializer-lists.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/38-constructor-initializer-lists.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/39-top-level-binding-access-modifiers.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/39-top-level-binding-access-modifiers.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/40-class-type-expressions.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/40-class-type-expressions.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/parser/grammar.ebnf" beforeDir="false" afterPath="$PROJECT_DIR$/draft/parser/grammar.ebnf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/tokenizer/04-keywords-and-builtin-type-tokens.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/tokenizer/04-keywords-and-builtin-type-tokens.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/tokenizer/09-single-character-symbol-tokens.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/tokenizer/09-single-character-symbol-tokens.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/02-values-copy-noncopyable.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/02-values-copy-noncopyable.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/03-raii-destructor-defer.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/03-raii-destructor-defer.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/04-pointers-references-arrays-slices.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/04-pointers-references-arrays-slices.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/06-constructors-implicit-initialization.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/06-constructors-implicit-initialization.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/10-integer-conversions-cast.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/10-integer-conversions-cast.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/11-bitcast-ptrcast.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/11-bitcast-ptrcast.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/16-attributes-function-decorators.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/16-attributes-function-decorators.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/17-module-lifecycle-decorator-registration.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/17-module-lifecycle-decorator-registration.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/18-module-lifecycle-hook-order.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/18-module-lifecycle-hook-order.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/19-reflection-runtime-metadata.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/19-reflection-runtime-metadata.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/20-reflection-access-control.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/20-reflection-access-control.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/21-dynamic-reflection-value-abi.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/21-dynamic-reflection-value-abi.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/22-name-based-reflection-identity.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/22-name-based-reflection-identity.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/23-reflection-member-inheritance.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/23-reflection-member-inheritance.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/24-class-inheritance-interfaces.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/24-class-inheritance-interfaces.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/25-virtual-functions-reflection.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/25-virtual-functions-reflection.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/26-vtable-interface-abi.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/26-vtable-interface-abi.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/27-dynamic-destruction.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/27-dynamic-destruction.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/28-interface-reflection.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/28-interface-reflection.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/30-interface-inheritance.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/30-interface-inheritance.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/31-safe-dynamic-cast.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/31-safe-dynamic-cast.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/32-enums-tagged-unions.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/32-enums-tagged-unions.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/33-pattern-binding-and-match.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/34-unchecked-exceptions-nothrow.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/35-exception-types-and-matching.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/36-exception-record-storage.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/37-catch-all-exception-view-rethrow.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/38-readonly-exception-catch.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/39-no-exception-filters-or-multi-catch.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/40-explicit-exception-cause.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/41-throw-site-and-traceback.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/42-unhandled-exception-fail-fast.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/43-repeatable-task-exception-box.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/44-lazy-async-task-start.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/44-lazy-async-task-start.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/45-concurrent-await-all.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/45-concurrent-await-all.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/46-all-failure-cancellation-policy.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/47-deterministic-all-exception-selection.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/48-cooperative-cancellation-request.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/48-cooperative-cancellation-request.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/49-task-cancellation-request-api.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/49-task-cancellation-request-api.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/50-explicit-cancellation-propagation-await.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/50-explicit-cancellation-propagation-await.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/51-task-destruction-state-rules.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/51-task-destruction-state-rules.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/52-library-task-scheduling.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/52-library-task-scheduling.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/53-no-task-failure-observation-state.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/54-async-member-this-pointer.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/54-async-member-this-pointer.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/55-async-virtual-dispatch-at-task-creation.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/55-async-virtual-dispatch-at-task-creation.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/56-async-interface-dispatch-at-task-creation.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/56-async-interface-dispatch-at-task-creation.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/57-async-dynamic-reflection-call.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/57-async-dynamic-reflection-call.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/58-async-decorators-wrap-task-body.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/58-async-decorators-wrap-task-body.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/59-no-task-construction-decorators.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/59-no-task-construction-decorators.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/61-comptime-generics-partial-evaluation.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/61-comptime-generics-partial-evaluation.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/63-no-string-to-code-generation.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/63-no-string-to-code-generation.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/65-unified-default-arguments.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/65-unified-default-arguments.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/67-comptime-structured-declarations-no-builders.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/67-comptime-structured-declarations-no-builders.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/69-tuples-structural-values.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/69-tuples-structural-values.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/71-comptime-heterogeneous-tuples.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/71-comptime-heterogeneous-tuples.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/topics/72-no-comptime-function-category.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/topics/72-no-comptime-function-category.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/roadmap/roadmap.md" beforeDir="false" afterPath="$PROJECT_DIR$/roadmap/roadmap.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/core/context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/context.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/core/diagnostic.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/diagnostic.def" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/core/diagnostic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/diagnostic.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/execution_engine.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/execution_engine.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/module/dynamic_module_load_result.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/module/dynamic_module_load_result.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/module/module_instance.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/module/module_instance.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/module/module_loader.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/module/module_loader.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/module/module_provider.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/module/module_provider.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/ir/analysis/verifier.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/analysis/verifier.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/compilation/compilation_session.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/compilation/compilation_session.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/ir/model/context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/model/context.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/ir/serialization.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/ir/serialization.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/parser/parser.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/parser/parser.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/parser/cst_kind.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/parser/cst_kind.def" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/tokenizer/token.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/tokenizer/token.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/tokenizer/tokenizer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/tokenizer/tokenizer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/core/diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/core/diagnostic.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/engine/execution_engine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/engine/execution_engine.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/engine/function_executor.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/engine/function_executor.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/engine/function_executor.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/engine/function_executor.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/instruction/call_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/instruction/call_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/instruction/memory_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/instruction/memory_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/instruction/module_instruction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/instruction/module_instruction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/module/compiling_module_provider.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/module/compiling_module_provider.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/module/dynamic_module_load_result.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/module/dynamic_module_load_result.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/module/module_loader.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/module/module_loader.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/native/native_abi.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/native/native_abi.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/execution/native/native_abi.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/native/native_abi.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/core/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/ir/analysis/verifier.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/analysis/verifier.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/ir/compilation/compilation_session.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/compilation/compilation_session.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/ir/compilation/source_module_compiler.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/compilation/source_module_compiler.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/ir/serialization.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ir/serialization.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/parser/parser.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/parser/parser.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/tokenizer/tokenizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/tokenizer/tokenizer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/cli/interpreter_process_test.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/cli/interpreter_process_test.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/cli/parser_process_test.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/cli/parser_process_test.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/cli/tokenizer_process_test.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/cli/tokenizer_process_test.cmake" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/core/core_diagnostic_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/core/core_diagnostic_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/execution/constant_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/constant_execution_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/execution/control_flow_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/control_flow_execution_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/execution/execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/execution_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/execution/memory_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/memory_execution_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/execution/module_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/module_execution_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/execution/pointer_execution_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/pointer_execution_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/constant_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/constant_ir_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/control_flow_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/control_flow_ir_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/function_attribute_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/function_attribute_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/function_parameter_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/function_parameter_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/integration/0039_39_H-Multiplication-Table/solution.ink" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/integration/0039_39_H-Multiplication-Table/solution.ink" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/integration/2037_p01255-Webby-Subway/solution.ink" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/integration/2037_p01255-Webby-Subway/solution.ink" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/integration/2648_p00412-Gas-Station/solution.ink" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/integration/2648_p00412-Gas-Station/solution.ink" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/integration/2656_p01624-Ononokomachi-s-Edit-War/solution.ink" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/integration/2656_p01624-Ononokomachi-s-Edit-War/solution.ink" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/integration/2857_p00879-Chemist-s-Math/solution.ink" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/integration/2857_p00879-Chemist-s-Math/solution.ink" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/integration/2980_105_E-Lift-and-Throw/solution.ink" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/integration/2980_105_E-Lift-and-Throw/solution.ink" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/ir/ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/ir_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/memory_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/memory_ir_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/module_ir_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/module_ir_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/ir/source_module_compiler_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/source_module_compiler_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/ir/struct_type_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/ir/struct_type_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/parser/full_fidelity_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/full_fidelity_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/parser/integration_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/integration_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/parser/malformed_syntax_robustness_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/malformed_syntax_robustness_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/parser/nesting_limit_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/nesting_limit_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/parser/parser_test_support.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/parser_test_support.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/parser/recovery_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/recovery_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/parser/symbol_and_type_tail_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/symbol_and_type_tail_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/parser/syntax_conformance_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/syntax_conformance_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/parser/syntax_edge_conformance_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/syntax_edge_conformance_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/01_source_encoding_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/01_source_encoding_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/02_trivia_comments_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/02_trivia_comments_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/03_identifiers_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/03_identifiers_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/04_keywords_types_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/04_keywords_types_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/05_numeric_literals_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/05_numeric_literals_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/06_scalar_literals_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/06_scalar_literals_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/07_string_literals_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/07_string_literals_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/08_raw_multiline_strings_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/08_raw_multiline_strings_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/09_symbols_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/09_symbols_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/10_token_stream_contract_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/10_token_stream_contract_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/tokenizer/tokenizer_test_support.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/tokenizer/tokenizer_test_support.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tools/interpreter/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/interpreter/main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tools/parser/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/parser/main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tools/tokenizer/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/tokenizer/main.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -1244,33 +1309,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "CidrDebugProfileConversion": "true",
-    "Google Test.ink_tests.executor": "Debug",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.RadMigrateCodeStyle": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "cf.advertisement.text.overridden": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "ctest.advertisement.all.test.configuration.is.created": "true",
-    "git-widget-placeholder": "main",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "ml.llm.AcpAgentsConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;CidrDebugProfileConversion&quot;: &quot;true&quot;,
+    &quot;Google Test.ink_tests.executor&quot;: &quot;Debug&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;ctest.advertisement.all.test.configuration.is.created&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.AcpAgentsConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Google Test.ink_tests">
     <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">

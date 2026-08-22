@@ -94,25 +94,30 @@ var n: dynamic;
 
 var s: dynamic;
 
+var ParseFailed = false;
+
 func num(p: dynamic)
 {
   var res = 0;
   if ((p >= s.size()))
   {
-    throw 0;
+    ParseFailed = true;
+    return 0;
   }
   if ((s[p] == cpp_char("(")))
   {
     res = parse(cpp_update(p, "++"), 4);
     if (((p >= s.size()) || (s[cpp_update(p, "++")] != cpp_char(")"))))
     {
-      throw 0;
+      ParseFailed = true;
+      return 0;
     }
   } else
   {
     if (((!isdigit(s[p])) || (s[p] == cpp_char("0"))))
     {
-      throw 0;
+      ParseFailed = true;
+      return 0;
     }
     {
       while (isdigit(s[p]))
@@ -156,6 +161,14 @@ func parse(p: dynamic, d: dynamic = 4)
   return res;
 }
 
+func isExpressionValid()
+{
+  ParseFailed = false;
+  var Position = 0;
+  parse(Position);
+  return ((!ParseFailed) && (Position == s.size()));
+}
+
 var tbl = "()*+-&^|0123456789";
 
 func Max(t: dynamic, rest: dynamic)
@@ -172,20 +185,7 @@ func Max(t: dynamic, rest: dynamic)
   {
     s = t;
     s.insert((s.begin() + i), tbl[j]);
-    var f = 1;
-    try
-    {
-      var p = 0;
-      parse(p);
-      if ((p != s.size()))
-      {
-        throw 0;
-      }
-    }
-    catch dynamic
-    {
-      f = 0;
-    }
+    var f = isExpressionValid();
     if (f)
     {
       res = max(res, Min(s, (rest - 1)));
@@ -195,20 +195,7 @@ func Max(t: dynamic, rest: dynamic)
   {
     s = t;
     s.erase((s.begin() + i));
-    var f = 1;
-    try
-    {
-      var p = 0;
-      parse(p);
-      if ((p != s.size()))
-      {
-        throw 0;
-      }
-    }
-    catch dynamic
-    {
-      f = 0;
-    }
+    var f = isExpressionValid();
     if (f)
     {
       res = max(res, Min(s, (rest - 1)));
@@ -231,20 +218,7 @@ func Min(t: dynamic, rest: dynamic)
   {
     s = t;
     s.insert((s.begin() + i), tbl[j]);
-    var f = 1;
-    try
-    {
-      var p = 0;
-      parse(p);
-      if ((p != s.size()))
-      {
-        throw 0;
-      }
-    }
-    catch dynamic
-    {
-      f = 0;
-    }
+    var f = isExpressionValid();
     if (f)
     {
       res = min(res, Max(s, (rest - 1)));
@@ -254,20 +228,7 @@ func Min(t: dynamic, rest: dynamic)
   {
     s = t;
     s.erase((s.begin() + i));
-    var f = 1;
-    try
-    {
-      var p = 0;
-      parse(p);
-      if ((p != s.size()))
-      {
-        throw 0;
-      }
-    }
-    catch dynamic
-    {
-      f = 0;
-    }
+    var f = isExpressionValid();
     if (f)
     {
       res = min(res, Max(s, (rest - 1)));

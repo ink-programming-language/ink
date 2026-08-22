@@ -42,7 +42,7 @@ func main()
       }
       else
       {
-        throw 0;
+        return 1;
       }
       i += 1;
     }

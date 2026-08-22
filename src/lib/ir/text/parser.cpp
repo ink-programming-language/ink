@@ -382,13 +382,12 @@ namespace ink::ir
               consume();
               return &Context.getType(TypeKind::ConstBytePointer);
             }
-            if (at(TokenKind::LeftBracket) && at(TokenKind::RightBracket, 1))
+            if (atIdentifier("slice"))
             {
-              consume();
               consume();
               return &Context.getType(TypeKind::ConstByteSlice);
             }
-            fail<DiagnosticKind::IrExpected>(current(), "'*' or '[]' after 'const byte'");
+            fail<DiagnosticKind::IrExpected>(current(), "'*' or 'slice' after 'const byte'");
             return std::nullopt;
           }
           if (atIdentifier("byte") && at(TokenKind::Star, 1))
@@ -397,9 +396,8 @@ namespace ink::ir
             consume();
             return &Context.getType(TypeKind::BytePointer);
           }
-          if (atIdentifier("byte") && at(TokenKind::LeftBracket, 1) && at(TokenKind::RightBracket, 2))
+          if (atIdentifier("byte") && atIdentifier("slice", 1))
           {
-            consume();
             consume();
             consume();
             return &Context.getType(TypeKind::ByteSlice);

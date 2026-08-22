@@ -142,7 +142,7 @@ Parser 在 `binding_declaration` 起始位置把 `const` 解析为不可变绑�
 
 在 `statement_block` 的 `block_item` 入口，下一个显著 Token 一旦是 `var` 或 `const`，Parser 就必须提交到 `binding_declaration`。后续即使缺少名称、类型、初始化器或分号，也只在该声明内恢复，不得回退为赋值语句或表达式语句。因此 `const x = value;` 始终只有声明解释，不会把 `const x` 解释为可赋值的限定类型值。
 
-在调用者已经选定只接受 `statement` 而不接受 `block_item` 的位置，例如 statement dispatcher 已提交的 `match_statement` 的 `=>` 之后，遇到 `var` 或 `const` 必须报告“声明需要放入语句块”，并保留原始 Token 进行恢复；同样不得回退为赋值或表达式。这项规则不作用于已经由 expression context 选定的 `match_expression` arm，后者仍可用 `const` 开始前置限定类型值。
+在调用者已经选定只接受 `statement` 而不接受 `block_item` 的位置，遇到 `var` 或 `const` 必须报告“声明需要放入语句块”，并保留原始 Token 进行恢复；同样不得回退为赋值或表达式。
 
 这个提交点仅位于语句或块项起始位置，不影响初始化器、实参或 `return` 后的前置类型限定表达式。如果确实需要把一个前置 `const` 类型值作为无使用结果的表达式语句，必须先用括号移除声明起点形状：
 
@@ -197,14 +197,12 @@ const (first, _) = pair;             // 第二个位置不建立绑定
 - `_` 不建立绑定，嵌套元组继续递归使用同一规则；
 - 同一模式中重复名称、元组形状或元素数量不匹配属于语义错误；
 - v0 不在元组模式后接受整体或逐元素类型标注，各绑定类型从对应元素推导；
-- 枚举 `variant_pattern` 是可反驳模式，不能用于普通声明。
 
 因此以下形式非法：
 
 ```ink
 const (left, var right) = pair;       // pattern 内不能重复声明关键字
 const (left: i32, right: i32) = pair; // v0 没有逐元素类型标注
-const .some(value) = optional;        // 可反驳模式只能用于匹配结构
 ```
 
 Parser 只识别不可反驳的语法形状。元素按值初始化、引用元素、不可复制值和临时对象遵守议题 69 的普通元组解构语义；模式本身不隐式把值元素改成借用。

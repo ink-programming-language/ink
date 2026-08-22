@@ -10,7 +10,6 @@
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -21,13 +20,7 @@ namespace ink::ir
 {
   namespace
   {
-    bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
-    {
-      return std::any_of(Diagnostics.begin(), Diagnostics.end(), [Kind](const core::Diagnostic &Diagnostic)
-      {
-        return Diagnostic.Kind == Kind;
-      });
-    }
+    using ink::test::hasDiagnostic;
 
     // Verifies that a function owns ordered attributes, preserves canonical argument constants, and exposes reusable lookup helpers.
     TEST(FunctionAttributeTest, StoresAndFindsAttributes)
@@ -70,7 +63,7 @@ namespace ink::ir
           "\n"
           "declare import void @dependency.hook() from module dependency.api, symbol @hook [serialize(Version = i32 1)]\n"
           "\n"
-          "define void @main() [reflect(Label = const byte[] c\"entry\"), stored] {\n"
+          "define void @main() [reflect(Label = const byte slice c\"entry\"), stored] {\n"
           "entry:\n"
           "  ret void\n"
           "}\n";

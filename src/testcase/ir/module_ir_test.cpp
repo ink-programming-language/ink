@@ -2,6 +2,8 @@
 #include "ink/ir/ir.h"
 #include "ink/ir/serialization.h"
 
+#include "ir_test_support.h"
+
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -13,34 +15,8 @@ namespace ink::ir
 {
   namespace
   {
-    struct ModuleIrTestContext
-    {
-        ModuleIrTestContext()
-        {
-          Compilation.diagnosticEngine().addConsumer(Diagnostics);
-        }
-
-        ~ModuleIrTestContext()
-        {
-          Compilation.diagnosticEngine().removeConsumer(Diagnostics);
-        }
-
-        core::CompilationContext Compilation;
-        IRContext IR{Compilation};
-        core::CollectingDiagnosticConsumer Diagnostics;
-    };
-
-    bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind)
-    {
-      for (const core::Diagnostic &DiagnosticEntry : Diagnostics)
-      {
-        if (DiagnosticEntry.Kind == Kind)
-        {
-          return true;
-        }
-      }
-      return false;
-    }
+    using ModuleIrTestContext = test::IRTestContext;
+    using ink::test::hasDiagnostic;
 
     // Verifies that serialized module identities require a root package, non-empty identifier segments, and canonical dot separators.
     TEST(ModuleNameTest, ValidatesCanonicalModuleNames)

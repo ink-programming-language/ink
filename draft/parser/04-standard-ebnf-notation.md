@@ -1,6 +1,6 @@
 # Parser 议题 04：标准 EBNF 记法
 
-> 状态：已确认，非终结符统一使用 `snake_case`；议题 02 规定复合 Symbol 终结字符串的全语言最长匹配；议题 27 同步 `from` 硬关键字的终结字符串记法；2026-08-08 补充 statement context 的保留结构起点谓词以及终止型类型构造尾链的互补守卫
+> 状态：已确认，非终结符统一使用 `snake_case`；议题 02 规定复合 Symbol 终结字符串的全语言最长匹配；2026-08-08 补充 statement context 的声明起点谓词以及终止型类型构造尾链的互补守卫
 > 确认日期：2026-08-03
 
 ## 1. 采用标准
@@ -127,11 +127,11 @@ end_of_file = ? EndOfFile Token ? ;
 
 ```ebnf
 statement_expression =
-    ? next significant Token is neither Keyword(Var), Keyword(Const), nor Keyword(Match), and the next two significant Tokens are not Keyword(Comptime) followed by Keyword(Match) ?,
+    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
     expression ;
 ```
 
-这种 special sequence 是不消费 Token 的谓词，其准确含义必须由对应 Parser 议题完整定义。上例只做忽略 Trivia 的有限 Token 前瞻：它既排除 `var`、`const` 声明起点，也排除语句入口保留给结构控制的裸 `match` 与 `comptime match`；不查询名称、符号表或类型。汇总文法当前只把 special sequence 用于这类声明或结构起点排除、类型构造 Symbol 后缀的受限逐字符消费、函数返回类型最大消费以及终止型类型构造尾链的互补 EndSet 判定；实现不得把它推广为依赖名称绑定或语义类型的任意判定。
+这种 special sequence 是不消费 Token 的谓词，其准确含义必须由对应 Parser 议题完整定义。上例只做忽略 Trivia 的有限 Token 前瞻并排除 `var`、`const` 声明起点；它不查询名称、符号表或类型。汇总文法当前只把 special sequence 用于这类声明起点排除、类型构造 Symbol 后缀的受限逐字符消费、函数返回类型最大消费以及终止型类型构造尾链的互补 EndSet 判定；实现不得把它推广为依赖名称绑定或语义类型的任意判定。
 
 当一个可空位置必须与一个受谓词约束的非空分支互斥时，不能写成无条件的 `[ nonempty_branch ]`。本 draft 使用一对逻辑互补的 special sequence 守卫：正分支只在对应谓词成立时接受并消费 Token，零宽度空分支只在不存在满足同一谓词的正分支时成立。例如议题 30 的 `terminal_type_constructor_tail_decision` 在完整最大尾链能够到达调用者提供的 `EndSet` 时必须选择并消费该尾链；只有不存在这样的尾链时，否定守卫才允许消费零个 Token。两条 EBNF 分支因此在规范上互斥，不依赖备选顺序、Parser checkpoint 的尝试顺序或错误恢复策略。实现可以使用事务性 checkpoint 计算该谓词，但 checkpoint 只是实现规范谓词的手段，不能改变接受的 Token 序列或 CST 归属。
 

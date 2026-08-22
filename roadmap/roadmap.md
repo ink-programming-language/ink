@@ -54,7 +54,6 @@ Closed InkIR[target]
 - class、interface 和 enum；
 - 指针、引用、数组、切片和复杂聚合；
 - RAII、析构和 `defer`；
-- 异常；
 - 反射和 decorator；
 - async、Task 和调度；
 - 完整 FFI 和稳定外部 ABI。
@@ -159,7 +158,7 @@ AST 和 HIR 不应成为两棵内容高度重复的树。初期优先采用“�
 - 对每个 LLVM Module 运行 LLVM verifier；
 - 建立 interpreter 与 LLVM O0 的 differential 测试。
 
-该阶段只验证 Closed InkIR 的后端边界，不追求完整运行时、跨目标 ABI、异常、调试信息或优化。
+该阶段只验证 Closed InkIR 的后端边界，不追求完整运行时、跨目标 ABI、调试信息或优化。
 
 完成门槛：
 
@@ -239,7 +238,7 @@ parse candidate modules
 
 1. tuple、array、slice、pointer、reference 和 target layout；
 2. aggregate initialization、place projection 和边界检查；
-3. class 和 enum 的基础表示、构造和 match；
+3. class 和 enum 的基础表示与构造；
 4. 按值复制、copyable/noncopyable 和保证原地构造；
 5. 确定初始化、部分初始化和临时对象生命周期；
 6. 析构、RAII 和 `defer`；
@@ -277,32 +276,13 @@ IR 应显式表示初始化状态、drop、cleanup edge 和必要的 drop flag�
 - 动态反射只能观察已经生成并登记的闭合实例；
 - 元值不能逃逸到 Closed InkIR 或运行时 ABI。
 
-### M9：同步异常
-
-工作内容：
-
-- throw、rethrow、try/catch 和类型匹配；
-- exception record、cause 和 traceback；
-- 正常控制流与异常 unwind 复用 M7 的 cleanup plan；
-- 异常存储和 runtime ABI；
-- LLVM 平台异常 lowering；
-- 未处理异常的 fail-fast 边界。
-
-RAII 必须在异常之前稳定。异常实现不得新建第二套析构或 `defer` 规则。
-
-完成门槛：
-
-- 正常退出和异常退出具有一致的清理语义；
-- 部分初始化对象在 unwind 中正确清理；
-- interpreter 与 AOT 对 catch 选择、rethrow、cause 和清理顺序一致。
-
-### M10：Async 与 Task
+### M9：Async 与 Task
 
 建议按以下顺序加入：
 
 1. 单任务 lazy async/await；
 2. Task 生命周期和 pending 析构检查；
-3. 失败结果与异常传播；
+3. 以普通返回值显式表示可恢复失败；
 4. 解释器 continuation 和确定性测试 scheduler；
 5. AOT 状态机 lowering；
 6. `await all`；
@@ -311,9 +291,9 @@ RAII 必须在异常之前稳定。异常实现不得新建第二套析构或 `d
 9. 动态反射 async 调用；
 10. async decorator。
 
-Async 放在最后，是因为它同时依赖生命周期、异常、动态分派、解释器挂起恢复、运行时调度和 AOT frame ABI。
+Async 放在最后，是因为它同时依赖生命周期、动态分派、解释器挂起恢复、运行时调度和 AOT frame ABI。
 
-### M11：工程化与性能
+### M10：工程化与性能
 
 工作内容：
 
@@ -337,7 +317,7 @@ CST 和 AST 用于语法与语义分析，不作为运行时或 comptime 的规�
 
 ### 4.2 一个执行核心，多个 World
 
-以下环境共享指令、调用栈、控制流、内存、异常和生命周期等语言语义：
+以下环境共享指令、调用栈、控制流、内存和生命周期等语言语义：
 
 - ComptimeWorld：要求编译期完成的完整求值；
 - ResidualizeWorld：执行已知部分并生成残留 InkIR；
@@ -391,7 +371,7 @@ Closed InkIR 必须满足：
 
 ### 4.7 不提前固定多余 IR 层
 
-首个版本可以从 Closed InkIR 直接 lowering 到 LLVM IR。当 RAII、异常、async 或多个低级后端确实需要显式 cleanup、unwind、ABI 或状态机表示时，再增加可验证的 Lowered/Codegen InkIR。不得仅为了形式完整提前复制一套 Runtime MIR。
+首个版本可以从 Closed InkIR 直接 lowering 到 LLVM IR。当 RAII、async 或多个低级后端确实需要显式 cleanup、ABI 或状态机表示时，再增加可验证的 Lowered/Codegen InkIR。不得仅为了形式完整提前复制一套 Runtime MIR。
 
 ## 5. 测试门禁
 

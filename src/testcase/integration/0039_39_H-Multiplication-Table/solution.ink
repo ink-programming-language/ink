@@ -15,7 +15,7 @@ func in_cpp()
       }
       if ((!(~c)))
       {
-        throw (~0);
+        return (~0);
       }
     }
   }

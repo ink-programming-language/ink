@@ -77,17 +77,16 @@ namespace ink::parser
       expectFullFidelity(File);
     }
 
-    // Verifies the non-operator compound terminals for expansion, generic application, range, match arms, and pointer members.
+    // Verifies the non-operator compound terminals for expansion, generic application, range, and pointer members.
     TEST(ParserSymbolSequenceTest, ContextualCompoundTerminalsSelectTheirDedicatedGrammar)
     {
-      const ParsedFile File = parseSource("func terminals() { forward(...); expand(...arguments); Generic::<>; for (const item in begin..end) {} match (value) { _ => return; } value->member; }");
+      const ParsedFile File = parseSource("func terminals() { forward(...); expand(...arguments); Generic::<>; for (const item in begin..end) {} value->member; }");
 
       ASSERT_TRUE(File.succeeded());
       EXPECT_TRUE(hasKind(File, CstKind::ForwardAllArguments));
       EXPECT_TRUE(hasKind(File, CstKind::ListExpansion));
       EXPECT_TRUE(hasKind(File, CstKind::GenericArgumentClause));
       EXPECT_TRUE(hasKind(File, CstKind::ForStatement));
-      EXPECT_TRUE(hasKind(File, CstKind::MatchStatementArm));
       EXPECT_TRUE(hasKind(File, CstKind::PointerMemberExpression));
       expectFullFidelity(File);
     }
@@ -161,13 +160,11 @@ namespace ink::parser
     {
       const std::vector<TypeTailCase> Cases = {
           {"ReturnSemicolon", "func tail() { return T*[]; }", 1},
-          {"ThrowFrom", "func tail() { throw T* from cause; }", 1},
           {"ForRange", "func tail() { for (const item in T* .. U*) {} }", 2},
           {"SliceColonAndBracket", "func tail() { values[T*:U*]; }", 2},
           {"IfElse", "const Selected = if (condition) T* else U*;", 2},
           {"GenericCloser", "const Selected = Wrapper::<T*[N]>;", 1},
           {"EnumComma", "enum Kind { Pointer = T*, Other }", 1},
-          {"MatchArmComma", "const Selected = match (value) { .some => T*, .none => U*, };", 2},
           {"AggregateComma", "const Selected = Record { field: T* };", 1},
           {"CallParenthesis", "func tail() { inspect(T&); }", 1},
       };

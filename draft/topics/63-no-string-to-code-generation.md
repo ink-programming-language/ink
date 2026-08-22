@@ -73,7 +73,7 @@ platform.linux
 
 ## 4. 保留 class 类型表达式和声明区域控制
 
-本议题不撤销 Parser 议题 40 的 class 类型表达式，也不撤销声明区的 `comptime if`、`match`、`for` 和 `while`。它们只操作 Parser 已经从源码中建立的结构：
+本议题不撤销 Parser 议题 40 的 class 类型表达式，也不撤销声明区的 `comptime if`、`for` 和 `while`。它们只操作 Parser 已经从源码中建立的结构：
 
 ```ink
 return class {

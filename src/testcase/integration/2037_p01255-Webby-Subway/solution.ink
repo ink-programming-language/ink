@@ -335,7 +335,7 @@ func crosspoint(l: dynamic, m: dynamic)
   }
   if (eq(B, 0))
   {
-    throw "NAI";
+    return null;
   }
   return (l.p1 + ((A / B) * ((l.p2 - l.p1))));
 }

@@ -1,6 +1,6 @@
 # 议题 25：虚函数与动态反射调用
 
-> 状态：已确认，2026-08-05 确认函数级 `final`；议题 26、28、34、55、57、58、60、65 与 Parser 议题 31 补充
+> 状态：已确认，2026-08-05 确认函数级 `final`；议题 26、28、55、57、58、60、65 与 Parser 议题 31 补充
 > 确认日期：2026-08-02
 
 ## 1. 虚函数可以标记 `[reflect]`
@@ -37,8 +37,12 @@ class Player : Entity {
 2. 调用适配器验证接收对象和参数后，按照接收对象的动态类型执行普通虚派发。
 
 ```ink
-if (match .some(type_info) = reflection.find_type("game.Entity")) {
-    if (match .some(function) = type_info.function("update")) {
+const type_result = reflection.find_type("game.Entity");
+if (type_result.has_value()) {
+    const type_info = type_result.value();
+    const function_result = type_info.function("update");
+    if (function_result.has_value()) {
+        const function = function_result.value();
         const entity: Entity& = player;
         function.call::<void>(&entity, 0.016f32);
     }
@@ -179,8 +183,6 @@ class Player : Entity {
 
 接口方法的反射描述符和通过接口表执行的反射调用由 [`28-interface-reflection.md`](./28-interface-reflection.md) 规定。
 
-普通虚调用和反射虚调用都遵守议题 34 的未检查异常规则。方法只有显式标记 `[nothrow]` 才提供不抛异常契约；覆盖方法不能削弱父方法的 `[nothrow]` 保证。
-
 ## 12. 异步虚函数的普通与反射调用
 
 议题 55 允许类虚函数声明为 `virtual async func`。普通源码调用在创建 `Task::<T>` 时通过 vtable 选择最终覆盖，虚槽进入该覆盖的任务构造入口；异步函数体仍保持惰性，第一次 `await` 不重新查找虚槽。
@@ -209,7 +211,7 @@ class Derived : Base {
 }
 ```
 
-派生类不能再次覆盖 `Derived.update`。`final` 不属于函数签名，不参与重载区分，也不改变参数、结果、尾随 `const` 或 `[nothrow]` 契约；它只限制后续继承层级能够提供的覆盖。
+派生类不能再次覆盖 `Derived.update`。`final` 不属于函数签名，不参与重载区分，也不改变参数、结果或尾随 `const` 契约；它只限制后续继承层级能够提供的覆盖。
 
 `final` 必须修饰一个虚函数槽，可以写成 `virtual final func` 或 `override final func`。普通非虚函数、`static func`、接口方法、构造函数和析构函数使用 `final` 均为语义错误。Ink 的析构函数不使用 `virtual`，动态销毁继续由议题 27 的编译器生成入口处理。
 

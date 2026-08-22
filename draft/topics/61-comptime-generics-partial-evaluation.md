@@ -141,7 +141,7 @@ const value = comptime fibonacci(20);
 
 如果它们的必经执行路径读取 `Runtime` 值、进入没有编译期实现的操作，或者不能完成求值，则编译失败。
 
-结构化控制前缀采用较窄要求：`comptime if`、`comptime match` 和 `comptime for` 要求条件、被匹配值或迭代源在编译期已知，选中或展开的 body 仍可把依赖运行时输入的普通代码残留为 InkIR。`comptime while` 要求每轮条件都能在编译期决定，并受执行次数和生成代码量预算限制。
+结构化控制前缀采用较窄要求：`comptime if` 和 `comptime for` 要求条件或迭代源在编译期已知，选中或展开的 body 仍可把依赖运行时输入的普通代码残留为 InkIR。`comptime while` 要求每轮条件都能在编译期决定，并受执行次数和生成代码量预算限制。
 
 Parser 议题 32 把这种控制统一表示为接收类型化输出区域的 `ComptimeRegionControl`。同一个选择或展开算法可以把结果交给 `StatementSink`、`TopLevelDeclarationSink`、`ClassMemberSink`、`InterfaceMemberSink` 或 `EnumMemberSink`；区域只约束 body item 和输出种类，不改变上述阶段要求。类中不存在另一种专门生成字段的 `comptime`。
 
@@ -186,7 +186,6 @@ func calculate<N: i32>(value: i32) -> i32 {
 - 指令语义和控制流；
 - 调用栈与普通函数调用；
 - 算术、对象和内存语义；
-- 异常传播；
 - 生命周期操作。
 
 执行上下文提供不同环境：
@@ -315,7 +314,7 @@ extern "C" func image_create(
 ) -> ImageHandle;
 ```
 
-该边界只能直接使用 C ABI 可表示的类型和约定。Ink 类、接口、异常、开放泛型、`Task::<T>` 和其他 Ink 私有 ABI 必须通过不透明句柄、错误码、回调和具体闭合包装显式适配，不能作为稳定二进制接口直接导出。
+该边界只能直接使用 C ABI 可表示的类型和约定。Ink 类、接口、开放泛型、`Task::<T>` 和其他 Ink 私有 ABI 必须通过不透明句柄、错误码、回调和具体闭合包装显式适配，不能作为稳定二进制接口直接导出。
 
 最终可执行文件、普通目标文件和由同一次兼容构建协调的内部模块镜像仍然可以是二进制；本规则禁止的是把私有 Ink ABI 当作跨编译器、跨构建的稳定库分发协议。
 

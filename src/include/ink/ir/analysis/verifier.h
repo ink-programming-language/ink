@@ -24,10 +24,12 @@ namespace ink::ir
       bool Succeeded;
 
       friend VerificationResult verify(IRContext &Context, const Module &ModuleValue, core::DiagnosticClass Class);
+      friend VerificationResult verify(IRContext &Context, const Module &ModuleValue, core::DiagnosticClass Class, core::SourceId Source);
   };
 
   VerificationResult verify(IRContext &Context, const Module &ModuleValue);
   VerificationResult verify(IRContext &Context, const Module &ModuleValue, core::DiagnosticClass Class);
+  VerificationResult verify(IRContext &Context, const Module &ModuleValue, core::DiagnosticClass Class, core::SourceId Source);
   VerificationResult verify(const Module &ModuleValue);
 } // namespace ink::ir
 

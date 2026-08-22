@@ -148,23 +148,6 @@ namespace ink::parser
       expectSuccessfulCompleteParse(File);
     }
 
-    // Verifies a match expression accepts a statement-block arm body while its sibling expression arm and mandatory arm commas remain distinct.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesMatchExpressionBlockArm)
-    {
-      const ParsedFile File = parseSource("const Result = match (Value) { .some(Item) => { return Item; }, _ => Fallback, };");
-
-      ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(countKind(File, CstKind::MatchExpression), 1u);
-      ASSERT_EQ(countKind(File, CstKind::MatchExpressionArm), 2u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::MatchExpressionArm, ".some(Item) => { return Item; },").size(), 1u);
-      const CstNodeId BlockArm = nodesOfKindWithText(File, CstKind::MatchExpressionArm, ".some(Item) => { return Item; },")[0];
-      EXPECT_EQ(directChildrenOfKind(File, BlockArm, CstKind::StatementBlock).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, BlockArm, CstKind::NameExpression).size(), 0u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::MatchExpressionArm, "_ => Fallback,").size(), 1u);
-      EXPECT_EQ(countKind(File, CstKind::ReturnStatement), 1u);
-      expectSuccessfulCompleteParse(File);
-    }
-
     // Verifies empty array, aggregate-initializer, and enum bodies produce their dedicated nodes without fabricating elements, fields, or branches.
     TEST(ParserSyntaxEdgeConformanceTest, ParsesEmptyArrayAggregateAndEnumForms)
     {
@@ -200,28 +183,10 @@ namespace ink::parser
       expectSuccessfulCompleteParse(File);
     }
 
-    // Verifies typed-only, multiple-typed, catch-all-only, bound, unbound, and typed-then-catch-all sequences, including direct ownership by one try statement.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesEveryLegalCatchSequenceAndPreservesOwnership)
-    {
-      const ParsedFile File = parseSource("func catches() { try {} catch Error {} try {} catch Error as First {} catch Network {} try {} catch {} try {} catch as Remaining {} try {} catch First as A {} catch Second {} catch as Rest {} }");
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::TryStatement), 5u);
-      EXPECT_EQ(countKind(File, CstKind::TypedCatchClause), 5u);
-      EXPECT_EQ(countKind(File, CstKind::CatchAllClause), 3u);
-      EXPECT_EQ(countKind(File, CstKind::CatchBinding), 4u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::TryStatement, "try {} catch First as A {} catch Second {} catch as Rest {}").size(), 1u);
-      const CstNodeId CompleteSequence = nodesOfKindWithText(File, CstKind::TryStatement, "try {} catch First as A {} catch Second {} catch as Rest {}")[0];
-      EXPECT_EQ(directChildrenOfKind(File, CompleteSequence, CstKind::StatementBlock).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, CompleteSequence, CstKind::TypedCatchClause).size(), 2u);
-      EXPECT_EQ(directChildrenOfKind(File, CompleteSequence, CstKind::CatchAllClause).size(), 1u);
-      expectSuccessfulCompleteParse(File);
-    }
-
     // Verifies a decorator declaration can use attributes, modifiers, generics, parameters, a receiver qualifier, a result, and a semicolon body while explicit empty application clauses remain real CST nodes.
     TEST(ParserSyntaxEdgeConformanceTest, ParsesCompleteDecoratorSkeletonAndExplicitEmptyApplications)
     {
-      const ParsedFile File = parseSource("[meta()] public static decorator trace<T: type>(Value: T) const -> bool; [nothrow()] @trace() func run();");
+      const ParsedFile File = parseSource("[meta()] public static decorator trace<T: type>(Value: T) const -> bool; [optimize()] @trace() func run();");
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(countKind(File, CstKind::DecoratorDeclaration), 1u);
@@ -451,32 +416,24 @@ namespace ink::parser
       expectSuccessfulCompleteParse(File);
     }
 
-    // Verifies all five top-level comptime controls directly own their region blocks and match arms own exactly their corresponding blocks.
+    // Verifies all four top-level comptime controls directly own their region blocks.
     TEST(ParserSyntaxEdgeConformanceTest, PreservesComptimeControlRegionOwnership)
     {
-      const ParsedFile File = parseSource("comptime { const BlockValue = 1; } comptime if (Enabled) { const IfValue = 1; } else { const ElseValue = 0; } comptime match (Choice) { .some => { const SomeValue = 1; } _ => { const OtherValue = 0; } } comptime for (const Item in Items) { const ForValue = Item; } comptime while (Enabled) { const WhileValue = 1; }");
+      const ParsedFile File = parseSource("comptime { const BlockValue = 1; } comptime if (Enabled) { const IfValue = 1; } else { const ElseValue = 0; } comptime for (const Item in Items) { const ForValue = Item; } comptime while (Enabled) { const WhileValue = 1; }");
 
       ASSERT_TRUE(File.succeeded());
       ASSERT_EQ(countKind(File, CstKind::ComptimeBlockControl), 1u);
       ASSERT_EQ(countKind(File, CstKind::ComptimeIfControl), 1u);
-      ASSERT_EQ(countKind(File, CstKind::ComptimeMatchControl), 1u);
       ASSERT_EQ(countKind(File, CstKind::ComptimeForControl), 1u);
       ASSERT_EQ(countKind(File, CstKind::ComptimeWhileControl), 1u);
       const CstNodeId BlockControl = nodesOfKind(File, CstKind::ComptimeBlockControl)[0];
       const CstNodeId IfControl = nodesOfKind(File, CstKind::ComptimeIfControl)[0];
-      const CstNodeId MatchControl = nodesOfKind(File, CstKind::ComptimeMatchControl)[0];
       const CstNodeId ForControl = nodesOfKind(File, CstKind::ComptimeForControl)[0];
       const CstNodeId WhileControl = nodesOfKind(File, CstKind::ComptimeWhileControl)[0];
       EXPECT_EQ(directChildrenOfKind(File, BlockControl, CstKind::TopLevelBlock).size(), 1u);
       EXPECT_EQ(directChildrenOfKind(File, IfControl, CstKind::TopLevelBlock).size(), 2u);
-      EXPECT_EQ(directChildrenOfKind(File, MatchControl, CstKind::TopLevelBlock).size(), 0u);
       EXPECT_EQ(directChildrenOfKind(File, ForControl, CstKind::TopLevelBlock).size(), 1u);
       EXPECT_EQ(directChildrenOfKind(File, WhileControl, CstKind::TopLevelBlock).size(), 1u);
-      ASSERT_EQ(directChildrenOfKind(File, MatchControl, CstKind::RegionArm).size(), 2u);
-      for (CstNodeId Arm : directChildrenOfKind(File, MatchControl, CstKind::RegionArm))
-      {
-        EXPECT_EQ(directChildrenOfKind(File, Arm, CstKind::TopLevelBlock).size(), 1u);
-      }
       expectSuccessfulCompleteParse(File);
     }
   } // namespace

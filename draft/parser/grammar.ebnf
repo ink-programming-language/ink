@@ -25,7 +25,6 @@ comptime_top_level_item =
     "comptime",
     ( top_level_block
     | top_level_if_tail
-    | top_level_match_tail
     | top_level_for_tail
     | top_level_while_tail ) ;
 
@@ -35,14 +34,6 @@ top_level_block =
 top_level_if_tail =
     "if", "(", if_condition, ")", top_level_block,
     [ "else", ( top_level_block | top_level_if_tail ) ] ;
-
-top_level_match_tail =
-    "match", "(", expression, ")", "{",
-    top_level_match_arm, { top_level_match_arm },
-    "}" ;
-
-top_level_match_arm =
-    match_arm_pattern, "=>", top_level_block ;
 
 top_level_for_tail =
     "for", "(", for_binding_mode, for_pattern,
@@ -317,21 +308,12 @@ class_member_comptime_item =
     "comptime",
     ( class_member_block
     | class_member_if_tail
-    | class_member_match_tail
     | class_member_for_tail
     | class_member_while_tail ) ;
 
 class_member_if_tail =
     "if", "(", if_condition, ")", class_member_block,
     [ "else", ( class_member_block | class_member_if_tail ) ] ;
-
-class_member_match_tail =
-    "match", "(", expression, ")", "{",
-    class_member_match_arm, { class_member_match_arm },
-    "}" ;
-
-class_member_match_arm =
-    match_arm_pattern, "=>", class_member_block ;
 
 class_member_for_tail =
     "for", "(", for_binding_mode, for_pattern,
@@ -344,21 +326,12 @@ interface_member_comptime_item =
     "comptime",
     ( interface_member_block
     | interface_member_if_tail
-    | interface_member_match_tail
     | interface_member_for_tail
     | interface_member_while_tail ) ;
 
 interface_member_if_tail =
     "if", "(", if_condition, ")", interface_member_block,
     [ "else", ( interface_member_block | interface_member_if_tail ) ] ;
-
-interface_member_match_tail =
-    "match", "(", expression, ")", "{",
-    interface_member_match_arm, { interface_member_match_arm },
-    "}" ;
-
-interface_member_match_arm =
-    match_arm_pattern, "=>", interface_member_block ;
 
 interface_member_for_tail =
     "for", "(", for_binding_mode, for_pattern,
@@ -404,21 +377,12 @@ enum_member_comptime_item =
     "comptime",
     ( enum_member_block
     | enum_member_if_tail
-    | enum_member_match_tail
     | enum_member_for_tail
     | enum_member_while_tail ) ;
 
 enum_member_if_tail =
     "if", "(", if_condition, ")", enum_member_block,
     [ "else", ( enum_member_block | enum_member_if_tail ) ] ;
-
-enum_member_match_tail =
-    "match", "(", expression, ")", "{",
-    enum_member_match_arm, { enum_member_match_arm },
-    "}" ;
-
-enum_member_match_arm =
-    match_arm_pattern, "=>", enum_member_block ;
 
 enum_member_for_tail =
     "for", "(", for_binding_mode, for_pattern,
@@ -444,8 +408,6 @@ statement =
     | expression_statement
     | if_statement
     | comptime_if_statement
-    | match_statement
-    | comptime_match_statement
     | while_statement
     | comptime_while_statement
     | for_statement
@@ -453,9 +415,7 @@ statement =
     | break_statement
     | continue_statement
     | return_statement
-    | defer_statement
-    | throw_statement
-    | try_statement ;
+    | defer_statement ;
 
 block_statement =
     statement_block ;
@@ -476,7 +436,7 @@ expression_statement =
     statement_expression, ";" ;
 
 statement_expression =
-    ? next significant Token is neither Keyword(Var), Keyword(Const), nor Keyword(Match), and the next two significant Tokens are not Keyword(Comptime) followed by Keyword(Match) ?,
+    ? next significant Token is neither Keyword(Var) nor Keyword(Const) ?,
     expression ;
 
 if_statement =
@@ -484,35 +444,16 @@ if_statement =
     [ "else", ( statement_block | if_statement ) ] ;
 
 if_condition =
-      expression
-    | match_condition ;
-
-match_condition =
-    "match", conditional_match_pattern, "=", expression ;
+    expression ;
 
 comptime_if_statement =
     "comptime", if_statement ;
-
-match_statement =
-    "match", "(", expression, ")", "{",
-    match_statement_arm, { match_statement_arm },
-    "}" ;
-
-match_statement_arm =
-    match_arm_pattern, "=>", statement ;
-
-comptime_match_statement =
-    "comptime", match_statement ;
 
 while_statement =
     "while", "(", while_condition, ")", statement_block ;
 
 while_condition =
-      expression
-    | while_match_condition ;
-
-while_match_condition =
-    "match", conditional_match_pattern, "=", expression ;
+    expression ;
 
 for_statement =
     "for", "(", for_binding_mode, for_pattern,
@@ -547,31 +488,6 @@ return_statement =
 defer_statement =
     "defer", ( expression, ";" | statement_block ) ;
 
-throw_statement =
-    "throw",
-    ( ";"
-    | expression, [ throw_cause_clause ], ";" ) ;
-
-throw_cause_clause =
-    "from", identifier ;
-
-try_statement =
-    "try", statement_block, catch_sequence ;
-
-catch_sequence =
-      typed_catch_clause, { typed_catch_clause },
-      [ catch_all_clause ]
-    | catch_all_clause ;
-
-typed_catch_clause =
-    "catch", type, [ catch_binding ], statement_block ;
-
-catch_all_clause =
-    "catch", [ catch_binding ], statement_block ;
-
-catch_binding =
-    "as", identifier ;
-
 payload_pattern =
       binding_pattern
     | wildcard_pattern
@@ -588,18 +504,6 @@ tuple_pattern =
     | "(", payload_pattern, ",", ")"
     | "(", payload_pattern, ",", payload_pattern,
       { ",", payload_pattern }, ")" ;
-
-variant_pattern =
-    ".", identifier,
-    [ "(", payload_pattern,
-      { ",", payload_pattern }, ")" ] ;
-
-conditional_match_pattern =
-    variant_pattern ;
-
-match_arm_pattern =
-      variant_pattern
-    | wildcard_pattern ;
 
 expression =
       if_expression
@@ -845,21 +749,7 @@ array_expression =
     "[", [ expression, { ",", expression } ], "]" ;
 
 structured_expression =
-      match_expression
-    | class_type_expression ;
-
-match_expression =
-    "match", "(", expression, ")", "{",
-    match_expression_arm, { match_expression_arm },
-    "}" ;
-
-match_expression_arm =
-    match_arm_pattern, "=>",
-    match_expression_arm_body, "," ;
-
-match_expression_arm_body =
-      expression
-    | statement_block ;
+    class_type_expression ;
 
 aggregate_initialization_suffix =
     aggregate_initializer_body ;

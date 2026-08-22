@@ -94,27 +94,20 @@ module、class、interface 和 enum declaration region 继续统一接受：
 ```text
 comptime { declaration items }
 comptime if (condition) { declaration items }
-comptime match (value) { pattern => { declaration items } }
 comptime for (binding_mode item in source) { declaration items }
 comptime while (condition) { declaration items }
 ```
 
-Parser 议题 32 使用同一个 `ComptimeRegionControl`，由外层 `RegionKind` 决定 body 可以包含哪些普通声明。每个 declaration item 必须符合当前区域已有的 EBNF；declaration block 不接受表达式语句、赋值、`return`、`break`、`continue` 或 `throw`。
+Parser 议题 32 使用同一个 `ComptimeRegionControl`，由外层 `RegionKind` 决定 body 可以包含哪些普通声明。每个 declaration item 必须符合当前区域已有的 EBNF；declaration block 不接受表达式语句、赋值、`return`、`break` 或 `continue`。
 
-例如 class member region 可以按编译期匹配选择静态字段：
+例如 class member region 可以按编译期布尔条件选择静态字段：
 
 ```ink
-class Storage<T: type> {
-    comptime match (reflect(T).kind) {
-        .integer => {
-            var value: T;
-        }
-
-        .record => {
-            var value: T*;
-        }
-
-        _ => {}
+class Storage<T: type, Inline: bool> {
+    comptime if (Inline) {
+        var value: T;
+    } else {
+        var value: T*;
     }
 }
 ```
@@ -149,7 +142,7 @@ func offset<N: i32>(value: i32) -> i32 {
 }
 ```
 
-用户不需要也不能手动创建基本块、SSA 值或 LLVM 指令。需要底层控制流时直接使用普通 `if`、循环、异常和其他 Ink 语句。
+用户不需要也不能手动创建基本块、SSA 值或 LLVM 指令。需要底层控制流时直接使用普通 `if`、循环和其他 Ink 语句。
 
 ## 8. 自递归 class 类型表达式
 
@@ -218,4 +211,4 @@ LLVM 只接收固定点结束后的 `Closed InkIR[target]`，不理解 class 类
 
 ## 14. 结论
 
-Ink v0 的编译期声明能力完全建立在普通源码声明之上：`comptime if`、`match`、`for` 和 `while` 只选择或重复当前区域 EBNF 已经允许的声明。字段、函数、类型和枚举分支的名称必须真实写在源码中；语言不提供 `field(...)`、`function(...)`、动态声明名称、identifier splice 或公开 Builder。class 类型表达式仍可产生新的闭合名义类型，但其成员同样使用普通 class BNF。
+Ink v0 的编译期声明能力完全建立在普通源码声明之上：`comptime if`、`for` 和 `while` 只选择或重复当前区域 EBNF 已经允许的声明。字段、函数、类型和枚举分支的名称必须真实写在源码中；语言不提供 `field(...)`、`function(...)`、动态声明名称、identifier splice 或公开 Builder。class 类型表达式仍可产生新的闭合名义类型，但其成员同样使用普通 class BNF。

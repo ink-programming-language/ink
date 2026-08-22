@@ -1,6 +1,6 @@
 # Tokenizer 议题 09：单字符 Symbol Token
 
-> 状态：已确认，根据后续讨论修订为单字符模型；Parser 议题 24 使用 `=>`；Parser 议题 16 使用 `::<` 引导泛型实参后缀
+> 状态：已确认，根据后续讨论修订为单字符模型；Parser 议题 16 使用 `::<` 引导泛型实参后缀
 > 确认日期：2026-08-02
 
 ## 1. 所有语法符号按单字符扫描
@@ -78,10 +78,9 @@ library::ThreadPool // Tokenizer 可切分；Parser 不接受 `::` 限定名
 0 .. length
 target::<...Types>(...values)
 func read() -> Data*;
-.ready => run();
 ```
 
-Parser 在需要的位置识别连续字符序列。Tokenizer 不产生 `ColonColon`、`DotDot`、`Ellipsis`、`Arrow` 或 `FatArrow`。Parser 议题 24 的 `match` 分支箭头因此保存为两个直接相邻的真实 Symbol Token。
+Parser 在需要的位置识别连续字符序列。Tokenizer 不产生 `ColonColon`、`DotDot`、`Ellipsis`、`Arrow` 或 `FatArrow`；当前文法是否接受某个连续字符序列完全由 Parser 决定。
 
 ## 4. 复合运算符同样由 Parser 识别
 

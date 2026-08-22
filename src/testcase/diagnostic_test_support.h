@@ -10,6 +10,18 @@
 
 namespace ink::test
 {
+  inline bool hasDiagnostic(const std::vector<core::Diagnostic> &Diagnostics, core::DiagnosticKind Kind) noexcept
+  {
+    for (const core::Diagnostic &DiagnosticEntry : Diagnostics)
+    {
+      if (DiagnosticEntry.Kind == Kind)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
   class DiagnosticCapture
   {
     public:

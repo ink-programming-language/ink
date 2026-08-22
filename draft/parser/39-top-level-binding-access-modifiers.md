@@ -67,7 +67,7 @@ func update() {
 }
 ```
 
-顶层 `comptime` block、条件、匹配和循环的 body 仍由议题 05、32 递归解析 `top_level_item`，所以无需第二套产生式即可使用相同前缀：
+顶层 `comptime` block、条件和循环的 body 仍由议题 05、32 递归解析 `top_level_item`，所以无需第二套产生式即可使用相同前缀：
 
 ```ink
 comptime if (build.debug) {

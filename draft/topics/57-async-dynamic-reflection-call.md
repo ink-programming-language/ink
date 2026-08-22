@@ -27,7 +27,7 @@ kind        = async
 result_type = Data*
 ```
 
-而不是 `kind = sync, result_type = Task::<Data*>`。这样反射签名继续保留议题 44、55 和 56 的惰性执行、创建期分派、创建期异常以及异步覆盖兼容性。
+而不是 `kind = sync, result_type = Task::<Data*>`。这样反射签名继续保留议题 44、55 和 56 的惰性执行、创建期分派、创建期校验以及异步覆盖兼容性。
 
 `async` 是反射调用约定的一部分。把已有函数从同步改成异步或从异步改成同步，属于反射和普通调用 ABI 变化。
 
@@ -44,10 +44,16 @@ class Service {
     virtual async func load(id: u64) -> Data*;
 }
 
-if (match .some(type_info) = reflection.find_type("game.Service")) {
-    if (match .some(function) = type_info.function("load")) {
-        var task = function.call_async::<Data*>(&service, 42u64);
-        const data = await task;
+const type_result = reflection.find_type("game.Service");
+if (type_result.has_value()) {
+    const type_info = type_result.value();
+    const function_result = type_info.function("load");
+    if (function_result.has_value()) {
+        const function = function_result.value();
+        var call = function.call_async::<Data*>(&service, 42u64);
+        if (call.status() == ReflectionCallStatus::Ready) {
+            const data = await call.task();
+        }
     }
 }
 ```
@@ -55,10 +61,16 @@ if (match .some(type_info) = reflection.find_type("game.Service")) {
 概念签名为：
 
 ```text
-FunctionInfo.call_async::<R>(receiver, ...arguments) -> Task::<R>
+FunctionInfo.call_async::<R>(receiver, ...arguments) -> AsyncReflectionCall::<R>
+
+AsyncReflectionCall::<R> =
+    ready(Task::<R>)
+    rejected(ReflectionCallStatus)
 ```
 
-`call_async` 自身是同步函数和任务构造 API，不是 `async func`。它在调用表达式中完成描述符检查、动态分派和任务构造，然后返回处于 `created` 状态的 `Task::<R>`。把该 API 本身声明为异步会无意义地形成 `Task::<Task::<R>>`，因此禁止这种解释。
+`AsyncReflectionCall::<R>` 是包含条件初始化任务槽的不可复制结果对象。`status()` 返回普通枚举值；只有状态为 `Ready` 时，`task()` 才按前置条件提供其中已经完整构造的 `Task::<R>` 引用。被拒绝的调用不包含任务，调用者必须显式检查状态，不会发生隐式控制流转移。
+
+`call_async` 自身是同步函数和任务构造 API，不是 `async func`。它在调用表达式中完成描述符检查、动态分派和任务构造，然后返回 `AsyncReflectionCall::<R>`；成功载荷中的任务处于 `created` 状态。把该 API 本身声明为异步会推迟这些创建期检查并再增加一层任务，因此禁止这种解释。
 
 概念流程为：
 
@@ -67,9 +79,10 @@ FunctionInfo.call_async::<R>
     → verify FunctionInfo.kind == async
     → verify logical result type == R
     → verify receiver and arguments
+    → on rejection, return the corresponding ReflectionCallStatus without a task
     → enter the ordinary static, virtual, or interface task-construction path
-    → construct Task::<R> directly in final result storage
-    → return the lazy task without driving it
+    → construct Task::<R> directly in AsyncReflectionCall storage
+    → return Ready with the lazy task without driving it
 ```
 
 反射适配器不能启动、等待或同步执行目标异步函数体。第一次直接 `await`、组合等待或库级驱动仍按照议题 44 把任务从 `created` 推进到 `pending`。
@@ -78,10 +91,10 @@ FunctionInfo.call_async::<R>
 
 ## 3. `call` 与 `call_async` 不互相替代
 
-对异步描述符调用普通 `call::<R>` 必须抛出结构化反射调用种类错误：
+对异步描述符调用普通 `call::<R>` 必须通过同步反射 API 的显式状态返回 `WrongFunctionKind`，并且不得进入目标：
 
 ```ink
-function.call::<Data*>(&service, 42u64); // 错误：目标是 async
+var call = function.call::<Data*>(&service, 42u64); // call.status() == WrongFunctionKind
 ```
 
 正确调用为：
@@ -90,7 +103,7 @@ function.call::<Data*>(&service, 42u64); // 错误：目标是 async
 function.call_async::<Data*>(&service, 42u64);
 ```
 
-反方向同样禁止：同步描述符不能通过 `call_async` 调用。反射层不能根据调用点是否立即出现 `await`、调用者期待的类型或函数名称猜测调用种类。
+反方向同样禁止：同步描述符通过 `call_async` 调用时返回 `ReflectionCallStatus::WrongFunctionKind`，且不构造任务。反射层不能根据调用点是否立即出现 `await`、调用者期待的类型或函数名称猜测调用种类。
 
 同步函数显式返回 `Task::<T>` 时仍是普通同步任务工厂：
 
@@ -99,7 +112,7 @@ function.call_async::<Data*>(&service, 42u64);
 func make_task() -> Task::<Data*>;
 ```
 
-其描述符和调用方式为：
+其描述符仍记录同步函数种类，成功载荷中的普通返回值才是任务：
 
 ```text
 kind        = sync
@@ -107,10 +120,10 @@ result_type = Task::<Data*>
 ```
 
 ```ink
-var task = function.call::<Task::<Data*>>(...arguments);
+var call = function.call::<Task::<Data*>>(...arguments);
 ```
 
-`call::<Task::<T>>` 进入同步函数体并由该函数自行构造任务；`call_async::<T>` 直接构造被反射异步函数的惰性任务。两种路径不能互相满足或自动转换。
+同步反射 API 在显式成功状态下进入同步函数体，并由该函数自行构造返回任务；`call_async::<T>` 则在 `AsyncReflectionCall::<T>` 的任务槽中直接构造被反射异步函数的惰性任务。两种路径不能互相满足或自动转换。
 
 ## 4. `DynamicTaskOut` 直接承接最终任务
 
@@ -125,18 +138,19 @@ DynamicTaskOut {
 }
 ```
 
-强类型 `call_async::<R>` 把自身隐藏的 `Task::<R>` 返回位置转换为 `DynamicTaskOut`。适配器验证逻辑结果类型和任务 ABI 后，让普通异步任务构造入口直接在 `address` 中建立最终任务：
+强类型 `call_async::<R>` 把 `AsyncReflectionCall::<R>` 内尚未初始化的任务槽转换为 `DynamicTaskOut`。适配器验证逻辑结果类型和任务 ABI 后，让普通异步任务构造入口直接在 `address` 中建立最终任务：
 
 ```text
 async reflection adapter
     → validate DynamicTaskOut
     → select ordinary task-construction thunk
     → construct Task::<R> directly in final storage
+    → mark initialization_state and return Ready
 ```
 
 该协议不产生任务临时量、任务复制、隐藏移动、`Task::<Task::<R>>` 或拥有型 `Any`。`Task::<void>` 虽然没有成功载荷，仍必须提供任务对象存储；它不能像同步 `void` 返回那样完全省略输出位置。
 
-调用失败且最终任务尚未完成构造时，不运行任务析构。任务构造入口在部分初始化后失败时必须清理自己已经建立的帧、参数状态和版本固定，并让 `initialization_state` 保持未构造。
+适配器返回非 `Ready` 状态时，最终任务槽保持未构造，也不运行任务析构。所有可恢复校验都必须在开始任务构造前完成；适配器在返回拒绝状态前释放自己取得的临时版本固定。任务构造一旦开始便遵守议题 44 的完整构造规则，宿主内存耗尽或运行时状态损坏按进程级致命错误处理。
 
 `DynamicTaskOut` 属于反射运行时 ABI，不要求普通业务代码手动构造。其精确位宽、对齐和 `task_abi` 表示留给目标 ABI。
 
@@ -154,7 +168,7 @@ arguments: DynamicRef[]
 因此：
 
 - 实参表达式在调用点立即求值；
-- 参数数量、类型、传递方式和可变性错误同步抛出；
+- 参数数量、类型、传递方式和可变性不匹配在任务构造前返回对应的 `ReflectionCallStatus`；
 - 可复制按值参数由普通异步调用规则复制进任务帧；
 - 原始指针和原始切片按值保存，并继续由程序员保证目标生命周期；
 - 普通引用可以按照议题 04、44 作为非拥有别名保存，动态反射不会延长目标生命周期；
@@ -192,36 +206,33 @@ interface async FunctionInfo
 
 反射适配器不能在第一次恢复时重新执行名称查找、类虚分派或接口分派，也不能因为类实现同时是虚函数而在接口槽之后增加第二次主 vtable 分派。
 
-## 7. 创建期异常与任务失败分离
+## 7. 创建期状态与任务结果分离
 
-以下问题发生在任务成功创建前，按照普通同步异常传播：
+以下问题发生在任务成功创建前，并由 `ReflectionCallStatus` 显式报告：
 
 - `FunctionInfo.kind` 与所用调用 API 不匹配；
 - 调用者期待的逻辑结果类型 `R` 不匹配；
-- 接收对象、参数数量、类型、传递方式或可变性错误；
+- 接收对象、参数数量、类型、传递方式或可变性不匹配；
 - 描述符、对象布局、接口表或模块版本不兼容；
-- 目标模块已经开始卸载；
-- 实参捕获、任务帧取得或任务基础状态建立失败。
+- 目标模块已经开始卸载。
 
-其中合法反射 API 输入产生的种类、类型和版本错误使用议题 21 的结构化反射异常。资源取得和用户参数复制本身产生的异常保持其普通动态类型，不强制包装成反射异常。
+状态枚举至少区分 `Ready`、`WrongFunctionKind`、`ResultTypeMismatch`、`ReceiverMismatch`、`ArgumentMismatch`、`IncompatibleVersion` 和 `TargetUnavailable`。适配器返回非 `Ready` 状态时不构造任务；状态值不触发跳转、提前返回或其他隐式调用者控制流。
 
-任务成功构造后，目标异步函数体以后抛出的异常由议题 43 的任务边界保存为：
+需要在反射调用前准备资源或执行可能无法完成的用户逻辑时，API 使用显式同步工厂先返回项目定义的普通状态，调用者确认后再执行 `call_async`。宿主内存耗尽或运行时状态损坏属于进程级致命错误，不转换为反射状态或任务结果。
 
-```text
-Task::<R>.failed(ExceptionBox)
-```
+任务成功构造后，目标异步函数体需要表达的业务问题必须编码在逻辑结果 `R` 中并通过普通 `return` 发布。任务仍按议题 43 进入 `succeeded`；反射层不解释、包装或自动传播 `R` 中的业务状态。
 
-等待该任务时重新传播原始业务异常。反射层不能把目标函数体异常包装成统一的 `ReflectionInvocationError`，也不能丢失原异常的动态类型、接口、原因链、抛出位置或 traceback。
-
-如果 `call_async` 表达式本身位于另一个异步函数体内，其同步创建期异常可能使外层任务失败；这仍是外层函数执行期间的异常，不是尚未成功创建的内层任务失败。
+如果 `call_async` 表达式本身位于另一个异步函数体内，外层函数也必须检查 `ReflectionCallStatus`，再显式决定返回哪个自己的逻辑结果。创建期拒绝不会自动改变外层任务状态。
 
 ## 8. 接收者、参数和描述符生命周期
 
-创建期使用的 `DynamicRef`、参数数组和 `FunctionInfo` 描述符借用只需保持到 `call_async` 返回或抛出。任务构造成功后，任务已经保存普通异步 ABI 所需的参数快照和接收者表示，不再保存反射调用者栈上的动态包装。
+创建期使用的 `DynamicRef`、参数数组和 `FunctionInfo` 描述符借用只需保持到 `call_async` 返回。任务构造成功后，任务已经保存普通异步 ABI 所需的参数快照和接收者表示，不再保存反射调用者栈上的动态包装。
 
 这不延长接收对象或原始指针目标的生命周期。异步成员接收对象仍必须保持在原地址并存活到任务最终状态；原始指针参数继续服从其公开前置条件。接口默认任务复制胖接收者并固定所需表版本，但不取得完整对象所有权。
 
-任务必须持有最终所选构造、resume、destroy、异常边界和接口表所需的版本固定。反射适配器和描述符不被任务继续使用时，其创建期借用或固定可以在任务构造完成后释放。
+成功返回的 `AsyncReflectionCall::<R>` 拥有其内部任务槽，因此该结果对象必须保持在原地址并存活到任务完成。`task()` 只返回对该槽的非拥有引用，不允许把内部任务复制、移动或带到结果对象生命周期之外。
+
+任务必须持有最终所选构造、resume、destroy 和接口表所需的版本固定。反射适配器和描述符不被任务继续使用时，其创建期借用或固定可以在任务构造完成后释放。
 
 ## 9. 热更新
 
@@ -235,13 +246,13 @@ Task::<R>.failed(ExceptionBox)
 
 `call_async` 必须在受保护过程内验证描述符、取得适配器并进入最终任务构造入口。实现不能先保存可能被卸载的裸适配器或槽入口，再在其后补做版本固定。
 
-任务创建成功后固定最终实现和帧 ABI。兼容热更新只影响以后发起的反射调用；已经创建的旧任务继续使用旧 resume、destroy、异常描述符和调试信息。默认接口任务还按照议题 56 保持其规范化接口表布局有效。
+任务创建成功后固定最终实现和帧 ABI。兼容热更新只影响以后发起的反射调用；已经创建的旧任务继续使用旧 resume、destroy、类型元数据和调试信息。默认接口任务还按照议题 56 保持其规范化接口表布局有效。
 
 增加、删除或改变参数，改变逻辑结果类型、同步/异步种类、虚槽或接口槽调用约定，均属于反射调用 ABI 变化。旧描述符、旧对象或旧任务不能按新版本布局盲目解释。
 
 ## 10. 不引入拥有型 `DynamicTask`
 
-普通用户通过 `call_async::<R>` 已能在编译期指定期待的结果类型，并取得正常 `Task::<R>`。本议题不向核心语言增加拥有型、可复制或引用计数的 `DynamicTask`/`AnyTask`。
+普通用户通过 `call_async::<R>` 已能在编译期指定期待的结果类型，并在 `Ready` 分支中访问正常 `Task::<R>`。本议题不向核心语言增加类型擦除、可复制或引用计数的 `DynamicTask`/`AnyTask`。
 
 结果类型完全到运行时才知道的编辑器、RPC 框架或插件系统可以使用底层 `DynamicTaskOut`、类型描述符和未来确定的动态任务驱动 ABI。公开的拥有型动态任务封装如果需要，还必须单独决定：
 
@@ -264,15 +275,15 @@ Task::<R>.failed(ExceptionBox)
 
 它不要求额外任务对象、拥有型 `Any`、结果装箱或反射层堆分配。目标任务本身取得 coroutine frame 和运行时状态的成本仍与普通异步调用相同。
 
-任务以后每次恢复不再经过反射适配器。编译器在描述符和具体实现可证明且不破坏热更新语义时可以消除部分检查或间接层，但不能改变错误检查、最终分派和任务版本固定语义。
+任务以后每次恢复不再经过反射适配器。编译器在描述符和具体实现可证明且不破坏热更新语义时可以消除部分检查或间接层，但不能改变状态校验、最终分派和任务版本固定语义。
 
 ## 12. LLVM 与运行时实现
 
 该设计不需要修改 LLVM 源码。前端和反射运行时生成同步的类型擦除适配器，适配器验证 `DynamicRef[]` 与 `DynamicTaskOut`，然后调用普通异步任务构造 thunk。
 
-最终 thunk 使用现有 coroutine lowering 或 Ink 自有状态机直接在输出位置建立 `Task::<R>`。函数体异常仍由任务内部 catch-all 边界捕获；创建期反射异常通过普通 LLVM `invoke`、landing pad、personality 或 Windows funclet 路径传播。
+最终 thunk 使用现有 coroutine lowering 或 Ink 自有状态机直接在输出位置建立 `Task::<R>`。适配器通过普通分支返回 `ReflectionCallStatus`；异步函数体通过普通结果存储发布 `R`，不需要额外的运行时控制流协议。
 
-LLVM 无需理解 `FunctionInfo`、逻辑异步结果类型、接口继承或 `ExceptionBox`。这些由 Ink 前端、反射描述符和运行时协议实现。
+LLVM 无需理解 `FunctionInfo`、逻辑异步结果类型、接口继承或反射状态枚举。这些由 Ink 前端、反射描述符和运行时协议实现。
 
 ## 13. 后续问题
 

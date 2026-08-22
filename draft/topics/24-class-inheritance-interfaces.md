@@ -1,6 +1,6 @@
 # 议题 24：`class`、单继承与多接口
 
-> 状态：已确认，2026-08-04 确认 `virtual func f();` 抽象语义；2026-08-05 确认 `static func`、尾随 `const`、类与虚函数的 `final`、统一继承类型列表、显式字段和类/接口成员区域；议题 25—31、35、54—58 与 Parser 议题 10、31—33、40 补充
+> 状态：已确认，2026-08-04 确认 `virtual func f();` 抽象语义；2026-08-05 确认 `static func`、尾随 `const`、类与虚函数的 `final`、统一继承类型列表、显式字段和类/接口成员区域；议题 25—31、54—58 与 Parser 议题 10、31—33、40 补充
 > 确认日期：2026-08-01
 
 ## 1. 删除 `struct` 关键字
@@ -161,8 +161,6 @@ inheritance_clause =
 该列表不接受尾随逗号。Parser 不查询名称所指声明的种类，因此泛型实例 `Base::<T>`、指针 `Base*`、函数类型或多个具体类都可以先形成结构完整的继承项 CST。语义分析随后要求每一项都是允许继承的闭合名义类型，并检查类最多有一个具体父类、其余项为接口、接口只能继承接口、没有重复项或继承环，以及不能继承 `final class`。开放泛型声明本身不是 `type`，也不能直接作为继承项。
 
 接口不构成第二个具体父类子对象。接口引用采用议题 26 定义的两字胖引用；接口默认方法以及接口之间的同名方法冲突由议题 29 规定；接口可以按照议题 30 多继承其他接口。
-
-议题 35 允许 `class` 和 `interface` 使用 `[exception]` 建立可捕获异常类型体系。异常类仍遵守本议题的单一具体继承和多接口规则，但普通类、普通接口和异常接口之间具有额外的实现限制。
 
 ## 7. 抽象虚函数
 
@@ -555,7 +553,7 @@ class_member_item =
     | class_member_comptime_item ;
 ```
 
-`enum_declaration` 的内部产生式由枚举 Parser 议题定义。`class_member_comptime_item` 是 Parser 议题 32 的统一 `ComptimeRegionControl` 对 `RegionKind::ClassMember` 的标准 EBNF 适配名称，不建立类专用 `comptime` 语义；block、`if`、`match`、`for` 和 `while` 都使用同一控制 Parser，并把每个 body 递归解析为 `class_member_block`。
+`enum_declaration` 的内部产生式由枚举 Parser 议题定义。`class_member_comptime_item` 是 Parser 议题 32 的统一 `ComptimeRegionControl` 对 `RegionKind::ClassMember` 的标准 EBNF 适配名称，不建立类专用 `comptime` 语义；block、`if`、`for` 和 `while` 都使用同一控制 Parser，并把每个 body 递归解析为 `class_member_block`。
 
 成员块不允许 `import`、module 或局部 `binding_declaration`、普通表达式或控制流语句、decorator 声明以及单独的空 `;`。decorator 只能在 module 顶层声明；成员函数仍可通过声明前缀应用已经可见的 decorator。成员位置以 `var` 或 `const` 开始的声明始终进入 `field_declaration`，不会建立局部或 module 绑定。
 
