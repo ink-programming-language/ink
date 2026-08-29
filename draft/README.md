@@ -2,7 +2,7 @@
 
 Ink 采用逐项讨论、逐项落稿的设计方式。每个议题独立保存；只有全部议题完成并经过一致性检查后，才合并生成 `language-draft.md`。
 
-基础语言前端与模块规则在 [`tokenizer/README.md`](./tokenizer/README.md)、[`parser/README.md`](./parser/README.md) 与 [`modules/README.md`](./modules/README.md) 中独立讨论；本表继续保存此前已经确认的语义议题。
+基础语言前端与模块规则在 [`tokenizer/README.md`](./tokenizer/README.md)、[`parser/README.md`](./parser/README.md) 与 [`modules/README.md`](./modules/README.md) 中独立讨论；独立于当前 Ink 方案的实验性 MetaIR 编译期设计记录在 [`comptime/README.md`](./comptime/README.md)；本表继续保存此前已经确认的语义议题。
 
 ## 议题状态
 
