@@ -11,10 +11,16 @@
 #include <string>
 #include <utility>
 
+template<class T>
+class TestAAA
+{
+
+};
 namespace
 {
   bool readSource(std::istream &Input, std::string &Source)
   {
+    TestAAA<1>1>
     std::array<char, 64 * 1024> Buffer;
     while (Input)
     {

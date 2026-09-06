@@ -258,7 +258,15 @@ builtin.comptime_for(Index:int32 builtin.assign 0; Index builtin.less 10; Index 
 4. 执行更新操作；
 5. 回到条件求值，直到条件为假。
 
-循环控制变量只在循环头和循环体内可见。循环体花括号是透明的编译期展开边界，不为输出到外层的声明额外建立普通词法作用域。循环体可以修改外层 `Known` 变量，也可以执行产生字段、函数、类型或其他声明的 MetaIR 操作。循环体内新建的普通临时 `var` 是否在每次迭代重新建立生命周期，仍需单独确定。
+`builtin.comptime_for` 同时具有执行作用域和输出作用域：
+
+- 循环控制变量是贯穿整个循环的一份可变绑定，只在循环头和循环体内可见；
+- 每次迭代都为循环体重新建立执行作用域，循环体内声明的临时 `var` 每轮重新创建，并在该轮结束时销毁；
+- 输出作用域保持透明，循环体生成的 `field`、`func`、`class` 等声明直接进入外层声明区域；
+- 循环体可以修改外层 `Known` 变量；
+- 不同迭代生成同名声明时，按普通重复声明规则报错。
+
+因此，“循环体透明”只描述声明输出位置，不表示各轮临时变量共享同一词法生命周期。
 
 例如：
 
@@ -290,6 +298,25 @@ builtin.comptime_for(Index:int32 builtin.assign 0; Index builtin.less 10; Index 
 `builtin.comptime_break;` 与 `builtin.comptime_continue;` 分别控制最近一层编译期循环。普通 `break` 与 `continue` 仍表示准备输出的运行时控制语句；它们接入最终位置后若没有合法运行时循环，由普通语义检查报告错误。
 
 首版采用严格执行模型：循环初始化、条件、更新以及循环体实际读取或写入的普通值都必须是 `Known`。一旦读取 `Runtime` 值就产生编译期错误，不对循环做局部残留或运行时拆分。
+
+临时变量与声明输出可以同时使用：
+
+```text
+builtin.comptime_for(Index:int32 builtin.assign 0; Index builtin.less 3; Index builtin.addassign 1)
+{
+	var Temp:int32 builtin.assign Index builtin.multiply 2;
+
+	field int32 call builtin.pastesymbol(Value, call builtin.value_as_symbol(Index)) builtin.assign Temp;
+}
+```
+
+循环结束后，`Temp` 和 `Index` 都不再可见，外层得到的声明等价于：
+
+```text
+field int32 Value0 builtin.assign 0;
+field int32 Value1 builtin.assign 2;
+field int32 Value2 builtin.assign 4;
+```
 
 ## 10. `Known`、`Runtime` 与变量
 
@@ -399,7 +426,7 @@ func Name<Generic:type>(Parameter:Type)->ResultType
 }
 ```
 
-省略返回类型时固定为 `void`。所有普通参数都显式写成 `Name:Type`。函数体、普通 `if` 分支和 `builtin.comptime_if` 分支建立词法作用域；`builtin.macro_if` 分支和 `builtin.comptime_for` 的展开边界遵守前文的透明规则。
+省略返回类型时固定为 `void`。所有普通参数都显式写成 `Name:Type`。函数体、普通 `if` 分支和 `builtin.comptime_if` 分支建立词法作用域；`builtin.macro_if` 分支是透明语法展开边界；`builtin.comptime_for` 每轮建立临时执行作用域，同时把生成声明透明输出到外层。
 
 函数名以及其他 symbol 位置可以使用返回 `symbol` 的 builtin 调用生成。生成后的函数声明与手写声明进入同一普通名称处理和重复检查流程；具体重载模型尚未确定。
 
@@ -474,7 +501,6 @@ func Name<Generic:type>(Parameter:Type)->ResultType
 - 编译期执行 fuel、递归深度、循环次数和声明生成量的具体上限；
 - `builtin.comptime_if` 允许出现的完整上下文集合；
 - `builtin.comptime_for` 三段式循环头是否允许省略其中某一段；
-- 编译期循环体内普通临时变量的逐次迭代生命周期；
 - `Known` 变量后来接收 `Runtime` 值时的阶段变化规则；
 - 生成节点的源码映射、宏展开栈与诊断展示格式；
 - `value_as_symbol` 对整数以外值的规范转换格式；

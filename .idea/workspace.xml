@@ -1051,7 +1051,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="75c92d51-4c7b-4d11-8d7d-8de7163a5f4a" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/docs/grammar.bnf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/draft/comptime/01-metair-syntax-and-execution.md" beforeDir="false" afterPath="$PROJECT_DIR$/draft/comptime/01-metair-syntax-and-execution.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tools/tokenizer/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/tokenizer/main.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -1059,7 +1062,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="6823" />
+    <option name="cachedIndexableFilesCount" value="187157" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
   <component name="Git.Settings">
@@ -1103,61 +1106,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0000000897196977" />
-      <entry key="MS500" value="1.0389564901909019" />
-      <entry key="S2" value="1.4941273504796015" />
-      <entry key="S5" value="2.3968641485562365" />
-      <entry key="S10" value="3.738091008505942" />
-      <entry key="S30" value="8.47714761460907" />
-      <entry key="S60" value="15.05229170996637" />
-      <entry key="M2" value="27.00518320544332" />
-      <entry key="M5" value="46.31309664218073" />
-      <entry key="M10" value="57.585041642504635" />
-      <entry key="M15" value="62.18991256190489" />
-      <entry key="M30" value="67.30702476192951" />
-      <entry key="H1" value="70.07756435499171" />
-      <entry key="H2" value="71.54486722032699" />
-      <entry key="H4" value="72.50521101896598" />
-      <entry key="D1" value="76.41238047003985" />
-      <entry key="W1" value="80.0513152486782" />
+      <entry key="MS100" value="1.4536603426799322" />
+      <entry key="MS500" value="3.3592154891989012" />
+      <entry key="S2" value="5.206104079529045" />
+      <entry key="S5" value="6.454189786506909" />
+      <entry key="S10" value="7.39048666646715" />
+      <entry key="S30" value="8.359274766383965" />
+      <entry key="S60" value="8.664165743724194" />
+      <entry key="M2" value="8.828002728145453" />
+      <entry key="M5" value="8.930193316476544" />
+      <entry key="M10" value="8.964926257682844" />
+      <entry key="M15" value="8.976579455557104" />
+      <entry key="M30" value="8.98827065709127" />
+      <entry key="H1" value="8.994134372057196" />
+      <entry key="H2" value="9.016756102685267" />
+      <entry key="H4" value="10.418162636488937" />
+      <entry key="D1" value="60.73284366639851" />
+      <entry key="W1" value="107.50637836296914" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="0.0" />
-      <entry key="S2" value="0.0" />
-      <entry key="S5" value="0.0" />
-      <entry key="S10" value="0.0" />
-      <entry key="S30" value="0.0" />
-      <entry key="S60" value="0.0" />
-      <entry key="M2" value="0.0" />
-      <entry key="M5" value="0.0" />
-      <entry key="M10" value="0.0" />
-      <entry key="M15" value="0.0" />
-      <entry key="M30" value="0.0" />
-      <entry key="H1" value="0.0" />
-      <entry key="H2" value="0.0" />
-      <entry key="H4" value="0.0" />
-      <entry key="D1" value="0.0" />
-      <entry key="W1" value="0.0" />
+      <entry key="MS100" value="2.1871495802330079E-41" />
+      <entry key="MS500" value="7.378629385926014E-9" />
+      <entry key="S2" value="0.009268168572554896" />
+      <entry key="S5" value="0.15374378535547456" />
+      <entry key="S10" value="0.39210175382861334" />
+      <entry key="S30" value="0.7319244610782557" />
+      <entry key="S60" value="0.8555258389308037" />
+      <entry key="M2" value="0.9249463978689815" />
+      <entry key="M5" value="0.96927414031675" />
+      <entry key="M10" value="0.9845172117930444" />
+      <entry key="M15" value="0.9896513210473131" />
+      <entry key="M30" value="0.9948122039095186" />
+      <entry key="H1" value="0.9974027290465567" />
+      <entry key="H2" value="0.9987005201994017" />
+      <entry key="H4" value="0.9993500488814727" />
+      <entry key="D1" value="0.9998916454660561" />
+      <entry key="W1" value="0.9999845200619982" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.0409209148566576E-4" />
-      <entry key="MS500" value="0.18521591662707695" />
-      <entry key="S2" value="1.0747450806463301" />
-      <entry key="S5" value="2.1555727830195073" />
-      <entry key="S10" value="3.571391621538142" />
-      <entry key="S30" value="8.385232962671184" />
-      <entry key="S60" value="14.981727840936438" />
-      <entry key="M2" value="26.948598078043847" />
-      <entry key="M5" value="46.27819719111614" />
-      <entry key="M10" value="57.56425609438688" />
-      <entry key="M15" value="62.17516987617114" />
-      <entry key="M30" value="67.29916769560744" />
-      <entry key="H1" value="70.07350559484497" />
-      <entry key="H2" value="71.54280386567176" />
-      <entry key="H4" value="72.50416850936239" />
-      <entry key="D1" value="76.41219219979935" />
-      <entry key="W1" value="80.05128607164104" />
+      <entry key="MS100" value="1.3271090508794565" />
+      <entry key="MS500" value="3.181688714108053" />
+      <entry key="S2" value="5.05577368280863" />
+      <entry key="S5" value="6.436024618409426" />
+      <entry key="S10" value="7.638294040534639" />
+      <entry key="S30" value="9.019794463071614" />
+      <entry key="S60" value="9.480060611407747" />
+      <entry key="M2" value="9.732055351175953" />
+      <entry key="M5" value="9.890837835271267" />
+      <entry key="M10" value="9.945082151404982" />
+      <entry key="M15" value="9.963312809017443" />
+      <entry key="M30" value="9.981618644129245" />
+      <entry key="H1" value="9.990803680115182" />
+      <entry key="H2" value="10.015089187895704" />
+      <entry key="H4" value="11.417314552980475" />
+      <entry key="D1" value="61.73261146483527" />
+      <entry key="W1" value="108.50633188148774" />
     </decayedShown>
   </component>
   <component name="ProjectApplicationVersion">
@@ -1203,15 +1206,15 @@
   }
 }</component>
   <component name="RunManager" selected="Google Test.ink_tests">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="ink_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ink" RUN_TARGET_NAME="ink_tests" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="clang-cmake-exports" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="clang-cmake-exports" CONFIG_NAME="Debug">

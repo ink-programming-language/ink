@@ -1,0 +1,560 @@
+source_file =
+    { module_declaration }, end_of_file ;
+
+module_declaration =
+    statement ;
+
+declaration =
+      function_declaration
+    | class_declaration
+    | interface_declaration
+    | enum_declaration ;
+
+function_declaration =
+    [ access_modifier ], [ linkage_specifier ],
+    function_signature, ( function_body | ";" ) ;
+
+function_signature =
+    "func", identifier, [ generic_parameter_list ],
+    parameter_list, "->", type ;
+
+generic_parameter_list =
+    "[", generic_parameter,
+    { ",", generic_parameter }, "]" ;
+
+generic_parameter =
+    identifier, ":", type, [ "=", expression ] ;
+
+parameter_list =
+    "(", [ parameter, { ",", parameter } ], ")" ;
+
+parameter =
+    binding_pattern, ":", type, [ "=", expression ] ;
+
+function_body =
+    block_statement ;
+
+class_declaration =
+    [ access_modifier ], "class", identifier,
+    [ generic_parameter_list ],
+    [ class_inheritance_clause ], class_body ;
+
+class_inheritance_clause =
+      "extends", type, [ "implements", type_list ]
+    | "implements", type_list ;
+
+type_list =
+    type, { ",", type } ;
+
+class_body =
+    block_statement ;
+
+interface_declaration =
+    [ access_modifier ], "interface", identifier,
+    [ generic_parameter_list ],
+    [ "extends", type_list ], interface_body ;
+
+interface_body =
+    block_statement ;
+
+enum_declaration =
+    [ access_modifier ], "enum", identifier,
+    [ generic_parameter_list ],
+    [ enum_base_clause ], enum_body ;
+
+enum_base_clause =
+      ":", integer_type, [ "implements", type_list ]
+    | "implements", type_list ;
+
+enum_body =
+    block_statement ;
+
+enum_field_statement =
+    "enum_field", identifier, [ "=", expression ], ";" ;
+
+class_field_statement =
+    [ access_modifier ], [ "const" ], "class_field",
+    identifier, ":", type, [ "=", expression ], ";" ;
+
+type =
+      reference_type
+    | pointer_type
+    | postfix_type ;
+
+postfix_type =
+    primary_type, { array_type_suffix } ;
+
+primary_type =
+      named_type
+    | tuple_type
+    | grouped_type
+    | function_type
+    | metatype ;
+
+array_type_suffix =
+    "[", expression, "]" ;
+
+named_type =
+      builtin_type
+    | user_defined_type ;
+
+builtin_type =
+      "void"
+    | "bool"
+    | "int8"
+    | "int16"
+    | "int32"
+    | "int64"
+    | "uint8"
+    | "uint16"
+    | "uint32"
+    | "uint64"
+    | "float"
+    | "double" ;
+
+integer_type =
+      "int8"
+    | "int16"
+    | "int32"
+    | "int64"
+    | "uint8"
+    | "uint16"
+    | "uint32"
+    | "uint64" ;
+
+user_defined_type =
+    identifier, [ generic_argument_list ],
+    { ".", identifier, [ generic_argument_list ] } ;
+
+generic_argument_list =
+    "::", "[", generic_argument,
+    { ",", generic_argument }, "]" ;
+
+generic_argument =
+    expression ;
+
+tuple_type =
+    "(", type, ",", type,
+    { ",", type }, ")" ;
+
+grouped_type =
+    "(", type, ")" ;
+
+function_type =
+    [ linkage_specifier ], "func", "(",
+    [ type, { ",", type } ], ")", "->", type ;
+
+reference_type =
+    [ "const" ], "ref", type ;
+
+pointer_type =
+    [ "const" ], "ptr", type ;
+
+metatype =
+    "type" ;
+
+expression =
+      regular_expression
+    | comptime_expression ;
+
+regular_expression =
+    conditional_expression ;
+
+comptime_expression =
+    "comptime", regular_expression ;
+
+conditional_expression =
+    logical_or_expression,
+    [ "?", expression, ":", expression ] ;
+
+logical_or_expression =
+    logical_and_expression,
+    { "||", logical_and_expression } ;
+
+logical_and_expression =
+    bitwise_or_expression,
+    { "&&", bitwise_or_expression } ;
+
+bitwise_or_expression =
+    bitwise_xor_expression,
+    { "|", bitwise_xor_expression } ;
+
+bitwise_xor_expression =
+    bitwise_and_expression,
+    { "^", bitwise_and_expression } ;
+
+bitwise_and_expression =
+    equality_expression,
+    { "&", equality_expression } ;
+
+equality_expression =
+    relational_expression,
+    [ ( "==" | "!=" ), relational_expression ] ;
+
+relational_expression =
+    shift_expression,
+    [ ( "<" | "<=" | ">" | ">=" ), shift_expression ] ;
+
+shift_expression =
+    additive_expression,
+    { ( "<<" | ">>" ), additive_expression } ;
+
+additive_expression =
+    multiplicative_expression,
+    { ( "+" | "-" ), multiplicative_expression } ;
+
+multiplicative_expression =
+    unary_expression,
+    { ( "*" | "/" | "%" ), unary_expression } ;
+
+unary_expression =
+      postfix_expression
+    | unary_operator, unary_expression ;
+
+unary_operator =
+      "+"
+    | "-"
+    | "!"
+    | "~"
+    | "&" ;
+
+postfix_expression =
+    primary_expression, { postfix_operation } ;
+
+postfix_operation =
+      generic_argument_list
+    | call_suffix
+    | index_suffix
+    | member_suffix ;
+
+call_suffix =
+    "(", [ argument, { ",", argument } ], ")" ;
+
+argument =
+    expression ;
+
+index_suffix =
+    "[", expression, "]" ;
+
+member_suffix =
+    ".", identifier ;
+
+primary_expression =
+      literal
+    | keyword_value
+    | identifier
+    | builtin_type
+    | metatype
+    | parenthesized_expression
+    | tuple_expression
+    | array_expression
+    | object_construction_expression ;
+
+object_construction_expression =
+    user_defined_type, object_initializer ;
+
+object_initializer =
+    "{", [ expression, { ",", expression } ], "}" ;
+
+parenthesized_expression =
+    "(", expression, ")" ;
+
+tuple_expression =
+    "(", expression, ",", expression,
+    { ",", expression }, ")" ;
+
+array_expression =
+    "[", [ expression, { ",", expression } ], "]" ;
+
+literal =
+      integer_literal
+    | floating_literal
+    | string_literal ;
+
+keyword_value =
+      "true"
+    | "false"
+    | "null" ;
+
+integer_literal =
+      decimal_integer_literal
+    | binary_integer_literal
+    | octal_integer_literal
+    | hexadecimal_integer_literal ;
+
+decimal_integer_literal =
+    decimal_digit, { decimal_digit } ;
+
+binary_integer_literal =
+    ( "0b" | "0B" ), binary_digit, { binary_digit } ;
+
+octal_integer_literal =
+    ( "0o" | "0O" ), octal_digit, { octal_digit } ;
+
+hexadecimal_integer_literal =
+    ( "0x" | "0X" ), hexadecimal_digit,
+    { hexadecimal_digit } ;
+
+decimal_digit =
+    "0" | "1" | "2" | "3" | "4"
+  | "5" | "6" | "7" | "8" | "9" ;
+
+binary_digit = "0" | "1" ;
+
+octal_digit =
+    "0" | "1" | "2" | "3"
+  | "4" | "5" | "6" | "7" ;
+
+hexadecimal_digit =
+    decimal_digit
+  | "a" | "b" | "c" | "d" | "e" | "f"
+  | "A" | "B" | "C" | "D" | "E" | "F" ;
+
+floating_literal =
+    decimal_integer_literal, ".", decimal_integer_literal, [ decimal_exponent ]
+  | decimal_integer_literal, decimal_exponent ;
+
+decimal_exponent =
+    ( "e" | "E" ), [ "+" | "-" ], decimal_integer_literal ;
+
+string_literal =
+    escaped_string_literal
+  | raw_string_literal
+  | multiline_string_literal
+  | raw_multiline_string_literal ;
+
+escaped_string_literal =
+    '"', { string_character | escape_sequence }, '"' ;
+
+raw_string_literal =
+    "r", '"', { raw_string_character }, '"' ;
+
+multiline_string_literal =
+    '"""',
+    { multiline_string_character | escape_sequence },
+    '"""' ;
+
+raw_multiline_string_literal =
+    "r", '"""', { raw_multiline_string_character }, '"""' ;
+
+string_character =
+    ? any Unicode scalar value except
+      U+0022 QUOTATION MARK,
+      U+005C REVERSE SOLIDUS,
+      U+000A LINE FEED,
+      or U+000D CARRIAGE RETURN ? ;
+
+raw_string_character =
+    ? any Unicode scalar value except
+      U+0022 QUOTATION MARK,
+      U+000A LINE FEED,
+      or U+000D CARRIAGE RETURN ? ;
+
+multiline_string_character =
+    ? any Unicode scalar value other than
+      U+005C REVERSE SOLIDUS,
+      provided the current source position does not begin '"""' ? ;
+
+raw_multiline_string_character =
+    ? any Unicode scalar value,
+      provided the current source position does not begin '"""' ? ;
+
+escape_sequence =
+    simple_escape_sequence
+  | hexadecimal_escape_sequence
+  | unicode_escape_sequence ;
+
+simple_escape_sequence =
+    '\\',
+    ( '"' | '\\' | "0" | "a" | "b" | "f" | "n" | "r" | "t" | "v" ) ;
+
+hexadecimal_escape_sequence =
+    '\\', "x", hexadecimal_digit, hexadecimal_digit ;
+
+unicode_escape_sequence =
+    '\\', "u", "{", unicode_escape_digits, "}" ;
+
+unicode_escape_digits =
+    ? one to six hexadecimal_digit characters
+      whose numeric value is a Unicode scalar value ? ;
+
+identifier =
+    identifier_start, { identifier_continue } ;
+
+identifier_start =
+    "_" | ? Unicode character with the XID_Start property ? ;
+
+identifier_continue =
+    "_" | ? Unicode character with the XID_Continue property ? ;
+
+end_of_file = ? end of input ? ;
+
+trivia =
+    whitespace
+  | line_comment
+  | block_comment ;
+
+whitespace =
+    ? U+0020 SPACE ?
+  | ? U+0009 CHARACTER TABULATION ?
+  | ? U+000A LINE FEED ?
+  | ? U+000D CARRIAGE RETURN ? ;
+
+line_comment =
+    "//",
+    { ? any Unicode scalar value except
+        U+000A LINE FEED or U+000D CARRIAGE RETURN ? } ;
+
+block_comment =
+    "/*",
+    {
+        block_comment
+      | ? any Unicode scalar value, provided the current
+          source position does not begin "/*" or "*/" ?
+    },
+    "*/" ;
+
+keyword =
+    "as" | "bool" | "break"
+  | "class" | "class_field" | "comptime" | "const" | "continue"
+  | "defer" | "double"
+  | "else" | "enum" | "enum_field" | "extends" | "extern"
+  | "false" | "float" | "for" | "from" | "func"
+  | "if" | "implements" | "import" | "in"
+  | "int8" | "int16" | "int32" | "int64" | "interface"
+  | "let"
+  | "null"
+  | "private" | "ptr" | "public"
+  | "ref" | "return"
+  | "true" | "type"
+  | "uint8" | "uint16" | "uint32" | "uint64"
+  | "var" | "void"
+  | "while" ;
+
+access_modifier =
+      "public"
+    | "private" ;
+
+linkage_specifier =
+    "extern", string_literal ;
+
+import_statement =
+      "import", package_name, [ import_alias ], ";"
+    | "from", package_name, "import", identifier, [ import_alias ], ";" ;
+
+package_name =
+    identifier, { ".", identifier } ;
+
+import_alias =
+    "as", identifier ;
+
+statement =
+      block_statement
+    | import_statement
+    | declaration
+    | binding_statement
+    | class_field_statement
+    | enum_field_statement
+    | assignment_statement
+    | expression_statement
+    | if_statement
+    | while_statement
+    | for_statement
+    | break_statement
+    | continue_statement
+    | return_statement
+    | defer_statement
+    | comptime_statement ;
+
+comptime_statement =
+    "comptime", ( block_statement | if_statement | while_statement | for_statement ) ;
+
+block_statement =
+    "{", { statement }, "}" ;
+
+assignment =
+    assignment_target, assignment_operator, expression ;
+
+assignment_statement =
+    assignment, ";" ;
+
+assignment_target =
+    unary_expression ;
+
+assignment_operator =
+      "="
+    | "+="
+    | "-="
+    | "*="
+    | "/="
+    | "%="
+    | "&="
+    | "|="
+    | "^="
+    | "<<="
+    | ">>=" ;
+
+expression_statement =
+    expression, ";" ;
+
+if_statement =
+    "if", "(", expression, ")", block_statement,
+    { "else", "if", "(", expression, ")", block_statement },
+    [ "else", block_statement ] ;
+
+while_statement =
+    "while", "(", expression, ")", block_statement ;
+
+for_statement =
+    "for", "(", for_clause, ")", block_statement ;
+
+for_clause =
+      for_in_clause
+    | for_control_clause ;
+
+for_in_clause =
+    ( "let" | "var" ), binding_pattern, ":", type, "in", expression ;
+
+for_control_clause =
+    [ for_initializer ], ";", [ expression ], ";", [ for_update ] ;
+
+for_initializer =
+      binding_declaration
+    | assignment
+    | expression ;
+
+for_update =
+    ( assignment | expression ),
+    { ",", ( assignment | expression ) } ;
+
+break_statement =
+    "break", ";" ;
+
+continue_statement =
+    "continue", ";" ;
+
+return_statement =
+    "return", [ expression ], ";" ;
+
+defer_statement =
+    "defer", ( expression, ";" | block_statement ) ;
+
+binding_declaration =
+    binding_kind, binding_pattern, ":", type, "=", expression ;
+
+binding_kind =
+      "let"
+    | "var"
+    | "const" ;
+
+binding_pattern =
+      identifier
+    | "_"
+    | tuple_binding_pattern ;
+
+tuple_binding_pattern =
+    "(", binding_pattern, ",",
+    [ binding_pattern, { ",", binding_pattern }, [ "," ] ], ")" ;
+
+binding_statement =
+    binding_declaration, ";" ;
