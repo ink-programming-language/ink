@@ -1,0 +1,204 @@
+(* Lexical conventions:
+   Lexing uses maximal munch; keywords take precedence over identifiers.
+   trivia is discarded before, between, and after tokens, and cannot occur inside a token.
+   Recognizing '"""' at a token start commits to multiline_string_literal.
+   Failure to find its closing '"""' is a lexical error; tokenization does not backtrack.
+   Recognizing 'r"""' at a token start commits to raw_multiline_string_literal.
+   Failure to find its closing '"""' is a lexical error; tokenization does not backtrack.
+*)
+
+source_text =
+    { token | trivia }, end_of_file ;
+
+token_stream =
+    { token }, end_of_file ;
+
+token =
+      keyword
+    | identifier
+    | literal
+    | symbol ;
+
+slash_symbol =
+    "/",
+    ? provided the token start does not begin "//" or "/*" ? ;
+
+symbol =
+      "<<=" | ">>=" | "..."
+    | "+=" | "-=" | "*=" | "/=" | "%="
+    | "&=" | "|=" | "^="
+    | "||" | "&&"
+    | "==" | "!=" | "<=" | ">="
+    | "<<" | ">>"
+    | "::" | "->"
+    | "=" | "?"
+    | "|" | "^" | "&"
+    | "<" | ">"
+    | "+" | "-" | "*" | slash_symbol | "%"
+    | "!" | "~"
+    | "(" | ")" | "{" | "}" | "[" | "]"
+    | "," | ";" | ":" | "." | "_" ;
+
+literal =
+      integer_literal
+    | floating_literal
+    | string_literal ;
+
+integer_literal =
+      decimal_integer_literal
+    | binary_integer_literal
+    | octal_integer_literal
+    | hexadecimal_integer_literal ;
+
+decimal_integer_literal =
+    decimal_digit, { decimal_digit } ;
+
+binary_integer_literal =
+    ( "0b" | "0B" ), binary_digit, { binary_digit } ;
+
+octal_integer_literal =
+    ( "0o" | "0O" ), octal_digit, { octal_digit } ;
+
+hexadecimal_integer_literal =
+    ( "0x" | "0X" ), hexadecimal_digit,
+    { hexadecimal_digit } ;
+
+decimal_digit =
+    "0" | "1" | "2" | "3" | "4"
+  | "5" | "6" | "7" | "8" | "9" ;
+
+binary_digit = "0" | "1" ;
+
+octal_digit =
+    "0" | "1" | "2" | "3"
+  | "4" | "5" | "6" | "7" ;
+
+hexadecimal_digit =
+    decimal_digit
+  | "a" | "b" | "c" | "d" | "e" | "f"
+  | "A" | "B" | "C" | "D" | "E" | "F" ;
+
+floating_literal =
+    decimal_integer_literal, ".", decimal_integer_literal, [ decimal_exponent ]
+  | decimal_integer_literal, decimal_exponent ;
+
+decimal_exponent =
+    ( "e" | "E" ), [ "+" | "-" ], decimal_integer_literal ;
+
+string_literal =
+    escaped_string_literal
+  | raw_string_literal
+  | multiline_string_literal
+  | raw_multiline_string_literal ;
+
+escaped_string_literal =
+    '"', { string_character | escape_sequence }, '"' ;
+
+raw_string_literal =
+    "r", '"', { raw_string_character }, '"' ;
+
+multiline_string_literal =
+    '"""',
+    { multiline_string_character | escape_sequence },
+    '"""' ;
+
+raw_multiline_string_literal =
+    "r", '"""', { raw_multiline_string_character }, '"""' ;
+
+string_character =
+    ? any Unicode scalar value except
+      U+0022 QUOTATION MARK,
+      U+005C REVERSE SOLIDUS,
+      U+000A LINE FEED,
+      or U+000D CARRIAGE RETURN ? ;
+
+raw_string_character =
+    ? any Unicode scalar value except
+      U+0022 QUOTATION MARK,
+      U+000A LINE FEED,
+      or U+000D CARRIAGE RETURN ? ;
+
+multiline_string_character =
+    ? any Unicode scalar value other than
+      U+005C REVERSE SOLIDUS,
+      provided the current source position does not begin '"""' ? ;
+
+raw_multiline_string_character =
+    ? any Unicode scalar value,
+      provided the current source position does not begin '"""' ? ;
+
+escape_sequence =
+    simple_escape_sequence
+  | hexadecimal_escape_sequence
+  | unicode_escape_sequence ;
+
+simple_escape_sequence =
+    '\',
+    ( '"' | '\' | "0" | "a" | "b" | "f" | "n" | "r" | "t" | "v" ) ;
+
+hexadecimal_escape_sequence =
+    '\', "x", hexadecimal_digit, hexadecimal_digit ;
+
+unicode_escape_sequence =
+    '\', "u", "{", unicode_escape_digits, "}" ;
+
+unicode_escape_digits =
+    ? one to six hexadecimal_digit characters
+      whose numeric value is a Unicode scalar value ? ;
+
+identifier =
+    identifier_start, { identifier_continue },
+    ? provided the complete spelling is NFC-normalized,
+      is not "_", and is not a keyword ? ;
+
+identifier_start =
+    "_" | ? Unicode character with the XID_Start property ? ;
+
+identifier_continue =
+    "_" | ? Unicode character with the XID_Continue property ? ;
+
+end_of_file = ? end of input ? ;
+
+trivia =
+    whitespace
+  | line_comment
+  | block_comment ;
+
+whitespace =
+    ? U+0020 SPACE ?
+  | ? U+0009 CHARACTER TABULATION ?
+  | ? U+000A LINE FEED ?
+  | ? U+000D CARRIAGE RETURN ? ;
+
+line_comment =
+    "//",
+    { ? any Unicode scalar value except
+        U+000A LINE FEED or U+000D CARRIAGE RETURN ? } ;
+
+block_comment =
+    "/*",
+    {
+        block_comment
+      | ? any Unicode scalar value, provided the current
+          source position does not begin "/*" or "*/" ?
+    },
+    "*/" ;
+
+keyword =
+    "as" | "bool" | "break"
+  | "class" | "class_field" | "class_method"
+  | "comptime" | "const" | "continue"
+  | "defer" | "double"
+  | "else" | "enum" | "enum_field" | "extends" | "extern"
+  | "false" | "float" | "for" | "from" | "func"
+  | "if" | "implements" | "import" | "in"
+  | "int8" | "int16" | "int32" | "int64" | "interface"
+  | "let"
+  | "null"
+  | "private" | "ptr" | "public"
+  | "ref" | "return"
+  | "self" | "super"
+  | "true" | "type"
+  | "uint8" | "uint16" | "uint32" | "uint64"
+  | "var" | "void"
+  | "while" ;

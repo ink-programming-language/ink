@@ -1,3 +1,7 @@
+(* The lexical grammar and tokenization conventions are defined in lexer.bnf.
+   This syntactic grammar operates on the tokens produced by that grammar.
+*)
+
 source_file =
     { module_declaration }, end_of_file ;
 
@@ -14,22 +18,64 @@ function_declaration =
     [ access_modifier ], [ linkage_specifier ],
     function_signature, ( function_body | ";" ) ;
 
+function_introducer =
+      [ "const" ], "func"
+    | "class_method" ;
+
 function_signature =
-    "func", identifier, [ generic_parameter_list ],
+    function_introducer, identifier, [ generic_parameter_list ],
     parameter_list, "->", type ;
 
 generic_parameter_list =
-    "[", generic_parameter,
-    { ",", generic_parameter }, "]" ;
+    "[",
+    (
+        generic_parameter, { ",", generic_parameter },
+        [ ",", default_generic_parameter,
+          { ",", default_generic_parameter } ],
+        [ ",", variadic_generic_parameter ]
+      | default_generic_parameter,
+        { ",", default_generic_parameter },
+        [ ",", variadic_generic_parameter ]
+      | variadic_generic_parameter
+    ),
+    "]" ;
 
 generic_parameter =
-    identifier, ":", type, [ "=", expression ] ;
+    identifier, ":", type ;
+
+default_generic_parameter =
+    generic_parameter, "=", expression ;
+
+variadic_generic_parameter =
+    generic_parameter, "..." ;
 
 parameter_list =
-    "(", [ parameter, { ",", parameter } ], ")" ;
+    "(",
+    [
+        parameter, { ",", parameter },
+        [ ",", default_parameter, { ",", default_parameter } ],
+        [ ",", ( variadic_typed_parameter | variadic_parameter ) ]
+      | default_parameter, { ",", default_parameter },
+        [ ",", ( variadic_typed_parameter | variadic_parameter ) ]
+      | variadic_typed_parameter
+      | variadic_parameter
+    ],
+    ")" ;
 
 parameter =
-    binding_pattern, ":", type, [ "=", expression ] ;
+    binding_pattern, ":", type ;
+
+default_parameter =
+    parameter, "=", expression ;
+
+variadic_parameter =
+    "..." ;
+
+variadic_typed_parameter =
+    parameter, "..." ;
+
+variadic_type =
+    type, "..." ;
 
 function_body =
     block_statement ;
@@ -79,6 +125,7 @@ class_field_statement =
 type =
       reference_type
     | pointer_type
+    | function_type
     | postfix_type ;
 
 postfix_type =
@@ -88,7 +135,6 @@ primary_type =
       named_type
     | tuple_type
     | grouped_type
-    | function_type
     | metatype ;
 
 array_type_suffix =
@@ -127,8 +173,13 @@ user_defined_type =
     { ".", identifier, [ generic_argument_list ] } ;
 
 generic_argument_list =
-    "::", "[", generic_argument,
-    { ",", generic_argument }, "]" ;
+    "::", "[",
+    (
+        generic_argument, { ",", generic_argument },
+        [ ",", pack_expansion ]
+      | pack_expansion
+    ),
+    "]" ;
 
 generic_argument =
     expression ;
@@ -142,7 +193,13 @@ grouped_type =
 
 function_type =
     [ linkage_specifier ], "func", "(",
-    [ type, { ",", type } ], ")", "->", type ;
+    [
+        type, { ",", type },
+        [ ",", ( variadic_type | variadic_parameter ) ]
+      | variadic_type
+      | variadic_parameter
+    ],
+    ")", "->", type ;
 
 reference_type =
     [ "const" ], "ref", type ;
@@ -216,10 +273,14 @@ unary_operator =
     | "-"
     | "!"
     | "~"
-    | "&" ;
+    | "&"
+    | "*" ;
 
 postfix_expression =
-    primary_expression, { postfix_operation } ;
+      primary_expression, { postfix_operation }
+    | reference_type
+    | pointer_type
+    | function_type ;
 
 postfix_operation =
       generic_argument_list
@@ -228,20 +289,29 @@ postfix_operation =
     | member_suffix ;
 
 call_suffix =
-    "(", [ argument, { ",", argument } ], ")" ;
+    "(", [ argument_list ], ")" ;
 
 argument =
     expression ;
+
+pack_expansion =
+    expression, "..." ;
+
+argument_list =
+      argument, { ",", argument }, [ ",", pack_expansion ]
+    | pack_expansion ;
 
 index_suffix =
     "[", expression, "]" ;
 
 member_suffix =
-    ".", identifier ;
+      ".", identifier
+    | "->", identifier ;
 
 primary_expression =
       literal
     | keyword_value
+    | receiver_expression
     | identifier
     | builtin_type
     | metatype
@@ -254,7 +324,7 @@ object_construction_expression =
     user_defined_type, object_initializer ;
 
 object_initializer =
-    "{", [ expression, { ",", expression } ], "}" ;
+    "{", [ argument_list ], "}" ;
 
 parenthesized_expression =
     "(", expression, ")" ;
@@ -266,170 +336,14 @@ tuple_expression =
 array_expression =
     "[", [ expression, { ",", expression } ], "]" ;
 
-literal =
-      integer_literal
-    | floating_literal
-    | string_literal ;
-
 keyword_value =
       "true"
     | "false"
     | "null" ;
 
-integer_literal =
-      decimal_integer_literal
-    | binary_integer_literal
-    | octal_integer_literal
-    | hexadecimal_integer_literal ;
-
-decimal_integer_literal =
-    decimal_digit, { decimal_digit } ;
-
-binary_integer_literal =
-    ( "0b" | "0B" ), binary_digit, { binary_digit } ;
-
-octal_integer_literal =
-    ( "0o" | "0O" ), octal_digit, { octal_digit } ;
-
-hexadecimal_integer_literal =
-    ( "0x" | "0X" ), hexadecimal_digit,
-    { hexadecimal_digit } ;
-
-decimal_digit =
-    "0" | "1" | "2" | "3" | "4"
-  | "5" | "6" | "7" | "8" | "9" ;
-
-binary_digit = "0" | "1" ;
-
-octal_digit =
-    "0" | "1" | "2" | "3"
-  | "4" | "5" | "6" | "7" ;
-
-hexadecimal_digit =
-    decimal_digit
-  | "a" | "b" | "c" | "d" | "e" | "f"
-  | "A" | "B" | "C" | "D" | "E" | "F" ;
-
-floating_literal =
-    decimal_integer_literal, ".", decimal_integer_literal, [ decimal_exponent ]
-  | decimal_integer_literal, decimal_exponent ;
-
-decimal_exponent =
-    ( "e" | "E" ), [ "+" | "-" ], decimal_integer_literal ;
-
-string_literal =
-    escaped_string_literal
-  | raw_string_literal
-  | multiline_string_literal
-  | raw_multiline_string_literal ;
-
-escaped_string_literal =
-    '"', { string_character | escape_sequence }, '"' ;
-
-raw_string_literal =
-    "r", '"', { raw_string_character }, '"' ;
-
-multiline_string_literal =
-    '"""',
-    { multiline_string_character | escape_sequence },
-    '"""' ;
-
-raw_multiline_string_literal =
-    "r", '"""', { raw_multiline_string_character }, '"""' ;
-
-string_character =
-    ? any Unicode scalar value except
-      U+0022 QUOTATION MARK,
-      U+005C REVERSE SOLIDUS,
-      U+000A LINE FEED,
-      or U+000D CARRIAGE RETURN ? ;
-
-raw_string_character =
-    ? any Unicode scalar value except
-      U+0022 QUOTATION MARK,
-      U+000A LINE FEED,
-      or U+000D CARRIAGE RETURN ? ;
-
-multiline_string_character =
-    ? any Unicode scalar value other than
-      U+005C REVERSE SOLIDUS,
-      provided the current source position does not begin '"""' ? ;
-
-raw_multiline_string_character =
-    ? any Unicode scalar value,
-      provided the current source position does not begin '"""' ? ;
-
-escape_sequence =
-    simple_escape_sequence
-  | hexadecimal_escape_sequence
-  | unicode_escape_sequence ;
-
-simple_escape_sequence =
-    '\\',
-    ( '"' | '\\' | "0" | "a" | "b" | "f" | "n" | "r" | "t" | "v" ) ;
-
-hexadecimal_escape_sequence =
-    '\\', "x", hexadecimal_digit, hexadecimal_digit ;
-
-unicode_escape_sequence =
-    '\\', "u", "{", unicode_escape_digits, "}" ;
-
-unicode_escape_digits =
-    ? one to six hexadecimal_digit characters
-      whose numeric value is a Unicode scalar value ? ;
-
-identifier =
-    identifier_start, { identifier_continue } ;
-
-identifier_start =
-    "_" | ? Unicode character with the XID_Start property ? ;
-
-identifier_continue =
-    "_" | ? Unicode character with the XID_Continue property ? ;
-
-end_of_file = ? end of input ? ;
-
-trivia =
-    whitespace
-  | line_comment
-  | block_comment ;
-
-whitespace =
-    ? U+0020 SPACE ?
-  | ? U+0009 CHARACTER TABULATION ?
-  | ? U+000A LINE FEED ?
-  | ? U+000D CARRIAGE RETURN ? ;
-
-line_comment =
-    "//",
-    { ? any Unicode scalar value except
-        U+000A LINE FEED or U+000D CARRIAGE RETURN ? } ;
-
-block_comment =
-    "/*",
-    {
-        block_comment
-      | ? any Unicode scalar value, provided the current
-          source position does not begin "/*" or "*/" ?
-    },
-    "*/" ;
-
-keyword =
-    "as" | "bool" | "break"
-  | "class" | "class_field" | "comptime" | "const" | "continue"
-  | "defer" | "double"
-  | "else" | "enum" | "enum_field" | "extends" | "extern"
-  | "false" | "float" | "for" | "from" | "func"
-  | "if" | "implements" | "import" | "in"
-  | "int8" | "int16" | "int32" | "int64" | "interface"
-  | "let"
-  | "null"
-  | "private" | "ptr" | "public"
-  | "ref" | "return"
-  | "true" | "type"
-  | "uint8" | "uint16" | "uint32" | "uint64"
-  | "var" | "void"
-  | "while" ;
+receiver_expression =
+      "self"
+    | "super" ;
 
 access_modifier =
       "public"
@@ -553,8 +467,8 @@ binding_pattern =
     | tuple_binding_pattern ;
 
 tuple_binding_pattern =
-    "(", binding_pattern, ",",
-    [ binding_pattern, { ",", binding_pattern }, [ "," ] ], ")" ;
+    "(", binding_pattern, ",", binding_pattern,
+    { ",", binding_pattern }, ")" ;
 
 binding_statement =
-    binding_declaration, ";" ;
+    [ access_modifier ], binding_declaration, ";" ;
