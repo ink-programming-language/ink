@@ -434,8 +434,8 @@ for_control_clause =
 
 for_initializer =
       binding_declaration
-    | assignment
-    | expression ;
+    | ( assignment | expression ),
+      { ",", ( assignment | expression ) } ;
 
 for_update =
     ( assignment | expression ),
@@ -451,7 +451,7 @@ return_statement =
     "return", [ expression ], ";" ;
 
 defer_statement =
-    "defer", ( expression, ";" | block_statement ) ;
+    "defer", ( expression, ";" | assignment, ";" | block_statement ) ;
 
 binding_declaration =
     binding_kind, binding_pattern, ":", type, "=", expression ;
