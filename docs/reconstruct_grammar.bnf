@@ -1,0 +1,696 @@
+(* Reconstructed LL(1) syntactic grammar.
+
+   The lexical grammar, maximal-munch rules, keyword classification, and
+   token spellings are defined in lexer.bnf. identifier, integer_literal,
+   floating_literal, string_literal, and end_of_file are imported lexical
+   categories. Quoted terminals below denote complete tokens.
+
+   Notation:
+   - Alternatives use "|", concatenation uses ",", and an optional sequence
+     uses "[ ... ]". A missing optional sequence consumes no tokens.
+   - There are no syntactic or semantic predicates. The normal and header
+     expression families encode the declaration-body boundary explicitly.
+   - Production choices depend only on the next token. Rule names describe
+     syntax, never the result of name lookup or compile-time evaluation.
+
+   Compile-time evaluation:
+   - Every expression in a type position is implicitly comptime and must
+     evaluate to a type value. A failed evaluation or a non-type result is
+     an error, with no runtime fallback. For example,
+     "let x: makeType() = value;" evaluates makeType() at compile time;
+     the initializer value is not thereby made comptime.
+   - Type positions include the expression after a binding or parameter
+     colon, generic-parameter annotations, fields, inheritance and enum-base
+     clauses, function parameter types, function results, and ref/ptr operands.
+   - Tuple and array type spellings use the same syntax as tuple expressions
+     and indexing. Their interpretation as types is checked during evaluation.
+     An enum base must additionally evaluate to an integer type.
+   - Explicit comptime expressions and statements must evaluate or execute
+     at compile time; failure is an error.
+
+   Scope and grouping:
+   - At statement start, comptime applies to the complete following statement.
+     Within an expression, comptime consumes one unary operand. Parentheses
+     extend that operand to a larger expression.
+   - ref/ptr operands and the result of a function type consume one unary
+     expression; larger computations require parentheses, for example
+     "ptr (flag ? T : U)" and "func() -> (flag ? T : U)".
+   - Header expressions cannot consume an outer object initializer. Parentheses,
+     call arguments, indices, generic arguments, array elements, and function
+     type parameters use normal expressions within their delimiters.
+   - Repeated binary operators retain the precedence and left associativity
+     of grammar.bnf. Conditional expressions associate to the right.
+   - Assignment remains a statement operation with a unary-expression left
+     side. Whether that expression is writable is checked semantically.
+*)
+
+(* Source files and statement dispatch. A leading comptime has exactly one entry. *)
+
+source_file =
+    statement_list, end_of_file ;
+
+statement_list =
+    [ statement, statement_list ] ;
+
+statement =
+      "comptime", statement
+    | block_statement
+    | import_statement
+    | "class", class_declaration_tail
+    | "interface", interface_declaration_tail
+    | "enum", enum_declaration_tail
+    | "class_method", named_function_declaration_tail
+    | "class_field", class_field_declaration_tail
+    | "enum_field", enum_field_declaration_tail
+    | "public", access_declaration_tail
+    | "private", access_declaration_tail
+    | "const", const_statement_tail
+    | "func", function_statement_tail
+    | "extern", extern_statement_tail
+    | "let", binding_declaration_tail, ";"
+    | "var", binding_declaration_tail, ";"
+    | if_statement
+    | while_statement
+    | for_statement
+    | "break", ";"
+    | "continue", ";"
+    | "return", optional_expression, ";"
+    | "defer", defer_statement_tail
+    | basic_unary_expression, expression_or_assignment_tail, ";" ;
+
+block_statement =
+    "{", statement_list, "}" ;
+
+(* Declaration prefixes are consumed before choosing their continuations. *)
+
+access_declaration_tail =
+      "class", class_declaration_tail
+    | "interface", interface_declaration_tail
+    | "enum", enum_declaration_tail
+    | "func", named_function_declaration_tail
+    | "class_method", named_function_declaration_tail
+    | "extern", string_literal, extern_function_declaration_tail
+    | "const", const_declaration_tail
+    | "let", binding_declaration_tail, ";"
+    | "var", binding_declaration_tail, ";"
+    | "class_field", class_field_declaration_tail ;
+
+const_statement_tail =
+      const_declaration_tail
+    | "ref", unary_expression, expression_or_assignment_tail, ";"
+    | "ptr", unary_expression, expression_or_assignment_tail, ";" ;
+
+const_declaration_tail =
+      "func", named_function_declaration_tail
+    | "class_field", class_field_declaration_tail
+    | binding_declaration_tail, ";" ;
+
+function_statement_tail =
+      named_function_declaration_tail
+    | function_type_tail, expression_or_assignment_tail, ";" ;
+
+extern_statement_tail =
+    string_literal, extern_statement_after_linkage ;
+
+extern_statement_after_linkage =
+      "func", function_statement_tail
+    | "const", "func", named_function_declaration_tail
+    | "class_method", named_function_declaration_tail ;
+
+extern_function_declaration_tail =
+      "func", named_function_declaration_tail
+    | "const", "func", named_function_declaration_tail
+    | "class_method", named_function_declaration_tail ;
+
+named_function_declaration_tail =
+    identifier, optional_generic_parameter_list, parameter_list, "->", header_expression, function_declaration_end ;
+
+function_declaration_end =
+      block_statement
+    | ";" ;
+
+class_declaration_tail =
+    identifier, optional_generic_parameter_list, optional_class_inheritance_clause, block_statement ;
+
+interface_declaration_tail =
+    identifier, optional_generic_parameter_list, optional_interface_inheritance_clause, block_statement ;
+
+enum_declaration_tail =
+    identifier, optional_generic_parameter_list, optional_enum_base_clause, block_statement ;
+
+optional_class_inheritance_clause =
+    [
+        "extends", header_expression, optional_implements_clause
+      | "implements", header_type_list
+    ] ;
+
+optional_interface_inheritance_clause =
+    [ "extends", header_type_list ] ;
+
+optional_enum_base_clause =
+    [
+        ":", header_expression, optional_implements_clause
+      | "implements", header_type_list
+    ] ;
+
+optional_implements_clause =
+    [ "implements", header_type_list ] ;
+
+header_type_list =
+    header_expression, header_type_list_tail ;
+
+header_type_list_tail =
+    [ ",", header_type_list ] ;
+
+class_field_declaration_tail =
+    identifier, ":", expression, optional_field_initializer, ";" ;
+
+enum_field_declaration_tail =
+    identifier, optional_field_initializer, ";" ;
+
+optional_field_initializer =
+    [ "=", expression ] ;
+
+binding_declaration_tail =
+    binding_pattern, ":", expression, "=", expression ;
+
+(* Binding patterns and parameter lists. Separate default-parameter continuations preserve ordering; a pack terminates its list. *)
+
+binding_pattern =
+      identifier
+    | "_"
+    | "(", binding_pattern, ",", binding_pattern, tuple_binding_pattern_tail, ")" ;
+
+tuple_binding_pattern_tail =
+    [ ",", binding_pattern, tuple_binding_pattern_tail ] ;
+
+parameter_list =
+    "(", optional_parameter_sequence, ")" ;
+
+optional_parameter_sequence =
+    [ parameter_sequence ] ;
+
+parameter_sequence =
+      "..."
+    | parameter_core, parameter_sequence_tail ;
+
+parameter_core =
+    binding_pattern, ":", expression ;
+
+parameter_sequence_tail =
+    [
+        "..."
+      | "=", expression, default_parameter_sequence_tail
+      | ",", parameter_sequence
+    ] ;
+
+default_parameter_sequence_tail =
+    [ ",", default_parameter_sequence ] ;
+
+default_parameter_sequence =
+      "..."
+    | parameter_core, default_parameter_suffix ;
+
+default_parameter_suffix =
+      "..."
+    | "=", expression, default_parameter_sequence_tail ;
+
+optional_generic_parameter_list =
+    [ generic_parameter_list ] ;
+
+generic_parameter_list =
+    "[", generic_parameter_sequence, "]" ;
+
+generic_parameter_sequence =
+    identifier, ":", expression, generic_parameter_sequence_tail ;
+
+generic_parameter_sequence_tail =
+    [
+        "..."
+      | "=", expression, default_generic_parameter_sequence_tail
+      | ",", generic_parameter_sequence
+    ] ;
+
+default_generic_parameter_sequence_tail =
+    [ ",", default_generic_parameter_sequence ] ;
+
+default_generic_parameter_sequence =
+    identifier, ":", expression, default_generic_parameter_suffix ;
+
+default_generic_parameter_suffix =
+      "..."
+    | "=", expression, default_generic_parameter_sequence_tail ;
+
+optional_function_type_parameters =
+    [
+        "..."
+      | expression, function_type_parameter_tail
+    ] ;
+
+function_type_parameter_sequence =
+      "..."
+    | expression, function_type_parameter_tail ;
+
+function_type_parameter_tail =
+    [
+        "..."
+      | ",", function_type_parameter_sequence
+    ] ;
+
+(* Imports, control flow, and expression-or-assignment continuations. *)
+
+import_statement =
+      "import", package_name, optional_import_alias, ";"
+    | "from", package_name, "import", identifier, optional_import_alias, ";" ;
+
+package_name =
+    identifier, package_name_tail ;
+
+package_name_tail =
+    [ ".", identifier, package_name_tail ] ;
+
+optional_import_alias =
+    [ "as", identifier ] ;
+
+if_statement =
+    "if", "(", expression, ")", block_statement, optional_else_clause ;
+
+optional_else_clause =
+    [ "else", else_body ] ;
+
+else_body =
+      if_statement
+    | block_statement ;
+
+while_statement =
+    "while", "(", expression, ")", block_statement ;
+
+for_statement =
+    "for", "(", for_clause, ")", block_statement ;
+
+for_clause =
+      "let", for_binding_after_kind
+    | "var", for_binding_after_kind
+    | "const", for_const_initializer_tail
+    | non_const_unary_expression, expression_or_assignment_tail, expression_or_assignment_list_tail, for_control_tail
+    | for_control_tail ;
+
+for_binding_after_kind =
+    binding_pattern, ":", expression, for_binding_tail ;
+
+for_binding_tail =
+      "in", expression
+    | "=", expression, for_control_tail ;
+
+for_const_initializer_tail =
+      binding_declaration_tail, for_control_tail
+    | "ref", unary_expression, expression_or_assignment_tail, expression_or_assignment_list_tail, for_control_tail
+    | "ptr", unary_expression, expression_or_assignment_tail, expression_or_assignment_list_tail, for_control_tail ;
+
+for_control_tail =
+    ";", optional_expression, ";", optional_expression_or_assignment_list ;
+
+defer_statement_tail =
+      block_statement
+    | expression_or_assignment, ";" ;
+
+optional_expression =
+    [ expression ] ;
+
+expression_or_assignment =
+    unary_expression, expression_or_assignment_tail ;
+
+expression_or_assignment_tail =
+      assignment_operator, expression
+    | expression_tail_after_unary ;
+
+optional_expression_or_assignment_list =
+    [ expression_or_assignment_list ] ;
+
+expression_or_assignment_list =
+    expression_or_assignment, expression_or_assignment_list_tail ;
+
+expression_or_assignment_list_tail =
+    [ ",", expression_or_assignment_list ] ;
+
+assignment_operator =
+      "="
+    | "+="
+    | "-="
+    | "*="
+    | "/="
+    | "%="
+    | "&="
+    | "|="
+    | "^="
+    | "<<="
+    | ">>=" ;
+
+(* Shared delimited expressions. Parentheses and brackets return to the normal expression family. *)
+
+argument_list =
+    expression, argument_list_tail ;
+
+argument_list_tail =
+    [
+        "..."
+      | ",", argument_list
+    ] ;
+
+optional_argument_list =
+    [ argument_list ] ;
+
+generic_argument_list =
+    "::", "[", argument_list, "]" ;
+
+call_suffix =
+    "(", optional_argument_list, ")" ;
+
+index_suffix =
+    "[", expression, "]" ;
+
+object_initializer =
+    "{", optional_argument_list, "}" ;
+
+optional_array_elements =
+    [ expression, expression_list_tail ] ;
+
+expression_list_tail =
+    [ ",", expression, expression_list_tail ] ;
+
+parenthesized_expression_tail =
+    [ ",", expression, expression_list_tail ] ;
+
+literal_expression =
+      integer_literal
+    | floating_literal
+    | string_literal ;
+
+non_name_primary_expression =
+      literal_expression
+    | "void"
+    | "bool"
+    | "int8"
+    | "int16"
+    | "int32"
+    | "int64"
+    | "uint8"
+    | "uint16"
+    | "uint32"
+    | "uint64"
+    | "float"
+    | "double"
+    | "type"
+    | "true"
+    | "false"
+    | "null"
+    | "self"
+    | "super"
+    | "(", expression, parenthesized_expression_tail, ")"
+    | "[", optional_array_elements, "]" ;
+
+(* Normal expressions. A complete unary prefix is consumed before parsing operator continuations. *)
+
+expression =
+    logical_or_expression, conditional_expression_tail ;
+
+conditional_expression_tail =
+    [ "?", expression, ":", expression ] ;
+
+logical_or_expression =
+    logical_and_expression, logical_or_expression_tail ;
+
+logical_or_expression_tail =
+    [ "||", logical_and_expression, logical_or_expression_tail ] ;
+
+logical_and_expression =
+    bitwise_or_expression, logical_and_expression_tail ;
+
+logical_and_expression_tail =
+    [ "&&", bitwise_or_expression, logical_and_expression_tail ] ;
+
+bitwise_or_expression =
+    bitwise_xor_expression, bitwise_or_expression_tail ;
+
+bitwise_or_expression_tail =
+    [ "|", bitwise_xor_expression, bitwise_or_expression_tail ] ;
+
+bitwise_xor_expression =
+    bitwise_and_expression, bitwise_xor_expression_tail ;
+
+bitwise_xor_expression_tail =
+    [ "^", bitwise_and_expression, bitwise_xor_expression_tail ] ;
+
+bitwise_and_expression =
+    equality_expression, bitwise_and_expression_tail ;
+
+bitwise_and_expression_tail =
+    [ "&", equality_expression, bitwise_and_expression_tail ] ;
+
+equality_expression =
+    relational_expression, equality_expression_tail ;
+
+equality_expression_tail =
+    [
+        "==", relational_expression
+      | "!=", relational_expression
+    ] ;
+
+relational_expression =
+    shift_expression, relational_expression_tail ;
+
+relational_expression_tail =
+    [
+        "<", shift_expression
+      | "<=", shift_expression
+      | ">", shift_expression
+      | ">=", shift_expression
+    ] ;
+
+shift_expression =
+    additive_expression, shift_expression_tail ;
+
+shift_expression_tail =
+    [
+        "<<", additive_expression, shift_expression_tail
+      | ">>", additive_expression, shift_expression_tail
+    ] ;
+
+additive_expression =
+    multiplicative_expression, additive_expression_tail ;
+
+additive_expression_tail =
+    [
+        "+", multiplicative_expression, additive_expression_tail
+      | "-", multiplicative_expression, additive_expression_tail
+    ] ;
+
+multiplicative_expression =
+    unary_expression, multiplicative_expression_tail ;
+
+multiplicative_expression_tail =
+    [
+        "*", unary_expression, multiplicative_expression_tail
+      | "/", unary_expression, multiplicative_expression_tail
+      | "%", unary_expression, multiplicative_expression_tail
+    ] ;
+
+expression_tail_after_unary =
+    multiplicative_expression_tail, additive_expression_tail, shift_expression_tail, relational_expression_tail, equality_expression_tail, bitwise_and_expression_tail, bitwise_xor_expression_tail, bitwise_or_expression_tail, logical_and_expression_tail, logical_or_expression_tail, conditional_expression_tail ;
+
+unary_expression =
+      non_const_unary_expression
+    | "const", const_type_expression_tail ;
+
+non_const_unary_expression =
+      basic_unary_expression
+    | "comptime", unary_expression
+    | "func", function_type_tail
+    | "extern", string_literal, "func", function_type_tail ;
+
+basic_unary_expression =
+      unary_operator, unary_expression
+    | "ref", unary_expression
+    | "ptr", unary_expression
+    | postfix_expression ;
+
+const_type_expression_tail =
+      "ref", unary_expression
+    | "ptr", unary_expression ;
+
+function_type_tail =
+    "(", optional_function_type_parameters, ")", "->", unary_expression ;
+
+unary_operator =
+      "+"
+    | "-"
+    | "!"
+    | "~"
+    | "&"
+    | "*" ;
+
+(* Named postfix paths. named_path_tail permits one generic argument list on the current segment; instantiated_named_path_tail records that it has been used. Calls, indices, pointer-member access, or repeated instantiation enter postfix_tail, which cannot later accept an object initializer. No name or type lookup is involved. *)
+
+postfix_expression =
+      identifier, named_path_tail
+    | non_name_primary_expression, postfix_tail ;
+
+named_path_tail =
+    [
+        ".", identifier, named_path_tail
+      | generic_argument_list, instantiated_named_path_tail
+      | call_suffix, postfix_tail
+      | index_suffix, postfix_tail
+      | "->", identifier, postfix_tail
+      | object_initializer, postfix_tail
+    ] ;
+
+instantiated_named_path_tail =
+    [
+        ".", identifier, named_path_tail
+      | generic_argument_list, postfix_tail
+      | call_suffix, postfix_tail
+      | index_suffix, postfix_tail
+      | "->", identifier, postfix_tail
+      | object_initializer, postfix_tail
+    ] ;
+
+postfix_tail =
+    [
+        generic_argument_list, postfix_tail
+      | call_suffix, postfix_tail
+      | index_suffix, postfix_tail
+      | ".", identifier, postfix_tail
+      | "->", identifier, postfix_tail
+    ] ;
+
+(* Header expressions. These mirror normal precedence, but their named paths have no object-initializer branch. Thus an outer opening brace remains available to the enclosing declaration body. *)
+
+header_expression =
+    header_logical_or_expression, header_conditional_expression_tail ;
+
+header_conditional_expression_tail =
+    [ "?", header_expression, ":", header_expression ] ;
+
+header_logical_or_expression =
+    header_logical_and_expression, header_logical_or_expression_tail ;
+
+header_logical_or_expression_tail =
+    [ "||", header_logical_and_expression, header_logical_or_expression_tail ] ;
+
+header_logical_and_expression =
+    header_bitwise_or_expression, header_logical_and_expression_tail ;
+
+header_logical_and_expression_tail =
+    [ "&&", header_bitwise_or_expression, header_logical_and_expression_tail ] ;
+
+header_bitwise_or_expression =
+    header_bitwise_xor_expression, header_bitwise_or_expression_tail ;
+
+header_bitwise_or_expression_tail =
+    [ "|", header_bitwise_xor_expression, header_bitwise_or_expression_tail ] ;
+
+header_bitwise_xor_expression =
+    header_bitwise_and_expression, header_bitwise_xor_expression_tail ;
+
+header_bitwise_xor_expression_tail =
+    [ "^", header_bitwise_and_expression, header_bitwise_xor_expression_tail ] ;
+
+header_bitwise_and_expression =
+    header_equality_expression, header_bitwise_and_expression_tail ;
+
+header_bitwise_and_expression_tail =
+    [ "&", header_equality_expression, header_bitwise_and_expression_tail ] ;
+
+header_equality_expression =
+    header_relational_expression, header_equality_expression_tail ;
+
+header_equality_expression_tail =
+    [
+        "==", header_relational_expression
+      | "!=", header_relational_expression
+    ] ;
+
+header_relational_expression =
+    header_shift_expression, header_relational_expression_tail ;
+
+header_relational_expression_tail =
+    [
+        "<", header_shift_expression
+      | "<=", header_shift_expression
+      | ">", header_shift_expression
+      | ">=", header_shift_expression
+    ] ;
+
+header_shift_expression =
+    header_additive_expression, header_shift_expression_tail ;
+
+header_shift_expression_tail =
+    [
+        "<<", header_additive_expression, header_shift_expression_tail
+      | ">>", header_additive_expression, header_shift_expression_tail
+    ] ;
+
+header_additive_expression =
+    header_multiplicative_expression, header_additive_expression_tail ;
+
+header_additive_expression_tail =
+    [
+        "+", header_multiplicative_expression, header_additive_expression_tail
+      | "-", header_multiplicative_expression, header_additive_expression_tail
+    ] ;
+
+header_multiplicative_expression =
+    header_unary_expression, header_multiplicative_expression_tail ;
+
+header_multiplicative_expression_tail =
+    [
+        "*", header_unary_expression, header_multiplicative_expression_tail
+      | "/", header_unary_expression, header_multiplicative_expression_tail
+      | "%", header_unary_expression, header_multiplicative_expression_tail
+    ] ;
+
+header_unary_expression =
+      header_non_const_unary_expression
+    | "const", header_const_type_expression_tail ;
+
+header_non_const_unary_expression =
+      header_basic_unary_expression
+    | "comptime", header_unary_expression
+    | "func", header_function_type_tail
+    | "extern", string_literal, "func", header_function_type_tail ;
+
+header_basic_unary_expression =
+      unary_operator, header_unary_expression
+    | "ref", header_unary_expression
+    | "ptr", header_unary_expression
+    | header_postfix_expression ;
+
+header_const_type_expression_tail =
+      "ref", header_unary_expression
+    | "ptr", header_unary_expression ;
+
+header_function_type_tail =
+    "(", optional_function_type_parameters, ")", "->", header_unary_expression ;
+
+header_postfix_expression =
+      identifier, header_named_path_tail
+    | non_name_primary_expression, postfix_tail ;
+
+header_named_path_tail =
+    [
+        ".", identifier, header_named_path_tail
+      | generic_argument_list, header_instantiated_named_path_tail
+      | call_suffix, postfix_tail
+      | index_suffix, postfix_tail
+      | "->", identifier, postfix_tail
+    ] ;
+
+header_instantiated_named_path_tail =
+    [
+        ".", identifier, header_named_path_tail
+      | generic_argument_list, postfix_tail
+      | call_suffix, postfix_tail
+      | index_suffix, postfix_tail
+      | "->", identifier, postfix_tail
+    ] ;
