@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var pos = 0;
-  var neg = 0;
+  var n: dynamic = cpp_uninitialized();
+  var pos: dynamic = 0;
+  var neg: dynamic = 0;
   read(n);
-  var a = cpp_array(n);
+  var a: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -17,7 +17,7 @@ func main()
       i += 1;
     }
   }
-  var lim = (((n + 1)) / 2);
+  var lim: dynamic = (((n + 1)) / 2);
   if ((pos >= lim))
   {
     write("1", "\n");

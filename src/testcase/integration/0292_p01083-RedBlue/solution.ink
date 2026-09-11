@@ -1,67 +1,67 @@
 // Translated from solution.cpp.
 
-var EPS = 1e-5;
+var EPS: dynamic = 1e-5;
 
-var INF = 1e12;
+var INF: dynamic = 1e12;
 
-var PI = acos(-1);
+var PI: dynamic = acos(-1);
 
-func EQ(n: dynamic, m: dynamic)
+func EQ(n: dynamic, m: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream>");
 }
 
-var X = cpp_expression("#inclu");
+var X: dynamic = cpp_expression("#inclu");
 
-var Y = cpp_expression("#inclu");
+var Y: dynamic = cpp_expression("#inclu");
 
 class L
 {
-  func L(a: dynamic, b: dynamic)
+  func L(a: dynamic, b: dynamic) -> dynamic
   {
       at(0) = a;
       at(1) = b;
     }
-  func L()
+  func L() -> dynamic
   {
     }
 }
 
 class C
 {
-  var p: dynamic;
-  var r: dynamic;
-  func C(p: dynamic, r: dynamic)
+  var p: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  func C(p: dynamic, r: dynamic) -> dynamic
   {
-      this->p = cpp_construct(p);
-      this->r = cpp_construct(r);
+      self->p = cpp_construct(p);
+      self->r = cpp_construct(r);
     }
-  func C()
+  func C() -> dynamic
   {
     }
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((!EQ(a.X, b.X))) (a.X < b.X) else ((a.Y + EPS) < b.Y);
+  return  ((!EQ(a.X, b.X))) ? (a.X < b.X) : ((a.Y + EPS) < b.Y);
 }
 
-func operator_equal(a: dynamic, b: dynamic)
+func operator_equal(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs((a - b)) < EPS);
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return ((conj(a) * b)).X;
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((conj(a) * b)).Y;
 }
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b -= a;
   c -= a;
@@ -84,33 +84,33 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   return 0;
 }
 
-func unit(p: dynamic)
+func unit(p: dynamic) -> dynamic
 {
   return (p / abs(p));
 }
 
-func rotate(p: dynamic, rad: dynamic)
+func rotate(p: dynamic, rad: dynamic) -> dynamic
 {
   return (p * P(cos(rad), sin(rad)));
 }
 
-func intersectSS(a: dynamic, b: dynamic)
+func intersectSS(a: dynamic, b: dynamic) -> dynamic
 {
   return ((((ccw(a[0], a[1], b[0]) * ccw(a[0], a[1], b[1])) <= 0)) && (((ccw(b[0], b[1], a[0]) * ccw(b[0], b[1], a[1])) <= 0)));
 }
 
-func projection(l: dynamic, p: dynamic)
+func projection(l: dynamic, p: dynamic) -> dynamic
 {
-  var t = (dot((p - l[0]), (l[0] - l[1])) / norm((l[0] - l[1])));
+  var t: dynamic = (dot((p - l[0]), (l[0] - l[1])) / norm((l[0] - l[1])));
   return (l[0] + (t * ((l[0] - l[1]))));
 }
 
-func distanceLP(l: dynamic, p: dynamic)
+func distanceLP(l: dynamic, p: dynamic) -> dynamic
 {
   return (abs(cross((l[1] - l[0]), (p - l[0]))) / abs((l[1] - l[0])));
 }
 
-func distanceSP(s: dynamic, p: dynamic)
+func distanceSP(s: dynamic, p: dynamic) -> dynamic
 {
   if ((dot((s[1] - s[0]), (p - s[0])) < EPS))
   {
@@ -123,50 +123,50 @@ func distanceSP(s: dynamic, p: dynamic)
   return distanceLP(s, p);
 }
 
-func isParallel(a: dynamic, b: dynamic)
+func isParallel(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs(cross(a, b)) < EPS);
 }
 
-func isParallel(a: dynamic, b: dynamic)
+func isParallel(a: dynamic, b: dynamic) -> dynamic
 {
   return isParallel((a[1] - a[0]), (b[1] - b[0]));
 }
 
-func crosspointLL(l: dynamic, m: dynamic)
+func crosspointLL(l: dynamic, m: dynamic) -> dynamic
 {
-  var A = cross((l[1] - l[0]), (m[1] - m[0]));
-  var B = cross((l[1] - l[0]), (l[1] - m[0]));
+  var A: dynamic = cross((l[1] - l[0]), (m[1] - m[0]));
+  var B: dynamic = cross((l[1] - l[0]), (l[1] - m[0]));
   return (m[0] + ((B / A) * ((m[1] - m[0]))));
 }
 
-func crosspointCL(c: dynamic, l: dynamic)
+func crosspointCL(c: dynamic, l: dynamic) -> dynamic
 {
-  var ret: dynamic;
-  var mid = projection(l, c.p);
-  var d = distanceLP(l, c.p);
+  var ret: dynamic = cpp_uninitialized();
+  var mid: dynamic = projection(l, c.p);
+  var d: dynamic = distanceLP(l, c.p);
   if (EQ(d, c.r))
   {
     ret.push_back(mid);
   } else if ((d < c.r))
   {
-    var len = sqrt(((c.r * c.r) - (d * d)));
+    var len: dynamic = sqrt(((c.r * c.r) - (d * d)));
     ret.push_back((mid + (len * unit((l[1] - l[0])))));
     ret.push_back((mid - (len * unit((l[1] - l[0])))));
   }
   return ret;
 }
 
-func getTangentLine(c: dynamic, p: dynamic)
+func getTangentLine(c: dynamic, p: dynamic) -> dynamic
 {
-  var ret: dynamic;
-  var dir = (p - c.p);
+  var ret: dynamic = cpp_uninitialized();
+  var dir: dynamic = (p - c.p);
   if (((c.r + EPS) < abs(dir)))
   {
-    var a = abs(dir);
-    var b = sqrt(((a * a) - (c.r * c.r)));
-    var psi = arg((p - c.p));
-    var phi = (PI - acos((b / a)));
+    var a: dynamic = abs(dir);
+    var b: dynamic = sqrt(((a * a) - (c.r * c.r)));
+    var psi: dynamic = arg((p - c.p));
+    var phi: dynamic = (PI - acos((b / a)));
     ret.emplace_back(p, (p + (b * P(cos((psi + phi)), sin((psi + phi))))));
     ret.emplace_back(p, (p + (b * P(cos((psi - phi)), sin((psi - phi))))));
   } else if ((abs((c.r - abs(dir))) < EPS))
@@ -178,34 +178,34 @@ func getTangentLine(c: dynamic, p: dynamic)
 
 class edge
 {
-  var to: dynamic;
-  var rev: dynamic;
-  var cap: dynamic;
-  var cost: dynamic;
-  func edge(to: dynamic, rev: dynamic, cap: dynamic, cost: dynamic)
+  var to: dynamic = cpp_uninitialized();
+  var rev: dynamic = cpp_uninitialized();
+  var cap: dynamic = cpp_uninitialized();
+  var cost: dynamic = cpp_uninitialized();
+  func edge(to: dynamic, rev: dynamic, cap: dynamic, cost: dynamic) -> dynamic
   {
-      this->to = cpp_construct(to);
-      this->rev = cpp_construct(rev);
-      this->cap = cpp_construct(cap);
-      this->cost = cpp_construct(cost);
+      self->to = cpp_construct(to);
+      self->rev = cpp_construct(rev);
+      self->cap = cpp_construct(cap);
+      self->cost = cpp_construct(cost);
     }
-  func edge()
+  func edge() -> dynamic
   {
     }
 }
 
-func min_cost_flow(s: dynamic, g: dynamic, f: dynamic, adj: dynamic)
+func min_cost_flow(s: dynamic, g: dynamic, f: dynamic, adj: dynamic) -> dynamic
 {
-  var n = adj.size();
-  var res = 0;
+  var n: dynamic = adj.size();
+  var res: dynamic = 0;
   while ((f > 0))
   {
     mincost[s] = 0;
     while (1)
     {
-      var update = false;
+      var update: dynamic = false;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((mincost[i] == INF))
@@ -214,10 +214,10 @@ func min_cost_flow(s: dynamic, g: dynamic, f: dynamic, adj: dynamic)
             continue;
           }
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < cpp_cast(adj[i].size())))
             {
-              var e = adj[i][j];
+              var e: dynamic = adj[i][j];
               if (((e.cap > 0) && (((mincost[i] + e.cost) + EPS) < mincost[e.to])))
               {
                 mincost[e.to] = (mincost[i] + e.cost);
@@ -240,9 +240,9 @@ func min_cost_flow(s: dynamic, g: dynamic, f: dynamic, adj: dynamic)
     {
       return -1;
     }
-    var d = f;
+    var d: dynamic = f;
     {
-      var v = g;
+      var v: dynamic = g;
       while ((v != s))
       {
         d = min(d, adj[prevv[v]][preve[v]].cap);
@@ -252,10 +252,10 @@ func min_cost_flow(s: dynamic, g: dynamic, f: dynamic, adj: dynamic)
     f -= d;
     res += (d * mincost[g]);
     {
-      var v = g;
+      var v: dynamic = g;
       while ((v != s))
       {
-        var e = adj[prevv[v]][preve[v]];
+        var e: dynamic = adj[prevv[v]][preve[v]];
         e.cap -= d;
         adj[v][e.rev].cap += d;
         v = prevv[v];
@@ -265,40 +265,40 @@ func min_cost_flow(s: dynamic, g: dynamic, f: dynamic, adj: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var c = cpp_construct(2);
+  var c: dynamic = cpp_construct(2);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
-      var x: dynamic;
-      var y: dynamic;
-      var r: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
       read(x, y, r);
       c[i] = C(P(x, y), r);
       i += 1;
     }
   }
-  var pos = cpp_construct(2, VP(n));
-  var tangent = cpp_construct(2, vector(n));
+  var pos: dynamic = cpp_construct(2, VP(n));
+  var tangent: dynamic = cpp_construct(2, vector(n));
   {
-    var d = 0;
+    var d: dynamic = 0;
     while ((d < 2))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
-          var x: dynamic;
-          var y: dynamic;
+          var x: dynamic = cpp_uninitialized();
+          var y: dynamic = cpp_uninitialized();
           read(x, y);
           pos[d][i] = P(x, y);
-          var ret: dynamic;
+          var ret: dynamic = cpp_uninitialized();
           {
-            var dd = 0;
+            var dd: dynamic = 0;
             while ((dd < 2))
             {
               ret = getTangentLine(c[dd], pos[d][i]);
@@ -313,18 +313,18 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
-          var cand: dynamic;
+          var cand: dynamic = cpp_uninitialized();
           cand.push_back((((pos[0][i] + pos[1][j])) / 2.0));
-          for (var t1 in tangent[0][i])
+          for (var t1: dynamic in tangent[0][i])
           {
-            for (var t2 in tangent[1][j])
+            for (var t2: dynamic in tangent[1][j])
             {
               if ((!isParallel(t1, t2)))
               {
@@ -332,7 +332,7 @@ func main()
               }
             }
           }
-          for (var cp in cand)
+          for (var cp: dynamic in cand)
           {
             if ((((((distanceSP(L(pos[0][i], cp), c[0].p) + EPS) > c[0].r) && ((distanceSP(L(pos[0][i], cp), c[1].p) + EPS) > c[1].r)) && ((distanceSP(L(pos[1][j], cp), c[0].p) + EPS) > c[0].r)) && ((distanceSP(L(pos[1][j], cp), c[1].p) + EPS) > c[1].r)))
             {
@@ -345,13 +345,13 @@ func main()
       i += 1;
     }
   }
-  var adj = cpp_construct(((2 * n) + 2));
+  var adj: dynamic = cpp_construct(((2 * n) + 2));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((dist[i][j] == INF))
@@ -371,7 +371,7 @@ func main()
       i += 1;
     }
   }
-  var ans = min_cost_flow(0, 1, n, adj);
+  var ans: dynamic = min_cost_flow(0, 1, n, adj);
   if ((ans == -1))
   {
     write("Impossible", "\n");

@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var linf = (1e18 + 5);
+var linf: dynamic = (1e18 + 5);
 
-var mod = (cpp_cast(1e9) + 7);
+var mod: dynamic = (cpp_cast(1e9) + 7);
 
-var logN = 18;
+var logN: dynamic = 18;
 
-var inf = (1e9 + 9);
+var inf: dynamic = (1e9 + 9);
 
-var N = (3e5 + 5);
+var N: dynamic = (3e5 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-var h = cpp_array(N);
+var h: dynamic = cpp_array(N);
 
-var G = cpp_array(N);
+var G: dynamic = cpp_array(N);
 
-var v = cpp_array(N);
+var v: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func prep(node: dynamic, root: dynamic)
+func prep(node: dynamic, root: dynamic) -> dynamic
 {
   sum[node] = 1;
   {
@@ -53,7 +53,7 @@ func prep(node: dynamic, root: dynamic)
   return sum[node];
 }
 
-func find(node: dynamic, root: dynamic, S: dynamic)
+func find(node: dynamic, root: dynamic, S: dynamic) -> dynamic
 {
   {
     typeof(v[node].begin()) = v[node].begin();
@@ -69,9 +69,9 @@ func find(node: dynamic, root: dynamic, S: dynamic)
   return node;
 }
 
-func dfs(node: dynamic, root: dynamic, dist: dynamic)
+func dfs(node: dynamic, root: dynamic, dist: dynamic) -> dynamic
 {
-  var ans = ((dist * sqrt(dist)) * c[node]);
+  var ans: dynamic = ((dist * sqrt(dist)) * c[node]);
   {
     typeof(v[node].begin()) = v[node].begin();
     while ((it != v[node].end()))
@@ -86,9 +86,9 @@ func dfs(node: dynamic, root: dynamic, dist: dynamic)
   return ans;
 }
 
-func dfs2(node: dynamic, root: dynamic, dist: dynamic)
+func dfs2(node: dynamic, root: dynamic, dist: dynamic) -> dynamic
 {
-  var ans = (sqrt(dist) * c[node]);
+  var ans: dynamic = (sqrt(dist) * c[node]);
   {
     typeof(v[node].begin()) = v[node].begin();
     while ((it != v[node].end()))
@@ -103,16 +103,16 @@ func dfs2(node: dynamic, root: dynamic, dist: dynamic)
   return ans;
 }
 
-func find(node: dynamic)
+func find(node: dynamic) -> dynamic
 {
   prep(node, 0);
   node = find(node, 0, (sum[node] / 2));
   h[node] = 1;
-  var S = 0;
-  var all = 0;
+  var S: dynamic = 0;
+  var all: dynamic = 0;
   ans.push_back(make_pair(dfs(node, 0, 0), node));
-  var d2 = 0;
-  var temp: dynamic;
+  var d2: dynamic = 0;
+  var temp: dynamic = cpp_uninitialized();
   {
     typeof(v[node].begin()) = v[node].begin();
     while ((it != v[node].end()))
@@ -138,11 +138,11 @@ func find(node: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&c[i]));
@@ -150,7 +150,7 @@ func main()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       scanf("%d %d %d", (&x), (&y), (&z));

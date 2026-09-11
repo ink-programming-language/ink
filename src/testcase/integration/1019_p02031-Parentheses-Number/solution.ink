@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var MAX_N = 100000;
+var MAX_N: dynamic = 100000;
 
-var qs = cpp_array(MAX_N);
+var qs: dynamic = cpp_array(MAX_N);
 
-var s = cpp_array(((MAX_N * 2) + 4));
+var s: dynamic = cpp_array(((MAX_N * 2) + 4));
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var pi: dynamic;
+      var pi: dynamic = cpp_uninitialized();
       scanf("%d", (&pi));
       pi -= 1;
       qs[pi] = i;
@@ -24,9 +24,9 @@ func main()
     }
   }
   {
-    var i = 0;
-    var j = 0;
-    var k = 0;
+    var i: dynamic = 0;
+    var j: dynamic = 0;
+    var k: dynamic = 0;
     while (((i < n) || (j < n)))
     {
       while (((!st.empty()) && (st.top() == j)))

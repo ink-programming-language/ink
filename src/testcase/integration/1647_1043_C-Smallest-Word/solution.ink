@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var LINF = 1e18;
+var LINF: dynamic = 1e18;
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var M = (1e9 + 7);
+var M: dynamic = (1e9 + 7);
 
-var EPS = 1.0e-9;
+var EPS: dynamic = 1.0e-9;
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var ch = cpp_array(10010);
+var ch: dynamic = cpp_array(10010);
 
-var ans = cpp_array(10100);
+var ans: dynamic = cpp_array(10100);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   read(s);
-  var len = s.length();
-  var pos = 0;
+  var len: dynamic = s.length();
+  var pos: dynamic = 0;
   while ((pos < (len - 1)))
   {
     if ((s[pos] != s[(pos + 1)]))
@@ -35,7 +35,7 @@ func main()
     ans[(len - 1)] = 1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < len))
     {
       write(ans[i], " ");

@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var nax = ((100 * 1000) + 10);
+var nax: dynamic = ((100 * 1000) + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var l = cpp_array(nax);
+var l: dynamic = cpp_array(nax);
 
-var p = cpp_array(nax);
+var p: dynamic = cpp_array(nax);
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       read(l[i]);
@@ -32,7 +32,7 @@ func main()
     return 0;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       if ((((l[i] + i) - 1) > n))
@@ -44,8 +44,8 @@ func main()
       i += 1;
     }
   }
-  var w = n;
-  var pos = m;
+  var w: dynamic = n;
+  var pos: dynamic = m;
   while ((pos > 0))
   {
     if ((((p[pos] + l[pos]) - 1) < w))
@@ -64,7 +64,7 @@ func main()
     return 0;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       write(p[i], " ");

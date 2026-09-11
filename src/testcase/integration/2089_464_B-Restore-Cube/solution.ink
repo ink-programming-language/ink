@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-func Abs(first: dynamic)
+func Abs(first: dynamic) -> dynamic
 {
-  return (if ((first < 0)) (-first) else first);
+  return ( ((first < 0)) ? (-first) : first);
 }
 
-func Sqr(first: dynamic)
+func Sqr(first: dynamic) -> dynamic
 {
   return ((first * first));
 }
 
-func plural(s: dynamic)
+func plural(s: dynamic) -> dynamic
 {
-  return (if ((int_cpp((s).size()) && (s[(int_cpp((s).size()) - 1)] == cpp_char("x")))) (s + "en") else (s + "s"));
+  return ( ((int_cpp((s).size()) && (s[(int_cpp((s).size()) - 1)] == cpp_char("x")))) ? (s + "en") : (s + "s"));
 }
 
-var INF = cpp_cast(1e9);
+var INF: dynamic = cpp_cast(1e9);
 
-var EPS = 1e-12;
+var EPS: dynamic = 1e-12;
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-func Read(first: dynamic)
+func Read(first: dynamic) -> dynamic
 {
-  var c: dynamic;
-  var r = 0;
-  var n = 0;
+  var c: dynamic = cpp_uninitialized();
+  var r: dynamic = 0;
+  var n: dynamic = 0;
   first = 0;
   {
     while (true)
@@ -55,30 +55,30 @@ func Read(first: dynamic)
   return (1);
 }
 
-var done: dynamic;
+var done: dynamic = cpp_uninitialized();
 
-var ord = cpp_array(8);
+var ord: dynamic = cpp_array(8);
 
-var V = cpp_array(3, 8);
+var V: dynamic = cpp_array(3, 8);
 
-var cur = cpp_array(3, 8);
+var cur: dynamic = cpp_array(3, 8);
 
-var ans = cpp_array(3, 8);
+var ans: dynamic = cpp_array(3, 8);
 
-func dist(first: dynamic, second: dynamic, z: dynamic)
+func dist(first: dynamic, second: dynamic, z: dynamic) -> dynamic
 {
   return (((Sqr(first) + Sqr(second)) + Sqr(z)));
 }
 
-func test()
+func test() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var c1: dynamic;
-  var c2: dynamic;
-  var c3: dynamic;
-  var m: dynamic;
-  var d = cpp_array(8, 8);
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var c1: dynamic = cpp_uninitialized();
+  var c2: dynamic = cpp_uninitialized();
+  var c3: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_array(8, 8);
   m = (cpp_cast(INF) * INF);
   {
     i = 0;
@@ -138,9 +138,9 @@ func test()
   return (1);
 }
 
-func rec(i: dynamic)
+func rec(i: dynamic) -> dynamic
 {
-  var j: dynamic;
+  var j: dynamic = cpp_uninitialized();
   if ((i == 8))
   {
     {
@@ -208,14 +208,14 @@ func rec(i: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   if (0)
   {
     freopen("in.txt", "r", stdin);
   }
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < 8))
@@ -246,7 +246,7 @@ func main()
           j = 0;
           while ((j < 3))
           {
-            printf("%d%c", ans[i][j], if ((j == 2)) cpp_char("\n") else cpp_char(" "));
+            printf("%d%c", ans[i][j],  ((j == 2)) ? cpp_char("\n") : cpp_char(" "));
             j += 1;
           }
         }

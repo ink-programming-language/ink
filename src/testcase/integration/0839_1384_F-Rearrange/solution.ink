@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(mat[i][j]);
@@ -22,15 +22,15 @@ func main()
       i += 1;
     }
   }
-  var h = cpp_construct(((n * m) + 1));
-  var v = cpp_construct(((n * m) + 1));
+  var h: dynamic = cpp_construct(((n * m) + 1));
+  var v: dynamic = cpp_construct(((n * m) + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a = 0;
+      var a: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           a = max(a, mat[i][j]);
@@ -42,12 +42,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var a = 0;
+      var a: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           a = max(a, mat[j][i]);
@@ -58,11 +58,11 @@ func main()
       i += 1;
     }
   }
-  var q: dynamic;
-  var x = -1;
-  var y = -1;
+  var q: dynamic = cpp_uninitialized();
+  var x: dynamic = -1;
+  var y: dynamic = -1;
   {
-    var u = (n * m);
+    var u: dynamic = (n * m);
     while ((u >= 1))
     {
       x += h[u];
@@ -72,8 +72,8 @@ func main()
         fin[x][y] = u;
       } else
       {
-        var qx: dynamic;
-        var qy: dynamic;
+        var qx: dynamic = cpp_uninitialized();
+        var qy: dynamic = cpp_uninitialized();
         tie(qx, qy) = q.front();
         q.pop();
         fin[qx][qy] = u;
@@ -81,7 +81,7 @@ func main()
       if (h[u])
       {
         {
-          var i = (y - 1);
+          var i: dynamic = (y - 1);
           while ((i >= 0))
           {
             q.push([x, i]);
@@ -92,7 +92,7 @@ func main()
       if (v[u])
       {
         {
-          var i = (x - 1);
+          var i: dynamic = (x - 1);
           while ((i >= 0))
           {
             q.push([i, y]);
@@ -104,11 +104,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           write(fin[i][j], " \n"[((j + 1) == m)]);

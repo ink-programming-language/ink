@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var maxn = (3e5 + 10);
+var maxn: dynamic = (3e5 + 10);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-var arr = cpp_array(maxn);
+var arr: dynamic = cpp_array(maxn);
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
@@ -19,7 +19,7 @@ func main()
   {
     read(N, R);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= N))
       {
         read(arr[i]);
@@ -28,10 +28,10 @@ func main()
     }
     sort((arr + 1), ((arr + 1) + N));
     N = ((unique((arr + 1), ((arr + 1) + N)) - arr) - 1);
-    var sum = 0;
-    var ans = 0;
+    var sum: dynamic = 0;
+    var ans: dynamic = 0;
     {
-      var i = N;
+      var i: dynamic = N;
       while ((i >= 1))
       {
         if (((arr[i] - sum) <= 0))

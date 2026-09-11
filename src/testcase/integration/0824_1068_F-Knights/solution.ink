@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var y = 0;
-  var k = 0;
+  var y: dynamic = 0;
+  var k: dynamic = 0;
   while ((y != n))
   {
     if (((k % 2) == 0))

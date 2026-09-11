@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-func in_cpp()
+func in_cpp() -> dynamic
 {
-  var x = 0;
-  var c: dynamic;
+  var x: dynamic = 0;
+  var c: dynamic = cpp_uninitialized();
   {
     while ((cpp_cast((((cpp_assign(c, "=", getchar())) - cpp_char("0")))) >= 10))
     {
@@ -30,23 +30,23 @@ func in_cpp()
   return x;
 }
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((k - 1))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ((k - 1))))
         {
-          var pro = (((i + 1)) * ((j + 1)));
+          var pro: dynamic = (((i + 1)) * ((j + 1)));
           if ((pro >= k))
           {
-            var tmp = (pro / k);
+            var tmp: dynamic = (pro / k);
             pro %= k;
             pro += (tmp * 10);
           }

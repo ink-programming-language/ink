@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var INF = 1e18;
+var INF: dynamic = 1e18;
 
-var lim = 200000;
+var lim: dynamic = 200000;
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var dp = cpp_construct((lim + 1), 0);
+  var dp: dynamic = cpp_construct((lim + 1), 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var ndp = cpp_construct((lim + 1));
+      var ndp: dynamic = cpp_construct((lim + 1));
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= lim))
         {
           ndp[j] = max(dp[j], (fabs((a[i] - j)) / a[i]));
@@ -31,11 +31,11 @@ func main()
         }
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= lim))
         {
           {
-            var k = (j * 2);
+            var k: dynamic = (j * 2);
             while ((k <= lim))
             {
               ndp[k] = min(ndp[k], ndp[j]);
@@ -49,9 +49,9 @@ func main()
       i += 1;
     }
   }
-  var ans = INF;
+  var ans: dynamic = INF;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= lim))
     {
       ans = min(ans, dp[i]);

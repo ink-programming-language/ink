@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var child0: dynamic;
+var child0: dynamic = cpp_uninitialized();
 
-var child1: dynamic;
+var child1: dynamic = cpp_uninitialized();
 
-var claw: dynamic;
+var claw: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var max = 0;
+  var max: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -41,7 +41,7 @@ func main()
   claw[1] = 0;
   claw[2] = 1;
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i < max))
     {
       claw[i] = (((child1[(i - 1)] + claw[(i - 3)])) % mod);
@@ -51,7 +51,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write((((4 * claw[(a[i] - 1)])) % mod), "\n");

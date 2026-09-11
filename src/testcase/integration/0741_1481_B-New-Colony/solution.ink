@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var ull = dynamic;
+var ull: dynamic = dynamic;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var a = cpp_array(n);
+  var a: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var ans = -1;
+  var ans: dynamic = -1;
   while (cpp_update(k, "--"))
   {
-    var f = 0;
+    var f: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         if ((a[i] < a[(i + 1)]))
@@ -47,12 +47,12 @@ func solve()
   write(ans, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var t = 1;
+  var t: dynamic = 1;
   read(t);
   while (cpp_update(t, "--"))
   {

@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var MAXN = (500000 + 5);
+var MAXN: dynamic = (500000 + 5);
 
 class Titem
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
 }
 
-var p = cpp_array(MAXN);
+var p: dynamic = cpp_array(MAXN);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var cmax = cpp_array(MAXN);
+var cmax: dynamic = cpp_array(MAXN);
 
-var tmp = cpp_array(MAXN);
+var tmp: dynamic = cpp_array(MAXN);
 
-var ans = 0;
+var ans: dynamic = 0;
 
-func cmpb(p: dynamic, q: dynamic)
+func cmpb(p: dynamic, q: dynamic) -> dynamic
 {
   return (p.b > q.b);
 }
 
-func modify(i: dynamic, v: dynamic)
+func modify(i: dynamic, v: dynamic) -> dynamic
 {
   {
     while ((i <= n))
@@ -35,9 +35,9 @@ func modify(i: dynamic, v: dynamic)
   }
 }
 
-func getmax(i: dynamic)
+func getmax(i: dynamic) -> dynamic
 {
-  var res = -1;
+  var res: dynamic = -1;
   {
     while (i)
     {
@@ -48,11 +48,11 @@ func getmax(i: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&p[i].a));
@@ -61,7 +61,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&p[i].b));
@@ -69,7 +69,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&p[i].c));
@@ -77,9 +77,9 @@ func main()
     }
   }
   sort((tmp + 1), ((tmp + n) + 1));
-  var last = (unique((tmp + 1), ((tmp + n) + 1)) - tmp);
+  var last: dynamic = (unique((tmp + 1), ((tmp + n) + 1)) - tmp);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       p[i].a = ((n - ((lower_bound((tmp + 1), (tmp + last), p[i].a) - tmp))) + 1);
@@ -89,8 +89,8 @@ func main()
   sort((p + 1), ((p + n) + 1), cmpb);
   memset(cmax, -1, cpp_sizeof((cmax)));
   {
-    var i = 1;
-    var j = 1;
+    var i: dynamic = 1;
+    var j: dynamic = 1;
     while ((i <= n))
     {
       {

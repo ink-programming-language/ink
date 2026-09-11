@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var maxn = 112345;
+var maxn: dynamic = 112345;
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var dist = cpp_array(8, maxn);
+var dist: dynamic = cpp_array(8, maxn);
 
-var d = cpp_array(8, 8);
+var d: dynamic = cpp_array(8, 8);
 
-var c = cpp_array((1 << 8), 8);
+var c: dynamic = cpp_array((1 << 8), 8);
 
-var mask = cpp_array(maxn);
+var mask: dynamic = cpp_array(maxn);
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
-func bfs(col: dynamic)
+func bfs(col: dynamic) -> dynamic
 {
-  var que: dynamic;
+  var que: dynamic = cpp_uninitialized();
   dist[((n + col) + 1)][col] = 0;
   que.push(((n + col) + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((col == a[i]))
@@ -37,7 +37,7 @@ func bfs(col: dynamic)
   }
   while ((!que.empty()))
   {
-    var u = que.front();
+    var u: dynamic = que.front();
     que.pop();
     if ((u <= n))
     {
@@ -64,7 +64,7 @@ func bfs(col: dynamic)
     } else
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           if (((a[i] == ((u - n) - 1)) && (dist[i][col] == inf)))
@@ -79,11 +79,11 @@ func bfs(col: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%s", (&n), (s + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = (s[i] - cpp_char("a"));
@@ -92,12 +92,12 @@ func main()
   }
   memset(dist, 0x3f, cpp_sizeof(dist));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 8))
     {
       bfs(i);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 8))
         {
           d[j][i] = dist[((n + j) + 1)][i];
@@ -108,11 +108,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 8))
         {
           if ((d[a[i]][j] != dist[i][j]))
@@ -125,19 +125,19 @@ func main()
       i += 1;
     }
   }
-  var mx = 0;
-  var res = 0;
+  var mx: dynamic = 0;
+  var res: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = max(1, (i - 15));
+        var j: dynamic = max(1, (i - 15));
         while ((j <= i))
         {
-          var tmp = (i - j);
+          var tmp: dynamic = (i - j);
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 8))
             {
               tmp = min(tmp, ((dist[i][k] + dist[j][k]) + 1));
@@ -155,24 +155,24 @@ func main()
           j += 1;
         }
       }
-      var j = (i - 16);
+      var j: dynamic = (i - 16);
       if ((j >= 1))
       {
         c[a[j]][mask[j]] += 1;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 8))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 256))
             {
               if (c[j][k])
               {
-                var tmp = inf;
+                var tmp: dynamic = inf;
                 {
-                  var l = 0;
+                  var l: dynamic = 0;
                   while ((l < 8))
                   {
                     tmp = min(tmp, (((dist[i][l] + d[j][l]) + (((k >> l) & 1))) + 1));

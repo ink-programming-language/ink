@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int i = 0; i < (int)(n); i++)");
 }
@@ -13,35 +13,35 @@ class Fun
 {
 }
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var cr: dynamic;
+var cr: dynamic = cpp_uninitialized();
 
-var cc: dynamic;
+var cc: dynamic = cpp_uninitialized();
 
-var scr = cpp_array(512, 512);
+var scr: dynamic = cpp_array(512, 512);
 
-var lnk: dynamic;
+var lnk: dynamic = cpp_uninitialized();
 
-var evt: dynamic;
+var evt: dynamic = cpp_uninitialized();
 
-var scrp: dynamic;
+var scrp: dynamic = cpp_uninitialized();
 
-var dmls: dynamic;
+var dmls: dynamic = cpp_uninitialized();
 
-var funs: dynamic;
+var funs: dynamic = cpp_uninitialized();
 
-var act: dynamic;
+var act: dynamic = cpp_uninitialized();
 
-func newline()
+func newline() -> dynamic
 {
   cr += 1;
   cc = 0;
 }
 
-func draw(s: dynamic, hl: dynamic, fn: dynamic)
+func draw(s: dynamic, hl: dynamic, fn: dynamic) -> dynamic
 {
   rep(i, s.size());
   {
@@ -61,20 +61,20 @@ func draw(s: dynamic, hl: dynamic, fn: dynamic)
 
 class Node
 {
-  var tag: dynamic;
-  var text: dynamic;
-  var cs: dynamic;
-  var visible: dynamic;
-  func Node(tag: dynamic)
+  var tag: dynamic = cpp_uninitialized();
+  var text: dynamic = cpp_uninitialized();
+  var cs: dynamic = cpp_uninitialized();
+  var visible: dynamic = cpp_uninitialized();
+  func Node(tag: dynamic) -> dynamic
   {
-      this->tag = cpp_construct(tag);
-      this->visible = cpp_construct(true);
+      self->tag = cpp_construct(tag);
+      self->visible = cpp_construct(true);
     }
-  func dump()
+  func dump() -> dynamic
   {
       dump(0);
     }
-  func dump(dep: dynamic)
+  func dump(dep: dynamic) -> dynamic
   {
       (rep(cpp_name, dep) << cpp_char(" "));
       write(cpp_char("<"), tag, cpp_char(">"));
@@ -84,7 +84,7 @@ class Node
       (rep(cpp_name, dep) << cpp_char(" "));
       write("</", tag, cpp_char(">"), "\n");
     }
-  func render()
+  func render() -> dynamic
   {
       if ((!visible))
       {
@@ -112,14 +112,14 @@ class Node
         rep(i, cs.size())[i]->render();
       }
     }
-  func init()
+  func init() -> dynamic
   {
       visible = true;
       if ((tag == "script"))
       {
         assert(((cs.size() == 1) && (cs[0]->tag == "$text")));
-        var file = cs[0]->text;
-        var fs = scrp[file];
+        var file: dynamic = cs[0]->text;
+        var fs: dynamic = scrp[file];
         rep(i, fs.size());
         {
           funs[fs[i].first] = fs[i].second;
@@ -127,7 +127,7 @@ class Node
       }
       rep(i, cs.size())[i]->init();
     }
-  func apply(vs: dynamic, k: dynamic, visi: dynamic)
+  func apply(vs: dynamic, k: dynamic, visi: dynamic) -> dynamic
   {
       if ((vs[k] == tag))
       {
@@ -145,8 +145,8 @@ class Node
 
 class Fun
 {
-  var asn: dynamic;
-  func exec()
+  var asn: dynamic = cpp_uninitialized();
+  func exec() -> dynamic
   {
       rep(i, asn.size());
       {
@@ -155,10 +155,10 @@ class Fun
     }
 }
 
-func lex_dml(s: dynamic)
+func lex_dml(s: dynamic) -> dynamic
 {
-  var ts: dynamic;
-  var pos = 0;
+  var ts: dynamic = cpp_uninitialized();
+  var pos: dynamic = 0;
   rep(i, s.size());
   {
     if ((s[i] == cpp_char("<")))
@@ -175,7 +175,7 @@ func lex_dml(s: dynamic)
   return ts;
 }
 
-func isbegin(t: dynamic)
+func isbegin(t: dynamic) -> dynamic
 {
   if ((t.size() < 3))
   {
@@ -186,7 +186,7 @@ func isbegin(t: dynamic)
     return false;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (cpp_cast(t.size()) - 1)))
     {
       assert((t[i] != cpp_char(" ")));
@@ -200,7 +200,7 @@ func isbegin(t: dynamic)
   return true;
 }
 
-func isend(t: dynamic)
+func isend(t: dynamic) -> dynamic
 {
   if ((t.size() < 4))
   {
@@ -211,7 +211,7 @@ func isend(t: dynamic)
     return false;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < (cpp_cast(t.size()) - 1)))
     {
       assert((t[i] != cpp_char(" ")));
@@ -225,10 +225,10 @@ func isend(t: dynamic)
   return true;
 }
 
-func parse_dml(ts: dynamic)
+func parse_dml(ts: dynamic) -> dynamic
 {
-  var root = cpp_new("$root");
-  var stk: dynamic;
+  var root: dynamic = cpp_new("$root");
+  var stk: dynamic = cpp_uninitialized();
   stk.push_back(root);
   rep(i, ts.size());
   {
@@ -238,7 +238,7 @@ func parse_dml(ts: dynamic)
     }
     if (isbegin(ts[i]))
     {
-      var node = cpp_new(ts[i].substr(1, (ts[i].size() - 2)));
+      var node: dynamic = cpp_new(ts[i].substr(1, (ts[i].size() - 2)));
       stk.back()->cs.push_back(node);
       if ((ts[i] != "<br>"))
       {
@@ -250,7 +250,7 @@ func parse_dml(ts: dynamic)
       stk.pop_back();
     } else
     {
-      var node = cpp_new("$text");
+      var node: dynamic = cpp_new("$text");
       node->text = ts[i];
       stk.back()->cs.push_back(node);
     }
@@ -259,10 +259,10 @@ func parse_dml(ts: dynamic)
   return root;
 }
 
-func parse_prop(s: dynamic)
+func parse_prop(s: dynamic) -> dynamic
 {
-  var ps: dynamic;
-  var pos = 0;
+  var ps: dynamic = cpp_uninitialized();
+  var pos: dynamic = 0;
   rep(i, s.size());
   {
     if ((s[i] == cpp_char(".")))
@@ -275,15 +275,15 @@ func parse_prop(s: dynamic)
   return ps;
 }
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var ix: dynamic;
+var ix: dynamic = cpp_uninitialized();
 
-func parse_expr()
+func parse_expr() -> dynamic
 {
-  var pos = ix;
-  var props: dynamic;
-  var rev: dynamic;
+  var pos: dynamic = ix;
+  var props: dynamic = cpp_uninitialized();
+  var rev: dynamic = cpp_uninitialized();
   while ((s[ix] != cpp_char(";")))
   {
     if (((s[ix] == cpp_char("!")) || (s[ix] == cpp_char("="))))
@@ -305,11 +305,11 @@ func parse_expr()
       ix += 1;
     }
   }
-  var val = s.substr(pos, (ix - pos));
-  var cur = (val == "true");
-  var rs: dynamic;
+  var val: dynamic = s.substr(pos, (ix - pos));
+  var cur: dynamic = (val == "true");
+  var rs: dynamic = cpp_uninitialized();
   {
-    var i = (cpp_cast(props.size()) - 1);
+    var i: dynamic = (cpp_cast(props.size()) - 1);
     while ((i >= 0))
     {
       if (rev[i])
@@ -324,15 +324,15 @@ func parse_expr()
   return rs;
 }
 
-func parse_fun()
+func parse_fun() -> dynamic
 {
-  var fun = cpp_new();
-  var st = ix;
+  var fun: dynamic = cpp_new();
+  var st: dynamic = ix;
   while ((s[ix] != cpp_char("{")))
   {
     ix += 1;
   }
-  var id = s.substr(st, (ix - st));
+  var id: dynamic = s.substr(st, (ix - st));
   ix += 1;
   while ((s[ix] != cpp_char("}")))
   {
@@ -342,11 +342,11 @@ func parse_fun()
   return make_pair(id, fun);
 }
 
-func parse_ds(s: dynamic)
+func parse_ds(s: dynamic) -> dynamic
 {
   s = s;
   ix = 0;
-  var fs: dynamic;
+  var fs: dynamic = cpp_uninitialized();
   while ((ix < s.size()))
   {
     fs.push_back(parse_fun());
@@ -354,7 +354,7 @@ func parse_ds(s: dynamic)
   return fs;
 }
 
-func render(file: dynamic)
+func render(file: dynamic) -> dynamic
 {
   cpp_statement("rep (i, h)");
   cr = cpp_assign(cc, "=", 0);
@@ -362,7 +362,7 @@ func render(file: dynamic)
   act = file;
 }
 
-func click(x: dynamic, y: dynamic)
+func click(x: dynamic, y: dynamic) -> dynamic
 {
   if (lnk[y][x])
   {
@@ -376,44 +376,44 @@ func click(x: dynamic, y: dynamic)
   }
 }
 
-func getl(s: dynamic)
+func getl(s: dynamic) -> dynamic
 {
   getline(cin, s);
   assert(((s.size() == 0) || (s[(s.size() - 1)] != cpp_char("\r"))));
 }
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   getl(s);
-  var n = atoi(s.c_str());
+  var n: dynamic = atoi(s.c_str());
   getl(s);
-  var m = atoi(s.c_str());
+  var m: dynamic = atoi(s.c_str());
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     scr[i][j] = cpp_char(".");
     lnk[i][j] = 0;
     evt[i][j] = 0;
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     getl(s);
     if ((s.substr((s.size() - 4)) == ".dml"))
     {
-      var file = s.substr(0, (s.size() - 4));
+      var file: dynamic = s.substr(0, (s.size() - 4));
       getl(s);
-      var ts = lex_dml(s);
-      var root = parse_dml(ts);
+      var ts: dynamic = lex_dml(s);
+      var root: dynamic = parse_dml(ts);
       dmls[file] = root;
     } else if ((s.substr((s.size() - 3)) == ".ds"))
     {
-      var file = s.substr(0, (s.size() - 3));
+      var file: dynamic = s.substr(0, (s.size() - 3));
       getl(s);
-      var fs = parse_ds(s);
+      var fs: dynamic = parse_ds(s);
       scrp[file] = fs;
     } else
     {
@@ -421,26 +421,26 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       getl(s);
       sscanf(s.c_str(), "%d%d", (&x), (&y));
       click(x, y);
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       cpp_statement("rep (j, w)");
       putchar(scr[i][j]);
       putchar(cpp_char("\n"));
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var K: dynamic;
-    var buf = cpp_array(32);
+    var K: dynamic = cpp_uninitialized();
+    var buf: dynamic = cpp_array(32);
     getl(s);
     sscanf(s.c_str(), "%d %d %d %s", (&w), (&h), (&K), buf);
     dmls[buf]->init();

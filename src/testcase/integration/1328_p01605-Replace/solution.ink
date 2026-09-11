@@ -1,51 +1,51 @@
 // Translated from solution.cpp.
 
-var inf = (LLONG_MAX / 2);
+var inf: dynamic = (LLONG_MAX / 2);
 
 class node
 {
-  var ch: dynamic;
-  var refcnt: dynamic;
-  var len: dynamic;
-  var to: dynamic;
-  func node(c: dynamic, r: dynamic = 0, len: dynamic = -1)
+  var ch: dynamic = cpp_uninitialized();
+  var refcnt: dynamic = cpp_uninitialized();
+  var len: dynamic = cpp_uninitialized();
+  var to: dynamic = cpp_uninitialized();
+  func node(c: dynamic, r: dynamic = 0, len: dynamic = -1) -> dynamic
   {
-      this->ch = cpp_construct(c);
-      this->refcnt = cpp_construct(r);
-      this->len = cpp_construct(len);
+      self->ch = cpp_construct(c);
+      self->refcnt = cpp_construct(r);
+      self->len = cpp_construct(len);
     }
 }
 
 class state
 {
-  var stnum: dynamic;
-  var nd: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var cntr: dynamic;
-  func state(s: dynamic, nd: dynamic, a: dynamic, b: dynamic, c: dynamic)
+  var stnum: dynamic = cpp_uninitialized();
+  var nd: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var cntr: dynamic = cpp_uninitialized();
+  func state(s: dynamic, nd: dynamic, a: dynamic, b: dynamic, c: dynamic) -> dynamic
   {
-      this->stnum = cpp_construct(s);
-      this->nd = cpp_construct(nd);
-      this->a = cpp_construct(a);
-      this->b = cpp_construct(b);
-      this->cntr = cpp_construct(c);
+      self->stnum = cpp_construct(s);
+      self->nd = cpp_construct(nd);
+      self->a = cpp_construct(a);
+      self->b = cpp_construct(b);
+      self->cntr = cpp_construct(c);
     }
 }
 
-var alp: dynamic;
+var alp: dynamic = cpp_uninitialized();
 
-var emp = cpp_construct(0, inf, 0);
+var emp: dynamic = cpp_construct(0, inf, 0);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func getnode(c: dynamic)
+func getnode(c: dynamic) -> dynamic
 {
   if ((c == cpp_char(".")))
   {
     return (&emp);
   }
-  var ret = alp[(c - cpp_char("a"))];
+  var ret: dynamic = alp[(c - cpp_char("a"))];
   if ((!ret))
   {
     ret = cpp_new(c);
@@ -53,19 +53,19 @@ func getnode(c: dynamic)
   return ret;
 }
 
-func delnode(nd: dynamic)
+func delnode(nd: dynamic) -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.push(nd);
   while (q.empty())
   {
     nd = q.front();
     q.pop();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < nd->to.size()))
       {
-        var next = nd->to[i];
+        var next: dynamic = nd->to[i];
         if ((!cpp_update(next->refcnt, "--")))
         {
           q.push(next);
@@ -77,18 +77,18 @@ func delnode(nd: dynamic)
   }
 }
 
-func dfs(nd0: dynamic, a0: dynamic, b0: dynamic)
+func dfs(nd0: dynamic, a0: dynamic, b0: dynamic) -> dynamic
 {
-  var stk: dynamic;
+  var stk: dynamic = cpp_uninitialized();
   stk.push(state(0, nd0, a0, b0, 0));
   while ((!stk.empty()))
   {
-    var tp = stk.top();
-    var num = tp.stnum;
-    var nd = tp.nd;
-    var a = tp.a;
-    var b = tp.b;
-    var cntr = tp.cntr;
+    var tp: dynamic = stk.top();
+    var num: dynamic = tp.stnum;
+    var nd: dynamic = tp.nd;
+    var a: dynamic = tp.a;
+    var b: dynamic = tp.b;
+    var cntr: dynamic = tp.cntr;
     if ((num == 0))
     {
       if ((a >= b))
@@ -120,10 +120,10 @@ func dfs(nd0: dynamic, a0: dynamic, b0: dynamic)
         stk.pop();
         continue;
       }
-      var next = nd->to[cntr];
+      var next: dynamic = nd->to[cntr];
       while ((next->to.size() == 1))
       {
-        var tmp = next;
+        var tmp: dynamic = next;
         nd->to[cntr] = next->to[0];
         next = next->to[0];
         if (cpp_update(tmp->refcnt, "--"))
@@ -137,8 +137,8 @@ func dfs(nd0: dynamic, a0: dynamic, b0: dynamic)
       stk.push(state(0, next, a, b, 0));
     } else if ((num == 2))
     {
-      var next = nd->to[cntr];
-      var olen = next->len;
+      var next: dynamic = nd->to[cntr];
+      var olen: dynamic = next->len;
       a = max((a - olen), 0);
       b = max((b - olen), 0);
       nd->len = min((nd->len + olen), inf);
@@ -157,34 +157,34 @@ func dfs(nd0: dynamic, a0: dynamic, b0: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
-  var s: dynamic;
-  var q: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   read(s, q, a, b);
   a -= 1;
-  var root = cpp_new(0);
+  var root: dynamic = cpp_new(0);
   root->to.resize(s.size());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
-      var next = getnode(s[i]);
+      var next: dynamic = getnode(s[i]);
       root->to[i] = next;
       next->refcnt += 1;
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       read(c, s);
-      var nd = alp[(c - cpp_char("a"))];
+      var nd: dynamic = alp[(c - cpp_char("a"))];
       if ((!nd))
       {
         i += 1;
@@ -194,10 +194,10 @@ func main()
       nd->ch = 0;
       nd->to.resize(s.size());
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < s.size()))
         {
-          var next = getnode(s[j]);
+          var next: dynamic = getnode(s[j]);
           nd->to[j] = next;
           next->refcnt += 1;
           j += 1;

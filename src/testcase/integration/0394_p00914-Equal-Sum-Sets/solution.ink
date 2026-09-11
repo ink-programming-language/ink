@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-var dp = cpp_array(200, 20, 30);
+var dp: dynamic = cpp_array(200, 20, 30);
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var K: dynamic;
-  var S: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var K: dynamic = cpp_uninitialized();
+  var S: dynamic = cpp_uninitialized();
   while (cpp_comma(scanf("%d%d%d", (&N), (&K), (&S)), N))
   {
     memset(dp, 0, cpp_sizeof((dp)));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= N))
       {
         dp[i][0][0] = 1;
@@ -24,15 +24,15 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= N))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= K))
           {
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k <= S))
               {
                 if ((k < i))

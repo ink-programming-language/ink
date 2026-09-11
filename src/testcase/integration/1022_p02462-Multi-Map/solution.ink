@@ -1,55 +1,55 @@
 // Translated from solution.cpp.
 
-var USE_MATH_DEFINES = cpp_expression("#def");
+var USE_MATH_DEFINES: dynamic = cpp_expression("#def");
 
-var CRT_SECURE_NO_WARNINGS = cpp_expression("#def");
+var CRT_SECURE_NO_WARNINGS: dynamic = cpp_expression("#def");
 
-var inf = (1 << 60);
+var inf: dynamic = (1 << 60);
 
-var mod = (cpp_cast(1e9) + 7);
+var mod: dynamic = (cpp_cast(1e9) + 7);
 
-func all(v: dynamic)
+func all(v: dynamic) -> dynamic
 {
   return cpp_expression("#define _USE_MATH_");
 }
 
-func rall(v: dynamic)
+func rall(v: dynamic) -> dynamic
 {
   return cpp_expression("#define _USE_MATH_DE");
 }
 
-func print(s: dynamic)
+func print(s: dynamic) -> dynamic
 {
   cpp_macro("cout << s;");
 }
 
-func println(s: dynamic)
+func println(s: dynamic) -> dynamic
 {
   cpp_macro("cout << s << endl;");
 }
 
-func printd(s: dynamic, f: dynamic)
+func printd(s: dynamic, f: dynamic) -> dynamic
 {
   cpp_macro("cout << fixed << setprecision(f) << s << endl;");
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var q: dynamic;
+      var q: dynamic = cpp_uninitialized();
       read(q);
-      var s: dynamic;
-      var __cpp_switch_1 = q;
+      var s: dynamic = cpp_uninitialized();
+      var __cpp_switch_1: dynamic = q;
       if (__cpp_switch_1 == 0)
       {
         read(s);
-        var x: dynamic;
+        var x: dynamic = cpp_uninitialized();
         read(x);
         a.emplace(s, x);
         break;
@@ -59,9 +59,9 @@ func main()
         read(s);
         if ((a.count(s) > 0))
         {
-        var p = a.equal_range(s);
+        var p: dynamic = a.equal_range(s);
         {
-        var it = p.first;
+        var it: dynamic = p.first;
         while ((it != p.second))
         {
         println(it->second);
@@ -84,13 +84,13 @@ func main()
       }
       else if (__cpp_switch_1 == 3)
       {
-        var l: dynamic;
-        var r: dynamic;
+        var l: dynamic = cpp_uninitialized();
+        var r: dynamic = cpp_uninitialized();
         read(l, r);
-        var p = a.equal_range(l);
-        var q = a.equal_range(r);
+        var p: dynamic = a.equal_range(l);
+        var q: dynamic = a.equal_range(r);
         {
-        var it = p.first;
+        var it: dynamic = p.first;
         while ((it != q.second))
         {
         println(((it->first << " ") << it->second));

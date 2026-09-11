@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var size = ((200 * 1000) + 100);
+var size: dynamic = ((200 * 1000) + 100);
 
-var ans = cpp_array(size);
+var ans: dynamic = cpp_array(size);
 
-var a = cpp_array(size);
+var a: dynamic = cpp_array(size);
 
-var mycur = cpp_array(size);
+var mycur: dynamic = cpp_array(size);
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var shift = cpp_array(size);
+var shift: dynamic = cpp_array(size);
 
-var ord = cpp_array(size);
+var ord: dynamic = cpp_array(size);
 
-func nod(a: dynamic, b: dynamic)
+func nod(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -29,13 +29,13 @@ func nod(a: dynamic, b: dynamic)
   }
 }
 
-func pwr(a: dynamic, b: dynamic, mdl: dynamic)
+func pwr(a: dynamic, b: dynamic, mdl: dynamic) -> dynamic
 {
   if ((b == 0))
   {
     return (1 % mdl);
   }
-  var d = pwr(a, (b / 2), mdl);
+  var d: dynamic = pwr(a, (b / 2), mdl);
   d = ((((d * 1) * d)) % mdl);
   if ((b & 1))
   {
@@ -44,11 +44,11 @@ func pwr(a: dynamic, b: dynamic, mdl: dynamic)
   return d;
 }
 
-func factor(val: dynamic)
+func factor(val: dynamic) -> dynamic
 {
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= val))
     {
       if (((val % i) == 0))
@@ -70,21 +70,21 @@ func factor(val: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&t), (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
       i += 1;
     }
   }
-  var hps: dynamic;
-  var cur = 0;
+  var hps: dynamic = cpp_uninitialized();
+  var cur: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       mycur[i] = cur;
@@ -102,12 +102,12 @@ func main()
     }
   }
   d = nod(t, cur);
-  var fact = factor((t / d));
-  var phi = 1;
-  for (var e in fact)
+  var fact: dynamic = factor((t / d));
+  var phi: dynamic = 1;
+  for (var e: dynamic in fact)
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (cpp_cast(e.second) - 1)))
       {
         phi *= e.first;
@@ -116,9 +116,9 @@ func main()
     }
     phi *= ((e.first - 1));
   }
-  var back = pwr((cur / d), (phi - 1), (t / d));
+  var back: dynamic = pwr((cur / d), (phi - 1), (t / d));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((ans[i] == 0) || (cur == 0)))
@@ -133,9 +133,9 @@ func main()
   }
   if ((cur > 0))
   {
-    var ords: dynamic;
+    var ords: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((ans[i] > 0))
@@ -145,11 +145,11 @@ func main()
         i += 1;
       }
     }
-    for (var e in ords)
+    for (var e: dynamic in ords)
     {
       sort(e.second.begin(), e.second.end());
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (cpp_cast(e.second.size()) - 1)))
         {
           ans[e.second[j].second] = (e.second[(j + 1)].first - e.second[j].first);
@@ -160,7 +160,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       printf("%d%c", ans[i], " \n"[(i == (n - 1))]);

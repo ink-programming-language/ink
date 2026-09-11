@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var ans: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   if (((n % 2) == 0))
   {

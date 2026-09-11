@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func search(num: dynamic, a: dynamic)
+func search(num: dynamic, a: dynamic) -> dynamic
 {
-  var ref = a[num];
-  var ans = 0;
+  var cpp_ref: dynamic = a[num];
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 3))
     {
       a[num] = i;
-      var ind1 = num;
-      var ind2 = num;
-      var ind1_p = ind1;
-      var ind2_p = ind2;
+      var ind1: dynamic = num;
+      var ind2: dynamic = num;
+      var ind1_p: dynamic = ind1;
+      var ind2_p: dynamic = ind2;
       while (true)
       {
         if (((ind1 < 0) || (ind2 > (n - 1))))
@@ -25,7 +25,7 @@ func search(num: dynamic, a: dynamic)
         {
           break;
         }
-        var cnt = 2;
+        var cnt: dynamic = 2;
         if ((ind1 == ind2))
         {
           cnt -= 1;
@@ -53,7 +53,7 @@ func search(num: dynamic, a: dynamic)
       i += 1;
     }
   }
-  a[num] = ref;
+  a[num] = cpp_ref;
   if ((ans < 4))
   {
     ans = 0;
@@ -61,9 +61,9 @@ func search(num: dynamic, a: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
-  var a = cpp_array(20000);
+  var a: dynamic = cpp_array(20000);
   while (true)
   {
     read(n);
@@ -72,16 +72,16 @@ func main()
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
         i += 1;
       }
     }
-    var ans = 0;
+    var ans: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         ans = max(ans, search(i, a));

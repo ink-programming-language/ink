@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var G = cpp_array(2005);
+var G: dynamic = cpp_array(2005);
 
-var dp = cpp_array(4005, 2005);
+var dp: dynamic = cpp_array(4005, 2005);
 
-var ldp = cpp_array(8005, 2005);
+var ldp: dynamic = cpp_array(8005, 2005);
 
-var rdp = cpp_array(8005, 2005);
+var rdp: dynamic = cpp_array(8005, 2005);
 
-var zero = 4002;
+var zero: dynamic = 4002;
 
-var used = cpp_array(2005);
+var used: dynamic = cpp_array(2005);
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
   used[v] = true;
   {
-    var i = (0);
+    var i: dynamic = (0);
     while (((i) <= ((cpp_cast(G[v].size()) - 1))))
     {
       if (used[G[v][i]])
@@ -37,15 +37,15 @@ func dfs(v: dynamic)
   return 1;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(n, m);
-  var u: dynamic;
-  var v: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
   {
-    var i = (1);
+    var i: dynamic = (1);
     while (((i) <= (m)))
     {
       read(u, v);
@@ -54,13 +54,13 @@ func main(argument_0: dynamic)
       (i) += 1;
     }
   }
-  var vec: dynamic;
+  var vec: dynamic = cpp_uninitialized();
   used[1] = true;
   {
-    var i = (0);
+    var i: dynamic = (0);
     while (((i) <= ((cpp_cast(G[1].size()) - 1))))
     {
-      var v = G[1][i];
+      var v: dynamic = G[1][i];
       if (used[v])
       {
         (i) += 1;
@@ -73,11 +73,11 @@ func main(argument_0: dynamic)
   c = vec.size();
   dp[0][0] = 1;
   {
-    var i = (0);
+    var i: dynamic = (0);
     while (((i) <= ((c - 1))))
     {
       {
-        var j = (0);
+        var j: dynamic = (0);
         while (((j) <= (m)))
         {
           (cpp_assign(dp[(i + 1)][j], "+=", dp[i][j])) %= 1000000007;
@@ -93,11 +93,11 @@ func main(argument_0: dynamic)
   }
   ldp[0][zero] = 1;
   {
-    var i = (0);
+    var i: dynamic = (0);
     while (((i) <= ((c - 1))))
     {
       {
-        var j = ((-m));
+        var j: dynamic = ((-m));
         while (((j) <= (m)))
         {
           (cpp_assign(ldp[(i + 1)][(zero + j)], "+=", ldp[i][(zero + j)])) %= 1000000007;
@@ -117,11 +117,11 @@ func main(argument_0: dynamic)
   }
   rdp[(c + 1)][zero] = 1;
   {
-    var i = (c + 1);
+    var i: dynamic = (c + 1);
     while ((i >= 2))
     {
       {
-        var j = ((-m));
+        var j: dynamic = ((-m));
         while (((j) <= (m)))
         {
           (cpp_assign(rdp[(i - 1)][(zero + j)], "+=", rdp[i][(zero + j)])) %= 1000000007;
@@ -139,21 +139,21 @@ func main(argument_0: dynamic)
       i -= 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   if (((m % 2) == 0))
   {
     ans += dp[c][(m / 2)];
   }
   {
-    var i = (1);
+    var i: dynamic = (1);
     while (((i) <= (c)))
     {
       {
-        var j = (vec[(i - 1)] - 2);
+        var j: dynamic = (vec[(i - 1)] - 2);
         while ((j >= ((-vec[(i - 1)]) + 2)))
         {
           {
-            var k = ((-m));
+            var k: dynamic = ((-m));
             while (((k) <= (m)))
             {
               if ((((k + j) < (-m)) || ((k + j) > m)))
@@ -175,11 +175,11 @@ func main(argument_0: dynamic)
   if ((m % 2))
   {
     {
-      var i = (0);
+      var i: dynamic = (0);
       while (((i) <= ((c + 1))))
       {
         {
-          var j = ((-m));
+          var j: dynamic = ((-m));
           while (((j) <= (m)))
           {
             ldp[i][(zero + j)] = cpp_assign(rdp[i][(zero + j)], "=", 0);
@@ -191,11 +191,11 @@ func main(argument_0: dynamic)
     }
     ldp[0][zero] = 1;
     {
-      var i = (0);
+      var i: dynamic = (0);
       while (((i) <= ((c - 1))))
       {
         {
-          var j = ((-m));
+          var j: dynamic = ((-m));
           while (((j) <= (m)))
           {
             if (((j + vec[i]) <= m))
@@ -214,11 +214,11 @@ func main(argument_0: dynamic)
     }
     rdp[(c + 1)][zero] = 1;
     {
-      var i = (c + 1);
+      var i: dynamic = (c + 1);
       while ((i >= 2))
       {
         {
-          var j = ((-m));
+          var j: dynamic = ((-m));
           while (((j) <= (m)))
           {
             if (((j + vec[(i - 2)]) <= m))
@@ -236,12 +236,12 @@ func main(argument_0: dynamic)
       }
     }
     {
-      var i = (1);
+      var i: dynamic = (1);
       while (((i) <= (c)))
       {
-        var j = (vec[(i - 1)] - 1);
+        var j: dynamic = (vec[(i - 1)] - 1);
         {
-          var k = ((-m));
+          var k: dynamic = ((-m));
           while (((k) <= (m)))
           {
             if ((((k + j) < (-m)) || ((k + j) > m)))
@@ -256,7 +256,7 @@ func main(argument_0: dynamic)
         }
         j = ((-vec[(i - 1)]) + 1);
         {
-          var k = ((-m));
+          var k: dynamic = ((-m));
           while (((k) <= (m)))
           {
             if ((((k + j) < (-m)) || ((k + j) > m)))

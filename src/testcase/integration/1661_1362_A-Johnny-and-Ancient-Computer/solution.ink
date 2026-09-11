@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     read(a, b);
     if ((a == b))
     {
@@ -18,12 +18,12 @@ func main()
     }
     if ((a < b))
     {
-      var temp = a;
+      var temp: dynamic = a;
       a = b;
       b = temp;
     }
-    var c = 0;
-    var f = 1;
+    var c: dynamic = 0;
+    var f: dynamic = 1;
     while (((((a % 8) == 0) && (f == 1)) && ((a / 8) >= b)))
     {
       if (((a == b) && (f == 1)))

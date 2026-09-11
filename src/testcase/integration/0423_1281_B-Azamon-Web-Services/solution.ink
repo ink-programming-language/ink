@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-var caseno = 0;
+var caseno: dynamic = 0;
 
-func yesno(okk: dynamic)
+func yesno(okk: dynamic) -> dynamic
 {
-  write((if (okk) "YES" else "NO"), cpp_char("\n"));
+  write(( (okk) ? "YES" : "NO"), cpp_char("\n"));
 }
 
-var primemod = 1000000007;
+var primemod: dynamic = 1000000007;
 
-var maxsize = ((1 * 1000000) + 9);
+var maxsize: dynamic = ((1 * 1000000) + 9);
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
-var N = 210;
+var N: dynamic = 210;
 
-func solve()
+func solve() -> dynamic
 {
-  var t: dynamic;
-  var s: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(s, t);
   if ((s < t))
   {
     write(s, cpp_char("\n"));
     return;
   }
-  var temp = s;
+  var temp: dynamic = s;
   sort(temp.begin(), temp.end());
   {
-    typeof((if (((s.size()) < (t.size()))) (s.size()) else (t.size()))) = ((0) - (((0) > ((if (((s.size()) < (t.size()))) (s.size()) else (t.size()))))));
-    while ((i != (((if (((s.size()) < (t.size()))) (s.size()) else (t.size()))) - (((0) > ((if (((s.size()) < (t.size()))) (s.size()) else (t.size()))))))))
+    typeof(( (((s.size()) < (t.size()))) ? (s.size()) : (t.size()))) = ((0) - (((0) > (( (((s.size()) < (t.size()))) ? (s.size()) : (t.size()))))));
+    while ((i != ((( (((s.size()) < (t.size()))) ? (s.size()) : (t.size()))) - (((0) > (( (((s.size()) < (t.size()))) ? (s.size()) : (t.size()))))))))
     {
       if ((temp[i] < s[i]))
       {
@@ -47,7 +47,7 @@ func solve()
           }
         }
       }
-      i += (1 - (2 * (((0) > ((if (((s.size()) < (t.size()))) (s.size()) else (t.size())))))));
+      i += (1 - (2 * (((0) > (( (((s.size()) < (t.size()))) ? (s.size()) : (t.size())))))));
     }
   }
   if ((s < t))
@@ -59,12 +59,12 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   T = 1;
   read(T);
   while (cpp_update(T, "--"))

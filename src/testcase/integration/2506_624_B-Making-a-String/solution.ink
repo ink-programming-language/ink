@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a: dynamic;
-  var count: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var count: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a);
@@ -16,10 +16,10 @@ func main()
     }
   }
   sort(count.begin(), count.end());
-  var total = 0;
-  var previous = (count[(n - 1)] + 1);
+  var total: dynamic = 0;
+  var previous: dynamic = (count[(n - 1)] + 1);
   {
-    var i = ((n - 1));
+    var i: dynamic = ((n - 1));
     while ((i >= 0))
     {
       if ((previous <= count[i]))

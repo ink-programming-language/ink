@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var m: dynamic;
-  var t: dynamic;
-  var i: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   scanf("%d%d%d%d", (&n), (&k), (&m), (&t));
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < t))

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func to_string(s: dynamic)
+func to_string(s: dynamic) -> dynamic
 {
   return ((cpp_char("\"") + s) + cpp_char("\""));
 }
 
-func to_string(s: dynamic)
+func to_string(s: dynamic) -> dynamic
 {
   return to_string(cpp_cast(s));
 }
 
-func to_string(b: dynamic)
+func to_string(b: dynamic) -> dynamic
 {
-  return (if (b) "true" else "false");
+  return ( (b) ? "true" : "false");
 }
 
-func to_string(v: dynamic)
+func to_string(v: dynamic) -> dynamic
 {
-  var first = true;
-  var res = "{";
+  var first: dynamic = true;
+  var res: dynamic = "{";
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < static_cast(v.size())))
     {
       if ((!first))
@@ -36,11 +36,11 @@ func to_string(v: dynamic)
   return res;
 }
 
-func to_string(v: dynamic)
+func to_string(v: dynamic) -> dynamic
 {
-  var res = "";
+  var res: dynamic = "";
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       res += static_cast((cpp_char("0") + v[i]));
@@ -50,11 +50,11 @@ func to_string(v: dynamic)
   return res;
 }
 
-func to_string(v: dynamic)
+func to_string(v: dynamic) -> dynamic
 {
-  var first = true;
-  var res = "{";
-  for (var x in v)
+  var first: dynamic = true;
+  var res: dynamic = "{";
+  for (var x: dynamic in v)
   {
     if ((!first))
     {
@@ -67,60 +67,60 @@ func to_string(v: dynamic)
   return res;
 }
 
-func to_string(p: dynamic)
+func to_string(p: dynamic) -> dynamic
 {
   return (((("(" + to_string(p.first)) + ", ") + to_string(p.second)) + ")");
 }
 
-func to_string(p: dynamic)
+func to_string(p: dynamic) -> dynamic
 {
   return (((((("(" + to_string(get(p))) + ", ") + to_string(get(p))) + ", ") + to_string(get(p))) + ")");
 }
 
-func to_string(p: dynamic)
+func to_string(p: dynamic) -> dynamic
 {
   return (((((((("(" + to_string(get(p))) + ", ") + to_string(get(p))) + ", ") + to_string(get(p))) + ", ") + to_string(get(p))) + ")");
 }
 
-func debug_out()
+func debug_out() -> dynamic
 {
   write("\n");
 }
 
-func debug_out(H: dynamic, T: dynamic...)
+func debug_out(H: dynamic, T: dynamic...) -> dynamic
 {
   write(" ", to_string(H));
   debug_out(cpp_expand(T));
 }
 
-var pi = 3.141592653589793;
+var pi: dynamic = 3.141592653589793;
 
-var inf = (1e18 + 5);
+var inf: dynamic = (1e18 + 5);
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var maxn = (2e5 + 5);
+var maxn: dynamic = (2e5 + 5);
 
-var mxn = (1e5 + 5);
+var mxn: dynamic = (1e5 + 5);
 
-var mx = 1000;
+var mx: dynamic = 1000;
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var b = cpp_array(maxn);
+var b: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio((cin.tie(0) && 0));
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var x: dynamic;
-  var k: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(x, k, y);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n + 1)))
     {
       read(a[i]);
@@ -128,18 +128,18 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (m + 1)))
     {
       read(b[i]);
       i += 1;
     }
   }
-  var change = ((x > (y * k)));
-  var cost = 0;
-  var l = 0;
-  var r = 0;
-  var p = 0;
+  var change: dynamic = ((x > (y * k)));
+  var cost: dynamic = 0;
+  var l: dynamic = 0;
+  var r: dynamic = 0;
+  var p: dynamic = 0;
   while ((p < (m + 1)))
   {
     if (((l > n) && (p == m)))
@@ -156,9 +156,9 @@ func main()
     {
       r += 1;
     }
-    var fl = 0;
+    var fl: dynamic = 0;
     {
-      var i = (l + 1);
+      var i: dynamic = (l + 1);
       while ((i < r))
       {
         if (((a[i] > a[l]) && (a[i] > a[r])))
@@ -169,7 +169,7 @@ func main()
         i += 1;
       }
     }
-    var len = (((r - l) - 1));
+    var len: dynamic = (((r - l) - 1));
     if (((len < k) && fl))
     {
       return cpp_comma(((cout << -1) << cpp_char("\n")), 0);

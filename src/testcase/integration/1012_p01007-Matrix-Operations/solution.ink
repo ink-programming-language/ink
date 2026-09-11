@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var arr = cpp_array(15, 15);
+var arr: dynamic = cpp_array(15, 15);
 
-var t = cpp_array(15, 15);
+var t: dynamic = cpp_array(15, 15);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           assert(((i < 15) && (j < 15)));
@@ -25,16 +25,16 @@ func main()
       i += 1;
     }
   }
-  var o: dynamic;
+  var o: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(o);
-      var r: dynamic;
-      var c: dynamic;
-      var size: dynamic;
-      var angle: dynamic;
+      var r: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
+      var size: dynamic = cpp_uninitialized();
+      var angle: dynamic = cpp_uninitialized();
       if ((o == 0))
       {
         read(r, c, size, angle);
@@ -46,11 +46,11 @@ func main()
         {
           memcpy(t, arr, cpp_sizeof(t));
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < size))
             {
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < size))
                 {
                   assert((((r + j) < 15) && ((c + k) < 15)));
@@ -68,11 +68,11 @@ func main()
         {
           memcpy(t, arr, cpp_sizeof(t));
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < size))
             {
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < size))
                 {
                   assert((((r + j) < 15) && ((c + k) < 15)));
@@ -88,11 +88,11 @@ func main()
         {
           memcpy(t, arr, cpp_sizeof(t));
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < size))
             {
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < size))
                 {
                   assert((((r + j) < 15) && ((c + k) < 15)));
@@ -111,11 +111,11 @@ func main()
         r -= 1;
         c -= 1;
         {
-          var j = r;
+          var j: dynamic = r;
           while ((j < (r + size)))
           {
             {
-              var k = c;
+              var k: dynamic = c;
               while ((k < (c + size)))
               {
                 arr[j][k] = (1 - arr[j][k]);
@@ -140,13 +140,13 @@ func main()
         read(r, c);
         r -= 1;
         c -= 1;
-        var q: dynamic;
+        var q: dynamic = cpp_uninitialized();
         q.push(make_pair(r, c));
-        var v = (1 - arr[r][c]);
+        var v: dynamic = (1 - arr[r][c]);
         while ((!q.empty()))
         {
-          var nr = q.front().first;
-          var nc = q.front().second;
+          var nr: dynamic = q.front().first;
+          var nc: dynamic = q.front().second;
           q.pop();
           if ((arr[nr][nc] == v))
           {
@@ -175,14 +175,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
-          write((if ((j == 0)) "" else " "), arr[i][j]);
+          write(( ((j == 0)) ? "" : " "), arr[i][j]);
           j += 1;
         }
       }

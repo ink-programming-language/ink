@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var Pi = acos(-1.0);
+var Pi: dynamic = acos(-1.0);
 
-var maxN = 100005;
+var maxN: dynamic = 100005;
 
-var inf = cpp_cast(1e15);
+var inf: dynamic = cpp_cast(1e15);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var b = cpp_array(maxN);
+var b: dynamic = cpp_array(maxN);
 
-var k = cpp_array(maxN);
+var k: dynamic = cpp_array(maxN);
 
-var req = cpp_array(maxN);
+var req: dynamic = cpp_array(maxN);
 
-var G = cpp_array(maxN);
+var G: dynamic = cpp_array(maxN);
 
-func dfs(cur: dynamic)
+func dfs(cur: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(G[cur].size())))
     {
-      var nxt = G[cur][i];
+      var nxt: dynamic = G[cur][i];
       dfs(nxt);
       if ((req[nxt] < 0))
       {
@@ -41,20 +41,20 @@ func dfs(cur: dynamic)
   }
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&b[i]));
       i += 1;
     }
   }
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&a));
@@ -62,9 +62,9 @@ func main(argc: dynamic, argv: dynamic)
       i += 1;
     }
   }
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       scanf("%d %lld", (&x), (&k[i]));
@@ -73,6 +73,6 @@ func main(argc: dynamic, argv: dynamic)
     }
   }
   dfs(1);
-  puts(if (((req[1] < 0))) "NO" else "YES");
+  puts( (((req[1] < 0))) ? "NO" : "YES");
   return 0;
 }

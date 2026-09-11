@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var maxn = (3e6 + 5);
+var maxn: dynamic = (3e6 + 5);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, s);
-  var swap = [0];
-  var color = [0];
+  var swap: dynamic = [0];
+  var color: dynamic = [0];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((((i % 2) == 0) && (s[i] == cpp_char("r"))))

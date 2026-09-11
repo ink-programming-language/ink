@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(UL i = 0; i < (n); i++)");
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var P = cpp_array(18, 100000);
+var P: dynamic = cpp_array(18, 100000);
 
-var D = cpp_array(100000);
+var D: dynamic = cpp_array(100000);
 
-var C = cpp_array(100000);
+var C: dynamic = cpp_array(100000);
 
-var E = cpp_array(100000);
+var E: dynamic = cpp_array(100000);
 
-func LCA(a: dynamic, b: dynamic)
+func LCA(a: dynamic, b: dynamic) -> dynamic
 {
   if ((C[a] < C[b]))
   {
     swap(a, b);
   }
-  var d = (C[a] - C[b]);
+  var d: dynamic = (C[a] - C[b]);
   {
-    var i = 17;
+    var i: dynamic = 17;
     while ((i != (~0)))
     {
       if ((((1 << i)) & d))
@@ -40,7 +40,7 @@ func LCA(a: dynamic, b: dynamic)
     return a;
   }
   {
-    var i = 17;
+    var i: dynamic = 17;
     while ((i != (~0)))
     {
       if ((P[a][i] == P[b][i]))
@@ -56,16 +56,16 @@ func LCA(a: dynamic, b: dynamic)
   return P[a][0];
 }
 
-func MP(a: dynamic, b: dynamic)
+func MP(a: dynamic, b: dynamic) -> dynamic
 {
-  var X = D[LCA(a, b)];
+  var X: dynamic = D[LCA(a, b)];
   if ((D[a] < D[b]))
   {
     swap(a, b);
   }
-  var Y = (((D[a] - D[b]) + X) + X);
+  var Y: dynamic = (((D[a] - D[b]) + X) + X);
   {
-    var i = 17;
+    var i: dynamic = 17;
     while ((i != (~0)))
     {
       if (((D[P[a][i]] * 2) <= Y))
@@ -86,20 +86,20 @@ func MP(a: dynamic, b: dynamic)
   }
 }
 
-func Dist(a: dynamic, b: dynamic)
+func Dist(a: dynamic, b: dynamic) -> dynamic
 {
-  var X = D[LCA(a, b)];
+  var X: dynamic = D[LCA(a, b)];
   return (((D[a] + D[b]) - X) - X);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%u%u", (&N), (&Q));
   rep(i, (N - 1));
   {
-    var u: dynamic;
-    var v: dynamic;
-    var w: dynamic;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
+    var w: dynamic = cpp_uninitialized();
     scanf("%u%u%u", (&u), (&v), (&w));
     u -= 1;
     v -= 1;
@@ -110,13 +110,13 @@ func main()
     P[0][0] = 0;
     D[0] = 0;
     C[0] = 0;
-    var G: dynamic;
+    var G: dynamic = cpp_uninitialized();
     G.push(0);
     while (G.size())
     {
-      var p = G.front();
+      var p: dynamic = G.front();
       G.pop();
-      for (var e in E[p])
+      for (var e: dynamic in E[p])
       {
         if ((P[p][0] == e.first))
         {
@@ -134,21 +134,21 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var a: dynamic;
-    var b: dynamic;
-    var c: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
+    var c: dynamic = cpp_uninitialized();
     scanf("%u%u%u", (&a), (&b), (&c));
     a -= 1;
     b -= 1;
     c -= 1;
-    var ans = (~0);
+    var ans: dynamic = (~0);
     rep(t, 3);
     {
-      var mp = MP(a, b);
-      var q1 = max(max(Dist(mp.first, a), Dist(mp.first, b)), Dist(mp.first, c));
-      var q2 = max(max(Dist(mp.second, a), Dist(mp.second, b)), Dist(mp.second, c));
+      var mp: dynamic = MP(a, b);
+      var q1: dynamic = max(max(Dist(mp.first, a), Dist(mp.first, b)), Dist(mp.first, c));
+      var q2: dynamic = max(max(Dist(mp.second, a), Dist(mp.second, b)), Dist(mp.second, c));
       ans = min(ans, min(q1, q2));
       swap(a, b);
       swap(b, c);

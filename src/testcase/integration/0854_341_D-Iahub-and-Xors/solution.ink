@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var N = 1002;
+var N: dynamic = 1002;
 
-var M = 123;
+var M: dynamic = 123;
 
-var Pi = acos(-1);
+var Pi: dynamic = acos(-1);
 
-var Inf = 1e18;
+var Inf: dynamic = 1e18;
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   a += b;
   if ((a >= mod))
@@ -21,26 +21,26 @@ func add(a: dynamic, b: dynamic)
   }
 }
 
-func mult(a: dynamic, b: dynamic)
+func mult(a: dynamic, b: dynamic) -> dynamic
 {
   return (((1 * a) * b) % mod);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var t = cpp_array(N, N, 2, 2);
+var t: dynamic = cpp_array(N, N, 2, 2);
 
-func get(x: dynamic, y: dynamic)
+func get(x: dynamic, y: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = x;
+    var i: dynamic = x;
     while ((i > 0))
     {
       {
-        var j = y;
+        var j: dynamic = y;
         while ((j > 0))
         {
           ans ^= t[(x & 1)][(y & 1)][i][j];
@@ -53,14 +53,14 @@ func get(x: dynamic, y: dynamic)
   return ans;
 }
 
-func upd(x: dynamic, y: dynamic, v: dynamic)
+func upd(x: dynamic, y: dynamic, v: dynamic) -> dynamic
 {
   {
-    var i = x;
+    var i: dynamic = x;
     while ((i <= n))
     {
       {
-        var j = y;
+        var j: dynamic = y;
         while ((j <= n))
         {
           t[(x & 1)][(y & 1)][i][j] ^= v;
@@ -72,23 +72,23 @@ func upd(x: dynamic, y: dynamic, v: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var it = 0;
+    var it: dynamic = 0;
     while ((it < m))
     {
-      var t: dynamic;
-      var x1: dynamic;
-      var y1: dynamic;
-      var x2: dynamic;
-      var y2: dynamic;
-      var v: dynamic;
+      var t: dynamic = cpp_uninitialized();
+      var x1: dynamic = cpp_uninitialized();
+      var y1: dynamic = cpp_uninitialized();
+      var x2: dynamic = cpp_uninitialized();
+      var y2: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d%d%d%d%d", (&t), (&x1), (&y1), (&x2), (&y2));
       if ((t == 1))
       {
-        var ans = (((get(x2, y2) ^ get((x1 - 1), (y1 - 1))) ^ get((x1 - 1), y2)) ^ get(x2, (y1 - 1)));
+        var ans: dynamic = (((get(x2, y2) ^ get((x1 - 1), (y1 - 1))) ^ get((x1 - 1), y2)) ^ get(x2, (y1 - 1)));
         printf("%d\n", ans);
       } else
       {

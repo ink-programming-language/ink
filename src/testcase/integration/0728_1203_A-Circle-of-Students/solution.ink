@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var cnt = 0;
+var cnt: dynamic = 0;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var h1 = cpp_array(100005);
+var h1: dynamic = cpp_array(100005);
 
-var h2 = cpp_array(100007);
+var h2: dynamic = cpp_array(100007);
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
-  var n: dynamic;
-  var m: dynamic;
-  var q: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(q);
   while (cpp_update(q, "--"))
   {
     read(n);
-    var a = cpp_array(n);
-    var t = 0;
+    var a: dynamic = cpp_array(n);
+    var t: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -37,8 +37,8 @@ func main()
         i += 1;
       }
     }
-    var u = 1;
-    var nm = 0;
+    var u: dynamic = 1;
+    var nm: dynamic = 0;
     {
       i = t;
       while ((i < n))
@@ -67,7 +67,7 @@ func main()
         u += 1;
       }
     }
-    var ut = 0;
+    var ut: dynamic = 0;
     u = 1;
     {
       i = t;

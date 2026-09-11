@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   while ((L.size() > 1))
   {
-    var mini = INF;
+    var mini: dynamic = INF;
     {
-      var it = L.begin();
+      var it: dynamic = L.begin();
       while ((it != L.end()))
       {
-        var x = it->second;
+        var x: dynamic = it->second;
         if (((it == L.begin()) || (next(it) == L.end())))
         {
           mini = min(mini, x);
@@ -27,7 +27,7 @@ func solve()
     }
     res += mini;
     {
-      var it = L.begin();
+      var it: dynamic = L.begin();
       while ((it != L.end()))
       {
         if (((it == L.begin()) || (next(it) == L.end())))
@@ -41,10 +41,10 @@ func solve()
       }
     }
     {
-      var it = L.begin();
+      var it: dynamic = L.begin();
       while ((it != L.end()))
       {
-        var cur = cpp_update(it, "++");
+        var cur: dynamic = cpp_update(it, "++");
         if ((cur->second <= 0))
         {
           L.erase(cur);
@@ -52,7 +52,7 @@ func solve()
         }
         if ((cur != L.begin()))
         {
-          var pre = prev(cur);
+          var pre: dynamic = prev(cur);
           if ((pre->first == cur->first))
           {
             pre->second += cur->second;
@@ -65,16 +65,16 @@ func solve()
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var last = s[0];
-  var cnt = 0;
+  var last: dynamic = s[0];
+  var cnt: dynamic = 0;
   s.push_back(cpp_char("$"));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(s.size())))
     {
       if ((s[i] == last))

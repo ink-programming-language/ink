@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-var N = 201;
+var N: dynamic = 201;
 
-var T = 201;
+var T: dynamic = 201;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var pa = cpp_array(N);
+var pa: dynamic = cpp_array(N);
 
-var pb = cpp_array(N);
+var pb: dynamic = cpp_array(N);
 
-var cl1 = cpp_array(T, N);
+var cl1: dynamic = cpp_array(T, N);
 
-var cl2 = cpp_array(T, N);
+var cl2: dynamic = cpp_array(T, N);
 
-var mr1 = cpp_array(T, N);
+var mr1: dynamic = cpp_array(T, N);
 
-var mr2 = cpp_array(T, N);
+var mr2: dynamic = cpp_array(T, N);
 
-var dp1 = cpp_array(T, N);
+var dp1: dynamic = cpp_array(T, N);
 
-var dp2 = cpp_array(T, N);
+var dp2: dynamic = cpp_array(T, N);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   read(n, t, z);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i], b[i], c[i]);
@@ -48,7 +48,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= t))
     {
       cl1[0][i] = cpp_assign(cl2[0][i], "=", true);
@@ -56,18 +56,18 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       cl2[i][0] = true;
       mr2[i][0] = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= t))
         {
           mr2[i][j] = -1;
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < j))
             {
               if ((mr2[i][k] == -1))
@@ -80,9 +80,9 @@ func main()
                 k += 1;
                 continue;
               }
-              var mn = (mr2[i][k] % z);
-              var mx = mr2[i][k];
-              var rm = ((mn + (pb[i] * ((j - k)))) - ((((((pb[(i - 1)] * ((j - k))) + z) - 1)) / z) * z));
+              var mn: dynamic = (mr2[i][k] % z);
+              var mx: dynamic = mr2[i][k];
+              var rm: dynamic = ((mn + (pb[i] * ((j - k)))) - ((((((pb[(i - 1)] * ((j - k))) + z) - 1)) / z) * z));
               mn += (((j - k)) * b[i]);
               mx += (((j - k)) * b[i]);
               if ((rm < 0))
@@ -102,7 +102,7 @@ func main()
               }
               if ((mx > c[i]))
               {
-                var f = (mx - c[i]);
+                var f: dynamic = (mx - c[i]);
                 f = ((((f + z) - 1)) / z);
                 mx -= (f * z);
               }
@@ -116,7 +116,7 @@ func main()
         }
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= t))
         {
           if (cl2[(i - 1)][j])
@@ -127,7 +127,7 @@ func main()
             }
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < j))
             {
               if ((mr2[i][k] == -1))
@@ -151,7 +151,7 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= t))
         {
           mr1[i][j] = -1;
@@ -159,7 +159,7 @@ func main()
           {
             if (((a[i] + (b[i] * j)) <= c[i]))
             {
-              var rm = ((pa[i] + (pb[i] * j)) - ((((((pa[(i - 1)] + (pb[(i - 1)] * j)) + z) - 1)) / z) * z));
+              var rm: dynamic = ((pa[i] + (pb[i] * j)) - ((((((pa[(i - 1)] + (pb[(i - 1)] * j)) + z) - 1)) / z) * z));
               if ((rm >= 0))
               {
                 mr1[i][j] = rm;
@@ -167,7 +167,7 @@ func main()
             }
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < j))
             {
               if ((mr1[i][k] == -1))
@@ -180,9 +180,9 @@ func main()
                 k += 1;
                 continue;
               }
-              var mn = (mr1[i][k] % z);
-              var mx = mr1[i][k];
-              var rm = ((mn + (pb[i] * ((j - k)))) - ((((((pb[(i - 1)] * ((j - k))) + z) - 1)) / z) * z));
+              var mn: dynamic = (mr1[i][k] % z);
+              var mx: dynamic = mr1[i][k];
+              var rm: dynamic = ((mn + (pb[i] * ((j - k)))) - ((((((pb[(i - 1)] * ((j - k))) + z) - 1)) / z) * z));
               mn += (((j - k)) * b[i]);
               mx += (((j - k)) * b[i]);
               if ((rm < 0))
@@ -202,7 +202,7 @@ func main()
               }
               if ((mx > c[i]))
               {
-                var f = (mx - c[i]);
+                var f: dynamic = (mx - c[i]);
                 f = ((((f + z) - 1)) / z);
                 mx -= (f * z);
               }
@@ -216,7 +216,7 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= t))
         {
           if (cl1[(i - 1)][j])
@@ -227,7 +227,7 @@ func main()
             }
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < j))
             {
               if ((mr1[i][k] == -1))
@@ -254,11 +254,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= t))
         {
           dp2[i][j] = 1e18;
@@ -269,19 +269,19 @@ func main()
             continue;
           }
           {
-            var k = 1;
+            var k: dynamic = 1;
             while ((k <= j))
             {
               if (cl2[i][k])
               {
-                var cost = (((((pb[i] * k) + z) - 1)) / z);
+                var cost: dynamic = (((((pb[i] * k) + z) - 1)) / z);
                 dp2[i][j] = min(dp2[i][j], (dp2[i][(j - k)] + cost));
               }
               k += 1;
             }
           }
           {
-            var k = 1;
+            var k: dynamic = 1;
             while ((k <= j))
             {
               if ((mr2[i][k] != -1))
@@ -291,8 +291,8 @@ func main()
                   k += 1;
                   continue;
                 }
-                var cost = ((((pb[i] * k) - mr2[i][k])) / z);
-                var f = ((mr2[i][k] + (((j - k)) * b[i])) - c[i]);
+                var cost: dynamic = ((((pb[i] * k) - mr2[i][k])) / z);
+                var f: dynamic = ((mr2[i][k] + (((j - k)) * b[i])) - c[i]);
                 if ((f > 0))
                 {
                   cost += ((((f + z) - 1)) / z);
@@ -309,11 +309,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= t))
         {
           dp1[i][j] = 1e18;
@@ -324,19 +324,19 @@ func main()
             continue;
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= j))
             {
               if (cl1[i][k])
               {
-                var cost = ((((((pb[i] * k) + pa[i]) + z) - 1)) / z);
+                var cost: dynamic = ((((((pb[i] * k) + pa[i]) + z) - 1)) / z);
                 dp1[i][j] = min(dp1[i][j], (dp2[i][(j - k)] + cost));
               }
               k += 1;
             }
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= j))
             {
               if ((mr1[i][k] != -1))
@@ -346,8 +346,8 @@ func main()
                   k += 1;
                   continue;
                 }
-                var cost = ((((pa[i] + (pb[i] * k)) - mr1[i][k])) / z);
-                var f = ((mr1[i][k] + (((j - k)) * b[i])) - c[i]);
+                var cost: dynamic = ((((pa[i] + (pb[i] * k)) - mr1[i][k])) / z);
+                var f: dynamic = ((mr1[i][k] + (((j - k)) * b[i])) - c[i]);
                 if ((f > 0))
                 {
                   cost += ((((f + z) - 1)) / z);

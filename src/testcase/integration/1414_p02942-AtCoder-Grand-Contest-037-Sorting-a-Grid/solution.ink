@@ -1,54 +1,54 @@
 // Translated from solution.cpp.
 
-func clr(x: dynamic)
+func clr(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc+");
 }
 
-func For(i: dynamic, a: dynamic, b: dynamic)
+func For(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for (int i=(a);i<=(b);i++)");
 }
 
-func Fod(i: dynamic, b: dynamic, a: dynamic)
+func Fod(i: dynamic, b: dynamic, a: dynamic) -> dynamic
 {
   cpp_macro("for (int i=(b);i>=(a);i--)");
 }
 
-func pb(x: dynamic)
+func pb(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bi");
 }
 
-func mp(x: dynamic, y: dynamic)
+func mp(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits");
 }
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func outval(x: dynamic)
+func outval(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.");
 }
 
-func outtag(x: dynamic)
+func outtag(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> #define clr(x) memset(x");
 }
 
-func outarr(a: dynamic, L: dynamic, R: dynamic)
+func outarr(a: dynamic, L: dynamic, R: dynamic) -> dynamic
 {
   cpp_macro("cerr<<#a\"[\"<<L<<\"..\"<<R<<\"] = \";\\\n                    For(_x,L,R) cerr<<a[_x]<<\" \";cerr<<endl;");
 }
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 0;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 0;
+  var ch: dynamic = getchar();
   while ((!isdigit(ch)))
   {
     f = (ch == cpp_char("-"));
@@ -59,26 +59,26 @@ func read()
     x = ((((x << 1)) + ((x << 3))) + ((ch ^ 48)));
     ch = getchar();
   }
-  return if (f) (-x) else x;
+  return  (f) ? (-x) : x;
 }
 
-var N = 105;
+var N: dynamic = 105;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N, N);
+var a: dynamic = cpp_array(N, N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var g = cpp_array(N, N);
+var g: dynamic = cpp_array(N, N);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var Match = cpp_array(N);
+var Match: dynamic = cpp_array(N);
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
   cpp_statement("For(y,1,n)");
   if ((g[x][y] && (!vis[y])))
@@ -93,7 +93,7 @@ func dfs(x: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   m = read();
@@ -111,7 +111,7 @@ func main()
     }
     For(i, 1, n);
     {
-      var r = Match[i];
+      var r: dynamic = Match[i];
       swap(a[r][c], a[r][g[r][i]]);
     }
   }
@@ -136,9 +136,9 @@ func main()
   return 0;
 }
 
-func For(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic)
+func For(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic) -> dynamic
 {
-      var r = ((((a[i][j] + m) - 1)) / m);
+      var r: dynamic = ((((a[i][j] + m) - 1)) / m);
       if ((!g[i][r]))
       {
         g[i][r] = j;

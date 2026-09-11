@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func gcd(x: dynamic, y: dynamic)
+func gcd(x: dynamic, y: dynamic) -> dynamic
 {
-  return if ((y == 0)) x else gcd(y, (x % y));
+  return  ((y == 0)) ? x : gcd(y, (x % y));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
-          var val: dynamic;
+          var val: dynamic = cpp_uninitialized();
           scanf("%d", (&val));
           m[(-val)] += 1;
           j += 1;
@@ -31,19 +31,19 @@ func main()
     }
   }
   {
-    var it = m.begin();
+    var it: dynamic = m.begin();
     while ((it != m.end()))
     {
-      var cnt = it->second;
+      var cnt: dynamic = it->second;
       if ((cnt == 0))
       {
         it += 1;
         continue;
       }
-      var val = (-(it->first));
-      var divCnt = 0;
+      var val: dynamic = (-(it->first));
+      var divCnt: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < a.size()))
         {
           if (((a[i] % val) == 0))
@@ -53,22 +53,22 @@ func main()
           i += 1;
         }
       }
-      var num = 1;
+      var num: dynamic = 1;
       while (((((2 * divCnt) * num) + (num * num)) < cnt))
       {
         num += 1;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < a.size()))
         {
-          var g = gcd(a[i], val);
+          var g: dynamic = gcd(a[i], val);
           m[(-g)] -= (2 * num);
           i += 1;
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < num))
         {
           a.push_back(val);
@@ -78,7 +78,7 @@ func main()
       it += 1;
     }
   }
-  for (var val in a)
+  for (var val: dynamic in a)
   {
     printf("%d ", val);
   }

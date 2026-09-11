@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var t: dynamic;
-  var i: dynamic;
-  var n: dynamic;
-  var k: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     read(n, k);
-    var a = cpp_array(n);
-    var maxa: dynamic;
+    var a: dynamic = cpp_array(n);
+    var maxa: dynamic = cpp_uninitialized();
     {
       i = 0;
       while ((i < n))

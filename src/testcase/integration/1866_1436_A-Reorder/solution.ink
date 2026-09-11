@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func fast()
+func fast() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   fast();
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var m: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
     read(n, m);
-    var arr = cpp_array(n);
+    var arr: dynamic = cpp_array(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(arr[i]);
@@ -27,7 +27,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         m -= arr[i];

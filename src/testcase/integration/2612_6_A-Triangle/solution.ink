@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a = cpp_array(4);
+  var a: dynamic = cpp_array(4);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var flag = false;
+  var flag: dynamic = false;
   if (((((a[0] + a[1]) > a[2]) && ((a[0] + a[2]) > a[1])) && ((a[1] + a[2]) > a[0])))
   {
     write("TRIANGLE");

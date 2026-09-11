@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(1007);
+var a: dynamic = cpp_array(1007);
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var tmp: dynamic;
-  var maxi = -1;
-  var dig: dynamic;
-  var flag: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var tmp: dynamic = cpp_uninitialized();
+  var maxi: dynamic = -1;
+  var dig: dynamic = cpp_uninitialized();
+  var flag: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
     i = 1;

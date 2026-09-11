@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-func get(lx: dynamic, ly: dynamic, ux: dynamic, uy: dynamic, a: dynamic, b: dynamic)
+func get(lx: dynamic, ly: dynamic, ux: dynamic, uy: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   x.push_back(lx);
   x.push_back((ux + 1));
   x.push_back(0);
@@ -16,13 +16,13 @@ func get(lx: dynamic, ly: dynamic, ux: dynamic, uy: dynamic, a: dynamic, b: dyna
   y.push_back(b);
   sort(x.begin(), x.end());
   sort(y.begin(), y.end());
-  var r = 0;
+  var r: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 3))
         {
           if (((((0 <= x[i]) && (x[i] < a)) && (0 <= y[j])) && (y[j] < b)))
@@ -43,19 +43,19 @@ func get(lx: dynamic, ly: dynamic, ux: dynamic, uy: dynamic, a: dynamic, b: dyna
   return (r % mod);
 }
 
-func calc(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func calc(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   if ((c == 1))
   {
     return 0;
   }
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (d + 1)))
     {
       {
-        var j = -1;
+        var j: dynamic = -1;
         while ((j <= 2))
         {
           v.push_back(((((c * i) / a) + j) + d));
@@ -66,11 +66,11 @@ func calc(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (d + 1)))
     {
       {
-        var j = -1;
+        var j: dynamic = -1;
         while ((j <= 2))
         {
           v.push_back(((((c * i) / b) + j) + d));
@@ -81,11 +81,11 @@ func calc(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (d + 1)))
     {
       {
-        var j = -1;
+        var j: dynamic = -1;
         while ((j <= 2))
         {
           v.push_back(((((c * ((a - i))) / a) + j) + d));
@@ -96,11 +96,11 @@ func calc(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (d + 1)))
     {
       {
-        var j = -1;
+        var j: dynamic = -1;
         while ((j <= 2))
         {
           v.push_back(((((c * ((b - i))) / b) + j) + d));
@@ -113,7 +113,7 @@ func calc(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
   v.push_back(c);
   v.push_back((c + d));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       v[i] = max((d + 1), min((c + d), v[i]));
@@ -121,14 +121,14 @@ func calc(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
     }
   }
   sort(v.begin(), v.end());
-  var r = 0;
+  var r: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (v.size() - 1)))
     {
-      var x = ((((v[i] - d)) * a) / c);
-      var y = ((((v[i] - d)) * b) / c);
-      var t = 0;
+      var x: dynamic = ((((v[i] - d)) * a) / c);
+      var y: dynamic = ((((v[i] - d)) * b) / c);
+      var t: dynamic = 0;
       if (((0 <= v[i]) && (v[i] < c)))
       {
         t = (get((x - d), (y - d), (x + d), (y + d), a, b) % mod);
@@ -144,18 +144,18 @@ func calc(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
   return r;
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   scanf("%lld%lld%lld%lld", (&a), (&b), (&c), (&d));
-  var ans = (((((2 * d) + 1)) * (((2 * d) + 1))) * (((2 * d) + 1)));
+  var ans: dynamic = (((((2 * d) + 1)) * (((2 * d) + 1))) * (((2 * d) + 1)));
   ans = (((ans + (((((((((a - 1) + b) - 1) + c) - 1)) * (((2 * d) + 1))) % mod) * (((2 * d) + 1))))) % mod);
-  var s = ((calc(a, b, c, d) + calc(b, c, a, d)) + calc(c, a, b, d));
+  var s: dynamic = ((calc(a, b, c, d) + calc(b, c, a, d)) + calc(c, a, b, d));
   {
-    var i = (-d);
+    var i: dynamic = (-d);
     while ((i <= d))
     {
       if (((0 <= i) && (i < c)))

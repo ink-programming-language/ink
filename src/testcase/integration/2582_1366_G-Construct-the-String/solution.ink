@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var INF = int_cpp(1e9);
+var INF: dynamic = int_cpp(1e9);
 
-func setmin(a: dynamic, b: dynamic)
+func setmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -10,43 +10,43 @@ func setmin(a: dynamic, b: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var from_cpp: dynamic;
-  var need: dynamic;
+  var from_cpp: dynamic = cpp_uninitialized();
+  var need: dynamic = cpp_uninitialized();
   read(from_cpp, need);
-  var m = int_cpp(from_cpp.size());
-  var n = int_cpp(need.size());
+  var m: dynamic = int_cpp(from_cpp.size());
+  var n: dynamic = int_cpp(need.size());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      balance[i] = ((if (i) balance[(i - 1)] else m) + (if ((from_cpp[i] == cpp_char("."))) -1 else 1));
+      balance[i] = (( (i) ? balance[(i - 1)] : m) + ( ((from_cpp[i] == cpp_char("."))) ? -1 : 1));
       i += 1;
     }
   }
-  var last_seen = cpp_construct(((2 * m) + 1), -1);
-  var nxt = cpp_construct(m, -1);
+  var last_seen: dynamic = cpp_construct(((2 * m) + 1), -1);
+  var nxt: dynamic = cpp_construct(m, -1);
   {
-    var i = (m - 1);
+    var i: dynamic = (m - 1);
     while ((i >= 0))
     {
       if ((from_cpp[i] != cpp_char(".")))
       {
-        nxt[i] = last_seen[if (i) balance[(i - 1)] else m];
+        nxt[i] = last_seen[ (i) ? balance[(i - 1)] : m];
       }
       last_seen[balance[i]] = i;
       i -= 1;
     }
   }
-  var dp = cpp_construct((m + 1), vector((n + 1), INF));
+  var dp: dynamic = cpp_construct((m + 1), vector((n + 1), INF));
   dp[0][0] = 0;
   {
-    var pref1 = 0;
+    var pref1: dynamic = 0;
     while ((pref1 <= m))
     {
       {
-        var pref2 = 0;
+        var pref2: dynamic = 0;
         while ((pref2 <= n))
         {
           if ((dp[pref1][pref2] == INF))

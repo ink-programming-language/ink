@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var t: dynamic;
-  var c: dynamic;
-  var T = cpp_construct((N - 1));
-  var C = cpp_construct((N - 1));
+  var t: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var T: dynamic = cpp_construct((N - 1));
+  var C: dynamic = cpp_construct((N - 1));
   read(t);
-  var a = t;
+  var a: dynamic = t;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (N - 1)))
     {
-      var b: dynamic;
+      var b: dynamic = cpp_uninitialized();
       read(b);
       T[i] = abs((b - a));
       a = b;
@@ -22,12 +22,12 @@ func main()
     }
   }
   read(c);
-  var w = c;
+  var w: dynamic = c;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (N - 1)))
     {
-      var b: dynamic;
+      var b: dynamic = cpp_uninitialized();
       read(b);
       C[i] = abs((w - b));
       w = b;
@@ -42,7 +42,7 @@ func main()
     sort(T.begin(), T.end());
     sort(C.begin(), C.end());
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (N - 1)))
       {
         if ((C[i] != T[i]))

@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var s1: dynamic;
+var s1: dynamic = cpp_uninitialized();
 
-var s2: dynamic;
+var s2: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.length()))
     {
       s2 += s[i];

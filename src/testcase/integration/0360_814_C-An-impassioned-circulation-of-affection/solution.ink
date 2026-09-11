@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var N = (1500 + 10);
+var N: dynamic = (1500 + 10);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var memo = cpp_array(30, N);
+var memo: dynamic = cpp_array(30, N);
 
-func solve(x: dynamic, c: dynamic)
+func solve(x: dynamic, c: dynamic) -> dynamic
 {
-  var j = 0;
-  var miss = 0;
-  var ret = 0;
+  var j: dynamic = 0;
+  var miss: dynamic = 0;
+  var ret: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((a[i] != c) && (j < i)))
@@ -48,11 +48,11 @@ func solve(x: dynamic, c: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%s%d", (&n), s, (&q));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a[(i + 1)] = cpp_cast(((s[i] - cpp_char("a"))));
@@ -62,9 +62,9 @@ func main()
   memset(memo, -1, cpp_sizeof(memo));
   while (cpp_update(q, "--"))
   {
-    var x: dynamic;
-    var c: dynamic;
-    var ch = cpp_array(2);
+    var x: dynamic = cpp_uninitialized();
+    var c: dynamic = cpp_uninitialized();
+    var ch: dynamic = cpp_array(2);
     scanf("%d %s", (&x), ch);
     c = cpp_cast(((ch[0] - cpp_char("a"))));
     if ((memo[x][c] == -1))

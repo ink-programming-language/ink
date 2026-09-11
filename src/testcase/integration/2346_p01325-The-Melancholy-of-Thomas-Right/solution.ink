@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var t = cpp_array(10001);
+var t: dynamic = cpp_array(10001);
 
-var s = cpp_array(10001);
+var s: dynamic = cpp_array(10001);
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   while (cpp_comma((cin >> n), n))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(t[i]);
@@ -19,7 +19,7 @@ func main(argument_0: dynamic)
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(s[i]);
@@ -28,13 +28,13 @@ func main(argument_0: dynamic)
     }
     sort(s, (s + n));
     reverse(s, (s + n));
-    var flg = true;
+    var flg: dynamic = true;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             if ((t[j] > 0))
@@ -53,7 +53,7 @@ func main(argument_0: dynamic)
         i += 1;
       }
     }
-    write((if (flg) "Yes" else "No"), "\n");
+    write(( (flg) ? "Yes" : "No"), "\n");
   }
   return 0;
 }

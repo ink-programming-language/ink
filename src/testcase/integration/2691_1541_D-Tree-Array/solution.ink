@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var nl = cpp_expression("#inc");
+var nl: dynamic = cpp_expression("#inc");
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var VMAX = cpp_expression("#inclu");
+var VMAX: dynamic = cpp_expression("#inclu");
 
-var NMAX = cpp_expression("#incl");
+var NMAX: dynamic = cpp_expression("#incl");
 
-var INF = cpp_expression("#include <bits/st");
+var INF: dynamic = cpp_expression("#include <bits/st");
 
-var f = cpp_construct("pirati.in");
+var f: dynamic = cpp_construct("pirati.in");
 
-var g = cpp_construct("pirati.out");
+var g: dynamic = cpp_construct("pirati.out");
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(205, 205);
+var dp: dynamic = cpp_array(205, 205);
 
-var dist = cpp_array(205, 205);
+var dist: dynamic = cpp_array(205, 205);
 
-func lgpow(a: dynamic, b: dynamic)
+func lgpow(a: dynamic, b: dynamic) -> dynamic
 {
-  var ans = 1;
-  var baza = a;
+  var ans: dynamic = 1;
+  var baza: dynamic = a;
   while (b)
   {
     if ((b & 1))
@@ -43,14 +43,14 @@ func lgpow(a: dynamic, b: dynamic)
   return ans;
 }
 
-func precalcdp()
+func precalcdp() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= n))
         {
           if (((i == 0) && (j == 0)))
@@ -81,10 +81,10 @@ func precalcdp()
   }
 }
 
-func RoyFloyd()
+func RoyFloyd() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dist[i][i] = 0;
@@ -92,15 +92,15 @@ func RoyFloyd()
     }
   }
   {
-    var aux = 1;
+    var aux: dynamic = 1;
     while ((aux <= n))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= n))
             {
               dist[i][j] = min(dist[i][j], (dist[i][aux] + dist[aux][j]));
@@ -115,15 +115,15 @@ func RoyFloyd()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           dist[i][j] = ((2 * n) + 5);
@@ -134,11 +134,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       dist[x][y] = 1;
       dist[y][x] = 1;
@@ -147,22 +147,22 @@ func main()
   }
   RoyFloyd();
   precalcdp();
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var lca = 1;
+    var lca: dynamic = 1;
     while ((lca <= n))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           {
-            var j = (i + 1);
+            var j: dynamic = (i + 1);
             while ((j <= n))
             {
-              var x = dist[i][lca];
-              var y = dist[j][lca];
-              var d = ((((x + y) - dist[i][j])) / 2);
+              var x: dynamic = dist[i][lca];
+              var y: dynamic = dist[j][lca];
+              var d: dynamic = ((((x + y) - dist[i][j])) / 2);
               x -= d;
               y -= d;
               ans += dp[y][x];

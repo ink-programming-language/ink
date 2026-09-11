@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  var ch = getchar();
+  var ch: dynamic = getchar();
   x = 0;
   while ((!isdigit(ch)))
   {
@@ -17,46 +17,46 @@ func read(x: dynamic)
   }
 }
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var M = 2000;
+var M: dynamic = 2000;
 
-var NN = (N * 5);
+var NN: dynamic = (N * 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var mx: dynamic;
+var mx: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var res = cpp_array(M, M);
+var res: dynamic = cpp_array(M, M);
 
-var sr: dynamic;
+var sr: dynamic = cpp_uninitialized();
 
-var sb: dynamic;
+var sb: dynamic = cpp_uninitialized();
 
-var sy: dynamic;
+var sy: dynamic = cpp_uninitialized();
 
-var id = cpp_array(N);
+var id: dynamic = cpp_array(N);
 
-var r = cpp_array(NN);
+var r: dynamic = cpp_array(NN);
 
-var b = cpp_array(NN);
+var b: dynamic = cpp_array(NN);
 
-var y = cpp_array(NN);
+var y: dynamic = cpp_array(NN);
 
-var xx = cpp_expression("#incl");
+var xx: dynamic = cpp_expression("#incl");
 
-var yy = cpp_expression("#inclu");
+var yy: dynamic = cpp_expression("#inclu");
 
-func get()
+func get() -> dynamic
 {
-  var l = 0;
-  var r = 1000;
-  var mid: dynamic;
-  var res = 0;
+  var l: dynamic = 0;
+  var r: dynamic = 1000;
+  var mid: dynamic = cpp_uninitialized();
+  var res: dynamic = 0;
   while ((l <= r))
   {
     mid = ((l + r) >> 1);
@@ -72,9 +72,9 @@ func get()
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   read(T);
   while (cpp_update(T, "--"))
   {
@@ -82,7 +82,7 @@ func main()
     read(n);
     mx = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         read(a[i]);
@@ -97,14 +97,14 @@ func main()
     id[1] = mx;
     id[mx] = 1;
     swap(a[1], a[mx]);
-    var len = get();
+    var len: dynamic = get();
     sr = cpp_assign(sb, "=", cpp_assign(sy, "=", 0));
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i <= len))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= len))
           {
             r[cpp_update(sr, "++")] = [i, j];
@@ -115,11 +115,11 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= len))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= len))
           {
             b[cpp_update(sb, "++")] = [i, j];
@@ -130,11 +130,11 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= len))
       {
         {
-          var j = 2;
+          var j: dynamic = 2;
           while ((j <= len))
           {
             y[cpp_update(sy, "++")] = [i, j];
@@ -145,11 +145,11 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= len))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= len))
           {
             res[i][j] = 0;
@@ -160,11 +160,11 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= a[i]))
           {
             if (sr)
@@ -188,11 +188,11 @@ func main()
     }
     printf("%d\n", len);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= len))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= len))
           {
             printf("%d ", res[i][j]);

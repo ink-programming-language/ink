@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 0;
-  var c = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 0;
+  var c: dynamic = getchar();
   while (((c < cpp_char("0")) || (c > cpp_char("9"))))
   {
     if ((c == cpp_char("-")))
@@ -18,10 +18,10 @@ func read()
     x = ((((x << 3)) + ((x << 1))) + ((c ^ cpp_char("0"))));
     c = getchar();
   }
-  return if (f) (-x) else x;
+  return  (f) ? (-x) : x;
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -35,21 +35,21 @@ func write(x: dynamic)
   putchar(((x % 10) + cpp_char("0")));
 }
 
-var N = (2e5 + 10);
+var N: dynamic = (2e5 + 10);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-var maxn: dynamic;
+var maxn: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   n = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       s[i] = (s[(i - 1)] + read());
@@ -58,7 +58,7 @@ func main()
   }
   maxn = s[n];
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 1))
     {
       f[i] = maxn;

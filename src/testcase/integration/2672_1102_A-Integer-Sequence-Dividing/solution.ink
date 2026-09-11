@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var v1: dynamic;
+var v1: dynamic = cpp_uninitialized();
 
-var v2: dynamic;
+var v2: dynamic = cpp_uninitialized();
 
-var arr = cpp_array(1000001);
+var arr: dynamic = cpp_array(1000001);
 
-func seive()
+func seive() -> dynamic
 {
-  var k = 1000000;
+  var k: dynamic = 1000000;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       arr[i] = true;
@@ -20,13 +20,13 @@ func seive()
   arr[0] = false;
   arr[1] = false;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= k))
     {
       if ((arr[i] == true))
       {
         {
-          var j = (2 * i);
+          var j: dynamic = (2 * i);
           while ((j <= k))
           {
             arr[j] = false;
@@ -38,7 +38,7 @@ func seive()
     }
   }
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i <= k))
     {
       if ((arr[i] == true))
@@ -49,7 +49,7 @@ func seive()
     }
   }
   {
-    var i = 5;
+    var i: dynamic = 5;
     while ((i <= k))
     {
       if ((arr[i] == true))
@@ -61,10 +61,10 @@ func seive()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n);
   k = ((n * ((n + 1))) / 2);
   write((k % 2), "\n");

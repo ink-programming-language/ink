@@ -2,32 +2,32 @@
 
 class itr
 {
-  var begin: dynamic;
-  var end: dynamic;
+  var begin: dynamic = cpp_uninitialized();
+  var end: dynamic = cpp_uninitialized();
 }
 
-func get_range(b: dynamic, e: dynamic)
+func get_range(b: dynamic, e: dynamic) -> dynamic
 {
   return [b, e];
 }
 
-func __cpp_top_level_1()
+func __cpp_top_level_1() -> dynamic
 {
 }
 
 class debug
 {
-  func operator_shift_left(argument_0: dynamic)
+  func operator_shift_left(argument_0: dynamic) -> dynamic
   {
-      return (*this);
+      return (*self);
     }
 }
 
-func ARR(arr: dynamic, sz: dynamic)
+func ARR(arr: dynamic, sz: dynamic) -> dynamic
 {
-  var ret = ("{ " + to_string(arr[0]));
+  var ret: dynamic = ("{ " + to_string(arr[0]));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < sz))
     {
       ret += (" , " + to_string(arr[i]));
@@ -38,19 +38,19 @@ func ARR(arr: dynamic, sz: dynamic)
   return ret;
 }
 
-var INF = (1e9 + 7);
+var INF: dynamic = (1e9 + 7);
 
-var MxN = (1e5 + 100);
+var MxN: dynamic = (1e5 + 100);
 
-var adj = cpp_array(MxN);
+var adj: dynamic = cpp_array(MxN);
 
-var d = cpp_array(MxN);
+var d: dynamic = cpp_array(MxN);
 
-var dmx: dynamic;
+var dmx: dynamic = cpp_uninitialized();
 
-var vmx: dynamic;
+var vmx: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic, p: dynamic)
+func dfs(u: dynamic, p: dynamic) -> dynamic
 {
   if ((p != u))
   {
@@ -61,7 +61,7 @@ func dfs(u: dynamic, p: dynamic)
     dmx = d[u];
     vmx = u;
   }
-  for (var v in adj[u])
+  for (var v: dynamic in adj[u])
   {
     if ((v != p))
     {
@@ -71,23 +71,23 @@ func dfs(u: dynamic, p: dynamic)
   return;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var TC: dynamic;
+  var TC: dynamic = cpp_uninitialized();
   read(TC);
   while (cpp_update(TC, "--"))
   {
-    var n: dynamic;
-    var a: dynamic;
-    var b: dynamic;
-    var da: dynamic;
-    var db: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
+    var da: dynamic = cpp_uninitialized();
+    var db: dynamic = cpp_uninitialized();
     read(n, a, b, da, db);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= n))
       {
         adj[i].clear();
@@ -97,11 +97,11 @@ func main(argument_0: dynamic)
     a -= 1;
     b -= 1;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
-        var u: dynamic;
-        var v: dynamic;
+        var u: dynamic = cpp_uninitialized();
+        var v: dynamic = cpp_uninitialized();
         read(u, v);
         u -= 1;
         v -= 1;
@@ -113,11 +113,11 @@ func main(argument_0: dynamic)
     dmx = 0;
     d[a] = 0;
     dfs(a, a);
-    var dist = (d[b]);
+    var dist: dynamic = (d[b]);
     dmx = 0;
     d[vmx] = 0;
     dfs(vmx, vmx);
-    var ok = 1;
+    var ok: dynamic = 1;
     if ((dist <= da))
     {
       ok = 0;
@@ -131,7 +131,7 @@ func main(argument_0: dynamic)
     {
       ok = 0;
     }
-    write((if (ok) "Bob\n" else "Alice\n"));
+    write(( (ok) ? "Bob\n" : "Alice\n"));
   }
   return 0;
 }

@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a = cpp_array(100000);
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_array(100000);
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var btn = 1;
-  var count = 0;
+  var btn: dynamic = 1;
+  var count: dynamic = 0;
   while (1)
   {
     if ((btn == 2))

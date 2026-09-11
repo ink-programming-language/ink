@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var N = (200000 + 5);
+var N: dynamic = (200000 + 5);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a = cpp_array(N);
-  var b = cpp_array(N);
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_array(N);
+  var b: dynamic = cpp_array(N);
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
@@ -18,12 +18,12 @@ func main()
     }
   }
   sort(b, (b + n));
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   y = b[(n / 2)];
   x = b[((n / 2) - 1)];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((a[i] <= x))

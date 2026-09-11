@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var maxn = (4e5 + 5);
+var maxn: dynamic = (4e5 + 5);
 
-var maxm = (4e4 + 5);
+var maxm: dynamic = (4e4 + 5);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var inf = (-1e9 + 7);
+var inf: dynamic = (-1e9 + 7);
 
-func scan()
+func scan() -> dynamic
 {
-  var m = 0;
-  var c = getchar();
+  var m: dynamic = 0;
+  var c: dynamic = getchar();
   while (((c < cpp_char("0")) || (c > cpp_char("9"))))
   {
     c = getchar();
@@ -30,45 +30,45 @@ func scan()
   return m;
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var D: dynamic;
+var D: dynamic = cpp_uninitialized();
 
 class node
 {
-  var a: dynamic;
-  var b: dynamic;
-  func node()
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  func node() -> dynamic
   {
     }
-  func node(a: dynamic, b: dynamic)
+  func node(a: dynamic, b: dynamic) -> dynamic
   {
-      this->a = cpp_construct(a);
-      this->b = cpp_construct(b);
+      self->a = cpp_construct(a);
+      self->b = cpp_construct(b);
     }
-  func operator_less(t: dynamic)
+  func operator_less(t: dynamic) -> dynamic
   {
       return ((a * t.b) < (b * t.a));
     }
-  func operator_equal(t: dynamic)
+  func operator_equal(t: dynamic) -> dynamic
   {
       return ((a * t.b) == (b * t.a));
     }
-  func inv()
+  func inv() -> dynamic
   {
-      return node((-(this->a)), (-(this->b)));
+      return node((-(self->a)), (-(self->b)));
     }
 }
 
-var lk = cpp_array(maxn, 4);
+var lk: dynamic = cpp_array(maxn, 4);
 
-var lkcnt = cpp_array(4);
+var lkcnt: dynamic = cpp_array(4);
 
-var lkcnt = cpp_array(4);
+var lkcnt: dynamic = cpp_array(4);
 
-func work(i: dynamic, j: dynamic)
+func work(i: dynamic, j: dynamic) -> dynamic
 {
   if (((i == 0) && (j == 1)))
   {
@@ -89,15 +89,15 @@ func work(i: dynamic, j: dynamic)
   return lkcnt[i];
 }
 
-func main()
+func main() -> dynamic
 {
   read(N, C, D);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       a -= C;
       b -= D;
@@ -137,26 +137,26 @@ func main()
   sort(lk[1], (lk[1] + lkcnt[1]));
   sort(lk[2], (lk[2] + lkcnt[2]));
   sort(lk[3], (lk[3] + lkcnt[3]));
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
-      var i2 = (((i + 2)) % 4);
-      var i1 = (((i + 1)) % 4);
+      var i2: dynamic = (((i + 2)) % 4);
+      var i1: dynamic = (((i + 1)) % 4);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < lkcnt[i]))
         {
-          var l = (lower_bound(lk[i2], (lk[i2] + lkcnt[i2]), lk[i][j].inv()) - lk[i2]);
-          var r = (upper_bound(lk[i2], (lk[i2] + lkcnt[i2]), lk[i][j].inv()) - lk[i2]);
+          var l: dynamic = (lower_bound(lk[i2], (lk[i2] + lkcnt[i2]), lk[i][j].inv()) - lk[i2]);
+          var r: dynamic = (upper_bound(lk[i2], (lk[i2] + lkcnt[i2]), lk[i][j].inv()) - lk[i2]);
           if (((r < lkcnt[i2]) && (lk[i][j].inv() == lk[i2][r])))
           {
             r += 1;
           }
           sum += ((1 * l) * ((lkcnt[i2] - r)));
-          var x = lk[i][j].a;
-          var y = lk[i][j].b;
+          var x: dynamic = lk[i][j].a;
+          var y: dynamic = lk[i][j].b;
           sum += ((1 * l) * lkcnt[i1]);
           if (((i == 0) && (y == 0)))
           {

@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   {
-    var L: dynamic;
+    var L: dynamic = cpp_uninitialized();
     while (cpp_comma((cin >> L), L))
     {
-      var m = 0;
+      var m: dynamic = 0;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= 12))
         {
-          var M: dynamic;
-          var N: dynamic;
+          var M: dynamic = cpp_uninitialized();
+          var N: dynamic = cpp_uninitialized();
           read(M, N);
           L -= (M - N);
           if (((m == 0) && (L <= 0)))

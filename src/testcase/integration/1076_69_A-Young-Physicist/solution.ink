@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var arr = cpp_array(3, 1);
+  var arr: dynamic = cpp_array(3, 1);
   arr[0][0] = cpp_assign(arr[0][1], "=", cpp_assign(arr[0][2], "=", 0));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d %d %d", (&x), (&y), (&z));

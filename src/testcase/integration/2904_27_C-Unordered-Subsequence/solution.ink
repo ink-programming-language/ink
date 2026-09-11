@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var inf = (((1 << 30)) - 1);
+var inf: dynamic = (((1 << 30)) - 1);
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var pi = fabs(atan2(0.0, -1.0));
+var pi: dynamic = fabs(atan2(0.0, -1.0));
 
-func ML()
+func ML() -> dynamic
 {
-  var ass: dynamic;
+  var ass: dynamic = cpp_uninitialized();
   {
     while (true)
     {
       ass = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 2500000))
         {
           ass[i] = rand();
@@ -25,22 +25,22 @@ func ML()
   }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100500);
+var a: dynamic = cpp_array(100500);
 
-var id = cpp_array(100500);
+var id: dynamic = cpp_array(100500);
 
-func cmpmin(q: dynamic, w: dynamic)
+func cmpmin(q: dynamic, w: dynamic) -> dynamic
 {
   return (a[q] < a[w]);
 }
 
-func LoAd()
+func LoAd() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -51,11 +51,11 @@ func LoAd()
   a[0] = INT_MIN;
 }
 
-func fnd()
+func fnd() -> dynamic
 {
-  var lt = 1;
-  var rt = n;
-  var i = 0;
+  var lt: dynamic = 1;
+  var rt: dynamic = n;
+  var i: dynamic = 0;
   while (((rt - lt) >= 2))
   {
     if ((a[(rt - 1)] == a[rt]))
@@ -68,7 +68,7 @@ func fnd()
       lt += 1;
       continue;
     }
-    var mid = id[i];
+    var mid: dynamic = id[i];
     if (((mid < lt) || (mid > rt)))
     {
       i += 1;
@@ -86,10 +86,10 @@ func fnd()
       i += 1;
       continue;
     }
-    var lm = -1;
-    var rm = -1;
+    var lm: dynamic = -1;
+    var rm: dynamic = -1;
     {
-      var j = lt;
+      var j: dynamic = lt;
       while ((j < mid))
       {
         if ((a[j] > a[mid]))
@@ -101,7 +101,7 @@ func fnd()
       }
     }
     {
-      var j = rt;
+      var j: dynamic = rt;
       while ((j > mid))
       {
         if ((a[j] > a[mid]))
@@ -121,10 +121,10 @@ func fnd()
   }
 }
 
-func SoLvE()
+func SoLvE() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       id[i] = (i + 1);
@@ -134,7 +134,7 @@ func SoLvE()
   sort(id, (id + n), cmpmin);
   fnd();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] *= (-1);
@@ -146,7 +146,7 @@ func SoLvE()
   puts("0");
 }
 
-func main()
+func main() -> dynamic
 {
   srand(cpp_cast(time(null)));
   LoAd();

@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var arr = cpp_array(505000);
+var arr: dynamic = cpp_array(505000);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func updata(l: dynamic, r: dynamic)
+func updata(l: dynamic, r: dynamic) -> dynamic
 {
-  var i = (l + 1);
-  var j = (r - 1);
+  var i: dynamic = (l + 1);
+  var j: dynamic = (r - 1);
   while ((i <= j))
   {
     arr[i] = arr[l];
@@ -18,15 +18,15 @@ func updata(l: dynamic, r: dynamic)
   ans = max(ans, (((r - l)) / 2));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   ans = 0;
-  var st = 0;
-  var ed = 0;
+  var st: dynamic = 0;
+  var ed: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&arr[i]));
@@ -48,7 +48,7 @@ func main()
   updata(st, ed);
   printf("%d\n", ans);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (i)

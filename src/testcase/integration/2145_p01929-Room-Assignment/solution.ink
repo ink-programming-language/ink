@@ -1,125 +1,125 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
 class Mod
 {
-  var num: dynamic;
-  func Mod()
+  var num: dynamic = cpp_uninitialized();
+  func Mod() -> dynamic
   {
       cpp_base_construct(0);
     }
-  func Mod(n: dynamic)
+  func Mod(n: dynamic) -> dynamic
   {
-      this->num = cpp_construct(((((n % mod) + mod)) % mod));
+      self->num = cpp_construct(((((n % mod) + mod)) % mod));
     }
-  func Mod(n: dynamic)
+  func Mod(n: dynamic) -> dynamic
   {
       cpp_base_construct(static_cast(n));
     }
-  func cpp_function_1()
+  func cpp_function_1() -> dynamic
   {
       return num;
     }
 }
 
-func operator_add(a: dynamic, b: dynamic)
+func operator_add(a: dynamic, b: dynamic) -> dynamic
 {
   return Mod((((a.num + b.num)) % mod));
 }
 
-func operator_add(a: dynamic, b: dynamic)
+func operator_add(a: dynamic, b: dynamic) -> dynamic
 {
   return (Mod(a) + b);
 }
 
-func operator_add(a: dynamic, b: dynamic)
+func operator_add(a: dynamic, b: dynamic) -> dynamic
 {
   return (b + a);
 }
 
-func operator(a: dynamic)
+func operator(a: dynamic) -> dynamic
 {
   return (a + Mod(1));
 }
 
-func operator_subtract(a: dynamic, b: dynamic)
+func operator_subtract(a: dynamic, b: dynamic) -> dynamic
 {
   return Mod(((((mod + a.num) - b.num)) % mod));
 }
 
-func operator_subtract(a: dynamic, b: dynamic)
+func operator_subtract(a: dynamic, b: dynamic) -> dynamic
 {
   return (Mod(a) - b);
 }
 
-func operator(a: dynamic)
+func operator(a: dynamic) -> dynamic
 {
   return (a - Mod(1));
 }
 
-func operator_multiply(a: dynamic, b: dynamic)
+func operator_multiply(a: dynamic, b: dynamic) -> dynamic
 {
   return Mod((((cpp_cast(a.num) * b.num)) % mod));
 }
 
-func operator_multiply(a: dynamic, b: dynamic)
+func operator_multiply(a: dynamic, b: dynamic) -> dynamic
 {
   return (Mod(a) * b);
 }
 
-func operator_multiply(a: dynamic, b: dynamic)
+func operator_multiply(a: dynamic, b: dynamic) -> dynamic
 {
   return (Mod(b) * a);
 }
 
-func operator_multiply(a: dynamic, b: dynamic)
+func operator_multiply(a: dynamic, b: dynamic) -> dynamic
 {
   return (Mod(b) * a);
 }
 
-func operator_add_assign(a: dynamic, b: dynamic)
+func operator_add_assign(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", (a + b));
 }
 
-func operator_add_assign(a: dynamic, b: dynamic)
+func operator_add_assign(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", (a + b));
 }
 
-func operator_subtract_assign(a: dynamic, b: dynamic)
+func operator_subtract_assign(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", (a - b));
 }
 
-func operator_subtract_assign(a: dynamic, b: dynamic)
+func operator_subtract_assign(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", (a - b));
 }
 
-func operator(a: dynamic, b: dynamic)
+func operator(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", (a * b));
 }
 
-func operator(a: dynamic, b: dynamic)
+func operator(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", (a * b));
 }
 
-func operator(a: dynamic, b: dynamic)
+func operator(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", (a * b));
 }
 
-func operator(a: dynamic, n: dynamic)
+func operator(a: dynamic, n: dynamic) -> dynamic
 {
   if ((n == 0))
   {
     return Mod(1);
   }
-  var res = (((a * a)) ^ ((n / 2)));
+  var res: dynamic = (((a * a)) ^ ((n / 2)));
   if ((n % 2))
   {
     res = (res * a);
@@ -127,13 +127,13 @@ func operator(a: dynamic, n: dynamic)
   return res;
 }
 
-func mod_pow(a: dynamic, n: dynamic)
+func mod_pow(a: dynamic, n: dynamic) -> dynamic
 {
   if ((n == 0))
   {
     return Mod(1);
   }
-  var res = mod_pow(((a * a)), ((n / 2)));
+  var res: dynamic = mod_pow(((a * a)), ((n / 2)));
   if ((n % 2))
   {
     res = (res * a);
@@ -141,39 +141,39 @@ func mod_pow(a: dynamic, n: dynamic)
   return res;
 }
 
-func inv(a: dynamic)
+func inv(a: dynamic) -> dynamic
 {
   return (a ^ ((mod - 2)));
 }
 
-func operator_divide(a: dynamic, b: dynamic)
+func operator_divide(a: dynamic, b: dynamic) -> dynamic
 {
   assert((b.num != 0));
   return (a * inv(b));
 }
 
-func operator_divide(a: dynamic, b: dynamic)
+func operator_divide(a: dynamic, b: dynamic) -> dynamic
 {
   return (Mod(a) / b);
 }
 
-func operator(a: dynamic, b: dynamic)
+func operator(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", (a / b));
 }
 
-var MAX_MOD_N = cpp_expression("#includ");
+var MAX_MOD_N: dynamic = cpp_expression("#includ");
 
-var fact = cpp_array(MAX_MOD_N);
+var fact: dynamic = cpp_array(MAX_MOD_N);
 
-var factinv = cpp_array(MAX_MOD_N);
+var factinv: dynamic = cpp_array(MAX_MOD_N);
 
-func init(amax: dynamic = MAX_MOD_N)
+func init(amax: dynamic = MAX_MOD_N) -> dynamic
 {
   fact[0] = Mod(1);
   factinv[0] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (amax - 1)))
     {
       fact[(i + 1)] = (fact[i] * Mod((i + 1)));
@@ -183,12 +183,12 @@ func init(amax: dynamic = MAX_MOD_N)
   }
 }
 
-func comb(a: dynamic, b: dynamic)
+func comb(a: dynamic, b: dynamic) -> dynamic
 {
   return ((fact[a] * factinv[b]) * factinv[(a - b)]);
 }
 
-func dfs(rev_edges: dynamic, now: dynamic, used: dynamic)
+func dfs(rev_edges: dynamic, now: dynamic, used: dynamic) -> dynamic
 {
   if (used[now])
   {
@@ -205,40 +205,40 @@ func dfs(rev_edges: dynamic, now: dynamic, used: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   while (true)
   {
-    var N: dynamic;
+    var N: dynamic = cpp_uninitialized();
     read(N);
     if ((!N))
     {
       break;
     }
-    var edges: dynamic;
+    var edges: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
-        var a: dynamic;
+        var a: dynamic = cpp_uninitialized();
         read(a);
         edges.push_back((a - 1));
         rev_edges[(a - 1)].push_back(i);
         i += 1;
       }
     }
-    var ok = true;
+    var ok: dynamic = true;
     if (any_of(rev_edges.begin(), rev_edges.end(), __cpp_lambda_2))
     {
       ok = false;
     }
-    var ans = 0;
+    var ans: dynamic = 0;
     if (ok)
     {
-      var loves = cpp_construct(N, -1);
+      var loves: dynamic = cpp_construct(N, -1);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < N))
         {
           if ((i == edges[edges[i]]))
@@ -249,7 +249,7 @@ func main()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < N))
         {
           if (((rev_edges[i].size() == 2) && (loves[i] == -1)))
@@ -262,7 +262,7 @@ func main()
       if (ok)
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < N))
           {
             if ((!used[i]))
@@ -275,7 +275,7 @@ func main()
                   nums[i] = 1;
                 } else
                 {
-                  for (var e in rev_edges[i])
+                  for (var e: dynamic in rev_edges[i])
                   {
                     if ((e != edges[i]))
                     {
@@ -295,9 +295,9 @@ func main()
         if (ok)
         {
           ans = 1;
-          var v: dynamic;
+          var v: dynamic = cpp_uninitialized();
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < N))
             {
               if ((loves[i] != -1))
@@ -307,30 +307,30 @@ func main()
                   i += 1;
                   continue;
                 }
-                var num = (nums[i] + nums[edges[i]]);
+                var num: dynamic = (nums[i] + nums[edges[i]]);
                 v.push_back(num);
               }
               i += 1;
             }
           }
-          var two_num = count(v.begin(), v.end(), 2);
-          var other_num = (v.size() - two_num);
+          var two_num: dynamic = count(v.begin(), v.end(), 2);
+          var other_num: dynamic = (v.size() - two_num);
           ans = fact[other_num];
           ans *= mod_pow(2, (two_num + other_num));
           ans *= fact[two_num];
-          var kake = 0;
+          var kake: dynamic = 0;
           {
-            var t = 0;
+            var t: dynamic = 0;
             while ((t <= (two_num / 2)))
             {
-              var rest = (two_num - (2 * t));
+              var rest: dynamic = (two_num - (2 * t));
               if ((rest > (other_num + 1)))
               {
                 t += 1;
                 continue;
               } else
               {
-                var plus = 0;
+                var plus: dynamic = 0;
                 plus = comb((other_num + t), t);
                 plus *= comb((other_num + 1), rest);
                 plus *= ((other_num + 1) + t);
@@ -348,12 +348,12 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_2(v: dynamic)
+func __cpp_lambda_2(v: dynamic) -> dynamic
 {
   return (v.size() >= 3);
 }
 
-func __cpp_lambda_3(a: dynamic)
+func __cpp_lambda_3(a: dynamic) -> dynamic
 {
   return (a == false);
 }

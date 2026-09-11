@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var D: dynamic;
+var D: dynamic = cpp_uninitialized();
 
-var V = cpp_array(100);
+var V: dynamic = cpp_array(100);
 
-func absd(x: dynamic)
+func absd(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -13,11 +13,11 @@ func absd(x: dynamic)
   return x;
 }
 
-func interpolate(n: dynamic, E: dynamic)
+func interpolate(n: dynamic, E: dynamic) -> dynamic
 {
-  var sum = 0.0;
+  var sum: dynamic = 0.0;
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < (D + 3)))
     {
       if (((k == n) || (k == E)))
@@ -25,9 +25,9 @@ func interpolate(n: dynamic, E: dynamic)
         k += 1;
         continue;
       }
-      var p = V[k];
+      var p: dynamic = V[k];
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (D + 3)))
         {
           if ((((i != k) && (i != n)) && (i != E)))
@@ -44,10 +44,10 @@ func interpolate(n: dynamic, E: dynamic)
   return sum;
 }
 
-func outlier(E: dynamic)
+func outlier(E: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (D + 3)))
     {
       if ((i == E))
@@ -55,7 +55,7 @@ func outlier(E: dynamic)
         i += 1;
         continue;
       }
-      var p = interpolate(i, E);
+      var p: dynamic = interpolate(i, E);
       if ((absd((p - V[i])) > 0.1))
       {
         return false;
@@ -66,12 +66,12 @@ func outlier(E: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   while (((cin >> D) && (D != 0)))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (D + 3)))
       {
         read(V[i]);
@@ -79,7 +79,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (D + 3)))
       {
         if (outlier(i))

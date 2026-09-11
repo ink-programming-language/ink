@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, st: dynamic, ed: dynamic)
+func REP(i: dynamic, st: dynamic, ed: dynamic) -> dynamic
 {
   cpp_macro("for(register int i=st,i##end=ed;i<=i##end;++i)");
 }
 
-func DREP(i: dynamic, st: dynamic, ed: dynamic)
+func DREP(i: dynamic, st: dynamic, ed: dynamic) -> dynamic
 {
   cpp_macro("for(register int i=st,i##end=ed;i>=i##end;--i)");
 }
 
-func chkmin(x: dynamic, y: dynamic)
+func chkmin(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (((y < x))) (cpp_comma(x, cpp_expression("=y"), 1)) else 0;
+  return  (((y < x))) ? (cpp_comma(x, cpp_expression("=y"), 1)) : 0;
 }
 
-func chkmax(x: dynamic, y: dynamic)
+func chkmax(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (((y > x))) (cpp_comma(x, cpp_expression("=y"), 1)) else 0;
+  return  (((y > x))) ? (cpp_comma(x, cpp_expression("=y"), 1)) : 0;
 }
 
-func read()
+func read() -> dynamic
 {
-  var x: dynamic;
-  var c: dynamic;
-  var f = 1;
+  var x: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var f: dynamic = 1;
   while ((((cpp_assign(c, "=", getchar())) != cpp_char("-")) && (((c > cpp_char("9")) || (c < cpp_char("0"))))))
   {
   }
@@ -41,11 +41,11 @@ func read()
   return (x * f);
 }
 
-func readll()
+func readll() -> dynamic
 {
-  var x: dynamic;
-  var c: dynamic;
-  var f = 1;
+  var x: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var f: dynamic = 1;
   while ((((cpp_assign(c, "=", getchar())) != cpp_char("-")) && (((c > cpp_char("9")) || (c < cpp_char("0"))))))
   {
   }
@@ -62,21 +62,21 @@ func readll()
   return (x * f);
 }
 
-var maxn = (2e5 + 10);
+var maxn: dynamic = (2e5 + 10);
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var idx = cpp_array(maxn);
+var idx: dynamic = cpp_array(maxn);
 
-var idx_cnt: dynamic;
+var idx_cnt: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
 class Segment_tree
 {
   var Min: dynamic = cpp_array((maxn << 2));
   var tag: dynamic = cpp_array((maxn << 2));
-  func push_down(x: dynamic)
+  func push_down(x: dynamic) -> dynamic
   {
       if (tag[x])
       {
@@ -87,23 +87,23 @@ class Segment_tree
         tag[x] = 0;
       }
     }
-  func push_up(x: dynamic)
+  func push_up(x: dynamic) -> dynamic
   {
       Min[x] = min(Min[(x << 1)], Min[((x << 1) | 1)]);
     }
-  func build_tree(x: dynamic, L: dynamic, R: dynamic)
+  func build_tree(x: dynamic, L: dynamic, R: dynamic) -> dynamic
   {
       if ((L == R))
       {
         Min[x] = idx[L];
         return;
       }
-      var Mid = (((L + R)) >> 1);
+      var Mid: dynamic = (((L + R)) >> 1);
       build_tree((x << 1), L, Mid);
       build_tree(((x << 1) | 1), (Mid + 1), R);
       push_up(x);
     }
-  func update(x: dynamic, L: dynamic, R: dynamic, ql: dynamic, qr: dynamic, v: dynamic)
+  func update(x: dynamic, L: dynamic, R: dynamic, ql: dynamic, qr: dynamic, v: dynamic) -> dynamic
   {
       if ((ql > qr))
       {
@@ -115,7 +115,7 @@ class Segment_tree
         Min[x] += v;
         return;
       }
-      var Mid = (((L + R)) >> 1);
+      var Mid: dynamic = (((L + R)) >> 1);
       push_down(x);
       if ((ql <= Mid))
       {
@@ -127,14 +127,14 @@ class Segment_tree
       }
       push_up(x);
     }
-  func query(x: dynamic, L: dynamic, R: dynamic, ql: dynamic, qr: dynamic)
+  func query(x: dynamic, L: dynamic, R: dynamic, ql: dynamic, qr: dynamic) -> dynamic
   {
       if (((ql <= L) && (R <= qr)))
       {
         return Min[x];
       }
-      var Mid = (((L + R)) >> 1);
-      var res = inf;
+      var Mid: dynamic = (((L + R)) >> 1);
+      var res: dynamic = inf;
       push_down(x);
       if ((ql <= Mid))
       {
@@ -149,13 +149,13 @@ class Segment_tree
     }
 }
 
-var Seg: dynamic;
+var Seg: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n = read();
+  var n: dynamic = read();
   REP(i, 1, n)[i] = read();
   REP(i, 1, n)[cpp_update(idx_cnt, "++")] = a[i];
   sort((idx + 1), ((idx + idx_cnt) + 1));
@@ -163,7 +163,7 @@ func main()
   Seg.build_tree(1, 1, idx_cnt);
   REP(i, 1, n);
   {
-    var u = (lower_bound((idx + 1), ((idx + idx_cnt) + 1), a[i]) - idx);
+    var u: dynamic = (lower_bound((idx + 1), ((idx + idx_cnt) + 1), a[i]) - idx);
     ans += (Seg.query(1, 1, idx_cnt, u, idx_cnt) - a[i]);
     Seg.update(1, 1, idx_cnt, 1, (u - 1), 1);
   }

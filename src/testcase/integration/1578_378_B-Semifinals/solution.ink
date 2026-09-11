@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var num: dynamic;
-  var temp1: dynamic;
-  var temp2: dynamic;
+  var num: dynamic = cpp_uninitialized();
+  var temp1: dynamic = cpp_uninitialized();
+  var temp2: dynamic = cpp_uninitialized();
   read(num);
-  var vi1: dynamic;
-  var vi2: dynamic;
-  var vi3: dynamic;
+  var vi1: dynamic = cpp_uninitialized();
+  var vi2: dynamic = cpp_uninitialized();
+  var vi3: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i) < (num)))
     {
       read(temp1, temp2);
@@ -22,9 +22,9 @@ func main()
     }
   }
   sort((vi3).begin(), (vi3).end());
-  var lim = vi3[(num - 1)];
+  var lim: dynamic = vi3[(num - 1)];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i) < (num)))
     {
       if ((i < (num / 2)))
@@ -42,7 +42,7 @@ func main()
   }
   write("\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i) < (num)))
     {
       if ((i < (num / 2)))

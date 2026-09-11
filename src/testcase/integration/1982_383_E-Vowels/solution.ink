@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var MAX = 10010;
+var MAX: dynamic = 10010;
 
-var N = 24;
+var N: dynamic = 24;
 
-var inv = (((1 << N)) - 1);
+var inv: dynamic = (((1 << N)) - 1);
 
-var F = cpp_array((((1 << N)) + 10));
+var F: dynamic = cpp_array((((1 << N)) + 10));
 
-var ara = cpp_array(MAX);
+var ara: dynamic = cpp_array(MAX);
 
-func howManyZeroPairs(n: dynamic, ara: dynamic)
+func howManyZeroPairs(n: dynamic, ara: dynamic) -> dynamic
 {
   memset(F, 0, cpp_sizeof((F)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       F[ara[i]] += 1;
@@ -22,11 +22,11 @@ func howManyZeroPairs(n: dynamic, ara: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       {
-        var mask = 0;
+        var mask: dynamic = 0;
         while ((mask < ((1 << N))))
         {
           if ((mask & ((1 << i))))
@@ -39,9 +39,9 @@ func howManyZeroPairs(n: dynamic, ara: dynamic)
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << N))))
     {
       ans ^= ((((n - F[(i ^ inv)])) * ((n - F[(i ^ inv)]))));
@@ -51,14 +51,14 @@ func howManyZeroPairs(n: dynamic, ara: dynamic)
   return ans;
 }
 
-var str = cpp_array(5);
+var str: dynamic = cpp_array(5);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%s", str);

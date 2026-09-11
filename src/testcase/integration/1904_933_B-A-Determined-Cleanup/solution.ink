@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   (os << cpp_char("{"));
-  var sep: dynamic;
-  for (var x in v)
+  var sep: dynamic = cpp_uninitialized();
+  for (var x: dynamic in v)
   {
     ((os << sep) << x);
     sep = ", ";
@@ -12,23 +12,23 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << cpp_char("}"));
 }
 
-func operator_shift_left(os: dynamic, p: dynamic)
+func operator_shift_left(os: dynamic, p: dynamic) -> dynamic
 {
   return (((((os << cpp_char("(")) << p.first) << ", ") << p.second) << cpp_char(")"));
 }
 
-func dbg_out()
+func dbg_out() -> dynamic
 {
   write("\n");
 }
 
-func dbg_out(H: dynamic, T: dynamic...)
+func dbg_out(H: dynamic, T: dynamic...) -> dynamic
 {
   write(cpp_char(" "), H);
   dbg_out(cpp_expand(T));
 }
 
-func output_vector(v: dynamic, add_one: dynamic = false, start: dynamic = -1, end: dynamic = -1)
+func output_vector(v: dynamic, add_one: dynamic = false, start: dynamic = -1, end: dynamic = -1) -> dynamic
 {
   if ((start < 0))
   {
@@ -39,24 +39,24 @@ func output_vector(v: dynamic, add_one: dynamic = false, start: dynamic = -1, en
     end = v.size();
   }
   {
-    var i = start;
+    var i: dynamic = start;
     while ((i < end))
     {
-      write((v[i] + (if (add_one) 1 else 0)), (if ((i < (end - 1))) cpp_char(" ") else cpp_char("\n")));
+      write((v[i] + ( (add_one) ? 1 : 0)), ( ((i < (end - 1))) ? cpp_char(" ") : cpp_char("\n")));
       i += 1;
     }
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var P: dynamic;
-  var K: dynamic;
+  var P: dynamic = cpp_uninitialized();
+  var K: dynamic = cpp_uninitialized();
   read(P, K);
-  var A: dynamic;
+  var A: dynamic = cpp_uninitialized();
   while (true)
   {
-    var remainder = ((((P % K) + K)) % K);
+    var remainder: dynamic = ((((P % K) + K)) % K);
     A.push_back(remainder);
     P -= remainder;
     P /= (-K);

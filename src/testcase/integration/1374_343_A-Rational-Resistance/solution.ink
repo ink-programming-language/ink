@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-func f(name: dynamic, arg1: dynamic)
+func f(name: dynamic, arg1: dynamic) -> dynamic
 {
   write(name, " : ", arg1, cpp_char("\n"));
 }
 
-func f(names: dynamic, arg1: dynamic, args: dynamic...)
+func f(names: dynamic, arg1: dynamic, args: dynamic...) -> dynamic
 {
-  var comma = strchr((names + 1), cpp_char(","));
+  var comma: dynamic = strchr((names + 1), cpp_char(","));
   (((cerr.write(names, (comma - names)) << " : ") << arg1) << " | ");
   f((comma + 1), cpp_expand(args));
 }
 
-var maxn = ((2 * cpp_cast(1e5)) + 10);
+var maxn: dynamic = ((2 * cpp_cast(1e5)) + 10);
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var INF = (cpp_cast(1e18) + 18);
+var INF: dynamic = (cpp_cast(1e18) + 18);
 
-var mod = (cpp_cast(1e9) + 9);
+var mod: dynamic = (cpp_cast(1e9) + 9);
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var ans = 0;
+var ans: dynamic = 0;
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return (if (b) gcd(b, (a % b)) else a);
+  return ( (b) ? gcd(b, (a % b)) : a);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);

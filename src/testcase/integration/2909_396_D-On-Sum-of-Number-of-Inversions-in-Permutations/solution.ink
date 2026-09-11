@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var f = cpp_array(1000005);
+var f: dynamic = cpp_array(1000005);
 
-var b = cpp_array(1000005);
+var b: dynamic = cpp_array(1000005);
 
-var bit = cpp_array(1000005);
+var bit: dynamic = cpp_array(1000005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-func update(i: dynamic, val: dynamic)
+func update(i: dynamic, val: dynamic) -> dynamic
 {
   while ((i <= n))
   {
@@ -19,9 +19,9 @@ func update(i: dynamic, val: dynamic)
   }
 }
 
-func query(i: dynamic)
+func query(i: dynamic) -> dynamic
 {
-  var sum = 0;
+  var sum: dynamic = 0;
   while ((i > 0))
   {
     sum += bit[i];
@@ -30,17 +30,17 @@ func query(i: dynamic)
   return sum;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var p: dynamic;
-  var q: dynamic;
-  var m: dynamic;
-  var n: dynamic;
-  var c: dynamic;
-  var sm: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var sm: dynamic = cpp_uninitialized();
   while ((cin >> n))
   {
     {

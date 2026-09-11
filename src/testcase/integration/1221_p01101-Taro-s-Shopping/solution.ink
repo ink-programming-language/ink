@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var double = dynamic;
+var cpp_double: dynamic = dynamic;
 
-var INF = cpp_expression("#inc");
+var INF: dynamic = cpp_expression("#inc");
 
-var a = cpp_array(1000);
+var a: dynamic = cpp_array(1000);
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var M: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
   while (cpp_comma(((cin >> N) >> M), ((N + M) != 0)))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         read(a[i]);
         i += 1;
       }
     }
-    var ans = 0;
+    var ans: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < N))
           {
             if (((i == j) || ((a[i] + a[j]) > M)))

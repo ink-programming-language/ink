@@ -1,85 +1,85 @@
 // Translated from solution.cpp.
 
-var IOS = cpp_expression("#include<bits/stdc++.h>");
+var IOS: dynamic = cpp_expression("#include<bits/stdc++.h>");
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var endl = cpp_expression("#inc");
+var endl: dynamic = cpp_expression("#inc");
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var ppb = cpp_expression("#include");
+var ppb: dynamic = cpp_expression("#include");
 
-var pf = cpp_expression("#include<b");
+var pf: dynamic = cpp_expression("#include<b");
 
-var ppf = cpp_expression("#include<");
+var ppf: dynamic = cpp_expression("#include<");
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-func uniq(v: dynamic)
+func uniq(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h> using names");
 }
 
-func sz(x: dynamic)
+func sz(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/std");
 }
 
-var fr = cpp_expression("#incl");
+var fr: dynamic = cpp_expression("#incl");
 
-var sc = cpp_expression("#inclu");
+var sc: dynamic = cpp_expression("#inclu");
 
-var pii = cpp_expression("#include<bits");
+var pii: dynamic = cpp_expression("#include<bits");
 
-var vi = cpp_expression("#include<bi");
+var vi: dynamic = cpp_expression("#include<bi");
 
-var vpi = cpp_expression("#include<bits/stdc++.");
+var vpi: dynamic = cpp_expression("#include<bits/stdc++.");
 
-var mii = cpp_expression("#include<bit");
+var mii: dynamic = cpp_expression("#include<bit");
 
-func rep(i: dynamic, a: dynamic, b: dynamic)
+func rep(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<b;i++)");
 }
 
-func repe(i: dynamic, a: dynamic, b: dynamic)
+func repe(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<=b;i++)");
 }
 
-func mem1(a: dynamic)
+func mem1(a: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h");
 }
 
-func mem0(a: dynamic)
+func mem0(a: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-var ppc = cpp_expression("#include<bits/stdc");
+var ppc: dynamic = cpp_expression("#include<bits/stdc");
 
-var ppcll = cpp_expression("#include<bits/stdc++");
+var ppcll: dynamic = cpp_expression("#include<bits/stdc++");
 
-var INF = cpp_expression("#include<bits/stdc");
+var INF: dynamic = cpp_expression("#include<bits/stdc");
 
-var mod = cpp_expression("#include<b");
+var mod: dynamic = cpp_expression("#include<b");
 
-var esp = cpp_expression("#incl");
+var esp: dynamic = cpp_expression("#incl");
 
-var mx = (1e2 + 7);
+var mx: dynamic = (1e2 + 7);
 
-var a = cpp_array(mx);
+var a: dynamic = cpp_array(mx);
 
-func check(n: dynamic)
+func check(n: dynamic) -> dynamic
 {
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i == 0))
@@ -87,7 +87,7 @@ func check(n: dynamic)
         sum += a[i];
       } else
       {
-        var tmp = (sum + a[i]);
+        var tmp: dynamic = (sum + a[i]);
         if ((tmp < i))
         {
           return false;
@@ -100,16 +100,16 @@ func check(n: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
-  var int_cpp = 1;
-  var n: dynamic;
+  var int_cpp: dynamic = 1;
+  var n: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     read(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);

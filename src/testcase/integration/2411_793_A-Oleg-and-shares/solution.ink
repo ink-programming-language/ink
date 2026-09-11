@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var arr = cpp_array(n);
-  var mini = LONG_MAX;
-  var flag = 0;
+  var arr: dynamic = cpp_array(n);
+  var mini: dynamic = LONG_MAX;
+  var flag: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);
@@ -17,12 +17,12 @@ func main()
     }
   }
   sort(arr, (arr + n));
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var val = (arr[i] - arr[0]);
+      var val: dynamic = (arr[i] - arr[0]);
       if (((val % k) != 0))
       {
         write(-1);

@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var N = 305;
+var N: dynamic = 305;
 
-var x = cpp_array((N * N));
+var x: dynamic = cpp_array((N * N));
 
-var y = cpp_array((N * N));
+var y: dynamic = cpp_array((N * N));
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&m), (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((i & 1))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= m))
           {
             x[cpp_update(tot, "++")] = i;
@@ -32,7 +32,7 @@ func main()
       } else
       {
         {
-          var j = m;
+          var j: dynamic = m;
           while ((j >= 1))
           {
             x[cpp_update(tot, "++")] = i;
@@ -45,7 +45,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < k))
     {
       printf("2 %d %d %d %d\n", x[((2 * i) - 1)], y[((2 * i) - 1)], x[(2 * i)], y[(2 * i)]);
@@ -54,7 +54,7 @@ func main()
   }
   printf("%d ", (((n * m) - (2 * k)) + 2));
   {
-    var i = ((2 * k) - 1);
+    var i: dynamic = ((2 * k) - 1);
     while ((i <= (n * m)))
     {
       printf("%d %d ", x[i], y[i]);

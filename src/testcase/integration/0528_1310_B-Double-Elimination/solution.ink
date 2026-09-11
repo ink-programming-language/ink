@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var c = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   {
     while (((c > cpp_char("9")) || (c < cpp_char("0"))))
     {
@@ -25,30 +25,30 @@ func read()
   return (x * f);
 }
 
-var dp = cpp_array(2, 2, ((1 << 18)), 18);
+var dp: dynamic = cpp_array(2, 2, ((1 << 18)), 18);
 
-var fan = cpp_array(200005);
+var fan: dynamic = cpp_array(200005);
 
-func work()
+func work() -> dynamic
 {
-  var n = read();
-  var k = read();
+  var n: dynamic = read();
+  var k: dynamic = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
-      var x = read();
+      var x: dynamic = read();
       fan[x] = 1;
       i += 1;
     }
   }
   memset(dp, -0x3f, cpp_sizeof(dp));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= ((1 << n))))
         {
           if ((i == 1))
@@ -58,22 +58,22 @@ func work()
           } else
           {
             {
-              var x1 = 0;
+              var x1: dynamic = 0;
               while ((x1 < 2))
               {
                 {
-                  var x2 = 0;
+                  var x2: dynamic = 0;
                   while ((x2 < 2))
                   {
                     {
-                      var y1 = 0;
+                      var y1: dynamic = 0;
                       while ((y1 < 2))
                       {
                         {
-                          var y2 = 0;
+                          var y2: dynamic = 0;
                           while ((y2 < 2))
                           {
-                            var tmp = (dp[(i - 1)][j][x1][y1] + dp[(i - 1)][(j + ((1 << (i - 1))))][x2][y2]);
+                            var tmp: dynamic = (dp[(i - 1)][j][x1][y1] + dp[(i - 1)][(j + ((1 << (i - 1))))][x2][y2]);
                             if ((x1 | x2))
                             {
                               tmp += 1;
@@ -109,7 +109,7 @@ func work()
       i += 1;
     }
   }
-  var ans = -0x3f3f3f3f;
+  var ans: dynamic = -0x3f3f3f3f;
   ans = max(ans, (dp[n][1][1][1] + 1));
   ans = max(ans, (dp[n][1][0][1] + 1));
   ans = max(ans, (dp[n][1][1][0] + 1));
@@ -117,7 +117,7 @@ func work()
   printf("%d\n", ans);
 }
 
-func main()
+func main() -> dynamic
 {
   work();
   return 0;

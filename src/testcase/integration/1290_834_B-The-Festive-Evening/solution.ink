@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
-  var e: dynamic;
-  var f: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var n: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var e: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
   read(n, k);
   read(x);
   a = x.length();
-  var v = cpp_construct(30, 0);
-  var u = cpp_construct(30, 0);
+  var v: dynamic = cpp_construct(30, 0);
+  var u: dynamic = cpp_construct(30, 0);
   {
     i = 0;
     while ((i < a))
@@ -34,8 +34,8 @@ func main()
       i += 1;
     }
   }
-  var p = cpp_construct((a + 5), 0);
-  var q = cpp_construct((a + 5), 0);
+  var p: dynamic = cpp_construct((a + 5), 0);
+  var q: dynamic = cpp_construct((a + 5), 0);
   {
     i = 0;
     while ((i < 26))

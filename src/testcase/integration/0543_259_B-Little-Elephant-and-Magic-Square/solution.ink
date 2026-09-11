@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var cell = cpp_array(4, 4);
+var cell: dynamic = cpp_array(4, 4);
 
-func go()
+func go() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 3))
         {
           write(cell[i][j], " ");
@@ -22,14 +22,14 @@ func go()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 3))
         {
           read(cell[i][j]);

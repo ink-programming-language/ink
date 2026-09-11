@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   read(k);
-  var lun: dynamic;
+  var lun: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 10))
     {
       lun.push(i);
@@ -14,10 +14,10 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < k))
     {
-      var x = lun.front();
+      var x: dynamic = lun.front();
       lun.pop();
       if (((x % 10) != 0))
       {

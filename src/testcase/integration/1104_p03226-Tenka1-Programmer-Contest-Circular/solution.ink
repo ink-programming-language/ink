@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-var dibs = cpp_expression("#includ");
+var dibs: dynamic = cpp_expression("#includ");
 
-var OVER9000 = cpp_expression("#include <");
+var OVER9000: dynamic = cpp_expression("#include <");
 
-func ALL_THE(CAKE: dynamic, LIE: dynamic)
+func ALL_THE(CAKE: dynamic, LIE: dynamic) -> dynamic
 {
   cpp_macro("for(auto LIE =CAKE.begin(); LIE != CAKE.end(); LIE++)");
 }
 
-var tisic = cpp_expression("#i");
+var tisic: dynamic = cpp_expression("#i");
 
-var soclose = cpp_expression("#inc");
+var soclose: dynamic = cpp_expression("#inc");
 
-var chocolate = cpp_expression("#in");
+var chocolate: dynamic = cpp_expression("#in");
 
-var patkan = cpp_expression("#");
+var patkan: dynamic = cpp_expression("#");
 
-var ff = cpp_expression("#incl");
+var ff: dynamic = cpp_expression("#incl");
 
-var ss = cpp_expression("#inclu");
+var ss: dynamic = cpp_expression("#inclu");
 
-func abs(x: dynamic)
+func abs(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc+");
 }
 
-var uint_cpp = dynamic;
+var uint_cpp: dynamic = dynamic;
 
-var dbl = dynamic;
+var dbl: dynamic = dynamic;
 
-var pi = cpp_expression("#include <bits/stdc++.");
+var pi: dynamic = cpp_expression("#include <bits/stdc++.");
 
-var lld = cpp_expression("#inc");
+var lld: dynamic = cpp_expression("#inc");
 
-func get_min(RMQ: dynamic, l: dynamic, r: dynamic)
+func get_min(RMQ: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
-  var ret = OVER9000;
+  var ret: dynamic = OVER9000;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 19))
     {
       if ((((((r - l)) >> i)) & 1))
@@ -56,11 +56,11 @@ func get_min(RMQ: dynamic, l: dynamic, r: dynamic)
   return ret;
 }
 
-func get_max(RMQ: dynamic, l: dynamic, r: dynamic)
+func get_max(RMQ: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
-  var ret = -1;
+  var ret: dynamic = -1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 19))
     {
       if ((((((r - l)) >> i)) & 1))
@@ -78,16 +78,16 @@ func get_max(RMQ: dynamic, l: dynamic, r: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   cin.sync_with_stdio(0);
   cin.tie(0);
   write(fixed, setprecision(10));
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var cnt = cpp_construct(N, 0);
+  var cnt: dynamic = cpp_construct(N, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(A[i]);
@@ -95,7 +95,7 @@ func main()
       i += 1;
     }
   }
-  var K = cnt[0];
+  var K: dynamic = cnt[0];
   if ((K == 0))
   {
     write("0\n");
@@ -103,10 +103,10 @@ func main()
   }
   if ((cnt[0] == N))
   {
-    var ans = 1;
-    var mod = 998244353;
+    var ans: dynamic = 1;
+    var mod: dynamic = 998244353;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         ans = ((ans * ((i + 1))) % mod);
@@ -117,7 +117,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       occ[A[i]].push_back(i);
@@ -130,7 +130,7 @@ func main()
     first_idx[0] = ((((first_idx[0] + N) - 1)) % N);
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       if (cnt[i])
@@ -141,12 +141,12 @@ func main()
           i += 1;
           continue;
         }
-        var x = 0;
+        var x: dynamic = 0;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < cpp_cast(occ[i].size())))
           {
-            var d = (occ[i][(((j + 1)) % occ[i].size())] - occ[i][j]);
+            var d: dynamic = (occ[i][(((j + 1)) % occ[i].size())] - occ[i][j]);
             while ((d < 0))
             {
               d += N;
@@ -173,20 +173,20 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (cnt[i])
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < cpp_cast(occ[i].size())))
           {
             if ((occ[i][j] == first_idx[i]))
             {
-              var occ_nw: dynamic;
+              var occ_nw: dynamic = cpp_uninitialized();
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < cpp_cast(occ[i].size())))
                 {
                   occ_nw.push_back(occ[i][(((j + k)) % occ[i].size())]);
@@ -204,7 +204,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < K))
     {
       if ((occ[0][i] != (((first_idx[0] + i)) % N)))
@@ -216,19 +216,19 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (cnt[i])
       {
-        var x = ((occ[i].back() - K) + 1);
+        var x: dynamic = ((occ[i].back() - K) + 1);
         while ((x < 0))
         {
           x += N;
         }
         x %= N;
         R[i] = [x, occ[i][0]];
-        var d = (occ[i].back() - occ[i][0]);
+        var d: dynamic = (occ[i].back() - occ[i][0]);
         while ((d < 0))
         {
           d += N;
@@ -243,14 +243,14 @@ func main()
       i += 1;
     }
   }
-  var RMQ_max = cpp_construct(19, vector(N));
+  var RMQ_max: dynamic = cpp_construct(19, vector(N));
   RMQ_max[0] = A;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 19))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < N))
         {
           RMQ_max[i][j] = max(RMQ_max[(i - 1)][j], RMQ_max[(i - 1)][min((N - 1), (j + ((1 << ((i - 1))))))]);
@@ -261,7 +261,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       minval[i] = get_max(RMQ_max, i, min(N, (i + K)));
@@ -272,14 +272,14 @@ func main()
       i += 1;
     }
   }
-  var RMQ_min = cpp_construct(19, vector(N));
+  var RMQ_min: dynamic = cpp_construct(19, vector(N));
   RMQ_min[0] = minval;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 19))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < N))
         {
           RMQ_min[i][j] = min(RMQ_min[(i - 1)][j], RMQ_min[(i - 1)][min((N - 1), (j + ((1 << ((i - 1))))))]);
@@ -290,14 +290,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (cnt[i])
       {
-        var r = if (((R[i].ss >= R[i].ff))) R[i].ss else ((N - 1));
+        var r: dynamic =  (((R[i].ss >= R[i].ff))) ? R[i].ss : ((N - 1));
         {
-          var j = 18;
+          var j: dynamic = 18;
           while ((j >= 0))
           {
             while (((R[i].ff + ((1 << j))) <= r))
@@ -312,7 +312,7 @@ func main()
           }
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 3))
           {
             if ((minval[R[i].ff] <= i))
@@ -328,9 +328,9 @@ func main()
             j += 1;
           }
         }
-        r = if (((R[i].ss >= R[i].ff))) R[i].ss else ((N - 1));
+        r =  (((R[i].ss >= R[i].ff))) ? R[i].ss : ((N - 1));
         {
-          var j = 18;
+          var j: dynamic = 18;
           while ((j >= 0))
           {
             while (((R[i].ff + ((1 << j))) <= r))
@@ -344,9 +344,9 @@ func main()
             j -= 1;
           }
         }
-        var l = if (((R[i].ff <= R[i].ss))) R[i].ff else 0;
+        var l: dynamic =  (((R[i].ff <= R[i].ss))) ? R[i].ff : 0;
         {
-          var j = 18;
+          var j: dynamic = 18;
           while ((j >= 0))
           {
             while (((R[i].ss - ((1 << j))) >= l))
@@ -361,7 +361,7 @@ func main()
           }
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 3))
           {
             if ((minval[R[i].ss] <= i))
@@ -377,9 +377,9 @@ func main()
             j += 1;
           }
         }
-        l = if (((R[i].ff <= R[i].ss))) R[i].ff else 0;
+        l =  (((R[i].ff <= R[i].ss))) ? R[i].ff : 0;
         {
-          var j = 18;
+          var j: dynamic = 18;
           while ((j >= 0))
           {
             while (((R[i].ss - ((1 << j))) >= l))
@@ -397,9 +397,9 @@ func main()
       i += 1;
     }
   }
-  var cnt_pos0 = cpp_construct(N, 0);
+  var cnt_pos0: dynamic = cpp_construct(N, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       cnt_pos0[minval[i]] += 1;
@@ -407,17 +407,17 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       cnt_pos0[i] += cnt_pos0[(i - 1)];
       i += 1;
     }
   }
-  var ans = 1;
-  var mod = 998244353;
+  var ans: dynamic = 1;
+  var mod: dynamic = 998244353;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((cnt[i] == 0))
@@ -431,7 +431,7 @@ func main()
         i += 1;
         continue;
       }
-      var d = (R[i].ss - R[i].ff);
+      var d: dynamic = (R[i].ss - R[i].ff);
       while ((d < 0))
       {
         d += N;

@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
-  var x = 0;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var x: dynamic = 0;
   scanf("%d %d %d", (&a), (&b), (&c));
   {
     x = a;

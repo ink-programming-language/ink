@@ -2,18 +2,18 @@
 
 class FenwickTree
 {
-  var n: dynamic;
-  var num: dynamic;
-  func FenwickTree()
+  var n: dynamic = cpp_uninitialized();
+  var num: dynamic = cpp_uninitialized();
+  func FenwickTree() -> dynamic
   {
-      this->n = cpp_construct(0);
+      self->n = cpp_construct(0);
     }
-  func FenwickTree(n: dynamic)
+  func FenwickTree(n: dynamic) -> dynamic
   {
       n = n;
       num.assign(n, 0);
     }
-  func add(i: dynamic, val: dynamic)
+  func add(i: dynamic, val: dynamic) -> dynamic
   {
       {
         while ((i < n))
@@ -23,9 +23,9 @@ class FenwickTree
         }
       }
     }
-  func sum(i: dynamic)
+  func sum(i: dynamic) -> dynamic
   {
-      var ret = 0;
+      var ret: dynamic = 0;
       {
         while ((i >= 0))
         {
@@ -37,13 +37,13 @@ class FenwickTree
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var speed: dynamic;
+  var speed: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&point[i].first));
@@ -51,7 +51,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&point[i].second));
@@ -62,8 +62,8 @@ func main()
   sort(speed.begin(), speed.end());
   speed.erase(unique(speed.begin(), speed.end()), speed.end());
   sort(point.begin(), point.end());
-  var ans = 0;
-  for (var i in point)
+  var ans: dynamic = 0;
+  for (var i: dynamic in point)
   {
     i.second = (lower_bound(speed.begin(), speed.end(), i.second) - speed.begin());
     ans += ((cnt.sum(i.second) * i.first) - sumx.sum(i.second));

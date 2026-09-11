@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var knapsack = [];
+var knapsack: dynamic = [];
 
-var ans = 0;
+var ans: dynamic = 0;
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a: dynamic;
-  var t: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   knapsack[0][0] = 1;
   scanf("%d %d", (&n), (&a));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&t));
       {
-        var k = (i - 1);
+        var k: dynamic = (i - 1);
         while ((k >= 0))
         {
           {
-            var j = 2500;
+            var j: dynamic = 2500;
             while ((j >= t))
             {
               knapsack[(k + 1)][j] += knapsack[k][(j - t)];
@@ -35,7 +35,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ans += knapsack[i][(a * i)];

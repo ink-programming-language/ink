@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var prim = cpp_array(310000);
+var prim: dynamic = cpp_array(310000);
 
-var ans = 1;
+var ans: dynamic = 1;
 
-var a = cpp_array(310000);
+var a: dynamic = cpp_array(310000);
 
-var pan = cpp_array(310000);
+var pan: dynamic = cpp_array(310000);
 
-var Fmin = cpp_array(310000);
+var Fmin: dynamic = cpp_array(310000);
 
-var Smin = cpp_array(310000);
+var Smin: dynamic = cpp_array(310000);
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var maxx: dynamic;
+var maxx: dynamic = cpp_uninitialized();
 
-var poi: dynamic;
+var poi: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var v = cpp_array(310000);
+var v: dynamic = cpp_array(310000);
 
-func ksm(c: dynamic, d: dynamic)
+func ksm(c: dynamic, d: dynamic) -> dynamic
 {
-  var zhi = 1;
+  var zhi: dynamic = 1;
   while (d)
   {
     if ((d % 2))
@@ -39,10 +39,10 @@ func ksm(c: dynamic, d: dynamic)
   return zhi;
 }
 
-func oula()
+func oula() -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= 300000))
     {
       if ((!v[i]))
@@ -51,7 +51,7 @@ func oula()
         a[i] = i;
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while (cpp_comma((j <= prim[0]), ((prim[j] * i) <= 200000)))
         {
           v[(i * prim[j])] = 1;
@@ -68,10 +68,10 @@ func oula()
   }
 }
 
-func fen()
+func fen() -> dynamic
 {
-  var qian = 0;
-  var tot = 0;
+  var qian: dynamic = 0;
+  var tot: dynamic = 0;
   while ((b > 1))
   {
     tot += 1;
@@ -108,13 +108,13 @@ func fen()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   memset(Fmin, 127, cpp_sizeof((Fmin)));
   scanf("%d", (&n));
   oula();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&b));
@@ -123,7 +123,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((prim[i] <= 200000))
     {
       if ((pan[prim[i]] < (n - 1)))

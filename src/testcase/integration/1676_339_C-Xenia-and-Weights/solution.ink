@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  var c = getchar();
-  var f = 0;
+  var c: dynamic = getchar();
+  var f: dynamic = 0;
   x = 0;
   while ((!isdigit(c)))
   {
@@ -22,7 +22,7 @@ func read(x: dynamic)
   return x;
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -38,19 +38,19 @@ func write(x: dynamic)
   }
 }
 
-var ans = cpp_array(1005);
+var ans: dynamic = cpp_array(1005);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var s = cpp_array(11);
+var s: dynamic = cpp_array(11);
 
-func dfs(last: dynamic, num: dynamic, x: dynamic)
+func dfs(last: dynamic, num: dynamic, x: dynamic) -> dynamic
 {
   if ((x == (m + 1)))
   {
     puts("YES");
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= m))
       {
         write(ans[i]);
@@ -61,7 +61,7 @@ func dfs(last: dynamic, num: dynamic, x: dynamic)
     exit(0);
   }
   {
-    var i = (num + 1);
+    var i: dynamic = (num + 1);
     while ((i <= 10))
     {
       if (((i != last) && (s[i] == cpp_char("1"))))
@@ -74,7 +74,7 @@ func dfs(last: dynamic, num: dynamic, x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", (s + 1));
   read(m);

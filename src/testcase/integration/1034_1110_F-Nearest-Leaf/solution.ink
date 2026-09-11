@@ -1,48 +1,48 @@
 // Translated from solution.cpp.
 
-var INF = (1 << 60);
+var INF: dynamic = (1 << 60);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var Max = cpp_array(500010);
+var Max: dynamic = cpp_array(500010);
 
-var d = cpp_array(500010);
+var d: dynamic = cpp_array(500010);
 
-var L = cpp_array(500010);
+var L: dynamic = cpp_array(500010);
 
-var R = cpp_array(500010);
+var R: dynamic = cpp_array(500010);
 
-var ans = cpp_array(500010);
+var ans: dynamic = cpp_array(500010);
 
-var ver = cpp_array(1000010);
+var ver: dynamic = cpp_array(1000010);
 
-var edge = cpp_array(1000010);
+var edge: dynamic = cpp_array(1000010);
 
-var Next = cpp_array(1000010);
+var Next: dynamic = cpp_array(1000010);
 
-var head = cpp_array(500010);
+var head: dynamic = cpp_array(500010);
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var q = cpp_array(500010);
+var q: dynamic = cpp_array(500010);
 
 class SegmentTree
 {
-  var l: dynamic;
-  var r: dynamic;
-  var Min: dynamic;
-  var lazy: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var Min: dynamic = cpp_uninitialized();
+  var lazy: dynamic = cpp_uninitialized();
 }
 
-var tree = cpp_array((500010 << 2));
+var tree: dynamic = cpp_array((500010 << 2));
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var tmp = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var tmp: dynamic = 1;
+  var ch: dynamic = getchar();
   while ((!isdigit(ch)))
   {
     if ((ch == cpp_char("-")))
@@ -59,15 +59,15 @@ func read()
   return (tmp * x);
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
     putchar(cpp_char("-"));
     x = (-x);
   }
-  var y = 10;
-  var len = 1;
+  var y: dynamic = 10;
+  var len: dynamic = 1;
   while ((y <= x))
   {
     y = (((y << 3)) + ((y << 1)));
@@ -81,7 +81,7 @@ func write(x: dynamic)
   }
 }
 
-func addEdge(x: dynamic, y: dynamic, z: dynamic)
+func addEdge(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   ver[cpp_update(tot, "++")] = y;
   edge[tot] = z;
@@ -89,15 +89,15 @@ func addEdge(x: dynamic, y: dynamic, z: dynamic)
   head[x] = tot;
 }
 
-func dfs1(x: dynamic)
+func dfs1(x: dynamic) -> dynamic
 {
   Max[x] = x;
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var y = ver[i];
-      var z = edge[i];
+      var y: dynamic = ver[i];
+      var z: dynamic = edge[i];
       d[y] = (d[x] + z);
       dfs1(y);
       Max[x] = max(Max[x], Max[y]);
@@ -106,12 +106,12 @@ func dfs1(x: dynamic)
   }
 }
 
-func pushup(p: dynamic)
+func pushup(p: dynamic) -> dynamic
 {
   tree[p].Min = min(tree[(p << 1)].Min, tree[((p << 1) | 1)].Min);
 }
 
-func pushdown(p: dynamic)
+func pushdown(p: dynamic) -> dynamic
 {
   if (tree[p].lazy)
   {
@@ -123,7 +123,7 @@ func pushdown(p: dynamic)
   }
 }
 
-func build(p: dynamic, l: dynamic, r: dynamic)
+func build(p: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   tree[p].l = l;
   tree[p].r = r;
@@ -131,12 +131,12 @@ func build(p: dynamic, l: dynamic, r: dynamic)
   {
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   build((p << 1), l, mid);
   build(((p << 1) | 1), (mid + 1), r);
 }
 
-func update(p: dynamic, l: dynamic, r: dynamic, val: dynamic)
+func update(p: dynamic, l: dynamic, r: dynamic, val: dynamic) -> dynamic
 {
   if (((l <= tree[p].l) && (tree[p].r <= r)))
   {
@@ -145,7 +145,7 @@ func update(p: dynamic, l: dynamic, r: dynamic, val: dynamic)
     return;
   }
   pushdown(p);
-  var mid = (((tree[p].l + tree[p].r)) >> 1);
+  var mid: dynamic = (((tree[p].l + tree[p].r)) >> 1);
   if ((l <= mid))
   {
     update((p << 1), l, r, val);
@@ -157,15 +157,15 @@ func update(p: dynamic, l: dynamic, r: dynamic, val: dynamic)
   pushup(p);
 }
 
-func query(p: dynamic, l: dynamic, r: dynamic)
+func query(p: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (((l <= tree[p].l) && (tree[p].r <= r)))
   {
     return tree[p].Min;
   }
   pushdown(p);
-  var mid = (((tree[p].l + tree[p].r)) >> 1);
-  var ans = INF;
+  var mid: dynamic = (((tree[p].l + tree[p].r)) >> 1);
+  var ans: dynamic = INF;
   if ((l <= mid))
   {
     ans = min(ans, query((p << 1), l, r));
@@ -177,18 +177,18 @@ func query(p: dynamic, l: dynamic, r: dynamic)
   return ans;
 }
 
-func dfs2(x: dynamic)
+func dfs2(x: dynamic) -> dynamic
 {
-  for (var i in q[x])
+  for (var i: dynamic in q[x])
   {
     ans[i] = query(1, L[i], R[i]);
   }
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var y = ver[i];
-      var z = edge[i];
+      var y: dynamic = ver[i];
+      var z: dynamic = edge[i];
       update(1, 1, n, z);
       update(1, y, Max[y], (-2 * z));
       dfs2(y);
@@ -199,16 +199,16 @@ func dfs2(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   m = read();
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
-      var y = read();
-      var z = read();
+      var y: dynamic = read();
+      var z: dynamic = read();
       addEdge(y, i, z);
       i += 1;
     }
@@ -216,18 +216,18 @@ func main()
   dfs1(1);
   build(1, 1, n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      update(1, i, i, if ((i == Max[i])) d[i] else INF);
+      update(1, i, i,  ((i == Max[i])) ? d[i] : INF);
       i += 1;
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var x = read();
+      var x: dynamic = read();
       L[i] = read();
       R[i] = read();
       q[x].push_back(i);
@@ -236,7 +236,7 @@ func main()
   }
   dfs2(1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       write(ans[i]);

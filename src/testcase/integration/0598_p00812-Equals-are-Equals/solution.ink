@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int (i)=0;(i)<(int)(n);++(i))");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func dbg(x: dynamic)
+func dbg(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> u");
 }
 
-func operator_shift_left(o: dynamic, p: dynamic)
+func operator_shift_left(o: dynamic, p: dynamic) -> dynamic
 {
   (((((o << "(") << p.fi) << ",") << p.se) << ")");
   return o;
 }
 
-func operator_shift_left(o: dynamic, v: dynamic)
+func operator_shift_left(o: dynamic, v: dynamic) -> dynamic
 {
   (o << "[");
-  for (var t in v)
+  for (var t: dynamic in v)
   {
     ((o << t) << ",");
   }
@@ -38,21 +38,21 @@ func operator_shift_left(o: dynamic, v: dynamic)
   return o;
 }
 
-func PRINT(a: dynamic)
+func PRINT(a: dynamic) -> dynamic
 {
-  for (var p in a)
+  for (var p: dynamic in a)
   {
     write(p.se, p.fi, " + ");
   }
   write("\n");
 }
 
-func norm(a: dynamic)
+func norm(a: dynamic) -> dynamic
 {
-  var ret: dynamic;
-  for (var p in a)
+  var ret: dynamic = cpp_uninitialized();
+  for (var p: dynamic in a)
   {
-    var v = p.fi;
+    var v: dynamic = p.fi;
     sort(all(v));
     if ((p.se != 0))
     {
@@ -62,13 +62,13 @@ func norm(a: dynamic)
   return ret;
 }
 
-func sub(a: dynamic)
+func sub(a: dynamic) -> dynamic
 {
   a = norm(a);
-  var ret: dynamic;
-  for (var p in a)
+  var ret: dynamic = cpp_uninitialized();
+  for (var p: dynamic in a)
   {
-    var v = p.fi;
+    var v: dynamic = p.fi;
     if ((p.se != 0))
     {
       ret[v] = (-p.se);
@@ -77,27 +77,27 @@ func sub(a: dynamic)
   return ret;
 }
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   a = norm(a);
   b = norm(b);
-  for (var p in b)
+  for (var p: dynamic in b)
   {
     a[p.fi] += p.se;
   }
   return norm(a);
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   a = norm(a);
   b = norm(b);
-  var ret: dynamic;
-  for (var p in a)
+  var ret: dynamic = cpp_uninitialized();
+  for (var p: dynamic in a)
   {
-    for (var q in b)
+    for (var q: dynamic in b)
     {
-      var var_cpp = (p.fi + q.fi);
+      var var_cpp: dynamic = (p.fi + q.fi);
       sort(all(var_cpp));
       ret[var_cpp] += (p.se * q.se);
     }
@@ -105,23 +105,23 @@ func mul(a: dynamic, b: dynamic)
   return norm(ret);
 }
 
-func T(s: dynamic)
+func T(s: dynamic) -> dynamic
 {
-  var n = s.size();
-  var ret: dynamic;
+  var n: dynamic = s.size();
+  var ret: dynamic = cpp_uninitialized();
   ret[""] = 1;
-  var idx = 0;
+  var idx: dynamic = 0;
   while ((idx < n))
   {
-    var m: dynamic;
+    var m: dynamic = cpp_uninitialized();
     if ((s[idx] == cpp_char(" ")))
     {
       idx += 1;
       continue;
     } else if ((s[idx] == cpp_char("(")))
     {
-      var ep = idx;
-      var p = 0;
+      var ep: dynamic = idx;
+      var p: dynamic = 0;
       while ((ep < n))
       {
         if ((s[ep] == cpp_char("(")))
@@ -140,19 +140,19 @@ func T(s: dynamic)
       }
       assert((ep < n));
       assert((s[ep] == cpp_char(")")));
-      var t = s.substr((idx + 1), ((ep - idx) - 1));
+      var t: dynamic = s.substr((idx + 1), ((ep - idx) - 1));
       m = E(t);
       idx = (ep + 1);
     } else if (isdigit(s[idx]))
     {
-      var val = 0;
+      var val: dynamic = 0;
       while (((idx < n) && isdigit(s[idx])))
       {
         val = ((val * 10) + ((s[idx] - cpp_char("0"))));
         idx += 1;
       }
-      var pw = 1;
-      var nx = idx;
+      var pw: dynamic = 1;
+      var nx: dynamic = idx;
       while (((nx < n) && (s[nx] == cpp_char(" "))))
       {
         nx += 1;
@@ -173,16 +173,16 @@ func T(s: dynamic)
           nx += 1;
         }
       }
-      var vv = 1;
+      var vv: dynamic = 1;
       rep(cpp_name, pw) *= val;
       m[""] = vv;
       idx = nx;
     } else if (islower(s[idx]))
     {
-      var c = s[idx];
+      var c: dynamic = s[idx];
       idx += 1;
-      var pw = 1;
-      var nx = idx;
+      var pw: dynamic = 1;
+      var nx: dynamic = idx;
       while (((nx < n) && (s[nx] == cpp_char(" "))))
       {
         nx += 1;
@@ -203,7 +203,7 @@ func T(s: dynamic)
           nx += 1;
         }
       }
-      var t = "";
+      var t: dynamic = "";
       rep(cpp_name, pw) += c;
       m[t] = 1;
       idx = nx;
@@ -216,15 +216,15 @@ func T(s: dynamic)
   return norm(ret);
 }
 
-func E(s: dynamic)
+func E(s: dynamic) -> dynamic
 {
-  var n = s.size();
-  var ret: dynamic;
-  var p = 0;
-  var start = 0;
-  var plus = true;
-  var term = s.substr(start, (n - start));
-  var t = norm(T(term));
+  var n: dynamic = s.size();
+  var ret: dynamic = cpp_uninitialized();
+  var p: dynamic = 0;
+  var start: dynamic = 0;
+  var plus: dynamic = true;
+  var term: dynamic = s.substr(start, (n - start));
+  var t: dynamic = norm(T(term));
   if ((!plus))
   {
     t = sub(t);
@@ -233,24 +233,24 @@ func E(s: dynamic)
   return norm(ret);
 }
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   while (cpp_comma(getline(cin, s), ((s != "."))))
   {
-    var S = E(s);
-    var t: dynamic;
+    var S: dynamic = E(s);
+    var t: dynamic = cpp_uninitialized();
     while (cpp_comma(getline(cin, t), ((t != "."))))
     {
-      var T = E(t);
-      write((if ((S == T)) "yes" else "no"), "\n");
+      var T: dynamic = E(t);
+      write(( ((S == T)) ? "yes" : "no"), "\n");
     }
     write(".", "\n");
   }
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((s[i] == cpp_char("(")))
     {
@@ -264,8 +264,8 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     {
       if ((p == 0))
       {
-        var term = s.substr(start, (i - start));
-        var t = norm(T(term));
+        var term: dynamic = s.substr(start, (i - start));
+        var t: dynamic = norm(T(term));
         if ((!plus))
         {
           t = sub(t);

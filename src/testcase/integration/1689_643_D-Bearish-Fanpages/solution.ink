@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func read(first: dynamic)
+func read(first: dynamic) -> dynamic
 {
-  var ch: dynamic;
+  var ch: dynamic = cpp_uninitialized();
   {
     ch = getchar();
     while (((((ch < cpp_char("0")) || (ch > cpp_char("9")))) && (ch != cpp_char("-"))))
@@ -11,7 +11,7 @@ func read(first: dynamic)
     }
   }
   first = 0;
-  var t = 1;
+  var t: dynamic = 1;
   if ((ch == cpp_char("-")))
   {
     ch = getchar();
@@ -27,44 +27,44 @@ func read(first: dynamic)
   first *= t;
 }
 
-var N = 100010;
+var N: dynamic = 100010;
 
-var inf = 1000000000000000000;
+var inf: dynamic = 1000000000000000000;
 
 class segtree
 {
-  var ma: dynamic;
-  var mi: dynamic;
-  var delta: dynamic;
-  var lch: dynamic;
-  var rch: dynamic;
-  var lnum: dynamic;
-  var rnum: dynamic;
+  var ma: dynamic = cpp_uninitialized();
+  var mi: dynamic = cpp_uninitialized();
+  var delta: dynamic = cpp_uninitialized();
+  var lch: dynamic = cpp_uninitialized();
+  var rch: dynamic = cpp_uninitialized();
+  var lnum: dynamic = cpp_uninitialized();
+  var rnum: dynamic = cpp_uninitialized();
 }
 
-var tree = cpp_array((4 * N));
+var tree: dynamic = cpp_array((4 * N));
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var op = cpp_array(N);
+var op: dynamic = cpp_array(N);
 
-var c = cpp_array(2, N);
+var c: dynamic = cpp_array(2, N);
 
-var l = cpp_array(N);
+var l: dynamic = cpp_array(N);
 
-var r = cpp_array(N);
+var r: dynamic = cpp_array(N);
 
-var deg = cpp_array(N);
+var deg: dynamic = cpp_array(N);
 
-var t = cpp_array(N);
+var t: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var b = cpp_array((2 * N));
+var b: dynamic = cpp_array((2 * N));
 
-func build(k: dynamic, l: dynamic, r: dynamic)
+func build(k: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   tree[k].lnum = l;
   tree[k].rnum = r;
@@ -75,21 +75,21 @@ func build(k: dynamic, l: dynamic, r: dynamic)
   {
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   tree[k].lch = cpp_update(cnt, "++");
   build(cnt, l, mid);
   tree[k].rch = cpp_update(cnt, "++");
   build(cnt, (mid + 1), r);
 }
 
-func update(k: dynamic, d: dynamic)
+func update(k: dynamic, d: dynamic) -> dynamic
 {
   tree[k].mi += d;
   tree[k].ma += d;
   tree[k].delta += d;
 }
 
-func pushdown(k: dynamic)
+func pushdown(k: dynamic) -> dynamic
 {
   if (tree[k].delta)
   {
@@ -99,13 +99,13 @@ func pushdown(k: dynamic)
   }
 }
 
-func pushup(k: dynamic)
+func pushup(k: dynamic) -> dynamic
 {
   tree[k].mi = min(tree[tree[k].lch].mi, tree[tree[k].rch].mi);
   tree[k].ma = max(tree[tree[k].lch].ma, tree[tree[k].rch].ma);
 }
 
-func change1(k: dynamic, l: dynamic, r: dynamic, d: dynamic)
+func change1(k: dynamic, l: dynamic, r: dynamic, d: dynamic) -> dynamic
 {
   if (((l <= tree[k].lnum) && (r >= tree[k].rnum)))
   {
@@ -124,7 +124,7 @@ func change1(k: dynamic, l: dynamic, r: dynamic, d: dynamic)
   pushup(k);
 }
 
-func change2(k: dynamic, p: dynamic, d1: dynamic, d2: dynamic)
+func change2(k: dynamic, p: dynamic, d1: dynamic, d2: dynamic) -> dynamic
 {
   if ((tree[k].lnum == tree[k].rnum))
   {
@@ -143,7 +143,7 @@ func change2(k: dynamic, p: dynamic, d1: dynamic, d2: dynamic)
   pushup(k);
 }
 
-func query(k: dynamic, p: dynamic)
+func query(k: dynamic, p: dynamic) -> dynamic
 {
   if ((tree[k].lnum == tree[k].rnum))
   {
@@ -159,14 +159,14 @@ func query(k: dynamic, p: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(n);
   read(q);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(t[i]);
@@ -174,7 +174,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -182,16 +182,16 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       b[i] = make_pair(a[i], i);
       i += 1;
     }
   }
-  var m = n;
+  var m: dynamic = n;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       read(op[i]);
@@ -208,9 +208,9 @@ func main()
     }
   }
   sort((b + 1), ((b + m) + 1));
-  var tm = 1;
+  var tm: dynamic = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= m))
     {
       if ((b[(i - 1)] != b[i]))
@@ -222,7 +222,7 @@ func main()
   }
   m = tm;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       l[i] = (m + 1);
@@ -231,7 +231,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       r[b[i].first] = i;
@@ -239,7 +239,7 @@ func main()
     }
   }
   {
-    var i = m;
+    var i: dynamic = m;
     while (i)
     {
       l[b[i].first] = i;
@@ -249,7 +249,7 @@ func main()
   cnt = 0;
   build(0, 1, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       deg[a[i]] += 1;
@@ -257,7 +257,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       s[i] = ((t[i] - ((t[i] / ((deg[i] + 2))) * ((deg[i] + 1)))) + (t[a[i]] / ((deg[a[i]] + 2))));
@@ -265,7 +265,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       s[a[i]] += (t[i] / ((deg[i] + 2)));
@@ -273,7 +273,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       change2(0, (lower_bound((b + 1), ((b + m) + 1), make_pair(a[i], i)) - b), s[i], s[i]);
@@ -281,23 +281,23 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       if ((op[i] == 1))
       {
-        var first = c[i][0];
-        var second = a[c[i][0]];
-        var z = c[i][1];
-        var w = ((t[second] / ((deg[second] + 1))) - (t[second] / ((deg[second] + 2))));
+        var first: dynamic = c[i][0];
+        var second: dynamic = a[c[i][0]];
+        var z: dynamic = c[i][1];
+        var w: dynamic = ((t[second] / ((deg[second] + 1))) - (t[second] / ((deg[second] + 2))));
         change1(0, l[second], r[second], w);
-        var p = (lower_bound((b + 1), ((b + m) + 1), make_pair(a[a[second]], a[second])) - b);
+        var p: dynamic = (lower_bound((b + 1), ((b + m) + 1), make_pair(a[a[second]], a[second])) - b);
         change1(0, p, p, w);
         w = (((((-t[second]) / ((deg[second] + 1))) * deg[second]) + ((t[second] / ((deg[second] + 2))) * ((deg[second] + 1)))) - (t[first] / ((deg[first] + 2))));
         p = (lower_bound((b + 1), ((b + m) + 1), make_pair(a[second], second)) - b);
         change1(0, p, p, w);
         p = (lower_bound((b + 1), ((b + m) + 1), make_pair(second, first)) - b);
-        var v = (query(0, p) - (t[second] / ((deg[second] + 1))));
+        var v: dynamic = (query(0, p) - (t[second] / ((deg[second] + 1))));
         change2(0, p, inf, (-inf));
         deg[second] -= 1;
         deg[z] += 1;

@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var mo = cpp_expression("#include<");
+var mo: dynamic = cpp_expression("#include<");
 
-func read()
+func read() -> dynamic
 {
-  var xx = 0;
-  var flagg = 1;
-  var ch = getchar();
+  var xx: dynamic = 0;
+  var flagg: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((((ch < cpp_char("0")) || (ch > cpp_char("9")))) && (ch != cpp_char("-"))))
   {
     ch = getchar();
@@ -24,7 +24,7 @@ func read()
   return (xx * flagg);
 }
 
-func pus(xx: dynamic, flagg: dynamic)
+func pus(xx: dynamic, flagg: dynamic) -> dynamic
 {
   if ((xx < 0))
   {
@@ -47,31 +47,31 @@ func pus(xx: dynamic, flagg: dynamic)
   return;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1500005);
+var a: dynamic = cpp_array(1500005);
 
-var flag = cpp_array(1500005);
+var flag: dynamic = cpp_array(1500005);
 
-var ch = cpp_array(3, 1500005);
+var ch: dynamic = cpp_array(3, 1500005);
 
-var top: dynamic;
+var top: dynamic = cpp_uninitialized();
 
-var ans = cpp_array(1500005);
+var ans: dynamic = cpp_array(1500005);
 
-var s = cpp_array(200005);
+var s: dynamic = cpp_array(200005);
 
-func buildtree(v: dynamic, w: dynamic, ww: dynamic)
+func buildtree(v: dynamic, w: dynamic, ww: dynamic) -> dynamic
 {
   if ((w == m))
   {
@@ -89,7 +89,7 @@ func buildtree(v: dynamic, w: dynamic, ww: dynamic)
   buildtree(ch[v][2], (w * 3), (ww + (w * 2)));
 }
 
-func ytree(v: dynamic, w: dynamic, ww: dynamic)
+func ytree(v: dynamic, w: dynamic, ww: dynamic) -> dynamic
 {
   if ((w == m))
   {
@@ -108,7 +108,7 @@ func ytree(v: dynamic, w: dynamic, ww: dynamic)
   ytree(ch[v][2], (w * 3), (ww + (w * 2)));
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   scanf("%s", (s + 1));

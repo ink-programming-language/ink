@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var M = 1e5;
+var M: dynamic = 1e5;
 
-var vis = cpp_array((M + 5));
+var vis: dynamic = cpp_array((M + 5));
 
-var isPrime = cpp_array((M + 5));
+var isPrime: dynamic = cpp_array((M + 5));
 
-var factor = cpp_array((M + 5));
+var factor: dynamic = cpp_array((M + 5));
 
-func getPrime()
+func getPrime() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= M))
     {
       isPrime[i] = 1;
@@ -22,13 +22,13 @@ func getPrime()
   }
   isPrime[0] = cpp_assign(isPrime[1], "=", 0);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= M))
     {
       if (isPrime[i])
       {
         {
-          var j = (i * i);
+          var j: dynamic = (i * i);
           while ((j <= M))
           {
             isPrime[j] = 0;
@@ -44,7 +44,7 @@ func getPrime()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= M))
     {
       if ((factor[i] == 0))
@@ -56,13 +56,13 @@ func getPrime()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   getPrime();
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i <= n))
     {
       if ((!isPrime[i]))
@@ -70,9 +70,9 @@ func main()
         i += 1;
         continue;
       }
-      var co: dynamic;
+      var co: dynamic = cpp_uninitialized();
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j <= n))
         {
           if (vis[j])
@@ -87,7 +87,7 @@ func main()
       if (((co.size() % 2) == 0))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < co.size()))
           {
             ans.push_back(pair(co[(j - 1)], co[j]));
@@ -102,11 +102,11 @@ func main()
           i += 1;
           continue;
         }
-        var tmp = co;
+        var tmp: dynamic = co;
         co.clear();
-        var f = 0;
+        var f: dynamic = 0;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < tmp.size()))
           {
             if ((((tmp[j] % 2) == 0) && (!f)))
@@ -122,7 +122,7 @@ func main()
           }
         }
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < co.size()))
           {
             ans.push_back(pair(co[(j - 1)], co[j]));
@@ -134,9 +134,9 @@ func main()
       i += 1;
     }
   }
-  var co: dynamic;
+  var co: dynamic = cpp_uninitialized();
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       if (vis[i])
@@ -149,7 +149,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < co.size()))
     {
       ans.push_back(pair(co[(i - 1)], co[i]));
@@ -158,7 +158,7 @@ func main()
   }
   printf("%d\n", ans.size());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ans.size()))
     {
       printf("%d %d\n", ans[i].first, ans[i].second);

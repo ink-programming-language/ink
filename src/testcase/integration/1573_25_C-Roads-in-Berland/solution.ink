@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var grid = cpp_array(305, 305);
+var grid: dynamic = cpp_array(305, 305);
 
-var result = cpp_array(305, 305);
+var result: dynamic = cpp_array(305, 305);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(null);
-  var i: dynamic;
-  var j: dynamic;
-  var t: dynamic;
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  var temp: dynamic;
-  var sum: dynamic;
-  var mini: dynamic;
-  var maxi: dynamic;
-  var flag: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var temp: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  var mini: dynamic = cpp_uninitialized();
+  var maxi: dynamic = cpp_uninitialized();
+  var flag: dynamic = cpp_uninitialized();
   read(n);
   {
     i = 1;

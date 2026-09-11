@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var head = cpp_array(300300);
+var head: dynamic = cpp_array(300300);
 
-var nxt = cpp_array((300300 << 1));
+var nxt: dynamic = cpp_array((300300 << 1));
 
-var to = cpp_array((300300 << 1));
+var to: dynamic = cpp_array((300300 << 1));
 
-var fa = cpp_array(22, 300300);
+var fa: dynamic = cpp_array(22, 300300);
 
-var dp = cpp_array(300300);
+var dp: dynamic = cpp_array(300300);
 
-func add_edge(x: dynamic, y: dynamic, id: dynamic)
+func add_edge(x: dynamic, y: dynamic, id: dynamic) -> dynamic
 {
   nxt[id] = head[x];
   head[x] = id;
   to[id] = y;
 }
 
-func dfs(x: dynamic, p: dynamic = 0)
+func dfs(x: dynamic, p: dynamic = 0) -> dynamic
 {
   fa[x][0] = p;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (31 - builtin_clz(n))))
     {
       fa[x][i] = fa[fa[x][(i - 1)]][(i - 1)];
@@ -31,10 +31,10 @@ func dfs(x: dynamic, p: dynamic = 0)
     }
   }
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var y = to[i];
+      var y: dynamic = to[i];
       if ((y == p))
       {
         i = nxt[i];
@@ -47,14 +47,14 @@ func dfs(x: dynamic, p: dynamic = 0)
   }
 }
 
-func anc(x: dynamic, d: dynamic)
+func anc(x: dynamic, d: dynamic) -> dynamic
 {
   if ((!d))
   {
     return x;
   }
   {
-    var i = (31 - builtin_clz(d));
+    var i: dynamic = (31 - builtin_clz(d));
     while ((i >= 0))
     {
       if ((d & ((1 << i))))
@@ -67,7 +67,7 @@ func anc(x: dynamic, d: dynamic)
   return x;
 }
 
-func lca(x: dynamic, y: dynamic)
+func lca(x: dynamic, y: dynamic) -> dynamic
 {
   if ((dp[x] > dp[y]))
   {
@@ -81,7 +81,7 @@ func lca(x: dynamic, y: dynamic)
     return x;
   }
   {
-    var i = (31 - builtin_clz(dp[x]));
+    var i: dynamic = (31 - builtin_clz(dp[x]));
     while ((i >= 0))
     {
       if ((fa[x][i] != fa[y][i]))
@@ -95,24 +95,24 @@ func lca(x: dynamic, y: dynamic)
   return fa[x][0];
 }
 
-var rnk = cpp_array(22, (300300 << 1));
+var rnk: dynamic = cpp_array(22, (300300 << 1));
 
-var ord = cpp_array((300300 << 1));
+var ord: dynamic = cpp_array((300300 << 1));
 
-var dro = cpp_array((300300 << 1));
+var dro: dynamic = cpp_array((300300 << 1));
 
-var cnt = cpp_array((300300 << 1));
+var cnt: dynamic = cpp_array((300300 << 1));
 
-var prf = cpp_array((300300 << 1));
+var prf: dynamic = cpp_array((300300 << 1));
 
-var suf = cpp_array((300300 << 1));
+var suf: dynamic = cpp_array((300300 << 1));
 
-func build(s: dynamic)
+func build(s: dynamic) -> dynamic
 {
-  var m = (2 * n);
-  var p = 256;
+  var m: dynamic = (2 * n);
+  var p: dynamic = 256;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       rnk[i][0] = cpp_assign(rnk[(i + n)][0], "=", s[i]);
@@ -120,23 +120,23 @@ func build(s: dynamic)
     }
   }
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= (31 - builtin_clz(n))))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
-          var pa = fa[i][(j - 1)];
+          var pa: dynamic = fa[i][(j - 1)];
           prf[i] = rnk[i][(j - 1)];
           suf[i] = rnk[pa][(j - 1)];
-          prf[(i + n)] = rnk[if (pa) (pa + n) else pa][(j - 1)];
+          prf[(i + n)] = rnk[ (pa) ? (pa + n) : pa][(j - 1)];
           suf[(i + n)] = rnk[(i + n)][(j - 1)];
           i += 1;
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= p))
         {
           cnt[i] = 0;
@@ -144,7 +144,7 @@ func build(s: dynamic)
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= m))
         {
           cnt[suf[i]] += 1;
@@ -152,7 +152,7 @@ func build(s: dynamic)
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= p))
         {
           cnt[i] += cnt[(i - 1)];
@@ -160,7 +160,7 @@ func build(s: dynamic)
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= m))
         {
           dro[cpp_update(cnt[suf[i]], "--")] = i;
@@ -168,7 +168,7 @@ func build(s: dynamic)
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= p))
         {
           cnt[i] = 0;
@@ -176,7 +176,7 @@ func build(s: dynamic)
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= m))
         {
           cnt[prf[i]] += 1;
@@ -184,7 +184,7 @@ func build(s: dynamic)
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= p))
         {
           cnt[i] += cnt[(i - 1)];
@@ -192,7 +192,7 @@ func build(s: dynamic)
         }
       }
       {
-        var i = m;
+        var i: dynamic = m;
         while ((i >= 1))
         {
           ord[cpp_update(cnt[prf[dro[i]]], "--")] = dro[i];
@@ -201,7 +201,7 @@ func build(s: dynamic)
       }
       p = 0;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= m))
         {
           if (((prf[ord[i]] != prf[ord[(i - 1)]]) || (suf[ord[i]] != suf[ord[(i - 1)]])))
@@ -217,15 +217,15 @@ func build(s: dynamic)
   }
 }
 
-func lcp(x: dynamic, y: dynamic, d: dynamic)
+func lcp(x: dynamic, y: dynamic, d: dynamic) -> dynamic
 {
   if ((!d))
   {
     return 0;
   }
-  var rlt = 0;
+  var rlt: dynamic = 0;
   {
-    var i = (31 - builtin_clz(d));
+    var i: dynamic = (31 - builtin_clz(d));
     while ((i >= 0))
     {
       if (((rlt + ((1 << i))) > d))
@@ -233,8 +233,8 @@ func lcp(x: dynamic, y: dynamic, d: dynamic)
         i -= 1;
         continue;
       }
-      var xx = if ((x <= n)) x else (anc((x - n), ((d - rlt) - ((1 << i)))) + n);
-      var yy = if ((y <= n)) y else (anc((y - n), ((d - rlt) - ((1 << i)))) + n);
+      var xx: dynamic =  ((x <= n)) ? x : (anc((x - n), ((d - rlt) - ((1 << i)))) + n);
+      var yy: dynamic =  ((y <= n)) ? y : (anc((y - n), ((d - rlt) - ((1 << i)))) + n);
       if ((rnk[xx][i] == rnk[yy][i]))
       {
         rlt += (1 << i);
@@ -253,31 +253,31 @@ func lcp(x: dynamic, y: dynamic, d: dynamic)
   return rlt;
 }
 
-func query(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func query(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
-  var ab = lca(a, b);
-  var cd = lca(c, d);
+  var ab: dynamic = lca(a, b);
+  var cd: dynamic = lca(c, d);
   if (((dp[a] - dp[ab]) < (dp[c] - dp[cd])))
   {
     a ^= cpp_assign(c, "^=", cpp_assign(a, "^=", c));
     b ^= cpp_assign(d, "^=", cpp_assign(b, "^=", d));
     ab ^= cpp_assign(cd, "^=", cpp_assign(ab, "^=", cd));
   }
-  var del = (dp[c] - dp[cd]);
-  var rlt = lcp(a, c, del);
+  var del: dynamic = (dp[c] - dp[cd]);
+  var rlt: dynamic = lcp(a, c, del);
   if ((rlt < del))
   {
     return rlt;
   }
   a = anc(a, del);
-  var d1 = ((dp[a] - dp[ab]) + 1);
-  var d2 = ((dp[d] - dp[cd]) + 1);
+  var d1: dynamic = ((dp[a] - dp[ab]) + 1);
+  var d2: dynamic = ((dp[d] - dp[cd]) + 1);
   if ((d1 >= d2))
   {
     return (rlt + lcp(a, (d + n), d2));
   }
-  var md = anc(d, (d2 - d1));
-  var add = lcp(a, (md + n), d1);
+  var md: dynamic = anc(d, (d2 - d1));
+  var add: dynamic = lcp(a, (md + n), d1);
   rlt += add;
   if ((add < d1))
   {
@@ -295,18 +295,18 @@ func query(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
   return (rlt + lcp((b + n), (d + n), min(d1, d2)));
 }
 
-var s = cpp_array(300300);
+var s: dynamic = cpp_array(300300);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   scanf("%s", (s + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d %d", (&x), (&y));
       add_edge(x, y, i);
       add_edge(y, x, (i + n));
@@ -315,11 +315,11 @@ func main()
   }
   dfs(1);
   build(s);
-  var q: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
+  var q: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   while (cpp_update(q, "--"))
   {

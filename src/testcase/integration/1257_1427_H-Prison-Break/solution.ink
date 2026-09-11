@@ -1,172 +1,172 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var MX = (2e5 + 5);
+var MX: dynamic = (2e5 + 5);
 
-var INF = 1e18;
+var INF: dynamic = 1e18;
 
-var PI = acos(((ld) - 1));
+var PI: dynamic = acos(((ld) - 1));
 
-var xd = [1, 0, -1, 0];
+var xd: dynamic = [1, 0, -1, 0];
 
-var yd = [0, 1, 0, -1];
+var yd: dynamic = [0, 1, 0, -1];
 
-var rng = cpp_construct(cpp_cast(chrono.steady_clock.now().time_since_epoch().count()));
+var rng: dynamic = cpp_construct(cpp_cast(chrono.steady_clock.now().time_since_epoch().count()));
 
-func pct(x: dynamic)
+func pct(x: dynamic) -> dynamic
 {
   return builtin_popcount(x);
 }
 
-func bits(x: dynamic)
+func bits(x: dynamic) -> dynamic
 {
   return (31 - builtin_clz(x));
 }
 
-func cdiv(a: dynamic, b: dynamic)
+func cdiv(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a / b) + (((((a ^ b)) > 0) && (a % b))));
 }
 
-func fdiv(a: dynamic, b: dynamic)
+func fdiv(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a / b) - (((((a ^ b)) < 0) && (a % b))));
 }
 
-func ckmin(a: dynamic, b: dynamic)
+func ckmin(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b < a)) cpp_comma(cpp_assign(a, "=", b), 1) else 0;
+  return  ((b < a)) ? cpp_comma(cpp_assign(a, "=", b), 1) : 0;
 }
 
-func ckmax(a: dynamic, b: dynamic)
+func ckmax(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) cpp_comma(cpp_assign(a, "=", b), 1) else 0;
+  return  ((a < b)) ? cpp_comma(cpp_assign(a, "=", b), 1) : 0;
 }
 
-func fstTrue(lo: dynamic, hi: dynamic, first: dynamic)
+func fstTrue(lo: dynamic, hi: dynamic, first: dynamic) -> dynamic
 {
   hi += 1;
   assert((lo <= hi));
   while ((lo < hi))
   {
-    var mid = (lo + (((hi - lo)) / 2));
-    if (first(mid)) cpp_assign(hi, "=", mid) else cpp_assign(lo, "=", (mid + 1));
+    var mid: dynamic = (lo + (((hi - lo)) / 2));
+     (first(mid)) ? cpp_assign(hi, "=", mid) : cpp_assign(lo, "=", (mid + 1));
   }
   return lo;
 }
 
-func lstTrue(lo: dynamic, hi: dynamic, first: dynamic)
+func lstTrue(lo: dynamic, hi: dynamic, first: dynamic) -> dynamic
 {
   lo -= 1;
   assert((lo <= hi));
   while ((lo < hi))
   {
-    var mid = (lo + ((((hi - lo) + 1)) / 2));
-    if (first(mid)) cpp_assign(lo, "=", mid) else cpp_assign(hi, "=", (mid - 1));
+    var mid: dynamic = (lo + ((((hi - lo) + 1)) / 2));
+     (first(mid)) ? cpp_assign(lo, "=", mid) : cpp_assign(hi, "=", (mid - 1));
   }
   return lo;
 }
 
-func remDup(v: dynamic)
+func remDup(v: dynamic) -> dynamic
 {
   sort(begin(v), end(v));
   v.erase(unique(begin(v), end(v)), end(v));
 }
 
-func erase(t: dynamic, u: dynamic)
+func erase(t: dynamic, u: dynamic) -> dynamic
 {
-  var it = t.find(u);
+  var it: dynamic = t.find(u);
   assert((it != end(t)));
   t.erase(u);
 }
 
-func re(x: dynamic)
+func re(x: dynamic) -> dynamic
 {
   read(x);
 }
 
-func re(d: dynamic)
+func re(d: dynamic) -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   re(t);
   d = stod(t);
 }
 
-func re(d: dynamic)
+func re(d: dynamic) -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   re(t);
   d = stold(t);
 }
 
-func re(t: dynamic, u: dynamic...)
+func re(t: dynamic, u: dynamic...) -> dynamic
 {
   re(t);
   re(cpp_expand(u));
 }
 
-func re(c: dynamic)
+func re(c: dynamic) -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   re(a, b);
   c = [a, b];
 }
 
-func re(p: dynamic)
+func re(p: dynamic) -> dynamic
 {
   re(p.first, p.second);
 }
 
-func re(x: dynamic)
+func re(x: dynamic) -> dynamic
 {
-  for (var a in x)
+  for (var a: dynamic in x)
   {
     re(a);
   }
 }
 
-func re(x: dynamic)
+func re(x: dynamic) -> dynamic
 {
-  for (var a in x)
+  for (var a: dynamic in x)
   {
     re(a);
   }
 }
 
-func to_string(c: dynamic)
+func to_string(c: dynamic) -> dynamic
 {
   return str(1, c);
 }
 
-func to_string(second: dynamic)
+func to_string(second: dynamic) -> dynamic
 {
   return cpp_cast(second);
 }
 
-func to_string(second: dynamic)
+func to_string(second: dynamic) -> dynamic
 {
   return second;
 }
 
-func to_string(b: dynamic)
+func to_string(b: dynamic) -> dynamic
 {
   return to_string(cpp_cast(b));
 }
 
-func to_string(c: dynamic)
+func to_string(c: dynamic) -> dynamic
 {
-  var ss: dynamic;
+  var ss: dynamic = cpp_uninitialized();
   (ss << c);
   return ss.str();
 }
 
-func to_string(v: dynamic)
+func to_string(v: dynamic) -> dynamic
 {
-  var res = "{";
+  var res: dynamic = "{";
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (cpp_cast((v).size()))))
     {
       res += char((cpp_char("0") + v[i]));
@@ -177,11 +177,11 @@ func to_string(v: dynamic)
   return res;
 }
 
-func to_string(b: dynamic)
+func to_string(b: dynamic) -> dynamic
 {
-  var res = "";
+  var res: dynamic = "";
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (SZ)))
     {
       res += char((cpp_char("0") + b[i]));
@@ -191,11 +191,11 @@ func to_string(b: dynamic)
   return res;
 }
 
-func to_string(v: dynamic)
+func to_string(v: dynamic) -> dynamic
 {
-  var fst = 1;
-  var res = "";
-  for (var x in v)
+  var fst: dynamic = 1;
+  var res: dynamic = "";
+  for (var x: dynamic in v)
   {
     if ((!fst))
     {
@@ -207,28 +207,28 @@ func to_string(v: dynamic)
   return res;
 }
 
-func to_string(p: dynamic)
+func to_string(p: dynamic) -> dynamic
 {
   return ((to_string(p.first) + " ") + to_string(p.second));
 }
 
-func pr(x: dynamic)
+func pr(x: dynamic) -> dynamic
 {
   write(to_string(x));
 }
 
-func pr(t: dynamic, u: dynamic...)
+func pr(t: dynamic, u: dynamic...) -> dynamic
 {
   pr(t);
   pr(cpp_expand(u));
 }
 
-func ps()
+func ps() -> dynamic
 {
   pr("\n");
 }
 
-func ps(t: dynamic, u: dynamic...)
+func ps(t: dynamic, u: dynamic...) -> dynamic
 {
   pr(t);
   if (cpp_sizeof(u))
@@ -238,12 +238,12 @@ func ps(t: dynamic, u: dynamic...)
   ps(cpp_expand(u));
 }
 
-func DBG()
+func DBG() -> dynamic
 {
   write("]", "\n");
 }
 
-func DBG(t: dynamic, u: dynamic...)
+func DBG(t: dynamic, u: dynamic...) -> dynamic
 {
   write(to_string(t));
   if (cpp_sizeof(u))
@@ -253,22 +253,22 @@ func DBG(t: dynamic, u: dynamic...)
   DBG(cpp_expand(u));
 }
 
-func setIn(second: dynamic)
+func setIn(second: dynamic) -> dynamic
 {
   freopen(second.c_str(), "r", stdin);
 }
 
-func setOut(second: dynamic)
+func setOut(second: dynamic) -> dynamic
 {
   freopen(second.c_str(), "w", stdout);
 }
 
-func unsyncIO()
+func unsyncIO() -> dynamic
 {
   cin.tie(0)->sync_with_stdio(0);
 }
 
-func setIO(second: dynamic = "")
+func setIO(second: dynamic = "") -> dynamic
 {
   unsyncIO();
   if (cpp_cast((second).size()))
@@ -278,164 +278,164 @@ func setIO(second: dynamic = "")
   }
 }
 
-func sgn(a: dynamic)
+func sgn(a: dynamic) -> dynamic
 {
   return (((a > 0)) - ((a < 0)));
 }
 
-func sq(a: dynamic)
+func sq(a: dynamic) -> dynamic
 {
   return (a * a);
 }
 
-func norm(p: dynamic)
+func norm(p: dynamic) -> dynamic
 {
   return (sq(p.first) + sq(p.second));
 }
 
-func abs(p: dynamic)
+func abs(p: dynamic) -> dynamic
 {
   return sqrt(norm(p));
 }
 
-func arg(p: dynamic)
+func arg(p: dynamic) -> dynamic
 {
   return atan2(p.second, p.first);
 }
 
-func conj(p: dynamic)
+func conj(p: dynamic) -> dynamic
 {
   return pair(p.first, (-p.second));
 }
 
-func perp(p: dynamic)
+func perp(p: dynamic) -> dynamic
 {
   return pair((-p.second), p.first);
 }
 
-func dir(ang: dynamic)
+func dir(ang: dynamic) -> dynamic
 {
   return pair(cos(ang), sin(ang));
 }
 
-func operator_subtract(l: dynamic)
+func operator_subtract(l: dynamic) -> dynamic
 {
   return pair((-l.first), (-l.second));
 }
 
-func operator_add(l: dynamic, r: dynamic)
+func operator_add(l: dynamic, r: dynamic) -> dynamic
 {
   return pair((l.first + r.first), (l.second + r.second));
 }
 
-func operator_subtract(l: dynamic, r: dynamic)
+func operator_subtract(l: dynamic, r: dynamic) -> dynamic
 {
   return pair((l.first - r.first), (l.second - r.second));
 }
 
-func operator_multiply(l: dynamic, r: dynamic)
+func operator_multiply(l: dynamic, r: dynamic) -> dynamic
 {
   return pair((l.first * r), (l.second * r));
 }
 
-func operator_multiply(l: dynamic, r: dynamic)
+func operator_multiply(l: dynamic, r: dynamic) -> dynamic
 {
   return (r * l);
 }
 
-func operator_divide(l: dynamic, r: dynamic)
+func operator_divide(l: dynamic, r: dynamic) -> dynamic
 {
   return pair((l.first / r), (l.second / r));
 }
 
-func operator_multiply(l: dynamic, r: dynamic)
+func operator_multiply(l: dynamic, r: dynamic) -> dynamic
 {
   return pair(((l.first * r.first) - (l.second * r.second)), ((l.second * r.first) + (l.first * r.second)));
 }
 
-func operator_divide(l: dynamic, r: dynamic)
+func operator_divide(l: dynamic, r: dynamic) -> dynamic
 {
   return ((l * conj(r)) / norm(r));
 }
 
-func operator_add_assign(l: dynamic, r: dynamic)
+func operator_add_assign(l: dynamic, r: dynamic) -> dynamic
 {
   return cpp_assign(l, "=", (l + r));
 }
 
-func operator_subtract_assign(l: dynamic, r: dynamic)
+func operator_subtract_assign(l: dynamic, r: dynamic) -> dynamic
 {
   return cpp_assign(l, "=", (l - r));
 }
 
-func operator(l: dynamic, r: dynamic)
+func operator(l: dynamic, r: dynamic) -> dynamic
 {
   return cpp_assign(l, "=", (l * r));
 }
 
-func operator(l: dynamic, r: dynamic)
+func operator(l: dynamic, r: dynamic) -> dynamic
 {
   return cpp_assign(l, "=", (l / r));
 }
 
-func operator(l: dynamic, r: dynamic)
+func operator(l: dynamic, r: dynamic) -> dynamic
 {
   return cpp_assign(l, "=", (l * r));
 }
 
-func operator(l: dynamic, r: dynamic)
+func operator(l: dynamic, r: dynamic) -> dynamic
 {
   return cpp_assign(l, "=", (l / r));
 }
 
-func unit(p: dynamic)
+func unit(p: dynamic) -> dynamic
 {
   return (p / abs(p));
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.first * b.first) + (a.second * b.second));
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.first * b.second) - (a.second * b.first));
 }
 
-func cross(p: dynamic, a: dynamic, b: dynamic)
+func cross(p: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   return cross((a - p), (b - p));
 }
 
-func reflect(p: dynamic, a: dynamic, b: dynamic)
+func reflect(p: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   return (a + (conj((((p - a)) / ((b - a)))) * ((b - a))));
 }
 
-func foot(p: dynamic, a: dynamic, b: dynamic)
+func foot(p: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   return (((p + reflect(p, a, b))) / cpp_cast(2));
 }
 
-func onSeg(p: dynamic, a: dynamic, b: dynamic)
+func onSeg(p: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   return ((cross(a, b, p) == 0) && (dot((p - a), (p - b)) <= 0));
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var poly: dynamic;
+var poly: dynamic = cpp_uninitialized();
 
-var dists: dynamic;
+var dists: dynamic = cpp_uninitialized();
 
-var par: dynamic;
+var par: dynamic = cpp_uninitialized();
 
-func genDists()
+func genDists() -> dynamic
 {
   dists = [0];
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (N)))
     {
       dists.push_back((dists.back() + abs((poly[i] - poly[(i + 1)]))));
@@ -444,30 +444,30 @@ func genDists()
   }
 }
 
-func rev()
+func rev() -> dynamic
 {
   par ^= 1;
-  var maxY = poly.back().second;
+  var maxY: dynamic = poly.back().second;
   reverse(begin(poly), end(poly));
   genDists();
-  for (var t in poly)
+  for (var t: dynamic in poly)
   {
     t.second = (maxY - t.second);
   }
 }
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var vel: dynamic;
+var vel: dynamic = cpp_uninitialized();
 
-func ternary(lo: dynamic, hi: dynamic, eval: dynamic)
+func ternary(lo: dynamic, hi: dynamic, eval: dynamic) -> dynamic
 {
   {
-    var cpp_name = (0);
+    var cpp_name: dynamic = (0);
     while ((cpp_name < (50)))
     {
-      var m1 = ((((2 * lo) + hi)) / 3);
-      var m2 = (((lo + (2 * hi))) / 3);
+      var m1: dynamic = ((((2 * lo) + hi)) / 3);
+      var m2: dynamic = (((lo + (2 * hi))) / 3);
       if ((eval(m1) < eval(m2)))
       {
         hi = m2;
@@ -481,34 +481,34 @@ func ternary(lo: dynamic, hi: dynamic, eval: dynamic)
   return [lo, eval(lo)];
 }
 
-var calced = cpp_array(2);
+var calced: dynamic = cpp_array(2);
 
-func tri(l: dynamic, r: dynamic)
+func tri(l: dynamic, r: dynamic) -> dynamic
 {
   assert((l < r));
-  var dirl = unit((poly[(l + 1)] - poly[l]));
-  var dirr = unit((poly[(r + 1)] - poly[r]));
-  var eval = __cpp_lambda_1;
-  var getMin = __cpp_lambda_2;
+  var dirl: dynamic = unit((poly[(l + 1)] - poly[l]));
+  var dirr: dynamic = unit((poly[(r + 1)] - poly[r]));
+  var eval: dynamic = __cpp_lambda_1;
+  var getMin: dynamic = __cpp_lambda_2;
   if ((!calced[par].count([l, r])))
   {
     calced[par][[l, r]] = ternary(0, (dists[(r + 1)] - dists[r]), getMin);
   }
-  var mid = calced[par][[l, r]];
+  var mid: dynamic = calced[par][[l, r]];
   if ((mid.second > (1 / vel)))
   {
     return;
   }
-  var L: dynamic;
-  var R: dynamic;
+  var L: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
   {
-    var lo = 0;
-    var hi = mid.first;
+    var lo: dynamic = 0;
+    var hi: dynamic = mid.first;
     {
-      var cpp_name = (0);
+      var cpp_name: dynamic = (0);
       while ((cpp_name < (50)))
       {
-        var m = (((lo + hi)) / 2);
+        var m: dynamic = (((lo + hi)) / 2);
         if ((getMin(m) < (1 / vel)))
         {
           hi = m;
@@ -522,13 +522,13 @@ func tri(l: dynamic, r: dynamic)
     L = lo;
   }
   {
-    var lo = mid.first;
-    var hi = (dists[(r + 1)] - dists[r]);
+    var lo: dynamic = mid.first;
+    var hi: dynamic = (dists[(r + 1)] - dists[r]);
     {
-      var cpp_name = (0);
+      var cpp_name: dynamic = (0);
       while ((cpp_name < (50)))
       {
-        var m = (((lo + hi)) / 2);
+        var m: dynamic = (((lo + hi)) / 2);
         if ((getMin(m) < (1 / vel)))
         {
           lo = m;
@@ -544,15 +544,15 @@ func tri(l: dynamic, r: dynamic)
   ans.push_back([(dists[r] + L), (dists[r] + R)]);
 }
 
-func ranges()
+func ranges() -> dynamic
 {
   ans.clear();
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (N)))
     {
       {
-        var j = ((i + 1));
+        var j: dynamic = ((i + 1));
         while ((j < (N)))
         {
           tri(i, j);
@@ -563,8 +563,8 @@ func ranges()
     }
   }
   sort(begin(ans), end(ans));
-  var ANS: dynamic;
-  for (var t in ans)
+  var ANS: dynamic = cpp_uninitialized();
+  for (var t: dynamic in ans)
   {
     if (((!cpp_cast((ANS).size())) || (ANS.back().second < t.first)))
     {
@@ -577,7 +577,7 @@ func ranges()
   return ANS;
 }
 
-func intervalIsect(a: dynamic, b: dynamic)
+func intervalIsect(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.second < b.first))
   {
@@ -590,21 +590,21 @@ func intervalIsect(a: dynamic, b: dynamic)
   return 1;
 }
 
-func escape(mid: dynamic)
+func escape(mid: dynamic) -> dynamic
 {
   0;
   vel = mid;
-  var lef = ranges();
+  var lef: dynamic = ranges();
   rev();
-  var rig = ranges();
+  var rig: dynamic = ranges();
   rev();
-  for (var t in rig)
+  for (var t: dynamic in rig)
   {
     t = [(dists.back() - t.second), (dists.back() - t.first)];
   }
   reverse(begin(rig), end(rig));
-  var il = 0;
-  var ir = 0;
+  var il: dynamic = 0;
+  var ir: dynamic = 0;
   while (((il < cpp_cast((lef).size())) && (ir < cpp_cast((rig).size()))))
   {
     if (intervalIsect(lef[il], rig[ir]))
@@ -622,19 +622,19 @@ func escape(mid: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
-  var beg = clock();
+  var beg: dynamic = clock();
   setIO();
   re(N);
   poly.resize((N + 1));
   re(poly);
   genDists();
-  var lo = 1;
-  var hi = 1e4;
+  var lo: dynamic = 1;
+  var hi: dynamic = 1e4;
   while (((hi / lo) > (1 + 1e-8)))
   {
-    var mid = sqrt((lo * hi));
+    var mid: dynamic = sqrt((lo * hi));
     if (escape(mid))
     {
       lo = mid;
@@ -647,19 +647,19 @@ func main()
   0;
 }
 
-func __cpp_lambda_1(t1: dynamic, t2: dynamic)
+func __cpp_lambda_1(t1: dynamic, t2: dynamic) -> dynamic
 {
-  var pos1 = (poly[l] + (t1 * dirl));
-  var pos2 = (poly[r] + (t2 * dirr));
+  var pos1: dynamic = (poly[l] + (t1 * dirl));
+  var pos2: dynamic = (poly[r] + (t2 * dirr));
   return (abs((pos2 - pos1)) / ((((dists[r] + t2)) - ((dists[l] + t1)))));
 }
 
-func __cpp_lambda_3(x: dynamic)
+func __cpp_lambda_3(x: dynamic) -> dynamic
 {
   return eval(x, rig);
 }
 
-func __cpp_lambda_2(rig: dynamic)
+func __cpp_lambda_2(rig: dynamic) -> dynamic
 {
   return ternary(0, (dists[(l + 1)] - dists[l]), __cpp_lambda_3).second;
 }

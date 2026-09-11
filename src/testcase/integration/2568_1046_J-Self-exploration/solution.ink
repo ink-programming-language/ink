@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var maxn = (int_cpp(2e5) + 100);
+var maxn: dynamic = (int_cpp(2e5) + 100);
 
-var mod = (int_cpp(1e9) + 7);
+var mod: dynamic = (int_cpp(1e9) + 7);
 
 class binary
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   var a: dynamic = cpp_array(maxn);
-  func read()
+  func read() -> dynamic
   {
-      var ch: dynamic;
+      var ch: dynamic = cpp_uninitialized();
       while ((((cpp_assign(ch, "=", getchar())) != cpp_char("0")) && (ch != cpp_char("1"))))
       {
       }
@@ -20,7 +20,7 @@ class binary
         a[cpp_update(n, "++")] = (ch - cpp_char("0"));
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= (n / 2)))
         {
           swap(a[i], a[((n - i) + 1)]);
@@ -28,11 +28,11 @@ class binary
         }
       }
     }
-  func dec()
+  func dec() -> dynamic
   {
       a[1] -= 1;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           if ((a[i] >= 0))
@@ -53,19 +53,19 @@ class binary
     }
 }
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-var fact = cpp_array(maxn);
+var fact: dynamic = cpp_array(maxn);
 
-var nfact = cpp_array(maxn);
+var nfact: dynamic = cpp_array(maxn);
 
-var origin = cpp_array(maxn);
+var origin: dynamic = cpp_array(maxn);
 
-var cnt = cpp_array(maxn);
+var cnt: dynamic = cpp_array(maxn);
 
-func getC(n: dynamic, m: dynamic)
+func getC(n: dynamic, m: dynamic) -> dynamic
 {
   if ((n == -1))
   {
@@ -74,7 +74,7 @@ func getC(n: dynamic, m: dynamic)
   return ((((fact[n] * nfact[m]) % mod) * nfact[(n - m)]) % mod);
 }
 
-func calc(flag: dynamic)
+func calc(flag: dynamic) -> dynamic
 {
   if (flag)
   {
@@ -93,18 +93,18 @@ func calc(flag: dynamic)
   }
 }
 
-func work(num: dynamic)
+func work(num: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       cnt[i] = origin[i];
       i += 1;
     }
   }
-  var ans = 0;
-  var i: dynamic;
+  var ans: dynamic = 0;
+  var i: dynamic = cpp_uninitialized();
   {
     i = (num.n - 1);
     while ((i > 0))
@@ -132,9 +132,9 @@ func work(num: dynamic)
   return ans;
 }
 
-func POW(num: dynamic, times: dynamic)
+func POW(num: dynamic, times: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while (times)
   {
     if ((times & 1))
@@ -147,11 +147,11 @@ func POW(num: dynamic, times: dynamic)
   return ans;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n = 1;
+  var n: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       n += origin[i];
@@ -165,7 +165,7 @@ func solve()
   }
   fact[0] = cpp_assign(nfact[0], "=", 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fact[i] = ((fact[(i - 1)] * i) % mod);
@@ -174,15 +174,15 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       cnt[i] = origin[i];
       i += 1;
     }
   }
-  var sA = 0;
-  var sB = calc(1);
+  var sA: dynamic = 0;
+  var sB: dynamic = calc(1);
   if ((A.n == n))
   {
     sA = work(A);
@@ -194,13 +194,13 @@ func solve()
   printf("%d\n", ((((sB - sA) + mod)) % mod));
 }
 
-func main()
+func main() -> dynamic
 {
   A.read();
   A.dec();
   B.read();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       scanf("%d", (&origin[i]));

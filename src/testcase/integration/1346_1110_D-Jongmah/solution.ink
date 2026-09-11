@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(1000005);
+var a: dynamic = cpp_array(1000005);
 
-var dp = cpp_array(3, 3, 1000005);
+var dp: dynamic = cpp_array(3, 3, 1000005);
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var d: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&d));
@@ -22,15 +22,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (m + 1)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 3))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 3))
             {
               dp[i][j][k] = (-inf);
@@ -45,19 +45,19 @@ func main()
   }
   dp[1][0][0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 3))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 3))
             {
               {
-                var l = 0;
+                var l: dynamic = 0;
                 while ((l < 3))
                 {
                   if ((((j + k) + l) <= a[i]))

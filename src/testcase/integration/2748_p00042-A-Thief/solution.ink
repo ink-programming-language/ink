@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var dp = [0];
+var dp: dynamic = [0];
 
-func main()
+func main() -> dynamic
 {
-  var W: dynamic;
-  var N: dynamic;
-  var t = 1;
+  var W: dynamic = cpp_uninitialized();
+  var N: dynamic = cpp_uninitialized();
+  var t: dynamic = 1;
   while (cpp_comma((cin >> W), W))
   {
     read(N);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         scanf("%d,%d", (&v[i]), (&w[i]));
@@ -20,11 +20,11 @@ func main()
     }
     fill((&dp[0][0]), ((&dp[0][0]) + (1001 * 1001)), 0);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= W))
           {
             if (((w[i] + j) <= W))
@@ -38,10 +38,10 @@ func main()
         i += 1;
       }
     }
-    var aw = 0;
-    var av = 0;
+    var aw: dynamic = 0;
+    var av: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= W))
       {
         if ((dp[N][i] > av))

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var MAXN = 262144;
+var MAXN: dynamic = 262144;
 
-var MOD = 998244353;
+var MOD: dynamic = 998244353;
 
-func ADD(x: dynamic, y: dynamic)
+func ADD(x: dynamic, y: dynamic) -> dynamic
 {
   x += y;
   if ((x >= MOD))
@@ -13,7 +13,7 @@ func ADD(x: dynamic, y: dynamic)
   }
 }
 
-func DEC(x: dynamic, y: dynamic)
+func DEC(x: dynamic, y: dynamic) -> dynamic
 {
   x -= y;
   if ((x < 0))
@@ -22,19 +22,19 @@ func DEC(x: dynamic, y: dynamic)
   }
 }
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (((x + y) < MOD)) (x + y) else ((x + y) - MOD);
+  return  (((x + y) < MOD)) ? (x + y) : ((x + y) - MOD);
 }
 
-func dec(x: dynamic, y: dynamic)
+func dec(x: dynamic, y: dynamic) -> dynamic
 {
-  return if ((x < y)) ((x - y) + MOD) else (x - y);
+  return  ((x < y)) ? ((x - y) + MOD) : (x - y);
 }
 
-func q_pow(a: dynamic, b: dynamic, p: dynamic = MOD)
+func q_pow(a: dynamic, b: dynamic, p: dynamic = MOD) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   {
     while (b)
     {
@@ -49,21 +49,21 @@ func q_pow(a: dynamic, b: dynamic, p: dynamic = MOD)
   return ret;
 }
 
-func q_inv(x: dynamic, p: dynamic = MOD)
+func q_inv(x: dynamic, p: dynamic = MOD) -> dynamic
 {
   return q_pow(x, (p - 2), p);
 }
 
-var LIM: dynamic;
+var LIM: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var rev = cpp_array(MAXN);
+var rev: dynamic = cpp_array(MAXN);
 
-func NTT(f: dynamic, op: dynamic)
+func NTT(f: dynamic, op: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LIM))
     {
       rev[i] = (((rev[(i >> 1)] >> 1)) | ((((i & 1)) << ((L - 1)))));
@@ -71,7 +71,7 @@ func NTT(f: dynamic, op: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LIM))
     {
       if ((i < rev[i]))
@@ -82,25 +82,25 @@ func NTT(f: dynamic, op: dynamic)
     }
   }
   {
-    var l = 2;
+    var l: dynamic = 2;
     while ((l <= LIM))
     {
-      var wn = q_pow(3, (((MOD - 1)) / l));
+      var wn: dynamic = q_pow(3, (((MOD - 1)) / l));
       if ((op == -1))
       {
         wn = q_inv(wn);
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < LIM))
         {
           {
-            var j = 0;
-            var g = 1;
+            var j: dynamic = 0;
+            var g: dynamic = 1;
             while ((j < ((l >> 1))))
             {
-              var x = f[(i | j)];
-              var y = (((1 * g) * f[((i | j) | ((l >> 1)))]) % MOD);
+              var x: dynamic = f[(i | j)];
+              var y: dynamic = (((1 * g) * f[((i | j) | ((l >> 1)))]) % MOD);
               f[(i | j)] = add(x, y);
               f[((i | j) | ((l >> 1)))] = dec(x, y);
               j += 1;
@@ -115,9 +115,9 @@ func NTT(f: dynamic, op: dynamic)
   }
   if ((op == -1))
   {
-    var iv = q_inv(LIM);
+    var iv: dynamic = q_inv(LIM);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < LIM))
       {
         f[i] = (((1 * f[i]) * iv) % MOD);
@@ -127,19 +127,19 @@ func NTT(f: dynamic, op: dynamic)
   }
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var fac = cpp_array(MAXN);
+var fac: dynamic = cpp_array(MAXN);
 
-var ifac = cpp_array(MAXN);
+var ifac: dynamic = cpp_array(MAXN);
 
-var p = cpp_array(MAXN);
+var p: dynamic = cpp_array(MAXN);
 
-var tmp = cpp_array(MAXN);
+var tmp: dynamic = cpp_array(MAXN);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%lld", (&N), (&M));
   LIM = 1;
@@ -150,7 +150,7 @@ func main()
     L += 1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       scanf("%d", (&p[i]));
@@ -159,7 +159,7 @@ func main()
   }
   fac[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       fac[i] = (((1 * fac[(i - 1)]) * i) % MOD);
@@ -168,7 +168,7 @@ func main()
   }
   ifac[N] = q_inv(fac[N]);
   {
-    var i = (N - 1);
+    var i: dynamic = (N - 1);
     while ((i >= 0))
     {
       ifac[i] = (((1 * ifac[(i + 1)]) * ((i + 1))) % MOD);
@@ -176,7 +176,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       p[i] = (((1 * p[i]) * fac[i]) % MOD);
@@ -184,7 +184,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LIM))
     {
       tmp[i] = 0;
@@ -192,7 +192,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (N - i)))
     {
       swap(p[i], p[(N - i)]);
@@ -200,7 +200,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       tmp[i] = ifac[i];
@@ -210,7 +210,7 @@ func main()
   NTT(tmp, 1);
   NTT(p, 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LIM))
     {
       p[i] = (((1 * p[i]) * tmp[i]) % MOD);
@@ -219,7 +219,7 @@ func main()
   }
   NTT(p, -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (N - i)))
     {
       swap(p[i], p[(N - i)]);
@@ -227,7 +227,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       p[i] = (((1 * p[i]) * ifac[i]) % MOD);
@@ -235,7 +235,7 @@ func main()
     }
   }
   {
-    var i = (N + 1);
+    var i: dynamic = (N + 1);
     while ((i < LIM))
     {
       p[i] = 0;
@@ -243,7 +243,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       p[i] = (((1 * p[i]) * q_pow(q_inv((i + 1)), M)) % MOD);
@@ -251,7 +251,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       p[i] = (((1 * p[i]) * fac[i]) % MOD);
@@ -259,7 +259,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LIM))
     {
       tmp[i] = 0;
@@ -267,7 +267,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (N - i)))
     {
       swap(p[i], p[(N - i)]);
@@ -275,17 +275,17 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
-      tmp[i] = if ((i & 1)) (MOD - ifac[i]) else ifac[i];
+      tmp[i] =  ((i & 1)) ? (MOD - ifac[i]) : ifac[i];
       i += 1;
     }
   }
   NTT(tmp, 1);
   NTT(p, 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LIM))
     {
       p[i] = (((1 * p[i]) * tmp[i]) % MOD);
@@ -294,7 +294,7 @@ func main()
   }
   NTT(p, -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (N - i)))
     {
       swap(p[i], p[(N - i)]);
@@ -302,7 +302,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       p[i] = (((1 * p[i]) * ifac[i]) % MOD);
@@ -310,7 +310,7 @@ func main()
     }
   }
   {
-    var i = (N + 1);
+    var i: dynamic = (N + 1);
     while ((i < LIM))
     {
       p[i] = 0;
@@ -318,7 +318,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       printf("%d ", p[i]);

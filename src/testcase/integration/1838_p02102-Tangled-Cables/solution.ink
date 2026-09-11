@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var EPS = (1e-10);
+var EPS: dynamic = (1e-10);
 
-var INF = 252521;
+var INF: dynamic = 252521;
 
-func equals(a: dynamic, b: dynamic)
+func equals(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream>");
 }
 
-var par: dynamic;
+var par: dynamic = cpp_uninitialized();
 
-var rnk: dynamic;
+var rnk: dynamic = cpp_uninitialized();
 
-func init(n: dynamic)
+func init(n: dynamic) -> dynamic
 {
   par.resize(n);
   rnk.resize(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       par[i] = i;
@@ -28,7 +28,7 @@ func init(n: dynamic)
   }
 }
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
   if ((par[x] == x))
   {
@@ -37,7 +37,7 @@ func find(x: dynamic)
   return cpp_assign(par[x], "=", find(par[x]));
 }
 
-func unite(x: dynamic, y: dynamic)
+func unite(x: dynamic, y: dynamic) -> dynamic
 {
   x = find(x);
   y = find(y);
@@ -58,59 +58,59 @@ func unite(x: dynamic, y: dynamic)
   }
 }
 
-func same(x: dynamic, y: dynamic)
+func same(x: dynamic, y: dynamic) -> dynamic
 {
   return ((find(x) == find(y)));
 }
 
 class Edge
 {
-  var u: dynamic;
-  var v: dynamic;
-  var w: dynamic;
-  func Edge()
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  func Edge() -> dynamic
   {
     }
-  func Edge(u: dynamic, v: dynamic, w: dynamic)
+  func Edge(u: dynamic, v: dynamic, w: dynamic) -> dynamic
   {
-      this->u = cpp_construct();
-      this->v = cpp_construct();
-      this->w = cpp_construct();
+      self->u = cpp_construct();
+      self->v = cpp_construct();
+      self->w = cpp_construct();
     }
 }
 
 class Data
 {
-  var u: dynamic;
-  var v: dynamic;
-  var c: dynamic;
-  var t: dynamic;
-  func Data()
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  func Data() -> dynamic
   {
     }
-  func Data(u: dynamic, v: dynamic, c: dynamic, t: dynamic)
+  func Data(u: dynamic, v: dynamic, c: dynamic, t: dynamic) -> dynamic
   {
-      this->u = cpp_construct();
-      this->v = cpp_construct();
-      this->c = cpp_construct();
-      this->t = cpp_construct();
+      self->u = cpp_construct();
+      self->v = cpp_construct();
+      self->c = cpp_construct();
+      self->t = cpp_construct();
     }
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var es: dynamic;
+var es: dynamic = cpp_uninitialized();
 
-func kruskal()
+func kruskal() -> dynamic
 {
   sort(es.begin(), es.end(), __cpp_lambda_1);
   init(N);
-  var tw = 0;
-  for (var e in es)
+  var tw: dynamic = 0;
+  for (var e: dynamic in es)
   {
     if ((!same(e.u, e.v)))
     {
@@ -123,10 +123,10 @@ func kruskal()
   return tw;
 }
 
-func c(x: dynamic)
+func c(x: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       es[i].u = d[i].u;
@@ -138,15 +138,15 @@ func c(x: dynamic)
   return (kruskal() >= 0);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var lb = 0;
-  var ub = INF;
+  var lb: dynamic = 0;
+  var ub: dynamic = INF;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 50))
     {
-      var mid = (((lb + ub)) / 2);
+      var mid: dynamic = (((lb + ub)) / 2);
       if (c(mid))
       {
         lb = mid;
@@ -160,25 +160,25 @@ func solve()
   return ub;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&N), (&M));
   d.resize(M);
   es.resize(M);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       scanf("%d %d %lf %lf", (&d[i].u), (&d[i].v), (&d[i].c), (&d[i].t));
       i += 1;
     }
   }
-  var res = solve();
-  printf("%.15f\n", (if (equals(res, INF)) 0 else res));
+  var res: dynamic = solve();
+  printf("%.15f\n", ( (equals(res, INF)) ? 0 : res));
   return 0;
 }
 
-func __cpp_lambda_1(e1: dynamic, e2: dynamic)
+func __cpp_lambda_1(e1: dynamic, e2: dynamic) -> dynamic
 {
   return (e1.w > e2.w);
 }

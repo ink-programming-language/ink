@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var TestCases: dynamic;
+var TestCases: dynamic = cpp_uninitialized();
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(TestCases);
   while (cpp_update(TestCases, "--"))

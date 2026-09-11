@@ -1,48 +1,48 @@
 // Translated from solution.cpp.
 
-var maxn = (5 * 100005);
+var maxn: dynamic = (5 * 100005);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var lim: dynamic;
+var lim: dynamic = cpp_uninitialized();
 
-var head = cpp_array(maxn);
+var head: dynamic = cpp_array(maxn);
 
-var Next = cpp_array((maxn * 2));
+var Next: dynamic = cpp_array((maxn * 2));
 
-var to = cpp_array((maxn * 2));
+var to: dynamic = cpp_array((maxn * 2));
 
-var tot = 0;
+var tot: dynamic = 0;
 
-var d = cpp_array(maxn);
+var d: dynamic = cpp_array(maxn);
 
-var fa = cpp_array(maxn);
+var fa: dynamic = cpp_array(maxn);
 
-var size = cpp_array(maxn);
+var size: dynamic = cpp_array(maxn);
 
-var vis = cpp_array(maxn);
+var vis: dynamic = cpp_array(maxn);
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
   to[cpp_update(tot, "++")] = y;
   Next[tot] = head[x];
   head[x] = tot;
 }
 
-func dfs_tree(x: dynamic, f: dynamic)
+func dfs_tree(x: dynamic, f: dynamic) -> dynamic
 {
   size[x] = 1;
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var y = to[i];
+      var y: dynamic = to[i];
       if (((y == f) || vis[y]))
       {
         i = Next[i];
@@ -58,16 +58,16 @@ func dfs_tree(x: dynamic, f: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d", (&n), (&m), (&k));
   lim = ceil(((cpp_cast(n) * 1.0) / k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d%d", (&x), (&y));
       add(x, y);
       add(y, x);
@@ -77,9 +77,9 @@ func main()
   vis[1] = 1;
   d[1] = 1;
   dfs_tree(1, 0);
-  var pos = 0;
+  var pos: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((d[i] >= lim))
@@ -98,21 +98,21 @@ func main()
       i += 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   puts("CYCLES");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((size[i] == 1))
       {
-        var p1 = 0;
-        var p2 = 0;
+        var p1: dynamic = 0;
+        var p2: dynamic = 0;
         {
-          var j = head[i];
+          var j: dynamic = head[i];
           while (j)
           {
-            var y = to[j];
+            var y: dynamic = to[j];
             if ((y == fa[i]))
             {
               j = Next[j];
@@ -136,9 +136,9 @@ func main()
         {
           swap(p1, p2);
         }
-        var c1 = ((d[i] - d[p1]) + 1);
-        var c2 = ((d[i] - d[p2]) + 1);
-        var c3 = ((d[p1] - d[p2]) + 2);
+        var c1: dynamic = ((d[i] - d[p1]) + 1);
+        var c2: dynamic = ((d[i] - d[p2]) + 1);
+        var c3: dynamic = ((d[p1] - d[p2]) + 2);
         if (((c1 > 3) && ((c1 % 3) != 0)))
         {
           cnt += 1;
@@ -177,12 +177,12 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cnt))
     {
       printf("%d\n", a[i].size());
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < a[i].size()))
         {
           printf("%d ", a[i][j]);

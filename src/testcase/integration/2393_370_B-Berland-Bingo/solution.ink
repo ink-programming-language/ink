@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var cards: dynamic;
-  var size: dynamic;
+  var cards: dynamic = cpp_uninitialized();
+  var size: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var m: dynamic;
-      var x: dynamic;
+      var m: dynamic = cpp_uninitialized();
+      var x: dynamic = cpp_uninitialized();
       read(m);
       size.push_back(m);
-      var aux: dynamic;
+      var aux: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(x);
@@ -28,15 +28,15 @@ func main()
       i += 1;
     }
   }
-  var flag = false;
+  var flag: dynamic = false;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       flag = false;
-      var aux: dynamic;
+      var aux: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((i == j))
@@ -45,7 +45,7 @@ func main()
             continue;
           }
           aux = (cards[i] & cards[j]);
-          var lit = aux.count();
+          var lit: dynamic = aux.count();
           if ((lit > 0))
           {
             if (((size[j] - lit) == 0))

@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var MAXN = (2e5 + 5);
+var MAXN: dynamic = (2e5 + 5);
 
-var str = cpp_array(MAXN);
+var str: dynamic = cpp_array(MAXN);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&t));
   while (cpp_update(t, "--"))
   {
     scanf("%d", (&n));
     scanf("%s", str);
-    var n = strlen(str);
-    var cur = 0;
+    var n: dynamic = strlen(str);
+    var cur: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((str[i] == cpp_char("B")))

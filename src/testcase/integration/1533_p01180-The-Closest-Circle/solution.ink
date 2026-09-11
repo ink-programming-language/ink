@@ -1,48 +1,48 @@
 // Translated from solution.cpp.
 
-var INF = cpp_expression("#inc");
+var INF: dynamic = cpp_expression("#inc");
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
 class P
 {
-  var x: dynamic;
-  var y: dynamic;
-  var r: dynamic;
-  func P()
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  func P() -> dynamic
   {
     }
-  func P(xx: dynamic, yy: dynamic, rr: dynamic)
+  func P(xx: dynamic, yy: dynamic, rr: dynamic) -> dynamic
   {
       x = xx;
       y = yy;
       r = rr;
     }
-  func operator_less(p1: dynamic)
+  func operator_less(p1: dynamic) -> dynamic
   {
       return (x < p1.x);
     }
 }
 
-func compare_y(a: dynamic, b: dynamic)
+func compare_y(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.y < b.y);
 }
 
-func closest_pair(a: dynamic, n: dynamic)
+func closest_pair(a: dynamic, n: dynamic) -> dynamic
 {
   if ((n <= 1))
   {
     return INF;
   }
-  var m = (n / 2);
-  var x = a[m].x;
-  var r = a[m].r;
-  var d = min(closest_pair(a, m), closest_pair((a + m), (n - m)));
+  var m: dynamic = (n / 2);
+  var x: dynamic = a[m].x;
+  var r: dynamic = a[m].r;
+  var d: dynamic = min(closest_pair(a, m), closest_pair((a + m), (n - m)));
   inplace_merge(a, (a + m), (a + n), compare_y);
-  var b: dynamic;
+  var b: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((((fabs((a[i].x - x)) - a[i].r) - r) >= d))
@@ -51,11 +51,11 @@ func closest_pair(a: dynamic, n: dynamic)
         continue;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < b.size()))
         {
-          var dx = (a[i].x - b[((b.size() - j) - 1)].x);
-          var dy = (a[i].y - b[((b.size() - j) - 1)].y);
+          var dx: dynamic = (a[i].x - b[((b.size() - j) - 1)].x);
+          var dy: dynamic = (a[i].y - b[((b.size() - j) - 1)].y);
           if ((dy >= ((d + r) + a[i].r)))
           {
             break;
@@ -72,9 +72,9 @@ func closest_pair(a: dynamic, n: dynamic)
   return d;
 }
 
-var p = cpp_array(100001);
+var p: dynamic = cpp_array(100001);
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   while (1)
   {
@@ -84,7 +84,7 @@ func main(argument_0: dynamic)
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%lf %lf %lf", (&p[i].r), (&p[i].x), (&p[i].y));

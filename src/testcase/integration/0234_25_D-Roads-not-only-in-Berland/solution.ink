@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var undef = -1;
+var undef: dynamic = -1;
 
-var n = 0;
+var n: dynamic = 0;
 
-var visited = cpp_array(1000);
+var visited: dynamic = cpp_array(1000);
 
-var graph: dynamic;
+var graph: dynamic = cpp_uninitialized();
 
-var delegates: dynamic;
+var delegates: dynamic = cpp_uninitialized();
 
-var road_list: dynamic;
+var road_list: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
   delegates.reserve((1000 + 10));
   graph.reserve((1000 + 10));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 1000))
     {
       visited[i] = undef;
@@ -27,10 +27,10 @@ func init()
     }
   }
   read(n);
-  var a = 0;
-  var b = 0;
+  var a: dynamic = 0;
+  var b: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       read(a, b);
@@ -41,11 +41,11 @@ func init()
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var comp = 0;
+  var comp: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((visited[i] == undef))
@@ -58,11 +58,11 @@ func solve()
     }
   }
   write((comp - 1), "\n");
-  var i = 0;
+  var i: dynamic = 0;
   while (((comp - 1) != 0))
   {
-    var sIt = road_list.begin();
-    var p = (*sIt);
+    var sIt: dynamic = road_list.begin();
+    var p: dynamic = (*sIt);
     write((p.first + 1), " ", (p.second + 1), " ");
     write((delegates[i] + 1), " ", (delegates[(i + 1)] + 1), "\n");
     road_list.erase(sIt);
@@ -71,11 +71,11 @@ func solve()
   }
 }
 
-func explore(i: dynamic, component: dynamic, comefrom: dynamic)
+func explore(i: dynamic, component: dynamic, comefrom: dynamic) -> dynamic
 {
   visited[i] = component;
   {
-    var it = graph[i].begin();
+    var it: dynamic = graph[i].begin();
     while ((it != graph[i].end()))
     {
       if ((visited[(*it)] == undef))
@@ -93,7 +93,7 @@ func explore(i: dynamic, component: dynamic, comefrom: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   solve();

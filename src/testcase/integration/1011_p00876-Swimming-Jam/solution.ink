@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var N = 50;
+var N: dynamic = 50;
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var data: dynamic;
+var data: dynamic = cpp_uninitialized();
 
-func equals(a: dynamic, b: dynamic)
+func equals(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs((a - b)) < EPS);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var dist = cpp_array(N);
-  var round = cpp_array(N);
-  var res: dynamic;
+  var dist: dynamic = cpp_array(N);
+  var round: dynamic = cpp_array(N);
+  var res: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       dist[i] = make_pair(0.0, 0.0);
@@ -32,7 +32,7 @@ func solve()
     while (true)
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if (data[i].second)
@@ -44,7 +44,7 @@ func solve()
       }
       break;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((data[i].second == 0))
@@ -54,7 +54,7 @@ func solve()
           }
           dist[i] = make_pair(dist[i].second, (dist[i].second + data[i].first));
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < i))
             {
               if ((data[j].second == 0))
@@ -103,17 +103,17 @@ func solve()
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   while (((cin >> n) && n))
   {
     data.clear();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var a: dynamic;
-        var b: dynamic;
+        var a: dynamic = cpp_uninitialized();
+        var b: dynamic = cpp_uninitialized();
         read(a, b);
         data.push_back(make_pair((1.0 / a), b));
         i += 1;

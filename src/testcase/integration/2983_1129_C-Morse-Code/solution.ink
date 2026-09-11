@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var LINF = 0x3f3f3f3f3f3f3f3f;
+var LINF: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var SA = cpp_array(3003);
+var SA: dynamic = cpp_array(3003);
 
-var lcp = cpp_array(3003);
+var lcp: dynamic = cpp_array(3003);
 
-var arr = cpp_array(3003);
+var arr: dynamic = cpp_array(3003);
 
-var rsa = cpp_array(3003);
+var rsa: dynamic = cpp_array(3003);
 
-var D = cpp_array(3003, 3003);
+var D: dynamic = cpp_array(3003, 3003);
 
-var T = cpp_array(3003);
+var T: dynamic = cpp_array(3003);
 
-var S = cpp_array(3003);
+var S: dynamic = cpp_array(3003);
 
-func SuffixArray()
+func SuffixArray() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var m = 2;
-  var cnt = cpp_construct((max(N, m) + 1), 0);
-  var first = cpp_construct((N + 1), 0);
-  var second = cpp_construct((N + 1), 0);
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var m: dynamic = 2;
+  var cnt: dynamic = cpp_construct((max(N, m) + 1), 0);
+  var first: dynamic = cpp_construct((N + 1), 0);
+  var second: dynamic = cpp_construct((N + 1), 0);
   {
     i = 1;
     while ((i <= N))
@@ -58,8 +58,8 @@ func SuffixArray()
     }
   }
   {
-    var len = 1;
-    var p = 1;
+    var len: dynamic = 1;
+    var p: dynamic = 1;
     while ((p < N))
     {
       {
@@ -120,7 +120,7 @@ func SuffixArray()
         i = 1;
         while ((i < N))
         {
-          first[SA[(i + 1)]] = if ((((((SA[i] + len) <= N) && ((SA[(i + 1)] + len) <= N)) && (second[SA[i]] == second[SA[(i + 1)]])) && (second[(SA[i] + len)] == second[(SA[(i + 1)] + len)]))) p else cpp_update(p, "++");
+          first[SA[(i + 1)]] =  ((((((SA[i] + len) <= N) && ((SA[(i + 1)] + len) <= N)) && (second[SA[i]] == second[SA[(i + 1)]])) && (second[(SA[i] + len)] == second[(SA[(i + 1)] + len)]))) ? p : cpp_update(p, "++");
           i += 1;
         }
       }
@@ -130,12 +130,12 @@ func SuffixArray()
   }
 }
 
-func LCP()
+func LCP() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k = 0;
-  var rank = cpp_construct((N + 1), 0);
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = 0;
+  var rank: dynamic = cpp_construct((N + 1), 0);
   {
     i = 1;
     while ((i <= N))
@@ -149,7 +149,7 @@ func LCP()
     while ((i <= N))
     {
       {
-        if (k) cpp_update(k, "--") else 0;
+         (k) ? cpp_update(k, "--") : 0;
         j = SA[(rank[i] - 1)];
         while ((S[(i + k)] == S[(j + k)]))
         {
@@ -161,12 +161,12 @@ func LCP()
   }
 }
 
-var bstr = ["0011", "0101", "1110", "1111"];
+var bstr: dynamic = ["0011", "0101", "1110", "1111"];
 
-func bad(s: dynamic, e: dynamic)
+func bad(s: dynamic, e: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     j = 0;
     while ((j < 4))
@@ -192,12 +192,12 @@ func bad(s: dynamic, e: dynamic)
   return 0;
 }
 
-var rns = cpp_array(3003);
+var rns: dynamic = cpp_array(3003);
 
-func fin(idx: dynamic)
+func fin(idx: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var p: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))
@@ -210,7 +210,7 @@ func fin(idx: dynamic)
     }
   }
   p = i;
-  var t = lcp[p];
+  var t: dynamic = lcp[p];
   {
     i = (p - 1);
     while (i)
@@ -230,7 +230,7 @@ func fin(idx: dynamic)
       i += 1;
     }
   }
-  var maxi = 0;
+  var maxi: dynamic = 0;
   {
     i = 1;
     while ((i < idx))
@@ -242,11 +242,11 @@ func fin(idx: dynamic)
   return (idx - maxi);
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   N = n;
   {
@@ -303,7 +303,7 @@ func main()
           j += 1;
         }
       }
-      var t = fin(i);
+      var t: dynamic = fin(i);
       T[i] = (((T[(i - 1)] + D[i][t])) % MOD);
       printf("%lld\n", T[i]);
       i += 1;

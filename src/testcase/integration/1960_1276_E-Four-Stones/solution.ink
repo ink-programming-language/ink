@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var v1: dynamic;
+var v1: dynamic = cpp_uninitialized();
 
-var v2: dynamic;
+var v2: dynamic = cpp_uninitialized();
 
-var v3: dynamic;
+var v3: dynamic = cpp_uninitialized();
 
-var a = cpp_array(5);
+var a: dynamic = cpp_array(5);
 
-var b = cpp_array(5);
+var b: dynamic = cpp_array(5);
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((!b)) a else gcd(b, (a % b));
+  return  ((!b)) ? a : gcd(b, (a % b));
 }
 
-func op(a: dynamic, mov: dynamic, p1: dynamic, p2: dynamic)
+func op(a: dynamic, mov: dynamic, p1: dynamic, p2: dynamic) -> dynamic
 {
   mov.push_back(make_pair(a[p1], a[p2]));
   a[p1] = ((a[p2] * 2) - a[p1]);
 }
 
-func solve(a: dynamic, mov: dynamic)
+func solve(a: dynamic, mov: dynamic) -> dynamic
 {
   while (true)
   {
@@ -34,10 +34,10 @@ func solve(a: dynamic, mov: dynamic)
     }
     while ((((min((a[2] - a[1]), (a[4] - a[2])) * 4) < (a[4] - a[1])) && ((min((a[3] - a[1]), (a[4] - a[3])) * 4) < (a[4] - a[1]))))
     {
-      var p: dynamic;
-      var q: dynamic;
-      var q1: dynamic;
-      var q2: dynamic;
+      var p: dynamic = cpp_uninitialized();
+      var q: dynamic = cpp_uninitialized();
+      var q1: dynamic = cpp_uninitialized();
+      var q2: dynamic = cpp_uninitialized();
       if ((min((a[2] - a[1]), (a[4] - a[2])) < min((a[3] - a[1]), (a[4] - a[3]))))
       {
         p = 2;
@@ -93,7 +93,7 @@ func solve(a: dynamic, mov: dynamic)
   if ((a[1] & 1))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= 3))
       {
         if ((a[i] < a[4]))
@@ -107,7 +107,7 @@ func solve(a: dynamic, mov: dynamic)
   sort((a + 1), (a + 5));
 }
 
-func shift()
+func shift() -> dynamic
 {
   sort((a + 1), (a + 5));
   if (((((a[4] - a[1])) * 3) < abs(d)))
@@ -145,10 +145,10 @@ func shift()
   }
 }
 
-func purify(vec: dynamic)
+func purify(vec: dynamic) -> dynamic
 {
-  var tmp: dynamic;
-  for (var p in vec)
+  var tmp: dynamic = cpp_uninitialized();
+  for (var p: dynamic in vec)
   {
     if ((p.first != p.second))
     {
@@ -158,10 +158,10 @@ func purify(vec: dynamic)
   vec = tmp;
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 4))
     {
       read(a[i]);
@@ -170,7 +170,7 @@ func main()
   }
   sort((a + 1), (a + 5));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 4))
     {
       read(b[i]);
@@ -178,14 +178,14 @@ func main()
     }
   }
   sort((b + 1), (b + 5));
-  var g = gcd(gcd((a[2] - a[1]), (a[3] - a[1])), (a[4] - a[1]));
+  var g: dynamic = gcd(gcd((a[2] - a[1]), (a[3] - a[1])), (a[4] - a[1]));
   if ((gcd(gcd((b[2] - b[1]), (b[3] - b[1])), (b[4] - b[1])) != g))
   {
     write(-1);
     return 0;
   }
-  var e1 = (((a[1] == a[2]) && (a[2] == a[3])) && (a[3] == a[4]));
-  var e2 = (((b[1] == b[2]) && (b[2] == b[3])) && (b[3] == b[4]));
+  var e1: dynamic = (((a[1] == a[2]) && (a[2] == a[3])) && (a[3] == a[4]));
+  var e2: dynamic = (((b[1] == b[2]) && (b[2] == b[3])) && (b[3] == b[4]));
   if ((e1 && e2))
   {
     if ((a[1] != b[1]))
@@ -207,9 +207,9 @@ func main()
     write(-1);
     return 0;
   }
-  var delta = ((((a[1] % g) + g)) % g);
+  var delta: dynamic = ((((a[1] % g) + g)) % g);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 4))
     {
       a[i] = (((a[i] - delta)) / g);
@@ -217,10 +217,10 @@ func main()
       i += 1;
     }
   }
-  var c1 = [0];
-  var c2 = [0];
+  var c1: dynamic = [0];
+  var c2: dynamic = [0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 4))
     {
       c1[(abs(a[i]) & 1)] += 1;
@@ -241,17 +241,17 @@ func main()
   purify(v2);
   purify(v3);
   write(((v1.size() + v2.size()) + v3.size()), cpp_char("\n"));
-  for (var p in v1)
+  for (var p: dynamic in v1)
   {
     write(((p.first * g) + delta), cpp_char(" "), ((p.second * g) + delta), cpp_char("\n"));
   }
-  for (var p in v3)
+  for (var p: dynamic in v3)
   {
     write(((p.first * g) + delta), cpp_char(" "), ((p.second * g) + delta), cpp_char("\n"));
   }
-  var siz = v2.size();
+  var siz: dynamic = v2.size();
   {
-    var i = (siz - 1);
+    var i: dynamic = (siz - 1);
     while ((i >= 0))
     {
       write((((((2 * v2[i].second) - v2[i].first)) * g) + delta), cpp_char(" "), ((v2[i].second * g) + delta), cpp_char("\n"));

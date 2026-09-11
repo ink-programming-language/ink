@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q = cpp_array(100005);
+var q: dynamic = cpp_array(100005);
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var p = cpp_array(100005);
+var p: dynamic = cpp_array(100005);
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       scanf("%d%d", (&f), (&t));
@@ -26,14 +26,14 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((q[i].size() >= 3))
       {
         r = 1;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= 2))
           {
             p[q[i][j]] = (j + 1);
@@ -48,7 +48,7 @@ func main()
   if ((r == 0))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         write(i, "\n");
@@ -57,9 +57,9 @@ func main()
     }
     return 0;
   }
-  var cnt = 2;
+  var cnt: dynamic = 2;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n - 1)))
     {
       if ((p[i] == 3))

@@ -1,50 +1,50 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, b: dynamic, n: dynamic)
+func REP(i: dynamic, b: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=b;i<n;i++)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include<i");
 }
 
-var N = cpp_expression("#");
+var N: dynamic = cpp_expression("#");
 
-var E = cpp_expression("#");
+var E: dynamic = cpp_expression("#");
 
-var S = cpp_expression("#");
+var S: dynamic = cpp_expression("#");
 
-var W = cpp_expression("#");
+var W: dynamic = cpp_expression("#");
 
-var dx = [0, 1, 0, -1];
+var dx: dynamic = [0, 1, 0, -1];
 
-var dy = [-1, 0, 1, 0];
+var dy: dynamic = [-1, 0, 1, 0];
 
-var curdir = [S, W, N, E];
+var curdir: dynamic = [S, W, N, E];
 
-var sd = [-1, W, -1, E, S, -1, N, -1];
+var sd: dynamic = [-1, W, -1, E, S, -1, N, -1];
 
-var cd = [W, -1, -1, N, E, N, -1, -1, -1, S, E, -1, -1, -1, W, S];
+var cd: dynamic = [W, -1, -1, N, E, N, -1, -1, -1, S, E, -1, -1, -1, W, S];
 
-var ld = [W, W, -1, E, W, W, -1, N, S, N, N, -1, E, N, N, -1, -1, W, E, E, -1, S, E, E, S, -1, N, S, S, -1, W, S];
+var ld: dynamic = [W, W, -1, E, W, W, -1, N, S, N, N, -1, E, N, N, -1, -1, W, E, E, -1, S, E, E, S, -1, N, S, S, -1, W, S];
 
-var rd = [-1, W, W, E, -1, W, W, S, S, -1, N, N, W, -1, N, N, E, W, -1, E, E, N, -1, E, S, S, N, -1, S, S, E, -1];
+var rd: dynamic = [-1, W, W, E, -1, W, W, S, S, -1, N, N, W, -1, N, N, E, W, -1, E, E, N, -1, E, S, S, N, -1, S, S, E, -1];
 
-var switchid = cpp_array(6, 6);
+var switchid: dynamic = cpp_array(6, 6);
 
-var rot = cpp_array(6, 6);
+var rot: dynamic = cpp_array(6, 6);
 
-var m = cpp_array(6, 6);
+var m: dynamic = cpp_array(6, 6);
 
-var cost = cpp_array(((1 << 6)), 4, 6, 6);
+var cost: dynamic = cpp_array(((1 << 6)), 4, 6, 6);
 
-var visited = cpp_array(((1 << 6)), 4, 6, 6);
+var visited: dynamic = cpp_array(((1 << 6)), 4, 6, 6);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func dfs(r: dynamic, c: dynamic, y: dynamic, x: dynamic, d: dynamic, state: dynamic, visnow: dynamic, length: dynamic)
+func dfs(r: dynamic, c: dynamic, y: dynamic, x: dynamic, d: dynamic, state: dynamic, visnow: dynamic, length: dynamic) -> dynamic
 {
   if ((length != 0))
   {
@@ -66,8 +66,8 @@ func dfs(r: dynamic, c: dynamic, y: dynamic, x: dynamic, d: dynamic, state: dyna
   }
   visited[y][x][d][state] = visnow;
   cost[y][x][d][state] = length;
-  var nextd: dynamic;
-  var curgrid = rot[y][x];
+  var nextd: dynamic = cpp_uninitialized();
+  var curgrid: dynamic = rot[y][x];
   if ((m[y][x] == cpp_char("S")))
   {
     nextd = sd[curgrid][d];
@@ -78,7 +78,7 @@ func dfs(r: dynamic, c: dynamic, y: dynamic, x: dynamic, d: dynamic, state: dyna
     dfs(r, c, (y + dy[nextd]), (x + dx[nextd]), nextd, state, visnow, (length + 1));
   } else if ((m[y][x] == cpp_char("L")))
   {
-    var isswitch = ((((((1 << switchid[y][x])) & state)) != 0));
+    var isswitch: dynamic = ((((((1 << switchid[y][x])) & state)) != 0));
     nextd = ld[curgrid][isswitch][d];
     if (((((rot[y][x] + 3)) % 4) == d))
     {
@@ -93,7 +93,7 @@ func dfs(r: dynamic, c: dynamic, y: dynamic, x: dynamic, d: dynamic, state: dyna
     dfs(r, c, (y + dy[nextd]), (x + dx[nextd]), nextd, state, visnow, (length + 1));
   } else if ((m[y][x] == cpp_char("R")))
   {
-    var isswitch = ((((((1 << switchid[y][x])) & state)) != 0));
+    var isswitch: dynamic = ((((((1 << switchid[y][x])) & state)) != 0));
     nextd = rd[curgrid][isswitch][d];
     if (((((rot[y][x] + 3)) % 4) == d))
     {
@@ -109,12 +109,12 @@ func dfs(r: dynamic, c: dynamic, y: dynamic, x: dynamic, d: dynamic, state: dyna
   }
 }
 
-func solve(r: dynamic, c: dynamic, index: dynamic)
+func solve(r: dynamic, c: dynamic, index: dynamic) -> dynamic
 {
-  var visnow = 0;
+  var visnow: dynamic = 0;
 }
 
-func search(r: dynamic, c: dynamic, index: dynamic, now: dynamic, num: dynamic, y: dynamic, x: dynamic, d: dynamic, posx: dynamic, posy: dynamic, tonext: dynamic)
+func search(r: dynamic, c: dynamic, index: dynamic, now: dynamic, num: dynamic, y: dynamic, x: dynamic, d: dynamic, posx: dynamic, posy: dynamic, tonext: dynamic) -> dynamic
 {
   if (((tonext && (num == 0)) && (index == (now + 1))))
   {
@@ -240,7 +240,7 @@ func search(r: dynamic, c: dynamic, index: dynamic, now: dynamic, num: dynamic, 
   }
 }
 
-func decide(r: dynamic, c: dynamic, index: dynamic, now: dynamic, posx: dynamic, posy: dynamic)
+func decide(r: dynamic, c: dynamic, index: dynamic, now: dynamic, posx: dynamic, posy: dynamic) -> dynamic
 {
   if ((now == index))
   {
@@ -254,22 +254,22 @@ func decide(r: dynamic, c: dynamic, index: dynamic, now: dynamic, posx: dynamic,
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var r: dynamic;
-  var c: dynamic;
+  var r: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   while ((((cin >> c) >> r) && c))
   {
-    var index = 0;
-    var posx = cpp_array(6);
-    var posy = cpp_array(6);
+    var index: dynamic = 0;
+    var posx: dynamic = cpp_array(6);
+    var posy: dynamic = cpp_array(6);
     ans = 0;
     decide(r, c, index, 0, posx, posy);
     write(ans, "\n");
   }
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       cpp_statement("rep(k,4)");
       {
@@ -280,11 +280,11 @@ func rep(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       if (((m[i][j] == cpp_char("R")) || (m[i][j] == cpp_char("L"))))
       {
@@ -305,11 +305,11 @@ func rep(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         read(m[i][j]);
         rot[i][j] = -1;
@@ -322,6 +322,6 @@ func rep(argument_0: dynamic, argument_1: dynamic)
         }
       }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     }

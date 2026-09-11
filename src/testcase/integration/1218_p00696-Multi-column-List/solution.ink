@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var SIZE = 101;
+var SIZE: dynamic = 101;
 
-var WORD_MAX = 1001;
+var WORD_MAX: dynamic = 1001;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var S = cpp_array(WORD_MAX);
+var S: dynamic = cpp_array(WORD_MAX);
 
-var si: dynamic;
+var si: dynamic = cpp_uninitialized();
 
-var T = cpp_array(SIZE, SIZE);
+var T: dynamic = cpp_array(SIZE, SIZE);
 
-var pi: dynamic;
+var pi: dynamic = cpp_uninitialized();
 
-var ti: dynamic;
+var ti: dynamic = cpp_uninitialized();
 
 class Solution
 {
-  func init()
+  func init() -> dynamic
   {
     }
-  func get_number()
+  func get_number() -> dynamic
   {
-      var line: dynamic;
+      var line: dynamic = cpp_uninitialized();
       getline(cin, line);
-      var res: dynamic;
+      var res: dynamic = cpp_uninitialized();
       (iss >> res);
       return res;
     }
-  func input()
+  func input() -> dynamic
   {
       n = get_number();
       if ((n == 0))
@@ -45,7 +45,7 @@ class Solution
       m = get_number();
       w = get_number();
       p = get_number();
-      var line: dynamic;
+      var line: dynamic = cpp_uninitialized();
       si = 0;
       while (getline(cin, line))
       {
@@ -57,26 +57,26 @@ class Solution
       }
       return true;
     }
-  func add_item(s: dynamic)
+  func add_item(s: dynamic) -> dynamic
   {
-      var len = s.size();
+      var len: dynamic = s.size();
       if ((len > w))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < len))
           {
-            var t = s.substr(i, w);
+            var t: dynamic = s.substr(i, w);
             add_item(t);
             i += w;
           }
         }
       } else
       {
-        var r = (ti % n);
-        var c = (ti / n);
+        var r: dynamic = (ti % n);
+        var c: dynamic = (ti / n);
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < len))
           {
             T[pi][r][((i + (w * c)) + (p * c))] = s[i];
@@ -91,16 +91,16 @@ class Solution
         }
       }
     }
-  func solve()
+  func solve() -> dynamic
   {
       pi = 0;
       ti = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < SIZE))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < n))
             {
               T[i][j] = string_cpp(((m * w) + (p * ((m - 1)))), cpp_char("."));
@@ -111,19 +111,19 @@ class Solution
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < si))
         {
-          var word = S[i];
+          var word: dynamic = S[i];
           add_item(word);
           i += 1;
         }
       }
     }
-  func output()
+  func output() -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= pi))
         {
           if (((i == pi) && (ti == 0)))
@@ -132,7 +132,7 @@ class Solution
             continue;
           }
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < n))
             {
               write(T[i][j], "\n");
@@ -145,7 +145,7 @@ class Solution
       }
       write("?", "\n");
     }
-  func run()
+  func run() -> dynamic
   {
       while (cpp_comma(init(), input()))
       {
@@ -156,8 +156,8 @@ class Solution
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   return s.run();
 }

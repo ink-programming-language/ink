@@ -1,55 +1,55 @@
 // Translated from solution.cpp.
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-func fr(i: dynamic, l: dynamic, r: dynamic)
+func fr(i: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   cpp_macro("for(ll i=l;i<=r;i++)");
 }
 
-func rf(i: dynamic, r: dynamic, l: dynamic)
+func rf(i: dynamic, r: dynamic, l: dynamic) -> dynamic
 {
   cpp_macro("for(ll i=r;i>=l;i--)");
 }
 
-func done(i: dynamic)
+func done(i: dynamic) -> dynamic
 {
   cpp_macro("cout<<\"done = \"<<i<<endl;");
 }
 
-func show(x: dynamic, y: dynamic)
+func show(x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("cout<<x<<\" : \";for(auto z:y)cout<<z<<\" \";cout<<endl;");
 }
 
-var fast = cpp_expression("#include<bits/stdc++.h> using na");
+var fast: dynamic = cpp_expression("#include<bits/stdc++.h> using na");
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/st");
 }
 
-var yes = cpp_expression("#include<bits/st");
+var yes: dynamic = cpp_expression("#include<bits/st");
 
-var no = cpp_expression("#include<bits/s");
+var no: dynamic = cpp_expression("#include<bits/s");
 
-var dp = cpp_array(5005, 5005);
+var dp: dynamic = cpp_array(5005, 5005);
 
-var inf = 1e18;
+var inf: dynamic = 1e18;
 
-func Test()
+func Test() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var X: dynamic;
-  var Y: dynamic;
+  var X: dynamic = cpp_uninitialized();
+  var Y: dynamic = cpp_uninitialized();
   X.pb(0);
   Y.pb(0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       if (x)
       {
@@ -69,14 +69,14 @@ func Test()
   }
   dp[0][0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < X.size()))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < Y.size()))
         {
-          var cost = abs((X[i] - Y[j]));
+          var cost: dynamic = abs((X[i] - Y[j]));
           dp[i][j] = min(dp[i][(j - 1)], (dp[(i - 1)][(j - 1)] + cost));
           j += 1;
         }
@@ -87,9 +87,9 @@ func Test()
   write(dp[(X.size() - 1)][(Y.size() - 1)], "\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
     Test();

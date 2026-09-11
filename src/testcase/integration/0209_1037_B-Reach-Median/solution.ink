@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-func add(x: dynamic, y: dynamic, CMOD: dynamic = MOD)
+func add(x: dynamic, y: dynamic, CMOD: dynamic = MOD) -> dynamic
 {
   return ((((0 + x) + y)) % CMOD);
 }
 
-func mult(x: dynamic, y: dynamic, CMOD: dynamic = MOD)
+func mult(x: dynamic, y: dynamic, CMOD: dynamic = MOD) -> dynamic
 {
   return ((((1 * x) * y)) % CMOD);
 }
 
-func fast_expo(x: dynamic, y: dynamic, CMOD: dynamic = MOD)
+func fast_expo(x: dynamic, y: dynamic, CMOD: dynamic = MOD) -> dynamic
 {
   if ((x == 0))
   {
@@ -22,7 +22,7 @@ func fast_expo(x: dynamic, y: dynamic, CMOD: dynamic = MOD)
   {
     return 1;
   }
-  var ans = fast_expo(x, (y / 2), CMOD);
+  var ans: dynamic = fast_expo(x, (y / 2), CMOD);
   ans = mult(ans, ans, CMOD);
   if ((y & 1))
   {
@@ -31,23 +31,23 @@ func fast_expo(x: dynamic, y: dynamic, CMOD: dynamic = MOD)
   return ans;
 }
 
-var TAM = (2e5 + 100);
+var TAM: dynamic = (2e5 + 100);
 
-var INF = (LLONG_MAX / 4);
+var INF: dynamic = (LLONG_MAX / 4);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(TAM);
+var a: dynamic = cpp_array(TAM);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   read(n);
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   read(k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -60,11 +60,11 @@ func main()
     write("0", "\n");
     return 0;
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   if ((a[(n / 2)] < k))
   {
     {
-      var i = (n / 2);
+      var i: dynamic = (n / 2);
       while ((i < n))
       {
         ans += max(0, (k - a[i]));
@@ -74,7 +74,7 @@ func main()
   } else
   {
     {
-      var i = (n / 2);
+      var i: dynamic = (n / 2);
       while ((i >= 0))
       {
         ans += max(0, (a[i] - k));

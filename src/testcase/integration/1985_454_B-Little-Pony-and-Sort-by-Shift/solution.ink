@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func Q_Q()
+func Q_Q() -> dynamic
 {
   ios.sync_with_stdio(0);
   ios_base.sync_with_stdio(0);
@@ -8,17 +8,17 @@ func Q_Q()
   cout.tie(0);
 }
 
-func main()
+func main() -> dynamic
 {
   Q_Q();
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var arr = cpp_array(n);
-  var dq: dynamic;
-  var ans = 0;
-  var a = 1;
+  var arr: dynamic = cpp_array(n);
+  var dq: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
+  var a: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);
@@ -26,7 +26,7 @@ func main()
     }
   }
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i > 0))
     {
       if ((i == (n - 1)))
@@ -54,7 +54,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       dq.push_back(arr[i]);
@@ -62,7 +62,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i != (n - 1)))

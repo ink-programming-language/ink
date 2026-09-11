@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var N = (1e6 + 5);
+var N: dynamic = (1e6 + 5);
 
-var M = (3e3 + 5);
+var M: dynamic = (3e3 + 5);
 
-var inf = (1e18 + 100);
+var inf: dynamic = (1e18 + 100);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var pos = cpp_array(N);
+var pos: dynamic = cpp_array(N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i].first);
@@ -33,7 +33,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i].second);
@@ -41,7 +41,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a[i].first > b[a[i].second]))
@@ -51,10 +51,10 @@ func main()
       i += 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   while (cpp_update(k, "--"))
   {
-    var i: dynamic;
+    var i: dynamic = cpp_uninitialized();
     read(i);
     if ((b[a[i].second] != a[i].first))
     {

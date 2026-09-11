@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var MAX_N = cpp_expression("#i");
+var MAX_N: dynamic = cpp_expression("#i");
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var X1 = cpp_array(MAX_N);
+var X1: dynamic = cpp_array(MAX_N);
 
-var Y1 = cpp_array(MAX_N);
+var Y1: dynamic = cpp_array(MAX_N);
 
-var Z1 = cpp_array(MAX_N);
+var Z1: dynamic = cpp_array(MAX_N);
 
-var X2 = cpp_array(MAX_N);
+var X2: dynamic = cpp_array(MAX_N);
 
-var Y2 = cpp_array(MAX_N);
+var Y2: dynamic = cpp_array(MAX_N);
 
-var Z2 = cpp_array(MAX_N);
+var Z2: dynamic = cpp_array(MAX_N);
 
-var xsLen: dynamic;
+var xsLen: dynamic = cpp_uninitialized();
 
-var ysLen: dynamic;
+var ysLen: dynamic = cpp_uninitialized();
 
-var zsLen: dynamic;
+var zsLen: dynamic = cpp_uninitialized();
 
-var xs = cpp_array((MAX_N * 2));
+var xs: dynamic = cpp_array((MAX_N * 2));
 
-var ys = cpp_array((MAX_N * 2));
+var ys: dynamic = cpp_array((MAX_N * 2));
 
-var zs = cpp_array((MAX_N * 2));
+var zs: dynamic = cpp_array((MAX_N * 2));
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   scanf("%d%d", (&N), (&K));
   {
     i = 0;
@@ -63,7 +63,7 @@ func main()
   sort(xs, (xs + xsLen));
   sort(ys, (ys + ysLen));
   sort(zs, (zs + zsLen));
-  var ans = 0;
+  var ans: dynamic = 0;
   {
     a = 0;
     while ((a < (xsLen - 1)))
@@ -76,7 +76,7 @@ func main()
             c = 0;
             while ((c < (zsLen - 1)))
             {
-              var cnt = 0;
+              var cnt: dynamic = 0;
               {
                 i = 0;
                 while ((i < N))

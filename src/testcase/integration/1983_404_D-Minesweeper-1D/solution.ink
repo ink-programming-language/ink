@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var maxn = (1e6 + 10);
+var maxn: dynamic = (1e6 + 10);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var f = cpp_array(2, 2, maxn);
+var f: dynamic = cpp_array(2, 2, maxn);
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
-func dfs(pos: dynamic, pre: dynamic, next: dynamic)
+func dfs(pos: dynamic, pre: dynamic, next: dynamic) -> dynamic
 {
   if ((f[pos][pre][next] != -1))
   {
@@ -20,7 +20,7 @@ func dfs(pos: dynamic, pre: dynamic, next: dynamic)
   {
     return (next == 0);
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   if (((next == 0) && (s[pos] == cpp_char("*"))))
   {
     return 0;
@@ -30,10 +30,10 @@ func dfs(pos: dynamic, pre: dynamic, next: dynamic)
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 1))
     {
-      var nxt = i;
+      var nxt: dynamic = i;
       if (((s[pos] == cpp_char("1")) && (((nxt + pre)) != 1)))
       {
         i += 1;
@@ -58,7 +58,7 @@ func dfs(pos: dynamic, pre: dynamic, next: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", (s + 1));
   len = strlen((s + 1));

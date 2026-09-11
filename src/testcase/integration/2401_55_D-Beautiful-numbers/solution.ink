@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(20);
+var a: dynamic = cpp_array(20);
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(50, 2525, 20);
+var dp: dynamic = cpp_array(50, 2525, 20);
 
-var b = cpp_array(2525);
+var b: dynamic = cpp_array(2525);
 
-func gcd(m: dynamic, n: dynamic)
+func gcd(m: dynamic, n: dynamic) -> dynamic
 {
-  var maxx = max(m, n);
-  var minn = min(m, n);
+  var maxx: dynamic = max(m, n);
+  var minn: dynamic = min(m, n);
   if ((minn == 0))
   {
     return maxx;
   }
   while (minn)
   {
-    var x = minn;
+    var x: dynamic = minn;
     minn = (maxx % minn);
     maxx = x;
   }
   return ((m * n) / maxx);
 }
 
-var cnt = 0;
+var cnt: dynamic = 0;
 
-func dfs(pos: dynamic, pre: dynamic, GCD: dynamic, limit: dynamic)
+func dfs(pos: dynamic, pre: dynamic, GCD: dynamic, limit: dynamic) -> dynamic
 {
   if ((b[GCD] == 0))
   {
@@ -53,10 +53,10 @@ func dfs(pos: dynamic, pre: dynamic, GCD: dynamic, limit: dynamic)
   {
     return dp[pos][pre][b[GCD]];
   }
-  var n = if (limit) a[pos] else 9;
-  var ans = 0;
+  var n: dynamic =  (limit) ? a[pos] : 9;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       ans += dfs((pos - 1), ((((pre * 10) + i)) % 2520), gcd(i, GCD), (limit && (i == a[pos])));
@@ -70,7 +70,7 @@ func dfs(pos: dynamic, pre: dynamic, GCD: dynamic, limit: dynamic)
   return ans;
 }
 
-func solve(x: dynamic)
+func solve(x: dynamic) -> dynamic
 {
   p = 1;
   memset(a, 0, cpp_sizeof((a)));
@@ -83,12 +83,12 @@ func solve(x: dynamic)
   return dfs((p - 1), 0, 0, 1);
 }
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   scanf("%d", (&T));
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   memset(dp, -1, cpp_sizeof((dp)));
   while (cpp_update(T, "--"))
   {

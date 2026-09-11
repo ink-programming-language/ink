@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var N = (4e6 + 5);
+var N: dynamic = (4e6 + 5);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a[i] = (i + 1);
       i += 1;
     }
   }
-  var L = 0;
-  var R = (n - 1);
+  var L: dynamic = 0;
+  var R: dynamic = (n - 1);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       {
-        var k = (((n - 1)) / i);
+        var k: dynamic = (((n - 1)) / i);
         while ((k > 0))
         {
           swap(a[(L + (((k - 1)) * i))], a[(L + (k * i))]);
@@ -39,10 +39,10 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      printf("%d%s", a[(L + i)], if ((i == (n - 1))) "\n" else " ");
+      printf("%d%s", a[(L + i)],  ((i == (n - 1))) ? "\n" : " ");
       i += 1;
     }
   }

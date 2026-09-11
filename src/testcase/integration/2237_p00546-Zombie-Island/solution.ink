@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var u: dynamic;
+var u: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
 class dijkstra
 {
-  var V: dynamic;
-  var G: dynamic;
-  var d: dynamic;
-  func dijkstra(nv: dynamic)
+  var V: dynamic = cpp_uninitialized();
+  var G: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  func dijkstra(nv: dynamic) -> dynamic
   {
       nv += 10;
       d = vector(nv);
       V = nv;
       G = vector(nv);
     }
-  func run(s: dynamic)
+  func run(s: dynamic) -> dynamic
   {
-      var que: dynamic;
+      var que: dynamic = cpp_uninitialized();
       fill(d.begin(), d.end(), LLONG_MAX);
       d[s] = 0;
       que.push(P(0, s));
       while ((!que.empty()))
       {
-        var p = que.top();
+        var p: dynamic = que.top();
         que.pop();
-        var v = p.second;
+        var v: dynamic = p.second;
         if ((d[v] < p.first))
         {
           continue;
         }
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < G[v].size()))
           {
-            var e = G[v][i];
+            var e: dynamic = G[v][i];
             if ((d[e.to] > (d[v] + e.cost)))
             {
               d[e.to] = (d[v] + e.cost);
@@ -56,21 +56,21 @@ class dijkstra
     }
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
   read(n, m, k, u);
   read(p, q);
-  var s = cpp_array(100005);
+  var s: dynamic = cpp_array(100005);
   memset(s, -1, cpp_sizeof((s)));
-  var que: dynamic;
-  var edge = cpp_array(100005);
+  var que: dynamic = cpp_uninitialized();
+  var edge: dynamic = cpp_array(100005);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
-      var tmp: dynamic;
+      var tmp: dynamic = cpp_uninitialized();
       read(tmp);
       tmp -= 1;
       s[tmp] = 0;
@@ -79,11 +79,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       a -= 1;
       b -= 1;
@@ -94,13 +94,13 @@ func main()
   }
   while (que.size())
   {
-    var now = que.front();
+    var now: dynamic = que.front();
     que.pop();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < edge[now].size()))
       {
-        var next = edge[now][i];
+        var next: dynamic = edge[now][i];
         if ((s[next] == -1))
         {
           s[next] = (s[now] + 1);
@@ -111,14 +111,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < edge[i].size()))
         {
-          var next = edge[i][j];
+          var next: dynamic = edge[i][j];
           if ((next == (n - 1)))
           {
             D.G[i].push_back([next, 0]);

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var tree = cpp_array((2 * N));
+var tree: dynamic = cpp_array((2 * N));
 
-var tree1 = cpp_array((2 * N));
+var tree1: dynamic = cpp_array((2 * N));
 
-var e = cpp_construct(N, 0);
+var e: dynamic = cpp_construct(N, 0);
 
-var cos1 = cpp_construct(N, 0);
+var cos1: dynamic = cpp_construct(N, 0);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var plan: dynamic;
+var plan: dynamic = cpp_uninitialized();
 
-func updateTreeNode(p: dynamic, value: dynamic)
+func updateTreeNode(p: dynamic, value: dynamic) -> dynamic
 {
-  var n = m;
+  var n: dynamic = m;
   tree[(p + n)] = value;
   p = (p + n);
   {
-    var i = p;
+    var i: dynamic = p;
     while ((i > 1))
     {
       tree[(i >> 1)] = (tree[i] + tree[(i ^ 1)]);
@@ -29,10 +29,10 @@ func updateTreeNode(p: dynamic, value: dynamic)
   }
 }
 
-func query(l: dynamic, r: dynamic)
+func query(l: dynamic, r: dynamic) -> dynamic
 {
-  var n = m;
-  var res = 0;
+  var n: dynamic = m;
+  var res: dynamic = 0;
   {
     l += n;
     r += n;
@@ -53,13 +53,13 @@ func query(l: dynamic, r: dynamic)
   return res;
 }
 
-func updateTreeNode1(p: dynamic, value: dynamic)
+func updateTreeNode1(p: dynamic, value: dynamic) -> dynamic
 {
-  var n = m;
+  var n: dynamic = m;
   tree1[(p + n)] = value;
   p = (p + n);
   {
-    var i = p;
+    var i: dynamic = p;
     while ((i > 1))
     {
       tree1[(i >> 1)] = (tree1[i] + tree1[(i ^ 1)]);
@@ -68,10 +68,10 @@ func updateTreeNode1(p: dynamic, value: dynamic)
   }
 }
 
-func query1(l: dynamic, r: dynamic)
+func query1(l: dynamic, r: dynamic) -> dynamic
 {
-  var n = m;
-  var res = 0;
+  var n: dynamic = m;
+  var res: dynamic = 0;
   {
     l += n;
     r += n;
@@ -92,13 +92,13 @@ func query1(l: dynamic, r: dynamic)
   return res;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (2 * N)))
     {
       tree[i] = 0;
@@ -107,22 +107,22 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var l: dynamic;
-      var r: dynamic;
-      var c: dynamic;
-      var p: dynamic;
+      var l: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
+      var p: dynamic = cpp_uninitialized();
       read(l, r, c, p);
       plan.push_back(make_pair(make_pair(p, l), make_pair(r, c)));
       i += 1;
     }
   }
   sort(plan.begin(), plan.end());
-  var d = cpp_construct((1000000 + 5));
+  var d: dynamic = cpp_construct((1000000 + 5));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       d[(plan[i].first.second - 1)].push_back(i);
@@ -130,12 +130,12 @@ func solve()
       i += 1;
     }
   }
-  var tot = 0;
+  var tot: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      for (var j in d[i])
+      for (var j: dynamic in d[i])
       {
         if ((j >= 0))
         {
@@ -163,12 +163,12 @@ func solve()
         i += 1;
         continue;
       }
-      var st = 0;
-      var end = (m - 1);
-      var w = (m - 2);
+      var st: dynamic = 0;
+      var end: dynamic = (m - 1);
+      var w: dynamic = (m - 2);
       while ((st <= end))
       {
-        var mid = (((st + end)) / 2);
+        var mid: dynamic = (((st + end)) / 2);
         if ((query(0, (mid + 1)) <= k))
         {
           w = mid;
@@ -179,7 +179,7 @@ func solve()
         }
       }
       tot += query1(0, (w + 1));
-      var left = (k - query(0, (w + 1)));
+      var left: dynamic = (k - query(0, (w + 1)));
       tot += (cpp_cast(plan[(w + 1)].first.first) * left);
       i += 1;
     }
@@ -187,7 +187,7 @@ func solve()
   write(tot, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
@@ -195,8 +195,8 @@ func main()
   srand(time(null));
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var t = 1;
-  var c = 0;
+  var t: dynamic = 1;
+  var c: dynamic = 0;
   while (cpp_update(t, "--"))
   {
     solve();

@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var debug = 0;
+var debug: dynamic = 0;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var dx = [0, 1, 0, -1];
+var dx: dynamic = [0, 1, 0, -1];
 
-var dy = [1, 0, -1, 0];
+var dy: dynamic = [1, 0, -1, 0];
 
-var direc = "RDLU";
+var direc: dynamic = "RDLU";
 
-var ln: dynamic;
+var ln: dynamic = cpp_uninitialized();
 
-var lk: dynamic;
+var lk: dynamic = cpp_uninitialized();
 
-var lm: dynamic;
+var lm: dynamic = cpp_uninitialized();
 
-func etp(f: dynamic = 0)
+func etp(f: dynamic = 0) -> dynamic
 {
-  puts(if (f) "YES" else "NO");
+  puts( (f) ? "YES" : "NO");
   exit(0);
 }
 
-func addmod(x: dynamic, y: dynamic, mod: dynamic = 1000000007)
+func addmod(x: dynamic, y: dynamic, mod: dynamic = 1000000007) -> dynamic
 {
   assert((y >= 0));
   x += y;
@@ -37,15 +37,15 @@ func addmod(x: dynamic, y: dynamic, mod: dynamic = 1000000007)
   assert(((x >= 0) && (x < mod)));
 }
 
-func et()
+func et() -> dynamic
 {
   puts("-1");
   exit(0);
 }
 
-func fastPow(x: dynamic, y: dynamic, mod: dynamic = 1000000007)
+func fastPow(x: dynamic, y: dynamic, mod: dynamic = 1000000007) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while ((y > 0))
   {
     if ((y & 1))
@@ -58,9 +58,9 @@ func fastPow(x: dynamic, y: dynamic, mod: dynamic = 1000000007)
   return ans;
 }
 
-func gcd1(x: dynamic, y: dynamic)
+func gcd1(x: dynamic, y: dynamic) -> dynamic
 {
-  var z = y;
+  var z: dynamic = y;
   while (((x % y) != 0))
   {
     z = (x % y);
@@ -70,17 +70,17 @@ func gcd1(x: dynamic, y: dynamic)
   return z;
 }
 
-var fg: dynamic;
+var fg: dynamic = cpp_uninitialized();
 
-var tmp: dynamic;
+var tmp: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var stp: dynamic;
+var stp: dynamic = cpp_uninitialized();
 
-func cal(v: dynamic, dep: dynamic)
+func cal(v: dynamic, dep: dynamic) -> dynamic
 {
   if ((dep > 22))
   {
@@ -95,8 +95,8 @@ func cal(v: dynamic, dep: dynamic)
     }
     return;
   }
-  var vp: dynamic;
-  var vp1: dynamic;
+  var vp: dynamic = cpp_uninitialized();
+  var vp1: dynamic = cpp_uninitialized();
   if (((v.size() == 1) && (abs(v[0]) == 1)))
   {
     if ((v[0] == -1))
@@ -131,11 +131,11 @@ func cal(v: dynamic, dep: dynamic)
     return;
   }
   stp += 1;
-  for (var c in v)
+  for (var c: dynamic in v)
   {
     if (((c % 2) == 0))
     {
-      var tar = (c / 2);
+      var tar: dynamic = (c / 2);
       if (((tar != 0) && (C[tar] != stp)))
       {
         C[tar] = stp;
@@ -151,12 +151,12 @@ func cal(v: dynamic, dep: dynamic)
     cal(vp, (dep + 1));
     return;
   }
-  var OS = stp;
+  var OS: dynamic = stp;
   stp += 1;
-  var N = vp.size();
-  for (var z in vp1)
+  var N: dynamic = vp.size();
+  for (var z: dynamic in vp1)
   {
-    var tar = (((z + 1)) / 2);
+    var tar: dynamic = (((z + 1)) / 2);
     if ((tar == 0))
     {
       continue;
@@ -176,9 +176,9 @@ func cal(v: dynamic, dep: dynamic)
     vp.pop_back();
   }
   stp += 1;
-  for (var z in vp1)
+  for (var z: dynamic in vp1)
   {
-    var tar = (((z - 1)) / 2);
+    var tar: dynamic = (((z - 1)) / 2);
     if ((tar == 0))
     {
       continue;
@@ -195,10 +195,10 @@ func cal(v: dynamic, dep: dynamic)
   tmp.pop_back();
 }
 
-func fmain(ID: dynamic)
+func fmain(ID: dynamic) -> dynamic
 {
   scanf("%d", (&n));
-  var vp: dynamic;
+  var vp: dynamic = cpp_uninitialized();
   stp += 1;
   {
     int_cpp(i) = 1;
@@ -215,15 +215,15 @@ func fmain(ID: dynamic)
   }
   cal(vp, 0);
   printf("%d\n", ans.size());
-  for (var z in ans)
+  for (var z: dynamic in ans)
   {
     printf("%d ", z);
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t = 1;
+  var t: dynamic = 1;
   {
     int_cpp(i) = 1;
     while (((i) <= cpp_cast((t))))

@@ -2,64 +2,64 @@
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func Point()
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func Point() -> dynamic
   {
     }
-  func Point(x: dynamic, y: dynamic)
+  func Point(x: dynamic, y: dynamic) -> dynamic
   {
-      this->x = x;
-      this->y = y;
+      self->x = x;
+      self->y = y;
     }
-  func operator_add(rhs: dynamic)
+  func operator_add(rhs: dynamic) -> dynamic
   {
       return Point((x + rhs.x), (y + rhs.y));
     }
-  func operator_subtract(rhs: dynamic)
+  func operator_subtract(rhs: dynamic) -> dynamic
   {
       return Point((x - rhs.x), (y - rhs.y));
     }
-  func Dot(rhs: dynamic)
+  func Dot(rhs: dynamic) -> dynamic
   {
       return (((1 * x) * rhs.x) + ((1 * y) * rhs.y));
     }
-  func Crs(rhs: dynamic)
+  func Crs(rhs: dynamic) -> dynamic
   {
       return (((1 * x) * rhs.y) - ((1 * y) * rhs.x));
     }
 }
 
-func operator_less(lhs: dynamic, rhs: dynamic)
+func operator_less(lhs: dynamic, rhs: dynamic) -> dynamic
 {
-  return if (((lhs.x == rhs.x))) ((lhs.y < rhs.y)) else ((lhs.x < rhs.x));
+  return  (((lhs.x == rhs.x))) ? ((lhs.y < rhs.y)) : ((lhs.x < rhs.x));
 }
 
-var MAXN = 100010;
+var MAXN: dynamic = 100010;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var p = cpp_array(MAXN);
+var p: dynamic = cpp_array(MAXN);
 
-var H = cpp_array(2);
+var H: dynamic = cpp_array(2);
 
-var pcx = cpp_array(2333333);
+var pcx: dynamic = cpp_array(2333333);
 
-var pcy = cpp_array(2333333);
+var pcy: dynamic = cpp_array(2333333);
 
-var cx = (pcx + 1233333);
+var cx: dynamic = (pcx + 1233333);
 
-var cy = (pcy + 1233333);
+var cy: dynamic = (pcy + 1233333);
 
-var cip: dynamic;
+var cip: dynamic = cpp_uninitialized();
 
-func Stat(e: dynamic, Min: dynamic, Max: dynamic)
+func Stat(e: dynamic, Min: dynamic, Max: dynamic) -> dynamic
 {
-  var ret = 0;
-  var Count = 0;
-  var sumPlain = 0;
-  var sumSquare = 0;
-  var i: dynamic;
+  var ret: dynamic = 0;
+  var Count: dynamic = 0;
+  var sumPlain: dynamic = 0;
+  var sumSquare: dynamic = 0;
+  var i: dynamic = cpp_uninitialized();
   {
     i = Min;
     while ((i <= Max))
@@ -74,23 +74,23 @@ func Stat(e: dynamic, Min: dynamic, Max: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&N));
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= N))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d%d", (&x), (&y));
       p[i] = Point(x, y);
       i += 1;
     }
   }
   sort((p + 1), ((p + N) + 1));
-  var ml = 1;
+  var ml: dynamic = 1;
   while ((((ml < N)) && ((p[(ml + 1)].x == p[1].x))))
   {
     ml += 1;
@@ -120,12 +120,12 @@ func main()
   {
     H[0].pop_back();
   }
-  var lit = H[0].begin();
-  var rit = H[1].begin();
-  var minX = p[1].x;
-  var maxX = p[N].x;
-  var minY = p[1].y;
-  var maxY = p[1].y;
+  var lit: dynamic = H[0].begin();
+  var rit: dynamic = H[1].begin();
+  var minX: dynamic = p[1].x;
+  var maxX: dynamic = p[N].x;
+  var minY: dynamic = p[1].y;
+  var maxY: dynamic = p[1].y;
   {
     i = 2;
     while ((i <= N))
@@ -158,8 +158,8 @@ func main()
       {
         rit += 1;
       }
-      var ly = ceil(((((double((((lit + 1))->y - lit->y)) / ((((lit + 1))->x - lit->x))) * ((i - lit->x))) + lit->y) - 1e-9));
-      var ry = floor(((((double((((rit + 1))->y - rit->y)) / ((((rit + 1))->x - rit->x))) * ((i - rit->x))) + rit->y) + 1e-9));
+      var ly: dynamic = ceil(((((cpp_double((((lit + 1))->y - lit->y)) / ((((lit + 1))->x - lit->x))) * ((i - lit->x))) + lit->y) - 1e-9));
+      var ry: dynamic = floor(((((cpp_double((((rit + 1))->y - rit->y)) / ((((rit + 1))->x - rit->x))) * ((i - rit->x))) + rit->y) + 1e-9));
       cx[i] = ((ry - ly) + 1);
       cy[(ry + 1)] -= 1;
       cy[ly] += 1;
@@ -183,7 +183,7 @@ func main()
       i += 1;
     }
   }
-  var ans = (Stat(cx, minX, maxX) + Stat(cy, minY, maxY));
+  var ans: dynamic = (Stat(cx, minX, maxX) + Stat(cy, minY, maxY));
   ans /= cip;
   ans /= (cip - 1);
   printf("%.10f\n", ans);

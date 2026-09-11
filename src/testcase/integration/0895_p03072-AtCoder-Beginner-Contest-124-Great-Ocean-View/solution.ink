@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var maxi = 0;
-  var ans = 0;
+  var maxi: dynamic = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var H: dynamic;
+      var H: dynamic = cpp_uninitialized();
       read(H);
       if ((H >= maxi))
       {

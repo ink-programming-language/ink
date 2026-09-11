@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var ans1: dynamic;
-  var ans2: dynamic;
-  var i: dynamic;
-  var p: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var ans1: dynamic = cpp_uninitialized();
+  var ans2: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
   scanf("%I64d%I64d%I64d%I64d", (&n), (&m), (&a), (&b));
   if (((n % m) == 0))
   {

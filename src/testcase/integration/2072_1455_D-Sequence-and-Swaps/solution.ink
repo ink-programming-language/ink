@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var tt: dynamic;
+  var tt: dynamic = cpp_uninitialized();
   read(tt);
   while (cpp_update(tt, "--"))
   {
-    var n: dynamic;
-    var x: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
     read(n, x);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -24,10 +24,10 @@ func main()
       write(0, cpp_char("\n"));
       continue;
     }
-    var ok = false;
-    var cnt = 0;
+    var ok: dynamic = false;
+    var cnt: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((a[i] > x))

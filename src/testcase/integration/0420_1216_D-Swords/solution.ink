@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func power(x: dynamic, y: dynamic, z: dynamic)
+func power(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   while ((y > 0))
   {
     if ((y & 1))
@@ -15,11 +15,11 @@ func power(x: dynamic, y: dynamic, z: dynamic)
   return ret;
 }
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var A = cpp_array(N);
+var A: dynamic = cpp_array(N);
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((!b))
   {
@@ -28,12 +28,12 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%lld", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&A[i]));
@@ -41,12 +41,12 @@ func main()
     }
   }
   sort((A + 1), ((A + 1) + n));
-  var x = A[1];
-  var y = 0;
-  var z = 0;
-  var sum = A[1];
+  var x: dynamic = A[1];
+  var y: dynamic = 0;
+  var z: dynamic = 0;
+  var sum: dynamic = A[1];
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       if ((A[i] != A[(i - 1)]))
@@ -58,12 +58,12 @@ func main()
       i += 1;
     }
   }
-  var l1 = (sum % z);
-  var l2 = (n % z);
-  var pz = z;
-  var tz = z;
+  var l1: dynamic = (sum % z);
+  var l2: dynamic = (n % z);
+  var pz: dynamic = z;
+  var tz: dynamic = z;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < N))
     {
       if (((tz % i) == 0))
@@ -81,12 +81,12 @@ func main()
   {
     pz -= (pz / tz);
   }
-  var l3 = power(l2, (pz - 1), z);
+  var l3: dynamic = power(l2, (pz - 1), z);
   l3 = (((l3 * l1)) % z);
-  var lo = 1;
-  var hi = 1e10;
-  var mid: dynamic;
-  var tx = x;
+  var lo: dynamic = 1;
+  var hi: dynamic = 1e10;
+  var mid: dynamic = cpp_uninitialized();
+  var tx: dynamic = x;
   while ((lo <= hi))
   {
     mid = (((lo + hi)) >> 1);
@@ -99,7 +99,7 @@ func main()
       lo = (mid + 1);
     }
   }
-  var ts = ((n * x) - sum);
+  var ts: dynamic = ((n * x) - sum);
   y = ((((n * x) - sum)) / z);
   if ((gcd(l2, z) != 1))
   {

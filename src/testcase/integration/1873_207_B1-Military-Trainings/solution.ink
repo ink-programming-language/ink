@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return (x * x);
 }
 
-var pi = 3.1415926535897932384626433832795;
+var pi: dynamic = 3.1415926535897932384626433832795;
 
-var inf = cpp_cast(1e9);
+var inf: dynamic = cpp_cast(1e9);
 
-var inf64 = cpp_cast(4e18);
+var inf64: dynamic = cpp_cast(4e18);
 
-var name = "b";
+var name: dynamic = "b";
 
-var NMAX = 10010;
+var NMAX: dynamic = 10010;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var num: dynamic;
+var num: dynamic = cpp_uninitialized();
 
-var a = cpp_array(NMAX);
+var a: dynamic = cpp_array(NMAX);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var zn = cpp_array(NMAX);
+var zn: dynamic = cpp_array(NMAX);
 
-var NEXT = cpp_array(NMAX);
+var NEXT: dynamic = cpp_array(NMAX);
 
-var st = cpp_array(NMAX);
+var st: dynamic = cpp_array(NMAX);
 
-var lst = cpp_array(NMAX);
+var lst: dynamic = cpp_array(NMAX);
 
-var seg = cpp_array(NMAX);
+var seg: dynamic = cpp_array(NMAX);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(n)))
     {
       scanf("%d", (&a[i]));
@@ -46,18 +46,18 @@ func main()
   }
   ans = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(n)))
     {
       num = 0;
       memset(st, 255, cpp_sizeof((st)));
       memset(NEXT, 255, cpp_sizeof((NEXT)));
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast(n)))
         {
           zn[num] = j;
-          var tmp = max(0, (j - a[j]));
+          var tmp: dynamic = max(0, (j - a[j]));
           if ((st[tmp] == -1))
           {
             st[tmp] = num;
@@ -71,19 +71,19 @@ func main()
           j += 1;
         }
       }
-      var now = 0;
-      var idx = 0;
-      var last = -1;
+      var now: dynamic = 0;
+      var idx: dynamic = 0;
+      var last: dynamic = -1;
       while ((idx < (n - 1)))
       {
         now += 1;
-        var tmp = idx;
+        var tmp: dynamic = idx;
         {
-          var j = (last + 1);
+          var j: dynamic = (last + 1);
           while ((j <= tmp))
           {
             {
-              var f = st[j];
+              var f: dynamic = st[j];
               while ((f != -1))
               {
                 idx = max(idx, zn[f]);
@@ -97,7 +97,7 @@ func main()
       }
       ans += now;
       {
-        var j = (cpp_cast(n) - 1);
+        var j: dynamic = (cpp_cast(n) - 1);
         while ((j >= 0))
         {
           a[(j + 1)] = a[j];

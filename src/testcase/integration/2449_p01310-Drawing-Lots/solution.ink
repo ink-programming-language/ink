@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var fr = cpp_expression("#incl");
+var fr: dynamic = cpp_expression("#incl");
 
-var sc = cpp_expression("#inclu");
+var sc: dynamic = cpp_expression("#inclu");
 
-var INF = 1000000000;
+var INF: dynamic = 1000000000;
 
 class SEG
 {
-  var siz: dynamic;
+  var siz: dynamic = cpp_uninitialized();
   var s: dynamic = cpp_array((1 << 18));
-  func init()
+  func init() -> dynamic
   {
       siz = (1 << 17);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < ((2 * siz) - 1)))
         {
           s[i] = INF;
@@ -22,7 +22,7 @@ class SEG
         }
       }
     }
-  func updata(a: dynamic, b: dynamic, x: dynamic, k: dynamic, l: dynamic, r: dynamic)
+  func updata(a: dynamic, b: dynamic, x: dynamic, k: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       if (((b <= l) || (r <= a)))
       {
@@ -36,7 +36,7 @@ class SEG
       updata(a, b, x, ((2 * k) + 1), l, (((l + r)) / 2));
       updata(a, b, x, ((2 * k) + 2), (((l + r)) / 2), r);
     }
-  func updata(a: dynamic, x: dynamic, k: dynamic, l: dynamic, r: dynamic)
+  func updata(a: dynamic, x: dynamic, k: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       if ((((a + 1) <= l) || (r <= a)))
       {
@@ -53,10 +53,10 @@ class SEG
       updata(a, x, ((2 * k) + 1), l, (((l + r)) / 2));
       updata(a, x, ((2 * k) + 2), (((l + r)) / 2), r);
     }
-  func query(a: dynamic)
+  func query(a: dynamic) -> dynamic
   {
       a += (siz - 1);
-      var ret = s[a];
+      var ret: dynamic = s[a];
       while ((a > 0))
       {
         a = (((a - 1)) / 2);
@@ -66,33 +66,33 @@ class SEG
     }
 }
 
-var dp = cpp_array(2);
+var dp: dynamic = cpp_array(2);
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   scanf("%d", (&T));
   {
-    var test = 0;
+    var test: dynamic = 0;
     while ((test < T))
     {
-      var n: dynamic;
-      var m: dynamic;
-      var k: dynamic;
-      var h = cpp_array(100010);
-      var x = cpp_array(100010);
+      var n: dynamic = cpp_uninitialized();
+      var m: dynamic = cpp_uninitialized();
+      var k: dynamic = cpp_uninitialized();
+      var h: dynamic = cpp_array(100010);
+      var x: dynamic = cpp_array(100010);
       scanf("%d%d%d", (&n), (&m), (&k));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
           scanf("%d%d", (&h[i]), (&x[i]));
           i += 1;
         }
       }
-      var p = cpp_array(100010);
+      var p: dynamic = cpp_array(100010);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
           p[i] = pair(h[i], x[i]);
@@ -104,13 +104,13 @@ func main()
       dp[1].init();
       dp[0].updata(k, (n + 1), (-k), 0, 0, dp[0].siz);
       dp[1].updata(1, (k + 1), k, 0, 0, dp[1].siz);
-      var t = 0;
-      var now = k;
+      var t: dynamic = 0;
+      var now: dynamic = k;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
-          var c = [1, -1];
+          var c: dynamic = [1, -1];
           if ((p[i].sc == now))
           {
             now += 1;
@@ -119,10 +119,10 @@ func main()
             now -= 1;
           }
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < 2))
             {
-              var memo = dp[j].query(p[i].sc);
+              var memo: dynamic = dp[j].query(p[i].sc);
               dp[j].updata(p[i].sc, min((dp[j].query((p[i].sc + 1)) + c[j]), (abs((now - p[i].sc)) - (p[i].sc * c[j]))), 0, 0, dp[j].siz);
               dp[j].updata((p[i].sc + 1), min((memo - c[j]), (abs(((now - p[i].sc) - 1)) - (((p[i].sc + 1)) * c[j]))), 0, 0, dp[j].siz);
               j += 1;
@@ -147,7 +147,7 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           printf("%d%c", min((dp[0].query(i) + i), (dp[1].query(i) - i)), 10);

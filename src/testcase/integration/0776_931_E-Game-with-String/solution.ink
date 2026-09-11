@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func find(j: dynamic)
+func find(j: dynamic) -> dynamic
 {
-  var s = "";
+  var s: dynamic = "";
   while ((j > 0))
   {
-    var ch = ((j % 10) + cpp_char("0"));
+    var ch: dynamic = ((j % 10) + cpp_char("0"));
     s += ch;
     j = (j / 10);
   }
@@ -13,14 +13,14 @@ func find(j: dynamic)
   return s;
 }
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var n = s.size();
-  var t = "";
+  var n: dynamic = s.size();
+  var t: dynamic = "";
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       t += s[i];
@@ -28,17 +28,17 @@ func main()
     }
   }
   s.append(t);
-  var arr = cpp_array(26, n, 26);
+  var arr: dynamic = cpp_array(26, n, 26);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 26))
             {
               arr[i][j][k] = 0;
@@ -52,15 +52,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < n))
         {
-          var c1 = (s[i] - cpp_char("a"));
-          var c2 = (s[(i + j)] - cpp_char("a"));
+          var c1: dynamic = (s[i] - cpp_char("a"));
+          var c2: dynamic = (s[(i + j)] - cpp_char("a"));
           arr[c1][j][c2] += 1;
           j += 1;
         }
@@ -68,19 +68,19 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
-      var max = 0;
+      var max: dynamic = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < n))
         {
-          var x = 0;
+          var x: dynamic = 0;
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 26))
             {
               if ((arr[i][j][k] == 1))
@@ -101,7 +101,7 @@ func main()
       i += 1;
     }
   }
-  var d = (cpp_cast(ans) / cpp_cast(n));
+  var d: dynamic = (cpp_cast(ans) / cpp_cast(n));
   write(fixed);
   write(setprecision(6));
   write(d, "\n");

@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var t: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   scanf("%d %d", (&n), (&k));
   t = n;
-  var fact: dynamic;
+  var fact: dynamic = cpp_uninitialized();
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       while (((n % i) == 0))
@@ -33,7 +33,7 @@ func main()
   } else
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (k - 1)))
       {
         printf("%d ", fact[i]);

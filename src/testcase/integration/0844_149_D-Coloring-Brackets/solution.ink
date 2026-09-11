@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(800);
+var s: dynamic = cpp_array(800);
 
-var dp = cpp_array(3, 3, 800, 800);
+var dp: dynamic = cpp_array(3, 3, 800, 800);
 
-var match_cpp = cpp_array(800);
+var match_cpp: dynamic = cpp_array(800);
 
-func find_match(n: dynamic)
+func find_match(n: dynamic) -> dynamic
 {
-  var stac = cpp_array(800);
-  var top = 0;
-  var i: dynamic;
+  var stac: dynamic = cpp_array(800);
+  var top: dynamic = 0;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i <= n))
@@ -30,12 +30,12 @@ func find_match(n: dynamic)
   return;
 }
 
-func dfs(l: dynamic, r: dynamic)
+func dfs(l: dynamic, r: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var h: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
   if (((l + 1) == r))
   {
     dp[l][r][1][0] = 1;
@@ -80,7 +80,7 @@ func dfs(l: dynamic, r: dynamic)
     return;
   } else
   {
-    var q: dynamic;
+    var q: dynamic = cpp_uninitialized();
     q = match_cpp[l];
     dfs(l, q);
     dfs((q + 1), r);
@@ -120,12 +120,12 @@ func dfs(l: dynamic, r: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var len: dynamic;
-  var k: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var len: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   while ((scanf("%s", s) != EOF))
   {
     len = strlen(s);

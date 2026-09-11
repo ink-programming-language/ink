@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m = cpp_array(100005);
+var m: dynamic = cpp_array(100005);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var k = cpp_array(100005);
+var k: dynamic = cpp_array(100005);
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var last: dynamic;
+var last: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x);
@@ -33,7 +33,7 @@ func main()
           k[x] = last;
         } else
         {
-          var lastVic = last;
+          var lastVic: dynamic = last;
           while (((k[lastVic] < x) || (m[k[lastVic]] == m[lastVic])))
           {
             lastVic = k[lastVic];

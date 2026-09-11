@@ -34,7 +34,7 @@ ink          [OPTIONS] [--] INPUT...
 
 ```text
 ink --emit=tokens source.ink
-ink --emit=cst source.ink
+ink --emit=ast source.ink
 ink --emit=ink-ir source.ink
 ink --emit=llvm-ir source.ink
 ink --emit=asm source.ink
@@ -142,7 +142,7 @@ stdout  主结果、帮助或版本
 stderr  源码诊断、CLI 错误、I/O 错误和显式开启的进度信息
 ```
 
-默认执行不得向 stdout 写 banner、进度、计时或“成功”消息。token、CST、IR 和其他机器结果必须能够直接通过 pipe 消费。
+默认执行不得向 stdout 写 banner、进度、计时或“成功”消息。token、AST、IR 和其他机器结果必须能够直接通过 pipe 消费。
 
 完整输出模型预留以下拼写：
 
@@ -212,7 +212,7 @@ producer
 → terminal / short / JSON Consumer
 ```
 
-CLI 层不得重新分配 `INK-T/P/S` 编号、复制消息模板或让不同工具为同一诊断生成不同语义。主输出格式和 `--diagnostic-format` 是正交概念；token/CST JSON 不能与诊断 JSON 混为一个开关。
+CLI 层不得重新分配 `INK-T/P/S` 编号、复制消息模板或让不同工具为同一诊断生成不同语义。主输出格式和 `--diagnostic-format` 是正交概念；token/AST JSON 不能与诊断 JSON 混为一个开关。
 
 JSON schema 正式发布前必须标记版本；发布后删除字段或改变字段语义需要提升 schema version。
 

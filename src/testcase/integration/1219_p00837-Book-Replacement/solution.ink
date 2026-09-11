@@ -1,70 +1,70 @@
 // Translated from solution.cpp.
 
-func toInt(s: dynamic)
+func toInt(s: dynamic) -> dynamic
 {
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   (sin >> v);
   return v;
 }
 
-func toString(x: dynamic)
+func toString(x: dynamic) -> dynamic
 {
-  var sout: dynamic;
+  var sout: dynamic = cpp_uninitialized();
   (sout << x);
   return sout.str();
 }
 
-func ALL(a: dynamic)
+func ALL(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <vector> #in");
 }
 
-func RALL(a: dynamic)
+func RALL(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <vector> #incl");
 }
 
-func EXIST(s: dynamic, e: dynamic)
+func EXIST(s: dynamic, e: dynamic) -> dynamic
 {
   return cpp_expression("#include <vector> #inclu");
 }
 
-func FOR(i: dynamic, a: dynamic, b: dynamic)
+func FOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(a);i<(b);++i)");
 }
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <");
 }
 
-func EACH(t: dynamic, i: dynamic, c: dynamic)
+func EACH(t: dynamic, i: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(t::iterator i=(c).begin(); i!=(c).end(); ++i)");
 }
 
-var EPS = 1e-10;
+var EPS: dynamic = 1e-10;
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-func main()
+func main() -> dynamic
 {
-  var m: dynamic;
-  var c: dynamic;
-  var n: dynamic;
+  var m: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   while (cpp_comma((((cin >> m) >> c) >> n), m))
   {
-    var q: dynamic;
-    var cost = 0;
+    var q: dynamic = cpp_uninitialized();
+    var cost: dynamic = 0;
     while ((!q.empty()))
     {
-      var p = q.front();
+      var p: dynamic = q.front();
       q.pop();
-      var req = p.front();
+      var req: dynamic = p.front();
       p.erase(p.begin(), (p.begin() + 1));
-      var founddesk = -1;
-      var foundloc = -1;
+      var founddesk: dynamic = -1;
+      var foundloc: dynamic = -1;
       if ((founddesk == -1))
       {
         cost += (m + 1);
@@ -79,18 +79,18 @@ func main()
         cost += 1;
       } else
       {
-        var put = false;
-        var tempdesk = -1;
-        var temploc = -1;
+        var put: dynamic = false;
+        var tempdesk: dynamic = -1;
+        var temploc: dynamic = -1;
         if ((!put))
         {
           tempdesk = -1;
           cost += (m + 1);
         }
-        var lru = d[0].front();
+        var lru: dynamic = d[0].front();
         d[0].erase(d[0].begin(), (d[0].begin() + 1));
         cost += 1;
-        var putlru = false;
+        var putlru: dynamic = false;
         FOR(j, 1, m);
         {
           if ((d[j].size() < c))
@@ -125,22 +125,22 @@ func main()
   }
 }
 
-func REP(argument_0: dynamic, i: dynamic)
+func REP(argument_0: dynamic, i: dynamic) -> dynamic
 {
-        var bb: dynamic;
+        var bb: dynamic = cpp_uninitialized();
         read(bb);
         b[i].push_back(bb);
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       read(k[i]);
       q.push(b[i]);
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var it = find(ALL(d[i]), req);
+        var it: dynamic = find(ALL(d[i]), req);
         if ((it != d[i].end()))
         {
           founddesk = i;
@@ -149,7 +149,7 @@ func REP(argument_0: dynamic, argument_1: dynamic)
         }
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
           if ((d[i].size() < c))
           {

@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
-  var val = 1;
+  var val: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((val + (2 * n)) <= m))

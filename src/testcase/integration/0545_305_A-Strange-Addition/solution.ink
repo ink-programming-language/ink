@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var arr = cpp_array(100);
+var arr: dynamic = cpp_array(100);
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100, 100);
+var a: dynamic = cpp_array(100, 100);
 
-func Ok(x: dynamic, y: dynamic)
+func Ok(x: dynamic, y: dynamic) -> dynamic
 {
   while ((x && y))
   {
-    var a = (x % 10);
-    var b = (y % 10);
+    var a: dynamic = (x % 10);
+    var b: dynamic = (y % 10);
     x /= 10;
     y /= 10;
     if ((a && b))
@@ -26,12 +26,12 @@ func Ok(x: dynamic, y: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);
@@ -39,11 +39,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if (Ok(arr[i], arr[j]))
@@ -57,15 +57,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var b = false;
+      var b: dynamic = false;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < v.size()))
         {
-          var k: dynamic;
+          var k: dynamic = cpp_uninitialized();
           {
             k = 0;
             while ((k < v[j].size()))

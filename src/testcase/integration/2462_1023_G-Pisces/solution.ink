@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var N = 100003;
+var N: dynamic = 100003;
 
-func rd()
+func rd() -> dynamic
 {
-  var ch = getchar();
-  var x = 0;
+  var ch: dynamic = getchar();
+  var x: dynamic = 0;
   {
     while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
     {
@@ -22,7 +22,7 @@ func rd()
   return x;
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -31,23 +31,23 @@ func chmax(a: dynamic, b: dynamic)
   return 0;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var G = cpp_array(N);
+var G: dynamic = cpp_array(N);
 
-var V = cpp_array(N);
+var V: dynamic = cpp_array(N);
 
 class DS
 {
-  var ps: dynamic;
-  var ng: dynamic;
-  var tag: dynamic;
-  var pq: dynamic;
-  func reb(x: dynamic, op: dynamic)
+  var ps: dynamic = cpp_uninitialized();
+  var ng: dynamic = cpp_uninitialized();
+  var tag: dynamic = cpp_uninitialized();
+  var pq: dynamic = cpp_uninitialized();
+  func reb(x: dynamic, op: dynamic) -> dynamic
   {
       if (op)
       {
-        var it = ng.upper_bound((x - ((tag << 1))));
+        var it: dynamic = ng.upper_bound((x - ((tag << 1))));
         if ((it == ng.begin()))
         {
           return;
@@ -56,7 +56,7 @@ class DS
         pq.emplace((x - it->first), x);
       } else
       {
-        var it = ps.lower_bound((x + ((tag << 1))));
+        var it: dynamic = ps.lower_bound((x + ((tag << 1))));
         if ((it == ps.end()))
         {
           return;
@@ -64,7 +64,7 @@ class DS
         pq.emplace((it->first - x), it->first);
       }
     }
-  func ins(x: dynamic, val: dynamic)
+  func ins(x: dynamic, val: dynamic) -> dynamic
   {
       if ((val > 0))
       {
@@ -76,12 +76,12 @@ class DS
         reb((x - tag), false);
       }
     }
-  func get()
+  func get() -> dynamic
   {
-      var res = 0;
-      var now = 0;
-      var i = ps.begin();
-      var j = ng.begin();
+      var res: dynamic = 0;
+      var now: dynamic = 0;
+      var i: dynamic = ps.begin();
+      var j: dynamic = ng.begin();
       while (((i != ps.end()) && (j != ng.end())))
       {
         if (((i->first - j->first) >= ((tag << 1))))
@@ -97,20 +97,20 @@ class DS
       }
       return res;
     }
-  func work(l: dynamic)
+  func work(l: dynamic) -> dynamic
   {
       while ((!pq.empty()))
       {
-        var cpp_name = pq.top();
+        var cpp_name: dynamic = pq.top();
         if ((cpp_name.first > (((tag + l) << 1))))
         {
           break;
         }
         pq.pop();
-        var x = cpp_name.second;
-        var y = (x - cpp_name.first);
-        var i = ps.find(x);
-        var j = ng.find(y);
+        var x: dynamic = cpp_name.second;
+        var y: dynamic = (x - cpp_name.first);
+        var i: dynamic = ps.find(x);
+        var j: dynamic = ng.find(y);
         if (((i == ps.end()) || (j == ng.end())))
         {
           continue;
@@ -129,46 +129,46 @@ class DS
       }
       tag += l;
     }
-  func size()
+  func size() -> dynamic
   {
       return (ps.size() + ng.size());
     }
-  func qry(p: dynamic)
+  func qry(p: dynamic) -> dynamic
   {
-      var i = ps.find((p + tag));
-      var j = ng.find((p - tag));
-      return ((if ((i == ps.end())) 0 else i->second) + (if ((j == ng.end())) 0 else j->second));
+      var i: dynamic = ps.find((p + tag));
+      var j: dynamic = ng.find((p - tag));
+      return (( ((i == ps.end())) ? 0 : i->second) + ( ((j == ng.end())) ? 0 : j->second));
     }
-  func operator_add_assign(o: dynamic)
+  func operator_add_assign(o: dynamic) -> dynamic
   {
-      for (var i in o.ps)
+      for (var i: dynamic in o.ps)
       {
         ins((i.first - o.tag), i.second);
       }
-      for (var i in o.ng)
+      for (var i: dynamic in o.ng)
       {
         ins((i.first + o.tag), i.second);
       }
     }
 }
 
-var S = cpp_array(N);
+var S: dynamic = cpp_array(N);
 
-func dfs(x: dynamic, fa: dynamic)
+func dfs(x: dynamic, fa: dynamic) -> dynamic
 {
-  for (var cpp_name in G[x])
+  for (var cpp_name: dynamic in G[x])
   {
     if ((cpp_name.first != fa))
     {
-      var v = cpp_name.first;
-      var len = cpp_name.second;
+      var v: dynamic = cpp_name.first;
+      var len: dynamic = cpp_name.second;
       dfs(v, x);
-      for (var i in V[v])
+      for (var i: dynamic in V[v])
       {
         i.second -= max(0, max((-S[v].qry(i.first)), S[v].qry((i.first + 1))));
       }
       S[v].work(1);
-      for (var i in V[v])
+      for (var i: dynamic in V[v])
       {
         if ((i.second > 0))
         {
@@ -186,28 +186,28 @@ func dfs(x: dynamic, fa: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   n = rd();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var u = rd();
-      var v = rd();
-      var l = (rd() << 1);
+      var u: dynamic = rd();
+      var v: dynamic = rd();
+      var l: dynamic = (rd() << 1);
       G[u].emplace_back(v, l);
       G[v].emplace_back(u, l);
       i += 1;
     }
   }
-  var m = rd();
+  var m: dynamic = rd();
   G[0].emplace_back(1, 2);
   while (cpp_update(m, "--"))
   {
-    var d = (rd() << 1);
-    var f = rd();
-    var p = rd();
+    var d: dynamic = (rd() << 1);
+    var f: dynamic = rd();
+    var p: dynamic = rd();
     V[p].emplace_back(d, f);
   }
   dfs(0, 0);

@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var root = -1;
+var root: dynamic = -1;
 
-var g = cpp_array(200100);
+var g: dynamic = cpp_array(200100);
 
-var len = cpp_array(200100);
+var len: dynamic = cpp_array(200100);
 
-var viz = cpp_array(200100, 3);
+var viz: dynamic = cpp_array(200100, 3);
 
-var dmax = 0;
+var dmax: dynamic = 0;
 
-var ind: dynamic;
+var ind: dynamic = cpp_uninitialized();
 
-var stacky = cpp_array(200100);
+var stacky: dynamic = cpp_array(200100);
 
-var l = 0;
+var l: dynamic = 0;
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
   viz[0][x] = 1;
   if ((g[x].size() == 1))
@@ -30,10 +30,10 @@ func dfs(x: dynamic)
     len[x] = 1;
   } else
   {
-    var okk = 1;
-    var kiddo = -1;
-    var kiddo2 = -1;
-    for (var y in g[x])
+    var okk: dynamic = 1;
+    var kiddo: dynamic = -1;
+    var kiddo2: dynamic = -1;
+    for (var y: dynamic in g[x])
     {
       if (viz[0][y])
       {
@@ -84,7 +84,7 @@ func dfs(x: dynamic)
   }
 }
 
-func dfss(x: dynamic, t: dynamic, d: dynamic)
+func dfss(x: dynamic, t: dynamic, d: dynamic) -> dynamic
 {
   stacky[cpp_update(l, "++")] = x;
   viz[t][x] = 1;
@@ -94,7 +94,7 @@ func dfss(x: dynamic, t: dynamic, d: dynamic)
     dmax = d;
     root = stacky[(((l + 1)) / 2)];
   }
-  for (var y in g[x])
+  for (var y: dynamic in g[x])
   {
     if ((!viz[t][y]))
     {
@@ -104,7 +104,7 @@ func dfss(x: dynamic, t: dynamic, d: dynamic)
   l -= 1;
 }
 
-func main()
+func main() -> dynamic
 {
   cin.sync_with_stdio(false);
   read(N);
@@ -114,7 +114,7 @@ func main()
     return 0;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       read(x, y);
@@ -129,7 +129,7 @@ func main()
   dfs(root);
   if (len[root])
   {
-    var ret = (len[root] - 1);
+    var ret: dynamic = (len[root] - 1);
     while (((ret % 2) == 0))
     {
       ret /= 2;

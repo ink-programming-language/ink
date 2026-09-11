@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
-  var a: dynamic;
-  var b: dynamic;
-  var one = 0;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var one: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a));
@@ -20,11 +20,11 @@ func main()
       i += 1;
     }
   }
-  var pone = (n - one);
+  var pone: dynamic = (n - one);
   while (cpp_update(m, "--"))
   {
     scanf("%d%d", (&a), (&b));
-    var tmp = ((b - a) + 1);
+    var tmp: dynamic = ((b - a) + 1);
     if ((tmp & 1))
     {
       puts("0");

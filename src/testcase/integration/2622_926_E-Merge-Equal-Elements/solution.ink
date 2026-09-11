@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
   cerr.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       a.push_back(x);
       i += 1;
     }
   }
-  var it = a.begin();
+  var it: dynamic = a.begin();
   while ((it != cpp_update(a.end(), "--")))
   {
     if (((*it) == (*next(it))))
@@ -36,7 +36,7 @@ func main()
     }
   }
   write(a.size(), cpp_char("\n"));
-  for (var x in a)
+  for (var x: dynamic in a)
   {
     write(x, cpp_char(" "));
   }

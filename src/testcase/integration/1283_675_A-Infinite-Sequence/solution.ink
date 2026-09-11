@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   read(a, b, c);
   if ((c == 0))
   {
@@ -19,8 +19,8 @@ func main()
     }
     return 0;
   }
-  var d = (b - a);
-  var k = (d / c);
+  var d: dynamic = (b - a);
+  var k: dynamic = (d / c);
   if ((((d % c) != 0) || (k < 0)))
   {
     write("NO", cpp_char("\n"));

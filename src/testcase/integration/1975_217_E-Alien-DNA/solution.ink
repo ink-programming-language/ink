@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var MOD = (1E9 + 7);
+var MOD: dynamic = (1E9 + 7);
 
-var N = (3000000 + 5);
+var N: dynamic = (3000000 + 5);
 
-var dx = [-1, 1, 0, 0, -1, -1, 1, 1];
+var dx: dynamic = [-1, 1, 0, 0, -1, -1, 1, 1];
 
-var dy = [0, 0, -1, 1, -1, 1, -1, 1];
+var dy: dynamic = [0, 0, -1, 1, -1, 1, -1, 1];
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-var X = cpp_array(N);
+var X: dynamic = cpp_array(N);
 
-var Y = cpp_array(N);
+var Y: dynamic = cpp_array(N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var seq = cpp_array(N);
+var seq: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var father = cpp_array(N);
+var father: dynamic = cpp_array(N);
 
-var str = cpp_array(N);
+var str: dynamic = cpp_array(N);
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-func get(x: dynamic)
+func get(x: dynamic) -> dynamic
 {
-  var l = 1;
+  var l: dynamic = 1;
   seq[1] = x;
   {
     while (f[seq[l]])
@@ -44,7 +44,7 @@ func get(x: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < l))
     {
       f[seq[i]] = seq[l];
@@ -54,14 +54,14 @@ func get(x: dynamic)
   return seq[l];
 }
 
-func getPos(x: dynamic)
+func getPos(x: dynamic) -> dynamic
 {
   if ((!tot))
   {
     return x;
   }
-  var i = 1;
-  var last: dynamic;
+  var i: dynamic = 1;
+  var last: dynamic = cpp_uninitialized();
   if ((x < X[a[i]]))
   {
     return x;
@@ -90,18 +90,18 @@ func getPos(x: dynamic)
 
 class Query
 {
-  var right: dynamic;
-  var left: dynamic;
+  var right: dynamic = cpp_uninitialized();
+  var left: dynamic = cpp_uninitialized();
 }
 
-var query = cpp_array(N);
+var query: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", (str + 1));
   scanf("%d%d", (&m), (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d%d", (&query[i].left), (&query[i].right));
@@ -111,22 +111,22 @@ func main()
   memset(f, 0, cpp_sizeof((f)));
   memset(father, 0, cpp_sizeof((father)));
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
       if ((query[i].right < m))
       {
-        var pos = getPos((query[i].right + 1));
+        var pos: dynamic = getPos((query[i].right + 1));
         if ((pos <= m))
         {
-          var k = (query[i].left + 1);
+          var k: dynamic = (query[i].left + 1);
           if ((k > query[i].right))
           {
             k = query[i].left;
           }
-          var newPos = getPos(k);
-          var lim = ((((query[i].right << 1)) - query[i].left) + 1);
-          var j: dynamic;
+          var newPos: dynamic = getPos(k);
+          var lim: dynamic = ((((query[i].right << 1)) - query[i].left) + 1);
+          var j: dynamic = cpp_uninitialized();
           X[i] = pos;
           {
             j = (query[i].right + 1);
@@ -163,12 +163,12 @@ func main()
       i -= 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      father[i] = if (((!father[i]))) cpp_update(cnt, "++") else father[father[i]];
+      father[i] =  (((!father[i]))) ? cpp_update(cnt, "++") : father[father[i]];
       printf("%c", str[father[i]]);
       i += 1;
     }

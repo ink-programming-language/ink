@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var N = 5050;
+var N: dynamic = 5050;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var pref = cpp_array(N);
+var pref: dynamic = cpp_array(N);
 
-var all = cpp_array(N);
+var all: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   scanf("%i", (&t));
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     scanf("%i", (&n));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         all[i].clear();
@@ -27,7 +27,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         scanf("%i%i", (&a[i]), (&b[i]));
@@ -37,21 +37,21 @@ func main()
     }
     pref[0] = cpp_cast(all[0].size());
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         pref[i] = (pref[(i - 1)] + cpp_cast(all[i].size()));
         i += 1;
       }
     }
-    var val: dynamic;
-    var ans = 0;
-    var cnt = 0;
+    var val: dynamic = cpp_uninitialized();
+    var ans: dynamic = 0;
+    var cnt: dynamic = 0;
     {
-      var i = (n - 1);
+      var i: dynamic = (n - 1);
       while ((i > 0))
       {
-        for (var j in all[i])
+        for (var j: dynamic in all[i])
         {
           val.insert(j);
         }

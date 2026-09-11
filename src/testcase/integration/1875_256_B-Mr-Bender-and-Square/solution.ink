@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var eps = 1e-7;
+var eps: dynamic = 1e-7;
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-var oo = (1 << 29);
+var oo: dynamic = (1 << 29);
 
-var N = 101111;
+var N: dynamic = 101111;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-func calc(m: dynamic)
+func calc(m: dynamic) -> dynamic
 {
-  var d = [(x - 1), (y - 1), (n - x), (n - y)];
-  var ret = (((m * ((m + 1))) * 2) + 1);
+  var d: dynamic = [(x - 1), (y - 1), (n - x), (n - y)];
+  var ret: dynamic = (((m * ((m + 1))) * 2) + 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       if ((m <= d[i]))
@@ -29,20 +29,20 @@ func calc(m: dynamic)
         i += 1;
         continue;
       }
-      var t = (m - d[i]);
+      var t: dynamic = (m - d[i]);
       ret -= (t * t);
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < 4))
         {
-          var t = (((m - d[i]) - d[j]) - 1);
+          var t: dynamic = (((m - d[i]) - d[j]) - 1);
           if ((t <= 0))
           {
             j += 2;
@@ -58,14 +58,14 @@ func calc(m: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d%d", (&n), (&x), (&y), (&c));
-  var l = 0;
-  var r = (2 * 1000000000);
+  var l: dynamic = 0;
+  var r: dynamic = (2 * 1000000000);
   while ((l < r))
   {
-    var m = (((l + r)) / 2);
+    var m: dynamic = (((l + r)) / 2);
     if ((calc(m) >= c))
     {
       r = m;

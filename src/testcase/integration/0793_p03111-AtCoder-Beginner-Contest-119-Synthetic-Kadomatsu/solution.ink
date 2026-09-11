@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var INF = 10000000;
+var INF: dynamic = 10000000;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-func rec(i: dynamic, a: dynamic, b: dynamic, c: dynamic)
+func rec(i: dynamic, a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   if ((i == N))
   {
@@ -22,19 +22,19 @@ func rec(i: dynamic, a: dynamic, b: dynamic, c: dynamic)
     }
     return ((abs((a - A)) + abs((b - B))) + abs((c - C)));
   }
-  var res = rec((i + 1), a, b, c);
-  res = min(res, (rec((i + 1), (a + L[i]), b, c) + (if (a) 10 else 0)));
-  res = min(res, (rec((i + 1), a, (b + L[i]), c) + (if (b) 10 else 0)));
-  res = min(res, (rec((i + 1), a, b, (c + L[i])) + (if (c) 10 else 0)));
+  var res: dynamic = rec((i + 1), a, b, c);
+  res = min(res, (rec((i + 1), (a + L[i]), b, c) + ( (a) ? 10 : 0)));
+  res = min(res, (rec((i + 1), a, (b + L[i]), c) + ( (b) ? 10 : 0)));
+  res = min(res, (rec((i + 1), a, b, (c + L[i])) + ( (c) ? 10 : 0)));
   return res;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   read(N, A, B, C);
   L.resize(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(L[i]);

@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var M = (1e9 + 7);
+var M: dynamic = (1e9 + 7);
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-func powerm(x: dynamic, y: dynamic)
+func powerm(x: dynamic, y: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (y)
   {
     if ((y & 1))
@@ -19,9 +19,9 @@ func powerm(x: dynamic, y: dynamic)
   return (res % M);
 }
 
-func power(x: dynamic, y: dynamic)
+func power(x: dynamic, y: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (y)
   {
     if ((y & 1))
@@ -34,12 +34,12 @@ func power(x: dynamic, y: dynamic)
   return res;
 }
 
-func max3(a: dynamic, b: dynamic, c: dynamic)
+func max3(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return max(max(a, b), c);
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b > a))
   {
@@ -52,30 +52,30 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a = cpp_array(n);
+  var a: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var val = 1;
+    var val: dynamic = 1;
     while ((val <= 30))
     {
-      var tmp = 0;
-      var h = 0;
+      var tmp: dynamic = 0;
+      var h: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((a[i] <= val))

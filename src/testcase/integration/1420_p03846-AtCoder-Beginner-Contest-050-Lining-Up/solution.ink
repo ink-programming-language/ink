@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var MOD = cpp_expression("#include<c");
+var MOD: dynamic = cpp_expression("#include<c");
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0; i < n; i++)");
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100000);
+var a: dynamic = cpp_array(100000);
 
-var c = cpp_array(100000);
+var c: dynamic = cpp_array(100000);
 
-func mod_pow(x: dynamic, n: dynamic)
+func mod_pow(x: dynamic, n: dynamic) -> dynamic
 {
   if ((n == 0))
   {
@@ -22,7 +22,7 @@ func mod_pow(x: dynamic, n: dynamic)
   return ((x * mod_pow(x, (n - 1))) % MOD);
 }
 
-func solve()
+func solve() -> dynamic
 {
   if ((c[0] > 1))
   {
@@ -36,14 +36,14 @@ func solve()
   return mod_pow(2, (n / 2));
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   printf("%lld\n", solve());
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((!((n ^ ((a[i] & 1))))))
     {
@@ -55,7 +55,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     scanf("%d", (&a[i]));
     c[a[i]] += 1;

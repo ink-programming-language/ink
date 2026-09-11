@@ -1,92 +1,92 @@
 // Translated from solution.cpp.
 
-var endl = cpp_expression("#inc");
+var endl: dynamic = cpp_expression("#inc");
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var INF = (1e18 * 9);
+var INF: dynamic = (1e18 * 9);
 
-var N = (1e6 + 15);
+var N: dynamic = (1e6 + 15);
 
-var M = 203;
+var M: dynamic = 203;
 
-var mod1 = (1e9 + 7);
+var mod1: dynamic = (1e9 + 7);
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var base = 131;
+var base: dynamic = 131;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var mid: dynamic;
+var mid: dynamic = cpp_uninitialized();
 
-var sx = -1;
+var sx: dynamic = -1;
 
-var sy = -1;
+var sy: dynamic = -1;
 
-var mx: dynamic;
+var mx: dynamic = cpp_uninitialized();
 
-var mi = INF;
+var mi: dynamic = INF;
 
-var aa: dynamic;
+var aa: dynamic = cpp_uninitialized();
 
-var cnt = 1;
+var cnt: dynamic = 1;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
 class node
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
 }
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var mp1: dynamic;
+var mp1: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var ss: dynamic;
+var ss: dynamic = cpp_uninitialized();
 
-var ve: dynamic;
+var ve: dynamic = cpp_uninitialized();
 
-var dx = [1, 1, 1, 0, 0, -1, -1, -1];
+var dx: dynamic = [1, 1, 1, 0, 0, -1, -1, -1];
 
-var dy = [-1, 0, 1, -1, 1, -1, 0, 1];
+var dy: dynamic = [-1, 0, 1, -1, 1, -1, 0, 1];
 
-func solve()
+func solve() -> dynamic
 {
-  var pos = 0;
-  var f1 = 0;
-  var s1 = 0;
-  var s2 = 0;
+  var pos: dynamic = 0;
+  var f1: dynamic = 0;
+  var s1: dynamic = 0;
+  var s2: dynamic = 0;
   ans = 0;
   mx = INF;
   read(n);
   ve.clear();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var l = 1;
-  var r = n;
+  var l: dynamic = 1;
+  var r: dynamic = n;
   while ((l <= r))
   {
     ve.push_back([1, l, r]);
@@ -105,18 +105,18 @@ func solve()
     r -= 1;
   }
   write(ve.size(), "\n");
-  for (var i in ve)
+  for (var i: dynamic in ve)
   {
     write(i.x, " ", i.y, " ", i.z, "\n");
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(null);
   cout.tie(null);
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   {
     read(T);
     while (cpp_update(T, "--"))

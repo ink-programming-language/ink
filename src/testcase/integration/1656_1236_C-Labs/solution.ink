@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var MAXN = (4e2 + 7);
+var MAXN: dynamic = (4e2 + 7);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var mp = cpp_array(MAXN, MAXN);
-  var cnt = 1;
+  var n: dynamic = cpp_uninitialized();
+  var mp: dynamic = cpp_array(MAXN, MAXN);
+  var cnt: dynamic = 1;
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((i % 2) == 1))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             mp[j][i] = cpp_update(cnt, "++");
@@ -25,7 +25,7 @@ func main()
       } else
       {
         {
-          var j = n;
+          var j: dynamic = n;
           while ((j >= 1))
           {
             mp[j][i] = cpp_update(cnt, "++");
@@ -37,11 +37,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           printf("%d ", mp[i][j]);

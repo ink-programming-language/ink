@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   read(q);
   while (cpp_update(q, "--"))
   {
-    var a: dynamic;
-    var b: dynamic;
-    var N: dynamic;
-    var s: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
+    var N: dynamic = cpp_uninitialized();
+    var s: dynamic = cpp_uninitialized();
     read(a, b, N, s);
     if (((s > ((N * a) + b)) || (b < (s % N))))
     {

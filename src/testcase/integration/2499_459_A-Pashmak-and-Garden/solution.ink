@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var x1: dynamic;
-  var y1: dynamic;
-  var x2: dynamic;
-  var y2: dynamic;
+  var x1: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var x2: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
   read(x1, y1, x2, y2);
   if ((((x1 != x2) && (y1 != y2)) && (abs((x1 - x2)) != abs((y1 - y2)))))
   {

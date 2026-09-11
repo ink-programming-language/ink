@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func t2(a: dynamic, b: dynamic)
+func t2(a: dynamic, b: dynamic) -> dynamic
 {
-  var k = 1;
+  var k: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(100)))
     {
       k *= a;
@@ -19,7 +19,7 @@ func t2(a: dynamic, b: dynamic)
   return 0;
 }
 
-func t3(a: dynamic, b: dynamic)
+func t3(a: dynamic, b: dynamic) -> dynamic
 {
   if ((((a % b)) == 1))
   {
@@ -28,7 +28,7 @@ func t3(a: dynamic, b: dynamic)
   return false;
 }
 
-func t11(a: dynamic, b: dynamic)
+func t11(a: dynamic, b: dynamic) -> dynamic
 {
   if ((((a % b) == 1) && (((a * a) % b) == (b - 1))))
   {
@@ -41,24 +41,24 @@ func t11(a: dynamic, b: dynamic)
   return false;
 }
 
-func t6(a: dynamic, b: dynamic)
+func t6(a: dynamic, b: dynamic) -> dynamic
 {
-  var a2 = 0;
-  var a3 = 0;
-  var a11 = 0;
+  var a2: dynamic = 0;
+  var a3: dynamic = 0;
+  var a11: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= b))
     {
       if (((b % i) == 0))
       {
-        var perm = 1;
+        var perm: dynamic = 1;
         while (((b % i) == 0))
         {
           perm *= i;
           b /= i;
         }
-        var ok = false;
+        var ok: dynamic = false;
         if (t2(a, perm))
         {
           ok = cpp_assign(a2, "=", 1);
@@ -81,8 +81,8 @@ func t6(a: dynamic, b: dynamic)
   }
   if ((b > 1))
   {
-    var ok = false;
-    var perm = b;
+    var ok: dynamic = false;
+    var perm: dynamic = b;
     if (t2(a, perm))
     {
       ok = cpp_assign(a2, "=", 1);
@@ -103,10 +103,10 @@ func t6(a: dynamic, b: dynamic)
   return (((a2 + a3) + a11) >= 2);
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
   if (t2(a, b))
   {

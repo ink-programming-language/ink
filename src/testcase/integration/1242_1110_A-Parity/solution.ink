@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func power(b: dynamic, k: dynamic)
+func power(b: dynamic, k: dynamic) -> dynamic
 {
-  var product = 1;
+  var product: dynamic = 1;
   if ((k == 0))
   {
     product = 1;
@@ -21,16 +21,16 @@ func power(b: dynamic, k: dynamic)
   return product;
 }
 
-func main()
+func main() -> dynamic
 {
-  var b: dynamic;
-  var k: dynamic;
-  var sum = 0;
-  var m: dynamic;
+  var b: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var sum: dynamic = 0;
+  var m: dynamic = cpp_uninitialized();
   read(b, k);
-  var arr = cpp_array(k);
+  var arr: dynamic = cpp_array(k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       read(arr[i]);
@@ -39,7 +39,7 @@ func main()
   }
   m = (k - 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       sum = (sum + (arr[i] * (power(b, m))));

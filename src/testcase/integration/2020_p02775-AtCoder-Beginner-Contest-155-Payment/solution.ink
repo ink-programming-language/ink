@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var ans = 0;
-  var moveUp = 0;
+  var ans: dynamic = 0;
+  var moveUp: dynamic = 0;
   {
-    var i = (n.length() - 1);
+    var i: dynamic = (n.length() - 1);
     while ((i >= 0))
     {
-      var num = ((cpp_cast(n.at(i)) - cpp_char("0")) + moveUp);
+      var num: dynamic = ((cpp_cast(n.at(i)) - cpp_char("0")) + moveUp);
       if ((num < 5))
       {
         ans += num;
@@ -18,7 +18,7 @@ func main()
       } else if ((num == 5))
       {
         ans += num;
-        moveUp = (if ((((cpp_cast(n[(i - 1)]) - cpp_char("0")) > 4))) 1 else 0);
+        moveUp = ( ((((cpp_cast(n[(i - 1)]) - cpp_char("0")) > 4))) ? 1 : 0);
       } else
       {
         ans += (10 - num);

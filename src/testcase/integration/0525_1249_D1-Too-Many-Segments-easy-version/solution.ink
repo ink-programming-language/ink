@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var arr = cpp_array(200005);
+var arr: dynamic = cpp_array(200005);
 
-var tree = cpp_array((4 * 200005));
+var tree: dynamic = cpp_array((4 * 200005));
 
-var lazy = cpp_array((4 * 200005));
+var lazy: dynamic = cpp_array((4 * 200005));
 
 class info
 {
-  var l: dynamic;
-  var r: dynamic;
-  var i: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
 }
 
-var vec: dynamic;
+var vec: dynamic = cpp_uninitialized();
 
-func comp(a: dynamic, b: dynamic)
+func comp(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.r != b.r))
   {
@@ -24,7 +24,7 @@ func comp(a: dynamic, b: dynamic)
   return (a.l < b.l);
 }
 
-func update(node: dynamic, a: dynamic, b: dynamic, i: dynamic, j: dynamic, value: dynamic)
+func update(node: dynamic, a: dynamic, b: dynamic, i: dynamic, j: dynamic, value: dynamic) -> dynamic
 {
   if ((lazy[node] != 0))
   {
@@ -50,13 +50,13 @@ func update(node: dynamic, a: dynamic, b: dynamic, i: dynamic, j: dynamic, value
     }
     return;
   }
-  var mid = (((a + b)) / 2);
+  var mid: dynamic = (((a + b)) / 2);
   update((node * 2), a, mid, i, j, value);
   update((1 + (node * 2)), (1 + mid), b, i, j, value);
   tree[node] = max(tree[(node * 2)], tree[((node * 2) + 1)]);
 }
 
-func query(node: dynamic, a: dynamic, b: dynamic, i: dynamic, j: dynamic)
+func query(node: dynamic, a: dynamic, b: dynamic, i: dynamic, j: dynamic) -> dynamic
 {
   if ((((a > b) || (a > j)) || (b < i)))
   {
@@ -76,21 +76,21 @@ func query(node: dynamic, a: dynamic, b: dynamic, i: dynamic, j: dynamic)
   {
     return tree[node];
   }
-  var mid = (((a + b)) / 2);
-  var q1 = query((node * 2), a, mid, i, j);
-  var q2 = query((1 + (node * 2)), (1 + mid), b, i, j);
-  var res = max(q1, q2);
+  var mid: dynamic = (((a + b)) / 2);
+  var q1: dynamic = query((node * 2), a, mid, i, j);
+  var q2: dynamic = query((1 + (node * 2)), (1 + mid), b, i, j);
+  var res: dynamic = max(q1, q2);
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var n: dynamic;
-  var k: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var mx = -1;
+  var i: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var mx: dynamic = -1;
   scanf("%d %d", (&n), (&k));
   {
     i = 0;
@@ -103,14 +103,14 @@ func main()
     }
   }
   sort((vec).begin(), (vec).end(), comp);
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < n))
     {
-      var l = vec[i].l;
-      var r = vec[i].r;
-      var mxv = query(1, 0, (mx - 1), (l - 1), (r - 1));
+      var l: dynamic = vec[i].l;
+      var r: dynamic = vec[i].r;
+      var mxv: dynamic = query(1, 0, (mx - 1), (l - 1), (r - 1));
       if ((mxv < k))
       {
         update(1, 0, (mx - 1), (l - 1), (r - 1), 1);

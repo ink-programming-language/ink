@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var p = cpp_array(10000005);
+var p: dynamic = cpp_array(10000005);
 
-var idxp: dynamic;
+var idxp: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var countt = 0;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var countt: dynamic = 0;
   scanf("%I64d", (&n));
   if (((n % 3) != 0))
   {
@@ -17,7 +17,7 @@ func main()
   } else
   {
     n = (n / 3);
-    var r = cpp_cast(sqrt(n));
+    var r: dynamic = cpp_cast(sqrt(n));
     {
       i = 1;
       while ((i <= r))
@@ -37,11 +37,11 @@ func main()
           j = i;
           while ((j < idxp))
           {
-            var C = (n / ((p[i] * p[j])));
+            var C: dynamic = (n / ((p[i] * p[j])));
             if ((((p[i] * p[j]) * C) == n))
             {
-              var A = p[i];
-              var B = p[j];
+              var A: dynamic = p[i];
+              var B: dynamic = p[j];
               if (((((A + B) + C)) & 1))
               {
                 j += 1;

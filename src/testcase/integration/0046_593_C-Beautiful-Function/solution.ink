@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var xs: dynamic;
+var xs: dynamic = cpp_uninitialized();
 
-var ys: dynamic;
+var ys: dynamic = cpp_uninitialized();
 
-func generateFunc(i: dynamic, x: dynamic)
+func generateFunc(i: dynamic, x: dynamic) -> dynamic
 {
-  var str = cpp_array(1024);
+  var str: dynamic = cpp_array(1024);
   sprintf(str, "(%d*((1-abs((t-%d)))+abs((abs((t-%d))-1))))", (x / 2), i, i);
   return string_cpp(str);
 }
 
-func solve(xs: dynamic)
+func solve(xs: dynamic) -> dynamic
 {
-  var rv: dynamic;
+  var rv: dynamic = cpp_uninitialized();
   rv += generateFunc(0, xs[0]);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       rv = (((("(" + rv) + "+") + generateFunc(i, xs[i])) + ")");
@@ -28,16 +28,16 @@ func solve(xs: dynamic)
   return rv;
 }
 
-func main()
+func main() -> dynamic
 {
   read(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var x: dynamic;
-      var y: dynamic;
-      var r: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
       read(x, y, r);
       xs.emplace_back(x);
       ys.emplace_back(y);

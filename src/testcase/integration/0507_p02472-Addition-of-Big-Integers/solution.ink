@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var MAX = cpp_expression("#includ");
+var MAX: dynamic = cpp_expression("#includ");
 
-var MAXN = cpp_expression("#inc");
+var MAXN: dynamic = cpp_expression("#inc");
 
-var MAXSIZE = cpp_expression("#include<s");
+var MAXSIZE: dynamic = cpp_expression("#include<s");
 
-var DLEN = cpp_expression("#");
+var DLEN: dynamic = cpp_expression("#");
 
 class BigNum
 {
   var a: dynamic = cpp_array((100005 / 2));
-  var len: dynamic;
-  func BigNum()
+  var len: dynamic = cpp_uninitialized();
+  func BigNum() -> dynamic
   {
       len = 1;
       memset(a, 0, cpp_sizeof((a)));
     }
 }
 
-func BigNum(b: dynamic)
+func BigNum(b: dynamic) -> dynamic
 {
-  var c: dynamic;
-  var d = b;
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = b;
   len = 0;
   memset(a, 0, cpp_sizeof((a)));
   while ((d > MAXN))
@@ -34,13 +34,13 @@ func BigNum(b: dynamic)
   a[cpp_update(len, "++")] = d;
 }
 
-func BigNum(s: dynamic)
+func BigNum(s: dynamic) -> dynamic
 {
-  var t: dynamic;
-  var k: dynamic;
-  var index: dynamic;
-  var l: dynamic;
-  var i: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var index: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   memset(a, 0, cpp_sizeof((a)));
   l = strlen(s);
   len = (l / DLEN);
@@ -60,7 +60,7 @@ func BigNum(s: dynamic)
         k = 0;
       }
       {
-        var j = k;
+        var j: dynamic = k;
         while ((j <= i))
         {
           t = (((t * 10) + s[j]) - cpp_char("0"));
@@ -73,10 +73,10 @@ func BigNum(s: dynamic)
   }
 }
 
-func BigNum(T: dynamic)
+func BigNum(T: dynamic) -> dynamic
 {
   cpp_base_construct(T.len);
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   memset(a, 0, cpp_sizeof((a)));
   {
     i = 0;
@@ -88,9 +88,9 @@ func BigNum(T: dynamic)
   }
 }
 
-func operator_assign(n: dynamic)
+func operator_assign(n: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   len = n.len;
   memset(a, 0, cpp_sizeof((a)));
   {
@@ -101,25 +101,25 @@ func operator_assign(n: dynamic)
       i += 1;
     }
   }
-  return (*this);
+  return (*self);
 }
 
-func operator_shift_right(in_cpp: dynamic, b: dynamic)
+func operator_shift_right(in_cpp: dynamic, b: dynamic) -> dynamic
 {
-  var ch = cpp_array((MAXSIZE * 4));
-  var i = -1;
+  var ch: dynamic = cpp_array((MAXSIZE * 4));
+  var i: dynamic = -1;
   (in_cpp >> ch);
-  var l = strlen(ch);
-  var count = 0;
-  var sum = 0;
+  var l: dynamic = strlen(ch);
+  var count: dynamic = 0;
+  var sum: dynamic = 0;
   {
     i = (l - 1);
     while ((i >= 0))
     {
       sum = 0;
-      var t = 1;
+      var t: dynamic = 1;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while (((j < 4) && (i >= 0)))
         {
           sum += (((ch[i] - cpp_char("0"))) * t);
@@ -136,9 +136,9 @@ func operator_shift_right(in_cpp: dynamic, b: dynamic)
   return in_cpp;
 }
 
-func operator_shift_left(out: dynamic, b: dynamic)
+func operator_shift_left(out: dynamic, b: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   (out << b.a[(b.len - 1)]);
   {
     i = (b.len - 2);
@@ -153,12 +153,12 @@ func operator_shift_left(out: dynamic, b: dynamic)
   return out;
 }
 
-func operator_add(T: dynamic)
+func operator_add(T: dynamic) -> dynamic
 {
-  var t = cpp_construct((*this));
-  var i: dynamic;
-  var big: dynamic;
-  big = if ((T.len > len)) T.len else len;
+  var t: dynamic = cpp_construct((*self));
+  var i: dynamic = cpp_uninitialized();
+  var big: dynamic = cpp_uninitialized();
+  big =  ((T.len > len)) ? T.len : len;
   {
     i = 0;
     while ((i < big))
@@ -182,23 +182,23 @@ func operator_add(T: dynamic)
   return t;
 }
 
-func operator_subtract(T: dynamic)
+func operator_subtract(T: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var big: dynamic;
-  var flag: dynamic;
-  var t1: dynamic;
-  var t2: dynamic;
-  if (((*this) > T))
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var big: dynamic = cpp_uninitialized();
+  var flag: dynamic = cpp_uninitialized();
+  var t1: dynamic = cpp_uninitialized();
+  var t2: dynamic = cpp_uninitialized();
+  if (((*self) > T))
   {
-    t1 = (*this);
+    t1 = (*self);
     t2 = T;
     flag = 0;
   } else
   {
     t1 = T;
-    t2 = (*this);
+    t2 = (*self);
     flag = 1;
   }
   big = t1.len;
@@ -239,14 +239,14 @@ func operator_subtract(T: dynamic)
   return t1;
 }
 
-func operator_multiply(T: dynamic)
+func operator_multiply(T: dynamic) -> dynamic
 {
-  var ret: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var up: dynamic;
-  var temp: dynamic;
-  var temp1: dynamic;
+  var ret: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var up: dynamic = cpp_uninitialized();
+  var temp: dynamic = cpp_uninitialized();
+  var temp1: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < len))
@@ -257,15 +257,15 @@ func operator_multiply(T: dynamic)
   return ret;
 }
 
-func operator_divide(b: dynamic)
+func operator_divide(b: dynamic) -> dynamic
 {
-  var ret: dynamic;
+  var ret: dynamic = cpp_uninitialized();
   return ret;
 }
 
-func operator_greater(T: dynamic)
+func operator_greater(T: dynamic) -> dynamic
 {
-  var ln: dynamic;
+  var ln: dynamic = cpp_uninitialized();
   if ((len > T.len))
   {
     return true;
@@ -289,14 +289,14 @@ func operator_greater(T: dynamic)
   }
 }
 
-func operator_greater(t: dynamic)
+func operator_greater(t: dynamic) -> dynamic
 {
-  return ((*this) > b);
+  return ((*self) > b);
 }
 
-func print()
+func print() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   write(a[(len - 1)]);
   {
     i = (len - 2);
@@ -311,31 +311,31 @@ func print()
   write("\n");
 }
 
-var A = cpp_array(100005);
+var A: dynamic = cpp_array(100005);
 
-var B = cpp_array(100005);
+var B: dynamic = cpp_array(100005);
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", A);
   scanf("%s", B);
   if (((A[0] == cpp_char("-")) && (B[0] == cpp_char("-"))))
   {
-    var a = cpp_construct((A + 1));
-    var b = cpp_construct((B + 1));
+    var a: dynamic = cpp_construct((A + 1));
+    var b: dynamic = cpp_construct((B + 1));
     printf("-");
     a = (a + b);
     write(a);
   } else if (((A[0] == cpp_char("-")) && (B[0] != cpp_char("-"))))
   {
-    var a = cpp_construct((A + 1));
-    var c: dynamic;
+    var a: dynamic = cpp_construct((A + 1));
+    var c: dynamic = cpp_uninitialized();
     c = (b - a);
     write(c);
   } else if (((A[0] != cpp_char("-")) && (B[0] == cpp_char("-"))))
   {
-    var b = cpp_construct((B + 1));
-    var c: dynamic;
+    var b: dynamic = cpp_construct((B + 1));
+    var c: dynamic = cpp_uninitialized();
     c = (a - b);
     write(c);
   } else

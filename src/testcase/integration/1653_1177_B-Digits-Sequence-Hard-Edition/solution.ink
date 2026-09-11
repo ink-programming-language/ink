@@ -2,12 +2,12 @@
 
 class Debugger
 {
-  func Debugger(separator: dynamic = ", ")
+  func Debugger(separator: dynamic = ", ") -> dynamic
   {
-      this->first = cpp_construct(true);
-      this->separator = cpp_construct(separator);
+      self->first = cpp_construct(true);
+      self->separator = cpp_construct(separator);
     }
-  func operator(v: dynamic)
+  func operator(v: dynamic) -> dynamic
   {
       if ((!first))
       {
@@ -15,27 +15,27 @@ class Debugger
       }
       write(v);
       first = false;
-      return (*this);
+      return (*self);
     }
-  func ~Debugger()
+  func cpp_destruct_Debugger() -> dynamic
   {
       write("\n");
     }
-  var first: dynamic;
-  var separator: dynamic;
+  var first: dynamic = cpp_uninitialized();
+  var separator: dynamic = cpp_uninitialized();
 }
 
-func operator_shift_left(os: dynamic, p: dynamic)
+func operator_shift_left(os: dynamic, p: dynamic) -> dynamic
 {
   return (((((os << "(") << p.first) << ", ") << p.second) << ")");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
-  var first = true;
+  var first: dynamic = true;
   (os << "[");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       if ((!first))
@@ -50,12 +50,12 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "]");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
-  var first = true;
+  var first: dynamic = true;
   (os << "[");
   {
-    var ii = v.begin();
+    var ii: dynamic = v.begin();
     while ((ii != v.end()))
     {
       if ((!first))
@@ -70,12 +70,12 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "]");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
-  var first = true;
+  var first: dynamic = true;
   (os << "[");
   {
-    var ii = v.begin();
+    var ii: dynamic = v.begin();
     while ((ii != v.end()))
     {
       if ((!first))
@@ -90,15 +90,15 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "]");
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans = "";
+var ans: dynamic = "";
 
-func kol(n: dynamic)
+func kol(n: dynamic) -> dynamic
 {
-  var ans = 9;
+  var ans: dynamic = 9;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       ans *= 10;
@@ -108,9 +108,9 @@ func kol(n: dynamic)
   return ans;
 }
 
-func poww(a: dynamic, b: dynamic)
+func poww(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   {
     while (b)
     {
@@ -125,15 +125,15 @@ func poww(a: dynamic, b: dynamic)
   return res;
 }
 
-var nuj = 0;
+var nuj: dynamic = 0;
 
-var sig = 0;
+var sig: dynamic = 0;
 
-func fff(n: dynamic)
+func fff(n: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ans += (kol(i) * i);
@@ -143,11 +143,11 @@ func fff(n: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   read(n);
-  var raz = 1;
+  var raz: dynamic = 1;
   while ((nuj < n))
   {
     nuj += (kol(raz) * raz);
@@ -162,19 +162,19 @@ func main()
     raz -= 1;
     nuj -= (kol(raz) * raz);
   }
-  var nc = (poww(10, (raz - 1)) - 1);
-  var nac = poww(10, (raz - 1));
-  var konec = 0;
-  var ciss = raz;
+  var nc: dynamic = (poww(10, (raz - 1)) - 1);
+  var nac: dynamic = poww(10, (raz - 1));
+  var konec: dynamic = 0;
+  var ciss: dynamic = raz;
   while (cpp_update(ciss, "--"))
   {
     konec = ((konec * 10) + 9);
   }
-  var minn = LLONG_MAX;
+  var minn: dynamic = LLONG_MAX;
   while ((nac <= konec))
   {
-    var mid = (((nac + konec)) / 2);
-    var kol = ((((mid - nc)) * raz) + nuj);
+    var mid: dynamic = (((nac + konec)) / 2);
+    var kol: dynamic = ((((mid - nc)) * raz) + nuj);
     if ((kol >= n))
     {
       minn = min(mid, minn);
@@ -184,8 +184,8 @@ func main()
       nac = (mid + 1);
     }
   }
-  var nujj = to_string(minn);
-  var ost = (n - ((nuj + (((((minn - 1)) - nc)) * raz))));
+  var nujj: dynamic = to_string(minn);
+  var ost: dynamic = (n - ((nuj + (((((minn - 1)) - nc)) * raz))));
   write(nujj[(ost - 1)], "\n");
   return 0;
 }

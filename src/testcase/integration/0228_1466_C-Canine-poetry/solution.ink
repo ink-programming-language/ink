@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func FOR(i: dynamic, st: dynamic, n: dynamic)
+func FOR(i: dynamic, st: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int i = st; i < n; i++)");
 }
 
-var INF = (1e9 + 100);
+var INF: dynamic = (1e9 + 100);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var s: dynamic;
+    var s: dynamic = cpp_uninitialized();
     read(s);
-    var n = s.size();
-    var ans = 0;
+    var n: dynamic = s.size();
+    var ans: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         if ((((i < (n - 2)) && (s[i] == s[(i + 1)])) && (s[i] == s[(i + 2)])))

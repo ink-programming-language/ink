@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var Mod = (7 + 1e9);
+var Mod: dynamic = (7 + 1e9);
 
-var INF32 = (5 + 2e9);
+var INF32: dynamic = (5 + 2e9);
 
-var INF64 = (5 + 1e18);
+var INF64: dynamic = (5 + 1e18);
 
-var MAX = (5 + 1e6);
+var MAX: dynamic = (5 + 1e6);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(MAX);
+var a: dynamic = cpp_array(MAX);
 
-var b = cpp_array(MAX);
+var b: dynamic = cpp_array(MAX);
 
-var T1 = cpp_array((4 * MAX));
+var T1: dynamic = cpp_array((4 * MAX));
 
-var T2 = cpp_array((4 * MAX));
+var T2: dynamic = cpp_array((4 * MAX));
 
-var TAR: dynamic;
+var TAR: dynamic = cpp_uninitialized();
 
-var VAL: dynamic;
+var VAL: dynamic = cpp_uninitialized();
 
-func update(T: dynamic, x: dynamic = 1, l: dynamic = 0, r: dynamic = (n - 1))
+func update(T: dynamic, x: dynamic = 1, l: dynamic = 0, r: dynamic = (n - 1)) -> dynamic
 {
   if (((l > TAR) || (r < TAR)))
   {
@@ -32,13 +32,13 @@ func update(T: dynamic, x: dynamic = 1, l: dynamic = 0, r: dynamic = (n - 1))
   {
     return cpp_assign(T[x], "=", VAL);
   }
-  var mid = ((l + r) >> 1);
-  var c1 = (x << 1);
-  var c2 = ((x << 1) | 1);
+  var mid: dynamic = ((l + r) >> 1);
+  var c1: dynamic = (x << 1);
+  var c2: dynamic = ((x << 1) | 1);
   return cpp_assign(T[x], "=", (update(T, c1, l, mid) + update(T, c2, (mid + 1), r)));
 }
 
-func query(T: dynamic, x: dynamic = 1, l: dynamic = 0, r: dynamic = (n - 1))
+func query(T: dynamic, x: dynamic = 1, l: dynamic = 0, r: dynamic = (n - 1)) -> dynamic
 {
   if ((r < TAR))
   {
@@ -48,18 +48,18 @@ func query(T: dynamic, x: dynamic = 1, l: dynamic = 0, r: dynamic = (n - 1))
   {
     return T[x];
   }
-  var mid = ((l + r) >> 1);
-  var c1 = (x << 1);
-  var c2 = ((x << 1) | 1);
+  var mid: dynamic = ((l + r) >> 1);
+  var c1: dynamic = (x << 1);
+  var c2: dynamic = ((x << 1) | 1);
   return (query(T, c1, l, mid) + query(T, c2, (mid + 1), r));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
-    var j: dynamic;
+    var i: dynamic = 0;
+    var j: dynamic = cpp_uninitialized();
     while ((i < n))
     {
       scanf("%d", (&j));
@@ -68,9 +68,9 @@ func main()
     }
   }
   sort(b, (b + n));
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       TAR = (b[i].second + 1);

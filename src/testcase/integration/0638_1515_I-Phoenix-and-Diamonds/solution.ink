@@ -1,76 +1,76 @@
 // Translated from solution.cpp.
 
-var maxn = cpp_expression("#inclu");
+var maxn: dynamic = cpp_expression("#inclu");
 
-var maxm = cpp_expression("#i");
+var maxm: dynamic = cpp_expression("#i");
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var inf = cpp_expression("#include<c");
+var inf: dynamic = cpp_expression("#include<c");
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var id = cpp_array(maxn);
+var id: dynamic = cpp_array(maxn);
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
 class arr
 {
-  var w: dynamic;
-  var v: dynamic;
-  var c: dynamic;
-  var i: dynamic;
+  var w: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.v > b.v) || ((a.v == b.v) && (a.w < b.w)));
 }
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var now: dynamic;
+var now: dynamic = cpp_uninitialized();
 
 class val
 {
-  var w: dynamic;
-  var v: dynamic;
+  var w: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
 }
 
-func operator_add(a: dynamic, b: dynamic)
+func operator_add(a: dynamic, b: dynamic) -> dynamic
 {
   return [(a.w + b.w), (a.v + b.v)];
 }
 
-func operator_multiply(a: dynamic, c: dynamic)
+func operator_multiply(a: dynamic, c: dynamic) -> dynamic
 {
   return [(a.w * c), (a.v * c)];
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.w < b.w) || ((a.w == b.w) && (a.v > b.v)));
 }
 
 class SegmentTree
 {
-  var lim: dynamic;
+  var lim: dynamic = cpp_uninitialized();
   var I: dynamic = cpp_array((maxn * 4));
   var ts: dynamic = cpp_array((maxn * 4));
   var tm: dynamic = cpp_array((maxn * 4));
-  func newnode(x: dynamic, l: dynamic)
+  func newnode(x: dynamic, l: dynamic) -> dynamic
   {
       if ((a[l].w <= lim))
       {
@@ -91,7 +91,7 @@ class SegmentTree
         }
       }
     }
-  func upd(x: dynamic)
+  func upd(x: dynamic) -> dynamic
   {
       ts[x] = (ts[(x << 1)] + ts[((x << 1) ^ 1)]);
       if ((tm[(x << 1)] < (ts[(x << 1)] + tm[((x << 1) ^ 1)])))
@@ -104,26 +104,26 @@ class SegmentTree
         I[x] = I[((x << 1) ^ 1)];
       }
     }
-  func maketree(x: dynamic, l: dynamic, r: dynamic)
+  func maketree(x: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       if ((l == r))
       {
         newnode(x, l);
         return;
       }
-      var mid = (((l + r)) >> 1);
+      var mid: dynamic = (((l + r)) >> 1);
       maketree((x << 1), l, mid);
       maketree(((x << 1) ^ 1), (mid + 1), r);
       upd(x);
     }
-  func change(x: dynamic, l: dynamic, r: dynamic, p: dynamic)
+  func change(x: dynamic, l: dynamic, r: dynamic, p: dynamic) -> dynamic
   {
       if ((l == r))
       {
         newnode(x, l);
         return;
       }
-      var mid = (((l + r)) >> 1);
+      var mid: dynamic = (((l + r)) >> 1);
       if ((p <= mid))
       {
         change((x << 1), l, mid, p);
@@ -133,7 +133,7 @@ class SegmentTree
       }
       upd(x);
     }
-  func merge(x: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic)
+  func merge(x: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic) -> dynamic
   {
       if ((((l > R) || (r < L)) || (res < lim)))
       {
@@ -163,22 +163,22 @@ class SegmentTree
           return;
         } else if ((l == r))
         {
-          var d = (res / a[l].w);
+          var d: dynamic = (res / a[l].w);
           res -= (d * a[l].w);
           sum += (d * a[l].v);
           now = l;
           return;
         }
       }
-      var mid = (((l + r)) >> 1);
+      var mid: dynamic = (((l + r)) >> 1);
       merge((x << 1), l, mid, L, R);
       merge(((x << 1) ^ 1), (mid + 1), r, L, R);
     }
 }
 
-var t = cpp_array(maxm);
+var t: dynamic = cpp_array(maxm);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&q));
   {
@@ -223,12 +223,12 @@ func main()
   }
   while (cpp_update(q, "--"))
   {
-    var tp: dynamic;
+    var tp: dynamic = cpp_uninitialized();
     scanf("%d", (&tp));
     if (((tp == 1) || (tp == 2)))
     {
       scanf("%d%d", (&j), (&k));
-      a[id[k]].c += if (((tp == 1))) j else (-j);
+      a[id[k]].c +=  (((tp == 1))) ? j : (-j);
       {
         i = 0;
         while ((i <= L))

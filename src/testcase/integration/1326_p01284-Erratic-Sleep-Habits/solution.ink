@@ -1,90 +1,90 @@
 // Translated from solution.cpp.
 
-var CRT_SECURE_NO_WARNINGS = cpp_expression("#def");
+var CRT_SECURE_NO_WARNINGS: dynamic = cpp_expression("#def");
 
-func all(c: dynamic)
+func all(c: dynamic) -> dynamic
 {
   return cpp_expression("#define _CRT_SECURE_NO");
 }
 
-func loop(i: dynamic, a: dynamic, b: dynamic)
+func loop(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(ll i=a; i<ll(b); i++)");
 }
 
-func rep(i: dynamic, b: dynamic)
+func rep(i: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#define _CR");
 }
 
-var pb = cpp_expression("#define _");
+var pb: dynamic = cpp_expression("#define _");
 
-var eb = cpp_expression("#define _CRT");
+var eb: dynamic = cpp_expression("#define _CRT");
 
-var mp = cpp_expression("#define _");
+var mp: dynamic = cpp_expression("#define _");
 
-var mt = cpp_expression("#define _C");
+var mt: dynamic = cpp_expression("#define _C");
 
-var lb = cpp_expression("#define _CR");
+var lb: dynamic = cpp_expression("#define _CR");
 
-var ub = cpp_expression("#define _CR");
+var ub: dynamic = cpp_expression("#define _CR");
 
-func dump()
+func dump() -> dynamic
 {
   return cpp_expression("#define _CRT_SECURE_NO_WARNINGS #include <bits/stdc++.h> using namespace std; type");
 }
 
 class DUMP
 {
-  func operator(t: dynamic)
+  func operator(t: dynamic) -> dynamic
   {
-      if (this->tellp())
+      if (self->tellp())
       {
-        ((*this) << ", ");
+        ((*self) << ", ");
       }
-      ((*this) << t);
-      return (*this);
+      ((*self) << t);
+      return (*self);
     }
 }
 
-func dump()
+func dump() -> dynamic
 {
   cpp_macro("");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
-  ((rep(i, v.size()) << v[i]) << (if (((i + 1) == v.size())) "" else " "));
+  ((rep(i, v.size()) << v[i]) << ( (((i + 1) == v.size())) ? "" : " "));
   return os;
 }
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var t = cpp_array(40);
+var t: dynamic = cpp_array(40);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M = cpp_array(200);
+var M: dynamic = cpp_array(200);
 
-var last: dynamic;
+var last: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(200);
+var dp: dynamic = cpp_array(200);
 
-func rec(x: dynamic)
+func rec(x: dynamic) -> dynamic
 {
   if ((x >= last))
   {
     return 0;
   }
-  var res = dp[x];
+  var res: dynamic = dp[x];
   if ((res != -1))
   {
     return res;
   }
   res = (1 << 29);
-  var ok = true;
+  var ok: dynamic = true;
   {
-    var i = x;
+    var i: dynamic = x;
     while ((i <= last))
     {
       if ((M[i] < t[(((i - x)) % T)]))
@@ -99,7 +99,7 @@ func rec(x: dynamic)
     res = 0;
   }
   {
-    var i = (x + 1);
+    var i: dynamic = (x + 1);
     while ((i <= last))
     {
       res = min((1 + rec(i)), res);
@@ -113,7 +113,7 @@ func rec(x: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   while (((cin >> T) && T))
   {
@@ -126,10 +126,10 @@ func main()
   }
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       M[x] = min(M[x], y);
       last = max(last, x);

@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var v = cpp_array(100010);
+var v: dynamic = cpp_array(100010);
 
-var a = cpp_array(100010);
+var a: dynamic = cpp_array(100010);
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
-  var ans = 1;
-  for (var i in v[x])
+  var ans: dynamic = 1;
+  for (var i: dynamic in v[x])
   {
     a[i] = dfs(i);
     ans += a[i];
@@ -19,15 +19,15 @@ func dfs(x: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = (2);
+    var i: dynamic = (2);
     while ((i <= (n)))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       v[x].push_back(i);
       i += 1;
@@ -36,7 +36,7 @@ func main()
   a[1] = dfs(1);
   sort((a + 1), ((a + 1) + n));
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
       printf("%d%c", a[i], cpp_char(" "));

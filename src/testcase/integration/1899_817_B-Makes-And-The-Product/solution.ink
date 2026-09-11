@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var M = (1e5 + 3);
+var M: dynamic = (1e5 + 3);
 
-var N = 4;
+var N: dynamic = 4;
 
-var mo = (1e9 + 7);
+var mo: dynamic = (1e9 + 7);
 
-var inf = (1e18 + 1);
+var inf: dynamic = (1e18 + 1);
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var a = cpp_array(M);
+var a: dynamic = cpp_array(M);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       mp[x] += 1;
       i += 1;
     }
   }
-  var cnt = 0;
-  var sum = 0;
-  for (var e in mp)
+  var cnt: dynamic = 0;
+  var sum: dynamic = 0;
+  for (var e: dynamic in mp)
   {
     a[cpp_update(cnt, "++")] = e.second;
     sum += e.second;
@@ -37,7 +37,7 @@ func main()
       break;
     }
   }
-  var res = 0;
+  var res: dynamic = 0;
   if ((cnt == 1))
   {
     res = (((a[0] * ((a[0] - 1))) * ((a[0] - 2))) / 6);

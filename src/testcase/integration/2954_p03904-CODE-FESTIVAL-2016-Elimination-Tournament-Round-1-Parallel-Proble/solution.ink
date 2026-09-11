@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(101, (1 << 17));
+var dp: dynamic = cpp_array(101, (1 << 17));
 
-func main()
+func main() -> dynamic
 {
   read(K, s);
   N = s.size();
   L = (N / ((K + 1)));
   if (((N % ((K + 1))) == 0))
   {
-    var ans = s.substr(0, L);
+    var ans: dynamic = s.substr(0, L);
     {
-      var i = L;
+      var i: dynamic = L;
       while ((i < N))
       {
         ans = max(ans, s.substr(i, L));
@@ -29,13 +29,13 @@ func main()
     write(ans, "\n");
   } else if ((K < 100))
   {
-    var A = (N % ((K + 1)));
+    var A: dynamic = (N % ((K + 1)));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= N))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= A))
           {
             dp[i][j] = -1;
@@ -47,11 +47,11 @@ func main()
     }
     dp[0][A] = -2;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= A))
           {
             if ((dp[i][j] == -1))
@@ -77,7 +77,7 @@ func main()
             }
             if (((j > 0) && (((i + L) + 1) <= N)))
             {
-              var now: dynamic;
+              var now: dynamic = cpp_uninitialized();
               if ((j == A))
               {
                 now = i;
@@ -111,21 +111,21 @@ func main()
     write(s.substr(dp[N][0], (L + 1)), "\n");
   } else
   {
-    var ans = cpp_construct((L + 1), cpp_char("9"));
+    var ans: dynamic = cpp_construct((L + 1), cpp_char("9"));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= L))
       {
-        var l = 0;
-        var r = 9;
+        var l: dynamic = 0;
+        var r: dynamic = 9;
         while (((r - l) > 1))
         {
-          var m = ((l + r) >> 1);
+          var m: dynamic = ((l + r) >> 1);
           ans[i] = (m + cpp_char("0"));
-          var flag = true;
-          var id = 0;
+          var flag: dynamic = true;
+          var id: dynamic = 0;
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j <= K))
             {
               if ((s.substr(id, (L + 1)) <= ans))

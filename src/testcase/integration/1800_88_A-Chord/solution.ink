@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var arr = cpp_array(10);
-  var c = 0;
-  var k = 0;
-  var m = 0;
-  var case1: dynamic;
-  var case2: dynamic;
-  var case3: dynamic;
-  var case4: dynamic;
-  var case5: dynamic;
-  var case6: dynamic;
-  var case7: dynamic;
-  var case8: dynamic;
-  var str: dynamic;
-  var str1 = "CQDWEFRGTABH";
+  var arr: dynamic = cpp_array(10);
+  var c: dynamic = 0;
+  var k: dynamic = 0;
+  var m: dynamic = 0;
+  var case1: dynamic = cpp_uninitialized();
+  var case2: dynamic = cpp_uninitialized();
+  var case3: dynamic = cpp_uninitialized();
+  var case4: dynamic = cpp_uninitialized();
+  var case5: dynamic = cpp_uninitialized();
+  var case6: dynamic = cpp_uninitialized();
+  var case7: dynamic = cpp_uninitialized();
+  var case8: dynamic = cpp_uninitialized();
+  var str: dynamic = cpp_uninitialized();
+  var str1: dynamic = "CQDWEFRGTABH";
   getline(cin, str);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < str.size()))
     {
       if ((str[(i + 1)] == cpp_char("#")))
@@ -42,7 +42,7 @@ func main()
         c += 1;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < str1.size()))
         {
           if ((str[i] == str1[j]))

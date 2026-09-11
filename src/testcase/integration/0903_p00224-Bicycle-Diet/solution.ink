@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var D: dynamic;
+var D: dynamic = cpp_uninitialized();
 
-var cal = cpp_array(6);
+var cal: dynamic = cpp_array(6);
 
-var HE = cpp_expression("#in");
+var HE: dynamic = cpp_expression("#in");
 
-var CH = cpp_expression("#incl");
+var CH: dynamic = cpp_expression("#incl");
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var INF = cpp_expression("#includ");
+var INF: dynamic = cpp_expression("#includ");
 
 class Edge
 {
-  var u: dynamic;
-  var v: dynamic;
-  var c: dynamic;
-  func Edge(u: dynamic, v: dynamic, c: dynamic)
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  func Edge(u: dynamic, v: dynamic, c: dynamic) -> dynamic
   {
-      this->u = cpp_construct(u);
-      this->v = cpp_construct(v);
-      this->c = cpp_construct(c);
+      self->u = cpp_construct(u);
+      self->v = cpp_construct(v);
+      self->c = cpp_construct(c);
     }
 }
 
-func toNum(s: dynamic)
+func toNum(s: dynamic) -> dynamic
 {
   if ((s[0] == cpp_char("H")))
   {
@@ -41,9 +41,9 @@ func toNum(s: dynamic)
     return CH;
   } else
   {
-    var d = s;
+    var d: dynamic = s;
     s.assign((s.begin() + 1), s.end());
-    var t: dynamic;
+    var t: dynamic = cpp_uninitialized();
     (ss >> t);
     if ((d[0] == cpp_char("C")))
     {
@@ -53,13 +53,13 @@ func toNum(s: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   while (cpp_comma(((((cin >> M) >> N) >> K) >> D), ((((M || N) || K) || D))))
   {
-    var eg: dynamic;
+    var eg: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < M))
       {
         read(cal[i]);
@@ -67,14 +67,14 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < D))
       {
-        var a: dynamic;
-        var b: dynamic;
-        var s: dynamic;
-        var d: dynamic;
-        var c: dynamic;
+        var a: dynamic = cpp_uninitialized();
+        var b: dynamic = cpp_uninitialized();
+        var s: dynamic = cpp_uninitialized();
+        var d: dynamic = cpp_uninitialized();
+        var c: dynamic = cpp_uninitialized();
         read(a, b, c);
         s = toNum(a);
         d = toNum(b);
@@ -83,13 +83,13 @@ func main()
         i += 1;
       }
     }
-    var dist = cpp_array(((1 << 6)), 300);
+    var dist: dynamic = cpp_array(((1 << 6)), 300);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ((1 << M))))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ((M + N) + 2)))
           {
             dist[j][i] = INF;
@@ -102,16 +102,16 @@ func main()
     dist[HE][0] = 0;
     while (1)
     {
-      var update = false;
+      var update: dynamic = false;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < eg.size()))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < ((1 << M))))
             {
-              var e = eg[i];
+              var e: dynamic = eg[i];
               if ((dist[e.u][j] == INF))
               {
                 j += 1;
@@ -148,9 +148,9 @@ func main()
         break;
       }
     }
-    var ans = INF;
+    var ans: dynamic = INF;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ((1 << M))))
       {
         ans = min(ans, dist[CH][i]);

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var joy = cpp_array(15);
+var joy: dynamic = cpp_array(15);
 
-var dp = cpp_array(5005, 505);
+var dp: dynamic = cpp_array(5005, 505);
 
-func solve(play: dynamic, cards: dynamic)
+func solve(play: dynamic, cards: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= play))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= cards))
         {
           dp[i][j] = 0;
@@ -26,15 +26,15 @@ func solve(play: dynamic, cards: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= play))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= cards))
         {
           {
-            var l = 1;
+            var l: dynamic = 1;
             while ((l <= min(k, j)))
             {
               dp[i][j] = max(dp[i][j], (dp[(i - 1)][(j - l)] + joy[l]));
@@ -50,14 +50,14 @@ func solve(play: dynamic, cards: dynamic)
   return dp[play][cards];
 }
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   read(n, k);
-  var c: dynamic;
-  var f: dynamic;
+  var c: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n * k)))
     {
       read(x);
@@ -66,7 +66,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x);
@@ -75,7 +75,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       read(joy[i]);
@@ -83,9 +83,9 @@ func main()
     }
   }
   joy[0] = 0;
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var it = f.begin();
+    var it: dynamic = f.begin();
     while ((it != f.end()))
     {
       ans += solve(it->second, min((k * (it->second)), c[it->first]));

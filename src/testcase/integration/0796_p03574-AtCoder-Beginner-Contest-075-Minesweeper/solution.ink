@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var s = cpp_array(50);
+var s: dynamic = cpp_array(50);
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var di: dynamic;
-  var dj: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var di: dynamic = cpp_uninitialized();
+  var dj: dynamic = cpp_uninitialized();
   read(h, w);
   {
     i = 0;
@@ -35,7 +35,7 @@ func main()
             j += 1;
             continue;
           }
-          var cnt = 0;
+          var cnt: dynamic = 0;
           {
             di = -1;
             while ((di <= 1))

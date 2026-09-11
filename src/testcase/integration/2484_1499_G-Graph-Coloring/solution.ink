@@ -1,61 +1,61 @@
 // Translated from solution.cpp.
 
-func range(i: dynamic, n: dynamic)
+func range(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0; i < (n); ++i)");
 }
 
-func all(a: dynamic)
+func all(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.");
 }
 
-func rall(a: dynamic)
+func rall(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h>");
 }
 
-var ar = cpp_expression("#incl");
+var ar: dynamic = cpp_expression("#incl");
 
-var INFi = (2e9 + 5);
+var INFi: dynamic = (2e9 + 5);
 
-var maxN = (4e5 + 100);
+var maxN: dynamic = (4e5 + 100);
 
-var md = 998244353;
+var md: dynamic = 998244353;
 
-var INF = 2e18;
+var INF: dynamic = 2e18;
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (((a + b) >= md)) ((a + b) - md) else (a + b);
+  return  (((a + b) >= md)) ? ((a + b) - md) : (a + b);
 }
 
-func sub(a: dynamic, b: dynamic)
+func sub(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (((a - b) < 0)) ((a - b) + md) else (a - b);
+  return  (((a - b) < 0)) ? ((a - b) + md) : (a - b);
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   return ((((1 * a) * b)) % md);
 }
 
-var color = cpp_array(maxN);
+var color: dynamic = cpp_array(maxN);
 
-var to = cpp_array(maxN);
+var to: dynamic = cpp_array(maxN);
 
-var hashes = cpp_array(maxN);
+var hashes: dynamic = cpp_array(maxN);
 
-var H = 0;
+var H: dynamic = 0;
 
 class path
 {
-  var vd: dynamic;
-  var edges: dynamic;
-  var i: dynamic;
-  var start_col: dynamic;
-  var end_col: dynamic;
-  func add_edge(v: dynamic, u: dynamic, k: dynamic)
+  var vd: dynamic = cpp_uninitialized();
+  var edges: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var start_col: dynamic = cpp_uninitialized();
+  var end_col: dynamic = cpp_uninitialized();
+  func add_edge(v: dynamic, u: dynamic, k: dynamic) -> dynamic
   {
       if (vd.empty())
       {
@@ -106,7 +106,7 @@ class path
       }
       to[u] = i;
     }
-  func merge(b: dynamic, v: dynamic, u: dynamic, k: dynamic)
+  func merge(b: dynamic, v: dynamic, u: dynamic, k: dynamic) -> dynamic
   {
       if ((b.i == i))
       {
@@ -114,7 +114,7 @@ class path
         return;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < b.edges.size()))
         {
           if ((((j ^ b.start_col)) & 1))
@@ -177,23 +177,23 @@ class path
     }
 }
 
-var paths = cpp_array(maxN);
+var paths: dynamic = cpp_array(maxN);
 
-var R = 0;
+var R: dynamic = 0;
 
-func create()
+func create() -> dynamic
 {
   paths[R].i = R;
   return cpp_update(R, "++");
 }
 
-var K = 1;
+var K: dynamic = 1;
 
-func init()
+func init() -> dynamic
 {
   hashes[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < maxN))
     {
       hashes[i] = mul(hashes[(i - 1)], 2);
@@ -202,11 +202,11 @@ func init()
   }
 }
 
-func new_edge(u: dynamic, v: dynamic)
+func new_edge(u: dynamic, v: dynamic) -> dynamic
 {
   if (((to[u] == -1) && (to[v] == -1)))
   {
-    var nw = create();
+    var nw: dynamic = create();
     paths[nw].add_edge(v, u, K);
     K += 1;
     return;
@@ -229,11 +229,11 @@ func new_edge(u: dynamic, v: dynamic)
   K += 1;
 }
 
-func print()
+func print() -> dynamic
 {
-  var answer: dynamic;
+  var answer: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= K))
     {
       if ((color[i] == 1))
@@ -244,48 +244,48 @@ func print()
     }
   }
   write(answer.size(), cpp_char(" "));
-  for (var u in answer)
+  for (var u: dynamic in answer)
   {
     write(u, cpp_char(" "));
   }
   write("\n");
 }
 
-func solve()
+func solve() -> dynamic
 {
   init();
-  var n1: dynamic;
-  var n2: dynamic;
-  var m: dynamic;
+  var n1: dynamic = cpp_uninitialized();
+  var n2: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n1, n2, m);
   range(i, ((n1 + n2) + 5))[i] = -1;
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   read(q);
 }
 
-func main()
+func main() -> dynamic
 {
-  var tests = 1;
+  var tests: dynamic = 1;
   return 0;
 }
 
-func range(argument_0: dynamic, argument_1: dynamic)
+func range(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var u: dynamic;
-    var v: dynamic;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
     read(u, v);
     v += n1;
     new_edge(u, v);
   }
 
-func range(argument_0: dynamic, argument_1: dynamic)
+func range(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var t: dynamic;
+    var t: dynamic = cpp_uninitialized();
     read(t);
     if ((t == 1))
     {
-      var v1: dynamic;
-      var v2: dynamic;
+      var v1: dynamic = cpp_uninitialized();
+      var v2: dynamic = cpp_uninitialized();
       read(v1, v2);
       v2 += n1;
       new_edge(v1, v2);
@@ -296,7 +296,7 @@ func range(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func range(argument_0: dynamic, argument_1: dynamic)
+func range(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     solve();
   }

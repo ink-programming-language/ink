@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-func toInt(s: dynamic)
+func toInt(s: dynamic) -> dynamic
 {
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   (sin >> v);
   return v;
 }
 
-func toString(x: dynamic)
+func toString(x: dynamic) -> dynamic
 {
-  var sout: dynamic;
+  var sout: dynamic = cpp_uninitialized();
   (sout << x);
   return sout.str();
 }
 
-func readInt()
+func readInt() -> dynamic
 {
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   scanf("%d", (&x));
   return x;
 }
 
-var EPS = 1E-8;
+var EPS: dynamic = 1E-8;
 
 class UnionFind
 {
-  var par: dynamic;
-  var siz: dynamic;
-  var maxv: dynamic;
-  func UnionFind(sz: dynamic)
+  var par: dynamic = cpp_uninitialized();
+  var siz: dynamic = cpp_uninitialized();
+  var maxv: dynamic = cpp_uninitialized();
+  func UnionFind(sz: dynamic) -> dynamic
   {
-      this->par = cpp_construct(sz);
-      this->siz = cpp_construct(sz, 1);
+      self->par = cpp_construct(sz);
+      self->siz = cpp_construct(sz, 1);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < sz))
         {
           par[i] = i;
@@ -41,12 +41,12 @@ class UnionFind
         }
       }
     }
-  func init(sz: dynamic)
+  func init(sz: dynamic) -> dynamic
   {
       par.resize(sz);
       siz.assign(sz, 1);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < sz))
         {
           par[i] = i;
@@ -54,7 +54,7 @@ class UnionFind
         }
       }
     }
-  func root(x: dynamic)
+  func root(x: dynamic) -> dynamic
   {
       while ((par[x] != x))
       {
@@ -62,7 +62,7 @@ class UnionFind
       }
       return x;
     }
-  func merge(x: dynamic, y: dynamic)
+  func merge(x: dynamic, y: dynamic) -> dynamic
   {
       x = root(x);
       y = root(y);
@@ -78,19 +78,19 @@ class UnionFind
       par[y] = x;
       return true;
     }
-  func issame(x: dynamic, y: dynamic)
+  func issame(x: dynamic, y: dynamic) -> dynamic
   {
       return (root(x) == root(y));
     }
-  func size(x: dynamic)
+  func size(x: dynamic) -> dynamic
   {
       return siz[root(x)];
     }
 }
 
-func mod_pow(x: dynamic, n: dynamic, mod: dynamic)
+func mod_pow(x: dynamic, n: dynamic, mod: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (n)
   {
     if ((n & 1))
@@ -104,12 +104,12 @@ func mod_pow(x: dynamic, n: dynamic, mod: dynamic)
   return res;
 }
 
-var sieve = cpp_array((5000000 + 10));
+var sieve: dynamic = cpp_array((5000000 + 10));
 
-func make_sieve()
+func make_sieve() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (5000000 + 10)))
     {
       sieve[i] = true;
@@ -118,13 +118,13 @@ func make_sieve()
   }
   sieve[0] = cpp_assign(sieve[1], "=", false);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) < (5000000 + 10)))
     {
       if (sieve[i])
       {
         {
-          var j = 2;
+          var j: dynamic = 2;
           while (((i * j) < (5000000 + 10)))
           {
             sieve[(i * j)] = false;
@@ -137,14 +137,14 @@ func make_sieve()
   }
 }
 
-func isprime(n: dynamic)
+func isprime(n: dynamic) -> dynamic
 {
   if (((n == 0) || (n == 1)))
   {
     return false;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= n))
     {
       if (((n % i) == 0))
@@ -157,21 +157,21 @@ func isprime(n: dynamic)
   return true;
 }
 
-var MAX = 510000;
+var MAX: dynamic = 510000;
 
-var fac = cpp_array(MAX);
+var fac: dynamic = cpp_array(MAX);
 
-var finv = cpp_array(MAX);
+var finv: dynamic = cpp_array(MAX);
 
-var inv = cpp_array(MAX);
+var inv: dynamic = cpp_array(MAX);
 
-func COMinit()
+func COMinit() -> dynamic
 {
   fac[0] = cpp_assign(fac[1], "=", 1);
   finv[0] = cpp_assign(finv[1], "=", 1);
   inv[1] = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < MAX))
     {
       fac[i] = ((fac[(i - 1)] * i) % 1000000007);
@@ -182,7 +182,7 @@ func COMinit()
   }
 }
 
-func COM(n: dynamic, k: dynamic)
+func COM(n: dynamic, k: dynamic) -> dynamic
 {
   if ((n < k))
   {
@@ -195,7 +195,7 @@ func COM(n: dynamic, k: dynamic)
   return ((fac[n] * (((finv[k] * finv[(n - k)]) % 1000000007))) % 1000000007);
 }
 
-func extGCD(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
+func extGCD(a: dynamic, b: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -203,25 +203,25 @@ func extGCD(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
     y = 0;
     return a;
   }
-  var d = extGCD(b, (a % b), y, x);
+  var d: dynamic = extGCD(b, (a % b), y, x);
   y -= ((a / b) * x);
   return d;
 }
 
-func mod(a: dynamic, m: dynamic)
+func mod(a: dynamic, m: dynamic) -> dynamic
 {
   return ((((a % m) + m)) % m);
 }
 
-func modinv(a: dynamic, m: dynamic)
+func modinv(a: dynamic, m: dynamic) -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   extGCD(a, m, x, y);
   return mod(x, m);
 }
 
-func GCD(a: dynamic, b: dynamic)
+func GCD(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -232,12 +232,12 @@ func GCD(a: dynamic, b: dynamic)
 
 class LazySegmentTree
 {
-  var n: dynamic;
-  var node: dynamic;
-  var lazy: dynamic;
-  func LazySegmentTree(v: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  var node: dynamic = cpp_uninitialized();
+  var lazy: dynamic = cpp_uninitialized();
+  func LazySegmentTree(v: dynamic) -> dynamic
   {
-      var sz = cpp_cast(v.size());
+      var sz: dynamic = cpp_cast(v.size());
       n = 1;
       while ((n < sz))
       {
@@ -246,7 +246,7 @@ class LazySegmentTree
       node.resize(((2 * n) - 1));
       lazy.resize(((2 * n) - 1), 0);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < sz))
         {
           node[((i + n) - 1)] = v[i];
@@ -254,7 +254,7 @@ class LazySegmentTree
         }
       }
       {
-        var i = (n - 2);
+        var i: dynamic = (n - 2);
         while ((i >= 0))
         {
           node[i] = (node[((i * 2) + 1)] + node[((i * 2) + 2)]);
@@ -262,7 +262,7 @@ class LazySegmentTree
         }
       }
     }
-  func eval(k: dynamic, l: dynamic, r: dynamic)
+  func eval(k: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       if ((lazy[k] != 0))
       {
@@ -275,7 +275,7 @@ class LazySegmentTree
         lazy[k] = 0;
       }
     }
-  func add(a: dynamic, b: dynamic, x: dynamic, k: dynamic = 0, l: dynamic = 0, r: dynamic = -1)
+  func add(a: dynamic, b: dynamic, x: dynamic, k: dynamic = 0, l: dynamic = 0, r: dynamic = -1) -> dynamic
   {
       if ((r < 0))
       {
@@ -297,7 +297,7 @@ class LazySegmentTree
         node[k] = (node[((2 * k) + 1)] + node[((2 * k) + 2)]);
       }
     }
-  func getsum(a: dynamic, b: dynamic, k: dynamic = 0, l: dynamic = 0, r: dynamic = -1)
+  func getsum(a: dynamic, b: dynamic, k: dynamic = 0, l: dynamic = 0, r: dynamic = -1) -> dynamic
   {
       if ((r < 0))
       {
@@ -312,58 +312,58 @@ class LazySegmentTree
       {
         return node[k];
       }
-      var vl = getsum(a, b, ((2 * k) + 1), l, (((l + r)) / 2));
-      var vr = getsum(a, b, ((2 * k) + 2), (((l + r)) / 2), r);
+      var vl: dynamic = getsum(a, b, ((2 * k) + 1), l, (((l + r)) / 2));
+      var vr: dynamic = getsum(a, b, ((2 * k) + 2), (((l + r)) / 2), r);
       return (vl + vr);
     }
 }
 
 class Edge
 {
-  var src: dynamic;
-  var dst: dynamic;
-  var weight: dynamic;
-  var cap: dynamic;
-  func Edge()
+  var src: dynamic = cpp_uninitialized();
+  var dst: dynamic = cpp_uninitialized();
+  var weight: dynamic = cpp_uninitialized();
+  var cap: dynamic = cpp_uninitialized();
+  func Edge() -> dynamic
   {
-      this->src = cpp_construct(0);
-      this->dst = cpp_construct(0);
-      this->weight = cpp_construct(0);
+      self->src = cpp_construct(0);
+      self->dst = cpp_construct(0);
+      self->weight = cpp_construct(0);
     }
-  func Edge(s: dynamic, d: dynamic, w: dynamic)
+  func Edge(s: dynamic, d: dynamic, w: dynamic) -> dynamic
   {
-      this->src = cpp_construct(s);
-      this->dst = cpp_construct(d);
-      this->weight = cpp_construct(w);
+      self->src = cpp_construct(s);
+      self->dst = cpp_construct(d);
+      self->weight = cpp_construct(w);
     }
 }
 
-func add_edge(g: dynamic, a: dynamic, b: dynamic, w: dynamic = 1)
+func add_edge(g: dynamic, a: dynamic, b: dynamic, w: dynamic = 1) -> dynamic
 {
   g[a].emplace_back(a, b, w);
   g[b].emplace_back(b, a, w);
 }
 
-func add_arc(g: dynamic, a: dynamic, b: dynamic, w: dynamic = 1)
+func add_arc(g: dynamic, a: dynamic, b: dynamic, w: dynamic = 1) -> dynamic
 {
   g[a].emplace_back(a, b, w);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(10);
+var a: dynamic = cpp_array(10);
 
-var dp = cpp_array(11, 101);
+var dp: dynamic = cpp_array(11, 101);
 
-var coef = cpp_array(101, 101);
+var coef: dynamic = cpp_array(101, 101);
 
-func rec(n: dynamic, c: dynamic)
+func rec(n: dynamic, c: dynamic) -> dynamic
 {
   if ((!n))
   {
-    var ok = false;
+    var ok: dynamic = false;
     {
-      var i = c;
+      var i: dynamic = c;
       while ((i < 10))
       {
         ok |= (!(!a[i]));
@@ -382,7 +382,7 @@ func rec(n: dynamic, c: dynamic)
   }
   dp[n][c] = 0;
   {
-    var i = a[c];
+    var i: dynamic = a[c];
     while ((i <= n))
     {
       dp[n][c] = (((dp[n][c] + (coef[n][i] * rec((n - i), (c + 1))))) % 1000000007);
@@ -392,14 +392,14 @@ func rec(n: dynamic, c: dynamic)
   return dp[n][c];
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
   read(n);
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(10)))
     {
       read(a[i]);
@@ -409,12 +409,12 @@ func main()
   }
   coef[0][0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 100))
     {
       coef[i][0] = cpp_assign(coef[i][i], "=", 1);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < i))
         {
           coef[i][j] = (((coef[(i - 1)][j] + coef[(i - 1)][(j - 1)])) % 1000000007);
@@ -424,17 +424,17 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var dig = 1;
+    var dig: dynamic = 1;
     while ((dig <= n))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < 10))
         {
           memset(dp, -1, cpp_sizeof((dp)));
-          var u = (!(!a[i]));
+          var u: dynamic = (!(!a[i]));
           a[i] -= u;
           ans = (((ans + rec((dig - 1), 0))) % 1000000007);
           a[i] += u;

@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a = cpp_array(n);
+  var a: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -19,9 +19,9 @@ func main()
     write(a[0], "\n");
     return 0;
   }
-  var c = (((a[0] + a[1])) / 2);
+  var c: dynamic = (((a[0] + a[1])) / 2);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < n))
     {
       c = (((c + a[i])) / 2);

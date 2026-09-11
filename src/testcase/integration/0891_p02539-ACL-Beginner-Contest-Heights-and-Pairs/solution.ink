@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var MOD = cpp_expression("#include <bits/s");
+var MOD: dynamic = cpp_expression("#include <bits/s");
 
 class NTT
 {
-  var base: dynamic;
-  var maxb: dynamic;
-  var root: dynamic;
-  var rv: dynamic;
-  var roots: dynamic;
-  var invr: dynamic;
-  func NTT()
+  var base: dynamic = cpp_uninitialized();
+  var maxb: dynamic = cpp_uninitialized();
+  var root: dynamic = cpp_uninitialized();
+  var rv: dynamic = cpp_uninitialized();
+  var roots: dynamic = cpp_uninitialized();
+  var invr: dynamic = cpp_uninitialized();
+  func NTT() -> dynamic
   {
-      this->base = cpp_construct(1);
-      this->rv = cpp_construct([0, 1]);
-      this->roots = cpp_construct([0, 1]);
-      this->invr = cpp_construct([0, 1]);
+      self->base = cpp_construct(1);
+      self->rv = cpp_construct([0, 1]);
+      self->roots = cpp_construct([0, 1]);
+      self->invr = cpp_construct([0, 1]);
       assert(((mod >= 3) && (mod & 1)));
-      var tmp = (mod - 1);
+      var tmp: dynamic = (mod - 1);
       maxb = 0;
       while ((!((tmp & 1))))
       {
@@ -32,9 +32,9 @@ class NTT
       assert((mpow(root, (mod - 1)) == 1));
       root = mpow(root, (((mod - 1)) >> maxb));
     }
-  func mpow(x: dynamic, n: dynamic)
+  func mpow(x: dynamic, n: dynamic) -> dynamic
   {
-      var res = 1;
+      var res: dynamic = 1;
       while (n)
       {
         if ((n & 1))
@@ -46,11 +46,11 @@ class NTT
       }
       return res;
     }
-  func inv(x: dynamic)
+  func inv(x: dynamic) -> dynamic
   {
       return mpow(x, (mod - 2));
     }
-  func add(x: dynamic, y: dynamic)
+  func add(x: dynamic, y: dynamic) -> dynamic
   {
       if (((cpp_assign(x, "+=", y)) >= mod))
       {
@@ -58,11 +58,11 @@ class NTT
       }
       return x;
     }
-  func mul(x: dynamic, y: dynamic)
+  func mul(x: dynamic, y: dynamic) -> dynamic
   {
       return cpp_cast(((((1 * x) * y) % mod)));
     }
-  func ensure_base(nb: dynamic)
+  func ensure_base(nb: dynamic) -> dynamic
   {
       if ((nb <= base))
       {
@@ -72,7 +72,7 @@ class NTT
       roots.resize((1 << nb));
       invr.resize((1 << nb));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < ((1 << nb))))
         {
           rv[i] = (((rv[(i >> 1)] >> 1)) + ((((i & 1)) << ((nb - 1)))));
@@ -82,10 +82,10 @@ class NTT
       assert((nb <= maxb));
       while ((base < nb))
       {
-        var z = mpow(root, (1 << (((maxb - 1) - base))));
-        var invz = inv(z);
+        var z: dynamic = mpow(root, (1 << (((maxb - 1) - base))));
+        var invz: dynamic = inv(z);
         {
-          var i = (1 << ((base - 1)));
+          var i: dynamic = (1 << ((base - 1)));
           while ((i < ((1 << base))))
           {
             roots[(i << 1)] = roots[i];
@@ -98,11 +98,11 @@ class NTT
         base += 1;
       }
     }
-  func ntt(a: dynamic, n: dynamic, sg: dynamic = 0)
+  func ntt(a: dynamic, n: dynamic, sg: dynamic = 0) -> dynamic
   {
       assert((((n & ((n - 1)))) == 0));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((i < rv[i]))
@@ -113,18 +113,18 @@ class NTT
         }
       }
       {
-        var k = 1;
+        var k: dynamic = 1;
         while ((k < n))
         {
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < n))
             {
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < k))
                 {
-                  var z = mul(a[((i + j) + k)], (if (sg) roots[(j + k)] else invr[(j + k)]));
+                  var z: dynamic = mul(a[((i + j) + k)], ( (sg) ? roots[(j + k)] : invr[(j + k)]));
                   a[((i + j) + k)] = add(a[(i + j)], (mod - z));
                   a[(i + j)] = add(a[(i + j)], z);
                   j += 1;
@@ -136,11 +136,11 @@ class NTT
           k <<= 1;
         }
       }
-      var invn = inv(n);
+      var invn: dynamic = inv(n);
       if (sg)
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < n))
           {
             a[i] = mul(a[i], invn);
@@ -149,20 +149,20 @@ class NTT
         }
       }
     }
-  func multiply(a: dynamic, b: dynamic)
+  func multiply(a: dynamic, b: dynamic) -> dynamic
   {
-      var need = ((a.size() + b.size()) - 1);
-      var nb = 1;
+      var need: dynamic = ((a.size() + b.size()) - 1);
+      var nb: dynamic = 1;
       while ((((1 << nb)) < need))
       {
         nb += 1;
       }
       ensure_base(nb);
-      var sz = (1 << nb);
-      var fa = cpp_construct(sz, 0);
-      var fb = cpp_construct(sz, 0);
+      var sz: dynamic = (1 << nb);
+      var fa: dynamic = cpp_construct(sz, 0);
+      var fb: dynamic = cpp_construct(sz, 0);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < sz))
         {
           if ((i < a.size()))
@@ -179,7 +179,7 @@ class NTT
       ntt(fa, sz);
       ntt(fb, sz);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < sz))
         {
           fa[i] = mul(fa[i], fb[i]);
@@ -188,7 +188,7 @@ class NTT
       }
       ntt(fa, sz, 1);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < need))
         {
           res[i] = fa[i];
@@ -199,37 +199,37 @@ class NTT
     }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var memo: dynamic;
+var memo: dynamic = cpp_uninitialized();
 
-var pq: dynamic;
+var pq: dynamic = cpp_uninitialized();
 
-var ntt: dynamic;
+var ntt: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var mp: dynamic;
+    var mp: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (2 * n)))
       {
-        var x: dynamic;
+        var x: dynamic = cpp_uninitialized();
         read(x);
         mp[x] += 1;
         i += 1;
       }
     }
-    for (var __cpp_item_1 in mp)
+    for (var __cpp_item_1: dynamic in mp)
     {
-      var (cpp_name, p) = __cpp_item_1;
-      var v = cpp_construct(1, 1);
-      var now = 1;
-      var cnt = 1;
+      var (cpp_name, p): dynamic = __cpp_item_1;
+      var v: dynamic = cpp_construct(1, 1);
+      var now: dynamic = 1;
+      var cnt: dynamic = 1;
       {
-        var i = p;
+        var i: dynamic = p;
         while ((i > 1))
         {
           (cpp_assign(now, "*=", cpp_update(i, "--"))) %= MOD;
@@ -244,32 +244,32 @@ func main()
   }
   while ((pq.size() > 1))
   {
-    var l = pq.top();
-    var r: dynamic;
+    var l: dynamic = pq.top();
+    var r: dynamic = cpp_uninitialized();
     pq.pop();
     r = pq.top();
     pq.pop();
     memo[l.second] = ntt.multiply(memo[l.second], memo[r.second]);
     pq.push(P(memo[l.second].size(), l.second));
   }
-  var id = pq.top().second;
-  var oddf = cpp_construct(2, 1);
+  var id: dynamic = pq.top().second;
+  var oddf: dynamic = cpp_construct(2, 1);
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i <= (2 * n)))
     {
-      var now = ((oddf.back() * i) % MOD);
+      var now: dynamic = ((oddf.back() * i) % MOD);
       oddf.push_back(now);
       i += 2;
     }
   }
-  var res = 0;
-  var len = memo[id].size();
+  var res: dynamic = 0;
+  var len: dynamic = memo[id].size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < len))
     {
-      var now = ((memo[id][i] * oddf[(n - i)]) % MOD);
+      var now: dynamic = ((memo[id][i] * oddf[(n - i)]) % MOD);
       if ((i & 1))
       {
         (cpp_assign(res, "+=", (MOD - now))) %= MOD;

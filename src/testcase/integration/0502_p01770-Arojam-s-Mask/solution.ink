@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-func r(i: dynamic, n: dynamic)
+func r(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-var dp = cpp_array((1 << 5), 111, 111);
+var dp: dynamic = cpp_array((1 << 5), 111, 111);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var e: dynamic;
+var e: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var v = cpp_array(100000);
+var v: dynamic = cpp_array(100000);
 
-func main()
+func main() -> dynamic
 {
   cpp_statement("r(i,111)r(j,1<<5)r(k,111)");
   dp[i][k][j] = 1e9;
   read(n, m, e, s, t, r);
-  var M: dynamic;
-  var state = 0;
-  var q: dynamic;
+  var M: dynamic = cpp_uninitialized();
+  var state: dynamic = 0;
+  var q: dynamic = cpp_uninitialized();
   q.push(P2(P(0, s), P(r, state)));
   dp[s][r][state] = 0;
   while ((!q.empty()))
   {
-    var PP = q.top();
+    var PP: dynamic = q.top();
     q.pop();
-    var now = PP.first.second;
-    var cost = PP.first.first;
-    var R = PP.second.first;
-    var S = PP.second.second;
+    var now: dynamic = PP.first.second;
+    var cost: dynamic = PP.first.first;
+    var R: dynamic = PP.second.first;
+    var S: dynamic = PP.second.second;
     if ((dp[now][R][S] < cost))
     {
       continue;
@@ -47,11 +47,11 @@ func main()
     {
       r(i, v[now].size());
       {
-        var nex = v[now][i].first;
-        var flag = v[now][i].second;
-        var f = (flag % 100);
-        var nR = (R - 1);
-        var nS = S;
+        var nex: dynamic = v[now][i].first;
+        var flag: dynamic = v[now][i].second;
+        var f: dynamic = (flag % 100);
+        var nR: dynamic = (R - 1);
+        var nS: dynamic = S;
         if (M.count(nex))
         {
           nS = ((nS | ((1 << M[nex]))));
@@ -86,7 +86,7 @@ func main()
     dp[s][r][S] = (cost + 1);
     q.push(P2(P((cost + 1), s), P(r, S)));
   }
-  var ans = 1e9;
+  var ans: dynamic = 1e9;
   r(i, 101);
   r(j, ((1 << 5)));
   {
@@ -101,20 +101,20 @@ func main()
   }
 }
 
-func r(argument_0: dynamic, argument_1: dynamic)
+func r(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     read(a, b);
     v[a].push_back(P(b, -1));
     v[b].push_back(P(a, -1));
   }
 
-func r(argument_0: dynamic, argument_1: dynamic)
+func r(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var a: dynamic;
-    var b: dynamic;
-    var c: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
+    var c: dynamic = cpp_uninitialized();
     read(a, b, c);
     v[a].push_back(P(b, i));
     v[b].push_back(P(a, i));

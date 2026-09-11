@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var A: dynamic;
-  var B: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var A: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
   read(a, A);
   read(b, B);
-  var chess = [0];
+  var chess: dynamic = [0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 9))
     {
       chess[i][A] = 1;
@@ -18,7 +18,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 9))
     {
       chess[(a - 96)][i] = 1;
@@ -114,13 +114,13 @@ func main()
     }
   }
   chess[(b - 96)][B] = 1;
-  var w = 0;
+  var w: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 9))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < 9))
         {
           if ((chess[i][j] == 0))

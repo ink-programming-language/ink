@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var maxv = 2045;
+var maxv: dynamic = 2045;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var maxn = (1e6 + 40);
+var maxn: dynamic = (1e6 + 40);
 
-var fac = cpp_array(maxn);
+var fac: dynamic = cpp_array(maxn);
 
-var inv = cpp_array(maxn);
+var inv: dynamic = cpp_array(maxn);
 
-func qpow(a: dynamic, p: dynamic)
+func qpow(a: dynamic, p: dynamic) -> dynamic
 {
-  var ans = 1;
-  var xx = a;
+  var ans: dynamic = 1;
+  var xx: dynamic = a;
   while ((p > 0))
   {
     if ((p & 1))
@@ -26,12 +26,12 @@ func qpow(a: dynamic, p: dynamic)
   return ans;
 }
 
-func init()
+func init() -> dynamic
 {
   fac[0] = 1;
   inv[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < maxn))
     {
       fac[i] = (((fac[(i - 1)] * i)) % mod);
@@ -41,35 +41,35 @@ func init()
   }
 }
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxv);
+var a: dynamic = cpp_array(maxv);
 
-var dp = cpp_array(maxv);
+var dp: dynamic = cpp_array(maxv);
 
-func culC(a: dynamic, b: dynamic)
+func culC(a: dynamic, b: dynamic) -> dynamic
 {
   return ((((fac[a] * inv[(a - b)]) % mod) * inv[b]) % mod);
 }
 
-func path(sx: dynamic, sy: dynamic, tx: dynamic, ty: dynamic)
+func path(sx: dynamic, sy: dynamic, tx: dynamic, ty: dynamic) -> dynamic
 {
   return culC((((ty - sy) + tx) - sx), (tx - sx));
 }
 
-func solve()
+func solve() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
-      var ans = 0;
+      var ans: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < i))
         {
           if ((a[j].second <= a[i].second))
@@ -87,16 +87,16 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   read(h, w, n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var c: dynamic;
-      var r: dynamic;
+      var c: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
       scanf("%d%d", (&r), (&c));
       a[i].first = r;
       a[i].second = c;

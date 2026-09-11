@@ -2,26 +2,26 @@
 
 class query
 {
-  var l: dynamic;
-  var r: dynamic;
-  var i: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
 }
 
-var Q = cpp_array(300001);
+var Q: dynamic = cpp_array(300001);
 
-var arr = cpp_array(300001);
+var arr: dynamic = cpp_array(300001);
 
-var ans = cpp_array(300001);
+var ans: dynamic = cpp_array(300001);
 
-var freq = cpp_array(300001);
+var freq: dynamic = cpp_array(300001);
 
-var freqOfreq = cpp_array(300001);
+var freqOfreq: dynamic = cpp_array(300001);
 
-var currentMax = 0;
+var currentMax: dynamic = 0;
 
-var block = 555;
+var block: dynamic = 555;
 
-func comp(a: dynamic, b: dynamic)
+func comp(a: dynamic, b: dynamic) -> dynamic
 {
   if (((a.l / block) != (b.l / block)))
   {
@@ -30,10 +30,10 @@ func comp(a: dynamic, b: dynamic)
   return (a.r < b.r);
 }
 
-func add(pos: dynamic)
+func add(pos: dynamic) -> dynamic
 {
-  var x = freq[arr[pos]];
-  var y = (x + 1);
+  var x: dynamic = freq[arr[pos]];
+  var y: dynamic = (x + 1);
   freq[arr[pos]] += 1;
   freqOfreq[x] -= 1;
   freqOfreq[y] += 1;
@@ -43,10 +43,10 @@ func add(pos: dynamic)
   }
 }
 
-func remove(pos: dynamic)
+func remove(pos: dynamic) -> dynamic
 {
-  var x = freq[arr[pos]];
-  var y = (x - 1);
+  var x: dynamic = freq[arr[pos]];
+  var y: dynamic = (x - 1);
   freq[arr[pos]] -= 1;
   freqOfreq[x] -= 1;
   freqOfreq[y] += 1;
@@ -59,18 +59,18 @@ func remove(pos: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   freopen("input.txt", "r", stdin);
   freopen("output.txt", "w", stdout);
-  var n: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(n, q);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);
@@ -78,7 +78,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       read(Q[i].l, Q[i].r);
@@ -89,14 +89,14 @@ func main()
     }
   }
   sort(Q, (Q + q), comp);
-  var ML = 0;
-  var MR = -1;
+  var ML: dynamic = 0;
+  var MR: dynamic = -1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      var L = Q[i].l;
-      var R = Q[i].r;
+      var L: dynamic = Q[i].l;
+      var R: dynamic = Q[i].r;
       while ((MR < R))
       {
         MR += 1;
@@ -117,9 +117,9 @@ func main()
         remove(ML);
         ML += 1;
       }
-      var total = ((Q[i].r - Q[i].l) + 1);
-      var mx = (((total + 1)) / 2);
-      var rem = (total - currentMax);
+      var total: dynamic = ((Q[i].r - Q[i].l) + 1);
+      var mx: dynamic = (((total + 1)) / 2);
+      var rem: dynamic = (total - currentMax);
       if ((currentMax <= mx))
       {
         ans[Q[i].i] = 1;
@@ -131,7 +131,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       write(ans[i], cpp_char("\n"));

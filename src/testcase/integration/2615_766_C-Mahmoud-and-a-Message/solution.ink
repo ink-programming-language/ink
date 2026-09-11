@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var MAXN = (1e3 + 5);
+var MAXN: dynamic = (1e3 + 5);
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var sum = cpp_array(30, MAXN);
+var sum: dynamic = cpp_array(30, MAXN);
 
-var M = cpp_array(MAXN, MAXN);
+var M: dynamic = cpp_array(MAXN, MAXN);
 
-var dp = cpp_array(MAXN);
+var dp: dynamic = cpp_array(MAXN);
 
-var maxx = cpp_array(30);
+var maxx: dynamic = cpp_array(30);
 
-var dp2 = cpp_array(MAXN);
+var dp2: dynamic = cpp_array(MAXN);
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var ans = 0;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   read(n);
   read(a);
   {
@@ -34,8 +34,8 @@ func main()
       i += 1;
     }
   }
-  var flag = 1;
-  var len = 0;
+  var flag: dynamic = 1;
+  var len: dynamic = 0;
   {
     i = 1;
     while ((i <= n))

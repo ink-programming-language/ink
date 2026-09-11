@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, s: dynamic, n: dynamic)
+func REP(i: dynamic, s: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=s;i<n;i++)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include<b");
 }
 
-var G = cpp_array(510);
+var G: dynamic = cpp_array(510);
 
-var arr: dynamic;
+var arr: dynamic = cpp_uninitialized();
 
-var edges: dynamic;
+var edges: dynamic = cpp_uninitialized();
 
-var found = cpp_array(510);
+var found: dynamic = cpp_array(510);
 
-var used = cpp_array(510);
+var used: dynamic = cpp_array(510);
 
-var cycle: dynamic;
+var cycle: dynamic = cpp_uninitialized();
 
-func inValid(a: dynamic, b: dynamic)
+func inValid(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == b))
   {
     return false;
   }
-  var diff = -1;
+  var diff: dynamic = -1;
   rep(i, min(a.size(), b.size()));
   if ((a[i] != b[i]))
   {
@@ -42,13 +42,13 @@ func inValid(a: dynamic, b: dynamic)
   return false;
 }
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == b))
   {
     return;
   }
-  var diff = -1;
+  var diff: dynamic = -1;
   rep(i, min(a.size(), b.size()));
   if ((a[i] != b[i]))
   {
@@ -62,12 +62,12 @@ func add(a: dynamic, b: dynamic)
   edges.push_back(ii((a[diff] - cpp_char("a")), (b[diff] - cpp_char("a"))));
 }
 
-func visit(v: dynamic, order: dynamic, color: dynamic)
+func visit(v: dynamic, order: dynamic, color: dynamic) -> dynamic
 {
   color[v] = 1;
   rep(i, G[v].size());
   {
-    var e = G[v][i];
+    var e: dynamic = G[v][i];
     if ((color[e] == 2))
     {
       continue;
@@ -86,11 +86,11 @@ func visit(v: dynamic, order: dynamic, color: dynamic)
   return true;
 }
 
-func topologicalSort(order: dynamic)
+func topologicalSort(order: dynamic) -> dynamic
 {
-  var color = cpp_construct(26, 0);
+  var color: dynamic = cpp_construct(26, 0);
   {
-    var u = 0;
+    var u: dynamic = 0;
     while ((u < 26))
     {
       if (((!color[u]) && (!visit(u, order, color))))
@@ -104,9 +104,9 @@ func topologicalSort(order: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while (cpp_comma((cin >> n), n))
   {
     cpp_statement("rep(i,510)");
@@ -114,7 +114,7 @@ func main()
       G[i].clear();
       found[i] = cpp_assign(used[i], "=", false);
     }
-    var fin = false;
+    var fin: dynamic = false;
     cycle = false;
     arr.clear();
     arr.resize(n);
@@ -137,11 +137,11 @@ func main()
     }
     rep(i, edges.size());
     {
-      var src = edges[i].first;
-      var dst = edges[i].second;
+      var src: dynamic = edges[i].first;
+      var dst: dynamic = edges[i].second;
       G[src].push_back(dst);
     }
-    var order: dynamic;
+    var order: dynamic = cpp_uninitialized();
     if ((!topologicalSort(order)))
     {
       puts("no");

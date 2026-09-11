@@ -2,7 +2,6 @@
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -10,226 +9,170 @@ namespace ink::parser
 {
   namespace
   {
-    using test::countKind;
-    using test::expectFullFidelity;
-    using test::hasDiagnostic;
-    using test::hasKind;
-    using test::nodeTextsOfKind;
-    using test::parseSource;
-
-    bool containsText(const std::vector<std::string> &Values, const std::string &Expected)
+    // Verifies every adjacent precedence level binds correctly with the tighter operator on either side of the looser operator.
+    TEST(ParserSymbolSequenceTest, BinaryPrecedenceLevelsPreserveBothOperandOrders)
     {
-      return std::find(Values.begin(), Values.end(), Expected) != Values.end();
+      const std::vector<std::string> Operators = {"||", "&&", "|", "^", "&", "==", "<", "<<", "+", "*"};
+      for (std::size_t Index = 1; Index < Operators.size(); ++Index)
+      {
+        const std::string &Lower = Operators[Index - 1];
+        const std::string &Higher = Operators[Index];
+        for (bool HigherFirst : {false, true})
+        {
+          const std::string Source = "A " + (HigherFirst ? Higher : Lower) + " B " + (HigherFirst ? Lower : Higher) + " C;";
+          SCOPED_TRACE(Source);
+          const ParsedFile File = test::parseSource(Source);
+          ASSERT_TRUE(File.succeeded());
+          const AstNodeId StatementId = File.ast().node(File.ast().root()).get<SourceFile>().Statements[0];
+          const AstNodeId ExpressionId = File.ast().node(StatementId).get<ExpressionStatement>().Expression;
+          const BinaryExpression &Expression = File.ast().node(ExpressionId).get<BinaryExpression>();
+          EXPECT_EQ(tokenizer::symbolSpelling(Expression.Operator), Lower);
+          const BinaryExpression &Tighter = File.ast().node(HigherFirst ? Expression.Left : Expression.Right).get<BinaryExpression>();
+          EXPECT_EQ(tokenizer::symbolSpelling(Tighter.Operator), Higher);
+          test::expectAstIntegrity(File);
+        }
+      }
     }
 
-    // Verifies longest-match grouping for every compound operator that participates in binary or assignment expressions.
-    TEST(ParserSymbolSequenceTest, CompositeExpressionOperatorsRemainSingleCstTerms)
+    // Verifies compound operators become typed binary operator attributes with named left and right operands.
+    TEST(ParserSymbolSequenceTest, CompositeExpressionOperatorsBecomeTypedAttributes)
     {
-      const std::vector<std::string> AssignmentOperators = {
-          "=",
-          "+=",
-          "-=",
-          "*=",
-          "/=",
-          "%=",
-          "&=",
-          "|=",
-          "^=",
-          "<<=",
-          ">>=",
-      };
-      const std::vector<std::string> BinaryOperators = {
-          "<=",
-          ">=",
-          "==",
-          "!=",
-          "<<",
-          ">>",
-          "&&",
-          "||",
-      };
-      std::string Source = "func symbols() {";
-      for (const std::string &Sequence : AssignmentOperators)
+      const std::vector<std::string> Operators = {"||", "&&", "==", "!=", "<=", ">=", "<<", ">>"};
+      for (const std::string &Operator : Operators)
       {
-        Source += " left " + Sequence + " right;";
+        SCOPED_TRACE(Operator);
+        const ParsedFile File = test::parseSource("Left " + Operator + " Right;");
+        ASSERT_TRUE(File.succeeded());
+        ASSERT_EQ(test::countKind(File, AstKind::BinaryExpression), 1u);
+        const AstNodeId Id = test::nodesOfKind(File, AstKind::BinaryExpression)[0];
+        const BinaryExpression &Binary = File.ast().node(Id).get<BinaryExpression>();
+        EXPECT_EQ(tokenizer::symbolSpelling(Binary.Operator), Operator);
+        EXPECT_EQ(test::nodeText(File, Binary.Left), "Left");
+        EXPECT_EQ(test::nodeText(File, Binary.Right), "Right");
+        test::expectAstIntegrity(File);
       }
-      for (const std::string &Sequence : BinaryOperators)
-      {
-        Source += " left " + Sequence + " right;";
-      }
-      Source += " }";
-
-      const ParsedFile File = parseSource(Source);
-      const std::vector<std::string> OperatorTexts = nodeTextsOfKind(File, CstKind::Operator);
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::AssignmentStatement), AssignmentOperators.size());
-      for (const std::string &Sequence : AssignmentOperators)
-      {
-        SCOPED_TRACE(Sequence);
-        EXPECT_TRUE(containsText(OperatorTexts, Sequence));
-      }
-      for (const std::string &Sequence : BinaryOperators)
-      {
-        SCOPED_TRACE(Sequence);
-        EXPECT_TRUE(containsText(OperatorTexts, Sequence));
-      }
-      expectFullFidelity(File);
     }
 
-    // Verifies the non-operator compound terminals for expansion, generic application, range, and pointer members.
-    TEST(ParserSymbolSequenceTest, ContextualCompoundTerminalsSelectTheirDedicatedGrammar)
+    // Verifies every assignment operator is an attribute of a statement with direct target and value fields.
+    TEST(ParserSymbolSequenceTest, ParsesEveryAssignmentOperator)
     {
-      const ParsedFile File = parseSource("func terminals() { forward(...); expand(...arguments); Generic::<>; for (const item in begin..end) {} value->member; }");
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_TRUE(hasKind(File, CstKind::ForwardAllArguments));
-      EXPECT_TRUE(hasKind(File, CstKind::ListExpansion));
-      EXPECT_TRUE(hasKind(File, CstKind::GenericArgumentClause));
-      EXPECT_TRUE(hasKind(File, CstKind::ForStatement));
-      EXPECT_TRUE(hasKind(File, CstKind::PointerMemberExpression));
-      expectFullFidelity(File);
+      const std::vector<std::string> Operators = {"=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>="};
+      for (const std::string &Operator : Operators)
+      {
+        SCOPED_TRACE(Operator);
+        const ParsedFile File = test::parseSource("Target " + Operator + " Value;");
+        ASSERT_TRUE(File.succeeded());
+        EXPECT_EQ(test::countKind(File, AstKind::AssignmentStatement), 1u);
+        const AstNodeId Id = test::nodesOfKind(File, AstKind::AssignmentStatement)[0];
+        const AssignmentStatement &Assignment = File.ast().node(Id).get<AssignmentStatement>();
+        EXPECT_EQ(tokenizer::symbolSpelling(Assignment.Operator), Operator);
+        EXPECT_EQ(test::nodeText(File, Assignment.Target), "Target");
+        EXPECT_EQ(test::nodeText(File, Assignment.Value), "Value");
+        test::expectAstIntegrity(File);
+      }
     }
 
-    // Verifies that adjacent increment and decrement spellings are reserved errors rather than nested unary operators.
-    TEST(ParserSymbolSequenceTest, ReservedIncrementAndDecrementSequencesRecoverAsWholeTerms)
-    {
-      const ParsedFile File = parseSource("func reserved() { ++value; --value; }");
-
-      ASSERT_FALSE(File.succeeded());
-      EXPECT_EQ(static_cast<std::size_t>(std::count_if(test::testDiagnostics(File).begin(), test::testDiagnostics(File).end(), [](const core::Diagnostic &Diagnostic)
-                                                       {
-                                                         return Diagnostic.Kind == core::DiagnosticKind::ReservedSymbolSequence;
-                                                       })),
-                2u);
-      EXPECT_GE(countKind(File, CstKind::Error), 2u);
-      expectFullFidelity(File);
-    }
-
-    // Verifies that trivia interrupts a compound terminal while trivia-separated unary and binary ampersands remain valid.
+    // Verifies comments and whitespace cannot merge separate lexer symbols into compound syntax.
     TEST(ParserSymbolSequenceTest, TriviaPreventsCrossTokenCompoundMatching)
     {
-      const ParsedFile SplitComparison = parseSource("func split() { left < /* gap */ = right; }");
-      const ParsedFile SplitAmpersands = parseSource("func split() { left & &right; }");
-      const std::vector<std::string> SplitAmpersandOperators = nodeTextsOfKind(SplitAmpersands, CstKind::Operator);
-
-      EXPECT_FALSE(SplitComparison.succeeded());
-      EXPECT_FALSE(containsText(nodeTextsOfKind(SplitComparison, CstKind::Operator), "<="));
-      ASSERT_TRUE(SplitAmpersands.succeeded());
-      EXPECT_FALSE(containsText(SplitAmpersandOperators, "&&"));
-      EXPECT_EQ(static_cast<std::size_t>(std::count(SplitAmpersandOperators.begin(), SplitAmpersandOperators.end(), "&")), 2u);
-      expectFullFidelity(SplitComparison);
-      expectFullFidelity(SplitAmpersands);
-    }
-
-    // Verifies nested generic closers remain individual delimiters while ordinary greater-than operators work inside parentheses.
-    TEST(ParserGenericArgumentTest, NestedClosersAndParenthesizedGreaterThanOperatorsAreUnambiguous)
-    {
-      const ParsedFile File = parseSource("func generics() { Map::<String, Vector::<i32>>; Predicate::<(N > 0), (N >= 0), (N >> 1)>; Generic::<>; }");
-      const std::vector<std::string> ClauseTexts = nodeTextsOfKind(File, CstKind::GenericArgumentClause);
-      const std::vector<std::string> OperatorTexts = nodeTextsOfKind(File, CstKind::Operator);
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::GenericArgumentClause), 4u);
-      EXPECT_TRUE(containsText(ClauseTexts, "Map::<String, Vector::<i32>>"));
-      EXPECT_TRUE(containsText(OperatorTexts, ">"));
-      EXPECT_TRUE(containsText(OperatorTexts, ">="));
-      EXPECT_TRUE(containsText(OperatorTexts, ">>"));
-      expectFullFidelity(File);
-    }
-
-    // Verifies that only the adjacent three-character generic introducer commits to a generic argument clause.
-    TEST(ParserGenericArgumentTest, SplitGenericIntroducerDoesNotCommit)
-    {
-      const ParsedFile File = parseSource("func split() { Generic:: <i32>; }");
-
-      EXPECT_FALSE(File.succeeded());
-      EXPECT_FALSE(hasKind(File, CstKind::GenericArgumentClause));
-      expectFullFidelity(File);
-    }
-
-    struct TypeTailCase
-    {
-        const char *Name;
-        const char *Source;
-        std::size_t ExpectedTypeConstructors;
-    };
-
-    // Verifies type-constructor tail commitment at every caller-specific expression terminator defined by the grammar.
-    TEST(ParserTypeConstructorTailTest, CommitsAtEveryRequiredEndSet)
-    {
-      const std::vector<TypeTailCase> Cases = {
-          {"ReturnSemicolon", "func tail() { return T*[]; }", 1},
-          {"ForRange", "func tail() { for (const item in T* .. U*) {} }", 2},
-          {"SliceColonAndBracket", "func tail() { values[T*:U*]; }", 2},
-          {"IfElse", "const Selected = if (condition) T* else U*;", 2},
-          {"GenericCloser", "const Selected = Wrapper::<T*[N]>;", 1},
-          {"EnumComma", "enum Kind { Pointer = T*, Other }", 1},
-          {"AggregateComma", "const Selected = Record { field: T* };", 1},
-          {"CallParenthesis", "func tail() { inspect(T&); }", 1},
-      };
-
-      for (const TypeTailCase &TestCase : Cases)
+      const std::vector<std::string> Invalid = {"Left < /* gap */ = Right;", "Left : : [T];", "func f() - > void;", "Left -> /* gap */ ;"};
+      for (const std::string &Source : Invalid)
       {
-        SCOPED_TRACE(TestCase.Name);
-        const ParsedFile File = parseSource(TestCase.Source);
-        EXPECT_TRUE(File.succeeded());
-        EXPECT_EQ(countKind(File, CstKind::TypeConstructorExpression), TestCase.ExpectedTypeConstructors);
-        expectFullFidelity(File);
+        SCOPED_TRACE(Source);
+        const ParsedFile File = test::parseSource(Source);
+        EXPECT_FALSE(File.succeeded());
+        test::expectAstIntegrity(File);
+      }
+      const ParsedFile Valid = test::parseSource("Left + +Right; Left - -Right; ++Value; --Value;");
+      EXPECT_TRUE(Valid.succeeded());
+      EXPECT_EQ(test::countKind(Valid, AstKind::UnaryExpression), 6u);
+      test::expectAstIntegrity(Valid);
+    }
+
+    // Verifies square generic arguments keep comparisons and shifts unambiguous, including nested instantiations.
+    TEST(ParserGenericArgumentTest, NestedClosersComparisonsAndShiftsAreUnambiguous)
+    {
+      const std::vector<std::string> Sources = {
+          "Outer::[Inner::[T]](value);",
+          "Factory::[N > 0, M >= 0, Bits >> 1, A < B, X << 2];",
+          "Factory::[Ready ? T : U, makeType(), (T, U), Args...];",
+          "Factory::[Args...];",
+          "Object::[T]::[U].method::[V](first, rest...);",
+      };
+      for (const std::string &Source : Sources)
+      {
+        SCOPED_TRACE(Source);
+        const ParsedFile File = test::parseSource(Source);
+        ASSERT_TRUE(File.succeeded());
+        EXPECT_TRUE(test::hasKind(File, AstKind::GenericInstantiationExpression));
+        test::expectAstIntegrity(File);
       }
     }
 
-    // Verifies failed maximal type-tail probes roll back completely to multiplicative, bitwise, or unary expression parsing.
-    TEST(ParserTypeConstructorTailTest, RollsBackWhenAnOperandOrCallFollowsTheCandidateTail)
+    // Verifies empty generic arguments, old angle arguments, and misplaced pack expansions are rejected.
+    TEST(ParserGenericArgumentTest, RejectsOldDelimitersEmptyArgumentsAndMisplacedPacks)
     {
-      const ParsedFile File = parseSource("func rollback() { var x = T * n; var y = T & mask; var z = T**pointer; T*&reference; T*(value); }");
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::TypeConstructorExpression), 0u);
-      EXPECT_GE(countKind(File, CstKind::BinaryExpression), 5u);
-      EXPECT_GE(countKind(File, CstKind::UnaryExpression), 2u);
-      expectFullFidelity(File);
+      const std::vector<std::string> Sources = {"F::[];", "F::<T>;", "F::[T,];", "F::[Args..., T];", "F(...Args);", "F(Args..., Value);", "F(Value,);"};
+      for (const std::string &Source : Sources)
+      {
+        SCOPED_TRACE(Source);
+        const ParsedFile File = test::parseSource(Source);
+        EXPECT_FALSE(File.succeeded());
+        EXPECT_FALSE(test::testDiagnostics(File).empty());
+        test::expectAstIntegrity(File);
+      }
     }
 
-    // Verifies parentheses explicitly close type values before calls, members, generics, and later comparison operators.
-    TEST(ParserTypeConstructorTailTest, ParenthesesAllowConstructedTypesToContinueThroughPostfixAndInfixSyntax)
+    // Verifies explicit ref and ptr prefixes replace terminal type-suffix speculation in every expression context.
+    TEST(ParserTypeConstructorTailTest, UsesPrefixTypesWithoutSuffixSpeculation)
     {
-      const ParsedFile File = parseSource("func grouped() { (T*)(value); (T*).metadata; (T*)::<Argument>; (T*) == (U*); }");
-
+      const ParsedFile File = test::parseSource("ptr T; const ptr T; ref T; const ref T; let Value: ptr makeType() = Input; func f() -> ref T;");
       ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::TypeConstructorExpression), 5u);
-      EXPECT_TRUE(hasKind(File, CstKind::CallExpression));
-      EXPECT_TRUE(hasKind(File, CstKind::MemberExpression));
-      EXPECT_TRUE(hasKind(File, CstKind::GenericArgumentClause));
-      EXPECT_TRUE(containsText(nodeTextsOfKind(File, CstKind::Operator), "=="));
-      expectFullFidelity(File);
+      EXPECT_EQ(test::countKind(File, AstKind::PointerTypeExpression), 3u);
+      EXPECT_EQ(test::countKind(File, AstKind::ReferenceTypeExpression), 3u);
+      for (AstNodeId Id : test::nodesOfKind(File, AstKind::PointerTypeExpression))
+      {
+        EXPECT_NE(File.ast().node(Id).get<PointerTypeExpression>().Operand, InvalidAstNodeId);
+      }
+      test::expectAstIntegrity(File);
     }
 
-    // Verifies compound assignments are never split as type suffixes, while trivia before a plain equals permits type-valued left sides.
-    TEST(ParserTypeConstructorTailTest, AssignmentOperatorsTakePriorityOverTypeSuffixProbes)
+    // Verifies ordinary binary operators retain their meaning in type syntax and cannot become postfix pointer or reference suffixes.
+    TEST(ParserTypeConstructorTailTest, KeepsStarAndAmpersandAsOrdinaryOperators)
     {
-      const ParsedFile File = parseSource("func assignments() { T*=value; T&=mask; T* = value; T& = value; }");
-      const std::vector<std::string> OperatorTexts = nodeTextsOfKind(File, CstKind::Operator);
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::AssignmentStatement), 4u);
-      EXPECT_EQ(countKind(File, CstKind::TypeConstructorExpression), 2u);
-      EXPECT_TRUE(containsText(OperatorTexts, "*="));
-      EXPECT_TRUE(containsText(OperatorTexts, "&="));
-      EXPECT_EQ(static_cast<std::size_t>(std::count(OperatorTexts.begin(), OperatorTexts.end(), "=")), 2u);
-      expectFullFidelity(File);
+      const ParsedFile Valid = test::parseSource("T * []; T & []; let Value: A * B = Input;");
+      ASSERT_TRUE(Valid.succeeded());
+      EXPECT_EQ(test::countKind(Valid, AstKind::BinaryExpression), 3u);
+      EXPECT_EQ(test::countKind(Valid, AstKind::PointerTypeExpression), 0u);
+      EXPECT_EQ(test::countKind(Valid, AstKind::ReferenceTypeExpression), 0u);
+      test::expectAstIntegrity(Valid);
+      for (const std::string Source : {"T*;", "T&;", "let Value: T* = Input;", "func f(Value: T&) -> void;"})
+      {
+        const ParsedFile Invalid = test::parseSource(Source);
+        EXPECT_FALSE(Invalid.succeeded());
+        test::expectAstIntegrity(Invalid);
+      }
     }
 
-    // Verifies explicit type syntax consumes adjacent pointer and reference suffix characters one at a time.
-    TEST(ParserTypeConstructorTailTest, ExplicitTypeContextConsumesAdjacentSuffixCharactersIndividually)
+    // Verifies equal-precedence comparison chains are rejected while explicitly grouped or lower-precedence-separated comparisons remain valid.
+    TEST(ParserSymbolSequenceTest, EnforcesNonAssociativeComparisons)
     {
-      const ParsedFile File = parseSource("func suffixes(value: Data&&) -> Result**;");
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::ReferenceTypeSuffix), 2u);
-      EXPECT_EQ(countKind(File, CstKind::PointerTypeSuffix), 2u);
-      EXPECT_EQ(countKind(File, CstKind::TypeConstructorExpression), 0u);
-      expectFullFidelity(File);
+      const std::vector<std::string> Invalid = {"A < B < C;", "A < B >= C;", "A == B != C;", "A < B == C < D < E;", "A == B < C == D;"};
+      for (const std::string &Source : Invalid)
+      {
+        SCOPED_TRACE(Source);
+        const ParsedFile File = test::parseSource(Source);
+        EXPECT_FALSE(File.succeeded());
+        test::expectAstIntegrity(File);
+      }
+      const std::vector<std::string> Valid = {"(A < B) < C;", "A < (B < C);", "A < B == C < D;", "A < B && C < D;", "A == B | C == D;"};
+      for (const std::string &Source : Valid)
+      {
+        SCOPED_TRACE(Source);
+        const ParsedFile File = test::parseSource(Source);
+        EXPECT_TRUE(File.succeeded());
+        test::expectAstIntegrity(File);
+      }
     }
   } // namespace
 } // namespace ink::parser

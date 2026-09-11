@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var ara = cpp_array(100005);
+var ara: dynamic = cpp_array(100005);
 
-var aa = cpp_array(100005);
+var aa: dynamic = cpp_array(100005);
 
-var bb = cpp_array(100005);
+var bb: dynamic = cpp_array(100005);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (ara + i));
@@ -26,16 +26,16 @@ func main()
     return 0;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var x = ara[i];
-      var rem = (((-x)) % n);
+      var x: dynamic = ara[i];
+      var rem: dynamic = (((-x)) % n);
       rem += n;
       rem %= n;
       rem = (((n - rem)) % n);
-      var b = rem;
-      var a = ((((b - x)) / n) - b);
+      var b: dynamic = rem;
+      var a: dynamic = ((((b - x)) / n) - b);
       aa[i] = (a * n);
       bb[i] = (b * ((n - 1)));
       i += 1;
@@ -43,7 +43,7 @@ func main()
   }
   printf("%d %d\n", 1, n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%lld ", aa[i]);
@@ -53,7 +53,7 @@ func main()
   printf("\n");
   printf("%d %d\n", 1, (n - 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       printf("%lld ", bb[i]);

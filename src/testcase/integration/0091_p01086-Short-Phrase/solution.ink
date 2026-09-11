@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-func lp(i: dynamic, n: dynamic)
+func lp(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-func main()
+func main() -> dynamic
 {
   while (1)
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
     if ((n == 0))
     {
       break;
     }
-    var a = cpp_array(50);
-    var memo: dynamic;
+    var a: dynamic = cpp_array(50);
+    var memo: dynamic = cpp_uninitialized();
   }
   return 0;
 }
 
-func lp(argument_0: dynamic, argument_1: dynamic)
+func lp(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       read(memo);
       a[i] = memo.size();
     }
 
-func lp(argument_0: dynamic, argument_1: dynamic)
+func lp(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var ans = 0;
-      var count = 0;
-      var stats = 0;
+      var ans: dynamic = 0;
+      var count: dynamic = 0;
+      var stats: dynamic = 0;
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j < n))
         {
           if (((stats == 0) || (stats == 2)))

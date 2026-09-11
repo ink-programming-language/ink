@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-func solve()
+func solve() -> dynamic
 {
-  var S: dynamic;
-  var t: dynamic;
+  var S: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(S, t);
-  var n = S.size();
-  var a = [];
-  var b = [];
+  var n: dynamic = S.size();
+  var a: dynamic = [];
+  var b: dynamic = [];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a[(S[i] - cpp_char("0"))][(S[(i + 1)] - cpp_char("0"))] += 1;
@@ -24,23 +24,23 @@ func solve()
     write("-1\n\n");
     return;
   }
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   while (true)
   {
-    var s = S;
+    var s: dynamic = S;
     res.clear();
-    var rev = __cpp_lambda_1;
+    var rev: dynamic = __cpp_lambda_1;
     {
-      var j = (n - 2);
+      var j: dynamic = (n - 2);
       while ((j >= 0))
       {
-        var target = t.substr(j, 2);
+        var target: dynamic = t.substr(j, 2);
         if ((s.substr(j, 2) == target))
         {
           j -= 2;
           continue;
         }
-        var i = 0;
+        var i: dynamic = 0;
         {
           while ((i < j))
           {
@@ -68,7 +68,7 @@ func solve()
             }
           }
           assert((i <= j));
-          var k = (rng() % (((((j - i)) / 2) + 1)));
+          var k: dynamic = (rng() % (((((j - i)) / 2) + 1)));
           i += (k * 2);
           rev((i + 2));
           j += 2;
@@ -83,18 +83,18 @@ func solve()
     }
   }
   write(res.size(), "\n");
-  for (var x in res)
+  for (var x: dynamic in res)
   {
     write(x, cpp_char(" "));
   }
   write("\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
@@ -103,7 +103,7 @@ func main()
   write("\n");
 }
 
-func __cpp_lambda_1(p: dynamic)
+func __cpp_lambda_1(p: dynamic) -> dynamic
 {
   if ((!p))
   {

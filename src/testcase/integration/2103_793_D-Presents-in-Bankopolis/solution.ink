@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(83, 83, 83, 83);
+var dp: dynamic = cpp_array(83, 83, 83, 83);
 
-var adj = cpp_array(103);
+var adj: dynamic = cpp_array(103);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-func f(nw: dynamic, baki: dynamic, l: dynamic, r: dynamic)
+func f(nw: dynamic, baki: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if ((baki == 0))
   {
@@ -22,11 +22,11 @@ func f(nw: dynamic, baki: dynamic, l: dynamic, r: dynamic)
   {
     return dp[nw][baki][l][r];
   }
-  var ret = inf;
-  for (var x in adj[nw])
+  var ret: dynamic = inf;
+  for (var x: dynamic in adj[nw])
   {
-    var v = x.first;
-    var w = x.second;
+    var v: dynamic = x.first;
+    var w: dynamic = x.second;
     if (((v <= l) || (v >= r)))
     {
       continue;
@@ -46,21 +46,21 @@ func f(nw: dynamic, baki: dynamic, l: dynamic, r: dynamic)
   return cpp_assign(dp[nw][baki][l][r], "=", ret);
 }
 
-func main()
+func main() -> dynamic
 {
   memset(dp, -1, cpp_sizeof(dp));
   read(n, k, m);
   while (cpp_update(m, "--"))
   {
-    var u: dynamic;
-    var v: dynamic;
-    var w: dynamic;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
+    var w: dynamic = cpp_uninitialized();
     read(u, v, w);
     adj[u].push_back(make_pair(v, w));
   }
-  var ses = inf;
+  var ses: dynamic = inf;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ses = min(ses, f(i, (k - 1), 0, (n + 1)));

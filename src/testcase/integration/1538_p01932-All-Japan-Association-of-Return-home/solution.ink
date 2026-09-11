@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var INF = cpp_expression("#include<bi");
+var INF: dynamic = cpp_expression("#include<bi");
 
-var MAX = cpp_expression("#inclu");
+var MAX: dynamic = cpp_expression("#inclu");
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var D: dynamic;
+var D: dynamic = cpp_uninitialized();
 
-var t = cpp_array(MAX);
+var t: dynamic = cpp_array(MAX);
 
-var F = cpp_array(MAX);
+var F: dynamic = cpp_array(MAX);
 
-func main()
+func main() -> dynamic
 {
-  var num = 0;
-  var ans = 0;
+  var num: dynamic = 0;
+  var ans: dynamic = 0;
   read(N, D);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(t[i], F[i]);
@@ -35,7 +35,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (((num + 1) > D))

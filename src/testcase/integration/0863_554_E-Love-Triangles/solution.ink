@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var M = (1e9 + 7);
+var M: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var u: dynamic;
+var u: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var dis = cpp_array(100100);
+var dis: dynamic = cpp_array(100100);
 
-var ans = 1;
+var ans: dynamic = 1;
 
-var mark = cpp_array(100100);
+var mark: dynamic = cpp_array(100100);
 
-var g = cpp_array(100100);
+var g: dynamic = cpp_array(100100);
 
-func dfs(a: dynamic)
+func dfs(a: dynamic) -> dynamic
 {
   mark[a] = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < g[a].size()))
     {
       if ((!mark[g[a][i].first]))
@@ -49,11 +49,11 @@ func dfs(a: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(v, u, t);
@@ -64,7 +64,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!mark[i]))
@@ -76,7 +76,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < cnt))
     {
       ans = (((ans * 2)) % M);

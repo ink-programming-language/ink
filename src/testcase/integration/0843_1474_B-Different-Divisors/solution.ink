@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var mod = cpp_expression("#include<b");
+var mod: dynamic = cpp_expression("#include<b");
 
-var v2: dynamic;
+var v2: dynamic = cpp_uninitialized();
 
-var prime = cpp_array(1000000);
+var prime: dynamic = cpp_array(1000000);
 
-func fun(n: dynamic)
+func fun(n: dynamic) -> dynamic
 {
   {
-    var p = 2;
+    var p: dynamic = 2;
     while (((p * p) <= n))
     {
       if ((prime[p] == true))
       {
         {
-          var i = (p * p);
+          var i: dynamic = (p * p);
           while ((i <= n))
           {
             prime[i] = false;
@@ -29,7 +29,7 @@ func fun(n: dynamic)
     }
   }
   {
-    var p = 2;
+    var p: dynamic = 2;
     while ((p <= n))
     {
       if (prime[p])
@@ -41,24 +41,24 @@ func fun(n: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   memset(prime, true, cpp_sizeof((prime)));
   fun(1000000);
   sort(v2.begin(), v2.end());
   while (cpp_update(t, "--"))
   {
-    var d: dynamic;
-    var i: dynamic;
+    var d: dynamic = cpp_uninitialized();
+    var i: dynamic = cpp_uninitialized();
     read(d);
-    var a = 1;
-    var pro = 1;
-    var cnt = 0;
-    var ans2: dynamic;
+    var a: dynamic = 1;
+    var pro: dynamic = 1;
+    var cnt: dynamic = 0;
+    var ans2: dynamic = cpp_uninitialized();
     {
       i = (1 + d);
       while ((i < v2.size()))

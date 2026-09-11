@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var CRT_SECURE_NO_WARNINGS = cpp_expression("#def");
+var CRT_SECURE_NO_WARNINGS: dynamic = cpp_expression("#def");
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-func main()
+func main() -> dynamic
 {
   read(M);
   read(C);
-  var N = C.size();
+  var N: dynamic = C.size();
   if (((N == 1) && (M == 0)))
   {
     write(0, "\n");
     return 0;
   }
-  var ten = 1;
-  var arr = [];
+  var ten: dynamic = 1;
+  var arr: dynamic = [];
   {
-    var i = (N - 1);
+    var i: dynamic = (N - 1);
     while ((i >= 0))
     {
       arr[(C[i] - cpp_char("0"))] += ten;
@@ -31,23 +31,23 @@ func main()
       i -= 1;
     }
   }
-  var per: dynamic;
+  var per: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 10))
     {
       per.push_back(i);
       i += 1;
     }
   }
-  var sent = (C[0] - cpp_char("0"));
+  var sent: dynamic = (C[0] - cpp_char("0"));
   while (true)
   {
     if ((per[sent] != 0))
     {
-      var tmp = 0;
+      var tmp: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 10))
         {
           tmp += (((arr[i] * per[i])) % MOD);
@@ -57,7 +57,7 @@ func main()
       }
       if ((tmp == M))
       {
-        for (var c in C)
+        for (var c: dynamic in C)
         {
           write(per[(c - cpp_char("0"))]);
         }

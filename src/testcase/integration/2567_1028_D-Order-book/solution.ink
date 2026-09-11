@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
   srand(time(null));
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var mis1: dynamic;
-  var mis2: dynamic;
-  var we: dynamic;
-  var ans = 1;
+  var mis1: dynamic = cpp_uninitialized();
+  var mis2: dynamic = cpp_uninitialized();
+  var we: dynamic = cpp_uninitialized();
+  var ans: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       read(s);
       if ((s == "ADD"))
       {
-        var a: dynamic;
+        var a: dynamic = cpp_uninitialized();
         read(a);
         we.push_back(a);
       } else
       {
-        var a: dynamic;
+        var a: dynamic = cpp_uninitialized();
         read(a);
         sort(we.begin(), we.end());
         if ((mis2.size() != 0))
@@ -55,7 +55,7 @@ func main()
         if ((mis1.size() && (a == (*(cpp_update(mis1.end(), "--"))))))
         {
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < we.size()))
             {
               mis2.insert(we[i]);
@@ -67,7 +67,7 @@ func main()
         } else if ((mis2.size() && (a == ((*mis2.begin())))))
         {
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < we.size()))
             {
               mis1.insert(we[i]);
@@ -79,7 +79,7 @@ func main()
         } else
         {
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < we.size()))
             {
               if ((we[i] < a))

@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var N = (2e6 + 5);
+var N: dynamic = (2e6 + 5);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var tp = cpp_array(N);
+var tp: dynamic = cpp_array(N);
 
-var rak = cpp_array(N);
+var rak: dynamic = cpp_array(N);
 
-var sa = cpp_array(N);
+var sa: dynamic = cpp_array(N);
 
-var tax = cpp_array(N);
+var tax: dynamic = cpp_array(N);
 
-var sl: dynamic;
+var sl: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(N);
+var cnt: dynamic = cpp_array(N);
 
-var lg = cpp_array(N);
+var lg: dynamic = cpp_array(N);
 
-var f = cpp_array(20, N);
+var f: dynamic = cpp_array(20, N);
 
-var rr = cpp_array(N);
+var rr: dynamic = cpp_array(N);
 
-func radixSort()
+func radixSort() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       tax[i] = 0;
@@ -35,7 +35,7 @@ func radixSort()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sl))
     {
       tax[rak[i]] += 1;
@@ -43,7 +43,7 @@ func radixSort()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       tax[i] += tax[(i - 1)];
@@ -51,7 +51,7 @@ func radixSort()
     }
   }
   {
-    var i = sl;
+    var i: dynamic = sl;
     while (i)
     {
       sa[cpp_update(tax[rak[tp[i]]], "--")] = tp[i];
@@ -60,11 +60,11 @@ func radixSort()
   }
 }
 
-func build_sa()
+func build_sa() -> dynamic
 {
   m = 125;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sl))
     {
       rak[i] = s[i];
@@ -74,13 +74,13 @@ func build_sa()
   }
   radixSort();
   {
-    var p = 0;
-    var w = 1;
+    var p: dynamic = 0;
+    var w: dynamic = 1;
     while ((p < sl))
     {
       p = 0;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= w))
         {
           tp[cpp_update(p, "++")] = ((sl - w) + i);
@@ -88,7 +88,7 @@ func build_sa()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= sl))
         {
           if ((sa[i] > w))
@@ -102,10 +102,10 @@ func build_sa()
       swap(tp, rak);
       rak[sa[1]] = cpp_assign(p, "=", 1);
       {
-        var i = 2;
+        var i: dynamic = 2;
         while ((i <= sl))
         {
-          rak[sa[i]] = if ((((tp[sa[i]] == tp[sa[(i - 1)]]) && (tp[(sa[i] + w)] == tp[(sa[(i - 1)] + w)])))) p else cpp_update(p, "++");
+          rak[sa[i]] =  ((((tp[sa[i]] == tp[sa[(i - 1)]]) && (tp[(sa[i] + w)] == tp[(sa[(i - 1)] + w)])))) ? p : cpp_update(p, "++");
           i += 1;
         }
       }
@@ -115,13 +115,13 @@ func build_sa()
   }
 }
 
-func make_st()
+func make_st() -> dynamic
 {
-  var range = lg[sl];
+  var range: dynamic = lg[sl];
   if ((cnt[sl] > 0))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= sl))
       {
         f[i][0] = cnt[i];
@@ -129,11 +129,11 @@ func make_st()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= range))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((((j + ((1 << i))) - 1) <= sl))
           {
             f[j][i] = min(f[j][(i - 1)], f[(j + ((1 << ((i - 1)))))][(i - 1)]);
@@ -146,7 +146,7 @@ func make_st()
   } else
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= sl))
       {
         f[i][0] = rr[i];
@@ -154,11 +154,11 @@ func make_st()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= range))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((((j + ((1 << i))) - 1) <= sl))
           {
             f[j][i] = max(f[j][(i - 1)], f[(j + ((1 << ((i - 1)))))][(i - 1)]);
@@ -171,9 +171,9 @@ func make_st()
   }
 }
 
-func query(l: dynamic, r: dynamic)
+func query(l: dynamic, r: dynamic) -> dynamic
 {
-  var range = lg[((r - l) + 1)];
+  var range: dynamic = lg[((r - l) + 1)];
   if ((cnt[sl] > 0))
   {
     return min(f[l][range], f[((r - ((1 << range))) + 1)][range]);
@@ -183,12 +183,12 @@ func query(l: dynamic, r: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", (s + 1));
   sl = strlen((s + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sl))
     {
       s[(i + sl)] = s[i];
@@ -198,23 +198,23 @@ func main()
   sl <<= 1;
   build_sa();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sl))
     {
-      cnt[i] = (cnt[(i - 1)] + (if (((s[i] == cpp_char("(")))) 1 else -1));
+      cnt[i] = (cnt[(i - 1)] + ( (((s[i] == cpp_char("(")))) ? 1 : -1));
       i += 1;
     }
   }
   {
-    var i = sl;
+    var i: dynamic = sl;
     while (i)
     {
-      rr[i] = (rr[(i + 1)] + (if (((s[i] == cpp_char("(")))) 1 else -1));
+      rr[i] = (rr[(i + 1)] + ( (((s[i] == cpp_char("(")))) ? 1 : -1));
       i -= 1;
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= sl))
     {
       lg[i] = (lg[(i - 1)] + ((i == ((1 << ((lg[(i - 1)] + 1)))))));
@@ -222,20 +222,20 @@ func main()
     }
   }
   make_st();
-  var l_cnt = 0;
-  var r_cnt = 0;
-  var ans_pos: dynamic;
+  var l_cnt: dynamic = 0;
+  var r_cnt: dynamic = 0;
+  var ans_pos: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sl))
     {
-      var p = sa[i];
+      var p: dynamic = sa[i];
       if ((p > (sl / 2)))
       {
         i += 1;
         continue;
       }
-      var res = query(p, ((p + (sl / 2)) - 1));
+      var res: dynamic = query(p, ((p + (sl / 2)) - 1));
       if ((cnt[sl] > 0))
       {
         if (((res - cnt[(p - 1)]) < 0))
@@ -261,7 +261,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= l_cnt))
     {
       printf("(");
@@ -269,7 +269,7 @@ func main()
     }
   }
   {
-    var i = ans_pos;
+    var i: dynamic = ans_pos;
     while ((i <= ((ans_pos + (sl / 2)) - 1)))
     {
       printf("%c", s[i]);
@@ -277,7 +277,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= r_cnt))
     {
       printf(")");

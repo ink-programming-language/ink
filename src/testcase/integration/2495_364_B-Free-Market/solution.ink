@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(600009);
+var dp: dynamic = cpp_array(600009);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var d: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var sum: dynamic;
-  var tmp: dynamic;
-  var now: dynamic;
-  var back: dynamic;
-  var day: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  var tmp: dynamic = cpp_uninitialized();
+  var now: dynamic = cpp_uninitialized();
+  var back: dynamic = cpp_uninitialized();
+  var day: dynamic = cpp_uninitialized();
   while ((scanf("%d %d", (&n), (&d)) != EOF))
   {
     memset(dp, 0, cpp_sizeof((dp)));

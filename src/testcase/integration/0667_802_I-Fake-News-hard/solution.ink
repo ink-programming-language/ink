@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var N = 200500;
+var N: dynamic = 200500;
 
 class state
 {
-  var len: dynamic;
-  var link: dynamic;
-  var next: dynamic;
+  var len: dynamic = cpp_uninitialized();
+  var link: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
-var st = cpp_array(N);
+var st: dynamic = cpp_array(N);
 
-var sz: dynamic;
+var sz: dynamic = cpp_uninitialized();
 
-var last: dynamic;
+var last: dynamic = cpp_uninitialized();
 
-func sa_init()
+func sa_init() -> dynamic
 {
   last = cpp_assign(st[0].len, "=", 0);
   sz = 1;
   st[0].link = -1;
 }
 
-func sa_extend(c: dynamic)
+func sa_extend(c: dynamic) -> dynamic
 {
-  var k = cpp_update(sz, "++");
-  var p: dynamic;
+  var k: dynamic = cpp_update(sz, "++");
+  var p: dynamic = cpp_uninitialized();
   st[k].len = (st[last].len + 1);
   {
     p = last;
@@ -40,13 +40,13 @@ func sa_extend(c: dynamic)
     st[k].link = 0;
   } else
   {
-    var q = st[p].next[c];
+    var q: dynamic = st[p].next[c];
     if (((st[p].len + 1) == st[q].len))
     {
       st[k].link = q;
     } else
     {
-      var w = cpp_update(sz, "++");
+      var w: dynamic = cpp_update(sz, "++");
       st[w].len = (st[p].len + 1);
       st[w].next = st[q].next;
       st[w].link = st[q].link;
@@ -63,50 +63,50 @@ func sa_extend(c: dynamic)
   last = k;
 }
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(N);
+var dp: dynamic = cpp_array(N);
 
-var t = cpp_array(N);
+var t: dynamic = cpp_array(N);
 
-func f(i: dynamic)
+func f(i: dynamic) -> dynamic
 {
   if ((dp[i] != -1))
   {
     return dp[i];
   }
-  var r = cpp_assign(dp[i], "=", t[i]);
-  for (var p in st[i].next)
+  var r: dynamic = cpp_assign(dp[i], "=", t[i]);
+  for (var p: dynamic in st[i].next)
   {
     r += f(p.second);
   }
   return r;
 }
 
-func solve()
+func solve() -> dynamic
 {
   sa_init();
   memset(dp, -1, cpp_sizeof(dp));
   {
-    var i = 0;
-    var qwerty = (cpp_cast((s).size()));
+    var i: dynamic = 0;
+    var qwerty: dynamic = (cpp_cast((s).size()));
     while ((i < qwerty))
     {
       sa_extend(s[i]);
       i += 1;
     }
   }
-  var x = last;
+  var x: dynamic = last;
   while (x)
   {
     t[x] = 1;
     x = st[x].link;
   }
   f(0);
-  var r = 0;
+  var r: dynamic = 0;
   {
-    var i = 1;
-    var qwerty = sz;
+    var i: dynamic = 1;
+    var qwerty: dynamic = sz;
     while ((i < qwerty))
     {
       r += ((f(i) * f(i)) * ((st[i].len - st[st[i].link].len)));
@@ -119,8 +119,8 @@ func solve()
     last = st[last].link;
   }
   {
-    var i = 0;
-    var qwerty = sz;
+    var i: dynamic = 0;
+    var qwerty: dynamic = sz;
     while ((i < qwerty))
     {
       st[i].next.clear();
@@ -130,16 +130,16 @@ func solve()
   write(r, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var tn: dynamic;
+  var tn: dynamic = cpp_uninitialized();
   read(tn);
   {
-    var i = 0;
-    var qwerty = tn;
+    var i: dynamic = 0;
+    var qwerty: dynamic = tn;
     while ((i < qwerty))
     {
       read(s);

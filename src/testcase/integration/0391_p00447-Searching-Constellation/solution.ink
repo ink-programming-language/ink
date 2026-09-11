@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func f(a: dynamic, b: dynamic)
+func f(a: dynamic, b: dynamic) -> dynamic
 {
   return make_pair((b.first - a.first), (b.second - a.second));
 }
 
-func main()
+func main() -> dynamic
 {
-  var m: dynamic;
-  var n: dynamic;
+  var m: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   while (true)
   {
     read(m);
@@ -17,7 +17,7 @@ func main()
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         read(seiza[i].first, seiza[i].second);
@@ -26,27 +26,27 @@ func main()
     }
     read(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(image[i].first, image[i].second);
         i += 1;
       }
     }
-    var s0 = seiza[0];
+    var s0: dynamic = seiza[0];
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var cnt = 1;
-        var amount_of_change = f(s0, image[i]);
+        var cnt: dynamic = 1;
+        var amount_of_change: dynamic = f(s0, image[i]);
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < m))
           {
-            var sj = seiza[j];
+            var sj: dynamic = seiza[j];
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < n))
               {
                 if ((((sj.first + amount_of_change.first) == image[k].first) && ((sj.second + amount_of_change.second) == image[k].second)))

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(1000010);
+var s: dynamic = cpp_array(1000010);
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var cntx: dynamic;
+var cntx: dynamic = cpp_uninitialized();
 
-var cnty: dynamic;
+var cnty: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   scanf("%s", s);
   len = strlen(s);
   {

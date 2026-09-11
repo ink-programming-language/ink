@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var maxn = (1e5 + 10);
+var maxn: dynamic = (1e5 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var vis = cpp_array((3 * maxn));
+var vis: dynamic = cpp_array((3 * maxn));
 
-var cir = cpp_array((3 * maxn));
+var cir: dynamic = cpp_array((3 * maxn));
 
-var suff = cpp_array((3 * maxn));
+var suff: dynamic = cpp_array((3 * maxn));
 
-var G = cpp_array((3 * maxn));
+var G: dynamic = cpp_array((3 * maxn));
 
-var path: dynamic;
+var path: dynamic = cpp_uninitialized();
 
-func dfs(now: dynamic, pre: dynamic)
+func dfs(now: dynamic, pre: dynamic) -> dynamic
 {
   path.push(now);
   vis[now] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(G[now].size())))
     {
-      var Next = G[now][i];
+      var Next: dynamic = G[now][i];
       if ((Next == pre))
       {
         i += 1;
@@ -42,11 +42,11 @@ func dfs(now: dynamic, pre: dynamic)
       }
       if ((vis[Next] == 1))
       {
-        var maxc = now;
-        var minc = now;
+        var maxc: dynamic = now;
+        var minc: dynamic = now;
         while ((!path.empty()))
         {
-          var temp = path.top();
+          var temp: dynamic = path.top();
           path.pop();
           maxc = max(maxc, temp);
           minc = min(minc, temp);
@@ -67,15 +67,15 @@ func dfs(now: dynamic, pre: dynamic)
   vis[now] = 2;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld %lld", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%lld %lld", (&u), (&v));
       G[u].push_back(v);
       G[v].push_back(u);
@@ -84,7 +84,7 @@ func main()
   }
   memset(vis, 0, cpp_sizeof((vis)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n + 1)))
     {
       cir[i] = (n + 1);
@@ -92,7 +92,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))
@@ -104,7 +104,7 @@ func main()
   }
   suff[n] = cpp_assign(suff[(n + 1)], "=", 0);
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       cir[i] = min(cir[i], cir[(i + 1)]);
@@ -112,7 +112,7 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       suff[i] = ((cir[i] - i) + suff[(i + 1)]);
@@ -123,12 +123,12 @@ func main()
   while (cpp_update(q, "--"))
   {
     scanf("%lld %lld", (&l), (&r));
-    var L = l;
-    var R = r;
-    var p: dynamic;
+    var L: dynamic = l;
+    var R: dynamic = r;
+    var p: dynamic = cpp_uninitialized();
     while ((L <= R))
     {
-      var m = (((L + R)) / 2);
+      var m: dynamic = (((L + R)) / 2);
       if ((cir[m] <= r))
       {
         L = (m + 1);
@@ -138,7 +138,7 @@ func main()
         R = (m - 1);
       }
     }
-    var ans = ((suff[l] - suff[p]) + (((((r - p) + 1)) * (((r - p) + 2))) / 2));
+    var ans: dynamic = ((suff[l] - suff[p]) + (((((r - p) + 1)) * (((r - p) + 2))) / 2));
     printf("%lld\n", ans);
   }
   return 0;

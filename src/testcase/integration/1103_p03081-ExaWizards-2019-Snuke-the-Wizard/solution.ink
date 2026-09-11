@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var MAX = cpp_expression("#inclu");
+var MAX: dynamic = cpp_expression("#inclu");
 
-var t = cpp_array(MAX);
+var t: dynamic = cpp_array(MAX);
 
-var d = cpp_array(MAX);
+var d: dynamic = cpp_array(MAX);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func mycheck(goal: dynamic, place: dynamic)
+func mycheck(goal: dynamic, place: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= Q))
     {
       if ((t[i] == s[(place - 1)]))
@@ -42,23 +42,23 @@ func mycheck(goal: dynamic, place: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   read(N, Q, s);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= Q))
     {
       read(t[i], d[i]);
       i += 1;
     }
   }
-  var s = 0;
-  var e = (N + 1);
-  var ans0: dynamic;
-  var ansN: dynamic;
-  var ans: dynamic;
-  var h: dynamic;
+  var s: dynamic = 0;
+  var e: dynamic = (N + 1);
+  var ans0: dynamic = cpp_uninitialized();
+  var ansN: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
   h = (((s + e)) / 2);
   while (true)
   {

@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var arr = cpp_array((100000 + 100));
+var arr: dynamic = cpp_array((100000 + 100));
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var v = cpp_array((n + 1));
+  var v: dynamic = cpp_array((n + 1));
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
-      var t: dynamic;
+      var t: dynamic = cpp_uninitialized();
       read(t);
       v[t].push_back(i);
       v[i].push_back(t);
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.push(1);
   arr[1] = 1;
-  var max = 1;
-  var x = 0;
-  var k = 0;
-  var coun = 1;
+  var max: dynamic = 1;
+  var x: dynamic = 0;
+  var k: dynamic = 0;
+  var coun: dynamic = 1;
   while ((!q.empty()))
   {
-    var t = q.front();
+    var t: dynamic = q.front();
     q.pop();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < v[t].size()))
       {
         if ((arr[v[t][i]] == 0))

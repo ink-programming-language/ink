@@ -1,46 +1,46 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var PI = cpp_expression("#include <cstdio> #include <algor");
+var PI: dynamic = cpp_expression("#include <cstdio> #include <algor");
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   cpp_macro("scanf(\"%d\",&x);");
 }
 
-func readll(x: dynamic)
+func readll(x: dynamic) -> dynamic
 {
   cpp_macro("cin>>x;");
 }
 
-func FOR(x: dynamic, a: dynamic, b: dynamic)
+func FOR(x: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int x=a;x<b;x++)");
 }
 
-var MP = cpp_expression("#include");
+var MP: dynamic = cpp_expression("#include");
 
-var PB = cpp_expression("#include");
+var PB: dynamic = cpp_expression("#include");
 
-var pii = cpp_expression("#include <cst");
+var pii: dynamic = cpp_expression("#include <cst");
 
-func readN(N: dynamic, X: dynamic)
+func readN(N: dynamic, X: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<N;i++) cin>>X[i];");
 }
 
-var pff = cpp_expression("#include <cstdio> #");
+var pff: dynamic = cpp_expression("#include <cstdio> #");
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
-var pq: dynamic;
+var pq: dynamic = cpp_uninitialized();
 
-func cmp(A: dynamic, B: dynamic)
+func cmp(A: dynamic, B: dynamic) -> dynamic
 {
   if ((A.first == B.first))
   {
@@ -49,7 +49,7 @@ func cmp(A: dynamic, B: dynamic)
   return (A.first < B.first);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(N, M);
@@ -58,10 +58,10 @@ func main()
     read(a[i].first, a[i].second);
   }
   sort(a, (a + N), cmp);
-  var j = 0;
-  var ans = 0;
+  var j: dynamic = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= M))
     {
       while (((j < N) && (a[j].first < i)))

@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-func syosu(x: dynamic)
+func syosu(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.");
 }
 
-var inf = (1 << 30);
+var inf: dynamic = (1 << 30);
 
-var INF = (1 << 60);
+var INF: dynamic = (1 << 60);
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var dx = [-1, 0, 1, 0];
+var dx: dynamic = [-1, 0, 1, 0];
 
-var dy = [0, -1, 0, 1];
+var dy: dynamic = [0, -1, 0, 1];
 
-var M = 21;
+var M: dynamic = 21;
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(M, M, M, M);
+var dp: dynamic = cpp_array(M, M, M, M);
 
-func Rec(lx: dynamic, rx: dynamic, ly: dynamic, ry: dynamic)
+func Rec(lx: dynamic, rx: dynamic, ly: dynamic, ry: dynamic) -> dynamic
 {
   if (((lx == rx) || (ly == ry)))
   {
@@ -39,13 +39,13 @@ func Rec(lx: dynamic, rx: dynamic, ly: dynamic, ry: dynamic)
   {
     return dp[lx][rx][ly][ry];
   }
-  var st: dynamic;
+  var st: dynamic = cpp_uninitialized();
   {
-    var i = lx;
+    var i: dynamic = lx;
     while ((i < rx))
     {
       {
-        var j = ly;
+        var j: dynamic = ly;
         while ((j < ry))
         {
           if ((a[i][j] == cpp_char(".")))
@@ -59,7 +59,7 @@ func Rec(lx: dynamic, rx: dynamic, ly: dynamic, ry: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (true)
     {
       if ((st.find(i) == st.end()))
@@ -73,18 +73,18 @@ func Rec(lx: dynamic, rx: dynamic, ly: dynamic, ry: dynamic)
   return dp[lx][rx][ly][ry];
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < M))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < M))
             {
               fill(dp[i][j][k], (dp[i][j][k] + M), -1);
@@ -100,12 +100,12 @@ func main()
   read(h, w);
   a = vs(h);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       read(a[i]);
       i += 1;
     }
   }
-  write((if (Rec(0, h, 0, w)) "First" else "Second"), "\n");
+  write(( (Rec(0, h, 0, w)) ? "First" : "Second"), "\n");
 }

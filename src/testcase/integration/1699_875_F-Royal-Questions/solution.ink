@@ -2,36 +2,36 @@
 
 class Edge
 {
-  var x: dynamic;
-  var y: dynamic;
-  var v: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
 }
 
-var E = cpp_array(200005);
+var E: dynamic = cpp_array(200005);
 
-func Cmp(a: dynamic, b: dynamic)
+func Cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.v > b.v);
 }
 
-var Size = cpp_array(200005);
+var Size: dynamic = cpp_array(200005);
 
-var Flag = cpp_array(200005);
+var Flag: dynamic = cpp_array(200005);
 
-var Fa = cpp_array(200005);
+var Fa: dynamic = cpp_array(200005);
 
-func GetRoot(x: dynamic)
+func GetRoot(x: dynamic) -> dynamic
 {
-  return if ((x == Fa[x])) x else cpp_assign(Fa[x], "=", GetRoot(Fa[x]));
+  return  ((x == Fa[x])) ? x : cpp_assign(Fa[x], "=", GetRoot(Fa[x]));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d%d%d", (&E[i].x), (&E[i].y), (&E[i].v));
@@ -40,7 +40,7 @@ func main()
   }
   sort((E + 1), ((E + m) + 1), Cmp);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       Fa[i] = i;
@@ -49,13 +49,13 @@ func main()
       i += 1;
     }
   }
-  var Ans = 0;
+  var Ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var Rx = GetRoot(E[i].x);
-      var Ry = GetRoot(E[i].y);
+      var Rx: dynamic = GetRoot(E[i].x);
+      var Ry: dynamic = GetRoot(E[i].y);
       if (((Rx ^ Ry) && ((Flag[Rx] || Flag[Ry]))))
       {
         if ((Size[Rx] > Size[Ry]))

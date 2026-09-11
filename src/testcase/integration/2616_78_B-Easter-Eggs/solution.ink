@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
-  var s = "ROYGBIV";
-  var i = 0;
+  var s: dynamic = "ROYGBIV";
+  var i: dynamic = 0;
   while (cpp_update(t, "--"))
   {
     write(s[cpp_update(i, "++")]);

@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var p = cpp_array(110);
+var p: dynamic = cpp_array(110);
 
-var str = cpp_array(110);
+var str: dynamic = cpp_array(110);
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var n: dynamic;
-  var res: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var res: dynamic = cpp_uninitialized();
   p[0] = 1;
   {
     i = 1;

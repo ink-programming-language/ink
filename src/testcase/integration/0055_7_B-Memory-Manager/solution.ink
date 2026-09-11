@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
-  var m: dynamic;
-  var num = 1;
-  var com: dynamic;
-  var arg: dynamic;
-  var d: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var num: dynamic = 1;
+  var com: dynamic = cpp_uninitialized();
+  var arg: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   read(t, m);
   {
-    var n = cpp_construct(((t) - 1));
-    var q = cpp_construct(0);
+    var n: dynamic = cpp_construct(((t) - 1));
+    var q: dynamic = cpp_construct(0);
     while ((q <= n))
     {
       sort((d).begin(), (d).end());
@@ -23,11 +23,11 @@ func main()
           d[0].first.second -= d[0].first.first;
           d[0].first.first = 0;
           {
-            var n = cpp_construct(((d.size() - 1)));
-            var i = cpp_construct(1);
+            var n: dynamic = cpp_construct(((d.size() - 1)));
+            var i: dynamic = cpp_construct(1);
             while ((i <= n))
             {
-              var delta = (d[i].first.first - d[(i - 1)].first.second);
+              var delta: dynamic = (d[i].first.first - d[(i - 1)].first.second);
               d[i].first.first -= delta;
               d[i].first.second -= delta;
               i += 1;
@@ -40,7 +40,7 @@ func main()
       read(arg);
       if ((com == "alloc"))
       {
-        var res = -1;
+        var res: dynamic = -1;
         if ((d.size() > 0))
         {
           if ((d[0].first.first >= arg))
@@ -52,8 +52,8 @@ func main()
         if ((res == -1))
         {
           {
-            var n = cpp_construct(((d.size() - 1)));
-            var i = cpp_construct(1);
+            var n: dynamic = cpp_construct(((d.size() - 1)));
+            var i: dynamic = cpp_construct(1);
             while ((i <= n))
             {
               if (((d[i].first.first - d[(i - 1)].first.second) >= arg))
@@ -100,9 +100,9 @@ func main()
       }
       if ((com == "erase"))
       {
-        var res = false;
+        var res: dynamic = false;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < d.size()))
           {
             if ((d[i].second == arg))

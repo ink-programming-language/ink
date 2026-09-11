@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var res: dynamic;
-  for (var v in vec)
+  var res: dynamic = cpp_uninitialized();
+  for (var v: dynamic in vec)
   {
     read(v);
   }
@@ -14,13 +14,13 @@ func main()
   {
     return cpp_comma((cout << vec[0]), 0);
   }
-  var l = 0;
+  var l: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= i))
         {
           l += 1;

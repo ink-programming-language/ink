@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var str: dynamic;
-  var ans = 0;
+  var str: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   getline(cin, str);
-  var len = str.length();
+  var len: dynamic = str.length();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (len - 1)))
     {
       if (isupper(str[i]))

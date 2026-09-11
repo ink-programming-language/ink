@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var pi = (acos(0.0) * 2.0);
+var pi: dynamic = (acos(0.0) * 2.0);
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
-var step = [[-1, 0], [0, 1], [1, 0], [0, -1], [-1, 1], [1, 1], [1, -1], [-1, -1]];
+var step: dynamic = [[-1, 0], [0, 1], [1, 0], [0, -1], [-1, 1], [1, 1], [1, -1], [-1, -1]];
 
-func abs1(a: dynamic)
+func abs1(a: dynamic) -> dynamic
 {
-  return if ((a < 0)) (-a) else a;
+  return  ((a < 0)) ? (-a) : a;
 }
 
-func min1(a: dynamic, b: dynamic)
+func min1(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) a else b;
+  return  ((a < b)) ? a : b;
 }
 
-func min1(a: dynamic, arr: dynamic...)
+func min1(a: dynamic, arr: dynamic...) -> dynamic
 {
   return min1(a, min1(cpp_expand(arr)));
 }
 
-func max1(a: dynamic, b: dynamic)
+func max1(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a > b)) a else b;
+  return  ((a > b)) ? a : b;
 }
 
-func max1(a: dynamic, arr: dynamic...)
+func max1(a: dynamic, arr: dynamic...) -> dynamic
 {
   return max1(a, max1(cpp_expand(arr)));
 }
 
-func jud(a: dynamic, b: dynamic)
+func jud(a: dynamic, b: dynamic) -> dynamic
 {
   if (((abs(a) < eps) && (abs(b) < eps)))
   {
@@ -47,7 +47,7 @@ func jud(a: dynamic, b: dynamic)
   return 1;
 }
 
-func jud(a: dynamic, b: dynamic)
+func jud(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -60,21 +60,21 @@ func jud(a: dynamic, b: dynamic)
   return 1;
 }
 
-func find(val: dynamic, a: dynamic, na: dynamic, f_small: dynamic = 1, f_lb: dynamic = 1)
+func find(val: dynamic, a: dynamic, na: dynamic, f_small: dynamic = 1, f_lb: dynamic = 1) -> dynamic
 {
   if ((na == 0))
   {
     return 0;
   }
-  var be = 0;
-  var en = (na - 1);
+  var be: dynamic = 0;
+  var en: dynamic = (na - 1);
   if (((*a) <= (*(((a + na) - 1)))))
   {
     if ((f_lb == 0))
     {
       while ((be < en))
       {
-        var mid = ((((be + en) + 1)) / 2);
+        var mid: dynamic = ((((be + en) + 1)) / 2);
         if ((jud((*((a + mid))), val) != 1))
         {
           be = mid;
@@ -87,7 +87,7 @@ func find(val: dynamic, a: dynamic, na: dynamic, f_small: dynamic = 1, f_lb: dyn
     {
       while ((be < en))
       {
-        var mid = (((be + en)) / 2);
+        var mid: dynamic = (((be + en)) / 2);
         if ((jud((*((a + mid))), val) != -1))
         {
           en = mid;
@@ -111,7 +111,7 @@ func find(val: dynamic, a: dynamic, na: dynamic, f_small: dynamic = 1, f_lb: dyn
     {
       while ((be < en))
       {
-        var mid = ((((be + en) + 1)) / 2);
+        var mid: dynamic = ((((be + en) + 1)) / 2);
         if ((jud((*((a + mid))), val) != -1))
         {
           be = mid;
@@ -124,7 +124,7 @@ func find(val: dynamic, a: dynamic, na: dynamic, f_small: dynamic = 1, f_lb: dyn
     {
       while ((be < en))
       {
-        var mid = (((be + en)) / 2);
+        var mid: dynamic = (((be + en)) / 2);
         if ((jud((*((a + mid))), val) != 1))
         {
           en = mid;
@@ -146,32 +146,32 @@ func find(val: dynamic, a: dynamic, na: dynamic, f_small: dynamic = 1, f_lb: dyn
   return be;
 }
 
-func lowb(num: dynamic)
+func lowb(num: dynamic) -> dynamic
 {
   return (num & ((-num)));
 }
 
-func bitnum(nValue: dynamic)
+func bitnum(nValue: dynamic) -> dynamic
 {
   return builtin_popcount(nValue);
 }
 
-func bitnum(nValue: dynamic)
+func bitnum(nValue: dynamic) -> dynamic
 {
   return builtin_popcount(nValue);
 }
 
-func bitnum(nValue: dynamic)
+func bitnum(nValue: dynamic) -> dynamic
 {
   return (builtin_popcount(nValue) + builtin_popcount((nValue >> 32)));
 }
 
-func bitnum(nValue: dynamic)
+func bitnum(nValue: dynamic) -> dynamic
 {
   return (builtin_popcount(nValue) + builtin_popcount((nValue >> 32)));
 }
 
-func bitmaxl(a: dynamic)
+func bitmaxl(a: dynamic) -> dynamic
 {
   if ((a == 0))
   {
@@ -180,7 +180,7 @@ func bitmaxl(a: dynamic)
   return (32 - builtin_clz(a));
 }
 
-func bitmaxl(a: dynamic)
+func bitmaxl(a: dynamic) -> dynamic
 {
   if ((a == 0))
   {
@@ -189,9 +189,9 @@ func bitmaxl(a: dynamic)
   return (32 - builtin_clz(a));
 }
 
-func bitmaxl(a: dynamic)
+func bitmaxl(a: dynamic) -> dynamic
 {
-  var temp = (a >> 32);
+  var temp: dynamic = (a >> 32);
   if (temp)
   {
     return ((32 - builtin_clz(temp)) + 32);
@@ -199,9 +199,9 @@ func bitmaxl(a: dynamic)
   return bitmaxl(int_cpp(a));
 }
 
-func bitmaxl(a: dynamic)
+func bitmaxl(a: dynamic) -> dynamic
 {
-  var temp = (a >> 32);
+  var temp: dynamic = (a >> 32);
   if (temp)
   {
     return ((32 - builtin_clz(temp)) + 32);
@@ -209,14 +209,14 @@ func bitmaxl(a: dynamic)
   return bitmaxl(int_cpp(a));
 }
 
-func pow(n: dynamic, m: dynamic, mod: dynamic = 0)
+func pow(n: dynamic, m: dynamic, mod: dynamic = 0) -> dynamic
 {
   if ((m < 0))
   {
     return 0;
   }
-  var ans = 1;
-  var k = n;
+  var ans: dynamic = 1;
+  var k: dynamic = n;
   while (m)
   {
     if ((m & 1))
@@ -237,7 +237,7 @@ func pow(n: dynamic, m: dynamic, mod: dynamic = 0)
   return ans;
 }
 
-func add(a: dynamic, b: dynamic, mod: dynamic = -1)
+func add(a: dynamic, b: dynamic, mod: dynamic = -1) -> dynamic
 {
   if ((mod == -1))
   {
@@ -254,10 +254,10 @@ func add(a: dynamic, b: dynamic, mod: dynamic = -1)
   }
 }
 
-func output1(arr: dynamic)
+func output1(arr: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(arr.size())))
     {
       write(arr[i], cpp_char(" "));
@@ -267,10 +267,10 @@ func output1(arr: dynamic)
   write("\n");
 }
 
-func output2(arr: dynamic)
+func output2(arr: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(arr.size())))
     {
       output1(arr[i]);
@@ -279,40 +279,40 @@ func output2(arr: dynamic)
   }
 }
 
-var maxn = 500100;
+var maxn: dynamic = 500100;
 
 class edge
 {
-  var to: dynamic;
-  var nxt: dynamic;
-  var ch: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var nxt: dynamic = cpp_uninitialized();
+  var ch: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array((maxn * 2));
+var e: dynamic = cpp_array((maxn * 2));
 
-var head = cpp_array(maxn);
+var head: dynamic = cpp_array(maxn);
 
-var le: dynamic;
+var le: dynamic = cpp_uninitialized();
 
-var fa = cpp_array(maxn);
+var fa: dynamic = cpp_array(maxn);
 
-var deep = cpp_array(maxn);
+var deep: dynamic = cpp_array(maxn);
 
-var sz = cpp_array(maxn);
+var sz: dynamic = cpp_array(maxn);
 
-var bs = cpp_array(maxn);
+var bs: dynamic = cpp_array(maxn);
 
-var val = cpp_array(maxn);
+var val: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans = cpp_array(maxn);
+var ans: dynamic = cpp_array(maxn);
 
-var table = cpp_array((1 << 22));
+var table: dynamic = cpp_array((1 << 22));
 
-var tans: dynamic;
+var tans: dynamic = cpp_uninitialized();
 
-func addedge(a: dynamic, b: dynamic, ch: dynamic)
+func addedge(a: dynamic, b: dynamic, ch: dynamic) -> dynamic
 {
   e[le].to = b;
   e[le].nxt = head[a];
@@ -320,11 +320,11 @@ func addedge(a: dynamic, b: dynamic, ch: dynamic)
   head[a] = cpp_update(le, "++");
 }
 
-func del(no: dynamic)
+func del(no: dynamic) -> dynamic
 {
   table[val[no]] = (-n);
   {
-    var i = head[no];
+    var i: dynamic = head[no];
     while ((i != -1))
     {
       del(e[i].to);
@@ -333,11 +333,11 @@ func del(no: dynamic)
   }
 }
 
-func getans(no: dynamic, op: dynamic)
+func getans(no: dynamic, op: dynamic) -> dynamic
 {
   tans = max(((table[val[no]] + deep[no]) - (op * 2)), tans);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 22))
     {
       tans = max(tans, ((table[(val[no] ^ ((1 << i)))] + deep[no]) - (op * 2)));
@@ -345,7 +345,7 @@ func getans(no: dynamic, op: dynamic)
     }
   }
   {
-    var i = head[no];
+    var i: dynamic = head[no];
     while ((i != -1))
     {
       getans(e[i].to, op);
@@ -354,11 +354,11 @@ func getans(no: dynamic, op: dynamic)
   }
 }
 
-func upd(no: dynamic)
+func upd(no: dynamic) -> dynamic
 {
   table[val[no]] = max(table[val[no]], deep[no]);
   {
-    var i = head[no];
+    var i: dynamic = head[no];
     while ((i != -1))
     {
       upd(e[i].to);
@@ -367,11 +367,11 @@ func upd(no: dynamic)
   }
 }
 
-func dfssz(no: dynamic)
+func dfssz(no: dynamic) -> dynamic
 {
   sz[no] = 1;
   {
-    var i = head[no];
+    var i: dynamic = head[no];
     while ((i != -1))
     {
       deep[e[i].to] = (deep[no] + 1);
@@ -388,10 +388,10 @@ func dfssz(no: dynamic)
   }
 }
 
-func dfs(no: dynamic)
+func dfs(no: dynamic) -> dynamic
 {
   {
-    var i = head[no];
+    var i: dynamic = head[no];
     while ((i != -1))
     {
       if ((e[i].to != bs[no]))
@@ -408,7 +408,7 @@ func dfs(no: dynamic)
   table[val[no]] = max(table[val[no]], deep[no]);
   tans = max(0, (table[val[no]] - deep[no]));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 22))
     {
       tans = max(tans, (table[(val[no] ^ ((1 << i)))] - deep[no]));
@@ -416,7 +416,7 @@ func dfs(no: dynamic)
     }
   }
   {
-    var i = head[no];
+    var i: dynamic = head[no];
     while ((i != -1))
     {
       if ((e[i].to != bs[no]))
@@ -432,7 +432,7 @@ func dfs(no: dynamic)
   {
     table[val[no]] = (-n);
     {
-      var i = head[no];
+      var i: dynamic = head[no];
       while ((i != -1))
       {
         del(e[i].to);
@@ -441,7 +441,7 @@ func dfs(no: dynamic)
     }
   }
   {
-    var i = head[no];
+    var i: dynamic = head[no];
     while ((i != -1))
     {
       ans[no] = max(ans[no], ans[e[i].to]);
@@ -450,14 +450,14 @@ func dfs(no: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   memset(head, -1, cpp_sizeof((head)));
   fa[0] = -1;
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (1 << 22)))
     {
       table[i] = (-n);
@@ -465,11 +465,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var no: dynamic;
-      var str = cpp_array(3);
+      var no: dynamic = cpp_uninitialized();
+      var str: dynamic = cpp_array(3);
       scanf("%d%s", (&no), str);
       no -= 1;
       fa[i] = no;
@@ -480,7 +480,7 @@ func main()
   dfssz(0);
   dfs(0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       printf("%d\n", ans[i]);

@@ -2,12 +2,12 @@
 
 class modint
 {
-  var x: dynamic;
-  func modint()
+  var x: dynamic = cpp_uninitialized();
+  func modint() -> dynamic
   {
-      this->x = cpp_construct(0);
+      self->x = cpp_construct(0);
     }
-  func modint(arg: dynamic)
+  func modint(arg: dynamic) -> dynamic
   {
       arg %= m;
       if ((arg < 0))
@@ -18,61 +18,61 @@ class modint
         x = arg;
       }
     }
-  func operator_add_assign(other: dynamic)
+  func operator_add_assign(other: dynamic) -> dynamic
   {
       x += other.x;
       if ((x >= m))
       {
         x -= m;
       }
-      return (*this);
+      return (*self);
     }
-  func operator(other: dynamic)
+  func operator(other: dynamic) -> dynamic
   {
       x = ((((x * 1) * other.x)) % m);
-      return (*this);
+      return (*self);
     }
-  func operator_subtract_assign(other: dynamic)
+  func operator_subtract_assign(other: dynamic) -> dynamic
   {
       x += (m - other.x);
       if ((x >= m))
       {
         x -= m;
       }
-      return (*this);
+      return (*self);
     }
-  func operator_add(other: dynamic)
+  func operator_add(other: dynamic) -> dynamic
   {
-      var tmp = (*this);
+      var tmp: dynamic = (*self);
       tmp += other;
       return tmp;
     }
-  func operator_subtract(other: dynamic)
+  func operator_subtract(other: dynamic) -> dynamic
   {
-      var tmp = (*this);
+      var tmp: dynamic = (*self);
       tmp -= other;
       return tmp;
     }
-  func operator_multiply(other: dynamic)
+  func operator_multiply(other: dynamic) -> dynamic
   {
-      var tmp = (*this);
+      var tmp: dynamic = (*self);
       tmp *= other;
       return tmp;
     }
-  func cpp_function_1()
+  func cpp_function_1() -> dynamic
   {
       return x;
     }
-  func operator()
+  func operator() -> dynamic
   {
       x += 1;
       if ((x == m))
       {
         x = 0;
       }
-      return (*this);
+      return (*self);
     }
-  func operator()
+  func operator() -> dynamic
   {
       if ((x == 0))
       {
@@ -81,29 +81,29 @@ class modint
       {
         x -= 1;
       }
-      return (*this);
+      return (*self);
     }
-  func operator(argument_0: dynamic)
+  func operator(argument_0: dynamic) -> dynamic
   {
-      var tmp = (*this);
-      (*this) += 1;
+      var tmp: dynamic = (*self);
+      (*self) += 1;
       return tmp;
     }
-  func operator(argument_0: dynamic)
+  func operator(argument_0: dynamic) -> dynamic
   {
-      var tmp = (*this);
-      (*this) -= 1;
+      var tmp: dynamic = (*self);
+      (*self) -= 1;
       return tmp;
     }
-  func operator_equal(other: dynamic)
+  func operator_equal(other: dynamic) -> dynamic
   {
       return (x == other.x);
     }
-  func operator_not_equal(other: dynamic)
+  func operator_not_equal(other: dynamic) -> dynamic
   {
       return (x != other.x);
     }
-  func operator(arg: dynamic)
+  func operator(arg: dynamic) -> dynamic
   {
       if ((arg == 0))
       {
@@ -113,50 +113,50 @@ class modint
       {
         return x;
       }
-      var t = ((*this) ^ ((arg >> 1)));
+      var t: dynamic = ((*self) ^ ((arg >> 1)));
       t *= t;
       if ((arg & 1))
       {
-        t *= (*this);
+        t *= (*self);
       }
       return t;
     }
-  func operator(arg: dynamic)
+  func operator(arg: dynamic) -> dynamic
   {
-      return cpp_assign((*this), "=", ((*this) ^ arg));
+      return cpp_assign((*self), "=", ((*self) ^ arg));
     }
-  func inv()
+  func inv() -> dynamic
   {
-      return ((*this) ^ ((m - 2)));
+      return ((*self) ^ ((m - 2)));
     }
 }
 
-var MOD = 998244353;
+var MOD: dynamic = 998244353;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var w = cpp_array(55);
+var w: dynamic = cpp_array(55);
 
-var t = cpp_array(55);
+var t: dynamic = cpp_array(55);
 
-var w0: dynamic;
+var w0: dynamic = cpp_uninitialized();
 
-var w1: dynamic;
+var w1: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(55, 55, 55);
+var dp: dynamic = cpp_array(55, 55, 55);
 
-var inverz = cpp_array(10000);
+var inverz: dynamic = cpp_array(10000);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
   cerr.tie(null);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 10000))
     {
       inverz[i] = modint(i).inv();
@@ -165,7 +165,7 @@ func main()
   }
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(t[i]);
@@ -173,7 +173,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(w[i]);
@@ -188,14 +188,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       memset(dp, 0, cpp_sizeof((dp)));
       dp[0][0][0] = 1;
-      var x = w[i];
-      var w0 = w0;
-      var w1 = w1;
+      var x: dynamic = w[i];
+      var w0: dynamic = w0;
+      var w1: dynamic = w1;
       if ((t[i] == 0))
       {
         w0 -= x;
@@ -203,26 +203,26 @@ func main()
       {
         w1 -= x;
       }
-      var dir = if ((t[i] == 0)) -1 else 1;
+      var dir: dynamic =  ((t[i] == 0)) ? -1 : 1;
       {
-        var p = 0;
+        var p: dynamic = 0;
         while ((p < m))
         {
           {
-            var q = 0;
+            var q: dynamic = 0;
             while (((p + q) < m))
             {
               {
-                var r = 0;
+                var r: dynamic = 0;
                 while ((((p + q) + r) < m))
                 {
-                  var ukupno = ((((x + (p * dir))) + ((w0 - q))) + ((w1 + r)));
+                  var ukupno: dynamic = ((((x + (p * dir))) + ((w0 - q))) + ((w1 + r)));
                   if ((((w0 - q) < 0) || ((x + (p * dir)) < 0)))
                   {
                     r += 1;
                     continue;
                   }
-                  var ukinv = (inverz[ukupno] * dp[p][q][r]);
+                  var ukinv: dynamic = (inverz[ukupno] * dp[p][q][r]);
                   dp[(p + 1)][q][r] += (ukinv * modint((x + (p * dir))));
                   dp[p][(q + 1)][r] += (ukinv * modint((w0 - q)));
                   dp[p][q][(r + 1)] += (ukinv * modint((w1 + r)));
@@ -235,16 +235,16 @@ func main()
           p += 1;
         }
       }
-      var sol: dynamic;
+      var sol: dynamic = cpp_uninitialized();
       {
-        var p = 0;
+        var p: dynamic = 0;
         while ((p <= m))
         {
           {
-            var q = 0;
+            var q: dynamic = 0;
             while (((p + q) <= m))
             {
-              var r = ((m - p) - q);
+              var r: dynamic = ((m - p) - q);
               sol += (dp[p][q][r] * ((x + (p * dir))));
               q += 1;
             }

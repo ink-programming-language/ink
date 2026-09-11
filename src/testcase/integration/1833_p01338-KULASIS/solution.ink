@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, s: dynamic, n: dynamic)
+func REP(i: dynamic, s: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=s;i<n;i++)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include<b");
 }
 
-var IINF = cpp_expression("#include<");
+var IINF: dynamic = cpp_expression("#include<");
 
-var LEN = cpp_expression("#inclu");
+var LEN: dynamic = cpp_expression("#inclu");
 
-var G = cpp_array(5, 7);
+var G: dynamic = cpp_array(5, 7);
 
-var dp = cpp_array(LEN, 7);
+var dp: dynamic = cpp_array(LEN, 7);
 
-var tmp_G = cpp_array(5, 7);
+var tmp_G: dynamic = cpp_array(5, 7);
 
-func getCost(x: dynamic)
+func getCost(x: dynamic) -> dynamic
 {
-  return (if (((x == 3))) 80 else (if (((x == 2))) 70 else (if (((x == 1))) 60 else 0)));
+  return ( (((x == 3))) ? 80 : ( (((x == 2))) ? 70 : ( (((x == 1))) ? 60 : 0)));
 }
 
-func isValid(x: dynamic, y: dynamic)
+func isValid(x: dynamic, y: dynamic) -> dynamic
 {
   return (((((0 <= x) && (x < 5)) && (1 <= y)) && (y < 6)));
 }
 
-func push(x: dynamic, y: dynamic, cnt: dynamic)
+func push(x: dynamic, y: dynamic, cnt: dynamic) -> dynamic
 {
   if (isValid(x, y))
   {
@@ -50,27 +50,27 @@ func push(x: dynamic, y: dynamic, cnt: dynamic)
   }
 }
 
-func automatically_pusher(tmp: dynamic, y: dynamic)
+func automatically_pusher(tmp: dynamic, y: dynamic) -> dynamic
 {
   if ((!(((1 <= y) && (y <= 4)))))
   {
     return;
   }
-  var x = 0;
+  var x: dynamic = 0;
   while ((x < 4))
   {
-    var cnt = (tmp & ((((1 << 2)) - 1)));
+    var cnt: dynamic = (tmp & ((((1 << 2)) - 1)));
     tmp >>= 2;
     push(x, y, cnt);
     x += 1;
   }
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(0);
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   read(T);
   while (cpp_update(T, "--"))
   {
@@ -84,7 +84,7 @@ func main()
       tmp_G[j][k] = G[j][k];
       automatically_pusher(pre, (i - 1));
       automatically_pusher(cur, i);
-      var cost = 0;
+      var cost: dynamic = 0;
       rep(j, 5);
       if ((G[i][j] != -1))
       {

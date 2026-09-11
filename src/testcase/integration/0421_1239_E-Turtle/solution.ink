@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-func poww(a: dynamic, b: dynamic, md: dynamic)
+func poww(a: dynamic, b: dynamic, md: dynamic) -> dynamic
 {
-  return (if ((!b)) 1 else (if ((b & 1)) ((a * poww(((a * a) % md), (b / 2), md)) % md) else (poww(((a * a) % md), (b / 2), md) % md)));
+  return ( ((!b)) ? 1 : ( ((b & 1)) ? ((a * poww(((a * a) % md), (b / 2), md)) % md) : (poww(((a * a) % md), (b / 2), md) % md)));
 }
 
-var maxn = 27;
+var maxn: dynamic = 27;
 
-var mxa = (50000 + 5);
+var mxa: dynamic = (50000 + 5);
 
-var inf = 9223372036854775807;
+var inf: dynamic = 9223372036854775807;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array((maxn * 2));
+var a: dynamic = cpp_array((maxn * 2));
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(mxa);
+var cnt: dynamic = cpp_array(mxa);
 
-var dp = cpp_array((maxn * mxa), maxn);
+var dp: dynamic = cpp_array((maxn * mxa), maxn);
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (2 * n)))
     {
       read(a[i]);
@@ -47,15 +47,15 @@ func main()
   s -= ((a[1] + a[2]));
   dp[0][0] = [1, 0];
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i <= (2 * n)))
     {
       {
-        var j = (n - 1);
+        var j: dynamic = (n - 1);
         while ((j >= 1))
         {
           {
-            var k = s;
+            var k: dynamic = s;
             while ((k >= a[i]))
             {
               if ((dp[(j - 1)][(k - a[i])].first && (!dp[j][k].first)))
@@ -72,7 +72,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (maxn * mxa)))
     {
       if (((dp[(n - 1)][i].first != 0) && (i >= (s - i))))
@@ -85,7 +85,7 @@ func main()
   }
   v.push_back(a[1]);
   cnt[a[1]] -= 1;
-  var cur = (n - 1);
+  var cur: dynamic = (n - 1);
   while (cur)
   {
     v.push_back(dp[cur][ans].second);
@@ -94,13 +94,13 @@ func main()
     cur -= 1;
   }
   sort((v).begin(), (v).end());
-  for (var u in v)
+  for (var u: dynamic in v)
   {
     write(u, " ");
   }
   write("\n");
   {
-    var i = (mxa - 1);
+    var i: dynamic = (mxa - 1);
     while ((i >= 0))
     {
       while (cpp_update(cnt[i], "--"))

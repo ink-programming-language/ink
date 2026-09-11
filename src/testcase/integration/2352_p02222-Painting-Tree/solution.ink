@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-func eprintf()
+func eprintf() -> dynamic
 {
   return cpp_expression("#include <iostream> #include");
 }
 
-func eprintf()
+func eprintf() -> dynamic
 {
   return cpp_expression("#i");
 }
 
-func rep(i: dynamic, a: dynamic, b: dynamic, a: dynamic, b: dynamic)
+func rep(i: dynamic, a: dynamic, b: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for (int i = (a), i##_len = (b); i < i##_len; ++i)");
 }
 
-func rep(i: dynamic)
+func rep(i: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #include <cstdio> #include <c");
 }
 
-func reprev(i: dynamic, a: dynamic, b: dynamic, a: dynamic, b: dynamic)
+func reprev(i: dynamic, a: dynamic, b: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for (int i = (b-1), i##_min = (a); i >= i##_min; --i)");
 }
 
-func reprev(i: dynamic)
+func reprev(i: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #include <cstdio> #include <cstd");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #i");
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -45,7 +45,7 @@ func chmax(a: dynamic, b: dynamic)
   return 0;
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b < a))
   {
@@ -55,21 +55,21 @@ func chmin(a: dynamic, b: dynamic)
   return 0;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (b) gcd(b, (a % b)) else a;
+  return  (b) ? gcd(b, (a % b)) : a;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   rep(i, (n - 1));
   {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     read(a, b);
     a -= 1;
     b -= 1;
@@ -79,14 +79,14 @@ func main(argument_0: dynamic)
     hen[b] += 1;
   }
   used_tmp[0] = true;
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.emplace(0, 0);
   while ((!q.empty()))
   {
-    var p = q.top();
+    var p: dynamic = q.top();
     q.pop();
     dist_tmp[p.second] = p.first;
-    for (var i in graph[p.second])
+    for (var i: dynamic in graph[p.second])
     {
       if ((!used_tmp[i]))
       {
@@ -98,8 +98,8 @@ func main(argument_0: dynamic)
   rep(i, n);
   eprintf("%d ", dist_tmp[i]);
   eprintf("\n");
-  var u = 0;
-  var u_len = 0;
+  var u: dynamic = 0;
+  var u_len: dynamic = 0;
   rep(i, n);
   if (chmax(u_len, dist_tmp[i]))
   {
@@ -109,10 +109,10 @@ func main(argument_0: dynamic)
   q.emplace(0, u);
   while ((!q.empty()))
   {
-    var p = q.top();
+    var p: dynamic = q.top();
     q.pop();
     dist_u[p.second] = p.first;
-    for (var i in graph[p.second])
+    for (var i: dynamic in graph[p.second])
     {
       if ((!used_u[i]))
       {
@@ -124,8 +124,8 @@ func main(argument_0: dynamic)
   rep(i, n);
   eprintf("%d ", dist_u[i]);
   eprintf("\n");
-  var v = u;
-  var longest = 0;
+  var v: dynamic = u;
+  var longest: dynamic = 0;
   rep(i, n);
   if (chmax(longest, dist_u[i]))
   {
@@ -136,10 +136,10 @@ func main(argument_0: dynamic)
   q.emplace(0, v);
   while ((!q.empty()))
   {
-    var p = q.top();
+    var p: dynamic = q.top();
     q.pop();
     dist_v[p.second] = p.first;
-    for (var i in graph[p.second])
+    for (var i: dynamic in graph[p.second])
     {
       if ((!used_v[i]))
       {
@@ -151,11 +151,11 @@ func main(argument_0: dynamic)
   rep(i, n);
   eprintf("%d ", dist_v[i]);
   eprintf("\n");
-  var m = 0;
-  var flg = true;
+  var m: dynamic = 0;
+  var flg: dynamic = true;
   rep(k, 1, (n + 1));
   {
-    var ok = true;
+    var ok: dynamic = true;
     if (((k <= 2) || (k > longest)))
     {
       write(1);
@@ -173,7 +173,7 @@ func main(argument_0: dynamic)
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((((hen[i] != 1) || (i == u)) || (i == v)))
     {
@@ -182,7 +182,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     chmax(m, max(dist_u[i], dist_v[i]));
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((((m == max(dist_u[i], dist_v[i])) && (((m != dist_u[i]) || (m != dist_v[i]))))))
     {

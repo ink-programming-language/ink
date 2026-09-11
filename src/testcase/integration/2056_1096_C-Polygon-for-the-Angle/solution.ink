@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func shaon()
+func shaon() -> dynamic
 {
   write("\n");
 }
 
-func shaon(arg: dynamic, rest: dynamic...)
+func shaon(arg: dynamic, rest: dynamic...) -> dynamic
 {
   write(arg, cpp_char(" "));
   shaon(cpp_expand(rest));
 }
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
-func equalTo(a: dynamic, b: dynamic)
+func equalTo(a: dynamic, b: dynamic) -> dynamic
 {
   if ((abs((a - b)) <= eps))
   {
@@ -24,7 +24,7 @@ func equalTo(a: dynamic, b: dynamic)
   }
 }
 
-func notEqual(a: dynamic, b: dynamic)
+func notEqual(a: dynamic, b: dynamic) -> dynamic
 {
   if ((abs((a - b)) > eps))
   {
@@ -35,7 +35,7 @@ func notEqual(a: dynamic, b: dynamic)
   }
 }
 
-func lessThan(a: dynamic, b: dynamic)
+func lessThan(a: dynamic, b: dynamic) -> dynamic
 {
   if (((a + eps) < b))
   {
@@ -46,7 +46,7 @@ func lessThan(a: dynamic, b: dynamic)
   }
 }
 
-func lessThanEqual(a: dynamic, b: dynamic)
+func lessThanEqual(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < (b + eps)))
   {
@@ -57,7 +57,7 @@ func lessThanEqual(a: dynamic, b: dynamic)
   }
 }
 
-func greaterThan(a: dynamic, b: dynamic)
+func greaterThan(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > (b + eps)))
   {
@@ -68,7 +68,7 @@ func greaterThan(a: dynamic, b: dynamic)
   }
 }
 
-func greaterThanEqual(a: dynamic, b: dynamic)
+func greaterThanEqual(a: dynamic, b: dynamic) -> dynamic
 {
   if (((a + eps) > b))
   {
@@ -79,38 +79,38 @@ func greaterThanEqual(a: dynamic, b: dynamic)
   }
 }
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var arr = cpp_array(300002);
+var arr: dynamic = cpp_array(300002);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i <= 300000))
     {
-      var k = (((180.0 / i) * 1.0));
+      var k: dynamic = (((180.0 / i) * 1.0));
       arr[i] = k;
       i += 1;
     }
   }
   read(t);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= t))
     {
       read(x);
-      var bo = 1;
+      var bo: dynamic = 1;
       {
-        var w = 3;
+        var w: dynamic = 3;
         while ((w <= 300000))
         {
-          var p = (x / arr[w]);
-          var pk = ((arr[w] * p) * 1.0);
+          var p: dynamic = (x / arr[w]);
+          var pk: dynamic = ((arr[w] * p) * 1.0);
           if (equalTo(pk, x))
           {
             if ((p <= ((w - 2))))

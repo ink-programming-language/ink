@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var num = cpp_array(100005);
+var num: dynamic = cpp_array(100005);
 
-var d = cpp_array(6, 100005);
+var d: dynamic = cpp_array(6, 100005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-func cal(ql: dynamic, qh: dynamic, mm: dynamic)
+func cal(ql: dynamic, qh: dynamic, mm: dynamic) -> dynamic
 {
   qh /= mm;
   ql = ((((ql + mm) - 1)) / mm);
   return (((((((qh - ql) + 1)) * ((n + 1))) - (mm * (((((qh * ((qh + 1))) - (ql * ((ql - 1))))) / 2))))) % p);
 }
 
-func main()
+func main() -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   read(n, m, l, r, p);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= m))
     {
       if ((num[i] == 0))
       {
         {
-          var j = i;
+          var j: dynamic = i;
           while ((j <= m))
           {
             d[j][cpp_update(num[j], "++")] = i;
@@ -43,11 +43,11 @@ func main()
       i += 1;
     }
   }
-  var lo = l;
-  var hi = r;
-  var mmin = min(m, r);
+  var lo: dynamic = l;
+  var hi: dynamic = r;
+  var mmin: dynamic = min(m, r);
   {
-    var w = 1;
+    var w: dynamic = 1;
     while ((w <= mmin))
     {
       while (((lo > 1) && (((l * l) - (w * w)) <= (((lo - 1)) * ((lo - 1))))))
@@ -60,17 +60,17 @@ func main()
       }
       if (((lo <= hi) && (lo <= n)))
       {
-        var t = ((1 << num[w]));
-        var a = 0;
+        var t: dynamic = ((1 << num[w]));
+        var a: dynamic = 0;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < t))
           {
-            var ii = i;
-            var p1 = 1;
-            var p2 = 1;
+            var ii: dynamic = i;
+            var p1: dynamic = 1;
+            var p2: dynamic = 1;
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j < num[w]))
               {
                 if ((ii & 1))
@@ -82,7 +82,7 @@ func main()
                 j += 1;
               }
             }
-            a += (p2 * cal(lo, if ((hi < n)) hi else n, p1));
+            a += (p2 * cal(lo,  ((hi < n)) ? hi : n, p1));
             i += 1;
           }
         }

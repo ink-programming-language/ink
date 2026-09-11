@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0; i<(n); i++)");
 }
 
-func FOR(i: dynamic, x: dynamic, n: dynamic)
+func FOR(i: dynamic, x: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=x; i<(n); i++)");
 }
 
-func ALL(n: dynamic)
+func ALL(n: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/");
 }
 
-var MOD = cpp_expression("#include <bi");
+var MOD: dynamic = cpp_expression("#include <bi");
 
-var INF = cpp_expression("#incl");
+var INF: dynamic = cpp_expression("#incl");
 
-var INFL = cpp_expression("#inclu");
+var INFL: dynamic = cpp_expression("#inclu");
 
-func pr(x: dynamic)
+func pr(x: dynamic) -> dynamic
 {
   write(x, "\n");
 }
 
-func prvec(a: dynamic)
+func prvec(a: dynamic) -> dynamic
 {
   rep(i, (a.size() - 1));
   {
@@ -35,7 +35,7 @@ func prvec(a: dynamic)
   write(a[(a.size() - 1)], "\n");
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -45,7 +45,7 @@ func chmax(a: dynamic, b: dynamic)
   return 0;
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b < a))
   {
@@ -55,16 +55,16 @@ func chmin(a: dynamic, b: dynamic)
   return 0;
 }
 
-var cub = cpp_array(500, 500, 500);
+var cub: dynamic = cpp_array(500, 500, 500);
 
-func solve(n: dynamic, h: dynamic)
+func solve(n: dynamic, h: dynamic) -> dynamic
 {
   cpp_statement("rep(i, n) rep(j, n) rep(k, n)");
   cub[i][j][k] = true;
-  var c: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var ans = 0;
+  var c: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   rep(i, n);
   rep(j, n);
   rep(k, n) += cub[i][j][k];
@@ -72,10 +72,10 @@ func solve(n: dynamic, h: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var h: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
   while (((cin >> n) >> h))
   {
     if (((n == 0) && (h == 0)))
@@ -87,7 +87,7 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     read(c, a, b);
     a -= 1;

@@ -1,97 +1,97 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var pb = cpp_expression("/*There i");
+var pb: dynamic = cpp_expression("/*There i");
 
-var pf = cpp_expression("/*There is");
+var pf: dynamic = cpp_expression("/*There is");
 
-var mp = cpp_expression("/*There i");
+var mp: dynamic = cpp_expression("/*There i");
 
-var tt = cpp_expression("/*The");
+var tt: dynamic = cpp_expression("/*The");
 
-var nn = cpp_expression("/*There is");
+var nn: dynamic = cpp_expression("/*There is");
 
-func ff(i: dynamic, a: dynamic, n: dynamic)
+func ff(i: dynamic, a: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(ll i=a;i<n;i++)");
 }
 
-func f(i: dynamic, n: dynamic, a: dynamic)
+func f(i: dynamic, n: dynamic, a: dynamic) -> dynamic
 {
   cpp_macro("for(ll i=n;i>=a;i--)");
 }
 
-func fr(x: dynamic, a: dynamic)
+func fr(x: dynamic, a: dynamic) -> dynamic
 {
   return cpp_expression("/*There is no");
 }
 
-func F(a: dynamic)
+func F(a: dynamic) -> dynamic
 {
   return cpp_expression("/*There is no salvati");
 }
 
-var cY = cpp_expression("/*There is no");
+var cY: dynamic = cpp_expression("/*There is no");
 
-var cN = cpp_expression("/*There is n");
+var cN: dynamic = cpp_expression("/*There is n");
 
-var cy = cpp_expression("/*There is no");
+var cy: dynamic = cpp_expression("/*There is no");
 
-var cn = cpp_expression("/*There is n");
+var cn: dynamic = cpp_expression("/*There is n");
 
-var sc = cpp_expression("/*Ther");
+var sc: dynamic = cpp_expression("/*Ther");
 
-var fs = cpp_expression("/*The");
+var fs: dynamic = cpp_expression("/*The");
 
-func c(a: dynamic)
+func c(a: dynamic) -> dynamic
 {
   return cpp_expression("/*There is no");
 }
 
-func all(a: dynamic)
+func all(a: dynamic) -> dynamic
 {
   return cpp_expression("/*There is no sal");
 }
 
-var pi = cpp_expression("/*There is no");
+var pi: dynamic = cpp_expression("/*There is no");
 
-var M = (1e9 + 7);
+var M: dynamic = (1e9 + 7);
 
-func mod(x: dynamic)
+func mod(x: dynamic) -> dynamic
 {
   return (((((x % M) + M)) % M));
 }
 
-func fact(n: dynamic)
+func fact(n: dynamic) -> dynamic
 {
-  return if (((n <= 1))) 1 else (n * fact((n - 1)));
+  return  (((n <= 1))) ? 1 : (n * fact((n - 1)));
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var x: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(n, m, x);
-  var r = ((((x + n) - 1)) / n);
-  var c = ((n + x) - ((r * n)));
+  var r: dynamic = ((((x + n) - 1)) / n);
+  var c: dynamic = ((n + x) - ((r * n)));
   c(((((c - 1)) * m) + r));
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
 }
 
-func nCr(n: dynamic, r: dynamic)
+func nCr(n: dynamic, r: dynamic) -> dynamic
 {
-  r = if ((((n - r) <= r))) (n - r) else r;
-  var ans = 1;
+  r =  ((((n - r) <= r))) ? (n - r) : r;
+  var ans: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < r))
     {
       ans *= ((n - i));
@@ -102,28 +102,28 @@ func nCr(n: dynamic, r: dynamic)
   return ans;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == 0))
   {
     return b;
   }
-  return if (((a == 1))) a else gcd((b % a), a);
+  return  (((a == 1))) ? a : gcd((b % a), a);
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a / gcd(a, b))) * b);
 }
 
-func prime(n: dynamic)
+func prime(n: dynamic) -> dynamic
 {
   if ((n < 2))
   {
     return false;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= sqrt(n)))
     {
       if (((n % i) == 0))
@@ -136,13 +136,13 @@ func prime(n: dynamic)
   return true;
 }
 
-func BinExp(base: dynamic, power: dynamic)
+func BinExp(base: dynamic, power: dynamic) -> dynamic
 {
   if ((!power))
   {
     return 1;
   }
-  var res = 1;
+  var res: dynamic = 1;
   while ((power > 1))
   {
     if ((power % 2))
@@ -158,14 +158,14 @@ func BinExp(base: dynamic, power: dynamic)
   return (base * res);
 }
 
-func ModInverse(base: dynamic)
+func ModInverse(base: dynamic) -> dynamic
 {
-  var power = (M - 2);
+  var power: dynamic = (M - 2);
   if ((!power))
   {
     return 1;
   }
-  var res = 1;
+  var res: dynamic = 1;
   while ((power > 1))
   {
     if ((power % 2))

@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(x, y);
   if (((x < 10) && (y < 10)))
   {

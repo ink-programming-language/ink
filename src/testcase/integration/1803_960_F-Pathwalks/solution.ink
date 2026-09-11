@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var nod = cpp_array(100005);
+var nod: dynamic = cpp_array(100005);
 
-func query(w: dynamic, m: dynamic)
+func query(w: dynamic, m: dynamic) -> dynamic
 {
-  var it = m.lower_bound(w);
+  var it: dynamic = m.lower_bound(w);
   if ((it == m.begin()))
   {
     return 0;
@@ -27,9 +27,9 @@ func query(w: dynamic, m: dynamic)
   return it->second;
 }
 
-func upd(val: dynamic, w: dynamic, m: dynamic)
+func upd(val: dynamic, w: dynamic, m: dynamic) -> dynamic
 {
-  var it = m.upper_bound(w);
+  var it: dynamic = m.upper_bound(w);
   if ((it != m.begin()))
   {
     it = prev(it);
@@ -40,7 +40,7 @@ func upd(val: dynamic, w: dynamic, m: dynamic)
   }
   while (true)
   {
-    var it = m.upper_bound(w);
+    var it: dynamic = m.upper_bound(w);
     if ((it == m.end()))
     {
       break;
@@ -54,7 +54,7 @@ func upd(val: dynamic, w: dynamic, m: dynamic)
   m[w] = val;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
@@ -62,7 +62,7 @@ func main()
     while ((i <= m))
     {
       read(x, y, w);
-      var len = query(w, nod[x]);
+      var len: dynamic = query(w, nod[x]);
       upd((len + 1), w, nod[y]);
       ans = max(ans, (len + 1));
       i += 1;

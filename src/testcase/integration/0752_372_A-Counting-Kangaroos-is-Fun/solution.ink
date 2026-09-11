@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var c = 0;
+  var n: dynamic = cpp_uninitialized();
+  var c: dynamic = 0;
   read(n);
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x);
@@ -18,9 +18,9 @@ func main()
     }
   }
   sort(v.begin(), v.end());
-  var r = (n - 1);
+  var r: dynamic = (n - 1);
   {
-    var i = ((n / 2) - 1);
+    var i: dynamic = ((n / 2) - 1);
     while ((i >= 0))
     {
       if (((2 * v[i]) <= v[r]))

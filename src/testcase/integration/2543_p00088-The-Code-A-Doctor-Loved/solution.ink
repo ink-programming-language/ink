@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var ab = ["100101", "10011010", "0101", "0001", "110", "01001", "10011011", "010000", "0111", "10011000", "0110", "00100", "10011001", "10011110", "00101", "111", "10011111", "1000", "00110", "00111", "10011100", "10011101", "000010", "10010010", "10010011", "10010000"];
+var ab: dynamic = ["100101", "10011010", "0101", "0001", "110", "01001", "10011011", "010000", "0111", "10011000", "0110", "00100", "10011001", "10011110", "00101", "111", "10011111", "1000", "00110", "00111", "10011100", "10011101", "000010", "10010010", "10010011", "10010000"];
 
-func ctoi(c: dynamic)
+func ctoi(c: dynamic) -> dynamic
 {
   if ((c == cpp_char(" ")))
   {
@@ -28,7 +28,7 @@ func ctoi(c: dynamic)
   }
 }
 
-func itoc(num: dynamic)
+func itoc(num: dynamic) -> dynamic
 {
   if ((num == "00000"))
   {
@@ -160,25 +160,25 @@ func itoc(num: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var str: dynamic;
+  var str: dynamic = cpp_uninitialized();
   while (getline(cin, str))
   {
-    var num = "";
+    var num: dynamic = "";
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < str.length()))
       {
         num += ctoi(str[i]);
         i += 1;
       }
     }
-    var cnt = 0;
-    var temp = "";
-    var res = "";
+    var cnt: dynamic = 0;
+    var temp: dynamic = "";
+    var res: dynamic = "";
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < num.length()))
       {
         cnt += 1;

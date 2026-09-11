@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
 class state
 {
-  var s: dynamic;
-  var v: dynamic;
-  var len: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var len: dynamic = cpp_uninitialized();
 }
 
 class comp
 {
-  func operator_call(a: dynamic, b: dynamic)
+  func operator_call(a: dynamic, b: dynamic) -> dynamic
   {
       return (a.len > b.len);
     }
 }
 
-var que: dynamic;
+var que: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var c = cpp_array(50);
+var c: dynamic = cpp_array(50);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var G = cpp_array(50);
+var G: dynamic = cpp_array(50);
 
-var d = cpp_array(50);
+var d: dynamic = cpp_array(50);
 
-var mask = cpp_array(50);
+var mask: dynamic = cpp_array(50);
 
-func add_edge(f: dynamic, t: dynamic)
+func add_edge(f: dynamic, t: dynamic) -> dynamic
 {
   G[f].push_back(t);
   G[t].push_back(f);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&c[i]));
@@ -51,9 +51,9 @@ func main()
     }
   }
   {
-    var i = 1;
-    var a: dynamic;
-    var b: dynamic;
+    var i: dynamic = 1;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     while ((i <= m))
     {
       scanf("%d%d", (&a), (&b));
@@ -64,7 +64,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       mask[i] |= (1 << i);
@@ -79,7 +79,7 @@ func main()
   d[1][mask[1]] = ans;
   while ((!que.empty()))
   {
-    var S = que.top();
+    var S: dynamic = que.top();
     que.pop();
     if ((S.v == n))
     {
@@ -87,14 +87,14 @@ func main()
       return 0;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < G[S.v].size()))
       {
-        var New = [0, 0, 0];
+        var New: dynamic = [0, 0, 0];
         New.v = G[S.v][i];
         New.s = (S.s | mask[New.v]);
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             if ((New.s & ((1 << j))))

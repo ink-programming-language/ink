@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-func lp(i: dynamic, n: dynamic)
+func lp(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-func lps(i: dynamic, j: dynamic, n: dynamic)
+func lps(i: dynamic, j: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=j;i<n;i++)");
 }
 
-var fordebug = cpp_expression("#include<");
+var fordebug: dynamic = cpp_expression("#include<");
 
-var DEKAI = cpp_expression("#include<bi");
+var DEKAI: dynamic = cpp_expression("#include<bi");
 
-var INF = cpp_expression("#includ");
+var INF: dynamic = cpp_expression("#includ");
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var double = dynamic;
+var cpp_double: dynamic = dynamic;
 
-var floot10 = cpp_expression("#include<bits/stdc++.h> using");
+var floot10: dynamic = cpp_expression("#include<bits/stdc++.h> using");
 
-func main()
+func main() -> dynamic
 {
-  var h: dynamic;
-  var w: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(h, w, x, y);
   if (((((h * w) % 2) == 1) && ((((x + y)) % 2) == 1)))
   {

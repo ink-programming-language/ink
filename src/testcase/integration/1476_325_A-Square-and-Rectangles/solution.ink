@@ -2,24 +2,24 @@
 
 class coord
 {
-  var x1: dynamic;
-  var x2: dynamic;
-  var y1: dynamic;
-  var y2: dynamic;
+  var x1: dynamic = cpp_uninitialized();
+  var x2: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var rect = cpp_array(n);
-  var mnX = 31401;
-  var mnY = 31401;
-  var mxX = 0;
-  var mxY = 0;
-  var area = 0;
+  var rect: dynamic = cpp_array(n);
+  var mnX: dynamic = 31401;
+  var mnY: dynamic = 31401;
+  var mxX: dynamic = 0;
+  var mxY: dynamic = 0;
+  var area: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(rect[i].x1, rect[i].y1, rect[i].x2, rect[i].y2);
@@ -31,8 +31,8 @@ func main()
       i += 1;
     }
   }
-  var x = (mxX - mnX);
-  var y = (mxY - mnY);
+  var x: dynamic = (mxX - mnX);
+  var y: dynamic = (mxY - mnY);
   if (((x == y) && (area == (((1 * x) * y)))))
   {
     write("YES\n");

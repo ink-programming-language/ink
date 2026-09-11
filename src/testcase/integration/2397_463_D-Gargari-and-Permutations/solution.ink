@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var md = (1e9 + 7);
+var md: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var mx: dynamic;
+var mx: dynamic = cpp_uninitialized();
 
-var edg = cpp_array(1010, 1010);
+var edg: dynamic = cpp_array(1010, 1010);
 
-var dis = cpp_array(1001);
+var dis: dynamic = cpp_array(1001);
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var gr = cpp_array(100000);
+var gr: dynamic = cpp_array(100000);
 
-var vis = cpp_array(1001);
+var vis: dynamic = cpp_array(1001);
 
-func dfs(x: dynamic, l: dynamic)
+func dfs(x: dynamic, l: dynamic) -> dynamic
 {
   vis[x] = true;
   dis[x] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < gr[x].size()))
     {
-      var u = gr[x][i];
+      var u: dynamic = gr[x][i];
       if ((vis[u] == false))
       {
         dfs(u, (l + 1));
@@ -40,20 +40,20 @@ func dfs(x: dynamic, l: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
   read(n, k);
-  var kk = k;
+  var kk: dynamic = k;
   while (cpp_update(k, "--"))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
-        var x: dynamic;
+        var x: dynamic = cpp_uninitialized();
         read(x);
         edg[x][k] = i;
         i += 1;
@@ -61,11 +61,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((i == j))
@@ -73,9 +73,9 @@ func main()
             j += 1;
             continue;
           }
-          var t = false;
+          var t: dynamic = false;
           {
-            var z = 0;
+            var z: dynamic = 0;
             while ((z < kk))
             {
               if ((edg[i][z] > edg[j][z]))
@@ -96,7 +96,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dfs(i, 1);

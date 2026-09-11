@@ -2,7 +2,7 @@
 
 class compare
 {
-  func operator_call(l: dynamic, r: dynamic)
+  func operator_call(l: dynamic, r: dynamic) -> dynamic
   {
       if ((l.first == r.first))
       {
@@ -12,7 +12,7 @@ class compare
     }
 }
 
-func isgood(A: dynamic, i: dynamic, j: dynamic)
+func isgood(A: dynamic, i: dynamic, j: dynamic) -> dynamic
 {
   if (((i < (A.size() - 1)) && (A[(i + 1)][j] == A[i][j])))
   {
@@ -33,14 +33,14 @@ func isgood(A: dynamic, i: dynamic, j: dynamic)
   return false;
 }
 
-func print(X: dynamic)
+func print(X: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < X.size()))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < X[i].size()))
         {
           write(X[i][j], " ");
@@ -54,26 +54,26 @@ func print(X: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
-  var m: dynamic;
-  var T: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var T: dynamic = cpp_uninitialized();
   read(n, m, T);
-  var d = cpp_construct(m, 0);
+  var d: dynamic = cpp_construct(m, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       read(s);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
-          var a = (s[j] - cpp_char("0"));
+          var a: dynamic = (s[j] - cpp_char("0"));
           A[i][j] = a;
           j += 1;
         }
@@ -81,13 +81,13 @@ func main()
       i += 1;
     }
   }
-  var Q: dynamic;
+  var Q: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((X[i][j] == 0))
@@ -106,10 +106,10 @@ func main()
   }
   while ((!Q.empty()))
   {
-    var u = Q.top();
+    var u: dynamic = Q.top();
     Q.pop();
-    var i = (u.second / 1000);
-    var j = (u.second % 1000);
+    var i: dynamic = (u.second / 1000);
+    var j: dynamic = (u.second % 1000);
     if (((i < (X.size() - 1)) && (X[(i + 1)][j] == 0)))
     {
       X[(i + 1)][j] = (X[i][j] + 1);
@@ -132,12 +132,12 @@ func main()
     }
   }
   {
-    var t = 0;
+    var t: dynamic = 0;
     while ((t < T))
     {
-      var i: dynamic;
-      var j: dynamic;
-      var k: dynamic;
+      var i: dynamic = cpp_uninitialized();
+      var j: dynamic = cpp_uninitialized();
+      var k: dynamic = cpp_uninitialized();
       read(i, j, k);
       i -= 1;
       j -= 1;

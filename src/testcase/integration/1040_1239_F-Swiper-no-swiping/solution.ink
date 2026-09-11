@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-var N = ((500 * 1000) + 10);
+var N: dynamic = ((500 * 1000) + 10);
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var par = cpp_array(N);
+var par: dynamic = cpp_array(N);
 
-var deg = cpp_array(N);
+var deg: dynamic = cpp_array(N);
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-var en: dynamic;
+var en: dynamic = cpp_uninitialized();
 
-var h = cpp_array(N);
+var h: dynamic = cpp_array(N);
 
-var mn: dynamic;
+var mn: dynamic = cpp_uninitialized();
 
-var comp = cpp_array(N);
+var comp: dynamic = cpp_array(N);
 
-var sv = cpp_array(N, 2);
+var sv: dynamic = cpp_array(N, 2);
 
-var adj = cpp_array(N);
+var adj: dynamic = cpp_array(N);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-func gclear()
+func gclear() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 2))
         {
           sv[j][i] = -1;
@@ -54,11 +54,11 @@ func gclear()
   st = cpp_assign(en, "=", -1);
 }
 
-func print()
+func print() -> dynamic
 {
-  var res = n;
+  var res: dynamic = n;
   {
-    var v = 0;
+    var v: dynamic = 0;
     while ((v < n))
     {
       res -= ans[v];
@@ -71,7 +71,7 @@ func print()
   }
   write("Yes\n", res, cpp_char("\n"));
   {
-    var v = 0;
+    var v: dynamic = 0;
     while ((v < n))
     {
       if ((!ans[v]))
@@ -84,10 +84,10 @@ func print()
   write(cpp_char("\n"));
 }
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
   vis[v] = true;
-  for (var u in adj[v])
+  for (var u: dynamic in adj[v])
   {
     if ((deg[u] ^ 2))
     {
@@ -111,22 +111,22 @@ func dfs(v: dynamic)
   }
 }
 
-func bfs(x: dynamic)
+func bfs(x: dynamic) -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   fill(vis, (vis + n), 0);
   q.push(x);
   vis[x] = true;
   while ((!q.empty()))
   {
-    var v = q.front();
+    var v: dynamic = q.front();
     if (((deg[v] == 1) && (x ^ v)))
     {
       en = v;
       break;
     }
     q.pop();
-    for (var u in adj[v])
+    for (var u: dynamic in adj[v])
     {
       if ((!vis[u]))
       {
@@ -144,10 +144,10 @@ func bfs(x: dynamic)
   print();
 }
 
-func bf(v: dynamic, x: dynamic)
+func bf(v: dynamic, x: dynamic) -> dynamic
 {
   comp[v] = x;
-  for (var u in adj[v])
+  for (var u: dynamic in adj[v])
   {
     if ((!comp[u]))
     {
@@ -158,7 +158,7 @@ func bf(v: dynamic, x: dynamic)
   }
 }
 
-func chck(s: dynamic, e: dynamic)
+func chck(s: dynamic, e: dynamic) -> dynamic
 {
   while ((e ^ -1))
   {
@@ -171,12 +171,12 @@ func chck(s: dynamic, e: dynamic)
   return 0;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var lst = -1;
-  var cnt = 0;
+  var lst: dynamic = -1;
+  var cnt: dynamic = 0;
   {
-    var v = 0;
+    var v: dynamic = 0;
     while ((v < n))
     {
       deg[v] = (cpp_cast(adj[v].size()) % 3);
@@ -197,7 +197,7 @@ func solve()
     return bfs(lst);
   }
   {
-    var v = 0;
+    var v: dynamic = 0;
     while ((v < n))
     {
       if (((deg[v] == 2) && (!vis[v])))
@@ -230,8 +230,8 @@ func solve()
     fill(par, (par + n), -1);
     cnt = 0;
     comp[lst] = -1;
-    var num: dynamic;
-    for (var v in adj[lst])
+    var num: dynamic = cpp_uninitialized();
+    for (var v: dynamic in adj[lst])
     {
       if ((!comp[v]))
       {
@@ -250,7 +250,7 @@ func solve()
     if ((num.size() > 1))
     {
       ans[lst] = true;
-      for (var x in num)
+      for (var x: dynamic in num)
       {
         cnt += 1;
         if ((cnt > 2))
@@ -270,7 +270,7 @@ func solve()
   write("No\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
@@ -281,9 +281,9 @@ func main()
     read(n, m);
     gclear();
     {
-      var i = 0;
-      var u: dynamic;
-      var v: dynamic;
+      var i: dynamic = 0;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       while ((i < m))
       {
         read(u, v);

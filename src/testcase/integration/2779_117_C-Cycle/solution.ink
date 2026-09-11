@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m = cpp_array(5005, 5005);
+var m: dynamic = cpp_array(5005, 5005);
 
-var vis = cpp_array(5005);
+var vis: dynamic = cpp_array(5005);
 
-func bfs(u: dynamic, pre: dynamic)
+func bfs(u: dynamic, pre: dynamic) -> dynamic
 {
   vis[u] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((m[u][i] == cpp_char("1")))
@@ -31,11 +31,11 @@ func bfs(u: dynamic, pre: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%s", (m[i] + 1));
@@ -43,7 +43,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((!vis[i]) && bfs(i, i)))

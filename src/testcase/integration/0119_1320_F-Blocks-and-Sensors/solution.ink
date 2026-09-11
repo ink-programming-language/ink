@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func operator_shift_right(is: dynamic, v: dynamic)
+func operator_shift_right(is: dynamic, v: dynamic) -> dynamic
 {
-  for (var x in v)
+  for (var x: dynamic in v)
   {
     (is >> x);
   }
   return is;
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   if ((!v.empty()))
   {
     (os << v.front());
     {
-      var x = 1;
+      var x: dynamic = 1;
       while ((x < v.size()))
       {
         ((os << cpp_char(" ")) << v[x]);
@@ -26,36 +26,36 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return os;
 }
 
-func gg()
+func gg() -> dynamic
 {
   write("-1\n");
   exit(0);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k);
-  var ans = cpp_construct(n, vector(m, vector(k, -1)));
-  var pxn = cpp_construct(m, vector(k, (n - 1)));
-  var pyn = cpp_construct(n, vector(k, (m - 1)));
-  var pzn = cpp_construct(n, vector(m, (k - 1)));
+  var ans: dynamic = cpp_construct(n, vector(m, vector(k, -1)));
+  var pxn: dynamic = cpp_construct(m, vector(k, (n - 1)));
+  var pyn: dynamic = cpp_construct(n, vector(k, (m - 1)));
+  var pzn: dynamic = cpp_construct(n, vector(m, (k - 1)));
   read(xp, xn, yp, yn, zp, zn);
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x < n))
     {
       {
-        var y = 0;
+        var y: dynamic = 0;
         while ((y < m))
         {
           {
-            var z = 0;
+            var z: dynamic = 0;
             while ((z < k))
             {
               if ((!((((((xp[y][z] && xn[y][z]) && yp[x][z]) && yn[x][z]) && zp[x][y]) && zn[x][y]))))
@@ -71,15 +71,15 @@ func main()
       x += 1;
     }
   }
-  var exx = __cpp_lambda_1;
-  var exy = __cpp_lambda_2;
-  var exz = __cpp_lambda_3;
+  var exx: dynamic = __cpp_lambda_1;
+  var exy: dynamic = __cpp_lambda_2;
+  var exz: dynamic = __cpp_lambda_3;
   {
-    var y = 0;
+    var y: dynamic = 0;
     while ((y < m))
     {
       {
-        var z = 0;
+        var z: dynamic = 0;
         while ((z < k))
         {
           if ((bool_cpp(xp[y][z]) != bool_cpp(xn[y][z])))
@@ -99,11 +99,11 @@ func main()
     }
   }
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x < n))
     {
       {
-        var z = 0;
+        var z: dynamic = 0;
         while ((z < k))
         {
           if ((bool_cpp(yp[x][z]) != bool_cpp(yn[x][z])))
@@ -123,11 +123,11 @@ func main()
     }
   }
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x < n))
     {
       {
-        var y = 0;
+        var y: dynamic = 0;
         while ((y < m))
         {
           if ((bool_cpp(zp[x][y]) != bool_cpp(zn[x][y])))
@@ -148,16 +148,16 @@ func main()
   }
   while ((!q.empty()))
   {
-    var x: dynamic;
-    var y: dynamic;
-    var z: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
+    var z: dynamic = cpp_uninitialized();
     tie(x, y, z) = q.front();
     q.pop();
     if ((ans[x][y][z] == 0))
     {
       continue;
     }
-    var col: dynamic;
+    var col: dynamic = cpp_uninitialized();
     if ((pxp[y][z] == x))
     {
       col.push_back(xp[y][z]);
@@ -198,15 +198,15 @@ func main()
     exz(x, y);
   }
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x < n))
     {
       {
-        var y = 0;
+        var y: dynamic = 0;
         while ((y < m))
         {
           {
-            var z = 0;
+            var z: dynamic = 0;
             while ((z < k))
             {
               if ((ans[x][y][z] == -1))
@@ -227,7 +227,7 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_1(y: dynamic, z: dynamic)
+func __cpp_lambda_1(y: dynamic, z: dynamic) -> dynamic
 {
   while (((pxp[y][z] < n) && (!ans[pxp[y][z]][y][z])))
   {
@@ -245,7 +245,7 @@ func __cpp_lambda_1(y: dynamic, z: dynamic)
   q.emplace(pxn[y][z], y, z);
 }
 
-func __cpp_lambda_2(x: dynamic, z: dynamic)
+func __cpp_lambda_2(x: dynamic, z: dynamic) -> dynamic
 {
   while (((pyp[x][z] < m) && (!ans[x][pyp[x][z]][z])))
   {
@@ -263,7 +263,7 @@ func __cpp_lambda_2(x: dynamic, z: dynamic)
   q.emplace(x, pyn[x][z], z);
 }
 
-func __cpp_lambda_3(x: dynamic, y: dynamic)
+func __cpp_lambda_3(x: dynamic, y: dynamic) -> dynamic
 {
   while (((pzp[x][y] < k) && (!ans[x][y][pzp[x][y]])))
   {

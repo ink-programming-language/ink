@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var RI = cpp_expression("#include<bit");
+var RI: dynamic = cpp_expression("#include<bit");
 
-func read()
+func read() -> dynamic
 {
-  var q = 0;
-  var ch = cpp_char(" ");
+  var q: dynamic = 0;
+  var ch: dynamic = cpp_char(" ");
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     ch = getchar();
@@ -18,39 +18,39 @@ func read()
   return q;
 }
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var orz = cpp_array(N);
+var orz: dynamic = cpp_array(N);
 
-var mi = inf;
+var mi: dynamic = inf;
 
-var mic: dynamic;
+var mic: dynamic = cpp_uninitialized();
 
-var mii: dynamic;
+var mii: dynamic = cpp_uninitialized();
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var js: dynamic;
+var js: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var fac = cpp_array(N);
+var fac: dynamic = cpp_array(N);
 
-var ni = cpp_array(N);
+var ni: dynamic = cpp_array(N);
 
-func ksm(x: dynamic, y: dynamic)
+func ksm(x: dynamic, y: dynamic) -> dynamic
 {
-  var re = 1;
+  var re: dynamic = 1;
   {
     while (y)
     {
@@ -65,15 +65,15 @@ func ksm(x: dynamic, y: dynamic)
   return re;
 }
 
-func main()
+func main() -> dynamic
 {
-  var c: dynamic;
-  var w: dynamic;
+  var c: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   n = read();
   X = read();
   Y = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       c = read();
@@ -92,7 +92,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sort(orz[i].begin(), orz[i].end());
@@ -100,7 +100,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!cpp_cast((orz[i].size()))))
@@ -113,7 +113,7 @@ func main()
         a[i] = 1;
         js += 1;
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < orz[i].size()))
           {
             if ((((orz[i][j] + mii) <= Y) || ((orz[i][j] + orz[i][0]) <= X)))
@@ -134,7 +134,7 @@ func main()
         a[i] = 1;
         js += 1;
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < orz[i].size()))
           {
             if ((((orz[i][j] + mi) <= Y) || ((orz[i][j] + orz[i][0]) <= X)))
@@ -151,7 +151,7 @@ func main()
   }
   fac[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fac[i] = (((1 * fac[(i - 1)]) * i) % mod);
@@ -160,7 +160,7 @@ func main()
   }
   ni[n] = ksm(fac[n], (mod - 2));
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
       ni[i] = (((1 * ni[(i + 1)]) * ((i + 1))) % mod);
@@ -169,7 +169,7 @@ func main()
   }
   ans = fac[js];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ans = (((1 * ans) * ni[a[i]]) % mod);

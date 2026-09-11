@@ -2,20 +2,20 @@
 
 class point
 {
-  var x: dynamic;
-  var y: dynamic;
-  var op: dynamic;
-  var id: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var op: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var p = cpp_array(1100);
+var p: dynamic = cpp_array(1100);
 
-func multi(p1: dynamic, p2: dynamic, p0: dynamic)
+func multi(p1: dynamic, p2: dynamic, p0: dynamic) -> dynamic
 {
-  var x1: dynamic;
-  var y1: dynamic;
-  var x2: dynamic;
-  var y2: dynamic;
+  var x1: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var x2: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
   x1 = (p1.x - p0.x);
   y1 = (p1.y - p0.y);
   x2 = (p2.x - p0.x);
@@ -23,36 +23,36 @@ func multi(p1: dynamic, p2: dynamic, p0: dynamic)
   return ((x1 * y2) - (x2 * y1));
 }
 
-func cmp(p1: dynamic, p2: dynamic)
+func cmp(p1: dynamic, p2: dynamic) -> dynamic
 {
   return (multi(p1, p2, p[1]) > 0);
 }
 
-var aslen: dynamic;
+var aslen: dynamic = cpp_uninitialized();
 
-var asx = cpp_array(1100);
+var asx: dynamic = cpp_array(1100);
 
-var asy = cpp_array(1100);
+var asy: dynamic = cpp_array(1100);
 
-func pb(x: dynamic, y: dynamic)
+func pb(x: dynamic, y: dynamic) -> dynamic
 {
   asx[cpp_update(aslen, "++")] = x;
   asy[aslen] = y;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var top: dynamic;
+var top: dynamic = cpp_uninitialized();
 
-var sta = cpp_array(1100);
+var sta: dynamic = cpp_array(1100);
 
-var insta = cpp_array(1100);
+var insta: dynamic = cpp_array(1100);
 
-func in_triangle(p1: dynamic, p2: dynamic, p3: dynamic, p0: dynamic)
+func in_triangle(p1: dynamic, p2: dynamic, p3: dynamic, p0: dynamic) -> dynamic
 {
-  var t1 = multi(p1, p0, p2);
-  var t2 = multi(p2, p0, p3);
-  var t3 = multi(p3, p0, p1);
+  var t1: dynamic = multi(p1, p0, p2);
+  var t2: dynamic = multi(p2, p0, p3);
+  var t3: dynamic = multi(p3, p0, p1);
   if ((((((t1 < 0) && (t2 < 0)) && (t3 < 0))) || ((((t1 > 0) && (t2 > 0)) && (t3 > 0)))))
   {
     return true;
@@ -60,15 +60,15 @@ func in_triangle(p1: dynamic, p2: dynamic, p3: dynamic, p0: dynamic)
   return false;
 }
 
-func separate(p1: dynamic, p2: dynamic, p3: dynamic, L: dynamic, R: dynamic)
+func separate(p1: dynamic, p2: dynamic, p3: dynamic, L: dynamic, R: dynamic) -> dynamic
 {
   if ((L > R))
   {
     return;
   }
-  var k = -1;
+  var k: dynamic = -1;
   {
-    var i = L;
+    var i: dynamic = L;
     while ((i <= R))
     {
       if ((p[i].op != p1.op))
@@ -87,11 +87,11 @@ func separate(p1: dynamic, p2: dynamic, p3: dynamic, L: dynamic, R: dynamic)
     }
   }
   pb(p3.id, p[k].id);
-  var l = L;
-  var r = (L - 1);
-  var bk = false;
+  var l: dynamic = L;
+  var r: dynamic = (L - 1);
+  var bk: dynamic = false;
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i <= R))
     {
       if ((i != k))
@@ -118,7 +118,7 @@ func separate(p1: dynamic, p2: dynamic, p3: dynamic, L: dynamic, R: dynamic)
   if ((bk == false))
   {
     {
-      var i = l;
+      var i: dynamic = l;
       while ((i <= r))
       {
         pb(p1.id, p[i].id);
@@ -136,7 +136,7 @@ func separate(p1: dynamic, p2: dynamic, p3: dynamic, L: dynamic, R: dynamic)
   l = (r + 1);
   bk = false;
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i <= R))
     {
       if ((i != k))
@@ -163,7 +163,7 @@ func separate(p1: dynamic, p2: dynamic, p3: dynamic, L: dynamic, R: dynamic)
   if ((bk == false))
   {
     {
-      var i = l;
+      var i: dynamic = l;
       while ((i <= r))
       {
         pb(p3.id, p[i].id);
@@ -181,7 +181,7 @@ func separate(p1: dynamic, p2: dynamic, p3: dynamic, L: dynamic, R: dynamic)
   l = (r + 1);
   bk = false;
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i <= R))
     {
       if ((i != k))
@@ -208,7 +208,7 @@ func separate(p1: dynamic, p2: dynamic, p3: dynamic, L: dynamic, R: dynamic)
   if ((bk == false))
   {
     {
-      var i = l;
+      var i: dynamic = l;
       while ((i <= r))
       {
         pb(p3.id, p[i].id);
@@ -225,7 +225,7 @@ func separate(p1: dynamic, p2: dynamic, p3: dynamic, L: dynamic, R: dynamic)
   }
 }
 
-func graham()
+func graham() -> dynamic
 {
   top = 0;
   sta[cpp_update(top, "++")] = 1;
@@ -234,7 +234,7 @@ func graham()
   insta[1] = 1;
   insta[2] = 2;
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i <= n))
     {
       while (((top > 1) && (multi(p[sta[top]], p[i], p[sta[(top - 1)]]) <= 0)))
@@ -247,9 +247,9 @@ func graham()
       i += 1;
     }
   }
-  var s = 0;
+  var s: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= top))
     {
       s += ((p[sta[(i - 1)]].op ^ p[sta[i]].op));
@@ -262,10 +262,10 @@ func graham()
     printf("Impossible\n");
   } else if ((s == 0))
   {
-    var cc = p[sta[1]].op;
-    var k = -1;
+    var cc: dynamic = p[sta[1]].op;
+    var k: dynamic = -1;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if (((insta[i] == 0) && (p[i].op != cc)))
@@ -283,16 +283,16 @@ func graham()
         i += 1;
       }
     }
-    var L = 1;
-    var R = 0;
+    var L: dynamic = 1;
+    var R: dynamic = 0;
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i <= top))
       {
         pb(p[sta[(i - 1)]].id, p[sta[i]].id);
-        var bk = false;
+        var bk: dynamic = false;
         {
-          var j = L;
+          var j: dynamic = L;
           while ((j <= n))
           {
             if (((insta[j] == 0) && (j != k)))
@@ -319,7 +319,7 @@ func graham()
         if ((bk == false))
         {
           {
-            var j = L;
+            var j: dynamic = L;
             while ((j <= R))
             {
               pb(p[sta[i]].id, p[j].id);
@@ -334,9 +334,9 @@ func graham()
         i += 1;
       }
     }
-    var bk = false;
+    var bk: dynamic = false;
     {
-      var j = L;
+      var j: dynamic = L;
       while ((j <= n))
       {
         if (((insta[j] == 0) && (j != k)))
@@ -363,7 +363,7 @@ func graham()
     if ((bk == false))
     {
       {
-        var j = L;
+        var j: dynamic = L;
         while ((j <= R))
         {
           pb(p[sta[top]].id, p[j].id);
@@ -376,10 +376,10 @@ func graham()
     }
   } else
   {
-    var be: dynamic;
-    var bk = false;
+    var be: dynamic = cpp_uninitialized();
+    var bk: dynamic = false;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= top))
       {
         if ((p[sta[i]].op == 0))
@@ -396,19 +396,19 @@ func graham()
         i += 1;
       }
     }
-    var L = 1;
-    var R = 0;
-    var i: dynamic;
-    var k = ((((((be - 1) + top) - 1)) % top) + 1);
+    var L: dynamic = 1;
+    var R: dynamic = 0;
+    var i: dynamic = cpp_uninitialized();
+    var k: dynamic = ((((((be - 1) + top) - 1)) % top) + 1);
     {
       i = ((be % top) + 1);
       while ((p[sta[i]].op == 0))
       {
-        var u = ((((((i - 1) + top) - 1)) % top) + 1);
+        var u: dynamic = ((((((i - 1) + top) - 1)) % top) + 1);
         pb(p[sta[u]].id, p[sta[i]].id);
-        var bk = false;
+        var bk: dynamic = false;
         {
-          var j = L;
+          var j: dynamic = L;
           while ((j <= n))
           {
             if (((insta[j] == false) && in_triangle(p[sta[u]], p[sta[i]], p[sta[k]], p[j])))
@@ -432,7 +432,7 @@ func graham()
         if ((bk == false))
         {
           {
-            var j = L;
+            var j: dynamic = L;
             while ((j <= R))
             {
               pb(p[sta[i]].id, p[j].id);
@@ -452,11 +452,11 @@ func graham()
       i = ((i % top) + 1);
       while ((i != be))
       {
-        var u = ((((((i - 1) + top) - 1)) % top) + 1);
+        var u: dynamic = ((((((i - 1) + top) - 1)) % top) + 1);
         pb(p[sta[u]].id, p[sta[i]].id);
-        var bk = false;
+        var bk: dynamic = false;
         {
-          var j = L;
+          var j: dynamic = L;
           while ((j <= n))
           {
             if (((insta[j] == false) && in_triangle(p[sta[u]], p[sta[i]], p[sta[k]], p[j])))
@@ -480,7 +480,7 @@ func graham()
         if ((bk == false))
         {
           {
-            var j = L;
+            var j: dynamic = L;
             while ((j <= R))
             {
               pb(p[sta[i]].id, p[j].id);
@@ -498,11 +498,11 @@ func graham()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d%d%d", (&p[i].x), (&p[i].y), (&p[i].op));
@@ -536,7 +536,7 @@ func main()
   {
     printf("%d\n", aslen);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= aslen))
       {
         printf("%d %d\n", asx[i], asy[i]);

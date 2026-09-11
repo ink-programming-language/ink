@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var answer = -1e9;
+var answer: dynamic = -1e9;
 
-func dfs(edges: dynamic, scores: dynamic, now: dynamic, from_cpp: dynamic)
+func dfs(edges: dynamic, scores: dynamic, now: dynamic, from_cpp: dynamic) -> dynamic
 {
-  var ans = cpp_construct(3, -1e9);
+  var ans: dynamic = cpp_construct(3, -1e9);
   ans[0] = scores[now];
-  for (var e in edges[now])
+  for (var e: dynamic in edges[now])
   {
     if ((e != from_cpp))
     {
-      var v = dfs(edges, scores, e, now);
+      var v: dynamic = dfs(edges, scores, e, now);
       {
-        var l = 0;
+        var l: dynamic = 0;
         while ((l < 3))
         {
           {
-            var r = 0;
+            var r: dynamic = 0;
             while ((r < 3))
             {
               if (((l + r) <= 2))
@@ -47,33 +47,33 @@ func dfs(edges: dynamic, scores: dynamic, now: dynamic, from_cpp: dynamic)
       ans = nextans;
     }
   }
-  for (var a in ans)
+  for (var a: dynamic in ans)
   {
     answer = max(answer, a);
   }
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var a: dynamic;
+      var a: dynamic = cpp_uninitialized();
       read(a);
       scores[i] = a;
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (N - 1)))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       a -= 1;
       b -= 1;
@@ -82,7 +82,7 @@ func main()
       i += 1;
     }
   }
-  var v = dfs(edges, scores, 0, -1);
+  var v: dynamic = dfs(edges, scores, 0, -1);
   write(answer, "\n");
   return 0;
 }

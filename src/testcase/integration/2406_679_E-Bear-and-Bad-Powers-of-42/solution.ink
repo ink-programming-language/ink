@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var maxn = (1e5 + 20);
+var maxn: dynamic = (1e5 + 20);
 
-var shit = 42;
+var shit: dynamic = 42;
 
 class node
 {
-  var mx: dynamic;
-  var mn: dynamic;
-  var lazy: dynamic;
-  var ladd: dynamic;
-  var mn_diff: dynamic;
-  func node()
+  var mx: dynamic = cpp_uninitialized();
+  var mn: dynamic = cpp_uninitialized();
+  var lazy: dynamic = cpp_uninitialized();
+  var ladd: dynamic = cpp_uninitialized();
+  var mn_diff: dynamic = cpp_uninitialized();
+  func node() -> dynamic
   {
       mx = 0;
       mn = 1e16;
@@ -21,35 +21,35 @@ class node
     }
 }
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var tmpval: dynamic;
+var tmpval: dynamic = cpp_uninitialized();
 
-var tmpnex: dynamic;
+var tmpnex: dynamic = cpp_uninitialized();
 
-var tmpaddval: dynamic;
+var tmpaddval: dynamic = cpp_uninitialized();
 
-var seg = cpp_array((maxn * 4));
+var seg: dynamic = cpp_array((maxn * 4));
 
-var void_node: dynamic;
+var void_node: dynamic = cpp_uninitialized();
 
-var bads: dynamic;
+var bads: dynamic = cpp_uninitialized();
 
-func merge(a: dynamic, b: dynamic)
+func merge(a: dynamic, b: dynamic) -> dynamic
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   c.mx = max(a.mx, b.mx);
   c.mn = min(a.mn, b.mn);
   c.mn_diff = min(a.mn_diff, b.mn_diff);
   return c;
 }
 
-func get_next(x: dynamic)
+func get_next(x: dynamic) -> dynamic
 {
   return (*lower_bound(bads.begin(), bads.end(), x));
 }
 
-func build(s: dynamic, e: dynamic, v: dynamic)
+func build(s: dynamic, e: dynamic, v: dynamic) -> dynamic
 {
   if (((e - s) < 2))
   {
@@ -57,13 +57,13 @@ func build(s: dynamic, e: dynamic, v: dynamic)
     seg[v].mn_diff = (get_next(a[s]) - a[s]);
     return;
   }
-  var m = (((s + e)) / 2);
+  var m: dynamic = (((s + e)) / 2);
   build(s, m, (2 * v));
   build(m, e, ((2 * v) + 1));
   seg[v] = merge(seg[(2 * v)], seg[((2 * v) + 1)]);
 }
 
-func shift(s: dynamic, e: dynamic, v: dynamic)
+func shift(s: dynamic, e: dynamic, v: dynamic) -> dynamic
 {
   if (((e - s) >= 2))
   {
@@ -95,7 +95,7 @@ func shift(s: dynamic, e: dynamic, v: dynamic)
   seg[v].lazy = -1;
 }
 
-func get(l: dynamic, r: dynamic, s: dynamic, e: dynamic, v: dynamic)
+func get(l: dynamic, r: dynamic, s: dynamic, e: dynamic, v: dynamic) -> dynamic
 {
   if (((l <= s) && (e <= r)))
   {
@@ -106,11 +106,11 @@ func get(l: dynamic, r: dynamic, s: dynamic, e: dynamic, v: dynamic)
     return void_node;
   }
   shift(s, e, v);
-  var m = (((s + e)) / 2);
+  var m: dynamic = (((s + e)) / 2);
   return merge(get(l, r, s, m, (2 * v)), get(l, r, m, e, ((2 * v) + 1)));
 }
 
-func add(l: dynamic, r: dynamic, s: dynamic, e: dynamic, v: dynamic)
+func add(l: dynamic, r: dynamic, s: dynamic, e: dynamic, v: dynamic) -> dynamic
 {
   if (((l <= s) && (e <= r)))
   {
@@ -126,7 +126,7 @@ func add(l: dynamic, r: dynamic, s: dynamic, e: dynamic, v: dynamic)
       seg[v].ladd += tmpaddval;
       seg[v].mn += tmpaddval;
       seg[v].mx += tmpaddval;
-      var nex = get_next(seg[v].mx);
+      var nex: dynamic = get_next(seg[v].mx);
       seg[v].mn_diff = (nex - seg[v].mx);
       return;
     }
@@ -136,13 +136,13 @@ func add(l: dynamic, r: dynamic, s: dynamic, e: dynamic, v: dynamic)
     return;
   }
   shift(s, e, v);
-  var m = (((s + e)) / 2);
+  var m: dynamic = (((s + e)) / 2);
   add(l, r, s, m, (2 * v));
   add(l, r, m, e, ((2 * v) + 1));
   seg[v] = merge(seg[(2 * v)], seg[((2 * v) + 1)]);
 }
 
-func st(l: dynamic, r: dynamic, s: dynamic, e: dynamic, v: dynamic)
+func st(l: dynamic, r: dynamic, s: dynamic, e: dynamic, v: dynamic) -> dynamic
 {
   if (((l <= s) && (e <= r)))
   {
@@ -157,28 +157,28 @@ func st(l: dynamic, r: dynamic, s: dynamic, e: dynamic, v: dynamic)
     return;
   }
   shift(s, e, v);
-  var m = (((s + e)) / 2);
+  var m: dynamic = (((s + e)) / 2);
   st(l, r, s, m, (2 * v));
   st(l, r, m, e, ((2 * v) + 1));
   seg[v] = merge(seg[(2 * v)], seg[((2 * v) + 1)]);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var p = 1;
+  var p: dynamic = 1;
   while ((p < 1e17))
   {
     bads.push_back(p);
     p *= shit;
   }
-  var n: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(n, q);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -188,20 +188,20 @@ func main()
   build(0, n, 1);
   while (cpp_update(q, "--"))
   {
-    var type_cpp: dynamic;
+    var type_cpp: dynamic = cpp_uninitialized();
     read(type_cpp);
     if ((type_cpp == 1))
     {
-      var pos: dynamic;
+      var pos: dynamic = cpp_uninitialized();
       read(pos);
       pos -= 1;
-      var x = get(pos, (pos + 1), 0, n, 1);
+      var x: dynamic = get(pos, (pos + 1), 0, n, 1);
       write(x.mx, "\n");
     } else if ((type_cpp == 2))
     {
-      var l: dynamic;
-      var r: dynamic;
-      var x: dynamic;
+      var l: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
+      var x: dynamic = cpp_uninitialized();
       read(l, r, x);
       l -= 1;
       tmpnex = get_next(x);
@@ -209,9 +209,9 @@ func main()
       st(l, r, 0, n, 1);
     } else
     {
-      var l: dynamic;
-      var r: dynamic;
-      var x: dynamic;
+      var l: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
+      var x: dynamic = cpp_uninitialized();
       read(l, r, x);
       l -= 1;
       tmpaddval = x;

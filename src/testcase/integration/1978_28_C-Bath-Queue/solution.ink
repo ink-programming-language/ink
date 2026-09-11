@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var N = 55;
+var N: dynamic = 55;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var dp = cpp_array(N, N, N);
+var dp: dynamic = cpp_array(N, N, N);
 
-var C = cpp_array(N, N);
+var C: dynamic = cpp_array(N, N);
 
-func qmod(a: dynamic, b: dynamic)
+func qmod(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (b)
   {
     if ((b & 1))
@@ -27,15 +27,15 @@ func qmod(a: dynamic, b: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(N)))
     {
       C[i][0] = 1;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < int_cpp((i + 1))))
         {
           C[i][j] = (C[(i - 1)][(j - 1)] + C[(i - 1)][j]);
@@ -47,7 +47,7 @@ func main()
   }
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < int_cpp((m + 1))))
     {
       scanf("%d", (&a[i]));
@@ -55,7 +55,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp((n + 1))))
     {
       dp[0][0][i] = i;
@@ -63,22 +63,22 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < int_cpp((m + 1))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < int_cpp((n + 1))))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < int_cpp((n + 1))))
             {
               {
-                var c = 0;
+                var c: dynamic = 0;
                 while ((c < int_cpp((j + 1))))
                 {
-                  var p = max(k, ((((c + a[i]) - 1)) / a[i]));
+                  var p: dynamic = max(k, ((((c + a[i]) - 1)) / a[i]));
                   dp[i][j][k] += (((dp[(i - 1)][(j - c)][p] * C[j][c]) * qmod((i - 1), (j - c))) / qmod(i, j));
                   c += 1;
                 }

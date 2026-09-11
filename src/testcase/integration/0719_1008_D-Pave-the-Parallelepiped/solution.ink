@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var MAXN = (1e5 + 10);
+var MAXN: dynamic = (1e5 + 10);
 
-var fac = cpp_array(MAXN);
+var fac: dynamic = cpp_array(MAXN);
 
-var ft = cpp_array(8);
+var ft: dynamic = cpp_array(8);
 
-var C = cpp_array(1000, 1000);
+var C: dynamic = cpp_array(1000, 1000);
 
-var num = cpp_array(8);
+var num: dynamic = cpp_array(8);
 
-func Init()
+func Init() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < MAXN))
     {
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j < MAXN))
         {
           fac[j] += 1;
@@ -29,12 +29,12 @@ func Init()
   }
   memset(C, 0, cpp_sizeof((C)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 1000))
     {
       C[i][0] = 1;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= i))
         {
           C[i][j] = (C[(i - 1)][(j - 1)] + C[(i - 1)][j]);
@@ -46,7 +46,7 @@ func Init()
   }
 }
 
-func check(a: dynamic, b: dynamic, c: dynamic)
+func check(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   if (((((a & 1)) && ((((b >> 1)) & 1))) && ((((c >> 2)) & 1))))
   {
@@ -75,23 +75,23 @@ func check(a: dynamic, b: dynamic, c: dynamic)
   return false;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (b) gcd(b, (a % b)) else a;
+  return  (b) ? gcd(b, (a % b)) : a;
 }
 
-func main()
+func main() -> dynamic
 {
   Init();
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   scanf("%d", (&T));
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var gcdab: dynamic;
-  var gcdac: dynamic;
-  var gcdbc: dynamic;
-  var gcdabc: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var gcdab: dynamic = cpp_uninitialized();
+  var gcdac: dynamic = cpp_uninitialized();
+  var gcdbc: dynamic = cpp_uninitialized();
+  var gcdabc: dynamic = cpp_uninitialized();
   while (cpp_update(T, "--"))
   {
     scanf("%d%d%d", (&a), (&b), (&c));
@@ -106,17 +106,17 @@ func main()
     ft[5] = (fac[gcdac] - fac[gcdabc]);
     ft[6] = (fac[gcdbc] - fac[gcdabc]);
     ft[7] = fac[gcdabc];
-    var ans = 0;
+    var ans: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < 8))
       {
         {
-          var j = i;
+          var j: dynamic = i;
           while ((j < 8))
           {
             {
-              var k = j;
+              var k: dynamic = j;
               while ((k < 8))
               {
                 if (check(i, j, k))
@@ -125,10 +125,10 @@ func main()
                   num[i] += 1;
                   num[j] += 1;
                   num[k] += 1;
-                  var temp = 1;
-                  var flag = 0;
+                  var temp: dynamic = 1;
+                  var flag: dynamic = 0;
                   {
-                    var l = 1;
+                    var l: dynamic = 1;
                     while ((l < 8))
                     {
                       if (num[l])

@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-func ni()
+func ni() -> dynamic
 {
-  var val: dynamic;
+  var val: dynamic = cpp_uninitialized();
   scanf("%i", (&val));
   return val;
 }
 
-func npi()
+func npi() -> dynamic
 {
-  var val: dynamic;
+  var val: dynamic = cpp_uninitialized();
   scanf("%i %i", (&val.first), (&val.second));
   return val;
 }
 
-func nll()
+func nll() -> dynamic
 {
-  var val: dynamic;
+  var val: dynamic = cpp_uninitialized();
   scanf("%I64d", (&val));
   return val;
 }
 
-func nvi(n: dynamic, corr: dynamic = 0)
+func nvi(n: dynamic, corr: dynamic = 0) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a[i] = (ni() + corr);
@@ -34,9 +34,9 @@ func nvi(n: dynamic, corr: dynamic = 0)
   return move(a);
 }
 
-func nc()
+func nc() -> dynamic
 {
-  var val: dynamic;
+  var val: dynamic = cpp_uninitialized();
   while (true)
   {
     val = getchar();
@@ -48,9 +48,9 @@ func nc()
   return val;
 }
 
-func ncs()
+func ncs() -> dynamic
 {
-  var val: dynamic;
+  var val: dynamic = cpp_uninitialized();
   while (true)
   {
     val = getchar();
@@ -62,58 +62,58 @@ func ncs()
   return val;
 }
 
-func ns()
+func ns() -> dynamic
 {
-  var buff = cpp_array((1024 * 4000));
+  var buff: dynamic = cpp_array((1024 * 4000));
   scanf("%s", buff);
   return [buff];
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   while (b)
   {
-    var tmp = (a % b);
+    var tmp: dynamic = (a % b);
     a = b;
     b = tmp;
   }
   return a;
 }
 
-func tr2(xv1: dynamic, yv1: dynamic, xv2: dynamic, yv2: dynamic, x3: dynamic, y3: dynamic)
+func tr2(xv1: dynamic, yv1: dynamic, xv2: dynamic, yv2: dynamic, x3: dynamic, y3: dynamic) -> dynamic
 {
   return (((1 * ((xv2 - xv1))) * ((y3 - yv1))) - ((1 * ((yv2 - yv1))) * ((x3 - xv1))));
 }
 
-var eps = 1e-12;
+var eps: dynamic = 1e-12;
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-func eq(a: dynamic, b: dynamic)
+func eq(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs((a - b)) <= eps);
 }
 
-var bits_cnt = cpp_array(256);
+var bits_cnt: dynamic = cpp_array(256);
 
-var input_dir = "inputs\\";
+var input_dir: dynamic = "inputs\\";
 
-var input_file = (input_dir + "input.txt");
+var input_file: dynamic = (input_dir + "input.txt");
 
-var output_file = (input_dir + "output.txt");
+var output_file: dynamic = (input_dir + "output.txt");
 
-func init_streams()
+func init_streams() -> dynamic
 {
 }
 
-func init_data()
+func init_data() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 255))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 8))
         {
           if ((((1 << j)) & i))
@@ -128,26 +128,26 @@ func init_data()
   }
 }
 
-func bit_count(v: dynamic)
+func bit_count(v: dynamic) -> dynamic
 {
   return (((bits_cnt[(v & 0xFF)] + bits_cnt[(((v >> 8)) & 0xFF)]) + bits_cnt[(((v >> 16)) & 0xFF)]) + bits_cnt[(((v >> 24)) & 0xFF)]);
 }
 
-var maxn = (100000 + 1);
+var maxn: dynamic = (100000 + 1);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var E = cpp_array(maxn);
+var E: dynamic = cpp_array(maxn);
 
-var adj = cpp_array(maxn);
+var adj: dynamic = cpp_array(maxn);
 
-var vis = cpp_array(maxn);
+var vis: dynamic = cpp_array(maxn);
 
-var mx = cpp_array(maxn);
+var mx: dynamic = cpp_array(maxn);
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   if (vis[u])
   {
@@ -155,21 +155,21 @@ func dfs(u: dynamic)
   }
   vis[u] = true;
   mx[u] = E[u];
-  for (var to in adj[u])
+  for (var to: dynamic in adj[u])
   {
     mx[u] = max(mx[u], (((E[u] && (!E[to]))) + dfs(to)));
   }
   return mx[u];
 }
 
-func main()
+func main() -> dynamic
 {
   init_streams();
   init_data();
-  var n = ni();
-  var m = ni();
+  var n: dynamic = ni();
+  var m: dynamic = ni();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       E[i] = ni();
@@ -177,18 +177,18 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var u = ni();
-      var v = ni();
+      var u: dynamic = ni();
+      var v: dynamic = ni();
       adj[u].emplace_back(v);
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       ans = max(ans, dfs(i));

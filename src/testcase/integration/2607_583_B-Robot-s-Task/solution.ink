@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(5000);
+var a: dynamic = cpp_array(5000);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var cnt = 0;
-  var ans = 0;
+  var cnt: dynamic = 0;
+  var ans: dynamic = 0;
   while (true)
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((a[i] <= cnt))
@@ -36,7 +36,7 @@ func main()
     }
     ans += 1;
     {
-      var i = (n - 1);
+      var i: dynamic = (n - 1);
       while ((i >= 0))
       {
         if ((a[i] <= cnt))

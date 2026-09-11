@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var N = 1000005;
+var N: dynamic = 1000005;
 
-var M = 1000005;
+var M: dynamic = 1000005;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var len = cpp_array(2);
+var len: dynamic = cpp_array(2);
 
-var dp = cpp_array(N);
+var dp: dynamic = cpp_array(N);
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var l = cpp_array(N);
+var l: dynamic = cpp_array(N);
 
-var r = cpp_array(N);
+var r: dynamic = cpp_array(N);
 
-var z = cpp_array(2);
+var z: dynamic = cpp_array(2);
 
-var s = cpp_array(2);
+var s: dynamic = cpp_array(2);
 
-func ZAlgorithm(s: dynamic)
+func ZAlgorithm(s: dynamic) -> dynamic
 {
-  var n = s.size();
-  var l = 0;
-  var r = 0;
+  var n: dynamic = s.size();
+  var l: dynamic = 0;
+  var r: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i > r))
@@ -69,22 +69,22 @@ func ZAlgorithm(s: dynamic)
   return z;
 }
 
-func cmp(idx: dynamic, i: dynamic, j: dynamic)
+func cmp(idx: dynamic, i: dynamic, j: dynamic) -> dynamic
 {
-  var ln = ((j - i) + 1);
+  var ln: dynamic = ((j - i) + 1);
   if ((ln != len[idx]))
   {
-    return (if ((ln < len[idx])) -1 else +1);
+    return ( ((ln < len[idx])) ? -1 : +1);
   }
-  var at = z[idx][((len[idx] + 1) + i)];
+  var at: dynamic = z[idx][((len[idx] + 1) + i)];
   if ((at == ln))
   {
     return 0;
   }
-  return if ((a[(i + at)] < s[idx][at])) -1 else +1;
+  return  ((a[(i + at)] < s[idx][at])) ? -1 : +1;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s%s%s", a, l, r);
   n = strlen(a);
@@ -97,21 +97,21 @@ func main()
   dp[n] = 1;
   sum[n] = 1;
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
       if ((a[i] == cpp_char("0")))
       {
-        dp[i] = (if ((l[0] == cpp_char("0"))) dp[(i + 1)] else 0);
+        dp[i] = ( ((l[0] == cpp_char("0"))) ? dp[(i + 1)] : 0);
         sum[i] = (((sum[(i + 1)] + dp[i])) % mod);
         i -= 1;
         continue;
       }
-      var L = -1;
-      var R = -1;
-      var l = i;
-      var r = (n - 1);
-      var m: dynamic;
+      var L: dynamic = -1;
+      var R: dynamic = -1;
+      var l: dynamic = i;
+      var r: dynamic = (n - 1);
+      var m: dynamic = cpp_uninitialized();
       while ((l <= r))
       {
         m = (((l + r)) / 2);

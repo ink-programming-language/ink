@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(100000);
+var a: dynamic = cpp_array(100000);
 
-var c = cpp_array(100001);
+var c: dynamic = cpp_array(100001);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var unused: dynamic;
+  var unused: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       unused.insert((i + 1));
@@ -20,7 +20,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -42,7 +42,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((a[i] == 0))
@@ -54,7 +54,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(a[i], cpp_char(" "));

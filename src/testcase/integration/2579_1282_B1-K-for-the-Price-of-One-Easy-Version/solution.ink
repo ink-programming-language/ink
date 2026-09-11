@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var t = 1;
+  var t: dynamic = 1;
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var p: dynamic;
-    var k: dynamic;
-    var i: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var p: dynamic = cpp_uninitialized();
+    var k: dynamic = cpp_uninitialized();
+    var i: dynamic = cpp_uninitialized();
     read(n, p, k);
-    var a = cpp_array(n);
+    var a: dynamic = cpp_array(n);
     {
       i = 0;
       while ((i < n))
@@ -26,7 +26,7 @@ func main()
       }
     }
     sort(a, (a + n));
-    var dp = cpp_array(n);
+    var dp: dynamic = cpp_array(n);
     {
       i = 0;
       while ((i < n))
@@ -53,7 +53,7 @@ func main()
         i += 1;
       }
     }
-    var ans = 0;
+    var ans: dynamic = 0;
     {
       i = 0;
       while ((i < n))

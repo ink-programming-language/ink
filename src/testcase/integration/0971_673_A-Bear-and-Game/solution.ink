@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var arr = [];
-  var n: dynamic;
+  var arr: dynamic = [];
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var m: dynamic;
+      var m: dynamic = cpp_uninitialized();
       scanf("%d", (&m));
       arr[m] = 1;
       i += 1;
     }
   }
-  var c = 0;
-  var ans = 0;
-  var i: dynamic;
+  var c: dynamic = 0;
+  var ans: dynamic = 0;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= 90))

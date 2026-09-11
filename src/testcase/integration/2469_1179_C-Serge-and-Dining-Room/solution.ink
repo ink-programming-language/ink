@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var N = (1e6 + 5);
+var N: dynamic = (1e6 + 5);
 
-var seg = cpp_array((6 * N));
+var seg: dynamic = cpp_array((6 * N));
 
-var lazy = cpp_array((6 * N));
+var lazy: dynamic = cpp_array((6 * N));
 
-func qu(node: dynamic, l: dynamic, r: dynamic)
+func qu(node: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (lazy[node])
   {
@@ -26,8 +26,8 @@ func qu(node: dynamic, l: dynamic, r: dynamic)
   {
     return l;
   }
-  var m = (((l + r)) / 2);
-  var ret = qu(((2 * node) + 1), (m + 1), r);
+  var m: dynamic = (((l + r)) / 2);
+  var ret: dynamic = qu(((2 * node) + 1), (m + 1), r);
   if ((ret == -1))
   {
     ret = qu((2 * node), l, m);
@@ -35,7 +35,7 @@ func qu(node: dynamic, l: dynamic, r: dynamic)
   return ret;
 }
 
-func upd_rn(node: dynamic, l: dynamic, r: dynamic, x: dynamic, y: dynamic, val: dynamic)
+func upd_rn(node: dynamic, l: dynamic, r: dynamic, x: dynamic, y: dynamic, val: dynamic) -> dynamic
 {
   if (lazy[node])
   {
@@ -58,21 +58,21 @@ func upd_rn(node: dynamic, l: dynamic, r: dynamic, x: dynamic, y: dynamic, val: 
     lazy[((2 * node) + 1)] += val;
     return;
   }
-  var m = (((l + r)) / 2);
+  var m: dynamic = (((l + r)) / 2);
   upd_rn((2 * node), l, m, x, y, val);
   upd_rn(((2 * node) + 1), (m + 1), r, x, y, val);
   seg[node] = max(seg[(2 * node)], seg[((2 * node) + 1)]);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var a = cpp_array(n);
-  var b = cpp_array(m);
+  var a: dynamic = cpp_array(n);
+  var b: dynamic = cpp_array(m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -81,7 +81,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(b[i]);
@@ -89,16 +89,16 @@ func solve()
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   read(q);
   while (cpp_update(q, "--"))
   {
-    var type_cpp: dynamic;
+    var type_cpp: dynamic = cpp_uninitialized();
     read(type_cpp);
     if ((type_cpp == 1))
     {
-      var pos: dynamic;
-      var val: dynamic;
+      var pos: dynamic = cpp_uninitialized();
+      var val: dynamic = cpp_uninitialized();
       read(pos, val);
       pos -= 1;
       if ((a[pos] < val))
@@ -111,8 +111,8 @@ func solve()
       a[pos] = val;
     } else
     {
-      var pos: dynamic;
-      var val: dynamic;
+      var pos: dynamic = cpp_uninitialized();
+      var val: dynamic = cpp_uninitialized();
       read(pos, val);
       pos -= 1;
       if ((b[pos] < val))
@@ -128,18 +128,18 @@ func solve()
   }
 }
 
-func InputSetup()
+func InputSetup() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var start = chrono.high_resolution_clock.now();
+  var start: dynamic = chrono.high_resolution_clock.now();
   InputSetup();
   solve();
-  var finish = chrono.high_resolution_clock.now();
+  var finish: dynamic = chrono.high_resolution_clock.now();
   write("Time elapsed: ", (chrono.duration((finish - start))).count(), "s\n");
 }

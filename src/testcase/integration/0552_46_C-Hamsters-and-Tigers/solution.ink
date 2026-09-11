@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var t: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, s);
   t = s;
   sort(s.begin(), s.end());
-  var ret = ((1 << 21));
+  var ret: dynamic = ((1 << 21));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (s.length() + 1)))
     {
-      var dif = 0;
+      var dif: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < s.length()))
         {
           if ((t[i] != s[i]))

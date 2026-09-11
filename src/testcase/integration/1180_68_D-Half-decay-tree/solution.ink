@@ -1,127 +1,127 @@
 // Translated from solution.cpp.
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
-  write((if (x) "true" else "false"));
+  write(( (x) ? "true" : "false"));
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
-  cpp_name(if (1) "(" else "");
+  cpp_name( (1) ? "(" : "");
   cpp_name(x.first);
-  cpp_name(if (1) ", " else " ");
+  cpp_name( (1) ? ", " : " ");
   cpp_name(x.second);
-  cpp_name(if (1) ")" else "");
+  cpp_name( (1) ? ")" : "");
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
-  cpp_name(if (1) "{" else "");
-  var cpp_name = 0;
-  for (var v in x)
+  cpp_name( (1) ? "{" : "");
+  var cpp_name: dynamic = 0;
+  for (var v: dynamic in x)
   {
-    cpp_name(if (cpp_name) if (1) ", " else " " else "");
+    cpp_name( (cpp_name) ?  (1) ? ", " : " " : "");
     cpp_name(v);
     cpp_name = 1;
   }
-  cpp_name(if (1) "}" else "");
+  cpp_name( (1) ? "}" : "");
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
-  cpp_name(if (1) "{" else "");
-  var cpp_name = 0;
-  for (var v in x)
+  cpp_name( (1) ? "{" : "");
+  var cpp_name: dynamic = 0;
+  for (var v: dynamic in x)
   {
-    cpp_name(if (cpp_name) if (1) ", " else " " else "");
+    cpp_name( (cpp_name) ?  (1) ? ", " : " " : "");
     cpp_name(v);
     cpp_name = 1;
   }
-  cpp_name(if (1) "}" else "");
+  cpp_name( (1) ? "}" : "");
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
-  cpp_name(if (1) "{" else "");
-  var cpp_name = 0;
-  for (var v in x)
+  cpp_name( (1) ? "{" : "");
+  var cpp_name: dynamic = 0;
+  for (var v: dynamic in x)
   {
-    cpp_name(if (cpp_name) if (1) ", " else " " else "");
+    cpp_name( (cpp_name) ?  (1) ? ", " : " " : "");
     cpp_name(v);
     cpp_name = 1;
   }
-  cpp_name(if (1) "}" else "");
+  cpp_name( (1) ? "}" : "");
 }
 
-func cpp_name(x: dynamic)
+func cpp_name(x: dynamic) -> dynamic
 {
-  cpp_name(if (1) "{" else "");
-  var cpp_name = 0;
-  for (var v in x)
+  cpp_name( (1) ? "{" : "");
+  var cpp_name: dynamic = 0;
+  for (var v: dynamic in x)
   {
-    cpp_name(if (cpp_name) if (1) ", " else " " else "");
+    cpp_name( (cpp_name) ?  (1) ? ", " : " " : "");
     cpp_name(v);
     cpp_name = 1;
   }
-  cpp_name(if (1) "}" else "");
+  cpp_name( (1) ? "}" : "");
 }
 
-func pr()
+func pr() -> dynamic
 {
   write("\n");
 }
 
-func pr(a: dynamic, b: dynamic...)
+func pr(a: dynamic, b: dynamic...) -> dynamic
 {
   cpp_name(a);
   if (cpp_sizeof(b))
@@ -131,25 +131,25 @@ func pr(a: dynamic, b: dynamic...)
   pr(cpp_expand(b));
 }
 
-var MN = 33;
+var MN: dynamic = 33;
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var sm: dynamic;
+var sm: dynamic = cpp_uninitialized();
 
-var val: dynamic;
+var val: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&h), (&q));
   {
@@ -168,15 +168,15 @@ func main()
       } else
       {
         x = 1;
-        var mx = 0;
-        var prob = 1;
-        var ans = 0;
+        var mx: dynamic = 0;
+        var prob: dynamic = 1;
+        var ans: dynamic = 0;
         {
           i = 0;
           while ((i < h))
           {
-            var lsum = (val[x] + sm[(x << 1)]);
-            var rsum = (val[x] + sm[(((x << 1)) | 1)]);
+            var lsum: dynamic = (val[x] + sm[(x << 1)]);
+            var rsum: dynamic = (val[x] + sm[(((x << 1)) | 1)]);
             if ((lsum > rsum))
             {
               ans += ((prob / 2.0) * max(mx, lsum));

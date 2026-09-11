@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var v1: dynamic;
+var v1: dynamic = cpp_uninitialized();
 
-var v2: dynamic;
+var v2: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   read(n, s);
-  var sum1 = 0;
-  var sum2 = 0;
-  var ans = 0;
+  var sum1: dynamic = 0;
+  var sum2: dynamic = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x: dynamic;
-      var y: dynamic;
-      var z: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
+      var z: dynamic = cpp_uninitialized();
       read(x, y, z);
       if ((y > z))
       {
@@ -38,8 +38,8 @@ func main()
       i += 1;
     }
   }
-  var temp1 = 0;
-  var temp2 = 0;
+  var temp1: dynamic = 0;
+  var temp2: dynamic = 0;
   if (((((sum1 % s) + (sum2 % s))) > s))
   {
     write(ans, "\n");
@@ -49,7 +49,7 @@ func main()
   sum2 = (sum2 % s);
   sort(v1.begin(), v1.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v1.size()))
     {
       temp1 += (min(sum1, v1[i].second) * v1[i].first);
@@ -59,7 +59,7 @@ func main()
   }
   sort(v2.begin(), v2.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v2.size()))
     {
       temp2 += (min(sum2, v2[i].second) * v2[i].first);

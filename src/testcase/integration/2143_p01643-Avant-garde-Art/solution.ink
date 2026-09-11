@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b > a))
   {
@@ -8,17 +8,17 @@ func chmax(a: dynamic, b: dynamic)
   }
 }
 
-var INIT = 0;
+var INIT: dynamic = 0;
 
 class segment_tree
 {
-  var n: dynamic;
-  var dat: dynamic;
-  func function(a: dynamic, b: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  var dat: dynamic = cpp_uninitialized();
+  func function(a: dynamic, b: dynamic) -> dynamic
   {
       return max(a, b);
     }
-  func query(a: dynamic, b: dynamic, k: dynamic, l: dynamic, r: dynamic)
+  func query(a: dynamic, b: dynamic, k: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       if (((r <= a) || (b <= l)))
       {
@@ -29,12 +29,12 @@ class segment_tree
         return dat[k];
       } else
       {
-        var vl = query(a, b, ((k * 2) + 1), l, (((l + r)) / 2));
-        var vr = query(a, b, ((k * 2) + 2), (((l + r)) / 2), r);
+        var vl: dynamic = query(a, b, ((k * 2) + 1), l, (((l + r)) / 2));
+        var vr: dynamic = query(a, b, ((k * 2) + 2), (((l + r)) / 2), r);
         return function(vl, vr);
       }
     }
-  func segment_tree(n: dynamic)
+  func segment_tree(n: dynamic) -> dynamic
   {
       n = 1;
       while ((n < n))
@@ -43,7 +43,7 @@ class segment_tree
       }
       dat.resize(((2 * n) - 1), INIT);
     }
-  func update(k: dynamic, a: dynamic)
+  func update(k: dynamic, a: dynamic) -> dynamic
   {
       k += (n - 1);
       dat[k] = a;
@@ -53,31 +53,31 @@ class segment_tree
         dat[k] = function(dat[((k * 2) + 1)], dat[((k * 2) + 2)]);
       }
     }
-  func query(a: dynamic, b: dynamic)
+  func query(a: dynamic, b: dynamic) -> dynamic
   {
       return query(a, b, 0, 0, n);
     }
 }
 
-func next(idx: dynamic, mod: dynamic)
+func next(idx: dynamic, mod: dynamic) -> dynamic
 {
   return (((idx + 1)) % mod);
 }
 
-func mod_sub(a: dynamic, b: dynamic, mod: dynamic)
+func mod_sub(a: dynamic, b: dynamic, mod: dynamic) -> dynamic
 {
   return ((((a - b) + mod)) % mod);
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -85,10 +85,10 @@ func main()
       i += 1;
     }
   }
-  var number_of_edges = (n / 2);
-  var lds = 0;
+  var number_of_edges: dynamic = (n / 2);
+  var lds: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (used[i])
@@ -98,13 +98,13 @@ func main()
       }
       used[i] = true;
       used[a[i]] = true;
-      var sequence = cpp_construct(n, -1);
-      var pos = (a[i] - i);
+      var sequence: dynamic = cpp_construct(n, -1);
+      var pos: dynamic = (a[i] - i);
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j != a[i]))
         {
-          var pos_a = mod_sub(a[j], i, n);
+          var pos_a: dynamic = mod_sub(a[j], i, n);
           if ((pos_a > pos))
           {
             sequence[((n - pos_a) - 1)] = mod_sub(j, i, n);
@@ -114,10 +114,10 @@ func main()
       }
       sequence.erase(remove(sequence.begin(), sequence.end(), -1), sequence.end());
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < static_cast(sequence.size())))
         {
-          var value = (seg.query((sequence[i] + 1), n) + 1);
+          var value: dynamic = (seg.query((sequence[i] + 1), n) + 1);
           chmax(lds, value);
           seg.update(sequence[i], value);
           i += 1;
@@ -126,7 +126,7 @@ func main()
       i += 1;
     }
   }
-  var ans = min(((lds + 1) + k), number_of_edges);
+  var ans: dynamic = min(((lds + 1) + k), number_of_edges);
   write(ans, "\n");
   return EXIT_SUCCESS;
 }

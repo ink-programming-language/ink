@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
-  var n: dynamic;
-  var s: dynamic;
-  var maap: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var maap: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s);
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < s.size()))
         {
           {
-            var h = k;
+            var h: dynamic = k;
             while ((h < s.size()))
             {
               maap[s.substr(k, ((h - k) + 1))] += 1;

@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var popcount = cpp_expression("#include <cstdio>");
+var popcount: dynamic = cpp_expression("#include <cstdio>");
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var g = cpp_array(100010);
+var g: dynamic = cpp_array(100010);
 
-var lc = cpp_array(100010);
+var lc: dynamic = cpp_array(100010);
 
-var d = cpp_array(100010);
+var d: dynamic = cpp_array(100010);
 
-func dfs(x: dynamic, p: dynamic)
+func dfs(x: dynamic, p: dynamic) -> dynamic
 {
   if ((g[x].size() == 1))
   {
     lc[x] = 1;
   }
   d[x] = 1;
-  for (var y in g[x])
+  for (var y: dynamic in g[x])
   {
     if ((y == p))
     {
@@ -30,7 +30,7 @@ func dfs(x: dynamic, p: dynamic)
     dfs(y, x);
     lc[x] += lc[y];
   }
-  for (var y in g[x])
+  for (var y: dynamic in g[x])
   {
     if ((y == p))
     {
@@ -40,12 +40,12 @@ func dfs(x: dynamic, p: dynamic)
   }
 }
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func dfs2(x: dynamic, p: dynamic)
+func dfs2(x: dynamic, p: dynamic) -> dynamic
 {
-  var v: dynamic;
-  for (var y in g[x])
+  var v: dynamic = cpp_uninitialized();
+  for (var y: dynamic in g[x])
   {
     if ((y == p))
     {
@@ -58,7 +58,7 @@ func dfs2(x: dynamic, p: dynamic)
   {
     ans = max(ans, ((v[0] + v[1]) + l));
   }
-  for (var y in g[x])
+  for (var y: dynamic in g[x])
   {
     if ((y == p))
     {
@@ -68,15 +68,15 @@ func dfs2(x: dynamic, p: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       a -= 1;
       b -= 1;
@@ -92,7 +92,7 @@ func main()
   }
   r = -1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((g[i].size() == 1))

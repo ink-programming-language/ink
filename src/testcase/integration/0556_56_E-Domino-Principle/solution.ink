@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var tree = cpp_array((4 * 200005));
+var tree: dynamic = cpp_array((4 * 200005));
 
-var cs = cpp_array(200005);
+var cs: dynamic = cpp_array(200005);
 
-var ar = cpp_array(200005);
+var ar: dynamic = cpp_array(200005);
 
 class dt
 {
-  var b: dynamic;
-  var e: dynamic;
-  var h: dynamic;
-  var id: dynamic;
-  var res: dynamic;
+  var b: dynamic = cpp_uninitialized();
+  var e: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  var res: dynamic = cpp_uninitialized();
 }
 
-var st = cpp_array(100005);
+var st: dynamic = cpp_array(100005);
 
-func cmp1(x: dynamic, y: dynamic)
+func cmp1(x: dynamic, y: dynamic) -> dynamic
 {
   return (x.b < y.b);
 }
 
-func cmp2(x: dynamic, y: dynamic)
+func cmp2(x: dynamic, y: dynamic) -> dynamic
 {
   return (x.id < y.id);
 }
 
-func update(nd: dynamic, b: dynamic, e: dynamic, x: dynamic, v: dynamic)
+func update(nd: dynamic, b: dynamic, e: dynamic, x: dynamic, v: dynamic) -> dynamic
 {
   if (((b > x) || (e < x)))
   {
@@ -38,15 +38,15 @@ func update(nd: dynamic, b: dynamic, e: dynamic, x: dynamic, v: dynamic)
     tree[nd] = v;
     return;
   }
-  var left = (2 * nd);
-  var right = ((2 * nd) + 1);
-  var md = (((b + e)) / 2);
+  var left: dynamic = (2 * nd);
+  var right: dynamic = ((2 * nd) + 1);
+  var md: dynamic = (((b + e)) / 2);
   update(left, b, md, x, v);
   update(right, (md + 1), e, x, v);
   tree[nd] = max(tree[left], tree[right]);
 }
 
-func query(nd: dynamic, b: dynamic, e: dynamic, x: dynamic, y: dynamic)
+func query(nd: dynamic, b: dynamic, e: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   if (((e < x) || (b > y)))
   {
@@ -56,26 +56,26 @@ func query(nd: dynamic, b: dynamic, e: dynamic, x: dynamic, y: dynamic)
   {
     return tree[nd];
   }
-  var left = (2 * nd);
-  var right = ((2 * nd) + 1);
-  var md = (((b + e)) / 2);
-  var p1 = query(left, b, md, x, y);
-  var p2 = query(right, (md + 1), e, x, y);
+  var left: dynamic = (2 * nd);
+  var right: dynamic = ((2 * nd) + 1);
+  var md: dynamic = (((b + e)) / 2);
+  var p1: dynamic = query(left, b, md, x, y);
+  var p2: dynamic = query(right, (md + 1), e, x, y);
   return max(p1, p2);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var ss: dynamic;
+  var ss: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var b: dynamic;
-      var h: dynamic;
-      var e: dynamic;
+      var b: dynamic = cpp_uninitialized();
+      var h: dynamic = cpp_uninitialized();
+      var e: dynamic = cpp_uninitialized();
       scanf("%d%d", (&b), (&h));
       e = ((b + h) - 1);
       st[i].b = b;
@@ -88,9 +88,9 @@ func main()
       i += 1;
     }
   }
-  var mp: dynamic;
-  var it: dynamic;
-  var m = 0;
+  var mp: dynamic = cpp_uninitialized();
+  var it: dynamic = cpp_uninitialized();
+  var m: dynamic = 0;
   {
     it = ss.begin();
     while ((it != ss.end()))
@@ -100,21 +100,21 @@ func main()
     }
   }
   sort((st + 1), ((st + n) + 1), cmp1);
-  var sz = ss.size();
+  var sz: dynamic = ss.size();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var v = mp[st[i].b];
+      var v: dynamic = mp[st[i].b];
       ar[v] = 1;
-      var u = mp[st[i].e];
+      var u: dynamic = mp[st[i].e];
       update(1, 1, sz, v, u);
       i += 1;
     }
   }
   cs[0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sz))
     {
       cs[i] = (cs[(i - 1)] + ar[i]);
@@ -122,13 +122,13 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
-      var b = mp[st[i].b];
-      var e = mp[st[i].e];
-      var p = query(1, 1, sz, b, e);
-      var res = (cs[p] - cs[(b - 1)]);
+      var b: dynamic = mp[st[i].b];
+      var e: dynamic = mp[st[i].e];
+      var p: dynamic = query(1, 1, sz, b, e);
+      var res: dynamic = (cs[p] - cs[(b - 1)]);
       st[i].res = res;
       update(1, 1, sz, b, p);
       i -= 1;
@@ -136,7 +136,7 @@ func main()
   }
   sort((st + 1), ((st + n) + 1), cmp2);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((i == n))

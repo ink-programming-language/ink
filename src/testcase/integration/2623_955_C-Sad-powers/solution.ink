@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var OO = 0x3f3f3f3f;
+var OO: dynamic = 0x3f3f3f3f;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var MAX = 1e6;
+var MAX: dynamic = 1e6;
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var vec: dynamic;
+var vec: dynamic = cpp_uninitialized();
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-func FindRoot(x: dynamic)
+func FindRoot(x: dynamic) -> dynamic
 {
-  var lo = 0;
-  var hi = 1e10;
-  var mid: dynamic;
+  var lo: dynamic = 0;
+  var hi: dynamic = 1e10;
+  var mid: dynamic = cpp_uninitialized();
   while ((lo < (hi - 1)))
   {
     mid = ((lo + hi) >> 1);
@@ -39,15 +39,15 @@ func FindRoot(x: dynamic)
   return lo;
 }
 
-func initial()
+func initial() -> dynamic
 {
   v.push_back(1);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= 1e6))
     {
       {
-        var j = ((i * i) * i);
+        var j: dynamic = ((i * i) * i);
         while ((j <= 1e18))
         {
           st.insert(j);
@@ -61,13 +61,13 @@ func initial()
       i += 1;
     }
   }
-  for (var it in st)
+  for (var it: dynamic in st)
   {
     v.push_back(it);
   }
-  for (var it in v)
+  for (var it: dynamic in v)
   {
-    var sq = FindRoot(it);
+    var sq: dynamic = FindRoot(it);
     if (((sq * sq) == it))
     {
       continue;
@@ -76,20 +76,20 @@ func initial()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   initial();
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     read(l, r);
-    var it1 = (upper_bound(vec.begin(), vec.end(), r) - v.begin());
-    var it2 = (lower_bound(vec.begin(), vec.end(), l) - v.begin());
-    var ans = (it1 - it2);
+    var it1: dynamic = (upper_bound(vec.begin(), vec.end(), r) - v.begin());
+    var it2: dynamic = (lower_bound(vec.begin(), vec.end(), l) - v.begin());
+    var ans: dynamic = (it1 - it2);
     write(((ans + cpp_cast(FindRoot(r))) - cpp_cast(FindRoot((l - 1)))), "\n");
   }
 }

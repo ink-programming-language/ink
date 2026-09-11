@@ -1,61 +1,61 @@
 // Translated from solution.cpp.
 
-func S(X: dynamic)
+func S(X: dynamic) -> dynamic
 {
   return cpp_expression("//32 #inc");
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var a: dynamic;
-    var b: dynamic;
-    var r: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
     while (cpp_comma((((cin >> a) >> b) >> r), ((a | b) | r)))
     {
-      var x = cpp_array(100000);
-      var y = cpp_array(100000);
+      var x: dynamic = cpp_array(100000);
+      var y: dynamic = cpp_array(100000);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < a))
         {
           read(x[i], y[i]);
           i += 1;
         }
       }
-      var v = cpp_array(250, 250);
+      var v: dynamic = cpp_array(250, 250);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < b))
         {
-          var xb: dynamic;
-          var yb: dynamic;
+          var xb: dynamic = cpp_uninitialized();
+          var yb: dynamic = cpp_uninitialized();
           read(xb, yb);
           v[(yb / 40)][(xb / 40)].push_back(pii(yb, xb));
           i += 1;
         }
       }
-      var s = 0;
+      var s: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < a))
         {
-          var yy = (y[i] / 40);
-          var xx = (x[i] / 40);
+          var yy: dynamic = (y[i] / 40);
+          var xx: dynamic = (x[i] / 40);
           {
-            var j = -1;
+            var j: dynamic = -1;
             while ((j <= 1))
             {
               {
-                var k = -1;
+                var k: dynamic = -1;
                 while ((k <= 1))
                 {
-                  var yt = (yy + j);
-                  var xt = (xx + k);
+                  var yt: dynamic = (yy + j);
+                  var xt: dynamic = (xx + k);
                   if (((((0 <= yt) && (yt < 250)) && (0 <= xt)) && (xt < 250)))
                   {
                     {
-                      var l = 0;
+                      var l: dynamic = 0;
                       while ((l < v[yt][xt].size()))
                       {
                         s += ((S((y[i] - v[yt][xt][l].first)) + S((x[i] - v[yt][xt][l].second))) <= S((4 * r)));

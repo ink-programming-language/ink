@@ -2,22 +2,22 @@
 
 class Treap
 {
-  var key: dynamic;
-  var p: dynamic;
-  var lz: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  func Treap()
+  var key: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var lz: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  func Treap() -> dynamic
   {
     }
-  func Treap(key: dynamic)
+  func Treap(key: dynamic) -> dynamic
   {
-      this->key = key;
-      this->p = rand();
+      self->key = key;
+      self->p = rand();
       l = cpp_assign(r, "=", null);
       lz = 0;
     }
-  func unlz()
+  func unlz() -> dynamic
   {
       key += lz;
       if (l)
@@ -30,9 +30,9 @@ class Treap
       }
       lz = 0;
     }
-  func size()
+  func size() -> dynamic
   {
-      var sz = 1;
+      var sz: dynamic = 1;
       if (l)
       {
         sz += l->size();
@@ -43,10 +43,10 @@ class Treap
       }
       return sz;
     }
-  func getmin()
+  func getmin() -> dynamic
   {
       unlz();
-      var res = key;
+      var res: dynamic = key;
       if (l)
       {
         res = l->getmin();
@@ -55,9 +55,9 @@ class Treap
     }
 }
 
-var Root: dynamic;
+var Root: dynamic = cpp_uninitialized();
 
-func split(root: dynamic, k: dynamic, L: dynamic, R: dynamic)
+func split(root: dynamic, k: dynamic, L: dynamic, R: dynamic) -> dynamic
 {
   if ((!root))
   {
@@ -76,7 +76,7 @@ func split(root: dynamic, k: dynamic, L: dynamic, R: dynamic)
   }
 }
 
-func merge(A: dynamic, B: dynamic)
+func merge(A: dynamic, B: dynamic) -> dynamic
 {
   if (A)
   {
@@ -88,7 +88,7 @@ func merge(A: dynamic, B: dynamic)
   }
   if (((!A) || (!B)))
   {
-    return (if (A) A else B);
+    return ( (A) ? A : B);
   }
   if ((A->p > B->p))
   {
@@ -101,7 +101,7 @@ func merge(A: dynamic, B: dynamic)
   }
 }
 
-func insert(root: dynamic, item: dynamic)
+func insert(root: dynamic, item: dynamic) -> dynamic
 {
   if ((!root))
   {
@@ -115,11 +115,11 @@ func insert(root: dynamic, item: dynamic)
     root = item;
   } else
   {
-    insert(if ((item->key < root->key)) root->l else root->r, item);
+    insert( ((item->key < root->key)) ? root->l : root->r, item);
   }
 }
 
-func erase(root: dynamic, k: dynamic)
+func erase(root: dynamic, k: dynamic) -> dynamic
 {
   if ((!root))
   {
@@ -128,7 +128,7 @@ func erase(root: dynamic, k: dynamic)
   root->unlz();
   if ((root->key == k))
   {
-    var newr = merge(root->l, root->r);
+    var newr: dynamic = merge(root->l, root->r);
     cpp_delete(root);
     root = newr;
   } else if ((k < root->key))
@@ -140,12 +140,12 @@ func erase(root: dynamic, k: dynamic)
   }
 }
 
-func update(l: dynamic, r: dynamic)
+func update(l: dynamic, r: dynamic) -> dynamic
 {
-  var L: dynamic;
-  var mid: dynamic;
-  var R: dynamic;
-  var aux: dynamic;
+  var L: dynamic = cpp_uninitialized();
+  var mid: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
+  var aux: dynamic = cpp_uninitialized();
   split(Root, (l - 1), L, aux);
   split(aux, (r - 1), mid, R);
   if (R)
@@ -160,17 +160,17 @@ func update(l: dynamic, r: dynamic)
   insert(Root, cpp_new(l));
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   srand(time(0));
   insert(Root, cpp_new(0));
   read(N);
   while (cpp_update(N, "--"))
   {
-    var l: dynamic;
-    var r: dynamic;
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
     read(l, r);
     update(l, r);
   }

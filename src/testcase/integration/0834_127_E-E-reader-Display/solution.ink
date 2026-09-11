@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var nmax = 2009;
+var nmax: dynamic = 2009;
 
-var a = cpp_array(2009, 2009);
+var a: dynamic = cpp_array(2009, 2009);
 
-var ui = cpp_array(nmax);
+var ui: dynamic = cpp_array(nmax);
 
-var uj = cpp_array(nmax);
+var uj: dynamic = cpp_array(nmax);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func inc(a: dynamic)
+func inc(a: dynamic) -> dynamic
 {
   a += 1;
   a = (a & 1);
 }
 
-func main()
+func main() -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   scanf("%d\n", (&n));
-  var s = cpp_array(nmax);
+  var s: dynamic = cpp_array(nmax);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%s", s);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           a[i][j] = (s[(j - 1)] - cpp_char("0"));
@@ -38,12 +38,12 @@ func main()
     }
   }
   {
-    var k = n;
+    var k: dynamic = n;
     while ((k >= 1))
     {
-      var p = 0;
+      var p: dynamic = 0;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < k))
         {
           if ((((p & 1)) == 1))
@@ -74,7 +74,7 @@ func main()
       }
       p = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < k))
         {
           if ((((p & 1)) == 1))

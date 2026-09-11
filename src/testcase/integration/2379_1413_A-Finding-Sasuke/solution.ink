@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var INF = (1e18 + 5);
+var INF: dynamic = (1e18 + 5);
 
-var naxN = (1e2 + 5);
+var naxN: dynamic = (1e2 + 5);
 
-var fact = cpp_array(naxN);
+var fact: dynamic = cpp_array(naxN);
 
-var inv_fact = cpp_array(naxN);
+var inv_fact: dynamic = cpp_array(naxN);
 
-func power(a: dynamic, n: dynamic)
+func power(a: dynamic, n: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (n)
   {
     if ((n % 2))
@@ -26,11 +26,11 @@ func power(a: dynamic, n: dynamic)
   return res;
 }
 
-func init()
+func init() -> dynamic
 {
   fact[0] = cpp_assign(inv_fact[0], "=", 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < naxN))
     {
       fact[i] = (((i * fact[(i - 1)])) % 1000000007);
@@ -40,7 +40,7 @@ func init()
   }
 }
 
-func ncr(a: dynamic, b: dynamic)
+func ncr(a: dynamic, b: dynamic) -> dynamic
 {
   if ((((a < 0) || (b < 0)) || (a < b)))
   {
@@ -49,14 +49,14 @@ func ncr(a: dynamic, b: dynamic)
   return (((((((fact[a] % 1000000007) * inv_fact[b]) % 1000000007) * inv_fact[(a - b)]) % 1000000007)) % 1000000007);
 }
 
-var maxN = (1e5 + 5);
+var maxN: dynamic = (1e5 + 5);
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i]);
@@ -64,7 +64,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((i % 2) == 0))
@@ -80,13 +80,13 @@ func solve()
   write("\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   write(fixed, setprecision(6));
-  var T = 1;
+  var T: dynamic = 1;
   read(T);
   while (cpp_update(T, "--"))
   {

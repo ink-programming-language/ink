@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var y: dynamic;
-  var x: dynamic;
-  var sum = 0;
-  var str: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var sum: dynamic = 0;
+  var str: dynamic = cpp_uninitialized();
   read(n, x, y, str);
-  var len = (str.size() - 1);
+  var len: dynamic = (str.size() - 1);
   {
-    var i = len;
+    var i: dynamic = len;
     while ((i > (len - x)))
     {
       if ((str[i] == cpp_char("1")))

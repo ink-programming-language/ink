@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var inf = cpp_expression("#include<i");
+var inf: dynamic = cpp_expression("#include<i");
 
-var X = [0, 1, 0, -1];
+var X: dynamic = [0, 1, 0, -1];
 
-var Y = [-1, 0, 1, 0];
+var Y: dynamic = [-1, 0, 1, 0];
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var si: dynamic;
+var si: dynamic = cpp_uninitialized();
 
-var sj: dynamic;
+var sj: dynamic = cpp_uninitialized();
 
-var map = cpp_array(100, 100);
+var map: dynamic = cpp_array(100, 100);
 
-func in_cpp(y: dynamic, x: dynamic)
+func in_cpp(y: dynamic, x: dynamic) -> dynamic
 {
   if (((((y < 0) || (x < 0)) || (y >= H)) || (x >= W)))
   {
@@ -29,34 +29,34 @@ func in_cpp(y: dynamic, x: dynamic)
 
 class State
 {
-  var y: dynamic;
-  var x: dynamic;
-  var muki: dynamic;
-  var numL: dynamic;
-  var numR: dynamic;
-  func State(y: dynamic, x: dynamic, muki: dynamic, l: dynamic, r: dynamic)
+  var y: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var muki: dynamic = cpp_uninitialized();
+  var numL: dynamic = cpp_uninitialized();
+  var numR: dynamic = cpp_uninitialized();
+  func State(y: dynamic, x: dynamic, muki: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
-      this->y = cpp_construct(y);
-      this->x = cpp_construct(x);
-      this->muki = cpp_construct(muki);
-      this->numL = cpp_construct(l);
-      this->numR = cpp_construct(r);
+      self->y = cpp_construct(y);
+      self->x = cpp_construct(x);
+      self->muki = cpp_construct(muki);
+      self->numL = cpp_construct(l);
+      self->numR = cpp_construct(r);
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var memo = cpp_array(4, 100, 100);
+  var memo: dynamic = cpp_array(4, 100, 100);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 100))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 100))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 4))
             {
               memo[i][j][k] = inf;
@@ -69,14 +69,14 @@ func main()
       i += 1;
     }
   }
-  var Q: dynamic;
+  var Q: dynamic = cpp_uninitialized();
   read(H, W, A);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < H))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < W))
         {
           read(map[i][j]);
@@ -95,12 +95,12 @@ func main()
   Q.push(State(si, sj, 2, 0, 0));
   memo[si][sj][0] = 0;
   memo[si][sj][2] = 0;
-  var ans = inf;
-  var a: dynamic;
-  var b: dynamic;
+  var ans: dynamic = inf;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   while ((!Q.empty()))
   {
-    var u = Q.front();
+    var u: dynamic = Q.front();
     Q.pop();
     if (((u.numL > A) || (u.numR > A)))
     {

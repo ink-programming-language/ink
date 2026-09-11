@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var w = cpp_array(500000);
+var w: dynamic = cpp_array(500000);
 
-var c = cpp_array(500000);
+var c: dynamic = cpp_array(500000);
 
-var a = cpp_array(500000);
+var a: dynamic = cpp_array(500000);
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var s = cpp_array(500000);
+var s: dynamic = cpp_array(500000);
 
-var t = cpp_array(500000);
+var t: dynamic = cpp_array(500000);
 
-var r_fraction: dynamic;
+var r_fraction: dynamic = cpp_uninitialized();
 
-var r_integer: dynamic;
+var r_integer: dynamic = cpp_uninitialized();
 
-func take(nr: dynamic, amount: dynamic)
+func take(nr: dynamic, amount: dynamic) -> dynamic
 {
   if ((!amount))
   {
     return;
   }
   r_integer += ((cpp_cast(amount) * c[nr]) / w[nr]);
-  var p = ((cpp_cast(amount) * c[nr]) % w[nr]);
-  var q = w[nr];
+  var p: dynamic = ((cpp_cast(amount) * c[nr]) % w[nr]);
+  var q: dynamic = w[nr];
   r_fraction += (cpp_cast(p) / q);
   while ((r_fraction >= 1))
   {
@@ -37,7 +37,7 @@ func take(nr: dynamic, amount: dynamic)
   }
 }
 
-func select(from_cpp: dynamic, to: dynamic, left: dynamic)
+func select(from_cpp: dynamic, to: dynamic, left: dynamic) -> dynamic
 {
   if ((from_cpp == to))
   {
@@ -48,10 +48,10 @@ func select(from_cpp: dynamic, to: dynamic, left: dynamic)
     take(s[from_cpp], left);
     return;
   }
-  var middle_t = t[s[(((from_cpp + to)) / 2)]];
-  var middle = from_cpp;
+  var middle_t: dynamic = t[s[(((from_cpp + to)) / 2)]];
+  var middle: dynamic = from_cpp;
   {
-    var i = from_cpp;
+    var i: dynamic = from_cpp;
     while ((i < to))
     {
       if ((t[s[i]] < middle_t))
@@ -61,10 +61,10 @@ func select(from_cpp: dynamic, to: dynamic, left: dynamic)
       i += 1;
     }
   }
-  var less_sum = 0;
-  var eq_sum = 0;
+  var less_sum: dynamic = 0;
+  var eq_sum: dynamic = 0;
   {
-    var i = from_cpp;
+    var i: dynamic = from_cpp;
     while ((i < middle))
     {
       less_sum += w[s[i]];
@@ -77,7 +77,7 @@ func select(from_cpp: dynamic, to: dynamic, left: dynamic)
     return;
   }
   {
-    var i = from_cpp;
+    var i: dynamic = from_cpp;
     while ((i < middle))
     {
       take(s[i], w[s[i]]);
@@ -85,9 +85,9 @@ func select(from_cpp: dynamic, to: dynamic, left: dynamic)
       i += 1;
     }
   }
-  var middle2 = middle;
+  var middle2: dynamic = middle;
   {
-    var i = middle;
+    var i: dynamic = middle;
     while ((i < to))
     {
       if ((t[s[i]] == middle_t))
@@ -98,7 +98,7 @@ func select(from_cpp: dynamic, to: dynamic, left: dynamic)
     }
   }
   {
-    var i = middle;
+    var i: dynamic = middle;
     while ((i < middle2))
     {
       eq_sum += w[s[i]];
@@ -115,11 +115,11 @@ func select(from_cpp: dynamic, to: dynamic, left: dynamic)
   select(middle2, to, left);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d %d", (&n), (&m), (&W));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d", (&w[i]));
@@ -127,7 +127,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d", (&c[i]));
@@ -135,7 +135,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d", (&a[i]));
@@ -143,7 +143,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       t[i] = (cpp_cast(c[i]) / w[i]);
@@ -153,12 +153,12 @@ func main()
   }
   random_shuffle(s, (s + m));
   {
-    var z = 0;
+    var z: dynamic = 0;
     while ((z < n))
     {
       select(0, m, W);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
           t[i] -= (cpp_cast(a[i]) / w[i]);
@@ -169,7 +169,7 @@ func main()
       z += 1;
     }
   }
-  var buf = cpp_array(20);
+  var buf: dynamic = cpp_array(20);
   sprintf(buf, "%.12lf", r_fraction);
   if ((buf[0] == cpp_char("1")))
   {

@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var linf = 0x3f3f3f3f3f3f3f3f;
+var linf: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-func lis(v: dynamic)
+func lis(v: dynamic) -> dynamic
 {
-  var ans = cpp_construct(v.size());
-  var color = 0;
-  var best: dynamic;
+  var ans: dynamic = cpp_construct(v.size());
+  var color: dynamic = 0;
+  var best: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
-      var it = best.lower_bound([v[i], 0]);
+      var it: dynamic = best.lower_bound([v[i], 0]);
       if (((it == best.begin()) && (((*it)).first != v[i])))
       {
         color += 1;
@@ -41,27 +41,27 @@ func lis(v: dynamic)
   return [color, ans];
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(s.size())))
     {
       v.push_back(s[i]);
       i += 1;
     }
   }
-  var aux = lis(v);
-  var color = aux.first;
-  var ans = aux.second;
+  var aux: dynamic = lis(v);
+  var color: dynamic = aux.first;
+  var ans: dynamic = aux.second;
   write(color, "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(ans[i], " ");
@@ -71,7 +71,7 @@ func solve()
   write("\n");
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0)->sync_with_stdio(0);
   solve();

@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var N = 107;
+var N: dynamic = 107;
 
-var mp = cpp_array(N, N);
+var mp: dynamic = cpp_array(N, N);
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
-  var n: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&t));
   while (cpp_update(t, "--"))
   {
     scanf("%d", (&n));
-    var x = 0;
-    var y = 1;
-    var z = 2;
+    var x: dynamic = 0;
+    var y: dynamic = 1;
+    var z: dynamic = 2;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             if ((j > 1))

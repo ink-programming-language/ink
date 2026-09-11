@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var INF = cpp_expression("#include");
+var INF: dynamic = cpp_expression("#include");
 
-var MOD = cpp_expression("#include <");
+var MOD: dynamic = cpp_expression("#include <");
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-var MAX_N = 100005;
+var MAX_N: dynamic = 100005;
 
-var lens = cpp_array(100005);
+var lens: dynamic = cpp_array(100005);
 
-var bit = cpp_array((MAX_N + 1));
+var bit: dynamic = cpp_array((MAX_N + 1));
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func sum(i: dynamic)
+func sum(i: dynamic) -> dynamic
 {
-  var s = 0;
+  var s: dynamic = 0;
   while ((i > 0))
   {
     s += bit[i];
@@ -32,7 +32,7 @@ func sum(i: dynamic)
   return s;
 }
 
-func add(i: dynamic, x: dynamic)
+func add(i: dynamic, x: dynamic) -> dynamic
 {
   while ((i <= MAX_N))
   {
@@ -41,13 +41,13 @@ func add(i: dynamic, x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   printf("%d\n", n);
-  var rest = n;
+  var rest: dynamic = n;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < (m + 1)))
     {
       rep(j, lens[(i - 1)].size());
@@ -56,8 +56,8 @@ func main()
         add(lens[(i - 1)][j].second, -1);
         rest -= 1;
       }
-      var ans = rest;
-      var it = i;
+      var ans: dynamic = rest;
+      var it: dynamic = i;
       while ((it <= m))
       {
         ans += sum(it);
@@ -69,10 +69,10 @@ func main()
   }
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var l: dynamic;
-    var r: dynamic;
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
     scanf("%d%d", (&l), (&r));
     r += 1;
     lens[(r - l)].push_back(P(l, r));

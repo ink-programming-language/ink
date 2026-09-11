@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var MOD = cpp_cast(((1e9 + 7)));
+var MOD: dynamic = cpp_cast(((1e9 + 7)));
 
-var grid = cpp_array(1005, 1005);
+var grid: dynamic = cpp_array(1005, 1005);
 
-func main()
+func main() -> dynamic
 {
-  var h: dynamic;
-  var w: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   read(h, w);
-  var r = cpp_array(h);
-  var c = cpp_array(w);
+  var r: dynamic = cpp_array(h);
+  var c: dynamic = cpp_array(w);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       read(r[i]);
@@ -20,7 +20,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
       read(c[i]);
@@ -28,11 +28,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           grid[i][j] = cpp_char("n");
@@ -43,7 +43,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       if ((r[i] > w))
@@ -52,7 +52,7 @@ func main()
         return 0;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < r[i]))
         {
           if ((grid[i][j] == cpp_char("e")))
@@ -74,7 +74,7 @@ func main()
     }
   }
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < w))
     {
       if ((c[j] > h))
@@ -83,7 +83,7 @@ func main()
         return 0;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < c[j]))
         {
           if ((grid[i][j] == cpp_char("e")))
@@ -104,13 +104,13 @@ func main()
       j += 1;
     }
   }
-  var ans = 1;
+  var ans: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           if (((grid[i][j] == cpp_char("f")) || (grid[i][j] == cpp_char("e"))))

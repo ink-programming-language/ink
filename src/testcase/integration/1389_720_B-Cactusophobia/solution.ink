@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var fa = cpp_array((10000 + 10));
+var fa: dynamic = cpp_array((10000 + 10));
 
-var dfn = cpp_array((10000 + 10));
+var dfn: dynamic = cpp_array((10000 + 10));
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var dcnt: dynamic;
+var dcnt: dynamic = cpp_uninitialized();
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var cnt = 1;
+var cnt: dynamic = 1;
 
-var vis = cpp_array(((10000 * 4) + 10));
+var vis: dynamic = cpp_array(((10000 * 4) + 10));
 
-func Read(x: dynamic)
+func Read(x: dynamic) -> dynamic
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   while (cpp_comma(cpp_assign(c, "=", getchar()), (c != EOF)))
   {
     if (((c >= cpp_char("0")) && (c <= cpp_char("9"))))
@@ -40,29 +40,29 @@ func Read(x: dynamic)
   }
 }
 
-var dist = cpp_array(((10000 * 3) + 10));
+var dist: dynamic = cpp_array(((10000 * 3) + 10));
 
-var vd = cpp_array(((10000 * 3) + 10));
+var vd: dynamic = cpp_array(((10000 * 3) + 10));
 
-var vis = cpp_array(((10000 * 3) + 10));
+var vis: dynamic = cpp_array(((10000 * 3) + 10));
 
 class node
 {
-  var v: dynamic;
-  var cap: dynamic;
-  var next: dynamic;
-  var back: dynamic;
+  var v: dynamic = cpp_uninitialized();
+  var cap: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
+  var back: dynamic = cpp_uninitialized();
 }
 
-var adj: dynamic;
+var adj: dynamic = cpp_uninitialized();
 
-var edge = cpp_array(((10000 * 20) + 10));
+var edge: dynamic = cpp_array(((10000 * 20) + 10));
 
-var ecnt = edge;
+var ecnt: dynamic = edge;
 
-func addedge(u: dynamic, v: dynamic, cap: dynamic)
+func addedge(u: dynamic, v: dynamic, cap: dynamic) -> dynamic
 {
-  var p = cpp_update(ecnt, "++");
+  var p: dynamic = cpp_update(ecnt, "++");
   p->v = v;
   p->cap = cap;
   p->next = adj[u];
@@ -75,10 +75,10 @@ func addedge(u: dynamic, v: dynamic, cap: dynamic)
   p->back = (ecnt - 1);
 }
 
-func spfa(S: dynamic)
+func spfa(S: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var u: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= tot))
@@ -95,7 +95,7 @@ func spfa(S: dynamic)
     q.pop();
     vis[u] = 0;
     {
-      var p = adj[u];
+      var p: dynamic = adj[u];
       while (p)
       {
         if ((p->back->cap && (dist[p->v] > (dist[u] + 1))))
@@ -113,17 +113,17 @@ func spfa(S: dynamic)
   }
 }
 
-func dfs(u: dynamic, augu: dynamic)
+func dfs(u: dynamic, augu: dynamic) -> dynamic
 {
   if ((u == T))
   {
     return augu;
   }
-  var mind = (tot - 1);
-  var delta: dynamic;
-  var augv = 0;
+  var mind: dynamic = (tot - 1);
+  var delta: dynamic = cpp_uninitialized();
+  var augv: dynamic = 0;
   {
-    var p = adj[u];
+    var p: dynamic = adj[u];
     while (p)
     {
       if (p->cap)
@@ -156,10 +156,10 @@ func dfs(u: dynamic, augu: dynamic)
   return augv;
 }
 
-func sap()
+func sap() -> dynamic
 {
-  var flow = 0;
-  var i: dynamic;
+  var flow: dynamic = 0;
+  var i: dynamic = cpp_uninitialized();
   spfa(T);
   {
     i = 1;
@@ -189,33 +189,33 @@ func sap()
 
 class node
 {
-  var v: dynamic;
-  var c: dynamic;
-  var next: dynamic;
+  var v: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
-var adj: dynamic;
+var adj: dynamic = cpp_uninitialized();
 
-var edge = cpp_array(((10000 * 4) + 10));
+var edge: dynamic = cpp_array(((10000 * 4) + 10));
 
-var ecnt = edge;
+var ecnt: dynamic = edge;
 
-var pre: dynamic;
+var pre: dynamic = cpp_uninitialized();
 
-func addedge(u: dynamic, v: dynamic, c: dynamic)
+func addedge(u: dynamic, v: dynamic, c: dynamic) -> dynamic
 {
-  var p = cpp_update(ecnt, "++");
+  var p: dynamic = cpp_update(ecnt, "++");
   p->v = v;
   p->c = c;
   p->next = adj[u];
   adj[u] = p;
 }
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   dfn[u] = cpp_update(dcnt, "++");
   {
-    var p = adj[u];
+    var p: dynamic = adj[u];
     while (p)
     {
       if ((p->v != fa[u]))
@@ -231,8 +231,8 @@ func dfs(u: dynamic)
           }
         } else if ((dfn[p->v] < dfn[u]))
         {
-          var x = u;
-          var num = 0;
+          var x: dynamic = u;
+          var num: dynamic = 0;
           cnt += 1;
           MAXFLOW.addedge(p->c, ((cnt + m) + 2), 1);
           while ((x != p->v))
@@ -250,14 +250,14 @@ func dfs(u: dynamic)
   }
 }
 
-func read()
+func read() -> dynamic
 {
   Read(n);
   Read(m);
-  var i: dynamic;
-  var u: dynamic;
-  var v: dynamic;
-  var c: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= m))
@@ -274,13 +274,13 @@ func read()
   T = (S + 1);
 }
 
-func solve()
+func solve() -> dynamic
 {
   dfs(1);
   MAXFLOW.addedge((m + 3), T, 0x7fffffff);
   tot = ((cnt + m) + 2);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       MAXFLOW.addedge(S, i, 1);
@@ -289,7 +289,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read();
   solve();

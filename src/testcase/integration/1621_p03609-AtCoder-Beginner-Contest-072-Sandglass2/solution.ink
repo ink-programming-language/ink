@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var t: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   scanf("%d %d", (&x), (&t));
-  printf("%d", if (((x - t) < 0)) 0 else (x - t));
+  printf("%d",  (((x - t) < 0)) ? 0 : (x - t));
   return 0;
 }

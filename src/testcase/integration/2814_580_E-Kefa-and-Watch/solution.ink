@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var INF = (((1 << 30)) - 1);
+var INF: dynamic = (((1 << 30)) - 1);
 
-var mod = 190102321;
+var mod: dynamic = 190102321;
 
-var MAXN = 200010;
+var MAXN: dynamic = 200010;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var s = cpp_array(MAXN);
+var s: dynamic = cpp_array(MAXN);
 
 class Hash
 {
   var H: dynamic = cpp_array(MAXN);
   var B: dynamic = cpp_array(MAXN);
   var TH: dynamic = cpp_array(MAXN, 10);
-  func init(s: dynamic, P: dynamic, len: dynamic)
+  func init(s: dynamic, P: dynamic, len: dynamic) -> dynamic
   {
       H[0] = 0;
       B[0] = 1;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= len))
         {
           B[i] = ((B[(i - 1)] * P) % mod);
@@ -35,12 +35,12 @@ class Hash
         }
       }
       {
-        var v = 0;
+        var v: dynamic = 0;
         while ((v < 10))
         {
           TH[v][0] = 0;
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= len))
             {
               TH[v][i] = (((((TH[v][(i - 1)] * P) % mod) + v)) % mod);
@@ -51,27 +51,27 @@ class Hash
         }
       }
     }
-  func get(l: dynamic, r: dynamic)
+  func get(l: dynamic, r: dynamic) -> dynamic
   {
       return ((((((H[r] - (H[(l - 1)] * B[((r - l) + 1)]))) % mod) + mod)) % mod);
     }
-  func get_fixed(num: dynamic, len: dynamic)
+  func get_fixed(num: dynamic, len: dynamic) -> dynamic
   {
       return TH[num][len];
     }
 }
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var t = cpp_array((MAXN << 2));
+var t: dynamic = cpp_array((MAXN << 2));
 
-var tag = cpp_array((MAXN << 2));
+var tag: dynamic = cpp_array((MAXN << 2));
 
-var L = cpp_array((MAXN << 2));
+var L: dynamic = cpp_array((MAXN << 2));
 
-var R = cpp_array((MAXN << 2));
+var R: dynamic = cpp_array((MAXN << 2));
 
-func Build(p: dynamic, l: dynamic, r: dynamic)
+func Build(p: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   t[p] = H.get(l, r);
   tag[p] = -1;
@@ -81,12 +81,12 @@ func Build(p: dynamic, l: dynamic, r: dynamic)
   {
     return;
   }
-  var mid = ((cpp_cast((+(((r) - (l))))) / 2));
+  var mid: dynamic = ((cpp_cast((+(((r) - (l))))) / 2));
   Build((p << 1), l, mid);
   Build(((p << 1) | 1), (mid + 1), r);
 }
 
-func Push_down(p: dynamic)
+func Push_down(p: dynamic) -> dynamic
 {
   if ((tag[p] != -1))
   {
@@ -97,13 +97,13 @@ func Push_down(p: dynamic)
   }
 }
 
-func Push_up(p: dynamic)
+func Push_up(p: dynamic) -> dynamic
 {
-  var len_r = ((R[((p << 1) | 1)] - L[((p << 1) | 1)]) + 1);
+  var len_r: dynamic = ((R[((p << 1) | 1)] - L[((p << 1) | 1)]) + 1);
   t[p] = (((((t[(p << 1)] * H.B[len_r]) % mod) + t[((p << 1) | 1)])) % mod);
 }
 
-func Update(a: dynamic, b: dynamic, c: dynamic, p: dynamic, l: dynamic, r: dynamic)
+func Update(a: dynamic, b: dynamic, c: dynamic, p: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (((a <= l) && (r <= b)))
   {
@@ -112,7 +112,7 @@ func Update(a: dynamic, b: dynamic, c: dynamic, p: dynamic, l: dynamic, r: dynam
     return;
   }
   Push_down(p);
-  var mid = ((cpp_cast((+(((r) - (l))))) / 2));
+  var mid: dynamic = ((cpp_cast((+(((r) - (l))))) / 2));
   if ((a <= mid))
   {
     Update(a, b, c, (p << 1), l, mid);
@@ -124,17 +124,17 @@ func Update(a: dynamic, b: dynamic, c: dynamic, p: dynamic, l: dynamic, r: dynam
   Push_up(p);
 }
 
-func Query(a: dynamic, b: dynamic, p: dynamic, l: dynamic, r: dynamic)
+func Query(a: dynamic, b: dynamic, p: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (((a <= l) && (r <= b)))
   {
     return t[p];
   }
   Push_down(p);
-  var mid = ((cpp_cast((+(((r) - (l))))) / 2));
-  var res = 0;
-  var L: dynamic;
-  var R: dynamic;
+  var mid: dynamic = ((cpp_cast((+(((r) - (l))))) / 2));
+  var res: dynamic = 0;
+  var L: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
   if ((a <= mid))
   {
     res = Query(a, b, (p << 1), l, mid);
@@ -153,21 +153,21 @@ func Query(a: dynamic, b: dynamic, p: dynamic, l: dynamic, r: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d", (&n), (&m), (&k));
   scanf("%s", (s + 1));
-  var len = strlen((s + 1));
+  var len: dynamic = strlen((s + 1));
   H.init(s, 10, len);
   Build(1, 1, len);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (m + k)))
     {
-      var a: dynamic;
-      var b: dynamic;
-      var c: dynamic;
-      var d: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
+      var d: dynamic = cpp_uninitialized();
       scanf("%d%d%d%d", (&a), (&b), (&c), (&d));
       if ((a == 1))
       {

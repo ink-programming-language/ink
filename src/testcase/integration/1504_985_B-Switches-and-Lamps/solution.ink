@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((s[j] == cpp_char("1")))
@@ -29,15 +29,15 @@ func main()
       i += 1;
     }
   }
-  var count: dynamic;
-  var flag = 0;
+  var count: dynamic = cpp_uninitialized();
+  var flag: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       count = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           sum[j] -= vec[i][j];

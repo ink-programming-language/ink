@@ -1,56 +1,56 @@
 // Translated from solution.cpp.
 
-var EPS = cpp_expression("#inc");
+var EPS: dynamic = cpp_expression("#inc");
 
-func pb(a: dynamic)
+func pb(a: dynamic) -> dynamic
 {
   cpp_macro("push_back(a);");
 }
 
-var ID_CCW = cpp_expression("#");
+var ID_CCW: dynamic = cpp_expression("#");
 
-var ID_CW = cpp_expression("#");
+var ID_CW: dynamic = cpp_expression("#");
 
-var ID_GO = cpp_expression("#");
+var ID_GO: dynamic = cpp_expression("#");
 
-var ID_BACK = cpp_expression("#");
+var ID_BACK: dynamic = cpp_expression("#");
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func Point()
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func Point() -> dynamic
   {
     }
-  func Point(xx: dynamic, yy: dynamic)
+  func Point(xx: dynamic, yy: dynamic) -> dynamic
   {
-      this->x = cpp_construct(xx);
-      this->y = cpp_construct(yy);
+      self->x = cpp_construct(xx);
+      self->y = cpp_construct(yy);
     }
 }
 
-func operator_subtract_assign(a: dynamic, b: dynamic)
+func operator_subtract_assign(a: dynamic, b: dynamic) -> dynamic
 {
   a.x -= b.x;
   a.y -= b.y;
   return a;
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.x) + (a.y * b.y));
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.y) - (a.y * b.x));
 }
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b -= a;
   c -= a;
-  var rotdir = cross(b, c);
+  var rotdir: dynamic = cross(b, c);
   if ((rotdir > EPS))
   {
     return ID_CCW;
@@ -66,9 +66,9 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   return ID_BACK;
 }
 
-func main()
+func main() -> dynamic
 {
-  var p = cpp_array(4);
+  var p: dynamic = cpp_array(4);
   while (1)
   {
     if ((scanf("%lf,%lf", (&p[0].x), (&p[0].y)) == EOF))
@@ -76,16 +76,16 @@ func main()
       break;
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < 4))
       {
         scanf(",%lf,%lf", (&p[i].x), (&p[i].y));
         i += 1;
       }
     }
-    var b1 = true;
+    var b1: dynamic = true;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
         if ((ccw(p[i], p[(((i + 1)) % 4)], p[(((i + 2)) % 4)]) != ID_CCW))
@@ -95,9 +95,9 @@ func main()
         i += 1;
       }
     }
-    var b2 = true;
+    var b2: dynamic = true;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
         if ((ccw(p[i], p[(((i + 1)) % 4)], p[(((i + 2)) % 4)]) != ID_CW))
@@ -107,7 +107,7 @@ func main()
         i += 1;
       }
     }
-    puts(if ((b1 || b2)) "YES" else "NO");
+    puts( ((b1 || b2)) ? "YES" : "NO");
   }
   return 0;
 }

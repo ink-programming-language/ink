@@ -1,62 +1,62 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
 class Pair
 {
-  var id: dynamic;
-  var v: dynamic;
-  func Pair()
+  var id: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  func Pair() -> dynamic
   {
       id = cpp_assign(v, "=", 0);
     }
-  func Pair(a: dynamic, b: dynamic)
+  func Pair(a: dynamic, b: dynamic) -> dynamic
   {
       id = a;
       v = b;
     }
 }
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
 class node
 {
-  var x: dynamic;
-  var y: dynamic;
-  var v: dynamic;
-  var id: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(200010);
+var a: dynamic = cpp_array(200010);
 
-var b = cpp_array(200010);
+var b: dynamic = cpp_array(200010);
 
-func cmp1(a: dynamic, b: dynamic)
+func cmp1(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a.x == b.x)) (a.y < b.y) else (a.x < b.x);
+  return  ((a.x == b.x)) ? (a.y < b.y) : (a.x < b.x);
 }
 
-func cmp2(a: dynamic, b: dynamic)
+func cmp2(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a.y == b.y)) (a.x > b.x) else (a.y > b.y);
+  return  ((a.y == b.y)) ? (a.x > b.x) : (a.y > b.y);
 }
 
 class Splay
 {
   var tr: dynamic = cpp_array(200010);
-  var tot: dynamic;
-  var root: dynamic;
-  func Splay()
+  var tot: dynamic = cpp_uninitialized();
+  var root: dynamic = cpp_uninitialized();
+  func Splay() -> dynamic
   {
       tot = 0;
       root = 0;
       tr[0].v.v = cpp_assign(tr[0].mx.v, "=", 0);
     }
-  func update(x: dynamic)
+  func update(x: dynamic) -> dynamic
   {
       tr[x].mx = tr[x].v;
       if ((tr[x].ch[0] && (tr[x].mx < tr[tr[x].ch[0]].mx)))
@@ -77,11 +77,11 @@ class Splay
         tr[x].size += tr[tr[x].ch[1]].size;
       }
     }
-  func rotate(x: dynamic, b: dynamic)
+  func rotate(x: dynamic, b: dynamic) -> dynamic
   {
-      var y = tr[x].pnt;
-      var z = tr[y].pnt;
-      var son = tr[x].ch[b];
+      var y: dynamic = tr[x].pnt;
+      var z: dynamic = tr[y].pnt;
+      var son: dynamic = tr[x].ch[b];
       if (son)
       {
         tr[son].pnt = y;
@@ -96,19 +96,19 @@ class Splay
       tr[y].ch[(!b)] = son;
       update(y);
     }
-  func splay(x: dynamic, target: dynamic)
+  func splay(x: dynamic, target: dynamic) -> dynamic
   {
       while ((tr[x].pnt != target))
       {
-        var y = tr[x].pnt;
+        var y: dynamic = tr[x].pnt;
         if ((tr[y].pnt == target))
         {
           rotate(x, (tr[y].ch[0] == x));
         } else
         {
-          var z = tr[y].pnt;
-          var c = (tr[y].ch[0] == x);
-          var d = (tr[z].ch[0] == y);
+          var z: dynamic = tr[y].pnt;
+          var c: dynamic = (tr[y].ch[0] == x);
+          var d: dynamic = (tr[z].ch[0] == y);
           if ((c == d))
           {
             rotate(y, c);
@@ -126,9 +126,9 @@ class Splay
         root = x;
       }
     }
-  func insert(id: dynamic, key: dynamic, val: dynamic)
+  func insert(id: dynamic, key: dynamic, val: dynamic) -> dynamic
   {
-      var x = root;
+      var x: dynamic = root;
       if ((!root))
       {
         root = cpp_update(tot, "++");
@@ -182,15 +182,15 @@ class Splay
         }
       }
     }
-  func query(x: dynamic, key: dynamic)
+  func query(x: dynamic, key: dynamic) -> dynamic
   {
       if ((!x))
       {
         return Pair(0, 0);
       }
-      var l = tr[x].ch[0];
-      var r = tr[x].ch[1];
-      var res: dynamic;
+      var l: dynamic = tr[x].ch[0];
+      var r: dynamic = tr[x].ch[1];
+      var res: dynamic = cpp_uninitialized();
       if ((tr[x].key < key))
       {
         if (r)
@@ -216,16 +216,16 @@ class Splay
     }
 }
 
-var sp: dynamic;
+var sp: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var ansx: dynamic;
-  var ansy: dynamic;
-  var ans = 0;
+  var ansx: dynamic = cpp_uninitialized();
+  var ansy: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d%d", (&a[i].x), (&a[i].y));
@@ -234,7 +234,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d%d%d", (&b[i].x), (&b[i].y), (&b[i].v));
@@ -245,8 +245,8 @@ func main()
   sort((a + 1), ((a + 1) + n), cmp1);
   sort((b + 1), ((b + 1) + m), cmp1);
   {
-    var i = 1;
-    var j = 1;
+    var i: dynamic = 1;
+    var j: dynamic = 1;
     while ((i <= m))
     {
       {
@@ -261,7 +261,7 @@ func main()
         i += 1;
         continue;
       }
-      var tmp = ((1 * ((min(q.top().v, b[i].y) - b[i].x))) * b[i].v);
+      var tmp: dynamic = ((1 * ((min(q.top().v, b[i].y) - b[i].x))) * b[i].v);
       if ((tmp > ans))
       {
         ans = tmp;
@@ -272,8 +272,8 @@ func main()
     }
   }
   {
-    var i = 1;
-    var j = 1;
+    var i: dynamic = 1;
+    var j: dynamic = 1;
     while ((i <= n))
     {
       {
@@ -283,8 +283,8 @@ func main()
           j += 1;
         }
       }
-      var re = sp.query(sp.root, a[i].y);
-      var tmp = ((1 * ((a[i].y - a[i].x))) * re.v);
+      var re: dynamic = sp.query(sp.root, a[i].y);
+      var tmp: dynamic = ((1 * ((a[i].y - a[i].x))) * re.v);
       if ((tmp > ans))
       {
         ans = tmp;
@@ -297,8 +297,8 @@ func main()
   sort((a + 1), ((a + 1) + n), cmp2);
   sort((b + 1), ((b + 1) + m), cmp2);
   {
-    var i = 1;
-    var j = 1;
+    var i: dynamic = 1;
+    var j: dynamic = 1;
     while ((i <= m))
     {
       {
@@ -313,7 +313,7 @@ func main()
         i += 1;
         continue;
       }
-      var tmp = ((1 * ((b[i].y - max(p.top().v, b[i].x)))) * b[i].v);
+      var tmp: dynamic = ((1 * ((b[i].y - max(p.top().v, b[i].x)))) * b[i].v);
       if ((tmp > ans))
       {
         ans = tmp;

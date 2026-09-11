@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var s = cpp_array(501);
+  var s: dynamic = cpp_array(501);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s[i]);
       i += 1;
     }
   }
-  var ctt = 0;
-  var nuee = cpp_array(501);
+  var ctt: dynamic = 0;
+  var nuee: dynamic = cpp_array(501);
   fill(nuee, (nuee + n), 1);
-  var dame = 1;
+  var dame: dynamic = 1;
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < n))
     {
-      var ok = 1;
+      var ok: dynamic = 1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((s[i][j] == cpp_char(".")))
@@ -52,14 +52,14 @@ func main()
     write(-1, "\n");
     return 0;
   }
-  var ans = (2 * n);
+  var ans: dynamic = (2 * n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var cty = 0;
+      var cty: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((s[i][j] == cpp_char("#")))

@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var Maxn = 5005;
+var Maxn: dynamic = 5005;
 
-var Maxl = 26;
+var Maxl: dynamic = 26;
 
-var a = cpp_array(Maxn);
+var a: dynamic = cpp_array(Maxn);
 
-var b = cpp_array(Maxn);
+var b: dynamic = cpp_array(Maxn);
 
-var alen: dynamic;
+var alen: dynamic = cpp_uninitialized();
 
-var blen: dynamic;
+var blen: dynamic = cpp_uninitialized();
 
-var freq = cpp_array(Maxl);
+var freq: dynamic = cpp_array(Maxl);
 
-func Possible(pos: dynamic)
+func Possible(pos: dynamic) -> dynamic
 {
-  var cur = (Maxl - 1);
-  var tk = 0;
+  var cur: dynamic = (Maxl - 1);
+  var tk: dynamic = 0;
   {
-    var i = pos;
+    var i: dynamic = pos;
     while ((i < blen))
     {
       while (((cur >= 0) && (tk == freq[cur])))
@@ -47,7 +47,7 @@ func Possible(pos: dynamic)
   return (cur >= 0);
 }
 
-func getMore(lim: dynamic, bet: dynamic)
+func getMore(lim: dynamic, bet: dynamic) -> dynamic
 {
   {
     bet = (lim + 1);
@@ -63,10 +63,10 @@ func getMore(lim: dynamic, bet: dynamic)
   return false;
 }
 
-func writeTo(pos: dynamic)
+func writeTo(pos: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Maxl))
     {
       while (cpp_update(freq[i], "--"))
@@ -79,14 +79,14 @@ func writeTo(pos: dynamic)
   printf("%s\n", a);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", a);
   alen = strlen(a);
   scanf("%s", b);
   blen = strlen(b);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < alen))
     {
       freq[(a[i] - cpp_char("a"))] += 1;
@@ -99,7 +99,7 @@ func main()
   } else
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < blen))
       {
         if (freq[(b[i] - cpp_char("a"))])
@@ -115,7 +115,7 @@ func main()
             freq[(b[i] - cpp_char("a"))] += 1;
           }
         }
-        var c: dynamic;
+        var c: dynamic = cpp_uninitialized();
         if (getMore(b[i], c))
         {
           freq[(c - cpp_char("a"))] -= 1;

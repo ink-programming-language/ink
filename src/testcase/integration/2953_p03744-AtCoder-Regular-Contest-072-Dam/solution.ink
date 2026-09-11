@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func FOR(i: dynamic, n: dynamic)
+func FOR(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0; i<int(n); i++)");
 }
 
-func FOR1(i: dynamic, m: dynamic, n: dynamic)
+func FOR1(i: dynamic, m: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=int(m); i<int(n); i++)");
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
-  var t: dynamic;
-  var v: dynamic;
-  var total_heat: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var total_heat: dynamic = cpp_uninitialized();
   scanf("%lld%lld", (&N), (&L));
   scanf("%lld%lld", (&t), (&v));
   A.push_front(make_pair(v, t));
@@ -28,8 +28,8 @@ func main(argc: dynamic, argv: dynamic)
   printf("%.7f\n", (cpp_cast(total_heat) / L));
   FOR1(i, 1, N);
   {
-    var back: dynamic;
-    var vol: dynamic;
+    var back: dynamic = cpp_uninitialized();
+    var vol: dynamic = cpp_uninitialized();
     scanf("%lld%lld", (&t), (&v));
     total_heat += (cpp_cast(v) * t);
     vol = v;
@@ -45,7 +45,7 @@ func main(argc: dynamic, argv: dynamic)
       A.push_back(make_pair((-vol), back.second));
       total_heat += ((-vol) * back.second);
     }
-    var heat = (v * t);
+    var heat: dynamic = (v * t);
     vol = v;
     while (((A.size() > 0) && ((heat / vol) <= A.front().second)))
     {

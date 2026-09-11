@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(100010);
+var a: dynamic = cpp_array(100010);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var x: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
   {
     i = 1;
@@ -20,10 +20,10 @@ func main()
     }
   }
   {
-    var k: dynamic;
-    var l: dynamic;
-    var r: dynamic;
-    var s: dynamic;
+    var k: dynamic = cpp_uninitialized();
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
+    var s: dynamic = cpp_uninitialized();
     while (cpp_update(m, "--"))
     {
       scanf("%d%d%d%f", (&k), (&l), (&r), (&x));
@@ -33,7 +33,7 @@ func main()
           i = l;
           while ((i <= r))
           {
-            a[i] -= if ((a[i] > x)) x else 0;
+            a[i] -=  ((a[i] > x)) ? x : 0;
             i += 1;
           }
         }
@@ -44,7 +44,7 @@ func main()
           i = l;
           while ((i <= r))
           {
-            if ((a[i] == x)) cpp_update(s, "++") else 0;
+             ((a[i] == x)) ? cpp_update(s, "++") : 0;
             i += 1;
           }
         }

@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var maxn = (1e6 + 5);
+var maxn: dynamic = (1e6 + 5);
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
-  var id: dynamic;
-  func read(i: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  func read(i: dynamic) -> dynamic
   {
       scanf("%d%d", (&x), (&y));
       x /= 1000;
@@ -15,19 +15,19 @@ class Point
     }
 }
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
-  return ((a.x < b.x) || ((a.x == b.x) && (if ((a.x & 1)) (a.y < b.y) else (a.y > b.y))));
+  return ((a.x < b.x) || ((a.x == b.x) && ( ((a.x & 1)) ? (a.y < b.y) : (a.y > b.y))));
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i].read(i);
@@ -36,10 +36,10 @@ func main(argument_0: dynamic)
   }
   sort((a + 1), ((a + n) + 1), cmp);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      printf("%d%c", a[i].id, if ((i == n)) cpp_char("\n") else cpp_char(" "));
+      printf("%d%c", a[i].id,  ((i == n)) ? cpp_char("\n") : cpp_char(" "));
       i += 1;
     }
   }

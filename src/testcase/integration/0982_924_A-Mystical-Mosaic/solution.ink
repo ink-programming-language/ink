@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var g = cpp_array(500);
+var g: dynamic = cpp_array(500);
 
-var rg = cpp_array(500);
+var rg: dynamic = cpp_array(500);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var s = cpp_array(500);
+var s: dynamic = cpp_array(500);
 
-var curc = 0;
+var curc: dynamic = 0;
 
-var color = cpp_array(500);
+var color: dynamic = cpp_array(500);
 
-var color2 = cpp_array(500);
+var color2: dynamic = cpp_array(500);
 
-var c1 = cpp_array(500);
+var c1: dynamic = cpp_array(500);
 
-var c2 = cpp_array(500);
+var c2: dynamic = cpp_array(500);
 
-func no()
+func no() -> dynamic
 {
   write("No\n");
   exit(0);
 }
 
-func yes()
+func yes() -> dynamic
 {
   write("Yes\n");
   exit(0);
 }
 
-func dfs(i: dynamic)
+func dfs(i: dynamic) -> dynamic
 {
   c1[curc].insert(i);
   color[i] = curc;
-  for (var j in g[i])
+  for (var j: dynamic in g[i])
   {
     if ((color2[j] && (color2[j] != curc)))
     {
@@ -50,11 +50,11 @@ func dfs(i: dynamic)
   }
 }
 
-func dfs2(j: dynamic)
+func dfs2(j: dynamic) -> dynamic
 {
   c2[curc].insert(j);
   color2[j] = curc;
-  for (var i in rg[j])
+  for (var i: dynamic in rg[j])
   {
     if ((color[i] && (color[i] != curc)))
     {
@@ -68,11 +68,11 @@ func dfs2(j: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s[i]);
@@ -80,11 +80,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((s[i][j] == cpp_char("#")))
@@ -99,7 +99,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       curc += 1;
@@ -111,7 +111,7 @@ func main()
     }
   }
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < m))
     {
       curc += 1;
@@ -123,14 +123,14 @@ func main()
     }
   }
   {
-    var c = 1;
+    var c: dynamic = 1;
     while ((c <= curc))
     {
-      var ii = c1[c];
-      var jj = c2[c];
-      for (var i in ii)
+      var ii: dynamic = c1[c];
+      var jj: dynamic = c2[c];
+      for (var i: dynamic in ii)
       {
-        for (var j in jj)
+        for (var j: dynamic in jj)
         {
           if ((s[i][j] != cpp_char("#")))
           {

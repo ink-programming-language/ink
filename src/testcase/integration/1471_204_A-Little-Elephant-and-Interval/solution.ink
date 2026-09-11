@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var numbers: dynamic;
+var numbers: dynamic = cpp_uninitialized();
 
-func get(A: dynamic)
+func get(A: dynamic) -> dynamic
 {
-  var B: dynamic;
-  var c = 0;
+  var B: dynamic = cpp_uninitialized();
+  var c: dynamic = 0;
   B.push_back(cpp_char("1"));
   while ((B.size() < A.size()))
   {
@@ -36,11 +36,11 @@ func get(A: dynamic)
   }
   if ((A[0] <= A[(A.size() - 1)]))
   {
-    var v = 0;
+    var v: dynamic = 0;
     if ((A.size() > 2))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < (A.size() - 1)))
         {
           v *= 10;
@@ -61,9 +61,9 @@ func get(A: dynamic)
   }
   if ((A[0] > A[(A.size() - 1)]))
   {
-    var J = true;
+    var J: dynamic = true;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < (A.size() - 1)))
       {
         if ((A[i] != cpp_char("0")))
@@ -76,7 +76,7 @@ func get(A: dynamic)
     if ((!J))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < (A.size() - 1)))
         {
           c += ((((A[i] - cpp_char("0"))) * numbers[((A.size() - i) - 2)]));
@@ -91,7 +91,7 @@ func get(A: dynamic)
   }
 }
 
-func works(A: dynamic)
+func works(A: dynamic) -> dynamic
 {
   if ((A[0] == A[(A.size() - 1)]))
   {
@@ -100,26 +100,26 @@ func works(A: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
-  var l: dynamic;
-  var r: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   numbers.resize(20, 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 20))
     {
       numbers[i] = (10 * numbers[(i - 1)]);
       i += 1;
     }
   }
-  var A: dynamic;
-  var B: dynamic;
+  var A: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
   read(A, B);
-  var a = get(A);
-  var b = get(B);
+  var a: dynamic = get(A);
+  var b: dynamic = get(B);
   if (works(A))
   {
     write(((b - a) + 1), "\n");

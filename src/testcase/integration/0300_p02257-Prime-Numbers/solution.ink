@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func prime(p: dynamic)
+func prime(p: dynamic) -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= p))
     {
       if ((!((p % i))))
@@ -16,14 +16,14 @@ func prime(p: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var p: dynamic;
-  var ans = 0;
+  var n: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(p);

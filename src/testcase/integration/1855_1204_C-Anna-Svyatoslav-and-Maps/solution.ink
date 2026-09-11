@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(110, 110);
+var s: dynamic = cpp_array(110, 110);
 
-var a = cpp_array(1000010);
+var a: dynamic = cpp_array(1000010);
 
-var d = cpp_array(110, 110);
+var d: dynamic = cpp_array(110, 110);
 
-var dp = cpp_array(1000010);
+var dp: dynamic = cpp_array(1000010);
 
-var pv = cpp_array(1000010);
+var pv: dynamic = cpp_array(1000010);
 
-func go(x: dynamic)
+func go(x: dynamic) -> dynamic
 {
   if ((pv[x] != -1))
   {
@@ -19,20 +19,20 @@ func go(x: dynamic)
   printf("%d ", (a[x] + 1));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%s", s[i]);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
-          d[i][j] = if ((s[i][j] - cpp_char("0"))) 1 else 1000000;
+          d[i][j] =  ((s[i][j] - cpp_char("0"))) ? 1 : 1000000;
           if ((i == j))
           {
             d[i][j] = 0;
@@ -44,15 +44,15 @@ func main()
     }
   }
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < n))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < n))
             {
               if ((d[i][j] > (d[i][k] + d[k][j])))
@@ -68,10 +68,10 @@ func main()
       k += 1;
     }
   }
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   scanf("%d", (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d", (&a[i]));
@@ -82,12 +82,12 @@ func main()
   dp[0] = 1;
   pv[0] = -1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < m))
     {
       dp[i] = (m + 1);
       {
-        var j = (i - 1);
+        var j: dynamic = (i - 1);
         while ((j >= 0))
         {
           if (((i - j) >= n))

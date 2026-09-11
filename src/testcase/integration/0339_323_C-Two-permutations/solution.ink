@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var MOD = 998244353;
+var MOD: dynamic = 998244353;
 
 class tnode
 {
-  var sum: dynamic;
-  var lson: dynamic;
-  var rson: dynamic;
-  func tnode(x: dynamic = 0)
+  var sum: dynamic = cpp_uninitialized();
+  var lson: dynamic = cpp_uninitialized();
+  var rson: dynamic = cpp_uninitialized();
+  func tnode(x: dynamic = 0) -> dynamic
   {
       sum = x;
       lson = cpp_assign(rson, "=", null);
     }
 }
 
-func pushup(cur: dynamic)
+func pushup(cur: dynamic) -> dynamic
 {
-  cur->sum = ((if ((cur->lson == null)) 0 else cur->lson->sum) + (if ((cur->rson == null)) 0 else cur->rson->sum));
+  cur->sum = (( ((cur->lson == null)) ? 0 : cur->lson->sum) + ( ((cur->rson == null)) ? 0 : cur->rson->sum));
 }
 
-func modify(cur: dynamic, id: dynamic, val: dynamic, cl: dynamic = 0, cr: dynamic = 1048575)
+func modify(cur: dynamic, id: dynamic, val: dynamic, cl: dynamic = 0, cr: dynamic = 1048575) -> dynamic
 {
   if ((cl == cr))
   {
     return cpp_new(val);
   }
-  var mid = (((cl + cr)) >> 1);
-  var ret = cpp_new();
-  var ls = if ((cur == null)) null else cur->lson;
-  var rs = if ((cur == null)) null else cur->rson;
-  ret->lson = if ((id <= mid)) modify(ls, id, val, cl, mid) else ls;
-  ret->rson = if ((id > mid)) modify(rs, id, val, (mid + 1), cr) else rs;
+  var mid: dynamic = (((cl + cr)) >> 1);
+  var ret: dynamic = cpp_new();
+  var ls: dynamic =  ((cur == null)) ? null : cur->lson;
+  var rs: dynamic =  ((cur == null)) ? null : cur->rson;
+  ret->lson =  ((id <= mid)) ? modify(ls, id, val, cl, mid) : ls;
+  ret->rson =  ((id > mid)) ? modify(rs, id, val, (mid + 1), cr) : rs;
   pushup(ret);
   return ret;
 }
 
-func query(cur: dynamic, l: dynamic, r: dynamic, cl: dynamic = 0, cr: dynamic = 1048575)
+func query(cur: dynamic, l: dynamic, r: dynamic, cl: dynamic = 0, cr: dynamic = 1048575) -> dynamic
 {
   if ((cur == null))
   {
@@ -45,7 +45,7 @@ func query(cur: dynamic, l: dynamic, r: dynamic, cl: dynamic = 0, cr: dynamic = 
   {
     return cur->sum;
   }
-  var mid = (((cl + cr)) >> 1);
+  var mid: dynamic = (((cl + cr)) >> 1);
   if ((r <= mid))
   {
     return query(cur->lson, l, r, cl, mid);
@@ -58,30 +58,30 @@ func query(cur: dynamic, l: dynamic, r: dynamic, cl: dynamic = 0, cr: dynamic = 
   }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var p0 = cpp_array(1000005);
+var p0: dynamic = cpp_array(1000005);
 
-var occ = cpp_array(1000005);
+var occ: dynamic = cpp_array(1000005);
 
-var p1 = cpp_array(1000005);
+var p1: dynamic = cpp_array(1000005);
 
-var tre: dynamic;
+var tre: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-func f(z: dynamic)
+func f(z: dynamic) -> dynamic
 {
   return (((((z - 1) + x)) % n) + 1);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cpp_cast((n))))
     {
       scanf("%d", (&p0[i]));
@@ -90,7 +90,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cpp_cast((n))))
     {
       scanf("%d", (&p1[i]));
@@ -98,7 +98,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cpp_cast((n))))
     {
       tre[i] = modify(tre[(i - 1)], occ[p1[i]], 1);
@@ -108,13 +108,13 @@ func main()
   scanf("%d", (&q));
   x = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((q))))
     {
-      var a: dynamic;
-      var b: dynamic;
-      var c: dynamic;
-      var d: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
+      var d: dynamic = cpp_uninitialized();
       scanf("%d%d%d%d", (&a), (&b), (&c), (&d));
       a = f(a);
       b = f(b);

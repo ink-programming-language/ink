@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var startt = cpp_expression("#include <bits/stdc++.h> #define");
+var startt: dynamic = cpp_expression("#include <bits/stdc++.h> #define");
 
-var vint = cpp_expression("#include <b");
+var vint: dynamic = cpp_expression("#include <b");
 
-func all(v: dynamic)
+func all(v: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/std");
 }
 
-var MOD = cpp_expression("#include <");
+var MOD: dynamic = cpp_expression("#include <");
 
-var MOD2 = cpp_expression("#include");
+var MOD2: dynamic = cpp_expression("#include");
 
-var MX = cpp_expression("#include <");
+var MX: dynamic = cpp_expression("#include <");
 
-var MXL = cpp_expression("#include <bits/stdc");
+var MXL: dynamic = cpp_expression("#include <bits/stdc");
 
-var PI = cpp_expression("#include <");
+var PI: dynamic = cpp_expression("#include <");
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var sc = cpp_expression("#inclu");
+var sc: dynamic = cpp_expression("#inclu");
 
-var fr = cpp_expression("#incl");
+var fr: dynamic = cpp_expression("#incl");
 
-var int_cpp = cpp_expression("#i");
+var int_cpp: dynamic = cpp_expression("#i");
 
-var endl = cpp_expression("#inc");
+var endl: dynamic = cpp_expression("#inc");
 
-var ld = dynamic;
+var ld: dynamic = dynamic;
 
-func ceildiv(one: dynamic, two: dynamic)
+func ceildiv(one: dynamic, two: dynamic) -> dynamic
 {
   if (((one % two) == 0))
   {
@@ -42,7 +42,7 @@ func ceildiv(one: dynamic, two: dynamic)
   }
 }
 
-func power(n: dynamic, pow: dynamic, m: dynamic)
+func power(n: dynamic, pow: dynamic, m: dynamic) -> dynamic
 {
   if ((pow == 0))
   {
@@ -50,7 +50,7 @@ func power(n: dynamic, pow: dynamic, m: dynamic)
   }
   if (((pow % 2) == 0))
   {
-    var x = power(n, (pow / 2), m);
+    var x: dynamic = power(n, (pow / 2), m);
     return (((x * x)) % m);
   } else
   {
@@ -58,7 +58,7 @@ func power(n: dynamic, pow: dynamic, m: dynamic)
   }
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((!b))
   {
@@ -67,7 +67,7 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func factorial(n: dynamic, mod: dynamic)
+func factorial(n: dynamic, mod: dynamic) -> dynamic
 {
   if ((n > 1))
   {
@@ -78,19 +78,19 @@ func factorial(n: dynamic, mod: dynamic)
   }
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a * b)) / gcd(a, b));
 }
 
-func read(n: dynamic)
+func read(n: dynamic) -> dynamic
 {
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       a.pb(x);
       i += 1;
@@ -99,33 +99,33 @@ func read(n: dynamic)
   return a;
 }
 
-var adj: dynamic;
+var adj: dynamic = cpp_uninitialized();
 
-func init(n: dynamic)
+func init(n: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
-      var a: dynamic;
+      var a: dynamic = cpp_uninitialized();
       adj.pb(a);
       i += 1;
     }
   }
 }
 
-var MAXARR = 200005;
+var MAXARR: dynamic = 200005;
 
-var id = cpp_array(MAXARR);
+var id: dynamic = cpp_array(MAXARR);
 
-var edges: dynamic;
+var edges: dynamic = cpp_uninitialized();
 
-var p = cpp_array(MAXARR);
+var p: dynamic = cpp_array(MAXARR);
 
-func initialize(n: dynamic)
+func initialize(n: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       id[i] = i;
@@ -134,7 +134,7 @@ func initialize(n: dynamic)
   }
 }
 
-func root(x: dynamic)
+func root(x: dynamic) -> dynamic
 {
   while ((id[x] != x))
   {
@@ -144,21 +144,21 @@ func root(x: dynamic)
   return x;
 }
 
-func union1(x: dynamic, y: dynamic)
+func union1(x: dynamic, y: dynamic) -> dynamic
 {
-  var p = root(x);
-  var q = root(y);
+  var p: dynamic = root(x);
+  var q: dynamic = root(y);
   id[p] = id[q];
 }
 
-func kruskal(p: dynamic)
+func kruskal(p: dynamic) -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
-  var cost: dynamic;
-  var minimumCost = 0;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var cost: dynamic = cpp_uninitialized();
+  var minimumCost: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < edges))
     {
       x = p[i].second.first;
@@ -175,22 +175,22 @@ func kruskal(p: dynamic)
   return minimumCost;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k);
   initialize(n);
   edges = m;
-  var best = MXL;
+  var best: dynamic = MXL;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var u: dynamic;
-      var v: dynamic;
-      var w: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       read(u, v, w);
       best = min(best, abs((w - k)));
       p[i] = make_pair(max(0, (w - k)), make_pair(u, v));
@@ -198,7 +198,7 @@ func solve()
     }
   }
   sort(p, (p + m));
-  var minimumcost = kruskal(p);
+  var minimumcost: dynamic = kruskal(p);
   if ((minimumcost == 0))
   {
     write(best, "\n");
@@ -208,10 +208,10 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   startt;
-  var t = 1;
+  var t: dynamic = 1;
   read(t);
   while (cpp_update(t, "--"))
   {

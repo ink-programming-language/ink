@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   read(a);
-  var ls = [];
-  var u = 0;
+  var ls: dynamic = [];
+  var u: dynamic = 0;
   while ((cin >> a))
   {
     if ((a < 3200))

@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func is_prime(x: dynamic)
+func is_prime(x: dynamic) -> dynamic
 {
   if ((x == 1))
   {
     return false;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= x))
     {
       if (((x % i) == 0))
@@ -20,11 +20,11 @@ func is_prime(x: dynamic)
   return true;
 }
 
-func is_palindrome(s1: dynamic)
+func is_palindrome(s1: dynamic) -> dynamic
 {
-  var l = s1.length();
+  var l: dynamic = s1.length();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (l / 2)))
     {
       if ((s1[i] != s1[((l - i) - 1)]))
@@ -37,7 +37,7 @@ func is_palindrome(s1: dynamic)
   return true;
 }
 
-func C(n: dynamic, k: dynamic)
+func C(n: dynamic, k: dynamic) -> dynamic
 {
   if ((k == 0))
   {
@@ -46,9 +46,9 @@ func C(n: dynamic, k: dynamic)
   return (((n * C((n - 1), (k - 1)))) / k);
 }
 
-func modular_pow(base: dynamic, exponent: dynamic, modulus: dynamic)
+func modular_pow(base: dynamic, exponent: dynamic, modulus: dynamic) -> dynamic
 {
-  var result = 1;
+  var result: dynamic = 1;
   while ((exponent > 0))
   {
     if (((exponent % 2) == 1))
@@ -61,12 +61,12 @@ func modular_pow(base: dynamic, exponent: dynamic, modulus: dynamic)
   return result;
 }
 
-func binaryToDec(number: dynamic)
+func binaryToDec(number: dynamic) -> dynamic
 {
-  var result = 0;
-  var pow = 1;
+  var result: dynamic = 0;
+  var pow: dynamic = 1;
   {
-    var i = (number.length() - 1);
+    var i: dynamic = (number.length() - 1);
     while ((i >= 0))
     {
       result = (((result + (((number[i] - cpp_char("0"))) * pow))) % 1000003);
@@ -77,14 +77,14 @@ func binaryToDec(number: dynamic)
   return result;
 }
 
-func GCD(a: dynamic, b: dynamic)
+func GCD(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b == 0)) a else GCD(b, (a % b));
+  return  ((b == 0)) ? a : GCD(b, (a % b));
 }
 
-func cntMask(mask: dynamic)
+func cntMask(mask: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   while (mask)
   {
     if ((mask % 2))
@@ -96,22 +96,22 @@ func cntMask(mask: dynamic)
   return ret;
 }
 
-func getBit(mask: dynamic, i: dynamic)
+func getBit(mask: dynamic, i: dynamic) -> dynamic
 {
   return (((((mask >> i)) & 1)) == 1);
 }
 
-func setBit(mask: dynamic, i: dynamic, value: dynamic = 1)
+func setBit(mask: dynamic, i: dynamic, value: dynamic = 1) -> dynamic
 {
-  return if ((value)) (mask | ((1 << i))) else ((mask & (~((1 << i)))));
+  return  ((value)) ? (mask | ((1 << i))) : ((mask & (~((1 << i)))));
 }
 
-func mystoi(s: dynamic)
+func mystoi(s: dynamic) -> dynamic
 {
-  var ans = 0;
-  var po = 1;
+  var ans: dynamic = 0;
+  var po: dynamic = 1;
   {
-    var i = (s.length() - 1);
+    var i: dynamic = (s.length() - 1);
     while ((i >= 0))
     {
       ans += (((s[i] - cpp_char("0"))) * po);
@@ -122,9 +122,9 @@ func mystoi(s: dynamic)
   return ans;
 }
 
-func conv(i: dynamic)
+func conv(i: dynamic) -> dynamic
 {
-  var t = "";
+  var t: dynamic = "";
   while (i)
   {
     t += (cpp_char("0") + ((i % 10)));
@@ -133,7 +133,7 @@ func conv(i: dynamic)
   return t;
 }
 
-func hasZero(i: dynamic)
+func hasZero(i: dynamic) -> dynamic
 {
   if ((i == 0))
   {
@@ -150,24 +150,24 @@ func hasZero(i: dynamic)
   return false;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var a = cpp_array((100000 + 5));
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_array((100000 + 5));
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(n)))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var ans = 0;
-  var temp = 0;
-  var cur = a[0];
+  var ans: dynamic = 0;
+  var temp: dynamic = 0;
+  var cur: dynamic = a[0];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(n)))
     {
       if ((a[i] == cur))

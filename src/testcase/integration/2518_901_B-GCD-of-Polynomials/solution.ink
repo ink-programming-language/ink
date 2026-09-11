@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var r = [0];
-  var d = [0];
-  var r1 = [0];
-  var d1 = [0];
+  var r: dynamic = [0];
+  var d: dynamic = [0];
+  var r1: dynamic = [0];
+  var d1: dynamic = [0];
   if ((n == 1))
   {
     write(1, "\n", 0, " ", 1, "\n", 0, "\n", "1", "\n");
@@ -17,12 +17,12 @@ func main()
     d[0] = 0;
     d[1] = 1;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= (n - 1)))
       {
         d1[0] = r[0];
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= i))
           {
             r1[j] = d[j];
@@ -30,7 +30,7 @@ func main()
           }
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= i))
           {
             d1[(j + 1)] = (((d[j] + r[(j + 1)])) % 2);
@@ -39,7 +39,7 @@ func main()
         }
         d[0] = d1[0];
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= i))
           {
             r[j] = r1[j];
@@ -47,7 +47,7 @@ func main()
           }
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= i))
           {
             d[(j + 1)] = d1[(j + 1)];
@@ -59,7 +59,7 @@ func main()
     }
     write(n, "\n");
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j <= n))
       {
         write(d[j], " ");
@@ -68,7 +68,7 @@ func main()
     }
     write("\n", (n - 1), "\n");
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j <= (n - 1)))
       {
         write(r[j], " ");

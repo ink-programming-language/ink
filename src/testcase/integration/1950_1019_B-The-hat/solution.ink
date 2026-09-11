@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-func Get(x: dynamic)
+func Get(x: dynamic) -> dynamic
 {
   if (mp.count(x))
   {
@@ -12,40 +12,40 @@ func Get(x: dynamic)
   }
   printf("? %d\n", x);
   fflush(stdout);
-  var y: dynamic;
+  var y: dynamic = cpp_uninitialized();
   scanf("%d", (&y));
   return cpp_assign(mp[x], "=", y);
 }
 
-func Print(x: dynamic)
+func Print(x: dynamic) -> dynamic
 {
   printf("! %d\n", x);
   exit(0);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   if ((n % 4))
   {
     Print(-1);
   }
-  var a = Get((n / 2));
-  var b = Get(n);
-  var l1 = 1;
-  var r1 = ((n / 2) - 1);
-  var l2 = ((n / 2) + 1);
-  var r2 = (n - 1);
+  var a: dynamic = Get((n / 2));
+  var b: dynamic = Get(n);
+  var l1: dynamic = 1;
+  var r1: dynamic = ((n / 2) - 1);
+  var l2: dynamic = ((n / 2) + 1);
+  var r2: dynamic = (n - 1);
   if ((a == b))
   {
     Print(n);
   }
   while (true)
   {
-    var mid1 = (((l1 + r1)) >> 1);
-    var mid2 = (((l2 + r2)) >> 1);
-    var x = Get(mid1);
-    var y = Get(mid2);
+    var mid1: dynamic = (((l1 + r1)) >> 1);
+    var mid2: dynamic = (((l2 + r2)) >> 1);
+    var x: dynamic = Get(mid1);
+    var y: dynamic = Get(mid2);
     if ((x == y))
     {
       Print(mid1);

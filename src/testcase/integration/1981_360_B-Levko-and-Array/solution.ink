@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func power(a: dynamic, b: dynamic, m: dynamic)
+func power(a: dynamic, b: dynamic, m: dynamic) -> dynamic
 {
-  var x = (1 % m);
+  var x: dynamic = (1 % m);
   a %= m;
   while (b)
   {
@@ -16,25 +16,25 @@ func power(a: dynamic, b: dynamic, m: dynamic)
   return x;
 }
 
-var a = cpp_array(2005);
+var a: dynamic = cpp_array(2005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(2005);
+var dp: dynamic = cpp_array(2005);
 
-func solve(x: dynamic)
+func solve(x: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n + 1)))
     {
       dp[i] = (i - 1);
       if ((i != (n + 1)))
       {
         {
-          var j = (i - 1);
+          var j: dynamic = (i - 1);
           while ((j > 0))
           {
             if ((abs((a[i] - a[j])) <= (x * ((i - j)))))
@@ -47,7 +47,7 @@ func solve(x: dynamic)
       } else
       {
         {
-          var j = (i - 1);
+          var j: dynamic = (i - 1);
           while ((j > 0))
           {
             dp[i] = min(dp[i], (dp[j] + (((i - j) - 1))));
@@ -61,12 +61,12 @@ func solve(x: dynamic)
   return dp[(n + 1)];
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   scanf("%d", (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -78,20 +78,20 @@ func main()
     printf("0");
     return 0;
   }
-  var mx = 0;
+  var mx: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       mx = max(mx, abs((a[i] - a[(i - 1)])));
       i += 1;
     }
   }
-  var l = 0;
-  var r = mx;
+  var l: dynamic = 0;
+  var r: dynamic = mx;
   while ((l < r))
   {
-    var mid = (((l + r)) >> 1);
+    var mid: dynamic = (((l + r)) >> 1);
     if ((solve(mid) <= k))
     {
       r = mid;

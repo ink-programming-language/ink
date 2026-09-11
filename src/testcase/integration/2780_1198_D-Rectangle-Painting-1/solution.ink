@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var ii: dynamic;
+var ii: dynamic = cpp_uninitialized();
 
-var jj: dynamic;
+var jj: dynamic = cpp_uninitialized();
 
-var f = cpp_array(51, 51);
+var f: dynamic = cpp_array(51, 51);
 
-var d = cpp_array(51, 51, 51, 51);
+var d: dynamic = cpp_array(51, 51, 51, 51);
 
-var val: dynamic;
+var val: dynamic = cpp_uninitialized();
 
-var c = cpp_array(51, 51);
+var c: dynamic = cpp_array(51, 51);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
@@ -56,7 +56,7 @@ func main()
       i += 1;
     }
   }
-  var check = __cpp_lambda_1;
+  var check: dynamic = __cpp_lambda_1;
   {
     i = n;
     while ((i >= 1))
@@ -112,7 +112,7 @@ func main()
   write(d[1][1][n][n]);
 }
 
-func __cpp_lambda_1(x: dynamic, y: dynamic, xx: dynamic, yy: dynamic)
+func __cpp_lambda_1(x: dynamic, y: dynamic, xx: dynamic, yy: dynamic) -> dynamic
 {
   return (((f[xx][yy] - f[(x - 1)][yy]) - f[xx][(y - 1)]) + f[(x - 1)][(y - 1)]);
 }

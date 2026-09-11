@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var ch = getchar();
-  var ret = 0;
-  var f = 1;
+  var ch: dynamic = getchar();
+  var ret: dynamic = 0;
+  var f: dynamic = 1;
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -23,13 +23,13 @@ func read()
   return (ret * f);
 }
 
-var INF = (1 << 30);
+var INF: dynamic = (1 << 30);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k);
   if ((((n * m) * 2) % k))
   {
@@ -37,14 +37,14 @@ func main()
     return 0;
   }
   k = (((n * m) * 2) / k);
-  var t = sqrt(k);
+  var t: dynamic = sqrt(k);
   {
-    var i = max((k / max(n, m)), 1);
+    var i: dynamic = max((k / max(n, m)), 1);
     while ((i <= t))
     {
       if (((k % i) == 0))
       {
-        var tmp = (k / i);
+        var tmp: dynamic = (k / i);
         if (((i <= n) && (tmp <= m)))
         {
           printf("YES\n%d %d\n%I64d %d\n%d %I64d\n", 0, 0, i, 0, 0, tmp);

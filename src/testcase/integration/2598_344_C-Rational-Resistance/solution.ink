@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func Cal(a: dynamic, b: dynamic)
+func Cal(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == 1))
   {
@@ -10,10 +10,10 @@ func Cal(a: dynamic, b: dynamic)
   {
     return (a / b);
   }
-  var res = 0;
+  var res: dynamic = 0;
   if ((a > b))
   {
-    var t = (a / b);
+    var t: dynamic = (a / b);
     res += t;
     res += Cal((a - (b * t)), b);
   } else
@@ -23,10 +23,10 @@ func Cal(a: dynamic, b: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
   write(Cal(a, b), "\n");
 }

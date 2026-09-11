@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var as_cpp: dynamic;
+var as_cpp: dynamic = cpp_uninitialized();
 
-var a = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43];
+var a: dynamic = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43];
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var n: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   as_cpp.push_back(1);
   scanf("%d", (&n));
   {

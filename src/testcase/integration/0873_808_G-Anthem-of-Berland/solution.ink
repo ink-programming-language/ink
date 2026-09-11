@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func solve()
+func solve() -> dynamic
 {
-  var s: dynamic;
-  var t: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(s, t);
   s = ("#" + s);
   t = ("#" + t);
-  var n = (s.length() - 1);
-  var m = (t.length() - 1);
-  var go = cpp_construct((m + 2), vector(26));
-  var pi = cpp_construct((m + 2));
-  var dp = cpp_construct((n + 2), vector((m + 2)));
+  var n: dynamic = (s.length() - 1);
+  var m: dynamic = (t.length() - 1);
+  var go: dynamic = cpp_construct((m + 2), vector(26));
+  var pi: dynamic = cpp_construct((m + 2));
+  var dp: dynamic = cpp_construct((n + 2), vector((m + 2)));
   if ((t.length() > s.length()))
   {
     write(0, "\n");
     return;
   }
-  var k = 0;
+  var k: dynamic = 0;
   pi[1] = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= m))
     {
       while (((k > 0) && (t[(k + 1)] != t[i])))
@@ -36,11 +36,11 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= m))
     {
       {
-        var ch = 0;
+        var ch: dynamic = 0;
         while ((ch < 26))
         {
           go[i][ch] = 0;
@@ -48,12 +48,12 @@ func solve()
         }
       }
       {
-        var k = i;
+        var k: dynamic = i;
         while (true)
         {
           if (((k + 1) < t.length()))
           {
-            var ch = (t[(k + 1)] - cpp_char("a"));
+            var ch: dynamic = (t[(k + 1)] - cpp_char("a"));
             if ((go[i][ch] == 0))
             {
               go[i][ch] = (k + 1);
@@ -70,11 +70,11 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n + 1)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= m))
         {
           dp[i][j] = -1;
@@ -86,11 +86,11 @@ func solve()
   }
   dp[1][0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n + 1)))
     {
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k <= m))
         {
           if ((dp[i][k] == -1))
@@ -107,7 +107,7 @@ func solve()
             } else
             {
               {
-                var ch = 0;
+                var ch: dynamic = 0;
                 while ((ch < 26))
                 {
                   dp[(i + 1)][go[k][ch]] = max(dp[(i + 1)][go[k][ch]], dp[i][k]);
@@ -122,9 +122,9 @@ func solve()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= m))
     {
       ans = max(ans, dp[(n + 1)][i]);
@@ -134,9 +134,9 @@ func solve()
   write(ans, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var tests = 1;
+  var tests: dynamic = 1;
   {
     while (tests)
     {

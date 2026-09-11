@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(num: dynamic)
+func read(num: dynamic) -> dynamic
 {
   num = 0;
-  var f = 1;
-  var ch = getchar();
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -18,12 +18,12 @@ func read(num: dynamic)
     num = (((num * 10) + ch) - cpp_char("0"));
     ch = getchar();
   }
-  num = if (f) num else (-num);
+  num =  (f) ? num : (-num);
 }
 
-func write(x: dynamic, ch: dynamic)
+func write(x: dynamic, ch: dynamic) -> dynamic
 {
-  var s = cpp_array(100);
+  var s: dynamic = cpp_array(100);
   if ((x == 0))
   {
     putchar(cpp_char("0"));
@@ -35,14 +35,14 @@ func write(x: dynamic, ch: dynamic)
     putchar(cpp_char("-"));
     x = (-x);
   }
-  var num = 0;
+  var num: dynamic = 0;
   while (x)
   {
     s[cpp_update(num, "++")] = ((x % 10));
     x = (x / 10);
   }
   {
-    var i = ((num - 1));
+    var i: dynamic = ((num - 1));
     while ((i >= (0)))
     {
       putchar((s[i] + cpp_char("0")));
@@ -52,17 +52,17 @@ func write(x: dynamic, ch: dynamic)
   putchar(ch);
 }
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-func main()
+func main() -> dynamic
 {
-  var ans = 100000000000000;
-  var A = cpp_array(4);
-  var ord = cpp_array(4);
+  var ans: dynamic = 100000000000000;
+  var A: dynamic = cpp_array(4);
+  var ord: dynamic = cpp_array(4);
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (3)))
     {
       read(A[i]);
@@ -72,14 +72,14 @@ func main()
   }
   while (true)
   {
-    var a = A[ord[1]];
-    var b = A[ord[2]];
-    var c = A[ord[3]];
+    var a: dynamic = A[ord[1]];
+    var b: dynamic = A[ord[2]];
+    var c: dynamic = A[ord[3]];
     if ((b < c))
     {
       swap(b, c);
     }
-    var res = c;
+    var res: dynamic = c;
     a += c;
     b -= c;
     res += (((b / 2)) * 2);

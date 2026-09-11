@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(realArr[i]);
@@ -18,13 +18,13 @@ func main()
     }
   }
   sort(arr.begin(), arr.end());
-  var countStart = 0;
-  var countEnd = (n - 1);
-  var num = 0;
-  var moves = 0;
+  var countStart: dynamic = 0;
+  var countEnd: dynamic = (n - 1);
+  var num: dynamic = 0;
+  var moves: dynamic = 0;
   while ((num < m))
   {
-    var same = (n / m);
+    var same: dynamic = (n / m);
     while (cpp_update(same, "--"))
     {
       if ((arr[countStart].first > num))
@@ -49,7 +49,7 @@ func main()
   {
     write((realArr)[0]);
     {
-      var out_i = 1;
+      var out_i: dynamic = 1;
       while ((out_i < (realArr).size()))
       {
         write(" ", (realArr)[out_i]);

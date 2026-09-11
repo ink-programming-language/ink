@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var A: dynamic;
+  var A: dynamic = cpp_uninitialized();
   A.reserve(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       A.push_back(make_pair(x, y));
       i += 1;
@@ -19,7 +19,7 @@ func main()
   }
   sort(A.begin(), A.end());
   {
-    var it = A.begin();
+    var it: dynamic = A.begin();
     while ((it != A.end()))
     {
       write(it->first, cpp_char(" "), it->second, "\n");

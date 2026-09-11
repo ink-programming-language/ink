@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
 class node
 {
-  var u: dynamic;
-  var v: dynamic;
-  var w: dynamic;
-  func operator_less(o: dynamic)
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  func operator_less(o: dynamic) -> dynamic
   {
       return (w < o.w);
     }
 }
 
-var e = cpp_array(6000005);
+var e: dynamic = cpp_array(6000005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var cot = 0;
+var cot: dynamic = 0;
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
-var fail = cpp_array(200005);
+var fail: dynamic = cpp_array(200005);
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-func add(l: dynamic, r: dynamic)
+func add(l: dynamic, r: dynamic) -> dynamic
 {
   if ((l >= r))
   {
     return;
   }
-  var m = ((l + r) >> 1);
-  var mi = 1e18;
-  var pos: dynamic;
+  var m: dynamic = ((l + r) >> 1);
+  var mi: dynamic = 1e18;
+  var pos: dynamic = cpp_uninitialized();
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i <= m))
     {
-      var f = (a[i] - (d * i));
+      var f: dynamic = (a[i] - (d * i));
       if ((f < mi))
       {
         mi = f;
@@ -48,7 +48,7 @@ func add(l: dynamic, r: dynamic)
     }
   }
   {
-    var i = (m + 1);
+    var i: dynamic = (m + 1);
     while ((i <= r))
     {
       e[cot].u = pos;
@@ -59,10 +59,10 @@ func add(l: dynamic, r: dynamic)
   }
   mi = 1e18;
   {
-    var i = (m + 1);
+    var i: dynamic = (m + 1);
     while ((i <= r))
     {
-      var f = (a[i] + (d * i));
+      var f: dynamic = (a[i] + (d * i));
       if ((f < mi))
       {
         mi = f;
@@ -72,7 +72,7 @@ func add(l: dynamic, r: dynamic)
     }
   }
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i <= m))
     {
       e[cot].u = i;
@@ -85,29 +85,29 @@ func add(l: dynamic, r: dynamic)
   add((m + 1), r);
 }
 
-func get_fa(x: dynamic)
+func get_fa(x: dynamic) -> dynamic
 {
-  return if ((fail[x] == x)) x else cpp_assign(fail[x], "=", get_fa(fail[x]));
+  return  ((fail[x] == x)) ? x : cpp_assign(fail[x], "=", get_fa(fail[x]));
 }
 
-func kruskal()
+func kruskal() -> dynamic
 {
   sort(e, (e + cot));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 200000))
     {
       fail[i] = i;
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cot))
     {
-      var fu = get_fa(e[i].u);
-      var fv = get_fa(e[i].v);
+      var fu: dynamic = get_fa(e[i].u);
+      var fv: dynamic = get_fa(e[i].v);
       if ((fu == fv))
       {
         i += 1;
@@ -121,11 +121,11 @@ func kruskal()
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%lld", (&n), (&d));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));

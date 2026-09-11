@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var g = cpp_array(102);
+var g: dynamic = cpp_array(102);
 
-var visited = cpp_array(102);
+var visited: dynamic = cpp_array(102);
 
-var col = cpp_array(102);
+var col: dynamic = cpp_array(102);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func dfs(s: dynamic, color: dynamic)
+func dfs(s: dynamic, color: dynamic) -> dynamic
 {
   visited[s] = true;
   col[s] = color;
-  var newcolor: dynamic;
-  var i: dynamic;
+  var newcolor: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < g[s].size()))
@@ -33,14 +33,14 @@ func dfs(s: dynamic, color: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
   read(n, m);
   {
     i = 0;

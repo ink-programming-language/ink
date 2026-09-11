@@ -1,62 +1,62 @@
 // Translated from solution.cpp.
 
-var S = 316;
+var S: dynamic = 316;
 
-var N = 2e5;
+var N: dynamic = 2e5;
 
 class d
 {
-  var l: dynamic;
-  var r: dynamic;
-  var id: dynamic;
-  func t()
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  func t() -> dynamic
   {
       return (l / S);
     }
 }
 
-var q = cpp_array(N);
+var q: dynamic = cpp_array(N);
 
-func p(a: dynamic, b: dynamic)
+func p(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a.t() != b.t())) (a.t() < b.t()) else if ((a.t() & 1)) (a.r > b.r) else (a.r < b.r);
+  return  ((a.t() != b.t())) ? (a.t() < b.t()) :  ((a.t() & 1)) ? (a.r > b.r) : (a.r < b.r);
 }
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var c = cpp_array((N * 12));
+var c: dynamic = cpp_array((N * 12));
 
-var r = cpp_array(N);
+var r: dynamic = cpp_array(N);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var pl: dynamic;
+var pl: dynamic = cpp_uninitialized();
 
-var pr = -1;
+var pr: dynamic = -1;
 
-func add(v: dynamic)
+func add(v: dynamic) -> dynamic
 {
   x += c[(v ^ k)];
   c[v] += 1;
 }
 
-func del(v: dynamic)
+func del(v: dynamic) -> dynamic
 {
   c[v] -= 1;
   x -= c[(v ^ k)];
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m, k);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -65,9 +65,9 @@ func main()
     }
   }
   {
-    var i = 0;
-    var l: dynamic;
-    var r: dynamic;
+    var i: dynamic = 0;
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
     while ((i < m))
     {
       read(q[i].l, q[i].r);
@@ -77,12 +77,12 @@ func main()
   }
   sort(q, (q + m), p);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var ql = (q[i].l - 1);
-      var qr = q[i].r;
-      var id = q[i].id;
+      var ql: dynamic = (q[i].l - 1);
+      var qr: dynamic = q[i].r;
+      var id: dynamic = q[i].id;
       while ((pl > ql))
       {
         add(a[cpp_update(pl, "--")]);
@@ -104,7 +104,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       write(r[i], "\n");

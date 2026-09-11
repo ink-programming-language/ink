@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var INFL = 1152921504606846976;
+var INFL: dynamic = 1152921504606846976;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var t = cpp_array(((1 << 11)));
+var t: dynamic = cpp_array(((1 << 11)));
 
-var c = cpp_array(((1 << 11)));
+var c: dynamic = cpp_array(((1 << 11)));
 
-var dp = cpp_array(((1 << 11)));
+var dp: dynamic = cpp_array(((1 << 11)));
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dp[i] = INFL;
@@ -23,15 +23,15 @@ func main()
   }
   dp[0] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d%d", (&t[i]), (&c[i]));
       {
-        var j = (n - 1);
+        var j: dynamic = (n - 1);
         while ((j >= 0))
         {
-          var tmp: dynamic;
+          var tmp: dynamic = cpp_uninitialized();
           if ((((j + t[i]) + 1) > n))
           {
             tmp = n;

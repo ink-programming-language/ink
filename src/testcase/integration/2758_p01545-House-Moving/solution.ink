@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var LLINF = (1 << 60);
+var LLINF: dynamic = (1 << 60);
 
 class SegmentTree
 {
-  var id: dynamic;
-  var op: dynamic;
-  var dat: dynamic;
-  var size: dynamic;
-  func SegmentTree(n: dynamic, id: dynamic, op: dynamic)
+  var id: dynamic = cpp_uninitialized();
+  var op: dynamic = cpp_uninitialized();
+  var dat: dynamic = cpp_uninitialized();
+  var size: dynamic = cpp_uninitialized();
+  func SegmentTree(n: dynamic, id: dynamic, op: dynamic) -> dynamic
   {
-      this->id = cpp_construct(id);
-      this->op = cpp_construct(op);
+      self->id = cpp_construct(id);
+      self->op = cpp_construct(op);
       size = 1;
       while ((size < n))
       {
@@ -19,7 +19,7 @@ class SegmentTree
       }
       dat.assign(((size * 2) + 10), id);
     }
-  func update(k: dynamic, x: dynamic)
+  func update(k: dynamic, x: dynamic) -> dynamic
   {
       k += size;
       dat[k] = x;
@@ -29,17 +29,17 @@ class SegmentTree
         dat[k] = op(dat[(k << 1)], dat[(((k << 1)) | 1)]);
       }
     }
-  func merge(k: dynamic, x: dynamic)
+  func merge(k: dynamic, x: dynamic) -> dynamic
   {
       update(k, op(x, dat[(k + size)]));
     }
-  func query(a: dynamic, b: dynamic)
+  func query(a: dynamic, b: dynamic) -> dynamic
   {
-      var tl = id;
-      var tr = id;
+      var tl: dynamic = id;
+      var tr: dynamic = id;
       {
-        var l = (a + size);
-        var r = (b + size);
+        var l: dynamic = (a + size);
+        var r: dynamic = (b + size);
         while ((l < r))
         {
           if ((l & 1))
@@ -58,17 +58,17 @@ class SegmentTree
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var seg = cpp_construct(N, (-LLINF), __cpp_lambda_1);
-  for (var v in A)
+  var seg: dynamic = cpp_construct(N, (-LLINF), __cpp_lambda_1);
+  for (var v: dynamic in A)
   {
     read(v);
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       seg.update(i, 0);
@@ -76,10 +76,10 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var dat = seg.query(0, A[i]);
+      var dat: dynamic = seg.query(0, A[i]);
       seg.update((A[i] - 1), (dat + A[i]));
       i += 1;
     }
@@ -87,7 +87,7 @@ func main()
   write((((cpp_cast(N) * ((N + 1))) / 2) - seg.query(0, N)), "\n");
 }
 
-func __cpp_lambda_1(a: dynamic, b: dynamic)
+func __cpp_lambda_1(a: dynamic, b: dynamic) -> dynamic
 {
   return (max(a, b));
 }

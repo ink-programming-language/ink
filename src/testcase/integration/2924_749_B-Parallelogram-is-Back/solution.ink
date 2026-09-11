@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var x = cpp_array(3);
-  var y = cpp_array(3);
-  var midx = cpp_array(3);
-  var midy = cpp_array(3);
-  var finx = cpp_array(3);
-  var finy = cpp_array(3);
+  var x: dynamic = cpp_array(3);
+  var y: dynamic = cpp_array(3);
+  var midx: dynamic = cpp_array(3);
+  var midy: dynamic = cpp_array(3);
+  var finx: dynamic = cpp_array(3);
+  var finy: dynamic = cpp_array(3);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       read(x[i], y[i]);
@@ -30,7 +30,7 @@ func main()
   finy[2] = ((2 * midy[2]) - y[1]);
   write(3, "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       write(finx[i], " ", finy[i], "\n");

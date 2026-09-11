@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var A = cpp_array((1 << 18));
+var A: dynamic = cpp_array((1 << 18));
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(N);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       read(A[i]);
@@ -19,10 +19,10 @@ func main()
       i += 1;
     }
   }
-  var maxn = ((1 << 30));
-  var r = 0;
+  var maxn: dynamic = ((1 << 30));
+  var r: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       if ((maxn > abs((S - A[i]))))

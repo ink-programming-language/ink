@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   while ((a != b))
   {
@@ -15,17 +15,17 @@ func gcd(a: dynamic, b: dynamic)
   return a;
 }
 
-func main()
+func main() -> dynamic
 {
-  var y: dynamic;
-  var k: dynamic;
-  var n: dynamic;
+  var y: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(y, k, n);
-  var f = 0;
-  var d = (y / k);
-  var e = (n / k);
+  var f: dynamic = 0;
+  var d: dynamic = (y / k);
+  var e: dynamic = (n / k);
   {
-    var i = (d + 1);
+    var i: dynamic = (d + 1);
     while ((i <= e))
     {
       write(((k * i) - y), " ");

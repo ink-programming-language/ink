@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   scanf("%d", (&t));
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     scanf("%d", (&n));
-    var a = cpp_array(n);
-    var ans = 0;
+    var a: dynamic = cpp_array(n);
+    var ans: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%d", (&a[i]));
@@ -19,7 +19,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         if ((abs((a[i] - a[(i + 1)])) > 1))

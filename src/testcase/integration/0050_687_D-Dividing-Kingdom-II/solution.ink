@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var N = 1000;
+var N: dynamic = 1000;
 
-var M = ((N * ((N - 1))) / 2);
+var M: dynamic = ((N * ((N - 1))) / 2);
 
-var dsu = cpp_array((N * 2));
+var dsu: dynamic = cpp_array((N * 2));
 
-func find(i: dynamic)
+func find(i: dynamic) -> dynamic
 {
-  return if ((dsu[i] < 0)) i else (cpp_assign(dsu[i], "=", find(dsu[i])));
+  return  ((dsu[i] < 0)) ? i : (cpp_assign(dsu[i], "=", find(dsu[i])));
 }
 
-func join(i: dynamic, j: dynamic)
+func join(i: dynamic, j: dynamic) -> dynamic
 {
   i = find(i);
   j = find(j);
@@ -33,23 +33,23 @@ func join(i: dynamic, j: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&m), (&q));
-  var ii = cpp_array(M);
-  var jj = cpp_array(M);
-  var ww = cpp_array(M);
-  var hh = cpp_array(M);
+  var ii: dynamic = cpp_array(M);
+  var jj: dynamic = cpp_array(M);
+  var ww: dynamic = cpp_array(M);
+  var hh: dynamic = cpp_array(M);
   {
-    var h = 0;
+    var h: dynamic = 0;
     while ((h < m))
     {
-      var i: dynamic;
-      var j: dynamic;
-      var w: dynamic;
+      var i: dynamic = cpp_uninitialized();
+      var j: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       scanf("%d%d%d", (&i), (&j), (&w));
       i -= 1;
       j -= 1;
@@ -63,26 +63,26 @@ func main()
   sort(hh, (hh + m), __cpp_lambda_1);
   while ((cpp_update(q, "--") > 0))
   {
-    var l: dynamic;
-    var r: dynamic;
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
     scanf("%d%d", (&l), (&r));
     l -= 1;
     r -= 1;
     fill_n(dsu, (n * 2), -1);
-    var w = -1;
+    var w: dynamic = -1;
     {
-      var h = 0;
+      var h: dynamic = 0;
       while ((h < m))
       {
-        var h = hh[h];
+        var h: dynamic = hh[h];
         if (((l <= h) && (h <= r)))
         {
-          var i = ii[h];
-          var j = jj[h];
-          var i0 = (i << 1);
-          var i1 = (i0 | 1);
-          var j0 = (j << 1);
-          var j1 = (j0 | 1);
+          var i: dynamic = ii[h];
+          var j: dynamic = jj[h];
+          var i0: dynamic = (i << 1);
+          var i1: dynamic = (i0 | 1);
+          var j0: dynamic = (j << 1);
+          var j1: dynamic = (j0 | 1);
           if ((join(i0, j1) && (!join(i1, j0))))
           {
             w = ww[h];
@@ -96,7 +96,7 @@ func main()
   }
 }
 
-func __cpp_lambda_1(a: dynamic, b: dynamic)
+func __cpp_lambda_1(a: dynamic, b: dynamic) -> dynamic
 {
   return (ww[a] > ww[b]);
 }

@@ -2,47 +2,47 @@
 
 class Vector
 {
-  var x: dynamic;
-  var y: dynamic;
-  func Vector(x: dynamic = 0, y: dynamic = 0)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func Vector(x: dynamic = 0, y: dynamic = 0) -> dynamic
   {
       x = x;
       y = y;
     }
 }
 
-func operator_add(a: dynamic, b: dynamic)
+func operator_add(a: dynamic, b: dynamic) -> dynamic
 {
   return Vector((a.x + b.x), (a.y + b.y));
 }
 
-func operator_subtract(a: dynamic, b: dynamic)
+func operator_subtract(a: dynamic, b: dynamic) -> dynamic
 {
   return Vector((a.x - b.x), (a.y - b.y));
 }
 
-func operator_multiply(a: dynamic, b: dynamic)
+func operator_multiply(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.x) + (a.y * b.y));
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.y) - (a.y * b.x));
 }
 
-var a = cpp_array(4005);
+var a: dynamic = cpp_array(4005);
 
-var str = cpp_array(4005);
+var str: dynamic = cpp_array(4005);
 
-var mark = cpp_array(4005);
+var mark: dynamic = cpp_array(4005);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i].x, a[i].y);
@@ -51,9 +51,9 @@ func main()
   }
   read((str + 1));
   str[0] = cpp_char("L");
-  var i = 1;
+  var i: dynamic = 1;
   {
-    var k = 2;
+    var k: dynamic = 2;
     while ((k <= n))
     {
       if ((a[k].x > a[i].x))
@@ -66,10 +66,10 @@ func main()
   write(i, cpp_char(" "));
   mark[i] = 1;
   {
-    var t = 1;
+    var t: dynamic = 1;
     while ((t < (n - 1)))
     {
-      var j = 1;
+      var j: dynamic = 1;
       while (mark[j])
       {
         j += 1;
@@ -77,7 +77,7 @@ func main()
       if ((str[t] == cpp_char("L")))
       {
         {
-          var k = 1;
+          var k: dynamic = 1;
           while ((k <= n))
           {
             if (((!mark[k]) && (cross((a[j] - a[i]), (a[k] - a[i])) < 0)))
@@ -90,7 +90,7 @@ func main()
       } else
       {
         {
-          var k = 1;
+          var k: dynamic = 1;
           while ((k <= n))
           {
             if (((!mark[k]) && (cross((a[j] - a[i]), (a[k] - a[i])) > 0)))

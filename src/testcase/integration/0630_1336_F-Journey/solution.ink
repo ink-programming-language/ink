@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var maxn = 150001;
+var maxn: dynamic = 150001;
 
 class BIT
 {
   var bit: dynamic = cpp_array(maxn);
-  func BIT()
+  func BIT() -> dynamic
   {
       memset(bit, 0, cpp_sizeof((bit)));
     }
-  func add(x: dynamic, v: dynamic)
+  func add(x: dynamic, v: dynamic) -> dynamic
   {
       {
         x += 1;
@@ -20,14 +20,14 @@ class BIT
         }
       }
     }
-  func add(a: dynamic, b: dynamic, v: dynamic)
+  func add(a: dynamic, b: dynamic, v: dynamic) -> dynamic
   {
       add(a, 1);
       add((b + 1), -1);
     }
-  func qry(x: dynamic)
+  func qry(x: dynamic) -> dynamic
   {
-      var ret = 0;
+      var ret: dynamic = 0;
       {
         x += 1;
         while (x)
@@ -42,24 +42,24 @@ class BIT
 
 class segTree
 {
-  var l: dynamic;
-  var r: dynamic;
-  var left: dynamic;
-  var right: dynamic;
-  var val: dynamic;
-  func segTree(a: dynamic, b: dynamic)
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var left: dynamic = cpp_uninitialized();
+  var right: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
+  func segTree(a: dynamic, b: dynamic) -> dynamic
   {
-      this->l = cpp_construct(a);
-      this->r = cpp_construct(b);
+      self->l = cpp_construct(a);
+      self->r = cpp_construct(b);
     }
-  func add(x: dynamic, v: dynamic)
+  func add(x: dynamic, v: dynamic) -> dynamic
   {
       if ((l == r))
       {
         val += v;
         return;
       }
-      var mid = (((l + r)) / 2);
+      var mid: dynamic = (((l + r)) / 2);
       if ((x <= mid))
       {
         if ((!left))
@@ -75,9 +75,9 @@ class segTree
         }
         right->add(x, v);
       }
-      val = ((if (left) left->val else 0) + (if (right) right->val else 0));
+      val = (( (left) ? left->val : 0) + ( (right) ? right->val : 0));
     }
-  func mrg(tre: dynamic)
+  func mrg(tre: dynamic) -> dynamic
   {
       if ((!tre))
       {
@@ -100,14 +100,14 @@ class segTree
       val += tre->val;
       cpp_delete(tre);
     }
-  func qry(a: dynamic, b: dynamic)
+  func qry(a: dynamic, b: dynamic) -> dynamic
   {
       if (((a <= l) && (r <= b)))
       {
         return val;
       }
-      var ret = 0;
-      var mid = (((l + r)) / 2);
+      var ret: dynamic = 0;
+      var mid: dynamic = (((l + r)) / 2);
       if ((((a <= mid) && (b >= l)) && left))
       {
         ret += left->qry(a, b);
@@ -118,7 +118,7 @@ class segTree
       }
       return ret;
     }
-  func clear()
+  func clear() -> dynamic
   {
       if (left)
       {
@@ -128,55 +128,55 @@ class segTree
       {
         right->clear();
       }
-      cpp_delete(this);
+      cpp_delete(self);
     }
 }
 
-var w = 18;
+var w: dynamic = 18;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var q = cpp_array(2, maxn);
+var q: dynamic = cpp_array(2, maxn);
 
-var p = cpp_array(maxn, w);
+var p: dynamic = cpp_array(maxn, w);
 
-var d = cpp_array(maxn);
+var d: dynamic = cpp_array(maxn);
 
-var sz = cpp_array(maxn);
+var sz: dynamic = cpp_array(maxn);
 
-var h = cpp_array(maxn);
+var h: dynamic = cpp_array(maxn);
 
-var l = cpp_array(maxn);
+var l: dynamic = cpp_array(maxn);
 
-var r = cpp_array(maxn);
+var r: dynamic = cpp_array(maxn);
 
-var graph = cpp_array(maxn);
+var graph: dynamic = cpp_array(maxn);
 
-var v = cpp_array(maxn);
+var v: dynamic = cpp_array(maxn);
 
-var v2 = cpp_array(maxn);
+var v2: dynamic = cpp_array(maxn);
 
-var bit: dynamic;
+var bit: dynamic = cpp_uninitialized();
 
-var tre: dynamic;
+var tre: dynamic = cpp_uninitialized();
 
-func dfsh(c: dynamic)
+func dfsh(c: dynamic) -> dynamic
 {
   sz[c] = 1;
   h[c] = -1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < w))
     {
-      p[i][c] = if ((~p[(i - 1)][c])) p[(i - 1)][p[(i - 1)][c]] else -1;
+      p[i][c] =  ((~p[(i - 1)][c])) ? p[(i - 1)][p[(i - 1)][c]] : -1;
       i += 1;
     }
   }
-  for (var i in graph[c])
+  for (var i: dynamic in graph[c])
   {
     if ((i == p[0][c]))
     {
@@ -193,10 +193,10 @@ func dfsh(c: dynamic)
   return sz[c];
 }
 
-func dfsh2(c: dynamic)
+func dfsh2(c: dynamic) -> dynamic
 {
   r[c] = l[c];
-  for (var i in graph[c])
+  for (var i: dynamic in graph[c])
   {
     if (((i == p[0][c]) || (i == h[c])))
     {
@@ -213,10 +213,10 @@ func dfsh2(c: dynamic)
   return r[c];
 }
 
-func lft(c: dynamic, x: dynamic)
+func lft(c: dynamic, x: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
       if ((((((x >> i)) & 1)) && (~c)))
@@ -229,7 +229,7 @@ func lft(c: dynamic, x: dynamic)
   return c;
 }
 
-func lca(x: dynamic, y: dynamic)
+func lca(x: dynamic, y: dynamic) -> dynamic
 {
   if ((d[x] < d[y]))
   {
@@ -237,7 +237,7 @@ func lca(x: dynamic, y: dynamic)
   }
   x = lft(x, (d[x] - d[y]));
   {
-    var i = (w - 1);
+    var i: dynamic = (w - 1);
     while ((~i))
     {
       if ((p[i][x] != p[i][y]))
@@ -248,17 +248,17 @@ func lca(x: dynamic, y: dynamic)
       i -= 1;
     }
   }
-  return if ((x == y)) x else p[0][x];
+  return  ((x == y)) ? x : p[0][x];
 }
 
-func dfs2(c: dynamic, rt: dynamic)
+func dfs2(c: dynamic, rt: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   tre[c] = cpp_new(0, (n - 1));
-  for (var i in v2[c])
+  for (var i: dynamic in v2[c])
   {
-    var dd = max(0, ((k + d[rt]) - d[q[i][0]]));
-    var j = q[i][1];
+    var dd: dynamic = max(0, ((k + d[rt]) - d[q[i][0]]));
+    var j: dynamic = q[i][1];
     if (((d[j] - d[rt]) >= dd))
     {
       j = lft(j, ((d[j] - d[rt]) - dd));
@@ -266,7 +266,7 @@ func dfs2(c: dynamic, rt: dynamic)
     }
     tre[c]->add(l[q[i][1]], 1);
   }
-  for (var i in graph[c])
+  for (var i: dynamic in graph[c])
   {
     if (((i == p[0][c]) || (((c == rt) && (i == h[c])))))
     {
@@ -278,10 +278,10 @@ func dfs2(c: dynamic, rt: dynamic)
       swap(v2[c], v2[i]);
       swap(tre[c], tre[i]);
     }
-    for (var it in v2[i])
+    for (var it: dynamic in v2[i])
     {
-      var dd = max(0, ((k + d[rt]) - d[c]));
-      var j = q[it][1];
+      var dd: dynamic = max(0, ((k + d[rt]) - d[c]));
+      var j: dynamic = q[it][1];
       if (((d[j] - d[rt]) >= dd))
       {
         j = lft(j, ((d[j] - d[rt]) - dd));
@@ -295,10 +295,10 @@ func dfs2(c: dynamic, rt: dynamic)
   return ret;
 }
 
-func dfs(c: dynamic)
+func dfs(c: dynamic) -> dynamic
 {
-  var ret = 0;
-  for (var i in graph[c])
+  var ret: dynamic = 0;
+  for (var i: dynamic in graph[c])
   {
     if ((i != p[0][c]))
     {
@@ -306,16 +306,16 @@ func dfs(c: dynamic)
     }
   }
   {
-    var t = 0;
+    var t: dynamic = 0;
     while ((t < 2))
     {
-      for (var i in v[c])
+      for (var i: dynamic in v[c])
       {
         ret += bit.qry(l[q[i][t]]);
       }
-      for (var i in v[c])
+      for (var i: dynamic in v[c])
       {
-        var j = q[i][t];
+        var j: dynamic = q[i][t];
         if (((d[j] - d[c]) >= k))
         {
           j = lft(j, ((d[j] - d[c]) - k));
@@ -335,17 +335,17 @@ func dfs(c: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(n, m, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       u -= 1;
       v -= 1;
@@ -358,7 +358,7 @@ func main()
   dfsh(0);
   dfsh2(0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(q[i][0], q[i][1]);

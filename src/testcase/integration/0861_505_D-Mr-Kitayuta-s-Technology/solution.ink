@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var N = 100005;
+var N: dynamic = 100005;
 
-var v = cpp_array(N);
+var v: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-var deg = cpp_array(N);
+var deg: dynamic = cpp_array(N);
 
-var fa = cpp_array(N);
+var fa: dynamic = cpp_array(N);
 
-func getf(v: dynamic)
+func getf(v: dynamic) -> dynamic
 {
-  return if ((f[v] == v)) v else cpp_assign(f[v], "=", getf(f[v]));
+  return  ((f[v] == v)) ? v : cpp_assign(f[v], "=", getf(f[v]));
 }
 
-func merge(x: dynamic, y: dynamic)
+func merge(x: dynamic, y: dynamic) -> dynamic
 {
   x = getf(x);
   y = getf(y);
@@ -29,14 +29,14 @@ func merge(x: dynamic, y: dynamic)
   }
 }
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       f[i] = i;
@@ -44,11 +44,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var t1: dynamic;
-      var t2: dynamic;
+      var t1: dynamic = cpp_uninitialized();
+      var t2: dynamic = cpp_uninitialized();
       read(t1, t2);
       v[t1].push_back(t2);
       merge(t1, t2);
@@ -56,9 +56,9 @@ func main()
       i += 1;
     }
   }
-  var ans = n;
+  var ans: dynamic = n;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fa[i] = getf(i);
@@ -70,9 +70,9 @@ func main()
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!deg[i]))
@@ -84,9 +84,9 @@ func main()
   }
   while ((!q.empty()))
   {
-    var nd = q.front();
+    var nd: dynamic = q.front();
     q.pop();
-    for (var i in v[nd])
+    for (var i: dynamic in v[nd])
     {
       if ((!cpp_update(deg[i], "--")))
       {
@@ -95,7 +95,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (deg[i])

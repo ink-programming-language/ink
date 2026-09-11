@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var PII = cpp_expression("#include<cstd");
+var PII: dynamic = cpp_expression("#include<cstd");
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var ep = cpp_expression("#include<cst");
+var ep: dynamic = cpp_expression("#include<cst");
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var c = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   while (((c < cpp_char("0")) || (c > cpp_char("9"))))
   {
     if ((c == cpp_char("-")))
@@ -30,10 +30,10 @@ func read()
     x = ((((x << 3)) + ((x << 1))) + ((c ^ 48)));
     c = getchar();
   }
-  return if ((f == 1)) x else ((~x) + 1);
+  return  ((f == 1)) ? x : ((~x) + 1);
 }
 
-func print(x: dynamic)
+func print(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -47,39 +47,39 @@ func print(x: dynamic)
   putchar((((x % 10)) | 48));
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var col = cpp_array(210);
+var col: dynamic = cpp_array(210);
 
-var dis = cpp_array(210);
+var dis: dynamic = cpp_array(210);
 
-var cnt = cpp_array(210);
+var cnt: dynamic = cpp_array(210);
 
-var inq = cpp_array(210);
+var inq: dynamic = cpp_array(210);
 
-var vec = cpp_array(210);
+var vec: dynamic = cpp_array(210);
 
-func fail()
+func fail() -> dynamic
 {
   printf("No\n");
   exit(0);
 }
 
-func bfs()
+func bfs() -> dynamic
 {
   memset(col, -1, cpp_sizeof((col)));
-  var Q: dynamic;
+  var Q: dynamic = cpp_uninitialized();
   Q.push(1);
   col[1] = 0;
   while ((!Q.empty()))
   {
-    var u = Q.front();
+    var u: dynamic = Q.front();
     Q.pop();
-    for (var i in vec[u])
+    for (var i: dynamic in vec[u])
     {
-      var v = i.fi;
+      var v: dynamic = i.fi;
       if ((col[v] == -1))
       {
         col[v] = (col[u] ^ 1);
@@ -92,24 +92,24 @@ func bfs()
   }
 }
 
-func spfa(s: dynamic)
+func spfa(s: dynamic) -> dynamic
 {
   memset(cnt, 0, cpp_sizeof((cnt)));
   memset(dis, 0x3f, cpp_sizeof((dis)));
-  var Q: dynamic;
+  var Q: dynamic = cpp_uninitialized();
   Q.push(s);
   dis[s] = 0;
   cnt[s] = 1;
   inq[s] = 1;
   while ((!Q.empty()))
   {
-    var u = Q.front();
+    var u: dynamic = Q.front();
     Q.pop();
     inq[u] = 0;
-    for (var i in vec[u])
+    for (var i: dynamic in vec[u])
     {
-      var v = i.fi;
-      var d = (dis[u] + i.se);
+      var v: dynamic = i.fi;
+      var d: dynamic = (dis[u] + i.se);
       if ((dis[v] > d))
       {
         dis[v] = d;
@@ -128,20 +128,20 @@ func spfa(s: dynamic)
   }
 }
 
-var f = cpp_array(210, 210);
+var f: dynamic = cpp_array(210, 210);
 
-func main()
+func main() -> dynamic
 {
   n = read();
   m = read();
   memset(f, 0x15, cpp_sizeof((f)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var u = read();
-      var v = read();
-      var b = read();
+      var u: dynamic = read();
+      var v: dynamic = read();
+      var b: dynamic = read();
       if (b)
       {
         vec[u].ep(v, -1);
@@ -159,15 +159,15 @@ func main()
   bfs();
   spfa(1);
   {
-    var k = 1;
+    var k: dynamic = 1;
     while ((k <= n))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= n))
             {
               if ((((i == j) || (i == k)) || (j == k)))
@@ -185,13 +185,13 @@ func main()
       k += 1;
     }
   }
-  var mxn = 0;
+  var mxn: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((i == j))
@@ -210,13 +210,13 @@ func main()
   }
   printf("YES\n");
   printf("%d\n", mxn);
-  var flag = 0;
+  var flag: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((f[i][j] == mxn))
@@ -236,7 +236,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%d ", ((-dis[i]) + 1000));

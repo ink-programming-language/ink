@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var tot = 0;
-  var crime = 0;
-  var n = 0;
-  var x = 0;
+  var tot: dynamic = 0;
+  var crime: dynamic = 0;
+  var n: dynamic = 0;
+  var x: dynamic = 0;
   read(n);
   while (cpp_update(n, "--"))
   {

@@ -1,58 +1,58 @@
 // Translated from solution.cpp.
 
-var N = 20;
+var N: dynamic = 20;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-func add(a: dynamic, b: dynamic, p: dynamic = mod)
+func add(a: dynamic, b: dynamic, p: dynamic = mod) -> dynamic
 {
-  return if (((a + b) >= p)) ((a + b) - p) else (a + b);
+  return  (((a + b) >= p)) ? ((a + b) - p) : (a + b);
 }
 
-func sub(a: dynamic, b: dynamic, p: dynamic = mod)
+func sub(a: dynamic, b: dynamic, p: dynamic = mod) -> dynamic
 {
-  return if (((a - b) < 0)) ((a - b) + p) else (a - b);
+  return  (((a - b) < 0)) ? ((a - b) + p) : (a - b);
 }
 
-func mul(a: dynamic, b: dynamic, p: dynamic = mod)
+func mul(a: dynamic, b: dynamic, p: dynamic = mod) -> dynamic
 {
   return ((cpp_cast(a) * b) % p);
 }
 
-func sadd(a: dynamic, b: dynamic, p: dynamic = mod)
+func sadd(a: dynamic, b: dynamic, p: dynamic = mod) -> dynamic
 {
   a = add(a, b, p);
 }
 
-func ssub(a: dynamic, b: dynamic, p: dynamic = mod)
+func ssub(a: dynamic, b: dynamic, p: dynamic = mod) -> dynamic
 {
   a = sub(a, b, p);
 }
 
-func smul(a: dynamic, b: dynamic, p: dynamic = mod)
+func smul(a: dynamic, b: dynamic, p: dynamic = mod) -> dynamic
 {
   a = mul(a, b, p);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
 class side0
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(((N * N) + 9));
+var a: dynamic = cpp_array(((N * N) + 9));
 
-var to = cpp_array((N + 9));
+var to: dynamic = cpp_array((N + 9));
 
-func into()
+func into() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d%d", (&a[i].x), (&a[i].y));
@@ -65,19 +65,19 @@ func into()
   }
 }
 
-var inv = cpp_array(((N * N) + 9));
+var inv: dynamic = cpp_array(((N * N) + 9));
 
-var fac = cpp_array(((N * N) + 9));
+var fac: dynamic = cpp_array(((N * N) + 9));
 
-var ifac = cpp_array(((N * N) + 9));
+var ifac: dynamic = cpp_array(((N * N) + 9));
 
-func Get_inv()
+func Get_inv() -> dynamic
 {
   inv[1] = 1;
   fac[0] = cpp_assign(fac[1], "=", 1);
   ifac[0] = cpp_assign(ifac[1], "=", 1);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= m))
     {
       inv[i] = mul((mod - (mod / i)), inv[(mod % i)]);
@@ -88,24 +88,24 @@ func Get_inv()
   }
 }
 
-var c = cpp_array((((1 << N)) + 9));
+var c: dynamic = cpp_array((((1 << N)) + 9));
 
-var ce = cpp_array((((1 << N)) + 9));
+var ce: dynamic = cpp_array((((1 << N)) + 9));
 
-func Get_e()
+func Get_e() -> dynamic
 {
   {
-    var s = 0;
+    var s: dynamic = 0;
     while ((s < (1 << n)))
     {
       c[s] = (c[(s >> 1)] + ((s & 1)));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if (((s >> i) & 1))
           {
-            var t = (to[i] & s);
+            var t: dynamic = (to[i] & s);
             ce[s] = (ce[(s ^ (1 << i))] + c[t]);
             break;
           }
@@ -119,37 +119,37 @@ func Get_e()
 
 class side
 {
-  var y: dynamic;
-  var next: dynamic;
+  var y: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array(((N * 2) + 9));
+var e: dynamic = cpp_array(((N * 2) + 9));
 
-var lin = cpp_array((N + 9));
+var lin: dynamic = cpp_array((N + 9));
 
-var cs: dynamic;
+var cs: dynamic = cpp_uninitialized();
 
-func Ins(x: dynamic, y: dynamic)
+func Ins(x: dynamic, y: dynamic) -> dynamic
 {
   e[cpp_update(cs, "++")].y = y;
   e[cs].next = lin[x];
   lin[x] = cs;
 }
 
-func Ins2(x: dynamic, y: dynamic)
+func Ins2(x: dynamic, y: dynamic) -> dynamic
 {
   Ins(x, y);
   Ins(y, x);
 }
 
-var vis = cpp_array((N + 9));
+var vis: dynamic = cpp_array((N + 9));
 
-func Dfs_vis(k: dynamic)
+func Dfs_vis(k: dynamic) -> dynamic
 {
-  var res = (1 << k);
+  var res: dynamic = (1 << k);
   vis[k] = 1;
   {
-    var i = lin[k];
+    var i: dynamic = lin[k];
     while (i)
     {
       if ((!vis[e[i].y]))
@@ -162,17 +162,17 @@ func Dfs_vis(k: dynamic)
   return res;
 }
 
-var num = cpp_array((((1 << N)) + 9));
+var num: dynamic = cpp_array((((1 << N)) + 9));
 
-func Get_num()
+func Get_num() -> dynamic
 {
   {
-    var s = 0;
+    var s: dynamic = 0;
     while ((s < (1 << (n - 1))))
     {
       cs = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           lin[i] = cpp_assign(vis[i], "=", 0);
@@ -180,7 +180,7 @@ func Get_num()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (n - 1)))
         {
           if (((s >> i) & 1))
@@ -191,12 +191,12 @@ func Get_num()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((!vis[i]))
           {
-            var t = Dfs_vis(i);
+            var t: dynamic = Dfs_vis(i);
             num[s] += ((ce[t] - c[t]) + 1);
           }
           i += 1;
@@ -209,23 +209,23 @@ func Get_num()
 
 class state
 {
-  var c: dynamic;
-  var cnt: dynamic;
-  var sum: dynamic;
+  var c: dynamic = cpp_uninitialized();
+  var cnt: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
 }
 
-var dp = cpp_array((((1 << N)) + 9));
+var dp: dynamic = cpp_array((((1 << N)) + 9));
 
-func Get_dp()
+func Get_dp() -> dynamic
 {
   dp[0].cnt = 1;
   dp[0].sum = 0;
   {
-    var s = 0;
+    var s: dynamic = 0;
     while ((s < (1 << (n - 1))))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (n - 1)))
         {
           if (((s >> i) & 1))
@@ -233,10 +233,10 @@ func Get_dp()
             i += 1;
             continue;
           }
-          var delta = (num[((((1 << (n - 1))) - 1) ^ s)] - num[(((((1 << (n - 1))) - 1) ^ s) ^ (1 << i))]);
+          var delta: dynamic = (num[((((1 << (n - 1))) - 1) ^ s)] - num[(((((1 << (n - 1))) - 1) ^ s) ^ (1 << i))]);
           dp[(s | (1 << i))].c = ((dp[s].c + delta) + 1);
-          var cnt = mul(dp[s].cnt, mul(fac[(dp[s].c + delta)], ifac[dp[s].c]));
-          var sum = mul(dp[s].sum, mul(fac[((dp[s].c + delta) + 1)], ifac[(dp[s].c + 1)]));
+          var cnt: dynamic = mul(dp[s].cnt, mul(fac[(dp[s].c + delta)], ifac[dp[s].c]));
+          var sum: dynamic = mul(dp[s].sum, mul(fac[((dp[s].c + delta) + 1)], ifac[(dp[s].c + 1)]));
           sadd(dp[(s | (1 << i))].cnt, cnt);
           sadd(dp[(s | (1 << i))].sum, add(sum, mul(cnt, (c[s] + 1))));
           i += 1;
@@ -247,7 +247,7 @@ func Get_dp()
   }
 }
 
-func work()
+func work() -> dynamic
 {
   Get_inv();
   Get_e();
@@ -255,12 +255,12 @@ func work()
   Get_dp();
 }
 
-func outo()
+func outo() -> dynamic
 {
   printf("%d\n", dp[(((1 << (n - 1))) - 1)].sum);
 }
 
-func main()
+func main() -> dynamic
 {
   into();
   work();

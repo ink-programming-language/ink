@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var MAX_N = 100001;
+var MAX_N: dynamic = 100001;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var A = cpp_array(MAX_N);
+var A: dynamic = cpp_array(MAX_N);
 
-var B = cpp_array(MAX_N);
+var B: dynamic = cpp_array(MAX_N);
 
-var C = cpp_array(MAX_N);
+var C: dynamic = cpp_array(MAX_N);
 
-var intervals: dynamic;
+var intervals: dynamic = cpp_uninitialized();
 
-var lines: dynamic;
+var lines: dynamic = cpp_uninitialized();
 
-func find_intersection_x(d1: dynamic, d2: dynamic)
+func find_intersection_x(d1: dynamic, d2: dynamic) -> dynamic
 {
-  var a1 = B[d1];
-  var b1 = C[d1];
-  var a2 = B[d2];
-  var b2 = C[d2];
+  var a1: dynamic = B[d1];
+  var b1: dynamic = C[d1];
+  var a2: dynamic = B[d2];
+  var b2: dynamic = C[d2];
   return (((b2 - b1)) / ((a1 - a2)));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
   read(N);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       read(A[i]);
@@ -38,7 +38,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       read(B[i]);
@@ -47,24 +47,24 @@ func main()
   }
   intervals.push_back(pair(LLONG_MIN, LLONG_MAX));
   lines.push_back(1);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   s.push(1);
   C[1] = 0;
   {
-    var i = 2;
-    var id = 0;
+    var i: dynamic = 2;
+    var id: dynamic = 0;
     while ((i <= N))
     {
-      var di = s.top();
+      var di: dynamic = s.top();
       while (((id < intervals.size()) && (intervals[id].second < A[i])))
       {
         id += 1;
       }
-      var lineid = lines[id];
-      var a = B[lineid];
-      var b = C[lineid];
+      var lineid: dynamic = lines[id];
+      var a: dynamic = B[lineid];
+      var b: dynamic = C[lineid];
       C[i] = (b + (a * A[i]));
-      var xp = find_intersection_x(di, i);
+      var xp: dynamic = find_intersection_x(di, i);
       while (((!intervals.empty()) && (xp < intervals.back().first)))
       {
         s.pop();

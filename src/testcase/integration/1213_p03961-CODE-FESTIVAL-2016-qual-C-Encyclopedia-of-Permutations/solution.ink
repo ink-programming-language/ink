@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-func all(a: dynamic)
+func all(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostrea");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (ll i = 0; i < (n); i++)");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-func debug(x: dynamic)
+func debug(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #include <vector> #include <a");
 }
 
-var inf = 1000000010;
+var inf: dynamic = 1000000010;
 
-var INF = 1000000000000000010;
+var INF: dynamic = 1000000000000000010;
 
-var eps = 1e-12;
+var eps: dynamic = 1e-12;
 
-var pi = 3.141592653589793238;
+var pi: dynamic = 3.141592653589793238;
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -35,7 +35,7 @@ func chmax(a: dynamic, b: dynamic)
   return false;
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -45,15 +45,15 @@ func chmin(a: dynamic, b: dynamic)
   return false;
 }
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var fac: dynamic;
+var fac: dynamic = cpp_uninitialized();
 
-var inv: dynamic;
+var inv: dynamic = cpp_uninitialized();
 
-var facinv: dynamic;
+var facinv: dynamic = cpp_uninitialized();
 
-func modcalc(n: dynamic)
+func modcalc(n: dynamic) -> dynamic
 {
   fac.resize(n);
   inv.resize(n);
@@ -64,7 +64,7 @@ func modcalc(n: dynamic)
   facinv[0] = 1;
   facinv[1] = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < n))
     {
       fac[i] = ((fac[(i - 1)] * i) % mod);
@@ -75,7 +75,7 @@ func modcalc(n: dynamic)
   }
 }
 
-func modinv(a: dynamic)
+func modinv(a: dynamic) -> dynamic
 {
   a %= mod;
   if ((a == 0))
@@ -86,12 +86,12 @@ func modinv(a: dynamic)
   {
     return inv[a];
   }
-  var b = mod;
-  var u = 1;
-  var v = 0;
+  var b: dynamic = mod;
+  var u: dynamic = 1;
+  var v: dynamic = 0;
   while (b)
   {
-    var t = (a / b);
+    var t: dynamic = (a / b);
     a -= (t * b);
     swap(a, b);
     u -= (t * v);
@@ -105,9 +105,9 @@ func modinv(a: dynamic)
   return u;
 }
 
-func modpow(a: dynamic, b: dynamic, m: dynamic = mod)
+func modpow(a: dynamic, b: dynamic, m: dynamic = mod) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   a %= m;
   while (b)
   {
@@ -121,7 +121,7 @@ func modpow(a: dynamic, b: dynamic, m: dynamic = mod)
   return ans;
 }
 
-func modcomb(n: dynamic, k: dynamic)
+func modcomb(n: dynamic, k: dynamic) -> dynamic
 {
   if ((((n < 0) || (k < 0)) || (n < k)))
   {
@@ -130,7 +130,7 @@ func modcomb(n: dynamic, k: dynamic)
   return ((((fac[n] * facinv[k]) % mod) * facinv[(n - k)]) % mod);
 }
 
-func modperm(n: dynamic, k: dynamic)
+func modperm(n: dynamic, k: dynamic) -> dynamic
 {
   if ((((n < 0) || (k < 0)) || (n < k)))
   {
@@ -139,7 +139,7 @@ func modperm(n: dynamic, k: dynamic)
   return ((fac[n] * facinv[(n - k)]) % mod);
 }
 
-func modhom(n: dynamic, k: dynamic)
+func modhom(n: dynamic, k: dynamic) -> dynamic
 {
   if ((((n < 0) || (k < 0)) || ((n == 0) && (k > 0))))
   {
@@ -154,14 +154,14 @@ func modhom(n: dynamic, k: dynamic)
 
 class segtree
 {
-  var n: dynamic;
-  var data: dynamic;
-  var id: dynamic;
-  func operation(a: dynamic, b: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  var data: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  func operation(a: dynamic, b: dynamic) -> dynamic
   {
       return (a + b);
     }
-  func segtree(n: dynamic)
+  func segtree(n: dynamic) -> dynamic
   {
       n = 1;
       while ((n < (n + 2)))
@@ -170,7 +170,7 @@ class segtree
       }
       data = vector((2 * n), id);
     }
-  func change(i: dynamic, x: dynamic)
+  func change(i: dynamic, x: dynamic) -> dynamic
   {
       i += n;
       data[i] = x;
@@ -180,14 +180,14 @@ class segtree
         data[i] = operation(data[(i << 1)], data[((i << 1) | 1)]);
       }
     }
-  func add(i: dynamic, x: dynamic)
+  func add(i: dynamic, x: dynamic) -> dynamic
   {
       change(i, (data[(i + n)] + x));
     }
-  func get(a: dynamic, b: dynamic)
+  func get(a: dynamic, b: dynamic) -> dynamic
   {
-      var left = id;
-      var right = id;
+      var left: dynamic = id;
+      var right: dynamic = id;
       a += n;
       b += n;
       while ((a < b))
@@ -205,35 +205,35 @@ class segtree
       }
       return operation(left, right);
     }
-  func get_all()
+  func get_all() -> dynamic
   {
       return data[1];
     }
-  func operator_index(i: dynamic)
+  func operator_index(i: dynamic) -> dynamic
   {
       return data[(i + n)];
     }
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
   write(fixed, setprecision(20));
   modcalc(500010);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var vec: dynamic;
+  var vec: dynamic = cpp_uninitialized();
   rep(i, n);
   if ((!ok[i]))
   {
     vec.pb(i);
   }
-  var vs = vec.size();
+  var vs: dynamic = vec.size();
   reverse(all(a));
-  var ans = 0;
-  var d = 0;
-  var zero = 0;
+  var ans: dynamic = 0;
+  var d: dynamic = 0;
+  var zero: dynamic = 0;
   ans %= mod;
   ans += 1;
   ans *= fac[vs];
@@ -241,7 +241,7 @@ func main()
   write(ans, cpp_char("\n"));
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     read(a[i]);
     a[i] -= 1;
@@ -251,9 +251,9 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var p = 0;
+    var p: dynamic = 0;
     if ((a[i] == -1))
     {
       p += ((zero * modinv(2)) % mod);
@@ -265,7 +265,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
       if (vs)
       {
         p += ((zero * modinv(vs)) % mod);
-        var idx = (upper_bound(all(vec), a[i]) - vec.begin());
+        var idx: dynamic = (upper_bound(all(vec), a[i]) - vec.begin());
         p *= idx;
         p %= mod;
         d += ((mod + 1) - ((idx * modinv(vs)) % mod));

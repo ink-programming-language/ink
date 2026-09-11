@@ -1,61 +1,61 @@
 // Translated from solution.cpp.
 
-var inf_int = (1e9 + 100);
+var inf_int: dynamic = (1e9 + 100);
 
-var inf_ll = 8e18;
+var inf_ll: dynamic = 8e18;
 
-var pb = cpp_expression("// // Cre");
+var pb: dynamic = cpp_expression("// // Cre");
 
-var eb = cpp_expression("// // Create");
+var eb: dynamic = cpp_expression("// // Create");
 
-var pi = 3.1415926535898;
+var pi: dynamic = 3.1415926535898;
 
-var fi = cpp_expression("// //");
+var fi: dynamic = cpp_expression("// //");
 
-var se = cpp_expression("// //");
+var se: dynamic = cpp_expression("// //");
 
-var sp = cpp_expression("// // Create");
+var sp: dynamic = cpp_expression("// // Create");
 
-func sz(a: dynamic)
+func sz(a: dynamic) -> dynamic
 {
   return cpp_expression("// // Created b");
 }
 
-func all(a: dynamic)
+func all(a: dynamic) -> dynamic
 {
   return cpp_expression("// // Created by");
 }
 
-func debug()
+func debug() -> dynamic
 {
   return cpp_expression("// // Created by Ильдар Ялалов on 14.01.2020. /");
 }
 
-func debug()
+func debug() -> dynamic
 {
   return cpp_expression("//");
 }
 
-func debug_arr()
+func debug_arr() -> dynamic
 {
   return cpp_expression("//");
 }
 
-var MAXN = ((2e5 + 100));
+var MAXN: dynamic = ((2e5 + 100));
 
-var LOG = 21;
+var LOG: dynamic = 21;
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var a = cpp_array(MAXN);
+var a: dynamic = cpp_array(MAXN);
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var sum = [0, 0];
+  var sum: dynamic = [0, 0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -66,20 +66,20 @@ func solve()
   if ((sum[1] > sum[0]))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
-        write((if (((i & 1))) a[i] else 1), " ");
+        write(( (((i & 1))) ? a[i] : 1), " ");
         i += 1;
       }
     }
   } else
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
-        write((if (((i & 1))) 1 else a[i]), " ");
+        write(( (((i & 1))) ? 1 : a[i]), " ");
         i += 1;
       }
     }
@@ -87,7 +87,7 @@ func solve()
   write("\n");
 }
 
-func main()
+func main() -> dynamic
 {
   freopen("../output.txt", "r", stdin);
   ios_base.sync_with_stdio(0);
@@ -95,7 +95,7 @@ func main()
   cout.tie(0);
   cout.setf(ios.fixed);
   cout.precision(15);
-  var t = 1;
+  var t: dynamic = 1;
   read(t);
   while (cpp_update(t, "--"))
   {

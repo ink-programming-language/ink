@@ -1,68 +1,68 @@
 // Translated from solution.cpp.
 
-func FOR(k: dynamic, m: dynamic, n: dynamic)
+func FOR(k: dynamic, m: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int (k)=(m);(k)<(n);(k)++)");
 }
 
-var LL = dynamic;
+var LL: dynamic = dynamic;
 
-func CLR(a: dynamic)
+func CLR(a: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostream> #inc");
 }
 
-func SZ(x: dynamic)
+func SZ(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostream");
 }
 
-func WAITING(str: dynamic)
+func WAITING(str: dynamic) -> dynamic
 {
   cpp_macro("int str;std::cin>>str;");
 }
 
-func DEBUGING(str: dynamic)
+func DEBUGING(str: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostre");
 }
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var INF = ((1 << 30));
+var INF: dynamic = ((1 << 30));
 
-func REP(i: dynamic, a: dynamic, n: dynamic)
+func REP(i: dynamic, a: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(ll i = ((ll) a); i < ((ll) n); i++)");
 }
 
 class UnionFind
 {
-  var parent: dynamic;
-  var gap: dynamic;
-  var up: dynamic;
-  func UnionFind(n: dynamic)
+  var parent: dynamic = cpp_uninitialized();
+  var gap: dynamic = cpp_uninitialized();
+  var up: dynamic = cpp_uninitialized();
+  func UnionFind(n: dynamic) -> dynamic
   {
-      this->parent = cpp_construct(n);
-      this->gap = cpp_construct(n, 0);
-      this->up = cpp_construct(n, 0);
+      self->parent = cpp_construct(n);
+      self->gap = cpp_construct(n, 0);
+      self->up = cpp_construct(n, 0);
       REP(i, 0, n)[i] = i;
     }
-  func find(i: dynamic)
+  func find(i: dynamic) -> dynamic
   {
       if ((parent[i] == i))
       {
         return i;
       }
-      var tmp = parent[i];
-      var p = find(parent[i]);
+      var tmp: dynamic = parent[i];
+      var p: dynamic = find(parent[i]);
       gap[i] += gap[tmp];
       return cpp_assign(parent[i], "=", p);
     }
-  func unite(i: dynamic, j: dynamic, c: dynamic)
+  func unite(i: dynamic, j: dynamic, c: dynamic) -> dynamic
   {
-      var p = find(i);
-      var q = find(j);
+      var p: dynamic = find(i);
+      var q: dynamic = find(j);
       if ((p != q))
       {
         gap[p] = ((c + get(j)) - get(i));
@@ -71,20 +71,20 @@ class UnionFind
       up[i] += c;
       up[j] += c;
     }
-  func get(i: dynamic)
+  func get(i: dynamic) -> dynamic
   {
       return ((-up[i]) + gap[i]);
     }
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var N: dynamic;
-  var Q: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var Q: dynamic = cpp_uninitialized();
   read(N, Q);
   REP(i, 0, Q);
   {
-    var type_cpp: dynamic;
+    var type_cpp: dynamic = cpp_uninitialized();
     read(type_cpp, A[i], B[i]);
     A[i] -= 1;
     B[i] -= 1;
@@ -115,6 +115,6 @@ func main(argument_0: dynamic)
       }
     }
   }
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
 }

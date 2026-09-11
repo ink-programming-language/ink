@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func power(a: dynamic, n: dynamic, m: dynamic)
+func power(a: dynamic, n: dynamic, m: dynamic) -> dynamic
 {
   if ((n == 0))
   {
     return 1;
   }
-  var x = power(a, (n / 2), m);
+  var x: dynamic = power(a, (n / 2), m);
   if (((n % 2) != 0))
   {
     return ((((((((a * x)) % m)) * (x)) % m)) % m);
@@ -16,35 +16,35 @@ func power(a: dynamic, n: dynamic, m: dynamic)
   }
 }
 
-var PI = 3.14159265357;
+var PI: dynamic = 3.14159265357;
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var m: dynamic;
-  var k: dynamic;
-  var t: dynamic;
-  var sum: dynamic;
-  var count: dynamic;
-  var cnt: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
-  var j1: dynamic;
-  var z: dynamic;
-  var a: dynamic;
-  var o: dynamic;
-  var temp: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  var count: dynamic = cpp_uninitialized();
+  var cnt: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var j1: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var o: dynamic = cpp_uninitialized();
+  var temp: dynamic = cpp_uninitialized();
   ios.sync_with_stdio(0);
   cin.tie(null);
   cout.tie(null);
   read(n);
-  var arr = cpp_array(n);
-  var p: dynamic;
+  var arr: dynamic = cpp_array(n);
+  var p: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < n))
@@ -54,10 +54,10 @@ func main()
       i += 1;
     }
   }
-  var v1: dynamic;
-  var v2: dynamic;
+  var v1: dynamic = cpp_uninitialized();
+  var v2: dynamic = cpp_uninitialized();
   {
-    var i1 = p.begin();
+    var i1: dynamic = p.begin();
     while ((i1 != p.end()))
     {
       x = i1->second;

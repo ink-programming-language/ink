@@ -1,52 +1,52 @@
 // Translated from solution.cpp.
 
-var MAXN = 300000;
+var MAXN: dynamic = 300000;
 
-var mapa: dynamic;
+var mapa: dynamic = cpp_uninitialized();
 
-var pos: dynamic;
+var pos: dynamic = cpp_uninitialized();
 
-var g = cpp_array(MAXN);
+var g: dynamic = cpp_array(MAXN);
 
-var ptr = cpp_array(MAXN);
+var cpp_ptr: dynamic = cpp_array(MAXN);
 
-var used = cpp_array(MAXN);
+var used: dynamic = cpp_array(MAXN);
 
-func euler(v: dynamic, res: dynamic)
+func euler(v: dynamic, res: dynamic) -> dynamic
 {
   used[v] = true;
   {
-    while ((ptr[v] < cpp_cast((g[v]).size())))
+    while ((cpp_ptr[v] < cpp_cast((g[v]).size())))
     {
-      ptr[v] += 1;
-      var u = g[v][(ptr[v] - 1)];
+      cpp_ptr[v] += 1;
+      var u: dynamic = g[v][(cpp_ptr[v] - 1)];
       euler(u, res);
       res.push_back(u);
     }
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, s);
-  var k = 0;
+  var k: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var b = a;
+  var b: dynamic = a;
   sort((b).begin(), (b).end());
-  var m = 0;
+  var m: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((a[i] == b[i]))
@@ -68,7 +68,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((a[i] == b[i]))
@@ -83,22 +83,22 @@ func main()
       i += 1;
     }
   }
-  var cycles: dynamic;
+  var cycles: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       if ((!used[i]))
       {
-        var arr: dynamic;
+        var arr: dynamic = cpp_uninitialized();
         euler(i, arr);
         reverse((arr).begin(), (arr).end());
         cycles.push_back([]);
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < cpp_cast((arr).size())))
           {
-            var j = (((i + 1)) % cpp_cast((arr).size()));
+            var j: dynamic = (((i + 1)) % cpp_cast((arr).size()));
             cycles.back().push_back(pos[[arr[i], arr[j]]].back());
             pos[[arr[i], arr[j]]].pop_back();
             i += 1;
@@ -108,18 +108,18 @@ func main()
       i += 1;
     }
   }
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   if ((((s - m) > 1) && (cpp_cast((cycles).size()) > 1)))
   {
-    var len = min(cpp_cast((cycles).size()), (s - m));
+    var len: dynamic = min(cpp_cast((cycles).size()), (s - m));
     res.push_back([]);
-    var newcycle: dynamic;
+    var newcycle: dynamic = cpp_uninitialized();
     {
-      var i = (cpp_cast((cycles).size()) - len);
+      var i: dynamic = (cpp_cast((cycles).size()) - len);
       while ((i < cpp_cast((cycles).size())))
       {
         res.back().push_back(cycles[i].back());
-        for (var j in cycles[i])
+        for (var j: dynamic in cycles[i])
         {
           newcycle.push_back(j);
         }
@@ -128,7 +128,7 @@ func main()
     }
     reverse((res.back()).begin(), (res.back()).end());
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < len))
       {
         cycles.pop_back();
@@ -138,7 +138,7 @@ func main()
     cycles.push_back(newcycle);
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((cycles).size())))
     {
       res.push_back(cycles[i]);
@@ -147,11 +147,11 @@ func main()
   }
   write(cpp_cast((res).size()), "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((res).size())))
     {
       write(cpp_cast((res[i]).size()), "\n");
-      for (var j in res[i])
+      for (var j: dynamic in res[i])
       {
         write((j + 1), " ");
       }

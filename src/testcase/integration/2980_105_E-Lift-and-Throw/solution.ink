@@ -2,29 +2,29 @@
 
 class person
 {
-  var acc: dynamic;
-  var pos: dynamic;
-  var thr: dynamic;
-  var moved: dynamic;
+  var acc: dynamic = cpp_uninitialized();
+  var pos: dynamic = cpp_uninitialized();
+  var thr: dynamic = cpp_uninitialized();
+  var moved: dynamic = cpp_uninitialized();
 }
 
 class property
 {
-  var mrange: dynamic;
-  var trange: dynamic;
-  var ipos: dynamic;
+  var mrange: dynamic = cpp_uninitialized();
+  var trange: dynamic = cpp_uninitialized();
+  var ipos: dynamic = cpp_uninitialized();
 }
 
-var P = cpp_array(3);
+var P: dynamic = cpp_array(3);
 
 class state
 {
   var P: dynamic = cpp_array(3);
-  func to_int()
+  func to_int() -> dynamic
   {
-      var res = cpp_construct(0);
+      var res: dynamic = cpp_construct(0);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 3))
         {
           if ((P[i].pos >= 64))
@@ -40,15 +40,15 @@ class state
       }
       return res;
     }
-  func operator_index(p: dynamic)
+  func operator_index(p: dynamic) -> dynamic
   {
       return P[p];
     }
-  func check(p: dynamic)
+  func check(p: dynamic) -> dynamic
   {
-      var isfree = cpp_array(3);
+      var isfree: dynamic = cpp_array(3);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 3))
         {
           isfree[i] = true;
@@ -56,7 +56,7 @@ class state
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 3))
         {
           if (P[i].acc)
@@ -67,7 +67,7 @@ class state
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 3))
         {
           if ((isfree[i] && (P[i].pos == p)))
@@ -81,13 +81,13 @@ class state
     }
 }
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-func dfs(s: dynamic)
+func dfs(s: dynamic) -> dynamic
 {
-  var hval = s.to_int();
+  var hval: dynamic = s.to_int();
   if ((hval < 0))
   {
     return;
@@ -98,16 +98,16 @@ func dfs(s: dynamic)
   }
   S.insert(hval);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       res = max(res, s[i].pos);
       i += 1;
     }
   }
-  var isfree = [true, true, true];
+  var isfree: dynamic = [true, true, true];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       if (s[i].acc)
@@ -118,7 +118,7 @@ func dfs(s: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       if ((!isfree[i]))
@@ -130,7 +130,7 @@ func dfs(s: dynamic)
       {
         s[i].moved = true;
         {
-          var d = 1;
+          var d: dynamic = 1;
           while ((d <= P[i].mrange))
           {
             if ((!s.check((s[i].pos + d))))
@@ -145,7 +145,7 @@ func dfs(s: dynamic)
           }
         }
         {
-          var d = 1;
+          var d: dynamic = 1;
           while ((d <= P[i].mrange))
           {
             if (((s[i].pos - d) < 0))
@@ -168,8 +168,8 @@ func dfs(s: dynamic)
       if (((!s[i].thr) && (!s[i].acc)))
       {
         {
-          var j = 0;
-          var pbak: dynamic;
+          var j: dynamic = 0;
+          var pbak: dynamic = cpp_uninitialized();
           while ((j < 3))
           {
             if ((((j != i) && isfree[j]) && (abs((s[j].pos - s[i].pos)) == 1)))
@@ -184,12 +184,12 @@ func dfs(s: dynamic)
       }
       if (((!s[i].thr) && s[i].acc))
       {
-        var z = (s[i].acc - 1);
+        var z: dynamic = (s[i].acc - 1);
         s[i].acc = 0;
         s[i].thr = true;
         {
-          var d = 1;
-          var pbak: dynamic;
+          var d: dynamic = 1;
+          var pbak: dynamic = cpp_uninitialized();
           while ((d <= P[i].trange))
           {
             if ((!s.check((s[i].pos + d))))
@@ -212,10 +212,10 @@ func dfs(s: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       scanf("%d%d%d", (&P[i].ipos), (&P[i].mrange), (&P[i].trange));
@@ -223,9 +223,9 @@ func main()
     }
   }
   sort(P, (P + 3), __cpp_lambda_1);
-  var si: dynamic;
+  var si: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       si[i].thr = cpp_assign(si[i].moved, "=", false);
@@ -240,7 +240,7 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_1(a: dynamic, b: dynamic)
+func __cpp_lambda_1(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.ipos < b.ipos);
 }

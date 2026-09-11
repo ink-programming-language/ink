@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var maxN = ((100 * 1000) + 100);
+var maxN: dynamic = ((100 * 1000) + 100);
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var t = cpp_array(maxN);
+var t: dynamic = cpp_array(maxN);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       t[i] = (s[i] - cpp_char("0"));
@@ -24,7 +24,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       a = max(a, ((s[i] - cpp_char("0"))));
@@ -33,14 +33,14 @@ func main()
   }
   write(a, "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       while ((t[i] > 0))
       {
         b = 0;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < s.size()))
           {
             if ((t[j] > 0))

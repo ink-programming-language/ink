@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func readi(x: dynamic)
+func readi(x: dynamic) -> dynamic
 {
-  var v = 0;
-  var f = 1;
-  var c = getchar();
+  var v: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   while (((!isdigit(c)) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -23,11 +23,11 @@ func readi(x: dynamic)
   x = (v * f);
 }
 
-func readll(x: dynamic)
+func readll(x: dynamic) -> dynamic
 {
-  var v = 0;
-  var f = 1;
-  var c = getchar();
+  var v: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   while (((!isdigit(c)) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -46,26 +46,26 @@ func readll(x: dynamic)
   x = (v * f);
 }
 
-func readc(x: dynamic)
+func readc(x: dynamic) -> dynamic
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   while (((cpp_assign(c, "=", getchar())) == cpp_char(" ")))
   {
   }
   x = c;
 }
 
-func writes(s: dynamic)
+func writes(s: dynamic) -> dynamic
 {
   puts(s.c_str());
 }
 
-func writeln()
+func writeln() -> dynamic
 {
   writes("");
 }
 
-func writei(x: dynamic)
+func writei(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -76,8 +76,8 @@ func writei(x: dynamic)
   {
     putchar(cpp_char("0"));
   }
-  var a = cpp_array(25);
-  var top = 0;
+  var a: dynamic = cpp_array(25);
+  var top: dynamic = 0;
   while (x)
   {
     a[cpp_update(top, "++")] = (((x % 10)) + cpp_char("0"));
@@ -90,7 +90,7 @@ func writei(x: dynamic)
   }
 }
 
-func writell(x: dynamic)
+func writell(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -101,8 +101,8 @@ func writell(x: dynamic)
   {
     putchar(cpp_char("0"));
   }
-  var a = cpp_array(25);
-  var top = 0;
+  var a: dynamic = cpp_array(25);
+  var top: dynamic = 0;
   while (x)
   {
     a[cpp_update(top, "++")] = (((x % 10)) + cpp_char("0"));
@@ -115,87 +115,87 @@ func writell(x: dynamic)
   }
 }
 
-func inc(x: dynamic)
+func inc(x: dynamic) -> dynamic
 {
   return cpp_update(x, "++");
 }
 
-func inc(x: dynamic)
+func inc(x: dynamic) -> dynamic
 {
   return cpp_update(x, "++");
 }
 
-func inc(x: dynamic, y: dynamic)
+func inc(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "+=", y);
 }
 
-func inc(x: dynamic, y: dynamic)
+func inc(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "+=", y);
 }
 
-func inc(x: dynamic, y: dynamic)
+func inc(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "+=", y);
 }
 
-func dec(x: dynamic)
+func dec(x: dynamic) -> dynamic
 {
   return cpp_update(x, "--");
 }
 
-func dec(x: dynamic)
+func dec(x: dynamic) -> dynamic
 {
   return cpp_update(x, "--");
 }
 
-func dec(x: dynamic, y: dynamic)
+func dec(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "-=", y);
 }
 
-func dec(x: dynamic, y: dynamic)
+func dec(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "-=", y);
 }
 
-func dec(x: dynamic, y: dynamic)
+func dec(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "-=", y);
 }
 
-func mul(x: dynamic)
+func mul(x: dynamic) -> dynamic
 {
   return cpp_assign(x, "=", ((cpp_cast(x)) * x));
 }
 
-func mul(x: dynamic)
+func mul(x: dynamic) -> dynamic
 {
   return cpp_assign(x, "=", (x * x));
 }
 
-func mul(x: dynamic, y: dynamic)
+func mul(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "*=", y);
 }
 
-func mul(x: dynamic, y: dynamic)
+func mul(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "*=", y);
 }
 
-func mul(x: dynamic, y: dynamic)
+func mul(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "*=", y);
 }
 
-func divi(x: dynamic)
+func divi(x: dynamic) -> dynamic
 {
-  var ans: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  var mid: dynamic;
+  var ans: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var mid: dynamic = cpp_uninitialized();
   ans = 0;
   l = 0;
   r = 0x3fffffff;
@@ -214,12 +214,12 @@ func divi(x: dynamic)
   return ans;
 }
 
-func divi(x: dynamic)
+func divi(x: dynamic) -> dynamic
 {
-  var ans: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  var mid: dynamic;
+  var ans: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var mid: dynamic = cpp_uninitialized();
   ans = 0;
   l = 0;
   r = 0x3fffffff;
@@ -238,27 +238,27 @@ func divi(x: dynamic)
   return ans;
 }
 
-func divi(x: dynamic, y: dynamic)
+func divi(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "/=", y);
 }
 
-func divi(x: dynamic, y: dynamic)
+func divi(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "/=", y);
 }
 
-func divi(x: dynamic, y: dynamic)
+func divi(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "/=", y);
 }
 
-func mod(x: dynamic, y: dynamic)
+func mod(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "%=", y);
 }
 
-func mod(x: dynamic, y: dynamic)
+func mod(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_assign(x, "%=", y);
 }
@@ -268,32 +268,32 @@ class matrix
   var a: dynamic = cpp_array(205, 205);
 }
 
-var f = cpp_array(17);
+var f: dynamic = cpp_array(17);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var px = cpp_array(205);
+var px: dynamic = cpp_array(205);
 
-var py = cpp_array(205);
+var py: dynamic = cpp_array(205);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-func mul(x: dynamic, y: dynamic)
+func mul(x: dynamic, y: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var ans: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   memset((ans.a), (0), (cpp_sizeof(((ans.a)))));
   if (((1) <= ((n))))
   {
@@ -329,13 +329,13 @@ func mul(x: dynamic, y: dynamic)
   return ans;
 }
 
-var cnt = cpp_array(205);
+var cnt: dynamic = cpp_array(205);
 
-var g = cpp_array(205, 2);
+var g: dynamic = cpp_array(205, 2);
 
-var lne: dynamic;
+var lne: dynamic = cpp_uninitialized();
 
-func ind()
+func ind() -> dynamic
 {
   read(n);
   if (((1) <= ((n))))
@@ -361,9 +361,9 @@ func ind()
             ((j)) = (1);
             while ((((j)) <= (((i - 1)))))
             {
-              var dx = (px[i] - px[j]);
-              var dy = (py[i] - py[j]);
-              var tis: dynamic;
+              var dx: dynamic = (px[i] - px[j]);
+              var dy: dynamic = (py[i] - py[j]);
+              var tis: dynamic = cpp_uninitialized();
               if (((1) <= ((n))))
               {
                 {
@@ -431,7 +431,7 @@ func ind()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   ind();
@@ -453,7 +453,7 @@ func main()
     memset((g), (0), (cpp_sizeof(((g)))));
     g[0][y] = 1;
     x -= 1;
-    var z = 0;
+    var z: dynamic = 0;
     if (((0) <= (15)))
     {
       {
@@ -490,12 +490,12 @@ func main()
         }
       }
     }
-    var res = 0;
+    var res: dynamic = 0;
     {
       typeof((lne).begin()) = (lne).begin();
       while ((it != (lne).end()))
       {
-        var sum = 0;
+        var sum: dynamic = 0;
         {
           typeof(((*it)).begin()) = ((*it)).begin();
           while ((it2 != ((*it)).end()))

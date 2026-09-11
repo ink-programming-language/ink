@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var MAXN = (1e6 + 10);
+var MAXN: dynamic = (1e6 + 10);
 
-var INF = (1e9 + 10);
+var INF: dynamic = (1e9 + 10);
 
-var Mod = (1e9 + 7);
+var Mod: dynamic = (1e9 + 7);
 
 class node
 {
-  var val: dynamic;
-  var lazy: dynamic;
-  var zero: dynamic;
-  func node()
+  var val: dynamic = cpp_uninitialized();
+  var lazy: dynamic = cpp_uninitialized();
+  var zero: dynamic = cpp_uninitialized();
+  func node() -> dynamic
   {
       val = 0;
       lazy = 0;
@@ -19,13 +19,13 @@ class node
     }
 }
 
-var segt_2 = cpp_array((4 * MAXN));
+var segt_2: dynamic = cpp_array((4 * MAXN));
 
-var query = cpp_array(MAXN);
+var query: dynamic = cpp_array(MAXN);
 
-var segt_1 = cpp_array((4 * MAXN));
+var segt_1: dynamic = cpp_array((4 * MAXN));
 
-func set_update(id: dynamic, l: dynamic, r: dynamic, p: dynamic, d: dynamic)
+func set_update(id: dynamic, l: dynamic, r: dynamic, p: dynamic, d: dynamic) -> dynamic
 {
   if (((l > p) || (r < p)))
   {
@@ -36,13 +36,13 @@ func set_update(id: dynamic, l: dynamic, r: dynamic, p: dynamic, d: dynamic)
     segt_1[id] = d;
     return;
   }
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   set_update(((2 * id) + 1), l, mid, p, d);
   set_update(((2 * id) + 2), (mid + 1), r, p, d);
   segt_1[id] = min(segt_1[((2 * id) + 1)], segt_1[((2 * id) + 2)]);
 }
 
-func get_min(id: dynamic, L: dynamic, R: dynamic, l: dynamic, r: dynamic)
+func get_min(id: dynamic, L: dynamic, R: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (((L > r) || (R < l)))
   {
@@ -52,11 +52,11 @@ func get_min(id: dynamic, L: dynamic, R: dynamic, l: dynamic, r: dynamic)
   {
     return segt_1[id];
   }
-  var mid = (((L + R)) / 2);
+  var mid: dynamic = (((L + R)) / 2);
   return min(get_min(((2 * id) + 1), L, mid, l, r), get_min(((2 * id) + 2), (mid + 1), R, l, r));
 }
 
-func lzu(id: dynamic)
+func lzu(id: dynamic) -> dynamic
 {
   if (segt_2[id].zero)
   {
@@ -79,7 +79,7 @@ func lzu(id: dynamic)
   segt_2[id].zero = false;
 }
 
-func add_update(id: dynamic, L: dynamic, R: dynamic, l: dynamic, r: dynamic, d: dynamic)
+func add_update(id: dynamic, L: dynamic, R: dynamic, l: dynamic, r: dynamic, d: dynamic) -> dynamic
 {
   if ((((l > r) || (L > r)) || (R < l)))
   {
@@ -94,13 +94,13 @@ func add_update(id: dynamic, L: dynamic, R: dynamic, l: dynamic, r: dynamic, d: 
     return;
   }
   lzu(id);
-  var mid = (((L + R)) / 2);
+  var mid: dynamic = (((L + R)) / 2);
   add_update(((2 * id) + 1), L, mid, l, r, d);
   add_update(((2 * id) + 2), (mid + 1), R, l, r, d);
   segt_2[id].val = (segt_2[((2 * id) + 1)].val + segt_2[((2 * id) + 2)].val);
 }
 
-func zero_update(id: dynamic, L: dynamic, R: dynamic, l: dynamic, r: dynamic)
+func zero_update(id: dynamic, L: dynamic, R: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if ((((l > r) || (L > r)) || (R < l)))
   {
@@ -114,13 +114,13 @@ func zero_update(id: dynamic, L: dynamic, R: dynamic, l: dynamic, r: dynamic)
     return;
   }
   lzu(id);
-  var mid = (((L + R)) / 2);
+  var mid: dynamic = (((L + R)) / 2);
   zero_update(((2 * id) + 1), L, mid, l, r);
   zero_update(((2 * id) + 2), (mid + 1), R, l, r);
   segt_2[id].val = (segt_2[((2 * id) + 1)].val + segt_2[((2 * id) + 2)].val);
 }
 
-func get_res(id: dynamic, l: dynamic, r: dynamic, p: dynamic)
+func get_res(id: dynamic, l: dynamic, r: dynamic, p: dynamic) -> dynamic
 {
   if (((l > p) || (r < p)))
   {
@@ -131,26 +131,26 @@ func get_res(id: dynamic, l: dynamic, r: dynamic, p: dynamic)
     return segt_2[id].val;
   }
   lzu(id);
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   return (get_res(((2 * id) + 1), l, mid, p) + get_res(((2 * id) + 2), (mid + 1), r, p));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
-      var x1: dynamic;
-      var y1: dynamic;
-      var x2: dynamic;
-      var y2: dynamic;
+      var x1: dynamic = cpp_uninitialized();
+      var y1: dynamic = cpp_uninitialized();
+      var x2: dynamic = cpp_uninitialized();
+      var y2: dynamic = cpp_uninitialized();
       read(x1, y1, x2, y2);
       query[x1].push_back(make_pair(1, make_pair(y1, y2)));
       query[(x2 + 1)].push_back(make_pair(0, make_pair(y1, y2)));
@@ -159,7 +159,7 @@ func main()
   }
   set_update(0, 0, (m + 1), (m + 1), (m + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= m))
     {
       set_update(0, 0, (m + 1), i, INF);
@@ -167,12 +167,12 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sort(query[i].begin(), query[i].end());
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < query[i].size()))
         {
           if (query[i][j].first)
@@ -190,7 +190,7 @@ func main()
         add_update(0, 0, (m + 1), 1, (get_min(0, 0, (m + 1), 0, (m + 1)) - 1), 1);
       }
       {
-        var j = (cpp_cast((query[i].size())) - 1);
+        var j: dynamic = (cpp_cast((query[i].size())) - 1);
         while ((j >= 0))
         {
           if (query[i][j].first)

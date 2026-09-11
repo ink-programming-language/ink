@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var nums = [0];
+var nums: dynamic = [0];
 
-func main()
+func main() -> dynamic
 {
-  var n = 0;
+  var n: dynamic = 0;
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(nums[i]);
@@ -15,18 +15,18 @@ func main()
       i += 1;
     }
   }
-  var index = 0;
+  var index: dynamic = 0;
   {
-    var i = 0;
-    var next = 0;
+    var i: dynamic = 0;
+    var next: dynamic = 0;
     while ((i < n))
     {
-      var it = nhz.find(nums[i]);
-      var vec = it->second;
-      var size = vec.size();
-      var findFlag = false;
+      var it: dynamic = nhz.find(nums[i]);
+      var vec: dynamic = it->second;
+      var size: dynamic = vec.size();
+      var findFlag: dynamic = false;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < size))
         {
           if ((vec[j] <= i))
@@ -34,16 +34,16 @@ func main()
             j += 1;
             continue;
           }
-          var start = i;
-          var end = vec[j];
-          var subSize = (end - start);
+          var start: dynamic = i;
+          var end: dynamic = vec[j];
+          var subSize: dynamic = (end - start);
           if ((subSize > (n - end)))
           {
             break;
           }
-          var flag = true;
+          var flag: dynamic = true;
           {
-            var z = 1;
+            var z: dynamic = 1;
             while ((z < subSize))
             {
               if ((nums[(start + z)] != nums[(end + z)]))
@@ -75,11 +75,11 @@ func main()
       i = next;
     }
   }
-  var retSize = (n - index);
+  var retSize: dynamic = (n - index);
   write(retSize, "\n");
   write(nums[index]);
   {
-    var i = (index + 1);
+    var i: dynamic = (index + 1);
     while ((i < n))
     {
       write(" ", nums[i]);

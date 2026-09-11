@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var Set: dynamic;
+var Set: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ret: dynamic;
+var ret: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
   scanf("%d%d%d", (&a), (&b), (&n));
 }
 
-func solve(a: dynamic, b: dynamic)
+func solve(a: dynamic, b: dynamic) -> dynamic
 {
-  var cur = make_pair(a, b);
+  var cur: dynamic = make_pair(a, b);
   if ((Set.find(cur) != Set.end()))
   {
     return Set[cur];
   }
-  var A = false;
-  var B = false;
+  var A: dynamic = false;
+  var B: dynamic = false;
   if ((((log(n) / log((a + 1))) - eps) > b))
   {
     A = true;
@@ -34,7 +34,7 @@ func solve(a: dynamic, b: dynamic)
   {
     B = true;
   }
-  var ret = 0;
+  var ret: dynamic = 0;
   if (((!A) && (!B)))
   {
     ret = -1;
@@ -43,13 +43,13 @@ func solve(a: dynamic, b: dynamic)
     ret = 0;
   } else if (((b == 1) && (!B)))
   {
-    ret = if (((((n - a)) & 1))) -1 else 1;
+    ret =  (((((n - a)) & 1))) ? -1 : 1;
   } else
   {
     ret = 1;
     if (B)
     {
-      var tmp = solve(a, (b + 1));
+      var tmp: dynamic = solve(a, (b + 1));
       if ((tmp < ret))
       {
         ret = tmp;
@@ -57,7 +57,7 @@ func solve(a: dynamic, b: dynamic)
     }
     if (A)
     {
-      var tmp = solve((a + 1), b);
+      var tmp: dynamic = solve((a + 1), b);
       if ((tmp < ret))
       {
         ret = tmp;
@@ -72,12 +72,12 @@ func solve(a: dynamic, b: dynamic)
   return ret;
 }
 
-func work()
+func work() -> dynamic
 {
   ret = solve(a, b);
 }
 
-func print()
+func print() -> dynamic
 {
   if ((ret == 1))
   {
@@ -91,7 +91,7 @@ func print()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   work();

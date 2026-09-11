@@ -1,65 +1,65 @@
 // Translated from solution.cpp.
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-var PI = acos(-1);
+var PI: dynamic = acos(-1);
 
-func EQ(n: dynamic, m: dynamic)
+func EQ(n: dynamic, m: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc+");
 }
 
-var X = cpp_expression("#inclu");
+var X: dynamic = cpp_expression("#inclu");
 
-var Y = cpp_expression("#inclu");
+var Y: dynamic = cpp_expression("#inclu");
 
 class L
 {
-  func L(a: dynamic, b: dynamic)
+  func L(a: dynamic, b: dynamic) -> dynamic
   {
       at(0) = a;
       at(1) = b;
     }
-  func L()
+  func L() -> dynamic
   {
     }
 }
 
 class C
 {
-  var p: dynamic;
-  var r: dynamic;
-  func C(p: dynamic, r: dynamic)
+  var p: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  func C(p: dynamic, r: dynamic) -> dynamic
   {
-      this->p = cpp_construct(p);
-      this->r = cpp_construct(r);
+      self->p = cpp_construct(p);
+      self->r = cpp_construct(r);
     }
-  func C()
+  func C() -> dynamic
   {
     }
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((!EQ(a.X, b.X))) (a.X < b.X) else ((a.Y + EPS) < b.Y);
+  return  ((!EQ(a.X, b.X))) ? (a.X < b.X) : ((a.Y + EPS) < b.Y);
 }
 
-func operator_equal(a: dynamic, b: dynamic)
+func operator_equal(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs((a - b)) < EPS);
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return ((conj(a) * b)).X;
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((conj(a) * b)).Y;
 }
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b -= a;
   c -= a;
@@ -82,47 +82,47 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   return 0;
 }
 
-func unit(p: dynamic)
+func unit(p: dynamic) -> dynamic
 {
   return (p / abs(p));
 }
 
-func rotate(p: dynamic, rad: dynamic)
+func rotate(p: dynamic, rad: dynamic) -> dynamic
 {
   return (p * P(cos(rad), sin(rad)));
 }
 
-func strictItsSS(a: dynamic, b: dynamic)
+func strictItsSS(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_binary((((ccw(a[0], a[1], b[0]) * ccw(a[0], a[1], b[1])) == -1)), "and", (((ccw(b[0], b[1], a[0]) * ccw(b[0], b[1], a[1])) == -1)));
 }
 
-func intersectSP(s: dynamic, p: dynamic)
+func intersectSP(s: dynamic, p: dynamic) -> dynamic
 {
   return cpp_binary((abs(cross((s[0] - p), (s[1] - p))) < EPS), "and", (dot((s[0] - p), (s[1] - p)) < EPS));
 }
 
-func projection(l: dynamic, p: dynamic)
+func projection(l: dynamic, p: dynamic) -> dynamic
 {
-  var t = (dot((p - l[0]), (l[0] - l[1])) / norm((l[0] - l[1])));
+  var t: dynamic = (dot((p - l[0]), (l[0] - l[1])) / norm((l[0] - l[1])));
   return (l[0] + (t * ((l[0] - l[1]))));
 }
 
-func distanceLP(l: dynamic, p: dynamic)
+func distanceLP(l: dynamic, p: dynamic) -> dynamic
 {
   return (abs(cross((l[1] - l[0]), (p - l[0]))) / abs((l[1] - l[0])));
 }
 
-func isParallel(a: dynamic, b: dynamic)
+func isParallel(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs(cross(a, b)) < EPS);
 }
 
-func isInConvex(p: dynamic, poly: dynamic)
+func isInConvex(p: dynamic, poly: dynamic) -> dynamic
 {
-  var n = poly.size();
+  var n: dynamic = poly.size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((cross((poly[(((i + 1)) % n)] - poly[i]), (p - poly[i])) < EPS))
@@ -135,46 +135,46 @@ func isInConvex(p: dynamic, poly: dynamic)
   return true;
 }
 
-func crosspointLL(l: dynamic, m: dynamic)
+func crosspointLL(l: dynamic, m: dynamic) -> dynamic
 {
-  var A = cross((l[1] - l[0]), (m[1] - m[0]));
-  var B = cross((l[1] - l[0]), (l[1] - m[0]));
+  var A: dynamic = cross((l[1] - l[0]), (m[1] - m[0]));
+  var B: dynamic = cross((l[1] - l[0]), (l[1] - m[0]));
   return (m[0] + ((B / A) * ((m[1] - m[0]))));
 }
 
-func crosspointCL(c: dynamic, l: dynamic)
+func crosspointCL(c: dynamic, l: dynamic) -> dynamic
 {
-  var res: dynamic;
-  var mid = projection(l, c.p);
-  var d = distanceLP(l, c.p);
+  var res: dynamic = cpp_uninitialized();
+  var mid: dynamic = projection(l, c.p);
+  var d: dynamic = distanceLP(l, c.p);
   if (EQ(d, c.r))
   {
     res.push_back(mid);
   } else if ((d < c.r))
   {
-    var len = sqrt(((c.r * c.r) - (d * d)));
+    var len: dynamic = sqrt(((c.r * c.r) - (d * d)));
     res.push_back((mid + (len * unit((l[1] - l[0])))));
     res.push_back((mid - (len * unit((l[1] - l[0])))));
   }
   return res;
 }
 
-func crosspointCC(a: dynamic, b: dynamic)
+func crosspointCC(a: dynamic, b: dynamic) -> dynamic
 {
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   if ((a.r < b.r))
   {
     swap(a, b);
   }
-  var dist = abs((b.p - a.p));
-  var dir = (a.r * unit((b.p - a.p)));
+  var dist: dynamic = abs((b.p - a.p));
+  var dir: dynamic = (a.r * unit((b.p - a.p)));
   if (cpp_binary(EQ(dist, (a.r + b.r)), "or", EQ(dist, (a.r - b.r))))
   {
     res.push_back((a.p + dir));
   } else if (cpp_binary(((a.r - b.r) < dist), "and", (dist < (a.r + b.r))))
   {
-    var cos = (((((a.r * a.r) + (dist * dist)) - (b.r * b.r))) / (((2 * a.r) * dist)));
-    var sin = sqrt((1 - (cos * cos)));
+    var cos: dynamic = (((((a.r * a.r) + (dist * dist)) - (b.r * b.r))) / (((2 * a.r) * dist)));
+    var sin: dynamic = sqrt((1 - (cos * cos)));
     res.push_back((a.p + (dir * P(cos, sin))));
     res.push_back((a.p + (dir * P(cos, (-sin)))));
   }
@@ -183,26 +183,26 @@ func crosspointCC(a: dynamic, b: dynamic)
 
 class DA
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   var v: dynamic = cpp_array(2);
-  func DA(c: dynamic, s: dynamic, t: dynamic)
+  func DA(c: dynamic, s: dynamic, t: dynamic) -> dynamic
   {
-      this->c = cpp_construct(c);
+      self->c = cpp_construct(c);
       v[0] = s;
       v[1] = t;
     }
-  func DA()
+  func DA() -> dynamic
   {
     }
 }
 
-func crosspointSDA(l: dynamic, da: dynamic)
+func crosspointSDA(l: dynamic, da: dynamic) -> dynamic
 {
-  var cp = crosspointCL(da.c, l);
-  var res: dynamic;
-  for (var p in cp)
+  var cp: dynamic = crosspointCL(da.c, l);
+  var res: dynamic = cpp_uninitialized();
+  for (var p: dynamic in cp)
   {
-    var v = (p - da.c.p);
+    var v: dynamic = (p - da.c.p);
     if (cpp_binary(intersectSP(l, p), "and", ((cross(v, da.v[0]) * cross(v, da.v[1])) < EPS)))
     {
       res.push_back(p);
@@ -211,51 +211,51 @@ func crosspointSDA(l: dynamic, da: dynamic)
   return res;
 }
 
-func input_P(in_cpp: dynamic)
+func input_P(in_cpp: dynamic) -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(x, y);
   in_cpp = P(x, y);
 }
 
-func make_rect(l: dynamic, e: dynamic, d: dynamic)
+func make_rect(l: dynamic, e: dynamic, d: dynamic) -> dynamic
 {
   return [((l[0] - e) + d), ((l[0] - e) - d), ((l[1] + e) - d), ((l[1] + e) + d)];
 }
 
-func insertvec(a: dynamic, b: dynamic)
+func insertvec(a: dynamic, b: dynamic) -> dynamic
 {
   a.insert(a.end(), b.begin(), b.end());
 }
 
-var weps = 1e-5;
+var weps: dynamic = 1e-5;
 
-var rot: dynamic;
+var rot: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var g: dynamic;
+var g: dynamic = cpp_uninitialized();
 
-var dir: dynamic;
+var dir: dynamic = cpp_uninitialized();
 
-var wall: dynamic;
+var wall: dynamic = cpp_uninitialized();
 
-var slide_rect: dynamic;
+var slide_rect: dynamic = cpp_uninitialized();
 
-var nonrotate_rect: dynamic;
+var nonrotate_rect: dynamic = cpp_uninitialized();
 
-var nonrotate_da: dynamic;
+var nonrotate_da: dynamic = cpp_uninitialized();
 
-var cand_rot: dynamic;
+var cand_rot: dynamic = cpp_uninitialized();
 
-var graph: dynamic;
+var graph: dynamic = cpp_uninitialized();
 
-func input()
+func input() -> dynamic
 {
   read(l, rot);
   l += weps;
@@ -264,10 +264,10 @@ func input()
   read(n);
   wall.resize(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      for (var p in wall[i])
+      for (var p: dynamic in wall[i])
       {
         input_P(p);
       }
@@ -276,11 +276,11 @@ func input()
   }
 }
 
-func misc()
+func misc() -> dynamic
 {
   dir.resize((rot + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (rot + 1)))
     {
       dir[i] = rotate(P(l, 0), ((PI / rot) * i));
@@ -289,22 +289,22 @@ func misc()
   }
 }
 
-func make_slide_rect()
+func make_slide_rect() -> dynamic
 {
   slide_rect.resize(rot);
   {
-    var r = 0;
+    var r: dynamic = 0;
     while ((r < rot))
     {
-      for (var w in wall)
+      for (var w: dynamic in wall)
       {
-        var vw = (w[1] - w[0]);
+        var vw: dynamic = (w[1] - w[0]);
         if (isParallel(vw, dir[r]))
         {
           slide_rect[r].push_back(make_rect(w, (l * unit(vw)), (weps * unit(rotate(vw, (PI / 2))))));
         } else
         {
-          slide_rect[r].push_back(make_rect(w, (weps * unit(vw)), if (((cross(vw, dir[r]) > 0))) dir[r] else (-dir[r])));
+          slide_rect[r].push_back(make_rect(w, (weps * unit(vw)),  (((cross(vw, dir[r]) > 0))) ? dir[r] : (-dir[r])));
         }
       }
       r += 1;
@@ -312,21 +312,21 @@ func make_slide_rect()
   }
 }
 
-func make_nonrot_area()
+func make_nonrot_area() -> dynamic
 {
   nonrotate_rect.resize(rot);
   nonrotate_da.resize(rot);
   {
-    var r = 0;
+    var r: dynamic = 0;
     while ((r < rot))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           nonrotate_rect[r].push_back(slide_rect[r][i]);
           nonrotate_rect[r].push_back(slide_rect[(((r + 1)) % rot)][i]);
-          var vert = rotate((wall[i][1] - wall[i][0]), (PI / 2));
+          var vert: dynamic = rotate((wall[i][1] - wall[i][0]), (PI / 2));
           if (((cross(vert, dir[r]) * cross(vert, dir[(r + 1)])) < (-EPS)))
           {
             nonrotate_rect[r].push_back(make_rect(wall[i], P(0, 0), (l * unit(vert))));
@@ -341,19 +341,19 @@ func make_nonrot_area()
   }
 }
 
-func enum_rotate_candidate()
+func enum_rotate_candidate() -> dynamic
 {
   cand_rot.resize(rot);
   {
-    var r = 0;
+    var r: dynamic = 0;
     while ((r < rot))
     {
-      var w: dynamic;
-      for (var v in nonrotate_rect[r])
+      var w: dynamic = cpp_uninitialized();
+      for (var v: dynamic in nonrotate_rect[r])
       {
-        var n = v.size();
+        var n: dynamic = v.size();
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < n))
           {
             w.emplace_back(v[i], v[(((i + 1)) % n)]);
@@ -361,16 +361,16 @@ func enum_rotate_candidate()
           }
         }
       }
-      var arc = nonrotate_da[r];
-      var cand = cand_rot[r];
-      var n = w.size();
-      var m = arc.size();
+      var arc: dynamic = nonrotate_da[r];
+      var cand: dynamic = cand_rot[r];
+      var n: dynamic = w.size();
+      var m: dynamic = arc.size();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = (i + 1);
+            var j: dynamic = (i + 1);
             while ((j < n))
             {
               if (strictItsSS(w[i], w[j]))
@@ -384,11 +384,11 @@ func enum_rotate_candidate()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               insertvec(cand, crosspointSDA(w[i], arc[j]));
@@ -399,11 +399,11 @@ func enum_rotate_candidate()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
           {
-            var j = (i + 1);
+            var j: dynamic = (i + 1);
             while ((j < m))
             {
               insertvec(cand, crosspointCC(arc[i].c, arc[j].c));
@@ -420,24 +420,24 @@ func enum_rotate_candidate()
   }
 }
 
-func eliminate_nonrot_point()
+func eliminate_nonrot_point() -> dynamic
 {
   {
-    var r = 0;
+    var r: dynamic = 0;
     while ((r < rot))
     {
-      var cand = cand_rot[r];
-      for (var p in cand)
+      var cand: dynamic = cand_rot[r];
+      for (var p: dynamic in cand)
       {
-        var enable = true;
-        for (var rect in nonrotate_rect[r])
+        var enable: dynamic = true;
+        for (var rect: dynamic in nonrotate_rect[r])
         {
           if (isInConvex(p, rect))
           {
             enable = false;
           }
         }
-        for (var da in nonrotate_da[r])
+        for (var da: dynamic in nonrotate_da[r])
         {
           if (cpp_binary((((abs((p - da.c.p)) + EPS) < l)), "and", (((cross((p - da.c.p), da.v[0]) * cross((p - da.c.p), da.v[1])) < EPS))))
           {
@@ -455,17 +455,17 @@ func eliminate_nonrot_point()
   cand_rot = res;
 }
 
-func cansee(s: dynamic, g: dynamic, rects: dynamic)
+func cansee(s: dynamic, g: dynamic, rects: dynamic) -> dynamic
 {
-  var mid = (((s + g)) / 2.0);
-  for (var rect in rects)
+  var mid: dynamic = (((s + g)) / 2.0);
+  for (var rect: dynamic in rects)
   {
     if (isInConvex(mid, rect))
     {
       return false;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
         if (strictItsSS(L(rect[i], rect[(((i + 1)) % 4)]), L(s, g)))
@@ -479,16 +479,16 @@ func cansee(s: dynamic, g: dynamic, rects: dynamic)
   return true;
 }
 
-func make_visible_graph()
+func make_visible_graph() -> dynamic
 {
   graph = vector(rot);
-  var vlist = cpp_construct(rot, [s, g]);
+  var vlist: dynamic = cpp_construct(rot, [s, g]);
   {
-    var r = 0;
+    var r: dynamic = 0;
     while ((r < rot))
     {
-      var v = vlist[r];
-      for (var rect in slide_rect[r])
+      var v: dynamic = vlist[r];
+      for (var rect: dynamic in slide_rect[r])
       {
         insertvec(v, rect);
       }
@@ -498,17 +498,17 @@ func make_visible_graph()
     }
   }
   {
-    var r = 0;
+    var r: dynamic = 0;
     while ((r < rot))
     {
-      var v = vlist[r];
+      var v: dynamic = vlist[r];
       graph[r].resize(v.size());
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < v.size()))
         {
           {
-            var j = (i + 1);
+            var j: dynamic = (i + 1);
             while ((j < v.size()))
             {
               if (cansee(v[i], v[j], slide_rect[r]))
@@ -523,7 +523,7 @@ func make_visible_graph()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < cand_rot[r].size()))
         {
           graph[r][((i + (4 * n)) + 2)].emplace_back((((r + 1)) % rot), (((i + (4 * n)) + 2) + cand_rot[(((r + 1)) % rot)].size()));
@@ -535,28 +535,28 @@ func make_visible_graph()
   }
 }
 
-func shortest_path()
+func shortest_path() -> dynamic
 {
-  var inf = 1e9;
-  var wait: dynamic;
-  var mincost = cpp_construct(rot, vector(10000, inf));
+  var inf: dynamic = 1e9;
+  var wait: dynamic = cpp_uninitialized();
+  var mincost: dynamic = cpp_construct(rot, vector(10000, inf));
   mincost[0][0] = 0;
   wait.push_front(pii(0, 0));
   while ((!wait.empty()))
   {
-    var curr = wait.front();
+    var curr: dynamic = wait.front();
     wait.pop_front();
-    var cr = curr.first;
-    var ci = curr.second;
+    var cr: dynamic = curr.first;
+    var ci: dynamic = curr.second;
     if ((ci == 1))
     {
       return mincost[cr][ci];
     }
-    for (var next in graph[cr][ci])
+    for (var next: dynamic in graph[cr][ci])
     {
-      var nr = next.first;
-      var ni = next.second;
-      var cost = if (((cr == nr))) 0 else 1;
+      var nr: dynamic = next.first;
+      var ni: dynamic = next.second;
+      var cost: dynamic =  (((cr == nr))) ? 0 : 1;
       if (((mincost[cr][ci] + cost) < mincost[nr][ni]))
       {
         mincost[nr][ni] = (mincost[cr][ci] + cost);
@@ -573,7 +573,7 @@ func shortest_path()
   return -1;
 }
 
-func main()
+func main() -> dynamic
 {
   input();
   misc();

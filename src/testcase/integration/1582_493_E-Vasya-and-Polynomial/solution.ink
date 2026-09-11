@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(t, a, b);
   if ((t == 1))
@@ -21,8 +21,8 @@ func main()
       return 0;
     } else
     {
-      var flag = 0;
-      var p = 1;
+      var flag: dynamic = 0;
+      var p: dynamic = 1;
       while ((p <= (b / a)))
       {
         p *= a;
@@ -38,10 +38,10 @@ func main()
       }
     }
   }
-  var cnt = 0;
-  var p = 0;
-  var q = 1;
-  var r = b;
+  var cnt: dynamic = 0;
+  var p: dynamic = 0;
+  var q: dynamic = 1;
+  var r: dynamic = b;
   while ((r && (cnt < 100)))
   {
     p += ((r % a) * q);

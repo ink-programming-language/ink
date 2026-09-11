@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var a: dynamic;
+    var a: dynamic = cpp_uninitialized();
     read(a);
-    var ans = 0;
+    var ans: dynamic = 0;
     while ((a > 0))
     {
       ans += (a % 2);

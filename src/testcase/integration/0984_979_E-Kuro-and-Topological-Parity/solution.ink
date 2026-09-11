@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var c = cpp_array((50 + 5));
+var c: dynamic = cpp_array((50 + 5));
 
-var f = cpp_array((50 + 5), (50 + 5), (50 + 5));
+var f: dynamic = cpp_array((50 + 5), (50 + 5), (50 + 5));
 
-var C = cpp_array((50 + 5), (50 + 5));
+var C: dynamic = cpp_array((50 + 5), (50 + 5));
 
-var F = cpp_array(2, (50 + 5));
+var F: dynamic = cpp_array(2, (50 + 5));
 
-var p = cpp_array((50 + 5));
+var p: dynamic = cpp_array((50 + 5));
 
-func rw(x: dynamic, y: dynamic)
+func rw(x: dynamic, y: dynamic) -> dynamic
 {
   if (((cpp_assign(x, "+=", y)) >= 1000000007))
   {
@@ -18,16 +18,16 @@ func rw(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
-  var x: dynamic;
-  var ans = 0;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   scanf("%d%d", (&n), (&m));
   {
     i = 1;

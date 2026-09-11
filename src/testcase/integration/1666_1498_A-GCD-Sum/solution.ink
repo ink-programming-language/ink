@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-func gcd(x: dynamic, y: dynamic)
+func gcd(x: dynamic, y: dynamic) -> dynamic
 {
-  return if ((y == 0)) x else gcd(y, (x % y));
+  return  ((y == 0)) ? x : gcd(y, (x % y));
 }
 
-func getSum(x: dynamic)
+func getSum(x: dynamic) -> dynamic
 {
-  var s = 0;
+  var s: dynamic = 0;
   while ((x > 0))
   {
     s += (x % 10);
@@ -18,13 +18,13 @@ func getSum(x: dynamic)
   return s;
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   scanf("%d", (&t));
   while (cpp_update(t, "--"))
   {
-    var x: dynamic;
+    var x: dynamic = cpp_uninitialized();
     scanf("%lld", (&x));
     while ((gcd(x, getSum(x)) == 1))
     {

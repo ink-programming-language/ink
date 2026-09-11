@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var N = 5005;
+var N: dynamic = 5005;
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var g = cpp_array(N, 2);
+var g: dynamic = cpp_array(N, 2);
 
-var dp = cpp_array(N, 2);
+var dp: dynamic = cpp_array(N, 2);
 
-func read()
+func read() -> dynamic
 {
-  var f = 1;
-  var x = 0;
-  var ch = getchar();
+  var f: dynamic = 1;
+  var x: dynamic = 0;
+  var ch: dynamic = getchar();
   while (((ch > cpp_char("9")) || (ch < cpp_char("0"))))
   {
     if ((ch == cpp_char("-")))
@@ -33,12 +33,12 @@ func read()
   return (f * x);
 }
 
-func upd(x: dynamic, y: dynamic)
+func upd(x: dynamic, y: dynamic) -> dynamic
 {
   x = min(x, y);
 }
 
-func f(x: dynamic)
+func f(x: dynamic) -> dynamic
 {
   if (((x % 2) == 0))
   {
@@ -47,13 +47,13 @@ func f(x: dynamic)
   return x;
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   a[0] = 1;
   {
-    var i = (n);
-    var iend = (1);
+    var i: dynamic = (n);
+    var iend: dynamic = (1);
     while ((i >= iend))
     {
       a[i] = read();
@@ -63,13 +63,13 @@ func main()
   dp[0][0] = 0;
   g[0][0] = 1;
   {
-    var i = (1);
-    var iend = (n);
+    var i: dynamic = (1);
+    var iend: dynamic = (n);
     while ((i <= iend))
     {
       {
-        var j = (0);
-        var jend = (i);
+        var j: dynamic = (0);
+        var jend: dynamic = (i);
         while ((j <= jend))
         {
           dp[(i & 1)][j] = INF;
@@ -77,11 +77,11 @@ func main()
         }
       }
       {
-        var j = (0);
-        var jend = ((i - 1));
+        var j: dynamic = (0);
+        var jend: dynamic = ((i - 1));
         while ((j <= jend))
         {
-          var t = (i & 1);
+          var t: dynamic = (i & 1);
           if ((((((2 * a[i])) % g[(t ^ 1)][j]) == 0) && (((((2 * a[i]) / g[(t ^ 1)][j])) % 2) != (g[(t ^ 1)][j] % 2))))
           {
             upd(dp[t][i], dp[(t ^ 1)][j]);
@@ -95,10 +95,10 @@ func main()
       i += 1;
     }
   }
-  var ans = INF;
+  var ans: dynamic = INF;
   {
-    var i = (0);
-    var iend = (n);
+    var i: dynamic = (0);
+    var iend: dynamic = (n);
     while ((i <= iend))
     {
       upd(ans, dp[(n & 1)][i]);

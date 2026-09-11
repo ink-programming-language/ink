@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var vis = cpp_array(200010);
+var vis: dynamic = cpp_array(200010);
 
-func dfs(arr: dynamic, i: dynamic, temp: dynamic)
+func dfs(arr: dynamic, i: dynamic, temp: dynamic) -> dynamic
 {
   vis[i] = true;
-  for (var u in arr[i])
+  for (var u: dynamic in arr[i])
   {
     if (cpp_binary((!vis[u]), "and", (u != temp)))
     {
@@ -14,22 +14,22 @@ func dfs(arr: dynamic, i: dynamic, temp: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var m: dynamic;
-    var a: dynamic;
-    var b: dynamic;
-    var u: dynamic;
-    var v: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
     read(n, m, a, b);
-    var arr = cpp_array((n + 1));
+    var arr: dynamic = cpp_array((n + 1));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         read(u, v);
@@ -40,9 +40,9 @@ func main()
     }
     memset(vis, false, cpp_sizeof((vis)));
     dfs(arr, a, b);
-    var us1: dynamic;
+    var us1: dynamic = cpp_uninitialized();
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if (vis[i])
@@ -55,9 +55,9 @@ func main()
     us1.erase(a);
     memset(vis, false, cpp_sizeof((vis)));
     dfs(arr, b, a);
-    var us2: dynamic;
+    var us2: dynamic = cpp_uninitialized();
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if (vis[i])
@@ -68,16 +68,16 @@ func main()
       }
     }
     us2.erase(b);
-    var ans1 = 0;
-    var ans2 = 0;
-    for (var val in us1)
+    var ans1: dynamic = 0;
+    var ans2: dynamic = 0;
+    for (var val: dynamic in us1)
     {
       if ((us2.find(val) == us2.end()))
       {
         ans1 += 1;
       }
     }
-    for (var val in us2)
+    for (var val: dynamic in us2)
     {
       if ((us1.find(val) == us1.end()))
       {

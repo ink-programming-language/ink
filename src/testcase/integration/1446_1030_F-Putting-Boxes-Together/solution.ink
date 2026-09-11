@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var fu = 1;
-  var c = getchar();
+  var fu: dynamic = 1;
+  var c: dynamic = getchar();
   while (((c > 57) || (c < 48)))
   {
     if ((c == 45))
@@ -21,7 +21,7 @@ func read(x: dynamic)
   x *= fu;
 }
 
-func fprint(x: dynamic)
+func fprint(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -35,15 +35,15 @@ func fprint(x: dynamic)
   putchar(((x % 10) + 48));
 }
 
-func fprint(x: dynamic, ch: dynamic)
+func fprint(x: dynamic, ch: dynamic) -> dynamic
 {
   fprint(x);
   putchar(ch);
 }
 
-func next_char()
+func next_char() -> dynamic
 {
-  var ch = getchar();
+  var ch: dynamic = getchar();
   while ((((ch == 9) || (ch == 10)) || (ch == 32)))
   {
     ch = getchar();
@@ -51,28 +51,28 @@ func next_char()
   return ch;
 }
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
-var w = cpp_array(200005);
+var w: dynamic = cpp_array(200005);
 
-var c1 = cpp_array(200005);
+var c1: dynamic = cpp_array(200005);
 
-var c2 = cpp_array(200005);
+var c2: dynamic = cpp_array(200005);
 
-func lowbit(x: dynamic)
+func lowbit(x: dynamic) -> dynamic
 {
   return (x & (-x));
 }
 
-func query(c: dynamic, x: dynamic, type_cpp: dynamic)
+func query(c: dynamic, x: dynamic, type_cpp: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   {
     while (x)
     {
@@ -84,7 +84,7 @@ func query(c: dynamic, x: dynamic, type_cpp: dynamic)
   return ret;
 }
 
-func modify(c: dynamic, x: dynamic, y: dynamic, type_cpp: dynamic)
+func modify(c: dynamic, x: dynamic, y: dynamic, type_cpp: dynamic) -> dynamic
 {
   {
     while ((x <= n))
@@ -96,12 +96,12 @@ func modify(c: dynamic, x: dynamic, y: dynamic, type_cpp: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   read(m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -109,7 +109,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(w[i]);
@@ -120,8 +120,8 @@ func main()
   }
   while (cpp_update(m, "--"))
   {
-    var l: dynamic;
-    var r: dynamic;
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
     read(l);
     read(r);
     if ((l < 0))
@@ -133,16 +133,16 @@ func main()
       modify(c1, l, r, 0);
     } else
     {
-      var L = l;
-      var R = r;
-      var pos = l;
-      var ll = query(c1, (l - 1), 0);
-      var rr = query(c1, r, 0);
-      var tot = (rr - ll);
+      var L: dynamic = l;
+      var R: dynamic = r;
+      var pos: dynamic = l;
+      var ll: dynamic = query(c1, (l - 1), 0);
+      var rr: dynamic = query(c1, r, 0);
+      var tot: dynamic = (rr - ll);
       tot = (((tot >> 1)) + 1);
       while ((L <= R))
       {
-        var mid = (((L + R)) >> 1);
+        var mid: dynamic = (((L + R)) >> 1);
         if (((query(c1, mid, 0) - ll) >= tot))
         {
           pos = mid;
@@ -152,14 +152,14 @@ func main()
           L = (mid + 1);
         }
       }
-      var res1 = query(c1, pos, 0);
-      var res2 = query(c1, (pos - 1), 0);
+      var res1: dynamic = query(c1, pos, 0);
+      var res2: dynamic = query(c1, (pos - 1), 0);
       rr %= MOD;
       ll %= MOD;
       res1 %= MOD;
       res2 %= MOD;
-      var num = ((((a[pos] - (((pos - l) + 1))) + MOD)) % MOD);
-      var ans = ((num * ((res2 - ll))) % MOD);
+      var num: dynamic = ((((a[pos] - (((pos - l) + 1))) + MOD)) % MOD);
+      var ans: dynamic = ((num * ((res2 - ll))) % MOD);
       ans = ((((((ans + ((1 * ((l - 1))) * (((rr - res1) - ((res2 - ll))))))) % MOD) + MOD)) % MOD);
       ans = (((((((ans - query(c2, (pos - 1), 1)) + query(c2, (l - 1), 1))) % MOD) + MOD)) % MOD);
       ans = (((((ans + query(c2, r, 1)) - query(c2, pos, 1)) + MOD)) % MOD);

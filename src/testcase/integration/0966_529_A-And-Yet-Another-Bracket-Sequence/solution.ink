@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var maxn = 1000047;
+var maxn: dynamic = 1000047;
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func utried()
+func utried() -> dynamic
 {
-  var por: dynamic;
-  var otv = 0;
+  var por: dynamic = cpp_uninitialized();
+  var otv: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((s[i] == cpp_char("(")))
@@ -24,7 +24,7 @@ func utried()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((s[i] == cpp_char(")")))
@@ -36,15 +36,15 @@ func utried()
     }
   }
   {
-    var sl = 1;
+    var sl: dynamic = 1;
     while ((sl < n))
     {
-      var off = cpp_construct(n, 0);
+      var off: dynamic = cpp_construct(n, 0);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
-          var ind = ((((por[i] - sl) + n)) % n);
+          var ind: dynamic = ((((por[i] - sl) + n)) % n);
           npor[(lepsich[ind] + off[lepsich[ind]])] = ind;
           off[lepsich[ind]] += 1;
           i += 1;
@@ -53,7 +53,7 @@ func utried()
       por = npor;
       nlepsich[por[0]] = 0;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < n))
         {
           if (((lepsich[por[i]] == lepsich[por[(i - 1)]]) && (lepsich[(((por[i] + sl)) % n)] == lepsich[(((por[(i - 1)] + sl)) % n)])))
@@ -73,7 +73,7 @@ func utried()
   return por;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", s);
   {
@@ -83,9 +83,9 @@ func main()
       n += 1;
     }
   }
-  var depth = cpp_construct((n + 1), 0);
+  var depth: dynamic = cpp_construct((n + 1), 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((s[(i - 1)] == cpp_char("(")))
@@ -98,27 +98,27 @@ func main()
       i += 1;
     }
   }
-  var minpred = cpp_construct((n + 1), 0);
+  var minpred: dynamic = cpp_construct((n + 1), 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       minpred[i] = min(depth[i], minpred[(i - 1)]);
       i += 1;
     }
   }
-  var minpo = cpp_construct((n + 1), 1023456789);
+  var minpo: dynamic = cpp_construct((n + 1), 1023456789);
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
       minpo[i] = min(depth[(i + 1)], minpo[(i + 1)]);
       i -= 1;
     }
   }
-  var can_be = cpp_construct(n, 0);
+  var can_be: dynamic = cpp_construct(n, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((depth[n] < 0))
@@ -131,10 +131,10 @@ func main()
       i += 1;
     }
   }
-  var por = utried();
-  var st = -1;
+  var por: dynamic = utried();
+  var st: dynamic = -1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (can_be[por[i]])
@@ -148,7 +148,7 @@ func main()
   if ((depth[n] < 0))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ((0 - depth[n]))))
       {
         printf("(");
@@ -157,7 +157,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       printf("%c", s[(((i + st)) % n)]);
@@ -167,7 +167,7 @@ func main()
   if ((depth[n] > 0))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < depth[n]))
       {
         printf(")");

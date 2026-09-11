@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
 class Node
 {
-  var l: dynamic;
-  var r: dynamic;
-  var v: dynamic;
-  var cv: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var cv: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array((N << 2));
+var a: dynamic = cpp_array((N << 2));
 
-func Build(i: dynamic, l: dynamic, r: dynamic)
+func Build(i: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   a[i].l = l;
   a[i].r = r;
@@ -23,17 +23,17 @@ func Build(i: dynamic, l: dynamic, r: dynamic)
   {
     return;
   }
-  var mid = ((l + r) >> 1);
+  var mid: dynamic = ((l + r) >> 1);
   Build((i << 1), l, mid);
   Build(((i << 1) | 1), (mid + 1), r);
 }
 
-func PushUp(i: dynamic)
+func PushUp(i: dynamic) -> dynamic
 {
   a[i].v = (a[(i << 1)].v + a[((i << 1) | 1)].v);
 }
 
-func PushDown(i: dynamic)
+func PushDown(i: dynamic) -> dynamic
 {
   if (a[i].cv)
   {
@@ -43,7 +43,7 @@ func PushDown(i: dynamic)
   }
 }
 
-func Mdf(i: dynamic, x: dynamic, val: dynamic)
+func Mdf(i: dynamic, x: dynamic, val: dynamic) -> dynamic
 {
   if (((a[i].l == x) && (a[i].r == x)))
   {
@@ -61,7 +61,7 @@ func Mdf(i: dynamic, x: dynamic, val: dynamic)
   PushUp(i);
 }
 
-func Cv(i: dynamic, l: dynamic, r: dynamic)
+func Cv(i: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (((l <= a[i].l) && (a[i].r <= r)))
   {
@@ -81,7 +81,7 @@ func Cv(i: dynamic, l: dynamic, r: dynamic)
   PushUp(i);
 }
 
-func Qry(i: dynamic, l: dynamic, r: dynamic)
+func Qry(i: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (((l <= a[i].l) && (a[i].r <= r)))
   {
@@ -102,27 +102,27 @@ func Qry(i: dynamic, l: dynamic, r: dynamic)
 
 class Query
 {
-  var l: dynamic;
-  var r: dynamic;
-  var id: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var q = cpp_array(N);
+var q: dynamic = cpp_array(N);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-func cmp(q: dynamic, w: dynamic)
+func cmp(q: dynamic, w: dynamic) -> dynamic
 {
   return (q.l > w.l);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   Build(1, 1, n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d %d", (&c[i].first), (&c[i].second));
@@ -130,10 +130,10 @@ func main()
     }
   }
   c[(n + 1)].first = c[n].second;
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   scanf("%d", (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d %d", (&q[i].l), (&q[i].r));
@@ -142,18 +142,18 @@ func main()
     }
   }
   sort((q + 1), ((q + 1) + m), cmp);
-  var pos = 1;
+  var pos: dynamic = 1;
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       if (((c[i].first + c[i].second) >= c[(i + 1)].first))
       {
-        var l = (i + 1);
-        var r = n;
+        var l: dynamic = (i + 1);
+        var r: dynamic = n;
         while ((l < r))
         {
-          var mid = (((l + r) + 1) >> 1);
+          var mid: dynamic = (((l + r) + 1) >> 1);
           if (((c[i].first + c[i].second) >= c[mid].first))
           {
             l = mid;
@@ -184,7 +184,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       printf("%d\n", ans[i]);

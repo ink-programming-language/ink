@@ -1,45 +1,45 @@
 // Translated from solution.cpp.
 
-var MAX = cpp_expression("#i");
+var MAX: dynamic = cpp_expression("#i");
 
-var MINF = cpp_expression("#inclu");
+var MINF: dynamic = cpp_expression("#inclu");
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var a = cpp_array(MAX);
+var a: dynamic = cpp_array(MAX);
 
-var b = cpp_array(MAX);
+var b: dynamic = cpp_array(MAX);
 
-var c = cpp_array(MAX);
+var c: dynamic = cpp_array(MAX);
 
-var memo = cpp_array(MAX, MAX, MAX);
+var memo: dynamic = cpp_array(MAX, MAX, MAX);
 
-func solve(n: dynamic, l1: dynamic, m: dynamic)
+func solve(n: dynamic, l1: dynamic, m: dynamic) -> dynamic
 {
   if ((n == N))
   {
     return 0;
   }
-  var res = memo[n][l1][m];
+  var res: dynamic = memo[n][l1][m];
   if ((res != MINF))
   {
     return res;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= min(8, m)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= i))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= min(l1, (8 - j))))
             {
-              var cost = (if (((j + k) == 0)) c[n] else ((a[n] * j) + (b[n] * k)));
+              var cost: dynamic = ( (((j + k) == 0)) ? c[n] : ((a[n] * j) + (b[n] * k)));
               res = max(res, (solve((n + 1), i, (m - i)) + cost));
               k += 1;
             }
@@ -53,11 +53,11 @@ func solve(n: dynamic, l1: dynamic, m: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   read(N, M);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(a[i], b[i], c[i]);

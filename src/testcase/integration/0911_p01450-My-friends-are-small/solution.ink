@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var MOD = cpp_expression("#include<i");
+var MOD: dynamic = cpp_expression("#include<i");
 
-var MAX_N = cpp_expression("#in");
+var MAX_N: dynamic = cpp_expression("#in");
 
-var MAX_W = cpp_expression("#incl");
+var MAX_W: dynamic = cpp_expression("#incl");
 
-var dp = cpp_array(MAX_W, MAX_N, 2);
+var dp: dynamic = cpp_array(MAX_W, MAX_N, 2);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var x = cpp_array(MAX_N);
+var x: dynamic = cpp_array(MAX_N);
 
-func main()
+func main() -> dynamic
 {
   read(N, W);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       read(x[i]);
@@ -29,15 +29,15 @@ func main()
   sort((x + 1), ((x + N) + 1));
   dp[1][1][0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= N))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= W))
             {
               dp[0][j][k] = dp[1][j][k];
@@ -48,11 +48,11 @@ func main()
           j += 1;
         }
       }
-      var w = x[i];
-      var y = 0;
-      var z = 0;
+      var w: dynamic = x[i];
+      var y: dynamic = 0;
+      var z: dynamic = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= i))
         {
           y = j;
@@ -62,7 +62,7 @@ func main()
             y += 1;
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= W))
             {
               if (((k + w) <= W))
@@ -81,15 +81,15 @@ func main()
       i += 1;
     }
   }
-  var res = 0;
-  var v = 0;
+  var res: dynamic = 0;
+  var v: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (N + 1)))
     {
       v = max(0, ((W - x[i]) + 1));
       {
-        var j = v;
+        var j: dynamic = v;
         while ((j <= W))
         {
           res += dp[1][i][j];

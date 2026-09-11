@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if (((a == 0) || (b == 0)))
   {
@@ -14,23 +14,23 @@ func gcd(a: dynamic, b: dynamic)
   }
 }
 
-func power(base: dynamic, pow: dynamic)
+func power(base: dynamic, pow: dynamic) -> dynamic
 {
   if ((pow == 0))
   {
     return 1;
   }
-  var base_to_the_power_pow = power(base, (pow / 2));
+  var base_to_the_power_pow: dynamic = power(base, (pow / 2));
   base_to_the_power_pow = (((base_to_the_power_pow * base_to_the_power_pow)) % 998244353);
   if ((pow % 2))
   {
     base_to_the_power_pow = (((base_to_the_power_pow * base)) % 998244353);
   }
-  var result = cpp_cast(base_to_the_power_pow);
+  var result: dynamic = cpp_cast(base_to_the_power_pow);
   return result;
 }
 
-func combination(n: dynamic, r: dynamic)
+func combination(n: dynamic, r: dynamic) -> dynamic
 {
   if ((r > n))
   {
@@ -40,11 +40,11 @@ func combination(n: dynamic, r: dynamic)
   {
     r = (n - r);
   }
-  var numbers = cpp_array(2, r);
-  var i: dynamic;
-  var j: dynamic;
-  var GCD: dynamic;
-  var k: dynamic;
+  var numbers: dynamic = cpp_array(2, r);
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var GCD: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < r))
@@ -73,7 +73,7 @@ func combination(n: dynamic, r: dynamic)
       i -= 1;
     }
   }
-  var Combination = 1;
+  var Combination: dynamic = 1;
   {
     i = 0;
     while ((i < r))
@@ -82,18 +82,18 @@ func combination(n: dynamic, r: dynamic)
       i += 1;
     }
   }
-  var result = cpp_cast(Combination);
+  var result: dynamic = cpp_cast(Combination);
   return result;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
-  var number_of_ways: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var number_of_ways: dynamic = cpp_uninitialized();
   scanf("%d %d %d", (&n), (&m), (&k));
   number_of_ways = m;
   number_of_ways = (((number_of_ways * power((m - 1), k))) % 998244353);

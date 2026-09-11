@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var iinf = (1e9 + 7);
+var iinf: dynamic = (1e9 + 7);
 
-var linf = (1 << 60);
+var linf: dynamic = (1 << 60);
 
-var dinf = 1e10;
+var dinf: dynamic = 1e10;
 
-func scf(x: dynamic)
+func scf(x: dynamic) -> dynamic
 {
-  var f = 0;
+  var f: dynamic = 0;
   x = 0;
-  var c = getchar();
+  var c: dynamic = getchar();
   while (((((c < cpp_char("0")) || (c > cpp_char("9")))) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -32,51 +32,51 @@ func scf(x: dynamic)
   return;
 }
 
-func scf(x: dynamic, y: dynamic)
+func scf(x: dynamic, y: dynamic) -> dynamic
 {
   scf(x);
   return scf(y);
 }
 
-func scf(x: dynamic, y: dynamic, z: dynamic)
+func scf(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   scf(x);
   scf(y);
   return scf(z);
 }
 
-var r1: dynamic;
+var r1: dynamic = cpp_uninitialized();
 
-var r2: dynamic;
+var r2: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var l1: dynamic;
+var l1: dynamic = cpp_uninitialized();
 
-var l2: dynamic;
+var l2: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func ABS(i: dynamic)
+func ABS(i: dynamic) -> dynamic
 {
-  return if ((i >= 0)) i else (-i);
+  return  ((i >= 0)) ? i : (-i);
 }
 
-func MIN(a: dynamic, b: dynamic)
+func MIN(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) a else b;
+  return  ((a < b)) ? a : b;
 }
 
-func MAX(a: dynamic, b: dynamic)
+func MAX(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a > b)) a else b;
+  return  ((a > b)) ? a : b;
 }
 
-func calcv(r: dynamic, rmin: dynamic, rmax: dynamic)
+func calcv(r: dynamic, rmin: dynamic, rmax: dynamic) -> dynamic
 {
-  var ret = 0;
-  var r1 = (r + d);
-  var r2 = (r - d);
+  var ret: dynamic = 0;
+  var r1: dynamic = (r + d);
+  var r2: dynamic = (r - d);
   if ((((r + rmin) <= d) && ((r + rmax) >= d)))
   {
     ret += 1;
@@ -100,10 +100,10 @@ func calcv(r: dynamic, rmin: dynamic, rmax: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   scf(r1, x);
   scf(r2, y);
   d = ABS((x - y));
@@ -115,8 +115,8 @@ func main()
   l1 = MAX(1, (d - r2));
   l2 = MAX(1, (d - r1));
   ans = (l1 + l2);
-  var R1: dynamic;
-  var R2: dynamic;
+  var R1: dynamic = cpp_uninitialized();
+  var R2: dynamic = cpp_uninitialized();
   R1 = r1;
   R2 = r2;
   r1 = (d + R2);
@@ -136,7 +136,7 @@ func main()
     ans += (R2 - r2);
   }
   {
-    var i = l1;
+    var i: dynamic = l1;
     while ((i <= r1))
     {
       ans += cpp_cast(calcv(i, l2, r2));

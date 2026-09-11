@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var b: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&k), (&b));
-  var st: dynamic;
-  var ans = (cpp_cast(n) * b);
+  var st: dynamic = cpp_uninitialized();
+  var ans: dynamic = (cpp_cast(n) * b);
   {
-    var i = 0;
-    var a: dynamic;
+    var i: dynamic = 0;
+    var a: dynamic = cpp_uninitialized();
     while ((i < n))
     {
       scanf("%d", (&a));
@@ -29,7 +29,7 @@ func main()
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   while (st.size())
   {
     while (st.top().second)
@@ -41,8 +41,8 @@ func main()
   }
   while (q.size())
   {
-    var c = 0;
-    var x = q.front();
+    var c: dynamic = 0;
+    var x: dynamic = q.front();
     while ((q.size() && (q.front() == x)))
     {
       c += 1;
@@ -55,7 +55,7 @@ func main()
     }
     if ((!q.size()))
     {
-      var am = (cpp_cast(b) * c);
+      var am: dynamic = (cpp_cast(b) * c);
       if (((am % k) == 0))
       {
         return cpp_comma(puts("0"), 0);

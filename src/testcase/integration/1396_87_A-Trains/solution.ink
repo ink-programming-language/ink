@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func SG(x: dynamic)
+func SG(x: dynamic) -> dynamic
 {
-  return if ((x > -1E-8)) if ((x < 1E-8)) 0 else 1 else -1;
+  return  ((x > -1E-8)) ?  ((x < 1E-8)) ? 0 : 1 : -1;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   while (((cpp_assign(a, "%=", b)) && (cpp_assign(b, "%=", a))))
   {
@@ -13,14 +13,14 @@ func gcd(a: dynamic, b: dynamic)
   return (a + b);
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var d: dynamic;
-  var sa: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var sa: dynamic = cpp_uninitialized();
   scanf("%I64d %I64d", (&a), (&b));
   d = ((a * b) / gcd(a, b));
   sa = 0;

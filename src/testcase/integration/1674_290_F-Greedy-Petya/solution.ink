@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var mod = (1e6 + 3);
+var mod: dynamic = (1e6 + 3);
 
-var INF = 2e15;
+var INF: dynamic = 2e15;
 
-var a = cpp_array(1234, 1234);
+var a: dynamic = cpp_array(1234, 1234);
 
-var adj = cpp_array(32);
+var adj: dynamic = cpp_array(32);
 
-var deg = cpp_array(34);
+var deg: dynamic = cpp_array(34);
 
-var vis = cpp_array(34);
+var vis: dynamic = cpp_array(34);
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
   if ((deg[x] != deg[y]))
   {
@@ -21,14 +21,14 @@ func cmp(x: dynamic, y: dynamic)
   return (x < y);
 }
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   vis[u] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(adj[u].size())))
     {
-      var nxt = adj[u][i];
+      var nxt: dynamic = adj[u][i];
       if ((nxt == u))
       {
         i += 1;
@@ -46,17 +46,17 @@ func dfs(u: dynamic)
   }
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       if ((x != y))
       {
@@ -66,11 +66,11 @@ func main(argc: dynamic, argv: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((a[i][j] == true))
@@ -85,16 +85,16 @@ func main(argc: dynamic, argv: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sort(adj[i].begin(), adj[i].end(), cmp);
       i += 1;
     }
   }
-  var f = 0;
+  var f: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       memset(vis, 0, cpp_sizeof((vis)));

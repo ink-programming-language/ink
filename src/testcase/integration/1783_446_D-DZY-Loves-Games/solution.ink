@@ -1,63 +1,63 @@
 // Translated from solution.cpp.
 
-var N = 505;
+var N: dynamic = 505;
 
-var M = 105;
+var M: dynamic = 105;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var top: dynamic;
+var top: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var id = cpp_array(N);
+var id: dynamic = cpp_array(N);
 
-var e = cpp_array(N, N);
+var e: dynamic = cpp_array(N, N);
 
-var deg = cpp_array(N);
+var deg: dynamic = cpp_array(N);
 
-var d = cpp_array(N, N);
+var d: dynamic = cpp_array(N, N);
 
-var v = cpp_array((N * N));
+var v: dynamic = cpp_array((N * N));
 
-var prob = cpp_array(N);
+var prob: dynamic = cpp_array(N);
 
-var x = cpp_array((N * N));
+var x: dynamic = cpp_array((N * N));
 
-var y = cpp_array((N * N));
+var y: dynamic = cpp_array((N * N));
 
-var type_cpp = cpp_array((N * N));
+var type_cpp: dynamic = cpp_array((N * N));
 
 class mat
 {
   var a: dynamic = cpp_array(M, M);
-  func mat()
+  func mat() -> dynamic
   {
       memset(a, 0, cpp_sizeof((a)));
     }
 }
 
-var tr: dynamic;
+var tr: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func operator_multiply(a: dynamic, b: dynamic)
+func operator_multiply(a: dynamic, b: dynamic) -> dynamic
 {
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = cpp_cast((1));
+    var i: dynamic = cpp_cast((1));
     while ((i <= cpp_cast(((*id)))))
     {
       {
-        var j = cpp_cast((1));
+        var j: dynamic = cpp_cast((1));
         while ((j <= cpp_cast(((*id)))))
         {
           {
-            var k = cpp_cast((1));
+            var k: dynamic = cpp_cast((1));
             while ((k <= cpp_cast(((*id)))))
             {
               ans.a[i][j] += (a.a[i][k] * b.a[k][j]);
@@ -73,15 +73,15 @@ func operator_multiply(a: dynamic, b: dynamic)
   return ans;
 }
 
-func gauss()
+func gauss() -> dynamic
 {
   {
-    var i = cpp_cast((1));
+    var i: dynamic = cpp_cast((1));
     while ((i <= cpp_cast((n))))
     {
-      var p = -1;
+      var p: dynamic = -1;
       {
-        var j = cpp_cast((i));
+        var j: dynamic = cpp_cast((i));
         while ((j <= cpp_cast((n))))
         {
           if ((fabs(d[j][i]) > 1e-6))
@@ -95,7 +95,7 @@ func gauss()
       if ((p != i))
       {
         {
-          var k = cpp_cast((1));
+          var k: dynamic = cpp_cast((1));
           while ((k <= cpp_cast((n))))
           {
             swap(d[i][k], d[p][k]);
@@ -107,18 +107,18 @@ func gauss()
         y[top] = p;
       }
       {
-        var j = cpp_cast((1));
+        var j: dynamic = cpp_cast((1));
         while ((j <= cpp_cast((n))))
         {
           if ((j != i))
           {
-            var tmp = ((-d[j][i]) / d[i][i]);
+            var tmp: dynamic = ((-d[j][i]) / d[i][i]);
             type_cpp[cpp_update(top, "++")] = 2;
             x[top] = j;
             y[top] = i;
             v[top] = tmp;
             {
-              var k = cpp_cast((i));
+              var k: dynamic = cpp_cast((i));
               while ((k <= cpp_cast((n))))
               {
                 d[j][k] += (tmp * d[i][k]);
@@ -134,11 +134,11 @@ func gauss()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d", (&n), (&m), (&k));
   {
-    var i = cpp_cast((1));
+    var i: dynamic = cpp_cast((1));
     while ((i <= cpp_cast((n))))
     {
       scanf("%d", (&a[i]));
@@ -146,7 +146,7 @@ func main()
     }
   }
   {
-    var i = cpp_cast((1));
+    var i: dynamic = cpp_cast((1));
     while ((i <= cpp_cast((n))))
     {
       if (a[i])
@@ -157,11 +157,11 @@ func main()
     }
   }
   {
-    var i = cpp_cast((1));
+    var i: dynamic = cpp_cast((1));
     while ((i <= cpp_cast((m))))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d%d", (&x), (&y));
       deg[x] += 1;
       deg[y] += 1;
@@ -171,11 +171,11 @@ func main()
     }
   }
   {
-    var i = cpp_cast((1));
+    var i: dynamic = cpp_cast((1));
     while ((i <= cpp_cast((n))))
     {
       {
-        var j = cpp_cast((1));
+        var j: dynamic = cpp_cast((1));
         while ((j <= cpp_cast((n))))
         {
           if ((!a[i]))
@@ -189,7 +189,7 @@ func main()
     }
   }
   {
-    var i = cpp_cast((1));
+    var i: dynamic = cpp_cast((1));
     while ((i <= cpp_cast((n))))
     {
       d[i][i] -= 1;
@@ -198,13 +198,13 @@ func main()
   }
   gauss();
   {
-    var i = cpp_cast((1));
+    var i: dynamic = cpp_cast((1));
     while ((i <= cpp_cast((n))))
     {
       if (id[i])
       {
         {
-          var j = cpp_cast((1));
+          var j: dynamic = cpp_cast((1));
           while ((j <= cpp_cast((n))))
           {
             prob[j] = ((-1.0 * e[j][i]) / deg[j]);
@@ -212,7 +212,7 @@ func main()
           }
         }
         {
-          var j = cpp_cast((1));
+          var j: dynamic = cpp_cast((1));
           while ((j <= cpp_cast((top))))
           {
             if ((type_cpp[j] == 1))
@@ -226,7 +226,7 @@ func main()
           }
         }
         {
-          var j = cpp_cast((1));
+          var j: dynamic = cpp_cast((1));
           while ((j <= cpp_cast((n))))
           {
             prob[j] /= d[j][j];
@@ -235,7 +235,7 @@ func main()
         }
         ans.a[1][id[i]] = prob[1];
         {
-          var j = cpp_cast((1));
+          var j: dynamic = cpp_cast((1));
           while ((j <= cpp_cast((n))))
           {
             if (id[j])

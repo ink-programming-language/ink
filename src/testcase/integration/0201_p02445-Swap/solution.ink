@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var INF = (1 << 30);
+var INF: dynamic = (1 << 30);
 
-var MAX = 10000;
+var MAX: dynamic = 10000;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var pi = 3.141592653589;
+var pi: dynamic = 3.141592653589;
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i]);
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   read(q);
-  var l: dynamic;
-  var r: dynamic;
-  var t: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       read(l, r, t);
@@ -38,10 +38,10 @@ func main()
   return 0;
 }
 
-func printVec(vec: dynamic)
+func printVec(vec: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < vec.size()))
     {
       if (i)

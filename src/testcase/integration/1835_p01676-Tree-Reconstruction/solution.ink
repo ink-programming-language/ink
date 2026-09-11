@@ -2,37 +2,37 @@
 
 class edge
 {
-  var to: dynamic;
-  var from_cpp: dynamic;
-  func edge(to: dynamic, from_cpp: dynamic)
+  var to: dynamic = cpp_uninitialized();
+  var from_cpp: dynamic = cpp_uninitialized();
+  func edge(to: dynamic, from_cpp: dynamic) -> dynamic
   {
-      this->to = cpp_construct(to);
-      this->from_cpp = cpp_construct(from_cpp);
+      self->to = cpp_construct(to);
+      self->from_cpp = cpp_construct(from_cpp);
     }
-  func edge()
+  func edge() -> dynamic
   {
     }
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var used = cpp_array(5000);
+var used: dynamic = cpp_array(5000);
 
-var G = cpp_array(555);
+var G: dynamic = cpp_array(555);
 
-var E: dynamic;
+var E: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(N, M);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
-      var s: dynamic;
-      var t: dynamic;
+      var s: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
       read(s, t);
       s -= 1;
       t -= 1;
@@ -47,17 +47,17 @@ func main()
     write(0, "\n");
     return 0;
   }
-  var ed = true;
-  var res = 0;
+  var ed: dynamic = true;
+  var res: dynamic = 0;
   while (ed)
   {
-    var minid = 0;
+    var minid: dynamic = 0;
     while (G[minid].empty())
     {
       minid += 1;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         if (G[i].empty())
@@ -74,12 +74,12 @@ func main()
     }
     res += (G[minid].size() - 1);
     {
-      var it = G[minid].begin();
+      var it: dynamic = G[minid].begin();
       while ((it != G[minid].end()))
       {
         used[(*it)] = true;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < N))
           {
             if ((i == minid))
@@ -97,7 +97,7 @@ func main()
     G[minid].clear();
     ed = false;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < M))
       {
         if ((!used[i]))

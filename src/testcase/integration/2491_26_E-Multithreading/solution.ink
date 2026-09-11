@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var N = 128;
+var N: dynamic = 128;
 
-func main()
+func main() -> dynamic
 {
-  var vp: dynamic;
-  var vl: dynamic;
-  var n: dynamic;
-  var w: dynamic;
+  var vp: dynamic = cpp_uninitialized();
+  var vl: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   scanf("%d %d", (&n), (&w));
-  var CW = w;
-  var m = cpp_array(N);
+  var CW: dynamic = w;
+  var m: dynamic = cpp_array(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&m[i]));
       i += 1;
     }
   }
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       sum += m[i];
@@ -33,16 +33,16 @@ func main()
     printf("No\n");
     return 0;
   }
-  var Q: dynamic;
-  var vst = [false];
+  var Q: dynamic = cpp_uninitialized();
+  var vst: dynamic = [false];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var mx = (1 << 20);
-      var mi = -1;
+      var mx: dynamic = (1 << 20);
+      var mi: dynamic = -1;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((!vst[j]))
@@ -53,7 +53,7 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if (((!vst[j]) && (mx == m[j])))
@@ -72,7 +72,7 @@ func main()
   {
     while ((w != 0))
     {
-      var p = Q.front();
+      var p: dynamic = Q.front();
       Q.pop();
       m[p] -= 1;
       vp.push_back(p);
@@ -83,9 +83,9 @@ func main()
       w -= 1;
     }
   }
-  var dict: dynamic;
+  var dict: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((m[i] != 0))
@@ -96,14 +96,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(vp.size())))
     {
-      var cur = vp[i];
+      var cur: dynamic = vp[i];
       vl.push_back((cur + 1));
-      var erl: dynamic;
+      var erl: dynamic = cpp_uninitialized();
       {
-        var j = dict.begin();
+        var j: dynamic = dict.begin();
         while ((j != dict.end()))
         {
           if (((*j) == cur))
@@ -116,11 +116,11 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast(erl.size())))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < (2 * m[erl[j]])))
             {
               vl.push_back((erl[j] + 1));
@@ -142,10 +142,10 @@ func main()
   }
   printf("Yes\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(vl.size())))
     {
-      printf("%d%c", vl[i], if ((i == (vl.size() - 1))) cpp_char("\n") else cpp_char(" "));
+      printf("%d%c", vl[i],  ((i == (vl.size() - 1))) ? cpp_char("\n") : cpp_char(" "));
       i += 1;
     }
   }

@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var q: dynamic;
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
-  var i: dynamic;
-  var bar: dynamic;
-  var left: dynamic;
-  var diag: dynamic;
+  var q: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var bar: dynamic = cpp_uninitialized();
+  var left: dynamic = cpp_uninitialized();
+  var diag: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   while (cpp_update(q, "--"))
   {

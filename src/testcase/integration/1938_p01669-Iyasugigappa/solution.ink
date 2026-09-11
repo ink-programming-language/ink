@@ -1,45 +1,45 @@
 // Translated from solution.cpp.
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var memo: dynamic;
+var memo: dynamic = cpp_uninitialized();
 
-var memo2: dynamic;
+var memo2: dynamic = cpp_uninitialized();
 
-var next_st: dynamic;
+var next_st: dynamic = cpp_uninitialized();
 
-var get_score: dynamic;
+var get_score: dynamic = cpp_uninitialized();
 
-var card = cpp_array(2, 3);
+var card: dynamic = cpp_array(2, 3);
 
-func make_array(a: dynamic, b: dynamic, c: dynamic)
+func make_array(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return [[a, b, c]];
 }
 
 enum cpp_enum_1
 {
-  frog,
-  kappa,
-  weasel
+  enum_field frog;
+  enum_field kappa;
+  enum_field weasel;
 }
 
-func rec(fld: dynamic, action: dynamic, turn: dynamic, k: dynamic)
+func rec(fld: dynamic, action: dynamic, turn: dynamic, k: dynamic) -> dynamic
 {
   if ((fld.size() == 0))
   {
     return make_array(0, 0, 0);
   }
-  var now = make_tuple(fld, action, turn);
-  if (((if (k) memo2 else memo).count(now) == 1))
+  var now: dynamic = make_tuple(fld, action, turn);
+  if ((( (k) ? memo2 : memo).count(now) == 1))
   {
-    return (if (k) memo2 else memo)[now];
+    return ( (k) ? memo2 : memo)[now];
   }
-  var res = (if (k) memo2 else memo)[now];
+  var res: dynamic = ( (k) ? memo2 : memo)[now];
   res = make_array(0, 0, (-INF));
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
       if ((action & ((1 << (((2 * turn) + i))))))
@@ -51,16 +51,16 @@ func rec(fld: dynamic, action: dynamic, turn: dynamic, k: dynamic)
   }
   if (((!k) || (turn == kappa)))
   {
-    var cand: dynamic;
-    var comp: dynamic;
-    var next_fld: dynamic;
-    var next_action: dynamic;
-    var add_score: dynamic;
+    var cand: dynamic = cpp_uninitialized();
+    var comp: dynamic = cpp_uninitialized();
+    var next_fld: dynamic = cpp_uninitialized();
+    var next_action: dynamic = cpp_uninitialized();
+    var add_score: dynamic = cpp_uninitialized();
     {
-      var f = fld;
-      var score = (*f.begin());
+      var f: dynamic = fld;
+      var score: dynamic = (*f.begin());
       f.erase(f.begin());
-      var t = rec(f, action, (((turn + 1)) % 3), k);
+      var t: dynamic = rec(f, action, (((turn + 1)) % 3), k);
       t[turn] += score;
       cand.push_back(move(t));
       next_fld.push_back(f);
@@ -75,16 +75,16 @@ func rec(fld: dynamic, action: dynamic, turn: dynamic, k: dynamic)
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 2))
       {
         if (((action & ((1 << (((2 * turn) + i))))) && (card[turn][i] <= fld.size())))
         {
-          var nxt_act = (action & (~((1 << (((2 * turn) + i))))));
-          var f = fld;
-          var score = (*(((f.begin() + card[turn][i]) - 1)));
+          var nxt_act: dynamic = (action & (~((1 << (((2 * turn) + i))))));
+          var f: dynamic = fld;
+          var score: dynamic = (*(((f.begin() + card[turn][i]) - 1)));
           f.erase(((f.begin() + card[turn][i]) - 1));
-          var t = rec(f, nxt_act, (((turn + 1)) % 3), k);
+          var t: dynamic = rec(f, nxt_act, (((turn + 1)) % 3), k);
           t[turn] += score;
           cand.push_back(move(t));
           next_fld.push_back(f);
@@ -101,7 +101,7 @@ func rec(fld: dynamic, action: dynamic, turn: dynamic, k: dynamic)
         i += 1;
       }
     }
-    var idx = (max_element(comp.begin(), comp.end()) - comp.begin());
+    var idx: dynamic = (max_element(comp.begin(), comp.end()) - comp.begin());
     if ((!k))
     {
       next_st[now] = make_tuple(next_fld[idx], next_action[idx], (((turn + 1)) % 3));
@@ -110,21 +110,21 @@ func rec(fld: dynamic, action: dynamic, turn: dynamic, k: dynamic)
     return cpp_assign(res, "=", cand[idx]);
   } else
   {
-    var f: dynamic;
-    var a: dynamic;
-    var t: dynamic;
+    var f: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var t: dynamic = cpp_uninitialized();
     tie(f, a, t) = next_st[now];
-    var tmp = rec(f, a, t, true);
+    var tmp: dynamic = rec(f, a, t, true);
     tmp[turn] += get_score[now];
     return cpp_assign(res, "=", tmp);
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var fld = cpp_construct(12);
+  var fld: dynamic = cpp_construct(12);
   {
-    var i = 11;
+    var i: dynamic = 11;
     while ((i >= 0))
     {
       read(fld[i]);
@@ -132,11 +132,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 2))
         {
           read(card[i][j]);
@@ -147,6 +147,6 @@ func main()
     }
   }
   rec(fld, 0b111111, 0, false);
-  var res = rec(fld, 0b111111, 0, true);
+  var res: dynamic = rec(fld, 0b111111, 0, true);
   write(res[0], cpp_char(" "), res[1], cpp_char(" "), res[2], "\n");
 }

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var d = cpp_array(55);
+var d: dynamic = cpp_array(55);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(d[i]);
@@ -18,11 +18,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j <= n))
         {
           ans += (d[i] * d[j]);

@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var z: dynamic;
-  var o: dynamic;
+  var z: dynamic = cpp_uninitialized();
+  var o: dynamic = cpp_uninitialized();
   scanf("%d %d", (&z), (&o));
-  var max1 = (4 + (2 * ((z - 1))));
+  var max1: dynamic = (4 + (2 * ((z - 1))));
   if ((((o < (z - 1))) || ((o > max1))))
   {
     puts("-1");
     return 0;
   }
-  var mid = (z - 1);
-  var rem = (o - mid);
+  var mid: dynamic = (z - 1);
+  var rem: dynamic = (o - mid);
   if ((rem > 4))
   {
     mid += (rem - 4);
     rem = 4;
   }
-  var exr = ((mid - z) + 1);
+  var exr: dynamic = ((mid - z) + 1);
   {
     typeof((rem / 2)) = 0;
     while ((i < (rem / 2)))

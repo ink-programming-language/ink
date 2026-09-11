@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var ri = cpp_expression("#include");
+var ri: dynamic = cpp_expression("#include");
 
-var mk = cpp_expression("#include");
+var mk: dynamic = cpp_expression("#include");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var eb = cpp_expression("#include <bi");
+var eb: dynamic = cpp_expression("#include <bi");
 
-var is = cpp_expression("#inclu");
+var is: dynamic = cpp_expression("#inclu");
 
-var es = cpp_expression("#incl");
+var es: dynamic = cpp_expression("#incl");
 
-var N = 200010;
+var N: dynamic = 200010;
 
-func read()
+func read() -> dynamic
 {
-  var s = 0;
-  var w = 1;
-  var char = getchar();
+  var s: dynamic = 0;
+  var w: dynamic = 1;
+  var char: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -41,19 +41,19 @@ func read()
   return (s * w);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var Ans: dynamic;
+var Ans: dynamic = cpp_uninitialized();
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   n = read();
   {
-    var int_cpp = 1;
+    var int_cpp: dynamic = 1;
     while ((i <= n))
     {
       a[i] = read();
@@ -61,7 +61,7 @@ func main()
     }
   }
   {
-    var int_cpp = 1;
+    var int_cpp: dynamic = 1;
     while ((i <= n))
     {
       g[a[i]].eb(i);
@@ -69,7 +69,7 @@ func main()
     }
   }
   {
-    var int_cpp = 1;
+    var int_cpp: dynamic = 1;
     while ((i <= n))
     {
       g[a[i]].eb((n + 1));
@@ -77,18 +77,18 @@ func main()
     }
   }
   g[0].eb((n + 1));
-  var p: dynamic;
-  var q: dynamic;
+  var p: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   p = cpp_assign(q, "=", 0);
   {
-    var int_cpp = 1;
+    var int_cpp: dynamic = 1;
     while ((i <= n))
     {
       if (((a[i] != p) && (a[i] != q)))
       {
         Ans += 1;
-        var np = (*lower_bound(g[p].begin(), g[p].end(), i));
-        var nq = (*lower_bound(g[q].begin(), g[q].end(), i));
+        var np: dynamic = (*lower_bound(g[p].begin(), g[p].end(), i));
+        var nq: dynamic = (*lower_bound(g[q].begin(), g[q].end(), i));
         if ((np < nq))
         {
           q = a[i];

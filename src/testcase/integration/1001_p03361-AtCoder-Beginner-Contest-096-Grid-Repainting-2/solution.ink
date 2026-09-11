@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var fl = 1;
+var fl: dynamic = 1;
 
-var a = cpp_array(55, 55);
+var a: dynamic = cpp_array(55, 55);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   read(h, w);
   {
     i = 1;
@@ -24,7 +24,7 @@ func main()
         j = 1;
         while ((j <= w))
         {
-          a[i][j] = if ((s[(j - 1)] == cpp_char("."))) 0 else 1;
+          a[i][j] =  ((s[(j - 1)] == cpp_char("."))) ? 0 : 1;
           j += 1;
         }
       }
@@ -49,6 +49,6 @@ func main()
       i += 1;
     }
   }
-  write((if (fl) "Yes" else "No"));
+  write(( (fl) ? "Yes" : "No"));
   return 0;
 }

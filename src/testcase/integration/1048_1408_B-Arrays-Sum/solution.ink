@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(105);
+var a: dynamic = cpp_array(105);
 
-var mark = cpp_array(105);
+var mark: dynamic = cpp_array(105);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var t: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     read(n, k);
-    var cnt = 0;
+    var cnt: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -27,7 +27,7 @@ func main()
         i += 1;
       }
     }
-    var ans = 0;
+    var ans: dynamic = 0;
     if ((cnt <= k))
     {
       write(1, "\n");

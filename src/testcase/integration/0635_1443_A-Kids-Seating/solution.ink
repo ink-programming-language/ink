@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var pr = cpp_array(405);
+var pr: dynamic = cpp_array(405);
 
-func prime(n: dynamic)
+func prime(n: dynamic) -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < (n * n)))
     {
       if (((n % i) == 0))
@@ -21,20 +21,20 @@ func prime(n: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var cnt = 0;
-    var b = 0;
-    var ans: dynamic;
+    var cnt: dynamic = 0;
+    var b: dynamic = 0;
+    var ans: dynamic = cpp_uninitialized();
     {
-      var i = (4 * n);
+      var i: dynamic = (4 * n);
       while ((i >= 4))
       {
         if ((cnt == n))
@@ -46,7 +46,7 @@ func main()
         i -= 2;
       }
     }
-    for (var x in ans)
+    for (var x: dynamic in ans)
     {
       write(x, " ");
     }

@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
-  var zer: dynamic;
-  var jed: dynamic;
-  var x: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var zer: dynamic = cpp_uninitialized();
+  var jed: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(t);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t))
     {
       read(s);
       zer = 0;
       jed = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < s.size()))
         {
-          var __cpp_switch_1 = s[j];
+          var __cpp_switch_1: dynamic = s[j];
           if (__cpp_switch_1 == cpp_char("0"))
           {
             zer += 1;

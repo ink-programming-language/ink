@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var Maxn = cpp_expression("#inc");
+var Maxn: dynamic = cpp_expression("#inc");
 
-var pi = cpp_expression("#include");
+var pi: dynamic = cpp_expression("#include");
 
-var T = cpp_array(Maxn);
+var T: dynamic = cpp_array(Maxn);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-func add(rad: dynamic, cnt: dynamic)
+func add(rad: dynamic, cnt: dynamic) -> dynamic
 {
   x += (cos(rad) * cnt);
   y += (sin(rad) * cnt);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&L));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%lf", (&T[i]));
@@ -33,15 +33,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < n))
         {
-          var m1 = (((T[i] + T[j])) / 2);
-          var m2 = (m1 + pi);
+          var m1: dynamic = (((T[i] + T[j])) / 2);
+          var m2: dynamic = (m1 + pi);
           add(m1, (((i + n) - j) - 1));
           add(m2, ((j - i) - 1));
           j += 1;
@@ -50,7 +50,7 @@ func main()
       i += 1;
     }
   }
-  var all = ((((1.0 * n) * ((n - 1))) * ((n - 2))) / 6);
+  var all: dynamic = ((((1.0 * n) * ((n - 1))) * ((n - 2))) / 6);
   x /= all;
   y /= all;
   printf("%.11lf\n %.11lf\n", x, y);

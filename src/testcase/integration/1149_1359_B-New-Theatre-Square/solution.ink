@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var i = 0;
+var i: dynamic = 0;
 
-var j = 0;
+var j: dynamic = 0;
 
-var k = 0;
+var k: dynamic = 0;
 
-var arr = cpp_array(1001, 101);
+var arr: dynamic = cpp_array(1001, 101);
 
-func solve()
+func solve() -> dynamic
 {
   memset(arr, 0, cpp_sizeof((arr)));
-  var n: dynamic;
-  var m: dynamic;
-  var o: dynamic;
-  var t: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var o: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(n, m, o, t);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= (m - 1)))
         {
           read(arr[i][j]);
@@ -31,12 +31,12 @@ func solve()
       i += 1;
     }
   }
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < n))
     {
-      var s = "";
+      var s: dynamic = "";
       {
         j = 0;
         while ((j < m))
@@ -58,19 +58,19 @@ func solve()
   }
   if (((2 * o) <= t))
   {
-    var tt = 0;
-    for (var s in v)
+    var tt: dynamic = 0;
+    for (var s: dynamic in v)
     {
       tt += cpp_cast((s).size());
     }
     write((tt * o), "\n");
   } else
   {
-    var oo = 0;
-    var tt = 0;
-    for (var s in v)
+    var oo: dynamic = 0;
+    var tt: dynamic = 0;
+    for (var s: dynamic in v)
     {
-      var ss = cpp_cast((s).size());
+      var ss: dynamic = cpp_cast((s).size());
       if ((ss & 1))
       {
         oo += 1;
@@ -84,11 +84,11 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var t = 1;
+  var t: dynamic = 1;
   read(t);
   while (cpp_update(t, "--"))
   {

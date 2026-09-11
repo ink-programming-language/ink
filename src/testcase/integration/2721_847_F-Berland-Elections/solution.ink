@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var m: dynamic;
-  var a: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
   scanf("%d %d %d %d", (&n), (&k), (&m), (&a));
-  var votes = cpp_construct(n, 0);
-  var last = cpp_construct(n, -1);
+  var votes: dynamic = cpp_construct(n, 0);
+  var last: dynamic = cpp_construct(n, -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a))
     {
-      var foo: dynamic;
+      var foo: dynamic = cpp_uninitialized();
       scanf("%d", (&foo));
       foo -= 1;
       votes[foo] += 1;
@@ -22,7 +22,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((votes[i] == 0) && (m == a)))
@@ -31,7 +31,7 @@ func main()
         continue;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           z[j] = make_pair(make_pair(votes[j], last[j]), j);
@@ -46,7 +46,7 @@ func main()
       }
       sort(z.begin(), z.end());
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < k))
         {
           chance[i] = ((chance[i] | ((z[j].second == i))));
@@ -57,7 +57,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((votes[i] == 0))
@@ -65,9 +65,9 @@ func main()
         i += 1;
         continue;
       }
-      var need: dynamic;
+      var need: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((i == j))
@@ -75,7 +75,7 @@ func main()
             j += 1;
             continue;
           }
-          var cur = (m + 1);
+          var cur: dynamic = (m + 1);
           if (((votes[j] > votes[i]) || (((votes[j] == votes[i]) && (last[j] < last[i])))))
           {
             cur = 0;
@@ -89,9 +89,9 @@ func main()
       }
       need.push_back((m + 1));
       sort(need.begin(), need.end());
-      var sum = 0;
+      var sum: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < k))
         {
           sum += need[j];
@@ -106,14 +106,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i > 0))
       {
         putchar(cpp_char(" "));
       }
-      printf("%d", if (sure[i]) 1 else (if (chance[i]) 2 else 3));
+      printf("%d",  (sure[i]) ? 1 : ( (chance[i]) ? 2 : 3));
       i += 1;
     }
   }

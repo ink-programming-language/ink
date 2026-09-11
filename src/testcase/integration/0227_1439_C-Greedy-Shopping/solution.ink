@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func mkuni(v: dynamic)
+func mkuni(v: dynamic) -> dynamic
 {
   sort(v.begin(), v.end());
   v.erase(unique(v.begin(), v.end()), v.end());
 }
 
-func rand_int(l: dynamic, r: dynamic)
+func rand_int(l: dynamic, r: dynamic) -> dynamic
 {
-  var gen = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+  var gen: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
   return uniform_int_distribution(l, r)(gen);
 }
 
-func print(x: dynamic, suc: dynamic = 1)
+func print(x: dynamic, suc: dynamic = 1) -> dynamic
 {
   write(x);
   if ((suc == 1))
@@ -24,40 +24,40 @@ func print(x: dynamic, suc: dynamic = 1)
   }
 }
 
-func print(v: dynamic, suc: dynamic = 1)
+func print(v: dynamic, suc: dynamic = 1) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
-      print(v[i], if ((i == (cpp_cast((v.size())) - 1))) suc else 2);
+      print(v[i],  ((i == (cpp_cast((v.size())) - 1))) ? suc : 2);
       i += 1;
     }
   }
 }
 
-var N = (3e5 + 10);
+var N: dynamic = (3e5 + 10);
 
 class Tree
 {
-  var l: dynamic;
-  var r: dynamic;
-  var lazy: dynamic;
-  var sum: dynamic;
-  var mi: dynamic;
-  var ma: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var lazy: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  var mi: dynamic = cpp_uninitialized();
+  var ma: dynamic = cpp_uninitialized();
 }
 
-var tree = cpp_array((N << 2));
+var tree: dynamic = cpp_array((N << 2));
 
-func push_up(rt: dynamic)
+func push_up(rt: dynamic) -> dynamic
 {
   tree[rt].sum = (tree[(rt << 1)].sum + tree[((rt << 1) | 1)].sum);
   tree[rt].ma = tree[(rt << 1)].ma;
   tree[rt].mi = tree[((rt << 1) | 1)].mi;
 }
 
-func build(l: dynamic, r: dynamic, rt: dynamic, a: dynamic)
+func build(l: dynamic, r: dynamic, rt: dynamic, a: dynamic) -> dynamic
 {
   tree[rt].l = l;
   tree[rt].r = r;
@@ -67,19 +67,19 @@ func build(l: dynamic, r: dynamic, rt: dynamic, a: dynamic)
     tree[rt].sum = cpp_assign(tree[rt].mi, "=", cpp_assign(tree[rt].ma, "=", a[l]));
     return;
   }
-  var mid = ((l + r) >> 1);
+  var mid: dynamic = ((l + r) >> 1);
   build(l, mid, (rt << 1), a);
   build((mid + 1), r, ((rt << 1) | 1), a);
   push_up(rt);
 }
 
-func push_down(rt: dynamic)
+func push_down(rt: dynamic) -> dynamic
 {
   if (tree[rt].lazy)
   {
-    var x = tree[rt].lazy;
-    var l = tree[rt].l;
-    var r = tree[rt].r;
+    var x: dynamic = tree[rt].lazy;
+    var l: dynamic = tree[rt].l;
+    var r: dynamic = tree[rt].r;
     tree[rt].lazy = 0;
     tree[(rt << 1)].sum = ((1 * (((tree[(rt << 1)].r - tree[(rt << 1)].l) + 1))) * x);
     tree[(rt << 1)].mi = cpp_assign(tree[(rt << 1)].ma, "=", x);
@@ -90,10 +90,10 @@ func push_down(rt: dynamic)
   }
 }
 
-func update_range(L: dynamic, R: dynamic, Y: dynamic, rt: dynamic)
+func update_range(L: dynamic, R: dynamic, Y: dynamic, rt: dynamic) -> dynamic
 {
-  var l = tree[rt].l;
-  var r = tree[rt].r;
+  var l: dynamic = tree[rt].l;
+  var r: dynamic = tree[rt].r;
   if (((tree[rt].mi >= Y) || (l > R)))
   {
     return;
@@ -111,10 +111,10 @@ func update_range(L: dynamic, R: dynamic, Y: dynamic, rt: dynamic)
   push_up(rt);
 }
 
-func query_range(L: dynamic, R: dynamic, rt: dynamic, Y: dynamic)
+func query_range(L: dynamic, R: dynamic, rt: dynamic, Y: dynamic) -> dynamic
 {
-  var l = tree[rt].l;
-  var r = tree[rt].r;
+  var l: dynamic = tree[rt].l;
+  var r: dynamic = tree[rt].r;
   if (((tree[rt].mi > Y) || (r < L)))
   {
     return 0;
@@ -125,22 +125,22 @@ func query_range(L: dynamic, R: dynamic, rt: dynamic, Y: dynamic)
     return ((r - l) + 1);
   }
   push_down(rt);
-  var res = 0;
+  var res: dynamic = 0;
   res += query_range(L, R, (rt << 1), Y);
   res += query_range(L, R, ((rt << 1) | 1), Y);
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(n, q);
-  var a = cpp_construct((n + 1));
+  var a: dynamic = cpp_construct((n + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -150,9 +150,9 @@ func main()
   build(1, n, 1, a);
   while (cpp_update(q, "--"))
   {
-    var x: dynamic;
-    var y: dynamic;
-    var op: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
+    var op: dynamic = cpp_uninitialized();
     read(op, x, y);
     if ((op == 1))
     {

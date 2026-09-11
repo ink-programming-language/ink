@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var l: dynamic;
-  var r: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   read(n, l, r);
-  var f = 1;
+  var f: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i]);
@@ -21,7 +21,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v1[i]);
@@ -29,7 +29,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((((v[i] != v1[i])) && (((i < (l - 1)) || (i > (r - 1))))))

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var x = 0;
+  var x: dynamic = 0;
   if (((n % 4) == 1))
   {
     x = 1;

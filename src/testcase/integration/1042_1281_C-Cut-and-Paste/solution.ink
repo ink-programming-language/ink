@@ -1,48 +1,48 @@
 // Translated from solution.cpp.
 
-var N = (5e6 + 5);
+var N: dynamic = (5e6 + 5);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(t);
   while (cpp_update(t, "--"))
   {
     read(x, s);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= s.length()))
       {
         a[i] = (s[(i - 1)] - 48);
         i += 1;
       }
     }
-    var len = s.length();
-    var kt = 0;
+    var len: dynamic = s.length();
+    var kt: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= x))
       {
         if ((kt == 0))
         {
-          var luu = len;
+          var luu: dynamic = len;
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= (a[i] - 1)))
             {
               {
-                var k = (i + 1);
+                var k: dynamic = (i + 1);
                 while ((k <= luu))
                 {
                   len += 1;
@@ -59,7 +59,7 @@ func main()
           }
         } else
         {
-          var tmp = ((((len - i) + (mod * mod))) % mod);
+          var tmp: dynamic = ((((len - i) + (mod * mod))) % mod);
           len = (((i + (((a[i] * tmp)) % mod))) % mod);
         }
         i += 1;

@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(ll i=0;i<n;i++)");
 }
 
-var a = cpp_array(200000);
+var a: dynamic = cpp_array(200000);
 
-func main()
+func main() -> dynamic
 {
-  var d: dynamic;
-  var n: dynamic;
-  var m: dynamic;
+  var d: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   while (cpp_comma(scanf("%lld", (&d)), d))
   {
     scanf("%lld%lld", (&n), (&m));
@@ -22,15 +22,15 @@ func main()
     sort(a, ((a + n) + 1));
     a[(n + 1)] = (a[(n - 1)] - d);
     sort(a, ((a + n) + 2));
-    var cnt = 0;
+    var cnt: dynamic = 0;
     printf("%lld\n", cnt);
   }
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var k: dynamic;
+      var k: dynamic = cpp_uninitialized();
       scanf("%lld", (&k));
-      var p = lower_bound(a, ((a + n) + 2), k);
+      var p: dynamic = lower_bound(a, ((a + n) + 2), k);
       cnt += min(((*p) - k), (k - (*((p - 1)))));
     }

@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var p: dynamic;
-  var cnt = 2;
-  var ans = 0;
-  var m: dynamic;
-  var l: dynamic;
-  var r = 0;
-  var pi = 3.1415926536;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var cnt: dynamic = 2;
+  var ans: dynamic = 0;
+  var m: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = 0;
+  var pi: dynamic = 3.1415926536;
   read(n);
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < n))

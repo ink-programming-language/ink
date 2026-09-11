@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var y1: dynamic;
-  var m1: dynamic;
-  var d1: dynamic;
-  var y2: dynamic;
-  var m2: dynamic;
-  var d2: dynamic;
+  var y1: dynamic = cpp_uninitialized();
+  var m1: dynamic = cpp_uninitialized();
+  var d1: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
+  var m2: dynamic = cpp_uninitialized();
+  var d2: dynamic = cpp_uninitialized();
   while ((((((((cin >> y1) >> m1) >> d1) >> y2) >> m2) >> d2) && (y1 != -1)))
   {
-    var res = 0;
-    var days = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    var res: dynamic = 0;
+    var days: dynamic = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     {
-      var y = y1;
+      var y: dynamic = y1;
       while ((y <= y2))
       {
-        var ms = 1;
-        var me = 12;
+        var ms: dynamic = 1;
+        var me: dynamic = 12;
         if ((y == y1))
         {
           ms = m1;
@@ -27,11 +27,11 @@ func main()
           me = m2;
         }
         {
-          var m = ms;
+          var m: dynamic = ms;
           while ((m <= me))
           {
-            var ds = 1;
-            var de = days[m];
+            var ds: dynamic = 1;
+            var de: dynamic = days[m];
             if (((m == 2) && ((y % 4) == 0)))
             {
               if ((((y % 100) != 0) || ((y % 400) == 0)))
@@ -48,7 +48,7 @@ func main()
               de = d2;
             }
             {
-              var d = ds;
+              var d: dynamic = ds;
               while ((d <= de))
               {
                 res += 1;

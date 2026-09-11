@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var comp = ["JOI", "IOI"];
+  var s: dynamic = cpp_uninitialized();
+  var comp: dynamic = ["JOI", "IOI"];
   while ((cin >> s))
   {
     {
-      var k = 0;
+      var k: dynamic = 0;
       while ((k < 2))
       {
-        var ans = 0;
+        var ans: dynamic = 0;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while (((cpp_assign(i, "=", s.find(comp[k], i))) != string_cpp.npos))
           {
             ans += 1;

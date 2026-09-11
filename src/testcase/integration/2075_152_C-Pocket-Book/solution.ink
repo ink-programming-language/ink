@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var prime = cpp_array((1000000 + 5));
+var prime: dynamic = cpp_array((1000000 + 5));
 
-var in_cpp: dynamic;
+var in_cpp: dynamic = cpp_uninitialized();
 
-var isp = cpp_array((1000000 + 5));
+var isp: dynamic = cpp_array((1000000 + 5));
 
-var d4 = [-1, 0, 1, 0];
+var d4: dynamic = [-1, 0, 1, 0];
 
-var y4 = [0, -1, 0, 1];
+var y4: dynamic = [0, -1, 0, 1];
 
-var dx = [1, -1, 0, 0, -1, 1, 1, -1];
+var dx: dynamic = [1, -1, 0, 0, -1, 1, 1, -1];
 
-var dy = [1, -1, 1, -1, 0, 0, -1, 1];
+var dy: dynamic = [1, -1, 1, -1, 0, 0, -1, 1];
 
-var dxh = [1, -1, 1, -1, 2, 2, -2, -2];
+var dxh: dynamic = [1, -1, 1, -1, 2, 2, -2, -2];
 
-var dyh = [2, 2, -2, -2, 1, -1, 1, -1];
+var dyh: dynamic = [2, 2, -2, -2, 1, -1, 1, -1];
 
-var mat = cpp_array(1005, 1005);
+var mat: dynamic = cpp_array(1005, 1005);
 
-var val = cpp_array(1005, 1005);
+var val: dynamic = cpp_array(1005, 1005);
 
-func reset()
+func reset() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 1005))
     {
       memset(mat[i], 0, cpp_sizeof((mat[i])));
@@ -35,31 +35,31 @@ func reset()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   while (((cin >> n) >> m))
   {
-    var v: dynamic;
+    var v: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var sr: dynamic;
+        var sr: dynamic = cpp_uninitialized();
         read(sr);
         v.push_back(sr);
         i += 1;
       }
     }
-    var ans = 1;
+    var ans: dynamic = 1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
-        var s: dynamic;
+        var s: dynamic = cpp_uninitialized();
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             s.insert(v[j][i]);

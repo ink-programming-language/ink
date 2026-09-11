@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var ans = cpp_array(1010, 1010);
+var ans: dynamic = cpp_array(1010, 1010);
 
-var al = cpp_array(1010);
+var al: dynamic = cpp_array(1010);
 
 class node
 {
-  var id: dynamic;
-  var v: dynamic;
+  var id: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
 }
 
-var den = cpp_array(1010);
+var den: dynamic = cpp_array(1010);
 
-var qian = cpp_array(1010);
+var qian: dynamic = cpp_array(1010);
 
-var dl = 0;
+var dl: dynamic = 0;
 
-var ql = 0;
+var ql: dynamic = 0;
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.v > b.v);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   scanf("%d", (&m));
-  var cost = 0;
+  var cost: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
-      var y: dynamic;
+      var y: dynamic = cpp_uninitialized();
       scanf("%d", (&y));
       if ((y == 1))
       {
@@ -51,7 +51,7 @@ func main()
     }
   }
   sort(den, (den + dl), cmp);
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while (((i < (m - 1)) && (i < dl)))
@@ -64,7 +64,7 @@ func main()
   }
   if ((i < (m - 1)))
   {
-    var j: dynamic;
+    var j: dynamic = cpp_uninitialized();
     {
       j = 0;
       while ((i < (m - 1)))
@@ -86,9 +86,9 @@ func main()
     }
   } else
   {
-    var vmin = 0x3FFFFFFF;
+    var vmin: dynamic = 0x3FFFFFFF;
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((i < dl))
       {
         ans[(m - 1)][j] = den[i].id;
@@ -103,7 +103,7 @@ func main()
       }
     }
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < ql))
       {
         ans[(m - 1)][cpp_update(al[(m - 1)], "++")] = qian[j].id;
@@ -122,12 +122,12 @@ func main()
   }
   printf("%.1lf\n", cost);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       printf("%d", al[i]);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < al[i]))
         {
           printf(" %d", ans[i][j]);

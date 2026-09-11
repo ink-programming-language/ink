@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 10);
+var N: dynamic = (2e5 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var dp = cpp_array(44, 22);
+var dp: dynamic = cpp_array(44, 22);
 
 class uzi
 {
   var A: dynamic = cpp_array(44, 44);
-  func uzi()
+  func uzi() -> dynamic
   {
       memset(A, 0x3f3f3f, cpp_sizeof(A));
     }
 }
 
-var G: dynamic;
+var G: dynamic = cpp_uninitialized();
 
-func operator_multiply(a: dynamic, b: dynamic)
+func operator_multiply(a: dynamic, b: dynamic) -> dynamic
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 40))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= 40))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= 40))
             {
               c.A[i][j] = min((a.A[i][k] + b.A[k][j]), c.A[i][j]);
@@ -51,11 +51,11 @@ func operator_multiply(a: dynamic, b: dynamic)
   return c;
 }
 
-func pm()
+func pm() -> dynamic
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 40))
     {
       c.A[i][i] = 0;
@@ -74,12 +74,12 @@ func pm()
   return c;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -87,7 +87,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(b[i]);
@@ -95,15 +95,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 40))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= n))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= 40))
             {
               dp[j][k] = 1e9;
@@ -128,7 +128,7 @@ func main()
             }
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= 40))
             {
               G.A[i][k] = dp[n][k];

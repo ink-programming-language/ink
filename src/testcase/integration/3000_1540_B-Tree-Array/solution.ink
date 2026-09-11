@@ -1,53 +1,53 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var N = 210;
+var N: dynamic = 210;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var inv = cpp_array(N);
+var inv: dynamic = cpp_array(N);
 
-var dp = cpp_array(N, N);
+var dp: dynamic = cpp_array(N, N);
 
-var lca = cpp_array(N, N);
+var lca: dynamic = cpp_array(N, N);
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-func dfs(cur: dynamic, fa: dynamic)
+func dfs(cur: dynamic, fa: dynamic) -> dynamic
 {
   s[cur] = [cur];
-  dep[cur] = if (((fa >= 0))) (dep[fa] + 1) else 1;
-  for (var child in g[cur])
+  dep[cur] =  (((fa >= 0))) ? (dep[fa] + 1) : 1;
+  for (var child: dynamic in g[cur])
   {
     if ((child == fa))
     {
       continue;
     }
     dfs(child, cur);
-    for (var x in s[child])
+    for (var x: dynamic in s[child])
     {
-      for (var y in s[cur])
+      for (var y: dynamic in s[cur])
       {
         lca[x][y] = cpp_assign(lca[y][x], "=", cur);
       }
     }
-    for (var x in s[child])
+    for (var x: dynamic in s[child])
     {
       s[cur].pb(x);
     }
   }
 }
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   a += b;
   if ((a >= mod))
@@ -56,12 +56,12 @@ func add(a: dynamic, b: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   inv[0] = cpp_assign(inv[1], "=", 1);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       inv[i] = ((cpp_cast(inv[(mod % i)]) * ((mod - (mod / i)))) % mod);
@@ -69,7 +69,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       dp[i][0] = 0;
@@ -78,11 +78,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           dp[i][j] = (((ll)((dp[(i - 1)][j] + dp[i][(j - 1)])) * inv[2]) % mod);
@@ -92,10 +92,10 @@ func main()
       i += 1;
     }
   }
-  var u: dynamic;
-  var v: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       read(u, v);
@@ -106,18 +106,18 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var rt = 0;
+    var rt: dynamic = 0;
     while ((rt < n))
     {
       dfs(rt, -1);
       {
-        var x = 0;
+        var x: dynamic = 0;
         while ((x < n))
         {
           {
-            var y = (x + 1);
+            var y: dynamic = (x + 1);
             while ((y < n))
             {
               add(ans, dp[(dep[y] - dep[lca[x][y]])][(dep[x] - dep[lca[x][y]])]);

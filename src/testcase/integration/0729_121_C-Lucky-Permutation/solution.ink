@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100);
+var a: dynamic = cpp_array(100);
 
-var ins = cpp_array(100);
+var ins: dynamic = cpp_array(100);
 
-func IsLucky(x: dynamic)
+func IsLucky(x: dynamic) -> dynamic
 {
   {
     while (x)
@@ -21,7 +21,7 @@ func IsLucky(x: dynamic)
   return 1;
 }
 
-func Dfs(now: dynamic, lim: dynamic)
+func Dfs(now: dynamic, lim: dynamic) -> dynamic
 {
   res += 1;
   if ((((cpp_cast(now) * 10) + 4) <= lim))
@@ -34,15 +34,15 @@ func Dfs(now: dynamic, lim: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
-  var cnt = 1;
+  var cnt: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while (true)
     {
       cnt *= i;
@@ -61,22 +61,22 @@ func main()
   }
   memset(ins, 0, cpp_sizeof((ins)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       cnt = 1;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < (k - i)))
         {
           cnt *= j;
           j += 1;
         }
       }
-      var ret = (((m - 1)) / cnt);
+      var ret: dynamic = (((m - 1)) / cnt);
       m -= (ret * cnt);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < k))
         {
           if ((!ins[j]))
@@ -99,7 +99,7 @@ func main()
   }
   res = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       if ((IsLucky((((n - k) + 1) + i)) && IsLucky((((n - k) + 1) + a[i]))))

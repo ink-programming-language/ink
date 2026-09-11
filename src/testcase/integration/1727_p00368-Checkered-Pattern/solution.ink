@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var W: dynamic;
-  var H: dynamic;
+  var W: dynamic = cpp_uninitialized();
+  var H: dynamic = cpp_uninitialized();
   read(W, H);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < H))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < W))
         {
           read(field[i][j]);
@@ -20,15 +20,15 @@ func main()
       i += 1;
     }
   }
-  var ok = true;
-  var b_num = count(v.begin(), v.end(), 1);
+  var ok: dynamic = true;
+  var b_num: dynamic = count(v.begin(), v.end(), 1);
   if (((b_num == (W / 2)) || (((b_num == ((W / 2) + 1)) && (W % 2)))))
   {
     for_each(rev_v.begin(), rev_v.end(), __cpp_lambda_1);
-    var same_num = 0;
-    var rev_num = 0;
+    var same_num: dynamic = 0;
+    var rev_num: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < H))
       {
         if ((field[i] == v))
@@ -65,7 +65,7 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_1(a: dynamic)
+func __cpp_lambda_1(a: dynamic) -> dynamic
 {
   a = (!a);
 }

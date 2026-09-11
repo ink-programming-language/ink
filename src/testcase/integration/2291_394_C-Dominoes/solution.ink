@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var one: dynamic;
+var one: dynamic = cpp_uninitialized();
 
-var two: dynamic;
+var two: dynamic = cpp_uninitialized();
 
-var O: dynamic;
+var O: dynamic = cpp_uninitialized();
 
-var s = cpp_array(3);
+var s: dynamic = cpp_array(3);
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           scanf("%s", s);
@@ -41,11 +41,11 @@ func main(argc: dynamic, argv: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if (j)

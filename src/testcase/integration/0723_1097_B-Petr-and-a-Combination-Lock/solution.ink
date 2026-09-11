@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var N = 20;
+var N: dynamic = 20;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
@@ -17,12 +17,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (1 << n)))
     {
-      var res = 0;
+      var res: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((((i >> j)) & 1))

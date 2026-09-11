@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(s);
   if ((((s[0] == cpp_char("f")) && (s[1] == cpp_char("t"))) && (s[2] == cpp_char("p"))))
@@ -30,7 +30,7 @@ func main()
     }
   }
   {
-    var j = t;
+    var j: dynamic = t;
     while ((j < i))
     {
       write(s[j]);
@@ -42,7 +42,7 @@ func main()
   {
     write("/");
     {
-      var j = (i + 2);
+      var j: dynamic = (i + 2);
       while ((j < s.length()))
       {
         write(s[j]);

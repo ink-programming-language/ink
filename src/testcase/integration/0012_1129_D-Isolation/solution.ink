@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var bb = cpp_array((1 + 100000));
+var bb: dynamic = cpp_array((1 + 100000));
 
-var dp = cpp_array((1 + 100000));
+var dp: dynamic = cpp_array((1 + 100000));
 
-var ss = cpp_array((((((100000 + 500) - 1)) / 500)));
+var ss: dynamic = cpp_array((((((100000 + 500) - 1)) / 500)));
 
-var dq = cpp_array(((500 + 1) + 500), (((((100000 + 500) - 1)) / 500)));
+var dq: dynamic = cpp_array(((500 + 1) + 500), (((((100000 + 500) - 1)) / 500)));
 
-func update(h: dynamic)
+func update(h: dynamic) -> dynamic
 {
-  var qq = dq[h];
-  var i: dynamic;
-  var t: dynamic;
-  var c: dynamic;
+  var qq: dynamic = dq[h];
+  var i: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   t = 0;
   memset(qq, 0, ((((500 + 1) + 500)) * cpp_sizeof((*qq))));
   {
@@ -35,22 +35,22 @@ func update(h: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var pp = cpp_array((1 + 100000));
-  var ii = cpp_array((1 + 100000));
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
-  var h: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var pp: dynamic = cpp_array((1 + 100000));
+  var ii: dynamic = cpp_array((1 + 100000));
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&k));
   {
     i = 1;
     while ((i <= n))
     {
-      var a: dynamic;
+      var a: dynamic = cpp_uninitialized();
       scanf("%d", (&a));
       pp[i] = ii[a];
       ii[a] = i;
@@ -62,9 +62,9 @@ func main()
     j = 1;
     while ((j <= n))
     {
-      var p: dynamic;
-      var x: dynamic;
-      var t: dynamic;
+      var p: dynamic = cpp_uninitialized();
+      var x: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
       m = (((j - 1)) / 500);
       ss[m] += (1 - bb[j]);
       bb[j] = 1;
@@ -108,7 +108,7 @@ func main()
         {
           if (((k - t) >= -500))
           {
-            x = (((x + dq[h][(500 + (if ((500 < (k - t))) 500 else (k - t)))])) % 998244353);
+            x = (((x + dq[h][(500 + ( ((500 < (k - t))) ? 500 : (k - t)))])) % 998244353);
           }
           t += ss[h];
           h -= 1;

@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int (i)=0;(i)<(n);(i)++)");
 }
 
 class FordFulkerson
 {
-  var graph: dynamic;
-  var used: dynamic;
-  var INF: dynamic;
-  func FordFulkerson(V: dynamic)
+  var graph: dynamic = cpp_uninitialized();
+  var used: dynamic = cpp_uninitialized();
+  var INF: dynamic = cpp_uninitialized();
+  func FordFulkerson(V: dynamic) -> dynamic
   {
-      this->graph = cpp_construct(V);
-      this->used = cpp_construct(V);
-      this->INF = cpp_construct(numeric_limits.max());
+      self->graph = cpp_construct(V);
+      self->used = cpp_construct(V);
+      self->INF = cpp_construct(numeric_limits.max());
     }
-  func add_edge(from_cpp: dynamic, to: dynamic, cap: dynamic)
+  func add_edge(from_cpp: dynamic, to: dynamic, cap: dynamic) -> dynamic
   {
       graph[from_cpp].push_back([to, cap, cpp_cast(graph[to].size()), false]);
       graph[to].push_back([from_cpp, 0, (cpp_cast(graph[from_cpp].size()) - 1), true]);
     }
-  func dfs(now: dynamic, t: dynamic, f: dynamic)
+  func dfs(now: dynamic, t: dynamic, f: dynamic) -> dynamic
   {
       if ((now == t))
       {
@@ -29,13 +29,13 @@ class FordFulkerson
       }
       used[now] = true;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < graph[now].size()))
         {
-          var e = graph[now][i];
+          var e: dynamic = graph[now][i];
           if (((!used[e.to]) && (e.cap > 0)))
           {
-            var d = dfs(e.to, t, min(f, e.cap));
+            var d: dynamic = dfs(e.to, t, min(f, e.cap));
             if ((d > 0))
             {
               e.cap -= d;
@@ -48,21 +48,21 @@ class FordFulkerson
       }
       return 0;
     }
-  func max_flow(s: dynamic, t: dynamic)
+  func max_flow(s: dynamic, t: dynamic) -> dynamic
   {
-      var flow = 0;
+      var flow: dynamic = 0;
       {
         while (true)
         {
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < graph.size()))
             {
               used[i] = 0;
               i += 1;
             }
           }
-          var f = dfs(s, t, INF);
+          var f: dynamic = dfs(s, t, INF);
           if ((f > 0))
           {
             flow += f;
@@ -75,26 +75,26 @@ class FordFulkerson
     }
 }
 
-var N = 2000;
+var N: dynamic = 2000;
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-func main()
+func main() -> dynamic
 {
-  var R: dynamic;
-  var C: dynamic;
+  var R: dynamic = cpp_uninitialized();
+  var C: dynamic = cpp_uninitialized();
   read(R, C);
   rep(i, R);
   read(S[i]);
-  var s = (R * C);
-  var t = (s + 1);
-  var cnt = (t + 1);
+  var s: dynamic = (R * C);
+  var t: dynamic = (s + 1);
+  var cnt: dynamic = (t + 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < R))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < C))
         {
           if ((S[i][j] == cpp_char(".")))
@@ -110,13 +110,13 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < R))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < C))
         {
           if ((S[i][j] == cpp_char(".")))

@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
 class L
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  func L(A: dynamic, B: dynamic, C: dynamic)
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  func L(A: dynamic, B: dynamic, C: dynamic) -> dynamic
   {
       a = A;
       b = B;
       c = C;
     }
-  func L()
+  func L() -> dynamic
   {
     }
 }
 
 class P
 {
-  var x: dynamic;
-  var y: dynamic;
-  func P(X: dynamic, Y: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func P(X: dynamic, Y: dynamic) -> dynamic
   {
       x = X;
       y = Y;
     }
-  func P()
+  func P() -> dynamic
   {
     }
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.x != b.x))
   {
@@ -43,9 +43,9 @@ func operator_less(a: dynamic, b: dynamic)
   }
 }
 
-func inter(s: dynamic, t: dynamic)
+func inter(s: dynamic, t: dynamic) -> dynamic
 {
-  var det = ((s.a * t.b) - (s.b * t.a));
+  var det: dynamic = ((s.a * t.b) - (s.b * t.a));
   if ((abs(det) < EPS))
   {
     return P(1000000009, 1000000009);
@@ -53,27 +53,27 @@ func inter(s: dynamic, t: dynamic)
   return P(((((t.b * s.c) - (s.b * t.c))) / det), ((((t.c * s.a) - (s.c * t.a))) / det));
 }
 
-func eq(a: dynamic, b: dynamic)
+func eq(a: dynamic, b: dynamic) -> dynamic
 {
   return ((abs((a.x - b.x)) < EPS) && (abs((a.y - b.y)) < EPS));
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.x) + (a.y * b.y));
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.y) - (a.y * b.x));
 }
 
-func norm(a: dynamic)
+func norm(a: dynamic) -> dynamic
 {
   return ((a.x * a.x) + (a.y * a.y));
 }
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b.x -= a.x;
   b.y -= a.y;
@@ -98,14 +98,14 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   return 0;
 }
 
-func convex_hull(ps: dynamic)
+func convex_hull(ps: dynamic) -> dynamic
 {
-  var n = ps.size();
-  var k = 0;
+  var n: dynamic = ps.size();
+  var k: dynamic = 0;
   sort(ps.begin(), ps.end());
-  var ch = cpp_construct((2 * n));
+  var ch: dynamic = cpp_construct((2 * n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       while (((k >= 2) && (ccw(ch[(k - 2)], ch[(k - 1)], ps[i]) <= 0)))
@@ -116,8 +116,8 @@ func convex_hull(ps: dynamic)
     }
   }
   {
-    var i = (n - 2);
-    var t = (k + 1);
+    var i: dynamic = (n - 2);
+    var t: dynamic = (k + 1);
     while ((i >= 0))
     {
       while (((k >= t) && (ccw(ch[(k - 2)], ch[(k - 1)], ps[i]) <= 0)))
@@ -131,42 +131,42 @@ func convex_hull(ps: dynamic)
   return ch;
 }
 
-var str = cpp_array(51, 51);
+var str: dynamic = cpp_array(51, 51);
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   scanf("%d%d", (&a), (&b));
-  var mA1: dynamic;
-  var mA2: dynamic;
-  var mB1: dynamic;
-  var mB2: dynamic;
-  var mX: dynamic;
+  var mA1: dynamic = cpp_uninitialized();
+  var mA2: dynamic = cpp_uninitialized();
+  var mB1: dynamic = cpp_uninitialized();
+  var mB2: dynamic = cpp_uninitialized();
+  var mX: dynamic = cpp_uninitialized();
   scanf("%lf%lf%lf%lf%lf", (&mA1), (&mA2), (&mB1), (&mB2), (&mX));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a))
     {
       scanf("%s", str[i]);
       i += 1;
     }
   }
-  var tx = 0;
-  var ux = 0;
-  var ty = 0;
-  var uy = 0;
-  var vx = 0;
-  var vy = 0;
-  var wa = 0;
-  var wb = 0;
-  var wc = 0;
+  var tx: dynamic = 0;
+  var ux: dynamic = 0;
+  var ty: dynamic = 0;
+  var uy: dynamic = 0;
+  var vx: dynamic = 0;
+  var vy: dynamic = 0;
+  var wa: dynamic = 0;
+  var wb: dynamic = 0;
+  var wc: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < b))
         {
           if ((str[i][j] == cpp_char("A")))
@@ -194,14 +194,14 @@ func main()
   wc *= mX;
   vx *= mX;
   vy *= mX;
-  var ret = 0;
-  var div = (((mA2 - mA1)) * ((mB2 - mB1)));
+  var ret: dynamic = 0;
+  var div: dynamic = (((mA2 - mA1)) * ((mB2 - mB1)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < b))
         {
           if ((str[i][j] == cpp_char(".")))
@@ -209,11 +209,11 @@ func main()
             j += 1;
             continue;
           }
-          var xl = i;
-          var xh = (i + 1);
-          var yl = j;
-          var yh = (j + 1);
-          var lines: dynamic;
+          var xl: dynamic = i;
+          var xh: dynamic = (i + 1);
+          var yl: dynamic = j;
+          var yh: dynamic = (j + 1);
+          var lines: dynamic = cpp_uninitialized();
           lines.push_back(L(1, 0, mA1));
           lines.push_back(L(1, 0, mA2));
           lines.push_back(L(0, 1, mB1));
@@ -222,16 +222,16 @@ func main()
           lines.push_back(L((tx - (wa * xh)), (ux - (wb * xh)), ((-vx) + (wc * xh))));
           lines.push_back(L((ty - (wa * yl)), (uy - (wb * yl)), ((-vy) + (wc * yl))));
           lines.push_back(L((ty - (wa * yh)), (uy - (wb * yh)), ((-vy) + (wc * yh))));
-          var cons: dynamic;
+          var cons: dynamic = cpp_uninitialized();
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 8))
             {
               {
-                var l = (k + 1);
+                var l: dynamic = (k + 1);
                 while ((l < 8))
                 {
-                  var v = inter(lines[k], lines[l]);
+                  var v: dynamic = inter(lines[k], lines[l]);
                   if ((abs((v.x - 1000000009)) > EPS))
                   {
                     cons.push_back(v);
@@ -242,14 +242,14 @@ func main()
               k += 1;
             }
           }
-          var ser: dynamic;
+          var ser: dynamic = cpp_uninitialized();
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < cons.size()))
             {
-              var ok = true;
+              var ok: dynamic = true;
               {
-                var l = 0;
+                var l: dynamic = 0;
                 while ((l < 8))
                 {
                   if (((l % 2) == 0))
@@ -277,10 +277,10 @@ func main()
           }
           if ((ser.size() >= 3))
           {
-            var D = convex_hull(ser);
-            var S = 0;
+            var D: dynamic = convex_hull(ser);
+            var S: dynamic = 0;
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < D.size()))
               {
                 S += cross(D[k], D[(((k + 1)) % D.size())]);

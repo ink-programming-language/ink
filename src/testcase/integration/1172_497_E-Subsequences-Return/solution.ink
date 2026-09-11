@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var maxN = (3e1 + 5);
+var maxN: dynamic = (3e1 + 5);
 
-var LOG = (6e1 + 5);
+var LOG: dynamic = (6e1 + 5);
 
-var INF = 1e18;
+var INF: dynamic = 1e18;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var d = cpp_array(LOG);
+var d: dynamic = cpp_array(LOG);
 
 class Matrix
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   var M: dynamic = cpp_array(maxN, maxN);
-  func Matrix(n: dynamic = 0, m: dynamic = 0)
+  func Matrix(n: dynamic = 0, m: dynamic = 0) -> dynamic
   {
       n = n;
       m = m;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               M[i][j] = 0;
@@ -36,23 +36,23 @@ class Matrix
       }
       return;
     }
-  func operator_index(i: dynamic)
+  func operator_index(i: dynamic) -> dynamic
   {
       return M[i];
     }
-  func operator_multiply(A: dynamic)
+  func operator_multiply(A: dynamic) -> dynamic
   {
-      var B = cpp_construct(n, A.m);
+      var B: dynamic = cpp_construct(n, A.m);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < m))
             {
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < A.m))
                 {
                   B[i][j] = ((((0 + B[i][j]) + (((1 * M[i][k]) * A.M[k][j]) % MOD))) % MOD);
@@ -67,14 +67,14 @@ class Matrix
       }
       return B;
     }
-  func print()
+  func print() -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               printf("%d ", M[i][j]);
@@ -90,19 +90,19 @@ class Matrix
     }
 }
 
-var K = cpp_array(LOG);
+var K: dynamic = cpp_array(LOG);
 
-func main()
+func main() -> dynamic
 {
-  var START = clock();
+  var START: dynamic = clock();
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   scanf("%lld%d", (&n), (&k));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LOG))
     {
       K[i] = Matrix((k + 1), (k + 1));
@@ -110,11 +110,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < LOG))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= k))
         {
           K[i][j][j] = 1;
@@ -124,12 +124,12 @@ func main()
       i += 1;
     }
   }
-  var S = cpp_construct((k + 1), (k + 1));
-  var T = cpp_construct((k + 1), (k + 1));
-  var R = cpp_construct((k + 1), (k + 1));
-  var t = cpp_construct((k + 1), (k + 1));
+  var S: dynamic = cpp_construct((k + 1), (k + 1));
+  var T: dynamic = cpp_construct((k + 1), (k + 1));
+  var R: dynamic = cpp_construct((k + 1), (k + 1));
+  var t: dynamic = cpp_construct((k + 1), (k + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       S[i][((((k + i) - 1)) % k)] = 1;
@@ -139,22 +139,22 @@ func main()
   }
   S[k][k] = cpp_assign(T[k][k], "=", 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= k))
     {
       K[0][0][i] = cpp_assign(K[0][i][i], "=", 1);
       i += 1;
     }
   }
-  var m = n;
-  var cnt = 0;
+  var m: dynamic = n;
+  var cnt: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((m >= k))
     {
       d[cpp_update(cnt, "++")] = (m % k);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= k))
         {
           K[i][j][j] = 1;
@@ -163,7 +163,7 @@ func main()
       }
       t = K[(i - 1)];
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < k))
         {
           K[i] = (t * K[i]);
@@ -177,21 +177,21 @@ func main()
   }
   d[cnt] = m;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= k))
     {
       R[i][i] = 1;
       i += 1;
     }
   }
-  var sum = 0;
+  var sum: dynamic = 0;
   {
     cnt;
     while ((cnt > -1))
     {
       t = K[cnt];
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < sum))
         {
           t = (((S * t)) * T);
@@ -199,7 +199,7 @@ func main()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < d[cnt]))
         {
           R = (t * R);
@@ -211,9 +211,9 @@ func main()
       cnt -= 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= k))
     {
       ans = (((ans + R[i][k])) % MOD);
@@ -221,7 +221,7 @@ func main()
     }
   }
   printf("%d\n", ans);
-  var FINISH = clock();
+  var FINISH: dynamic = clock();
   write("Execution time: ", ((cpp_cast(((FINISH - START))) / CLOCKS_PER_SEC) * 1000.0), " milliseconds.\n");
   return 0;
 }

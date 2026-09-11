@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-func ps(x: dynamic, y: dynamic, P: dynamic)
+func ps(x: dynamic, y: dynamic, P: dynamic) -> dynamic
 {
-  var z = 0;
+  var z: dynamic = 0;
   while (y)
   {
     if ((y & 1))
@@ -37,9 +37,9 @@ func ps(x: dynamic, y: dynamic, P: dynamic)
   return z;
 }
 
-func pm(x: dynamic, y: dynamic, P: dynamic)
+func pm(x: dynamic, y: dynamic, P: dynamic) -> dynamic
 {
-  var z = 1;
+  var z: dynamic = 1;
   x %= P;
   while (y)
   {
@@ -53,14 +53,14 @@ func pm(x: dynamic, y: dynamic, P: dynamic)
   return z;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&T));
   while (cpp_update(T, "--"))
   {
     scanf("%lld", (&a));
-    var t = a;
-    var m1 = 1;
+    var t: dynamic = a;
+    var m1: dynamic = 1;
     n = 0;
     while (t)
     {
@@ -85,11 +85,11 @@ func main()
         }
         x = (a + b);
         y = (x >> ((n + m)));
-        var i: dynamic;
-        var j: dynamic;
-        var now = 0;
-        var phi: dynamic;
-        var pw: dynamic;
+        var i: dynamic = cpp_uninitialized();
+        var j: dynamic = cpp_uninitialized();
+        var now: dynamic = 0;
+        var phi: dynamic = cpp_uninitialized();
+        var pw: dynamic = cpp_uninitialized();
         {
           i = 0;
           while ((i < 4))

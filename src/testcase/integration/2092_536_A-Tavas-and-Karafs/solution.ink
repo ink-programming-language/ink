@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var INF = 1000000000;
+var INF: dynamic = 1000000000;
 
-var PI = 3.1415926535897932384626433832795028841971;
+var PI: dynamic = 3.1415926535897932384626433832795028841971;
 
-var sum = cpp_array(10000010);
+var sum: dynamic = cpp_array(10000010);
 
-var s = cpp_array(10000010);
+var s: dynamic = cpp_array(10000010);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var l: dynamic;
-  var t: dynamic;
-  var r: dynamic;
-  var j: dynamic;
-  var i: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   read(a, b, n);
   {
     i = 1;
@@ -34,9 +34,9 @@ func main()
     while ((i < n))
     {
       read(l, t, m);
-      var left = l;
-      var right = 10000000;
-      var middle: dynamic;
+      var left: dynamic = l;
+      var right: dynamic = 10000000;
+      var middle: dynamic = cpp_uninitialized();
       while (((left + 1) != right))
       {
         middle = (((left + right)) / 2);

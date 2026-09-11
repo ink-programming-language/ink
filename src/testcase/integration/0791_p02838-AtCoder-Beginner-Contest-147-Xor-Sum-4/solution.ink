@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(A[i]);
@@ -16,12 +16,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 60))
     {
-      var t = 0;
+      var t: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < N))
         {
           if ((A[j] & ((1 << i))))

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var num = cpp_array(5);
+var num: dynamic = cpp_array(5);
 
-var card = cpp_array(11);
+var card: dynamic = cpp_array(11);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func serch(m: dynamic, k: dynamic, now: dynamic)
+func serch(m: dynamic, k: dynamic, now: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < m))
         {
           if ((num[i] == num[j]))
@@ -30,10 +30,10 @@ func serch(m: dynamic, k: dynamic, now: dynamic)
   }
   if ((m == k))
   {
-    var str: dynamic;
-    var ch = cpp_array(8);
+    var str: dynamic = cpp_uninitialized();
+    var ch: dynamic = cpp_array(8);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         sprintf(ch, "%d", card[num[i]]);
@@ -46,7 +46,7 @@ func serch(m: dynamic, k: dynamic, now: dynamic)
   }
   num[m] = now;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       serch((m + 1), k, i);
@@ -56,11 +56,11 @@ func serch(m: dynamic, k: dynamic, now: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var k: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     while (true)
     {
@@ -86,7 +86,7 @@ func main()
           i += 1;
         }
       }
-      var it = ans.begin();
+      var it: dynamic = ans.begin();
       write(ans.size(), "\n");
     }
   }

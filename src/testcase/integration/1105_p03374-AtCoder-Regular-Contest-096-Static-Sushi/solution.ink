@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var N = (1e5 + 10);
+var N: dynamic = (1e5 + 10);
 
-var d = cpp_array(N);
+var d: dynamic = cpp_array(N);
 
-var v = cpp_array(N);
+var v: dynamic = cpp_array(N);
 
-var Lm = cpp_array(N);
+var Lm: dynamic = cpp_array(N);
 
-var Rm = cpp_array(N);
+var Rm: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var C: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var C: dynamic = cpp_uninitialized();
   read(n, C);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld%lld", (&d[i]), (&v[i]));
       i += 1;
     }
   }
-  var ans = 0;
-  var qz = 0;
+  var ans: dynamic = 0;
+  var qz: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       qz += v[i];
@@ -38,7 +38,7 @@ func main()
   }
   qz = 0;
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       qz += v[i];
@@ -49,7 +49,7 @@ func main()
   ans = max(ans, max(Lm[n], Rm[1]));
   qz = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       qz += v[i];
@@ -59,7 +59,7 @@ func main()
   }
   qz = 0;
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       qz += v[i];

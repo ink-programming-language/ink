@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func to_string(s: dynamic)
+func to_string(s: dynamic) -> dynamic
 {
   return ((cpp_char("\"") + s) + cpp_char("\""));
 }
 
-func to_string(s: dynamic)
+func to_string(s: dynamic) -> dynamic
 {
   return to_string(cpp_cast(s));
 }
 
-func to_string(b: dynamic)
+func to_string(b: dynamic) -> dynamic
 {
-  return (if (b) "true" else "false");
+  return ( (b) ? "true" : "false");
 }
 
-func to_string(v: dynamic)
+func to_string(v: dynamic) -> dynamic
 {
-  var first = true;
-  var res = "{";
+  var first: dynamic = true;
+  var res: dynamic = "{";
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < static_cast(v.size())))
     {
       if ((!first))
@@ -36,11 +36,11 @@ func to_string(v: dynamic)
   return res;
 }
 
-func to_string(v: dynamic)
+func to_string(v: dynamic) -> dynamic
 {
-  var res = "";
+  var res: dynamic = "";
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       res += static_cast((cpp_char("0") + v[i]));
@@ -50,11 +50,11 @@ func to_string(v: dynamic)
   return res;
 }
 
-func to_string(v: dynamic)
+func to_string(v: dynamic) -> dynamic
 {
-  var first = true;
-  var res = "{";
-  for (var x in v)
+  var first: dynamic = true;
+  var res: dynamic = "{";
+  for (var x: dynamic in v)
   {
     if ((!first))
     {
@@ -67,82 +67,82 @@ func to_string(v: dynamic)
   return res;
 }
 
-func to_string(p: dynamic)
+func to_string(p: dynamic) -> dynamic
 {
   return (((("(" + to_string(p.first)) + ", ") + to_string(p.second)) + ")");
 }
 
-func to_string(p: dynamic)
+func to_string(p: dynamic) -> dynamic
 {
   return (((((("(" + to_string(get(p))) + ", ") + to_string(get(p))) + ", ") + to_string(get(p))) + ")");
 }
 
-func to_string(p: dynamic)
+func to_string(p: dynamic) -> dynamic
 {
   return (((((((("(" + to_string(get(p))) + ", ") + to_string(get(p))) + ", ") + to_string(get(p))) + ", ") + to_string(get(p))) + ")");
 }
 
-func debug_out()
+func debug_out() -> dynamic
 {
   write("   ");
 }
 
-func debug_out_nl()
+func debug_out_nl() -> dynamic
 {
   write("\n");
 }
 
-func debug_out(H: dynamic, T: dynamic...)
+func debug_out(H: dynamic, T: dynamic...) -> dynamic
 {
   write(" ", to_string(H));
   debug_out(cpp_expand(T));
 }
 
-func debug_out_nl(H: dynamic, T: dynamic...)
+func debug_out_nl(H: dynamic, T: dynamic...) -> dynamic
 {
   write(" ", to_string(H));
   debug_out_nl(cpp_expand(T));
 }
 
-func dbg()
+func dbg() -> dynamic
 {
   return cpp_expression("// g++ -std=c++17 -DLOCAL a.cpp -o ex && ./ex >tst.out 2>&");
 }
 
-func nl()
+func nl() -> dynamic
 {
   return cpp_expression("// g++ -std=c++17 -DLOCAL a.cpp -o ex && ./ex >tst.out 2>&1 #");
 }
 
-func dbg()
+func dbg() -> dynamic
 {
   return cpp_expression("//");
 }
 
-func nl()
+func nl() -> dynamic
 {
   return cpp_expression("//");
 }
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var N = (2e5 + 10);
+var N: dynamic = (2e5 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func solve(test: dynamic, cin: dynamic, cout: dynamic)
+func solve(test: dynamic, cin: dynamic, cout: dynamic) -> dynamic
 {
   read(n);
-  var mp: dynamic;
+  var mp: dynamic = cpp_uninitialized();
   {
-    var i = 1;
-    var x: dynamic;
+    var i: dynamic = 1;
+    var x: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
       read(x);
@@ -150,20 +150,20 @@ func solve(test: dynamic, cin: dynamic, cout: dynamic)
       i += 1;
     }
   }
-  var s: dynamic;
-  for (var it in mp)
+  var s: dynamic = cpp_uninitialized();
+  for (var it: dynamic in mp)
   {
     s.insert(it.second);
   }
-  var ans = n;
+  var ans: dynamic = n;
   while ((cpp_cast(s.size()) > 1))
   {
-    var it = s.end();
+    var it: dynamic = s.end();
     it = prev(it);
-    var it2 = prev(it);
+    var it2: dynamic = prev(it);
     ans -= 2;
-    var v1 = (*it);
-    var v2 = (*it2);
+    var v1: dynamic = (*it);
+    var v2: dynamic = (*it2);
     s.erase(it);
     s.erase(it2);
     if (((v1 - 1) > 0))
@@ -178,12 +178,12 @@ func solve(test: dynamic, cin: dynamic, cout: dynamic)
   write(ans, cpp_char("\n"));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(null);
-  var multiTest = true;
-  var t: dynamic;
+  var multiTest: dynamic = true;
+  var t: dynamic = cpp_uninitialized();
   if (multiTest)
   {
     read(t);
@@ -192,7 +192,7 @@ func main()
     t = 1;
   }
   {
-    var test = 1;
+    var test: dynamic = 1;
     while ((test <= t))
     {
       solve(test, cin, cout);

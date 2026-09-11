@@ -1,61 +1,61 @@
 // Translated from solution.cpp.
 
-func lowbit(x: dynamic)
+func lowbit(x: dynamic) -> dynamic
 {
   return (x & (-x));
 }
 
-func h_bit(x: dynamic)
+func h_bit(x: dynamic) -> dynamic
 {
   return int_cpp(((cpp_sizeof(dynamic) * 8) - builtin_clzll(x)));
 }
 
-func pow2(x: dynamic)
+func pow2(x: dynamic) -> dynamic
 {
-  return if ((x == lowbit(x))) x else (1 << h_bit(x));
+  return  ((x == lowbit(x))) ? x : (1 << h_bit(x));
 }
 
-func get_bit(a: dynamic, i: dynamic)
+func get_bit(a: dynamic, i: dynamic) -> dynamic
 {
   return ((a >> i) & 1);
 }
 
-func get_mid(l: dynamic, r: dynamic)
+func get_mid(l: dynamic, r: dynamic) -> dynamic
 {
   assert((l <= r));
   return (l + (((r - l) >> 1)));
 }
 
-func to_string(s: dynamic)
+func to_string(s: dynamic) -> dynamic
 {
   return ((cpp_char("\"") + s) + cpp_char("\""));
 }
 
-func to_string(s: dynamic)
+func to_string(s: dynamic) -> dynamic
 {
   return to_string(cpp_cast(s));
 }
 
-func to_string(b: dynamic)
+func to_string(b: dynamic) -> dynamic
 {
-  return (if (b) "true" else "false");
+  return ( (b) ? "true" : "false");
 }
 
-func to_string(p: dynamic)
+func to_string(p: dynamic) -> dynamic
 {
   return (((("(" + to_string(p.first)) + ", ") + to_string(p.second)) + ")");
 }
 
-func to_string(bs: dynamic)
+func to_string(bs: dynamic) -> dynamic
 {
   return bs.to_string();
 }
 
-func to_string(v: dynamic)
+func to_string(v: dynamic) -> dynamic
 {
-  var first = true;
-  var res = "{";
-  for (var x in v)
+  var first: dynamic = true;
+  var res: dynamic = "{";
+  for (var x: dynamic in v)
   {
     if ((!first))
     {
@@ -68,12 +68,12 @@ func to_string(v: dynamic)
   return res;
 }
 
-func debug_out()
+func debug_out() -> dynamic
 {
   write("\n");
 }
 
-func debug_out(H: dynamic, T: dynamic...)
+func debug_out(H: dynamic, T: dynamic...) -> dynamic
 {
   write(" ", to_string(H));
   debug_out(cpp_expand(T));
@@ -81,7 +81,7 @@ func debug_out(H: dynamic, T: dynamic...)
 
 class fast_ios
 {
-  func fast_ios()
+  func fast_ios() -> dynamic
   {
       cin.tie(null);
       ios.sync_with_stdio(false);
@@ -89,37 +89,37 @@ class fast_ios
     }
 }
 
-var fast_ios: dynamic;
+var fast_ios: dynamic = cpp_uninitialized();
 
-func operator_shift_right(stream: dynamic, vec: dynamic)
+func operator_shift_right(stream: dynamic, vec: dynamic) -> dynamic
 {
-  for (var x in vec)
+  for (var x: dynamic in vec)
   {
     (stream >> x);
   }
   return stream;
 }
 
-func operator_shift_right(in_cpp: dynamic, p: dynamic)
+func operator_shift_right(in_cpp: dynamic, p: dynamic) -> dynamic
 {
   ((in_cpp >> p.first) >> p.second);
   return in_cpp;
 }
 
-func scan()
+func scan() -> dynamic
 {
 }
 
-func scan(a: dynamic, rest: dynamic...)
+func scan(a: dynamic, rest: dynamic...) -> dynamic
 {
   read(a);
   scan(cpp_expand(rest));
 }
 
-func operator_shift_left(stream: dynamic, vec: dynamic)
+func operator_shift_left(stream: dynamic, vec: dynamic) -> dynamic
 {
-  var first = true;
-  for (var t in vec)
+  var first: dynamic = true;
+  for (var t: dynamic in vec)
   {
     if (first)
     {
@@ -133,43 +133,43 @@ func operator_shift_left(stream: dynamic, vec: dynamic)
   return stream;
 }
 
-func operator_shift_left(out: dynamic, p: dynamic)
+func operator_shift_left(out: dynamic, p: dynamic) -> dynamic
 {
   (((out << p.first) << cpp_char(" ")) << p.second);
   return out;
 }
 
-func print(t: dynamic)
+func print(t: dynamic) -> dynamic
 {
-  for (var row in t)
+  for (var row: dynamic in t)
   {
     write(row, cpp_char("\n"));
   }
 }
 
-func print(t: dynamic)
+func print(t: dynamic) -> dynamic
 {
   write(t, cpp_char(" "));
 }
 
-func print(t: dynamic, rest: dynamic...)
+func print(t: dynamic, rest: dynamic...) -> dynamic
 {
   print(t);
   print(cpp_expand(rest));
 }
 
-func println(t: dynamic)
+func println(t: dynamic) -> dynamic
 {
   write(t, cpp_char("\n"));
 }
 
-func println(t: dynamic, rest: dynamic...)
+func println(t: dynamic, rest: dynamic...) -> dynamic
 {
   print(t);
   println(cpp_expand(rest));
 }
 
-func chkmin(a: dynamic, b: dynamic)
+func chkmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b < a))
   {
@@ -179,7 +179,7 @@ func chkmin(a: dynamic, b: dynamic)
   return false;
 }
 
-func chkmax(a: dynamic, b: dynamic)
+func chkmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b > a))
   {
@@ -189,7 +189,7 @@ func chkmax(a: dynamic, b: dynamic)
   return false;
 }
 
-func ceil(x: dynamic, y: dynamic)
+func ceil(x: dynamic, y: dynamic) -> dynamic
 {
   assert((y > 0));
   if ((x > 0))
@@ -199,7 +199,7 @@ func ceil(x: dynamic, y: dynamic)
   return (x / y);
 }
 
-func floor(x: dynamic, y: dynamic)
+func floor(x: dynamic, y: dynamic) -> dynamic
 {
   assert((y > 0));
   if ((x < 0))
@@ -209,36 +209,36 @@ func floor(x: dynamic, y: dynamic)
   return (x / y);
 }
 
-var dp = cpp_array((1 << 15), 15, 16);
+var dp: dynamic = cpp_array((1 << 15), 15, 16);
 
-var pre = cpp_array((1 << 15), 15, 16);
+var pre: dynamic = cpp_array((1 << 15), 15, 16);
 
 class FMakeItAscending
 {
-  func solve(argument_0: dynamic, argument_1: dynamic)
+  func solve(argument_0: dynamic, argument_1: dynamic) -> dynamic
   {
-      var T: dynamic;
+      var T: dynamic = cpp_uninitialized();
       scan(T);
       {
-        var iter_212 = 0;
-        var num_212 = T;
+        var iter_212: dynamic = 0;
+        var num_212: dynamic = T;
         while ((iter_212 < num_212))
         {
-          var n: dynamic;
+          var n: dynamic = cpp_uninitialized();
           scan(n);
           scan(a);
-          var tot = (1 << n);
-          var all = (tot - 1);
+          var tot: dynamic = (1 << n);
+          var all: dynamic = (tot - 1);
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= n))
             {
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < n))
                 {
                   {
-                    var s = 0;
+                    var s: dynamic = 0;
                     while ((s < tot))
                     {
                       dp[i][j][s] = 0;
@@ -252,11 +252,11 @@ class FMakeItAscending
             }
           }
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < tot))
             {
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < n))
                 {
                   if (get_bit(i, j))
@@ -270,33 +270,33 @@ class FMakeItAscending
             }
           }
           {
-            var s = 1;
+            var s: dynamic = 1;
             while ((s < tot))
             {
-              var i = builtin_ctz(s);
+              var i: dynamic = builtin_ctz(s);
               dp[1][i][s] = sum[s];
               pre[1][i][s] = [0, -1];
               s += 1;
             }
           }
-          var ans: dynamic;
+          var ans: dynamic = cpp_uninitialized();
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i < n))
             {
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < (n - 1)))
                 {
                   {
-                    var s = 1;
+                    var s: dynamic = 1;
                     while ((s < (1 << n)))
                     {
                       if (dp[i][j][s])
                       {
                         {
-                          var u = cpp_binary(all, "xor", s);
-                          var t = u;
+                          var u: dynamic = cpp_binary(all, "xor", s);
+                          var t: dynamic = u;
                           while (((t > 0) && ((h_bit(t) - 1) > j)))
                           {
                             if ((sum[t] <= dp[i][j][s]))
@@ -305,12 +305,12 @@ class FMakeItAscending
                               continue;
                             }
                             {
-                              var k = (j + 1);
+                              var k: dynamic = (j + 1);
                               while ((k < n))
                               {
                                 if (get_bit(t, k))
                                 {
-                                  var tar = dp[(i + 1)][k][(s | t)];
+                                  var tar: dynamic = dp[(i + 1)][k][(s | t)];
                                   if (cpp_binary((tar == 0), "or", (tar > sum[t])))
                                   {
                                     tar = sum[t];
@@ -331,9 +331,9 @@ class FMakeItAscending
                   j += 1;
                 }
               }
-              var flag = false;
+              var flag: dynamic = false;
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < n))
                 {
                   if (dp[(i + 1)][j][all])
@@ -347,20 +347,20 @@ class FMakeItAscending
               if ((!flag))
               {
                 {
-                  var j = 0;
+                  var j: dynamic = 0;
                   while ((j < n))
                   {
                     if (dp[i][j][all])
                     {
-                      var s = all;
+                      var s: dynamic = all;
                       {
-                        var k = i;
+                        var k: dynamic = i;
                         while ((k >= 1))
                         {
-                          var (ps, pj) = pre[k][j][s];
-                          var t = (s ^ ps);
+                          var (ps, pj): dynamic = pre[k][j][s];
+                          var t: dynamic = (s ^ ps);
                           {
-                            var l = 0;
+                            var l: dynamic = 0;
                             while ((l < n))
                             {
                               if ((get_bit(t, l) && (l != j)))
@@ -386,8 +386,8 @@ class FMakeItAscending
             }
           }
           println(cpp_cast((ans).size()));
-          var get_index = __cpp_lambda_1;
-          for (var p in ans)
+          var get_index: dynamic = __cpp_lambda_1;
+          for (var p: dynamic in ans)
           {
             println(get_index(p.first), get_index(p.second));
             removed[p.first] = true;
@@ -398,18 +398,18 @@ class FMakeItAscending
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var solver: dynamic;
+  var solver: dynamic = cpp_uninitialized();
   solver.solve(0, 0);
   return 0;
 }
 
-func __cpp_lambda_1(i: dynamic)
+func __cpp_lambda_1(i: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < i))
     {
       if ((!removed[j]))

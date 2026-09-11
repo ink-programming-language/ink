@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var c = getchar();
-  var f = 1;
-  var x = 0;
+  var c: dynamic = getchar();
+  var f: dynamic = 1;
+  var x: dynamic = 0;
   while (((c < cpp_char("0")) || (c > cpp_char("9"))))
   {
     if ((c == cpp_char("-")))
@@ -21,7 +21,7 @@ func read()
   return (x * f);
 }
 
-func MOD(x: dynamic)
+func MOD(x: dynamic) -> dynamic
 {
   if ((x >= 1000000007))
   {
@@ -29,14 +29,14 @@ func MOD(x: dynamic)
   }
 }
 
-var p = cpp_array(100010);
+var p: dynamic = cpp_array(100010);
 
-var u = cpp_array(100010);
+var u: dynamic = cpp_array(100010);
 
-func pre(n: dynamic)
+func pre(n: dynamic) -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       if ((!u[i]))
@@ -44,7 +44,7 @@ func pre(n: dynamic)
         p[cpp_update(p[0], "++")] = i;
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while (((j <= p[0]) && ((i * p[j]) <= n)))
         {
           u[(i * p[j])] = 1;
@@ -60,17 +60,17 @@ func pre(n: dynamic)
   }
 }
 
-var l = 1;
+var l: dynamic = 1;
 
-var nxt = cpp_array(100010);
+var nxt: dynamic = cpp_array(100010);
 
-var head = cpp_array(100010);
+var head: dynamic = cpp_array(100010);
 
-var to = cpp_array(100010);
+var to: dynamic = cpp_array(100010);
 
-var v = cpp_array(100010);
+var v: dynamic = cpp_array(100010);
 
-func ad(x: dynamic, y: dynamic, z: dynamic)
+func ad(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   l += 1;
   nxt[l] = head[x];
@@ -79,42 +79,42 @@ func ad(x: dynamic, y: dynamic, z: dynamic)
   v[l] = z;
 }
 
-func add(x: dynamic, y: dynamic, z: dynamic)
+func add(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   ad(x, y, z);
   ad(y, x, 0);
 }
 
-var bg: dynamic;
+var bg: dynamic = cpp_uninitialized();
 
-var ed: dynamic;
+var ed: dynamic = cpp_uninitialized();
 
-var q = cpp_array(100010);
+var q: dynamic = cpp_array(100010);
 
-var d = cpp_array(100010);
+var d: dynamic = cpp_array(100010);
 
-func bfs()
+func bfs() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= ed))
     {
       d[i] = 0;
       i += 1;
     }
   }
-  var l = 1;
-  var r = 2;
+  var l: dynamic = 1;
+  var r: dynamic = 2;
   q[l] = bg;
   d[bg] = 1;
   while ((l < r))
   {
-    var x = q[cpp_update(l, "++")];
+    var x: dynamic = q[cpp_update(l, "++")];
     {
-      var i = head[x];
+      var i: dynamic = head[x];
       while (i)
       {
-        var c = to[i];
+        var c: dynamic = to[i];
         if ((d[c] || (!v[i])))
         {
           i = nxt[i];
@@ -129,26 +129,26 @@ func bfs()
   return d[ed];
 }
 
-var cur = cpp_array(100010);
+var cur: dynamic = cpp_array(100010);
 
-func dfs(x: dynamic, f: dynamic)
+func dfs(x: dynamic, f: dynamic) -> dynamic
 {
   if (((x == ed) || (!f)))
   {
     return f;
   }
-  var u = 0;
+  var u: dynamic = 0;
   {
-    var i = cur[x];
+    var i: dynamic = cur[x];
     while (i)
     {
-      var c = to[i];
+      var c: dynamic = to[i];
       if (((d[c] != (d[x] + 1)) || (!v[i])))
       {
         i = nxt[i];
         continue;
       }
-      var w = dfs(c, min((f - u), v[i]));
+      var w: dynamic = dfs(c, min((f - u), v[i]));
       u += w;
       v[i] -= w;
       v[(i ^ 1)] += w;
@@ -170,13 +170,13 @@ func dfs(x: dynamic, f: dynamic)
   return u;
 }
 
-func dinic()
+func dinic() -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   while (bfs())
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= ed))
       {
         cur[i] = head[i];
@@ -188,25 +188,25 @@ func dinic()
   return ans;
 }
 
-var a = cpp_array(100010);
+var a: dynamic = cpp_array(100010);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(100010);
+var vis: dynamic = cpp_array(100010);
 
-var ans = cpp_array(210, 210);
+var ans: dynamic = cpp_array(210, 210);
 
-func get(x: dynamic)
+func get(x: dynamic) -> dynamic
 {
   vis[x] = 1;
   ans[m][cpp_update(ans[m][0], "++")] = x;
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var c = to[i];
+      var c: dynamic = to[i];
       if ((((c > n) || vis[c]) || (!v[(i | 1)])))
       {
         i = nxt[i];
@@ -219,12 +219,12 @@ func get(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   pre(2e4);
   n = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = read();
@@ -232,13 +232,13 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a[i] & 1))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             if (((i != j) && (!u[(a[i] + a[j])])))
@@ -258,7 +258,7 @@ func main()
   bg = (n + 1);
   ed = (bg + 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a[i] & 1))
@@ -276,7 +276,7 @@ func main()
     return cpp_comma(puts("Impossible"), 0);
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))
@@ -289,11 +289,11 @@ func main()
   }
   printf("%d\n", m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= ans[i][0]))
         {
           printf("%d ", ans[i][j]);

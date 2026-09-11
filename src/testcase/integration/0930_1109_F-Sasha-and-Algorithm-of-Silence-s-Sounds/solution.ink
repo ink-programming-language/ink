@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var N = 1000005;
+var N: dynamic = 1000005;
 
 class TNode
 {
   var ch: dynamic = cpp_array(2);
-  var f: dynamic;
-  var r: dynamic;
+  var f: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
 }
 
-var t = cpp_array(N);
+var t: dynamic = cpp_array(N);
 
-func isroot(pos: dynamic)
+func isroot(pos: dynamic) -> dynamic
 {
   return ((t[t[pos].f].ch[0] != pos) && (t[t[pos].f].ch[1] != pos));
 }
 
-func pushdown(pos: dynamic)
+func pushdown(pos: dynamic) -> dynamic
 {
   if (t[pos].r)
   {
@@ -27,12 +27,12 @@ func pushdown(pos: dynamic)
   }
 }
 
-func rotate(pos: dynamic)
+func rotate(pos: dynamic) -> dynamic
 {
-  var y = t[pos].f;
-  var z = t[y].f;
-  var k = (t[y].ch[1] == pos);
-  var w = t[pos].ch[(k ^ 1)];
+  var y: dynamic = t[pos].f;
+  var z: dynamic = t[y].f;
+  var k: dynamic = (t[y].ch[1] == pos);
+  var w: dynamic = t[pos].ch[(k ^ 1)];
   if ((!isroot(y)))
   {
     t[z].ch[(t[z].ch[1] == y)] = pos;
@@ -44,37 +44,37 @@ func rotate(pos: dynamic)
   t[y].f = pos;
 }
 
-var stk = cpp_array(N);
+var stk: dynamic = cpp_array(N);
 
-func splay(pos: dynamic)
+func splay(pos: dynamic) -> dynamic
 {
-  var ptr = 0;
-  var tmp = pos;
-  stk[cpp_update(ptr, "++")] = tmp;
+  var cpp_ptr: dynamic = 0;
+  var tmp: dynamic = pos;
+  stk[cpp_update(cpp_ptr, "++")] = tmp;
   while ((!isroot(tmp)))
   {
-    stk[cpp_update(ptr, "++")] = cpp_assign(tmp, "=", t[tmp].f);
+    stk[cpp_update(cpp_ptr, "++")] = cpp_assign(tmp, "=", t[tmp].f);
   }
-  while (cpp_update(ptr, "--"))
+  while (cpp_update(cpp_ptr, "--"))
   {
-    pushdown(stk[ptr]);
+    pushdown(stk[cpp_ptr]);
   }
   while ((!isroot(pos)))
   {
-    var y = t[pos].f;
-    var z = t[y].f;
+    var y: dynamic = t[pos].f;
+    var z: dynamic = t[y].f;
     if ((!isroot(y)))
     {
-      rotate(if ((((t[y].ch[0] == pos)) ^ ((t[z].ch[0] == y)))) pos else y);
+      rotate( ((((t[y].ch[0] == pos)) ^ ((t[z].ch[0] == y)))) ? pos : y);
     }
     rotate(pos);
   }
 }
 
-func access(pos: dynamic)
+func access(pos: dynamic) -> dynamic
 {
   {
-    var last = 0;
+    var last: dynamic = 0;
     while (pos)
     {
       splay(pos);
@@ -84,14 +84,14 @@ func access(pos: dynamic)
   }
 }
 
-func makeroot(pos: dynamic)
+func makeroot(pos: dynamic) -> dynamic
 {
   access(pos);
   splay(pos);
   t[pos].r ^= 1;
 }
 
-func findroot(pos: dynamic)
+func findroot(pos: dynamic) -> dynamic
 {
   access(pos);
   splay(pos);
@@ -104,14 +104,14 @@ func findroot(pos: dynamic)
   return pos;
 }
 
-func split(x: dynamic, y: dynamic)
+func split(x: dynamic, y: dynamic) -> dynamic
 {
   makeroot(x);
   access(y);
   splay(y);
 }
 
-func link(x: dynamic, y: dynamic)
+func link(x: dynamic, y: dynamic) -> dynamic
 {
   makeroot(x);
   if ((findroot(y) != x))
@@ -124,7 +124,7 @@ func link(x: dynamic, y: dynamic)
   }
 }
 
-func cut(x: dynamic, y: dynamic)
+func cut(x: dynamic, y: dynamic) -> dynamic
 {
   makeroot(x);
   if ((((findroot(y) == x) && (t[y].f == x)) && (!t[y].ch[0])))
@@ -137,15 +137,15 @@ class SegTree
 {
   var t: dynamic = cpp_array((N << 2));
   var lazy: dynamic = cpp_array((N << 2));
-  func lc(pos: dynamic)
+  func lc(pos: dynamic) -> dynamic
   {
       return (pos << 1);
     }
-  func rc(pos: dynamic)
+  func rc(pos: dynamic) -> dynamic
   {
       return ((pos << 1) | 1);
     }
-  func pushdown(pos: dynamic)
+  func pushdown(pos: dynamic) -> dynamic
   {
       if (lazy[pos])
       {
@@ -156,12 +156,12 @@ class SegTree
         lazy[pos] = 0;
       }
     }
-  func pushup(pos: dynamic)
+  func pushup(pos: dynamic) -> dynamic
   {
       t[pos].mn = min(t[lc(pos)].mn, t[rc(pos)].mn);
       t[pos].v = ((t[lc(pos)].v * ((t[pos].mn == t[lc(pos)].mn))) + (t[rc(pos)].v * ((t[pos].mn == t[rc(pos)].mn))));
     }
-  func build(pos: dynamic, l: dynamic, r: dynamic)
+  func build(pos: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       t[pos].l = l;
       t[pos].r = r;
@@ -170,12 +170,12 @@ class SegTree
         t[pos].v = 1;
         return;
       }
-      var mid = (((l + r)) >> 1);
+      var mid: dynamic = (((l + r)) >> 1);
       build(lc(pos), l, mid);
       build(rc(pos), (mid + 1), r);
       pushup(pos);
     }
-  func modify(pos: dynamic, l: dynamic, r: dynamic, v: dynamic)
+  func modify(pos: dynamic, l: dynamic, r: dynamic, v: dynamic) -> dynamic
   {
       if (((t[pos].l == l) && (t[pos].r == r)))
       {
@@ -184,7 +184,7 @@ class SegTree
         return;
       }
       pushdown(pos);
-      var mid = (((t[pos].l + t[pos].r)) >> 1);
+      var mid: dynamic = (((t[pos].l + t[pos].r)) >> 1);
       if ((r <= mid))
       {
         modify(lc(pos), l, r, v);
@@ -198,14 +198,14 @@ class SegTree
       }
       pushup(pos);
     }
-  func query(pos: dynamic, l: dynamic, r: dynamic)
+  func query(pos: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       if (((t[pos].l == l) && (t[pos].r == r)))
       {
         return (((t[pos].mn == 1)) * t[pos].v);
       }
       pushdown(pos);
-      var mid = (((t[pos].l + t[pos].r)) >> 1);
+      var mid: dynamic = (((t[pos].l + t[pos].r)) >> 1);
       if ((r <= mid))
       {
         return query(lc(pos), l, r);
@@ -219,34 +219,34 @@ class SegTree
     }
 }
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var v = cpp_array(N);
+var v: dynamic = cpp_array(N);
 
-var M = 3005;
+var M: dynamic = 3005;
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, 1, 0, -1];
+var dy: dynamic = [0, 1, 0, -1];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var w = cpp_array(M, M);
+var w: dynamic = cpp_array(M, M);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           read(w[i][j]);
@@ -257,19 +257,19 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 4))
             {
-              var x = (i + dx[k]);
-              var y = (j + dy[k]);
+              var x: dynamic = (i + dx[k]);
+              var y: dynamic = (j + dy[k]);
               if ((((((x < 1) || (y < 1)) || (x > n)) || (y > m)) || (w[i][j] > w[x][y])))
               {
                 k += 1;
@@ -286,19 +286,19 @@ func main()
       i += 1;
     }
   }
-  var r = 0;
-  var tt = (n * m);
+  var r: dynamic = 0;
+  var tt: dynamic = (n * m);
   t.build(1, 1, tt);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= tt))
     {
       {
-        var j = (r + 1);
+        var j: dynamic = (r + 1);
         while ((j <= tt))
         {
-          var fl = 0;
-          for (var d in v[j])
+          var fl: dynamic = 0;
+          for (var d: dynamic in v[j])
           {
             if ((((d < j) && (d >= i)) && (!LCT.link(d, j))))
             {
@@ -306,7 +306,7 @@ func main()
               break;
             }
           }
-          for (var d in v[j])
+          for (var d: dynamic in v[j])
           {
             LCT.cut(j, d);
           }
@@ -315,8 +315,8 @@ func main()
             break;
           }
           r = j;
-          var cc = 0;
-          for (var d in v[j])
+          var cc: dynamic = 0;
+          for (var d: dynamic in v[j])
           {
             if (((d < j) && (d >= i)))
             {
@@ -330,7 +330,7 @@ func main()
         }
       }
       ans += t.query(1, i, r);
-      for (var d in v[i])
+      for (var d: dynamic in v[i])
       {
         if (((d <= r) && (d > i)))
         {

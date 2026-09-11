@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func isprime()
+func isprime() -> dynamic
 {
   {
-    var k = 2;
+    var k: dynamic = 2;
     while ((k <= sqrt(n)))
     {
       if (((n % k) == 0))
@@ -18,13 +18,13 @@ func isprime()
   return true;
 }
 
-func fast(a: dynamic, x: dynamic)
+func fast(a: dynamic, x: dynamic) -> dynamic
 {
   if ((x == 1))
   {
     return a;
   }
-  var y = fast(a, (x / 2));
+  var y: dynamic = fast(a, (x / 2));
   if (((x % 2) == 0))
   {
     return (((y * y)) % n);
@@ -34,7 +34,7 @@ func fast(a: dynamic, x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%I64d", (&n));
   if ((n == 1))
@@ -54,7 +54,7 @@ func main()
   }
   printf("YES\n1\n");
   {
-    var k = 2;
+    var k: dynamic = 2;
     while ((k < n))
     {
       printf("%I64d\n", (((k * (fast((k - 1), (n - 2))))) % n));

@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var INF = 100010;
+var INF: dynamic = 100010;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(INF);
+var a: dynamic = cpp_array(INF);
 
-var ss: dynamic;
+var ss: dynamic = cpp_uninitialized();
 
-var maxn = 0;
+var maxn: dynamic = 0;
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   ss = m;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -32,7 +32,7 @@ func main()
   }
   sort(a, (a + n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((a[i] != maxn))

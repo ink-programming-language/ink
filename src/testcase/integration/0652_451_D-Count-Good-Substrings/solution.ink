@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var INF = 1e18;
+var INF: dynamic = 1e18;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var n = s.size();
-  var b_odd = 0;
-  var b_even = 0;
-  var a_odd = 0;
-  var a_even = 0;
-  var res = 0;
-  var reso = 0;
+  var n: dynamic = s.size();
+  var b_odd: dynamic = 0;
+  var b_even: dynamic = 0;
+  var a_odd: dynamic = 0;
+  var a_even: dynamic = 0;
+  var res: dynamic = 0;
+  var reso: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i % 2))

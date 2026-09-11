@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var c = getchar();
-  var x = 0;
+  var c: dynamic = getchar();
+  var x: dynamic = 0;
   while (((c < cpp_char("0")) || (c > cpp_char("9"))))
   {
     c = getchar();
@@ -16,7 +16,7 @@ func read()
   return x;
 }
 
-func MOD(x: dynamic)
+func MOD(x: dynamic) -> dynamic
 {
   if ((x >= 998244353))
   {
@@ -24,17 +24,17 @@ func MOD(x: dynamic)
   }
 }
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var nxt = cpp_array(1000010);
+var nxt: dynamic = cpp_array(1000010);
 
-var head = cpp_array(1000010);
+var head: dynamic = cpp_array(1000010);
 
-var to = cpp_array(1000010);
+var to: dynamic = cpp_array(1000010);
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
   l += 1;
   nxt[l] = head[x];
@@ -42,21 +42,21 @@ func add(x: dynamic, y: dynamic)
   to[l] = y;
 }
 
-var low = cpp_array(1000010);
+var low: dynamic = cpp_array(1000010);
 
-var f = cpp_array(1000010);
+var f: dynamic = cpp_array(1000010);
 
-var d = cpp_array(1000010);
+var d: dynamic = cpp_array(1000010);
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
   low[x] = ((1 << 30));
-  var fl = 1;
+  var fl: dynamic = 1;
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var c = to[i];
+      var c: dynamic = to[i];
       d[c] = (d[x] + 1);
       dfs(c);
       if (((low[c] - d[x]) <= m))
@@ -76,14 +76,14 @@ func dfs(x: dynamic)
   }
 }
 
-func getans(x: dynamic)
+func getans(x: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var c = to[i];
+      var c: dynamic = to[i];
       ans = max(ans, getans(c));
       i = nxt[i];
     }
@@ -91,13 +91,13 @@ func getans(x: dynamic)
   return (ans + f[x]);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   n = read();
   m = read();
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       add(read(), i);

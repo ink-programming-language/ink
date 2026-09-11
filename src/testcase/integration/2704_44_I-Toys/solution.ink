@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(123);
+var dp: dynamic = cpp_array(123);
 
-func ot(a: dynamic)
+func ot(a: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       if (i)
@@ -14,7 +14,7 @@ func ot(a: dynamic)
       }
       printf("{");
       {
-        var q = 0;
+        var q: dynamic = 0;
         while ((q < a[i].size()))
         {
           if (q)
@@ -32,21 +32,21 @@ func ot(a: dynamic)
   puts("");
 }
 
-func main()
+func main() -> dynamic
 {
-  var e1: dynamic;
-  var e2: dynamic;
+  var e1: dynamic = cpp_uninitialized();
+  var e2: dynamic = cpp_uninitialized();
   e1.push_back(1);
   e2.push_back(e1);
   dp[1].push_back(e2);
-  var i: dynamic;
-  var q: dynamic;
-  var z: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i < 10))
     {
-      var fk = 1;
+      var fk: dynamic = 1;
       {
         q = 0;
         while ((q < dp[i].size()))
@@ -92,7 +92,7 @@ func main()
       i += 1;
     }
   }
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while ((cin >> n))
   {
     write(dp[n].size(), "\n");

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func max(a: dynamic, b: dynamic)
+func max(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) b else a;
+  return  ((a < b)) ? b : a;
 }
 
-func min(a: dynamic, b: dynamic)
+func min(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) a else b;
+  return  ((a < b)) ? a : b;
 }
 
-var lf = cpp_char("\n");
+var lf: dynamic = cpp_char("\n");
 
-var bufl = (1 << 15);
+var bufl: dynamic = (1 << 15);
 
-var buf = cpp_array(bufl);
+var buf: dynamic = cpp_array(bufl);
 
-var s = buf;
+var s: dynamic = buf;
 
-var t = buf;
+var t: dynamic = buf;
 
-func fetch()
+func fetch() -> dynamic
 {
   if ((s == t))
   {
@@ -33,11 +33,11 @@ func fetch()
   return (*cpp_update(s, "++"));
 }
 
-func ty()
+func ty() -> dynamic
 {
-  var a = 0;
-  var b = 1;
-  var c = fetch();
+  var a: dynamic = 0;
+  var b: dynamic = 1;
+  var c: dynamic = fetch();
   while ((!isdigit(c)))
   {
     b ^= (c == cpp_char("-"));
@@ -48,13 +48,13 @@ func ty()
     a = (((a * 10) + c) - 48);
     c = fetch();
   }
-  return if (b) a else (-a);
+  return  (b) ? a : (-a);
 }
 
-func ts(s: dynamic)
+func ts(s: dynamic) -> dynamic
 {
-  var a = 0;
-  var c = fetch();
+  var a: dynamic = 0;
+  var c: dynamic = fetch();
   while (((c <= 32) && (c != EOF)))
   {
     c = fetch();
@@ -68,27 +68,27 @@ func ts(s: dynamic)
   return a;
 }
 
-var cpp_name = 200007;
+var cpp_name: dynamic = 200007;
 
-var alp = 22;
+var alp: dynamic = 22;
 
-var cpp_name = 4233333;
+var cpp_name: dynamic = 4233333;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ps: dynamic;
+var ps: dynamic = cpp_uninitialized();
 
-var str = cpp_array(cpp_name);
+var str: dynamic = cpp_array(cpp_name);
 
-var ned = cpp_array(alp);
+var ned: dynamic = cpp_array(alp);
 
-var val = cpp_array(alp, alp);
+var val: dynamic = cpp_array(alp, alp);
 
-var lim: dynamic;
+var lim: dynamic = cpp_uninitialized();
 
-var f = [0];
+var f: dynamic = [0];
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cout.tie(null);
@@ -97,7 +97,7 @@ func main()
   lim = ty();
   ts((str + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ps))
     {
       ned[i] = ty();
@@ -105,11 +105,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ps))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ps))
         {
           val[i][j] = ty();
@@ -120,18 +120,18 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       str[i] -= cpp_char("A");
       i += 1;
     }
   }
-  var las = cpp_array(alp);
+  var las: dynamic = cpp_array(alp);
   memset(las, -1, cpp_sizeof((las)));
-  var all = 0;
+  var all: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ps))
     {
       f[((1 << (i)))] = ned[i];
@@ -139,12 +139,12 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       all |= ((1 << (str[i])));
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ps))
         {
           if ((las[j] < 0))
@@ -168,11 +168,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < alp))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ((1 << (alp)))))
         {
           if ((((((j) >> (i))) & 1)))
@@ -185,9 +185,9 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << (alp)))))
     {
       if ((((((i & all)) == i) && (i != all)) && (f[i] <= lim)))

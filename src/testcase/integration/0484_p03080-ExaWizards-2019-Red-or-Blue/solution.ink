@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var cR = 0;
-  var cB = 0;
+  var n: dynamic = cpp_uninitialized();
+  var cR: dynamic = 0;
+  var cB: dynamic = 0;
   read(n);
   while (cpp_update(n, "--"))
   {
-    var s: dynamic;
+    var s: dynamic = cpp_uninitialized();
     read(s);
     if ((s == cpp_char("R")))
     {

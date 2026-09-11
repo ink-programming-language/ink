@@ -1,62 +1,62 @@
 // Translated from solution.cpp.
 
-var F = cpp_expression("#incl");
+var F: dynamic = cpp_expression("#incl");
 
-var S = cpp_expression("#inclu");
+var S: dynamic = cpp_expression("#inclu");
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-func operator_shift_right(i: dynamic, A: dynamic)
+func operator_shift_right(i: dynamic, A: dynamic) -> dynamic
 {
   ((i >> A.F) >> A.S);
   return i;
 }
 
-func operator_shift_right(i: dynamic, A: dynamic)
+func operator_shift_right(i: dynamic, A: dynamic) -> dynamic
 {
-  for (var I in A)
+  for (var I: dynamic in A)
   {
     (i >> I);
   }
   return i;
 }
 
-func operator_shift_left(o: dynamic, A: dynamic)
+func operator_shift_left(o: dynamic, A: dynamic) -> dynamic
 {
   (((o << A.F) << " ") << A.S);
   return o;
 }
 
-func operator_shift_left(o: dynamic, A: dynamic)
+func operator_shift_left(o: dynamic, A: dynamic) -> dynamic
 {
-  var i = A.size();
-  for (var I in A)
+  var i: dynamic = A.size();
+  for (var I: dynamic in A)
   {
-    ((o << I) << (if (cpp_update(i, "--")) " " else ""));
+    ((o << I) << ( (cpp_update(i, "--")) ? " " : ""));
   }
   return o;
 }
 
 class SegmentTree
 {
-  var n: dynamic;
-  var height: dynamic;
-  var f: dynamic;
-  var g: dynamic;
-  var h: dynamic;
-  var ti: dynamic;
-  var ei: dynamic;
-  var dat: dynamic;
-  var laz: dynamic;
-  func SegmentTree(f: dynamic, g: dynamic, h: dynamic, ti: dynamic, ei: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  var height: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
+  var g: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var ti: dynamic = cpp_uninitialized();
+  var ei: dynamic = cpp_uninitialized();
+  var dat: dynamic = cpp_uninitialized();
+  var laz: dynamic = cpp_uninitialized();
+  func SegmentTree(f: dynamic, g: dynamic, h: dynamic, ti: dynamic, ei: dynamic) -> dynamic
   {
-      this->f = cpp_construct(f);
-      this->g = cpp_construct(g);
-      this->h = cpp_construct(h);
-      this->ti = cpp_construct(ti);
-      this->ei = cpp_construct(ei);
+      self->f = cpp_construct(f);
+      self->g = cpp_construct(g);
+      self->h = cpp_construct(h);
+      self->ti = cpp_construct(ti);
+      self->ei = cpp_construct(ei);
     }
-  func init(n: dynamic)
+  func init(n: dynamic) -> dynamic
   {
       n = 1;
       height = 0;
@@ -68,12 +68,12 @@ class SegmentTree
       dat.assign((2 * n), ti);
       laz.assign((2 * n), ei);
     }
-  func build(v: dynamic)
+  func build(v: dynamic) -> dynamic
   {
-      var n = v.size();
+      var n: dynamic = v.size();
       init(n);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           dat[(n + i)] = v[i];
@@ -81,7 +81,7 @@ class SegmentTree
         }
       }
       {
-        var i = (n - 1);
+        var i: dynamic = (n - 1);
         while (i)
         {
           dat[i] = f(dat[(((i << 1)) | 0)], dat[(((i << 1)) | 1)]);
@@ -89,11 +89,11 @@ class SegmentTree
         }
       }
     }
-  func reflect(k: dynamic)
+  func reflect(k: dynamic) -> dynamic
   {
-      return if ((laz[k] == ei)) dat[k] else g(dat[k], laz[k]);
+      return  ((laz[k] == ei)) ? dat[k] : g(dat[k], laz[k]);
     }
-  func eval(k: dynamic)
+  func eval(k: dynamic) -> dynamic
   {
       if ((laz[k] == ei))
       {
@@ -104,10 +104,10 @@ class SegmentTree
       dat[k] = reflect(k);
       laz[k] = ei;
     }
-  func thrust(k: dynamic)
+  func thrust(k: dynamic) -> dynamic
   {
       {
-        var i = height;
+        var i: dynamic = height;
         while (i)
         {
           eval((k >> i));
@@ -115,20 +115,20 @@ class SegmentTree
         }
       }
     }
-  func recalc(k: dynamic)
+  func recalc(k: dynamic) -> dynamic
   {
       while (cpp_assign(k, ">>=", 1))
       {
         dat[k] = f(reflect((((k << 1)) | 0)), reflect((((k << 1)) | 1)));
       }
     }
-  func update(a: dynamic, b: dynamic, x: dynamic)
+  func update(a: dynamic, b: dynamic, x: dynamic) -> dynamic
   {
       thrust(cpp_assign(a, "+=", n));
       thrust(cpp_assign(b, "+=", (n - 1)));
       {
-        var l = a;
-        var r = (b + 1);
+        var l: dynamic = a;
+        var r: dynamic = (b + 1);
         while ((l < r))
         {
           if ((l & 1))
@@ -148,22 +148,22 @@ class SegmentTree
       recalc(a);
       recalc(b);
     }
-  func set_val(a: dynamic, x: dynamic)
+  func set_val(a: dynamic, x: dynamic) -> dynamic
   {
       thrust(cpp_assign(a, "+=", n));
       dat[a] = x;
       laz[a] = ei;
       recalc(a);
     }
-  func query(a: dynamic, b: dynamic)
+  func query(a: dynamic, b: dynamic) -> dynamic
   {
       thrust(cpp_assign(a, "+=", n));
       thrust(cpp_assign(b, "+=", (n - 1)));
-      var vl = ti;
-      var vr = ti;
+      var vl: dynamic = ti;
+      var vr: dynamic = ti;
       {
-        var l = a;
-        var r = (b + 1);
+        var l: dynamic = a;
+        var r: dynamic = (b + 1);
         while ((l < r))
         {
           if ((l & 1))
@@ -180,15 +180,15 @@ class SegmentTree
       }
       return f(vl, vr);
     }
-  func find(st: dynamic, check: dynamic, acc: dynamic, k: dynamic, l: dynamic, r: dynamic)
+  func find(st: dynamic, check: dynamic, acc: dynamic, k: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       if (((l + 1) == r))
       {
         acc = f(acc, reflect(k));
-        return if (check(acc)) (k - n) else -1;
+        return  (check(acc)) ? (k - n) : -1;
       }
       eval(k);
-      var m = (((l + r)) >> 1);
+      var m: dynamic = (((l + r)) >> 1);
       if ((m <= st))
       {
         return find(st, check, acc, (((k << 1)) | 1), m, r);
@@ -198,57 +198,57 @@ class SegmentTree
         acc = f(acc, dat[k]);
         return -1;
       }
-      var vl = find(st, check, acc, (((k << 1)) | 0), l, m);
+      var vl: dynamic = find(st, check, acc, (((k << 1)) | 0), l, m);
       if ((~vl))
       {
         return vl;
       }
       return find(st, check, acc, (((k << 1)) | 1), m, r);
     }
-  func find(st: dynamic, check: dynamic)
+  func find(st: dynamic, check: dynamic) -> dynamic
   {
-      var acc = ti;
+      var acc: dynamic = ti;
       return find(st, check, acc, 1, 0, n);
     }
 }
 
 class node
 {
-  var mi: dynamic;
-  var mx: dynamic;
-  var ans: dynamic;
-  var sum: dynamic;
-  func node(a: dynamic = 0, b: dynamic = 0, c: dynamic = 0, d: dynamic = 0)
+  var mi: dynamic = cpp_uninitialized();
+  var mx: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  func node(a: dynamic = 0, b: dynamic = 0, c: dynamic = 0, d: dynamic = 0) -> dynamic
   {
-      this->mi = cpp_construct(a);
-      this->mx = cpp_construct(b);
-      this->ans = cpp_construct(c);
-      this->sum = cpp_construct(d);
+      self->mi = cpp_construct(a);
+      self->mx = cpp_construct(b);
+      self->ans = cpp_construct(c);
+      self->sum = cpp_construct(d);
     }
-  func operator_equal(A: dynamic)
+  func operator_equal(A: dynamic) -> dynamic
   {
       return ((((A.mi == mi) && (A.mx == mx)) && (A.ans == ans)) && (A.sum == sum));
     }
 }
 
-var uku = (-1 * MOD);
+var uku: dynamic = (-1 * MOD);
 
-var err = node(MOD, uku, 0, 0);
+var err: dynamic = node(MOD, uku, 0, 0);
 
-func main()
+func main() -> dynamic
 {
-  var f = __cpp_lambda_1;
-  var g = __cpp_lambda_2;
-  var h = __cpp_lambda_3;
-  var N: dynamic;
-  var Q: dynamic;
+  var f: dynamic = __cpp_lambda_1;
+  var g: dynamic = __cpp_lambda_2;
+  var h: dynamic = __cpp_lambda_3;
+  var N: dynamic = cpp_uninitialized();
+  var Q: dynamic = cpp_uninitialized();
   read(N, Q);
   N += 1;
   ch.build(vector(N, node()));
-  var A = cpp_construct((N - 1));
+  var A: dynamic = cpp_construct((N - 1));
   read(A);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       ch.update(i, (i + 1), node(A[(i - 1)], A[(i - 1)], 0, A[(i - 1)]));
@@ -258,8 +258,8 @@ func main()
   write(ch.query(0, N).ans, "\n");
   while (cpp_update(Q, "--"))
   {
-    var k: dynamic;
-    var x: dynamic;
+    var k: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
     read(k, x);
     ch.update(k, (k + 1), node(x, x, 0, x));
     write(ch.query(0, N).ans, "\n");
@@ -267,17 +267,17 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_1(a: dynamic, b: dynamic)
+func __cpp_lambda_1(a: dynamic, b: dynamic) -> dynamic
 {
   return node(min(a.mi, (a.sum + b.mi)), max(a.mx, (a.sum + b.mx)), max(max(a.ans, b.ans), ((a.sum + b.mx) - a.mi)), (a.sum + b.sum));
 }
 
-func __cpp_lambda_2(a: dynamic, b: dynamic)
+func __cpp_lambda_2(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b == err)) a else b;
+  return  ((b == err)) ? a : b;
 }
 
-func __cpp_lambda_3(a: dynamic, b: dynamic)
+func __cpp_lambda_3(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b == err)) a else b;
+  return  ((b == err)) ? a : b;
 }

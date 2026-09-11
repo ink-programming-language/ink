@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(arr[i]);
@@ -17,9 +17,9 @@ func main()
         i += 1;
       }
     }
-    var st: dynamic;
+    var st: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((st.find(arr[i]) == st.end()))

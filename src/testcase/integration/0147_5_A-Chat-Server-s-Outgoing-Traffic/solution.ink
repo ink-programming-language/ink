@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var m = 0;
-  var a = 0;
+  var m: dynamic = 0;
+  var a: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 100))
     {
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       getline(cin, s);
       if ((s[0] == cpp_char("+")))
       {
@@ -22,10 +22,10 @@ func main()
         i += 1;
         continue;
       }
-      var c = 1;
-      var t = 0;
+      var c: dynamic = 1;
+      var t: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < s.size()))
         {
           if (((s[j] == cpp_char(":")) && (c == 1)))

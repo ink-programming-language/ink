@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var INF = numeric_limits.max();
+var INF: dynamic = numeric_limits.max();
 
-var LLINF = numeric_limits.max();
+var LLINF: dynamic = numeric_limits.max();
 
-var ULLINF = numeric_limits.max();
+var ULLINF: dynamic = numeric_limits.max();
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var t = cpp_array(50);
-  var n: dynamic;
-  var k: dynamic;
-  var M: dynamic;
+  var t: dynamic = cpp_array(50);
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
   read(n, k, M);
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       read(t[i]);
@@ -28,23 +28,23 @@ func main()
     }
   }
   sort(t, (t + k));
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var s = 0;
+    var s: dynamic = 0;
     while ((s <= n))
     {
       if (((sum * s) > M))
       {
         break;
       }
-      var p = (n - s);
-      var T = (M - (sum * s));
-      var cur = (((k + 1)) * s);
+      var p: dynamic = (n - s);
+      var T: dynamic = (M - (sum * s));
+      var cur: dynamic = (((k + 1)) * s);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < k))
         {
-          var take = min((T / t[i]), p);
+          var take: dynamic = min((T / t[i]), p);
           cur += take;
           T -= (take * t[i]);
           i += 1;

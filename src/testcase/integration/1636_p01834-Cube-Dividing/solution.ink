@@ -1,68 +1,68 @@
 // Translated from solution.cpp.
 
-var BIG_NUM = cpp_expression("#include<b");
+var BIG_NUM: dynamic = cpp_expression("#include<b");
 
-var HUGE_NUM = cpp_expression("#include<bits/std");
+var HUGE_NUM: dynamic = cpp_expression("#include<bits/std");
 
-var MOD = cpp_expression("#include<b");
+var MOD: dynamic = cpp_expression("#include<b");
 
-var EPS = cpp_expression("#include<bi");
+var EPS: dynamic = cpp_expression("#include<bi");
 
-var NUM = cpp_expression("#includ");
+var NUM: dynamic = cpp_expression("#includ");
 
 class Info
 {
-  func Info(arg_x: dynamic, arg_y: dynamic, arg_z: dynamic)
+  func Info(arg_x: dynamic, arg_y: dynamic, arg_z: dynamic) -> dynamic
   {
       x = arg_x;
       y = arg_y;
       z = arg_z;
     }
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var boss = cpp_array(NUM);
+var boss: dynamic = cpp_array(NUM);
 
-var height = cpp_array(NUM);
+var height: dynamic = cpp_array(NUM);
 
-var diff_x = [-1, 0, 1];
+var diff_x: dynamic = [-1, 0, 1];
 
-var diff_y = [-1, 0, 1];
+var diff_y: dynamic = [-1, 0, 1];
 
-var diff_z = [-1, 0, 1];
+var diff_z: dynamic = [-1, 0, 1];
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-var Z: dynamic;
+var Z: dynamic = cpp_uninitialized();
 
-var num_DEL: dynamic;
+var num_DEL: dynamic = cpp_uninitialized();
 
-var num_REMAIN: dynamic;
+var num_REMAIN: dynamic = cpp_uninitialized();
 
-var info: dynamic;
+var info: dynamic = cpp_uninitialized();
 
-var DEL_GROUP = cpp_array(NUM);
+var DEL_GROUP: dynamic = cpp_array(NUM);
 
-var info_DELETE = cpp_array(NUM);
+var info_DELETE: dynamic = cpp_array(NUM);
 
-var info_REMAIN = cpp_array(NUM);
+var info_REMAIN: dynamic = cpp_array(NUM);
 
-var DELETE = cpp_array(NUM);
+var DELETE: dynamic = cpp_array(NUM);
 
-var REMAIN = cpp_array(NUM);
+var REMAIN: dynamic = cpp_array(NUM);
 
-func rangeCheck(x: dynamic, y: dynamic, z: dynamic)
+func rangeCheck(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   return ((((((x >= 0) && (x <= (X - 1))) && (y >= 0)) && (y <= (Y - 1))) && (z >= 0)) && (z <= (Z - 1)));
 }
 
-func get_boss(id: dynamic)
+func get_boss(id: dynamic) -> dynamic
 {
   if ((boss[id] == id))
   {
@@ -73,15 +73,15 @@ func get_boss(id: dynamic)
   }
 }
 
-func is_same(x: dynamic, y: dynamic)
+func is_same(x: dynamic, y: dynamic) -> dynamic
 {
   return (get_boss(x) == get_boss(y));
 }
 
-func unite(x: dynamic, y: dynamic)
+func unite(x: dynamic, y: dynamic) -> dynamic
 {
-  var boss_x = get_boss(x);
-  var boss_y = get_boss(y);
+  var boss_x: dynamic = get_boss(x);
+  var boss_y: dynamic = get_boss(y);
   if ((boss_x == boss_y))
   {
     return;
@@ -99,10 +99,10 @@ func unite(x: dynamic, y: dynamic)
   }
 }
 
-func init(num: dynamic)
+func init(num: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < num))
     {
       boss[i] = i;
@@ -112,9 +112,9 @@ func init(num: dynamic)
   }
 }
 
-func is_DELETE(x: dynamic, y: dynamic, z: dynamic)
+func is_DELETE(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
-  var at = DELETE[x].find(make_pair(y, z));
+  var at: dynamic = DELETE[x].find(make_pair(y, z));
   if ((at != DELETE[x].end()))
   {
     return true;
@@ -124,17 +124,17 @@ func is_DELETE(x: dynamic, y: dynamic, z: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d %d %d", (&X), (&Z), (&Y), (&num_DEL));
-  var index_DELETE = 0;
+  var index_DELETE: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < num_DEL))
     {
-      var x: dynamic;
-      var z: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var z: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d %d %d", (&x), (&z), (&y));
       DELETE[x][P(y, z)] = cpp_update(index_DELETE, "++");
       info_DELETE[x].push_back(P(y, z));
@@ -144,20 +144,20 @@ func main()
   }
   init(index_DELETE);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < index_DELETE))
     {
-      var tmp_info = info[i];
+      var tmp_info: dynamic = info[i];
       {
-        var a = 0;
+        var a: dynamic = 0;
         while ((a < 3))
         {
           {
-            var b = 0;
+            var b: dynamic = 0;
             while ((b < 3))
             {
               {
-                var c = 0;
+                var c: dynamic = 0;
                 while ((c < 3))
                 {
                   if ((((diff_x[a] == 0) && (diff_y[b] == 0)) && (diff_z[c] == 0)))
@@ -165,13 +165,13 @@ func main()
                     c += 1;
                     continue;
                   }
-                  var adj_x = (tmp_info.x + diff_x[a]);
-                  var adj_y = (tmp_info.y + diff_y[b]);
-                  var adj_z = (tmp_info.z + diff_z[c]);
+                  var adj_x: dynamic = (tmp_info.x + diff_x[a]);
+                  var adj_y: dynamic = (tmp_info.y + diff_y[b]);
+                  var adj_z: dynamic = (tmp_info.z + diff_z[c]);
                   if (((rangeCheck(adj_x, adj_y, adj_z) == true) && (is_DELETE(adj_x, adj_y, adj_z) == true)))
                   {
-                    var from_cpp = i;
-                    var to = DELETE[adj_x][P(adj_y, adj_z)];
+                    var from_cpp: dynamic = i;
+                    var to: dynamic = DELETE[adj_x][P(adj_y, adj_z)];
                     unite(from_cpp, to);
                   }
                   c += 1;
@@ -187,16 +187,16 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < index_DELETE))
     {
       DEL_GROUP[get_boss(i)].push_back(Info(info[i]));
       i += 1;
     }
   }
-  var ans = 1;
+  var ans: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < index_DELETE))
     {
       if ((DEL_GROUP[i].size() == 0))
@@ -204,11 +204,11 @@ func main()
         i += 1;
         continue;
       }
-      var index_REMAIN = 0;
-      var min_x = BIG_NUM;
-      var max_x = (-BIG_NUM);
+      var index_REMAIN: dynamic = 0;
+      var min_x: dynamic = BIG_NUM;
+      var max_x: dynamic = (-BIG_NUM);
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < DEL_GROUP[i].size()))
         {
           min_x = min(min_x, DEL_GROUP[i][k].x);
@@ -219,7 +219,7 @@ func main()
       min_x = max(0, (min_x - 2));
       max_x = min((X - 1), (max_x + 2));
       {
-        var k = min_x;
+        var k: dynamic = min_x;
         while ((k <= max_x))
         {
           REMAIN[k].clear();
@@ -227,23 +227,23 @@ func main()
           k += 1;
         }
       }
-      var L = BIG_NUM;
-      var R = (-BIG_NUM);
+      var L: dynamic = BIG_NUM;
+      var R: dynamic = (-BIG_NUM);
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < DEL_GROUP[i].size()))
         {
-          var tmp_info = DEL_GROUP[i][k];
+          var tmp_info: dynamic = DEL_GROUP[i][k];
           {
-            var a = 0;
+            var a: dynamic = 0;
             while ((a < 3))
             {
               {
-                var b = 0;
+                var b: dynamic = 0;
                 while ((b < 3))
                 {
                   {
-                    var c = 0;
+                    var c: dynamic = 0;
                     while ((c < 3))
                     {
                       if ((((diff_x[a] == 0) && (diff_y[b] == 0)) && (diff_z[c] == 0)))
@@ -251,15 +251,15 @@ func main()
                         c += 1;
                         continue;
                       }
-                      var adj_x = (tmp_info.x + diff_x[a]);
-                      var adj_y = (tmp_info.y + diff_y[b]);
-                      var adj_z = (tmp_info.z + diff_z[c]);
+                      var adj_x: dynamic = (tmp_info.x + diff_x[a]);
+                      var adj_y: dynamic = (tmp_info.y + diff_y[b]);
+                      var adj_z: dynamic = (tmp_info.z + diff_z[c]);
                       if (((rangeCheck(adj_x, adj_y, adj_z) == false) || (is_DELETE(adj_x, adj_y, adj_z) == true)))
                       {
                         c += 1;
                         continue;
                       }
-                      var at = REMAIN[adj_x].find(P(adj_y, adj_z));
+                      var at: dynamic = REMAIN[adj_x].find(P(adj_y, adj_z));
                       if ((at != REMAIN[adj_x].end()))
                       {
                         c += 1;
@@ -288,7 +288,7 @@ func main()
       }
       init(index_REMAIN);
       {
-        var x = L;
+        var x: dynamic = L;
         while ((x <= R))
         {
           if ((info_REMAIN[x].size() == 0))
@@ -297,23 +297,23 @@ func main()
             continue;
           }
           {
-            var loop = 0;
+            var loop: dynamic = 0;
             while ((loop < info_REMAIN[x].size()))
             {
-              var tmp = info_REMAIN[x][loop];
+              var tmp: dynamic = info_REMAIN[x][loop];
               {
-                var a = 0;
+                var a: dynamic = 0;
                 while ((a < 3))
                 {
                   {
-                    var b = 0;
+                    var b: dynamic = 0;
                     while ((b < 3))
                     {
                       {
-                        var c = 0;
+                        var c: dynamic = 0;
                         while ((c < 3))
                         {
-                          var count_zero = 0;
+                          var count_zero: dynamic = 0;
                           if ((diff_x[a] == 0))
                           {
                             count_zero += 1;
@@ -331,19 +331,19 @@ func main()
                             c += 1;
                             continue;
                           }
-                          var adj_x = (x + diff_x[a]);
-                          var adj_y = (tmp.first + diff_y[b]);
-                          var adj_z = (tmp.second + diff_z[c]);
+                          var adj_x: dynamic = (x + diff_x[a]);
+                          var adj_y: dynamic = (tmp.first + diff_y[b]);
+                          var adj_z: dynamic = (tmp.second + diff_z[c]);
                           if ((rangeCheck(adj_x, adj_y, adj_z) == true))
                           {
-                            var at = REMAIN[adj_x].find(P(adj_y, adj_z));
+                            var at: dynamic = REMAIN[adj_x].find(P(adj_y, adj_z));
                             if ((at == REMAIN[adj_x].end()))
                             {
                               c += 1;
                               continue;
                             }
-                            var from_cpp = REMAIN[x][tmp];
-                            var to = REMAIN[adj_x][P(adj_y, adj_z)];
+                            var from_cpp: dynamic = REMAIN[x][tmp];
+                            var to: dynamic = REMAIN[adj_x][P(adj_y, adj_z)];
                             unite(from_cpp, to);
                           }
                           c += 1;
@@ -361,9 +361,9 @@ func main()
           x += 1;
         }
       }
-      var num_group = 0;
+      var num_group: dynamic = 0;
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < index_REMAIN))
         {
           if ((k == get_boss(k)))

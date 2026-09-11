@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -17,9 +17,9 @@ func gcd(a: dynamic, b: dynamic)
   return b;
 }
 
-func modpow(x: dynamic, y: dynamic)
+func modpow(x: dynamic, y: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while ((y > 0))
   {
     if ((y & 1))
@@ -32,12 +32,12 @@ func modpow(x: dynamic, y: dynamic)
   return res;
 }
 
-func ncr(n: dynamic, r: dynamic)
+func ncr(n: dynamic, r: dynamic) -> dynamic
 {
-  var f1 = 1;
-  var f2 = 1;
+  var f1: dynamic = 1;
+  var f2: dynamic = 1;
   {
-    var i = (((n - r) + 1));
+    var i: dynamic = (((n - r) + 1));
     while ((i < ((n + 1))))
     {
       f1 = ((f1 * i) % 998244353);
@@ -45,7 +45,7 @@ func ncr(n: dynamic, r: dynamic)
     }
   }
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i < ((r + 1))))
     {
       f2 = ((f2 * i) % 998244353);
@@ -55,20 +55,20 @@ func ncr(n: dynamic, r: dynamic)
   return ((f1 * modpow(f2, (998244353 - 2))) % 998244353);
 }
 
-func sieve(n: dynamic)
+func sieve(n: dynamic) -> dynamic
 {
-  var lpf = cpp_new();
+  var lpf: dynamic = cpp_new();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       lpf[i] = i;
       i += 1;
     }
   }
-  var rt = (cpp_cast(floor(sqrt(n))) + 1);
+  var rt: dynamic = (cpp_cast(floor(sqrt(n))) + 1);
   {
-    var i = (2);
+    var i: dynamic = (2);
     while ((i < (rt)))
     {
       if ((lpf[i] != i))
@@ -77,7 +77,7 @@ func sieve(n: dynamic)
         continue;
       }
       {
-        var j = (i * i);
+        var j: dynamic = (i * i);
         while ((j <= n))
         {
           if ((lpf[j] == j))
@@ -93,18 +93,18 @@ func sieve(n: dynamic)
   return lpf;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var a = cpp_array(m, n);
+  var a: dynamic = cpp_array(m, n);
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (m)))
         {
           read(a[i][j]);
@@ -114,22 +114,22 @@ func solve()
       i += 1;
     }
   }
-  var cord = cpp_array(2, 26);
+  var cord: dynamic = cpp_array(2, 26);
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (26)))
     {
       cord[i][0] = cpp_assign(cord[i][1], "=", make_pair(-1, -1));
       i += 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (m)))
         {
           if ((a[i][j] == cpp_char(".")))
@@ -149,13 +149,13 @@ func solve()
       i += 1;
     }
   }
-  var test = cpp_array(m, n);
+  var test: dynamic = cpp_array(m, n);
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (m)))
         {
           test[i][j] = cpp_char(".");
@@ -166,7 +166,7 @@ func solve()
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (cnt)))
     {
       if ((cord[i][0] == make_pair(-1, -1)))
@@ -178,7 +178,7 @@ func solve()
       if ((cord[i][0].first == cord[i][1].first))
       {
         {
-          var j = (cord[i][0].second);
+          var j: dynamic = (cord[i][0].second);
           while ((j < ((cord[i][1].second + 1))))
           {
             test[cord[i][0].first][j] = (cpp_char("a") + i);
@@ -188,7 +188,7 @@ func solve()
       } else if ((cord[i][0].second == cord[i][1].second))
       {
         {
-          var j = (cord[i][0].first);
+          var j: dynamic = (cord[i][0].first);
           while ((j < ((cord[i][1].first + 1))))
           {
             test[j][cord[i][0].second] = (cpp_char("a") + i);
@@ -204,11 +204,11 @@ func solve()
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (m)))
         {
           if ((a[i][j] != test[i][j]))
@@ -224,7 +224,7 @@ func solve()
   }
   write("YES\n", cnt, "\n");
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (cnt)))
     {
       write((cord[i][0].first + 1), " ", (cord[i][0].second + 1), " ", (cord[i][1].first + 1), " ", (cord[i][1].second + 1), "\n");
@@ -233,14 +233,14 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var t = 1;
+  var t: dynamic = 1;
   read(t);
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i < ((t + 1))))
     {
       solve();

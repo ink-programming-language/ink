@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func operator_shift_left(s: dynamic, p: dynamic)
+func operator_shift_left(s: dynamic, p: dynamic) -> dynamic
 {
   return (((((s << "(") << p.first) << ",") << p.second) << ")");
 }
 
-func operator_shift_left(s: dynamic, c: dynamic)
+func operator_shift_left(s: dynamic, c: dynamic) -> dynamic
 {
   (s << "[ ");
-  for (var it in c)
+  for (var it: dynamic in c)
   {
     ((s << it) << " ");
   }
@@ -16,60 +16,60 @@ func operator_shift_left(s: dynamic, c: dynamic)
   return s;
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var second: dynamic;
+var second: dynamic = cpp_uninitialized();
 
-var MAXS = 1510101;
+var MAXS: dynamic = 1510101;
 
-var INF = 1E20;
+var INF: dynamic = 1E20;
 
-var prob = [(1.0 / 6.0), (1.0 / 3.0), (1.0 / 3.0)];
+var prob: dynamic = [(1.0 / 6.0), (1.0 / 3.0), (1.0 / 3.0)];
 
-var arr = cpp_array(4, 6);
+var arr: dynamic = cpp_array(4, 6);
 
-var states = cpp_array(MAXS);
+var states: dynamic = cpp_array(MAXS);
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(MAXS);
+var dp: dynamic = cpp_array(MAXS);
 
-var isterm = cpp_array(MAXS);
+var isterm: dynamic = cpp_array(MAXS);
 
-var trans = cpp_array(3, MAXS);
+var trans: dynamic = cpp_array(3, MAXS);
 
-var ladd = cpp_array(3, 64);
+var ladd: dynamic = cpp_array(3, 64);
 
-var ldel = cpp_array(3, 64);
+var ldel: dynamic = cpp_array(3, 64);
 
-var lok = cpp_array(64);
+var lok: dynamic = cpp_array(64);
 
-var lfull = cpp_array(64);
+var lfull: dynamic = cpp_array(64);
 
-var zv = cpp_array(64);
+var zv: dynamic = cpp_array(64);
 
-var yv = cpp_array(64);
+var yv: dynamic = cpp_array(64);
 
-func lrand()
+func lrand() -> dynamic
 {
   return (((rand() * cpp_cast(RAND_MAX))) + rand());
 }
 
-func llrand()
+func llrand() -> dynamic
 {
   return (((lrand() * cpp_cast(RAND_MAX)) * RAND_MAX) + lrand());
 }
 
-func lmin(z: dynamic)
+func lmin(z: dynamic) -> dynamic
 {
-  var n = ((((z & 0xc)) | ((((z & 0x3)) << 4))) | ((((z & 0x30)) >> 4)));
+  var n: dynamic = ((((z & 0xc)) | ((((z & 0x3)) << 4))) | ((((z & 0x30)) >> 4)));
   return min(n, z);
 }
 
-func makel()
+func makel() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 64))
     {
       lok[i] = cpp_binary(cpp_binary(((i & 0xf)), "and", ((i & 0x3c))), "and", (i == lmin(i)));
@@ -80,11 +80,11 @@ func makel()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 64))
     {
       {
-        var p = 0;
+        var p: dynamic = 0;
         while ((p < 3))
         {
           if ((!lok[i]))
@@ -92,13 +92,13 @@ func makel()
             p += 1;
             continue;
           }
-          var clr = (((i >> ((2 * p)))) & 3);
+          var clr: dynamic = (((i >> ((2 * p)))) & 3);
           if ((!clr))
           {
             p += 1;
             continue;
           }
-          var ns = lmin((i - ((clr << ((2 * p))))));
+          var ns: dynamic = lmin((i - ((clr << ((2 * p))))));
           if (lok[ns])
           {
             ldel[i][(clr - 1)].push_back(ns);
@@ -107,7 +107,7 @@ func makel()
         }
       }
       {
-        var p = 0;
+        var p: dynamic = 0;
         while ((p < 3))
         {
           if ((((i >> ((2 * p)))) & 3))
@@ -116,10 +116,10 @@ func makel()
             continue;
           }
           {
-            var c = 0;
+            var c: dynamic = 0;
             while ((c < 3))
             {
-              var ns = lmin((i + ((((c + 1)) << ((2 * p))))));
+              var ns: dynamic = lmin((i + ((((c + 1)) << ((2 * p))))));
               ladd[i][c].push_back(ns);
               c += 1;
             }
@@ -128,7 +128,7 @@ func makel()
         }
       }
       {
-        var c = 0;
+        var c: dynamic = 0;
         while ((c < 3))
         {
           sort(begin(ladd[i][c]), end(ladd[i][c]));
@@ -143,9 +143,9 @@ func makel()
   }
 }
 
-func decode(x: dynamic)
+func decode(x: dynamic) -> dynamic
 {
-  var ret: dynamic;
+  var ret: dynamic = cpp_uninitialized();
   while (x)
   {
     ret.push_back((x & 0x3f));
@@ -154,12 +154,12 @@ func decode(x: dynamic)
   return ret;
 }
 
-func encode(v: dynamic)
+func encode(v: dynamic) -> dynamic
 {
-  var res = 0;
-  var sz = (cpp_cast((v).size()));
+  var res: dynamic = 0;
+  var sz: dynamic = (cpp_cast((v).size()));
   {
-    var i = (sz - 1);
+    var i: dynamic = (sz - 1);
     while ((i >= 0))
     {
       res = (((res << 6)) + v[i]);
@@ -169,12 +169,12 @@ func encode(v: dynamic)
   return res;
 }
 
-func enhash(v: dynamic)
+func enhash(v: dynamic) -> dynamic
 {
-  var sz = (cpp_cast((v).size()));
-  var res = yv[v[(sz - 1)]];
+  var sz: dynamic = (cpp_cast((v).size()));
+  var res: dynamic = yv[v[(sz - 1)]];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (sz - 1)))
     {
       if (cpp_binary(((v[i] & 0xc)), "and", (cpp_binary(((v[i] & 0x30)), "or", ((v[i] & 0x3))))))
@@ -187,12 +187,12 @@ func enhash(v: dynamic)
   return res;
 }
 
-func normalize(v: dynamic)
+func normalize(v: dynamic) -> dynamic
 {
-  var sz = (cpp_cast((v).size()));
-  var nv: dynamic;
+  var sz: dynamic = (cpp_cast((v).size()));
+  var nv: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (sz - 1)))
     {
       if (cpp_binary(((v[i] & 0xc)), "and", (cpp_binary(((v[i] & 0x30)), "or", ((v[i] & 0x3))))))
@@ -207,7 +207,7 @@ func normalize(v: dynamic)
   return nv;
 }
 
-func go(s: dynamic)
+func go(s: dynamic) -> dynamic
 {
   if ((dp[s] != INF))
   {
@@ -218,22 +218,22 @@ func go(s: dynamic)
     dp[s] = 0;
   } else
   {
-    var best = [INF, INF, INF];
+    var best: dynamic = [INF, INF, INF];
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < 3))
       {
-        for (var ns in trans[s][j])
+        for (var ns: dynamic in trans[s][j])
         {
           best[j] = min(best[j], go(ns));
         }
         j += 1;
       }
     }
-    var okprob = 0;
-    var pg = 0;
+    var okprob: dynamic = 0;
+    var pg: dynamic = 0;
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < 3))
       {
         if ((best[j] != INF))
@@ -249,21 +249,21 @@ func go(s: dynamic)
   return dp[s];
 }
 
-func s2s(v: dynamic)
+func s2s(v: dynamic) -> dynamic
 {
-  var ret = "\n";
-  var sz = (cpp_cast((v).size()));
+  var ret: dynamic = "\n";
+  var sz: dynamic = (cpp_cast((v).size()));
   {
-    var j = (sz - 1);
+    var j: dynamic = (sz - 1);
     while ((j >= 0))
     {
-      var x = v[j];
+      var x: dynamic = v[j];
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 3))
         {
-          var y = (x & 3);
-          ret.push_back(if ((y == 1)) cpp_char("R") else (if ((y == 2)) cpp_char("G") else (if ((y == 0)) cpp_char(" ") else cpp_char("B"))));
+          var y: dynamic = (x & 3);
+          ret.push_back( ((y == 1)) ? cpp_char("R") : ( ((y == 2)) ? cpp_char("G") : ( ((y == 0)) ? cpp_char(" ") : cpp_char("B"))));
           x >>= 2;
           i += 1;
         }
@@ -276,79 +276,79 @@ func s2s(v: dynamic)
   return ret;
 }
 
-func calc()
+func calc() -> dynamic
 {
   makel();
-  var sv: dynamic;
+  var sv: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var a = cpp_array(3);
+      var a: dynamic = cpp_array(3);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 3))
         {
-          a[j] = (if ((arr[i][j] == cpp_char("R"))) 1 else (if ((arr[i][j] == cpp_char("G"))) 2 else 3));
+          a[j] = ( ((arr[i][j] == cpp_char("R"))) ? 1 : ( ((arr[i][j] == cpp_char("G"))) ? 2 : 3));
           j += 1;
         }
       }
-      var z = (((a[0] + ((a[1] << 2))) + ((a[2] << 4))));
+      var z: dynamic = (((a[0] + ((a[1] << 2))) + ((a[2] << 4))));
       sv.push_back(lmin(z));
       i += 1;
     }
   }
-  var hs = enhash(sv);
+  var hs: dynamic = enhash(sv);
   sv = normalize(sv);
-  var hv = encode(sv);
+  var hv: dynamic = encode(sv);
   second = 0;
   states[second] = hv;
   mp[hs] = second;
   second += 1;
   {
-    var pos = 0;
+    var pos: dynamic = 0;
     while ((pos < second))
     {
-      var h = states[pos];
-      var v = decode(h);
-      var sz = (cpp_cast((v).size()));
+      var h: dynamic = states[pos];
+      var v: dynamic = decode(h);
+      var sz: dynamic = (cpp_cast((v).size()));
       if ((sz == 1))
       {
         pos += 1;
         continue;
       }
-      var nxt = (sz - 1);
+      var nxt: dynamic = (sz - 1);
       if (lfull[v[(sz - 1)]])
       {
         v.push_back(0);
         nxt += 1;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (sz - 1)))
         {
           {
-            var c = 0;
+            var c: dynamic = 0;
             while ((c < 3))
             {
-              for (var x in ldel[v[i]][c])
+              for (var x: dynamic in ldel[v[i]][c])
               {
-                var ov = v[i];
+                var ov: dynamic = v[i];
                 v[i] = x;
-                for (var y in ladd[v[nxt]][c])
+                for (var y: dynamic in ladd[v[nxt]][c])
                 {
-                  var on = v[nxt];
+                  var on: dynamic = v[nxt];
                   v[nxt] = y;
-                  var hh = enhash(v);
+                  var hh: dynamic = enhash(v);
                   if ((!mp.count(hh)))
                   {
-                    var ns = normalize(v);
-                    var nh = encode(ns);
+                    var ns: dynamic = normalize(v);
+                    var nh: dynamic = encode(ns);
                     states[second] = nh;
                     mp[hh] = second;
                     second += 1;
                   }
-                  var nid = mp[hh];
+                  var nid: dynamic = mp[hh];
                   trans[pos][c].push_back(nid);
                   v[nxt] = on;
                 }
@@ -361,7 +361,7 @@ func calc()
         }
       }
       {
-        var c = 0;
+        var c: dynamic = 0;
         while ((c < 3))
         {
           trans[pos][c].resize((unique(begin(trans[pos][c]), end(trans[pos][c])) - trans[pos][c].begin()));
@@ -372,7 +372,7 @@ func calc()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < second))
     {
       isterm[i] = (cpp_binary(cpp_binary(trans[i][0].empty(), "and", trans[i][1].empty()), "and", trans[i][2].empty()));
@@ -380,31 +380,31 @@ func calc()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < second))
     {
       dp[i] = INF;
       i += 1;
     }
   }
-  var ans = go(0);
+  var ans: dynamic = go(0);
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   read(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(arr[i]);
       i += 1;
     }
   }
-  var ans = calc();
+  var ans: dynamic = calc();
   write(fixed, setprecision(10), ans, "\n");
   return 0;
 }

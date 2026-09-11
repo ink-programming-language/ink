@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var ans = INT_MAX;
-  var thickOne: dynamic;
-  var thickTwo: dynamic;
-  var n: dynamic;
+  var ans: dynamic = INT_MAX;
+  var thickOne: dynamic = cpp_uninitialized();
+  var thickTwo: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = cpp_cast((0));
+    var i: dynamic = cpp_cast((0));
     while ((i < cpp_cast((n))))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       if ((a == 1))
       {
@@ -31,10 +31,10 @@ func main()
   sort(thickOne.begin(), thickOne.end());
   thickOne.push_back(0);
   reverse(thickOne.begin(), thickOne.end());
-  var widthOne = 0;
-  var widthTwo = 0;
+  var widthOne: dynamic = 0;
+  var widthTwo: dynamic = 0;
   {
-    var i = cpp_cast((0));
+    var i: dynamic = cpp_cast((0));
     while ((i < cpp_cast((thickOne.size()))))
     {
       widthOne += thickOne[i];
@@ -42,7 +42,7 @@ func main()
     }
   }
   {
-    var i = cpp_cast((0));
+    var i: dynamic = cpp_cast((0));
     while ((i < cpp_cast((thickTwo.size()))))
     {
       widthTwo += thickTwo[i];
@@ -50,17 +50,17 @@ func main()
     }
   }
   {
-    var i = cpp_cast((0));
+    var i: dynamic = cpp_cast((0));
     while ((i < cpp_cast((thickOne.size()))))
     {
       widthOne -= thickOne[i];
-      var curr = widthTwo;
+      var curr: dynamic = widthTwo;
       {
-        var j = cpp_cast((0));
+        var j: dynamic = cpp_cast((0));
         while ((j < cpp_cast((thickTwo.size()))))
         {
           curr -= thickTwo[j];
-          var abhiThick = (i + (2 * j));
+          var abhiThick: dynamic = (i + (2 * j));
           if (((widthOne + curr) <= abhiThick))
           {
             ans = min(ans, abhiThick);

@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var MOD = 999998727899999;
+var MOD: dynamic = 999998727899999;
 
-var MAXN = 300001;
+var MAXN: dynamic = 300001;
 
-var c = cpp_array(MAXN);
+var c: dynamic = cpp_array(MAXN);
 
-var g = cpp_array(MAXN);
+var g: dynamic = cpp_array(MAXN);
 
-var s = cpp_array(MAXN);
+var s: dynamic = cpp_array(MAXN);
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var mark = cpp_array(MAXN);
+var mark: dynamic = cpp_array(MAXN);
 
-var base = 101;
+var base: dynamic = 101;
 
-var diff = cpp_array(MAXN);
+var diff: dynamic = cpp_array(MAXN);
 
-var ans = cpp_array(MAXN);
+var ans: dynamic = cpp_array(MAXN);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func dsu(a1: dynamic, a2: dynamic)
+func dsu(a1: dynamic, a2: dynamic) -> dynamic
 {
-  var it = s[a2].begin();
+  var it: dynamic = s[a2].begin();
   while ((it != s[a2].end()))
   {
     s[a1].insert((*it));
@@ -33,16 +33,16 @@ func dsu(a1: dynamic, a2: dynamic)
   s[a2].clear();
 }
 
-func dfs(v: dynamic, h: dynamic)
+func dfs(v: dynamic, h: dynamic) -> dynamic
 {
-  var hash = (((((h * base)) + (((t[(v - 1)] - cpp_char("a")) + 1)))) % MOD);
+  var hash: dynamic = (((((h * base)) + (((t[(v - 1)] - cpp_char("a")) + 1)))) % MOD);
   mark[v] = 1;
-  var child: dynamic;
+  var child: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < g[v].size()))
     {
-      var u = g[v][i];
+      var u: dynamic = g[v][i];
       if ((!mark[u]))
       {
         child.push_back(dfs(u, hash));
@@ -57,9 +57,9 @@ func dfs(v: dynamic, h: dynamic)
     return v;
   } else
   {
-    var w = 0;
+    var w: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < child.size()))
       {
         if ((s[child[i]].size() > s[child[w]].size()))
@@ -70,7 +70,7 @@ func dfs(v: dynamic, h: dynamic)
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < child.size()))
       {
         if ((i != w))
@@ -86,13 +86,13 @@ func dfs(v: dynamic, h: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(c[i]);
@@ -102,11 +102,11 @@ func main()
   }
   read(t);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       g[v].push_back(u);
       g[u].push_back(v);
@@ -114,18 +114,18 @@ func main()
     }
   }
   dfs(1, 0);
-  var mx = 0;
+  var mx: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       mx = max((diff[i] + c[i]), mx);
       i += 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((diff[i] + c[i]) == mx))

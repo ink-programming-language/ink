@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s = [0];
-  var n: dynamic;
-  var m: dynamic;
+  var s: dynamic = [0];
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   while ((scanf("%s", s) != EOF))
   {
     n = strlen(s);
     m = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n / 2)))
       {
         if ((s[i] != s[((n - i) - 1)]))

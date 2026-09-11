@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var N = 200010;
+var N: dynamic = 200010;
 
-var Mod = 1000000007;
+var Mod: dynamic = 1000000007;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var inv = cpp_array(N);
+var inv: dynamic = cpp_array(N);
 
-var fac = cpp_array(N);
+var fac: dynamic = cpp_array(N);
 
-var Inv = cpp_array(N);
+var Inv: dynamic = cpp_array(N);
 
-var pow_2 = cpp_array(N);
+var pow_2: dynamic = cpp_array(N);
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while ((!isdigit(ch)))
   {
     if ((ch == cpp_char("-")))
@@ -45,7 +45,7 @@ func read()
   return (x * f);
 }
 
-func C(n: dynamic, m: dynamic)
+func C(n: dynamic, m: dynamic) -> dynamic
 {
   if ((n < m))
   {
@@ -54,9 +54,9 @@ func C(n: dynamic, m: dynamic)
   return ((((fac[n] * inv[m]) % Mod) * inv[(n - m)]) % Mod);
 }
 
-func Power(base: dynamic, power: dynamic)
+func Power(base: dynamic, power: dynamic) -> dynamic
 {
-  var result = 1;
+  var result: dynamic = 1;
   while ((power > 0))
   {
     if ((power & 1))
@@ -69,11 +69,11 @@ func Power(base: dynamic, power: dynamic)
   return result;
 }
 
-func Pre()
+func Pre() -> dynamic
 {
   fac[0] = cpp_assign(inv[0], "=", cpp_assign(pow_2[0], "=", cpp_assign(Inv[0], "=", 1)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = read();
@@ -81,7 +81,7 @@ func Pre()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] += a[(i - 1)];
@@ -89,7 +89,7 @@ func Pre()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fac[i] = ((fac[(i - 1)] * i) % Mod);
@@ -97,7 +97,7 @@ func Pre()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       inv[i] = Power(fac[i], (Mod - 2));
@@ -105,7 +105,7 @@ func Pre()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       pow_2[i] = ((pow_2[(i - 1)] * 2) % Mod);
@@ -115,7 +115,7 @@ func Pre()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   T = read();
@@ -123,10 +123,10 @@ func main()
   M = n;
   res = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var s = min(n, (T - a[i]));
+      var s: dynamic = min(n, (T - a[i]));
       if ((s < 0))
       {
         i += 1;

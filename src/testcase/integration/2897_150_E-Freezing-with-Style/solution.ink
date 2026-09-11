@@ -1,46 +1,46 @@
 // Translated from solution.cpp.
 
-var N = 1e5;
+var N: dynamic = 1e5;
 
-var M = (INT_MIN / 3);
+var M: dynamic = (INT_MIN / 3);
 
-var C = 1e9;
+var C: dynamic = 1e9;
 
-var flag = cpp_array(N);
+var flag: dynamic = cpp_array(N);
 
-var sz = cpp_array(N);
+var sz: dynamic = cpp_array(N);
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-var depw = cpp_array(N);
+var depw: dynamic = cpp_array(N);
 
-var depm = cpp_array(N);
+var depm: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var u: dynamic;
+var u: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
 class edge
 {
-  var to: dynamic;
-  var w: dynamic;
-  var next: dynamic;
-  func operator_less(e: dynamic)
+  var to: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
+  func operator_less(e: dynamic) -> dynamic
   {
       return (depm[to] < depm[e.to]);
     }
 }
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-func get_nodes(u: dynamic, fa: dynamic, vi: dynamic)
+func get_nodes(u: dynamic, fa: dynamic, vi: dynamic) -> dynamic
 {
   vi[cpp_update(vi[0], "++")] = u;
-  for (var e in g[u])
+  for (var e: dynamic in g[u])
   {
-    var v = e.to;
+    var v: dynamic = e.to;
     if (((v != fa) && (!flag[v])))
     {
       get_nodes(v, u, vi);
@@ -48,12 +48,12 @@ func get_nodes(u: dynamic, fa: dynamic, vi: dynamic)
   }
 }
 
-func calc_size(u: dynamic, fa: dynamic)
+func calc_size(u: dynamic, fa: dynamic) -> dynamic
 {
   sz[u] = 1;
-  for (var e in g[u])
+  for (var e: dynamic in g[u])
   {
-    var v = e.to;
+    var v: dynamic = e.to;
     if (((v != fa) && (!flag[v])))
     {
       calc_size(v, u);
@@ -62,11 +62,11 @@ func calc_size(u: dynamic, fa: dynamic)
   }
 }
 
-func calc_dep(u: dynamic, fa: dynamic)
+func calc_dep(u: dynamic, fa: dynamic) -> dynamic
 {
-  for (var e in g[u])
+  for (var e: dynamic in g[u])
   {
-    var v = e.to;
+    var v: dynamic = e.to;
     if (((v != fa) && (!flag[v])))
     {
       dep[v] = (dep[u] + 1);
@@ -75,12 +75,12 @@ func calc_dep(u: dynamic, fa: dynamic)
   }
 }
 
-func calc_dep_max(u: dynamic, fa: dynamic)
+func calc_dep_max(u: dynamic, fa: dynamic) -> dynamic
 {
   depm[u] = 0;
-  for (var e in g[u])
+  for (var e: dynamic in g[u])
   {
-    var v = e.to;
+    var v: dynamic = e.to;
     if (((v != fa) && (!flag[v])))
     {
       calc_dep_max(v, u);
@@ -90,11 +90,11 @@ func calc_dep_max(u: dynamic, fa: dynamic)
   depm[u] += 1;
 }
 
-func calc_depw(u: dynamic, fa: dynamic, x: dynamic)
+func calc_depw(u: dynamic, fa: dynamic, x: dynamic) -> dynamic
 {
-  for (var e in g[u])
+  for (var e: dynamic in g[u])
   {
-    var v = e.to;
+    var v: dynamic = e.to;
     if (((v != fa) && (!flag[v])))
     {
       depw[v] = depw[u];
@@ -110,12 +110,12 @@ func calc_depw(u: dynamic, fa: dynamic, x: dynamic)
   }
 }
 
-func get_focus(u: dynamic, fa: dynamic, n: dynamic, ans: dynamic, min: dynamic)
+func get_focus(u: dynamic, fa: dynamic, n: dynamic, ans: dynamic, min: dynamic) -> dynamic
 {
-  var max = (n - sz[u]);
-  for (var e in g[u])
+  var max: dynamic = (n - sz[u]);
+  for (var e: dynamic in g[u])
   {
-    var v = e.to;
+    var v: dynamic = e.to;
     if (((v != fa) && (!flag[v])))
     {
       max = max(max, sz[v]);
@@ -129,19 +129,19 @@ func get_focus(u: dynamic, fa: dynamic, n: dynamic, ans: dynamic, min: dynamic)
   }
 }
 
-func check(u: dynamic, L: dynamic, R: dynamic, x: dynamic, bu: dynamic, bv: dynamic)
+func check(u: dynamic, L: dynamic, R: dynamic, x: dynamic, bu: dynamic, bv: dynamic) -> dynamic
 {
-  var f = cpp_array(N);
-  var g = cpp_array(N);
-  var gp = cpp_array(N);
-  var fp = cpp_array(N);
-  var vi = cpp_array((N + 1));
+  var f: dynamic = cpp_array(N);
+  var g: dynamic = cpp_array(N);
+  var gp: dynamic = cpp_array(N);
+  var fp: dynamic = cpp_array(N);
+  var vi: dynamic = cpp_array((N + 1));
   fill(f, (f + depm[u]), M);
   f[0] = 0;
   fp[0] = u;
-  for (var e in g[u])
+  for (var e: dynamic in g[u])
   {
-    var v = e.to;
+    var v: dynamic = e.to;
     if (flag[v])
     {
       continue;
@@ -158,7 +158,7 @@ func check(u: dynamic, L: dynamic, R: dynamic, x: dynamic, bu: dynamic, bv: dyna
     }
     calc_depw(v, u, x);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= vi[0]))
       {
         if ((g[dep[vi[i]]] < depw[vi[i]]))
@@ -169,12 +169,12 @@ func check(u: dynamic, L: dynamic, R: dynamic, x: dynamic, bu: dynamic, bv: dyna
         i += 1;
       }
     }
-    var a = depm[v];
-    var b = 0;
-    var c = 0;
+    var a: dynamic = depm[v];
+    var b: dynamic = 0;
+    var c: dynamic = 0;
     cpp_statement("struct data { int t, v, p; }");
-    var q: dynamic;
-    var max = M;
+    var q: dynamic = cpp_uninitialized();
+    var max: dynamic = M;
     while ((a >= 0))
     {
       while (((b <= depm[v]) && ((a + b) < L)))
@@ -208,7 +208,7 @@ func check(u: dynamic, L: dynamic, R: dynamic, x: dynamic, bu: dynamic, bv: dyna
       a -= 1;
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= vi[0]))
       {
         if ((f[dep[vi[i]]] < g[dep[vi[i]]]))
@@ -223,19 +223,19 @@ func check(u: dynamic, L: dynamic, R: dynamic, x: dynamic, bu: dynamic, bv: dyna
   return false;
 }
 
-func calc_ans(u: dynamic, L: dynamic, R: dynamic)
+func calc_ans(u: dynamic, L: dynamic, R: dynamic) -> dynamic
 {
   sort(g[u].begin(), g[u].end());
-  var l = 0;
-  var r = C;
-  var ans = 0;
-  var bu: dynamic;
-  var bv: dynamic;
+  var l: dynamic = 0;
+  var r: dynamic = C;
+  var ans: dynamic = 0;
+  var bu: dynamic = cpp_uninitialized();
+  var bv: dynamic = cpp_uninitialized();
   while ((l <= r))
   {
-    var mid = (((l + r)) / 2);
-    var cu: dynamic;
-    var cv: dynamic;
+    var mid: dynamic = (((l + r)) / 2);
+    var cu: dynamic = cpp_uninitialized();
+    var cv: dynamic = cpp_uninitialized();
     if (check(u, L, R, mid, cu, cv))
     {
       ans = mid;
@@ -255,21 +255,21 @@ func calc_ans(u: dynamic, L: dynamic, R: dynamic)
   }
 }
 
-func solve(u: dynamic, L: dynamic, R: dynamic)
+func solve(u: dynamic, L: dynamic, R: dynamic) -> dynamic
 {
   calc_size(u, -1);
   if (((sz[u] == 1) || (sz[u] < L)))
   {
     return;
   }
-  var x = INT_MAX;
+  var x: dynamic = INT_MAX;
   get_focus(u, -1, sz[u], u, x);
   calc_dep_max(u, -1);
   dep[u] = 0;
   calc_dep(u, -1);
   calc_ans(u, L, R);
   flag[u] = true;
-  for (var e in g[u])
+  for (var e: dynamic in g[u])
   {
     if ((!flag[e.to]))
     {
@@ -278,16 +278,16 @@ func solve(u: dynamic, L: dynamic, R: dynamic)
   }
 }
 
-func read(n: dynamic)
+func read(n: dynamic) -> dynamic
 {
-  var li: dynamic;
+  var li: dynamic = cpp_uninitialized();
   va_start(li, n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x = (*va_arg(li, cpp_expression(", int *")));
-      var ch: dynamic;
+      var x: dynamic = (*va_arg(li, cpp_expression(", int *")));
+      var ch: dynamic = cpp_uninitialized();
       x = 0;
       while (true)
       {
@@ -312,11 +312,11 @@ func read(n: dynamic)
   va_end(li);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var L: dynamic;
-  var R: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var L: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
   read(3, (&n), (&L), (&R));
   if ((((n == 100000) && (L == 10)) && (R == 20)))
   {
@@ -324,12 +324,12 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
-      var a: dynamic;
-      var b: dynamic;
-      var c: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
       read(3, (&a), (&b), (&c));
       a -= 1;
       b -= 1;

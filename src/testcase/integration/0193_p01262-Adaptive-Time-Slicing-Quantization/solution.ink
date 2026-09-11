@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var INF = (DBL_MAX / 1000);
+var INF: dynamic = (DBL_MAX / 1000);
 
-var EPS = 1.0e-10;
+var EPS: dynamic = 1.0e-10;
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-func calculateError(x: dynamic, y: dynamic)
+func calculateError(x: dynamic, y: dynamic) -> dynamic
 {
-  var vMax = 0.0;
-  var vMin = 1.0;
+  var vMax: dynamic = 0.0;
+  var vMin: dynamic = 1.0;
   {
-    var i = x;
+    var i: dynamic = x;
     while ((i <= y))
     {
       vMax = max(vMax, a[i]);
@@ -21,15 +21,15 @@ func calculateError(x: dynamic, y: dynamic)
       i += 1;
     }
   }
-  var ret = 0.0;
+  var ret: dynamic = 0.0;
   {
-    var i = x;
+    var i: dynamic = x;
     while ((i <= y))
     {
-      var j = cpp_cast(((((((a[i] - vMin)) * ((L - 1))) / ((vMax - vMin))) + EPS)));
-      var q1 = (vMin + ((j * ((vMax - vMin))) / ((L - 1))));
-      var q2 = (vMin + ((((j + 1)) * ((vMax - vMin))) / ((L - 1))));
-      var d = min(abs((q1 - a[i])), abs((q2 - a[i])));
+      var j: dynamic = cpp_cast(((((((a[i] - vMin)) * ((L - 1))) / ((vMax - vMin))) + EPS)));
+      var q1: dynamic = (vMin + ((j * ((vMax - vMin))) / ((L - 1))));
+      var q2: dynamic = (vMin + ((((j + 1)) * ((vMax - vMin))) / ((L - 1))));
+      var d: dynamic = min(abs((q1 - a[i])), abs((q2 - a[i])));
       d = (d * d);
       ret += d;
       i += 1;
@@ -38,13 +38,13 @@ func calculateError(x: dynamic, y: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   {
     while (true)
     {
-      var n: dynamic;
-      var m: dynamic;
+      var n: dynamic = cpp_uninitialized();
+      var m: dynamic = cpp_uninitialized();
       read(n, m, L);
       if ((n == 0))
       {
@@ -53,7 +53,7 @@ func main()
       L = (1 << L);
       a.resize(n);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           read(a[i]);
@@ -61,11 +61,11 @@ func main()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = (i + 1);
+            var j: dynamic = (i + 1);
             while ((j < n))
             {
               error[i][j] = calculateError(i, j);
@@ -75,18 +75,18 @@ func main()
           i += 1;
         }
       }
-      var dp = cpp_construct((n + 1), vector((m + 1), INF));
+      var dp: dynamic = cpp_construct((n + 1), vector((m + 1), INF));
       dp[0][0] = 0.0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               {
-                var k = (i + 1);
+                var k: dynamic = (i + 1);
                 while ((k < n))
                 {
                   dp[(k + 1)][(j + 1)] = min(dp[(k + 1)][(j + 1)], (dp[i][j] + error[i][k]));

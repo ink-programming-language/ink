@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var MOD = (cpp_cast(1e9) + 7);
+var MOD: dynamic = (cpp_cast(1e9) + 7);
 
-var MOD2 = 1007681537;
+var MOD2: dynamic = 1007681537;
 
-var INF = cpp_cast(1e9);
+var INF: dynamic = cpp_cast(1e9);
 
-var LINF = cpp_cast(1e18);
+var LINF: dynamic = cpp_cast(1e18);
 
-var PI = acos(cpp_cast(-1));
+var PI: dynamic = acos(cpp_cast(-1));
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  var r: dynamic;
+  var r: dynamic = cpp_uninitialized();
   while (b)
   {
     r = (a % b);
@@ -24,14 +24,14 @@ func gcd(a: dynamic, b: dynamic)
   return a;
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a / gcd(a, b)) * b);
 }
 
-func fpow(n: dynamic, k: dynamic, p: dynamic = MOD)
+func fpow(n: dynamic, k: dynamic, p: dynamic = MOD) -> dynamic
 {
-  var r = 1;
+  var r: dynamic = 1;
   {
     while (k)
     {
@@ -46,19 +46,19 @@ func fpow(n: dynamic, k: dynamic, p: dynamic = MOD)
   return r;
 }
 
-func chkmin(a: dynamic, val: dynamic)
+func chkmin(a: dynamic, val: dynamic) -> dynamic
 {
-  return if ((val < a)) cpp_comma(cpp_assign(a, "=", val), 1) else 0;
+  return  ((val < a)) ? cpp_comma(cpp_assign(a, "=", val), 1) : 0;
 }
 
-func chkmax(a: dynamic, val: dynamic)
+func chkmax(a: dynamic, val: dynamic) -> dynamic
 {
-  return if ((a < val)) cpp_comma(cpp_assign(a, "=", val), 1) else 0;
+  return  ((a < val)) ? cpp_comma(cpp_assign(a, "=", val), 1) : 0;
 }
 
-func isqrt(k: dynamic)
+func isqrt(k: dynamic) -> dynamic
 {
-  var r = (sqrt(k) + 1);
+  var r: dynamic = (sqrt(k) + 1);
   while (((r * r) > k))
   {
     r -= 1;
@@ -66,9 +66,9 @@ func isqrt(k: dynamic)
   return r;
 }
 
-func icbrt(k: dynamic)
+func icbrt(k: dynamic) -> dynamic
 {
-  var r = (cbrt(k) + 1);
+  var r: dynamic = (cbrt(k) + 1);
   while ((((r * r) * r) > k))
   {
     r -= 1;
@@ -76,7 +76,7 @@ func icbrt(k: dynamic)
   return r;
 }
 
-func addmod(a: dynamic, val: dynamic, p: dynamic = MOD)
+func addmod(a: dynamic, val: dynamic, p: dynamic = MOD) -> dynamic
 {
   if (((cpp_assign(a, "=", ((a + val)))) >= p))
   {
@@ -84,7 +84,7 @@ func addmod(a: dynamic, val: dynamic, p: dynamic = MOD)
   }
 }
 
-func submod(a: dynamic, val: dynamic, p: dynamic = MOD)
+func submod(a: dynamic, val: dynamic, p: dynamic = MOD) -> dynamic
 {
   if (((cpp_assign(a, "=", ((a - val)))) < 0))
   {
@@ -92,41 +92,41 @@ func submod(a: dynamic, val: dynamic, p: dynamic = MOD)
   }
 }
 
-func mult(a: dynamic, b: dynamic, p: dynamic = MOD)
+func mult(a: dynamic, b: dynamic, p: dynamic = MOD) -> dynamic
 {
   return ((cpp_cast(a) * b) % p);
 }
 
-func inv(a: dynamic, p: dynamic = MOD)
+func inv(a: dynamic, p: dynamic = MOD) -> dynamic
 {
   return fpow(a, (p - 2), p);
 }
 
-func sign(x: dynamic)
+func sign(x: dynamic) -> dynamic
 {
   return (x + EPS);
 }
 
-func sign(x: dynamic, y: dynamic)
+func sign(x: dynamic, y: dynamic) -> dynamic
 {
   return sign((x - y));
 }
 
-var maxn = (1e6 + 5);
+var maxn: dynamic = (1e6 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var pos1: dynamic;
+var pos1: dynamic = cpp_uninitialized();
 
-var pos2: dynamic;
+var pos2: dynamic = cpp_uninitialized();
 
-var mn = cpp_array((maxn << 1));
+var mn: dynamic = cpp_array((maxn << 1));
 
-var sm = cpp_array((maxn << 1));
+var sm: dynamic = cpp_array((maxn << 1));
 
-func upd(p: dynamic, val: dynamic)
+func upd(p: dynamic, val: dynamic) -> dynamic
 {
   p += (1 << 19);
   mn[p] = cpp_assign(sm[p], "=", val);
@@ -138,10 +138,10 @@ func upd(p: dynamic, val: dynamic)
   }
 }
 
-func check(mi: dynamic)
+func check(mi: dynamic) -> dynamic
 {
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       upd(i, (-a[i]));
@@ -149,34 +149,34 @@ func check(mi: dynamic)
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (int_cpp((pos2).size()))))
     {
-      var ix = pos2[i];
+      var ix: dynamic = pos2[i];
       upd(ix, 200);
       i += 1;
     }
   }
-  var ptr = (int_cpp((pos2).size()) - 1);
+  var cpp_ptr: dynamic = (int_cpp((pos2).size()) - 1);
   {
-    var x = (0);
+    var x: dynamic = (0);
     while ((x < ((int_cpp((pos1).size()) + 1))))
     {
       if ((mi >= (1000 * x)))
       {
-        var y = min(int_cpp((pos2).size()), (((mi - (1000 * x))) / 2000));
-        while ((ptr >= y))
+        var y: dynamic = min(int_cpp((pos2).size()), (((mi - (1000 * x))) / 2000));
+        while ((cpp_ptr >= y))
         {
-          var ix = pos2[ptr];
+          var ix: dynamic = pos2[cpp_ptr];
           upd(ix, -2000);
-          ptr -= 1;
+          cpp_ptr -= 1;
         }
         if (x)
         {
-          var ix = pos1[(x - 1)];
+          var ix: dynamic = pos1[(x - 1)];
           upd(ix, 100);
         }
-        var rm = ((mi - (1000 * x)) - (2000 * y));
+        var rm: dynamic = ((mi - (1000 * x)) - (2000 * y));
         if (((((!x) && (a[0] == 1000))) || (((!y) && (a[0] == 2000)))))
         {
           upd(0, (rm - a[0]));
@@ -195,11 +195,11 @@ func check(mi: dynamic)
   return 0;
 }
 
-func solve()
+func solve() -> dynamic
 {
   read(n);
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       read(a[i]);
@@ -213,11 +213,11 @@ func solve()
       i += 1;
     }
   }
-  var lo = 0;
-  var hi = 600000000;
+  var lo: dynamic = 0;
+  var hi: dynamic = 600000000;
   while ((lo < hi))
   {
-    var mi = ((lo + hi) >> 1);
+    var mi: dynamic = ((lo + hi) >> 1);
     if ((!check(mi)))
     {
       lo = (mi + 1);
@@ -229,9 +229,9 @@ func solve()
   write((((lo + hi) >> 1)), "\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var JUDGE_ONLINE = 1;
+  var JUDGE_ONLINE: dynamic = 1;
   if (fopen("in.txt", "r"))
   {
     JUDGE_ONLINE = 0;

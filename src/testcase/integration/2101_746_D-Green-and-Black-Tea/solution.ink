@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var V: dynamic;
+var V: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d %d %d", (&n), (&k), (&a), (&b));
-  var tka = (a >= b);
+  var tka: dynamic = (a >= b);
   while ((a || b))
   {
     if (((tka && (a == 0)) || ((!tka) && (b == 0))))
@@ -25,7 +25,7 @@ func main()
     {
       if ((a >= b))
       {
-        var tk = min(a, k);
+        var tk: dynamic = min(a, k);
         V.push_back(string_cpp(tk, cpp_char("G")));
         a -= tk;
       } else
@@ -35,7 +35,7 @@ func main()
       }
     } else if ((b >= a))
     {
-      var tk = min(b, k);
+      var tk: dynamic = min(b, k);
       V.push_back(string_cpp(tk, cpp_char("B")));
       b -= tk;
     } else
@@ -46,7 +46,7 @@ func main()
     tka = (!tka);
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V.size()))
     {
       printf("%s", V[i].c_str());

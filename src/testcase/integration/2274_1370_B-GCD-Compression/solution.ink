@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
     n *= 2;
-    var a = cpp_array(n);
-    var ve: dynamic;
-    var vo: dynamic;
+    var a: dynamic = cpp_array(n);
+    var ve: dynamic = cpp_uninitialized();
+    var vo: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -32,7 +32,7 @@ func main()
       if ((vo.size() == 0))
       {
         {
-          var i = 2;
+          var i: dynamic = 2;
           while ((i < ve.size()))
           {
             write(ve[i], " ", ve[(i + 1)], "\n");
@@ -42,7 +42,7 @@ func main()
       } else if ((ve.size() == 0))
       {
         {
-          var i = 2;
+          var i: dynamic = 2;
           while ((i < vo.size()))
           {
             write(vo[i], " ", vo[(i + 1)], "\n");
@@ -52,7 +52,7 @@ func main()
       } else
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < vo.size()))
           {
             write(vo[i], " ", vo[(i + 1)], "\n");
@@ -60,7 +60,7 @@ func main()
           }
         }
         {
-          var i = 2;
+          var i: dynamic = 2;
           while ((i < ve.size()))
           {
             write(ve[i], " ", ve[(i + 1)], "\n");
@@ -71,7 +71,7 @@ func main()
     } else
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < vo.size()))
         {
           write(vo[i], " ", vo[(i + 1)], "\n");
@@ -79,7 +79,7 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < ve.size()))
         {
           write(ve[i], " ", ve[(i + 1)], "\n");

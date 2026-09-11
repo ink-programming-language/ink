@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var A: dynamic;
-  var B: dynamic;
-  var C: dynamic;
-  var X: dynamic;
-  var Y: dynamic;
-  var ans = 0;
+  var A: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
+  var C: dynamic = cpp_uninitialized();
+  var X: dynamic = cpp_uninitialized();
+  var Y: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   read(A, B, C, X, Y);
   if (((A + B) < (2 * C)))
   {

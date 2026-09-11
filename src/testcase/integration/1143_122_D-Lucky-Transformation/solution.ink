@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var A = cpp_array(100001);
+var A: dynamic = cpp_array(100001);
 
-var op: dynamic;
+var op: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var at: dynamic;
+var at: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
   while ((cnt < op))
   {
@@ -68,7 +68,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&op));
   scanf("%s", A);

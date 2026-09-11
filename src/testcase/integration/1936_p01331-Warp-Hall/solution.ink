@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a + b)) % MOD);
 }
 
-func sub(a: dynamic, b: dynamic)
+func sub(a: dynamic, b: dynamic) -> dynamic
 {
   return ((((a - b) + MOD)) % MOD);
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a * b) % MOD);
 }
 
-var f = cpp_array(200010);
+var f: dynamic = cpp_array(200010);
 
-func Inverse(a: dynamic, p: dynamic = MOD)
+func Inverse(a: dynamic, p: dynamic = MOD) -> dynamic
 {
   if ((a == 1))
   {
@@ -28,18 +28,18 @@ func Inverse(a: dynamic, p: dynamic = MOD)
   return sub(0, mul((p / a), Inverse((p % a), p)));
 }
 
-func C(a: dynamic, b: dynamic)
+func C(a: dynamic, b: dynamic) -> dynamic
 {
   return mul(mul(f[a], Inverse(f[b])), Inverse(f[(a - b)]));
 }
 
 class Warp
 {
-  var sx: dynamic;
-  var sy: dynamic;
-  var tx: dynamic;
-  var ty: dynamic;
-  func operator_less(w: dynamic)
+  var sx: dynamic = cpp_uninitialized();
+  var sy: dynamic = cpp_uninitialized();
+  var tx: dynamic = cpp_uninitialized();
+  var ty: dynamic = cpp_uninitialized();
+  func operator_less(w: dynamic) -> dynamic
   {
       if ((sx != w.sx))
       {
@@ -49,17 +49,17 @@ class Warp
     }
 }
 
-var w = cpp_array(1010);
+var w: dynamic = cpp_array(1010);
 
-var d = cpp_array(1010);
+var d: dynamic = cpp_array(1010);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func Gao(sx: dynamic, sy: dynamic, tx: dynamic, ty: dynamic)
+func Gao(sx: dynamic, sy: dynamic, tx: dynamic, ty: dynamic) -> dynamic
 {
   if (((sx > tx) || (sy > ty)))
   {
@@ -68,11 +68,11 @@ func Gao(sx: dynamic, sy: dynamic, tx: dynamic, ty: dynamic)
   return C((((tx - sx) + ty) - sy), (tx - sx));
 }
 
-func main()
+func main() -> dynamic
 {
   f[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 200000))
     {
       f[i] = mul(f[(i - 1)], i);
@@ -82,7 +82,7 @@ func main()
   while (((scanf("%d%d%d", (&m), (&n), (&k)) != EOF) && (((m + n) + k) > 0)))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < k))
       {
         scanf("%d%d%d%d", (&w[i].sx), (&w[i].sy), (&w[i].tx), (&w[i].ty));
@@ -98,12 +98,12 @@ func main()
     w[k].sx = (m - 1);
     w[k].sy = (n - 1);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= k))
       {
         d[i] = C((w[i].sx + w[i].sy), w[i].sx);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < i))
           {
             d[i] = add(d[i], mul(d[j], sub(Gao(w[j].tx, w[j].ty, w[i].sx, w[i].sy), Gao(w[j].sx, w[j].sy, w[i].sx, w[i].sy))));

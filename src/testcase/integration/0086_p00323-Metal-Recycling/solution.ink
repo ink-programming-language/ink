@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-var INT_MAX = cpp_expression("#include <");
+var INT_MAX: dynamic = cpp_expression("#include <");
 
-var INF = cpp_expression("#include <");
+var INF: dynamic = cpp_expression("#include <");
 
-var MOD = cpp_expression("#include <");
+var MOD: dynamic = cpp_expression("#include <");
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-func rep(i: dynamic, a: dynamic, b: dynamic)
+func rep(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(i = (a); i < (b); i++)");
 }
 
-func bitget(a: dynamic, b: dynamic)
+func bitget(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream");
 }
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a = cpp_array(100000);
-  var b = cpp_array(100000);
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_array(100000);
+  var b: dynamic = cpp_array(100000);
   read(n);
   rep(i, 0, n);
   read(a[i], b[i]);
-  var c = [];
-  var d = [];
+  var c: dynamic = [];
+  var d: dynamic = [];
   rep(i, 0, n)[i] = (a[i] + b[i]);
   sort(d, (d + n));
   rep(i, 0, n);

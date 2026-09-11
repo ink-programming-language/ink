@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -9,28 +9,28 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a * b)) / gcd(a, b));
 }
 
-func sortbysec(a: dynamic, b: dynamic)
+func sortbysec(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.second < b.second));
 }
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var flag: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var flag: dynamic = cpp_uninitialized();
   read(x);
-  var s: dynamic;
-  var s1: dynamic;
-  var v: dynamic;
-  var v1: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var s1: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var v1: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < x))

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var INF = 0x3f3f3f3f3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-var maxn = (100000 + 10);
+var maxn: dynamic = (100000 + 10);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func getchar()
+func getchar() -> dynamic
 {
-  var BUFSIZE = 100001;
-  var buf = cpp_array(BUFSIZE);
-  var psta = buf;
-  var pend = buf;
+  var BUFSIZE: dynamic = 100001;
+  var buf: dynamic = cpp_array(BUFSIZE);
+  var psta: dynamic = buf;
+  var pend: dynamic = buf;
   if ((psta >= pend))
   {
     psta = buf;
@@ -28,11 +28,11 @@ func getchar()
   return (*cpp_update(psta, "++"));
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var f = 1;
-  var ch = getchar();
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((((ch < cpp_char("0")) || (ch > cpp_char("9")))) && (~ch)))
   {
     if ((ch == cpp_char("-")))
@@ -54,11 +54,11 @@ func read(x: dynamic)
   return 1;
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var f = 1;
-  var ch = getchar();
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((((ch < cpp_char("0")) || (ch > cpp_char("9")))) && (~ch)))
   {
     if ((ch == cpp_char("-")))
@@ -80,12 +80,12 @@ func read(x: dynamic)
   return 1;
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  var in_cpp: dynamic;
-  var Dec = 0.1;
-  var IsN = false;
-  var IsD = false;
+  var in_cpp: dynamic = cpp_uninitialized();
+  var Dec: dynamic = 0.1;
+  var IsN: dynamic = false;
+  var IsD: dynamic = false;
   in_cpp = getchar();
   if ((in_cpp == EOF))
   {
@@ -137,12 +137,12 @@ func read(x: dynamic)
   return 1;
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  var in_cpp: dynamic;
-  var Dec = 0.1;
-  var IsN = false;
-  var IsD = false;
+  var in_cpp: dynamic = cpp_uninitialized();
+  var Dec: dynamic = 0.1;
+  var IsN: dynamic = false;
+  var IsD: dynamic = false;
   in_cpp = getchar();
   if ((in_cpp == EOF))
   {
@@ -194,10 +194,10 @@ func read(x: dynamic)
   return 1;
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  var tmp = x;
-  var in_cpp = getchar();
+  var tmp: dynamic = x;
+  var in_cpp: dynamic = getchar();
   while (((in_cpp <= cpp_char(" ")) && (in_cpp != EOF)))
   {
     in_cpp = getchar();
@@ -215,37 +215,37 @@ func read(x: dynamic)
   return 1;
 }
 
-var p = cpp_array(17000);
+var p: dynamic = cpp_array(17000);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var D: dynamic;
+var D: dynamic = cpp_uninitialized();
 
-func f(x: dynamic)
+func f(x: dynamic) -> dynamic
 {
   return ((((((A * x) * x) * x) + ((B * x) * x)) + (C * x)) + D);
 }
 
-func Count(i: dynamic)
+func Count(i: dynamic) -> dynamic
 {
-  var ans = 0;
-  var t = 0;
-  var x = 1;
+  var ans: dynamic = 0;
+  var t: dynamic = 0;
+  var x: dynamic = 1;
   while (((x * i) <= n))
   {
     x *= i;
     t += 1;
   }
-  var pre = 0;
+  var pre: dynamic = 0;
   while (t)
   {
-    var no = ((n / x) * f(i));
+    var no: dynamic = ((n / x) * f(i));
     ans += (t * ((no - pre)));
     pre += (no - pre);
     t -= 1;
@@ -254,17 +254,17 @@ func Count(i: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d%d%d", (&n), (&A), (&B), (&C), (&D));
-  var tot = 0;
+  var tot: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= n))
     {
-      var flag = 0;
+      var flag: dynamic = 0;
       {
-        var j = 2;
+        var j: dynamic = 2;
         while (((j * j) <= i))
         {
           if (((i % j) == 0))
@@ -282,12 +282,12 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   ans += Count(2);
   ans += Count(3);
   {
-    var i = 5;
-    var f = 2;
+    var i: dynamic = 5;
+    var f: dynamic = 2;
     while ((i <= n))
     {
       ans += Count(i);
@@ -296,12 +296,12 @@ func main()
     }
   }
   {
-    var i = 5;
-    var f = 2;
+    var i: dynamic = 5;
+    var f: dynamic = 2;
     while ((i <= n))
     {
       {
-        var j = 2;
+        var j: dynamic = 2;
         while ((j < tot))
         {
           if ((((1 * i) * p[j]) > n))

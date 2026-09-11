@@ -2,65 +2,65 @@
 
 class edge
 {
-  var x: dynamic;
-  var y: dynamic;
-  func operator_less(z: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func operator_less(z: dynamic) -> dynamic
   {
       return ((x > z.x) || (((x == z.x) && (y < z.y))));
     }
 }
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
 class edge2
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array(400005);
+var e: dynamic = cpp_array(400005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-var tot = 0;
+var tot: dynamic = 0;
 
-var ev = cpp_array(400005, 3);
+var ev: dynamic = cpp_array(400005, 3);
 
-var dsu = cpp_array(200005);
+var dsu: dynamic = cpp_array(200005);
 
-var dis = cpp_array(400005);
+var dis: dynamic = cpp_array(400005);
 
-var pre = cpp_array(400005);
+var pre: dynamic = cpp_array(400005);
 
-var ans = 0;
+var ans: dynamic = 0;
 
-var fx: dynamic;
+var fx: dynamic = cpp_uninitialized();
 
-var fy: dynamic;
+var fy: dynamic = cpp_uninitialized();
 
-var inf = 1e18;
+var inf: dynamic = 1e18;
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var s = cpp_array(400005);
+var s: dynamic = cpp_array(400005);
 
-func getf(p: dynamic)
+func getf(p: dynamic) -> dynamic
 {
-  return if ((dsu[p] == p)) p else cpp_assign(dsu[p], "=", getf(dsu[p]));
+  return  ((dsu[p] == p)) ? p : cpp_assign(dsu[p], "=", getf(dsu[p]));
 }
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.z != b.z))
   {
@@ -73,7 +73,7 @@ func cmp(a: dynamic, b: dynamic)
   return (a.y < b.y);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld", (&n));
   {

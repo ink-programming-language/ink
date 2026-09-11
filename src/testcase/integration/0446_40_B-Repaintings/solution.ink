@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func perimeter(w: dynamic, h: dynamic)
+func perimeter(w: dynamic, h: dynamic) -> dynamic
 {
   if ((w == 1))
   {
@@ -13,16 +13,16 @@ func perimeter(w: dynamic, h: dynamic)
   return ((2 * w) + (2 * ((h - 2))));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var x: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(n, m, x);
-  var res = 0;
+  var res: dynamic = 0;
   while (true)
   {
-    var border = (((perimeter(n, m) + 1)) / 2);
+    var border: dynamic = (((perimeter(n, m) + 1)) / 2);
     x -= 1;
     if ((!x))
     {

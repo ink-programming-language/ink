@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var fact = cpp_construct(20);
+var fact: dynamic = cpp_construct(20);
 
-var f_cnt = cpp_construct(10);
+var f_cnt: dynamic = cpp_construct(10);
 
-func precalc()
+func precalc() -> dynamic
 {
   fact[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 20))
     {
       fact[i] = (fact[(i - 1)] * i);
@@ -17,15 +17,15 @@ func precalc()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var st: dynamic;
-  var ans = cpp_construct(0);
-  var s: dynamic;
+  var st: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_construct(0);
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var n = s.length();
+  var n: dynamic = s.length();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       f_cnt[(s[i] - cpp_char("0"))] += 1;
@@ -33,15 +33,15 @@ func main()
     }
   }
   precalc();
-  var mask = (1 << n);
+  var mask: dynamic = (1 << n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < mask))
     {
-      var cnt = cpp_construct(10);
-      var k = cpp_construct(0);
+      var cnt: dynamic = cpp_construct(10);
+      var k: dynamic = cpp_construct(0);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((((i & ((1 << j)))) != 0))
@@ -52,10 +52,10 @@ func main()
           j += 1;
         }
       }
-      var fz = cpp_construct(1);
-      var flag = 0;
+      var fz: dynamic = cpp_construct(1);
+      var flag: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 10))
         {
           if (((f_cnt[j] != 0) && (cnt[j] == 0)))
@@ -72,7 +72,7 @@ func main()
       }
       st.insert(cnt);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 10))
         {
           fz *= fact[cnt[j]];
@@ -86,7 +86,7 @@ func main()
         cnt[0] -= 1;
         fz = 1;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 10))
           {
             fz *= fact[cnt[j]];

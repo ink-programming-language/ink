@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var str = cpp_array(100010);
+var str: dynamic = cpp_array(100010);
 
-var line = cpp_array(27, 27);
+var line: dynamic = cpp_array(27, 27);
 
-var p = cpp_array(27);
+var p: dynamic = cpp_array(27);
 
-var vis = cpp_array(27);
+var vis: dynamic = cpp_array(27);
 
-var in_cpp = cpp_array(27);
+var in_cpp: dynamic = cpp_array(27);
 
-var out = cpp_array(27);
+var out: dynamic = cpp_array(27);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%s", str);
-      var len = strlen(str);
+      var len: dynamic = strlen(str);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (len - 1)))
         {
           if ((str[i] == str[(i + 1)]))
@@ -46,11 +46,11 @@ func main()
   }
   ans = "";
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 26))
         {
           if (line[i][j])
@@ -65,7 +65,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       if (((in_cpp[i] > 1) || (out[i] > 1)))
@@ -77,7 +77,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       if (((out[i] != 0) && (in_cpp[i] == 0)))
@@ -96,7 +96,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       if ((((in_cpp[i] != 0) && (out[i] != 0)) && (!vis[i])))
@@ -111,12 +111,12 @@ func main()
   return 0;
 }
 
-func dfs(value: dynamic)
+func dfs(value: dynamic) -> dynamic
 {
   vis[value] = true;
   ans += ((value + cpp_char("a")));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       if (line[value][i])

@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func debug(x: dynamic)
+func debug(x: dynamic) -> dynamic
 {
   cpp_macro(";");
 }
 
-func debug(x: dynamic)
+func debug(x: dynamic) -> dynamic
 {
   cpp_macro("cerr << __LINE__ << \" : \" << #x << \" = \" << (x) << endl;");
 }
 
-func operator_shift_left(out: dynamic, p: dynamic)
+func operator_shift_left(out: dynamic, p: dynamic) -> dynamic
 {
   (((((out << "{") << p.first) << ", ") << p.second) << "}");
   return out;
 }
 
-func operator_shift_left(out: dynamic, v: dynamic)
+func operator_shift_left(out: dynamic, v: dynamic) -> dynamic
 {
   (out << cpp_char("{"));
-  for (var item in v)
+  for (var item: dynamic in v)
   {
     ((out << item) << ", ");
   }
@@ -27,26 +27,26 @@ func operator_shift_left(out: dynamic, v: dynamic)
   return out;
 }
 
-var mod = cpp_expression("#include <");
+var mod: dynamic = cpp_expression("#include <");
 
-var INF = cpp_expression("#include <");
+var INF: dynamic = cpp_expression("#include <");
 
-var LLINF = cpp_expression("#include <cstdio> #include <");
+var LLINF: dynamic = cpp_expression("#include <cstdio> #include <");
 
-var SIZE = cpp_expression("#inclu");
+var SIZE: dynamic = cpp_expression("#inclu");
 
 class ACNode
 {
-  var val: dynamic;
-  var next: dynamic;
-  var failure: dynamic;
-  var id: dynamic;
-  func ACNode()
+  var val: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
+  var failure: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  func ACNode() -> dynamic
   {
-      this->val = cpp_construct(0);
+      self->val = cpp_construct(0);
       memset(next, 0, cpp_sizeof((next)));
     }
-  func insert(s: dynamic, id: dynamic)
+  func insert(s: dynamic, id: dynamic) -> dynamic
   {
       id = id;
       if ((!(*s)))
@@ -54,51 +54,51 @@ class ACNode
         val += 1;
         return;
       }
-      var al = ((*s) - cpp_char("a"));
+      var al: dynamic = ((*s) - cpp_char("a"));
       if ((next[al] == null))
       {
         next[al] = cpp_new();
       }
       next[al]->insert((s + 1), (id + 1));
     }
-  func nextNode(c: dynamic)
+  func nextNode(c: dynamic) -> dynamic
   {
-      var al = (c - cpp_char("a"));
+      var al: dynamic = (c - cpp_char("a"));
       if (next[al])
       {
         return next[al];
       }
-      return if ((failure == this)) this else failure->nextNode(c);
+      return  ((failure == self)) ? self : failure->nextNode(c);
     }
 }
 
 class AhoCorasick
 {
-  var node: dynamic;
-  func AhoCorasick()
+  var node: dynamic = cpp_uninitialized();
+  func AhoCorasick() -> dynamic
   {
       node = cpp_new();
     }
-  func insert(s: dynamic)
+  func insert(s: dynamic) -> dynamic
   {
       node->insert(s, 0);
     }
-  func build()
+  func build() -> dynamic
   {
-      var que: dynamic;
+      var que: dynamic = cpp_uninitialized();
       que.push(node);
       node->failure = node;
       while (que.size())
       {
-        var p = que.front();
+        var p: dynamic = que.front();
         que.pop();
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < 26))
           {
             if (p->next[i])
             {
-              var failure = p->failure;
+              var failure: dynamic = p->failure;
               while (((!failure->next[i]) && (failure != node)))
               {
                 failure = failure->failure;
@@ -120,12 +120,12 @@ class AhoCorasick
     }
 }
 
-func apply(a: dynamic, b: dynamic)
+func apply(a: dynamic, b: dynamic) -> dynamic
 {
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   assert((a.size() == b.size()));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       res.push_back(b[a[i]]);
@@ -135,12 +135,12 @@ func apply(a: dynamic, b: dynamic)
   return res;
 }
 
-func apply2(a: dynamic, b: dynamic)
+func apply2(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = cpp_construct(a.size(), 0);
+  var res: dynamic = cpp_construct(a.size(), 0);
   assert((a.size() == b.size()));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       res[b[i]] += a[i];
@@ -152,15 +152,15 @@ func apply2(a: dynamic, b: dynamic)
 
 class SegTree
 {
-  var segn2: dynamic;
-  var data: dynamic;
-  var rep: dynamic;
-  var base: dynamic;
-  func merge(a: dynamic, b: dynamic)
+  var segn2: dynamic = cpp_uninitialized();
+  var data: dynamic = cpp_uninitialized();
+  var rep: dynamic = cpp_uninitialized();
+  var base: dynamic = cpp_uninitialized();
+  func merge(a: dynamic, b: dynamic) -> dynamic
   {
-      var res = a;
+      var res: dynamic = a;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < a.size()))
         {
           res[i] += b[i];
@@ -169,7 +169,7 @@ class SegTree
       }
       return res;
     }
-  func SegTree(n: dynamic, m: dynamic)
+  func SegTree(n: dynamic, m: dynamic) -> dynamic
   {
       {
         segn2 = 1;
@@ -181,7 +181,7 @@ class SegTree
       data.assign((segn2 * 2), v);
       v[0] = 1;
       {
-        var i = (segn2 - 1);
+        var i: dynamic = (segn2 - 1);
         while ((i < ((segn2 - 1) + n)))
         {
           data[i] = v;
@@ -189,7 +189,7 @@ class SegTree
         }
       }
       {
-        var i = (segn2 - 2);
+        var i: dynamic = (segn2 - 2);
         while ((i >= 0))
         {
           data[i] = merge(data[((i * 2) + 1)], data[((i * 2) + 2)]);
@@ -200,7 +200,7 @@ class SegTree
       iota(base.begin(), base.end(), 0);
       rep.assign((segn2 * 2), base);
     }
-  func query(a: dynamic, b: dynamic, l: dynamic = 0, r: dynamic = -1, k: dynamic = 0)
+  func query(a: dynamic, b: dynamic, l: dynamic = 0, r: dynamic = -1, k: dynamic = 0) -> dynamic
   {
       if ((r == -1))
       {
@@ -214,20 +214,20 @@ class SegTree
       {
         return data[k];
       }
-      var res1 = query(a, b, l, (((l + r)) / 2), ((k * 2) + 1));
-      var res2 = query(a, b, (((l + r)) / 2), r, ((k * 2) + 2));
-      var res12 = merge(res1, res2);
+      var res1: dynamic = query(a, b, l, (((l + r)) / 2), ((k * 2) + 1));
+      var res2: dynamic = query(a, b, (((l + r)) / 2), r, ((k * 2) + 2));
+      var res12: dynamic = merge(res1, res2);
       return apply2(res12, rep[k]);
     }
-  func add(a: dynamic, b: dynamic, x: dynamic, u: dynamic, l: dynamic = 0, r: dynamic = -1, k: dynamic = 0)
+  func add(a: dynamic, b: dynamic, x: dynamic, u: dynamic, l: dynamic = 0, r: dynamic = -1, k: dynamic = 0) -> dynamic
   {
       if ((r == -1))
       {
         r = segn2;
       }
       rep[k] = apply(rep[k], u);
-      var res1: dynamic;
-      var res2: dynamic;
+      var res1: dynamic = cpp_uninitialized();
+      var res2: dynamic = cpp_uninitialized();
       if (((a <= l) && (r <= b)))
       {
         rep[k] = apply(rep[k], x);
@@ -238,7 +238,7 @@ class SegTree
         add(a, b, x, rep[k], l, (((l + r)) / 2), ((k * 2) + 1));
         add(a, b, x, rep[k], (((l + r)) / 2), r, ((k * 2) + 2));
         rep[k] = base;
-        var v = merge(data[((k * 2) + 1)], data[((k * 2) + 2)]);
+        var v: dynamic = merge(data[((k * 2) + 1)], data[((k * 2) + 2)]);
         data[k] = v;
       } else
       {
@@ -247,22 +247,22 @@ class SegTree
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var S = cpp_array(21);
-  var N: dynamic;
-  var Q: dynamic;
-  var M: dynamic;
-  var start: dynamic;
+  var S: dynamic = cpp_array(21);
+  var N: dynamic = cpp_uninitialized();
+  var Q: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
+  var start: dynamic = cpp_uninitialized();
   scanf("%s%d%d", S, (&N), (&Q));
   M = strlen(S);
-  var aho: dynamic;
+  var aho: dynamic = cpp_uninitialized();
   aho.insert(S);
   aho.build();
   start[0] = aho.node;
-  var seg = cpp_construct(N, (M + 1));
+  var seg: dynamic = cpp_construct(N, (M + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       start[(i + 1)] = start[i]->nextNode(S[i]);
@@ -270,26 +270,26 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Q))
     {
-      var q: dynamic;
-      var l: dynamic;
-      var r: dynamic;
-      var c = cpp_array(11);
+      var q: dynamic = cpp_uninitialized();
+      var l: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_array(11);
       scanf("%d%d%d", (&q), (&l), (&r));
       l -= 1;
       if ((q == 1))
       {
         scanf("%s", c);
-        var vec: dynamic;
+        var vec: dynamic = cpp_uninitialized();
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= M))
           {
-            var p = start[j];
+            var p: dynamic = start[j];
             {
-              var k = 0;
+              var k: dynamic = 0;
               while (c[k])
               {
                 p = p->nextNode(c[k]);
@@ -303,7 +303,7 @@ func main()
         seg.add(l, r, vec, seg.base);
       } else
       {
-        var res = seg.query(l, r);
+        var res: dynamic = seg.query(l, r);
         printf("%d\n", res[M]);
       }
       i += 1;

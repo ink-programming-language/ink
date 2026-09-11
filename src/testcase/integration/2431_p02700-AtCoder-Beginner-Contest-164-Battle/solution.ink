@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   read(a, b, c, d);
-  if (((((((b + c) - 1)) / b)) > (((((a + d) - 1)) / d)))) (cout << "No") else (cout << "Yes");
+   (((((((b + c) - 1)) / b)) > (((((a + d) - 1)) / d)))) ? (cout << "No") : (cout << "Yes");
 }

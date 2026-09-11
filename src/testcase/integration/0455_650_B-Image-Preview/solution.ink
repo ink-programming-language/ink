@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var b: dynamic;
-  var t: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(n, k, b, t);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var sum = 0;
-  var a = cpp_array(((2 * n) + cpp_cast(10)));
+  var sum: dynamic = 0;
+  var a: dynamic = cpp_array(((2 * n) + cpp_cast(10)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      a[i] = cpp_assign(a[(i + n)], "=", (if (((s[i] == cpp_char("w")))) ((b + 1)) else 1));
+      a[i] = cpp_assign(a[(i + n)], "=", ( (((s[i] == cpp_char("w")))) ? ((b + 1)) : 1));
       sum += a[i];
       i += 1;
     }
   }
   sum -= a[0];
-  var l = 1;
-  var r = n;
-  var ans = 0;
+  var l: dynamic = 1;
+  var r: dynamic = n;
+  var ans: dynamic = 0;
   while ((((l <= n)) && ((r < (2 * n)))))
   {
     sum += a[r];
@@ -37,12 +37,12 @@ func solve()
   write(ans);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   t = 1;
   while (cpp_update(t, "--"))
   {

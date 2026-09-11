@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
 class node
 {
-  var fi: dynamic;
-  var se: dynamic;
-  var ans: dynamic;
-  var id: dynamic;
+  var fi: dynamic = cpp_uninitialized();
+  var se: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var x = cpp_array(1009);
+var x: dynamic = cpp_array(1009);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var cntfi: dynamic;
+var cntfi: dynamic = cpp_uninitialized();
 
-var cntse: dynamic;
+var cntse: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (cntfi[a.fi] > cntfi[b.fi]);
 }
 
-func cmp_cnt(a: dynamic, b: dynamic)
+func cmp_cnt(a: dynamic, b: dynamic) -> dynamic
 {
   return (cnt[a.fi] > cnt[b.fi]);
 }
 
-func cmp_id(a: dynamic, b: dynamic)
+func cmp_id(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.id < b.id);
 }
 
-func f(k: dynamic)
+func f(k: dynamic) -> dynamic
 {
   sort((x + k), (x + n), cmp_cnt);
   if ((!cnt[x[k].fi]))
@@ -63,9 +63,9 @@ func f(k: dynamic)
   return f(k);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var i = 0;
+  var i: dynamic = 0;
   {
     while ((i < n))
     {
@@ -102,12 +102,12 @@ func solve()
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   while ((~scanf("%d", (&n))))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(x[i].fi, x[i].se);
@@ -119,13 +119,13 @@ func main()
       }
     }
     sort(x, (x + n), cmp);
-    var flag = solve();
-    printf("%s\n", if (flag) "YES" else "NO");
+    var flag: dynamic = solve();
+    printf("%s\n",  (flag) ? "YES" : "NO");
     if (flag)
     {
       sort(x, (x + n), cmp_id);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           write(x[i].ans, "\n");

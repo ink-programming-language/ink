@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var MAXN = 111111;
+var MAXN: dynamic = 111111;
 
-var SQ = 200;
+var SQ: dynamic = 200;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var go = cpp_array(MAXN);
+var go: dynamic = cpp_array(MAXN);
 
-var qq = cpp_array(MAXN);
+var qq: dynamic = cpp_array(MAXN);
 
-var gg = cpp_array(MAXN);
+var gg: dynamic = cpp_array(MAXN);
 
-var ans = cpp_array(MAXN);
+var ans: dynamic = cpp_array(MAXN);
 
-var a = cpp_array(MAXN);
+var a: dynamic = cpp_array(MAXN);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var l: dynamic;
-      var r: dynamic;
+      var l: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
       scanf("%d%d", (&l), (&r));
       l -= 1;
       r -= 1;
@@ -34,14 +34,14 @@ func main()
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d%d", (&x), (&y));
       x -= 1;
       y -= 1;
@@ -50,7 +50,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a[i] = i;
@@ -58,14 +58,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((!go[i].empty()))
       {
-        var l = go[i][0];
-        var now = 0;
-        var nb = 0;
+        var l: dynamic = go[i][0];
+        var now: dynamic = 0;
+        var nb: dynamic = 0;
         {
           nb = 0;
           while (((now + SQ) <= (l + 1)))
@@ -88,10 +88,10 @@ func main()
         if ((l >= now))
         {
           {
-            var j = now;
+            var j: dynamic = now;
             while (((j < (now + SQ)) && (j < i)))
             {
-              var x = (lower_bound(gg[nb].begin(), gg[nb].end(), make_pair((a[j] + 1), -1)) - gg[nb].begin());
+              var x: dynamic = (lower_bound(gg[nb].begin(), gg[nb].end(), make_pair((a[j] + 1), -1)) - gg[nb].begin());
               x -= 1;
               if ((x != -1))
               {
@@ -102,7 +102,7 @@ func main()
           }
           gg[nb].clear();
           {
-            var j = now;
+            var j: dynamic = now;
             while ((j <= l))
             {
               if ((a[j] >= l))
@@ -114,12 +114,12 @@ func main()
           }
         }
       }
-      for (var e in qq[i])
+      for (var e: dynamic in qq[i])
       {
-        var l = e.first;
-        var b = a[l];
-        var nb = (l / SQ);
-        var x = (lower_bound(gg[nb].begin(), gg[nb].end(), make_pair((b + 1), -1)) - gg[nb].begin());
+        var l: dynamic = e.first;
+        var b: dynamic = a[l];
+        var nb: dynamic = (l / SQ);
+        var x: dynamic = (lower_bound(gg[nb].begin(), gg[nb].end(), make_pair((b + 1), -1)) - gg[nb].begin());
         x -= 1;
         if ((x != -1))
         {
@@ -131,7 +131,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       printf("%d\n", (ans[i] + 1));

@@ -1,95 +1,95 @@
 // Translated from solution.cpp.
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func repl(i: dynamic, a: dynamic, b: dynamic)
+func repl(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(int)(a);i<(int)(b);i++)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <b");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++");
 }
 
-func dbg(x: dynamic)
+func dbg(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc+");
 }
 
-func mmax(x: dynamic, y: dynamic)
+func mmax(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_expression("#include");
 }
 
-func mmin(x: dynamic, y: dynamic)
+func mmin(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_expression("#include");
 }
 
-func maxch(x: dynamic, y: dynamic)
+func maxch(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_expression("#include <b");
 }
 
-func minch(x: dynamic, y: dynamic)
+func minch(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_expression("#include <b");
 }
 
-func uni(x: dynamic)
+func uni(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> using");
 }
 
-func exist(x: dynamic, y: dynamic)
+func exist(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h>");
 }
 
-var bcnt = cpp_expression("#include <bits/stdc+");
+var bcnt: dynamic = cpp_expression("#include <bits/stdc+");
 
-var INF = cpp_expression("#inc");
+var INF: dynamic = cpp_expression("#inc");
 
-var mod = cpp_expression("#include <");
+var mod: dynamic = cpp_expression("#include <");
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var s = cpp_array(33);
+var s: dynamic = cpp_array(33);
 
-var ai: dynamic;
+var ai: dynamic = cpp_uninitialized();
 
-var aj: dynamic;
+var aj: dynamic = cpp_uninitialized();
 
-var qi: dynamic;
+var qi: dynamic = cpp_uninitialized();
 
-var qj: dynamic;
+var qj: dynamic = cpp_uninitialized();
 
-var st = cpp_array(2, 33, 33, 33, 33);
+var st: dynamic = cpp_array(2, 33, 33, 33, 33);
 
-var rest = cpp_array(2, 33, 33, 33, 33);
+var rest: dynamic = cpp_array(2, 33, 33, 33, 33);
 
-var dd = [-1, 0, 0, 1, 0, -1];
+var dd: dynamic = [-1, 0, 0, 1, 0, -1];
 
 class state
 {
-  var qi: dynamic;
-  var qj: dynamic;
-  var ai: dynamic;
-  var aj: dynamic;
-  var t: dynamic;
+  var qi: dynamic = cpp_uninitialized();
+  var qj: dynamic = cpp_uninitialized();
+  var ai: dynamic = cpp_uninitialized();
+  var aj: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
@@ -102,7 +102,7 @@ func main()
     }
     memset(st, -1, cpp_sizeof((st)));
     memset(rest, 0, cpp_sizeof((rest)));
-    var que: dynamic;
+    var que: dynamic = cpp_uninitialized();
     rep(sqi, H);
     rep(sqj, W);
     rep(sai, H);
@@ -125,8 +125,8 @@ func main()
       {
         cpp_statement("rep(d,5)");
         {
-          var nqi = (sqi + dd[d]);
-          var nqj = (sqj + dd[(d + 1)]);
+          var nqi: dynamic = (sqi + dd[d]);
+          var nqj: dynamic = (sqj + dd[(d + 1)]);
           if ((((((nqi < 0) || (nqi >= H)) || (nqj < 0)) || (nqj >= W)) || (s[nqi][nqj] == cpp_char("#"))))
           {
             continue;
@@ -137,8 +137,8 @@ func main()
       {
         cpp_statement("rep(d,5)");
         {
-          var nai = (sai + dd[d]);
-          var naj = (saj + dd[(d + 1)]);
+          var nai: dynamic = (sai + dd[d]);
+          var naj: dynamic = (saj + dd[(d + 1)]);
           if ((((((nai < 0) || (nai >= H)) || (naj < 0)) || (naj >= W)) || (s[nai][naj] == cpp_char("#"))))
           {
             continue;
@@ -149,15 +149,15 @@ func main()
     }
     while (que.size())
     {
-      var c = que.front();
+      var c: dynamic = que.front();
       que.pop();
-      var crtst = st[c.qi][c.qj][c.ai][c.aj][c.t];
+      var crtst: dynamic = st[c.qi][c.qj][c.ai][c.aj][c.t];
       if ((c.t == 1))
       {
         cpp_statement("rep(d,5)");
         {
-          var nqi = (c.qi + dd[d]);
-          var nqj = (c.qj + dd[(d + 1)]);
+          var nqi: dynamic = (c.qi + dd[d]);
+          var nqj: dynamic = (c.qj + dd[(d + 1)]);
           if (((((((nqi < 0) || (nqi >= H)) || (nqj < 0)) || (nqj >= W)) || (s[nqi][nqj] == cpp_char("#"))) || (st[nqi][nqj][c.ai][c.aj][(1 - c.t)] != -1)))
           {
             continue;
@@ -179,8 +179,8 @@ func main()
       {
         cpp_statement("rep(d,5)");
         {
-          var nai = (c.ai + dd[d]);
-          var naj = (c.aj + dd[(d + 1)]);
+          var nai: dynamic = (c.ai + dd[d]);
+          var naj: dynamic = (c.aj + dd[(d + 1)]);
           if (((((((nai < 0) || (nai >= H)) || (naj < 0)) || (naj >= W)) || (s[nai][naj] == cpp_char("#"))) || (st[c.qi][c.qj][nai][naj][(1 - c.t)] != -1)))
           {
             continue;
@@ -216,7 +216,7 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         if ((s[i][j] == cpp_char("A")))
         {
@@ -230,7 +230,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
         }
       }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       read(s[i]);
     }

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func max(a: dynamic, b: dynamic)
+func max(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (((a > b))) a else b;
+  return  (((a > b))) ? a : b;
 }
 
-func min(a: dynamic, b: dynamic)
+func min(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (((a < b))) a else b;
+  return  (((a < b))) ? a : b;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
@@ -19,15 +19,15 @@ func main()
     freopen("input.txt", "r", stdin);
     freopen("output.txt", "w", stdout);
   }
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var k: dynamic;
-  var i: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var k: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(k);
-  var a = cpp_array(k);
+  var a: dynamic = cpp_array(k);
   {
     i = 0;
     while ((i < k))
@@ -36,9 +36,9 @@ func main()
       i += 1;
     }
   }
-  var ans = -1;
-  var j: dynamic;
-  var l: dynamic;
+  var ans: dynamic = -1;
+  var j: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))
@@ -47,7 +47,7 @@ func main()
         j = 1;
         while ((j <= m))
         {
-          var tmp = 4000;
+          var tmp: dynamic = 4000;
           {
             l = 0;
             while ((l < k))

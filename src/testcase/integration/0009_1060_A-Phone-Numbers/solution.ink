@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var LINF = 0x3f3f3f3f3f3f3f3f;
+var LINF: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var cnt1: dynamic;
+var cnt1: dynamic = cpp_uninitialized();
 
-var cnt2: dynamic;
+var cnt2: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   read(s);
   cnt1 = (n / 11);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if ((s[i] == cpp_char("8")))

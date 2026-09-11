@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var X: dynamic;
+  var X: dynamic = cpp_uninitialized();
   read(X);
   if ((((X == 7) || (X == 5)) || (X == 3)))
   {

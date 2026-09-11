@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   scanf("%d", (&t));
   while (cpp_update(t, "--"))
   {
-    var x: dynamic;
-    var y: dynamic;
-    var a: dynamic;
-    var b: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     scanf("%d%d%d%d", (&x), (&y), (&a), (&b));
     if (((x < 0) && (y > 0)))
     {
@@ -27,8 +27,8 @@ func main(argc: dynamic, argv: dynamic)
     {
       x = abs(x);
       y = abs(y);
-      var mx = max(x, y);
-      var mn = min(x, y);
+      var mx: dynamic = max(x, y);
+      var mn: dynamic = min(x, y);
       printf("%lld\n", ((((mx - mn)) * a) + (mn * min(b, (2 * a)))));
     }
   }

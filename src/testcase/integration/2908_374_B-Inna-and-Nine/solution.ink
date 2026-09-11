@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func getnum()
+func getnum() -> dynamic
 {
-  var res = 0;
-  var c: dynamic;
-  var sign = 1;
+  var res: dynamic = 0;
+  var c: dynamic = cpp_uninitialized();
+  var sign: dynamic = 1;
   while ((((cpp_assign(c, "=", getchar())) == cpp_char(" ")) || (c == cpp_char("\n"))))
   {
     c = getchar();
@@ -39,13 +39,13 @@ func getnum()
   return (res * sign);
 }
 
-func getstr(str: dynamic)
+func getstr(str: dynamic) -> dynamic
 {
-  var now = true;
+  var now: dynamic = true;
   while (now)
   {
-    var k = getchar();
-    var __cpp_switch_1 = k;
+    var k: dynamic = getchar();
+    var __cpp_switch_1: dynamic = k;
     if (__cpp_switch_1 == cpp_char("\n"))
     {
     }
@@ -74,14 +74,14 @@ func getstr(str: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
-  var bef = cpp_char("0");
-  var right = -1;
-  var streak = 0;
-  var ans = 1;
-  var now = 0;
+  var k: dynamic = cpp_uninitialized();
+  var bef: dynamic = cpp_char("0");
+  var right: dynamic = -1;
+  var streak: dynamic = 0;
+  var ans: dynamic = 1;
+  var now: dynamic = 0;
   while ((((cpp_assign(k, "=", getchar())) != EOF) && (k != cpp_char("\n"))))
   {
     if (((((bef + k) - cpp_char("0")) - cpp_char("0")) == 9))
@@ -92,7 +92,7 @@ func main()
     {
       if (streak)
       {
-        streak = (if ((streak % 2)) 1 else ((streak / 2) + 1));
+        streak = ( ((streak % 2)) ? 1 : ((streak / 2) + 1));
         ans *= streak;
       }
       streak = 0;
@@ -102,7 +102,7 @@ func main()
   }
   if (streak)
   {
-    streak = (if ((streak % 2)) 1 else ((streak / 2) + 1));
+    streak = ( ((streak % 2)) ? 1 : ((streak / 2) + 1));
     ans *= streak;
   }
   write(ans);

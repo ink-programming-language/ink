@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(2, 110, 110);
+var a: dynamic = cpp_array(2, 110, 110);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var i: dynamic;
-  var j: dynamic;
-  var ans = 0;
-  var mod = 100000000;
-  var k: dynamic;
-  var n1: dynamic;
-  var n2: dynamic;
-  var k1: dynamic;
-  var k2: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
+  var mod: dynamic = 100000000;
+  var k: dynamic = cpp_uninitialized();
+  var n1: dynamic = cpp_uninitialized();
+  var n2: dynamic = cpp_uninitialized();
+  var k1: dynamic = cpp_uninitialized();
+  var k2: dynamic = cpp_uninitialized();
   read(n1, n2, k1, k2);
   a[0][0][0] = 1;
   a[0][0][1] = 1;

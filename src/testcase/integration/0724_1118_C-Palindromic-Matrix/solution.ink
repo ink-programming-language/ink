@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(1001);
+var a: dynamic = cpp_array(1001);
 
-var mat = cpp_array(21, 21);
+var mat: dynamic = cpp_array(21, 21);
 
-var n2: dynamic;
+var n2: dynamic = cpp_uninitialized();
 
-var n4: dynamic;
+var n4: dynamic = cpp_uninitialized();
 
-var n1: dynamic;
+var n1: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var t: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n * n)))
     {
       read(t);
@@ -24,14 +24,14 @@ func main()
       i += 1;
     }
   }
-  var odd = 0;
-  var oddi: dynamic;
-  var r = 1;
-  var c = 1;
+  var odd: dynamic = 0;
+  var oddi: dynamic = cpp_uninitialized();
+  var r: dynamic = 1;
+  var c: dynamic = 1;
   if (((n % 2) == 0))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= 1000))
       {
         while ((a[i] >= 4))
@@ -59,14 +59,14 @@ func main()
       return 0;
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= (n / 2)))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= (n / 2)))
           {
-            var t = n4.front();
+            var t: dynamic = n4.front();
             n4.pop();
             mat[i][j] = t;
             mat[((n - i) + 1)][j] = t;
@@ -80,10 +80,10 @@ func main()
     }
   } else
   {
-    var x4 = ((((n - 1)) * ((n - 1))) / 4);
-    var x2 = ((n - 1));
+    var x4: dynamic = ((((n - 1)) * ((n - 1))) / 4);
+    var x2: dynamic = ((n - 1));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= 1000))
       {
         while ((a[i] >= 4))
@@ -103,7 +103,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= 1000))
       {
         while ((a[i] >= 2))
@@ -123,7 +123,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= 1000))
       {
         if (a[i])
@@ -142,14 +142,14 @@ func main()
     {
       write("YES", "\n");
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= (n / 2)))
         {
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= (n / 2)))
             {
-              var t = n4.front();
+              var t: dynamic = n4.front();
               n4.pop();
               mat[i][j] = t;
               mat[((n - i) + 1)][j] = t;
@@ -162,10 +162,10 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= (n / 2)))
         {
-          var t = n2.front();
+          var t: dynamic = n2.front();
           n2.pop();
           mat[i][((n / 2) + 1)] = t;
           mat[((n - i) + 1)][((n / 2) + 1)] = t;
@@ -173,10 +173,10 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= (n / 2)))
         {
-          var t = n2.front();
+          var t: dynamic = n2.front();
           n2.pop();
           mat[((n / 2) + 1)][i] = t;
           mat[((n / 2) + 1)][((n - i) + 1)] = t;
@@ -187,11 +187,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           write(mat[i][j], cpp_char(" "));

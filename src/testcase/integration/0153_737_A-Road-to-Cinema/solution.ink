@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-func abs(t: dynamic)
+func abs(t: dynamic) -> dynamic
 {
-  return if ((t < 0)) (-t) else t;
+  return  ((t < 0)) ? (-t) : t;
 }
 
-var modn = 1000000007;
+var modn: dynamic = 1000000007;
 
-func mod(x: dynamic)
+func mod(x: dynamic) -> dynamic
 {
   return (x % modn);
 }
 
-var MAXN = 212345;
+var MAXN: dynamic = 212345;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var s = cpp_array(MAXN);
+var s: dynamic = cpp_array(MAXN);
 
-var p = cpp_array(MAXN);
+var p: dynamic = cpp_array(MAXN);
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-func test(c: dynamic)
+func test(c: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var a = 1;
+    var a: dynamic = 1;
     while ((a <= m))
     {
       if ((c < ((p[a] - p[(a - 1)]))))
@@ -50,11 +50,11 @@ func test(c: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%lld%lld", (&n), (&m), (&k), (&t));
   {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a < n))
     {
       scanf("%lld%lld", (&s[a].first), (&s[a].second));
@@ -63,7 +63,7 @@ func main()
   }
   p[0] = 0;
   {
-    var a = 1;
+    var a: dynamic = 1;
     while ((a <= m))
     {
       scanf("%lld", (&p[a]));
@@ -73,11 +73,11 @@ func main()
   p[(m + 1)] = k;
   m += 1;
   sort(p, ((p + m) + 1));
-  var i = 1;
-  var j = 5e9;
+  var i: dynamic = 1;
+  var j: dynamic = 5e9;
   while ((i < j))
   {
-    var m = (((i + j)) / 2);
+    var m: dynamic = (((i + j)) / 2);
     if ((test(m) <= t))
     {
       j = m;
@@ -86,9 +86,9 @@ func main()
       i = (m + 1);
     }
   }
-  var res = LLONG_MAX;
+  var res: dynamic = LLONG_MAX;
   {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a < n))
     {
       if (((s[a].second >= i) && (s[a].first < res)))

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var mem = cpp_array(5001, 51);
+var mem: dynamic = cpp_array(5001, 51);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-var v = cpp_array(100);
+var v: dynamic = cpp_array(100);
 
-var used = cpp_array(5001, 51);
+var used: dynamic = cpp_array(5001, 51);
 
 class po
 {
-  var e: dynamic;
-  var a: dynamic;
+  var e: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
 }
 
-var E = cpp_array(101);
+var E: dynamic = cpp_array(101);
 
-func dfs(pos: dynamic, mo: dynamic)
+func dfs(pos: dynamic, mo: dynamic) -> dynamic
 {
   if ((pos == y))
   {
@@ -32,13 +32,13 @@ func dfs(pos: dynamic, mo: dynamic)
   }
   used[pos][mo] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < x))
     {
-      var npos = min(y, (pos + v[i]));
-      var nmo = mo;
-      var e = E[npos].e;
-      var a = E[npos].a;
+      var npos: dynamic = min(y, (pos + v[i]));
+      var nmo: dynamic = mo;
+      var e: dynamic = E[npos].e;
+      var a: dynamic = E[npos].a;
       if (e)
       {
         if ((e == 1))
@@ -61,7 +61,7 @@ func dfs(pos: dynamic, mo: dynamic)
   return mem[pos][mo];
 }
 
-func main()
+func main() -> dynamic
 {
   while (1)
   {
@@ -71,7 +71,7 @@ func main()
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < x))
       {
         read(v[i]);
@@ -80,8 +80,8 @@ func main()
     }
     memset(E, 0, cpp_sizeof((E)));
     {
-      var i = 0;
-      var a: dynamic;
+      var i: dynamic = 0;
+      var a: dynamic = cpp_uninitialized();
       while ((i < z))
       {
         read(a);
@@ -91,11 +91,11 @@ func main()
     }
     memset(used, 0, cpp_sizeof((used)));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 51))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 5001))
           {
             mem[i][j] = 0;

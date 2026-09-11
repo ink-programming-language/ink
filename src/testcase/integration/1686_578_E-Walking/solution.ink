@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var c = cpp_array(120000);
+var c: dynamic = cpp_array(120000);
 
-var d = cpp_array(120000);
+var d: dynamic = cpp_array(120000);
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t1: dynamic;
+var t1: dynamic = cpp_uninitialized();
 
-var t2: dynamic;
+var t2: dynamic = cpp_uninitialized();
 
-var t3: dynamic;
+var t3: dynamic = cpp_uninitialized();
 
-var t4: dynamic;
+var t4: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", (c + 1));
   n = strlen((c + 1));
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i > 0))
     {
       if ((c[i] == cpp_char("L")))
@@ -63,7 +63,7 @@ func main()
     p = 1;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       d[i] = p;
@@ -96,7 +96,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       if ((d[i] > d[(i + 1)]))
@@ -108,7 +108,7 @@ func main()
   }
   printf("%d\n", s);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%d ", d[i]);

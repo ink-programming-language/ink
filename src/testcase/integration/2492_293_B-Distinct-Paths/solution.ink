@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var NS = 1111;
+var NS: dynamic = 1111;
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var v = cpp_array(11);
+var v: dynamic = cpp_array(11);
 
-var u = cpp_array(NS);
+var u: dynamic = cpp_array(NS);
 
-var s = cpp_array(NS, NS);
+var s: dynamic = cpp_array(NS, NS);
 
-var a = cpp_array(NS, NS);
+var a: dynamic = cpp_array(NS, NS);
 
-func one_num(z: dynamic)
+func one_num(z: dynamic) -> dynamic
 {
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
     while ((z > 0))
     {
@@ -31,7 +31,7 @@ func one_num(z: dynamic)
   return cnt;
 }
 
-func dfs(x: dynamic, y: dynamic)
+func dfs(x: dynamic, y: dynamic) -> dynamic
 {
   if ((y > m))
   {
@@ -41,18 +41,18 @@ func dfs(x: dynamic, y: dynamic)
   {
     return 1;
   }
-  var cur = (s[(x - 1)][y] | s[x][(y - 1)]);
+  var cur: dynamic = (s[(x - 1)][y] | s[x][(y - 1)]);
   if (((((n + m) - x) - y) >= (k - builtin_popcount(cur))))
   {
     return 0;
   }
-  var ans = 0;
-  var tmp = -1;
+  var ans: dynamic = 0;
+  var tmp: dynamic = -1;
   {
-    var t = ((((~cur)) & ((((1 << k)) - 1))));
+    var t: dynamic = ((((~cur)) & ((((1 << k)) - 1))));
     while ((t > 0))
     {
-      var i = (u[(t & ((-t)))] + 1);
+      var i: dynamic = (u[(t & ((-t)))] + 1);
       if (((!((cur & ((1 << ((i - 1))))))) && (((a[x][y] == i) || (!a[x][y])))))
       {
         s[x][y] = (cur | ((1 << ((i - 1)))));
@@ -78,13 +78,13 @@ func dfs(x: dynamic, y: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   while ((~scanf("%d%d%d", (&n), (&m), (&k))))
   {
     memset(v, 0, cpp_sizeof((v)));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= k))
       {
         u[(1 << i)] = i;
@@ -92,11 +92,11 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= m))
           {
             scanf("%d", (&a[i][j]));
@@ -112,7 +112,7 @@ func main()
       printf("0\n");
       continue;
     }
-    var ans = dfs(1, 1);
+    var ans: dynamic = dfs(1, 1);
     printf("%I64d\n", ans);
   }
   return 0;

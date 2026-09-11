@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var f = 1;
-  var c = getchar();
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   {
     while ((!isdigit(c)))
     {
@@ -27,9 +27,9 @@ func read(x: dynamic)
   x *= f;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func solve(n: dynamic, k: dynamic)
+func solve(n: dynamic, k: dynamic) -> dynamic
 {
   if ((n == 1))
   {
@@ -38,7 +38,7 @@ func solve(n: dynamic, k: dynamic)
   return (solve((n - (n / 2)), (k << 1)) + (((n / 2)) * k));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   printf("%lld\n", solve(n, 1));

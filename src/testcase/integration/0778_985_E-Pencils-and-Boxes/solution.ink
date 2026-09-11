@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var maxn = (5e6 + 5);
+var maxn: dynamic = (5e6 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var sum = cpp_array(maxn);
+var sum: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%lld", (&n), (&m), (&d));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&a[i]));
@@ -24,11 +24,11 @@ func main()
     }
   }
   sort((&a[1]), (&a[(n + 1)]));
-  var good = 1;
+  var good: dynamic = 1;
   sum[0] = 1;
   {
-    var i = 1;
-    var j = 1;
+    var i: dynamic = 1;
+    var j: dynamic = 1;
     while ((i <= n))
     {
       while (((a[i] - a[j]) > d))

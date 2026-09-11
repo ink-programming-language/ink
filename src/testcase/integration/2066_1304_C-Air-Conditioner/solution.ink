@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   while (cpp_update(n, "--"))
   {
-    var flag = 1;
-    var mx: dynamic;
-    var mi: dynamic;
-    var m: dynamic;
-    var t: dynamic;
-    var time: dynamic;
+    var flag: dynamic = 1;
+    var mx: dynamic = cpp_uninitialized();
+    var mi: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
+    var t: dynamic = cpp_uninitialized();
+    var time: dynamic = cpp_uninitialized();
     read(m, t);
     mx = cpp_assign(mi, "=", t);
     time = 0;
     while (cpp_update(m, "--"))
     {
-      var a: dynamic;
-      var b: dynamic;
-      var c: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
       read(a, b, c);
       mx = (mx + ((a - time)));
       mi = (mi - ((a - time)));

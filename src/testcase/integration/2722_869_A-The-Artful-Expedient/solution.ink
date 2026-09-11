@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var N = 2005;
+var N: dynamic = 2005;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var cnt = cpp_array(8000005);
+var cnt: dynamic = cpp_array(8000005);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (a + i));
@@ -25,7 +25,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (b + i));
@@ -34,11 +34,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((cnt[(a[i] ^ b[j])] == 1))

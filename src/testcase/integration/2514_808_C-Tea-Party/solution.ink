@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var MaxN = (2e5 + 10);
+var MaxN: dynamic = (2e5 + 10);
 
 class node
 {
-  var val: dynamic;
-  var id: dynamic;
+  var val: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var arr = cpp_array(110);
+var arr: dynamic = cpp_array(110);
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.val == b.val))
   {
@@ -21,15 +21,15 @@ func cmp(a: dynamic, b: dynamic)
   return (a.val > b.val);
 }
 
-var ans = cpp_array(110);
+var ans: dynamic = cpp_array(110);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var w: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&w));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&arr[i].val));
@@ -38,10 +38,10 @@ func main()
     }
   }
   sort(arr, (arr + n), cmp);
-  var p = w;
-  var flag = 0;
+  var p: dynamic = w;
+  var flag: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((p - (((arr[i].val + 1)) / 2)) < 0))
@@ -60,7 +60,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((arr[i].val - ans[arr[i].id]) <= p))
@@ -82,7 +82,7 @@ func main()
   if ((p == 0))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((i == 0))

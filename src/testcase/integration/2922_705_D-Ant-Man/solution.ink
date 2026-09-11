@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var X = cpp_array(5010);
+var X: dynamic = cpp_array(5010);
 
-var A = cpp_array(5010);
+var A: dynamic = cpp_array(5010);
 
-var B = cpp_array(5010);
+var B: dynamic = cpp_array(5010);
 
-var C = cpp_array(5010);
+var C: dynamic = cpp_array(5010);
 
-var D = cpp_array(5010);
+var D: dynamic = cpp_array(5010);
 
-var f = cpp_array(5010, 5010);
+var f: dynamic = cpp_array(5010, 5010);
 
-func Min(x: dynamic, y: dynamic)
+func Min(x: dynamic, y: dynamic) -> dynamic
 {
-  return if ((x < y)) x else y;
+  return  ((x < y)) ? x : y;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var sp: dynamic;
-  var tp: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var sp: dynamic = cpp_uninitialized();
+  var tp: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&sp), (&tp));
   {
     i = 1;
@@ -67,7 +67,7 @@ func main()
   }
   if ((sp > tp))
   {
-    var t = sp;
+    var t: dynamic = sp;
     sp = tp;
     tp = t;
     {

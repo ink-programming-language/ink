@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(n: dynamic)
+func read(n: dynamic) -> dynamic
 {
-  var w = 1;
+  var w: dynamic = 1;
   n = 0;
-  var ch = getchar();
+  var ch: dynamic = getchar();
   while (((!isdigit(ch)) && (ch != EOF)))
   {
     if ((ch == cpp_char("-")))
@@ -21,10 +21,10 @@ func read(n: dynamic)
   n *= w;
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
-  var l = 0;
-  var y = 0;
+  var l: dynamic = 0;
+  var y: dynamic = 0;
   if ((x < 0))
   {
     x = (-x);
@@ -49,60 +49,60 @@ func write(x: dynamic)
   }
 }
 
-func writes(x: dynamic)
+func writes(x: dynamic) -> dynamic
 {
   write(x);
   putchar(cpp_char(" "));
 }
 
-func writeln(x: dynamic)
+func writeln(x: dynamic) -> dynamic
 {
   write(x);
   puts("");
 }
 
-func checkmax(a: dynamic, b: dynamic)
+func checkmax(a: dynamic, b: dynamic) -> dynamic
 {
-  a = if ((a > b)) a else b;
+  a =  ((a > b)) ? a : b;
 }
 
-func checkmin(a: dynamic, b: dynamic)
+func checkmin(a: dynamic, b: dynamic) -> dynamic
 {
-  a = if ((a < b)) a else b;
+  a =  ((a < b)) ? a : b;
 }
 
-var N = (2e5 + 10);
+var N: dynamic = (2e5 + 10);
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var it: dynamic;
+var it: dynamic = cpp_uninitialized();
 
-var pp: dynamic;
+var pp: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var yd: dynamic;
+var yd: dynamic = cpp_uninitialized();
 
-func dist(x: dynamic, y: dynamic)
+func dist(x: dynamic, y: dynamic) -> dynamic
 {
   return sqrt(((((x.x - y.x)) * ((x.x - y.x))) + (((x.y - y.y)) * ((x.y - y.y)))));
 }
 
-func doit(x: dynamic)
+func doit(x: dynamic) -> dynamic
 {
   x -= ((int_cpp((x / ((2 * pi)))) * 2) * pi);
   if ((x < (-eps)))
@@ -113,13 +113,13 @@ func doit(x: dynamic)
 
 class yy
 {
-  var l: dynamic;
-  var r: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
 }
 
-var q = cpp_array(N);
+var q: dynamic = cpp_array(N);
 
-func gaota(l: dynamic, r: dynamic)
+func gaota(l: dynamic, r: dynamic) -> dynamic
 {
   doit(l);
   doit(r);
@@ -130,24 +130,24 @@ func gaota(l: dynamic, r: dynamic)
   q[cpp_update(sum, "++")] = [l, r];
 }
 
-var t = cpp_array((N * 2));
+var t: dynamic = cpp_array((N * 2));
 
-func cmp1(x: dynamic, y: dynamic)
+func cmp1(x: dynamic, y: dynamic) -> dynamic
 {
   return (x.r < y.r);
 }
 
-func cmp2(x: dynamic, y: dynamic)
+func cmp2(x: dynamic, y: dynamic) -> dynamic
 {
   return ((*x) < (*y));
 }
 
-func lowbit(x: dynamic)
+func lowbit(x: dynamic) -> dynamic
 {
   return (x & ((-x)));
 }
 
-func insert(x: dynamic)
+func insert(x: dynamic) -> dynamic
 {
   {
     while ((x <= it))
@@ -158,9 +158,9 @@ func insert(x: dynamic)
   }
 }
 
-func qry(x: dynamic)
+func qry(x: dynamic) -> dynamic
 {
-  var ss = 0;
+  var ss: dynamic = 0;
   {
     while (x)
     {
@@ -171,27 +171,27 @@ func qry(x: dynamic)
   return ss;
 }
 
-func check(x: dynamic)
+func check(x: dynamic) -> dynamic
 {
   sum = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var dis = dist(p[i], yd);
+      var dis: dynamic = dist(p[i], yd);
       if ((dis >= x))
       {
-        var jd1 = atan2(p[i].y, p[i].x);
-        var jd2 = acos((x / dis));
+        var jd1: dynamic = atan2(p[i].y, p[i].x);
+        var jd2: dynamic = acos((x / dis));
         gaota((jd1 - jd2), (jd1 + jd2));
       }
       i += 1;
     }
   }
-  var res = (((1 * sum) * ((n - sum))) + (((1 * ((n - sum))) * (((n - sum) - 1))) / 2));
+  var res: dynamic = (((1 * sum) * ((n - sum))) + (((1 * ((n - sum))) * (((n - sum) - 1))) / 2));
   sort((q + 1), ((q + sum) + 1), cmp1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sum))
     {
       pp[i] = (&q[i].l);
@@ -200,10 +200,10 @@ func check(x: dynamic)
     }
   }
   sort((pp + 1), ((pp + (2 * sum)) + 1), cmp2);
-  var las = 14913233;
+  var las: dynamic = 14913233;
   it = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (2 * sum)))
     {
       if (((*pp[i]) != las))
@@ -217,7 +217,7 @@ func check(x: dynamic)
   }
   memset(t, 0, (cpp_sizeof(dynamic) * ((it + 1))));
   {
-    var i = sum;
+    var i: dynamic = sum;
     while ((i >= 1))
     {
       res += ((qry(int_cpp(q[i].l)) + ((sum - i))) - qry(int_cpp(q[i].r)));
@@ -228,24 +228,24 @@ func check(x: dynamic)
   return (res >= k);
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   read(k);
   yd = [0, 0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lf%lf", (&p[i].x), (&p[i].y));
       i += 1;
     }
   }
-  var l = 0;
-  var r = 2e8;
+  var l: dynamic = 0;
+  var r: dynamic = 2e8;
   while ((((r - l)) >= eps))
   {
-    var mid = (((l + r)) / 2);
+    var mid: dynamic = (((l + r)) / 2);
     if (check(mid))
     {
       r = mid;

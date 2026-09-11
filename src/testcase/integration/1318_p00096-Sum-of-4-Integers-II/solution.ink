@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var tbl = [0];
+  var n: dynamic = cpp_uninitialized();
+  var tbl: dynamic = [0];
   tbl[0][0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 5))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 4001))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 1001))
             {
               if (((j - k) < 0))

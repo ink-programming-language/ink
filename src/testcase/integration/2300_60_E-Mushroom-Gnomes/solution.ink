@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func debug(a: dynamic, b: dynamic)
+func debug(a: dynamic, b: dynamic) -> dynamic
 {
   {
     while ((a != b))
@@ -12,9 +12,9 @@ func debug(a: dynamic, b: dynamic)
   write("\n");
 }
 
-func isprime(x: dynamic)
+func isprime(x: dynamic) -> dynamic
 {
-  var till = cpp_cast(sqrt((x + 0.0)));
+  var till: dynamic = cpp_cast(sqrt((x + 0.0)));
   if ((x <= 1))
   {
     return 0;
@@ -28,7 +28,7 @@ func isprime(x: dynamic)
     return 0;
   }
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i <= till))
     {
       if ((((x / i) * i) == x))
@@ -41,17 +41,17 @@ func isprime(x: dynamic)
   return 1;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1000000);
+var a: dynamic = cpp_array(1000000);
 
-func mod(foo: dynamic)
+func mod(foo: dynamic) -> dynamic
 {
   foo += p;
   return (foo - ((foo / p) * p));
@@ -59,35 +59,35 @@ func mod(foo: dynamic)
 
 class Matrix
 {
-  var row: dynamic;
-  var col: dynamic;
-  var body: dynamic;
-  func Matrix(row: dynamic, col: dynamic)
+  var row: dynamic = cpp_uninitialized();
+  var col: dynamic = cpp_uninitialized();
+  var body: dynamic = cpp_uninitialized();
+  func Matrix(row: dynamic, col: dynamic) -> dynamic
   {
-      this->row = row;
-      this->col = col;
+      self->row = row;
+      self->col = col;
       body = vector(row, vector(col, 0));
     }
-  func Matrix(matrix: dynamic)
+  func Matrix(matrix: dynamic) -> dynamic
   {
       row = cpp_cast((matrix).size());
       col = cpp_cast((matrix[0]).size());
       body = matrix;
     }
-  func operator_multiply(other: dynamic)
+  func operator_multiply(other: dynamic) -> dynamic
   {
-      var ret = Matrix(row, other.col);
+      var ret: dynamic = Matrix(row, other.col);
       assert((col == other.row));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < row))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < other.col))
             {
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < col))
                 {
                   ret.body[i][j] += mod(((1 * body[i][k]) * other.body[k][j]));
@@ -105,10 +105,10 @@ class Matrix
     }
 }
 
-func binpow(a: dynamic, n: dynamic)
+func binpow(a: dynamic, n: dynamic) -> dynamic
 {
   assert((n >= 1));
-  var ret = a;
+  var ret: dynamic = a;
   n -= 1;
   while ((n > 0))
   {
@@ -123,7 +123,7 @@ func binpow(a: dynamic, n: dynamic)
   return ret;
 }
 
-func alacazam(s: dynamic, f: dynamic, l: dynamic, x: dynamic)
+func alacazam(s: dynamic, f: dynamic, l: dynamic, x: dynamic) -> dynamic
 {
   if ((x == 0))
   {
@@ -132,7 +132,7 @@ func alacazam(s: dynamic, f: dynamic, l: dynamic, x: dynamic)
   return ((Matrix([[s, f, l]]) * binpow(Matrix([[3, 0, 0], [-1, 1, 0], [-1, 0, 1]]), x))).body[0][0];
 }
 
-func fibazam(f1: dynamic, f2: dynamic, x: dynamic)
+func fibazam(f1: dynamic, f2: dynamic, x: dynamic) -> dynamic
 {
   if ((x == 0))
   {
@@ -141,12 +141,12 @@ func fibazam(f1: dynamic, f2: dynamic, x: dynamic)
   return ((Matrix([[f1, f2]]) * binpow(Matrix([[0, 1], [1, 1]]), x))).body[0][1];
 }
 
-func main()
+func main() -> dynamic
 {
   scanf(("%d " + "%l" + "ld" + " " + "%l" + "ld" + " %d"), (&n), (&x), (&y), (&p));
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
-  var ans = if ((a > b)) (a - 1) else a;
+  var ans: dynamic =  ((a > b)) ? (a - 1) : a;
   write(ans, "\n");
 }

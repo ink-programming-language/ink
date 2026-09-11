@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func set_if_renew(current_diff: dynamic, current_t: dynamic, current_cards: dynamic, t: dynamic, cards: dynamic)
+func set_if_renew(current_diff: dynamic, current_t: dynamic, current_cards: dynamic, t: dynamic, cards: dynamic) -> dynamic
 {
   if ((current_diff < abs((t - cards))))
   {
@@ -16,19 +16,19 @@ func set_if_renew(current_diff: dynamic, current_t: dynamic, current_cards: dyna
 
 class Card
 {
-  var value: dynamic;
-  var index: dynamic;
+  var value: dynamic = cpp_uninitialized();
+  var index: dynamic = cpp_uninitialized();
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var a: dynamic;
-  var b: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(n, k, a, b);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(cards[i].value);
@@ -36,33 +36,33 @@ func main()
       i += 1;
     }
   }
-  var sum = accumulate(cards.begin(), cards.end(), 0, __cpp_lambda_1);
-  var max = max_element(cards.begin(), cards.end(), __cpp_lambda_2)->value;
+  var sum: dynamic = accumulate(cards.begin(), cards.end(), 0, __cpp_lambda_1);
+  var max: dynamic = max_element(cards.begin(), cards.end(), __cpp_lambda_2)->value;
   sort(cards.begin(), cards.end(), __cpp_lambda_3);
-  var last_index: dynamic;
+  var last_index: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= k))
     {
       last_index.emplace_back((max(b, (max * i)) + 1), INT_MAX);
       i += 1;
     }
   }
-  var queue: dynamic;
+  var queue: dynamic = cpp_uninitialized();
   queue.push(0);
   last_index[0][0] = 0;
   {
-    var count = 1;
+    var count: dynamic = 1;
     while ((count <= k))
     {
       {
-        var c = queue.size();
+        var c: dynamic = queue.size();
         while ((c > 0))
         {
-          var top = queue.front();
+          var top: dynamic = queue.front();
           queue.pop();
           {
-            var i = last_index[(count - 1)][top];
+            var i: dynamic = last_index[(count - 1)][top];
             while (((i < n) && ((cards[i].value + top) < last_index[count].size())))
             {
               if ((last_index[count][(cards[i].value + top)] == INT_MAX))
@@ -82,18 +82,18 @@ func main()
       count += 1;
     }
   }
-  var suspects: dynamic;
+  var suspects: dynamic = cpp_uninitialized();
   while ((!queue.empty()))
   {
     suspects.push_back(queue.front());
     queue.pop();
   }
   sort(suspects.begin(), suspects.end());
-  var max_diff = -1;
-  var min_t = INT_MAX;
-  var min_cards = 0;
+  var max_diff: dynamic = -1;
+  var min_t: dynamic = INT_MAX;
+  var min_cards: dynamic = 0;
   {
-    var i = (lower_bound(suspects.begin(), suspects.end(), a) - suspects.begin());
+    var i: dynamic = (lower_bound(suspects.begin(), suspects.end(), a) - suspects.begin());
     while ((i < suspects.size()))
     {
       if ((i == 0))
@@ -107,9 +107,9 @@ func main()
         {
           break;
         }
-        var upper = suspects[i];
-        var lower = suspects[(i - 1)];
-        var diff = (upper - lower);
+        var upper: dynamic = suspects[i];
+        var lower: dynamic = suspects[(i - 1)];
+        var diff: dynamic = (upper - lower);
         if ((max_diff < (diff / 2)))
         {
           if (((lower <= a) && (a <= upper)))
@@ -150,9 +150,9 @@ func main()
     set_if_renew(max_diff, min_t, min_cards, b, suspects.back());
   }
   write(min_t, "\n");
-  var result: dynamic;
+  var result: dynamic = cpp_uninitialized();
   {
-    var i = k;
+    var i: dynamic = k;
     while ((i > 0))
     {
       result.push_back((cards[(last_index[i][min_cards] - 1)].index + 1));
@@ -161,7 +161,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < result.size()))
     {
       if ((i != 0))
@@ -175,17 +175,17 @@ func main()
   write(cpp_char("\n"));
 }
 
-func __cpp_lambda_1(acc: dynamic, c: dynamic)
+func __cpp_lambda_1(acc: dynamic, c: dynamic) -> dynamic
 {
   return (acc + c.value);
 }
 
-func __cpp_lambda_2(a: dynamic, b: dynamic)
+func __cpp_lambda_2(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.value < b.value);
 }
 
-func __cpp_lambda_3(a: dynamic, b: dynamic)
+func __cpp_lambda_3(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.value < b.value);
 }

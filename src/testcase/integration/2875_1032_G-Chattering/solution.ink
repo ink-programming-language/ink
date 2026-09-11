@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var mxN = 1e5;
+var mxN: dynamic = 1e5;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var l = cpp_array(mxN, 17, 17);
+var l: dynamic = cpp_array(mxN, 17, 17);
 
-var r = cpp_array(mxN, 17, 17);
+var r: dynamic = cpp_array(mxN, 17, 17);
 
-func qry(i: dynamic, l2: dynamic, r2: dynamic)
+func qry(i: dynamic, l2: dynamic, r2: dynamic) -> dynamic
 {
-  var b = (31 - builtin_clz(((r2 - l2) + 1)));
+  var b: dynamic = (31 - builtin_clz(((r2 - l2) + 1)));
   return [max(l[i][b][l2], (l[i][b][((((r2 - ((1 << b))) + 1)) % n)] - ((((r2 - ((1 << b))) + 1) - l2)))), max(r[i][b][((((r2 - ((1 << b))) + 1)) % n)], (r[i][b][l2] - ((((r2 - ((1 << b))) + 1) - l2))))];
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
@@ -25,7 +25,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(l[0][0][i]);
@@ -34,12 +34,12 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 17))
     {
-      var a = (1 << ((i - 1)));
+      var a: dynamic = (1 << ((i - 1)));
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           l[0][i][j] = max(l[0][(i - 1)][j], (l[0][(i - 1)][(((j + a)) % n)] - a));
@@ -51,20 +51,20 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 17))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 17))
         {
-          var a = (1 << j);
+          var a: dynamic = (1 << j);
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < n))
             {
-              var l2 = (k - l[(i - 1)][j][k]);
-              var r2 = (((k + a) - 1) + r[(i - 1)][j][k]);
+              var l2: dynamic = (k - l[(i - 1)][j][k]);
+              var r2: dynamic = (((k + a) - 1) + r[(i - 1)][j][k]);
               if (((r2 - l2) >= (n - 1)))
               {
                 l[i][j][k] = cpp_assign(r[i][j][k], "=", n);
@@ -89,16 +89,16 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var l2 = i;
-      var r2 = i;
-      var ans = 1;
-      var l3: dynamic;
-      var r3: dynamic;
+      var l2: dynamic = i;
+      var r2: dynamic = i;
+      var ans: dynamic = 1;
+      var l3: dynamic = cpp_uninitialized();
+      var r3: dynamic = cpp_uninitialized();
       {
-        var j = 16;
+        var j: dynamic = 16;
         while ((j >= 0))
         {
           tie(l3, r3) = qry(j, l2, r2);

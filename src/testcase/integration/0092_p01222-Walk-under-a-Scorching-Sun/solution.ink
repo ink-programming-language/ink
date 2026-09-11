@@ -1,53 +1,53 @@
 // Translated from solution.cpp.
 
-var EPS = 1e-6;
+var EPS: dynamic = 1e-6;
 
-var INF = 1e12;
+var INF: dynamic = 1e12;
 
-var PI = acos(-1);
+var PI: dynamic = acos(-1);
 
-func EQ(n: dynamic, m: dynamic)
+func EQ(n: dynamic, m: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream>");
 }
 
-var X = cpp_expression("#inclu");
+var X: dynamic = cpp_expression("#inclu");
 
-var Y = cpp_expression("#inclu");
+var Y: dynamic = cpp_expression("#inclu");
 
 class L
 {
-  func L(a: dynamic, b: dynamic)
+  func L(a: dynamic, b: dynamic) -> dynamic
   {
       at(0) = a;
       at(1) = b;
     }
-  func L()
+  func L() -> dynamic
   {
     }
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((!EQ(a.X, b.X))) (a.X < b.X) else ((a.Y + EPS) < b.Y);
+  return  ((!EQ(a.X, b.X))) ? (a.X < b.X) : ((a.Y + EPS) < b.Y);
 }
 
-func operator_equal(a: dynamic, b: dynamic)
+func operator_equal(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs((a - b)) < EPS);
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return ((conj(a) * b)).X;
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((conj(a) * b)).Y;
 }
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b -= a;
   c -= a;
@@ -70,43 +70,43 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   return 0;
 }
 
-func intersectSS(a: dynamic, b: dynamic)
+func intersectSS(a: dynamic, b: dynamic) -> dynamic
 {
   return ((((ccw(a[0], a[1], b[0]) * ccw(a[0], a[1], b[1])) <= 0)) && (((ccw(b[0], b[1], a[0]) * ccw(b[0], b[1], a[1])) <= 0)));
 }
 
-func intersectSP(s: dynamic, p: dynamic)
+func intersectSP(s: dynamic, p: dynamic) -> dynamic
 {
   return ((abs(cross((s[0] - p), (s[1] - p))) < EPS) && (dot((s[0] - p), (s[1] - p)) < EPS));
 }
 
-func isParallel(a: dynamic, b: dynamic)
+func isParallel(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs(cross(a, b)) < EPS);
 }
 
-func isParallel(a: dynamic, b: dynamic)
+func isParallel(a: dynamic, b: dynamic) -> dynamic
 {
   return isParallel((a[1] - a[0]), (b[1] - b[0]));
 }
 
-func crosspointLL(l: dynamic, m: dynamic)
+func crosspointLL(l: dynamic, m: dynamic) -> dynamic
 {
-  var A = cross((l[1] - l[0]), (m[1] - m[0]));
-  var B = cross((l[1] - l[0]), (l[1] - m[0]));
+  var A: dynamic = cross((l[1] - l[0]), (m[1] - m[0]));
+  var B: dynamic = cross((l[1] - l[0]), (l[1] - m[0]));
   return (m[0] + ((B / A) * ((m[1] - m[0]))));
 }
 
-func in_poly(p: dynamic, poly: dynamic)
+func in_poly(p: dynamic, poly: dynamic) -> dynamic
 {
-  var n = poly.size();
-  var ret = -1;
+  var n: dynamic = poly.size();
+  var ret: dynamic = -1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a = (poly[i] - p);
-      var b = (poly[(((i + 1)) % n)] - p);
+      var a: dynamic = (poly[i] - p);
+      var b: dynamic = (poly[(((i + 1)) % n)] - p);
       if ((a.Y > b.Y))
       {
         swap(a, b);
@@ -125,13 +125,13 @@ func in_poly(p: dynamic, poly: dynamic)
   return ret;
 }
 
-func convex(v: dynamic)
+func convex(v: dynamic) -> dynamic
 {
-  var ret: dynamic;
-  var n = v.size();
+  var ret: dynamic = cpp_uninitialized();
+  var n: dynamic = v.size();
   sort(v.begin(), v.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       while (((cpp_cast(ret.size()) > 1) && (cross((ret.back() - ret[(ret.size() - 2)]), (v[i] - ret.back())) < EPS)))
@@ -142,9 +142,9 @@ func convex(v: dynamic)
       i += 1;
     }
   }
-  var t = ret.size();
+  var t: dynamic = ret.size();
   {
-    var i = (n - 2);
+    var i: dynamic = (n - 2);
     while ((i >= 0))
     {
       while (((cpp_cast(ret.size()) > t) && (cross((ret.back() - ret[(ret.size() - 2)]), (v[i] - ret.back())) < EPS)))
@@ -162,21 +162,21 @@ func convex(v: dynamic)
   return ret;
 }
 
-func arrangementEX(l: dynamic, p: dynamic)
+func arrangementEX(l: dynamic, p: dynamic) -> dynamic
 {
-  var cp = cpp_construct(l.size());
-  var plist = p;
+  var cp: dynamic = cpp_construct(l.size());
+  var plist: dynamic = p;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(l.size())))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < cpp_cast(l.size())))
         {
           if (((!isParallel(l[i], l[j])) && intersectSS(l[i], l[j])))
           {
-            var cpij = crosspointLL(l[i], l[j]);
+            var cpij: dynamic = crosspointLL(l[i], l[j]);
             cp[i].push_back(cpij);
             cp[j].push_back(cpij);
             plist.push_back(cpij);
@@ -185,7 +185,7 @@ func arrangementEX(l: dynamic, p: dynamic)
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast(p.size())))
         {
           if (intersectSP(l[i], p[j]))
@@ -206,10 +206,10 @@ func arrangementEX(l: dynamic, p: dynamic)
   }
   sort(plist.begin(), plist.end());
   plist.erase(unique(plist.begin(), plist.end()), plist.end());
-  var n = plist.size();
-  var conv: dynamic;
+  var n: dynamic = plist.size();
+  var conv: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       conv[plist[i]] = i;
@@ -217,15 +217,15 @@ func arrangementEX(l: dynamic, p: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(cp.size())))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (cpp_cast(cp[i].size()) - 1)))
         {
-          var jidx = conv[cp[i][j]];
-          var jp1idx = conv[cp[i][(j + 1)]];
+          var jidx: dynamic = conv[cp[i][j]];
+          var jp1idx: dynamic = conv[cp[i][(j + 1)]];
           adj[jidx][jp1idx] = cpp_assign(adj[jp1idx][jidx], "=", 0);
           j += 1;
         }
@@ -236,30 +236,30 @@ func arrangementEX(l: dynamic, p: dynamic)
   return make_pair(adj, plist);
 }
 
-func main()
+func main() -> dynamic
 {
   while (1)
   {
-    var n: dynamic;
-    var m: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
     read(n, m);
     if ((n == 0))
     {
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var nv: dynamic;
+        var nv: dynamic = cpp_uninitialized();
         read(nv, h[i]);
         poly[i].resize(nv);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < nv))
           {
-            var x: dynamic;
-            var y: dynamic;
+            var x: dynamic = cpp_uninitialized();
+            var y: dynamic = cpp_uninitialized();
             read(x, y);
             poly[i][j] = P(x, y);
             j += 1;
@@ -269,32 +269,32 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
-        var xs: dynamic;
-        var ys: dynamic;
-        var xt: dynamic;
-        var yt: dynamic;
+        var xs: dynamic = cpp_uninitialized();
+        var ys: dynamic = cpp_uninitialized();
+        var xt: dynamic = cpp_uninitialized();
+        var yt: dynamic = cpp_uninitialized();
         read(xs, ys, xt, yt);
         lines[i] = L(P(xs, ys), P(xt, yt));
         i += 1;
       }
     }
-    var th: dynamic;
-    var phi: dynamic;
+    var th: dynamic = cpp_uninitialized();
+    var phi: dynamic = cpp_uninitialized();
     read(th, phi);
     th *= (PI / 180);
     phi *= (PI / 180);
-    var dir = (P(cos((th + PI)), sin((th + PI))) / tan(phi));
+    var dir: dynamic = (P(cos((th + PI)), sin((th + PI))) / tan(phi));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var tmp = poly[i];
-        var idir = (dir * h[i]);
+        var tmp: dynamic = poly[i];
+        var idir: dynamic = (dir * h[i]);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < cpp_cast(poly[i].size())))
           {
             tmp.push_back((poly[i][j] + idir));
@@ -305,26 +305,26 @@ func main()
         i += 1;
       }
     }
-    var sg = cpp_construct(2);
-    var sx: dynamic;
-    var sy: dynamic;
-    var tx: dynamic;
-    var ty: dynamic;
+    var sg: dynamic = cpp_construct(2);
+    var sx: dynamic = cpp_uninitialized();
+    var sy: dynamic = cpp_uninitialized();
+    var tx: dynamic = cpp_uninitialized();
+    var ty: dynamic = cpp_uninitialized();
     read(sx, sy, tx, ty);
     sg[0] = P(sx, sy);
     sg[1] = P(tx, ty);
-    var ret = arrangementEX(lines, sg);
-    var adj = ret.first;
-    var plist = ret.second;
-    var pn = plist.size();
-    var sidx = (lower_bound(plist.begin(), plist.end(), sg[0]) - plist.begin());
-    var gidx = (lower_bound(plist.begin(), plist.end(), sg[1]) - plist.begin());
+    var ret: dynamic = arrangementEX(lines, sg);
+    var adj: dynamic = ret.first;
+    var plist: dynamic = ret.second;
+    var pn: dynamic = plist.size();
+    var sidx: dynamic = (lower_bound(plist.begin(), plist.end(), sg[0]) - plist.begin());
+    var gidx: dynamic = (lower_bound(plist.begin(), plist.end(), sg[1]) - plist.begin());
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < pn))
       {
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j < pn))
           {
             if ((adj[i][j] == INF))
@@ -332,16 +332,16 @@ func main()
               j += 1;
               continue;
             }
-            var cp = cpp_construct(2);
+            var cp: dynamic = cpp_construct(2);
             cp[0] = e[0];
             cp[1] = e[1];
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < n))
               {
-                var vn = poly[k].size();
+                var vn: dynamic = poly[k].size();
                 {
-                  var l = 0;
+                  var l: dynamic = 0;
                   while ((l < vn))
                   {
                     if (((!isParallel(e, edge)) && intersectSS(e, edge)))
@@ -356,15 +356,15 @@ func main()
             }
             sort(cp.begin(), cp.end());
             cp.erase(unique(cp.begin(), cp.end()), cp.end());
-            var cost = 0;
+            var cost: dynamic = 0;
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < (cpp_cast(cp.size()) - 1)))
               {
-                var mid = (((cp[k] + cp[(k + 1)])) / 2.0);
-                var in_cpp = false;
+                var mid: dynamic = (((cp[k] + cp[(k + 1)])) / 2.0);
+                var in_cpp: dynamic = false;
                 {
-                  var l = 0;
+                  var l: dynamic = 0;
                   while ((l < n))
                   {
                     if ((in_poly(mid, poly[l]) >= 0))
@@ -390,15 +390,15 @@ func main()
       }
     }
     {
-      var k = 0;
+      var k: dynamic = 0;
       while ((k < pn))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < pn))
           {
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j < pn))
               {
                 adj[i][j] = min(adj[i][j], (adj[i][k] + adj[k][j]));

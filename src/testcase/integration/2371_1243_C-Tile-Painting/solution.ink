@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b == 0)) a else gcd(b, (a % b));
+  return  ((b == 0)) ? a : gcd(b, (a % b));
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (a * ((b / gcd(a, b))));
 }
 
-var N = 100005;
+var N: dynamic = 100005;
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var ans = n;
+  var ans: dynamic = n;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= n))
     {
       if (((n % i) == 0))
@@ -32,12 +32,12 @@ func solve()
   write(ans);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var TESTS = 1;
+  var TESTS: dynamic = 1;
   while (cpp_update(TESTS, "--"))
   {
     solve();

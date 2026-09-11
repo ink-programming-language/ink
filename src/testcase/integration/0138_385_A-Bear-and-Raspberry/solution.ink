@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var c: dynamic;
-  var m: dynamic;
-  var dif: dynamic;
-  var ans: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var dif: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   while ((scanf("%d %d", (&n), (&c)) == 2))
   {
-    var num: dynamic;
+    var num: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%d", (&m));
@@ -21,7 +21,7 @@ func main()
     }
     dif = cpp_assign(ans, "=", 0);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < num.size()))
       {
         if (((num[(i - 1)] - num[i]) > dif))

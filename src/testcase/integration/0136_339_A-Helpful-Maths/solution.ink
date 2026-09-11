@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var x: dynamic;
-  var z: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if ((s[i] == cpp_char("+")))
@@ -16,7 +16,7 @@ func main()
         continue;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < s.size()))
         {
           if ((s[j] == cpp_char("+")))
@@ -35,7 +35,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       write(s[i]);

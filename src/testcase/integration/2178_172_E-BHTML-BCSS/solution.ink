@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var fin = cpp_construct("input.in");
+var fin: dynamic = cpp_construct("input.in");
 
-var fout = cpp_construct("output.out");
+var fout: dynamic = cpp_construct("output.out");
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var P = cpp_array(1000005);
+var P: dynamic = cpp_array(1000005);
 
-var str: dynamic;
+var str: dynamic = cpp_uninitialized();
 
-var pind: dynamic;
+var pind: dynamic = cpp_uninitialized();
 
-func add(str: dynamic)
+func add(str: dynamic) -> dynamic
 {
   if ((str[0] == cpp_char("/")))
   {
@@ -29,10 +29,10 @@ func add(str: dynamic)
   }
 }
 
-func parcala()
+func parcala() -> dynamic
 {
-  var i: dynamic;
-  var temp: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var temp: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < str.size()))
@@ -50,20 +50,20 @@ func parcala()
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
   read(str);
   parcala();
-  var i: dynamic;
-  var j: dynamic;
-  var g: dynamic;
-  var M: dynamic;
-  var res: dynamic;
-  var n: dynamic;
-  var t: dynamic;
-  var Q = cpp_array(205);
-  var q: dynamic;
-  var temp: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var g: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
+  var res: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var Q: dynamic = cpp_array(205);
+  var q: dynamic = cpp_uninitialized();
+  var temp: dynamic = cpp_uninitialized();
   read(M);
   getline(cin, q);
   {
@@ -126,7 +126,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   solve();
 }

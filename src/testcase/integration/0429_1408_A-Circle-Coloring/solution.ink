@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
@@ -17,12 +17,12 @@ func main()
   return 0;
 }
 
-func ceils(x: dynamic, y: dynamic)
+func ceils(x: dynamic, y: dynamic) -> dynamic
 {
   return ((x / y) + ((((x % y)) != 0)));
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -33,20 +33,20 @@ func gcd(a: dynamic, b: dynamic)
   }
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a / gcd(a, b)) * b);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a = cpp_array(n);
-  var b = cpp_array(n);
-  var c = cpp_array(n);
+  var a: dynamic = cpp_array(n);
+  var b: dynamic = cpp_array(n);
+  var c: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -54,7 +54,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(b[i]);
@@ -62,17 +62,17 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(c[i]);
       i += 1;
     }
   }
-  var ans = cpp_array(n);
+  var ans: dynamic = cpp_array(n);
   ans[0] = a[0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       ans[i] = a[i];
@@ -87,9 +87,9 @@ func solve()
       i += 1;
     }
   }
-  var ok = 0;
+  var ok: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       if ((ans[i] == ans[(i - 1)]))
@@ -104,7 +104,7 @@ func solve()
   {
     ans[0] = b[0];
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         ans[i] = b[i];
@@ -121,7 +121,7 @@ func solve()
     }
     ok = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         if ((ans[i] == ans[(i - 1)]))
@@ -137,7 +137,7 @@ func solve()
   {
     ans[0] = c[0];
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         ans[i] = c[i];
@@ -154,7 +154,7 @@ func solve()
     }
     ok = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         if ((ans[i] == ans[(i - 1)]))
@@ -198,7 +198,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(ans[i], " ");

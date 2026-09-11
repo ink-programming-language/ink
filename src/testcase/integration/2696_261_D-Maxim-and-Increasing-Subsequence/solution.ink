@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,19 +21,19 @@ func read()
   return (x * f);
 }
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1000005);
+var a: dynamic = cpp_array(1000005);
 
-var f = cpp_array(1000005);
+var f: dynamic = cpp_array(1000005);
 
-func main()
+func main() -> dynamic
 {
   T = read();
   n = read();
@@ -43,7 +43,7 @@ func main()
   while (cpp_update(T, "--"))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         a[i] = read();
@@ -52,16 +52,16 @@ func main()
     }
     memset(f, 0, cpp_sizeof((f)));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= t))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             f[a[j]] = (f[(a[j] - 1)] + 1);
             {
-              var k = (a[j] + 1);
+              var k: dynamic = (a[j] + 1);
               while (((k <= b) && (f[a[j]] > f[k])))
               {
                 f[k] = f[a[j]];

@@ -1,61 +1,61 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, x: dynamic)
+func REP(i: dynamic, x: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(int)(x);i++)");
 }
 
-func REPS(i: dynamic, x: dynamic)
+func REPS(i: dynamic, x: dynamic) -> dynamic
 {
   cpp_macro("for(int i=1;i<=(int)(x);i++)");
 }
 
-func RREP(i: dynamic, x: dynamic)
+func RREP(i: dynamic, x: dynamic) -> dynamic
 {
   cpp_macro("for(int i=((int)(x)-1);i>=0;i--)");
 }
 
-func RREPS(i: dynamic, x: dynamic)
+func RREPS(i: dynamic, x: dynamic) -> dynamic
 {
   cpp_macro("for(int i=((int)(x));i>0;i--)");
 }
 
-func FOR(i: dynamic, c: dynamic)
+func FOR(i: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof((c).begin())i=(c).begin();i!=(c).end();i++)");
 }
 
-func RFOR(i: dynamic, c: dynamic)
+func RFOR(i: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof((c).rbegin())i=(c).rbegin();i!=(c).rend();i++)");
 }
 
-func ALL(container: dynamic)
+func ALL(container: dynamic) -> dynamic
 {
   return cpp_expression("#include <cstdio> #include <cmath> #in");
 }
 
-func RALL(container: dynamic)
+func RALL(container: dynamic) -> dynamic
 {
   return cpp_expression("#include <cstdio> #include <cmath> #incl");
 }
 
-func SZ(container: dynamic)
+func SZ(container: dynamic) -> dynamic
 {
   return cpp_expression("#include <cstdio> #incl");
 }
 
-func mp(a: dynamic, b: dynamic)
+func mp(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <cstdi");
 }
 
-func UNIQUE(v: dynamic)
+func UNIQUE(v: dynamic) -> dynamic
 {
   cpp_macro("v.erase( unique(v.begin(), v.end()), v.end() );");
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -65,7 +65,7 @@ func chmax(a: dynamic, b: dynamic)
   return 0;
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -75,97 +75,97 @@ func chmin(a: dynamic, b: dynamic)
   return 0;
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   (os << "[");
   (os << "]");
   return os;
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   (os << "{");
   (os << "}");
   return os;
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   return (((((os << "(") << t.first) << ",") << t.second) << ")");
 }
 
-func operator_add(s: dynamic, t: dynamic)
+func operator_add(s: dynamic, t: dynamic) -> dynamic
 {
   return pair((s.first + t.first), (s.second + t.second));
 }
 
-func operator_subtract(s: dynamic, t: dynamic)
+func operator_subtract(s: dynamic, t: dynamic) -> dynamic
 {
   return pair((s.first - t.first), (s.second - t.second));
 }
 
-var X = cpp_expression("#inclu");
+var X: dynamic = cpp_expression("#inclu");
 
-var Y = cpp_expression("#inclu");
+var Y: dynamic = cpp_expression("#inclu");
 
-func at(i: dynamic)
+func at(i: dynamic) -> dynamic
 {
   return cpp_expression("#include <cs");
 }
 
-var SELF = cpp_expression("#includ");
+var SELF: dynamic = cpp_expression("#includ");
 
 enum cpp_enum_1
 {
-  TRUE = 1,
-  FALSE = 0,
-  BORDER = -1
+  enum_field TRUE = 1;
+  enum_field FALSE = 0;
+  enum_field BORDER = -1;
 }
 
-var INF = 1e8;
+var INF: dynamic = 1e8;
 
-var EPS = 1e-6;
+var EPS: dynamic = 1e-6;
 
-var PI = 3.1415926535897932384626;
+var PI: dynamic = 3.1415926535897932384626;
 
-func sig(x: dynamic)
+func sig(x: dynamic) -> dynamic
 {
-  return (if ((abs(x) < EPS)) 0 else if ((x > 0)) 1 else -1);
+  return ( ((abs(x) < EPS)) ? 0 :  ((x > 0)) ? 1 : -1);
 }
 
-func less(x: dynamic, y: dynamic)
+func less(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (sig((x - y))) (x < y) else BORDER;
+  return  (sig((x - y))) ? (x < y) : BORDER;
 }
 
-func norm(p: dynamic)
+func norm(p: dynamic) -> dynamic
 {
   return ((p.X * p.X) + (p.Y * p.Y));
 }
 
-func inp(a: dynamic, b: dynamic)
+func inp(a: dynamic, b: dynamic) -> dynamic
 {
   return ((conj(a) * b)).X;
 }
 
-func outp(a: dynamic, b: dynamic)
+func outp(a: dynamic, b: dynamic) -> dynamic
 {
   return ((conj(a) * b)).Y;
 }
 
-func unit(p: dynamic)
+func unit(p: dynamic) -> dynamic
 {
   return (p / abs(p));
 }
 
-func proj(s: dynamic, t: dynamic)
+func proj(s: dynamic, t: dynamic) -> dynamic
 {
   return ((t * inp(s, t)) / norm(t));
 }
 
-func ccw(s: dynamic, t: dynamic, p: dynamic, adv: dynamic = 0)
+func ccw(s: dynamic, t: dynamic, p: dynamic, adv: dynamic = 0) -> dynamic
 {
-  var res = sig(outp((t - s), (p - s)));
+  var res: dynamic = sig(outp((t - s), (p - s)));
   if ((res || (!adv)))
   {
     return res;
@@ -183,19 +183,19 @@ func ccw(s: dynamic, t: dynamic, p: dynamic, adv: dynamic = 0)
 
 class L
 {
-  func L(p1: dynamic, p2: dynamic)
+  func L(p1: dynamic, p2: dynamic) -> dynamic
   {
-      this->push_back(p1);
-      this->push_back(p2);
+      self->push_back(p1);
+      self->push_back(p2);
     }
-  func L()
+  func L() -> dynamic
   {
     }
-  func dir()
+  func dir() -> dynamic
   {
       return (at(1) - at(0));
     }
-  func online(p: dynamic)
+  func online(p: dynamic) -> dynamic
   {
       return (!sig(outp((p - at(0)), dir())));
     }
@@ -203,45 +203,45 @@ class L
 
 class S
 {
-  func S(p1: dynamic, p2: dynamic)
+  func S(p1: dynamic, p2: dynamic) -> dynamic
   {
-      this->L = cpp_construct(p1, p2);
+      self->L = cpp_construct(p1, p2);
     }
-  func S()
+  func S() -> dynamic
   {
     }
-  func online(p: dynamic)
+  func online(p: dynamic) -> dynamic
   {
       if (((!sig(norm((p - at(0))))) || (!sig(norm((p - at(1)))))))
       {
         return BORDER;
       }
-      return if ((((!sig(outp((p - at(0)), dir()))) && (inp((p - at(0)), dir()) > (-EPS))) && (inp((p - at(1)), (-dir())) > (-EPS)))) true else false;
+      return  ((((!sig(outp((p - at(0)), dir()))) && (inp((p - at(0)), dir()) > (-EPS))) && (inp((p - at(1)), (-dir())) > (-EPS)))) ? true : false;
       return (!sig(((abs((at(0) - p)) + abs((at(1) - p))) - abs((at(0) - at(1))))));
     }
 }
 
 class G
 {
-  func G(size: dynamic = 0)
+  func G(size: dynamic = 0) -> dynamic
   {
-      this->vector = cpp_construct(size);
+      self->vector = cpp_construct(size);
     }
-  func edge(i: dynamic)
+  func edge(i: dynamic) -> dynamic
   {
-      return S(at(i), at(if (((i + 1) == size())) 0 else (i + 1)));
+      return S(at(i), at( (((i + 1) == size())) ? 0 : (i + 1)));
     }
 }
 
-func intersect(s: dynamic, l: dynamic)
+func intersect(s: dynamic, l: dynamic) -> dynamic
 {
   return (((sig(outp(l.dir(), (s[0] - l[0]))) * sig(outp(l.dir(), (s[1] - l[0])))) <= 0));
 }
 
-func crosspoint(l: dynamic, m: dynamic)
+func crosspoint(l: dynamic, m: dynamic) -> dynamic
 {
-  var A = outp(l.dir(), m.dir());
-  var B = outp(l.dir(), (l[1] - m[0]));
+  var A: dynamic = outp(l.dir(), m.dir());
+  var B: dynamic = outp(l.dir(), (l[1] - m[0]));
   if (((!sig(abs(A))) && (!sig(abs(B)))))
   {
     return m[0];
@@ -255,22 +255,22 @@ func crosspoint(l: dynamic, m: dynamic)
 
 class Arrangement
 {
-  var p: dynamic;
-  var g: dynamic;
-  func Arrangement()
+  var p: dynamic = cpp_uninitialized();
+  var g: dynamic = cpp_uninitialized();
+  func Arrangement() -> dynamic
   {
     }
-  func Arrangement(seg: dynamic)
+  func Arrangement(seg: dynamic) -> dynamic
   {
-      var m = seg.size();
+      var m: dynamic = seg.size();
       sort(ALL(p));
       UNIQUE(p);
-      var n = p.size();
+      var n: dynamic = p.size();
       g.resize(n);
     }
-  func getIdx(q: dynamic)
+  func getIdx(q: dynamic) -> dynamic
   {
-      var it = lower_bound(ALL(p), q);
+      var it: dynamic = lower_bound(ALL(p), q);
       if (((it == p.end()) || ((*it) != q)))
       {
         return -1;
@@ -281,24 +281,24 @@ class Arrangement
 
 class DualGraph
 {
-  var n: dynamic;
-  var p: dynamic;
-  var g: dynamic;
-  func DualGraph(p: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var g: dynamic = cpp_uninitialized();
+  func DualGraph(p: dynamic) -> dynamic
   {
-      this->p = cpp_construct(p);
-      this->g = cpp_construct(p.size());
-      this->n = cpp_construct(p.size());
+      self->p = cpp_construct(p);
+      self->g = cpp_construct(p.size());
+      self->n = cpp_construct(p.size());
     }
-  func add_edge(s: dynamic, t: dynamic)
+  func add_edge(s: dynamic, t: dynamic) -> dynamic
   {
-      var a = arg((p[t] - p[s]));
+      var a: dynamic = arg((p[t] - p[s]));
       g[s].emplace_back(s, t, a);
-      g[t].emplace_back(t, s, if ((a > 0)) (a - PI) else (a + PI));
+      g[t].emplace_back(t, s,  ((a > 0)) ? (a - PI) : (a + PI));
     }
-  func add_polygon(s: dynamic, t: dynamic, a: dynamic)
+  func add_polygon(s: dynamic, t: dynamic, a: dynamic) -> dynamic
   {
-      var e = lower_bound(ALL(g[s]), (a - EPS));
+      var e: dynamic = lower_bound(ALL(g[s]), (a - EPS));
       if ((e == g[s].end()))
       {
         e = g[s].begin();
@@ -309,74 +309,74 @@ class DualGraph
       }
       e->f = 1;
       t.push_back(p[s]);
-      add_polygon(e->v, t, if ((e->a > 0)) (e->a - PI) else (e->a + PI));
+      add_polygon(e->v, t,  ((e->a > 0)) ? (e->a - PI) : (e->a + PI));
     }
-  func dual()
+  func dual() -> dynamic
   {
-      var s = (min_element(ALL(p)) - p.begin());
-      var poly: dynamic;
+      var s: dynamic = (min_element(ALL(p)) - p.begin());
+      var poly: dynamic = cpp_uninitialized();
       add_polygon(s, poly, ((-PI) * cpp_cast(0.5)));
       return poly;
     }
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (sig((a.X - b.X))) (a.X < b.X) else ((a.Y + EPS) < b.Y);
+  return  (sig((a.X - b.X))) ? (a.X < b.X) : ((a.Y + EPS) < b.Y);
 }
 
-func operator_equal(a: dynamic, b: dynamic)
+func operator_equal(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs((a - b)) < EPS);
 }
 
-func operator_shift_right(is: dynamic, p: dynamic)
+func operator_shift_right(is: dynamic, p: dynamic) -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   ((is >> x) >> y);
   p = P(x, y);
   return is;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var vil: dynamic;
+var vil: dynamic = cpp_uninitialized();
 
 class MSQ
 {
-  func MSQ()
+  func MSQ() -> dynamic
   {
     }
-  var p: dynamic;
-  var s: dynamic;
-  var m: dynamic;
-  var k: dynamic;
-  func MSQ(m: dynamic, k: dynamic)
+  var p: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  func MSQ(m: dynamic, k: dynamic) -> dynamic
   {
-      this->m = cpp_construct(m);
-      this->k = cpp_construct(k);
+      self->m = cpp_construct(m);
+      self->k = cpp_construct(k);
       REP(i, m).push_back(polar(cpp_cast(1), ((((2 * PI) * i) / m) + (PI * cpp_cast(0.5)))));
       REP(i, m).emplace_back(p[i], p[(((i + k)) % m)]);
-      var dg = cpp_construct(a.p);
+      var dg: dynamic = cpp_construct(a.p);
       REP(i, a.g.size());
       REP(j, a.g[i].size());
       {
-        var u = a.g[i][j].u;
-        var v = a.g[i][j].v;
+        var u: dynamic = a.g[i][j].u;
+        var v: dynamic = a.g[i][j].v;
         if ((u < v))
         {
           dg.add_edge(u, v);
         }
       }
-      cpp_cast(cpp_assign(((*this)), "=", dg.dual()));
-      reverse(this->begin(), this->end());
+      cpp_cast(cpp_assign(((*self)), "=", dg.dual()));
+      reverse(self->begin(), self->end());
     }
-  func copy(r: dynamic, c: dynamic, msq: dynamic)
+  func copy(r: dynamic, c: dynamic, msq: dynamic) -> dynamic
   {
       msq.resize(size());
       msq.p.resize(p.size());
@@ -387,21 +387,21 @@ class MSQ
       REP(i, p.size()).p[i] = ((p[i] * r) + c);
       REP(i, s.size()).s[i] = S(msq.p[i], msq.p[(((i + k)) % m)]);
     }
-  func segment(i: dynamic)
+  func segment(i: dynamic) -> dynamic
   {
       return s[i];
     }
 }
 
-func convex_contains(msq: dynamic, g: dynamic, p: dynamic)
+func convex_contains(msq: dynamic, g: dynamic, p: dynamic) -> dynamic
 {
-  var n = msq.size();
-  var a = 0;
-  var b = n;
-  var pg = (p - g);
+  var n: dynamic = msq.size();
+  var a: dynamic = 0;
+  var b: dynamic = n;
+  var pg: dynamic = (p - g);
   while (((a + 1) < b))
   {
-    var c = (((a + b)) / 2);
+    var c: dynamic = (((a + b)) / 2);
     if (((outp((msq[a] - g), pg) > 0) && (outp((msq[c] - g), pg) < 0)))
     {
       b = c;
@@ -418,15 +418,15 @@ func convex_contains(msq: dynamic, g: dynamic, p: dynamic)
   return 1;
 }
 
-func check(temp: dynamic, r: dynamic, i: dynamic, j: dynamic)
+func check(temp: dynamic, r: dynamic, i: dynamic, j: dynamic) -> dynamic
 {
-  var msq: dynamic;
-  var gp = (vil[i] - (temp.segment(j)[0] * r));
+  var msq: dynamic = cpp_uninitialized();
+  var gp: dynamic = (vil[i] - (temp.segment(j)[0] * r));
   temp.copy(r, gp, msq);
-  var l = msq.segment(j);
-  var p: dynamic;
-  var b = cpp_construct(0);
-  var u = l.dir();
+  var l: dynamic = msq.segment(j);
+  var p: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_construct(0);
+  var u: dynamic = l.dir();
   if ((u < b))
   {
     swap(b, u);
@@ -434,7 +434,7 @@ func check(temp: dynamic, r: dynamic, i: dynamic, j: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   while (cpp_comma((((cin >> n) >> m) >> k), n))
@@ -442,14 +442,14 @@ func main()
     vil = vector(n);
     REP(i, n);
     read(vil[i]);
-    var best = 2000;
+    var best: dynamic = 2000;
     REP(i, n);
     printf("%.10f\n", cpp_cast(best));
   }
   return 0;
 }
 
-func FOR(argument_0: dynamic, argument_1: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((it != t.begin()))
     {
@@ -458,7 +458,7 @@ func FOR(argument_0: dynamic, argument_1: dynamic)
     (os << (*it));
   }
 
-func FOR(argument_0: dynamic, argument_1: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((it != t.begin()))
     {
@@ -467,7 +467,7 @@ func FOR(argument_0: dynamic, argument_1: dynamic)
     (os << (*it));
   }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       p.push_back(seg[i][0]);
       p.push_back(seg[i][1]);
@@ -478,10 +478,10 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var s = seg[i];
-      var ps: dynamic;
+      var s: dynamic = seg[i];
+      var ps: dynamic = cpp_uninitialized();
       REP(j, n);
       if (s.online(p[j]))
       {
@@ -490,25 +490,25 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       sort(ALL(ps));
       REP(j, (cpp_cast(ps.size()) - 1));
       {
-        var u = ps[j].second;
-        var v = ps[(j + 1)].second;
+        var u: dynamic = ps[j].second;
+        var v: dynamic = ps[(j + 1)].second;
         g[u].emplace_back(u, v, 0, abs((p[u] - p[v])));
         g[v].emplace_back(v, u, 0, abs((p[u] - p[v])));
       }
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       sort(ALL(g[i]));
       UNIQUE(g[i]);
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var s = msq.segment(j);
+      var s: dynamic = msq.segment(j);
       if (intersect(s, l2))
       {
-        var q = (crosspoint(s, l2) - l2[0]);
+        var q: dynamic = (crosspoint(s, l2) - l2[0]);
         p.push_back(q);
         ll = min(ll, q);
         rr = max(rr, q);
@@ -516,11 +516,11 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func RREP(argument_0: dynamic, argument_1: dynamic)
+func RREP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var l2 = cpp_construct(vil[i], (vil[i] + l.dir()));
-    var f = 0;
-    var rr = cpp_construct((-INF), (-INF));
+    var l2: dynamic = cpp_construct(vil[i], (vil[i] + l.dir()));
+    var f: dynamic = 0;
+    var rr: dynamic = cpp_construct((-INF), (-INF));
     u = min(rr, u);
     b = max(ll, b);
     if (((!f) || (u < b)))
@@ -529,7 +529,7 @@ func RREP(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func __cpp_lambda_2()
+func __cpp_lambda_2() -> dynamic
 {
   cpp_statement("REP(i, n)");
   if ((!convex_contains(msq, gp, (vil[i] + (*q)))))
@@ -539,7 +539,7 @@ func __cpp_lambda_2()
   return 1;
 }
 
-func FOR(argument_0: dynamic, argument_1: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((((*q) < b) || (u < (*q))))
     {
@@ -551,17 +551,17 @@ func FOR(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       if ((!check(temp, (best - EPS), i, j)))
       {
         continue;
       }
-      var l = 1.0;
-      var r = best;
+      var l: dynamic = 1.0;
+      var r: dynamic = best;
       while (((r - l) > 1e-6))
       {
-        var m = (((l + r)) * cpp_cast(0.5));
+        var m: dynamic = (((l + r)) * cpp_cast(0.5));
         if (check(temp, m, i, j))
         {
           r = m;

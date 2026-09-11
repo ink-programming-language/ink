@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < t))
     {
-      var n: dynamic;
+      var n: dynamic = cpp_uninitialized();
       read(n);
-      var ans = 0;
-      var last: dynamic;
-      var x: dynamic;
+      var ans: dynamic = 0;
+      var last: dynamic = cpp_uninitialized();
+      var x: dynamic = cpp_uninitialized();
       read(x);
       last = x;
       if ((n == 1))
@@ -23,7 +23,7 @@ func main(argument_0: dynamic)
         ans += last;
       }
       {
-        var i = 2;
+        var i: dynamic = 2;
         while ((i <= n))
         {
           read(x);

@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func outarr(begin: dynamic, end: dynamic, delim: dynamic = " ")
+func outarr(begin: dynamic, end: dynamic, delim: dynamic = " ") -> dynamic
 {
   {
-    var current = begin;
+    var current: dynamic = begin;
     while ((current != end))
     {
       write((*current), delim);
@@ -13,18 +13,18 @@ func outarr(begin: dynamic, end: dynamic, delim: dynamic = " ")
   write(cpp_char("\n"));
 }
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var MOD = static_cast((1e9 + 7));
+var MOD: dynamic = static_cast((1e9 + 7));
 
 class Segment
 {
-  var L: dynamic;
-  var R: dynamic;
-  var ID: dynamic;
+  var L: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
+  var ID: dynamic = cpp_uninitialized();
 }
 
-func operator_less(lhs: dynamic, rhs: dynamic)
+func operator_less(lhs: dynamic, rhs: dynamic) -> dynamic
 {
   if ((lhs.R == rhs.R))
   {
@@ -33,18 +33,18 @@ func operator_less(lhs: dynamic, rhs: dynamic)
   return (lhs.R < rhs.R);
 }
 
-var arr = cpp_array(100);
+var arr: dynamic = cpp_array(100);
 
-var ans = cpp_array(100);
+var ans: dynamic = cpp_array(100);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
       read(arr[i].L, arr[i].R);
@@ -53,13 +53,13 @@ func main()
     }
   }
   sort(arr, (arr + n));
-  var line: dynamic;
+  var line: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
       {
-        var x = arr[i].L;
+        var x: dynamic = arr[i].L;
         while (true)
         {
           if ((line.find(x) == line.end()))

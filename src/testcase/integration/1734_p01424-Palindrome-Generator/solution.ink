@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-func min(a: dynamic, b: dynamic)
+func min(a: dynamic, b: dynamic) -> dynamic
 {
   return min(a, cpp_cast(b));
 }
 
-func min(a: dynamic, b: dynamic)
+func min(a: dynamic, b: dynamic) -> dynamic
 {
   return min(cpp_cast(a), b);
 }
 
 class edge
 {
-  var to: dynamic;
-  var cost: dynamic;
-  func edge()
+  var to: dynamic = cpp_uninitialized();
+  var cost: dynamic = cpp_uninitialized();
+  func edge() -> dynamic
   {
     }
-  func edge(a: dynamic, b: dynamic)
+  func edge(a: dynamic, b: dynamic) -> dynamic
   {
-      this->to = cpp_construct(a);
-      this->cost = cpp_construct(b);
+      self->to = cpp_construct(a);
+      self->cost = cpp_construct(b);
     }
 }
 
-var G = cpp_array(210210);
+var G: dynamic = cpp_array(210210);
 
-var rG = cpp_array(210210);
+var rG: dynamic = cpp_array(210210);
 
-var V: dynamic;
+var V: dynamic = cpp_uninitialized();
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var strs = cpp_array(100);
+var strs: dynamic = cpp_array(100);
 
-func encode(i: dynamic, j: dynamic, a: dynamic, l: dynamic)
+func encode(i: dynamic, j: dynamic, a: dynamic, l: dynamic) -> dynamic
 {
   if ((l == 0))
   {
@@ -50,14 +50,14 @@ func encode(i: dynamic, j: dynamic, a: dynamic, l: dynamic)
   }
 }
 
-var prv = cpp_array(100);
+var prv: dynamic = cpp_array(100);
 
-var nxt = cpp_array(100);
+var nxt: dynamic = cpp_array(100);
 
-func isPalin(str: dynamic)
+func isPalin(str: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < str.size()))
     {
       if ((str[i] != str[((str.size() - i) - 1)]))
@@ -70,7 +70,7 @@ func isPalin(str: dynamic)
   return true;
 }
 
-func match_cpp(str1: dynamic, str2: dynamic)
+func match_cpp(str1: dynamic, str2: dynamic) -> dynamic
 {
   if ((str1.size() != str2.size()))
   {
@@ -79,7 +79,7 @@ func match_cpp(str1: dynamic, str2: dynamic)
     exit(0);
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < str1.size()))
     {
       if ((str1[i] != str2[((str2.size() - i) - 1)]))
@@ -92,55 +92,55 @@ func match_cpp(str1: dynamic, str2: dynamic)
   return true;
 }
 
-func getGraph()
+func getGraph() -> dynamic
 {
   V = (((((2100 * ((N - 1))) + (21 * ((N - 1)))) + 21)) + 2);
   {
-    var le = 0;
+    var le: dynamic = 0;
     while ((le < N))
     {
       {
-        var ri = 0;
+        var ri: dynamic = 0;
         while ((ri < N))
         {
-          var v = encode(le, ri, 0, 0);
+          var v: dynamic = encode(le, ri, 0, 0);
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < nxt[ri].size()))
             {
-              var id = nxt[ri][i];
-              var s = strs[nxt[ri][i]].size();
-              var nv = encode(le, id, 1, s);
+              var id: dynamic = nxt[ri][i];
+              var s: dynamic = strs[nxt[ri][i]].size();
+              var nv: dynamic = encode(le, id, 1, s);
               G[v].push_back(edge(nv, s));
               i += 1;
             }
           }
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < prv[le].size()))
             {
-              var id = prv[le][i];
-              var s = strs[id].size();
-              var nv = encode(id, ri, 0, s);
+              var id: dynamic = prv[le][i];
+              var s: dynamic = strs[id].size();
+              var nv: dynamic = encode(id, ri, 0, s);
               G[v].push_back(edge(nv, s));
               i += 1;
             }
           }
           {
-            var l = 1;
+            var l: dynamic = 1;
             while ((l <= strs[le].size()))
             {
-              var v = encode(le, ri, 0, l);
+              var v: dynamic = encode(le, ri, 0, l);
               {
-                var i = 0;
+                var i: dynamic = 0;
                 while ((i < nxt[ri].size()))
                 {
-                  var id = nxt[ri][i];
-                  var m = min(l, strs[id].size());
-                  var s = strs[id].size();
-                  var str1 = strs[le].substr((l - m), m);
-                  var str2 = strs[id].substr(0, m);
-                  var flg = match_cpp(str1, str2);
+                  var id: dynamic = nxt[ri][i];
+                  var m: dynamic = min(l, strs[id].size());
+                  var s: dynamic = strs[id].size();
+                  var str1: dynamic = strs[le].substr((l - m), m);
+                  var str2: dynamic = strs[id].substr(0, m);
+                  var flg: dynamic = match_cpp(str1, str2);
                   if ((!flg))
                   {
                     i += 1;
@@ -148,11 +148,11 @@ func getGraph()
                   }
                   if ((l > m))
                   {
-                    var nv = encode(le, id, 0, (l - m));
+                    var nv: dynamic = encode(le, id, 0, (l - m));
                     G[v].push_back(edge(nv, s));
                   } else
                   {
-                    var nv = encode(le, id, 1, (s - m));
+                    var nv: dynamic = encode(le, id, 1, (s - m));
                     G[v].push_back(edge(nv, s));
                   }
                   i += 1;
@@ -162,20 +162,20 @@ func getGraph()
             }
           }
           {
-            var l = 1;
+            var l: dynamic = 1;
             while ((l <= strs[ri].size()))
             {
-              var v = encode(le, ri, 1, l);
+              var v: dynamic = encode(le, ri, 1, l);
               {
-                var i = 0;
+                var i: dynamic = 0;
                 while ((i < prv[le].size()))
                 {
-                  var id = prv[le][i];
-                  var m = min(l, strs[id].size());
-                  var str1 = strs[id].substr((strs[id].size() - m), m);
-                  var str2 = strs[ri].substr((strs[ri].size() - l), m);
-                  var s = strs[id].size();
-                  var flg = match_cpp(str1, str2);
+                  var id: dynamic = prv[le][i];
+                  var m: dynamic = min(l, strs[id].size());
+                  var str1: dynamic = strs[id].substr((strs[id].size() - m), m);
+                  var str2: dynamic = strs[ri].substr((strs[ri].size() - l), m);
+                  var s: dynamic = strs[id].size();
+                  var flg: dynamic = match_cpp(str1, str2);
                   if ((!flg))
                   {
                     i += 1;
@@ -183,11 +183,11 @@ func getGraph()
                   }
                   if ((l > m))
                   {
-                    var nv = encode(id, ri, 1, (l - m));
+                    var nv: dynamic = encode(id, ri, 1, (l - m));
                     G[v].push_back(edge(nv, s));
                   } else
                   {
-                    var nv = encode(id, ri, 0, (s - m));
+                    var nv: dynamic = encode(id, ri, 0, (s - m));
                     G[v].push_back(edge(nv, s));
                   }
                   i += 1;
@@ -203,19 +203,19 @@ func getGraph()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (isPalin(strs[i]))
       {
-        var v = encode(i, i, 0, 0);
+        var v: dynamic = encode(i, i, 0, 0);
         G[(V - 2)].push_back(edge(v, strs[i].size()));
       }
       {
-        var l = 1;
+        var l: dynamic = 1;
         while ((l <= strs[i].size()))
         {
-          var str: dynamic;
+          var str: dynamic = cpp_uninitialized();
           if ((l == strs[i].size()))
           {
             str = "";
@@ -228,22 +228,22 @@ func getGraph()
             l += 1;
             continue;
           }
-          var v = encode(i, i, 0, l);
+          var v: dynamic = encode(i, i, 0, l);
           G[(V - 2)].push_back(edge(v, strs[i].size()));
           l += 1;
         }
       }
       {
-        var l = 1;
+        var l: dynamic = 1;
         while ((l <= strs[i].size()))
         {
-          var str = strs[i].substr(0, (strs[i].size() - l));
+          var str: dynamic = strs[i].substr(0, (strs[i].size() - l));
           if ((!isPalin(str)))
           {
             l += 1;
             continue;
           }
-          var v = encode(i, i, 1, l);
+          var v: dynamic = encode(i, i, 1, l);
           G[(V - 2)].push_back(edge(v, strs[i].size()));
           l += 1;
         }
@@ -252,14 +252,14 @@ func getGraph()
     }
   }
   {
-    var le = 0;
+    var le: dynamic = 0;
     while ((le < N))
     {
       {
-        var ri = 0;
+        var ri: dynamic = 0;
         while ((ri < N))
         {
-          var v = encode(le, ri, 0, 0);
+          var v: dynamic = encode(le, ri, 0, 0);
           G[v].push_back(edge((V - 1), 0));
           ri += 1;
         }
@@ -268,11 +268,11 @@ func getGraph()
     }
   }
   {
-    var v = 0;
+    var v: dynamic = 0;
     while ((v < V))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < G[v].size()))
         {
           rG[G[v][j].to].push_back(edge(v, G[v][j].cost));
@@ -284,13 +284,13 @@ func getGraph()
   }
 }
 
-var from_s = cpp_array(220220);
+var from_s: dynamic = cpp_array(220220);
 
-var from_t = cpp_array(220220);
+var from_t: dynamic = cpp_array(220220);
 
-var que: dynamic;
+var que: dynamic = cpp_uninitialized();
 
-func reachable(s: dynamic, res: dynamic, rev: dynamic)
+func reachable(s: dynamic, res: dynamic, rev: dynamic) -> dynamic
 {
   while ((!que.empty()))
   {
@@ -298,7 +298,7 @@ func reachable(s: dynamic, res: dynamic, rev: dynamic)
   }
   que.push(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V))
     {
       res[i] = false;
@@ -308,15 +308,15 @@ func reachable(s: dynamic, res: dynamic, rev: dynamic)
   res[s] = true;
   while ((!que.empty()))
   {
-    var v = que.front();
+    var v: dynamic = que.front();
     que.pop();
     if ((!rev))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < G[v].size()))
         {
-          var nxt = G[v][i].to;
+          var nxt: dynamic = G[v][i].to;
           if (res[nxt])
           {
             i += 1;
@@ -330,10 +330,10 @@ func reachable(s: dynamic, res: dynamic, rev: dynamic)
     } else
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < rG[v].size()))
         {
-          var nxt = rG[v][i].to;
+          var nxt: dynamic = rG[v][i].to;
           if (res[nxt])
           {
             i += 1;
@@ -348,22 +348,22 @@ func reachable(s: dynamic, res: dynamic, rev: dynamic)
   }
 }
 
-var is_valid = cpp_array(220220);
+var is_valid: dynamic = cpp_array(220220);
 
-var cmp = cpp_array(220220);
+var cmp: dynamic = cpp_array(220220);
 
-var used = cpp_array(220220);
+var used: dynamic = cpp_array(220220);
 
-var vs: dynamic;
+var vs: dynamic = cpp_uninitialized();
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
   used[v] = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G[v].size()))
     {
-      var nxt = G[v][i].to;
+      var nxt: dynamic = G[v][i].to;
       if ((!is_valid[nxt]))
       {
         i += 1;
@@ -381,15 +381,15 @@ func dfs(v: dynamic)
   vs.push_back(v);
 }
 
-func rdfs(v: dynamic, k: dynamic)
+func rdfs(v: dynamic, k: dynamic) -> dynamic
 {
   used[v] = true;
   cmp[v] = k;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < rG[v].size()))
     {
-      var nxt = rG[v][i].to;
+      var nxt: dynamic = rG[v][i].to;
       if ((!is_valid[nxt]))
       {
         i += 1;
@@ -406,10 +406,10 @@ func rdfs(v: dynamic, k: dynamic)
   }
 }
 
-func scc()
+func scc() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V))
     {
       used[i] = false;
@@ -417,7 +417,7 @@ func scc()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V))
     {
       if ((!is_valid[i]))
@@ -435,19 +435,19 @@ func scc()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V))
     {
       used[i] = false;
       i += 1;
     }
   }
-  var k = 0;
+  var k: dynamic = 0;
   {
-    var i = (cpp_cast(vs.size()) - 1);
+    var i: dynamic = (cpp_cast(vs.size()) - 1);
     while ((i >= 0))
     {
-      var v = vs[i];
+      var v: dynamic = vs[i];
       if ((!is_valid[v]))
       {
         i -= 1;
@@ -464,12 +464,12 @@ func scc()
   }
 }
 
-var cnt = cpp_array(220220);
+var cnt: dynamic = cpp_array(220220);
 
-func checkInf()
+func checkInf() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V))
     {
       if ((!is_valid[i]))
@@ -488,29 +488,29 @@ func checkInf()
   return false;
 }
 
-var dp = cpp_array(220220);
+var dp: dynamic = cpp_array(220220);
 
-var prvs = cpp_array(220220);
+var prvs: dynamic = cpp_array(220220);
 
-func rec(v: dynamic)
+func rec(v: dynamic) -> dynamic
 {
   if ((dp[v] != -1))
   {
     return;
   }
-  var M = 0;
-  var p = -1;
+  var M: dynamic = 0;
+  var p: dynamic = -1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < rG[v].size()))
     {
-      var prv = rG[v][i].to;
+      var prv: dynamic = rG[v][i].to;
       if ((!is_valid[prv]))
       {
         i += 1;
         continue;
       }
-      var c = rG[v][i].cost;
+      var c: dynamic = rG[v][i].cost;
       rec(prv);
       if ((M < (dp[prv] + c)))
       {
@@ -524,7 +524,7 @@ func rec(v: dynamic)
   dp[v] = M;
 }
 
-func solve()
+func solve() -> dynamic
 {
   getGraph();
   reachable((V - 2), from_s, false);
@@ -534,7 +534,7 @@ func solve()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V))
     {
       is_valid[i] = (from_s[i] & from_t[i]);
@@ -542,13 +542,13 @@ func solve()
     }
   }
   scc();
-  var is_inf = checkInf();
+  var is_inf: dynamic = checkInf();
   if (is_inf)
   {
     return -1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V))
     {
       dp[i] = -1;
@@ -557,17 +557,17 @@ func solve()
   }
   dp[(V - 2)] = 0;
   rec((V - 1));
-  var res = dp[(V - 1)];
+  var res: dynamic = dp[(V - 1)];
   return res;
 }
 
-func input()
+func input() -> dynamic
 {
-  var M: dynamic;
+  var M: dynamic = cpp_uninitialized();
   scanf("%d%d", (&N), (&M));
-  var ch = cpp_array(20);
+  var ch: dynamic = cpp_array(20);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       scanf("%s", ch);
@@ -576,11 +576,11 @@ func input()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d%d", (&u), (&v));
       u -= 1;
       v -= 1;
@@ -591,10 +591,10 @@ func input()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   input();
-  var ans = solve();
+  var ans: dynamic = solve();
   printf("%d\n", ans);
   return 0;
 }

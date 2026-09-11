@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var y: dynamic;
-  var b = cpp_array(55);
-  var r = cpp_array(55);
-  var t = cpp_array(55);
-  var max: dynamic;
-  var ans: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_array(55);
+  var r: dynamic = cpp_array(55);
+  var t: dynamic = cpp_array(55);
+  var max: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   while (true)
   {
     read(n);
@@ -20,7 +20,7 @@ func main()
     read(y);
     max = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(b[i]);
@@ -30,10 +30,10 @@ func main()
           q = (100 + (y * r[b[i]]));
         } else
         {
-          var in_cpp = (100 + r[b[i]]);
+          var in_cpp: dynamic = (100 + r[b[i]]);
           q = in_cpp;
           {
-            var s = 0;
+            var s: dynamic = 0;
             while ((s < (y - 1)))
             {
               q *= in_cpp;
@@ -41,7 +41,7 @@ func main()
             }
           }
           {
-            var s = 0;
+            var s: dynamic = 0;
             while ((s < (y - 1)))
             {
               q /= 100;

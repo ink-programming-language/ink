@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var maxn = (3e5 + 10);
+var maxn: dynamic = (3e5 + 10);
 
 class Point
 {
-  var p: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  var len: dynamic;
-  var q: dynamic;
+  var p: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var len: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var b = cpp_array(maxn);
+var b: dynamic = cpp_array(maxn);
 
-var c = cpp_array(maxn);
+var c: dynamic = cpp_array(maxn);
 
-func low(x: dynamic)
+func low(x: dynamic) -> dynamic
 {
   return (x & (-x));
 }
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
   {
     while ((x <= n))
@@ -37,9 +37,9 @@ func add(x: dynamic, y: dynamic)
   }
 }
 
-func qry(x: dynamic)
+func qry(x: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   {
     while (x)
     {
@@ -50,21 +50,21 @@ func qry(x: dynamic)
   return ans;
 }
 
-var ans = 0;
+var ans: dynamic = 0;
 
-func solve(l: dynamic, r: dynamic)
+func solve(l: dynamic, r: dynamic) -> dynamic
 {
   if ((l == r))
   {
     return;
   }
-  var mid = ((l + r) >> 1);
+  var mid: dynamic = ((l + r) >> 1);
   solve(l, mid);
   solve((mid + 1), r);
-  var L = l;
-  var R = (l - 1);
+  var L: dynamic = l;
+  var R: dynamic = (l - 1);
   {
-    var i = ((mid + 1));
+    var i: dynamic = ((mid + 1));
     while ((i <= (r)))
     {
       while (((L <= mid) && ((a[i].q - a[L].q) > k)))
@@ -80,7 +80,7 @@ func solve(l: dynamic, r: dynamic)
     }
   }
   {
-    var i = (L);
+    var i: dynamic = (L);
     while ((i <= (R)))
     {
       add(a[i].p, -1);
@@ -90,23 +90,23 @@ func solve(l: dynamic, r: dynamic)
   sort((a + l), ((a + r) + 1), __cpp_lambda_1);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
   read(n, k);
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
       read(a[i].p, a[i].len, a[i].q);
       i += 1;
     }
   }
-  var len = 0;
+  var len: dynamic = 0;
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
       b[cpp_update(len, "++")] = a[i].p;
@@ -116,7 +116,7 @@ func main()
   sort((b + 1), ((b + len) + 1));
   len = ((unique((b + 1), ((b + len) + 1)) - b) - 1);
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
       a[i].l = (lower_bound((b + 1), ((b + len) + 1), (a[i].p - a[i].len)) - b);
@@ -131,12 +131,12 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_1(a: dynamic, b: dynamic)
+func __cpp_lambda_1(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.q < b.q);
 }
 
-func __cpp_lambda_2(a: dynamic, b: dynamic)
+func __cpp_lambda_2(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.len > b.len);
 }

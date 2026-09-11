@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-var N = (5e5 + 5);
+var N: dynamic = (5e5 + 5);
 
-var mo = (1e9 + 7);
+var mo: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var fa = cpp_array(N);
+var fa: dynamic = cpp_array(N);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-var ins = cpp_array(N);
+var ins: dynamic = cpp_array(N);
 
-var dp = cpp_array(N);
+var dp: dynamic = cpp_array(N);
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   ins[u] = 1;
-  for (var v in g[u])
+  for (var v: dynamic in g[u])
   {
     sum[v] = (a[v] + sum[u]);
     dfs(v);
@@ -38,11 +38,11 @@ func dfs(u: dynamic)
   m -= (dep[u] * a[u]);
 }
 
-func work()
+func work() -> dynamic
 {
   scanf("%lld%lld%lld", (&n), (&q), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&a[i]));
@@ -50,9 +50,9 @@ func work()
     }
   }
   {
-    var i = 1;
-    var u: dynamic;
-    var v: dynamic;
+    var i: dynamic = 1;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
     while ((i <= q))
     {
       scanf("%d%d", (&u), (&v));
@@ -62,7 +62,7 @@ func work()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))
@@ -73,9 +73,9 @@ func work()
       i += 1;
     }
   }
-  var fl = 1;
+  var fl: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fl &= ins[i];
@@ -89,11 +89,11 @@ func work()
   }
   dp[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = sum[i];
+        var j: dynamic = sum[i];
         while ((j <= m))
         {
           (cpp_assign(dp[j], "+=", dp[(j - sum[i])])) %= mo;
@@ -106,7 +106,7 @@ func work()
   printf("%lld", dp[m]);
 }
 
-func main()
+func main() -> dynamic
 {
   FGF.work();
   return 0;

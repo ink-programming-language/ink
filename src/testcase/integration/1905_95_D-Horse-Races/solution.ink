@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func bigmod(p: dynamic, e: dynamic, M: dynamic)
+func bigmod(p: dynamic, e: dynamic, M: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   {
     while ((e > 0))
     {
@@ -17,7 +17,7 @@ func bigmod(p: dynamic, e: dynamic, M: dynamic)
   return cpp_cast(ret);
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -26,14 +26,14 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func modinverse(a: dynamic, M: dynamic)
+func modinverse(a: dynamic, M: dynamic) -> dynamic
 {
   return bigmod(a, (M - 2), M);
 }
 
-func bpow(p: dynamic, e: dynamic)
+func bpow(p: dynamic, e: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   {
     while ((e > 0))
     {
@@ -48,39 +48,39 @@ func bpow(p: dynamic, e: dynamic)
   return cpp_cast(ret);
 }
 
-func toInt(s: dynamic)
+func toInt(s: dynamic) -> dynamic
 {
-  var sm: dynamic;
+  var sm: dynamic = cpp_uninitialized();
   (ss >> sm);
   return sm;
 }
 
-func toLlint(s: dynamic)
+func toLlint(s: dynamic) -> dynamic
 {
-  var sm: dynamic;
+  var sm: dynamic = cpp_uninitialized();
   (ss >> sm);
   return sm;
 }
 
-var cs: dynamic;
+var cs: dynamic = cpp_uninitialized();
 
-var ln: dynamic;
+var ln: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var p = cpp_array(1009, 1009, 2, 2);
+var p: dynamic = cpp_array(1009, 1009, 2, 2);
 
-var p0 = cpp_array(1009, 1009);
+var p0: dynamic = cpp_array(1009, 1009);
 
-var bl0 = cpp_array(1009, 1009);
+var bl0: dynamic = cpp_array(1009, 1009);
 
-var bl = cpp_array(1009, 1009, 2, 2);
+var bl: dynamic = cpp_array(1009, 1009, 2, 2);
 
-var a = cpp_array(1009);
+var a: dynamic = cpp_array(1009);
 
-var b = cpp_array(1009);
+var b: dynamic = cpp_array(1009);
 
-func dppr(i: dynamic, k: dynamic)
+func dppr(i: dynamic, k: dynamic) -> dynamic
 {
   if ((i == -1))
   {
@@ -90,16 +90,16 @@ func dppr(i: dynamic, k: dynamic)
     }
     return 0;
   }
-  var pr = p0[i][k];
+  var pr: dynamic = p0[i][k];
   if ((bl0[i][k] == 1))
   {
     return pr;
   }
   bl0[i][k] = 1;
   pr = 0;
-  var qk: dynamic;
+  var qk: dynamic = cpp_uninitialized();
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j <= 9))
     {
       qk = k;
@@ -127,7 +127,7 @@ func dppr(i: dynamic, k: dynamic)
   return pr;
 }
 
-func qry(bg: dynamic, sm: dynamic, i: dynamic, k: dynamic)
+func qry(bg: dynamic, sm: dynamic, i: dynamic, k: dynamic) -> dynamic
 {
   if ((i == -1))
   {
@@ -137,7 +137,7 @@ func qry(bg: dynamic, sm: dynamic, i: dynamic, k: dynamic)
     }
     return 0;
   }
-  var pr = p[bg][sm][i][k];
+  var pr: dynamic = p[bg][sm][i][k];
   if ((bl[bg][sm][i][k] == cs))
   {
     return pr;
@@ -148,19 +148,19 @@ func qry(bg: dynamic, sm: dynamic, i: dynamic, k: dynamic)
     return cpp_assign(pr, "=", dppr(i, k));
   }
   pr = 0;
-  var qbg: dynamic;
-  var qsm: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  var qk: dynamic;
-  l = if (((bg == 1))) 0 else ((a[i] - cpp_char("0")));
-  r = if (((sm == 1))) 9 else ((b[i] - cpp_char("0")));
+  var qbg: dynamic = cpp_uninitialized();
+  var qsm: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var qk: dynamic = cpp_uninitialized();
+  l =  (((bg == 1))) ? 0 : ((a[i] - cpp_char("0")));
+  r =  (((sm == 1))) ? 9 : ((b[i] - cpp_char("0")));
   {
-    var j = l;
+    var j: dynamic = l;
     while ((j <= r))
     {
-      qbg = if (((bg == 1))) 1 else ((j > l));
-      qsm = if (((sm == 1))) 1 else ((j < r));
+      qbg =  (((bg == 1))) ? 1 : ((j > l));
+      qsm =  (((sm == 1))) ? 1 : ((j < r));
       qk = k;
       if (((k != 1005) && (((j == 4) || (j == 7)))))
       {
@@ -186,13 +186,13 @@ func qry(bg: dynamic, sm: dynamic, i: dynamic, k: dynamic)
   return pr;
 }
 
-func main()
+func main() -> dynamic
 {
   cs = 1;
-  var t: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   scanf("%d%d", (&t), (&q));
   while (cpp_update(t, "--"))
   {

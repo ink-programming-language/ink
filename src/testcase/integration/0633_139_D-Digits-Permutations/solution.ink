@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 10);
+var N: dynamic = (1e5 + 10);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var cnt1 = cpp_array(10);
+var cnt1: dynamic = cpp_array(10);
 
-var cnt2 = cpp_array(10);
+var cnt2: dynamic = cpp_array(10);
 
-var mi = cpp_array(5);
+var mi: dynamic = cpp_array(5);
 
-var ma: dynamic;
+var ma: dynamic = cpp_uninitialized();
 
-var mx = -1;
+var mx: dynamic = -1;
 
-var c = [[5, 5], [1, 9], [2, 8], [3, 7], [4, 6]];
+var c: dynamic = [[5, 5], [1, 9], [2, 8], [3, 7], [4, 6]];
 
-var cc = [[0, 9], [5, 4], [1, 8], [2, 7], [3, 6]];
+var cc: dynamic = [[0, 9], [5, 4], [1, 8], [2, 7], [3, 6]];
 
-var a1: dynamic;
+var a1: dynamic = cpp_uninitialized();
 
-var a2: dynamic;
+var a2: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", s);
-  var n = strlen(s);
+  var n: dynamic = strlen(s);
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       cnt1[(s[i] - cpp_char("0"))] += 1;
@@ -36,11 +36,11 @@ func main()
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (5)))
     {
-      var a = c[i][0];
-      var b = c[i][1];
+      var a: dynamic = c[i][0];
+      var b: dynamic = c[i][1];
       if (((cnt1[a] == 0) || (cnt2[b] == 0)))
       {
         i += 1;
@@ -48,13 +48,13 @@ func main()
       }
       cnt1[a] -= 1;
       cnt2[b] -= 1;
-      var t = 1;
+      var t: dynamic = 1;
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (10)))
         {
-          var x = j;
-          var y = (9 - j);
+          var x: dynamic = j;
+          var y: dynamic = (9 - j);
           t += min(cnt2[x], cnt1[y]);
           j += 1;
         }
@@ -72,11 +72,11 @@ func main()
   if ((mx == -1))
   {
     {
-      var i = (0);
+      var i: dynamic = (0);
       while ((i < (10)))
       {
         {
-          var j = (0);
+          var j: dynamic = (0);
           while ((j < (cnt1[i])))
           {
             a1 += (cpp_char("0") + i);
@@ -89,21 +89,21 @@ func main()
     a2 = a1;
   } else
   {
-    var a = c[ma][0];
-    var b = c[ma][1];
+    var a: dynamic = c[ma][0];
+    var b: dynamic = c[ma][1];
     cnt1[a] -= 1;
     cnt2[b] -= 1;
     a1 += (cpp_char("0") + a);
     a2 += (cpp_char("0") + b);
     {
-      var j = (0);
+      var j: dynamic = (0);
       while ((j < (10)))
       {
-        var x = j;
-        var y = (9 - j);
+        var x: dynamic = j;
+        var y: dynamic = (9 - j);
         mi[j] = min(cnt1[x], cnt2[y]);
         {
-          var k = (0);
+          var k: dynamic = (0);
           while ((k < (mi[j])))
           {
             a1 += (cpp_char("0") + x);
@@ -111,7 +111,7 @@ func main()
           }
         }
         {
-          var k = (0);
+          var k: dynamic = (0);
           while ((k < (mi[j])))
           {
             a2 += (cpp_char("0") + y);
@@ -123,9 +123,9 @@ func main()
         j += 1;
       }
     }
-    var zero = min(cnt1[0], cnt2[0]);
+    var zero: dynamic = min(cnt1[0], cnt2[0]);
     {
-      var j = (0);
+      var j: dynamic = (0);
       while ((j < (zero)))
       {
         a1 = (cpp_char("0") + a1);
@@ -136,11 +136,11 @@ func main()
     cnt1[0] -= zero;
     cnt2[0] -= zero;
     {
-      var j = (0);
+      var j: dynamic = (0);
       while ((j < (10)))
       {
         {
-          var k = (0);
+          var k: dynamic = (0);
           while ((k < (cnt1[j])))
           {
             a1 += (cpp_char("0") + j);
@@ -151,11 +151,11 @@ func main()
       }
     }
     {
-      var j = (0);
+      var j: dynamic = (0);
       while ((j < (10)))
       {
         {
-          var k = (0);
+          var k: dynamic = (0);
           while ((k < (cnt2[j])))
           {
             a2 += (cpp_char("0") + j);

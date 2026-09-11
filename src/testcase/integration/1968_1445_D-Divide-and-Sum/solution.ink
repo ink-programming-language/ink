@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var p = 998244353;
+var p: dynamic = 998244353;
 
-func Denominator(a: dynamic)
+func Denominator(a: dynamic) -> dynamic
 {
-  var i = p;
-  var v = 0;
-  var d = 1;
+  var i: dynamic = p;
+  var v: dynamic = 0;
+  var d: dynamic = 1;
   if ((a == 0))
   {
     return 1;
   }
   while ((a > 0))
   {
-    var t = (i / a);
-    var x = a;
+    var t: dynamic = (i / a);
+    var x: dynamic = a;
     a = (i % x);
     i = x;
     x = d;
@@ -29,13 +29,13 @@ func Denominator(a: dynamic)
   return v;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var res = 1;
+  var n: dynamic = cpp_uninitialized();
+  var res: dynamic = 1;
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       res *= ((n + i));
@@ -45,10 +45,10 @@ func main()
       i += 1;
     }
   }
-  var sum = 0;
-  var a = cpp_construct((2 * n));
+  var sum: dynamic = 0;
+  var a: dynamic = cpp_construct((2 * n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (2 * n)))
     {
       read(a[i]);
@@ -57,7 +57,7 @@ func main()
   }
   sort(a.begin(), a.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       sum += (a[(((2 * n) - 1) - i)] - a[i]);

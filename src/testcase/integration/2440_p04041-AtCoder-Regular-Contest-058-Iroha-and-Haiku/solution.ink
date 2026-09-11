@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var Mod = (1e9 + 7);
+var Mod: dynamic = (1e9 + 7);
 
-var MaxN = 41;
+var MaxN: dynamic = 41;
 
-var StateLen = ((5 + 7) + 5);
+var StateLen: dynamic = ((5 + 7) + 5);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-var Z: dynamic;
+var Z: dynamic = cpp_uninitialized();
 
-var p = cpp_array(MaxN);
+var p: dynamic = cpp_array(MaxN);
 
-var f = cpp_array((1 << StateLen), MaxN);
+var f: dynamic = cpp_array((1 << StateLen), MaxN);
 
-var end_state: dynamic;
+var end_state: dynamic = cpp_uninitialized();
 
-func dp(i: dynamic, j: dynamic)
+func dp(i: dynamic, j: dynamic) -> dynamic
 {
   if ((i == N))
   {
@@ -30,12 +30,12 @@ func dp(i: dynamic, j: dynamic)
   {
     return f[i][j];
   }
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var k = 1;
+    var k: dynamic = 1;
     while ((k <= 10))
     {
-      var next_state = (((j << k)) | 1);
+      var next_state: dynamic = (((j << k)) | 1);
       if ((((next_state & end_state)) == end_state))
       {
         res += p[((N - 1) - i)];
@@ -49,7 +49,7 @@ func dp(i: dynamic, j: dynamic)
   return cpp_assign(f[i][j], "=", (res % Mod));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   memset(f, 0xff, cpp_sizeof(f));
@@ -57,7 +57,7 @@ func main()
   read(N, X, Y, Z);
   p[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < MaxN))
     {
       p[i] = ((p[(i - 1)] * 10) % Mod);

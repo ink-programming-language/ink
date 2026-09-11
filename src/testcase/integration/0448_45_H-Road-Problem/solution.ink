@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var eps = 1e-7;
+var eps: dynamic = 1e-7;
 
-var inf = 1000000010;
+var inf: dynamic = 1000000010;
 
-var INF = 10000000000000010;
+var INF: dynamic = 10000000000000010;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var MAXN = 100010;
+var MAXN: dynamic = 100010;
 
-var LOG = 20;
+var LOG: dynamic = 20;
 
 class DSU
 {
   var par: dynamic = cpp_array(901);
   var vec: dynamic = cpp_array(901);
-  func DSU()
+  func DSU() -> dynamic
   {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= 900))
         {
           par[i] = i;
@@ -28,7 +28,7 @@ class DSU
         }
       }
     }
-  func get(x: dynamic)
+  func get(x: dynamic) -> dynamic
   {
       if ((par[x] == x))
       {
@@ -36,7 +36,7 @@ class DSU
       }
       return cpp_assign(par[x], "=", get(par[x]));
     }
-  func join(x: dynamic, y: dynamic)
+  func join(x: dynamic, y: dynamic) -> dynamic
   {
       x = get(x);
       y = get(y);
@@ -48,7 +48,7 @@ class DSU
       {
         swap(x, y);
       }
-      for (var v in vec[y])
+      for (var v: dynamic in vec[y])
       {
         vec[x].push_back(v);
       }
@@ -57,48 +57,48 @@ class DSU
     }
 }
 
-var dsu: dynamic;
+var dsu: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var u: dynamic;
+var u: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var h = cpp_array(901);
+var h: dynamic = cpp_array(901);
 
-var connected = cpp_array(901, 901);
+var connected: dynamic = cpp_array(901, 901);
 
-var E = cpp_array(MAXN);
+var E: dynamic = cpp_array(MAXN);
 
-var G1 = cpp_array(MAXN);
+var G1: dynamic = cpp_array(MAXN);
 
-var G2 = cpp_array(MAXN);
+var G2: dynamic = cpp_array(MAXN);
 
-var cutedge: dynamic;
+var cutedge: dynamic = cpp_uninitialized();
 
-var leaf: dynamic;
+var leaf: dynamic = cpp_uninitialized();
 
-func bridge(node: dynamic, par: dynamic)
+func bridge(node: dynamic, par: dynamic) -> dynamic
 {
-  var res = cpp_assign(h[node], "=", cpp_assign(h[node], "=", (h[par] + 1)));
-  for (var v in G1[node])
+  var res: dynamic = cpp_assign(h[node], "=", cpp_assign(h[node], "=", (h[par] + 1)));
+  for (var v: dynamic in G1[node])
   {
     if ((v != par))
     {
@@ -121,14 +121,14 @@ func bridge(node: dynamic, par: dynamic)
   return res;
 }
 
-func dfs(node: dynamic, par: dynamic)
+func dfs(node: dynamic, par: dynamic) -> dynamic
 {
   if ((G2[node].size() == 1))
   {
     leaf.push_back(node);
     return;
   }
-  for (var v in G2[node])
+  for (var v: dynamic in G2[node])
   {
     if ((v != par))
     {
@@ -137,11 +137,11 @@ func dfs(node: dynamic, par: dynamic)
   }
 }
 
-func connect(u: dynamic, v: dynamic)
+func connect(u: dynamic, v: dynamic) -> dynamic
 {
-  for (var x in dsu.vec[u])
+  for (var x: dynamic in dsu.vec[u])
   {
-    for (var y in dsu.vec[v])
+    for (var y: dynamic in dsu.vec[v])
     {
       if ((!connected[x][y]))
       {
@@ -153,7 +153,7 @@ func connect(u: dynamic, v: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
@@ -164,7 +164,7 @@ func main()
     return cpp_comma(((cout << -1) << cpp_char("\n")), 0);
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       read(u, v);
@@ -176,16 +176,16 @@ func main()
     }
   }
   bridge(1, 1);
-  for (var p in cutedge)
+  for (var p: dynamic in cutedge)
   {
-    var u = dsu.get(p.first);
-    var v = dsu.get(p.second);
+    var u: dynamic = dsu.get(p.first);
+    var v: dynamic = dsu.get(p.second);
     G2[v].push_back(u);
     G2[u].push_back(v);
   }
-  var root = 0;
+  var root: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (G2[i].size())
@@ -215,12 +215,12 @@ func main()
   dfs(root, root);
   if ((leaf.size() & 1))
   {
-    var v = leaf.back();
+    var v: dynamic = leaf.back();
     leaf.pop_back();
     connect(v, leaf.back());
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((2 * i) < leaf.size()))
     {
       connect(leaf[i], leaf[(i + (leaf.size() / 2))]);
@@ -228,11 +228,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write("(dsu.vec[i])", " : ");
-      for (var SHIT in (dsu.vec[i]))
+      for (var SHIT: dynamic in (dsu.vec[i]))
       {
         write(SHIT, cpp_char(" "));
       }

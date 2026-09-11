@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var MAX_R = cpp_expression("#incl");
+var MAX_R: dynamic = cpp_expression("#incl");
 
-var MAX_C = cpp_expression("#i");
+var MAX_C: dynamic = cpp_expression("#i");
 
-var INF = cpp_expression("#inclu");
+var INF: dynamic = cpp_expression("#inclu");
 
-var field = cpp_array((MAX_C + 1), MAX_R);
+var field: dynamic = cpp_array((MAX_C + 1), MAX_R);
 
-var used = cpp_array((MAX_C + 1), MAX_R);
+var used: dynamic = cpp_array((MAX_C + 1), MAX_R);
 
-var d = cpp_array((MAX_C + 1), MAX_R);
+var d: dynamic = cpp_array((MAX_C + 1), MAX_R);
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, 1, 0, -1];
+var dy: dynamic = [0, 1, 0, -1];
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var start: dynamic;
+var start: dynamic = cpp_uninitialized();
 
-var goal: dynamic;
+var goal: dynamic = cpp_uninitialized();
 
-func dijkstra(s: dynamic)
+func dijkstra(s: dynamic) -> dynamic
 {
   d[s.second][s.first] = 0;
   while (1)
   {
-    var v = cpp_construct(-1, -1);
+    var v: dynamic = cpp_construct(-1, -1);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < R))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < C))
           {
             if (((!used[i][j]) && (((v == coordinate(-1, -1)) || (d[i][j] < d[v.second][v.first])))))
@@ -54,11 +54,11 @@ func dijkstra(s: dynamic)
     }
     used[v.second][v.first] = true;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= 4))
       {
-        var nx = (v.first + dx[i]);
-        var ny = (v.second + dy[i]);
+        var nx: dynamic = (v.first + dx[i]);
+        var ny: dynamic = (v.second + dy[i]);
         if ((((((0 <= nx) && (nx < C)) && (0 <= ny)) && (ny < R)) && (field[ny][nx] != cpp_char("#"))))
         {
           if ((field[ny][nx] == cpp_char("o")))
@@ -71,13 +71,13 @@ func dijkstra(s: dynamic)
           {
             d[ny][nx] = min(d[ny][nx], (d[v.second][v.first] + 2));
           }
-          var nnx = (nx + dx[i]);
-          var nny = (ny + dy[i]);
+          var nnx: dynamic = (nx + dx[i]);
+          var nny: dynamic = (ny + dy[i]);
           if ((((((0 <= nnx) && (nnx < C)) && (0 <= nny)) && (nny < R)) && (field[nny][nnx] != cpp_char("#"))))
           {
             d[nny][nnx] = min(d[nny][nnx], (d[v.second][v.first] + 4));
-            var nnnx = (nnx + dx[i]);
-            var nnny = (nny + dy[i]);
+            var nnnx: dynamic = (nnx + dx[i]);
+            var nnny: dynamic = (nny + dy[i]);
             if ((((((0 <= nnnx) && (nnnx < C)) && (0 <= nnny)) && (nnny < R)) && (field[nnny][nnnx] != cpp_char("#"))))
             {
               d[nnny][nnnx] = min(d[nnny][nnnx], (d[v.second][v.first] + 5));
@@ -90,12 +90,12 @@ func dijkstra(s: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var tmp: dynamic;
+  var tmp: dynamic = cpp_uninitialized();
   read(R, C);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < R))
     {
       fill(d[i], (d[i] + C), INF);
@@ -104,11 +104,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < R))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < C))
         {
           read(tmp);

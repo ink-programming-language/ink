@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func FOR(i: dynamic, k: dynamic, n: dynamic)
+func FOR(i: dynamic, k: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(k); i<(int)(n); ++i)");
 }
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <");
 }
 
-func FORIT(i: dynamic, c: dynamic)
+func FORIT(i: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof((c).begin())i=(c).begin();i!=(c).end();++i)");
 }
 
-func debug(begin: dynamic, end: dynamic)
+func debug(begin: dynamic, end: dynamic) -> dynamic
 {
   {
-    var i = begin;
+    var i: dynamic = begin;
     while ((i != end))
     {
       write((*i), " ");
@@ -28,36 +28,36 @@ func debug(begin: dynamic, end: dynamic)
   write("\n");
 }
 
-func valid(x: dynamic, y: dynamic, W: dynamic, H: dynamic)
+func valid(x: dynamic, y: dynamic, W: dynamic, H: dynamic) -> dynamic
 {
   return (((((x >= 0) && (y >= 0)) && (x < W)) && (y < H)));
 }
 
-var INF = 100000000;
+var INF: dynamic = 100000000;
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var dx = [1, 0, -1, 0, 1, -1, -1, 1];
+var dx: dynamic = [1, 0, -1, 0, 1, -1, -1, 1];
 
-var dy = [0, 1, 0, -1, 1, 1, -1, -1];
+var dy: dynamic = [0, 1, 0, -1, 1, 1, -1, -1];
 
 class S
 {
-  var u: dynamic;
-  var cost: dynamic;
-  var change: dynamic;
-  func S()
+  var u: dynamic = cpp_uninitialized();
+  var cost: dynamic = cpp_uninitialized();
+  var change: dynamic = cpp_uninitialized();
+  func S() -> dynamic
   {
     }
-  func S(u: dynamic, a: dynamic, b: dynamic)
+  func S(u: dynamic, a: dynamic, b: dynamic) -> dynamic
   {
-      this->u = cpp_construct(u);
-      this->cost = cpp_construct(a);
-      this->change = cpp_construct(b);
+      self->u = cpp_construct(u);
+      self->cost = cpp_construct(a);
+      self->change = cpp_construct(b);
     }
-  func operator_less(s: dynamic)
+  func operator_less(s: dynamic) -> dynamic
   {
       if ((cost != s.cost))
       {
@@ -67,34 +67,34 @@ class S
     }
 }
 
-var MAX_V = 100000;
+var MAX_V: dynamic = 100000;
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var T: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var T: dynamic = cpp_uninitialized();
   while (((cin >> N) >> T))
   {
-    var ST: dynamic;
-    var GL: dynamic;
+    var ST: dynamic = cpp_uninitialized();
+    var GL: dynamic = cpp_uninitialized();
     read(ST, GL);
-    var st_ids: dynamic;
-    var to = cpp_array(MAX_V);
-    var cost = cpp_array(MAX_V);
-    var name = cpp_array(MAX_V);
-    var V = 0;
-    var que: dynamic;
-    var used: dynamic;
-    var used2 = [];
+    var st_ids: dynamic = cpp_uninitialized();
+    var to: dynamic = cpp_array(MAX_V);
+    var cost: dynamic = cpp_array(MAX_V);
+    var name: dynamic = cpp_array(MAX_V);
+    var V: dynamic = 0;
+    var que: dynamic = cpp_uninitialized();
+    var used: dynamic = cpp_uninitialized();
+    var used2: dynamic = [];
     used.insert(ST);
     REP(i, st_ids[ST].size());
     {
       que.push(S(st_ids[ST][i], 0, 0));
     }
-    var ok = false;
+    var ok: dynamic = false;
     while ((!que.empty()))
     {
-      var s = que.top();
+      var s: dynamic = que.top();
       que.pop();
       if ((name[s.u] == GL))
       {
@@ -117,8 +117,8 @@ func main()
       }
       REP(i, to[s.u].size());
       {
-        var v = to[s.u][i];
-        var c = cost[s.u][i];
+        var v: dynamic = to[s.u][i];
+        var c: dynamic = cost[s.u][i];
         que.push(S(v, (s.cost + c), s.change));
       }
     }
@@ -130,16 +130,16 @@ func main()
   return 0;
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var A: dynamic;
+      var A: dynamic = cpp_uninitialized();
       read(A);
       REP(i, A);
       read(name[(V + i)]);
       REP(i, A)[name[(V + i)]].push_back((V + i));
       REP(i, (A - 1));
       {
-        var t: dynamic;
+        var t: dynamic = cpp_uninitialized();
         read(t);
         to[(V + i)].push_back(((V + i) + 1));
         cost[(V + i)].push_back(t);

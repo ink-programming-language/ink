@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var wa: dynamic;
+var wa: dynamic = cpp_uninitialized();
 
-var wb: dynamic;
+var wb: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(a, b);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       if (((a[i] == cpp_char("8")) && (b[i] == cpp_char("["))))

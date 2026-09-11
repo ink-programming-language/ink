@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var p = cpp_array(400100);
+var p: dynamic = cpp_array(400100);
 
-var s = cpp_array(400100);
+var s: dynamic = cpp_array(400100);
 
-var cnt = cpp_array(1000100);
+var cnt: dynamic = cpp_array(1000100);
 
-var ct = cpp_array(400100);
+var ct: dynamic = cpp_array(400100);
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     scanf("%d", (&n));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         scanf("%d", (&p[i]));
         i += 1;
       }
     }
-    var len = 0;
+    var len: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if (cpp_binary((cnt[p[i]] == 0), "and", (i > 1)))
@@ -42,17 +42,17 @@ func main()
     }
     ct[cpp_update(len, "++")] = cnt[p[n]];
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= len))
       {
         s[i] = (s[(i - 1)] + ct[i]);
         i += 1;
       }
     }
-    var id = ((upper_bound((s + 1), ((s + len) + 1), (n / 2)) - s) - 1);
-    var g = ct[1];
-    var st = (upper_bound((s + 1), ((s + len) + 1), (2 * g)) - s);
-    var ed = (upper_bound((s + 1), ((s + len) + 1), (s[st] + g)) - s);
+    var id: dynamic = ((upper_bound((s + 1), ((s + len) + 1), (n / 2)) - s) - 1);
+    var g: dynamic = ct[1];
+    var st: dynamic = (upper_bound((s + 1), ((s + len) + 1), (2 * g)) - s);
+    var ed: dynamic = (upper_bound((s + 1), ((s + len) + 1), (s[st] + g)) - s);
     if ((ed <= id))
     {
       printf("%d %d %d\n", g, (s[st] - g), (s[id] - s[st]));
@@ -61,7 +61,7 @@ func main()
       puts("0 0 0");
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         cnt[p[i]] = 0;
@@ -69,7 +69,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= len))
       {
         s[i] = 0;

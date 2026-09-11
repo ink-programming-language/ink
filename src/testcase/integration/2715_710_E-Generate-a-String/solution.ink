@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var r = cpp_array(20000001);
+var r: dynamic = cpp_array(20000001);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func dp(a: dynamic)
+func dp(a: dynamic) -> dynamic
 {
   if (r[a])
   {
@@ -27,7 +27,7 @@ func dp(a: dynamic)
   return r[a];
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%I64d%I64d", (&n), (&x), (&y));
   printf("%I64d\n", dp(n));

@@ -1,70 +1,70 @@
 // Translated from solution.cpp.
 
-func debug()
+func debug() -> dynamic
 {
   cpp_macro("");
 }
 
-func deb()
+func deb() -> dynamic
 {
   cpp_macro("");
 }
 
-func rep(i: dynamic, x: dynamic, y: dynamic)
+func rep(i: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i=x;i<y;i++)");
 }
 
-func repr(i: dynamic, x: dynamic, y: dynamic)
+func repr(i: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i=x;i>=y;i--)");
 }
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var pb = cpp_expression("/** こ�");
+var pb: dynamic = cpp_expression("/** こ�");
 
-var ff = cpp_expression("/** �");
+var ff: dynamic = cpp_expression("/** �");
 
-var ss = cpp_expression("/** �");
+var ss: dynamic = cpp_expression("/** �");
 
-func sz(x: dynamic)
+func sz(x: dynamic) -> dynamic
 {
   return cpp_expression("/** これを�");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("/** これを翻");
 }
 
-func memo(x: dynamic, y: dynamic)
+func memo(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_expression("/** これを翻訳して�");
 }
 
-var line = cpp_expression("/** これを翻訳している間");
+var line: dynamic = cpp_expression("/** これを翻訳している間");
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var inf = 1e18;
+var inf: dynamic = 1e18;
 
-var eps = 1e-6;
+var eps: dynamic = 1e-6;
 
 class FenwickTree
 {
-  var bit: dynamic;
-  var n: dynamic;
-  func FenwickTree(n: dynamic)
+  var bit: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  func FenwickTree(n: dynamic) -> dynamic
   {
-      this->n = n;
+      self->n = n;
       bit.assign((n + 5), 0);
     }
-  func sum(r: dynamic)
+  func sum(r: dynamic) -> dynamic
   {
-      var ret = 0;
+      var ret: dynamic = 0;
       {
         while ((r >= 0))
         {
@@ -74,11 +74,11 @@ class FenwickTree
       }
       return ret;
     }
-  func sum(l: dynamic, r: dynamic)
+  func sum(l: dynamic, r: dynamic) -> dynamic
   {
       return (sum(r) - sum((l - 1)));
     }
-  func add(idx: dynamic, delta: dynamic)
+  func add(idx: dynamic, delta: dynamic) -> dynamic
   {
       {
         while ((idx < n))
@@ -88,34 +88,34 @@ class FenwickTree
         }
       }
     }
-  func radd(i: dynamic, j: dynamic, delta: dynamic)
+  func radd(i: dynamic, j: dynamic, delta: dynamic) -> dynamic
   {
       add(i, delta);
       add((j + 1), (-delta));
     }
 }
 
-func countSteps(v: dynamic, v2: dynamic, n: dynamic)
+func countSteps(v: dynamic, v2: dynamic, n: dynamic) -> dynamic
 {
-  var nxt = cpp_array(4);
+  var nxt: dynamic = cpp_array(4);
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
       nxt[v2[i]].pb(i);
       i -= 1;
     }
   }
-  var ans = 0;
-  var i = 0;
-  var j = 0;
-  var cc = "ANTO";
+  var ans: dynamic = 0;
+  var i: dynamic = 0;
+  var j: dynamic = 0;
+  var cc: dynamic = "ANTO";
   while ((i < n))
   {
-    var jj = (j + f.sum(j));
-    var pos = nxt[v[i]].back();
+    var jj: dynamic = (j + f.sum(j));
+    var pos: dynamic = nxt[v[i]].back();
     nxt[v[i]].pop_back();
-    var pos2 = (pos + f.sum(pos));
+    var pos2: dynamic = (pos + f.sum(pos));
     ans += (pos2 - jj);
     if ((pos2 == jj))
     {
@@ -127,13 +127,13 @@ func countSteps(v: dynamic, v2: dynamic, n: dynamic)
   return ans;
 }
 
-func Onigiri()
+func Onigiri() -> dynamic
 {
-  var w: dynamic;
+  var w: dynamic = cpp_uninitialized();
   read(w);
-  var a: dynamic;
-  var v: dynamic;
-  for (var x in w)
+  var a: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  for (var x: dynamic in w)
   {
     if ((x == cpp_char("A")))
     {
@@ -153,20 +153,20 @@ func Onigiri()
     }
     a[x] += 1;
   }
-  var v2: dynamic;
-  for (var x in a)
+  var v2: dynamic = cpp_uninitialized();
+  for (var x: dynamic in a)
   {
     v2.pb([x.ff, x.ss]);
   }
   sort(all(v2));
-  var ans = "";
-  var mx = 0;
+  var ans: dynamic = "";
+  var mx: dynamic = 0;
   while (true)
   {
-    var v3: dynamic;
-    for (var __cpp_item_1 in v2)
+    var v3: dynamic = cpp_uninitialized();
+    for (var __cpp_item_1: dynamic in v2)
     {
-      var (x, y) = __cpp_item_1;
+      var (x, y): dynamic = __cpp_item_1;
       while (cpp_update(y, "--"))
       {
         if ((x == cpp_char("A")))
@@ -187,11 +187,11 @@ func Onigiri()
         }
       }
     }
-    var temp = countSteps(v, v3, sz(v));
+    var temp: dynamic = countSteps(v, v3, sz(v));
     if ((temp >= mx))
     {
       ans = "";
-      for (var x in v3)
+      for (var x: dynamic in v3)
       {
         if ((x == 0))
         {
@@ -221,13 +221,13 @@ func Onigiri()
   write(ans);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   freopen("/home/pritish/Competitive/io/in", "r", stdin);
   freopen("/home/pritish/Competitive/io/out", "w", stdout);
-  var t = 1;
+  var t: dynamic = 1;
   read(t);
   while (cpp_update(t, "--"))
   {

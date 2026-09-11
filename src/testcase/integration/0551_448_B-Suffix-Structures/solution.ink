@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func power(a: dynamic, n: dynamic)
+func power(a: dynamic, n: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while ((n > 0))
   {
     if ((n & 1))
@@ -18,19 +18,19 @@ func power(a: dynamic, n: dynamic)
   return res;
 }
 
-func is_substring(s1: dynamic, s2: dynamic)
+func is_substring(s1: dynamic, s2: dynamic) -> dynamic
 {
-  var l1 = s1.size();
-  var l2 = s2.size();
+  var l1: dynamic = s1.size();
+  var l2: dynamic = s2.size();
   if ((l2 > l1))
   {
     return false;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (l1 - l2)))
     {
-      var sub = s1.substr(i, (i + l2));
+      var sub: dynamic = s1.substr(i, (i + l2));
       if ((sub == s2))
       {
         return true;
@@ -41,16 +41,16 @@ func is_substring(s1: dynamic, s2: dynamic)
   return false;
 }
 
-func is_subsequence(s1: dynamic, s2: dynamic)
+func is_subsequence(s1: dynamic, s2: dynamic) -> dynamic
 {
-  var l1 = s1.size();
-  var l2 = s2.size();
+  var l1: dynamic = s1.size();
+  var l2: dynamic = s2.size();
   if ((l2 > l1))
   {
     return false;
   }
-  var i = 0;
-  var j = 0;
+  var i: dynamic = 0;
+  var j: dynamic = 0;
   while (((i < l1) && (j < l2)))
   {
     if ((s1[i] == s2[j]))
@@ -68,13 +68,13 @@ func is_subsequence(s1: dynamic, s2: dynamic)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var s1: dynamic;
-  var s2: dynamic;
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
   read(s1, s2);
-  var s3 = s1;
-  var s4 = s2;
+  var s3: dynamic = s1;
+  var s4: dynamic = s2;
   if (is_subsequence(s1, s2))
   {
     write("automaton");
@@ -89,22 +89,22 @@ func solve()
     {
       if ((s1.size() >= s2.size()))
       {
-        var cnt = 0;
-        var mp1: dynamic;
-        var mp2: dynamic;
+        var cnt: dynamic = 0;
+        var mp1: dynamic = cpp_uninitialized();
+        var mp2: dynamic = cpp_uninitialized();
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < s1.size()))
           {
             mp1[s1[i]] += 1;
             i += 1;
           }
         }
-        for (var c in s2)
+        for (var c: dynamic in s2)
         {
           mp2[c] += 1;
         }
-        for (var i in mp2)
+        for (var i: dynamic in mp2)
         {
           if ((mp2[i.first] > mp1[i.first]))
           {
@@ -126,12 +126,12 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
     solve();

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var modulo = 1000000007;
+var modulo: dynamic = 1000000007;
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var t: dynamic;
-  var p: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
   read(n, p, t);
-  var dp = cpp_construct((t + 1), vector((n + 1), 0.0));
+  var dp: dynamic = cpp_construct((t + 1), vector((n + 1), 0.0));
   dp[0][0] = 1.0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (t - 1)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= (n - 1)))
         {
           dp[(i + 1)][(j + 1)] += (p * dp[i][j]);
@@ -27,9 +27,9 @@ func main(argc: dynamic, argv: dynamic)
       i += 1;
     }
   }
-  var ans = 0.0;
+  var ans: dynamic = 0.0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       ans += (dp[t][i] * i);

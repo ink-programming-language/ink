@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var h: dynamic;
-  var w: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   while (cpp_comma(((cin >> h) >> w), ((h + w) != 0)))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < h))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < w))
           {
-            write((if ((((((i + j)) % 2) == 0))) "#" else "."));
+            write(( ((((((i + j)) % 2) == 0))) ? "#" : "."));
             j += 1;
           }
         }

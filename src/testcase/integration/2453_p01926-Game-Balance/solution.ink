@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
-  var N: dynamic;
-  var M: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
   while ((((cin >> N) >> M) && N))
   {
-    var s: dynamic;
-    for (var x in S)
+    var s: dynamic = cpp_uninitialized();
+    for (var x: dynamic in S)
     {
       read(x);
     }
-    var inf = 1e9;
-    var calc = __cpp_lambda_1;
-    var mi = S[0];
+    var inf: dynamic = 1e9;
+    var calc: dynamic = __cpp_lambda_1;
+    var mi: dynamic = S[0];
     if ((calc(mi) < M))
     {
       write(-1, "\n");
       continue;
     }
-    var l = mi;
-    var r = S[(N - 1)];
+    var l: dynamic = mi;
+    var r: dynamic = S[(N - 1)];
     while (((l + 1) < r))
     {
-      var m = (((l + r)) / 2);
+      var m: dynamic = (((l + r)) / 2);
       if ((calc(m) >= M))
       {
         l = m;
@@ -38,14 +38,14 @@ func main()
   }
 }
 
-func __cpp_lambda_1(x: dynamic)
+func __cpp_lambda_1(x: dynamic) -> dynamic
 {
-  var cnt = 0;
-  var now = 1;
+  var cnt: dynamic = 0;
+  var now: dynamic = 1;
   while (((now + x) <= S[(N - 1)]))
   {
-    var ma = -1;
-    var it = upper_bound(S.begin(), S.end(), now);
+    var ma: dynamic = -1;
+    var it: dynamic = upper_bound(S.begin(), S.end(), now);
     if (((*it) < (now + x)))
     {
       ma = max(1, (x - abs((now - (*it)))));

@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ls = cpp_array(20);
+var ls: dynamic = cpp_array(20);
 
-var pref = cpp_array(20);
+var pref: dynamic = cpp_array(20);
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(100000);
+var dp: dynamic = cpp_array(100000);
 
-func count()
+func count() -> dynamic
 {
   fill(dp, (dp + ((1 << n))), 0);
   dp[0] = 1;
   {
-    var mask = 0;
+    var mask: dynamic = 0;
     while ((mask < ((1 << n))))
     {
       if ((dp[mask] == 0))
@@ -25,8 +25,8 @@ func count()
         mask += 1;
         continue;
       }
-      var cnt = 0;
-      var tmp = mask;
+      var cnt: dynamic = 0;
+      var tmp: dynamic = mask;
       while ((tmp > 0))
       {
         if ((tmp & (1 == 1)))
@@ -36,7 +36,7 @@ func count()
         tmp /= 2;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((((((pref[i] == -1) || (pref[i] == ((n - cnt) - 1)))) && ((((ls[i] & mask)) == ls[i]))) && ((((mask & ((1 << i)))) == 0))))
@@ -52,16 +52,16 @@ func count()
   return dp[(((1 << n)) - 1)];
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, y, m);
   y -= 2000;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       ls[(u - 1)] |= (1 << ((v - 1)));
       i += 1;
@@ -69,7 +69,7 @@ func main()
   }
   fill(pref, (pref + n), -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
@@ -81,7 +81,7 @@ func main()
             write("The times have changed", "\n");
             return 0;
           }
-          var tmp = count();
+          var tmp: dynamic = count();
           if ((tmp < y))
           {
             y -= tmp;
@@ -95,7 +95,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write((pref[i] + 1), " ");

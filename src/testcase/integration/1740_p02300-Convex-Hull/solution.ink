@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var x = cpp_expression("#inclu");
+var x: dynamic = cpp_expression("#inclu");
 
-var y = cpp_expression("#incl");
+var y: dynamic = cpp_expression("#incl");
 
-var M = cpp_expression("#include<");
+var M: dynamic = cpp_expression("#include<");
 
-var a = cpp_array(100000);
+var a: dynamic = cpp_array(100000);
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b -= a;
   c -= a;
@@ -22,15 +22,15 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   return false;
 }
 
-func check(i: dynamic)
+func check(i: dynamic) -> dynamic
 {
   while ((M >= 2))
   {
-    var s = st[(M - 2)];
-    var e = st[(M - 1)];
-    var S = point(a[s].x, a[s].y);
-    var E = point(a[e].x, a[e].y);
-    var N = point(a[i].x, a[i].y);
+    var s: dynamic = st[(M - 2)];
+    var e: dynamic = st[(M - 1)];
+    var S: dynamic = point(a[s].x, a[s].y);
+    var E: dynamic = point(a[e].x, a[e].y);
+    var N: dynamic = point(a[i].x, a[i].y);
     if (ccw(S, E, N))
     {
       break;
@@ -40,12 +40,12 @@ func check(i: dynamic)
   st.push_back(i);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i].x, a[i].y);
@@ -54,7 +54,7 @@ func main()
   }
   sort(a, (a + n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       check(i);
@@ -62,7 +62,7 @@ func main()
     }
   }
   {
-    var i = (n - 2);
+    var i: dynamic = (n - 2);
     while ((i >= 0))
     {
       check(i);
@@ -72,7 +72,7 @@ func main()
   st.pop_back();
   write(M, "\n");
   {
-    var i = M;
+    var i: dynamic = M;
     while ((i > 0))
     {
       write(a[st[(i % M)]].x, cpp_char(" "), a[st[(i % M)]].y, "\n");

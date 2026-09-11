@@ -2,47 +2,47 @@
 
 class Edge
 {
-  var to: dynamic;
-  var dis: dynamic;
-  var next: dynamic;
-  var cost: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var dis: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
+  var cost: dynamic = cpp_uninitialized();
 }
 
-var edge = cpp_array(24050);
+var edge: dynamic = cpp_array(24050);
 
-var num = -1;
+var num: dynamic = -1;
 
-var vis = cpp_array(10010);
+var vis: dynamic = cpp_array(10010);
 
-var mincost: dynamic;
+var mincost: dynamic = cpp_uninitialized();
 
-var pre = cpp_array(10010);
+var pre: dynamic = cpp_array(10010);
 
-var head = cpp_array(10010);
+var head: dynamic = cpp_array(10010);
 
-var cost = cpp_array(10010);
+var cost: dynamic = cpp_array(10010);
 
-var last = cpp_array(10010);
+var last: dynamic = cpp_array(10010);
 
-var flow = cpp_array(10010);
+var flow: dynamic = cpp_array(10010);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(110);
+var a: dynamic = cpp_array(110);
 
-var b = cpp_array(110);
+var b: dynamic = cpp_array(110);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var maxflow: dynamic;
+var maxflow: dynamic = cpp_uninitialized();
 
-var to = cpp_array(110);
+var to: dynamic = cpp_array(110);
 
-func add(f: dynamic, t: dynamic, dis: dynamic, cost: dynamic)
+func add(f: dynamic, t: dynamic, dis: dynamic, cost: dynamic) -> dynamic
 {
   edge[cpp_update(num, "++")].to = t;
   edge[num].dis = dis;
@@ -56,9 +56,9 @@ func add(f: dynamic, t: dynamic, dis: dynamic, cost: dynamic)
   head[t] = num;
 }
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func spfa(s: dynamic, t: dynamic)
+func spfa(s: dynamic, t: dynamic) -> dynamic
 {
   memset(cost, 0x3f3f3f3f, cpp_sizeof(cost));
   memset(flow, 0x3f3f3f3f, cpp_sizeof(flow));
@@ -69,11 +69,11 @@ func spfa(s: dynamic, t: dynamic)
   pre[t] = -1;
   while ((!q.empty()))
   {
-    var nowp = q.front();
+    var nowp: dynamic = q.front();
     q.pop();
     vis[nowp] = 0;
     {
-      var i = head[nowp];
+      var i: dynamic = head[nowp];
       while ((i != -1))
       {
         if (((edge[i].dis > 0) && (cost[edge[i].to] > (cost[nowp] + edge[i].cost))))
@@ -95,11 +95,11 @@ func spfa(s: dynamic, t: dynamic)
   return (pre[t] != -1);
 }
 
-func MCMF(s: dynamic, t: dynamic)
+func MCMF(s: dynamic, t: dynamic) -> dynamic
 {
   while (spfa(s, t))
   {
-    var now = t;
+    var now: dynamic = t;
     maxflow += flow[t];
     mincost += (flow[t] * cost[t]);
     while ((now != s))
@@ -111,9 +111,9 @@ func MCMF(s: dynamic, t: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   read(T);
   while (cpp_update(T, "--"))
   {
@@ -122,7 +122,7 @@ func main()
     memset(head, -1, cpp_sizeof(head));
     read(n, k);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         read(a[i], b[i]);
@@ -133,7 +133,7 @@ func main()
     s = 0;
     t = ((2 * n) + 1);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         add(s, i, 1, 0);
@@ -142,14 +142,14 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
-            var nc = 0;
+            var nc: dynamic = 0;
             if ((j <= (k - 1)))
             {
               nc = (a[i] + (b[i] * ((j - 1))));
@@ -169,9 +169,9 @@ func main()
       }
     }
     MCMF(s, t);
-    var nowi = -1;
+    var nowi: dynamic = -1;
     {
-      var i = (n * 4);
+      var i: dynamic = (n * 4);
       while ((i <= num))
       {
         nowi += 1;
@@ -184,7 +184,7 @@ func main()
     }
     write(((2 * n) - k), "\n");
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= (k - 1)))
       {
         write(to[i], " ");
@@ -192,7 +192,7 @@ func main()
       }
     }
     {
-      var i = k;
+      var i: dynamic = k;
       while ((i < n))
       {
         write(to[i], " ", (-to[i]), " ");

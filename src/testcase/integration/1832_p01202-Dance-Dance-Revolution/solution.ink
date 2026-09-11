@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var str: dynamic;
+var str: dynamic = cpp_uninitialized();
 
-func sim(turn: dynamic)
+func sim(turn: dynamic) -> dynamic
 {
-  var n = str.size();
-  var pos = str[0];
+  var n: dynamic = str.size();
+  var pos: dynamic = str[0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       if ((pos == str[i]))
@@ -30,15 +30,15 @@ func sim(turn: dynamic)
   return 1;
 }
 
-func main()
+func main() -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   read(q);
   while (cpp_update(q, "--"))
   {
     read(str);
-    var ans = (sim(0) | sim(1));
-    write((if (ans) "Yes" else "No"), "\n");
+    var ans: dynamic = (sim(0) | sim(1));
+    write(( (ans) ? "Yes" : "No"), "\n");
   }
   return 0;
 }

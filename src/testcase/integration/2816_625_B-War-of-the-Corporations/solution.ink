@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(100050);
+var a: dynamic = cpp_array(100050);
 
-var b = cpp_array(100);
+var b: dynamic = cpp_array(100);
 
-func judge(la: dynamic, lb: dynamic)
+func judge(la: dynamic, lb: dynamic) -> dynamic
 {
-  var s = 0;
+  var s: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < lb))
     {
       if ((a[la] == b[i]))
@@ -31,20 +31,20 @@ func judge(la: dynamic, lb: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   while ((~scanf("%s%s", a, b)))
   {
-    var la = strlen(a);
-    var lb = strlen(b);
-    var sum = 0;
+    var la: dynamic = strlen(a);
+    var lb: dynamic = strlen(b);
+    var sum: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < la))
       {
         if ((a[i] == b[0]))
         {
-          var result = judge(i, lb);
+          var result: dynamic = judge(i, lb);
           if ((result == 1))
           {
             sum += 1;

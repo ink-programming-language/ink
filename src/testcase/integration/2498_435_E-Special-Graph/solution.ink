@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(1111, 1111);
+var s: dynamic = cpp_array(1111, 1111);
 
-var a = cpp_array(1111, 1111);
+var a: dynamic = cpp_array(1111, 1111);
 
-var b = cpp_array(1111, 1111);
+var b: dynamic = cpp_array(1111, 1111);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func init(argument_0: dynamic)
+func init(argument_0: dynamic) -> dynamic
 {
   scanf("%d%d", (&m), (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (m)))
     {
       scanf("%s", s[i]);
@@ -22,11 +22,11 @@ func init(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (m)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (n)))
         {
           a[i][j] = (s[i][j] - 49);
@@ -38,15 +38,15 @@ func init(argument_0: dynamic)
   }
 }
 
-func okrow(s: dynamic)
+func okrow(s: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (m)))
     {
-      var v: dynamic;
+      var v: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (4)))
         {
           if (((((((s) >> (j))) & 1)) == (i % 2)))
@@ -56,9 +56,9 @@ func okrow(s: dynamic)
           j = (j + 1);
         }
       }
-      var fix = false;
+      var fix: dynamic = false;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (n)))
         {
           if ((a[i][j] < 0))
@@ -83,7 +83,7 @@ func okrow(s: dynamic)
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (n)))
         {
           b[i][j] = v[(j % 2)];
@@ -94,11 +94,11 @@ func okrow(s: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (m)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (n)))
         {
           printf("%d", (b[i][j] + 1));
@@ -112,15 +112,15 @@ func okrow(s: dynamic)
   return (true);
 }
 
-func okcol(s: dynamic)
+func okcol(s: dynamic) -> dynamic
 {
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < (n)))
     {
-      var v: dynamic;
+      var v: dynamic = cpp_uninitialized();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (4)))
         {
           if (((((((s) >> (i))) & 1)) == (j % 2)))
@@ -130,9 +130,9 @@ func okcol(s: dynamic)
           i = (i + 1);
         }
       }
-      var fix = false;
+      var fix: dynamic = false;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (m)))
         {
           if ((a[i][j] < 0))
@@ -157,7 +157,7 @@ func okcol(s: dynamic)
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (m)))
         {
           b[i][j] = v[(i % 2)];
@@ -168,11 +168,11 @@ func okcol(s: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (m)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (n)))
         {
           printf("%d", (b[i][j] + 1));
@@ -186,17 +186,17 @@ func okcol(s: dynamic)
   return (true);
 }
 
-func process(argument_0: dynamic)
+func process(argument_0: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (4)))
     {
       {
-        var j = ((i + 1));
+        var j: dynamic = ((i + 1));
         while ((j <= (3)))
         {
-          var s = (((1 << i)) | ((1 << j)));
+          var s: dynamic = (((1 << i)) | ((1 << j)));
           if (okrow(s))
           {
             return;
@@ -214,7 +214,7 @@ func process(argument_0: dynamic)
   printf("0");
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   init();
   process();

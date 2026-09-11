@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var last = cpp_array(205);
+var last: dynamic = cpp_array(205);
 
-var vis = cpp_array(205);
+var vis: dynamic = cpp_array(205);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var ans = cpp_array(205);
+var ans: dynamic = cpp_array(205);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(T);
   while (cpp_update(T, "--"))
@@ -24,7 +24,7 @@ func main()
     memset(vis, 0, cpp_sizeof((vis)));
     read(s);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < s.size()))
       {
         last[s[i]] = i;
@@ -32,7 +32,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < s.size()))
       {
         if (vis[s[i]])
@@ -56,7 +56,7 @@ func main()
       st.pop();
     }
     {
-      var i = cnt;
+      var i: dynamic = cnt;
       while ((i >= 1))
       {
         write(ans[i]);

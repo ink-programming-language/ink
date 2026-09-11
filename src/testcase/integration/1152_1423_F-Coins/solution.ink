@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0)->sync_with_stdio(0);
   cin.exceptions(cin.failbit);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var tot = 0;
-  var sumPos = 0;
+  var tot: dynamic = 0;
+  var sumPos: dynamic = 0;
   {
-    var cpp_name = 0;
+    var cpp_name: dynamic = 0;
     while ((cpp_name < (k)))
     {
-      var pos: dynamic;
-      var num: dynamic;
+      var pos: dynamic = cpp_uninitialized();
+      var num: dynamic = cpp_uninitialized();
       read(pos, num);
       pos -= 1;
       sumPos += (pos * num);
@@ -31,7 +31,7 @@ func main()
     write(1, "\n");
   } else
   {
-    var expected = ((((n - 1)) * n) / 2);
+    var expected: dynamic = ((((n - 1)) * n) / 2);
     if (((expected % n) == sumPos))
     {
       write(1, "\n");

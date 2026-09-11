@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var sum = 0;
-  var add = 0;
+  var a: dynamic = cpp_uninitialized();
+  var sum: dynamic = 0;
+  var add: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 5))
     {
       scanf("%d", (&a));
-      var m = (a % 10);
+      var m: dynamic = (a % 10);
       if ((m == 0))
       {
       } else
       {
-        add = if (((add > (10 - m)))) add else ((10 - m));
+        add =  (((add > (10 - m)))) ? add : ((10 - m));
         a += ((10 - m));
       }
       sum += a;

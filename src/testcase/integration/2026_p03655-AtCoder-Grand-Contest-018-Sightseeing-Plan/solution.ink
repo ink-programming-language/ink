@@ -1,67 +1,67 @@
 // Translated from solution.cpp.
 
-var mod = cpp_expression("#include<b");
+var mod: dynamic = cpp_expression("#include<b");
 
-var reg = cpp_expression("#include");
+var reg: dynamic = cpp_expression("#include");
 
-var maxn = cpp_expression("#includ");
+var maxn: dynamic = cpp_expression("#includ");
 
-var inv = cpp_array(maxn);
+var inv: dynamic = cpp_array(maxn);
 
-var fac = cpp_array(maxn);
+var fac: dynamic = cpp_array(maxn);
 
-var ifac = cpp_array(maxn);
+var ifac: dynamic = cpp_array(maxn);
 
-var X1: dynamic;
+var X1: dynamic = cpp_uninitialized();
 
-var X2: dynamic;
+var X2: dynamic = cpp_uninitialized();
 
-var X3: dynamic;
+var X3: dynamic = cpp_uninitialized();
 
-var X4: dynamic;
+var X4: dynamic = cpp_uninitialized();
 
-var X5: dynamic;
+var X5: dynamic = cpp_uninitialized();
 
-var X6: dynamic;
+var X6: dynamic = cpp_uninitialized();
 
-var Y1: dynamic;
+var Y1: dynamic = cpp_uninitialized();
 
-var Y2: dynamic;
+var Y2: dynamic = cpp_uninitialized();
 
-var Y3: dynamic;
+var Y3: dynamic = cpp_uninitialized();
 
-var Y4: dynamic;
+var Y4: dynamic = cpp_uninitialized();
 
-var Y5: dynamic;
+var Y5: dynamic = cpp_uninitialized();
 
-var Y6: dynamic;
+var Y6: dynamic = cpp_uninitialized();
 
-var f = cpp_array(maxn);
+var f: dynamic = cpp_array(maxn);
 
-var g = cpp_array(maxn);
+var g: dynamic = cpp_array(maxn);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func inc(x: dynamic, y: dynamic)
+func inc(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (((x + y) >= mod)) ((x + y) - mod) else (x + y);
+  return  (((x + y) >= mod)) ? ((x + y) - mod) : (x + y);
 }
 
-func C(x: dynamic, y: dynamic)
+func C(x: dynamic, y: dynamic) -> dynamic
 {
   return (((((1 * fac[x]) * ifac[y]) % mod) * ifac[(x - y)]) % mod);
 }
 
-func get_dis(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
+func get_dis(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic) -> dynamic
 {
-  var lenx = abs((x2 - x1));
-  var leny = abs((y2 - y1));
+  var lenx: dynamic = abs((x2 - x1));
+  var leny: dynamic = abs((y2 - y1));
   return C((lenx + leny), lenx);
 }
 
-func get2(x: dynamic, y: dynamic, l: dynamic, r: dynamic, d: dynamic, u: dynamic)
+func get2(x: dynamic, y: dynamic, l: dynamic, r: dynamic, d: dynamic, u: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   res = inc(get_dis(x, y, (r + 1), (u + 1)), res);
   res = inc((mod - get_dis(x, y, l, (u + 1))), res);
   res = inc((mod - get_dis(x, y, (r + 1), d)), res);
@@ -69,9 +69,9 @@ func get2(x: dynamic, y: dynamic, l: dynamic, r: dynamic, d: dynamic, u: dynamic
   return res;
 }
 
-func get1(x: dynamic, y: dynamic, l: dynamic, r: dynamic, d: dynamic, u: dynamic)
+func get1(x: dynamic, y: dynamic, l: dynamic, r: dynamic, d: dynamic, u: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   res = inc(res, get_dis(x, y, r, u));
   res = inc(res, (mod - get_dis(x, y, (l - 1), u)));
   res = inc(res, (mod - get_dis(x, y, r, (d - 1))));
@@ -79,7 +79,7 @@ func get1(x: dynamic, y: dynamic, l: dynamic, r: dynamic, d: dynamic, u: dynamic
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   read(X1, X2, X3, X4, X5, X6);
   read(Y1, Y2, Y3, Y4, Y5, Y6);
@@ -87,17 +87,17 @@ func main()
   ifac[0] = 1;
   fac[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < maxn))
     {
       fac[i] = (((1 * fac[(i - 1)]) * i) % mod);
-      inv[i] = if (((i == 1))) 1 else (((1 * inv[(mod % i)]) * ((mod - (mod / i)))) % mod);
+      inv[i] =  (((i == 1))) ? 1 : (((1 * inv[(mod % i)]) * ((mod - (mod / i)))) % mod);
       ifac[i] = (((1 * ifac[(i - 1)]) * inv[i]) % mod);
       i += 1;
     }
   }
   {
-    var i = Y3;
+    var i: dynamic = Y3;
     while ((i <= Y4))
     {
       f[i] = get1(X4, i, X1, X2, Y1, Y2);
@@ -108,7 +108,7 @@ func main()
     }
   }
   {
-    var i = X3;
+    var i: dynamic = X3;
     while ((i <= X4))
     {
       g[i] = get1(i, Y4, X1, X2, Y1, Y2);
@@ -119,7 +119,7 @@ func main()
     }
   }
   {
-    var i = Y3;
+    var i: dynamic = Y3;
     while ((i <= Y4))
     {
       f[i] = get1((X3 - 1), i, X1, X2, Y1, Y2);
@@ -130,7 +130,7 @@ func main()
     }
   }
   {
-    var i = X3;
+    var i: dynamic = X3;
     while ((i <= X4))
     {
       g[i] = get1(i, (Y3 - 1), X1, X2, Y1, Y2);

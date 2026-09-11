@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func f(name: dynamic, arg1: dynamic)
+func f(name: dynamic, arg1: dynamic) -> dynamic
 {
   write(name, " : ", arg1, "\n");
 }
 
-func f(names: dynamic, arg1: dynamic, args: dynamic...)
+func f(names: dynamic, arg1: dynamic, args: dynamic...) -> dynamic
 {
-  var comma = strchr((names + 1), cpp_char(","));
+  var comma: dynamic = strchr((names + 1), cpp_char(","));
   (((cerr.write(names, (comma - names)) << " : ") << arg1) << " | ");
   f((comma + 1), cpp_expand(args));
 }
 
-func XpowerY(x: dynamic, y: dynamic, m: dynamic)
+func XpowerY(x: dynamic, y: dynamic, m: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   x = (x % m);
   while ((y > 0))
   {
@@ -28,21 +28,21 @@ func XpowerY(x: dynamic, y: dynamic, m: dynamic)
   return (ans % m);
 }
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-func __cpp_top_level_1()
+func __cpp_top_level_1() -> dynamic
 {
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       if ((i == 1))
       {

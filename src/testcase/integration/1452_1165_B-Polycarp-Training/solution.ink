@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var prime = (1e9 + 7);
+var prime: dynamic = (1e9 + 7);
 
-var maxN = (2e5 + 5);
+var maxN: dynamic = (2e5 + 5);
 
-var pi = 3.1415926536;
+var pi: dynamic = 3.1415926536;
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
-  var a = cpp_array(maxN);
-  var ans = 0;
-  var mn = 1;
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_array(maxN);
+  var ans: dynamic = 0;
+  var mn: dynamic = 1;
   read(n);
   {
-    var i = cpp_cast((1));
+    var i: dynamic = cpp_cast((1));
     while ((i <= cpp_cast((n))))
     {
       read(a[i]);
@@ -25,7 +25,7 @@ func main()
   }
   sort((a + 1), ((a + n) + 1));
   {
-    var i = cpp_cast((1));
+    var i: dynamic = cpp_cast((1));
     while ((i <= cpp_cast((n))))
     {
       if ((mn <= a[i]))

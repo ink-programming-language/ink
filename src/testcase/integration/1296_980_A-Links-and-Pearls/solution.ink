@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s = cpp_array(101);
-  var l = 0;
-  var p = 0;
+  var s: dynamic = cpp_array(101);
+  var l: dynamic = 0;
+  var p: dynamic = 0;
   scanf("%s", s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < strlen(s)))
     {
       if ((s[i] == cpp_char("o")))

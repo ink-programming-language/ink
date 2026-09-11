@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var dr = [-1, -1, 0, 1, 1, 1, 0, -1];
+var dr: dynamic = [-1, -1, 0, 1, 1, 1, 0, -1];
 
-var dc = [0, 1, 1, 1, 0, -1, -1, -1];
+var dc: dynamic = [0, 1, 1, 1, 0, -1, -1, -1];
 
-var PI = acos(-1);
+var PI: dynamic = acos(-1);
 
-var EPS = 10e-9;
+var EPS: dynamic = 10e-9;
 
-var e4 = (1e4 + 5);
+var e4: dynamic = (1e4 + 5);
 
-var e5 = (1e5 + 5);
+var e5: dynamic = (1e5 + 5);
 
-var e6 = (1e6 + 5);
+var e6: dynamic = (1e6 + 5);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var ans = 0;
+  var n: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   scanf("%d", (&n));
-  var str: dynamic;
+  var str: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(str);
@@ -32,7 +32,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(str);

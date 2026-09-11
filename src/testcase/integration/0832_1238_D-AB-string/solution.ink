@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var f = false;
+var f: dynamic = false;
 
-var l = false;
+var l: dynamic = false;
 
-var res = 0;
+var res: dynamic = 0;
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   read(s);
   res = ((cpp_cast(n) * ((n - 1))) / 2);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var c = s[i];
-      var j = (i + 1);
-      var br = 0;
+      var c: dynamic = s[i];
+      var j: dynamic = (i + 1);
+      var br: dynamic = 0;
       while (((j < n) && (s[j] != c)))
       {
         br += 1;

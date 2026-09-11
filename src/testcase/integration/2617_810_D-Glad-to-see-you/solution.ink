@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var g = 10.0;
+var g: dynamic = 10.0;
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var N = (1000 + 10);
+var N: dynamic = (1000 + 10);
 
-var maxn = 16;
+var maxn: dynamic = 16;
 
-var inf = 9999999;
+var inf: dynamic = 9999999;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func query(x: dynamic, y: dynamic)
+func query(x: dynamic, y: dynamic) -> dynamic
 {
   if (((x < 0) || (y > n)))
   {
@@ -20,12 +20,12 @@ func query(x: dynamic, y: dynamic)
   }
   write(1, " ", x, " ", y, "\n");
   fflush(stdout);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
   return (s == "TAK");
 }
 
-func bir(l: dynamic, r: dynamic)
+func bir(l: dynamic, r: dynamic) -> dynamic
 {
   if ((l > r))
   {
@@ -33,7 +33,7 @@ func bir(l: dynamic, r: dynamic)
   }
   while ((l < r))
   {
-    var m = (((l + r)) / 2);
+    var m: dynamic = (((l + r)) / 2);
     if (query(m, (m + 1)))
     {
       r = m;
@@ -45,13 +45,13 @@ func bir(l: dynamic, r: dynamic)
   return l;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var x: dynamic;
-  var y: dynamic;
-  var k: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
   x = bir(1, n);
   y = bir(1, (x - 1));

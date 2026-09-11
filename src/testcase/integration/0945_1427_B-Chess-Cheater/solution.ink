@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var md = (1e9 + 7);
+var md: dynamic = (1e9 + 7);
 
-var an = cpp_array(310000);
+var an: dynamic = cpp_array(310000);
 
-var sn = cpp_array(310000);
+var sn: dynamic = cpp_array(310000);
 
-func main()
+func main() -> dynamic
 {
-  var z: dynamic;
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
+  var z: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(z);
   while (cpp_update(z, "--"))
   {
     scanf("%d%d", (&n), (&k));
     scanf("%s", sn);
-    var flag = 1;
-    var first: dynamic;
-    var last: dynamic;
+    var flag: dynamic = 1;
+    var first: dynamic = cpp_uninitialized();
+    var last: dynamic = cpp_uninitialized();
     {
       i = 0;
       while ((i < n))
@@ -38,15 +38,15 @@ func main()
         i += 1;
       }
     }
-    var ans: dynamic;
+    var ans: dynamic = cpp_uninitialized();
     if (flag)
     {
       ans = max(((k * 2) - 1), 0);
     } else
     {
-      var l: dynamic;
-      var bl = 0;
-      var num = 0;
+      var l: dynamic = cpp_uninitialized();
+      var bl: dynamic = 0;
+      var num: dynamic = 0;
       ans = 1;
       {
         i = (first + 1);

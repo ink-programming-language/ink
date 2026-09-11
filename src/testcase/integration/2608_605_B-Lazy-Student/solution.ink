@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var PI = (2 * asin(1));
+var PI: dynamic = (2 * asin(1));
 
 class Edge
 {
-  var w: dynamic;
-  var id: dynamic;
-  var flag: dynamic;
-  func Edge(w: dynamic = 0, id: dynamic = 0, flag: dynamic = 0)
+  var w: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  var flag: dynamic = cpp_uninitialized();
+  func Edge(w: dynamic = 0, id: dynamic = 0, flag: dynamic = 0) -> dynamic
   {
-      this->w = cpp_construct(w);
-      this->id = cpp_construct(id);
-      this->flag = cpp_construct(flag);
+      self->w = cpp_construct(w);
+      self->id = cpp_construct(id);
+      self->flag = cpp_construct(flag);
     }
-  func operator_less(e: dynamic)
+  func operator_less(e: dynamic) -> dynamic
   {
       if ((w == e.w))
       {
@@ -23,21 +23,21 @@ class Edge
     }
 }
 
-var g_n: dynamic;
+var g_n: dynamic = cpp_uninitialized();
 
-var g_m: dynamic;
+var g_m: dynamic = cpp_uninitialized();
 
-var vb: dynamic;
+var vb: dynamic = cpp_uninitialized();
 
-var ve: dynamic;
+var ve: dynamic = cpp_uninitialized();
 
-var vpii_ans: dynamic;
+var vpii_ans: dynamic = cpp_uninitialized();
 
-func pretreat()
+func pretreat() -> dynamic
 {
 }
 
-func input()
+func input() -> dynamic
 {
   read(g_n, g_m);
   if (cin.eof())
@@ -51,9 +51,9 @@ func input()
   vpii_ans.clear();
   vpii_ans.resize((g_m + 1));
   {
-    var i = 1;
-    var w: dynamic;
-    var flag: dynamic;
+    var i: dynamic = 1;
+    var w: dynamic = cpp_uninitialized();
+    var flag: dynamic = cpp_uninitialized();
     while ((i <= g_m))
     {
       scanf(" %d %d", (&w), (&flag));
@@ -64,17 +64,17 @@ func input()
   return true;
 }
 
-func solve()
+func solve() -> dynamic
 {
   sort((ve.begin() + 1), ve.end());
-  var u = 1;
-  var v = 3;
-  var cnt = 1;
+  var u: dynamic = 1;
+  var v: dynamic = 3;
+  var cnt: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= g_m))
     {
-      var e = ve[i];
+      var e: dynamic = ve[i];
       if ((e.flag == 1))
       {
         vpii_ans[e.id].first = cnt;
@@ -101,7 +101,7 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= g_m))
     {
       printf("%d %d\n", vpii_ans[i].first, vpii_ans[i].second);
@@ -110,7 +110,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   pretreat();
   while (input())

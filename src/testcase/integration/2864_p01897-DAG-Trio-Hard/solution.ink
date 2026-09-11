@@ -1,48 +1,48 @@
 // Translated from solution.cpp.
 
-var MAX_N = cpp_expression("#in");
+var MAX_N: dynamic = cpp_expression("#in");
 
-var MAX_M = cpp_expression("#incl");
+var MAX_M: dynamic = cpp_expression("#incl");
 
 class edge
 {
-  var from_cpp: dynamic;
-  var to: dynamic;
-  var id: dynamic;
+  var from_cpp: dynamic = cpp_uninitialized();
+  var to: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var a = cpp_array(MAX_M);
+var a: dynamic = cpp_array(MAX_M);
 
-var b = cpp_array(MAX_M);
+var b: dynamic = cpp_array(MAX_M);
 
-var flg = cpp_array(MAX_M);
+var flg: dynamic = cpp_array(MAX_M);
 
-var G = cpp_array(MAX_N);
+var G: dynamic = cpp_array(MAX_N);
 
-var visited = cpp_array(MAX_N);
+var visited: dynamic = cpp_array(MAX_N);
 
-var depth = cpp_array(MAX_N);
+var depth: dynamic = cpp_array(MAX_N);
 
-var cnt = cpp_array(MAX_N);
+var cnt: dynamic = cpp_array(MAX_N);
 
-var par = cpp_array(MAX_N);
+var par: dynamic = cpp_array(MAX_N);
 
-var bridges: dynamic;
+var bridges: dynamic = cpp_uninitialized();
 
-var edge: dynamic;
+var edge: dynamic = cpp_uninitialized();
 
-func dfs(pos: dynamic, prev: dynamic)
+func dfs(pos: dynamic, prev: dynamic) -> dynamic
 {
   visited[pos] = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(G[pos].size())))
     {
-      var to = G[pos][i].to;
+      var to: dynamic = G[pos][i].to;
       if ((to == prev))
       {
         i += 1;
@@ -69,7 +69,7 @@ func dfs(pos: dynamic, prev: dynamic)
   }
 }
 
-func countB(id: dynamic)
+func countB(id: dynamic) -> dynamic
 {
   bridges.clear();
   edge.clear();
@@ -78,7 +78,7 @@ func countB(id: dynamic)
   memset(cnt, 0, cpp_sizeof((cnt)));
   memset(par, -1, cpp_sizeof((par)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       G[i].clear();
@@ -86,7 +86,7 @@ func countB(id: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       if ((i == id))
@@ -100,7 +100,7 @@ func countB(id: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (visited[i])
@@ -115,13 +115,13 @@ func countB(id: dynamic)
   return bridges.size();
 }
 
-func isDag(id: dynamic)
+func isDag(id: dynamic) -> dynamic
 {
-  var Q: dynamic;
-  var C = cpp_construct(N, 0);
-  var cc = 0;
+  var Q: dynamic = cpp_uninitialized();
+  var C: dynamic = cpp_construct(N, 0);
+  var cc: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       G[i].clear();
@@ -129,7 +129,7 @@ func isDag(id: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       if ((i == id))
@@ -143,7 +143,7 @@ func isDag(id: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((C[i] == 0))
@@ -155,14 +155,14 @@ func isDag(id: dynamic)
   }
   while ((!Q.empty()))
   {
-    var pos = Q.front();
+    var pos: dynamic = Q.front();
     Q.pop();
     cc += 1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < cpp_cast(G[pos].size())))
       {
-        var to = G[pos][i].to;
+        var to: dynamic = G[pos][i].to;
         C[to] -= 1;
         if ((C[to] == 0))
         {
@@ -175,7 +175,7 @@ func isDag(id: dynamic)
   return ((cc == N));
 }
 
-func visit(v: dynamic)
+func visit(v: dynamic) -> dynamic
 {
   if (visited[v])
   {
@@ -183,7 +183,7 @@ func visit(v: dynamic)
   }
   visited[v] = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(G[v].size())))
     {
       visit(G[v][i].to);
@@ -192,10 +192,10 @@ func visit(v: dynamic)
   }
 }
 
-func calcDec(id: dynamic)
+func calcDec(id: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       G[i].clear();
@@ -203,7 +203,7 @@ func calcDec(id: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       if ((i == id))
@@ -216,10 +216,10 @@ func calcDec(id: dynamic)
       i += 1;
     }
   }
-  var res = 0;
+  var res: dynamic = 0;
   memset(visited, false, cpp_sizeof((visited)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((!visited[i]))
@@ -233,9 +233,9 @@ func calcDec(id: dynamic)
   return res;
 }
 
-var mm: dynamic;
+var mm: dynamic = cpp_uninitialized();
 
-func check(id: dynamic)
+func check(id: dynamic) -> dynamic
 {
   if (mm.count(id))
   {
@@ -251,9 +251,9 @@ func check(id: dynamic)
   }
 }
 
-var loope: dynamic;
+var loope: dynamic = cpp_uninitialized();
 
-func rec(pos: dynamic, si: dynamic)
+func rec(pos: dynamic, si: dynamic) -> dynamic
 {
   if (visited[pos])
   {
@@ -261,10 +261,10 @@ func rec(pos: dynamic, si: dynamic)
   }
   visited[pos] = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(G[pos].size())))
     {
-      var e = G[pos][i];
+      var e: dynamic = G[pos][i];
       if (rec(e.to, si))
       {
         loope.push_back(e);
@@ -276,10 +276,10 @@ func rec(pos: dynamic, si: dynamic)
   return false;
 }
 
-func solve2()
+func solve2() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       G[i].clear();
@@ -287,7 +287,7 @@ func solve2()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       G[a[i]].push_back([a[i], b[i], i]);
@@ -295,7 +295,7 @@ func solve2()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       memset(visited, false, cpp_sizeof((visited)));
@@ -308,7 +308,7 @@ func solve2()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(loope.size())))
     {
       if (check(loope[i].id))
@@ -321,9 +321,9 @@ func solve2()
   return false;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var B = countB(-1);
+  var B: dynamic = countB(-1);
   if ((B == M))
   {
     return false;
@@ -332,15 +332,15 @@ func solve()
   {
     return solve2();
   }
-  var maxm = 0;
+  var maxm: dynamic = 0;
   B = countB(-1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(edge.size())))
     {
-      var e = edge[i];
-      var a = e.from_cpp;
-      var cc = 0;
+      var e: dynamic = edge[i];
+      var a: dynamic = e.from_cpp;
+      var cc: dynamic = 0;
       while (1)
       {
         if ((a == e.to))
@@ -358,7 +358,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       if (check(i))
@@ -371,11 +371,11 @@ func solve()
   return (((B + maxm) >= 2));
 }
 
-func main()
+func main() -> dynamic
 {
   read(N, M);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       read(a[i], b[i]);
@@ -384,6 +384,6 @@ func main()
       i += 1;
     }
   }
-  write((if (solve()) "YES" else "NO"), "\n");
+  write(( (solve()) ? "YES" : "NO"), "\n");
   return 0;
 }

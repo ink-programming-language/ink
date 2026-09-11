@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func solve()
+func solve() -> dynamic
 {
-  var in_cpp = cpp_construct("input.txt");
-  var out = cpp_construct("output.txt");
-  var n: dynamic;
-  var m: dynamic;
+  var in_cpp: dynamic = cpp_construct("input.txt");
+  var out: dynamic = cpp_construct("output.txt");
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   ((in_cpp >> n) >> m);
   if ((n >= m))
   {
@@ -47,7 +47,7 @@ func solve()
   write("\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);

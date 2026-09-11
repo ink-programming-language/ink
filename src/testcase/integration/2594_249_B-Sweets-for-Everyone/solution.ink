@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var sp = cpp_array((500000 + 10));
+var sp: dynamic = cpp_array((500000 + 10));
 
-var sol = cpp_array((500000 + 10));
+var sol: dynamic = cpp_array((500000 + 10));
 
-var s = cpp_array((500000 + 10));
+var s: dynamic = cpp_array((500000 + 10));
 
-func isOK(x: dynamic)
+func isOK(x: dynamic) -> dynamic
 {
   sp[0] = x;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sol[i] = 0;
@@ -24,7 +24,7 @@ func isOK(x: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((s[i] == cpp_char(".")))
@@ -40,7 +40,7 @@ func isOK(x: dynamic)
       i += 1;
     }
   }
-  var m = p;
+  var m: dynamic = p;
   while (((m <= n) && (sp[m] < 0)))
   {
     m += 1;
@@ -49,16 +49,16 @@ func isOK(x: dynamic)
   {
     return false;
   }
-  var p1 = 1;
+  var p1: dynamic = 1;
   while ((s[p1] != cpp_char("H")))
   {
     p1 += 1;
   }
-  var ans = (m - p1);
-  var flag = 0;
-  var pr = 1;
+  var ans: dynamic = (m - p1);
+  var flag: dynamic = 0;
+  var pr: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       if (((i == m) && (!flag)))
@@ -96,14 +96,14 @@ func isOK(x: dynamic)
   return ((m + ans) <= t);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   read(n, t, ((s + 1)));
   {
-    var i = n;
+    var i: dynamic = n;
     while (i)
     {
       if ((s[i] == cpp_char("H")))
@@ -119,12 +119,12 @@ func main()
     write(-1, cpp_char("\n"));
     return 0;
   }
-  var st = 0;
-  var dr = 500000;
-  var ans = 0;
+  var st: dynamic = 0;
+  var dr: dynamic = 500000;
+  var ans: dynamic = 0;
   while ((st <= dr))
   {
-    var mij = (((st + dr)) / 2);
+    var mij: dynamic = (((st + dr)) / 2);
     if (isOK(mij))
     {
       ans = mij;

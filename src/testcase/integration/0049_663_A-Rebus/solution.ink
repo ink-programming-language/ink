@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(505);
+var s: dynamic = cpp_array(505);
 
-var P: dynamic;
+var P: dynamic = cpp_uninitialized();
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var id = 0;
-  var pos = 0;
-  var neg = 0;
+  var id: dynamic = 0;
+  var pos: dynamic = 0;
+  var neg: dynamic = 0;
   while ((cin >> s[id]))
   {
     if ((s[id] == "="))
@@ -35,11 +35,11 @@ func main()
     }
     id += 1;
   }
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var dif = (pos - neg);
+  var dif: dynamic = (pos - neg);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < pos))
     {
       P.push_back(1);
@@ -47,7 +47,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < neg))
     {
       N.push_back(1);
@@ -56,7 +56,7 @@ func main()
   }
   if ((dif < n))
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((dif < n) && (i < pos)))
     {
       if ((((dif + n) - 1) < n))
@@ -76,7 +76,7 @@ func main()
     }
   } else if ((dif > n))
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((dif > n) && (i < neg)))
     {
       if ((((dif - n) + 1) > n))
@@ -97,9 +97,9 @@ func main()
   }
   write("Possible", "\n");
   {
-    var i = 0;
-    var j = 0;
-    var k = 0;
+    var i: dynamic = 0;
+    var j: dynamic = 0;
+    var k: dynamic = 0;
     while ((i <= id))
     {
       if ((s[i] == "?"))

@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var MN = 100111;
+var MN: dynamic = 100111;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var a = cpp_array(MN);
+var a: dynamic = cpp_array(MN);
 
-var bit = cpp_array(MN);
+var bit: dynamic = cpp_array(MN);
 
-var res = cpp_array(MN);
+var res: dynamic = cpp_array(MN);
 
-func get(u: dynamic)
+func get(u: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   while ((u > 0))
   {
     res += bit[u];
@@ -25,7 +25,7 @@ func get(u: dynamic)
   return res;
 }
 
-func update(u: dynamic, val: dynamic)
+func update(u: dynamic, val: dynamic) -> dynamic
 {
   while ((u < MN))
   {
@@ -34,36 +34,36 @@ func update(u: dynamic, val: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   while ((scanf("%d%d%d", (&n), (&M), (&T)) == 3))
   {
     {
-      var i = (1);
-      var b = (n);
+      var i: dynamic = (1);
+      var b: dynamic = (n);
       while ((i <= b))
       {
-        var h: dynamic;
-        var m: dynamic;
-        var s: dynamic;
+        var h: dynamic = cpp_uninitialized();
+        var m: dynamic = cpp_uninitialized();
+        var s: dynamic = cpp_uninitialized();
         scanf("%d:%d:%d", (&h), (&m), (&s));
         a[i] = ((((h * 3600) + (m * 60)) + s) + 1);
         i += 1;
       }
     }
     memset(bit, 0, cpp_sizeof(bit));
-    var ok = false;
+    var ok: dynamic = false;
     {
-      var i = (1);
-      var b = (n);
+      var i: dynamic = (1);
+      var b: dynamic = (n);
       while ((i <= b))
       {
-        var x = ((a[i] - T) + 1);
+        var x: dynamic = ((a[i] - T) + 1);
         if ((x < 0))
         {
           x = 0;
         }
-        var has = get(a[i]);
+        var has: dynamic = get(a[i]);
         if (x)
         {
           has -= get((x - 1));
@@ -92,8 +92,8 @@ func main()
     {
       printf("%d\n", res[n]);
       {
-        var i = (1);
-        var b = (n);
+        var i: dynamic = (1);
+        var b: dynamic = (n);
         while ((i <= b))
         {
           printf("%d\n", res[i]);

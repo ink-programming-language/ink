@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var c = getchar();
-  var f = 1;
+  var c: dynamic = getchar();
+  var f: dynamic = 1;
   while ((!isdigit(c)))
   {
     if ((c == cpp_char("-")))
@@ -21,37 +21,37 @@ func read(x: dynamic)
   x *= f;
 }
 
-func umin(x: dynamic, y: dynamic)
+func umin(x: dynamic, y: dynamic) -> dynamic
 {
-  x = if ((x < y)) x else y;
+  x =  ((x < y)) ? x : y;
 }
 
-func umax(x: dynamic, y: dynamic)
+func umax(x: dynamic, y: dynamic) -> dynamic
 {
-  x = if ((x > y)) x else y;
+  x =  ((x > y)) ? x : y;
 }
 
-func R()
+func R() -> dynamic
 {
-  var seed = 416;
+  var seed: dynamic = 416;
   return cpp_comma(cpp_assign(seed, "^=", (seed >> 5)), cpp_comma(cpp_assign(seed, "^=", (seed << 17)), cpp_assign(seed, "^=", (seed >> 13))));
 }
 
-var N = 2666;
+var N: dynamic = 2666;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var ans = cpp_array(1766666);
+var ans: dynamic = cpp_array(1766666);
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var sta = cpp_array(N);
+var sta: dynamic = cpp_array(N);
 
-var top: dynamic;
+var top: dynamic = cpp_uninitialized();
 
-func move(i: dynamic, j: dynamic)
+func move(i: dynamic, j: dynamic) -> dynamic
 {
   ans[cpp_update(tot, "++")] = pair(i, j);
   assert((a[i] <= a[j]));
@@ -59,7 +59,7 @@ func move(i: dynamic, j: dynamic)
   a[i] += a[i];
 }
 
-func solve(x: dynamic, y: dynamic, z: dynamic)
+func solve(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   if ((a[y] > a[z]))
   {
@@ -80,8 +80,8 @@ func solve(x: dynamic, y: dynamic, z: dynamic)
   }
   if (((a[y] % a[x]) <= (a[x] / 2)))
   {
-    var k = (a[y] / a[x]);
-    var cur = 1;
+    var k: dynamic = (a[y] / a[x]);
+    var cur: dynamic = 1;
     while (k)
     {
       if ((k & cur))
@@ -96,15 +96,15 @@ func solve(x: dynamic, y: dynamic, z: dynamic)
     }
   } else
   {
-    var k = ((a[y] / a[x]) + 1);
-    var mi = 1;
+    var k: dynamic = ((a[y] / a[x]) + 1);
+    var mi: dynamic = 1;
     while (((mi * 2) <= k))
     {
       mi *= 2;
     }
-    var tmp = (k - mi);
+    var tmp: dynamic = (k - mi);
     {
-      var c = 1;
+      var c: dynamic = 1;
       while (((c * 2) <= mi))
       {
         if ((tmp & c))
@@ -123,11 +123,11 @@ func solve(x: dynamic, y: dynamic, z: dynamic)
   solve(x, y, z);
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
       read(a[i]);
@@ -135,7 +135,7 @@ func main()
     }
   }
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
       if (a[i])
@@ -152,9 +152,9 @@ func main()
   }
   while ((top >= 3))
   {
-    var x = sta[cpp_update(top, "--")];
-    var y = sta[cpp_update(top, "--")];
-    var z = sta[cpp_update(top, "--")];
+    var x: dynamic = sta[cpp_update(top, "--")];
+    var y: dynamic = sta[cpp_update(top, "--")];
+    var z: dynamic = sta[cpp_update(top, "--")];
     solve(x, y, z);
     if (a[x])
     {
@@ -171,16 +171,16 @@ func main()
   }
   printf("%d\n", tot);
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (tot)))
     {
       printf("%d %d\n", ans[i].first, ans[i].second);
       i += 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
       cnt += (a[i] > 0);

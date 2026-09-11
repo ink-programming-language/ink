@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-func FOR(i: dynamic, n: dynamic)
+func FOR(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0; i < (n); i++)");
 }
 
-func sz(c: dynamic)
+func sz(c: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/");
 }
 
-func ten(n: dynamic)
+func ten(n: dynamic) -> dynamic
 {
   return cpp_expression("#include <bi");
 }
 
-func getchar_unlocked(argument_0: dynamic)
+func getchar_unlocked(argument_0: dynamic) -> dynamic
 {
   return getchar();
 }
 
-func putchar_unlocked(c: dynamic)
+func putchar_unlocked(c: dynamic) -> dynamic
 {
   putchar(c);
 }
 
-func mygc(c: dynamic)
+func mygc(c: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.");
 }
 
-func mypc(c: dynamic)
+func mypc(c: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc");
 }
 
-func reader(x: dynamic)
+func reader(x: dynamic) -> dynamic
 {
-  var k: dynamic;
-  var m = 0;
+  var k: dynamic = cpp_uninitialized();
+  var m: dynamic = 0;
   x = 0;
   {
     while (true)
@@ -73,10 +73,10 @@ func reader(x: dynamic)
   }
 }
 
-func reader(x: dynamic)
+func reader(x: dynamic) -> dynamic
 {
-  var k: dynamic;
-  var m = 0;
+  var k: dynamic = cpp_uninitialized();
+  var m: dynamic = 0;
   x = 0;
   {
     while (true)
@@ -111,10 +111,10 @@ func reader(x: dynamic)
   }
 }
 
-func reader(c: dynamic)
+func reader(c: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var s = 0;
+  var i: dynamic = cpp_uninitialized();
+  var s: dynamic = 0;
   {
     while (true)
     {
@@ -141,9 +141,9 @@ func reader(c: dynamic)
   return s;
 }
 
-func reader(c: dynamic)
+func reader(c: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     while (true)
     {
@@ -169,20 +169,20 @@ func reader(c: dynamic)
   return sz(c);
 }
 
-func reader(x: dynamic, y: dynamic)
+func reader(x: dynamic, y: dynamic) -> dynamic
 {
   reader(x);
   reader(y);
 }
 
-func reader(x: dynamic, y: dynamic, z: dynamic)
+func reader(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   reader(x);
   reader(y);
   reader(z);
 }
 
-func reader(x: dynamic, y: dynamic, z: dynamic, w: dynamic)
+func reader(x: dynamic, y: dynamic, z: dynamic, w: dynamic) -> dynamic
 {
   reader(x);
   reader(y);
@@ -190,11 +190,11 @@ func reader(x: dynamic, y: dynamic, z: dynamic, w: dynamic)
   reader(w);
 }
 
-func writer(x: dynamic, c: dynamic)
+func writer(x: dynamic, c: dynamic) -> dynamic
 {
-  var s = 0;
-  var m = 0;
-  var f = cpp_array(10);
+  var s: dynamic = 0;
+  var m: dynamic = 0;
+  var f: dynamic = cpp_array(10);
   if ((x < 0))
   {
     m = 1;
@@ -220,11 +220,11 @@ func writer(x: dynamic, c: dynamic)
   mypc(c);
 }
 
-func writer(x: dynamic, c: dynamic)
+func writer(x: dynamic, c: dynamic) -> dynamic
 {
-  var s = 0;
-  var m = 0;
-  var f = cpp_array(20);
+  var s: dynamic = 0;
+  var m: dynamic = 0;
+  var f: dynamic = cpp_array(20);
   if ((x < 0))
   {
     m = 1;
@@ -250,9 +250,9 @@ func writer(x: dynamic, c: dynamic)
   mypc(c);
 }
 
-func writer(c: dynamic)
+func writer(c: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((c[i] != cpp_char("\u{0}")))
@@ -263,9 +263,9 @@ func writer(c: dynamic)
   }
 }
 
-func writer(x: dynamic, c: dynamic)
+func writer(x: dynamic, c: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((x[i] != cpp_char("\u{0}")))
@@ -277,9 +277,9 @@ func writer(x: dynamic, c: dynamic)
   mypc(c);
 }
 
-func writer(x: dynamic, c: dynamic)
+func writer(x: dynamic, c: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((x[i] != cpp_char("\u{0}")))
@@ -291,25 +291,25 @@ func writer(x: dynamic, c: dynamic)
   mypc(c);
 }
 
-func writerLn(x: dynamic)
+func writerLn(x: dynamic) -> dynamic
 {
   writer(x, cpp_char("\n"));
 }
 
-func writerLn(x: dynamic, y: dynamic)
+func writerLn(x: dynamic, y: dynamic) -> dynamic
 {
   writer(x, cpp_char(" "));
   writer(y, cpp_char("\n"));
 }
 
-func writerLn(x: dynamic, y: dynamic, z: dynamic)
+func writerLn(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   writer(x, cpp_char(" "));
   writer(y, cpp_char(" "));
   writer(z, cpp_char("\n"));
 }
 
-func writerArr(x: dynamic, n: dynamic)
+func writerArr(x: dynamic, n: dynamic) -> dynamic
 {
   if ((!n))
   {
@@ -321,12 +321,12 @@ func writerArr(x: dynamic, n: dynamic)
   writer(x[(n - 1)], cpp_char("\n"));
 }
 
-func writerArr(x: dynamic)
+func writerArr(x: dynamic) -> dynamic
 {
   writerArr(x.data(), cpp_cast(x.size()));
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -334,7 +334,7 @@ func chmin(a: dynamic, b: dynamic)
   }
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -342,20 +342,20 @@ func chmax(a: dynamic, b: dynamic)
   }
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (b) gcd(b, (a % b)) else a;
+  return  (b) ? gcd(b, (a % b)) : a;
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a / gcd(a, b)) * b);
 }
 
-func mod_pow(a: dynamic, n: dynamic, mod: dynamic)
+func mod_pow(a: dynamic, n: dynamic, mod: dynamic) -> dynamic
 {
-  var ret = 1;
-  var p = (a % mod);
+  var ret: dynamic = 1;
+  var p: dynamic = (a % mod);
   while (n)
   {
     if ((n & 1))
@@ -368,14 +368,14 @@ func mod_pow(a: dynamic, n: dynamic, mod: dynamic)
   return ret;
 }
 
-func extgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
+func extgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   {
-    var u = cpp_assign(y, "=", 1);
-    var v = cpp_assign(x, "=", 0);
+    var u: dynamic = cpp_assign(y, "=", 1);
+    var v: dynamic = cpp_assign(x, "=", 0);
     while (a)
     {
-      var q = (b / a);
+      var q: dynamic = (b / a);
       swap(cpp_assign(x, "-=", (q * u)), u);
       swap(cpp_assign(y, "-=", (q * v)), v);
       swap(cpp_assign(b, "-=", (q * a)), a);
@@ -384,36 +384,36 @@ func extgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
   return b;
 }
 
-func mod_inv(a: dynamic, m: dynamic)
+func mod_inv(a: dynamic, m: dynamic) -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   extgcd(a, m, x, y);
   return (((m + (x % m))) % m);
 }
 
 class UnionFind
 {
-  var n: dynamic;
-  var a: dynamic;
-  func UnionFind(n: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  func UnionFind(n: dynamic) -> dynamic
   {
-      this->n = cpp_construct(n);
-      this->a = cpp_construct(n, -1);
+      self->n = cpp_construct(n);
+      self->a = cpp_construct(n, -1);
     }
-  func find(x: dynamic)
+  func find(x: dynamic) -> dynamic
   {
-      return if ((a[x] < 0)) x else (cpp_assign(a[x], "=", find(a[x])));
+      return  ((a[x] < 0)) ? x : (cpp_assign(a[x], "=", find(a[x])));
     }
-  func same(x: dynamic, y: dynamic)
+  func same(x: dynamic, y: dynamic) -> dynamic
   {
       return (find(x) == find(y));
     }
-  func same(p: dynamic)
+  func same(p: dynamic) -> dynamic
   {
       return same(p.first, p.second);
     }
-  func unite(x: dynamic, y: dynamic)
+  func unite(x: dynamic, y: dynamic) -> dynamic
   {
       x = find(x);
       y = find(y);
@@ -430,42 +430,42 @@ class UnionFind
       n -= 1;
       return true;
     }
-  func unite(p: dynamic)
+  func unite(p: dynamic) -> dynamic
   {
       return unite(p.first, p.second);
     }
-  func size()
+  func size() -> dynamic
   {
       return n;
     }
-  func size(x: dynamic)
+  func size(x: dynamic) -> dynamic
   {
       return (-a[find(x)]);
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   reader(n, m, k);
   FOR(i, n);
   reader(c[i]);
-  var vp: dynamic;
-  var uf = cpp_construct((n + k));
-  var free = 0;
-  var ans = 0;
+  var vp: dynamic = cpp_uninitialized();
+  var uf: dynamic = cpp_construct((n + k));
+  var free: dynamic = 0;
+  var ans: dynamic = 0;
   sort(vp.begin(), vp.end());
-  for (var wab in vp)
+  for (var wab: dynamic in vp)
   {
     if ((uf.size() <= (free + 1)))
     {
       break;
     }
-    var w: dynamic;
-    var a: dynamic;
-    var b: dynamic;
+    var w: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     tie(w, a, b) = wab;
     if (uf.unite(a, b))
     {
@@ -480,18 +480,18 @@ func main()
   return 0;
 }
 
-func FOR(argument_0: dynamic, argument_1: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var a: dynamic;
-    var b: dynamic;
-    var w: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
+    var w: dynamic = cpp_uninitialized();
     reader(a, b, w);
     a -= 1;
     b -= 1;
     vp.emplace_back(w, a, b);
   }
 
-func FOR(argument_0: dynamic, argument_1: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     c[i] -= 1;
     if ((c[i] == -1))

@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-func r(i: dynamic, n: dynamic)
+func r(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
 class RollingHash
 {
-  var S: dynamic;
-  var B: dynamic;
-  var len: dynamic;
-  var hash: dynamic;
-  var p: dynamic;
-  func RollingHash()
+  var S: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
+  var len: dynamic = cpp_uninitialized();
+  var hash: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  func RollingHash() -> dynamic
   {
     }
-  func RollingHash(S: dynamic, B: dynamic = 1000000009)
+  func RollingHash(S: dynamic, B: dynamic = 1000000009) -> dynamic
   {
-      this->S = cpp_construct(S);
-      this->B = cpp_construct(B);
-      this->len = cpp_construct(S.length());
-      this->hash = cpp_construct((len + 1));
-      this->p = cpp_construct((len + 1));
+      self->S = cpp_construct(S);
+      self->B = cpp_construct(B);
+      self->len = cpp_construct(S.length());
+      self->hash = cpp_construct((len + 1));
+      self->p = cpp_construct((len + 1));
       hash[0] = 0;
       p[0] = 1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < len))
         {
           hash[(i + 1)] = ((hash[i] * B) + S[i]);
@@ -40,20 +40,20 @@ class RollingHash
         }
       }
     }
-  func find(l: dynamic, r: dynamic)
+  func find(l: dynamic, r: dynamic) -> dynamic
   {
       return (hash[r] - (hash[l] * p[(r - l)]));
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var t = s;
-  var st: dynamic;
+  var t: dynamic = s;
+  var st: dynamic = cpp_uninitialized();
   reverse(t.begin(), t.end());
   if ((st.size() == 1))
   {
@@ -61,22 +61,22 @@ func main()
     return 0;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
-      var idx = 0;
-      var F = 0;
-      var A = S.find(0, i);
+      var idx: dynamic = 0;
+      var F: dynamic = 0;
+      var A: dynamic = S.find(0, i);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while (true)
         {
           if (((j % 2) == 0))
           {
             if (((idx + i) > n))
             {
-              var x = (n - idx);
-              var has = S.find(0, x);
+              var x: dynamic = (n - idx);
+              var has: dynamic = S.find(0, x);
               if ((S.find(idx, n) != has))
               {
                 F += 1;
@@ -94,7 +94,7 @@ func main()
           {
             if ((((n - idx) - i) < 0))
             {
-              var has = S.find((i - ((n - idx))), i);
+              var has: dynamic = S.find((i - ((n - idx))), i);
               if ((T.find(0, (n - idx)) != has))
               {
                 F += 1;
@@ -127,7 +127,7 @@ func main()
   }
 }
 
-func r(argument_0: dynamic, argument_1: dynamic)
+func r(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     st.insert(s[i]);
   }

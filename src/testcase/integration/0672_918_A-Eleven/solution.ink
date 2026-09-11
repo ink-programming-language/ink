@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
-  var x = 1;
-  var y = 1;
+  var x: dynamic = 1;
+  var y: dynamic = 1;
   s.insert(1);
   {
-    var z = 2;
+    var z: dynamic = 2;
     while ((z <= 1000))
     {
       s.insert(z);
@@ -21,13 +21,13 @@ func init()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   init();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((s.find(i) != s.end()))

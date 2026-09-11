@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var f = cpp_array(3, 200000);
+var f: dynamic = cpp_array(3, 200000);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var s1 = cpp_array(200000);
+var s1: dynamic = cpp_array(200000);
 
-var s2 = cpp_array(200000);
+var s2: dynamic = cpp_array(200000);
 
-var ok: dynamic;
+var ok: dynamic = cpp_uninitialized();
 
-func dfs(x: dynamic, y: dynamic)
+func dfs(x: dynamic, y: dynamic) -> dynamic
 {
   if (ok)
   {
     return;
   }
-  var Nxt = (x + K);
+  var Nxt: dynamic = (x + K);
   if ((Nxt > N))
   {
     ok = 1;
@@ -61,7 +61,7 @@ func dfs(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(N, K);

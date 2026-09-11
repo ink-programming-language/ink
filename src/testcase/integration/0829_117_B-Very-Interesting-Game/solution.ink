@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var MAX = ((1000 * 1000) * 1000);
+var MAX: dynamic = ((1000 * 1000) * 1000);
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var m: dynamic;
-  var i: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   read(a, b, m);
   if (((m <= (b + 1)) || ((MAX % m) == 0)))
   {
@@ -18,7 +18,7 @@ func main()
     i = 1;
     while ((i <= min((m - 1), a)))
     {
-      var k = ((MAX * i) % m);
+      var k: dynamic = ((MAX * i) % m);
       if (((0 < k) && (k < (m - b))))
       {
         printf("1\n%09I64d", i);

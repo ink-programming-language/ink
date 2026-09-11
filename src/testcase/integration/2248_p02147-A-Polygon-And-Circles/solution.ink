@@ -1,48 +1,48 @@
 // Translated from solution.cpp.
 
-var X = cpp_expression("#inclu");
+var X: dynamic = cpp_expression("#inclu");
 
-var Y = cpp_expression("#inclu");
+var Y: dynamic = cpp_expression("#inclu");
 
-var EPS = (1e-10);
+var EPS: dynamic = (1e-10);
 
-var INF = (1e15);
+var INF: dynamic = (1e15);
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a.X != b.X)) (a.X < b.X) else (a.Y < b.Y);
+  return  ((a.X != b.X)) ? (a.X < b.X) : (a.Y < b.Y);
 }
 
-func cmp_y(a: dynamic, b: dynamic)
+func cmp_y(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a.Y != b.Y)) (a.Y < b.Y) else (a.X < b.X);
+  return  ((a.Y != b.Y)) ? (a.Y < b.Y) : (a.X < b.X);
 }
 
-func operator_equal(a: dynamic, b: dynamic)
+func operator_equal(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs((a - b)) < EPS);
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.X * b.X) + (a.Y * b.Y));
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.X * b.Y) - (a.Y * b.X));
 }
 
-func intersection(a: dynamic, b: dynamic)
+func intersection(a: dynamic, b: dynamic) -> dynamic
 {
-  var af = a.first;
-  var as_cpp = a.second;
-  var bf = b.first;
-  var bs = b.second;
+  var af: dynamic = a.first;
+  var as_cpp: dynamic = a.second;
+  var bf: dynamic = b.first;
+  var bs: dynamic = b.second;
   return (af + ((cross((bs - bf), (af - bf)) / (((-cross((bs - bf), (as_cpp - bf))) + cross((bs - bf), (af - bf))))) * ((as_cpp - af))));
 }
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b -= a;
   c -= a;
@@ -65,12 +65,12 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   return 0;
 }
 
-func convex_cut(p: dynamic, l: dynamic)
+func convex_cut(p: dynamic, l: dynamic) -> dynamic
 {
-  var ret: dynamic;
-  var n = p.size();
+  var ret: dynamic = cpp_uninitialized();
+  var n: dynamic = p.size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((ccw(l.first, l.second, p[i]) != -1))
@@ -87,44 +87,44 @@ func convex_cut(p: dynamic, l: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var Po: dynamic;
+  var Po: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       Po.emplace_back(x, y);
       i += 1;
     }
   }
-  var M: dynamic;
+  var M: dynamic = cpp_uninitialized();
   read(M);
-  var C: dynamic;
+  var C: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       C.emplace_back(x, y);
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
-      var Q = Po;
+      var Q: dynamic = Po;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < M))
         {
           if ((j == i))
@@ -132,13 +132,13 @@ func main()
             j += 1;
             continue;
           }
-          var m = (((C[i] + C[j])) / 2.0);
+          var m: dynamic = (((C[i] + C[j])) / 2.0);
           Q = convex_cut(Q, L(m, (m + (((C[j] - C[i])) * P(0, 1)))));
           j += 1;
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < Q.size()))
         {
           ans = max(ans, abs((Q[j] - C[i])));

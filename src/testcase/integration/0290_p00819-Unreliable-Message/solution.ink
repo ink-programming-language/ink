@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0; i<(n); i++)");
 }
 
-var INF = cpp_expression("#in");
+var INF: dynamic = cpp_expression("#in");
 
-func is_digit(x: dynamic)
+func is_digit(x: dynamic) -> dynamic
 {
   {
-    var i = 48;
+    var i: dynamic = 48;
     while ((i <= 57))
     {
       if ((x == i))
@@ -23,20 +23,20 @@ func is_digit(x: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var s: dynamic;
-    var t: dynamic;
+    var s: dynamic = cpp_uninitialized();
+    var t: dynamic = cpp_uninitialized();
     read(s, t);
     {
-      var i = (s.size() - 1);
+      var i: dynamic = (s.size() - 1);
       while ((i >= 0))
       {
         if ((s[i] == cpp_char("J")))

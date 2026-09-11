@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var q = cpp_array(5, 50000);
+var q: dynamic = cpp_array(5, 50000);
 
-var sh = cpp_array(2500, 2500);
+var sh: dynamic = cpp_array(2500, 2500);
 
-var vis = cpp_array(2500, 2500);
+var vis: dynamic = cpp_array(2500, 2500);
 
-func bfs()
+func bfs() -> dynamic
 {
-  var i = 0;
-  var j = 1;
+  var i: dynamic = 0;
+  var j: dynamic = 1;
   sh[1000][1000] = n;
   q[0][0] = 1000;
   q[0][1] = 1000;
   while ((i < j))
   {
-    var x = q[(i % 40000)][0];
-    var y = q[(i % 40000)][1];
+    var x: dynamic = q[(i % 40000)][0];
+    var y: dynamic = q[(i % 40000)][1];
     sh[(x + 1)][y] += (sh[x][y] / 4);
     sh[(x - 1)][y] += (sh[x][y] / 4);
     sh[x][(y + 1)] += (sh[x][y] / 4);
@@ -59,16 +59,16 @@ func bfs()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&n), (&t));
   bfs();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t))
     {
-      var h: dynamic;
-      var g: dynamic;
+      var h: dynamic = cpp_uninitialized();
+      var g: dynamic = cpp_uninitialized();
       scanf("%d %d", (&h), (&g));
       h += 1000;
       g += 1000;

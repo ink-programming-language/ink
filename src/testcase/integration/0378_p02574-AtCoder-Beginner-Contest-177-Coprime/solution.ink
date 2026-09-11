@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var f = cpp_array(1202020);
+var f: dynamic = cpp_array(1202020);
 
-var siz = cpp_array(202020);
+var siz: dynamic = cpp_array(202020);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var sum = 0;
+var sum: dynamic = 0;
 
-func getf(x: dynamic)
+func getf(x: dynamic) -> dynamic
 {
   if ((x == f[x]))
   {
@@ -19,17 +19,17 @@ func getf(x: dynamic)
   return cpp_assign(f[x], "=", getf(f[x]));
 }
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var aa: dynamic;
+var aa: dynamic = cpp_uninitialized();
 
-var bb: dynamic;
+var bb: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&aa));
@@ -37,14 +37,14 @@ func main()
       i += 1;
     }
   }
-  var fl = 0;
+  var fl: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= 1000000))
     {
-      var sum = 0;
+      var sum: dynamic = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while (((j * i) <= 1000000))
         {
           sum += f[(i * j)];

@@ -1,66 +1,66 @@
 // Translated from solution.cpp.
 
-var kMax = 100010;
+var kMax: dynamic = 100010;
 
 class Query
 {
-  var ql: dynamic;
-  var qr: dynamic;
-  var qi: dynamic;
-  func Query(ql: dynamic, qr: dynamic, qi: dynamic)
+  var ql: dynamic = cpp_uninitialized();
+  var qr: dynamic = cpp_uninitialized();
+  var qi: dynamic = cpp_uninitialized();
+  func Query(ql: dynamic, qr: dynamic, qi: dynamic) -> dynamic
   {
       ql = ql;
       qr = qr;
       qi = qi;
     }
-  func operator_less(rq: dynamic)
+  func operator_less(rq: dynamic) -> dynamic
   {
       return (qr < rq.qr);
     }
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var si = cpp_array(kMax);
+var si: dynamic = cpp_array(kMax);
 
-var di = cpp_array(kMax);
+var di: dynamic = cpp_array(kMax);
 
-var lf = cpp_array(kMax);
+var lf: dynamic = cpp_array(kMax);
 
-var rg = cpp_array(kMax);
+var rg: dynamic = cpp_array(kMax);
 
-var dfn: dynamic;
+var dfn: dynamic = cpp_uninitialized();
 
-var max_dpt: dynamic;
+var max_dpt: dynamic = cpp_uninitialized();
 
-var tree = cpp_array(kMax);
+var tree: dynamic = cpp_array(kMax);
 
-var vsi = cpp_array(kMax);
+var vsi: dynamic = cpp_array(kMax);
 
-var vlf = cpp_array(kMax);
+var vlf: dynamic = cpp_array(kMax);
 
-var vrg = cpp_array(kMax);
+var vrg: dynamic = cpp_array(kMax);
 
-var qvi = cpp_array(kMax);
+var qvi: dynamic = cpp_array(kMax);
 
-var qki = cpp_array(kMax);
+var qki: dynamic = cpp_array(kMax);
 
-var vq = cpp_array(kMax);
+var vq: dynamic = cpp_array(kMax);
 
-var res = cpp_array(kMax);
+var res: dynamic = cpp_array(kMax);
 
-var f = cpp_array(kMax);
+var f: dynamic = cpp_array(kMax);
 
-var rm_pos: dynamic;
+var rm_pos: dynamic = cpp_uninitialized();
 
-func low_bit(i: dynamic)
+func low_bit(i: dynamic) -> dynamic
 {
   return (i & ((-i)));
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read();
@@ -69,16 +69,16 @@ func main()
   return 0;
 }
 
-func read(argument_0: dynamic)
+func read(argument_0: dynamic) -> dynamic
 {
-  var str: dynamic;
-  var prn: dynamic;
-  var id_cnt: dynamic;
-  var name_id: dynamic;
+  var str: dynamic = cpp_uninitialized();
+  var prn: dynamic = cpp_uninitialized();
+  var id_cnt: dynamic = cpp_uninitialized();
+  var name_id: dynamic = cpp_uninitialized();
   read(N);
   id_cnt = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       read(str, prn);
@@ -93,7 +93,7 @@ func read(argument_0: dynamic)
   }
   read(Q);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Q))
     {
       read(qvi[i], qki[i]);
@@ -102,16 +102,16 @@ func read(argument_0: dynamic)
   }
 }
 
-func prep(argument_0: dynamic)
+func prep(argument_0: dynamic) -> dynamic
 {
-  var vi: dynamic;
-  var ki: dynamic;
-  var d: dynamic;
-  var l: dynamic;
-  var r: dynamic;
+  var vi: dynamic = cpp_uninitialized();
+  var ki: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   dfs(0, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Q))
     {
       vi = qvi[i];
@@ -127,7 +127,7 @@ func prep(argument_0: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= max_dpt))
     {
       stable_sort(vq[i].begin(), vq[i].end());
@@ -136,18 +136,18 @@ func prep(argument_0: dynamic)
   }
 }
 
-func soups_on(argument_0: dynamic)
+func soups_on(argument_0: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= max_dpt))
     {
-      var p: dynamic;
-      var q: dynamic;
+      var p: dynamic = cpp_uninitialized();
+      var q: dynamic = cpp_uninitialized();
       p = cpp_assign(q, "=", 0);
       while ((q < int_cpp(vq[i].size())))
       {
-        var rq = vq[i][q];
+        var rq: dynamic = vq[i][q];
         while ((p < rq.qr))
         {
           if (rm_pos.count(vsi[i][p]))
@@ -162,7 +162,7 @@ func soups_on(argument_0: dynamic)
         q += 1;
       }
       {
-        var itr = rm_pos.begin();
+        var itr: dynamic = rm_pos.begin();
         while ((itr != rm_pos.end()))
         {
           update((itr->second + 1), -1);
@@ -174,7 +174,7 @@ func soups_on(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Q))
     {
       write(res[i], "\n");
@@ -183,14 +183,14 @@ func soups_on(argument_0: dynamic)
   }
 }
 
-func dfs(u: dynamic, lv: dynamic)
+func dfs(u: dynamic, lv: dynamic) -> dynamic
 {
   di[u] = lv;
   vsi[lv].push_back(si[u]);
   vlf[lv].push_back(cpp_assign(lf[u], "=", dfn));
   dfn += 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(tree[u].size())))
     {
       dfs(tree[u][i], (lv + 1));
@@ -202,7 +202,7 @@ func dfs(u: dynamic, lv: dynamic)
   max_dpt = max(max_dpt, lv);
 }
 
-func update(i: dynamic, dlt: dynamic)
+func update(i: dynamic, dlt: dynamic) -> dynamic
 {
   while ((i < kMax))
   {
@@ -211,9 +211,9 @@ func update(i: dynamic, dlt: dynamic)
   }
 }
 
-func query_sum(i: dynamic)
+func query_sum(i: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   while ((i > 0))
   {
     ret += f[i];

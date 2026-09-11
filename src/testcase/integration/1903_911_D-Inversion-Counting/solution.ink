@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var LL_INF = 0x3f3f3f3f3f3f3f3f;
+var LL_INF: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var PI = acos(-1);
+var PI: dynamic = acos(-1);
 
-var ERR = 1e-8;
+var ERR: dynamic = 1e-8;
 
-var MAXN = 1e7;
+var MAXN: dynamic = 1e7;
 
-var a = cpp_array(2000);
+var a: dynamic = cpp_array(2000);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
       i += 1;
     }
   }
-  var l: dynamic;
-  var r: dynamic;
-  var m: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%d", (&m));
-  var c = 0;
+  var c: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j <= n))
         {
           if ((a[i] > a[j]))
@@ -55,7 +55,7 @@ func main(argc: dynamic, argv: dynamic)
     scanf("%d%d", (&l), (&r));
     if ((l < r))
     {
-      var t = (((r - l) + 1));
+      var t: dynamic = (((r - l) + 1));
       c += ((((t * ((t - 1))) / 2)) % 2);
     }
     if ((!((c % 2))))

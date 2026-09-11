@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var s = [1, 0, 0, 0, 1, 0, 1, 0, 2, 1, 1, 2, 0, 1, 0, 0];
+var s: dynamic = [1, 0, 0, 0, 1, 0, 1, 0, 2, 1, 1, 2, 0, 1, 0, 0];
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m = 0;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = 0;
   scanf("%d", (&n));
   if ((n == 0))
   {

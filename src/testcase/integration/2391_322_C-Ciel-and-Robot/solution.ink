@@ -2,42 +2,42 @@
 
 class node
 {
-  var x: dynamic;
-  var y: dynamic;
-  func node(a: dynamic, b: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func node(a: dynamic, b: dynamic) -> dynamic
   {
-      this->x = cpp_construct(a);
-      this->y = cpp_construct(b);
+      self->x = cpp_construct(a);
+      self->y = cpp_construct(b);
     }
-  func node()
+  func node() -> dynamic
   {
-      this->x = cpp_construct(0);
-      this->y = cpp_construct(0);
+      self->x = cpp_construct(0);
+      self->y = cpp_construct(0);
     }
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a.x == b.x)) (a.y < b.y) else (a.x < b.x);
+  return  ((a.x == b.x)) ? (a.y < b.y) : (a.x < b.x);
 }
 
-func main()
+func main() -> dynamic
 {
-  var dir: dynamic;
+  var dir: dynamic = cpp_uninitialized();
   dir[cpp_char("U")] = 0;
   dir[cpp_char("D")] = 1;
   dir[cpp_char("L")] = 2;
   dir[cpp_char("R")] = 3;
-  var dirdir = [[0, 1], [0, -1], [-1, 0], [1, 0]];
-  var des: dynamic;
+  var dirdir: dynamic = [[0, 1], [0, -1], [-1, 0], [1, 0]];
+  var des: dynamic = cpp_uninitialized();
   read(des.x, des.y);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var scope: dynamic;
+  var scope: dynamic = cpp_uninitialized();
   scope.insert(node(0, 0));
-  var move = cpp_construct(0, 0);
+  var move: dynamic = cpp_construct(0, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       move.x += dirdir[dir[s[i]]][0];
@@ -46,10 +46,10 @@ func main()
       i += 1;
     }
   }
-  var source = cpp_construct(0, 0);
-  var flag = false;
+  var source: dynamic = cpp_construct(0, 0);
+  var flag: dynamic = false;
   {
-    var it = scope.begin();
+    var it: dynamic = scope.begin();
     while ((it != scope.end()))
     {
       if (((move.x == 0) && (move.y == 0)))

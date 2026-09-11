@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var maxn = (1e6 + 5);
+var maxn: dynamic = (1e6 + 5);
 
-var N = (4e5 + 5);
+var N: dynamic = (4e5 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   read(n, k);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var L = 1;
-  var R = 0;
-  var ok = false;
-  var ans = 0;
+  var L: dynamic = 1;
+  var R: dynamic = 0;
+  var ok: dynamic = false;
+  var ans: dynamic = 0;
   while ((R <= n))
   {
     if (ok)

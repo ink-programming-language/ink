@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var H = 10;
+var H: dynamic = 10;
 
-var W = 10;
+var W: dynamic = 10;
 
-var G = cpp_array(W, H);
+var G: dynamic = cpp_array(W, H);
 
-var ans = cpp_array(W, H);
+var ans: dynamic = cpp_array(W, H);
 
-func put(i: dynamic, j: dynamic)
+func put(i: dynamic, j: dynamic) -> dynamic
 {
-  var di = [0, 1, 0, -1, 0];
-  var dj = [1, 0, -1, 0, 0];
+  var di: dynamic = [0, 1, 0, -1, 0];
+  var dj: dynamic = [1, 0, -1, 0, 0];
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < 5))
     {
-      var ni = (i + di[k]);
-      var nj = (j + dj[k]);
+      var ni: dynamic = (i + di[k]);
+      var nj: dynamic = (j + dj[k]);
       if (((ni < 0) || (ni >= H)))
       {
         k += 1;
@@ -34,7 +34,7 @@ func put(i: dynamic, j: dynamic)
   }
 }
 
-func rec(i: dynamic, j: dynamic)
+func rec(i: dynamic, j: dynamic) -> dynamic
 {
   if ((j == W))
   {
@@ -44,7 +44,7 @@ func rec(i: dynamic, j: dynamic)
   if ((i == H))
   {
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < W))
       {
         if (G[(H - 1)][j])
@@ -93,18 +93,18 @@ func rec(i: dynamic, j: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   while (cpp_update(n, "--"))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < H))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < W))
           {
             read(G[i][j]);
@@ -116,11 +116,11 @@ func main()
     }
     rec(0, 0);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < H))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < W))
           {
             if (j)

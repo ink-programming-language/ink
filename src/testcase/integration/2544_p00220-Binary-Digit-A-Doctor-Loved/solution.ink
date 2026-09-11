@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var d: dynamic;
+  var d: dynamic = cpp_uninitialized();
   while (cpp_comma((cin >> d), (d >= 0)))
   {
-    var a = 0;
-    var b = "";
+    var a: dynamic = 0;
+    var b: dynamic = "";
     a = d;
     d -= a;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
         b += cpp_cast(((((d * 2)) + cpp_char("0"))));
@@ -28,7 +28,7 @@ func main()
     } else
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 8))
         {
           write((!(!((a & ((1 << ((7 - i)))))))));

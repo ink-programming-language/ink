@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func ok(p: dynamic)
+func ok(p: dynamic) -> dynamic
 {
-  var f = true;
+  var f: dynamic = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       f &= (a[i] < p);
@@ -20,18 +20,18 @@ func ok(p: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < b.size()))
     {
       f &= (b[i] < p);
       i += 1;
     }
   }
-  var h: dynamic;
-  var m: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   h = cpp_assign(m, "=", 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       h *= p;
@@ -40,7 +40,7 @@ func ok(p: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < b.size()))
     {
       m *= p;
@@ -51,10 +51,10 @@ func ok(p: dynamic)
   return ((f && ((m < 60))) && ((h < 24)));
 }
 
-func main()
+func main() -> dynamic
 {
   read(s);
-  var i = 0;
+  var i: dynamic = 0;
   while ((s[i] != cpp_char(":")))
   {
     if (((s[i] >= cpp_char("0")) && (s[i] <= cpp_char("9"))))
@@ -68,7 +68,7 @@ func main()
   }
   s.erase(s.begin(), ((s.begin() + s.find(cpp_char(":"))) + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if (((s[i] >= cpp_char("0")) && (s[i] <= cpp_char("9"))))
@@ -87,7 +87,7 @@ func main()
     return 0;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < 60))
     {
       if (ok(i))
@@ -104,7 +104,7 @@ func main()
   }
   write(v[0]);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < v.size()))
     {
       write(cpp_char(" "), v[i]);

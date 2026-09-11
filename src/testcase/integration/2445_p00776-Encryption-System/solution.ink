@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-func FOR(i: dynamic, a: dynamic, b: dynamic)
+func FOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(a);i<(b);++i)");
 }
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <");
 }
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func rec(idx: dynamic, state: dynamic, sum: dynamic)
+func rec(idx: dynamic, state: dynamic, sum: dynamic) -> dynamic
 {
   if ((idx == s.size()))
   {
     ans.push_back(sum);
     return;
   }
-  var c = s[idx];
+  var c: dynamic = s[idx];
   if (state[(c - cpp_char("a"))])
   {
     rec((idx + 1), state, (sum + c));
@@ -33,12 +33,12 @@ func rec(idx: dynamic, state: dynamic, sum: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   while (((cin >> s) && (s != "#")))
   {
     ans.clear();
-    var state = cpp_construct(26, false);
+    var state: dynamic = cpp_construct(26, false);
     state[0] = true;
     rec(0, state, "");
     write(ans.size(), "\n");

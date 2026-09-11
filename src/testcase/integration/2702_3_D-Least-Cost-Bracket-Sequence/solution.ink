@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var str = cpp_array(50010);
+var str: dynamic = cpp_array(50010);
 
-var cnt = 0;
+var cnt: dynamic = 0;
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
 class cost
 {
-  var p: dynamic;
-  var v: dynamic;
-  func operator_less(a: dynamic)
+  var p: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  func operator_less(a: dynamic) -> dynamic
   {
       return (v < a.v);
     }
 }
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func make(p: dynamic, v: dynamic)
+func make(p: dynamic, v: dynamic) -> dynamic
 {
   return [p, v];
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", str);
   len = strlen(str);
   ans = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < len))
     {
       cnt += (str[i] == cpp_char("("));
@@ -54,7 +54,7 @@ func main()
       }
       if ((cnt < 0))
       {
-        var top = q.top();
+        var top: dynamic = q.top();
         q.pop();
         ans = (ans - top.v);
         str[top.p] = cpp_char("(");

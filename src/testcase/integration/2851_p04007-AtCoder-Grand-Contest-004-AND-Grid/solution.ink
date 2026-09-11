@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var map = cpp_array(500, 500);
+var map: dynamic = cpp_array(500, 500);
 
-var ans1 = cpp_array(500, 500);
+var ans1: dynamic = cpp_array(500, 500);
 
-func main()
+func main() -> dynamic
 {
-  var mx: dynamic;
-  var my: dynamic;
+  var mx: dynamic = cpp_uninitialized();
+  var my: dynamic = cpp_uninitialized();
   scanf("%d%d", (&mx), (&my));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < mx))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < my))
         {
-          var z: dynamic;
+          var z: dynamic = cpp_uninitialized();
           scanf(" %c", (&z));
           if ((z == cpp_char("#")))
           {
@@ -30,11 +30,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < mx))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < my))
         {
           if ((((i == 0) || ((((((0 != j) && (j != (my - 1))) && (0 != i)) && (i != (mx - 1))) && ((j % 2) == 0)))) || map[i][j]))
@@ -53,11 +53,11 @@ func main()
   }
   printf("\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < mx))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < my))
         {
           if ((((i == (mx - 1)) || ((((((0 != j) && (j != (my - 1))) && (0 != i)) && (i != (mx - 1))) && ((j % 2) == 1)))) || map[i][j]))

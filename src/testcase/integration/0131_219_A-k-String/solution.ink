@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var ara = cpp_array(26);
+  var ara: dynamic = cpp_array(26);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       ara[i] = 0;
@@ -16,8 +16,8 @@ func main()
     }
   }
   {
-    var i = 0;
-    var len = s.length();
+    var i: dynamic = 0;
+    var len: dynamic = s.length();
     while ((i < len))
     {
       ara[(s[i] - cpp_char("a"))] += 1;
@@ -25,7 +25,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       if (((ara[i] % n) != 0))
@@ -38,15 +38,15 @@ func main()
     }
   }
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < n))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 26))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < ara[i]))
             {
               printf("%c", (i + cpp_char("a")));

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var N = 100;
+var N: dynamic = 100;
 
-var INFTY = ((1 << 32));
+var INFTY: dynamic = ((1 << 32));
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var Graph = cpp_array(N, N);
+var Graph: dynamic = cpp_array(N, N);
 
-func floyd()
+func floyd() -> dynamic
 {
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < n))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((Graph[i][k] == INFTY))
@@ -24,7 +24,7 @@ func floyd()
             continue;
           }
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < n))
             {
               if ((Graph[k][j] == INFTY))
@@ -44,19 +44,19 @@ func floyd()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var Ne: dynamic;
+  var Ne: dynamic = cpp_uninitialized();
   read(n, Ne);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
-          Graph[i][j] = (if ((i == j)) 0 else INFTY);
+          Graph[i][j] = ( ((i == j)) ? 0 : INFTY);
           j += 1;
         }
       }
@@ -64,12 +64,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Ne))
     {
-      var s: dynamic;
-      var t: dynamic;
-      var d: dynamic;
+      var s: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
+      var d: dynamic = cpp_uninitialized();
       read(s, t, d);
       Graph[s][t] = d;
       i += 1;
@@ -77,7 +77,7 @@ func main()
   }
   floyd();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((Graph[i][i] < 0))
@@ -89,11 +89,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if (j)

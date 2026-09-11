@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var MAXN = cpp_cast((4000));
+var MAXN: dynamic = cpp_cast((4000));
 
-var SIGNATURE = ["b9", "91", "af", "fc", "fb", "24", "db", "04", "76", "fe", "95", "76", "b9", "03", "95", "2e"];
+var SIGNATURE: dynamic = ["b9", "91", "af", "fc", "fb", "24", "db", "04", "76", "fe", "95", "76", "b9", "03", "95", "2e"];
 
-var MOD = cpp_cast(((1e9 + 7)));
+var MOD: dynamic = cpp_cast(((1e9 + 7)));
 
-func nextInt()
+func nextInt() -> dynamic
 {
-  var d: dynamic;
+  var d: dynamic = cpp_uninitialized();
   read(d);
   return d;
 }
 
-func nextString()
+func nextString() -> dynamic
 {
-  var d: dynamic;
+  var d: dynamic = cpp_uninitialized();
   read(d);
   return d;
 }
 
-func nextChar()
+func nextChar() -> dynamic
 {
-  var d: dynamic;
+  var d: dynamic = cpp_uninitialized();
   read(d);
   return d;
 }
 
-func isPair(l: dynamic, r: dynamic)
+func isPair(l: dynamic, r: dynamic) -> dynamic
 {
   return (cpp_binary(((l == cpp_char("(")) && (r == cpp_char(")"))), "or", ((l == cpp_char("[")) && (r == cpp_char("]")))));
 }
 
-func slurp(filename: dynamic)
+func slurp(filename: dynamic) -> dynamic
 {
-  var str: dynamic;
+  var str: dynamic = cpp_uninitialized();
   (str << in_cpp.rdbuf());
   return str.str();
 }
 
-func split(hay: dynamic, delim: dynamic, delim2: dynamic = cpp_char("\u{0}"))
+func split(hay: dynamic, delim: dynamic, delim2: dynamic = cpp_char("\u{0}")) -> dynamic
 {
-  var answer: dynamic;
-  var buffer: dynamic;
-  for (var chr in hay)
+  var answer: dynamic = cpp_uninitialized();
+  var buffer: dynamic = cpp_uninitialized();
+  for (var chr: dynamic in hay)
   {
     if (((chr == delim) || (chr == delim2)))
     {
@@ -58,15 +58,15 @@ func split(hay: dynamic, delim: dynamic, delim2: dynamic = cpp_char("\u{0}"))
   return answer;
 }
 
-func isEven(number: dynamic)
+func isEven(number: dynamic) -> dynamic
 {
-  var last = (((*number.rbegin())) - cpp_char("0"));
+  var last: dynamic = (((*number.rbegin())) - cpp_char("0"));
   return (((last % 2) == 0));
 }
 
-func operator_multiply(a: dynamic, b: dynamic)
+func operator_multiply(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = "";
+  var res: dynamic = "";
   while (cpp_update(b, "--"))
   {
     res += a;
@@ -74,11 +74,11 @@ func operator_multiply(a: dynamic, b: dynamic)
   return res;
 }
 
-func isPali(a: dynamic)
+func isPali(a: dynamic) -> dynamic
 {
-  var n = cpp_cast(a.size());
+  var n: dynamic = cpp_cast(a.size());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(n)))
     {
       if ((a[i] != a[((n - i) - 1)]))
@@ -91,49 +91,49 @@ func isPali(a: dynamic)
   return 1;
 }
 
-func countPairs(n: dynamic)
+func countPairs(n: dynamic) -> dynamic
 {
   return ((n * ((n + 1))) / 2);
 }
 
-func makeNumPair(a: dynamic, b: dynamic)
+func makeNumPair(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a * 10000) + b);
 }
 
-func getStringOrInt()
+func getStringOrInt() -> dynamic
 {
-  return (if ((rand() % 2)) "string" else 0);
+  return ( ((rand() % 2)) ? "string" : 0);
 }
 
 class trio
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
 }
 
-func toLower(src: dynamic)
+func toLower(src: dynamic) -> dynamic
 {
-  var tmp = src;
+  var tmp: dynamic = src;
   transform(tmp.begin(), tmp.end(), tmp.begin(), tolower);
   return tmp;
 }
 
-func main()
+func main() -> dynamic
 {
   solve();
   return 0;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   while (cpp_update(n, "--"))
   {
-    var d: dynamic;
+    var d: dynamic = cpp_uninitialized();
     read(d);
     a.push_back(d);
   }

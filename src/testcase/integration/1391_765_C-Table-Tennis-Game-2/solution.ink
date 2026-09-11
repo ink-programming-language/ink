@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
-  var a: dynamic;
-  var b: dynamic;
+  var k: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(k, a, b);
-  var g1 = (a / k);
-  var g2 = (b / k);
-  var mod2 = (b % k);
-  var mod1 = (a % k);
+  var g1: dynamic = (a / k);
+  var g2: dynamic = (b / k);
+  var mod2: dynamic = (b % k);
+  var mod1: dynamic = (a % k);
   if (((mod1 != 0) && (g2 == 0)))
   {
     write("-1");

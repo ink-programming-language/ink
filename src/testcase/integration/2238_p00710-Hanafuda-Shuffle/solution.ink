@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var m = cpp_array(4, 4);
+var m: dynamic = cpp_array(4, 4);
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var n: dynamic;
-  var r: dynamic;
-  var p: dynamic;
-  var c: dynamic;
-  var f = cpp_array(51);
-  var buf = cpp_array(51);
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_array(51);
+  var buf: dynamic = cpp_array(51);
   while (cpp_comma(((cin >> n) >> r), ((n || r))))
   {
     {

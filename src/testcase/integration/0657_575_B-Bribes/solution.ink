@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var c = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   {
     while ((!isdigit(c)))
     {
@@ -27,59 +27,59 @@ func read()
 
 class Edge
 {
-  var to: dynamic;
-  var nxt: dynamic;
-  var type_cpp: dynamic;
-  func Edge()
+  var to: dynamic = cpp_uninitialized();
+  var nxt: dynamic = cpp_uninitialized();
+  var type_cpp: dynamic = cpp_uninitialized();
+  func Edge() -> dynamic
   {
     }
-  func Edge(to: dynamic, nxt: dynamic, type_cpp: dynamic)
+  func Edge(to: dynamic, nxt: dynamic, type_cpp: dynamic) -> dynamic
   {
-      this->to = cpp_construct(to);
-      this->nxt = cpp_construct(nxt);
-      this->type_cpp = cpp_construct(type_cpp);
+      self->to = cpp_construct(to);
+      self->nxt = cpp_construct(nxt);
+      self->type_cpp = cpp_construct(type_cpp);
     }
 }
 
-var edge = cpp_array((100099 * 2));
+var edge: dynamic = cpp_array((100099 * 2));
 
-var first = cpp_array(100099);
+var first: dynamic = cpp_array(100099);
 
-var nume: dynamic;
+var nume: dynamic = cpp_uninitialized();
 
-func Addedge(a: dynamic, b: dynamic, c: dynamic)
+func Addedge(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   edge[nume] = Edge(b, first[a], c);
   first[a] = cpp_update(nume, "++");
 }
 
-var fa = cpp_array(100099);
+var fa: dynamic = cpp_array(100099);
 
-var son = cpp_array(100099);
+var son: dynamic = cpp_array(100099);
 
-var size = cpp_array(100099);
+var size: dynamic = cpp_array(100099);
 
-var up = cpp_array(100099);
+var up: dynamic = cpp_array(100099);
 
-var down = cpp_array(100099);
+var down: dynamic = cpp_array(100099);
 
-var top = cpp_array(100099);
+var top: dynamic = cpp_array(100099);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var deep = cpp_array(100099);
+var deep: dynamic = cpp_array(100099);
 
-var Pow = cpp_array(1000009);
+var Pow: dynamic = cpp_array(1000009);
 
-func dfs1(u: dynamic, f: dynamic)
+func dfs1(u: dynamic, f: dynamic) -> dynamic
 {
   size[u] = 1;
   son[u] = 0;
   {
-    var e = first[u];
+    var e: dynamic = first[u];
     while ((~e))
     {
-      var v = edge[e].to;
+      var v: dynamic = edge[e].to;
       if ((v != f))
       {
         deep[v] = (deep[u] + 1);
@@ -96,7 +96,7 @@ func dfs1(u: dynamic, f: dynamic)
   }
 }
 
-func dfs2(u: dynamic, chain: dynamic)
+func dfs2(u: dynamic, chain: dynamic) -> dynamic
 {
   top[u] = chain;
   if (son[u])
@@ -104,10 +104,10 @@ func dfs2(u: dynamic, chain: dynamic)
     dfs2(son[u], chain);
   }
   {
-    var e = first[u];
+    var e: dynamic = first[u];
     while ((~e))
     {
-      var v = edge[e].to;
+      var v: dynamic = edge[e].to;
       if (((v != son[u]) && (v != fa[u])))
       {
         dfs2(v, v);
@@ -117,7 +117,7 @@ func dfs2(u: dynamic, chain: dynamic)
   }
 }
 
-func lca(x: dynamic, y: dynamic)
+func lca(x: dynamic, y: dynamic) -> dynamic
 {
   while ((top[x] != top[y]))
   {
@@ -129,18 +129,18 @@ func lca(x: dynamic, y: dynamic)
       y = fa[top[y]];
     }
   }
-  return if ((deep[x] > deep[y])) y else x;
+  return  ((deep[x] > deep[y])) ? y : x;
 }
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   {
-    var e = first[u];
+    var e: dynamic = first[u];
     while ((~e))
     {
-      var v = edge[e].to;
+      var v: dynamic = edge[e].to;
       if ((v == fa[u]))
       {
         e = edge[e].nxt;
@@ -162,12 +162,12 @@ func dfs(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   Pow[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 1000000))
     {
       Pow[i] = (((1 * Pow[(i - 1)]) * 2) % 1000000007);
@@ -177,12 +177,12 @@ func main()
   memset(first, -1, cpp_sizeof((first)));
   nume = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var a = read();
-      var b = read();
-      var c = read();
+      var a: dynamic = read();
+      var b: dynamic = read();
+      var c: dynamic = read();
       if ((!c))
       {
         Addedge(a, b, 0);
@@ -201,14 +201,14 @@ func main()
   dfs2(1, 1);
   memset(up, 0, cpp_sizeof((up)));
   memset(down, 0, cpp_sizeof((down)));
-  var K = read();
-  var last = 1;
+  var K: dynamic = read();
+  var last: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= K))
     {
-      var now = read();
-      var tmp = lca(last, now);
+      var now: dynamic = read();
+      var tmp: dynamic = lca(last, now);
       up[last] += 1;
       up[tmp] -= 1;
       down[now] += 1;

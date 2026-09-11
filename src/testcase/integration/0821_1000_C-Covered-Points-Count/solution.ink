@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var maxn = (2e6 + 5);
+var maxn: dynamic = (2e6 + 5);
 
-var l = cpp_array(maxn);
+var l: dynamic = cpp_array(maxn);
 
-var r = cpp_array(maxn);
+var r: dynamic = cpp_array(maxn);
 
-var ans = cpp_array(maxn);
+var ans: dynamic = cpp_array(maxn);
 
-var tl = cpp_array(maxn);
+var tl: dynamic = cpp_array(maxn);
 
-var tr = cpp_array(maxn);
+var tr: dynamic = cpp_array(maxn);
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var ds: dynamic;
+  var ds: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(l[i], r[i]);
@@ -38,7 +38,7 @@ func main()
   sort(ds.begin(), ds.end());
   ds.resize((unique(ds.begin(), ds.end()) - ds.begin()));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       tl[i] = (lower_bound(ds.begin(), ds.end(), l[i]) - ds.begin());
@@ -47,7 +47,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       s[tl[i]] += 1;
@@ -56,7 +56,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < maxn))
     {
       s[i] += s[(i - 1)];
@@ -64,16 +64,16 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (ds.size() - 1)))
     {
-      var nxt = (ds[(i + 1)] - 1);
+      var nxt: dynamic = (ds[(i + 1)] - 1);
       ans[s[i]] += ((nxt - ds[i]) + 1);
       i += 1;
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(ans[i], cpp_char(" "));

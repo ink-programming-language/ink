@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var p = [];
+var p: dynamic = [];
 
-var arr = [];
+var arr: dynamic = [];
 
-func prime()
+func prime() -> dynamic
 {
   p[0] = cpp_assign(p[1], "=", 1);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < 10000))
     {
       if ((p[i] == 0))
       {
         {
-          var j = (i * i);
+          var j: dynamic = (i * i);
           while ((j < 10000))
           {
             if ((p[j] == 0))
@@ -28,9 +28,9 @@ func prime()
       i += 1;
     }
   }
-  var m = 0;
+  var m: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < 10000))
     {
       arr[i] = arr[(i - 1)];
@@ -42,7 +42,7 @@ func prime()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 100))
     {
       write(i, ":", arr[i], "\n");
@@ -51,16 +51,16 @@ func prime()
   }
 }
 
-func recurse(a: dynamic, b: dynamic, v: dynamic)
+func recurse(a: dynamic, b: dynamic, v: dynamic) -> dynamic
 {
   if ((a >= b))
   {
     if ((a == b))
     {
       write("YES", "\n");
-      var s = v.size();
+      var s: dynamic = v.size();
       write(s, "\n");
-      var it: dynamic;
+      var it: dynamic = cpp_uninitialized();
       {
         it = v.begin();
         while ((it != v.end()))
@@ -73,7 +73,7 @@ func recurse(a: dynamic, b: dynamic, v: dynamic)
     }
     return 0;
   }
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   t = v;
   t.push_back((a * 2));
   if (recurse((a * 2), b, t))
@@ -89,14 +89,14 @@ func recurse(a: dynamic, b: dynamic, v: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   v.push_back(n);
-  var f = recurse(n, m, v);
+  var f: dynamic = recurse(n, m, v);
   if ((!f))
   {
     write("NO");

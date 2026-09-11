@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var v = cpp_array(5005);
+var v: dynamic = cpp_array(5005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(5005);
+var dp: dynamic = cpp_array(5005);
 
-func dist(a: dynamic, b: dynamic)
+func dist(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b >= a))
   {
@@ -21,20 +21,20 @@ func dist(a: dynamic, b: dynamic)
   }
 }
 
-func cmp(xx: dynamic, yy: dynamic)
+func cmp(xx: dynamic, yy: dynamic) -> dynamic
 {
   return (dist(x, xx) < dist(x, yy));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       a -= 1;
       b -= 1;
@@ -43,7 +43,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (v[i].empty())
@@ -58,12 +58,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var ma = -1e9;
+      var ma: dynamic = -1e9;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if (dp[j])

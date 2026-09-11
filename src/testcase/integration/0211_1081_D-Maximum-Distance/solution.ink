@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var MOD = 998244353;
+var MOD: dynamic = 998244353;
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var gr: dynamic;
+var gr: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-func dsu_get(v: dynamic)
+func dsu_get(v: dynamic) -> dynamic
 {
-  return if (((v == p[v]))) v else (cpp_assign(p[v], "=", dsu_get(p[v])));
+  return  (((v == p[v]))) ? v : (cpp_assign(p[v], "=", dsu_get(p[v])));
 }
 
-func dsu_unite(a: dynamic, b: dynamic)
+func dsu_unite(a: dynamic, b: dynamic) -> dynamic
 {
   a = dsu_get(a);
   b = dsu_get(b);
@@ -27,15 +27,15 @@ func dsu_unite(a: dynamic, b: dynamic)
   }
 }
 
-var marked: dynamic;
+var marked: dynamic = cpp_uninitialized();
 
-var used: dynamic;
+var used: dynamic = cpp_uninitialized();
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
   marked[v] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < gr[v].size()))
     {
       if ((!marked[gr[v][i].first]))
@@ -56,21 +56,21 @@ func dfs(v: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   srand(time(null));
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k);
   gr.resize(n);
   x.resize(n, 0);
-  var xf = 0;
+  var xf: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
-      var ff: dynamic;
+      var ff: dynamic = cpp_uninitialized();
       read(ff);
       ff -= 1;
       x[ff] = 1;
@@ -78,14 +78,14 @@ func main()
       i += 1;
     }
   }
-  var g: dynamic;
+  var g: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var u: dynamic;
-      var v: dynamic;
-      var w: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       read(u, v, w);
       u -= 1;
       v -= 1;
@@ -93,12 +93,12 @@ func main()
       i += 1;
     }
   }
-  var cost = 0;
-  var res: dynamic;
+  var cost: dynamic = 0;
+  var res: dynamic = cpp_uninitialized();
   sort(g.begin(), g.end());
   p.resize(n, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       p[i] = i;
@@ -106,12 +106,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var a = g[i].second.first;
-      var b = g[i].second.second;
-      var l = g[i].first;
+      var a: dynamic = g[i].second.first;
+      var b: dynamic = g[i].second.second;
+      var l: dynamic = g[i].first;
       if ((dsu_get(a) != dsu_get(b)))
       {
         cost += l;
@@ -125,7 +125,7 @@ func main()
   marked.resize(n, false);
   used.resize(res.size(), false);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < res.size()))
     {
       gr[res[i].second.first].push_back(make_pair(res[i].second.second, i));
@@ -134,9 +134,9 @@ func main()
     }
   }
   dfs(xf);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = (res.size() - 1);
+    var i: dynamic = (res.size() - 1);
     while ((i >= 0))
     {
       if (used[i])
@@ -148,7 +148,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       write(ans, " ");

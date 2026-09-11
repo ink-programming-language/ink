@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func ITS(x: dynamic)
+func ITS(x: dynamic) -> dynamic
 {
-  var s = "";
+  var s: dynamic = "";
   while ((x > 0))
   {
     s += cpp_cast((((x % 10) + cpp_char("0"))));
     x /= 10;
   }
-  var t = "";
+  var t: dynamic = "";
   {
-    var i = (s.size() - 1);
+    var i: dynamic = (s.size() - 1);
     while ((i > -1))
     {
       t += s[i];
@@ -20,25 +20,25 @@ func ITS(x: dynamic)
   return t;
 }
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var M = 2e5;
+var M: dynamic = 2e5;
 
-var online = cpp_array(M);
+var online: dynamic = cpp_array(M);
 
-var t = cpp_array(M);
+var t: dynamic = cpp_array(M);
 
-func main()
+func main() -> dynamic
 {
   cin.sync_with_stdio(false);
-  var n: dynamic;
-  var k: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(n, k, q);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(t[i]);
@@ -46,11 +46,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      var qt: dynamic;
-      var qid: dynamic;
+      var qt: dynamic = cpp_uninitialized();
+      var qid: dynamic = cpp_uninitialized();
       read(qt, qid);
       if ((qt == 1))
       {
@@ -62,7 +62,7 @@ func main()
         }
       } else
       {
-        var i: dynamic;
+        var i: dynamic = cpp_uninitialized();
         {
           i = 0;
           while ((i < k))

@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var freq = cpp_array(1000010);
+var freq: dynamic = cpp_array(1000010);
 
-var F = cpp_array(1000010);
+var F: dynamic = cpp_array(1000010);
 
-var inv = cpp_array(1000010);
+var inv: dynamic = cpp_array(1000010);
 
-var Finv = cpp_array(1000010);
+var Finv: dynamic = cpp_array(1000010);
 
-var C = cpp_array(1000010);
+var C: dynamic = cpp_array(1000010);
 
-var coef = cpp_array(1000010);
+var coef: dynamic = cpp_array(1000010);
 
-var minp = cpp_array(1000010);
+var minp: dynamic = cpp_array(1000010);
 
-func query(x: dynamic)
+func query(x: dynamic) -> dynamic
 {
-  var ans = ((C[(freq[x] + 1)] - C[freq[x]]) + 1000000007);
+  var ans: dynamic = ((C[(freq[x] + 1)] - C[freq[x]]) + 1000000007);
   if ((ans >= 1000000007))
   {
     ans -= 1000000007;
@@ -32,10 +32,10 @@ func query(x: dynamic)
   return ans;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   inv[1] = 1;
   {
     i = 2;
@@ -104,11 +104,11 @@ func main(argument_0: dynamic)
     i = 1;
     while ((i < 1000010))
     {
-      var n = i;
-      var x = i;
+      var n: dynamic = i;
+      var x: dynamic = i;
       while ((n > 1))
       {
-        var p = minp[n];
+        var p: dynamic = minp[n];
         while (((n % p) == 0))
         {
           n /= p;
@@ -119,15 +119,15 @@ func main(argument_0: dynamic)
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
     (i) = 0;
     while (((i) < cpp_cast(((N + Q)))))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       {
-        var d = 1;
+        var d: dynamic = 1;
         while (((d * d) <= x))
         {
           if (((x % d) == 0))

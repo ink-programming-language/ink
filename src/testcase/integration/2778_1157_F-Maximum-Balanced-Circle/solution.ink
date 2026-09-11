@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 9);
+var N: dynamic = (2e5 + 9);
 
-var Maxn = 2e5;
+var Maxn: dynamic = 2e5;
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var F = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var F: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
-    F = if (((ch == cpp_char("-")))) -1 else 1;
+    F =  (((ch == cpp_char("-")))) ? -1 : 1;
     ch = getchar();
   }
   while (((ch >= cpp_char("0")) && (ch <= cpp_char("9"))))
@@ -22,7 +22,7 @@ func read()
   return (x * F);
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -36,27 +36,27 @@ func write(x: dynamic)
   putchar((((x % 10)) | 48));
 }
 
-func write(x: dynamic, ch: dynamic)
+func write(x: dynamic, ch: dynamic) -> dynamic
 {
   write(x);
   putchar(ch);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       vis[read()] += 1;
@@ -64,7 +64,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (Maxn + 1)))
     {
       sum[i] = (sum[(i - 1)] + vis[i]);
@@ -72,15 +72,15 @@ func main()
     }
   }
   {
-    var i = Maxn;
+    var i: dynamic = Maxn;
     while ((i >= 1))
     {
-      f[i] = if ((vis[i] > 1)) (f[(i + 1)] + 1) else 0;
+      f[i] =  ((vis[i] > 1)) ? (f[(i + 1)] + 1) : 0;
       i -= 1;
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= Maxn))
     {
       ans = max(ans, (sum[(i + f[i])] - sum[(i - 2)]));
@@ -90,13 +90,13 @@ func main()
   }
   write(ans, "\n");
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= Maxn))
     {
       if (((sum[(i + f[i])] - sum[(i - 2)]) == ans))
       {
         {
-          var cnt = 1;
+          var cnt: dynamic = 1;
           while ((cnt <= vis[(i - 1)]))
           {
             write((i - 1), cpp_char(" "));
@@ -104,11 +104,11 @@ func main()
           }
         }
         {
-          var j = i;
+          var j: dynamic = i;
           while ((j <= ((i + f[i]) - 1)))
           {
             {
-              var cnt = 1;
+              var cnt: dynamic = 1;
               while ((cnt < vis[j]))
               {
                 write(j, cpp_char(" "));
@@ -119,7 +119,7 @@ func main()
           }
         }
         {
-          var cnt = 1;
+          var cnt: dynamic = 1;
           while ((cnt <= vis[(i + f[i])]))
           {
             write((i + f[i]), cpp_char(" "));
@@ -127,7 +127,7 @@ func main()
           }
         }
         {
-          var j = ((i + f[i]) - 1);
+          var j: dynamic = ((i + f[i]) - 1);
           while ((j >= i))
           {
             write(j, cpp_char(" "));
@@ -139,7 +139,7 @@ func main()
       if (((vis[i] + vis[(i + 1)]) == ans))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= vis[i]))
           {
             write(i, cpp_char(" "));
@@ -147,7 +147,7 @@ func main()
           }
         }
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= vis[(i + 1)]))
           {
             write((i + 1), cpp_char(" "));

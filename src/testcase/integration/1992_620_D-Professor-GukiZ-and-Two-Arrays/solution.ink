@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-func f(name: dynamic, arg1: dynamic)
+func f(name: dynamic, arg1: dynamic) -> dynamic
 {
   write(name, ": ", arg1, "\n");
 }
 
-func f(names: dynamic, arg1: dynamic, args: dynamic...)
+func f(names: dynamic, arg1: dynamic, args: dynamic...) -> dynamic
 {
-  var comma = strchr((names + 1), cpp_char(","));
+  var comma: dynamic = strchr((names + 1), cpp_char(","));
   (((cerr.write(names, (comma - names)) << ": ") << arg1) << " |");
   f((comma + 1), cpp_expand(args));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n);
-  var a = cpp_array(n);
-  var in_cpp = 0;
-  var s1 = 0;
-  var s2 = 0;
+  var a: dynamic = cpp_array(n);
+  var in_cpp: dynamic = 0;
+  var s1: dynamic = 0;
+  var s2: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -34,9 +34,9 @@ func main()
     }
   }
   read(m);
-  var b = cpp_array(m);
+  var b: dynamic = cpp_array(m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(b[i]);
@@ -44,22 +44,22 @@ func main()
       i += 1;
     }
   }
-  var c: dynamic;
-  var d: dynamic;
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   c.resize((((n * ((n - 1)))) / 2));
   d.resize((((m * ((m - 1)))) / 2));
-  var v = LONG_MAX;
-  var x1 = -1;
-  var x2 = -1;
-  var y1 = -1;
-  var y2 = -1;
+  var v: dynamic = LONG_MAX;
+  var x1: dynamic = -1;
+  var x2: dynamic = -1;
+  var y1: dynamic = -1;
+  var y2: dynamic = -1;
   v = abs((s1 - s2));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < n))
         {
           c[in_cpp] = [((2 * a[i]) + (2 * a[j])), in_cpp];
@@ -72,11 +72,11 @@ func main()
   }
   in_cpp = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < m))
         {
           d[in_cpp] = [((2 * b[i]) + (2 * b[j])), in_cpp];
@@ -88,11 +88,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((abs(((s1 - s2) + (2 * ((b[j] - a[i]))))) <= v))
@@ -107,10 +107,10 @@ func main()
       i += 1;
     }
   }
-  var it: dynamic;
+  var it: dynamic = cpp_uninitialized();
   sort(d.begin(), d.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (((n * ((n - 1)))) / 2)))
     {
       it = lower_bound(d.begin(), d.end(), make_pair(((s2 - s1) + c[i].first), cpp_cast(-1)));
@@ -149,13 +149,13 @@ func main()
     return 0;
   }
   in_cpp = 0;
-  var v1 = 0;
+  var v1: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < n))
         {
           if ((in_cpp == x2))
@@ -179,11 +179,11 @@ func main()
   in_cpp = 0;
   v1 = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < m))
         {
           if ((in_cpp == y2))

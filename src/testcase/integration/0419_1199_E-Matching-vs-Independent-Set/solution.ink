@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var N = (3e5 + 5);
+var N: dynamic = (3e5 + 5);
 
-var inf = (1e18 + 100);
+var inf: dynamic = (1e18 + 100);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-var used = cpp_array(N);
+var used: dynamic = cpp_array(N);
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (3 * n)))
     {
       g[i].clear();
@@ -22,13 +22,13 @@ func solve()
       i += 1;
     }
   }
-  var seq: dynamic;
+  var seq: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       if (((!used[u]) && (!used[v])))
       {
@@ -43,7 +43,7 @@ func solve()
   {
     write("Matching", cpp_char("\n"));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write(seq[i], cpp_char(" "));
@@ -55,7 +55,7 @@ func solve()
   }
   seq.clear();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (3 * n)))
     {
       if ((!used[i]))
@@ -69,7 +69,7 @@ func solve()
   {
     write("IndSet", cpp_char("\n"));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write(seq[i], cpp_char(" "));
@@ -82,11 +82,11 @@ func solve()
   write("Impossible", cpp_char("\n"));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   read(q);
   while (cpp_update(q, "--"))
   {

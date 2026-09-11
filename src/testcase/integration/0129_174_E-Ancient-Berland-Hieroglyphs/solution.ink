@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var lenA: dynamic;
+var lenA: dynamic = cpp_uninitialized();
 
-var lenB: dynamic;
+var lenB: dynamic = cpp_uninitialized();
 
-var A = cpp_array(1000004);
+var A: dynamic = cpp_array(1000004);
 
-var B = cpp_array(1000004);
+var B: dynamic = cpp_array(1000004);
 
-var idxB = cpp_array(1000004);
+var idxB: dynamic = cpp_array(1000004);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&lenA), (&lenB));
   {
-    var i = 0;
-    var n = (lenA);
+    var i: dynamic = 0;
+    var n: dynamic = (lenA);
     while ((i < n))
     {
       scanf("%d", (A + i));
@@ -24,8 +24,8 @@ func main()
   }
   memset(idxB, -1, cpp_sizeof((idxB)));
   {
-    var j = 0;
-    var n = (lenB);
+    var j: dynamic = 0;
+    var n: dynamic = (lenB);
     while ((j < n))
     {
       scanf("%d", (B + j));
@@ -33,16 +33,16 @@ func main()
       j += 1;
     }
   }
-  var idxV = 0;
-  var V: dynamic;
-  var offset = 0;
-  var res = 0;
+  var idxV: dynamic = 0;
+  var V: dynamic = cpp_uninitialized();
+  var offset: dynamic = 0;
+  var res: dynamic = 0;
   {
-    var k = 0;
-    var n = ((lenA * 2));
+    var k: dynamic = 0;
+    var n: dynamic = ((lenA * 2));
     while ((k < n))
     {
-      var p = idxB[A[(k % lenA)]];
+      var p: dynamic = idxB[A[(k % lenA)]];
       if ((p < 0))
       {
         V.clear();
@@ -58,7 +58,7 @@ func main()
       }
       V.push_back(p);
       idxV = ((lower_bound((V.begin() + idxV), V.end(), ((p - lenB) + 1)) - V.begin()));
-      var len = (int_cpp((V).size()) - idxV);
+      var len: dynamic = (int_cpp((V).size()) - idxV);
       res = max(res, len);
       k += 1;
     }

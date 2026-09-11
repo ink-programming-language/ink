@@ -2,33 +2,33 @@
 
 class vertix
 {
-  var capacity: dynamic;
-  var arr: dynamic;
-  func vertix()
+  var capacity: dynamic = cpp_uninitialized();
+  var arr: dynamic = cpp_uninitialized();
+  func vertix() -> dynamic
   {
       capacity = 000;
       cpp_delete(arr);
       arr = cpp_new();
     }
-  func vertix(S: dynamic)
+  func vertix(S: dynamic) -> dynamic
   {
       capacity = S;
       cpp_delete(arr);
       arr = cpp_new();
     }
-  func operator_index(index: dynamic)
+  func operator_index(index: dynamic) -> dynamic
   {
       return arr[index];
     }
-  func size()
+  func size() -> dynamic
   {
       return capacity;
     }
-  func push_back(type_cpp: dynamic)
+  func push_back(type_cpp: dynamic) -> dynamic
   {
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < capacity))
         {
           newarr[i] = arr[i];
@@ -40,11 +40,11 @@ class vertix
       arr = newarr;
       capacity += 1;
     }
-  func push_front(type_cpp: dynamic)
+  func push_front(type_cpp: dynamic) -> dynamic
   {
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < (capacity + 1)))
         {
           newarr[i] = arr[(i - 1)];
@@ -56,11 +56,11 @@ class vertix
       cpp_delete(arr);
       arr = newarr;
     }
-  func pop_front()
+  func pop_front() -> dynamic
   {
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (capacity - 1)))
         {
           newarr[i] = arr[(i + 1)];
@@ -71,30 +71,30 @@ class vertix
       capacity -= 1;
       arr = newarr;
     }
-  func pop_back()
+  func pop_back() -> dynamic
   {
       capacity -= 1;
     }
-  func front()
+  func front() -> dynamic
   {
       return arr[0];
     }
-  func back()
+  func back() -> dynamic
   {
       return arr[(capacity - 1)];
     }
-  func clear()
+  func clear() -> dynamic
   {
       capacity = 0;
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       cpp_delete(arr);
       arr = newarr;
     }
-  func begin()
+  func begin() -> dynamic
   {
       return (&arr[0]);
     }
-  func end()
+  func end() -> dynamic
   {
       return (&arr[capacity]);
     }
@@ -102,35 +102,35 @@ class vertix
 
 class AbdElrahmanTarek112
 {
-  var capacity: dynamic;
-  var arr: dynamic;
-  func AbdElrahmanTarek112()
+  var capacity: dynamic = cpp_uninitialized();
+  var arr: dynamic = cpp_uninitialized();
+  func AbdElrahmanTarek112() -> dynamic
   {
       capacity = 0;
       arr = cpp_new();
     }
-  func AbdElrahmanTarek112(capacity: dynamic)
+  func AbdElrahmanTarek112(capacity: dynamic) -> dynamic
   {
-      this->capacity = capacity;
+      self->capacity = capacity;
       arr = cpp_new();
     }
-  func operator_index(index: dynamic)
+  func operator_index(index: dynamic) -> dynamic
   {
       return arr[index];
     }
-  func operator_index(arr: dynamic)
+  func operator_index(arr: dynamic) -> dynamic
   {
-      this->arr = arr;
+      self->arr = arr;
     }
-  func size()
+  func size() -> dynamic
   {
       return capacity;
     }
-  func push_back(type_cpp: dynamic)
+  func push_back(type_cpp: dynamic) -> dynamic
   {
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < capacity))
         {
           newarr[i] = arr[i];
@@ -141,12 +141,12 @@ class AbdElrahmanTarek112
       arr = newarr;
       capacity += 1;
     }
-  func push_front(type_cpp: dynamic)
+  func push_front(type_cpp: dynamic) -> dynamic
   {
       capacity += 1;
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < capacity))
         {
           newarr[i] = arr[(i - 1)];
@@ -157,15 +157,15 @@ class AbdElrahmanTarek112
       arr = cpp_new();
       arr = newarr;
     }
-  func empty()
+  func empty() -> dynamic
   {
-      return if ((capacity == 0)) true else false;
+      return  ((capacity == 0)) ? true : false;
     }
-  func pop(index: dynamic)
+  func pop(index: dynamic) -> dynamic
   {
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < index))
         {
           newarr[i] = arr[i];
@@ -173,7 +173,7 @@ class AbdElrahmanTarek112
         }
       }
       {
-        var i = index;
+        var i: dynamic = index;
         while ((i < (capacity - 1)))
         {
           newarr[i] = arr[(i + 1)];
@@ -184,11 +184,11 @@ class AbdElrahmanTarek112
       capacity -= 1;
       arr = newarr;
     }
-  func push_in(type_cpp: dynamic, index: dynamic)
+  func push_in(type_cpp: dynamic, index: dynamic) -> dynamic
   {
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < index))
         {
           newarr[i] = arr[i];
@@ -196,7 +196,7 @@ class AbdElrahmanTarek112
         }
       }
       {
-        var i = (index + 1);
+        var i: dynamic = (index + 1);
         while ((i < (capacity + 1)))
         {
           if (((i - 1) > (capacity - 1)))
@@ -214,11 +214,11 @@ class AbdElrahmanTarek112
       cpp_delete(arr);
       arr = newarr;
     }
-  func pop_front()
+  func pop_front() -> dynamic
   {
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (capacity - 1)))
         {
           newarr[i] = arr[(i + 1)];
@@ -229,41 +229,41 @@ class AbdElrahmanTarek112
       capacity -= 1;
       arr = newarr;
     }
-  func pop_back()
+  func pop_back() -> dynamic
   {
       capacity -= 1;
     }
-  func front()
+  func front() -> dynamic
   {
       return arr[0];
     }
-  func back()
+  func back() -> dynamic
   {
       return arr[(capacity - 1)];
     }
-  func clear()
+  func clear() -> dynamic
   {
       capacity = 0;
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       cpp_delete(arr);
       arr = newarr;
     }
-  func begin()
+  func begin() -> dynamic
   {
       return (&arr[0]);
     }
-  func end()
+  func end() -> dynamic
   {
       return (&arr[capacity]);
     }
-  func print()
+  func print() -> dynamic
   {
       if ((capacity == 0))
       {
         return;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < capacity))
         {
           write(arr[i], " ");
@@ -271,13 +271,13 @@ class AbdElrahmanTarek112
         }
       }
     }
-  func unique()
+  func unique() -> dynamic
   {
-      var G: dynamic;
-      var newcapacity = 0;
-      var newindex = 0;
+      var G: dynamic = cpp_uninitialized();
+      var newcapacity: dynamic = 0;
+      var newindex: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < capacity))
         {
           if (((i + 1) == capacity))
@@ -295,9 +295,9 @@ class AbdElrahmanTarek112
           i += 1;
         }
       }
-      var newarr = cpp_new();
+      var newarr: dynamic = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < G.size()))
         {
           newarr[i] = G[i];
@@ -308,14 +308,14 @@ class AbdElrahmanTarek112
       arr = newarr;
       capacity = G.size();
     }
-  func like_set()
+  func like_set() -> dynamic
   {
-      var c: dynamic;
-      var Old_Size = 0;
-      var index = 0;
-      var newarr = cpp_new();
+      var c: dynamic = cpp_uninitialized();
+      var Old_Size: dynamic = 0;
+      var index: dynamic = 0;
+      var newarr: dynamic = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < capacity))
         {
           c.insert(arr[i]);
@@ -336,11 +336,11 @@ class AbdElrahmanTarek112
 class var_cpp
 {
   var tr: dynamic = cpp_array(10005);
-  func operator_index(thekey: dynamic)
+  func operator_index(thekey: dynamic) -> dynamic
   {
-      var index = 0;
+      var index: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 10005))
         {
           if ((tr[i].first == thekey))
@@ -355,10 +355,10 @@ class var_cpp
     }
 }
 
-func cin_array_usual(o: dynamic, size: dynamic)
+func cin_array_usual(o: dynamic, size: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < size))
     {
       read(o[i]);
@@ -367,10 +367,10 @@ func cin_array_usual(o: dynamic, size: dynamic)
   }
 }
 
-func print_array_usual(o: dynamic, size: dynamic)
+func print_array_usual(o: dynamic, size: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < size))
     {
       write(o[i], " ");
@@ -380,10 +380,10 @@ func print_array_usual(o: dynamic, size: dynamic)
   write("\n");
 }
 
-func print_forward_list(o: dynamic)
+func print_forward_list(o: dynamic) -> dynamic
 {
   {
-    var i = o.begin();
+    var i: dynamic = o.begin();
     while ((i != o.end()))
     {
       write((*i), " ");
@@ -393,10 +393,10 @@ func print_forward_list(o: dynamic)
   write("\n");
 }
 
-func print_set(o: dynamic)
+func print_set(o: dynamic) -> dynamic
 {
   {
-    var i = o.begin();
+    var i: dynamic = o.begin();
     while ((i != o.end()))
     {
       write((*i), " ");
@@ -406,10 +406,10 @@ func print_set(o: dynamic)
   write("\n");
 }
 
-func print_vector(o: dynamic)
+func print_vector(o: dynamic) -> dynamic
 {
   {
-    var i = o.begin();
+    var i: dynamic = o.begin();
     while ((i != o.end()))
     {
       write((*i), " ");
@@ -419,11 +419,11 @@ func print_vector(o: dynamic)
   write("\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
   read(x, y, z);
   if (((x == y) && (y == z)))
   {

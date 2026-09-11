@@ -2,48 +2,48 @@
 
 class PT
 {
-  var x: dynamic;
-  var y: dynamic;
-  func PT(x: dynamic = 0, y: dynamic = 0)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func PT(x: dynamic = 0, y: dynamic = 0) -> dynamic
   {
-      this->x = cpp_construct(x);
-      this->y = cpp_construct(y);
+      self->x = cpp_construct(x);
+      self->y = cpp_construct(y);
     }
-  func in_cpp()
+  func in_cpp() -> dynamic
   {
       scanf("%d%d", (&x), (&y));
     }
-  func operator_less(pts: dynamic)
+  func operator_less(pts: dynamic) -> dynamic
   {
       return (make_pair(x, y) < make_pair(pts.x, pts.y));
     }
-  func operator_equal(pts: dynamic)
+  func operator_equal(pts: dynamic) -> dynamic
   {
       return (make_pair(x, y) == make_pair(pts.x, pts.y));
     }
 }
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return (cpp_cast(x) * x);
 }
 
-func dis(p1: dynamic, p2: dynamic)
+func dis(p1: dynamic, p2: dynamic) -> dynamic
 {
   return sqrt((sqr((p1.x - p2.x)) + sqr((p1.y - p2.y))));
 }
 
-func vect(p: dynamic, p1: dynamic, p2: dynamic)
+func vect(p: dynamic, p1: dynamic, p2: dynamic) -> dynamic
 {
   return (((1 * ((p1.x - p.x))) * ((p2.y - p.y))) - ((1 * ((p1.y - p.y))) * ((p2.x - p.x))));
 }
 
-func scal(p: dynamic, p1: dynamic, p2: dynamic)
+func scal(p: dynamic, p1: dynamic, p2: dynamic) -> dynamic
 {
   return (((1 * ((p1.x - p.x))) * ((p2.x - p.x))) + ((1 * ((p1.y - p.y))) * ((p2.y - p.y))));
 }
 
-func check(p1: dynamic, p2: dynamic, p3: dynamic)
+func check(p1: dynamic, p2: dynamic, p3: dynamic) -> dynamic
 {
   if ((vect(p1, p2, p3) < 0))
   {
@@ -56,11 +56,11 @@ func check(p1: dynamic, p2: dynamic, p3: dynamic)
   return 0;
 }
 
-var pts: dynamic;
+var pts: dynamic = cpp_uninitialized();
 
-var cvx: dynamic;
+var cvx: dynamic = cpp_uninitialized();
 
-func convex()
+func convex() -> dynamic
 {
   sort(pts.begin(), pts.end());
   pts.erase(unique(pts.begin(), pts.end()), pts.end());
@@ -70,10 +70,10 @@ func convex()
     return;
   }
   {
-    var times = 0;
+    var times: dynamic = 0;
     while ((times < 2))
     {
-      for (var t in pts)
+      for (var t: dynamic in pts)
       {
         while (((cvx.size() > 1) && check(cvx[(cvx.size() - 2)], cvx.back(), t)))
         {
@@ -88,18 +88,18 @@ func convex()
   cvx.pop_back();
 }
 
-func getId(p: dynamic)
+func getId(p: dynamic) -> dynamic
 {
   return (lower_bound(pts.begin(), pts.end(), p) - pts.begin());
 }
 
-func getConvex(lft: dynamic, cur: dynamic, rht: dynamic, nV: dynamic)
+func getConvex(lft: dynamic, cur: dynamic, rht: dynamic, nV: dynamic) -> dynamic
 {
-  var nC: dynamic;
-  var px = getId(lft);
-  var cx = getId(cur);
-  var rx = getId(rht);
-  var now = px;
+  var nC: dynamic = cpp_uninitialized();
+  var px: dynamic = getId(lft);
+  var cx: dynamic = getId(cur);
+  var rx: dynamic = getId(rht);
+  var now: dynamic = px;
   while ((now != cx))
   {
     if ((!((pts[now] == nV))))
@@ -139,27 +139,27 @@ func getConvex(lft: dynamic, cur: dynamic, rht: dynamic, nV: dynamic)
   return nC;
 }
 
-var profit: dynamic;
+var profit: dynamic = cpp_uninitialized();
 
-var PM: dynamic;
+var PM: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func process()
+func process() -> dynamic
 {
-  var sz = cvx.size();
+  var sz: dynamic = cvx.size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cvx.size()))
     {
-      var lft = cvx[((((i - 1) + sz)) % sz)];
-      var cur = cvx[i];
-      var rht = cvx[(((i + 1)) % sz)];
-      var lose = (dis(lft, cur) + dis(cur, rht));
-      var nC = getConvex(lft, cur, rht, PT(1e8, 1e8));
-      var get = 0;
+      var lft: dynamic = cvx[((((i - 1) + sz)) % sz)];
+      var cur: dynamic = cvx[i];
+      var rht: dynamic = cvx[(((i + 1)) % sz)];
+      var lose: dynamic = (dis(lft, cur) + dis(cur, rht));
+      var nC: dynamic = getConvex(lft, cur, rht, PT(1e8, 1e8));
+      var get: dynamic = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < nC.size()))
         {
           get += dis(nC[(j - 1)], nC[j]);
@@ -170,17 +170,17 @@ func process()
       PM.insert((lose - get));
       nC.push_back(cvx[(((i + 2)) % sz)]);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < (cpp_cast(nC.size()) - 1)))
         {
-          var lft = nC[(j - 1)];
-          var cur = nC[j];
-          var nxt = nC[(j + 1)];
-          var lose = (dis(lft, cur) + dis(cur, nxt));
-          var nC = getConvex(lft, cur, nxt, cur);
-          var get = 0;
+          var lft: dynamic = nC[(j - 1)];
+          var cur: dynamic = nC[j];
+          var nxt: dynamic = nC[(j + 1)];
+          var lose: dynamic = (dis(lft, cur) + dis(cur, nxt));
+          var nC: dynamic = getConvex(lft, cur, nxt, cur);
+          var get: dynamic = 0;
           {
-            var k = 1;
+            var k: dynamic = 1;
             while ((k < nC.size()))
             {
               get += dis(nC[(k - 1)], nC[k]);
@@ -195,12 +195,12 @@ func process()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < profit.size()))
     {
-      var l = profit[((((i - 1) + sz)) % sz)];
-      var c = profit[i];
-      var r = profit[(((i + 1)) % sz)];
+      var l: dynamic = profit[((((i - 1) + sz)) % sz)];
+      var c: dynamic = profit[i];
+      var r: dynamic = profit[(((i + 1)) % sz)];
       PM.erase(PM.find(l));
       PM.erase(PM.find(r));
       PM.erase(PM.find(c));
@@ -219,11 +219,11 @@ func process()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var p: dynamic;
+  var p: dynamic = cpp_uninitialized();
   while (cpp_update(n, "--"))
   {
     p.in_cpp();

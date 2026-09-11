@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var home = cpp_array(30);
-  var away = cpp_array(30);
-  var n: dynamic;
+  var home: dynamic = cpp_array(30);
+  var away: dynamic = cpp_array(30);
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(home[i]);
@@ -15,13 +15,13 @@ func main()
       i += 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((i == j))

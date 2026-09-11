@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var dx = [0, 0, 1, -1, 1, 1, -1, -1];
+var dx: dynamic = [0, 0, 1, -1, 1, 1, -1, -1];
 
-var dy = [1, -1, 0, 0, -1, 1, 1, -1];
+var dy: dynamic = [1, -1, 0, 0, -1, 1, 1, -1];
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func dcmp(x: dynamic, y: dynamic)
+func dcmp(x: dynamic, y: dynamic) -> dynamic
 {
-  return if ((fabs((x - y)) <= 1e-12)) 0 else if ((x < y)) -1 else 1;
+  return  ((fabs((x - y)) <= 1e-12)) ? 0 :  ((x < y)) ? -1 : 1;
 }
 
-func fast()
+func fast() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(null);
   cout.tie(null);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-func pf()
+func pf() -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((((1 * i) * i) <= n))
     {
       while (((n % i) == 0))
@@ -42,25 +42,25 @@ func pf()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   fast();
   read(n);
   pf();
-  var cnt = 0;
-  var mx = 0;
-  var num = 1;
-  for (var e in mp)
+  var cnt: dynamic = 0;
+  var mx: dynamic = 0;
+  var num: dynamic = 1;
+  for (var e: dynamic in mp)
   {
     mx = max(e.second, mx);
     num *= e.first;
   }
-  var lo = 0;
-  var hi = 30;
-  var ans = 1;
+  var lo: dynamic = 0;
+  var hi: dynamic = 30;
+  var ans: dynamic = 1;
   while ((lo <= hi))
   {
-    var md = ((lo + (((hi - lo)) / 2)));
+    var md: dynamic = ((lo + (((hi - lo)) / 2)));
     if ((((1 << md)) >= mx))
     {
       hi = (md - 1);
@@ -70,7 +70,7 @@ func main()
       lo = (md + 1);
     }
   }
-  for (var e in mp)
+  for (var e: dynamic in mp)
   {
     if ((e.second < ((1 << ans))))
     {

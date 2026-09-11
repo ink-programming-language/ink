@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var F = cpp_expression("#incl");
+var F: dynamic = cpp_expression("#incl");
 
-var S = cpp_expression("#inclu");
+var S: dynamic = cpp_expression("#inclu");
 
-var E = (1e18 + 7);
+var E: dynamic = (1e18 + 7);
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var Q: dynamic;
-  var Q2: dynamic;
-  var ans = 0;
+  var Q: dynamic = cpp_uninitialized();
+  var Q2: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);

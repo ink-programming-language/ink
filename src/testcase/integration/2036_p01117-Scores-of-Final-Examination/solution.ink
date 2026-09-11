@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   while ((n != 0))
   {
-    var sub = cpp_construct(n, 0);
+    var sub: dynamic = cpp_construct(n, 0);
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < m))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < n))
           {
-            var a: dynamic;
+            var a: dynamic = cpp_uninitialized();
             read(a);
             sub.at(i) += a;
             i += 1;

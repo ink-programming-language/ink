@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-func hehe()
+func hehe() -> dynamic
 {
-  var sum: dynamic;
-  var limit: dynamic;
+  var sum: dynamic = cpp_uninitialized();
+  var limit: dynamic = cpp_uninitialized();
   read(sum, limit);
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = limit;
+    var i: dynamic = limit;
     while ((i > 0))
     {
-      var j = i;
-      var count = 0;
+      var j: dynamic = i;
+      var count: dynamic = 0;
       while (((j % 2) == 0))
       {
         count += 1;
         j = (j / 2);
       }
-      var p = pow(2, count);
+      var p: dynamic = pow(2, count);
       if (((sum - p) >= 0))
       {
         sum -= p;
@@ -33,7 +33,7 @@ func hehe()
   }
   write(ans.size(), "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ans.size()))
     {
       write(ans[i], " ");
@@ -43,9 +43,9 @@ func hehe()
   write("\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
     hehe();

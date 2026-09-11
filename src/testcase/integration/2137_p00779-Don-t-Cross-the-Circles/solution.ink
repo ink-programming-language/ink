@@ -1,88 +1,88 @@
 // Translated from solution.cpp.
 
-var pu = cpp_expression("#inc");
+var pu: dynamic = cpp_expression("#inc");
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var INF = cpp_expression("#include <");
+var INF: dynamic = cpp_expression("#include <");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var sc = cpp_expression("#inclu");
+var sc: dynamic = cpp_expression("#inclu");
 
-func rep(i: dynamic, x: dynamic)
+func rep(i: dynamic, x: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<x;i++)");
 }
 
-func SORT(x: dynamic)
+func SORT(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h");
 }
 
-func ERASE(x: dynamic)
+func ERASE(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> using namespace s");
 }
 
-func POSL(x: dynamic, v: dynamic)
+func POSL(x: dynamic, v: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> using namespace std");
 }
 
-func POSU(x: dynamic, v: dynamic)
+func POSU(x: dynamic, v: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> using namespace std");
 }
 
-var EPS = cpp_expression("#inc");
+var EPS: dynamic = cpp_expression("#inc");
 
-var X = cpp_expression("#inclu");
+var X: dynamic = cpp_expression("#inclu");
 
-var Y = cpp_expression("#inclu");
+var Y: dynamic = cpp_expression("#inclu");
 
-var c = cpp_array(105);
+var c: dynamic = cpp_array(105);
 
-var r = cpp_array(105);
+var r: dynamic = cpp_array(105);
 
-var edge = cpp_array(105);
+var edge: dynamic = cpp_array(105);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func eq(a: dynamic, b: dynamic)
+func eq(a: dynamic, b: dynamic) -> dynamic
 {
   return ((((-EPS) < (a - b)) && ((a - b) < EPS)));
 }
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   assert((a.sc == b.sc));
-  var A = atan2((c[a.fi].Y - c[a.sc].Y), (c[a.fi].X - c[a.sc].X));
-  var B = atan2((c[b.fi].Y - c[b.sc].Y), (c[b.fi].X - c[b.sc].X));
+  var A: dynamic = atan2((c[a.fi].Y - c[a.sc].Y), (c[a.fi].X - c[a.sc].X));
+  var B: dynamic = atan2((c[b.fi].Y - c[b.sc].Y), (c[b.fi].X - c[b.sc].X));
   return (A < B);
 }
 
-var ran = cpp_array(105, 105);
+var ran: dynamic = cpp_array(105, 105);
 
-var convex = cpp_array(105, 105);
+var convex: dynamic = cpp_array(105, 105);
 
-var used = cpp_array(105, 105);
+var used: dynamic = cpp_array(105, 105);
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return ((conj(a) * b)).X;
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((conj(a) * b)).Y;
 }
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b -= a;
   c -= a;
@@ -105,10 +105,10 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   return 0;
 }
 
-func crossPoint(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func crossPoint(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
-  var A = cross((b - a), (d - c));
-  var B = cross((b - a), (b - c));
+  var A: dynamic = cross((b - a), (d - c));
+  var B: dynamic = cross((b - a), (b - c));
   if (((fabs(A) < EPS) && (fabs(B) < EPS)))
   {
     return c;
@@ -121,12 +121,12 @@ func crossPoint(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
   }
 }
 
-func on_segment(a: dynamic, p: dynamic)
+func on_segment(a: dynamic, p: dynamic) -> dynamic
 {
   return eq(((abs((a.first - a.second)) - abs((a.first - p))) - abs((a.second - p))), 0);
 }
 
-func dist_lp(a: dynamic, b: dynamic, c: dynamic)
+func dist_lp(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   if ((dot((a - b), (c - b)) <= 0.0))
   {
@@ -139,16 +139,16 @@ func dist_lp(a: dynamic, b: dynamic, c: dynamic)
   return (abs(cross((b - a), (c - a))) / abs((b - a)));
 }
 
-func intersect(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func intersect(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   return ((((ccw(a, b, c) * ccw(a, b, d)) <= 0) && ((ccw(c, d, a) * ccw(c, d, b)) <= 0)));
 }
 
-func contain_point(ps: dynamic, p: dynamic)
+func contain_point(ps: dynamic, p: dynamic) -> dynamic
 {
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ps.size()))
     {
       if (on_segment(mp(ps[i], ps[(((i + 1)) % ps.size())]), p))
@@ -162,7 +162,7 @@ func contain_point(ps: dynamic, p: dynamic)
   return ((abs(sum) > 1));
 }
 
-func main()
+func main() -> dynamic
 {
   while (1)
   {
@@ -172,18 +172,18 @@ func main()
       return 0;
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
-        var x: dynamic;
-        var y: dynamic;
+        var x: dynamic = cpp_uninitialized();
+        var y: dynamic = cpp_uninitialized();
         scanf("%lf%lf%lf", (&x), (&y), (&r[i]));
         c[i] = pt(x, y);
         i += 1;
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 105))
       {
         edge[i].clear();
@@ -191,11 +191,11 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j <= n))
           {
             if (((abs((c[i] - c[j])) - EPS) > (r[i] + r[j])))
@@ -217,12 +217,12 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         sort(edge[i].begin(), edge[i].end(), cmp);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < edge[i].size()))
           {
             ran[i][edge[i][j].fi] = j;
@@ -234,16 +234,16 @@ func main()
     }
     memset(used, 0, cpp_sizeof((used)));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < edge[i].size()))
           {
             convex[i][j].clear();
-            var cur = i;
-            var nxt = edge[i][j].fi;
+            var cur: dynamic = i;
+            var nxt: dynamic = edge[i][j].fi;
             if (used[cur][nxt])
             {
               j += 1;
@@ -253,7 +253,7 @@ func main()
             {
               convex[i][j].pb(c[cur]);
               used[cur][nxt] = 1;
-              var C = edge[nxt][(((ran[nxt][cur] + 1)) % edge[nxt].size())].fi;
+              var C: dynamic = edge[nxt][(((ran[nxt][cur] + 1)) % edge[nxt].size())].fi;
               swap(cur, nxt);
               nxt = C;
               if (!(((cur != i))))
@@ -268,26 +268,26 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= m))
       {
-        var p1: dynamic;
-        var p2: dynamic;
-        var xa: dynamic;
-        var xb: dynamic;
-        var xc: dynamic;
-        var xd: dynamic;
+        var p1: dynamic = cpp_uninitialized();
+        var p2: dynamic = cpp_uninitialized();
+        var xa: dynamic = cpp_uninitialized();
+        var xb: dynamic = cpp_uninitialized();
+        var xc: dynamic = cpp_uninitialized();
+        var xd: dynamic = cpp_uninitialized();
         scanf("%lf%lf%lf%lf", (&xa), (&xb), (&xc), (&xd));
         p1 = pt(xa, xb);
         p2 = pt(xc, xd);
-        var cnt = 0;
-        var ok = 1;
+        var cnt: dynamic = 0;
+        var ok: dynamic = 1;
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
-            var b1 = 0;
-            var b2 = 0;
+            var b1: dynamic = 0;
+            var b2: dynamic = 0;
             if ((abs((c[j] - p1)) < (r[j] + EPS)))
             {
               b1 = 1;
@@ -315,11 +315,11 @@ func main()
           cpp_goto("goto bad;");
         }
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             {
-              var w = 0;
+              var w: dynamic = 0;
               while ((w < edge[j].size()))
               {
                 if ((convex[j][w].size() <= 2))
@@ -338,7 +338,7 @@ func main()
             j += 1;
           }
         }
-        printf(if (ok) "YES%c" else "NO%c", (if ((i == m)) cpp_char("\n") else cpp_char(" ")));
+        printf( (ok) ? "YES%c" : "NO%c", ( ((i == m)) ? cpp_char("\n") : cpp_char(" ")));
         i += 1;
       }
     }

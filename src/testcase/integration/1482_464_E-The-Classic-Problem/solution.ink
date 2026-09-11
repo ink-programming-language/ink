@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var buf = cpp_array((1 << 21));
+var buf: dynamic = cpp_array((1 << 21));
 
-var p1 = buf;
+var p1: dynamic = buf;
 
-var p2 = buf;
+var p2: dynamic = buf;
 
-func cmax(a: dynamic, b: dynamic)
+func cmax(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) cpp_comma(cpp_assign(a, "=", b), 1) else 0;
+  return  ((a < b)) ? cpp_comma(cpp_assign(a, "=", b), 1) : 0;
 }
 
-func read()
+func read() -> dynamic
 {
-  var ch: dynamic;
-  var flag = 0;
-  var res: dynamic;
-  while ((!isdigit(cpp_assign(ch, "=", if ((cpp_comma(((p1 == p2) && (cpp_assign(p2, "=", ((cpp_assign(p1, "=", buf)) + fread(buf, 1, (1 << 21), stdin))))), (p1 == p2)))) EOF else (*cpp_update(p1, "++"))))))
+  var ch: dynamic = cpp_uninitialized();
+  var flag: dynamic = 0;
+  var res: dynamic = cpp_uninitialized();
+  while ((!isdigit(cpp_assign(ch, "=",  ((cpp_comma(((p1 == p2) && (cpp_assign(p2, "=", ((cpp_assign(p1, "=", buf)) + fread(buf, 1, (1 << 21), stdin))))), (p1 == p2)))) ? EOF : (*cpp_update(p1, "++"))))))
   {
     (((ch == cpp_char("-"))) && (cpp_assign(flag, "=", true)));
   }
   {
     res = (ch - cpp_char("0"));
-    while (isdigit(cpp_assign(ch, "=", if ((cpp_comma(((p1 == p2) && (cpp_assign(p2, "=", ((cpp_assign(p1, "=", buf)) + fread(buf, 1, (1 << 21), stdin))))), (p1 == p2)))) EOF else (*cpp_update(p1, "++")))))
+    while (isdigit(cpp_assign(ch, "=",  ((cpp_comma(((p1 == p2) && (cpp_assign(p2, "=", ((cpp_assign(p1, "=", buf)) + fread(buf, 1, (1 << 21), stdin))))), (p1 == p2)))) ? EOF : (*cpp_update(p1, "++")))))
     {
       res = (((res * 10) + ch) - cpp_char("0"));
     }
@@ -31,45 +31,45 @@ func read()
   return res;
 }
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var head = cpp_array(N);
+var head: dynamic = cpp_array(N);
 
-var Next = cpp_array((N << 1));
+var Next: dynamic = cpp_array((N << 1));
 
-var ver = cpp_array((N << 1));
+var ver: dynamic = cpp_array((N << 1));
 
-var edge = cpp_array((N << 1));
+var edge: dynamic = cpp_array((N << 1));
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var lim: dynamic;
+var lim: dynamic = cpp_uninitialized();
 
-var b = cpp_array((N << 1));
+var b: dynamic = cpp_array((N << 1));
 
-var rt = cpp_array(N);
+var rt: dynamic = cpp_array(N);
 
-var Pre = cpp_array(N);
+var Pre: dynamic = cpp_array(N);
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var L = cpp_array((N * 120));
+var L: dynamic = cpp_array((N * 120));
 
-var R = cpp_array((N * 120));
+var R: dynamic = cpp_array((N * 120));
 
-var sum = cpp_array((N * 120));
+var sum: dynamic = cpp_array((N * 120));
 
-func add(u: dynamic, v: dynamic, e: dynamic)
+func add(u: dynamic, v: dynamic, e: dynamic) -> dynamic
 {
   ver[cpp_update(tot, "++")] = v;
   Next[tot] = head[u];
@@ -81,13 +81,13 @@ func add(u: dynamic, v: dynamic, e: dynamic)
   edge[tot] = e;
 }
 
-func cmp(u: dynamic, v: dynamic, l: dynamic, r: dynamic)
+func cmp(u: dynamic, v: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if ((l == r))
   {
     return (sum[u] > sum[v]);
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   if ((sum[R[u]] == sum[R[v]]))
   {
     return cmp(L[u], L[v], l, mid);
@@ -97,7 +97,7 @@ func cmp(u: dynamic, v: dynamic, l: dynamic, r: dynamic)
   }
 }
 
-func update(last: dynamic, now: dynamic, l: dynamic, r: dynamic, k: dynamic)
+func update(last: dynamic, now: dynamic, l: dynamic, r: dynamic, k: dynamic) -> dynamic
 {
   L[cpp_assign(now, "=", cpp_update(cnt, "++"))] = L[last];
   R[now] = R[last];
@@ -106,8 +106,8 @@ func update(last: dynamic, now: dynamic, l: dynamic, r: dynamic, k: dynamic)
     sum[now] = (sum[last] ^ 1);
     return sum[last];
   }
-  var mid = (((l + r)) >> 1);
-  var res: dynamic;
+  var mid: dynamic = (((l + r)) >> 1);
+  var res: dynamic = cpp_uninitialized();
   if ((k > mid))
   {
     res = update(R[last], R[now], (mid + 1), r, k);
@@ -125,17 +125,17 @@ func update(last: dynamic, now: dynamic, l: dynamic, r: dynamic, k: dynamic)
 
 class node
 {
-  var x: dynamic;
-  var rt: dynamic;
-  func operator_less(b: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var rt: dynamic = cpp_uninitialized();
+  func operator_less(b: dynamic) -> dynamic
   {
       return cmp(rt, b.rt, 0, lim);
     }
 }
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic, dep: dynamic)
+func dfs(u: dynamic, dep: dynamic) -> dynamic
 {
   if ((u == S))
   {
@@ -146,24 +146,24 @@ func dfs(u: dynamic, dep: dynamic)
   printf("%d ", u);
 }
 
-func print(u: dynamic)
+func print(u: dynamic) -> dynamic
 {
   printf("%d\n", sum[rt[u]]);
   dfs(u, 1);
   exit(0);
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   m = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var u: dynamic;
-      var v: dynamic;
-      var e: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var e: dynamic = cpp_uninitialized();
       u = read();
       v = read();
       e = read();
@@ -175,7 +175,7 @@ func main()
   lim += 18;
   b[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= lim))
     {
       b[i] = ((((1 * b[(i - 1)]) << 1)) % mod);
@@ -187,7 +187,7 @@ func main()
   q.push([S, rt[S]]);
   while ((!q.empty()))
   {
-    var u = q.top();
+    var u: dynamic = q.top();
     q.pop();
     if ((u.rt != rt[u.x]))
     {
@@ -198,11 +198,11 @@ func main()
       print(T);
     }
     {
-      var i = head[u.x];
+      var i: dynamic = head[u.x];
       while (i)
       {
-        var v = ver[i];
-        var RT: dynamic;
+        var v: dynamic = ver[i];
+        var RT: dynamic = cpp_uninitialized();
         update(u.rt, RT, 0, lim, edge[i]);
         if (((!rt[v]) || cmp(rt[v], RT, 0, lim)))
         {

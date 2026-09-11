@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var nl = cpp_char("\n");
+var nl: dynamic = cpp_char("\n");
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var x = 0;
-  for (var i in a)
+  var x: dynamic = 0;
+  for (var i: dynamic in a)
   {
     read(i);
     x ^= i;
   }
-  puts(if ((x == 0)) "Yes" else "No");
+  puts( ((x == 0)) ? "Yes" : "No");
   return 0;
 }

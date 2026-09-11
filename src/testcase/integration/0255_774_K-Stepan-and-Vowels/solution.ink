@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var Count: dynamic;
-  var Number: dynamic;
-  var E = cpp_array(5);
+  var Count: dynamic = cpp_uninitialized();
+  var Number: dynamic = cpp_uninitialized();
+  var E: dynamic = cpp_array(5);
   scanf("%d", (&Number));
   gets(E);
-  var String = cpp_array((Number + 1));
+  var String: dynamic = cpp_array((Number + 1));
   gets(String);
   {
     Count = 0;

@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-func all(v: dynamic)
+func all(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc");
 }
 
-var dp = cpp_array(2001, 2001);
+var dp: dynamic = cpp_array(2001, 2001);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var A = cpp_array(200001);
+  var n: dynamic = cpp_uninitialized();
+  var A: dynamic = cpp_array(200001);
   read(n);
   rep(i, n);
   read(A[i]);
-  var B: dynamic;
+  var B: dynamic = cpp_uninitialized();
   rep(i, n).push_back(P(A[i], i));
   sort(all(B));
   rep(i, n);

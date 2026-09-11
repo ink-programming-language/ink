@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func gi(x: dynamic)
+func gi(x: dynamic) -> dynamic
 {
-  var ch = getchar();
+  var ch: dynamic = getchar();
   x = 0;
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
@@ -15,19 +15,19 @@ func gi(x: dynamic)
   }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var l = cpp_array(202020);
+var l: dynamic = cpp_array(202020);
 
-var r = cpp_array(202020);
+var r: dynamic = cpp_array(202020);
 
-var q = cpp_array(202020);
+var q: dynamic = cpp_array(202020);
 
-func swap(i: dynamic, j: dynamic)
+func swap(i: dynamic, j: dynamic) -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   t = l[i];
   l[i] = l[j];
   l[j] = t;
@@ -39,13 +39,13 @@ func swap(i: dynamic, j: dynamic)
   q[j] = t;
 }
 
-func qsort(l: dynamic, r: dynamic)
+func qsort(l: dynamic, r: dynamic) -> dynamic
 {
-  var i = l;
-  var j = r;
-  var mid = ((rand() % (((r - l) + 1))) + l);
-  var ml = l[mid];
-  var mr = r[mid];
+  var i: dynamic = l;
+  var j: dynamic = r;
+  var mid: dynamic = ((rand() % (((r - l) + 1))) + l);
+  var ml: dynamic = l[mid];
+  var mr: dynamic = r[mid];
   while ((i <= j))
   {
     {
@@ -75,18 +75,18 @@ func qsort(l: dynamic, r: dynamic)
   }
 }
 
-var lx = cpp_array(202020);
+var lx: dynamic = cpp_array(202020);
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var L = 0;
-  var R = 0;
-  var s = 0;
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var L: dynamic = 0;
+  var R: dynamic = 0;
+  var s: dynamic = 0;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   gi(n);
   gi(m);
   {

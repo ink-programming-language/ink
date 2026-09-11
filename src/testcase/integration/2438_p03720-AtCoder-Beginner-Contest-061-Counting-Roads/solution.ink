@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(110);
+var s: dynamic = cpp_array(110);
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= b))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       if ((x > y))
       {
@@ -24,7 +24,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= a))
     {
       write(s[i], cpp_char("\n"));

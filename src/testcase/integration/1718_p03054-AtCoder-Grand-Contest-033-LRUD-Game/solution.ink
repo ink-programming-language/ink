@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var sr: dynamic;
+var sr: dynamic = cpp_uninitialized();
 
-var sc: dynamic;
+var sc: dynamic = cpp_uninitialized();
 
-var t = cpp_array(200001);
+var t: dynamic = cpp_array(200001);
 
-var a = cpp_array(200001);
+var a: dynamic = cpp_array(200001);
 
-var d = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+var d: dynamic = [[0, 1], [0, -1], [1, 0], [-1, 0]];
 
-var dir = "RLDU";
+var dir: dynamic = "RLDU";
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d %d", (&h), (&w), (&n));
   scanf("%d %d", (&sr), (&sc));
   scanf("%s", t);
   scanf("%s", a);
-  var by: dynamic;
-  var bx: dynamic;
-  var flag = 0;
+  var by: dynamic = cpp_uninitialized();
+  var bx: dynamic = cpp_uninitialized();
+  var flag: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       by = sr;
       bx = sc;
-      var temp = ((i - (((i % 2)) * 2)) + 1);
+      var temp: dynamic = ((i - (((i % 2)) * 2)) + 1);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while (((j < n) && (flag == 0)))
         {
           if ((t[j] == dir[i]))

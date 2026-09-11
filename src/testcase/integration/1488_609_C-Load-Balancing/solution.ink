@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var c = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   while (((c < cpp_char("0")) || (c > cpp_char("9"))))
   {
     if ((c == cpp_char("-")))
@@ -21,33 +21,33 @@ func read()
   return (x * f);
 }
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var bal: dynamic;
+var bal: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func abs(x: dynamic)
+func abs(x: dynamic) -> dynamic
 {
-  return if ((x > 0)) x else (-x);
+  return  ((x > 0)) ? x : (-x);
 }
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
   return (x > y);
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = read();
@@ -59,7 +59,7 @@ func main()
   bal = (tot % n);
   tot /= n;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (bal)

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var MN = 2000111;
+var MN: dynamic = 2000111;
 
-var lab = cpp_array(MN);
+var lab: dynamic = cpp_array(MN);
 
 class DSU
 {
-  func init(n: dynamic)
+  func init(n: dynamic) -> dynamic
   {
       {
-        var i = 0;
-        var a = ((n + 1));
+        var i: dynamic = 0;
+        var a: dynamic = ((n + 1));
         while ((i < a))
         {
           lab[i] = -1;
@@ -18,7 +18,7 @@ class DSU
         }
       }
     }
-  func getRoot(u: dynamic)
+  func getRoot(u: dynamic) -> dynamic
   {
       if ((lab[u] < 0))
       {
@@ -26,7 +26,7 @@ class DSU
       }
       return cpp_assign(lab[u], "=", getRoot(lab[u]));
     }
-  func merge(u: dynamic, v: dynamic)
+  func merge(u: dynamic, v: dynamic) -> dynamic
   {
       u = getRoot(u);
       v = getRoot(v);
@@ -44,58 +44,58 @@ class DSU
     }
 }
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1011, 1011);
+var a: dynamic = cpp_array(1011, 1011);
 
-var di = [-1, 1, 0, 0];
+var di: dynamic = [-1, 1, 0, 0];
 
-var dj = [0, 0, -1, 1];
+var dj: dynamic = [0, 0, -1, 1];
 
-func outside(i: dynamic, j: dynamic)
+func outside(i: dynamic, j: dynamic) -> dynamic
 {
   return ((((i < 1) || (i > m)) || (j < 1)) || (j > n));
 }
 
-func id(i: dynamic, j: dynamic)
+func id(i: dynamic, j: dynamic) -> dynamic
 {
   return ((((i - 1)) * n) + j);
 }
 
-func main()
+func main() -> dynamic
 {
   while ((scanf("%d%d\n", (&m), (&n)) == 2))
   {
     {
-      var i = (1);
-      var b = (m);
+      var i: dynamic = (1);
+      var b: dynamic = (m);
       while ((i <= b))
       {
         scanf("%s\n", (&a[i][1]));
         i += 1;
       }
     }
-    var dsu: dynamic;
+    var dsu: dynamic = cpp_uninitialized();
     dsu.init((((m + 1)) * ((n + 1))));
     {
-      var i = (1);
-      var b = (m);
+      var i: dynamic = (1);
+      var b: dynamic = (m);
       while ((i <= b))
       {
         {
-          var j = (1);
-          var b = (n);
+          var j: dynamic = (1);
+          var b: dynamic = (n);
           while ((j <= b))
           {
             {
-              var dir = 0;
-              var a = (4);
+              var dir: dynamic = 0;
+              var a: dynamic = (4);
               while ((dir < a))
               {
-                var ii = (i + di[dir]);
-                var jj = (j + dj[dir]);
+                var ii: dynamic = (i + di[dir]);
+                var jj: dynamic = (j + dj[dir]);
                 if (outside(ii, jj))
                 {
                   dir += 1;
@@ -117,13 +117,13 @@ func main()
       }
     }
     {
-      var i = (1);
-      var b = (m);
+      var i: dynamic = (1);
+      var b: dynamic = (m);
       while ((i <= b))
       {
         {
-          var j = (1);
-          var b = (n);
+          var j: dynamic = (1);
+          var b: dynamic = (n);
           while ((j <= b))
           {
             if ((a[i][j] == cpp_char(".")))
@@ -131,15 +131,15 @@ func main()
               putchar(cpp_char("."));
             } else
             {
-              var res = 1;
-              var all: dynamic;
+              var res: dynamic = 1;
+              var all: dynamic = cpp_uninitialized();
               {
-                var dir = 0;
-                var a = (4);
+                var dir: dynamic = 0;
+                var a: dynamic = (4);
                 while ((dir < a))
                 {
-                  var ii = (i + di[dir]);
-                  var jj = (j + dj[dir]);
+                  var ii: dynamic = (i + di[dir]);
+                  var jj: dynamic = (j + dj[dir]);
                   if (outside(ii, jj))
                   {
                     dir += 1;
@@ -150,7 +150,7 @@ func main()
                     dir += 1;
                     continue;
                   }
-                  var t = dsu.getRoot(id(ii, jj));
+                  var t: dynamic = dsu.getRoot(id(ii, jj));
                   if (all.count(t))
                   {
                     dir += 1;

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func rd()
+func rd() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,19 +21,19 @@ func rd()
   return (x * f);
 }
 
-var maxn = 100010;
+var maxn: dynamic = 100010;
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(t);
   while (cpp_update(t, "--"))
   {
     read(n);
-    var y = 1;
+    var y: dynamic = 1;
     {
       while ((((y * ((y - 1))) / 2) <= n))
       {
@@ -45,7 +45,7 @@ func main()
     write("133");
     y -= 2;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         printf("7");
@@ -53,7 +53,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= y))
       {
         printf("3");

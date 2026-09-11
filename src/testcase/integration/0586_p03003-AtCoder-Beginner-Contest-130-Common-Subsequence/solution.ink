@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var MOD = (((1000 * 1000) * 1000) + 7);
+var MOD: dynamic = (((1000 * 1000) * 1000) + 7);
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var M: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
   read(N, M);
-  for (var x in S)
+  for (var x: dynamic in S)
   {
     read(x);
   }
-  for (var x in T)
+  for (var x: dynamic in T)
   {
     read(x);
   }
-  var dp = cpp_construct((N + 1), vector((M + 1), 0));
+  var dp: dynamic = cpp_construct((N + 1), vector((M + 1), 0));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       dp[i][0] = 1;
@@ -25,7 +25,7 @@ func main()
     }
   }
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j <= M))
     {
       dp[0][j] = 1;
@@ -33,11 +33,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < M))
         {
           dp[(i + 1)][(j + 1)] = (((dp[i][(j + 1)] + dp[(i + 1)][j])) % MOD);

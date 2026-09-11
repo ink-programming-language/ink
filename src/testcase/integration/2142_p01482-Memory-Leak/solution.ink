@@ -1,60 +1,60 @@
 // Translated from solution.cpp.
 
-var BIG_NUM = cpp_expression("#include <");
+var BIG_NUM: dynamic = cpp_expression("#include <");
 
-var MOD = cpp_expression("#include <");
+var MOD: dynamic = cpp_expression("#include <");
 
-var EPS = cpp_expression("#include <s");
+var EPS: dynamic = cpp_expression("#include <s");
 
-var NULL_VAL = cpp_expression("#i");
+var NULL_VAL: dynamic = cpp_expression("#i");
 
-var UNKNOWN = cpp_expression("#include <");
+var UNKNOWN: dynamic = cpp_expression("#include <");
 
-var Error = cpp_expression("#include");
+var Error: dynamic = cpp_expression("#include");
 
-var NoReturn = cpp_expression("#include");
+var NoReturn: dynamic = cpp_expression("#include");
 
 enum Type
 {
-  None,
-  Malloc,
-  Free,
-  Clone
+  enum_field None;
+  enum_field Malloc;
+  enum_field Free;
+  enum_field Clone;
 }
 
 class Info
 {
-  var size: dynamic;
-  var deleted: dynamic;
+  var size: dynamic = cpp_uninitialized();
+  var deleted: dynamic = cpp_uninitialized();
 }
 
-var value_table = cpp_array(26);
+var value_table: dynamic = cpp_array(26);
 
-var heap_room: dynamic;
+var heap_room: dynamic = cpp_uninitialized();
 
-var info_index: dynamic;
+var info_index: dynamic = cpp_uninitialized();
 
-var max_room: dynamic;
+var max_room: dynamic = cpp_uninitialized();
 
-var info = cpp_array(10000);
+var info: dynamic = cpp_array(10000);
 
-var buf = cpp_array(301);
+var buf: dynamic = cpp_array(301);
 
-func parse(left: dynamic, right: dynamic)
+func parse(left: dynamic, right: dynamic) -> dynamic
 {
-  var index = left;
-  var depth: dynamic;
-  var close_pos: dynamic;
-  var tmp: dynamic;
-  var pre = None;
+  var index: dynamic = left;
+  var depth: dynamic = cpp_uninitialized();
+  var close_pos: dynamic = cpp_uninitialized();
+  var tmp: dynamic = cpp_uninitialized();
+  var pre: dynamic = None;
   while ((index <= right))
   {
-    var __cpp_switch_1 = buf[index];
+    var __cpp_switch_1: dynamic = buf[index];
     if (__cpp_switch_1 == cpp_char("("))
     {
       depth = 0;
       {
-      var i = index;
+      var i: dynamic = index;
       while ((i <= right))
       {
       if ((buf[i] == cpp_char("(")))
@@ -77,7 +77,7 @@ func parse(left: dynamic, right: dynamic)
       {
       return Error;
       }
-      var __cpp_switch_2 = pre;
+      var __cpp_switch_2: dynamic = pre;
       if (__cpp_switch_2 == Malloc)
       {
       if ((tmp <= heap_room))
@@ -166,7 +166,7 @@ func parse(left: dynamic, right: dynamic)
       {
       return NULL_VAL;
       }
-      var loc = (buf[index] - cpp_char("A"));
+      var loc: dynamic = (buf[index] - cpp_char("A"));
       if ((buf[(index + 1)] == cpp_char("=")))
       {
       tmp = parse((index + 2), right);
@@ -180,7 +180,7 @@ func parse(left: dynamic, right: dynamic)
       {
       tmp = 0;
       {
-      var i = index;
+      var i: dynamic = index;
       while ((((i <= right) && (buf[i] >= cpp_char("0"))) && (buf[i] <= cpp_char("9"))))
       {
       tmp = ((10 * tmp) + ((buf[i] - cpp_char("0"))));
@@ -199,10 +199,10 @@ func parse(left: dynamic, right: dynamic)
   return NULL_VAL;
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 10000))
     {
       info[i].size = -1;
@@ -211,7 +211,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       value_table[i] = UNKNOWN;
@@ -220,7 +220,7 @@ func main()
   }
   scanf("%d", (&heap_room));
   max_room = heap_room;
-  var length: dynamic;
+  var length: dynamic = cpp_uninitialized();
   info_index = 0;
   while ((scanf("%s", buf) != EOF))
   {
@@ -237,17 +237,17 @@ func main()
       return 0;
     }
   }
-  var ans = 0;
-  var FLG: dynamic;
+  var ans: dynamic = 0;
+  var FLG: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < info_index))
     {
       if ((info[i].deleted == false))
       {
         FLG = false;
         {
-          var k = 0;
+          var k: dynamic = 0;
           while ((k < 26))
           {
             if ((value_table[k] == i))

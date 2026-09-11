@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var maxn = (3e5 + 10);
+var maxn: dynamic = (3e5 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
-var pre = cpp_array((maxn << 1));
+var pre: dynamic = cpp_array((maxn << 1));
 
-var sz = cpp_array((maxn << 1));
+var sz: dynamic = cpp_array((maxn << 1));
 
-var op = cpp_array(maxn);
+var op: dynamic = cpp_array(maxn);
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
-  return if ((x == pre[x])) x else cpp_assign(pre[x], "=", find(pre[x]));
+  return  ((x == pre[x])) ? x : cpp_assign(pre[x], "=", find(pre[x]));
 }
 
-func merge(x: dynamic, y: dynamic)
+func merge(x: dynamic, y: dynamic) -> dynamic
 {
-  var fx = find(x);
-  var fy = find(y);
+  var fx: dynamic = find(x);
+  var fy: dynamic = find(y);
   if ((fy == 0))
   {
     swap(fx, fy);
@@ -34,11 +34,11 @@ func merge(x: dynamic, y: dynamic)
   }
 }
 
-func cal(x: dynamic)
+func cal(x: dynamic) -> dynamic
 {
-  var y = if (((x <= k))) (x + k) else (x - k);
-  var fx = find(x);
-  var fy = find(y);
+  var y: dynamic =  (((x <= k))) ? (x + k) : (x - k);
+  var fx: dynamic = find(x);
+  var fy: dynamic = find(y);
   if (((fx == 0) || (fy == 0)))
   {
     return sz[(fx + fy)];
@@ -46,12 +46,12 @@ func cal(x: dynamic)
   return min(sz[fx], sz[fy]);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&k));
   scanf("%s", (s + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       pre[i] = i;
@@ -61,9 +61,9 @@ func main()
     }
   }
   {
-    var i = 1;
-    var c: dynamic;
-    var x: dynamic;
+    var i: dynamic = 1;
+    var c: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
     while ((i <= k))
     {
       scanf("%d", (&c));
@@ -75,14 +75,14 @@ func main()
       i += 1;
     }
   }
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((op[i].size() == 1))
       {
-        var x = op[i][0];
+        var x: dynamic = op[i][0];
         res -= cal(x);
         if ((s[i] == cpp_char("1")))
         {
@@ -94,8 +94,8 @@ func main()
         res += cal(x);
       } else if ((op[i].size() == 2))
       {
-        var x = op[i][0];
-        var y = op[i][1];
+        var x: dynamic = op[i][0];
+        var y: dynamic = op[i][1];
         if ((s[i] == cpp_char("1")))
         {
           if ((find(x) != find(y)))

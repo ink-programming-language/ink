@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var S: dynamic;
+  var S: dynamic = cpp_uninitialized();
   read(S);
-  var c0: dynamic;
-  var c1 = 0;
-  for (var i in S)
+  var c0: dynamic = cpp_uninitialized();
+  var c1: dynamic = 0;
+  for (var i: dynamic in S)
   {
     if ((i == cpp_char("0")))
     {

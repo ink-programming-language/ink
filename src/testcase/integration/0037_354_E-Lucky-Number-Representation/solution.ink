@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var kharab = [1, 2, 3, 5, 6, 9, 10, 13, 17, 31, 34, 37, 38, 41, 43, 45, 46, 49, 50, 53, 57, 71, 83, 111, 123, 391, 403, 437, 457, 471, 483, 511, 523];
+var kharab: dynamic = [1, 2, 3, 5, 6, 9, 10, 13, 17, 31, 34, 37, 38, 41, 43, 45, 46, 49, 50, 53, 57, 71, 83, 111, 123, 391, 403, 437, 457, 471, 483, 511, 523];
 
-var a = cpp_array(6);
+var a: dynamic = cpp_array(6);
 
-var D = cpp_array(43);
+var D: dynamic = cpp_array(43);
 
-func f(n: dynamic)
+func f(n: dynamic) -> dynamic
 {
   if ((kharab.find(n) != kharab.end()))
   {
@@ -19,14 +19,14 @@ func f(n: dynamic)
     return;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 42))
     {
       if ((((((!D[i].size()) || (~D[i].back()))) && ((i % 10) == (n % 10))) && (kharab.find((((n - i)) / 10)) == kharab.end())))
       {
         f((((n - i)) / 10));
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 6))
           {
             a[j] *= 10;
@@ -34,7 +34,7 @@ func f(n: dynamic)
           }
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < D[i].size()))
           {
             a[j] += D[i][j];
@@ -48,14 +48,14 @@ func f(n: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   D[4].push_back(4);
   D[7].push_back(7);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 42))
     {
       if (((i == 4) || (i == 7)))
@@ -83,14 +83,14 @@ func main()
   }
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
     fill(a, (a + 6), 0);
     f(n);
     if ((~a[0]))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 6))
         {
           write(a[i], cpp_char(" "));

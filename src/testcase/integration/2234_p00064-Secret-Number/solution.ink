@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var sum = 0;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var sum: dynamic = 0;
+  var s: dynamic = cpp_uninitialized();
   while ((cin >> s))
   {
     n = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < s.size()))
       {
         if (isdigit(s[i]))

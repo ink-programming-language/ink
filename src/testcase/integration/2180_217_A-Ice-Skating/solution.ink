@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var xy: dynamic;
+var xy: dynamic = cpp_uninitialized();
 
-var used = [false];
+var used: dynamic = [false];
 
-var n = 0;
+var n: dynamic = 0;
 
-var ans = -1;
+var ans: dynamic = -1;
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
   used[v] = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (used[i])
@@ -29,7 +29,7 @@ func dfs(v: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
@@ -37,7 +37,7 @@ func main()
   read(n);
   xy.resize(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(xy[i].first, xy[i].second);
@@ -45,7 +45,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((!used[i]))

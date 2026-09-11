@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-var EPS = 1.0e-10;
+var EPS: dynamic = 1.0e-10;
 
-var INF = (DBL_MAX / 1000);
+var INF: dynamic = (DBL_MAX / 1000);
 
-func main()
+func main() -> dynamic
 {
-  var tmp = 0;
+  var tmp: dynamic = 0;
   {
     while (true)
     {
-      var n: dynamic;
-      var x: dynamic;
+      var n: dynamic = cpp_uninitialized();
+      var x: dynamic = cpp_uninitialized();
       read(n, x);
       if ((n == 0))
       {
         return 0;
       }
-      var rStart: dynamic;
-      var iStart: dynamic;
-      var rGoal: dynamic;
-      var iGoal: dynamic;
+      var rStart: dynamic = cpp_uninitialized();
+      var iStart: dynamic = cpp_uninitialized();
+      var rGoal: dynamic = cpp_uninitialized();
+      var iGoal: dynamic = cpp_uninitialized();
       read(rStart, iStart, rGoal, iGoal);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < x))
         {
           read(r1[j], i1[j], r2[j], i2[j]);
           j += 1;
         }
       }
-      var rIndex: dynamic;
+      var rIndex: dynamic = cpp_uninitialized();
       rIndex[1];
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 3))
         {
           rIndex[((rStart - 1) + j)];
@@ -44,11 +44,11 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < x))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 3))
             {
               rIndex[((r1[j] - 1) + k)];
@@ -63,10 +63,10 @@ func main()
       {
         rIndex.erase(rIndex.begin());
       }
-      var m = 0;
-      var rPos: dynamic;
+      var m: dynamic = 0;
+      var rPos: dynamic = cpp_uninitialized();
       {
-        var it = rIndex.begin();
+        var it: dynamic = rIndex.begin();
         while ((it != rIndex.end()))
         {
           it->second = m;
@@ -75,9 +75,9 @@ func main()
           it += 1;
         }
       }
-      var damage: dynamic;
+      var damage: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < x))
         {
           damage.insert(make_pair(make_pair(rIndex[r1[j]], i1[j]), make_pair(rIndex[r2[j]], i2[j])));
@@ -85,16 +85,16 @@ func main()
           j += 1;
         }
       }
-      var minDist = cpp_construct(m, vector((n + 1), INF));
+      var minDist: dynamic = cpp_construct(m, vector((n + 1), INF));
       minDist[rIndex[rStart]][iStart] = 0.0;
-      var mm: dynamic;
+      var mm: dynamic = cpp_uninitialized();
       mm.insert(make_pair(0.0, make_pair(rIndex[rStart], iStart)));
       {
         while (true)
         {
-          var dist0 = mm.begin()->first;
-          var r0 = mm.begin()->second.first;
-          var i0 = mm.begin()->second.second;
+          var dist0: dynamic = mm.begin()->first;
+          var r0: dynamic = mm.begin()->second.first;
+          var i0: dynamic = mm.begin()->second.second;
           mm.erase(mm.begin());
           if ((dist0 > (minDist[r0][i0] + EPS)))
           {
@@ -106,12 +106,12 @@ func main()
             break;
           }
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < 4))
             {
-              var dist = dist0;
-              var r = r0;
-              var i = i0;
+              var dist: dynamic = dist0;
+              var r: dynamic = r0;
+              var i: dynamic = i0;
               if (((j % 2) == 0))
               {
                 r = ((r - 1) + j);

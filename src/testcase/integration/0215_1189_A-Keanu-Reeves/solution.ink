@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var n: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(n, s);
-  var cnt0 = 0;
-  var cnt1 = 0;
+  var cnt0: dynamic = 0;
+  var cnt1: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((s[i] == cpp_char("0")))

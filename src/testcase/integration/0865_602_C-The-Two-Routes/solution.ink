@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var roads = cpp_array(405, 405);
+var roads: dynamic = cpp_array(405, 405);
 
-func bfs(n: dynamic, road_type: dynamic)
+func bfs(n: dynamic, road_type: dynamic) -> dynamic
 {
-  var towns: dynamic;
+  var towns: dynamic = cpp_uninitialized();
   towns.push(1);
-  var visited = cpp_array(405);
-  var road_length = cpp_array(405);
+  var visited: dynamic = cpp_array(405);
+  var road_length: dynamic = cpp_array(405);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       visited[i] = false;
@@ -21,10 +21,10 @@ func bfs(n: dynamic, road_type: dynamic)
   visited[1] = true;
   while ((!towns.empty()))
   {
-    var current = towns.front();
+    var current: dynamic = towns.front();
     towns.pop();
     {
-      var town = 1;
+      var town: dynamic = 1;
       while ((town <= n))
       {
         if (((roads[current][town] == road_type) && (!visited[town])))
@@ -40,21 +40,21 @@ func bfs(n: dynamic, road_type: dynamic)
   return road_length[n];
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   while (cpp_update(m, "--"))
   {
     read(x, y);
     roads[x][y] = true;
     roads[y][x] = true;
   }
-  var ans1 = bfs(n, false);
-  var ans2 = bfs(n, true);
+  var ans1: dynamic = bfs(n, false);
+  var ans2: dynamic = bfs(n, true);
   if (((ans1 == -1) || (ans2 == -1)))
   {
     write("-1", "\n");

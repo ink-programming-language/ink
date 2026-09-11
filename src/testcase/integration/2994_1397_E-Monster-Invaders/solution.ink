@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var c = getchar();
+  var x: dynamic = 0;
+  var c: dynamic = getchar();
   {
     while ((!(((c > 47) && (c < 58)))))
     {
@@ -20,28 +20,28 @@ func read()
   return x;
 }
 
-func upd(a: dynamic, b: dynamic)
+func upd(a: dynamic, b: dynamic) -> dynamic
 {
-  a = if (((a < b))) a else b;
+  a =  (((a < b))) ? a : b;
 }
 
-var N = (1e6 + 5);
+var N: dynamic = (1e6 + 5);
 
-var f = cpp_array(2, N);
+var f: dynamic = cpp_array(2, N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var r1: dynamic;
+var r1: dynamic = cpp_uninitialized();
 
-var r2: dynamic;
+var r2: dynamic = cpp_uninitialized();
 
-var r3: dynamic;
+var r3: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   n = read();
   r1 = read();
@@ -49,14 +49,14 @@ func main()
   r3 = read();
   d = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[cpp_update(i, "++")] = read();
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       f[i][0] = cpp_assign(f[i][1], "=", 1e18);
@@ -66,7 +66,7 @@ func main()
   f[1][0] = (((1 * r1) * a[1]) + r3);
   f[1][1] = min((0 + r2), (((1 * r1) * a[1]) + r1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       upd(f[(i + 1)][0], (((f[i][0] + d) + ((1 * r1) * a[(i + 1)])) + r3));

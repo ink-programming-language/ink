@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var N = 25;
+var N: dynamic = 25;
 
-var dp = cpp_array(2, 2, 2, N, N, N, N);
+var dp: dynamic = cpp_array(2, 2, 2, N, N, N, N);
 
-var na: dynamic;
+var na: dynamic = cpp_uninitialized();
 
-var nb: dynamic;
+var nb: dynamic = cpp_uninitialized();
 
-var nc: dynamic;
+var nc: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-func pros(x: dynamic)
+func pros(x: dynamic) -> dynamic
 {
   reverse(x.begin(), x.end());
   x = (cpp_char(" ") + x);
@@ -30,38 +30,38 @@ func pros(x: dynamic)
 
 class col
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
 }
 
-var value = cpp_array(2, 2, 2, N, N, N, N);
+var value: dynamic = cpp_array(2, 2, 2, N, N, N, N);
 
 class pack
 {
-  var i: dynamic;
-  var posa: dynamic;
-  var posb: dynamic;
-  var posc: dynamic;
-  var carry: dynamic;
-  var enda: dynamic;
-  var endb: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var posa: dynamic = cpp_uninitialized();
+  var posb: dynamic = cpp_uninitialized();
+  var posc: dynamic = cpp_uninitialized();
+  var carry: dynamic = cpp_uninitialized();
+  var enda: dynamic = cpp_uninitialized();
+  var endb: dynamic = cpp_uninitialized();
 }
 
-var trace = cpp_array(2, 2, 2, N, N, N, N);
+var trace: dynamic = cpp_array(2, 2, 2, N, N, N, N);
 
-var root: dynamic;
+var root: dynamic = cpp_uninitialized();
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var t: dynamic;
-  var tmp: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var tmp: dynamic = cpp_uninitialized();
   tmp.clear();
   read(t);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t.size()))
     {
       if (((t[i] >= cpp_char("0")) && (t[i] <= cpp_char("9"))))
@@ -91,82 +91,82 @@ func main(argc: dynamic, argv: dynamic)
   pros(c);
   memset(dp, -1, cpp_sizeof(dp));
   dp[0][0][0][0][0][0][0] = 0;
-  var res = (N * N);
+  var res: dynamic = (N * N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 20))
     {
       {
-        var posa = 0;
+        var posa: dynamic = 0;
         while ((posa <= na))
         {
           {
-            var posb = 0;
+            var posb: dynamic = 0;
             while ((posb <= nb))
             {
               {
-                var posc = 0;
+                var posc: dynamic = 0;
                 while ((posc <= nc))
                 {
                   {
-                    var carry = 0;
+                    var carry: dynamic = 0;
                     while ((carry <= 1))
                     {
                       {
-                        var enda = 0;
+                        var enda: dynamic = 0;
                         while ((enda <= 1))
                         {
                           {
-                            var endb = 0;
+                            var endb: dynamic = 0;
                             while ((endb <= 1))
                             {
-                              var cur = dp[i][posa][posb][posc][carry][enda][endb];
-                              var address = [i, posa, posb, posc, carry, enda, endb];
+                              var cur: dynamic = dp[i][posa][posb][posc][carry][enda][endb];
+                              var address: dynamic = [i, posa, posb, posc, carry, enda, endb];
                               if ((cur == -1))
                               {
                                 endb += 1;
                                 continue;
                               }
                               {
-                                var d1 = 0;
+                                var d1: dynamic = 0;
                                 while ((d1 <= 9))
                                 {
                                   {
-                                    var d2 = 0;
+                                    var d2: dynamic = 0;
                                     while ((d2 <= 9))
                                     {
-                                      var s = (((d1 * (if (enda) 0 else 1)) + (d2 * (if (endb) 0 else 1))) + carry);
-                                      var nxt = (s % 10);
-                                      var ncarry = (s / 10);
-                                      var pa = posa;
+                                      var s: dynamic = (((d1 * ( (enda) ? 0 : 1)) + (d2 * ( (endb) ? 0 : 1))) + carry);
+                                      var nxt: dynamic = (s % 10);
+                                      var ncarry: dynamic = (s / 10);
+                                      var pa: dynamic = posa;
                                       if ((((!enda) && (posa != na)) && ((a[(posa + 1)] - cpp_char("0")) == d1)))
                                       {
                                         pa += 1;
                                       }
-                                      var pb = posb;
+                                      var pb: dynamic = posb;
                                       if ((((!endb) && (posb != nb)) && ((b[(posb + 1)] - cpp_char("0")) == d2)))
                                       {
                                         pb += 1;
                                       }
-                                      var pc = posc;
+                                      var pc: dynamic = posc;
                                       if (((posc != nc) && ((c[(posc + 1)] - cpp_char("0")) == nxt)))
                                       {
                                         pc += 1;
                                       }
                                       {
-                                        var nea = enda;
+                                        var nea: dynamic = enda;
                                         while ((nea <= 1))
                                         {
                                           {
-                                            var neb = endb;
+                                            var neb: dynamic = endb;
                                             while ((neb <= 1))
                                             {
-                                              var state = dp[(i + 1)][pa][pb][pc][ncarry][nea][neb];
+                                              var state: dynamic = dp[(i + 1)][pa][pb][pc][ncarry][nea][neb];
                                               if (((state == -1) || (state > (((cur + 3) - enda) - endb))))
                                               {
                                                 state = (((cur + 3) - enda) - endb);
                                                 trace[(i + 1)][pa][pb][pc][ncarry][nea][neb] = address;
-                                                value[(i + 1)][pa][pb][pc][ncarry][nea][neb] = [(if (enda) -1 else d1), (if (endb) -1 else d2), nxt];
+                                                value[(i + 1)][pa][pb][pc][ncarry][nea][neb] = [( (enda) ? -1 : d1), ( (endb) ? -1 : d2), nxt];
                                                 neb += 1;
                                                 continue;
                                               }
@@ -209,10 +209,10 @@ func main(argc: dynamic, argv: dynamic)
       i += 1;
     }
   }
-  var leaf = [0, 0, 0, 0, 0, 0, 0];
+  var leaf: dynamic = [0, 0, 0, 0, 0, 0, 0];
   while ((((((((root.i + root.posa) + root.posb) + root.posc) + root.carry) + root.enda) + root.endb) != 0))
   {
-    var D = value[root.i][root.posa][root.posb][root.posc][root.carry][root.enda][root.endb];
+    var D: dynamic = value[root.i][root.posa][root.posb][root.posc][root.carry][root.enda][root.endb];
     if ((D.a != -1))
     {
       A += char((cpp_char("0") + D.a));

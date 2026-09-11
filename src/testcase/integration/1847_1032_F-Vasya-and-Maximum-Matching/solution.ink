@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(a: dynamic)
+func read(a: dynamic) -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,7 +21,7 @@ func read(a: dynamic)
   a = (x * f);
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -36,66 +36,66 @@ func write(x: dynamic)
   putchar(((x % 10) + cpp_char("0")));
 }
 
-func writeln(x: dynamic)
+func writeln(x: dynamic) -> dynamic
 {
   write(x);
   putchar(cpp_char("\n"));
 }
 
-func writes(x: dynamic)
+func writes(x: dynamic) -> dynamic
 {
   write(x);
   putchar(cpp_char(" "));
 }
 
-func read(t: dynamic, args: dynamic...)
+func read(t: dynamic, args: dynamic...) -> dynamic
 {
   read(t);
   read(cpp_expand(args));
 }
 
-func writes(t: dynamic, args: dynamic...)
+func writes(t: dynamic, args: dynamic...) -> dynamic
 {
   writes(t);
   writes(cpp_expand(args));
 }
 
-func writeln(t: dynamic, args: dynamic...)
+func writeln(t: dynamic, args: dynamic...) -> dynamic
 {
   writes(t);
   writes(cpp_expand(args));
   putchar(cpp_char("\n"));
 }
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var head = cpp_array(300005);
+var head: dynamic = cpp_array(300005);
 
-var pnt = cpp_array((300005 << 1));
+var pnt: dynamic = cpp_array((300005 << 1));
 
-var nxt = cpp_array((300005 << 1));
+var nxt: dynamic = cpp_array((300005 << 1));
 
-var E = 0;
+var E: dynamic = 0;
 
-var dp = cpp_array(3, 300005);
+var dp: dynamic = cpp_array(3, 300005);
 
-func add_edge(u: dynamic, v: dynamic)
+func add_edge(u: dynamic, v: dynamic) -> dynamic
 {
   pnt[E] = v;
   nxt[E] = head[u];
   head[u] = cpp_update(E, "++");
 }
 
-func dfs(u: dynamic, f: dynamic)
+func dfs(u: dynamic, f: dynamic) -> dynamic
 {
   dp[u][0] = 1;
   {
-    var i = head[u];
+    var i: dynamic = head[u];
     while ((i != -1))
     {
-      var v = pnt[i];
+      var v: dynamic = pnt[i];
       if ((v == f))
       {
         i = nxt[i];
@@ -110,16 +110,16 @@ func dfs(u: dynamic, f: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   memset(head, -1, cpp_sizeof((head)));
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       add_edge(u, v);
       add_edge(v, u);

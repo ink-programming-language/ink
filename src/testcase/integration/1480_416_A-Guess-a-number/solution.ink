@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   read(a);
-  var l = -2e9;
-  var r = 2e9;
+  var l: dynamic = -2e9;
+  var r: dynamic = 2e9;
   while (cpp_update(a, "--"))
   {
-    var c: dynamic;
-    var n: dynamic;
-    var s: dynamic;
+    var c: dynamic = cpp_uninitialized();
+    var n: dynamic = cpp_uninitialized();
+    var s: dynamic = cpp_uninitialized();
     read(c, n, s);
     if ((c == ">"))
     {

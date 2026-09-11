@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func choice(a: dynamic, b: dynamic)
+func choice(a: dynamic, b: dynamic) -> dynamic
 {
-  var opt1 = min((a / 2), b);
+  var opt1: dynamic = min((a / 2), b);
   a -= (2 * opt1);
   b -= opt1;
-  var opt2 = min(a, (b / 2));
+  var opt2: dynamic = min(a, (b / 2));
   return (opt1 + opt2);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
   if (((((a + b)) / 3) <= min(a, b)))
   {
@@ -22,9 +22,9 @@ func solve()
   write(min(a, b), "\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

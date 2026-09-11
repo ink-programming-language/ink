@@ -1,63 +1,63 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 10);
+var N: dynamic = (2e5 + 10);
 
 class Node
 {
-  var x: dynamic;
-  var y: dynamic;
-  var id: dynamic;
-  func operator_add(A: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  func operator_add(A: dynamic) -> dynamic
   {
       return [(x + A.x), (y + A.y), id];
     }
-  func operator_subtract(A: dynamic)
+  func operator_subtract(A: dynamic) -> dynamic
   {
       return [(x - A.x), (y - A.y), id];
     }
-  func operator_multiply(A: dynamic)
+  func operator_multiply(A: dynamic) -> dynamic
   {
       return (((1 * x) * A.y) - ((1 * y) * A.x));
     }
-  func dis()
+  func dis() -> dynamic
   {
       return (((1 * x) * x) + ((1 * y) * y));
     }
 }
 
-var A = cpp_array(N);
+var A: dynamic = cpp_array(N);
 
-var P = cpp_array(N);
+var P: dynamic = cpp_array(N);
 
-var bs: dynamic;
+var bs: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var sta = cpp_array(N);
+var sta: dynamic = cpp_array(N);
 
-var top: dynamic;
+var top: dynamic = cpp_uninitialized();
 
-func cmp1(A: dynamic, B: dynamic)
+func cmp1(A: dynamic, B: dynamic) -> dynamic
 {
-  return if ((A.y != B.y)) (A.y < B.y) else (A.x < B.x);
+  return  ((A.y != B.y)) ? (A.y < B.y) : (A.x < B.x);
 }
 
-func cmp2(A: dynamic, B: dynamic)
+func cmp2(A: dynamic, B: dynamic) -> dynamic
 {
-  return if (((A * B) == 0)) (A.dis() < B.dis()) else ((A * B) > 0);
+  return  (((A * B) == 0)) ? (A.dis() < B.dis()) : ((A * B) > 0);
 }
 
-func Convex()
+func Convex() -> dynamic
 {
   sort((A + 1), ((A + tot) + 1), cmp1);
   bs = A[1];
   top = 0;
   {
-    var i = tot;
+    var i: dynamic = tot;
     while ((i >= 1))
     {
       A[i] = (A[i] - A[1]);
@@ -66,7 +66,7 @@ func Convex()
   }
   sort((A + 1), ((A + tot) + 1), cmp2);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= tot))
     {
       while (((top >= 2) && ((((A[i] - A[sta[(top - 1)]])) * ((A[sta[top]] - A[sta[(top - 1)]]))) >= 0)))
@@ -78,11 +78,11 @@ func Convex()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= top))
     {
       A[i] = A[sta[i]];
-      var P = (bs + A[i]);
+      var P: dynamic = (bs + A[i]);
       if ((((P.x & 1)) || ((P.y & 1))))
       {
         puts("Ani");
@@ -93,11 +93,11 @@ func Convex()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d%d", (&P[i].x), (&P[i].y));
@@ -107,7 +107,7 @@ func main()
   }
   P[cpp_update(n, "++")] = [0, 0, 0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       A[i] = P[i];
@@ -118,15 +118,15 @@ func main()
   Convex();
   tot = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= top))
     {
-      vis[A[i].id] = if (((i & 1))) 1 else 2;
+      vis[A[i].id] =  (((i & 1))) ? 1 : 2;
       i += 1;
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((vis[i] != 1))
@@ -139,7 +139,7 @@ func main()
   Convex();
   tot = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((vis[i] != 2))

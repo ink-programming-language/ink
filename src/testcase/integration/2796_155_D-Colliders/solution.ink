@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var INF = (1 << 30);
+var INF: dynamic = (1 << 30);
 
-func main()
+func main() -> dynamic
 {
-  var MAX_P = (100000 + 1);
-  var p = cpp_array(MAX_P);
+  var MAX_P: dynamic = (100000 + 1);
+  var p: dynamic = cpp_array(MAX_P);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < MAX_P))
     {
       p[i] = true;
@@ -16,13 +16,13 @@ func main()
   }
   p[0] = cpp_assign(p[1], "=", false);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= MAX_P))
     {
       if (p[i])
       {
         {
-          var j = (i + i);
+          var j: dynamic = (i + i);
           while ((j < MAX_P))
           {
             p[j] = false;
@@ -33,9 +33,9 @@ func main()
       i += 1;
     }
   }
-  var prime: dynamic;
+  var prime: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < MAX_P))
     {
       if (p[i])
@@ -46,12 +46,12 @@ func main()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < MAX_P))
     {
-      var n = i;
+      var n: dynamic = i;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while (((j < prime.size()) && (prime[j] <= n)))
         {
           if (((n % prime[j]) == 0))
@@ -68,16 +68,16 @@ func main()
       i += 1;
     }
   }
-  var s: dynamic;
-  var n: dynamic;
-  var m: dynamic;
-  var index: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var index: dynamic = cpp_uninitialized();
   while (((cin >> n) >> m))
   {
-    var active = cpp_construct((n + 1), 0);
-    var relative = cpp_construct((n + 1), 0);
+    var active: dynamic = cpp_construct((n + 1), 0);
+    var relative: dynamic = cpp_construct((n + 1), 0);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         read(s, index);
@@ -88,9 +88,9 @@ func main()
             puts("Already on");
           } else
           {
-            var rp = true;
+            var rp: dynamic = true;
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j < factor[index].size()))
               {
                 if ((relative[factor[index][j]] != 0))
@@ -106,7 +106,7 @@ func main()
             {
               active[index] = 1;
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < factor[index].size()))
                 {
                   relative[factor[index][j]] = index;
@@ -122,7 +122,7 @@ func main()
           {
             active[index] = 0;
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j < factor[index].size()))
               {
                 relative[factor[index][j]] = 0;

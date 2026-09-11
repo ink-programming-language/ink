@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var ch = getchar();
-  var w = 1;
+  var x: dynamic = 0;
+  var ch: dynamic = getchar();
+  var w: dynamic = 1;
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,7 +21,7 @@ func read()
   return (x * w);
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -35,30 +35,30 @@ func write(x: dynamic)
   putchar(((x % 10) + cpp_char("0")));
 }
 
-func writeln(x: dynamic)
+func writeln(x: dynamic) -> dynamic
 {
   write(x);
   puts("");
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var N = (420000 * 2);
+var N: dynamic = (420000 * 2);
 
 class Edge
 {
-  var u: dynamic;
-  var v: dynamic;
-  var nxt: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var nxt: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array(N);
+var e: dynamic = cpp_array(N);
 
-var head = cpp_array(N);
+var head: dynamic = cpp_array(N);
 
-var en: dynamic;
+var en: dynamic = cpp_uninitialized();
 
-func addl(x: dynamic, y: dynamic)
+func addl(x: dynamic, y: dynamic) -> dynamic
 {
   e[cpp_update(en, "++")].u = x;
   e[en].v = y;
@@ -66,23 +66,23 @@ func addl(x: dynamic, y: dynamic)
   head[x] = en;
 }
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-var siz = cpp_array(N);
+var siz: dynamic = cpp_array(N);
 
-var rt: dynamic;
+var rt: dynamic = cpp_uninitialized();
 
-var res = 1e9;
+var res: dynamic = 1e9;
 
-func dfs(x: dynamic, F: dynamic)
+func dfs(x: dynamic, F: dynamic) -> dynamic
 {
   siz[x] = 1;
-  var mx = 0;
+  var mx: dynamic = 0;
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var y = e[i].v;
+      var y: dynamic = e[i].v;
       if ((y == F))
       {
         i = e[i].nxt;
@@ -102,16 +102,16 @@ func dfs(x: dynamic, F: dynamic)
   }
 }
 
-var sub: dynamic;
+var sub: dynamic = cpp_uninitialized();
 
-func solve(x: dynamic, F: dynamic, sum: dynamic, pre: dynamic)
+func solve(x: dynamic, F: dynamic, sum: dynamic, pre: dynamic) -> dynamic
 {
   if ((sum <= (n / 2)))
   {
     ans[x] = 1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i < 2) && (i < sub.size())))
     {
       if ((sub[i].second == pre))
@@ -127,10 +127,10 @@ func solve(x: dynamic, F: dynamic, sum: dynamic, pre: dynamic)
     }
   }
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var y = e[i].v;
+      var y: dynamic = e[i].v;
       if ((y == F))
       {
         i = e[i].nxt;
@@ -142,15 +142,15 @@ func solve(x: dynamic, F: dynamic, sum: dynamic, pre: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var x = read();
-      var y = read();
+      var x: dynamic = read();
+      var y: dynamic = read();
       addl(x, y);
       addl(y, x);
       i += 1;
@@ -160,7 +160,7 @@ func main()
   dfs(rt, 0);
   ans[rt] = 1;
   {
-    var i = head[rt];
+    var i: dynamic = head[rt];
     while (i)
     {
       sub.push_back(make_pair(siz[e[i].v], e[i].v));
@@ -169,16 +169,16 @@ func main()
   }
   sort(sub.begin(), sub.end(), greater());
   {
-    var i = head[rt];
+    var i: dynamic = head[rt];
     while (i)
     {
-      var to = e[i].v;
+      var to: dynamic = e[i].v;
       solve(to, rt, (n - siz[to]), to);
       i = e[i].nxt;
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%d ", ans[i]);

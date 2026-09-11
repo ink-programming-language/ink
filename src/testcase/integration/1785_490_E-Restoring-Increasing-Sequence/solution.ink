@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func mini(a: dynamic, b: dynamic)
+func mini(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.size() < b.size()))
   {
@@ -11,7 +11,7 @@ func mini(a: dynamic, b: dynamic)
     return b;
   }
   {
-    var c = 0;
+    var c: dynamic = 0;
     while ((c < cpp_cast(a.size())))
     {
       if ((a[c] < b[c]))
@@ -28,18 +28,18 @@ func mini(a: dynamic, b: dynamic)
   return a;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var prev = "0";
-  var ans: dynamic;
+  var prev: dynamic = "0";
+  var ans: dynamic = cpp_uninitialized();
   while (cpp_update(n, "--"))
   {
-    var num: dynamic;
+    var num: dynamic = cpp_uninitialized();
     read(num);
     if ((prev.size() > num.size()))
     {
@@ -48,7 +48,7 @@ func main()
     } else if ((num.size() > prev.size()))
     {
       {
-        var c = 0;
+        var c: dynamic = 0;
         while ((c < num.size()))
         {
           if ((num[c] == cpp_char("?")))
@@ -60,11 +60,11 @@ func main()
       }
     } else
     {
-      var gg = "99999999999";
+      var gg: dynamic = "99999999999";
       if (((mini(num, prev) == prev) && (num != prev)))
       {
-        var c_q = 0;
-        for (var cym in num)
+        var c_q: dynamic = 0;
+        for (var cym: dynamic in num)
         {
           c_q += ((cym == cpp_char("?")));
         }
@@ -74,19 +74,19 @@ func main()
         }
       }
       {
-        var c = 0;
+        var c: dynamic = 0;
         while ((c < num.size()))
         {
           if (((((prev[c] != cpp_char("9")) && (num[c] == cpp_char("?")))) || (((num[c] != cpp_char("?")) && (prev[c] < num[c])))))
           {
-            var num2 = num;
+            var num2: dynamic = num;
             if (((num2[c] == cpp_char("?")) && (prev[c] != cpp_char("9"))))
             {
               num2[c] = cpp_cast(((prev[c] + 1)));
             }
-            var can = true;
+            var can: dynamic = true;
             {
-              var c0 = 0;
+              var c0: dynamic = 0;
               while ((c0 < c))
               {
                 if (((num[c0] == cpp_char("?")) || (num[c0] == prev[c0])))
@@ -100,7 +100,7 @@ func main()
               }
             }
             {
-              var c1 = (c + 1);
+              var c1: dynamic = (c + 1);
               while ((c1 < num.size()))
               {
                 if ((num2[c1] == cpp_char("?")))
@@ -129,7 +129,7 @@ func main()
     prev = num;
   }
   write("YES\n");
-  for (var s in ans)
+  for (var s: dynamic in ans)
   {
     write(s, cpp_char("\n"));
   }

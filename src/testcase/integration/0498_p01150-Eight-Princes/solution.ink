@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var sum = 0;
+var sum: dynamic = 0;
 
-func solve(used: dynamic, nums: dynamic)
+func solve(used: dynamic, nums: dynamic) -> dynamic
 {
   if ((used.count() == 13))
   {
@@ -10,7 +10,7 @@ func solve(used: dynamic, nums: dynamic)
   } else
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 13))
       {
         if ((!used[i]))
@@ -26,7 +26,7 @@ func solve(used: dynamic, nums: dynamic)
                 v.clear();
               }
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < nums[i]))
                 {
                   v.push_back(i);
@@ -46,12 +46,12 @@ func solve(used: dynamic, nums: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   while (true)
   {
     sum = 0;
-    var N: dynamic;
+    var N: dynamic = cpp_uninitialized();
     read(N);
     if ((!N))
     {
@@ -59,21 +59,21 @@ func main()
     }
     if ((N % 2))
     {
-      var dp = cpp_array(9, 2, 2, 100);
+      var dp: dynamic = cpp_array(9, 2, 2, 100);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 100))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < 2))
             {
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < 2))
                 {
                   {
-                    var n = 0;
+                    var n: dynamic = 0;
                     while ((n < 9))
                     {
                       dp[i][j][k][n] = 0;
@@ -90,7 +90,7 @@ func main()
         }
       }
       {
-        var luse = 0;
+        var luse: dynamic = 0;
         while ((luse < 2))
         {
           dp[0][luse][luse][luse] = 1;
@@ -98,33 +98,33 @@ func main()
         }
       }
       {
-        var h = 0;
+        var h: dynamic = 0;
         while ((h < (N - 1)))
         {
           {
-            var fst_luse = 0;
+            var fst_luse: dynamic = 0;
             while ((fst_luse < 2))
             {
               {
-                var pre_luse = 0;
+                var pre_luse: dynamic = 0;
                 while ((pre_luse < 2))
                 {
                   {
-                    var cnt = 0;
+                    var cnt: dynamic = 0;
                     while ((cnt <= 8))
                     {
-                      var num = dp[h][fst_luse][pre_luse][cnt];
+                      var num: dynamic = dp[h][fst_luse][pre_luse][cnt];
                       {
-                        var next_luse = 0;
+                        var next_luse: dynamic = 0;
                         while ((next_luse < 2))
                         {
-                          var next_cnt = (cnt + next_luse);
+                          var next_cnt: dynamic = (cnt + next_luse);
                           if ((next_cnt > 8))
                           {
                             next_luse += 1;
                             continue;
                           }
-                          var next_h = (h + 1);
+                          var next_h: dynamic = (h + 1);
                           if ((pre_luse && next_luse))
                           {
                             next_luse += 1;
@@ -154,20 +154,20 @@ func main()
           h += 1;
         }
       }
-      var ans = 0;
+      var ans: dynamic = 0;
       {
-        var h = (N - 1);
+        var h: dynamic = (N - 1);
         {
-          var fst_luse = 0;
+          var fst_luse: dynamic = 0;
           while ((fst_luse < 2))
           {
             {
-              var pre_luse = 0;
+              var pre_luse: dynamic = 0;
               while ((pre_luse < 2))
               {
                 {
-                  var cnt = 8;
-                  var num = dp[h][fst_luse][pre_luse][cnt];
+                  var cnt: dynamic = 8;
+                  var num: dynamic = dp[h][fst_luse][pre_luse][cnt];
                   ans += num;
                 }
                 pre_luse += 1;
@@ -181,29 +181,29 @@ func main()
       write(ans, "\n");
     } else
     {
-      var dp = cpp_array(9, 2, 2, 2, 2, 100);
+      var dp: dynamic = cpp_array(9, 2, 2, 2, 2, 100);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 100))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < 2))
             {
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < 2))
                 {
                   {
-                    var l = 0;
+                    var l: dynamic = 0;
                     while ((l < 2))
                     {
                       {
-                        var m = 0;
+                        var m: dynamic = 0;
                         while ((m < 2))
                         {
                           {
-                            var n = 0;
+                            var n: dynamic = 0;
                             while ((n < 9))
                             {
                               dp[i][j][k][l][m][n] = 0;
@@ -226,11 +226,11 @@ func main()
         }
       }
       {
-        var luse = 0;
+        var luse: dynamic = 0;
         while ((luse < 2))
         {
           {
-            var ruse = 0;
+            var ruse: dynamic = 0;
             while ((ruse < 2))
             {
               if ((luse && ruse))
@@ -246,45 +246,45 @@ func main()
         }
       }
       {
-        var h = 0;
+        var h: dynamic = 0;
         while ((h < ((N / 2) - 1)))
         {
           {
-            var fst_luse = 0;
+            var fst_luse: dynamic = 0;
             while ((fst_luse < 2))
             {
               {
-                var fst_ruse = 0;
+                var fst_ruse: dynamic = 0;
                 while ((fst_ruse < 2))
                 {
                   {
-                    var pre_luse = 0;
+                    var pre_luse: dynamic = 0;
                     while ((pre_luse < 2))
                     {
                       {
-                        var pre_ruse = 0;
+                        var pre_ruse: dynamic = 0;
                         while ((pre_ruse < 2))
                         {
                           {
-                            var cnt = 0;
+                            var cnt: dynamic = 0;
                             while ((cnt <= 8))
                             {
-                              var num = dp[h][fst_luse][fst_ruse][pre_luse][pre_ruse][cnt];
+                              var num: dynamic = dp[h][fst_luse][fst_ruse][pre_luse][pre_ruse][cnt];
                               {
-                                var next_luse = 0;
+                                var next_luse: dynamic = 0;
                                 while ((next_luse < 2))
                                 {
                                   {
-                                    var next_ruse = 0;
+                                    var next_ruse: dynamic = 0;
                                     while ((next_ruse < 2))
                                     {
-                                      var next_cnt = ((cnt + next_luse) + next_ruse);
+                                      var next_cnt: dynamic = ((cnt + next_luse) + next_ruse);
                                       if ((next_cnt > 8))
                                       {
                                         next_ruse += 1;
                                         continue;
                                       }
-                                      var next_h = (h + 1);
+                                      var next_h: dynamic = (h + 1);
                                       if ((pre_luse && next_ruse))
                                       {
                                         next_ruse += 1;
@@ -338,28 +338,28 @@ func main()
           h += 1;
         }
       }
-      var ans = 0;
+      var ans: dynamic = 0;
       {
-        var h = ((N / 2) - 1);
+        var h: dynamic = ((N / 2) - 1);
         {
-          var fst_luse = 0;
+          var fst_luse: dynamic = 0;
           while ((fst_luse < 2))
           {
             {
-              var fst_ruse = 0;
+              var fst_ruse: dynamic = 0;
               while ((fst_ruse < 2))
               {
                 {
-                  var pre_luse = 0;
+                  var pre_luse: dynamic = 0;
                   while ((pre_luse < 2))
                   {
                     {
-                      var pre_ruse = 0;
+                      var pre_ruse: dynamic = 0;
                       while ((pre_ruse < 2))
                       {
                         {
-                          var cnt = 8;
-                          var num = dp[h][fst_luse][fst_ruse][pre_luse][pre_ruse][cnt];
+                          var cnt: dynamic = 8;
+                          var num: dynamic = dp[h][fst_luse][fst_ruse][pre_luse][pre_ruse][cnt];
                           ans += num;
                         }
                         pre_ruse += 1;

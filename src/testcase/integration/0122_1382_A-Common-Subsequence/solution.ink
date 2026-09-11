@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var m: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
     read(n, m);
-    var arr = cpp_array(n);
-    var arr1 = cpp_array(m);
+    var arr: dynamic = cpp_array(n);
+    var arr1: dynamic = cpp_array(m);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(arr[i]);
@@ -20,20 +20,20 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         read(arr1[i]);
         i += 1;
       }
     }
-    var num = -1;
+    var num: dynamic = -1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             if ((arr[i] == arr1[j]))

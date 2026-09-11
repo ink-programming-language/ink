@@ -1,51 +1,51 @@
 // Translated from solution.cpp.
 
-var RD: dynamic;
+var RD: dynamic = cpp_uninitialized();
 
-func RD()
+func RD() -> dynamic
 {
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   return RD(x);
 }
 
-func RC(c: dynamic)
+func RC(c: dynamic) -> dynamic
 {
   scanf(" %c", (&c));
   return c;
 }
 
-func RC()
+func RC() -> dynamic
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   return RC(c);
 }
 
-func RF(x: dynamic)
+func RF(x: dynamic) -> dynamic
 {
   scanf("%lf", (&x));
   return x;
 }
 
-func RF()
+func RF() -> dynamic
 {
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   return RF(x);
 }
 
-func RS(s: dynamic)
+func RS(s: dynamic) -> dynamic
 {
   scanf("%s", s);
   return s;
 }
 
-func RD(x0: dynamic, x1: dynamic)
+func RD(x0: dynamic, x1: dynamic) -> dynamic
 {
   RD(x0);
   RD(x1);
   return x0;
 }
 
-func RD(x0: dynamic, x1: dynamic, x2: dynamic)
+func RD(x0: dynamic, x1: dynamic, x2: dynamic) -> dynamic
 {
   RD(x0);
   RD(x1);
@@ -53,7 +53,7 @@ func RD(x0: dynamic, x1: dynamic, x2: dynamic)
   return x0;
 }
 
-func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic)
+func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic) -> dynamic
 {
   RD(x0);
   RD(x1);
@@ -62,7 +62,7 @@ func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic)
   return x0;
 }
 
-func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic)
+func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic) -> dynamic
 {
   RD(x0);
   RD(x1);
@@ -72,7 +72,7 @@ func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic)
   return x0;
 }
 
-func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dynamic)
+func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dynamic) -> dynamic
 {
   RD(x0);
   RD(x1);
@@ -83,7 +83,7 @@ func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dyn
   return x0;
 }
 
-func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dynamic, x6: dynamic)
+func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dynamic, x6: dynamic) -> dynamic
 {
   RD(x0);
   RD(x1);
@@ -95,20 +95,20 @@ func RD(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dyn
   return x0;
 }
 
-func OT(x0: dynamic, x1: dynamic)
+func OT(x0: dynamic, x1: dynamic) -> dynamic
 {
   OT(x0);
   OT(x1);
 }
 
-func OT(x0: dynamic, x1: dynamic, x2: dynamic)
+func OT(x0: dynamic, x1: dynamic, x2: dynamic) -> dynamic
 {
   OT(x0);
   OT(x1);
   OT(x2);
 }
 
-func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic)
+func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic) -> dynamic
 {
   OT(x0);
   OT(x1);
@@ -116,7 +116,7 @@ func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic)
   OT(x3);
 }
 
-func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic)
+func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic) -> dynamic
 {
   OT(x0);
   OT(x1);
@@ -125,7 +125,7 @@ func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic)
   OT(x4);
 }
 
-func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dynamic)
+func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dynamic) -> dynamic
 {
   OT(x0);
   OT(x1);
@@ -135,7 +135,7 @@ func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dyn
   OT(x5);
 }
 
-func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dynamic, x6: dynamic)
+func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dynamic, x6: dynamic) -> dynamic
 {
   OT(x0);
   OT(x1);
@@ -146,14 +146,14 @@ func OT(x0: dynamic, x1: dynamic, x2: dynamic, x3: dynamic, x4: dynamic, x5: dyn
   OT(x6);
 }
 
-func RC(a: dynamic, b: dynamic)
+func RC(a: dynamic, b: dynamic) -> dynamic
 {
   RC(a);
   RC(b);
   return a;
 }
 
-func RC(a: dynamic, b: dynamic, c: dynamic)
+func RC(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   RC(a);
   RC(b);
@@ -161,7 +161,7 @@ func RC(a: dynamic, b: dynamic, c: dynamic)
   return a;
 }
 
-func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   RC(a);
   RC(b);
@@ -170,7 +170,7 @@ func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
   return a;
 }
 
-func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic)
+func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic) -> dynamic
 {
   RC(a);
   RC(b);
@@ -180,7 +180,7 @@ func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic)
   return a;
 }
 
-func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic)
+func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic) -> dynamic
 {
   RC(a);
   RC(b);
@@ -191,7 +191,7 @@ func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic)
   return a;
 }
 
-func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic, g: dynamic)
+func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic, g: dynamic) -> dynamic
 {
   RC(a);
   RC(b);
@@ -203,14 +203,14 @@ func RC(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic, 
   return a;
 }
 
-func RF(a: dynamic, b: dynamic)
+func RF(a: dynamic, b: dynamic) -> dynamic
 {
   RF(a);
   RF(b);
   return a;
 }
 
-func RF(a: dynamic, b: dynamic, c: dynamic)
+func RF(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   RF(a);
   RF(b);
@@ -218,7 +218,7 @@ func RF(a: dynamic, b: dynamic, c: dynamic)
   return a;
 }
 
-func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   RF(a);
   RF(b);
@@ -227,7 +227,7 @@ func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
   return a;
 }
 
-func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic)
+func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic) -> dynamic
 {
   RF(a);
   RF(b);
@@ -237,7 +237,7 @@ func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic)
   return a;
 }
 
-func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic)
+func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic) -> dynamic
 {
   RF(a);
   RF(b);
@@ -248,7 +248,7 @@ func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic)
   return a;
 }
 
-func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic, g: dynamic)
+func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic, g: dynamic) -> dynamic
 {
   RF(a);
   RF(b);
@@ -260,38 +260,38 @@ func RF(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, f: dynamic, 
   return a;
 }
 
-func RS(s1: dynamic, s2: dynamic)
+func RS(s1: dynamic, s2: dynamic) -> dynamic
 {
   RS(s1);
   RS(s2);
 }
 
-func RS(s1: dynamic, s2: dynamic, s3: dynamic)
+func RS(s1: dynamic, s2: dynamic, s3: dynamic) -> dynamic
 {
   RS(s1);
   RS(s2);
   RS(s3);
 }
 
-func RST(A: dynamic)
+func RST(A: dynamic) -> dynamic
 {
   memset(A, 0, cpp_sizeof((A)));
 }
 
-func RST(A0: dynamic, A1: dynamic)
+func RST(A0: dynamic, A1: dynamic) -> dynamic
 {
   RST(A0);
   RST(A1);
 }
 
-func RST(A0: dynamic, A1: dynamic, A2: dynamic)
+func RST(A0: dynamic, A1: dynamic, A2: dynamic) -> dynamic
 {
   RST(A0);
   RST(A1);
   RST(A2);
 }
 
-func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic)
+func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic) -> dynamic
 {
   RST(A0);
   RST(A1);
@@ -299,7 +299,7 @@ func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic)
   RST(A3);
 }
 
-func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic)
+func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic) -> dynamic
 {
   RST(A0);
   RST(A1);
@@ -308,7 +308,7 @@ func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic)
   RST(A4);
 }
 
-func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic)
+func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic) -> dynamic
 {
   RST(A0);
   RST(A1);
@@ -318,7 +318,7 @@ func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dy
   RST(A5);
 }
 
-func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic, A6: dynamic)
+func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic, A6: dynamic) -> dynamic
 {
   RST(A0);
   RST(A1);
@@ -329,25 +329,25 @@ func RST(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dy
   RST(A6);
 }
 
-func FLC(A: dynamic, x: dynamic)
+func FLC(A: dynamic, x: dynamic) -> dynamic
 {
   memset(A, x, cpp_sizeof((A)));
 }
 
-func FLC(A0: dynamic, A1: dynamic, x: dynamic)
+func FLC(A0: dynamic, A1: dynamic, x: dynamic) -> dynamic
 {
   FLC(A0, x);
   FLC(A1, x);
 }
 
-func FLC(A0: dynamic, A1: dynamic, A2: dynamic)
+func FLC(A0: dynamic, A1: dynamic, A2: dynamic) -> dynamic
 {
   FLC(A0);
   FLC(A1);
   FLC(A2);
 }
 
-func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic)
+func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic) -> dynamic
 {
   FLC(A0);
   FLC(A1);
@@ -355,7 +355,7 @@ func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic)
   FLC(A3);
 }
 
-func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic)
+func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic) -> dynamic
 {
   FLC(A0);
   FLC(A1);
@@ -364,7 +364,7 @@ func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic)
   FLC(A4);
 }
 
-func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic)
+func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic) -> dynamic
 {
   FLC(A0);
   FLC(A1);
@@ -374,7 +374,7 @@ func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dy
   FLC(A5);
 }
 
-func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic, A6: dynamic)
+func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic, A6: dynamic) -> dynamic
 {
   FLC(A0);
   FLC(A1);
@@ -385,7 +385,7 @@ func FLC(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dy
   FLC(A6);
 }
 
-func CLR(Q: dynamic)
+func CLR(Q: dynamic) -> dynamic
 {
   while ((!Q.empty()))
   {
@@ -393,7 +393,7 @@ func CLR(Q: dynamic)
   }
 }
 
-func CLR(Q: dynamic)
+func CLR(Q: dynamic) -> dynamic
 {
   while ((!Q.empty()))
   {
@@ -401,25 +401,25 @@ func CLR(Q: dynamic)
   }
 }
 
-func CLR(A: dynamic)
+func CLR(A: dynamic) -> dynamic
 {
   A.clear();
 }
 
-func CLR(A0: dynamic, A1: dynamic)
+func CLR(A0: dynamic, A1: dynamic) -> dynamic
 {
   CLR(A0);
   CLR(A1);
 }
 
-func CLR(A0: dynamic, A1: dynamic, A2: dynamic)
+func CLR(A0: dynamic, A1: dynamic, A2: dynamic) -> dynamic
 {
   CLR(A0);
   CLR(A1);
   CLR(A2);
 }
 
-func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic)
+func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic) -> dynamic
 {
   CLR(A0);
   CLR(A1);
@@ -427,7 +427,7 @@ func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic)
   CLR(A3);
 }
 
-func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic)
+func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic) -> dynamic
 {
   CLR(A0);
   CLR(A1);
@@ -436,7 +436,7 @@ func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic)
   CLR(A4);
 }
 
-func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic)
+func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic) -> dynamic
 {
   CLR(A0);
   CLR(A1);
@@ -446,7 +446,7 @@ func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dy
   CLR(A5);
 }
 
-func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic, A6: dynamic)
+func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dynamic, A6: dynamic) -> dynamic
 {
   CLR(A0);
   CLR(A1);
@@ -457,10 +457,10 @@ func CLR(A0: dynamic, A1: dynamic, A2: dynamic, A3: dynamic, A4: dynamic, A5: dy
   CLR(A6);
 }
 
-func CLR(A: dynamic, n: dynamic)
+func CLR(A: dynamic, n: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(n)))
     {
       CLR(A[i]);
@@ -469,27 +469,27 @@ func CLR(A: dynamic, n: dynamic)
   }
 }
 
-func SRT(A: dynamic)
+func SRT(A: dynamic) -> dynamic
 {
   sort(A.begin(), A.end());
 }
 
-func SRT(A: dynamic, B: dynamic)
+func SRT(A: dynamic, B: dynamic) -> dynamic
 {
   sort(A.begin(), A.end(), B);
 }
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var OO = 1e15;
+var OO: dynamic = 1e15;
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-func checkMin(a: dynamic, b: dynamic)
+func checkMin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b < a))
   {
@@ -497,7 +497,7 @@ func checkMin(a: dynamic, b: dynamic)
   }
 }
 
-func checkMax(a: dynamic, b: dynamic)
+func checkMax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b > a))
   {
@@ -505,7 +505,7 @@ func checkMax(a: dynamic, b: dynamic)
   }
 }
 
-func checkMin(a: dynamic, b: dynamic, c: dynamic)
+func checkMin(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   if (c(b, a))
   {
@@ -513,7 +513,7 @@ func checkMin(a: dynamic, b: dynamic, c: dynamic)
   }
 }
 
-func checkMax(a: dynamic, b: dynamic, c: dynamic)
+func checkMax(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   if (c(a, b))
   {
@@ -521,73 +521,73 @@ func checkMax(a: dynamic, b: dynamic, c: dynamic)
   }
 }
 
-func min(a: dynamic, b: dynamic, c: dynamic)
+func min(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return min(min(a, b), c);
 }
 
-func max(a: dynamic, b: dynamic, c: dynamic)
+func max(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return max(max(a, b), c);
 }
 
-func min(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func min(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   return min(min(a, b), min(c, d));
 }
 
-func max(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func max(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   return max(max(a, b), max(c, d));
 }
 
-func sqr(a: dynamic)
+func sqr(a: dynamic) -> dynamic
 {
   return (a * a);
 }
 
-func cub(a: dynamic)
+func cub(a: dynamic) -> dynamic
 {
   return ((a * a) * a);
 }
 
-func Ceil(x: dynamic, y: dynamic)
+func Ceil(x: dynamic, y: dynamic) -> dynamic
 {
   return ((((x - 1)) / y) + 1);
 }
 
-func cpp_1(x: dynamic, i: dynamic)
+func cpp_1(x: dynamic, i: dynamic) -> dynamic
 {
   return (x & (1 << i));
 }
 
-func cpp_1(x: dynamic, i: dynamic)
+func cpp_1(x: dynamic, i: dynamic) -> dynamic
 {
   return (x & (1 << i));
 }
 
-func cpp_1(i: dynamic)
+func cpp_1(i: dynamic) -> dynamic
 {
   return (1 << i);
 }
 
-func U(i: dynamic)
+func U(i: dynamic) -> dynamic
 {
   return (cpp_1(i) - 1);
 }
 
-func __cpp_top_level_1()
+func __cpp_top_level_1() -> dynamic
 {
 }
 
-func low_bit(x: dynamic)
+func low_bit(x: dynamic) -> dynamic
 {
   return (x & (-x));
 }
 
-func high_bit(x: dynamic)
+func high_bit(x: dynamic) -> dynamic
 {
-  var p = low_bit(x);
+  var p: dynamic = low_bit(x);
   while ((p != x))
   {
     x -= p;
@@ -596,9 +596,9 @@ func high_bit(x: dynamic)
   return p;
 }
 
-func cover_bit(x: dynamic)
+func cover_bit(x: dynamic) -> dynamic
 {
-  var p = 1;
+  var p: dynamic = 1;
   while ((p < x))
   {
     p <<= 1;
@@ -606,7 +606,7 @@ func cover_bit(x: dynamic)
   return p;
 }
 
-func count_bits(x: dynamic)
+func count_bits(x: dynamic) -> dynamic
 {
   x = (((x & 0x55555555)) + ((((x & 0xaaaaaaaa)) >> 1)));
   x = (((x & 0x33333333)) + ((((x & 0xcccccccc)) >> 2)));
@@ -616,7 +616,7 @@ func count_bits(x: dynamic)
   return x;
 }
 
-func count_bits(x: dynamic)
+func count_bits(x: dynamic) -> dynamic
 {
   x = (((x & 0x5555555555555555)) + ((((x & 0xaaaaaaaaaaaaaaaa)) >> 1)));
   x = (((x & 0x3333333333333333)) + ((((x & 0xcccccccccccccccc)) >> 2)));
@@ -627,7 +627,7 @@ func count_bits(x: dynamic)
   return x;
 }
 
-func reverse_bits(x: dynamic)
+func reverse_bits(x: dynamic) -> dynamic
 {
   x = (((((x >> 1)) & 0x55555555)) | ((((x << 1)) & 0xaaaaaaaa)));
   x = (((((x >> 2)) & 0x33333333)) | ((((x << 2)) & 0xcccccccc)));
@@ -637,7 +637,7 @@ func reverse_bits(x: dynamic)
   return x;
 }
 
-func reverse_bits(x: dynamic)
+func reverse_bits(x: dynamic) -> dynamic
 {
   x = (((((x >> 1)) & 0x5555555555555555)) | ((((x << 1)) & 0xaaaaaaaaaaaaaaaa)));
   x = (((((x >> 2)) & 0x3333333333333333)) | ((((x << 2)) & 0xcccccccccccccccc)));
@@ -648,7 +648,7 @@ func reverse_bits(x: dynamic)
   return x;
 }
 
-func INC(a: dynamic, b: dynamic)
+func INC(a: dynamic, b: dynamic) -> dynamic
 {
   a += b;
   if ((a >= MOD))
@@ -657,7 +657,7 @@ func INC(a: dynamic, b: dynamic)
   }
 }
 
-func sum(a: dynamic, b: dynamic)
+func sum(a: dynamic, b: dynamic) -> dynamic
 {
   a += b;
   if ((a >= MOD))
@@ -667,7 +667,7 @@ func sum(a: dynamic, b: dynamic)
   return a;
 }
 
-func DEC(a: dynamic, b: dynamic)
+func DEC(a: dynamic, b: dynamic) -> dynamic
 {
   a -= b;
   if ((a < 0))
@@ -676,7 +676,7 @@ func DEC(a: dynamic, b: dynamic)
   }
 }
 
-func dff(a: dynamic, b: dynamic)
+func dff(a: dynamic, b: dynamic) -> dynamic
 {
   a -= b;
   if ((a < 0))
@@ -686,39 +686,39 @@ func dff(a: dynamic, b: dynamic)
   return a;
 }
 
-func MUL(a: dynamic, b: dynamic)
+func MUL(a: dynamic, b: dynamic) -> dynamic
 {
   a = ((cpp_cast(a) * b) % MOD);
 }
 
-func pdt(a: dynamic, b: dynamic)
+func pdt(a: dynamic, b: dynamic) -> dynamic
 {
   return ((cpp_cast(a) * b) % MOD);
 }
 
-func sum(a: dynamic, b: dynamic, c: dynamic)
+func sum(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return sum(sum(a, b), c);
 }
 
-func sum(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func sum(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   return sum(sum(a, b), sum(c, d));
 }
 
-func pdt(a: dynamic, b: dynamic, c: dynamic)
+func pdt(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return pdt(pdt(a, b), c);
 }
 
-func pdt(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func pdt(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   return pdt(pdt(pdt(a, b), c), d);
 }
 
-func pow(a: dynamic, b: dynamic)
+func pow(a: dynamic, b: dynamic) -> dynamic
 {
-  var c = cpp_construct(1);
+  var c: dynamic = cpp_construct(1);
   while (b)
   {
     if ((b & 1))
@@ -731,9 +731,9 @@ func pow(a: dynamic, b: dynamic)
   return c;
 }
 
-func pow(a: dynamic, b: dynamic)
+func pow(a: dynamic, b: dynamic) -> dynamic
 {
-  var c = cpp_construct(1);
+  var c: dynamic = cpp_construct(1);
   while (b)
   {
     if ((b & 1))
@@ -746,12 +746,12 @@ func pow(a: dynamic, b: dynamic)
   return c;
 }
 
-func I(b: dynamic)
+func I(b: dynamic) -> dynamic
 {
-  var a = MOD;
-  var x1 = 0;
-  var x2 = 1;
-  var q: dynamic;
+  var a: dynamic = MOD;
+  var x1: dynamic = 0;
+  var x2: dynamic = 1;
+  var q: dynamic = cpp_uninitialized();
   while (true)
   {
     q = (a / b);
@@ -771,21 +771,21 @@ func I(b: dynamic)
   }
 }
 
-func DIA(a: dynamic, b: dynamic)
+func DIA(a: dynamic, b: dynamic) -> dynamic
 {
   MUL(a, I(b));
 }
 
-func qtt(a: dynamic, b: dynamic)
+func qtt(a: dynamic, b: dynamic) -> dynamic
 {
   return pdt(a, I(b));
 }
 
-func phi(n: dynamic)
+func phi(n: dynamic) -> dynamic
 {
-  var res = n;
+  var res: dynamic = n;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((sqr(i) <= n))
     {
       if ((!((n % i))))
@@ -822,150 +822,150 @@ class Seg
 {
 }
 
-func sgn(x: dynamic)
+func sgn(x: dynamic) -> dynamic
 {
-  return if ((x < (-EPS))) -1 else (x > EPS);
+  return  ((x < (-EPS))) ? -1 : (x > EPS);
 }
 
-func sgn(x: dynamic, y: dynamic)
+func sgn(x: dynamic, y: dynamic) -> dynamic
 {
   return sgn((x - y));
 }
 
 class Po
 {
-  var x: dynamic;
-  var y: dynamic;
-  func Po(x: dynamic = 0, y: dynamic = 0)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func Po(x: dynamic = 0, y: dynamic = 0) -> dynamic
   {
-      this->x = cpp_construct(x);
-      this->y = cpp_construct(y);
+      self->x = cpp_construct(x);
+      self->y = cpp_construct(y);
     }
-  func operator_less(rhs: dynamic)
+  func operator_less(rhs: dynamic) -> dynamic
   {
       return ((sgn(x, rhs.x) < 0) || ((sgn(x, rhs.x) == 0) && (sgn(y, rhs.y) < 0)));
     }
-  func operator_subtract()
+  func operator_subtract() -> dynamic
   {
       return Po((-x), (-y));
     }
-  func operator_add_assign(rhs: dynamic)
+  func operator_add_assign(rhs: dynamic) -> dynamic
   {
       x += rhs.x;
       y += rhs.y;
-      return (*this);
+      return (*self);
     }
-  func operator_subtract_assign(rhs: dynamic)
+  func operator_subtract_assign(rhs: dynamic) -> dynamic
   {
       x -= rhs.x;
       y -= rhs.y;
-      return (*this);
+      return (*self);
     }
-  func operator(k: dynamic)
+  func operator(k: dynamic) -> dynamic
   {
       x *= k;
       y *= k;
-      return (*this);
+      return (*self);
     }
-  func operator(k: dynamic)
+  func operator(k: dynamic) -> dynamic
   {
       x /= k;
       y /= k;
-      return (*this);
+      return (*self);
     }
-  func length_sqr()
+  func length_sqr() -> dynamic
   {
       return (sqr(x) + sqr(y));
     }
-  func length()
+  func length() -> dynamic
   {
       return sqrt(length_sqr());
     }
-  func unit()
+  func unit() -> dynamic
   {
-      return (((*this)) / length());
+      return (((*self)) / length());
     }
-  func dgt()
+  func dgt() -> dynamic
   {
       return ((!sgn(x)) && (!sgn(y)));
     }
-  func atan()
+  func atan() -> dynamic
   {
       return atan2(y, x);
     }
-  func input()
+  func input() -> dynamic
   {
       scanf("%lf %lf", (&x), (&y));
     }
 }
 
-func operator_equal(a: dynamic, b: dynamic)
+func operator_equal(a: dynamic, b: dynamic) -> dynamic
 {
   return ((sgn((a.x - b.x)) == 0) && (sgn((a.y - b.y)) == 0));
 }
 
-func operator_not_equal(a: dynamic, b: dynamic)
+func operator_not_equal(a: dynamic, b: dynamic) -> dynamic
 {
   return ((sgn((a.x - b.x)) != 0) || (sgn((a.y - b.y)) != 0));
 }
 
-func operator_add(a: dynamic, b: dynamic)
+func operator_add(a: dynamic, b: dynamic) -> dynamic
 {
   return Po((a.x + b.x), (a.y + b.y));
 }
 
-func operator_subtract(a: dynamic, b: dynamic)
+func operator_subtract(a: dynamic, b: dynamic) -> dynamic
 {
   return Po((a.x - b.x), (a.y - b.y));
 }
 
-func operator_multiply(a: dynamic, k: dynamic)
+func operator_multiply(a: dynamic, k: dynamic) -> dynamic
 {
   return Po((a.x * k), (a.y * k));
 }
 
-func operator_multiply(k: dynamic, a: dynamic)
+func operator_multiply(k: dynamic, a: dynamic) -> dynamic
 {
   return (a * k);
 }
 
-func operator_divide(a: dynamic, k: dynamic)
+func operator_divide(a: dynamic, k: dynamic) -> dynamic
 {
   return Po((a.x / k), (a.y / k));
 }
 
 class Line
 {
-  var a: dynamic;
-  var b: dynamic;
-  func Line(a: dynamic = Po(), b: dynamic = Po())
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  func Line(a: dynamic = Po(), b: dynamic = Po()) -> dynamic
   {
-      this->a = cpp_construct(a);
-      this->b = cpp_construct(b);
+      self->a = cpp_construct(a);
+      self->b = cpp_construct(b);
     }
-  func Line(l: dynamic)
+  func Line(l: dynamic) -> dynamic
   {
-      this->a = cpp_construct(l.a);
-      this->b = cpp_construct(l.b);
+      self->a = cpp_construct(l.a);
+      self->b = cpp_construct(l.b);
     }
-  func Line(x0: dynamic, y0: dynamic, x1: dynamic, y1: dynamic)
+  func Line(x0: dynamic, y0: dynamic, x1: dynamic, y1: dynamic) -> dynamic
   {
-      this->a = cpp_construct(Po(x0, y0));
-      this->b = cpp_construct(Po(x1, y1));
+      self->a = cpp_construct(Po(x0, y0));
+      self->b = cpp_construct(Po(x1, y1));
     }
-  func operator_add(x: dynamic)
+  func operator_add(x: dynamic) -> dynamic
   {
       return Line((a + x), (b + x));
     }
-  func length()
+  func length() -> dynamic
   {
       return ((b - a)).length();
     }
-  func dgt()
+  func dgt() -> dynamic
   {
       return ((a - b)).dgt();
     }
-  func input()
+  func input() -> dynamic
   {
       a.input();
       b.input();
@@ -974,139 +974,139 @@ class Line
 
 class Seg
 {
-  func Seg(a: dynamic = Po(), b: dynamic = Po())
+  func Seg(a: dynamic = Po(), b: dynamic = Po()) -> dynamic
   {
-      this->Line = cpp_construct(a, b);
+      self->Line = cpp_construct(a, b);
     }
-  func Seg(l: dynamic)
+  func Seg(l: dynamic) -> dynamic
   {
-      this->Line = cpp_construct(l);
+      self->Line = cpp_construct(l);
     }
-  func Seg(x0: dynamic, y0: dynamic, x1: dynamic, y1: dynamic)
+  func Seg(x0: dynamic, y0: dynamic, x1: dynamic, y1: dynamic) -> dynamic
   {
-      this->Line = cpp_construct(x0, y0, x1, y1);
+      self->Line = cpp_construct(x0, y0, x1, y1);
     }
 }
 
-func dot(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
+func dot(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic) -> dynamic
 {
   return ((x1 * x2) + (y1 * y2));
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return dot(a.x, a.y, b.x, b.y);
 }
 
-func dot(p0: dynamic, p1: dynamic, p2: dynamic)
+func dot(p0: dynamic, p1: dynamic, p2: dynamic) -> dynamic
 {
   return dot((p1 - p0), (p2 - p0));
 }
 
-func dot(o: dynamic, l: dynamic)
+func dot(o: dynamic, l: dynamic) -> dynamic
 {
   return dot(o, l.a, l.b);
 }
 
-func dot(l: dynamic, o: dynamic)
+func dot(l: dynamic, o: dynamic) -> dynamic
 {
   return dot(o, l.a, l.b);
 }
 
-func dot(l1: dynamic, l2: dynamic)
+func dot(l1: dynamic, l2: dynamic) -> dynamic
 {
   return dot((l1.b - l1.a), (l2.b - l2.a));
 }
 
-func det(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
+func det(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic) -> dynamic
 {
   return ((x1 * y2) - (x2 * y1));
 }
 
-func det(a: dynamic, b: dynamic)
+func det(a: dynamic, b: dynamic) -> dynamic
 {
   return det(a.x, a.y, b.x, b.y);
 }
 
-func det(p0: dynamic, p1: dynamic, p2: dynamic)
+func det(p0: dynamic, p1: dynamic, p2: dynamic) -> dynamic
 {
   return det((p1 - p0), (p2 - p0));
 }
 
-func det(o: dynamic, l: dynamic)
+func det(o: dynamic, l: dynamic) -> dynamic
 {
   return det(o, l.a, l.b);
 }
 
-func det(l: dynamic, o: dynamic)
+func det(l: dynamic, o: dynamic) -> dynamic
 {
   return det(o, l.a, l.b);
 }
 
-func det(l1: dynamic, l2: dynamic)
+func det(l1: dynamic, l2: dynamic) -> dynamic
 {
   return det((l1.b - l1.a), (l2.b - l2.a));
 }
 
-func getequation(A: dynamic, B: dynamic, C: dynamic)
+func getequation(A: dynamic, B: dynamic, C: dynamic) -> dynamic
 {
   A = (a.y - b.y);
   B = (b.x - a.x);
   C = det(a, b);
 }
 
-func dist(x: dynamic, y: dynamic)
+func dist(x: dynamic, y: dynamic) -> dynamic
 {
   return sqrt(dist_sqr(x, y));
 }
 
-func dett(x: dynamic, y: dynamic)
+func dett(x: dynamic, y: dynamic) -> dynamic
 {
   return sgn(det(x, y));
 }
 
-func dott(x: dynamic, y: dynamic)
+func dott(x: dynamic, y: dynamic) -> dynamic
 {
   return sgn(dot(x, y));
 }
 
-func dett(x: dynamic, y: dynamic, z: dynamic)
+func dett(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   return sgn(det(x, y, z));
 }
 
-func dott(x: dynamic, y: dynamic, z: dynamic)
+func dott(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   return sgn(dot(x, y, z));
 }
 
-func dett(x: dynamic, y: dynamic, z: dynamic, w: dynamic)
+func dett(x: dynamic, y: dynamic, z: dynamic, w: dynamic) -> dynamic
 {
   return sgn(det(x, y, z, w));
 }
 
-func dott(x: dynamic, y: dynamic, z: dynamic, w: dynamic)
+func dott(x: dynamic, y: dynamic, z: dynamic, w: dynamic) -> dynamic
 {
   return sgn(dot(x, y, z, w));
 }
 
-func dist_sqr(a: dynamic, b: dynamic)
+func dist_sqr(a: dynamic, b: dynamic) -> dynamic
 {
   return (sqr((a.x - b.x)) + sqr((a.y - b.y)));
 }
 
-func dist_sqr(p: dynamic, l: dynamic)
+func dist_sqr(p: dynamic, l: dynamic) -> dynamic
 {
-  var v0 = (l.b - l.a);
-  var v1 = (p - l.a);
+  var v0: dynamic = (l.b - l.a);
+  var v1: dynamic = (p - l.a);
   return (sqr(fabs(det(v0, v1))) / v0.length_sqr());
 }
 
-func dist_sqr(p: dynamic, l: dynamic)
+func dist_sqr(p: dynamic, l: dynamic) -> dynamic
 {
-  var v0 = (l.b - l.a);
-  var v1 = (p - l.a);
-  var v2 = (p - l.b);
+  var v0: dynamic = (l.b - l.a);
+  var v1: dynamic = (p - l.a);
+  var v2: dynamic = (p - l.b);
   if (((sgn(dot(v0, v1)) * sgn(dot(v0, v2))) <= 0))
   {
     return dist_sqr(p, Line(l));
@@ -1116,17 +1116,17 @@ func dist_sqr(p: dynamic, l: dynamic)
   }
 }
 
-func dist_sqr(l: dynamic, p: dynamic)
+func dist_sqr(l: dynamic, p: dynamic) -> dynamic
 {
   return dist_sqr(p, l);
 }
 
-func dist_sqr(l: dynamic, p: dynamic)
+func dist_sqr(l: dynamic, p: dynamic) -> dynamic
 {
   return dist_sqr(p, l);
 }
 
-func dist_sqr(l1: dynamic, l2: dynamic)
+func dist_sqr(l1: dynamic, l2: dynamic) -> dynamic
 {
   if ((sgn(det(l1, l2)) != 0))
   {
@@ -1135,17 +1135,17 @@ func dist_sqr(l1: dynamic, l2: dynamic)
   return dist_sqr(l1.a, l2);
 }
 
-func dist_sqr(l1: dynamic, l2: dynamic)
+func dist_sqr(l1: dynamic, l2: dynamic) -> dynamic
 {
-  var v0 = (l1.b - l1.a);
-  var v1 = (l2.a - l1.a);
-  var v2 = (l2.b - l1.a);
-  var c1 = det(v0, v1);
-  var c2 = det(v0, v2);
-  return if ((sgn(c1) != sgn(c2))) 0 else (sqr(min(fabs(c1), fabs(c2))) / v0.length_sqr());
+  var v0: dynamic = (l1.b - l1.a);
+  var v1: dynamic = (l2.a - l1.a);
+  var v2: dynamic = (l2.b - l1.a);
+  var c1: dynamic = det(v0, v1);
+  var c2: dynamic = det(v0, v2);
+  return  ((sgn(c1) != sgn(c2))) ? 0 : (sqr(min(fabs(c1), fabs(c2))) / v0.length_sqr());
 }
 
-func isIntersect(l1: dynamic, l2: dynamic)
+func isIntersect(l1: dynamic, l2: dynamic) -> dynamic
 {
   if (((((l1.a == l2.a) || (l1.a == l2.b)) || (l1.b == l2.a)) || (l1.b == l2.b)))
   {
@@ -1154,7 +1154,7 @@ func isIntersect(l1: dynamic, l2: dynamic)
   return ((((((min(l1.a.x, l1.b.x) <= max(l2.a.x, l2.b.x)) && (min(l2.a.x, l2.b.x) <= max(l1.a.x, l1.b.x))) && (min(l1.a.y, l1.b.y) <= max(l2.a.y, l2.b.y))) && (min(l2.a.y, l2.b.y) <= max(l1.a.y, l1.b.y))) && ((sgn(det(l1.a, l2.a, l2.b)) * sgn(det(l1.b, l2.a, l2.b))) <= 0)) && ((sgn(det(l2.a, l1.a, l1.b)) * sgn(det(l2.b, l1.a, l1.b))) <= 0));
 }
 
-func dist_sqr(l1: dynamic, l2: dynamic)
+func dist_sqr(l1: dynamic, l2: dynamic) -> dynamic
 {
   if (isIntersect(l1, l2))
   {
@@ -1165,99 +1165,99 @@ func dist_sqr(l1: dynamic, l2: dynamic)
   }
 }
 
-func isOnSide(p: dynamic, l: dynamic)
+func isOnSide(p: dynamic, l: dynamic) -> dynamic
 {
   return ((p == l.a) || (p == l.b));
 }
 
-func isOnSeg(p: dynamic, l: dynamic)
+func isOnSeg(p: dynamic, l: dynamic) -> dynamic
 {
   return (((sgn(det(p, l.a, l.b)) == 0) && ((sgn(l.a.x, p.x) * sgn(l.b.x, p.x)) <= 0)) && ((sgn(l.a.y, p.y) * sgn(l.b.y, p.y)) <= 0));
 }
 
-func isOnSegg(p: dynamic, l: dynamic)
+func isOnSegg(p: dynamic, l: dynamic) -> dynamic
 {
   return (((sgn(det(p, l.a, l.b)) == 0) && ((sgn(l.a.x, p.x) * sgn(l.b.x, p.x)) < 0)) && ((sgn(l.a.y, p.y) * sgn(l.b.y, p.y)) < 0));
 }
 
-func intersect(l1: dynamic, l2: dynamic)
+func intersect(l1: dynamic, l2: dynamic) -> dynamic
 {
   return (l1.a + (((l1.b - l1.a)) * ((det(l2.a, l1.a, l2.b) / det(l2, l1)))));
 }
 
-func intersect(p: dynamic, l: dynamic)
+func intersect(p: dynamic, l: dynamic) -> dynamic
 {
   return intersect(Line(p, (p + Po((l.a.y - l.b.y), (l.b.x - l.a.x)))), l);
 }
 
-func rotate(p: dynamic, alpha: dynamic, o: dynamic = Po())
+func rotate(p: dynamic, alpha: dynamic, o: dynamic = Po()) -> dynamic
 {
   p.x -= o.x;
   p.y -= o.y;
   return (Po(((p.x * cos(alpha)) - (p.y * sin(alpha))), ((p.y * cos(alpha)) + (p.x * sin(alpha)))) + o);
 }
 
-func rand32()
+func rand32() -> dynamic
 {
   return (((bool_cpp((rand() & 1)) << 30)) | (((rand() << 15)) + rand()));
 }
 
-func random32(l: dynamic, r: dynamic)
+func random32(l: dynamic, r: dynamic) -> dynamic
 {
   return ((rand32() % (((r - l) + 1))) + l);
 }
 
-func random(l: dynamic, r: dynamic)
+func random(l: dynamic, r: dynamic) -> dynamic
 {
   return ((rand() % (((r - l) + 1))) + l);
 }
 
-func dice()
+func dice() -> dynamic
 {
   return (rand() % 6);
 }
 
-func coin()
+func coin() -> dynamic
 {
   return (rand() % 2);
 }
 
-func RD(x: dynamic)
+func RD(x: dynamic) -> dynamic
 {
   scanf("%d", (&x));
   return x;
 }
 
-var Case: dynamic;
+var Case: dynamic = cpp_uninitialized();
 
-func OT(x: dynamic)
+func OT(x: dynamic) -> dynamic
 {
   write(x, "\n");
 }
 
-var N = 2e5;
+var N: dynamic = 2e5;
 
-var vis: dynamic;
+var vis: dynamic = cpp_uninitialized();
 
-var step: dynamic;
+var step: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var dir = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+var dir: dynamic = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-var ed: dynamic;
+var ed: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
   vis.clear();
   step.clear();
@@ -1273,7 +1273,7 @@ func solve()
   {
     read(r, a, b);
     {
-      var i = a;
+      var i: dynamic = a;
       while ((i <= b))
       {
         vis.insert(make_pair(r, i));
@@ -1284,12 +1284,12 @@ func solve()
   q.push(st);
   while ((!q.empty()))
   {
-    var go: dynamic;
-    var now = q.front();
-    var nowstep = step[now];
+    var go: dynamic = cpp_uninitialized();
+    var now: dynamic = q.front();
+    var nowstep: dynamic = step[now];
     q.pop();
     {
-      var d = 0;
+      var d: dynamic = 0;
       while ((d < 8))
       {
         go = make_pair((now.first + dir[d][0]), (now.second + dir[d][1]));
@@ -1310,7 +1310,7 @@ func solve()
   write(-1, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   while (((((cin >> st.first) >> st.second) >> ed.first) >> ed.second))
   {

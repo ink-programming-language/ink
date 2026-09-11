@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var r: dynamic;
-  var g: dynamic;
-  var b: dynamic;
+  var r: dynamic = cpp_uninitialized();
+  var g: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(r, g, b);
-  var a = ((10 * g) + b);
+  var a: dynamic = ((10 * g) + b);
   if ((0 == (a % 4)))
   {
     write("YES");

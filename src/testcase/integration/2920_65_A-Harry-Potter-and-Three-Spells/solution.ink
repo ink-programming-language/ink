@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -8,36 +8,36 @@ func gcd(a: dynamic, b: dynamic)
   }
   while (b)
   {
-    var r = (a % b);
+    var r: dynamic = (a % b);
     a = b;
     b = r;
   }
   return a;
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a * b)) / gcd(a, b));
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
-  var e: dynamic;
-  var f: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var e: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
   read(a, b, c, d, e, f);
   if (((b != 0) && (c != 0)))
   {
-    var l = lcm(b, c);
+    var l: dynamic = lcm(b, c);
     a *= (l / b);
     d *= (l / c);
     b = cpp_assign(c, "=", l);
     if (((d != 0) && (e != 0)))
     {
-      var l = lcm(d, e);
+      var l: dynamic = lcm(d, e);
       a *= (l / d);
       b *= (l / d);
       c *= (l / d);

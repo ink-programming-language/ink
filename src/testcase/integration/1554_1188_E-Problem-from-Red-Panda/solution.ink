@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(res: dynamic)
+func read(res: dynamic) -> dynamic
 {
   res = 0;
-  var bo = 0;
-  var c: dynamic;
+  var bo: dynamic = 0;
+  var c: dynamic = cpp_uninitialized();
   while ((((((cpp_assign(c, "=", getchar())) < cpp_char("0")) || (c > cpp_char("9")))) && (c != cpp_char("-"))))
   {
   }
@@ -25,34 +25,34 @@ func read(res: dynamic)
   }
 }
 
-var N = (2e6 + 5);
+var N: dynamic = (2e6 + 5);
 
-var djq = 998244353;
+var djq: dynamic = 998244353;
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var cnt = cpp_array(N);
+var cnt: dynamic = cpp_array(N);
 
-var fac = cpp_array(N);
+var fac: dynamic = cpp_array(N);
 
-var inv = cpp_array(N);
+var inv: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func C(n: dynamic, m: dynamic)
+func C(n: dynamic, m: dynamic) -> dynamic
 {
   return (((((1 * fac[n]) * inv[m]) % djq) * inv[(n - m)]) % djq);
 }
 
-func main()
+func main() -> dynamic
 {
   fac[0] = cpp_assign(inv[0], "=", cpp_assign(inv[1], "=", 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       fac[i] = (((1 * fac[(i - 1)]) * i) % djq);
@@ -60,7 +60,7 @@ func main()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < N))
     {
       inv[i] = (((1 * ((djq - (djq / i)))) * inv[(djq % i)]) % djq);
@@ -68,7 +68,7 @@ func main()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < N))
     {
       inv[i] = (((1 * inv[i]) * inv[(i - 1)]) % djq);
@@ -76,9 +76,9 @@ func main()
     }
   }
   read(k);
-  var cur = 0;
+  var cur: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       read(a[i]);
@@ -88,8 +88,8 @@ func main()
   }
   sort((a + 1), ((a + k) + 1));
   {
-    var i = 0;
-    var j = 1;
+    var i: dynamic = 0;
+    var j: dynamic = 1;
     while ((i <= a[k]))
     {
       while ((a[j] < i))

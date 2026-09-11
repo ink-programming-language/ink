@@ -1,55 +1,55 @@
 // Translated from solution.cpp.
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var sy: dynamic;
+var sy: dynamic = cpp_uninitialized();
 
-var sx: dynamic;
+var sx: dynamic = cpp_uninitialized();
 
-var sd: dynamic;
+var sd: dynamic = cpp_uninitialized();
 
-var gy: dynamic;
+var gy: dynamic = cpp_uninitialized();
 
-var gx: dynamic;
+var gx: dynamic = cpp_uninitialized();
 
-var gd: dynamic;
+var gd: dynamic = cpp_uninitialized();
 
-var field = cpp_array(64, 16);
+var field: dynamic = cpp_array(64, 16);
 
-var used = cpp_array(4, 64, 16, 4, 64, 16);
+var used: dynamic = cpp_array(4, 64, 16, 4, 64, 16);
 
-var used2 = cpp_array(4, 64, 16);
+var used2: dynamic = cpp_array(4, 64, 16);
 
-var dx = [0, 1, 0, -1];
+var dx: dynamic = [0, 1, 0, -1];
 
-var dy = [-1, 0, 1, 0];
+var dy: dynamic = [-1, 0, 1, 0];
 
-func init()
+func init() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 16))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 64))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 4))
             {
               {
-                var l = 0;
+                var l: dynamic = 0;
                 while ((l < 16))
                 {
                   {
-                    var m = 0;
+                    var m: dynamic = 0;
                     while ((m < 64))
                     {
                       {
-                        var n = 0;
+                        var n: dynamic = 0;
                         while ((n < 4))
                         {
                           used[i][j][k][l][m][n] = false;
@@ -73,11 +73,11 @@ func init()
   }
 }
 
-func front(y: dynamic, x: dynamic, d: dynamic)
+func front(y: dynamic, x: dynamic, d: dynamic) -> dynamic
 {
   if ((d == 0))
   {
-    var Y = y;
+    var Y: dynamic = y;
     {
       while (field[(Y - 1)][x])
       {
@@ -87,7 +87,7 @@ func front(y: dynamic, x: dynamic, d: dynamic)
     return [Y, x];
   } else if ((d == 1))
   {
-    var X = x;
+    var X: dynamic = x;
     {
       while (field[y][(X + 1)])
       {
@@ -97,7 +97,7 @@ func front(y: dynamic, x: dynamic, d: dynamic)
     return [y, X];
   } else if ((d == 2))
   {
-    var Y = y;
+    var Y: dynamic = y;
     {
       while (field[(Y + 1)][x])
       {
@@ -107,7 +107,7 @@ func front(y: dynamic, x: dynamic, d: dynamic)
     return [Y, x];
   } else
   {
-    var X = x;
+    var X: dynamic = x;
     {
       while (field[y][(X - 1)])
       {
@@ -118,14 +118,14 @@ func front(y: dynamic, x: dynamic, d: dynamic)
   }
 }
 
-func back(y: dynamic, x: dynamic, d: dynamic)
+func back(y: dynamic, x: dynamic, d: dynamic) -> dynamic
 {
-  var ans: dynamic;
-  var R = 1;
-  var L = 3;
+  var ans: dynamic = cpp_uninitialized();
+  var R: dynamic = 1;
+  var L: dynamic = 3;
   if ((d == 0))
   {
-    var Y = y;
+    var Y: dynamic = y;
     {
       while (field[Y][x])
       {
@@ -142,7 +142,7 @@ func back(y: dynamic, x: dynamic, d: dynamic)
     }
   } else if ((d == 1))
   {
-    var X = x;
+    var X: dynamic = x;
     {
       while (field[y][X])
       {
@@ -159,7 +159,7 @@ func back(y: dynamic, x: dynamic, d: dynamic)
     }
   } else if ((d == 2))
   {
-    var Y = y;
+    var Y: dynamic = y;
     {
       while (field[Y][x])
       {
@@ -176,7 +176,7 @@ func back(y: dynamic, x: dynamic, d: dynamic)
     }
   } else
   {
-    var X = x;
+    var X: dynamic = x;
     {
       while (field[y][X])
       {
@@ -195,17 +195,17 @@ func back(y: dynamic, x: dynamic, d: dynamic)
   return ans;
 }
 
-func dfs(fy: dynamic, fx: dynamic, fd: dynamic, by: dynamic, bx: dynamic, bd: dynamic)
+func dfs(fy: dynamic, fx: dynamic, fd: dynamic, by: dynamic, bx: dynamic, bd: dynamic) -> dynamic
 {
   tie(fy, fx) = front(fy, fx, fd);
-  var cand = back(by, bx, bd);
-  for (var next in cand)
+  var cand: dynamic = back(by, bx, bd);
+  for (var next: dynamic in cand)
   {
-    var div = next.second;
+    var div: dynamic = next.second;
     by = next.first.first;
     bx = next.first.second;
-    var newfd = (((fd + div)) % 4);
-    var newbd = (((bd + div)) % 4);
+    var newfd: dynamic = (((fd + div)) % 4);
+    var newbd: dynamic = (((bd + div)) % 4);
     if (cpp_binary(cpp_binary(cpp_binary(cpp_binary((fy == gy), "and", (fx == gx)), "and", (by == gy)), "and", (bx == gx)), "and", (bd == gd)))
     {
       return true;
@@ -213,7 +213,7 @@ func dfs(fy: dynamic, fx: dynamic, fd: dynamic, by: dynamic, bx: dynamic, bd: dy
     if (cpp_unary("not", used[fy][fx][newfd][by][bx][newbd]))
     {
       used[fy][fx][newfd][by][bx][newbd] = true;
-      var sub = dfs(fy, fx, newfd, by, bx, newbd);
+      var sub: dynamic = dfs(fy, fx, newfd, by, bx, newbd);
       if (sub)
       {
         return true;
@@ -223,7 +223,7 @@ func dfs(fy: dynamic, fx: dynamic, fd: dynamic, by: dynamic, bx: dynamic, bd: dy
   return false;
 }
 
-func dfs(fy: dynamic, fx: dynamic, fd: dynamic)
+func dfs(fy: dynamic, fx: dynamic, fd: dynamic) -> dynamic
 {
   if (cpp_binary((fy == gy), "and", (fx == gx)))
   {
@@ -231,10 +231,10 @@ func dfs(fy: dynamic, fx: dynamic, fd: dynamic)
   }
   tie(fy, fx) = front(fy, fx, fd);
   {
-    var i = -1;
+    var i: dynamic = -1;
     while ((i <= 1))
     {
-      var nd = ((((fd + i) + 4)) % 4);
+      var nd: dynamic = ((((fd + i) + 4)) % 4);
       if (cpp_unary("not", used2[fy][fx][nd]))
       {
         used2[fy][fx][nd] = true;
@@ -249,9 +249,9 @@ func dfs(fy: dynamic, fx: dynamic, fd: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
-  var cnt = 0;
+  var cnt: dynamic = 0;
   while (true)
   {
     cnt += 1;
@@ -261,14 +261,14 @@ func main()
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < H))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < W))
           {
-            var c: dynamic;
+            var c: dynamic = cpp_uninitialized();
             read(c);
             field[i][j] = (c != cpp_char("#"));
             if ((c == cpp_char("K")))
@@ -287,7 +287,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
         if (field[(sy + dy[i])][(sx + dx[i])])
@@ -299,7 +299,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
         if (field[(gy + dy[i])][(gx + dx[i])])
@@ -311,9 +311,9 @@ func main()
       }
     }
     gd = (((gd + 2)) % 4);
-    var ans = false;
+    var ans: dynamic = false;
     {
-      var d = 0;
+      var d: dynamic = 0;
       while ((d < 4))
       {
         if ((d > 0))
@@ -335,15 +335,15 @@ func main()
     } else
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 16))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < 64))
             {
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < 4))
                 {
                   used2[i][j][k] = false;

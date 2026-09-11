@@ -1,102 +1,102 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var ull = dynamic;
+var ull: dynamic = dynamic;
 
-func rep(i: dynamic, n: dynamic, N: dynamic)
+func rep(i: dynamic, n: dynamic, N: dynamic) -> dynamic
 {
   cpp_macro("for(ll i=n;i<=N;++i)");
 }
 
-func rap(i: dynamic, n: dynamic, N: dynamic)
+func rap(i: dynamic, n: dynamic, N: dynamic) -> dynamic
 {
   cpp_macro("for(ll i=n;i>=N;--i)");
 }
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var pob = cpp_expression("#include");
+var pob: dynamic = cpp_expression("#include");
 
-var pf = cpp_expression("#include <");
+var pf: dynamic = cpp_expression("#include <");
 
-var pof = cpp_expression("#include");
+var pof: dynamic = cpp_expression("#include");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-var ff = cpp_expression("#incl");
+var ff: dynamic = cpp_expression("#incl");
 
-var fs = cpp_expression("#incl");
+var fs: dynamic = cpp_expression("#incl");
 
-var sf = cpp_expression("#incl");
+var sf: dynamic = cpp_expression("#incl");
 
-var ss = cpp_expression("#incl");
+var ss: dynamic = cpp_expression("#incl");
 
-var lc = cpp_expression("#includ");
+var lc: dynamic = cpp_expression("#includ");
 
-var rc = cpp_expression("#include <b");
+var rc: dynamic = cpp_expression("#include <b");
 
-func db(x: dynamic)
+func db(x: dynamic) -> dynamic
 {
   cpp_macro("cout << \">>>>>> \" << #x << \" -> \" << x << endl;");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/st");
 }
 
-var pii = cpp_expression("#include <bit");
+var pii: dynamic = cpp_expression("#include <bit");
 
-var pll = cpp_expression("#include <b");
+var pll: dynamic = cpp_expression("#include <b");
 
-var piii = cpp_expression("#include <bit");
+var piii: dynamic = cpp_expression("#include <bit");
 
-var piiii = cpp_expression("#include <bit");
+var piiii: dynamic = cpp_expression("#include <bit");
 
-var psi = cpp_expression("#include <bits/s");
+var psi: dynamic = cpp_expression("#include <bits/s");
 
-var endl = cpp_expression("#inc");
+var endl: dynamic = cpp_expression("#inc");
 
-var MAX = (1e5 + 5);
+var MAX: dynamic = (1e5 + 5);
 
-var MAX2 = 11;
+var MAX2: dynamic = 11;
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var INF = 2e18;
+var INF: dynamic = 2e18;
 
-var dr = [1, 0, -1, 0, 1, 1, -1, -1, 0];
+var dr: dynamic = [1, 0, -1, 0, 1, 1, -1, -1, 0];
 
-var dc = [0, 1, 0, -1, 1, -1, 1, -1, 0];
+var dc: dynamic = [0, 1, 0, -1, 1, -1, 1, -1, 0];
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var block = 450;
+var block: dynamic = 450;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var inv: dynamic;
+var inv: dynamic = cpp_uninitialized();
 
-var x = cpp_array(MAX);
+var x: dynamic = cpp_array(MAX);
 
-var y = cpp_array(MAX);
+var y: dynamic = cpp_array(MAX);
 
-var bit = cpp_array(MAX);
+var bit: dynamic = cpp_array(MAX);
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var id: dynamic;
+var id: dynamic = cpp_uninitialized();
 
-func upd(i: dynamic, z: dynamic)
+func upd(i: dynamic, z: dynamic) -> dynamic
 {
   {
     while ((i <= n))
@@ -107,9 +107,9 @@ func upd(i: dynamic, z: dynamic)
   }
 }
 
-var ret: dynamic;
+var ret: dynamic = cpp_uninitialized();
 
-func que(i: dynamic)
+func que(i: dynamic) -> dynamic
 {
   i -= 1;
   ret = 0;
@@ -123,13 +123,13 @@ func que(i: dynamic)
   return ret;
 }
 
-var pq: dynamic;
+var pq: dynamic = cpp_uninitialized();
 
-var tmp: dynamic;
+var tmp: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
@@ -171,7 +171,7 @@ func main()
         }
       }
     }
-    for (var i in ans)
+    for (var i: dynamic in ans)
     {
       write(i, "\n");
     }

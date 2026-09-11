@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var x = cpp_array(1000);
+  var x: dynamic = cpp_array(1000);
   read(x);
-  var result = 0;
+  var result: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (strlen(x) + 1)))
     {
       result += 25;

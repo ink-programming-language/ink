@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var lcp: dynamic;
+var lcp: dynamic = cpp_uninitialized();
 
-var next = cpp_array(N);
+var next: dynamic = cpp_array(N);
 
-var occur = cpp_array(N);
+var occur: dynamic = cpp_array(N);
 
-func kmp(s: dynamic)
+func kmp(s: dynamic) -> dynamic
 {
   {
-    var i = 1;
-    var j = cpp_assign(next[0], "=", -1);
+    var i: dynamic = 1;
+    var j: dynamic = cpp_assign(next[0], "=", -1);
     while ((i <= s.size()))
     {
       {
@@ -30,22 +30,22 @@ func kmp(s: dynamic)
   }
 }
 
-var size = cpp_array(N);
+var size: dynamic = cpp_array(N);
 
-var idx = 1;
+var idx: dynamic = 1;
 
-var lst = 1;
+var lst: dynamic = 1;
 
-var nxt = cpp_array(26, N);
+var nxt: dynamic = cpp_array(26, N);
 
-var fail = cpp_array(N);
+var fail: dynamic = cpp_array(N);
 
-var max = cpp_array(N);
+var max: dynamic = cpp_array(N);
 
-func append(ch: dynamic)
+func append(ch: dynamic) -> dynamic
 {
-  var p = lst;
-  var np = cpp_assign(lst, "=", cpp_update(idx, "++"));
+  var p: dynamic = lst;
+  var np: dynamic = cpp_assign(lst, "=", cpp_update(idx, "++"));
   max[np] = (max[p] + 1);
   size[np] = 1;
   {
@@ -60,13 +60,13 @@ func append(ch: dynamic)
     fail[np] = 1;
   } else
   {
-    var q = nxt[p][ch];
+    var q: dynamic = nxt[p][ch];
     if (((max[p] + 1) == max[q]))
     {
       fail[np] = q;
     } else
     {
-      var nq = cpp_update(idx, "++");
+      var nq: dynamic = cpp_update(idx, "++");
       max[nq] = (max[p] + 1);
       memcpy(nxt[nq], nxt[q], (26 << 2));
       fail[nq] = fail[q];
@@ -82,20 +82,20 @@ func append(ch: dynamic)
   }
 }
 
-var head = cpp_array(N);
+var head: dynamic = cpp_array(N);
 
-var next = cpp_array(N);
+var next: dynamic = cpp_array(N);
 
-func link(x: dynamic, y: dynamic)
+func link(x: dynamic, y: dynamic) -> dynamic
 {
   next[y] = head[x];
   head[x] = y;
 }
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
       size[x] += dfs(i);
@@ -105,13 +105,13 @@ func dfs(x: dynamic)
   return size[x];
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(s, t);
-  var n = s.size();
-  var m = t.size();
+  var n: dynamic = s.size();
+  var m: dynamic = t.size();
   {
     lcp = 0;
     while (((lcp < s.size()) && (lcp < t.size())))
@@ -123,12 +123,12 @@ func main()
       lcp += 1;
     }
   }
-  for (var ch in s)
+  for (var ch: dynamic in s)
   {
     append((ch - cpp_char("a")));
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= idx))
     {
       fail_tree.link(fail[i], i);
@@ -137,10 +137,10 @@ func main()
   }
   fail_tree.dfs(1);
   kmp(t);
-  var now = 1;
-  var ans = (cpp_cast(n) * m);
+  var now: dynamic = 1;
+  var ans: dynamic = (cpp_cast(n) * m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t.size()))
     {
       occur[i] = size[cpp_assign(now, "=", nxt[now][(t[i] - cpp_char("a"))])];
@@ -148,7 +148,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < lcp))
     {
       occur[i] -= 1;
@@ -156,7 +156,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= t.size()))
     {
       if (next[i])

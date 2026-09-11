@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var h: dynamic;
-  var w: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   read(h, w);
-  for (var s in g)
+  for (var s: dynamic in g)
   {
     read(s);
   }
-  var dx = [-1, 0, 0, 1];
-  var dy = [0, 1, -1, 0];
-  var ans = 0;
+  var dx: dynamic = [-1, 0, 0, 1];
+  var dy: dynamic = [0, 1, -1, 0];
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           if ((g[i][j] == cpp_char("#")))
@@ -25,23 +25,23 @@ func main()
             j += 1;
             continue;
           }
-          var cnt = 0;
-          var d = cpp_construct(h, vector(w, -1));
-          var q: dynamic;
+          var cnt: dynamic = 0;
+          var d: dynamic = cpp_construct(h, vector(w, -1));
+          var q: dynamic = cpp_uninitialized();
           d[i][j] = 0;
           q.push(p);
           while ((!q.empty()))
           {
-            var v = q.front();
+            var v: dynamic = q.front();
             q.pop();
-            var y = v.first;
-            var x = v.second;
+            var y: dynamic = v.first;
+            var x: dynamic = v.second;
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < 4))
               {
-                var Y = (y + dy[k]);
-                var X = (x + dx[k]);
+                var Y: dynamic = (y + dy[k]);
+                var X: dynamic = (x + dx[k]);
                 if ((((((0 <= Y) && (Y < h)) && (0 <= X)) && (X < w)) && (g[Y][X] == cpp_char("."))))
                 {
                   if ((d[Y][X] != -1))

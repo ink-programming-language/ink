@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var a = cpp_array(10);
+var a: dynamic = cpp_array(10);
 
-var flag = true;
+var flag: dynamic = true;
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var ad: dynamic;
+      var ad: dynamic = cpp_uninitialized();
       read(ad);
       a[ad] += 1;
       i += 1;
@@ -22,7 +22,7 @@ func main()
   }
   ans += min(a[1], a[2]);
   a[3] += min(a[1], a[2]);
-  var ad = min(a[1], a[2]);
+  var ad: dynamic = min(a[1], a[2]);
   a[1] -= ad;
   a[2] -= ad;
   if (a[1])

@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b == 0)) a else gcd(b, (a % b));
+  return  ((b == 0)) ? a : gcd(b, (a % b));
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a / gcd(a, b)) * b);
 }
 
-func my_pow(n: dynamic, p: dynamic)
+func my_pow(n: dynamic, p: dynamic) -> dynamic
 {
   if ((p == 0))
   {
     return 1;
   }
-  var x = my_pow(n, (p / 2));
+  var x: dynamic = my_pow(n, (p / 2));
   x = ((x * x));
   if ((p & 1))
   {
@@ -25,13 +25,13 @@ func my_pow(n: dynamic, p: dynamic)
   return x;
 }
 
-func big_mod(n: dynamic, p: dynamic, m: dynamic)
+func big_mod(n: dynamic, p: dynamic, m: dynamic) -> dynamic
 {
   if ((p == 0))
   {
     return cpp_cast(1);
   }
-  var x = big_mod(n, (p / 2), m);
+  var x: dynamic = big_mod(n, (p / 2), m);
   x = (((x * x)) % m);
   if ((p & 1))
   {
@@ -40,15 +40,15 @@ func big_mod(n: dynamic, p: dynamic, m: dynamic)
   return x;
 }
 
-func extract(s: dynamic, ret: dynamic)
+func extract(s: dynamic, ret: dynamic) -> dynamic
 {
   (ss >> ret);
   return ret;
 }
 
-func itos(n: dynamic)
+func itos(n: dynamic) -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   while (n)
   {
     s += (((n % 10) + 48));
@@ -58,9 +58,9 @@ func itos(n: dynamic)
   return s;
 }
 
-func stoi(s: dynamic)
+func stoi(s: dynamic) -> dynamic
 {
-  var n = 0;
+  var n: dynamic = 0;
   {
     typeof(s.size()) = 0;
     while ((i < (s.size())))
@@ -74,53 +74,53 @@ func stoi(s: dynamic)
 
 class info
 {
-  var x: dynamic;
-  var y: dynamic;
-  var yy: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var yy: dynamic = cpp_uninitialized();
 }
 
-var arr = cpp_array(100005);
+var arr: dynamic = cpp_array(100005);
 
-func com(a: dynamic, b: dynamic)
+func com(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_binary(((a.x > b.x)), "or", (cpp_binary((a.x == b.x), "and", (a.yy < b.yy))));
 }
 
-var ar = cpp_array(100001);
+var ar: dynamic = cpp_array(100001);
 
-var vis = cpp_array(100001);
+var vis: dynamic = cpp_array(100001);
 
-var a = 0;
+var a: dynamic = 0;
 
-var b = 0;
+var b: dynamic = 0;
 
-var c = 0;
+var c: dynamic = 0;
 
-var r = 0;
+var r: dynamic = 0;
 
-var rr = 0;
+var rr: dynamic = 0;
 
-var res = 0;
+var res: dynamic = 0;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var t = 0;
+var t: dynamic = 0;
 
-var ks = 0;
+var ks: dynamic = 0;
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var v = cpp_array(100005);
+var v: dynamic = cpp_array(100005);
 
-var idx = 0;
+var idx: dynamic = 0;
 
-var mx = 0;
+var mx: dynamic = 0;
 
-func dfs(node: dynamic, dis: dynamic)
+func dfs(node: dynamic, dis: dynamic) -> dynamic
 {
   vis[node] = 1;
   if ((dis > mx))
@@ -129,7 +129,7 @@ func dfs(node: dynamic, dis: dynamic)
     idx = node;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (v[node].size())))
     {
       if ((!vis[v[node][i]]))
@@ -142,7 +142,7 @@ func dfs(node: dynamic, dis: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   read(m);
   m -= 1;
@@ -161,7 +161,7 @@ func main()
     typeof(100001) = 1;
     while ((i <= (100001)))
     {
-      var aa = v[i].size();
+      var aa: dynamic = v[i].size();
       aa -= 1;
       mx += ((((aa) * ((aa + 1)))) / 2);
       i += 1;

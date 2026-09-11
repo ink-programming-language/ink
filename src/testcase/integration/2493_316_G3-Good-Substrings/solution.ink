@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var maxn = cpp_cast(4e5);
+var maxn: dynamic = cpp_cast(4e5);
 
 class state
 {
   var next: dynamic = cpp_array(37);
-  var len: dynamic;
-  var suff: dynamic;
-  func state()
+  var len: dynamic = cpp_uninitialized();
+  var suff: dynamic = cpp_uninitialized();
+  func state() -> dynamic
   {
       memset(next, -1, cpp_sizeof((next)));
       suff = -1;
@@ -15,34 +15,34 @@ class state
     }
 }
 
-var st = cpp_array((2 * maxn));
+var st: dynamic = cpp_array((2 * maxn));
 
-var sz = 1;
+var sz: dynamic = 1;
 
-var last = 0;
+var last: dynamic = 0;
 
-var g = cpp_array(maxn);
+var g: dynamic = cpp_array(maxn);
 
-var second = cpp_array(maxn);
+var second: dynamic = cpp_array(maxn);
 
-var L = cpp_array(maxn);
+var L: dynamic = cpp_array(maxn);
 
-var R = cpp_array(maxn);
+var R: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(11, (maxn * 3));
+var dp: dynamic = cpp_array(11, (maxn * 3));
 
-var cnt = cpp_array((maxn * 2));
+var cnt: dynamic = cpp_array((maxn * 2));
 
-var was = cpp_array((maxn * 2));
+var was: dynamic = cpp_array((maxn * 2));
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func addAutomat(ch: dynamic)
+func addAutomat(ch: dynamic) -> dynamic
 {
-  var p = last;
-  var nv = cpp_update(sz, "++");
+  var p: dynamic = last;
+  var nv: dynamic = cpp_update(sz, "++");
   st[nv].len = (st[last].len + 1);
   memset(st[nv].next, -1, cpp_sizeof((st[nv].next)));
   {
@@ -57,13 +57,13 @@ func addAutomat(ch: dynamic)
     st[nv].suff = 0;
   } else
   {
-    var q = st[p].next[ch];
+    var q: dynamic = st[p].next[ch];
     if ((st[q].len == (st[p].len + 1)))
     {
       st[nv].suff = q;
     } else
     {
-      var clone = cpp_update(sz, "++");
+      var clone: dynamic = cpp_update(sz, "++");
       memcpy(st[clone].next, st[q].next, cpp_sizeof((st[clone].next)));
       st[clone].suff = st[q].suff;
       st[clone].len = (st[p].len + 1);
@@ -80,7 +80,7 @@ func addAutomat(ch: dynamic)
   last = nv;
 }
 
-func Count(v: dynamic)
+func Count(v: dynamic) -> dynamic
 {
   if ((v == 0))
   {
@@ -95,7 +95,7 @@ func Count(v: dynamic)
     typeof(g[v].begin()) = g[v].begin();
     while ((it != g[v].end()))
     {
-      var to = (*it);
+      var to: dynamic = (*it);
       cnt[v] += Count(to);
       it += 1;
     }
@@ -103,7 +103,7 @@ func Count(v: dynamic)
   return cnt[v];
 }
 
-func Dfs(v: dynamic)
+func Dfs(v: dynamic) -> dynamic
 {
   if (was[v])
   {
@@ -111,7 +111,7 @@ func Dfs(v: dynamic)
   }
   was[v] = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       if ((st[v].next[(26 + i)] != -1))
@@ -122,15 +122,15 @@ func Dfs(v: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       if ((st[v].next[i] != -1))
       {
-        var u = st[v].next[i];
+        var u: dynamic = st[v].next[i];
         Dfs(u);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= n))
           {
             dp[v][j] += dp[u][j];
@@ -143,9 +143,9 @@ func Dfs(v: dynamic)
   }
   if ((v && dp[v][0]))
   {
-    var ok = true;
+    var ok: dynamic = true;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((ok && (i <= n)))
       {
         if ((!(((L[i] <= dp[v][i]) && (dp[v][i] <= R[i])))))
@@ -162,11 +162,11 @@ func Dfs(v: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", second);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (second[i])
     {
       addAutomat((second[i] - cpp_char("a")));
@@ -176,12 +176,12 @@ func main()
   addAutomat(26);
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("\n%s %d %d", (&second), (&L[i]), (&R[i]));
       {
-        var j = 0;
+        var j: dynamic = 0;
         while (second[j])
         {
           addAutomat((second[j] - cpp_char("a")));
@@ -193,11 +193,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < sz))
     {
       {
-        var ch = 0;
+        var ch: dynamic = 0;
         while ((ch < 26))
         {
           if ((st[i].next[ch] != -1))

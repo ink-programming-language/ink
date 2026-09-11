@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func check(sz: dynamic)
+func check(sz: dynamic) -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       s.insert(a[i]);
       i += 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   while (s.size())
   {
     cnt += 1;
-    var elem = (*(cpp_update(s.end(), "--")));
+    var elem: dynamic = (*(cpp_update(s.end(), "--")));
     if ((elem > sz))
     {
       return 0;
     }
     s.erase(cpp_update(s.end(), "--"));
-    var it = s.upper_bound((sz - elem));
+    var it: dynamic = s.upper_bound((sz - elem));
     if ((it != s.begin()))
     {
       s.erase(cpp_update(it, "--"));
@@ -38,11 +38,11 @@ func check(sz: dynamic)
   return (cnt <= k);
 }
 
-func binsearch(lo: dynamic, hi: dynamic)
+func binsearch(lo: dynamic, hi: dynamic) -> dynamic
 {
   while ((lo < hi))
   {
-    var mid = (((lo + hi)) / 2);
+    var mid: dynamic = (((lo + hi)) / 2);
     if (check(mid))
     {
       hi = mid;
@@ -54,21 +54,21 @@ func binsearch(lo: dynamic, hi: dynamic)
   return lo;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n, k);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var ans = binsearch(1, 2e6);
+  var ans: dynamic = binsearch(1, 2e6);
   write(ans);
   return 0;
 }

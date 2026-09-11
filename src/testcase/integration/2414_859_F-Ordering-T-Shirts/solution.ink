@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var debug = 0;
+var debug: dynamic = 0;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var dx = [0, 1, 0, -1];
+var dx: dynamic = [0, 1, 0, -1];
 
-var dy = [1, 0, -1, 0];
+var dy: dynamic = [1, 0, -1, 0];
 
-var direc = "RDLU";
+var direc: dynamic = "RDLU";
 
-var ln: dynamic;
+var ln: dynamic = cpp_uninitialized();
 
-var lk: dynamic;
+var lk: dynamic = cpp_uninitialized();
 
-var lm: dynamic;
+var lm: dynamic = cpp_uninitialized();
 
-func etp(f: dynamic = 0)
+func etp(f: dynamic = 0) -> dynamic
 {
-  puts(if (f) "YES" else "NO");
+  puts( (f) ? "YES" : "NO");
   exit(0);
 }
 
-func addmod(x: dynamic, y: dynamic, mod: dynamic = 1000000007)
+func addmod(x: dynamic, y: dynamic, mod: dynamic = 1000000007) -> dynamic
 {
   assert((y >= 0));
   x += y;
@@ -37,15 +37,15 @@ func addmod(x: dynamic, y: dynamic, mod: dynamic = 1000000007)
   assert(((x >= 0) && (x < mod)));
 }
 
-func et()
+func et() -> dynamic
 {
   puts("-1");
   exit(0);
 }
 
-func fastPow(x: dynamic, y: dynamic, mod: dynamic = 1000000007)
+func fastPow(x: dynamic, y: dynamic, mod: dynamic = 1000000007) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while ((y > 0))
   {
     if ((y & 1))
@@ -58,28 +58,28 @@ func fastPow(x: dynamic, y: dynamic, mod: dynamic = 1000000007)
   return ans;
 }
 
-var a = cpp_array(400105);
+var a: dynamic = cpp_array(400105);
 
-var s = cpp_array(400105);
+var s: dynamic = cpp_array(400105);
 
-var t = cpp_array(400105);
+var t: dynamic = cpp_array(400105);
 
-var st = cpp_array(400105);
+var st: dynamic = cpp_array(400105);
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var T = cpp_array((400105 * 4));
+var T: dynamic = cpp_array((400105 * 4));
 
-var lz = cpp_array((400105 * 4));
+var lz: dynamic = cpp_array((400105 * 4));
 
-func Up(rt: dynamic, l: dynamic, r: dynamic)
+func Up(rt: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   T[rt] = max(T[((rt << 1))], T[(((rt << 1) | 1))]);
 }
 
-func Down(rt: dynamic, l: dynamic, r: dynamic)
+func Down(rt: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if ((lz[rt] != 0))
   {
@@ -91,7 +91,7 @@ func Down(rt: dynamic, l: dynamic, r: dynamic)
   }
 }
 
-func upt(rt: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic, val: dynamic)
+func upt(rt: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic, val: dynamic) -> dynamic
 {
   if (((R <= l) || (r <= L)))
   {
@@ -104,13 +104,13 @@ func upt(rt: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic, val: dynam
     return;
   }
   Down(rt, l, r);
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   upt(((rt << 1)), l, mid, L, R, val);
   upt((((rt << 1) | 1)), mid, r, L, R, val);
   Up(rt, l, r);
 }
 
-func uptS(rt: dynamic, l: dynamic, r: dynamic, L: dynamic, val: dynamic)
+func uptS(rt: dynamic, l: dynamic, r: dynamic, L: dynamic, val: dynamic) -> dynamic
 {
   if (((l + 1) == r))
   {
@@ -118,7 +118,7 @@ func uptS(rt: dynamic, l: dynamic, r: dynamic, L: dynamic, val: dynamic)
     return;
   }
   Down(rt, l, r);
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   if ((L <= mid))
   {
     uptS(((rt << 1)), l, mid, L, val);
@@ -129,7 +129,7 @@ func uptS(rt: dynamic, l: dynamic, r: dynamic, L: dynamic, val: dynamic)
   Up(rt, l, r);
 }
 
-func qy(rt: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic)
+func qy(rt: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic) -> dynamic
 {
   if (((R <= l) || (r <= L)))
   {
@@ -140,11 +140,11 @@ func qy(rt: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic)
     return T[rt];
   }
   Down(rt, l, r);
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   return max(qy(((rt << 1)), l, mid, L, R), qy((((rt << 1) | 1)), mid, r, L, R));
 }
 
-func fmain(tid: dynamic)
+func fmain(tid: dynamic) -> dynamic
 {
   scanf("%d%lld", (&n), (&C));
   {
@@ -163,7 +163,7 @@ func fmain(tid: dynamic)
       (i) += 1;
     }
   }
-  var i = 0;
+  var i: dynamic = 0;
   {
     int_cpp(j) = 1;
     while (((j) <= cpp_cast((n))))
@@ -174,7 +174,7 @@ func fmain(tid: dynamic)
       }
       if (i)
       {
-        var z = max((C - ((st[(j - 1)] - st[(i - 1)]))), 0);
+        var z: dynamic = max((C - ((st[(j - 1)] - st[(i - 1)]))), 0);
         t[j] = max(t[j], z);
       }
       if (((j > 1) && (i < (j - 1))))
@@ -182,7 +182,7 @@ func fmain(tid: dynamic)
         upt(1, 0, n, i, (j - 1), ((a[((j * 2) - 1)] + a[((j * 2) - 2)]) - t[(j - 1)]));
       }
       uptS(1, 0, n, j, a[((j + j) - 1)]);
-      var z = qy(1, 0, n, i, j);
+      var z: dynamic = qy(1, 0, n, i, j);
       t[j] = max(t[j], z);
       ans += t[j];
       st[j] = (st[(j - 1)] + t[j]);
@@ -192,9 +192,9 @@ func fmain(tid: dynamic)
   printf("%lld\n", ans);
 }
 
-func main()
+func main() -> dynamic
 {
-  var t = 1;
+  var t: dynamic = 1;
   {
     int_cpp(i) = 1;
     while (((i) <= cpp_cast((t))))

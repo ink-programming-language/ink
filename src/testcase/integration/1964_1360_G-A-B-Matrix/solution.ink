@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var m: dynamic;
-    var a: dynamic;
-    var b: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     read(n, m, a, b);
     if ((((n * a)) != ((m * b))))
     {
@@ -17,14 +17,14 @@ func main()
     } else
     {
       write("YES", "\n");
-      var A = cpp_array(m, n);
+      var A: dynamic = cpp_array(m, n);
       memset(A, 0, cpp_sizeof((A)));
-      var x = 0;
+      var x: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
-          var c = a;
+          var c: dynamic = a;
           while (cpp_update(c, "--"))
           {
             A[i][x] = 1;
@@ -35,11 +35,11 @@ func main()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               write(A[i][j]);

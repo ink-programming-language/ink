@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var Imx = 2147483647;
+var Imx: dynamic = 2147483647;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var Lbig = 2e18;
+var Lbig: dynamic = 2e18;
 
-func getnum()
+func getnum() -> dynamic
 {
-  var r = 0;
-  var ng = 0;
-  var c: dynamic;
+  var r: dynamic = 0;
+  var ng: dynamic = 0;
+  var c: dynamic = cpp_uninitialized();
   c = getchar();
   while (((c != cpp_char("-")) && (((c < cpp_char("0")) || (c > cpp_char("9"))))))
   {
@@ -33,15 +33,15 @@ func getnum()
   return r;
 }
 
-func putnum(x: dynamic)
+func putnum(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
     putchar(cpp_char("-"));
     x = (-x);
   }
-  var a = [];
-  var sz = 0;
+  var a: dynamic = [];
+  var sz: dynamic = 0;
   while ((x > 0))
   {
     a[cpp_update(sz, "++")] = (x % 10);
@@ -52,7 +52,7 @@ func putnum(x: dynamic)
     putchar(cpp_char("0"));
   }
   {
-    var i = (sz - 1);
+    var i: dynamic = (sz - 1);
     while ((i >= 0))
     {
       putchar((cpp_char("0") + a[i]));
@@ -61,19 +61,19 @@ func putnum(x: dynamic)
   }
 }
 
-func putsp()
+func putsp() -> dynamic
 {
   putchar(cpp_char(" "));
 }
 
-func putendl()
+func putendl() -> dynamic
 {
   putchar(cpp_char("\n"));
 }
 
-func mygetchar()
+func mygetchar() -> dynamic
 {
-  var c = getchar();
+  var c: dynamic = getchar();
   while (((c == cpp_char(" ")) || (c == cpp_char("\n"))))
   {
     c = getchar();
@@ -81,24 +81,24 @@ func mygetchar()
   return c;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var nxt = cpp_array(500111);
+var nxt: dynamic = cpp_array(500111);
 
-var pre = cpp_array(500111);
+var pre: dynamic = cpp_array(500111);
 
-var a = cpp_array(500111);
+var a: dynamic = cpp_array(500111);
 
-var f = cpp_array(500111);
+var f: dynamic = cpp_array(500111);
 
-func del(x: dynamic)
+func del(x: dynamic) -> dynamic
 {
   f[x] = 1;
   nxt[pre[x]] = nxt[x];
   pre[nxt[x]] = pre[x];
 }
 
-func check(x: dynamic)
+func check(x: dynamic) -> dynamic
 {
   if ((((((!f[x]) && (x != 1)) && (x != n)) && (a[pre[x]] >= a[x])) && (a[x] <= a[nxt[x]])))
   {
@@ -108,11 +108,11 @@ func check(x: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   n = getnum();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = getnum();
@@ -121,9 +121,9 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < n))
     {
       if ((!f[i]))
@@ -133,7 +133,7 @@ func main()
       i += 1;
     }
   }
-  var p = 1;
+  var p: dynamic = 1;
   while (((p >= 1) && (p <= n)))
   {
     ans += min(a[pre[p]], a[nxt[p]]);

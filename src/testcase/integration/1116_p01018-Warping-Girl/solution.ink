@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-var USE_MATH_DEFINES = cpp_expression("#def");
+var USE_MATH_DEFINES: dynamic = cpp_expression("#def");
 
-var INF = cpp_expression("#define _U");
+var INF: dynamic = cpp_expression("#define _U");
 
-var tx = [+0, +1, +0, -1];
+var tx: dynamic = [+0, +1, +0, -1];
 
-var ty = [-1, +0, +1, +0];
+var ty: dynamic = [-1, +0, +1, +0];
 
-var EPS = 1e-12;
+var EPS: dynamic = 1e-12;
 
 class MagicalCircle
 {
-  var pos: dynamic;
-  var dist: dynamic;
-  var time: dynamic;
-  func MagicalCircle(p: dynamic, d: dynamic, t: dynamic)
+  var pos: dynamic = cpp_uninitialized();
+  var dist: dynamic = cpp_uninitialized();
+  var time: dynamic = cpp_uninitialized();
+  func MagicalCircle(p: dynamic, d: dynamic, t: dynamic) -> dynamic
   {
-      this->pos = cpp_construct(p);
-      this->dist = cpp_construct(d);
-      this->time = cpp_construct(t);
+      self->pos = cpp_construct(p);
+      self->dist = cpp_construct(d);
+      self->time = cpp_construct(t);
     }
-  func operator_less(m: dynamic)
+  func operator_less(m: dynamic) -> dynamic
   {
       return (pos < m.pos);
     }
-  func operator_greater(m: dynamic)
+  func operator_greater(m: dynamic) -> dynamic
   {
       return (pos > m.pos);
     }
-  func operator_less(num: dynamic)
+  func operator_less(num: dynamic) -> dynamic
   {
       return (pos < num);
     }
-  func operator_greater(num: dynamic)
+  func operator_greater(num: dynamic) -> dynamic
   {
       return (pos > num);
     }
@@ -41,37 +41,37 @@ class MagicalCircle
 
 class State
 {
-  var pos: dynamic;
-  var time: dynamic;
-  func State(p: dynamic, t: dynamic)
+  var pos: dynamic = cpp_uninitialized();
+  var time: dynamic = cpp_uninitialized();
+  func State(p: dynamic, t: dynamic) -> dynamic
   {
-      this->pos = cpp_construct(p);
-      this->time = cpp_construct(t);
+      self->pos = cpp_construct(p);
+      self->time = cpp_construct(t);
     }
-  func operator_less(s: dynamic)
+  func operator_less(s: dynamic) -> dynamic
   {
       return (time < s.time);
     }
-  func operator_greater(s: dynamic)
+  func operator_greater(s: dynamic) -> dynamic
   {
       return (time > s.time);
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var distance: dynamic;
-  var total_magical_circles: dynamic;
+  var distance: dynamic = cpp_uninitialized();
+  var total_magical_circles: dynamic = cpp_uninitialized();
   while ((~scanf("%d %d", (&distance), (&total_magical_circles))))
   {
-    var magical_circles: dynamic;
+    var magical_circles: dynamic = cpp_uninitialized();
     {
-      var circle_idx = 0;
+      var circle_idx: dynamic = 0;
       while ((circle_idx < total_magical_circles))
       {
-        var pos: dynamic;
-        var dist: dynamic;
-        var time: dynamic;
+        var pos: dynamic = cpp_uninitialized();
+        var dist: dynamic = cpp_uninitialized();
+        var time: dynamic = cpp_uninitialized();
         scanf("%d %d %d", (&pos), (&dist), (&time));
         magical_circles.push_back(MagicalCircle(pos, dist, time));
         circle_idx += 1;
@@ -79,31 +79,31 @@ func main()
     }
     magical_circles.push_back(MagicalCircle(distance, 0, 0));
     sort(magical_circles.begin(), magical_circles.end());
-    var que: dynamic;
+    var que: dynamic = cpp_uninitialized();
     que.push(State(0, 0));
-    var dp: dynamic;
+    var dp: dynamic = cpp_uninitialized();
     while ((!que.empty()))
     {
-      var s = que.top();
+      var s: dynamic = que.top();
       que.pop();
       if ((dp.find(s.pos) != dp.end()))
       {
         continue;
       }
       dp[s.pos] = s.time;
-      var idx = (lower_bound(magical_circles.begin(), magical_circles.end(), s.pos) - magical_circles.begin());
+      var idx: dynamic = (lower_bound(magical_circles.begin(), magical_circles.end(), s.pos) - magical_circles.begin());
       if ((magical_circles[idx].pos == s.pos))
       {
-        var next_time = (s.time + magical_circles[idx].time);
-        var next_pos = (s.pos + magical_circles[idx].dist);
+        var next_time: dynamic = (s.time + magical_circles[idx].time);
+        var next_pos: dynamic = (s.pos + magical_circles[idx].dist);
         que.push(State(next_pos, next_time));
-        var next_time2 = (s.time + 1);
-        var next_pos2 = (s.pos + 1);
+        var next_time2: dynamic = (s.time + 1);
+        var next_pos2: dynamic = (s.pos + 1);
         que.push(State(next_pos2, next_time2));
       } else
       {
-        var next_time = (s.time + ((magical_circles[idx].pos - s.pos)));
-        var next_pos = magical_circles[idx].pos;
+        var next_time: dynamic = (s.time + ((magical_circles[idx].pos - s.pos)));
+        var next_pos: dynamic = magical_circles[idx].pos;
         que.push(State(next_pos, next_time));
       }
     }

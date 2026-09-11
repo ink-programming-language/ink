@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var a1234: dynamic;
+var a1234: dynamic = cpp_uninitialized();
 
-func xxx()
+func xxx() -> dynamic
 {
   {
     while (true)
@@ -11,41 +11,41 @@ func xxx()
   }
 }
 
-func rd(l: dynamic, r: dynamic)
+func rd(l: dynamic, r: dynamic) -> dynamic
 {
   return ((rand() % (((r - l) + 1))) + l);
 }
 
-var mxn = (1e5 + 3);
+var mxn: dynamic = (1e5 + 3);
 
-var a = cpp_array(mxn);
+var a: dynamic = cpp_array(mxn);
 
-var now = cpp_array(mxn);
+var now: dynamic = cpp_array(mxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var hh: dynamic;
+var hh: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var day = cpp_array(mxn);
+var day: dynamic = cpp_array(mxn);
 
-var h = cpp_array(mxn);
+var h: dynamic = cpp_array(mxn);
 
-func ins(x: dynamic)
+func ins(x: dynamic) -> dynamic
 {
   q.push(pair((-((now[x] / a[x]))), x));
 }
 
-func work(x: dynamic)
+func work(x: dynamic) -> dynamic
 {
   q = priority_queue();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       now[i] = x;
@@ -54,12 +54,12 @@ func work(x: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var re = k;
-      var x: dynamic;
-      var y: dynamic;
+      var re: dynamic = k;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       while (re)
       {
         x = q.top().second;
@@ -71,7 +71,7 @@ func work(x: dynamic)
         } else if ((y >= m))
         {
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= n))
             {
               now[j] -= (m * a[j]);
@@ -81,7 +81,7 @@ func work(x: dynamic)
           }
           re += (((m - i)) * k);
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= n))
             {
               while ((re && (now[j] < h[j])))
@@ -111,7 +111,7 @@ func work(x: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((now[i] - (m * a[i])) < h[i]))
@@ -124,14 +124,14 @@ func work(x: dynamic)
   return 1;
 }
 
-func main()
+func main() -> dynamic
 {
   a1234 = scanf("%d%d%d%d", (&n), (&m), (&k), (&hh));
-  var l = 0;
-  var r = 0;
-  var mid: dynamic;
+  var l: dynamic = 0;
+  var r: dynamic = 0;
+  var mid: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a1234 = scanf("%d%lld", (h + i), (a + i));

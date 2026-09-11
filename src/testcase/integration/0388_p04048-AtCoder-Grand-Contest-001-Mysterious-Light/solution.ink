@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var X: dynamic;
-  var ans: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var X: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   read(N, X);
   ans = N;
-  var P = X;
-  var Q = (N - X);
+  var P: dynamic = X;
+  var Q: dynamic = (N - X);
   while (Q)
   {
     ans += (((((P / Q) * 2) - (!((P % Q))))) * Q);

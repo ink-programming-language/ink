@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n = 0;
+  var n: dynamic = 0;
   read(n);
-  var arr = cpp_construct(n, 0);
+  var arr: dynamic = cpp_construct(n, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);
@@ -14,10 +14,10 @@ func main()
     }
   }
   sort(arr.begin(), arr.end(), greater());
-  var ans = cpp_construct(n, 0);
-  var k = 0;
-  var i = (n / 2);
-  var j = (i - 1);
+  var ans: dynamic = cpp_construct(n, 0);
+  var k: dynamic = 0;
+  var i: dynamic = (n / 2);
+  var j: dynamic = (i - 1);
   while ((j >= 0))
   {
     if ((n > i))
@@ -33,7 +33,7 @@ func main()
     ans[(n - 1)] = arr[(n - 1)];
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(ans[i], " ");

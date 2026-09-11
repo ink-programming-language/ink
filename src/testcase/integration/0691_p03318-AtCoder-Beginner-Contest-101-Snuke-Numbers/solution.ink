@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func f(n: dynamic)
+func f(n: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   while ((n > 0))
   {
     res += (n % 10);
@@ -11,21 +11,21 @@ func f(n: dynamic)
   return res;
 }
 
-func g(n: dynamic)
+func g(n: dynamic) -> dynamic
 {
   return (cpp_cast((n)) / f(n));
 }
 
-func main()
+func main() -> dynamic
 {
-  var res: dynamic;
-  var base = 1;
+  var res: dynamic = cpp_uninitialized();
+  var base: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 15))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < 150))
         {
           res.push_back(((base * ((j + 1))) - 1));
@@ -39,11 +39,11 @@ func main()
   sort(res.begin(), res.end());
   res.erase(unique(res.begin(), res.end()), res.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < res.size()))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < res.size()))
         {
           if ((g(res[i]) > g(res[j])))
@@ -57,10 +57,10 @@ func main()
       i += 1;
     }
   }
-  var K: dynamic;
+  var K: dynamic = cpp_uninitialized();
   read(K);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < K))
     {
       write(res[i], "\n");

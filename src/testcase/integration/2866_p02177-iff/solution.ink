@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var G = cpp_array(305);
+var G: dynamic = cpp_array(305);
 
-var revG = cpp_array(305);
+var revG: dynamic = cpp_array(305);
 
-var topo: dynamic;
+var topo: dynamic = cpp_uninitialized();
 
-var used = cpp_array(305);
+var used: dynamic = cpp_array(305);
 
-var scc = cpp_array(305);
+var scc: dynamic = cpp_array(305);
 
-func tpsort(v: dynamic)
+func tpsort(v: dynamic) -> dynamic
 {
   used[v] = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G[v].size()))
     {
       if ((!used[G[v][i]]))
@@ -31,12 +31,12 @@ func tpsort(v: dynamic)
   topo.push_back(v);
 }
 
-func sccdfs(v: dynamic, id: dynamic)
+func sccdfs(v: dynamic, id: dynamic) -> dynamic
 {
   used[v] = true;
   scc[v] = id;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < revG[v].size()))
     {
       if ((!used[revG[v][i]]))
@@ -48,15 +48,15 @@ func sccdfs(v: dynamic, id: dynamic)
   }
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(n, m);
-  var u: dynamic;
-  var v: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(u, v);
@@ -66,7 +66,7 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!used[i]))
@@ -77,9 +77,9 @@ func main(argument_0: dynamic)
     }
   }
   reverse(topo.begin(), topo.end());
-  var id = 0;
+  var id: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       used[i] = false;
@@ -87,7 +87,7 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < topo.size()))
     {
       if ((!used[topo[i]]))
@@ -98,12 +98,12 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var vec: dynamic;
+      var vec: dynamic = cpp_uninitialized();
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((scc[i] == scc[j]))
@@ -114,7 +114,7 @@ func main(argument_0: dynamic)
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < vec.size()))
         {
           write(vec[j]);

@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var maxn = 35;
+var maxn: dynamic = 35;
 
-var maxk = 205;
+var maxk: dynamic = 205;
 
-var p = cpp_array(maxn);
+var p: dynamic = cpp_array(maxn);
 
-var ans = cpp_array(maxk, maxn, maxn);
+var ans: dynamic = cpp_array(maxk, maxn, maxn);
 
-func to(x: dynamic, l: dynamic, r: dynamic)
+func to(x: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (((x < l) || (x > r)))
   {
@@ -17,7 +17,7 @@ func to(x: dynamic, l: dynamic, r: dynamic)
   return ((l + r) - x);
 }
 
-func solve(n: dynamic, i: dynamic, j: dynamic, k: dynamic)
+func solve(n: dynamic, i: dynamic, j: dynamic, k: dynamic) -> dynamic
 {
   if ((k == 0))
   {
@@ -33,14 +33,14 @@ func solve(n: dynamic, i: dynamic, j: dynamic, k: dynamic)
   {
     return ans[i][j][k];
   }
-  var koef = (2.0 / ((n * ((n + 1)))));
-  var ret = 0.0;
+  var koef: dynamic = (2.0 / ((n * ((n + 1)))));
+  var ret: dynamic = 0.0;
   {
-    var l = 1;
+    var l: dynamic = 1;
     while ((l <= n))
     {
       {
-        var r = l;
+        var r: dynamic = l;
         while ((r <= n))
         {
           ret += (koef * solve(n, to(i, l, r), to(j, l, r), (k - 1)));
@@ -54,20 +54,20 @@ func solve(n: dynamic, i: dynamic, j: dynamic, k: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   write(fixed, setprecision(10));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((maxn))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast((maxn))))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < cpp_cast((maxk))))
             {
               ans[i][j][k] = -1.0;
@@ -80,24 +80,24 @@ func main()
       i += 1;
     }
   }
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((n))))
     {
       read(p[(i + 1)]);
       i += 1;
     }
   }
-  var ans = 0.0;
+  var ans: dynamic = 0.0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j <= n))
         {
           ans += solve(n, i, j, k);

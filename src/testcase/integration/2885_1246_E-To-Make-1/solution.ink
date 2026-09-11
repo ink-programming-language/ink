@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array((1 << 16));
+var dp: dynamic = cpp_array((1 << 16));
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(16);
+var a: dynamic = cpp_array(16);
 
-var weight = cpp_array(16);
+var weight: dynamic = cpp_array(16);
 
-func calc(x: dynamic)
+func calc(x: dynamic) -> dynamic
 {
-  var c = 0;
+  var c: dynamic = 0;
   while (((x % k) == 0))
   {
     x /= k;
@@ -21,9 +21,9 @@ func calc(x: dynamic)
   return c;
 }
 
-func calc(x: dynamic)
+func calc(x: dynamic) -> dynamic
 {
-  var c = 0;
+  var c: dynamic = 0;
   while (((x % k) == 0))
   {
     x /= k;
@@ -32,14 +32,14 @@ func calc(x: dynamic)
   return c;
 }
 
-func dfs(s: dynamic, x: dynamic)
+func dfs(s: dynamic, x: dynamic) -> dynamic
 {
   if ((builtin_popcount(s) == 1))
   {
     return;
   }
-  var y = x;
-  var z = x;
+  var y: dynamic = x;
+  var z: dynamic = x;
   while ((y < (16 * 2002)))
   {
     if (dp[s][y])
@@ -51,7 +51,7 @@ func dfs(s: dynamic, x: dynamic)
   if ((z != x))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((((1 << i)) & s))
@@ -65,7 +65,7 @@ func dfs(s: dynamic, x: dynamic)
   } else
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if (cpp_binary(cpp_binary((((1 << i)) & s), "and", (x >= a[i])), "and", dp[(s ^ ((1 << i)))][(x - a[i])]))
@@ -79,12 +79,12 @@ func dfs(s: dynamic, x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   dp[0][0] = 1;
   scanf("%d%d", (&n), (&k));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
@@ -92,11 +92,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < ((1 << n))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((i & ((1 << j))))
@@ -107,7 +107,7 @@ func main()
         }
       }
       {
-        var j = ((16 * 2000) / k);
+        var j: dynamic = ((16 * 2000) / k);
         while ((j >= 0))
         {
           if (dp[i][(j * k)])
@@ -126,13 +126,13 @@ func main()
   }
   puts("YES");
   dfs((((1 << n)) - 1), 1);
-  var cnt = (n - 1);
+  var cnt: dynamic = (n - 1);
   while (cpp_update(cnt, "--"))
   {
-    var f1 = -1;
-    var f2 = -1;
+    var f1: dynamic = -1;
+    var f2: dynamic = -1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if (cpp_binary((f1 == -1), "or", (weight[i] > weight[f1])))

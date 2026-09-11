@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-var maxn = 202;
+var maxn: dynamic = 202;
 
-var maxs = 1000004;
+var maxs: dynamic = 1000004;
 
-var data = cpp_array((maxn * maxn));
+var data: dynamic = cpp_array((maxn * maxn));
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var iscir = cpp_array((maxn * maxn));
+var iscir: dynamic = cpp_array((maxn * maxn));
 
-var cir = cpp_array(10, (maxn * maxn));
+var cir: dynamic = cpp_array(10, (maxn * maxn));
 
-var N = cpp_array((maxn * maxn));
+var N: dynamic = cpp_array((maxn * maxn));
 
-var X = cpp_array(10);
+var X: dynamic = cpp_array(10);
 
-var Y = cpp_array(10);
+var Y: dynamic = cpp_array(10);
 
-func readin()
+func readin() -> dynamic
 {
   scanf("%d%d%d", (&n), (&m), (&q));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
-          var c = cpp_char("\n");
+          var c: dynamic = cpp_char("\n");
           while ((c == cpp_char("\n")))
           {
             scanf("%c", (&c));
@@ -46,7 +46,7 @@ func readin()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 10))
     {
       scanf("%d%d", (&X[i]), (&Y[i]));
@@ -55,15 +55,15 @@ func readin()
   }
 }
 
-var vis = cpp_array((maxn * maxn));
+var vis: dynamic = cpp_array((maxn * maxn));
 
-func next(u: dynamic)
+func next(u: dynamic) -> dynamic
 {
-  var x = (u / m);
-  var y = (u % m);
+  var x: dynamic = (u / m);
+  var y: dynamic = (u % m);
   x += X[data[u]];
   y += Y[data[u]];
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   if (((((x >= n) || (y >= m)) || (x < 0)) || (y < 0)))
   {
     v = u;
@@ -74,10 +74,10 @@ func next(u: dynamic)
   return v;
 }
 
-func find_cir(u: dynamic)
+func find_cir(u: dynamic) -> dynamic
 {
   vis[u] = -1;
-  var v = N[u];
+  var v: dynamic = N[u];
   if ((vis[v] != 1))
   {
     if ((vis[v] == -1))
@@ -91,11 +91,11 @@ func find_cir(u: dynamic)
   vis[u] = 1;
 }
 
-func get_cir(i: dynamic, u: dynamic)
+func get_cir(i: dynamic, u: dynamic) -> dynamic
 {
   cir[i][data[u]] = 1;
   vis[u] = 1;
-  var v = N[u];
+  var v: dynamic = N[u];
   if (vis[v])
   {
     return;
@@ -103,13 +103,13 @@ func get_cir(i: dynamic, u: dynamic)
   get_cir(i, v);
 }
 
-var s = cpp_array(maxs);
+var s: dynamic = cpp_array(maxs);
 
-var is = cpp_array(10, maxs);
+var is: dynamic = cpp_array(10, maxs);
 
-var ishead = cpp_array((maxn * maxn));
+var ishead: dynamic = cpp_array((maxn * maxn));
 
-func head_dfs(u: dynamic)
+func head_dfs(u: dynamic) -> dynamic
 {
   vis[u] = 1;
   if (vis[N[u]])
@@ -119,11 +119,11 @@ func head_dfs(u: dynamic)
   head_dfs(N[u]);
 }
 
-func get_head()
+func get_head() -> dynamic
 {
   memset(vis, 0, cpp_sizeof((vis)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n * m)))
     {
       vis[N[i]] = 1;
@@ -131,7 +131,7 @@ func get_head()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n * m)))
     {
       if ((!vis[i]))
@@ -143,7 +143,7 @@ func get_head()
   }
   memset(vis, 0, cpp_sizeof((vis)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n * m)))
     {
       if (ishead[i])
@@ -154,7 +154,7 @@ func get_head()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n * m)))
     {
       if ((iscir[i] && (!vis[i])))
@@ -166,18 +166,18 @@ func get_head()
   }
 }
 
-func judge()
+func judge() -> dynamic
 {
-  var len = strlen(s);
+  var len: dynamic = strlen(s);
   {
-    var i = (len - 1);
+    var i: dynamic = (len - 1);
     while ((i >= 0))
     {
       memset(is[i], false, cpp_sizeof((is[i])));
       if ((i != (len - 1)))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 10))
           {
             is[i][j] = is[(i + 1)][j];
@@ -190,13 +190,13 @@ func judge()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n * m)))
     {
       if (ishead[i])
       {
-        var u = i;
-        var cur = 0;
+        var u: dynamic = i;
+        var cur: dynamic = 0;
         while ((!iscir[u]))
         {
           while (((s[cur] - cpp_char("0")) != data[u]))
@@ -217,9 +217,9 @@ func judge()
             }
           }
         }
-        var flag = 1;
+        var flag: dynamic = 1;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 10))
           {
             if ((is[cur][j] && (!cir[u][j])))
@@ -240,17 +240,17 @@ func judge()
   return false;
 }
 
-func solve()
+func solve() -> dynamic
 {
   memset(iscir, 0, cpp_sizeof((iscir)));
   memset(vis, 0, cpp_sizeof((vis)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n * m)))
     {
       N[i] = next(i);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 10))
         {
           cir[i][j] = 0;
@@ -261,7 +261,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n * m)))
     {
       if ((vis[i] != 1))
@@ -273,7 +273,7 @@ func solve()
   }
   memset(vis, 0, cpp_sizeof((vis)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n * m)))
     {
       if (iscir[i])
@@ -285,7 +285,7 @@ func solve()
   }
   get_head();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       scanf("%s", s);
@@ -301,7 +301,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   readin();
   solve();

@@ -1,51 +1,51 @@
 // Translated from solution.cpp.
 
-var N = 1e4;
+var N: dynamic = 1e4;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var c = cpp_array((N + 10));
+var c: dynamic = cpp_array((N + 10));
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var g = cpp_array((N + 10));
+var g: dynamic = cpp_array((N + 10));
 
-func dfs(x: dynamic, C: dynamic)
+func dfs(x: dynamic, C: dynamic) -> dynamic
 {
-  var flag = C;
+  var flag: dynamic = C;
   if ((C != c[x]))
   {
     ans += 1;
     flag = c[x];
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(g[x].size())))
     {
-      var y = g[x][i];
+      var y: dynamic = g[x][i];
       dfs(y, flag);
       i += 1;
     }
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(n);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
-      var fa: dynamic;
+      var fa: dynamic = cpp_uninitialized();
       read(fa);
       g[fa].push_back(i);
       i += 1;
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(c[i]);

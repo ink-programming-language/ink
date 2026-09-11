@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, 1, 0, -1];
+var dy: dynamic = [0, 1, 0, -1];
 
-func main()
+func main() -> dynamic
 {
   {
-    var W: dynamic;
-    var H: dynamic;
-    var n: dynamic;
+    var W: dynamic = cpp_uninitialized();
+    var H: dynamic = cpp_uninitialized();
+    var n: dynamic = cpp_uninitialized();
     while (cpp_comma(scanf("%d%d%d", (&W), (&H), (&n)), W))
     {
-      var wallH = [];
-      var wallV = [];
+      var wallH: dynamic = [];
+      var wallV: dynamic = [];
       rep(x, W)[0][x] = cpp_assign(wallH[H][x], "=", true);
       rep(y, H)[y][0] = cpp_assign(wallV[y][W], "=", true);
-      var xs: dynamic;
-      var ys: dynamic;
-      var dir: dynamic;
+      var xs: dynamic = cpp_uninitialized();
+      var ys: dynamic = cpp_uninitialized();
+      var dir: dynamic = cpp_uninitialized();
       {
-        var xa: dynamic;
-        var ya: dynamic;
-        var xb: dynamic;
-        var yb: dynamic;
+        var xa: dynamic = cpp_uninitialized();
+        var ya: dynamic = cpp_uninitialized();
+        var xb: dynamic = cpp_uninitialized();
+        var yb: dynamic = cpp_uninitialized();
         scanf("%d%d%d%d", (&xa), (&ya), (&xb), (&yb));
         xs = min(xa, xb);
         ys = min(ya, yb);
@@ -58,14 +58,14 @@ func main()
           }
         }
       }
-      var xg: dynamic;
-      var yg: dynamic;
+      var xg: dynamic = cpp_uninitialized();
+      var yg: dynamic = cpp_uninitialized();
       scanf("%d%d", (&xg), (&yg));
-      var ok = false;
-      var x = xs;
-      var y = ys;
-      var cnt = 1;
-      var visited = [];
+      var ok: dynamic = false;
+      var x: dynamic = xs;
+      var y: dynamic = ys;
+      var cnt: dynamic = 1;
+      var visited: dynamic = [];
       while (1)
       {
         if (((x == xg) && (y == yg)))
@@ -81,8 +81,8 @@ func main()
         dir = (((dir + 1)) % 4);
         rep(i, 4);
         {
-          var xx = (x + dx[dir]);
-          var yy = (y + dy[dir]);
+          var xx: dynamic = (x + dx[dir]);
+          var yy: dynamic = (y + dy[dir]);
           if (((((((dir == 0) && (!wallV[y][xx]))) || (((dir == 1) && (!wallH[yy][x])))) || (((dir == 2) && (!wallV[y][x])))) || (((dir == 3) && (!wallH[y][x])))))
           {
             x = xx;
@@ -105,12 +105,12 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var xa: dynamic;
-        var ya: dynamic;
-        var xb: dynamic;
-        var yb: dynamic;
+        var xa: dynamic = cpp_uninitialized();
+        var ya: dynamic = cpp_uninitialized();
+        var xb: dynamic = cpp_uninitialized();
+        var yb: dynamic = cpp_uninitialized();
         scanf("%d%d%d%d", (&xa), (&ya), (&xb), (&yb));
         if ((xb < xa))
         {
@@ -123,7 +123,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
         if ((ya == yb))
         {
           {
-            var x = xa;
+            var x: dynamic = xa;
             while ((x < xb))
             {
               wallH[ya][x] = true;
@@ -133,7 +133,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
         } else
         {
           {
-            var y = ya;
+            var y: dynamic = ya;
             while ((y < yb))
             {
               wallV[y][xa] = true;

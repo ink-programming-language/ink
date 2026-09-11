@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   while ((n != 0))
   {
-    var s = 1;
-    var sum = 0;
-    var e = 1;
-    var o = 0;
+    var s: dynamic = 1;
+    var sum: dynamic = 0;
+    var e: dynamic = 1;
+    var o: dynamic = 0;
     while ((e <= n))
     {
       if ((sum < n))

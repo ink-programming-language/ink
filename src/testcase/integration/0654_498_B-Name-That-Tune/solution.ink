@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var MAX = 5010;
+var MAX: dynamic = 5010;
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var T: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var T: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&T));
-  var ds1 = [];
-  var ds2 = [];
-  var rs = ds1;
-  var rs2 = ds2;
-  var res = [];
+  var ds1: dynamic = [];
+  var ds2: dynamic = [];
+  var rs: dynamic = ds1;
+  var rs2: dynamic = ds2;
+  var res: dynamic = [];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       rs2[0] = (i == 0);
-      var P: dynamic;
-      var t: dynamic;
+      var P: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
       scanf("%d%d", (&P), (&t));
-      var sm = 0;
-      var p = (P / 100.0);
-      var q = (1 - p);
-      var qt1 = pow(q, (t - 1));
+      var sm: dynamic = 0;
+      var p: dynamic = (P / 100.0);
+      var q: dynamic = (1 - p);
+      var qt1: dynamic = pow(q, (t - 1));
       {
-        var j = max((i - 1), 1);
+        var j: dynamic = max((i - 1), 1);
         while ((j < t))
         {
           if ((sm != 0))
@@ -38,7 +38,7 @@ func main()
         }
       }
       {
-        var j = max((i - 1), t);
+        var j: dynamic = max((i - 1), t);
         while ((j <= T))
         {
           if ((sm != 0))
@@ -48,7 +48,7 @@ func main()
           sm += (rs2[(j - 1)] * p);
           if ((rs2[(j - t)] != 0))
           {
-            var v = (rs2[(j - t)] * qt1);
+            var v: dynamic = (rs2[(j - t)] * qt1);
             sm -= ((rs2[(j - t)] * qt1) * p);
             rs[j] = (sm + v);
           } else
@@ -58,9 +58,9 @@ func main()
           j += 1;
         }
       }
-      var Q = 1;
+      var Q: dynamic = 1;
       {
-        var j = T;
+        var j: dynamic = T;
         while (((j >= ((T - t) + 1)) && (j >= i)))
         {
           res[i] += (rs2[j] * Q);
@@ -73,16 +73,16 @@ func main()
     }
   }
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= T))
     {
       res[n] += rs2[j];
       j += 1;
     }
   }
-  var r = 0;
+  var r: dynamic = 0;
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= T))
     {
       r += (res[j] * j);

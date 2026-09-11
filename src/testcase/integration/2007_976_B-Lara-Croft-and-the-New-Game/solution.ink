@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
-  var d: dynamic;
-  var fd: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var fd: dynamic = cpp_uninitialized();
   scanf("%lld %lld %lld", (&n), (&m), (&k));
   if ((k < n))
   {

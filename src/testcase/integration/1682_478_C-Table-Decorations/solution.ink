@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t = cpp_construct(0);
-  var mas = cpp_array(3);
+  var t: dynamic = cpp_construct(0);
+  var mas: dynamic = cpp_array(3);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       read(mas[i]);

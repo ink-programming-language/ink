@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(500);
+var a: dynamic = cpp_array(500);
 
-var b = cpp_array(500);
+var b: dynamic = cpp_array(500);
 
-var ans = cpp_array(4, 500);
+var ans: dynamic = cpp_array(4, 500);
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var smm: dynamic;
+var smm: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var flag = 0;
+var flag: dynamic = 0;
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   read(n);
   memset(b, 0, cpp_sizeof(b));
   memset(a, 0, cpp_sizeof(a));
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
       read(a[i]);
@@ -65,7 +65,7 @@ func main()
     }
     write(k, "\n");
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i <= (k)))
       {
         write(ans[i][1], " ", ans[i][2], "\n");

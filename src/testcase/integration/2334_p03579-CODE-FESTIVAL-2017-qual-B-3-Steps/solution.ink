@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-var MAXN = (1e5 + 5);
+var MAXN: dynamic = (1e5 + 5);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
 class E
 {
-  var next: dynamic;
-  var to: dynamic;
+  var next: dynamic = cpp_uninitialized();
+  var to: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array((MAXN << 1));
+var e: dynamic = cpp_array((MAXN << 1));
 
-var ecnt: dynamic;
+var ecnt: dynamic = cpp_uninitialized();
 
-var G = cpp_array(MAXN);
+var G: dynamic = cpp_array(MAXN);
 
-func addEdge(u: dynamic, v: dynamic)
+func addEdge(u: dynamic, v: dynamic) -> dynamic
 {
   e[cpp_update(ecnt, "++")] = [G[u], v];
   G[u] = ecnt;
 }
 
-func addEdge2(u: dynamic, v: dynamic)
+func addEdge2(u: dynamic, v: dynamic) -> dynamic
 {
   addEdge(u, v);
   addEdge(v, u);
 }
 
-var clr = cpp_array(MAXN);
+var clr: dynamic = cpp_array(MAXN);
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   {
-    var i = G[u];
+    var i: dynamic = G[u];
     while (i)
     {
-      var v = e[i].to;
+      var v: dynamic = e[i].to;
       if ((~clr[v]))
       {
         if ((clr[v] == clr[u]))
@@ -61,16 +61,16 @@ func dfs(u: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   scanf("%d%d", (&N), (&M));
   {
     i = 1;
     while ((i <= M))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d%d", (&u), (&v));
       addEdge2(u, v);
       i += 1;
@@ -78,7 +78,7 @@ func main()
   }
   memset(clr, -1, cpp_sizeof((clr)));
   clr[1] = 0;
-  var cnt = 0;
+  var cnt: dynamic = 0;
   if (dfs(1))
   {
     {

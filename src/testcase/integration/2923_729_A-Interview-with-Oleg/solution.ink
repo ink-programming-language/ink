@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var a = cpp_array(51);
+var a: dynamic = cpp_array(51);
 
-func Filler()
+func Filler() -> dynamic
 {
   a[1] = "ogo";
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= 50))
     {
       a[i] = (a[(i - 1)] + "go");
@@ -19,7 +19,7 @@ func Filler()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
@@ -31,7 +31,7 @@ func main()
   {
     if (((((s[0] == cpp_char("o"))) && ((s[1] == cpp_char("g")))) && ((s[2] == cpp_char("o")))))
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((s.find(a[i], 0) == 0))
       {
         i += 1;

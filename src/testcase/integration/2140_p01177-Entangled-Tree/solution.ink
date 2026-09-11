@@ -1,64 +1,64 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int i = 0; i < (int)(n); i++)");
 }
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var NUM = cpp_expression("#include");
+var NUM: dynamic = cpp_expression("#include");
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var Y = cpp_array(NUM);
+var Y: dynamic = cpp_array(NUM);
 
-var ls = cpp_array(NUM);
+var ls: dynamic = cpp_array(NUM);
 
-var ord = cpp_array(NUM);
+var ord: dynamic = cpp_array(NUM);
 
-var hi = cpp_array(NUM);
+var hi: dynamic = cpp_array(NUM);
 
-var p = cpp_array(NUM);
+var p: dynamic = cpp_array(NUM);
 
-var c = cpp_array(NUM);
+var c: dynamic = cpp_array(NUM);
 
-var f = cpp_array(NUM);
+var f: dynamic = cpp_array(NUM);
 
-var b = cpp_array(NUM);
+var b: dynamic = cpp_array(NUM);
 
-var ans = cpp_array(NUM);
+var ans: dynamic = cpp_array(NUM);
 
-var a = cpp_array(NUM);
+var a: dynamic = cpp_array(NUM);
 
-func fix(k: dynamic)
+func fix(k: dynamic) -> dynamic
 {
   sort(a[k].begin(), a[k].end());
   f[k] = a[k][0].first;
   c[k] = 0;
-  rep(i, a[k].size())[k] += if ((a[k][i].second == -1)) 1 else c[a[k][i].second];
+  rep(i, a[k].size())[k] +=  ((a[k][i].second == -1)) ? 1 : c[a[k][i].second];
 }
 
-func build()
+func build() -> dynamic
 {
   Y[M] = -1;
   rep(i, N)[i] = -1;
   rep(i, (M + 1))[i] = mp(Y[i], i);
   sort(ord, ((ord + M) + 1));
   {
-    var ik = M;
+    var ik: dynamic = M;
     while ((ik > 0))
     {
-      var k = ord[ik].second;
+      var k: dynamic = ord[ik].second;
       a[k].clear();
       p[k] = -1;
       rep(i, ls[k].size());
       {
-        var ix = (ls[k][i] - 1);
+        var ix: dynamic = (ls[k][i] - 1);
         if ((hi[ix] == -1))
         {
           a[k].push_back(mp(ix, -1));
@@ -89,8 +89,8 @@ func build()
   b[M] = 0;
   rep(ik, (M + 1));
   {
-    var k = ord[ik].second;
-    var z = b[k];
+    var k: dynamic = ord[ik].second;
+    var z: dynamic = b[k];
     rep(i, a[k].size());
     {
       if ((a[k][i].second == -1))
@@ -106,7 +106,7 @@ func build()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   {
     while (true)
@@ -122,19 +122,19 @@ func main()
   }
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         scanf("%d", (Y + i));
-        var L: dynamic;
+        var L: dynamic = cpp_uninitialized();
         scanf("%d", (&L));
         ls[i].resize(L);
         rep(j, L);
         scanf("%d", (&ls[i][j]));
       }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var q: dynamic;
+        var q: dynamic = cpp_uninitialized();
         scanf("%d", (&q));
         printf("%d\n", (ans[(q - 1)] + 1));
       }

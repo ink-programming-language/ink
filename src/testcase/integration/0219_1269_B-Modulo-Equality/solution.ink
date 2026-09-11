@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var a: dynamic;
-  var b: dynamic;
-  for (var x in ar)
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  for (var x: dynamic in ar)
   {
     read(x);
     a[x] += 1;
   }
-  for (var x in br)
+  for (var x: dynamic in br)
   {
     read(x);
     b[x] += 1;
   }
-  var res = 1.01e18;
+  var res: dynamic = 1.01e18;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x = ((((br[i] - ar[0]) + m)) % m);
-      var can = true;
-      for (var ex in a)
+      var x: dynamic = ((((br[i] - ar[0]) + m)) % m);
+      var can: dynamic = true;
+      for (var ex: dynamic in a)
       {
         can &= ((ex.second == b[(((ex.first + x)) % m)]));
       }

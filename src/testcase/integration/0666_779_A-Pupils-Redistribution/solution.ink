@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(200);
+var a: dynamic = cpp_array(200);
 
-var b = cpp_array(200);
+var b: dynamic = cpp_array(200);
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -32,7 +32,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(b[i]);
@@ -42,7 +42,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < mp.size()))
     {
       if (((mp[i] % 2) == 1))
@@ -57,7 +57,7 @@ func main()
   if ((t == 0))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < mp.size()))
       {
         ans += abs((c[i] - d[i]));

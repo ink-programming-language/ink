@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var x: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(n, m);
   while (cpp_update(m, "--"))
   {

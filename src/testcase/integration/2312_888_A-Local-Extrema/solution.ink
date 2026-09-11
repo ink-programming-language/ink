@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a = cpp_array((n + 5));
+  var a: dynamic = cpp_array((n + 5));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var coun = 0;
+  var coun: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n - 1)))
     {
       if (((a[i] < a[(i - 1)]) && (a[i] < a[(i + 1)])))

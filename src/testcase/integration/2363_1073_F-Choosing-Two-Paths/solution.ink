@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var sz = (2e5 + 10);
+var sz: dynamic = (2e5 + 10);
 
-var sv = cpp_array(sz);
+var sv: dynamic = cpp_array(sz);
 
-var dp = cpp_array(sz);
+var dp: dynamic = cpp_array(sz);
 
-var ve = cpp_array(sz);
+var ve: dynamic = cpp_array(sz);
 
-var be = [0, 0];
+var be: dynamic = [0, 0];
 
-var an1: dynamic;
+var an1: dynamic = cpp_uninitialized();
 
-var an2: dynamic;
+var an2: dynamic = cpp_uninitialized();
 
-func dfs(v: dynamic, pr: dynamic)
+func dfs(v: dynamic, pr: dynamic) -> dynamic
 {
   dp[v] = [0, 1];
   ve[v] = [v, -1];
-  var sp: dynamic;
+  var sp: dynamic = cpp_uninitialized();
   {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a < sv[v].size()))
     {
-      var ne = sv[v][a];
+      var ne: dynamic = sv[v][a];
       if ((ne != pr))
       {
         dfs(ne, v);
-        var q = dp[ne].first;
-        var su = dp[ne].second;
+        var q: dynamic = dp[ne].first;
+        var su: dynamic = dp[ne].second;
         if ((q == 0))
         {
           sp.push_back([su, ve[ne].first]);
@@ -41,8 +41,8 @@ func dfs(v: dynamic, pr: dynamic)
         {
           if (dp[v].first)
           {
-            var cq = (dp[v].first + dp[ne].first);
-            var csu = (dp[v].second + dp[ne].second);
+            var cq: dynamic = (dp[v].first + dp[ne].first);
+            var csu: dynamic = (dp[v].second + dp[ne].second);
             if ((make_pair(cq, csu) > be))
             {
               be = [cq, csu];
@@ -65,8 +65,8 @@ func dfs(v: dynamic, pr: dynamic)
   {
     if (dp[v].first)
     {
-      var q = dp[v].first;
-      var su = ((dp[v].second + sp[0].first) + sp[1].first);
+      var q: dynamic = dp[v].first;
+      var su: dynamic = ((dp[v].second + sp[0].first) + sp[1].first);
       if ((make_pair(q, su) > be))
       {
         be = [q, su];
@@ -75,24 +75,24 @@ func dfs(v: dynamic, pr: dynamic)
       }
     } else
     {
-      var q = 1;
-      var su = ((sp[0].first + sp[1].first) + 2);
+      var q: dynamic = 1;
+      var su: dynamic = ((sp[0].first + sp[1].first) + 2);
       dp[v] = [q, su];
       ve[v] = [sp[0].second, sp[1].second];
     }
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a < (n - 1)))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d%d", (&u), (&v));
       u -= 1;
       v -= 1;
@@ -102,7 +102,7 @@ func main()
     }
   }
   {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a < n))
     {
       if ((sv[a].size() > 2))

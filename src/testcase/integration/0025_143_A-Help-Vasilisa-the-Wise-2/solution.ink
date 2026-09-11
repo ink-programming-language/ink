@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var l = 0;
-  var b = 0;
-  var v = cpp_construct(3);
+  var l: dynamic = 0;
+  var b: dynamic = 0;
+  var v: dynamic = cpp_construct(3);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 2))
         {
           read(l);
@@ -21,18 +21,18 @@ func main()
       i += 1;
     }
   }
-  var x = ((((v[2][1] - v[0][1]) + v[1][1])) / 2);
-  var a = cpp_array(4);
+  var x: dynamic = ((((v[2][1] - v[0][1]) + v[1][1])) / 2);
+  var a: dynamic = cpp_array(4);
   a[0] = (v[0][0] - x);
   a[1] = x;
   a[2] = ((v[0][1] - v[1][1]) + x);
   a[3] = (v[1][1] - x);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < 4))
         {
           if ((a[i] == a[j]))
@@ -48,7 +48,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       if (((a[i] < 1) || (a[i] > 9)))

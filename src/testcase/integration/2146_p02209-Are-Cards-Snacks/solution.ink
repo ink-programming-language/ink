@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var i_7 = cpp_expression("#include <b");
+var i_7: dynamic = cpp_expression("#include <b");
 
-var i_5 = cpp_expression("#incl");
+var i_5: dynamic = cpp_expression("#incl");
 
-func mod(a: dynamic)
+func mod(a: dynamic) -> dynamic
 {
-  var c = (a % i_7);
+  var c: dynamic = (a % i_7);
   if ((c >= 0))
   {
     return c;
@@ -14,16 +14,16 @@ func mod(a: dynamic)
   return (c + i_7);
 }
 
-var inf = cpp_cast(1E16);
+var inf: dynamic = cpp_cast(1E16);
 
-func rep(i: dynamic, l: dynamic, r: dynamic)
+func rep(i: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   cpp_macro("for(ll i=l;i<=r;i++)");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-func max(a: dynamic, b: dynamic)
+func max(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -34,7 +34,7 @@ func max(a: dynamic, b: dynamic)
   }
 }
 
-func min(a: dynamic, b: dynamic)
+func min(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -45,34 +45,34 @@ func min(a: dynamic, b: dynamic)
   }
 }
 
-func Max(pos: dynamic, val: dynamic)
+func Max(pos: dynamic, val: dynamic) -> dynamic
 {
   pos = max(pos, val);
 }
 
-func Min(pos: dynamic, val: dynamic)
+func Min(pos: dynamic, val: dynamic) -> dynamic
 {
   pos = min(pos, val);
 }
 
-func Add(pos: dynamic, val: dynamic)
+func Add(pos: dynamic, val: dynamic) -> dynamic
 {
   pos = mod((pos + val));
 }
 
-var EPS = 1E-9;
+var EPS: dynamic = 1E-9;
 
-var fastio = cpp_expression("#include <bits/stdc++.h> usi");
+var fastio: dynamic = cpp_expression("#include <bits/stdc++.h> usi");
 
-func main()
+func main() -> dynamic
 {
-  var ll: dynamic;
-  var k: dynamic;
+  var ll: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var a = cpp_array(n);
+  var a: dynamic = cpp_array(n);
   rep(i, 0, (n - 1));
   read(a[i]);
-  var sum = cpp_array((1 << n));
+  var sum: dynamic = cpp_array((1 << n));
   memset(sum, 0, cpp_sizeof((sum)));
   rep(i, 0, (((1 << n)) - 1));
   {
@@ -84,7 +84,7 @@ func main()
       }
     }
   }
-  var f = cpp_array((1 << n));
+  var f: dynamic = cpp_array((1 << n));
   memset(f, false, cpp_sizeof((f)));
   rep(i, 0, (((1 << n)) - 1));
   {
@@ -103,12 +103,12 @@ func main()
       }
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   rep(i, 0, (((1 << n)) - 1));
   {
     if ((!f[i]))
     {
-      var c = 0;
+      var c: dynamic = 0;
       rep(j, 0, (n - 1));
       {
         if ((((i >> j)) & 1))

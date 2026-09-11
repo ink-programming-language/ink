@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var c: dynamic;
-  var dem = 0;
+  var c: dynamic = cpp_uninitialized();
+  var dem: dynamic = 0;
   {
     c = getchar();
     while (((c < cpp_char("0")) || (c > cpp_char("9"))))
@@ -26,26 +26,26 @@ func read(x: dynamic)
   }
 }
 
-var MaxN = (1e6 + 1e5);
+var MaxN: dynamic = (1e6 + 1e5);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(MaxN);
+var a: dynamic = cpp_array(MaxN);
 
-var gtln = 0;
+var gtln: dynamic = 0;
 
-func input()
+func input() -> dynamic
 {
   read(n, m, k);
   k = min((m - 1), k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -54,15 +54,15 @@ func input()
   }
   gtln = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= k))
     {
-      var trai = i;
-      var phai = ((n - k) + i);
-      var range = (n - m);
-      var gtnn = INT_MAX;
+      var trai: dynamic = i;
+      var phai: dynamic = ((n - k) + i);
+      var range: dynamic = (n - m);
+      var gtnn: dynamic = INT_MAX;
       {
-        var j = trai;
+        var j: dynamic = trai;
         while ((j < (phai - range)))
         {
           gtnn = min(gtnn, max(a[j], a[(j + range)]));
@@ -76,11 +76,11 @@ func input()
   write(gtln, cpp_char("\n"));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var test = 1;
+  var test: dynamic = 1;
   read(test);
   while (cpp_update(test, "--"))
   {

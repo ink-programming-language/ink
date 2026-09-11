@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var K: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var K: dynamic = cpp_uninitialized();
   read(N, K);
-  var a = cpp_construct((N + 1));
+  var a: dynamic = cpp_construct((N + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var d = cpp_construct((N + 1), 0);
+  var d: dynamic = cpp_construct((N + 1), 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       d[i] = (d[(i - 1)] + a[i]);
       i += 1;
     }
   }
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
-    var l = 0;
+    var l: dynamic = 0;
     while ((l <= (N - 1)))
     {
       {
-        var r = (l + 1);
+        var r: dynamic = (l + 1);
         while ((r <= N))
         {
-          var x = (d[r] - d[l]);
+          var x: dynamic = (d[r] - d[l]);
           v.push_back(x);
           r += 1;
         }
@@ -40,18 +40,18 @@ func main()
       l += 1;
     }
   }
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 50;
+    var i: dynamic = 50;
     while ((i >= 1))
     {
-      var x = (res + pow(2, (i - 1)));
-      var cnt = 0;
+      var x: dynamic = (res + pow(2, (i - 1)));
+      var cnt: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < v.size()))
         {
-          var y = (x & v[j]);
+          var y: dynamic = (x & v[j]);
           if ((y == x))
           {
             cnt += 1;

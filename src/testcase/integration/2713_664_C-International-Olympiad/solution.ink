@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var year = cpp_array(30);
+var year: dynamic = cpp_array(30);
 
-func poww(b: dynamic)
+func poww(b: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < b))
     {
       ans *= 10;
@@ -16,12 +16,12 @@ func poww(b: dynamic)
   return ans;
 }
 
-func compute(x: dynamic, pos: dynamic)
+func compute(x: dynamic, pos: dynamic) -> dynamic
 {
-  var buf = cpp_array(30);
+  var buf: dynamic = cpp_array(30);
   strcpy(buf, (x + pos));
-  var y = year[(pos + 1)];
-  var dig = atoi(buf);
+  var y: dynamic = year[(pos + 1)];
+  var dig: dynamic = atoi(buf);
   if ((strlen(buf) == 1))
   {
     if ((dig == 9))
@@ -33,7 +33,7 @@ func compute(x: dynamic, pos: dynamic)
     }
   } else
   {
-    var b = poww(strlen(buf));
+    var b: dynamic = poww(strlen(buf));
     while ((dig <= y))
     {
       dig += b;
@@ -42,19 +42,19 @@ func compute(x: dynamic, pos: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%I64d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var next = cpp_array(30);
+      var next: dynamic = cpp_array(30);
       scanf("%s", next);
-      var len = strlen(next);
+      var len: dynamic = strlen(next);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (len - 4)))
         {
           compute(next, ((len - 1) - i));

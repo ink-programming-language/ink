@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func solve(v: dynamic, visited: dynamic, s: dynamic, q: dynamic)
+func solve(v: dynamic, visited: dynamic, s: dynamic, q: dynamic) -> dynamic
 {
   if (visited[s])
   {
@@ -8,7 +8,7 @@ func solve(v: dynamic, visited: dynamic, s: dynamic, q: dynamic)
   }
   visited[s] = true;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= v.size()))
     {
       if ((v[s][i] == 1))
@@ -28,11 +28,11 @@ func solve(v: dynamic, visited: dynamic, s: dynamic, q: dynamic)
   return false;
 }
 
-func solve(v: dynamic, s: dynamic, q: dynamic)
+func solve(v: dynamic, s: dynamic, q: dynamic) -> dynamic
 {
-  var visited = cpp_array((v.size() + 1));
+  var visited: dynamic = cpp_array((v.size() + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (v.size() + 1)))
     {
       visited[i] = false;
@@ -46,17 +46,17 @@ func solve(v: dynamic, s: dynamic, q: dynamic)
   return -1;
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var v = cpp_construct((n + 1));
+  var v: dynamic = cpp_construct((n + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n + 1)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (n + 1)))
         {
           v[i].push_back(0);
@@ -67,11 +67,11 @@ func main(argc: dynamic, argv: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (((n * ((n - 1))) / 2) - 1)))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       v[a][b] = (1);
       v[b][a] = (-1);
@@ -79,11 +79,11 @@ func main(argc: dynamic, argv: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var haveIt = false;
-      var j: dynamic;
+      var haveIt: dynamic = false;
+      var j: dynamic = cpp_uninitialized();
       {
         j = 1;
         while ((j <= n))

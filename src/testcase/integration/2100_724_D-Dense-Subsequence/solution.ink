@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var s = cpp_array(120000);
+var s: dynamic = cpp_array(120000);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var us = cpp_array(120000);
+var us: dynamic = cpp_array(120000);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&m));
   scanf(" %s", s);
   n = strlen(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((s[j] == (cpp_char("a") + i)))
@@ -28,11 +28,11 @@ func main()
           j += 1;
         }
       }
-      var pr = -1;
-      var lst = ((-m) - 100);
-      var fl = 0;
+      var pr: dynamic = -1;
+      var lst: dynamic = ((-m) - 100);
+      var fl: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((us[j] == 1))
@@ -84,7 +84,7 @@ func main()
       if (fl)
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             if (us[j])
@@ -96,9 +96,9 @@ func main()
         }
       } else
       {
-        var ans: dynamic;
+        var ans: dynamic = cpp_uninitialized();
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < n))
           {
             if ((us[i] == 1))

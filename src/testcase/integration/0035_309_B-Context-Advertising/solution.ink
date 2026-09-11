@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var N = 1000100;
+var N: dynamic = 1000100;
 
-var L = 5000500;
+var L: dynamic = 5000500;
 
-var BufL = 220;
+var BufL: dynamic = 220;
 
-var ch = [];
+var ch: dynamic = [];
 
-var buf = [];
+var buf: dynamic = [];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var a = [];
+var a: dynamic = [];
 
-var p = [];
+var p: dynamic = [];
 
-var f = [];
+var f: dynamic = [];
 
-var g = [];
+var g: dynamic = [];
 
-func main()
+func main() -> dynamic
 {
   gets((buf + 1));
   sscanf((buf + 1), "%d%d%d", (&n), (&r), (&c));
   gets((ch + 1));
   l = strlen((ch + 1));
   {
-    var i = 1;
-    var tot = 0;
+    var i: dynamic = 1;
+    var tot: dynamic = 0;
     while ((i <= l))
     {
       if (isalpha(ch[i]))
@@ -50,7 +50,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n + 1)))
     {
       g[i] = i;
@@ -58,9 +58,9 @@ func main()
     }
   }
   {
-    var i = 1;
-    var t = 0;
-    var s = -1;
+    var i: dynamic = 1;
+    var t: dynamic = 0;
+    var s: dynamic = -1;
     while ((i <= n))
     {
       while (((t <= n) && (s <= c)))
@@ -78,7 +78,7 @@ func main()
       if ((r & 1))
       {
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= n))
           {
             g[i] = f[g[i]];
@@ -87,7 +87,7 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           f[i] = f[f[i]];
@@ -97,9 +97,9 @@ func main()
       r >>= 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((g[i] - i) > (g[ans] - ans)))
@@ -110,8 +110,8 @@ func main()
     }
   }
   {
-    var i = ans;
-    var s = c;
+    var i: dynamic = ans;
+    var s: dynamic = c;
     while ((i < g[ans]))
     {
       if ((((s + a[i]) + 1) <= c))
@@ -127,7 +127,7 @@ func main()
         s = a[i];
       }
       {
-        var j = p[i];
+        var j: dynamic = p[i];
         while ((j < (p[i] + a[i])))
         {
           putchar(ch[j]);

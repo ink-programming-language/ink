@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var M: dynamic;
-  var a: dynamic;
-  var MOD = (1e9 + 7);
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var MOD: dynamic = (1e9 + 7);
   read(N, M);
-  var X = cpp_construct((N + 5), 0);
+  var X: dynamic = cpp_construct((N + 5), 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       read(a);
@@ -23,7 +23,7 @@ func main()
     X[1] = 1;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < (N + 1)))
     {
       if ((X[i] == -1))

@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var P = (1e9 + 7);
+var P: dynamic = (1e9 + 7);
 
-var N = 2e7;
+var N: dynamic = 2e7;
 
-var maxn = (1e6 + 5);
+var maxn: dynamic = (1e6 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var xx: dynamic;
+var xx: dynamic = cpp_uninitialized();
 
-var yy: dynamic;
+var yy: dynamic = cpp_uninitialized();
 
 class node
 {
-  var x: dynamic;
-  var r: dynamic;
-  var pos: dynamic;
-  var ans: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var pos: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
 }
 
-var s = cpp_array(10005);
+var s: dynamic = cpp_array(10005);
 
-func judge(x: dynamic, y: dynamic, p: dynamic)
+func judge(x: dynamic, y: dynamic, p: dynamic) -> dynamic
 {
   if (((p < 0) || (p >= n)))
   {
@@ -47,22 +47,22 @@ func judge(x: dynamic, y: dynamic, p: dynamic)
   return false;
 }
 
-func cmp1(a: dynamic, b: dynamic)
+func cmp1(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.x < b.x);
 }
 
-func cmp2(a: dynamic, b: dynamic)
+func cmp2(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.pos < b.pos);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s[i].x, s[i].r);
@@ -73,17 +73,17 @@ func main()
   }
   sort(s, (s + n), cmp1);
   read(m);
-  var temp = 0;
+  var temp: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(xx, yy);
-      var l = 0;
-      var r = (n - 1);
+      var l: dynamic = 0;
+      var r: dynamic = (n - 1);
       while ((l <= r))
       {
-        var mid = (((l + r)) / 2);
+        var mid: dynamic = (((l + r)) / 2);
         if ((s[mid].x > xx))
         {
           r = (mid - 1);
@@ -113,7 +113,7 @@ func main()
   sort(s, (s + n), cmp2);
   write(temp, "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(s[i].ans, " ");

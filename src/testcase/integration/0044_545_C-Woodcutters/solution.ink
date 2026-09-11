@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var INF = INT_MAX;
+var INF: dynamic = INT_MAX;
 
-var LINF = LLONG_MAX;
+var LINF: dynamic = LLONG_MAX;
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
-  var maxx = (-INF);
-  var x: dynamic;
-  var h: dynamic;
-  var res = 0;
+  var n: dynamic = cpp_uninitialized();
+  var maxx: dynamic = (-INF);
+  var x: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var res: dynamic = 0;
   read(n);
-  var tree = cpp_array(n);
+  var tree: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(tree[i].first, tree[i].second);
@@ -27,11 +27,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var cx = tree[i].first;
-      var ch = tree[i].second;
+      var cx: dynamic = tree[i].first;
+      var ch: dynamic = tree[i].second;
       if (((cx - ch) > maxx))
       {
         res += 1;

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var xx = 0;
-  var ff = 1;
-  var ch = getchar();
+  var xx: dynamic = 0;
+  var ff: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch > cpp_char("9")) || (ch < cpp_char("0"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,11 +21,11 @@ func read()
   return (xx * ff);
 }
 
-func READ()
+func READ() -> dynamic
 {
-  var xx = 0;
-  var ff = 1;
-  var ch = getchar();
+  var xx: dynamic = 0;
+  var ff: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch > cpp_char("9")) || (ch < cpp_char("0"))))
   {
     if ((ch == cpp_char("-")))
@@ -42,9 +42,9 @@ func READ()
   return (xx * ff);
 }
 
-func one()
+func one() -> dynamic
 {
-  var ch = getchar();
+  var ch: dynamic = getchar();
   while (((ch == cpp_char(" ")) || (ch == cpp_char("\n"))))
   {
     ch = getchar();
@@ -52,24 +52,24 @@ func one()
   return ch;
 }
 
-var maxn = 100010;
+var maxn: dynamic = 100010;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var first = cpp_array(maxn);
+var first: dynamic = cpp_array(maxn);
 
-var last = cpp_array(maxn);
+var last: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
   N = read();
   K = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= K))
     {
       a[i] = read();
@@ -81,9 +81,9 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       if ((!first[i]))
@@ -94,7 +94,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       if ((((first[i] > last[(i + 1)]) || (!first[i])) || (!last[(i + 1)])))
@@ -105,7 +105,7 @@ func main()
     }
   }
   {
-    var i = N;
+    var i: dynamic = N;
     while ((i > 1))
     {
       if ((((first[i] > last[(i - 1)]) || (!first[i])) || (!last[(i - 1)])))

@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var student: dynamic;
-  var puzzles: dynamic;
+  var student: dynamic = cpp_uninitialized();
+  var puzzles: dynamic = cpp_uninitialized();
   read(student, puzzles);
-  var arr = cpp_array(puzzles);
-  var answer = cpp_array(puzzles);
-  var i = puzzles;
+  var arr: dynamic = cpp_array(puzzles);
+  var answer: dynamic = cpp_array(puzzles);
+  var i: dynamic = puzzles;
   while (cpp_update(i, "--"))
   {
     read(arr[i]);
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < puzzles))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < puzzles))
         {
           if ((arr[i] > arr[j]))
           {
-            var temp = arr[i];
+            var temp: dynamic = arr[i];
             arr[i] = arr[j];
             arr[j] = temp;
           }
@@ -32,9 +32,9 @@ func main()
       i += 1;
     }
   }
-  var smallest = 0;
+  var smallest: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (puzzles - student)))
     {
       if ((i == 0))

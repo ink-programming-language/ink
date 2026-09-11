@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-func getInt()
+func getInt() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   scanf("%d", (&s));
   return s;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n = getInt();
-  var k = getInt();
+  var n: dynamic = getInt();
+  var k: dynamic = getInt();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((n))))
     {
       a[i] = getInt();
       i += 1;
     }
   }
-  var cnt = 1;
-  var d = 0;
+  var cnt: dynamic = 1;
+  var d: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       d -= (((((n - 1) - i)) * a[i]) * cnt);
-      var f = (d < k);
+      var f: dynamic = (d < k);
       d += (((((n - 1) - i)) * a[i]) * cnt);
       if (f)
       {

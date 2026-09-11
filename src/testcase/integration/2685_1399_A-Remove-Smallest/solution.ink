@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var a = cpp_array(n);
+    var a: dynamic = cpp_array(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -18,7 +18,7 @@ func main()
       }
     }
     sort(a, (a + n));
-    var i: dynamic;
+    var i: dynamic = cpp_uninitialized();
     {
       i = 0;
       while ((i < (n - 1)))

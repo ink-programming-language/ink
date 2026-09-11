@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(100010);
+var a: dynamic = cpp_array(100010);
 
-var b = cpp_array(100010);
+var b: dynamic = cpp_array(100010);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return (x * x);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%lld", (&x));
       {
-        var j = 2;
+        var j: dynamic = 2;
         while ((((j * j) * j) <= x))
         {
           {
@@ -39,14 +39,14 @@ func main()
       }
       mp[x] += 1;
       a[i] = x;
-      var y = 1;
+      var y: dynamic = 1;
       {
-        var j = 2;
+        var j: dynamic = 2;
         while ((((j * j) * j) <= x))
         {
           if (((x % j) == 0))
           {
-            y *= if ((((x % ((j * j))) == 0))) j else (j * j);
+            y *=  ((((x % ((j * j))) == 0))) ? j : (j * j);
             {
               while (((x % j) == 0))
               {
@@ -74,7 +74,7 @@ func main()
     mp[1] = 0;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ans += max(mp[a[i]], mp[b[i]]);

@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var MAX = cpp_expression("#includ");
+var MAX: dynamic = cpp_expression("#includ");
 
-var MOD = cpp_expression("#include");
+var MOD: dynamic = cpp_expression("#include");
 
-var INF = cpp_expression("#include <bits/stdc");
+var INF: dynamic = cpp_expression("#include <bits/stdc");
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(xy[i].first.first, xy[i].first.second);
@@ -22,7 +22,7 @@ func main()
   sort(xy.begin(), xy.end());
   m[0] = xy[0].first.second;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       m[i] = min(m[(i - 1)], xy[i].first.second);
@@ -31,16 +31,16 @@ func main()
   }
   M[(N - 1)] = xy[(N - 1)].first.second;
   {
-    var i = (N - 2);
+    var i: dynamic = (N - 2);
     while ((i >= 0))
     {
       M[i] = max(M[(i + 1)], xy[i].first.second);
       i -= 1;
     }
   }
-  var cnt = cpp_construct(N, 1);
+  var cnt: dynamic = cpp_construct(N, 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       if ((m[(i - 1)] < M[i]))
@@ -50,10 +50,10 @@ func main()
       i += 1;
     }
   }
-  var count = cnt[(N - 1)];
+  var count: dynamic = cnt[(N - 1)];
   ans[xy[(N - 1)].second] = count;
   {
-    var i = (N - 2);
+    var i: dynamic = (N - 2);
     while ((i >= 0))
     {
       if ((cnt[(i + 1)] == 1))
@@ -65,7 +65,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       write(ans[i], "\n");

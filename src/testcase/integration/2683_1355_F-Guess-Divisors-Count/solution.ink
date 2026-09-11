@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var wmem: dynamic;
+var wmem: dynamic = cpp_uninitialized();
 
-var memarr = cpp_array(96000000);
+var memarr: dynamic = cpp_array(96000000);
 
-func min_L(a: dynamic, b: dynamic)
+func min_L(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a <= b)) a else b;
+  return  ((a <= b)) ? a : b;
 }
 
-func max_L(a: dynamic, b: dynamic)
+func max_L(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a >= b)) a else b;
+  return  ((a >= b)) ? a : b;
 }
 
-func walloc1d(arr: dynamic, x: dynamic, mem: dynamic = (&wmem))
+func walloc1d(arr: dynamic, x: dynamic, mem: dynamic = (&wmem)) -> dynamic
 {
-  var skip = [0, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+  var skip: dynamic = [0, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
   ((*mem)) = cpp_cast((((cpp_cast(((*mem)))) + skip[((cpp_cast(((*mem)))) & 15)])));
   ((*arr)) = cpp_cast(((*mem)));
   ((*mem)) = ((((*arr)) + x));
 }
 
-func Prime_L(N: dynamic, res: dynamic, mem: dynamic = wmem)
+func Prime_L(N: dynamic, res: dynamic, mem: dynamic = wmem) -> dynamic
 {
-  var i: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var sz = 1;
-  var r = 23000;
-  var isprime: dynamic;
-  var sf: dynamic;
-  var ss = 1;
+  var i: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var sz: dynamic = 1;
+  var r: dynamic = 23000;
+  var isprime: dynamic = cpp_uninitialized();
+  var sf: dynamic = cpp_uninitialized();
+  var ss: dynamic = 1;
   walloc1d((&isprime), r, (&mem));
   walloc1d((&sf), r, (&mem));
   isprime = cpp_cast(mem);
@@ -111,10 +111,10 @@ func Prime_L(N: dynamic, res: dynamic, mem: dynamic = wmem)
   return sz;
 }
 
-func Factor_L(N: dynamic, fac: dynamic, fs: dynamic)
+func Factor_L(N: dynamic, fac: dynamic, fs: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var sz = 0;
+  var i: dynamic = cpp_uninitialized();
+  var sz: dynamic = 0;
   if (((N % 2) == 0))
   {
     fac[sz] = 2;
@@ -155,16 +155,16 @@ func Factor_L(N: dynamic, fac: dynamic, fs: dynamic)
   return sz;
 }
 
-func Divisor_L(N: dynamic, res: dynamic, mem: dynamic = wmem)
+func Divisor_L(N: dynamic, res: dynamic, mem: dynamic = wmem) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var s: dynamic;
-  var sz = 0;
-  var fc: dynamic;
-  var fs: dynamic;
-  var fsz: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var sz: dynamic = 0;
+  var fc: dynamic = cpp_uninitialized();
+  var fs: dynamic = cpp_uninitialized();
+  var fsz: dynamic = cpp_uninitialized();
   walloc1d((&fc), 100, (&mem));
   walloc1d((&fs), 100, (&mem));
   fsz = Factor_L(N, fc, fs);
@@ -190,7 +190,7 @@ func Divisor_L(N: dynamic, res: dynamic, mem: dynamic = wmem)
   return sz;
 }
 
-func query(Q: dynamic)
+func query(Q: dynamic) -> dynamic
 {
   printf("? %lld\n", Q);
   fflush(stdout);
@@ -198,39 +198,39 @@ func query(Q: dynamic)
   return Q;
 }
 
-func answer(ans: dynamic)
+func answer(ans: dynamic) -> dynamic
 {
   printf("! %lld\n", ans);
   fflush(stdout);
 }
 
-var ps: dynamic;
+var ps: dynamic = cpp_uninitialized();
 
-var p = cpp_array(10000);
+var p: dynamic = cpp_array(10000);
 
-var tmp = cpp_array(100000);
+var tmp: dynamic = cpp_array(100000);
 
-func main()
+func main() -> dynamic
 {
-  var Lj4PdHRW: dynamic;
+  var Lj4PdHRW: dynamic = cpp_uninitialized();
   wmem = memarr;
-  var T: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var s: dynamic;
-  var res: dynamic;
-  var Q: dynamic;
-  var X: dynamic;
-  var now: dynamic;
+  var T: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var res: dynamic = cpp_uninitialized();
+  var Q: dynamic = cpp_uninitialized();
+  var X: dynamic = cpp_uninitialized();
+  var now: dynamic = cpp_uninitialized();
   ps = Prime_L(10000, p);
   scanf("%d", (&T));
   {
     Lj4PdHRW = (0);
     while ((Lj4PdHRW < (T)))
     {
-      var WYIGIcGE: dynamic;
-      var e98WHCEY: dynamic;
+      var WYIGIcGE: dynamic = cpp_uninitialized();
+      var e98WHCEY: dynamic = cpp_uninitialized();
       s = 0;
       X = 1;
       {

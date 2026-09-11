@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(k.at(i), l.at(i), r.at(i));
       i += 1;
     }
   }
-  var s = 0;
-  var al: dynamic;
-  var ar: dynamic;
+  var s: dynamic = 0;
+  var al: dynamic = cpp_uninitialized();
+  var ar: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       s += min(l.at(i), r.at(i));
@@ -32,11 +32,11 @@ func solve()
   }
   sort(al.rbegin(), al.rend());
   sort(ar.rbegin(), ar.rend());
-  var q: dynamic;
-  var ans = s;
-  var j = 0;
+  var q: dynamic = cpp_uninitialized();
+  var ans: dynamic = s;
+  var j: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       while (cpp_binary((j < al.size()), "and", (al.at(j).first == (n - i))))
@@ -60,7 +60,7 @@ func solve()
   }
   j = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       while (cpp_binary((j < ar.size()), "and", (ar.at(j).first == (n - i))))
@@ -81,12 +81,12 @@ func solve()
   write(ans, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t))
     {
       solve();

@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var INF = cpp_expression("#includ");
+var INF: dynamic = cpp_expression("#includ");
 
-func all(c: dynamic)
+func all(c: dynamic) -> dynamic
 {
   return cpp_expression("#include<vector> #inc");
 }
 
-func D(x: dynamic)
+func D(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<vector> #include<iostre");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0; i < n; i++)");
 }
 
-var x = cpp_expression("#incl");
+var x: dynamic = cpp_expression("#incl");
 
-var y = cpp_expression("#inclu");
+var y: dynamic = cpp_expression("#inclu");
 
-var dp = cpp_array(1002, 1002);
+var dp: dynamic = cpp_array(1002, 1002);
 
-var K = cpp_array(1002, 1002);
+var K: dynamic = cpp_array(1002, 1002);
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   rep(i, n);
   read(v[i].x, v[i].y);
@@ -36,18 +36,18 @@ func main(argument_0: dynamic)
   rep(i, 1001)[i][i] = 0;
   K[i][i] = i;
   {
-    var w = 1;
+    var w: dynamic = 1;
     while ((w < n))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while (((i + w) <= n))
         {
           {
-            var s = K[i][((i + w) - 1)];
+            var s: dynamic = K[i][((i + w) - 1)];
             while ((s <= K[(i + 1)][(i + w)]))
             {
-              var cost = (abs((v[i].x - v[(s + 1)].x)) + abs((v[s].y - v[(i + w)].y)));
+              var cost: dynamic = (abs((v[i].x - v[(s + 1)].x)) + abs((v[s].y - v[(i + w)].y)));
               if ((dp[i][(i + w)] > ((dp[i][s] + dp[(s + 1)][(i + w)]) + cost)))
               {
                 dp[i][(i + w)] = ((dp[i][s] + dp[(s + 1)][(i + w)]) + cost);

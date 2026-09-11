@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var INF = 1791791791;
+var INF: dynamic = 1791791791;
 
-var INFLL = 1791791791791791791;
+var INFLL: dynamic = 1791791791791791791;
 
 class FastIO
 {
   var cbuf: dynamic = cpp_array((input_buf_size + 1));
-  var icur: dynamic;
-  func go_to_next_token()
+  var icur: dynamic = cpp_uninitialized();
+  func go_to_next_token() -> dynamic
   {
       while (((cbuf[icur] == cpp_char(" ")) || (cbuf[icur] == cpp_char("\n"))))
       {
@@ -28,10 +28,10 @@ class FastIO
       }
       return true;
     }
-  func readString()
+  func readString() -> dynamic
   {
       assert(go_to_next_token());
-      var ans: dynamic;
+      var ans: dynamic = cpp_uninitialized();
       while ((((cbuf[icur] != cpp_char(" ")) && (cbuf[icur] != cpp_char("\n"))) && (cbuf[icur] != 0)))
       {
         ans.push_back(cbuf[cpp_update(icur, "++")]);
@@ -39,11 +39,11 @@ class FastIO
       ans.shrink_to_fit();
       return ans;
     }
-  func readInt()
+  func readInt() -> dynamic
   {
       assert(go_to_next_token());
-      var x = 0;
-      var m = (cbuf[icur] == cpp_char("-"));
+      var x: dynamic = 0;
+      var m: dynamic = (cbuf[icur] == cpp_char("-"));
       if (m)
       {
         icur += 1;
@@ -60,13 +60,13 @@ class FastIO
       }
       return x;
     }
-  func seekEof()
+  func seekEof() -> dynamic
   {
       return (!go_to_next_token());
     }
   var obuf: dynamic = cpp_array((output_buf_size + 1));
-  var ocur: dynamic;
-  func write_string(str: dynamic, sz: dynamic = 0)
+  var ocur: dynamic = cpp_uninitialized();
+  func write_string(str: dynamic, sz: dynamic = 0) -> dynamic
   {
       if ((sz == 0))
       {
@@ -84,16 +84,16 @@ class FastIO
       ocur += sz;
       obuf[ocur] = 0;
     }
-  func writeInt(x: dynamic, sp: dynamic = true)
+  func writeInt(x: dynamic, sp: dynamic = true) -> dynamic
   {
-      var buf = cpp_array(21);
-      var c = 0;
+      var buf: dynamic = cpp_array(21);
+      var c: dynamic = 0;
       if ((x < 0))
       {
         buf[cpp_update(c, "++")] = cpp_char("-");
         x = (-x);
       }
-      var s = c;
+      var s: dynamic = c;
       if ((x == 0))
       {
         buf[cpp_update(c, "++")] = cpp_char("0");
@@ -104,7 +104,7 @@ class FastIO
         x /= 10;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while (((2 * i) < (c - s)))
         {
           swap(buf[(s + i)], buf[((c - 1) - i)]);
@@ -118,7 +118,7 @@ class FastIO
         write_string(" ", 1);
       }
     }
-  func writeString(s: dynamic, space: dynamic = true)
+  func writeString(s: dynamic, space: dynamic = true) -> dynamic
   {
       write_string(s.c_str(), s.size());
       if (space)
@@ -126,39 +126,39 @@ class FastIO
         write_string(" ", 1);
       }
     }
-  func writeEndl()
+  func writeEndl() -> dynamic
   {
       write_string("\n", 1);
     }
-  func flush()
+  func flush() -> dynamic
   {
       fputs(obuf, stdout);
       ocur = 0;
       obuf[0] = 0;
     }
-  var lflush: dynamic;
-  func FastIO(local_flush: dynamic)
+  var lflush: dynamic = cpp_uninitialized();
+  func FastIO(local_flush: dynamic) -> dynamic
   {
       obuf[0] = 0;
       lflush = local_flush;
     }
-  func ~FastIO()
+  func cpp_destruct_FastIO() -> dynamic
   {
       fputs(obuf, stdout);
     }
 }
 
-var IO = cpp_construct(true);
+var IO: dynamic = cpp_construct(true);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var clast: dynamic;
+var clast: dynamic = cpp_uninitialized();
 
-var by_idx: dynamic;
+var by_idx: dynamic = cpp_uninitialized();
 
-var idx: dynamic;
+var idx: dynamic = cpp_uninitialized();
 
-func add_string(s: dynamic)
+func add_string(s: dynamic) -> dynamic
 {
   if (idx.count(s))
   {
@@ -170,14 +170,14 @@ func add_string(s: dynamic)
   }
 }
 
-var rnd = cpp_construct(179);
+var rnd: dynamic = cpp_construct(179);
 
-func gen_random()
+func gen_random() -> dynamic
 {
-  var dist = cpp_construct(cpp_char("a"), cpp_char("z"));
-  var ans: dynamic;
+  var dist: dynamic = cpp_construct(cpp_char("a"), cpp_char("z"));
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((6)))))
     {
       ans.push_back(dist(rnd));
@@ -187,9 +187,9 @@ func gen_random()
   return ans;
 }
 
-func not_in_set()
+func not_in_set() -> dynamic
 {
-  var t = gen_random();
+  var t: dynamic = gen_random();
   while (idx.count(t))
   {
     t = gen_random();
@@ -197,43 +197,43 @@ func not_in_set()
   return t;
 }
 
-func to_str(x: dynamic)
+func to_str(x: dynamic) -> dynamic
 {
-  var s = cpp_array(10);
+  var s: dynamic = cpp_array(10);
   sprintf(s, "%d", x);
   return s;
 }
 
-var ws_to: dynamic;
+var ws_to: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   n = IO.readInt_int();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((n)))))
     {
       add_string(to_str((i + 1)));
       i += 1;
     }
   }
-  var inp: dynamic;
+  var inp: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((n)))))
     {
-      var s = IO.readString();
+      var s: dynamic = IO.readString();
       add_string(s);
-      var b = IO.readInt_int();
+      var b: dynamic = IO.readInt_int();
       inp.push_back(make_pair(s, b));
       ws_to[s] = b;
       i += 1;
     }
   }
-  var w = not_in_set();
+  var w: dynamic = not_in_set();
   add_string(w);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((n)))))
     {
       filled[idx[inp[i].first]] = true;
@@ -244,9 +244,9 @@ func main()
       i += 1;
     }
   }
-  var numf = 0;
+  var numf: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((n)))))
     {
       numf += inp[i].second;
@@ -254,7 +254,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((n)))))
     {
       if (((idx[inp[i].first] < numf) && inp[i].second))
@@ -268,11 +268,11 @@ func main()
       i += 1;
     }
   }
-  var wanted: dynamic;
-  var ans: dynamic;
-  var bucket = -1;
+  var wanted: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
+  var bucket: dynamic = -1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((n)))))
     {
       if ((!filled[i]))
@@ -288,7 +288,7 @@ func main()
   }
   if ((bucket == -1))
   {
-    var it = find((ok).begin(), (ok).end(), false);
+    var it: dynamic = find((ok).begin(), (ok).end(), false);
     if ((it == ok.end()))
     {
       IO.writeInt(0);
@@ -302,9 +302,9 @@ func main()
     wanted.erase(find((wanted).begin(), (wanted).end(), bucket));
     ws_to[w] = ws_to[by_idx[bucket]];
   }
-  var wfa: dynamic;
-  var wfb: dynamic;
-  for (var u in wanted)
+  var wfa: dynamic = cpp_uninitialized();
+  var wfb: dynamic = cpp_uninitialized();
+  for (var u: dynamic in wanted)
   {
     if ((u < numf))
     {
@@ -316,7 +316,7 @@ func main()
   }
   while ((wfa.size() && wfb.size()))
   {
-    var a: dynamic;
+    var a: dynamic = cpp_uninitialized();
     if ((bucket < numf))
     {
       a = wfb.front();
@@ -331,10 +331,10 @@ func main()
     filled[a] = false;
     bucket = a;
   }
-  var free_a: dynamic;
-  var free_b: dynamic;
+  var free_a: dynamic = cpp_uninitialized();
+  var free_b: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((numf)))))
     {
       if ((!filled[i]))
@@ -345,7 +345,7 @@ func main()
     }
   }
   {
-    var i = cpp_cast((numf));
+    var i: dynamic = cpp_cast((numf));
     while ((i < (cpp_cast((n)))))
     {
       if ((!filled[i]))
@@ -357,9 +357,9 @@ func main()
   }
   while (wfa.size())
   {
-    var a = wfa.front();
+    var a: dynamic = wfa.front();
     wfa.pop();
-    var b = free_b.front();
+    var b: dynamic = free_b.front();
     free_b.pop();
     ans.push_back(make_pair(by_idx[a], by_idx[b]));
     filled[a] = false;
@@ -367,9 +367,9 @@ func main()
   }
   while (wfb.size())
   {
-    var a = wfb.front();
+    var a: dynamic = wfb.front();
     wfb.pop();
-    var b = free_a.front();
+    var b: dynamic = free_a.front();
     free_a.pop();
     ans.push_back(make_pair(by_idx[a], by_idx[b]));
     filled[a] = false;
@@ -378,7 +378,7 @@ func main()
   free_a = queue();
   free_b = queue();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((numf)))))
     {
       if ((!filled[i]))
@@ -389,7 +389,7 @@ func main()
     }
   }
   {
-    var i = cpp_cast((numf));
+    var i: dynamic = cpp_cast((numf));
     while ((i < (cpp_cast((n)))))
     {
       if ((!filled[i]))
@@ -400,12 +400,12 @@ func main()
     }
   }
   {
-    var i = cpp_cast((n));
+    var i: dynamic = cpp_cast((n));
     while ((i < (cpp_cast((clast)))))
     {
       if (filled[i])
       {
-        var a: dynamic;
+        var a: dynamic = cpp_uninitialized();
         if (ws_to[by_idx[i]])
         {
           a = free_a.front();
@@ -424,7 +424,7 @@ func main()
   }
   IO.writeInt(ans.size(), 0);
   IO.writeEndl();
-  for (var p in ans)
+  for (var p: dynamic in ans)
   {
     IO.writeString("move");
     IO.writeString(p.first);

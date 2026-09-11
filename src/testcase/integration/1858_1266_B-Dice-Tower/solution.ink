@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-func answer(v: dynamic)
+func answer(v: dynamic) -> dynamic
 {
-  var s = ["NO", "YES"];
+  var s: dynamic = ["NO", "YES"];
   write(s[v], cpp_char("\n"));
 }
 
-func solve(x: dynamic)
+func solve(x: dynamic) -> dynamic
 {
-  var k = (x / 14);
-  var r = (x % 14);
+  var k: dynamic = (x / 14);
+  var r: dynamic = (x % 14);
   answer((((k > 0) && (r > 0)) && (r < 7)));
 }
 
-func test_case()
+func test_case() -> dynamic
 {
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   read(x);
   solve(x);
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while ((cpp_update(t, "--") > 0))
   {

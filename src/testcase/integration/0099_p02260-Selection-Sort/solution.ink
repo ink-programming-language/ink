@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var an = cpp_array(100);
-  var cnt = 0;
+  var n: dynamic = cpp_uninitialized();
+  var an: dynamic = cpp_array(100);
+  var cnt: dynamic = 0;
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(an[i]);
@@ -15,13 +15,13 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var mini = i;
-      var tmp = an[i];
+      var mini: dynamic = i;
+      var tmp: dynamic = an[i];
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j < n))
         {
           if ((an[j] < an[mini]))
@@ -41,10 +41,10 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      write(an[i], (if ((i == (n - 1))) "\n" else " "));
+      write(an[i], ( ((i == (n - 1))) ? "\n" : " "));
       i += 1;
     }
   }

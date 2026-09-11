@@ -2,14 +2,14 @@
 
 class Node
 {
-  var fr: dynamic;
-  var lb: dynamic;
-  var rb: dynamic;
-  var lc: dynamic;
-  var rc: dynamic;
+  var fr: dynamic = cpp_uninitialized();
+  var lb: dynamic = cpp_uninitialized();
+  var rb: dynamic = cpp_uninitialized();
+  var lc: dynamic = cpp_uninitialized();
+  var rc: dynamic = cpp_uninitialized();
 }
 
-func buildSeg(p: dynamic, l: dynamic, r: dynamic)
+func buildSeg(p: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   p = cpp_new();
   p->fr = true;
@@ -17,20 +17,20 @@ func buildSeg(p: dynamic, l: dynamic, r: dynamic)
   p->rb = r;
   if ((p->lb < p->rb))
   {
-    var mid = (((p->lb + p->rb)) / 2);
+    var mid: dynamic = (((p->lb + p->rb)) / 2);
     buildSeg(p->lc, p->lb, mid);
     buildSeg(p->rc, (mid + 1), p->rb);
   }
 }
 
-func setVal(p: dynamic, x: dynamic, val: dynamic)
+func setVal(p: dynamic, x: dynamic, val: dynamic) -> dynamic
 {
   if ((p->lb == p->rb))
   {
     p->fr = val;
   } else
   {
-    var mid = (((p->lb + p->rb)) / 2);
+    var mid: dynamic = (((p->lb + p->rb)) / 2);
     if ((x <= mid))
     {
       setVal(p->lc, x, val);
@@ -42,7 +42,7 @@ func setVal(p: dynamic, x: dynamic, val: dynamic)
   }
 }
 
-func findFr(p: dynamic, l: dynamic, r: dynamic)
+func findFr(p: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (p->fr)
   {
@@ -51,8 +51,8 @@ func findFr(p: dynamic, l: dynamic, r: dynamic)
       return p->lb;
     } else
     {
-      var mid = (((p->lb + p->rb)) / 2);
-      var ret = -1;
+      var mid: dynamic = (((p->lb + p->rb)) / 2);
+      var ret: dynamic = -1;
       if ((l <= mid))
       {
         ret = findFr(p->lc, l, r);
@@ -67,32 +67,32 @@ func findFr(p: dynamic, l: dynamic, r: dynamic)
   return -1;
 }
 
-var N = 200010;
+var N: dynamic = 200010;
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ptN: dynamic;
+var ptN: dynamic = cpp_uninitialized();
 
-var pt = cpp_array(N);
+var pt: dynamic = cpp_array(N);
 
-var cost: dynamic;
+var cost: dynamic = cpp_uninitialized();
 
-var inP = cpp_array(N);
+var inP: dynamic = cpp_array(N);
 
-var rt: dynamic;
+var rt: dynamic = cpp_uninitialized();
 
-var ps: dynamic;
+var ps: dynamic = cpp_uninitialized();
 
-func initSeg()
+func initSeg() -> dynamic
 {
   ptN = 0;
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       inP[i].first = -1;
@@ -100,14 +100,14 @@ func initSeg()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       if ((inP[i].first == -1))
       {
         pt[ptN] = cnt;
         {
-          var j = i;
+          var j: dynamic = i;
           while ((inP[j].first == -1))
           {
             inP[j] = pair(ptN, cpp_update(cnt, "++"));
@@ -123,41 +123,41 @@ func initSeg()
   buildSeg(rt, 0, (cnt - 1));
 }
 
-func pushHash(i: dynamic, v: dynamic)
+func pushHash(i: dynamic, v: dynamic) -> dynamic
 {
-  var p = findFr(rt, inP[v].second, (pt[(inP[v].first + 1)] - 1));
+  var p: dynamic = findFr(rt, inP[v].second, (pt[(inP[v].first + 1)] - 1));
   if ((p == -1))
   {
     p = findFr(rt, pt[inP[v].first], (inP[v].second - 1));
   }
   setVal(rt, p, false);
   ps.insert(pair(i, p));
-  cost += if (((p >= inP[v].second))) ((p - inP[v].second)) else ((((pt[(inP[v].first + 1)] - inP[v].second) + p) - pt[inP[v].first]));
+  cost +=  (((p >= inP[v].second))) ? ((p - inP[v].second)) : ((((pt[(inP[v].first + 1)] - inP[v].second) + p) - pt[inP[v].first]));
 }
 
-func popHash(i: dynamic)
+func popHash(i: dynamic) -> dynamic
 {
-  var x = ps.find(i);
+  var x: dynamic = ps.find(i);
   setVal(rt, x->second, true);
   ps.erase(x);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(h, m, n);
   initSeg();
   cost = 0;
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < n))
     {
-      var c: dynamic;
-      var i: dynamic;
+      var c: dynamic = cpp_uninitialized();
+      var i: dynamic = cpp_uninitialized();
       read(c, i);
       if ((c == cpp_char("+")))
       {
-        var v: dynamic;
+        var v: dynamic = cpp_uninitialized();
         read(v);
         pushHash(i, v);
       } else

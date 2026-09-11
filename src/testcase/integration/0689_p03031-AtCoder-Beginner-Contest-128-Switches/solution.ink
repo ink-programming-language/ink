@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var N_MAX = 10;
+var N_MAX: dynamic = 10;
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var nn: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var kk: dynamic;
-  var t: dynamic;
-  var res = 0;
-  var k = cpp_array(N_MAX);
-  var s = cpp_array(N_MAX, N_MAX);
-  var p = cpp_array(N_MAX);
-  var ss = cpp_array(N_MAX);
+  var n: dynamic = cpp_uninitialized();
+  var nn: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var kk: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var res: dynamic = 0;
+  var k: dynamic = cpp_array(N_MAX);
+  var s: dynamic = cpp_array(N_MAX, N_MAX);
+  var p: dynamic = cpp_array(N_MAX);
+  var ss: dynamic = cpp_array(N_MAX);
   read(n, m);
   {
     i = 0;

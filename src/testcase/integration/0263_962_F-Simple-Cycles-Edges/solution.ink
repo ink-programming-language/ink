@@ -1,50 +1,50 @@
 // Translated from solution.cpp.
 
-var N = 300005;
+var N: dynamic = 300005;
 
 class edge
 {
-  var to: dynamic;
-  var next: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array((N << 1));
+var e: dynamic = cpp_array((N << 1));
 
-var h = cpp_array(N);
+var h: dynamic = cpp_array(N);
 
-var xb: dynamic;
+var xb: dynamic = cpp_uninitialized();
 
-var dfn = cpp_array(N);
+var dfn: dynamic = cpp_array(N);
 
-var low = cpp_array(N);
+var low: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var stx = cpp_array(N);
+var stx: dynamic = cpp_array(N);
 
-var sty = cpp_array(N);
+var sty: dynamic = cpp_array(N);
 
-var ste = cpp_array(N);
+var ste: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var cant = cpp_array(N);
+var cant: dynamic = cpp_array(N);
 
-func addedge(x: dynamic, y: dynamic)
+func addedge(x: dynamic, y: dynamic) -> dynamic
 {
   e[cpp_update(xb, "++")] = [y, h[x]];
   h[x] = xb;
@@ -52,11 +52,11 @@ func addedge(x: dynamic, y: dynamic)
   h[y] = xb;
 }
 
-func dfs(x: dynamic, fa: dynamic)
+func dfs(x: dynamic, fa: dynamic) -> dynamic
 {
   dfn[x] = cpp_assign(low[x], "=", cpp_update(xb, "++"));
-  var i = h[x];
-  var j: dynamic;
+  var i: dynamic = h[x];
+  var j: dynamic = cpp_uninitialized();
   {
     while (i)
     {
@@ -74,8 +74,8 @@ func dfs(x: dynamic, fa: dynamic)
           }
           if ((low[e[i].to] >= dfn[x]))
           {
-            var cnt = 0;
-            var ow = w;
+            var cnt: dynamic = 0;
+            var ow: dynamic = w;
             {
               while (((stx[w] != x) || (sty[w] != e[i].to)))
               {
@@ -142,7 +142,7 @@ func dfs(x: dynamic, fa: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   xb = 1;

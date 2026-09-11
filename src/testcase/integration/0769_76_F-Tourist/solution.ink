@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var Left = cpp_array(101000);
+var Left: dynamic = cpp_array(101000);
 
-var Right = cpp_array(101000);
+var Right: dynamic = cpp_array(101000);
 
-var x = cpp_array(101000);
+var x: dynamic = cpp_array(101000);
 
-var t = cpp_array(101000);
+var t: dynamic = cpp_array(101000);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var V: dynamic;
+var V: dynamic = cpp_uninitialized();
 
-var s = cpp_array(101000);
+var s: dynamic = cpp_array(101000);
 
-var p = cpp_array(101000);
+var p: dynamic = cpp_array(101000);
 
-var f = cpp_array(101000);
+var f: dynamic = cpp_array(101000);
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-var MAX: dynamic;
+var MAX: dynamic = cpp_uninitialized();
 
-var Ans: dynamic;
+var Ans: dynamic = cpp_uninitialized();
 
-var Ans2: dynamic;
+var Ans2: dynamic = cpp_uninitialized();
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((Left[a] == Left[b])) (t[a] < t[b]) else (Left[a] < Left[b]);
+  return  ((Left[a] == Left[b])) ? (t[a] < t[b]) : (Left[a] < Left[b]);
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
     i = 1;

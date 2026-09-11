@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var u = cpp_array(3005);
+var u: dynamic = cpp_array(3005);
 
-var sp = cpp_array(3005, 3005);
+var sp: dynamic = cpp_array(3005, 3005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var fin = cpp_array(3005);
+var fin: dynamic = cpp_array(3005);
 
-var fout = cpp_array(3005);
+var fout: dynamic = cpp_array(3005);
 
-var p = cpp_array(4);
+var p: dynamic = cpp_array(4);
 
-var bp = cpp_array(4);
+var bp: dynamic = cpp_array(4);
 
-var bl: dynamic;
+var bl: dynamic = cpp_uninitialized();
 
-func upd()
+func upd() -> dynamic
 {
-  var l = 0;
+  var l: dynamic = 0;
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (3)))
     {
       l += sp[p[i]][p[(i + 1)]];
@@ -32,11 +32,11 @@ func upd()
   if ((l > bl))
   {
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i < (4)))
       {
         {
-          var j = (0);
+          var j: dynamic = (0);
           while ((j < (i)))
           {
             if ((p[i] == p[j]))
@@ -50,7 +50,7 @@ func upd()
       }
     }
     {
-      var i = (0);
+      var i: dynamic = (0);
       while ((i < (4)))
       {
         bp[i] = p[i];
@@ -61,21 +61,21 @@ func upd()
   }
 }
 
-var q = cpp_array(3005);
+var q: dynamic = cpp_array(3005);
 
-var qs: dynamic;
+var qs: dynamic = cpp_uninitialized();
 
-var qe: dynamic;
+var qe: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var z = (0);
+    var z: dynamic = (0);
     while ((z < (m)))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d%d", (&x), (&y));
       x -= 1;
       y -= 1;
@@ -84,11 +84,11 @@ func main()
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (n)))
         {
           sp[i][j] = 1e5;
@@ -100,8 +100,8 @@ func main()
       sp[i][i] = 0;
       while ((qs != qe))
       {
-        var f = q[cpp_update(qs, "++")];
-        for (var j in u[f])
+        var f: dynamic = q[cpp_update(qs, "++")];
+        for (var j: dynamic in u[f])
         {
           if ((sp[i][j] > 1e4))
           {
@@ -114,11 +114,11 @@ func main()
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (n)))
         {
           if (((j != i) && (sp[j][i] < 1e4)))
@@ -134,7 +134,7 @@ func main()
         }
       }
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (n)))
         {
           if (((j != i) && (sp[i][j] < 1e4)))
@@ -153,20 +153,20 @@ func main()
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (n)))
         {
           if (((i != j) && (sp[i][j] < 1e4)))
           {
             p[1] = i;
             p[2] = j;
-            for (var f in fin[i])
+            for (var f: dynamic in fin[i])
             {
-              for (var e in fout[j])
+              for (var e: dynamic in fout[j])
               {
                 p[0] = f.second;
                 p[3] = e.second;
@@ -181,7 +181,7 @@ func main()
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (4)))
     {
       printf("%d%c", (1 + bp[i]), " \n"[(i == 3)]);

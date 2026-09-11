@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var su = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, -1];
+var su: dynamic = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, -1];
 
-var MODER = [223092870, 2756205443, 907383479, 42600829, 97];
+var MODER: dynamic = [223092870, 2756205443, 907383479, 42600829, 97];
 
-var b = cpp_array(100);
+var b: dynamic = cpp_array(100);
 
-var a = cpp_array(20000);
+var a: dynamic = cpp_array(20000);
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var ss = cpp_array(100);
+var ss: dynamic = cpp_array(100);
 
-var f = cpp_array(5, 17);
+var f: dynamic = cpp_array(5, 17);
 
-func init()
+func init() -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= 16))
     {
-      var l = 1;
+      var l: dynamic = 1;
       {
-        var k = 1;
+        var k: dynamic = 1;
         while ((k <= n))
         {
           k *= i;
@@ -38,7 +38,7 @@ func init()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 5))
         {
           f[i][j].resize(l, -1);
@@ -50,12 +50,12 @@ func init()
   }
 }
 
-func calc(d: dynamic, p: dynamic)
+func calc(d: dynamic, p: dynamic) -> dynamic
 {
-  var x = 0;
-  var y = 0;
+  var x: dynamic = 0;
+  var y: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t))
     {
       x = ((x * ((d + 1))) + b[i]);
@@ -68,13 +68,13 @@ func calc(d: dynamic, p: dynamic)
   }
   f[d][p][x] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t))
     {
       if ((b[i] == d))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < d))
           {
             b[i] = j;
@@ -89,7 +89,7 @@ func calc(d: dynamic, p: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t))
     {
       y = ((y * d) + b[i]);
@@ -103,11 +103,11 @@ func calc(d: dynamic, p: dynamic)
   return x;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%I64d", (&a[i]));
@@ -118,26 +118,26 @@ func main()
   init();
   while (cpp_update(m, "--"))
   {
-    var d: dynamic;
-    var c: dynamic;
+    var d: dynamic = cpp_uninitialized();
+    var c: dynamic = cpp_uninitialized();
     scanf("%d%s%I64d", (&d), ss, (&c));
     t = 0;
     {
-      var j = 1;
+      var j: dynamic = 1;
       while ((j <= n))
       {
         t += 1;
         j *= d;
       }
     }
-    var len = strlen(ss);
+    var len: dynamic = strlen(ss);
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < t))
       {
         if ((((len - t) + j) >= 0))
         {
-          b[j] = (if (((ss[((len - t) + j)]) == cpp_char("?"))) (d) else (if (((cpp_char("0") <= cpp_cast((&(&(ss[((len - t) + j)]))))) <= cpp_char("9"))) (ss[((len - t) + j)] - cpp_char("0")) else ((ss[((len - t) + j)] - cpp_char("A")) + 10)));
+          b[j] = ( (((ss[((len - t) + j)]) == cpp_char("?"))) ? (d) : ( (((cpp_char("0") <= cpp_cast((&(&(ss[((len - t) + j)]))))) <= cpp_char("9"))) ? (ss[((len - t) + j)] - cpp_char("0")) : ((ss[((len - t) + j)] - cpp_char("A")) + 10)));
         } else
         {
           b[j] = 0;
@@ -145,9 +145,9 @@ func main()
         j += 1;
       }
     }
-    var j: dynamic;
+    var j: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 5))
       {
         j = calc(d, i);

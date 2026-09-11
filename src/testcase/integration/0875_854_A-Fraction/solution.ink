@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func pie(x: dynamic, y: dynamic)
+func pie(x: dynamic, y: dynamic) -> dynamic
 {
   while ((x != y))
   {
@@ -24,11 +24,11 @@ func pie(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = (n / 2);
+    var i: dynamic = (n / 2);
     while ((i >= 1))
     {
       if ((pie(i, (n - i)) == 1))

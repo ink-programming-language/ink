@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var BUBEN = 550;
+var BUBEN: dynamic = 550;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var BASE = 29;
+var BASE: dynamic = 29;
 
-var MOD1 = 998244353;
+var MOD1: dynamic = 998244353;
 
-var BASE1 = 31;
+var BASE1: dynamic = 31;
 
-func getchar_nolock()
+func getchar_nolock() -> dynamic
 {
   return getchar_unlocked();
 }
 
-func putchar_nolock(i: dynamic)
+func putchar_nolock(i: dynamic) -> dynamic
 {
   return putchar_unlocked(i);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);
@@ -41,7 +41,7 @@ func main()
   {
     write("1 ", (n - 1), cpp_char("\n"));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while (((i + 1) < n))
       {
         write((((n - 1)) * ((arr[i] % n))), cpp_char(" "));
@@ -54,7 +54,7 @@ func main()
     arr[(n - 1)] += (n - ((arr[(n - 1)] % n)));
     write(1, cpp_char(" "), n, cpp_char("\n"));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write((-arr[i]), cpp_char(" "));

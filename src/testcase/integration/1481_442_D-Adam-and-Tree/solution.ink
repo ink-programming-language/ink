@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func max(x: dynamic, y: dynamic)
+func max(x: dynamic, y: dynamic) -> dynamic
 {
-  return if ((x > y)) x else y;
+  return  ((x > y)) ? x : y;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var f = cpp_array(1002000);
+var f: dynamic = cpp_array(1002000);
 
-var dp = cpp_array(1002000);
+var dp: dynamic = cpp_array(1002000);
 
-var ma = cpp_array(1002000);
+var ma: dynamic = cpp_array(1002000);
 
-var sec = cpp_array(1002000);
+var sec: dynamic = cpp_array(1002000);
 
-func Update(x: dynamic)
+func Update(x: dynamic) -> dynamic
 {
-  var o = dp[x];
-  var pos = 0;
+  var o: dynamic = dp[x];
+  var pos: dynamic = 0;
   if ((ma[f[x]] == dp[x]))
   {
     pos = 1;
@@ -47,9 +47,9 @@ func Update(x: dynamic)
   }
 }
 
-func gi(x: dynamic)
+func gi(x: dynamic) -> dynamic
 {
-  var ch = getchar();
+  var ch: dynamic = getchar();
   x = 0;
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
@@ -62,7 +62,7 @@ func gi(x: dynamic)
   }
 }
 
-func pi(x: dynamic)
+func pi(x: dynamic) -> dynamic
 {
   if ((x > 9))
   {
@@ -71,12 +71,12 @@ func pi(x: dynamic)
   putchar(((x % 10) + 48));
 }
 
-func main()
+func main() -> dynamic
 {
   gi(n);
   n += 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       gi(f[i]);
@@ -91,7 +91,7 @@ func main()
       }
       Update(i);
       {
-        var j = f[i];
+        var j: dynamic = f[i];
         while (j)
         {
           if ((!Update(j)))

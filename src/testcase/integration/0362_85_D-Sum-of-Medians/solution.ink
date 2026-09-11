@@ -2,35 +2,35 @@
 
 class Node
 {
-  var cnt: dynamic;
-  var key: dynamic;
-  var prior: dynamic;
+  var cnt: dynamic = cpp_uninitialized();
+  var key: dynamic = cpp_uninitialized();
+  var prior: dynamic = cpp_uninitialized();
   var sum: dynamic = cpp_array(5);
-  var left: dynamic;
-  var right: dynamic;
+  var left: dynamic = cpp_uninitialized();
+  var right: dynamic = cpp_uninitialized();
 }
 
-var nodes = cpp_array(111111);
+var nodes: dynamic = cpp_array(111111);
 
-var pri = cpp_array(111111);
+var pri: dynamic = cpp_array(111111);
 
-var nodeCount = 0;
+var nodeCount: dynamic = 0;
 
-func cnt(v: dynamic)
+func cnt(v: dynamic) -> dynamic
 {
-  return if (v) v->cnt else 0;
+  return  (v) ? v->cnt : 0;
 }
 
-func update(v: dynamic)
+func update(v: dynamic) -> dynamic
 {
   if (v)
   {
     v->cnt = ((cnt(v->left) + cnt(v->right)) + 1);
-    var off = 0;
+    var off: dynamic = 0;
     if (v->left)
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < cpp_cast((5))))
         {
           v->sum[i] = v->left->sum[i];
@@ -41,7 +41,7 @@ func update(v: dynamic)
     } else
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < cpp_cast((5))))
         {
           v->sum[i] = 0;
@@ -57,10 +57,10 @@ func update(v: dynamic)
     if (v->right)
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < cpp_cast((5))))
         {
-          var ii = (i + off);
+          var ii: dynamic = (i + off);
           if ((ii >= 5))
           {
             ii -= 5;
@@ -73,11 +73,11 @@ func update(v: dynamic)
   }
 }
 
-func merge(l: dynamic, r: dynamic, t: dynamic)
+func merge(l: dynamic, r: dynamic, t: dynamic) -> dynamic
 {
   if (((!l) || (!r)))
   {
-    t = if (l) l else r;
+    t =  (l) ? l : r;
     return;
   }
   if ((l->prior > r->prior))
@@ -92,7 +92,7 @@ func merge(l: dynamic, r: dynamic, t: dynamic)
   update(t);
 }
 
-func split(t: dynamic, l: dynamic, r: dynamic, key: dynamic)
+func split(t: dynamic, l: dynamic, r: dynamic, key: dynamic) -> dynamic
 {
   if ((!t))
   {
@@ -111,13 +111,13 @@ func split(t: dynamic, l: dynamic, r: dynamic, key: dynamic)
   update(t);
 }
 
-var root = null;
+var root: dynamic = null;
 
-func addKey(x: dynamic)
+func addKey(x: dynamic) -> dynamic
 {
-  var t1: dynamic;
-  var t2: dynamic;
-  var t3: dynamic;
+  var t1: dynamic = cpp_uninitialized();
+  var t2: dynamic = cpp_uninitialized();
+  var t3: dynamic = cpp_uninitialized();
   split(root, t1, t3, x);
   nodes[nodeCount].key = x;
   nodes[nodeCount].prior = pri[nodeCount];
@@ -127,7 +127,7 @@ func addKey(x: dynamic)
   merge(root, t3, root);
 }
 
-func delKey(t: dynamic, x: dynamic)
+func delKey(t: dynamic, x: dynamic) -> dynamic
 {
   if ((t->key == x))
   {
@@ -142,21 +142,21 @@ func delKey(t: dynamic, x: dynamic)
   update(t);
 }
 
-var mt: dynamic;
+var mt: dynamic = cpp_uninitialized();
 
-func myRand(bound: dynamic)
+func myRand(bound: dynamic) -> dynamic
 {
   return (mt() % bound);
 }
 
-var s = cpp_array(10);
+var s: dynamic = cpp_array(10);
 
-var zzz: dynamic;
+var zzz: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((111111))))
     {
       pri[i] = i;
@@ -164,10 +164,10 @@ func main()
     }
   }
   random_shuffle(pri, (pri + 111111), myRand);
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   {
-    var query = 0;
+    var query: dynamic = 0;
     while ((query < cpp_cast((q))))
     {
       scanf("%s", s);

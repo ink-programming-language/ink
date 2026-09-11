@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var maxn = (2e5 + 5);
+var maxn: dynamic = (2e5 + 5);
 
-var Mod = (1e9 + 7);
+var Mod: dynamic = (1e9 + 7);
 
-func powmod(a: dynamic, b: dynamic)
+func powmod(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   a %= Mod;
   assert((b >= 0));
   {
@@ -23,34 +23,34 @@ func powmod(a: dynamic, b: dynamic)
   return res;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (b) gcd(b, (a % b)) else a;
+  return  (b) ? gcd(b, (a % b)) : a;
 }
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var num = cpp_array(4);
+var num: dynamic = cpp_array(4);
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var arr = cpp_array(maxn);
+var arr: dynamic = cpp_array(maxn);
 
-func solve(kai: dynamic)
+func solve(kai: dynamic) -> dynamic
 {
-  var so_num = [0];
+  var so_num: dynamic = [0];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 3))
     {
       so_num[i] = num[i];
       i += 1;
     }
   }
-  var kk = kai;
-  var boo = true;
+  var kk: dynamic = kai;
+  var boo: dynamic = true;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sum))
     {
       arr[i] = kk;
@@ -59,7 +59,7 @@ func solve(kai: dynamic)
       {
         break;
       }
-      var __cpp_switch_1 = kk;
+      var __cpp_switch_1: dynamic = kk;
       if (__cpp_switch_1 == 0)
       {
         if ((so_num[1] <= 0))
@@ -116,16 +116,16 @@ func solve(kai: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
-  var T = 1;
+  var T: dynamic = 1;
   {
-    var cas = 1;
+    var cas: dynamic = 1;
     while ((cas <= T))
     {
       sum = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= 3))
         {
           scanf("%d", (&num[i]));
@@ -133,16 +133,16 @@ func main()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= 3))
         {
           sum += num[i];
           i += 1;
         }
       }
-      var bo = false;
+      var bo: dynamic = false;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= 3))
         {
           if (((num[j] != 0) && solve(j)))
@@ -160,7 +160,7 @@ func main()
       {
         puts("YES");
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= sum))
           {
             printf("%d ", arr[i]);

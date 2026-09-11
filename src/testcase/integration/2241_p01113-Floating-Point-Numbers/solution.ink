@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-func fornum(A: dynamic, B: dynamic, C: dynamic)
+func fornum(A: dynamic, B: dynamic, C: dynamic) -> dynamic
 {
   cpp_macro("for(A=B;A<C;A++)");
 }
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var pii = cpp_expression("#include<bits");
+var pii: dynamic = cpp_expression("#include<bits");
 
-var pll = cpp_expression("#include<bi");
+var pll: dynamic = cpp_expression("#include<bi");
 
-var nxtr = cpp_expression("#include<");
+var nxtr: dynamic = cpp_expression("#include<");
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var bs = cpp_array(255);
+var bs: dynamic = cpp_array(255);
 
-var mk = cpp_array(11, 11);
+var mk: dynamic = cpp_array(11, 11);
 
-var kt = cpp_array(11);
+var kt: dynamic = cpp_array(11);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld", (&n));
   while (n)
@@ -48,14 +48,14 @@ func main()
     {
       ans *= 2;
       a *= 2;
-      ans += if ((bs[i] == cpp_char("1"))) 1 else 0;
-      a += if ((bs[i] == cpp_char("1"))) 1 else 0;
+      ans +=  ((bs[i] == cpp_char("1"))) ? 1 : 0;
+      a +=  ((bs[i] == cpp_char("1"))) ? 1 : 0;
     }
     i = 0;
     while (true)
     {
-      var aa = (nxtr - ans);
-      var ai = (((aa / a) + (if ((aa % a)) 1 else 0)));
+      var aa: dynamic = (nxtr - ans);
+      var ai: dynamic = (((aa / a) + ( ((aa % a)) ? 1 : 0)));
       if (((ai + i) <= n))
       {
         ans += (ai * a);
@@ -75,11 +75,11 @@ func main()
     }
     fornum(i, 0, 12);
     {
-      printf("%lld", if (((((b >> ((11 - i)))) & 1))) 1 else 0);
+      printf("%lld",  (((((b >> ((11 - i)))) & 1))) ? 1 : 0);
     }
     fornum(i, 0, 52);
     {
-      printf("%lld", if (((((ans >> ((51 - i)))) & 1))) 1 else 0);
+      printf("%lld",  (((((ans >> ((51 - i)))) & 1))) ? 1 : 0);
     }
     printf("\n");
     scanf("%lld", (&n));

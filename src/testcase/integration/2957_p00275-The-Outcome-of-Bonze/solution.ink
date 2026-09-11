@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var S = cpp_array(101);
+  var N: dynamic = cpp_uninitialized();
+  var S: dynamic = cpp_array(101);
   while (cpp_comma(scanf("%d", (&N)), N))
   {
     scanf("%s", S);
-    var H = [0];
-    var F = 0;
-    var T = 0;
+    var H: dynamic = [0];
+    var F: dynamic = 0;
+    var T: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 100))
       {
         if ((S[i] == cpp_char("S")))
@@ -38,7 +38,7 @@ func main()
     }
     sort(H, (H + N));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         printf("%d ", H[i]);

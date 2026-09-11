@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m = cpp_array(15);
+var m: dynamic = cpp_array(15);
 
-var x = cpp_array(15);
+var x: dynamic = cpp_array(15);
 
-var v = cpp_array(15);
+var v: dynamic = cpp_array(15);
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var v1: dynamic;
+var v1: dynamic = cpp_uninitialized();
 
-var v2: dynamic;
+var v2: dynamic = cpp_uninitialized();
 
-var now: dynamic;
+var now: dynamic = cpp_uninitialized();
 
-var pre: dynamic;
+var pre: dynamic = cpp_uninitialized();
 
-var tmp: dynamic;
+var tmp: dynamic = cpp_uninitialized();
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%lf", (&n), (&t));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lf%lf%d", (&x[i]), (&v[i]), (&m[i]));
@@ -38,11 +38,11 @@ func main()
     {
       now = (2 * t);
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           {
-            var j = (i + 1);
+            var j: dynamic = (i + 1);
             while ((j <= n))
             {
               if (((fabs((x[i] - x[j])) < eps) || (fabs((v[i] - v[j])) < eps)))
@@ -69,7 +69,7 @@ func main()
       }
       pre += now;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           x[i] += (now * v[i]);
@@ -77,11 +77,11 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           {
-            var j = (i + 1);
+            var j: dynamic = (i + 1);
             while ((j <= n))
             {
               if ((fabs((x[i] - x[j])) < eps))
@@ -101,7 +101,7 @@ func main()
   }
   now = (t - pre);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%.12lf\n", (x[i] + (v[i] * now)));

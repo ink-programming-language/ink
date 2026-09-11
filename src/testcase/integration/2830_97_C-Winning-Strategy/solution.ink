@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p = cpp_array(110);
+var p: dynamic = cpp_array(110);
 
-var mval = -1.0;
+var mval: dynamic = -1.0;
 
-func iabs(x: dynamic)
+func iabs(x: dynamic) -> dynamic
 {
-  return if ((x < 0)) (-x) else x;
+  return  ((x < 0)) ? (-x) : x;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       scanf("%lf", (&p[i]));
@@ -23,19 +23,19 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
-      var a = (n - (2 * i));
+      var a: dynamic = (n - (2 * i));
       if ((a <= 0))
       {
         break;
       }
       {
-        var j = n;
+        var j: dynamic = n;
         while ((j >= 0))
         {
-          var b = (n - (2 * j));
+          var b: dynamic = (n - (2 * j));
           if ((b >= 0))
           {
             break;
@@ -45,7 +45,7 @@ func main()
             j -= 1;
             continue;
           }
-          var val = ((((p[i] * double(iabs(b))) + (p[j] * double(iabs(a))))) / double((iabs(a) + iabs(b))));
+          var val: dynamic = ((((p[i] * cpp_double(iabs(b))) + (p[j] * cpp_double(iabs(a))))) / cpp_double((iabs(a) + iabs(b))));
           mval = max(mval, val);
           j -= 1;
         }

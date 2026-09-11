@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-func operator_shift_right(i: dynamic, p: dynamic)
+func operator_shift_right(i: dynamic, p: dynamic) -> dynamic
 {
   ((i >> p.first) >> p.second);
   return i;
 }
 
-func operator_shift_right(i: dynamic, t: dynamic)
+func operator_shift_right(i: dynamic, t: dynamic) -> dynamic
 {
-  for (var v in t)
+  for (var v: dynamic in t)
   {
     (i >> v);
   }
   return i;
 }
 
-func operator_shift_left(o: dynamic, p: dynamic)
+func operator_shift_left(o: dynamic, p: dynamic) -> dynamic
 {
   (((o << p.first) << cpp_char(" ")) << p.second);
   return o;
 }
 
-func operator_shift_left(o: dynamic, t: dynamic)
+func operator_shift_left(o: dynamic, t: dynamic) -> dynamic
 {
   if (t.empty())
   {
     (o << cpp_char("\n"));
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t.size()))
     {
       ((o << t[i]) << " \n"[(i == (t.size() - 1))]);
@@ -38,30 +38,30 @@ func operator_shift_left(o: dynamic, t: dynamic)
   return o;
 }
 
-func in_cpp(a: dynamic, b: dynamic, c: dynamic)
+func in_cpp(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return ((a <= b) && (b < c));
 }
 
-func logceil(first: dynamic)
+func logceil(first: dynamic) -> dynamic
 {
   return ((8 * cpp_sizeof(dynamic)) - builtin_clz(first));
 }
 
 class hash_pair_T_U
 {
-  var t: dynamic;
-  var u: dynamic;
-  func operator_call(p: dynamic)
+  var t: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  func operator_call(p: dynamic) -> dynamic
   {
       return (t(p.first) ^ ((u(p.second) << 7)));
     }
 }
 
-func bsh(l: dynamic, h: dynamic, f: dynamic)
+func bsh(l: dynamic, h: dynamic, f: dynamic) -> dynamic
 {
-  var r = -1;
-  var m: dynamic;
+  var r: dynamic = -1;
+  var m: dynamic = cpp_uninitialized();
   while ((l <= h))
   {
     m = (((l + h)) / 2);
@@ -77,12 +77,12 @@ func bsh(l: dynamic, h: dynamic, f: dynamic)
   return r;
 }
 
-func bshd(l: dynamic, h: dynamic, f: dynamic, p: dynamic = 1e-9)
+func bshd(l: dynamic, h: dynamic, f: dynamic, p: dynamic = 1e-9) -> dynamic
 {
-  var r = (3 + cpp_cast(log2((((h - l)) / p))));
+  var r: dynamic = (3 + cpp_cast(log2((((h - l)) / p))));
   while (cpp_update(r, "--"))
   {
-    var m = (((l + h)) / 2);
+    var m: dynamic = (((l + h)) / 2);
     if (f(m))
     {
       l = m;
@@ -94,10 +94,10 @@ func bshd(l: dynamic, h: dynamic, f: dynamic, p: dynamic = 1e-9)
   return (((l + h)) / 2);
 }
 
-func bsl(l: dynamic, h: dynamic, f: dynamic)
+func bsl(l: dynamic, h: dynamic, f: dynamic) -> dynamic
 {
-  var r = -1;
-  var m: dynamic;
+  var r: dynamic = -1;
+  var m: dynamic = cpp_uninitialized();
   while ((l <= h))
   {
     m = (((l + h)) / 2);
@@ -113,12 +113,12 @@ func bsl(l: dynamic, h: dynamic, f: dynamic)
   return r;
 }
 
-func bsld(l: dynamic, h: dynamic, f: dynamic, p: dynamic = 1e-9)
+func bsld(l: dynamic, h: dynamic, f: dynamic, p: dynamic = 1e-9) -> dynamic
 {
-  var r = (3 + cpp_cast(log2((((h - l)) / p))));
+  var r: dynamic = (3 + cpp_cast(log2((((h - l)) / p))));
   while (cpp_update(r, "--"))
   {
-    var m = (((l + h)) / 2);
+    var m: dynamic = (((l + h)) / 2);
     if (f(m))
     {
       h = m;
@@ -130,78 +130,78 @@ func bsld(l: dynamic, h: dynamic, f: dynamic, p: dynamic = 1e-9)
   return (((l + h)) / 2);
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
     swap(a, b);
   }
-  return if (b) gcd(b, (a % b)) else a;
+  return  (b) ? gcd(b, (a % b)) : a;
 }
 
 class vector2
 {
-  func vector2()
+  func vector2() -> dynamic
   {
     }
-  func vector2(a: dynamic, b: dynamic, t: dynamic = T())
+  func vector2(a: dynamic, b: dynamic, t: dynamic = T()) -> dynamic
   {
-      this->vector_vector_T = cpp_construct(a, vector(b, t));
+      self->vector_vector_T = cpp_construct(a, vector(b, t));
     }
 }
 
 class vector3
 {
-  func vector3()
+  func vector3() -> dynamic
   {
     }
-  func vector3(a: dynamic, b: dynamic, c: dynamic, t: dynamic = T())
+  func vector3(a: dynamic, b: dynamic, c: dynamic, t: dynamic = T()) -> dynamic
   {
-      this->vector_vector2_T = cpp_construct(a, vector2(b, c, t));
+      self->vector_vector2_T = cpp_construct(a, vector2(b, c, t));
     }
 }
 
 class vector4
 {
-  func vector4()
+  func vector4() -> dynamic
   {
     }
-  func vector4(a: dynamic, b: dynamic, c: dynamic, d: dynamic, t: dynamic = T())
+  func vector4(a: dynamic, b: dynamic, c: dynamic, d: dynamic, t: dynamic = T()) -> dynamic
   {
-      this->vector_vector3_T = cpp_construct(a, vector3(b, c, d, t));
+      self->vector_vector3_T = cpp_construct(a, vector3(b, c, d, t));
     }
 }
 
 class vector5
 {
-  func vector5()
+  func vector5() -> dynamic
   {
     }
-  func vector5(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, t: dynamic = T())
+  func vector5(a: dynamic, b: dynamic, c: dynamic, d: dynamic, e: dynamic, t: dynamic = T()) -> dynamic
   {
-      this->vector_vector4_T = cpp_construct(a, vector4(b, c, d, e, t));
+      self->vector_vector4_T = cpp_construct(a, vector4(b, c, d, e, t));
     }
 }
 
 class bounded_priority_queue
 {
-  func bounded_priority_queue(X: dynamic)
+  func bounded_priority_queue(X: dynamic) -> dynamic
   {
-      this->A = cpp_construct(X);
-      this->B = cpp_construct(0);
-      this->s = cpp_construct(0);
+      self->A = cpp_construct(X);
+      self->B = cpp_construct(0);
+      self->s = cpp_construct(0);
     }
-  func push(L: dynamic, V: dynamic)
+  func push(L: dynamic, V: dynamic) -> dynamic
   {
       B = max(B, L);
       A[L].push(V);
       s += 1;
     }
-  func top()
+  func top() -> dynamic
   {
       return A[B].front();
     }
-  func pop()
+  func pop() -> dynamic
   {
       s -= 1;
       A[B].pop();
@@ -210,73 +210,73 @@ class bounded_priority_queue
         B -= 1;
       }
     }
-  func empty()
+  func empty() -> dynamic
   {
       return A[B].empty();
     }
-  func clear()
+  func clear() -> dynamic
   {
       s = cpp_assign(B, "=", 0);
-      for (var a in A)
+      for (var a: dynamic in A)
       {
         a = queue();
       }
     }
-  func size()
+  func size() -> dynamic
   {
       return s;
     }
-  var A: dynamic;
-  var B: dynamic;
-  var s: dynamic;
+  var A: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
 }
 
 class TaskD
 {
-  func solve(cin: dynamic, cout: dynamic)
+  func solve(cin: dynamic, cout: dynamic) -> dynamic
   {
-      var N: dynamic;
+      var N: dynamic = cpp_uninitialized();
       read(N);
-      var Q = cpp_construct(2);
+      var Q: dynamic = cpp_construct(2);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < N))
         {
-          var first: dynamic;
-          var second: dynamic;
+          var first: dynamic = cpp_uninitialized();
+          var second: dynamic = cpp_uninitialized();
           read(first, second);
-          var d = ((((first + second)) & 1));
+          var d: dynamic = ((((first + second)) & 1));
           Q[d].push_back([((((first + second) - d)) / 2), ((((first - second) - d)) / 2)]);
           i += 1;
         }
       }
-      var ans = 0;
-      for (var q in Q)
+      var ans: dynamic = 0;
+      for (var q: dynamic in Q)
       {
         sort(q.begin(), q.end());
         if (q.empty())
         {
           continue;
         }
-        var l = q[0].first;
-        for (var qq in q)
+        var l: dynamic = q[0].first;
+        for (var qq: dynamic in q)
         {
           qq.first -= l;
         }
-        var h = q.back().first;
-        var lo = cpp_construct((h + 1), 1000000);
-        var hi = cpp_construct((h + 1), -1000000);
-        for (var qq in q)
+        var h: dynamic = q.back().first;
+        var lo: dynamic = cpp_construct((h + 1), 1000000);
+        var hi: dynamic = cpp_construct((h + 1), -1000000);
+        for (var qq: dynamic in q)
         {
           lo[qq.first] = min(lo[qq.first], qq.second);
           hi[qq.first] = max(hi[qq.first], qq.second);
         }
-        var LL = lo;
-        var LH = hi;
-        var RL = lo;
-        var RH = hi;
+        var LL: dynamic = lo;
+        var LH: dynamic = hi;
+        var RL: dynamic = lo;
+        var RH: dynamic = hi;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < h))
           {
             LL[(i + 1)] = min(LL[(i + 1)], LL[i]);
@@ -287,11 +287,11 @@ class TaskD
           }
         }
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < h))
           {
-            var lo = max(LL[i], RL[(i + 1)]);
-            var hi = min(LH[i], RH[(i + 1)]);
+            var lo: dynamic = max(LL[i], RL[(i + 1)]);
+            var hi: dynamic = min(LH[i], RH[(i + 1)]);
             if ((lo < hi))
             {
               ans += (hi - lo);
@@ -304,14 +304,14 @@ class TaskD
     }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var solver: dynamic;
-  var in_cpp: dynamic;
-  var out: dynamic;
+  var solver: dynamic = cpp_uninitialized();
+  var in_cpp: dynamic = cpp_uninitialized();
+  var out: dynamic = cpp_uninitialized();
   solver.solve(in_cpp, out);
   return 0;
 }

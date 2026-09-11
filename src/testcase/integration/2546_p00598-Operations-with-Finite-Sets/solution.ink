@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-var idx: dynamic;
+var idx: dynamic = cpp_uninitialized();
 
-var s = cpp_array(2000);
+var s: dynamic = cpp_array(2000);
 
-var S = cpp_array(5);
+var S: dynamic = cpp_array(5);
 
-var U: dynamic;
+var U: dynamic = cpp_uninitialized();
 
-func calc_c(A: dynamic)
+func calc_c(A: dynamic) -> dynamic
 {
-  var B: dynamic;
+  var B: dynamic = cpp_uninitialized();
   rep(i, U.size());
   if ((!binary_search(A.begin(), A.end(), U[i])))
   {
@@ -24,9 +24,9 @@ func calc_c(A: dynamic)
   return B;
 }
 
-func calc_u(A: dynamic, B: dynamic)
+func calc_u(A: dynamic, B: dynamic) -> dynamic
 {
-  var C: dynamic;
+  var C: dynamic = cpp_uninitialized();
   rep(i, A.size()).push_back(A[i]);
   rep(i, B.size()).push_back(B[i]);
   sort(C.begin(), C.end());
@@ -34,28 +34,28 @@ func calc_u(A: dynamic, B: dynamic)
   return C;
 }
 
-func calc_i(A: dynamic, B: dynamic)
+func calc_i(A: dynamic, B: dynamic) -> dynamic
 {
   return calc_c(calc_u(calc_c(A), calc_c(B)));
 }
 
-func calc_d(A: dynamic, B: dynamic)
+func calc_d(A: dynamic, B: dynamic) -> dynamic
 {
   return calc_i(A, calc_c(B));
 }
 
-func calc_s(A: dynamic, B: dynamic)
+func calc_s(A: dynamic, B: dynamic) -> dynamic
 {
   return calc_u(calc_d(A, B), calc_d(B, A));
 }
 
-func expr()
+func expr() -> dynamic
 {
-  var A = set1();
+  var A: dynamic = set1();
   while ((s[idx] && (s[idx] != cpp_char(")"))))
   {
-    var op = s[cpp_update(idx, "++")];
-    var B = set1();
+    var op: dynamic = s[cpp_update(idx, "++")];
+    var B: dynamic = set1();
     if ((op == cpp_char("u")))
     {
       A = calc_u(A, B);
@@ -73,7 +73,7 @@ func expr()
   return A;
 }
 
-func set1()
+func set1() -> dynamic
 {
   if ((s[idx] == cpp_char("c")))
   {
@@ -85,9 +85,9 @@ func set1()
   }
 }
 
-func set2()
+func set2() -> dynamic
 {
-  var A: dynamic;
+  var A: dynamic = cpp_uninitialized();
   if ((s[idx] == cpp_char("(")))
   {
     idx += 1;
@@ -100,20 +100,20 @@ func set2()
   return A;
 }
 
-func alpha()
+func alpha() -> dynamic
 {
   return S[(s[cpp_update(idx, "++")] - cpp_char("A"))];
 }
 
-func main()
+func main() -> dynamic
 {
   while (1)
   {
     U.clear();
     while (1)
     {
-      var c: dynamic;
-      var n: dynamic;
+      var c: dynamic = cpp_uninitialized();
+      var n: dynamic = cpp_uninitialized();
       if ((!(~scanf(" %c%d", (&c), (&n)))))
       {
         return 0;
@@ -129,7 +129,7 @@ func main()
     U.erase(unique(U.begin(), U.end()), U.end());
     scanf("%s", s);
     idx = 0;
-    var res = expr();
+    var res: dynamic = expr();
     if ((res.size() == 0))
     {
       puts("NULL");
@@ -137,13 +137,13 @@ func main()
     {
       rep(i, res.size());
     }
-    printf("%d%c", res[i], if ((i < (cpp_cast(res.size()) - 1))) cpp_char(" ") else cpp_char("\n"));
+    printf("%d%c", res[i],  ((i < (cpp_cast(res.size()) - 1))) ? cpp_char(" ") : cpp_char("\n"));
   }
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var e: dynamic;
+        var e: dynamic = cpp_uninitialized();
         scanf("%d", (&e));
         S[(c - cpp_char("A"))].push_back(e);
         U.push_back(e);

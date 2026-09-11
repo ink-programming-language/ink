@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       {
-        var j = (i + i);
+        var j: dynamic = (i + i);
         while ((j <= n))
         {
           ans += (j / i);

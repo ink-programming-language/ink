@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
 class SA
 {
-  var n: dynamic;
-  var k: dynamic;
-  var S: dynamic;
-  var r: dynamic;
-  var r2: dynamic;
-  var t: dynamic;
-  var sa: dynamic;
-  func SA()
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var S: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var r2: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var sa: dynamic = cpp_uninitialized();
+  func SA() -> dynamic
   {
     }
-  func SA(S: dynamic)
+  func SA(S: dynamic) -> dynamic
   {
-      this->S = cpp_construct(S);
+      self->S = cpp_construct(S);
       init();
     }
-  func init()
+  func init() -> dynamic
   {
       n = S.size();
       r.resize((n + 1), 0);
@@ -28,27 +28,27 @@ class SA
       sa.resize((n + 1), 0);
       constract_sa();
     }
-  func compare_sa(i: dynamic, j: dynamic)
+  func compare_sa(i: dynamic, j: dynamic) -> dynamic
   {
       if ((r[i] != r[j]))
       {
         return (r[i] < r[j]);
       } else
       {
-        var ri = if (((i + k) <= n)) r[(i + k)] else -1;
-        var rj = if (((j + k) <= n)) r[(j + k)] else -1;
+        var ri: dynamic =  (((i + k) <= n)) ? r[(i + k)] : -1;
+        var rj: dynamic =  (((j + k) <= n)) ? r[(j + k)] : -1;
         return (ri < rj);
       }
     }
-  func constract_sa()
+  func constract_sa() -> dynamic
   {
       n = S.length();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= n))
         {
           sa[i] = i;
-          r[i] = if ((i < n)) S[i] else -1;
+          r[i] =  ((i < n)) ? S[i] : -1;
           i += 1;
         }
       }
@@ -59,15 +59,15 @@ class SA
           sort(sa.begin(), sa.end(), __cpp_lambda_1);
           t[sa[0]] = 0;
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= n))
             {
-              t[sa[i]] = (t[sa[(i - 1)]] + (if (compare_sa(sa[(i - 1)], sa[i])) 1 else 0));
+              t[sa[i]] = (t[sa[(i - 1)]] + ( (compare_sa(sa[(i - 1)], sa[i])) ? 1 : 0));
               i += 1;
             }
           }
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i <= n))
             {
               r[i] = t[i];
@@ -78,13 +78,13 @@ class SA
         }
       }
     }
-  func contains(T: dynamic)
+  func contains(T: dynamic) -> dynamic
   {
-      var a = 0;
-      var b = (S.length() + 1);
+      var a: dynamic = 0;
+      var b: dynamic = (S.length() + 1);
       while (((a + 1) < b))
       {
-        var c = (((a + b)) / 2);
+        var c: dynamic = (((a + b)) / 2);
         if ((S.compare(sa[c], T.length(), T) < 0))
         {
           a = c;
@@ -101,12 +101,12 @@ class SA
     }
 }
 
-var buf = cpp_array(1000001);
+var buf: dynamic = cpp_array(1000001);
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", buf);
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   scanf("%lld", (&q));
   while (cpp_update(q, "--"))
   {
@@ -116,15 +116,15 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_1(i: dynamic, j: dynamic)
+func __cpp_lambda_1(i: dynamic, j: dynamic) -> dynamic
 {
   if ((r[i] != r[j]))
   {
     return (r[i] < r[j]);
   } else
   {
-    var ri = if (((i + k) <= n)) r[(i + k)] else -1;
-    var rj = if (((j + k) <= n)) r[(j + k)] else -1;
+    var ri: dynamic =  (((i + k) <= n)) ? r[(i + k)] : -1;
+    var rj: dynamic =  (((j + k) <= n)) ? r[(j + k)] : -1;
     return (ri < rj);
   }
 }

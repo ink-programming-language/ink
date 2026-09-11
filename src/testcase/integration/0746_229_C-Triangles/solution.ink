@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var maxn = 1000100;
+var maxn: dynamic = 1000100;
 
-var result: dynamic;
+var result: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var deg = cpp_array((maxn + 1));
+var deg: dynamic = cpp_array((maxn + 1));
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   scanf("%I64d%I64d", (&n), (&m));
   {
     i = 1;

@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var popcount = cpp_expression("#include <cstdio>");
+var popcount: dynamic = cpp_expression("#include <cstdio>");
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var c: dynamic;
+      var c: dynamic = cpp_uninitialized();
       read(c);
       if ((c != cpp_char("-")))
       {
@@ -23,14 +23,14 @@ func main()
     }
   }
   n = s.size();
-  var dp = [];
+  var dp: dynamic = [];
   dp[0][0] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= i))
         {
           if ((s[i] == cpp_char("U")))

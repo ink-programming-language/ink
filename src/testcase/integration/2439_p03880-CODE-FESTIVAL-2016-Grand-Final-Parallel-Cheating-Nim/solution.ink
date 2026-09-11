@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var exist = cpp_array(200);
+var exist: dynamic = cpp_array(200);
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var tmp = 0;
+  var tmp: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       tmp ^= a[i];
-      var k = 0;
-      var t = a[i];
+      var k: dynamic = 0;
+      var t: dynamic = a[i];
       while (((t % 2) == 0))
       {
         t /= 2;
@@ -42,7 +42,7 @@ func main()
     b.push_back((tmp % 2));
     tmp /= 2;
   }
-  var i = (b.size() - 1);
+  var i: dynamic = (b.size() - 1);
   while ((i >= 0))
   {
     if (exist[i])

@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func max(a: dynamic, b: dynamic)
+func max(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a > b)) a else b;
+  return  ((a > b)) ? a : b;
 }
 
-func min(a: dynamic, b: dynamic)
+func min(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a > b)) b else a;
+  return  ((a > b)) ? b : a;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var a4: dynamic;
-  var a7: dynamic;
-  var a47: dynamic;
-  var a74: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var a4: dynamic = cpp_uninitialized();
+  var a7: dynamic = cpp_uninitialized();
+  var a47: dynamic = cpp_uninitialized();
+  var a74: dynamic = cpp_uninitialized();
   scanf("%d %d %d %d", (&a4), (&a7), (&a47), (&a74));
   if ((fabs((a47 - a74)) > 1))
   {

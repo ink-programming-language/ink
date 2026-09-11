@@ -2,56 +2,56 @@
 
 enum Relation
 {
-  FATHER,
-  MOTHER,
-  SON,
-  DAUGHTER,
-  HUSBAND,
-  WIFE,
-  BROTHER,
-  SISTER,
-  GRANDFATHER,
-  GRANDMOTHER,
-  GRANDSON,
-  GRANDDAUGHTER,
-  UNCLE,
-  AUNT,
-  NEPHEW,
-  NIECE
+  enum_field FATHER;
+  enum_field MOTHER;
+  enum_field SON;
+  enum_field DAUGHTER;
+  enum_field HUSBAND;
+  enum_field WIFE;
+  enum_field BROTHER;
+  enum_field SISTER;
+  enum_field GRANDFATHER;
+  enum_field GRANDMOTHER;
+  enum_field GRANDSON;
+  enum_field GRANDDAUGHTER;
+  enum_field UNCLE;
+  enum_field AUNT;
+  enum_field NEPHEW;
+  enum_field NIECE;
 }
 
 enum Sex
 {
-  MALE,
-  FEMALE
+  enum_field MALE;
+  enum_field FEMALE;
 }
 
 class Node
 {
-  var parent: dynamic;
-  var sons: dynamic;
-  var daughters: dynamic;
-  var distance: dynamic;
-  func Node(distance: dynamic)
+  var parent: dynamic = cpp_uninitialized();
+  var sons: dynamic = cpp_uninitialized();
+  var daughters: dynamic = cpp_uninitialized();
+  var distance: dynamic = cpp_uninitialized();
+  func Node(distance: dynamic) -> dynamic
   {
-      this->distance = cpp_construct(distance);
+      self->distance = cpp_construct(distance);
       parent[MALE] = cpp_assign(parent[FEMALE], "=", null);
     }
 }
 
-func size(x: dynamic)
+func size(x: dynamic) -> dynamic
 {
   return x.size();
 }
 
-func split(str: dynamic, delimiter: dynamic)
+func split(str: dynamic, delimiter: dynamic) -> dynamic
 {
-  var result: dynamic;
+  var result: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < size(str)))
     {
-      var word: dynamic;
+      var word: dynamic = cpp_uninitialized();
       {
         while (((i < size(str)) && (str[i] != delimiter)))
         {
@@ -66,14 +66,14 @@ func split(str: dynamic, delimiter: dynamic)
   return result;
 }
 
-func startsWith(str: dynamic, prefix: dynamic)
+func startsWith(str: dynamic, prefix: dynamic) -> dynamic
 {
   if ((str.size() < prefix.size()))
   {
     return false;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < size(prefix)))
     {
       if ((str[i] != prefix[i]))
@@ -86,20 +86,20 @@ func startsWith(str: dynamic, prefix: dynamic)
   return true;
 }
 
-var relations: dynamic;
+var relations: dynamic = cpp_uninitialized();
 
-var ansMax: dynamic;
+var ansMax: dynamic = cpp_uninitialized();
 
-var ansMin: dynamic;
+var ansMin: dynamic = cpp_uninitialized();
 
-func withParent(node: dynamic, sex: dynamic, proc: dynamic)
+func withParent(node: dynamic, sex: dynamic, proc: dynamic) -> dynamic
 {
   if (node->parent[sex])
   {
     proc(node->parent[sex]);
   } else
   {
-    var n = cpp_construct((node->distance + 1));
+    var n: dynamic = cpp_construct((node->distance + 1));
     if ((sex == MALE))
     {
       n.sons.push_back(node);
@@ -113,53 +113,53 @@ func withParent(node: dynamic, sex: dynamic, proc: dynamic)
   }
 }
 
-func withSon(node: dynamic, sex: dynamic, proc: dynamic)
+func withSon(node: dynamic, sex: dynamic, proc: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < size(node->sons)))
     {
       proc(node->sons[i]);
       i += 1;
     }
   }
-  var n = cpp_construct((node->distance + 1));
+  var n: dynamic = cpp_construct((node->distance + 1));
   n.parent[MALE] = node;
   node->sons.push_back((&n));
   proc((&n));
   node->sons.pop_back();
 }
 
-func withDaughter(node: dynamic, sex: dynamic, proc: dynamic)
+func withDaughter(node: dynamic, sex: dynamic, proc: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < size(node->daughters)))
     {
       proc(node->daughters[i]);
       i += 1;
     }
   }
-  var n = cpp_construct((node->distance + 1));
+  var n: dynamic = cpp_construct((node->distance + 1));
   n.parent[FEMALE] = node;
   node->daughters.push_back((&n));
   proc((&n));
   node->daughters.pop_back();
 }
 
-func withBrother(node: dynamic, sex: dynamic, proc: dynamic)
+func withBrother(node: dynamic, sex: dynamic, proc: dynamic) -> dynamic
 {
-  var inner = __cpp_lambda_1;
+  var inner: dynamic = __cpp_lambda_1;
   withParent(node, sex, bind(withSon, cpp_1, MALE, inner));
 }
 
-func withSister(node: dynamic, sex: dynamic, proc: dynamic)
+func withSister(node: dynamic, sex: dynamic, proc: dynamic) -> dynamic
 {
-  var inner = __cpp_lambda_2;
+  var inner: dynamic = __cpp_lambda_2;
   withParent(node, sex, bind(withDaughter, cpp_1, MALE, inner));
 }
 
-func dfs(node: dynamic, sex: dynamic, index: dynamic)
+func dfs(node: dynamic, sex: dynamic, index: dynamic) -> dynamic
 {
   if ((index == size(relations)))
   {
@@ -167,9 +167,9 @@ func dfs(node: dynamic, sex: dynamic, index: dynamic)
     ansMin = min(ansMin, node->distance);
     return;
   }
-  var r = relations[index];
-  var dfsMale = bind(dfs, cpp_1, MALE, (index + 1));
-  var dfsFemale = bind(dfs, cpp_1, FEMALE, (index + 1));
+  var r: dynamic = relations[index];
+  var dfsMale: dynamic = bind(dfs, cpp_1, MALE, (index + 1));
+  var dfsFemale: dynamic = bind(dfs, cpp_1, FEMALE, (index + 1));
   if ((r == FATHER))
   {
     withParent(node, sex, dfsMale);
@@ -232,21 +232,21 @@ func dfs(node: dynamic, sex: dynamic, index: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var line: dynamic;
+  var line: dynamic = cpp_uninitialized();
   getline(cin, line);
   {
-    var T = atoi(line.c_str());
+    var T: dynamic = atoi(line.c_str());
     while (T)
     {
       ansMax = 0;
       ansMin = INT_MAX;
       relations.clear();
       getline(cin, line);
-      var words = cpp_construct(split(line, cpp_char(" ")));
+      var words: dynamic = cpp_construct(split(line, cpp_char(" ")));
       {
-        var i = 3;
+        var i: dynamic = 3;
         while ((i < size(words)))
         {
           if (startsWith(words[i], "father"))
@@ -304,7 +304,7 @@ func main()
           i += 1;
         }
       }
-      var root = cpp_construct(0);
+      var root: dynamic = cpp_construct(0);
       dfs((&root), MALE, 0);
       dfs((&root), FEMALE, 0);
       write(ansMax, " ", ansMin, "\n");
@@ -313,7 +313,7 @@ func main()
   }
 }
 
-func __cpp_lambda_1(s: dynamic)
+func __cpp_lambda_1(s: dynamic) -> dynamic
 {
   if ((s != node))
   {
@@ -321,7 +321,7 @@ func __cpp_lambda_1(s: dynamic)
   }
 }
 
-func __cpp_lambda_2(d: dynamic)
+func __cpp_lambda_2(d: dynamic) -> dynamic
 {
   if ((d != node))
   {

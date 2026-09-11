@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func GCD(a: dynamic, b: dynamic)
+func GCD(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a)) GCD((b % a), a) else b;
+  return  ((a)) ? GCD((b % a), a) : b;
 }
 
-func LCM(a: dynamic, b: dynamic)
+func LCM(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a * b) / GCD(a, b));
 }
 
-func fastpow(b: dynamic, p: dynamic)
+func fastpow(b: dynamic, p: dynamic) -> dynamic
 {
   if ((!p))
   {
     return 1;
   }
-  var ret = fastpow(b, (p >> 1));
+  var ret: dynamic = fastpow(b, (p >> 1));
   ret *= ret;
   if ((p & 1))
   {
@@ -25,11 +25,11 @@ func fastpow(b: dynamic, p: dynamic)
   return ret;
 }
 
-var alpha = "abcdefghijklmnopqrstuvwxyz";
+var alpha: dynamic = "abcdefghijklmnopqrstuvwxyz";
 
-func divisor(number: dynamic)
+func divisor(number: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 2;
     while ((i <= sqrt(number)))
@@ -44,16 +44,16 @@ func divisor(number: dynamic)
   return 1;
 }
 
-func myXOR(x: dynamic, y: dynamic)
+func myXOR(x: dynamic, y: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 31;
+    var i: dynamic = 31;
     while ((i >= 0))
     {
-      var b1 = (x & ((1 << i)));
-      var b2 = (y & ((1 << i)));
-      var xoredBit = if (((b1 & b2))) 0 else ((b1 | b2));
+      var b1: dynamic = (x & ((1 << i)));
+      var b2: dynamic = (y & ((1 << i)));
+      var xoredBit: dynamic =  (((b1 & b2))) ? 0 : ((b1 | b2));
       res <<= 1;
       res |= xoredBit;
       i -= 1;
@@ -62,10 +62,10 @@ func myXOR(x: dynamic, y: dynamic)
   return res;
 }
 
-func printDivisors(n: dynamic, v: dynamic)
+func printDivisors(n: dynamic, v: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sqrt(n)))
     {
       if (((n % i) == 0))
@@ -90,11 +90,11 @@ func printDivisors(n: dynamic, v: dynamic)
   }
 }
 
-func bin(vec: dynamic, val: dynamic)
+func bin(vec: dynamic, val: dynamic) -> dynamic
 {
-  var l = 0;
-  var r = (vec.size() - 1);
-  var mid = (r / 2);
+  var l: dynamic = 0;
+  var r: dynamic = (vec.size() - 1);
+  var mid: dynamic = (r / 2);
   while ((l <= r))
   {
     mid = (((l + r)) / 2);
@@ -119,10 +119,10 @@ func bin(vec: dynamic, val: dynamic)
   return -1;
 }
 
-func clear(v: dynamic)
+func clear(v: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       v[i] = 0;
@@ -131,15 +131,15 @@ func clear(v: dynamic)
   }
 }
 
-func comp(s1: dynamic, s2: dynamic)
+func comp(s1: dynamic, s2: dynamic) -> dynamic
 {
   return ((s2 + s1) < (s1 + s2));
 }
 
-func split(s: dynamic, delim: dynamic)
+func split(s: dynamic, delim: dynamic) -> dynamic
 {
-  var result: dynamic;
-  var item: dynamic;
+  var result: dynamic = cpp_uninitialized();
+  var item: dynamic = cpp_uninitialized();
   while (getline(ss, item, delim))
   {
     result.push_back(item);
@@ -147,10 +147,10 @@ func split(s: dynamic, delim: dynamic)
   return result;
 }
 
-func countWords(str: dynamic)
+func countWords(str: dynamic) -> dynamic
 {
-  var word: dynamic;
-  var count = 0;
+  var word: dynamic = cpp_uninitialized();
+  var count: dynamic = 0;
   while ((s >> word))
   {
     count += 1;
@@ -158,20 +158,20 @@ func countWords(str: dynamic)
   return count;
 }
 
-func IsLowerCharacter(c: dynamic)
+func IsLowerCharacter(c: dynamic) -> dynamic
 {
   return ((c >= cpp_char("a")) && (c <= cpp_char("z")));
 }
 
-func main()
+func main() -> dynamic
 {
-  var ham: dynamic;
+  var ham: dynamic = cpp_uninitialized();
   read(ham);
-  var numOfB = 0;
-  var numOfS = 0;
-  var numOfC = 0;
+  var numOfB: dynamic = 0;
+  var numOfS: dynamic = 0;
+  var numOfC: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ham.length()))
     {
       if ((ham[i] == cpp_char("B")))
@@ -187,17 +187,17 @@ func main()
       i += 1;
     }
   }
-  var nB: dynamic;
-  var nS: dynamic;
-  var nC: dynamic;
-  var pB: dynamic;
-  var pS: dynamic;
-  var pC: dynamic;
+  var nB: dynamic = cpp_uninitialized();
+  var nS: dynamic = cpp_uninitialized();
+  var nC: dynamic = cpp_uninitialized();
+  var pB: dynamic = cpp_uninitialized();
+  var pS: dynamic = cpp_uninitialized();
+  var pC: dynamic = cpp_uninitialized();
   read(nB, nS, nC);
   read(pB, pS, pC);
-  var r: dynamic;
+  var r: dynamic = cpp_uninitialized();
   read(r);
-  var num = 0;
+  var num: dynamic = 0;
   while (true)
   {
     if (((((nB - numOfB) < 0) || ((nS - numOfS) < 0)) || ((nC - numOfC) < 0)))
@@ -229,7 +229,7 @@ func main()
   }
   while (((((((nB || nS) || nC)) && numOfC) && numOfB) && numOfS))
   {
-    var price = 0;
+    var price: dynamic = 0;
     if ((nB < numOfB))
     {
       price += (((numOfB - nB)) * pB);
@@ -263,7 +263,7 @@ func main()
       break;
     }
   }
-  var priceOfoneHam = (((pB * numOfB) + (pS * numOfS)) + (pC * numOfC));
+  var priceOfoneHam: dynamic = (((pB * numOfB) + (pS * numOfS)) + (pC * numOfC));
   num += (r / priceOfoneHam);
   write(num);
   return 0;

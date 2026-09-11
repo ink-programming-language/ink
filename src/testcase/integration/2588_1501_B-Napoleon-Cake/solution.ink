@@ -1,65 +1,65 @@
 // Translated from solution.cpp.
 
-var ff = cpp_expression("#incl");
+var ff: dynamic = cpp_expression("#incl");
 
-var ss = cpp_expression("#inclu");
+var ss: dynamic = cpp_expression("#inclu");
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var pr = cpp_expression("#include<bits/stdc++.h> u");
+var pr: dynamic = cpp_expression("#include<bits/stdc++.h> u");
 
-var vr = cpp_expression("#include<bits/std");
+var vr: dynamic = cpp_expression("#include<bits/std");
 
-var MOD = cpp_expression("#include<b");
+var MOD: dynamic = cpp_expression("#include<b");
 
-var mod = cpp_expression("#include<b");
+var mod: dynamic = cpp_expression("#include<b");
 
-var mod2 = cpp_expression("#include<");
+var mod2: dynamic = cpp_expression("#include<");
 
-var inf = cpp_expression("#inc");
+var inf: dynamic = cpp_expression("#inc");
 
-func ps(x: dynamic, y: dynamic)
+func ps(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h> u");
 }
 
-func mk(arr: dynamic, n: dynamic, type_cpp: dynamic)
+func mk(arr: dynamic, n: dynamic, type_cpp: dynamic) -> dynamic
 {
   cpp_macro("type *arr=new type[n];");
 }
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var ld = dynamic;
+var ld: dynamic = dynamic;
 
-func w(x: dynamic)
+func w(x: dynamic) -> dynamic
 {
   cpp_macro("int x; cin>>x; while(x--)");
 }
 
-func fill(a: dynamic, b: dynamic)
+func fill(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h>");
 }
 
-var ios = cpp_expression("#include<bits/stdc++.h> using nam");
+var ios: dynamic = cpp_expression("#include<bits/stdc++.h> using nam");
 
-var spf = cpp_array(1000002);
+var spf: dynamic = cpp_array(1000002);
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var NN = (5e6 + 5);
+var NN: dynamic = (5e6 + 5);
 
-var ans = 1e18;
+var ans: dynamic = 1e18;
 
-func sieve()
+func sieve() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 5000002))
     {
       spf[i] = i;
@@ -67,7 +67,7 @@ func sieve()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < 5000002))
     {
       spf[i] = 2;
@@ -75,14 +75,14 @@ func sieve()
     }
   }
   {
-    var i = 3;
+    var i: dynamic = 3;
     while (((i * i) < 5000002))
     {
       if ((spf[i] == i))
       {
         spf[i] = i;
         {
-          var j = (i * i);
+          var j: dynamic = (i * i);
           while ((j < 5000002))
           {
             if ((spf[j] == j))
@@ -98,9 +98,9 @@ func sieve()
   }
 }
 
-func power(x: dynamic, y: dynamic)
+func power(x: dynamic, y: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while ((y > 0))
   {
     if ((y & 1))
@@ -113,20 +113,20 @@ func power(x: dynamic, y: dynamic)
   return (res % mod);
 }
 
-func modInv(a: dynamic)
+func modInv(a: dynamic) -> dynamic
 {
   return power(a, (MOD - 2));
 }
 
-var fact = cpp_array(N);
+var fact: dynamic = cpp_array(N);
 
-var inv = cpp_array(N);
+var inv: dynamic = cpp_array(N);
 
-func factorial(n: dynamic)
+func factorial(n: dynamic) -> dynamic
 {
   fact[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fact[i] = (fact[(i - 1)] * i);
@@ -139,11 +139,11 @@ func factorial(n: dynamic)
   }
 }
 
-func InvFactorial(n: dynamic)
+func InvFactorial(n: dynamic) -> dynamic
 {
   inv[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       inv[i] = modInv(fact[i]);
@@ -152,15 +152,15 @@ func InvFactorial(n: dynamic)
   }
 }
 
-func ncr(n: dynamic, r: dynamic)
+func ncr(n: dynamic, r: dynamic) -> dynamic
 {
   if ((((n < r) || (n < 0)) || (r < 0)))
   {
     return 0;
   }
-  var b = inv[(n - r)];
-  var c = inv[r];
-  var a = (fact[n] * b);
+  var b: dynamic = inv[(n - r)];
+  var c: dynamic = inv[r];
+  var a: dynamic = (fact[n] * b);
   if ((a >= MOD))
   {
     a %= MOD;
@@ -173,14 +173,14 @@ func ncr(n: dynamic, r: dynamic)
   return a;
 }
 
-func isPrime(n: dynamic)
+func isPrime(n: dynamic) -> dynamic
 {
   if ((n <= 1))
   {
     return false;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= n))
     {
       if (((n % i) == 0))
@@ -193,35 +193,35 @@ func isPrime(n: dynamic)
   return true;
 }
 
-func isPerfectSquare(x: dynamic)
+func isPerfectSquare(x: dynamic) -> dynamic
 {
   if ((x >= 0))
   {
-    var sr = sqrt(x);
+    var sr: dynamic = sqrt(x);
     return (((sr * sr) == x));
   }
   return false;
 }
 
-func comparator(a: dynamic, b: dynamic)
+func comparator(a: dynamic, b: dynamic) -> dynamic
 {
   return (a < b);
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < t))
     {
-      var n: dynamic;
+      var n: dynamic = cpp_uninitialized();
       read(n);
-      var b = cpp_array(n);
-      var a = cpp_array(n);
+      var b: dynamic = cpp_array(n);
+      var a: dynamic = cpp_array(n);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           read(a[i]);
@@ -229,9 +229,9 @@ func main()
           i += 1;
         }
       }
-      var sum = 0;
+      var sum: dynamic = 0;
       {
-        var i = (n - 1);
+        var i: dynamic = (n - 1);
         while ((i >= 0))
         {
           sum = max(sum, a[i]);
@@ -244,7 +244,7 @@ func main()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           write(b[i], " ");

@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n, a, b);
   if (cpp_binary(((a + b) > (n + 1)), "or", ((a * cpp_cast(b)) < n)))
@@ -14,9 +14,9 @@ func main()
     write("-1");
     return 0;
   }
-  var v = cpp_construct((a - 1), 0);
+  var v: dynamic = cpp_construct((a - 1), 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n - b)))
     {
       v[(i % v.size())] += 1;
@@ -24,10 +24,10 @@ func main()
     }
   }
   v.push_back(b);
-  var k = 1;
-  for (var i in v)
+  var k: dynamic = 1;
+  for (var i: dynamic in v)
   {
-    var l = ((k + i) - 1);
+    var l: dynamic = ((k + i) - 1);
     while ((l >= k))
     {
       write(cpp_update(l, "--"), cpp_char(" "));

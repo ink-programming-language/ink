@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func gi(x: dynamic)
+func gi(x: dynamic) -> dynamic
 {
-  var r = cpp_array((((1 << 17)) + 16));
-  var s = r;
-  var l = (r + ((1 << 17)));
+  var r: dynamic = cpp_array((((1 << 17)) + 16));
+  var s: dynamic = r;
+  var l: dynamic = (r + ((1 << 17)));
   x = 0;
   if ((!(*s)))
   {
@@ -30,18 +30,18 @@ func gi(x: dynamic)
   s += 1;
 }
 
-var QQ = cpp_array((((1 << 17)) + 16));
+var QQ: dynamic = cpp_array((((1 << 17)) + 16));
 
-var OP = QQ;
+var OP: dynamic = QQ;
 
-var LP = (QQ + ((1 << 17)));
+var LP: dynamic = (QQ + ((1 << 17)));
 
-func pn(x: dynamic)
+func pn(x: dynamic) -> dynamic
 {
-  var B = OP;
-  var c: dynamic;
-  var E: dynamic;
-  var t: dynamic;
+  var B: dynamic = OP;
+  var c: dynamic = cpp_uninitialized();
+  var E: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   if ((!x))
   {
     t = (x / 10);
@@ -70,39 +70,39 @@ func pn(x: dynamic)
   }
 }
 
-func pc(c: dynamic)
+func pc(c: dynamic) -> dynamic
 {
   (*cpp_update(OP, "++")) = c;
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var A = cpp_array((1000006));
+var A: dynamic = cpp_array((1000006));
 
-var g: dynamic;
+var g: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var G = cpp_array((1000006));
+var G: dynamic = cpp_array((1000006));
 
-var L = cpp_array((1000006));
+var L: dynamic = cpp_array((1000006));
 
-var P = cpp_array((1000006));
+var P: dynamic = cpp_array((1000006));
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   ios_base.sync_with_stdio(0);
   gi(N);
   {
-    var i = cpp_construct(0);
+    var i: dynamic = cpp_construct(0);
     while ((i < N))
     {
       gi(A[(i + 1)]);
@@ -110,7 +110,7 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var k = cpp_construct(1);
+    var k: dynamic = cpp_construct(1);
     while ((k < (N + 1)))
     {
       if ((A[k] > k))
@@ -138,7 +138,7 @@ func main(argument_0: dynamic)
   }
   X = S;
   {
-    var k = cpp_construct(0);
+    var k: dynamic = cpp_construct(0);
     while ((k < N))
     {
       l += L[k];

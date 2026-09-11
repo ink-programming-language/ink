@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var minimum = 1;
-  var maximum: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var minimum: dynamic = 1;
+  var maximum: dynamic = cpp_uninitialized();
   read(n, k);
   if ((k == n))
   {
@@ -20,7 +20,7 @@ func main()
     maximum = (2 * k);
   } else
   {
-    var p = (n / 3);
+    var p: dynamic = (n / 3);
     maximum = (3 * p);
     k = (k - (n % 3));
     maximum = (maximum - k);

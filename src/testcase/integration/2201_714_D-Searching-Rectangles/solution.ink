@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var side = cpp_array(2, 4);
+var side: dynamic = cpp_array(2, 4);
 
-func request(mid: dynamic, s: dynamic)
+func request(mid: dynamic, s: dynamic) -> dynamic
 {
-  var __cpp_switch_1 = s;
+  var __cpp_switch_1: dynamic = s;
   if (__cpp_switch_1 == 0)
   {
     printf("? %d %d %d %d\n", mid, 1, n, n);
@@ -28,16 +28,16 @@ func request(mid: dynamic, s: dynamic)
     break;
   }
   fflush(stdout);
-  var tmp: dynamic;
+  var tmp: dynamic = cpp_uninitialized();
   scanf("%d", (&tmp));
   return tmp;
 }
 
-func binSearch(val: dynamic, s: dynamic)
+func binSearch(val: dynamic, s: dynamic) -> dynamic
 {
-  var l = 1;
-  var r = n;
-  var mid: dynamic;
+  var l: dynamic = 1;
+  var r: dynamic = n;
+  var mid: dynamic = cpp_uninitialized();
   if (((s % 2) == 0))
   {
     while ((l <= r))
@@ -69,10 +69,10 @@ func binSearch(val: dynamic, s: dynamic)
   }
 }
 
-func findSide(s: dynamic)
+func findSide(s: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
       side[s][i] = binSearch((i + 1), s);
@@ -81,25 +81,25 @@ func findSide(s: dynamic)
   }
 }
 
-func exsists(xs1: dynamic, xe1: dynamic, ys1: dynamic, ye1: dynamic)
+func exsists(xs1: dynamic, xe1: dynamic, ys1: dynamic, ye1: dynamic) -> dynamic
 {
   return (((xs1 <= xe1) && (ys1 <= ye1)));
 }
 
-func intersect(xs1: dynamic, xe1: dynamic, ys1: dynamic, ye1: dynamic, xs2: dynamic, xe2: dynamic, ys2: dynamic, ye2: dynamic)
+func intersect(xs1: dynamic, xe1: dynamic, ys1: dynamic, ye1: dynamic, xs2: dynamic, xe2: dynamic, ys2: dynamic, ye2: dynamic) -> dynamic
 {
-  var xs = max(xs1, xs2);
-  var xe = min(xe1, xe2);
-  var ys = max(ys1, ys2);
-  var ye = min(ye1, ye2);
+  var xs: dynamic = max(xs1, xs2);
+  var xe: dynamic = min(xe1, xe2);
+  var ys: dynamic = max(ys1, ys2);
+  var ye: dynamic = min(ye1, ye2);
   return (((xs <= xe) && (ys <= ye)));
 }
 
-func check(xs1: dynamic, xe1: dynamic, ys1: dynamic, ye1: dynamic, xs2: dynamic, xe2: dynamic, ys2: dynamic, ye2: dynamic)
+func check(xs1: dynamic, xe1: dynamic, ys1: dynamic, ye1: dynamic, xs2: dynamic, xe2: dynamic, ys2: dynamic, ye2: dynamic) -> dynamic
 {
   printf("? %d %d %d %d\n", xs1, ys1, xe1, ye1);
   fflush(stdout);
-  var tmp: dynamic;
+  var tmp: dynamic = cpp_uninitialized();
   scanf("%d", (&tmp));
   if ((tmp != 1))
   {
@@ -113,45 +113,45 @@ func check(xs1: dynamic, xe1: dynamic, ys1: dynamic, ye1: dynamic, xs2: dynamic,
 
 class rect
 {
-  var xs: dynamic;
-  var xe: dynamic;
-  var ys: dynamic;
-  var ye: dynamic;
-  func rect()
+  var xs: dynamic = cpp_uninitialized();
+  var xe: dynamic = cpp_uninitialized();
+  var ys: dynamic = cpp_uninitialized();
+  var ye: dynamic = cpp_uninitialized();
+  func rect() -> dynamic
   {
     }
-  func rect(xs: dynamic, xe: dynamic, ys: dynamic, ye: dynamic)
+  func rect(xs: dynamic, xe: dynamic, ys: dynamic, ye: dynamic) -> dynamic
   {
-      this->xs = cpp_construct(xs);
-      this->xe = cpp_construct(xe);
-      this->ys = cpp_construct(ys);
-      this->ye = cpp_construct(ye);
+      self->xs = cpp_construct(xs);
+      self->xe = cpp_construct(xe);
+      self->ys = cpp_construct(ys);
+      self->ye = cpp_construct(ye);
     }
-  func field()
+  func field() -> dynamic
   {
       return ((((xe - xs) + 1)) * cpp_cast((((ye - ys) + 1))));
     }
 }
 
-func Solvex(xs1: dynamic, xe1: dynamic, xs2: dynamic, xe2: dynamic)
+func Solvex(xs1: dynamic, xe1: dynamic, xs2: dynamic, xe2: dynamic) -> dynamic
 {
-  var a1: dynamic;
-  var a2: dynamic;
-  var t1: dynamic;
-  var t2: dynamic;
-  var answt = (1000000000 * 1000000000);
+  var a1: dynamic = cpp_uninitialized();
+  var a2: dynamic = cpp_uninitialized();
+  var t1: dynamic = cpp_uninitialized();
+  var t2: dynamic = cpp_uninitialized();
+  var answt: dynamic = (1000000000 * 1000000000);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 2))
         {
-          var ys1 = side[2][i];
-          var ys2 = side[2][(((i + 1)) % 2)];
-          var ye1 = side[3][j];
-          var ye2 = side[3][(((j + 1)) % 2)];
+          var ys1: dynamic = side[2][i];
+          var ys2: dynamic = side[2][(((i + 1)) % 2)];
+          var ye1: dynamic = side[3][j];
+          var ye2: dynamic = side[3][(((j + 1)) % 2)];
           if ((exsists(xs1, xe1, ys1, ye1) && exsists(xs2, xe2, ys2, ye2)))
           {
             if ((!intersect(xs1, xe1, ys1, ye1, xs2, xe2, ys2, ye2)))
@@ -178,25 +178,25 @@ func Solvex(xs1: dynamic, xe1: dynamic, xs2: dynamic, xe2: dynamic)
   printf("! %d %d %d %d %d %d %d %d\n", a1.xs, a1.ys, a1.xe, a1.ye, a2.xs, a2.ys, a2.xe, a2.ye);
 }
 
-func Solvey(ys1: dynamic, ye1: dynamic, ys2: dynamic, ye2: dynamic)
+func Solvey(ys1: dynamic, ye1: dynamic, ys2: dynamic, ye2: dynamic) -> dynamic
 {
-  var a1: dynamic;
-  var a2: dynamic;
-  var t1: dynamic;
-  var t2: dynamic;
-  var answt = (1000000000 * 1000000000);
+  var a1: dynamic = cpp_uninitialized();
+  var a2: dynamic = cpp_uninitialized();
+  var t1: dynamic = cpp_uninitialized();
+  var t2: dynamic = cpp_uninitialized();
+  var answt: dynamic = (1000000000 * 1000000000);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 2))
         {
-          var xs1 = side[0][i];
-          var xs2 = side[0][(((i + 1)) % 2)];
-          var xe1 = side[1][j];
-          var xe2 = side[1][(((j + 1)) % 2)];
+          var xs1: dynamic = side[0][i];
+          var xs2: dynamic = side[0][(((i + 1)) % 2)];
+          var xe1: dynamic = side[1][j];
+          var xe2: dynamic = side[1][(((j + 1)) % 2)];
           if ((exsists(xs1, xe1, ys1, ye1) && exsists(xs2, xe2, ys2, ye2)))
           {
             if ((!intersect(xs1, xe1, ys1, ye1, xs2, xe2, ys2, ye2)))
@@ -223,11 +223,11 @@ func Solvey(ys1: dynamic, ye1: dynamic, ys2: dynamic, ye2: dynamic)
   printf("! %d %d %d %d %d %d %d %d\n", a1.xs, a1.ys, a1.xe, a1.ye, a2.xs, a2.ys, a2.xe, a2.ye);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       findSide(i);
@@ -237,23 +237,23 @@ func main()
   }
   if ((side[1][0] < side[0][1]))
   {
-    var xs1: dynamic;
-    var xe1: dynamic;
+    var xs1: dynamic = cpp_uninitialized();
+    var xe1: dynamic = cpp_uninitialized();
     xs1 = side[0][0];
     xe1 = side[1][0];
-    var xs2: dynamic;
-    var xe2: dynamic;
+    var xs2: dynamic = cpp_uninitialized();
+    var xe2: dynamic = cpp_uninitialized();
     xs2 = side[0][1];
     xe2 = side[1][1];
     Solvex(xs1, xe1, xs2, xe2);
   } else
   {
-    var ys1: dynamic;
-    var ye1: dynamic;
+    var ys1: dynamic = cpp_uninitialized();
+    var ye1: dynamic = cpp_uninitialized();
     ys1 = side[2][0];
     ye1 = side[3][0];
-    var ys2: dynamic;
-    var ye2: dynamic;
+    var ys2: dynamic = cpp_uninitialized();
+    var ye2: dynamic = cpp_uninitialized();
     ys2 = side[2][1];
     ye2 = side[3][1];
     Solvey(ys1, ye1, ys2, ye2);

@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var b = cpp_array(100005);
+var b: dynamic = cpp_array(100005);
 
-var ansx: dynamic;
+var ansx: dynamic = cpp_uninitialized();
 
-var ansy: dynamic;
+var ansy: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var qst: dynamic;
+var qst: dynamic = cpp_uninitialized();
 
-var qed: dynamic;
+var qed: dynamic = cpp_uninitialized();
 
-var now: dynamic;
+var now: dynamic = cpp_uninitialized();
 
-var ansk: dynamic;
+var ansk: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-func find(nx: dynamic, t: dynamic)
+func find(nx: dynamic, t: dynamic) -> dynamic
 {
   qst = 1;
   qed = 1;
@@ -57,11 +57,11 @@ func find(nx: dynamic, t: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var m: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%d%d%d%d", (&n), (&l), (&x), (&y));
   {
     i = 1;

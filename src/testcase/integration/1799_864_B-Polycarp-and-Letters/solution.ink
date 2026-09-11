@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var arr = cpp_array(N);
+var arr: dynamic = cpp_array(N);
 
-var A = cpp_array(N);
+var A: dynamic = cpp_array(N);
 
-var ARR = cpp_array(N);
+var ARR: dynamic = cpp_array(N);
 
-var visited = [];
+var visited: dynamic = [];
 
-var cnt = [];
+var cnt: dynamic = [];
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var ans = 0;
-  var s: dynamic;
-  var st: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
+  var s: dynamic = cpp_uninitialized();
+  var st: dynamic = cpp_uninitialized();
   read(n, s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((s[i] < cpp_char("a")))

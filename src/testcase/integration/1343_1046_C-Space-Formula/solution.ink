@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
-  var d: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   read(n, d);
   d -= 1;
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i]);
@@ -18,18 +18,18 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(vals[i]);
       i += 1;
     }
   }
-  var chk = (vals[0] + v[d]);
-  var idx = 0;
-  var ans = 0;
+  var chk: dynamic = (vals[0] + v[d]);
+  var idx: dynamic = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((i == d) || ((v[i] > chk))))
@@ -53,7 +53,7 @@ func main()
         write("Da la beng ba");
         return 0;
       }
-      var it = s.lower_bound(((chk - vals[idx]) + 1));
+      var it: dynamic = s.lower_bound(((chk - vals[idx]) + 1));
       if ((it == s.begin()))
       {
         ans += 1;

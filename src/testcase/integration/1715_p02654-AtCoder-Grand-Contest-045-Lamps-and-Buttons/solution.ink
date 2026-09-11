@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var eb = cpp_expression("#include<bit");
+var eb: dynamic = cpp_expression("#include<bit");
 
-func all(v: dynamic)
+func all(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -28,7 +28,7 @@ func chmin(a: dynamic, b: dynamic)
   }
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -36,17 +36,17 @@ func chmax(a: dynamic, b: dynamic)
   }
 }
 
-func operator_shift_left(ost: dynamic, p: dynamic)
+func operator_shift_left(ost: dynamic, p: dynamic) -> dynamic
 {
   (((((ost << "{") << p.first) << ",") << p.second) << "}");
   return ost;
 }
 
-func operator_shift_left(ost: dynamic, v: dynamic)
+func operator_shift_left(ost: dynamic, v: dynamic) -> dynamic
 {
   (ost << "{");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       if (i)
@@ -61,87 +61,87 @@ func operator_shift_left(ost: dynamic, v: dynamic)
   return ost;
 }
 
-func topbit(x: dynamic)
+func topbit(x: dynamic) -> dynamic
 {
-  return if (x) (63 - builtin_clzll(x)) else -1;
+  return  (x) ? (63 - builtin_clzll(x)) : -1;
 }
 
-func popcount(x: dynamic)
+func popcount(x: dynamic) -> dynamic
 {
   return builtin_popcountll(x);
 }
 
-func parity(x: dynamic)
+func parity(x: dynamic) -> dynamic
 {
   return builtin_parity(x);
 }
 
 class ModInt
 {
-  var a: dynamic;
-  func s(vv: dynamic)
+  var a: dynamic = cpp_uninitialized();
+  func s(vv: dynamic) -> dynamic
   {
-      a = if ((vv < mod)) vv else (vv - mod);
-      return (*this);
+      a =  ((vv < mod)) ? vv : (vv - mod);
+      return (*self);
     }
-  func ModInt(x: dynamic = 0)
+  func ModInt(x: dynamic = 0) -> dynamic
   {
       s(((x % mod) + mod));
     }
-  func operator_add_assign(x: dynamic)
+  func operator_add_assign(x: dynamic) -> dynamic
   {
       return s((a + x.a));
     }
-  func operator_subtract_assign(x: dynamic)
+  func operator_subtract_assign(x: dynamic) -> dynamic
   {
       return s(((a + mod) - x.a));
     }
-  func operator(x: dynamic)
+  func operator(x: dynamic) -> dynamic
   {
       a = ((uint64_t(a) * x.a) % mod);
-      return (*this);
+      return (*self);
     }
-  func operator(x: dynamic)
+  func operator(x: dynamic) -> dynamic
   {
-      (*this) *= x.inv();
-      return (*this);
+      (*self) *= x.inv();
+      return (*self);
     }
-  func operator_add(x: dynamic)
+  func operator_add(x: dynamic) -> dynamic
   {
-      return cpp_assign(ModInt((*this)), "+=", x);
+      return cpp_assign(ModInt((*self)), "+=", x);
     }
-  func operator_subtract(x: dynamic)
+  func operator_subtract(x: dynamic) -> dynamic
   {
-      return cpp_assign(ModInt((*this)), "-=", x);
+      return cpp_assign(ModInt((*self)), "-=", x);
     }
-  func operator_multiply(x: dynamic)
+  func operator_multiply(x: dynamic) -> dynamic
   {
-      return cpp_assign(ModInt((*this)), "*=", x);
+      return cpp_assign(ModInt((*self)), "*=", x);
     }
-  func operator_divide(x: dynamic)
+  func operator_divide(x: dynamic) -> dynamic
   {
-      return cpp_assign(ModInt((*this)), "/=", x);
+      return cpp_assign(ModInt((*self)), "/=", x);
     }
-  func operator_equal(x: dynamic)
+  func operator_equal(x: dynamic) -> dynamic
   {
       return (a == x.a);
     }
-  func operator_not_equal(x: dynamic)
+  func operator_not_equal(x: dynamic) -> dynamic
   {
       return (a != x.a);
     }
-  func operator_less(x: dynamic)
+  func operator_less(x: dynamic) -> dynamic
   {
       return (a < x.a);
     }
-  func operator_subtract()
+  func operator_subtract() -> dynamic
   {
-      return (ModInt() - (*this));
+      return (ModInt() - (*self));
     }
-  func pow(n: dynamic)
+  func pow(n: dynamic) -> dynamic
   {
-      var res = cpp_construct(1);
-      var x = cpp_construct((*this));
+      var res: dynamic = cpp_construct(1);
+      var x: dynamic = cpp_construct((*self));
       while (n)
       {
         if ((n & 1))
@@ -153,38 +153,38 @@ class ModInt
       }
       return res;
     }
-  func inv()
+  func inv() -> dynamic
   {
       return pow((mod - 2));
     }
 }
 
-func operator_shift_right(in_cpp: dynamic, a: dynamic)
+func operator_shift_right(in_cpp: dynamic, a: dynamic) -> dynamic
 {
   return ((in_cpp >> a.a));
 }
 
-func operator_shift_left(out: dynamic, a: dynamic)
+func operator_shift_left(out: dynamic, a: dynamic) -> dynamic
 {
   return ((out << a.a));
 }
 
 class ModIntTable
 {
-  var N: dynamic;
-  var facts: dynamic;
-  var finvs: dynamic;
-  var invs: dynamic;
-  func ModIntTable()
+  var N: dynamic = cpp_uninitialized();
+  var facts: dynamic = cpp_uninitialized();
+  var finvs: dynamic = cpp_uninitialized();
+  var invs: dynamic = cpp_uninitialized();
+  func ModIntTable() -> dynamic
   {
-      this->N = cpp_construct((1 << lg));
-      this->facts = cpp_construct(N);
-      this->finvs = cpp_construct(N);
-      this->invs = cpp_construct(N);
-      var mod = (Mint(-1).a + 1);
+      self->N = cpp_construct((1 << lg));
+      self->facts = cpp_construct(N);
+      self->finvs = cpp_construct(N);
+      self->invs = cpp_construct(N);
+      var mod: dynamic = (Mint(-1).a + 1);
       invs[1] = 1;
       {
-        var i = 2;
+        var i: dynamic = 2;
         while ((i < N))
         {
           invs[i] = (invs[(mod % i)] * ((mod - (mod / i))));
@@ -194,7 +194,7 @@ class ModIntTable
       facts[0] = 1;
       finvs[0] = 1;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < N))
         {
           facts[i] = (facts[(i - 1)] * i);
@@ -203,19 +203,19 @@ class ModIntTable
         }
       }
     }
-  func fact(n: dynamic)
+  func fact(n: dynamic) -> dynamic
   {
       return facts[n];
     }
-  func finv(n: dynamic)
+  func finv(n: dynamic) -> dynamic
   {
       return finvs[n];
     }
-  func inv(n: dynamic)
+  func inv(n: dynamic) -> dynamic
   {
       return invs[n];
     }
-  func binom(n: dynamic, k: dynamic)
+  func binom(n: dynamic, k: dynamic) -> dynamic
   {
       if ((((n < 0) || (k < 0)) || (k > n)))
       {
@@ -223,7 +223,7 @@ class ModIntTable
       }
       return ((facts[n] * finvs[k]) * finvs[(n - k)]);
     }
-  func perm(n: dynamic, k: dynamic)
+  func perm(n: dynamic, k: dynamic) -> dynamic
   {
       if ((((n < 0) || (k < 0)) || (k > n)))
       {
@@ -231,31 +231,31 @@ class ModIntTable
       }
       return (facts[n] * finvs[(n - k)]);
     }
-  func catalan(n: dynamic)
+  func catalan(n: dynamic) -> dynamic
   {
       return ((facts[(2 * n)] * finvs[(n + 1)]) * finvs[n]);
     }
 }
 
-var mt: dynamic;
+var mt: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var A: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var A: dynamic = cpp_uninitialized();
   read(N, A);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= A))
     {
-      var num = 0;
-      var r = max(0, ((A - i) - 1));
+      var num: dynamic = 0;
+      var r: dynamic = max(0, ((A - i) - 1));
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= i))
         {
-          var tmp = ((mt.fact((i - j)) * mt.perm((((i - j) + ((N - A))) - 1), (N - A))) * mt.binom(i, j));
+          var tmp: dynamic = ((mt.fact((i - j)) * mt.perm((((i - j) + ((N - A))) - 1), (N - A))) * mt.binom(i, j));
           tmp *= mt.perm(((((i - j) + N) - A) + r), r);
           if ((j & 1))
           {

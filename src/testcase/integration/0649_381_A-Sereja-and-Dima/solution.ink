@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var s = 0;
-  var d = 0;
-  var beg = 0;
-  var end = 0;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = 0;
+  var d: dynamic = 0;
+  var beg: dynamic = 0;
+  var end: dynamic = 0;
   read(n);
-  var a = cpp_array(n);
+  var a: dynamic = cpp_array(n);
   end = (n - 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -19,7 +19,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((i % 2) == 0))

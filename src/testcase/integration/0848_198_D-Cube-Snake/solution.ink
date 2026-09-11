@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var maxn = 105;
+var maxn: dynamic = 105;
 
-func gi()
+func gi() -> dynamic
 {
-  var c = getchar();
+  var c: dynamic = getchar();
   while (((c < cpp_char("0")) || (c > cpp_char("9"))))
   {
     c = getchar();
   }
-  var sum = 0;
+  var sum: dynamic = 0;
   while (((cpp_char("0") <= c) && (c <= cpp_char("9"))))
   {
     sum = (((sum * 10) + c) - 48);
@@ -18,11 +18,11 @@ func gi()
   return sum;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var A = cpp_array(maxn, maxn, maxn);
+var A: dynamic = cpp_array(maxn, maxn, maxn);
 
-func main()
+func main() -> dynamic
 {
   n = gi();
   if ((n == 1))
@@ -42,14 +42,14 @@ func main()
   A[3][2][1] = 11;
   A[3][2][2] = 12;
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i <= n))
     {
       if ((i & 1))
       {
-        var p1 = 1;
+        var p1: dynamic = 1;
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= i))
           {
             A[j][1][i] = cpp_update(p1, "--");
@@ -57,13 +57,13 @@ func main()
           }
         }
         {
-          var j = i;
+          var j: dynamic = i;
           while (j)
           {
             if ((((j - i)) & 1))
             {
               {
-                var k = 1;
+                var k: dynamic = 1;
                 while ((k <= i))
                 {
                   A[j][0][k] = cpp_update(p1, "--");
@@ -73,7 +73,7 @@ func main()
             } else
             {
               {
-                var k = i;
+                var k: dynamic = i;
                 while (k)
                 {
                   A[j][0][k] = cpp_update(p1, "--");
@@ -84,9 +84,9 @@ func main()
             j -= 1;
           }
         }
-        var p2 = A[i][(i - 1)][(i - 1)];
+        var p2: dynamic = A[i][(i - 1)][(i - 1)];
         {
-          var j = (i - 1);
+          var j: dynamic = (i - 1);
           while ((j >= 2))
           {
             A[i][j][i] = cpp_update(p2, "++");
@@ -94,13 +94,13 @@ func main()
           }
         }
         {
-          var j = 2;
+          var j: dynamic = 2;
           while ((j < i))
           {
             if ((j & 1))
             {
               {
-                var k = 1;
+                var k: dynamic = 1;
                 while ((k < i))
                 {
                   A[k][j][i] = cpp_update(p2, "++");
@@ -110,7 +110,7 @@ func main()
             } else
             {
               {
-                var k = (i - 1);
+                var k: dynamic = (i - 1);
                 while (k)
                 {
                   A[k][j][i] = cpp_update(p2, "++");
@@ -122,13 +122,13 @@ func main()
           }
         }
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= i))
           {
             if ((j & 1))
             {
               {
-                var k = i;
+                var k: dynamic = i;
                 while (k)
                 {
                   A[j][i][k] = cpp_update(p2, "++");
@@ -138,7 +138,7 @@ func main()
             } else
             {
               {
-                var k = 1;
+                var k: dynamic = 1;
                 while ((k <= i))
                 {
                   A[j][i][k] = cpp_update(p2, "++");
@@ -150,15 +150,15 @@ func main()
           }
         }
         {
-          var p = (i + 1);
+          var p: dynamic = (i + 1);
           while (p)
           {
             {
-              var x = 1;
+              var x: dynamic = 1;
               while ((x <= i))
               {
                 {
-                  var y = 1;
+                  var y: dynamic = 1;
                   while ((y <= i))
                   {
                     A[x][p][y] = ((A[x][(p - 1)][y] - p1) + 1);
@@ -172,15 +172,15 @@ func main()
           }
         }
         {
-          var x = 1;
+          var x: dynamic = 1;
           while ((x <= i))
           {
             {
-              var y = 1;
+              var y: dynamic = 1;
               while ((y <= (i + 1)))
               {
                 {
-                  var z = 1;
+                  var z: dynamic = 1;
                   while (((z * 2) <= i))
                   {
                     swap(A[x][y][z], A[x][y][((i + 1) - z)]);
@@ -195,9 +195,9 @@ func main()
         }
       } else
       {
-        var p1 = 1;
+        var p1: dynamic = 1;
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= i))
           {
             A[1][j][i] = cpp_update(p1, "--");
@@ -205,13 +205,13 @@ func main()
           }
         }
         {
-          var j = i;
+          var j: dynamic = i;
           while (j)
           {
             if ((((i - j)) & 1))
             {
               {
-                var k = 1;
+                var k: dynamic = 1;
                 while ((k <= i))
                 {
                   A[0][j][k] = cpp_update(p1, "--");
@@ -221,7 +221,7 @@ func main()
             } else
             {
               {
-                var k = i;
+                var k: dynamic = i;
                 while (k)
                 {
                   A[0][j][k] = cpp_update(p1, "--");
@@ -232,15 +232,15 @@ func main()
             j -= 1;
           }
         }
-        var p2 = A[(i - 1)][i][(i - 1)];
+        var p2: dynamic = A[(i - 1)][i][(i - 1)];
         {
-          var j = i;
+          var j: dynamic = i;
           while (j)
           {
             if ((((i - j)) & 1))
             {
               {
-                var k = 2;
+                var k: dynamic = 2;
                 while ((k < i))
                 {
                   A[k][j][i] = cpp_update(p2, "++");
@@ -250,7 +250,7 @@ func main()
             } else
             {
               {
-                var k = (i - 1);
+                var k: dynamic = (i - 1);
                 while ((k >= 2))
                 {
                   A[k][j][i] = cpp_update(p2, "++");
@@ -262,13 +262,13 @@ func main()
           }
         }
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= i))
           {
             if ((j & 1))
             {
               {
-                var k = i;
+                var k: dynamic = i;
                 while (k)
                 {
                   A[i][j][k] = cpp_update(p2, "++");
@@ -278,7 +278,7 @@ func main()
             } else
             {
               {
-                var k = 1;
+                var k: dynamic = 1;
                 while ((k <= i))
                 {
                   A[i][j][k] = cpp_update(p2, "++");
@@ -290,15 +290,15 @@ func main()
           }
         }
         {
-          var p = (i + 1);
+          var p: dynamic = (i + 1);
           while (p)
           {
             {
-              var x = 1;
+              var x: dynamic = 1;
               while ((x <= i))
               {
                 {
-                  var y = 1;
+                  var y: dynamic = 1;
                   while ((y <= i))
                   {
                     A[p][x][y] = ((A[(p - 1)][x][y] - p1) + 1);
@@ -316,15 +316,15 @@ func main()
     }
   }
   {
-    var y = 1;
+    var y: dynamic = 1;
     while ((y <= n))
     {
       {
-        var z = n;
+        var z: dynamic = n;
         while (z)
         {
           {
-            var x = 1;
+            var x: dynamic = 1;
             while ((x <= n))
             {
               printf("%d ", A[x][y][z]);

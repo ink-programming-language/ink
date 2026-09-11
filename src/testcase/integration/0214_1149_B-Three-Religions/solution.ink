@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func fast()
+func fast() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
 }
 
-func vec_splitter(s: dynamic)
+func vec_splitter(s: dynamic) -> dynamic
 {
   s += cpp_char(",");
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   while ((!s.empty()))
   {
     res.push_back(s.substr(0, s.find(cpp_char(","))));
@@ -18,12 +18,12 @@ func vec_splitter(s: dynamic)
   return res;
 }
 
-func debug_out(args: dynamic, idx: dynamic, LINE_NUM: dynamic)
+func debug_out(args: dynamic, idx: dynamic, LINE_NUM: dynamic) -> dynamic
 {
   write("\n");
 }
 
-func debug_out(args: dynamic, idx: dynamic, LINE_NUM: dynamic, H: dynamic, T: dynamic...)
+func debug_out(args: dynamic, idx: dynamic, LINE_NUM: dynamic, H: dynamic, T: dynamic...) -> dynamic
 {
   if ((idx > 0))
   {
@@ -32,28 +32,28 @@ func debug_out(args: dynamic, idx: dynamic, LINE_NUM: dynamic, H: dynamic, T: dy
   {
     write("Line(", LINE_NUM, ") ");
   }
-  var ss: dynamic;
+  var ss: dynamic = cpp_uninitialized();
   (ss << H);
   write(args[idx], " = ", ss.str());
   debug_out(args, (idx + 1), LINE_NUM, cpp_expand(T));
 }
 
-func get_time()
+func get_time() -> dynamic
 {
   return ((1.0 * clock()) / CLOCKS_PER_SEC);
 }
 
-func main()
+func main() -> dynamic
 {
   fast();
-  var n: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(n, q);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var nxt = cpp_construct(26, vector((n + 2), (n + 1)));
+  var nxt: dynamic = cpp_construct(26, vector((n + 2), (n + 1)));
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
       nxt[(s[i] - cpp_char("a"))][i] = i;
@@ -61,11 +61,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       {
-        var j = (n - 1);
+        var j: dynamic = (n - 1);
         while ((j >= 0))
         {
           nxt[i][j] = min(nxt[i][j], nxt[i][(j + 1)]);
@@ -75,15 +75,15 @@ func main()
       i += 1;
     }
   }
-  var dp = cpp_construct(256, vector(256, vector(256, (n + 1))));
+  var dp: dynamic = cpp_construct(256, vector(256, vector(256, (n + 1))));
   dp[0][0][0] = 0;
-  var l = cpp_construct(3);
-  var t = cpp_construct(3, "");
+  var l: dynamic = cpp_construct(3);
+  var t: dynamic = cpp_construct(3, "");
   while (cpp_update(q, "--"))
   {
-    var ch: dynamic;
-    var c: dynamic;
-    var idx: dynamic;
+    var ch: dynamic = cpp_uninitialized();
+    var c: dynamic = cpp_uninitialized();
+    var idx: dynamic = cpp_uninitialized();
     read(ch, idx);
     idx -= 1;
     if ((ch == cpp_char("+")))
@@ -93,19 +93,19 @@ func main()
       t[idx] += c;
     }
     42;
-    var lim0 = (if ((idx == 0)) l[0] else 0);
-    var lim1 = (if ((idx == 1)) l[1] else 0);
-    var lim2 = (if ((idx == 2)) l[2] else 0);
+    var lim0: dynamic = ( ((idx == 0)) ? l[0] : 0);
+    var lim1: dynamic = ( ((idx == 1)) ? l[1] : 0);
+    var lim2: dynamic = ( ((idx == 2)) ? l[2] : 0);
     {
-      var i = lim0;
+      var i: dynamic = lim0;
       while ((i <= l[0]))
       {
         {
-          var j = lim1;
+          var j: dynamic = lim1;
           while ((j <= l[1]))
           {
             {
-              var k = lim2;
+              var k: dynamic = lim2;
               while ((k <= l[2]))
               {
                 dp[i][j][k] = (n + 1);

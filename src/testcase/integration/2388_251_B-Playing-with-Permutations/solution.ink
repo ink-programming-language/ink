@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var q = cpp_array(110);
+var q: dynamic = cpp_array(110);
 
-var a = cpp_array(110);
+var a: dynamic = cpp_array(110);
 
-var p1 = cpp_array(110, 110);
+var p1: dynamic = cpp_array(110, 110);
 
-var p2 = cpp_array(110, 110);
+var p2: dynamic = cpp_array(110, 110);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var v1: dynamic;
-  var v2: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var v1: dynamic = cpp_uninitialized();
+  var v2: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&q[i]));
@@ -24,7 +24,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -32,7 +32,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       p1[0][i] = cpp_assign(p2[0][i], "=", i);
@@ -40,11 +40,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           p1[i][q[j]] = p1[(i - 1)][j];
@@ -55,15 +55,15 @@ func main()
       i += 1;
     }
   }
-  var fff: dynamic;
+  var fff: dynamic = cpp_uninitialized();
   v1 = cpp_assign(v2, "=", -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= k))
     {
       fff = true;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while (((j <= n) && fff))
         {
           if ((p1[i][j] != a[j]))
@@ -79,7 +79,7 @@ func main()
       }
       fff = true;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while (((j <= n) && fff))
         {
           if ((p2[i][j] != a[j]))
@@ -96,7 +96,7 @@ func main()
       i += 1;
     }
   }
-  var flag = false;
+  var flag: dynamic = false;
   if (((v1 >= k) || (v2 >= k)))
   {
     if (((v1 == k) || (v2 == k)))
@@ -129,6 +129,6 @@ func main()
   {
     flag = false;
   }
-  printf("%s\n", if (flag) "YES" else "NO");
+  printf("%s\n",  (flag) ? "YES" : "NO");
   return 0;
 }

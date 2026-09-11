@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if ((((i % 2) == 0) && (s[i] == cpp_char("L"))))

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var tc = 0;
+var tc: dynamic = 0;
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   if ((tc < 0))
@@ -22,14 +22,14 @@ func main()
   return 0;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var l: dynamic;
-  var r: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   read(n, l, r);
   l -= 1;
   r -= 1;
-  var a = 1;
+  var a: dynamic = 1;
   while (1)
   {
     if ((l > (2 * ((n - a)))))
@@ -42,8 +42,8 @@ func solve()
       break;
     }
   }
-  var ans: dynamic;
-  var b = (a + 1);
+  var ans: dynamic = cpp_uninitialized();
+  var b: dynamic = (a + 1);
   while ((ans.size() <= (r + 1)))
   {
     ans.push_back(a);
@@ -61,7 +61,7 @@ func solve()
     }
   }
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i <= r))
     {
       write(ans[i], " ");

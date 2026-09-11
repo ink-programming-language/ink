@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-var Inf = 0x3f3f3f3f;
+var Inf: dynamic = 0x3f3f3f3f;
 
-var INF = 0x3f3f3f3f3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var inF = 11451419198101145141919810.1145141919810;
+var inF: dynamic = 11451419198101145141919810.1145141919810;
 
-var pi = acosl(-1);
+var pi: dynamic = acosl(-1);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func ask(x: dynamic)
+func ask(x: dynamic) -> dynamic
 {
   printf("? %lld\n", x);
   fflush(stdout);
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   scanf("%d", (&res));
   return res;
 }
 
-func answer(x: dynamic)
+func answer(x: dynamic) -> dynamic
 {
   printf("= %lld\n", x);
   fflush(stdout);
 }
 
-func solve()
+func solve() -> dynamic
 {
   scanf("%lld", (&n));
-  var ps: dynamic;
-  var l = 1;
-  var r = (n - 1);
+  var ps: dynamic = cpp_uninitialized();
+  var l: dynamic = 1;
+  var r: dynamic = (n - 1);
   while ((l <= r))
   {
-    var m = (((l + r)) >> 1);
+    var m: dynamic = (((l + r)) >> 1);
     ps.push_back(m);
     if (((l == r) && (m == (n - 1))))
     {
@@ -42,9 +42,9 @@ func solve()
     l = (m + 1);
   }
   reverse((ps).begin(), (ps).end());
-  var now = n;
-  var pre = n;
-  var tol = 1;
+  var now: dynamic = n;
+  var pre: dynamic = n;
+  var tol: dynamic = 1;
   {
     typeof((ps).begin()) = (ps).begin();
     e_D = (ps).end();
@@ -71,11 +71,11 @@ func solve()
   }
   l = 1;
   r = (n - 1);
-  var res = n;
+  var res: dynamic = n;
   ask(now);
   while ((r >= l))
   {
-    var m = (((l + r)) >> 1);
+    var m: dynamic = (((l + r)) >> 1);
     if (tol)
     {
       now -= m;
@@ -96,9 +96,9 @@ func solve()
   answer(res);
 }
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   scanf("%d", (&T));
   while (cpp_update(T, "--"))
   {

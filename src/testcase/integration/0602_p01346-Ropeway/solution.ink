@@ -1,45 +1,45 @@
 // Translated from solution.cpp.
 
-var DE = cpp_expression("#");
+var DE: dynamic = cpp_expression("#");
 
-var FI = cpp_expression("#incl");
+var FI: dynamic = cpp_expression("#incl");
 
-var SE = cpp_expression("#inclu");
+var SE: dynamic = cpp_expression("#inclu");
 
-var PB = cpp_expression("#include");
+var PB: dynamic = cpp_expression("#include");
 
-var MP = cpp_expression("#include");
+var MP: dynamic = cpp_expression("#include");
 
-func ALL(s: dynamic)
+func ALL(s: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #");
 }
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int i = 0; i < (int)(n); ++i)");
 }
 
-func EACH(i: dynamic, s: dynamic)
+func EACH(i: dynamic, s: dynamic) -> dynamic
 {
   cpp_macro("for (__typeof__((s).begin()) i = (s).begin(); i != (s).end(); ++i)");
 }
 
-func COUT(x: dynamic)
+func COUT(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #include <sstream> #include");
 }
 
-func operator_shift_left(s: dynamic, P: dynamic)
+func operator_shift_left(s: dynamic, P: dynamic) -> dynamic
 {
   return (((((s << cpp_char("<")) << P.first) << ", ") << P.second) << cpp_char(">"));
 }
 
-func operator_shift_left(s: dynamic, P: dynamic)
+func operator_shift_left(s: dynamic, P: dynamic) -> dynamic
 {
   (s << "{ ");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < P.size()))
     {
       if ((i > 0))
@@ -53,7 +53,7 @@ func operator_shift_left(s: dynamic, P: dynamic)
   return ((s << " }") << endl);
 }
 
-func operator_shift_left(s: dynamic, P: dynamic)
+func operator_shift_left(s: dynamic, P: dynamic) -> dynamic
 {
   (s << "{ ");
   {
@@ -71,24 +71,24 @@ func operator_shift_left(s: dynamic, P: dynamic)
   return ((s << " }") << endl);
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-var m = cpp_array(105);
+var m: dynamic = cpp_array(105);
 
-var dp = cpp_array(20100, 105);
+var dp: dynamic = cpp_array(20100, 105);
 
-func main()
+func main() -> dynamic
 {
   while (((((cin >> N) >> L) >> M) >> R))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         read(m[i]);
@@ -100,11 +100,11 @@ func main()
     M *= 2;
     dp[0][0] = 1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= N))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= M))
           {
             if ((dp[i][j] <= 0))
@@ -112,10 +112,10 @@ func main()
               j += 1;
               continue;
             }
-            var l1 = max(0, (j + (m[i] * R)));
-            var r1 = (min(M, (j + (m[i] * L))) + 1);
-            var l2: dynamic;
-            var r2: dynamic;
+            var l1: dynamic = max(0, (j + (m[i] * R)));
+            var r1: dynamic = (min(M, (j + (m[i] * L))) + 1);
+            var l2: dynamic = cpp_uninitialized();
+            var r2: dynamic = cpp_uninitialized();
             if (((j - (m[i] * L)) >= 0))
             {
               l2 = (j - (m[i] * L));
@@ -143,7 +143,7 @@ func main()
           }
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= M))
           {
             dp[(i + 1)][(j + 1)] += dp[(i + 1)][j];
@@ -153,9 +153,9 @@ func main()
         i += 1;
       }
     }
-    var exist = false;
+    var exist: dynamic = false;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= M))
       {
         if ((dp[N][i] > 0))

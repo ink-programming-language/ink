@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-var BIG_NUM = cpp_expression("#include <");
+var BIG_NUM: dynamic = cpp_expression("#include <");
 
-var MOD = cpp_expression("#include <");
+var MOD: dynamic = cpp_expression("#include <");
 
-var PRIME1 = cpp_expression("#include");
+var PRIME1: dynamic = cpp_expression("#include");
 
-var PRIME2 = cpp_expression("#include");
+var PRIME2: dynamic = cpp_expression("#include");
 
-var EPS = cpp_expression("#include <");
+var EPS: dynamic = cpp_expression("#include <");
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-func func_cpp()
+func func_cpp() -> dynamic
 {
-  var baseTable = cpp_array(N);
-  var baseValue = 0;
+  var baseTable: dynamic = cpp_array(N);
+  var baseValue: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       scanf("%d", (&baseTable[i]));
       i += 1;
     }
   }
-  var tmp = 1;
-  var pre: dynamic;
+  var tmp: dynamic = 1;
+  var pre: dynamic = cpp_uninitialized();
   {
-    var p = 0;
+    var p: dynamic = 0;
     while ((p < K))
     {
       tmp *= baseTable[p];
@@ -39,7 +39,7 @@ func func_cpp()
   baseValue = tmp;
   pre = tmp;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (N - K)))
     {
       tmp = (((pre / baseTable[(i - 1)])) * baseTable[((i + K) - 1)]);
@@ -48,20 +48,20 @@ func func_cpp()
       i += 1;
     }
   }
-  var nextValue = 0;
-  var tmpValue: dynamic;
+  var nextValue: dynamic = 0;
+  var tmpValue: dynamic = cpp_uninitialized();
   {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a < (N - 1)))
     {
       {
-        var b = (a + 1);
+        var b: dynamic = (a + 1);
         while ((b < N))
         {
           swap(baseTable[a], baseTable[b]);
           tmp = 1;
           {
-            var p = 0;
+            var p: dynamic = 0;
             while ((p < K))
             {
               tmp *= baseTable[p];
@@ -71,7 +71,7 @@ func func_cpp()
           tmpValue = tmp;
           pre = tmp;
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= (N - K)))
             {
               tmp = (((pre / baseTable[(i - 1)])) * baseTable[((i + K) - 1)]);
@@ -97,7 +97,7 @@ func func_cpp()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   while (true)
   {

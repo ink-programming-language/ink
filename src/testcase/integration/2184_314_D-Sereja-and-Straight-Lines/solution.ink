@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
 class node
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var d = cpp_array(100005);
+var d: dynamic = cpp_array(100005);
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
   return (x.x < y.x);
 }
 
-var a = cpp_array(15, 100005);
+var a: dynamic = cpp_array(15, 100005);
 
-func chk(x: dynamic)
+func chk(x: dynamic) -> dynamic
 {
   {
-    var i = 1;
-    var j = 1;
+    var i: dynamic = 1;
+    var j: dynamic = 1;
     while ((i <= n))
     {
       while (((j < n) && ((d[(j + 1)].x - d[i].x) <= x)))
@@ -38,15 +38,15 @@ func chk(x: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%lld%lld", (&x), (&y));
       d[i].x = (x - y);
       d[i].y = (x + y);
@@ -59,7 +59,7 @@ func main()
   a[(n + 1)][3] = ((-1) << 40);
   a[(n + 1)][4] = (1 << 40);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i][1] = max(a[(i - 1)][1], d[i].y);
@@ -69,9 +69,9 @@ func main()
       i += 1;
     }
   }
-  var l = 0;
-  var r = (1 << 40);
-  var mid: dynamic;
+  var l: dynamic = 0;
+  var r: dynamic = (1 << 40);
+  var mid: dynamic = cpp_uninitialized();
   while ((l <= r))
   {
     mid = (((l + r)) >> 1);

@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(1005);
+var a: dynamic = cpp_array(1005);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while ((cin >> n))
   {
-    var x = 1;
-    var y = 1;
-    var z = 0;
-    var k = 0;
+    var x: dynamic = 1;
+    var y: dynamic = 1;
+    var z: dynamic = 0;
+    var k: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -20,7 +20,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((((a[i] == 1) && (x == 1)) && (y == 1)))

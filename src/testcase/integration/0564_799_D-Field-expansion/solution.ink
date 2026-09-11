@@ -1,45 +1,45 @@
 // Translated from solution.cpp.
 
-func chkmin(a: dynamic, b: dynamic)
+func chkmin(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a > b)) cpp_comma(cpp_assign(a, "=", b), 1) else 0;
+  return  ((a > b)) ? cpp_comma(cpp_assign(a, "=", b), 1) : 0;
 }
 
-func chkmax(a: dynamic, b: dynamic)
+func chkmax(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) cpp_comma(cpp_assign(a, "=", b), 1) else 0;
+  return  ((a < b)) ? cpp_comma(cpp_assign(a, "=", b), 1) : 0;
 }
 
-func smin(a: dynamic, b: dynamic)
+func smin(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a > b)) cpp_assign(a, "=", b) else a;
+  return  ((a > b)) ? cpp_assign(a, "=", b) : a;
 }
 
-func smax(a: dynamic, b: dynamic)
+func smax(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) cpp_assign(a, "=", b) else a;
+  return  ((a < b)) ? cpp_assign(a, "=", b) : a;
 }
 
-var N = (cpp_cast(2e5) + 5);
+var N: dynamic = (cpp_cast(2e5) + 5);
 
-var mod = cpp_cast(0);
+var mod: dynamic = cpp_cast(0);
 
-var sz = cpp_array(N);
+var sz: dynamic = cpp_array(N);
 
-var dp = cpp_array(N);
+var dp: dynamic = cpp_array(N);
 
-var odp = cpp_array(N);
+var odp: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var h: dynamic;
-  var w: dynamic;
-  var n: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(a, b, h, w, n);
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < n))
     {
       read(sz[j]);
@@ -50,11 +50,11 @@ func main()
   reverse(sz, (sz + n));
   dp[h] = 1;
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j <= min(n, 50)))
     {
       {
-        var k = a;
+        var k: dynamic = a;
         while ((k < N))
         {
           if (((dp[k] * w) >= b))
@@ -66,7 +66,7 @@ func main()
         }
       }
       {
-        var k = b;
+        var k: dynamic = b;
         while ((k < N))
         {
           if (((dp[k] * w) >= a))
@@ -82,10 +82,10 @@ func main()
       if ((j != n))
       {
         {
-          var k = 0;
+          var k: dynamic = 0;
           while ((k < N))
           {
-            var nxt = min((k * sz[j]), (N - 1));
+            var nxt: dynamic = min((k * sz[j]), (N - 1));
             dp[k] = max(dp[k], min(N, (odp[k] * sz[j])));
             dp[nxt] = max(dp[nxt], min(N, odp[k]));
             k += 1;

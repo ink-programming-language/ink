@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(105);
+var a: dynamic = cpp_array(105);
 
-var dp = cpp_array(105);
+var dp: dynamic = cpp_array(105);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dp[i] = (dp[(i - 1)] + ((a[i] == 0)));
@@ -26,10 +26,10 @@ func main()
       i += 1;
     }
   }
-  var res = cnt;
-  var one = 0;
+  var res: dynamic = cnt;
+  var one: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       one += a[i];

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var N = (1 << 15);
+var N: dynamic = (1 << 15);
 
-var Jie = cpp_array(N);
+var Jie: dynamic = cpp_array(N);
 
-var inv = cpp_array(N);
+var inv: dynamic = cpp_array(N);
 
-var jie = cpp_array(N);
+var jie: dynamic = cpp_array(N);
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   return (((1 * a) * b) % mod);
 }
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   a += b;
   if ((a >= mod))
@@ -25,26 +25,26 @@ func add(a: dynamic, b: dynamic)
   return;
 }
 
-func C(m: dynamic, n: dynamic)
+func C(m: dynamic, n: dynamic) -> dynamic
 {
   return mul(jie[m], mul(inv[n], inv[(m - n)]));
 }
 
-func CC(m: dynamic, n: dynamic)
+func CC(m: dynamic, n: dynamic) -> dynamic
 {
   return mul(Jie[m], inv[n]);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n = 1000000000;
-  var k = 32767;
+  var n: dynamic = 1000000000;
+  var k: dynamic = 32767;
   scanf("%d%d", (&n), (&k));
   Jie[0] = n;
   jie[0] = 1;
   inv[0] = cpp_assign(inv[1], "=", 1);
   {
-    var i = (2);
+    var i: dynamic = (2);
     while ((i < ((k + 1))))
     {
       inv[i] = (((((-1 * mod) / i) * inv[(mod % i)]) % mod) + mod);
@@ -52,7 +52,7 @@ func main()
     }
   }
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i < ((k + 1))))
     {
       Jie[i] = (n - i);
@@ -62,12 +62,12 @@ func main()
     }
   }
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i < ((min(k, n) + 1))))
     {
-      var ans = 0;
+      var ans: dynamic = 0;
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < ((i + 1))))
         {
           if (((n - j) < i))
@@ -79,7 +79,7 @@ func main()
         }
       }
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < ((k + 1))))
         {
           Jie[j] = (((1 * Jie[j]) * (((n - i) - j))) % mod);
@@ -91,7 +91,7 @@ func main()
     }
   }
   {
-    var i = ((min(k, n) + 1));
+    var i: dynamic = ((min(k, n) + 1));
     while ((i < ((k + 1))))
     {
       printf("0 ");

@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var f = cpp_array(105, 3);
+var f: dynamic = cpp_array(105, 3);
 
-var a = cpp_array(105, 3);
+var a: dynamic = cpp_array(105, 3);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 2))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           scanf("%d", (&a[i][j]));
@@ -26,11 +26,11 @@ func main()
   }
   f[1][1] = a[1][1];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 2))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           f[i][j] = (max(f[(i - 1)][j], f[i][(j - 1)]) + a[i][j]);

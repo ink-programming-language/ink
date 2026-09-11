@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var NMAX = (2e5 + 5);
+var NMAX: dynamic = (2e5 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var answer: dynamic;
+var answer: dynamic = cpp_uninitialized();
 
-var root: dynamic;
+var root: dynamic = cpp_uninitialized();
 
-var curr: dynamic;
+var curr: dynamic = cpp_uninitialized();
 
-var parent = cpp_array(NMAX);
+var parent: dynamic = cpp_array(NMAX);
 
-var vis = cpp_array(NMAX);
+var vis: dynamic = cpp_array(NMAX);
 
-var roots: dynamic;
+var roots: dynamic = cpp_uninitialized();
 
-func dfs(node: dynamic)
+func dfs(node: dynamic) -> dynamic
 {
   if ((vis[node] != 0))
   {
@@ -36,13 +36,13 @@ func dfs(node: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(parent[i]);
@@ -59,7 +59,7 @@ func main()
     answer = 1;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       curr += 1;
@@ -67,7 +67,7 @@ func main()
       i += 1;
     }
   }
-  for (var x in roots)
+  for (var x: dynamic in roots)
   {
     parent[x] = roots[0];
     answer += 1;
@@ -75,7 +75,7 @@ func main()
   answer -= 1;
   write(answer, cpp_char("\n"));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(parent[i], cpp_char(" "));

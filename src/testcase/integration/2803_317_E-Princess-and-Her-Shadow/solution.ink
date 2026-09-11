@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var matrix = cpp_array(1000, 1000);
+var matrix: dynamic = cpp_array(1000, 1000);
 
-var tmp = cpp_array(1000, 1000);
+var tmp: dynamic = cpp_array(1000, 1000);
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, 1, 0, -1];
+var dy: dynamic = [0, 1, 0, -1];
 
-var all: dynamic;
+var all: dynamic = cpp_uninitialized();
 
-func go(x: dynamic, y: dynamic)
+func go(x: dynamic, y: dynamic) -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   tmp[x][y] = 1;
   q.push(make_pair(x, y));
   all.push(make_pair(x, y));
@@ -22,7 +22,7 @@ func go(x: dynamic, y: dynamic)
     y = q.front().second;
     q.pop();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
         if ((((((x + dx[i]) >= 0) && ((x + dx[i]) <= 999)) && ((y + dy[i]) >= 0)) && ((y + dy[i]) <= 999)))
@@ -40,44 +40,44 @@ func go(x: dynamic, y: dynamic)
   }
 }
 
-var path = cpp_array(10000);
+var path: dynamic = cpp_array(10000);
 
-var cnt = 0;
+var cnt: dynamic = 0;
 
-func bfs(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
+func bfs(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic) -> dynamic
 {
   {
-    var i = 0;
-    var maxi = cpp_cast((all).size());
+    var i: dynamic = 0;
+    var maxi: dynamic = cpp_cast((all).size());
     while ((i < maxi))
     {
-      var x = all.front().first;
-      var y = all.front().second;
+      var x: dynamic = all.front().first;
+      var y: dynamic = all.front().second;
       all.pop();
       tmp[x][y] = 0;
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.push(make_pair(x1, y1));
   tmp[x1][y1] = 111;
   all.push(make_pair(x1, y1));
   while ((!q.empty()))
   {
     {
-      var i = 0;
-      var maxi = cpp_cast((q).size());
+      var i: dynamic = 0;
+      var maxi: dynamic = cpp_cast((q).size());
       while ((i < maxi))
       {
-        var x = q.front().first;
-        var y = q.front().second;
+        var x: dynamic = q.front().first;
+        var y: dynamic = q.front().second;
         q.pop();
         if (((x == x2) && (y == y2)))
         {
           cnt = 0;
           while (((x != x1) || (y != y1)))
           {
-            var j = (tmp[x][y] - 1);
+            var j: dynamic = (tmp[x][y] - 1);
             path[cpp_update(cnt, "++")] = j;
             x = (x - dx[j]);
             y = (y - dy[j]);
@@ -85,7 +85,7 @@ func bfs(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
           return;
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 4))
           {
             if ((((((x + dx[j]) >= 0) && ((x + dx[j]) <= 999)) && ((y + dy[j]) >= 0)) && ((y + dy[j]) <= 999)))
@@ -106,31 +106,31 @@ func bfs(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
   }
 }
 
-var ans = "";
+var ans: dynamic = "";
 
-func main()
+func main() -> dynamic
 {
-  var x1: dynamic;
-  var y1: dynamic;
-  var x2: dynamic;
-  var y2: dynamic;
+  var x1: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var x2: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
   scanf("%d %d %d %d", (&x1), (&y1), (&x2), (&y2));
   x1 += 500;
   y1 += 500;
   x2 += 500;
   y2 += 500;
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   scanf("%d", (&m));
-  var max_x = 0;
-  var min_x = 1000;
-  var max_y = 0;
-  var min_y = 1000;
+  var max_x: dynamic = 0;
+  var min_x: dynamic = 1000;
+  var max_y: dynamic = 0;
+  var min_y: dynamic = 1000;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d %d", (&x), (&y));
       x += 500;
       y += 500;
@@ -155,7 +155,7 @@ func main()
       write(ans);
       return 0;
     }
-    var flag = false;
+    var flag: dynamic = false;
     if ((min(y1, y2) > max_y))
     {
       while ((max(x1, x2) >= min_x))
@@ -221,10 +221,10 @@ func main()
     {
       if ((y2 > y1))
       {
-        var y = min_y;
-        var x: dynamic;
+        var y: dynamic = min_y;
+        var x: dynamic = cpp_uninitialized();
         {
-          var i = 300;
+          var i: dynamic = 300;
           while ((i < 700))
           {
             if ((matrix[i][y] == 255))
@@ -258,10 +258,10 @@ func main()
           y2 += 1;
           ans += "U";
         }
-        var y = max_y;
-        var x: dynamic;
+        var y: dynamic = max_y;
+        var x: dynamic = cpp_uninitialized();
         {
-          var i = 300;
+          var i: dynamic = 300;
           while ((i < 700))
           {
             if ((matrix[i][y] == 255))
@@ -302,10 +302,10 @@ func main()
           y1 -= 1;
           ans += "D";
         }
-        var x = min_x;
-        var y: dynamic;
+        var x: dynamic = min_x;
+        var y: dynamic = cpp_uninitialized();
         {
-          var i = 300;
+          var i: dynamic = 300;
           while ((i < 700))
           {
             if ((matrix[x][i] == 255))
@@ -347,10 +347,10 @@ func main()
           y1 -= 1;
           ans += "D";
         }
-        var x = max_x;
-        var y: dynamic;
+        var x: dynamic = max_x;
+        var y: dynamic = cpp_uninitialized();
         {
-          var i = 300;
+          var i: dynamic = 300;
           while ((i < 700))
           {
             if ((matrix[x][i] == 255))
@@ -382,7 +382,7 @@ func main()
     }
     bfs(x1, y1, x2, y2);
     {
-      var i = (cnt - 1);
+      var i: dynamic = (cnt - 1);
       while ((i >= 0))
       {
         if ((path[i] == 0))
@@ -398,7 +398,7 @@ func main()
         {
           ans += "D";
         }
-        var j = path[i];
+        var j: dynamic = path[i];
         x1 += dx[j];
         y1 += dy[j];
         if ((matrix[(x2 + dx[j])][(y2 + dy[j])] != 255))

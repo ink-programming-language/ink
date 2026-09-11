@@ -1,58 +1,58 @@
 // Translated from solution.cpp.
 
-var WMAX = cpp_expression("#in");
+var WMAX: dynamic = cpp_expression("#in");
 
-var HMAX = cpp_expression("#inc");
+var HMAX: dynamic = cpp_expression("#inc");
 
-var INF = cpp_expression("#includ");
+var INF: dynamic = cpp_expression("#includ");
 
-var M = cpp_array(HMAX);
+var M: dynamic = cpp_array(HMAX);
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var ha: dynamic;
+var ha: dynamic = cpp_uninitialized();
 
-var hb: dynamic;
+var hb: dynamic = cpp_uninitialized();
 
-var wa: dynamic;
+var wa: dynamic = cpp_uninitialized();
 
-var wb: dynamic;
+var wb: dynamic = cpp_uninitialized();
 
-var visited = cpp_array(WMAX, HMAX);
+var visited: dynamic = cpp_array(WMAX, HMAX);
 
-var flag45_1: dynamic;
+var flag45_1: dynamic = cpp_uninitialized();
 
-var flag45_2: dynamic;
+var flag45_2: dynamic = cpp_uninitialized();
 
 class A
 {
-  var S: dynamic;
-  var N: dynamic;
-  func A(S: dynamic, N: dynamic)
+  var S: dynamic = cpp_uninitialized();
+  var N: dynamic = cpp_uninitialized();
+  func A(S: dynamic, N: dynamic) -> dynamic
   {
-      this->S = S;
-      this->N = N;
+      self->S = S;
+      self->N = N;
     }
-  func operator_less(a: dynamic)
+  func operator_less(a: dynamic) -> dynamic
   {
       return (S < a.S);
     }
 }
 
-func rec(x: dynamic, y: dynamic, bi: dynamic)
+func rec(x: dynamic, y: dynamic, bi: dynamic) -> dynamic
 {
-  var dx = [1, 1, 0, -1, -1, -1, 0, 1];
-  var dy = [0, 1, 1, 1, 0, -1, -1, -1];
+  var dx: dynamic = [1, 1, 0, -1, -1, -1, 0, 1];
+  var dy: dynamic = [0, 1, 1, 1, 0, -1, -1, -1];
   ha = min(ha, y);
   hb = max(hb, y);
   wa = min(wa, x);
   wb = max(wb, x);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 8))
     {
-      var nx = (x + dx[i]);
-      var ny = (y + dy[i]);
+      var nx: dynamic = (x + dx[i]);
+      var ny: dynamic = (y + dy[i]);
       if (((ny < 0) || (ny >= h)))
       {
         i += 1;
@@ -91,16 +91,16 @@ func rec(x: dynamic, y: dynamic, bi: dynamic)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var cnt = cpp_array((WMAX * HMAX));
-  var smax: dynamic;
-  var smin: dynamic;
-  var V: dynamic;
+  var cnt: dynamic = cpp_array((WMAX * HMAX));
+  var smax: dynamic = cpp_uninitialized();
+  var smin: dynamic = cpp_uninitialized();
+  var V: dynamic = cpp_uninitialized();
   smax = (-INF);
   smin = INF;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (WMAX * HMAX)))
     {
       cnt[i] = 0;
@@ -108,11 +108,11 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < HMAX))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < WMAX))
         {
           visited[i][j] = false;
@@ -123,11 +123,11 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < M[i].length()))
         {
           if (((!visited[i][j]) && (M[i][j] == cpp_char("*"))))
@@ -137,9 +137,9 @@ func solve()
             flag45_1 = cpp_assign(flag45_2, "=", 0);
             visited[i][j] = true;
             rec(j, i, -1);
-            var nh = ((hb - ha) + 1);
-            var nw = ((wb - wa) + 1);
-            var S: dynamic;
+            var nh: dynamic = ((hb - ha) + 1);
+            var nw: dynamic = ((wb - wa) + 1);
+            var S: dynamic = cpp_uninitialized();
             S = (nh * nw);
             if (((!flag45_1) && (!flag45_2)))
             {
@@ -164,7 +164,7 @@ func solve()
     }
   }
   {
-    var i = smin;
+    var i: dynamic = smin;
     while ((i <= smax))
     {
       if (cnt[i])
@@ -176,7 +176,7 @@ func solve()
   }
   sort(V.begin(), V.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V.size()))
     {
       write(V[i].S, " ", V[i].N, "\n");
@@ -185,14 +185,14 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var first = true;
+  var first: dynamic = true;
   while ((((cin >> h)) && (h != 0)))
   {
     getchar();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < h))
       {
         getline(cin, M[i]);

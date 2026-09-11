@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-var N = (5e6 + 10);
+var N: dynamic = (5e6 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var A = cpp_array(N);
+var A: dynamic = cpp_array(N);
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var tlen: dynamic;
+var tlen: dynamic = cpp_uninitialized();
 
-var z = cpp_array((N << 1));
+var z: dynamic = cpp_array((N << 1));
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var t = cpp_array(N);
+var t: dynamic = cpp_array(N);
 
-var S = cpp_array(N);
+var S: dynamic = cpp_array(N);
 
-var T = cpp_array(N);
+var T: dynamic = cpp_array(N);
 
-var SS = cpp_array((N << 1));
+var SS: dynamic = cpp_array((N << 1));
 
-func check(len: dynamic)
+func check(len: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= len))
     {
       if ((T[i] < S[i]))
@@ -44,7 +44,7 @@ func check(len: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= len))
     {
       T[i] = S[i];
@@ -54,7 +54,7 @@ func check(len: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s%d", (s + 1), (&k));
   n = strlen((s + 1));
@@ -62,7 +62,7 @@ func main()
   if ((k == 1))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         t[i] = s[((n - i) + 1)];
@@ -70,7 +70,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if ((s[i] < t[i]))
@@ -87,11 +87,11 @@ func main()
     return cpp_comma(printf("%s", (s + 1)), 0);
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var j = i;
-      var k = (i + 1);
+      var j: dynamic = i;
+      var k: dynamic = (i + 1);
       while (((k <= n) && (s[j] <= s[k])))
       {
         if ((s[j] < s[k]))
@@ -115,7 +115,7 @@ func main()
   while (((m > 0) && (k >= 3)))
   {
     {
-      var i = A[m];
+      var i: dynamic = A[m];
       while ((i <= (A[(m + 1)] - 1)))
       {
         t[cpp_update(tlen, "++")] = s[i];
@@ -134,7 +134,7 @@ func main()
   }
   T[1] = (cpp_char("z") + 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (A[(m + 1)] - 1)))
     {
       S[i] = s[(A[(m + 1)] - i)];
@@ -143,16 +143,16 @@ func main()
   }
   check((A[(m + 1)] - 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (A[(m + 1)] - 1)))
     {
       SS[i] = cpp_assign(SS[((i + A[(m + 1)]) - 1)], "=", s[i]);
       i += 1;
     }
   }
-  var x = 1;
-  var y = 2;
-  var k = 0;
+  var x: dynamic = 1;
+  var y: dynamic = 2;
+  var k: dynamic = 0;
   {
     while ((((x <= (A[(m + 1)] - 1)) && (y <= (A[(m + 1)] - 1))) && (k <= (A[(m + 1)] - 2))))
     {
@@ -175,7 +175,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (A[(m + 1)] - 1)))
     {
       S[i] = SS[((min(x, y) + i) - 1)];
@@ -184,7 +184,7 @@ func main()
   }
   check((A[(m + 1)] - 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (A[(m + 1)] - 1)))
     {
       SS[i] = s[i];
@@ -192,21 +192,21 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (A[(m + 1)] - 1)))
     {
       SS[((i + A[(m + 1)]) - 1)] = s[(A[(m + 1)] - i)];
       i += 1;
     }
   }
-  var len = (2 * ((A[(m + 1)] - 1)));
+  var len: dynamic = (2 * ((A[(m + 1)] - 1)));
   {
-    var i = 2;
-    var mr = 1;
-    var ml: dynamic;
+    var i: dynamic = 2;
+    var mr: dynamic = 1;
+    var ml: dynamic = cpp_uninitialized();
     while ((i <= len))
     {
-      z[i] = (if ((i < mr)) min(z[((i - ml) + 1)], (mr - i)) else 0);
+      z[i] = ( ((i < mr)) ? min(z[((i - ml) + 1)], (mr - i)) : 0);
       while ((SS[(z[i] + 1)] == SS[(i + z[i])]))
       {
         z[i] += 1;
@@ -222,12 +222,12 @@ func main()
   z[1] = len;
   k = A[(m + 1)];
   {
-    var i = (A[(m + 1)] - 1);
+    var i: dynamic = (A[(m + 1)] - 1);
     while ((i >= 1))
     {
-      var l = (A[(m + 1)] - i);
-      var r = ((A[(m + 1)] - k) + 1);
-      var op = z[((r + A[(m + 1)]) - 1)];
+      var l: dynamic = (A[(m + 1)] - i);
+      var r: dynamic = ((A[(m + 1)] - k) + 1);
+      var op: dynamic = z[((r + A[(m + 1)]) - 1)];
       if ((op < ((l - r) + 1)))
       {
         if ((SS[(op + 1)] > SS[((k - op) - 1)]))
@@ -247,9 +247,9 @@ func main()
       i -= 1;
     }
   }
-  var tot = 0;
+  var tot: dynamic = 0;
   {
-    var i = (A[(m + 1)] - 1);
+    var i: dynamic = (A[(m + 1)] - 1);
     while ((i >= k))
     {
       S[cpp_update(tot, "++")] = SS[i];
@@ -257,7 +257,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (k - 1)))
     {
       S[cpp_update(tot, "++")] = SS[i];
@@ -266,19 +266,19 @@ func main()
   }
   check((A[(m + 1)] - 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (A[(m + 1)] - 1)))
     {
       SS[i] = s[i];
       i += 1;
     }
   }
-  var p = m;
+  var p: dynamic = m;
   while (((((A[(p + 1)] - A[p])) * 2) <= (((A[p] - A[(p - 1)])) + 1)))
   {
-    var flag = 0;
+    var flag: dynamic = 0;
     {
-      var i = (A[p] - 1);
+      var i: dynamic = (A[p] - 1);
       while ((i >= A[(p - 1)]))
       {
         if ((SS[i] < SS[(((A[(m + 1)] - 1) - i) + A[(p - 1)])]))
@@ -302,7 +302,7 @@ func main()
   p = A[p];
   tot = 0;
   {
-    var i = p;
+    var i: dynamic = p;
     while ((i <= (A[(m + 1)] - 1)))
     {
       S[cpp_update(tot, "++")] = SS[i];
@@ -310,7 +310,7 @@ func main()
     }
   }
   {
-    var i = (p - 1);
+    var i: dynamic = (p - 1);
     while ((i >= 1))
     {
       S[cpp_update(tot, "++")] = SS[i];
@@ -319,7 +319,7 @@ func main()
   }
   check((A[(m + 1)] - 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (A[(m + 1)] - 1)))
     {
       t[cpp_update(tlen, "++")] = T[i];

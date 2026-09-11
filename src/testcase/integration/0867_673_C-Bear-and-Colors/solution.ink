@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var t = cpp_array(5005);
+var t: dynamic = cpp_array(5005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var used = cpp_array(5005);
+var used: dynamic = cpp_array(5005);
 
-var ret = cpp_array(5005);
+var ret: dynamic = cpp_array(5005);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(t[i]);
@@ -20,15 +20,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       memset(used, 0, cpp_sizeof(used));
       used[t[i]] += 1;
-      var mx = t[i];
+      var mx: dynamic = t[i];
       ret[t[i]] += 1;
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < n))
         {
           used[t[j]] += 1;
@@ -44,7 +44,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(ret[i], " ");

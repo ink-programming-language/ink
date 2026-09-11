@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var mod = cpp_expression("#include <");
+var mod: dynamic = cpp_expression("#include <");
 
-var sp = cpp_expression("#in");
+var sp: dynamic = cpp_expression("#in");
 
-var intmax = cpp_expression("#include <");
+var intmax: dynamic = cpp_expression("#include <");
 
-var llmax = cpp_expression("#include <bits/stdc");
+var llmax: dynamic = cpp_expression("#include <bits/stdc");
 
-var mkp = cpp_expression("#include");
+var mkp: dynamic = cpp_expression("#include");
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var DP = cpp_array(4001, 4001);
+var DP: dynamic = cpp_array(4001, 4001);
 
-var R = cpp_array(2001);
+var R: dynamic = cpp_array(2001);
 
-var B = cpp_array(2001);
+var B: dynamic = cpp_array(2001);
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(S);
   N = S.size();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
-      var __cpp_switch_1 = S[(i - 1)];
+      var __cpp_switch_1: dynamic = S[(i - 1)];
       if (__cpp_switch_1 == cpp_char("0"))
       {
         R[i] = 2;
@@ -51,11 +51,11 @@ func main()
   }
   DP[0][0] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (N * 2)))
     {
       {
-        var j = max(0, (i - B[min(i, N)]));
+        var j: dynamic = max(0, (i - B[min(i, N)]));
         while (((j <= R[min(i, N)]) && (j <= i)))
         {
           if (((j + 1) <= R[min((i + 1), N)]))

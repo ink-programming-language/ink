@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a = 0;
-  var b = 0;
-  var c = 0;
-  var S: dynamic;
+  var a: dynamic = 0;
+  var b: dynamic = 0;
+  var c: dynamic = 0;
+  var S: dynamic = cpp_uninitialized();
   read(S);
-  var n = S.length();
+  var n: dynamic = S.length();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var val = (S[i] - cpp_char("a"));
+      var val: dynamic = (S[i] - cpp_char("a"));
       if ((val == 0))
       {
         a += 1;
@@ -28,9 +28,9 @@ func main()
       i += 1;
     }
   }
-  var ab = abs((a - b));
-  var bc = abs((b - c));
-  var ca = abs((c - a));
+  var ab: dynamic = abs((a - b));
+  var bc: dynamic = abs((b - c));
+  var ca: dynamic = abs((c - a));
   if ((((ab < 2) && (bc < 2)) && (ca < 2)))
   {
     write("YES", "\n");

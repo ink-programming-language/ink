@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var MAX = 100000;
+var MAX: dynamic = 100000;
 
-var NIL = -1;
+var NIL: dynamic = -1;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var G = cpp_array(MAX);
+var G: dynamic = cpp_array(MAX);
 
-var color = cpp_array(MAX);
+var color: dynamic = cpp_array(MAX);
 
-func dfs(r: dynamic, c: dynamic)
+func dfs(r: dynamic, c: dynamic) -> dynamic
 {
-  var S: dynamic;
+  var S: dynamic = cpp_uninitialized();
   S.push(r);
   color[r] = c;
   while ((!S.empty()))
   {
-    var u = S.top();
+    var u: dynamic = S.top();
     S.pop();
-    var i: dynamic;
+    var i: dynamic = cpp_uninitialized();
     {
       i = 0;
       while ((i < G[u].size()))
       {
-        var v: dynamic;
+        var v: dynamic = cpp_uninitialized();
         v = G[u][i];
         if ((color[v] == NIL))
         {
@@ -37,11 +37,11 @@ func dfs(r: dynamic, c: dynamic)
   }
 }
 
-func ass()
+func ass() -> dynamic
 {
-  var id = 1;
-  var i: dynamic;
-  var u: dynamic;
+  var id: dynamic = 1;
+  var i: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < n))
@@ -63,14 +63,14 @@ func ass()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var t: dynamic;
-  var m: dynamic;
-  var q: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(n, m);
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < m))

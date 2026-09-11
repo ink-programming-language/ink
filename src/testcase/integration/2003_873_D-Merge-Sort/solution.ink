@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var arr = cpp_array(132005);
+var arr: dynamic = cpp_array(132005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var init_cnt = 1;
+var init_cnt: dynamic = 1;
 
-var cnt = cpp_array((132005 << 1));
+var cnt: dynamic = cpp_array((132005 << 1));
 
-func init(l: dynamic, r: dynamic, p: dynamic)
+func init(l: dynamic, r: dynamic, p: dynamic) -> dynamic
 {
   if (((r - l) <= 1))
   {
     return;
   }
-  var mid = (((l + r)) >> 1);
-  var lch = (p << 1);
-  var rch = ((p << 1) | 1);
+  var mid: dynamic = (((l + r)) >> 1);
+  var lch: dynamic = (p << 1);
+  var rch: dynamic = ((p << 1) | 1);
   init_cnt += 2;
   cnt[p] += 2;
   init(l, mid, lch);
@@ -26,9 +26,9 @@ func init(l: dynamic, r: dynamic, p: dynamic)
   cnt[p] += (cnt[lch] + cnt[rch]);
 }
 
-var fix: dynamic;
+var fix: dynamic = cpp_uninitialized();
 
-func divide(l: dynamic, r: dynamic, p: dynamic)
+func divide(l: dynamic, r: dynamic, p: dynamic) -> dynamic
 {
   if (((r - l) <= 1))
   {
@@ -40,9 +40,9 @@ func divide(l: dynamic, r: dynamic, p: dynamic)
     fix -= cnt[p];
   } else
   {
-    var mid = (((l + r)) >> 1);
-    var lch = (p << 1);
-    var rch = ((p << 1) | 1);
+    var mid: dynamic = (((l + r)) >> 1);
+    var lch: dynamic = (p << 1);
+    var rch: dynamic = ((p << 1) | 1);
     if ((cnt[lch] <= fix))
     {
       sort((arr + l), (arr + mid));
@@ -62,7 +62,7 @@ func divide(l: dynamic, r: dynamic, p: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
@@ -70,7 +70,7 @@ func main()
   memset(cnt, 0, cpp_sizeof(cnt));
   init(0, n, 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       arr[i] = (n - i);
@@ -90,7 +90,7 @@ func main()
     } else
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((i != 0))

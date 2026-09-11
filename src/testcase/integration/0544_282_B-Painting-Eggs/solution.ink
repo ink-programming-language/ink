@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(1000005, 3);
+var dp: dynamic = cpp_array(1000005, 3);
 
-var A = cpp_array(1000005);
+var A: dynamic = cpp_array(1000005);
 
-var B = cpp_array(1000005);
+var B: dynamic = cpp_array(1000005);
 
-var ma = cpp_array(1000005, 3);
+var ma: dynamic = cpp_array(1000005, 3);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var x: dynamic;
-  var e1: dynamic;
-  var e2: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var e1: dynamic = cpp_uninitialized();
+  var e2: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d%d", (&A[i]), (&B[i]));
@@ -26,7 +26,7 @@ func main()
   dp[0][0] = make_pair(A[0], 0);
   dp[1][0] = make_pair(0, B[0]);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       e1 = dp[0][(i - 1)];
@@ -57,9 +57,9 @@ func main()
     write("-1", "\n");
     return 0;
   }
-  var l: dynamic;
-  var idx = (n - 1);
-  var padre: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var idx: dynamic = (n - 1);
+  var padre: dynamic = cpp_uninitialized();
   if ((abs((dp[0][(n - 1)].first - dp[0][(n - 1)].second)) <= 500))
   {
     padre = 1;
@@ -80,7 +80,7 @@ func main()
     l.push_back(padre);
   }
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
       if ((l[i] == 1))

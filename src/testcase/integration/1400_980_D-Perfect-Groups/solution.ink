@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var N = 5005;
+var N: dynamic = 5005;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(N, N);
+var cnt: dynamic = cpp_array(N, N);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
-      var f = 1;
+      var f: dynamic = 1;
       if ((a[i] < 0))
       {
         f = -1;
         a[i] = (-a[i]);
       }
       {
-        var j = 2;
+        var j: dynamic = 2;
         while (((j * j) <= a[i]))
         {
           while (((a[i] % ((j * j))) == 0))
@@ -45,7 +45,7 @@ func main()
       } else
       {
         {
-          var j = (i - 1);
+          var j: dynamic = (i - 1);
           while (j)
           {
             if ((a[i] == a[j]))
@@ -63,14 +63,14 @@ func main()
   }
   ans[1] = n;
   {
-    var l = 2;
+    var l: dynamic = 2;
     while ((l <= n))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((((i + l) - 1) <= n))
         {
-          var j = ((i + l) - 1);
+          var j: dynamic = ((i + l) - 1);
           cnt[i][j] = cnt[i][(j - 1)];
           if ((p[j] < i))
           {
@@ -84,7 +84,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(ans[i], " ");

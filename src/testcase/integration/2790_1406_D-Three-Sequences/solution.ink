@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
-  var a = cpp_construct((n + 2));
+  var a: dynamic = cpp_construct((n + 2));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&a[i]));
       i += 1;
     }
   }
-  var f = cpp_construct((n + 2));
+  var f: dynamic = cpp_construct((n + 2));
   f[1] = a[1];
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       f[i] = (a[i] - a[(i - 1)]);
       i += 1;
     }
   }
-  var sum = a[1];
+  var sum: dynamic = a[1];
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       if ((f[i] > 0))
@@ -36,7 +36,7 @@ func main()
       i += 1;
     }
   }
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   if ((sum >= 0))
   {
     ans = ((sum / 2) + (sum % 2));
@@ -45,16 +45,16 @@ func main()
     ans = (sum / 2);
   }
   printf("%lld\n", ans);
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   while (cpp_update(q, "--"))
   {
-    var l: dynamic;
-    var r: dynamic;
-    var x: dynamic;
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
     scanf("%d%d%lld", (&l), (&r), (&x));
-    var tl = f[l];
-    var tr = f[(r + 1)];
+    var tl: dynamic = f[l];
+    var tr: dynamic = f[(r + 1)];
     if ((x != 0))
     {
       f[l] += x;

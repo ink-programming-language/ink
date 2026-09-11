@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var M = 1000000;
+var M: dynamic = 1000000;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var sch = cpp_array(20, 400);
+var sch: dynamic = cpp_array(20, 400);
 
-var dp = cpp_array(M, 2);
+var dp: dynamic = cpp_array(M, 2);
 
-var dy = [0, -1, 0, 1, 0];
+var dy: dynamic = [0, -1, 0, 1, 0];
 
-var dx = [0, 0, 1, 0, -1];
+var dx: dynamic = [0, 0, 1, 0, -1];
 
-var table = cpp_array(5, 5);
+var table: dynamic = cpp_array(5, 5);
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   while (cpp_comma((cin >> n), n))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 16))
           {
             read(sch[i][j]);
@@ -38,7 +38,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < M))
       {
         dp[0][i] = false;
@@ -47,13 +47,13 @@ func main()
     }
     dp[0][4] = ((((!sch[0][5]) && (!sch[0][6])) && (!sch[0][9])) && (!sch[0][10]));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
-        var now = (i & 1);
-        var nxt = (1 - now);
+        var now: dynamic = (i & 1);
+        var nxt: dynamic = (1 - now);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < M))
           {
             dp[nxt][j] = false;
@@ -61,40 +61,40 @@ func main()
           }
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < M))
           {
             if (dp[now][j])
             {
               {
-                var ii = 0;
+                var ii: dynamic = 0;
                 while ((ii < 4))
                 {
                   {
-                    var jj = 0;
+                    var jj: dynamic = 0;
                     while ((jj < 4))
                     {
-                      table[ii][jj] = (if (((i < 5))) true else false);
+                      table[ii][jj] = ( (((i < 5))) ? true : false);
                       jj += 1;
                     }
                   }
                   ii += 1;
                 }
               }
-              var tmp = j;
+              var tmp: dynamic = j;
               {
-                var z = 0;
+                var z: dynamic = 0;
                 while ((z < 6))
                 {
-                  var pos = (tmp % 10);
+                  var pos: dynamic = (tmp % 10);
                   y = (pos / 3);
                   x = (pos % 3);
                   {
-                    var ii = 0;
+                    var ii: dynamic = 0;
                     while ((ii <= 1))
                     {
                       {
-                        var jj = 0;
+                        var jj: dynamic = 0;
                         while ((jj <= 1))
                         {
                           table[(y + ii)][(x + jj)] = true;
@@ -112,28 +112,28 @@ func main()
               y = (tmp / 3);
               x = (tmp % 3);
               {
-                var ii = 1;
+                var ii: dynamic = 1;
                 while ((ii <= 2))
                 {
                   {
-                    var jj = 0;
+                    var jj: dynamic = 0;
                     while ((jj <= 4))
                     {
-                      var f = true;
-                      var ny = (y + (ii * dy[jj]));
-                      var nx = (x + (ii * dx[jj]));
+                      var f: dynamic = true;
+                      var ny: dynamic = (y + (ii * dy[jj]));
+                      var nx: dynamic = (x + (ii * dx[jj]));
                       if (((((ny < 0) || (nx < 0)) || (ny >= 3)) || (nx >= 3)))
                       {
                         jj += 1;
                         continue;
                       }
-                      var piyo = cpp_array(5, 5);
+                      var piyo: dynamic = cpp_array(5, 5);
                       {
-                        var iii = 0;
+                        var iii: dynamic = 0;
                         while ((iii < 4))
                         {
                           {
-                            var jjj = 0;
+                            var jjj: dynamic = 0;
                             while ((jjj < 4))
                             {
                               piyo[iii][jjj] = table[iii][jjj];
@@ -144,11 +144,11 @@ func main()
                         }
                       }
                       {
-                        var iii = 0;
+                        var iii: dynamic = 0;
                         while ((iii <= 1))
                         {
                           {
-                            var jjj = 0;
+                            var jjj: dynamic = 0;
                             while ((jjj <= 1))
                             {
                               if (sch[(i + 1)][(((((ny + iii)) * 4) + nx) + jjj)])
@@ -164,11 +164,11 @@ func main()
                         }
                       }
                       {
-                        var iii = 0;
+                        var iii: dynamic = 0;
                         while ((iii < 4))
                         {
                           {
-                            var jjj = 0;
+                            var jjj: dynamic = 0;
                             while ((jjj < 4))
                             {
                               if ((!piyo[iii][jjj]))
@@ -196,9 +196,9 @@ func main()
         i += 1;
       }
     }
-    var ans = false;
+    var ans: dynamic = false;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < M))
       {
         ans |= dp[(((n - 1)) & 1)][i];

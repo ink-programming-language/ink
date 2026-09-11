@@ -1,53 +1,53 @@
 // Translated from solution.cpp.
 
-var inf = cpp_cast(1e9);
+var inf: dynamic = cpp_cast(1e9);
 
-var linf = cpp_cast(1e18);
+var linf: dynamic = cpp_cast(1e18);
 
-var mod = (cpp_cast(1e9) + 7);
+var mod: dynamic = (cpp_cast(1e9) + 7);
 
-var eps = cpp_cast(1e-8);
+var eps: dynamic = cpp_cast(1e-8);
 
-var maxn = (cpp_cast(5e5) + 5);
+var maxn: dynamic = (cpp_cast(5e5) + 5);
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var cnt_cyc: dynamic;
+var cnt_cyc: dynamic = cpp_uninitialized();
 
-var t = cpp_array(maxn);
+var t: dynamic = cpp_array(maxn);
 
-var cyc = cpp_array(maxn);
+var cyc: dynamic = cpp_array(maxn);
 
-var tup = cpp_array(maxn);
+var tup: dynamic = cpp_array(maxn);
 
-var ans = cpp_array(maxn);
+var ans: dynamic = cpp_array(maxn);
 
-var ans1 = cpp_array(maxn);
+var ans1: dynamic = cpp_array(maxn);
 
-var cyc_head = cpp_array(maxn);
+var cyc_head: dynamic = cpp_array(maxn);
 
-var p = cpp_array(maxn);
+var p: dynamic = cpp_array(maxn);
 
-var d = cpp_array(maxn);
+var d: dynamic = cpp_array(maxn);
 
-var dc = cpp_array(maxn);
+var dc: dynamic = cpp_array(maxn);
 
-var dc_up = cpp_array(maxn);
+var dc_up: dynamic = cpp_array(maxn);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var cycv = cpp_array(maxn);
+var cycv: dynamic = cpp_array(maxn);
 
-func dfs0(v: dynamic, pr: dynamic = -1)
+func dfs0(v: dynamic, pr: dynamic = -1) -> dynamic
 {
   p[v] = pr;
   t[v] = 1;
   tup[v] = 1;
-  for (var to in a[v])
+  for (var to: dynamic in a[v])
   {
     if ((to == pr))
     {
@@ -61,7 +61,7 @@ func dfs0(v: dynamic, pr: dynamic = -1)
     {
       cnt_cyc += 1;
       cyc[to] = cnt_cyc;
-      var x = v;
+      var x: dynamic = v;
       cycv[cnt_cyc].push_back(to);
       while ((cyc[x] == 0))
       {
@@ -85,11 +85,11 @@ func dfs0(v: dynamic, pr: dynamic = -1)
   tup[v] = 0;
 }
 
-func dfs_cyc0(cv: dynamic, cpr: dynamic = -1)
+func dfs_cyc0(cv: dynamic, cpr: dynamic = -1) -> dynamic
 {
-  for (var v in cycv[cv])
+  for (var v: dynamic in cycv[cv])
   {
-    for (var to in a[v])
+    for (var to: dynamic in a[v])
     {
       if (((cyc[to] == cpr) || (cyc[to] == cv)))
       {
@@ -100,7 +100,7 @@ func dfs_cyc0(cv: dynamic, cpr: dynamic = -1)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((cycv[cv]).size()))))
     {
       dc[cv] = max(dc[cv], (d[cycv[cv][i]] + min(i, ((cpp_cast((cycv[cv]).size())) - i))));
@@ -109,17 +109,17 @@ func dfs_cyc0(cv: dynamic, cpr: dynamic = -1)
   }
 }
 
-func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
+func dfs_cyc1(cv: dynamic, cpr: dynamic = -1) -> dynamic
 {
   if (((cpp_cast((cycv[cv]).size())) >= 3))
   {
-    var b: dynamic;
+    var b: dynamic = cpp_uninitialized();
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < 3))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < (cpp_cast((cycv[cv]).size()))))
           {
             b.push_back(d[cycv[cv][i]]);
@@ -129,16 +129,16 @@ func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
         j += 1;
       }
     }
-    var l: dynamic;
-    var r: dynamic;
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
     l = ((cpp_cast((cycv[cv]).size())) - ((cpp_cast((cycv[cv]).size())) / 2));
     r = (((cpp_cast((cycv[cv]).size())) + ((cpp_cast((cycv[cv]).size())) / 2)) - ((((cpp_cast((cycv[cv]).size())) % 2) == 0)));
-    var ql: dynamic;
-    var qr: dynamic;
-    var pl = 0;
-    var pr = 0;
+    var ql: dynamic = cpp_uninitialized();
+    var qr: dynamic = cpp_uninitialized();
+    var pl: dynamic = 0;
+    var pr: dynamic = 0;
     {
-      var i = l;
+      var i: dynamic = l;
       while ((i <= ((cpp_cast((cycv[cv]).size())) - 1)))
       {
         ql.insert(((b[i] + (cpp_cast((cycv[cv]).size()))) - i));
@@ -146,7 +146,7 @@ func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
       }
     }
     {
-      var i = ((cpp_cast((cycv[cv]).size())) + 1);
+      var i: dynamic = ((cpp_cast((cycv[cv]).size())) + 1);
       while ((i <= r))
       {
         qr.insert(((b[i] + i) - (cpp_cast((cycv[cv]).size()))));
@@ -154,10 +154,10 @@ func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
       }
     }
     {
-      var i = (cpp_cast((cycv[cv]).size()));
+      var i: dynamic = (cpp_cast((cycv[cv]).size()));
       while ((i <= ((2 * (cpp_cast((cycv[cv]).size()))) - 1)))
       {
-        var v = cycv[cv][(i - (cpp_cast((cycv[cv]).size())))];
+        var v: dynamic = cycv[cv][(i - (cpp_cast((cycv[cv]).size())))];
         ans1[v] = max(((*ql.begin()) + pl), ((*qr.begin()) + pr));
         ql.erase(ql.find((((i - l) + b[l]) - pl)));
         pl += 1;
@@ -171,10 +171,10 @@ func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (cpp_cast((cycv[cv]).size()))))
       {
-        var v = cycv[cv][i];
+        var v: dynamic = cycv[cv][i];
         ans1[v] = max(ans1[v], (min(i, ((cpp_cast((cycv[cv]).size())) - i)) + dc_up[cv]));
         ans[v] = max(d[v], ans1[v]);
         i += 1;
@@ -183,13 +183,13 @@ func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
   } else
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (cpp_cast((cycv[cv]).size()))))
       {
-        var v = cycv[cv][i];
+        var v: dynamic = cycv[cv][i];
         ans1[v] = (min(i, ((cpp_cast((cycv[cv]).size())) - i)) + dc_up[cv]);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < (cpp_cast((cycv[cv]).size()))))
           {
             if ((i == j))
@@ -197,8 +197,8 @@ func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
               j += 1;
               continue;
             }
-            var u = cycv[cv][j];
-            var dist = min(abs((i - j)), ((min(i, j) + (cpp_cast((cycv[cv]).size()))) - max(i, j)));
+            var u: dynamic = cycv[cv][j];
+            var dist: dynamic = min(abs((i - j)), ((min(i, j) + (cpp_cast((cycv[cv]).size()))) - max(i, j)));
             ans1[v] = max(ans1[v], (d[u] + dist));
             j += 1;
           }
@@ -208,10 +208,10 @@ func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
       }
     }
   }
-  for (var v in cycv[cv])
+  for (var v: dynamic in cycv[cv])
   {
-    var qm: dynamic;
-    for (var to in a[v])
+    var qm: dynamic = cpp_uninitialized();
+    for (var to: dynamic in a[v])
     {
       if (((cyc[to] == cpr) || (cyc[to] == cv)))
       {
@@ -223,7 +223,7 @@ func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
         qm.erase(cpp_update((cpp_update(qm.begin(), "++")), "++"));
       }
     }
-    for (var to in a[v])
+    for (var to: dynamic in a[v])
     {
       if (((cyc[to] == cpr) || (cyc[to] == cv)))
       {
@@ -234,7 +234,7 @@ func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
         dc_up[cyc[to]] = (ans1[v] + 1);
       } else
       {
-        var it = qm.begin();
+        var it: dynamic = qm.begin();
         if (((dc[cyc[to]] + 1) == (-(*it))))
         {
           it += 1;
@@ -246,17 +246,17 @@ func dfs_cyc1(cv: dynamic, cpr: dynamic = -1)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       x -= 1;
       y -= 1;
@@ -277,7 +277,7 @@ func main()
   dfs_cyc0(cyc[0]);
   dfs_cyc1(cyc[0]);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(ans[i], " ");

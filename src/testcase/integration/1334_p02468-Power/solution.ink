@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func mod_pow(n: dynamic, m: dynamic, mod: dynamic)
+func mod_pow(n: dynamic, m: dynamic, mod: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while ((m > 0))
   {
     if ((m & 1))
@@ -15,11 +15,11 @@ func mod_pow(n: dynamic, m: dynamic, mod: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var mod = 1000000007;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var mod: dynamic = 1000000007;
   scanf("%lld %lld", (&n), (&m));
   printf("%d\n", mod_pow(n, m, mod));
   return 0;

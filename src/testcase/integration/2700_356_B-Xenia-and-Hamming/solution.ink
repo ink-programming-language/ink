@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if (a)
   {
@@ -11,28 +11,28 @@ func gcd(a: dynamic, b: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
-  var s: dynamic;
-  var t: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(s, t);
-  var S = cpp_construct(s.size(), false);
-  var rans = 0;
+  var S: dynamic = cpp_construct(s.size(), false);
+  var rans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i < s.size()) && (!S[i])))
     {
-      var js = 1;
-      var jt = 1;
-      var in_s = cpp_construct(26, 0);
-      var in_t = cpp_construct(26, 0);
+      var js: dynamic = 1;
+      var jt: dynamic = 1;
+      var in_s: dynamic = cpp_construct(26, 0);
+      var in_t: dynamic = cpp_construct(26, 0);
       in_s[(s[i] - cpp_char("a"))] += 1;
       S[i] = true;
       {
-        var j = (t.size() % s.size());
+        var j: dynamic = (t.size() % s.size());
         while (j)
         {
           in_s[(s[(((i + j)) % s.size())] - cpp_char("a"))] += 1;
@@ -43,7 +43,7 @@ func main()
       }
       in_t[(t[i] - cpp_char("a"))] += 1;
       {
-        var j = (s.size() % t.size());
+        var j: dynamic = (s.size() % t.size());
         while (j)
         {
           in_t[(t[(((i + j)) % t.size())] - cpp_char("a"))] += 1;
@@ -51,9 +51,9 @@ func main()
           j = (((j + s.size())) % t.size());
         }
       }
-      var ans = (js * jt);
+      var ans: dynamic = (js * jt);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 26))
         {
           ans -= (in_s[j] * in_t[j]);

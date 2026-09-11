@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var Q = cpp_array(3);
+var Q: dynamic = cpp_array(3);
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func solve(a: dynamic)
+func solve(a: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 1000))
     {
       if ((Q[(i % 2)].size() < a))
@@ -22,7 +22,7 @@ func solve(a: dynamic)
       } else
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < a))
           {
             Q[2].push(Q[(i % 2)].front());
@@ -36,12 +36,12 @@ func solve(a: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   while (((cin >> p) >> q))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (p / 2)))
       {
         Q[1].push(i);
@@ -49,7 +49,7 @@ func main()
       }
     }
     {
-      var i = (p / 2);
+      var i: dynamic = (p / 2);
       while ((i < p))
       {
         Q[0].push(i);
@@ -57,14 +57,14 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < q))
       {
         if ((i >= 1))
         {
-          var V = Q[2].size();
+          var V: dynamic = Q[2].size();
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < (V / 2)))
             {
               Q[1].push(Q[2].front());
@@ -73,7 +73,7 @@ func main()
             }
           }
           {
-            var j = (V / 2);
+            var j: dynamic = (V / 2);
             while ((j < V))
             {
               Q[0].push(Q[2].front());
@@ -82,7 +82,7 @@ func main()
             }
           }
         }
-        var a: dynamic;
+        var a: dynamic = cpp_uninitialized();
         read(a);
         solve(a);
         i += 1;

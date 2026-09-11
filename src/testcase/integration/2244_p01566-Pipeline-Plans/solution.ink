@@ -1,65 +1,65 @@
 // Translated from solution.cpp.
 
-var BIG_NUM = cpp_expression("#include<b");
+var BIG_NUM: dynamic = cpp_expression("#include<b");
 
-var HUGE_NUM = cpp_expression("#include<bits/std");
+var HUGE_NUM: dynamic = cpp_expression("#include<bits/std");
 
-var MOD = cpp_expression("#include<b");
+var MOD: dynamic = cpp_expression("#include<b");
 
-var EPS = cpp_expression("#include<bi");
+var EPS: dynamic = cpp_expression("#include<bi");
 
-var SIZE = cpp_expression("#i");
+var SIZE: dynamic = cpp_expression("#i");
 
 enum DIR
 {
-  N,
-  E,
-  S,
-  W
+  enum_field N;
+  enum_field E;
+  enum_field S;
+  enum_field W;
 }
 
 enum Type
 {
-  Plane,
-  N_S,
-  W_E,
-  N_E,
-  S_E,
-  W_S,
-  W_N,
-  W_Plane,
-  N_Plane,
-  E_Plane,
-  S_Plane,
-  Cross
+  enum_field Plane;
+  enum_field N_S;
+  enum_field W_E;
+  enum_field N_E;
+  enum_field S_E;
+  enum_field W_S;
+  enum_field W_N;
+  enum_field W_Plane;
+  enum_field N_Plane;
+  enum_field E_Plane;
+  enum_field S_Plane;
+  enum_field Cross;
 }
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var input = cpp_array(SIZE);
+var input: dynamic = cpp_array(SIZE);
 
-var POW = cpp_array(16);
+var POW: dynamic = cpp_array(16);
 
-var num_tile: dynamic;
+var num_tile: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(11, (1024 * 32), 8);
+var dp: dynamic = cpp_array(11, (1024 * 32), 8);
 
-var BIT = cpp_array(12, (1024 * 32));
+var BIT: dynamic = cpp_array(12, (1024 * 32));
 
-var table = cpp_array(4, SIZE);
+var table: dynamic = cpp_array(4, SIZE);
 
-var type_cpp = cpp_array(15);
+var type_cpp: dynamic = cpp_array(15);
 
-var type_array = [Plane, N_S, W_E, N_E, S_E, W_S, W_N, W_Plane, N_Plane, E_Plane, S_Plane, Cross];
+var type_array: dynamic = [Plane, N_S, W_E, N_E, S_E, W_S, W_N, W_Plane, N_Plane, E_Plane, S_Plane, Cross];
 
-func calc_next_state(rest_state: dynamic, USE: dynamic)
+func calc_next_state(rest_state: dynamic, USE: dynamic) -> dynamic
 {
-  var index = [0];
-  var ret = rest_state;
+  var index: dynamic = [0];
+  var ret: dynamic = rest_state;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < R))
     {
       ret -= POW[BIT[rest_state][USE[i]][cpp_update(index[USE[i]], "++")]];
@@ -69,11 +69,11 @@ func calc_next_state(rest_state: dynamic, USE: dynamic)
   return ret;
 }
 
-func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_state: dynamic)
+func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_state: dynamic) -> dynamic
 {
   if ((col == C))
   {
-    var __cpp_switch_1 = R;
+    var __cpp_switch_1: dynamic = R;
     if (__cpp_switch_1 == 1)
     {
       if ((pre_con_state == 0))
@@ -118,7 +118,7 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
     {
       return 0;
     }
-    var __cpp_switch_2 = R;
+    var __cpp_switch_2: dynamic = R;
     if (__cpp_switch_2 == 1)
     {
       if ((pre_con_state == 1))
@@ -144,14 +144,14 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
       break;
     }
   }
-  var ret = 0;
-  var pre = cpp_array(3);
-  var now = cpp_array(3);
-  var T = cpp_array(3);
-  var __cpp_switch_3 = R;
+  var ret: dynamic = 0;
+  var pre: dynamic = cpp_array(3);
+  var now: dynamic = cpp_array(3);
+  var T: dynamic = cpp_array(3);
+  var __cpp_switch_3: dynamic = R;
   if (__cpp_switch_3 == 1)
   {
-    var __cpp_switch_4 = pre_con_state;
+    var __cpp_switch_4: dynamic = pre_con_state;
     if (__cpp_switch_4 == 0)
     {
     pre[0] = 1;
@@ -166,7 +166,7 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
   }
   else if (__cpp_switch_3 == 2)
   {
-    var __cpp_switch_5 = pre_con_state;
+    var __cpp_switch_5: dynamic = pre_con_state;
     if (__cpp_switch_5 == 0)
     {
     pre[0] = 1;
@@ -195,7 +195,7 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
   }
   else if (__cpp_switch_3 == 3)
   {
-    var __cpp_switch_6 = pre_con_state;
+    var __cpp_switch_6: dynamic = pre_con_state;
     if (__cpp_switch_6 == 0)
     {
     pre[0] = 1;
@@ -275,9 +275,9 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
     }
     break;
   }
-  var work = [0];
+  var work: dynamic = [0];
   {
-    var loop = 0;
+    var loop: dynamic = 0;
     while ((loop < num_tile))
     {
       if ((rest_state & POW[loop]))
@@ -287,9 +287,9 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
       loop += 1;
     }
   }
-  var V: dynamic;
+  var V: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < SIZE))
     {
       if ((work[i] > 0))
@@ -299,15 +299,15 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
       i += 1;
     }
   }
-  var USE = [0];
-  var next_E_state: dynamic;
-  var next_con_state: dynamic;
-  var next_rest_state: dynamic;
-  var __cpp_switch_7 = R;
+  var USE: dynamic = [0];
+  var next_E_state: dynamic = cpp_uninitialized();
+  var next_con_state: dynamic = cpp_uninitialized();
+  var next_rest_state: dynamic = cpp_uninitialized();
+  var __cpp_switch_7: dynamic = R;
   if (__cpp_switch_7 == 1)
   {
     {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a < SIZE))
     {
     if ((work[a] == 0))
@@ -345,7 +345,7 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
   else if (__cpp_switch_7 == 2)
   {
     {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a < SIZE))
     {
     if ((work[a] == 0))
@@ -356,7 +356,7 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
     T[0] = a;
     USE[0] = a;
     {
-    var b = 0;
+    var b: dynamic = 0;
     while ((b < SIZE))
     {
     if ((work[b] == 0))
@@ -374,7 +374,7 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
     next_rest_state = calc_next_state(rest_state, USE);
     next_E_state = 0;
     {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
     if (table[T[i]][E])
@@ -403,7 +403,7 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
     } else
     {
     {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
     if ((((((pre_E_state & POW[i])) != 0)) && table[T[i]][W]))
@@ -465,13 +465,13 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
   else if (__cpp_switch_7 == 3)
   {
     {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a < V.size()))
     {
     T[0] = V[a];
     USE[0] = V[a];
     {
-    var b = 0;
+    var b: dynamic = 0;
     while ((b < V.size()))
     {
     if (((a == b) && (work[V[a]] <= 1)))
@@ -482,7 +482,7 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
     T[1] = V[b];
     USE[1] = V[b];
     {
-    var c = 0;
+    var c: dynamic = 0;
     while ((c < V.size()))
     {
     if ((work[V[c]] == 0))
@@ -510,7 +510,7 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
     next_rest_state = calc_next_state(rest_state, USE);
     next_E_state = 0;
     {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
     if (table[T[i]][E])
@@ -546,7 +546,7 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
     } else
     {
     {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
     if ((((((pre_E_state & POW[i])) != 0)) && table[T[i]][W]))
@@ -685,11 +685,11 @@ func recursive(col: dynamic, pre_E_state: dynamic, rest_state: dynamic, pre_con_
   return cpp_assign(dp[pre_E_state][rest_state][pre_con_state], "=", ret);
 }
 
-func main()
+func main() -> dynamic
 {
   POW[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 15))
     {
       POW[i] = (POW[(i - 1)] * 2);
@@ -746,7 +746,7 @@ func main()
   table[Cross][W] = true;
   scanf("%d %d", (&R), (&C));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < SIZE))
     {
       scanf("%d", (&input[i]));
@@ -763,11 +763,11 @@ func main()
   }
   num_tile = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < SIZE))
     {
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < input[i]))
         {
           type_cpp[num_tile] = type_array[i];
@@ -784,15 +784,15 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < POW[R]))
     {
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < POW[num_tile]))
         {
           {
-            var a = 0;
+            var a: dynamic = 0;
             while ((a < 11))
             {
               dp[i][k][a] = -1;
@@ -806,11 +806,11 @@ func main()
     }
   }
   {
-    var state = 0;
+    var state: dynamic = 0;
     while ((state < POW[num_tile]))
     {
       {
-        var loop = 0;
+        var loop: dynamic = 0;
         while ((loop < num_tile))
         {
           if ((state & POW[loop]))
@@ -823,8 +823,8 @@ func main()
       state += 1;
     }
   }
-  var first_pre: dynamic;
-  var __cpp_switch_8 = R;
+  var first_pre: dynamic = cpp_uninitialized();
+  var __cpp_switch_8: dynamic = R;
   if (__cpp_switch_8 == 1)
   {
     first_pre = 1;

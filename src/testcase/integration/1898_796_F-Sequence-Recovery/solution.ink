@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func Max(a: dynamic, b: dynamic)
+func Max(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -8,7 +8,7 @@ func Max(a: dynamic, b: dynamic)
   }
 }
 
-func Min(a: dynamic, b: dynamic)
+func Min(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -16,7 +16,7 @@ func Min(a: dynamic, b: dynamic)
   }
 }
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   a += b;
   if ((a >= 1000000007))
@@ -25,9 +25,9 @@ func add(a: dynamic, b: dynamic)
   }
 }
 
-func pow(a: dynamic, b: dynamic)
+func pow(a: dynamic, b: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while (b)
   {
     if ((b & 1))
@@ -40,26 +40,26 @@ func pow(a: dynamic, b: dynamic)
   return ans;
 }
 
-var ans = cpp_array(300010);
+var ans: dynamic = cpp_array(300010);
 
-var vis = cpp_array(300010);
+var vis: dynamic = cpp_array(300010);
 
-var a = cpp_array(300010);
+var a: dynamic = cpp_array(300010);
 
 class MAX_tree
 {
   var t: dynamic = cpp_array((300010 << 2));
-  func build(p: dynamic, l: dynamic, r: dynamic)
+  func build(p: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       t[p] = -1;
       if ((l < r))
       {
-        var m = (((l + r)) >> 1);
+        var m: dynamic = (((l + r)) >> 1);
         build((p << 1), l, m);
         build(((p << 1) | 1), (m + 1), r);
       }
     }
-  func build(p: dynamic, l: dynamic, r: dynamic, a: dynamic)
+  func build(p: dynamic, l: dynamic, r: dynamic, a: dynamic) -> dynamic
   {
       if ((l == r))
       {
@@ -67,20 +67,20 @@ class MAX_tree
       }
       if ((l < r))
       {
-        var m = (((l + r)) >> 1);
+        var m: dynamic = (((l + r)) >> 1);
         build((p << 1), l, m, a);
         build(((p << 1) | 1), (m + 1), r, a);
         t[p] = max(t[(p << 1)], t[((p << 1) | 1)]);
       }
     }
-  func upd(p: dynamic, l: dynamic, r: dynamic, first: dynamic, v: dynamic)
+  func upd(p: dynamic, l: dynamic, r: dynamic, first: dynamic, v: dynamic) -> dynamic
   {
       if ((l == r))
       {
         t[p] = v;
         return;
       }
-      var m = (((l + r)) >> 1);
+      var m: dynamic = (((l + r)) >> 1);
       if ((first <= m))
       {
         upd((p << 1), l, m, first, v);
@@ -90,14 +90,14 @@ class MAX_tree
       }
       t[p] = max(t[(p << 1)], t[((p << 1) | 1)]);
     }
-  func query(p: dynamic, l: dynamic, r: dynamic, first: dynamic, second: dynamic)
+  func query(p: dynamic, l: dynamic, r: dynamic, first: dynamic, second: dynamic) -> dynamic
   {
       if (((l >= first) && (r <= second)))
       {
         return t[p];
       }
-      var m = (((l + r)) >> 1);
-      var ans = -1;
+      var m: dynamic = (((l + r)) >> 1);
+      var ans: dynamic = -1;
       if ((first <= m))
       {
         ans = query((p << 1), l, m, first, second);
@@ -110,29 +110,29 @@ class MAX_tree
     }
 }
 
-var t1: dynamic;
+var t1: dynamic = cpp_uninitialized();
 
 class MIN_tree
 {
   var t: dynamic = cpp_array((300010 << 2));
-  func build(p: dynamic, l: dynamic, r: dynamic)
+  func build(p: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       t[p] = 1000000007;
       if ((l < r))
       {
-        var m = (((l + r)) >> 1);
+        var m: dynamic = (((l + r)) >> 1);
         build((p << 1), l, m);
         build(((p << 1) | 1), (m + 1), r);
       }
     }
-  func upd(p: dynamic, l: dynamic, r: dynamic, first: dynamic, second: dynamic, v: dynamic)
+  func upd(p: dynamic, l: dynamic, r: dynamic, first: dynamic, second: dynamic, v: dynamic) -> dynamic
   {
       if (((l >= first) && (r <= second)))
       {
         Min(t[p], v);
         return;
       }
-      var m = (((l + r)) >> 1);
+      var m: dynamic = (((l + r)) >> 1);
       if ((first <= m))
       {
         upd((p << 1), l, m, first, second, v);
@@ -142,14 +142,14 @@ class MIN_tree
         upd(((p << 1) | 1), (m + 1), r, first, second, v);
       }
     }
-  func query(p: dynamic, l: dynamic, r: dynamic, first: dynamic)
+  func query(p: dynamic, l: dynamic, r: dynamic, first: dynamic) -> dynamic
   {
       if ((l == r))
       {
         return t[p];
       }
-      var m = (((l + r)) >> 1);
-      var ans = 1000000007;
+      var m: dynamic = (((l + r)) >> 1);
+      var ans: dynamic = 1000000007;
       if ((first <= m))
       {
         ans = min(t[p], query((p << 1), l, m, first));
@@ -161,39 +161,39 @@ class MIN_tree
     }
 }
 
-var t2: dynamic;
+var t2: dynamic = cpp_uninitialized();
 
 class Q
 {
-  var l: dynamic;
-  var r: dynamic;
-  var first: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var first: dynamic = cpp_uninitialized();
 }
 
-var p = cpp_array(300010);
+var p: dynamic = cpp_array(300010);
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var ca = 0;
-  var m: dynamic;
-  var K: dynamic;
-  var n: dynamic;
+  var T: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var ca: dynamic = 0;
+  var m: dynamic = cpp_uninitialized();
+  var K: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
   t1.build(1, 1, n);
   t2.build(1, 1, n);
-  var ok = 1;
+  var ok: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d", (&K));
-      var l: dynamic;
-      var r: dynamic;
-      var first: dynamic;
+      var l: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
+      var first: dynamic = cpp_uninitialized();
       if ((K == 1))
       {
         scanf("%d%d%d", (&l), (&r), (&first));
@@ -235,11 +235,11 @@ func main()
     puts("NO");
     return 0;
   }
-  var ss = 0;
+  var ss: dynamic = 0;
   K = 0;
-  var bit = [0];
+  var bit: dynamic = [0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n + 1)))
     {
       if ((!vis[i]))
@@ -250,7 +250,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n + 1)))
     {
       if ((ans[i] < 1000000007))
@@ -260,9 +260,9 @@ func main()
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n + 1)))
     {
       j = i;
@@ -273,7 +273,7 @@ func main()
       if ((ans[i] == 1000000007))
       {
         {
-          var k = i;
+          var k: dynamic = i;
           while ((k < j))
           {
             q.push_back([1e9, k]);
@@ -283,7 +283,7 @@ func main()
       } else
       {
         {
-          var k = (i + 1);
+          var k: dynamic = (i + 1);
           while ((k < j))
           {
             q.push_back([ans[i], k]);
@@ -296,7 +296,7 @@ func main()
     }
   }
   {
-    var i = (30 - 1);
+    var i: dynamic = (30 - 1);
     while ((i >= 0))
     {
       if ((!(((ss >> i) & 1))))
@@ -306,13 +306,13 @@ func main()
       i -= 1;
     }
   }
-  for (var o in q)
+  for (var o: dynamic in q)
   {
-    var first = o.second;
-    var second = o.first;
-    var ss = 0;
+    var first: dynamic = o.second;
+    var second: dynamic = o.first;
+    var ss: dynamic = 0;
     {
-      var j = (30 - 1);
+      var j: dynamic = (30 - 1);
       while ((j >= 0))
       {
         if ((bit[j] && ((ss + ((1 << j))) <= second)))
@@ -326,7 +326,7 @@ func main()
     ans[first] = ss;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n + 1)))
     {
       a[i] = ans[i];
@@ -335,7 +335,7 @@ func main()
   }
   t1.build(1, 1, n, a);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       if ((p[i].first == -1))
@@ -355,7 +355,7 @@ func main()
   puts("YES");
   ss = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n + 1)))
     {
       printf("%d ", ans[i]);

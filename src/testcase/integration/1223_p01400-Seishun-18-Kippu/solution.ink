@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var MAX_N = 500;
+var MAX_N: dynamic = 500;
 
-var INF = (1 << 30);
+var INF: dynamic = (1 << 30);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var nst: dynamic;
+var nst: dynamic = cpp_uninitialized();
 
-var sstr: dynamic;
+var sstr: dynamic = cpp_uninitialized();
 
-var pstr: dynamic;
+var pstr: dynamic = cpp_uninitialized();
 
-var gstr: dynamic;
+var gstr: dynamic = cpp_uninitialized();
 
-var si: dynamic;
+var si: dynamic = cpp_uninitialized();
 
-var pi: dynamic;
+var pi: dynamic = cpp_uninitialized();
 
-var gi: dynamic;
+var gi: dynamic = cpp_uninitialized();
 
-var sids: dynamic;
+var sids: dynamic = cpp_uninitialized();
 
-var nbrs = cpp_array(MAX_N);
+var nbrs: dynamic = cpp_array(MAX_N);
 
-var dists = cpp_array(MAX_N);
+var dists: dynamic = cpp_array(MAX_N);
 
-func sid(str: dynamic)
+func sid(str: dynamic) -> dynamic
 {
-  var mit = sids.find(str);
+  var mit: dynamic = sids.find(str);
   if ((mit == sids.end()))
   {
     return (cpp_assign(sids[str], "=", cpp_update(nst, "++")));
@@ -38,10 +38,10 @@ func sid(str: dynamic)
   return mit->second;
 }
 
-func mindist(st: dynamic, gl: dynamic)
+func mindist(st: dynamic, gl: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       dists[i] = INF;
@@ -49,14 +49,14 @@ func mindist(st: dynamic, gl: dynamic)
     }
   }
   dists[st] = 0;
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.push(pii(0, st));
   while ((!q.empty()))
   {
-    var u = q.top();
+    var u: dynamic = q.top();
     q.pop();
-    var ud = u.first;
-    var ui = u.second;
+    var ud: dynamic = u.first;
+    var ui: dynamic = u.second;
     if ((ud != dists[ui]))
     {
       continue;
@@ -65,13 +65,13 @@ func mindist(st: dynamic, gl: dynamic)
     {
       break;
     }
-    var nbru = nbrs[ui];
+    var nbru: dynamic = nbrs[ui];
     {
-      var vit = nbru.begin();
+      var vit: dynamic = nbru.begin();
       while ((vit != nbru.end()))
       {
-        var vi = vit->first;
-        var vd = (ud + vit->second);
+        var vi: dynamic = vit->first;
+        var vd: dynamic = (ud + vit->second);
         if ((dists[vi] > vd))
         {
           dists[vi] = vd;
@@ -84,7 +84,7 @@ func mindist(st: dynamic, gl: dynamic)
   return dists[gl];
 }
 
-func main()
+func main() -> dynamic
 {
   {
     while (true)
@@ -96,7 +96,7 @@ func main()
       }
       sids.clear();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           nbrs[i].clear();
@@ -109,23 +109,23 @@ func main()
       pi = sid(pstr);
       gi = sid(gstr);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
-          var astr: dynamic;
-          var bstr: dynamic;
-          var di: dynamic;
-          var ti: dynamic;
+          var astr: dynamic = cpp_uninitialized();
+          var bstr: dynamic = cpp_uninitialized();
+          var di: dynamic = cpp_uninitialized();
+          var ti: dynamic = cpp_uninitialized();
           read(astr, bstr, di, ti);
-          var ai = sid(astr);
-          var bi = sid(bstr);
-          var d = ((di / 40) + ti);
+          var ai: dynamic = sid(astr);
+          var bi: dynamic = sid(bstr);
+          var d: dynamic = ((di / 40) + ti);
           nbrs[ai].push_back(pii(bi, d));
           nbrs[bi].push_back(pii(ai, d));
           i += 1;
         }
       }
-      var mind = (mindist(si, pi) + mindist(pi, gi));
+      var mind: dynamic = (mindist(si, pi) + mindist(pi, gi));
       write(mind, "\n");
     }
   }

@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-func repl(i: dynamic, a: dynamic, b: dynamic)
+func repl(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(int)(a);i<(int)(b);(i)++)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <b");
 }
 
-func dbg(x: dynamic)
+func dbg(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.");
 }
 
-var INF = cpp_expression("#include");
+var INF: dynamic = cpp_expression("#include");
 
 class RangeMinQuery
 {
   var dat: dynamic = cpp_array((((1 << 19)) - 1));
-  var size: dynamic;
-  func init(n: dynamic)
+  var size: dynamic = cpp_uninitialized();
+  func init(n: dynamic) -> dynamic
   {
       size = 1;
       while ((size < n))
@@ -29,7 +29,7 @@ class RangeMinQuery
         size *= 2;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < ((2 * size) - 1)))
         {
           dat[i] = INF;
@@ -37,7 +37,7 @@ class RangeMinQuery
         }
       }
     }
-  func update(k: dynamic, a: dynamic)
+  func update(k: dynamic, a: dynamic) -> dynamic
   {
       k += (size - 1);
       dat[k] = a;
@@ -47,7 +47,7 @@ class RangeMinQuery
         dat[k] = min(dat[((k * 2) + 1)], dat[((k * 2) + 2)]);
       }
     }
-  func subquery(a: dynamic, b: dynamic, k: dynamic, l: dynamic, r: dynamic)
+  func subquery(a: dynamic, b: dynamic, k: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       if (((r <= a) || (b <= l)))
       {
@@ -61,7 +61,7 @@ class RangeMinQuery
         return min(subquery(a, b, ((k * 2) + 1), l, (((l + r)) / 2)), subquery(a, b, ((k * 2) + 2), (((l + r)) / 2), r));
       }
     }
-  func query(a: dynamic, b: dynamic)
+  func query(a: dynamic, b: dynamic) -> dynamic
   {
       return subquery(a, b, 0, 0, size);
     }
@@ -69,16 +69,16 @@ class RangeMinQuery
 
 class BIT
 {
-  var n: dynamic;
-  var bit: dynamic;
-  func BIT(size: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  var bit: dynamic = cpp_uninitialized();
+  func BIT(size: dynamic) -> dynamic
   {
-      this->n = cpp_construct(size);
-      this->bit = cpp_construct((size + 1), 0);
+      self->n = cpp_construct(size);
+      self->bit = cpp_construct((size + 1), 0);
     }
-  func sum(i: dynamic)
+  func sum(i: dynamic) -> dynamic
   {
-      var s = 0;
+      var s: dynamic = 0;
       while ((i > 0))
       {
         s += bit[i];
@@ -86,7 +86,7 @@ class BIT
       }
       return s;
     }
-  func add(i: dynamic, v: dynamic)
+  func add(i: dynamic, v: dynamic) -> dynamic
   {
       if ((i == 0))
       {
@@ -98,20 +98,20 @@ class BIT
         i += (i & (-i));
       }
     }
-  func lower_bound(w: dynamic)
+  func lower_bound(w: dynamic) -> dynamic
   {
       if ((w <= 0))
       {
         return 0;
       }
-      var x = 0;
-      var r = 1;
+      var x: dynamic = 0;
+      var r: dynamic = 1;
       while ((r < n))
       {
         r <<= 1;
       }
       {
-        var k = r;
+        var k: dynamic = r;
         while ((k > 0))
         {
           if ((((x + k) <= n) && (bit[(x + k)] < w)))
@@ -126,23 +126,23 @@ class BIT
     }
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var input = cpp_array(1000010);
+var input: dynamic = cpp_array(1000010);
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var ord: dynamic;
+var ord: dynamic = cpp_uninitialized();
 
-var ridx = cpp_array(100010);
+var ridx: dynamic = cpp_array(100010);
 
-var lcp = cpp_array(100010);
+var lcp: dynamic = cpp_array(100010);
 
-var rmq: dynamic;
+var rmq: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&N));
   S.resize(N);
@@ -167,27 +167,27 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     scanf("%s", input);
     S[i] = string_cpp(input);
     ord.push_back(i);
   }
 
-func __cpp_lambda_1(a: dynamic, b: dynamic)
+func __cpp_lambda_1(a: dynamic, b: dynamic) -> dynamic
 {
   return (S[a] < S[b]);
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     ridx[ord[i]] = i;
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     scanf("%d%d", (&a), (&b));
     a -= 1;
     b -= 1;
@@ -199,14 +199,14 @@ func rep(argument_0: dynamic, argument_1: dynamic)
       bit.add((ridx[b] + 1), -1);
     } else
     {
-      var sum = bit.sum(ridx[b]);
-      var idx = bit.lower_bound((sum + 1));
+      var sum: dynamic = bit.sum(ridx[b]);
+      var idx: dynamic = bit.lower_bound((sum + 1));
       if ((idx == (N + 1)))
       {
         write(-1, "\n");
         continue;
       }
-      var len = rmq.query(ridx[b], (idx - 1));
+      var len: dynamic = rmq.query(ridx[b], (idx - 1));
       if ((len >= cpp_cast(S[b].size())))
       {
         write((ord[(idx - 1)] + 1), "\n");

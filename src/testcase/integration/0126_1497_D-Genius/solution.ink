@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func absi(i: dynamic)
+func absi(i: dynamic) -> dynamic
 {
   if ((i > 0))
   {
@@ -11,20 +11,20 @@ func absi(i: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   scanf("%d", (&T));
   while (cpp_update(T, "--"))
   {
-    var n: dynamic;
-    var ans = 0;
+    var n: dynamic = cpp_uninitialized();
+    var ans: dynamic = 0;
     scanf("%d", (&n));
-    var tag = cpp_construct((n + 1));
-    var s = cpp_construct((n + 1));
-    var d = cpp_construct((n + 1), 0);
+    var tag: dynamic = cpp_construct((n + 1));
+    var s: dynamic = cpp_construct((n + 1));
+    var d: dynamic = cpp_construct((n + 1), 0);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         scanf("%d", (&tag[i]));
@@ -32,7 +32,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         scanf("%d", (&s[i]));
@@ -40,18 +40,18 @@ func main()
       }
     }
     {
-      var t = 2;
+      var t: dynamic = 2;
       while ((t <= n))
       {
         {
-          var i = (t - 1);
+          var i: dynamic = (t - 1);
           while ((i >= 1))
           {
             if ((tag[t] != tag[i]))
             {
-              var di = d[i];
-              var dt = d[t];
-              var ss = absi((s[i] - s[t]));
+              var di: dynamic = d[i];
+              var dt: dynamic = d[t];
+              var ss: dynamic = absi((s[i] - s[t]));
               d[t] = max((di + ss), dt);
               d[i] = max((dt + ss), di);
               ans = max(ans, d[i]);

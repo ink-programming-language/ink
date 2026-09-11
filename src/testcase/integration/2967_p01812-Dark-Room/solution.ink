@@ -2,7 +2,7 @@
 
 class hash_std_pair_longlong_longlong
 {
-  func operator_call(x: dynamic)
+  func operator_call(x: dynamic) -> dynamic
   {
       return (hash()(x.first) ^ hash()(x.second));
     }
@@ -10,22 +10,22 @@ class hash_std_pair_longlong_longlong
 
 class hash_std_pair_RoomInfo_int
 {
-  func operator_call(x: dynamic)
+  func operator_call(x: dynamic) -> dynamic
   {
       return (hash()(x.first) ^ hash()(x.second));
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
-  var d: dynamic;
-  var e = cpp_array(100, 100);
-  var q: dynamic;
-  var g: dynamic;
-  var visited: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var e: dynamic = cpp_array(100, 100);
+  var q: dynamic = cpp_uninitialized();
+  var g: dynamic = cpp_uninitialized();
+  var visited: dynamic = cpp_uninitialized();
   read(n, m, k);
   if ((m == 0))
   {
@@ -34,24 +34,24 @@ func main()
   }
   d.resize(n, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var a: dynamic;
+      var a: dynamic = cpp_uninitialized();
       read(a);
       d[(a - 1)] = 1;
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < k))
         {
-          var a: dynamic;
+          var a: dynamic = cpp_uninitialized();
           read(a);
           e[i][j] = (a - 1);
           j += 1;
@@ -60,9 +60,9 @@ func main()
       i += 1;
     }
   }
-  var node: dynamic;
+  var node: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (d[i])
@@ -82,16 +82,16 @@ func main()
   visited.insert(node);
   while ((!q.empty()))
   {
-    var node = q.front();
+    var node: dynamic = q.front();
     q.pop();
     node.second += 1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < k))
       {
-        var next = make_pair(0, 0);
+        var next: dynamic = make_pair(0, 0);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             if ((j < 64))
@@ -109,7 +109,7 @@ func main()
                 continue;
               }
             }
-            var to = e[j][i];
+            var to: dynamic = e[j][i];
             if (d[to])
             {
               if ((to < 64))

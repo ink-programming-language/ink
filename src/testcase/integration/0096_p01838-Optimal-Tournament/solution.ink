@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(1001, 1001, 2);
+var dp: dynamic = cpp_array(1001, 1001, 2);
 
-var dm = cpp_array(1001, 1001, 2);
+var dm: dynamic = cpp_array(1001, 1001, 2);
 
-var a = cpp_array(1000);
+var a: dynamic = cpp_array(1000);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&N), (&K));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       scanf("%d", (&a[i]));
@@ -23,15 +23,15 @@ func main()
   }
   sort(a, (a + N));
   fill(cpp_cast(dp[0]), cpp_cast(dp[1]), 1e9);
-  var ans = 1e9;
+  var ans: dynamic = 1e9;
   {
-    var T = 1;
+    var T: dynamic = 1;
     while ((T <= K))
     {
-      var t = (T % 2);
-      var u = (1 - t);
+      var t: dynamic = (T % 2);
+      var u: dynamic = (1 - t);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < N))
         {
           dp[0][i][(i + 1)] = 0;
@@ -40,16 +40,16 @@ func main()
         }
       }
       {
-        var w = 2;
+        var w: dynamic = 2;
         while ((w <= N))
         {
           {
-            var i = 0;
+            var i: dynamic = 0;
             while (((i + w) <= N))
             {
-              var j = (i + w);
-              var si = (i + 1);
-              var ti = (j - 1);
+              var j: dynamic = (i + w);
+              var si: dynamic = (i + 1);
+              var ti: dynamic = (j - 1);
               if ((w > 2))
               {
                 si = dm[t][i][(j - 1)];
@@ -57,7 +57,7 @@ func main()
               }
               dp[t][i][j] = 1e9;
               {
-                var k = si;
+                var k: dynamic = si;
                 while ((k <= ti))
                 {
                   if ((dp[t][i][j] > (((dp[u][i][k] + dp[u][k][j]) + a[(j - 1)]) - a[(k - 1)])))

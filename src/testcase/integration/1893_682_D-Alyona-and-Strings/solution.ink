@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var s1: dynamic;
+var s1: dynamic = cpp_uninitialized();
 
-var s2: dynamic;
+var s2: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(2, 11, 1001, 1001);
+var dp: dynamic = cpp_array(2, 11, 1001, 1001);
 
-func solve(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func solve(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   if ((((a == n) || (b == m)) || (c == 0)))
   {
@@ -20,7 +20,7 @@ func solve(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
   {
     return dp[a][b][c][d];
   }
-  var r = dp[a][b][c][d];
+  var r: dynamic = dp[a][b][c][d];
   if (d)
   {
     if ((s1[a] == s2[b]))
@@ -44,9 +44,9 @@ func solve(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
   return r;
 }
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k, s1, s2);
   memset(dp, -1, cpp_sizeof(dp));
   write(solve(0, 0, k, 0));

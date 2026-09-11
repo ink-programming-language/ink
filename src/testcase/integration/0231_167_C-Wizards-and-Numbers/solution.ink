@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func check(a: dynamic, b: dynamic)
+func check(a: dynamic, b: dynamic) -> dynamic
 {
   if (((!a) || (!b)))
   {
@@ -17,17 +17,17 @@ func check(a: dynamic, b: dynamic)
   return (!((((((b / a)) % ((a + 1)))) & 1)));
 }
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   read(T);
   {
     while (T)
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
-      printf("%s\n", if ((check(a, b))) "First" else "Second");
+      printf("%s\n",  ((check(a, b))) ? "First" : "Second");
       T -= 1;
     }
   }

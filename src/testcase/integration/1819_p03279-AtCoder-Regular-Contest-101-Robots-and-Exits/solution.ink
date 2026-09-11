@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var N = 100010;
+var N: dynamic = 100010;
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var d = cpp_array(N);
+var d: dynamic = cpp_array(N);
 
-var dcnt: dynamic;
+var dcnt: dynamic = cpp_uninitialized();
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-func readData()
+func readData() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -40,7 +40,7 @@ func readData()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d", (&b[i]));
@@ -49,13 +49,13 @@ func readData()
   }
 }
 
-func initDis()
+func initDis() -> dynamic
 {
-  var cnt = 1;
+  var cnt: dynamic = 1;
   p[1] = [0, 0];
   {
-    var i = 1;
-    var j: dynamic;
+    var i: dynamic = 1;
+    var j: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
       j = (upper_bound((b + 1), ((b + 1) + m), a[i]) - b);
@@ -70,10 +70,10 @@ func initDis()
   n = cnt;
 }
 
-func Diz()
+func Diz() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       d[cpp_update(dcnt, "++")] = p[i].y;
@@ -83,7 +83,7 @@ func Diz()
   sort((d + 1), ((d + 1) + dcnt));
   dcnt = ((unique((d + 1), ((d + 1) + dcnt)) - d) - 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       p[i].y = (lower_bound((d + 1), ((d + 1) + dcnt), p[i].y) - d);
@@ -92,16 +92,16 @@ func Diz()
   }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func setup(n: dynamic)
+func setup(n: dynamic) -> dynamic
 {
   n = n;
 }
 
-func add(u: dynamic, x: dynamic)
+func add(u: dynamic, x: dynamic) -> dynamic
 {
   {
     while ((u && (u <= n)))
@@ -112,9 +112,9 @@ func add(u: dynamic, x: dynamic)
   }
 }
 
-func que(u: dynamic)
+func que(u: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   {
     while (u)
     {
@@ -125,7 +125,7 @@ func que(u: dynamic)
   return res;
 }
 
-func cmpByX(a: dynamic, b: dynamic)
+func cmpByX(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.x != b.x))
   {
@@ -134,15 +134,15 @@ func cmpByX(a: dynamic, b: dynamic)
   return (a.y < b.y);
 }
 
-func solve()
+func solve() -> dynamic
 {
   sort((p + 1), ((p + 1) + n), cmpByX);
   n = ((unique((p + 1), ((p + 1) + n)) - p) - 1);
   BIT.setup(dcnt);
   BIT.add(p[1].y, 1);
   {
-    var i = 2;
-    var j: dynamic;
+    var i: dynamic = 2;
+    var j: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
       {
@@ -153,7 +153,7 @@ func solve()
         }
       }
       {
-        var k = i;
+        var k: dynamic = i;
         while ((k < j))
         {
           f[k] = BIT.que((p[k].y - 1));
@@ -161,7 +161,7 @@ func solve()
         }
       }
       {
-        var k = i;
+        var k: dynamic = i;
         while ((k < j))
         {
           BIT.add(p[k].y, f[k]);
@@ -174,7 +174,7 @@ func solve()
   printf("%d\n", f[n]);
 }
 
-func main()
+func main() -> dynamic
 {
   readData();
   initDis();

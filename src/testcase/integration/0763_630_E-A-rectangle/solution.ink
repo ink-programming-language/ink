@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func IN()
+func IN() -> dynamic
 {
-  var x = 0;
-  var ch = getchar();
-  var f = 1;
+  var x: dynamic = 0;
+  var ch: dynamic = getchar();
+  var f: dynamic = 1;
   while ((((!isdigit(ch)) && ((ch != cpp_char("-")))) && ((ch != EOF))))
   {
     ch = getchar();
@@ -22,19 +22,19 @@ func IN()
   return (x * f);
 }
 
-var X1: dynamic;
+var X1: dynamic = cpp_uninitialized();
 
-var Y1: dynamic;
+var Y1: dynamic = cpp_uninitialized();
 
-var X2: dynamic;
+var X2: dynamic = cpp_uninitialized();
 
-var Y2: dynamic;
+var Y2: dynamic = cpp_uninitialized();
 
-var dh: dynamic;
+var dh: dynamic = cpp_uninitialized();
 
-var sh: dynamic;
+var sh: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   X1 = IN();
   Y1 = IN();

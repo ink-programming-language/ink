@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func bs(a: dynamic, l1: dynamic, r1: dynamic, n: dynamic, m: dynamic)
+func bs(a: dynamic, l1: dynamic, r1: dynamic, n: dynamic, m: dynamic) -> dynamic
 {
-  var l = l1;
-  var r = r1;
-  var mid: dynamic;
+  var l: dynamic = l1;
+  var r: dynamic = r1;
+  var mid: dynamic = cpp_uninitialized();
   while (((r - l) > 1))
   {
     mid = (l + (((r - l)) / 2));
@@ -25,12 +25,12 @@ func bs(a: dynamic, l1: dynamic, r1: dynamic, n: dynamic, m: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var ans = bs((n + m), 0, 1000000000, n, m);
+  var ans: dynamic = bs((n + m), 0, 1000000000, n, m);
   write(ans, "\n");
   return 0;
 }

@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var module = 1000000007;
+var module: dynamic = 1000000007;
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       a -= 1;
       b -= 1;
@@ -28,24 +28,24 @@ func main()
       i += 1;
     }
   }
-  var all = n;
+  var all: dynamic = n;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((!vis[i]))
       {
         if ((nbr[i] < k))
         {
-          var q: dynamic;
+          var q: dynamic = cpp_uninitialized();
           q.push(i);
           vis[i] = true;
           all -= 1;
           while ((!q.empty()))
           {
-            var cur = q.front();
+            var cur: dynamic = q.front();
             q.pop();
-            for (var t in to[cur])
+            for (var t: dynamic in to[cur])
             {
               nbr[t] -= 1;
               to[t].erase(cur);
@@ -62,14 +62,14 @@ func main()
       i += 1;
     }
   }
-  var q: dynamic;
-  var answer: dynamic;
+  var q: dynamic = cpp_uninitialized();
+  var answer: dynamic = cpp_uninitialized();
   answer.push_back(all);
   {
-    var i = (m - 1);
+    var i: dynamic = (m - 1);
     while ((i > 0))
     {
-      var (a, b) = edges[i];
+      var (a, b): dynamic = edges[i];
       if (((!vis[a]) && (!vis[b])))
       {
         to[a].erase(b);
@@ -90,9 +90,9 @@ func main()
         }
         while ((!q.empty()))
         {
-          var cur = q.front();
+          var cur: dynamic = q.front();
           q.pop();
-          for (var t in to[cur])
+          for (var t: dynamic in to[cur])
           {
             nbr[t] -= 1;
             to[t].erase(cur);
@@ -110,7 +110,7 @@ func main()
     }
   }
   {
-    var i = (answer.size() - 1);
+    var i: dynamic = (answer.size() - 1);
     while ((i >= 0))
     {
       write(answer[i], "\n");

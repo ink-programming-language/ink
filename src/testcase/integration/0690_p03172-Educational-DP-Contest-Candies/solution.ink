@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var N = 110;
+var N: dynamic = 110;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var s = cpp_array(110000);
+var s: dynamic = cpp_array(110000);
 
-var f = cpp_array(110000, 110);
+var f: dynamic = cpp_array(110000, 110);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
   memset(f, 0, cpp_sizeof((f)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -25,21 +25,21 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= k))
     {
-      f[1][i] = if (((i <= a[1]))) 1 else 0;
+      f[1][i] =  (((i <= a[1]))) ? 1 : 0;
       i += 1;
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       memset(s, 0, cpp_sizeof((s)));
       s[0] = f[(i - 1)][0];
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= k))
         {
           s[j] = (s[(j - 1)] + f[(i - 1)][j]);
@@ -47,7 +47,7 @@ func main()
         }
       }
       {
-        var j = k;
+        var j: dynamic = k;
         while ((j >= 0))
         {
           if ((((j - a[i]) - 1) >= 0))

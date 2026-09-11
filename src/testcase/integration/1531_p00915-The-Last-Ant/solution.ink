@@ -1,75 +1,75 @@
 // Translated from solution.cpp.
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var INF = (cpp_cast(1000000007) * 1000000007);
+var INF: dynamic = (cpp_cast(1000000007) * 1000000007);
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var stop = cpp_expression("#include<i");
+var stop: dynamic = cpp_expression("#include<i");
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-func per(i: dynamic, n: dynamic)
+func per(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=n-1;i>=0;i--)");
 }
 
-func Rep(i: dynamic, sta: dynamic, n: dynamic)
+func Rep(i: dynamic, sta: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=sta;i<n;i++)");
 }
 
-func rep1(i: dynamic, n: dynamic)
+func rep1(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=1;i<=n;i++)");
 }
 
-func per1(i: dynamic, n: dynamic)
+func per1(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=n;i>=1;i--)");
 }
 
-func Rep1(i: dynamic, sta: dynamic, n: dynamic)
+func Rep1(i: dynamic, sta: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=sta;i<=n;i++)");
 }
 
 class ant
 {
-  var loc: dynamic;
-  var dir: dynamic;
+  var loc: dynamic = cpp_uninitialized();
+  var dir: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(20);
+var a: dynamic = cpp_array(20);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var memo: dynamic;
+var memo: dynamic = cpp_uninitialized();
 
-func move()
+func move() -> dynamic
 {
-  var f = true;
+  var f: dynamic = true;
   return;
 }
 
-func antfall()
+func antfall() -> dynamic
 {
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   while (cpp_comma(((cin >> n) >> l), n))
   {
-    var d: dynamic;
-    var p: dynamic;
-    var turn: dynamic;
+    var d: dynamic = cpp_uninitialized();
+    var p: dynamic = cpp_uninitialized();
+    var turn: dynamic = cpp_uninitialized();
     {
       turn = 1;
       while ((turn < 105))
@@ -87,7 +87,7 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((a[i].loc == 1))
     {
@@ -99,7 +99,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if (((a[i].loc == 0) || (a[i].loc == l)))
     {
@@ -114,7 +114,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if (((a[i].loc == 0) || (a[i].loc == l)))
     {
@@ -129,7 +129,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if (((a[i].loc != 0) && (a[i].loc != l)))
     {
@@ -137,7 +137,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       read(d, p);
       a[i] = [p, d];

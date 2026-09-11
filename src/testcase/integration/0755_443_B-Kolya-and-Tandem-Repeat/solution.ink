@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func input()
+func input() -> dynamic
 {
-  var ret = 0;
-  var isN = 0;
-  var c = getchar();
+  var ret: dynamic = 0;
+  var isN: dynamic = 0;
+  var c: dynamic = getchar();
   while (((c < cpp_char("0")) || (c > cpp_char("9"))))
   {
     if ((c == cpp_char("-")))
@@ -18,18 +18,18 @@ func input()
     ret = (((ret * 10) + c) - cpp_char("0"));
     c = getchar();
   }
-  return if (isN) (-ret) else ret;
+  return  (isN) ? (-ret) : ret;
 }
 
-func output(x: dynamic)
+func output(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
     putchar(cpp_char("-"));
     x = (-x);
   }
-  var len = 0;
-  var data = cpp_array(10);
+  var len: dynamic = 0;
+  var data: dynamic = cpp_array(10);
   while (x)
   {
     data[cpp_update(len, "++")] = (x % 10);
@@ -46,21 +46,21 @@ func output(x: dynamic)
   putchar(cpp_char("\n"));
 }
 
-var MAXN = 1010;
+var MAXN: dynamic = 1010;
 
-var s = cpp_array(MAXN);
+var s: dynamic = cpp_array(MAXN);
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func in_cpp()
+func in_cpp() -> dynamic
 {
   scanf("%s%d", s, (&k));
 }
 
-func ok(st: dynamic, ans: dynamic)
+func ok(st: dynamic, ans: dynamic) -> dynamic
 {
-  var nxt = (st + ans);
-  var j = nxt;
+  var nxt: dynamic = (st + ans);
+  var j: dynamic = nxt;
   while (((st < j) && (nxt < strlen(s))))
   {
     if ((s[st] != s[nxt]))
@@ -73,22 +73,22 @@ func ok(st: dynamic, ans: dynamic)
   return 1;
 }
 
-func work()
+func work() -> dynamic
 {
-  var l = strlen(s);
+  var l: dynamic = strlen(s);
   if ((k >= l))
   {
     printf("%d\n", ((((k + l)) / 2) * 2));
   } else
   {
-    var ans: dynamic;
-    var tag = 0;
+    var ans: dynamic = cpp_uninitialized();
+    var tag: dynamic = 0;
     {
       ans = (((k + l)) / 2);
       while ((ans >= 1))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((((i + (ans * 2)) - 1) < ((k + l))))
           {
             if (ok(i, ans))
@@ -110,7 +110,7 @@ func work()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   in_cpp();
   work();

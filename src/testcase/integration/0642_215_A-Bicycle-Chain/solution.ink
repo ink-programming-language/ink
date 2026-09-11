@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var max: dynamic;
-  var count = 0;
-  var flag = 0;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var max: dynamic = cpp_uninitialized();
+  var count: dynamic = 0;
+  var flag: dynamic = 0;
   read(n);
-  var a = cpp_array(n);
+  var a: dynamic = cpp_array(n);
   {
     i = 0;
     while ((i < n))
@@ -20,7 +20,7 @@ func main()
     }
   }
   read(m);
-  var b = cpp_array(m);
+  var b: dynamic = cpp_array(m);
   {
     j = 0;
     while ((j < m))

@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 100);
+var N: dynamic = (2e5 + 100);
 
-var OO = (1e9 + 7);
+var OO: dynamic = (1e9 + 7);
 
-var T = 22;
+var T: dynamic = 22;
 
-var M = (1e9 + 7);
+var M: dynamic = (1e9 + 7);
 
-var P = 6151;
+var P: dynamic = 6151;
 
-var SQ = 1300;
+var SQ: dynamic = 1300;
 
-var lg = 22;
+var lg: dynamic = 22;
 
-var h = cpp_array(N);
+var h: dynamic = cpp_array(N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var ct = cpp_array(N);
+var ct: dynamic = cpp_array(N);
 
-var mx = 0;
+var mx: dynamic = 0;
 
-func check(x: dynamic)
+func check(x: dynamic) -> dynamic
 {
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((x >= f[i]))
@@ -49,7 +49,7 @@ func check(x: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (m + 1)))
     {
       ct[i] = 0;
@@ -61,7 +61,7 @@ func check(x: dynamic)
     return false;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((x >= f[i]))
@@ -69,9 +69,9 @@ func check(x: dynamic)
         i += 1;
         continue;
       }
-      var val = (((((f[i] - x) + p) - 1)) / p);
-      var pos = 0;
-      var cnt = h[i];
+      var val: dynamic = (((((f[i] - x) + p) - 1)) / p);
+      var pos: dynamic = 0;
+      var cnt: dynamic = h[i];
       while ((val && (pos <= m)))
       {
         if ((cnt >= p))
@@ -80,7 +80,7 @@ func check(x: dynamic)
           cnt -= p;
           continue;
         }
-        var g = (((((p - cnt) + a[i]) - 1)) / a[i]);
+        var g: dynamic = (((((p - cnt) + a[i]) - 1)) / a[i]);
         if (((g + pos) > m))
         {
           cnt += (((m - pos)) * a[i]);
@@ -101,7 +101,7 @@ func check(x: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (m + 1)))
     {
       ct[i] += ct[(i - 1)];
@@ -115,14 +115,14 @@ func check(x: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   read(n, m, k, p);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(h[i], a[i]);
@@ -132,11 +132,11 @@ func main()
     }
   }
   m -= 1;
-  var l = 0;
-  var r = mx;
+  var l: dynamic = 0;
+  var r: dynamic = mx;
   while ((l < r))
   {
-    var mid = (((l + r)) >> 1);
+    var mid: dynamic = (((l + r)) >> 1);
     if (check(mid))
     {
       r = mid;

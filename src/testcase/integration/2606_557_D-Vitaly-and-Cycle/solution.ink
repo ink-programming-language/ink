@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var v = cpp_array(N);
+var v: dynamic = cpp_array(N);
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var color = cpp_array(N);
+var color: dynamic = cpp_array(N);
 
-var visited = cpp_array(N);
+var visited: dynamic = cpp_array(N);
 
-var ans = 0;
+var ans: dynamic = 0;
 
-var zero: dynamic;
+var zero: dynamic = cpp_uninitialized();
 
-var one: dynamic;
+var one: dynamic = cpp_uninitialized();
 
-var ok = 1;
+var ok: dynamic = 1;
 
-func dfs(node: dynamic)
+func dfs(node: dynamic) -> dynamic
 {
-  for (var next in v[node])
+  for (var next: dynamic in v[node])
   {
     if (visited[next])
     {
@@ -46,11 +46,11 @@ func dfs(node: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       read(a, b);
@@ -64,9 +64,9 @@ func main()
     write("3 ", ((((1 * n) * ((n - 1))) * ((n - 2))) / 6));
   } else
   {
-    var mx = 0;
+    var mx: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         mx = max(mx, int_cpp(v[i].size()));
@@ -79,7 +79,7 @@ func main()
     } else
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           if ((!visited[i]))

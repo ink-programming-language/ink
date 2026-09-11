@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var list = [[0, 300, 500, 600, 700, 1350, 1650], [6, 0, 350, 450, 600, 1150, 1500], [13, 7, 0, 250, 400, 1000, 1350], [18, 12, 5, 0, 250, 850, 1300], [23, 17, 10, 5, 0, 600, 1150], [43, 37, 30, 25, 20, 0, 500], [58, 52, 45, 40, 35, 15, 0]];
-  var in_cpp: dynamic;
-  var out: dynamic;
-  var h: dynamic;
-  var m: dynamic;
-  var start: dynamic;
-  var end: dynamic;
-  var fee: dynamic;
-  var half: dynamic;
+  var list: dynamic = [[0, 300, 500, 600, 700, 1350, 1650], [6, 0, 350, 450, 600, 1150, 1500], [13, 7, 0, 250, 400, 1000, 1350], [18, 12, 5, 0, 250, 850, 1300], [23, 17, 10, 5, 0, 600, 1150], [43, 37, 30, 25, 20, 0, 500], [58, 52, 45, 40, 35, 15, 0]];
+  var in_cpp: dynamic = cpp_uninitialized();
+  var out: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var start: dynamic = cpp_uninitialized();
+  var end: dynamic = cpp_uninitialized();
+  var fee: dynamic = cpp_uninitialized();
+  var half: dynamic = cpp_uninitialized();
   while (cpp_comma((cin >> in_cpp), in_cpp))
   {
     read(h, m);

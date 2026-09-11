@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var SF = cpp_expression("#incl");
+var SF: dynamic = cpp_expression("#incl");
 
-var PF = cpp_expression("#inclu");
+var PF: dynamic = cpp_expression("#inclu");
 
-func power(x: dynamic, num: dynamic, mod: dynamic)
+func power(x: dynamic, num: dynamic, mod: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (num)
   {
     if ((num & 1))
@@ -21,12 +21,12 @@ func power(x: dynamic, num: dynamic, mod: dynamic)
   return res;
 }
 
-func phi(n: dynamic)
+func phi(n: dynamic) -> dynamic
 {
-  var res = n;
-  var t = n;
+  var res: dynamic = n;
+  var t: dynamic = n;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= t))
     {
       if (((t % i) == 0))
@@ -47,7 +47,7 @@ func phi(n: dynamic)
   return res;
 }
 
-func gcd(x: dynamic, y: dynamic)
+func gcd(x: dynamic, y: dynamic) -> dynamic
 {
   if ((y == 0))
   {
@@ -56,7 +56,7 @@ func gcd(x: dynamic, y: dynamic)
   return gcd(y, (x % y));
 }
 
-func exgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
+func exgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -64,37 +64,37 @@ func exgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
     y = 0;
     return a;
   }
-  var g: dynamic;
+  var g: dynamic = cpp_uninitialized();
   g = exgcd(b, (a % b), y, x);
   y -= ((a / b) * x);
   return g;
 }
 
-func solve(a: dynamic, mod: dynamic)
+func solve(a: dynamic, mod: dynamic) -> dynamic
 {
   if ((mod == 1))
   {
     return 1;
   }
-  var x: dynamic;
-  var y: dynamic;
-  var pm = phi(mod);
-  var d = gcd(mod, pm);
-  var t = solve(a, d);
-  var at = power(a, t, mod);
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var pm: dynamic = phi(mod);
+  var d: dynamic = gcd(mod, pm);
+  var t: dynamic = solve(a, d);
+  var at: dynamic = power(a, t, mod);
   exgcd((mod / d), (pm / d), x, y);
   x = ((x * (((((((t - at)) % pm) + pm)) % pm))) / d);
   x = ((((((x % ((pm / d)))) + (pm / d))) % ((pm / d))) + (pm / d));
   return ((x * mod) + at);
 }
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var mod: dynamic;
+var mod: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   SF("%d", (&q));
   while (cpp_update(q, "--"))
   {

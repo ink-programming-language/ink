@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var arr = cpp_array(int_cpp(1e6));
+var arr: dynamic = cpp_array(int_cpp(1e6));
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
-  var TT = 1;
+  var T: dynamic = cpp_uninitialized();
+  var TT: dynamic = 1;
   {
     T = 1;
     while ((T <= TT))
     {
-      var n: dynamic;
-      var i: dynamic;
-      var j: dynamic;
-      var k = 0;
-      var m = 0;
-      var g: dynamic;
-      var cnt = 1;
+      var n: dynamic = cpp_uninitialized();
+      var i: dynamic = cpp_uninitialized();
+      var j: dynamic = cpp_uninitialized();
+      var k: dynamic = 0;
+      var m: dynamic = 0;
+      var g: dynamic = cpp_uninitialized();
+      var cnt: dynamic = 1;
       read(n);
-      var a = cpp_array(n);
+      var a: dynamic = cpp_array(n);
       {
         i = 0;
         while ((i < n))

@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var num = cpp_array(4);
+var num: dynamic = cpp_array(4);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var d1: dynamic;
-  var d2: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var d1: dynamic = cpp_uninitialized();
+  var d2: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&d1), (&d2));
-  var num1 = 0;
-  var num2 = 0;
+  var num1: dynamic = 0;
+  var num2: dynamic = 0;
   while ((((d1 & 1)) == 0))
   {
     num1 += 1;
@@ -21,15 +21,15 @@ func main()
     d2 >>= 1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((n << 1))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ((n << 1))))
         {
-          var tp1: dynamic;
-          var tp2: dynamic;
+          var tp1: dynamic = cpp_uninitialized();
+          var tp2: dynamic = cpp_uninitialized();
           if ((num1 & 1))
           {
             tp1 = ((((i >> ((num1 >> 1)))) & 1));
@@ -51,7 +51,7 @@ func main()
       i += 1;
     }
   }
-  var wz: dynamic;
+  var wz: dynamic = cpp_uninitialized();
   {
     wz = 0;
     while ((wz < 4))
@@ -63,17 +63,17 @@ func main()
       wz += 1;
     }
   }
-  var rm = (n * n);
+  var rm: dynamic = (n * n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((n << 1))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ((n << 1))))
         {
-          var tp1: dynamic;
-          var tp2: dynamic;
+          var tp1: dynamic = cpp_uninitialized();
+          var tp2: dynamic = cpp_uninitialized();
           if ((num1 & 1))
           {
             tp1 = ((((i >> ((num1 >> 1)))) & 1));

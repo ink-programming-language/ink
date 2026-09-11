@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var MAX_N = (2e5 + 4);
+var MAX_N: dynamic = (2e5 + 4);
 
-func main()
+func main() -> dynamic
 {
-  var ans: dynamic;
-  var n: dynamic;
-  var st = cpp_array(MAX_N);
-  var pr = [0];
-  var sum = 0;
+  var ans: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var st: dynamic = cpp_array(MAX_N);
+  var pr: dynamic = [0];
+  var sum: dynamic = 0;
   scanf("%lld", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%lld", (&st[i]));
@@ -20,11 +20,11 @@ func main()
       i += 1;
     }
   }
-  var k: dynamic;
-  var last = cpp_array(MAX_N);
+  var k: dynamic = cpp_uninitialized();
+  var last: dynamic = cpp_array(MAX_N);
   scanf("%lld", (&k));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       scanf("%lld", (&last[i]));
@@ -37,9 +37,9 @@ func main()
     write("NO");
     return 0;
   }
-  var left = (n - 1);
-  var left_last = (k - 1);
-  var prev: dynamic;
+  var left: dynamic = (n - 1);
+  var left_last: dynamic = (k - 1);
+  var prev: dynamic = cpp_uninitialized();
   while (((left >= 0) && (left_last >= 0)))
   {
     if ((st[left] != last[left_last]))
@@ -60,10 +60,10 @@ func main()
         write("NO");
         return 0;
       }
-      var max = pr[left];
-      var find = left;
+      var max: dynamic = pr[left];
+      var find: dynamic = left;
       {
-        var i = (left + 1);
+        var i: dynamic = (left + 1);
         while ((i < prev))
         {
           if ((max < pr[i]))
@@ -106,8 +106,8 @@ func main()
           return 0;
         }
       }
-      var kol1 = (prev - find);
-      var kol2 = (find - left);
+      var kol1: dynamic = (prev - find);
+      var kol2: dynamic = (find - left);
       if (((find != left) && (pr[(find - 1)] < pr[find])))
       {
         ans.push_back(make_pair((find + 1), cpp_char("L")));
@@ -130,7 +130,7 @@ func main()
     left_last -= 1;
   }
   write("YES", "\n");
-  for (var it in ans)
+  for (var it: dynamic in ans)
   {
     printf("%lld %c\n", it.first, it.second);
   }

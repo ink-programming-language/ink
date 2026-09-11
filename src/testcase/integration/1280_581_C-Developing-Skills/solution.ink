@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var rest = 0;
-  var ans = 0;
-  var a: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var rest: dynamic = 0;
+  var ans: dynamic = 0;
+  var a: dynamic = cpp_uninitialized();
   read(n, k);
   a.resize(n);
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       read(a[i]);
@@ -22,7 +22,7 @@ func main()
   }
   sort((a).begin(), (a).end());
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       if (((a[i] == 10) || (k < a[i])))

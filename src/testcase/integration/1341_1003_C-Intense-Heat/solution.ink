@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -10,7 +10,7 @@ func chmax(a: dynamic, b: dynamic)
   return 0;
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -20,19 +20,19 @@ func chmin(a: dynamic, b: dynamic)
   return 0;
 }
 
-var INF = 1e18;
+var INF: dynamic = 1e18;
 
-func prt(p: dynamic)
+func prt(p: dynamic) -> dynamic
 {
   write("(", p.first, ", ", p.second, ")\n");
 }
 
-func prt(p: dynamic)
+func prt(p: dynamic) -> dynamic
 {
   write("(", get(p), ", ", get(p), ", ", get(p), ")\n");
 }
 
-func prt(p: dynamic)
+func prt(p: dynamic) -> dynamic
 {
   if (p)
   {
@@ -43,11 +43,11 @@ func prt(p: dynamic)
   }
 }
 
-func prt(v: dynamic)
+func prt(v: dynamic) -> dynamic
 {
   write(cpp_char("{"));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       write(v[i]);
@@ -61,11 +61,11 @@ func prt(v: dynamic)
   write(cpp_char("}"), cpp_char("\n"));
 }
 
-func prt(v: dynamic)
+func prt(v: dynamic) -> dynamic
 {
   write(cpp_char("{"));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       write(v[i]);
@@ -79,11 +79,11 @@ func prt(v: dynamic)
   write(cpp_char("}"), cpp_char("\n"));
 }
 
-func prt(v: dynamic)
+func prt(v: dynamic) -> dynamic
 {
   write(cpp_char("{"));
-  var c = 0;
-  for (var p in v)
+  var c: dynamic = 0;
+  for (var p: dynamic in v)
   {
     write(p.first, ":", p.second);
     c += 1;
@@ -95,11 +95,11 @@ func prt(v: dynamic)
   write(cpp_char("}"), cpp_char("\n"));
 }
 
-func prt(v: dynamic)
+func prt(v: dynamic) -> dynamic
 {
   write(cpp_char("{"));
-  var c = 0;
-  for (var p in v)
+  var c: dynamic = 0;
+  for (var p: dynamic in v)
   {
     write(p.first, ":", p.second);
     c += 1;
@@ -111,11 +111,11 @@ func prt(v: dynamic)
   write(cpp_char("}"), cpp_char("\n"));
 }
 
-func prt(v: dynamic)
+func prt(v: dynamic) -> dynamic
 {
   write(cpp_char("{"));
   {
-    var i = v.begin();
+    var i: dynamic = v.begin();
     while ((i != v.end()))
     {
       write((*i));
@@ -129,11 +129,11 @@ func prt(v: dynamic)
   write(cpp_char("}"), cpp_char("\n"));
 }
 
-func prt(v: dynamic)
+func prt(v: dynamic) -> dynamic
 {
   write(cpp_char("{"));
   {
-    var i = v.begin();
+    var i: dynamic = v.begin();
     while ((i != v.end()))
     {
       write((*i));
@@ -147,38 +147,38 @@ func prt(v: dynamic)
   write(cpp_char("}"), cpp_char("\n"));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var r = cpp_construct((n + 1), 0);
+  var r: dynamic = cpp_construct((n + 1), 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
       r[(i + 1)] = (r[i] + a[i]);
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
       {
-        var j = (i + k);
+        var j: dynamic = (i + k);
         while ((j <= n))
         {
-          var now = (((r[j] - r[i])) / double((j - i)));
+          var now: dynamic = (((r[j] - r[i])) / cpp_double((j - i)));
           chmax(ans, now);
           j += 1;
         }

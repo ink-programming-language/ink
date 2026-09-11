@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func onlinejuge()
+func onlinejuge() -> dynamic
 {
 }
 
-func isVowel(c: dynamic)
+func isVowel(c: dynamic) -> dynamic
 {
   return ((((((c == cpp_char("a")) || (c == cpp_char("e"))) || (c == cpp_char("i"))) || (c == cpp_char("o"))) || (c == cpp_char("u"))));
 }
 
-func ranklist(p1: dynamic, p2: dynamic)
+func ranklist(p1: dynamic, p2: dynamic) -> dynamic
 {
   if ((p1.first > p2.first))
   {
@@ -23,19 +23,19 @@ func ranklist(p1: dynamic, p2: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   onlinejuge();
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var map: dynamic;
-  var t: dynamic;
-  var max = 0;
+  var map: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var max: dynamic = 0;
   read(t);
   while (cpp_update(t, "--"))
   {
-    var a: dynamic;
+    var a: dynamic = cpp_uninitialized();
     read(a);
     map[a] += 1;
     if ((max < map[a]))

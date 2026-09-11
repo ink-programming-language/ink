@@ -1,48 +1,48 @@
 // Translated from solution.cpp.
 
-var N = 80;
+var N: dynamic = 80;
 
-var N2 = (((1 << 18)) + 1);
+var N2: dynamic = (((1 << 18)) + 1);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-var fa = cpp_array(N);
+var fa: dynamic = cpp_array(N);
 
-var sz = cpp_array(N);
+var sz: dynamic = cpp_array(N);
 
-var bl = cpp_array(N);
+var bl: dynamic = cpp_array(N);
 
-var dis = cpp_array(N2, N);
+var dis: dynamic = cpp_array(N2, N);
 
-var inq = cpp_array(N2, N);
+var inq: dynamic = cpp_array(N2, N);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
-  return if ((fa[x] == x)) x else cpp_assign(fa[x], "=", find(fa[x]));
+  return  ((fa[x] == x)) ? x : cpp_assign(fa[x], "=", find(fa[x]));
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n, m, A, B);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fa[i] = i;
@@ -51,12 +51,12 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var x: dynamic;
-      var y: dynamic;
-      var z: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
+      var z: dynamic = cpp_uninitialized();
       read(x, y, z);
       g[x].emplace_back(y, z);
       g[y].emplace_back(x, z);
@@ -69,7 +69,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((sz[find(i)] >= 4))
@@ -89,12 +89,12 @@ func main()
   q.emplace(1, bl[1]);
   while ((!q.empty()))
   {
-    var x = q.front();
+    var x: dynamic = q.front();
     q.pop();
     inq[x.first][x.second] = 0;
-    var d = dis[x.first][x.second];
+    var d: dynamic = dis[x.first][x.second];
     ans[x.first] = min(ans[x.first], d);
-    for (var i in g[x.first])
+    for (var i: dynamic in g[x.first])
     {
       if ((i.second == A))
       {
@@ -122,7 +122,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(ans[i], " \n"[(i == n)]);

@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-func ask(l: dynamic, r: dynamic)
+func ask(l: dynamic, r: dynamic) -> dynamic
 {
   if ((mp.find([l, r]) != mp.end()))
   {
     return mp[[l, r]];
   }
   write("? ", l, " ", r, "\n");
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   read(x);
   mp[[l, r]] = x;
   mp[[r, l]] = x;
   return x;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   istream.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var grr: dynamic;
+  var grr: dynamic = cpp_uninitialized();
   grr.clear();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       grr.push_back(i);
@@ -37,15 +37,15 @@ func main()
     }
   }
   shuffle(grr.begin(), grr.end(), rng);
-  var a = grr[0];
-  var b = grr[1];
-  var val = ask(a, b);
+  var a: dynamic = grr[0];
+  var b: dynamic = grr[1];
+  var val: dynamic = ask(a, b);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < n))
     {
-      var c = grr[i];
-      var x = ask(b, c);
+      var c: dynamic = grr[i];
+      var x: dynamic = ask(b, c);
       if ((x == val))
       {
         val = ask(a, c);
@@ -61,9 +61,9 @@ func main()
       i += 1;
     }
   }
-  var nuller: dynamic;
+  var nuller: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((i == a) || (i == b)))
@@ -71,8 +71,8 @@ func main()
         i += 1;
         continue;
       }
-      var l = ask(a, i);
-      var r = ask(b, i);
+      var l: dynamic = ask(a, i);
+      var r: dynamic = ask(b, i);
       if ((l == r))
       {
         i += 1;
@@ -90,10 +90,10 @@ func main()
       i += 1;
     }
   }
-  var gr: dynamic;
+  var gr: dynamic = cpp_uninitialized();
   gr.clear();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((i == nuller))
@@ -107,7 +107,7 @@ func main()
     }
   }
   write("! ");
-  for (var it in gr)
+  for (var it: dynamic in gr)
   {
     write(it, " ");
   }

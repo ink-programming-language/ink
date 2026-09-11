@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-var maxn = 501;
+var maxn: dynamic = 501;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var ool = (1e18 + 7);
+var ool: dynamic = (1e18 + 7);
 
-var o = 1;
+var o: dynamic = 1;
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var b = cpp_array(maxn);
+var b: dynamic = cpp_array(maxn);
 
-var k = cpp_array(maxn);
+var k: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var minz: dynamic;
+var minz: dynamic = cpp_uninitialized();
 
-var cx = cpp_array(maxn);
+var cx: dynamic = cpp_array(maxn);
 
-var cy = cpp_array(maxn);
+var cy: dynamic = cpp_array(maxn);
 
-var px = cpp_array(maxn);
+var px: dynamic = cpp_array(maxn);
 
-var py = cpp_array(maxn);
+var py: dynamic = cpp_array(maxn);
 
-var we = cpp_array(maxn, maxn);
+var we: dynamic = cpp_array(maxn, maxn);
 
-var visx = cpp_array(maxn);
+var visx: dynamic = cpp_array(maxn);
 
-var visy = cpp_array(maxn);
+var visy: dynamic = cpp_array(maxn);
 
-var slack = cpp_array(maxn);
+var slack: dynamic = cpp_array(maxn);
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   visx[u] = 1;
   {
-    var v = (0);
+    var v: dynamic = (0);
     while ((v < (n)))
     {
       if (visy[v])
@@ -46,7 +46,7 @@ func dfs(u: dynamic)
         v += 1;
         continue;
       }
-      var t = ((cx[u] + cy[v]) - we[u][v]);
+      var t: dynamic = ((cx[u] + cy[v]) - we[u][v]);
       if ((t == 0))
       {
         visy[v] = 1;
@@ -66,11 +66,11 @@ func dfs(u: dynamic)
   return 0;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   scanf("%lld", (&n));
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       scanf("%lld%lld%lld", (&a[i]), (&b[i]), (&k[i]));
@@ -78,7 +78,7 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       px[i] = cpp_assign(py[i], "=", -1);
@@ -86,11 +86,11 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (n)))
         {
           we[i][j] = max(0, (a[j] - (b[j] * min(k[j], cpp_cast(i)))));
@@ -102,11 +102,11 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           slack[i] = ool;
@@ -122,9 +122,9 @@ func main(argument_0: dynamic)
           {
             break;
           }
-          var minz = ool;
+          var minz: dynamic = ool;
           {
-            var i = (0);
+            var i: dynamic = (0);
             while ((i < (n)))
             {
               if ((!visy[i]))
@@ -135,7 +135,7 @@ func main(argument_0: dynamic)
             }
           }
           {
-            var i = (0);
+            var i: dynamic = (0);
             while ((i < (n)))
             {
               if (visx[i])
@@ -157,9 +157,9 @@ func main(argument_0: dynamic)
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       if ((py[i] != -1))

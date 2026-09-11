@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-func ALL(x: dynamic)
+func ALL(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/std");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-func debug(v: dynamic)
+func debug(v: dynamic) -> dynamic
 {
   cpp_macro("cout<<#v<<\":\";for(auto x:v){cout<<x<<' ';}cout<<endl;");
 }
 
-var INF = cpp_expression("#include<b");
+var INF: dynamic = cpp_expression("#include<b");
 
-var mod = cpp_expression("#include<b");
+var mod: dynamic = cpp_expression("#include<b");
 
-var LINF = 1001002003004005006;
+var LINF: dynamic = 1001002003004005006;
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, 1, 0, -1];
+var dy: dynamic = [0, 1, 0, -1];
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (b) gcd(b, (a % b)) else a;
+  return  (b) ? gcd(b, (a % b)) : a;
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -40,7 +40,7 @@ func chmax(a: dynamic, b: dynamic)
   return false;
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b < a))
   {
@@ -50,47 +50,47 @@ func chmin(a: dynamic, b: dynamic)
   return false;
 }
 
-var EPS = 1e-10;
+var EPS: dynamic = 1e-10;
 
-var pi = acosl(-1);
+var pi: dynamic = acosl(-1);
 
-func operator_shift_right(is: dynamic, p: dynamic)
+func operator_shift_right(is: dynamic, p: dynamic) -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   ((is >> a) >> b);
   p = Point(a, b);
   return is;
 }
 
-func operator_shift_left(os: dynamic, p: dynamic)
+func operator_shift_left(os: dynamic, p: dynamic) -> dynamic
 {
   return (((((os << fixed) << setprecision(12)) << p.real()) << cpp_char(" ")) << p.imag());
 }
 
-func eq(a: dynamic, b: dynamic)
+func eq(a: dynamic, b: dynamic) -> dynamic
 {
   return (fabs((a - b)) < EPS);
 }
 
-func operator_multiply(p: dynamic, d: dynamic)
+func operator_multiply(p: dynamic, d: dynamic) -> dynamic
 {
   return Point((real(p) * d), (imag(p) * d));
 }
 
 class Line
 {
-  var p1: dynamic;
-  var p2: dynamic;
-  func Line()
+  var p1: dynamic = cpp_uninitialized();
+  var p2: dynamic = cpp_uninitialized();
+  func Line() -> dynamic
   {
     }
-  func Line(p1: dynamic, p2: dynamic)
+  func Line(p1: dynamic, p2: dynamic) -> dynamic
   {
-      this->p1 = cpp_construct(p1);
-      this->p2 = cpp_construct(p2);
+      self->p1 = cpp_construct(p1);
+      self->p2 = cpp_construct(p2);
     }
-  func Line(A: dynamic, B: dynamic, C: dynamic)
+  func Line(A: dynamic, B: dynamic, C: dynamic) -> dynamic
   {
       if (eq(A, 0))
       {
@@ -110,106 +110,106 @@ class Line
 
 class Segment
 {
-  func Segment()
+  func Segment() -> dynamic
   {
     }
-  func Segment(p1: dynamic, p2: dynamic)
+  func Segment(p1: dynamic, p2: dynamic) -> dynamic
   {
-      this->Line = cpp_construct(p1, p2);
+      self->Line = cpp_construct(p1, p2);
     }
 }
 
 class Circle
 {
-  var center: dynamic;
-  var r: dynamic;
-  func Circle()
+  var center: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  func Circle() -> dynamic
   {
     }
-  func Circle(center: dynamic, r: dynamic)
+  func Circle(center: dynamic, r: dynamic) -> dynamic
   {
-      this->center = cpp_construct(center);
-      this->r = cpp_construct(r);
+      self->center = cpp_construct(center);
+      self->r = cpp_construct(r);
     }
 }
 
-func rotate(theta: dynamic, p: dynamic)
+func rotate(theta: dynamic, p: dynamic) -> dynamic
 {
   return Point(((cos(theta) * p.real()) - (sin(theta) * p.imag())), ((sin(theta) * p.real()) + (cos(theta) * p.imag())));
 }
 
-func radian_to_degree(r: dynamic)
+func radian_to_degree(r: dynamic) -> dynamic
 {
   return ((r * 180.0) / pi);
 }
 
-func degree_to_radian(d: dynamic)
+func degree_to_radian(d: dynamic) -> dynamic
 {
   return ((d * pi) / 180.0);
 }
 
-func area_triangle(a: dynamic, b: dynamic, c: dynamic)
+func area_triangle(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
-  var x = (b - a);
-  var y = (c - a);
+  var x: dynamic = (b - a);
+  var y: dynamic = (c - a);
   return (fabs(((x.real() * y.imag()) - (x.imag() * y.real()))) / 2);
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((real(a) * imag(b)) - (imag(a) * real(b)));
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return ((real(a) * real(b)) + (imag(a) * imag(b)));
 }
 
-func parallel(a: dynamic, b: dynamic)
+func parallel(a: dynamic, b: dynamic) -> dynamic
 {
   return eq(cross((a.p1 - a.p2), (b.p1 - b.p2)), 0.0);
 }
 
-func orthogonal(a: dynamic, b: dynamic)
+func orthogonal(a: dynamic, b: dynamic) -> dynamic
 {
   return eq(dot((a.p1 - a.p2), (b.p1 - b.p2)), 0.0);
 }
 
-func projection(l: dynamic, p: dynamic)
+func projection(l: dynamic, p: dynamic) -> dynamic
 {
-  var k = (dot((l.p1 - l.p2), (p - l.p1)) / norm((l.p1 - l.p2)));
+  var k: dynamic = (dot((l.p1 - l.p2), (p - l.p1)) / norm((l.p1 - l.p2)));
   return (l.p1 + (((l.p1 - l.p2)) * k));
 }
 
-func projection(l: dynamic, p: dynamic)
+func projection(l: dynamic, p: dynamic) -> dynamic
 {
-  var k = (dot((l.p1 - l.p2), (p - l.p1)) / norm((l.p1 - l.p2)));
+  var k: dynamic = (dot((l.p1 - l.p2), (p - l.p1)) / norm((l.p1 - l.p2)));
   return (l.p1 + (((l.p1 - l.p2)) * k));
 }
 
-func reflection(l: dynamic, p: dynamic)
+func reflection(l: dynamic, p: dynamic) -> dynamic
 {
-  var h = projection(l, p);
+  var h: dynamic = projection(l, p);
   return (((p + ((h - p))) + ((h - p))));
 }
 
-func reflection(l: dynamic, p: dynamic)
+func reflection(l: dynamic, p: dynamic) -> dynamic
 {
-  var h = projection(l, p);
+  var h: dynamic = projection(l, p);
   return (((p + ((h - p))) + ((h - p))));
 }
 
-func dis(a: dynamic, b: dynamic)
+func dis(a: dynamic, b: dynamic) -> dynamic
 {
   return abs((a - b));
 }
 
-func dis(l: dynamic, p: dynamic)
+func dis(l: dynamic, p: dynamic) -> dynamic
 {
   return abs((p - projection(l, p)));
 }
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b -= a;
   c -= a;
@@ -231,59 +231,59 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   }
 }
 
-func circumcenter(A: dynamic, B: dynamic, C: dynamic)
+func circumcenter(A: dynamic, B: dynamic, C: dynamic) -> dynamic
 {
-  var S = area_triangle(A, B, C);
-  var a = dis(B, C);
-  var b = dis(A, C);
-  var c = dis(A, B);
+  var S: dynamic = area_triangle(A, B, C);
+  var a: dynamic = dis(B, C);
+  var b: dynamic = dis(A, C);
+  var c: dynamic = dis(A, B);
   return (((A * ((((a * a) * ((((b * b) + (c * c)) - (a * a)))) / (((16 * S) * S))))) + (B * ((((b * b) * ((((c * c) + (a * a)) - (b * b)))) / (((16 * S) * S)))))) + (C * ((((c * c) * ((((a * a) + (b * b)) - (c * c)))) / (((16 * S) * S))))));
 }
 
-func intersect(l: dynamic, p: dynamic)
+func intersect(l: dynamic, p: dynamic) -> dynamic
 {
   return (abs(ccw(l.p1, l.p2, p)) != 1);
 }
 
-func intersect(l1: dynamic, l2: dynamic)
+func intersect(l1: dynamic, l2: dynamic) -> dynamic
 {
   return cpp_binary((abs(cross((l1.p2 - l1.p1), (l2.p2 - l2.p1))) > EPS), "or", (abs(cross((l1.p2 - l1.p1), (l2.p2 - l1.p1))) < EPS));
 }
 
-func intersect(s: dynamic, p: dynamic)
+func intersect(s: dynamic, p: dynamic) -> dynamic
 {
   return (ccw(s.p1, s.p2, p) == 0);
 }
 
-func intersect(l: dynamic, s: dynamic)
+func intersect(l: dynamic, s: dynamic) -> dynamic
 {
   return ((cross((l.p2 - l.p1), (s.p1 - l.p1)) * cross((l.p2 - l.p1), (s.p2 - l.p1))) < EPS);
 }
 
-func intersect(c: dynamic, l: dynamic)
+func intersect(c: dynamic, l: dynamic) -> dynamic
 {
   return (dis(l, c.center) <= (c.r + EPS));
 }
 
-func intersect(c: dynamic, p: dynamic)
+func intersect(c: dynamic, p: dynamic) -> dynamic
 {
   return (abs((abs((p - c.center)) - c.r)) < EPS);
 }
 
-func intersect(s: dynamic, t: dynamic)
+func intersect(s: dynamic, t: dynamic) -> dynamic
 {
   return cpp_binary(((ccw(s.p1, s.p2, t.p1) * ccw(s.p1, s.p2, t.p2)) <= 0), "and", ((ccw(t.p1, t.p2, s.p1) * ccw(t.p1, t.p2, s.p2)) <= 0));
 }
 
-func intersect(c: dynamic, l: dynamic)
+func intersect(c: dynamic, l: dynamic) -> dynamic
 {
-  var h = projection(l, c.center);
+  var h: dynamic = projection(l, c.center);
   if (((norm((h - c.center)) - (c.r * c.r)) > EPS))
   {
     return 0;
   }
-  var d1 = abs((c.center - l.p1));
-  var d2 = abs((c.center - l.p2));
+  var d1: dynamic = abs((c.center - l.p1));
+  var d2: dynamic = abs((c.center - l.p2));
   if (cpp_binary((d1 < (c.r + EPS)), "and", (d2 < (c.r + EPS))))
   {
     return 0;
@@ -299,13 +299,13 @@ func intersect(c: dynamic, l: dynamic)
   return 0;
 }
 
-func intersect(c1: dynamic, c2: dynamic)
+func intersect(c1: dynamic, c2: dynamic) -> dynamic
 {
   if ((c1.r < c2.r))
   {
     swap(c1, c2);
   }
-  var d = abs((c1.center - c2.center));
+  var d: dynamic = abs((c1.center - c2.center));
   if (((c1.r + c2.r) < d))
   {
     return 4;
@@ -325,10 +325,10 @@ func intersect(c1: dynamic, c2: dynamic)
   return 0;
 }
 
-func crosspoint(l: dynamic, m: dynamic)
+func crosspoint(l: dynamic, m: dynamic) -> dynamic
 {
-  var A = cross((m.p2 - m.p1), (m.p1 - l.p1));
-  var B = cross((m.p2 - m.p1), (l.p2 - l.p1));
+  var A: dynamic = cross((m.p2 - m.p1), (m.p1 - l.p1));
+  var B: dynamic = cross((m.p2 - m.p1), (l.p2 - l.p1));
   if (cpp_binary(eq(A, 0), "and", eq(B, 0)))
   {
     return l.p1;
@@ -340,17 +340,17 @@ func crosspoint(l: dynamic, m: dynamic)
   return (l.p1 + ((A / B) * ((l.p2 - l.p1))));
 }
 
-func crosspoint(l: dynamic, m: dynamic)
+func crosspoint(l: dynamic, m: dynamic) -> dynamic
 {
   return crosspoint(Line(l), Line(m));
 }
 
-func crosspoint(c: dynamic, l: dynamic)
+func crosspoint(c: dynamic, l: dynamic) -> dynamic
 {
-  var ret: dynamic;
-  var h = projection(l, c.center);
-  var d = sqrt(((c.r * c.r) - norm((h - c.center))));
-  var e = (((l.p2 - l.p1)) * ((1 / abs((l.p2 - l.p1)))));
+  var ret: dynamic = cpp_uninitialized();
+  var h: dynamic = projection(l, c.center);
+  var d: dynamic = sqrt(((c.r * c.r) - norm((h - c.center))));
+  var e: dynamic = (((l.p2 - l.p1)) * ((1 / abs((l.p2 - l.p1)))));
   if ((((c.r * c.r) + EPS) < norm((h - c.center))))
   {
     return ret;
@@ -365,15 +365,15 @@ func crosspoint(c: dynamic, l: dynamic)
   return ret;
 }
 
-func crosspoint(c: dynamic, s: dynamic)
+func crosspoint(c: dynamic, s: dynamic) -> dynamic
 {
-  var l = Line(s.p1, s.p2);
-  var ko = intersect(c, s);
+  var l: dynamic = Line(s.p1, s.p2);
+  var ko: dynamic = intersect(c, s);
   if ((ko == 2))
   {
     return crosspoint(c, l);
   }
-  var ret: dynamic;
+  var ret: dynamic = cpp_uninitialized();
   if ((ko == 0))
   {
     return ret;
@@ -383,7 +383,7 @@ func crosspoint(c: dynamic, s: dynamic)
   {
     return ret;
   }
-  var rret: dynamic;
+  var rret: dynamic = cpp_uninitialized();
   if ((dot((s.p1 - ret[0]), (s.p2 - ret[0])) < 0))
   {
     rret.push_back(ret[0]);
@@ -394,51 +394,51 @@ func crosspoint(c: dynamic, s: dynamic)
   return rret;
 }
 
-func crosspoint(c1: dynamic, c2: dynamic)
+func crosspoint(c1: dynamic, c2: dynamic) -> dynamic
 {
-  var ret: dynamic;
-  var isec = intersect(c1, c2);
+  var ret: dynamic = cpp_uninitialized();
+  var isec: dynamic = intersect(c1, c2);
   if (cpp_binary((isec == 0), "or", (isec == 4)))
   {
     return ret;
   }
-  var d = abs((c1.center - c2.center));
-  var a = acos((((((c1.r * c1.r) + (d * d)) - (c2.r * c2.r))) / (((2 * c1.r) * d))));
-  var t = atan2((c2.center.imag() - c1.center.imag()), (c2.center.real() - c1.center.real()));
+  var d: dynamic = abs((c1.center - c2.center));
+  var a: dynamic = acos((((((c1.r * c1.r) + (d * d)) - (c2.r * c2.r))) / (((2 * c1.r) * d))));
+  var t: dynamic = atan2((c2.center.imag() - c1.center.imag()), (c2.center.real() - c1.center.real()));
   ret.push_back((c1.center + Point((cos((t + a)) * c1.r), (sin((t + a)) * c1.r))));
   ret.push_back((c1.center + Point((cos((t - a)) * c1.r), (sin((t - a)) * c1.r))));
   return ret;
 }
 
-func tangent(c: dynamic, p: dynamic)
+func tangent(c: dynamic, p: dynamic) -> dynamic
 {
   return crosspoint(c, Circle(p, sqrt((norm((c.center - p)) - (c.r * c.r)))));
 }
 
-func tangent(c1: dynamic, c2: dynamic)
+func tangent(c1: dynamic, c2: dynamic) -> dynamic
 {
-  var ret: dynamic;
+  var ret: dynamic = cpp_uninitialized();
   if ((c1.r < c2.r))
   {
     swap(c1, c2);
   }
-  var g = norm((c1.center - c2.center));
+  var g: dynamic = norm((c1.center - c2.center));
   if (eq(g, 0))
   {
     return ret;
   }
-  var u = (((c2.center - c1.center)) / sqrt(g));
-  var v = rotate((pi * 0.5), u);
-  for (var s in [-1, 1])
+  var u: dynamic = (((c2.center - c1.center)) / sqrt(g));
+  var v: dynamic = rotate((pi * 0.5), u);
+  for (var s: dynamic in [-1, 1])
   {
-    var h = (((c1.r + (s * c2.r))) / sqrt(g));
+    var h: dynamic = (((c1.r + (s * c2.r))) / sqrt(g));
     if (eq((1 - (h * h)), 0))
     {
       ret.push_back(Line((c1.center + (u * c1.r)), (c1.center + (((u + v)) * c1.r))));
     } else if (((1 - (h * h)) > 0))
     {
-      var uu = (u * h);
-      var vv = (v * sqrt((1 - (h * h))));
+      var uu: dynamic = (u * h);
+      var vv: dynamic = (v * sqrt((1 - (h * h))));
       ret.push_back(Line((c1.center + (((uu + vv)) * c1.r)), (c2.center - ((((uu + vv)) * c2.r) * s))));
       ret.push_back(Line((c1.center + (((uu - vv)) * c1.r)), (c2.center - ((((uu - vv)) * c2.r) * s))));
     }
@@ -446,32 +446,32 @@ func tangent(c1: dynamic, c2: dynamic)
   return ret;
 }
 
-func MinimumBoundingCircle(v: dynamic)
+func MinimumBoundingCircle(v: dynamic) -> dynamic
 {
-  var n = v.size();
-  var mt = cpp_construct(time(0));
+  var n: dynamic = v.size();
+  var mt: dynamic = cpp_construct(time(0));
   shuffle(v.begin(), v.end(), mt);
-  var ret = cpp_construct(0, 0);
-  var make_circle2 = __cpp_lambda_1;
-  var make_circle3 = __cpp_lambda_2;
-  var isIn = __cpp_lambda_3;
+  var ret: dynamic = cpp_construct(0, 0);
+  var make_circle2: dynamic = __cpp_lambda_1;
+  var make_circle3: dynamic = __cpp_lambda_2;
+  var isIn: dynamic = __cpp_lambda_3;
   ret = make_circle2(v[0], v[1]);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < n))
     {
       if ((!isIn(v[i])))
       {
         ret = make_circle2(v[0], v[i]);
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < i))
           {
             if ((!isIn(v[j])))
             {
               ret = make_circle2(v[i], v[j]);
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < j))
                 {
                   if ((!isIn(v[k])))
@@ -492,13 +492,13 @@ func MinimumBoundingCircle(v: dynamic)
   return ret;
 }
 
-func pow_mod(x: dynamic, n: dynamic)
+func pow_mod(x: dynamic, n: dynamic) -> dynamic
 {
   if ((n == 0))
   {
     return 1;
   }
-  var ret = pow_mod((((x * x)) % mod), (n / 2));
+  var ret: dynamic = pow_mod((((x * x)) % mod), (n / 2));
   if ((n & 1))
   {
     ret = (((ret * x)) % mod);
@@ -506,16 +506,16 @@ func pow_mod(x: dynamic, n: dynamic)
   return ret;
 }
 
-func chromatic_number(g: dynamic)
+func chromatic_number(g: dynamic) -> dynamic
 {
-  var n = cpp_cast(g.size());
-  var es = cpp_construct(n, 0);
+  var n: dynamic = cpp_cast(g.size());
+  var es: dynamic = cpp_construct(n, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           es[i] |= ((g[i][j] << j));
@@ -525,25 +525,25 @@ func chromatic_number(g: dynamic)
       i += 1;
     }
   }
-  var I = cpp_construct((1 << n));
+  var I: dynamic = cpp_construct((1 << n));
   I[0] = 1;
   {
-    var S = 1;
+    var S: dynamic = 1;
     while ((S < ((1 << n))))
     {
-      var v = builtin_ctz(S);
+      var v: dynamic = builtin_ctz(S);
       I[S] = (I[(S ^ ((1 << v)))] + I[(((S ^ ((1 << v)))) & ((~es[v])))]);
       S += 1;
     }
   }
-  var lw = 0;
-  var hi = n;
+  var lw: dynamic = 0;
+  var hi: dynamic = n;
   while (((hi - lw) > 1))
   {
-    var mid = (((lw + hi)) / 2);
-    var g = 0;
+    var mid: dynamic = (((lw + hi)) / 2);
+    var g: dynamic = 0;
     {
-      var S = 0;
+      var S: dynamic = 0;
       while ((S < ((1 << n))))
       {
         if ((((n - builtin_popcount(S))) & 1))
@@ -568,14 +568,14 @@ func chromatic_number(g: dynamic)
   return hi;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
   write(chromatic_number(g), "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(0);
@@ -586,47 +586,47 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_1(a: dynamic, b: dynamic)
+func __cpp_lambda_1(a: dynamic, b: dynamic) -> dynamic
 {
   return Circle((((a + b)) * 0.5), (dis(a, b) / 2));
 }
 
-func __cpp_lambda_2(A: dynamic, B: dynamic, C: dynamic)
+func __cpp_lambda_2(A: dynamic, B: dynamic, C: dynamic) -> dynamic
 {
-  var cent = circumcenter(A, B, C);
+  var cent: dynamic = circumcenter(A, B, C);
   return Circle(cent, dis(cent, A));
 }
 
-func __cpp_lambda_3(a: dynamic)
+func __cpp_lambda_3(a: dynamic) -> dynamic
 {
   return (dis(ret.center, a) < (ret.r + EPS));
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var m: dynamic;
+    var m: dynamic = cpp_uninitialized();
     read(m);
-    var pre: dynamic;
+    var pre: dynamic = cpp_uninitialized();
     read(pre);
     rep(j, (m - 1));
     {
-      var p: dynamic;
+      var p: dynamic = cpp_uninitialized();
       read(p);
       ls[i].push_back(Segment(p, pre));
       pre = p;
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     {
-      var j = (i + 1);
+      var j: dynamic = (i + 1);
       while ((j < n))
       {
-        var f = false;
-        for (var a in ls[i])
+        var f: dynamic = false;
+        for (var a: dynamic in ls[i])
         {
-          for (var b in ls[j])
+          for (var b: dynamic in ls[j])
           {
             if (intersect(a, b))
             {

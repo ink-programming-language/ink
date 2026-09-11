@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var A = cpp_array((1001010));
+var A: dynamic = cpp_array((1001010));
 
-var rt: dynamic;
+var rt: dynamic = cpp_uninitialized();
 
-var f = cpp_array(40, (1001010));
+var f: dynamic = cpp_array(40, (1001010));
 
-var Vec = cpp_array((1001010));
+var Vec: dynamic = cpp_array((1001010));
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func Dfs(x: dynamic)
+func Dfs(x: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Vec[x].size()))
     {
-      var y = Vec[x][i];
+      var y: dynamic = Vec[x][i];
       if ((y == f[x][0]))
       {
         i += 1;
@@ -31,7 +31,7 @@ func Dfs(x: dynamic)
   }
 }
 
-func Lmin(a: dynamic, b: dynamic)
+func Lmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -40,11 +40,11 @@ func Lmin(a: dynamic, b: dynamic)
   return b;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&A[i]));
@@ -53,7 +53,7 @@ func main()
   }
   rt = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       if ((A[i] < A[rt]))
@@ -64,11 +64,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d %d", (&x), (&y));
       Vec[x].push_back(y);
       Vec[y].push_back(x);
@@ -78,11 +78,11 @@ func main()
   Dfs(rt);
   f[rt][0] = rt;
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= 30))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           f[i][j] = f[f[i][(j - 1)]][(j - 1)];
@@ -93,14 +93,14 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((i != rt))
       {
-        var Min = (cpp_cast(A[f[i][0]]) + cpp_cast(A[i]));
+        var Min: dynamic = (cpp_cast(A[f[i][0]]) + cpp_cast(A[i]));
         {
-          var k = 1;
+          var k: dynamic = 1;
           while ((k <= 30))
           {
             Min = Lmin(Min, ((cpp_cast(k) * cpp_cast(min(A[i], A[f[i][k]]))) + cpp_cast(((A[i] + A[f[i][k]])))));

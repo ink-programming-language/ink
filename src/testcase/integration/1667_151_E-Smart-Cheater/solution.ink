@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-var MAX_N = 150000;
+var MAX_N: dynamic = 150000;
 
-var MAX_M = 300000;
+var MAX_M: dynamic = 300000;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var x = cpp_array((MAX_N + 1));
+var x: dynamic = cpp_array((MAX_N + 1));
 
-var p = cpp_array((MAX_N + 1));
+var p: dynamic = cpp_array((MAX_N + 1));
 
-var v = cpp_array((MAX_N + 1));
+var v: dynamic = cpp_array((MAX_N + 1));
 
-var MAX_R = (1 << 18);
+var MAX_R: dynamic = (1 << 18);
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var sz: dynamic;
+var sz: dynamic = cpp_uninitialized();
 
 class node_t
 {
-  var v: dynamic;
-  var lv: dynamic;
-  var rv: dynamic;
-  var s: dynamic;
-  func node_t()
+  var v: dynamic = cpp_uninitialized();
+  var lv: dynamic = cpp_uninitialized();
+  var rv: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  func node_t() -> dynamic
   {
       v = cpp_assign(lv, "=", cpp_assign(rv, "=", cpp_assign(s, "=", 0.0)));
     }
 }
 
-var node = cpp_array((MAX_R << 1));
+var node: dynamic = cpp_array((MAX_R << 1));
 
-func operator_add(a: dynamic, b: dynamic)
+func operator_add(a: dynamic, b: dynamic) -> dynamic
 {
-  var ret: dynamic;
+  var ret: dynamic = cpp_uninitialized();
   ret.s = (a.s + b.s);
   ret.lv = a.lv;
   if ((fabs((a.lv - a.s)) < 1E-8))
@@ -56,16 +56,16 @@ func operator_add(a: dynamic, b: dynamic)
   return ret;
 }
 
-func init(x: dynamic)
+func init(x: dynamic) -> dynamic
 {
-  var t = if (((((x & ((x + 1)))) == 0))) (x + 1) else x;
+  var t: dynamic =  (((((x & ((x + 1)))) == 0))) ? (x + 1) : x;
   while (cpp_assign(t, ">>=", 1))
   {
     h += 1;
   }
   sz = (1 << ((h + 1)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= x))
     {
       node[(i + sz)].s = v[i];
@@ -75,7 +75,7 @@ func init(x: dynamic)
     }
   }
   {
-    var i = (sz - 1);
+    var i: dynamic = (sz - 1);
     while (i)
     {
       node[i] = (node[(((i) << 1))] + node[((((i) << 1) | 1))]);
@@ -84,12 +84,12 @@ func init(x: dynamic)
   }
 }
 
-func ask_on_range(l: dynamic, r: dynamic)
+func ask_on_range(l: dynamic, r: dynamic) -> dynamic
 {
   l += (sz - 1);
   r += (sz + 1);
-  var la: dynamic;
-  var ra: dynamic;
+  var la: dynamic = cpp_uninitialized();
+  var ra: dynamic = cpp_uninitialized();
   {
     while (((l ^ r) ^ 1))
     {
@@ -108,11 +108,11 @@ func ask_on_range(l: dynamic, r: dynamic)
   return ((la + ra));
 }
 
-func solve(fin: dynamic, fout: dynamic)
+func solve(fin: dynamic, fout: dynamic) -> dynamic
 {
   fscanf(fin, "%d%d%d", (&n), (&m), (&c));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fscanf(fin, "%d", (&x[i]));
@@ -120,7 +120,7 @@ func solve(fin: dynamic, fout: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       fscanf(fin, "%d", (&p[i]));
@@ -129,13 +129,13 @@ func solve(fin: dynamic, fout: dynamic)
     }
   }
   init((n - 1));
-  var ans = 0.0;
+  var ans: dynamic = 0.0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       fscanf(fin, "%d%d", (&a), (&b));
       ans += ask_on_range(a, (b - 1)).v;
       i += 1;
@@ -144,7 +144,7 @@ func solve(fin: dynamic, fout: dynamic)
   fprintf(fout, "%.8lf\n", ans);
 }
 
-func main()
+func main() -> dynamic
 {
   Solve.solve(stdin, stdout);
   return 0;

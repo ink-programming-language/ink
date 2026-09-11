@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   read(x);
-  var m = 0;
-  var z = x;
+  var m: dynamic = 0;
+  var z: dynamic = x;
   x += 4;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < x))
     {
       if (((x % i) != 0))
@@ -28,7 +28,7 @@ func main()
     x = z;
     x += 6;
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i < x))
       {
         if (((x % i) != 0))
@@ -49,7 +49,7 @@ func main()
     x = z;
     x += 8;
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i < x))
       {
         if (((x % i) != 0))
@@ -70,7 +70,7 @@ func main()
     x = z;
     x += 9;
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i < x))
       {
         if (((x % i) != 0))

@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-var MAXN = 100000;
+var MAXN: dynamic = 100000;
 
-var MAXM = 300000;
+var MAXM: dynamic = 300000;
 
 class node
 {
-  var key: dynamic;
-  var id: dynamic;
-  var rev: dynamic;
-  var siz1: dynamic;
-  var siz2: dynamic;
-  var s: dynamic;
-  var fa: dynamic;
-  var ch: dynamic;
-  var mx: dynamic;
+  var key: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  var rev: dynamic = cpp_uninitialized();
+  var siz1: dynamic = cpp_uninitialized();
+  var siz2: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var fa: dynamic = cpp_uninitialized();
+  var ch: dynamic = cpp_uninitialized();
+  var mx: dynamic = cpp_uninitialized();
 }
 
-var tree = cpp_array(((MAXN + MAXM) + 5));
+var tree: dynamic = cpp_array(((MAXN + MAXM) + 5));
 
-var ad: dynamic;
+var ad: dynamic = cpp_uninitialized();
 
 class edge
 {
-  var u: dynamic;
-  var v: dynamic;
-  var w: dynamic;
-  var id: dynamic;
-  func edge(u: dynamic = 0, v: dynamic = 0, w: dynamic = 0, i: dynamic = 0)
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  func edge(u: dynamic = 0, v: dynamic = 0, w: dynamic = 0, i: dynamic = 0) -> dynamic
   {
-      this->u = cpp_construct(u);
-      this->v = cpp_construct(v);
-      this->w = cpp_construct(w);
-      this->id = cpp_construct(i);
+      self->u = cpp_construct(u);
+      self->v = cpp_construct(v);
+      self->w = cpp_construct(w);
+      self->id = cpp_construct(i);
     }
 }
 
-var e = cpp_array((MAXM + 5));
+var e: dynamic = cpp_array((MAXM + 5));
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.w == b.w))
   {
@@ -47,27 +47,27 @@ func operator_less(a: dynamic, b: dynamic)
   return (a.w < b.w);
 }
 
-var Set: dynamic;
+var Set: dynamic = cpp_uninitialized();
 
-var it: dynamic;
+var it: dynamic = cpp_uninitialized();
 
-var NIL: dynamic;
+var NIL: dynamic = cpp_uninitialized();
 
-var ncnt: dynamic;
+var ncnt: dynamic = cpp_uninitialized();
 
-func Init()
+func Init() -> dynamic
 {
   NIL = cpp_assign(ncnt, "=", (&tree[0]));
   NIL->fa = cpp_assign(NIL->ch[0], "=", cpp_assign(NIL->ch[1], "=", cpp_assign(NIL->mx, "=", NIL)));
   NIL->key = -1;
 }
 
-func IsRoot(x: dynamic)
+func IsRoot(x: dynamic) -> dynamic
 {
   return (((x->fa == NIL)) || (((x->fa->ch[0] != x) && (x->fa->ch[1] != x))));
 }
 
-func SetChild(x: dynamic, y: dynamic, d: dynamic)
+func SetChild(x: dynamic, y: dynamic, d: dynamic) -> dynamic
 {
   x->ch[d] = y;
   if ((y != NIL))
@@ -76,7 +76,7 @@ func SetChild(x: dynamic, y: dynamic, d: dynamic)
   }
 }
 
-func NewNode(k: dynamic, id: dynamic, s: dynamic)
+func NewNode(k: dynamic, id: dynamic, s: dynamic) -> dynamic
 {
   ncnt += 1;
   ncnt->key = k;
@@ -87,7 +87,7 @@ func NewNode(k: dynamic, id: dynamic, s: dynamic)
   return ncnt;
 }
 
-func PushDown(x: dynamic)
+func PushDown(x: dynamic) -> dynamic
 {
   if (x->rev)
   {
@@ -104,7 +104,7 @@ func PushDown(x: dynamic)
   }
 }
 
-func PushUp(x: dynamic)
+func PushUp(x: dynamic) -> dynamic
 {
   if (((x->key > x->ch[0]->mx->key) && (x->key > x->ch[1]->mx->key)))
   {
@@ -119,12 +119,12 @@ func PushUp(x: dynamic)
   x->siz1 = (((x->s + x->ch[0]->siz1) + x->ch[1]->siz1) + x->siz2);
 }
 
-func Rotate(x: dynamic)
+func Rotate(x: dynamic) -> dynamic
 {
-  var y = x->fa;
+  var y: dynamic = x->fa;
   PushDown(y);
   PushDown(x);
-  var d = ((y->ch[1] == x));
+  var d: dynamic = ((y->ch[1] == x));
   if (IsRoot(y))
   {
     x->fa = y->fa;
@@ -137,12 +137,12 @@ func Rotate(x: dynamic)
   PushUp(y);
 }
 
-func Splay(x: dynamic)
+func Splay(x: dynamic) -> dynamic
 {
   PushDown(x);
   while ((!IsRoot(x)))
   {
-    var y = x->fa;
+    var y: dynamic = x->fa;
     if (IsRoot(y))
     {
       Rotate(x);
@@ -161,9 +161,9 @@ func Splay(x: dynamic)
   PushUp(x);
 }
 
-func Access(x: dynamic)
+func Access(x: dynamic) -> dynamic
 {
-  var y = NIL;
+  var y: dynamic = NIL;
   while ((x != NIL))
   {
     Splay(x);
@@ -176,14 +176,14 @@ func Access(x: dynamic)
   }
 }
 
-func MakeRoot(x: dynamic)
+func MakeRoot(x: dynamic) -> dynamic
 {
   Access(x);
   Splay(x);
   x->rev ^= 1;
 }
 
-func Link(x: dynamic, y: dynamic)
+func Link(x: dynamic, y: dynamic) -> dynamic
 {
   MakeRoot(x);
   MakeRoot(y);
@@ -191,7 +191,7 @@ func Link(x: dynamic, y: dynamic)
   y->siz2 += x->siz1;
 }
 
-func Cut(x: dynamic, y: dynamic)
+func Cut(x: dynamic, y: dynamic) -> dynamic
 {
   MakeRoot(x);
   Access(y);
@@ -200,7 +200,7 @@ func Cut(x: dynamic, y: dynamic)
   PushUp(y);
 }
 
-func FindRoot(x: dynamic)
+func FindRoot(x: dynamic) -> dynamic
 {
   Access(x);
   Splay(x);
@@ -211,7 +211,7 @@ func FindRoot(x: dynamic)
   return x;
 }
 
-func QueryMAX(x: dynamic, y: dynamic)
+func QueryMAX(x: dynamic, y: dynamic) -> dynamic
 {
   MakeRoot(x);
   Access(y);
@@ -219,13 +219,13 @@ func QueryMAX(x: dynamic, y: dynamic)
   return y->mx;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var stot: dynamic;
+var stot: dynamic = cpp_uninitialized();
 
-func Debug()
+func Debug() -> dynamic
 {
   {
     it = Set.begin();
@@ -237,12 +237,12 @@ func Debug()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   Init();
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ad[i] = NewNode(-1, -1, 1);
@@ -251,7 +251,7 @@ func main()
   }
   stot = n;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       e[i].id = i;
@@ -265,7 +265,7 @@ func main()
       Set.insert(e[i]);
       if ((FindRoot(ad[e[i].u]) == FindRoot(ad[e[i].v])))
       {
-        var p = QueryMAX(ad[e[i].u], ad[e[i].v]);
+        var p: dynamic = QueryMAX(ad[e[i].u], ad[e[i].v]);
         Splay(p);
         if ((p->key > e[i].w))
         {
@@ -295,9 +295,9 @@ func main()
         it -= 1;
         while (true)
         {
-          var p = ad[(n + it->id)];
-          var q = ad[e[it->id].u];
-          var r = ad[e[it->id].v];
+          var p: dynamic = ad[(n + it->id)];
+          var q: dynamic = ad[e[it->id].u];
+          var r: dynamic = ad[e[it->id].v];
           MakeRoot(p);
           Access(q);
           Access(r);

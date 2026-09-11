@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var X = cpp_array(30, 60);
+var X: dynamic = cpp_array(30, 60);
 
-var Y = cpp_array(30, 60);
+var Y: dynamic = cpp_array(30, 60);
 
-var g2 = cpp_array(30, 30, 60);
+var g2: dynamic = cpp_array(30, 30, 60);
 
-var A = cpp_array(60);
+var A: dynamic = cpp_array(60);
 
-var B = cpp_array(60);
+var B: dynamic = cpp_array(60);
 
-var C = cpp_array(60);
+var C: dynamic = cpp_array(60);
 
-var ijk = cpp_array(30, 60);
+var ijk: dynamic = cpp_array(30, 60);
 
-var v = cpp_array(30, 60);
+var v: dynamic = cpp_array(30, 60);
 
-var conv = cpp_array(30);
+var conv: dynamic = cpp_array(30);
 
-var m = cpp_array(60);
+var m: dynamic = cpp_array(60);
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var g = cpp_array(30, 60);
+var g: dynamic = cpp_array(30, 60);
 
-func dist(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func dist(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   return sqrt(((((X[a][b] - X[c][d])) * ((X[a][b] - X[c][d]))) + (((Y[a][b] - Y[c][d])) * ((Y[a][b] - Y[c][d])))));
 }
 
-func ABS(a: dynamic)
+func ABS(a: dynamic) -> dynamic
 {
   return max(a, (-a));
 }
 
-var UF = cpp_array(60);
+var UF: dynamic = cpp_array(60);
 
-func FIND(a: dynamic)
+func FIND(a: dynamic) -> dynamic
 {
   if ((UF[a] < 0))
   {
@@ -45,7 +45,7 @@ func FIND(a: dynamic)
   return cpp_assign(UF[a], "=", FIND(UF[a]));
 }
 
-func UNION(a: dynamic, b: dynamic)
+func UNION(a: dynamic, b: dynamic) -> dynamic
 {
   a = FIND(a);
   b = FIND(b);
@@ -57,22 +57,22 @@ func UNION(a: dynamic, b: dynamic)
   UF[b] = a;
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   while (cpp_comma(scanf("%d", (&a)), a))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 60))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 30))
           {
             g[i][j].clear();
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < 30))
               {
                 g2[i][j][k] = 0;
@@ -86,7 +86,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < a))
       {
         UF[i] = -1;
@@ -94,15 +94,15 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < a))
       {
         m[i].clear();
-        var b: dynamic;
+        var b: dynamic = cpp_uninitialized();
         scanf("%d", (&b));
         A[i] = b;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < b))
           {
             scanf("%d%d", (&X[i][j]), (&Y[i][j]));
@@ -110,15 +110,15 @@ func main()
             j += 1;
           }
         }
-        var c: dynamic;
+        var c: dynamic = cpp_uninitialized();
         scanf("%d", (&c));
         B[i] = c;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < c))
           {
-            var p: dynamic;
-            var q: dynamic;
+            var p: dynamic = cpp_uninitialized();
+            var q: dynamic = cpp_uninitialized();
             scanf("%d%d", (&p), (&q));
             p -= 1;
             q -= 1;
@@ -128,16 +128,16 @@ func main()
             j += 1;
           }
         }
-        var d: dynamic;
+        var d: dynamic = cpp_uninitialized();
         scanf("%d", (&d));
         C[i] = d;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < d))
           {
-            var p: dynamic;
-            var q: dynamic;
-            var r: dynamic;
+            var p: dynamic = cpp_uninitialized();
+            var q: dynamic = cpp_uninitialized();
+            var r: dynamic = cpp_uninitialized();
             scanf("%d%d%d", (&p), (&q), (&r));
             p -= 1;
             q -= 1;
@@ -150,11 +150,11 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < a))
       {
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j < a))
           {
             if (((A[i] != A[j]) || (B[i] != B[j])))
@@ -168,7 +168,7 @@ func main()
               continue;
             }
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < A[j]))
               {
                 if ((FIND(i) == FIND(j)))
@@ -176,7 +176,7 @@ func main()
                   break;
                 }
                 {
-                  var l = 0;
+                  var l: dynamic = 0;
                   while ((l < A[j]))
                   {
                     if ((ABS((dist(i, 0, i, 1) - dist(j, k, j, l))) > EPS))
@@ -184,18 +184,18 @@ func main()
                       l += 1;
                       continue;
                     }
-                    var th = (atan2((Y[i][1] - Y[i][0]), (X[i][1] - X[i][0])) - atan2((Y[j][l] - Y[j][k]), (X[j][l] - X[j][k])));
-                    var ok = true;
+                    var th: dynamic = (atan2((Y[i][1] - Y[i][0]), (X[i][1] - X[i][0])) - atan2((Y[j][l] - Y[j][k]), (X[j][l] - X[j][k])));
+                    var ok: dynamic = true;
                     {
-                      var x = 0;
+                      var x: dynamic = 0;
                       while ((x < A[j]))
                       {
-                        var vx = (X[j][x] - X[j][k]);
-                        var vy = (Y[j][x] - Y[j][k]);
-                        var tx = ((cos(th) * vx) - (sin(th) * vy));
-                        var ty = ((sin(th) * vx) + (cos(th) * vy));
-                        var sx = cpp_cast((((X[i][0] + tx) + 0.5)));
-                        var sy = cpp_cast((((Y[i][0] + ty) + 0.5)));
+                        var vx: dynamic = (X[j][x] - X[j][k]);
+                        var vy: dynamic = (Y[j][x] - Y[j][k]);
+                        var tx: dynamic = ((cos(th) * vx) - (sin(th) * vy));
+                        var ty: dynamic = ((sin(th) * vx) + (cos(th) * vy));
+                        var sx: dynamic = cpp_cast((((X[i][0] + tx) + 0.5)));
+                        var sy: dynamic = cpp_cast((((Y[i][0] + ty) + 0.5)));
                         if ((((X[i][0] + tx) + 0.5) < 0))
                         {
                           sx -= 1;
@@ -224,11 +224,11 @@ func main()
                       continue;
                     }
                     {
-                      var x = 0;
+                      var x: dynamic = 0;
                       while ((x < A[i]))
                       {
                         {
-                          var y = 0;
+                          var y: dynamic = 0;
                           while ((y < g[i][x].size()))
                           {
                             if ((g[i][x][y].second < EPS))
@@ -251,7 +251,7 @@ func main()
                     {
                       UNION(i, j);
                       {
-                        var x = 0;
+                        var x: dynamic = 0;
                         while ((x < A[i]))
                         {
                           g[i][x].push_back(make_pair(make_pair(j, conv[x]), 0));
@@ -273,11 +273,11 @@ func main()
         i += 1;
       }
     }
-    var Q: dynamic;
-    var s1: dynamic;
-    var s2: dynamic;
-    var d1: dynamic;
-    var d2: dynamic;
+    var Q: dynamic = cpp_uninitialized();
+    var s1: dynamic = cpp_uninitialized();
+    var s2: dynamic = cpp_uninitialized();
+    var d1: dynamic = cpp_uninitialized();
+    var d2: dynamic = cpp_uninitialized();
     scanf("%d%d%d%d", (&s1), (&s2), (&d1), (&d2));
     s1 -= 1;
     s2 -= 1;
@@ -285,11 +285,11 @@ func main()
     d2 -= 1;
     Q.push(make_pair(0, make_pair(s1, s2)));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 60))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 30))
           {
             ijk[i][j] = 999999999;
@@ -303,9 +303,9 @@ func main()
     ijk[s1][s2] = 0;
     while (Q.size())
     {
-      var cost = (-Q.top().first);
-      var at1 = Q.top().second.first;
-      var at2 = Q.top().second.second;
+      var cost: dynamic = (-Q.top().first);
+      var at1: dynamic = Q.top().second.first;
+      var at2: dynamic = Q.top().second.second;
       Q.pop();
       if (v[at1][at2])
       {
@@ -313,12 +313,12 @@ func main()
       }
       v[at1][at2] = 1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < g[at1][at2].size()))
         {
-          var tr = g[at1][at2][i].first.first;
-          var tc = g[at1][at2][i].first.second;
-          var val = g[at1][at2][i].second;
+          var tr: dynamic = g[at1][at2][i].first.first;
+          var tc: dynamic = g[at1][at2][i].first.second;
+          var val: dynamic = g[at1][at2][i].second;
           if (((!v[tr][tc]) && (ijk[tr][tc] > ((cost + val) + EPS))))
           {
             ijk[tr][tc] = (cost + val);

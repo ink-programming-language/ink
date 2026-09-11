@@ -1,59 +1,59 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var endl = cpp_expression("#inc");
+var endl: dynamic = cpp_expression("#inc");
 
-func rep(i: dynamic, a: dynamic, b: dynamic)
+func rep(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<=b;i++)");
 }
 
-var pll = cpp_expression("#include<bi");
+var pll: dynamic = cpp_expression("#include<bi");
 
-var pii = cpp_expression("#include<bits");
+var pii: dynamic = cpp_expression("#include<bits");
 
-var vpll = cpp_expression("#include<bi");
+var vpll: dynamic = cpp_expression("#include<bi");
 
-func SZ(x: dynamic)
+func SZ(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/s");
 }
 
-var FIO = cpp_expression("#include<bits/stdc++.h> #defi");
+var FIO: dynamic = cpp_expression("#include<bits/stdc++.h> #defi");
 
-func watch(x: dynamic)
+func watch(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h> #defi");
 }
 
-func watch2(x: dynamic, y: dynamic)
+func watch2(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h> #define ll long long #define int");
 }
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var pf = cpp_expression("#include<b");
+var pf: dynamic = cpp_expression("#include<b");
 
-var ff = cpp_expression("#incl");
+var ff: dynamic = cpp_expression("#incl");
 
-var ss = cpp_expression("#inclu");
+var ss: dynamic = cpp_expression("#inclu");
 
-var mod = cpp_expression("#include<b");
+var mod: dynamic = cpp_expression("#include<b");
 
-var INF = cpp_expression("#include<b");
+var INF: dynamic = cpp_expression("#include<b");
 
-func all(c: dynamic)
+func all(c: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-func power(a: dynamic, b: dynamic)
+func power(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   a = (a % mod);
   while ((b > 0))
   {
@@ -68,25 +68,25 @@ func power(a: dynamic, b: dynamic)
   return res;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (((b == 0))) a else gcd(b, (a % b));
+  return  (((b == 0))) ? a : gcd(b, (a % b));
 }
 
-var mxn = 2e5;
+var mxn: dynamic = 2e5;
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(n);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var d = 0;
-  var k = 0;
-  var rat: dynamic;
-  var res: dynamic;
+  var d: dynamic = 0;
+  var k: dynamic = 0;
+  var rat: dynamic = cpp_uninitialized();
+  var res: dynamic = cpp_uninitialized();
   rep(i, 0, (n - 1));
   {
     if ((s[i] == cpp_char("D")))
@@ -96,7 +96,7 @@ func solve()
     {
       k += 1;
     }
-    var gc = gcd(d, k);
+    var gc: dynamic = gcd(d, k);
     x = (d / gc);
     y = (k / gc);
     if ((rat.find([x, y]) == rat.end()))
@@ -104,7 +104,7 @@ func solve()
       res.pb(1);
     } else
     {
-      var cnt = (rat[[x, y]] + 1);
+      var cnt: dynamic = (rat[[x, y]] + 1);
       res.pb(cnt);
     }
     if ((x == 0))
@@ -118,17 +118,17 @@ func solve()
       rat[[x, y]] += 1;
     }
   }
-  for (var it in res)
+  for (var it: dynamic in res)
   {
     write(it, " ");
   }
   write("\n");
 }
 
-func main()
+func main() -> dynamic
 {
   FIO;
-  var T = 1;
+  var T: dynamic = 1;
   read(T);
   while (cpp_update(T, "--"))
   {

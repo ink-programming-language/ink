@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var ans = 0;
+  var ans: dynamic = 0;
   if (((n % 2) == 0))
   {
     write((n / 2), "\n");
     return 0;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= n))
     {
       if (((n % i) == 0))

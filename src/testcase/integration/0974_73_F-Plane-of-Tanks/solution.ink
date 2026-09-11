@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-var ax: dynamic;
+var ax: dynamic = cpp_uninitialized();
 
-var ay: dynamic;
+var ay: dynamic = cpp_uninitialized();
 
-var bx: dynamic;
+var bx: dynamic = cpp_uninitialized();
 
-var by: dynamic;
+var by: dynamic = cpp_uninitialized();
 
-func dis(x: dynamic, y: dynamic)
+func dis(x: dynamic, y: dynamic) -> dynamic
 {
   return sqrt(((x * x) + (y * y)));
 }
 
-func get(a: dynamic, w: dynamic)
+func get(a: dynamic, w: dynamic) -> dynamic
 {
-  var v = 0;
-  var num = 100;
+  var v: dynamic = 0;
+  var num: dynamic = 100;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 100))
     {
-      var x = (ax + ((((bx - ax)) * i) / cpp_cast(num)));
-      var y = (ay + ((((by - ay)) * i) / cpp_cast(num)));
-      var p = (atan2(y, x) - a);
+      var x: dynamic = (ax + ((((bx - ax)) * i) / cpp_cast(num)));
+      var y: dynamic = (ay + ((((by - ay)) * i) / cpp_cast(num)));
+      var p: dynamic = (atan2(y, x) - a);
       if ((p > (2 * pi)))
       {
         p -= (2 * pi);
@@ -38,7 +38,7 @@ func get(a: dynamic, w: dynamic)
       {
         p = ((2 * pi) - p);
       }
-      var t = (if (((w < 1e-5))) (if ((i == 0)) 0 else 1e10) else (p / w));
+      var t: dynamic = ( (((w < 1e-5))) ? ( ((i == 0)) ? 0 : 1e10) : (p / w));
       v = max(v, (hypot((x - ax), (y - ay)) / t));
       i += 1;
     }
@@ -46,40 +46,40 @@ func get(a: dynamic, w: dynamic)
   return v;
 }
 
-var x = cpp_array(10010);
+var x: dynamic = cpp_array(10010);
 
-var y = cpp_array(10010);
+var y: dynamic = cpp_array(10010);
 
-var a = cpp_array(10010);
+var a: dynamic = cpp_array(10010);
 
-var w = cpp_array(10010);
+var w: dynamic = cpp_array(10010);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   while ((scanf("%lf%lf%lf%lf", (&ax), (&ay), (&bx), (&by)) != EOF))
   {
     scanf("%d", (&n));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%lf%lf%lf%lf", (&x[i]), (&y[i]), (&a[i]), (&w[i]));
         i += 1;
       }
     }
-    var v: dynamic;
+    var v: dynamic = cpp_uninitialized();
     v.clear();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         ax -= x[i];
         ay -= y[i];
         bx -= x[i];
         by -= y[i];
-        var vv = get(a[i], w[i]);
+        var vv: dynamic = get(a[i], w[i]);
         v.push_back(vv);
         ax += x[i];
         ay += y[i];

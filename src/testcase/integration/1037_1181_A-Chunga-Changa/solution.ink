@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
   while ((~scanf("%lld%lld%lld", (&x), (&y), (&z))))
   {
-    var n1 = (x / z);
-    var m1 = (x % z);
-    var n2 = (y / z);
-    var m2 = (y % z);
-    var sum = (n1 + n2);
-    var k = 0;
+    var n1: dynamic = (x / z);
+    var m1: dynamic = (x % z);
+    var n2: dynamic = (y / z);
+    var m2: dynamic = (y % z);
+    var sum: dynamic = (n1 + n2);
+    var k: dynamic = 0;
     if (((m1 + m2) >= z))
     {
-      var k1 = (z - m1);
-      var k2 = (z - m2);
+      var k1: dynamic = (z - m1);
+      var k2: dynamic = (z - m2);
       k = min(k1, k2);
       sum = (sum + 1);
     }

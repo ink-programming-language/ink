@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&n), (&l));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       if ((x >= l))
       {
@@ -23,14 +23,14 @@ func main()
     }
   }
   sort(v.begin(), v.end());
-  var ms = 0;
+  var ms: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
-      var count = 0;
+      var count: dynamic = 0;
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j < v.size()))
         {
           count += (v[j] / v[i]);
@@ -41,9 +41,9 @@ func main()
       i += 1;
     }
   }
-  var count = 0;
+  var count: dynamic = 0;
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < v.size()))
     {
       count += (v[j] / l);

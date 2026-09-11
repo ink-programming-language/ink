@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var INF = 1000000;
+var INF: dynamic = 1000000;
 
-func main()
+func main() -> dynamic
 {
-  var dp = [];
+  var dp: dynamic = [];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 101))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 101))
         {
           dp[i][j] = INF;
@@ -20,14 +20,14 @@ func main()
       i += 1;
     }
   }
-  var n: dynamic;
-  var m: dynamic;
-  var a = cpp_array(1001);
-  var b = cpp_array(1001);
-  var c = cpp_array(1001);
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_array(1001);
+  var b: dynamic = cpp_array(1001);
+  var c: dynamic = cpp_array(1001);
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(a[i], b[i], c[i]);
@@ -36,20 +36,20 @@ func main()
       i += 1;
     }
   }
-  var flag = true;
+  var flag: dynamic = true;
   while (flag)
   {
     flag = false;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < (n + 1)))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < (n + 1)))
           {
             {
-              var k = 1;
+              var k: dynamic = 1;
               while ((k < (n + 1)))
               {
                 if ((dp[i][j] > (dp[i][k] + dp[k][j])))
@@ -67,9 +67,9 @@ func main()
       }
     }
   }
-  var r = 0;
+  var r: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       if ((c[i] > dp[a[i]][b[i]]))

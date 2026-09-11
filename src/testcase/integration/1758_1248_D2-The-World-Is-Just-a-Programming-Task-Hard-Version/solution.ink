@@ -2,22 +2,22 @@
 
 class msp
 {
-  var x: dynamic;
-  var y: dynamic;
-  var t: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
 }
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func cntans(s: dynamic)
+func cntans(s: dynamic) -> dynamic
 {
-  var t = 0;
-  var f = 0;
-  var minm = 0x3f3f3f3f;
+  var t: dynamic = 0;
+  var f: dynamic = 0;
+  var minm: dynamic = 0x3f3f3f3f;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.length()))
     {
       if ((s[i] == cpp_char("(")))
@@ -40,16 +40,16 @@ func cntans(s: dynamic)
   return f;
 }
 
-var d = cpp_array(301000);
+var d: dynamic = cpp_array(301000);
 
-var f = cpp_array(301000);
+var f: dynamic = cpp_array(301000);
 
-func work1()
+func work1() -> dynamic
 {
-  var l = 0;
-  var r = 0;
+  var l: dynamic = 0;
+  var r: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((d[i] == 1))
@@ -61,7 +61,7 @@ func work1()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       if ((d[i] == -1))
@@ -74,9 +74,9 @@ func work1()
   }
   if ((l < r))
   {
-    var t = 0;
+    var t: dynamic = 0;
     {
-      var i = l;
+      var i: dynamic = l;
       while ((i <= r))
       {
         if ((f[i] == 0))
@@ -95,13 +95,13 @@ func work1()
   }
 }
 
-func work2()
+func work2() -> dynamic
 {
-  var l = 0x3f3f3f3f;
-  var r = 0;
-  var t = 0;
+  var l: dynamic = 0x3f3f3f3f;
+  var r: dynamic = 0;
+  var t: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((f[i] < 1))
@@ -130,15 +130,15 @@ func work2()
   }
 }
 
-var orit: dynamic;
+var orit: dynamic = cpp_uninitialized();
 
-func work3()
+func work3() -> dynamic
 {
-  var l = 0x3f3f3f3f;
-  var r = 0;
-  var t = 0;
+  var l: dynamic = 0x3f3f3f3f;
+  var r: dynamic = 0;
+  var t: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((f[i] < 2))
@@ -167,20 +167,20 @@ func work3()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   read(n);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
   ans.x = cpp_assign(ans.y, "=", 0);
-  var dta = cntans(s);
+  var dta: dynamic = cntans(s);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      d[i] = (if ((s[(i - 1)] == cpp_char("("))) 1 else -1);
+      d[i] = ( ((s[(i - 1)] == cpp_char("("))) ? 1 : -1);
       f[i] = (f[(i - 1)] + d[i]);
       if ((f[i] == 0))
       {

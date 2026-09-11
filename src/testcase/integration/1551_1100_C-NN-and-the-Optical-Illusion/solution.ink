@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var INF = 999999999999999999;
+var INF: dynamic = 999999999999999999;
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-func stop()
+func stop() -> dynamic
 {
   exit(0);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var r: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   read(n, r);
-  var sn = sin((PI / n));
-  var x = ((((2.0 * r) * sn)) / ((2.0 - (2.0 * sn))));
+  var sn: dynamic = sin((PI / n));
+  var x: dynamic = ((((2.0 * r) * sn)) / ((2.0 - (2.0 * sn))));
   printf("%.9lf", x);
   stop();
 }

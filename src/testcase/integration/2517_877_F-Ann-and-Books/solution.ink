@@ -1,46 +1,46 @@
 // Translated from solution.cpp.
 
-var N = (3e5 + 5);
+var N: dynamic = (3e5 + 5);
 
-var MAGIC = 320;
+var MAGIC: dynamic = 320;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var now: dynamic;
+var now: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var all: dynamic;
+var all: dynamic = cpp_uninitialized();
 
-var at = cpp_array(N);
+var at: dynamic = cpp_array(N);
 
-var atp = cpp_array(N);
+var atp: dynamic = cpp_array(N);
 
-var atm = cpp_array(N);
+var atm: dynamic = cpp_array(N);
 
-var cnt = cpp_array(N);
+var cnt: dynamic = cpp_array(N);
 
-func add(i: dynamic, v: dynamic)
+func add(i: dynamic, v: dynamic) -> dynamic
 {
   cnt[at[i]] += v;
 }
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d %lld", (&n), (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (p + i));
@@ -48,16 +48,16 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (a + i));
-      s[i] = (s[(i - 1)] + (if ((p[i] == 1)) a[i] else (-a[i])));
+      s[i] = (s[(i - 1)] + ( ((p[i] == 1)) ? a[i] : (-a[i])));
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       all.push_back(s[i]);
@@ -69,7 +69,7 @@ func main()
   sort(all.begin(), all.end());
   all.resize(distance(all.begin(), unique(all.begin(), all.end())));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       at[i] = (lower_bound(all.begin(), all.end(), s[i]) - all.begin());
@@ -78,15 +78,15 @@ func main()
       i += 1;
     }
   }
-  var que: dynamic;
-  var q: dynamic;
+  var que: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d %d", (&u), (&v));
       que.emplace_back((u / MAGIC), v, u, i);
       i += 1;
@@ -96,11 +96,11 @@ func main()
   l = cpp_assign(r, "=", 1);
   now = ((s[1] == k));
   add(1, 1);
-  for (var it in que)
+  for (var it: dynamic in que)
   {
-    var u: dynamic;
-    var v: dynamic;
-    var id: dynamic;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
+    var id: dynamic = cpp_uninitialized();
     tie(ignore, v, u, id) = it;
     while ((r < v))
     {
@@ -145,7 +145,7 @@ func main()
     ans[id] = now;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       printf("%lld\n", ans[i]);

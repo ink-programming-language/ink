@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var MOD = 998244353;
+var MOD: dynamic = 998244353;
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   while ((a != 0))
   {
     c = a;
@@ -16,15 +16,15 @@ func gcd(a: dynamic, b: dynamic)
   return b;
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(A[i]);
@@ -34,7 +34,7 @@ func main()
   sort(A.begin(), A.end());
   res = A[0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       res = (((res * gcd(A[i], i))) % MOD);

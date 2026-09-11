@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var N = (1e6 + 100);
+var N: dynamic = (1e6 + 100);
 
-var tree = cpp_array(N);
+var tree: dynamic = cpp_array(N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var sz = cpp_array(N);
+var sz: dynamic = cpp_array(N);
 
-var mapping = cpp_array(N);
+var mapping: dynamic = cpp_array(N);
 
-var par = cpp_array(N);
+var par: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func print()
+func print() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a[i] == false))
@@ -29,9 +29,9 @@ func print()
   }
 }
 
-func query(idx: dynamic)
+func query(idx: dynamic) -> dynamic
 {
-  var sum = 0;
+  var sum: dynamic = 0;
   while ((idx > 0))
   {
     sum += tree[idx];
@@ -40,11 +40,11 @@ func query(idx: dynamic)
   return sum;
 }
 
-func print(n: dynamic)
+func print(n: dynamic) -> dynamic
 {
   write("--------------------\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(i, " ", query(mapping[i]), " ", sz[i], " mapp ", mapping[i], "\n");
@@ -54,7 +54,7 @@ func print(n: dynamic)
   write("-----------------\n");
 }
 
-func update(idx: dynamic, x: dynamic, n: dynamic)
+func update(idx: dynamic, x: dynamic, n: dynamic) -> dynamic
 {
   while ((idx <= n))
   {
@@ -63,31 +63,31 @@ func update(idx: dynamic, x: dynamic, n: dynamic)
   }
 }
 
-func rangeUpdate(x: dynamic, y: dynamic, val: dynamic, n: dynamic)
+func rangeUpdate(x: dynamic, y: dynamic, val: dynamic, n: dynamic) -> dynamic
 {
   update(x, val, n);
   update((y + 1), (-val), n);
 }
 
-var cc = 1;
+var cc: dynamic = 1;
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var v = cpp_array(N);
+var v: dynamic = cpp_array(N);
 
-func dfs(x: dynamic, pr: dynamic, dis: dynamic)
+func dfs(x: dynamic, pr: dynamic, dis: dynamic) -> dynamic
 {
   len += 1;
   par[x] = pr;
   mapping[x] = cc;
   rangeUpdate(cc, cc, dis, n);
   cc += 1;
-  var st = len;
+  var st: dynamic = len;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v[x].size()))
     {
-      var y = v[x][i];
+      var y: dynamic = v[x][i];
       if ((y != pr))
       {
         dfs(y, x, (dis + 1));
@@ -98,29 +98,29 @@ func dfs(x: dynamic, pr: dynamic, dis: dynamic)
   sz[x] = (len - st);
 }
 
-func main()
+func main() -> dynamic
 {
-  var q: dynamic;
-  var i: dynamic;
-  var j = 0;
-  var temp: dynamic;
-  var t: dynamic;
-  var k: dynamic;
-  var ans = 0;
-  var sum = 0;
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
-  var cnt = 0;
-  var m: dynamic;
-  var fg = 0;
-  var mx = 0;
-  var mx1 = 0;
-  var mn = 8000000000000000000;
-  var mn1 = 8000000000000000000;
+  var q: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = 0;
+  var temp: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
+  var sum: dynamic = 0;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
+  var cnt: dynamic = 0;
+  var m: dynamic = cpp_uninitialized();
+  var fg: dynamic = 0;
+  var mx: dynamic = 0;
+  var mx1: dynamic = 0;
+  var mn: dynamic = 8000000000000000000;
+  var mn1: dynamic = 8000000000000000000;
   scanf("%lld %lld", (&n), (&k));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       scanf("%lld %lld", (&x), (&y));
@@ -139,7 +139,7 @@ func main()
   k = (n - k);
   k -= 1;
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 1))
     {
       if ((!k))
@@ -151,7 +151,7 @@ func main()
         i -= 1;
         continue;
       }
-      var val = query(mapping[i]);
+      var val: dynamic = query(mapping[i]);
       if ((val > k))
       {
         i -= 1;

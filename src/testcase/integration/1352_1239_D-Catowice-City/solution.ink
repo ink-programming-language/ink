@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var adj = cpp_array(1000005);
+var adj: dynamic = cpp_array(1000005);
 
-var adj_r = cpp_array(1000005);
+var adj_r: dynamic = cpp_array(1000005);
 
-var use = cpp_array(1000005);
+var use: dynamic = cpp_array(1000005);
 
-var use_r = cpp_array(1000005);
+var use_r: dynamic = cpp_array(1000005);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func dfs(node: dynamic, s: dynamic)
+func dfs(node: dynamic, s: dynamic) -> dynamic
 {
   use[node] = 1;
-  for (var it in adj[node])
+  for (var it: dynamic in adj[node])
   {
     if ((use[it] == 0))
     {
@@ -30,10 +30,10 @@ func dfs(node: dynamic, s: dynamic)
   return;
 }
 
-func dfs_r(node: dynamic, sr: dynamic)
+func dfs_r(node: dynamic, sr: dynamic) -> dynamic
 {
   use_r[node] = 1;
-  for (var it in adj_r[node])
+  for (var it: dynamic in adj_r[node])
   {
     if ((use_r[it] == 0))
     {
@@ -44,13 +44,13 @@ func dfs_r(node: dynamic, sr: dynamic)
   return;
 }
 
-func init(n: dynamic)
+func init(n: dynamic) -> dynamic
 {
   memset(use, 0, (cpp_sizeof(dynamic) * n));
   memset(use_r, 0, (cpp_sizeof(dynamic) * n));
   ans.clear();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       adj[i].clear();
@@ -61,20 +61,20 @@ func init(n: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&t));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t))
     {
       scanf("%d%d", (&n), (&m));
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
-          var jm: dynamic;
-          var cm: dynamic;
+          var jm: dynamic = cpp_uninitialized();
+          var cm: dynamic = cpp_uninitialized();
           scanf("%d%d", (&jm), (&cm));
           if ((jm == cm))
           {
@@ -86,13 +86,13 @@ func main()
           j += 1;
         }
       }
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       dfs(1, s);
       if ((s.size() < n))
       {
-        var ss = s.size();
+        var ss: dynamic = s.size();
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ss))
           {
             ans.push_back(s.top());
@@ -104,7 +104,7 @@ func main()
         printf("%d %d\n", ans.size(), (n - ans.size()));
         sort(ans.begin(), ans.end());
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ans.size()))
           {
             printf("%d ", ans[j]);
@@ -113,7 +113,7 @@ func main()
         }
         printf("\n");
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             if ((use[j] == 0))
@@ -128,20 +128,20 @@ func main()
         i += 1;
         continue;
       }
-      var count = 0;
-      var off: dynamic;
+      var count: dynamic = 0;
+      var off: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
-          var idx = s.top();
+          var idx: dynamic = s.top();
           s.pop();
           if (use_r[idx])
           {
             j += 1;
             continue;
           }
-          var sr: dynamic;
+          var sr: dynamic = cpp_uninitialized();
           dfs_r(idx, sr);
           if ((sr.size() == n))
           {
@@ -153,9 +153,9 @@ func main()
             count += sr.size();
             if ((count == n))
             {
-              var ssr = sr.size();
+              var ssr: dynamic = sr.size();
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < ssr))
                 {
                   ans.push_back(sr.top());
@@ -168,7 +168,7 @@ func main()
               printf("Yes\n");
               printf("%d %d\n", ans.size(), (n - ans.size()));
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < ans.size()))
                 {
                   printf("%d ", ans[j]);
@@ -177,7 +177,7 @@ func main()
               }
               printf("\n");
               {
-                var j = 1;
+                var j: dynamic = 1;
                 while ((j <= n))
                 {
                   if ((off.find(j) == off.end()))

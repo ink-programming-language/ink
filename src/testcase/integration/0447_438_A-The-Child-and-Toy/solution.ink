@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var MAXN = 1005;
+var MAXN: dynamic = 1005;
 
-var cost = cpp_array(MAXN);
+var cost: dynamic = cpp_array(MAXN);
 
-var used = cpp_array(MAXN);
+var used: dynamic = cpp_array(MAXN);
 
-var g = cpp_array(MAXN);
+var g: dynamic = cpp_array(MAXN);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(cost[i]);
@@ -23,11 +23,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       x -= 1;
       y -= 1;
@@ -36,14 +36,14 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var maxv = -1;
+      var maxv: dynamic = -1;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if (((!used[j]) && (((maxv == -1) || (cost[j] > cost[maxv])))))
@@ -54,7 +54,7 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < g[maxv].size()))
         {
           ans += cost[g[maxv][j]];
@@ -63,11 +63,11 @@ func main()
       }
       used[maxv] = true;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < cpp_cast(g[j].size())))
             {
               if ((g[j][k] == maxv))

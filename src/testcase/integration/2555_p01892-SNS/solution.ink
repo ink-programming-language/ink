@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func FOR(i: dynamic, a: dynamic, b: dynamic)
+func FOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<b;i++)");
 }
 
-func REP(i: dynamic, b: dynamic)
+func REP(i: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <");
 }
 
-var PB = cpp_expression("#include");
+var PB: dynamic = cpp_expression("#include");
 
-func read()
+func read() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   scanf("%d", (&i));
   return i;
 }
 
-func chmin(t: dynamic, u: dynamic)
+func chmin(t: dynamic, u: dynamic) -> dynamic
 {
   if ((ll(t) > ll(u)))
   {
@@ -27,7 +27,7 @@ func chmin(t: dynamic, u: dynamic)
   }
 }
 
-func chmax(t: dynamic, u: dynamic)
+func chmax(t: dynamic, u: dynamic) -> dynamic
 {
   if ((ll(t) < ll(u)))
   {
@@ -35,15 +35,15 @@ func chmax(t: dynamic, u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var n: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(a, b, n);
-  var ans = LLONG_MAX;
+  var ans: dynamic = LLONG_MAX;
   {
-    var q = 1;
+    var q: dynamic = 1;
     while ((q <= n))
     {
       if (((b % q) != 0))
@@ -51,10 +51,10 @@ func main()
         q += 1;
         continue;
       }
-      var k = (b / q);
-      var x = ((a / k) * k);
-      var y = (x + k);
-      var z = (k * n);
+      var k: dynamic = (b / q);
+      var x: dynamic = ((a / k) * k);
+      var y: dynamic = (x + k);
+      var z: dynamic = (k * n);
       if (((0 < x) && (x <= z)))
       {
         chmin(ans, abs((a - x)));

@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var a: dynamic;
-  var b: dynamic;
-  for (var e in v)
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  for (var e: dynamic in v)
   {
     read(e);
   }
-  for (var e in v)
+  for (var e: dynamic in v)
   {
-    var x: dynamic;
+    var x: dynamic = cpp_uninitialized();
     read(x);
     if ((x == 1))
     {
@@ -25,12 +25,12 @@ func solve()
   }
   sort(a.rbegin(), a.rend());
   sort(b.rbegin(), b.rend());
-  var curSumA = 0;
-  var r = cpp_cast(b.size());
-  var curSumB = accumulate(b.begin(), b.end(), 0);
-  var ans = INT_MAX;
+  var curSumA: dynamic = 0;
+  var r: dynamic = cpp_cast(b.size());
+  var curSumB: dynamic = accumulate(b.begin(), b.end(), 0);
+  var ans: dynamic = INT_MAX;
   {
-    var l = 0;
+    var l: dynamic = 0;
     while ((l <= a.size()))
     {
       while (((r > 0) && (((curSumA + curSumB) - b[(r - 1)]) >= m)))
@@ -49,12 +49,12 @@ func solve()
       l += 1;
     }
   }
-  write((if ((ans == INT_MAX)) -1 else ans), "\n");
+  write(( ((ans == INT_MAX)) ? -1 : ans), "\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

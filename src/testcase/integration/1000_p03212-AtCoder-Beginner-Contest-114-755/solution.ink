@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var count = 0;
+var count: dynamic = 0;
 
-func dfs(nextnum: dynamic, flag: dynamic)
+func dfs(nextnum: dynamic, flag: dynamic) -> dynamic
 {
   if ((nextnum <= N))
   {
@@ -18,7 +18,7 @@ func dfs(nextnum: dynamic, flag: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&N));
   dfs(0, 0);

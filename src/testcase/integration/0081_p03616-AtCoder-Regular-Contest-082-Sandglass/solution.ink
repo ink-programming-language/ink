@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var MAX = cpp_expression("#inclu");
+var MAX: dynamic = cpp_expression("#inclu");
 
-var r = cpp_array(MAX);
+var r: dynamic = cpp_array(MAX);
 
-var a = cpp_array(MAX);
+var a: dynamic = cpp_array(MAX);
 
-var b = cpp_array(MAX);
+var b: dynamic = cpp_array(MAX);
 
-var k1 = cpp_array(MAX);
+var k1: dynamic = cpp_array(MAX);
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var k: dynamic;
-  var q: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(x, k);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       read(r[i]);
@@ -29,10 +29,10 @@ func main()
   b[0] = x;
   k1[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
-      var dt = (r[i] - r[(i - 1)]);
+      var dt: dynamic = (r[i] - r[(i - 1)]);
       if ((i & 1))
       {
         a[i] = max((a[(i - 1)] - dt), 0);
@@ -61,11 +61,11 @@ func main()
   }
   read(q);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
-      var tq: dynamic;
-      var aq: dynamic;
+      var tq: dynamic = cpp_uninitialized();
+      var aq: dynamic = cpp_uninitialized();
       read(tq, aq);
       if ((tq == 0))
       {
@@ -73,10 +73,10 @@ func main()
         i += 1;
         continue;
       }
-      var p = ((lower_bound(r, ((r + k) + 2), tq) - r) - 1);
-      var dt = (tq - r[p]);
-      var res = min((a[p] + max(((aq - k1[p]) + 1), 0)), b[p]);
-      res = if (((p & 1))) min((res + dt), x) else max((res - dt), 0);
+      var p: dynamic = ((lower_bound(r, ((r + k) + 2), tq) - r) - 1);
+      var dt: dynamic = (tq - r[p]);
+      var res: dynamic = min((a[p] + max(((aq - k1[p]) + 1), 0)), b[p]);
+      res =  (((p & 1))) ? min((res + dt), x) : max((res - dt), 0);
       write(res, "\n");
       i += 1;
     }

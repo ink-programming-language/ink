@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var f = cpp_construct(100001);
+var f: dynamic = cpp_construct(100001);
 
-func comp(i: dynamic)
+func comp(i: dynamic) -> dynamic
 {
-  var b = 0;
-  var d = 0;
+  var b: dynamic = 0;
+  var d: dynamic = 0;
   while ((i > 0))
   {
     if ((i & (1 == 1)))
@@ -17,14 +17,14 @@ func comp(i: dynamic)
   return b;
 }
 
-func main()
+func main() -> dynamic
 {
-  var m: dynamic;
-  var i: dynamic;
-  var n: dynamic;
-  var h = cpp_array(65);
-  var j: dynamic;
-  var s: dynamic;
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_array(65);
+  var j: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < 65))

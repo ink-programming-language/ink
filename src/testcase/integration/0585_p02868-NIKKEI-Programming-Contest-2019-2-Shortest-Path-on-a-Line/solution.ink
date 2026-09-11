@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var MAX = cpp_expression("#inclu");
+var MAX: dynamic = cpp_expression("#inclu");
 
-var edge = cpp_array(MAX);
+var edge: dynamic = cpp_array(MAX);
 
-var val: dynamic;
+var val: dynamic = cpp_uninitialized();
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var N: dynamic;
-  var M: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
   read(N, M);
   val[1] = 0;
   val[N] = ((1 * 998244353) * 998244353);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       read(edge[i].first.first, edge[i].first.second, edge[i].second);
@@ -22,21 +22,21 @@ func main(argument_0: dynamic)
     }
   }
   sort(edge, (edge + M));
-  for (var e in edge)
+  for (var e: dynamic in edge)
   {
     if ((!e.second))
     {
       break;
     }
-    var lr = val.lower_bound(e.first.first);
-    var ee = val.lower_bound(e.first.second);
+    var lr: dynamic = val.lower_bound(e.first.first);
+    var ee: dynamic = val.lower_bound(e.first.second);
     if ((ee->second > (lr->second + e.second)))
     {
       val[e.first.second] = (lr->second + e.second);
       ee = val.upper_bound((e.first.second - 1));
       while (((ee->second >= (lr->second + e.second)) && (ee != lr)))
       {
-        var eee = ee;
+        var eee: dynamic = ee;
         ee -= 1;
         if ((eee->first != e.first.second))
         {

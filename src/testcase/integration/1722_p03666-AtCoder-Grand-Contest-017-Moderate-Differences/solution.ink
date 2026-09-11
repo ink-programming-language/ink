@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var e: dynamic;
+var e: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld%lld%lld%lld%lld", (&n), (&a), (&b), (&c), (&d));
   n -= 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       if (((((c * i) - (d * ((n - i)))) <= (a - b)) && ((a - b) <= ((d * i) - (c * ((n - i)))))))

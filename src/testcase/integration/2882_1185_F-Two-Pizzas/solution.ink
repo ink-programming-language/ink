@@ -2,83 +2,83 @@
 
 class P
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
 }
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var e: dynamic;
+var e: dynamic = cpp_uninitialized();
 
-var o = cpp_array(112222);
+var o: dynamic = cpp_array(112222);
 
-var l = cpp_array(2, 113222);
+var l: dynamic = cpp_array(2, 113222);
 
-var j = cpp_array(1);
+var j: dynamic = cpp_array(1);
 
-var dx = [0, 1, 0, -1, 1, 1, -1, -1];
+var dx: dynamic = [0, 1, 0, -1, 1, 1, -1, -1];
 
-var dy = [1, 0, -1, 0, 1, -1, 1, -1];
+var dy: dynamic = [1, 0, -1, 0, 1, -1, 1, -1];
 
-var dz = [0, 0, 0, 0, 1, -1];
+var dz: dynamic = [0, 0, 0, 0, 1, -1];
 
-var px = [-1, 1, 1, -1, 1, 1, -1, -1];
+var px: dynamic = [-1, 1, 1, -1, 1, 1, -1, -1];
 
-var py = [1, 1, -1, -1, 1, -1, 1, -1];
+var py: dynamic = [1, 1, -1, -1, 1, -1, 1, -1];
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var mod2 = 1000000009;
+var mod2: dynamic = 1000000009;
 
-var mod3 = 2017;
+var mod3: dynamic = 2017;
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var pi = 3.14159265;
+var pi: dynamic = 3.14159265;
 
-var u = cpp_array(1151);
+var u: dynamic = cpp_array(1151);
 
-var u1 = cpp_array(1111);
+var u1: dynamic = cpp_array(1111);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var r = cpp_array(2211);
+var r: dynamic = cpp_array(2211);
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&a), (&b));
   {
-    var t = 1;
+    var t: dynamic = 1;
     while ((t <= a))
     {
       scanf("%d", (&n));
       {
-        var w = 1;
+        var w: dynamic = 1;
         while ((w <= n))
         {
           scanf("%d", (&i));
@@ -90,12 +90,12 @@ func main()
     }
   }
   {
-    var t = 1;
+    var t: dynamic = 1;
     while ((t <= b))
     {
       scanf("%d %d", (&l[t][0]), (&n));
       {
-        var w = 1;
+        var w: dynamic = 1;
         while ((w <= n))
         {
           scanf("%d", (&i));
@@ -111,11 +111,11 @@ func main()
     }
   }
   {
-    var t = 1;
+    var t: dynamic = 1;
     while ((t <= b))
     {
       {
-        var w = 0;
+        var w: dynamic = 0;
         while ((w <= 1023))
         {
           if ((((u1[w].y != t) && u1[w].y) && (((u[(l[t][1] | w)].x == 0) || (u[(l[t][1] | w)].x > (l[t][0] + u1[w].x))))))
@@ -132,14 +132,14 @@ func main()
   m = 987654321;
   i = 987654321;
   {
-    var t = 0;
+    var t: dynamic = 0;
     while ((t <= 1023))
     {
       if (u[t].x)
       {
-        var k = 0;
+        var k: dynamic = 0;
         {
-          var w = 1;
+          var w: dynamic = 1;
           while ((w <= a))
           {
             if ((((t & o[w])) == o[w]))
@@ -164,7 +164,7 @@ func main()
     n = 1987654321;
     m = 1987654321;
     {
-      var t = 1;
+      var t: dynamic = 1;
       while ((t <= b))
       {
         if ((n > l[t][0]))

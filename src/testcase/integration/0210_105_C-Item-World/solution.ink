@@ -1,50 +1,50 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
 class lut
 {
-  var name: dynamic;
-  var cl: dynamic;
-  var val: dynamic;
-  var size: dynamic;
+  var name: dynamic = cpp_uninitialized();
+  var cl: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
+  var size: dynamic = cpp_uninitialized();
 }
 
 class an
 {
-  var name: dynamic;
-  var whr: dynamic;
-  var cl: dynamic;
-  var val: dynamic;
-  var num: dynamic;
+  var name: dynamic = cpp_uninitialized();
+  var whr: dynamic = cpp_uninitialized();
+  var cl: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
+  var num: dynamic = cpp_uninitialized();
 }
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var anim: dynamic;
+var anim: dynamic = cpp_uninitialized();
 
-var d = cpp_array(3);
+var d: dynamic = cpp_array(3);
 
-var used: dynamic;
+var used: dynamic = cpp_uninitialized();
 
-var all_size: dynamic;
+var all_size: dynamic = cpp_uninitialized();
 
-func Inputdata()
+func Inputdata() -> dynamic
 {
   read(n);
   l.resize(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var name: dynamic;
-      var cls: dynamic;
-      var a: dynamic;
-      var b: dynamic;
-      var c: dynamic;
-      var s: dynamic;
+      var name: dynamic = cpp_uninitialized();
+      var cls: dynamic = cpp_uninitialized();
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
+      var s: dynamic = cpp_uninitialized();
       read(name, cls, a, b, c, s);
       l[i].name = name;
       l[i].size = s;
@@ -71,13 +71,13 @@ func Inputdata()
   anim.resize(m);
   used.resize(m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var name: dynamic;
-      var type_cpp: dynamic;
-      var whr: dynamic;
-      var val: dynamic;
+      var name: dynamic = cpp_uninitialized();
+      var type_cpp: dynamic = cpp_uninitialized();
+      var whr: dynamic = cpp_uninitialized();
+      var val: dynamic = cpp_uninitialized();
       read(name, type_cpp, val, whr);
       anim[i].name = name;
       anim[i].whr = whr;
@@ -101,20 +101,20 @@ func Inputdata()
   }
 }
 
-func Comp(a: dynamic, b: dynamic)
+func Comp(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.val > b.val);
 }
 
-func Solve()
+func Solve() -> dynamic
 {
   sort(d[0].begin(), d[0].end(), Comp);
   sort(d[1].begin(), d[1].end(), Comp);
   sort(d[2].begin(), d[2].end(), Comp);
-  var ans = cpp_array(3);
-  var max_val = cpp_array(3);
+  var ans: dynamic = cpp_array(3);
+  var max_val: dynamic = cpp_array(3);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       max_val[i] = -10;
@@ -124,13 +124,13 @@ func Solve()
   if ((all_size > m))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var type_cpp = l[i].cl;
-        var now_val = l[i].val;
+        var type_cpp: dynamic = l[i].cl;
+        var now_val: dynamic = l[i].val;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < min(l[i].size, int_cpp(d[type_cpp].size()))))
           {
             now_val += d[type_cpp][j].val;
@@ -145,13 +145,13 @@ func Solve()
         i += 1;
       }
     }
-    var ans_out = cpp_array(3);
+    var ans_out: dynamic = cpp_array(3);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 3))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < min(l[ans[i]].size, int_cpp(d[i].size()))))
           {
             ans_out[i].push_back(d[i][j].name);
@@ -163,12 +163,12 @@ func Solve()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 3))
       {
-        var cnt = int_cpp(ans_out[i].size());
+        var cnt: dynamic = int_cpp(ans_out[i].size());
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             if ((cnt >= l[ans[i]].size))
@@ -188,13 +188,13 @@ func Solve()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 3))
       {
         write(l[ans[i]].name, cpp_char(" "));
         write(ans_out[i].size(), cpp_char(" "));
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ans_out[i].size()))
           {
             write(ans_out[i][j], cpp_char(" "));
@@ -207,16 +207,16 @@ func Solve()
     }
   } else
   {
-    var max_val = cpp_array(3);
-    var ans = cpp_array(3);
+    var max_val: dynamic = cpp_array(3);
+    var ans: dynamic = cpp_array(3);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var type_cpp = l[i].cl;
-        var now_val = l[i].val;
+        var type_cpp: dynamic = l[i].cl;
+        var now_val: dynamic = l[i].val;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             if (((anim[j].whr == l[i].name) && (l[i].cl == anim[j].cl)))
@@ -234,14 +234,14 @@ func Solve()
         i += 1;
       }
     }
-    var ans_out = cpp_array(3);
+    var ans_out: dynamic = cpp_array(3);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 3))
       {
-        var type_cpp = l[ans[i]].cl;
+        var type_cpp: dynamic = l[ans[i]].cl;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             if ((anim[j].whr == l[ans[i]].name))
@@ -255,13 +255,13 @@ func Solve()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 3))
       {
         write(l[ans[i]].name, cpp_char(" "));
         write(ans_out[i].size(), cpp_char(" "));
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ans_out[i].size()))
           {
             write(ans_out[i][j], cpp_char(" "));
@@ -275,7 +275,7 @@ func Solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   Inputdata();
   Solve();

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%lld", (&n), (&m));
   m -= 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
-      var ka = ((((m >> i)) & 1));
-      var kb = ((((m >> ((i + 1)))) & 1));
+      var ka: dynamic = ((((m >> i)) & 1));
+      var kb: dynamic = ((((m >> ((i + 1)))) & 1));
       if ((i == (n - 1)))
       {
         if (ka)

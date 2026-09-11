@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-var gen = cpp_construct(1);
+var gen: dynamic = cpp_construct(1);
 
-var memo: dynamic;
+var memo: dynamic = cpp_uninitialized();
 
-func ask(x: dynamic)
+func ask(x: dynamic) -> dynamic
 {
   if (memo.count(x))
   {
     return memo[x];
   }
   write("? ", x, "\n");
-  var cnt: dynamic;
+  var cnt: dynamic = cpp_uninitialized();
   read(cnt);
-  for (var el in edges)
+  for (var el: dynamic in edges)
   {
     read(el);
   }
   return cpp_assign(memo[x], "=", edges);
 }
 
-func check(height: dynamic, k: dynamic)
+func check(height: dynamic, k: dynamic) -> dynamic
 {
-  for (var __cpp_item_1 in height)
+  for (var __cpp_item_1: dynamic in height)
   {
-    var (v, h) = __cpp_item_1;
+    var (v, h): dynamic = __cpp_item_1;
     if ((h == k))
     {
       return v;
     } else if (((h + 1) == k))
     {
-      var edges = ask(v);
-      for (var u in edges)
+      var edges: dynamic = ask(v);
+      for (var u: dynamic in edges)
       {
-        var edges_u = ask(u);
+        var edges_u: dynamic = ask(u);
         if ((edges_u.size() == 2))
         {
           return u;
@@ -41,12 +41,12 @@ func check(height: dynamic, k: dynamic)
       }
     } else if (((h + 2) == k))
     {
-      var edges_v = ask(v);
-      var cands: dynamic;
-      for (var u in edges_v)
+      var edges_v: dynamic = ask(v);
+      var cands: dynamic = cpp_uninitialized();
+      for (var u: dynamic in edges_v)
       {
-        var edges_u = ask(u);
-        for (var w in edges_u)
+        var edges_u: dynamic = ask(u);
+        for (var w: dynamic in edges_u)
         {
           if (memo.count(w))
           {
@@ -63,9 +63,9 @@ func check(height: dynamic, k: dynamic)
       assert((cands.size() > 0));
       while ((cands.size() > 1))
       {
-        var cand = (*cands.begin());
+        var cand: dynamic = (*cands.begin());
         cands.erase(cands.begin());
-        var resp = ask(cand);
+        var resp: dynamic = ask(cand);
         if ((resp.size() == 2))
         {
           return cand;
@@ -77,24 +77,24 @@ func check(height: dynamic, k: dynamic)
   return 0;
 }
 
-func solve()
+func solve() -> dynamic
 {
   memo.clear();
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   read(k);
   if ((!k))
   {
     return;
   }
-  var first = ((gen() % ((((1 << k)) - 1))) + 1);
-  var resp = ask(first);
-  var chain = [first];
-  var used: dynamic;
+  var first: dynamic = ((gen() % ((((1 << k)) - 1))) + 1);
+  var resp: dynamic = ask(first);
+  var chain: dynamic = [first];
+  var used: dynamic = cpp_uninitialized();
   used.insert(first);
   while (true)
   {
-    var v = -1;
-    for (var u in resp)
+    var v: dynamic = -1;
+    for (var u: dynamic in resp)
     {
       if ((!used.count(u)))
       {
@@ -121,8 +121,8 @@ func solve()
     resp = memo[first];
     while (true)
     {
-      var v = -1;
-      for (var u in resp)
+      var v: dynamic = -1;
+      for (var u: dynamic in resp)
       {
         if ((!used.count(u)))
         {
@@ -144,12 +144,12 @@ func solve()
       }
     }
   }
-  var height: dynamic;
+  var height: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < chain.size()))
     {
-      var cur_h = (cpp_cast(i) + 1);
+      var cur_h: dynamic = (cpp_cast(i) + 1);
       if ((i > (chain.size() / 2)))
       {
         cur_h = cpp_cast(((chain.size() - i)));
@@ -159,7 +159,7 @@ func solve()
     }
   }
   assert((chain.size() % 2));
-  for (var u in memo[chain[(chain.size() / 2)]])
+  for (var u: dynamic in memo[chain[(chain.size() / 2)]])
   {
     if ((!height.count(u)))
     {
@@ -168,36 +168,36 @@ func solve()
   }
   while (true)
   {
-    var answer = check(height, k);
+    var answer: dynamic = check(height, k);
     if (answer)
     {
       write("! ", answer, "\n");
       return;
     }
-    var max_h = -1;
-    var v = -1;
-    for (var __cpp_item_2 in height)
+    var max_h: dynamic = -1;
+    var v: dynamic = -1;
+    for (var __cpp_item_2: dynamic in height)
     {
-      var (u, h) = __cpp_item_2;
+      var (u, h): dynamic = __cpp_item_2;
       if ((h > max_h))
       {
         max_h = h;
         v = u;
       }
     }
-    var cur_v = v;
-    var path = [cur_v];
+    var cur_v: dynamic = v;
+    var path: dynamic = [cur_v];
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (max_h - 1)))
       {
-        var resp = ask(cur_v);
+        var resp: dynamic = ask(cur_v);
         if ((resp.size() == 2))
         {
           write("! ", cur_v, "\n");
           return;
         }
-        for (var u in resp)
+        for (var u: dynamic in resp)
         {
           if (((!height.count(u)) && (((path.size() < 2) || (u != path[(cpp_cast(path.size()) - 2)])))))
           {
@@ -209,7 +209,7 @@ func solve()
         i += 1;
       }
     }
-    var resp = ask(cur_v);
+    var resp: dynamic = ask(cur_v);
     if ((resp.size() == 2))
     {
       write("! ", cur_v, "\n");
@@ -218,7 +218,7 @@ func solve()
     {
       reverse(path.begin(), path.end());
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < path.size()))
         {
           height[path[i]] = (i + 1);
@@ -226,7 +226,7 @@ func solve()
         }
       }
       reverse(path.begin(), path.end());
-      for (var u in ask(v))
+      for (var u: dynamic in ask(v))
       {
         if (((!height.count(u)) && (u != path[1])))
         {
@@ -241,9 +241,9 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

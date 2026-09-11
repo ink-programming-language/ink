@@ -1,60 +1,60 @@
 // Translated from solution.cpp.
 
-var INF = (1 << 30);
+var INF: dynamic = (1 << 30);
 
-var MAX = (1e9 + 7);
+var MAX: dynamic = (1e9 + 7);
 
-func array_show(array: dynamic, array_n: dynamic, middle: dynamic = cpp_char(" "))
+func array_show(array: dynamic, array_n: dynamic, middle: dynamic = cpp_char(" ")) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < array_n))
     {
-      printf("%d%c", array[i], (if ((i != (array_n - 1))) middle else cpp_char("\n")));
+      printf("%d%c", array[i], ( ((i != (array_n - 1))) ? middle : cpp_char("\n")));
       i += 1;
     }
   }
 }
 
-func array_show(array: dynamic, array_n: dynamic, middle: dynamic = cpp_char(" "))
+func array_show(array: dynamic, array_n: dynamic, middle: dynamic = cpp_char(" ")) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < array_n))
     {
-      printf("%lld%c", array[i], (if ((i != (array_n - 1))) middle else cpp_char("\n")));
+      printf("%lld%c", array[i], ( ((i != (array_n - 1))) ? middle : cpp_char("\n")));
       i += 1;
     }
   }
 }
 
-func array_show(vec_s: dynamic, vec_n: dynamic = -1, middle: dynamic = cpp_char(" "))
+func array_show(vec_s: dynamic, vec_n: dynamic = -1, middle: dynamic = cpp_char(" ")) -> dynamic
 {
   if ((vec_n == -1))
   {
     vec_n = vec_s.size();
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < vec_n))
     {
-      printf("%d%c", vec_s[i], (if ((i != (vec_n - 1))) middle else cpp_char("\n")));
+      printf("%d%c", vec_s[i], ( ((i != (vec_n - 1))) ? middle : cpp_char("\n")));
       i += 1;
     }
   }
 }
 
-func array_show(vec_s: dynamic, vec_n: dynamic = -1, middle: dynamic = cpp_char(" "))
+func array_show(vec_s: dynamic, vec_n: dynamic = -1, middle: dynamic = cpp_char(" ")) -> dynamic
 {
   if ((vec_n == -1))
   {
     vec_n = vec_s.size();
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < vec_n))
     {
-      printf("%lld%c", vec_s[i], (if ((i != (vec_n - 1))) middle else cpp_char("\n")));
+      printf("%lld%c", vec_s[i], ( ((i != (vec_n - 1))) ? middle : cpp_char("\n")));
       i += 1;
     }
   }
@@ -62,13 +62,13 @@ func array_show(vec_s: dynamic, vec_n: dynamic = -1, middle: dynamic = cpp_char(
 
 class union_find_tree
 {
-  var uft_N: dynamic;
-  var uft_n: dynamic;
-  var uft_q1: dynamic;
-  var uft_parent: dynamic;
-  var uft_num: dynamic;
-  var vs: dynamic;
-  func pmax(pa: dynamic, pb: dynamic)
+  var uft_N: dynamic = cpp_uninitialized();
+  var uft_n: dynamic = cpp_uninitialized();
+  var uft_q1: dynamic = cpp_uninitialized();
+  var uft_parent: dynamic = cpp_uninitialized();
+  var uft_num: dynamic = cpp_uninitialized();
+  var vs: dynamic = cpp_uninitialized();
+  func pmax(pa: dynamic, pb: dynamic) -> dynamic
   {
       if ((pa.first < pb.first))
       {
@@ -77,13 +77,13 @@ class union_find_tree
       pa.second = max(pa.second, pb.first);
       return pa;
     }
-  func init()
+  func init() -> dynamic
   {
       uft_parent.assign(uft_n, -1);
       uft_num.assign(uft_n, 1);
       vs.assign(uft_n, make_pair(-1, -1));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < uft_n))
         {
           vs[i].first = i;
@@ -91,18 +91,18 @@ class union_find_tree
         }
       }
     }
-  func union_find_tree(uft_n_init: dynamic)
+  func union_find_tree(uft_n_init: dynamic) -> dynamic
   {
       assert((uft_n_init >= 0));
       uft_n = uft_n_init;
       init();
     }
-  func union_find_tree()
+  func union_find_tree() -> dynamic
   {
       uft_n = uft_N;
       init();
     }
-  func check_parent(uft_x: dynamic)
+  func check_parent(uft_x: dynamic) -> dynamic
   {
       assert(((uft_x >= 0) && (uft_x < uft_n)));
       if ((uft_parent[uft_x] != -1))
@@ -110,7 +110,7 @@ class union_find_tree
         uft_q1.push(uft_x);
         return check_parent(uft_parent[uft_x]);
       }
-      var uft_a: dynamic;
+      var uft_a: dynamic = cpp_uninitialized();
       while ((!uft_q1.empty()))
       {
         uft_a = uft_q1.front();
@@ -119,12 +119,12 @@ class union_find_tree
       }
       return uft_x;
     }
-  func check_max(x: dynamic)
+  func check_max(x: dynamic) -> dynamic
   {
       x = check_parent(x);
       return vs[x].second;
     }
-  func connect(uft_x: dynamic, uft_y: dynamic)
+  func connect(uft_x: dynamic, uft_y: dynamic) -> dynamic
   {
       assert(((uft_x >= 0) && (uft_x < uft_n)));
       assert(((uft_y >= 0) && (uft_y < uft_n)));
@@ -145,28 +145,28 @@ class union_find_tree
       vs[uft_y] = pmax(vs[uft_y], vs[uft_x]);
       return false;
     }
-  func size(pos: dynamic)
+  func size(pos: dynamic) -> dynamic
   {
       pos = check_parent(pos);
       return uft_num[pos];
     }
 }
 
-var m1: dynamic;
+var m1: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var v1: dynamic;
-  var va: dynamic;
+  var v1: dynamic = cpp_uninitialized();
+  var va: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < n))
@@ -179,7 +179,7 @@ func main()
     }
   }
   i = 0;
-  for (var node in m1)
+  for (var node: dynamic in m1)
   {
     node.second = cpp_update(i, "++");
     va.push_back(node.first);

@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(a[i][j]);
@@ -23,11 +23,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(b[i][j]);
@@ -37,9 +37,9 @@ func main()
       i += 1;
     }
   }
-  var bb: dynamic;
+  var bb: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       bb.push_back(b[i]);
@@ -48,13 +48,13 @@ func main()
   }
   sort(bb.begin(), bb.end());
   bb.erase(unique(bb.begin(), bb.end()), bb.end());
-  var who_a = cpp_construct(bb.size());
-  var who_b = cpp_construct(bb.size());
+  var who_a: dynamic = cpp_construct(bb.size());
+  var who_b: dynamic = cpp_construct(bb.size());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var ind = (lower_bound(bb.begin(), bb.end(), a[i]) - bb.begin());
+      var ind: dynamic = (lower_bound(bb.begin(), bb.end(), a[i]) - bb.begin());
       if (((ind == cpp_cast(bb.size())) || (bb[ind] != a[i])))
       {
         write(-1, "\n");
@@ -67,7 +67,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(bb.size())))
     {
       if ((who_a[i].size() != who_b[i].size()))
@@ -76,7 +76,7 @@ func main()
         return 0;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast(who_a[i].size())))
         {
           p[who_a[i][j]] = who_b[i][j];
@@ -87,22 +87,22 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       q[p[i]] = i;
       i += 1;
     }
   }
-  var good = cpp_construct(n, 0);
-  var cnt_bad = cpp_construct(m, 0);
-  var cnt_kek = cpp_construct(m, 0);
+  var good: dynamic = cpp_construct(n, 0);
+  var cnt_bad: dynamic = cpp_construct(m, 0);
+  var cnt_kek: dynamic = cpp_construct(m, 0);
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < m))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (n - 1)))
         {
           if ((a[q[i]][j] < a[q[(i + 1)]][j]))
@@ -119,12 +119,12 @@ func main()
       j += 1;
     }
   }
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   while (true)
   {
-    var ok = true;
+    var ok: dynamic = true;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         ok &= (good[i] || (q[i] < q[(i + 1)]));
@@ -135,9 +135,9 @@ func main()
     {
       break;
     }
-    var col = -1;
+    var col: dynamic = -1;
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < m))
       {
         if (((cnt_bad[j] == 0) && (cnt_kek[j] > 0)))
@@ -154,14 +154,14 @@ func main()
     }
     ans.push_back(col);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         if (((!good[i]) && (a[q[i]][col] < a[q[(i + 1)]][col])))
         {
           good[i] = true;
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               if ((a[q[i]][j] < a[q[(i + 1)]][j]))
@@ -180,9 +180,9 @@ func main()
       }
     }
   }
-  var ok = true;
+  var ok: dynamic = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       ok &= (good[i] || (q[i] < q[(i + 1)]));
@@ -193,7 +193,7 @@ func main()
   {
     write(cpp_cast(ans.size()), "\n");
     reverse(ans.begin(), ans.end());
-    for (var i in ans)
+    for (var i: dynamic in ans)
     {
       write((i + 1), " ");
     }

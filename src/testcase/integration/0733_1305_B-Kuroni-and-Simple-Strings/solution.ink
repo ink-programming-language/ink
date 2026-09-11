@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var a: dynamic;
-  var b: dynamic;
-  var i = 0;
-  var j = (s.size() - 1);
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var i: dynamic = 0;
+  var j: dynamic = (s.size() - 1);
   while ((i < j))
   {
     while (((i < s.size()) && (s[i] == cpp_char(")"))))
@@ -33,12 +33,12 @@ func main()
   }
   write(1, "\n");
   write((2 * a.size()), "\n");
-  for (var i in a)
+  for (var i: dynamic in a)
   {
     write(i, " ");
   }
   reverse(b.begin(), b.end());
-  for (var i in b)
+  for (var i: dynamic in b)
   {
     write(i, " ");
   }

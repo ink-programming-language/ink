@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var N = (1e7 + 5);
+var N: dynamic = (1e7 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var com = cpp_array(N);
+var com: dynamic = cpp_array(N);
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var freq = cpp_array(N);
+var freq: dynamic = cpp_array(N);
 
-func seive()
+func seive() -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < N))
     {
       com[i] += com[(i - 1)];
@@ -30,9 +30,9 @@ func seive()
         i += 1;
         continue;
       }
-      var num = freq[i];
+      var num: dynamic = freq[i];
       {
-        var x = (i + i);
+        var x: dynamic = (i + i);
         while ((x < N))
         {
           num += freq[x];
@@ -46,11 +46,11 @@ func seive()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&t));
@@ -61,7 +61,7 @@ func main()
   seive();
   scanf("%d", (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d %d", (&l), (&r));

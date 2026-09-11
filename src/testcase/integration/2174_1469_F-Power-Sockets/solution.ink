@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-var v = cpp_array(200005);
+var v: dynamic = cpp_array(200005);
 
-var aux = cpp_array(200005);
+var aux: dynamic = cpp_array(200005);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&k));
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))
@@ -26,8 +26,8 @@ func main()
   reverse((v + 1), ((v + n) + 1));
   aux[0] = 1;
   aux[1] = -1;
-  var sum = 0;
-  var j = 1;
+  var sum: dynamic = 0;
+  var j: dynamic = 1;
   {
     i = 0;
     while ((i <= 200000))

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func rd(x: dynamic)
+func rd(x: dynamic) -> dynamic
 {
   x = 0;
-  var c = getchar();
-  var f = 1;
+  var c: dynamic = getchar();
+  var f: dynamic = 1;
   while ((!isdigit(c)))
   {
     if ((c == cpp_char("-")))
@@ -21,11 +21,11 @@ func rd(x: dynamic)
   x *= f;
 }
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func Pow(x: dynamic, y: dynamic)
+func Pow(x: dynamic, y: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   {
     while (y)
     {
@@ -40,31 +40,31 @@ func Pow(x: dynamic, y: dynamic)
   return res;
 }
 
-var inv100 = Pow(100, (mod - 2));
+var inv100: dynamic = Pow(100, (mod - 2));
 
-var f = cpp_array(8);
+var f: dynamic = cpp_array(8);
 
-var mp = cpp_array(8, 8);
+var mp: dynamic = cpp_array(8, 8);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array((1 << 7));
+var cnt: dynamic = cpp_array((1 << 7));
 
-var id = cpp_array((1 << 7));
+var id: dynamic = cpp_array((1 << 7));
 
-var siz = cpp_array((1 << 7));
+var siz: dynamic = cpp_array((1 << 7));
 
-var pos = cpp_array((1 << 7), 8);
+var pos: dynamic = cpp_array((1 << 7), 8);
 
-func main()
+func main() -> dynamic
 {
   rd(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           rd(mp[i][j]);
@@ -76,7 +76,7 @@ func main()
     }
   }
   {
-    var S = 0;
+    var S: dynamic = 0;
     while ((S < ((1 << n))))
     {
       cnt[S] = (cnt[(S >> 1)] + ((S & 1)));
@@ -86,16 +86,16 @@ func main()
   }
   f[0][1] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var item = cpp_array(8);
+      var item: dynamic = cpp_array(8);
       {
-        var x = 0;
+        var x: dynamic = 0;
         while ((x < n))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < siz[i]))
             {
               if ((!(((pos[i][k] >> x) & 1))))
@@ -109,24 +109,24 @@ func main()
         }
       }
       {
-        var it = f[i].begin();
+        var it: dynamic = f[i].begin();
         while ((it != f[i].end()))
         {
           {
-            var S = 0;
+            var S: dynamic = 0;
             while ((S < ((1 << n))))
             {
-              var v = it->second;
-              var u = 0;
+              var v: dynamic = it->second;
+              var u: dynamic = 0;
               {
-                var x = 0;
+                var x: dynamic = 0;
                 while ((x < n))
                 {
                   if (((S >> x) & 1))
                   {
                     v = ((v * cpp_cast(mp[i][x])) % mod);
                     {
-                      var t = 0;
+                      var t: dynamic = 0;
                       while ((t < item[x].size()))
                       {
                         if ((((it->first) >> item[x][t]) & 1))

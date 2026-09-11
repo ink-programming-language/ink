@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var z = 26;
+var z: dynamic = 26;
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func score(t: dynamic)
+func score(t: dynamic) -> dynamic
 {
-  var sum = 0;
-  var last = cpp_construct(z, -1);
+  var sum: dynamic = 0;
+  var last: dynamic = cpp_construct(z, -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t.size()))
     {
       sum += s[i][t[i]];
       last[t[i]] = i;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < z))
         {
           sum -= (c[j] * ((((i + 1)) - ((last[j] + 1)))));
@@ -30,12 +30,12 @@ func score(t: dynamic)
   return sum;
 }
 
-func Main()
+func Main() -> dynamic
 {
   read(d);
   s = vector(d, vector(z));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < z))
     {
       read(c[i]);
@@ -43,11 +43,11 @@ func Main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < d))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < z))
         {
           read(s[i][j]);
@@ -57,25 +57,25 @@ func Main()
       i += 1;
     }
   }
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < d))
     {
-      var tmp: dynamic;
+      var tmp: dynamic = cpp_uninitialized();
       read(tmp);
       t.push_back((tmp - 1));
       i += 1;
     }
   }
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   read(m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var d: dynamic;
-      var q: dynamic;
+      var d: dynamic = cpp_uninitialized();
+      var q: dynamic = cpp_uninitialized();
       read(d, q);
       d -= 1;
       q -= 1;
@@ -86,7 +86,7 @@ func Main()
   }
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   Main();
   return 0;

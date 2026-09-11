@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var inf = 1001001001;
+var inf: dynamic = 1001001001;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   read(n, a, b, c);

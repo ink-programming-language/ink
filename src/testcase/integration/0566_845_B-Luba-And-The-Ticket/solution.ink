@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var inf = (1e9 + 7);
+var inf: dynamic = (1e9 + 7);
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var A = cpp_array(N);
+var A: dynamic = cpp_array(N);
 
-var B = cpp_array(N);
+var B: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var ans = inf;
-  var cnt: dynamic;
-  var a = 0;
-  var b = 0;
-  var l: dynamic;
-  var s: dynamic;
-  var t: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var ans: dynamic = inf;
+  var cnt: dynamic = cpp_uninitialized();
+  var a: dynamic = 0;
+  var b: dynamic = 0;
+  var l: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(s);
   {
     i = 0;
@@ -53,7 +53,7 @@ func main()
     k = 1;
     swap(a, b);
   }
-  var st = cpp_array(2);
+  var st: dynamic = cpp_array(2);
   {
     i = 3;
     while ((i < 6))
@@ -72,8 +72,8 @@ func main()
   }
   while ((a < b))
   {
-    var c: dynamic;
-    var d: dynamic;
+    var c: dynamic = cpp_uninitialized();
+    var d: dynamic = cpp_uninitialized();
     c = (*st[0].begin());
     d = (*st[1].rbegin());
     if (((9 - c) > d))

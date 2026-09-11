@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var eps = 1e-12;
+var eps: dynamic = 1e-12;
 
-var maxn = (100000 + 1912);
+var maxn: dynamic = (100000 + 1912);
 
-var MX = 1e6;
+var MX: dynamic = 1e6;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var p = cpp_array(((MX * 2) + 3));
+var p: dynamic = cpp_array(((MX * 2) + 3));
 
-var res = 0;
+var res: dynamic = 0;
 
-func ReadData()
+func ReadData() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d%d", (&a[i].first), (&a[i].second));
@@ -29,7 +29,7 @@ func ReadData()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (MX * 2)))
     {
       if ((cpp_cast(p[i].size())))
@@ -41,13 +41,13 @@ func ReadData()
   }
 }
 
-func Found(x: dynamic, y: dynamic)
+func Found(x: dynamic, y: dynamic) -> dynamic
 {
   if (((x < 0) || (x > (MX * 2))))
   {
     return false;
   }
-  var it = lower_bound(p[x].begin(), p[x].end(), y);
+  var it: dynamic = lower_bound(p[x].begin(), p[x].end(), y);
   if (((it != p[x].end()) && (((*it)) == y)))
   {
     return true;
@@ -55,10 +55,10 @@ func Found(x: dynamic, y: dynamic)
   return false;
 }
 
-func Process()
+func Process() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (MX * 2)))
     {
       if ((cpp_cast(p[i].size())))
@@ -66,14 +66,14 @@ func Process()
         if (((cpp_cast(p[i].size())) <= 520))
         {
           {
-            var fi = 0;
+            var fi: dynamic = 0;
             while ((fi < (cpp_cast(p[i].size()))))
             {
               {
-                var se = 0;
+                var se: dynamic = 0;
                 while ((se < fi))
                 {
-                  var len = (p[i][fi] - p[i][se]);
+                  var len: dynamic = (p[i][fi] - p[i][se]);
                   if ((((i >= len) && Found((i - len), p[i][se])) && Found((i - len), p[i][fi])))
                   {
                     res += 1;
@@ -87,12 +87,12 @@ func Process()
         } else
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j <= (i - 1)))
             {
-              var len = (i - j);
+              var len: dynamic = (i - j);
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < (cpp_cast(p[j].size()))))
                 {
                   if (((Found(i, p[j][k]) && Found(j, (p[j][k] + len))) && Found(i, (p[j][k] + len))))
@@ -113,7 +113,7 @@ func Process()
   write(res, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);

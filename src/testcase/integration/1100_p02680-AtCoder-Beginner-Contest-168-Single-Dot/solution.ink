@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var A = cpp_array(1000);
+var A: dynamic = cpp_array(1000);
 
-var B = cpp_array(1000);
+var B: dynamic = cpp_array(1000);
 
-var C = cpp_array(1000);
+var C: dynamic = cpp_array(1000);
 
-var D = cpp_array(1000);
+var D: dynamic = cpp_array(1000);
 
-var E = cpp_array(1000);
+var E: dynamic = cpp_array(1000);
 
-var F = cpp_array(1000);
+var F: dynamic = cpp_array(1000);
 
-var vis = cpp_array(3010, 3010);
+var vis: dynamic = cpp_array(3010, 3010);
 
-var WX = cpp_array(3010);
+var WX: dynamic = cpp_array(3010);
 
-var WY = cpp_array(3010);
+var WY: dynamic = cpp_array(3010);
 
-var wx = cpp_array(3010, 3010);
+var wx: dynamic = cpp_array(3010, 3010);
 
-var wy = cpp_array(3010, 3010);
+var wy: dynamic = cpp_array(3010, 3010);
 
-func main()
+func main() -> dynamic
 {
   read(N, M);
-  var X: dynamic;
-  var Y: dynamic;
+  var X: dynamic = cpp_uninitialized();
+  var Y: dynamic = cpp_uninitialized();
   X.push_back(cpp_cast(-2e9));
   X.push_back(0);
   X.push_back(cpp_cast(2e9));
@@ -38,7 +38,7 @@ func main()
   Y.push_back(0);
   Y.push_back(cpp_cast(2e9));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(A[i], B[i], C[i]);
@@ -49,7 +49,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       read(D[i], E[i], F[i]);
@@ -64,7 +64,7 @@ func main()
   sort(Y.begin(), Y.end());
   Y.erase(unique(Y.begin(), Y.end()), Y.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       A[i] = (lower_bound(X.begin(), X.end(), A[i]) - X.begin());
@@ -75,7 +75,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       D[i] = (lower_bound(X.begin(), X.end(), D[i]) - X.begin());
@@ -88,23 +88,23 @@ func main()
   WX[0].push_back(make_pair(0, (X.size() + 1)));
   WX[Y.size()].push_back(make_pair(0, (X.size() + 1)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= Y.size()))
     {
       sort(WX[i].begin(), WX[i].end());
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < WX[i].size()))
         {
-          var L = WX[i][j].first;
-          var R = WX[i][j].second;
+          var L: dynamic = WX[i][j].first;
+          var R: dynamic = WX[i][j].second;
           while (((j < WX[i].size()) && (WX[i][j].first <= R)))
           {
             R = max(R, WX[i][j].second);
             j += 1;
           }
           {
-            var k = L;
+            var k: dynamic = L;
             while ((k < R))
             {
               wx[i][k] = true;
@@ -119,23 +119,23 @@ func main()
   WY[0].push_back(make_pair(0, (Y.size() + 1)));
   WY[X.size()].push_back(make_pair(0, (Y.size() + 1)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= X.size()))
     {
       sort(WY[i].begin(), WY[i].end());
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < WY[i].size()))
         {
-          var L = WY[i][j].first;
-          var R = WY[i][j].second;
+          var L: dynamic = WY[i][j].first;
+          var R: dynamic = WY[i][j].second;
           while (((j < WY[i].size()) && (WY[i][j].first <= R)))
           {
             R = max(R, WY[i][j].second);
             j += 1;
           }
           {
-            var k = L;
+            var k: dynamic = L;
             while ((k < R))
             {
               wy[i][k] = true;
@@ -147,22 +147,22 @@ func main()
       i += 1;
     }
   }
-  var P: dynamic;
-  var sx: dynamic;
-  var sy: dynamic;
+  var P: dynamic = cpp_uninitialized();
+  var sx: dynamic = cpp_uninitialized();
+  var sy: dynamic = cpp_uninitialized();
   {
-    var id = (lower_bound(X.begin(), X.end(), 0) - X.begin());
+    var id: dynamic = (lower_bound(X.begin(), X.end(), 0) - X.begin());
     sx.push_back((id - 1));
     sx.push_back(id);
   }
   {
-    var id = (lower_bound(Y.begin(), Y.end(), 0) - Y.begin());
+    var id: dynamic = (lower_bound(Y.begin(), Y.end(), 0) - Y.begin());
     sy.push_back((id - 1));
     sy.push_back(id);
   }
-  for (var x in sx)
+  for (var x: dynamic in sx)
   {
-    for (var y in sy)
+    for (var y: dynamic in sy)
     {
       vis[x][y] = true;
       P.push(make_pair(x, y));
@@ -170,8 +170,8 @@ func main()
   }
   while ((!P.empty()))
   {
-    var x = P.front().first;
-    var y = P.front().second;
+    var x: dynamic = P.front().first;
+    var y: dynamic = P.front().second;
     P.pop();
     if (((!wy[x][y]) && (!vis[(x - 1)][y])))
     {
@@ -194,13 +194,13 @@ func main()
       P.push(make_pair(x, (y + 1)));
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < X.size()))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < Y.size()))
         {
           if ((!vis[i][j]))

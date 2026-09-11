@@ -1,71 +1,71 @@
 // Translated from solution.cpp.
 
-func ALL(c: dynamic)
+func ALL(c: dynamic) -> dynamic
 {
   return cpp_expression("// very kuso prob");
 }
 
-func IN(l: dynamic, v: dynamic, r: dynamic)
+func IN(l: dynamic, v: dynamic, r: dynamic) -> dynamic
 {
   return cpp_expression("// very kuso pr");
 }
 
-func UNIQUE(v: dynamic)
+func UNIQUE(v: dynamic) -> dynamic
 {
   sort(ALL(v));
   v.erase(unique(ALL(v)), v.end());
 }
 
-func DUMP(x: dynamic)
+func DUMP(x: dynamic) -> dynamic
 {
   return cpp_expression("// very kuso problem #in");
 }
 
-func LINE()
+func LINE() -> dynamic
 {
   return cpp_expression("// very kuso problem #include");
 }
 
-func range(i: dynamic, l: dynamic, r: dynamic)
+func range(i: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(int)l;i<(int)(r);i++)");
 }
 
-func operator_shift_right(is: dynamic, p: dynamic)
+func operator_shift_right(is: dynamic, p: dynamic) -> dynamic
 {
   return ((is >> p.first) >> p.second);
 }
 
-func operator_shift_right(is: dynamic, t: dynamic)
+func operator_shift_right(is: dynamic, t: dynamic) -> dynamic
 {
   return (is >> get(t));
 }
 
-func operator_shift_right(is: dynamic, t: dynamic)
+func operator_shift_right(is: dynamic, t: dynamic) -> dynamic
 {
   return ((is >> get(t)) >> get(t));
 }
 
-func operator_shift_right(is: dynamic, t: dynamic)
+func operator_shift_right(is: dynamic, t: dynamic) -> dynamic
 {
   return (((is >> get(t)) >> get(t)) >> get(t));
 }
 
-func operator_shift_right(is: dynamic, t: dynamic)
+func operator_shift_right(is: dynamic, t: dynamic) -> dynamic
 {
   return ((((is >> get(t)) >> get(t)) >> get(t)) >> get(t));
 }
 
-func operator_shift_right(is: dynamic, as_cpp: dynamic)
+func operator_shift_right(is: dynamic, as_cpp: dynamic) -> dynamic
 {
   range(i, 0, as_cpp.size());
   (is >> as_cpp[i]);
   return is;
 }
 
-func operator_shift_left(os: dynamic, ss: dynamic)
+func operator_shift_left(os: dynamic, ss: dynamic) -> dynamic
 {
-  for (var a in ss)
+  for (var a: dynamic in ss)
   {
     if ((a != ss.begin()))
     {
@@ -76,15 +76,15 @@ func operator_shift_left(os: dynamic, ss: dynamic)
   return os;
 }
 
-func operator_shift_left(os: dynamic, p: dynamic)
+func operator_shift_left(os: dynamic, p: dynamic) -> dynamic
 {
   return (((os << p.first) << " ") << p.second);
 }
 
-func operator_shift_left(os: dynamic, m: dynamic)
+func operator_shift_left(os: dynamic, m: dynamic) -> dynamic
 {
-  var isF = true;
-  for (var p in m)
+  var isF: dynamic = true;
+  for (var p: dynamic in m)
   {
     if ((!isF))
     {
@@ -96,27 +96,27 @@ func operator_shift_left(os: dynamic, m: dynamic)
   return os;
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   return (os << get(t));
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   return (((os << get(t)) << " ") << get(t));
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   return (((((os << get(t)) << " ") << get(t)) << " ") << get(t));
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   return (((((((os << get(t)) << " ") << get(t)) << " ") << get(t)) << " ") << get(t));
 }
 
-func operator_shift_left(os: dynamic, as_cpp: dynamic)
+func operator_shift_left(os: dynamic, as_cpp: dynamic) -> dynamic
 {
   range(i, 0, as_cpp.size());
   {
@@ -129,7 +129,7 @@ func operator_shift_left(os: dynamic, as_cpp: dynamic)
   return os;
 }
 
-func operator_shift_left(os: dynamic, as_cpp: dynamic)
+func operator_shift_left(os: dynamic, as_cpp: dynamic) -> dynamic
 {
   range(i, 0, as_cpp.size());
   {
@@ -144,44 +144,44 @@ func operator_shift_left(os: dynamic, as_cpp: dynamic)
 
 class Edge
 {
-  var c: dynamic;
-  var f: dynamic;
-  var t: dynamic;
+  var c: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
 }
 
 class NFA
 {
-  var ONE: dynamic;
-  var N: dynamic;
-  var es: dynamic;
-  var f_cache: dynamic;
-  var t_cache: dynamic;
-  var reachable: dynamic;
-  var trans: dynamic;
-  var s: dynamic;
-  var t: dynamic;
-  func NFA(N: dynamic = 0)
+  var ONE: dynamic = cpp_uninitialized();
+  var N: dynamic = cpp_uninitialized();
+  var es: dynamic = cpp_uninitialized();
+  var f_cache: dynamic = cpp_uninitialized();
+  var t_cache: dynamic = cpp_uninitialized();
+  var reachable: dynamic = cpp_uninitialized();
+  var trans: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  func NFA(N: dynamic = 0) -> dynamic
   {
-      this->N = cpp_construct(N);
-      this->s = cpp_construct(0);
-      this->t = cpp_construct(1);
+      self->N = cpp_construct(N);
+      self->s = cpp_construct(0);
+      self->t = cpp_construct(1);
       f_cache = cpp_assign(t_cache, "=", vector(N));
     }
-  func add_edge(c: dynamic, f: dynamic, t: dynamic)
+  func add_edge(c: dynamic, f: dynamic, t: dynamic) -> dynamic
   {
-      var eid = es.size();
+      var eid: dynamic = es.size();
       es.push_back([c, f, t]);
       f_cache[f].push_back(eid);
       t_cache[t].push_back(eid);
     }
-  func disjoint(a: dynamic, b: dynamic)
+  func disjoint(a: dynamic, b: dynamic) -> dynamic
   {
-      var res = (if ((a->es.size() < b->es.size())) b else a);
-      var add = (if ((a->es.size() < b->es.size())) a else b);
+      var res: dynamic = ( ((a->es.size() < b->es.size())) ? b : a);
+      var add: dynamic = ( ((a->es.size() < b->es.size())) ? a : b);
       res->f_cache.resize((res->N + add->N));
       res->t_cache.resize((res->N + add->N));
-      var eid = res->es.size();
-      for (var e in add->es)
+      var eid: dynamic = res->es.size();
+      for (var e: dynamic in add->es)
       {
         e.f += res->N;
         e.t += res->N;
@@ -193,18 +193,18 @@ class NFA
       res->N += add->N;
       return res;
     }
-  func Union(a: dynamic, b: dynamic)
+  func Union(a: dynamic, b: dynamic) -> dynamic
   {
-      var bl = (a->es.size() < b->es.size());
-      var as_cpp = ((if (bl) b->N else 0) + a->s);
-      var at = ((if (bl) b->N else 0) + a->t);
-      var bs = ((if ((!bl)) a->N else 0) + b->s);
-      var bt = ((if ((!bl)) a->N else 0) + b->t);
-      var S = (a->N + b->N);
-      var T = ((a->N + b->N) + 1);
-      var ab = disjoint(a, b);
-      var ab1 = disjoint(ab, (&ONE));
-      var res = disjoint(ab1, (&ONE));
+      var bl: dynamic = (a->es.size() < b->es.size());
+      var as_cpp: dynamic = (( (bl) ? b->N : 0) + a->s);
+      var at: dynamic = (( (bl) ? b->N : 0) + a->t);
+      var bs: dynamic = (( ((!bl)) ? a->N : 0) + b->s);
+      var bt: dynamic = (( ((!bl)) ? a->N : 0) + b->t);
+      var S: dynamic = (a->N + b->N);
+      var T: dynamic = ((a->N + b->N) + 1);
+      var ab: dynamic = disjoint(a, b);
+      var ab1: dynamic = disjoint(ab, (&ONE));
+      var res: dynamic = disjoint(ab1, (&ONE));
       res->add_edge(cpp_char("-"), S, as_cpp);
       res->add_edge(cpp_char("-"), S, bs);
       res->add_edge(cpp_char("-"), at, T);
@@ -213,42 +213,42 @@ class NFA
       res->t = T;
       return res;
     }
-  func Concat(a: dynamic, b: dynamic)
+  func Concat(a: dynamic, b: dynamic) -> dynamic
   {
-      var bl = (a->es.size() < b->es.size());
-      var as_cpp = ((if (bl) b->N else 0) + a->s);
-      var at = ((if (bl) b->N else 0) + a->t);
-      var bs = ((if ((!bl)) a->N else 0) + b->s);
-      var bt = ((if ((!bl)) a->N else 0) + b->t);
-      var res = disjoint(a, b);
+      var bl: dynamic = (a->es.size() < b->es.size());
+      var as_cpp: dynamic = (( (bl) ? b->N : 0) + a->s);
+      var at: dynamic = (( (bl) ? b->N : 0) + a->t);
+      var bs: dynamic = (( ((!bl)) ? a->N : 0) + b->s);
+      var bt: dynamic = (( ((!bl)) ? a->N : 0) + b->t);
+      var res: dynamic = disjoint(a, b);
       res->add_edge(cpp_char("-"), at, bs);
       res->s = as_cpp;
       res->t = bt;
       return res;
     }
-  func Star(a: dynamic)
+  func Star(a: dynamic) -> dynamic
   {
-      var res = disjoint(a, (&ONE));
+      var res: dynamic = disjoint(a, (&ONE));
       res->add_edge(cpp_char("-"), (res->N - 1), a->s);
       res->add_edge(cpp_char("-"), a->t, (res->N - 1));
       res->s = cpp_assign(res->t, "=", (res->N - 1));
       return res;
     }
-  func create_reachable()
+  func create_reachable() -> dynamic
   {
-      var que: dynamic;
+      var que: dynamic = cpp_uninitialized();
       que.push([t, 0]);
       reachable = vector(N, vector(4));
       reachable[t][0] = true;
       while ((!que.empty()))
       {
-        var t: dynamic;
-        var d: dynamic;
+        var t: dynamic = cpp_uninitialized();
+        var d: dynamic = cpp_uninitialized();
         tie(t, d) = que.front();
         que.pop();
-        for (var eid in t_cache[t])
+        for (var eid: dynamic in t_cache[t])
         {
-          var e = es[eid];
+          var e: dynamic = es[eid];
           if ((e.c == cpp_char("-")))
           {
             if ((!reachable[e.f][d]))
@@ -267,13 +267,13 @@ class NFA
         }
       }
     }
-  func create_trans()
+  func create_trans() -> dynamic
   {
       trans = vector(N, vector(27));
       range(st, 0, N);
       {
         passed[st] = true;
-        var que: dynamic;
+        var que: dynamic = cpp_uninitialized();
         range(i, 0, passed.size());
         if (passed[i])
         {
@@ -281,9 +281,9 @@ class NFA
         }
         while ((!que.empty()))
         {
-          var s = que.front();
+          var s: dynamic = que.front();
           que.pop();
-          for (var eid in f_cache[s])
+          for (var eid: dynamic in f_cache[s])
           {
             if (((es[eid].c == cpp_char("-")) && (!passed[es[eid].t])))
             {
@@ -301,11 +301,11 @@ class NFA
       range(st, 0, N);
       range(c, cpp_char("A"), (cpp_char("Z") + 1));
       {
-        for (var s in trans[st][26])
+        for (var s: dynamic in trans[st][26])
         {
           passed[s] = true;
         }
-        var que: dynamic;
+        var que: dynamic = cpp_uninitialized();
         range(i, 0, passed.size());
         if (passed[i])
         {
@@ -313,9 +313,9 @@ class NFA
         }
         while ((!que.empty()))
         {
-          var s = que.front();
+          var s: dynamic = que.front();
           que.pop();
-          for (var eid in f_cache[s])
+          for (var eid: dynamic in f_cache[s])
           {
             if (((((es[eid].c == c) || (es[eid].c == cpp_char(".")))) && (!npassed[es[eid].t])))
             {
@@ -327,7 +327,7 @@ class NFA
         range(i, 0, N);
         if (npassed[i])
         {
-          for (var s in trans[i][26])
+          for (var s: dynamic in trans[i][26])
           {
             npassed[s] = true;
           }
@@ -335,8 +335,8 @@ class NFA
         range(s, 0, npassed.size());
         if (npassed[s])
         {
-          var alleps = true;
-          for (var eid in f_cache[s])
+          var alleps: dynamic = true;
+          for (var eid: dynamic in f_cache[s])
           {
             alleps &= (es[eid].c == cpp_char("-"));
           }
@@ -350,34 +350,34 @@ class NFA
     }
 }
 
-var ONE = NFA(1);
+var ONE: dynamic = NFA(1);
 
 class REGtoNFA
 {
-  func pattern(s: dynamic, i: dynamic, e: dynamic)
+  func pattern(s: dynamic, i: dynamic, e: dynamic) -> dynamic
   {
-      var p = simple(s, i, e);
+      var p: dynamic = simple(s, i, e);
       while (((i < e) && (s[i] == cpp_char("|"))))
       {
         i += 1;
-        var q = simple(s, i, e);
+        var q: dynamic = simple(s, i, e);
         p = NFA.Union(p, q);
       }
       return p;
     }
-  func simple(s: dynamic, i: dynamic, e: dynamic)
+  func simple(s: dynamic, i: dynamic, e: dynamic) -> dynamic
   {
-      var p = basic(s, i, e);
+      var p: dynamic = basic(s, i, e);
       while (((i < e) && (s[i] != cpp_char("|"))))
       {
-        var q = basic(s, i, e);
+        var q: dynamic = basic(s, i, e);
         p = NFA.Concat(p, q);
       }
       return p;
     }
-  func basic(s: dynamic, i: dynamic, e: dynamic)
+  func basic(s: dynamic, i: dynamic, e: dynamic) -> dynamic
   {
-      var p = elementary(s, i, e);
+      var p: dynamic = elementary(s, i, e);
       if (((i < cpp_cast(s.size())) && (s[i] == cpp_char("*"))))
       {
         i += 1;
@@ -385,15 +385,15 @@ class REGtoNFA
       }
       return p;
     }
-  func elementary(s: dynamic, i: dynamic, e: dynamic)
+  func elementary(s: dynamic, i: dynamic, e: dynamic) -> dynamic
   {
-      var p: dynamic;
+      var p: dynamic = cpp_uninitialized();
       if ((s[i] == cpp_char("(")))
       {
         i += 1;
-        var d = 1;
+        var d: dynamic = 1;
         {
-          var j = i;
+          var j: dynamic = i;
           while ((j < e))
           {
             if ((s[j] == cpp_char("(")))
@@ -424,17 +424,17 @@ class REGtoNFA
     }
 }
 
-var rc = 0;
+var rc: dynamic = 0;
 
 class Main
 {
-  var h: dynamic;
-  var w: dynamic;
-  var tmp: dynamic;
-  var res: dynamic;
-  var NFAs: dynamic;
-  var stats: dynamic;
-  func dfs(y: dynamic, x: dynamic, c: dynamic)
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var tmp: dynamic = cpp_uninitialized();
+  var res: dynamic = cpp_uninitialized();
+  var NFAs: dynamic = cpp_uninitialized();
+  var stats: dynamic = cpp_uninitialized();
+  func dfs(y: dynamic, x: dynamic, c: dynamic) -> dynamic
   {
       if ((rc > 1))
       {
@@ -446,16 +446,16 @@ class Main
         res = tmp;
         return;
       }
-      var nstats = cpp_construct(2, vector(26));
-      var nfai = [y, (h + x)];
+      var nstats: dynamic = cpp_construct(2, vector(26));
+      var nfai: dynamic = [y, (h + x)];
       range(ni, 0, 2);
       {
-        var nc = cpp_char("A");
+        var nc: dynamic = cpp_char("A");
         while ((nc <= cpp_char("Z")))
         {
-          for (var s in stats[nfai[ni]])
+          for (var s: dynamic in stats[nfai[ni]])
           {
-            for (var t in NFAs[nfai[ni]].trans[s][(nc - cpp_char("A"))])
+            for (var t: dynamic in NFAs[nfai[ni]].trans[s][(nc - cpp_char("A"))])
             {
               nstats[ni][(nc - cpp_char("A"))].push_back(t);
             }
@@ -464,21 +464,21 @@ class Main
           nc += 1;
         }
       }
-      var gid = cpp_construct(26);
+      var gid: dynamic = cpp_construct(26);
       iota(ALL(gid), 0);
       {
-        var c1 = cpp_char("A");
+        var c1: dynamic = cpp_char("A");
         while ((c1 <= cpp_char("Z")))
         {
           {
-            var c2 = cpp_char("A");
+            var c2: dynamic = cpp_char("A");
             while ((c2 < c1))
             {
               if ((gid[(c2 - cpp_char("A"))] == (c2 - cpp_char("A"))))
               {
                 if (((nstats[0][(c1 - cpp_char("A"))].size() == nstats[0][(c2 - cpp_char("A"))].size()) && (nstats[1][(c1 - cpp_char("A"))].size() == nstats[1][(c2 - cpp_char("A"))].size())))
                 {
-                  var eq = true;
+                  var eq: dynamic = true;
                   range(ni, 0, 2);
                   {
                     range(i, 0, nstats[ni][(c1 - cpp_char("A"))].size());
@@ -507,27 +507,27 @@ class Main
           c1 += 1;
         }
       }
-      var gc = cpp_construct(26);
+      var gc: dynamic = cpp_construct(26);
       range(i, 0, 26)[gid[i]] += 1;
       {
-        var c = cpp_char("A");
+        var c: dynamic = cpp_char("A");
         while ((c <= cpp_char("Z")))
         {
           if ((gid[(c - cpp_char("A"))] == (c - cpp_char("A"))))
           {
             tmp[y][x] = c;
-            var tmpOK = true;
+            var tmpOK: dynamic = true;
             {
-              var ok = false;
-              for (var s in nstats[0][(c - cpp_char("A"))])
+              var ok: dynamic = false;
+              for (var s: dynamic in nstats[0][(c - cpp_char("A"))])
               {
                 ok |= NFAs[y].reachable[s][((w - 1) - x)];
               }
               tmpOK &= ok;
             }
             {
-              var ok = false;
-              for (var s in nstats[1][(c - cpp_char("A"))])
+              var ok: dynamic = false;
+              for (var s: dynamic in nstats[1][(c - cpp_char("A"))])
               {
                 ok |= NFAs[(h + x)].reachable[s][((h - 1) - y)];
               }
@@ -535,8 +535,8 @@ class Main
             }
             if ((x == (w - 1)))
             {
-              var ok = false;
-              for (var s in nstats[0][(c - cpp_char("A"))])
+              var ok: dynamic = false;
+              for (var s: dynamic in nstats[0][(c - cpp_char("A"))])
               {
                 ok |= (s == NFAs[y].t);
               }
@@ -544,8 +544,8 @@ class Main
             }
             if ((y == (h - 1)))
             {
-              var ok = false;
-              for (var s in nstats[1][(c - cpp_char("A"))])
+              var ok: dynamic = false;
+              for (var s: dynamic in nstats[1][(c - cpp_char("A"))])
               {
                 ok |= (s == NFAs[(h + x)].t);
               }
@@ -553,8 +553,8 @@ class Main
             }
             if (tmpOK)
             {
-              var tmpp = stats[y];
-              var tmpq = stats[(h + x)];
+              var tmpp: dynamic = stats[y];
+              var tmpq: dynamic = stats[(h + x)];
               stats[y] = nstats[0][(c - cpp_char("A"))];
               stats[(h + x)] = nstats[1][(c - cpp_char("A"))];
               if (((x + 1) < w))
@@ -572,7 +572,7 @@ class Main
         }
       }
     }
-  func run()
+  func run() -> dynamic
   {
       while (true)
       {
@@ -583,15 +583,15 @@ class Main
         }
         rc = 0;
         tmp = cpp_assign(res, "=", vector(h, string_cpp(w, cpp_char("-"))));
-        var ss = cpp_construct((h + w));
+        var ss: dynamic = cpp_construct((h + w));
         read(ss);
         NFAs = vector((h + w));
         range(i, 0, (h + w));
         {
-          var s = "";
+          var s: dynamic = "";
           range(j, 1, (ss[i].size() - 1)) += ss[i][j];
-          var cur = 0;
-          var e = s.size();
+          var cur: dynamic = 0;
+          var e: dynamic = s.size();
           NFAs[i] = (*REGtoNFA.pattern(s, cur, e));
         }
         range(i, 0, (h + w));
@@ -616,7 +616,7 @@ class Main
     }
 }
 
-func main()
+func main() -> dynamic
 {
   write(fixed, setprecision(20));
   cin.tie(0);

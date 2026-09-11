@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var nodes: dynamic;
-  var edges: dynamic;
+  var nodes: dynamic = cpp_uninitialized();
+  var edges: dynamic = cpp_uninitialized();
   read(nodes, edges);
-  var adj = cpp_array((nodes + 1));
-  var visited = cpp_construct((nodes + 1));
-  var ans = cpp_construct((nodes + 1));
+  var adj: dynamic = cpp_array((nodes + 1));
+  var visited: dynamic = cpp_construct((nodes + 1));
+  var ans: dynamic = cpp_construct((nodes + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= edges))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       adj[u].push_back(v);
       adj[v].push_back(u);
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.push(1);
   ans[1] = 1;
   visited[1] = true;
   while ((!q.empty()))
   {
-    var cur = q.front();
+    var cur: dynamic = q.front();
     q.pop();
-    for (var next in adj[cur])
+    for (var next: dynamic in adj[cur])
     {
       if ((!visited[next]))
       {
@@ -40,7 +40,7 @@ func main()
   }
   write("Yes\n");
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= nodes))
     {
       write(ans[i], "\n");

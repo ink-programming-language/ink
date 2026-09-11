@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var IF = cpp_expression("#include <");
+var IF: dynamic = cpp_expression("#include <");
 
-func lengthof(x: dynamic)
+func lengthof(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #inclu");
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var dp = cpp_array(2, (1 << 8));
-  var min: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var dp: dynamic = cpp_array(2, (1 << 8));
+  var min: dynamic = cpp_uninitialized();
   while (1)
   {
     read(n, m);
@@ -21,7 +21,7 @@ func main(argc: dynamic, argv: dynamic)
       break;
     }
     {
-      var i1 = 0;
+      var i1: dynamic = 0;
       while ((i1 < m))
       {
         read(cb[i1]);
@@ -29,7 +29,7 @@ func main(argc: dynamic, argv: dynamic)
       }
     }
     {
-      var i1 = 0;
+      var i1: dynamic = 0;
       while ((i1 < n))
       {
         read(x[i1]);
@@ -39,20 +39,20 @@ func main(argc: dynamic, argv: dynamic)
     fill(cpp_cast(dp), cpp_cast(((dp + lengthof(dp)))), IF);
     dp[128][0] = 0;
     {
-      var i1 = 0;
+      var i1: dynamic = 0;
       while ((i1 < n))
       {
         {
-          var i2 = 0;
+          var i2: dynamic = 0;
           while ((i2 < ((1 << 8))))
           {
             if ((dp[i2][(i1 % 2)] != IF))
             {
               {
-                var i3 = 0;
+                var i3: dynamic = 0;
                 while ((i3 < m))
                 {
-                  var temp = (i2 + cb[i3]);
+                  var temp: dynamic = (i2 + cb[i3]);
                   if ((temp < 0))
                   {
                     temp = 0;
@@ -75,7 +75,7 @@ func main(argc: dynamic, argv: dynamic)
     }
     min = IF;
     {
-      var i1 = 0;
+      var i1: dynamic = 0;
       while ((i1 < ((1 << 8))))
       {
         min = min(min, dp[i1][(n % 2)]);

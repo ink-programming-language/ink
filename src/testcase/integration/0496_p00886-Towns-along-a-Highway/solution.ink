@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var d = cpp_array(310);
+var d: dynamic = cpp_array(310);
 
-var c = cpp_array(510);
+var c: dynamic = cpp_array(510);
 
-var v = cpp_array(310);
+var v: dynamic = cpp_array(310);
 
-var at = cpp_array(30);
+var at: dynamic = cpp_array(30);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var tmp = cpp_array(30);
+var tmp: dynamic = cpp_array(30);
 
-var sz: dynamic;
+var sz: dynamic = cpp_uninitialized();
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-func ABS(a: dynamic)
+func ABS(a: dynamic) -> dynamic
 {
   return max(a, (-a));
 }
 
-func solve(a: dynamic, b: dynamic)
+func solve(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == n))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         tmp[i] = at[i];
@@ -34,9 +34,9 @@ func solve(a: dynamic, b: dynamic)
       }
     }
     sort(tmp, (tmp + n));
-    var val: dynamic;
+    var val: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         val.push_back(tmp[i]);
@@ -49,7 +49,7 @@ func solve(a: dynamic, b: dynamic)
     }
     S.insert(val);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         if (i)
@@ -67,7 +67,7 @@ func solve(a: dynamic, b: dynamic)
     return;
   }
   {
-    var i = b;
+    var i: dynamic = b;
     while ((i > 0))
     {
       if ((!c[i]))
@@ -76,15 +76,15 @@ func solve(a: dynamic, b: dynamic)
         continue;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < a))
         {
           if (((at[j] - i) > 0))
           {
-            var ok = true;
-            var t = (at[j] - i);
+            var ok: dynamic = true;
+            var t: dynamic = (at[j] - i);
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < a))
               {
                 if ((!c[ABS((t - at[k]))]))
@@ -101,7 +101,7 @@ func solve(a: dynamic, b: dynamic)
               solve((a + 1), i);
             }
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < a))
               {
                 c[ABS((t - at[k]))] += 1;
@@ -111,10 +111,10 @@ func solve(a: dynamic, b: dynamic)
           }
           if (((at[j] + i) < d[0]))
           {
-            var ok = true;
-            var t = (at[j] + i);
+            var ok: dynamic = true;
+            var t: dynamic = (at[j] + i);
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < a))
               {
                 if ((!c[ABS((t - at[k]))]))
@@ -131,7 +131,7 @@ func solve(a: dynamic, b: dynamic)
               solve((a + 1), i);
             }
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < a))
               {
                 c[ABS((t - at[k]))] += 1;
@@ -148,16 +148,16 @@ func solve(a: dynamic, b: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   while (cpp_comma(scanf("%d", (&a)), a))
   {
     n = a;
     S.clear();
     sz = ((n * ((n - 1))) / 2);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ((a * ((a - 1))) / 2)))
       {
         scanf("%d", (d + i));
@@ -165,7 +165,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 510))
       {
         c[i] = 0;
@@ -173,7 +173,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 310))
       {
         v[i] = 0;
@@ -181,7 +181,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ((a * ((a - 1))) / 2)))
       {
         c[d[i]] += 1;

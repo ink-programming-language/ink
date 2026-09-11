@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-func reps(i: dynamic, f: dynamic, n: dynamic)
+func reps(i: dynamic, f: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(f);i<(n);i++)");
 }
 
-func all(v: dynamic)
+func all(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-func each(it: dynamic, v: dynamic)
+func each(it: dynamic, v: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof((v).begin()) it=(v).begin();it!=(v).end();it++)");
 }
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -36,7 +36,7 @@ func chmin(a: dynamic, b: dynamic)
   }
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -44,10 +44,10 @@ func chmax(a: dynamic, b: dynamic)
   }
 }
 
-func visit(G: dynamic, vs: dynamic, used: dynamic, v: dynamic)
+func visit(G: dynamic, vs: dynamic, used: dynamic, v: dynamic) -> dynamic
 {
   used[v] = true;
-  for (var u in G[v])
+  for (var u: dynamic in G[v])
   {
     if ((!used[u]))
     {
@@ -57,12 +57,12 @@ func visit(G: dynamic, vs: dynamic, used: dynamic, v: dynamic)
   vs.push_back(v);
 }
 
-func visit2(T: dynamic, used: dynamic, comp: dynamic, vec: dynamic, k: dynamic, v: dynamic)
+func visit2(T: dynamic, used: dynamic, comp: dynamic, vec: dynamic, k: dynamic, v: dynamic) -> dynamic
 {
   comp[v] = k;
   used[v] = true;
   vec.push_back(v);
-  for (var u in T[v])
+  for (var u: dynamic in T[v])
   {
     if ((!used[u]))
     {
@@ -71,14 +71,14 @@ func visit2(T: dynamic, used: dynamic, comp: dynamic, vec: dynamic, k: dynamic, 
   }
 }
 
-func decompose(G: dynamic, H: dynamic, comp: dynamic)
+func decompose(G: dynamic, H: dynamic, comp: dynamic) -> dynamic
 {
-  var T = cpp_construct(G.size());
+  var T: dynamic = cpp_construct(G.size());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G.size()))
     {
-      for (var v in G[i])
+      for (var v: dynamic in G[i])
       {
         T[v].push_back(i);
       }
@@ -86,10 +86,10 @@ func decompose(G: dynamic, H: dynamic, comp: dynamic)
     }
   }
   comp.resize(G.size());
-  var vs = cpp_construct(G.size());
-  var used = cpp_construct(G.size());
+  var vs: dynamic = cpp_construct(G.size());
+  var used: dynamic = cpp_construct(G.size());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G.size()))
     {
       if ((!used[i]))
@@ -101,9 +101,9 @@ func decompose(G: dynamic, H: dynamic, comp: dynamic)
   }
   reverse(vs.begin(), vs.end());
   fill(used.begin(), used.end(), 0);
-  var K = 0;
-  var S: dynamic;
-  for (var v in vs)
+  var K: dynamic = 0;
+  var S: dynamic = cpp_uninitialized();
+  for (var v: dynamic in vs)
   {
     if ((!used[v]))
     {
@@ -114,12 +114,12 @@ func decompose(G: dynamic, H: dynamic, comp: dynamic)
   H.resize(K);
   fill(used.begin(), used.end(), 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < K))
     {
-      for (var v in S[i])
+      for (var v: dynamic in S[i])
       {
-        for (var u in G[v])
+        for (var u: dynamic in G[v])
         {
           if ((used[comp[u]] || (comp[v] == comp[u])))
           {
@@ -129,7 +129,7 @@ func decompose(G: dynamic, H: dynamic, comp: dynamic)
           H[comp[v]].push_back(comp[u]);
         }
       }
-      for (var v in H[i])
+      for (var v: dynamic in H[i])
       {
         used[v] = false;
       }
@@ -140,14 +140,14 @@ func decompose(G: dynamic, H: dynamic, comp: dynamic)
 
 class UF
 {
-  var par: dynamic;
-  var sz: dynamic;
-  func init(n: dynamic)
+  var par: dynamic = cpp_uninitialized();
+  var sz: dynamic = cpp_uninitialized();
+  func init(n: dynamic) -> dynamic
   {
       par.resize(n);
       sz.resize(n);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           par[i] = i;
@@ -156,11 +156,11 @@ class UF
         }
       }
     }
-  func find(x: dynamic)
+  func find(x: dynamic) -> dynamic
   {
-      return if ((x == par[x])) x else cpp_assign(par[x], "=", find(par[x]));
+      return  ((x == par[x])) ? x : cpp_assign(par[x], "=", find(par[x]));
     }
-  func unite(x: dynamic, y: dynamic)
+  func unite(x: dynamic, y: dynamic) -> dynamic
   {
       x = find(x);
       y = find(y);
@@ -171,33 +171,33 @@ class UF
       sz[x] += sz[y];
       par[y] = x;
     }
-  func same(x: dynamic, y: dynamic)
+  func same(x: dynamic, y: dynamic) -> dynamic
   {
       return (find(x) == find(y));
     }
-  func size(x: dynamic)
+  func size(x: dynamic) -> dynamic
   {
       return sz[find(x)];
     }
 }
 
-var G: dynamic;
+var G: dynamic = cpp_uninitialized();
 
-var bridge: dynamic;
+var bridge: dynamic = cpp_uninitialized();
 
-var ord = cpp_array(1000);
+var ord: dynamic = cpp_array(1000);
 
-var low = cpp_array(1000);
+var low: dynamic = cpp_array(1000);
 
-var vis = cpp_array(1000);
+var vis: dynamic = cpp_array(1000);
 
-func dfs(v: dynamic, p: dynamic, k: dynamic)
+func dfs(v: dynamic, p: dynamic, k: dynamic) -> dynamic
 {
   vis[v] = true;
   ord[v] = cpp_update(k, "++");
   low[v] = ord[v];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G[v].size()))
     {
       if ((!vis[G[v][i]]))
@@ -217,12 +217,12 @@ func dfs(v: dynamic, p: dynamic, k: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var M: dynamic;
-  var A = cpp_array(1000);
-  var B = cpp_array(1000);
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
+  var A: dynamic = cpp_array(1000);
+  var B: dynamic = cpp_array(1000);
   read(N, M);
   rep(i, M);
   read(A[i], B[i]);
@@ -232,16 +232,16 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var uf: dynamic;
+    var uf: dynamic = cpp_uninitialized();
     uf.init(N);
     rep(j, M);
     if ((i != j))
     {
       uf.unite(A[j], B[j]);
     }
-    var ok = true;
+    var ok: dynamic = true;
     rep(j, N);
     if ((uf.find(j) != uf.find(0)))
     {
@@ -257,8 +257,8 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     {
       G[A[j]].pb(B[j]);
     }
-    var H: dynamic;
-    var comp: dynamic;
+    var H: dynamic = cpp_uninitialized();
+    var comp: dynamic = cpp_uninitialized();
     SCC.decompose(G, H, comp);
     if ((H.size() != N))
     {
@@ -272,7 +272,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
       G[B[j]].pb(A[j]);
     }
     memset(vis, 0, cpp_sizeof((vis)));
-    var K = 0;
+    var K: dynamic = 0;
     bridge.clear();
     dfs(0, -1, K);
     if ((bridge.size() >= 2))

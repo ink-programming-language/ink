@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var q1: dynamic;
+var q1: dynamic = cpp_uninitialized();
 
-var q2: dynamic;
+var q2: dynamic = cpp_uninitialized();
 
-var p1: dynamic;
+var p1: dynamic = cpp_uninitialized();
 
-var p2: dynamic;
+var p2: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a1 = cpp_array(5);
+var a1: dynamic = cpp_array(5);
 
-var a2 = cpp_array(5);
+var a2: dynamic = cpp_array(5);
 
-var b1: dynamic;
+var b1: dynamic = cpp_uninitialized();
 
-var b2: dynamic;
+var b2: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
   {
     j = 1;
@@ -68,15 +68,15 @@ func solve()
   }
 }
 
-func init()
+func init() -> dynamic
 {
 }
 
-func answer()
+func answer() -> dynamic
 {
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   solve();

@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var N = cpp_expression("#inclu");
+var N: dynamic = cpp_expression("#inclu");
 
-var G = cpp_array(N);
+var G: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var d = cpp_array(N);
+var d: dynamic = cpp_array(N);
 
-func GG()
+func GG() -> dynamic
 {
   printf("First");
   exit(0);
 }
 
-func dfs(t: dynamic, fa: dynamic)
+func dfs(t: dynamic, fa: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var cnt = 0;
+  var i: dynamic = cpp_uninitialized();
+  var cnt: dynamic = 0;
   {
     i = 0;
     while ((i < G[t].size()))
@@ -42,11 +42,11 @@ func dfs(t: dynamic, fa: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
     i = 1;

@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var f = cpp_array(2, 100510);
+var f: dynamic = cpp_array(2, 100510);
 
-var ch = cpp_array(100510, 4);
+var ch: dynamic = cpp_array(100510, 4);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%*d", (&n), (&m));
   scanf("%s%s%s%s", (ch[0] + 1), (ch[1] + 1), (ch[2] + 1), (ch[3] + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       if ((ch[2][i] == cpp_char("R")))
@@ -41,11 +41,11 @@ func main()
     f[1][0] += 1;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
-      var c0 = 0;
-      var c1 = 0;
+      var c0: dynamic = 0;
+      var c1: dynamic = 0;
       if ((ch[0][i] == cpp_char("R")))
       {
         c1 += 1;
@@ -66,7 +66,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       if ((ch[3][i] == cpp_char("R")))
@@ -79,10 +79,10 @@ func main()
       i += 1;
     }
   }
-  var ans = min(f[n][0], f[n][1]);
+  var ans: dynamic = min(f[n][0], f[n][1]);
   memset(f, 0, cpp_sizeof((f)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((ch[0][i] == cpp_char("R")))
@@ -110,11 +110,11 @@ func main()
     f[1][0] += 1;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= m))
     {
-      var c0 = 0;
-      var c1 = 0;
+      var c0: dynamic = 0;
+      var c1: dynamic = 0;
       if ((ch[2][i] == cpp_char("R")))
       {
         c1 += 1;
@@ -135,7 +135,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((ch[1][i] == cpp_char("R")))

@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   while (1)
   {
-    var a: dynamic;
-    var j = 0;
+    var a: dynamic = cpp_uninitialized();
+    var j: dynamic = 0;
     read(a);
     if ((a == 0))
     {
       break;
     }
     j = a;
-    var s = "";
-    var b = 0;
+    var s: dynamic = "";
+    var b: dynamic = 0;
     {
       b = 1;
       while (((b * 8) <= a))
@@ -22,11 +22,11 @@ func main()
       }
     }
     {
-      var c = b;
+      var c: dynamic = b;
       while ((c != 1))
       {
-        var o = (a / c);
-        var __cpp_switch_1 = (a / c);
+        var o: dynamic = (a / c);
+        var __cpp_switch_1: dynamic = (a / c);
         if (__cpp_switch_1 == 0)
         {
         }
@@ -55,7 +55,7 @@ func main()
         c /= 8;
       }
     }
-    var __cpp_switch_2 = (j % 8);
+    var __cpp_switch_2: dynamic = (j % 8);
     if (__cpp_switch_2 == 0)
     {
     }

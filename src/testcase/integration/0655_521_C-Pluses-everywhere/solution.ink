@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var MAXN = 100005;
+var MAXN: dynamic = 100005;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var inv = cpp_array(MAXN);
+var inv: dynamic = cpp_array(MAXN);
 
-var a = cpp_array(MAXN);
+var a: dynamic = cpp_array(MAXN);
 
-func pow(a: dynamic, b: dynamic)
+func pow(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = 1;
-  var tmp = a;
+  var res: dynamic = 1;
+  var tmp: dynamic = a;
   while (b)
   {
     if ((b & 1))
@@ -28,14 +28,14 @@ func pow(a: dynamic, b: dynamic)
   return res;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var sum = 0;
-  var ans = 0;
-  var ten = 1;
-  var c = 1;
+  var sum: dynamic = 0;
+  var ans: dynamic = 0;
+  var ten: dynamic = 1;
+  var c: dynamic = 1;
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
       scanf("%1d", (&a[i]));
@@ -46,7 +46,7 @@ func solve()
   if ((k == 0))
   {
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i <= (n)))
       {
         ans = ((((ans * 10) + a[i])) % mod);
@@ -57,7 +57,7 @@ func solve()
     return;
   }
   {
-    var i = ((n - k));
+    var i: dynamic = ((n - k));
     while ((i <= ((n - 2))))
     {
       c = ((c * i) % mod);
@@ -65,7 +65,7 @@ func solve()
     }
   }
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= ((k - 1))))
     {
       c = ((c * inv[i]) % mod);
@@ -73,11 +73,11 @@ func solve()
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < ((n - k))))
     {
       sum = ((((((sum - a[(n - i)])) % mod) + mod)) % mod);
-      var tmpc = ((((c * inv[k]) % mod) * (((n - i) - 1))) % mod);
+      var tmpc: dynamic = ((((c * inv[k]) % mod) * (((n - i) - 1))) % mod);
       ans = (((ans + (((ten * sum) % mod) * c))) % mod);
       ans = (((ans + (((ten * a[(n - i)]) % mod) * tmpc))) % mod);
       ten = ((ten * 10) % mod);
@@ -89,10 +89,10 @@ func solve()
   printf("%I64d\n", ans);
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (MAXN)))
     {
       inv[i] = pow(i, (mod - 2));

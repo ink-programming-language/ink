@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-func rot(a: dynamic, b: dynamic)
+func rot(a: dynamic, b: dynamic) -> dynamic
 {
   return arg((conj(a) * b));
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
   return (make_pair(real(a), imag(a)) < make_pair(real(b), imag(b)));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while (cpp_comma((cin >> n), n))
   {
-    var g1 = P(0, 0);
-    var g2 = P(0, 0);
-    var x: dynamic;
-    var y: dynamic;
+    var g1: dynamic = P(0, 0);
+    var g2: dynamic = P(0, 0);
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(x, y);
@@ -32,7 +32,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(x, y);
@@ -44,7 +44,7 @@ func main()
     g1 /= n;
     g2 /= n;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         vp1[i] -= g1;
@@ -53,16 +53,16 @@ func main()
       }
     }
     sort(vp1.begin(), vp1.end());
-    var ans = 1e12;
+    var ans: dynamic = 1e12;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((abs((abs(vp1[0]) - abs(vp2[i]))) < EPS))
         {
-          var r = rot(vp2[i], vp1[0]);
+          var r: dynamic = rot(vp2[i], vp1[0]);
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < n))
             {
               tmp[j] = P(((real(vp2[j]) * cos(r)) - (imag(vp2[j]) * sin(r))), ((real(vp2[j]) * sin(r)) + (imag(vp2[j]) * cos(r))));
@@ -70,9 +70,9 @@ func main()
             }
           }
           sort(tmp.begin(), tmp.end());
-          var flag = true;
+          var flag: dynamic = true;
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < n))
             {
               flag &= ((abs((vp1[j] - tmp[j])) < EPS));

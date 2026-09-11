@@ -1,56 +1,56 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(500001);
+var s: dynamic = cpp_array(500001);
 
-var su = cpp_array(500001);
+var su: dynamic = cpp_array(500001);
 
-var ru = cpp_array(500001);
+var ru: dynamic = cpp_array(500001);
 
-var ss1 = cpp_array(500001);
+var ss1: dynamic = cpp_array(500001);
 
-var ss2 = cpp_array(500001);
+var ss2: dynamic = cpp_array(500001);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var fir = cpp_array(500001);
+var fir: dynamic = cpp_array(500001);
 
-var nex = cpp_array(1000001);
+var nex: dynamic = cpp_array(1000001);
 
-var sto = cpp_array(1000001);
+var sto: dynamic = cpp_array(1000001);
 
-var fa = cpp_array(500001);
+var fa: dynamic = cpp_array(500001);
 
-var a1: dynamic;
+var a1: dynamic = cpp_uninitialized();
 
-var b1: dynamic;
+var b1: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(2, 2, 500001);
+var dp: dynamic = cpp_array(2, 2, 500001);
 
-var f = cpp_array(2, 2, 500001);
+var f: dynamic = cpp_array(2, 2, 500001);
 
-var s1: dynamic;
+var s1: dynamic = cpp_uninitialized();
 
-var s2: dynamic;
+var s2: dynamic = cpp_uninitialized();
 
-var s3: dynamic;
+var s3: dynamic = cpp_uninitialized();
 
-var s4: dynamic;
+var s4: dynamic = cpp_uninitialized();
 
-var siz = cpp_array(500001);
+var siz: dynamic = cpp_array(500001);
 
-var f1 = cpp_array(2, 2);
+var f1: dynamic = cpp_array(2, 2);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var p = cpp_array(2, 500001);
+var p: dynamic = cpp_array(2, 500001);
 
-func addbian(aa: dynamic, bb: dynamic)
+func addbian(aa: dynamic, bb: dynamic) -> dynamic
 {
   tot += 1;
   nex[tot] = fir[aa];
@@ -58,9 +58,9 @@ func addbian(aa: dynamic, bb: dynamic)
   sto[tot] = bb;
 }
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
-  var aa = fir[x];
+  var aa: dynamic = fir[x];
   siz[x] = 1;
   dp[x][0][0] = 1;
   while ((aa != 0))
@@ -99,9 +99,9 @@ func dfs(x: dynamic)
   }
 }
 
-func dfs1(x: dynamic)
+func dfs1(x: dynamic) -> dynamic
 {
-  var aa = fir[x];
+  var aa: dynamic = fir[x];
   s1 = dp[x][0][0];
   s2 = dp[x][0][1];
   s3 = dp[x][1][0];
@@ -134,11 +134,11 @@ func dfs1(x: dynamic)
       if ((dp[sto[aa]][1][0] == 0))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i <= 1))
           {
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j <= 1))
               {
                 f1[i][j] = 0;
@@ -151,7 +151,7 @@ func dfs1(x: dynamic)
         if ((ss1[x] > (ru[x] - 4)))
         {
           f1[0][0] = 1;
-          var bb = fir[x];
+          var bb: dynamic = fir[x];
           while ((bb != 0))
           {
             if ((((fa[x] != sto[bb])) && ((sto[bb] != sto[aa]))))
@@ -229,11 +229,11 @@ func dfs1(x: dynamic)
         ss2[sto[aa]] += 1;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= 1))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j <= 1))
             {
               f[sto[aa]][i][j] = f1[i][j];
@@ -267,13 +267,13 @@ func dfs1(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%I64d", (&n));
   ans = 0;
   tot = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n - 1)))
     {
       scanf("%d%d", (&a1), (&b1));

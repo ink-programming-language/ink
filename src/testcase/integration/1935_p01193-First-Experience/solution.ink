@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var r1: dynamic;
-  var r2: dynamic;
-  var r3: dynamic;
-  var str: dynamic;
-  var fm: dynamic;
-  var f: dynamic;
+  var r1: dynamic = cpp_uninitialized();
+  var r2: dynamic = cpp_uninitialized();
+  var r3: dynamic = cpp_uninitialized();
+  var str: dynamic = cpp_uninitialized();
+  var fm: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
   while ((cin >> fm))
   {
     r1 = cpp_assign(r2, "=", 0);
@@ -15,7 +15,7 @@ func main()
     f = true;
     str = "";
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((f && (i < fm.size())))
       {
         if (isdigit(fm[i]))

@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
   if ((N & 1))
   {
@@ -10,20 +10,20 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       write("\n");
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < N))
         {
           write("\n");
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < N))
             {
-              var n = min(min(j, k), min(((N - 1) - j), ((N - 1) - k)));
+              var n: dynamic = min(min(j, k), min(((N - 1) - j), ((N - 1) - k)));
               if ((((i % 2)) ^ ((n % 2))))
               {
                 write("b");

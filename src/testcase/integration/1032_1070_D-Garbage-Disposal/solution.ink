@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
-  var n: dynamic;
-  var i: dynamic;
+  var k: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   while (((cin >> n) >> k))
   {
-    var d = (n + 1);
-    var ara = cpp_array(d);
-    var t1 = 0;
-    var c = 0;
-    var t: dynamic;
-    var temp = 0;
-    var is = 1;
+    var d: dynamic = (n + 1);
+    var ara: dynamic = cpp_array(d);
+    var t1: dynamic = 0;
+    var c: dynamic = 0;
+    var t: dynamic = cpp_uninitialized();
+    var temp: dynamic = 0;
+    var is: dynamic = 1;
     {
       i = 1;
       while ((i <= n))

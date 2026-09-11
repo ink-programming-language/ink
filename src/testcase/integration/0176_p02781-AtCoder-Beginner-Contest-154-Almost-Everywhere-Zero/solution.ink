@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(5, 100, 20005);
+var dp: dynamic = cpp_array(5, 100, 20005);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func Rec(index: dynamic, zeros: dynamic, flag: dynamic)
+func Rec(index: dynamic, zeros: dynamic, flag: dynamic) -> dynamic
 {
   if ((zeros > k))
   {
@@ -22,25 +22,25 @@ func Rec(index: dynamic, zeros: dynamic, flag: dynamic)
   {
     return dp[index][zeros][flag];
   }
-  var Res = 0;
-  var Limit = if (flag) 9 else s[index];
+  var Res: dynamic = 0;
+  var Limit: dynamic =  (flag) ? 9 : s[index];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= Limit))
     {
-      Res += Rec((index + 1), (zeros + ((i != 0))), if (((!flag) && (i == s[index]))) 0 else 1);
+      Res += Rec((index + 1), (zeros + ((i != 0))),  (((!flag) && (i == s[index]))) ? 0 : 1);
       i += 1;
     }
   }
   return cpp_assign(dp[index][zeros][flag], "=", Res);
 }
 
-func main()
+func main() -> dynamic
 {
   read(s, k);
   n = s.length();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       s[i] = (s[i] - cpp_char("0"));

@@ -2,22 +2,22 @@
 
 class state
 {
-  var total: dynamic;
-  var ss: dynamic;
-  var se: dynamic;
-  var ee: dynamic;
-  var size: dynamic;
-  func state()
+  var total: dynamic = cpp_uninitialized();
+  var ss: dynamic = cpp_uninitialized();
+  var se: dynamic = cpp_uninitialized();
+  var ee: dynamic = cpp_uninitialized();
+  var size: dynamic = cpp_uninitialized();
+  func state() -> dynamic
   {
-      this->total = cpp_construct(0);
-      this->ss = cpp_construct(0);
-      this->se = cpp_construct(0);
-      this->ee = cpp_construct(0);
-      this->size = cpp_construct(0);
+      self->total = cpp_construct(0);
+      self->ss = cpp_construct(0);
+      self->se = cpp_construct(0);
+      self->ee = cpp_construct(0);
+      self->size = cpp_construct(0);
     }
-  func build_base(c: dynamic, startchar: dynamic)
+  func build_base(c: dynamic, startchar: dynamic) -> dynamic
   {
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       s.total = 1;
       s.size = 1;
       if ((c == startchar))
@@ -29,19 +29,19 @@ class state
       }
       return s;
     }
-  func build_inc(c: dynamic)
+  func build_inc(c: dynamic) -> dynamic
   {
       return build_base(c, cpp_char("4"));
     }
-  func build_dec(c: dynamic)
+  func build_dec(c: dynamic) -> dynamic
   {
       return build_base(c, cpp_char("7"));
     }
 }
 
-func merge(l: dynamic, r: dynamic)
+func merge(l: dynamic, r: dynamic) -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   s.size = (l.size + r.size);
   s.total = max(l.total, r.total);
   s.total = max(s.total, (l.ss + max(max(r.ss, r.se), r.ee)));
@@ -52,7 +52,7 @@ func merge(l: dynamic, r: dynamic)
   return s;
 }
 
-func operator_shift_left(os: dynamic, s: dynamic)
+func operator_shift_left(os: dynamic, s: dynamic) -> dynamic
 {
   (os << "(");
   (((((((((os << s.total) << ",") << s.ss) << ",") << s.se) << ",") << s.ee) << ",") << s.size);
@@ -62,21 +62,21 @@ func operator_shift_left(os: dynamic, s: dynamic)
 
 class segtree
 {
-  var t_inc: dynamic;
-  var t_dec: dynamic;
-  var d: dynamic;
-  var h: dynamic;
-  var n: dynamic;
-  func segtree(s: dynamic)
+  var t_inc: dynamic = cpp_uninitialized();
+  var t_dec: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  func segtree(s: dynamic) -> dynamic
   {
-      var sz = s.size();
+      var sz: dynamic = s.size();
       h = ((cpp_sizeof(dynamic) * 8) - builtin_clz(sz));
       n = (1 << h);
       d = vector((n << 1), 0);
       t_inc = vector((n << 1));
       t_dec = vector((n << 1));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < s.size()))
         {
           t_inc[(i + n)] = state.build_inc(s[i]);
@@ -85,7 +85,7 @@ class segtree
         }
       }
       {
-        var i = (n - 1);
+        var i: dynamic = (n - 1);
         while ((i > 0))
         {
           t_inc[i] = merge(t_inc[(i << 1)], t_inc[((i << 1) | 1)]);
@@ -94,7 +94,7 @@ class segtree
         }
       }
     }
-  func build(x: dynamic)
+  func build(x: dynamic) -> dynamic
   {
       {
         x /= 2;
@@ -106,18 +106,18 @@ class segtree
         }
       }
     }
-  func apply(x: dynamic)
+  func apply(x: dynamic) -> dynamic
   {
       d[x] += 1;
       swap(t_inc[x], t_dec[x]);
     }
-  func push(x: dynamic)
+  func push(x: dynamic) -> dynamic
   {
       {
-        var s = h;
+        var s: dynamic = h;
         while ((s > 0))
         {
-          var i = (x >> s);
+          var i: dynamic = (x >> s);
           if ((d[i] % 2))
           {
             d[i] = 0;
@@ -128,10 +128,10 @@ class segtree
         }
       }
     }
-  func flip(l: dynamic, r: dynamic)
+  func flip(l: dynamic, r: dynamic) -> dynamic
   {
-      var l0 = (l + n);
-      var r0 = (r + n);
+      var l0: dynamic = (l + n);
+      var r0: dynamic = (r + n);
       {
         l += n;
         r += n;
@@ -154,35 +154,35 @@ class segtree
       build(l0);
       build((r0 - 1));
     }
-  func query()
+  func query() -> dynamic
   {
       return t_inc[1].total;
     }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var N: dynamic;
-  var Q: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var Q: dynamic = cpp_uninitialized();
   read(N, Q);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
   {
-    var qq = 0;
+    var qq: dynamic = 0;
     while ((qq < Q))
     {
-      var op: dynamic;
+      var op: dynamic = cpp_uninitialized();
       read(op);
       if ((op[0] == cpp_char("c")))
       {
         write(st.query(), "\n");
       } else
       {
-        var l: dynamic;
-        var r: dynamic;
+        var l: dynamic = cpp_uninitialized();
+        var r: dynamic = cpp_uninitialized();
         read(l, r);
         st.flip((l - 1), r);
       }

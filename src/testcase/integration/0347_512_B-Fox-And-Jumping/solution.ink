@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var N = 305;
+var N: dynamic = 305;
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var l = cpp_array(N);
+var l: dynamic = cpp_array(N);
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   while (b)
   {
@@ -16,19 +16,19 @@ func gcd(a: dynamic, b: dynamic)
   return a;
 }
 
-func rrand()
+func rrand() -> dynamic
 {
-  var a = rand();
-  var b = rand();
+  var a: dynamic = rand();
+  var b: dynamic = rand();
   return (a + ((b >> 16)));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(l[i]);
@@ -36,26 +36,26 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(c[i]);
       i += 1;
     }
   }
-  var best = 0;
-  var prices: dynamic;
+  var best: dynamic = 0;
+  var prices: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var value = l[i];
-      var cost = c[i];
+      var value: dynamic = l[i];
+      var cost: dynamic = c[i];
       {
-        var it = prices.begin();
+        var it: dynamic = prices.begin();
         while ((it != prices.end()))
         {
-          var to = gcd(it->first, value);
+          var to: dynamic = gcd(it->first, value);
           if (((prices.count(to) == 0) || (prices[to] > (cost + it->second))))
           {
             prices[to] = (cost + it->second);

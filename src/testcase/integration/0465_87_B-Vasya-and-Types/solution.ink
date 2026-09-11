@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var v = cpp_array(100);
+var v: dynamic = cpp_array(100);
 
-var s = cpp_array(100);
+var s: dynamic = cpp_array(100);
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-func def()
+func def() -> dynamic
 {
-  var s1: dynamic;
-  var s2: dynamic;
-  var s3: dynamic;
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
+  var s3: dynamic = cpp_uninitialized();
   read(s1, s2);
-  var p = (s1.rfind("&") + 1);
-  var q = s1.find("*");
-  var v1: dynamic;
+  var p: dynamic = (s1.rfind("&") + 1);
+  var q: dynamic = s1.find("*");
+  var v1: dynamic = cpp_uninitialized();
   if ((q < 0))
   {
     v1 = (0 - p);
@@ -29,7 +29,7 @@ func def()
   if ((s3 == "void"))
   {
     {
-      var i = (n + 1);
+      var i: dynamic = (n + 1);
       while ((i < 100))
       {
         if ((s[i] == s2))
@@ -46,7 +46,7 @@ func def()
   } else if ((s3 == "errtype"))
   {
     {
-      var i = (n + 1);
+      var i: dynamic = (n + 1);
       while ((i < 100))
       {
         if ((s[i] == s2))
@@ -61,9 +61,9 @@ func def()
     v[n] = -1;
     return 0;
   }
-  var b = true;
+  var b: dynamic = true;
   {
-    var j = (n + 1);
+    var j: dynamic = (n + 1);
     while ((j < 100))
     {
       if ((s[j] == s3))
@@ -85,7 +85,7 @@ func def()
     v1 = -1;
   }
   {
-    var i = (n + 1);
+    var i: dynamic = (n + 1);
     while ((i < 100))
     {
       if ((s[i] == s2))
@@ -101,14 +101,14 @@ func def()
   return 0;
 }
 
-func of()
+func of() -> dynamic
 {
-  var s1: dynamic;
-  var s2: dynamic;
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
   read(s1);
-  var p = (s1.rfind("&") + 1);
-  var q = s1.find("*");
-  var v1: dynamic;
+  var p: dynamic = (s1.rfind("&") + 1);
+  var q: dynamic = s1.find("*");
+  var v1: dynamic = cpp_uninitialized();
   if ((q < 0))
   {
     v1 = (0 - p);
@@ -133,9 +133,9 @@ func of()
     write("errtype", "\n");
     return 0;
   }
-  var b = true;
+  var b: dynamic = true;
   {
-    var i = (n + 1);
+    var i: dynamic = (n + 1);
     while ((i < 100))
     {
       if ((s[i] == s2))
@@ -171,7 +171,7 @@ func of()
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   while (cpp_update(n, "--"))

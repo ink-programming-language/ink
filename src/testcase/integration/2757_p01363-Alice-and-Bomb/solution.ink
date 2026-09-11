@@ -1,94 +1,94 @@
 // Translated from solution.cpp.
 
-var MAX = cpp_expression("#inc");
+var MAX: dynamic = cpp_expression("#inc");
 
-var inf = cpp_expression("#incl");
+var inf: dynamic = cpp_expression("#incl");
 
-var linf = cpp_expression("#inc");
+var linf: dynamic = cpp_expression("#inc");
 
-var eps = cpp_expression("#inclu");
+var eps: dynamic = cpp_expression("#inclu");
 
-var mod = cpp_expression("#include<b");
+var mod: dynamic = cpp_expression("#include<b");
 
-var pi = cpp_expression("#include");
+var pi: dynamic = cpp_expression("#include");
 
-var phi = cpp_expression("#include<bits/std");
+var phi: dynamic = cpp_expression("#include<bits/std");
 
-var f = cpp_expression("#incl");
+var f: dynamic = cpp_expression("#incl");
 
-var s = cpp_expression("#inclu");
+var s: dynamic = cpp_expression("#inclu");
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-func all(a: dynamic)
+func all(a: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-func pd(a: dynamic)
+func pd(a: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h> #defi");
 }
 
-func FOR(i: dynamic, a: dynamic, b: dynamic)
+func FOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(a);i<(b);i++)");
 }
 
-func RFOR(i: dynamic, a: dynamic, b: dynamic)
+func RFOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(a)-1;(b)<=i;i--)");
 }
 
-func equals(a: dynamic, b: dynamic)
+func equals(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc+");
 }
 
-var dx = [1, 0, -1, 0, 1, 1, -1, -1];
+var dx: dynamic = [1, 0, -1, 0, 1, 1, -1, -1];
 
-var dy = [0, 1, 0, -1, 1, -1, 1, -1];
+var dy: dynamic = [0, 1, 0, -1, 1, -1, 1, -1];
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func Point(x: dynamic = 0, y: dynamic = 0)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func Point(x: dynamic = 0, y: dynamic = 0) -> dynamic
   {
-      this->x = cpp_construct(x);
-      this->y = cpp_construct(y);
+      self->x = cpp_construct(x);
+      self->y = cpp_construct(y);
     }
-  func operator_add(p: dynamic)
+  func operator_add(p: dynamic) -> dynamic
   {
       return Point((x + p.x), (y + p.y));
     }
-  func operator_subtract(p: dynamic)
+  func operator_subtract(p: dynamic) -> dynamic
   {
       return Point((x - p.x), (y - p.y));
     }
-  func operator_multiply(k: dynamic)
+  func operator_multiply(k: dynamic) -> dynamic
   {
       return Point((x * k), (y * k));
     }
-  func operator_divide(k: dynamic)
+  func operator_divide(k: dynamic) -> dynamic
   {
       return Point((x / k), (y / k));
     }
-  func operator_less(p: dynamic)
+  func operator_less(p: dynamic) -> dynamic
   {
-      return if (equals(x, p.x)) ((y - p.y) < (-eps)) else ((x - p.x) < (-eps));
+      return  (equals(x, p.x)) ? ((y - p.y) < (-eps)) : ((x - p.x) < (-eps));
     }
-  func operator_equal(p: dynamic)
+  func operator_equal(p: dynamic) -> dynamic
   {
       return ((fabs((x - p.x)) < eps) && (fabs((y - p.y)) < eps));
     }
-  func abs()
+  func abs() -> dynamic
   {
       return sqrt(norm());
     }
-  func norm()
+  func norm() -> dynamic
   {
       return (((x * x) + (y * y)));
     }
@@ -96,53 +96,53 @@ class Point
 
 class Segment
 {
-  var p1: dynamic;
-  var p2: dynamic;
-  func Segment(p1: dynamic = Point(), p2: dynamic = Point())
+  var p1: dynamic = cpp_uninitialized();
+  var p2: dynamic = cpp_uninitialized();
+  func Segment(p1: dynamic = Point(), p2: dynamic = Point()) -> dynamic
   {
-      this->p1 = cpp_construct(p1);
-      this->p2 = cpp_construct(p2);
+      self->p1 = cpp_construct(p1);
+      self->p2 = cpp_construct(p2);
     }
 }
 
-func norm(a: dynamic)
+func norm(a: dynamic) -> dynamic
 {
   return (((a.x * a.x) + (a.y * a.y)));
 }
 
-func abs(a: dynamic)
+func abs(a: dynamic) -> dynamic
 {
   return sqrt(norm(a));
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a.x * b.x) + (a.y * b.y)));
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a.x * b.y) - (a.y * b.x)));
 }
 
-func project(s: dynamic, p: dynamic)
+func project(s: dynamic, p: dynamic) -> dynamic
 {
-  var base = ((s.p2 - s.p1));
-  var r = ((dot((p - s.p1), base) / base.norm()));
+  var base: dynamic = ((s.p2 - s.p1));
+  var r: dynamic = ((dot((p - s.p1), base) / base.norm()));
   return ((s.p1 + (base * r)));
 }
 
-func isParallel(a: dynamic, b: dynamic)
+func isParallel(a: dynamic, b: dynamic) -> dynamic
 {
   return equals(cross(a, b), 0.0);
 }
 
-func isParallel(s: dynamic, t: dynamic)
+func isParallel(s: dynamic, t: dynamic) -> dynamic
 {
   return equals(cross((s.p1 - s.p2), (t.p1 - t.p2)), 0.0);
 }
 
-func intersect(a: dynamic, b: dynamic)
+func intersect(a: dynamic, b: dynamic) -> dynamic
 {
   if ((((cross((a.p2 - a.p1), (b.p1 - a.p1)) * cross((a.p2 - a.p1), (b.p2 - a.p1))) < (-eps)) && ((cross((b.p2 - b.p1), (a.p1 - b.p1)) * cross((b.p2 - b.p1), (a.p2 - b.p1))) < (-eps))))
   {
@@ -151,15 +151,15 @@ func intersect(a: dynamic, b: dynamic)
   return false;
 }
 
-func intersectLS(L: dynamic, s: dynamic)
+func intersectLS(L: dynamic, s: dynamic) -> dynamic
 {
   return ((cross((L.p2 - L.p1), (s.p1 - L.p1)) * cross((L.p2 - L.p1), (s.p2 - L.p1))) < (-eps));
 }
 
-func ccw(p0: dynamic, p1: dynamic, p2: dynamic)
+func ccw(p0: dynamic, p1: dynamic, p2: dynamic) -> dynamic
 {
-  var a = (p1 - p0);
-  var b = (p2 - p0);
+  var a: dynamic = (p1 - p0);
+  var b: dynamic = (p2 - p0);
   if ((cross(a, b) > eps))
   {
     return 1;
@@ -179,10 +179,10 @@ func ccw(p0: dynamic, p1: dynamic, p2: dynamic)
   return 0;
 }
 
-func getCrossPointLL(a: dynamic, b: dynamic)
+func getCrossPointLL(a: dynamic, b: dynamic) -> dynamic
 {
-  var A = cross((a.p2 - a.p1), (b.p2 - b.p1));
-  var B = cross((a.p2 - a.p1), (a.p2 - b.p1));
+  var A: dynamic = cross((a.p2 - a.p1), (b.p2 - b.p1));
+  var B: dynamic = cross((a.p2 - a.p1), (a.p2 - b.p1));
   if (((abs(A) < eps) || (abs(B) < eps)))
   {
     return b.p1;
@@ -190,16 +190,16 @@ func getCrossPointLL(a: dynamic, b: dynamic)
   return (b.p1 + (((b.p2 - b.p1)) * ((B / A))));
 }
 
-func contains(g: dynamic, p: dynamic)
+func contains(g: dynamic, p: dynamic) -> dynamic
 {
-  var n = g.size();
-  var x = false;
+  var n: dynamic = g.size();
+  var x: dynamic = false;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a = (g[i] - p);
-      var b = (g[(((i + 1)) % n)] - p);
+      var a: dynamic = (g[i] - p);
+      var b: dynamic = (g[(((i + 1)) % n)] - p);
       if (((abs(cross(a, b)) < eps) && (dot(a, b) < eps)))
       {
         return 1;
@@ -222,23 +222,23 @@ func contains(g: dynamic, p: dynamic)
   return 0;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var ori = cpp_construct(0, 0);
+var ori: dynamic = cpp_construct(0, 0);
 
-var g: dynamic;
+var g: dynamic = cpp_uninitialized();
 
-var buildings: dynamic;
+var buildings: dynamic = cpp_uninitialized();
 
-var vp: dynamic;
+var vp: dynamic = cpp_uninitialized();
 
-var e = cpp_array(MAX);
+var e: dynamic = cpp_array(MAX);
 
-func init()
+func init() -> dynamic
 {
   buildings.clear();
   vp.clear();
@@ -246,13 +246,13 @@ func init()
   g.clear();
 }
 
-func add_edge(to: dynamic, from_cpp: dynamic, cost: dynamic)
+func add_edge(to: dynamic, from_cpp: dynamic, cost: dynamic) -> dynamic
 {
   e[to].pb(mp(from_cpp, cost));
   e[from_cpp].pb(mp(to, cost));
 }
 
-func check(a: dynamic)
+func check(a: dynamic) -> dynamic
 {
   cpp_statement("FOR(i,0,n)");
   if ((contains(buildings[i], a) == 2))
@@ -262,17 +262,17 @@ func check(a: dynamic)
   return true;
 }
 
-func check(s: dynamic)
+func check(s: dynamic) -> dynamic
 {
   cpp_statement("FOR(i,0,n)");
   {
-    var p = buildings[i];
+    var p: dynamic = buildings[i];
     m = p.size();
     FOR(j, 0, m);
     {
-      var a = p[j];
-      var b = p[(((j + 1)) % m)];
-      var c = p[((((j - 1) + m)) % m)];
+      var a: dynamic = p[j];
+      var b: dynamic = p[(((j + 1)) % m)];
+      var c: dynamic = p[((((j - 1) + m)) % m)];
       if (isParallel(Segment(a, b), s))
       {
         continue;
@@ -286,9 +286,9 @@ func check(s: dynamic)
   return true;
 }
 
-func getdis(a: dynamic, b: dynamic)
+func getdis(a: dynamic, b: dynamic) -> dynamic
 {
-  var c = project(L, a);
+  var c: dynamic = project(L, a);
   if ((((ccw(s, b, c) == -2) && check((a + (((c - a)) / 2.0)))) && check(Segment(a, c))))
   {
     return abs((c - a));
@@ -296,7 +296,7 @@ func getdis(a: dynamic, b: dynamic)
   c = Point(inf, inf);
   FOR(i, 0, n);
   {
-    var p = buildings[i];
+    var p: dynamic = buildings[i];
     m = p.size();
     FOR(j, 0, m);
     {
@@ -308,7 +308,7 @@ func getdis(a: dynamic, b: dynamic)
       {
         continue;
       }
-      var cp = getCrossPointLL(L, seg);
+      var cp: dynamic = getCrossPointLL(L, seg);
       if (((ccw(s, b, cp) == -2) && (abs((s - cp)) < abs((s - c)))))
       {
         c = cp;
@@ -322,16 +322,16 @@ func getdis(a: dynamic, b: dynamic)
   return inf;
 }
 
-func dijkstra()
+func dijkstra() -> dynamic
 {
-  var d = cpp_array(MAX);
-  var pq: dynamic;
+  var d: dynamic = cpp_array(MAX);
+  var pq: dynamic = cpp_uninitialized();
   fill(d, (d + MAX), inf);
   d[0] = 0;
   pq.push(mp(0, 0));
   while (pq.size())
   {
-    var u = pq.top();
+    var u: dynamic = pq.top();
     pq.pop();
     if ((d[u.s] < u.f))
     {
@@ -343,8 +343,8 @@ func dijkstra()
     }
     FOR(i, 0, e[u.s].size());
     {
-      var next = e[u.s][i].f;
-      var cost = (e[u.s][i].s + d[u.s]);
+      var next: dynamic = e[u.s][i].f;
+      var cost: dynamic = (e[u.s][i].s + d[u.s]);
       if ((cost < d[next]))
       {
         d[next] = cost;
@@ -355,7 +355,7 @@ func dijkstra()
   return inf;
 }
 
-func solve()
+func solve() -> dynamic
 {
   if ((!check(Segment(ori, s))))
   {
@@ -364,7 +364,7 @@ func solve()
   vp.pb(ori);
   FOR(i, 0, n);
   {
-    var p = buildings[i];
+    var p: dynamic = buildings[i];
     m = p.size();
     FOR(j, 0, m);
     {
@@ -391,7 +391,7 @@ func solve()
   }
   FOR(i, 0, vp.size());
   {
-    var cost = inf;
+    var cost: dynamic = inf;
     FOR(j, 0, g.size());
     {
       if ((vp[i] == g[j]))
@@ -408,7 +408,7 @@ func solve()
   return dijkstra();
 }
 
-func main()
+func main() -> dynamic
 {
   while (((cin >> n) && n))
   {
@@ -417,11 +417,11 @@ func main()
     FOR(i, 0, n);
     {
       read(m);
-      var p: dynamic;
+      var p: dynamic = cpp_uninitialized();
       FOR(j, 0, m);
       {
-        var x: dynamic;
-        var y: dynamic;
+        var x: dynamic = cpp_uninitialized();
+        var y: dynamic = cpp_uninitialized();
         read(x, y);
         p.pb(Point(x, y));
       }

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func Getint()
+func Getint() -> dynamic
 {
-  var ch = getchar();
-  var x = 0;
-  var fh = 1;
+  var ch: dynamic = getchar();
+  var x: dynamic = 0;
+  var fh: dynamic = 1;
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,49 +21,49 @@ func Getint()
   return (x * fh);
 }
 
-var N = 2000005;
+var N: dynamic = 2000005;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var G = cpp_array(N);
+var G: dynamic = cpp_array(N);
 
-func Addside(x: dynamic, y: dynamic)
+func Addside(x: dynamic, y: dynamic) -> dynamic
 {
   G[x].push_back(y);
 }
 
-var dfn = cpp_array(N);
+var dfn: dynamic = cpp_array(N);
 
-var llk = cpp_array(N);
+var llk: dynamic = cpp_array(N);
 
-var tim: dynamic;
+var tim: dynamic = cpp_uninitialized();
 
-var blk: dynamic;
+var blk: dynamic = cpp_uninitialized();
 
-var ist = cpp_array(N);
+var ist: dynamic = cpp_array(N);
 
-var st = cpp_array(N);
+var st: dynamic = cpp_array(N);
 
-var col = cpp_array(N);
+var col: dynamic = cpp_array(N);
 
-func Tarjan(u: dynamic)
+func Tarjan(u: dynamic) -> dynamic
 {
   dfn[u] = cpp_assign(llk[u], "=", cpp_update(tim, "++"));
   st[cpp_update(st[0], "++")] = u;
   ist[u] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (int_cpp(G[u].size()) - 1)))
     {
-      var v = G[u][i];
+      var v: dynamic = G[u][i];
       if ((!dfn[v]))
       {
         Tarjan(v);
@@ -78,7 +78,7 @@ func Tarjan(u: dynamic)
   if ((llk[u] == dfn[u]))
   {
     blk += 1;
-    var x: dynamic;
+    var x: dynamic = cpp_uninitialized();
     while (true)
     {
       x = st[cpp_update(st[0], "--")];
@@ -92,17 +92,17 @@ func Tarjan(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
   n = Getint();
   p = Getint();
   M = Getint();
   m = Getint();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       x = Getint();
@@ -113,7 +113,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= p))
     {
       x = Getint();
@@ -126,7 +126,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       x = Getint();
@@ -137,7 +137,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= M))
     {
       Addside((((p + i)) << 1), ((((p + i) + 1)) << 1));
@@ -147,7 +147,7 @@ func main()
   }
   tot = ((p + M) + 1);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= (((tot << 1) | 1))))
     {
       if ((!dfn[i]))
@@ -158,7 +158,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= tot))
     {
       if ((col[(i << 1)] == col[((i << 1) | 1)]))
@@ -168,11 +168,11 @@ func main()
       i += 1;
     }
   }
-  var Ans: dynamic;
+  var Ans: dynamic = cpp_uninitialized();
   Ans.clear();
-  var f = 1;
+  var f: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= tot))
     {
       if ((col[(i << 1)] < col[((i << 1) | 1)]))
@@ -192,7 +192,7 @@ func main()
   }
   write(Ans.size(), cpp_char(" "), f, cpp_char("\n"));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (int_cpp(Ans.size()) - 1)))
     {
       write(Ans[i], cpp_char(" "));

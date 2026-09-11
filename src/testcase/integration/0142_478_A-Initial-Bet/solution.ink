@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a = cpp_array(5);
-  var sum = 0;
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_array(5);
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 5))
     {
       read(a[i]);

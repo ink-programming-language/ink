@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var N = 100010;
+var N: dynamic = 100010;
 
-var inf = (1 << 60);
+var inf: dynamic = (1 << 60);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var to = cpp_array((N << 1));
+var to: dynamic = cpp_array((N << 1));
 
-var nex = cpp_array((N << 1));
+var nex: dynamic = cpp_array((N << 1));
 
-var head = cpp_array(N);
+var head: dynamic = cpp_array(N);
 
-var ans = 0;
+var ans: dynamic = 0;
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-var flag: dynamic;
+var flag: dynamic = cpp_uninitialized();
 
-func SE(u: dynamic, v: dynamic)
+func SE(u: dynamic, v: dynamic) -> dynamic
 {
   to[cpp_update(tot, "++")] = v;
   nex[tot] = head[u];
@@ -30,9 +30,9 @@ func SE(u: dynamic, v: dynamic)
   return;
 }
 
-func GCD(x: dynamic, y: dynamic)
+func GCD(x: dynamic, y: dynamic) -> dynamic
 {
-  var r = (x % y);
+  var r: dynamic = (x % y);
   while (r)
   {
     x = y;
@@ -42,12 +42,12 @@ func GCD(x: dynamic, y: dynamic)
   return y;
 }
 
-func DFS(x: dynamic, fa: dynamic)
+func DFS(x: dynamic, fa: dynamic) -> dynamic
 {
-  var mi = inf;
-  var cnt = 0;
+  var mi: dynamic = inf;
+  var cnt: dynamic = 0;
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
       if ((to[i] == fa))
@@ -73,9 +73,9 @@ func DFS(x: dynamic, fa: dynamic)
     sum[x] = 1;
     return;
   }
-  var lcm = 1;
+  var lcm: dynamic = 1;
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
       if ((to[i] == fa))
@@ -97,11 +97,11 @@ func DFS(x: dynamic, fa: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%I64d", (&p[i]));
@@ -110,9 +110,9 @@ func main()
     }
   }
   {
-    var u: dynamic;
-    var v: dynamic;
-    var i = 1;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
+    var i: dynamic = 1;
     while ((i < n))
     {
       scanf("%d%d", (&u), (&v));

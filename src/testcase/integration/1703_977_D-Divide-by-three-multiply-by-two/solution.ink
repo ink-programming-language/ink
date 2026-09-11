@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func d3(x: dynamic)
+func d3(x: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   while (((x % 3) == 0))
   {
     ret += 1;
@@ -11,15 +11,15 @@ func d3(x: dynamic)
   return ret;
 }
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   v.resize(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i].second);
@@ -29,7 +29,7 @@ func main()
   }
   sort(v.begin(), v.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(v[i].second, " ");

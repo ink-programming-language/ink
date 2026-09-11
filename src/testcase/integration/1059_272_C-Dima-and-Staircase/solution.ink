@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-var PI = acos(-1);
+var PI: dynamic = acos(-1);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n);
-  var arr = cpp_array(n);
-  for (var el in arr)
+  var arr: dynamic = cpp_array(n);
+  for (var el: dynamic in arr)
   {
     read(el);
   }
   read(m);
-  var hi = 0;
+  var hi: dynamic = 0;
   while (cpp_update(m, "--"))
   {
-    var x: dynamic;
-    var y: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     read(x, y);
     x -= 1;
-    var res = max(hi, arr[x]);
+    var res: dynamic = max(hi, arr[x]);
     write(res, "\n");
     hi = max((res + y), hi);
   }

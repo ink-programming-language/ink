@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var MAXN = (2e3 + 10);
+var MAXN: dynamic = (2e3 + 10);
 
-var maxn = (1e5 + 10);
+var maxn: dynamic = (1e5 + 10);
 
-var inf = 100000000000000;
+var inf: dynamic = 100000000000000;
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var pi = (2 * acos(0.0));
-    var a = (0.5 / sin(((pi / n) / 2.0)));
-    var ans = (a * cos(((pi / 4.0) / n)));
+    var pi: dynamic = (2 * acos(0.0));
+    var a: dynamic = (0.5 / sin(((pi / n) / 2.0)));
+    var ans: dynamic = (a * cos(((pi / 4.0) / n)));
     ans = (ans * 2);
     write(fixed);
     write(setprecision(8));

@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var MX = (1 << 10);
+var MX: dynamic = (1 << 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var bitcnt = cpp_array((MX * 10));
+var bitcnt: dynamic = cpp_array((MX * 10));
 
-var mp = cpp_array((MX * 10));
+var mp: dynamic = cpp_array((MX * 10));
 
-var ass = cpp_array((MX * 10));
+var ass: dynamic = cpp_array((MX * 10));
 
-var acnt: dynamic;
+var acnt: dynamic = cpp_uninitialized();
 
-var ret = cpp_array(MX);
+var ret: dynamic = cpp_array(MX);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < ((1 << 13))))
     {
       bitcnt[i] = (1 + bitcnt[(i - ((i & (-i))))]);
@@ -30,7 +30,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       mp[ass[i]] = i;
@@ -38,12 +38,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 13))
     {
-      var cnt = 0;
+      var cnt: dynamic = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((((((ass[j] >> i)) & 1)) == 0))
@@ -60,7 +60,7 @@ func main()
       }
       write("? ", cnt, " ");
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((((((ass[j] >> i)) & 1)) == 0))
@@ -77,12 +77,12 @@ func main()
   }
   write("! ");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var Ans = 0;
+      var Ans: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 13))
         {
           if ((((ass[i] >> j)) & 1))

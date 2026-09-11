@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var X: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var X: dynamic = cpp_uninitialized();
   read(N, X);
-  var C: dynamic;
+  var C: dynamic = cpp_uninitialized();
   C.resize(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(C[i]);
@@ -16,9 +16,9 @@ func main()
     }
   }
   sort(C.begin(), C.end());
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       res += (C[i] * X);

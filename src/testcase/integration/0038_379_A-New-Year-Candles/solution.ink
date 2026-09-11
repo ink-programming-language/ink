@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var mod = (((1000 * 1000) * 1000) + 7);
+var mod: dynamic = (((1000 * 1000) * 1000) + 7);
 
-var INF = (1e9 + 100);
+var INF: dynamic = (1e9 + 100);
 
-var LINF = (1e18 + 100);
+var LINF: dynamic = (1e18 + 100);
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
-  var x = 0;
-  var ans = 0;
+  var x: dynamic = 0;
+  var ans: dynamic = 0;
   while (a)
   {
     ans += a;

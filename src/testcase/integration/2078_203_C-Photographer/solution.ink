@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
 class Client
 {
-  var a: dynamic;
-  var b: dynamic;
-  var idx: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var idx: dynamic = cpp_uninitialized();
 }
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
   return ((((x.a * A) + (x.b * B))) < (((y.a * A) + (y.b * B))));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var d: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   read(n, d, A, B);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i].a, v[i].b);
@@ -31,10 +31,10 @@ func main()
     }
   }
   sort(v.begin(), v.end(), cmp);
-  var sum = 0;
-  var ans: dynamic;
+  var sum: dynamic = 0;
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       sum += (cpp_cast(((v[i].a * A))) + (v[i].b * B));
@@ -42,7 +42,7 @@ func main()
       {
         write(ans.size(), "\n");
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < ans.size()))
           {
             write(ans[i], " ");
@@ -59,7 +59,7 @@ func main()
   }
   write(ans.size(), "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ans.size()))
     {
       write(ans[i], " ");

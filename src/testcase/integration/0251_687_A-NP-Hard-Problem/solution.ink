@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var color: dynamic;
+var color: dynamic = cpp_uninitialized();
 
-var count_0: dynamic;
+var count_0: dynamic = cpp_uninitialized();
 
-var count_1: dynamic;
+var count_1: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
-  var now: dynamic;
-  var q: dynamic;
+  var now: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   color[x] = 0;
   count_0 += 1;
   q.push_back(x);
@@ -24,7 +24,7 @@ func dfs(x: dynamic)
     now = q.back();
     q.pop_back();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < p[now].size()))
       {
         if ((color[p[now][i]] > -1))
@@ -52,15 +52,15 @@ func dfs(x: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(n, m);
   p.resize(n);
   color.resize(n, -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(a, b);
@@ -74,7 +74,7 @@ func main()
   count_0 = 0;
   count_1 = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((color[i] == -1) && (p[i].size() > 0)))
@@ -88,10 +88,10 @@ func main()
       i += 1;
     }
   }
-  var k = 0;
+  var k: dynamic = 0;
   write(count_0, "\n");
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < n))
     {
       if ((color[j] == 0))
@@ -113,7 +113,7 @@ func main()
   k = 0;
   write(count_1, "\n");
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < n))
     {
       if ((color[j] == 1))

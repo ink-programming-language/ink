@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func ksm(x: dynamic)
+func ksm(x: dynamic) -> dynamic
 {
-  var tt = 1378;
-  var rtn = 1;
+  var tt: dynamic = 1378;
+  var rtn: dynamic = 1;
   while (x)
   {
     if ((x & 1))
@@ -18,7 +18,7 @@ func ksm(x: dynamic)
   return rtn;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   printf("%d\n", (ksm(n) % 10));

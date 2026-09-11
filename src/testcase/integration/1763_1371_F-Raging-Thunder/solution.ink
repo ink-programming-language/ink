@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-func max(a: dynamic, b: dynamic, c: dynamic)
+func max(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return max(a, max(b, c));
 }
 
 class Node
 {
-  var l: dynamic;
-  var r: dynamic;
-  var ll: dynamic;
-  var lr: dynamic;
-  var rl: dynamic;
-  var rr: dynamic;
-  var hi: dynamic;
-  var lhi: dynamic;
-  var rhi: dynamic;
-  var nhi: dynamic;
-  var nlhi: dynamic;
-  var nrhi: dynamic;
-  var mark: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var ll: dynamic = cpp_uninitialized();
+  var lr: dynamic = cpp_uninitialized();
+  var rl: dynamic = cpp_uninitialized();
+  var rr: dynamic = cpp_uninitialized();
+  var hi: dynamic = cpp_uninitialized();
+  var lhi: dynamic = cpp_uninitialized();
+  var rhi: dynamic = cpp_uninitialized();
+  var nhi: dynamic = cpp_uninitialized();
+  var nlhi: dynamic = cpp_uninitialized();
+  var nrhi: dynamic = cpp_uninitialized();
+  var mark: dynamic = cpp_uninitialized();
 }
 
-var s = cpp_array((500005 * 4));
+var s: dynamic = cpp_array((500005 * 4));
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var c = getchar();
-  var sig = 1;
+  var c: dynamic = getchar();
+  var sig: dynamic = 1;
   {
     while ((!isdigit(c)))
     {
@@ -49,9 +49,9 @@ func read(x: dynamic)
   x *= sig;
 }
 
-func combine(l: dynamic, r: dynamic)
+func combine(l: dynamic, r: dynamic) -> dynamic
 {
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   ans.l = l.l;
   ans.r = r.r;
   ans.ll = l.ll;
@@ -74,7 +74,7 @@ func combine(l: dynamic, r: dynamic)
   {
     ans.rr += l.rr;
   }
-  var lhi = l.lhi;
+  var lhi: dynamic = l.lhi;
   if ((lhi == ((l.r - l.l) + 1)))
   {
     lhi += r.ll;
@@ -91,7 +91,7 @@ func combine(l: dynamic, r: dynamic)
     }
   }
   ans.lhi = lhi;
-  var rhi = r.rhi;
+  var rhi: dynamic = r.rhi;
   if ((rhi == ((r.r - r.l) + 1)))
   {
     rhi += l.rr;
@@ -108,11 +108,11 @@ func combine(l: dynamic, r: dynamic)
     }
   }
   ans.rhi = rhi;
-  var mlr = if ((l.rhi > 0)) (l.rhi + r.ll) else 0;
-  var mrl = if ((r.lhi > 0)) (r.lhi + l.rr) else 0;
-  var m = if (((l.rr > 0) && (r.ll > 0))) (l.rr + r.ll) else 0;
+  var mlr: dynamic =  ((l.rhi > 0)) ? (l.rhi + r.ll) : 0;
+  var mrl: dynamic =  ((r.lhi > 0)) ? (r.lhi + l.rr) : 0;
+  var m: dynamic =  (((l.rr > 0) && (r.ll > 0))) ? (l.rr + r.ll) : 0;
   ans.hi = max(max(ans.lhi, ans.rhi), max(mlr, mrl, m), max(l.hi, r.hi));
-  var nlhi = l.nlhi;
+  var nlhi: dynamic = l.nlhi;
   if ((nlhi == ((l.r - l.l) + 1)))
   {
     nlhi += r.lr;
@@ -129,7 +129,7 @@ func combine(l: dynamic, r: dynamic)
     }
   }
   ans.nlhi = nlhi;
-  var nrhi = r.nrhi;
+  var nrhi: dynamic = r.nrhi;
   if ((nrhi == ((r.r - r.l) + 1)))
   {
     nrhi += l.rl;
@@ -146,26 +146,26 @@ func combine(l: dynamic, r: dynamic)
     }
   }
   ans.nrhi = nrhi;
-  var nmlr = if ((l.nrhi > 0)) (l.nrhi + r.lr) else 0;
-  var nmrl = if ((r.nlhi > 0)) (r.nlhi + l.rl) else 0;
-  var nm = if (((l.rl > 0) && (r.lr > 0))) (l.rl + r.lr) else 0;
+  var nmlr: dynamic =  ((l.nrhi > 0)) ? (l.nrhi + r.lr) : 0;
+  var nmrl: dynamic =  ((r.nlhi > 0)) ? (r.nlhi + l.rl) : 0;
+  var nm: dynamic =  (((l.rl > 0) && (r.lr > 0))) ? (l.rl + r.lr) : 0;
   ans.nhi = max(max(ans.nlhi, ans.nrhi), max(nmlr, nmrl, nm), max(l.nhi, r.nhi));
   return ans;
 }
 
-func calc(idx: dynamic)
+func calc(idx: dynamic) -> dynamic
 {
   s[idx] = combine(s[((idx << 1))], s[(((idx << 1) | 1))]);
 }
 
-func push_down(idx: dynamic)
+func push_down(idx: dynamic) -> dynamic
 {
   if ((!s[idx].mark))
   {
     return;
   }
   {
-    var i = ((idx << 1));
+    var i: dynamic = ((idx << 1));
     while ((i <= (((idx << 1) | 1))))
     {
       flip(s[i]);
@@ -175,7 +175,7 @@ func push_down(idx: dynamic)
   s[idx].mark = false;
 }
 
-func build(idx: dynamic, l: dynamic, r: dynamic, ss: dynamic)
+func build(idx: dynamic, l: dynamic, r: dynamic, ss: dynamic) -> dynamic
 {
   s[idx].l = l;
   s[idx].r = r;
@@ -196,13 +196,13 @@ func build(idx: dynamic, l: dynamic, r: dynamic, ss: dynamic)
     }
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   build(((idx << 1)), l, mid, ss);
   build((((idx << 1) | 1)), (mid + 1), r, ss);
   calc(idx);
 }
 
-func flip(raw: dynamic)
+func flip(raw: dynamic) -> dynamic
 {
   raw.mark = (!raw.mark);
   swap(raw.lr, raw.ll);
@@ -212,7 +212,7 @@ func flip(raw: dynamic)
   swap(raw.hi, raw.nhi);
 }
 
-func flip(idx: dynamic, l: dynamic, r: dynamic)
+func flip(idx: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (((s[idx].l >= l) && (s[idx].r <= r)))
   {
@@ -220,7 +220,7 @@ func flip(idx: dynamic, l: dynamic, r: dynamic)
     return;
   }
   push_down(idx);
-  var mid = (((s[idx].l + s[idx].r)) >> 1);
+  var mid: dynamic = (((s[idx].l + s[idx].r)) >> 1);
   if ((l <= mid))
   {
     flip(((idx << 1)), l, r);
@@ -232,22 +232,22 @@ func flip(idx: dynamic, l: dynamic, r: dynamic)
   calc(idx);
 }
 
-func query(idx: dynamic, l: dynamic, r: dynamic)
+func query(idx: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (((s[idx].l >= l) && (s[idx].r <= r)))
   {
     return s[idx];
   }
   push_down(idx);
-  var ans: dynamic;
-  var mid = (((s[idx].l + s[idx].r)) >> 1);
+  var ans: dynamic = cpp_uninitialized();
+  var mid: dynamic = (((s[idx].l + s[idx].r)) >> 1);
   if ((l <= mid))
   {
     ans = query(((idx << 1)), l, r);
   }
   if ((mid < r))
   {
-    var right = query((((idx << 1) | 1)), l, r);
+    var right: dynamic = query((((idx << 1) | 1)), l, r);
     if ((ans.l == 0))
     {
       ans = right;
@@ -261,26 +261,26 @@ func query(idx: dynamic, l: dynamic, r: dynamic)
 
 class Solution
 {
-  func solve()
+  func solve() -> dynamic
   {
-      var n: dynamic;
-      var q: dynamic;
+      var n: dynamic = cpp_uninitialized();
+      var q: dynamic = cpp_uninitialized();
       read(n);
       read(q);
-      var ss: dynamic;
+      var ss: dynamic = cpp_uninitialized();
       read(ss);
       build(1, 1, n, ss);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < q))
         {
-          var l: dynamic;
-          var r: dynamic;
+          var l: dynamic = cpp_uninitialized();
+          var r: dynamic = cpp_uninitialized();
           read(l);
           read(r);
           flip(1, l, r);
-          var q = query(1, l, r);
-          var ans = max(q.hi, max(q.ll, q.rr));
+          var q: dynamic = query(1, l, r);
+          var ans: dynamic = max(q.hi, max(q.ll, q.rr));
           write(ans, "\n");
           i += 1;
         }
@@ -288,8 +288,8 @@ class Solution
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var solution = Solution();
+  var solution: dynamic = Solution();
   solution.solve();
 }

@@ -1,80 +1,80 @@
 // Translated from solution.cpp.
 
-var dr = [1, 0, -1, 0, 1, 1, -1, -1];
+var dr: dynamic = [1, 0, -1, 0, 1, 1, -1, -1];
 
-var dc = [0, 1, 0, -1, 1, -1, -1, 1];
+var dc: dynamic = [0, 1, 0, -1, 1, -1, -1, 1];
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var INF = 0x7FFFFFFF;
+var INF: dynamic = 0x7FFFFFFF;
 
-var INFLL = 0x7FFFFFFFFFFFFFFF;
+var INFLL: dynamic = 0x7FFFFFFFFFFFFFFF;
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-func take(O: dynamic)
+func take(O: dynamic) -> dynamic
 {
-  var tmp = O.front();
+  var tmp: dynamic = O.front();
   O.pop();
   return tmp;
 }
 
-func take(O: dynamic)
+func take(O: dynamic) -> dynamic
 {
-  var tmp = O.top();
+  var tmp: dynamic = O.top();
   O.pop();
   return tmp;
 }
 
-func take(O: dynamic)
+func take(O: dynamic) -> dynamic
 {
-  var tmp = O.top();
+  var tmp: dynamic = O.top();
   O.pop();
   return tmp;
 }
 
-func inRange(z: dynamic, a: dynamic, b: dynamic)
+func inRange(z: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   return ((a <= z) && (z <= b));
 }
 
-func OPEN(in_cpp: dynamic = "input.txt", out: dynamic = "output.txt")
+func OPEN(in_cpp: dynamic = "input.txt", out: dynamic = "output.txt") -> dynamic
 {
   freopen(in_cpp.c_str(), "r", stdin);
   freopen(out.c_str(), "w", stdout);
   return;
 }
 
-var PQ = cpp_array(1000005);
+var PQ: dynamic = cpp_array(1000005);
 
-var caw = cpp_array(1000005);
+var caw: dynamic = cpp_array(1000005);
 
-var ans = INFLL;
+var ans: dynamic = INFLL;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
 class Data
 {
-  var d: dynamic;
-  var f: dynamic;
-  var t: dynamic;
-  var c: dynamic;
-  var idx: dynamic;
+  var d: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var idx: dynamic = cpp_uninitialized();
 }
 
-var data = cpp_array(1000005);
+var data: dynamic = cpp_array(1000005);
 
-var dvec = cpp_array(1000005);
+var dvec: dynamic = cpp_array(1000005);
 
-var adacnt = 0;
+var adacnt: dynamic = 0;
 
-var ada: dynamic;
+var ada: dynamic = cpp_uninitialized();
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
@@ -95,9 +95,9 @@ func main(argc: dynamic, argv: dynamic)
     t = ((k + 1));
     while ((z >= (t)))
     {
-      for (var id in dvec[z])
+      for (var id: dynamic in dvec[z])
       {
-        var d = data[id];
+        var d: dynamic = data[id];
         if ((d.f == 0))
         {
           PQ[d.t].push(make_pair((-d.c), d.idx));
@@ -106,7 +106,7 @@ func main(argc: dynamic, argv: dynamic)
       (z) -= 1;
     }
   }
-  var tmpAns = 0;
+  var tmpAns: dynamic = 0;
   {
     int_cpp(i) = (1);
     t = (n);
@@ -121,15 +121,15 @@ func main(argc: dynamic, argv: dynamic)
       (i) += 1;
     }
   }
-  var ed = (k + 1);
+  var ed: dynamic = (k + 1);
   {
     int_cpp(st) = (1);
     t = (((1000000 - k) + 1));
     while ((st <= (t)))
     {
-      for (var id in dvec[st])
+      for (var id: dynamic in dvec[st])
       {
-        var d = data[id];
+        var d: dynamic = data[id];
         if ((d.t == 0))
         {
           tmpAns -= caw[d.f];
@@ -143,13 +143,13 @@ func main(argc: dynamic, argv: dynamic)
           tmpAns += caw[d.f];
         }
       }
-      var abis = 0;
-      for (var id in dvec[ed])
+      var abis: dynamic = 0;
+      for (var id: dynamic in dvec[ed])
       {
-        var d = data[id];
+        var d: dynamic = data[id];
         if ((d.f == 0))
         {
-          var PQ = PQ[d.t];
+          var PQ: dynamic = PQ[d.t];
           tmpAns -= (-PQ.top().first);
           while (((!PQ.empty()) && (data[PQ.top().second].d <= ed)))
           {

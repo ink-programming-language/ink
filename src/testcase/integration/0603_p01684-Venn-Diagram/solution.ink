@@ -1,58 +1,58 @@
 // Translated from solution.cpp.
 
-func ISEQ(c: dynamic)
+func ISEQ(c: dynamic) -> dynamic
 {
   return cpp_expression("#include <algorithm> #");
 }
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-var INF = 1e12;
+var INF: dynamic = 1e12;
 
-func sig(a: dynamic, b: dynamic = 0)
+func sig(a: dynamic, b: dynamic = 0) -> dynamic
 {
-  return if ((a < (b - EPS))) -1 else if ((a > (b + EPS))) 1 else 0;
+  return  ((a < (b - EPS))) ? -1 :  ((a > (b + EPS))) ? 1 : 0;
 }
 
-func eq(a: dynamic, b: dynamic)
+func eq(a: dynamic, b: dynamic) -> dynamic
 {
   return (sig(abs((a - b))) == 0);
 }
 
-func norm(a: dynamic)
+func norm(a: dynamic) -> dynamic
 {
   return (a * a);
 }
 
-var X = cpp_expression("#inclu");
+var X: dynamic = cpp_expression("#inclu");
 
-var Y = cpp_expression("#inclu");
+var Y: dynamic = cpp_expression("#inclu");
 
-var IINF = (1 << 28);
+var IINF: dynamic = (1 << 28);
 
 class C
 {
-  var o: dynamic;
-  var r: dynamic;
-  func C(o: dynamic, r: dynamic)
+  var o: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  func C(o: dynamic, r: dynamic) -> dynamic
   {
-      this->o = cpp_construct(o);
-      this->r = cpp_construct(r);
+      self->o = cpp_construct(o);
+      self->r = cpp_construct(r);
     }
 }
 
 enum RELATION
 {
-  INCOMPARABLE = 0,
-  SAME = 1,
-  CONTAIN = 2,
-  OVER = 4
+  enum_field INCOMPARABLE = 0;
+  enum_field SAME = 1;
+  enum_field CONTAIN = 2;
+  enum_field OVER = 4;
 }
 
-func cRel(c1: dynamic, c2: dynamic)
+func cRel(c1: dynamic, c2: dynamic) -> dynamic
 {
-  var d = abs((c1.o - c2.o));
-  var rd = (c1.r - c2.r);
+  var d: dynamic = abs((c1.o - c2.o));
+  var rd: dynamic = (c1.r - c2.r);
   if (cpp_binary(eq(c1.o, c2.o), "and", eq(c1.r, c2.r)))
   {
     return make_pair(SAME, IINF);
@@ -84,32 +84,32 @@ func cRel(c1: dynamic, c2: dynamic)
   return make_pair(INCOMPARABLE, 0);
 }
 
-func cc_area(c1: dynamic, c2: dynamic)
+func cc_area(c1: dynamic, c2: dynamic) -> dynamic
 {
-  var rel = cRel(c1, c2);
-  var d = abs((c1.o - c2.o));
+  var rel: dynamic = cRel(c1, c2);
+  var d: dynamic = abs((c1.o - c2.o));
   if ((rel.first != INCOMPARABLE))
   {
-    var r = min(c1.r, c2.r);
+    var r: dynamic = min(c1.r, c2.r);
     return ((r * r) * M_PI);
   }
   if ((rel.second <= 1))
   {
     return 0.0;
   }
-  var rlcosA = (((((d * d) + (c1.r * c1.r)) - (c2.r * c2.r))) / ((2 * d)));
-  var A = acos((rlcosA / c1.r));
-  var B = acos((((d - rlcosA)) / c2.r));
+  var rlcosA: dynamic = (((((d * d) + (c1.r * c1.r)) - (c2.r * c2.r))) / ((2 * d)));
+  var A: dynamic = acos((rlcosA / c1.r));
+  var B: dynamic = acos((((d - rlcosA)) / c2.r));
   return ((((c1.r * c1.r) * A) + ((c2.r * c2.r) * B)) - ((d * c1.r) * sin(A)));
 }
 
-func main()
+func main() -> dynamic
 {
-  var w: dynamic;
-  var h: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var ab: dynamic;
+  var w: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var ab: dynamic = cpp_uninitialized();
   while (true)
   {
     read(w, h, a, b, ab);
@@ -117,14 +117,14 @@ func main()
     {
       break;
     }
-    var changed = false;
+    var changed: dynamic = false;
     if (((a + EPS) < b))
     {
       swap(a, b);
       changed = true;
     }
-    var ra = sqrt((a / M_PI));
-    var rb = sqrt((b / M_PI));
+    var ra: dynamic = sqrt((a / M_PI));
+    var rb: dynamic = sqrt((b / M_PI));
     if (cpp_binary(((w + EPS) < (2 * ra)), "or", ((h + EPS) < (2 * ra))))
     {
       write("impossible", "\n");
@@ -141,13 +141,13 @@ func main()
       }
       continue;
     }
-    var lb = 0.0;
-    var ub = ((ra + rb) + EPS);
-    var ca = cpp_construct(P(0, 0), ra);
+    var lb: dynamic = 0.0;
+    var ub: dynamic = ((ra + rb) + EPS);
+    var ca: dynamic = cpp_construct(P(0, 0), ra);
     while (((ub - lb) > EPS))
     {
-      var mid = (((ub + lb)) / 2);
-      var area = cc_area(ca, C(P(mid, 0), rb));
+      var mid: dynamic = (((ub + lb)) / 2);
+      var area: dynamic = cc_area(ca, C(P(mid, 0), rb));
       if ((area < ab))
       {
         ub = mid;
@@ -156,11 +156,11 @@ func main()
         lb = mid;
       }
     }
-    var xb = (w - rb);
-    var yb = (h - rb);
-    var x = (ra - xb);
-    var y = (ra - yb);
-    var dis = sqrt(((x * x) + (y * y)));
+    var xb: dynamic = (w - rb);
+    var yb: dynamic = (h - rb);
+    var x: dynamic = (ra - xb);
+    var y: dynamic = (ra - yb);
+    var dis: dynamic = sqrt(((x * x) + (y * y)));
     if (((dis + EPS) < lb))
     {
       write("impossible", "\n");
@@ -168,9 +168,9 @@ func main()
     }
     w -= ((ra + rb));
     h -= ((ra + rb));
-    var ss = sqrt(((w * w) + (h * h)));
-    var sin = (h / ss);
-    var cos = (w / ss);
+    var ss: dynamic = sqrt(((w * w) + (h * h)));
+    var sin: dynamic = (h / ss);
+    var cos: dynamic = (w / ss);
     if (changed)
     {
       printf("%.10f %.10f %.10f %.10f %.10f %.10f\n", (ra + (cos * lb)), (ra + (sin * lb)), rb, ra, ra, ra);

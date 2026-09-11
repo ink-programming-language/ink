@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-func print(t: dynamic)
+func print(t: dynamic) -> dynamic
 {
   write(t);
 }
 
-func print(t: dynamic)
+func print(t: dynamic) -> dynamic
 {
   write(t);
 }
 
-func print(t: dynamic)
+func print(t: dynamic) -> dynamic
 {
   write(t);
 }
 
-func print(t: dynamic)
+func print(t: dynamic) -> dynamic
 {
   write(t);
 }
 
-func print(t: dynamic)
+func print(t: dynamic) -> dynamic
 {
   write(t);
 }
 
-func print(t: dynamic)
+func print(t: dynamic) -> dynamic
 {
   write(t);
 }
 
-func print(t: dynamic)
+func print(t: dynamic) -> dynamic
 {
   write(t);
 }
 
-func print(p: dynamic)
+func print(p: dynamic) -> dynamic
 {
   write("{");
   print(p.first);
@@ -46,10 +46,10 @@ func print(p: dynamic)
   write("}");
 }
 
-func print(v: dynamic)
+func print(v: dynamic) -> dynamic
 {
   write("[ ");
-  for (var i in v)
+  for (var i: dynamic in v)
   {
     print(i);
     write(" ");
@@ -57,10 +57,10 @@ func print(v: dynamic)
   write("]");
 }
 
-func print(v: dynamic)
+func print(v: dynamic) -> dynamic
 {
   write("[ ");
-  for (var i in v)
+  for (var i: dynamic in v)
   {
     print(i);
     write(" ");
@@ -68,10 +68,10 @@ func print(v: dynamic)
   write("]");
 }
 
-func print(v: dynamic)
+func print(v: dynamic) -> dynamic
 {
   write("[ ");
-  for (var i in v)
+  for (var i: dynamic in v)
   {
     print(i);
     write(" ");
@@ -79,10 +79,10 @@ func print(v: dynamic)
   write("]");
 }
 
-func print(v: dynamic)
+func print(v: dynamic) -> dynamic
 {
   write("[ ");
-  for (var i in v)
+  for (var i: dynamic in v)
   {
     print(i);
     write(" ");
@@ -90,28 +90,28 @@ func print(v: dynamic)
   write("]");
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((((i % 2) == 0) && (s[i] == cpp_char(")"))))
       {
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j < n))
           {
             if ((s[j] == cpp_char("(")))
             {
               ans.push_back([(i + 1), (j + 1)]);
-              var t = s.substr(i, ((j - i) + 1));
+              var t: dynamic = s.substr(i, ((j - i) + 1));
               reverse(t.begin(), t.end());
               s.replace(i, ((j - i) + 1), t);
               break;
@@ -122,13 +122,13 @@ func solve()
       } else if ((((i % 2) == 1) && (s[i] == cpp_char("("))))
       {
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j < n))
           {
             if ((s[j] == cpp_char(")")))
             {
               ans.push_back([(i + 1), (j + 1)]);
-              var t = s.substr(i, ((j - i) + 1));
+              var t: dynamic = s.substr(i, ((j - i) + 1));
               reverse(t.begin(), t.end());
               s.replace(i, ((j - i) + 1), t);
               break;
@@ -140,13 +140,13 @@ func solve()
       i += 1;
     }
   }
-  var count = (n / 2);
-  var val = cpp_construct((n + 1), 0);
+  var count: dynamic = (n / 2);
+  var val: dynamic = cpp_construct((n + 1), 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      val[(i + 1)] = (val[i] + (if ((s[i] == cpp_char("("))) 1 else -1));
+      val[(i + 1)] = (val[i] + ( ((s[i] == cpp_char("("))) ? 1 : -1));
       i += 1;
     }
   }
@@ -154,7 +154,7 @@ func solve()
   {
     count -= k;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while (((i <= n) && count))
       {
         if ((val[i] == 0))
@@ -168,18 +168,18 @@ func solve()
     }
   }
   write(ans.size(), "\n");
-  for (var x in ans)
+  for (var x: dynamic in ans)
   {
     write(x.first, " ", x.second, "\n");
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func operator_shift_left(os: dynamic, p: dynamic)
+func operator_shift_left(os: dynamic, p: dynamic) -> dynamic
 {
   return (((((os << "(") << p.first) << ", ") << p.second) << ")");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   (os << "{");
   {
-    var it = v.begin();
+    var it: dynamic = v.begin();
     while ((it != v.end()))
     {
       if ((it != v.begin()))
@@ -23,11 +23,11 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "}");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   (os << "[");
   {
-    var it = v.begin();
+    var it: dynamic = v.begin();
     while ((it != v.end()))
     {
       if ((it != v.begin()))
@@ -41,11 +41,11 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "]");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   (os << "[");
   {
-    var it = v.begin();
+    var it: dynamic = v.begin();
     while ((it != v.end()))
     {
       if ((it != v.begin()))
@@ -59,11 +59,11 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "]");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   (os << "[");
   {
-    var it = v.begin();
+    var it: dynamic = v.begin();
     while ((it != v.end()))
     {
       if ((it != v.begin()))
@@ -77,15 +77,15 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "]");
 }
 
-func faltu()
+func faltu() -> dynamic
 {
   write("\n");
 }
 
-func faltu(a: dynamic, n: dynamic)
+func faltu(a: dynamic, n: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(a[i], cpp_char(" "));
@@ -95,23 +95,23 @@ func faltu(a: dynamic, n: dynamic)
   write("\n");
 }
 
-func faltu(arg: dynamic, rest: dynamic...)
+func faltu(arg: dynamic, rest: dynamic...) -> dynamic
 {
   write(arg, cpp_char(" "));
   faltu(cpp_expand(rest));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var a = cpp_array(n);
+  var a: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);

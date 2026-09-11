@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var Maxn = 100;
+var Maxn: dynamic = 100;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var t = cpp_array((Maxn + 5));
+var t: dynamic = cpp_array((Maxn + 5));
 
-var vis = cpp_array((Maxn + 5));
+var vis: dynamic = cpp_array((Maxn + 5));
 
 class Bit
 {
-  var a: dynamic;
-  var id: dynamic;
-  func count()
+  var a: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  func count() -> dynamic
   {
       {
-        var i = n;
+        var i: dynamic = n;
         while ((i >= 0))
         {
           if (a[i])
@@ -29,30 +29,30 @@ class Bit
     }
 }
 
-var f = cpp_array((Maxn + 5));
+var f: dynamic = cpp_array((Maxn + 5));
 
 class Edge
 {
-  var u: dynamic;
-  var v: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
 }
 
-var edge = cpp_array((Maxn + 5));
+var edge: dynamic = cpp_array((Maxn + 5));
 
-var col: dynamic;
+var col: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var g = cpp_array((Maxn + 5));
+var g: dynamic = cpp_array((Maxn + 5));
 
-func check(a: dynamic)
+func check(a: dynamic) -> dynamic
 {
   if (a.empty())
   {
     return 1;
   }
   {
-    var it = a.begin();
+    var it: dynamic = a.begin();
     while ((it != a.end()))
     {
       q.push((*it));
@@ -60,7 +60,7 @@ func check(a: dynamic)
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 0))
     {
       if ((t[i] == 0))
@@ -68,9 +68,9 @@ func check(a: dynamic)
         i -= 1;
         continue;
       }
-      var u = q.top();
+      var u: dynamic = q.top();
       q.pop();
-      var now = u.count();
+      var now: dynamic = u.count();
       if ((now > i))
       {
         break;
@@ -93,14 +93,14 @@ func check(a: dynamic)
   return 0;
 }
 
-func re_build(x: dynamic, a: dynamic)
+func re_build(x: dynamic, a: dynamic) -> dynamic
 {
   if (a.empty())
   {
     return;
   }
   {
-    var it = a.begin();
+    var it: dynamic = a.begin();
     while ((it != a.end()))
     {
       q.push((*it));
@@ -108,7 +108,7 @@ func re_build(x: dynamic, a: dynamic)
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 0))
     {
       if ((!t[i]))
@@ -116,9 +116,9 @@ func re_build(x: dynamic, a: dynamic)
         i -= 1;
         continue;
       }
-      var u = q.top();
+      var u: dynamic = q.top();
       q.pop();
-      var now = u.count();
+      var now: dynamic = u.count();
       if ((now == i))
       {
         u.a[now] = 0;
@@ -140,15 +140,15 @@ func re_build(x: dynamic, a: dynamic)
   }
 }
 
-func init_dfs(u: dynamic, fa: dynamic)
+func init_dfs(u: dynamic, fa: dynamic) -> dynamic
 {
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   f[u].id = u;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(g[u].size())))
     {
-      var v = g[u][i];
+      var v: dynamic = g[u][i];
       if ((v == fa))
       {
         i += 1;
@@ -160,7 +160,7 @@ func init_dfs(u: dynamic, fa: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       t[i] = 1;
@@ -168,7 +168,7 @@ func init_dfs(u: dynamic, fa: dynamic)
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 0))
     {
       t[i] = 0;
@@ -180,7 +180,7 @@ func init_dfs(u: dynamic, fa: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       f[u].a[i] = t[i];
@@ -190,23 +190,23 @@ func init_dfs(u: dynamic, fa: dynamic)
   re_build(u, a);
 }
 
-var maxn: dynamic;
+var maxn: dynamic = cpp_uninitialized();
 
-var id: dynamic;
+var id: dynamic = cpp_uninitialized();
 
-func work_dfs(u: dynamic, fa: dynamic)
+func work_dfs(u: dynamic, fa: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(g[u].size())))
     {
-      var v = g[u][i];
+      var v: dynamic = g[u][i];
       if ((vis[v] || (v == fa)))
       {
         i += 1;
         continue;
       }
-      var k = col[make_pair(u, v)];
+      var k: dynamic = col[make_pair(u, v)];
       if ((k > maxn))
       {
         maxn = k;
@@ -218,7 +218,7 @@ func work_dfs(u: dynamic, fa: dynamic)
   }
 }
 
-func solve(u: dynamic, fa: dynamic)
+func solve(u: dynamic, fa: dynamic) -> dynamic
 {
   maxn = -1;
   work_dfs(u, fa);
@@ -230,7 +230,7 @@ func solve(u: dynamic, fa: dynamic)
   }
   printf("? %d %d\n", id.first, id.second);
   fflush(stdout);
-  var r: dynamic;
+  var r: dynamic = cpp_uninitialized();
   scanf("%d", (&r));
   if ((r == id.first))
   {
@@ -243,15 +243,15 @@ func solve(u: dynamic, fa: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d%d", (&u), (&v));
       g[u].push_back(v);
       g[v].push_back(u);

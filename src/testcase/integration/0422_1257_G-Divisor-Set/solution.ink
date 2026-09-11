@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-func binpow(b: dynamic, p: dynamic, mod: dynamic)
+func binpow(b: dynamic, p: dynamic, mod: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   b %= mod;
   {
     while (p)
@@ -22,17 +22,17 @@ func binpow(b: dynamic, p: dynamic, mod: dynamic)
   return ans;
 }
 
-func pre()
+func pre() -> dynamic
 {
 }
 
-var Divisors: dynamic;
+var Divisors: dynamic = cpp_uninitialized();
 
-func Divisor(x: dynamic)
+func Divisor(x: dynamic) -> dynamic
 {
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= x))
     {
       if (((x % i) == 0))
@@ -53,9 +53,9 @@ func Divisor(x: dynamic)
   return ans;
 }
 
-func check(prim: dynamic, p: dynamic, divs: dynamic)
+func check(prim: dynamic, p: dynamic, divs: dynamic) -> dynamic
 {
-  for (var v in divs)
+  for (var v: dynamic in divs)
   {
     if ((binpow(prim, (((p - 1)) / v), p) == 1))
     {
@@ -65,10 +65,10 @@ func check(prim: dynamic, p: dynamic, divs: dynamic)
   return 1;
 }
 
-func getRoot(p: dynamic)
+func getRoot(p: dynamic) -> dynamic
 {
-  var ans = 2;
-  var divs = Divisor((p - 1));
+  var ans: dynamic = 2;
+  var divs: dynamic = Divisor((p - 1));
   while ((!check(ans, p, divs)))
   {
     ans += 1;
@@ -76,30 +76,30 @@ func getRoot(p: dynamic)
   return ans;
 }
 
-func __cpp_top_level_1()
+func __cpp_top_level_1() -> dynamic
 {
 }
 
-var NTTMOD = 998244353;
+var NTTMOD: dynamic = 998244353;
 
-var PRIMITIVE_ROOT = 3;
+var PRIMITIVE_ROOT: dynamic = 3;
 
-var MAXB = (1 << 21);
+var MAXB: dynamic = (1 << 21);
 
-func modInv(a: dynamic)
+func modInv(a: dynamic) -> dynamic
 {
-  return if ((a <= 1)) a else ((cpp_cast(((NTTMOD - (NTTMOD / a)))) * modInv((NTTMOD % a))) % NTTMOD);
+  return  ((a <= 1)) ? a : ((cpp_cast(((NTTMOD - (NTTMOD / a)))) * modInv((NTTMOD % a))) % NTTMOD);
 }
 
-func NTT(P: dynamic, n: dynamic, oper: dynamic)
+func NTT(P: dynamic, n: dynamic, oper: dynamic) -> dynamic
 {
   {
-    var i = 1;
-    var j = 0;
+    var i: dynamic = 1;
+    var j: dynamic = 0;
     while ((i < (n - 1)))
     {
       {
-        var s = n;
+        var s: dynamic = n;
         while (cpp_comma(cpp_assign(j, "^=", cpp_assign(s, ">>=", 1)), ((~j) & s)))
         {
         }
@@ -112,28 +112,28 @@ func NTT(P: dynamic, n: dynamic, oper: dynamic)
     }
   }
   {
-    var d = 0;
+    var d: dynamic = 0;
     while ((((1 << d)) < n))
     {
-      var m = (1 << d);
-      var m2 = (m * 2);
-      var unit_p0 = binpow(PRIMITIVE_ROOT, (((NTTMOD - 1)) / m2), NTTMOD);
+      var m: dynamic = (1 << d);
+      var m2: dynamic = (m * 2);
+      var unit_p0: dynamic = binpow(PRIMITIVE_ROOT, (((NTTMOD - 1)) / m2), NTTMOD);
       if ((oper < 0))
       {
         unit_p0 = modInv(unit_p0);
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
-          var unit = 1;
+          var unit: dynamic = 1;
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
-              var P1 = P[((i + j) + m)];
-              var P2 = P[(i + j)];
-              var t = ((unit * P1) % NTTMOD);
+              var P1: dynamic = P[((i + j) + m)];
+              var P2: dynamic = P[(i + j)];
+              var t: dynamic = ((unit * P1) % NTTMOD);
               P1 = ((((P2 - t) + NTTMOD)) % NTTMOD);
               P2 = (((P2 + t)) % NTTMOD);
               unit = ((unit * unit_p0) % NTTMOD);
@@ -148,37 +148,37 @@ func NTT(P: dynamic, n: dynamic, oper: dynamic)
   }
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
-  var ret = cpp_construct(max(0, ((cpp_cast(a.size()) + cpp_cast(b.size())) - 1)), 0);
-  var A = cpp_array(MAXB);
-  var B = cpp_array(MAXB);
-  var C = cpp_array(MAXB);
-  var len = 1;
+  var ret: dynamic = cpp_construct(max(0, ((cpp_cast(a.size()) + cpp_cast(b.size())) - 1)), 0);
+  var A: dynamic = cpp_array(MAXB);
+  var B: dynamic = cpp_array(MAXB);
+  var C: dynamic = cpp_array(MAXB);
+  var len: dynamic = 1;
   while ((len < cpp_cast(ret.size())))
   {
     len <<= 1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < len))
     {
-      A[i] = if ((i < cpp_cast(a.size()))) a[i] else 0;
+      A[i] =  ((i < cpp_cast(a.size()))) ? a[i] : 0;
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < len))
     {
-      B[i] = if ((i < cpp_cast(b.size()))) b[i] else 0;
+      B[i] =  ((i < cpp_cast(b.size()))) ? b[i] : 0;
       i += 1;
     }
   }
   NTT(A, len, 1);
   NTT(B, len, 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < len))
     {
       C[i] = ((cpp_cast(A[i]) * B[i]) % NTTMOD);
@@ -187,8 +187,8 @@ func mul(a: dynamic, b: dynamic)
   }
   NTT(C, len, -1);
   {
-    var i = 0;
-    var inv = modInv(len);
+    var i: dynamic = 0;
+    var inv: dynamic = modInv(len);
     while ((i < cpp_cast(ret.size())))
     {
       ret[i] = ((cpp_cast(C[i]) * inv) % NTTMOD);
@@ -198,9 +198,9 @@ func mul(a: dynamic, b: dynamic)
   return ret;
 }
 
-func binpow(b: dynamic, p: dynamic)
+func binpow(b: dynamic, p: dynamic) -> dynamic
 {
-  var ans = vector(1, 1);
+  var ans: dynamic = vector(1, 1);
   {
     while (p)
     {
@@ -215,52 +215,52 @@ func binpow(b: dynamic, p: dynamic)
   return ans;
 }
 
-func calc(arr: dynamic, l: dynamic, r: dynamic)
+func calc(arr: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if ((l == r))
   {
     return vector((arr[l] + 1), 1);
   }
-  var mid = (((l + r)) >> 1);
-  var x = calc(arr, l, mid);
-  var y = calc(arr, (mid + 1), r);
+  var mid: dynamic = (((l + r)) >> 1);
+  var x: dynamic = calc(arr, l, mid);
+  var y: dynamic = calc(arr, (mid + 1), r);
   return mul(x, y);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var freq: dynamic;
+  var freq: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       freq[x] += 1;
       i += 1;
     }
   }
-  var vals: dynamic;
-  for (var v in freq)
+  var vals: dynamic = cpp_uninitialized();
+  for (var v: dynamic in freq)
   {
     vals.emplace_back(v.second);
   }
   sort((vals).begin(), (vals).end());
-  var pp = calc(vals, 0, (vals.size() - 1));
+  var pp: dynamic = calc(vals, 0, (vals.size() - 1));
   write(pp[(n / 2)], cpp_char("\n"));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   pre();
-  var t = 1;
+  var t: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= t))
     {
       solve();

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var inf = (1e9 + 7);
+var inf: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var s: dynamic;
+    var s: dynamic = cpp_uninitialized();
     read(s);
-    var a = true;
+    var a: dynamic = true;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < s.length()))
       {
         if (a)

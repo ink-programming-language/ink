@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(101010);
+var s: dynamic = cpp_array(101010);
 
-func ask(x: dynamic, y: dynamic)
+func ask(x: dynamic, y: dynamic) -> dynamic
 {
   printf("? %d %d\n", x, y);
   fflush(stdout);
@@ -10,9 +10,9 @@ func ask(x: dynamic, y: dynamic)
   return x;
 }
 
-func ok(n: dynamic)
+func ok(n: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   printf("! ");
   {
     i = 1;
@@ -25,17 +25,17 @@ func ok(n: dynamic)
   fflush(stdout);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var t: dynamic;
-  var now: dynamic;
-  var i: dynamic;
-  var shd = 0;
-  var tmp: dynamic;
-  var sw = 0;
-  var n1: dynamic;
-  var nowi: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var now: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var shd: dynamic = 0;
+  var tmp: dynamic = cpp_uninitialized();
+  var sw: dynamic = 0;
+  var n1: dynamic = cpp_uninitialized();
+  var nowi: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&t));
   if ((n == 1))
   {

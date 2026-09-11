@@ -1,63 +1,63 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var M = (N * 25);
+var M: dynamic = (N * 25);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var C = cpp_array(M);
+var C: dynamic = cpp_array(M);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var tar = cpp_array(N);
+var tar: dynamic = cpp_array(N);
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-var in_cpp = cpp_array(M);
+var in_cpp: dynamic = cpp_array(M);
 
-var fir = cpp_array(N);
+var fir: dynamic = cpp_array(N);
 
-var ne = cpp_array(M);
+var ne: dynamic = cpp_array(M);
 
-var to = cpp_array(M);
+var to: dynamic = cpp_array(M);
 
-var cnt = 1;
+var cnt: dynamic = 1;
 
-var fa = cpp_array(N);
+var fa: dynamic = cpp_array(N);
 
-var fan = cpp_array(N);
+var fan: dynamic = cpp_array(N);
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
   ne[cpp_update(cnt, "++")] = fir[x];
   fir[x] = cnt;
   to[cnt] = y;
 }
 
-func link(x: dynamic, y: dynamic)
+func link(x: dynamic, y: dynamic) -> dynamic
 {
   add(x, y);
   add(y, x);
 }
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-func dfs(x: dynamic, f: dynamic)
+func dfs(x: dynamic, f: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   fa[x] = f;
   dep[x] = (dep[f] + 1);
   vis[x] = 1;
   {
-    var i = fir[x];
+    var i: dynamic = fir[x];
     while (i)
     {
-      var V = to[i];
+      var V: dynamic = to[i];
       if (vis[V])
       {
         if ((V != f))
@@ -72,7 +72,7 @@ func dfs(x: dynamic, f: dynamic)
         i = ne[i];
         continue;
       }
-      var cur = 0;
+      var cur: dynamic = 0;
       if (cpp_assign(cur, "=", dfs(V, x)))
       {
         res = cur;
@@ -91,7 +91,7 @@ func dfs(x: dynamic, f: dynamic)
   return res;
 }
 
-func Bush(x: dynamic)
+func Bush(x: dynamic) -> dynamic
 {
   while (fa[x])
   {
@@ -103,11 +103,11 @@ func Bush(x: dynamic)
   }
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&tar[i]));
@@ -115,7 +115,7 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d%d", (&x), (&y));
@@ -124,20 +124,20 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))
       {
-        var cur = dfs(i, 0);
-        var a: dynamic;
+        var cur: dynamic = dfs(i, 0);
+        var a: dynamic = cpp_uninitialized();
         if ((((tar[i]) & 1) || (((!cur) && tar[i]))))
         {
           return (puts("NO") * 0);
         }
         a = ((dep[to[cur]] & 1));
-        C[cur] = cpp_assign(C[(cur ^ 1)], "+=", ((tar[i] / 2) * (if (a) 1 else (-1))));
-        tar[to[(cur ^ 1)]] = cpp_assign(tar[to[cur]], "=", (((-tar[i]) / 2) * (if (a) 1 else (-1))));
+        C[cur] = cpp_assign(C[(cur ^ 1)], "+=", ((tar[i] / 2) * ( (a) ? 1 : (-1))));
+        tar[to[(cur ^ 1)]] = cpp_assign(tar[to[cur]], "=", (((-tar[i]) / 2) * ( (a) ? 1 : (-1))));
         Bush(to[cur]);
         Bush(to[(cur ^ 1)]);
       }
@@ -146,7 +146,7 @@ func main(argument_0: dynamic)
   }
   puts("YES");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       printf("%lld\n", C[(i * 2)]);

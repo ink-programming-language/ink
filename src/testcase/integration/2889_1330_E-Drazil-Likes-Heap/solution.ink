@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var a = cpp_array((((1 << 21)) + 1));
+var a: dynamic = cpp_array((((1 << 21)) + 1));
 
-func wid(i: dynamic)
+func wid(i: dynamic) -> dynamic
 {
   if (((a[(2 * i)] == 0) && (a[((2 * i) + 1)] == 0)))
   {
@@ -19,7 +19,7 @@ func wid(i: dynamic)
   }
 }
 
-func f(i: dynamic)
+func f(i: dynamic) -> dynamic
 {
   if (((a[(2 * i)] == 0) && (a[((2 * i) + 1)] == 0)))
   {
@@ -38,22 +38,22 @@ func f(i: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var h: dynamic;
-  var g: dynamic;
-  var t: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var g: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     read(h, g);
-    var n = ((1 << h));
-    var x: dynamic;
+    var n: dynamic = ((1 << h));
+    var x: dynamic = cpp_uninitialized();
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < ((1 << ((h + 1))))))
       {
         if ((i < n))
@@ -66,12 +66,12 @@ func main()
         i += 1;
       }
     }
-    var index = (((1 << g)) - 1);
+    var index: dynamic = (((1 << g)) - 1);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < ((1 << g))))
       {
-        var t = wid(i);
+        var t: dynamic = wid(i);
         while ((t > index))
         {
           x.push_back(i);
@@ -89,9 +89,9 @@ func main()
         i += 1;
       }
     }
-    var sum = 0;
+    var sum: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < ((1 << g))))
       {
         sum += a[i];
@@ -100,7 +100,7 @@ func main()
     }
     write(sum, cpp_char("\n"));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < x.size()))
       {
         write(x[i], " ");

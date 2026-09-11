@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var N = 203;
+var N: dynamic = 203;
 
-var M = 700;
+var M: dynamic = 700;
 
-var MAXINT = (1 << 20);
+var MAXINT: dynamic = (1 << 20);
 
 class NetWorkFlow
 {
   var a: dynamic = cpp_array(N);
   var b: dynamic = cpp_array((M * 2));
   var d: dynamic = cpp_array(M);
-  var s: dynamic;
-  var t: dynamic;
-  var n: dynamic;
-  var p: dynamic;
-  func clear(nn: dynamic, ss: dynamic, tt: dynamic)
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  func clear(nn: dynamic, ss: dynamic, tt: dynamic) -> dynamic
   {
       n = nn;
       s = ss;
       t = tt;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           a[i].fe = -1;
@@ -31,7 +31,7 @@ class NetWorkFlow
       }
       p = 0;
     }
-  func putedge(x: dynamic, y: dynamic, f: dynamic)
+  func putedge(x: dynamic, y: dynamic, f: dynamic) -> dynamic
   {
       b[p].t = y;
       b[p].f = f;
@@ -42,12 +42,12 @@ class NetWorkFlow
       b[p].ne = a[y].fe;
       a[y].fe = cpp_update(p, "++");
     }
-  func bfs()
+  func bfs() -> dynamic
   {
-      var i: dynamic;
-      var p: dynamic;
-      var q: dynamic;
-      var j: dynamic;
+      var i: dynamic = cpp_uninitialized();
+      var p: dynamic = cpp_uninitialized();
+      var q: dynamic = cpp_uninitialized();
+      var j: dynamic = cpp_uninitialized();
       {
         i = 1;
         while ((i <= n))
@@ -82,21 +82,21 @@ class NetWorkFlow
       }
       return false;
     }
-  func dfs(i: dynamic, v: dynamic)
+  func dfs(i: dynamic, v: dynamic) -> dynamic
   {
       if ((i == t))
       {
         a[t].v += v;
         return v;
       }
-      var ans = 0;
+      var ans: dynamic = 0;
       {
-        var j = a[i].cur;
+        var j: dynamic = a[i].cur;
         while ((j != -1))
         {
           if (((b[j].f > 0) && (a[b[j].t].h > a[i].h)))
           {
-            var tmp = dfs(b[j].t, min(b[j].f, v));
+            var tmp: dynamic = dfs(b[j].t, min(b[j].f, v));
             v -= tmp;
             b[j].f -= tmp;
             b[(j ^ 1)].f += tmp;
@@ -112,9 +112,9 @@ class NetWorkFlow
       a[i].v += ans;
       return ans;
     }
-  func flow()
+  func flow() -> dynamic
   {
-      var i: dynamic;
+      var i: dynamic = cpp_uninitialized();
       a[s].v = MAXINT;
       while (bfs())
       {
@@ -132,28 +132,28 @@ class NetWorkFlow
     }
 }
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var suma: dynamic;
+var suma: dynamic = cpp_uninitialized();
 
-var sumb: dynamic;
+var sumb: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var ans = cpp_array(101, 101);
+var ans: dynamic = cpp_array(101, 101);
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
   s = ((n + n) + 1);
   t = ((n + n) + 2);

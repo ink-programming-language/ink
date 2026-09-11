@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var num = cpp_array(4000);
+var num: dynamic = cpp_array(4000);
 
-var memo = cpp_array(9000010);
+var memo: dynamic = cpp_array(9000010);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(num[i]);
       i += 1;
     }
   }
-  var cant = 0;
+  var cant: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < n))
         {
           if ((num[i] > num[j]))
@@ -39,7 +39,7 @@ func main()
   memo[0] = 0.0;
   memo[1] = 1.0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= cant))
     {
       memo[i] = (4 + memo[(i - 2)]);

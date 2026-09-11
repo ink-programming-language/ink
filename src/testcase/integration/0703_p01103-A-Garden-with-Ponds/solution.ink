@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-func main()
+func main() -> dynamic
 {
   while (1)
   {
-    var h: dynamic;
-    var w: dynamic;
+    var h: dynamic = cpp_uninitialized();
+    var w: dynamic = cpp_uninitialized();
     read(h, w);
     if (((h == 0) && (w == 0)))
     {
       break;
     }
-    var e = cpp_construct((h + 2), vector((w + 2), 0));
+    var e: dynamic = cpp_construct((h + 2), vector((w + 2), 0));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= h))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= w))
           {
             read(e[i][j]);
@@ -29,31 +29,31 @@ func main()
         i += 1;
       }
     }
-    var res = 0;
+    var res: dynamic = 0;
     {
-      var l = 1;
+      var l: dynamic = 1;
       while ((l <= h))
       {
         {
-          var u = (l + 2);
+          var u: dynamic = (l + 2);
           while ((u <= h))
           {
             {
-              var r = 1;
+              var r: dynamic = 1;
               while ((r <= w))
               {
                 {
-                  var le = (r + 2);
+                  var le: dynamic = (r + 2);
                   while ((le <= w))
                   {
-                    var side = inf;
-                    var inner = 0;
+                    var side: dynamic = inf;
+                    var inner: dynamic = 0;
                     {
-                      var i = (l + 1);
+                      var i: dynamic = (l + 1);
                       while ((i < u))
                       {
                         {
-                          var j = (r + 1);
+                          var j: dynamic = (r + 1);
                           while ((j < le))
                           {
                             inner = max(inner, e[i][j]);
@@ -64,7 +64,7 @@ func main()
                       }
                     }
                     {
-                      var i = l;
+                      var i: dynamic = l;
                       while ((i <= u))
                       {
                         side = min(side, min(e[i][r], e[i][le]));
@@ -72,7 +72,7 @@ func main()
                       }
                     }
                     {
-                      var i = r;
+                      var i: dynamic = r;
                       while ((i <= le))
                       {
                         side = min(side, min(e[l][i], e[u][i]));
@@ -81,13 +81,13 @@ func main()
                     }
                     if ((inner < side))
                     {
-                      var cnt = 0;
+                      var cnt: dynamic = 0;
                       {
-                        var i = (l + 1);
+                        var i: dynamic = (l + 1);
                         while ((i < u))
                         {
                           {
-                            var j = (r + 1);
+                            var j: dynamic = (r + 1);
                             while ((j < le))
                             {
                               cnt += (side - e[i][j]);

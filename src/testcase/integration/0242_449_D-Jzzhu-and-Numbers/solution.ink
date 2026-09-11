@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var memo = cpp_array(((1 << 21)));
+var memo: dynamic = cpp_array(((1 << 21)));
 
-func modexp(a: dynamic, n: dynamic)
+func modexp(a: dynamic, n: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (n)
   {
     if ((n & 1))
@@ -17,29 +17,29 @@ func modexp(a: dynamic, n: dynamic)
   return res;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var t: dynamic;
+      var t: dynamic = cpp_uninitialized();
       read(t);
       memo[t] += 1;
       i += 1;
     }
   }
   {
-    var p = 0;
+    var p: dynamic = 0;
     while ((p < 21))
     {
       {
-        var mask = ((((1 << 21)) - 1));
+        var mask: dynamic = ((((1 << 21)) - 1));
         while ((mask >= 0))
         {
           if ((!((mask & ((1 << p))))))
@@ -52,12 +52,12 @@ func main(argument_0: dynamic)
       p += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var mask = 0;
+    var mask: dynamic = 0;
     while ((mask < ((1 << 21))))
     {
-      var z = builtin_popcount(mask);
+      var z: dynamic = builtin_popcount(mask);
       if ((z & 1))
       {
         ans = ((((((ans % 1000000007)) - ((modexp(2, memo[mask]) % 1000000007))) + 1000000007)) % 1000000007);

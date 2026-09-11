@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var adj = cpp_array(100005);
+var adj: dynamic = cpp_array(100005);
 
-var parent = cpp_array(100005);
+var parent: dynamic = cpp_array(100005);
 
-var temp: dynamic;
+var temp: dynamic = cpp_uninitialized();
 
-func find_parent(v: dynamic, par: dynamic)
+func find_parent(v: dynamic, par: dynamic) -> dynamic
 {
   parent[v] = par;
-  for (var p in adj[v])
+  for (var p: dynamic in adj[v])
   {
     if ((p != par))
     {
@@ -18,9 +18,9 @@ func find_parent(v: dynamic, par: dynamic)
   }
 }
 
-func find_col(x: dynamic, y: dynamic)
+func find_col(x: dynamic, y: dynamic) -> dynamic
 {
-  var z: dynamic;
+  var z: dynamic = cpp_uninitialized();
   if (((x == 1) && (y == 2)))
   {
     z = 3;
@@ -48,13 +48,13 @@ func find_col(x: dynamic, y: dynamic)
   return z;
 }
 
-func dfs(v: dynamic, par: dynamic)
+func dfs(v: dynamic, par: dynamic) -> dynamic
 {
   if ((temp[v] == 0))
   {
     temp[v] = find_col(temp[par], temp[parent[par]]);
   }
-  for (var p in adj[v])
+  for (var p: dynamic in adj[v])
   {
     if ((p != par))
     {
@@ -63,19 +63,19 @@ func dfs(v: dynamic, par: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(n);
-  var c1 = cpp_array((n + 1));
-  var c2 = cpp_array((n + 1));
-  var c3 = cpp_array((n + 1));
+  var c1: dynamic = cpp_array((n + 1));
+  var c2: dynamic = cpp_array((n + 1));
+  var c3: dynamic = cpp_array((n + 1));
   {
     i = 1;
     while ((i <= n))
@@ -123,9 +123,9 @@ func main()
     }
   }
   find_parent(1, 0);
-  var ans = 1e18;
-  var cost: dynamic;
-  var col = cpp_array((n + 1));
+  var ans: dynamic = 1e18;
+  var cost: dynamic = cpp_uninitialized();
+  var col: dynamic = cpp_array((n + 1));
   temp.assign((n + 1), 0);
   temp[1] = 1;
   temp[adj[1][0]] = 2;

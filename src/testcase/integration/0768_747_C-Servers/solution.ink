@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var en = cpp_array((100 + 100));
+var en: dynamic = cpp_array((100 + 100));
 
-var e = cpp_array((100 + 100));
+var e: dynamic = cpp_array((100 + 100));
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   while ((~scanf("%d%d", (&n), (&q))))
   {
     memset(en, -1, cpp_sizeof((en)));
     memset(e, -1, cpp_sizeof((e)));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= q))
       {
-        var T: dynamic;
-        var K: dynamic;
-        var D: dynamic;
+        var T: dynamic = cpp_uninitialized();
+        var K: dynamic = cpp_uninitialized();
+        var D: dynamic = cpp_uninitialized();
         scanf("%d%d%d", (&T), (&K), (&D));
-        var ans = 0;
-        var cnt = 0;
+        var ans: dynamic = 0;
+        var cnt: dynamic = 0;
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= n))
           {
             if (((en[i] == -1) || (en[i] < T)))
@@ -42,7 +42,7 @@ func main()
         if ((cnt == K))
         {
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= n))
             {
               en[i] = e[i];
@@ -53,7 +53,7 @@ func main()
         } else
         {
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= n))
             {
               e[i] = en[i];

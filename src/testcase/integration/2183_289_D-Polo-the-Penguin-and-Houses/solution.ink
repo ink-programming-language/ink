@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var maxn = 1020;
+var maxn: dynamic = 1020;
 
-var maxx = 10000;
+var maxx: dynamic = 10000;
 
-var MOd = (1e9 + 7);
+var MOd: dynamic = (1e9 + 7);
 
-var K = 750;
+var K: dynamic = 750;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var dn = cpp_array(maxn, maxn);
+var dn: dynamic = cpp_array(maxn, maxn);
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   return ((cpp_cast(a) * b) % MOd);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&n), (&k));
-  var t = k;
+  var t: dynamic = k;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n - k)))
     {
       t = mul(t, (n - k));
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   k -= 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << k))))
     {
       dn[(((1 << k)) - 1)][i] = 1;
@@ -42,24 +42,24 @@ func main()
     }
   }
   {
-    var i = (((1 << k)) - 2);
+    var i: dynamic = (((1 << k)) - 2);
     while ((i >= 0))
     {
       {
-        var j = (((1 << k)) - 2);
+        var j: dynamic = (((1 << k)) - 2);
         while ((j >= 0))
         {
           if ((((i | j)) == i))
           {
-            var h = (((((1 << k)) - 1)) ^ i);
+            var h: dynamic = (((((1 << k)) - 1)) ^ i);
             {
-              var k = h;
+              var k: dynamic = h;
               while (k)
               {
-                var l = k;
-                var x = builtin_popcount(k);
-                var y = builtin_popcount(j);
-                var p = 1;
+                var l: dynamic = k;
+                var x: dynamic = builtin_popcount(k);
+                var y: dynamic = builtin_popcount(j);
+                var p: dynamic = 1;
                 while (cpp_update(y, "--"))
                 {
                   p = mul(p, x);

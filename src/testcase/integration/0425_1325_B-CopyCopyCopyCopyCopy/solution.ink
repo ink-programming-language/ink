@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func abs(a: dynamic)
+func abs(a: dynamic) -> dynamic
 {
-  return if ((a < 0)) (-a) else a;
+  return  ((a < 0)) ? (-a) : a;
 }
 
-func min(b: dynamic, a: dynamic)
+func min(b: dynamic, a: dynamic) -> dynamic
 {
-  return if ((a < b)) a else b;
+  return  ((a < b)) ? a : b;
 }
 
-func max(a: dynamic, b: dynamic)
+func max(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) b else a;
+  return  ((a < b)) ? b : a;
 }
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 0;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 0;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     f = ((ch == cpp_char("-")));
@@ -30,10 +30,10 @@ func read()
     x = ((((x << 1)) + ((x << 3))) + ((ch - cpp_char("0"))));
     ch = getchar();
   }
-  return if (f) (-x) else x;
+  return  (f) ? (-x) : x;
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -49,24 +49,24 @@ func write(x: dynamic)
   putchar(((x % 10) + 48));
 }
 
-var Maxn = (1e5 + 11);
+var Maxn: dynamic = (1e5 + 11);
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(Maxn);
+var a: dynamic = cpp_array(Maxn);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(t);
   while (cpp_update(t, "--"))
   {
-    var cnt = 1;
+    var cnt: dynamic = 1;
     read(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -75,7 +75,7 @@ func main()
     }
     sort(a, (a + n));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         if ((a[i] != a[(i - 1)]))

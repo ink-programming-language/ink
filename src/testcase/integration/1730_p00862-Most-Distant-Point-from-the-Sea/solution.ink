@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return real((conj(a) * b));
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return imag((conj(a) * b));
 }
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b -= a;
   c -= a;
@@ -35,10 +35,10 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   return 0;
 }
 
-func crossPoint(l: dynamic, m: dynamic)
+func crossPoint(l: dynamic, m: dynamic) -> dynamic
 {
-  var A = cross((l.second - l.first), (m.second - m.first));
-  var B = cross((l.second - l.first), (l.second - m.first));
+  var A: dynamic = cross((l.second - l.first), (m.second - m.first));
+  var B: dynamic = cross((l.second - l.first), (l.second - m.first));
   if (((fabs(A) < EPS) && (fabs(B) < EPS)))
   {
     return m.first;
@@ -48,15 +48,15 @@ func crossPoint(l: dynamic, m: dynamic)
   }
 }
 
-func convex_cut(G: dynamic, l: dynamic)
+func convex_cut(G: dynamic, l: dynamic) -> dynamic
 {
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G.size()))
     {
-      var A = G[i];
-      var B = G[(((i + 1)) % G.size())];
+      var A: dynamic = G[i];
+      var B: dynamic = G[(((i + 1)) % G.size())];
       if ((ccw(l.first, l.second, A) != -1))
       {
         res.push_back(A);
@@ -71,16 +71,16 @@ func convex_cut(G: dynamic, l: dynamic)
   return res;
 }
 
-func check(G: dynamic, d: dynamic)
+func check(G: dynamic, d: dynamic) -> dynamic
 {
-  var pol = G;
-  var n = G.size();
+  var pol: dynamic = G;
+  var n: dynamic = G.size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var c = ((G[(((i + 1)) % n)] - G[i]));
-      var a = ((P(abs(c), d) * ((c / abs(c)))) + G[i]);
+      var c: dynamic = ((G[(((i + 1)) % n)] - G[i]));
+      var a: dynamic = ((P(abs(c), d) * ((c / abs(c)))) + G[i]);
       pol = convex_cut(pol, L(a, (a + c)));
       if ((pol.size() < 3))
       {
@@ -92,15 +92,15 @@ func check(G: dynamic, d: dynamic)
   return 1;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while (cpp_comma((cin >> n), n))
   {
     {
-      var i = 0;
-      var x: dynamic;
-      var y: dynamic;
+      var i: dynamic = 0;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       while ((i < n))
       {
         read(x, y);
@@ -108,9 +108,9 @@ func main()
         i += 1;
       }
     }
-    var L = 0;
-    var M: dynamic;
-    var R = 1e4;
+    var L: dynamic = 0;
+    var M: dynamic = cpp_uninitialized();
+    var R: dynamic = 1e4;
     while ((L < R))
     {
       M = (((L + R)) / 2);

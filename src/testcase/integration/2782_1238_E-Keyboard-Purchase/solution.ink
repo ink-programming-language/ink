@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var N = 22;
+var N: dynamic = 22;
 
-var M = 100005;
+var M: dynamic = 100005;
 
-var INF = 1000000009;
+var INF: dynamic = 1000000009;
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(M);
+var a: dynamic = cpp_array(M);
 
-var q = cpp_array(N, N);
+var q: dynamic = cpp_array(N, N);
 
-var dp = cpp_array((1 << N));
+var dp: dynamic = cpp_array((1 << N));
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&m), (&n));
   scanf(" %s", a);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (m - 1)))
     {
       q[(a[i] - cpp_char("a"))][(a[(i + 1)] - cpp_char("a"))] += 1;
@@ -30,7 +30,7 @@ func main()
     }
   }
   {
-    var x = 1;
+    var x: dynamic = 1;
     while ((x < ((1 << n))))
     {
       dp[x] = INF;
@@ -38,12 +38,12 @@ func main()
     }
   }
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x < (((1 << n)) - 1)))
     {
-      var m = 0;
+      var m: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if (((x & ((1 << i)))))
@@ -54,14 +54,14 @@ func main()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((!((x & ((1 << i))))))
           {
-            var q1 = 0;
+            var q1: dynamic = 0;
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j < n))
               {
                 if (((x & ((1 << j)))))
@@ -71,9 +71,9 @@ func main()
                 j += 1;
               }
             }
-            var q0 = 0;
+            var q0: dynamic = 0;
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j < n))
               {
                 if (((!((x & ((1 << j))))) && (j != i)))
@@ -83,7 +83,7 @@ func main()
                 j += 1;
               }
             }
-            var y = ((x | ((1 << i))));
+            var y: dynamic = ((x | ((1 << i))));
             dp[y] = min(dp[y], ((dp[x] + (q1 * m)) - (q0 * m)));
           }
           i += 1;

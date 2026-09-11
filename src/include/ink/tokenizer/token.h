@@ -3,8 +3,9 @@
 
 #include "ink/core/source_range.h"
 
-#include <cstdint>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <variant>
 
 namespace ink::tokenizer
@@ -13,26 +14,19 @@ namespace ink::tokenizer
 
   enum class TokenKind
   {
-    Utf8Bom,
     SpacesAndTabs,
     LineBreak,
     LineComment,
     BlockComment,
     Identifier,
     Keyword,
-    BuiltinType,
-    BoolLiteral,
-    NullLiteral,
     IntegerLiteral,
     FloatLiteral,
-    ScalarLiteral,
     StringLiteral,
     Symbol,
     InvalidEncoding,
     InvalidCharacter,
     InvalidIdentifier,
-    InvalidNumber,
-    InvalidScalarLiteral,
     InvalidStringLiteral,
     UnterminatedBlockComment,
     EndOfFile,
@@ -40,86 +34,16 @@ namespace ink::tokenizer
 
   enum class KeywordKind
   {
-    As,
-    Async,
-    Await,
-    Break,
-    Class,
-    Comptime,
-    Const,
-    Continue,
-    Decorator,
-    Defer,
-    Else,
-    Enum,
-    Extern,
-    Final,
-    For,
-    From,
-    Func,
-    If,
-    Implicit,
-    Import,
-    In,
-    Interface,
-    Let,
-    Override,
-    Private,
-    Protected,
-    Public,
-    Return,
-    Static,
-    This,
-    Var,
-    Virtual,
-    While,
+#define INK_KEYWORD(Name, Spelling) Name,
+#include "ink/tokenizer/token.def"
+#undef INK_KEYWORD
   };
 
-  enum class BuiltinTypeKind
+  enum class SymbolKind
   {
-    I8,
-    I16,
-    I32,
-    I64,
-    I128,
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-    Int,
-    UInt,
-    PtrSize,
-    F16,
-    F32,
-    F64,
-    Bool,
-    Byte,
-    Void,
-    Never,
-    Type,
-  };
-
-  enum class NumericSuffix
-  {
-    None,
-    I8,
-    I16,
-    I32,
-    I64,
-    I128,
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-    Int,
-    UInt,
-    PtrSize,
-    Byte,
-    F16,
-    F32,
-    F64,
+#define INK_SYMBOL(Name, Spelling) Name,
+#include "ink/tokenizer/token.def"
+#undef INK_SYMBOL
   };
 
   enum class StringMode
@@ -133,12 +57,11 @@ namespace ink::tokenizer
   struct NumericInfo
   {
       unsigned Base = 10;
-      NumericSuffix Suffix = NumericSuffix::None;
   };
 
   inline bool operator==(const NumericInfo &Left, const NumericInfo &Right) noexcept
   {
-    return Left.Base == Right.Base && Left.Suffix == Right.Suffix;
+    return Left.Base == Right.Base;
   }
 
   inline bool operator!=(const NumericInfo &Left, const NumericInfo &Right) noexcept
@@ -149,6 +72,7 @@ namespace ink::tokenizer
   struct StringInfo
   {
       StringMode Mode = StringMode::EscapedSingleLine;
+      // Escapes decode to Unicode scalars encoded as UTF-8; hexadecimal escapes designate U+00NN.
       std::string Decoded;
   };
 
@@ -162,7 +86,7 @@ namespace ink::tokenizer
     return !(Left == Right);
   }
 
-  using TokenPayload = std::variant<std::monostate, KeywordKind, BuiltinTypeKind, bool, char, NumericInfo, char32_t, StringInfo>;
+  using TokenPayload = std::variant<std::monostate, KeywordKind, SymbolKind, NumericInfo, StringInfo>;
 
   struct Token
   {
@@ -170,6 +94,32 @@ namespace ink::tokenizer
       core::SourceRange Span;
       TokenPayload Payload;
 
+      bool is(TokenKind Expected) const noexcept
+      {
+        return Kind == Expected;
+      }
+
+      bool is(KeywordKind Expected) const noexcept
+      {
+        const KeywordKind *Value = std::get_if<KeywordKind>(&Payload);
+        return is(TokenKind::Keyword) && Value != nullptr && *Value == Expected;
+      }
+
+      bool is(SymbolKind Expected) const noexcept
+      {
+        const SymbolKind *Value = std::get_if<SymbolKind>(&Payload);
+        return is(TokenKind::Symbol) && Value != nullptr && *Value == Expected;
+      }
+
+      template <typename... Kinds>
+      bool isOneOf(Kinds... Expected) const noexcept
+      {
+        static_assert(sizeof...(Kinds) != 0, "At least one token kind is required");
+        return (is(Expected) || ...);
+      }
+
+      KeywordKind keyword() const noexcept;
+      SymbolKind symbol() const noexcept;
       bool isTrivia() const noexcept;
       bool isError() const noexcept;
   };
@@ -187,6 +137,13 @@ namespace ink::tokenizer
   bool isTrivia(TokenKind Kind) noexcept;
   bool isError(TokenKind Kind) noexcept;
   const char *tokenKindName(TokenKind Kind) noexcept;
+  std::optional<KeywordKind> lookupKeyword(std::string_view Spelling) noexcept;
+  std::optional<SymbolKind> lookupSymbol(std::string_view Spelling) noexcept;
+  // Finds the longest symbol at the beginning of the remaining source bytes.
+  std::optional<SymbolKind> matchSymbolPrefix(std::string_view Source) noexcept;
+  std::string_view keywordSpelling(KeywordKind Kind) noexcept;
+  std::string_view symbolSpelling(SymbolKind Kind) noexcept;
+  std::string_view symbolSpelling(const Token &Token) noexcept;
 } // namespace ink::tokenizer
 
 #endif

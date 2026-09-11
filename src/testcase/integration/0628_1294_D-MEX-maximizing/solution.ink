@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var q: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
-  var w: dynamic;
-  var mini: dynamic;
-  var maxi = INT_MAX;
-  var prev: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var mini: dynamic = cpp_uninitialized();
+  var maxi: dynamic = INT_MAX;
+  var prev: dynamic = cpp_uninitialized();
   read(q, x);
-  var m1: dynamic;
-  var m2: dynamic;
+  var m1: dynamic = cpp_uninitialized();
+  var m2: dynamic = cpp_uninitialized();
   y = 0;
   while (cpp_update(q, "--"))
   {
@@ -31,12 +31,12 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
     solve();

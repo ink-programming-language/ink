@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var have = cpp_array(50);
+var have: dynamic = cpp_array(50);
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   while (cpp_comma(scanf("%d%d", (&a), (&b)), a))
   {
-    var where = 0;
-    var cup = b;
+    var where: dynamic = 0;
+    var cup: dynamic = b;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < a))
       {
         have[i] = 0;

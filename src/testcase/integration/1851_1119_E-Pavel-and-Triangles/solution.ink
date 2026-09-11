@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var x: dynamic;
-  var ans = 0;
-  var remaining = 0;
+  var x: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
+  var remaining: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x);
-      var cur = min(remaining, (x / 2));
+      var cur: dynamic = min(remaining, (x / 2));
       ans += cur;
       x -= (2 * cur);
       remaining -= cur;

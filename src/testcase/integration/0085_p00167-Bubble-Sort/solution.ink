@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a = cpp_array(100);
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_array(100);
   while (cpp_comma(scanf("%d", (&n)), (n != 0)))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%d", (&a[i]));
         i += 1;
       }
     }
-    var c = 0;
+    var c: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j < n))
           {
             if ((a[i] > a[j]))

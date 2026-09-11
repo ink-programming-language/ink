@@ -1,48 +1,48 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var F = cpp_expression("#incl");
+var F: dynamic = cpp_expression("#incl");
 
-var S = cpp_expression("#inclu");
+var S: dynamic = cpp_expression("#inclu");
 
-func setbit(n: dynamic)
+func setbit(n: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h>");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc+");
 }
 
-func clr(x: dynamic)
+func clr(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-var fast = cpp_expression("#include<bits/stdc++.h> using");
+var fast: dynamic = cpp_expression("#include<bits/stdc++.h> using");
 
-var endl = cpp_expression("#inc");
+var endl: dynamic = cpp_expression("#inc");
 
-var MOD = cpp_expression("#include<b");
+var MOD: dynamic = cpp_expression("#include<b");
 
-func dbg()
+func dbg() -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h> using nam");
 }
 
-func logger(vars: dynamic, values: dynamic...)
+func logger(vars: dynamic, values: dynamic...) -> dynamic
 {
   write(vars, " = ");
-  var delim = "";
+  var delim: dynamic = "";
   cpp_fold("(..., (cout << delim << values, delim = \",\"))");
   write("\n");
 }
 
-var inf = 1e18;
+var inf: dynamic = 1e18;
 
-func comp(a: dynamic, b: dynamic)
+func comp(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.second != b.second))
   {
@@ -51,15 +51,15 @@ func comp(a: dynamic, b: dynamic)
   return (a.first < b.first);
 }
 
-func main()
+func main() -> dynamic
 {
-  var int_cpp = 1;
+  var int_cpp: dynamic = 1;
   while (cpp_update(tt, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i].first, a[i].second);
@@ -69,20 +69,20 @@ func main()
     sort(all(a), comp);
     pre[0] = a[0].first;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         pre[i] = (pre[(i - 1)] + a[i].first);
         i += 1;
       }
     }
-    var ans = 0;
-    var l = 0;
-    var r = pre[(n - 1)];
-    var check = __cpp_lambda_1;
+    var ans: dynamic = 0;
+    var l: dynamic = 0;
+    var r: dynamic = pre[(n - 1)];
+    var check: dynamic = __cpp_lambda_1;
     while ((r >= l))
     {
-      var mid = (((l + r)) / 2);
+      var mid: dynamic = (((l + r)) / 2);
       if (check(mid))
       {
         ans = mid;
@@ -97,9 +97,9 @@ func main()
   return 0;
 }
 
-func power(a: dynamic, b: dynamic)
+func power(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (b)
   {
     if ((b % 2))
@@ -115,11 +115,11 @@ func power(a: dynamic, b: dynamic)
   return res;
 }
 
-func __cpp_lambda_1(key: dynamic)
+func __cpp_lambda_1(key: dynamic) -> dynamic
 {
-  var two = ((pre[(n - 1)] - key));
+  var two: dynamic = ((pre[(n - 1)] - key));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((a[i].second > two))

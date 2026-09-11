@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func print_iterable(begin_iter: dynamic, end_iter: dynamic, counter: dynamic)
+func print_iterable(begin_iter: dynamic, end_iter: dynamic, counter: dynamic) -> dynamic
 {
-  var done_something = false;
-  var res: dynamic;
+  var done_something: dynamic = false;
+  var res: dynamic = cpp_uninitialized();
   (res << "[");
   {
     while (cpp_binary((begin_iter != end_iter), "and", counter))
@@ -14,7 +14,7 @@ func print_iterable(begin_iter: dynamic, end_iter: dynamic, counter: dynamic)
       begin_iter += 1;
     }
   }
-  var str = res.str();
+  var str: dynamic = res.str();
   if (done_something)
   {
     str.pop_back();
@@ -24,10 +24,10 @@ func print_iterable(begin_iter: dynamic, end_iter: dynamic, counter: dynamic)
   return str;
 }
 
-func SortIndex(size: dynamic, compare: dynamic)
+func SortIndex(size: dynamic, compare: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < size))
     {
       ord[i] = i;
@@ -38,7 +38,7 @@ func SortIndex(size: dynamic, compare: dynamic)
   return ord;
 }
 
-func MinPlace(a: dynamic, b: dynamic)
+func MinPlace(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -48,7 +48,7 @@ func MinPlace(a: dynamic, b: dynamic)
   return false;
 }
 
-func MaxPlace(a: dynamic, b: dynamic)
+func MaxPlace(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -58,17 +58,17 @@ func MaxPlace(a: dynamic, b: dynamic)
   return false;
 }
 
-func operator_shift_left(out: dynamic, p: dynamic)
+func operator_shift_left(out: dynamic, p: dynamic) -> dynamic
 {
   (((((out << "{") << p.first) << ", ") << p.second) << "}");
   return out;
 }
 
-func operator_shift_left(out: dynamic, v: dynamic)
+func operator_shift_left(out: dynamic, v: dynamic) -> dynamic
 {
   (out << "[");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(v.size())))
     {
       (out << v[i]);
@@ -83,12 +83,12 @@ func operator_shift_left(out: dynamic, v: dynamic)
   return out;
 }
 
-func dbg(name: dynamic, val: dynamic)
+func dbg(name: dynamic, val: dynamic) -> dynamic
 {
   write(name, ": ", val, "\n");
 }
 
-func dbg(names: dynamic, curr_val: dynamic, vals: dynamic...)
+func dbg(names: dynamic, curr_val: dynamic, vals: dynamic...) -> dynamic
 {
   while (((*names) != cpp_char(",")))
   {
@@ -98,31 +98,31 @@ func dbg(names: dynamic, curr_val: dynamic, vals: dynamic...)
   dbg((names + 1), cpp_expand(vals));
 }
 
-var MAXN = (1e5 + 100);
+var MAXN: dynamic = (1e5 + 100);
 
-var a = cpp_array(MAXN);
+var a: dynamic = cpp_array(MAXN);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var h_free = 1;
-  var req = cpp_array(4);
+  var h_free: dynamic = 1;
+  var req: dynamic = cpp_array(4);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a[i] == 0))
@@ -138,7 +138,7 @@ func main()
           h_free += 1;
         } else
         {
-          var cima: dynamic;
+          var cima: dynamic = cpp_uninitialized();
           if (req[2].empty())
           {
             cima = req[3].back();
@@ -159,7 +159,7 @@ func main()
       {
         if ((!req[3].empty()))
         {
-          var cima = req[3].back();
+          var cima: dynamic = req[3].back();
           req[3].pop_back();
           ans.emplace_back(i, cima.second);
         }
@@ -176,7 +176,7 @@ func main()
   } else
   {
     write(ans.size(), cpp_char("\n"));
-    for (var el in ans)
+    for (var el: dynamic in ans)
     {
       write(el.second, " ", el.first, cpp_char("\n"));
     }

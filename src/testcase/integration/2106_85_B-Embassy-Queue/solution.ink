@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var waiting = cpp_array(3);
+var waiting: dynamic = cpp_array(3);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var c = cpp_array(100010);
+var c: dynamic = cpp_array(100010);
 
-var maxx = -1;
+var maxx: dynamic = -1;
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var n: dynamic;
-  var k = [0];
-  var cnt = [0];
-  var t = [0];
+  var i: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = [0];
+  var cnt: dynamic = [0];
+  var t: dynamic = [0];
   scanf("%d", (&k[0]));
   scanf("%d", (&k[1]));
   scanf("%d", (&k[2]));
@@ -33,9 +33,9 @@ func main()
   }
   while ((!q.empty()))
   {
-    var p = q.top();
+    var p: dynamic = q.top();
     q.pop();
-    var i = p.second.second;
+    var i: dynamic = p.second.second;
     if ((i == 3))
     {
       if ((cnt[0] < k[0]))
@@ -52,7 +52,7 @@ func main()
       if ((!waiting[i].empty()))
       {
         cnt[i] += 1;
-        var person = waiting[i].front();
+        var person: dynamic = waiting[i].front();
         waiting[i].pop();
         q.push(make_pair((p.first - t[i]), make_pair(person, i)));
       }

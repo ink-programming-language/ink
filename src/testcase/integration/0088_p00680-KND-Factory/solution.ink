@@ -1,131 +1,131 @@
 // Translated from solution.cpp.
 
-func dump()
+func dump() -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> using namespace std; #de");
 }
 
-func repi(i: dynamic, a: dynamic, b: dynamic)
+func repi(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=int(a);i<int(b);i++)");
 }
 
-func peri(i: dynamic, a: dynamic, b: dynamic)
+func peri(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=int(b);i-->int(a);)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <b");
 }
 
-func per(i: dynamic, n: dynamic)
+func per(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <b");
 }
 
-func all(c: dynamic)
+func all(c: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/");
 }
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var mt = cpp_expression("#include <");
+var mt: dynamic = cpp_expression("#include <");
 
-func operator_shift_left(os: dynamic, p: dynamic)
+func operator_shift_left(os: dynamic, p: dynamic) -> dynamic
 {
   return (((((os << cpp_char("(")) << p.first) << cpp_char(",")) << p.second) << cpp_char(")"));
 }
 
-func print_tuple(argument_0: dynamic, argument_1: dynamic)
+func print_tuple(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
 }
 
-func print_tuple(os: dynamic, t: dynamic)
+func print_tuple(os: dynamic, t: dynamic) -> dynamic
 {
   print_tuple(os, t);
-  ((os << (if (cpp_sizeof(Cdr)) "," else "")) << get(t));
+  ((os << ( (cpp_sizeof(Cdr)) ? "," : "")) << get(t));
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   print_tuple((os << cpp_char("(")), t);
   return (os << cpp_char(")"));
 }
 
-func operator_shift_left(os: dynamic, c: dynamic)
+func operator_shift_left(os: dynamic, c: dynamic) -> dynamic
 {
   (os << cpp_char("["));
   {
-    var i = begin(c);
+    var i: dynamic = begin(c);
     while ((i != end(c)))
     {
-      ((os << (if ((i == begin(c))) "" else " ")) << (*i));
+      ((os << ( ((i == begin(c))) ? "" : " ")) << (*i));
       i += 1;
     }
   }
   return (os << cpp_char("]"));
 }
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-func GaussJordan(a: dynamic, b: dynamic, x: dynamic)
+func GaussJordan(a: dynamic, b: dynamic, x: dynamic) -> dynamic
 {
-  var n = a.size();
-  var a = cpp_construct(n, vd((n + 1)));
+  var n: dynamic = a.size();
+  var a: dynamic = cpp_construct(n, vd((n + 1)));
   rep(i, n)[i] = a[i][n];
   return true;
 }
 
 class Edge
 {
-  var src: dynamic;
-  var dst: dynamic;
-  var cost: dynamic;
-  var cap: dynamic;
-  var flow: dynamic;
-  func Edge()
+  var src: dynamic = cpp_uninitialized();
+  var dst: dynamic = cpp_uninitialized();
+  var cost: dynamic = cpp_uninitialized();
+  var cap: dynamic = cpp_uninitialized();
+  var flow: dynamic = cpp_uninitialized();
+  func Edge() -> dynamic
   {
     }
-  func Edge(s: dynamic, d: dynamic, co: dynamic, ca: dynamic = 0, f: dynamic = 0)
+  func Edge(s: dynamic, d: dynamic, co: dynamic, ca: dynamic = 0, f: dynamic = 0) -> dynamic
   {
-      this->src = cpp_construct(s);
-      this->dst = cpp_construct(d);
-      this->cost = cpp_construct(co);
-      this->cap = cpp_construct(ca);
-      this->flow = cpp_construct(f);
+      self->src = cpp_construct(s);
+      self->dst = cpp_construct(d);
+      self->cost = cpp_construct(co);
+      self->cap = cpp_construct(ca);
+      self->flow = cpp_construct(f);
     }
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.cost < b.cost);
 }
 
-func operator_greater(a: dynamic, b: dynamic)
+func operator_greater(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.cost > b.cost);
 }
 
 class Graph
 {
-  var es: dynamic;
-  var head: dynamic;
-  var next: dynamic;
-  func Graph()
+  var es: dynamic = cpp_uninitialized();
+  var head: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
+  func Graph() -> dynamic
   {
     }
-  func Graph(n: dynamic)
+  func Graph(n: dynamic) -> dynamic
   {
-      this->head = cpp_construct(n, -1);
+      self->head = cpp_construct(n, -1);
     }
-  func AddEdge(u: dynamic, v: dynamic, co: dynamic, ca: dynamic)
+  func AddEdge(u: dynamic, v: dynamic, co: dynamic, ca: dynamic) -> dynamic
   {
       es.emplace_back(u, v, co, ca);
       next.push_back(head[u]);
@@ -136,18 +136,18 @@ class Graph
     }
 }
 
-func MinCostFlow(g: dynamic, tap: dynamic, sink: dynamic, flow: dynamic)
+func MinCostFlow(g: dynamic, tap: dynamic, sink: dynamic, flow: dynamic) -> dynamic
 {
-  var n = g.head.size();
-  var res = 0;
+  var n: dynamic = g.head.size();
+  var res: dynamic = 0;
   while ((flow > EPS))
   {
-    var prev = cpp_construct(n, -1);
-    var pq: dynamic;
+    var prev: dynamic = cpp_construct(n, -1);
+    var pq: dynamic = cpp_uninitialized();
     pq.emplace(-1, tap, 0);
     while (pq.size())
     {
-      var cur = pq.top();
+      var cur: dynamic = pq.top();
       pq.pop();
       if ((cur.cost > (cost[cur.dst] - EPS)))
       {
@@ -156,10 +156,10 @@ func MinCostFlow(g: dynamic, tap: dynamic, sink: dynamic, flow: dynamic)
       cost[cur.dst] = cur.cost;
       prev[cur.dst] = cur.src;
       {
-        var i = g.head[cur.dst];
+        var i: dynamic = g.head[cur.dst];
         while ((i != -1))
         {
-          var e = g.es[i];
+          var e: dynamic = g.es[i];
           if (((e.cap - e.flow) == 0))
           {
             i = g.next[i];
@@ -175,12 +175,12 @@ func MinCostFlow(g: dynamic, tap: dynamic, sink: dynamic, flow: dynamic)
       return -1;
     }
     rep(i, n)[i] += cost[i];
-    var augment = flow;
+    var augment: dynamic = flow;
     {
-      var v = sink;
+      var v: dynamic = sink;
       while ((v != tap))
       {
-        var e = g.es[prev[v]];
+        var e: dynamic = g.es[prev[v]];
         augment = min(augment, (e.cap - e.flow));
         v = g.es[prev[v]].src;
       }
@@ -190,10 +190,10 @@ func MinCostFlow(g: dynamic, tap: dynamic, sink: dynamic, flow: dynamic)
       return -1;
     }
     {
-      var v = sink;
+      var v: dynamic = sink;
       while ((v != tap))
       {
-        var i = prev[v];
+        var i: dynamic = prev[v];
         g.es[i].flow += augment;
         g.es[(i ^ 1)].flow -= augment;
         v = g.es[prev[v]].src;
@@ -205,17 +205,17 @@ func MinCostFlow(g: dynamic, tap: dynamic, sink: dynamic, flow: dynamic)
   return res;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var s: dynamic;
-  var t: dynamic;
-  var f: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
   read(n, s, t, f);
   {
     GaussJordan(a, b, cs);
   }
-  var res = MinCostFlow(g, s, t, f);
+  var res: dynamic = MinCostFlow(g, s, t, f);
   if ((res == -1))
   {
     puts("impossible");
@@ -225,23 +225,23 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var tc: dynamic;
+  var tc: dynamic = cpp_uninitialized();
   read(tc);
   rep(cpp_name, tc);
   solve();
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     copy(all(a[i]), begin(a[i]));
     a[i][n] = b[i];
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var p = i;
+    var p: dynamic = i;
     repi(j, (i + 1), n);
     if ((abs(a[p][i]) < abs(a[j][i])))
     {
@@ -260,16 +260,16 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       cpp_statement("rep(j,n)");
       read(a[i][j]);
       read(b[i]);
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var m: dynamic;
+    var m: dynamic = cpp_uninitialized();
     read(m);
     rep(j, m);
     read(ds[j]);

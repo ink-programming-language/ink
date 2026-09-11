@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-func operator_shift_left(out: dynamic, v: dynamic)
+func operator_shift_left(out: dynamic, v: dynamic) -> dynamic
 {
   (((((out << cpp_char("(")) << v.first) << cpp_char(",")) << v.second) << cpp_char(")"));
   return out;
@@ -16,16 +16,16 @@ class cprint_string
 {
 }
 
-func operator_shift_left(out: dynamic, v: dynamic)
+func operator_shift_left(out: dynamic, v: dynamic) -> dynamic
 {
-  for (var x in v)
+  for (var x: dynamic in v)
   {
     ((out << x) << cpp_char(" "));
   }
   return out;
 }
 
-func chmax(x: dynamic, a: dynamic)
+func chmax(x: dynamic, a: dynamic) -> dynamic
 {
   if ((x < a))
   {
@@ -33,7 +33,7 @@ func chmax(x: dynamic, a: dynamic)
   }
 }
 
-func chmin(x: dynamic, a: dynamic)
+func chmin(x: dynamic, a: dynamic) -> dynamic
 {
   if ((x > a))
   {
@@ -41,24 +41,24 @@ func chmin(x: dynamic, a: dynamic)
   }
 }
 
-func mod(a: dynamic, b: dynamic)
+func mod(a: dynamic, b: dynamic) -> dynamic
 {
   return ((((a % b) + b)) % b);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var grid: dynamic;
+var grid: dynamic = cpp_uninitialized();
 
-var di = [-1, 1, 0, 0];
+var di: dynamic = [-1, 1, 0, 0];
 
-var dj = [0, 0, -1, 1];
+var dj: dynamic = [0, 0, -1, 1];
 
-func dfs(i: dynamic, j: dynamic)
+func dfs(i: dynamic, j: dynamic) -> dynamic
 {
   if ((k == 0))
   {
@@ -74,7 +74,7 @@ func dfs(i: dynamic, j: dynamic)
   }
   grid[i][j] = cpp_char("T");
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < 4))
     {
       dfs((i + di[k]), (j + dj[k]));
@@ -88,12 +88,12 @@ func dfs(i: dynamic, j: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m, k);
   grid.resize(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(grid[i]);
@@ -101,11 +101,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((grid[i][j] == cpp_char(".")))
@@ -120,11 +120,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((grid[i][j] == cpp_char("T")))
@@ -138,7 +138,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(grid[i], "\n");

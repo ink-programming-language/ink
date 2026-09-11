@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var DUMPOUT = cpp_expression("//#d");
+var DUMPOUT: dynamic = cpp_expression("//#d");
 
-func dump()
+func dump() -> dynamic
 {
   cpp_macro("DUMPOUT<<\"  \";DUMPOUT<<#__VA_ARGS__<<\" :[\"<<__LINE__<<\":\"<<__FUNCTION__<<\"]\"<<endl;DUMPOUT<<\"    \";dump_func(__VA_ARGS__)");
 }
 
-func operator_shift_left(o: dynamic, m: dynamic)
+func operator_shift_left(o: dynamic, m: dynamic) -> dynamic
 {
   (((((o << "{") << m.first) << ", ") << m.second) << "}");
   return o;
 }
 
-func operator_shift_left(o: dynamic, m: dynamic)
+func operator_shift_left(o: dynamic, m: dynamic) -> dynamic
 {
   if (m.empty())
   {
@@ -22,7 +22,7 @@ func operator_shift_left(o: dynamic, m: dynamic)
   }
   ((o << "{") << (*m.begin()));
   {
-    var itr = cpp_update(m.begin(), "++");
+    var itr: dynamic = cpp_update(m.begin(), "++");
     while ((itr != m.end()))
     {
       ((o << ", ") << (*itr));
@@ -33,7 +33,7 @@ func operator_shift_left(o: dynamic, m: dynamic)
   return o;
 }
 
-func operator_shift_left(o: dynamic, m: dynamic)
+func operator_shift_left(o: dynamic, m: dynamic) -> dynamic
 {
   if (m.empty())
   {
@@ -42,7 +42,7 @@ func operator_shift_left(o: dynamic, m: dynamic)
   }
   ((o << "{") << (*m.begin()));
   {
-    var itr = cpp_update(m.begin(), "++");
+    var itr: dynamic = cpp_update(m.begin(), "++");
     while ((itr != m.end()))
     {
       ((o << ", ") << (*itr));
@@ -53,7 +53,7 @@ func operator_shift_left(o: dynamic, m: dynamic)
   return o;
 }
 
-func operator_shift_left(o: dynamic, v: dynamic)
+func operator_shift_left(o: dynamic, v: dynamic) -> dynamic
 {
   if (v.empty())
   {
@@ -62,7 +62,7 @@ func operator_shift_left(o: dynamic, v: dynamic)
   }
   ((o << "{") << v.front());
   {
-    var itr = cpp_update(v.begin(), "++");
+    var itr: dynamic = cpp_update(v.begin(), "++");
     while ((itr != v.end()))
     {
       ((o << ", ") << (*itr));
@@ -73,7 +73,7 @@ func operator_shift_left(o: dynamic, v: dynamic)
   return o;
 }
 
-func operator_shift_left(o: dynamic, v: dynamic)
+func operator_shift_left(o: dynamic, v: dynamic) -> dynamic
 {
   if (v.empty())
   {
@@ -82,7 +82,7 @@ func operator_shift_left(o: dynamic, v: dynamic)
   }
   ((o << "{") << v.front());
   {
-    var itr = cpp_update(v.begin(), "++");
+    var itr: dynamic = cpp_update(v.begin(), "++");
     while ((itr != v.end()))
     {
       ((o << ", ") << (*itr));
@@ -93,7 +93,7 @@ func operator_shift_left(o: dynamic, v: dynamic)
   return o;
 }
 
-func operator_shift_left(o: dynamic, s: dynamic)
+func operator_shift_left(o: dynamic, s: dynamic) -> dynamic
 {
   if (s.empty())
   {
@@ -102,7 +102,7 @@ func operator_shift_left(o: dynamic, s: dynamic)
   }
   ((o << "{") << (*(s.begin())));
   {
-    var itr = cpp_update(s.begin(), "++");
+    var itr: dynamic = cpp_update(s.begin(), "++");
     while ((itr != s.end()))
     {
       ((o << ", ") << (*itr));
@@ -113,7 +113,7 @@ func operator_shift_left(o: dynamic, s: dynamic)
   return o;
 }
 
-func operator_shift_left(o: dynamic, s: dynamic)
+func operator_shift_left(o: dynamic, s: dynamic) -> dynamic
 {
   if (s.empty())
   {
@@ -122,7 +122,7 @@ func operator_shift_left(o: dynamic, s: dynamic)
   }
   ((o << "{") << (*(s.begin())));
   {
-    var itr = cpp_update(s.begin(), "++");
+    var itr: dynamic = cpp_update(s.begin(), "++");
     while ((itr != s.end()))
     {
       ((o << ", ") << (*itr));
@@ -133,7 +133,7 @@ func operator_shift_left(o: dynamic, s: dynamic)
   return o;
 }
 
-func operator_shift_left(o: dynamic, s: dynamic)
+func operator_shift_left(o: dynamic, s: dynamic) -> dynamic
 {
   if (s.empty())
   {
@@ -151,7 +151,7 @@ func operator_shift_left(o: dynamic, s: dynamic)
   return o;
 }
 
-func operator_shift_left(o: dynamic, l: dynamic)
+func operator_shift_left(o: dynamic, l: dynamic) -> dynamic
 {
   if (l.empty())
   {
@@ -160,7 +160,7 @@ func operator_shift_left(o: dynamic, l: dynamic)
   }
   ((o << "{") << l.front());
   {
-    var itr = cpp_update(l.begin(), "++");
+    var itr: dynamic = cpp_update(l.begin(), "++");
     while ((itr != l.end()))
     {
       ((o << ", ") << (*itr));
@@ -171,16 +171,16 @@ func operator_shift_left(o: dynamic, l: dynamic)
   return o;
 }
 
-func operator_shift_right(is: dynamic, m: dynamic)
+func operator_shift_right(is: dynamic, m: dynamic) -> dynamic
 {
   ((is >> m.first) >> m.second);
   return is;
 }
 
-func operator_shift_right(is: dynamic, v: dynamic)
+func operator_shift_right(is: dynamic, v: dynamic) -> dynamic
 {
   {
-    var t = 0;
+    var t: dynamic = 0;
     while ((t < v.size()))
     {
       (is >> v[t]);
@@ -190,10 +190,10 @@ func operator_shift_right(is: dynamic, v: dynamic)
   return is;
 }
 
-func operator_shift_right(is: dynamic, v: dynamic)
+func operator_shift_right(is: dynamic, v: dynamic) -> dynamic
 {
   {
-    var t = 0;
+    var t: dynamic = 0;
     while ((t < v.size()))
     {
       (is >> v[t]);
@@ -205,7 +205,7 @@ func operator_shift_right(is: dynamic, v: dynamic)
 
 class tp
 {
-  func print(os: dynamic, v: dynamic)
+  func print(os: dynamic, v: dynamic) -> dynamic
   {
       ((os << get(v)) << ", ");
       tp.print(os, v);
@@ -214,13 +214,13 @@ class tp
 
 class tp_Ty_N_N
 {
-  func print(os: dynamic, v: dynamic)
+  func print(os: dynamic, v: dynamic) -> dynamic
   {
       (os << get(v));
     }
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   (os << "{");
   aux.tp.print(os, t);
@@ -228,25 +228,25 @@ func operator_shift_left(os: dynamic, t: dynamic)
   return os;
 }
 
-func Fill(array: dynamic, val: dynamic)
+func Fill(array: dynamic, val: dynamic) -> dynamic
 {
   fill(cpp_cast(array), cpp_cast(((array + N))), val);
 }
 
-func format(fmt: dynamic, args: dynamic...)
+func format(fmt: dynamic, args: dynamic...) -> dynamic
 {
-  var len = snprintf(null, 0, fmt.c_str(), cpp_expand(args));
-  var buf = cpp_construct((len + 1));
+  var len: dynamic = snprintf(null, 0, fmt.c_str(), cpp_expand(args));
+  var buf: dynamic = cpp_construct((len + 1));
   snprintf((&buf[0]), (len + 1), fmt.c_str(), cpp_expand(args));
   return string_cpp((&buf[0]), ((&buf[0]) + len));
 }
 
-func dump_func()
+func dump_func() -> dynamic
 {
   (DUMPOUT << endl);
 }
 
-func dump_func(head: dynamic, tail: dynamic...)
+func dump_func(head: dynamic, tail: dynamic...) -> dynamic
 {
   (DUMPOUT << head);
   if ((cpp_sizeof(Tail) == 0))
@@ -259,100 +259,100 @@ func dump_func(head: dynamic, tail: dynamic...)
   dump_func(cpp_expand(move(tail)));
 }
 
-var PI = cpp_expression("//#define NDEBUG #incl");
+var PI: dynamic = cpp_expression("//#define NDEBUG #incl");
 
-var EPS = cpp_expression("//#d");
+var EPS: dynamic = cpp_expression("//#d");
 
-func rep(t: dynamic, n: dynamic)
+func rep(t: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int t=0;t<(n);++t)");
 }
 
-func all(j: dynamic)
+func all(j: dynamic) -> dynamic
 {
   return cpp_expression("//#define NDEBUG #incl");
 }
 
-func SZ(j: dynamic)
+func SZ(j: dynamic) -> dynamic
 {
   return cpp_expression("//#define NDEBUG");
 }
 
-var fake = cpp_expression("//#de");
+var fake: dynamic = cpp_expression("//#de");
 
 class Timer
 {
-  var t: dynamic;
-  func Timer()
+  var t: dynamic = cpp_uninitialized();
+  func Timer() -> dynamic
   {
     }
-  func time()
+  func time() -> dynamic
   {
       return (rdtsc() / 2.8e9);
-      var a: dynamic;
-      var d: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var d: dynamic = cpp_uninitialized();
       cpp_expression("__asm__ volatile(\"rdtsc\" : \"=a\"(a), \"=d\"(d))");
       return ((((d << 32) | a)) / 2.8e9);
     }
-  func measure()
+  func measure() -> dynamic
   {
       t = (time() - t);
     }
-  func elapsedMs()
+  func elapsedMs() -> dynamic
   {
       return (((time() - t)) * 1000.0);
     }
 }
 
-var timer: dynamic;
+var timer: dynamic = cpp_uninitialized();
 
 class Xorshift
 {
-  var x: dynamic;
-  func next_int()
+  var x: dynamic = cpp_uninitialized();
+  func next_int() -> dynamic
   {
       x = (x ^ ((x << 7)));
       return cpp_assign(x, "=", (x ^ ((x >> 9))));
     }
-  func next_int(mod: dynamic)
+  func next_int(mod: dynamic) -> dynamic
   {
       x = (x ^ ((x << 7)));
       x = (x ^ ((x >> 9)));
       return (x % mod);
     }
-  func next_int(l: dynamic, r: dynamic)
+  func next_int(l: dynamic, r: dynamic) -> dynamic
   {
       x = (x ^ ((x << 7)));
       x = (x ^ ((x >> 9)));
       return ((x % (((r - l) + 1))) + l);
     }
-  func next_double()
+  func next_double() -> dynamic
   {
-      return (double(next_int()) / UINT_MAX);
+      return (cpp_double(next_int()) / UINT_MAX);
     }
 }
 
-var rnd: dynamic;
+var rnd: dynamic = cpp_uninitialized();
 
-func shuffle_vector(v: dynamic, rnd: dynamic)
+func shuffle_vector(v: dynamic, rnd: dynamic) -> dynamic
 {
-  var n = v.size();
+  var n: dynamic = v.size();
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 1))
     {
-      var r = rnd.next_int(i);
+      var r: dynamic = rnd.next_int(i);
       swap(v[i], v[r]);
       i -= 1;
     }
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   read(x);
   write(b, cpp_char("\n"));
   write((~b), cpp_char("\n"));

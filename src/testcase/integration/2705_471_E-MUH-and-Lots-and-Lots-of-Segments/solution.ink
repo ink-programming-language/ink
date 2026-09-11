@@ -2,56 +2,56 @@
 
 class event
 {
-  var x: dynamic;
-  var type_cpp: dynamic;
-  var y: dynamic;
-  var righty: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var type_cpp: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var righty: dynamic = cpp_uninitialized();
 }
 
 class P
 {
-  var right: dynamic;
-  var dsu: dynamic;
-  var number: dynamic;
+  var right: dynamic = cpp_uninitialized();
+  var dsu: dynamic = cpp_uninitialized();
+  var number: dynamic = cpp_uninitialized();
 }
 
-var xbegin = cpp_array(1000000);
+var xbegin: dynamic = cpp_array(1000000);
 
-var compcount: dynamic;
+var compcount: dynamic = cpp_uninitialized();
 
-var fen = cpp_array(1000000);
+var fen: dynamic = cpp_array(1000000);
 
-var xend = cpp_array(1000000);
+var xend: dynamic = cpp_array(1000000);
 
-var ybegin = cpp_array(1000000);
+var ybegin: dynamic = cpp_array(1000000);
 
-var yend = cpp_array(1000000);
+var yend: dynamic = cpp_array(1000000);
 
-var realx = cpp_array(1000000);
+var realx: dynamic = cpp_array(1000000);
 
-var realy = cpp_array(1000000);
+var realy: dynamic = cpp_array(1000000);
 
-var parent = cpp_array(1000000);
+var parent: dynamic = cpp_array(1000000);
 
-var events = cpp_array(1000000);
+var events: dynamic = cpp_array(1000000);
 
-var ans = cpp_array(1000000);
+var ans: dynamic = cpp_array(1000000);
 
-var best: dynamic;
+var best: dynamic = cpp_uninitialized();
 
-var xx = cpp_array(1000000);
+var xx: dynamic = cpp_array(1000000);
 
-var yy = cpp_array(1000000);
+var yy: dynamic = cpp_array(1000000);
 
-var lefts: dynamic;
+var lefts: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func event_vertical(x: dynamic, yl: dynamic, yr: dynamic)
+func event_vertical(x: dynamic, yl: dynamic, yr: dynamic) -> dynamic
 {
   v += 1;
   events[v].x = x;
@@ -60,7 +60,7 @@ func event_vertical(x: dynamic, yl: dynamic, yr: dynamic)
   events[v].righty = yr;
 }
 
-func event_horizantal_begin(x: dynamic, y: dynamic, xx: dynamic)
+func event_horizantal_begin(x: dynamic, y: dynamic, xx: dynamic) -> dynamic
 {
   v += 1;
   events[v].x = x;
@@ -69,7 +69,7 @@ func event_horizantal_begin(x: dynamic, y: dynamic, xx: dynamic)
   events[v].righty = xx;
 }
 
-func event_horizantal_end(x: dynamic, y: dynamic)
+func event_horizantal_end(x: dynamic, y: dynamic) -> dynamic
 {
   v += 1;
   events[v].x = x;
@@ -78,15 +78,15 @@ func event_horizantal_end(x: dynamic, y: dynamic)
   events[v].righty = 0;
 }
 
-func CMP(i: dynamic, j: dynamic)
+func CMP(i: dynamic, j: dynamic) -> dynamic
 {
   return (((i.x < j.x) || (((i.x == j.x) && (i.type_cpp < j.type_cpp)))));
 }
 
-func compressX()
+func compressX() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       xx[i] = make_pair(xbegin[i], i);
@@ -94,7 +94,7 @@ func compressX()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       xx[(i + n)] = make_pair(xend[i], (i + n));
@@ -102,10 +102,10 @@ func compressX()
     }
   }
   sort((xx + 1), ((xx + (2 * n)) + 1));
-  var v = 1;
+  var v: dynamic = 1;
   xx[0] = make_pair((xx[1].first - 1), 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (2 * n)))
     {
       if ((xx[i].first != xx[(i - 1)].first))
@@ -113,7 +113,7 @@ func compressX()
         v += 1;
       }
       realx[v] = xx[i].first;
-      var t = xx[i].second;
+      var t: dynamic = xx[i].second;
       if ((t > n))
       {
         xend[(t - n)] = v;
@@ -126,10 +126,10 @@ func compressX()
   }
 }
 
-func compressY()
+func compressY() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       yy[i] = make_pair(ybegin[i], i);
@@ -137,7 +137,7 @@ func compressY()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       yy[(i + n)] = make_pair(yend[i], (i + n));
@@ -145,10 +145,10 @@ func compressY()
     }
   }
   sort((yy + 1), ((yy + (2 * n)) + 1));
-  var v = 1;
+  var v: dynamic = 1;
   yy[0] = make_pair((yy[1].first - 1), 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (2 * n)))
     {
       if ((yy[i].first != yy[(i - 1)].first))
@@ -156,7 +156,7 @@ func compressY()
         v += 1;
       }
       realy[v] = yy[i].first;
-      var t = yy[i].second;
+      var t: dynamic = yy[i].second;
       if ((t > n))
       {
         yend[(t - n)] = v;
@@ -169,11 +169,11 @@ func compressY()
   }
 }
 
-func init()
+func init() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(xbegin[i], ybegin[i], xend[i], yend[i]);
@@ -184,11 +184,11 @@ func init()
   compressY();
 }
 
-func make_events()
+func make_events() -> dynamic
 {
   v = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((xbegin[i] == xend[i]))
@@ -205,9 +205,9 @@ func make_events()
   sort((events + 1), ((events + v) + 1), CMP);
 }
 
-func findsum(x: dynamic)
+func findsum(x: dynamic) -> dynamic
 {
-  var s = 0;
+  var s: dynamic = 0;
   while ((x >= 1))
   {
     s += fen[x];
@@ -216,7 +216,7 @@ func findsum(x: dynamic)
   return s;
 }
 
-func md(x: dynamic, y: dynamic)
+func md(x: dynamic, y: dynamic) -> dynamic
 {
   while ((x <= 400010))
   {
@@ -225,7 +225,7 @@ func md(x: dynamic, y: dynamic)
   }
 }
 
-func findset(x: dynamic)
+func findset(x: dynamic) -> dynamic
 {
   if ((parent[x] == 0))
   {
@@ -235,15 +235,15 @@ func findset(x: dynamic)
   return parent[x];
 }
 
-func divide(y: dynamic, l: dynamic)
+func divide(y: dynamic, l: dynamic) -> dynamic
 {
-  var it2 = s.upper_bound(y);
+  var it2: dynamic = s.upper_bound(y);
   it2 -= 1;
-  var cnt = lefts[l];
+  var cnt: dynamic = lefts[l];
   if ((y > l))
   {
-    var r = (*it2);
-    var nsize = (findsum(r) - findsum((l - 1)));
+    var r: dynamic = (*it2);
+    var nsize: dynamic = (findsum(r) - findsum((l - 1)));
     lefts[l].right = r;
     lefts[l].number = nsize;
   } else
@@ -253,15 +253,15 @@ func divide(y: dynamic, l: dynamic)
   if ((y < cnt.right))
   {
     it2 += 1;
-    var nl = (*it2);
-    var nsize = (findsum(cnt.right) - findsum((nl - 1)));
+    var nl: dynamic = (*it2);
+    var nsize: dynamic = (findsum(cnt.right) - findsum((nl - 1)));
     lefts[nl].right = cnt.right;
     lefts[nl].dsu = cnt.dsu;
     lefts[nl].number = nsize;
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   init();
@@ -273,17 +273,17 @@ func main()
   lefts[2000000] = [2000000, 0, 0];
   lefts[0] = [0, 0, 0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= v))
     {
       if ((events[i].type_cpp == 1))
       {
-        var y = events[i].y;
+        var y: dynamic = events[i].y;
         compcount += 1;
         ans[compcount] = (realx[events[i].righty] - realx[events[i].x]);
-        var it1 = lefts.upper_bound(y);
+        var it1: dynamic = lefts.upper_bound(y);
         it1 -= 1;
-        var l = it1->first;
+        var l: dynamic = it1->first;
         if (((l <= y) && (y <= lefts[l].right)))
         {
           divide(y, l);
@@ -296,25 +296,25 @@ func main()
       }
       if ((events[i].type_cpp == 3))
       {
-        var y = events[i].y;
+        var y: dynamic = events[i].y;
         s.erase(y);
-        var it = lefts.upper_bound(y);
+        var it: dynamic = lefts.upper_bound(y);
         it -= 1;
         md(y, -1);
-        var l = it->first;
+        var l: dynamic = it->first;
         if ((lefts[l].right == l))
         {
           lefts.erase(l);
         } else if ((lefts[l].right == y))
         {
-          var it = s.lower_bound(y);
+          var it: dynamic = s.lower_bound(y);
           it -= 1;
           lefts[l].right = (*it);
           lefts[l].number -= 1;
         } else if ((l == y))
         {
-          var it = s.lower_bound(y);
-          var cnt = lefts[l];
+          var it: dynamic = s.lower_bound(y);
+          var cnt: dynamic = lefts[l];
           lefts.erase(l);
           lefts[(*it)] = cnt;
           lefts[(*it)].number -= 1;
@@ -325,8 +325,8 @@ func main()
       }
       if ((events[i].type_cpp == 2))
       {
-        var yl = events[i].y;
-        var yr = events[i].righty;
+        var yl: dynamic = events[i].y;
+        var yr: dynamic = events[i].righty;
         if (((realy[yr] - realy[yl]) > best))
         {
           best = (realy[yr] - realy[yl]);
@@ -336,14 +336,14 @@ func main()
           i += 1;
           continue;
         }
-        var nDSU = 0;
-        var nl = 0;
-        var nr = 0;
-        var dif = 1;
-        var it = lefts.lower_bound(yl);
+        var nDSU: dynamic = 0;
+        var nl: dynamic = 0;
+        var nr: dynamic = 0;
+        var dif: dynamic = 1;
+        var it: dynamic = lefts.lower_bound(yl);
         it -= 1;
-        var l = it->first;
-        var cnt = lefts[l];
+        var l: dynamic = it->first;
+        var cnt: dynamic = lefts[l];
         if (((cnt.right >= yl) && (l <= yl)))
         {
           nl = l;
@@ -353,8 +353,8 @@ func main()
         }
         while (true)
         {
-          var it1 = lefts.lower_bound(yl);
-          var l = it1->first;
+          var it1: dynamic = lefts.lower_bound(yl);
+          var l: dynamic = it1->first;
           if ((l > yr))
           {
             break;
@@ -367,7 +367,7 @@ func main()
           {
             nl = l;
           }
-          var cnt = lefts[l];
+          var cnt: dynamic = lefts[l];
           nr = cnt.right;
           if ((nDSU == 0))
           {
@@ -414,7 +414,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= compcount))
     {
       if ((ans[i] > best))

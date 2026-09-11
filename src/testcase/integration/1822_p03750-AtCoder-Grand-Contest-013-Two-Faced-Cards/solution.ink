@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-func ref(i: dynamic, x: dynamic, y: dynamic)
+func cpp_ref(i: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i=x;i<=y;++i)");
 }
 
-func def(i: dynamic, x: dynamic, y: dynamic)
+func def(i: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i=x;i>=y;--i)");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-func SZ(x: dynamic)
+func SZ(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/");
 }
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-var N = 500010;
+var N: dynamic = 500010;
 
-func read()
+func read() -> dynamic
 {
-  var c = getchar();
-  var d = 0;
-  var f = 1;
+  var c: dynamic = getchar();
+  var d: dynamic = 0;
+  var f: dynamic = 1;
   {
     while (((c < cpp_char("0")) || (c > cpp_char("9"))))
     {
@@ -50,40 +50,40 @@ func read()
   return (d * f);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var res = cpp_array(N);
+var res: dynamic = cpp_array(N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var px: dynamic;
+var px: dynamic = cpp_uninitialized();
 
-var py: dynamic;
+var py: dynamic = cpp_uninitialized();
 
-var pz: dynamic;
+var pz: dynamic = cpp_uninitialized();
 
-var rd: dynamic;
+var rd: dynamic = cpp_uninitialized();
 
-var Rd = cpp_array(N);
+var Rd: dynamic = cpp_array(N);
 
-func cmpse(a: dynamic, b: dynamic)
+func cmpse(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.se < b.se);
 }
 
-func upd(x: dynamic, s: dynamic)
+func upd(x: dynamic, s: dynamic) -> dynamic
 {
   {
     while ((x <= m))
@@ -94,9 +94,9 @@ func upd(x: dynamic, s: dynamic)
   }
 }
 
-func ask(x: dynamic)
+func ask(x: dynamic) -> dynamic
 {
-  var s = 0;
+  var s: dynamic = 0;
   {
     while (x)
     {
@@ -107,16 +107,16 @@ func ask(x: dynamic)
   return s;
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
-  ref(i, 1, ((n * 3) + 1)).pb(mp(read(), i));
+  cpp_ref(i, 1, ((n * 3) + 1)).pb(mp(read(), i));
   q = read();
-  ref(i, 1, (q * 2)).pb(mp(read(), (((n * 3) + 1) + i)));
+  cpp_ref(i, 1, (q * 2)).pb(mp(read(), (((n * 3) + 1) + i)));
   sort(rd.begin(), rd.end());
   {
-    var i = 0;
-    var la = -1;
+    var i: dynamic = 0;
+    var la: dynamic = -1;
     while ((i < SZ(rd)))
     {
       m += (rd[i].fi != la);
@@ -125,37 +125,37 @@ func main()
       i += 1;
     }
   }
-  ref(i, 1, n);
+  cpp_ref(i, 1, n);
   {
-    var a = Rd[cpp_update(cnt, "++")];
-    var b = Rd[cpp_update(cnt, "++")];
+    var a: dynamic = Rd[cpp_update(cnt, "++")];
+    var b: dynamic = Rd[cpp_update(cnt, "++")];
     s[a] += 1;
     if ((b < a))
     {
       p.pb(mp(b, (a - 1)));
     }
   }
-  ref(i, 1, (n + 1))[Rd[cpp_update(cnt, "++")]] -= 1;
-  ref(i, 1, m);
+  cpp_ref(i, 1, (n + 1))[Rd[cpp_update(cnt, "++")]] -= 1;
+  cpp_ref(i, 1, m);
   if (s[i])
   {
     upd(i, s[i]);
   }
   px = cpp_assign(py, "=", p);
-  ref(i, 0, (SZ(px) - 1));
+  cpp_ref(i, 0, (SZ(px) - 1));
   swap(px[i].fi, px[i].se);
   sort(px.begin(), px.end(), cmpse);
   sort(py.begin(), py.end(), cmpse);
   S.clear();
   S.insert(mp(1e9, 1e9));
-  var flag = 1;
-  var rs = n;
+  var flag: dynamic = 1;
+  var rs: dynamic = n;
   {
-    var i = m;
-    var cntb = (SZ(py) - 1);
+    var i: dynamic = m;
+    var cntb: dynamic = (SZ(py) - 1);
     while ((i >= 1))
     {
-      var s = ask(i);
+      var s: dynamic = ask(i);
       if ((s >= -1))
       {
         i -= 1;
@@ -168,8 +168,8 @@ func main()
       }
       while (s)
       {
-        var it = S.lower_bound(mp(0, 0));
-        var w = (*it);
+        var it: dynamic = S.lower_bound(mp(0, 0));
+        var w: dynamic = (*it);
         if ((w.fi > i))
         {
           flag = 0;
@@ -199,15 +199,15 @@ func main()
   S.clear();
   S.insert(mp(1e9, 1e9));
   S.insert(mp(0, 0));
-  ref(i, 1, m)[i] = -1e9;
+  cpp_ref(i, 1, m)[i] = -1e9;
   {
-    var i = 1;
-    var cnta = 0;
-    var cntb = 0;
+    var i: dynamic = 1;
+    var cnta: dynamic = 0;
+    var cntb: dynamic = 0;
     while ((i <= m))
     {
       res[i] = rs;
-      var s = ask(i);
+      var s: dynamic = ask(i);
       if ((s >= 0))
       {
         i += 1;
@@ -224,8 +224,8 @@ func main()
       }
       while (s)
       {
-        var it = cpp_update(S.lower_bound(mp(1e9, 1e9)), "--");
-        var w = (*it);
+        var it: dynamic = cpp_update(S.lower_bound(mp(1e9, 1e9)), "--");
+        var w: dynamic = (*it);
         if ((w.fi < i))
         {
           flag = 0;
@@ -244,11 +244,11 @@ func main()
       i += 1;
     }
   }
-  ref(i, 1, q);
+  cpp_ref(i, 1, q);
   {
-    var a = Rd[cpp_update(cnt, "++")];
-    var b = Rd[cpp_update(cnt, "++")];
-    var ans = max((res[a] + 1), res[b]);
+    var a: dynamic = Rd[cpp_update(cnt, "++")];
+    var b: dynamic = Rd[cpp_update(cnt, "++")];
+    var ans: dynamic = max((res[a] + 1), res[b]);
     if ((ans < 0))
     {
       ans = -1;

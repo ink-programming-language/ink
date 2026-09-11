@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var A = cpp_array(10);
+var A: dynamic = cpp_array(10);
 
-var num = [-1, 2, 5, 5, 4, 5, 6, 3, 7, 6];
+var num: dynamic = [-1, 2, 5, 5, 4, 5, 6, 3, 7, 6];
 
-var dp = cpp_array(10010);
+var dp: dynamic = cpp_array(10010);
 
-func main()
+func main() -> dynamic
 {
   read(N, M);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       read(A[i]);
@@ -22,16 +22,16 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < M))
         {
-          var n = num[A[j]];
-          var tmp: dynamic;
-          var ss: dynamic;
+          var n: dynamic = num[A[j]];
+          var tmp: dynamic = cpp_uninitialized();
+          var ss: dynamic = cpp_uninitialized();
           if ((i < n))
           {
             j += 1;

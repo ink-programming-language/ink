@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var f = cpp_array(505, 505);
+var f: dynamic = cpp_array(505, 505);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&k));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       f[0][i] = 1;
@@ -16,15 +16,15 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < j))
             {
               (cpp_assign(f[j][i], "+=", (f[k][(i - 1)] * f[((j - k) - 1)][(i - 1)])));

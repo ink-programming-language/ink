@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func SET(n: dynamic, pos: dynamic)
+func SET(n: dynamic, pos: dynamic) -> dynamic
 {
   return cpp_assign(n, "=", (n | ((1 << pos))));
 }
 
-func RESET(n: dynamic, pos: dynamic)
+func RESET(n: dynamic, pos: dynamic) -> dynamic
 {
   return cpp_assign(n, "=", (n & (~((1 << pos)))));
 }
 
-func CHECK(n: dynamic, pos: dynamic)
+func CHECK(n: dynamic, pos: dynamic) -> dynamic
 {
   return cpp_cast(((n & ((1 << pos)))));
 }
 
-func bigMod(n: dynamic, power: dynamic, MOD: dynamic)
+func bigMod(n: dynamic, power: dynamic, MOD: dynamic) -> dynamic
 {
   if ((power == 0))
   {
@@ -23,7 +23,7 @@ func bigMod(n: dynamic, power: dynamic, MOD: dynamic)
   }
   if (((power % 2) == 0))
   {
-    var ret = bigMod(n, (power / 2), MOD);
+    var ret: dynamic = bigMod(n, (power / 2), MOD);
     return (((((ret % MOD)) * ((ret % MOD)))) % MOD);
   } else
   {
@@ -31,14 +31,14 @@ func bigMod(n: dynamic, power: dynamic, MOD: dynamic)
   }
 }
 
-func modInverse(n: dynamic, MOD: dynamic)
+func modInverse(n: dynamic, MOD: dynamic) -> dynamic
 {
   return bigMod(n, (MOD - 2), MOD);
 }
 
-func POW(x: dynamic, y: dynamic)
+func POW(x: dynamic, y: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   {
     while (y)
     {
@@ -53,13 +53,13 @@ func POW(x: dynamic, y: dynamic)
   return res;
 }
 
-func inverse(x: dynamic)
+func inverse(x: dynamic) -> dynamic
 {
-  var p = ((cpp_cast(1.0)) / x);
+  var p: dynamic = ((cpp_cast(1.0)) / x);
   return ((p) + 1e-9);
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   while (b)
   {
@@ -68,12 +68,12 @@ func gcd(a: dynamic, b: dynamic)
   return a;
 }
 
-func nC2(n: dynamic)
+func nC2(n: dynamic) -> dynamic
 {
   return ((n * ((n - 1))) / 2);
 }
 
-func MOD(n: dynamic, mod: dynamic)
+func MOD(n: dynamic, mod: dynamic) -> dynamic
 {
   if ((n >= 0))
   {
@@ -87,30 +87,30 @@ func MOD(n: dynamic, mod: dynamic)
   }
 }
 
-var vec = cpp_array(1000001);
+var vec: dynamic = cpp_array(1000001);
 
-var ans = cpp_array(1000001);
+var ans: dynamic = cpp_array(1000001);
 
-var vis = cpp_array(1000001);
+var vis: dynamic = cpp_array(1000001);
 
-var ara = cpp_array(1000001);
+var ara: dynamic = cpp_array(1000001);
 
-var ind = cpp_array(1000001);
+var ind: dynamic = cpp_array(1000001);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ok = true;
+var ok: dynamic = true;
 
-func foo(u: dynamic, num: dynamic)
+func foo(u: dynamic, num: dynamic) -> dynamic
 {
   vis[u] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < vec[u].size()))
     {
-      var v = vec[u][i];
+      var v: dynamic = vec[u][i];
       if ((!vis[v]))
       {
         ans[num].push_back(ara[v]);
@@ -122,14 +122,14 @@ func foo(u: dynamic, num: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(ara[i]);
@@ -137,20 +137,20 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       vec[a].push_back(b);
       vec[b].push_back(a);
       i += 1;
     }
   }
-  var level = 1;
+  var level: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))
@@ -164,7 +164,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sort(ans[i].begin(), ans[i].end());
@@ -172,7 +172,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(ans[ind[i]].back(), " ");

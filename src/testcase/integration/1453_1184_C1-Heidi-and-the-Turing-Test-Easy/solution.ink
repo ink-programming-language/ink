@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var v: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
   read(n);
   {
     i = 0;
     while ((i < ((4 * n) + 1)))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       v.push_back(make_pair(x, y));
       i += 1;
@@ -23,15 +23,15 @@ func main()
     i = 0;
     while ((i < v.size()))
     {
-      var aux: dynamic;
-      var f1 = 0;
-      var f2 = 0;
-      var f3 = 0;
-      var f4 = 0;
-      var mx = -1;
-      var my = -1;
-      var miy = 1e18;
-      var mix = 1e18;
+      var aux: dynamic = cpp_uninitialized();
+      var f1: dynamic = 0;
+      var f2: dynamic = 0;
+      var f3: dynamic = 0;
+      var f4: dynamic = 0;
+      var mx: dynamic = -1;
+      var my: dynamic = -1;
+      var miy: dynamic = 1e18;
+      var mix: dynamic = 1e18;
       {
         j = 0;
         while ((j < v.size()))

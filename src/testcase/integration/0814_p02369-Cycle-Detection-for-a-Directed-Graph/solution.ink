@@ -2,28 +2,28 @@
 
 class Graph
 {
-  var V: dynamic;
-  var adj: dynamic;
+  var V: dynamic = cpp_uninitialized();
+  var adj: dynamic = cpp_uninitialized();
 }
 
-func Graph(V: dynamic)
+func Graph(V: dynamic) -> dynamic
 {
-  this->V = V;
+  self->V = V;
   adj = cpp_new();
 }
 
-func addEdge(v: dynamic, w: dynamic)
+func addEdge(v: dynamic, w: dynamic) -> dynamic
 {
   adj[v].push_back(w);
 }
 
-func isCyclicUtil(v: dynamic, visited: dynamic, recStack: dynamic)
+func isCyclicUtil(v: dynamic, visited: dynamic, recStack: dynamic) -> dynamic
 {
   if ((visited[v] == false))
   {
     visited[v] = true;
     recStack[v] = true;
-    var i: dynamic;
+    var i: dynamic = cpp_uninitialized();
     {
       i = adj[v].begin();
       while ((i != adj[v].end()))
@@ -43,12 +43,12 @@ func isCyclicUtil(v: dynamic, visited: dynamic, recStack: dynamic)
   return false;
 }
 
-func isCyclic()
+func isCyclic() -> dynamic
 {
-  var visited = cpp_new();
-  var recStack = cpp_new();
+  var visited: dynamic = cpp_new();
+  var recStack: dynamic = cpp_new();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V))
     {
       visited[i] = false;
@@ -57,7 +57,7 @@ func isCyclic()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V))
     {
       if (isCyclicUtil(i, visited, recStack))
@@ -70,15 +70,15 @@ func isCyclic()
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
-  var V: dynamic;
-  var E: dynamic;
-  var s: dynamic;
-  var t: dynamic;
+  var V: dynamic = cpp_uninitialized();
+  var E: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(V, E);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < E))
     {
       read(s, t);

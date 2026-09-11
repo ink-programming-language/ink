@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = (a + b);
-  return if ((res >= mod)) (res - mod) else res;
+  var res: dynamic = (a + b);
+  return  ((res >= mod)) ? (res - mod) : res;
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a * b) % mod);
 }
 
-func matmul(a: dynamic, b: dynamic)
+func matmul(a: dynamic, b: dynamic) -> dynamic
 {
-  var n = (cpp_cast((a).size()));
-  var m = (cpp_cast((b).size()));
-  var o = (cpp_cast((b[0]).size()));
+  var n: dynamic = (cpp_cast((a).size()));
+  var m: dynamic = (cpp_cast((b).size()));
+  var o: dynamic = (cpp_cast((b[0]).size()));
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       {
-        var j = (0);
+        var j: dynamic = (0);
         while ((j < (o)))
         {
           {
-            var k = (0);
+            var k: dynamic = (0);
             while ((k < (m)))
             {
               ans[i][j] = add(ans[i][j], mul(a[i][k], b[k][j]));
@@ -43,12 +43,12 @@ func matmul(a: dynamic, b: dynamic)
   return ans;
 }
 
-func powmod(a: dynamic, b: dynamic)
+func powmod(a: dynamic, b: dynamic) -> dynamic
 {
   assert((b >= 0));
-  var n = (cpp_cast((a).size()));
+  var n: dynamic = (cpp_cast((a).size()));
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       ans[i][i] = 1;
@@ -69,24 +69,24 @@ func powmod(a: dynamic, b: dynamic)
   return ans;
 }
 
-var event: dynamic;
+var event: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(4);
+var cnt: dynamic = cpp_array(4);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%lld", (&n), (&m));
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
-      var l: dynamic;
-      var r: dynamic;
-      var a: dynamic;
+      var l: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
+      var a: dynamic = cpp_uninitialized();
       scanf("%d%lld%lld", (&a), (&l), (&r));
       a -= 1;
       l -= 1;
@@ -98,13 +98,13 @@ func main()
   event.push_back(make_pair(1, make_pair(0, 3)));
   event.push_back(make_pair(m, make_pair(1, 3)));
   sort((event).begin(), (event).end());
-  var cur = [[0], [1], [0]];
+  var cur: dynamic = [[0], [1], [0]];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (((cpp_cast((event).size())) - 1))))
     {
-      var t = event[i].second.first;
-      var of = event[i].second.second;
+      var t: dynamic = event[i].second.first;
+      var of: dynamic = event[i].second.second;
       if ((t == 0))
       {
         cnt[of] += 1;
@@ -112,7 +112,7 @@ func main()
       {
         cnt[of] -= 1;
       }
-      var now = cpp_construct(3, vector(3));
+      var now: dynamic = cpp_construct(3, vector(3));
       if ((cnt[0] == 0))
       {
         now[0] = [1, 1, 0];
@@ -125,7 +125,7 @@ func main()
       {
         now[2] = [0, 1, 1];
       }
-      var len = (event[(i + 1)].first - event[i].first);
+      var len: dynamic = (event[(i + 1)].first - event[i].first);
       cur = matmul(powmod(now, len), cur);
       i += 1;
     }

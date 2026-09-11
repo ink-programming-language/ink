@@ -1,68 +1,68 @@
 // Translated from solution.cpp.
 
-func times(n: dynamic, i: dynamic)
+func times(n: dynamic, i: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits");
 }
 
-func rtimes(n: dynamic, i: dynamic)
+func rtimes(n: dynamic, i: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++");
 }
 
-func upto(f: dynamic, t: dynamic, i: dynamic)
+func upto(f: dynamic, t: dynamic, i: dynamic) -> dynamic
 {
   cpp_macro("for(int i##_to_ = (t), i = (f); i <= i##_to_; i++)");
 }
 
-func uptil(f: dynamic, t: dynamic, i: dynamic)
+func uptil(f: dynamic, t: dynamic, i: dynamic) -> dynamic
 {
   cpp_macro("for(int i##_to_ = (t), i = (f); i <  i##_to_; i++)");
 }
 
-func downto(f: dynamic, t: dynamic, i: dynamic)
+func downto(f: dynamic, t: dynamic, i: dynamic) -> dynamic
 {
   cpp_macro("for(int i##_to_ = (t), i = (f); i >= i##_to_; i--)");
 }
 
-func downtil(f: dynamic, t: dynamic, i: dynamic)
+func downtil(f: dynamic, t: dynamic, i: dynamic) -> dynamic
 {
   cpp_macro("for(int i##_to_ = (t), i = (f); i >  i##_to_; i--)");
 }
 
-var long = dynamic;
+var long: dynamic = dynamic;
 
-var __cpp_top_level_1 = cpp_fragment("defined(EBUG) && !defined(ONLINE_JUDGE)");
+var __cpp_top_level_1: dynamic = cpp_fragment("defined(EBUG) && !defined(ONLINE_JUDGE)");
 
-var debug = cpp_expression("#inc");
+var debug: dynamic = cpp_expression("#inc");
 
-var GLIBCXX_DEBUG = cpp_expression("#inc");
+var GLIBCXX_DEBUG: dynamic = cpp_expression("#inc");
 
-var LIBCPP_DEBUG = cpp_expression("#");
+var LIBCPP_DEBUG: dynamic = cpp_expression("#");
 
-var ln = cpp_expression("#includ");
+var ln: dynamic = cpp_expression("#includ");
 
-var debug = cpp_expression("#incl");
+var debug: dynamic = cpp_expression("#incl");
 
-var ln = cpp_expression("#includ");
+var ln: dynamic = cpp_expression("#includ");
 
-var tb = cpp_expression("#includ");
+var tb: dynamic = cpp_expression("#includ");
 
-var sp = cpp_expression("#inclu");
+var sp: dynamic = cpp_expression("#inclu");
 
 class BIT
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   var node: dynamic = cpp_array(N);
-  func BIT()
+  func BIT() -> dynamic
   {
       times(N, i)[i] = 0;
     }
-  func set(i: dynamic, v: dynamic)
+  func set(i: dynamic, v: dynamic) -> dynamic
   {
       add(i, (v - node[i]));
     }
-  func add(i: dynamic, v: dynamic)
+  func add(i: dynamic, v: dynamic) -> dynamic
   {
       {
         i += 1;
@@ -73,9 +73,9 @@ class BIT
         }
       }
     }
-  func sum(i: dynamic)
+  func sum(i: dynamic) -> dynamic
   {
-      var s = 0;
+      var s: dynamic = 0;
       {
         i += 1;
         while (i)
@@ -88,26 +88,26 @@ class BIT
     }
 }
 
-var A = cpp_array(48600);
+var A: dynamic = cpp_array(48600);
 
-var B = cpp_array(48600);
+var B: dynamic = cpp_array(48600);
 
-var C = cpp_array(48600);
+var C: dynamic = cpp_array(48600);
 
-var e0 = cpp_array(48600);
+var e0: dynamic = cpp_array(48600);
 
-var e = cpp_array(48600);
+var e: dynamic = cpp_array(48600);
 
-func main()
+func main() -> dynamic
 {
   if ((!debug))
   {
     cin.tie(0);
     ios.sync_with_stdio(0);
   }
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   scanf("%d", (&N));
-  var nn = ((N * ((N - 1))) / 2);
+  var nn: dynamic = ((N * ((N - 1))) / 2);
   times(2, o);
   {
     times(N, i)[i] = make_pair((((C[i] - (cpp_cast(A[i]) * -1e9))) / B[i]), i);
@@ -124,17 +124,17 @@ func main()
     if (debug)
     {
       (((times(N, i) << d0[i].first) << ",") << d0[i].second);
-      var ln: dynamic;
+      var ln: dynamic = cpp_uninitialized();
     }
-    var l = -1e9;
-    var r = 1e9;
+    var l: dynamic = -1e9;
+    var r: dynamic = 1e9;
     times(100, oo);
     {
-      var m = (((l + r)) / 2);
+      var m: dynamic = (((l + r)) / 2);
       times(N, i)[i] = [(((C[i] - (cpp_cast(A[i]) * m))) / B[i]), i];
       sort(begin(d), end(d));
-      var bit: dynamic;
-      var a = 0;
+      var bit: dynamic = cpp_uninitialized();
+      var a: dynamic = 0;
       if ((a < (((nn + 1)) / 2)))
       {
         l = m;
@@ -143,20 +143,20 @@ func main()
         r = m;
       }
     }
-    write(fixed, setprecision(30), l, (if (o) "\n" else " "));
+    write(fixed, setprecision(30), l, ( (o) ? "\n" : " "));
     swap(A, B);
   }
   return 0;
 }
 
-func times(argument_0: dynamic, argument_1: dynamic)
+func times(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     scanf("%d%d%d", (&A[i]), (&B[i]), (&C[i]));
   }
 
-func times(argument_0: dynamic, argument_1: dynamic)
+func times(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var aj = e0[d[i].second];
+        var aj: dynamic = e0[d[i].second];
         a += (aj - bit.sum(aj));
         bit.add(aj, 1);
       }

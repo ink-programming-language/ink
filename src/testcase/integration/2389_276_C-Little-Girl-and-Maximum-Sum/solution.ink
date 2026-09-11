@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var INF = INT_MAX;
+var INF: dynamic = INT_MAX;
 
-var NINF = INT_MIN;
+var NINF: dynamic = INT_MIN;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var curr: dynamic;
+var curr: dynamic = cpp_uninitialized();
 
-var vec: dynamic;
+var vec: dynamic = cpp_uninitialized();
 
-var tv: dynamic;
+var tv: dynamic = cpp_uninitialized();
 
-var Count: dynamic;
+var Count: dynamic = cpp_uninitialized();
 
-func Solve()
+func Solve() -> dynamic
 {
   read(n, q);
   vec = cpp_assign(tv, "=", vector(n, 0));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       read(vec[i]);
@@ -35,7 +35,7 @@ func Solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (q - 1)))
     {
       read(l, r);
@@ -51,7 +51,7 @@ func Solve()
   }
   curr = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       curr += tv[i];
@@ -64,9 +64,9 @@ func Solve()
   }
   sort(Count.rbegin(), Count.rend());
   sort(vec.rbegin(), vec.rend());
-  var ans = 0;
-  var i = 0;
-  for (var v in Count)
+  var ans: dynamic = 0;
+  var i: dynamic = 0;
+  for (var v: dynamic in Count)
   {
     ans += ((((v * 1)) * ((vec[i] * 1))));
     i += 1;
@@ -74,7 +74,7 @@ func Solve()
   write(ans, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);

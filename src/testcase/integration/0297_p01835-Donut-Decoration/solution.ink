@@ -2,9 +2,9 @@
 
 class SegmentTree
 {
-  var seg: dynamic;
-  var sz: dynamic;
-  func SegmentTree(n: dynamic)
+  var seg: dynamic = cpp_uninitialized();
+  var sz: dynamic = cpp_uninitialized();
+  func SegmentTree(n: dynamic) -> dynamic
   {
       sz = 1;
       while ((sz < n))
@@ -13,7 +13,7 @@ class SegmentTree
       }
       seg.assign(((2 * sz) - 1), make_pair(0, 0));
     }
-  func push(k: dynamic)
+  func push(k: dynamic) -> dynamic
   {
       if (((k >= (sz - 1)) || (seg[k] == make_pair(0, 0))))
       {
@@ -41,7 +41,7 @@ class SegmentTree
       }
       seg[k] = [0, 0];
     }
-  func update(a: dynamic, b: dynamic, x: dynamic, k: dynamic, l: dynamic, r: dynamic)
+  func update(a: dynamic, b: dynamic, x: dynamic, k: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       push(k);
       if (((a >= r) || (b <= l)))
@@ -72,11 +72,11 @@ class SegmentTree
         update(a, b, x, ((2 * k) + 2), (((l + r)) >> 1), r);
       }
     }
-  func update(a: dynamic, b: dynamic, x: dynamic)
+  func update(a: dynamic, b: dynamic, x: dynamic) -> dynamic
   {
       update(a, b, x, 0, 0, sz);
     }
-  func query(a: dynamic, b: dynamic, x: dynamic, k: dynamic, l: dynamic, r: dynamic)
+  func query(a: dynamic, b: dynamic, x: dynamic, k: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       push(k);
       if (((a >= r) || (b <= l)))
@@ -89,30 +89,30 @@ class SegmentTree
       }
       return ((query(a, b, x, ((2 * k) + 1), l, (((l + r)) >> 1)) + query(a, b, x, ((2 * k) + 2), (((l + r)) >> 1), r)));
     }
-  func query(a: dynamic, b: dynamic, x: dynamic)
+  func query(a: dynamic, b: dynamic, x: dynamic) -> dynamic
   {
       return (query(a, b, x, 0, 0, sz));
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var K: dynamic;
-  var T: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var K: dynamic = cpp_uninitialized();
+  var T: dynamic = cpp_uninitialized();
   scanf("%d %d", (&N), (&K));
   scanf("%d", (&T));
   while (cpp_update(T, "--"))
   {
-    var l: dynamic;
-    var r: dynamic;
-    var x: dynamic;
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
     scanf("%d %d %d", (&l), (&r), (&x));
     tree.update(cpp_update(l, "--"), r, cpp_update(x, "--"));
   }
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       ret += tree.query(i, (i + 1), K);

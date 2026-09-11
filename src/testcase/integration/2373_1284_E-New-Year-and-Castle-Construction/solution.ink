@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var cpp_name: dynamic;
+var cpp_name: dynamic = cpp_uninitialized();
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   if ((((b.second < 0)) ^ ((a.second < 0))))
   {
@@ -11,32 +11,32 @@ func cmp(a: dynamic, b: dynamic)
   return (((1 * a.first) * b.second) < ((1 * b.first) * a.second));
 }
 
-func eq(a: dynamic, b: dynamic)
+func eq(a: dynamic, b: dynamic) -> dynamic
 {
   return (((1 * a.first) * b.second) == ((1 * b.first) * a.second));
 }
 
-func Count(A: dynamic)
+func Count(A: dynamic) -> dynamic
 {
-  var N = cpp_cast(A.size());
+  var N: dynamic = cpp_cast(A.size());
   sort(A.begin(), A.end(), cmp);
-  var Z = 0;
-  var ZO = 0;
-  var ZOZ = 0;
-  var O = 0;
-  var OZ = 0;
-  var OZO = 0;
+  var Z: dynamic = 0;
+  var ZO: dynamic = 0;
+  var ZOZ: dynamic = 0;
+  var O: dynamic = 0;
+  var OZ: dynamic = 0;
+  var OZO: dynamic = 0;
   {
-    var i = 0;
-    var j: dynamic;
+    var i: dynamic = 0;
+    var j: dynamic = cpp_uninitialized();
     while ((i < N))
     {
-      var NZ = Z;
-      var NZO = ZO;
-      var NZOZ = ZOZ;
-      var NO = O;
-      var NOZ = OZ;
-      var NOZO = OZO;
+      var NZ: dynamic = Z;
+      var NZO: dynamic = ZO;
+      var NZOZ: dynamic = ZOZ;
+      var NO: dynamic = O;
+      var NOZ: dynamic = OZ;
+      var NOZO: dynamic = OZO;
       {
         j = i;
         while (((j < N) && eq(A[i], A[j])))
@@ -64,11 +64,11 @@ func Count(A: dynamic)
       i = j;
     }
   }
-  var L = 0;
-  var R = 0;
-  var D = 0;
+  var L: dynamic = 0;
+  var R: dynamic = 0;
+  var D: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((A[i].second == 0))
@@ -85,7 +85,7 @@ func Count(A: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((A[i].second < 0))
@@ -98,28 +98,28 @@ func Count(A: dynamic)
   return ((OZO + ZOZ) - (((1 * L) * R) * D));
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x[i], y[i]);
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a: dynamic;
+      var a: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((i != j))

@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var mod1 = 998244353;
+var mod1: dynamic = 998244353;
 
-var inf = 5e18;
+var inf: dynamic = 5e18;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
   read(n, p, w, d);
   {
-    var draw = 0;
+    var draw: dynamic = 0;
     while ((draw < w))
     {
-      var score = (draw * d);
-      var win = (((p - score)) / w);
+      var score: dynamic = (draw * d);
+      var win: dynamic = (((p - score)) / w);
       if (((((win >= 0) && (score >= 0)) && ((score + (win * w)) == p)) && ((win + draw) <= n)))
       {
         write(win, " ", draw, " ", ((n - win) - draw));
@@ -34,7 +34,7 @@ func solve()
   write(-1);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);

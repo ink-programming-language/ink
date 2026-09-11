@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
-  var j: dynamic;
-  var i: dynamic;
-  var k: dynamic;
-  var n: dynamic;
-  var m: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   if ((n == m))
   {

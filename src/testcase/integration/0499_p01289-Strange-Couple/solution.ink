@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var maxn = 105;
+var maxn: dynamic = 105;
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-var eps = 1e-12;
+var eps: dynamic = 1e-12;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var flag = cpp_array(maxn);
+var flag: dynamic = cpp_array(maxn);
 
-var mp = cpp_array(maxn);
+var mp: dynamic = cpp_array(maxn);
 
-func add_edge(u: dynamic, v: dynamic, d: dynamic)
+func add_edge(u: dynamic, v: dynamic, d: dynamic) -> dynamic
 {
   mp[u].push_back(make_pair(v, d));
   mp[v].push_back(make_pair(u, d));
 }
 
-var eq = cpp_array(maxn, maxn);
+var eq: dynamic = cpp_array(maxn, maxn);
 
-func gauss()
+func gauss() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var tmp = i;
+      var tmp: dynamic = i;
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j <= n))
         {
           if ((fabs(eq[j][i]) > fabs(eq[tmp][i])))
@@ -43,7 +43,7 @@ func gauss()
         }
       }
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j <= n))
         {
           swap(eq[i][j], eq[tmp][j]);
@@ -52,12 +52,12 @@ func gauss()
       }
       swap(eq[i][0], eq[tmp][0]);
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j <= n))
         {
-          var tt = (eq[j][i] / eq[i][i]);
+          var tt: dynamic = (eq[j][i] / eq[i][i]);
           {
-            var k = i;
+            var k: dynamic = i;
             while ((k <= n))
             {
               eq[j][k] -= (eq[i][k] * tt);
@@ -72,11 +72,11 @@ func gauss()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j <= n))
         {
           eq[i][0] -= (eq[i][j] * eq[j][0]);
@@ -90,16 +90,16 @@ func gauss()
   return eq[s][0];
 }
 
-var que: dynamic;
+var que: dynamic = cpp_uninitialized();
 
-var dist = cpp_array(maxn);
+var dist: dynamic = cpp_array(maxn);
 
-var inq = cpp_array(maxn);
+var inq: dynamic = cpp_array(maxn);
 
-func spfa()
+func spfa() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dist[i] = inf;
@@ -110,14 +110,14 @@ func spfa()
   que.push(t);
   while ((!que.empty()))
   {
-    var u = que.front();
+    var u: dynamic = que.front();
     inq[u] = false;
     que.pop();
     {
-      var l = 0;
+      var l: dynamic = 0;
       while ((l < mp[u].size()))
       {
-        var v = mp[u][l].first;
+        var v: dynamic = mp[u][l].first;
         if ((dist[v] <= (dist[u] + mp[u][l].second)))
         {
           l += 1;
@@ -135,10 +135,10 @@ func spfa()
   }
 }
 
-func work()
+func work() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       mp[i].clear();
@@ -146,11 +146,11 @@ func work()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= n))
         {
           eq[i][j] = 0.00;
@@ -161,7 +161,7 @@ func work()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&flag[i]));
@@ -169,14 +169,14 @@ func work()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
-          var d: dynamic;
+          var d: dynamic = cpp_uninitialized();
           scanf("%d", (&d));
           if (((i < j) || (d == 0)))
           {
@@ -197,7 +197,7 @@ func work()
     return;
   }
   {
-    var u = 1;
+    var u: dynamic = 1;
     while ((u <= n))
     {
       if ((u == t))
@@ -207,10 +207,10 @@ func work()
         continue;
       }
       {
-        var l = 0;
+        var l: dynamic = 0;
         while ((l < mp[u].size()))
         {
-          var v = mp[u][l].first;
+          var v: dynamic = mp[u][l].first;
           if ((flag[u] && (dist[u] != (dist[v] + mp[u][l].second))))
           {
             l += 1;
@@ -228,7 +228,7 @@ func work()
   printf("%.10f\n", (gauss() + eps));
 }
 
-func main()
+func main() -> dynamic
 {
   while (true)
   {

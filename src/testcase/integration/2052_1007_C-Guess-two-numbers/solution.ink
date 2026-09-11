@@ -2,20 +2,20 @@
 
 class BigInt
 {
-  func BigInt(initValue: dynamic = 0)
+  func BigInt(initValue: dynamic = 0) -> dynamic
   {
-      (*this) = initValue;
+      (*self) = initValue;
     }
-  func BigInt(s: dynamic, sign: dynamic)
+  func BigInt(s: dynamic, sign: dynamic) -> dynamic
   {
-      this->s = s;
-      this->sign = sign;
+      self->s = s;
+      self->sign = sign;
     }
-  func operator_assign(value: dynamic)
+  func operator_assign(value: dynamic) -> dynamic
   {
-      sign = if ((value < 0)) -1 else 1;
-      var absValue: dynamic;
-      absValue = if ((value < 0)) (-value) else value;
+      sign =  ((value < 0)) ? -1 : 1;
+      var absValue: dynamic = cpp_uninitialized();
+      absValue =  ((value < 0)) ? (-value) : value;
       s.clear();
       if ((absValue == 0))
       {
@@ -28,30 +28,30 @@ class BigInt
           absValue /= base;
         }
       }
-      return (*this);
+      return (*self);
     }
-  func operator_assign(other: dynamic)
+  func operator_assign(other: dynamic) -> dynamic
   {
       sign = other.sign;
       s = other.s;
-      return (*this);
+      return (*self);
     }
-  func operator_add(other: dynamic)
+  func operator_add(other: dynamic) -> dynamic
   {
       if ((sign == other.sign))
       {
-        var res = other;
+        var res: dynamic = other;
         {
-          var i = 0;
-          var carry = 0;
+          var i: dynamic = 0;
+          var carry: dynamic = 0;
           while (((i < s.size()) || carry))
           {
             if ((i == res.s.size()))
             {
               res.s.push_back(0);
             }
-            res.s[i] += (carry + (if ((i < s.size())) s[i] else 0));
-            carry = if ((res.s[i] >= base)) 1 else 0;
+            res.s[i] += (carry + ( ((i < s.size())) ? s[i] : 0));
+            carry =  ((res.s[i] >= base)) ? 1 : 0;
             if (carry)
             {
               res.s[i] -= base;
@@ -61,28 +61,28 @@ class BigInt
         }
         return res;
       }
-      return ((*this) - ((-other)));
+      return ((*self) - ((-other)));
     }
-  func operator_subtract()
+  func operator_subtract() -> dynamic
   {
-      var res = (*this);
+      var res: dynamic = (*self);
       res.sign = (-sign);
       return res;
     }
-  func operator_subtract(other: dynamic)
+  func operator_subtract(other: dynamic) -> dynamic
   {
       if ((sign == other.sign))
       {
-        if ((this->abs() >= other.abs()))
+        if ((self->abs() >= other.abs()))
         {
-          var res = (*this);
+          var res: dynamic = (*self);
           {
-            var i = 0;
-            var carry = 0;
+            var i: dynamic = 0;
+            var carry: dynamic = 0;
             while (((i < other.s.size()) || carry))
             {
-              res.s[i] -= (carry + (if ((i < other.s.size())) other.s[i] else 0));
-              carry = if ((res.s[i] < 0)) 1 else 0;
+              res.s[i] -= (carry + ( ((i < other.s.size())) ? other.s[i] : 0));
+              carry =  ((res.s[i] < 0)) ? 1 : 0;
               if (carry)
               {
                 res.s[i] += base;
@@ -93,34 +93,34 @@ class BigInt
           res.trim();
           return res;
         }
-        return (-((other - (*this))));
+        return (-((other - (*self))));
       }
-      return ((*this) + ((-other)));
+      return ((*self) + ((-other)));
     }
-  func operator_multiply(other: dynamic)
+  func operator_multiply(other: dynamic) -> dynamic
   {
-      var res: dynamic;
+      var res: dynamic = cpp_uninitialized();
       res.sign = (sign * other.sign);
-      var add: dynamic;
+      var add: dynamic = cpp_uninitialized();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < other.s.size()))
         {
-          add.push_back(((*this) * other.s[i]));
+          add.push_back(((*self) * other.s[i]));
           i += 1;
         }
       }
-      var maxLevel = (s.size() * other.s.size());
-      var carry = 0;
+      var maxLevel: dynamic = (s.size() * other.s.size());
+      var carry: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while (((i < maxLevel) || carry))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while (((j <= i) && (j < add.size())))
             {
-              var pos = (i - j);
+              var pos: dynamic = (i - j);
               if ((add[j].s.size() > pos))
               {
                 carry += add[j].s[pos];
@@ -140,18 +140,18 @@ class BigInt
       res.trim();
       return res;
     }
-  func operator_multiply(other: dynamic)
+  func operator_multiply(other: dynamic) -> dynamic
   {
-      var res = (*this);
-      var value = other;
+      var res: dynamic = (*self);
+      var value: dynamic = other;
       if ((value < 0))
       {
         res.sign = (-sign);
         value = (-value);
       }
-      var carry = 0;
+      var carry: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while (((i < res.s.size()) || carry))
         {
           if ((i < res.s.size()))
@@ -169,27 +169,27 @@ class BigInt
       res.trim();
       return res;
     }
-  func operator_add_assign(other: dynamic)
+  func operator_add_assign(other: dynamic) -> dynamic
   {
-      (*this) = ((*this) + other);
+      (*self) = ((*self) + other);
     }
-  func operator_subtract_assign(other: dynamic)
+  func operator_subtract_assign(other: dynamic) -> dynamic
   {
-      (*this) = ((*this) - other);
+      (*self) = ((*self) - other);
     }
-  func operator(other: dynamic)
+  func operator(other: dynamic) -> dynamic
   {
-      (*this) = ((*this) * other);
+      (*self) = ((*self) * other);
     }
-  func abs()
+  func abs() -> dynamic
   {
-      var res = (*this);
+      var res: dynamic = (*self);
       res.sign = 1;
       return res;
     }
-  func trim()
+  func trim() -> dynamic
   {
-      var i = (s.size() - 1);
+      var i: dynamic = (s.size() - 1);
       while (((i > 0) && (s[i] == 0)))
       {
         i -= 1;
@@ -200,61 +200,61 @@ class BigInt
         sign = 1;
       }
     }
-  func compare(other: dynamic)
+  func compare(other: dynamic) -> dynamic
   {
       if ((sign != other.sign))
       {
-        return if ((sign == 1)) 1 else -1;
+        return  ((sign == 1)) ? 1 : -1;
       }
       if ((s.size() != other.s.size()))
       {
-        return if ((s.size() > other.s.size())) sign else (-sign);
+        return  ((s.size() > other.s.size())) ? sign : (-sign);
       }
       {
-        var i = (s.size() - 1);
+        var i: dynamic = (s.size() - 1);
         while ((i >= 0))
         {
           if ((s[i] != other.s[i]))
           {
-            return if ((s[i] > other.s[i])) sign else (-sign);
+            return  ((s[i] > other.s[i])) ? sign : (-sign);
           }
           i -= 1;
         }
       }
       return 0;
     }
-  func operator_less(other: dynamic)
+  func operator_less(other: dynamic) -> dynamic
   {
       return (compare(other) == -1);
     }
-  func operator_equal(other: dynamic)
+  func operator_equal(other: dynamic) -> dynamic
   {
       return (compare(other) == 0);
     }
-  func operator_greater(other: dynamic)
+  func operator_greater(other: dynamic) -> dynamic
   {
       return (compare(other) == 1);
     }
-  func operator_less_equal(other: dynamic)
+  func operator_less_equal(other: dynamic) -> dynamic
   {
       return (compare(other) <= 0);
     }
-  func operator_greater_equal(other: dynamic)
+  func operator_greater_equal(other: dynamic) -> dynamic
   {
       return (compare(other) >= 0);
     }
-  func toString()
+  func toString() -> dynamic
   {
-      var res: dynamic;
+      var res: dynamic = cpp_uninitialized();
       if ((sign == -1))
       {
         res.push_back(cpp_char("-"));
       }
-      var buf = cpp_array(40);
+      var buf: dynamic = cpp_array(40);
       sprintf(buf, "%d", s.back());
       res += buf;
       {
-        var i = (s.size() - 2);
+        var i: dynamic = (s.size() - 2);
         while ((i >= 0))
         {
           sprintf(buf, "%09d", s[i]);
@@ -264,24 +264,24 @@ class BigInt
       }
       return res;
     }
-  var base: dynamic;
-  var sign: dynamic;
-  var s: dynamic;
+  var base: dynamic = cpp_uninitialized();
+  var sign: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
 }
 
-func operator_shift_left(os: dynamic, b: dynamic)
+func operator_shift_left(os: dynamic, b: dynamic) -> dynamic
 {
   return (os << b.toString());
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func checkAnswer(x: dynamic, y: dynamic)
+func checkAnswer(x: dynamic, y: dynamic) -> dynamic
 {
-  var count = 0;
-  var a = 76717313154795141;
-  var b = 106780775536689089;
-  var res: dynamic;
+  var count: dynamic = 0;
+  var a: dynamic = 76717313154795141;
+  var b: dynamic = 106780775536689089;
+  var res: dynamic = cpp_uninitialized();
   if (((x > a) || (y > b)))
   {
     res = 3;
@@ -299,20 +299,20 @@ func checkAnswer(x: dynamic, y: dynamic)
   return res;
 }
 
-func checkAnswerStdout(x: dynamic, y: dynamic)
+func checkAnswerStdout(x: dynamic, y: dynamic) -> dynamic
 {
   printf(cpp_expression("\"%\""), (" %" + "\n"), x, y);
   fflush(stdout);
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   scanf("%d", (&res));
   return res;
 }
 
-var hardMinA = 1;
+var hardMinA: dynamic = 1;
 
-var hardMinB = 1;
+var hardMinB: dynamic = 1;
 
-func guessRange(lowA: dynamic, hiA: dynamic, lowB: dynamic, hiB: dynamic, answerFn: dynamic)
+func guessRange(lowA: dynamic, hiA: dynamic, lowB: dynamic, hiB: dynamic, answerFn: dynamic) -> dynamic
 {
   lowA = max(hardMinA, lowA);
   lowB = max(hardMinB, lowB);
@@ -320,9 +320,9 @@ func guessRange(lowA: dynamic, hiA: dynamic, lowB: dynamic, hiB: dynamic, answer
   {
     return false;
   }
-  var midA = (lowA + (((hiA - lowA)) / 2));
-  var midB = (lowB + (((hiB - lowB)) / 2));
-  var res = answerFn(midA, midB);
+  var midA: dynamic = (lowA + (((hiA - lowA)) / 2));
+  var midB: dynamic = (lowB + (((hiB - lowB)) / 2));
+  var res: dynamic = answerFn(midA, midB);
   if ((res == 0))
   {
     return true;
@@ -340,20 +340,20 @@ func guessRange(lowA: dynamic, hiA: dynamic, lowB: dynamic, hiB: dynamic, answer
   return (guessRange(lowA, (midA - 1), lowB, hiB, answerFn) || guessRange(midA, hiA, lowB, (midB - 1), answerFn));
 }
 
-func guessRange(answerFn: dynamic)
+func guessRange(answerFn: dynamic) -> dynamic
 {
   guessRange(1, n, 1, n, answerFn);
 }
 
 class Space
 {
-  var lowX: dynamic;
-  var midX: dynamic;
-  var hiX: dynamic;
-  var lowY: dynamic;
-  var midY: dynamic;
-  var hiY: dynamic;
-  func Space(x1: dynamic, x2: dynamic, y1: dynamic, y2: dynamic)
+  var lowX: dynamic = cpp_uninitialized();
+  var midX: dynamic = cpp_uninitialized();
+  var hiX: dynamic = cpp_uninitialized();
+  var lowY: dynamic = cpp_uninitialized();
+  var midY: dynamic = cpp_uninitialized();
+  var hiY: dynamic = cpp_uninitialized();
+  func Space(x1: dynamic, x2: dynamic, y1: dynamic, y2: dynamic) -> dynamic
   {
       lowX = x1;
       midX = x2;
@@ -362,67 +362,67 @@ class Space
       midY = y2;
       hiY = y2;
     }
-  func areaA()
+  func areaA() -> dynamic
   {
       return (BigInt(((midX - lowX) + 1)) * BigInt(((midY - lowY) + 1)));
     }
-  func areaB()
+  func areaB() -> dynamic
   {
       return (BigInt(((midX - lowX) + 1)) * BigInt((hiY - midY)));
     }
-  func areaC()
+  func areaC() -> dynamic
   {
       return (BigInt((hiX - midX)) * BigInt(((midY - lowY) + 1)));
     }
-  func setLowX(newLowX: dynamic)
+  func setLowX(newLowX: dynamic) -> dynamic
   {
       lowX = newLowX;
       if ((lowX > midX))
       {
-        (*this) = Space(lowX, hiX, lowY, midY);
+        (*self) = Space(lowX, hiX, lowY, midY);
       }
     }
-  func setLowY(newLowY: dynamic)
+  func setLowY(newLowY: dynamic) -> dynamic
   {
       lowY = newLowY;
       if ((lowY > midY))
       {
-        (*this) = Space(lowX, midX, lowY, hiY);
+        (*self) = Space(lowX, midX, lowY, hiY);
       }
     }
-  func setMidX(newMidX: dynamic)
+  func setMidX(newMidX: dynamic) -> dynamic
   {
       midX = newMidX;
       if ((midX < lowX))
       {
-        (*this) = Space(lowX, hiX, lowY, midY);
+        (*self) = Space(lowX, hiX, lowY, midY);
       }
     }
-  func setMidY(newMidY: dynamic)
+  func setMidY(newMidY: dynamic) -> dynamic
   {
       midY = newMidY;
       if ((midY < lowY))
       {
-        (*this) = Space(lowX, midX, lowY, hiY);
+        (*self) = Space(lowX, midX, lowY, hiY);
       }
     }
 }
 
-func getMiddle(a: dynamic, b: dynamic)
+func getMiddle(a: dynamic, b: dynamic) -> dynamic
 {
   return (a + (((b - a)) / 2));
 }
 
-func guessRange(answerFn: dynamic)
+func guessRange(answerFn: dynamic) -> dynamic
 {
-  var space = cpp_construct(1, n, 1, n);
+  var space: dynamic = cpp_construct(1, n, 1, n);
   while (true)
   {
-    var a = space.areaA();
-    var b = space.areaB();
-    var c = space.areaC();
-    var x: dynamic;
-    var y: dynamic;
+    var a: dynamic = space.areaA();
+    var b: dynamic = space.areaB();
+    var c: dynamic = space.areaC();
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     if ((b >= (a + c)))
     {
       x = getMiddle(space.lowX, space.midX);
@@ -436,7 +436,7 @@ func guessRange(answerFn: dynamic)
       x = getMiddle(space.lowX, space.midX);
       y = getMiddle(space.lowY, space.midY);
     }
-    var res = answerFn(x, y);
+    var res: dynamic = answerFn(x, y);
     if ((res == 0))
     {
       break;
@@ -455,7 +455,7 @@ func guessRange(answerFn: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   if ((scanf(cpp_expression("\"%\""), PRId64, (&n)) == 1))
   {

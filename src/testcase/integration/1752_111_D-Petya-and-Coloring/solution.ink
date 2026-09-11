@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var UNDEF = -1;
+var UNDEF: dynamic = -1;
 
-var INF = (1 << 30);
+var INF: dynamic = (1 << 30);
 
-func chkmax(aa: dynamic, bb: dynamic)
+func chkmax(aa: dynamic, bb: dynamic) -> dynamic
 {
-  return if ((aa < bb)) cpp_comma(cpp_assign(aa, "=", bb), true) else false;
+  return  ((aa < bb)) ? cpp_comma(cpp_assign(aa, "=", bb), true) : false;
 }
 
-func chkmin(aa: dynamic, bb: dynamic)
+func chkmin(aa: dynamic, bb: dynamic) -> dynamic
 {
-  return if ((aa > bb)) cpp_comma(cpp_assign(aa, "=", bb), true) else false;
+  return  ((aa > bb)) ? cpp_comma(cpp_assign(aa, "=", bb), true) : false;
 }
 
-var mn = 1002;
+var mn: dynamic = 1002;
 
-var dp = cpp_array(mn, mn);
+var dp: dynamic = cpp_array(mn, mn);
 
-func stirling(n: dynamic, k: dynamic)
+func stirling(n: dynamic, k: dynamic) -> dynamic
 {
   if ((dp[n][k] != -1))
   {
     return dp[n][k];
   }
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   if (((n == 0) && (k == 0)))
   {
     ans = 1;
@@ -42,8 +42,8 @@ func stirling(n: dynamic, k: dynamic)
 
 class mint
 {
-  var x: dynamic;
-  func norm(x: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  func norm(x: dynamic) -> dynamic
   {
       if ((x < 0))
       {
@@ -51,119 +51,119 @@ class mint
       }
       return x;
     }
-  func mint()
+  func mint() -> dynamic
   {
-      this->x = cpp_construct(0);
+      self->x = cpp_construct(0);
     }
-  func mint(sig: dynamic)
+  func mint(sig: dynamic) -> dynamic
   {
       sig = norm(sig);
       x = sig;
     }
-  func mint(sig: dynamic)
+  func mint(sig: dynamic) -> dynamic
   {
       sig = norm((sig % MOD));
       x = sig;
     }
-  func get()
+  func get() -> dynamic
   {
       return cpp_cast(x);
     }
-  func operator_add_assign(that: dynamic)
+  func operator_add_assign(that: dynamic) -> dynamic
   {
       if (((cpp_assign(x, "+=", that.x)) >= MOD))
       {
         x -= MOD;
       }
-      return (*this);
+      return (*self);
     }
-  func operator_subtract_assign(that: dynamic)
+  func operator_subtract_assign(that: dynamic) -> dynamic
   {
       if (((cpp_assign(x, "+=", (MOD - that.x))) >= MOD))
       {
         x -= MOD;
       }
-      return (*this);
+      return (*self);
     }
-  func operator(that: dynamic)
+  func operator(that: dynamic) -> dynamic
   {
       x = (((cpp_cast(x) * that.x)) % MOD);
-      return (*this);
+      return (*self);
     }
-  func operator(that: dynamic)
+  func operator(that: dynamic) -> dynamic
   {
-      return cpp_assign((*this), "*=", that.inverse());
+      return cpp_assign((*self), "*=", that.inverse());
     }
-  func operator_add_assign(that: dynamic)
+  func operator_add_assign(that: dynamic) -> dynamic
   {
       that = norm(that);
       if (((cpp_assign(x, "+=", that)) >= MOD))
       {
         x -= MOD;
       }
-      return (*this);
+      return (*self);
     }
-  func operator_subtract_assign(that: dynamic)
+  func operator_subtract_assign(that: dynamic) -> dynamic
   {
       that = norm(that);
       if (((cpp_assign(x, "+=", (MOD - that))) >= MOD))
       {
         x -= MOD;
       }
-      return (*this);
+      return (*self);
     }
-  func operator(that: dynamic)
+  func operator(that: dynamic) -> dynamic
   {
       that = norm(that);
       x = (((cpp_cast(x) * that)) % MOD);
-      return (*this);
+      return (*self);
     }
-  func operator(that: dynamic)
+  func operator(that: dynamic) -> dynamic
   {
       that = norm(that);
-      return cpp_assign((*this), "*=", mint(that).inverse());
+      return cpp_assign((*self), "*=", mint(that).inverse());
     }
-  func operator_add(that: dynamic)
+  func operator_add(that: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "+=", that);
+      return cpp_assign(mint((*self)), "+=", that);
     }
-  func operator_subtract(that: dynamic)
+  func operator_subtract(that: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "-=", that);
+      return cpp_assign(mint((*self)), "-=", that);
     }
-  func operator_multiply(that: dynamic)
+  func operator_multiply(that: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "*=", that);
+      return cpp_assign(mint((*self)), "*=", that);
     }
-  func operator_divide(that: dynamic)
+  func operator_divide(that: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "/=", that);
+      return cpp_assign(mint((*self)), "/=", that);
     }
-  func operator_add(that: dynamic)
+  func operator_add(that: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "+=", that);
+      return cpp_assign(mint((*self)), "+=", that);
     }
-  func operator_subtract(that: dynamic)
+  func operator_subtract(that: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "-=", that);
+      return cpp_assign(mint((*self)), "-=", that);
     }
-  func operator_multiply(that: dynamic)
+  func operator_multiply(that: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "*=", that);
+      return cpp_assign(mint((*self)), "*=", that);
     }
-  func operator_divide(that: dynamic)
+  func operator_divide(that: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "/=", that);
+      return cpp_assign(mint((*self)), "/=", that);
     }
-  func inverse()
+  func inverse() -> dynamic
   {
-      var a = x;
-      var b = MOD;
-      var u = 1;
-      var v = 0;
+      var a: dynamic = x;
+      var b: dynamic = MOD;
+      var u: dynamic = 1;
+      var v: dynamic = 0;
       while (b)
       {
-        var t = (a / b);
+        var t: dynamic = (a / b);
         a -= (t * b);
         swap(a, b);
         u -= (t * v);
@@ -173,28 +173,28 @@ class mint
       {
         u += MOD;
       }
-      var res: dynamic;
+      var res: dynamic = cpp_uninitialized();
       res.x = cpp_cast(u);
       return res;
     }
-  func operator_equal(that: dynamic)
+  func operator_equal(that: dynamic) -> dynamic
   {
       return (x == that.x);
     }
-  func operator_not_equal(that: dynamic)
+  func operator_not_equal(that: dynamic) -> dynamic
   {
       return (x != that.x);
     }
-  func operator_subtract()
+  func operator_subtract() -> dynamic
   {
-      var t: dynamic;
-      t.x = if ((x == 0)) 0 else (MOD - x);
+      var t: dynamic = cpp_uninitialized();
+      t.x =  ((x == 0)) ? 0 : (MOD - x);
       return t;
     }
-  func operator(k: dynamic)
+  func operator(k: dynamic) -> dynamic
   {
-      var a = ((*this));
-      var r = 1;
+      var a: dynamic = ((*self));
+      var r: dynamic = 1;
       while (k)
       {
         if ((k & 1))
@@ -208,17 +208,17 @@ class mint
     }
 }
 
-var MAXFACT = (1e6 + 4);
+var MAXFACT: dynamic = (1e6 + 4);
 
-var fact = cpp_array((MAXFACT + 1));
+var fact: dynamic = cpp_array((MAXFACT + 1));
 
-var invfact = cpp_array((MAXFACT + 1));
+var invfact: dynamic = cpp_array((MAXFACT + 1));
 
-func init()
+func init() -> dynamic
 {
-  var got = 1;
+  var got: dynamic = 1;
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x <= MAXFACT))
     {
       fact[x] = got;
@@ -228,7 +228,7 @@ func init()
   }
   got = got.inverse();
   {
-    var x = MAXFACT;
+    var x: dynamic = MAXFACT;
     while ((x >= 0))
     {
       got *= ((x + 1));
@@ -238,7 +238,7 @@ func init()
   }
 }
 
-func binom(n: dynamic, k: dynamic)
+func binom(n: dynamic, k: dynamic) -> dynamic
 {
   if ((n < k))
   {
@@ -251,15 +251,15 @@ func binom(n: dynamic, k: dynamic)
   return ((fact[n] * invfact[k]) * invfact[(n - k)]);
 }
 
-func distinctObjectsDistinctNonemptyBins(n: dynamic, bins: dynamic)
+func distinctObjectsDistinctNonemptyBins(n: dynamic, bins: dynamic) -> dynamic
 {
-  var ans = 0;
-  var sign = 1;
+  var ans: dynamic = 0;
+  var sign: dynamic = 1;
   {
-    var k = bins;
+    var k: dynamic = bins;
     while ((k > 0))
     {
-      var got = (binom(bins, k) * ((mint(k) ^ n)));
+      var got: dynamic = (binom(bins, k) * ((mint(k) ^ n)));
       if ((sign == 1))
       {
         ans += got;
@@ -274,24 +274,24 @@ func distinctObjectsDistinctNonemptyBins(n: dynamic, bins: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   init();
   memset(dp, -1, cpp_sizeof(dp));
-  var r = rint();
-  var c = rint();
-  var klim = rint();
-  var final_cpp = 0;
+  var r: dynamic = rint();
+  var c: dynamic = rint();
+  var klim: dynamic = rint();
+  var final_cpp: dynamic = 0;
   if (((c == 1) || (c == 2)))
   {
-    var ans = 0;
+    var ans: dynamic = 0;
     {
-      var k = 1;
+      var k: dynamic = 1;
       while ((k <= min(r, klim)))
       {
-        var got = ((binom(klim, k) * stirling(r, k)) * fact[k]);
+        var got: dynamic = ((binom(klim, k) * stirling(r, k)) * fact[k]);
         if ((c == 1))
         {
           ans += got;
@@ -306,18 +306,18 @@ func main()
     final_cpp = ans;
   } else
   {
-    var ans = 0;
+    var ans: dynamic = 0;
     {
-      var k = 1;
+      var k: dynamic = 1;
       while ((k <= min(r, klim)))
       {
-        var inside = (binom(klim, k) * distinctObjectsDistinctNonemptyBins((((c - 2)) * r), k));
-        var got = 0;
+        var inside: dynamic = (binom(klim, k) * distinctObjectsDistinctNonemptyBins((((c - 2)) * r), k));
+        var got: dynamic = 0;
         {
-          var d = 0;
+          var d: dynamic = 0;
           while ((d <= (min(r, klim) - k)))
           {
-            var side = (binom((klim - k), d) * ((fact[(k + d)] * stirling(r, (k + d)))));
+            var side: dynamic = (binom((klim - k), d) * ((fact[(k + d)] * stirling(r, (k + d)))));
             got += (side * side);
             d += 1;
           }
@@ -331,19 +331,19 @@ func main()
   printf("%d\n", final_cpp.get());
 }
 
-var stdinBuffer = cpp_array(1024);
+var stdinBuffer: dynamic = cpp_array(1024);
 
-var stdinDataEnd = (stdinBuffer + cpp_sizeof((stdinBuffer)));
+var stdinDataEnd: dynamic = (stdinBuffer + cpp_sizeof((stdinBuffer)));
 
-var stdinPos = stdinDataEnd;
+var stdinPos: dynamic = stdinDataEnd;
 
-func readAhead(amount: dynamic)
+func readAhead(amount: dynamic) -> dynamic
 {
-  var remaining = (stdinDataEnd - stdinPos);
+  var remaining: dynamic = (stdinDataEnd - stdinPos);
   if ((remaining < amount))
   {
     memmove(stdinBuffer, stdinPos, remaining);
-    var sz = fread((stdinBuffer + remaining), 1, (cpp_sizeof((stdinBuffer)) - remaining), stdin);
+    var sz: dynamic = fread((stdinBuffer + remaining), 1, (cpp_sizeof((stdinBuffer)) - remaining), stdin);
     stdinPos = stdinBuffer;
     stdinDataEnd = ((stdinBuffer + remaining) + sz);
     if ((stdinDataEnd != (stdinBuffer + cpp_sizeof((stdinBuffer)))))
@@ -353,11 +353,11 @@ func readAhead(amount: dynamic)
   }
 }
 
-func rint()
+func rint() -> dynamic
 {
   readAhead(16);
-  var x = 0;
-  var neg = false;
+  var x: dynamic = 0;
+  var neg: dynamic = false;
   while ((((*stdinPos) == cpp_char(" ")) || ((*stdinPos) == cpp_char("\n"))))
   {
     stdinPos += 1;
@@ -373,26 +373,26 @@ func rint()
     x += ((*stdinPos) - cpp_char("0"));
     stdinPos += 1;
   }
-  return if (neg) (-x) else x;
+  return  (neg) ? (-x) : x;
 }
 
-func rch()
+func rch() -> dynamic
 {
   readAhead(16);
   while ((((*stdinPos) == cpp_char(" ")) || ((*stdinPos) == cpp_char("\n"))))
   {
     stdinPos += 1;
   }
-  var ans = (*stdinPos);
+  var ans: dynamic = (*stdinPos);
   stdinPos += 1;
   return ans;
 }
 
-func rlong()
+func rlong() -> dynamic
 {
   readAhead(32);
-  var x = 0;
-  var neg = false;
+  var x: dynamic = 0;
+  var neg: dynamic = false;
   while ((((*stdinPos) == cpp_char(" ")) || ((*stdinPos) == cpp_char("\n"))))
   {
     stdinPos += 1;
@@ -408,5 +408,5 @@ func rlong()
     x += ((*stdinPos) - cpp_char("0"));
     stdinPos += 1;
   }
-  return if (neg) (-x) else x;
+  return  (neg) ? (-x) : x;
 }

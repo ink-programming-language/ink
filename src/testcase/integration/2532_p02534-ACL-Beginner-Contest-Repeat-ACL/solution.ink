@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var st = "ACL";
+  var n: dynamic = cpp_uninitialized();
+  var st: dynamic = "ACL";
   read(n);
   while (cpp_update(n, "--"))
   {

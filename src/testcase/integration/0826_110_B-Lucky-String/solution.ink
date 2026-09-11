@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while ((cin >> n))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write(cpp_cast(((cpp_char("a") + (i % 4)))));

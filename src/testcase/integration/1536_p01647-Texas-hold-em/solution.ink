@@ -1,58 +1,58 @@
 // Translated from solution.cpp.
 
-func FOR(i: dynamic, k: dynamic, n: dynamic)
+func FOR(i: dynamic, k: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = (int)(k); i < (int)(n); i++)");
 }
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <");
 }
 
-func ALL(a: dynamic)
+func ALL(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/std");
 }
 
-func MS(m: dynamic, v: dynamic)
+func MS(m: dynamic, v: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++");
 }
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var INF = (MOD + 1);
+var INF: dynamic = (MOD + 1);
 
-var EPS = 1e-12;
+var EPS: dynamic = 1e-12;
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", min(a, b));
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", max(a, b));
 }
 
 enum yaku
 {
-  hc,
-  op,
-  tp,
-  tc,
-  st,
-  fl,
-  fh,
-  fc,
-  sf,
-  rsf
+  enum_field hc;
+  enum_field op;
+  enum_field tp;
+  enum_field tc;
+  enum_field st;
+  enum_field fl;
+  enum_field fh;
+  enum_field fc;
+  enum_field sf;
+  enum_field rsf;
 }
 
-func parse(s: dynamic)
+func parse(s: dynamic) -> dynamic
 {
-  var suit: dynamic;
+  var suit: dynamic = cpp_uninitialized();
   if ((s[0] == cpp_char("S")))
   {
     suit = 0;
@@ -66,7 +66,7 @@ func parse(s: dynamic)
   {
     suit = 3;
   }
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   if (isdigit(s[1]))
   {
     n = (s[1] - cpp_char("0"));
@@ -89,14 +89,14 @@ func parse(s: dynamic)
   return card(n, suit);
 }
 
-var pat: dynamic;
+var pat: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
-  var v = [0, 1, 2, 3, 4, 5, 6];
+  var v: dynamic = [0, 1, 2, 3, 4, 5, 6];
   while (true)
   {
-    var tmp: dynamic;
+    var tmp: dynamic = cpp_uninitialized();
     REP(i, 5).push_back(v[i]);
     sort(ALL(tmp));
     pat.push_back(tmp);
@@ -109,10 +109,10 @@ func init()
   pat.erase(unique(ALL(pat)), pat.end());
 }
 
-func is_straight(cards: dynamic)
+func is_straight(cards: dynamic) -> dynamic
 {
-  var v: dynamic;
-  for (var i in cards)
+  var v: dynamic = cpp_uninitialized();
+  for (var i: dynamic in cards)
   {
     v.push_back(i.first);
   }
@@ -130,11 +130,11 @@ func is_straight(cards: dynamic)
   return v.back();
 }
 
-func calc(cards: dynamic)
+func calc(cards: dynamic) -> dynamic
 {
-  var straight = is_straight(cards);
-  var flush = true;
-  var rank = cpp_construct(13);
+  var straight: dynamic = is_straight(cards);
+  var flush: dynamic = true;
+  var rank: dynamic = cpp_construct(13);
   REP(i, 5);
   {
     rank[(cards[i].first - 1)] += 1;
@@ -153,9 +153,9 @@ func calc(cards: dynamic)
       return hand(sf, [straight]);
     }
   }
-  var two: dynamic;
-  var three: dynamic;
-  var four: dynamic;
+  var two: dynamic = cpp_uninitialized();
+  var three: dynamic = cpp_uninitialized();
+  var four: dynamic = cpp_uninitialized();
   REP(i, 13);
   {
     if ((rank[i] == 2))
@@ -173,13 +173,13 @@ func calc(cards: dynamic)
   }
   if ((four.size() == 1))
   {
-    var v = four;
+    var v: dynamic = four;
     if ((rank[0] == 1))
     {
       v.push_back(1);
     }
     {
-      var i = 12;
+      var i: dynamic = 12;
       while ((i > 0))
       {
         if ((rank[i] == 1))
@@ -200,7 +200,7 @@ func calc(cards: dynamic)
   }
   if (((three.size() == 1) && (two.size() == 1)))
   {
-    var v = [three[0], two[0]];
+    var v: dynamic = [three[0], two[0]];
     REP(i, v.size());
     {
       if ((v[i] == 1))
@@ -210,8 +210,8 @@ func calc(cards: dynamic)
     }
     return hand(fh, v);
   }
-  var tmp: dynamic;
-  for (var i in cards)
+  var tmp: dynamic = cpp_uninitialized();
+  for (var i: dynamic in cards)
   {
     if ((i.first == 1))
     {
@@ -232,13 +232,13 @@ func calc(cards: dynamic)
   }
   if ((three.size() == 1))
   {
-    var v = three;
+    var v: dynamic = three;
     if ((rank[0] == 1))
     {
       v.push_back(1);
     }
     {
-      var i = 12;
+      var i: dynamic = 12;
       while ((i > 0))
       {
         if ((rank[i] == 1))
@@ -260,7 +260,7 @@ func calc(cards: dynamic)
   if ((two.size() == 2))
   {
     sort(two.rbegin(), two.rend());
-    var v = two;
+    var v: dynamic = two;
     if ((v[1] == 1))
     {
       swap(v[0], v[1]);
@@ -270,7 +270,7 @@ func calc(cards: dynamic)
       v.push_back(1);
     }
     {
-      var i = 12;
+      var i: dynamic = 12;
       while ((i > 0))
       {
         if ((rank[i] == 1))
@@ -291,13 +291,13 @@ func calc(cards: dynamic)
   }
   if ((two.size() == 1))
   {
-    var v = two;
+    var v: dynamic = two;
     if ((rank[0] == 1))
     {
       v.push_back(1);
     }
     {
-      var i = 12;
+      var i: dynamic = 12;
       while ((i > 0))
       {
         if ((rank[i] == 1))
@@ -319,19 +319,19 @@ func calc(cards: dynamic)
   return hand(hc, tmp);
 }
 
-func main()
+func main() -> dynamic
 {
   cin.sync_with_stdio(false);
   write(fixed, setprecision(10));
   init();
-  var v = cpp_construct(7);
+  var v: dynamic = cpp_construct(7);
   while (cpp_comma((cin >> v[0]), (v[0] != "#")))
   {
-    var used: dynamic;
+    var used: dynamic = cpp_uninitialized();
     REP(i, 6);
     read(v[(i + 1)]);
-    var my_cards: dynamic;
-    var op_cards: dynamic;
+    var my_cards: dynamic = cpp_uninitialized();
+    var op_cards: dynamic = cpp_uninitialized();
     REP(i, 2).push_back(parse(v[i]));
     REP(i, 2).push_back(parse(v[(i + 2)]));
     REP(i, 3);
@@ -344,8 +344,8 @@ func main()
       used.insert(my_cards[i]);
       used.insert(op_cards[i]);
     }
-    var cnt = 0;
-    var cnt2 = 0;
+    var cnt: dynamic = 0;
+    var cnt2: dynamic = 0;
     REP(suit1, 4);
     FOR(num1, 1, 14);
     REP(suit2, 4);
@@ -359,19 +359,19 @@ func main()
       {
         continue;
       }
-      var t_my = my_cards;
-      var t_op = op_cards;
+      var t_my: dynamic = my_cards;
+      var t_op: dynamic = op_cards;
       t_my.push_back(c1);
       t_my.push_back(c2);
       t_op.push_back(c2);
       t_op.push_back(c1);
-      var my_hand = cpp_construct(hc, []);
-      var op_hand = cpp_construct(hc, []);
-      for (var use in pat)
+      var my_hand: dynamic = cpp_construct(hc, []);
+      var op_hand: dynamic = cpp_construct(hc, []);
+      for (var use: dynamic in pat)
       {
-        var t_my_cards: dynamic;
-        var t_op_cards: dynamic;
-        for (var i in use)
+        var t_my_cards: dynamic = cpp_uninitialized();
+        var t_op_cards: dynamic = cpp_uninitialized();
+        for (var i: dynamic in use)
         {
           t_my_cards.push_back(t_my[i]);
           t_op_cards.push_back(t_op[i]);

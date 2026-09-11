@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var maxn = 5001;
+var maxn: dynamic = 5001;
 
-var x11 = cpp_array(10);
+var x11: dynamic = cpp_array(10);
 
-var y11 = cpp_array(10);
+var y11: dynamic = cpp_array(10);
 
-var x22 = cpp_array(10);
+var x22: dynamic = cpp_array(10);
 
-var y22 = cpp_array(10);
+var y22: dynamic = cpp_array(10);
 
-var deltax = cpp_array(10);
+var deltax: dynamic = cpp_array(10);
 
-var deltay = cpp_array(10);
+var deltay: dynamic = cpp_array(10);
 
-func main()
+func main() -> dynamic
 {
-  var flag1 = 0;
-  var flag2 = 0;
-  var flag3 = 0;
+  var flag1: dynamic = 0;
+  var flag2: dynamic = 0;
+  var flag3: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       scanf("%lld %lld %lld %lld", (&x11[i]), (&y11[i]), (&x22[i]), (&y22[i]));
@@ -47,7 +47,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       if (((deltax[i] != 0) && (deltay[i] != 0)))
@@ -58,12 +58,12 @@ func main()
       i += 1;
     }
   }
-  var vx: dynamic;
-  var vy: dynamic;
-  var mp1: dynamic;
-  var mp2: dynamic;
+  var vx: dynamic = cpp_uninitialized();
+  var vy: dynamic = cpp_uninitialized();
+  var mp1: dynamic = cpp_uninitialized();
+  var mp2: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       vx.push_back(x11[i]);
@@ -82,15 +82,15 @@ func main()
     printf("NO\n");
   } else
   {
-    var tempflag = 0;
-    for (var it in mp1)
+    var tempflag: dynamic = 0;
+    for (var it: dynamic in mp1)
     {
       if ((it.second != 4))
       {
         tempflag = 1;
       }
     }
-    for (var it in mp2)
+    for (var it: dynamic in mp2)
     {
       if ((it.second != 4))
       {

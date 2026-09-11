@@ -1,46 +1,46 @@
 // Translated from solution.cpp.
 
-func abs(a: dynamic)
+func abs(a: dynamic) -> dynamic
 {
-  return if ((a < 0)) (-a) else a;
+  return  ((a < 0)) ? (-a) : a;
 }
 
-func sqr(a: dynamic)
+func sqr(a: dynamic) -> dynamic
 {
   return (a * a);
 }
 
-var INF = cpp_cast(1e9);
+var INF: dynamic = cpp_cast(1e9);
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var PI = 3.1415926535897932384626433832795;
+var PI: dynamic = 3.1415926535897932384626433832795;
 
-var N = 100500;
+var N: dynamic = 100500;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-var rg = cpp_array(N);
+var rg: dynamic = cpp_array(N);
 
-var used = cpp_array(N);
+var used: dynamic = cpp_array(N);
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var minC: dynamic;
+var minC: dynamic = cpp_uninitialized();
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(int_cpp((g[v]).size()))))
     {
-      var u = g[v][i];
+      var u: dynamic = g[v][i];
       if ((!used[u]))
       {
         c[u] = (c[v] + 1);
@@ -53,10 +53,10 @@ func dfs(v: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(int_cpp((rg[v]).size()))))
     {
-      var u = rg[v][i];
+      var u: dynamic = rg[v][i];
       if ((!used[u]))
       {
         c[u] = (c[v] - 1);
@@ -70,17 +70,17 @@ func dfs(v: dynamic)
   }
 }
 
-func check(k: dynamic)
+func check(k: dynamic) -> dynamic
 {
   {
-    var v = 0;
+    var v: dynamic = 0;
     while ((v < int_cpp(n)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < int_cpp(int_cpp((g[v]).size()))))
         {
-          var u = g[v][j];
+          var u: dynamic = g[v][j];
           if (((((c[v] + 1)) % k) != (c[u] % k)))
           {
             return false;
@@ -94,9 +94,9 @@ func check(k: dynamic)
   return true;
 }
 
-var ans = 1;
+var ans: dynamic = 1;
 
-func update(k: dynamic)
+func update(k: dynamic) -> dynamic
 {
   if (((k > ans) && check(k)))
   {
@@ -104,15 +104,15 @@ func update(k: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(m)))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d %d", (&x), (&y));
       x -= 1;
       y -= 1;
@@ -127,7 +127,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(n)))
     {
       sort((g[i]).begin(), (g[i]).end());
@@ -137,10 +137,10 @@ func main()
   }
   memset(c, -1, cpp_sizeof((c)));
   {
-    var i = (int_cpp(n) - 1);
+    var i: dynamic = (int_cpp(n) - 1);
     while ((i >= 0))
     {
-      var v = i;
+      var v: dynamic = i;
       if ((!used[v]))
       {
         c[v] = 0;
@@ -150,7 +150,7 @@ func main()
         minC = 0;
         dfs(v);
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < int_cpp(int_cpp((q).size()))))
           {
             c[q[i]] -= minC;
@@ -162,20 +162,20 @@ func main()
     }
   }
   {
-    var v = 0;
+    var v: dynamic = 0;
     while ((v < int_cpp(n)))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < int_cpp(int_cpp((g[v]).size()))))
         {
-          var u = g[v][i];
+          var u: dynamic = g[v][i];
           if (((c[v] + 1) != c[u]))
           {
             write(v, " ", u, " ", c[v], " ", c[u], "\n");
-            var d = abs(((c[v] + 1) - c[u]));
+            var d: dynamic = abs(((c[v] + 1) - c[u]));
             {
-              var i = 1;
+              var i: dynamic = 1;
               while (((i * i) <= d))
               {
                 if (((d % i) == 0))

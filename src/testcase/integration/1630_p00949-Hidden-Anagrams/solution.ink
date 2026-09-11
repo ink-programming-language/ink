@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var B = (1e9 + 7);
+var B: dynamic = (1e9 + 7);
 
-func Hash(v: dynamic)
+func Hash(v: dynamic) -> dynamic
 {
-  var h = 0;
+  var h: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       h = ((h * B) + v[i]);
@@ -16,22 +16,22 @@ func Hash(v: dynamic)
   return h;
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
-  var ans = 0;
-  var n = a.size();
-  var m = b.size();
+  var ans: dynamic = 0;
+  var n: dynamic = a.size();
+  var m: dynamic = b.size();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var S: dynamic;
-      var v = cpp_construct(26, 0);
+      var S: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_construct(26, 0);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((i == j))
@@ -50,7 +50,7 @@ func main()
       S.insert(Hash(v));
       v = vector(26, 0);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if (((i == j) && S.count(Hash(v))))

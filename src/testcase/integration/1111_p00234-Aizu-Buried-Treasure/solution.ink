@@ -2,45 +2,45 @@
 
 class Situation
 {
-  var oxigen: dynamic;
-  var money: dynamic;
-  var h: dynamic;
-  var w: dynamic;
-  var miningCnt: dynamic;
-  var bitmask: dynamic;
-  var visited: dynamic;
+  var oxigen: dynamic = cpp_uninitialized();
+  var money: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var miningCnt: dynamic = cpp_uninitialized();
+  var bitmask: dynamic = cpp_uninitialized();
+  var visited: dynamic = cpp_uninitialized();
 }
 
-var mem = cpp_array(51, (1 << 10), 11, 11);
+var mem: dynamic = cpp_array(51, (1 << 10), 11, 11);
 
-var field = cpp_array(11, 11);
+var field: dynamic = cpp_array(11, 11);
 
-var INF = 100000000;
+var INF: dynamic = 100000000;
 
-var dy = [0, 0, 1];
+var dy: dynamic = [0, 0, 1];
 
-var dx = [-1, 1, 0];
+var dx: dynamic = [-1, 1, 0];
 
-func solve()
+func solve() -> dynamic
 {
-  var h: dynamic;
-  var w: dynamic;
-  var f: dynamic;
-  var m: dynamic;
-  var o: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var o: dynamic = cpp_uninitialized();
   while ((((cin >> w) >> h) && (!(((w == 0) && (h == 0))))))
   {
-    var q: dynamic;
+    var q: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 11))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 11))
           {
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < ((1 << 10))))
               {
                 fill(mem[i][j][k], (mem[i][j][k] + 51), INF);
@@ -55,11 +55,11 @@ func solve()
     }
     read(f, m, o);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < h))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < w))
           {
             read(field[i][j]);
@@ -71,10 +71,10 @@ func solve()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
-        var s: dynamic;
+        var s: dynamic = cpp_uninitialized();
         s.money = 0;
         s.miningCnt = 1;
         s.oxigen = o;
@@ -101,10 +101,10 @@ func solve()
         i += 1;
       }
     }
-    var minGoalCost = INF;
+    var minGoalCost: dynamic = INF;
     while (q.size())
     {
-      var s = q.front();
+      var s: dynamic = q.front();
       q.pop();
       if (((s.h == (h - 1)) || (s.oxigen <= 1)))
       {
@@ -115,14 +115,14 @@ func solve()
         continue;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 3))
         {
-          var toH = (s.h + dy[i]);
-          var toW = (s.w + dx[i]);
-          var toCost = s.money;
-          var toOx = (s.oxigen - 1);
-          var toMining = s.miningCnt;
+          var toH: dynamic = (s.h + dy[i]);
+          var toW: dynamic = (s.w + dx[i]);
+          var toCost: dynamic = s.money;
+          var toOx: dynamic = (s.oxigen - 1);
+          var toMining: dynamic = s.miningCnt;
           if (((((toH >= 0) && (toW >= 0)) && (toH < h)) && (toW < w)))
           {
             if ((s.visited.find(make_pair(toH, toW)) == s.visited.end()))
@@ -136,7 +136,7 @@ func solve()
               }
               toMining += 1;
             }
-            var ns: dynamic;
+            var ns: dynamic = cpp_uninitialized();
             ns.h = toH;
             ns.w = toW;
             ns.money = toCost;
@@ -178,7 +178,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   solve();
   return 0;

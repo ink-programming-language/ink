@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var N = 100100;
+var N: dynamic = 100100;
 
-var cnt = 0;
+var cnt: dynamic = 0;
 
-var Cnt = cpp_array(N);
+var Cnt: dynamic = cpp_array(N);
 
-var SumCnt = 0;
+var SumCnt: dynamic = 0;
 
-var H = cpp_array(N);
+var H: dynamic = cpp_array(N);
 
-var P = cpp_array(N);
+var P: dynamic = cpp_array(N);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-func dfs(v: dynamic, p: dynamic = -1)
+func dfs(v: dynamic, p: dynamic = -1) -> dynamic
 {
   if (((cpp_cast(g[v].size()) == 1) && (v != 1)))
   {
     return 0;
   }
-  var sum = 0.000;
+  var sum: dynamic = 0.000;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(g[v].size())))
     {
-      var to = g[v][i];
+      var to: dynamic = g[v][i];
       if ((to == p))
       {
         i += 1;
@@ -40,9 +40,9 @@ func dfs(v: dynamic, p: dynamic = -1)
   return sum;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   if ((n == 1))
   {
@@ -50,11 +50,11 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d %d", (&u), (&v));
       g[u].push_back(v);
       g[v].push_back(u);

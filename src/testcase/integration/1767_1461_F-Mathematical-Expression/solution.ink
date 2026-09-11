@@ -1,54 +1,54 @@
 // Translated from solution.cpp.
 
-var add = cpp_expression("#include");
+var add: dynamic = cpp_expression("#include");
 
-var m_p = cpp_expression("#include");
+var m_p: dynamic = cpp_expression("#include");
 
-var m_t = cpp_expression("#include <");
+var m_t: dynamic = cpp_expression("#include <");
 
-var fr = cpp_expression("#incl");
+var fr: dynamic = cpp_expression("#incl");
 
-var sc = cpp_expression("#inclu");
+var sc: dynamic = cpp_expression("#inclu");
 
-var endl = cpp_expression("#inc");
+var endl: dynamic = cpp_expression("#inc");
 
-var print = cpp_expression("#include <unordered_set> #include <unorde");
+var print: dynamic = cpp_expression("#include <unordered_set> #include <unorde");
 
-var N = 100005;
+var N: dynamic = 100005;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var M = 505;
+var M: dynamic = 505;
 
-var inf = 1000000000000000000;
+var inf: dynamic = 1000000000000000000;
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var kaskad = cpp_array(N);
+var kaskad: dynamic = cpp_array(N);
 
-var dp = cpp_array(N);
+var dp: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var ind: dynamic;
+var ind: dynamic = cpp_uninitialized();
 
-func solve(left: dynamic, right: dynamic)
+func solve(left: dynamic, right: dynamic) -> dynamic
 {
   if ((left == right))
   {
@@ -78,7 +78,7 @@ func solve(left: dynamic, right: dynamic)
   }
   t = 1;
   {
-    var i = left;
+    var i: dynamic = left;
     while ((i < right))
     {
       t *= kaskad[i];
@@ -93,9 +93,9 @@ func solve(left: dynamic, right: dynamic)
   {
     return;
   }
-  var vec: dynamic;
+  var vec: dynamic = cpp_uninitialized();
   {
-    var i = left;
+    var i: dynamic = left;
     while ((i < right))
     {
       if ((kaskad[i] > 1))
@@ -120,17 +120,17 @@ func solve(left: dynamic, right: dynamic)
       i += 1;
     }
   }
-  var dp = cpp_construct((((vec.size() + 1)) / 2), -1);
-  var ch = cpp_construct((((vec.size() + 1)) / 2));
+  var dp: dynamic = cpp_construct((((vec.size() + 1)) / 2), -1);
+  var ch: dynamic = cpp_construct((((vec.size() + 1)) / 2));
   dp[0] = vec[0];
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < vec.size()))
     {
       x = 1;
       ind = i;
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j >= 0))
         {
           x *= vec[j];
@@ -159,7 +159,7 @@ func solve(left: dynamic, right: dynamic)
   }
   ind = 0;
   {
-    var i = left;
+    var i: dynamic = left;
     while ((i < right))
     {
       if ((kaskad[i] == 1))
@@ -183,7 +183,7 @@ func solve(left: dynamic, right: dynamic)
   }
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
@@ -191,14 +191,14 @@ func main(argc: dynamic, argv: dynamic)
   read(n);
   ans = string_cpp((n - 1), cpp_char("*"));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(kaskad[i]);
       i += 1;
     }
   }
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
   sort(s.begin(), s.end());
   if ((s[0] == cpp_char("+")))
@@ -209,7 +209,7 @@ func main(argc: dynamic, argv: dynamic)
   {
     write(kaskad[0]);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         write(s[0], kaskad[i]);
@@ -226,9 +226,9 @@ func main(argc: dynamic, argv: dynamic)
   if ((s == "*-"))
   {
     write(kaskad[0]);
-    var flag = ((kaskad[0] == 0));
+    var flag: dynamic = ((kaskad[0] == 0));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         if (flag)
@@ -252,9 +252,9 @@ func main(argc: dynamic, argv: dynamic)
     write("\n");
     return 0;
   }
-  var zeros = [-1];
+  var zeros: dynamic = [-1];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((kaskad[i] == 0))
@@ -274,7 +274,7 @@ func main(argc: dynamic, argv: dynamic)
   }
   zeros.add(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (zeros.size() - 1)))
     {
       solve((zeros[i] + 1), zeros[(i + 1)]);
@@ -283,7 +283,7 @@ func main(argc: dynamic, argv: dynamic)
   }
   write(kaskad[0]);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       write(ans[(i - 1)], kaskad[i]);

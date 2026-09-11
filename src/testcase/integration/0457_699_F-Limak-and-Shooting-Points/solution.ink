@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func smin(a: dynamic, b: dynamic)
+func smin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -8,7 +8,7 @@ func smin(a: dynamic, b: dynamic)
   }
 }
 
-func smax(a: dynamic, b: dynamic)
+func smax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -16,7 +16,7 @@ func smax(a: dynamic, b: dynamic)
   }
 }
 
-func power(a: dynamic, b: dynamic, m: dynamic, ans: dynamic = 1)
+func power(a: dynamic, b: dynamic, m: dynamic, ans: dynamic = 1) -> dynamic
 {
   {
     while (b)
@@ -34,37 +34,37 @@ func power(a: dynamic, b: dynamic, m: dynamic, ans: dynamic = 1)
 
 class point
 {
-  var first: dynamic;
-  var second: dynamic;
-  func point(first: dynamic = 0, second: dynamic = 0)
+  var first: dynamic = cpp_uninitialized();
+  var second: dynamic = cpp_uninitialized();
+  func point(first: dynamic = 0, second: dynamic = 0) -> dynamic
   {
-      this->first = cpp_construct(first);
-      this->second = cpp_construct(second);
+      self->first = cpp_construct(first);
+      self->second = cpp_construct(second);
     }
-  func operator_subtract(a: dynamic)
+  func operator_subtract(a: dynamic) -> dynamic
   {
       return point((first - a.first), (second - a.second));
     }
-  func operator(a: dynamic)
+  func operator(a: dynamic) -> dynamic
   {
       return ((cpp_cast(first) * a.second) - (cpp_cast(second) * a.first));
     }
-  func operator_multiply(a: dynamic)
+  func operator_multiply(a: dynamic) -> dynamic
   {
       return ((cpp_cast(first) * a.first) + (cpp_cast(second) * a.second));
     }
-  func input()
+  func input() -> dynamic
   {
       scanf("%d%d", (&first), (&second));
     }
 }
 
-func sgn(a: dynamic)
+func sgn(a: dynamic) -> dynamic
 {
   return (((a > 0)) - ((a < 0)));
 }
 
-func is_on(a: dynamic, b: dynamic, c: dynamic)
+func is_on(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   if (sgn((((a - b)) ^ ((a - c)))))
   {
@@ -73,37 +73,37 @@ func is_on(a: dynamic, b: dynamic, c: dynamic)
   return (sgn((((a - c)) * ((c - b)))) > 0);
 }
 
-var ston = cpp_array(1110);
+var ston: dynamic = cpp_array(1110);
 
-var mon = cpp_array(1110);
+var mon: dynamic = cpp_array(1110);
 
-var id = cpp_array(10);
+var id: dynamic = cpp_array(10);
 
-var vst = cpp_array(1110);
+var vst: dynamic = cpp_array(1110);
 
-var runs: dynamic;
+var runs: dynamic = cpp_uninitialized();
 
-var used: dynamic;
+var used: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var adj = cpp_array(1110, 10);
+var adj: dynamic = cpp_array(1110, 10);
 
-func judge(u: dynamic)
+func judge(u: dynamic) -> dynamic
 {
   vst[u] = runs;
   if ((used >= k))
   {
     return false;
   }
-  var tmp = id[cpp_update(used, "++")];
+  var tmp: dynamic = id[cpp_update(used, "++")];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < adj[tmp][u].size()))
     {
-      var v = adj[tmp][u][i];
+      var v: dynamic = adj[tmp][u][i];
       if ((vst[v] != runs))
       {
         if ((!judge(v)))
@@ -117,11 +117,11 @@ func judge(u: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&k), (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       ston[i].input();
@@ -129,7 +129,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       mon[i].input();
@@ -137,15 +137,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       {
-        var p = 0;
+        var p: dynamic = 0;
         while ((p < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < n))
             {
               if ((j != p))
@@ -168,13 +168,13 @@ func main()
       i += 1;
     }
   }
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < k))
         {
           id[j] = j;

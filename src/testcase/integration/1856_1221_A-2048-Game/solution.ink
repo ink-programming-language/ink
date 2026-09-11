@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   read(x);
-  var rjesenja = cpp_array(x);
+  var rjesenja: dynamic = cpp_array(x);
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < x))
     {
-      var n: dynamic;
-      var sum = 0;
+      var n: dynamic = cpp_uninitialized();
+      var sum: dynamic = 0;
       read(n);
-      var niz = cpp_array(n);
+      var niz: dynamic = cpp_array(n);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           read(niz[i]);
@@ -36,7 +36,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < x))
     {
       if ((rjesenja[i] == true))

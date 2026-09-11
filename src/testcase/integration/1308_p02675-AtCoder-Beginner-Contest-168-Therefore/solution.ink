@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var k = (n % 10);
+  var k: dynamic = (n % 10);
   if ((((((k == 2) || (k == 4)) || (k == 5)) || (k == 7)) || (k == 9)))
   {
     write("hon");

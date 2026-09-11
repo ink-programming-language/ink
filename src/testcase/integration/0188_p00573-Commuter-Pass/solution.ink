@@ -1,66 +1,66 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var linf = 1e15;
+var linf: dynamic = 1e15;
 
 class edge
 {
-  var to: dynamic;
-  var cost: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var cost: dynamic = cpp_uninitialized();
 }
 
 class node
 {
-  var from_cpp: dynamic;
-  var cost: dynamic;
-  func operator_less(n1: dynamic)
+  var from_cpp: dynamic = cpp_uninitialized();
+  var cost: dynamic = cpp_uninitialized();
+  func operator_less(n1: dynamic) -> dynamic
   {
       return (n1.cost < cost);
     }
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var U: dynamic;
+var U: dynamic = cpp_uninitialized();
 
-var V: dynamic;
+var V: dynamic = cpp_uninitialized();
 
-var G = cpp_array(100010);
+var G: dynamic = cpp_array(100010);
 
-var DU = cpp_array(100010);
+var DU: dynamic = cpp_array(100010);
 
-var DV = cpp_array(100010);
+var DV: dynamic = cpp_array(100010);
 
-var DS = cpp_array(100010);
+var DS: dynamic = cpp_array(100010);
 
-var dp = cpp_array(100010, 3);
+var dp: dynamic = cpp_array(100010, 3);
 
-var used = cpp_array(100010);
+var used: dynamic = cpp_array(100010);
 
-func dijk(s: dynamic, D: dynamic)
+func dijk(s: dynamic, D: dynamic) -> dynamic
 {
   fill(D, ((D + N) + 1), linf);
-  var pq: dynamic;
+  var pq: dynamic = cpp_uninitialized();
   pq.push([s, 0]);
   D[s] = 0;
   while ((!pq.empty()))
   {
-    var n1 = pq.top();
+    var n1: dynamic = pq.top();
     pq.pop();
     if ((D[n1.from_cpp] < n1.cost))
     {
       continue;
     }
-    for (var u in G[n1.from_cpp])
+    for (var u: dynamic in G[n1.from_cpp])
     {
-      var cost = (u.cost + n1.cost);
+      var cost: dynamic = (u.cost + n1.cost);
       if ((cost < D[u.to]))
       {
         D[u.to] = cost;
@@ -70,13 +70,13 @@ func dijk(s: dynamic, D: dynamic)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
   dijk(U, DU);
   dijk(V, DV);
   dijk(S, DS);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       dp[0][i] = DU[i];
@@ -85,15 +85,15 @@ func solve()
       i += 1;
     }
   }
-  var pq: dynamic;
+  var pq: dynamic = cpp_uninitialized();
   pq.push([S, 0]);
   while ((!pq.empty()))
   {
-    var n1 = pq.top();
+    var n1: dynamic = pq.top();
     pq.pop();
-    for (var u in G[n1.from_cpp])
+    for (var u: dynamic in G[n1.from_cpp])
     {
-      var cost = (u.cost + n1.cost);
+      var cost: dynamic = (u.cost + n1.cost);
       if ((DS[u.to] < cost))
       {
         continue;
@@ -108,7 +108,7 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       dp[2][i] = min((dp[0][i] + DV[i]), (dp[1][i] + DU[i]));
@@ -119,11 +119,11 @@ func solve()
   pq.push([S, 0]);
   while ((!pq.empty()))
   {
-    var n1 = pq.top();
+    var n1: dynamic = pq.top();
     pq.pop();
-    for (var u in G[n1.from_cpp])
+    for (var u: dynamic in G[n1.from_cpp])
     {
-      var cost = (u.cost + n1.cost);
+      var cost: dynamic = (u.cost + n1.cost);
       if ((DS[u.to] < cost))
       {
         continue;
@@ -139,16 +139,16 @@ func solve()
   return min(dp[2][T], DU[V]);
 }
 
-func init()
+func init() -> dynamic
 {
   read(N, M, S, T, U, V);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
-      var A: dynamic;
-      var B: dynamic;
-      var C: dynamic;
+      var A: dynamic = cpp_uninitialized();
+      var B: dynamic = cpp_uninitialized();
+      var C: dynamic = cpp_uninitialized();
       read(A, B, C);
       G[A].push_back([B, C]);
       G[B].push_back([A, C]);
@@ -157,7 +157,7 @@ func init()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);

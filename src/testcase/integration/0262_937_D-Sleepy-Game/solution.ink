@@ -1,45 +1,45 @@
 // Translated from solution.cpp.
 
-var maxn = (1e5 + 10);
+var maxn: dynamic = (1e5 + 10);
 
 class bkn
 {
-  var to: dynamic;
-  var next: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array((maxn * 2));
+var e: dynamic = cpp_array((maxn * 2));
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var c = cpp_array(maxn);
+var c: dynamic = cpp_array(maxn);
 
-var head = cpp_array(maxn);
+var head: dynamic = cpp_array(maxn);
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(2, maxn);
+var vis: dynamic = cpp_array(2, maxn);
 
-var in_cpp = cpp_array(maxn);
+var in_cpp: dynamic = cpp_array(maxn);
 
-var ans = cpp_array(maxn);
+var ans: dynamic = cpp_array(maxn);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var win: dynamic;
+var win: dynamic = cpp_uninitialized();
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   e[cpp_update(tot, "++")].to = b;
   e[tot].next = head[a];
   head[a] = tot;
 }
 
-func dfs(x: dynamic, now: dynamic)
+func dfs(x: dynamic, now: dynamic) -> dynamic
 {
   if (((!c[x]) && (now == 1)))
   {
@@ -49,10 +49,10 @@ func dfs(x: dynamic, now: dynamic)
   }
   in_cpp[x] = 1;
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var y = e[i].to;
+      var y: dynamic = e[i].to;
       if (in_cpp[y])
       {
         h = 1;
@@ -75,12 +75,12 @@ func dfs(x: dynamic, now: dynamic)
   in_cpp[x] = 0;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
-  var ok = 0;
+  var ok: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&c[i]));
@@ -89,10 +89,10 @@ func main()
         ok = 1;
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= c[i]))
         {
-          var x: dynamic;
+          var x: dynamic = cpp_uninitialized();
           scanf("%d", (&x));
           add(i, x);
           j += 1;
@@ -101,7 +101,7 @@ func main()
       i += 1;
     }
   }
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   scanf("%d", (&s));
   if ((!ok))
   {
@@ -113,7 +113,7 @@ func main()
   {
     printf("Win\n");
     {
-      var i = cnt;
+      var i: dynamic = cnt;
       while ((i >= 1))
       {
         printf("%d ", ans[i]);

@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return ((*cpp_cast(b)) - (*cpp_cast(a)));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%d %d", (&n), (&m));
-  var a = cpp_array(n);
-  var b = cpp_array(m);
+  var a: dynamic = cpp_array(n);
+  var b: dynamic = cpp_array(m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
@@ -21,7 +21,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d", (&b[i]));
@@ -30,10 +30,10 @@ func main()
   }
   qsort(b, m, cpp_sizeof((b[0])), cmp);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var k = 0;
+      var k: dynamic = 0;
       if ((a[i] == 0))
       {
         a[i] = b[k];
@@ -42,9 +42,9 @@ func main()
       i += 1;
     }
   }
-  var flag = 0;
+  var flag: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       if ((a[i] >= a[(i + 1)]))

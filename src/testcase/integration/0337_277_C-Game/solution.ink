@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var MAX = 200000;
+var MAX: dynamic = 200000;
 
-var INF = 100000000;
+var INF: dynamic = 100000000;
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var EPS = 1E-7;
+var EPS: dynamic = 1E-7;
 
-var IT = 10024;
+var IT: dynamic = 10024;
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   read(k);
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < k))
     {
-      var x1: dynamic;
-      var y1: dynamic;
-      var x2: dynamic;
-      var y2: dynamic;
+      var x1: dynamic = cpp_uninitialized();
+      var y1: dynamic = cpp_uninitialized();
+      var x2: dynamic = cpp_uninitialized();
+      var y2: dynamic = cpp_uninitialized();
       scanf("%d%d%d%d", (&x1), (&y1), (&x2), (&y2));
       if ((x1 == x2))
       {
@@ -44,9 +44,9 @@ func main()
       i += 1;
     }
   }
-  var dr = ((n - 1) - r.size());
-  var dc = ((m - 1) - c.size());
-  var res = 0;
+  var dr: dynamic = ((n - 1) - r.size());
+  var dc: dynamic = ((m - 1) - c.size());
+  var res: dynamic = 0;
   if ((dr & 1))
   {
     res ^= m;
@@ -56,15 +56,15 @@ func main()
     res ^= n;
   }
   {
-    var it = r.begin();
+    var it: dynamic = r.begin();
     while ((it != r.end()))
     {
-      var cnt = 0;
+      var cnt: dynamic = 0;
       sort(it->second.begin(), it->second.end());
       cnt += it->second[0].first;
-      var rigth = it->second[0].second;
+      var rigth: dynamic = it->second[0].second;
       {
-        var i = (1);
+        var i: dynamic = (1);
         while ((i < it->second.size()))
         {
           cnt += max(0, (it->second[i].first - rigth));
@@ -79,15 +79,15 @@ func main()
     }
   }
   {
-    var it = c.begin();
+    var it: dynamic = c.begin();
     while ((it != c.end()))
     {
-      var cnt = 0;
+      var cnt: dynamic = 0;
       sort(it->second.begin(), it->second.end());
       cnt += it->second[0].first;
-      var rigth = it->second[0].second;
+      var rigth: dynamic = it->second[0].second;
       {
-        var i = (1);
+        var i: dynamic = (1);
         while ((i < it->second.size()))
         {
           cnt += max(0, (it->second[i].first - rigth));
@@ -111,10 +111,10 @@ func main()
   }
   if ((dr && (((res ^ m)) <= m)))
   {
-    var cut = (m - ((res ^ m)));
-    var X: dynamic;
+    var cut: dynamic = (m - ((res ^ m)));
+    var X: dynamic = cpp_uninitialized();
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i < 100007))
       {
         if ((!R.count(i)))
@@ -130,10 +130,10 @@ func main()
   }
   if ((dc && (((res ^ n)) <= n)))
   {
-    var cut = (n - ((res ^ n)));
-    var X: dynamic;
+    var cut: dynamic = (n - ((res ^ n)));
+    var X: dynamic = cpp_uninitialized();
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i < 100007))
       {
         if ((!C.count(i)))
@@ -148,27 +148,27 @@ func main()
     return 0;
   }
   {
-    var it = R.begin();
+    var it: dynamic = R.begin();
     while ((it != R.end()))
     {
       if ((((res ^ it->second)) <= it->second))
       {
-        var cut = (it->second - ((res ^ it->second)));
-        var x = it->first;
-        var temp = r[x];
-        var cnt = 0;
+        var cut: dynamic = (it->second - ((res ^ it->second)));
+        var x: dynamic = it->first;
+        var temp: dynamic = r[x];
+        var cnt: dynamic = 0;
         cnt += temp[0].first;
         if ((cut <= temp[0].first))
         {
           write(x, cpp_char(" "), 0, cpp_char(" "), x, cpp_char(" "), cut, "\n");
           return 0;
         }
-        var rigth = temp[0].second;
+        var rigth: dynamic = temp[0].second;
         {
-          var i = (1);
+          var i: dynamic = (1);
           while ((i < temp.size()))
           {
-            var add = max(0, (temp[i].first - rigth));
+            var add: dynamic = max(0, (temp[i].first - rigth));
             if (((cnt + add) >= cut))
             {
               write(x, cpp_char(" "), 0, cpp_char(" "), x, cpp_char(" "), ((rigth + cut) - cnt), "\n");
@@ -186,27 +186,27 @@ func main()
     }
   }
   {
-    var it = C.begin();
+    var it: dynamic = C.begin();
     while ((it != C.end()))
     {
       if ((((res ^ it->second)) <= it->second))
       {
-        var cut = (it->second - ((res ^ it->second)));
-        var x = it->first;
-        var temp = c[x];
-        var cnt = 0;
+        var cut: dynamic = (it->second - ((res ^ it->second)));
+        var x: dynamic = it->first;
+        var temp: dynamic = c[x];
+        var cnt: dynamic = 0;
         if ((cut <= temp[0].first))
         {
           write(0, cpp_char(" "), x, cpp_char(" "), cut, cpp_char(" "), x, "\n");
           return 0;
         }
         cnt += temp[0].first;
-        var rigth = temp[0].second;
+        var rigth: dynamic = temp[0].second;
         {
-          var i = (1);
+          var i: dynamic = (1);
           while ((i < temp.size()))
           {
-            var add = max(0, (temp[i].first - rigth));
+            var add: dynamic = max(0, (temp[i].first - rigth));
             if (((cnt + add) >= cut))
             {
               write(0, cpp_char(" "), x, cpp_char(" "), ((rigth + cut) - cnt), cpp_char(" "), x, "\n");

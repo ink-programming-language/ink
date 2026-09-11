@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-func err(it: dynamic)
+func err(it: dynamic) -> dynamic
 {
 }
 
-func err(it: dynamic, a: dynamic, args: dynamic...)
+func err(it: dynamic, a: dynamic, args: dynamic...) -> dynamic
 {
   write((*it), " = ", a, "\n");
   err(cpp_update(it, "++"), cpp_expand(args));
 }
 
-var M = (1e9 + 7);
+var M: dynamic = (1e9 + 7);
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var a = cpp_array(n);
-  var b = cpp_array(n);
+  var a: dynamic = cpp_array(n);
+  var b: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -33,28 +33,28 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(b[i]);
       i += 1;
     }
   }
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       s.insert(a[i]);
       i += 1;
     }
   }
-  var x = inf;
+  var x: dynamic = inf;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var it = s.lower_bound((k - b[i]));
+      var it: dynamic = s.lower_bound((k - b[i]));
       if ((it != s.end()))
       {
         x = min(x, (b[i] + (*it)));
@@ -62,12 +62,12 @@ func main()
       i += 1;
     }
   }
-  var beh = 0;
+  var beh: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var it = s.lower_bound((x - b[i]));
+      var it: dynamic = s.lower_bound((x - b[i]));
       if ((it != s.end()))
       {
         s.erase(it);

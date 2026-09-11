@@ -1,52 +1,52 @@
 // Translated from solution.cpp.
 
-var que: dynamic;
+var que: dynamic = cpp_uninitialized();
 
-var size: dynamic;
+var size: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var dis = cpp_array(2010000);
+var dis: dynamic = cpp_array(2010000);
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var g = cpp_array(2010000);
+var g: dynamic = cpp_array(2010000);
 
-var p = cpp_array(2010000);
+var p: dynamic = cpp_array(2010000);
 
-var flow = cpp_array(2010000);
+var flow: dynamic = cpp_array(2010000);
 
-var num = cpp_array(2010000);
+var num: dynamic = cpp_array(2010000);
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var ex = cpp_array(2010000);
+var ex: dynamic = cpp_array(2010000);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(2010000);
+var vis: dynamic = cpp_array(2010000);
 
-var h = cpp_array(2010000);
+var h: dynamic = cpp_array(2010000);
 
 class node
 {
-  var to: dynamic;
-  var next: dynamic;
-  var f: dynamic;
-  var v: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array(2010000);
+var e: dynamic = cpp_array(2010000);
 
-func add1(o: dynamic, p: dynamic, q: dynamic, w: dynamic)
+func add1(o: dynamic, p: dynamic, q: dynamic, w: dynamic) -> dynamic
 {
   e[cpp_update(size, "++")].to = p;
   e[size].next = g[o];
@@ -55,7 +55,7 @@ func add1(o: dynamic, p: dynamic, q: dynamic, w: dynamic)
   e[size].v = w;
 }
 
-func add(o: dynamic, p: dynamic, q: dynamic, w: dynamic)
+func add(o: dynamic, p: dynamic, q: dynamic, w: dynamic) -> dynamic
 {
   add1(o, p, q, w);
   add1(p, o, 0, (-w));
@@ -63,20 +63,20 @@ func add(o: dynamic, p: dynamic, q: dynamic, w: dynamic)
 
 class node1
 {
-  var s: dynamic;
-  var t: dynamic;
-  var val: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(2010000);
+var a: dynamic = cpp_array(2010000);
 
-func check(i: dynamic, j: dynamic)
+func check(i: dynamic, j: dynamic) -> dynamic
 {
-  var tmp = ((a[i].s + a[i].t) - 1);
+  var tmp: dynamic = ((a[i].s + a[i].t) - 1);
   return (tmp < a[j].s);
 }
 
-func init()
+func init() -> dynamic
 {
   sort((ex + 1), ((ex + 1) + cnt));
   tot = ((unique((ex + 1), ((ex + 1) + cnt)) - ex) - 1);
@@ -91,18 +91,18 @@ func init()
   }
 }
 
-func mcmf()
+func mcmf() -> dynamic
 {
   {
     i = 1;
     while ((i <= T))
     {
       {
-        var x = S;
+        var x: dynamic = S;
         while ((x <= T))
         {
           {
-            var k = g[x];
+            var k: dynamic = g[x];
             while (k)
             {
               if ((e[k].f == 0))
@@ -110,7 +110,7 @@ func mcmf()
                 k = e[k].next;
                 continue;
               }
-              var y = e[k].to;
+              var y: dynamic = e[k].to;
               if ((h[y] < (h[x] + e[k].v)))
               {
                 h[y] = (h[x] + e[k].v);
@@ -140,7 +140,7 @@ func mcmf()
     flow[S] = 2000000000;
     while ((!que.empty()))
     {
-      var x = que.top().second;
+      var x: dynamic = que.top().second;
       que.pop();
       if ((vis[x] == 1))
       {
@@ -148,11 +148,11 @@ func mcmf()
       }
       vis[x] = 1;
       {
-        var k = g[x];
+        var k: dynamic = g[x];
         while (k)
         {
-          var y = e[k].to;
-          var cost = ((e[k].v + h[x]) - h[y]);
+          var y: dynamic = e[k].to;
+          var cost: dynamic = ((e[k].v + h[x]) - h[y]);
           if ((e[k].f && (dis[y] < (dis[x] + cost))))
           {
             dis[y] = (dis[x] + cost);
@@ -176,7 +176,7 @@ func mcmf()
         i += 1;
       }
     }
-    var now = p[T];
+    var now: dynamic = p[T];
     while (now)
     {
       e[now].f -= flow[T];
@@ -186,7 +186,7 @@ func mcmf()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&n), (&k));
   size = 1;

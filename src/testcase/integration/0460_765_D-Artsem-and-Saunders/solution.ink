@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var kMaxn = 100010;
+var kMaxn: dynamic = 100010;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(kMaxn);
+var a: dynamic = cpp_array(kMaxn);
 
-var g = cpp_array(kMaxn);
+var g: dynamic = cpp_array(kMaxn);
 
-var h = cpp_array(kMaxn);
+var h: dynamic = cpp_array(kMaxn);
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var x: dynamic;
-  var now: dynamic;
-  var ans: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var now: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
     i = 1;

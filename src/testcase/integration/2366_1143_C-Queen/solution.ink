@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var maxi = 0;
+  var n: dynamic = cpp_uninitialized();
+  var maxi: dynamic = 0;
   read(n);
-  var store = cpp_array((n + 1));
-  var s: dynamic;
-  var s1: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var store: dynamic = cpp_array((n + 1));
+  var s: dynamic = cpp_uninitialized();
+  var s1: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x, y);
@@ -27,9 +27,9 @@ func main()
       i += 1;
     }
   }
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((((store[i].size() == s[i]) && (s1[i] == 1))))
@@ -46,7 +46,7 @@ func main()
   }
   sort(ans.begin(), ans.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ans.size()))
     {
       write(ans[i], " ");

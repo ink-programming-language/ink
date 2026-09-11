@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var N = 2e5;
+var N: dynamic = 2e5;
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var p: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
   read(n, p);
-  var cnt: dynamic;
+  var cnt: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       a -= 1;
       b -= 1;
@@ -25,9 +25,9 @@ func solve()
       i += 1;
     }
   }
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       r[i] = g[i].size();
@@ -36,10 +36,10 @@ func solve()
   }
   sort(r.begin(), r.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var id = (lower_bound(r.begin(), r.end(), (p - r[i])) - r.begin());
+      var id: dynamic = (lower_bound(r.begin(), r.end(), (p - r[i])) - r.begin());
       if ((id > i))
       {
         res += (n - id);
@@ -51,9 +51,9 @@ func solve()
     }
   }
   res /= 2;
-  var b: dynamic;
+  var b: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((((((g[e[i].first].size() + g[e[i].second].size()) >= p) && (((g[e[i].first].size() + g[e[i].second].size()) - cnt[e[i]]) < p)) && (!b.count(e[i]))) && (!b.count(make_pair(e[i].second, e[i].first)))))
@@ -68,12 +68,12 @@ func solve()
   write(res);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(null);
   cin.tie(0);
   cout.tie(0);
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
     solve();

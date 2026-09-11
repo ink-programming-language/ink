@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var dp: dynamic;
+var dp: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
   dp.assign(((2 * n) + 1), vector(((2 * n) + 1), -1));
   k.assign(((2 * n) + 1), vector(((2 * n) + 1), vector(5, 0)));
 }
 
-func in_cpp()
+func in_cpp() -> dynamic
 {
   read(n, m);
   init();
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x < m))
     {
-      var u: dynamic;
-      var v: dynamic;
-      var kk: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var kk: dynamic = cpp_uninitialized();
       read(u, kk, v);
       if ((kk[0] == cpp_char("=")))
       {
@@ -53,14 +53,14 @@ func in_cpp()
   }
 }
 
-func check(l: dynamic, r: dynamic, u: dynamic, v: dynamic)
+func check(l: dynamic, r: dynamic, u: dynamic, v: dynamic) -> dynamic
 {
   if ((k[u][v][1] || k[u][v][2]))
   {
     return 0;
   }
   {
-    var x = 1;
+    var x: dynamic = 1;
     while ((x <= l))
     {
       if (((k[x][u][0] || k[x][u][1]) || k[x][u][3]))
@@ -75,7 +75,7 @@ func check(l: dynamic, r: dynamic, u: dynamic, v: dynamic)
     }
   }
   {
-    var x = r;
+    var x: dynamic = r;
     while ((x <= (2 * n)))
     {
       if (((k[x][u][0] || k[x][u][1]) || k[x][u][3]))
@@ -92,7 +92,7 @@ func check(l: dynamic, r: dynamic, u: dynamic, v: dynamic)
   return 1;
 }
 
-func work(l: dynamic, r: dynamic)
+func work(l: dynamic, r: dynamic) -> dynamic
 {
   if ((l > r))
   {
@@ -122,7 +122,7 @@ func work(l: dynamic, r: dynamic)
   return dp[l][r];
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   in_cpp();

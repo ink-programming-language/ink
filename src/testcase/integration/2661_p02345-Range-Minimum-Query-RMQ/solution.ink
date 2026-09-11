@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var INF = cpp_expression("#include<i");
+var INF: dynamic = cpp_expression("#include<i");
 
-var A = cpp_array(100000);
+var A: dynamic = cpp_array(100000);
 
-func Update(i: dynamic, x: dynamic)
+func Update(i: dynamic, x: dynamic) -> dynamic
 {
   A[i] = x;
 }
 
-func Find(x: dynamic, y: dynamic)
+func Find(x: dynamic, y: dynamic) -> dynamic
 {
-  var s: dynamic;
-  var t: dynamic;
-  var min = INF;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var min: dynamic = INF;
   if ((x < y))
   {
     s = x;
@@ -24,7 +24,7 @@ func Find(x: dynamic, y: dynamic)
     t = x;
   }
   {
-    var i = s;
+    var i: dynamic = s;
     while ((i <= t))
     {
       if ((min > A[i]))
@@ -37,16 +37,16 @@ func Find(x: dynamic, y: dynamic)
   write(min, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var q: dynamic;
-  var com: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var com: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(n, q);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       A[i] = INF;
@@ -54,7 +54,7 @@ func main()
     }
   }
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < q))
     {
       read(com, x, y);

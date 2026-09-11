@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var s = cpp_array(10000);
+var s: dynamic = cpp_array(10000);
 
-var par = cpp_array(26);
+var par: dynamic = cpp_array(26);
 
-var sz = cpp_array(26);
+var sz: dynamic = cpp_array(26);
 
-func init()
+func init() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       par[i] = i;
@@ -21,12 +21,12 @@ func init()
   }
 }
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
-  return if ((x == par[x])) x else cpp_assign(par[x], "=", find(par[x]));
+  return  ((x == par[x])) ? x : cpp_assign(par[x], "=", find(par[x]));
 }
 
-func unite(x: dynamic, y: dynamic)
+func unite(x: dynamic, y: dynamic) -> dynamic
 {
   x = find(x);
   y = find(y);
@@ -42,26 +42,26 @@ func unite(x: dynamic, y: dynamic)
   sz[x] += sz[y];
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var in_cpp = [0];
-  var out = [0];
+  var in_cpp: dynamic = [0];
+  var out: dynamic = [0];
   init();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var o = (s[i][0] - cpp_char("a"));
-      var e = (s[i][(s[i].size() - 1)] - cpp_char("a"));
+      var o: dynamic = (s[i][0] - cpp_char("a"));
+      var e: dynamic = (s[i][(s[i].size() - 1)] - cpp_char("a"));
       in_cpp[o] += 1;
       out[e] += 1;
       unite(o, e);
       i += 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       if ((in_cpp[i] != out[i]))
@@ -84,14 +84,14 @@ func solve()
   write("OK", "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie();
   ios_base.sync_with_stdio(false);
   while (cpp_comma((cin >> N), N))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         read(s[i]);

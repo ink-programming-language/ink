@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var vis = cpp_array(200009);
+var vis: dynamic = cpp_array(200009);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var i: dynamic;
-  var l = cpp_array(n);
-  var r = cpp_array(n);
+  var i: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_array(n);
+  var r: dynamic = cpp_array(n);
   {
     i = 0;
     while ((i < n))
@@ -18,7 +18,7 @@ func main()
       i += 1;
     }
   }
-  var diff: dynamic;
+  var diff: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < (n - 1)))
@@ -27,12 +27,12 @@ func main()
       i += 1;
     }
   }
-  var bridge: dynamic;
+  var bridge: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < m))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       bridge.insert([x, (i + 1)]);
       i += 1;
@@ -44,12 +44,12 @@ func main()
     return 0;
   }
   sort(diff.begin(), diff.end());
-  for (var p in diff)
+  for (var p: dynamic in diff)
   {
-    var le = p.first.first;
-    var ri = p.first.second;
-    var x = p.second;
-    var it = bridge.upper_bound(make_pair(ri, -1));
+    var le: dynamic = p.first.first;
+    var ri: dynamic = p.first.second;
+    var x: dynamic = p.second;
+    var it: dynamic = bridge.upper_bound(make_pair(ri, -1));
     if (((it == bridge.end()) || (it->first > le)))
     {
       write("No");
@@ -60,7 +60,7 @@ func main()
   }
   write("Yes\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       write(ans[i], " ");

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var N = (3e5 + 5);
+var N: dynamic = (3e5 + 5);
 
-var mo = 998244353;
+var mo: dynamic = 998244353;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-var inv = cpp_array(N);
+var inv: dynamic = cpp_array(N);
 
-func work()
+func work() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -30,7 +30,7 @@ func work()
   }
   inv[1] = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= m))
     {
       inv[i] = (((1 * inv[(mo % i)]) * ((mo - (mo / i)))) % mo);
@@ -38,8 +38,8 @@ func work()
     }
   }
   {
-    var i = 1;
-    var y: dynamic;
+    var i: dynamic = 1;
+    var y: dynamic = cpp_uninitialized();
     while ((i < m))
     {
       y = ((((i * ((n - 1))) % mo) * inv[(m - i)]) % mo);
@@ -48,7 +48,7 @@ func work()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ans = (((ans + f[a[i]])) % mo);
@@ -58,7 +58,7 @@ func work()
   printf("%d\n", ((((ans - f[m]) + mo)) % mo));
 }
 
-func main()
+func main() -> dynamic
 {
   FGF.work();
   return 0;

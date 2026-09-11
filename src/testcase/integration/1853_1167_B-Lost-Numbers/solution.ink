@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var arr = [4, 8, 15, 16, 23, 42];
-  var v: dynamic;
-  var ans = cpp_array(7);
+  var arr: dynamic = [4, 8, 15, 16, 23, 42];
+  var v: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_array(7);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 5))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < 6))
         {
           v.push_back(make_pair((arr[i] * arr[j]), make_pair(arr[i], arr[j])));
@@ -20,18 +20,18 @@ func main()
       i += 1;
     }
   }
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   write("? ", 1, " ", 2, "\n");
   fflush(stdout);
   read(a);
   fflush(stdout);
-  var p1: dynamic;
-  var p2: dynamic;
+  var p1: dynamic = cpp_uninitialized();
+  var p2: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       if ((v[i].first == a))
@@ -47,7 +47,7 @@ func main()
   read(b);
   fflush(stdout);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       if ((v[i].first == b))
@@ -83,10 +83,10 @@ func main()
   fflush(stdout);
   read(c);
   fflush(stdout);
-  var p3: dynamic;
-  var p4: dynamic;
+  var p3: dynamic = cpp_uninitialized();
+  var p4: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       if ((v[i].first == c))
@@ -102,7 +102,7 @@ func main()
   read(d);
   fflush(stdout);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       if ((v[i].first == d))
@@ -136,7 +136,7 @@ func main()
   }
   write("! ");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 6))
     {
       write(ans[i], " ");

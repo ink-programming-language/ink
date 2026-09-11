@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(1000);
+var s: dynamic = cpp_array(1000);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k = 0;
-  var l = 0;
-  var f = 0;
-  var g = 0;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = 0;
+  var l: dynamic = 0;
+  var f: dynamic = 0;
+  var g: dynamic = 0;
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s[i]);
@@ -159,11 +159,11 @@ func main()
   } else
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             if ((s[i][j] == cpp_char("*")))
@@ -177,17 +177,17 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             if ((s[i][j] == cpp_char("*")))
             {
               {
-                var p = 0;
+                var p: dynamic = 0;
                 while ((p < m))
                 {
                   if ((s[i][p] == cpp_char("*")))
@@ -198,7 +198,7 @@ func main()
                 }
               }
               {
-                var p = 0;
+                var p: dynamic = 0;
                 while ((p < n))
                 {
                   if ((s[p][j] == cpp_char("*")))

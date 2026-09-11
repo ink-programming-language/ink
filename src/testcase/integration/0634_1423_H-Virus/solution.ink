@@ -1,54 +1,54 @@
 // Translated from solution.cpp.
 
-var N = (5e5 + 10);
+var N: dynamic = (5e5 + 10);
 
-var components: dynamic;
+var components: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var in_cpp: dynamic;
+var in_cpp: dynamic = cpp_uninitialized();
 
-var out: dynamic;
+var out: dynamic = cpp_uninitialized();
 
-var start: dynamic;
+var start: dynamic = cpp_uninitialized();
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var need = cpp_array((N + 1));
+var need: dynamic = cpp_array((N + 1));
 
 class Query
 {
-  var u: dynamic;
-  var v: dynamic;
-  var must_rollback: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var must_rollback: dynamic = cpp_uninitialized();
 }
 
-var tree = cpp_array(((N + 1) << 2));
+var tree: dynamic = cpp_array(((N + 1) << 2));
 
 class Save
 {
-  var u: dynamic;
-  var v: dynamic;
-  var sizeU: dynamic;
-  var sizeV: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var sizeU: dynamic = cpp_uninitialized();
+  var sizeV: dynamic = cpp_uninitialized();
 }
 
-var ops: dynamic;
+var ops: dynamic = cpp_uninitialized();
 
-func find_set(x: dynamic)
+func find_set(x: dynamic) -> dynamic
 {
-  return if ((x == p[x])) x else find_set(p[x]);
+  return  ((x == p[x])) ? x : find_set(p[x]);
 }
 
-func union_sets(x: dynamic, y: dynamic)
+func union_sets(x: dynamic, y: dynamic) -> dynamic
 {
   x = find_set(x);
   y = find_set(y);
@@ -67,13 +67,13 @@ func union_sets(x: dynamic, y: dynamic)
   return true;
 }
 
-func rollback()
+func rollback() -> dynamic
 {
   if (ops.empty())
   {
     return;
   }
-  var op = ops.top();
+  var op: dynamic = ops.top();
   ops.pop();
   p[op.u] = op.u;
   p[op.v] = op.v;
@@ -81,7 +81,7 @@ func rollback()
   s[op.v] = op.sizeV;
 }
 
-func add_query(l: dynamic, r: dynamic, L: dynamic, R: dynamic, q: dynamic, p: dynamic)
+func add_query(l: dynamic, r: dynamic, L: dynamic, R: dynamic, q: dynamic, p: dynamic) -> dynamic
 {
   if (((l > R) || (L > r)))
   {
@@ -92,32 +92,32 @@ func add_query(l: dynamic, r: dynamic, L: dynamic, R: dynamic, q: dynamic, p: dy
     tree[p].push_back(q);
   } else
   {
-    var m = ((l + r) >> 1);
+    var m: dynamic = ((l + r) >> 1);
     add_query(l, m, L, R, q, (p << 1));
     add_query((m + 1), r, L, R, q, ((p << 1) | 1));
   }
 }
 
-func traverse(l: dynamic, r: dynamic, p: dynamic)
+func traverse(l: dynamic, r: dynamic, p: dynamic) -> dynamic
 {
-  for (var q in tree[p])
+  for (var q: dynamic in tree[p])
   {
     q.must_rollback = union_sets(q.u, q.v);
   }
   if ((l == r))
   {
-    for (var __cpp_item_1 in need[l])
+    for (var __cpp_item_1: dynamic in need[l])
     {
-      var (x, index) = __cpp_item_1;
+      var (x, index): dynamic = __cpp_item_1;
       ans[index] = s[find_set(x)];
     }
   } else
   {
-    var m = ((l + r) >> 1);
+    var m: dynamic = ((l + r) >> 1);
     traverse(l, m, (p << 1));
     traverse((m + 1), r, ((p << 1) | 1));
   }
-  for (var q in tree[p])
+  for (var q: dynamic in tree[p])
   {
     if (q.must_rollback)
     {
@@ -126,13 +126,13 @@ func traverse(l: dynamic, r: dynamic, p: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(n, m, k);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       p[i] = i;
@@ -140,23 +140,23 @@ func main()
       i += 1;
     }
   }
-  var timer = 1;
-  var cnt = 0;
-  var days = [0];
-  var u: dynamic;
-  var v: dynamic;
-  var id: dynamic;
-  var d: dynamic;
+  var timer: dynamic = 1;
+  var cnt: dynamic = 0;
+  var days: dynamic = [0];
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var type_cpp: dynamic;
+      var type_cpp: dynamic = cpp_uninitialized();
       read(type_cpp);
       if ((type_cpp == 1))
       {
-        var p: dynamic;
-        var q: dynamic;
+        var p: dynamic = cpp_uninitialized();
+        var q: dynamic = cpp_uninitialized();
         read(p, q);
         u.push_back(p);
         v.push_back(q);
@@ -164,7 +164,7 @@ func main()
         d.push_back((days.size() - 1));
       } else if ((type_cpp == 2))
       {
-        var x: dynamic;
+        var x: dynamic = cpp_uninitialized();
         read(x);
         need[i].push_back([x, cpp_update(cnt, "++")]);
       } else
@@ -175,12 +175,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
-      var L = id[i];
-      var R = N;
-      var q = [u[i], v[i], 0];
+      var L: dynamic = id[i];
+      var R: dynamic = N;
+      var q: dynamic = [u[i], v[i], 0];
       if ((days.size() > (d[i] + k)))
       {
         R = (days[(d[i] + k)] - 1);
@@ -191,7 +191,7 @@ func main()
   }
   traverse(1, N, 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cnt))
     {
       write(ans[i], cpp_char(" "));

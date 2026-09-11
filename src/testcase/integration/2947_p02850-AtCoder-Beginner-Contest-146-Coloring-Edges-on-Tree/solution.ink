@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var IOS = cpp_expression("#include <bits/stdc++.h>");
+var IOS: dynamic = cpp_expression("#include <bits/stdc++.h>");
 
-var endl = cpp_expression("#inc");
+var endl: dynamic = cpp_expression("#inc");
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var deg = cpp_array(N);
+var deg: dynamic = cpp_array(N);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-func dfs(u: dynamic, par: dynamic, c: dynamic)
+func dfs(u: dynamic, par: dynamic, c: dynamic) -> dynamic
 {
-  for (var it in g[u])
+  for (var it: dynamic in g[u])
   {
     if ((it.first == par))
     {
@@ -32,16 +32,16 @@ func dfs(u: dynamic, par: dynamic, c: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   IOS;
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n - 1)))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       deg[u] += 1;
       deg[v] += 1;
@@ -51,7 +51,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       k = max(k, deg[i]);
@@ -61,7 +61,7 @@ func main()
   dfs(1, 1, 0);
   write(k, "\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n - 1)))
     {
       write((ans[i] + 1), "\n");

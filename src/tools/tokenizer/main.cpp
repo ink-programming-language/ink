@@ -9,18 +9,35 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 
-template<class T>
-class TestAAA
-{
-
-};
 namespace
 {
+  void printSpelling(std::ostream &Output, std::string_view Spelling)
+  {
+    constexpr char HexDigits[] = "0123456789ABCDEF";
+    Output << '\"';
+    for (const unsigned char Byte : Spelling)
+    {
+      if (Byte == '\"' || Byte == '\\')
+      {
+        Output << '\\' << static_cast<char>(Byte);
+      }
+      else if (Byte >= 0x20 && Byte < 0x7F)
+      {
+        Output << static_cast<char>(Byte);
+      }
+      else
+      {
+        Output << "\\x" << HexDigits[Byte >> 4] << HexDigits[Byte & 0x0F];
+      }
+    }
+    Output << '\"';
+  }
+
   bool readSource(std::istream &Input, std::string &Source)
   {
-    TestAAA<1>1>
     std::array<char, 64 * 1024> Buffer;
     while (Input)
     {
@@ -38,6 +55,8 @@ namespace
   {
     ink::cli::Application Command({"ink-tokenize", "Tokenize Ink source and print the token stream.", "development"});
     std::string SourceFile = "-";
+    ink::tokenizer::TokenizerOptions Options;
+    Command.addFlag("--trivia", Options.PreserveTrivia, "Include whitespace and comments in the token dump");
     Command.addOption("INPUT", SourceFile, "Input file, or '-' for standard input").typeName("FILE");
     const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
     if (ParsedArguments.ShouldExit)
@@ -80,16 +99,20 @@ namespace
     ink::core::CollectingDiagnosticConsumer Diagnostics;
     Compilation.diagnosticEngine().addConsumer(Diagnostics);
     const ink::core::SourceId SourceId = Compilation.sourceManager().addSource(SourceFile == "-" ? "<stdin>" : SourceFile, std::move(Source));
-    const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenizeSource(Context, SourceId);
+    const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenizeSource(Context, SourceId, Options);
     std::ostringstream BufferedOutput;
     std::ostringstream BufferedErrorOutput;
     for (const ink::tokenizer::Token &Token : Result.tokens())
     {
-      BufferedOutput << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";
+      BufferedOutput << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ") ";
+      printSpelling(BufferedOutput, Result.raw(Token));
+      BufferedOutput << '\n';
     }
     const ink::core::DiagnosticFormatter Formatter;
+    bool HasInternalError = false;
     for (const ink::core::Diagnostic &Diagnostic : Diagnostics.diagnostics())
     {
+      HasInternalError = HasInternalError || Diagnostic.classification() == ink::core::DiagnosticClass::InternalCompilerError;
       const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
       const std::shared_ptr<const ink::core::SourceBuffer> DiagnosticSource = Compilation.sourceManager().findSource(Diagnostic.Source);
       if (DiagnosticSource != nullptr)
@@ -113,14 +136,15 @@ namespace
     {
       return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
     }
-    return ink::cli::exitStatus(Result.succeeded() ? ink::cli::ExitCode::Success : ink::cli::ExitCode::SourceError);
+    return ink::cli::exitStatus(HasInternalError ? ink::cli::ExitCode::InternalError : Result.succeeded() ? ink::cli::ExitCode::Success : ink::cli::ExitCode::SourceError);
   }
 } // namespace
 
 int main(int ArgumentCount, char **ArgumentValues)
 {
-  return ink::cli::runMain("ink-tokenize", [ArgumentCount, ArgumentValues]()
-                           {
-                             return runTokenizer(ArgumentCount, ArgumentValues);
-                           });
+  const auto Run = [ArgumentCount, ArgumentValues]()
+  {
+    return runTokenizer(ArgumentCount, ArgumentValues);
+  };
+  return ink::cli::runMain("ink-tokenize", Run);
 }

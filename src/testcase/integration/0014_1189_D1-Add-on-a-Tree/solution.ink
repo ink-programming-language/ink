@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-func pr_init()
+func pr_init() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
 }
 
-var tree: dynamic;
+var tree: dynamic = cpp_uninitialized();
 
-var deg: dynamic;
+var deg: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   tree.assign((n + 1), vector());
   deg.assign((n + 1), 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       deg[u] += 1;
       deg[v] += 1;
@@ -40,9 +40,9 @@ func solve()
     write("NO\n");
     return;
   }
-  var is = true;
+  var is: dynamic = true;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((deg[i] != 1) && (deg[i] < 3)))
@@ -61,7 +61,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   solve();
   return 0;

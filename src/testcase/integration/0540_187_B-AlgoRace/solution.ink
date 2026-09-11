@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var N = 66;
+var N: dynamic = 66;
 
-var INF = 1000000009;
+var INF: dynamic = 1000000009;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N, N, N);
+var a: dynamic = cpp_array(N, N, N);
 
-var dp = cpp_array(N, N, N);
+var dp: dynamic = cpp_array(N, N, N);
 
-func main()
+func main() -> dynamic
 {
   read(n, m, q);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var x = 1;
+        var x: dynamic = 1;
         while ((x <= n))
         {
           {
-            var y = 1;
+            var y: dynamic = 1;
             while ((y <= n))
             {
               read(a[i][x][y]);
@@ -37,15 +37,15 @@ func main()
         }
       }
       {
-        var z = 1;
+        var z: dynamic = 1;
         while ((z <= n))
         {
           {
-            var x = 1;
+            var x: dynamic = 1;
             while ((x <= n))
             {
               {
-                var y = 1;
+                var y: dynamic = 1;
                 while ((y <= n))
                 {
                   a[i][x][y] = min(a[i][x][y], (a[i][x][z] + a[i][z][y]));
@@ -62,15 +62,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < N))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < N))
             {
               dp[i][j][k] = INF;
@@ -84,15 +84,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var x = 1;
+        var x: dynamic = 1;
         while ((x <= n))
         {
           {
-            var y = 1;
+            var y: dynamic = 1;
             while ((y <= n))
             {
               dp[x][y][0] = min(a[i][x][y], dp[x][y][0]);
@@ -106,19 +106,19 @@ func main()
     }
   }
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < n))
     {
       {
-        var x = 1;
+        var x: dynamic = 1;
         while ((x <= n))
         {
           {
-            var y = 1;
+            var y: dynamic = 1;
             while ((y <= n))
             {
               {
-                var hy = 1;
+                var hy: dynamic = 1;
                 while ((hy <= n))
                 {
                   dp[x][hy][(k + 1)] = min(dp[x][hy][(k + 1)], (dp[x][y][k] + dp[y][hy][0]));
@@ -136,9 +136,9 @@ func main()
   }
   while (cpp_update(q, "--"))
   {
-    var x: dynamic;
-    var y: dynamic;
-    var k: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
+    var k: dynamic = cpp_uninitialized();
     read(x, y, k);
     k = min(k, n);
     write(dp[x][y][k], "\n");

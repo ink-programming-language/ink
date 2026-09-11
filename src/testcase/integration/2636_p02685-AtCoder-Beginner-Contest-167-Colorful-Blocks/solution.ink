@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var t = 0;
+var t: dynamic = 0;
 
-var p = cpp_array(200001);
+var p: dynamic = cpp_array(200001);
 
-var q = cpp_array(200001);
+var q: dynamic = cpp_array(200001);
 
-var r = cpp_array(200001);
+var r: dynamic = cpp_array(200001);
 
-var M = 998244353;
+var M: dynamic = 998244353;
 
-func pow(a: dynamic, b: dynamic)
+func pow(a: dynamic, b: dynamic) -> dynamic
 {
-  var w = 1;
-  var x = a;
+  var w: dynamic = 1;
+  var x: dynamic = a;
   while (b)
   {
     if ((b & 1))
@@ -32,14 +32,14 @@ func pow(a: dynamic, b: dynamic)
   return w;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m, k);
   p[0] = 1;
   q[0] = 1;
   r[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       p[i] = ((p[(i - 1)] * i) % M);
@@ -49,10 +49,10 @@ func main()
     }
   }
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j <= k))
     {
-      var s = m;
+      var s: dynamic = m;
       s = (((((((((((s * p[(n - 1)]) % M)) * q[j]) % M)) * q[((n - j) - 1)]) % M)) * r[((n - j) - 1)]) % M);
       t = (((t + s)) % M);
       j += 1;

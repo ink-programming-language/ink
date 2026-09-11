@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var INF = ((~0) >> 1);
+var INF: dynamic = ((~0) >> 1);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var a: dynamic;
-  var b: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(n, m, i, j, a, b);
-  var num = 10000000;
+  var num: dynamic = 10000000;
   if ((((((i + a) <= n) || ((i - a) >= 1))) && ((((j + b) <= m) || ((j - b) >= 1)))))
   {
-    var cnta = (i - 1);
-    var cntb = (j - 1);
+    var cnta: dynamic = (i - 1);
+    var cntb: dynamic = (j - 1);
     if (((((cnta % a) == 0) && ((cntb % b) == 0)) && ((((max((cnta / a), (cntb / b)) - min((cnta / a), (cntb / b)))) % 2) == 0)))
     {
       num = min(num, max((cnta / a), (cntb / b)));

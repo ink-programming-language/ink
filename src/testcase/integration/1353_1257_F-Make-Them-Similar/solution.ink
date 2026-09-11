@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var maxn = 123;
+var maxn: dynamic = 123;
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var b = cpp_array(maxn);
+var b: dynamic = cpp_array(maxn);
 
-var vis = cpp_array(maxn);
+var vis: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
 class P
 {
   var a: dynamic = cpp_array(101);
-  func operator_less(t: dynamic)
+  func operator_less(t: dynamic) -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((a[i] != t.a[i]))
@@ -30,16 +30,16 @@ class P
     }
 }
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
-  var tmp = (((1 << 15)) - 1);
+  var tmp: dynamic = (((1 << 15)) - 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (a + i));
@@ -49,12 +49,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= tmp))
     {
-      var mx = 34;
+      var mx: dynamic = 34;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           t.a[j] = builtin_popcount((a[j] ^ i));
@@ -63,7 +63,7 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           t.a[j] -= mx;
@@ -75,12 +75,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= tmp))
     {
-      var mx = 0;
+      var mx: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           t.a[j] = builtin_popcount((b[j] ^ i));
@@ -89,7 +89,7 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           t.a[j] = (mx - t.a[j]);

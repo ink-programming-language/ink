@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var N = (100 + 1);
+var N: dynamic = (100 + 1);
 
-var s1: dynamic;
+var s1: dynamic = cpp_uninitialized();
 
-var s2: dynamic;
+var s2: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var dyn = cpp_array(N, N, N);
+var dyn: dynamic = cpp_array(N, N, N);
 
-var vu = cpp_array(N, N, N);
+var vu: dynamic = cpp_array(N, N, N);
 
-var p = cpp_array(26, N);
+var p: dynamic = cpp_array(26, N);
 
-func f(i: dynamic, j: dynamic, k: dynamic)
+func f(i: dynamic, j: dynamic, k: dynamic) -> dynamic
 {
   if ((k == v.size()))
   {
@@ -36,7 +36,7 @@ func f(i: dynamic, j: dynamic, k: dynamic)
   return dyn[i][j][k];
 }
 
-func g(i: dynamic, j: dynamic, k: dynamic, s: dynamic)
+func g(i: dynamic, j: dynamic, k: dynamic, s: dynamic) -> dynamic
 {
   if (((i == s1.size()) || (j == s2.size())))
   {
@@ -55,19 +55,19 @@ func g(i: dynamic, j: dynamic, k: dynamic, s: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(s1, s2, v);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       {
-        var j = cpp_char("A");
+        var j: dynamic = cpp_char("A");
         while ((j <= cpp_char("Z")))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= i))
             {
               if (((v.substr(k, (i - k)) + j) == v.substr(0, ((i - k) + 1))))
@@ -84,7 +84,7 @@ func main()
       i += 1;
     }
   }
-  var r = f(0, 0, 0);
+  var r: dynamic = f(0, 0, 0);
   if ((r == 0))
   {
     write(0, "\n");

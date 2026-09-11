@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var inf = (1e9 + 69);
+var inf: dynamic = (1e9 + 69);
 
-var MX = (5e5 + 5);
+var MX: dynamic = (5e5 + 5);
 
-var LG = cpp_cast(log2(MX));
+var LG: dynamic = cpp_cast(log2(MX));
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var BLOCK = 450;
+var BLOCK: dynamic = 450;
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var inv: dynamic;
+var inv: dynamic = cpp_uninitialized();
 
-var val = 0;
+var val: dynamic = 0;
 
-func reset()
+func reset() -> dynamic
 {
   q.assign((n + 1), 0);
   inv.assign((n + 1), 0);
   val = 0;
 }
 
-func push(nw: dynamic)
+func push(nw: dynamic) -> dynamic
 {
   inv[q[nw]] -= 1;
   q[nw] += 1;
@@ -42,7 +42,7 @@ func push(nw: dynamic)
   }
 }
 
-func pop(nw: dynamic)
+func pop(nw: dynamic) -> dynamic
 {
   inv[q[nw]] -= 1;
   q[nw] -= 1;
@@ -53,19 +53,19 @@ func pop(nw: dynamic)
   }
 }
 
-func check()
+func check() -> dynamic
 {
   return (inv[val] >= 2);
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0)->sync_with_stdio(0);
   read(n);
   v.resize((n + 1));
   cnt.resize((n + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(v[i]);
@@ -73,10 +73,10 @@ func main()
       i += 1;
     }
   }
-  var modus: dynamic;
-  var cntmx = 0;
+  var modus: dynamic = cpp_uninitialized();
+  var cntmx: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((cntmx < cnt[i]))
@@ -96,21 +96,21 @@ func main()
     write(n, "\n");
     return 0;
   }
-  var fi = modus[0];
+  var fi: dynamic = modus[0];
   if ((cnt[fi] == n))
   {
     write(0, "\n");
     return 0;
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= BLOCK))
     {
       reset();
-      var lf = 1;
+      var lf: dynamic = 1;
       {
-        var rg = 1;
+        var rg: dynamic = 1;
         while ((rg <= n))
         {
           push(v[rg]);
@@ -132,7 +132,7 @@ func main()
     }
   }
   {
-    var sc = 1;
+    var sc: dynamic = 1;
     while ((sc <= n))
     {
       if (((sc == fi) || (cnt[sc] < BLOCK)))
@@ -140,11 +140,11 @@ func main()
         sc += 1;
         continue;
       }
-      var presum = cpp_construct(((2 * n) + 5), -1);
+      var presum: dynamic = cpp_construct(((2 * n) + 5), -1);
       presum[(n + 2)] = 0;
-      var sm = 0;
+      var sm: dynamic = 0;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           if ((v[i] == fi))

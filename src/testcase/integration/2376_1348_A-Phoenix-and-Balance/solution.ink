@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
-  var n: dynamic;
-  var sum: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     read(n);
     sum = 0;
-    var p = ((n / 2) + 1);
+    var p: dynamic = ((n / 2) + 1);
     {
-      var i = p;
+      var i: dynamic = p;
       while ((p <= n))
       {
-        var x = ((n - i) + 1);
-        var s = 1;
+        var x: dynamic = ((n - i) + 1);
+        var s: dynamic = 1;
         {
-          var k = 0;
+          var k: dynamic = 0;
           while ((k < (p - x)))
           {
             s *= 2;

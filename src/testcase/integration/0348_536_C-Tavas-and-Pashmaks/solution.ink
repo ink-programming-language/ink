@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var maxn = (2e5 + 100);
+var maxn: dynamic = (2e5 + 100);
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func operator_less(p: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func operator_less(p: dynamic) -> dynamic
   {
       if ((x != p.x))
       {
@@ -18,23 +18,23 @@ class Point
     }
 }
 
-var pt = cpp_array(maxn);
+var pt: dynamic = cpp_array(maxn);
 
-var stk = cpp_array(maxn);
+var stk: dynamic = cpp_array(maxn);
 
-var stnum: dynamic;
+var stnum: dynamic = cpp_uninitialized();
 
-var has: dynamic;
+var has: dynamic = cpp_uninitialized();
 
-func check(a: dynamic, b: dynamic, c: dynamic)
+func check(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return ((((c.x * b.y) * ((b.x - a.x))) * ((a.y - c.y))) < (((b.x * c.y) * ((a.x - c.x))) * ((b.y - a.y))));
 }
 
-func convex(n: dynamic)
+func convex(n: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   stnum = 0;
   {
     i = 0;
@@ -63,15 +63,15 @@ func convex(n: dynamic)
   }
 }
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var b = cpp_array(maxn);
+var b: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
     i = 0;

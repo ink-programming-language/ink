@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
   scanf("%d", (&n));
   puts("YES");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d%d%d%d", (&x), (&y), (&a), (&b));
@@ -25,7 +25,7 @@ func init()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   return 0;

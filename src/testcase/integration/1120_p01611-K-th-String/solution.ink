@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var MAX_N = int_cpp((1e5 + 10));
+var MAX_N: dynamic = int_cpp((1e5 + 10));
 
-var MAX_K = 30;
+var MAX_K: dynamic = 30;
 
-var INF = int64(2.05e18);
+var INF: dynamic = cpp_int64(2.05e18);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var sa = cpp_array((MAX_N + 1));
+var sa: dynamic = cpp_array((MAX_N + 1));
 
-var comb = cpp_array((MAX_K + 1), ((MAX_N + MAX_K) + 1));
+var comb: dynamic = cpp_array((MAX_K + 1), ((MAX_N + MAX_K) + 1));
 
-func multi(x: dynamic, y: dynamic)
+func multi(x: dynamic, y: dynamic) -> dynamic
 {
-  return if ((((double(x) * y) < (INF * 1.3)))) (x * y) else INF;
+  return  ((((cpp_double(x) * y) < (INF * 1.3)))) ? (x * y) : INF;
 }
 
-func init()
+func init() -> dynamic
 {
   scanf("%d%d%lld", (&N), (&K), (&L));
   sa[0] = N;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       scanf("%d", (sa + i));
@@ -36,10 +36,10 @@ func init()
   }
 }
 
-func prepareCombination()
+func prepareCombination() -> dynamic
 {
   {
-    var n = 0;
+    var n: dynamic = 0;
     while ((n <= (N + K)))
     {
       comb[n][0] = 1;
@@ -48,7 +48,7 @@ func prepareCombination()
         comb[n][n] = 1;
       }
       {
-        var k = 1;
+        var k: dynamic = 1;
         while ((k <= min(n, K)))
         {
           if (((n - 1) >= k))
@@ -65,36 +65,36 @@ func prepareCombination()
 
 class State
 {
-  var from_cpp: dynamic;
-  var to: dynamic;
-  var ways: dynamic;
-  func State()
+  var from_cpp: dynamic = cpp_uninitialized();
+  var to: dynamic = cpp_uninitialized();
+  var ways: dynamic = cpp_uninitialized();
+  func State() -> dynamic
   {
     }
-  func State(from_cpp: dynamic, to: dynamic, ways: dynamic)
+  func State(from_cpp: dynamic, to: dynamic, ways: dynamic) -> dynamic
   {
-      this->from_cpp = cpp_construct(from_cpp);
-      this->to = cpp_construct(to);
-      this->ways = cpp_construct(ways);
+      self->from_cpp = cpp_construct(from_cpp);
+      self->to = cpp_construct(to);
+      self->ways = cpp_construct(ways);
     }
 }
 
-func solve()
+func solve() -> dynamic
 {
   prepareCombination();
-  var inv = cpp_array((MAX_N + 1));
+  var inv: dynamic = cpp_array((MAX_N + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
       inv[sa[i]] = i;
       i += 1;
     }
   }
-  var mustInc = cpp_array((MAX_N + 1));
-  var incCount = 0;
+  var mustInc: dynamic = cpp_array((MAX_N + 1));
+  var incCount: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       if ((inv[(sa[(i + 1)] + 1)] < inv[(sa[i] + 1)]))
@@ -111,25 +111,25 @@ func solve()
     puts("Impossible");
     return;
   }
-  var fixedAcc = cpp_array((MAX_N + 1));
+  var fixedAcc: dynamic = cpp_array((MAX_N + 1));
   memset(fixedAcc, -1, cpp_sizeof((fixedAcc)));
   fixedAcc[N] = (K - 1);
-  var states: dynamic;
+  var states: dynamic = cpp_uninitialized();
   states.push_back(State(-1, N, comb[((N + K) - 1)][(K - 1)]));
-  var fixed: dynamic;
+  var fixed: dynamic = cpp_uninitialized();
   fixed.insert(1);
   fixed.insert((-N));
   {
-    var cpp_name = 0;
+    var cpp_name: dynamic = 0;
     while ((cpp_name < N))
     {
-      var p = (inv[cpp_name] - 1);
-      var key = -1;
-      var w = 1;
-      var prev = (-((*fixed.lower_bound((-p)))));
-      var lAcc = if ((prev == -1)) 0 else fixedAcc[prev];
+      var p: dynamic = (inv[cpp_name] - 1);
+      var key: dynamic = -1;
+      var w: dynamic = 1;
+      var prev: dynamic = (-((*fixed.lower_bound((-p)))));
+      var lAcc: dynamic =  ((prev == -1)) ? 0 : fixedAcc[prev];
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < int_cpp(states.size())))
         {
           if (((states[i].from_cpp <= p) && (p <= states[i].to)))
@@ -149,17 +149,17 @@ func solve()
         cpp_name += 1;
         continue;
       }
-      var from_cpp = states[key].from_cpp;
-      var to = states[key].to;
+      var from_cpp: dynamic = states[key].from_cpp;
+      var to: dynamic = states[key].to;
       states.erase((states.begin() + key));
       {
-        var a = lAcc;
+        var a: dynamic = lAcc;
         while (true)
         {
-          var leftWay = 1;
-          var rightWay = 1;
-          var leftFlex = (a - (if ((from_cpp >= 0)) fixedAcc[from_cpp] else 0));
-          var rightFlex = (fixedAcc[to] - a);
+          var leftWay: dynamic = 1;
+          var rightWay: dynamic = 1;
+          var leftFlex: dynamic = (a - ( ((from_cpp >= 0)) ? fixedAcc[from_cpp] : 0));
+          var rightFlex: dynamic = (fixedAcc[to] - a);
           if ((leftFlex > 0))
           {
             leftWay = comb[(((p - from_cpp) - 1) + leftFlex)][leftFlex];
@@ -168,7 +168,7 @@ func solve()
           {
             rightWay = comb[(((to - p) - 1) + rightFlex)][rightFlex];
           }
-          var newWay = multi(leftWay, rightWay);
+          var newWay: dynamic = multi(leftWay, rightWay);
           if ((multi(newWay, w) >= L))
           {
             if ((leftWay > 1))
@@ -192,10 +192,10 @@ func solve()
       cpp_name += 1;
     }
   }
-  var ans = cpp_array((MAX_N + 1));
-  var add = 0;
+  var ans: dynamic = cpp_array((MAX_N + 1));
+  var add: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (mustInc[i])
@@ -209,7 +209,7 @@ func solve()
   puts(ans);
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   solve();

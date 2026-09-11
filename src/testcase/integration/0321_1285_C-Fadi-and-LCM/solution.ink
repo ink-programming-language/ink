@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var factors: dynamic;
+var factors: dynamic = cpp_uninitialized();
 
-func trial(n: dynamic)
+func trial(n: dynamic) -> dynamic
 {
-  var count: dynamic;
-  var ini = n;
+  var count: dynamic = cpp_uninitialized();
+  var ini: dynamic = n;
   {
-    var d = 2;
+    var d: dynamic = 2;
     while (((d * d) <= n))
     {
       if (((n % d) == 0))
@@ -17,7 +17,7 @@ func trial(n: dynamic)
         {
           n /= d;
         }
-        var s = (ini / n);
+        var s: dynamic = (ini / n);
         factors.push_back(s);
       }
       d += 1;
@@ -29,25 +29,25 @@ func trial(n: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   trial(n);
-  var siz = factors.size();
-  var a = 1;
-  var b = 1;
-  var ra = 1;
-  var rb = 1;
-  var mini = 1000000000000;
+  var siz: dynamic = factors.size();
+  var a: dynamic = 1;
+  var b: dynamic = 1;
+  var ra: dynamic = 1;
+  var rb: dynamic = 1;
+  var mini: dynamic = 1000000000000;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < ((1 << siz))))
     {
       a = 1;
       b = 1;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= siz))
         {
           if ((i & ((1 << ((j - 1))))))

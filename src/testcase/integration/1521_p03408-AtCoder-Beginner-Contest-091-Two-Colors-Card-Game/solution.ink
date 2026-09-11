@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var count: dynamic;
-  var r: dynamic;
-  var b: dynamic;
+  var count: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(b);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < b))
     {
-      var tmp: dynamic;
+      var tmp: dynamic = cpp_uninitialized();
       read(tmp);
       count[tmp] += 1;
       i += 1;
@@ -18,17 +18,17 @@ func main()
   }
   read(r);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < r))
     {
-      var tmp: dynamic;
+      var tmp: dynamic = cpp_uninitialized();
       read(tmp);
       count[tmp] -= 1;
       i += 1;
     }
   }
-  var max = 0;
-  for (var x in count)
+  var max: dynamic = 0;
+  for (var x: dynamic in count)
   {
     max = max(max, x.second);
   }

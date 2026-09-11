@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var b: dynamic;
+  var b: dynamic = cpp_uninitialized();
   read(b);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sqrt(b)))
     {
       if (((b % i) == 0))
@@ -17,7 +17,7 @@ func main()
     }
   }
   ans *= 2;
-  var t = sqrt(b);
+  var t: dynamic = sqrt(b);
   if (((t * t) == b))
   {
     ans -= 1;

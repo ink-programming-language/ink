@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var MAXN = 107;
+var MAXN: dynamic = 107;
 
-var INF = (1e9 + 7);
+var INF: dynamic = (1e9 + 7);
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var A = cpp_array(MAXN);
+var A: dynamic = cpp_array(MAXN);
 
-var l = cpp_array(MAXN);
+var l: dynamic = cpp_array(MAXN);
 
-var save: dynamic;
+var save: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
   read(N);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       read(A[i]);
@@ -26,7 +26,7 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       read(l[i]);
@@ -35,7 +35,7 @@ func solve()
   }
   save.clear();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       if ((!l[i]))
@@ -46,9 +46,9 @@ func solve()
     }
   }
   sort(save.begin(), save.end());
-  var pos = 0;
+  var pos: dynamic = 0;
   {
-    var i = N;
+    var i: dynamic = N;
     while ((i >= 1))
     {
       if ((l[i] == 0))
@@ -59,7 +59,7 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       write(A[i], " ");
@@ -69,7 +69,7 @@ func solve()
   write(cpp_char("\n"));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);

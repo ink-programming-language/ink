@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var maxn = (5e3 + 7);
+var maxn: dynamic = (5e3 + 7);
 
-var maxa = (1e5 + 7);
+var maxa: dynamic = (1e5 + 7);
 
-var dp = cpp_array(maxn, maxn);
+var dp: dynamic = cpp_array(maxn, maxn);
 
-var num = cpp_array(maxn);
+var num: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func get_ans()
+func get_ans() -> dynamic
 {
   memset(dp, 0, cpp_sizeof((dp)));
-  var max_mod = cpp_array(7);
-  var max_num = cpp_array(maxa);
+  var max_mod: dynamic = cpp_array(7);
+  var max_num: dynamic = cpp_array(maxa);
   memset(max_mod, 0, cpp_sizeof((max_mod)));
   memset(max_num, 0, cpp_sizeof((max_num)));
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= n))
         {
           if ((i == j))
@@ -57,7 +57,7 @@ func get_ans()
       }
       memset(max_mod, 0, cpp_sizeof((max_mod)));
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           max_num[num[j]] = 0;
@@ -70,19 +70,19 @@ func get_ans()
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   while ((cin >> n))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         scanf("%d", (num + i));
         i += 1;
       }
     }
-    var ans = get_ans();
+    var ans: dynamic = get_ans();
     write(ans, "\n");
   }
   return 0;

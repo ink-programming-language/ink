@@ -1,61 +1,61 @@
 // Translated from solution.cpp.
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return cpp_expression("#includ");
 }
 
 class ii
 {
-  var x: dynamic;
-  var y: dynamic;
-  var id: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var num = cpp_array(100005);
+var num: dynamic = cpp_array(100005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var fa = cpp_array(100005);
+var fa: dynamic = cpp_array(100005);
 
 class bian
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
 }
 
-var bi = cpp_array(200005);
+var bi: dynamic = cpp_array(200005);
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
   return (x.x < y.x);
 }
 
-func cmp2(x: dynamic, y: dynamic)
+func cmp2(x: dynamic, y: dynamic) -> dynamic
 {
   return (x.y < y.y);
 }
 
-func cmp3(x: dynamic, y: dynamic)
+func cmp3(x: dynamic, y: dynamic) -> dynamic
 {
   return (x.id < y.id);
 }
 
-func cmp4(x: dynamic, y: dynamic)
+func cmp4(x: dynamic, y: dynamic) -> dynamic
 {
   return (x.z < y.z);
 }
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
   if ((x == fa[x]))
   {
@@ -64,12 +64,12 @@ func find(x: dynamic)
   return cpp_assign(fa[x], "=", find(fa[x]));
 }
 
-func dis(x: dynamic, y: dynamic)
+func dis(x: dynamic, y: dynamic) -> dynamic
 {
   return min(abs((num[x].x - num[y].x)), abs((num[x].y - num[y].y)));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {

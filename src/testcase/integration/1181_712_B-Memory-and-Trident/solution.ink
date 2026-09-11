@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var n = s.length();
+  var n: dynamic = s.length();
   if ((n & 1))
   {
     write(-1);
     return 0;
   }
-  var a = 0;
-  var b = 0;
+  var a: dynamic = 0;
+  var b: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.length()))
     {
       if ((s[i] == cpp_char("U")))
@@ -37,8 +37,8 @@ func main()
   }
   a = abs(a);
   b = abs(b);
-  var min_val = min(a, b);
-  var max_val = max(a, b);
-  var ans = ((((max_val - min_val)) / 2) + min_val);
+  var min_val: dynamic = min(a, b);
+  var max_val: dynamic = max(a, b);
+  var ans: dynamic = ((((max_val - min_val)) / 2) + min_val);
   write(ans);
 }

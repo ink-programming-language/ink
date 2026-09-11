@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func xpow(a: dynamic, b: dynamic)
+func xpow(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -8,7 +8,7 @@ func xpow(a: dynamic, b: dynamic)
   }
   if (((b % 2) == 0))
   {
-    var k = xpow(a, (b / 2));
+    var k: dynamic = xpow(a, (b / 2));
     return (k * k);
   }
   if (((b % 2) != 0))
@@ -17,25 +17,25 @@ func xpow(a: dynamic, b: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
-  var sx: dynamic;
-  var sy: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var sx: dynamic = cpp_uninitialized();
+  var sy: dynamic = cpp_uninitialized();
   read(n, sx, sy);
-  var l = 0;
-  var r = 0;
-  var d = 0;
-  var u = 0;
+  var l: dynamic = 0;
+  var r: dynamic = 0;
+  var d: dynamic = 0;
+  var u: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       if ((x > sx))
       {
@@ -56,7 +56,7 @@ func main()
       i += 1;
     }
   }
-  var maxi = max([l, r, d, u]);
+  var maxi: dynamic = max([l, r, d, u]);
   write(maxi, "\n");
   if ((l == maxi))
   {

@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var sx = cpp_array(32);
+var sx: dynamic = cpp_array(32);
 
-var sy = cpp_array(32);
+var sy: dynamic = cpp_array(32);
 
-var s = cpp_array(10, 10);
+var s: dynamic = cpp_array(10, 10);
 
-var idx = cpp_array(1009, 1009);
+var idx: dynamic = cpp_array(1009, 1009);
 
-var c = cpp_array(1009, 1009);
+var c: dynamic = cpp_array(1009, 1009);
 
-var t = cpp_array(32, 32);
+var t: dynamic = cpp_array(32, 32);
 
-var u = cpp_array(1009, 1009);
+var u: dynamic = cpp_array(1009, 1009);
 
-var dp = cpp_array(32, (1 << 10));
+var dp: dynamic = cpp_array(32, (1 << 10));
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, 1, 0, -1];
+var dy: dynamic = [0, 1, 0, -1];
 
-func main()
+func main() -> dynamic
 {
   read(W, H);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= H))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= W))
         {
           read(c[i][j]);
@@ -69,11 +69,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 10))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 10))
         {
           read(s[i][j]);
@@ -84,12 +84,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 31))
     {
       idx[sx[i]][sy[i]] = i;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= 31))
         {
           t[i][j] = ((1 << 25));
@@ -100,7 +100,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 31))
     {
       if (((sx[i] == 0) && (sy[i] == 0)))
@@ -109,11 +109,11 @@ func main()
         continue;
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= H))
         {
           {
-            var k = 1;
+            var k: dynamic = 1;
             while ((k <= W))
             {
               u[j][k] = ((1 << 25));
@@ -123,20 +123,20 @@ func main()
           j += 1;
         }
       }
-      var Q: dynamic;
+      var Q: dynamic = cpp_uninitialized();
       Q.push(make_pair(sx[i], sy[i]));
       u[sx[i]][sy[i]] = 0;
       while ((!Q.empty()))
       {
-        var cx = Q.front().first;
-        var cy = Q.front().second;
+        var cx: dynamic = Q.front().first;
+        var cy: dynamic = Q.front().second;
         Q.pop();
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 4))
           {
-            var ex = (cx + dx[j]);
-            var ey = (cy + dy[j]);
+            var ex: dynamic = (cx + dx[j]);
+            var ey: dynamic = (cy + dy[j]);
             if ((((((ex <= 0) || (ey <= 0)) || (ex > H)) || (ey > W)) || (c[ex][ey] == cpp_char("#"))))
             {
               j += 1;
@@ -161,11 +161,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << 10))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 32))
         {
           dp[i][j] = make_pair(((1 << 25)), ((1 << 25)));
@@ -176,13 +176,13 @@ func main()
     }
   }
   dp[0][30] = make_pair(0, 0);
-  var maxn = make_pair(((1 << 25)), -1);
+  var maxn: dynamic = make_pair(((1 << 25)), -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << 10))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 32))
         {
           if ((dp[i][j] == make_pair(((1 << 25)), ((1 << 25)))))
@@ -190,9 +190,9 @@ func main()
             j += 1;
             continue;
           }
-          var dist = cpp_array(32);
+          var dist: dynamic = cpp_array(32);
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 32))
             {
               dist[k] = ((1 << 25));
@@ -200,9 +200,9 @@ func main()
             }
           }
           dist[j] = 0;
-          var V: dynamic;
+          var V: dynamic = cpp_uninitialized();
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 10))
             {
               V.push_back(k);
@@ -210,7 +210,7 @@ func main()
             }
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 10))
             {
               if (((((i / ((1 << k)))) % 2) == 0))
@@ -221,7 +221,7 @@ func main()
             }
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 10))
             {
               if (((((i / ((1 << k)))) % 2) == 1))
@@ -234,12 +234,12 @@ func main()
           V.push_back(30);
           V.push_back(31);
           {
-            var tt = 0;
+            var tt: dynamic = 0;
             while ((tt < 22))
             {
-              for (var k in V)
+              for (var k: dynamic in V)
               {
-                for (var l in V)
+                for (var l: dynamic in V)
                 {
                   if ((t[k][l] == (-((1 << 25)))))
                   {
@@ -256,7 +256,7 @@ func main()
             maxn = min(maxn, make_pair((dp[i][j].first + dist[31]), dp[i][j].second));
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 10))
             {
               if (((dist[k] == ((1 << 25))) || ((((i / ((1 << k)))) % 2) == 1)))

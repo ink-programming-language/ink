@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var p = cpp_array(200005);
+var p: dynamic = cpp_array(200005);
 
-var s = cpp_construct(5000005, 0);
+var s: dynamic = cpp_construct(5000005, 0);
 
-var d = cpp_construct(5000005, 0);
+var d: dynamic = cpp_construct(5000005, 0);
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var mxn = 200005;
+var mxn: dynamic = 200005;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -31,9 +31,9 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func bpow(a: dynamic, b: dynamic)
+func bpow(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while ((b > 0))
   {
     if ((b & 1))
@@ -46,7 +46,7 @@ func bpow(a: dynamic, b: dynamic)
   return (res % 1000000007);
 }
 
-func fact(n: dynamic)
+func fact(n: dynamic) -> dynamic
 {
   if ((n == 0))
   {
@@ -55,10 +55,10 @@ func fact(n: dynamic)
   return (n * fact((n - 1)));
 }
 
-func isprime(n: dynamic)
+func isprime(n: dynamic) -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= sqrt(n)))
     {
       if (((n % i) == 0))
@@ -71,16 +71,16 @@ func isprime(n: dynamic)
   return 1;
 }
 
-func prime()
+func prime() -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= 5000000))
     {
       if ((s[i] == 0))
       {
         {
-          var j = 2;
+          var j: dynamic = 2;
           while (((i * j) <= 5000000))
           {
             s[(i * j)] = 1;
@@ -93,18 +93,18 @@ func prime()
   }
 }
 
-func pal(i: dynamic)
+func pal(i: dynamic) -> dynamic
 {
-  var j = i;
-  var c = 0;
-  var d = 0;
+  var j: dynamic = i;
+  var c: dynamic = 0;
+  var d: dynamic = 0;
   while ((j > 0))
   {
     c += 1;
     j /= 10;
   }
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= (c / 2)))
     {
       d *= 10;
@@ -120,18 +120,18 @@ func pal(i: dynamic)
   return ((i == d));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, s);
-  var i = 0;
-  var j = 0;
-  var sum = 0;
-  var c = 0;
+  var i: dynamic = 0;
+  var j: dynamic = 0;
+  var sum: dynamic = 0;
+  var c: dynamic = 0;
   {
     i = s;
     while ((i <= n))

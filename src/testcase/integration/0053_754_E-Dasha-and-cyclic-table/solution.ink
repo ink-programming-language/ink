@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var INFL = 0x3f3f3f3f3f3f3f3f;
+var INFL: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-func amin(x: dynamic, y: dynamic)
+func amin(x: dynamic, y: dynamic) -> dynamic
 {
   if ((y < x))
   {
@@ -12,7 +12,7 @@ func amin(x: dynamic, y: dynamic)
   }
 }
 
-func amax(x: dynamic, y: dynamic)
+func amax(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x < y))
   {
@@ -22,17 +22,17 @@ func amax(x: dynamic, y: dynamic)
 
 class FFTCoeffTable
 {
-  var logn: dynamic;
-  var n: dynamic;
+  var logn: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   var coeffs: dynamic = cpp_array(n);
-  func FFTCoeffTable()
+  func FFTCoeffTable() -> dynamic
   {
-      var PI = 3.141592653589793238462643383279;
+      var PI: dynamic = 3.141592653589793238462643383279;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
-          var theta = (((2 * PI) * i) / n);
+          var theta: dynamic = (((2 * PI) * i) / n);
           coeffs[i] = complex(cos(theta), sin(theta));
           i += 1;
         }
@@ -40,17 +40,17 @@ class FFTCoeffTable
     }
 }
 
-var fftCoeffTable: dynamic;
+var fftCoeffTable: dynamic = cpp_uninitialized();
 
-func fft_core(x: dynamic, logn: dynamic, sign: dynamic)
+func fft_core(x: dynamic, logn: dynamic, sign: dynamic) -> dynamic
 {
-  var n = (1 << logn);
+  var n: dynamic = (1 << logn);
   {
-    var i = 1;
-    var j = 0;
+    var i: dynamic = 1;
+    var j: dynamic = 0;
     while ((i < n))
     {
-      var h = (n >> 1);
+      var h: dynamic = (n >> 1);
       while (((((cpp_assign(j, "^=", h)) & h)) == 0))
       {
         h >>= 1;
@@ -63,28 +63,28 @@ func fft_core(x: dynamic, logn: dynamic, sign: dynamic)
     }
   }
   {
-    var logm = 1;
+    var logm: dynamic = 1;
     while ((logm <= logn))
     {
-      var winc = (((1 << ((fftCoeffTable.logn - logm)))) * sign);
+      var winc: dynamic = (((1 << ((fftCoeffTable.logn - logm)))) * sign);
       if ((winc < 0))
       {
         winc += fftCoeffTable.n;
       }
-      var h = (1 << ((logm - 1)));
+      var h: dynamic = (1 << ((logm - 1)));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
-          var wk = 0;
+          var wk: dynamic = 0;
           {
-            var j = i;
+            var j: dynamic = i;
             while ((j < (i + h)))
             {
-              var w = fftCoeffTable.coeffs[wk];
-              var k = (j + h);
-              var lr = ((x[k].real() * w.real()) - (x[k].imag() * w.imag()));
-              var li = ((x[k].real() * w.imag()) + (x[k].imag() * w.real()));
+              var w: dynamic = fftCoeffTable.coeffs[wk];
+              var k: dynamic = (j + h);
+              var lr: dynamic = ((x[k].real() * w.real()) - (x[k].imag() * w.imag()));
+              var li: dynamic = ((x[k].real() * w.imag()) + (x[k].imag() * w.real()));
               x[k] = complex((x[j].real() - lr), (x[j].imag() - li));
               x[j] = complex((x[j].real() + lr), (x[j].imag() + li));
               if (((cpp_assign(wk, "+=", winc)) >= fftCoeffTable.n))
@@ -102,15 +102,15 @@ func fft_core(x: dynamic, logn: dynamic, sign: dynamic)
   }
 }
 
-func fft(logn: dynamic, a: dynamic)
+func fft(logn: dynamic, a: dynamic) -> dynamic
 {
   fft_core(a, logn, +1);
 }
 
-func inverse_fft(logn: dynamic, a: dynamic)
+func inverse_fft(logn: dynamic, a: dynamic) -> dynamic
 {
   fft_core(a, logn, -1);
-  var inv = (double(1) / ((1 << logn)));
+  var inv: dynamic = (cpp_double(1) / ((1 << logn)));
   {
     int_cpp(i) = 0;
     while (((i) < cpp_cast(((1 << logn)))))
@@ -121,7 +121,7 @@ func inverse_fft(logn: dynamic, a: dynamic)
   }
 }
 
-func FFT2D(logh: dynamic, H: dynamic, logw: dynamic, W: dynamic, A: dynamic)
+func FFT2D(logh: dynamic, H: dynamic, logw: dynamic, W: dynamic, A: dynamic) -> dynamic
 {
   assert((A.size() == (1 << logh)));
   {
@@ -133,7 +133,7 @@ func FFT2D(logh: dynamic, H: dynamic, logw: dynamic, W: dynamic, A: dynamic)
       (i) += 1;
     }
   }
-  var tmp = cpp_construct((1 << logh));
+  var tmp: dynamic = cpp_construct((1 << logh));
   {
     int_cpp(j) = 0;
     while (((j) < cpp_cast(((1 << logw)))))
@@ -160,9 +160,9 @@ func FFT2D(logh: dynamic, H: dynamic, logw: dynamic, W: dynamic, A: dynamic)
   }
 }
 
-func FFT2Dinv(logh: dynamic, H: dynamic, logw: dynamic, W: dynamic, A: dynamic)
+func FFT2Dinv(logh: dynamic, H: dynamic, logw: dynamic, W: dynamic, A: dynamic) -> dynamic
 {
-  var tmp = cpp_construct((1 << logh));
+  var tmp: dynamic = cpp_construct((1 << logh));
   {
     int_cpp(j) = 0;
     while (((j) < cpp_cast(((1 << logw)))))
@@ -197,39 +197,39 @@ func FFT2Dinv(logh: dynamic, H: dynamic, logw: dynamic, W: dynamic, A: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var tH: dynamic;
-  var tW: dynamic;
+  var tH: dynamic = cpp_uninitialized();
+  var tW: dynamic = cpp_uninitialized();
   while ((~scanf("%d%d", (&tH), (&tW))))
   {
     {
       int_cpp(i) = 0;
       while (((i) < cpp_cast((tH))))
       {
-        var buf = cpp_array(401);
+        var buf: dynamic = cpp_array(401);
         scanf("%s", buf);
         table[i] = buf;
         (i) += 1;
       }
     }
-    var pH: dynamic;
-    var pW: dynamic;
+    var pH: dynamic = cpp_uninitialized();
+    var pW: dynamic = cpp_uninitialized();
     scanf("%d%d", (&pH), (&pW));
     {
       int_cpp(i) = 0;
       while (((i) < cpp_cast((pH))))
       {
-        var buf = cpp_array(401);
+        var buf: dynamic = cpp_array(401);
         scanf("%s", buf);
         pattern[i] = buf;
         (i) += 1;
       }
     }
-    var H = (tH + pH);
-    var W = (tW + pW);
-    var logh = 1;
-    var logw = 1;
+    var H: dynamic = (tH + pH);
+    var W: dynamic = (tW + pW);
+    var logh: dynamic = 1;
+    var logw: dynamic = 1;
     while (((1 << logh) < H))
     {
       logh += 1;
@@ -238,13 +238,13 @@ func main()
     {
       logw += 1;
     }
-    var matches = cpp_construct(tH, vector(tW, 0));
+    var matches: dynamic = cpp_construct(tH, vector(tW, 0));
     {
-      var a = 0;
+      var a: dynamic = 0;
       while ((a < 26))
       {
-        var A = cpp_construct((1 << logh), vector((1 << logw)));
-        var B = A;
+        var A: dynamic = cpp_construct((1 << logh), vector((1 << logw)));
+        var B: dynamic = A;
         {
           int_cpp(i) = 0;
           while (((i) < cpp_cast(((tH + pH)))))
@@ -253,9 +253,9 @@ func main()
               int_cpp(j) = 0;
               while (((j) < cpp_cast(((tW + pW)))))
               {
-                var c = table[(i % tH)][(j % tW)];
-                var x = (c == (cpp_char("a") + a));
-                var y = (c == (cpp_char("a") + ((a + 1))));
+                var c: dynamic = table[(i % tH)][(j % tW)];
+                var x: dynamic = (c == (cpp_char("a") + a));
+                var y: dynamic = (c == (cpp_char("a") + ((a + 1))));
                 A[(((tH + pH) - 1) - i)][(((tW + pW) - 1) - j)] = complex(x, y);
                 (j) += 1;
               }
@@ -271,9 +271,9 @@ func main()
               int_cpp(j) = 0;
               while (((j) < cpp_cast((pW))))
               {
-                var c = pattern[i][j];
-                var x = (c == (cpp_char("a") + a));
-                var y = (c == (cpp_char("a") + ((a + 1))));
+                var c: dynamic = pattern[i][j];
+                var x: dynamic = (c == (cpp_char("a") + a));
+                var y: dynamic = (c == (cpp_char("a") + ((a + 1))));
                 B[i][j] = complex(x, (-y));
                 (j) += 1;
               }
@@ -307,7 +307,7 @@ func main()
               int_cpp(j) = 0;
               while (((j) < cpp_cast((tW))))
               {
-                var r = A[(((tH + pH) - 1) - i)][(((tW + pW) - 1) - j)];
+                var r: dynamic = A[(((tH + pH) - 1) - i)][(((tW + pW) - 1) - j)];
                 matches[i][j] += cpp_cast(round(r.real()));
                 (j) += 1;
               }
@@ -318,7 +318,7 @@ func main()
         a += 2;
       }
     }
-    var qs = 0;
+    var qs: dynamic = 0;
     {
       int_cpp(i) = 0;
       while (((i) < cpp_cast((pH))))
@@ -349,7 +349,7 @@ func main()
         (i) += 1;
       }
     }
-    var ans = cpp_construct(tH, string_cpp(tW, cpp_char("?")));
+    var ans: dynamic = cpp_construct(tH, string_cpp(tW, cpp_char("?")));
     {
       int_cpp(i) = 0;
       while (((i) < cpp_cast((tH))))
@@ -358,7 +358,7 @@ func main()
           int_cpp(j) = 0;
           while (((j) < cpp_cast((tW))))
           {
-            ans[i][j] = if ((matches[i][j] == (pH * pW))) cpp_char("1") else cpp_char("0");
+            ans[i][j] =  ((matches[i][j] == (pH * pW))) ? cpp_char("1") : cpp_char("0");
             (j) += 1;
           }
         }

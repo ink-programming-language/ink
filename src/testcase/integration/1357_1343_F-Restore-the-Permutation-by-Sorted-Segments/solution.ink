@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func solver(x: dynamic, v: dynamic, n: dynamic)
+func solver(x: dynamic, v: dynamic, n: dynamic) -> dynamic
 {
-  var idx = -1;
-  var i: dynamic;
+  var idx: dynamic = -1;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < (n - 1)))
@@ -28,30 +28,30 @@ func solver(x: dynamic, v: dynamic, n: dynamic)
   return idx;
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var i: dynamic;
-    var j: dynamic;
-    var k: dynamic;
-    var l: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var i: dynamic = cpp_uninitialized();
+    var j: dynamic = cpp_uninitialized();
+    var k: dynamic = cpp_uninitialized();
+    var l: dynamic = cpp_uninitialized();
     read(n);
-    var v = cpp_array((n - 1));
+    var v: dynamic = cpp_array((n - 1));
     {
       i = 0;
       while ((i < (n - 1)))
       {
-        var k: dynamic;
+        var k: dynamic = cpp_uninitialized();
         read(k);
         {
           j = 0;
           while ((j < k))
           {
-            var y: dynamic;
+            var y: dynamic = cpp_uninitialized();
             read(y);
             v[i].push_back(y);
             j += 1;
@@ -64,13 +64,13 @@ func main()
       i = 1;
       while ((i <= n))
       {
-        var ans: dynamic;
-        var s = cpp_construct((n - 1));
+        var ans: dynamic = cpp_uninitialized();
+        var s: dynamic = cpp_construct((n - 1));
         {
           j = 0;
           while ((j < (n - 1)))
           {
-            var si = v[j].size();
+            var si: dynamic = v[j].size();
             {
               k = 0;
               while ((k < si))
@@ -82,7 +82,7 @@ func main()
             j += 1;
           }
         }
-        var crr = i;
+        var crr: dynamic = i;
         {
           j = 0;
           while ((j < n))
@@ -90,7 +90,7 @@ func main()
             ans.push_back(crr);
             if ((j < (n - 1)))
             {
-              var tt = solver(crr, s, n);
+              var tt: dynamic = solver(crr, s, n);
               if ((tt == -1))
               {
                 break;
@@ -107,12 +107,12 @@ func main()
           i += 1;
           continue;
         }
-        var used = cpp_construct((n - 1), 0);
+        var used: dynamic = cpp_construct((n - 1), 0);
         {
           j = 1;
           while ((j < n))
           {
-            var temp: dynamic;
+            var temp: dynamic = cpp_uninitialized();
             temp.insert(ans[j]);
             {
               k = (j - 1);
@@ -125,11 +125,11 @@ func main()
                   {
                     if ((used[l] == 0))
                     {
-                      var si_v = v[l].size();
+                      var si_v: dynamic = v[l].size();
                       if ((si_v == (((j - k) + 1))))
                       {
-                        var it: dynamic;
-                        var xx = 0;
+                        var it: dynamic = cpp_uninitialized();
+                        var xx: dynamic = 0;
                         {
                           it = temp.begin();
                           while ((it != temp.end()))

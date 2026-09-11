@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(l, r);
   a = (r - l);
   if (((r - l) < 100))
   {
-    var mp: dynamic;
-    var it: dynamic;
+    var mp: dynamic = cpp_uninitialized();
+    var it: dynamic = cpp_uninitialized();
     {
-      var i = l;
+      var i: dynamic = l;
       while ((i <= r))
       {
         a = i;
         {
-          var x = 2;
+          var x: dynamic = 2;
           while (((x * x) <= a))
           {
             if (((a % x) == 0))

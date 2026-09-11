@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var vp: dynamic;
-  var vd: dynamic;
-  var t: dynamic;
-  var f: dynamic;
-  var c: dynamic;
+  var vp: dynamic = cpp_uninitialized();
+  var vd: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   scanf("%d %d %d %d %d", (&vp), (&vd), (&t), (&f), (&c));
-  var kol = 0;
+  var kol: dynamic = 0;
   if ((vp < vd))
   {
-    var t0 = c;
+    var t0: dynamic = c;
     t0 /= vp;
-    var T = (vp * t);
+    var T: dynamic = (vp * t);
     T /= (vd - vp);
-    var x = t;
+    var x: dynamic = t;
     while (((x + T) < t0))
     {
       kol += 1;

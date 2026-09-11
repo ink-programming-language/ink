@@ -1,66 +1,66 @@
 // Translated from solution.cpp.
 
-var N = (5e5 + 7);
+var N: dynamic = (5e5 + 7);
 
-var eps = 1e-7;
+var eps: dynamic = 1e-7;
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var op: dynamic;
+var op: dynamic = cpp_uninitialized();
 
-var x = cpp_array(N);
+var x: dynamic = cpp_array(N);
 
-var y = cpp_array(N);
+var y: dynamic = cpp_array(N);
 
-var xa = cpp_array(N);
+var xa: dynamic = cpp_array(N);
 
-var ya = cpp_array(N);
+var ya: dynamic = cpp_array(N);
 
 class node
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array(N);
+var e: dynamic = cpp_array(N);
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
 class vec
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
 }
 
-var w = cpp_array(N);
+var w: dynamic = cpp_array(N);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-var h = cpp_array(N);
+var h: dynamic = cpp_array(N);
 
 class vat
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var gt = cpp_array(N);
+var gt: dynamic = cpp_array(N);
 
-func read()
+func read() -> dynamic
 {
-  var num = 0;
-  var t = cpp_char("+");
-  var g = getchar();
+  var num: dynamic = 0;
+  var t: dynamic = cpp_char("+");
+  var g: dynamic = getchar();
   while (((g < 48) || (57 < g)))
   {
     t = g;
@@ -78,22 +78,22 @@ func read()
   return num;
 }
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (atan2(a.y, a.x) < atan2(b.y, b.x));
 }
 
-func dmp(a: dynamic, b: dynamic)
+func dmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (atan2(a.y, a.x) > atan2(b.y, b.x));
 }
 
-func tmp(a: dynamic, b: dynamic)
+func tmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (atan2((a.d - a.b), (a.c - a.a)) < atan2((b.d - b.b), (b.c - b.a)));
 }
 
-func qmp(a: dynamic, b: dynamic)
+func qmp(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.x == b.x))
   {
@@ -102,12 +102,12 @@ func qmp(a: dynamic, b: dynamic)
   return (a.x < b.x);
 }
 
-func getvac(a: dynamic, b: dynamic)
+func getvac(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.y) - (a.y * b.x));
 }
 
-func adds(a: dynamic, b: dynamic)
+func adds(a: dynamic, b: dynamic) -> dynamic
 {
   swap(a, b);
   q += 1;
@@ -117,7 +117,7 @@ func adds(a: dynamic, b: dynamic)
   w[q].d = (b.y + y[1]);
 }
 
-func eps_check(u: dynamic)
+func eps_check(u: dynamic) -> dynamic
 {
   if ((((-eps) <= u) && (u <= eps)))
   {
@@ -126,10 +126,10 @@ func eps_check(u: dynamic)
   return 0;
 }
 
-func node_check(u: dynamic, x: dynamic, y: dynamic)
+func node_check(u: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   a.x = (u.c - u.a);
   a.y = (u.d - u.b);
   b.x = (x - u.a);
@@ -137,12 +137,12 @@ func node_check(u: dynamic, x: dynamic, y: dynamic)
   return ((getvac(a, b) >= (-eps)));
 }
 
-func getnode(a: dynamic, b: dynamic)
+func getnode(a: dynamic, b: dynamic) -> dynamic
 {
-  var z: dynamic;
-  var f1 = (((a.d - a.b)) * ((b.c - b.a)));
-  var f2 = (((b.d - b.b)) * ((a.c - a.a)));
-  var f3 = ((((a.b - b.b)) * ((b.c - b.a))) * ((a.c - a.a)));
+  var z: dynamic = cpp_uninitialized();
+  var f1: dynamic = (((a.d - a.b)) * ((b.c - b.a)));
+  var f2: dynamic = (((b.d - b.b)) * ((a.c - a.a)));
+  var f3: dynamic = ((((a.b - b.b)) * ((b.c - b.a))) * ((a.c - a.a)));
   f3 = ((f3 - (f1 * a.a)) + (f2 * b.a));
   z.x = (f3 / ((f2 - f1)));
   if (eps_check((a.a - a.c)))
@@ -153,13 +153,13 @@ func getnode(a: dynamic, b: dynamic)
   return z;
 }
 
-func check(a: dynamic, b: dynamic, c: dynamic)
+func check(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
-  var z = getnode(b, c);
+  var z: dynamic = getnode(b, c);
   return node_check(a, z.x, z.y);
 }
 
-func getvat(a: dynamic, b: dynamic)
+func getvat(a: dynamic, b: dynamic) -> dynamic
 {
   a.x -= b.x;
   a.y -= b.y;
@@ -168,7 +168,7 @@ func getvat(a: dynamic, b: dynamic)
   return ((getvac(a, b) <= eps));
 }
 
-func getvas(a: dynamic, b: dynamic)
+func getvas(a: dynamic, b: dynamic) -> dynamic
 {
   a.x -= b.x;
   a.y -= b.y;
@@ -177,7 +177,7 @@ func getvas(a: dynamic, b: dynamic)
   return ((getvac(a, b) <= (-eps)));
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((!b))
   {
@@ -186,19 +186,19 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func main()
+func main() -> dynamic
 {
   t = read();
-  var og = 0;
+  var og: dynamic = 0;
   while (cpp_update(t, "--"))
   {
     n = read();
     q = 0;
     k = 0;
     op = 0;
-    var fl = 0;
+    var fl: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         xa[i] = cpp_assign(x[i], "=", read());
@@ -207,7 +207,7 @@ func main()
       }
     }
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i <= n))
       {
         x[i] = (x[i] - x[1]);
@@ -219,10 +219,10 @@ func main()
     }
     n -= 1;
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i <= (n + 1)))
       {
-        var z = gcd(abs(x[i]), abs(y[i]));
+        var z: dynamic = gcd(abs(x[i]), abs(y[i]));
         x[i] /= z;
         y[i] /= z;
         if ((x[i] < 0))
@@ -246,7 +246,7 @@ func main()
     }
     sort((gt + 1), ((gt + op) + 1), qmp);
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i <= op))
       {
         if (((gt[(i - 1)].x == gt[i].x) && (gt[(i - 1)].y == gt[i].y)))
@@ -258,16 +258,16 @@ func main()
     }
     sort((e + 1), ((e + n) + 1), cmp);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         e[(i + n)] = e[i];
         i += 1;
       }
     }
-    var j = 1;
+    var j: dynamic = 1;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         j = max(j, (i + 1));
@@ -310,7 +310,7 @@ func main()
     g[1] = w[1];
     k = 1;
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i <= q))
       {
         if (eps_check((atan2((w[i].d - w[i].b), (w[i].c - w[i].a)) - atan2((g[k].d - g[k].b), (g[k].c - g[k].a)))))
@@ -326,10 +326,10 @@ func main()
         i += 1;
       }
     }
-    var l = 1;
-    var r = 2;
+    var l: dynamic = 1;
+    var r: dynamic = 2;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= 2))
       {
         h[i] = g[i];
@@ -337,13 +337,13 @@ func main()
       }
     }
     {
-      var i = 3;
+      var i: dynamic = 3;
       while ((i <= k))
       {
         if ((i == 3))
         {
-          var a: dynamic;
-          var b: dynamic;
+          var a: dynamic = cpp_uninitialized();
+          var b: dynamic = cpp_uninitialized();
           a = getnode(h[1], h[2]);
           b = getnode(h[2], h[1]);
         }
@@ -372,9 +372,9 @@ func main()
     } else
     {
       s = 0;
-      var ans = 0;
+      var ans: dynamic = 0;
       {
-        var i = l;
+        var i: dynamic = l;
         while ((i < r))
         {
           f[cpp_update(s, "++")] = getnode(h[i], h[(i + 1)]);
@@ -383,7 +383,7 @@ func main()
       }
       f[cpp_update(s, "++")] = getnode(h[l], h[r]);
       {
-        var i = 2;
+        var i: dynamic = 2;
         while ((i <= s))
         {
           f[i].y -= f[1].y;
@@ -392,7 +392,7 @@ func main()
         }
       }
       {
-        var i = 2;
+        var i: dynamic = 2;
         while ((i < s))
         {
           ans = (ans + (abs(getvac(f[i], f[(i + 1)])) / 2));

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var c = cpp_array(2005, 2005);
+var c: dynamic = cpp_array(2005, 2005);
 
-var up = cpp_array(2005, 2005);
+var up: dynamic = cpp_array(2005, 2005);
 
-var down = cpp_array(2005, 2005);
+var down: dynamic = cpp_array(2005, 2005);
 
-var le = cpp_array(2005, 2005);
+var le: dynamic = cpp_array(2005, 2005);
 
-var ri = cpp_array(2005, 2005);
+var ri: dynamic = cpp_array(2005, 2005);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%s", (c[i] + 1));
@@ -28,14 +28,14 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
-          up[i][j] = if (((c[i][j] == c[(i - 1)][j]))) (up[(i - 1)][j] + 1) else 1;
+          up[i][j] =  (((c[i][j] == c[(i - 1)][j]))) ? (up[(i - 1)][j] + 1) : 1;
           j += 1;
         }
       }
@@ -43,14 +43,14 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while (i)
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
-          down[i][j] = if (((c[i][j] == c[(i + 1)][j]))) (down[(i + 1)][j] + 1) else 1;
+          down[i][j] =  (((c[i][j] == c[(i + 1)][j]))) ? (down[(i + 1)][j] + 1) : 1;
           j += 1;
         }
       }
@@ -58,11 +58,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           if ((c[i][j] != c[i][(j - 1)]))
@@ -76,7 +76,7 @@ func main()
         }
       }
       {
-        var j = m;
+        var j: dynamic = m;
         while ((j >= 1))
         {
           if ((c[i][j] != c[i][(j + 1)]))
@@ -90,7 +90,7 @@ func main()
         }
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           ans += min(le[i][j], ri[i][j]);

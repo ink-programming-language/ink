@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return ((x * x));
 }
 
-func dist(a: dynamic, b: dynamic)
+func dist(a: dynamic, b: dynamic) -> dynamic
 {
   return (sqr((a.first - b.first)) + sqr((a.second - b.second)));
 }
 
-func func_cpp(i: dynamic)
+func func_cpp(i: dynamic) -> dynamic
 {
   if (((i < 2) || (i & 1)))
   {
@@ -19,16 +19,16 @@ func func_cpp(i: dynamic)
   return -1;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var a: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var r: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%lld %lld %lld", (&x), (&y), (&r));
@@ -36,15 +36,15 @@ func main()
       i += 1;
     }
   }
-  var deg = cpp_array(n);
+  var deg: dynamic = cpp_array(n);
   memset(deg, 0, cpp_sizeof(deg));
   sort(a.begin(), a.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < n))
         {
           if (((dist(a[i].second, a[j].second) <= sqr(a[j].first)) && (i != j)))
@@ -57,9 +57,9 @@ func main()
       i += 1;
     }
   }
-  var answer = 0.0;
+  var answer: dynamic = 0.0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       answer += (((cpp_cast(acos(-1)) * a[i].first) * a[i].first) * func_cpp(deg[i]));

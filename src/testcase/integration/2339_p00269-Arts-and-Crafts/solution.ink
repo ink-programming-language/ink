@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-var NIL = -1;
+var NIL: dynamic = -1;
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
 class MinimumCostFlow
 {
-  var edge: dynamic;
+  var edge: dynamic = cpp_uninitialized();
 }
 
-func insert(f: dynamic, t: dynamic, w: dynamic, c: dynamic)
+func insert(f: dynamic, t: dynamic, w: dynamic, c: dynamic) -> dynamic
 {
   edge[f].emplace_back(f, t, w, c);
   edge[t].emplace_back(t, f, (-w), 0);
 }
 
-func PrimalDual(source: dynamic, sink: dynamic, n: dynamic)
+func PrimalDual(source: dynamic, sink: dynamic, n: dynamic) -> dynamic
 {
-  var flow: dynamic;
-  var distance: dynamic;
-  var result = 0;
+  var flow: dynamic = cpp_uninitialized();
+  var distance: dynamic = cpp_uninitialized();
+  var result: dynamic = 0;
   while (true)
   {
-    var difference: dynamic;
-    var via: dynamic;
-    var q: dynamic;
+    var difference: dynamic = cpp_uninitialized();
+    var via: dynamic = cpp_uninitialized();
+    var q: dynamic = cpp_uninitialized();
     q.emplace(0, Edge(source, source, 0, 0));
     while ((!q.empty()))
     {
-      var dif: dynamic;
-      var edge: dynamic;
+      var dif: dynamic = cpp_uninitialized();
+      var edge: dynamic = cpp_uninitialized();
       tie(dif, edge) = q.top();
       q.pop();
-      var prev = edge.from_cpp;
-      var current = edge.to;
+      var prev: dynamic = edge.from_cpp;
+      var current: dynamic = edge.to;
       if (difference.count(current))
       {
         continue;
@@ -42,10 +42,10 @@ func PrimalDual(source: dynamic, sink: dynamic, n: dynamic)
       via[current] = edge;
       if (edge.count(current))
       {
-        for (var e in edge.at(current))
+        for (var e: dynamic in edge.at(current))
         {
-          var residue = (e.capacity - flow[e.from_cpp][e.to]);
-          var d = ((e.weight + distance[e.from_cpp]) - distance[e.to]);
+          var residue: dynamic = (e.capacity - flow[e.from_cpp][e.to]);
+          var d: dynamic = ((e.weight + distance[e.from_cpp]) - distance[e.to]);
           if ((residue > 0))
           {
             q.emplace((dif + d), e);
@@ -53,7 +53,7 @@ func PrimalDual(source: dynamic, sink: dynamic, n: dynamic)
         }
       }
     }
-    for (var d in difference)
+    for (var d: dynamic in difference)
     {
       distance[d.first] += d.second;
     }
@@ -61,9 +61,9 @@ func PrimalDual(source: dynamic, sink: dynamic, n: dynamic)
     {
       break;
     }
-    var add = INF;
+    var add: dynamic = INF;
     {
-      var v = sink;
+      var v: dynamic = sink;
       while ((v != via[v].from_cpp))
       {
         add = min(add, (via[v].capacity - flow[via[v].from_cpp][via[v].to]));
@@ -71,7 +71,7 @@ func PrimalDual(source: dynamic, sink: dynamic, n: dynamic)
       }
     }
     {
-      var v = sink;
+      var v: dynamic = sink;
       while ((v != via[v].from_cpp))
       {
         flow[via[v].from_cpp][via[v].to] += add;
@@ -89,58 +89,58 @@ func PrimalDual(source: dynamic, sink: dynamic, n: dynamic)
   return -1;
 }
 
-var memo = cpp_construct(9);
+var memo: dynamic = cpp_construct(9);
 
-func pow3(n: dynamic)
+func pow3(n: dynamic) -> dynamic
 {
-  return if (memo[n]) memo[n] else (cpp_assign(memo[n], "=", (if ((n < 1)) 1 else (3 * pow3((n - 1))))));
+  return  (memo[n]) ? memo[n] : (cpp_assign(memo[n], "=", ( ((n < 1)) ? 1 : (3 * pow3((n - 1))))));
 }
 
-func main()
+func main() -> dynamic
 {
-  var D: dynamic;
-  var K: dynamic;
-  var L: dynamic;
+  var D: dynamic = cpp_uninitialized();
+  var K: dynamic = cpp_uninitialized();
+  var L: dynamic = cpp_uninitialized();
   while (cpp_comma((((cin >> D) >> K) >> L), ((D | K) | L)))
   {
-    for (var i in c)
+    for (var i: dynamic in c)
     {
-      for (var j in i)
+      for (var j: dynamic in i)
       {
         read(j);
       }
     }
-    var M: dynamic;
-    var N: dynamic;
-    var P: dynamic;
+    var M: dynamic = cpp_uninitialized();
+    var N: dynamic = cpp_uninitialized();
+    var P: dynamic = cpp_uninitialized();
     read(M, N, P);
-    for (var i in r)
+    for (var i: dynamic in r)
     {
-      for (var j in i)
+      for (var j: dynamic in i)
       {
         read(j);
       }
     }
-    for (var i in t)
+    for (var i: dynamic in t)
     {
-      for (var j in i)
+      for (var j: dynamic in i)
       {
         read(j);
       }
     }
-    var INF = 1e9;
-    var dp = cpp_construct((D + 1), vector(pow3(K), vector((L + 1), INF)));
+    var INF: dynamic = 1e9;
+    var dp: dynamic = cpp_construct((D + 1), vector(pow3(K), vector((L + 1), INF)));
     dp[0][0][0] = 0;
     {
-      var day = 0;
+      var day: dynamic = 0;
       while ((day < D))
       {
         {
-          var ternary = 0;
+          var ternary: dynamic = 0;
           while ((ternary < pow3(K)))
           {
             {
-              var bought = 0;
+              var bought: dynamic = 0;
               while ((bought <= L))
               {
                 dp[(day + 1)][ternary][0] = min(dp[(day + 1)][ternary][0], dp[day][ternary][bought]);
@@ -150,10 +150,10 @@ func main()
                   continue;
                 }
                 {
-                  var part = 0;
+                  var part: dynamic = 0;
                   while ((part < K))
                   {
-                    var owned = (((ternary / pow3(part))) % 3);
+                    var owned: dynamic = (((ternary / pow3(part))) % 3);
                     if ((2 <= owned))
                     {
                       part += 1;
@@ -172,13 +172,13 @@ func main()
         day += 1;
       }
     }
-    var graph: dynamic;
-    var no_bag = (P + M);
-    var source = ((P + M) + 1);
-    var sink = ((P + M) + 2);
+    var graph: dynamic = cpp_uninitialized();
+    var no_bag: dynamic = (P + M);
+    var source: dynamic = ((P + M) + 1);
+    var sink: dynamic = ((P + M) + 2);
     graph.insert(source, no_bag, 0, INF);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < P))
       {
         graph.insert(source, i, 0, 1);
@@ -186,7 +186,7 @@ func main()
       }
     }
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < M))
       {
         graph.insert((P + j), sink, 0, 1);
@@ -194,12 +194,12 @@ func main()
       }
     }
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < M))
       {
-        var need = 0;
+        var need: dynamic = 0;
         {
-          var part = 0;
+          var part: dynamic = 0;
           while ((part < K))
           {
             need += (pow3(part) * r[j][part]);
@@ -211,12 +211,12 @@ func main()
           graph.insert(no_bag, (P + j), dp[D][need][0], 1);
         }
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < P))
           {
-            var remain = need;
+            var remain: dynamic = need;
             {
-              var part = 0;
+              var part: dynamic = 0;
               while ((part < K))
               {
                 if (((r[j][part] - t[i][part]) < 0))

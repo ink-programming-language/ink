@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var max1 = 100010;
+var max1: dynamic = 100010;
 
-var a = cpp_array(max1);
+var a: dynamic = cpp_array(max1);
 
-var b = cpp_array(max1);
+var b: dynamic = cpp_array(max1);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var x: dynamic;
-  var y = 0;
-  var z = 0;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = 0;
+  var z: dynamic = 0;
   read(n);
   if ((n == 1))
   {
@@ -19,7 +19,7 @@ func main()
   } else
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(x);

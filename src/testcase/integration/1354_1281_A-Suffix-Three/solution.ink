@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   while (cpp_update(n, "--"))
   {
-    var s: dynamic;
+    var s: dynamic = cpp_uninitialized();
     read(s);
-    var i = 0;
-    var count = 0;
+    var i: dynamic = 0;
+    var count: dynamic = 0;
     while ((s[i] != cpp_char("\u{0}")))
     {
       count += 1;

@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var kMod = 998244353;
+var kMod: dynamic = 998244353;
 
-var kN = int_cpp((2E5 + 10));
+var kN: dynamic = int_cpp((2E5 + 10));
 
 class BIT
 {
   var val: dynamic = cpp_array(kN);
-  func init()
+  func init() -> dynamic
   {
       memset(val, 0, cpp_sizeof((val)));
     }
-  func add(pos: dynamic, x: dynamic)
+  func add(pos: dynamic, x: dynamic) -> dynamic
   {
       while ((pos < kN))
       {
@@ -20,9 +20,9 @@ class BIT
       }
       return;
     }
-  func ask(pos: dynamic)
+  func ask(pos: dynamic) -> dynamic
   {
-      var ans = 0;
+      var ans: dynamic = 0;
       while (pos)
       {
         ans += val[pos];
@@ -32,9 +32,9 @@ class BIT
     }
 }
 
-func Pow(a: dynamic, b: dynamic)
+func Pow(a: dynamic, b: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while (b)
   {
     if ((b & 1))
@@ -47,31 +47,31 @@ func Pow(a: dynamic, b: dynamic)
   return ans;
 }
 
-func Rev(n: dynamic)
+func Rev(n: dynamic) -> dynamic
 {
   return Pow(n, (kMod - 2));
 }
 
-var a = cpp_array(kN);
+var a: dynamic = cpp_array(kN);
 
-var f = cpp_array(kN);
+var f: dynamic = cpp_array(kN);
 
-var p = cpp_array(kN);
+var p: dynamic = cpp_array(kN);
 
-var bit: dynamic;
+var bit: dynamic = cpp_uninitialized();
 
-var bcnt: dynamic;
+var bcnt: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var ans = 0;
-  var tot = 0;
-  var sum = 0;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
+  var tot: dynamic = 0;
+  var sum: dynamic = 0;
   scanf("%d%d", (&n), (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -81,7 +81,7 @@ func main()
   p[0] = 1;
   p[1] = ((((k - 1)) * Rev(k)) % kMod);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       p[i] = ((p[(i - 1)] * p[1]) % kMod);
@@ -89,7 +89,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       f[i] = 0;
@@ -97,7 +97,7 @@ func main()
     }
   }
   {
-    var i = (k + 1);
+    var i: dynamic = (k + 1);
     while ((i <= n))
     {
       f[i] = (i - k);
@@ -107,7 +107,7 @@ func main()
   bit.init();
   bcnt.init();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ans += ((p[f[i]] * tot) % kMod);

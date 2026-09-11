@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var ax: dynamic;
+var ax: dynamic = cpp_uninitialized();
 
-var ay: dynamic;
+var ay: dynamic = cpp_uninitialized();
 
-var bx: dynamic;
+var bx: dynamic = cpp_uninitialized();
 
-var by: dynamic;
+var by: dynamic = cpp_uninitialized();
 
-var cx: dynamic;
+var cx: dynamic = cpp_uninitialized();
 
-var cy: dynamic;
+var cy: dynamic = cpp_uninitialized();
 
-var AX = cpp_array(4);
+var AX: dynamic = cpp_array(4);
 
-var AY = cpp_array(4);
+var AY: dynamic = cpp_array(4);
 
-var CX = cpp_array(4);
+var CX: dynamic = cpp_array(4);
 
-var CY = cpp_array(4);
+var CY: dynamic = cpp_array(4);
 
-func judge_51nod(ax: dynamic, ay: dynamic, cx: dynamic, cy: dynamic)
+func judge_51nod(ax: dynamic, ay: dynamic, cx: dynamic, cy: dynamic) -> dynamic
 {
-  var zi1 = abs(((((bx - ax)) * cx) + (((by - ay)) * cy)));
-  var zi2 = abs(((((by - ay)) * cx) - (((bx - ax)) * cy)));
-  var mu = abs(((cx * cx) + (cy * cy)));
+  var zi1: dynamic = abs(((((bx - ax)) * cx) + (((by - ay)) * cy)));
+  var zi2: dynamic = abs(((((by - ay)) * cx) - (((bx - ax)) * cy)));
+  var mu: dynamic = abs(((cx * cx) + (cy * cy)));
   if (mu)
   {
     if (((zi1 % mu) || (zi2 % mu)))
@@ -35,19 +35,19 @@ func judge_51nod(ax: dynamic, ay: dynamic, cx: dynamic, cy: dynamic)
   return 1;
 }
 
-func judge(ax: dynamic, ay: dynamic, cx: dynamic, cy: dynamic)
+func judge(ax: dynamic, ay: dynamic, cx: dynamic, cy: dynamic) -> dynamic
 {
   if (((cx == 0) && (cy == 0)))
   {
     return ((ax == bx) && (ay == by));
   }
-  var zi1 = abs(((((bx - ax)) * cx) + (((by - ay)) * cy)));
-  var zi2 = abs(((((by - ay)) * cx) - (((bx - ax)) * cy)));
-  var mu = abs(((cx * cx) + (cy * cy)));
+  var zi1: dynamic = abs(((((bx - ax)) * cx) + (((by - ay)) * cy)));
+  var zi2: dynamic = abs(((((by - ay)) * cx) - (((bx - ax)) * cy)));
+  var mu: dynamic = abs(((cx * cx) + (cy * cy)));
   return (((zi1 % mu) == 0) && ((zi2 % mu) == 0));
 }
 
-func main()
+func main() -> dynamic
 {
   read(ax, ay, bx, by, cx, cy);
   AX[0] = ax;
@@ -67,11 +67,11 @@ func main()
   CX[3] = cy;
   CY[3] = (-cx);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 4))
         {
           if (judge(AX[i], AY[i], CX[j], CY[j]))

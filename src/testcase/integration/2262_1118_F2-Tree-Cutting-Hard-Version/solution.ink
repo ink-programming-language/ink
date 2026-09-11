@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var eps = 1e-7;
+var eps: dynamic = 1e-7;
 
-var inf = 1000000010;
+var inf: dynamic = 1000000010;
 
-var INF = 10000000000000010;
+var INF: dynamic = 10000000000000010;
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var MAXN = 300010;
+var MAXN: dynamic = 300010;
 
-var LOG = 18;
+var LOG: dynamic = 18;
 
 class DSU
 {
   var par: dynamic = cpp_array(MAXN);
-  func DSU()
+  func DSU() -> dynamic
   {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < MAXN))
         {
           par[i] = i;
@@ -26,7 +26,7 @@ class DSU
         }
       }
     }
-  func get(x: dynamic)
+  func get(x: dynamic) -> dynamic
   {
       if ((par[x] == x))
       {
@@ -34,61 +34,61 @@ class DSU
       }
       return cpp_assign(par[x], "=", get(par[x]));
     }
-  func join(x: dynamic, y: dynamic)
+  func join(x: dynamic, y: dynamic) -> dynamic
   {
       par[get(x)] = get(y);
     }
 }
 
-var dsu: dynamic;
+var dsu: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var u: dynamic;
+var u: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var A = cpp_array(MAXN);
+var A: dynamic = cpp_array(MAXN);
 
-var B = cpp_array(MAXN);
+var B: dynamic = cpp_array(MAXN);
 
-var h = cpp_array(MAXN);
+var h: dynamic = cpp_array(MAXN);
 
-var par = cpp_array(LOG, MAXN);
+var par: dynamic = cpp_array(LOG, MAXN);
 
-var dp = cpp_array(2, MAXN);
+var dp: dynamic = cpp_array(2, MAXN);
 
-var G = cpp_array(MAXN);
+var G: dynamic = cpp_array(MAXN);
 
-var vec = cpp_array(MAXN);
+var vec: dynamic = cpp_array(MAXN);
 
-func dfs1(node: dynamic, p: dynamic)
+func dfs1(node: dynamic, p: dynamic) -> dynamic
 {
   h[node] = (h[p] + 1);
   par[node][0] = p;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < LOG))
     {
       par[node][i] = par[par[node][(i - 1)]][(i - 1)];
       i += 1;
     }
   }
-  for (var v in G[node])
+  for (var v: dynamic in G[node])
   {
     if ((v != p))
     {
@@ -97,14 +97,14 @@ func dfs1(node: dynamic, p: dynamic)
   }
 }
 
-func Lca(x: dynamic, y: dynamic)
+func Lca(x: dynamic, y: dynamic) -> dynamic
 {
   if ((h[x] > h[y]))
   {
     swap(x, y);
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LOG))
     {
       if ((((h[y] - h[x])) & ((1 << i))))
@@ -119,7 +119,7 @@ func Lca(x: dynamic, y: dynamic)
     return x;
   }
   {
-    var i = (LOG - 1);
+    var i: dynamic = (LOG - 1);
     while ((i >= 0))
     {
       if ((par[x][i] != par[y][i]))
@@ -133,9 +133,9 @@ func Lca(x: dynamic, y: dynamic)
   return par[x][0];
 }
 
-func dfs2(node: dynamic, p: dynamic)
+func dfs2(node: dynamic, p: dynamic) -> dynamic
 {
-  for (var v in G[node])
+  for (var v: dynamic in G[node])
   {
     if ((v != p))
     {
@@ -145,7 +145,7 @@ func dfs2(node: dynamic, p: dynamic)
   return B[node];
 }
 
-func powmod(a: dynamic, b: dynamic)
+func powmod(a: dynamic, b: dynamic) -> dynamic
 {
   if ((!b))
   {
@@ -158,25 +158,25 @@ func powmod(a: dynamic, b: dynamic)
   return powmod(((a * a) % mod), (b >> 1));
 }
 
-func inv(x: dynamic)
+func inv(x: dynamic) -> dynamic
 {
   return powmod(x, (mod - 2));
 }
 
-func dfs3(node: dynamic)
+func dfs3(node: dynamic) -> dynamic
 {
-  for (var v in G[node])
+  for (var v: dynamic in G[node])
   {
     dfs3(v);
   }
   dp[node][0] = 1;
-  for (var v in G[node])
+  for (var v: dynamic in G[node])
   {
     dp[node][0] = ((dp[node][0] * ((dp[v][0] + dp[v][1]))) % mod);
   }
   if (vec[node].empty())
   {
-    for (var v in G[node])
+    for (var v: dynamic in G[node])
     {
       dp[node][1] = (((dp[node][1] + (dp[v][1] * inv((dp[v][0] + dp[v][1]))))) % mod);
     }
@@ -186,14 +186,14 @@ func dfs3(node: dynamic)
   swap(dp[node][0], dp[node][1]);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   read(n, k);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(A[i]);
@@ -206,7 +206,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       read(u, v);
@@ -217,14 +217,14 @@ func main()
   }
   dfs1(1, 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       if ((vec[i].size() > 0))
       {
-        var v = vec[i][0];
+        var v: dynamic = vec[i][0];
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < vec[i].size()))
           {
             v = Lca(v, vec[i][j]);
@@ -238,7 +238,7 @@ func main()
   }
   dfs2(1, 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       G[i].clear();
@@ -247,7 +247,7 @@ func main()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       if (B[i])
@@ -258,7 +258,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (A[i])
@@ -269,13 +269,13 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (vec[i].size())
       {
-        var shit = vec[i][0];
-        for (var j in vec[i])
+        var shit: dynamic = vec[i][0];
+        for (var j: dynamic in vec[i])
         {
           if ((j != shit))
           {
@@ -287,7 +287,7 @@ func main()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       if ((!B[i]))

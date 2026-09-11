@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var ni = cpp_array(7);
-  var i: dynamic;
-  var to: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var ni: dynamic = cpp_array(7);
+  var i: dynamic = cpp_uninitialized();
+  var to: dynamic = cpp_uninitialized();
   while ((0 <= scanf("%d", (&n))))
   {
     if ((n == 0))

@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var nod: dynamic;
+var nod: dynamic = cpp_uninitialized();
 
-var gnext = cpp_array(2, (1 << 20));
+var gnext: dynamic = cpp_array(2, (1 << 20));
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func PANIC()
+func PANIC() -> dynamic
 {
   write("IMPOSSIBLE\n");
   exit(0);
 }
 
-func dfs(r: dynamic)
+func dfs(r: dynamic) -> dynamic
 {
-  var onod = cpp_update(nod, "++");
+  var onod: dynamic = cpp_update(nod, "++");
   if ((onod >= n))
   {
     PANIC();
@@ -52,17 +52,17 @@ func dfs(r: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   read(n, c);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < c))
     {
-      var str: dynamic;
-      var a: dynamic;
-      var b: dynamic;
+      var str: dynamic = cpp_uninitialized();
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b, str);
       a -= 1;
       b -= 1;
@@ -82,7 +82,7 @@ func main()
   }
   dfs((n - 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write((ans[i] + 1), cpp_char(" "));

@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie();
@@ -26,7 +26,7 @@ func main()
   write(k, " ", (k * 2), " ");
   k = ((k * 2) + 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 3)))
     {
       write((k + i), " ");

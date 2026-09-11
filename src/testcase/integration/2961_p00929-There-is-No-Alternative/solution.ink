@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var EPS = cpp_expression("#inclu");
+var EPS: dynamic = cpp_expression("#inclu");
 
-var INF = cpp_expression("#incl");
+var INF: dynamic = cpp_expression("#incl");
 
-var PI = cpp_expression("#include <");
+var PI: dynamic = cpp_expression("#include <");
 
 class UnionFind
 {
-  var par: dynamic;
-  var rank: dynamic;
-  var Size: dynamic;
-  func UnionFind(n: dynamic = 1)
+  var par: dynamic = cpp_uninitialized();
+  var rank: dynamic = cpp_uninitialized();
+  var Size: dynamic = cpp_uninitialized();
+  func UnionFind(n: dynamic = 1) -> dynamic
   {
       init(n);
     }
-  func init(n: dynamic = 1)
+  func init(n: dynamic = 1) -> dynamic
   {
       par.resize((n + 1));
       rank.resize((n + 1));
       Size.resize((n + 1));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= n))
         {
           par[i] = i;
@@ -31,22 +31,22 @@ class UnionFind
         }
       }
     }
-  func root(x: dynamic)
+  func root(x: dynamic) -> dynamic
   {
       if ((par[x] == x))
       {
         return x;
       } else
       {
-        var r = root(par[x]);
+        var r: dynamic = root(par[x]);
         return cpp_assign(par[x], "=", r);
       }
     }
-  func issame(x: dynamic, y: dynamic)
+  func issame(x: dynamic, y: dynamic) -> dynamic
   {
       return (root(x) == root(y));
     }
-  func merge(x: dynamic, y: dynamic)
+  func merge(x: dynamic, y: dynamic) -> dynamic
   {
       x = root(x);
       y = root(y);
@@ -66,43 +66,43 @@ class UnionFind
       Size[x] += Size[y];
       return true;
     }
-  func size(x: dynamic)
+  func size(x: dynamic) -> dynamic
   {
       return Size[root(x)];
     }
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var S = cpp_array(50000);
+var S: dynamic = cpp_array(50000);
 
-var D = cpp_array(50000);
+var D: dynamic = cpp_array(50000);
 
-var C = cpp_array(50000);
+var C: dynamic = cpp_array(50000);
 
-var paths = cpp_array(500);
+var paths: dynamic = cpp_array(500);
 
-var que: dynamic;
+var que: dynamic = cpp_uninitialized();
 
-var rest: dynamic;
+var rest: dynamic = cpp_uninitialized();
 
-var ans = cpp_array(50000);
+var ans: dynamic = cpp_array(50000);
 
-func dfs(now: dynamic, from_cpp: dynamic, destination: dynamic, cost: dynamic)
+func dfs(now: dynamic, from_cpp: dynamic, destination: dynamic, cost: dynamic) -> dynamic
 {
   if ((now == destination))
   {
     return true;
   }
-  for (var tmp in paths[now])
+  for (var tmp: dynamic in paths[now])
   {
-    var to = tmp.first;
-    var nowcost = tmp.second.first;
-    var e = tmp.second.second;
+    var to: dynamic = tmp.first;
+    var nowcost: dynamic = tmp.second.first;
+    var e: dynamic = tmp.second.second;
     if ((to == from_cpp))
     {
       continue;
@@ -119,13 +119,13 @@ func dfs(now: dynamic, from_cpp: dynamic, destination: dynamic, cost: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
   read(N, M);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       read(S[i], D[i], C[i]);
@@ -137,10 +137,10 @@ func main()
     }
   }
   sort(que.begin(), que.end());
-  for (var tmp in que)
+  for (var tmp: dynamic in que)
   {
-    var s = tmp.second.first;
-    var t = tmp.second.second;
+    var s: dynamic = tmp.second.first;
+    var t: dynamic = tmp.second.second;
     if (uni.merge(tmp.second.first, tmp.second.second))
     {
       paths[s].push_back([t, [tmp.first, mp[[s, t]]]]);
@@ -151,14 +151,14 @@ func main()
       rest.push_back(tmp);
     }
   }
-  for (var tmp in rest)
+  for (var tmp: dynamic in rest)
   {
     dfs(tmp.second.first, -1, tmp.second.second, tmp.first);
   }
-  var ansnum = 0;
-  var anscost = 0;
+  var ansnum: dynamic = 0;
+  var anscost: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       if (ans[i])

@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var eps = (1e-9);
+var eps: dynamic = (1e-9);
 
-func dcmp(a: dynamic, b: dynamic)
+func dcmp(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((fabsl((a - b)) <= eps)) 0 else if (((a > b))) 1 else -1;
+  return  ((fabsl((a - b)) <= eps)) ? 0 :  (((a > b))) ? 1 : -1;
 }
 
-func getBit(num: dynamic, idx: dynamic)
+func getBit(num: dynamic, idx: dynamic) -> dynamic
 {
   return (((((num >> idx)) & 1)) == 1);
 }
 
-func setBit1(num: dynamic, idx: dynamic)
+func setBit1(num: dynamic, idx: dynamic) -> dynamic
 {
   return (num | ((1 << idx)));
 }
 
-func setBit0(num: dynamic, idx: dynamic)
+func setBit0(num: dynamic, idx: dynamic) -> dynamic
 {
   return (num & (~((1 << idx))));
 }
 
-func flipBit(num: dynamic, idx: dynamic)
+func flipBit(num: dynamic, idx: dynamic) -> dynamic
 {
   return (num ^ ((1 << idx)));
 }
 
-func M()
+func M() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
 }
 
-func countNumBit1(mask: dynamic)
+func countNumBit1(mask: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   while (mask)
   {
     mask &= ((mask - 1));
@@ -45,19 +45,19 @@ func countNumBit1(mask: dynamic)
   return ret;
 }
 
-var arr = cpp_array(300009);
+var arr: dynamic = cpp_array(300009);
 
-var even = cpp_array(300009);
+var even: dynamic = cpp_array(300009);
 
-var odd = cpp_array(300009);
+var odd: dynamic = cpp_array(300009);
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-func fun(no: dynamic)
+func fun(no: dynamic) -> dynamic
 {
-  var cnt = 0;
+  var cnt: dynamic = 0;
   while (no)
   {
     cnt += ((no % 2));
@@ -66,16 +66,16 @@ func fun(no: dynamic)
   return cnt;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);
-      var cnt = fun(arr[i]);
+      var cnt: dynamic = fun(arr[i]);
       v.push_back(cnt);
       i += 1;
     }
@@ -83,7 +83,7 @@ func main()
   sum.resize(n);
   sum[0] = v[0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (cpp_cast((v).size()))))
     {
       sum[i] = (sum[(i - 1)] + v[i]);
@@ -93,7 +93,7 @@ func main()
   even[0] = (((sum[0] % 2) == 0));
   odd[0] = (((sum[0] % 2) != 0));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       even[i] = (even[(i - 1)] + (((sum[i] % 2) == 0)));
@@ -101,12 +101,12 @@ func main()
       i += 1;
     }
   }
-  var add = 1;
-  var rem = 0;
-  var ans = 0;
-  var res = 0;
+  var add: dynamic = 1;
+  var rem: dynamic = 0;
+  var ans: dynamic = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((rem % 2) == 0))
@@ -117,11 +117,11 @@ func main()
         res += (odd[(n - 1)] - odd[((i + 1) - 1)]);
       }
       rem += v[i];
-      var mx = v[i];
-      var s = v[i];
+      var mx: dynamic = v[i];
+      var s: dynamic = v[i];
       {
-        var j = (i + 1);
-        var k = 0;
+        var j: dynamic = (i + 1);
+        var k: dynamic = 0;
         while (((j < n) && (k < 65)))
         {
           mx = max(mx, v[j]);

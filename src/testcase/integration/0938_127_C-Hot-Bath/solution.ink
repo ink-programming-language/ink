@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var t1: dynamic;
+var t1: dynamic = cpp_uninitialized();
 
-var t2: dynamic;
+var t2: dynamic = cpp_uninitialized();
 
-var x1: dynamic;
+var x1: dynamic = cpp_uninitialized();
 
-var x2: dynamic;
+var x2: dynamic = cpp_uninitialized();
 
-var t0: dynamic;
+var t0: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   while ((((((cin >> t1) >> t2) >> x1) >> x2) >> t0))
   {
     if (((t2 == t0) && (t0 != t1)))
@@ -30,10 +30,10 @@ func main()
       write(x1, " ", x2, "\n");
       continue;
     }
-    var y1: dynamic;
-    var y2: dynamic;
-    var tt = 99999999;
-    var tmp: dynamic;
+    var y1: dynamic = cpp_uninitialized();
+    var y2: dynamic = cpp_uninitialized();
+    var tt: dynamic = 99999999;
+    var tmp: dynamic = cpp_uninitialized();
     {
       i = 0;
       while ((i <= x1))
@@ -63,7 +63,7 @@ func main()
             }
           }
         }
-        var t: dynamic;
+        var t: dynamic = cpp_uninitialized();
         t = (((((((tmp * 1.0) * t2) * 1.0) + (((i * 1.0) * t1) * 1.0))) * 1.0) / (((i * 1.0) + (tmp * 1.0))));
         if (((t >= (t0 * 1.0)) && (t < tt)))
         {

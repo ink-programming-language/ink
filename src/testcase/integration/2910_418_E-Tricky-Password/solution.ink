@@ -1,54 +1,54 @@
 // Translated from solution.cpp.
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var M = 105;
+var M: dynamic = 105;
 
 class Query
 {
-  var k: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  func input()
+  var k: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func input() -> dynamic
   {
       scanf("%d %d %d", (&k), (&x), (&y));
       y -= 1;
     }
 }
 
-var query = cpp_array(N);
+var query: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var value = cpp_array(N);
+var value: dynamic = cpp_array(N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var m = 0;
+var m: dynamic = 0;
 
-var cnt = cpp_array(N, M);
+var cnt: dynamic = cpp_array(N, M);
 
-var prefix = cpp_array(N, M);
+var prefix: dynamic = cpp_array(N, M);
 
-var sum = cpp_array(N, M);
+var sum: dynamic = cpp_array(N, M);
 
-var temp = cpp_array(N);
+var temp: dynamic = cpp_array(N);
 
-func lowbit(x: dynamic)
+func lowbit(x: dynamic) -> dynamic
 {
   return (x & ((-x)));
 }
 
-func add(s: dynamic, pos: dynamic, val: dynamic)
+func add(s: dynamic, pos: dynamic, val: dynamic) -> dynamic
 {
   if ((pos == 0))
   {
     return;
   }
   {
-    var i = pos;
+    var i: dynamic = pos;
     while ((i <= n))
     {
       s[i] += val;
@@ -57,11 +57,11 @@ func add(s: dynamic, pos: dynamic, val: dynamic)
   }
 }
 
-func ask(s: dynamic, pos: dynamic)
+func ask(s: dynamic, pos: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = pos;
+    var i: dynamic = pos;
     while ((i > 0))
     {
       ret += s[i];
@@ -71,11 +71,11 @@ func ask(s: dynamic, pos: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
@@ -85,7 +85,7 @@ func main()
   }
   scanf("%d", (&q));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       query[i].input();
@@ -99,7 +99,7 @@ func main()
   sort(value, (value + m));
   m = (unique(value, (value + m)) - value);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a[i] = ((lower_bound(value, (value + m), a[i]) - value) + 1);
@@ -107,7 +107,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       if ((query[i].k == 1))
@@ -117,23 +117,23 @@ func main()
       i += 1;
     }
   }
-  var BLOCK = min(cpp_cast(sqrt(((n * 1.0) + 1e-8))), 100);
-  var LEN = ((((n + BLOCK) - 1)) / BLOCK);
+  var BLOCK: dynamic = min(cpp_cast(sqrt(((n * 1.0) + 1e-8))), 100);
+  var LEN: dynamic = ((((n + BLOCK) - 1)) / BLOCK);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var ID = (i / LEN);
+      var ID: dynamic = (i / LEN);
       prefix[ID][a[i]] += 1;
       i += 1;
     }
   }
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= m))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < BLOCK))
         {
           prefix[i][j] += prefix[(i - 1)][j];
@@ -144,11 +144,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < BLOCK))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           add(sum[i], prefix[i][j], 1);
@@ -159,14 +159,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       if ((query[i].k == 1))
       {
-        var ID = (query[i].y / LEN);
+        var ID: dynamic = (query[i].y / LEN);
         {
-          var j = ID;
+          var j: dynamic = ID;
           while ((j < BLOCK))
           {
             add(sum[j], prefix[j][a[query[i].y]], -1);
@@ -177,7 +177,7 @@ func main()
         }
         a[query[i].y] = query[i].x;
         {
-          var j = ID;
+          var j: dynamic = ID;
           while ((j < BLOCK))
           {
             add(sum[j], prefix[j][a[query[i].y]], -1);
@@ -188,27 +188,27 @@ func main()
         }
       } else
       {
-        var ID = (query[i].y / LEN);
-        var firstanswer = if ((ID == 0)) 0 else prefix[(ID - 1)][a[query[i].y]];
+        var ID: dynamic = (query[i].y / LEN);
+        var firstanswer: dynamic =  ((ID == 0)) ? 0 : prefix[(ID - 1)][a[query[i].y]];
         {
-          var j = (ID * LEN);
+          var j: dynamic = (ID * LEN);
           while ((j <= query[i].y))
           {
             firstanswer += ((a[query[i].y] == a[j]));
             j += 1;
           }
         }
-        var secondanswer = 0;
+        var secondanswer: dynamic = 0;
         {
-          var j = (ID * LEN);
+          var j: dynamic = (ID * LEN);
           while ((j <= query[i].y))
           {
-            temp[a[j]] = (if ((ID == 0)) 0 else prefix[(ID - 1)][a[j]]);
+            temp[a[j]] = ( ((ID == 0)) ? 0 : prefix[(ID - 1)][a[j]]);
             j += 1;
           }
         }
         {
-          var j = (ID * LEN);
+          var j: dynamic = (ID * LEN);
           while ((j <= query[i].y))
           {
             temp[a[j]] += 1;

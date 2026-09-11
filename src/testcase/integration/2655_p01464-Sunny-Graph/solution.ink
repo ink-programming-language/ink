@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func TEN(n: dynamic)
+func TEN(n: dynamic) -> dynamic
 {
-  return if (((n == 0))) 1 else (10 * TEN((n - 1)));
+  return  (((n == 0))) ? 1 : (10 * TEN((n - 1)));
 }
 
-var N = 210;
+var N: dynamic = 210;
 
 class MT
 {
@@ -13,11 +13,11 @@ class MT
   var mt: dynamic = cpp_array(N);
 }
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var used = cpp_array(2, N);
+var used: dynamic = cpp_array(2, N);
 
-func dfs(mt: dynamic, p: dynamic, b: dynamic)
+func dfs(mt: dynamic, p: dynamic, b: dynamic) -> dynamic
 {
   used[p][b] = true;
   if (cpp_binary((mt.mt[p] == -1), "and", (b == 1)))
@@ -28,7 +28,7 @@ func dfs(mt: dynamic, p: dynamic, b: dynamic)
   if ((b == 0))
   {
     {
-      var q = 0;
+      var q: dynamic = 0;
       while ((q < N))
       {
         if ((mt.g[p][q] == false))
@@ -51,7 +51,7 @@ func dfs(mt: dynamic, p: dynamic, b: dynamic)
     }
   } else
   {
-    var q = mt.mt[p];
+    var q: dynamic = mt.mt[p];
     if (cpp_binary((!used[q][(1 - b)]), "and", dfs(mt, q, (1 - b))))
     {
       res.push_back(p);
@@ -61,12 +61,12 @@ func dfs(mt: dynamic, p: dynamic, b: dynamic)
   return false;
 }
 
-func findMwalk(mt: dynamic)
+func findMwalk(mt: dynamic) -> dynamic
 {
   res.clear();
   memset(used, 0, cpp_sizeof((used)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (cpp_binary((mt.mt[i] != -1), "or", used[i][0]))
@@ -84,33 +84,33 @@ func findMwalk(mt: dynamic)
   return vector();
 }
 
-func maxmt(mt: dynamic)
+func maxmt(mt: dynamic) -> dynamic
 {
-  var v = findMwalk(mt);
+  var v: dynamic = findMwalk(mt);
   if ((v.size() == 0))
   {
     return false;
   }
-  var m = cpp_cast(v.size());
-  var ok = cpp_array(N);
+  var m: dynamic = cpp_cast(v.size());
+  var ok: dynamic = cpp_array(N);
   fill_n(ok, N, -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var d = v[i];
+      var d: dynamic = v[i];
       if ((ok[d] != -1))
       {
-        var l = ok[d];
-        var r = i;
-        var nmt = mt;
+        var l: dynamic = ok[d];
+        var r: dynamic = i;
+        var nmt: dynamic = mt;
         {
-          var idx = (l + 1);
+          var idx: dynamic = (l + 1);
           while ((idx < r))
           {
-            var j = v[idx];
+            var j: dynamic = v[idx];
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < N))
               {
                 if (cpp_binary(nmt.g[j][k], "and", (d != k)))
@@ -126,23 +126,23 @@ func maxmt(mt: dynamic)
             idx += 1;
           }
         }
-        var f = maxmt(nmt);
+        var f: dynamic = maxmt(nmt);
         if ((!f))
         {
           return false;
         }
         copy_n(nmt.mt, N, mt.mt);
-        var e = mt.mt[d];
+        var e: dynamic = mt.mt[d];
         if ((e == -1))
         {
           return true;
         }
         mt.mt[d] = cpp_assign(mt.mt[e], "=", -1);
         {
-          var idx = l;
+          var idx: dynamic = l;
           while ((idx < r))
           {
-            var j = v[idx];
+            var j: dynamic = v[idx];
             if ((!mt.g[e][j]))
             {
               idx += 1;
@@ -153,7 +153,7 @@ func maxmt(mt: dynamic)
             rotate((v.begin() + l), (v.begin() + idx), (v.begin() + r));
             assert(((((r - ((l + 1)))) % 2) == 0));
             {
-              var k = (l + 1);
+              var k: dynamic = (l + 1);
               while ((k < r))
               {
                 mt.mt[v[k]] = v[(k + 1)];
@@ -172,7 +172,7 @@ func maxmt(mt: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       mt.mt[v[i]] = v[(i + 1)];
@@ -183,11 +183,11 @@ func maxmt(mt: dynamic)
   return true;
 }
 
-var first: dynamic;
+var first: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
-  var co = 0;
+  var co: dynamic = 0;
   while (maxmt(first))
   {
     co += 1;
@@ -195,21 +195,21 @@ func solve()
   return co;
 }
 
-func main()
+func main() -> dynamic
 {
   memset(first.g, 0, cpp_sizeof((first.g)));
   memset(first.mt, -1, cpp_sizeof((first.mt)));
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%d %d", (&n), (&m));
   n -= 1;
-  var one = [];
+  var one: dynamic = [];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       scanf("%d %d", (&a), (&b));
       if ((a > b))
       {
@@ -229,7 +229,7 @@ func main()
   }
   solve();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((first.mt[i] == -1))
@@ -241,7 +241,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((!one[i]))
@@ -253,7 +253,7 @@ func main()
       i += 1;
     }
   }
-  var v = findMwalk(first);
+  var v: dynamic = findMwalk(first);
   if ((v.size() == 0))
   {
     printf("No\n");

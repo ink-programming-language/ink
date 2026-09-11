@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var adj = cpp_construct(100001);
+var adj: dynamic = cpp_construct(100001);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var subtreeSize = cpp_array(100001);
+var subtreeSize: dynamic = cpp_array(100001);
 
-var dp = cpp_array(202, 100001);
+var dp: dynamic = cpp_array(202, 100001);
 
-var s = cpp_array(202, 202);
+var s: dynamic = cpp_array(202, 202);
 
-var c = cpp_array(202);
+var c: dynamic = cpp_array(202);
 
-var fact = cpp_array(202);
+var fact: dynamic = cpp_array(202);
 
-func DFS(i: dynamic, p: dynamic = 0)
+func DFS(i: dynamic, p: dynamic = 0) -> dynamic
 {
   dp[i][0] = 2;
   subtreeSize[i] = 1;
-  for (var j in adj[i])
+  for (var j: dynamic in adj[i])
   {
     if ((j == p))
     {
@@ -26,16 +26,16 @@ func DFS(i: dynamic, p: dynamic = 0)
     }
     DFS(j, i);
     {
-      var z = min(m, ((subtreeSize[i] + subtreeSize[j]) - 1));
+      var z: dynamic = min(m, ((subtreeSize[i] + subtreeSize[j]) - 1));
       while ((z > -1))
       {
-        var val = 0;
+        var val: dynamic = 0;
         {
-          var x = min(z, (subtreeSize[i] - 1));
-          var y = (z - x);
+          var x: dynamic = min(z, (subtreeSize[i] - 1));
+          var y: dynamic = (z - x);
           while (((x > -1) && (y <= subtreeSize[j])))
           {
-            val = (((val + (dp[i][x] * ((dp[j][y] + (if (((y > 0))) ((dp[j][(y - 1)] - ((y == 1)))) else 0)))))) % 1000000007);
+            val = (((val + (dp[i][x] * ((dp[j][y] + ( (((y > 0))) ? ((dp[j][(y - 1)] - ((y == 1)))) : 0)))))) % 1000000007);
             x -= 1;
             y += 1;
           }
@@ -47,7 +47,7 @@ func DFS(i: dynamic, p: dynamic = 0)
     subtreeSize[i] += subtreeSize[j];
   }
   {
-    var x = min(m, subtreeSize[i]);
+    var x: dynamic = min(m, subtreeSize[i]);
     while ((x > -1))
     {
       c[x] = (((c[x] + dp[i][x])) % 1000000007);
@@ -55,24 +55,24 @@ func DFS(i: dynamic, p: dynamic = 0)
     }
   }
   {
-    var x = min(m, subtreeSize[i]);
+    var x: dynamic = min(m, subtreeSize[i]);
     while (((p != 0) && (x > -1)))
     {
-      c[x] = (((c[x] - ((dp[i][x] + (if (((x > 0))) ((dp[i][(x - 1)] - ((x == 1)))) else 0))))) % 1000000007);
+      c[x] = (((c[x] - ((dp[i][x] + ( (((x > 0))) ? ((dp[i][(x - 1)] - ((x == 1)))) : 0))))) % 1000000007);
       x -= 1;
     }
   }
 }
 
-func Initialise()
+func Initialise() -> dynamic
 {
   s[1][1] = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= m))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= i))
         {
           s[i][j] = (((s[(i - 1)][(j - 1)] + (j * s[(i - 1)][j]))) % 1000000007);
@@ -84,7 +84,7 @@ func Initialise()
   }
   fact[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       fact[i] = (((i * fact[(i - 1)])) % 1000000007);
@@ -93,16 +93,16 @@ func Initialise()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
   {
-    var x = 1;
+    var x: dynamic = 1;
     while ((x < n))
     {
-      var i: dynamic;
-      var j: dynamic;
+      var i: dynamic = cpp_uninitialized();
+      var j: dynamic = cpp_uninitialized();
       scanf("%d%d", (&i), (&j));
       adj[i].push_back(j);
       adj[j].push_back(i);
@@ -111,12 +111,12 @@ func main()
   }
   Initialise();
   DFS(1);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var x = 1;
+    var x: dynamic = 1;
     while ((x <= m))
     {
-      var ansx = (((s[m][x] * fact[x])) % 1000000007);
+      var ansx: dynamic = (((s[m][x] * fact[x])) % 1000000007);
       ansx = (((ansx * c[x])) % 1000000007);
       ans = ((((ans + 1000000007) + ansx)) % 1000000007);
       x += 1;

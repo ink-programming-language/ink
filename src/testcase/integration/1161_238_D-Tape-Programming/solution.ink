@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var s = cpp_array(110);
+var s: dynamic = cpp_array(110);
 
-var tmp = cpp_array(110);
+var tmp: dynamic = cpp_array(110);
 
-var vis = cpp_array(110);
+var vis: dynamic = cpp_array(110);
 
-var num = cpp_array(110);
+var num: dynamic = cpp_array(110);
 
-func doit()
+func doit() -> dynamic
 {
-  var dp = 1;
-  var cp = l;
-  var tp: dynamic;
+  var dp: dynamic = 1;
+  var cp: dynamic = l;
+  var tp: dynamic = cpp_uninitialized();
   while (((cp >= l) && (cp <= r)))
   {
     if (((tmp[cp] == cpp_char("<")) || (tmp[cp] == cpp_char(">"))))
@@ -87,7 +87,7 @@ func doit()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&q));
   scanf("%s", (s + 1));
@@ -99,7 +99,7 @@ func main()
     memset(vis, 0, cpp_sizeof((vis)));
     doit();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 9))
       {
         printf("%d ", num[i]);

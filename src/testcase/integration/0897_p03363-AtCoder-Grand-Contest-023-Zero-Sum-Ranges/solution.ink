@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var m: dynamic;
-  var ans = [];
-  var sum = [];
+  var m: dynamic = cpp_uninitialized();
+  var ans: dynamic = [];
+  var sum: dynamic = [];
   m[0] += 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a: dynamic;
+      var a: dynamic = cpp_uninitialized();
       read(a);
       sum += a;
       m[sum] += 1;
       i += 1;
     }
   }
-  for (var i in m)
+  for (var i: dynamic in m)
   {
     ans += ((i.second * ((i.second - 1))) / 2);
   }

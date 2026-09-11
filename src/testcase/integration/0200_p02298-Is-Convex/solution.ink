@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var x = cpp_array(10010);
+var x: dynamic = cpp_array(10010);
 
-var y = cpp_array(10010);
+var y: dynamic = cpp_array(10010);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var pd: dynamic;
+var pd: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(x[i], y[i]);
@@ -24,13 +24,13 @@ func main()
     }
   }
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= (n - 1)))
     {
-      var xx = x[j];
-      var yy = y[j];
+      var xx: dynamic = x[j];
+      var yy: dynamic = y[j];
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= (2 * n)))
         {
           x[i] -= xx;
@@ -39,7 +39,7 @@ func main()
         }
       }
       {
-        var i = ((3 + j) - 1);
+        var i: dynamic = ((3 + j) - 1);
         while ((i <= ((n + j) - 1)))
         {
           if ((((x[(i - 1)] * y[i]) - (x[i] * y[(i - 1)])) < 0))
@@ -50,7 +50,7 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= (2 * n)))
         {
           x[i] -= xx;

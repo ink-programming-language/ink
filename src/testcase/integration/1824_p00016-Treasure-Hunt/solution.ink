@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-func main()
+func main() -> dynamic
 {
-  var len: dynamic;
-  var ang: dynamic;
-  var ax = 0;
-  var ay = 0;
-  var vis = 90;
+  var len: dynamic = cpp_uninitialized();
+  var ang: dynamic = cpp_uninitialized();
+  var ax: dynamic = 0;
+  var ay: dynamic = 0;
+  var vis: dynamic = 90;
   while (scanf("%d,%d", (&len), (&ang)))
   {
     if (((len + ang) == 0))

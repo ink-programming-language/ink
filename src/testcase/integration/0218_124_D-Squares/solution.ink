@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func f(s: dynamic)
+func f(s: dynamic) -> dynamic
 {
-  var k = 0;
+  var k: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       k = (((10 * k) + int_cpp(s[i])) - 48);
@@ -14,24 +14,24 @@ func f(s: dynamic)
   return k;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var l: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var x3: dynamic;
-  var y3: dynamic;
-  var x4: dynamic;
-  var y4: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var x1: dynamic;
-  var x2: dynamic;
-  var y1: dynamic;
-  var y2: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var x3: dynamic = cpp_uninitialized();
+  var y3: dynamic = cpp_uninitialized();
+  var x4: dynamic = cpp_uninitialized();
+  var y4: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var x1: dynamic = cpp_uninitialized();
+  var x2: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
   read(a, b, x1, y1, x2, y2);
   if (((x1 + y1) >= 0))
   {

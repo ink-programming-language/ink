@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-func output(x: dynamic)
+func output(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
     putchar(cpp_char("-"));
     x = (-x);
   }
-  var len = 0;
-  var data = cpp_array(10);
+  var len: dynamic = 0;
+  var data: dynamic = cpp_array(10);
   while (x)
   {
     data[cpp_update(len, "++")] = (x % 10);
@@ -33,7 +33,7 @@ func output(x: dynamic)
   putchar(cpp_char("\n"));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   while (cpp_update(n, "--"))

@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100002);
+var a: dynamic = cpp_array(100002);
 
-var b = cpp_array(100002);
+var b: dynamic = cpp_array(100002);
 
-var c = cpp_array(100002);
+var c: dynamic = cpp_array(100002);
 
-var q = cpp_array(100002);
+var q: dynamic = cpp_array(100002);
 
-var pos = cpp_array(100002);
+var pos: dynamic = cpp_array(100002);
 
-var sb = 0;
+var sb: dynamic = 0;
 
-func getNextX()
+func getNextX() -> dynamic
 {
   x = ((((x * 37) + 10007)) % 1000000007);
   return x;
 }
 
-func initAB()
+func initAB() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a[i] = (i + 1);
@@ -35,7 +35,7 @@ func initAB()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       swap(a[i], a[(getNextX() % ((i + 1)))]);
@@ -43,7 +43,7 @@ func initAB()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i < d))
@@ -57,7 +57,7 @@ func initAB()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       swap(b[i], b[(getNextX() % ((i + 1)))]);
@@ -66,14 +66,14 @@ func initAB()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
   read(n, d, x);
   initAB();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (b[i])
@@ -86,11 +86,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = n;
+        var j: dynamic = n;
         while ((j > (n - 30)))
         {
           if ((j < 1))
@@ -110,9 +110,9 @@ func main()
         i += 1;
         continue;
       }
-      var v = 0;
+      var v: dynamic = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= sb))
         {
           if ((q[j] > i))
@@ -128,7 +128,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(c[i], "\n");

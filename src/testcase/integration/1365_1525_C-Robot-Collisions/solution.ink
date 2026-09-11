@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var MAXN = cpp_expression("#include");
+var MAXN: dynamic = cpp_expression("#include");
 
-var spf = cpp_array(MAXN);
+var spf: dynamic = cpp_array(MAXN);
 
-var ans = cpp_construct(3e5, 0);
+var ans: dynamic = cpp_construct(3e5, 0);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func func_cpp(v: dynamic)
+func func_cpp(v: dynamic) -> dynamic
 {
-  var st: dynamic;
+  var st: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       if ((st.size() == 0))
@@ -32,10 +32,10 @@ func func_cpp(v: dynamic)
       i += 1;
     }
   }
-  var vl: dynamic;
-  var vr: dynamic;
+  var vl: dynamic = cpp_uninitialized();
+  var vr: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < st.size()))
     {
       if ((get(st[i]) == cpp_char("L")))
@@ -49,7 +49,7 @@ func func_cpp(v: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < vl.size()))
     {
       ans[get(vl[i])] = (abs((get(vl[i]) + get(vl[(i - 1)]))) / 2);
@@ -58,7 +58,7 @@ func func_cpp(v: dynamic)
     }
   }
   {
-    var i = (vr.size() - 1);
+    var i: dynamic = (vr.size() - 1);
     while ((i > 0))
     {
       ans[get(vr[i])] = (((abs((get(vr[i]) - get(vr[(i - 1)]))) / 2) + m) - get(vr[i]));
@@ -79,34 +79,34 @@ func func_cpp(v: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n, m);
-    var odd: dynamic;
-    var even: dynamic;
-    var a: dynamic;
+    var odd: dynamic = cpp_uninitialized();
+    var even: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var x: dynamic;
+        var x: dynamic = cpp_uninitialized();
         read(x);
         a.push_back(x);
         i += 1;
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var c: dynamic;
+        var c: dynamic = cpp_uninitialized();
         read(c);
-        var p: dynamic;
+        var p: dynamic = cpp_uninitialized();
         get(p) = a[i];
         get(p) = c;
         get(p) = i;
@@ -125,7 +125,7 @@ func main()
     func_cpp(odd);
     func_cpp(even);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write(ans[i], " ");

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  for (var i in val)
+  for (var i: dynamic in val)
   {
     read(i);
   }
-  var a: dynamic;
-  var b: dynamic;
-  var res = 0;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(a, b);
-      var t = 0;
+      var t: dynamic = 0;
       {
-        var j = (a - 1);
+        var j: dynamic = (a - 1);
         while ((j < b))
         {
           t += val[j];

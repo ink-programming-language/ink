@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var mod = 100000007700000049;
+var mod: dynamic = 100000007700000049;
 
-var MAXN = (3e5 + 5);
+var MAXN: dynamic = (3e5 + 5);
 
-var op = cpp_array(MAXN);
+var op: dynamic = cpp_array(MAXN);
 
-var son = cpp_array(MAXN);
+var son: dynamic = cpp_array(MAXN);
 
-var val = cpp_array(MAXN);
+var val: dynamic = cpp_array(MAXN);
 
-func dfs(pos: dynamic)
+func dfs(pos: dynamic) -> dynamic
 {
-  var ans: dynamic;
-  var i: dynamic;
+  var ans: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   if ((val[pos] != -1))
   {
     return val[pos];
@@ -45,17 +45,17 @@ func dfs(pos: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio();
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var t1: dynamic;
-  var t2: dynamic;
-  var t3: dynamic;
-  var n: dynamic;
-  var m: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var t1: dynamic = cpp_uninitialized();
+  var t2: dynamic = cpp_uninitialized();
+  var t3: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n);
   {
     i = 1;

@@ -1,78 +1,78 @@
 // Translated from solution.cpp.
 
-var a14: dynamic;
+var a14: dynamic = cpp_uninitialized();
 
-func rd(l: dynamic, r: dynamic)
+func rd(l: dynamic, r: dynamic) -> dynamic
 {
   return ((rand() % (((r - l) + 1))) + l);
 }
 
-var mxn = (1e5 + 3);
+var mxn: dynamic = (1e5 + 3);
 
-var sq = 333;
+var sq: dynamic = 333;
 
-var to = cpp_array(mxn);
+var to: dynamic = cpp_array(mxn);
 
-var nxt = cpp_array(mxn);
+var nxt: dynamic = cpp_array(mxn);
 
-var fir = cpp_array(mxn);
+var fir: dynamic = cpp_array(mxn);
 
-var gn = 1;
+var gn: dynamic = 1;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var fa = cpp_array(mxn);
+var fa: dynamic = cpp_array(mxn);
 
-var dep = cpp_array(mxn);
+var dep: dynamic = cpp_array(mxn);
 
-var siz = cpp_array(mxn);
+var siz: dynamic = cpp_array(mxn);
 
-var dfn = cpp_array(mxn);
+var dfn: dynamic = cpp_array(mxn);
 
-var dn: dynamic;
+var dn: dynamic = cpp_uninitialized();
 
-var top = cpp_array(mxn);
+var top: dynamic = cpp_array(mxn);
 
-var zs = cpp_array(mxn);
+var zs: dynamic = cpp_array(mxn);
 
-var dfa = cpp_array(mxn);
+var dfa: dynamic = cpp_array(mxn);
 
-var va = cpp_array(mxn);
+var va: dynamic = cpp_array(mxn);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var xw = cpp_array(mxn);
+var xw: dynamic = cpp_array(mxn);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var ux = cpp_array(mxn);
+var ux: dynamic = cpp_array(mxn);
 
-var un: dynamic;
+var un: dynamic = cpp_uninitialized();
 
-var stk = cpp_array(mxn);
+var stk: dynamic = cpp_array(mxn);
 
-var sn: dynamic;
+var sn: dynamic = cpp_uninitialized();
 
-var fb = cpp_array(mxn);
+var fb: dynamic = cpp_array(mxn);
 
-var sg = cpp_array(mxn);
+var sg: dynamic = cpp_array(mxn);
 
-var co = cpp_array(mxn);
+var co: dynamic = cpp_array(mxn);
 
-func gadd(x: dynamic, y: dynamic)
+func gadd(x: dynamic, y: dynamic) -> dynamic
 {
   to[cpp_update(gn, "++")] = y;
   nxt[gn] = fir[x];
   fir[x] = gn;
 }
 
-func dfs0(x: dynamic, f: dynamic)
+func dfs0(x: dynamic, f: dynamic) -> dynamic
 {
   fa[x] = f;
   dep[x] = (dep[f] + 1);
   siz[x] = 1;
   {
-    var i = fir[x];
+    var i: dynamic = fir[x];
     while (i)
     {
       dfs0(to[i], x);
@@ -86,17 +86,17 @@ func dfs0(x: dynamic, f: dynamic)
   }
 }
 
-func dfs1(x: dynamic, f: dynamic)
+func dfs1(x: dynamic, f: dynamic) -> dynamic
 {
   dfn[x] = cpp_update(dn, "++");
   dfa[dn] = x;
-  top[x] = if ((x == zs[f])) top[f] else x;
+  top[x] =  ((x == zs[f])) ? top[f] : x;
   if (zs[x])
   {
     dfs1(zs[x], x);
   }
   {
-    var i = fir[x];
+    var i: dynamic = fir[x];
     while (i)
     {
       if ((to[i] != zs[x]))
@@ -108,7 +108,7 @@ func dfs1(x: dynamic, f: dynamic)
   }
 }
 
-func lca(x: dynamic, y: dynamic)
+func lca(x: dynamic, y: dynamic) -> dynamic
 {
   while ((top[x] != top[y]))
   {
@@ -118,28 +118,28 @@ func lca(x: dynamic, y: dynamic)
     }
     x = fa[top[x]];
   }
-  return if ((dep[x] < dep[y])) x else y;
+  return  ((dep[x] < dep[y])) ? x : y;
 }
 
-func cmp1(x: dynamic, y: dynamic)
+func cmp1(x: dynamic, y: dynamic) -> dynamic
 {
   return (dfn[x] < dfn[y]);
 }
 
-var lb = cpp_array(mxn);
+var lb: dynamic = cpp_array(mxn);
 
-var zp = cpp_array(mxn);
+var zp: dynamic = cpp_array(mxn);
 
-var sf = cpp_array(mxn);
+var sf: dynamic = cpp_array(mxn);
 
-var xl = cpp_array(mxn);
+var xl: dynamic = cpp_array(mxn);
 
-func main()
+func main() -> dynamic
 {
   a14 = scanf("%d%d", (&n), (&m));
   {
-    var i = 2;
-    var x: dynamic;
+    var i: dynamic = 2;
+    var x: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
       a14 = scanf("%d", (&x));
@@ -150,8 +150,8 @@ func main()
   dfs0(1, 0);
   dfs1(1, 0);
   {
-    var i = 1;
-    var x: dynamic;
+    var i: dynamic = 1;
+    var x: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
       a14 = scanf("%d", (&x));
@@ -160,7 +160,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       a14 = scanf("%d", (xw + i));
@@ -169,13 +169,13 @@ func main()
   }
   assert((dn == n));
   {
-    var L = 1;
-    var R: dynamic;
+    var L: dynamic = 1;
+    var R: dynamic = cpp_uninitialized();
     while ((R != m))
     {
       R = min(m, ((L + sq) - 1));
       {
-        var i = L;
+        var i: dynamic = L;
         while ((i <= R))
         {
           ux[cpp_update(un, "++")] = abs(xw[i]);
@@ -184,7 +184,7 @@ func main()
       }
       sort((ux + 1), ((ux + un) + 1), cmp1);
       {
-        var i = (un - 1);
+        var i: dynamic = (un - 1);
         while (i)
         {
           ux[cpp_update(un, "++")] = lca(ux[i], ux[(i + 1)]);
@@ -195,11 +195,11 @@ func main()
       un = ((unique((ux + 1), ((ux + un) + 1)) - ux) - 1);
       stk[cpp_assign(sn, "=", 1)] = ux[1];
       {
-        var i = 2;
+        var i: dynamic = 2;
         while ((i <= un))
         {
-          var x = ux[i];
-          var y: dynamic;
+          var x: dynamic = ux[i];
+          var y: dynamic = cpp_uninitialized();
           while (cpp_comma(cpp_assign(y, "=", stk[sn]), (dfn[x] > ((dfn[y] + siz[y]) - 1))))
           {
             sn -= 1;
@@ -210,7 +210,7 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= sn))
         {
           fb[stk[i]] = stk[(i - 1)];
@@ -218,13 +218,13 @@ func main()
         }
       }
       {
-        var T = 1;
+        var T: dynamic = 1;
         while ((T <= un))
         {
-          var x = ux[T];
-          var tn = 0;
+          var x: dynamic = ux[T];
+          var tn: dynamic = 0;
           {
-            var y = x;
+            var y: dynamic = x;
             while ((y != fb[x]))
             {
               xl[cpp_update(tn, "++")] = pair(va[y], y);
@@ -233,9 +233,9 @@ func main()
           }
           sort((xl + 1), ((xl + tn) + 1));
           {
-            var l = 1;
-            var r: dynamic;
-            var c: dynamic;
+            var l: dynamic = 1;
+            var r: dynamic = cpp_uninitialized();
+            var c: dynamic = cpp_uninitialized();
             while ((l <= tn))
             {
               r = l;
@@ -245,7 +245,7 @@ func main()
               }
               c = 0;
               {
-                var i = l;
+                var i: dynamic = l;
                 while ((i <= r))
                 {
                   c += (co[xl[i].second] ^ 1);
@@ -262,10 +262,10 @@ func main()
         }
       }
       {
-        var T = L;
+        var T: dynamic = L;
         while ((T <= R))
         {
-          var x = xw[T];
+          var x: dynamic = xw[T];
           if ((x > 0))
           {
             assert((!co[x]));
@@ -277,11 +277,11 @@ func main()
           {
             co[x] ^= 1;
             {
-              var y = x;
+              var y: dynamic = x;
               while (y)
               {
                 sg[y] += 1;
-                var p = zp[y];
+                var p: dynamic = zp[y];
                 if (((p != lb[y].begin()) && ((((p - 1))->first + sg[y]) > 0)))
                 {
                   p -= 1;
@@ -300,11 +300,11 @@ func main()
             x = (-x);
             co[x] ^= 1;
             {
-              var y = x;
+              var y: dynamic = x;
               while (y)
               {
                 sg[y] -= 1;
-                var p = zp[y];
+                var p: dynamic = zp[y];
                 if (((p != lb[y].end()) && ((p->first + sg[y]) <= 0)))
                 {
                   ans -= p->second;
@@ -324,13 +324,13 @@ func main()
         }
       }
       {
-        var i = 1;
-        var x: dynamic;
+        var i: dynamic = 1;
+        var x: dynamic = cpp_uninitialized();
         while ((i <= un))
         {
           x = ux[i];
           {
-            var j = x;
+            var j: dynamic = x;
             while ((j != fb[x]))
             {
               va[j] += sg[x];
@@ -338,7 +338,7 @@ func main()
             }
           }
           {
-            var WH: dynamic;
+            var WH: dynamic = cpp_uninitialized();
             swap(lb[x], WH);
           }
           sg[x] = 0;

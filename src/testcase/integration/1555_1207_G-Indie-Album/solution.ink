@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var N = (4e5 + 10);
+var N: dynamic = (4e5 + 10);
 
-var M = (3e8 + 1);
+var M: dynamic = (3e8 + 1);
 
-var big = 1e18;
+var big: dynamic = 1e18;
 
-var shift = 1000;
+var shift: dynamic = 1000;
 
-var hsh2 = 1964325029;
+var hsh2: dynamic = 1964325029;
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var EPS = 1e-14;
+var EPS: dynamic = 1e-14;
 
-var block = 700;
+var block: dynamic = 700;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var Z = cpp_array(N);
+var Z: dynamic = cpp_array(N);
 
-var q = cpp_array(N);
+var q: dynamic = cpp_array(N);
 
 class aho
 {
@@ -31,15 +31,15 @@ class aho
   var p: dynamic = cpp_array(N);
   var tp: dynamic = cpp_array(N);
   var k: dynamic = cpp_array(N);
-  var cur: dynamic;
+  var cur: dynamic = cpp_uninitialized();
   var songs: dynamic = cpp_array(N);
   var term: dynamic = cpp_array(N);
-  func add1(a: dynamic, num: dynamic)
+  func add1(a: dynamic, num: dynamic) -> dynamic
   {
-      var v = 1;
-      for (var u in a)
+      var v: dynamic = 1;
+      for (var u: dynamic in a)
       {
-        var ch = (u - cpp_char("a"));
+        var ch: dynamic = (u - cpp_char("a"));
         if ((!t[v][ch]))
         {
           b[cur] = ch;
@@ -51,7 +51,7 @@ class aho
       songs[num] = v;
       term[v] = 1;
     }
-  func add2(j: dynamic, z: dynamic, num: dynamic)
+  func add2(j: dynamic, z: dynamic, num: dynamic) -> dynamic
   {
       j = songs[j];
       if ((!t[j][z]))
@@ -62,7 +62,7 @@ class aho
       }
       songs[num] = t[j][z];
     }
-  func suflink(v: dynamic)
+  func suflink(v: dynamic) -> dynamic
   {
       if ((p[v] != 1))
       {
@@ -79,7 +79,7 @@ class aho
         tp[v] = tp[k[v]];
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 26))
         {
           if (t[v][i])
@@ -92,13 +92,13 @@ class aho
         }
       }
     }
-  func sufbld()
+  func sufbld() -> dynamic
   {
       p[1] = 1;
       k[1] = 1;
       tp[1] = 1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 26))
         {
           if ((!t[1][i]))
@@ -108,14 +108,14 @@ class aho
           i += 1;
         }
       }
-      var q: dynamic;
+      var q: dynamic = cpp_uninitialized();
       q.push(1);
       while (q.size())
       {
-        var v = q.front();
+        var v: dynamic = q.front();
         q.pop();
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < 26))
           {
             if ((t[v][i] && (t[v][i] != 1)))
@@ -131,7 +131,7 @@ class aho
         }
       }
     }
-  func upd(z: dynamic, d: dynamic)
+  func upd(z: dynamic, d: dynamic) -> dynamic
   {
       while ((z != 1))
       {
@@ -141,19 +141,19 @@ class aho
     }
 }
 
-var rt = cpp_array(2);
+var rt: dynamic = cpp_array(2);
 
-var answ = cpp_array(N);
+var answ: dynamic = cpp_array(N);
 
-func dfs(a: dynamic, b: dynamic)
+func dfs(a: dynamic, b: dynamic) -> dynamic
 {
   rt[1].upd(b, 1);
-  for (var u in q[a])
+  for (var u: dynamic in q[a])
   {
     answ[u.first] = Z[u.second];
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       if (rt[0].t[a][i])
@@ -166,19 +166,19 @@ func dfs(a: dynamic, b: dynamic)
   rt[1].upd(b, -1);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n);
   {
-    var i = 1;
-    var j: dynamic;
-    var z: dynamic;
+    var i: dynamic = 1;
+    var j: dynamic = cpp_uninitialized();
+    var z: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(j);
       if ((j == 1))
       {
@@ -193,10 +193,10 @@ func main()
     }
   }
   read(m);
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   {
-    var i = 1;
-    var y: dynamic;
+    var i: dynamic = 1;
+    var y: dynamic = cpp_uninitialized();
     while ((i <= m))
     {
       read(y, x);
@@ -208,7 +208,7 @@ func main()
   rt[1].sufbld();
   dfs(1, 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       write(answ[i], cpp_char("\n"));

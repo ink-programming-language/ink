@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var CMAX = 100005;
+var CMAX: dynamic = 100005;
 
-var Cfd = "";
+var Cfd: dynamic = "";
 
-var Cfr = "";
+var Cfr: dynamic = "";
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.length()))
     {
       if ((s[i] == cpp_char("*")))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while (((i + (4 * j)) < s.length()))
           {
             if (((((s[(i + j)] == cpp_char("*")) && (s[(i + (2 * j))] == cpp_char("*"))) && (s[(i + (3 * j))] == cpp_char("*"))) && (s[(i + (4 * j))] == cpp_char("*"))))

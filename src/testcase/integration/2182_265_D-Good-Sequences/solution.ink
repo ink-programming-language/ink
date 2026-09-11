@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var N = 100002;
+var N: dynamic = 100002;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var d = cpp_array(N);
+var d: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   read(n);
   {
     i = 1;
@@ -21,12 +21,12 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
     i = 1;
     while ((i <= n))
     {
-      var cnt = 0;
+      var cnt: dynamic = 0;
       {
         j = 2;
         while (((j * j) <= a[i]))

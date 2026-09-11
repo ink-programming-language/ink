@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var A = cpp_array(31, 31);
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var A: dynamic = cpp_array(31, 31);
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
     i = 0;
@@ -22,7 +22,7 @@ func main()
       i += 1;
     }
   }
-  var result = 0;
+  var result: dynamic = 0;
   {
     i = 0;
     while ((i < n))
@@ -31,8 +31,8 @@ func main()
         j = 0;
         while ((j < n))
         {
-          var column = 0;
-          var c = 0;
+          var column: dynamic = 0;
+          var c: dynamic = 0;
           {
             while ((c < n))
             {
@@ -40,8 +40,8 @@ func main()
               c += 1;
             }
           }
-          var row = 0;
-          var r = 0;
+          var row: dynamic = 0;
+          var r: dynamic = 0;
           {
             while ((r < n))
             {

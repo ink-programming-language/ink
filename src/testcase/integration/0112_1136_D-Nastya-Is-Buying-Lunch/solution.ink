@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-var eps = 1e-6;
+var eps: dynamic = 1e-6;
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-var llf = 1e18;
+var llf: dynamic = 1e18;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var maxn = (5e5 + 10);
+var maxn: dynamic = (5e5 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var p = cpp_array(maxn);
+var p: dynamic = cpp_array(maxn);
 
-var f = cpp_array(maxn);
+var f: dynamic = cpp_array(maxn);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(p[i]);
@@ -34,9 +34,9 @@ func main()
     }
   }
   {
-    var i = 1;
-    var u: dynamic;
-    var v: dynamic;
+    var i: dynamic = 1;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
     while ((i <= m))
     {
       read(u, v);
@@ -45,7 +45,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sort(f[i].begin(), f[i].end());
@@ -53,15 +53,15 @@ func main()
     }
   }
   q.push_back(p[n]);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 1))
     {
-      var flag = 1;
-      for (var x in q)
+      var flag: dynamic = 1;
+      for (var x: dynamic in q)
       {
-        var it = lower_bound(f[p[i]].begin(), f[p[i]].end(), x);
+        var it: dynamic = lower_bound(f[p[i]].begin(), f[p[i]].end(), x);
         if (((it != f[p[i]].end()) && ((*it) == x)))
         {
         } else

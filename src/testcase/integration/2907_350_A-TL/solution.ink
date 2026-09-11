@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var d = cpp_array(10);
+var d: dynamic = cpp_array(10);
 
-var e = cpp_array(10);
+var e: dynamic = cpp_array(10);
 
-func po(n: dynamic, exp: dynamic)
+func po(n: dynamic, exp: dynamic) -> dynamic
 {
-  var prod = 1;
+  var prod: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < exp))
     {
       prod = ((prod * n));
@@ -18,23 +18,23 @@ func po(n: dynamic, exp: dynamic)
   return prod;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var n: dynamic;
-  var m: dynamic;
-  var s = 0;
-  var t: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var s: dynamic = 0;
+  var t: dynamic = cpp_uninitialized();
   read(n, m);
-  var a = cpp_array(n);
-  var b = cpp_array(m);
-  var c = cpp_array(n);
-  var f: dynamic;
-  var g: dynamic;
+  var a: dynamic = cpp_array(n);
+  var b: dynamic = cpp_array(m);
+  var c: dynamic = cpp_array(n);
+  var f: dynamic = cpp_uninitialized();
+  var g: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -42,7 +42,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(b[i]);

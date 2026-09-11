@@ -1,47 +1,47 @@
 // Translated from solution.cpp.
 
-var maxn = 3;
+var maxn: dynamic = 3;
 
-var eps = 1e-12;
+var eps: dynamic = 1e-12;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ted: dynamic;
+var ted: dynamic = cpp_uninitialized();
 
-var bad: dynamic;
+var bad: dynamic = cpp_uninitialized();
 
-var x = cpp_array(maxn);
+var x: dynamic = cpp_array(maxn);
 
-var y = cpp_array(maxn);
+var y: dynamic = cpp_array(maxn);
 
-var r = cpp_array(maxn);
+var r: dynamic = cpp_array(maxn);
 
-var dis: dynamic;
+var dis: dynamic = cpp_uninitialized();
 
-var tmp: dynamic;
+var tmp: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var t = cpp_array(maxn);
+var t: dynamic = cpp_array(maxn);
 
-var fin = cpp_array(maxn);
+var fin: dynamic = cpp_array(maxn);
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func gdis(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
+func gdis(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic) -> dynamic
 {
   return sqrt(((((x1 - x2)) * ((x1 - x2))) + (((y1 - y2)) * ((y1 - y2)))));
 }
 
-func eq(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
+func eq(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic) -> dynamic
 {
   if (((abs((x1 - x2)) < eps) && (abs((y1 - y2)) < eps)))
   {
@@ -50,16 +50,16 @@ func eq(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x[i], y[i], r[i]);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < i))
         {
           dis = gdis(x[i], y[i], x[j], y[j]);
@@ -114,16 +114,16 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ((int_cpp(t[i].size())))))
         {
           bad = 0;
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < ((int_cpp(fin[i].size())))))
             {
               if (eq(t[i][j].first, t[i][j].second, fin[i][k].first, fin[i][k].second))
@@ -140,7 +140,7 @@ func main()
           }
           bad = 0;
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < ((int_cpp(v.size())))))
             {
               if (eq(t[i][j].first, t[i][j].second, v[k].first, v[k].second))
@@ -163,7 +163,7 @@ func main()
   }
   bad = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((((int_cpp(fin[i].size()))) > 0))
@@ -181,7 +181,7 @@ func main()
   }
   bad = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((((int_cpp(fin[i].size()))) == 0))
@@ -193,7 +193,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       ted += ((int_cpp(fin[i].size())));

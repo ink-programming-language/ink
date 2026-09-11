@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t = 0;
-  var sl = 0;
-  var s = cpp_array(100010);
+  var t: dynamic = 0;
+  var sl: dynamic = 0;
+  var s: dynamic = cpp_array(100010);
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < strlen(s)))
     {
       if ((s[i] == cpp_char("#")))
@@ -28,10 +28,10 @@ func main()
     write("-1");
   } else
   {
-    var t1 = 0;
-    var t2 = 0;
+    var t1: dynamic = 0;
+    var t2: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < strlen(s)))
       {
         if ((s[i] == cpp_char("#")))
@@ -60,7 +60,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < t))
       {
         write(cpp_char("1"), "\n");

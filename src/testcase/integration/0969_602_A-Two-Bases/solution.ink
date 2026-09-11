@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var bn: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var bn: dynamic = cpp_uninitialized();
   read(n, bn);
-  var sum = 0;
+  var sum: dynamic = 0;
   while (cpp_update(n, "--"))
   {
-    var a: dynamic;
+    var a: dynamic = cpp_uninitialized();
     read(a);
     sum = ((cpp_cast(bn) * sum) + a);
   }
-  var sum1 = 0;
-  var m: dynamic;
-  var bm: dynamic;
+  var sum1: dynamic = 0;
+  var m: dynamic = cpp_uninitialized();
+  var bm: dynamic = cpp_uninitialized();
   read(m, bm);
   while (cpp_update(m, "--"))
   {
-    var a: dynamic;
+    var a: dynamic = cpp_uninitialized();
     read(a);
     sum1 = ((cpp_cast(bm) * sum1) + a);
   }

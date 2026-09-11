@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 10);
+var N: dynamic = (2e5 + 10);
 
-var dp = cpp_array(5, N);
+var dp: dynamic = cpp_array(5, N);
 
-var sum = cpp_array(5, N);
+var sum: dynamic = cpp_array(5, N);
 
-var three = [0];
+var three: dynamic = [0];
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   three[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       three[i] = ((three[(i - 1)] * 3) % MOD);
       i += 1;
     }
   }
-  var n: dynamic;
-  var num = 0;
+  var n: dynamic = cpp_uninitialized();
+  var num: dynamic = 0;
   scanf("%d %s", (&n), (s + 1));
   sum[0][0] = cpp_assign(dp[0][0], "=", 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((s[i] == cpp_char("?")))
@@ -48,7 +48,7 @@ func main()
           dp[i][((s[i] - cpp_char("a")) + 1)] = (sum[(i - 1)][(s[i] - cpp_char("a"))] % MOD);
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= 3))
           {
             sum[i][j] = (((sum[(i - 1)][j] + dp[i][j])) % MOD);

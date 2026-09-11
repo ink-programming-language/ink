@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var M = (1e9 + 7);
+var M: dynamic = (1e9 + 7);
 
-var A = cpp_array(N);
+var A: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func func_cpp(x: dynamic, y: dynamic)
+func func_cpp(x: dynamic, y: dynamic) -> dynamic
 {
   if ((ans.find(make_pair(x, y)) != ans.end()))
   {
@@ -18,10 +18,10 @@ func func_cpp(x: dynamic, y: dynamic)
   {
     return cpp_assign(ans[make_pair(x, y)], "=", make_pair(0, A[x]));
   }
-  var mid = (((x + y)) / 2);
-  var p = make_pair(0, 0);
-  var p1 = func_cpp(x, mid);
-  var p2 = func_cpp((mid + 1), y);
+  var mid: dynamic = (((x + y)) / 2);
+  var p: dynamic = make_pair(0, 0);
+  var p1: dynamic = func_cpp(x, mid);
+  var p2: dynamic = func_cpp((mid + 1), y);
   if (((p1.second + p2.second) >= 10))
   {
     p.first += 1;
@@ -31,27 +31,27 @@ func func_cpp(x: dynamic, y: dynamic)
   return cpp_assign(ans[make_pair(x, y)], "=", p);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(A[i]);
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   read(q);
   while (cpp_update(q, "--"))
   {
-    var x: dynamic;
-    var y: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     read(x, y);
     x -= 1;
     y -= 1;

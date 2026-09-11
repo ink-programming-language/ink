@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var grafo = cpp_array(100100);
+var grafo: dynamic = cpp_array(100100);
 
-var root = [false];
+var root: dynamic = [false];
 
-var ferrou = false;
+var ferrou: dynamic = false;
 
-var wish = cpp_array(100100);
+var wish: dynamic = cpp_array(100100);
 
-var cont = 0;
+var cont: dynamic = 0;
 
-var flag = [false];
+var flag: dynamic = [false];
 
-var val = 0;
+var val: dynamic = 0;
 
-func DFP(x: dynamic)
+func DFP(x: dynamic) -> dynamic
 {
   {
-    var it = grafo[x].begin();
-    var fim = grafo[x].end();
+    var it: dynamic = grafo[x].begin();
+    var fim: dynamic = grafo[x].end();
     while ((it != fim))
     {
       DFP((*it));
@@ -35,7 +35,7 @@ func DFP(x: dynamic)
   }
 }
 
-func DFS(x: dynamic, last: dynamic)
+func DFS(x: dynamic, last: dynamic) -> dynamic
 {
   if ((wish[x] == last))
   {
@@ -52,8 +52,8 @@ func DFS(x: dynamic, last: dynamic)
     ferrou = true;
   }
   {
-    var it = grafo[x].begin();
-    var fim = grafo[x].end();
+    var it: dynamic = grafo[x].begin();
+    var fim: dynamic = grafo[x].end();
     while ((it != fim))
     {
       DFS((*it), last);
@@ -62,13 +62,13 @@ func DFS(x: dynamic, last: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&n), (&m));
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d %d", (&x), (&y));
@@ -78,7 +78,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&wish[i]));
@@ -86,7 +86,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!root[i]))
@@ -103,7 +103,7 @@ func main()
   }
   write(val, "\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!root[i]))

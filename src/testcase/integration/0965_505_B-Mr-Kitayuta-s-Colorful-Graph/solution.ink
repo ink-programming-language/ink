@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func power(x: dynamic, y: dynamic)
+func power(x: dynamic, y: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   x = x;
   while ((y > 0))
   {
@@ -16,7 +16,7 @@ func power(x: dynamic, y: dynamic)
   return res;
 }
 
-func logtwo(n: dynamic)
+func logtwo(n: dynamic) -> dynamic
 {
   if ((n == 1))
   {
@@ -25,13 +25,13 @@ func logtwo(n: dynamic)
   return (logtwo((n / 2)) + 1);
 }
 
-var adj = cpp_array(105, 105);
+var adj: dynamic = cpp_array(105, 105);
 
-var vis = cpp_array(105, 105);
+var vis: dynamic = cpp_array(105, 105);
 
-func dfs(par: dynamic, col: dynamic)
+func dfs(par: dynamic, col: dynamic) -> dynamic
 {
-  for (var child in adj[par][col])
+  for (var child: dynamic in adj[par][col])
   {
     if (vis[child][col])
     {
@@ -42,24 +42,24 @@ func dfs(par: dynamic, col: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
-    var N: dynamic;
-    var M: dynamic;
+    var N: dynamic = cpp_uninitialized();
+    var M: dynamic = cpp_uninitialized();
     read(N, M);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < M))
       {
-        var a: dynamic;
-        var b: dynamic;
-        var c: dynamic;
+        var a: dynamic = cpp_uninitialized();
+        var b: dynamic = cpp_uninitialized();
+        var c: dynamic = cpp_uninitialized();
         read(a, b, c);
         a -= 1;
         b -= 1;
@@ -69,12 +69,12 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 105))
       {
-        var c = 1;
+        var c: dynamic = 1;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < N))
           {
             if (vis[j][i])
@@ -90,18 +90,18 @@ func main()
         i += 1;
       }
     }
-    var Q: dynamic;
+    var Q: dynamic = cpp_uninitialized();
     read(Q);
     while (cpp_update(Q, "--"))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
-      var ans = 0;
+      var ans: dynamic = 0;
       x -= 1;
       y -= 1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 105))
         {
           if ((vis[x][i] && (vis[x][i] == vis[y][i])))

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var MAXN = 100000;
+var MAXN: dynamic = 100000;
 
-var MAXNUM = 100000;
+var MAXNUM: dynamic = 100000;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var max_x = cpp_array((MAXNUM + 1));
+var max_x: dynamic = cpp_array((MAXNUM + 1));
 
-var max_y: dynamic;
+var max_y: dynamic = cpp_uninitialized();
 
-var w = cpp_array(MAXN);
+var w: dynamic = cpp_array(MAXN);
 
-var res = cpp_array(2, MAXN);
+var res: dynamic = cpp_array(2, MAXN);
 
-func lookup(t: dynamic)
+func lookup(t: dynamic) -> dynamic
 {
-  var p = 0;
-  var q = max_y;
+  var p: dynamic = 0;
+  var q: dynamic = max_y;
   while ((p < q))
   {
-    var y = (((p + q)) / 2);
+    var y: dynamic = (((p + q)) / 2);
     if (((y - max_x[y]) < t))
     {
       p = (y + 1);
@@ -44,10 +44,10 @@ func lookup(t: dynamic)
   return p;
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= MAXNUM))
     {
       max_x[i] = -1;
@@ -57,11 +57,11 @@ func main()
   max_y = -1;
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       if ((x > max_x[y]))
       {
@@ -75,7 +75,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(w[i]);
@@ -83,10 +83,10 @@ func main()
     }
   }
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
-      var y = lookup(w[i]);
+      var y: dynamic = lookup(w[i]);
       if ((y == -1))
       {
         write("NO", "\n");
@@ -99,7 +99,7 @@ func main()
   }
   write("YES", "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(res[i][0], " ", res[i][1], "\n");

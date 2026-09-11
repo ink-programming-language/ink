@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var l: dynamic;
-  var r: dynamic;
-  var n: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(l, r, n);
-  var d = cpp_array(1111);
+  var d: dynamic = cpp_array(1111);
   memset(d, 0, cpp_sizeof((d)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       {
-        var j = x;
+        var j: dynamic = x;
         while ((j < y))
         {
           d[j] = 1;
@@ -27,7 +27,7 @@ func main()
     }
   }
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i < r))
     {
       if (d[i])

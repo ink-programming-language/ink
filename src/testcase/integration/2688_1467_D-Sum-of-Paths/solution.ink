@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var N = 5005;
+var N: dynamic = 5005;
 
-var p = (1e9 + 7);
+var p: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var num = cpp_array(N);
+var num: dynamic = cpp_array(N);
 
-var dp = cpp_array(N, N);
+var dp: dynamic = cpp_array(N, N);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d", (&n), (&k), (&q));
   k += 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -31,14 +31,14 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       {
-        var t = 1;
+        var t: dynamic = 1;
         while ((t <= n))
         {
-          dp[t][i] = (if ((i == 1)) 1 else (((dp[(t - 1)][(i - 1)] + dp[(t + 1)][(i - 1)])) % p));
+          dp[t][i] = ( ((i == 1)) ? 1 : (((dp[(t - 1)][(i - 1)] + dp[(t + 1)][(i - 1)])) % p));
           t += 1;
         }
       }
@@ -46,11 +46,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var t = 1;
+        var t: dynamic = 1;
         while ((t <= k))
         {
           num[i] = (((num[i] + (dp[i][t] * dp[i][((k - t) + 1)]))) % p);
@@ -62,9 +62,9 @@ func main()
     }
   }
   {
-    var i = 1;
-    var id: dynamic;
-    var x: dynamic;
+    var i: dynamic = 1;
+    var id: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
     while ((i <= q))
     {
       scanf("%d%d", (&id), (&x));

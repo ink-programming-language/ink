@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var maxn = (1e6 + 5);
+var maxn: dynamic = (1e6 + 5);
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var INF = 0x3f3f3f3f3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var cnt = cpp_array(maxn);
+var cnt: dynamic = cpp_array(maxn);
 
-var d = cpp_array(maxn);
+var d: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var n: dynamic;
-  var m: dynamic;
-  var ma = 0;
-  var f = 0;
+  var t: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var ma: dynamic = 0;
+  var f: dynamic = 0;
   scanf("%d", (&t));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= t))
     {
       scanf("%d", (&x));
@@ -38,7 +38,7 @@ func main()
   }
   x = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= ma))
     {
       if ((cnt[i] != (4 * i)))
@@ -50,7 +50,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= t))
     {
       if (((t % i) == 0))
@@ -60,11 +60,11 @@ func main()
         y = (((n + m) - ma) - x);
         memset(d, 0, cpp_sizeof((d)));
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             {
-              var k = 1;
+              var k: dynamic = 1;
               while ((k <= m))
               {
                 d[(abs((x - j)) + abs((y - k)))] += 1;
@@ -76,7 +76,7 @@ func main()
         }
         f = 1;
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= ma))
           {
             if ((cnt[j] != d[j]))

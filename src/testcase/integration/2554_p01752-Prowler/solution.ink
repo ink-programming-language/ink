@@ -1,78 +1,78 @@
 // Translated from solution.cpp.
 
-func LOG()
+func LOG() -> dynamic
 {
   return cpp_expression("/* * * */ #include <bits");
 }
 
-func FOR(i: dynamic, a: dynamic, b: dynamic)
+func FOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i = (int)(a); i < (int)(b); ++i)");
 }
 
-func RFOR(i: dynamic, a: dynamic, b: dynamic)
+func RFOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i = (int)(b - 1); i >= (int)(a); --i)");
 }
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0; i < (int)(n); ++i)");
 }
 
-func RREP(i: dynamic, n: dynamic)
+func RREP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = (int)(n - 1); i >= 0; --i)");
 }
 
-func ALL(a: dynamic)
+func ALL(a: dynamic) -> dynamic
 {
   return cpp_expression("/* * * */ #include");
 }
 
-func RALL(a: dynamic)
+func RALL(a: dynamic) -> dynamic
 {
   return cpp_expression("/* * * */ #include <");
 }
 
-func EXIST(s: dynamic, e: dynamic)
+func EXIST(s: dynamic, e: dynamic) -> dynamic
 {
   return cpp_expression("/* * * */ #include <bi");
 }
 
-func SORT(c: dynamic)
+func SORT(c: dynamic) -> dynamic
 {
   return cpp_expression("/* * * */");
 }
 
-func RSORT(c: dynamic)
+func RSORT(c: dynamic) -> dynamic
 {
   return cpp_expression("/* * * */");
 }
 
-func SQ(n: dynamic)
+func SQ(n: dynamic) -> dynamic
 {
   return cpp_expression("/* * *");
 }
 
-var dx = [-1, 0, 1, 0];
+var dx: dynamic = [-1, 0, 1, 0];
 
-var dy = [0, -1, 0, 1];
+var dy: dynamic = [0, -1, 0, 1];
 
-func main()
+func main() -> dynamic
 {
-  var way = "<^>v";
-  var h: dynamic;
-  var w: dynamic;
+  var way: dynamic = "<^>v";
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   read(h, w);
-  var ox: dynamic;
-  var oy: dynamic;
-  var ix: dynamic;
-  var iy: dynamic;
-  var id: dynamic;
-  var d = cpp_array(4, w, h);
+  var ox: dynamic = cpp_uninitialized();
+  var oy: dynamic = cpp_uninitialized();
+  var ix: dynamic = cpp_uninitialized();
+  var iy: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_array(4, w, h);
   fill_n(cpp_cast(d), ((h * w) * 4), false);
-  var number: dynamic;
+  var number: dynamic = cpp_uninitialized();
   while (true)
   {
     if (d[iy][ix][id])
@@ -87,9 +87,9 @@ func main()
     }
     d[iy][ix][id] = true;
     number.insert(((iy * w) + ix));
-    var rd = (((id + 1)) % 4);
-    var rx = (ix + dx[rd]);
-    var ry = (iy + dy[rd]);
+    var rd: dynamic = (((id + 1)) % 4);
+    var rx: dynamic = (ix + dx[rd]);
+    var ry: dynamic = (iy + dy[rd]);
     if ((((((0 <= rx) && (rx < w)) && (0 <= ry)) && (ry < h)) && (field[ry][rx] != cpp_char("#"))))
     {
       id = rd;
@@ -97,8 +97,8 @@ func main()
       iy = ry;
       continue;
     }
-    var sx = (ix + dx[id]);
-    var sy = (iy + dy[id]);
+    var sx: dynamic = (ix + dx[id]);
+    var sy: dynamic = (iy + dy[id]);
     if ((((((0 <= sx) && (sx < w)) && (0 <= sy)) && (sy < h)) && (field[sy][sx] != cpp_char("#"))))
     {
       ix = sx;
@@ -109,11 +109,11 @@ func main()
   }
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var c: dynamic;
+      var c: dynamic = cpp_uninitialized();
       read(c);
-      var __cpp_switch_1 = c;
+      var __cpp_switch_1: dynamic = c;
       if (__cpp_switch_1 == cpp_char("G"))
       {
         ox = x;
@@ -139,6 +139,6 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       field[y][x] = c;
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
   }

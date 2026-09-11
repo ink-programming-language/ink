@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var first: dynamic;
-  var second: dynamic;
+  var first: dynamic = cpp_uninitialized();
+  var second: dynamic = cpp_uninitialized();
   read(first, second);
-  var X: dynamic;
-  var Y: dynamic;
-  for (var ch in first)
+  var X: dynamic = cpp_uninitialized();
+  var Y: dynamic = cpp_uninitialized();
+  for (var ch: dynamic in first)
   {
     X.insert(ch);
   }
-  for (var ch in second)
+  for (var ch: dynamic in second)
   {
     Y.insert(ch);
   }
-  var n = (cpp_cast((first).size()));
-  var half = ((n / 2) + ((n & 1)));
+  var n: dynamic = (cpp_cast((first).size()));
+  var half: dynamic = ((n / 2) + ((n & 1)));
   while (((cpp_cast((X).size())) != half))
   {
     X.erase((cpp_update((X.end()), "--")));
@@ -28,11 +28,11 @@ func main()
   {
     Y.erase(Y.begin());
   }
-  var left = 0;
-  var right = (n - 1);
-  var turn = 1;
+  var left: dynamic = 0;
+  var right: dynamic = (n - 1);
+  var turn: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (turn)
@@ -42,8 +42,8 @@ func main()
           ans[left] = (*X.begin());
           break;
         }
-        var mx = (*(cpp_update((Y.end()), "--")));
-        var mn = (*X.begin());
+        var mx: dynamic = (*(cpp_update((Y.end()), "--")));
+        var mn: dynamic = (*X.begin());
         if ((mx > mn))
         {
           ans[cpp_update(left, "++")] = mn;
@@ -56,13 +56,13 @@ func main()
         }
       } else
       {
-        var mx = (*(cpp_update((Y.end()), "--")));
+        var mx: dynamic = (*(cpp_update((Y.end()), "--")));
         if (X.empty())
         {
           ans[left] = mx;
           break;
         }
-        var mn = (*X.begin());
+        var mn: dynamic = (*X.begin());
         if ((mx > mn))
         {
           ans[cpp_update(left, "++")] = mx;
@@ -79,7 +79,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(ans[i]);

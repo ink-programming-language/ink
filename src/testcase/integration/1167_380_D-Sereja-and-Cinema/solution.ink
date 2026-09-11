@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var md = 1000000007;
+var md: dynamic = 1000000007;
 
-var maxn = 101010;
+var maxn: dynamic = 101010;
 
-var inf = 2020202020202020202;
+var inf: dynamic = 2020202020202020202;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var pow2 = cpp_array(maxn);
+var pow2: dynamic = cpp_array(maxn);
 
-var ans = 1;
+var ans: dynamic = 1;
 
-var fact = cpp_array(maxn);
+var fact: dynamic = cpp_array(maxn);
 
-var revfact = cpp_array(maxn);
+var revfact: dynamic = cpp_array(maxn);
 
-var lol = 1;
+var lol: dynamic = 1;
 
-func upd_ans(t: dynamic)
+func upd_ans(t: dynamic) -> dynamic
 {
   ans = (((ans * t)) % md);
 }
 
-func binpow(a: dynamic, n: dynamic)
+func binpow(a: dynamic, n: dynamic) -> dynamic
 {
   if ((n == 0))
   {
@@ -36,17 +36,17 @@ func binpow(a: dynamic, n: dynamic)
     return (((binpow(a, (n - 1)) * a)) % md);
   } else
   {
-    var b = binpow(a, (n / 2));
+    var b: dynamic = binpow(a, (n / 2));
     return (((b * b)) % md);
   }
 }
 
-func do_fact()
+func do_fact() -> dynamic
 {
   fact[0] = 1;
   revfact[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < maxn))
     {
       fact[i] = (((i * fact[(i - 1)])) % md);
@@ -56,7 +56,7 @@ func do_fact()
   }
 }
 
-func do_c(k: dynamic, n: dynamic)
+func do_c(k: dynamic, n: dynamic) -> dynamic
 {
   if ((k < 0))
   {
@@ -66,14 +66,14 @@ func do_c(k: dynamic, n: dynamic)
   {
     return 0;
   }
-  var r = 1;
+  var r: dynamic = 1;
   r = (r * fact[n]);
   r = (((r * revfact[k])) % md);
   r = (((r * revfact[(n - k)])) % md);
   return r;
 }
 
-func doit(l: dynamic, r: dynamic, it1: dynamic, it2: dynamic, low: dynamic)
+func doit(l: dynamic, r: dynamic, it1: dynamic, it2: dynamic, low: dynamic) -> dynamic
 {
   if ((l > r))
   {
@@ -85,8 +85,8 @@ func doit(l: dynamic, r: dynamic, it1: dynamic, it2: dynamic, low: dynamic)
   }
   if ((it1 <= it2))
   {
-    var s1 = 0;
-    var s2 = 0;
+    var s1: dynamic = 0;
+    var s2: dynamic = 0;
     if ((a[it1] >= a[it2]))
     {
       if ((a[it1] > low))
@@ -96,9 +96,9 @@ func doit(l: dynamic, r: dynamic, it1: dynamic, it2: dynamic, low: dynamic)
       {
         low = a[it1];
         s1 = (do_c((it1 - l), (((r - l) - a[it1]) + 1)));
-        var l0 = (it1 + 1);
-        var r0 = ((it1 + a[it1]) - 1);
-        var it10 = (it1 + 1);
+        var l0: dynamic = (it1 + 1);
+        var r0: dynamic = ((it1 + a[it1]) - 1);
+        var it10: dynamic = (it1 + 1);
         while ((((!a[it10])) && ((it10 < n))))
         {
           it10 += 1;
@@ -115,9 +115,9 @@ func doit(l: dynamic, r: dynamic, it1: dynamic, it2: dynamic, low: dynamic)
       {
         low = a[it2];
         s2 = do_c((r - it2), (((r - l) - a[it2]) + 1));
-        var r0 = (it2 - 1);
-        var l0 = ((it2 - a[it2]) + 1);
-        var it20 = (it2 - 1);
+        var r0: dynamic = (it2 - 1);
+        var l0: dynamic = ((it2 - a[it2]) + 1);
+        var it20: dynamic = (it2 - 1);
         while ((((!a[it20])) && ((it20 >= 0))))
         {
           it20 -= 1;
@@ -133,15 +133,15 @@ func doit(l: dynamic, r: dynamic, it1: dynamic, it2: dynamic, low: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   do_fact();
-  var it1 = md;
-  var it2 = 0;
+  var it1: dynamic = md;
+  var it2: dynamic = 0;
   pow2[0] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       pow2[(i + 1)] = (((pow2[i] << 1)) % md);
@@ -149,7 +149,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);

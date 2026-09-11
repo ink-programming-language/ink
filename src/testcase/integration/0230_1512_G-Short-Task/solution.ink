@@ -1,52 +1,52 @@
 // Translated from solution.cpp.
 
-var LL = dynamic;
+var LL: dynamic = dynamic;
 
-var PII = cpp_expression("//#pragma GCC");
+var PII: dynamic = cpp_expression("//#pragma GCC");
 
-var PLL = cpp_expression("//#pragma GC");
+var PLL: dynamic = cpp_expression("//#pragma GC");
 
-func all_of(v: dynamic)
+func all_of(v: dynamic) -> dynamic
 {
   return cpp_expression("//#pragma GCC optimize");
 }
 
-func sort_unique(c: dynamic)
+func sort_unique(c: dynamic) -> dynamic
 {
   return cpp_expression("//#pragma GCC optimize (\"O3\", \"unroll-loops\") //#pragma GCC target (\"avx2\") //#pra");
 }
 
-var fi = cpp_expression("//#pr");
+var fi: dynamic = cpp_expression("//#pr");
 
-var se = cpp_expression("//#pra");
+var se: dynamic = cpp_expression("//#pra");
 
-var MAXN = (cpp_cast(1e7) + 9487);
+var MAXN: dynamic = (cpp_cast(1e7) + 9487);
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-var div = cpp_expression("//#pragma GCC");
+var div: dynamic = cpp_expression("//#pragma GCC");
 
-var mpf = cpp_array(MAXN);
+var mpf: dynamic = cpp_array(MAXN);
 
-var pw = cpp_array(MAXN);
+var pw: dynamic = cpp_array(MAXN);
 
-var ans = cpp_array(MAXN);
+var ans: dynamic = cpp_array(MAXN);
 
-var div = cpp_array(MAXN);
+var div: dynamic = cpp_array(MAXN);
 
-var P: dynamic;
+var P: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   read(c);
   write(ans[c], cpp_char("\n"));
 }
 
-func prep()
+func prep() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < MAXN))
     {
       ans[i] = -1;
@@ -57,7 +57,7 @@ func prep()
   div[1] = 1;
   pw[1] = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < MAXN))
     {
       ans[i] = -1;
@@ -67,7 +67,7 @@ func prep()
         pw[i] = i;
         div[i] = ((i + 1));
       }
-      for (var p in P)
+      for (var p: dynamic in P)
       {
         if (((cpp_cast(i) * p) >= MAXN))
         {
@@ -89,7 +89,7 @@ func prep()
     }
   }
   {
-    var i = (MAXN - 1);
+    var i: dynamic = (MAXN - 1);
     while ((i >= 1))
     {
       if ((div[i] < MAXN))
@@ -101,15 +101,15 @@ func prep()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   prep();
-  var tc = 1;
+  var tc: dynamic = 1;
   read(tc);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= tc))
     {
       solve();

@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var SIZEN = 10000010;
+var SIZEN: dynamic = 10000010;
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var pw = cpp_array(SIZEN);
+var pw: dynamic = cpp_array(SIZEN);
 
-var fac = cpp_array(SIZEN);
+var fac: dynamic = cpp_array(SIZEN);
 
-var inv = cpp_array(SIZEN);
+var inv: dynamic = cpp_array(SIZEN);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-func qpow(x: dynamic, len: dynamic)
+func qpow(x: dynamic, len: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   {
     while (len)
     {
@@ -29,7 +29,7 @@ func qpow(x: dynamic, len: dynamic)
   return ret;
 }
 
-func C(n: dynamic, m: dynamic)
+func C(n: dynamic, m: dynamic) -> dynamic
 {
   if ((n < m))
   {
@@ -38,36 +38,36 @@ func C(n: dynamic, m: dynamic)
   return ((((fac[n] * inv[m]) % mod) * inv[(n - m)]) % mod);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&N));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
-      pw[i] = (if ((i == 0)) 1 else ((pw[(i - 1)] * 2) % mod));
+      pw[i] = ( ((i == 0)) ? 1 : ((pw[(i - 1)] * 2) % mod));
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= N))
     {
-      fac[i] = (if ((i == 0)) 1 else ((fac[(i - 1)] * i) % mod));
+      fac[i] = ( ((i == 0)) ? 1 : ((fac[(i - 1)] * i) % mod));
       i += 1;
     }
   }
   {
-    var i = N;
+    var i: dynamic = N;
     while ((i >= 0))
     {
-      inv[i] = (if ((i == N)) qpow(fac[N], (mod - 2)) else ((inv[(i + 1)] * ((i + 1))) % mod));
+      inv[i] = ( ((i == N)) ? qpow(fac[N], (mod - 2)) : ((inv[(i + 1)] * ((i + 1))) % mod));
       i -= 1;
     }
   }
-  var ans = qpow(3, N);
+  var ans: dynamic = qpow(3, N);
   {
-    var i = ((N / 2) + 1);
+    var i: dynamic = ((N / 2) + 1);
     while ((i <= N))
     {
       ans = (((ans - (((2 * C(N, i)) * pw[(N - i)]) % mod))) % mod);

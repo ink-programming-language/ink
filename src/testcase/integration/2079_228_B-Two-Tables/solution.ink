@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var mtx1 = cpp_array(51, 51);
+var mtx1: dynamic = cpp_array(51, 51);
 
-var n1: dynamic;
+var n1: dynamic = cpp_uninitialized();
 
-var m1: dynamic;
+var m1: dynamic = cpp_uninitialized();
 
-var mtx2 = cpp_array(51, 51);
+var mtx2: dynamic = cpp_array(51, 51);
 
-var n2: dynamic;
+var n2: dynamic = cpp_uninitialized();
 
-var m2: dynamic;
+var m2: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-func input()
+func input() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n1), (&m1));
   {
     i = 1;
@@ -45,11 +45,11 @@ func input()
   }
 }
 
-func cnt(xi: dynamic, yi: dynamic)
+func cnt(xi: dynamic, yi: dynamic) -> dynamic
 {
-  var res = 0;
-  var i: dynamic;
-  var j: dynamic;
+  var res: dynamic = 0;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     i = 1;
     while (((i <= n1) && ((i + x) <= n2)))
@@ -78,7 +78,7 @@ func cnt(xi: dynamic, yi: dynamic)
   return res;
 }
 
-func solv()
+func solv() -> dynamic
 {
   ans = -1;
   {
@@ -89,7 +89,7 @@ func solv()
         y = -50;
         while ((y < 51))
         {
-          var tmp = cnt(x, y);
+          var tmp: dynamic = cnt(x, y);
           if ((tmp > ans))
           {
             ans = tmp;
@@ -105,7 +105,7 @@ func solv()
   printf("%d %d\n", X, Y);
 }
 
-func main()
+func main() -> dynamic
 {
   input();
   solv();

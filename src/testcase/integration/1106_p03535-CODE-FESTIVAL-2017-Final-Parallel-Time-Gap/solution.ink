@@ -1,61 +1,61 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, N: dynamic)
+func rep(i: dynamic, N: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0; i < (N); i++)");
 }
 
-func reps(i: dynamic, N: dynamic)
+func reps(i: dynamic, N: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 1; i <= (N); i++)");
 }
 
-func repr(i: dynamic, N: dynamic)
+func repr(i: dynamic, N: dynamic) -> dynamic
 {
   cpp_macro("for(int i = (N) - 1; i >= 0; i--)");
 }
 
-var pub = cpp_expression("#include");
+var pub: dynamic = cpp_expression("#include");
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   a = max(a, b);
 }
 
-func __cpp_top_level_1()
+func __cpp_top_level_1() -> dynamic
 {
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   a = min(a, b);
 }
 
-func __cpp_top_level_2()
+func __cpp_top_level_2() -> dynamic
 {
 }
 
-var INF = 100000000;
+var INF: dynamic = 100000000;
 
-var LINF = 10000000000000000;
+var LINF: dynamic = 10000000000000000;
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var dx = [0, 1, 0, -1, 1, 1, -1, -1, 0];
+var dx: dynamic = [0, 1, 0, -1, 1, 1, -1, -1, 0];
 
-var dy = [1, 0, -1, 0, 1, -1, -1, 1, 0];
+var dy: dynamic = [1, 0, -1, 0, 1, -1, -1, 1, 0];
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var D = cpp_array(51);
+var D: dynamic = cpp_array(51);
 
-var b = cpp_array(24);
+var b: dynamic = cpp_array(24);
 
-func solve()
+func solve() -> dynamic
 {
   sort(D, (D + N));
-  var ans = INF;
-  var c = INF;
+  var ans: dynamic = INF;
+  var c: dynamic = INF;
   rep(i, 24);
   {
     if ((b[i] > 1))
@@ -74,7 +74,7 @@ func solve()
   write(ans, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
@@ -84,7 +84,7 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((i % 2))
     {
@@ -95,7 +95,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     read(D[i]);
   }

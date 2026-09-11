@@ -1,45 +1,45 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var LINF = 0x3f3f3f3f3f3f3f3f;
+var LINF: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var MAX = 1000011;
+var MAX: dynamic = 1000011;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var h = cpp_array(MAX);
+var h: dynamic = cpp_array(MAX);
 
-var MOD = (int_cpp(1e9) + 7);
+var MOD: dynamic = (int_cpp(1e9) + 7);
 
-func add(a: dynamic, b: dynamic, mod: dynamic = MOD)
+func add(a: dynamic, b: dynamic, mod: dynamic = MOD) -> dynamic
 {
-  return if ((((a + b) >= mod))) (((a + b) - mod)) else ((a + b));
+  return  ((((a + b) >= mod))) ? (((a + b) - mod)) : ((a + b));
 }
 
-func sub(a: dynamic, b: dynamic, mod: dynamic = MOD)
+func sub(a: dynamic, b: dynamic, mod: dynamic = MOD) -> dynamic
 {
-  return if ((((a - b) < 0))) (((a - b) + mod)) else ((a - b));
+  return  ((((a - b) < 0))) ? (((a - b) + mod)) : ((a - b));
 }
 
-func inc(a: dynamic, b: dynamic, mod: dynamic = MOD)
+func inc(a: dynamic, b: dynamic, mod: dynamic = MOD) -> dynamic
 {
   a = add(a, b, mod);
 }
 
-func negate(a: dynamic, mod: dynamic = MOD)
+func negate(a: dynamic, mod: dynamic = MOD) -> dynamic
 {
   return (mod - a);
 }
 
-func mul(a: dynamic, b: dynamic, mod: dynamic = MOD)
+func mul(a: dynamic, b: dynamic, mod: dynamic = MOD) -> dynamic
 {
   return ((((a * 1) * b)) % mod);
 }
 
-func binPow(b: dynamic, p: dynamic, mod: dynamic = MOD)
+func binPow(b: dynamic, p: dynamic, mod: dynamic = MOD) -> dynamic
 {
-  var r = 1;
+  var r: dynamic = 1;
   while (p)
   {
     if ((p & 1))
@@ -52,25 +52,25 @@ func binPow(b: dynamic, p: dynamic, mod: dynamic = MOD)
   return r;
 }
 
-func inv(a: dynamic, mod: dynamic = MOD)
+func inv(a: dynamic, mod: dynamic = MOD) -> dynamic
 {
-  var res = binPow(a, (mod - 2), mod);
+  var res: dynamic = binPow(a, (mod - 2), mod);
   return res;
 }
 
-func dvd(a: dynamic, b: dynamic, mod: dynamic = MOD)
+func dvd(a: dynamic, b: dynamic, mod: dynamic = MOD) -> dynamic
 {
   return mul(a, inv(b, mod), mod);
 }
 
-func clear()
+func clear() -> dynamic
 {
 }
 
-func solve()
+func solve() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&h[i]));
@@ -78,20 +78,20 @@ func solve()
       i += 1;
     }
   }
-  var ans = 0;
-  var f = 0;
+  var ans: dynamic = 0;
+  var f: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       ans = add(ans, h[i]);
-      ans = add(ans, mul(if (i) min(h[i], h[(i - 1)]) else h[i], f));
+      ans = add(ans, mul( (i) ? min(h[i], h[(i - 1)]) : h[i], f));
       if ((i < (n - 1)))
       {
-        var mnr = min(h[i], h[(i + 1)]);
-        var mnl = if (i) min(h[i], h[(i - 1)]) else h[i];
-        var mn = min(mnl, mnr);
-        var nf = mnr;
+        var mnr: dynamic = min(h[i], h[(i + 1)]);
+        var mnl: dynamic =  (i) ? min(h[i], h[(i - 1)]) : h[i];
+        var mn: dynamic = min(mnl, mnr);
+        var nf: dynamic = mnr;
         nf = add(nf, mul(mn, f));
         f = nf;
       }
@@ -101,7 +101,7 @@ func solve()
   printf("%d\n", ans);
 }
 
-func main()
+func main() -> dynamic
 {
   while ((scanf("%d", (&n)) == 1))
   {

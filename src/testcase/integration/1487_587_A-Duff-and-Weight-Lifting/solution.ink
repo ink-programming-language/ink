@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var w = cpp_array(1000000);
+var w: dynamic = cpp_array(1000000);
 
-var m = cpp_array(2000001);
+var m: dynamic = cpp_array(2000001);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&w[i]));
@@ -19,20 +19,20 @@ func main()
     }
   }
   sort(w, (w + n));
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 1000130))
     {
-      var f = m[i];
+      var f: dynamic = m[i];
       if ((f == 0))
       {
         i += 1;
         continue;
       }
-      var v1: dynamic;
+      var v1: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 22))
         {
           v1.push_back((f % 2));
@@ -40,9 +40,9 @@ func main()
           j += 1;
         }
       }
-      var t = 1;
+      var t: dynamic = 1;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 22))
         {
           m[i] -= (t * v1[j]);

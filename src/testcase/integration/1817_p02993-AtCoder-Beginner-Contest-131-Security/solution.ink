@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(s);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < s.size()))
     {
       if ((s[i] == s[(i - 1)]))

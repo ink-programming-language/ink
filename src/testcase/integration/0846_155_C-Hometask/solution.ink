@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func seqs(s: dynamic, v: dynamic)
+func seqs(s: dynamic, v: dynamic) -> dynamic
 {
-  var sst: dynamic;
-  var ret: dynamic;
+  var sst: dynamic = cpp_uninitialized();
+  var ret: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if ((sst.get() == null))
@@ -36,11 +36,11 @@ func seqs(s: dynamic, v: dynamic)
   return ret;
 }
 
-func count(s: dynamic, t: dynamic)
+func count(s: dynamic, t: dynamic) -> dynamic
 {
-  var ret = [0, 0];
+  var ret: dynamic = [0, 0];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if ((s[i] == t[0]))
@@ -56,27 +56,27 @@ func count(s: dynamic, t: dynamic)
   return min(ret[0], ret[1]);
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
-  var str: dynamic;
-  var n: dynamic;
+  var str: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(str, n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i]);
       i += 1;
     }
   }
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var w = seqs(str, v[i]);
+      var w: dynamic = seqs(str, v[i]);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w.size()))
         {
           ret += count(w[j], v[i]);

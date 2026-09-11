@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var f = cpp_array(400);
+var f: dynamic = cpp_array(400);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   f[0] = 2;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       f[i] = ((f[(i - 1)] * 2) + 2);

@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func fpow(n: dynamic, k: dynamic, p: dynamic = 998244353)
+func fpow(n: dynamic, k: dynamic, p: dynamic = 998244353) -> dynamic
 {
-  var r = 1;
+  var r: dynamic = 1;
   {
     while (k)
     {
@@ -17,12 +17,12 @@ func fpow(n: dynamic, k: dynamic, p: dynamic = 998244353)
   return r;
 }
 
-func inv(a: dynamic, p: dynamic = 998244353)
+func inv(a: dynamic, p: dynamic = 998244353) -> dynamic
 {
   return fpow(a, (p - 2), p);
 }
 
-func addmod(a: dynamic, val: dynamic, p: dynamic = 998244353)
+func addmod(a: dynamic, val: dynamic, p: dynamic = 998244353) -> dynamic
 {
   {
     if (((cpp_assign(a, "=", ((a + val)))) >= p))
@@ -33,7 +33,7 @@ func addmod(a: dynamic, val: dynamic, p: dynamic = 998244353)
   return a;
 }
 
-func submod(a: dynamic, val: dynamic, p: dynamic = 998244353)
+func submod(a: dynamic, val: dynamic, p: dynamic = 998244353) -> dynamic
 {
   {
     if (((cpp_assign(a, "=", ((a - val)))) < 0))
@@ -44,29 +44,29 @@ func submod(a: dynamic, val: dynamic, p: dynamic = 998244353)
   return a;
 }
 
-func mult(a: dynamic, b: dynamic, p: dynamic = 998244353)
+func mult(a: dynamic, b: dynamic, p: dynamic = 998244353) -> dynamic
 {
   return ((cpp_cast(a) * b) % p);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var greater = false;
+  var greater: dynamic = false;
   write("? 0 0", "\n");
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(x);
   if ((x == 1))
   {
     greater = true;
   }
-  var cura = 0;
-  var curb = 0;
+  var cura: dynamic = 0;
+  var curb: dynamic = 0;
   {
-    var i = 29;
+    var i: dynamic = 29;
     while ((i >= 0))
     {
       write("? ", ((cura ^ ((1 << i)))), " ", curb, "\n");

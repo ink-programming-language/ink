@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var v = cpp_construct(100001);
+var v: dynamic = cpp_construct(100001);
 
-var vis = cpp_construct(100001);
+var vis: dynamic = cpp_construct(100001);
 
-func binpow(a: dynamic, b: dynamic)
+func binpow(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while ((b > 0))
   {
     if ((b & 1))
@@ -21,16 +21,16 @@ func binpow(a: dynamic, b: dynamic)
   return (res % mod);
 }
 
-func dfs(src: dynamic)
+func dfs(src: dynamic) -> dynamic
 {
-  var st: dynamic;
-  var cnt = 0;
+  var st: dynamic = cpp_uninitialized();
+  var cnt: dynamic = 0;
   st.push(src);
   vis[src] = 1;
   cnt += 1;
   while ((!st.empty()))
   {
-    var x = st.top();
+    var x: dynamic = st.top();
     st.pop();
     if ((!vis[x]))
     {
@@ -38,7 +38,7 @@ func dfs(src: dynamic)
       vis[x] = 1;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < v[x].size()))
       {
         if ((vis[v[x][i]] == 0))
@@ -52,16 +52,16 @@ func dfs(src: dynamic)
   return cnt;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
   fill(vis.begin(), vis.end(), 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       v[i].clear();
@@ -69,12 +69,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
-      var x: dynamic;
-      var y: dynamic;
-      var c: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
       read(x, y, c);
       if ((c == 0))
       {
@@ -84,9 +84,9 @@ func main()
       i += 1;
     }
   }
-  var ans = binpow(n, k);
+  var ans: dynamic = binpow(n, k);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))

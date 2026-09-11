@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var b = cpp_array(30);
+var b: dynamic = cpp_array(30);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var mod: dynamic;
+var mod: dynamic = cpp_uninitialized();
 
-var memo = cpp_array(76, 602222);
+var memo: dynamic = cpp_array(76, 602222);
 
-func solve(mask: dynamic, i: dynamic)
+func solve(mask: dynamic, i: dynamic) -> dynamic
 {
   if ((i == n))
   {
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < 30))
       {
         if ((mask == b[j]))
@@ -27,21 +27,21 @@ func solve(mask: dynamic, i: dynamic)
     }
     return 0;
   }
-  var ret = memo[mask][i];
+  var ret: dynamic = memo[mask][i];
   if ((ret != -1))
   {
     return ret;
   }
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < 75))
     {
       if (((i + j) <= n))
       {
-        var num = 0;
+        var num: dynamic = 0;
         {
-          var k = 0;
+          var k: dynamic = 0;
           while ((k < j))
           {
             num = ((num * 2) + ((s[(i + k)] - cpp_char("0"))));
@@ -71,12 +71,12 @@ func solve(mask: dynamic, i: dynamic)
   return sum;
 }
 
-func main()
+func main() -> dynamic
 {
   memset(memo, -1, cpp_sizeof((memo)));
   mod = (1e9 + 7);
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < 30))
     {
       b[j] = (((1 << ((j + 1)))) - 1);
@@ -84,9 +84,9 @@ func main()
     }
   }
   read(n, s);
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       sum += solve(0, i);

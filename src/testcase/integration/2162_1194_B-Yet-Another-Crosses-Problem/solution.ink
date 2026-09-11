@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   read(q);
   while (cpp_update(q, "--"))
   {
-    var n: dynamic;
-    var m: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
     read(n, m);
-    var str = cpp_array((n + 5));
+    var str: dynamic = cpp_array((n + 5));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(str[i]);
         i += 1;
       }
     }
-    var hor = INT_MAX;
-    var ver = INT_MAX;
-    var row: dynamic;
-    var col: dynamic;
+    var hor: dynamic = INT_MAX;
+    var ver: dynamic = INT_MAX;
+    var row: dynamic = cpp_uninitialized();
+    var col: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var cnt = 0;
+        var cnt: dynamic = 0;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             if ((str[i][j] == cpp_char(".")))
@@ -45,12 +45,12 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
-        var cnt = 0;
+        var cnt: dynamic = 0;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             if ((str[j][i] == cpp_char(".")))
@@ -65,12 +65,12 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var cnt = 0;
+        var cnt: dynamic = 0;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             if ((str[i][j] == cpp_char(".")))
@@ -88,12 +88,12 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
-        var cnt = 0;
+        var cnt: dynamic = 0;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             if ((str[j][i] == cpp_char(".")))
@@ -110,12 +110,12 @@ func main()
         i += 1;
       }
     }
-    var ans = (hor + ver);
+    var ans: dynamic = (hor + ver);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < row.size()))
       {
-        var j: dynamic;
+        var j: dynamic = cpp_uninitialized();
         {
           j = 0;
           while ((j < col.size()))

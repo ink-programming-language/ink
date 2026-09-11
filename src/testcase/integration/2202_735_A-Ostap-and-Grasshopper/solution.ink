@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(110);
+var s: dynamic = cpp_array(110);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   read(n, k);
   getchar();
   {

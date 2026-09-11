@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -15,12 +15,12 @@ func main()
     }
   }
   {
-    var i = ans;
+    var i: dynamic = ans;
     while ((i < 1000))
     {
-      var cur = 0;
+      var cur: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           cur += (i - (a[j] * 2));

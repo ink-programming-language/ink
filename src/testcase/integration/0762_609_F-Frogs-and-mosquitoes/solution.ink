@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var inf = 987654321;
+var inf: dynamic = 987654321;
 
-var INF = 123456789987654321;
+var INF: dynamic = 123456789987654321;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var Xn: dynamic;
+var Xn: dynamic = cpp_uninitialized();
 
 class Frog
 {
-  var x: dynamic;
-  var t: dynamic;
-  var id: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var frog: dynamic;
+var frog: dynamic = cpp_uninitialized();
 
 class Mosq
 {
-  var p: dynamic;
-  var b: dynamic;
+  var p: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
 }
 
-var mosq: dynamic;
+var mosq: dynamic = cpp_uninitialized();
 
 class BIT
 {
-  var tree: dynamic;
-  func init()
+  var tree: dynamic = cpp_uninitialized();
+  func init() -> dynamic
   {
       tree = vector((4 * Xn), pair(-1, -1));
     }
-  func udt(idx: dynamic, val: dynamic, l: dynamic, r: dynamic, n: dynamic)
+  func udt(idx: dynamic, val: dynamic, l: dynamic, r: dynamic, n: dynamic) -> dynamic
   {
       if (((idx < l) || (r < idx)))
       {
@@ -45,12 +45,12 @@ class BIT
         tree[n] = val;
         return;
       }
-      var m = (((l + r)) >> 1);
+      var m: dynamic = (((l + r)) >> 1);
       udt(idx, val, l, m, (2 * n));
       udt(idx, val, (m + 1), r, ((2 * n) + 1));
       tree[n] = max(tree[(2 * n)], tree[((2 * n) + 1)]);
     }
-  func add(idx: dynamic, val: dynamic, l: dynamic, r: dynamic, n: dynamic)
+  func add(idx: dynamic, val: dynamic, l: dynamic, r: dynamic, n: dynamic) -> dynamic
   {
       if (((idx < l) || (r < idx)))
       {
@@ -62,12 +62,12 @@ class BIT
         tree[n].second += val.second;
         return;
       }
-      var m = (((l + r)) >> 1);
+      var m: dynamic = (((l + r)) >> 1);
       add(idx, val, l, m, (2 * n));
       add(idx, val, (m + 1), r, ((2 * n) + 1));
       tree[n] = max(tree[(2 * n)], tree[((2 * n) + 1)]);
     }
-  func left_most(k: dynamic, a: dynamic, b: dynamic, l: dynamic, r: dynamic, n: dynamic)
+  func left_most(k: dynamic, a: dynamic, b: dynamic, l: dynamic, r: dynamic, n: dynamic) -> dynamic
   {
       if (((b < l) || (r < a)))
       {
@@ -89,7 +89,7 @@ class BIT
             return pair(-1, -1);
           }
         }
-        var m = (((l + r)) >> 1);
+        var m: dynamic = (((l + r)) >> 1);
         if ((tree[(2 * n)].first >= k))
         {
           return left_most(k, a, b, l, m, (2 * n));
@@ -98,8 +98,8 @@ class BIT
           return left_most(k, a, b, (m + 1), r, ((2 * n) + 1));
         }
       }
-      var m = (((l + r)) >> 1);
-      var t = left_most(k, a, b, l, m, (2 * n));
+      var m: dynamic = (((l + r)) >> 1);
+      var t: dynamic = left_most(k, a, b, l, m, (2 * n));
       if ((t != pair(-1, -1)))
       {
         return t;
@@ -110,18 +110,18 @@ class BIT
     }
 }
 
-var bit: dynamic;
+var bit: dynamic = cpp_uninitialized();
 
-var bit2: dynamic;
+var bit2: dynamic = cpp_uninitialized();
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var dx: dynamic;
+var dx: dynamic = cpp_uninitialized();
 
-func compress()
+func compress() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       X.push_back(frog[i].x);
@@ -129,7 +129,7 @@ func compress()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       X.push_back(mosq[i].p);
@@ -140,7 +140,7 @@ func compress()
   X.resize((unique((X).begin(), (X).end()) - X.begin()));
   Xn = X.size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Xn))
     {
       dx[X[i]] = i;
@@ -148,7 +148,7 @@ func compress()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       frog[i].x = dx[frog[i].x];
@@ -156,7 +156,7 @@ func compress()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       mosq[i].p = dx[mosq[i].p];
@@ -165,20 +165,20 @@ func compress()
   }
 }
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var restore: dynamic;
+var restore: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&N), (&M));
   frog.resize(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var x: dynamic;
-      var t: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
       scanf("%d %d", (&x), (&t));
       frog[i] = [x, t, i];
       i += 1;
@@ -186,11 +186,11 @@ func main()
   }
   mosq.resize(M);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
-      var p: dynamic;
-      var b: dynamic;
+      var p: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       scanf("%d %d", (&p), (&b));
       mosq[i] = [p, b];
       i += 1;
@@ -199,7 +199,7 @@ func main()
   compress();
   bit.init();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       bit.udt(frog[i].x, pair((X[frog[i].x] + cpp_cast(frog[i].t)), cpp_cast(frog[i].id)), 0, (Xn - 1), 1);
@@ -208,7 +208,7 @@ func main()
   }
   ans.resize(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       ans[i] = pair(0, cpp_cast(frog[i].t));
@@ -218,12 +218,12 @@ func main()
   bit2.init();
   restore = vector(Xn, pair(0, 0));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
-      var p = mosq[i].p;
-      var b = mosq[i].b;
-      var t = bit.left_most(X[p], 0, p, 0, (Xn - 1), 1);
+      var p: dynamic = mosq[i].p;
+      var b: dynamic = mosq[i].b;
+      var t: dynamic = bit.left_most(X[p], 0, p, 0, (Xn - 1), 1);
       if ((t == pair(-1, -1)))
       {
         bit2.udt(p, pair(1, p), 0, (Xn - 1), 1);
@@ -237,7 +237,7 @@ func main()
       bit.add(frog[t.second].x, pair(cpp_cast(b), 0), 0, (Xn - 1), 1);
       while (1)
       {
-        var t2 = bit2.left_most(1, frog[t.second].x, (Xn - 1), 0, (Xn - 1), 1);
+        var t2: dynamic = bit2.left_most(1, frog[t.second].x, (Xn - 1), 0, (Xn - 1), 1);
         if ((t2 == pair(-1, -1)))
         {
           break;
@@ -256,7 +256,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       printf("%I64d %I64d\n", ans[i].first, ans[i].second);

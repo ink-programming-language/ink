@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var EPS = cpp_expression("#incl");
+var EPS: dynamic = cpp_expression("#incl");
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func Point(x: dynamic = 0.0, y: dynamic = 0.0)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func Point(x: dynamic = 0.0, y: dynamic = 0.0) -> dynamic
   {
-      this->x = cpp_construct(x);
-      this->y = cpp_construct(y);
+      self->x = cpp_construct(x);
+      self->y = cpp_construct(y);
     }
-  func operator_add(p: dynamic)
+  func operator_add(p: dynamic) -> dynamic
   {
       return Point((x + p.x), (y + p.y));
     }
-  func operator_subtract(p: dynamic)
+  func operator_subtract(p: dynamic) -> dynamic
   {
       return Point((x - p.x), (y - p.y));
     }
-  func operator_multiply(lambda: dynamic)
+  func operator_multiply(lambda: dynamic) -> dynamic
   {
       return Point((x * lambda), (y * lambda));
     }
-  func operator_divide(lambda: dynamic)
+  func operator_divide(lambda: dynamic) -> dynamic
   {
       return Point((x / lambda), (y / lambda));
     }
-  func norm()
+  func norm() -> dynamic
   {
       return ((x * x) + (y * y));
     }
-  func abs()
+  func abs() -> dynamic
   {
       return sqrt(norm());
     }
-  func pol()
+  func pol() -> dynamic
   {
       return atan2(y, x);
     }
-  func operator_equal(p: dynamic)
+  func operator_equal(p: dynamic) -> dynamic
   {
       return ((abs((x - p.x)) < EPS) && (abs((y - p.y)) < EPS));
     }
-  func operator_less(p: dynamic)
+  func operator_less(p: dynamic) -> dynamic
   {
       if ((abs((x - p.x)) < EPS))
       {
@@ -53,64 +53,64 @@ class Point
     }
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.x) + (a.y * b.y));
 }
 
-func det(a: dynamic, b: dynamic)
+func det(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.y) - (a.y * b.x));
 }
 
 class Segment
 {
-  var p1: dynamic;
-  var p2: dynamic;
-  func Segment(p1: dynamic = Point(), p2: dynamic = Point())
+  var p1: dynamic = cpp_uninitialized();
+  var p2: dynamic = cpp_uninitialized();
+  func Segment(p1: dynamic = Point(), p2: dynamic = Point()) -> dynamic
   {
-      this->p1 = cpp_construct(p1);
-      this->p2 = cpp_construct(p2);
+      self->p1 = cpp_construct(p1);
+      self->p2 = cpp_construct(p2);
     }
 }
 
-func crossPoint(a: dynamic, b: dynamic)
+func crossPoint(a: dynamic, b: dynamic) -> dynamic
 {
-  var r = (det((b.p2 - b.p1), (a.p1 - b.p1)) / det((a.p2 - a.p1), (b.p2 - b.p1)));
+  var r: dynamic = (det((b.p2 - b.p1), (a.p1 - b.p1)) / det((a.p2 - a.p1), (b.p2 - b.p1)));
   return (a.p1 + (((a.p2 - a.p1)) * r));
 }
 
-func on_left(p: dynamic, l: dynamic)
+func on_left(p: dynamic, l: dynamic) -> dynamic
 {
   return (det((l.p2 - l.p1), (p - l.p1)) > EPS);
 }
 
-func para(a: dynamic, b: dynamic)
+func para(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs(det((a.p2 - a.p1), (b.p2 - b.p1))) < EPS);
 }
 
-var L = cpp_array(15);
+var L: dynamic = cpp_array(15);
 
-var que = cpp_array(15);
+var que: dynamic = cpp_array(15);
 
-var he: dynamic;
+var he: dynamic = cpp_uninitialized();
 
-var ta: dynamic;
+var ta: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a.p2 - a.p1)).pol() < ((b.p2 - b.p1)).pol());
 }
 
-func area(P: dynamic)
+func area(P: dynamic) -> dynamic
 {
-  var ans = 0.0;
-  var num = P.size();
+  var ans: dynamic = 0.0;
+  var num: dynamic = P.size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < num))
     {
       ans += det(P[i], P[(((i + 1)) % num)]);
@@ -120,12 +120,12 @@ func area(P: dynamic)
   return (ans / 2.0);
 }
 
-func hp_intersect()
+func hp_intersect() -> dynamic
 {
   sort((L + 1), ((L + n) + 1), cmp);
   he = cpp_assign(ta, "=", 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       while ((((ta - he) > 1) && (!on_left(crossPoint(que[(ta - 1)], que[(ta - 2)]), L[i]))))
@@ -156,9 +156,9 @@ func hp_intersect()
   {
     return 0.0;
   }
-  var cnt = (ta - he);
+  var cnt: dynamic = (ta - he);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cnt))
     {
       po[i] = crossPoint(que[(he + i)], que[(he + (((i + 1)) % cnt))]);
@@ -168,13 +168,13 @@ func hp_intersect()
   return area(po);
 }
 
-func cut(P: dynamic, x0: dynamic, lis: dynamic)
+func cut(P: dynamic, x0: dynamic, lis: dynamic) -> dynamic
 {
   lis.clear();
-  var num = P.size();
-  var l = Line(Point(x0, -1.0), Point(x0, 301.0));
+  var num: dynamic = P.size();
+  var l: dynamic = Line(Point(x0, -1.0), Point(x0, 301.0));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < num))
     {
       if ((P[i].x == P[(((i + 1)) % num)].x))
@@ -192,37 +192,37 @@ func cut(P: dynamic, x0: dynamic, lis: dynamic)
   sort(lis.begin(), lis.end());
 }
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-var Z: dynamic;
+var Z: dynamic = cpp_uninitialized();
 
-var nx: dynamic;
+var nx: dynamic = cpp_uninitialized();
 
-var ny: dynamic;
+var ny: dynamic = cpp_uninitialized();
 
-var nz: dynamic;
+var nz: dynamic = cpp_uninitialized();
 
-var ylis: dynamic;
+var ylis: dynamic = cpp_uninitialized();
 
-var zlis: dynamic;
+var zlis: dynamic = cpp_uninitialized();
 
-func calc(x0: dynamic)
+func calc(x0: dynamic) -> dynamic
 {
   cut(Y, x0, ylis);
   cut(Z, x0, zlis);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(ylis.size())))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast(zlis.size())))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < nx))
             {
               n = 0;
@@ -255,14 +255,14 @@ func calc(x0: dynamic)
   return ans;
 }
 
-func work(l: dynamic, r: dynamic, y_l: dynamic, y_mid: dynamic, y_r: dynamic, eps: dynamic)
+func work(l: dynamic, r: dynamic, y_l: dynamic, y_mid: dynamic, y_r: dynamic, eps: dynamic) -> dynamic
 {
-  var mid = (((l + r)) / 2);
-  var y_lmid = calc((((l + mid)) / 2));
-  var y_rmid = calc((((mid + r)) / 2));
-  var s = ((((r - l)) * (((y_l + (4 * y_mid)) + y_r))) / 6);
-  var s1 = ((((mid - l)) * (((y_l + (4 * y_lmid)) + y_mid))) / 6);
-  var s2 = ((((r - mid)) * (((y_mid + (4 * y_rmid)) + y_r))) / 6);
+  var mid: dynamic = (((l + r)) / 2);
+  var y_lmid: dynamic = calc((((l + mid)) / 2));
+  var y_rmid: dynamic = calc((((mid + r)) / 2));
+  var s: dynamic = ((((r - l)) * (((y_l + (4 * y_mid)) + y_r))) / 6);
+  var s1: dynamic = ((((mid - l)) * (((y_l + (4 * y_lmid)) + y_mid))) / 6);
+  var s2: dynamic = ((((r - mid)) * (((y_mid + (4 * y_rmid)) + y_r))) / 6);
   if ((abs(((s1 + s2) - s)) < (15 * eps)))
   {
     return ((s1 + s2) + ((((s1 + s2) - s)) / 15));
@@ -270,11 +270,11 @@ func work(l: dynamic, r: dynamic, y_l: dynamic, y_mid: dynamic, y_r: dynamic, ep
   return (work(l, mid, y_l, y_lmid, y_mid, (eps / 2)) + work(mid, r, y_mid, y_rmid, y_r, (eps / 2)));
 }
 
-var xs: dynamic;
+var xs: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
   sort(xs.begin(), xs.end());
   if ((t == 20))
@@ -282,9 +282,9 @@ func solve()
     printf("%.6f\n", work((xs.front() + EPS), (xs.back() - EPS), calc((xs.front() + EPS)), calc((((xs.front() + xs.back())) / 2)), calc((xs.back() - EPS)), 1e-7));
     return;
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast(xs.size()) - 1)))
     {
       if (((xs[i] + 1e-11) < (xs[(i + 1)] - 1e-11)))
@@ -297,14 +297,14 @@ func solve()
   printf("%.6f\n", ans);
 }
 
-func main()
+func main() -> dynamic
 {
   while (((~scanf("%d", (&nx))) && nx))
   {
     t += 1;
     X.resize(nx);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < nx))
       {
         scanf("%lf%lf", (&X[i].x), (&X[i].y));
@@ -314,7 +314,7 @@ func main()
     scanf("%d", (&ny));
     Y.resize(ny);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ny))
       {
         scanf("%lf%lf", (&Y[i].y), (&Y[i].x));
@@ -326,7 +326,7 @@ func main()
     scanf("%d", (&nz));
     Z.resize(nz);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < nz))
       {
         scanf("%lf%lf", (&Z[i].x), (&Z[i].y));

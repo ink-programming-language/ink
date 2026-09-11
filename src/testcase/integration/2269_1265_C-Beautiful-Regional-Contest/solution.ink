@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var arr = cpp_array(n);
+    var arr: dynamic = cpp_array(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(arr[i]);
@@ -25,19 +25,19 @@ func main()
       write(0, " ", 0, " ", 0, "\n");
       continue;
     }
-    var index = (((n / 2)) - 1);
+    var index: dynamic = (((n / 2)) - 1);
     while (((index >= 0) && (arr[index] == arr[(index + 1)])))
     {
       index -= 1;
     }
-    var count: dynamic;
-    var sum = 0;
+    var count: dynamic = cpp_uninitialized();
+    var sum: dynamic = 0;
     {
-      var i = index;
+      var i: dynamic = index;
       while ((i >= 0))
       {
-        var temp = 1;
-        var j = (i - 1);
+        var temp: dynamic = 1;
+        var j: dynamic = (i - 1);
         while (((j >= 0) && (arr[j] == arr[i])))
         {
           j -= 1;
@@ -55,12 +55,12 @@ func main()
       continue;
     }
     sum -= count[(count.size() - 1)];
-    var g = count[(count.size() - 1)];
-    var s = 0;
-    var b = 0;
-    var ans = 0;
+    var g: dynamic = count[(count.size() - 1)];
+    var s: dynamic = 0;
+    var b: dynamic = 0;
+    var ans: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (count.size() - 1)))
       {
         b += count[i];

@@ -1,57 +1,57 @@
 // Translated from solution.cpp.
 
-var maxn = (3e4 + 50);
+var maxn: dynamic = (3e4 + 50);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var mod: dynamic;
+var mod: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var F = cpp_array((maxn << 1));
+var F: dynamic = cpp_array((maxn << 1));
 
-var sz: dynamic;
+var sz: dynamic = cpp_uninitialized();
 
-var bnum: dynamic;
+var bnum: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(maxn);
+var cnt: dynamic = cpp_array(maxn);
 
-var belong = cpp_array(maxn);
+var belong: dynamic = cpp_array(maxn);
 
-var ans = cpp_array(maxn);
+var ans: dynamic = cpp_array(maxn);
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
 class Tree
 {
-  var le: dynamic;
-  var ri: dynamic;
-  var shift: dynamic;
-  var S1: dynamic;
-  var S2: dynamic;
+  var le: dynamic = cpp_uninitialized();
+  var ri: dynamic = cpp_uninitialized();
+  var shift: dynamic = cpp_uninitialized();
+  var S1: dynamic = cpp_uninitialized();
+  var S2: dynamic = cpp_uninitialized();
 }
 
-var tree = cpp_array((maxn << 2));
+var tree: dynamic = cpp_array((maxn << 2));
 
-func move(S1: dynamic, S2: dynamic, k: dynamic)
+func move(S1: dynamic, S2: dynamic, k: dynamic) -> dynamic
 {
-  var newS1 = ((((S1 * F[((len + k) - 1)]) + (S2 * F[(len + k)]))) % mod);
-  var newS2 = ((((S1 * F[(len + k)]) + (S2 * F[((len + k) + 1)]))) % mod);
+  var newS1: dynamic = ((((S1 * F[((len + k) - 1)]) + (S2 * F[(len + k)]))) % mod);
+  var newS2: dynamic = ((((S1 * F[(len + k)]) + (S2 * F[((len + k) + 1)]))) % mod);
   S1 = newS1;
   S2 = newS2;
 }
 
-func pushup(id: dynamic)
+func pushup(id: dynamic) -> dynamic
 {
   tree[id].S1 = (((tree[(id << 1)].S1 + tree[((id << 1) | 1)].S1)) % mod);
   tree[id].S2 = (((tree[(id << 1)].S2 + tree[((id << 1) | 1)].S2)) % mod);
 }
 
-func pushdown(id: dynamic)
+func pushdown(id: dynamic) -> dynamic
 {
   if (tree[id].shift)
   {
@@ -63,7 +63,7 @@ func pushdown(id: dynamic)
   }
 }
 
-func build(id: dynamic, le: dynamic, ri: dynamic)
+func build(id: dynamic, le: dynamic, ri: dynamic) -> dynamic
 {
   tree[id].le = le;
   tree[id].ri = ri;
@@ -72,12 +72,12 @@ func build(id: dynamic, le: dynamic, ri: dynamic)
   {
     return;
   }
-  var mid = (((le + ri)) >> 1);
+  var mid: dynamic = (((le + ri)) >> 1);
   build((id << 1), le, mid);
   build(((id << 1) | 1), (mid + 1), ri);
 }
 
-func Insert(id: dynamic, pos: dynamic, val: dynamic)
+func Insert(id: dynamic, pos: dynamic, val: dynamic) -> dynamic
 {
   if ((tree[id].le == tree[id].ri))
   {
@@ -86,7 +86,7 @@ func Insert(id: dynamic, pos: dynamic, val: dynamic)
     return;
   }
   pushdown(id);
-  var mid = (((tree[id].le + tree[id].ri)) >> 1);
+  var mid: dynamic = (((tree[id].le + tree[id].ri)) >> 1);
   if ((pos <= mid))
   {
     tree[((id << 1) | 1)].shift += 1;
@@ -99,7 +99,7 @@ func Insert(id: dynamic, pos: dynamic, val: dynamic)
   pushup(id);
 }
 
-func Remove(id: dynamic, pos: dynamic)
+func Remove(id: dynamic, pos: dynamic) -> dynamic
 {
   if ((tree[id].le == tree[id].ri))
   {
@@ -107,7 +107,7 @@ func Remove(id: dynamic, pos: dynamic)
     return;
   }
   pushdown(id);
-  var mid = (((tree[id].le + tree[id].ri)) >> 1);
+  var mid: dynamic = (((tree[id].le + tree[id].ri)) >> 1);
   if ((pos <= mid))
   {
     tree[((id << 1) | 1)].shift -= 1;
@@ -122,19 +122,19 @@ func Remove(id: dynamic, pos: dynamic)
 
 class Node
 {
-  var id: dynamic;
-  var le: dynamic;
-  var ri: dynamic;
+  var id: dynamic = cpp_uninitialized();
+  var le: dynamic = cpp_uninitialized();
+  var ri: dynamic = cpp_uninitialized();
 }
 
-var q = cpp_array(maxn);
+var q: dynamic = cpp_array(maxn);
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (((belong[x.le] ^ belong[y.le]))) (belong[x.le] < belong[y.le]) else (if (((belong[x.le] & 1))) (x.ri < y.ri) else (x.ri > y.ri));
+  return  (((belong[x.le] ^ belong[y.le]))) ? (belong[x.le] < belong[y.le]) : ( (((belong[x.le] & 1))) ? (x.ri < y.ri) : (x.ri > y.ri));
 }
 
-func Add(pos: dynamic)
+func Add(pos: dynamic) -> dynamic
 {
   pos = ((lower_bound(v.begin(), v.end(), a[pos]) - v.begin()) + 1);
   if (cpp_update((!cnt[pos]), "++"))
@@ -143,7 +143,7 @@ func Add(pos: dynamic)
   }
 }
 
-func Del(pos: dynamic)
+func Del(pos: dynamic) -> dynamic
 {
   pos = ((lower_bound(v.begin(), v.end(), a[pos]) - v.begin()) + 1);
   if ((!cpp_update(cnt[pos], "--")))
@@ -152,11 +152,11 @@ func Del(pos: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&mod));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -170,7 +170,7 @@ func main()
   F[len] = 0;
   F[(len + 1)] = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i + len) < ((maxn << 1))))
     {
       F[(i + len)] = (((F[((i + len) - 1)] + F[((i + len) - 2)])) % mod);
@@ -178,7 +178,7 @@ func main()
     }
   }
   {
-    var i = -1;
+    var i: dynamic = -1;
     while (((i + len) >= 0))
     {
       F[(i + len)] = ((((F[((i + len) + 2)] - F[((i + len) + 1)]) + mod)) % mod);
@@ -187,13 +187,13 @@ func main()
   }
   build(1, 1, len);
   sz = sqrt(n);
-  bnum = ceil(double((n / sz)));
+  bnum = ceil(cpp_double((n / sz)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= bnum))
     {
       {
-        var j = ((((i - 1)) * sz) + 1);
+        var j: dynamic = ((((i - 1)) * sz) + 1);
         while (((j <= (i * sz)) && (j <= n)))
         {
           belong[j] = i;
@@ -205,7 +205,7 @@ func main()
   }
   scanf("%d", (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d%d", (&q[i].le), (&q[i].ri));
@@ -214,10 +214,10 @@ func main()
     }
   }
   sort(q, (q + m), cmp);
-  var L = 1;
-  var R = 0;
+  var L: dynamic = 1;
+  var R: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       while ((L < q[i].le))
@@ -241,7 +241,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       printf("%d\n", ans[i]);

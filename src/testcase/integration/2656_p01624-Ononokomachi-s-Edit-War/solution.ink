@@ -1,51 +1,51 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, x: dynamic)
+func REP(i: dynamic, x: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(int)(x);i++)");
 }
 
-func FOR(i: dynamic, c: dynamic)
+func FOR(i: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof((c).begin())i=(c).begin();i!=(c).end();i++)");
 }
 
-func RREP(i: dynamic, x: dynamic)
+func RREP(i: dynamic, x: dynamic) -> dynamic
 {
   cpp_macro("for(int i=((int)(x)-1);i>=0;i--)");
 }
 
-func RFOR(i: dynamic, c: dynamic)
+func RFOR(i: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof((c).rbegin())i=(c).rbegin();i!=(c).rend();i++)");
 }
 
-func ALL(container: dynamic)
+func ALL(container: dynamic) -> dynamic
 {
   return cpp_expression("#include <cstdio> #include <cmath>");
 }
 
-func RALL(container: dynamic)
+func RALL(container: dynamic) -> dynamic
 {
   return cpp_expression("#include <cstdio> #include <cmath> #");
 }
 
-func SZ(container: dynamic)
+func SZ(container: dynamic) -> dynamic
 {
   return cpp_expression("#include <cstdio> #incl");
 }
 
-func mp(a: dynamic, b: dynamic)
+func mp(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <cstdi");
 }
 
-func UNIQUE(v: dynamic)
+func UNIQUE(v: dynamic) -> dynamic
 {
   cpp_macro("v.erase( unique(v.begin(), v.end()), v.end() );");
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -55,7 +55,7 @@ func chmax(a: dynamic, b: dynamic)
   return 0;
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -65,40 +65,40 @@ func chmin(a: dynamic, b: dynamic)
   return 0;
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   (os << "[");
   (os << "]");
   return os;
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   (os << "{");
   (os << "}");
   return os;
 }
 
-func operator_shift_left(os: dynamic, t: dynamic)
+func operator_shift_left(os: dynamic, t: dynamic) -> dynamic
 {
   return (((((os << "(") << t.first) << ",") << t.second) << ")");
 }
 
-var INF = (1 << 28);
+var INF: dynamic = (1 << 28);
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var ParseFailed = false;
+var ParseFailed: dynamic = false;
 
-func num(p: dynamic)
+func num(p: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   if ((p >= s.size()))
   {
     ParseFailed = true;
@@ -130,9 +130,9 @@ func num(p: dynamic)
   return res;
 }
 
-func parse(p: dynamic, d: dynamic = 4)
+func parse(p: dynamic, d: dynamic = 4) -> dynamic
 {
-  var res = if (d) parse(p, (d - 1)) else num(p);
+  var res: dynamic =  (d) ? parse(p, (d - 1)) : num(p);
   while ((p < s.size()))
   {
     if (((d == 0) && (s[p] == cpp_char("*"))))
@@ -161,21 +161,21 @@ func parse(p: dynamic, d: dynamic = 4)
   return res;
 }
 
-func isExpressionValid()
+func isExpressionValid() -> dynamic
 {
   ParseFailed = false;
-  var Position = 0;
+  var Position: dynamic = 0;
   parse(Position);
   return ((!ParseFailed) && (Position == s.size()));
 }
 
-var tbl = "()*+-&^|0123456789";
+var tbl: dynamic = "()*+-&^|0123456789";
 
-func Max(t: dynamic, rest: dynamic)
+func Max(t: dynamic, rest: dynamic) -> dynamic
 {
   s = t;
-  var p = 0;
-  var res = (-INF);
+  var p: dynamic = 0;
+  var res: dynamic = (-INF);
   if ((rest == 0))
   {
     return parse(p);
@@ -185,7 +185,7 @@ func Max(t: dynamic, rest: dynamic)
   {
     s = t;
     s.insert((s.begin() + i), tbl[j]);
-    var f = isExpressionValid();
+    var f: dynamic = isExpressionValid();
     if (f)
     {
       res = max(res, Min(s, (rest - 1)));
@@ -195,7 +195,7 @@ func Max(t: dynamic, rest: dynamic)
   {
     s = t;
     s.erase((s.begin() + i));
-    var f = isExpressionValid();
+    var f: dynamic = isExpressionValid();
     if (f)
     {
       res = max(res, Min(s, (rest - 1)));
@@ -204,11 +204,11 @@ func Max(t: dynamic, rest: dynamic)
   return res;
 }
 
-func Min(t: dynamic, rest: dynamic)
+func Min(t: dynamic, rest: dynamic) -> dynamic
 {
   s = t;
-  var p = 0;
-  var res = INF;
+  var p: dynamic = 0;
+  var res: dynamic = INF;
   if ((rest == 0))
   {
     return parse(p);
@@ -218,7 +218,7 @@ func Min(t: dynamic, rest: dynamic)
   {
     s = t;
     s.insert((s.begin() + i), tbl[j]);
-    var f = isExpressionValid();
+    var f: dynamic = isExpressionValid();
     if (f)
     {
       res = min(res, Max(s, (rest - 1)));
@@ -228,7 +228,7 @@ func Min(t: dynamic, rest: dynamic)
   {
     s = t;
     s.erase((s.begin() + i));
-    var f = isExpressionValid();
+    var f: dynamic = isExpressionValid();
     if (f)
     {
       res = min(res, Max(s, (rest - 1)));
@@ -237,14 +237,14 @@ func Min(t: dynamic, rest: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   while (cpp_comma(((cin >> n) >> s), n))
   {
-    var ans: dynamic;
-    var p = 0;
-    var res = -1;
+    var ans: dynamic = cpp_uninitialized();
+    var p: dynamic = 0;
+    var res: dynamic = -1;
     while ((n > 2))
     {
       n -= 2;
@@ -254,7 +254,7 @@ func main()
   return 0;
 }
 
-func FOR(argument_0: dynamic, argument_1: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((it != t.begin()))
     {
@@ -263,7 +263,7 @@ func FOR(argument_0: dynamic, argument_1: dynamic)
     (os << (*it));
   }
 
-func FOR(argument_0: dynamic, argument_1: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((it != t.begin()))
     {

@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func enumerateSubmasks(m: dynamic)
+func enumerateSubmasks(m: dynamic) -> dynamic
 {
   {
-    var s = m;
+    var s: dynamic = m;
     while (true)
     {
       if ((s == 0))
@@ -15,13 +15,13 @@ func enumerateSubmasks(m: dynamic)
   }
 }
 
-func mpow(a: dynamic, b: dynamic, m: dynamic)
+func mpow(a: dynamic, b: dynamic, m: dynamic) -> dynamic
 {
   if ((b == 0))
   {
     return 1;
   }
-  var x = mpow(a, (b / 2), m);
+  var x: dynamic = mpow(a, (b / 2), m);
   x = (((x * x)) % m);
   if ((b % 2))
   {
@@ -30,7 +30,7 @@ func mpow(a: dynamic, b: dynamic, m: dynamic)
   return x;
 }
 
-func update(s: dynamic, e: dynamic, qs: dynamic, qe: dynamic, seg: dynamic, lazy: dynamic, index: dynamic, value: dynamic)
+func update(s: dynamic, e: dynamic, qs: dynamic, qe: dynamic, seg: dynamic, lazy: dynamic, index: dynamic, value: dynamic) -> dynamic
 {
   if ((lazy[index] != -1))
   {
@@ -80,12 +80,12 @@ func update(s: dynamic, e: dynamic, qs: dynamic, qe: dynamic, seg: dynamic, lazy
     }
     return;
   }
-  var mid = (((s + e)) / 2);
+  var mid: dynamic = (((s + e)) / 2);
   update(s, mid, qs, qe, seg, lazy, (2 * index), value);
   update((mid + 1), e, qs, qe, seg, lazy, ((2 * index) + 1), value);
 }
 
-func query(s: dynamic, e: dynamic, qs: dynamic, qe: dynamic, seg: dynamic, lazy: dynamic, index: dynamic)
+func query(s: dynamic, e: dynamic, qs: dynamic, qe: dynamic, seg: dynamic, lazy: dynamic, index: dynamic) -> dynamic
 {
   if ((lazy[index] != -1))
   {
@@ -117,15 +117,15 @@ func query(s: dynamic, e: dynamic, qs: dynamic, qe: dynamic, seg: dynamic, lazy:
   {
     return seg[index];
   }
-  var mid = (((s + e)) / 2);
-  var a = query(s, mid, qs, qe, seg, lazy, (2 * index));
-  var b = query((mid + 1), e, qs, qe, seg, lazy, ((2 * index) + 1));
+  var mid: dynamic = (((s + e)) / 2);
+  var a: dynamic = query(s, mid, qs, qe, seg, lazy, (2 * index));
+  var b: dynamic = query((mid + 1), e, qs, qe, seg, lazy, ((2 * index) + 1));
   return max(a, b);
 }
 
-func printBinaryString(n: dynamic)
+func printBinaryString(n: dynamic) -> dynamic
 {
-  var temp: dynamic;
+  var temp: dynamic = cpp_uninitialized();
   while (n)
   {
     if ((n & 1))
@@ -138,18 +138,18 @@ func printBinaryString(n: dynamic)
     n = (n >> 1);
   }
   reverse(temp.begin(), temp.end());
-  for (var node in temp)
+  for (var node: dynamic in temp)
   {
     write(node, " ");
   }
   write("\n");
 }
 
-func readVector(a: dynamic)
+func readVector(a: dynamic) -> dynamic
 {
-  var n = a.size();
+  var n: dynamic = a.size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -160,54 +160,54 @@ func readVector(a: dynamic)
 
 class node
 {
-  var id: dynamic;
-  var val: dynamic;
-  var dir: dynamic;
+  var id: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
+  var dir: dynamic = cpp_uninitialized();
 }
 
-var adj: dynamic;
+var adj: dynamic = cpp_uninitialized();
 
-var par: dynamic;
+var par: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var k1: dynamic;
+var k1: dynamic = cpp_uninitialized();
 
-var k2: dynamic;
+var k2: dynamic = cpp_uninitialized();
 
-var answer: dynamic;
+var answer: dynamic = cpp_uninitialized();
 
-func interactA(x: dynamic)
+func interactA(x: dynamic) -> dynamic
 {
   write("A ", x, "\n");
-  var ret: dynamic;
+  var ret: dynamic = cpp_uninitialized();
   read(ret);
   fflush(stdout);
   return ret;
 }
 
-func interactB(x: dynamic)
+func interactB(x: dynamic) -> dynamic
 {
   write("B ", x, "\n");
-  var ret: dynamic;
+  var ret: dynamic = cpp_uninitialized();
   read(ret);
   fflush(stdout);
   return ret;
 }
 
-func solve(node: dynamic, par: dynamic, k: dynamic)
+func solve(node: dynamic, par: dynamic, k: dynamic) -> dynamic
 {
-  var totalInSubtree = 1;
-  for (var child in adj[node])
+  var totalInSubtree: dynamic = 1;
+  for (var child: dynamic in adj[node])
   {
     if ((child == par))
     {
       continue;
     }
-    var ret = solve(child, node, k);
-    var mila = ret.second;
+    var ret: dynamic = solve(child, node, k);
+    var mila: dynamic = ret.second;
     if (mila)
     {
       return [0, true];
@@ -222,7 +222,7 @@ func solve(node: dynamic, par: dynamic, k: dynamic)
   {
     return [0, false];
   }
-  var bLabel = interactA(node);
+  var bLabel: dynamic = interactA(node);
   if (y[bLabel])
   {
     answer = node;
@@ -233,11 +233,11 @@ func solve(node: dynamic, par: dynamic, k: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var tc: dynamic;
+  var tc: dynamic = cpp_uninitialized();
   read(tc);
   while (cpp_update(tc, "--"))
   {
@@ -246,14 +246,14 @@ func main()
     y.clear();
     adj.clear();
     par.clear();
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
-        var u: dynamic;
-        var v: dynamic;
+        var u: dynamic = cpp_uninitialized();
+        var v: dynamic = cpp_uninitialized();
         read(u, v);
         adj[u].push_back(v);
         adj[v].push_back(u);
@@ -262,36 +262,36 @@ func main()
     }
     read(k1);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < k1))
       {
-        var temp: dynamic;
+        var temp: dynamic = cpp_uninitialized();
         read(temp);
         x[temp] = true;
         i += 1;
       }
     }
-    var st: dynamic;
+    var st: dynamic = cpp_uninitialized();
     read(k2);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < k2))
       {
-        var temp: dynamic;
+        var temp: dynamic = cpp_uninitialized();
         read(temp);
         st = temp;
         y[temp] = true;
         i += 1;
       }
     }
-    var start = interactB(st);
-    var bfs: dynamic;
-    var toCompare: dynamic;
+    var start: dynamic = interactB(st);
+    var bfs: dynamic = cpp_uninitialized();
+    var toCompare: dynamic = cpp_uninitialized();
     bfs.push(start);
-    var visited: dynamic;
+    var visited: dynamic = cpp_uninitialized();
     while ((!bfs.empty()))
     {
-      var node = bfs.front();
+      var node: dynamic = bfs.front();
       bfs.pop();
       visited[node] = true;
       if (x[node])
@@ -299,7 +299,7 @@ func main()
         toCompare = node;
         break;
       }
-      for (var child in adj[node])
+      for (var child: dynamic in adj[node])
       {
         if (visited[child])
         {
@@ -308,7 +308,7 @@ func main()
         bfs.push(child);
       }
     }
-    var temp = interactA(toCompare);
+    var temp: dynamic = interactA(toCompare);
     if (y[temp])
     {
       write("C ", toCompare, "\n");

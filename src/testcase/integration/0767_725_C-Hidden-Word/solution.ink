@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var cur: dynamic;
+var cur: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(26);
+var cnt: dynamic = cpp_array(26);
 
-var grid = cpp_array(13, 2);
+var grid: dynamic = cpp_array(13, 2);
 
-func construct(x: dynamic)
+func construct(x: dynamic) -> dynamic
 {
-  var row = 0;
-  var col = x;
+  var row: dynamic = 0;
+  var col: dynamic = x;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= ((26) - 1)))
     {
       grid[row][col] = cur[i];
@@ -35,23 +35,23 @@ func construct(x: dynamic)
   }
 }
 
-func ok(x: dynamic)
+func ok(x: dynamic) -> dynamic
 {
-  var row = 0;
-  var col = x;
-  var dr = [-1, -1, -1, 0, 1, 1, 1, 0];
-  var dc = [-1, 0, 1, 1, 1, 0, -1, -1];
+  var row: dynamic = 0;
+  var col: dynamic = x;
+  var dr: dynamic = [-1, -1, -1, 0, 1, 1, 1, 0];
+  var dc: dynamic = [-1, 0, 1, 1, 1, 0, -1, -1];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 26))
     {
-      var flag = false;
+      var flag: dynamic = false;
       {
-        var dd = 0;
+        var dd: dynamic = 0;
         while ((dd <= ((8) - 1)))
         {
-          var newr = (row + dr[dd]);
-          var newc = (col + dc[dd]);
+          var newr: dynamic = (row + dr[dd]);
+          var newc: dynamic = (col + dc[dd]);
           if (((((newr >= 0) && (newc >= 0)) && (newr < 2)) && (newc < 13)))
           {
             if ((grid[newr][newc] == s[i]))
@@ -75,14 +75,14 @@ func ok(x: dynamic)
   return true;
 }
 
-func f()
+func f() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= ((2) - 1)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= ((13) - 1)))
         {
           write(grid[i][j]);
@@ -95,12 +95,12 @@ func f()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= ((26) - 1)))
     {
       if ((s[i] == s[(i + 1)]))
@@ -112,7 +112,7 @@ func main()
     }
   }
   cur = "";
-  for (var c in s)
+  for (var c: dynamic in s)
   {
     if ((!cnt[(c - cpp_char("A"))]))
     {
@@ -121,7 +121,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= ((13) - 1)))
     {
       construct(i);

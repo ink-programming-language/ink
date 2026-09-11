@@ -1,53 +1,53 @@
 // Translated from solution.cpp.
 
-func EQ(a: dynamic, b: dynamic)
+func EQ(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(int)(n);i++)");
 }
 
-var fs = cpp_expression("#incl");
+var fs: dynamic = cpp_expression("#incl");
 
-var sc = cpp_expression("#inclu");
+var sc: dynamic = cpp_expression("#inclu");
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var sz = cpp_expression("#inclu");
+var sz: dynamic = cpp_expression("#inclu");
 
-func all(a: dynamic)
+func all(a: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-var PI = acos(-1);
+var PI: dynamic = acos(-1);
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (EQ(real(a), real(b))) (imag(a) < imag(b)) else (real(a) < real(b));
+  return  (EQ(real(a), real(b))) ? (imag(a) < imag(b)) : (real(a) < real(b));
 }
 
-func operator_equal(a: dynamic, b: dynamic)
+func operator_equal(a: dynamic, b: dynamic) -> dynamic
 {
   return EQ(a, b);
 }
 
-func dot(x: dynamic, y: dynamic)
+func dot(x: dynamic, y: dynamic) -> dynamic
 {
   return real((conj(x) * y));
 }
 
-func cross(x: dynamic, y: dynamic)
+func cross(x: dynamic, y: dynamic) -> dynamic
 {
   return imag((conj(x) * y));
 }
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   b -= a;
   c -= a;
@@ -70,17 +70,17 @@ func ccw(a: dynamic, b: dynamic, c: dynamic)
   return 0;
 }
 
-func para(a: dynamic, b: dynamic)
+func para(a: dynamic, b: dynamic) -> dynamic
 {
   return (abs(cross((a.fs - a.sc), (b.fs - b.sc))) < EPS);
 }
 
-func line_cp(a: dynamic, b: dynamic)
+func line_cp(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.fs + ((((a.sc - a.fs)) * cross((b.sc - b.fs), (b.fs - a.fs))) / cross((b.sc - b.fs), (a.sc - a.fs))));
 }
 
-func is_cp(a: dynamic, b: dynamic)
+func is_cp(a: dynamic, b: dynamic) -> dynamic
 {
   if (((ccw(a.fs, a.sc, b.fs) * ccw(a.fs, a.sc, b.sc)) <= 0))
   {
@@ -92,51 +92,51 @@ func is_cp(a: dynamic, b: dynamic)
   return false;
 }
 
-func in_poly(p: dynamic, x: dynamic)
+func in_poly(p: dynamic, x: dynamic) -> dynamic
 {
   if (p.empty())
   {
     return false;
   }
-  var s = p.size();
-  var xMax = x.real();
-  var h = L(x, P((xMax + 1.0), x.imag()));
-  var c = 0;
-  return if (((c & 1))) true else false;
+  var s: dynamic = p.size();
+  var xMax: dynamic = x.real();
+  var h: dynamic = L(x, P((xMax + 1.0), x.imag()));
+  var c: dynamic = 0;
+  return  (((c & 1))) ? true : false;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var p = cpp_array(20);
-  var l = cpp_array(20);
+  var n: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_array(20);
+  var l: dynamic = cpp_array(20);
   while (cpp_comma((cin >> n), n))
   {
-    var poly: dynamic;
+    var poly: dynamic = cpp_uninitialized();
     rep(i, n)[i] = L(p[i], p[(((i + 1)) % n)]);
-    var segs: dynamic;
+    var segs: dynamic = cpp_uninitialized();
     rep(i, n);
     rep(j, segs.size());
     {
-      var lay1 = L(p[i], segs[j].fs);
-      var lay2 = L(p[i], segs[j].sc);
-      var f = false;
+      var lay1: dynamic = L(p[i], segs[j].fs);
+      var lay2: dynamic = L(p[i], segs[j].sc);
+      var f: dynamic = false;
       if (f)
       {
         continue;
       }
-      var mp = ((1.0 / 3) * (((p[i] + lay1.sc) + lay2.sc)));
+      var mp: dynamic = ((1.0 / 3) * (((p[i] + lay1.sc) + lay2.sc)));
       if ((f || in_poly(poly, mp)))
       {
         visible[i].push_back(j);
       }
     }
-    var ans = n;
+    var ans: dynamic = n;
     rep(i, (1 << n));
     {
-      var ok = cpp_construct(segs.size(), false);
-      var cnt = 0;
-      var f = true;
+      var ok: dynamic = cpp_construct(segs.size(), false);
+      var cnt: dynamic = 0;
+      var f: dynamic = true;
       rep(j, ok.size()) &= ok[j];
       if (f)
       {
@@ -147,7 +147,7 @@ func main()
   }
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((xMax < p[i].real()))
     {
@@ -159,42 +159,42 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var l = L(p[i], p[(((i + 1)) % s)]);
+    var l: dynamic = L(p[i], p[(((i + 1)) % s)]);
     if (((!para(h, l)) && is_cp(h, l)))
     {
-      var cp = line_cp(h, l);
+      var cp: dynamic = line_cp(h, l);
       if ((cp.real() < (x.real() + EPS)))
       {
         continue;
       }
-      if ((!EQ(cp, if (((l.fs.imag() < l.sc.imag()))) l.sc else l.fs)))
+      if ((!EQ(cp,  (((l.fs.imag() < l.sc.imag()))) ? l.sc : l.fs)))
       {
         c += 1;
       }
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       p[i] = P(x, y);
       poly.push_back(p[i]);
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         if ((j == k))
         {
           continue;
         }
-        var l2 = L(p[j], p[k]);
+        var l2: dynamic = L(p[j], p[k]);
         if ((!para(l[i], l2)))
         {
-          var cp = line_cp(l[i], l2);
+          var cp: dynamic = line_cp(l[i], l2);
           if ((!ccw(l[i].fs, l[i].sc, cp)))
           {
             cut_point.push_back(cp);
@@ -202,15 +202,15 @@ func rep(argument_0: dynamic, argument_1: dynamic)
         }
       }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var cut_point: dynamic;
+      var cut_point: dynamic = cpp_uninitialized();
       rep(j, n);
       cut_point.push_back(l[i].fs);
       cut_point.push_back(l[i].sc);
       sort(all(cut_point));
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < cpp_cast(cut_point.size())))
         {
           if (EQ(cut_point[(i - 1)], cut_point[i]))
@@ -224,11 +224,11 @@ func rep(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         if ((!para(lay1, l[k])))
         {
-          var cp1 = line_cp(lay1, l[k]);
+          var cp1: dynamic = line_cp(lay1, l[k]);
           if (((((((!EQ(lay1.fs, cp1)) && (!EQ(lay1.sc, cp1))) && (!EQ(l[k].fs, cp1))) && (!EQ(l[k].sc, cp1))) && (!ccw(lay1.fs, lay1.sc, cp1))) && (!ccw(l[k].fs, l[k].sc, cp1))))
           {
             f = true;
@@ -236,7 +236,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
         }
         if ((!para(lay2, l[k])))
         {
-          var cp2 = line_cp(lay2, l[k]);
+          var cp2: dynamic = line_cp(lay2, l[k]);
           if (((((((!EQ(lay2.fs, cp2)) && (!EQ(lay2.sc, cp2))) && (!EQ(l[k].fs, cp2))) && (!EQ(l[k].sc, cp2))) && (!ccw(lay2.fs, lay2.sc, cp2))) && (!ccw(l[k].fs, l[k].sc, cp2))))
           {
             f = true;
@@ -244,7 +244,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
         }
       }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         if ((!ccw(l[k].fs, l[k].sc, mp)))
         {
@@ -252,7 +252,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
         }
       }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         if ((((i >> j)) & 1))
         {

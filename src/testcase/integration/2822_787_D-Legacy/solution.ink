@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var MAXN = 100010;
+var MAXN: dynamic = 100010;
 
-var adj = cpp_array((10 * MAXN));
+var adj: dynamic = cpp_array((10 * MAXN));
 
-var dist = cpp_array((10 * MAXN));
+var dist: dynamic = cpp_array((10 * MAXN));
 
-var par = cpp_array((10 * MAXN));
+var par: dynamic = cpp_array((10 * MAXN));
 
-func go1(idx: dynamic, l: dynamic, r: dynamic, ds: dynamic)
+func go1(idx: dynamic, l: dynamic, r: dynamic, ds: dynamic) -> dynamic
 {
   if ((idx > 1))
   {
-    var par = (idx / 2);
+    var par: dynamic = (idx / 2);
     adj[(par + ds)].push_back([0, (idx + ds)]);
   }
   if ((l == r))
@@ -20,15 +20,15 @@ func go1(idx: dynamic, l: dynamic, r: dynamic, ds: dynamic)
     adj[(idx + ds)].push_back([0, l]);
     return idx;
   }
-  var m = (((l + r)) / 2);
-  var ret = max(idx, max(go1((2 * idx), l, m, ds), go1(((2 * idx) + 1), (m + 1), r, ds)));
+  var m: dynamic = (((l + r)) / 2);
+  var ret: dynamic = max(idx, max(go1((2 * idx), l, m, ds), go1(((2 * idx) + 1), (m + 1), r, ds)));
   return ret;
 }
 
-func go2(idx: dynamic, l: dynamic, r: dynamic, ds: dynamic)
+func go2(idx: dynamic, l: dynamic, r: dynamic, ds: dynamic) -> dynamic
 {
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i < ((r + 1))))
     {
       adj[i].push_back([0, (idx + ds)]);
@@ -37,13 +37,13 @@ func go2(idx: dynamic, l: dynamic, r: dynamic, ds: dynamic)
   }
   if ((r > l))
   {
-    var m = (((l + r)) / 2);
+    var m: dynamic = (((l + r)) / 2);
     go2((2 * idx), l, m, ds);
     go2(((2 * idx) + 1), (m + 1), r, ds);
   }
 }
 
-func go3(idx: dynamic, x: dynamic, y: dynamic, l: dynamic, r: dynamic, f: dynamic)
+func go3(idx: dynamic, x: dynamic, y: dynamic, l: dynamic, r: dynamic, f: dynamic) -> dynamic
 {
   if (((y < l) || (x > r)))
   {
@@ -54,28 +54,28 @@ func go3(idx: dynamic, x: dynamic, y: dynamic, l: dynamic, r: dynamic, f: dynami
     f(idx);
     return;
   }
-  var m = (((x + y)) / 2);
+  var m: dynamic = (((x + y)) / 2);
   go3((2 * idx), x, m, l, r, f);
   go3(((2 * idx) + 1), (m + 1), y, l, r, f);
 }
 
-func dijsktra(src: dynamic)
+func dijsktra(src: dynamic) -> dynamic
 {
   memset(dist, 0x3f3f3f3f, cpp_sizeof((dist)));
   dist[src] = 0;
   par[src] = src;
-  var pq: dynamic;
+  var pq: dynamic = cpp_uninitialized();
   pq.push([dist[src], src]);
   while ((!pq.empty()))
   {
-    var u = pq.top().second;
-    var l = pq.top().first;
+    var u: dynamic = pq.top().second;
+    var l: dynamic = pq.top().first;
     pq.pop();
     if ((dist[u] == l))
     {
-      for (var p in adj[u])
+      for (var p: dynamic in adj[u])
       {
-        var ndist = (l + p.first);
+        var ndist: dynamic = (l + p.first);
         if ((ndist < dist[p.second]))
         {
           dist[p.second] = ndist;
@@ -87,35 +87,35 @@ func dijsktra(src: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var src: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var src: dynamic = cpp_uninitialized();
   scanf(" %d %d", (&(n)), (&(m)));
   scanf(" %d", (&(src)));
   src -= 1;
-  var ds1 = ((n - 1) + 5);
-  var ds2 = ((go1(1, 0, (n - 1), ds1) + ds1) + 5);
+  var ds1: dynamic = ((n - 1) + 5);
+  var ds2: dynamic = ((go1(1, 0, (n - 1), ds1) + ds1) + 5);
   go2(1, 0, (n - 1), ds2);
   while (cpp_update(m, "--"))
   {
-    var tp: dynamic;
+    var tp: dynamic = cpp_uninitialized();
     scanf(" %d", (&(tp)));
     if ((tp == 1))
     {
-      var u: dynamic;
-      var v: dynamic;
-      var w: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       scanf(" %d %d", (&(u)), (&(v)));
       scanf(" %d", (&(w)));
       adj[(u - 1)].push_back([w, (v - 1)]);
     } else
     {
-      var vtx: dynamic;
-      var l: dynamic;
-      var r: dynamic;
-      var w: dynamic;
+      var vtx: dynamic = cpp_uninitialized();
+      var l: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       scanf(" %d %d", (&(vtx)), (&(l)));
       scanf(" %d %d", (&(r)), (&(w)));
       l -= 1;
@@ -126,17 +126,17 @@ func main()
   }
   dijsktra(src);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
-      printf("%lld%c", (if ((dist[i] == 0x3f3f3f3f3f3f3f3f)) -1 else dist[i]), " \n"[(i == (n - 1))]);
+      printf("%lld%c", ( ((dist[i] == 0x3f3f3f3f3f3f3f3f)) ? -1 : dist[i]), " \n"[(i == (n - 1))]);
       i += 1;
     }
   }
   return 0;
 }
 
-func __cpp_lambda_1(idx: dynamic)
+func __cpp_lambda_1(idx: dynamic) -> dynamic
 {
   if ((tp == 2))
   {

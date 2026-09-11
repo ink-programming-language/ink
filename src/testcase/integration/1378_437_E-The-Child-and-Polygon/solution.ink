@@ -1,62 +1,62 @@
 // Translated from solution.cpp.
 
-var v = cpp_array(300);
+var v: dynamic = cpp_array(300);
 
-var O: dynamic;
+var O: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var nr: dynamic;
+var nr: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var nri: dynamic;
+var nri: dynamic = cpp_uninitialized();
 
-var OK = cpp_array(300, 300);
+var OK: dynamic = cpp_array(300, 300);
 
-var nx = cpp_array(300);
+var nx: dynamic = cpp_array(300);
 
-var val1: dynamic;
+var val1: dynamic = cpp_uninitialized();
 
-var val2: dynamic;
+var val2: dynamic = cpp_uninitialized();
 
-var val: dynamic;
+var val: dynamic = cpp_uninitialized();
 
-var A1: dynamic;
+var A1: dynamic = cpp_uninitialized();
 
-var dt: dynamic;
+var dt: dynamic = cpp_uninitialized();
 
-var A2: dynamic;
+var A2: dynamic = cpp_uninitialized();
 
-var B1: dynamic;
+var B1: dynamic = cpp_uninitialized();
 
-var B2: dynamic;
+var B2: dynamic = cpp_uninitialized();
 
-var C1: dynamic;
+var C1: dynamic = cpp_uninitialized();
 
-var C2: dynamic;
+var C2: dynamic = cpp_uninitialized();
 
-var D = cpp_array(300, 300);
+var D: dynamic = cpp_array(300, 300);
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var d1: dynamic;
+var d1: dynamic = cpp_uninitialized();
 
-var d2: dynamic;
+var d2: dynamic = cpp_uninitialized();
 
-var d3: dynamic;
+var d3: dynamic = cpp_uninitialized();
 
-var d4: dynamic;
+var d4: dynamic = cpp_uninitialized();
 
-var xm: dynamic;
+var xm: dynamic = cpp_uninitialized();
 
-var ym: dynamic;
+var ym: dynamic = cpp_uninitialized();
 
-var SP: dynamic;
+var SP: dynamic = cpp_uninitialized();
 
-func aba(a: dynamic)
+func aba(a: dynamic) -> dynamic
 {
   if ((a < 0))
   {
@@ -65,14 +65,14 @@ func aba(a: dynamic)
   return a;
 }
 
-func detu(ax: dynamic, ay: dynamic, bx: dynamic, by: dynamic, cx: dynamic, cy: dynamic)
+func detu(ax: dynamic, ay: dynamic, bx: dynamic, by: dynamic, cx: dynamic, cy: dynamic) -> dynamic
 {
   return ((((((ax * by) + (bx * cy)) + (cx * ay)) - (ay * bx)) - (by * cx)) - (cy * ax));
 }
 
-func det(a: dynamic, b: dynamic, c: dynamic)
+func det(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
-  var dt = ((((((a.first * b.second) + (b.first * c.second)) + (c.first * a.second)) - (a.second * b.first)) - (b.second * c.first)) - (c.second * a.first));
+  var dt: dynamic = ((((((a.first * b.second) + (b.first * c.second)) + (c.first * a.second)) - (a.second * b.first)) - (b.second * c.first)) - (c.second * a.first));
   if ((dt > 0))
   {
     dt = 1;
@@ -84,12 +84,12 @@ func det(a: dynamic, b: dynamic, c: dynamic)
   return dt;
 }
 
-func intersect(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func intersect(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
-  var d1 = det(a, b, c);
-  var d2 = det(a, b, d);
-  var d3 = det(c, d, a);
-  var d4 = det(c, d, b);
+  var d1: dynamic = det(a, b, c);
+  var d2: dynamic = det(a, b, d);
+  var d3: dynamic = det(c, d, a);
+  var d4: dynamic = det(c, d, b);
   if (((((!d1) || (!d2)) || (!d3)) || (!d4)))
   {
     return 0;
@@ -103,11 +103,11 @@ func intersect(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
   }
 }
 
-func inside(M: dynamic)
+func inside(M: dynamic) -> dynamic
 {
-  var c = 0;
+  var c: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((((((det(O, M, v[i]) == 0) && (v[i].first >= O.first)) && (v[i].first <= M.first)) && (v[i].second >= min(O.second, M.second))) && (v[i].second <= max(O.second, M.second))))
@@ -118,7 +118,7 @@ func inside(M: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (intersect(O, M, v[i], v[nx[i]]))
@@ -131,7 +131,7 @@ func inside(M: dynamic)
   return c;
 }
 
-func solve(st: dynamic, dr: dynamic)
+func solve(st: dynamic, dr: dynamic) -> dynamic
 {
   if ((((nx[st] == dr) || (nx[nx[st]] == dr)) || (st == dr)))
   {
@@ -142,7 +142,7 @@ func solve(st: dynamic, dr: dynamic)
     return D[st][dr];
   }
   {
-    var i = nx[st];
+    var i: dynamic = nx[st];
     while ((i != dr))
     {
       if ((OK[st][i] && OK[dr][i]))
@@ -159,11 +159,11 @@ func solve(st: dynamic, dr: dynamic)
   return D[st][dr];
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(v[i].first, v[i].second);
@@ -171,7 +171,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       nx[i] = (i + 1);
@@ -182,11 +182,11 @@ func main()
   O.first = -1000000007;
   O.second = -1000000009;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j <= n))
         {
           K = 1;
@@ -202,7 +202,7 @@ func main()
             continue;
           }
           {
-            var k = 1;
+            var k: dynamic = 1;
             while ((k <= n))
             {
               if (((i == k) || (j == k)))
@@ -225,7 +225,7 @@ func main()
             continue;
           }
           {
-            var k = 1;
+            var k: dynamic = 1;
             while ((k <= n))
             {
               if (intersect(v[i], v[j], v[k], v[nx[k]]))

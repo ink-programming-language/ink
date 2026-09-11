@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func compute(ds: dynamic, dt: dynamic, ans: dynamic, flg: dynamic)
+func compute(ds: dynamic, dt: dynamic, ans: dynamic, flg: dynamic) -> dynamic
 {
-  var swp = 0;
-  var totlens = 0;
-  var totlent = 0;
-  for (var x in ds)
+  var swp: dynamic = 0;
+  var totlens: dynamic = 0;
+  var totlent: dynamic = 0;
+  for (var x: dynamic in ds)
   {
     totlens += x.second;
   }
-  for (var x in dt)
+  for (var x: dynamic in dt)
   {
     totlent += x.second;
   }
-  var perform = __cpp_lambda_1;
+  var perform: dynamic = __cpp_lambda_1;
   if ((ds[0].first == dt[0].first))
   {
     if ((ds.size() > dt.size()))
@@ -22,7 +22,7 @@ func compute(ds: dynamic, dt: dynamic, ans: dynamic, flg: dynamic)
       swap(ds, dt);
       swp ^= 1;
     }
-    var r = (((int_cpp(dt.size()) - int_cpp(ds.size()))) / 2);
+    var r: dynamic = (((int_cpp(dt.size()) - int_cpp(ds.size()))) / 2);
     if ((r & 1))
     {
       perform(0, r);
@@ -66,17 +66,17 @@ func compute(ds: dynamic, dt: dynamic, ans: dynamic, flg: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
   write(setprecision(32));
-  var s: dynamic;
-  var t: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(s, t);
-  var ds: dynamic;
-  var dt: dynamic;
-  for (var ch in s)
+  var ds: dynamic = cpp_uninitialized();
+  var dt: dynamic = cpp_uninitialized();
+  for (var ch: dynamic in s)
   {
     if ((ds.empty() || (ds.back().first != ch)))
     {
@@ -86,7 +86,7 @@ func main()
       ds.back().second += 1;
     }
   }
-  for (var ch in t)
+  for (var ch: dynamic in t)
   {
     if ((dt.empty() || (dt.back().first != ch)))
     {
@@ -96,7 +96,7 @@ func main()
       dt.back().second += 1;
     }
   }
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   if ((ds.front().first != dt.front().first))
   {
     compute(ds, dt, ans, false);
@@ -106,7 +106,7 @@ func main()
     reverse(dt.begin(), dt.end());
     compute(ds, dt, ans, true);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < ans.size()))
       {
         swap(ans[i][0], ans[i][1]);
@@ -118,21 +118,21 @@ func main()
     compute(ds, dt, ans, false);
   }
   write(ans.size(), cpp_char("\n"));
-  for (var x in ans)
+  for (var x: dynamic in ans)
   {
     write(x[0], " ", x[1], cpp_char("\n"));
   }
   return 0;
 }
 
-func __cpp_lambda_1(blks: dynamic, blkt: dynamic)
+func __cpp_lambda_1(blks: dynamic, blkt: dynamic) -> dynamic
 {
-  var lens = 0;
-  var lent = 0;
-  var vs: dynamic;
-  var vt: dynamic;
+  var lens: dynamic = 0;
+  var lent: dynamic = 0;
+  var vs: dynamic = cpp_uninitialized();
+  var vt: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < blks))
     {
       vs.push_back(ds.front());
@@ -142,7 +142,7 @@ func __cpp_lambda_1(blks: dynamic, blkt: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < blkt))
     {
       vt.push_back(dt.front());

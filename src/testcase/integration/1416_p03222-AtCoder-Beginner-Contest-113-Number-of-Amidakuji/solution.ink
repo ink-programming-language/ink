@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
-  var H: dynamic;
-  var W: dynamic;
-  var K: dynamic;
+  var H: dynamic = cpp_uninitialized();
+  var W: dynamic = cpp_uninitialized();
+  var K: dynamic = cpp_uninitialized();
   scanf("%zu %zu %zu", (&H), (&W), (&K));
-  var dp = cpp_construct((H + 1), vector(W));
+  var dp: dynamic = cpp_construct((H + 1), vector(W));
   dp[0][0] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < H))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < W))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < ((1 << ((W - 1))))))
             {
               if ((k & ((k >> 1))))

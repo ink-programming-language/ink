@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func gi()
+func gi() -> dynamic
 {
-  var w = 0;
-  var q = 1;
-  var c = getchar();
+  var w: dynamic = 0;
+  var q: dynamic = 1;
+  var c: dynamic = getchar();
   while (((((c < cpp_char("0")) || (c > cpp_char("9")))) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -19,30 +19,30 @@ func gi()
     w = (((w * 10) + c) - cpp_char("0"));
     c = getchar();
   }
-  return if (q) w else (-w);
+  return  (q) ? w : (-w);
 }
 
-var N = (2e5 + 100);
+var N: dynamic = (2e5 + 100);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var fa = cpp_array(N);
+var fa: dynamic = cpp_array(N);
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
-  return if ((fa[x] == x)) x else cpp_assign(fa[x], "=", find(fa[x]));
+  return  ((fa[x] == x)) ? x : cpp_assign(fa[x], "=", find(fa[x]));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n = gi();
-  var i: dynamic;
-  var m = 0;
-  var tot: dynamic;
+  var n: dynamic = gi();
+  var i: dynamic = cpp_uninitialized();
+  var m: dynamic = 0;
+  var tot: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))
@@ -71,7 +71,7 @@ func main()
       i += 1;
     }
   }
-  for (var p in tot)
+  for (var p: dynamic in tot)
   {
     if (p.second)
     {
@@ -88,7 +88,7 @@ func main()
       i += 1;
     }
   }
-  var ans = m;
+  var ans: dynamic = m;
   {
     i = 1;
     while ((i <= n))

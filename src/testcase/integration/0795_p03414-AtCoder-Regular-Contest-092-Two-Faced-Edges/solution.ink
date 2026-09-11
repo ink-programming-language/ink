@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(1010, 1010, 2);
+var dp: dynamic = cpp_array(1010, 1010, 2);
 
-var pv = cpp_array(1010, 1010);
+var pv: dynamic = cpp_array(1010, 1010);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(a[i], b[i]);
@@ -20,7 +20,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       G[a[i]].emplace_back(b[i]);
@@ -29,9 +29,9 @@ func main()
   }
   memset(dp, 0, cpp_sizeof((dp)));
   memset(pv, -1, cpp_sizeof((pv)));
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       pv[a[i]][b[i]] = i;
@@ -42,18 +42,18 @@ func main()
   }
   while ((!q.empty()))
   {
-    var t: dynamic;
-    var x: dynamic;
-    var y: dynamic;
+    var t: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     tie(t, x, y) = q.front();
     q.pop();
-    for (var z in G[y])
+    for (var z: dynamic in G[y])
     {
       if ((x == z))
       {
         continue;
       }
-      var nt = (t || (((~pv[x][z]) && (pv[x][y] != pv[x][z]))));
+      var nt: dynamic = (t || (((~pv[x][z]) && (pv[x][y] != pv[x][z]))));
       if (dp[nt][x][z])
       {
         continue;
@@ -67,12 +67,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var s = dp[1][a[i]][b[i]];
-      var t = (dp[0][b[i]][a[i]] | dp[1][b[i]][a[i]]);
-      write((if ((s ^ t)) "diff" else "same"), "\n");
+      var s: dynamic = dp[1][a[i]][b[i]];
+      var t: dynamic = (dp[0][b[i]][a[i]] | dp[1][b[i]][a[i]]);
+      write(( ((s ^ t)) ? "diff" : "same"), "\n");
       i += 1;
     }
   }

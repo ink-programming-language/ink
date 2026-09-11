@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var INF = INT_MAX;
+var INF: dynamic = INT_MAX;
 
-var LINF = LLONG_MAX;
+var LINF: dynamic = LLONG_MAX;
 
-var N = (1e4 + 20);
+var N: dynamic = (1e4 + 20);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func solve(l: dynamic, r: dynamic)
+func solve(l: dynamic, r: dynamic) -> dynamic
 {
   if (((r - l) < 2))
   {
     return;
   }
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   solve(l, mid);
   solve(mid, r);
-  var x = a[mid].first;
+  var x: dynamic = a[mid].first;
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i < r))
     {
       s.insert(make_pair(x, a[i].second));
@@ -34,14 +34,14 @@ func solve(l: dynamic, r: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i].first, a[i].second);
@@ -52,7 +52,7 @@ func main()
   sort(a, (a + n));
   solve(0, n);
   write(s.size(), "\n");
-  for (var x in s)
+  for (var x: dynamic in s)
   {
     write(x.first, cpp_char(" "), x.second, "\n");
   }

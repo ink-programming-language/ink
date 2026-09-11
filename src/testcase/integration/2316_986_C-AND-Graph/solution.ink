@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var MAXN = (1 << (22 + 1));
+var MAXN: dynamic = (1 << (22 + 1));
 
-var pai = cpp_array(MAXN);
+var pai: dynamic = cpp_array(MAXN);
 
-var ranki = cpp_array(MAXN);
+var ranki: dynamic = cpp_array(MAXN);
 
-var tmp = cpp_array(MAXN);
+var tmp: dynamic = cpp_array(MAXN);
 
-var pd = cpp_array(MAXN);
+var pd: dynamic = cpp_array(MAXN);
 
-var inp = cpp_array(MAXN);
+var inp: dynamic = cpp_array(MAXN);
 
 class ConjDisj
 {
-  var n: dynamic;
-  func ConjDisj(N: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  func ConjDisj(N: dynamic) -> dynamic
   {
       {
-        var i = 0;
-        var n = N;
+        var i: dynamic = 0;
+        var n: dynamic = N;
         while ((i < n))
         {
           pai[i] = i;
@@ -28,7 +28,7 @@ class ConjDisj
         }
       }
     }
-  func busca(x: dynamic)
+  func busca(x: dynamic) -> dynamic
   {
       if ((x != pai[x]))
       {
@@ -36,14 +36,14 @@ class ConjDisj
       }
       return pai[x];
     }
-  func uniao(a: dynamic, b: dynamic)
+  func uniao(a: dynamic, b: dynamic) -> dynamic
   {
       if (((!inp[a]) || (!inp[b])))
       {
         return;
       }
-      var paiA = busca(a);
-      var paiB = busca(b);
+      var paiA: dynamic = busca(a);
+      var paiB: dynamic = busca(b);
       if ((ranki[paiA] < ranki[paiB]))
       {
         pai[paiA] = paiB;
@@ -58,19 +58,19 @@ class ConjDisj
     }
 }
 
-var cd = cpp_construct((MAXN - 1));
+var cd: dynamic = cpp_construct((MAXN - 1));
 
-func solve(mask: dynamic, W: dynamic)
+func solve(mask: dynamic, W: dynamic) -> dynamic
 {
   if ((!pd[mask]))
   {
     {
-      var i = (1 << 21);
+      var i: dynamic = (1 << 21);
       while ((i > 0))
       {
         if ((i & mask))
         {
-          var nmask = (mask ^ i);
+          var nmask: dynamic = (mask ^ i);
           cd.uniao(W, nmask);
           solve(nmask, W);
         }
@@ -82,24 +82,24 @@ func solve(mask: dynamic, W: dynamic)
   return pd[mask];
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf(" %d %d", (&n), (&m));
   memset(pd, 0, cpp_sizeof(pd));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf(" %d", (&x));
       inp[x] = true;
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (1 << 22)))
     {
       if ((!inp[i]))
@@ -107,15 +107,15 @@ func main()
         i += 1;
         continue;
       }
-      var x = i;
-      var w = (((((1 << 22)) - 1)) ^ x);
+      var x: dynamic = i;
+      var w: dynamic = (((((1 << 22)) - 1)) ^ x);
       cd.uniao(x, w);
       solve(w, x);
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (1 << 22)))
     {
       if (inp[i])
@@ -125,9 +125,9 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (1 << 22)))
     {
       if (tmp[i])

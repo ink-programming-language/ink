@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var cr: dynamic;
-  var S: dynamic;
-  var L: dynamic;
-  var H: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var cr: dynamic = cpp_uninitialized();
+  var S: dynamic = cpp_uninitialized();
+  var L: dynamic = cpp_uninitialized();
+  var H: dynamic = cpp_uninitialized();
   read(a, b, c);
   cr = (((acos(-1.0) * c)) / 180.0);
   S = (((0.5 * a) * b) * sin(cr));

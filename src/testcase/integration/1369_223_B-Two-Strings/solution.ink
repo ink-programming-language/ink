@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var last = cpp_array(26);
+var last: dynamic = cpp_array(26);
 
-var G = cpp_array(26);
+var G: dynamic = cpp_array(26);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var lc = cpp_array(N);
+var lc: dynamic = cpp_array(N);
 
-var rc = cpp_array(N);
+var rc: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   read(a, b);
-  var m = strlen(b);
+  var m: dynamic = strlen(b);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       G[(b[i] - cpp_char("a"))].push_back(i);
@@ -29,20 +29,20 @@ func main()
     }
   }
   memset(last, -1, cpp_sizeof((last)));
-  var n = strlen(a);
+  var n: dynamic = strlen(a);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x = (a[i] - cpp_char("a"));
+      var x: dynamic = (a[i] - cpp_char("a"));
       lc[i] = last[x];
-      var p = (last[x] + 1);
+      var p: dynamic = (last[x] + 1);
       if ((p == G[x].size()))
       {
         i += 1;
         continue;
       }
-      var pos = G[x][p];
+      var pos: dynamic = G[x][p];
       if (((0 == pos) || vis[(pos - 1)]))
       {
         lc[i] = cpp_update(last[x], "++");
@@ -53,7 +53,7 @@ func main()
   }
   memset(vis, 0, cpp_sizeof((vis)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       last[i] = G[i].size();
@@ -61,18 +61,18 @@ func main()
     }
   }
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
-      var x = (a[i] - cpp_char("a"));
+      var x: dynamic = (a[i] - cpp_char("a"));
       rc[i] = last[x];
-      var p = (last[x] - 1);
+      var p: dynamic = (last[x] - 1);
       if ((p == -1))
       {
         i -= 1;
         continue;
       }
-      var pos = G[x][p];
+      var pos: dynamic = G[x][p];
       if ((((pos + 1) == m) || vis[(pos + 1)]))
       {
         rc[i] = cpp_update(last[x], "--");
@@ -81,9 +81,9 @@ func main()
       i -= 1;
     }
   }
-  var flag = 1;
+  var flag: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((lc[i] < rc[i]))
@@ -93,5 +93,5 @@ func main()
       i += 1;
     }
   }
-  puts(if (flag) "Yes" else "No");
+  puts( (flag) ? "Yes" : "No");
 }

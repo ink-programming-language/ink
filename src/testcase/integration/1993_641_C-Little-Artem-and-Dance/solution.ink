@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var b = cpp_array(1100000);
+var b: dynamic = cpp_array(1100000);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var q: dynamic;
-  var odd: dynamic;
-  var even: dynamic;
-  var p1: dynamic;
-  var p2: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var odd: dynamic = cpp_uninitialized();
+  var even: dynamic = cpp_uninitialized();
+  var p1: dynamic = cpp_uninitialized();
+  var p2: dynamic = cpp_uninitialized();
   while ((scanf("%d %d", (&n), (&q)) != EOF))
   {
     memset(b, 0, cpp_sizeof((b)));
@@ -17,8 +17,8 @@ func main()
     even = 1;
     while (cpp_update(q, "--"))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       if ((x == 1))
       {
@@ -38,7 +38,7 @@ func main()
         }
       }
     }
-    var cnt = 1;
+    var cnt: dynamic = 1;
     while ((cnt <= n))
     {
       b[odd] = cpp_update(cnt, "++");
@@ -47,7 +47,7 @@ func main()
       even = ((((even + 2) + n)) % n);
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         printf("%d ", b[i]);

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var res = 0;
-  var fh = 1;
-  var ch = getchar();
+  var res: dynamic = 0;
+  var fh: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((((ch > cpp_char("9")) || (ch < cpp_char("0")))) && (ch != cpp_char("-"))))
   {
     ch = getchar();
@@ -22,54 +22,54 @@ func read()
   return (fh * res);
 }
 
-var maxn = 16;
+var maxn: dynamic = 16;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var mxs: dynamic;
+var mxs: dynamic = cpp_uninitialized();
 
-var sum = cpp_array((((1 << 16)) + 12));
+var sum: dynamic = cpp_array((((1 << 16)) + 12));
 
-var a = cpp_array(maxn, maxn);
+var a: dynamic = cpp_array(maxn, maxn);
 
-var f = cpp_array(maxn, ((1 << maxn)));
+var f: dynamic = cpp_array(maxn, ((1 << maxn)));
 
-func Max(a: dynamic, b: dynamic)
+func Max(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a > b)) a else b;
+  return  ((a > b)) ? a : b;
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   m = read();
   mxs = (((1 << n)) - 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var x = (read() - 1);
-      var y = (read() - 1);
-      var z = read();
+      var x: dynamic = (read() - 1);
+      var y: dynamic = (read() - 1);
+      var z: dynamic = read();
       a[x][y] = cpp_assign(a[y][x], "=", z);
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= mxs))
     {
       sum[i] = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if (((i & ((1 << j)))))
           {
             {
-              var k = (j + 1);
+              var k: dynamic = (j + 1);
               while ((k < n))
               {
                 if (((i & ((1 << k)))))
@@ -89,11 +89,11 @@ func main()
   memset(f, -1, cpp_sizeof(f));
   f[1][0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= mxs))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((f[i][j] == -1))
@@ -107,7 +107,7 @@ func main()
             continue;
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < n))
             {
               if ((a[j][k] && ((!((i & ((1 << k))))))))
@@ -117,13 +117,13 @@ func main()
               k += 1;
             }
           }
-          var c = (((mxs - i)) | ((1 << j)));
+          var c: dynamic = (((mxs - i)) | ((1 << j)));
           {
-            var k = c;
+            var k: dynamic = c;
             while ((k >= 0))
             {
               f[(i | k)][j] = Max((f[i][j] + sum[k]), f[(i | k)][j]);
-              k = (if ((k == 0)) -1 else (((k - 1)) & c));
+              k = ( ((k == 0)) ? -1 : (((k - 1)) & c));
             }
           }
           j += 1;
@@ -132,9 +132,9 @@ func main()
       i += 2;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = (((mxs >> 1)) + 2);
+    var i: dynamic = (((mxs >> 1)) + 2);
     while ((i <= mxs))
     {
       ans = Max(ans, f[i][(n - 1)]);

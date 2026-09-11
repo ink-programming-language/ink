@@ -2,21 +2,21 @@
 
 class custom_hash
 {
-  func splitmix64(x: dynamic)
+  func splitmix64(x: dynamic) -> dynamic
   {
       x += 0x9e3779b97f4a7c15;
       x = (((x ^ ((x >> 30)))) * 0xbf58476d1ce4e5b9);
       x = (((x ^ ((x >> 27)))) * 0x94d049bb133111eb);
       return (x ^ ((x >> 31)));
     }
-  func operator_call(x: dynamic)
+  func operator_call(x: dynamic) -> dynamic
   {
-      var FIXED_RANDOM = chrono.steady_clock.now().time_since_epoch().count();
+      var FIXED_RANDOM: dynamic = chrono.steady_clock.now().time_since_epoch().count();
       return splitmix64((x + FIXED_RANDOM));
     }
 }
 
-func isPrime(n: dynamic)
+func isPrime(n: dynamic) -> dynamic
 {
   if ((n <= 1))
   {
@@ -31,7 +31,7 @@ func isPrime(n: dynamic)
     return false;
   }
   {
-    var i = 5;
+    var i: dynamic = 5;
     while (((i * i) <= n))
     {
       if ((((n % i) == 0) || ((n % ((i + 2))) == 0)))
@@ -44,14 +44,14 @@ func isPrime(n: dynamic)
   return true;
 }
 
-func nextPrime(N: dynamic)
+func nextPrime(N: dynamic) -> dynamic
 {
   if ((N <= 1))
   {
     return 2;
   }
-  var prime = N;
-  var found = false;
+  var prime: dynamic = N;
+  var found: dynamic = false;
   while ((!found))
   {
     prime += 1;
@@ -63,7 +63,7 @@ func nextPrime(N: dynamic)
   return prime;
 }
 
-func fact(n: dynamic)
+func fact(n: dynamic) -> dynamic
 {
   if ((n == 1))
   {
@@ -72,12 +72,12 @@ func fact(n: dynamic)
   return (n * fact((n - 1)));
 }
 
-func cl(n: dynamic, d: dynamic)
+func cl(n: dynamic, d: dynamic) -> dynamic
 {
   return ((((n + d) - 1)) / d);
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -86,14 +86,14 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a * b)) / (gcd(a, b)));
 }
 
-func Pow(x: dynamic, n: dynamic)
+func Pow(x: dynamic, n: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while (n)
   {
     if ((n & 1))
@@ -106,17 +106,17 @@ func Pow(x: dynamic, n: dynamic)
   return ans;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var k: dynamic;
-  var i: dynamic;
+  var k: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   read(k);
   if ((!k))
   {
     write(cpp_char("a"));
     return;
   }
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
     i = 2000;
     while ((i >= 2))
@@ -129,8 +129,8 @@ func solve()
       i -= 1;
     }
   }
-  var c = cpp_char("a");
-  for (var x in v)
+  var c: dynamic = cpp_char("a");
+  for (var x: dynamic in v)
   {
     {
       i = 0;
@@ -144,11 +144,11 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   t = 1;
   while (cpp_update(t, "--"))
   {

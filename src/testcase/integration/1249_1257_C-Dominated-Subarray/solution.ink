@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b > a))
   {
     return gcd(b, a);
   }
-  return if ((b == 0)) a else gcd(b, (a % b));
+  return  ((b == 0)) ? a : gcd(b, (a % b));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var t: dynamic;
-  var n: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     read(n);
-    var a = cpp_array((n + 1));
+    var a: dynamic = cpp_array((n + 1));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < (n + 1)))
       {
         read(a[i]);
         i += 1;
       }
     }
-    var count: dynamic;
-    var ans = n;
-    var d = 0;
+    var count: dynamic = cpp_uninitialized();
+    var ans: dynamic = n;
+    var d: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < (n + 1)))
       {
         if (count[a[i]])

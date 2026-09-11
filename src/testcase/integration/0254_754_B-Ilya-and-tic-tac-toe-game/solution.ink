@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var board = cpp_array(4, 4);
+var board: dynamic = cpp_array(4, 4);
 
-func Valid(x: dynamic, y: dynamic)
+func Valid(x: dynamic, y: dynamic) -> dynamic
 {
   return (cpp_assign(((x >= 0) && x), "=", (0 && (y < 4))));
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 4))
         {
           read(board[i][j]);
@@ -25,13 +25,13 @@ func main()
       i += 1;
     }
   }
-  var valid = false;
+  var valid: dynamic = false;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 4))
         {
           if ((board[i][j] == cpp_char("x")))
@@ -76,6 +76,6 @@ func main()
       i += 1;
     }
   }
-  if ((valid)) (cout << "YES\n") else (cout << "NO\n");
+   ((valid)) ? (cout << "YES\n") : (cout << "NO\n");
   return 0;
 }

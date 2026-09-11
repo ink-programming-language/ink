@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func down(a: dynamic, b: dynamic)
+func down(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -8,61 +8,61 @@ func down(a: dynamic, b: dynamic)
   }
 }
 
-var maxn = 2100;
+var maxn: dynamic = 2100;
 
-var maxm = 110000;
+var maxm: dynamic = 110000;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var e = cpp_array(3, maxm);
+var e: dynamic = cpp_array(3, maxm);
 
-var ok = cpp_array(maxm);
+var ok: dynamic = cpp_array(maxm);
 
-var t = cpp_array(maxm);
+var t: dynamic = cpp_array(maxm);
 
-var tp: dynamic;
+var tp: dynamic = cpp_uninitialized();
 
 class edge
 {
-  var y: dynamic;
-  var i: dynamic;
-  var nex: dynamic;
+  var y: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var nex: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(maxm);
+var a: dynamic = cpp_array(maxm);
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var fir = cpp_array(maxn);
+var fir: dynamic = cpp_array(maxn);
 
-func ins(x: dynamic, y: dynamic, i: dynamic)
+func ins(x: dynamic, y: dynamic, i: dynamic) -> dynamic
 {
   a[cpp_update(len, "++")] = [y, i, fir[x]];
   fir[x] = len;
 }
 
-var dfn = cpp_array(maxn);
+var dfn: dynamic = cpp_array(maxn);
 
-var low = cpp_array(maxn);
+var low: dynamic = cpp_array(maxn);
 
-var dfi: dynamic;
+var dfi: dynamic = cpp_uninitialized();
 
-var ib = cpp_array(maxm);
+var ib: dynamic = cpp_array(maxm);
 
-var fa = cpp_array(maxn);
+var fa: dynamic = cpp_array(maxn);
 
-var fai = cpp_array(maxn);
+var fai: dynamic = cpp_array(maxn);
 
-func init()
+func init() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dfn[i] = cpp_assign(fa[i], "=", cpp_assign(fai[i], "=", 0));
@@ -70,7 +70,7 @@ func init()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       ib[i] = 0;
@@ -80,12 +80,12 @@ func init()
   dfi = 0;
 }
 
-func tarjan(x: dynamic)
+func tarjan(x: dynamic) -> dynamic
 {
   dfn[x] = cpp_assign(low[x], "=", cpp_update(dfi, "++"));
   {
-    var k = fir[x];
-    var y = a[k].y;
+    var k: dynamic = fir[x];
+    var y: dynamic = a[k].y;
     while (k)
     {
       if (((a[k].i != fai[x]) && (!ok[a[k].i])))
@@ -111,18 +111,18 @@ func tarjan(x: dynamic)
   }
 }
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var ansn: dynamic;
+var ansn: dynamic = cpp_uninitialized();
 
-var re = cpp_array(10);
+var re: dynamic = cpp_array(10);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   scanf("%d%d", (&S), (&T));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d%d%d", (&e[i][0]), (&e[i][1]), (&e[i][2]));
@@ -142,10 +142,10 @@ func main()
   }
   ans = INT_MAX;
   {
-    var i = T;
+    var i: dynamic = T;
     while ((i != S))
     {
-      var k = fai[i];
+      var k: dynamic = fai[i];
       if (ib[k])
       {
         if ((ans > e[k][2]))
@@ -161,17 +161,17 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= tp))
     {
       ok[t[i]] = 1;
       init();
       tarjan(S);
       {
-        var j = T;
+        var j: dynamic = T;
         while ((j != S))
         {
-          var k = fai[j];
+          var k: dynamic = fai[j];
           if (ib[k])
           {
             if ((ans > (e[t[i]][2] + e[k][2])))
@@ -197,7 +197,7 @@ func main()
     printf("%d\n", ans);
     printf("%d\n", ansn);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= ansn))
       {
         printf("%d ", re[i]);

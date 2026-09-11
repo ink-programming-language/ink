@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(16);
+var a: dynamic = cpp_array(16);
 
-var b = cpp_array(16);
+var b: dynamic = cpp_array(16);
 
-var f = cpp_array((1 << 16));
+var f: dynamic = cpp_array((1 << 16));
 
-var vis = cpp_array(16);
+var vis: dynamic = cpp_array(16);
 
-func solve(s: dynamic, i: dynamic)
+func solve(s: dynamic, i: dynamic) -> dynamic
 {
   if ((!((s & ((s - 1))))))
   {
     return;
   }
   {
-    var u = 0;
+    var u: dynamic = 0;
     while ((u <= (n - 1)))
     {
       if (((((s >> u) & 1) && (a[u] < i)) && f[(s ^ ((1 << u)))][(i - a[u])]))
@@ -32,7 +32,7 @@ func solve(s: dynamic, i: dynamic)
   }
   solve(s, (i * k));
   {
-    var u = 0;
+    var u: dynamic = 0;
     while ((u <= (n - 1)))
     {
       if (((s >> u) & 1))
@@ -44,11 +44,11 @@ func solve(s: dynamic, i: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&k));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       scanf("%d", (a + i));
@@ -56,7 +56,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       f[(1 << i)][a[i]] = 1;
@@ -64,14 +64,14 @@ func main()
     }
   }
   {
-    var s = 1;
+    var s: dynamic = 1;
     while ((s <= (((1 << n)) - 1)))
     {
       if ((s & ((s - 1))))
       {
-        var z = 0;
+        var z: dynamic = 0;
         {
-          var u = 0;
+          var u: dynamic = 0;
           while ((u <= (n - 1)))
           {
             if (((s >> u) & 1))
@@ -83,7 +83,7 @@ func main()
           }
         }
         {
-          var i = (z / k);
+          var i: dynamic = (z / k);
           while ((i >= 1))
           {
             if (f[s][(i * k)])
@@ -104,12 +104,12 @@ func main()
   puts("YES");
   solve((((1 << n)) - 1), 1);
   {
-    var T = 1;
+    var T: dynamic = 1;
     while ((T <= (n - 1)))
     {
-      var mx = 0;
+      var mx: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= (n - 1)))
         {
           if ((!vis[i]))
@@ -119,10 +119,10 @@ func main()
           i += 1;
         }
       }
-      var x = -1;
-      var y = -1;
+      var x: dynamic = -1;
+      var y: dynamic = -1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= (n - 1)))
         {
           if (((!vis[i]) && (mx == b[i])))

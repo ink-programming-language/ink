@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < (i + 4)))
         {
           if ((j >= s.size()))
@@ -38,7 +38,7 @@ func main()
             break;
           }
           {
-            var k = (j + 1);
+            var k: dynamic = (j + 1);
             while ((k < (j + 4)))
             {
               if ((k >= s.size()))
@@ -46,7 +46,7 @@ func main()
                 break;
               }
               {
-                var l = (k + 1);
+                var l: dynamic = (k + 1);
                 while ((l < (k + 4)))
                 {
                   if (((l + 1) != s.size()))
@@ -62,12 +62,12 @@ func main()
                   {
                     break;
                   }
-                  var a = 0;
-                  var b = 0;
-                  var c = 0;
-                  var d = 0;
+                  var a: dynamic = 0;
+                  var b: dynamic = 0;
+                  var c: dynamic = 0;
+                  var d: dynamic = 0;
                   {
-                    var m = 0;
+                    var m: dynamic = 0;
                     while ((m <= i))
                     {
                       a *= 10;
@@ -76,7 +76,7 @@ func main()
                     }
                   }
                   {
-                    var m = (i + 1);
+                    var m: dynamic = (i + 1);
                     while ((m <= j))
                     {
                       b *= 10;
@@ -85,7 +85,7 @@ func main()
                     }
                   }
                   {
-                    var m = (j + 1);
+                    var m: dynamic = (j + 1);
                     while ((m <= k))
                     {
                       c *= 10;
@@ -94,7 +94,7 @@ func main()
                     }
                   }
                   {
-                    var m = (k + 1);
+                    var m: dynamic = (k + 1);
                     while ((m <= l))
                     {
                       d *= 10;

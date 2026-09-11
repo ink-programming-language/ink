@@ -1,46 +1,46 @@
 // Translated from solution.cpp.
 
-var N = (1e6 + 10);
+var N: dynamic = (1e6 + 10);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var mod2 = 998244353;
+var mod2: dynamic = 998244353;
 
-var inf = 8e18;
+var inf: dynamic = 8e18;
 
-var LOG = 22;
+var LOG: dynamic = 22;
 
-func pw(a: dynamic, b: dynamic, M: dynamic)
+func pw(a: dynamic, b: dynamic, M: dynamic) -> dynamic
 {
-  return (if ((!b)) 1 else (if ((b & 1)) (((a * pw(((a * a) % M), (b / 2), M))) % M) else pw(((a * a) % M), (b / 2), M)));
+  return ( ((!b)) ? 1 : ( ((b & 1)) ? (((a * pw(((a * a) % M), (b / 2), M))) % M) : pw(((a * a) % M), (b / 2), M)));
 }
 
-var C = cpp_array(N);
+var C: dynamic = cpp_array(N);
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var A = cpp_array(N);
+var A: dynamic = cpp_array(N);
 
-var hide = cpp_array(N);
+var hide: dynamic = cpp_array(N);
 
-var sub = cpp_array(N);
+var sub: dynamic = cpp_array(N);
 
-var mask = cpp_array(N);
+var mask: dynamic = cpp_array(N);
 
-var T = cpp_array(((1 << LOG)));
+var T: dynamic = cpp_array(((1 << LOG)));
 
-var G = cpp_array(N);
+var G: dynamic = cpp_array(N);
 
-var vec: dynamic;
+var vec: dynamic = cpp_uninitialized();
 
-func dfs(v: dynamic, P: dynamic)
+func dfs(v: dynamic, P: dynamic) -> dynamic
 {
   sub[v] = 1;
-  for (var u in G[v])
+  for (var u: dynamic in G[v])
   {
     if ((hide[u] || (u == P)))
     {
@@ -51,9 +51,9 @@ func dfs(v: dynamic, P: dynamic)
   }
 }
 
-func find(v: dynamic, P: dynamic, n: dynamic)
+func find(v: dynamic, P: dynamic, n: dynamic) -> dynamic
 {
-  for (var u in G[v])
+  for (var u: dynamic in G[v])
   {
     if ((hide[u] || (u == P)))
     {
@@ -67,12 +67,12 @@ func find(v: dynamic, P: dynamic, n: dynamic)
   return v;
 }
 
-func pre(v: dynamic, P: dynamic)
+func pre(v: dynamic, P: dynamic) -> dynamic
 {
   sum[v] = 0;
   mask[v] = (A[v] ^ mask[P]);
   T[mask[v]] += 1;
-  for (var u in G[v])
+  for (var u: dynamic in G[v])
   {
     if ((hide[u] || (u == P)))
     {
@@ -82,11 +82,11 @@ func pre(v: dynamic, P: dynamic)
   }
 }
 
-func clear(v: dynamic, P: dynamic)
+func clear(v: dynamic, P: dynamic) -> dynamic
 {
   sum[v] = 0;
   T[mask[v]] -= 1;
-  for (var u in G[v])
+  for (var u: dynamic in G[v])
   {
     if ((hide[u] || (u == P)))
     {
@@ -96,10 +96,10 @@ func clear(v: dynamic, P: dynamic)
   }
 }
 
-func erase(v: dynamic, P: dynamic)
+func erase(v: dynamic, P: dynamic) -> dynamic
 {
   vec.push_back(v);
-  for (var u in G[v])
+  for (var u: dynamic in G[v])
   {
     if ((hide[u] || (u == P)))
     {
@@ -109,9 +109,9 @@ func erase(v: dynamic, P: dynamic)
   }
 }
 
-func calc(v: dynamic, P: dynamic)
+func calc(v: dynamic, P: dynamic) -> dynamic
 {
-  for (var u in G[v])
+  for (var u: dynamic in G[v])
   {
     if ((hide[u] || (u == P)))
     {
@@ -123,26 +123,26 @@ func calc(v: dynamic, P: dynamic)
   ans[v] += sum[v];
 }
 
-func dec(v: dynamic)
+func dec(v: dynamic) -> dynamic
 {
   dfs(v, 0);
-  var n = sub[v];
-  var centroid = find(v, 0, n);
+  var n: dynamic = sub[v];
+  var centroid: dynamic = find(v, 0, n);
   pre(centroid, 0);
   hide[centroid] = 1;
   T[mask[centroid]] -= 1;
   sum[centroid] += T[0];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LOG))
     {
-      var mask2 = ((1 << i));
+      var mask2: dynamic = ((1 << i));
       sum[centroid] += T[mask2];
       i += 1;
     }
   }
   T[mask[centroid]] += 1;
-  for (var u in G[centroid])
+  for (var u: dynamic in G[centroid])
   {
     if (hide[u])
     {
@@ -150,26 +150,26 @@ func dec(v: dynamic)
     }
     vec.clear();
     erase(u, 0);
-    for (var x in vec)
+    for (var x: dynamic in vec)
     {
       T[mask[x]] -= 1;
     }
-    for (var x in vec)
+    for (var x: dynamic in vec)
     {
       mask[x] ^= mask[centroid];
       sum[x] += T[mask[x]];
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < LOG))
         {
-          var mask2 = (mask[x] ^ ((1 << i)));
+          var mask2: dynamic = (mask[x] ^ ((1 << i)));
           sum[x] += T[mask2];
           i += 1;
         }
       }
       mask[x] ^= mask[centroid];
     }
-    for (var x in vec)
+    for (var x: dynamic in vec)
     {
       T[mask[x]] += 1;
     }
@@ -177,7 +177,7 @@ func dec(v: dynamic)
   calc(centroid, 0);
   ans[centroid] -= (sum[centroid] / 2);
   clear(centroid, 0);
-  for (var u in G[centroid])
+  for (var u: dynamic in G[centroid])
   {
     if (hide[u])
     {
@@ -187,15 +187,15 @@ func dec(v: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       scanf("%d%d", (&a), (&b));
       G[a].push_back(b);
       G[b].push_back(a);
@@ -204,7 +204,7 @@ func main()
   }
   scanf("%s", C);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       A[(i + 1)] = (1 << ((C[i] - cpp_char("a"))));
@@ -213,7 +213,7 @@ func main()
   }
   dec(1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%lld ", (ans[i] + 1));

@@ -1,48 +1,48 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var to = cpp_array(200050);
+var to: dynamic = cpp_array(200050);
 
-var nxt = cpp_array(200050);
+var nxt: dynamic = cpp_array(200050);
 
-var fir = cpp_array(100050);
+var fir: dynamic = cpp_array(100050);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var t1: dynamic;
+var t1: dynamic = cpp_uninitialized();
 
-var t2: dynamic;
+var t2: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var siz = cpp_array(100050);
+var siz: dynamic = cpp_array(100050);
 
-var son = cpp_array(100050);
+var son: dynamic = cpp_array(100050);
 
-var mx = cpp_array(100050);
+var mx: dynamic = cpp_array(100050);
 
-var rt: dynamic;
+var rt: dynamic = cpp_uninitialized();
 
-var rt2: dynamic;
+var rt2: dynamic = cpp_uninitialized();
 
-var dep = cpp_array(100040);
+var dep: dynamic = cpp_array(100040);
 
-func ade(x: dynamic, y: dynamic)
+func ade(x: dynamic, y: dynamic) -> dynamic
 {
   to[cpp_update(tot, "++")] = y;
   nxt[tot] = fir[x];
   fir[x] = tot;
 }
 
-func find(x: dynamic, fa: dynamic)
+func find(x: dynamic, fa: dynamic) -> dynamic
 {
   siz[x] = 1;
   mx[x] = 0;
   dep[x] = (dep[fa] + 1);
-  var bb = 1;
+  var bb: dynamic = 1;
   {
-    var k = fir[x];
+    var k: dynamic = fir[x];
     while (k)
     {
       if ((to[k] == fa))
@@ -73,9 +73,9 @@ func find(x: dynamic, fa: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
@@ -85,11 +85,11 @@ func main()
     tot = 0;
     memset(fir, 0, cpp_sizeof((fir)));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= (n - 1)))
       {
-        var x: dynamic;
-        var y: dynamic;
+        var x: dynamic = cpp_uninitialized();
+        var y: dynamic = cpp_uninitialized();
         read(x, y);
         ade(x, y);
         ade(y, x);

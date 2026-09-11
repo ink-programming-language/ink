@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(100);
+var a: dynamic = cpp_array(100);
 
-var b = cpp_array(100);
+var b: dynamic = cpp_array(100);
 
-func main()
+func main() -> dynamic
 {
-  var a = cpp_array(10);
-  var b = cpp_array(10);
+  var a: dynamic = cpp_array(10);
+  var b: dynamic = cpp_array(10);
   a[0] = 1;
   a[1] = 1;
   a[2] = 2;
   a[3] = 7;
   a[4] = 4;
-  var x: dynamic;
-  var cnt = 100000000;
+  var x: dynamic = cpp_uninitialized();
+  var cnt: dynamic = 100000000;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 5))
     {
       scanf("%d", (&x));

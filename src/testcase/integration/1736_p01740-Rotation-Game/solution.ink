@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var sv: dynamic;
+var sv: dynamic = cpp_uninitialized();
 
-var tv: dynamic;
+var tv: dynamic = cpp_uninitialized();
 
-var W = 4040;
+var W: dynamic = 4040;
 
-var dp = cpp_array(2, 4, W, W);
+var dp: dynamic = cpp_array(2, 4, W, W);
 
-var used = cpp_array(2, 4, W, W);
+var used: dynamic = cpp_array(2, 4, W, W);
 
-func solve(i: dynamic, j: dynamic, k: dynamic, f: dynamic)
+func solve(i: dynamic, j: dynamic, k: dynamic, f: dynamic) -> dynamic
 {
   if (cpp_binary((i == sv.size()), "and", (j == tv.size())))
   {
@@ -22,13 +22,13 @@ func solve(i: dynamic, j: dynamic, k: dynamic, f: dynamic)
   }
   k = min(k, (tv[j].first.first + 2));
   k = max(k, (tv[j].first.first - 1));
-  var kf = (k - ((tv[j].first.first - 1)));
+  var kf: dynamic = (k - ((tv[j].first.first - 1)));
   if (used[i][j][kf][(f + 1)])
   {
     return dp[i][j][kf][(f + 1)];
   }
   used[i][j][kf][(f + 1)] = true;
-  var re = dp[i][j][kf][(f + 1)];
+  var re: dynamic = dp[i][j][kf][(f + 1)];
   re = (1 << 28);
   if ((tv[j].second == 1))
   {
@@ -40,7 +40,7 @@ func solve(i: dynamic, j: dynamic, k: dynamic, f: dynamic)
   }
   if ((tv[j].first.first < sv[i].first.first))
   {
-    var u = (sv[i].first.first - tv[j].first.first);
+    var u: dynamic = (sv[i].first.first - tv[j].first.first);
     if (((tv[j].first.first == sv[(i - 1)].first.first) && (f != -1)))
     {
       u -= 1;
@@ -48,7 +48,7 @@ func solve(i: dynamic, j: dynamic, k: dynamic, f: dynamic)
     re = min(re, (u + solve((i + 1), (j + 1), sv[i].first.first, -1)));
   } else if ((sv[i].first.first < tv[j].first.first))
   {
-    var u = (tv[j].first.first - sv[i].first.first);
+    var u: dynamic = (tv[j].first.first - sv[i].first.first);
     if (((sv[i].first.first == sv[(i - 1)].first.first) && (f != -1)))
     {
       u -= 1;
@@ -73,18 +73,18 @@ func solve(i: dynamic, j: dynamic, k: dynamic, f: dynamic)
   return re;
 }
 
-func main()
+func main() -> dynamic
 {
-  var w: dynamic;
+  var w: dynamic = cpp_uninitialized();
   read(w);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       read(s);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           if ((s[j] == cpp_char("o")))
@@ -98,13 +98,13 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       read(s);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           if ((s[j] == cpp_char("o")))

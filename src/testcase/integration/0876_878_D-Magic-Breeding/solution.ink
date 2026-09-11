@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var s = 0;
-  var t = 1;
-  var ch = getchar();
+  var s: dynamic = 0;
+  var t: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,43 +21,43 @@ func read()
   return (s * t);
 }
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var F = cpp_array(N);
+var F: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var U: dynamic;
+var U: dynamic = cpp_uninitialized();
 
-var D: dynamic;
+var D: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N, 13);
+var a: dynamic = cpp_array(N, 13);
 
-var ID = cpp_array(13, N);
+var ID: dynamic = cpp_array(13, N);
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
   return (a[x][D] > a[y][D]);
 }
 
-func main()
+func main() -> dynamic
 {
   m = read();
   tot = cpp_assign(n, "=", read());
   q = read();
   U = (((1 << n)) - 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           a[i][j] = read();
@@ -68,11 +68,11 @@ func main()
     }
   }
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= m))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           ID[j][i] = i;
@@ -85,11 +85,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var S = 0;
+        var S: dynamic = 0;
         while ((S <= U))
         {
           if (((S >> ((i - 1))) & 1))
@@ -104,9 +104,9 @@ func main()
   }
   while (cpp_update(q, "--"))
   {
-    var op = read();
-    var x = read();
-    var y = read();
+    var op: dynamic = read();
+    var x: dynamic = read();
+    var y: dynamic = read();
     if ((op == 1))
     {
       F[cpp_update(tot, "++")] = (F[x] | F[y]);
@@ -118,8 +118,8 @@ func main()
     if ((op == 3))
     {
       {
-        var i = 1;
-        var S = 0;
+        var i: dynamic = 1;
+        var S: dynamic = 0;
         while ((i <= n))
         {
           S |= ((1 << (ID[y][i] - 1)));

@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var N = 100005;
+var N: dynamic = 100005;
 
-var v = cpp_array(5);
+var v: dynamic = cpp_array(5);
 
-var w = cpp_array(5);
+var w: dynamic = cpp_array(5);
 
-var id = cpp_array(5);
+var id: dynamic = cpp_array(5);
 
-var p1 = cpp_array(N);
+var p1: dynamic = cpp_array(N);
 
-var p2 = cpp_array(N);
+var p2: dynamic = cpp_array(N);
 
-func gcd(x: dynamic, y: dynamic)
+func gcd(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (y) gcd(y, (x % y)) else x;
+  return  (y) ? gcd(y, (x % y)) : x;
 }
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-func insert(x: dynamic, fl: dynamic)
+func insert(x: dynamic, fl: dynamic) -> dynamic
 {
   if (((!p1[x]) && (!p2[x])))
   {
-    if (fl) cpp_update(sum, "++") else cpp_update(sum, "--");
+     (fl) ? cpp_update(sum, "++") : cpp_update(sum, "--");
   }
 }
 
-func check()
+func check() -> dynamic
 {
   return (sum != 0);
 }
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-func insert(x: dynamic, fl: dynamic)
+func insert(x: dynamic, fl: dynamic) -> dynamic
 {
   if ((fl == 1))
   {
@@ -61,32 +61,32 @@ func insert(x: dynamic, fl: dynamic)
   }
 }
 
-func check()
+func check() -> dynamic
 {
   return (sum != 0);
 }
 
-var mn = cpp_array((N * 4));
+var mn: dynamic = cpp_array((N * 4));
 
-var mx = cpp_array((N * 4));
+var mx: dynamic = cpp_array((N * 4));
 
-var fl = cpp_array((N * 4));
+var fl: dynamic = cpp_array((N * 4));
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
-  var v = (((1.0 * p1[x]) * p2[y]) - ((1.0 * p1[y]) * p2[x]));
+  var v: dynamic = (((1.0 * p1[x]) * p2[y]) - ((1.0 * p1[y]) * p2[x]));
   if ((fabs(v) > 1e12))
   {
-    return if ((v > 0)) 1 else -1;
+    return  ((v > 0)) ? 1 : -1;
   }
-  var vv = ((p1[x] * p2[y]) - (p1[y] * p2[x]));
-  return (if (vv) (if ((vv > 0)) 1 else -1) else 0);
+  var vv: dynamic = ((p1[x] * p2[y]) - (p1[y] * p2[x]));
+  return ( (vv) ? ( ((vv > 0)) ? 1 : -1) : 0);
 }
 
-func pushup(k: dynamic)
+func pushup(k: dynamic) -> dynamic
 {
-  var ls = (k * 2);
-  var rs = ((k * 2) + 1);
+  var ls: dynamic = (k * 2);
+  var rs: dynamic = ((k * 2) + 1);
   fl[k] = (fl[ls] | fl[rs]);
   if (((!mn[ls]) || (!mn[rs])))
   {
@@ -110,12 +110,12 @@ func pushup(k: dynamic)
     {
       fl[k] = 1;
     }
-    mn[k] = (if ((cmp(mn[ls], mn[rs]) == -1)) mn[ls] else mn[rs]);
-    mx[k] = (if ((cmp(mx[ls], mx[rs]) == -1)) mx[rs] else mx[ls]);
+    mn[k] = ( ((cmp(mn[ls], mn[rs]) == -1)) ? mn[ls] : mn[rs]);
+    mx[k] = ( ((cmp(mx[ls], mx[rs]) == -1)) ? mx[rs] : mx[ls]);
   }
 }
 
-func insert(k: dynamic, l: dynamic, r: dynamic, x: dynamic, v: dynamic)
+func insert(k: dynamic, l: dynamic, r: dynamic, x: dynamic, v: dynamic) -> dynamic
 {
   if ((l == r))
   {
@@ -123,7 +123,7 @@ func insert(k: dynamic, l: dynamic, r: dynamic, x: dynamic, v: dynamic)
     fl[k] = 0;
     return;
   }
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   if ((x <= mid))
   {
     insert((k * 2), l, mid, x, v);
@@ -134,17 +134,17 @@ func insert(k: dynamic, l: dynamic, r: dynamic, x: dynamic, v: dynamic)
   pushup(k);
 }
 
-func insert(x: dynamic, v: dynamic)
+func insert(x: dynamic, v: dynamic) -> dynamic
 {
   insert(1, 1, (N - 1), x, v);
 }
 
-func check()
+func check() -> dynamic
 {
   return fl[1];
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d", (&v[1]), (&v[2]), (&v[3]));
   id[1] = 1;
@@ -158,12 +158,12 @@ func main()
   {
     swap(id[1], id[3]);
   }
-  var Q: dynamic;
-  var n = 0;
+  var Q: dynamic = cpp_uninitialized();
+  var n: dynamic = 0;
   scanf("%d", (&Q));
   while (cpp_update(Q, "--"))
   {
-    var s = cpp_array(10);
+    var s: dynamic = cpp_array(10);
     scanf("%s", (s + 1));
     if ((s[1] == cpp_char("A")))
     {
@@ -171,7 +171,7 @@ func main()
       n += 1;
       p1[n] = (((1 * w[id[2]]) * v[id[1]]) - ((1 * v[id[2]]) * w[id[1]]));
       p2[n] = (((1 * w[id[3]]) * v[id[1]]) - ((1 * v[id[3]]) * w[id[1]]));
-      var G = gcd(abs(p1[n]), abs(p2[n]));
+      var G: dynamic = gcd(abs(p1[n]), abs(p2[n]));
       if (G)
       {
         p1[n] /= G;
@@ -182,7 +182,7 @@ func main()
       N3.insert(n, 1);
     } else
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       N1.insert(x, 0);
       N2.insert(x, 0);

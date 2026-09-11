@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-func abs(a: dynamic)
+func abs(a: dynamic) -> dynamic
 {
-  return if ((a < 0)) (-a) else a;
+  return  ((a < 0)) ? (-a) : a;
 }
 
-func sqr(a: dynamic)
+func sqr(a: dynamic) -> dynamic
 {
   return (a * a);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var first = (((sqrt(((8.0 * n) + 1)) - 1)) / 2);
-  var out = (((first - floor(first))) * ((first + 1)));
+  var first: dynamic = (((sqrt(((8.0 * n) + 1)) - 1)) / 2);
+  var out: dynamic = (((first - floor(first))) * ((first + 1)));
   if ((out == 0))
   {
     write(cpp_cast(first));

@@ -9,180 +9,129 @@ namespace ink::parser
 {
   namespace
   {
-    using test::expectFullFidelity;
-    using test::hasKind;
-    using test::parseSource;
-
     struct ValidSyntaxCase
     {
         const char *Name;
         const char *Source;
-        std::vector<CstKind> ExpectedKinds;
+        std::vector<AstKind> ExpectedKinds;
     };
 
     void expectValidSyntax(const ValidSyntaxCase &TestCase)
     {
       SCOPED_TRACE(TestCase.Name);
-      const ParsedFile File = parseSource(TestCase.Source);
+      const ParsedFile File = test::parseSource(TestCase.Source);
       ASSERT_TRUE(File.succeeded());
       EXPECT_TRUE(test::testDiagnostics(File).empty());
       EXPECT_EQ(File.completeness(), ParseCompleteness::Complete);
-      for (CstKind Kind : TestCase.ExpectedKinds)
+      for (AstKind Kind : TestCase.ExpectedKinds)
       {
-        EXPECT_TRUE(hasKind(File, Kind)) << "missing " << cstKindName(Kind);
+        EXPECT_TRUE(test::hasKind(File, Kind)) << "missing " << astKindName(Kind);
       }
-      expectFullFidelity(File);
+      test::expectAstIntegrity(File);
     }
 
-    // Verifies absolute, relative, aliased, and selective import declarations with their distinct CST forms.
+    // Verifies single-segment, qualified, aliased, and single-member imports from the current grammar.
     TEST(ParserDeclarationSyntaxTest, ParsesEveryImportForm)
     {
       const std::vector<ValidSyntaxCase> Cases = {
-          {"AbsoluteModule", "import core.io;", {CstKind::ModuleImportDeclaration, CstKind::ModulePath}},
-          {"RelativeAlias", "import ..platform.window as window;", {CstKind::ModuleImportDeclaration, CstKind::ModulePath, CstKind::ImportAlias}},
-          {"SelectiveMembers", "from application.model import User, Session as CurrentSession;", {CstKind::MemberImportDeclaration, CstKind::ImportedMember, CstKind::ImportAlias}},
+          {"SingleModule", "import core;", {AstKind::ImportDeclaration}},
+          {"QualifiedAlias", "import platform.window as window;", {AstKind::ImportDeclaration}},
+          {"Member", "from application.model import User as CurrentUser;", {AstKind::ImportDeclaration}},
       };
-
       for (const ValidSyntaxCase &TestCase : Cases)
       {
         expectValidSyntax(TestCase);
       }
     }
 
-    // Verifies top-level and local named bindings plus tuple destructuring with type annotations and initializers.
+    // Verifies mandatory type and initializer clauses, access modifiers, wildcards, and nested tuple binding patterns.
     TEST(ParserDeclarationSyntaxTest, ParsesBindingDeclarationForms)
     {
       const std::vector<ValidSyntaxCase> Cases = {
-          {"TopLevelAccessAndType", "public const Answer: i32 = 42; private var Cache: Data; protected var Ready = true;", {CstKind::TopLevelBindingDeclaration, CstKind::AccessModifier, CstKind::NamedBindingDeclaration, CstKind::TypeSyntax}},
-          {"TopLevelTuplePattern", "const (First, Second) = Pair;", {CstKind::TopLevelBindingDeclaration, CstKind::TupleDestructuringDeclaration, CstKind::TuplePattern, CstKind::BindingPattern}},
-          {"LocalBindings", "func bindings() { var Mutable: i32 = 0; const Fixed = 1; const (Left, _) = Pair; }", {CstKind::LocalBindingDeclaration, CstKind::NamedBindingDeclaration, CstKind::TupleDestructuringDeclaration, CstKind::WildcardPattern}},
+          {"Named", "public let Answer: int32 = 42; private var Cache: Data = Default; const Ready: bool = true;", {AstKind::BindingDeclaration}},
+          {"Tuple", "let (First, (Second, _)): Pair = Input;", {AstKind::BindingDeclaration, AstKind::TuplePattern, AstKind::WildcardPattern}},
+          {"LocalAndComputed", "func bindings() -> void { var Mutable: makeType() = value; const _: int32 = 1; }", {AstKind::FunctionDeclaration, AstKind::BindingDeclaration, AstKind::CallExpression}},
       };
-
       for (const ValidSyntaxCase &TestCase : Cases)
       {
         expectValidSyntax(TestCase);
       }
     }
 
-    // Verifies function attributes, decorators, modifiers, generics, defaults, packs, receiver qualifiers, and declaration bodies.
-    TEST(ParserDeclarationSyntaxTest, ParsesFunctionAndDecoratorDeclarations)
+    // Verifies named function variants, linkage, square generic declarations, default ordering, and final parameter packs.
+    TEST(ParserDeclarationSyntaxTest, ParsesFunctionDeclarations)
     {
       const std::vector<ValidSyntaxCase> Cases = {
-          {"AnnotatedGenericFunction", "[optimize, reflect(level = 1)] @trace(kind = \"io\") public extern \"C\" static async func load<T: type, N: ptrsize = 4, Rest: type...>(path: const Data&, count: i32 = 1, values: Data...) const -> Result;", {CstKind::FunctionDeclaration, CstKind::AttributeList, CstKind::AttributeApplication, CstKind::DecoratorApplication, CstKind::ExternModifier, CstKind::FunctionModifier, CstKind::IdentifierFunctionName, CstKind::GenericParameterClause, CstKind::DefaultArgument, CstKind::ParameterPackSuffix, CstKind::FunctionParameterClause, CstKind::ReceiverQualifier, CstKind::ReturnClause}},
-          {"DecoratorDeclaration", "[meta] decorator trace(level: i32 = 1) { return; }", {CstKind::DecoratorDeclaration, CstKind::AttributeList, CstKind::FunctionDefinition, CstKind::ReturnStatement}},
-          {"ConstructorInitializers", "func initialize(value: i32) : Base(value), storage.slot(value) { return; }", {CstKind::FunctionDeclaration, CstKind::ConstructorInitializerClause, CstKind::ConstructorInitializer, CstKind::ConstructorInitializerTarget}},
-          {"DestructorName", "func ~Resource();", {CstKind::FunctionDeclaration, CstKind::DestructorFormFunctionName}},
+          {"ExternConstGeneric", "public extern \"C\" const func load[T: type, N: int32 = 4, Rest: type...](path: const ref T, count: int32 = 1, values: T...) -> Result;", {AstKind::FunctionDeclaration, AstKind::ReferenceTypeExpression}},
+          {"Method", "private class_method create[T: type](value: T) -> Self { return Self(value); }", {AstKind::FunctionDeclaration, AstKind::CallExpression}},
+          {"BareVariadic", "extern \"C\" func trace(format: Text, ...) -> void;", {AstKind::FunctionDeclaration}},
+          {"DestructuredParameter", "func sum((left, right): (int32, int32), _: bool) -> int32 { return left + right; }", {AstKind::TuplePattern, AstKind::WildcardPattern, AstKind::TupleExpression}},
       };
-
       for (const ValidSyntaxCase &TestCase : Cases)
       {
         expectValidSyntax(TestCase);
       }
     }
 
-    // Verifies class, interface, enum, nesting, inheritance, fields, enum payloads, and class type expressions.
-    TEST(ParserDeclarationSyntaxTest, ParsesNominalAndAnonymousTypeDeclarations)
+    // Verifies class, interface, and enum headers and their uniform statement bodies without premature semantic region checks.
+    TEST(ParserDeclarationSyntaxTest, ParsesNominalDeclarationsAndFieldStatements)
     {
       const std::vector<ValidSyntaxCase> Cases = {
-          {"ClassMembers", "[entity] public final class Box<T: type> : Base, Printable { public var Value: T; func get() -> T { return Value; } class Nested {} interface Contract {} enum State { Ready, Busy(i32) = 2 } }", {CstKind::ClassDeclaration, CstKind::TypeDeclarationPrefix, CstKind::ClassDefinitionTail, CstKind::TypeModifier, CstKind::InheritanceClause, CstKind::ClassMemberBlock, CstKind::FieldDeclaration, CstKind::FieldAnnotationSequence, CstKind::FieldModifierSequence, CstKind::FunctionDeclaration, CstKind::InterfaceDeclaration, CstKind::EnumDeclaration}},
-          {"InterfaceMembers", "interface Printable : Base { func print() -> void; protected var Version: i32; }", {CstKind::InterfaceDeclaration, CstKind::TypeDeclarationPrefix, CstKind::InterfaceMemberBlock, CstKind::InheritanceClause, CstKind::FunctionDeclaration, CstKind::FieldDeclaration}},
-          {"EnumPayloads", "enum Result<T: type> { [success] Success(T), Failure(i32, String) = 2, Empty }", {CstKind::EnumDeclaration, CstKind::TypeDeclarationPrefix, CstKind::EnumMemberBlock, CstKind::EnumBranch, CstKind::EnumPayloadClause, CstKind::EnumDiscriminantClause}},
-          {"AnonymousClassValue", "const Anonymous = class : Base { var Value: i32; func read() -> i32 { return Value; } };", {CstKind::ClassTypeExpression, CstKind::TypeDeclarationPrefix, CstKind::ClassDefinitionTail, CstKind::InheritanceClause, CstKind::FieldDeclaration, CstKind::FunctionDeclaration}},
+          {"Class", "public class Box[T: type] extends makeBase(T) implements Printable, Sized { private const class_field Value: T = Default; class_method get() -> T { return self.Value; } class Nested {} }", {AstKind::ClassDeclaration, AstKind::ClassFieldDeclaration, AstKind::FunctionDeclaration, AstKind::ReceiverExpression}},
+          {"Interface", "interface Container[T: type] extends First, Second { func read() -> T; interface Nested {} }", {AstKind::InterfaceDeclaration, AstKind::FunctionDeclaration}},
+          {"Enum", "enum State[T: type] : int32 implements Printable { enum_field Ready; enum_field Busy = 2; }", {AstKind::EnumDeclaration, AstKind::EnumFieldDeclaration}},
+          {"SemanticRegionChecksDeferred", "class C { return; import core; } interface I { let Value: int32 = 1; } enum E { func f() -> void; } class_field Top: int32; enum_field First;", {AstKind::ClassDeclaration, AstKind::InterfaceDeclaration, AstKind::EnumDeclaration, AstKind::ClassFieldDeclaration, AstKind::EnumFieldDeclaration}},
       };
-
       for (const ValidSyntaxCase &TestCase : Cases)
       {
         expectValidSyntax(TestCase);
       }
     }
 
-    // Verifies declarations and class-valued expressions share the required prefix and definition-tail shape while fields retain annotations, modifiers, and initializers as separate CST regions.
-    TEST(ParserDeclarationSyntaxTest, PreservesSharedClassAndFieldStructure)
-    {
-      const ParsedFile File = parseSource("[entity] public final class Box<T: type> : Base { [stored] private var Value: T = Default; } const Anonymous = [entity] final class Named<T: type> : Base { [stored] public const Value: T = Default; };");
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(test::countKind(File, CstKind::TypeDeclarationPrefix), 2u);
-      EXPECT_EQ(test::countKind(File, CstKind::ClassDefinitionTail), 2u);
-      EXPECT_EQ(test::countKind(File, CstKind::FieldAnnotationSequence), 2u);
-      EXPECT_EQ(test::countKind(File, CstKind::FieldModifierSequence), 2u);
-      EXPECT_EQ(test::countKind(File, CstKind::FieldInitializer), 2u);
-      expectFullFidelity(File);
-    }
-
-    // Verifies all runtime statement families, loops, jumps, returns, and defers.
+    // Verifies control flow, both for forms, comma-separated updates, assignments, and every defer form.
     TEST(ParserStatementSyntaxTest, ParsesRuntimeStatementFamilies)
     {
-      const ValidSyntaxCase TestCase = {"RuntimeStatements", "func statements() { var Local: i32 = 0; const Fixed = 1; Local = Fixed; Local + Fixed; if (Ready) { Local += 1; } else if (Fallback) {} else {} while (Ready) { break; continue; } for (var Item in Values) { Item; } for (const Index in Begin .. End) {} for (const _ in Values) {} return Local; defer cleanup(); defer { cleanup(); } }", {CstKind::AssignmentStatement, CstKind::ExpressionStatement, CstKind::IfStatement, CstKind::WhileStatement, CstKind::ForStatement, CstKind::ForBindingMode, CstKind::ForBindingPattern, CstKind::ForWildcardPattern, CstKind::ForRangeSource, CstKind::BreakStatement, CstKind::ContinueStatement, CstKind::ReturnStatement, CstKind::DeferStatement}};
-
+      const ValidSyntaxCase TestCase = {"Statements", "func flow() -> void { if (Ready) { break; } else if (Other) { continue; } else {} while (Ready) { tick(); } for (let (Key, Value): Entry in Items) {} for (var I: int32 = 0; I < 10; I += 1, visit(I)) {} for (First = 0, Second = 1; Ready; First += 1, Second -= 1) {} for (;;) {} defer close(); defer Value = Next; defer {} return; }", {AstKind::IfStatement, AstKind::WhileStatement, AstKind::ForStatement, AstKind::ForInStatement, AstKind::AssignmentStatement, AstKind::DeferStatement, AstKind::BreakStatement, AstKind::ContinueStatement, AstKind::ReturnStatement}};
       expectValidSyntax(TestCase);
     }
 
-    // Verifies an if followed by a value expression at statement entry remains an expression statement rather than committing to block-form control flow.
-    TEST(ParserStatementSyntaxTest, DistinguishesIfExpressionStatementsFromIfStatements)
+    // Verifies statements remain syntactically accepted at the top level and inside explicit blocks for later semantic filtering.
+    TEST(ParserStatementSyntaxTest, DefersRegionAndControlFlowLegalityToSemantics)
     {
-      const ParsedFile File = parseSource("func choose() { if (Ready) First else Second; }");
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_TRUE(hasKind(File, CstKind::ExpressionStatement));
-      EXPECT_TRUE(hasKind(File, CstKind::IfExpression));
-      EXPECT_FALSE(hasKind(File, CstKind::IfStatement));
-      expectFullFidelity(File);
+      const ValidSyntaxCase TestCase = {"UniformStatements", "return; break; continue; Value; if (Ready) {} { import core; class Nested {} }", {AstKind::ReturnStatement, AstKind::BreakStatement, AstKind::ContinueStatement, AstKind::ExpressionStatement, AstKind::IfStatement, AstKind::BlockStatement}};
+      expectValidSyntax(TestCase);
     }
 
-    // Verifies primary, unary, binary, conditional, postfix, aggregate, collection, and type-valued expressions.
+    // Verifies literals, tuples, arrays, fixed operator precedence, conditional expressions, and every shared postfix.
     TEST(ParserExpressionSyntaxTest, ParsesExpressionFamiliesAndPostfixChains)
     {
-      const ValidSyntaxCase TestCase = {"Expressions", "func expressions() { const Precedence = A + B * C << D & E ^ F | G && H || I; const Conditional = if (Ready) First else Second; const Postfix = Object.method::<T>(Value, ...Arguments, name = Named)[Index][Low:High].field->next; const Aggregate = Record { First, Second: Value }; const Tuple = (1, 2, ...Items); const Array = [1, 2, 3]; const Unary = comptime await - + ! ~ * & Value; const Literals = (true, false, null, 1, 1.0, 'a', \"text\"); const Builtins = (i32, this); const FunctionType = func(i32, ...Types) -> bool; const ConstantType = const Data*; const Anonymous = class { var Value: i32; }; }", {CstKind::BinaryExpression, CstKind::IfExpression, CstKind::CallExpression, CstKind::PositionalArgument, CstKind::NamedArgument, CstKind::ListExpansion, CstKind::BracketPostfixSuffix, CstKind::SliceExpression, CstKind::MemberExpression, CstKind::PointerMemberExpression, CstKind::GenericArgumentClause, CstKind::AggregateInitializationExpression, CstKind::AggregateFieldInitializer, CstKind::ArrayExpression, CstKind::ParenthesizedCommaList, CstKind::UnaryExpression, CstKind::ComptimeExpression, CstKind::LiteralExpression, CstKind::BuiltinTypeExpression, CstKind::ThisExpression, CstKind::FunctionTypeExpression, CstKind::ConstTypeValueExpression, CstKind::ClassTypeExpression}};
-
+      const ValidSyntaxCase TestCase = {"Expressions", "let Ordered: int32 = A + B * C << D & E ^ F | G && H || I; let Choice: T = Ready ? First : Second; let Postfix: T = Object.method::[T](Value, Arguments...)[Index].field->next; let Builtins: type = (int32, float); let Tuple: Data = (true, false, null, 1, 1.0, \"text\", self, super); let Array: Data = [1, 2, 3]; let Empty: Data = []; let Unary: int32 = comptime - + ! ~ * & Value;", {AstKind::BinaryExpression, AstKind::ConditionalExpression, AstKind::CallExpression, AstKind::IndexExpression, AstKind::MemberExpression, AstKind::GenericInstantiationExpression, AstKind::ArrayExpression, AstKind::TupleExpression, AstKind::UnaryExpression, AstKind::ComptimeExpression, AstKind::LiteralExpression, AstKind::BuiltinTypeExpression, AstKind::ReceiverExpression}};
       expectValidSyntax(TestCase);
     }
 
-    // Verifies explicit type syntax for qualifiers, tuples, functions, generics, arrays, slices, pointers, and references.
+    // Verifies all type positions parse ordinary expressions and prefix type constructors consume unary operands.
     TEST(ParserTypeSyntaxTest, ParsesTypeSyntaxFamilies)
     {
       const std::vector<ValidSyntaxCase> Cases = {
-          {"PostfixTypeForms", "func types(Value: const Map::<String, Data*>[Count][]&&) -> Result**;", {CstKind::TypeSyntax, CstKind::ConstTypeQualifier, CstKind::TypeName, CstKind::GenericArgumentClause, CstKind::BracketPostfixSuffix, CstKind::EmptyBracketTypeSuffix, CstKind::PointerTypeSuffix, CstKind::ReferenceTypeSuffix}},
-          {"TupleAndFunctionTypes", "func consume(Handler: async func((i32, String), ...Types) -> const Result&, Pair: (i32, String));", {CstKind::FunctionType, CstKind::FunctionTypeParameter, CstKind::FunctionTypeResult, CstKind::ParenthesizedCommaList, CstKind::ListExpansion, CstKind::ConstTypeQualifier}},
-          {"ParenthesizedFunctionPointer", "const Callback: type = (func(i32) -> bool)*;", {CstKind::ParenthesizedExpression, CstKind::FunctionTypeExpression, CstKind::TypeConstructorExpression, CstKind::PointerTypeSuffix}},
-          {"ConstAsyncFunctionTypeValue", "const Callback = const async func() -> bool;", {CstKind::ConstTypeQualifier, CstKind::FunctionTypeExpression, CstKind::FunctionType}},
-          {"PrefixedAnonymousClassValues", "const PublicClass = public class {}; const FinalClass = final class {};", {CstKind::ClassTypeExpression, CstKind::AccessModifier, CstKind::TypeModifier}},
-          {"ParenthesizedGenericType", "func consume(Value: (Map::<String, Vector::<i32>>));", {CstKind::ParenthesizedTypeExpression, CstKind::GenericArgumentClause}},
+          {"PrefixTypes", "func types(A: ref T, B: const ptr T, C: ptr ref T, D: (T, U), E: T[N], F: makeType()) -> Ready ? T : U;", {AstKind::ReferenceTypeExpression, AstKind::PointerTypeExpression, AstKind::TupleExpression, AstKind::IndexExpression, AstKind::CallExpression, AstKind::ConditionalExpression}},
+          {"FunctionTypes", "let A: type = func() -> void; let B: type = extern \"C\" func(int32, ptr T, ...) -> bool; let C: type = func(T...) -> (Ready ? T : U);", {AstKind::FunctionTypeExpression, AstKind::PointerTypeExpression, AstKind::ConditionalExpression}},
+          {"ComplexHeaders", "func f() -> makeType() { return value; } class C extends Ready ? Base : Other implements Contract::[T] {}", {AstKind::FunctionDeclaration, AstKind::ClassDeclaration, AstKind::CallExpression, AstKind::ConditionalExpression, AstKind::GenericInstantiationExpression}},
       };
-
       for (const ValidSyntaxCase &TestCase : Cases)
       {
         expectValidSyntax(TestCase);
       }
     }
 
-    // Verifies commas nested in generic argument clauses do not reclassify an enclosing parenthesized type as a tuple type.
-    TEST(ParserTypeSyntaxTest, KeepsGenericArgumentCommasInsideParenthesizedTypes)
-    {
-      const ParsedFile File = parseSource("func consume(Value: (Map::<String, Vector::<i32>>), FunctionResult: (Wrapper::<func() -> A, B>), LiteralTarget: (1::<func() -> A, B>));");
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_TRUE(hasKind(File, CstKind::ParenthesizedTypeExpression));
-      EXPECT_FALSE(hasKind(File, CstKind::ParenthesizedCommaList));
-      expectFullFidelity(File);
-    }
-
-    // Verifies each unified compile-time region control at top level and inside statement and member regions.
-    TEST(ParserComptimeSyntaxTest, ParsesUnifiedComptimeRegionControls)
+    // Verifies comptime wraps any complete statement while expression-position comptime stays a unary expression.
+    TEST(ParserComptimeSyntaxTest, ParsesUnifiedComptimeStatements)
     {
       const std::vector<ValidSyntaxCase> Cases = {
-          {"TopLevelBlock", "comptime { const Generated = 1; func helper(); }", {CstKind::ComptimeBlockControl, CstKind::TopLevelBlock, CstKind::TopLevelBindingDeclaration, CstKind::FunctionDeclaration}},
-          {"TopLevelIf", "comptime if (Enabled) { const Active = 1; } else if (Fallback) { const Alternate = 2; } else { const Disabled = 0; }", {CstKind::ComptimeIfControl, CstKind::TopLevelBlock}},
-          {"TopLevelFor", "comptime for (const Item in Items) { const Generated = Item; }", {CstKind::ComptimeForControl, CstKind::ForBindingMode, CstKind::ForBindingPattern, CstKind::TopLevelBlock}},
-          {"TopLevelWhile", "comptime while (Enabled) { const Generated = 1; }", {CstKind::ComptimeWhileControl, CstKind::TopLevelBlock}},
-          {"StatementRegion", "func generated() { comptime { var Local = 1; } comptime if (Enabled) { Local; } else { return; } }", {CstKind::ComptimeBlockControl, CstKind::ComptimeIfControl, CstKind::StatementBlock, CstKind::LocalBindingDeclaration}},
-          {"StatementStructuredControls", "func generated() { comptime for (const Item in Items) { Item; } comptime while (Enabled) { break; } }", {CstKind::ComptimeForControl, CstKind::ComptimeWhileControl, CstKind::StatementBlock}},
-          {"ClassMemberRegion", "class Generated { comptime if (Enabled) { var Value: i32; } else { func fallback(); } }", {CstKind::ComptimeIfControl, CstKind::ClassMemberBlock, CstKind::FieldDeclaration, CstKind::FunctionDeclaration}},
-          {"ClassStructuredControls", "class Generated { comptime for (const Item in Items) { var Repeated: i32; } comptime while (Enabled) { func waiting(); } }", {CstKind::ComptimeForControl, CstKind::ComptimeWhileControl, CstKind::ClassMemberBlock}},
-          {"InterfaceRegion", "interface Generated { comptime { func Base(); } comptime if (Enabled) { func Active(); } else { func Inactive(); } comptime for (const Item in Items) { func Repeated(); } comptime while (Enabled) { func Waiting(); } }", {CstKind::ComptimeBlockControl, CstKind::ComptimeIfControl, CstKind::ComptimeForControl, CstKind::ComptimeWhileControl, CstKind::InterfaceMemberBlock}},
-          {"EnumRegion", "enum Generated { comptime { First, Second }, comptime if (Enabled) { Active } else { Inactive }, comptime for (const Item in Items) { Repeated }, comptime while (Enabled) { Waiting } }", {CstKind::ComptimeBlockControl, CstKind::ComptimeIfControl, CstKind::ComptimeForControl, CstKind::ComptimeWhileControl, CstKind::EnumMemberBlock, CstKind::EnumBranch}},
+          {"ExpressionAndAssignment", "comptime A + B; comptime Value = Next; let X: int32 = A + comptime B;", {AstKind::ComptimeStatement, AstKind::AssignmentStatement, AstKind::ComptimeExpression}},
+          {"Controls", "comptime if (Enabled) {} else if (Other) {} else {} comptime for (let Item: T in Items) {} comptime while (Enabled) {}", {AstKind::ComptimeStatement, AstKind::IfStatement, AstKind::ForInStatement, AstKind::WhileStatement}},
+          {"DeclarationsAndReturn", "comptime func f() -> void; comptime class C {} comptime return; comptime { let Value: int32 = 1; }", {AstKind::ComptimeStatement, AstKind::FunctionDeclaration, AstKind::ClassDeclaration, AstKind::ReturnStatement}},
+          {"NestedMembers", "class C { class D { comptime if (Enabled) { class_field Value: int32; } } }", {AstKind::ClassDeclaration, AstKind::ComptimeStatement, AstKind::ClassFieldDeclaration}},
       };
-
       for (const ValidSyntaxCase &TestCase : Cases)
       {
         expectValidSyntax(TestCase);

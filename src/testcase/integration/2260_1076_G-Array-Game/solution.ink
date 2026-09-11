@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var M = 200005;
+var M: dynamic = 200005;
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var flag = 1;
-  var c: dynamic;
+  var x: dynamic = 0;
+  var flag: dynamic = 1;
+  var c: dynamic = cpp_uninitialized();
   while ((((cpp_assign(c, "=", getchar())) < cpp_char("0")) || (c > cpp_char("9"))))
   {
     if ((c == cpp_char("-")))
@@ -22,37 +22,37 @@ func read()
   return (x * flag);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var all: dynamic;
+var all: dynamic = cpp_uninitialized();
 
-var la = cpp_array((4 * M));
+var la: dynamic = cpp_array((4 * M));
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
 class node
 {
   var s: dynamic = cpp_array((1 << 5));
-  func node()
+  func node() -> dynamic
   {
       memset(s, 0, cpp_sizeof(s));
     }
 }
 
-var tr = cpp_array(2, (4 * M));
+var tr: dynamic = cpp_array(2, (4 * M));
 
-func up(x: dynamic)
+func up(x: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < all))
         {
           tr[x][i].s[j] = tr[(x << 1)][i].s[tr[((x << 1) | 1)][i].s[j]];
@@ -64,10 +64,10 @@ func up(x: dynamic)
   }
 }
 
-func init(x: dynamic, t: dynamic, f: dynamic)
+func init(x: dynamic, t: dynamic, f: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < all))
     {
       if (((i != (all - 1)) || (!f)))
@@ -82,7 +82,7 @@ func init(x: dynamic, t: dynamic, f: dynamic)
   }
 }
 
-func build(i: dynamic, l: dynamic, r: dynamic)
+func build(i: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if ((l == r))
   {
@@ -91,19 +91,19 @@ func build(i: dynamic, l: dynamic, r: dynamic)
     init(i, 1, (((d % 2)) ^ 1));
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   build((i << 1), l, mid);
   build(((i << 1) | 1), (mid + 1), r);
   up(i);
 }
 
-func flip(x: dynamic)
+func flip(x: dynamic) -> dynamic
 {
   la[x] ^= 1;
   swap(tr[x][0], tr[x][1]);
 }
 
-func down(x: dynamic)
+func down(x: dynamic) -> dynamic
 {
   if ((!la[x]))
   {
@@ -114,7 +114,7 @@ func down(x: dynamic)
   la[x] = 0;
 }
 
-func upd(i: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic)
+func upd(i: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic) -> dynamic
 {
   if (((L > r) || (l > R)))
   {
@@ -126,19 +126,19 @@ func upd(i: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic)
     return;
   }
   down(i);
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   upd((i << 1), l, mid, L, R);
   upd(((i << 1) | 1), (mid + 1), r, L, R);
   up(i);
 }
 
-func ask(i: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic)
+func ask(i: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic) -> dynamic
 {
   if (((L <= l) && (r <= R)))
   {
     return tr[i][0];
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   down(i);
   if (((L <= mid) && (R <= mid)))
   {
@@ -148,11 +148,11 @@ func ask(i: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic)
   {
     return ask(((i << 1) | 1), (mid + 1), r, L, R);
   }
-  var t1 = ask((i << 1), l, mid, L, R);
-  var res: dynamic;
-  var t2 = ask(((i << 1) | 1), (mid + 1), r, L, R);
+  var t1: dynamic = ask((i << 1), l, mid, L, R);
+  var res: dynamic = cpp_uninitialized();
+  var t2: dynamic = ask(((i << 1) | 1), (mid + 1), r, L, R);
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < all))
     {
       res.s[j] = t1.s[t2.s[j]];
@@ -162,7 +162,7 @@ func ask(i: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   m = read();
@@ -171,9 +171,9 @@ func main()
   build(1, 1, n);
   while (cpp_update(k, "--"))
   {
-    var op = read();
-    var l = read();
-    var r = read();
+    var op: dynamic = read();
+    var l: dynamic = read();
+    var r: dynamic = read();
     if ((op == 1))
     {
       scanf("%lld", (&d));
@@ -183,7 +183,7 @@ func main()
       }
     } else
     {
-      var ans = ask(1, 1, n, l, r);
+      var ans: dynamic = ask(1, 1, n, l, r);
       if ((ans.s[(all - 1)] >> ((m - 1))))
       {
         puts("1");

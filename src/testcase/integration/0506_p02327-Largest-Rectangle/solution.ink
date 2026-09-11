@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var MAX = 1400;
+var MAX: dynamic = 1400;
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var buffer = cpp_array(MAX, MAX);
+var buffer: dynamic = cpp_array(MAX, MAX);
 
-var T = cpp_array(MAX, MAX);
+var T: dynamic = cpp_array(MAX, MAX);
 
 class Rectangle
 {
-  var height: dynamic;
-  var pos: dynamic;
+  var height: dynamic = cpp_uninitialized();
+  var pos: dynamic = cpp_uninitialized();
 }
 
-func getLargestRectangle(size: dynamic, buffer: dynamic)
+func getLargestRectangle(size: dynamic, buffer: dynamic) -> dynamic
 {
-  var S: dynamic;
-  var maxv = 0;
+  var S: dynamic = cpp_uninitialized();
+  var maxv: dynamic = 0;
   buffer[size] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= size))
     {
-      var rect: dynamic;
+      var rect: dynamic = cpp_uninitialized();
       rect.height = buffer[i];
       rect.pos = i;
       if (S.empty())
@@ -38,12 +38,12 @@ func getLargestRectangle(size: dynamic, buffer: dynamic)
           S.push(rect);
         } else if ((S.top().height > rect.height))
         {
-          var target = i;
+          var target: dynamic = i;
           while (((!S.empty()) && (S.top().height >= rect.height)))
           {
-            var pre = S.top();
+            var pre: dynamic = S.top();
             S.pop();
-            var area = (pre.height * ((i - pre.pos)));
+            var area: dynamic = (pre.height * ((i - pre.pos)));
             maxv = max(maxv, area);
             target = pre.pos;
           }
@@ -57,14 +57,14 @@ func getLargestRectangle(size: dynamic, buffer: dynamic)
   return maxv;
 }
 
-func getLargestRectangle()
+func getLargestRectangle() -> dynamic
 {
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < W))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < H))
         {
           if (buffer[i][j])
@@ -72,7 +72,7 @@ func getLargestRectangle()
             T[i][j] = 0;
           } else
           {
-            T[i][j] = if (((i > 0))) (T[(i - 1)][j] + 1) else 1;
+            T[i][j] =  (((i > 0))) ? (T[(i - 1)][j] + 1) : 1;
           }
           i += 1;
         }
@@ -80,9 +80,9 @@ func getLargestRectangle()
       j += 1;
     }
   }
-  var maxv = 0;
+  var maxv: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < H))
     {
       maxv = max(maxv, getLargestRectangle(W, T[i]));
@@ -92,15 +92,15 @@ func getLargestRectangle()
   return maxv;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   scanf("%d %d", (&H), (&W));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < H))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < W))
         {
           scanf("%d", (&buffer[i][j]));

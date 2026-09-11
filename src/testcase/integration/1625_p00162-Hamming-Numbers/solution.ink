@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var h = cpp_array(500000);
-  var j2: dynamic;
-  var j3: dynamic;
-  var j5: dynamic;
-  var x2: dynamic;
-  var x3: dynamic;
-  var x5: dynamic;
-  var f: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_array(500000);
+  var j2: dynamic = cpp_uninitialized();
+  var j3: dynamic = cpp_uninitialized();
+  var j5: dynamic = cpp_uninitialized();
+  var x2: dynamic = cpp_uninitialized();
+  var x3: dynamic = cpp_uninitialized();
+  var x5: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
   while ((cin >> m))
   {
     if ((m == 0))

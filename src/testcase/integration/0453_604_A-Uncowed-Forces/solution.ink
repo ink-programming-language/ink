@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var m = cpp_array(5);
-  var w = cpp_array(5);
-  var h = cpp_array(2);
-  var score = [500, 1000, 1500, 2000, 2500];
+  var m: dynamic = cpp_array(5);
+  var w: dynamic = cpp_array(5);
+  var h: dynamic = cpp_array(2);
+  var score: dynamic = [500, 1000, 1500, 2000, 2500];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 5))
     {
       read(m[i]);
@@ -15,7 +15,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 5))
     {
       read(w[i]);
@@ -23,13 +23,13 @@ func main()
     }
   }
   read(h[0], h[1]);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 5))
     {
-      var mx = (((3 * score[i])) / 10);
-      var cx = ((((((250 - m[i])) * ((score[i] / 250))))) - (50 * w[i]));
+      var mx: dynamic = (((3 * score[i])) / 10);
+      var cx: dynamic = ((((((250 - m[i])) * ((score[i] / 250))))) - (50 * w[i]));
       ans += max(mx, cx);
       i += 1;
     }

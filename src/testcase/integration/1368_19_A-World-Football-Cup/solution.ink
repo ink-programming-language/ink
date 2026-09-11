@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var Maxn = (50 + 10);
+var Maxn: dynamic = (50 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
 class tim
 {
-  var scr: dynamic;
-  var goal: dynamic;
-  var sub: dynamic;
-  var name: dynamic;
+  var scr: dynamic = cpp_uninitialized();
+  var goal: dynamic = cpp_uninitialized();
+  var sub: dynamic = cpp_uninitialized();
+  var name: dynamic = cpp_uninitialized();
 }
 
-var arr = cpp_array(Maxn);
+var arr: dynamic = cpp_array(Maxn);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func moq(a: dynamic, b: dynamic)
+func moq(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.scr < b.scr))
   {
@@ -41,11 +41,11 @@ func moq(a: dynamic, b: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i].name);
@@ -53,15 +53,15 @@ func main()
     }
   }
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < ((n * ((n - 1))) / 2)))
     {
-      var s1: dynamic;
-      var s2: dynamic;
-      var s: dynamic;
-      var sp: dynamic;
+      var s1: dynamic = cpp_uninitialized();
+      var s2: dynamic = cpp_uninitialized();
+      var s: dynamic = cpp_uninitialized();
+      var sp: dynamic = cpp_uninitialized();
       read(s, sp);
-      var j = 0;
+      var j: dynamic = 0;
       while ((s[j] != cpp_char("-")))
       {
         s1 += s[j];
@@ -73,8 +73,8 @@ func main()
         s2 += s[j];
         j += 1;
       }
-      var g1 = 0;
-      var g2 = 0;
+      var g1: dynamic = 0;
+      var g2: dynamic = 0;
       j = 0;
       while ((sp[j] != cpp_char(":")))
       {
@@ -90,7 +90,7 @@ func main()
         j += 1;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((arr[i].name == s1))
@@ -131,7 +131,7 @@ func main()
   }
   sort(arr, (arr + n), moq);
   {
-    var i = (n / 2);
+    var i: dynamic = (n / 2);
     while ((i < n))
     {
       ans.push_back(arr[i].name);
@@ -140,7 +140,7 @@ func main()
   }
   sort(ans.begin(), ans.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ans.size()))
     {
       write(ans[i], "\n");

@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func amax(a: dynamic, b: dynamic)
+func amax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b > a))
   {
@@ -9,7 +9,7 @@ func amax(a: dynamic, b: dynamic)
   return a;
 }
 
-func amin(a: dynamic, b: dynamic)
+func amin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b < a))
   {
@@ -18,123 +18,123 @@ func amin(a: dynamic, b: dynamic)
   return a;
 }
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var ld = dynamic;
+var ld: dynamic = dynamic;
 
-var INF = cpp_expression("#include<b");
+var INF: dynamic = cpp_expression("#include<b");
 
-var INFL = cpp_expression("#include<b");
+var INFL: dynamic = cpp_expression("#include<b");
 
-var md = cpp_expression("#include<b");
+var md: dynamic = cpp_expression("#include<b");
 
-var mk = cpp_expression("#include<");
+var mk: dynamic = cpp_expression("#include<");
 
-var pi = cpp_expression("#include<bits");
+var pi: dynamic = cpp_expression("#include<bits");
 
-var ss = cpp_expression("#inclu");
+var ss: dynamic = cpp_expression("#inclu");
 
-var ff = cpp_expression("#incl");
+var ff: dynamic = cpp_expression("#incl");
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var eb = cpp_expression("#include<bit");
+var eb: dynamic = cpp_expression("#include<bit");
 
-func ppcl(x: dynamic)
+func ppcl(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h>");
 }
 
-func ppc(x: dynamic)
+func ppc(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-func maxi(a: dynamic)
+func maxi(a: dynamic) -> dynamic
 {
   cpp_macro("*max_element(a.begin(),a.end());");
 }
 
-func mini(a: dynamic)
+func mini(a: dynamic) -> dynamic
 {
   cpp_macro("*min_element(a.begin(),a.end());");
 }
 
-func all(s: dynamic)
+func all(s: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/std");
 }
 
-func rall(x: dynamic)
+func rall(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h>");
 }
 
-func sz(x: dynamic)
+func sz(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-func mez(s: dynamic)
+func mez(s: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++");
 }
 
-func mex(s: dynamic)
+func mex(s: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-func metr(s: dynamic)
+func metr(s: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.h>");
 }
 
-func rep(i: dynamic, a: dynamic, b: dynamic)
+func rep(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<b;i++)");
 }
 
-func fr(i: dynamic, a: dynamic, b: dynamic)
+func fr(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<=b;i++)");
 }
 
-func rrep(i: dynamic, a: dynamic, b: dynamic)
+func rrep(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i>b;i--)");
 }
 
-func rfr(i: dynamic, a: dynamic, b: dynamic)
+func rfr(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i>=b;i--)");
 }
 
-var mxn = (1e5 + 1);
+var mxn: dynamic = (1e5 + 1);
 
-var odd = cpp_array(mxn);
+var odd: dynamic = cpp_array(mxn);
 
-var even = cpp_array(mxn);
+var even: dynamic = cpp_array(mxn);
 
-var new_odd = cpp_array(mxn);
+var new_odd: dynamic = cpp_array(mxn);
 
-var new_even = cpp_array(mxn);
+var new_even: dynamic = cpp_array(mxn);
 
-func solve()
+func solve() -> dynamic
 {
-  var n = 0;
-  var m = 0;
-  var k = 0;
-  var x = 0;
-  var y = 0;
-  var z = 0;
+  var n: dynamic = 0;
+  var m: dynamic = 0;
+  var k: dynamic = 0;
+  var x: dynamic = 0;
+  var y: dynamic = 0;
+  var z: dynamic = 0;
   read(n);
   memset(odd, 0, cpp_sizeof(odd));
   memset(even, 0, cpp_sizeof(even));
   memset(new_odd, 0, cpp_sizeof(new_odd));
   memset(new_even, 0, cpp_sizeof(new_even));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -150,7 +150,7 @@ func solve()
   }
   sort(a.begin(), a.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i % 2))
@@ -164,7 +164,7 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < mxn))
     {
       if (((odd[i] != new_odd[i]) || (even[i] != new_even[i])))
@@ -178,11 +178,11 @@ func solve()
   write("YES\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var t = 1;
+  var t: dynamic = 1;
   read(t);
   while (cpp_update(t, "--"))
   {

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func f(nums: dynamic)
+func f(nums: dynamic) -> dynamic
 {
-  var k = 0;
-  for (var i in nums)
+  var k: dynamic = 0;
+  for (var i: dynamic in nums)
   {
     k ^= i;
   }
   return k;
 }
 
-func doo(l: dynamic, r: dynamic, k: dynamic)
+func doo(l: dynamic, r: dynamic, k: dynamic) -> dynamic
 {
   if ((((r - l) + 1) >= 5))
   {
@@ -31,22 +31,22 @@ func doo(l: dynamic, r: dynamic, k: dynamic)
       }
     } else if ((k == 3))
     {
-      var d = -1;
+      var d: dynamic = -1;
       {
-        var lk = r;
+        var lk: dynamic = r;
         while (lk)
         {
           d += 1;
           lk /= 2;
         }
       }
-      var top = (1 << d);
+      var top: dynamic = (1 << d);
       {
         while (top)
         {
-          var x = (top | (top / 2));
-          var y = (x - 1);
-          var z = (x ^ y);
+          var x: dynamic = (top | (top / 2));
+          var y: dynamic = (x - 1);
+          var z: dynamic = (x ^ y);
           if (((((((l <= x) && (l <= y)) && (l <= z)) && (r >= x)) && (r >= y)) && (r >= z)))
           {
             write("0\n3\n", x, " ", y, " ", z);
@@ -89,7 +89,7 @@ func doo(l: dynamic, r: dynamic, k: dynamic)
     }
   } else
   {
-    var combs: dynamic;
+    var combs: dynamic = cpp_uninitialized();
     {
       int_cpp(i) = 0;
       while (((i) < ((1 << (((r - l) + 1))))))
@@ -99,7 +99,7 @@ func doo(l: dynamic, r: dynamic, k: dynamic)
           (i) += 1;
           continue;
         }
-        var s: dynamic;
+        var s: dynamic = cpp_uninitialized();
         {
           int_cpp(j) = 0;
           while (((j) < (((r - l) + 1))))
@@ -118,7 +118,7 @@ func doo(l: dynamic, r: dynamic, k: dynamic)
         (i) += 1;
       }
     }
-    var it = min_element((combs).begin(), (combs).end(), __cpp_lambda_1);
+    var it: dynamic = min_element((combs).begin(), (combs).end(), __cpp_lambda_1);
     write(f((*it)), "\n");
     write(it->size(), "\n");
     {
@@ -132,22 +132,22 @@ func doo(l: dynamic, r: dynamic, k: dynamic)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var l: dynamic;
-  var r: dynamic;
-  var k: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(l, r, k);
   doo(l, r, k);
 }
 
-func main()
+func main() -> dynamic
 {
   solve();
   return 0;
 }
 
-func __cpp_lambda_1(a1: dynamic, a2: dynamic)
+func __cpp_lambda_1(a1: dynamic, a2: dynamic) -> dynamic
 {
   return (f(a1) < f(a2));
 }

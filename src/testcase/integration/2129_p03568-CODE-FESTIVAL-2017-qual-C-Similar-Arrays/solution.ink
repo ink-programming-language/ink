@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var arr = cpp_array(110);
+var arr: dynamic = cpp_array(110);
 
-func main()
+func main() -> dynamic
 {
   read(n);
-  var ans = 1;
-  var m = 1;
-  var t: dynamic;
+  var ans: dynamic = 1;
+  var m: dynamic = 1;
+  var t: dynamic = cpp_uninitialized();
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < n))
     {
       ans *= 3;

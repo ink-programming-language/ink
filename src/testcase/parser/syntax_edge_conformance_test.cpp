@@ -11,33 +11,28 @@ namespace ink::parser
   namespace
   {
     using test::countKind;
-    using test::expectFullFidelity;
+    using test::expectAstIntegrity;
     using test::nodesOfKind;
     using test::nodeText;
     using test::parseSource;
 
-    std::vector<CstNodeId> directChildrenOfKind(const ParsedFile &File, CstNodeId Parent, CstKind Kind)
+    std::vector<AstNodeId> directChildrenOfKind(const ParsedFile &File, AstNodeId Parent, AstKind Kind)
     {
-      std::vector<CstNodeId> Result;
-      const CstNode &ParentNode = File.cst().node(Parent);
-      for (std::size_t Offset = 0; Offset < ParentNode.ChildCount; ++Offset)
+      std::vector<AstNodeId> Result;
+      for (const AstChildEdge &Child : File.ast().children(Parent))
       {
-        const CstElement &Element = File.cst().children()[ParentNode.FirstChild + Offset];
-        if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
+        if (File.ast().node(Child.Id).kind() == Kind)
         {
-          if (File.cst().node(Child->Id).Kind == Kind)
-          {
-            Result.push_back(Child->Id);
-          }
+          Result.push_back(Child.Id);
         }
       }
       return Result;
     }
 
-    std::vector<CstNodeId> nodesOfKindWithText(const ParsedFile &File, CstKind Kind, const std::string &ExpectedText)
+    std::vector<AstNodeId> nodesOfKindWithText(const ParsedFile &File, AstKind Kind, const std::string &ExpectedText)
     {
-      std::vector<CstNodeId> Result;
-      for (CstNodeId Id : nodesOfKind(File, Kind))
+      std::vector<AstNodeId> Result;
+      for (AstNodeId Id : nodesOfKind(File, Kind))
       {
         if (nodeText(File, Id) == ExpectedText)
         {
@@ -47,34 +42,29 @@ namespace ink::parser
       return Result;
     }
 
-    bool isDescendant(const ParsedFile &File, CstNodeId Ancestor, CstNodeId Candidate)
+    bool isDescendant(const ParsedFile &File, AstNodeId Ancestor, AstNodeId Candidate)
     {
-      std::vector<CstNodeId> Work = {Ancestor};
+      std::vector<AstNodeId> Work = {Ancestor};
       while (!Work.empty())
       {
-        const CstNodeId Parent = Work.back();
+        const AstNodeId Parent = Work.back();
         Work.pop_back();
-        const CstNode &ParentNode = File.cst().node(Parent);
-        for (std::size_t Offset = 0; Offset < ParentNode.ChildCount; ++Offset)
+        for (const AstChildEdge &Child : File.ast().children(Parent))
         {
-          const CstElement &Element = File.cst().children()[ParentNode.FirstChild + Offset];
-          if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
+          if (Child.Id == Candidate)
           {
-            if (Child->Id == Candidate)
-            {
-              return true;
-            }
-            Work.push_back(Child->Id);
+            return true;
           }
+          Work.push_back(Child.Id);
         }
       }
       return false;
     }
 
-    std::size_t countDescendantsOfKind(const ParsedFile &File, CstNodeId Ancestor, CstKind Kind)
+    std::size_t countDescendantsOfKind(const ParsedFile &File, AstNodeId Ancestor, AstKind Kind)
     {
       std::size_t Result = 0;
-      for (CstNodeId Candidate : nodesOfKind(File, Kind))
+      for (AstNodeId Candidate : nodesOfKind(File, Kind))
       {
         if (isDescendant(File, Ancestor, Candidate))
         {
@@ -89,351 +79,167 @@ namespace ink::parser
       EXPECT_TRUE(File.succeeded());
       EXPECT_TRUE(test::testDiagnostics(File).empty());
       EXPECT_EQ(File.completeness(), ParseCompleteness::Complete);
-      expectFullFidelity(File);
+      expectAstIntegrity(File);
     }
 
-    // Verifies var tuple destructuring and the empty, singleton, standalone-expansion, and mixed-expansion tuple forms in value and type positions.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesTuplePatternValueAndTypeBoundaries)
+    // Verifies calls and construction both expose callee and arguments, including computed type targets and generic postfixes.
+    TEST(ParserSyntaxEdgeConformanceTest, UnifiesCallsAndConstruction)
     {
-      const ParsedFile File = parseSource("func tuples() { var () = Empty; var (Only,) = Single; const EmptyValue = (); const SingleValue = (Only,); const ExpandedValue = (...Values); const MixedValue = (Head, ...Tail); } func tupleTypes(Empty: (), Single: (i32,), Expanded: (...Types), Mixed: (i32, ...Types));");
-
+      const ParsedFile File = parseSource("f(1, 2); Point(1, 2); Point::[T](value); makeType()(value); (SelectedType)(value).field;");
       ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::TupleDestructuringDeclaration), 2u);
-      EXPECT_EQ(countKind(File, CstKind::TuplePattern), 2u);
-      EXPECT_EQ(countKind(File, CstKind::ParenthesizedCommaList), 8u);
-      EXPECT_EQ(countKind(File, CstKind::ListExpansion), 4u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::TuplePattern, "()").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::TuplePattern, "(Only,)").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::ParenthesizedCommaList, "()").size(), 2u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::ParenthesizedCommaList, "(Only,)").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::ParenthesizedCommaList, "(...Values)").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::ParenthesizedCommaList, "(Head, ...Tail)").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::ParenthesizedCommaList, "(i32,)").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::ParenthesizedCommaList, "(...Types)").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::ParenthesizedCommaList, "(i32, ...Types)").size(), 1u);
+      EXPECT_EQ(countKind(File, AstKind::CallExpression), 6u);
+      EXPECT_EQ(nodesOfKindWithText(File, AstKind::CallExpression, "f(1, 2)").size(), 1u);
+      EXPECT_EQ(nodesOfKindWithText(File, AstKind::CallExpression, "Point(1, 2)").size(), 1u);
+      ASSERT_EQ(nodesOfKindWithText(File, AstKind::CallExpression, "makeType()(value)").size(), 1u);
+      const AstNodeId ComputedId = nodesOfKindWithText(File, AstKind::CallExpression, "makeType()(value)")[0];
+      const CallExpression &Computed = File.ast().node(ComputedId).get<CallExpression>();
+      EXPECT_EQ(File.ast().node(Computed.Callee).kind(), AstKind::CallExpression);
+      ASSERT_EQ(Computed.Arguments.size(), 1u);
+      EXPECT_EQ(nodeText(File, Computed.Arguments[0].Expression), "value");
       expectSuccessfulCompleteParse(File);
     }
 
-    // Verifies all three slice forms with an omitted endpoint and both numeric tuple-position member selectors retain their exact postfix CST text.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesOmittedSliceEndpointsAndTuplePositionSelectors)
+    // Verifies grouping, multi-element tuples, and nested binding patterns stay distinct without type lookup.
+    TEST(ParserSyntaxEdgeConformanceTest, PreservesTupleAndGroupingStructure)
     {
-      const ParsedFile File = parseSource("func postfixes() { const All = Values[:]; const Prefix = Values[:High]; const Suffix = Values[Low:]; const TupleMember = Pair.0; const TuplePointerMember = Pair->0; }");
-
+      const ParsedFile File = parseSource("let (First, (Second, _)): (T, (U, V)) = (first, (second, third)); (value); []; (T, U);");
       ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::SliceExpression), 3u);
-      EXPECT_EQ(countKind(File, CstKind::MemberExpression), 1u);
-      EXPECT_EQ(countKind(File, CstKind::PointerMemberExpression), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::SliceExpression, "Values[:]").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::SliceExpression, "Values[:High]").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::SliceExpression, "Values[Low:]").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::MemberExpression, "Pair.0").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::PointerMemberExpression, "Pair->0").size(), 1u);
+      EXPECT_EQ(countKind(File, AstKind::TuplePattern), 2u);
+      EXPECT_EQ(countKind(File, AstKind::WildcardPattern), 1u);
+      EXPECT_EQ(countKind(File, AstKind::TupleExpression), 5u);
+      EXPECT_EQ(countKind(File, AstKind::ParenthesizedExpression), 1u);
+      EXPECT_EQ(countKind(File, AstKind::ArrayExpression), 1u);
       expectSuccessfulCompleteParse(File);
     }
 
-    // Verifies generic list expansion and generic-if arguments remain inside their own generic clauses before the following call suffixes.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesGenericExpansionAndGenericIfArguments)
+    // Verifies the nested class owns its generated field syntactically through the comptime branch.
+    TEST(ParserSyntaxEdgeConformanceTest, PreservesNestedClassAndComptimeFieldOwnership)
     {
-      const ParsedFile File = parseSource("func genericArguments() { const Expanded = Factory::<...Types>(); const Conditional = Factory::<if (Ready) Left else Right>(); const Mixed = Factory::<First, ...Rest>(); }");
-
+      const ParsedFile File = parseSource("class C { class D { comptime if (Enabled) { class_field Value: int32; } } }");
       ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::GenericArgumentClause), 3u);
-      EXPECT_EQ(countKind(File, CstKind::GenericArgument), 4u);
-      EXPECT_EQ(countKind(File, CstKind::ListExpansion), 2u);
-      EXPECT_EQ(countKind(File, CstKind::IfExpression), 1u);
-      EXPECT_EQ(countKind(File, CstKind::CallExpression), 3u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::GenericArgumentClause, "Factory::<...Types>").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::IfExpression, "if (Ready) Left else Right").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::GenericArgumentClause, "Factory::<First, ...Rest>").size(), 1u);
+      ASSERT_EQ(countKind(File, AstKind::ClassDeclaration), 2u);
+      ASSERT_EQ(countKind(File, AstKind::ClassFieldDeclaration), 1u);
+      const std::vector<AstNodeId> NestedClasses = nodesOfKindWithText(File, AstKind::ClassDeclaration, "class D { comptime if (Enabled) { class_field Value: int32; } }");
+      ASSERT_EQ(NestedClasses.size(), 1u);
+      const AstNodeId Nested = NestedClasses[0];
+      const AstNodeId Field = nodesOfKind(File, AstKind::ClassFieldDeclaration)[0];
+      EXPECT_TRUE(isDescendant(File, Nested, Field));
+      EXPECT_EQ(countDescendantsOfKind(File, Nested, AstKind::ComptimeStatement), 1u);
+      EXPECT_EQ(countDescendantsOfKind(File, Nested, AstKind::IfStatement), 1u);
       expectSuccessfulCompleteParse(File);
     }
 
-    // Verifies empty array, aggregate-initializer, and enum bodies produce their dedicated nodes without fabricating elements, fields, or branches.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesEmptyArrayAggregateAndEnumForms)
-    {
-      const ParsedFile File = parseSource("enum Empty {} func emptyValues() { const Array = []; const Aggregate = Record {}; }");
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::EnumDeclaration), 1u);
-      EXPECT_EQ(countKind(File, CstKind::EnumMemberBlock), 1u);
-      EXPECT_EQ(countKind(File, CstKind::EnumBranch), 0u);
-      EXPECT_EQ(countKind(File, CstKind::ArrayExpression), 1u);
-      EXPECT_EQ(countKind(File, CstKind::AggregateInitializationExpression), 1u);
-      EXPECT_EQ(countKind(File, CstKind::AggregateFieldInitializer), 0u);
-      EXPECT_EQ(countKind(File, CstKind::AggregateFieldShorthand), 0u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::EnumDeclaration, "enum Empty {}").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::ArrayExpression, "[]").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::AggregateInitializationExpression, "Record {}").size(), 1u);
-      expectSuccessfulCompleteParse(File);
-    }
-
-    // Verifies an empty aggregate initializer remains the base of a following ordinary member postfix instead of ending the expression early.
-    TEST(ParserSyntaxEdgeConformanceTest, ContinuesPostfixParsingAfterEmptyAggregateInitialization)
-    {
-      const ParsedFile File = parseSource("const Member = Record {}.member;");
-
-      ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::AggregateInitializationExpression, "Record {}").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::MemberExpression, "Record {}.member").size(), 1u);
-      const CstNodeId Aggregate = nodesOfKindWithText(File, CstKind::AggregateInitializationExpression, "Record {}")[0];
-      const CstNodeId Member = nodesOfKindWithText(File, CstKind::MemberExpression, "Record {}.member")[0];
-      EXPECT_EQ(directChildrenOfKind(File, Member, CstKind::AggregateInitializationExpression), (std::vector<CstNodeId>{Aggregate}));
-      EXPECT_EQ(countKind(File, CstKind::AggregateFieldInitializer), 0u);
-      EXPECT_EQ(countKind(File, CstKind::AggregateFieldShorthand), 0u);
-      expectSuccessfulCompleteParse(File);
-    }
-
-    // Verifies a decorator declaration can use attributes, modifiers, generics, parameters, a receiver qualifier, a result, and a semicolon body while explicit empty application clauses remain real CST nodes.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesCompleteDecoratorSkeletonAndExplicitEmptyApplications)
-    {
-      const ParsedFile File = parseSource("[meta()] public static decorator trace<T: type>(Value: T) const -> bool; [optimize()] @trace() func run();");
-
-      ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(countKind(File, CstKind::DecoratorDeclaration), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::DecoratorDeclaration, "[meta()] public static decorator trace<T: type>(Value: T) const -> bool;").size(), 1u);
-      const CstNodeId Decorator = nodesOfKindWithText(File, CstKind::DecoratorDeclaration, "[meta()] public static decorator trace<T: type>(Value: T) const -> bool;")[0];
-      EXPECT_EQ(directChildrenOfKind(File, Decorator, CstKind::AttributeList).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, Decorator, CstKind::FunctionModifier).size(), 2u);
-      EXPECT_EQ(directChildrenOfKind(File, Decorator, CstKind::GenericParameterClause).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, Decorator, CstKind::FunctionParameterClause).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, Decorator, CstKind::ReceiverQualifier).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, Decorator, CstKind::ReturnClause).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, Decorator, CstKind::FunctionDefinition).size(), 0u);
-      EXPECT_EQ(countKind(File, CstKind::ApplicationArgumentClause), 3u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::ApplicationArgumentClause, "()").size(), 3u);
-      expectSuccessfulCompleteParse(File);
-    }
-
-    // Verifies every remaining access and function-modifier grammar branch is accepted and retained directly by one declaration.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesProtectedPrivateVirtualOverrideFinalAndImplicitFunctionModifiers)
-    {
-      const ParsedFile File = parseSource("protected private virtual override final implicit func modifiers();");
-
-      ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(countKind(File, CstKind::FunctionDeclaration), 1u);
-      const CstNodeId Function = nodesOfKind(File, CstKind::FunctionDeclaration)[0];
-      EXPECT_EQ(directChildrenOfKind(File, Function, CstKind::FunctionModifier).size(), 6u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::FunctionModifier, "protected").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::FunctionModifier, "private").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::FunctionModifier, "virtual").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::FunctionModifier, "override").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::FunctionModifier, "final").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::FunctionModifier, "implicit").size(), 1u);
-      expectSuccessfulCompleteParse(File);
-    }
-
-    // Verifies a generic interface owns nested generic class and interface declarations plus an empty enum through its member block.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesGenericInterfaceWithNestedTypes)
-    {
-      const ParsedFile File = parseSource("interface Container<T: type> { class Nested<U: type> {} interface Contract<V: type> {} enum Empty {} }");
-
-      ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::InterfaceDeclaration, "interface Container<T: type> { class Nested<U: type> {} interface Contract<V: type> {} enum Empty {} }").size(), 1u);
-      const CstNodeId OuterInterface = nodesOfKindWithText(File, CstKind::InterfaceDeclaration, "interface Container<T: type> { class Nested<U: type> {} interface Contract<V: type> {} enum Empty {} }")[0];
-      ASSERT_EQ(directChildrenOfKind(File, OuterInterface, CstKind::InterfaceMemberBlock).size(), 1u);
-      const CstNodeId MemberBlock = directChildrenOfKind(File, OuterInterface, CstKind::InterfaceMemberBlock)[0];
-      EXPECT_EQ(directChildrenOfKind(File, OuterInterface, CstKind::GenericParameterClause).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, MemberBlock, CstKind::ClassDeclaration).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, MemberBlock, CstKind::InterfaceDeclaration).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, MemberBlock, CstKind::EnumDeclaration).size(), 1u);
-      EXPECT_EQ(countKind(File, CstKind::GenericParameterClause), 3u);
-      EXPECT_EQ(countKind(File, CstKind::EnumBranch), 0u);
-      expectSuccessfulCompleteParse(File);
-    }
-
-    // Verifies generic suffixes are retained inside both simple and qualified constructor-initializer targets before their call arguments.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesGenericConstructorInitializerTargets)
-    {
-      const ParsedFile File = parseSource("func initialize<T: type>(Value: T) : Base::<T>(Value), module.Storage::<T>(Value) {}");
-
-      ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(countKind(File, CstKind::ConstructorInitializerClause), 1u);
-      ASSERT_EQ(countKind(File, CstKind::ConstructorInitializer), 2u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::ConstructorInitializerTarget, "Base::<T>").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::ConstructorInitializerTarget, "module.Storage::<T>").size(), 1u);
-      const CstNodeId SimpleTarget = nodesOfKindWithText(File, CstKind::ConstructorInitializerTarget, "Base::<T>")[0];
-      const CstNodeId QualifiedTarget = nodesOfKindWithText(File, CstKind::ConstructorInitializerTarget, "module.Storage::<T>")[0];
-      EXPECT_EQ(directChildrenOfKind(File, SimpleTarget, CstKind::GenericArgumentList).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, QualifiedTarget, CstKind::GenericArgumentList).size(), 1u);
-      EXPECT_EQ(countKind(File, CstKind::PositionalArgument), 2u);
-      expectSuccessfulCompleteParse(File);
-    }
-
-    // Verifies a direct function type may omit its result and that parentheses explicitly permit a pointer suffix on the same function type value.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesResultlessDirectFunctionTypeAndParenthesizedPointer)
-    {
-      const ParsedFile File = parseSource("func typeValues() { const Direct = func(); const Pointer = (func())*; }");
-
-      ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(countKind(File, CstKind::FunctionTypeExpression), 2u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::TypeConstructorExpression, "(func())*").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::NamedBindingDeclaration, "const Direct = func();").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::NamedBindingDeclaration, "const Pointer = (func())*;").size(), 1u);
-      const CstNodeId DirectBinding = nodesOfKindWithText(File, CstKind::NamedBindingDeclaration, "const Direct = func();")[0];
-      const CstNodeId PointerBinding = nodesOfKindWithText(File, CstKind::NamedBindingDeclaration, "const Pointer = (func())*;")[0];
-      EXPECT_EQ(countDescendantsOfKind(File, DirectBinding, CstKind::FunctionTypeExpression), 1u);
-      EXPECT_EQ(countDescendantsOfKind(File, DirectBinding, CstKind::TypeConstructorExpression), 0u);
-      EXPECT_EQ(countDescendantsOfKind(File, PointerBinding, CstKind::FunctionTypeExpression), 1u);
-      EXPECT_EQ(countDescendantsOfKind(File, PointerBinding, CstKind::TypeConstructorExpression), 1u);
-      EXPECT_EQ(countDescendantsOfKind(File, PointerBinding, CstKind::PointerTypeSuffix), 1u);
-      expectSuccessfulCompleteParse(File);
-    }
-
-    // Verifies explicit type syntax accepts the neutral call, member, pointer-member, and slice postfix nodes without reclassifying their spelling.
-    TEST(ParserSyntaxEdgeConformanceTest, ParsesNeutralPostfixesInExplicitTypeContexts)
-    {
-      const ParsedFile File = parseSource("func postfixTypes(Call: Factory(), Member: Namespace.Type, PointerMember: Handle->Type, Slice: Values[:]);");
-
-      ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::TypeSyntax, "Factory()").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::TypeSyntax, "Namespace.Type").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::TypeSyntax, "Handle->Type").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::TypeSyntax, "Values[:]").size(), 1u);
-      const CstNodeId CallType = nodesOfKindWithText(File, CstKind::TypeSyntax, "Factory()")[0];
-      const CstNodeId MemberType = nodesOfKindWithText(File, CstKind::TypeSyntax, "Namespace.Type")[0];
-      const CstNodeId PointerMemberType = nodesOfKindWithText(File, CstKind::TypeSyntax, "Handle->Type")[0];
-      const CstNodeId SliceType = nodesOfKindWithText(File, CstKind::TypeSyntax, "Values[:]")[0];
-      EXPECT_EQ(countDescendantsOfKind(File, CallType, CstKind::CallExpression), 1u);
-      EXPECT_EQ(countDescendantsOfKind(File, MemberType, CstKind::MemberExpression), 1u);
-      EXPECT_EQ(countDescendantsOfKind(File, PointerMemberType, CstKind::PointerMemberExpression), 1u);
-      EXPECT_EQ(countDescendantsOfKind(File, SliceType, CstKind::SliceExpression), 1u);
-      expectSuccessfulCompleteParse(File);
-    }
-
-    // Verifies every mandatory terminal type-tail disambiguation from issue 30 commits pointer and reference tails while preserving the parenthesized empty-array multiplication control case.
-    TEST(ParserSyntaxEdgeConformanceTest, PreservesMandatoryTerminalTypeTailDisambiguationMatrix)
-    {
-      const ParsedFile File = parseSource("func tails() { return T*[]; return T*[N]; return T&[]; return T&[N]; return T * ([]); }");
-
-      ASSERT_TRUE(File.succeeded());
-      EXPECT_EQ(countKind(File, CstKind::ReturnStatement), 5u);
-      EXPECT_EQ(countKind(File, CstKind::TypeConstructorExpression), 4u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::TypeConstructorExpression, "T*[]").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::TypeConstructorExpression, "T*[N]").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::TypeConstructorExpression, "T&[]").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::TypeConstructorExpression, "T&[N]").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::BinaryExpression, "T * ([])").size(), 1u);
-      EXPECT_EQ(nodesOfKindWithText(File, CstKind::ArrayExpression, "[]").size(), 1u);
-      expectSuccessfulCompleteParse(File);
-    }
-
-    // Verifies the complete postfix-through-if precedence chain, unary right associativity, and repeated binary left associativity through exact CST parent-child relationships.
+    // Verifies fixed precedence from conditional through postfix operators and left/right associativity using child relationships.
     TEST(ParserSyntaxEdgeConformanceTest, PreservesCompleteExpressionPrecedenceAndAssociativity)
     {
-      const ParsedFile File = parseSource("const Ordered = if (Condition) A || B && C == D | E ^ F & G << H + I * -J.member() else K; const BinaryLeft = A - B - C; const UnaryRight = !~-Value;");
+      const ParsedFile File = parseSource("Condition ? A || B && C | D ^ E & F == G < H << I + J * -K.member() : Other; A - B - C; !~-Value;");
       const std::vector<std::string> OrderedBinaryTexts = {
-          "A || B && C == D | E ^ F & G << H + I * -J.member()",
-          "B && C == D | E ^ F & G << H + I * -J.member()",
-          "C == D | E ^ F & G << H + I * -J.member()",
-          "D | E ^ F & G << H + I * -J.member()",
-          "E ^ F & G << H + I * -J.member()",
-          "F & G << H + I * -J.member()",
-          "G << H + I * -J.member()",
-          "H + I * -J.member()",
-          "I * -J.member()",
+          "A || B && C | D ^ E & F == G < H << I + J * -K.member()",
+          "B && C | D ^ E & F == G < H << I + J * -K.member()",
+          "C | D ^ E & F == G < H << I + J * -K.member()",
+          "D ^ E & F == G < H << I + J * -K.member()",
+          "E & F == G < H << I + J * -K.member()",
+          "F == G < H << I + J * -K.member()",
+          "G < H << I + J * -K.member()",
+          "H << I + J * -K.member()",
+          "I + J * -K.member()",
+          "J * -K.member()",
       };
-
       ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(countKind(File, CstKind::BinaryExpression), 11u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::IfExpression, "if (Condition) A || B && C == D | E ^ F & G << H + I * -J.member() else K").size(), 1u);
-      const CstNodeId IfExpression = nodesOfKindWithText(File, CstKind::IfExpression, "if (Condition) A || B && C == D | E ^ F & G << H + I * -J.member() else K")[0];
+      EXPECT_EQ(countKind(File, AstKind::BinaryExpression), 12u);
       for (std::size_t Index = 0; Index < OrderedBinaryTexts.size(); ++Index)
       {
         SCOPED_TRACE(OrderedBinaryTexts[Index]);
-        ASSERT_EQ(nodesOfKindWithText(File, CstKind::BinaryExpression, OrderedBinaryTexts[Index]).size(), 1u);
-        if (Index == 0)
-        {
-          EXPECT_EQ(directChildrenOfKind(File, IfExpression, CstKind::BinaryExpression), nodesOfKindWithText(File, CstKind::BinaryExpression, OrderedBinaryTexts[Index]));
-        }
+        const std::vector<AstNodeId> Matching = nodesOfKindWithText(File, AstKind::BinaryExpression, OrderedBinaryTexts[Index]);
+        ASSERT_EQ(Matching.size(), 1u);
         if (Index + 1 < OrderedBinaryTexts.size())
         {
-          const CstNodeId Parent = nodesOfKindWithText(File, CstKind::BinaryExpression, OrderedBinaryTexts[Index])[0];
-          EXPECT_EQ(directChildrenOfKind(File, Parent, CstKind::BinaryExpression), nodesOfKindWithText(File, CstKind::BinaryExpression, OrderedBinaryTexts[Index + 1]));
+          EXPECT_EQ(directChildrenOfKind(File, Matching[0], AstKind::BinaryExpression), nodesOfKindWithText(File, AstKind::BinaryExpression, OrderedBinaryTexts[Index + 1]));
         }
       }
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::UnaryExpression, "-J.member()").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::CallExpression, "J.member()").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::MemberExpression, "J.member").size(), 1u);
-      const CstNodeId Multiplication = nodesOfKindWithText(File, CstKind::BinaryExpression, OrderedBinaryTexts.back())[0];
-      const CstNodeId Minus = nodesOfKindWithText(File, CstKind::UnaryExpression, "-J.member()")[0];
-      const CstNodeId Call = nodesOfKindWithText(File, CstKind::CallExpression, "J.member()")[0];
-      const CstNodeId Member = nodesOfKindWithText(File, CstKind::MemberExpression, "J.member")[0];
-      EXPECT_EQ(directChildrenOfKind(File, Multiplication, CstKind::UnaryExpression), (std::vector<CstNodeId>{Minus}));
-      EXPECT_EQ(directChildrenOfKind(File, Minus, CstKind::CallExpression), (std::vector<CstNodeId>{Call}));
-      EXPECT_EQ(directChildrenOfKind(File, Call, CstKind::MemberExpression), (std::vector<CstNodeId>{Member}));
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::BinaryExpression, "A - B - C").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::BinaryExpression, "A - B").size(), 1u);
-      const CstNodeId FullSubtraction = nodesOfKindWithText(File, CstKind::BinaryExpression, "A - B - C")[0];
-      const CstNodeId LeftSubtraction = nodesOfKindWithText(File, CstKind::BinaryExpression, "A - B")[0];
-      EXPECT_EQ(directChildrenOfKind(File, FullSubtraction, CstKind::BinaryExpression), (std::vector<CstNodeId>{LeftSubtraction}));
-      EXPECT_TRUE(nodesOfKindWithText(File, CstKind::BinaryExpression, "B - C").empty());
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::UnaryExpression, "!~-Value").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::UnaryExpression, "~-Value").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::UnaryExpression, "-Value").size(), 1u);
-      const CstNodeId LogicalNot = nodesOfKindWithText(File, CstKind::UnaryExpression, "!~-Value")[0];
-      const CstNodeId BitwiseNot = nodesOfKindWithText(File, CstKind::UnaryExpression, "~-Value")[0];
-      const CstNodeId ArithmeticMinus = nodesOfKindWithText(File, CstKind::UnaryExpression, "-Value")[0];
-      EXPECT_EQ(directChildrenOfKind(File, LogicalNot, CstKind::UnaryExpression), (std::vector<CstNodeId>{BitwiseNot}));
-      EXPECT_EQ(directChildrenOfKind(File, BitwiseNot, CstKind::UnaryExpression), (std::vector<CstNodeId>{ArithmeticMinus}));
+      const std::vector<AstNodeId> Subtraction = nodesOfKindWithText(File, AstKind::BinaryExpression, "A - B - C");
+      ASSERT_EQ(Subtraction.size(), 1u);
+      EXPECT_EQ(directChildrenOfKind(File, Subtraction[0], AstKind::BinaryExpression), nodesOfKindWithText(File, AstKind::BinaryExpression, "A - B"));
+      const BinaryExpression &OuterSubtraction = File.ast().node(Subtraction[0]).get<BinaryExpression>();
+      EXPECT_EQ(nodeText(File, OuterSubtraction.Left), "A - B");
+      EXPECT_EQ(nodeText(File, OuterSubtraction.Right), "C");
+      EXPECT_EQ(tokenizer::symbolSpelling(OuterSubtraction.Operator), "-");
+      EXPECT_TRUE(nodesOfKindWithText(File, AstKind::BinaryExpression, "B - C").empty());
+      const std::vector<AstNodeId> Unary = nodesOfKindWithText(File, AstKind::UnaryExpression, "!~-Value");
+      ASSERT_EQ(Unary.size(), 1u);
+      EXPECT_EQ(directChildrenOfKind(File, Unary[0], AstKind::UnaryExpression), nodesOfKindWithText(File, AstKind::UnaryExpression, "~-Value"));
+      EXPECT_EQ(nodeText(File, File.ast().node(Unary[0]).get<UnaryExpression>().Operand), "~-Value");
       expectSuccessfulCompleteParse(File);
     }
 
-    // Verifies attributes, decorators, modifiers, generic parameters, and function parameters all remain owned by the same function declaration.
-    TEST(ParserSyntaxEdgeConformanceTest, PreservesFunctionPrefixAndClauseOwnership)
+    // Verifies both conditional branches may contain another conditional and the false branch associates right.
+    TEST(ParserSyntaxEdgeConformanceTest, PreservesConditionalBranchOwnership)
     {
-      const ParsedFile File = parseSource("[reflect()] @trace() public extern \"C\" static async func load<T: type>(Value: T) const -> Result;");
-
+      const ParsedFile File = parseSource("A ? B ? C : D : E ? F : G;");
       ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(countKind(File, CstKind::FunctionDeclaration), 1u);
-      const CstNodeId Function = nodesOfKind(File, CstKind::FunctionDeclaration)[0];
-      EXPECT_EQ(directChildrenOfKind(File, Function, CstKind::AttributeList).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, Function, CstKind::DecoratorApplication).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, Function, CstKind::FunctionModifier).size(), 3u);
-      EXPECT_EQ(directChildrenOfKind(File, Function, CstKind::ExternModifier).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, Function, CstKind::GenericParameterClause).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, Function, CstKind::FunctionParameterClause).size(), 1u);
-      ASSERT_EQ(countKind(File, CstKind::GenericParameter), 1u);
-      ASSERT_EQ(countKind(File, CstKind::FunctionParameter), 1u);
-      EXPECT_TRUE(isDescendant(File, Function, nodesOfKind(File, CstKind::GenericParameter)[0]));
-      EXPECT_TRUE(isDescendant(File, Function, nodesOfKind(File, CstKind::FunctionParameter)[0]));
-      EXPECT_EQ(nodeText(File, Function), "[reflect()] @trace() public extern \"C\" static async func load<T: type>(Value: T) const -> Result;");
+      EXPECT_EQ(countKind(File, AstKind::ConditionalExpression), 3u);
+      const std::vector<AstNodeId> Outer = nodesOfKindWithText(File, AstKind::ConditionalExpression, "A ? B ? C : D : E ? F : G");
+      ASSERT_EQ(Outer.size(), 1u);
+      EXPECT_EQ(directChildrenOfKind(File, Outer[0], AstKind::ConditionalExpression).size(), 2u);
+      const ConditionalExpression &Conditional = File.ast().node(Outer[0]).get<ConditionalExpression>();
+      EXPECT_EQ(nodeText(File, Conditional.Condition), "A");
+      EXPECT_EQ(nodeText(File, Conditional.Then), "B ? C : D");
+      EXPECT_EQ(nodeText(File, Conditional.Else), "E ? F : G");
       expectSuccessfulCompleteParse(File);
     }
 
-    // Verifies else-if is represented as a nested if directly owned by the outer if while the terminal else block belongs only to the nested if.
+    // Verifies unary type boundaries leave outer binary operators outside prefix and function-type nodes.
+    TEST(ParserSyntaxEdgeConformanceTest, PreservesUnaryTypeOperandBoundaries)
+    {
+      const ParsedFile File = parseSource("ptr T + U; ref T & U; func() -> T + U; ptr (Ready ? T : U); (func() -> T)(value);");
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_EQ(nodesOfKindWithText(File, AstKind::PointerTypeExpression, "ptr T").size(), 1u);
+      EXPECT_EQ(nodesOfKindWithText(File, AstKind::ReferenceTypeExpression, "ref T").size(), 1u);
+      EXPECT_EQ(nodesOfKindWithText(File, AstKind::FunctionTypeExpression, "func() -> T").size(), 2u);
+      EXPECT_EQ(countKind(File, AstKind::CallExpression), 1u);
+      expectSuccessfulCompleteParse(File);
+    }
+
+    // Verifies comptime at statement start covers the whole assignment or expression but expression-position comptime covers one unary operand.
+    TEST(ParserSyntaxEdgeConformanceTest, PreservesComptimeStatementAndExpressionScopes)
+    {
+      const ParsedFile File = parseSource("comptime A + B; comptime X = Y; A + comptime B; comptime if (A) {} else if (B) {} else {}");
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_EQ(countKind(File, AstKind::ComptimeStatement), 3u);
+      EXPECT_EQ(countKind(File, AstKind::ComptimeExpression), 1u);
+      const std::vector<AstNodeId> Assignment = nodesOfKindWithText(File, AstKind::ComptimeStatement, "comptime X = Y;");
+      ASSERT_EQ(Assignment.size(), 1u);
+      EXPECT_EQ(directChildrenOfKind(File, Assignment[0], AstKind::AssignmentStatement).size(), 1u);
+      const ComptimeStatement &ComptimeAssignment = File.ast().node(Assignment[0]).get<ComptimeStatement>();
+      const AssignmentStatement &InnerAssignment = File.ast().node(ComptimeAssignment.Statement).get<AssignmentStatement>();
+      EXPECT_EQ(nodeText(File, InnerAssignment.Target), "X");
+      EXPECT_EQ(nodeText(File, InnerAssignment.Value), "Y");
+      const ComptimeExpression &UnaryComptime = File.ast().node(nodesOfKind(File, AstKind::ComptimeExpression)[0]).get<ComptimeExpression>();
+      EXPECT_EQ(nodeText(File, UnaryComptime.Operand), "B");
+      const std::vector<AstNodeId> Branch = nodesOfKindWithText(File, AstKind::ComptimeStatement, "comptime if (A) {} else if (B) {} else {}");
+      ASSERT_EQ(Branch.size(), 1u);
+      EXPECT_EQ(countDescendantsOfKind(File, Branch[0], AstKind::IfStatement), 2u);
+      expectSuccessfulCompleteParse(File);
+    }
+
+    // Verifies else-if is represented by a nested if and the terminal else block belongs to that nested statement.
     TEST(ParserSyntaxEdgeConformanceTest, PreservesElseIfOwnership)
     {
-      const ParsedFile File = parseSource("func choose() { if (First) {} else if (Second) {} else {} }");
-
+      const ParsedFile File = parseSource("if (First) {} else if (Second) {} else {}");
       ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::IfStatement, "if (First) {} else if (Second) {} else {}").size(), 1u);
-      ASSERT_EQ(nodesOfKindWithText(File, CstKind::IfStatement, "if (Second) {} else {}").size(), 1u);
-      const CstNodeId OuterIf = nodesOfKindWithText(File, CstKind::IfStatement, "if (First) {} else if (Second) {} else {}")[0];
-      const CstNodeId NestedIf = nodesOfKindWithText(File, CstKind::IfStatement, "if (Second) {} else {}")[0];
-      EXPECT_EQ(directChildrenOfKind(File, OuterIf, CstKind::IfStatement), (std::vector<CstNodeId>{NestedIf}));
-      EXPECT_EQ(directChildrenOfKind(File, OuterIf, CstKind::StatementBlock).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, NestedIf, CstKind::StatementBlock).size(), 2u);
-      expectSuccessfulCompleteParse(File);
-    }
-
-    // Verifies all four top-level comptime controls directly own their region blocks.
-    TEST(ParserSyntaxEdgeConformanceTest, PreservesComptimeControlRegionOwnership)
-    {
-      const ParsedFile File = parseSource("comptime { const BlockValue = 1; } comptime if (Enabled) { const IfValue = 1; } else { const ElseValue = 0; } comptime for (const Item in Items) { const ForValue = Item; } comptime while (Enabled) { const WhileValue = 1; }");
-
-      ASSERT_TRUE(File.succeeded());
-      ASSERT_EQ(countKind(File, CstKind::ComptimeBlockControl), 1u);
-      ASSERT_EQ(countKind(File, CstKind::ComptimeIfControl), 1u);
-      ASSERT_EQ(countKind(File, CstKind::ComptimeForControl), 1u);
-      ASSERT_EQ(countKind(File, CstKind::ComptimeWhileControl), 1u);
-      const CstNodeId BlockControl = nodesOfKind(File, CstKind::ComptimeBlockControl)[0];
-      const CstNodeId IfControl = nodesOfKind(File, CstKind::ComptimeIfControl)[0];
-      const CstNodeId ForControl = nodesOfKind(File, CstKind::ComptimeForControl)[0];
-      const CstNodeId WhileControl = nodesOfKind(File, CstKind::ComptimeWhileControl)[0];
-      EXPECT_EQ(directChildrenOfKind(File, BlockControl, CstKind::TopLevelBlock).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, IfControl, CstKind::TopLevelBlock).size(), 2u);
-      EXPECT_EQ(directChildrenOfKind(File, ForControl, CstKind::TopLevelBlock).size(), 1u);
-      EXPECT_EQ(directChildrenOfKind(File, WhileControl, CstKind::TopLevelBlock).size(), 1u);
+      const std::vector<AstNodeId> Outer = nodesOfKindWithText(File, AstKind::IfStatement, "if (First) {} else if (Second) {} else {}");
+      const std::vector<AstNodeId> Nested = nodesOfKindWithText(File, AstKind::IfStatement, "if (Second) {} else {}");
+      ASSERT_EQ(Outer.size(), 1u);
+      ASSERT_EQ(Nested.size(), 1u);
+      EXPECT_EQ(directChildrenOfKind(File, Outer[0], AstKind::IfStatement), Nested);
+      const IfStatement &OuterIf = File.ast().node(Outer[0]).get<IfStatement>();
+      EXPECT_EQ(nodeText(File, OuterIf.Condition), "First");
+      EXPECT_EQ(OuterIf.Else, Nested[0]);
+      const IfStatement &NestedIf = File.ast().node(Nested[0]).get<IfStatement>();
+      EXPECT_EQ(nodeText(File, NestedIf.Condition), "Second");
+      EXPECT_EQ(File.ast().node(NestedIf.Else).kind(), AstKind::BlockStatement);
+      EXPECT_EQ(directChildrenOfKind(File, Outer[0], AstKind::BlockStatement).size(), 1u);
+      EXPECT_EQ(directChildrenOfKind(File, Nested[0], AstKind::BlockStatement).size(), 2u);
       expectSuccessfulCompleteParse(File);
     }
   } // namespace

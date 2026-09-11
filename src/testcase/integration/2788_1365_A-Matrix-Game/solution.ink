@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var m: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
     read(n, m);
-    var arr = cpp_array(m, n);
+    var arr: dynamic = cpp_array(m, n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             read(arr[i][j]);
@@ -28,15 +28,15 @@ func main()
         i += 1;
       }
     }
-    var row = 0;
-    var col = 0;
+    var row: dynamic = 0;
+    var col: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var flag = true;
+        var flag: dynamic = true;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             if ((arr[i][j] == 1))
@@ -54,12 +54,12 @@ func main()
       }
     }
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < m))
       {
-        var flag = true;
+        var flag: dynamic = true;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < n))
           {
             if ((arr[i][j] == 1))
@@ -76,7 +76,7 @@ func main()
         j += 1;
       }
     }
-    var ans = min(row, col);
+    var ans: dynamic = min(row, col);
     if (((ans % 2) == 0))
     {
       write("Vivek", "\n");

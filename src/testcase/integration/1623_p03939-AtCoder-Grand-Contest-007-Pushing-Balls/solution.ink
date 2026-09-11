@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var ans = 0;
-  var sum = 0;
-  var n: dynamic;
-  var x: dynamic;
-  var d: dynamic;
+  var ans: dynamic = 0;
+  var sum: dynamic = 0;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&x), (&d));
   sum = (((x * 2) * n) + (((1.0 * n) * (((2 * n) - 1))) * d));
   while (n)

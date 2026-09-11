@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var iinf = (1e9 + 7);
+var iinf: dynamic = (1e9 + 7);
 
-var linf = (1 << 60);
+var linf: dynamic = (1 << 60);
 
-var dinf = 1e60;
+var dinf: dynamic = 1e60;
 
-func scf(x: dynamic)
+func scf(x: dynamic) -> dynamic
 {
-  var f = 0;
+  var f: dynamic = 0;
   x = 0;
-  var c = getchar();
+  var c: dynamic = getchar();
   while (((((c < cpp_char("0")) || (c > cpp_char("9")))) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -32,20 +32,20 @@ func scf(x: dynamic)
   return;
 }
 
-func scf(x: dynamic, y: dynamic)
+func scf(x: dynamic, y: dynamic) -> dynamic
 {
   scf(x);
   return scf(y);
 }
 
-func scf(x: dynamic, y: dynamic, z: dynamic)
+func scf(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   scf(x);
   scf(y);
   return scf(z);
 }
 
-func scf(x: dynamic, y: dynamic, z: dynamic, w: dynamic)
+func scf(x: dynamic, y: dynamic, z: dynamic, w: dynamic) -> dynamic
 {
   scf(x);
   scf(y);
@@ -53,9 +53,9 @@ func scf(x: dynamic, y: dynamic, z: dynamic, w: dynamic)
   return scf(w);
 }
 
-func mygetchar()
+func mygetchar() -> dynamic
 {
-  var c = getchar();
+  var c: dynamic = getchar();
   while (((c == cpp_char(" ")) || (c == cpp_char("\n"))))
   {
     c = getchar();
@@ -63,7 +63,7 @@ func mygetchar()
   return c;
 }
 
-func chkmax(x: dynamic, y: dynamic)
+func chkmax(x: dynamic, y: dynamic) -> dynamic
 {
   if ((y > x))
   {
@@ -72,7 +72,7 @@ func chkmax(x: dynamic, y: dynamic)
   return;
 }
 
-func chkmin(x: dynamic, y: dynamic)
+func chkmin(x: dynamic, y: dynamic) -> dynamic
 {
   if ((y < x))
   {
@@ -81,25 +81,25 @@ func chkmin(x: dynamic, y: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
   TZL();
   RANK1();
   return 0;
 }
 
-var N = (1e5 + 100);
+var N: dynamic = (1e5 + 100);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
 class node
 {
   var f: dynamic = cpp_array(3, 3);
-  func node()
+  func node() -> dynamic
   {
       memset((f), (0), cpp_sizeof(((f))));
     }
-  func node(cntl: dynamic, cntr: dynamic)
+  func node(cntl: dynamic, cntr: dynamic) -> dynamic
   {
       memset((f), (0), cpp_sizeof(((f))));
       f[0][0] = cntl;
@@ -107,18 +107,18 @@ class node
       f[1][1] = 1;
       return;
     }
-  func operator_add(a: dynamic)
+  func operator_add(a: dynamic) -> dynamic
   {
-      var ret: dynamic;
+      var ret: dynamic = cpp_uninitialized();
       memcpy((ret.f), (f), cpp_sizeof(((f))));
       {
-        var l = 0;
-        var end = (3);
+        var l: dynamic = 0;
+        var end: dynamic = (3);
         while ((l < end))
         {
           {
-            var r = 0;
-            var end = (3);
+            var r: dynamic = 0;
+            var end: dynamic = (3);
             while ((r < end))
             {
               (cpp_assign(ret.f[l][r], "+=", a.f[l][r])) %= mod;
@@ -129,18 +129,18 @@ class node
         }
       }
       {
-        var l = 0;
-        var end = (2);
+        var l: dynamic = 0;
+        var end: dynamic = (2);
         while ((l < end))
         {
           {
-            var r = ((l + 1));
-            var end = (2);
+            var r: dynamic = ((l + 1));
+            var end: dynamic = (2);
             while ((r <= end))
             {
               {
-                var mid = (l);
-                var end = ((r - 1));
+                var mid: dynamic = (l);
+                var end: dynamic = ((r - 1));
                 while ((mid <= end))
                 {
                   ret.f[l][r] = ((((1 * ret.f[l][r]) + ((1 * f[l][mid]) * a.f[(mid + 1)][r]))) % mod);
@@ -159,9 +159,9 @@ class node
 
 class seg
 {
-  var n: dynamic;
-  var root: dynamic;
-  func B(cur: dynamic, l: dynamic, r: dynamic, a: dynamic, b: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  var root: dynamic = cpp_uninitialized();
+  func B(cur: dynamic, l: dynamic, r: dynamic, a: dynamic, b: dynamic) -> dynamic
   {
       cur = cpp_new();
       if ((l == r))
@@ -169,19 +169,19 @@ class seg
         cur->f = node(a[l], b[l]);
         return;
       }
-      var mid = ((l + r) >> 1);
+      var mid: dynamic = ((l + r) >> 1);
       B(cur->l, l, mid, a, b);
       B(cur->r, (mid + 1), r, a, b);
       return cur->pull();
     }
-  func M(cur: dynamic, i: dynamic, x: dynamic, l: dynamic, r: dynamic)
+  func M(cur: dynamic, i: dynamic, x: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       if ((l == r))
       {
         cur->f = x;
         return;
       }
-      var mid = ((l + r) >> 1);
+      var mid: dynamic = ((l + r) >> 1);
       if ((i > mid))
       {
         M(cur->r, i, x, (mid + 1), r);
@@ -191,30 +191,30 @@ class seg
       }
       return cur->pull();
     }
-  func Q()
+  func Q() -> dynamic
   {
       return root->f.f[0][2];
     }
-  func B(n: dynamic, cntl: dynamic, cntr: dynamic)
+  func B(n: dynamic, cntl: dynamic, cntr: dynamic) -> dynamic
   {
       B(root, 1, cpp_assign(n, "=", n), cntl, cntr);
       return;
     }
-  func M(i: dynamic, x: dynamic)
+  func M(i: dynamic, x: dynamic) -> dynamic
   {
       return M(root, i, x, 1, n);
     }
-  func out(cur: dynamic, l: dynamic, r: dynamic, dep: dynamic = 1)
+  func out(cur: dynamic, l: dynamic, r: dynamic, dep: dynamic = 1) -> dynamic
   {
       if ((!cur))
       {
         return;
       }
-      var mid = ((l + r) >> 1);
+      var mid: dynamic = ((l + r) >> 1);
       out(cur->l, l, mid, (dep + 1));
       {
-        var i = 0;
-        var end = (dep);
+        var i: dynamic = 0;
+        var end: dynamic = (dep);
         while ((i < end))
         {
           putchar(cpp_char("\t"));
@@ -223,13 +223,13 @@ class seg
       }
       printf("[%d, %d]:\n", l, r);
       {
-        var i = 0;
-        var end = (3);
+        var i: dynamic = 0;
+        var end: dynamic = (3);
         while ((i < end))
         {
           {
-            var j = 0;
-            var end = ((dep + 1));
+            var j: dynamic = 0;
+            var end: dynamic = ((dep + 1));
             while ((j < end))
             {
               putchar(cpp_char("\t"));
@@ -237,8 +237,8 @@ class seg
             }
           }
           {
-            var j = 0;
-            var end = (3);
+            var j: dynamic = 0;
+            var end: dynamic = (3);
             while ((j < end))
             {
               printf("%d ", cur->f.f[i][j]);
@@ -250,8 +250,8 @@ class seg
         }
       }
       {
-        var i = 0;
-        var end = (dep);
+        var i: dynamic = 0;
+        var end: dynamic = (dep);
         while ((i < end))
         {
           putchar(cpp_char("\t"));
@@ -262,36 +262,36 @@ class seg
       out(cur->r, (mid + 1), r, (dep + 1));
       return;
     }
-  func out()
+  func out() -> dynamic
   {
       return out(root, 1, n);
     }
 }
 
-var rt = cpp_array(N);
+var rt: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var cntl = cpp_array(N);
+var cntl: dynamic = cpp_array(N);
 
-var cntr = cpp_array(N);
+var cntr: dynamic = cpp_array(N);
 
-var apr = cpp_array(N);
+var apr: dynamic = cpp_array(N);
 
-var num = cpp_array(N);
+var num: dynamic = cpp_array(N);
 
-func lowbit(i: dynamic)
+func lowbit(i: dynamic) -> dynamic
 {
   return (i & ((-i)));
 }
 
-func M(i: dynamic)
+func M(i: dynamic) -> dynamic
 {
   {
     while ((i <= m))
@@ -303,9 +303,9 @@ func M(i: dynamic)
   return;
 }
 
-func Q(i: dynamic)
+func Q(i: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   {
     while (i)
     {
@@ -316,20 +316,20 @@ func Q(i: dynamic)
   return ret;
 }
 
-func B()
+func B() -> dynamic
 {
   memset((num), (0), cpp_sizeof(((num))));
   return;
 }
 
-func TZL()
+func TZL() -> dynamic
 {
-  var M: dynamic;
+  var M: dynamic = cpp_uninitialized();
   M.clear();
   scf(n);
   {
-    var i = (1);
-    var end = (n);
+    var i: dynamic = (1);
+    var end: dynamic = (n);
     while ((i <= end))
     {
       scf(a[i]);
@@ -338,7 +338,7 @@ func TZL()
     }
   }
   {
-    var it = M.begin();
+    var it: dynamic = M.begin();
     while ((it != M.end()))
     {
       it->second = (cpp_update(m, "++"));
@@ -346,8 +346,8 @@ func TZL()
     }
   }
   {
-    var i = (1);
-    var end = (n);
+    var i: dynamic = (1);
+    var end: dynamic = (n);
     while ((i <= end))
     {
       a[i] = M[a[i]];
@@ -355,8 +355,8 @@ func TZL()
     }
   }
   {
-    var i = (1);
-    var end = (n);
+    var i: dynamic = (1);
+    var end: dynamic = (n);
     while ((i <= end))
     {
       cntl[i] = BIT.Q(a[i]);
@@ -366,8 +366,8 @@ func TZL()
   }
   BIT.B();
   {
-    var i = (n);
-    var end = (1);
+    var i: dynamic = (n);
+    var end: dynamic = (1);
     while ((i >= end))
     {
       cntr[i] = BIT.Q(a[i]);
@@ -376,23 +376,23 @@ func TZL()
     }
   }
   {
-    var i = (1);
-    var end = (n);
+    var i: dynamic = (1);
+    var end: dynamic = (n);
     while ((i <= end))
     {
       apr[a[i]].push_back(i);
       i += 1;
     }
   }
-  var foo = cpp_array(N);
-  var bar = cpp_array(N);
+  var foo: dynamic = cpp_array(N);
+  var bar: dynamic = cpp_array(N);
   {
-    var i = (1);
-    var end = (m);
+    var i: dynamic = (1);
+    var end: dynamic = (m);
     while ((i <= end))
     {
-      var pnt = 0;
-      for (var x in apr[i])
+      var pnt: dynamic = 0;
+      for (var x: dynamic in apr[i])
       {
         pnt += 1;
         foo[pnt] = cntl[x];
@@ -406,19 +406,19 @@ func TZL()
   return;
 }
 
-func RANK1()
+func RANK1() -> dynamic
 {
-  var q_n: dynamic;
+  var q_n: dynamic = cpp_uninitialized();
   scf(q_n);
   while (cpp_update(q_n, "--"))
   {
-    var typ: dynamic;
-    var i: dynamic;
+    var typ: dynamic = cpp_uninitialized();
+    var i: dynamic = cpp_uninitialized();
     scf(typ, i);
-    var x = a[i];
-    var j = ((lower_bound(apr[x].begin(), apr[x].end(), i) - apr[x].begin()) + 1);
+    var x: dynamic = a[i];
+    var j: dynamic = ((lower_bound(apr[x].begin(), apr[x].end(), i) - apr[x].begin()) + 1);
     (cpp_assign(ans, "+=", (mod - rt[x].Q()))) %= mod;
-    var nw: dynamic;
+    var nw: dynamic = cpp_uninitialized();
     if ((typ == 2))
     {
       nw = node(cntl[i], cntr[i]);

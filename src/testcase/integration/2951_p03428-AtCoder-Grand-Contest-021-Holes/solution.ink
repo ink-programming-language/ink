@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var x = cpp_expression("#incl");
+var x: dynamic = cpp_expression("#incl");
 
-var y = cpp_expression("#inclu");
+var y: dynamic = cpp_expression("#inclu");
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-func enum_cpp(i: dynamic, x: dynamic, y: dynamic)
+func enum_cpp(i: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(x);i<=(y);++i)");
 }
 
-func try_cpp(i: dynamic, x: dynamic, y: dynamic)
+func try_cpp(i: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(x);i>=(y);--i)");
 }
 
-func chkmax(x: dynamic, y: dynamic)
+func chkmax(x: dynamic, y: dynamic) -> dynamic
 {
-  if ((x < y)) cpp_assign(x, "=", y) else 0;
+   ((x < y)) ? cpp_assign(x, "=", y) : 0;
 }
 
-func chkmin(x: dynamic, y: dynamic)
+func chkmin(x: dynamic, y: dynamic) -> dynamic
 {
-  if ((y < x)) cpp_assign(x, "=", y) else 0;
+   ((y < x)) ? cpp_assign(x, "=", y) : 0;
 }
 
-func readint(x: dynamic)
+func readint(x: dynamic) -> dynamic
 {
   x = 0;
-  var f = 1;
-  var c: dynamic;
+  var f: dynamic = 1;
+  var c: dynamic = cpp_uninitialized();
   {
     c = getchar();
     while ((!isdigit(c)))
@@ -54,19 +54,19 @@ func readint(x: dynamic)
   x *= f;
 }
 
-var MAXN = 105;
+var MAXN: dynamic = 105;
 
-var pi = (atan(1) * 4);
+var pi: dynamic = (atan(1) * 4);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var x = cpp_array(MAXN);
+var x: dynamic = cpp_array(MAXN);
 
-var y = cpp_array(MAXN);
+var y: dynamic = cpp_array(MAXN);
 
-var ang = cpp_array(MAXN);
+var ang: dynamic = cpp_array(MAXN);
 
-func solve(cur: dynamic)
+func solve(cur: dynamic) -> dynamic
 {
   cpp_statement("enum(i,1,n)");
   {
@@ -75,14 +75,14 @@ func solve(cur: dynamic)
       ang[i] = 0;
       continue;
     }
-    var x0 = (x[i] - x[cur]);
-    var y0 = (y[i] - y[cur]);
+    var x0: dynamic = (x[i] - x[cur]);
+    var y0: dynamic = (y[i] - y[cur]);
     if ((fabs(x0) < 1e-8))
     {
-      ang[i] = if ((y0 > 0)) (pi / 2) else ((-pi) / 2);
+      ang[i] =  ((y0 > 0)) ? (pi / 2) : ((-pi) / 2);
     } else
     {
-      ang[i] = (atan((y0 / x0)) + (if ((x0 < 0)) pi else 0));
+      ang[i] = (atan((y0 / x0)) + ( ((x0 < 0)) ? pi : 0));
     }
     if ((ang[i] < 0))
     {
@@ -91,14 +91,14 @@ func solve(cur: dynamic)
   }
   sort((ang + 1), ((ang + n) + 1));
   ang[1] = (ang[n] - (2 * pi));
-  var ans = 0;
+  var ans: dynamic = 0;
   cpp_statement("enum");
   (cpp_comma(i, cpp_comma(2, n)));
   chkmax(ans, (ang[i] - ang[(i - 1)]));
-  return if ((ans < pi)) 0 else ((((ans / pi) - 1)) * 0.5);
+  return  ((ans < pi)) ? 0 : ((((ans / pi) - 1)) * 0.5);
 }
 
-func main()
+func main() -> dynamic
 {
   readint(n);
   cpp_statement("enum");

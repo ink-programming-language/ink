@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-func bits(x: dynamic)
+func bits(x: dynamic) -> dynamic
 {
-  return if ((x == 0)) 0 else (1 + bits((x & ((x - 1)))));
+  return  ((x == 0)) ? 0 : (1 + bits((x & ((x - 1)))));
 }
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var INF = 1000000000;
+var INF: dynamic = 1000000000;
 
-func nextString()
+func nextString() -> dynamic
 {
-  var buf = cpp_array(1000000);
+  var buf: dynamic = cpp_array(1000000);
   scanf("%s", buf);
   return buf;
 }
 
-var dx = [0, 1, 0, -1];
+var dx: dynamic = [0, 1, 0, -1];
 
-var dy = [1, 0, -1, 0];
+var dy: dynamic = [1, 0, -1, 0];
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b == 0)) a else gcd(b, (a % b));
+  return  ((b == 0)) ? a : gcd(b, (a % b));
 }
 
-func get_sort(n: dynamic)
+func get_sort(n: dynamic) -> dynamic
 {
   {
     int_cpp(i) = 0;
@@ -37,7 +37,7 @@ func get_sort(n: dynamic)
       (i) += 1;
     }
   }
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   {
     int_cpp(i) = 0;
     while (((i) < (n)))
@@ -60,12 +60,12 @@ func get_sort(n: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d\n", (&n));
-  var res1 = get_sort(n);
-  var res2 = get_sort(n);
+  var res1: dynamic = get_sort(n);
+  var res2: dynamic = get_sort(n);
   reverse((res1).begin(), (res1).end());
   printf("%d\n", (cpp_cast((res1).size()) + cpp_cast((res2).size())));
   {

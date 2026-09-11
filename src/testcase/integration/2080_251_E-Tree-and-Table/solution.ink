@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var size = cpp_array((200000 + 5));
+var size: dynamic = cpp_array((200000 + 5));
 
-var dep = cpp_array((200000 + 5));
+var dep: dynamic = cpp_array((200000 + 5));
 
-var pre = cpp_array((200000 + 5));
+var pre: dynamic = cpp_array((200000 + 5));
 
-var le = cpp_array((200000 + 5));
+var le: dynamic = cpp_array((200000 + 5));
 
-var ri = cpp_array((200000 + 5));
+var ri: dynamic = cpp_array((200000 + 5));
 
-var son = cpp_array(4, (200000 + 5));
+var son: dynamic = cpp_array(4, (200000 + 5));
 
-var e = cpp_array((200000 + 5));
+var e: dynamic = cpp_array((200000 + 5));
 
-var a = cpp_array(4);
+var a: dynamic = cpp_array(4);
 
-var dp = cpp_array((200000 + 5));
+var dp: dynamic = cpp_array((200000 + 5));
 
-func dfs(u: dynamic, fa: dynamic)
+func dfs(u: dynamic, fa: dynamic) -> dynamic
 {
   size[u] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < e[u]))
     {
-      var v = son[u][i];
+      var v: dynamic = son[u][i];
       if ((v == fa))
       {
         i += 1;
@@ -54,7 +54,7 @@ func dfs(u: dynamic, fa: dynamic)
   }
 }
 
-func getAns(u: dynamic)
+func getAns(u: dynamic) -> dynamic
 {
   if ((!u))
   {
@@ -72,13 +72,13 @@ func getAns(u: dynamic)
   {
     return dp[u];
   }
-  var p = pre[u];
-  var l = le[p];
-  var r = ri[p];
-  var sum = 0;
+  var p: dynamic = pre[u];
+  var l: dynamic = le[p];
+  var r: dynamic = ri[p];
+  var sum: dynamic = 0;
   dp[u] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
       if ((!ri[r]))
@@ -89,7 +89,7 @@ func getAns(u: dynamic)
         }
         if ((((!pre[r]) && (dep[r] <= dep[u])) && (!(((dep[r] + dep[u]) & 1)))))
         {
-          sum += (getAns(l) * (if (((dep[u] - dep[r]) >= 2)) 2 else 1));
+          sum += (getAns(l) * ( (((dep[u] - dep[r]) >= 2)) ? 2 : 1));
         }
         sum %= 1000000007;
       } else
@@ -111,7 +111,7 @@ func getAns(u: dynamic)
   return cpp_assign(dp[u], "=", (sum % 1000000007));
 }
 
-func cal(u: dynamic, v: dynamic)
+func cal(u: dynamic, v: dynamic) -> dynamic
 {
   if (((!u) || (!v)))
   {
@@ -128,18 +128,18 @@ func cal(u: dynamic, v: dynamic)
   return getAns((le[u] + le[v]));
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   n <<= 1;
-  var rt = 0;
-  var flag = 0;
+  var rt: dynamic = 0;
+  var flag: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d%d", (&u), (&v));
       if (((e[u] == 3) || (e[v] == 3)))
       {
@@ -166,10 +166,10 @@ func main()
   }
   if ((!rt))
   {
-    printf("%lld\n", if ((n == 2)) 2 else (((((1 * n) * (((n / 2) - 1))) + 4)) % 1000000007));
+    printf("%lld\n",  ((n == 2)) ? 2 : (((((1 * n) * (((n / 2) - 1))) + 4)) % 1000000007));
     return 0;
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   dfs(rt, 0);
   a[0] = 0;
   a[1] = 1;
@@ -177,11 +177,11 @@ func main()
   memset(dp, -1, cpp_sizeof((dp)));
   while (true)
   {
-    var l = son[rt][a[0]];
-    var m = son[rt][a[1]];
-    var r = son[rt][a[2]];
-    var u = le[m];
-    var v = ri[m];
+    var l: dynamic = son[rt][a[0]];
+    var m: dynamic = son[rt][a[1]];
+    var r: dynamic = son[rt][a[2]];
+    var u: dynamic = le[m];
+    var v: dynamic = ri[m];
     ans += ((cal(l, u) * cal(r, v)) % 1000000007);
     ans %= 1000000007;
     if ((u || v))

@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var N = (1e6 + 10);
+var N: dynamic = (1e6 + 10);
 
-var a = cpp_array(200);
+var a: dynamic = cpp_array(200);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     memset(a, 0, cpp_sizeof((a)));
-    var n: dynamic;
-    var m: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
     read(n, m);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= m))
           {
-            var temp: dynamic;
+            var temp: dynamic = cpp_uninitialized();
             read(temp);
             a[((i + j) - 1)] ^= temp;
             j += 1;
@@ -34,9 +34,9 @@ func main()
         i += 1;
       }
     }
-    var flag = 1;
+    var flag: dynamic = 1;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= ((n + m) - 1)))
       {
         if (a[i])
@@ -46,6 +46,6 @@ func main()
         i += 1;
       }
     }
-    write((if (flag) "Jeel" else "Ashish"), "\n");
+    write(( (flag) ? "Jeel" : "Ashish"), "\n");
   }
 }

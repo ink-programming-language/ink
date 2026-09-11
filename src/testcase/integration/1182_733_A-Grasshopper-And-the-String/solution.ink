@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   read(s);
-  var n = s.size();
-  var ans = (n + 1);
-  var low = 1;
-  var high = (n + 1);
+  var n: dynamic = s.size();
+  var ans: dynamic = (n + 1);
+  var low: dynamic = 1;
+  var high: dynamic = (n + 1);
   while ((low <= high))
   {
-    var mid = (((low + high)) / 2);
-    var last = -1;
-    var val = 0;
+    var mid: dynamic = (((low + high)) / 2);
+    var last: dynamic = -1;
+    var val: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if (((((((s[i] == cpp_char("A")) || (s[i] == cpp_char("E"))) || (s[i] == cpp_char("I"))) || (s[i] == cpp_char("O"))) || (s[i] == cpp_char("U"))) || (s[i] == cpp_char("Y"))))

@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var root: dynamic;
+var root: dynamic = cpp_uninitialized();
 
-var d = cpp_array(200005);
+var d: dynamic = cpp_array(200005);
 
-var h = cpp_array(200005);
+var h: dynamic = cpp_array(200005);
 
-var res = cpp_array(200005);
+var res: dynamic = cpp_array(200005);
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
-func dfs(u: dynamic, p: dynamic)
+func dfs(u: dynamic, p: dynamic) -> dynamic
 {
-  var tmp = 0;
+  var tmp: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(a[u].size())))
     {
-      var v = a[u][i];
+      var v: dynamic = a[u][i];
       if ((v == p))
       {
         i += 1;
@@ -36,7 +36,7 @@ func dfs(u: dynamic, p: dynamic)
   h[u] = max(d[u], tmp);
 }
 
-func color(u: dynamic, p: dynamic, cur: dynamic, step: dynamic, diameter: dynamic = true)
+func color(u: dynamic, p: dynamic, cur: dynamic, step: dynamic, diameter: dynamic = true) -> dynamic
 {
   cur += step;
   if ((cur > k))
@@ -47,12 +47,12 @@ func color(u: dynamic, p: dynamic, cur: dynamic, step: dynamic, diameter: dynami
     cur += k;
   }
   res[u] = cur;
-  var U = 0;
+  var U: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(a[u].size())))
     {
-      var v = a[u][i];
+      var v: dynamic = a[u][i];
       if ((v == p))
       {
         i += 1;
@@ -66,7 +66,7 @@ func color(u: dynamic, p: dynamic, cur: dynamic, step: dynamic, diameter: dynami
           i += 1;
           continue;
         }
-        var len = ((h[v] - d[v]) + 1);
+        var len: dynamic = ((h[v] - d[v]) + 1);
         if ((((k > 2) && ((len + d[u]) >= k)) && ((((len + h[root]) - d[u]) + 1) >= k)))
         {
           write("No");
@@ -91,18 +91,18 @@ func color(u: dynamic, p: dynamic, cur: dynamic, step: dynamic, diameter: dynami
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n, k);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       a[u].push_back(v);
       a[v].push_back(u);
@@ -111,7 +111,7 @@ func main()
   }
   dfs(1, 0);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       if ((d[i] == h[1]))
@@ -126,7 +126,7 @@ func main()
   color(root, 0, 0, 1);
   write("Yes\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(res[i], " ");

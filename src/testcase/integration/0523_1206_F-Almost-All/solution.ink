@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var N = 1010;
+var N: dynamic = 1010;
 
 class Edge
 {
-  var to: dynamic;
-  var next: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array((N * 2));
+var e: dynamic = cpp_array((N * 2));
 
-var lst = cpp_array(N);
+var lst: dynamic = cpp_array(N);
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
   e[d].to = y;
   e[d].next = lst[x];
   lst[x] = cpp_update(d, "++");
 }
 
-var fa = cpp_array(N);
+var fa: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var sz = cpp_array(N);
+var sz: dynamic = cpp_array(N);
 
-func read()
+func read() -> dynamic
 {
-  var w = 0;
-  var f = 0;
-  var c = getchar();
+  var w: dynamic = 0;
+  var f: dynamic = 0;
+  var c: dynamic = getchar();
   while (((((c < cpp_char("0")) || (c > cpp_char("9")))) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -46,14 +46,14 @@ func read()
     w = (((w * 10) + c) - cpp_char("0"));
     c = getchar();
   }
-  return if (f) (-w) else w;
+  return  (f) ? (-w) : w;
 }
 
-func dfs1(t: dynamic)
+func dfs1(t: dynamic) -> dynamic
 {
   sz[t] = 1;
   {
-    var i = lst[t];
+    var i: dynamic = lst[t];
     while ((i >= 0))
     {
       if ((e[i].to != fa[t]))
@@ -67,11 +67,11 @@ func dfs1(t: dynamic)
   }
 }
 
-func dfs2(t: dynamic, num: dynamic, mul: dynamic)
+func dfs2(t: dynamic, num: dynamic, mul: dynamic) -> dynamic
 {
-  var tmp = 0;
+  var tmp: dynamic = 0;
   {
-    var i = lst[t];
+    var i: dynamic = lst[t];
     while ((i >= 0))
     {
       if ((e[i].to != fa[t]))
@@ -85,9 +85,9 @@ func dfs2(t: dynamic, num: dynamic, mul: dynamic)
   }
 }
 
-var Sz: dynamic;
+var Sz: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   n = read();
   if ((n == 1))
@@ -95,10 +95,10 @@ func main()
     return 0;
   }
   memset(lst, -1, cpp_sizeof(lst));
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       x = read();
@@ -108,13 +108,13 @@ func main()
       i += 1;
     }
   }
-  var Lim = (((n + 1)) / 3);
+  var Lim: dynamic = (((n + 1)) / 3);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           fa[j] = 0;
@@ -125,7 +125,7 @@ func main()
       dfs1(i);
       Sz.clear();
       {
-        var j = lst[i];
+        var j: dynamic = lst[i];
         while ((j >= 0))
         {
           Sz.push_back(make_pair(sz[e[j].to], e[j].to));
@@ -133,8 +133,8 @@ func main()
         }
       }
       sort(Sz.begin(), Sz.end());
-      var sm = 0;
-      var now = 0;
+      var sm: dynamic = 0;
+      var now: dynamic = 0;
       {
         now = 0;
         while ((now < Sz.size()))
@@ -152,9 +152,9 @@ func main()
         i += 1;
         continue;
       }
-      var tmp = 0;
+      var tmp: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= now))
         {
           printf("%d %d %d\n", i, Sz[j].second, (tmp + 1));
@@ -165,7 +165,7 @@ func main()
       }
       tmp = 0;
       {
-        var j = (now + 1);
+        var j: dynamic = (now + 1);
         while ((j < Sz.size()))
         {
           printf("%d %d %d\n", i, Sz[j].second, (((tmp + 1)) * ((sm + 1))));

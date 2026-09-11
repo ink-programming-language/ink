@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(20, 262149);
+var dp: dynamic = cpp_array(20, 262149);
 
-var kt = cpp_array(20);
+var kt: dynamic = cpp_array(20);
 
-var s = cpp_array(20, 20);
+var s: dynamic = cpp_array(20, 20);
 
-func solve(mask: dynamic, pr: dynamic, n: dynamic, t: dynamic, u: dynamic)
+func solve(mask: dynamic, pr: dynamic, n: dynamic, t: dynamic, u: dynamic) -> dynamic
 {
   if ((t == n))
   {
@@ -17,9 +17,9 @@ func solve(mask: dynamic, pr: dynamic, n: dynamic, t: dynamic, u: dynamic)
     return dp[mask][pr];
   }
   dp[mask][pr] = 0;
-  var nmask: dynamic;
+  var nmask: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < u))
     {
       if ((((mask & ((1 << i)))) == 0))
@@ -33,24 +33,24 @@ func solve(mask: dynamic, pr: dynamic, n: dynamic, t: dynamic, u: dynamic)
   return dp[mask][pr];
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
     memset(dp, -1, cpp_sizeof((dp)));
-    var n: dynamic;
-    var m: dynamic;
-    var k: dynamic;
-    var x: dynamic;
-    var y: dynamic;
-    var c: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
+    var k: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
+    var c: dynamic = cpp_uninitialized();
     read(n, m, k);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(kt[i]);
@@ -58,7 +58,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= k))
       {
         read(x, y, c);
@@ -66,10 +66,10 @@ func main()
         i += 1;
       }
     }
-    var ans = INT_MIN;
-    var nm = 0;
+    var ans: dynamic = INT_MIN;
+    var nm: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         ans = max(ans, (kt[i] + solve((nm + ((1 << i))), i, m, 1, n)));

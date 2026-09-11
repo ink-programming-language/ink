@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var maxn = 999999999;
-  var m = cpp_array(105, 105);
-  var n: dynamic;
+  var maxn: dynamic = 999999999;
+  var m: dynamic = cpp_array(105, 105);
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           m[i][j] = maxn;
@@ -22,11 +22,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           read(m[i][j]);
@@ -37,15 +37,15 @@ func main()
     }
   }
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < n))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < n))
             {
               if ((m[i][j] > (m[i][k] + m[k][j])))
@@ -61,13 +61,13 @@ func main()
       k += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((m[i][j] < maxn))

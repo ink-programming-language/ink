@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(100010);
+var dp: dynamic = cpp_array(100010);
 
-var a = cpp_array(1001);
+var a: dynamic = cpp_array(1001);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   scanf("%d %d", (&n), (&k));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
@@ -18,11 +18,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= k))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if (((i >= a[j]) && (!dp[(i - a[j])])))

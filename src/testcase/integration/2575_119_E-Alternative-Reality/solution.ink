@@ -1,67 +1,67 @@
 // Translated from solution.cpp.
 
-func convert(x: dynamic)
+func convert(x: dynamic) -> dynamic
 {
-  var ss: dynamic;
+  var ss: dynamic = cpp_uninitialized();
   (ss << x);
-  var ret: dynamic;
+  var ret: dynamic = cpp_uninitialized();
   (ss >> ret);
   return ret;
 }
 
-var oo = ((~0) >> 2);
+var oo: dynamic = ((~0) >> 2);
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
-var mn = 1000;
+var mn: dynamic = 1000;
 
-var mo = 100000007;
+var mo: dynamic = 100000007;
 
-var fx = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
+var fx: dynamic = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
 
 class po
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
-  func po()
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
+  func po() -> dynamic
   {
     }
-  func po(X: dynamic, Y: dynamic)
+  func po(X: dynamic, Y: dynamic) -> dynamic
   {
       x = X;
       y = Y;
       z = 0;
     }
-  func po(X: dynamic, Y: dynamic, Z: dynamic)
+  func po(X: dynamic, Y: dynamic, Z: dynamic) -> dynamic
   {
       x = X;
       y = Y;
       z = Z;
     }
-  func operator_divide(a: dynamic)
+  func operator_divide(a: dynamic) -> dynamic
   {
       return po((x / a), (y / a), (z / a));
     }
-  func operator_add(p: dynamic)
+  func operator_add(p: dynamic) -> dynamic
   {
       return po((x + p.x), (y + p.y), (z + p.z));
     }
-  func operator_subtract(p: dynamic)
+  func operator_subtract(p: dynamic) -> dynamic
   {
       return po((x - p.x), (y - p.y), (z - p.z));
     }
 }
 
-var a = cpp_array(mn);
+var a: dynamic = cpp_array(mn);
 
-var p = cpp_array(mn);
+var p: dynamic = cpp_array(mn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func sgn(x: dynamic)
+func sgn(x: dynamic) -> dynamic
 {
   if ((fabs(x) <= eps))
   {
@@ -74,12 +74,12 @@ func sgn(x: dynamic)
   return -1;
 }
 
-func dis(a: dynamic, b: dynamic)
+func dis(a: dynamic, b: dynamic) -> dynamic
 {
   return sqrt(((((cpp_cast(((a.x - b.x))) * ((a.x - b.x)))) + ((cpp_cast(((a.y - b.y))) * ((a.y - b.y))))) + ((cpp_cast(((a.z - b.z))) * ((a.z - b.z))))));
 }
 
-func Project(p: dynamic, A: dynamic, B: dynamic, C: dynamic)
+func Project(p: dynamic, A: dynamic, B: dynamic, C: dynamic) -> dynamic
 {
   if (((!A) && (!B)))
   {
@@ -93,19 +93,19 @@ func Project(p: dynamic, A: dynamic, B: dynamic, C: dynamic)
   {
     return po(p.z, p.x);
   }
-  var alpha = (cpp_cast(((((A * p.x) + (B * p.y)) + (C * p.z)))) / (((((cpp_cast((A)) * (A))) + ((cpp_cast((B)) * (B)))) + ((cpp_cast((C)) * (C))))));
-  var pA = po((p.x - (alpha * A)), (p.y - (alpha * B)), (p.z - (alpha * C)));
-  var pO = po(0, 0);
-  var pB = po(0, (-C), B);
-  var a = dis(pO, pA);
-  var b = dis(pO, pB);
-  var c = dis(pA, pB);
+  var alpha: dynamic = (cpp_cast(((((A * p.x) + (B * p.y)) + (C * p.z)))) / (((((cpp_cast((A)) * (A))) + ((cpp_cast((B)) * (B)))) + ((cpp_cast((C)) * (C))))));
+  var pA: dynamic = po((p.x - (alpha * A)), (p.y - (alpha * B)), (p.z - (alpha * C)));
+  var pO: dynamic = po(0, 0);
+  var pB: dynamic = po(0, (-C), B);
+  var a: dynamic = dis(pO, pA);
+  var b: dynamic = dis(pO, pB);
+  var c: dynamic = dis(pA, pB);
   if ((!sgn(a)))
   {
     return po(0, 0);
   }
-  var t = ((((((cpp_cast((a)) * (a))) + ((cpp_cast((b)) * (b)))) - ((cpp_cast((c)) * (c))))) / (((2 * a) * b)));
-  var Ang: dynamic;
+  var t: dynamic = ((((((cpp_cast((a)) * (a))) + ((cpp_cast((b)) * (b)))) - ((cpp_cast((c)) * (c))))) / (((2 * a) * b)));
+  var Ang: dynamic = cpp_uninitialized();
   if ((!sgn((t - 1))))
   {
     Ang = acos(1);
@@ -123,14 +123,14 @@ func Project(p: dynamic, A: dynamic, B: dynamic, C: dynamic)
   return po((a * cos(Ang)), (a * sin(Ang)));
 }
 
-func calc(A: dynamic, B: dynamic, C: dynamic)
+func calc(A: dynamic, B: dynamic, C: dynamic) -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
-  var e: dynamic;
-  var f: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var e: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
   a = (B.x - A.x);
   b = (B.y - A.y);
   c = (((((((cpp_cast((B.x)) * (B.x))) + ((cpp_cast((B.y)) * (B.y)))) - ((cpp_cast((A.x)) * (A.x)))) - ((cpp_cast((A.y)) * (A.y))))) / 2.0);
@@ -140,11 +140,11 @@ func calc(A: dynamic, B: dynamic, C: dynamic)
   return po(((((c * e) - (f * b))) / (((a * e) - (b * d)))), ((((c * d) - (f * a))) / (((b * d) - (e * a)))));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i].x, a[i].y, a[i].z);
@@ -153,12 +153,12 @@ func main()
   }
   while (cpp_update(m, "--"))
   {
-    var A: dynamic;
-    var B: dynamic;
-    var C: dynamic;
+    var A: dynamic = cpp_uninitialized();
+    var B: dynamic = cpp_uninitialized();
+    var C: dynamic = cpp_uninitialized();
     read(A, B, C);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         p[i] = Project(a[i], A, B, C);
@@ -166,10 +166,10 @@ func main()
       }
     }
     random_shuffle((p + 1), ((p + n) + 1));
-    var o = po(0, 0, 0);
-    var R = 0;
+    var o: dynamic = po(0, 0, 0);
+    var R: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if ((sgn((dis(o, p[i]) - R)) > 0))
@@ -177,7 +177,7 @@ func main()
           o = p[i];
           R = 0;
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= (i - 1)))
             {
               if ((sgn((dis(o, p[j]) - R)) > 0))
@@ -185,7 +185,7 @@ func main()
                 o = (((p[i] + p[j])) / 2);
                 R = dis(o, p[i]);
                 {
-                  var k = 1;
+                  var k: dynamic = 1;
                   while ((k <= (j - 1)))
                   {
                     if ((sgn((dis(o, p[k]) - R)) > 0))

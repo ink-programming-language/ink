@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var dx = [1, -1, 0, 0];
+var dx: dynamic = [1, -1, 0, 0];
 
-var dy = [0, 0, 1, -1];
+var dy: dynamic = [0, 0, 1, -1];
 
-var mark = cpp_array((((10000000 >> 5)) + 1));
+var mark: dynamic = cpp_array((((10000000 >> 5)) + 1));
 
-func sieve()
+func sieve() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   (cpp_assign(mark[(1 >> 5)], "|=", (1 << ((1 & 31)))));
-  var n = 10000000;
+  var n: dynamic = 10000000;
   {
     i = 2;
     while ((i <= n))
@@ -35,14 +35,14 @@ func sieve()
   }
 }
 
-func is_prime(x: dynamic)
+func is_prime(x: dynamic) -> dynamic
 {
   if ((x == 1))
   {
     return false;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= x))
     {
       if (((x % i) == 0))
@@ -55,7 +55,7 @@ func is_prime(x: dynamic)
   return true;
 }
 
-func C(n: dynamic, k: dynamic)
+func C(n: dynamic, k: dynamic) -> dynamic
 {
   if ((k == 0))
   {
@@ -64,9 +64,9 @@ func C(n: dynamic, k: dynamic)
   return (((n * C((n - 1), (k - 1)))) / k);
 }
 
-func modular_pow(budgetase: dynamic, exponent: dynamic, modulus: dynamic)
+func modular_pow(budgetase: dynamic, exponent: dynamic, modulus: dynamic) -> dynamic
 {
-  var result = 1;
+  var result: dynamic = 1;
   while ((exponent > 0))
   {
     if (((exponent % 2) == 1))
@@ -79,12 +79,12 @@ func modular_pow(budgetase: dynamic, exponent: dynamic, modulus: dynamic)
   return result;
 }
 
-func binaryToDec(number: dynamic)
+func binaryToDec(number: dynamic) -> dynamic
 {
-  var result = 0;
-  var pow = 1;
+  var result: dynamic = 0;
+  var pow: dynamic = 1;
   {
-    var i = (number.length() - 1);
+    var i: dynamic = (number.length() - 1);
     while ((i >= 0))
     {
       result = (((result + (((number[i] - cpp_char("0"))) * pow))) % 1000003);
@@ -95,14 +95,14 @@ func binaryToDec(number: dynamic)
   return result;
 }
 
-func GCD(a: dynamic, b: dynamic)
+func GCD(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b == 0)) a else GCD(b, (a % b));
+  return  ((b == 0)) ? a : GCD(b, (a % b));
 }
 
-func cntMask(mask: dynamic)
+func cntMask(mask: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   while (mask)
   {
     if ((mask % 2))
@@ -114,22 +114,22 @@ func cntMask(mask: dynamic)
   return ret;
 }
 
-func getBit(mask: dynamic, i: dynamic)
+func getBit(mask: dynamic, i: dynamic) -> dynamic
 {
   return (((((mask >> i)) & 1)) == 1);
 }
 
-func setBit(mask: dynamic, i: dynamic, value: dynamic = 1)
+func setBit(mask: dynamic, i: dynamic, value: dynamic = 1) -> dynamic
 {
-  return if ((value)) (mask | ((1 << i))) else ((mask & (~((1 << i)))));
+  return  ((value)) ? (mask | ((1 << i))) : ((mask & (~((1 << i)))));
 }
 
-func mystoi(s: dynamic)
+func mystoi(s: dynamic) -> dynamic
 {
-  var ans = 0;
-  var po = 1;
+  var ans: dynamic = 0;
+  var po: dynamic = 1;
   {
-    var i = (s.length() - 1);
+    var i: dynamic = (s.length() - 1);
     while ((i >= 0))
     {
       ans += (((s[i] - cpp_char("0"))) * po);
@@ -140,9 +140,9 @@ func mystoi(s: dynamic)
   return ans;
 }
 
-func conv(i: dynamic)
+func conv(i: dynamic) -> dynamic
 {
-  var t = "";
+  var t: dynamic = "";
   while (i)
   {
     t += (cpp_char("0") + ((i % 10)));
@@ -152,7 +152,7 @@ func conv(i: dynamic)
   return t;
 }
 
-func hasZero(i: dynamic)
+func hasZero(i: dynamic) -> dynamic
 {
   if ((i == 0))
   {
@@ -169,16 +169,16 @@ func hasZero(i: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a = cpp_array(101);
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_array(101);
   read(n);
-  var idx = -1;
-  var f: dynamic;
-  var flag = true;
+  var idx: dynamic = -1;
+  var f: dynamic = cpp_uninitialized();
+  var flag: dynamic = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(n)))
     {
       read(a[i]);
@@ -199,9 +199,9 @@ func main()
     write(0, "\n");
   } else
   {
-    var ans = 0;
+    var ans: dynamic = 0;
     {
-      var i = f;
+      var i: dynamic = f;
       while ((i <= idx))
       {
         ans += 1;

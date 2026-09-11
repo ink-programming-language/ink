@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var INF = (INT_MAX / 2);
+var INF: dynamic = (INT_MAX / 2);
 
-var LINF = (LLONG_MAX / 2);
+var LINF: dynamic = (LLONG_MAX / 2);
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -18,7 +18,7 @@ func chmax(a: dynamic, b: dynamic)
   return false;
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -28,16 +28,16 @@ func chmin(a: dynamic, b: dynamic)
   return false;
 }
 
-func operator_shift_left(os: dynamic, p: dynamic)
+func operator_shift_left(os: dynamic, p: dynamic) -> dynamic
 {
   (((os << p.first) << ":") << p.second);
   return os;
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast((v.size())))))
     {
       if (i)
@@ -53,28 +53,28 @@ func operator_shift_left(os: dynamic, v: dynamic)
 
 class Node
 {
-  var h: dynamic;
-  var w: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  var rem: dynamic;
-  var lch: dynamic;
-  var rch: dynamic;
-  var par: dynamic;
-  func Node(l: dynamic, r: dynamic, w: dynamic)
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var rem: dynamic = cpp_uninitialized();
+  var lch: dynamic = cpp_uninitialized();
+  var rch: dynamic = cpp_uninitialized();
+  var par: dynamic = cpp_uninitialized();
+  func Node(l: dynamic, r: dynamic, w: dynamic) -> dynamic
   {
-      this->l = cpp_construct(l);
-      this->r = cpp_construct(r);
-      this->w = cpp_construct(w);
+      self->l = cpp_construct(l);
+      self->r = cpp_construct(r);
+      self->w = cpp_construct(w);
     }
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
       read(h1[i].first, h1[i].second);
@@ -85,10 +85,10 @@ func solve()
   }
   sort((h1).begin(), (h1).end());
   sort((h2).begin(), (h2).end());
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   read(m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (m)))
     {
       read(f[i], a[i]);
@@ -96,10 +96,10 @@ func solve()
       i += 1;
     }
   }
-  var l: dynamic;
+  var l: dynamic = cpp_uninitialized();
   read(l);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (l)))
     {
       read(p[i].first.second, p[i].first.first);
@@ -108,9 +108,9 @@ func solve()
     }
   }
   sort((p).begin(), (p).end());
-  var nodes = cpp_construct((n + 1));
+  var nodes: dynamic = cpp_construct((n + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
       if ((i == 0))
@@ -127,9 +127,9 @@ func solve()
   }
   nodes[n] = make_shared(Node(n, (n + 1), (100 - h1[(n - 1)].first)));
   nodes[n]->rem = (nodes[n]->h * nodes[n]->w);
-  var leaves = cpp_construct((n + 1));
+  var leaves: dynamic = cpp_construct((n + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((n + 1))))
     {
       leaves[i] = nodes[i];
@@ -137,16 +137,16 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
-      var nowh = h2[i].first;
-      var nowb = h2[i].second;
-      var it = lower_bound((h1).begin(), (h1).end(), make_pair(nowb, 0));
-      var pos = distance(h1.begin(), it);
-      var node1 = nodes[pos];
-      var node2 = nodes[(pos + 1)];
-      var newnode = make_shared(Node(node1->l, node2->r, (node1->w + node2->w)));
+      var nowh: dynamic = h2[i].first;
+      var nowb: dynamic = h2[i].second;
+      var it: dynamic = lower_bound((h1).begin(), (h1).end(), make_pair(nowb, 0));
+      var pos: dynamic = distance(h1.begin(), it);
+      var node1: dynamic = nodes[pos];
+      var node2: dynamic = nodes[(pos + 1)];
+      var newnode: dynamic = make_shared(Node(node1->l, node2->r, (node1->w + node2->w)));
       node1->h += nowh;
       node2->h += nowh;
       node1->rem = (node1->h * node1->w);
@@ -157,7 +157,7 @@ func solve()
       node1->par = newnode;
       node2->par = newnode;
       {
-        var j = (node1->l);
+        var j: dynamic = (node1->l);
         while ((j < (node2->r)))
         {
           nodes[j] = newnode;
@@ -167,21 +167,21 @@ func solve()
       i += 1;
     }
   }
-  var head = nodes[0];
+  var head: dynamic = nodes[0];
   head->h += 50;
   head->rem = (head->h * head->w);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (m)))
     {
-      var idx = 0;
+      var idx: dynamic = 0;
       if ((f[i] < h1[0].first))
       {
         idx = 0;
       } else
       {
-        var it = upper_bound((h1).begin(), (h1).end(), make_pair(f[i], 0));
-        var pos = distance(h1.begin(), it);
+        var it: dynamic = upper_bound((h1).begin(), (h1).end(), make_pair(f[i], 0));
+        var pos: dynamic = distance(h1.begin(), it);
         idx = pos;
       }
       mp[i][leaves[idx]] = true;
@@ -189,18 +189,18 @@ func solve()
       i += 1;
     }
   }
-  var nowt = 0;
+  var nowt: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (l)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (m)))
         {
-          var diff = (p[i].first.first - nowt);
+          var diff: dynamic = (p[i].first.first - nowt);
           diff *= a[j];
-          var nownode = nodepos[j];
+          var nownode: dynamic = nodepos[j];
           while ((diff > eps))
           {
             if ((diff < (nownode->rem - eps)))
@@ -248,10 +248,10 @@ func solve()
         }
       }
       nowt = p[i].first.first;
-      var it = upper_bound((h1).begin(), (h1).end(), make_pair(p[i].first.second, 0));
-      var pos = distance(h1.begin(), it);
-      var nownode = leaves[pos];
-      var ans = 50;
+      var it: dynamic = upper_bound((h1).begin(), (h1).end(), make_pair(p[i].first.second, 0));
+      var pos: dynamic = distance(h1.begin(), it);
+      var nownode: dynamic = leaves[pos];
+      var ans: dynamic = 50;
       while (1)
       {
         ans -= (nownode->rem / nownode->w);
@@ -268,7 +268,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (l)))
     {
       write(out[i], "\n");
@@ -277,12 +277,12 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
   write(fixed, setprecision(10));
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var MAX = 100000;
+var MAX: dynamic = 100000;
 
-var ROOT = cpp_expression("#");
+var ROOT: dynamic = cpp_expression("#");
 
-var G = cpp_array(MAX);
+var G: dynamic = cpp_array(MAX);
 
-var visited = cpp_array(MAX);
+var visited: dynamic = cpp_array(MAX);
 
-var prenum = cpp_array(MAX);
+var prenum: dynamic = cpp_array(MAX);
 
-var lowest = cpp_array(MAX);
+var lowest: dynamic = cpp_array(MAX);
 
-var parents = cpp_array(MAX);
+var parents: dynamic = cpp_array(MAX);
 
-var is_artpoint = cpp_array(MAX);
+var is_artpoint: dynamic = cpp_array(MAX);
 
-var NCHILD_ROOT = 0;
+var NCHILD_ROOT: dynamic = 0;
 
-func visit(n: dynamic, parent: dynamic)
+func visit(n: dynamic, parent: dynamic) -> dynamic
 {
-  var v = 0;
+  var v: dynamic = 0;
   visited[n] = true;
   prenum[n] = cpp_update(v, "++");
   parents[n] = parent;
 }
 
-func judge_parent(n: dynamic)
+func judge_parent(n: dynamic) -> dynamic
 {
   if (((n != ROOT) && (parents[n] == ROOT)))
   {
@@ -38,10 +38,10 @@ func judge_parent(n: dynamic)
   }
 }
 
-func calc_lowest(n: dynamic, childmin: dynamic)
+func calc_lowest(n: dynamic, childmin: dynamic) -> dynamic
 {
-  var l = min(childmin, prenum[n]);
-  for (var i in G[n])
+  var l: dynamic = min(childmin, prenum[n]);
+  for (var i: dynamic in G[n])
   {
     if ((i != parents[n]))
     {
@@ -51,11 +51,11 @@ func calc_lowest(n: dynamic, childmin: dynamic)
   return l;
 }
 
-func dfs(n: dynamic, parent: dynamic)
+func dfs(n: dynamic, parent: dynamic) -> dynamic
 {
-  var childmin = MAX;
+  var childmin: dynamic = MAX;
   visit(n, parent);
-  for (var i in G[n])
+  for (var i: dynamic in G[n])
   {
     if ((!visited[i]))
     {
@@ -67,17 +67,17 @@ func dfs(n: dynamic, parent: dynamic)
   return lowest[n];
 }
 
-func main()
+func main() -> dynamic
 {
-  var nv: dynamic;
-  var ne: dynamic;
+  var nv: dynamic = cpp_uninitialized();
+  var ne: dynamic = cpp_uninitialized();
   read(nv, ne);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ne))
     {
-      var s: dynamic;
-      var t: dynamic;
+      var s: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
       read(s, t);
       G[s].push_back(t);
       G[t].push_back(s);
@@ -85,7 +85,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < nv))
     {
       visited[i] = false;
@@ -96,7 +96,7 @@ func main()
   dfs(ROOT, ROOT);
   is_artpoint[ROOT] = (NCHILD_ROOT >= 2);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < nv))
     {
       if (is_artpoint[i])

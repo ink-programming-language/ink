@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var MAXN = cpp_expression("// GRL");
+var MAXN: dynamic = cpp_expression("// GRL");
 
 class cpp_class_1
 {
-  var to: dynamic;
-  var wt: dynamic;
-  var next: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var wt: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
-var par = cpp_array(MAXN);
+var par: dynamic = cpp_array(MAXN);
 
-var E = cpp_array(MAXN);
+var E: dynamic = cpp_array(MAXN);
 
-var LE = cpp_array(MAXN);
+var LE: dynamic = cpp_array(MAXN);
 
 class Seg
 {
-  var v: dynamic;
-  func Seg(in_cpp: dynamic)
+  var v: dynamic = cpp_uninitialized();
+  func Seg(in_cpp: dynamic) -> dynamic
   {
-      this->v = cpp_construct(pow(2, (1 + ceil(log2(in_cpp.size())))));
+      self->v = cpp_construct(pow(2, (1 + ceil(log2(in_cpp.size())))));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < in_cpp.size()))
         {
           v[((v.size() / 2) + i)] = par[in_cpp[i]].wt;
@@ -30,7 +30,7 @@ class Seg
         }
       }
       {
-        var k = ((v.size() / 2) - 1);
+        var k: dynamic = ((v.size() / 2) - 1);
         while ((k > 0))
         {
           v[k] = (v[(2 * k)] + v[((2 * k) + 1)]);
@@ -38,7 +38,7 @@ class Seg
         }
       }
     }
-  func Add(i: dynamic, x: dynamic)
+  func Add(i: dynamic, x: dynamic) -> dynamic
   {
       i += (v.size() / 2);
       v[i] += x;
@@ -47,10 +47,10 @@ class Seg
         v[i] = (v[(2 * i)] + v[((2 * i) + 1)]);
       }
     }
-  func Get(i: dynamic)
+  func Get(i: dynamic) -> dynamic
   {
       i += (v.size() / 2);
-      var rs = 0;
+      var rs: dynamic = 0;
       while (i)
       {
         if ((i == 1))
@@ -74,19 +74,19 @@ class Seg
     }
 }
 
-var aux: dynamic;
+var aux: dynamic = cpp_uninitialized();
 
-var tidx = cpp_array(MAXN);
+var tidx: dynamic = cpp_array(MAXN);
 
-var jump = cpp_array(MAXN);
+var jump: dynamic = cpp_array(MAXN);
 
-var size = cpp_array(MAXN);
+var size: dynamic = cpp_array(MAXN);
 
-func Build(i: dynamic, a: dynamic)
+func Build(i: dynamic, a: dynamic) -> dynamic
 {
   a.push_back(i);
   {
-    var j = LE[i];
+    var j: dynamic = LE[i];
     while ((j != -1))
     {
       if ((size[E[j].to] > (size[i] / 2)))
@@ -97,7 +97,7 @@ func Build(i: dynamic, a: dynamic)
         tidx[i] = (tidx[E[j].to] - 1);
       } else
       {
-        var newa: dynamic;
+        var newa: dynamic = cpp_uninitialized();
         Build(E[j].to, newa);
       }
       j = E[j].next;
@@ -111,11 +111,11 @@ func Build(i: dynamic, a: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios_base.sync_with_stdio(false);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   fill(LE, (LE + n), -1);
   fill(size, (size + n), 1);
@@ -123,12 +123,12 @@ func main()
   fill(aux, (aux + n), null);
   par[0] = [-1, 0, -1];
   {
-    var s = 0;
-    var i = 0;
+    var s: dynamic = 0;
+    var i: dynamic = 0;
     while ((s < n))
     {
-      var k: dynamic;
-      var t: dynamic;
+      var k: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
       read(k);
       while ((cpp_update(k, "--") > 0))
       {
@@ -141,11 +141,11 @@ func main()
       s += 1;
     }
   }
-  var dfs: dynamic;
+  var dfs: dynamic = cpp_uninitialized();
   dfs.push(0);
   while ((!dfs.empty()))
   {
-    var u = dfs.top();
+    var u: dynamic = dfs.top();
     dfs.pop();
     if ((visited[u] && (par[u].to >= 0)))
     {
@@ -156,7 +156,7 @@ func main()
       visited[u] = true;
       dfs.push(u);
       {
-        var j = LE[u];
+        var j: dynamic = LE[u];
         while ((j != -1))
         {
           dfs.push(E[j].to);
@@ -165,14 +165,14 @@ func main()
       }
     }
   }
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   Build(0, a);
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   read(q);
   {
-    var kind: dynamic;
-    var u: dynamic;
-    var v: dynamic;
+    var kind: dynamic = cpp_uninitialized();
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
     while (((cin >> kind) >> u))
     {
       if ((kind == 0))
@@ -187,7 +187,7 @@ func main()
         }
       } else
       {
-        var rs = 0;
+        var rs: dynamic = 0;
         while ((u > 0))
         {
           if (aux[u])

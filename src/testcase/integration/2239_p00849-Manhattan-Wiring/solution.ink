@@ -1,46 +1,46 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, -1, 0, 1];
+var dy: dynamic = [0, -1, 0, 1];
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var B = cpp_array(9, 9);
+var B: dynamic = cpp_array(9, 9);
 
-var x2: dynamic;
+var x2: dynamic = cpp_uninitialized();
 
-var y2: dynamic;
+var y2: dynamic = cpp_uninitialized();
 
-var x3: dynamic;
+var x3: dynamic = cpp_uninitialized();
 
-var y3: dynamic;
+var y3: dynamic = cpp_uninitialized();
 
-func bfs(x: dynamic, y: dynamic, tar: dynamic)
+func bfs(x: dynamic, y: dynamic, tar: dynamic) -> dynamic
 {
-  var d = cpp_array(9, 9);
+  var d: dynamic = cpp_array(9, 9);
   memset(d, -1, cpp_sizeof(d));
   d[y][x] = 0;
-  var Q = cpp_array(81);
-  var head = 0;
-  var tail = 0;
+  var Q: dynamic = cpp_array(81);
+  var head: dynamic = 0;
+  var tail: dynamic = 0;
   Q[cpp_update(tail, "++")] = ((y * w) + x);
   while ((head < tail))
   {
-    var i = (Q[head] / w);
-    var j = (Q[head] % w);
+    var i: dynamic = (Q[head] / w);
+    var j: dynamic = (Q[head] % w);
     head += 1;
     rep(k, 4);
     {
-      var yy = (i + dy[k]);
-      var xx = (j + dx[k]);
+      var yy: dynamic = (i + dy[k]);
+      var xx: dynamic = (j + dx[k]);
       if ((((((0 <= yy) && (yy < h)) && (0 <= xx)) && (xx < w)) && (d[yy][xx] == -1)))
       {
         if ((B[yy][xx] == tar))
@@ -58,20 +58,20 @@ func bfs(x: dynamic, y: dynamic, tar: dynamic)
   return 777;
 }
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func dfs(x: dynamic, y: dynamic, now: dynamic)
+func dfs(x: dynamic, y: dynamic, now: dynamic) -> dynamic
 {
-  var hstar = (bfs(x, y, 2) + bfs(x3, y3, 3));
+  var hstar: dynamic = (bfs(x, y, 2) + bfs(x3, y3, 3));
   if ((ans < ((now + 1) + hstar)))
   {
     return;
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   rep(k, 4);
   {
-    var xx = (x + dx[k]);
-    var yy = (y + dy[k]);
+    var xx: dynamic = (x + dx[k]);
+    var yy: dynamic = (y + dy[k]);
     if ((((((0 <= xx) && (xx < w)) && (0 <= yy)) && (yy < h)) && (B[yy][xx] == 7)))
     {
       cnt += 1;
@@ -82,10 +82,10 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
     return;
   }
   {
-    var L = 3;
+    var L: dynamic = 3;
     while ((L <= 8))
     {
-      var ng: dynamic;
+      var ng: dynamic = cpp_uninitialized();
       if (((y > 0) && (((x + L) - 1) < w)))
       {
         ng = true;
@@ -99,7 +99,7 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
         }
         if (ng)
         {
-          if ((B[y][(x + j)] != (if (((j == 0) || (j == (L - 1)))) 7 else 0)))
+          if ((B[y][(x + j)] != ( (((j == 0) || (j == (L - 1)))) ? 7 : 0)))
           {
             ng = false;
             break;
@@ -128,7 +128,7 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
         }
         if (ng)
         {
-          if ((B[(y - 1)][(x + j)] != (if (((j == 0) || (j == (L - 1)))) 7 else 0)))
+          if ((B[(y - 1)][(x + j)] != ( (((j == 0) || (j == (L - 1)))) ? 7 : 0)))
           {
             ng = false;
             break;
@@ -160,7 +160,7 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
         }
         if (ng)
         {
-          if ((B[y][(x - j)] != (if (((j == 0) || (j == (L - 1)))) 7 else 0)))
+          if ((B[y][(x - j)] != ( (((j == 0) || (j == (L - 1)))) ? 7 : 0)))
           {
             ng = false;
             break;
@@ -189,7 +189,7 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
         }
         if (ng)
         {
-          if ((B[(y - 1)][(x - j)] != (if (((j == 0) || (j == (L - 1)))) 7 else 0)))
+          if ((B[(y - 1)][(x - j)] != ( (((j == 0) || (j == (L - 1)))) ? 7 : 0)))
           {
             ng = false;
             break;
@@ -221,7 +221,7 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
         }
         if (ng)
         {
-          if ((B[(y + i)][(x + 1)] != (if (((i == 0) || (i == (L - 1)))) 7 else 0)))
+          if ((B[(y + i)][(x + 1)] != ( (((i == 0) || (i == (L - 1)))) ? 7 : 0)))
           {
             ng = false;
             break;
@@ -250,7 +250,7 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
         }
         if (ng)
         {
-          if ((B[(y + i)][x] != (if (((i == 0) || (i == (L - 1)))) 7 else 0)))
+          if ((B[(y + i)][x] != ( (((i == 0) || (i == (L - 1)))) ? 7 : 0)))
           {
             ng = false;
             break;
@@ -282,7 +282,7 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
         }
         if (ng)
         {
-          if ((B[(y - i)][(x + 1)] != (if (((i == 0) || (i == (L - 1)))) 7 else 0)))
+          if ((B[(y - i)][(x + 1)] != ( (((i == 0) || (i == (L - 1)))) ? 7 : 0)))
           {
             ng = false;
             break;
@@ -311,7 +311,7 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
         }
         if (ng)
         {
-          if ((B[(y - i)][x] != (if (((i == 0) || (i == (L - 1)))) 7 else 0)))
+          if ((B[(y - i)][x] != ( (((i == 0) || (i == (L - 1)))) ? 7 : 0)))
           {
             ng = false;
             break;
@@ -335,8 +335,8 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
   }
   rep(k, 4);
   {
-    var xx = (x + dx[k]);
-    var yy = (y + dy[k]);
+    var xx: dynamic = (x + dx[k]);
+    var yy: dynamic = (y + dy[k]);
     if (((((0 <= xx) && (xx < w)) && (0 <= yy)) && (yy < h)))
     {
       if ((B[yy][xx] == 2))
@@ -353,7 +353,7 @@ func dfs(x: dynamic, y: dynamic, now: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   while (cpp_comma(scanf("%d%d", (&h), (&w)), h))
   {
@@ -361,12 +361,12 @@ func main()
     B[y2][x2] = 7;
     ans = 777;
     dfs(x2, y2, 0);
-    printf("%d\n", if ((ans < 777)) ans else 0);
+    printf("%d\n",  ((ans < 777)) ? ans : 0);
   }
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       if ((B[i][j] == 2))
       {

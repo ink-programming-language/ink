@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func pikachu()
+func pikachu() -> dynamic
 {
 }
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(111);
+var a: dynamic = cpp_array(111);
 
-func main()
+func main() -> dynamic
 {
   pikachu();
   scanf("%hd", (&t));
-  var u: dynamic;
-  var v: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
   while (cpp_update(t, "--"))
   {
     scanf("%hd", (&n));
@@ -23,7 +23,7 @@ func main()
     u = 0;
     v = (n + 1);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if ((a[i] == cpp_char("<")))

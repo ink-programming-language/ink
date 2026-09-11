@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func lucky(i: dynamic)
+func lucky(i: dynamic) -> dynamic
 {
-  var val = to_string(i);
-  for (var i in val)
+  var val: dynamic = to_string(i);
+  for (var i: dynamic in val)
   {
     if ((i == cpp_char("8")))
     {
@@ -13,13 +13,13 @@ func lucky(i: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var cnt = 1;
+  var cnt: dynamic = 1;
   {
-    var i = (n + 1);
+    var i: dynamic = (n + 1);
     while (true)
     {
       if (lucky(i))

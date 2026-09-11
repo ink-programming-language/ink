@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   while (1)
   {
-    var N: dynamic;
+    var N: dynamic = cpp_uninitialized();
     read(N);
     if ((N == 0))
     {
       break;
     }
-    var x: dynamic;
-    var y: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     x.push_back(0);
     y.push_back(0);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= (N - 1)))
       {
-        var n: dynamic;
-        var d: dynamic;
+        var n: dynamic = cpp_uninitialized();
+        var d: dynamic = cpp_uninitialized();
         read(n, d);
-        var __cpp_switch_1 = d;
+        var __cpp_switch_1: dynamic = d;
         if (__cpp_switch_1 == 0)
         {
           x.push_back((x[n] - 1));

@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func f(b: dynamic, n: dynamic)
+func f(b: dynamic, n: dynamic) -> dynamic
 {
-  return if ((b <= n)) (f(b, (n / b)) + (n % b)) else n;
+  return  ((b <= n)) ? (f(b, (n / b)) + (n % b)) : n;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, s);
-  var res = -1;
-  var b = 2;
+  var res: dynamic = -1;
+  var b: dynamic = 2;
   {
     while (((((b - 1)) * ((b - 1))) <= n))
     {

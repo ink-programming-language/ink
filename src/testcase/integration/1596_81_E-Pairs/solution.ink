@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var maxn = 110000;
+var maxn: dynamic = 110000;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
 class Tinit
 {
-  var f: dynamic;
-  var u: dynamic;
+  var f: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
 }
 
-var A = cpp_array(maxn);
+var A: dynamic = cpp_array(maxn);
 
 class Tcxx
 {
-  var A: dynamic;
-  var B: dynamic;
-  func Tcxx(A: dynamic = 0, B: dynamic = 0)
+  var A: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
+  func Tcxx(A: dynamic = 0, B: dynamic = 0) -> dynamic
   {
       A = A;
       B = B;
     }
-  func operator_less(b: dynamic)
+  func operator_less(b: dynamic) -> dynamic
   {
-      return if ((A != b.A)) (A < b.A) else (B < b.B);
+      return  ((A != b.A)) ? (A < b.A) : (B < b.B);
     }
-  func operator_add(b: dynamic)
+  func operator_add(b: dynamic) -> dynamic
   {
       return Tcxx((A + b.A), (B + b.B));
     }
@@ -33,21 +33,21 @@ class Tcxx
 
 class Talt
 {
-  var tot: dynamic;
-  var pos: dynamic;
+  var tot: dynamic = cpp_uninitialized();
+  var pos: dynamic = cpp_uninitialized();
   var buf: dynamic = cpp_array(maxn);
-  func add(a: dynamic, b: dynamic)
+  func add(a: dynamic, b: dynamic) -> dynamic
   {
       buf[cpp_update(tot, "++")].set(pos[a], b);
       pos[a] = (buf + tot);
     }
 }
 
-var alt: dynamic;
+var alt: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
     i = 1;
@@ -61,22 +61,22 @@ func init()
   }
 }
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-var U = cpp_array(maxn);
+var U: dynamic = cpp_array(maxn);
 
-var F = cpp_array(2, maxn);
+var F: dynamic = cpp_array(2, maxn);
 
-var G = cpp_array(maxn);
+var G: dynamic = cpp_array(maxn);
 
-var E: dynamic;
+var E: dynamic = cpp_uninitialized();
 
-func dfs(x: dynamic, rt: dynamic)
+func dfs(x: dynamic, rt: dynamic) -> dynamic
 {
-  var p: dynamic;
-  var ret: dynamic;
+  var p: dynamic = cpp_uninitialized();
+  var ret: dynamic = cpp_uninitialized();
   U[x] = true;
   F[x][0] = cpp_assign(F[x][1], "=", Tcxx());
   {
@@ -100,9 +100,9 @@ func dfs(x: dynamic, rt: dynamic)
   }
 }
 
-func constrc(x: dynamic, c: dynamic, rt: dynamic)
+func constrc(x: dynamic, c: dynamic, rt: dynamic) -> dynamic
 {
-  var p: dynamic;
+  var p: dynamic = cpp_uninitialized();
   {
     p = alt.pos[x];
     while (p)
@@ -111,7 +111,7 @@ func constrc(x: dynamic, c: dynamic, rt: dynamic)
       {
         if (((!c) || (p->s != G[x])))
         {
-          constrc(p->s, if ((F[p->s][0] < F[p->s][1])) 1 else 0, rt);
+          constrc(p->s,  ((F[p->s][0] < F[p->s][1])) ? 1 : 0, rt);
         } else
         {
           E.push_back(Tcxx(x, p->s));
@@ -123,10 +123,10 @@ func constrc(x: dynamic, c: dynamic, rt: dynamic)
   }
 }
 
-func solve(x: dynamic)
+func solve(x: dynamic) -> dynamic
 {
-  var Fc: dynamic;
-  var i: dynamic;
+  var Fc: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   {
     while ((!U[x]))
     {
@@ -153,10 +153,10 @@ func solve(x: dynamic)
   B.insert(B.end(), E.begin(), E.end());
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var i: dynamic;
-  var p: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))
@@ -179,7 +179,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   Ninit.init();
   Nsolve.solve();

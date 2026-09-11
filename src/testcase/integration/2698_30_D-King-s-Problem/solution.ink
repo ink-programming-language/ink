@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var maxn = (100000 + 10);
+var maxn: dynamic = (100000 + 10);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var mx: dynamic;
+var mx: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func dis(i: dynamic)
+func dis(i: dynamic) -> dynamic
 {
   return sqrt(((((x - a[i])) * ((x - a[i]))) + (y * y)));
 }
 
-func cas1(l: dynamic, r: dynamic)
+func cas1(l: dynamic, r: dynamic) -> dynamic
 {
   return ((a[r] - a[l]) + min(dis(l), dis(r)));
 }
 
-func cas2(l: dynamic, r: dynamic)
+func cas2(l: dynamic, r: dynamic) -> dynamic
 {
   return ((a[r] - a[l]) + min((dis(l) + fabs((mx - a[r]))), (dis(r) + fabs((mx - a[l])))));
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lf", (&a[i]));
@@ -52,7 +52,7 @@ func main()
   {
     ans = cas2(1, n);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         ans = min(ans, min((cas1(1, i) + cas2((i + 1), n)), (cas2(1, i) + cas1((i + 1), n))));

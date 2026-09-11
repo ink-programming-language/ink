@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-var inf = (1e18 + 7);
+var inf: dynamic = (1e18 + 7);
 
-var N = 500007;
+var N: dynamic = 500007;
 
-var ar = cpp_array(N);
+var ar: dynamic = cpp_array(N);
 
-var fr = cpp_array(N);
+var fr: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var mx: dynamic;
+var mx: dynamic = cpp_uninitialized();
 
-var mn = inf;
+var mn: dynamic = inf;
 
-var s = cpp_array(55);
+var s: dynamic = cpp_array(55);
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {

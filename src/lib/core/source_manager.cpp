@@ -19,7 +19,15 @@ namespace ink::core
     LineStarts.push_back(0);
     for (std::size_t Index = 0; Index < this->Text.size(); ++Index)
     {
-      if (this->Text[Index] == '\n')
+      if (this->Text[Index] == '\r')
+      {
+        if (Index + 1 < this->Text.size() && this->Text[Index + 1] == '\n')
+        {
+          ++Index;
+        }
+        LineStarts.push_back(Index + 1);
+      }
+      else if (this->Text[Index] == '\n')
       {
         LineStarts.push_back(Index + 1);
       }

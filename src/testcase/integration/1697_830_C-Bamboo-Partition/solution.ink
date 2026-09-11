@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var MAXN = 105;
+var MAXN: dynamic = 105;
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-func last_of(a: dynamic, b: dynamic)
+func last_of(a: dynamic, b: dynamic) -> dynamic
 {
   assert((b != 1));
   if (((a % ((b - 1))) == 0))
@@ -14,30 +14,30 @@ func last_of(a: dynamic, b: dynamic)
   return (a / ((b - 1)));
 }
 
-func cei(a: dynamic, b: dynamic)
+func cei(a: dynamic, b: dynamic) -> dynamic
 {
   return ((((a + b) - 1)) / b);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var h = cpp_array(MAXN);
+var h: dynamic = cpp_array(MAXN);
 
-var val = cpp_array(MAXN);
+var val: dynamic = cpp_array(MAXN);
 
-func solve()
+func solve() -> dynamic
 {
   read(n, k);
-  var lb: dynamic;
-  var ev: dynamic;
+  var lb: dynamic = cpp_uninitialized();
+  var ev: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(h[i]);
-      var d = 1;
+      var d: dynamic = 1;
       while (1)
       {
         lb.push_back(d);
@@ -55,12 +55,12 @@ func solve()
   sort((lb).begin(), (lb).end());
   lb.resize((unique((lb).begin(), (lb).end()) - lb.begin()));
   sort((ev).begin(), (ev).end());
-  var ptr = 0;
-  var sum = 0;
-  var sumh = 0;
-  var ans = 1;
+  var cpp_ptr: dynamic = 0;
+  var sum: dynamic = 0;
+  var sumh: dynamic = 0;
+  var ans: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sumh += h[i];
@@ -68,20 +68,20 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (cpp_cast(lb.size()) - 1)))
     {
-      var d = lb[i];
-      var r = (lb[(i + 1)] - 1);
-      while (((ptr < ev.size()) && (ev[ptr].first <= d)))
+      var d: dynamic = lb[i];
+      var r: dynamic = (lb[(i + 1)] - 1);
+      while (((cpp_ptr < ev.size()) && (ev[cpp_ptr].first <= d)))
       {
-        var id = ev[ptr].second;
+        var id: dynamic = ev[cpp_ptr].second;
         sum -= val[id];
         val[id] = cei(h[id], d);
         sum += val[id];
-        ptr += 1;
+        cpp_ptr += 1;
       }
-      var best = (((k + sumh)) / sum);
+      var best: dynamic = (((k + sumh)) / sum);
       if ((best >= d))
       {
         ans = max(ans, min(best, r));
@@ -92,13 +92,13 @@ func solve()
   write(ans, cpp_char("\n"));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var tc = 1;
+  var tc: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= tc))
     {
       solve();

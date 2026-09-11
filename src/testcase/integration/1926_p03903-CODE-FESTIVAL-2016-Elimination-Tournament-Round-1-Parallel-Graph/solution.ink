@@ -1,65 +1,65 @@
 // Translated from solution.cpp.
 
-func P()
+func P() -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h>");
 }
 
-func FOR(x: dynamic, to: dynamic)
+func FOR(x: dynamic, to: dynamic) -> dynamic
 {
   cpp_macro("for(x=0;x<(to);x++)");
 }
 
-func FORR(x: dynamic, arr: dynamic)
+func FORR(x: dynamic, arr: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/s");
 }
 
-func ITR(x: dynamic, c: dynamic)
+func ITR(x: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof(c.begin()) x=c.begin();x!=c.end();x++)");
 }
 
-func ALL(a: dynamic)
+func ALL(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++");
 }
 
-func ZERO(a: dynamic)
+func ZERO(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++");
 }
 
-func MINUS(a: dynamic)
+func MINUS(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h>");
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var A = cpp_array(404040);
+var A: dynamic = cpp_array(404040);
 
-var B = cpp_array(404040);
+var B: dynamic = cpp_array(404040);
 
-var C = cpp_array(404040);
+var C: dynamic = cpp_array(404040);
 
-var E = cpp_array(4040);
+var E: dynamic = cpp_array(4040);
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var D = cpp_array(4040, 4040);
+var D: dynamic = cpp_array(4040, 4040);
 
 class UF
 {
-  var par: dynamic;
-  var rank: dynamic;
-  func UF()
+  var par: dynamic = cpp_uninitialized();
+  var rank: dynamic = cpp_uninitialized();
+  func UF() -> dynamic
   {
       rank = vector(um, 0);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < um))
         {
           par.push_back(i);
@@ -67,11 +67,11 @@ class UF
         }
       }
     }
-  func operator_index(x: dynamic)
+  func operator_index(x: dynamic) -> dynamic
   {
-      return if (((par[x] == x))) (x) else (cpp_assign(par[x], "=", operator(par[x])));
+      return  (((par[x] == x))) ? (x) : (cpp_assign(par[x], "=", operator(par[x])));
     }
-  func operator_call(x: dynamic, y: dynamic)
+  func operator_call(x: dynamic, y: dynamic) -> dynamic
   {
       if (((cpp_assign(x, "=", operator(x))) == (cpp_assign(y, "=", operator(y)))))
       {
@@ -86,9 +86,9 @@ class UF
     }
 }
 
-var uf: dynamic;
+var uf: dynamic = cpp_uninitialized();
 
-func dfs(st: dynamic, cur: dynamic, pre: dynamic, ma: dynamic)
+func dfs(st: dynamic, cur: dynamic, pre: dynamic, ma: dynamic) -> dynamic
 {
   D[st][cur] = ma;
   FORR(e, E[cur]);
@@ -98,22 +98,22 @@ func dfs(st: dynamic, cur: dynamic, pre: dynamic, ma: dynamic)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var s: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(N, M);
-  var EE: dynamic;
-  var tot = 0;
+  var EE: dynamic = cpp_uninitialized();
+  var tot: dynamic = 0;
   while (EE.size())
   {
-    var e = EE.top();
+    var e: dynamic = EE.top();
     x = A[e.second];
     y = B[e.second];
     EE.pop();
@@ -130,10 +130,10 @@ func solve()
   read(M);
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
-  var s: dynamic;
-  var i: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   if ((argc == 1))
   {
     ios.sync_with_stdio(false);
@@ -147,7 +147,7 @@ func main(argc: dynamic, argv: dynamic)
   return 0;
 }
 
-func FOR(argument_0: dynamic, argument_1: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     read(A[i], B[i], C[i]);
     A[i] -= 1;
@@ -155,7 +155,7 @@ func FOR(argument_0: dynamic, argument_1: dynamic)
     EE.push([(-C[i]), i]);
   }
 
-func FOR(argument_0: dynamic, argument_1: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     read(x, y);
     write((tot - D[(x - 1)][(y - 1)]), "\n");

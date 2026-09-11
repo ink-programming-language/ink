@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var S = 0;
-  var seq = 0;
-  var p: dynamic;
+  var S: dynamic = 0;
+  var seq: dynamic = 0;
+  var p: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       read(p);

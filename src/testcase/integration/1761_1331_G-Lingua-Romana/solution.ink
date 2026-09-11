@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var rnd = cpp_construct(cpp_cast(chrono.steady_clock.now().time_since_epoch().count()));
+var rnd: dynamic = cpp_construct(cpp_cast(chrono.steady_clock.now().time_since_epoch().count()));
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b == 0)) a else gcd(b, (a % b));
+  return  ((b == 0)) ? a : gcd(b, (a % b));
 }
 
-var N = 11;
+var N: dynamic = 11;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func run()
+func run() -> dynamic
 {
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (N)))
     {
       scanf("%d", (&a[i]));
@@ -22,10 +22,10 @@ func run()
     }
   }
   {
-    var i = (N - 1);
+    var i: dynamic = (N - 1);
     while ((i >= 0))
     {
-      var res = (sqrt(abs(a[i])) + (5 * pow(a[i], 3)));
+      var res: dynamic = (sqrt(abs(a[i])) + (5 * pow(a[i], 3)));
       if ((res <= 400))
       {
         printf("f(%d) = %.2lf\n", a[i], res);
@@ -38,7 +38,7 @@ func run()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   run();
   return 0;

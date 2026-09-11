@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-var N = cpp_expression("#inclu");
+var N: dynamic = cpp_expression("#inclu");
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var Ans: dynamic;
+var Ans: dynamic = cpp_uninitialized();
 
-var mx = cpp_array((N << 2), 3, 3);
+var mx: dynamic = cpp_array((N << 2), 3, 3);
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var num = cpp_array(N);
+var num: dynamic = cpp_array(N);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
 class Data
 {
-  var c: dynamic;
-  var l: dynamic;
-  var r: dynamic;
+  var c: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
 }
 
-var d = cpp_array(N);
+var d: dynamic = cpp_array(N);
 
-func cmpl(a: dynamic, b: dynamic)
+func cmpl(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.l < b.l);
 }
 
-func pushup(rt: dynamic, c: dynamic)
+func pushup(rt: dynamic, c: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       mx[c][i][rt] = max(mx[c][i][(rt << 1)], mx[c][i][((rt << 1) | 1)]);
@@ -46,12 +46,12 @@ func pushup(rt: dynamic, c: dynamic)
   }
 }
 
-func build(rt: dynamic, l: dynamic, r: dynamic)
+func build(rt: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if ((l == r))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 3))
       {
         mx[i][0][rt] = 0;
@@ -62,7 +62,7 @@ func build(rt: dynamic, l: dynamic, r: dynamic)
     }
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   build((rt << 1), l, mid);
   build(((rt << 1) | 1), (mid + 1), r);
   pushup(rt, 0);
@@ -70,7 +70,7 @@ func build(rt: dynamic, l: dynamic, r: dynamic)
   pushup(rt, 2);
 }
 
-func update(rt: dynamic, l: dynamic, r: dynamic, x: dynamic, y: dynamic, c: dynamic)
+func update(rt: dynamic, l: dynamic, r: dynamic, x: dynamic, y: dynamic, c: dynamic) -> dynamic
 {
   if ((l == r))
   {
@@ -79,7 +79,7 @@ func update(rt: dynamic, l: dynamic, r: dynamic, x: dynamic, y: dynamic, c: dyna
     mx[c][2][rt] = (mx[c][0][rt] + ((((X + X) + Y)) * ((-1 - num[l]))));
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   if ((x <= mid))
   {
     update((rt << 1), l, mid, x, y, c);
@@ -90,13 +90,13 @@ func update(rt: dynamic, l: dynamic, r: dynamic, x: dynamic, y: dynamic, c: dyna
   pushup(rt, c);
 }
 
-func query(rt: dynamic, l: dynamic, r: dynamic, x: dynamic, y: dynamic, c: dynamic, d: dynamic)
+func query(rt: dynamic, l: dynamic, r: dynamic, x: dynamic, y: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   if (((x <= l) && (r <= y)))
   {
     return mx[c][d][rt];
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   if ((y <= mid))
   {
     return query((rt << 1), l, mid, x, y, c, d);
@@ -108,11 +108,11 @@ func query(rt: dynamic, l: dynamic, r: dynamic, x: dynamic, y: dynamic, c: dynam
   return max(query((rt << 1), l, mid, x, y, c, d), query(((rt << 1) | 1), (mid + 1), r, x, y, c, d));
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld%lld%lld%lld", (&n), (&m), (&X), (&Y));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%lld%lld%lld", (&d[i].c), (&d[i].l), (&d[i].r));
@@ -126,7 +126,7 @@ func main()
   cnt = ((unique((num + 1), ((num + cnt) + 1)) - num) - 1);
   sort((d + 1), ((d + m) + 1), cmpl);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       d[i].l = (lower_bound((num + 1), ((num + cnt) + 1), d[i].l) - num);
@@ -136,12 +136,12 @@ func main()
   }
   build(1, 0, cnt);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var ans = LLONG_MIN;
+      var ans: dynamic = LLONG_MIN;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 3))
         {
           ans = max(ans, query(1, 0, cnt, 0, (d[i].l - 1), j, 0));
@@ -164,7 +164,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       Ans = max(Ans, query(1, 0, cnt, 0, cnt, i, 0));

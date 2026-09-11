@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var MAXX = 5010;
+var MAXX: dynamic = 5010;
 
-var number = cpp_array(MAXX, MAXX);
+var number: dynamic = cpp_array(MAXX, MAXX);
 
-var acum = cpp_array(MAXX, MAXX);
+var acum: dynamic = cpp_array(MAXX, MAXX);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   memset(number, 0, cpp_sizeof((number)));
   memset(acum, 0, cpp_sizeof((acum)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < x.size()))
     {
       number[i][0] = cpp_assign(acum[i][0], "=", ((x[i] == y[0])));
@@ -29,7 +29,7 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < y.size()))
     {
       number[0][i] = cpp_assign(acum[0][i], "=", ((y[i] == x[0])));
@@ -39,11 +39,11 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < x.size()))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < y.size()))
         {
           if ((x[i] == y[j]))
@@ -63,7 +63,7 @@ func solve()
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   read(x, y);
   write(solve(), "\n");

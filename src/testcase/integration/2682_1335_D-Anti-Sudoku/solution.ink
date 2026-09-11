@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func fastscan(number: dynamic)
+func fastscan(number: dynamic) -> dynamic
 {
-  var negative = false;
-  var c: dynamic;
+  var negative: dynamic = false;
+  var c: dynamic = cpp_uninitialized();
   number = 0;
   c = getchar();
   if ((c == cpp_char("-")))
@@ -24,24 +24,24 @@ func fastscan(number: dynamic)
   }
 }
 
-func Findsol()
+func Findsol() -> dynamic
 {
-  var s = cpp_array(9);
+  var s: dynamic = cpp_array(9);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 9))
     {
       getline(cin, s[i]);
       i += 1;
     }
   }
-  var c1 = s[0].at(8);
-  var c2 = s[0].at(7);
+  var c1: dynamic = s[0].at(8);
+  var c2: dynamic = s[0].at(7);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 9))
     {
-      var ind = (((i / 3) + (3 * ((i % 3)))));
+      var ind: dynamic = (((i / 3) + (3 * ((i % 3)))));
       if ((s[i].at(ind) != c1))
       {
         s[i].at(ind) = c1;
@@ -53,7 +53,7 @@ func Findsol()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 9))
     {
       write(s[i], "\n");
@@ -62,9 +62,9 @@ func Findsol()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   fastscan(t);
   while ((cpp_update(t, "--") > 0))
   {

@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var maxn = (1e5 + 10);
+var maxn: dynamic = (1e5 + 10);
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
 class node
 {
-  var w: dynamic;
-  var v: dynamic;
-  var id: dynamic;
-  func operator_less(p: dynamic)
+  var w: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  func operator_less(p: dynamic) -> dynamic
   {
       if ((w != p.w))
       {
@@ -25,21 +25,21 @@ class node
     }
 }
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var use = cpp_array(maxn);
+var use: dynamic = cpp_array(maxn);
 
-func check(t: dynamic)
+func check(t: dynamic) -> dynamic
 {
-  var now = 1;
+  var now: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((((t * a[i].v) / h) >= now))
@@ -53,13 +53,13 @@ func check(t: dynamic)
   return (now > k);
 }
 
-var ans = cpp_array(maxn);
+var ans: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d", (&n), (&k), (&h));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i].w));
@@ -68,7 +68,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i].v));
@@ -76,18 +76,18 @@ func main()
     }
   }
   sort((a + 1), ((a + 1) + n));
-  var l = 0;
-  var r = 1e10;
+  var l: dynamic = 0;
+  var r: dynamic = 1e10;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 200))
     {
-      var mid = (((r + l)) / 2);
+      var mid: dynamic = (((r + l)) / 2);
       if (check(mid))
       {
         r = mid;
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= k))
           {
             ans[i] = use[i];
@@ -102,7 +102,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       printf("%d ", ans[i]);

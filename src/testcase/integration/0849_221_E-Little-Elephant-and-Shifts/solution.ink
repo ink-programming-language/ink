@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var Maxn = ((100 * 1000) + 10);
+var Maxn: dynamic = ((100 * 1000) + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var inda = cpp_array(Maxn);
+var inda: dynamic = cpp_array(Maxn);
 
-var indb = cpp_array(Maxn);
+var indb: dynamic = cpp_array(Maxn);
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var b1: dynamic;
+var b1: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
-  var aa: dynamic;
+  var aa: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&aa));
@@ -29,7 +29,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&aa));
@@ -39,7 +39,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((indb[i] > inda[i]))
@@ -54,13 +54,13 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       printf("%d\n", min((((b.begin()->first + i)) % n), ((((a.begin()->first - i) + n)) % n)));
       if ((b1.begin()->first == i))
       {
-        var ind = (b1.begin()->second + i);
+        var ind: dynamic = (b1.begin()->second + i);
         a.insert(make_pair(((n - ind) + i), ind));
         b.erase(make_pair(b1.begin()->second, b1.begin()->first));
         b1.erase(b1.begin());

@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var BIG_NUM = cpp_expression("#include<b");
+var BIG_NUM: dynamic = cpp_expression("#include<b");
 
-var MOD = cpp_expression("#include<b");
+var MOD: dynamic = cpp_expression("#include<b");
 
-var EPS = cpp_expression("#include<bi");
+var EPS: dynamic = cpp_expression("#include<bi");
 
-var NUM = cpp_expression("#i");
+var NUM: dynamic = cpp_expression("#i");
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var energy = cpp_array(NUM);
+var energy: dynamic = cpp_array(NUM);
 
-var dp = cpp_array(NUM, 321, 321);
+var dp: dynamic = cpp_array(NUM, 321, 321);
 
-func func_cpp()
+func func_cpp() -> dynamic
 {
   scanf("%d", (&N));
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       scanf("%d", (&energy[i]));
@@ -33,15 +33,15 @@ func func_cpp()
     return;
   }
   {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a <= sum))
     {
       {
-        var b = 0;
+        var b: dynamic = 0;
         while ((b <= sum))
         {
           {
-            var c = 0;
+            var c: dynamic = 0;
             while ((c < NUM))
             {
               dp[a][b][c] = false;
@@ -55,18 +55,18 @@ func func_cpp()
     }
   }
   dp[energy[0]][energy[1]][0] = true;
-  var right_value: dynamic;
+  var right_value: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (N - 2)))
     {
       right_value = energy[(i + 1)];
       {
-        var left_value = 0;
+        var left_value: dynamic = 0;
         while ((left_value <= sum))
         {
           {
-            var self_value = 0;
+            var self_value: dynamic = 0;
             while ((self_value <= sum))
             {
               if ((!dp[left_value][self_value][(i - 1)]))
@@ -88,13 +88,13 @@ func func_cpp()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= sum))
     {
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k <= sum))
         {
           if (dp[i][k][(N - 2)])
@@ -110,12 +110,12 @@ func func_cpp()
   printf("%d\n", ans);
 }
 
-func main()
+func main() -> dynamic
 {
-  var num_case: dynamic;
+  var num_case: dynamic = cpp_uninitialized();
   scanf("%d", (&num_case));
   {
-    var loop = 0;
+    var loop: dynamic = 0;
     while ((loop < num_case))
     {
       func_cpp();

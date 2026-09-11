@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func modu(a: dynamic, b: dynamic)
+func modu(a: dynamic, b: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while ((b > 0))
   {
     if ((b & 1))
@@ -15,16 +15,16 @@ func modu(a: dynamic, b: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var arr = cpp_array((n + 1));
-  var s: dynamic;
+  var arr: dynamic = cpp_array((n + 1));
+  var s: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(arr[i]);
@@ -32,15 +32,15 @@ func main()
       i += 1;
     }
   }
-  var cn = 0;
-  var ans: dynamic;
+  var cn: dynamic = 0;
+  var ans: dynamic = cpp_uninitialized();
   while ((s.find(cn) != s.end()))
   {
     cn += 1;
   }
   ans.push_back(cn);
   cn += 1;
-  var i = 2;
+  var i: dynamic = 2;
   while ((i <= n))
   {
     if ((arr[i] == arr[(i - 1)]))
@@ -59,7 +59,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ans.size()))
     {
       write(ans[i], " ");

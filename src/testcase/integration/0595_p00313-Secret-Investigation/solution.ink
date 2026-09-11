@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-var Z: dynamic;
+var Z: dynamic = cpp_uninitialized();
 
-var Data = cpp_array(100, 3);
+var Data: dynamic = cpp_array(100, 3);
 
-func solve()
+func solve() -> dynamic
 {
-  var sum: dynamic;
+  var sum: dynamic = cpp_uninitialized();
   sum = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (((((!Data[0][i]) && Data[2][i])) || ((Data[1][i] && Data[2][i]))))
@@ -28,13 +28,13 @@ func solve()
   write(sum, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var num: dynamic;
+  var num: dynamic = cpp_uninitialized();
   memset(Data, false, cpp_sizeof((Data)));
   read(N, X);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < X))
     {
       read(num);
@@ -44,7 +44,7 @@ func main()
   }
   read(Y);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Y))
     {
       read(num);
@@ -54,7 +54,7 @@ func main()
   }
   read(Z);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Z))
     {
       read(num);

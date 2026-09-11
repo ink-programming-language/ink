@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var prime: dynamic;
+var prime: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var l: dynamic;
-  var r: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   read(l, r);
-  var res = ((l <= 2) && (r >= 2));
+  var res: dynamic = ((l <= 2) && (r >= 2));
   prime.set();
   prime[0] = false;
   prime[1] = false;
   {
-    var i = 3;
+    var i: dynamic = 3;
     while (((i * i) <= r))
     {
       if (prime[i])
       {
         {
-          var j = (i * i);
+          var j: dynamic = (i * i);
           while ((j <= r))
           {
             prime[j] = false;
@@ -29,13 +29,13 @@ func main()
       i += 2;
     }
   }
-  var f = (((l / 4) * 4) + 1);
+  var f: dynamic = (((l / 4) * 4) + 1);
   if ((f < l))
   {
     f += 4;
   }
   {
-    var i = f;
+    var i: dynamic = f;
     while ((i <= r))
     {
       res += prime[i];

@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var pb = cpp_expression("/* cerber");
+var pb: dynamic = cpp_expression("/* cerber");
 
-func fast_cin()
+func fast_cin() -> dynamic
 {
   cpp_macro("ios_base::sync_with_stdio(false); cin.tie(NULL)");
 }
 
-var N = (500 + 10);
+var N: dynamic = (500 + 10);
 
-var a = cpp_array(N, N);
+var a: dynamic = cpp_array(N, N);
 
-var f = cpp_array(N, N);
+var f: dynamic = cpp_array(N, N);
 
-var b = cpp_array(N, N);
+var b: dynamic = cpp_array(N, N);
 
-var dp = cpp_array(N, N);
+var dp: dynamic = cpp_array(N, N);
 
-func main()
+func main() -> dynamic
 {
   fast_cin();
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((i != j))
@@ -43,11 +43,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           f[i][j] = (f[i][(j - 1)] + a[j][i]);
@@ -55,7 +55,7 @@ func main()
         }
       }
       {
-        var j = (i - 1);
+        var j: dynamic = (i - 1);
         while ((j >= 1))
         {
           b[i][j] = (b[i][(j + 1)] + a[i][j]);
@@ -65,20 +65,20 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j >= 0))
         {
           {
-            var k = j;
+            var k: dynamic = j;
             while ((k >= 0))
             {
-              var cost = ((dp[j][k] + f[(i + 1)][j]) + b[(i + 1)][(k + 1)]);
+              var cost: dynamic = ((dp[j][k] + f[(i + 1)][j]) + b[(i + 1)][(k + 1)]);
               dp[(i + 1)][j] = max(dp[(i + 1)][j], cost);
               dp[j][k] = cost;
               ans = max(ans, cost);

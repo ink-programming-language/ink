@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   scanf("%d", (&T));
   while (cpp_update(T, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     scanf("%d", (&n));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         printf("%d ", i);

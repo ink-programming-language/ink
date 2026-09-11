@@ -2,29 +2,29 @@
 
 class query
 {
-  var l: dynamic;
-  var r: dynamic;
-  var block: dynamic;
-  var id: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var block: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var N = 200000;
+var N: dynamic = 200000;
 
-var Q = 200000;
+var Q: dynamic = 200000;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var freq = cpp_array(1000001);
+var freq: dynamic = cpp_array(1000001);
 
-var q = cpp_array(Q);
+var q: dynamic = cpp_array(Q);
 
-var ans = cpp_array(Q);
+var ans: dynamic = cpp_array(Q);
 
-func by_block(a: dynamic, b: dynamic)
+func by_block(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.block != b.block))
   {
@@ -33,12 +33,12 @@ func by_block(a: dynamic, b: dynamic)
   return (a.r > b.r);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&n), (&m));
-  var bsize = cpp_cast(sqrt(n));
+  var bsize: dynamic = cpp_cast(sqrt(n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
@@ -46,7 +46,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d %d", (&q[i].l), (&q[i].r));
@@ -57,15 +57,15 @@ func main()
     }
   }
   sort(q, (q + m), by_block);
-  var curr_l = 0;
-  var curr_r = 0;
-  var curr_ans = 0;
+  var curr_l: dynamic = 0;
+  var curr_r: dynamic = 0;
+  var curr_ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var l = q[i].l;
-      var r = q[i].r;
+      var l: dynamic = q[i].l;
+      var r: dynamic = q[i].r;
       while ((curr_l < l))
       {
         curr_ans += ((ll)((1 - (2 * freq[a[curr_l]]))) * a[curr_l]);
@@ -95,7 +95,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       printf("%I64d\n", ans[i]);

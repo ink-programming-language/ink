@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int (i)=0;(i)<(int)(n);++(i))");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func dbg(x: dynamic)
+func dbg(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> u");
 }
 
-func operator_shift_left(o: dynamic, p: dynamic)
+func operator_shift_left(o: dynamic, p: dynamic) -> dynamic
 {
   (((((o << "(") << p.fi) << ",") << p.se) << ")");
   return o;
 }
 
-func operator_shift_left(o: dynamic, v: dynamic)
+func operator_shift_left(o: dynamic, v: dynamic) -> dynamic
 {
   (o << "[");
-  for (var t in v)
+  for (var t: dynamic in v)
   {
     ((o << t) << ",");
   }
@@ -38,29 +38,29 @@ func operator_shift_left(o: dynamic, v: dynamic)
   return o;
 }
 
-func F(L: dynamic, R: dynamic, r: dynamic)
+func F(L: dynamic, R: dynamic, r: dynamic) -> dynamic
 {
-  var f = __cpp_lambda_1;
+  var f: dynamic = __cpp_lambda_1;
   return (f(R) - f(L));
 }
 
-func main()
+func main() -> dynamic
 {
-  var w: dynamic;
-  var h: dynamic;
-  var s: dynamic;
+  var w: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   while (cpp_comma((((cin >> w) >> h) >> s), s))
   {
     if ((h > w))
     {
       swap(h, w);
     }
-    var check = __cpp_lambda_2;
-    var ng = (sqrt(((w * w) + (h * h))) / 2);
-    var ok = sqrt(((w * w) + (h * h)));
+    var check: dynamic = __cpp_lambda_2;
+    var ng: dynamic = (sqrt(((w * w) + (h * h))) / 2);
+    var ok: dynamic = sqrt(((w * w) + (h * h)));
     rep(i, 40);
     {
-      var mid = (((ng + ok)) / 2);
+      var mid: dynamic = (((ng + ok)) / 2);
       if (check(mid))
       {
         ok = mid;
@@ -74,17 +74,17 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_1(x: dynamic)
+func __cpp_lambda_1(x: dynamic) -> dynamic
 {
   return ((((x * sqrt(((r * r) - (x * x)))) + ((r * r) * asin((x / r))))) / 2.0);
 }
 
-func __cpp_lambda_2(r: dynamic)
+func __cpp_lambda_2(r: dynamic) -> dynamic
 {
-  var lx = (w / 2);
-  var rx = sqrt(((r * r) - ((h * h) / 4)));
+  var lx: dynamic = (w / 2);
+  var rx: dynamic = sqrt(((r * r) - ((h * h) / 4)));
   rx = min(rx, w);
-  var S = F(lx, rx, r);
+  var S: dynamic = F(lx, rx, r);
   S -= ((((rx - lx)) * h) / 2);
   if ((r > h))
   {

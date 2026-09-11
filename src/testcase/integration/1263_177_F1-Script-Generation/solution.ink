@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var maxi = 2000000000;
+var maxi: dynamic = 2000000000;
 
-var maxq = 1000000000;
+var maxq: dynamic = 1000000000;
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
-var pi = 3.1415926535897932;
+var pi: dynamic = 3.1415926535897932;
 
-var inf = 1e+18;
+var inf: dynamic = 1e+18;
 
-var mo = 1000000007;
+var mo: dynamic = 1000000007;
 
-var stn: dynamic;
+var stn: dynamic = cpp_uninitialized();
 
-var ms = cpp_array(1111, 1111);
+var ms: dynamic = cpp_array(1111, 1111);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var st = cpp_array(1111111);
+var st: dynamic = cpp_array(1111111);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var f = cpp_array(11111);
+var f: dynamic = cpp_array(11111);
 
-func rec(x: dynamic, y: dynamic)
+func rec(x: dynamic, y: dynamic) -> dynamic
 {
   sum += ms[x][y];
   if ((x == n))
@@ -49,7 +49,7 @@ func rec(x: dynamic, y: dynamic)
   if ((x < n))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= n))
       {
         if (((f[i] == false) && ((ms[(x + 1)][i] || (i == 0)))))
@@ -64,11 +64,11 @@ func rec(x: dynamic, y: dynamic)
   f[y] = false;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, k, t);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       read(x, y, z);
@@ -77,7 +77,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       if ((ms[1][i] || (i == 0)))

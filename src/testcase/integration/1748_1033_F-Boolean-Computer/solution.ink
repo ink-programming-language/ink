@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var N = 30005;
+var N: dynamic = 30005;
 
-var M = 550005;
+var M: dynamic = 550005;
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var pw = cpp_array(15);
+var pw: dynamic = cpp_array(15);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var cc = cpp_array(N);
+var cc: dynamic = cpp_array(N);
 
-var cnt = cpp_array(M);
+var cnt: dynamic = cpp_array(M);
 
-var s = cpp_array(15);
+var s: dynamic = cpp_array(15);
 
-func calc(num: dynamic)
+func calc(num: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
       if ((num & ((1 << i))))
@@ -37,13 +37,13 @@ func calc(num: dynamic)
   return ret;
 }
 
-func dfs(dep: dynamic, cur: dynamic)
+func dfs(dep: dynamic, cur: dynamic) -> dynamic
 {
   if ((dep == (w + 1)))
   {
     return cnt[cur];
   }
-  var t = pw[(w - dep)];
+  var t: dynamic = pw[(w - dep)];
   if ((s[dep] == cpp_char("A")))
   {
     return (dfs((dep + 1), cur) + dfs((dep + 1), (cur + t)));
@@ -67,12 +67,12 @@ func dfs(dep: dynamic, cur: dynamic)
   return dfs((dep + 1), (cur + t));
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(w, n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -82,7 +82,7 @@ func main()
   }
   pw[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 12))
     {
       pw[i] = (pw[(i - 1)] * 3);
@@ -90,11 +90,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << w))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ((1 << w))))
         {
           cnt[(calc(i) + calc(j))] += (cc[i] * cc[j]);

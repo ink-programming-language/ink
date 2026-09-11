@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,25 +21,25 @@ func read()
   return (x * f);
 }
 
-var N = (1e5 + 10);
+var N: dynamic = (1e5 + 10);
 
-var inf = 110101010;
+var inf: dynamic = 110101010;
 
-var a = cpp_array(25, 25);
+var a: dynamic = cpp_array(25, 25);
 
-var dp = cpp_array((1 << 20), 40);
+var dp: dynamic = cpp_array((1 << 20), 40);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var vis = cpp_array((1 << 20), 40);
+var vis: dynamic = cpp_array((1 << 20), 40);
 
-func dfs(x: dynamic, st: dynamic)
+func dfs(x: dynamic, st: dynamic) -> dynamic
 {
   if (vis[x][st])
   {
     return dp[x][st];
   }
-  var res = dp[x][st];
+  var res: dynamic = dp[x][st];
   vis[x][st] = 1;
   if ((x == ((n * 2) - 2)))
   {
@@ -53,15 +53,15 @@ func dfs(x: dynamic, st: dynamic)
     {
       res = inf;
     }
-    var mask = cpp_array(30);
+    var mask: dynamic = cpp_array(30);
     memset(mask, 0, cpp_sizeof((mask)));
-    var cnt = 0;
+    var cnt: dynamic = 0;
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j <= (x + 1)))
       {
-        var first = ((x + 1) - j);
-        var second = j;
+        var first: dynamic = ((x + 1) - j);
+        var second: dynamic = j;
         if (((first >= n) || (second >= n)))
         {
           j += 1;
@@ -73,12 +73,12 @@ func dfs(x: dynamic, st: dynamic)
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= 25))
       {
         if (mask[i])
         {
-          var xt: dynamic;
+          var xt: dynamic = cpp_uninitialized();
           if (((x + 1) < n))
           {
             xt = (((st | ((st << 1)))) & mask[i]);
@@ -91,7 +91,7 @@ func dfs(x: dynamic, st: dynamic)
             i += 1;
             continue;
           }
-          var tmp = 0;
+          var tmp: dynamic = 0;
           if ((!i))
           {
             tmp = 1;
@@ -124,18 +124,18 @@ func dfs(x: dynamic, st: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       scanf("%s", a[i]);
       i += 1;
     }
   }
-  var res = dfs(0, 1);
+  var res: dynamic = dfs(0, 1);
   if ((!res))
   {
     printf("DRAW\n");

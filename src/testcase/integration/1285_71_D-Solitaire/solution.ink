@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var firsts = "23456789TJQKA";
+var firsts: dynamic = "23456789TJQKA";
 
-var seconds = "CDHS";
+var seconds: dynamic = "CDHS";
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(55, 55);
+var a: dynamic = cpp_array(55, 55);
 
-var cur: dynamic;
+var cur: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var wh: dynamic;
+var wh: dynamic = cpp_uninitialized();
 
-func go(x: dynamic, y: dynamic)
+func go(x: dynamic, y: dynamic) -> dynamic
 {
   if ((y == m))
   {
@@ -25,23 +25,23 @@ func go(x: dynamic, y: dynamic)
   }
   if ((x == n))
   {
-    var goods: dynamic;
+    var goods: dynamic = cpp_uninitialized();
     {
-      var i1 = 0;
+      var i1: dynamic = 0;
       while (((i1 + 2) < n))
       {
         {
-          var j1 = 0;
+          var j1: dynamic = 0;
           while (((j1 + 2) < m))
           {
-            var f: dynamic;
-            var s: dynamic;
+            var f: dynamic = cpp_uninitialized();
+            var s: dynamic = cpp_uninitialized();
             {
-              var x = 0;
+              var x: dynamic = 0;
               while ((x < 3))
               {
                 {
-                  var y = 0;
+                  var y: dynamic = 0;
                   while ((y < 3))
                   {
                     f.insert(a[(i1 + x)][(j1 + y)][0]);
@@ -62,9 +62,9 @@ func go(x: dynamic, y: dynamic)
         i1 += 1;
       }
     }
-    for (var c1 in goods)
+    for (var c1: dynamic in goods)
     {
-      for (var c2 in goods)
+      for (var c2: dynamic in goods)
       {
         if (((abs((c1.first - c2.first)) >= 3) || (abs((c1.second - c2.second)) >= 3)))
         {
@@ -76,23 +76,23 @@ func go(x: dynamic, y: dynamic)
     }
     return false;
   }
-  var th = a[x][y];
+  var th: dynamic = a[x][y];
   if (((th != "J1") && (th != "J2")))
   {
     return go(x, (y + 1));
   }
-  for (var f in firsts)
+  for (var f: dynamic in firsts)
   {
-    for (var s in seconds)
+    for (var s: dynamic in seconds)
     {
-      var rep = [f, s];
-      var ok = true;
+      var rep: dynamic = [f, s];
+      var ok: dynamic = true;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               ok &= (a[i][j] != rep);
@@ -119,15 +119,15 @@ func go(x: dynamic, y: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(a[i][j]);
@@ -148,8 +148,8 @@ func main()
       write("Replace ", ans[0].first, " with ", ans[0].second, ".\n");
     } else
     {
-      var x = ans[0].second;
-      var y = ans[1].second;
+      var x: dynamic = ans[0].second;
+      var y: dynamic = ans[1].second;
       if ((ans[0].first != "J1"))
       {
         swap(x, y);

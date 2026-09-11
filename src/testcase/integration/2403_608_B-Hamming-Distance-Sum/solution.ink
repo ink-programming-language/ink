@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var b1 = cpp_array(200010);
+var b1: dynamic = cpp_array(200010);
 
-var b2 = cpp_array(200010);
+var b2: dynamic = cpp_array(200010);
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
   memset(b1, 0, cpp_sizeof((b1)));
   memset(b2, 0, cpp_sizeof((b2)));
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < b.length()))
     {
       b1[i] = (b1[(i - 1)] + ((b[i] == cpp_char("1"))));
@@ -22,7 +22,7 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.length()))
     {
       if ((a[i] == cpp_char("1")))

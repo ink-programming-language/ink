@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var maxn = (cpp_cast(1e5) + 100);
+var maxn: dynamic = (cpp_cast(1e5) + 100);
 
-var tr = cpp_construct((4 * maxn));
+var tr: dynamic = cpp_construct((4 * maxn));
 
-func upd(idx: dynamic)
+func upd(idx: dynamic) -> dynamic
 {
-  var l = (idx * 2);
-  var r = ((idx * 2) + 1);
+  var l: dynamic = (idx * 2);
+  var r: dynamic = ((idx * 2) + 1);
   if (((tr[l] == -1) || (tr[r] == -1)))
   {
     tr[idx] = max(tr[l], tr[r]);
   } else
   {
-    (cpp_assign(if ((a[tr[l]] >= a[tr[r]])) cpp_assign(tr[idx], "=", tr[l]) else tr[idx], "=", tr[r]));
+    (cpp_assign( ((a[tr[l]] >= a[tr[r]])) ? cpp_assign(tr[idx], "=", tr[l]) : tr[idx], "=", tr[r]));
   }
 }
 
-func build(idx: dynamic, l: dynamic, r: dynamic)
+func build(idx: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if ((l == r))
   {
     tr[idx] = l;
     return;
   }
-  var m = (((l + r)) >> 1);
+  var m: dynamic = (((l + r)) >> 1);
   build((idx * 2), l, m);
   build(((idx * 2) + 1), (m + 1), r);
   upd(idx);
 }
 
-func get(idx: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic)
+func get(idx: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic) -> dynamic
 {
   if (((l >= ll) && (r <= rr)))
   {
@@ -40,9 +40,9 @@ func get(idx: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic)
   {
     return -1;
   }
-  var m = (((l + r)) >> 1);
-  var fi = get((idx * 2), l, m, ll, rr);
-  var se = get(((idx * 2) + 1), (m + 1), r, ll, rr);
+  var m: dynamic = (((l + r)) >> 1);
+  var fi: dynamic = get((idx * 2), l, m, ll, rr);
+  var se: dynamic = get(((idx * 2) + 1), (m + 1), r, ll, rr);
   if ((fi == -1))
   {
     return se;
@@ -51,15 +51,15 @@ func get(idx: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic)
   {
     return fi;
   }
-  return (if ((a[fi] >= a[se])) fi else se);
+  return ( ((a[fi] >= a[se])) ? fi : se);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
@@ -68,13 +68,13 @@ func main()
   }
   a[n] = 0;
   build(1, 1, n);
-  var dp = cpp_construct((n + 10), 0);
-  var ans = 0;
+  var dp: dynamic = cpp_construct((n + 10), 0);
+  var ans: dynamic = 0;
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i > 0))
     {
-      var idx = get(1, 1, n, (i + 1), a[i]);
+      var idx: dynamic = get(1, 1, n, (i + 1), a[i]);
       dp[i] = (((dp[idx] + n) - i) - ((a[i] - idx)));
       ans += dp[i];
       i -= 1;

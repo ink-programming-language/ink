@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var g: dynamic;
+var g: dynamic = cpp_uninitialized();
 
-var b = cpp_array(100000);
+var b: dynamic = cpp_array(100000);
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   while (1)
   {

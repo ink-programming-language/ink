@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var pre = ["", "0", "00", "000"];
+var pre: dynamic = ["", "0", "00", "000"];
 
-var T = [1, 10, 100, 1000];
+var T: dynamic = [1, 10, 100, 1000];
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var v = cpp_array(10000);
+var v: dynamic = cpp_array(10000);
 
-func ndgt(x: dynamic)
+func ndgt(x: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       if ((x >= T[(3 - i)]))
@@ -26,9 +26,9 @@ func ndgt(x: dynamic)
   return 3;
 }
 
-func print(x: dynamic, s: dynamic)
+func print(x: dynamic, s: dynamic) -> dynamic
 {
-  var y = if ((k < s)) (s - k) else (k - s);
+  var y: dynamic =  ((k < s)) ? (s - k) : (k - s);
   if (((y < 10000) && (!v[y])))
   {
     write(pre[ndgt(y)], y, pre[ndgt(x)], x, "\n");
@@ -38,18 +38,18 @@ func print(x: dynamic, s: dynamic)
   return false;
 }
 
-func calc(t: dynamic, x: dynamic)
+func calc(t: dynamic, x: dynamic) -> dynamic
 {
-  var p = 1;
-  var b = 0;
-  var a = 0;
-  var op = 0;
-  var z = x;
+  var p: dynamic = 1;
+  var b: dynamic = 0;
+  var a: dynamic = 0;
+  var op: dynamic = 0;
+  var z: dynamic = x;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
-      var op = (t % 4);
+      var op: dynamic = (t % 4);
       t /= 4;
       b += (((z % 10)) * p);
       if ((op == 3))
@@ -57,7 +57,7 @@ func calc(t: dynamic, x: dynamic)
         p *= 10;
       } else
       {
-        var __cpp_switch_1 = op;
+        var __cpp_switch_1: dynamic = op;
         if (__cpp_switch_1 == 0)
         {
           a = (a + b);
@@ -84,12 +84,12 @@ func calc(t: dynamic, x: dynamic)
   return a;
 }
 
-var rep = cpp_array(64);
+var rep: dynamic = cpp_array(64);
 
-func main1()
+func main1() -> dynamic
 {
-  var cpp_1: dynamic;
-  var cpp_2: dynamic;
+  var cpp_1: dynamic = cpp_uninitialized();
+  var cpp_2: dynamic = cpp_uninitialized();
   while (((cin >> cpp_1) >> cpp_2))
   {
     write(calc(cpp_1, cpp_2), "\n");
@@ -97,20 +97,20 @@ func main1()
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   while (((cin >> k) >> m))
   {
     {
-      var x = 0;
+      var x: dynamic = 0;
       while (((x <= 9999) && m))
       {
         memset(v, false, cpp_sizeof((v)));
         {
-          var cb = 0;
+          var cb: dynamic = 0;
           while ((cb < 64))
           {
-            var s = calc(cb, x);
+            var s: dynamic = calc(cb, x);
             rep[cb] = s;
             cb += 1;
           }
@@ -121,7 +121,7 @@ func main()
           m -= 1;
         }
         {
-          var i = 1;
+          var i: dynamic = 1;
           while (((i < 64) && m))
           {
             if ((rep[i] > rep[(i - 1)]))
@@ -141,10 +141,10 @@ func main()
   return 0;
 }
 
-func main2()
+func main2() -> dynamic
 {
-  var s: dynamic;
-  var cnt = 0;
+  var s: dynamic = cpp_uninitialized();
+  var cnt: dynamic = 0;
   while (getline(cin, s))
   {
     cnt += 1;

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var jc = cpp_array(4010);
+var jc: dynamic = cpp_array(4010);
 
-var c = cpp_array(4010, 4010);
+var c: dynamic = cpp_array(4010, 4010);
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i <= 4000))

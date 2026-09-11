@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var inf = (1e9 + 333);
+var inf: dynamic = (1e9 + 333);
 
-var linf = (1e18 + 333);
+var linf: dynamic = (1e18 + 333);
 
-var N = 50;
+var N: dynamic = 50;
 
-var M = 21;
+var M: dynamic = 21;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array((1 << M));
+var cnt: dynamic = cpp_array((1 << M));
 
-var w = cpp_array((1 << M));
+var w: dynamic = cpp_array((1 << M));
 
-var dp = cpp_array((1 << M));
+var dp: dynamic = cpp_array((1 << M));
 
-var s = cpp_array(M, N);
+var s: dynamic = cpp_array(M, N);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%s", s[i]);
@@ -33,16 +33,16 @@ func main()
   }
   m = strlen(s[0]);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < i))
         {
-          var mask = 0;
+          var mask: dynamic = 0;
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < m))
             {
               mask |= (((s[i][k] == s[j][k])) << k);
@@ -57,11 +57,11 @@ func main()
     }
   }
   {
-    var i = (((1 << m)) - 1);
+    var i: dynamic = (((1 << m)) - 1);
     while ((i >= 0))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((i & (1 << j)))
@@ -75,7 +75,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << m))))
     {
       cnt[i] = builtin_popcountll(w[i]);
@@ -83,7 +83,7 @@ func main()
     }
   }
   {
-    var i = (((1 << m)) - 1);
+    var i: dynamic = (((1 << m)) - 1);
     while ((i >= 0))
     {
       if ((!cnt[i]))
@@ -91,9 +91,9 @@ func main()
         i -= 1;
         continue;
       }
-      var sum = 0;
+      var sum: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if (((~i) & (1 << j)))

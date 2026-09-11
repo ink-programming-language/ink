@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var N = (1e6 + 100);
+var N: dynamic = (1e6 + 100);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s1 = cpp_array(N);
+var s1: dynamic = cpp_array(N);
 
-var s2 = cpp_array(N);
+var s2: dynamic = cpp_array(N);
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var Next = cpp_array(N);
+var Next: dynamic = cpp_array(N);
 
-func getnext(s: dynamic)
+func getnext(s: dynamic) -> dynamic
 {
   Next[0] = -1;
-  var j = -1;
-  var i = 0;
+  var j: dynamic = -1;
+  var i: dynamic = 0;
   while ((i < n))
   {
     if (((j == -1) || (s[i] == s[j])))
@@ -31,10 +31,10 @@ func getnext(s: dynamic)
   }
 }
 
-func kmp(s1: dynamic, s2: dynamic)
+func kmp(s1: dynamic, s2: dynamic) -> dynamic
 {
-  var i = 0;
-  var j = 0;
+  var i: dynamic = 0;
+  var j: dynamic = 0;
   while ((i < n))
   {
     if (((j == -1) || (s1[i] == s2[j])))
@@ -53,13 +53,13 @@ func kmp(s1: dynamic, s2: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   scanf("%s%s", s1, s2);
   n -= 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((s1[i] == cpp_char("E")))

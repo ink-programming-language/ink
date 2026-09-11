@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var N = 405;
+var N: dynamic = 405;
 
-var inf = 1000000007;
+var inf: dynamic = 1000000007;
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-var f = cpp_array(2, N, N);
+var f: dynamic = cpp_array(2, N, N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var v = cpp_array(N);
+var v: dynamic = cpp_array(N);
 
-func dp()
+func dp() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       f[i][i][0] = 0;
@@ -26,20 +26,20 @@ func dp()
     }
   }
   {
-    var L = 2;
+    var L: dynamic = 2;
     while ((L <= n))
     {
       {
-        var l = 1;
+        var l: dynamic = 1;
         while ((l <= ((n - L) + 1)))
         {
-          var r = ((l + L) - 1);
+          var r: dynamic = ((l + L) - 1);
           f[l][r][0] = (-inf);
           if ((a[l] != a[r]))
           {
-            var st = (if ((a[l] < a[r])) 1 else -1);
+            var st: dynamic = ( ((a[l] < a[r])) ? 1 : -1);
             {
-              var k = (l + 1);
+              var k: dynamic = (l + 1);
               while ((k <= r))
               {
                 if ((a[k] == (a[l] + st)))
@@ -52,7 +52,7 @@ func dp()
           }
           f[l][r][1] = (-inf);
           {
-            var k = l;
+            var k: dynamic = l;
             while ((k <= (r - 1)))
             {
               f[l][r][1] = max(f[l][r][1], (f[l][k][1] + f[(k + 1)][r][1]));
@@ -60,7 +60,7 @@ func dp()
             }
           }
           {
-            var k = l;
+            var k: dynamic = l;
             while ((k <= r))
             {
               if ((((a[l] <= a[k]) && (a[r] <= a[k])) && (((((a[k] - a[l]) + a[k]) - a[r]) + 1) <= n)))
@@ -78,11 +78,11 @@ func dp()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&v[i]));
@@ -90,7 +90,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -100,12 +100,12 @@ func main()
   dp();
   g[0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       g[i] = g[(i - 1)];
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= (i - 1)))
         {
           g[i] = max(g[i], (g[j] + f[(j + 1)][i][1]));

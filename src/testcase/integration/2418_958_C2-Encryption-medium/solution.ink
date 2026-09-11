@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(55, 105);
+var dp: dynamic = cpp_array(55, 105);
 
-func modd(x: dynamic)
+func modd(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -20,7 +20,7 @@ func modd(x: dynamic)
   return x;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
@@ -29,21 +29,21 @@ func main()
   read(n, k, p);
   memset(dp, 128, cpp_sizeof(dp));
   dp[0][0] = 0;
-  var z = 0;
+  var z: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       z = (((z + x)) % p);
-      var vz = cpp_construct(55, -2e9);
+      var vz: dynamic = cpp_construct(55, -2e9);
       {
-        var l = 0;
+        var l: dynamic = 0;
         while ((l < k))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < p))
             {
               vz[(l + 1)] = max(vz[(l + 1)], (dp[j][l] + modd(((z - j) + p))));
@@ -54,7 +54,7 @@ func main()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 55))
         {
           dp[z][i] = max(dp[z][i], vz[i]);

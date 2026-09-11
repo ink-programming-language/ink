@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(8);
+var a: dynamic = cpp_array(8);
 
-var factors = cpp_array(8);
+var factors: dynamic = cpp_array(8);
 
-var primeCnt: dynamic;
+var primeCnt: dynamic = cpp_uninitialized();
 
-func solve(cur: dynamic, tree: dynamic, rootNum: dynamic, rootSum: dynamic)
+func solve(cur: dynamic, tree: dynamic, rootNum: dynamic, rootSum: dynamic) -> dynamic
 {
   if ((cur == n))
   {
     return (((n + ((rootNum > 1))) + rootSum) - primeCnt);
   }
-  var ret = (1 << 28);
+  var ret: dynamic = (1 << 28);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((tree.size()))))
     {
       if (((tree[i] % a[cur]) == 0))
@@ -33,12 +33,12 @@ func solve(cur: dynamic, tree: dynamic, rootNum: dynamic, rootSum: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((n))))
     {
       read(a[i]);
@@ -47,12 +47,12 @@ func main()
   }
   sort(a, (a + n), greater());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((n))))
     {
-      var tmp = a[i];
+      var tmp: dynamic = a[i];
       {
-        var j = 2;
+        var j: dynamic = 2;
         while (((cpp_cast(j) * j) <= tmp))
         {
           while (((tmp % j) == 0))
@@ -74,9 +74,9 @@ func main()
       i += 1;
     }
   }
-  var tree: dynamic;
+  var tree: dynamic = cpp_uninitialized();
   tree.push_back(0);
-  var ret = solve(0, tree, 0, 0);
+  var ret: dynamic = solve(0, tree, 0, 0);
   write(ret, "\n");
   return 0;
 }

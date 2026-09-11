@@ -2,30 +2,30 @@
 
 class BigInteger
 {
-  var val: dynamic;
-  var neg: dynamic;
-  var u: dynamic;
-  func BigInteger(a: dynamic)
+  var val: dynamic = cpp_uninitialized();
+  var neg: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  func BigInteger(a: dynamic) -> dynamic
   {
-      this->val = cpp_construct(a);
+      self->val = cpp_construct(a);
     }
-  func BigInteger(a: dynamic)
+  func BigInteger(a: dynamic) -> dynamic
   {
       val.clear();
       val.push_back(a);
     }
-  func BigInteger(s: dynamic)
+  func BigInteger(s: dynamic) -> dynamic
   {
-      var tmp = 0;
-      var l = cpp_cast(s.size());
-      var sh = 0;
+      var tmp: dynamic = 0;
+      var l: dynamic = cpp_cast(s.size());
+      var sh: dynamic = 0;
       if ((s[0] == cpp_char("-")))
       {
         neg = 1;
         sh = 1;
       }
       {
-        var i = sh;
+        var i: dynamic = sh;
         while ((i < l))
         {
           tmp *= 10;
@@ -41,15 +41,15 @@ class BigInteger
       reverse(val.begin(), val.end());
       supplies();
     }
-  func BigInteger()
+  func BigInteger() -> dynamic
   {
       val.push_back(0);
     }
-  func supplies()
+  func supplies() -> dynamic
   {
-      var l = val.size();
+      var l: dynamic = val.size();
       {
-        var i = (l - 1);
+        var i: dynamic = (l - 1);
         while ((i > 0))
         {
           if ((val[i] == 0))
@@ -63,7 +63,7 @@ class BigInteger
         }
       }
     }
-  func get(index: dynamic)
+  func get(index: dynamic) -> dynamic
   {
       if ((size() > index))
       {
@@ -73,22 +73,22 @@ class BigInteger
         return 0;
       }
     }
-  func add(a: dynamic)
+  func add(a: dynamic) -> dynamic
   {
-      if ((this->neg != a.neg))
+      if ((self->neg != a.neg))
       {
         a.neg = (!a.neg);
         return sub(a);
       }
-      var res: dynamic;
-      var m = max(this->size(), a.size());
+      var res: dynamic = cpp_uninitialized();
+      var m: dynamic = max(self->size(), a.size());
       res.val.resize(m);
-      var carry = 0;
+      var carry: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
-          res.val[i] = ((((*this))[i] + a[i]) + carry);
+          res.val[i] = ((((*self))[i] + a[i]) + carry);
           carry = (res.val[i] / u);
           res.val[i] %= u;
           i += 1;
@@ -98,28 +98,28 @@ class BigInteger
       {
         res.val.push_back(carry);
       }
-      res.neg = this->neg;
+      res.neg = self->neg;
       return res;
     }
-  func sub(a: dynamic)
+  func sub(a: dynamic) -> dynamic
   {
-      if ((this->neg != a.neg))
+      if ((self->neg != a.neg))
       {
         a.neg = (!a.neg);
         return add(a);
       }
-      var m = max(this->size(), a.size());
-      var res: dynamic;
-      res.neg = this->neg;
+      var m: dynamic = max(self->size(), a.size());
+      var res: dynamic = cpp_uninitialized();
+      res.neg = self->neg;
       res.val.resize(m);
-      var borrow = 0;
+      var borrow: dynamic = 0;
       if (unsinged_greater(a))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < m))
           {
-            res.val[i] = ((((*this))[i] - a[i]) - borrow);
+            res.val[i] = ((((*self))[i] - a[i]) - borrow);
             borrow = 0;
             if ((res.val[i] < 0))
             {
@@ -133,10 +133,10 @@ class BigInteger
       {
         res.neg = (!res.neg);
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < m))
           {
-            res.val[i] = ((a[i] - ((*this))[i]) - borrow);
+            res.val[i] = ((a[i] - ((*self))[i]) - borrow);
             borrow = 0;
             if ((res.val[i] < 0))
             {
@@ -150,30 +150,30 @@ class BigInteger
       res.supplies();
       return res;
     }
-  func size()
+  func size() -> dynamic
   {
-      this->supplies();
-      return this->val.size();
+      self->supplies();
+      return self->val.size();
     }
-  func unsinged_greater(a: dynamic)
+  func unsinged_greater(a: dynamic) -> dynamic
   {
-      if ((this->size() > a.size()))
+      if ((self->size() > a.size()))
       {
         return true;
       }
-      if ((this->size() < a.size()))
+      if ((self->size() < a.size()))
       {
         return false;
       }
-      var s = this->size();
+      var s: dynamic = self->size();
       {
-        var i = (s - 1);
+        var i: dynamic = (s - 1);
         while ((i >= 0))
         {
-          if ((((*this))[i] > a[i]))
+          if ((((*self))[i] > a[i]))
           {
             return true;
-          } else if ((((*this))[i] < a[i]))
+          } else if ((((*self))[i] < a[i]))
           {
             return false;
           }
@@ -182,36 +182,36 @@ class BigInteger
       }
       return false;
     }
-  func is_zero()
+  func is_zero() -> dynamic
   {
-      if (((this->size() == 1) && (val[0] == 0)))
+      if (((self->size() == 1) && (val[0] == 0)))
       {
         return true;
       }
       return false;
     }
-  func neg_zero()
+  func neg_zero() -> dynamic
   {
-      if ((this->is_zero() && this->neg))
+      if ((self->is_zero() && self->neg))
       {
-        this->neg = 0;
+        self->neg = 0;
       }
     }
-  func signed_equal(a: dynamic)
+  func signed_equal(a: dynamic) -> dynamic
   {
-      if ((this->neg != a.neg))
+      if ((self->neg != a.neg))
       {
         return false;
       }
-      if ((this->val.size() != a.size()))
+      if ((self->val.size() != a.size()))
       {
         return false;
       }
       {
-        var i = 0;
-        while ((i < this->val.size()))
+        var i: dynamic = 0;
+        while ((i < self->val.size()))
         {
-          if ((this->val[i] != a.val[i]))
+          if ((self->val[i] != a.val[i]))
           {
             return false;
           }
@@ -220,11 +220,11 @@ class BigInteger
       }
       return true;
     }
-  func signed_greater(a: dynamic)
+  func signed_greater(a: dynamic) -> dynamic
   {
-      this->neg_zero();
+      self->neg_zero();
       a.neg_zero();
-      if (this->neg)
+      if (self->neg)
       {
         if (a.neg)
         {
@@ -245,18 +245,18 @@ class BigInteger
       }
       return false;
     }
-  func to_string()
+  func to_string() -> dynamic
   {
-      var res = "";
-      var ss: dynamic;
-      this->neg_zero();
-      if (this->neg)
+      var res: dynamic = "";
+      var ss: dynamic = cpp_uninitialized();
+      self->neg_zero();
+      if (self->neg)
       {
         (ss << cpp_char("-"));
       }
-      var l = val.size();
+      var l: dynamic = val.size();
       {
-        var i = (l - 1);
+        var i: dynamic = (l - 1);
         while ((i >= 0))
         {
           if ((i == (l - 1)))
@@ -271,47 +271,47 @@ class BigInteger
       }
       return ss.str();
     }
-  func operator_index(a: dynamic)
+  func operator_index(a: dynamic) -> dynamic
   {
       return get(a);
     }
-  func operator_add(a: dynamic)
+  func operator_add(a: dynamic) -> dynamic
   {
-      return this->add(a);
+      return self->add(a);
     }
-  func operator_subtract(a: dynamic)
+  func operator_subtract(a: dynamic) -> dynamic
   {
-      return this->sub(a);
+      return self->sub(a);
     }
-  func operator_add_assign(a: dynamic)
+  func operator_add_assign(a: dynamic) -> dynamic
   {
-      var res = this->add(a);
-      this->neg = res.neg;
-      this->val = res.val;
+      var res: dynamic = self->add(a);
+      self->neg = res.neg;
+      self->val = res.val;
     }
-  func operator_subtract_assign(a: dynamic)
+  func operator_subtract_assign(a: dynamic) -> dynamic
   {
-      var res = this->sub(a);
-      this->neg = res.neg;
-      this->val = res.val;
+      var res: dynamic = self->sub(a);
+      self->neg = res.neg;
+      self->val = res.val;
     }
 }
 
-func put(a: dynamic)
+func put(a: dynamic) -> dynamic
 {
   write(a, "\n");
 }
 
-func solve(a: dynamic, b: dynamic)
+func solve(a: dynamic, b: dynamic) -> dynamic
 {
   b1 -= b2;
   return b1.to_string();
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
   b1 -= b2;
   write(b1.to_string(), "\n");

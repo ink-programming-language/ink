@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var MAX_N = (2 * 100000);
+var MAX_N: dynamic = (2 * 100000);
 
-func main()
+func main() -> dynamic
 {
   read(t);
   while (cpp_update(t, "--"))
   {
     read(n, k);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(vec[i]);
         i += 1;
       }
     }
-    var mini = 2000000000;
-    var res = 0;
+    var mini: dynamic = 2000000000;
+    var res: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - k)))
       {
-        var check = (vec[(k + i)] - vec[i]);
+        var check: dynamic = (vec[(k + i)] - vec[i]);
         if (((check % 2) != 0))
         {
           if ((((check / 2) + 1) < mini))

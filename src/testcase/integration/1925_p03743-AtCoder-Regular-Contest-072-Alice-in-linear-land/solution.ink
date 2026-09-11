@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-func yabs(x: dynamic)
+func yabs(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/std");
 }
 
-var N = (5e5 + 10);
+var N: dynamic = (5e5 + 10);
 
-var Inf = (1e9 + 10);
+var Inf: dynamic = (1e9 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var D: dynamic;
+var D: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var now = cpp_array(N);
+var now: dynamic = cpp_array(N);
 
-var suf = cpp_array(N);
+var suf: dynamic = cpp_array(N);
 
-func Init()
+func Init() -> dynamic
 {
   scanf("%d%d", (&n), (&D));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -34,11 +34,11 @@ func Init()
   }
 }
 
-func Solve()
+func Solve() -> dynamic
 {
   now[0] = D;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       now[i] = min(now[(i - 1)], yabs((now[(i - 1)] - a[i])));
@@ -47,7 +47,7 @@ func Solve()
   }
   suf[(n + 1)] = 1;
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       if ((yabs((suf[(i + 1)] - a[i])) >= suf[(i + 1)]))
@@ -61,9 +61,9 @@ func Solve()
     }
   }
   scanf("%d", (&Q));
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= Q))
     {
       scanf("%d", (&x));
@@ -79,7 +79,7 @@ func Solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   Init();
   Solve();

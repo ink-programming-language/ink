@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var miss = cpp_array(1005);
+var miss: dynamic = cpp_array(1005);
 
-var war = cpp_array(1005);
+var war: dynamic = cpp_array(1005);
 
-func losuj(a: dynamic)
+func losuj(a: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   {
-    var x = 1;
+    var x: dynamic = 1;
     while ((x <= 10))
     {
       res = ((((res * rand())) % a) + 1);
@@ -18,20 +18,20 @@ func losuj(a: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   srand((time(null) + clock()));
-  var a: dynamic;
-  var t: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(a, t);
   while (cpp_update(t, "--"))
   {
-    var d: dynamic;
+    var d: dynamic = cpp_uninitialized();
     read(d);
-    var mini = 1e9;
-    var maks = -1e9;
+    var mini: dynamic = 1e9;
+    var maks: dynamic = -1e9;
     {
-      var x = 0;
+      var x: dynamic = 0;
       while ((x < a))
       {
         maks = max(maks, miss[x]);
@@ -43,9 +43,9 @@ func main()
     {
       maks = (mini + 110);
     }
-    var sum = 0;
+    var sum: dynamic = 0;
     {
-      var x = 0;
+      var x: dynamic = 0;
       while ((x < a))
       {
         if ((miss[x] > maks))
@@ -60,9 +60,9 @@ func main()
       }
     }
     sum = losuj(sum);
-    var co = -1;
+    var co: dynamic = -1;
     {
-      var x = 0;
+      var x: dynamic = 0;
       while ((x < a))
       {
         if ((sum <= war[x]))
@@ -76,10 +76,10 @@ func main()
     }
     write(d[co], "\n");
     cout.flush();
-    var c: dynamic;
+    var c: dynamic = cpp_uninitialized();
     read(c);
     {
-      var x = 0;
+      var x: dynamic = 0;
       while ((x < a))
       {
         if ((d[x] != c))

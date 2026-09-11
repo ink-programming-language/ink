@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var MAXN = 1000;
+var MAXN: dynamic = 1000;
 
-var a = cpp_array(MAXN, MAXN);
+var a: dynamic = cpp_array(MAXN, MAXN);
 
-var u = cpp_array(MAXN, MAXN);
+var u: dynamic = cpp_array(MAXN, MAXN);
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var dx = [-1, 0, 0, 1];
+var dx: dynamic = [-1, 0, 0, 1];
 
-var dy = [0, -1, 1, 0];
+var dy: dynamic = [0, -1, 1, 0];
 
-func dfs(x: dynamic, y: dynamic, st: dynamic = true)
+func dfs(x: dynamic, y: dynamic, st: dynamic = true) -> dynamic
 {
   u[x][y] = true;
   {
-    var t = 0;
+    var t: dynamic = 0;
     while ((t < 4))
     {
-      var xx = (x + dx[t]);
-      var yy = (y + dy[t]);
+      var xx: dynamic = (x + dx[t]);
+      var yy: dynamic = (y + dy[t]);
       if (((a[xx][yy] == 1) && (!u[xx][yy])))
       {
         dfs(xx, yy, false);
@@ -44,17 +44,17 @@ func dfs(x: dynamic, y: dynamic, st: dynamic = true)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       read(s);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           if ((s[(j - 1)] == cpp_char(".")))
@@ -69,11 +69,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           if ((a[i][j] && (!u[i][j])))
@@ -88,7 +88,7 @@ func main()
   }
   write((b.size() + (r.size() * 2)), "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < b.size()))
     {
       printf("B %d %d\n", b[i].first, b[i].second);
@@ -96,7 +96,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < r.size()))
     {
       printf("D %d %d\n", r[i].first, r[i].second);

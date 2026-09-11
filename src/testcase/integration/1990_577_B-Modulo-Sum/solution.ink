@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   if ((n > m))
   {
@@ -11,7 +11,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -19,20 +19,20 @@ func main()
       i += 1;
     }
   }
-  var p = cpp_construct(m, -1);
-  var np = cpp_construct(m, -1);
+  var p: dynamic = cpp_construct(m, -1);
+  var np: dynamic = cpp_construct(m, -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i < n) && (p[0] == -1)))
     {
-      var v = a[i];
+      var v: dynamic = a[i];
       copy(p.begin(), p.end(), np.begin());
       if ((np[v] == -1))
       {
         np[v] = 1;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if (((p[j] != -1) && (p[(((j + v)) % m)] == -1)))

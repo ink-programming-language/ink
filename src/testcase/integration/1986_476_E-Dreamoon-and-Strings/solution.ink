@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var a = cpp_array(2005);
+var a: dynamic = cpp_array(2005);
 
-var A = cpp_array(2005);
+var A: dynamic = cpp_array(2005);
 
-var ans = cpp_array(2005);
+var ans: dynamic = cpp_array(2005);
 
-var dp = cpp_array(2005, 2005);
+var dp: dynamic = cpp_array(2005, 2005);
 
-func main()
+func main() -> dynamic
 {
   read(s, p);
   memset(a, -1, cpp_sizeof((a)));
   a[0] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       {
-        var j = (p.size() - 1);
+        var j: dynamic = (p.size() - 1);
         while ((j >= 0))
         {
           if ((s[i] == p[j]))
@@ -38,11 +38,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= s.size()))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= i))
         {
           dp[i][j] = dp[(i - 1)][j];
@@ -57,7 +57,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= s.size()))
     {
       ans[i] = dp[s.size()][i];
@@ -65,7 +65,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= s.size()))
     {
       write(ans[i], " ");

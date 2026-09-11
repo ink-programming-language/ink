@@ -2,9 +2,9 @@
 
 class tocka
 {
-  var x: dynamic;
-  var y: dynamic;
-  func operator_less(p: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func operator_less(p: dynamic) -> dynamic
   {
       if ((x == p.x))
       {
@@ -14,29 +14,29 @@ class tocka
     }
 }
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var gornji: dynamic;
+var gornji: dynamic = cpp_uninitialized();
 
-var donji: dynamic;
+var donji: dynamic = cpp_uninitialized();
 
-var convex: dynamic;
+var convex: dynamic = cpp_uninitialized();
 
-func ccw(a: dynamic, b: dynamic, c: dynamic)
+func ccw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return ((((a.x * ((b.y - c.y))) + (b.x * ((c.y - a.y)))) + (c.x * ((a.y - b.y)))));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var t: dynamic;
+      var t: dynamic = cpp_uninitialized();
       scanf("%I64d%I64d", (&t.x), (&t.y));
       v.push_back(t);
       i += 1;
@@ -44,7 +44,7 @@ func main()
   }
   sort(v.begin(), v.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       while (((gornji.size() >= 2) && (ccw(gornji[(gornji.size() - 1)], gornji[(gornji.size() - 2)], v[i]) < 0)))
@@ -56,7 +56,7 @@ func main()
     }
   }
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
       while (((donji.size() >= 2) && (ccw(donji[(donji.size() - 1)], donji[(donji.size() - 2)], v[i]) < 0)))
@@ -68,7 +68,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (gornji.size() - 1)))
     {
       convex.push_back(gornji[i]);
@@ -76,19 +76,19 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (donji.size() - 1)))
     {
       convex.push_back(donji[i]);
       i += 1;
     }
   }
-  var i = 0;
-  var j = 1;
-  var k = 2;
-  var l = convex.size();
+  var i: dynamic = 0;
+  var j: dynamic = 1;
+  var k: dynamic = 2;
+  var l: dynamic = convex.size();
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x < (3 * n)))
     {
       while ((abs(ccw(convex[i], convex[j], convex[k])) < abs(ccw(convex[i], convex[j], convex[(((k + 1)) % l)]))))
@@ -107,7 +107,7 @@ func main()
     }
   }
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x < (3 * n)))
     {
       while ((abs(ccw(convex[i], convex[j], convex[k])) < abs(ccw(convex[i], convex[j], convex[((((k - 1) + l)) % l)]))))

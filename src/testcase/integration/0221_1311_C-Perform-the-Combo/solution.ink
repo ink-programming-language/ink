@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var s = cpp_array(200043);
+var s: dynamic = cpp_array(200043);
 
-var p = cpp_array(200043);
+var p: dynamic = cpp_array(200043);
 
-var cnt = cpp_array(200043);
+var cnt: dynamic = cpp_array(200043);
 
-var ans = cpp_array(43);
+var ans: dynamic = cpp_array(43);
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   scanf("%d", (&T));
   while (cpp_update(T, "--"))
@@ -22,7 +22,7 @@ func main(argc: dynamic, argv: dynamic)
     scanf("%d%d", (&n), (&m));
     scanf("%s", s);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         scanf("%d", (&p[i]));
@@ -33,10 +33,10 @@ func main(argc: dynamic, argv: dynamic)
     sort(p, (p + m));
     memset(cnt, 0, cpp_sizeof((cnt)));
     memset(ans, 0, cpp_sizeof((ans)));
-    var del = 0;
-    var sci = 0;
+    var del: dynamic = 0;
+    var sci: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         cnt[i] += (cpp_cast(m) - del);
@@ -49,7 +49,7 @@ func main(argc: dynamic, argv: dynamic)
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         ans[(s[i] - cpp_char("a"))] += (cnt[i] + 1);
@@ -57,7 +57,7 @@ func main(argc: dynamic, argv: dynamic)
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 26))
       {
         printf("%d ", ans[i]);

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var prime = cpp_array(1000001);
+var prime: dynamic = cpp_array(1000001);
 
-var spf = cpp_array(10000001);
+var spf: dynamic = cpp_array(10000001);
 
-var f = cpp_array(300005);
+var f: dynamic = cpp_array(300005);
 
-func pow1(x: dynamic, y: dynamic)
+func pow1(x: dynamic, y: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   x = (x % mod);
   if ((x == 0))
   {
@@ -28,12 +28,12 @@ func pow1(x: dynamic, y: dynamic)
   return res;
 }
 
-func divide(n: dynamic)
+func divide(n: dynamic) -> dynamic
 {
   return pow1(n, (mod - 2));
 }
 
-func ncr(n: dynamic, r: dynamic)
+func ncr(n: dynamic, r: dynamic) -> dynamic
 {
   if ((n < r))
   {
@@ -42,17 +42,17 @@ func ncr(n: dynamic, r: dynamic)
   return (((f[n] * ((((divide(f[r]) * divide(f[(n - r)]))) % mod)))) % mod);
 }
 
-func sieve()
+func sieve() -> dynamic
 {
   memset(prime, true, cpp_sizeof((prime)));
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= 1000000))
     {
       if (prime[i])
       {
         {
-          var j = (i * i);
+          var j: dynamic = (i * i);
           while ((j <= 1000000))
           {
             prime[j] = false;
@@ -66,11 +66,11 @@ func sieve()
   prime[0] = cpp_assign(prime[1], "=", false);
 }
 
-func fastsieve()
+func fastsieve() -> dynamic
 {
   spf[1] = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= 1e7))
     {
       spf[i] = i;
@@ -78,7 +78,7 @@ func fastsieve()
     }
   }
   {
-    var i = 4;
+    var i: dynamic = 4;
     while ((i <= 1e7))
     {
       spf[i] = 2;
@@ -86,13 +86,13 @@ func fastsieve()
     }
   }
   {
-    var i = 3;
+    var i: dynamic = 3;
     while (((i * i) <= 1e7))
     {
       if ((spf[i] == i))
       {
         {
-          var j = (i * i);
+          var j: dynamic = (i * i);
           while ((j <= 1e7))
           {
             if ((spf[j] == j))
@@ -108,10 +108,10 @@ func fastsieve()
   }
 }
 
-func factorize(n: dynamic)
+func factorize(n: dynamic) -> dynamic
 {
-  var count = 0;
-  var fac: dynamic;
+  var count: dynamic = 0;
+  var fac: dynamic = cpp_uninitialized();
   while ((!((n % 2))))
   {
     n >>= 1;
@@ -122,7 +122,7 @@ func factorize(n: dynamic)
     fac.push_back(2);
   }
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i <= sqrt(n)))
     {
       count = 0;
@@ -145,11 +145,11 @@ func factorize(n: dynamic)
   return fac;
 }
 
-func fastfactorize(n: dynamic)
+func fastfactorize(n: dynamic) -> dynamic
 {
-  var v: dynamic;
-  var prev = 0;
-  var cnt = 0;
+  var v: dynamic = cpp_uninitialized();
+  var prev: dynamic = 0;
+  var cnt: dynamic = 0;
   while ((n != 1))
   {
     if ((prev == spf[n]))
@@ -178,18 +178,18 @@ func fastfactorize(n: dynamic)
   return v;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   read(n, m);
-  var cnt = cpp_array((n + 1));
-  var val = cpp_array((n + 1));
+  var cnt: dynamic = cpp_array((n + 1));
+  var val: dynamic = cpp_array((n + 1));
   memset(cnt, 0, cpp_sizeof((cnt)));
   {
     i = 0;
@@ -203,8 +203,8 @@ func main()
     i = 1;
     while ((i <= m))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       cnt[x] += 1;
       val[x] = min(val[x], ((((y - x) + n)) % n));
@@ -215,7 +215,7 @@ func main()
     i = 1;
     while ((i <= n))
     {
-      var ans = 0;
+      var ans: dynamic = 0;
       {
         j = 1;
         while ((j <= n))

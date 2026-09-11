@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k1: dynamic;
+var k1: dynamic = cpp_uninitialized();
 
-var k2: dynamic;
+var k2: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(14005);
+var cnt: dynamic = cpp_array(14005);
 
-var edges = cpp_array(2);
+var edges: dynamic = cpp_array(2);
 
-var res = cpp_array(14005);
+var res: dynamic = cpp_array(14005);
 
-var a = cpp_array(7005);
+var a: dynamic = cpp_array(7005);
 
-var b = cpp_array(7005);
+var b: dynamic = cpp_array(7005);
 
-var rev = cpp_array(2);
+var rev: dynamic = cpp_array(2);
 
-var visited = cpp_array(14005);
+var visited: dynamic = cpp_array(14005);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   while ((cin >> n))
   {
     read(k1);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < k1))
       {
         read(a[i]);
@@ -43,7 +43,7 @@ func main()
     }
     read(k2);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < k2))
       {
         read(b[i]);
@@ -60,8 +60,8 @@ func main()
     q.push(1);
     visited[0] = cpp_assign(visited[1], "=", 1);
     res[0] = cpp_assign(res[1], "=", 0);
-    var cur: dynamic;
-    var nxt: dynamic;
+    var cur: dynamic = cpp_uninitialized();
+    var nxt: dynamic = cpp_uninitialized();
     while (q.size())
     {
       cur = q.front();
@@ -69,7 +69,7 @@ func main()
       if ((res[cur] != -1))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < rev[(cur % 2)].size()))
           {
             nxt = ((((((cur - ((rev[(cur % 2)][i] << 1))) + ((n << 1)))) % ((n << 1)))) ^ 1);
@@ -92,7 +92,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         if ((res[((i << 1) | 1)] == -1))
@@ -110,7 +110,7 @@ func main()
     }
     write("\n");
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         if ((res[(i << 1)] == -1))

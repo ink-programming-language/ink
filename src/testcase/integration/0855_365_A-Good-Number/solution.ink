@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var sum2: dynamic;
+var sum2: dynamic = cpp_uninitialized();
 
-func num_to_string(num: dynamic)
+func num_to_string(num: dynamic) -> dynamic
 {
-  var ss: dynamic;
+  var ss: dynamic = cpp_uninitialized();
   (ss << num);
   return ss.str();
 }
 
-func O_o()
+func O_o() -> dynamic
 {
   ios.sync_with_stdio(0);
   ios_base.sync_with_stdio(0);
@@ -23,30 +23,30 @@ func O_o()
   cout.tie(0);
 }
 
-func main()
+func main() -> dynamic
 {
   O_o();
-  var n: dynamic;
-  var k: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s);
-      var ss: dynamic;
+      var ss: dynamic = cpp_uninitialized();
       b = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (cpp_cast((s.size())))))
         {
           ss.insert((s[j] - cpp_char("0")));
           j += 1;
         }
       }
-      var x = 0;
-      for (var j in ss)
+      var x: dynamic = 0;
+      for (var j: dynamic in ss)
       {
         if ((j != x))
         {

@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-func read()
+func read() -> dynamic
 {
-  var x: dynamic;
-  var c: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   while ((((cpp_assign(c, "=", getchar())) < cpp_char("0")) || (c > cpp_char("9"))))
   {
   }
@@ -19,38 +19,38 @@ func read()
   return x;
 }
 
-var MN = cpp_expression("#inc");
+var MN: dynamic = cpp_expression("#inc");
 
-var MM = cpp_expression("#inc");
+var MM: dynamic = cpp_expression("#inc");
 
-var mod = cpp_expression("#include<c");
+var mod: dynamic = cpp_expression("#include<c");
 
 class edge
 {
-  var x: dynamic;
-  var y: dynamic;
-  var w: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array((MM + 5));
+var e: dynamic = cpp_array((MM + 5));
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.w < b.w);
 }
 
-var f = cpp_array((MN + 5));
+var f: dynamic = cpp_array((MN + 5));
 
-func gf(k: dynamic)
+func gf(k: dynamic) -> dynamic
 {
-  return if (f[k]) cpp_assign(f[k], "=", gf(f[k])) else k;
+  return  (f[k]) ? cpp_assign(f[k], "=", gf(f[k])) : k;
 }
 
-var ans = 1;
+var ans: dynamic = 1;
 
-func pow(x: dynamic, k: dynamic)
+func pow(x: dynamic, k: dynamic) -> dynamic
 {
-  var sum = 1;
+  var sum: dynamic = 1;
   {
     while (k)
     {
@@ -65,16 +65,16 @@ func pow(x: dynamic, k: dynamic)
   return sum;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var s1 = 0;
-  var s2 = 1;
-  var s: dynamic;
-  var x: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var s1: dynamic = 0;
+  var s2: dynamic = 1;
+  var s: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   n = read();
   m = read();
   x = read();

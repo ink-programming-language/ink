@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func size(a: dynamic)
+func size(a: dynamic) -> dynamic
 {
   return cpp_cast(a.size());
 }
 
-func sqr(a: dynamic)
+func sqr(a: dynamic) -> dynamic
 {
   return (a * a);
 }
 
-func isLowercase(ch: dynamic)
+func isLowercase(ch: dynamic) -> dynamic
 {
   return ((ch >= cpp_char("a")) && (ch <= cpp_char("z")));
 }
 
-func isUppercase(ch: dynamic)
+func isUppercase(ch: dynamic) -> dynamic
 {
   return (!isLowercase(ch));
 }
 
-func toLowercase(ch: dynamic)
+func toLowercase(ch: dynamic) -> dynamic
 {
   if (isUppercase(ch))
   {
@@ -29,7 +29,7 @@ func toLowercase(ch: dynamic)
   return ch;
 }
 
-func toUppercase(ch: dynamic)
+func toUppercase(ch: dynamic) -> dynamic
 {
   if (isLowercase(ch))
   {
@@ -38,13 +38,13 @@ func toUppercase(ch: dynamic)
   return ch;
 }
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var n: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(s, n);
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (size(s))))
     {
       s[i] = toLowercase(s[i]);
@@ -52,7 +52,7 @@ func main()
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (size(s))))
     {
       if ((int_cpp(s[i]) < (n + 97)))

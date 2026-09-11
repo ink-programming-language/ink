@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var arr = cpp_array(1001, 1001);
+var arr: dynamic = cpp_array(1001, 1001);
 
-func main()
+func main() -> dynamic
 {
-  var row = [0];
-  var col = [0];
-  var n: dynamic;
-  var m: dynamic;
+  var row: dynamic = [0];
+  var col: dynamic = [0];
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(arr[i][j]);
@@ -29,13 +29,13 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((arr[i][j] == cpp_char("*")))

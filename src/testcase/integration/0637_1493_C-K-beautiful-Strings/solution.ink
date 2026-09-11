@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var MAX = (1e5 + 10);
+var MAX: dynamic = (1e5 + 10);
 
-var need = cpp_array(27);
+var need: dynamic = cpp_array(27);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func check(idx: dynamic)
+func check(idx: dynamic) -> dynamic
 {
   memset(need, 0, cpp_sizeof((need)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < idx))
     {
       need[(s[i] - cpp_char("a"))] = ((((need[(s[i] - cpp_char("a"))] - 1) + k)) % k);
       i += 1;
     }
   }
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       sum += need[i];
@@ -35,13 +35,13 @@ func check(idx: dynamic)
     return ((sum == 0));
   }
   {
-    var c = (s[idx] + 1);
+    var c: dynamic = (s[idx] + 1);
     while ((c <= cpp_char("z")))
     {
       sum -= need[(c - cpp_char("a"))];
       need[(c - cpp_char("a"))] = ((((need[(c - cpp_char("a"))] - 1) + k)) % k);
       sum += need[(c - cpp_char("a"))];
-      var x = (((n - idx) - 1) - sum);
+      var x: dynamic = (((n - idx) - 1) - sum);
       if (((x >= 0) && ((x % k) == 0)))
       {
         return true;
@@ -55,20 +55,20 @@ func check(idx: dynamic)
   return false;
 }
 
-func build(idx: dynamic)
+func build(idx: dynamic) -> dynamic
 {
   memset(need, 0, cpp_sizeof((need)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < idx))
     {
       need[(s[i] - cpp_char("a"))] = ((((need[(s[i] - cpp_char("a"))] - 1) + k)) % k);
       i += 1;
     }
   }
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       sum += need[i];
@@ -81,17 +81,17 @@ func build(idx: dynamic)
     return;
   }
   {
-    var c = (s[idx] + 1);
+    var c: dynamic = (s[idx] + 1);
     while ((c <= cpp_char("z")))
     {
       sum -= need[(c - cpp_char("a"))];
       need[(c - cpp_char("a"))] = ((((need[(c - cpp_char("a"))] - 1) + k)) % k);
       sum += need[(c - cpp_char("a"))];
-      var x = (((n - idx) - 1) - sum);
+      var x: dynamic = (((n - idx) - 1) - sum);
       if (((x >= 0) && ((x % k) == 0)))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < idx))
           {
             write(s[i]);
@@ -100,7 +100,7 @@ func build(idx: dynamic)
         }
         write(c);
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < x))
           {
             write(cpp_char("a"));
@@ -108,11 +108,11 @@ func build(idx: dynamic)
           }
         }
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < 26))
           {
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j < need[i]))
               {
                 write(cpp_cast(((cpp_char("a") + i))));
@@ -133,11 +133,11 @@ func build(idx: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
@@ -154,20 +154,20 @@ func main()
       continue;
     }
     memset(need, 0, cpp_sizeof((need)));
-    var sum = 0;
-    var idx = 0;
+    var sum: dynamic = 0;
+    var idx: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var c = (s[i] + 1);
+          var c: dynamic = (s[i] + 1);
           while ((c <= cpp_char("z")))
           {
             sum -= need[(c - cpp_char("a"))];
             need[(c - cpp_char("a"))] = ((((need[(c - cpp_char("a"))] - 1) + k)) % k);
             sum += need[(c - cpp_char("a"))];
-            var x = (((n - i) - 1) - sum);
+            var x: dynamic = (((n - i) - 1) - sum);
             if (((x >= 0) && ((x % k) == 0)))
             {
               idx = i;

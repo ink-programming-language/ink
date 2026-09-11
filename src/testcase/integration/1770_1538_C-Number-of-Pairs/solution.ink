@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var vi = cpp_expression("#include<bi");
+var vi: dynamic = cpp_expression("#include<bi");
 
-var vii = cpp_expression("#include<bits/stdc++.h");
+var vii: dynamic = cpp_expression("#include<bits/stdc++.h");
 
-var vll = cpp_expression("#include<b");
+var vll: dynamic = cpp_expression("#include<b");
 
-var F = cpp_expression("#incl");
+var F: dynamic = cpp_expression("#incl");
 
-var S = cpp_expression("#inclu");
+var S: dynamic = cpp_expression("#inclu");
 
-var fast = cpp_expression("#include<bits/stdc++.h> #define l");
+var fast: dynamic = cpp_expression("#include<bits/stdc++.h> #define l");
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var ind: dynamic;
+var ind: dynamic = cpp_uninitialized();
 
-func query(pos: dynamic)
+func query(pos: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   while ((pos > 0))
   {
     res += T[pos];
@@ -33,7 +33,7 @@ func query(pos: dynamic)
   return res;
 }
 
-func update(pos: dynamic)
+func update(pos: dynamic) -> dynamic
 {
   while ((pos <= N))
   {
@@ -42,16 +42,16 @@ func update(pos: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var int_cpp: dynamic;
-  var n: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  var x: dynamic;
+  var int_cpp: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(t);
-  var st: dynamic;
-  var v: dynamic;
+  var st: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
   while (cpp_update(t, "--"))
   {
     v.clear();
@@ -59,7 +59,7 @@ func main()
     st.clear();
     read(n, l, r);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(x);
@@ -76,22 +76,22 @@ func main()
         i += 1;
       }
     }
-    var num = 1;
-    for (var it in st)
+    var num: dynamic = 1;
+    for (var it: dynamic in st)
     {
       ind[it] = num;
       num += 1;
     }
     N = num;
     T.assign((N + 2), 0);
-    var res = 0;
+    var res: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         x = v[i];
-        var a = max((l - x), 1);
-        var b = (r - x);
+        var a: dynamic = max((l - x), 1);
+        var b: dynamic = (r - x);
         if ((b > 0))
         {
           res += (query(ind[b]) - query((ind[a] - 1)));

@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var inf = (mod * mod);
+var inf: dynamic = (mod * mod);
 
-var d2 = (((mod + 1)) / 2);
+var d2: dynamic = (((mod + 1)) / 2);
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var INF = 1e+10;
+var INF: dynamic = 1e+10;
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-var C_SIZE = 3100000;
+var C_SIZE: dynamic = 3100000;
 
-var UF_SIZE = 3100000;
+var UF_SIZE: dynamic = 3100000;
 
-var fact = cpp_array(C_SIZE);
+var fact: dynamic = cpp_array(C_SIZE);
 
-var finv = cpp_array(C_SIZE);
+var finv: dynamic = cpp_array(C_SIZE);
 
-var inv = cpp_array(C_SIZE);
+var inv: dynamic = cpp_array(C_SIZE);
 
-func Comb(a: dynamic, b: dynamic)
+func Comb(a: dynamic, b: dynamic) -> dynamic
 {
   if (((a < b) || (b < 0)))
   {
@@ -31,11 +31,11 @@ func Comb(a: dynamic, b: dynamic)
   return ((((fact[a] * finv[b]) % mod) * finv[(a - b)]) % mod);
 }
 
-func init_C(n: dynamic)
+func init_C(n: dynamic) -> dynamic
 {
   fact[0] = cpp_assign(finv[0], "=", cpp_assign(inv[1], "=", 1));
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < n))
     {
       inv[i] = (((mod - ((((mod / i)) * inv[(mod % i)]) % mod))) % mod);
@@ -43,7 +43,7 @@ func init_C(n: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       fact[i] = ((fact[(i - 1)] * i) % mod);
@@ -53,7 +53,7 @@ func init_C(n: dynamic)
   }
 }
 
-func pw(a: dynamic, b: dynamic)
+func pw(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < 0))
   {
@@ -63,7 +63,7 @@ func pw(a: dynamic, b: dynamic)
   {
     return 0;
   }
-  var ret = 1;
+  var ret: dynamic = 1;
   while (b)
   {
     if ((b % 2))
@@ -76,7 +76,7 @@ func pw(a: dynamic, b: dynamic)
   return ret;
 }
 
-func pw_mod(a: dynamic, b: dynamic, M: dynamic)
+func pw_mod(a: dynamic, b: dynamic, M: dynamic) -> dynamic
 {
   if ((a < 0))
   {
@@ -86,7 +86,7 @@ func pw_mod(a: dynamic, b: dynamic, M: dynamic)
   {
     return 0;
   }
-  var ret = 1;
+  var ret: dynamic = 1;
   while (b)
   {
     if ((b % 2))
@@ -99,7 +99,7 @@ func pw_mod(a: dynamic, b: dynamic, M: dynamic)
   return ret;
 }
 
-func pw_mod_int(a: dynamic, b: dynamic, M: dynamic)
+func pw_mod_int(a: dynamic, b: dynamic, M: dynamic) -> dynamic
 {
   if ((a < 0))
   {
@@ -109,7 +109,7 @@ func pw_mod_int(a: dynamic, b: dynamic, M: dynamic)
   {
     return 0;
   }
-  var ret = 1;
+  var ret: dynamic = 1;
   while (b)
   {
     if ((b % 2))
@@ -122,32 +122,32 @@ func pw_mod_int(a: dynamic, b: dynamic, M: dynamic)
   return ret;
 }
 
-func ABS(a: dynamic)
+func ABS(a: dynamic) -> dynamic
 {
   return max(a, (-a));
 }
 
-func ABS(a: dynamic)
+func ABS(a: dynamic) -> dynamic
 {
   return max(a, (-a));
 }
 
-func ABS(a: dynamic)
+func ABS(a: dynamic) -> dynamic
 {
   return max(a, (-a));
 }
 
-func sig(r: dynamic)
+func sig(r: dynamic) -> dynamic
 {
-  return if (((r < (-EPS)))) -1 else if (((r > (+EPS)))) +1 else 0;
+  return  (((r < (-EPS)))) ? -1 :  (((r > (+EPS)))) ? +1 : 0;
 }
 
-var UF = cpp_array(UF_SIZE);
+var UF: dynamic = cpp_array(UF_SIZE);
 
-func init_UF(n: dynamic)
+func init_UF(n: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       UF[i] = -1;
@@ -156,7 +156,7 @@ func init_UF(n: dynamic)
   }
 }
 
-func FIND(a: dynamic)
+func FIND(a: dynamic) -> dynamic
 {
   if ((UF[a] < 0))
   {
@@ -165,7 +165,7 @@ func FIND(a: dynamic)
   return cpp_assign(UF[a], "=", FIND(UF[a]));
 }
 
-func UNION(a: dynamic, b: dynamic)
+func UNION(a: dynamic, b: dynamic) -> dynamic
 {
   a = FIND(a);
   b = FIND(b);
@@ -177,28 +177,28 @@ func UNION(a: dynamic, b: dynamic)
   UF[b] = a;
 }
 
-var in_cpp = cpp_array(12, 12);
+var in_cpp: dynamic = cpp_array(12, 12);
 
-var P = cpp_array(12, 12);
+var P: dynamic = cpp_array(12, 12);
 
-var dp = cpp_array(12, 12, 2);
+var dp: dynamic = cpp_array(12, 12, 2);
 
-func f(a: dynamic, b: dynamic)
+func f(a: dynamic, b: dynamic) -> dynamic
 {
   if (((a + b) == 0))
   {
     return 1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 12))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 12))
             {
               dp[i][j][k] = 0;
@@ -213,15 +213,15 @@ func f(a: dynamic, b: dynamic)
   }
   dp[0][0][0] = cpp_assign(dp[1][0][0], "=", 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= a))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= b))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 2))
             {
               if ((!dp[k][i][j]))
@@ -232,7 +232,7 @@ func f(a: dynamic, b: dynamic)
               if ((k == 0))
               {
                 {
-                  var l = 1;
+                  var l: dynamic = 1;
                   while (((i + l) <= a))
                   {
                     dp[(!k)][(i + l)][j] = (((dp[(!k)][(i + l)][j] + (dp[k][i][j] * Comb((a - i), l)))) % mod);
@@ -242,7 +242,7 @@ func f(a: dynamic, b: dynamic)
               } else
               {
                 {
-                  var l = 1;
+                  var l: dynamic = 1;
                   while (((j + l) <= b))
                   {
                     dp[(!k)][i][(j + l)] = (((dp[(!k)][i][(j + l)] + (dp[k][i][j] * Comb((b - j), l)))) % mod);
@@ -262,13 +262,13 @@ func f(a: dynamic, b: dynamic)
   return (((dp[0][a][b] + dp[1][a][b])) % mod);
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   scanf("%d%d", (&a), (&b));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a))
     {
       scanf("%s", in_cpp[i]);
@@ -277,11 +277,11 @@ func main()
   }
   init_C(100);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= a))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= b))
         {
           P[i][j] = f(i, j);
@@ -291,20 +291,20 @@ func main()
       i += 1;
     }
   }
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << a))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ((1 << b))))
         {
-          var ok = true;
-          var N = a;
-          var M = b;
+          var ok: dynamic = true;
+          var N: dynamic = a;
+          var M: dynamic = b;
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < a))
             {
               if ((!((i & ((1 << k))))))
@@ -313,10 +313,10 @@ func main()
                 continue;
               }
               N -= 1;
-              var A = 0;
-              var B = 0;
+              var A: dynamic = 0;
+              var B: dynamic = 0;
               {
-                var l = 0;
+                var l: dynamic = 0;
                 while ((l < b))
                 {
                   if ((!((j & ((1 << l))))))
@@ -348,7 +348,7 @@ func main()
             continue;
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < b))
             {
               if ((!((j & ((1 << k))))))
@@ -357,10 +357,10 @@ func main()
                 continue;
               }
               M -= 1;
-              var A = 0;
-              var B = 0;
+              var A: dynamic = 0;
+              var B: dynamic = 0;
               {
-                var l = 0;
+                var l: dynamic = 0;
                 while ((l < a))
                 {
                   if ((!((i & ((1 << l))))))
@@ -397,14 +397,14 @@ func main()
           } else
           {
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k <= N))
               {
                 {
-                  var l = 0;
+                  var l: dynamic = 0;
                   while ((l <= M))
                   {
-                    var ks = ((Comb(N, k) * Comb(M, l)) % mod);
+                    var ks: dynamic = ((Comb(N, k) * Comb(M, l)) % mod);
                     ks = ((ks * P[k][l]) % mod);
                     ks = ((ks * P[(N - k)][(M - l)]) % mod);
                     ret = (((ret + ks)) % mod);

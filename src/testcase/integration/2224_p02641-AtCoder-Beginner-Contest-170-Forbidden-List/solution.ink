@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var p = cpp_array(105);
+var p: dynamic = cpp_array(105);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(x, n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(t);
@@ -20,10 +20,10 @@ func main()
       i += 1;
     }
   }
-  var min = 1005;
-  var ans = 0;
+  var min: dynamic = 1005;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 101))
     {
       if ((((!p[i])) && (abs((i - x)) < min)))

@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, a: dynamic, b: dynamic)
+func REP(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<(int)b;i++)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <");
 }
 
-var EPS = cpp_expression("#inclu");
+var EPS: dynamic = cpp_expression("#inclu");
 
-var q = -999999999;
+var q: dynamic = -999999999;
 
-func gauss_jordan(A: dynamic, b: dynamic)
+func gauss_jordan(A: dynamic, b: dynamic) -> dynamic
 {
-  var n = A.size();
-  var B = cpp_construct(n, vec((n + 1)));
+  var n: dynamic = A.size();
+  var B: dynamic = cpp_construct(n, vec((n + 1)));
   rep(i, n);
   rep(j, n)[i][j] = A[i][j];
   rep(i, n)[i][n] = b[i];
@@ -25,19 +25,19 @@ func gauss_jordan(A: dynamic, b: dynamic)
   return x;
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var in_cpp: dynamic;
+var in_cpp: dynamic = cpp_uninitialized();
 
-var qpos: dynamic;
+var qpos: dynamic = cpp_uninitialized();
 
-var fail = cpp_expression("#include <iostream> #include <");
+var fail: dynamic = cpp_expression("#include <iostream> #include <");
 
-func main()
+func main() -> dynamic
 {
-  var first = 0;
+  var first: dynamic = 0;
   while ((((cin >> N) >> M) && N))
   {
     if (first)
@@ -45,7 +45,7 @@ func main()
       write("\n");
     }
     first = 1;
-    var remain = 0;
+    var remain: dynamic = 0;
     in_cpp.clear();
     in_cpp.resize((N + 1));
     rep(i, (N + 1))[i].resize((M + 1));
@@ -53,7 +53,7 @@ func main()
     rep(i, (N + 1));
     rep(j, (M + 1));
     {
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       read(s);
       if ((s == "?"))
       {
@@ -69,9 +69,9 @@ func main()
       {
         rep(i, (N + 1));
         {
-          var xcnt = 0;
-          var sum = 0;
-          var lastq = -1;
+          var xcnt: dynamic = 0;
+          var sum: dynamic = 0;
+          var lastq: dynamic = -1;
           if ((xcnt == 0))
           {
             if ((in_cpp[i][M] == q))
@@ -97,9 +97,9 @@ func main()
       {
         rep(j, (M + 1));
         {
-          var xcnt = 0;
-          var sum = 0;
-          var lastq = -1;
+          var xcnt: dynamic = 0;
+          var sum: dynamic = 0;
+          var lastq: dynamic = -1;
           if ((xcnt == 0))
           {
             if ((in_cpp[N][j] == q))
@@ -132,7 +132,7 @@ func main()
     {
       fail;
     }
-    for (var e in qpos)
+    for (var e: dynamic in qpos)
     {
       write(in_cpp[e.first][e.second], "\n");
     }
@@ -140,7 +140,7 @@ func main()
   return 0;
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic) -> dynamic
 {
       if ((abs(B[j][i]) > abs(B[pivot][i])))
       {
@@ -148,7 +148,7 @@ func REP(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic)
       }
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       if ((i != j))
       {
@@ -156,9 +156,9 @@ func rep(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var pivot = i;
+    var pivot: dynamic = i;
     swap(B[i], B[pivot]);
     if ((abs(B[i][i]) < EPS))
     {
@@ -167,7 +167,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     REP(j, (i + 1), (n + 1))[i][j] /= B[i][i];
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
             if ((in_cpp[i][j] == q))
             {
@@ -179,7 +179,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
             }
           }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
             if ((in_cpp[i][j] == q))
             {

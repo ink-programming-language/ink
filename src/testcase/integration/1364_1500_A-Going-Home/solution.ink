@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
-var fx = cpp_array(5000005);
+var fx: dynamic = cpp_array(5000005);
 
-var fy = cpp_array(5000005);
+var fy: dynamic = cpp_array(5000005);
 
-var lst: dynamic;
+var lst: dynamic = cpp_uninitialized();
 
-var v = cpp_array(2500005);
+var v: dynamic = cpp_array(2500005);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -24,7 +24,7 @@ func main()
       if ((v[a[i]].size() == 4))
       {
         puts("YES");
-        for (var j in v[a[i]])
+        for (var j: dynamic in v[a[i]])
         {
           write(j, cpp_char(" "));
         }
@@ -45,11 +45,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < i))
         {
           if ((!fx[(a[i] + a[j])]))

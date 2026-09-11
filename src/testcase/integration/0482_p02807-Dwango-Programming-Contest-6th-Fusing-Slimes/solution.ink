@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-func mi(x: dynamic, m: dynamic)
+func mi(x: dynamic, m: dynamic) -> dynamic
 {
-  var acc = 1;
-  var p = (m - 2);
+  var acc: dynamic = 1;
+  var p: dynamic = (m - 2);
   while (p)
   {
     if (((p % 2) == 1))
@@ -20,18 +20,18 @@ func mi(x: dynamic, m: dynamic)
   return acc;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  for (var e in x)
+  for (var e: dynamic in x)
   {
     read(e);
   }
-  var mijs = cpp_construct((n - 1));
+  var mijs: dynamic = cpp_construct((n - 1));
   mijs[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n - 1)))
     {
       mijs[i] = (mijs[(i - 1)] + mi((i + 1), mod));
@@ -39,9 +39,9 @@ func main()
       i += 1;
     }
   }
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       sum += ((((x[(i + 1)] - x[i])) * mijs[i]) % mod);
@@ -50,7 +50,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n - 1)))
     {
       sum *= i;

@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var np: dynamic;
+var np: dynamic = cpp_uninitialized();
 
-var vs: dynamic;
+var vs: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var t: dynamic;
+      var t: dynamic = cpp_uninitialized();
       read(t);
       np.insert(t);
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var t: dynamic;
+      var t: dynamic = cpp_uninitialized();
       read(t);
       vs.insert(t);
       i += 1;
     }
   }
   {
-    var it = np.begin();
+    var it: dynamic = np.begin();
     while ((it != np.end()))
     {
       if ((vs.find((*it)) != vs.end()))
@@ -43,8 +43,8 @@ func main()
         it += 1;
         continue;
       }
-      var t = (*it);
-      var it1: dynamic;
+      var t: dynamic = (*it);
+      var it1: dynamic = cpp_uninitialized();
       if ((((*vs.rbegin()) > t) && ((*vs.begin()) < t)))
       {
         it1 = vs.upper_bound(t);
@@ -58,9 +58,9 @@ func main()
         it += 1;
         continue;
       }
-      var v1 = (*it1);
+      var v1: dynamic = (*it1);
       it1 -= 1;
-      var v2 = (*it1);
+      var v2: dynamic = (*it1);
       r = max(r, min(abs((t - v1)), abs((t - v2))));
       it += 1;
     }

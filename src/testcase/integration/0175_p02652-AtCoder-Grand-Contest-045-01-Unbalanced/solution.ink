@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-func FOR(i: dynamic, a: dynamic, b: dynamic)
+func FOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<=b;i++)");
 }
 
-func ROF(i: dynamic, a: dynamic, b: dynamic)
+func ROF(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i>=b;i--)");
 }
 
-var N = (1e6 + 7);
+var N: dynamic = (1e6 + 7);
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var sgn = [-1, 1];
+var sgn: dynamic = [-1, 1];
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var nxt = cpp_array(N);
+var nxt: dynamic = cpp_array(N);
 
-func solve(x: dynamic, cnt: dynamic = 0)
+func solve(x: dynamic, cnt: dynamic = 0) -> dynamic
 {
-  var w = 0;
+  var w: dynamic = 0;
   FOR(i, 1, n);
   {
     if (((a[i] == cpp_char("?")) && (((cnt + 2) + nxt[i]) <= x)))
@@ -38,7 +38,7 @@ func solve(x: dynamic, cnt: dynamic = 0)
   return (x - w);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", (a + 1));
   n = strlen((a + 1));

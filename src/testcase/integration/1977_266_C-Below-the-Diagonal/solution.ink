@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var MAX = (1e3 + 5);
+var MAX: dynamic = (1e3 + 5);
 
-var grid = cpp_array(MAX, MAX);
+var grid: dynamic = cpp_array(MAX, MAX);
 
-var row_sum = cpp_array(MAX);
+var row_sum: dynamic = cpp_array(MAX);
 
-var col_sum = cpp_array(MAX);
+var col_sum: dynamic = cpp_array(MAX);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func swap_row(x: dynamic, y: dynamic)
+func swap_row(x: dynamic, y: dynamic) -> dynamic
 {
   ans.emplace_back(1, x, y);
   swap(grid[x], grid[y]);
   swap(row_sum[x], row_sum[y]);
 }
 
-func swap_col(x: dynamic, y: dynamic, n: dynamic)
+func swap_col(x: dynamic, y: dynamic, n: dynamic) -> dynamic
 {
   ans.emplace_back(2, x, y);
   {
-    var i = int_cpp(1);
+    var i: dynamic = int_cpp(1);
     while ((i < int_cpp((n + 1))))
     {
       swap(grid[i][x], grid[i][y]);
@@ -31,11 +31,11 @@ func swap_col(x: dynamic, y: dynamic, n: dynamic)
   swap(col_sum[x], col_sum[y]);
 }
 
-func roll(n: dynamic)
+func roll(n: dynamic) -> dynamic
 {
-  var zero_col = -1;
+  var zero_col: dynamic = -1;
   {
-    var i = int_cpp(1);
+    var i: dynamic = int_cpp(1);
     while ((i < int_cpp((n + 1))))
     {
       if ((col_sum[i] == 0))
@@ -49,9 +49,9 @@ func roll(n: dynamic)
   {
     swap_col(zero_col, n, n);
   }
-  var one_row = -1;
+  var one_row: dynamic = -1;
   {
-    var i = int_cpp(1);
+    var i: dynamic = int_cpp(1);
     while ((i < int_cpp((n + 1))))
     {
       if ((row_sum[i] > 0))
@@ -68,7 +68,7 @@ func roll(n: dynamic)
       swap_row(one_row, n);
     }
     {
-      var i = int_cpp(1);
+      var i: dynamic = int_cpp(1);
       while ((i < int_cpp((n + 1))))
       {
         col_sum[i] -= grid[n][i];
@@ -80,16 +80,16 @@ func roll(n: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp((n - 1))))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d %d", (&x), (&y));
       grid[x][y] = 1;
       row_sum[x] += 1;
@@ -99,11 +99,11 @@ func main()
   }
   roll(n);
   printf("%d\n", cpp_cast(ans.size()));
-  for (var each in ans)
+  for (var each: dynamic in ans)
   {
-    var x: dynamic;
-    var y: dynamic;
-    var z: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
+    var z: dynamic = cpp_uninitialized();
     tie(x, y, z) = each;
     printf("%d %d %d\n", x, y, z);
   }

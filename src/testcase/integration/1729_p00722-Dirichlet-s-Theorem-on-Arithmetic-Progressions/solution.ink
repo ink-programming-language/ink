@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var d: dynamic;
-  var n: dynamic;
-  var cnt: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var cnt: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   while (1)
   {
     read(a, d, n);
@@ -27,7 +27,7 @@ func main()
         b = true;
       }
       {
-        var i = 3;
+        var i: dynamic = 3;
         while ((i <= sqrt(a)))
         {
           if (((a % i) == 0))

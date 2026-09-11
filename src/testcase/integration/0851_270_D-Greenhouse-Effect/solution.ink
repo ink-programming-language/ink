@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var xx = cpp_array(5002, 5002);
+var xx: dynamic = cpp_array(5002, 5002);
 
-func lon_com_sub(ar: dynamic, br: dynamic, n: dynamic)
+func lon_com_sub(ar: dynamic, br: dynamic, n: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i <= n))
@@ -39,15 +39,15 @@ func lon_com_sub(ar: dynamic, br: dynamic, n: dynamic)
   return xx[n][n];
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var x: dynamic;
-  var ar = cpp_array(5002);
-  var arr = cpp_array(5002);
-  var br = cpp_array(5002);
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var ar: dynamic = cpp_array(5002);
+  var arr: dynamic = cpp_array(5002);
+  var br: dynamic = cpp_array(5002);
   scanf("%d %d", (&n), (&m));
   {
     i = 0;

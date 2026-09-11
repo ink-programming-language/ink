@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-var MAXN = 55;
+var MAXN: dynamic = 55;
 
-var MAXM = 55;
+var MAXM: dynamic = 55;
 
-var MAXS = 11111;
+var MAXS: dynamic = 11111;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var Cnt: dynamic;
+var Cnt: dynamic = cpp_uninitialized();
 
-var Inv = false;
+var Inv: dynamic = false;
 
 class Pos
 {
-  var x: dynamic;
-  var y: dynamic;
-  func Pos()
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func Pos() -> dynamic
   {
     }
-  func Pos(x: dynamic, y: dynamic)
+  func Pos(x: dynamic, y: dynamic) -> dynamic
   {
       x = x;
       y = y;
     }
-  func read()
+  func read() -> dynamic
   {
       scanf("%d%d", (&x), (&y));
     }
 }
 
-func operator_equal(A: dynamic, B: dynamic)
+func operator_equal(A: dynamic, B: dynamic) -> dynamic
 {
   return ((A.x == B.x) && (A.y == B.y));
 }
 
-func cmpp(A: dynamic, B: dynamic)
+func cmpp(A: dynamic, B: dynamic) -> dynamic
 {
   if ((A.x == B.x))
   {
@@ -52,25 +52,25 @@ func cmpp(A: dynamic, B: dynamic)
 
 class Move
 {
-  var A: dynamic;
-  var B: dynamic;
-  func Move()
+  var A: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
+  func Move() -> dynamic
   {
     }
-  func Move(a: dynamic, b: dynamic)
+  func Move(a: dynamic, b: dynamic) -> dynamic
   {
       A = a;
       B = b;
     }
-  func len()
+  func len() -> dynamic
   {
       return (abs((A.x - B.x)) + abs((A.y - B.y)));
     }
-  func zig()
+  func zig() -> dynamic
   {
       swap(A, B);
     }
-  func show()
+  func show() -> dynamic
   {
       if (Inv)
       {
@@ -82,7 +82,7 @@ class Move
         if ((A.y < B.y))
         {
           {
-            var i = A.y;
+            var i: dynamic = A.y;
             while ((i < B.y))
             {
               printf("%d %d %d %d\n", A.x, i, A.x, (i + 1));
@@ -93,7 +93,7 @@ class Move
         if ((A.y > B.y))
         {
           {
-            var i = A.y;
+            var i: dynamic = A.y;
             while ((i > B.y))
             {
               printf("%d %d %d %d\n", A.x, i, A.x, (i - 1));
@@ -107,7 +107,7 @@ class Move
         if ((A.x < B.x))
         {
           {
-            var i = A.x;
+            var i: dynamic = A.x;
             while ((i < B.x))
             {
               printf("%d %d %d %d\n", i, A.y, (i + 1), A.y);
@@ -118,7 +118,7 @@ class Move
         if ((A.x > B.x))
         {
           {
-            var i = A.x;
+            var i: dynamic = A.x;
             while ((i > B.x))
             {
               printf("%d %d %d %d\n", i, A.y, (i - 1), A.y);
@@ -130,15 +130,15 @@ class Move
     }
 }
 
-var P = cpp_array(MAXS, 2);
+var P: dynamic = cpp_array(MAXS, 2);
 
-var Pc = cpp_array(2);
+var Pc: dynamic = cpp_array(2);
 
-func show()
+func show() -> dynamic
 {
   Cnt = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= Pc[0]))
     {
       Cnt += P[0][i].len();
@@ -146,7 +146,7 @@ func show()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= Pc[1]))
     {
       Cnt += P[1][i].len();
@@ -155,7 +155,7 @@ func show()
   }
   printf("%d\n", Cnt);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= Pc[0]))
     {
       P[0][i].show();
@@ -163,7 +163,7 @@ func show()
     }
   }
   {
-    var i = Pc[1];
+    var i: dynamic = Pc[1];
     while ((i >= 1))
     {
       P[1][i].zig();
@@ -173,7 +173,7 @@ func show()
   }
 }
 
-func Push(A: dynamic, B: dynamic, d: dynamic)
+func Push(A: dynamic, B: dynamic, d: dynamic) -> dynamic
 {
   if ((A == B))
   {
@@ -183,13 +183,13 @@ func Push(A: dynamic, B: dynamic, d: dynamic)
   P[d][cpp_update(Pc[d], "++")] = Move(A, B);
 }
 
-func Jump(A: dynamic, B: dynamic, d: dynamic)
+func Jump(A: dynamic, B: dynamic, d: dynamic) -> dynamic
 {
   if ((A == B))
   {
     return;
   }
-  var Temp: dynamic;
+  var Temp: dynamic = cpp_uninitialized();
   if ((A.y > B.y))
   {
     Temp = Pos(B.x, A.y);
@@ -201,15 +201,15 @@ func Jump(A: dynamic, B: dynamic, d: dynamic)
   Push(Temp, B, d);
 }
 
-func Jump_zig(A: dynamic, B: dynamic, d: dynamic)
+func Jump_zig(A: dynamic, B: dynamic, d: dynamic) -> dynamic
 {
   if ((A.y == B.y))
   {
     Push(A, B, d);
     return;
   }
-  var Temp1: dynamic;
-  var Temp2: dynamic;
+  var Temp1: dynamic = cpp_uninitialized();
+  var Temp2: dynamic = cpp_uninitialized();
   Temp1 = Pos((A.x - 1), A.y);
   Temp2 = Pos((B.x + 1), B.y);
   Push(A, Temp1, d);
@@ -219,24 +219,24 @@ func Jump_zig(A: dynamic, B: dynamic, d: dynamic)
 
 class Cube
 {
-  var P: dynamic;
-  var id: dynamic;
+  var P: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var S = cpp_array(MAXM);
+var S: dynamic = cpp_array(MAXM);
 
-var T = cpp_array(MAXM);
+var T: dynamic = cpp_array(MAXM);
 
-func operator_less(A: dynamic, B: dynamic)
+func operator_less(A: dynamic, B: dynamic) -> dynamic
 {
   return cmpp(A.P, B.P);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&N), (&M));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= M))
     {
       S[i].P.read();
@@ -245,7 +245,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= M))
     {
       T[i].P.read();
@@ -261,7 +261,7 @@ func main()
   }
   sort((S + 1), ((S + M) + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= M))
     {
       Jump(S[i].P, Pos(1, i), 0);
@@ -280,7 +280,7 @@ func main()
   } else
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= M))
       {
         Push(Pos(1, i), Pos(3, i), 0);
@@ -288,7 +288,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= M))
       {
         Jump_zig(Pos(3, i), Pos(1, S[i].id), 0);
@@ -298,7 +298,7 @@ func main()
   }
   sort((T + 1), ((T + M) + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= M))
     {
       Jump(T[i].P, Pos(1, i), 1);
@@ -317,7 +317,7 @@ func main()
   } else
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= M))
       {
         Push(Pos(1, i), Pos(3, i), 1);
@@ -325,7 +325,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= M))
       {
         Jump_zig(Pos(3, i), Pos(1, T[i].id), 1);

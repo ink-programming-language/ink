@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var vis = cpp_array(100005);
+var vis: dynamic = cpp_array(100005);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var adj = cpp_array(100005);
+var adj: dynamic = cpp_array(100005);
 
-func bfs_like_fn(n: dynamic)
+func bfs_like_fn(n: dynamic) -> dynamic
 {
-  var pq: dynamic;
+  var pq: dynamic = cpp_uninitialized();
   pq.push(n);
   while ((!pq.empty()))
   {
-    var fr = pq.top();
+    var fr: dynamic = pq.top();
     pq.pop();
     if ((vis[fr] == true))
     {
@@ -21,7 +21,7 @@ func bfs_like_fn(n: dynamic)
     vis[fr] = true;
     ans.push_back(fr);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < adj[fr].size()))
       {
         if ((vis[adj[fr][i]] == false))
@@ -34,12 +34,12 @@ func bfs_like_fn(n: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(n, m);
   while (cpp_update(m, "--"))
   {
@@ -48,7 +48,7 @@ func main()
     adj[y].push_back(x);
   }
   bfs_like_fn(1);
-  for (var p in ans)
+  for (var p: dynamic in ans)
   {
     write(p, " ");
   }

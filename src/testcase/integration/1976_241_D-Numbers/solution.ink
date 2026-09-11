@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var s = 0;
-  var f = 0;
-  var ch = getchar();
+  var s: dynamic = 0;
+  var f: dynamic = 0;
+  var ch: dynamic = getchar();
   while ((!isdigit(ch)))
   {
     f |= ((ch == cpp_char("-")));
@@ -15,38 +15,38 @@ func read()
     s = ((((s << 1)) + ((s << 3))) + ((ch ^ 48)));
     ch = getchar();
   }
-  return if (f) (-s) else s;
+  return  (f) ? (-s) : s;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var check: dynamic;
+var check: dynamic = cpp_uninitialized();
 
-var MAX = 26;
+var MAX: dynamic = 26;
 
-var a = cpp_array(MAX);
+var a: dynamic = cpp_array(MAX);
 
-var b = cpp_array(MAX);
+var b: dynamic = cpp_array(MAX);
 
-var pos = cpp_array(MAX);
+var pos: dynamic = cpp_array(MAX);
 
-func pw(x: dynamic)
+func pw(x: dynamic) -> dynamic
 {
-  return if ((x < 10)) 10 else 100;
+  return  ((x < 10)) ? 10 : 100;
 }
 
-func dfs(k: dynamic, x: dynamic, y: dynamic, num: dynamic)
+func dfs(k: dynamic, x: dynamic, y: dynamic, num: dynamic) -> dynamic
 {
   if (cpp_binary(cpp_binary((x == 0), "and", (y == 0)), "and", num))
   {
     puts("Yes");
     printf("%lld\n", num);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= num))
       {
         printf("%lld ", b[i]);
@@ -64,15 +64,15 @@ func dfs(k: dynamic, x: dynamic, y: dynamic, num: dynamic)
   dfs((k + 1), (x ^ a[k]), ((((y * pw(a[k])) + a[k])) % p), (num + 1));
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   p = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x = read();
+      var x: dynamic = read();
       if ((x < MAX))
       {
         a[cpp_update(m, "++")] = x;

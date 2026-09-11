@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var ant: dynamic;
+  var ant: dynamic = cpp_uninitialized();
   scanf("%d", (&ant));
-  var max_mes = 0;
+  var max_mes: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var aux: dynamic;
+      var aux: dynamic = cpp_uninitialized();
       scanf("%d", (&aux));
       if ((aux < ant))
       {

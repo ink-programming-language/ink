@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var ok = 100000000;
+var ok: dynamic = 100000000;
 
-var ng = -1;
+var ng: dynamic = -1;
 
-func msearch(i: dynamic, p: dynamic, bn: dynamic, t: dynamic, x: dynamic, move: dynamic)
+func msearch(i: dynamic, p: dynamic, bn: dynamic, t: dynamic, x: dynamic, move: dynamic) -> dynamic
 {
   if ((move < ok))
   {
@@ -51,13 +51,13 @@ func msearch(i: dynamic, p: dynamic, bn: dynamic, t: dynamic, x: dynamic, move: 
   }
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while (cpp_comma((cin >> n), n))
   {
     v.resize(n);
-    for (var a in v)
+    for (var a: dynamic in v)
     {
       read(a.first, a.second);
     }

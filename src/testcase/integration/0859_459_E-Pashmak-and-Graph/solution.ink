@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var NMAX = 333333;
+var NMAX: dynamic = 333333;
 
-var WMAX = 111111;
+var WMAX: dynamic = 111111;
 
-var dp = cpp_array(NMAX);
+var dp: dynamic = cpp_array(NMAX);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var e = cpp_array(WMAX);
+var e: dynamic = cpp_array(WMAX);
 
-func main()
+func main() -> dynamic
 {
   cin.sync_with_stdio(0);
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var u: dynamic;
-      var v: dynamic;
-      var w: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       read(u, v, w);
       e[w].push_back(pair(u, v));
       i += 1;
     }
   }
   {
-    var w = 1;
+    var w: dynamic = 1;
     while ((w < WMAX))
     {
-      var query: dynamic;
+      var query: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < e[w].size()))
         {
-          var road = e[w][j];
+          var road: dynamic = e[w][j];
           query.push_back(pair(road.second, (dp[road.first] + 1)));
           j += 1;
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < query.size()))
         {
           dp[query[i].first] = max(dp[query[i].first], query[i].second);

@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-func all(v: dynamic)
+func all(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++");
 }
 
-var fi = cpp_expression("#inc");
+var fi: dynamic = cpp_expression("#inc");
 
-var se = cpp_expression("#incl");
+var se: dynamic = cpp_expression("#incl");
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -26,7 +26,7 @@ func chmin(a: dynamic, b: dynamic)
   }
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -34,37 +34,37 @@ func chmax(a: dynamic, b: dynamic)
   }
 }
 
-var G = cpp_array(1000000);
+var G: dynamic = cpp_array(1000000);
 
-var bridge: dynamic;
+var bridge: dynamic = cpp_uninitialized();
 
-var articulation: dynamic;
+var articulation: dynamic = cpp_uninitialized();
 
-var ord = cpp_array(1000000);
+var ord: dynamic = cpp_array(1000000);
 
-var low = cpp_array(1000000);
+var low: dynamic = cpp_array(1000000);
 
-var vis = cpp_array(1000000);
+var vis: dynamic = cpp_array(1000000);
 
-var W = cpp_array(111111);
+var W: dynamic = cpp_array(111111);
 
-var al = 0;
+var al: dynamic = 0;
 
-var sum = cpp_array(111111);
+var sum: dynamic = cpp_array(111111);
 
-var ans = cpp_array(111111);
+var ans: dynamic = cpp_array(111111);
 
-func dfs(v: dynamic, p: dynamic, k: dynamic)
+func dfs(v: dynamic, p: dynamic, k: dynamic) -> dynamic
 {
   vis[v] = true;
   sum[v] = W[v];
   ord[v] = cpp_update(k, "++");
   low[v] = ord[v];
-  var isArticulation = false;
-  var ct = 0;
-  var g: dynamic;
+  var isArticulation: dynamic = false;
+  var ct: dynamic = 0;
+  var g: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G[v].size()))
     {
       if ((!vis[G[v][i]]))
@@ -91,8 +91,8 @@ func dfs(v: dynamic, p: dynamic, k: dynamic)
   }
   if (isArticulation)
   {
-    var s = 0;
-    for (var u in g)
+    var s: dynamic = 0;
+    for (var u: dynamic in g)
     {
       if ((low[u] >= ord[v]))
       {
@@ -109,25 +109,25 @@ func dfs(v: dynamic, p: dynamic, k: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var M: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
   scanf("%lld%lld", (&N), (&M));
   rep(i, N);
   scanf("%lld", (&W[i]));
   al = accumulate(W, (W + N), 0);
-  var k = 0;
+  var k: dynamic = 0;
   dfs(0, -1, k);
   rep(i, N);
   printf("%lld\n", ans[i]);
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     scanf("%lld%lld", (&a), (&b));
     a -= 1;
     b -= 1;

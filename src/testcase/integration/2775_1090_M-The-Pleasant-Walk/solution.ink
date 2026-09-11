@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-func pairsort(a: dynamic, b: dynamic, n: dynamic)
+func pairsort(a: dynamic, b: dynamic, n: dynamic) -> dynamic
 {
-  var pairt = cpp_array(n);
+  var pairt: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       pairt[i].first = a[i];
@@ -16,7 +16,7 @@ func pairsort(a: dynamic, b: dynamic, n: dynamic)
   }
   sort(pairt, (pairt + n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a[i] = pairt[i].first;
@@ -26,7 +26,7 @@ func pairsort(a: dynamic, b: dynamic, n: dynamic)
   }
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -35,7 +35,7 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func isPrime(n: dynamic)
+func isPrime(n: dynamic) -> dynamic
 {
   if ((n < 2))
   {
@@ -50,7 +50,7 @@ func isPrime(n: dynamic)
     return 0;
   }
   {
-    var i = 5;
+    var i: dynamic = 5;
     while (((i * i) <= n))
     {
       if (cpp_binary(((n % i) == 0), "or", ((n % ((i + 2))) == 0)))
@@ -63,15 +63,15 @@ func isPrime(n: dynamic)
   return 1;
 }
 
-func C(n: dynamic, r: dynamic)
+func C(n: dynamic, r: dynamic) -> dynamic
 {
   if ((r > (n - r)))
   {
     r = (n - r);
   }
-  var ans = 1;
+  var ans: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= r))
     {
       ans *= ((n - r) + i);
@@ -82,11 +82,11 @@ func C(n: dynamic, r: dynamic)
   return ans;
 }
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func modexpo(x: dynamic, p: dynamic)
+func modexpo(x: dynamic, p: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   x = (x % mod);
   while (p)
   {
@@ -101,24 +101,24 @@ func modexpo(x: dynamic, p: dynamic)
   return res;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var cnt = 1;
+var cnt: dynamic = 1;
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var ans = 1;
+var ans: dynamic = 1;
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -126,7 +126,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       if ((a[i] == a[(i - 1)]))
@@ -136,7 +136,7 @@ func main()
       {
         cnt += 1;
       }
-      ans = (if ((ans > cnt)) ans else cnt);
+      ans = ( ((ans > cnt)) ? ans : cnt);
       i += 1;
     }
   }

@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var ans: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   while ((cin >> n))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 10))
       {
         if ((n & 1))

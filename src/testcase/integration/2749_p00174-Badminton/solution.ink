@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   ios_base.sync_with_stdio();
-  var inp: dynamic;
-  var As: dynamic;
-  var Bs: dynamic;
+  var inp: dynamic = cpp_uninitialized();
+  var As: dynamic = cpp_uninitialized();
+  var Bs: dynamic = cpp_uninitialized();
   while (1)
   {
     read(inp);
@@ -16,7 +16,7 @@ func main(argument_0: dynamic)
     As = 0;
     Bs = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < inp.length()))
       {
         if ((inp[i] == cpp_char("A")))

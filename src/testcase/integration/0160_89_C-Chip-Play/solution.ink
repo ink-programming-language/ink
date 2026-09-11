@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var mn: dynamic;
+var mn: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var p = cpp_array(4, 5005);
+var p: dynamic = cpp_array(4, 5005);
 
-var c = cpp_array(5005);
+var c: dynamic = cpp_array(5005);
 
-var v = cpp_array(5005);
+var v: dynamic = cpp_array(5005);
 
-var vw: dynamic;
+var vw: dynamic = cpp_uninitialized();
 
-func f(c: dynamic)
+func f(c: dynamic) -> dynamic
 {
-  var __cpp_switch_1 = c;
+  var __cpp_switch_1: dynamic = c;
   if (__cpp_switch_1 == cpp_char("L"))
   {
     return 0;
@@ -39,27 +39,27 @@ func f(c: dynamic)
   }
 }
 
-func solve(x: dynamic)
+func solve(x: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < mn))
     {
-      p[i][0] = if (((i % n) == 0)) -1 else (i - 1);
-      p[i][1] = if (((i % n) == (n - 1))) -1 else (i + 1);
+      p[i][0] =  (((i % n) == 0)) ? -1 : (i - 1);
+      p[i][1] =  (((i % n) == (n - 1))) ? -1 : (i + 1);
       p[i][2] = (i - n);
       p[i][3] = (i + n);
       i += 1;
     }
   }
   vw = x;
-  var ret = 0;
+  var ret: dynamic = 0;
   while (1)
   {
     ret += 1;
     v[x] = vw;
-    var z = f(c[x]);
-    var X = x;
+    var z: dynamic = f(c[x]);
+    var X: dynamic = x;
     while (((c[X] == cpp_char(".")) || (v[X] == vw)))
     {
       X = p[X][z];
@@ -73,12 +73,12 @@ func solve(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&m), (&n));
   mn = (m * n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%s", (c + (i * n)));
@@ -88,12 +88,12 @@ func main()
   memset(v, -1, cpp_sizeof((v)));
   ans = cpp_assign(cnt, "=", 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < mn))
     {
       if ((c[i] != cpp_char(".")))
       {
-        var tmp = solve(i);
+        var tmp: dynamic = solve(i);
         if ((tmp > ans))
         {
           ans = tmp;

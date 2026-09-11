@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func pp(v: dynamic)
+func pp(v: dynamic) -> dynamic
 {
   {
     typeof((v).begin()) = (v).begin();
@@ -13,10 +13,10 @@ func pp(v: dynamic)
   write("\n");
 }
 
-func pp(v: dynamic, n: dynamic)
+func pp(v: dynamic, n: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(n)))
     {
       write(v[i], cpp_char(" "));
@@ -26,38 +26,38 @@ func pp(v: dynamic, n: dynamic)
   write("\n");
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   a = max(a, b);
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   a = min(a, b);
 }
 
-var INF = (1 << 28);
+var INF: dynamic = (1 << 28);
 
-var EPS = 1.0e-9;
+var EPS: dynamic = 1.0e-9;
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, -1, 0, 1];
+var dy: dynamic = [0, -1, 0, 1];
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var line: dynamic;
+  var line: dynamic = cpp_uninitialized();
   read(line);
-  var A = 0;
-  var F = 0;
-  var I = 0;
+  var A: dynamic = 0;
+  var F: dynamic = 0;
+  var I: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(N)))
     {
-      var __cpp_switch_1 = line[i];
+      var __cpp_switch_1: dynamic = line[i];
       if (__cpp_switch_1 == cpp_char("A"))
       {
         A += 1;
@@ -76,14 +76,14 @@ func main(argument_0: dynamic)
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(N)))
     {
       if (((line[i] == cpp_char("A")) || (line[i] == cpp_char("I"))))
       {
-        var irem = (I - (if ((line[i] == cpp_char("I"))) 1 else 0));
+        var irem: dynamic = (I - ( ((line[i] == cpp_char("I"))) ? 1 : 0));
         if ((irem <= 0))
         {
           ans += 1;

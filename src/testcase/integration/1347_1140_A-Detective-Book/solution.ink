@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(n);
   {
-    var i = 1;
-    var tmp: dynamic;
-    var stop = 0;
+    var i: dynamic = 1;
+    var tmp: dynamic = cpp_uninitialized();
+    var stop: dynamic = 0;
     while ((i <= n))
     {
       read(tmp);

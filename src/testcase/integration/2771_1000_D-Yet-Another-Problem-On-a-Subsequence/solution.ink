@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var maxn = (1e3 + 7);
+var maxn: dynamic = (1e3 + 7);
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var c = cpp_array(maxn, maxn);
+var c: dynamic = cpp_array(maxn, maxn);
 
-var dp = cpp_array(maxn);
+var dp: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -24,12 +24,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       c[i][0] = 1;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= i))
         {
           c[i][j] = (((c[(i - 1)][(j - 1)] + c[(i - 1)][j])) % mod);
@@ -39,16 +39,16 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((((i + a[i]) <= n) && (a[i] > 0)))
       {
         ans = (((ans + (dp[i] * c[(n - i)][a[i]]))) % mod);
         {
-          var j = (i + a[i]);
+          var j: dynamic = (i + a[i]);
           while ((j <= n))
           {
             dp[(j + 1)] = (((dp[(j + 1)] + (dp[i] * c[(j - i)][a[i]]))) % mod);

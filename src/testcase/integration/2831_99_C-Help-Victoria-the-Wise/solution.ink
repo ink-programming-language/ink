@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var gr = ["123456", "234156", "341256", "412356", "143265", "432165", "321465", "214365", "546213", "462513", "625413", "254613", "452631", "526431", "264531", "645231", "351624", "516324", "163524", "635124", "361542", "615342", "153642", "536142"];
+var gr: dynamic = ["123456", "234156", "341256", "412356", "143265", "432165", "321465", "214365", "546213", "462513", "625413", "254613", "452631", "526431", "264531", "645231", "351624", "516324", "163524", "635124", "361542", "615342", "153642", "536142"];
 
-func pr(s: dynamic, k: dynamic)
+func pr(s: dynamic, k: dynamic) -> dynamic
 {
-  var ret = "123456";
+  var ret: dynamic = "123456";
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 6))
     {
       ret[i] = s[(gr[k][i] - cpp_char("1"))];
@@ -16,10 +16,10 @@ func pr(s: dynamic, k: dynamic)
   return ret;
 }
 
-func eq(s1: dynamic, s2: dynamic)
+func eq(s1: dynamic, s2: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 24))
     {
       if ((s1 == pr(s2, i)))
@@ -32,16 +32,16 @@ func eq(s1: dynamic, s2: dynamic)
   return false;
 }
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var used = [0];
+var used: dynamic = [0];
 
-func check(x: dynamic)
+func check(x: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < r.size()))
     {
       if (eq(x, r[i]))
@@ -54,7 +54,7 @@ func check(x: dynamic)
   r.push_back(x);
 }
 
-func rec(x: dynamic)
+func rec(x: dynamic) -> dynamic
 {
   if ((x.length() > 6))
   {
@@ -66,7 +66,7 @@ func rec(x: dynamic)
     return;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 6))
     {
       if ((!used[i]))
@@ -80,7 +80,7 @@ func rec(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(s);
   rec("");

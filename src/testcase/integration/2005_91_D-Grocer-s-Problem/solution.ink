@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var N = 200002;
+var N: dynamic = 200002;
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var cs: dynamic;
+var cs: dynamic = cpp_uninitialized();
 
-var twoCs: dynamic;
+var twoCs: dynamic = cpp_uninitialized();
 
-var threeCs: dynamic;
+var threeCs: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(p[i]);
       i += 1;
     }
   }
-  var mark = [];
+  var mark: dynamic = [];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((!mark[i]) && (p[i] != i)))
       {
-        var newC: dynamic;
-        var v = i;
+        var newC: dynamic = cpp_uninitialized();
+        var v: dynamic = i;
         while ((!mark[v]))
         {
           mark[v] = 1;
@@ -47,14 +47,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cs.size()))
     {
       while ((cs[i].size() >= 4))
       {
-        var move: dynamic;
+        var move: dynamic = cpp_uninitialized();
         {
-          var j = max(0, (cpp_cast(cs[i].size()) - 5));
+          var j: dynamic = max(0, (cpp_cast(cs[i].size()) - 5));
           while (((j + 1) < cs[i].size()))
           {
             move.push_back(make_pair(cs[i][j], cs[i][(j + 1)]));
@@ -64,7 +64,7 @@ func main()
         move.push_back(make_pair(cs[i].back(), cs[i][max((cpp_cast(cs[i].size()) - 5), 0)]));
         ans.push_back(move);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 4))
           {
             cs[i].pop_back();
@@ -76,7 +76,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cs.size()))
     {
       if ((cs[i].size() == 2))
@@ -91,8 +91,8 @@ func main()
   }
   while (threeCs.size())
   {
-    var move: dynamic;
-    var tt = threeCs.back();
+    var move: dynamic = cpp_uninitialized();
+    var tt: dynamic = threeCs.back();
     move.push_back(make_pair(tt[0], tt[1]));
     move.push_back(make_pair(tt[1], tt[2]));
     move.push_back(make_pair(tt[2], tt[0]));
@@ -108,7 +108,7 @@ func main()
       tt = threeCs.back();
       move.push_back(make_pair(tt[0], tt[1]));
       move.push_back(make_pair(tt[1], tt[0]));
-      var newC: dynamic;
+      var newC: dynamic = cpp_uninitialized();
       newC.push_back(tt[0]);
       newC.push_back(tt[2]);
       twoCs.push_back(newC);
@@ -118,8 +118,8 @@ func main()
   }
   while (twoCs.size())
   {
-    var move: dynamic;
-    var tt = twoCs.back();
+    var move: dynamic = cpp_uninitialized();
+    var tt: dynamic = twoCs.back();
     move.push_back(make_pair(tt[0], tt[1]));
     move.push_back(make_pair(tt[1], tt[0]));
     twoCs.pop_back();
@@ -134,12 +134,12 @@ func main()
   }
   write(ans.size(), "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ans.size()))
     {
       write(ans[i].size(), "\n");
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ans[i].size()))
         {
           write(ans[i][j].first, " ");
@@ -148,7 +148,7 @@ func main()
       }
       write("\n");
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ans[i].size()))
         {
           write(ans[i][j].second, " ");

@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func show(a: dynamic, n: dynamic)
+func show(a: dynamic, n: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(a[i], cpp_char(" "));
@@ -13,10 +13,10 @@ func show(a: dynamic, n: dynamic)
   write("\n");
 }
 
-func show(a: dynamic, r: dynamic, l: dynamic)
+func show(a: dynamic, r: dynamic, l: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < r))
     {
       show(a[i], l);
@@ -26,25 +26,25 @@ func show(a: dynamic, r: dynamic, l: dynamic)
   write("\n");
 }
 
-var N = 310;
+var N: dynamic = 310;
 
-var M = 5000;
+var M: dynamic = 5000;
 
-var oo = ((10000 * 10000) * 10);
+var oo: dynamic = ((10000 * 10000) * 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var nth: dynamic;
+var nth: dynamic = cpp_uninitialized();
 
-var g = cpp_array(N, N);
+var g: dynamic = cpp_array(N, N);
 
-func go(x: dynamic)
+func go(x: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   {
     i = (1 + x);
     while (((i + x) <= n))
@@ -75,11 +75,11 @@ func go(x: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var cas = 0;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var cas: dynamic = 0;
   scanf("%d %d %d", (&n), (&m), (&nth));
   {
     i = 1;

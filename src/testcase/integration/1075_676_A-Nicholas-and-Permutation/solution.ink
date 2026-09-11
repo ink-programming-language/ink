@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var arr = cpp_array(101);
-  var n: dynamic;
-  var imin = 0;
-  var imax = 0;
+  var arr: dynamic = cpp_array(101);
+  var n: dynamic = cpp_uninitialized();
+  var imin: dynamic = 0;
+  var imax: dynamic = 0;
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(arr[i]);
@@ -22,12 +22,12 @@ func main()
       i += 1;
     }
   }
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   if ((imax < imin))
   {
     swap(imax, imin);
   }
-  var rsp = (abs((imin - imax)) + max((n - imax), (imin - 1)));
+  var rsp: dynamic = (abs((imin - imax)) + max((n - imax), (imin - 1)));
   write(rsp);
   return 0;
 }

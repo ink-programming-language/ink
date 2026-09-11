@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var k1: dynamic;
+var k1: dynamic = cpp_uninitialized();
 
-var k2: dynamic;
+var k2: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var k = 0;
+var k: dynamic = 0;
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   scanf("%d", (&x));
   a.insert(x);
   b[x] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       scanf("%d", (&x));

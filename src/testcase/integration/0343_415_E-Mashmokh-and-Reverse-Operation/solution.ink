@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var xx = [0, 0, 1, -1];
+var xx: dynamic = [0, 0, 1, -1];
 
-var yy = [1, -1, 0, 0];
+var yy: dynamic = [1, -1, 0, 0];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(int_cpp((1048576 + 2000)));
+var a: dynamic = cpp_array(int_cpp((1048576 + 2000)));
 
-var b = cpp_array(int_cpp((1048576 + 2000)));
+var b: dynamic = cpp_array(int_cpp((1048576 + 2000)));
 
-var f = cpp_array(2, 30);
+var f: dynamic = cpp_array(2, 30);
 
-var res = 0;
+var res: dynamic = 0;
 
-func build(l: dynamic, r: dynamic, h: dynamic)
+func build(l: dynamic, r: dynamic, h: dynamic) -> dynamic
 {
   if ((l == r))
   {
     return;
   }
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   build(l, mid, (h + 1));
   build((mid + 1), r, (h + 1));
-  var i = l;
-  var j = (mid + 1);
-  var k = l;
+  var i: dynamic = l;
+  var j: dynamic = (mid + 1);
+  var k: dynamic = l;
   while (((i <= mid) && (j <= r)))
   {
     if ((a[i] <= a[j]))
@@ -58,10 +58,10 @@ func build(l: dynamic, r: dynamic, h: dynamic)
     f[h][0] += (((mid - l) + 1));
   }
   j = mid;
-  var d = 0;
+  var d: dynamic = 0;
   {
-    var i = (l);
-    var b = (mid);
+    var i: dynamic = (l);
+    var b: dynamic = (mid);
     while ((i <= b))
     {
       if (((i == l) || (a[i] != a[(i - 1)])))
@@ -81,8 +81,8 @@ func build(l: dynamic, r: dynamic, h: dynamic)
     }
   }
   {
-    var i = (l);
-    var b = (r);
+    var i: dynamic = (l);
+    var b: dynamic = (r);
     while ((i <= b))
     {
       a[i] = b[i];
@@ -91,11 +91,11 @@ func build(l: dynamic, r: dynamic, h: dynamic)
   }
 }
 
-func solve(x: dynamic)
+func solve(x: dynamic) -> dynamic
 {
   {
-    var i = (x);
-    var b = (n);
+    var i: dynamic = (x);
+    var b: dynamic = (n);
     while ((i <= b))
     {
       res -= f[i][1];
@@ -107,13 +107,13 @@ func solve(x: dynamic)
   printf("%I64d\n", res);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   m = ((1 << n));
   {
-    var i = (1);
-    var b = (m);
+    var i: dynamic = (1);
+    var b: dynamic = (m);
     while ((i <= b))
     {
       scanf("%d", (&a[i]));
@@ -122,22 +122,22 @@ func main()
   }
   build(1, m, 0);
   {
-    var i = (0);
-    var b = (n);
+    var i: dynamic = (0);
+    var b: dynamic = (n);
     while ((i <= b))
     {
       res += f[i][1];
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   {
-    var i = (1);
-    var b = (q);
+    var i: dynamic = (1);
+    var b: dynamic = (q);
     while ((i <= b))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       solve((n - x));
       i += 1;

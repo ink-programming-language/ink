@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var t: dynamic;
-  var icount: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var icount: dynamic = cpp_uninitialized();
   while ((scanf("%d%d", (&n), (&k)) != EOF))
   {
     icount = 0;

@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-func my_pow(x: dynamic)
+func my_pow(x: dynamic) -> dynamic
 {
   return ((x * x) * x);
 }
 
-func dfs(m: dynamic, s: dynamic, v: dynamic)
+func dfs(m: dynamic, s: dynamic, v: dynamic) -> dynamic
 {
-  var x = 0;
+  var x: dynamic = 0;
   if ((m <= 0))
   {
     res = max(res, make_pair(s, v));
@@ -26,19 +26,19 @@ func dfs(m: dynamic, s: dynamic, v: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var m: dynamic;
-  var i: dynamic;
-  var t: dynamic;
-  var j: dynamic;
-  var N = 0;
-  var X = 0;
-  var ansn = 0;
-  var ansX = 0;
-  var flag = 0;
-  var k: dynamic;
-  var l: dynamic;
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var N: dynamic = 0;
+  var X: dynamic = 0;
+  var ansn: dynamic = 0;
+  var ansX: dynamic = 0;
+  var flag: dynamic = 0;
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
   scanf("%I64d", (&m));
   dfs(m, 0, 0);
   printf("%I64d %I64d\n", res.first, res.second);

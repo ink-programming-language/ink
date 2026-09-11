@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var g = cpp_array(1111, 1111);
+var g: dynamic = cpp_array(1111, 1111);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   memset(g, false, cpp_sizeof((g)));
   scanf("%d%d", (&n), (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d%d", (&u), (&v));
       g[u][v] = true;
       i += 1;
     }
   }
-  var count = 0;
+  var count: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < n))
     {
-      var flag = false;
+      var flag: dynamic = false;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((g[i][j] == true))
@@ -47,12 +47,12 @@ func main()
     }
   }
   {
-    var j = 2;
+    var j: dynamic = 2;
     while ((j < n))
     {
-      var flag = false;
+      var flag: dynamic = false;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           if (g[i][j])
@@ -74,8 +74,8 @@ func main()
   }
   if ((n & 1))
   {
-    var i: dynamic;
-    var j: dynamic;
+    var i: dynamic = cpp_uninitialized();
+    var j: dynamic = cpp_uninitialized();
     {
       i = 1;
       while ((i <= n))

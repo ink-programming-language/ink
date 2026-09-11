@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while ((scanf("%d", (&n)) != EOF))
   {
-    var d = cpp_new();
-    var count = 0;
+    var d: dynamic = cpp_new();
+    var count: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= n))
       {
         d[i] = true;
@@ -16,14 +16,14 @@ func main(argument_0: dynamic)
       }
     }
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i <= n))
       {
         if (d[i])
         {
           count += 1;
           {
-            var j = (i * 2);
+            var j: dynamic = (i * 2);
             while ((j <= n))
             {
               d[j] = false;

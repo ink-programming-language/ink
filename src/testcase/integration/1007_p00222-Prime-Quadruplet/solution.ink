@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var prim = cpp_array(10000000);
+var prim: dynamic = cpp_array(10000000);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     i = 2;
     while ((i < (10000000 / 2)))

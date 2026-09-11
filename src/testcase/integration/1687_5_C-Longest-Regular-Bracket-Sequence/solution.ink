@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var in_cpp = cpp_array(1000005);
+var in_cpp: dynamic = cpp_array(1000005);
 
-var st = cpp_array(1000005);
+var st: dynamic = cpp_array(1000005);
 
-var val = cpp_array(1000005);
+var val: dynamic = cpp_array(1000005);
 
-var cst: dynamic;
+var cst: dynamic = cpp_uninitialized();
 
-var maxx = 0;
+var maxx: dynamic = 0;
 
-var ct = 1;
+var ct: dynamic = 1;
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   scanf("%s", (in_cpp + 1));
   {
     i = 1;

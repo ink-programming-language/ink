@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 4);
+var N: dynamic = (1e5 + 4);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var dp = cpp_array(N);
+var dp: dynamic = cpp_array(N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", (a + 1));
-  var n = strlen((a + 1));
-  var sum = 0;
-  var ans = 0;
-  var flag = 0;
+  var n: dynamic = strlen((a + 1));
+  var sum: dynamic = 0;
+  var ans: dynamic = 0;
+  var flag: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a[i] == cpp_char("a")))
@@ -41,7 +41,7 @@ func main()
   }
   sum = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sum = (sum + dp[i]);

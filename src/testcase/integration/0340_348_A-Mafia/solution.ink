@@ -2,27 +2,27 @@
 
 class sort_map
 {
-  var num: dynamic;
-  var val: dynamic;
+  var num: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
 }
 
-func myfunc(a: dynamic, b: dynamic)
+func myfunc(a: dynamic, b: dynamic) -> dynamic
 {
   return (a > b);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var input: dynamic;
-  var mmax = 0;
-  var sum = 0;
+  var input: dynamic = cpp_uninitialized();
+  var mmax: dynamic = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var temp: dynamic;
+      var temp: dynamic = cpp_uninitialized();
       read(temp);
       input.push_back(temp);
       sum += temp;
@@ -33,7 +33,7 @@ func main()
       i += 1;
     }
   }
-  var e = ceil((sum / ((n - 1.0))));
+  var e: dynamic = ceil((sum / ((n - 1.0))));
   if ((e < mmax))
   {
     e = mmax;

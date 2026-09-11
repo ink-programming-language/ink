@@ -2,15 +2,15 @@
 
 class dreapta
 {
-  var a: dynamic;
-  var b: dynamic;
-  func operator_call(x: dynamic)
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  func operator_call(x: dynamic) -> dynamic
   {
       return ((a * x) + b);
     }
 }
 
-func useless(a: dynamic, b: dynamic, c: dynamic)
+func useless(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   assert(((a.a >= b.a) && (b.a >= c.a)));
   return ((cpp_cast(((b.b - a.b))) / ((a.a - b.a))) > (cpp_cast(((c.b - b.b))) / ((b.a - c.a))));
@@ -18,15 +18,15 @@ func useless(a: dynamic, b: dynamic, c: dynamic)
 
 class merging_batch
 {
-  var buf: dynamic;
-  func merging_batch()
+  var buf: dynamic = cpp_uninitialized();
+  func merging_batch() -> dynamic
   {
     }
-  func query(x: dynamic)
+  func query(x: dynamic) -> dynamic
   {
-      var i = 0;
+      var i: dynamic = 0;
       {
-        var step = (1 << 23);
+        var step: dynamic = (1 << 23);
         while (step)
         {
           if ((((i + step) < buf.size()) && (buf[(i + step)](x) <= buf[((i + step) - 1)](x))))
@@ -39,7 +39,7 @@ class merging_batch
       assert(((i == (buf.size() - 1)) || (buf[i](x) <= buf[(i + 1)](x))));
       return buf[i](x);
     }
-  func add_right(x: dynamic)
+  func add_right(x: dynamic) -> dynamic
   {
       while (((buf.size() > 1) && useless(buf.rbegin()[1], buf.back(), x)))
       {
@@ -47,7 +47,7 @@ class merging_batch
       }
       buf.push_back(x);
     }
-  func add_left(x: dynamic)
+  func add_left(x: dynamic) -> dynamic
   {
       while (((buf.size() > 1) && useless(x, buf[0], buf[1])))
       {
@@ -55,16 +55,16 @@ class merging_batch
       }
       buf.push_front(x);
     }
-  func swap_with(rhs: dynamic)
+  func swap_with(rhs: dynamic) -> dynamic
   {
       swap(buf, rhs.buf);
     }
-  func merge_with(rhs: dynamic)
+  func merge_with(rhs: dynamic) -> dynamic
   {
       if ((buf.size() < rhs.buf.size()))
       {
         {
-          var it = buf.rbegin();
+          var it: dynamic = buf.rbegin();
           while ((it != buf.rend()))
           {
             rhs.add_left((*it));
@@ -74,7 +74,7 @@ class merging_batch
         swap(buf, rhs.buf);
       } else
       {
-        for (var x in rhs.buf)
+        for (var x: dynamic in rhs.buf)
         {
           add_right(x);
         }
@@ -84,21 +84,21 @@ class merging_batch
 
 class undo_batch
 {
-  var top: dynamic;
-  var st: dynamic;
-  var undo_st: dynamic;
-  func undo_batch()
+  var top: dynamic = cpp_uninitialized();
+  var st: dynamic = cpp_uninitialized();
+  var undo_st: dynamic = cpp_uninitialized();
+  func undo_batch() -> dynamic
   {
       top = 1;
     }
-  func clear()
+  func clear() -> dynamic
   {
       top = 1;
     }
-  func print()
+  func print() -> dynamic
   {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < top))
         {
           write("(", st[i].a, ",", st[i].b, ") ");
@@ -107,11 +107,11 @@ class undo_batch
       }
       write("\n");
     }
-  func query(x: dynamic)
+  func query(x: dynamic) -> dynamic
   {
-      var i = 0;
+      var i: dynamic = 0;
       {
-        var step = (1 << 23);
+        var step: dynamic = (1 << 23);
         while (step)
         {
           if ((((i + step) < top) && (st[(i + step)](x) <= st[((i + step) - 1)](x))))
@@ -124,19 +124,19 @@ class undo_batch
       assert(((i == (top - 1)) || (st[i](x) <= st[(i + 1)](x))));
       return st[i](x);
     }
-  func undo()
+  func undo() -> dynamic
   {
       assert((!undo_st.empty()));
       top = undo_st.back().old_top;
       st[undo_st.back().old_pos] = undo_st.back().d;
       undo_st.pop_back();
     }
-  func add_right(d: dynamic)
+  func add_right(d: dynamic) -> dynamic
   {
       undo_st.push_back([top, 0, 0]);
-      var ret = 0;
+      var ret: dynamic = 0;
       {
-        var step = (1 << 23);
+        var step: dynamic = (1 << 23);
         while (step)
         {
           if ((((ret + step) < top) && ((!useless(st[((ret + step) - 1)], st[(ret + step)], d)))))
@@ -153,19 +153,19 @@ class undo_batch
     }
 }
 
-func produce_state(n: dynamic, d: dynamic, v: dynamic, ret: dynamic)
+func produce_state(n: dynamic, d: dynamic, v: dynamic, ret: dynamic) -> dynamic
 {
-  var posz: dynamic;
-  var mb: dynamic;
-  var ub: dynamic;
+  var posz: dynamic = cpp_uninitialized();
+  var mb: dynamic = cpp_uninitialized();
+  var ub: dynamic = cpp_uninitialized();
   posz.clear();
   mb.clear();
   ub.clear();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       x.add_right([((-i) + 1), d[i]]);
       while (((!posz.empty()) && (v[posz.back()] <= v[i])))
       {
@@ -184,23 +184,23 @@ func produce_state(n: dynamic, d: dynamic, v: dynamic, ret: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  for (var x in v)
+  for (var x: dynamic in v)
   {
     read(x);
   }
-  var state = cpp_construct((n + 1), (cpp_cast(1e9) * cpp_cast(1e9)));
-  var tmp = cpp_construct((n + 1), 0);
+  var state: dynamic = cpp_construct((n + 1), (cpp_cast(1e9) * cpp_cast(1e9)));
+  var tmp: dynamic = cpp_construct((n + 1), 0);
   state[0] = 0;
   tmp[0] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       produce_state(n, state, v, tmp);

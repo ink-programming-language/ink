@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var MN = cpp_expression("#inclu");
+var MN: dynamic = cpp_expression("#inclu");
 
-var MA = cpp_expression("#inclu");
+var MA: dynamic = cpp_expression("#inclu");
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var ans = 0;
+var ans: dynamic = 0;
 
-var T = [0];
+var T: dynamic = [0];
 
-func modify(k: dynamic, l: dynamic, r: dynamic, p: dynamic, w: dynamic)
+func modify(k: dynamic, l: dynamic, r: dynamic, p: dynamic, w: dynamic) -> dynamic
 {
   if ((l == r))
   {
     T[k] = w;
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   if ((p <= mid))
   {
     modify((k << 1), l, mid, p, w);
@@ -30,13 +30,13 @@ func modify(k: dynamic, l: dynamic, r: dynamic, p: dynamic, w: dynamic)
   T[k] = max(T[(k << 1)], T[((k << 1) | 1)]);
 }
 
-func query(k: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic)
+func query(k: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic) -> dynamic
 {
   if (((l == L) && (r == R)))
   {
     return T[k];
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   if ((R <= mid))
   {
     return query((k << 1), l, mid, L, R);
@@ -48,16 +48,16 @@ func query(k: dynamic, l: dynamic, r: dynamic, L: dynamic, R: dynamic)
   return max(query((k << 1), l, mid, L, mid), query(((k << 1) | 1), (mid + 1), r, (mid + 1), R));
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&k));
   {
-    var i = 1;
-    var a: dynamic;
+    var i: dynamic = 1;
+    var a: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
       scanf("%d", (&a));
-      var t = (query(1, 0, MA, max(0, (a - k)), min(MA, (a + k))) + 1);
+      var t: dynamic = (query(1, 0, MA, max(0, (a - k)), min(MA, (a + k))) + 1);
       ans = max(ans, t);
       modify(1, 0, MA, a, t);
       i += 1;

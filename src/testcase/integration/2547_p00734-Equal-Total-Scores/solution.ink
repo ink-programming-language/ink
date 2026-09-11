@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(201);
+var s: dynamic = cpp_array(201);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   while (1)
   {
     read(n, m);
@@ -15,8 +15,8 @@ func main()
     {
       break;
     }
-    var sum_T: dynamic;
-    var sum_H: dynamic;
+    var sum_T: dynamic = cpp_uninitialized();
+    var sum_H: dynamic = cpp_uninitialized();
     sum_T = cpp_assign(sum_H, "=", 0);
     {
       i = 0;

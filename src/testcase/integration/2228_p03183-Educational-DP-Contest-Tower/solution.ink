@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var s = cpp_expression("#incl");
+var s: dynamic = cpp_expression("#incl");
 
-var w = cpp_expression("#include<bit");
+var w: dynamic = cpp_expression("#include<bit");
 
-var v = cpp_expression("#include<bits");
+var v: dynamic = cpp_expression("#include<bits");
 
-var maxn = cpp_expression("#inc");
+var maxn: dynamic = cpp_expression("#inc");
 
-var maxs = cpp_expression("#incl");
+var maxs: dynamic = cpp_expression("#incl");
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var b = cpp_array(maxn);
+  var b: dynamic = cpp_array(maxn);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d%d%d", (&b[i].w), (&b[i].s), (&b[i].v));
@@ -25,14 +25,14 @@ func main()
     }
   }
   sort(b, (b + n));
-  var dp = [];
-  var ans = 0;
+  var dp: dynamic = [];
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = b[i].s;
+        var j: dynamic = b[i].s;
         while ((j >= b[i].w))
         {
           dp[j] = max(dp[j], (dp[(j - b[i].w)] + b[i].v));

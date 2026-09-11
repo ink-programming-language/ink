@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var dx = [1, -1, 0, 0, 1, 1, -1, -1, 0];
+var dx: dynamic = [1, -1, 0, 0, 1, 1, -1, -1, 0];
 
-var dy = [0, 0, 1, -1, 1, -1, 1, -1, 0];
+var dy: dynamic = [0, 0, 1, -1, 1, -1, 1, -1, 0];
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var s: dynamic;
-  var i: dynamic;
-  var f = 1;
+  var s: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var f: dynamic = 1;
   read(s);
   if ((s.length() == 1))
   {

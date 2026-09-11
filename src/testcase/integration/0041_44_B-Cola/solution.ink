@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var ans = 0;
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   read(n, a, b, c);
   {
-    var i = min(int_cpp((n / 2)), c);
+    var i: dynamic = min(int_cpp((n / 2)), c);
     while ((i >= 0))
     {
       {
-        var j = min(int_cpp((n - (2 * i))), b);
+        var j: dynamic = min(int_cpp((n - (2 * i))), b);
         while ((j >= 0))
         {
           if (((((a / 2) + j) + (i * 2)) >= n))

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(100005);
+var dp: dynamic = cpp_array(100005);
 
-var ans = cpp_array(100005);
+var ans: dynamic = cpp_array(100005);
 
-func solve(num: dynamic)
+func solve(num: dynamic) -> dynamic
 {
   if ((dp[num] != -1))
   {
@@ -12,11 +12,11 @@ func solve(num: dynamic)
   }
   ans[num] = -1;
   dp[num] = 0;
-  var i: dynamic;
-  var n = 2;
-  var a: dynamic;
-  var sum: dynamic;
-  var myset: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var n: dynamic = 2;
+  var a: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  var myset: dynamic = cpp_uninitialized();
   myset.clear();
   while ((((2 * num) - (n * ((n - 1)))) > 0))
   {
@@ -48,9 +48,9 @@ func solve(num: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while ((scanf("%d", (&n)) != EOF))
   {
     memset(dp, -1, cpp_sizeof((dp)));

@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func modpow(a: dynamic, n: dynamic, temp: dynamic)
+func modpow(a: dynamic, n: dynamic, temp: dynamic) -> dynamic
 {
-  var res = 1;
-  var y = a;
+  var res: dynamic = 1;
+  var y: dynamic = a;
   while ((n > 0))
   {
     if ((n & 1))
@@ -16,13 +16,13 @@ func modpow(a: dynamic, n: dynamic, temp: dynamic)
   return (res % temp);
 }
 
-var arr: dynamic;
+var arr: dynamic = cpp_uninitialized();
 
-var track = cpp_array(1000006);
+var track: dynamic = cpp_array(1000006);
 
-var cnt = cpp_array(3);
+var cnt: dynamic = cpp_array(3);
 
-func findval(a: dynamic, b: dynamic)
+func findval(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == b))
   {
@@ -36,14 +36,14 @@ func findval(a: dynamic, b: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var c1: dynamic;
-  var c2: dynamic;
-  var n: dynamic;
-  var i: dynamic;
-  var flag = 1;
-  var val: dynamic;
+  var c1: dynamic = cpp_uninitialized();
+  var c2: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var flag: dynamic = 1;
+  var val: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
     i = 0;

@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(111);
+var a: dynamic = cpp_array(111);
 
-var u = cpp_array(111);
+var u: dynamic = cpp_array(111);
 
-func pr(x: dynamic)
+func pr(x: dynamic) -> dynamic
 {
-  var y = -1;
-  var z = -1;
+  var y: dynamic = -1;
+  var z: dynamic = -1;
   {
-    var i = x;
+    var i: dynamic = x;
     while ((i < n))
     {
       if ((!u[i]))
@@ -23,7 +23,7 @@ func pr(x: dynamic)
     }
   }
   {
-    var i = x;
+    var i: dynamic = x;
     while ((i >= 0))
     {
       if ((!u[i]))
@@ -43,12 +43,12 @@ func pr(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -63,13 +63,13 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var mx = 0;
-      var mi: dynamic;
+      var mx: dynamic = 0;
+      var mi: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if (((a[j] > mx) && (!u[j])))

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var drivers: dynamic;
+var drivers: dynamic = cpp_uninitialized();
 
-var residents: dynamic;
+var residents: dynamic = cpp_uninitialized();
 
-var arr = cpp_array(200009);
+var arr: dynamic = cpp_array(200009);
 
-var ans = cpp_array(200009);
+var ans: dynamic = cpp_array(200009);
 
-func lbound(x: dynamic, m: dynamic)
+func lbound(x: dynamic, m: dynamic) -> dynamic
 {
-  var lo = 0;
-  var hi = (m - 1);
-  var idx = -1;
+  var lo: dynamic = 0;
+  var hi: dynamic = (m - 1);
+  var idx: dynamic = -1;
   while ((lo <= hi))
   {
-    var mid = (((lo + hi)) / 2);
+    var mid: dynamic = (((lo + hi)) / 2);
     if ((drivers[mid].first < x))
     {
       idx = mid;
@@ -28,14 +28,14 @@ func lbound(x: dynamic, m: dynamic)
   return idx;
 }
 
-func ubound(x: dynamic, m: dynamic)
+func ubound(x: dynamic, m: dynamic) -> dynamic
 {
-  var lo = 0;
-  var hi = (m - 1);
-  var idx = -1;
+  var lo: dynamic = 0;
+  var hi: dynamic = (m - 1);
+  var idx: dynamic = -1;
   while ((lo <= hi))
   {
-    var mid = (((lo + hi)) / 2);
+    var mid: dynamic = (((lo + hi)) / 2);
     if ((drivers[mid].first > x))
     {
       idx = mid;
@@ -48,26 +48,26 @@ func ubound(x: dynamic, m: dynamic)
   return idx;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n + m)))
     {
       read(arr[i]);
       i += 1;
     }
   }
-  var dc = 0;
-  var rc = 0;
+  var dc: dynamic = 0;
+  var rc: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n + m)))
     {
-      var c: dynamic;
+      var c: dynamic = cpp_uninitialized();
       read(c);
       if (c)
       {
@@ -83,13 +83,13 @@ func main()
   }
   sort(residents.begin(), residents.end());
   sort(drivers.begin(), drivers.end());
-  var minm = 0;
+  var minm: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var lbi = lbound(residents[i].first, m);
-      var ubi = ubound(residents[i].first, m);
+      var lbi: dynamic = lbound(residents[i].first, m);
+      var ubi: dynamic = ubound(residents[i].first, m);
       if ((lbi == -1))
       {
         ans[drivers[ubi].second] += 1;
@@ -113,7 +113,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       write(ans[i], " ");

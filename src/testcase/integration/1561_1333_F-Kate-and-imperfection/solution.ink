@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var M = (1e6 + 10);
+var M: dynamic = (1e6 + 10);
 
-var N = (5e5 + 10);
+var N: dynamic = (5e5 + 10);
 
-func read()
+func read() -> dynamic
 {
-  var b = 1;
-  var sum = 0;
-  var c = getchar();
+  var b: dynamic = 1;
+  var sum: dynamic = 0;
+  var c: dynamic = getchar();
   while ((!isdigit(c)))
   {
     if ((c == cpp_char("-")))
@@ -27,34 +27,34 @@ func read()
   return (b * sum);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-var pcnt: dynamic;
+var pcnt: dynamic = cpp_uninitialized();
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var d = cpp_array(N);
+var d: dynamic = cpp_array(N);
 
-var vis = cpp_array((N + 10));
+var vis: dynamic = cpp_array((N + 10));
 
-func sieve()
+func sieve() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     i = 2;
     while ((i <= n))
@@ -78,10 +78,10 @@ func sieve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   n = read();
   sieve();
   d[1] = 1;

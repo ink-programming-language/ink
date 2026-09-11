@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
   while ((cin >> s))
   {

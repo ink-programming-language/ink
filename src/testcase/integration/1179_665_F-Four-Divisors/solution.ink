@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var Lower = cpp_array((1000000 + 1));
+var Lower: dynamic = cpp_array((1000000 + 1));
 
-var Higher = cpp_array((1000000 + 1));
+var Higher: dynamic = cpp_array((1000000 + 1));
 
-var Used = cpp_array((1000000 + 1));
+var Used: dynamic = cpp_array((1000000 + 1));
 
-func SumNat(n: dynamic)
+func SumNat(n: dynamic) -> dynamic
 {
-  var p = n;
-  var q = (n + 1);
+  var p: dynamic = n;
+  var q: dynamic = (n + 1);
   if ((p % 2))
   {
     q /= 2;
@@ -20,19 +20,19 @@ func SumNat(n: dynamic)
   return ((p) * (q));
 }
 
-func PrimePi(n: dynamic)
+func PrimePi(n: dynamic) -> dynamic
 {
-  var v = sqrt((n + 1e-9));
-  var p: dynamic;
-  var temp: dynamic;
-  var q: dynamic;
-  var j: dynamic;
-  var end: dynamic;
-  var i: dynamic;
-  var d: dynamic;
-  var t: dynamic;
+  var v: dynamic = sqrt((n + 1e-9));
+  var p: dynamic = cpp_uninitialized();
+  var temp: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var end: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 1000000))
     {
       Used[i] = 0;
@@ -62,7 +62,7 @@ func PrimePi(n: dynamic)
       q = (p * p);
       Higher[1] -= (Higher[p] - temp);
       j = (1 + ((p & 1)));
-      end = if (((v <= (n / q)))) v else (n / q);
+      end =  (((v <= (n / q)))) ? v : (n / q);
       {
         i = (p + j);
         while ((i <= (1 + end)))
@@ -110,11 +110,11 @@ func PrimePi(n: dynamic)
   return Higher[1];
 }
 
-var prime = cpp_array((10000000 + 1));
+var prime: dynamic = cpp_array((10000000 + 1));
 
-var piii = cpp_array((10000000 + 1));
+var piii: dynamic = cpp_array((10000000 + 1));
 
-func Prim(n: dynamic)
+func Prim(n: dynamic) -> dynamic
 {
   if ((n <= 10000000))
   {
@@ -123,12 +123,12 @@ func Prim(n: dynamic)
   return PrimePi(n);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var answer: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var answer: dynamic = cpp_uninitialized();
   {
     i = 2;
     while (((i * i) <= 10000000))

@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var N = cpp_expression("//firstly");
+var N: dynamic = cpp_expression("//firstly");
 
-var M = cpp_expression("//firstly");
+var M: dynamic = cpp_expression("//firstly");
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var pll = cpp_expression("//firstly s");
+var pll: dynamic = cpp_expression("//firstly s");
 
-var vll = cpp_expression("//firstly");
+var vll: dynamic = cpp_expression("//firstly");
 
-var vpll = cpp_expression("//firstly s");
+var vpll: dynamic = cpp_expression("//firstly s");
 
-var vvll = cpp_expression("//firstly s");
+var vvll: dynamic = cpp_expression("//firstly s");
 
-var endl = cpp_expression("//fi");
+var endl: dynamic = cpp_expression("//fi");
 
-var umap = cpp_expression("//firstly save by ct");
+var umap: dynamic = cpp_expression("//firstly save by ct");
 
-var adj: dynamic;
+var adj: dynamic = cpp_uninitialized();
 
-var vis: dynamic;
+var vis: dynamic = cpp_uninitialized();
 
-var viss: dynamic;
+var viss: dynamic = cpp_uninitialized();
 
-var rnk: dynamic;
+var rnk: dynamic = cpp_uninitialized();
 
-var parent: dynamic;
+var parent: dynamic = cpp_uninitialized();
 
-var sz: dynamic;
+var sz: dynamic = cpp_uninitialized();
 
-var sieve_max = cpp_expression("//first");
+var sieve_max: dynamic = cpp_expression("//first");
 
-var spf = cpp_array((sieve_max + 1));
+var spf: dynamic = cpp_array((sieve_max + 1));
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-func yg(v: dynamic, l: dynamic, r: dynamic, prev: dynamic)
+func yg(v: dynamic, l: dynamic, r: dynamic, prev: dynamic) -> dynamic
 {
   if ((r < l))
   {
@@ -47,10 +47,10 @@ func yg(v: dynamic, l: dynamic, r: dynamic, prev: dynamic)
     mp[r] = prev;
     return;
   }
-  var mx = LLONG_MIN;
-  var ct = 0;
+  var mx: dynamic = LLONG_MIN;
+  var ct: dynamic = 0;
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i <= r))
     {
       if ((v[i] > mx))
@@ -67,21 +67,21 @@ func yg(v: dynamic, l: dynamic, r: dynamic, prev: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var t: dynamic;
-  var temp: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var temp: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     mp.clear();
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var v: dynamic;
+    var v: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(temp);
@@ -91,7 +91,7 @@ func main()
     }
     yg(v, 0, (n - 1), 0);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write(mp[i], " ");

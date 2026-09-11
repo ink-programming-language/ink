@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var vis = cpp_array(1000);
+var vis: dynamic = cpp_array(1000);
 
-var q = cpp_array(1000);
+var q: dynamic = cpp_array(1000);
 
-var node = cpp_array(1000);
+var node: dynamic = cpp_array(1000);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1000, 1000);
+var a: dynamic = cpp_array(1000, 1000);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ans = 0;
+var ans: dynamic = 0;
 
-func solve(u: dynamic)
+func solve(u: dynamic) -> dynamic
 {
-  var l = 0;
-  var r = 1;
+  var l: dynamic = 0;
+  var r: dynamic = 1;
   q[r] = u;
-  var to = 0;
-  var maxn = 0;
+  var to: dynamic = 0;
+  var maxn: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (a[i][u])
@@ -40,27 +40,27 @@ func solve(u: dynamic)
   {
     return;
   }
-  var sumv = (node[u] + node[to]);
-  var sume = a[u][to];
+  var sumv: dynamic = (node[u] + node[to]);
+  var sume: dynamic = a[u][to];
   vis[u] = 1;
   vis[to] = 1;
   while ((l < r))
   {
-    var t = q[cpp_update(l, "++")];
-    var now = 0;
-    var tag: dynamic;
-    var nowv: dynamic;
-    var nowe: dynamic;
+    var t: dynamic = q[cpp_update(l, "++")];
+    var now: dynamic = 0;
+    var tag: dynamic = cpp_uninitialized();
+    var nowv: dynamic = cpp_uninitialized();
+    var nowe: dynamic = cpp_uninitialized();
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if (((!vis[i]) && a[t][i]))
         {
-          var tmpv = (sumv + node[i]);
-          var tmpe = (sume + a[t][i]);
+          var tmpv: dynamic = (sumv + node[i]);
+          var tmpe: dynamic = (sume + a[t][i]);
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= n))
             {
               if ((vis[j] && a[i][j]))
@@ -95,23 +95,23 @@ func solve(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&node[i]));
       i += 1;
     }
   }
-  var flg = 0;
-  var x: dynamic;
-  var y: dynamic;
-  var w: dynamic;
+  var flg: dynamic = 0;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d%d%d", (&x), (&y), (&w));
@@ -129,7 +129,7 @@ func main()
     return 0;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       memset(vis, 0, cpp_sizeof(vis));
@@ -137,7 +137,7 @@ func main()
       i += 1;
     }
   }
-  var tans = cpp_cast(ans);
+  var tans: dynamic = cpp_cast(ans);
   printf("%0.12lf\n", tans);
   return 0;
 }

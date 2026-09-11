@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func calc(x: dynamic, pow: dynamic, pp: dynamic)
+func calc(x: dynamic, pow: dynamic, pp: dynamic) -> dynamic
 {
-  var res = 1;
-  var tmp = ((x % pp));
-  var cur = pow;
+  var res: dynamic = 1;
+  var tmp: dynamic = ((x % pp));
+  var cur: dynamic = pow;
   while ((cur > 0))
   {
     if (((cur % 2) == 0))
@@ -20,14 +20,14 @@ func calc(x: dynamic, pow: dynamic, pp: dynamic)
   return res;
 }
 
-func obr()
+func obr() -> dynamic
 {
-  var k: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  var p: dynamic;
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
   read(k, l, r, p);
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   if ((p == 2))
   {
     write(((1 - ((k % 2)))), "\n");
@@ -38,11 +38,11 @@ func obr()
     ans = (2 % p);
   } else
   {
-    var st_l = calc(2, l, (p - 1));
-    var st_r = calc(2, (r + 1), (p - 1));
-    var rev_2 = (((p + 1)) / 2);
-    var ch = ((((calc(k, st_r, p) + p) - 1)) % p);
-    var zn = ((((calc(k, st_l, p) + p) - 1)) % p);
+    var st_l: dynamic = calc(2, l, (p - 1));
+    var st_r: dynamic = calc(2, (r + 1), (p - 1));
+    var rev_2: dynamic = (((p + 1)) / 2);
+    var ch: dynamic = ((((calc(k, st_r, p) + p) - 1)) % p);
+    var zn: dynamic = ((((calc(k, st_l, p) + p) - 1)) % p);
     if (((k % p) == 0))
     {
       zn = cpp_assign(ch, "=", (p - 1));
@@ -57,7 +57,7 @@ func obr()
     }
     if ((k % 2))
     {
-      var to_div = calc(rev_2, (r - l), p);
+      var to_div: dynamic = calc(rev_2, (r - l), p);
       ch = (((ch * to_div)) % p);
     }
     ans = ch;
@@ -66,13 +66,13 @@ func obr()
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= t))
     {
       obr();

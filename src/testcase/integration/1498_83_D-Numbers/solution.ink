@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var M = 100010;
+var M: dynamic = 100010;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var OPT = 1000;
+var OPT: dynamic = 1000;
 
-var f = cpp_array(M);
+var f: dynamic = cpp_array(M);
 
-var g: dynamic;
+var g: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-func isprime(n: dynamic)
+func isprime(n: dynamic) -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= n))
     {
       if (((n % i) == 0))
@@ -28,13 +28,13 @@ func isprime(n: dynamic)
   return 1;
 }
 
-var NN: dynamic;
+var NN: dynamic = cpp_uninitialized();
 
-var DD: dynamic;
+var DD: dynamic = cpp_uninitialized();
 
-var ANS: dynamic;
+var ANS: dynamic = cpp_uninitialized();
 
-func track(i: dynamic, taken: dynamic, sum: dynamic)
+func track(i: dynamic, taken: dynamic, sum: dynamic) -> dynamic
 {
   if ((p[i] >= DD))
   {
@@ -55,11 +55,11 @@ func track(i: dynamic, taken: dynamic, sum: dynamic)
   }
 }
 
-func solve_for(n: dynamic, d: dynamic)
+func solve_for(n: dynamic, d: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   if ((n < d))
   {
     return 0;
@@ -73,7 +73,7 @@ func solve_for(n: dynamic, d: dynamic)
     return ANS;
   } else
   {
-    var r = (n / d);
+    var r: dynamic = (n / d);
     {
       i = 0;
       while ((i <= r))
@@ -97,7 +97,7 @@ func solve_for(n: dynamic, d: dynamic)
         i += 1;
       }
     }
-    var sum = 0;
+    var sum: dynamic = 0;
     {
       i = 1;
       while ((i <= r))
@@ -111,15 +111,15 @@ func solve_for(n: dynamic, d: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var sum = 0;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var sum: dynamic = 0;
   {
     i = 2;
     while ((i < M))

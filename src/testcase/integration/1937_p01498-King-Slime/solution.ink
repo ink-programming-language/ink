@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, a: dynamic, b: dynamic)
+func rep(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<b;i++)");
 }
 
 class UF
 {
-  var par: dynamic;
-  func UF()
+  var par: dynamic = cpp_uninitialized();
+  func UF() -> dynamic
   {
       par = vector(um, 0);
       rep(i, 0, um)[i] = i;
     }
-  func operator_index(x: dynamic)
+  func operator_index(x: dynamic) -> dynamic
   {
-      return if ((par[x] == x)) x else cpp_assign(par[x], "=", operator(par[x]));
+      return  ((par[x] == x)) ? x : cpp_assign(par[x], "=", operator(par[x]));
     }
-  func operator_call(x: dynamic, y: dynamic)
+  func operator_call(x: dynamic, y: dynamic) -> dynamic
   {
       x = operator(x);
       y = operator(y);
@@ -28,19 +28,19 @@ class UF
     }
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var X = cpp_array(40101);
+var X: dynamic = cpp_array(40101);
 
-var Y = cpp_array(40101);
+var Y: dynamic = cpp_array(40101);
 
-var uf: dynamic;
+var uf: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(N, W, H);
   rep(i, 0, N);
@@ -51,13 +51,13 @@ func main()
   {
     uf(i, j);
   }
-  var isWall = false;
+  var isWall: dynamic = false;
   rep(i, 0, N);
   if (((((X[i] == 1) || (X[i] == W))) || (((Y[i] == 1) || (Y[i] == H)))))
   {
     isWall = true;
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   rep(i, 0, N);
   if ((uf[i] == i))
   {

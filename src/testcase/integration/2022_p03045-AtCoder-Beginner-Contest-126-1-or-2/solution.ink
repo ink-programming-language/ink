@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var Maxv = 100005;
+var Maxv: dynamic = 100005;
 
-var fa = cpp_array(Maxv);
+var fa: dynamic = cpp_array(Maxv);
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
   if ((fa[x] != x))
   {
@@ -13,17 +13,17 @@ func find(x: dynamic)
   return fa[x];
 }
 
-var visited = cpp_array(Maxv);
+var visited: dynamic = cpp_array(Maxv);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
   read(n, m);
   {
     i = 1;
@@ -45,7 +45,7 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
     i = 1;
     while ((i <= n))

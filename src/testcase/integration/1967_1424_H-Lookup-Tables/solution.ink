@@ -2,16 +2,16 @@
 
 class segtree
 {
-  func unite(a: dynamic, b: dynamic)
+  func unite(a: dynamic, b: dynamic) -> dynamic
   {
-      var res: dynamic;
+      var res: dynamic = cpp_uninitialized();
       res.val = (a.val | b.val);
       return res;
     }
-  func push(x: dynamic, l: dynamic, r: dynamic)
+  func push(x: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
-      var y = (((l + r)) >> 1);
-      var z = (x + (((((y - l) + 1)) << 1)));
+      var y: dynamic = (((l + r)) >> 1);
+      var z: dynamic = (x + (((((y - l) + 1)) << 1)));
       if ((tree[x].put != 0))
       {
         tree[(x + 1)].apply(l, y, tree[x].put);
@@ -19,47 +19,47 @@ class segtree
         tree[x].put = 0;
       }
     }
-  func pull(x: dynamic, z: dynamic)
+  func pull(x: dynamic, z: dynamic) -> dynamic
   {
       tree[x] = unite(tree[(x + 1)], tree[z]);
     }
-  var n: dynamic;
-  var tree: dynamic;
-  func build(x: dynamic, l: dynamic, r: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  var tree: dynamic = cpp_uninitialized();
+  func build(x: dynamic, l: dynamic, r: dynamic) -> dynamic
   {
       if ((l == r))
       {
         return;
       }
-      var y = (((l + r)) >> 1);
-      var z = (x + (((((y - l) + 1)) << 1)));
+      var y: dynamic = (((l + r)) >> 1);
+      var z: dynamic = (x + (((((y - l) + 1)) << 1)));
       build((x + 1), l, y);
       build(z, (y + 1), r);
       pull(x, z);
     }
-  func build(x: dynamic, l: dynamic, r: dynamic, v: dynamic)
+  func build(x: dynamic, l: dynamic, r: dynamic, v: dynamic) -> dynamic
   {
       if ((l == r))
       {
         tree[x].apply(l, r, v[l]);
         return;
       }
-      var y = (((l + r)) >> 1);
-      var z = (x + (((((y - l) + 1)) << 1)));
+      var y: dynamic = (((l + r)) >> 1);
+      var z: dynamic = (x + (((((y - l) + 1)) << 1)));
       build((x + 1), l, y, v);
       build(z, (y + 1), r, v);
       pull(x, z);
     }
-  func get(x: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic)
+  func get(x: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic) -> dynamic
   {
       if (((ll <= l) && (r <= rr)))
       {
         return tree[x];
       }
-      var y = (((l + r)) >> 1);
-      var z = (x + (((((y - l) + 1)) << 1)));
+      var y: dynamic = (((l + r)) >> 1);
+      var z: dynamic = (x + (((((y - l) + 1)) << 1)));
       push(x, l, r);
-      var res = [];
+      var res: dynamic = [];
       if ((rr <= y))
       {
         res = get((x + 1), l, y, ll, rr);
@@ -76,15 +76,15 @@ class segtree
       pull(x, z);
       return res;
     }
-  func modify(x: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic, v: dynamic...)
+  func modify(x: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic, v: dynamic...) -> dynamic
   {
       if (((ll <= l) && (r <= rr)))
       {
         tree[x].apply(l, r, cpp_expand(v));
         return;
       }
-      var y = (((l + r)) >> 1);
-      var z = (x + (((((y - l) + 1)) << 1)));
+      var y: dynamic = (((l + r)) >> 1);
+      var z: dynamic = (x + (((((y - l) + 1)) << 1)));
       push(x, l, r);
       if ((ll <= y))
       {
@@ -96,16 +96,16 @@ class segtree
       }
       pull(x, z);
     }
-  func find_first_knowingly(x: dynamic, l: dynamic, r: dynamic, f: dynamic)
+  func find_first_knowingly(x: dynamic, l: dynamic, r: dynamic, f: dynamic) -> dynamic
   {
       if ((l == r))
       {
         return l;
       }
       push(x, l, r);
-      var y = (((l + r)) >> 1);
-      var z = (x + (((((y - l) + 1)) << 1)));
-      var res: dynamic;
+      var y: dynamic = (((l + r)) >> 1);
+      var z: dynamic = (x + (((((y - l) + 1)) << 1)));
+      var res: dynamic = cpp_uninitialized();
       if (f(tree[(x + 1)]))
       {
         res = find_first_knowingly((x + 1), l, y, f);
@@ -116,7 +116,7 @@ class segtree
       pull(x, z);
       return res;
     }
-  func find_first(x: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic, f: dynamic)
+  func find_first(x: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic, f: dynamic) -> dynamic
   {
       if (((ll <= l) && (r <= rr)))
       {
@@ -127,9 +127,9 @@ class segtree
         return find_first_knowingly(x, l, r, f);
       }
       push(x, l, r);
-      var y = (((l + r)) >> 1);
-      var z = (x + (((((y - l) + 1)) << 1)));
-      var res = -1;
+      var y: dynamic = (((l + r)) >> 1);
+      var z: dynamic = (x + (((((y - l) + 1)) << 1)));
+      var res: dynamic = -1;
       if ((ll <= y))
       {
         res = find_first((x + 1), l, y, ll, rr, f);
@@ -141,16 +141,16 @@ class segtree
       pull(x, z);
       return res;
     }
-  func find_last_knowingly(x: dynamic, l: dynamic, r: dynamic, f: dynamic)
+  func find_last_knowingly(x: dynamic, l: dynamic, r: dynamic, f: dynamic) -> dynamic
   {
       if ((l == r))
       {
         return l;
       }
       push(x, l, r);
-      var y = (((l + r)) >> 1);
-      var z = (x + (((((y - l) + 1)) << 1)));
-      var res: dynamic;
+      var y: dynamic = (((l + r)) >> 1);
+      var z: dynamic = (x + (((((y - l) + 1)) << 1)));
+      var res: dynamic = cpp_uninitialized();
       if (f(tree[z]))
       {
         res = find_last_knowingly(z, (y + 1), r, f);
@@ -161,7 +161,7 @@ class segtree
       pull(x, z);
       return res;
     }
-  func find_last(x: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic, f: dynamic)
+  func find_last(x: dynamic, l: dynamic, r: dynamic, ll: dynamic, rr: dynamic, f: dynamic) -> dynamic
   {
       if (((ll <= l) && (r <= rr)))
       {
@@ -172,9 +172,9 @@ class segtree
         return find_last_knowingly(x, l, r, f);
       }
       push(x, l, r);
-      var y = (((l + r)) >> 1);
-      var z = (x + (((((y - l) + 1)) << 1)));
-      var res = -1;
+      var y: dynamic = (((l + r)) >> 1);
+      var z: dynamic = (x + (((((y - l) + 1)) << 1)));
+      var res: dynamic = -1;
       if ((rr > y))
       {
         res = find_last(z, (y + 1), r, ll, rr, f);
@@ -186,71 +186,71 @@ class segtree
       pull(x, z);
       return res;
     }
-  func segtree(n: dynamic)
+  func segtree(n: dynamic) -> dynamic
   {
-      this->n = cpp_construct(n);
+      self->n = cpp_construct(n);
       assert((n > 0));
       tree.resize(((2 * n) - 1));
       build(0, 0, (n - 1));
     }
-  func segtree(v: dynamic)
+  func segtree(v: dynamic) -> dynamic
   {
       n = v.size();
       assert((n > 0));
       tree.resize(((2 * n) - 1));
       build(0, 0, (n - 1), v);
     }
-  func get(ll: dynamic, rr: dynamic)
+  func get(ll: dynamic, rr: dynamic) -> dynamic
   {
       assert((((0 <= ll) && (ll <= rr)) && (rr <= (n - 1))));
       return get(0, 0, (n - 1), ll, rr);
     }
-  func get(p: dynamic)
+  func get(p: dynamic) -> dynamic
   {
       assert(((0 <= p) && (p <= (n - 1))));
       return get(0, 0, (n - 1), p, p);
     }
-  func modify(ll: dynamic, rr: dynamic, v: dynamic...)
+  func modify(ll: dynamic, rr: dynamic, v: dynamic...) -> dynamic
   {
       assert((((0 <= ll) && (ll <= rr)) && (rr <= (n - 1))));
       modify(0, 0, (n - 1), ll, rr, cpp_expand(v));
     }
-  func find_first(ll: dynamic, rr: dynamic, f: dynamic)
+  func find_first(ll: dynamic, rr: dynamic, f: dynamic) -> dynamic
   {
       assert((((0 <= ll) && (ll <= rr)) && (rr <= (n - 1))));
       return find_first(0, 0, (n - 1), ll, rr, f);
     }
-  func find_last(ll: dynamic, rr: dynamic, f: dynamic)
+  func find_last(ll: dynamic, rr: dynamic, f: dynamic) -> dynamic
   {
       assert((((0 <= ll) && (ll <= rr)) && (rr <= (n - 1))));
       return find_last(0, 0, (n - 1), ll, rr, f);
     }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var k: dynamic;
-  var q: dynamic;
+  var k: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(k, q);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       read(l[i], r[i], v[i]);
       i += 1;
     }
   }
-  var msb = cpp_construct((1 << k));
-  var lsb = cpp_construct((1 << k));
+  var msb: dynamic = cpp_construct((1 << k));
+  var lsb: dynamic = cpp_construct((1 << k));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       {
-        var from_cpp = (l[i] >> k);
-        var to = (r[i] >> k);
+        var from_cpp: dynamic = (l[i] >> k);
+        var to: dynamic = (r[i] >> k);
         msb.modify(from_cpp, to, v[i]);
       }
       {
@@ -259,8 +259,8 @@ func main()
           lsb.modify(0, (((1 << k)) - 1), v[i]);
         } else
         {
-          var from_cpp = (l[i] & ((((1 << k)) - 1)));
-          var to = (r[i] & ((((1 << k)) - 1)));
+          var from_cpp: dynamic = (l[i] & ((((1 << k)) - 1)));
+          var to: dynamic = (r[i] & ((((1 << k)) - 1)));
           if ((from_cpp <= to))
           {
             lsb.modify(from_cpp, to, v[i]);
@@ -275,18 +275,18 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      var x = l[i];
-      var y = r[i];
+      var x: dynamic = l[i];
+      var y: dynamic = r[i];
       while ((x <= y))
       {
         if (((((x & ((((1 << k)) - 1)))) == 0) && (((y - x) + 1) >= ((1 << k)))))
         {
-          var full = ((((y - x) + 1)) >> k);
-          var a = msb.get((x >> k), ((((x >> k)) + full) - 1)).val;
-          var b = lsb.get(0, (((1 << k)) - 1)).val;
+          var full: dynamic = ((((y - x) + 1)) >> k);
+          var a: dynamic = msb.get((x >> k), ((((x >> k)) + full) - 1)).val;
+          var b: dynamic = lsb.get(0, (((1 << k)) - 1)).val;
           if ((((a & b)) != v[i]))
           {
             write("impossible", cpp_char("\n"));
@@ -295,9 +295,9 @@ func main()
           x += ((cpp_cast(full)) << k);
           continue;
         }
-        var z = min(y, (x | ((((1 << k)) - 1))));
-        var a = msb.get((x >> k), (x >> k)).val;
-        var b = lsb.get((x & ((((1 << k)) - 1))), (z & ((((1 << k)) - 1)))).val;
+        var z: dynamic = min(y, (x | ((((1 << k)) - 1))));
+        var a: dynamic = msb.get((x >> k), (x >> k)).val;
+        var b: dynamic = lsb.get((x & ((((1 << k)) - 1))), (z & ((((1 << k)) - 1)))).val;
         if ((((a & b)) != v[i]))
         {
           write("impossible", cpp_char("\n"));
@@ -310,7 +310,7 @@ func main()
   }
   write("possible", cpp_char("\n"));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << k))))
     {
       write(lsb.get(i, i).val, cpp_char("\n"));
@@ -318,7 +318,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << k))))
     {
       write(msb.get(i, i).val, cpp_char("\n"));

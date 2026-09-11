@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var M = 505;
+var M: dynamic = 505;
 
 class Node
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var cnt = 0;
+var cnt: dynamic = 0;
 
-var sum = 0;
+var sum: dynamic = 0;
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var book = cpp_array(M, M);
+var book: dynamic = cpp_array(M, M);
 
-var mapp = cpp_array(M, M);
+var mapp: dynamic = cpp_array(M, M);
 
-var mv = [[0, -1], [0, 1], [1, 0], [-1, 0]];
+var mv: dynamic = [[0, -1], [0, 1], [1, 0], [-1, 0]];
 
-func bfs(x: dynamic, y: dynamic)
+func bfs(x: dynamic, y: dynamic) -> dynamic
 {
-  var q: dynamic;
-  var xt: dynamic;
-  var yt: dynamic;
-  var tmp: dynamic;
-  var next: dynamic;
+  var q: dynamic = cpp_uninitialized();
+  var xt: dynamic = cpp_uninitialized();
+  var yt: dynamic = cpp_uninitialized();
+  var tmp: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
   tmp.x = x;
   tmp.y = y;
   book[x][y] = true;
@@ -41,7 +41,7 @@ func bfs(x: dynamic, y: dynamic)
     tmp = q.front();
     q.pop();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
         xt = (tmp.x + mv[i][0]);
@@ -69,18 +69,18 @@ func bfs(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var x = -1;
-  var y = -1;
+  var x: dynamic = -1;
+  var y: dynamic = -1;
   scanf("%d%d%d", (&n), (&m), (&k));
   getchar();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           scanf("%c", (&mapp[i][j]));
@@ -101,11 +101,11 @@ func main()
   {
     bfs(x, y);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= m))
           {
             if (((mapp[i][j] == cpp_char(".")) && book[i][j]))
@@ -128,11 +128,11 @@ func main()
   } else
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= m))
           {
             printf("%c", mapp[i][j]);

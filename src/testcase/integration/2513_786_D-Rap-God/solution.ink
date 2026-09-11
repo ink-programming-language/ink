@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-func powmod(a: dynamic, b: dynamic)
+func powmod(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   a %= mod;
   assert((b >= 0));
   {
@@ -21,43 +21,43 @@ func powmod(a: dynamic, b: dynamic)
   return res;
 }
 
-var N = 40100;
+var N: dynamic = 40100;
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-var ch = cpp_array(N);
+var ch: dynamic = cpp_array(N);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var st = cpp_array(N);
+var st: dynamic = cpp_array(N);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var ret = cpp_array(N);
+var ret: dynamic = cpp_array(N);
 
-var cp = cpp_array(N);
+var cp: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var u: dynamic;
+var u: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var s = cpp_array(10);
+var s: dynamic = cpp_array(10);
 
-var e = cpp_array(N);
+var e: dynamic = cpp_array(N);
 
-var Q = cpp_array(N);
+var Q: dynamic = cpp_array(N);
 
-func dfs(u: dynamic, f: dynamic)
+func dfs(u: dynamic, f: dynamic) -> dynamic
 {
-  for (var v in e[u])
+  for (var v: dynamic in e[u])
   {
     if ((v.first != f))
     {
@@ -68,13 +68,13 @@ func dfs(u: dynamic, f: dynamic)
   }
 }
 
-func gao(u: dynamic, v: dynamic)
+func gao(u: dynamic, v: dynamic) -> dynamic
 {
   T += 1;
-  var r = v;
-  var tot = 0;
+  var r: dynamic = v;
+  var tot: dynamic = 0;
   dep[v] = n;
-  var ret = -1;
+  var ret: dynamic = -1;
   while ((r != u))
   {
     ch[dep[r]] = c[r];
@@ -87,23 +87,23 @@ func gao(u: dynamic, v: dynamic)
   vis[u] = T;
   cp[u] = 1;
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j < (n + 1)))
     {
       if ((vis[j] != T))
       {
-        var top = 0;
-        var r = j;
+        var top: dynamic = 0;
+        var r: dynamic = j;
         while ((vis[r] != T))
         {
           st[cpp_update(top, "++")] = r;
           r = p[r];
         }
         {
-          var i = (top - 1);
+          var i: dynamic = (top - 1);
           while ((i >= 0))
           {
-            var r = st[i];
+            var r: dynamic = st[i];
             dep[r] = (dep[p[r]] + 1);
             vis[r] = T;
             if ((cp[p[r]] != 1))
@@ -130,14 +130,14 @@ func gao(u: dynamic, v: dynamic)
   return ret;
 }
 
-func solve(u: dynamic, f: dynamic)
+func solve(u: dynamic, f: dynamic) -> dynamic
 {
-  for (var v in Q[u])
+  for (var v: dynamic in Q[u])
   {
     ret[v.second] = gao(u, v.first);
   }
-  var pr = c[u];
-  for (var v in e[u])
+  var pr: dynamic = c[u];
+  for (var v: dynamic in e[u])
   {
     if ((v.first != f))
     {
@@ -150,11 +150,11 @@ func solve(u: dynamic, f: dynamic)
   p[u] = f;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&q));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       scanf("%d%d%s", (&u), (&v), s);
@@ -165,7 +165,7 @@ func main()
   }
   dfs(1, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       scanf("%d%d", (&u), (&v));
@@ -175,7 +175,7 @@ func main()
   }
   solve(1, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       printf("%d\n", ret[i]);

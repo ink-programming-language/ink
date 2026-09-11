@@ -10,207 +10,145 @@ namespace ink::parser
 {
   namespace
   {
-    using test::expectFullFidelity;
-    using test::hasDiagnostic;
-    using test::nodeText;
-    using test::parseSource;
-
     std::string nestedArraySource(std::size_t Depth)
     {
-      std::string Source = "const Deep = ";
-      Source.append(Depth, '[');
-      Source += '0';
-      Source.append(Depth, ']');
-      Source += ';';
-      return Source;
+      return "let Deep: Data = " + std::string(Depth, '[') + "0" + std::string(Depth, ']') + ";";
     }
 
     std::string nestedTupleTypeSource(std::size_t Depth)
     {
-      std::string Type = "i32";
+      std::string Type = "int32";
       for (std::size_t Index = 0; Index < Depth; ++Index)
       {
-        Type = "(" + Type + ",)";
+        Type = "(" + Type + ", int32)";
       }
-      return "func deep(Value: " + Type + ");";
-    }
-
-    std::string nestedStatementBlockSource(std::size_t Depth)
-    {
-      std::string Source = "func deep() {";
-      Source.append(Depth, '{');
-      Source.append(Depth, '}');
-      Source += '}';
-      return Source;
+      return "func deep(Value: " + Type + ") -> void;";
     }
 
     std::string nestedTuplePatternSource(std::size_t Depth)
     {
-      std::string Source = "const ";
-      Source.append(Depth, '(');
-      Source += "Value";
+      std::string Pattern = "Value";
       for (std::size_t Index = 0; Index < Depth; ++Index)
       {
-        Source += ",)";
+        Pattern = "(" + Pattern + ", _)";
       }
-      Source += " = Input;";
-      return Source;
+      return "let " + Pattern + ": Data = Input;";
     }
 
-    std::string nestedTypeDeclarationSource(std::size_t Depth)
+    std::string repeatedNestedSource(std::string_view Prefix, std::string_view Middle, std::string_view Suffix, std::size_t Depth)
     {
       std::string Source;
       for (std::size_t Index = 0; Index < Depth; ++Index)
       {
-        Source += "class Nested {";
+        Source += Prefix;
       }
-      Source.append(Depth, '}');
-      return Source;
-    }
-
-    std::string nestedComptimeRegionSource(std::size_t Depth)
-    {
-      std::string Source;
+      Source += Middle;
       for (std::size_t Index = 0; Index < Depth; ++Index)
       {
-        Source += "comptime {";
-      }
-      Source.append(Depth, '}');
-      return Source;
-    }
-
-    std::string elseIfStatementSource(std::size_t Depth)
-    {
-      std::string Source = "func deep() { if (Ready) {}";
-      for (std::size_t Index = 1; Index < Depth; ++Index)
-      {
-        Source += " else if (Ready) {}";
-      }
-      Source += " }";
-      return Source;
-    }
-
-    std::string elseIfRegionSource(std::size_t Depth)
-    {
-      std::string Source = "comptime if (Ready) {}";
-      for (std::size_t Index = 1; Index < Depth; ++Index)
-      {
-        Source += " else if (Ready) {}";
+        Source += Suffix;
       }
       return Source;
     }
 
-    std::string nestedGenericArgumentSource(std::size_t Depth)
-    {
-      std::string Source = "const Deep = ";
-      for (std::size_t Index = 0; Index < Depth; ++Index)
-      {
-        Source += "Generic::<";
-      }
-      Source += "Value";
-      Source.append(Depth, '>');
-      Source += ';';
-      return Source;
-    }
-
-    struct DeepSyntaxCase
-    {
-        const char *Name;
-        std::string Source;
-    };
-
-    // Verifies syntax within the configured recursion budget remains valid while the first expression beyond it reports the dedicated limit diagnostic.
+    // Verifies an exact array nesting boundary and the next rejected level under the configured budget.
     TEST(ParserNestingLimitTest, HonorsConfiguredExpressionBoundary)
     {
       ParserOptions Options;
       Options.MaxSyntaxNestingDepth = 32;
-      const ParsedFile WithinLimit = parseSource(nestedArraySource(31), Options);
-      const ParsedFile BeyondLimit = parseSource(nestedArraySource(32), Options);
-
+      const ParsedFile WithinLimit = test::parseSource(nestedArraySource(30), Options);
+      const ParsedFile BeyondLimit = test::parseSource(nestedArraySource(31), Options);
       EXPECT_TRUE(WithinLimit.succeeded());
       EXPECT_FALSE(BeyondLimit.succeeded());
-      EXPECT_TRUE(hasDiagnostic(BeyondLimit, core::DiagnosticKind::SyntaxNestingLimit));
-      expectFullFidelity(WithinLimit);
-      expectFullFidelity(BeyondLimit);
+      EXPECT_TRUE(test::hasDiagnostic(BeyondLimit, core::DiagnosticKind::SyntaxNestingLimit));
+      test::expectAstIntegrity(WithinLimit);
+      test::expectAstIntegrity(BeyondLimit);
     }
 
-    // Verifies deeply nested expressions and types recover deterministically at the configured limit without recursive stack exhaustion or token loss.
-    TEST(ParserNestingLimitTest, RecoversDeepExpressionsAndTypesWithFullFidelity)
-    {
-      constexpr std::size_t Depth = 512;
-      ParserOptions Options;
-      Options.MaxSyntaxNestingDepth = 32;
-      const std::vector<DeepSyntaxCase> Cases = {
-          {"ArrayExpression", nestedArraySource(Depth)},
-          {"TupleType", nestedTupleTypeSource(Depth)},
-      };
-
-      for (const DeepSyntaxCase &TestCase : Cases)
-      {
-        SCOPED_TRACE(TestCase.Name);
-        const ParsedFile First = parseSource(TestCase.Source, Options);
-        const ParsedFile Second = parseSource(TestCase.Source, Options);
-
-        EXPECT_FALSE(First.succeeded());
-        EXPECT_EQ(First.completeness(), ParseCompleteness::Complete);
-        EXPECT_TRUE(hasDiagnostic(First, core::DiagnosticKind::SyntaxNestingLimit));
-        EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
-        EXPECT_EQ(First.cst().children(), Second.cst().children());
-        EXPECT_TRUE(test::diagnosticsEqual(First, Second));
-        EXPECT_EQ(nodeText(First, First.cst().root()), TestCase.Source);
-        expectFullFidelity(First);
-      }
-    }
-
-    // Verifies every structurally recursive grammar family shares the nesting budget and recovers deterministically instead of exhausting the process stack.
-    TEST(ParserNestingLimitTest, RecoversDeepStructuralSyntaxWithFullFidelity)
+    // Verifies genuine nesting in arrays, tuples, patterns, blocks, declarations, comptime regions, and generics produces bounded deterministic recovery.
+    TEST(ParserNestingLimitTest, RecoversDeepSyntaxDeterministically)
     {
       constexpr std::size_t Depth = 768;
       ParserOptions Options;
       Options.MaxSyntaxNestingDepth = 32;
-      const std::vector<DeepSyntaxCase> Cases = {
-          {"StatementBlock", nestedStatementBlockSource(Depth)},
-          {"TuplePattern", nestedTuplePatternSource(Depth)},
-          {"TypeDeclaration", nestedTypeDeclarationSource(Depth)},
-          {"ComptimeRegion", nestedComptimeRegionSource(Depth)},
-          {"ElseIfStatement", elseIfStatementSource(Depth)},
-          {"ElseIfRegion", elseIfRegionSource(Depth)},
-          {"GenericArgument", nestedGenericArgumentSource(Depth)},
+      const std::vector<std::string> Sources = {
+          nestedArraySource(Depth),
+          nestedTupleTypeSource(Depth),
+          nestedTuplePatternSource(Depth),
+          repeatedNestedSource("{", "", "}", Depth),
+          repeatedNestedSource("class Nested {", "", "}", Depth),
+          repeatedNestedSource("comptime {", "", "}", Depth),
+          "let Deep: type = " + repeatedNestedSource("Generic::[", "Value", "]", Depth) + ";",
+          repeatedNestedSource("func f() -> void {", "", "}", Depth),
       };
-
-      for (const DeepSyntaxCase &TestCase : Cases)
+      for (std::size_t Index = 0; Index < Sources.size(); ++Index)
       {
-        SCOPED_TRACE(TestCase.Name);
-        const ParsedFile First = parseSource(TestCase.Source, Options);
-        const ParsedFile Second = parseSource(TestCase.Source, Options);
-
+        SCOPED_TRACE(Index);
+        const ParsedFile First = test::parseSource(Sources[Index], Options);
+        const ParsedFile Second = test::parseSource(Sources[Index], Options);
         EXPECT_FALSE(First.succeeded());
         EXPECT_EQ(First.completeness(), ParseCompleteness::Complete);
-        EXPECT_TRUE(hasDiagnostic(First, core::DiagnosticKind::SyntaxNestingLimit));
-        EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
-        EXPECT_EQ(First.cst().children(), Second.cst().children());
+        EXPECT_TRUE(test::hasDiagnostic(First, core::DiagnosticKind::SyntaxNestingLimit));
+        EXPECT_EQ(test::astSnapshot(First), test::astSnapshot(Second));
         EXPECT_TRUE(test::diagnosticsEqual(First, Second));
-        EXPECT_EQ(nodeText(First, First.cst().root()), TestCase.Source);
-        expectFullFidelity(First);
+        test::expectAstIntegrity(First);
       }
     }
 
-    // Verifies missing expressions, types, and generic arguments at synchronization tokens do not consume those tokens or masquerade as nesting-limit failures.
-    TEST(ParserNestingLimitTest, PrioritizesMissingSyntaxAtNestingBoundaryStops)
+    // Verifies a long else-if list consumes no recursive syntax budget and retains its complete branch structure.
+    TEST(ParserNestingLimitTest, LongElseIfListsUseIteration)
     {
-      ParserOptions StatementOptions;
-      StatementOptions.MaxSyntaxNestingDepth = 1;
-      ParserOptions DeclarationOptions;
-      DeclarationOptions.MaxSyntaxNestingDepth = 0;
-      const ParsedFile MissingCondition = parseSource("func missing() { if () {} }", StatementOptions);
-      const ParsedFile MissingTypeAndArgument = parseSource("func missing<T: = >();", DeclarationOptions);
-
-      for (const ParsedFile *File : {&MissingCondition, &MissingTypeAndArgument})
+      constexpr std::size_t BranchCount = 1000;
+      std::string Source = "comptime if (Ready) {}";
+      for (std::size_t Index = 1; Index < BranchCount; ++Index)
       {
-        EXPECT_FALSE(File->succeeded());
-        EXPECT_FALSE(hasDiagnostic(*File, core::DiagnosticKind::SyntaxNestingLimit));
-        expectFullFidelity(*File);
+        Source += " else if (Ready) {}";
       }
+      Source += " else {}";
+      ParserOptions Options;
+      Options.MaxSyntaxNestingDepth = 8;
+      const ParsedFile File = test::parseSource(Source, Options);
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_EQ(test::countKind(File, AstKind::IfStatement), BranchCount);
+      EXPECT_EQ(test::countKind(File, AstKind::ComptimeStatement), 1u);
+      test::expectAstIntegrity(File);
+    }
+
+    // Verifies ten thousand comptime prefixes do not recurse through parseStatement.
+    TEST(ParserNestingLimitTest, LongComptimePrefixListsUseIteration)
+    {
+      constexpr std::size_t PrefixCount = 10000;
+      std::string Source = repeatedNestedSource("comptime ", "Value;", "", PrefixCount);
+      const ParsedFile File = test::parseSource(Source);
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_EQ(test::countKind(File, AstKind::ComptimeStatement), PrefixCount);
+      test::expectAstIntegrity(File);
+    }
+
+    // Verifies long function-type result chains and postfix call chains stay stack safe.
+    TEST(ParserNestingLimitTest, LongTypeAndPostfixChainsUseIteration)
+    {
+      constexpr std::size_t ChainLength = 5000;
+      const std::string TypeSource = "let Deep: type = " + repeatedNestedSource("func() -> ", "int32", "", ChainLength) + ";";
+      const ParsedFile Type = test::parseSource(TypeSource);
+      ASSERT_TRUE(Type.succeeded());
+      EXPECT_EQ(test::countKind(Type, AstKind::FunctionTypeExpression), ChainLength);
+      test::expectAstIntegrity(Type);
+      const std::string CallSource = "Factory" + repeatedNestedSource("()", "", "", ChainLength) + ";";
+      const ParsedFile Call = test::parseSource(CallSource);
+      ASSERT_TRUE(Call.succeeded());
+      EXPECT_EQ(test::countKind(Call, AstKind::CallExpression), ChainLength);
+      test::expectAstIntegrity(Call);
+    }
+
+    // Verifies a zero nesting budget reports failure while retaining source bytes and a well-formed error AST.
+    TEST(ParserNestingLimitTest, ZeroBudgetReturnsStructuredFailure)
+    {
+      ParserOptions Options;
+      Options.MaxSyntaxNestingDepth = 0;
+      const ParsedFile File = test::parseSource("let Value: int32 = 1;", Options);
+      EXPECT_FALSE(File.succeeded());
+      EXPECT_TRUE(test::hasDiagnostic(File, core::DiagnosticKind::SyntaxNestingLimit));
+      test::expectAstIntegrity(File);
     }
   } // namespace
 } // namespace ink::parser

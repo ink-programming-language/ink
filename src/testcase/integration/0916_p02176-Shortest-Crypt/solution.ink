@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var int_cpp = cpp_expression("#incl");
+var int_cpp: dynamic = cpp_expression("#incl");
 
-func debug(x: dynamic)
+func debug(x: dynamic) -> dynamic
 {
   cpp_macro("cerr<<#x<<\":\"<<(x)<<endl;");
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var x = 0;
-  var y = 0;
+  var x: dynamic = 0;
+  var y: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if (((cpp_char("a") <= s[i]) && (s[i] <= cpp_char("m"))))
@@ -38,7 +38,7 @@ func main()
       i += 1;
     }
   }
-  var ans = "";
+  var ans: dynamic = "";
   if ((x < 0))
   {
     ans += string_cpp(abs(x), cpp_char("n"));

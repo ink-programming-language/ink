@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var sq = (40 * 1000);
+var sq: dynamic = (40 * 1000);
 
-var used = cpp_array((sq + 1));
+var used: dynamic = cpp_array((sq + 1));
 
-var G = [0, 1, 2, 1, 4, 3, 2, 1, 5, 6, 2, 1, 8, 7, 5, 9, 8, 7, 3, 4, 7, 4, 2, 1, 10, 9, 3, 6, 11, 12];
+var G: dynamic = [0, 1, 2, 1, 4, 3, 2, 1, 5, 6, 2, 1, 8, 7, 5, 9, 8, 7, 3, 4, 7, 4, 2, 1, 10, 9, 3, 6, 11, 12];
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var res = 0;
-  var after_sq = 0;
+  var res: dynamic = 0;
+  var after_sq: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= sq))
     {
       if (used[i])
@@ -21,9 +21,9 @@ func main()
         i += 1;
         continue;
       }
-      var cnt = (i == 1);
+      var cnt: dynamic = (i == 1);
       {
-        var j = i;
+        var j: dynamic = i;
         while (((i != 1) && (j <= n)))
         {
           if ((j <= sq))
@@ -41,7 +41,7 @@ func main()
       i += 1;
     }
   }
-  res ^= ((if ((n > sq)) (((n - sq) - after_sq)) else 0) & 1);
+  res ^= (( ((n > sq)) ? (((n - sq) - after_sq)) : 0) & 1);
   if (res)
   {
     write("Vasya\n");

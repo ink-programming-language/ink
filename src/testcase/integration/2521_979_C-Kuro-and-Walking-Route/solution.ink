@@ -1,52 +1,52 @@
 // Translated from solution.cpp.
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var op: dynamic;
+var op: dynamic = cpp_uninitialized();
 
-var mini: dynamic;
+var mini: dynamic = cpp_uninitialized();
 
-var mij: dynamic;
+var mij: dynamic = cpp_uninitialized();
 
-var ls: dynamic;
+var ls: dynamic = cpp_uninitialized();
 
-var ld: dynamic;
+var ld: dynamic = cpp_uninitialized();
 
-var ul: dynamic;
+var ul: dynamic = cpp_uninitialized();
 
-var timp: dynamic;
+var timp: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var maxl: dynamic;
+var maxl: dynamic = cpp_uninitialized();
 
-var rasp: dynamic;
+var rasp: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(1000005);
+var dp: dynamic = cpp_array(1000005);
 
-var flower = cpp_array(1000005);
+var flower: dynamic = cpp_array(1000005);
 
-var viz = cpp_array(1000005);
+var viz: dynamic = cpp_array(1000005);
 
-var v = cpp_array(1000005);
+var v: dynamic = cpp_array(1000005);
 
-var rez: dynamic;
+var rez: dynamic = cpp_uninitialized();
 
-func go(nod: dynamic, p: dynamic)
+func go(nod: dynamic, p: dynamic) -> dynamic
 {
   if (viz[nod])
   {
@@ -54,10 +54,10 @@ func go(nod: dynamic, p: dynamic)
   }
   viz[nod] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v[nod].size()))
     {
-      var nxt = v[nod][i];
+      var nxt: dynamic = v[nod][i];
       if ((nxt == p))
       {
         i += 1;
@@ -69,7 +69,7 @@ func go(nod: dynamic, p: dynamic)
       i += 1;
     }
   }
-  var total = (dp[nod] + flower[nod]);
+  var total: dynamic = (dp[nod] + flower[nod]);
   if ((nod == b))
   {
     rez += (total + dp[nod]);
@@ -78,10 +78,10 @@ func go(nod: dynamic, p: dynamic)
     rez += (total * 2);
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v[nod].size()))
     {
-      var nxt = v[nod][i];
+      var nxt: dynamic = v[nod][i];
       if ((nxt == p))
       {
         i += 1;
@@ -105,13 +105,13 @@ func go(nod: dynamic, p: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   read(n, a, b);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       read(c, d);

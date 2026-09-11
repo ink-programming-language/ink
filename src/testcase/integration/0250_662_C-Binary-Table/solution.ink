@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var inf = 1000000009;
+var inf: dynamic = 1000000009;
 
-var INF = 1000000000000000009;
+var INF: dynamic = 1000000000000000009;
 
-var big = 1000000000000000;
+var big: dynamic = 1000000000000000;
 
-var eps = 0.0000000001;
+var eps: dynamic = 0.0000000001;
 
-var T = cpp_array(100005, 21);
+var T: dynamic = cpp_array(100005, 21);
 
-var C = cpp_array(100005);
+var C: dynamic = cpp_array(100005);
 
-var DP = cpp_array(21, ((1 << 20)));
+var DP: dynamic = cpp_array(21, ((1 << 20)));
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie();
   cout.tie();
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
-          var c: dynamic;
+          var c: dynamic = cpp_uninitialized();
           read(c);
           T[i][j] = (c - cpp_char("0"));
           j += 1;
@@ -42,11 +42,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if (T[j][i])
@@ -60,13 +60,13 @@ func main()
       i += 1;
     }
   }
-  var wynik = inf;
+  var wynik: dynamic = inf;
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= n))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < ((1 << n))))
         {
           if ((j >= 2))
@@ -74,7 +74,7 @@ func main()
             DP[i][j] += (cpp_cast((((j - 2) - n))) * DP[i][(j - 2)]);
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < n))
             {
               DP[i][j] += DP[(i ^ ((1 << k)))][(j - 1)];
@@ -89,12 +89,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << n))))
     {
-      var aktual = 0;
+      var aktual: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= n))
         {
           aktual += (DP[i][j] * min(j, (n - j)));

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var maxn = (1e6 + 7);
+var maxn: dynamic = (1e6 + 7);
 
-var INF = (1e18 + 7);
+var INF: dynamic = (1e18 + 7);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var aa = cpp_array(maxn);
+var aa: dynamic = cpp_array(maxn);
 
-var pre = cpp_array(maxn);
+var pre: dynamic = cpp_array(maxn);
 
-var b = cpp_array(maxn);
+var b: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var m: dynamic;
-  var n: dynamic;
-  var t: dynamic;
-  var z: dynamic;
-  var k: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&m), (&k));
   {
     i = 1;
@@ -58,13 +58,13 @@ func main()
       i += 1;
     }
   }
-  var ans = 1e18;
+  var ans: dynamic = 1e18;
   {
     i = 1;
     while ((i <= k))
     {
-      var tem = 0;
-      var cnt = 0;
+      var tem: dynamic = 0;
+      var cnt: dynamic = 0;
       while ((cnt < n))
       {
         if (((cnt + i) >= n))

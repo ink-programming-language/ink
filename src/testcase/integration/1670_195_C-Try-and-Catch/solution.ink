@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var ar = cpp_array(n);
-  var s: dynamic;
-  var throw_line: dynamic;
-  var thr: dynamic;
-  var i = 0;
-  var count = 0;
-  var flag = 0;
-  var count2 = 0;
-  var v: dynamic;
+  var ar: dynamic = cpp_array(n);
+  var s: dynamic = cpp_uninitialized();
+  var throw_line: dynamic = cpp_uninitialized();
+  var thr: dynamic = cpp_uninitialized();
+  var i: dynamic = 0;
+  var count: dynamic = 0;
+  var flag: dynamic = 0;
+  var count2: dynamic = 0;
+  var v: dynamic = cpp_uninitialized();
   getline(cin, s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       getline(cin, s);
@@ -24,9 +24,9 @@ func main()
         count += 1;
       } else if (((s.find("try") != -1) && (flag == 1)))
       {
-        var k: dynamic;
+        var k: dynamic = cpp_uninitialized();
         k = s.find(cpp_char("\""));
-        var j: dynamic;
+        var j: dynamic = cpp_uninitialized();
         j = s.find("try");
         if (((cpp_assign(j, "=", ((k + 1) && (k > 0)))) || (((k > j) && (k > 0)))))
         {
@@ -64,7 +64,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < throw_line.size()))
     {
       if ((throw_line[i] == cpp_char("(")))
@@ -84,7 +84,7 @@ func main()
   }
   count2 = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       s = v[i];
@@ -92,7 +92,7 @@ func main()
       {
         count2 += 1;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < s.size()))
           {
             if ((s[i] == cpp_char("\"")))

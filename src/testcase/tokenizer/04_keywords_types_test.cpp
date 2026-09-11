@@ -1,278 +1,154 @@
-#include "tokenizer_test_support.h"
-
-#include "utf8_test_support.h"
-
-#include <gtest/gtest.h>
-
-#include <string>
-#include <variant>
-#include <vector>
+#include "grammar_test_support.h"
 
 namespace ink::tokenizer
 {
   namespace
   {
-    using core::SourceRange;
+    using namespace grammar_test;
 
-    struct KeywordCase
+    // Verifies every keyword in lexer.bnf has its exact typed keyword payload, including built-in types and constants.
+    TEST(KeywordsAndBuiltinTypesTest, ClassifiesEveryGrammarKeyword)
     {
-        const char *Spelling;
-        KeywordKind Value;
-    };
-
-    struct BuiltinTypeCase
-    {
-        const char *Spelling;
-        BuiltinTypeKind Value;
-    };
-
-    // Verifies that every reserved keyword is recognized only by its complete spelling.
-    TEST(KeywordsAndBuiltinTypesTest, ClassifiesEveryHardKeywordByItsCompleteSpelling)
-    {
-      const std::vector<KeywordCase> Cases = {
+      const std::vector<std::pair<std::string, KeywordKind>> Cases = {
           {"as", KeywordKind::As},
-          {"async", KeywordKind::Async},
-          {"await", KeywordKind::Await},
+          {"bool", KeywordKind::Bool},
           {"break", KeywordKind::Break},
           {"class", KeywordKind::Class},
+          {"class_field", KeywordKind::ClassField},
+          {"class_method", KeywordKind::ClassMethod},
           {"comptime", KeywordKind::Comptime},
           {"const", KeywordKind::Const},
           {"continue", KeywordKind::Continue},
-          {"decorator", KeywordKind::Decorator},
           {"defer", KeywordKind::Defer},
+          {"double", KeywordKind::Double},
           {"else", KeywordKind::Else},
           {"enum", KeywordKind::Enum},
+          {"enum_field", KeywordKind::EnumField},
+          {"extends", KeywordKind::Extends},
           {"extern", KeywordKind::Extern},
-          {"final", KeywordKind::Final},
+          {"false", KeywordKind::False},
+          {"float", KeywordKind::Float},
           {"for", KeywordKind::For},
           {"from", KeywordKind::From},
           {"func", KeywordKind::Func},
           {"if", KeywordKind::If},
-          {"implicit", KeywordKind::Implicit},
+          {"implements", KeywordKind::Implements},
           {"import", KeywordKind::Import},
           {"in", KeywordKind::In},
+          {"int8", KeywordKind::Int8},
+          {"int16", KeywordKind::Int16},
+          {"int32", KeywordKind::Int32},
+          {"int64", KeywordKind::Int64},
           {"interface", KeywordKind::Interface},
           {"let", KeywordKind::Let},
-          {"override", KeywordKind::Override},
+          {"null", KeywordKind::Null},
           {"private", KeywordKind::Private},
-          {"protected", KeywordKind::Protected},
+          {"ptr", KeywordKind::Ptr},
           {"public", KeywordKind::Public},
+          {"ref", KeywordKind::Ref},
           {"return", KeywordKind::Return},
-          {"static", KeywordKind::Static},
-          {"this", KeywordKind::This},
+          {"self", KeywordKind::Self},
+          {"super", KeywordKind::Super},
+          {"true", KeywordKind::True},
+          {"type", KeywordKind::Type},
+          {"uint8", KeywordKind::UInt8},
+          {"uint16", KeywordKind::UInt16},
+          {"uint32", KeywordKind::UInt32},
+          {"uint64", KeywordKind::UInt64},
           {"var", KeywordKind::Var},
-          {"virtual", KeywordKind::Virtual},
+          {"void", KeywordKind::Void},
           {"while", KeywordKind::While},
       };
-
-      for (const KeywordCase &Test : Cases)
+      for (const auto &Entry : Cases)
       {
-        SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
-        ASSERT_TRUE(Result.succeeded());
-        ASSERT_EQ(Result.tokens().size(), 2U);
-        const Token &Token = Result.tokens().front();
-        EXPECT_EQ(Token.Kind, TokenKind::Keyword);
-        EXPECT_EQ(Token.Span, (SourceRange{0, std::string(Test.Spelling).size()}));
-        EXPECT_EQ(Result.raw(Token), Test.Spelling);
-        ASSERT_TRUE(std::holds_alternative<KeywordKind>(Token.Payload));
-        EXPECT_EQ(std::get<KeywordKind>(Token.Payload), Test.Value);
-        EXPECT_EQ(Result.tokens().back().Kind, TokenKind::EndOfFile);
+        SCOPED_TRACE(Entry.first);
+        const TokenizedBuffer File = tokenize(Entry.first);
+        ASSERT_TRUE(File.succeeded());
+        expectRaws(File, {Entry.first});
+        EXPECT_EQ(File.tokens()[0].Kind, TokenKind::Keyword);
+        const KeywordKind *Payload = std::get_if<KeywordKind>(&File.tokens()[0].Payload);
+        ASSERT_NE(Payload, nullptr);
+        EXPECT_EQ(*Payload, Entry.second);
+        EXPECT_EQ(keywordSpelling(*Payload), Entry.first);
+        EXPECT_EQ(lookupKeyword(Entry.first), Entry.second);
       }
     }
 
-    // Verifies classification and payloads for the true, false, and null literal spellings.
-    TEST(KeywordsAndBuiltinTypesTest, ClassifiesBooleanAndNullLiteralSpellings)
+    // Verifies former keywords and type aliases no longer reserved by lexer.bnf remain ordinary identifiers.
+    TEST(KeywordsAndBuiltinTypesTest, RemovedSpellingsAndCaseVariantsRemainIdentifiers)
     {
-      struct LiteralCase
-      {
-          const char *Spelling;
-          TokenKind Kind;
-          bool BooleanValue;
-      };
-
-      const std::vector<LiteralCase> Cases = {
-          {"true", TokenKind::BoolLiteral, true},
-          {"false", TokenKind::BoolLiteral, false},
-          {"null", TokenKind::NullLiteral, false},
-      };
-
-      for (const LiteralCase &Test : Cases)
-      {
-        SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
-        ASSERT_TRUE(Result.succeeded());
-        ASSERT_EQ(Result.tokens().size(), 2U);
-        const Token &Token = Result.tokens().front();
-        EXPECT_EQ(Token.Kind, Test.Kind);
-        EXPECT_EQ(Result.raw(Token), Test.Spelling);
-        if (Test.Kind == TokenKind::BoolLiteral)
-        {
-          ASSERT_TRUE(std::holds_alternative<bool>(Token.Payload));
-          EXPECT_EQ(std::get<bool>(Token.Payload), Test.BooleanValue);
-        }
-        else
-        {
-          EXPECT_TRUE(std::holds_alternative<std::monostate>(Token.Payload));
-        }
-      }
-    }
-
-    // Verifies that every core built-in type spelling maps to its corresponding type kind.
-    TEST(KeywordsAndBuiltinTypesTest, ClassifiesEveryCoreBuiltinType)
-    {
-      const std::vector<BuiltinTypeCase> Cases = {
-          {"i8", BuiltinTypeKind::I8},
-          {"i16", BuiltinTypeKind::I16},
-          {"i32", BuiltinTypeKind::I32},
-          {"i64", BuiltinTypeKind::I64},
-          {"i128", BuiltinTypeKind::I128},
-          {"u8", BuiltinTypeKind::U8},
-          {"u16", BuiltinTypeKind::U16},
-          {"u32", BuiltinTypeKind::U32},
-          {"u64", BuiltinTypeKind::U64},
-          {"u128", BuiltinTypeKind::U128},
-          {"int", BuiltinTypeKind::Int},
-          {"uint", BuiltinTypeKind::UInt},
-          {"ptrsize", BuiltinTypeKind::PtrSize},
-          {"f16", BuiltinTypeKind::F16},
-          {"f32", BuiltinTypeKind::F32},
-          {"f64", BuiltinTypeKind::F64},
-          {"bool", BuiltinTypeKind::Bool},
-          {"byte", BuiltinTypeKind::Byte},
-          {"void", BuiltinTypeKind::Void},
-          {"never", BuiltinTypeKind::Never},
-          {"type", BuiltinTypeKind::Type},
-      };
-
-      for (const BuiltinTypeCase &Test : Cases)
-      {
-        SCOPED_TRACE(Test.Spelling);
-        const TokenizedBuffer Result = tokenize(Test.Spelling);
-        ASSERT_TRUE(Result.succeeded());
-        ASSERT_EQ(Result.tokens().size(), 2U);
-        const Token &Token = Result.tokens().front();
-        EXPECT_EQ(Token.Kind, TokenKind::BuiltinType);
-        EXPECT_EQ(Result.raw(Token), Test.Spelling);
-        ASSERT_TRUE(std::holds_alternative<BuiltinTypeKind>(Token.Payload));
-        EXPECT_EQ(std::get<BuiltinTypeKind>(Token.Payload), Test.Value);
-      }
-    }
-
-    // Verifies that removed language spellings, case variants, near misses, and function-style built-ins remain identifiers.
-    TEST(KeywordsAndBuiltinTypesTest, KeepsRemovedSpellingsCaseVariantsNearMissesAndFunctionStyleBuiltinsAsIdentifiers)
-    {
-      const std::vector<std::string> Spellings = {
-          "catch",
-          "match",
-          "throw",
-          "try",
-          "Func",
+      const std::vector<std::string> Cases = {
+          "async",
+          "await",
+          "decorator",
+          "final",
+          "implicit",
+          "override",
+          "protected",
+          "static",
+          "this",
+          "virtual",
+          "i8",
+          "i32",
+          "u32",
+          "i128",
+          "int",
+          "uint",
+          "usize",
+          "ptrsize",
+          "f16",
+          "f32",
+          "f64",
+          "byte",
+          "never",
+          "Bool",
           "TRUE",
           "Null",
-          "functional",
-          "i32value",
-          "nullable",
-          "constructor",
-          "constructorValue",
-          "destructor",
-          "cast",
-          "bitcast",
-          "ptrcast",
-          "try_cast",
-          "reflect",
-          "function",
-          "operator",
-          "String",
-          "UnicodeScalar",
-          "f128",
-          "u256",
-          utf8(u8"func\u7528\u6237"),
-          utf8(u8"i32\u53D8\u91CF"),
+          "Class",
+          "Class_field",
+          "INT32",
       };
-
-      for (const std::string &Spelling : Spellings)
+      for (const std::string &Source : Cases)
       {
-        SCOPED_TRACE(Spelling);
-        const TokenizedBuffer Result = tokenize(Spelling);
-        ASSERT_TRUE(Result.succeeded());
-        ASSERT_EQ(Result.tokens().size(), 2U);
-        const Token &Token = Result.tokens().front();
-        EXPECT_EQ(Token.Kind, TokenKind::Identifier);
-        EXPECT_EQ(Token.Span, (SourceRange{0, Spelling.size()}));
-        EXPECT_EQ(Result.raw(Token), Spelling);
-        EXPECT_TRUE(std::holds_alternative<std::monostate>(Token.Payload));
+        const TokenizedBuffer File = tokenize(Source);
+        ASSERT_TRUE(File.succeeded());
+        expectRaws(File, {Source});
+        EXPECT_EQ(File.tokens()[0].Kind, TokenKind::Identifier);
+        EXPECT_FALSE(lookupKeyword(Source).has_value());
       }
     }
 
-    // Verifies that scanning the complete Unicode identifier precedes keyword, Boolean, null, and built-in classification.
-    TEST(KeywordsAndBuiltinTypesTest, UnicodeContinuationPreventsReservedSpellingClassification)
+    // Verifies maximal identifier matching wins over a keyword prefix even when the suffix is Unicode.
+    TEST(KeywordsAndBuiltinTypesTest, KeywordPrefixesDoNotSplitIdentifiers)
     {
-      const std::vector<std::string> Spellings = {
-          utf8(u8"func\u7528\u6237"),
-          utf8(u8"true\u503C"),
-          utf8(u8"false\u503C"),
-          utf8(u8"null\u503C"),
-          utf8(u8"i32\u53D8\u91CF"),
+      const std::vector<std::string> Cases = {
+          "class_field_extra",
+          "class_method2",
+          "int320",
+          "true_",
+          "nullptr",
+          "superman",
+          "if" + utf8(u8"变量"),
       };
-
-      for (const std::string &Spelling : Spellings)
+      for (const std::string &Source : Cases)
       {
-        SCOPED_TRACE(Spelling);
-        const TokenizedBuffer Result = tokenize(Spelling);
-        ASSERT_TRUE(Result.succeeded());
-        ASSERT_EQ(Result.tokens().size(), 2U);
-        EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::Identifier);
-        EXPECT_EQ(Result.tokens()[0].Span, (SourceRange{0, Spelling.size()}));
-        EXPECT_EQ(Result.raw(Result.tokens()[0]), Spelling);
-        EXPECT_TRUE(std::holds_alternative<std::monostate>(Result.tokens()[0].Payload));
-        EXPECT_TRUE(testDiagnostics(Result).empty());
-        EXPECT_EQ(Result.tokens()[1].Kind, TokenKind::EndOfFile);
+        const TokenizedBuffer File = tokenize(Source);
+        ASSERT_TRUE(File.succeeded());
+        expectRaws(File, {Source});
+        EXPECT_EQ(File.tokens()[0].Kind, TokenKind::Identifier);
       }
     }
 
-    // Verifies that NFC-stable spellings with only compatibility equivalents remain identifiers rather than reserved ASCII spellings.
-    TEST(KeywordsAndBuiltinTypesTest, CompatibilityEquivalentUnicodeSpellingsRemainIdentifiers)
-    {
-      const std::vector<std::string> Spellings = {
-          utf8(u8"\uFF46\uFF55\uFF4E\uFF43"),
-          utf8(u8"\uFF54\uFF52\uFF55\uFF45"),
-          utf8(u8"\uFF46\uFF41\uFF4C\uFF53\uFF45"),
-          utf8(u8"\uFF4E\uFF55\uFF4C\uFF4C"),
-          utf8(u8"\uFF49\uFF13\uFF12"),
-      };
-
-      for (const std::string &Spelling : Spellings)
-      {
-        SCOPED_TRACE(Spelling);
-        const TokenizedBuffer Result = tokenize(Spelling);
-        ASSERT_TRUE(Result.succeeded());
-        ASSERT_EQ(Result.tokens().size(), 2U);
-        EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::Identifier);
-        EXPECT_EQ(Result.tokens()[0].Span, (SourceRange{0, Spelling.size()}));
-        EXPECT_EQ(Result.raw(Result.tokens()[0]), Spelling);
-        EXPECT_TRUE(std::holds_alternative<std::monostate>(Result.tokens()[0].Payload));
-        EXPECT_TRUE(testDiagnostics(Result).empty());
-        EXPECT_EQ(Result.tokens()[1].Kind, TokenKind::EndOfFile);
-      }
-    }
-
-    // Verifies that surrounding punctuation and trivia do not alter keyword classification.
+    // Verifies keyword classification remains lexical after member access and inside otherwise invalid syntax.
     TEST(KeywordsAndBuiltinTypesTest, ClassificationDoesNotDependOnSurroundingSyntax)
     {
-      const TokenizedBuffer Result = tokenize("func func: func");
-      ASSERT_TRUE(Result.succeeded());
-      ASSERT_EQ(Result.tokens().size(), 7U);
-      EXPECT_EQ(Result.tokens()[0].Kind, TokenKind::Keyword);
-      EXPECT_EQ(std::get<KeywordKind>(Result.tokens()[0].Payload), KeywordKind::Func);
-      EXPECT_EQ(Result.tokens()[1].Kind, TokenKind::SpacesAndTabs);
-      EXPECT_EQ(Result.tokens()[2].Kind, TokenKind::Keyword);
-      EXPECT_EQ(std::get<KeywordKind>(Result.tokens()[2].Payload), KeywordKind::Func);
-      EXPECT_EQ(Result.tokens()[3].Kind, TokenKind::Symbol);
-      EXPECT_EQ(std::get<char>(Result.tokens()[3].Payload), ':');
-      EXPECT_EQ(Result.tokens()[4].Kind, TokenKind::SpacesAndTabs);
-      EXPECT_EQ(Result.tokens()[5].Kind, TokenKind::Keyword);
-      EXPECT_EQ(Result.tokens()[6].Kind, TokenKind::EndOfFile);
+      const TokenizedBuffer File = tokenize("x.class self.true (int32) {null}");
+      ASSERT_TRUE(File.succeeded());
+      expectRaws(File, {"x", ".", "class", "self", ".", "true", "(", "int32", ")", "{", "null", "}"});
+      for (std::size_t Index : {2U, 3U, 5U, 7U, 10U})
+      {
+        EXPECT_EQ(File.tokens()[Index].Kind, TokenKind::Keyword);
+      }
     }
   } // namespace
 } // namespace ink::tokenizer

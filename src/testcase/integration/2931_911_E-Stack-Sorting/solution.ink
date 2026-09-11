@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var maxn = (2e5 + 100);
+var maxn: dynamic = (2e5 + 100);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var i = 0;
+var i: dynamic = 0;
 
-func cons(l: dynamic, r: dynamic)
+func cons(l: dynamic, r: dynamic) -> dynamic
 {
   if ((r < l))
   {
@@ -19,7 +19,7 @@ func cons(l: dynamic, r: dynamic)
       write(-1, "\n");
       exit(0);
     }
-    var x = a[i];
+    var x: dynamic = a[i];
     i += 1;
     cons(l, (x - 1));
     cons((x + 1), r);
@@ -36,14 +36,14 @@ func cons(l: dynamic, r: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       read(a[i]);
@@ -52,7 +52,7 @@ func main()
   }
   cons(1, n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(a[i], " ");

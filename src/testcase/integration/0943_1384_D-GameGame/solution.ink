@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var num = cpp_array(30);
+var num: dynamic = cpp_array(30);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
@@ -19,11 +19,11 @@ func main()
     read(n);
     memset(num, 0, cpp_sizeof((num)));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         read(x);
-        var cnt = 0;
+        var cnt: dynamic = 0;
         while (x)
         {
           if ((x & 1))
@@ -37,7 +37,7 @@ func main()
       }
     }
     {
-      var i = 29;
+      var i: dynamic = 29;
       while ((i >= 0))
       {
         if ((num[i] & 1))

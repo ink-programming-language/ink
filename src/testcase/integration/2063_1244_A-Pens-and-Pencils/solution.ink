@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var a: dynamic;
-    var b: dynamic;
-    var c: dynamic;
-    var d: dynamic;
-    var k: dynamic;
-    var result: dynamic;
-    var x: dynamic;
-    var y: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
+    var c: dynamic = cpp_uninitialized();
+    var d: dynamic = cpp_uninitialized();
+    var k: dynamic = cpp_uninitialized();
+    var result: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     read(a, b, c, d, k);
     if (((a % c) == 0))
     {

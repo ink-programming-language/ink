@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var pp: dynamic;
+var pp: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic, p: dynamic, G: dynamic, num: dynamic)
+func dfs(u: dynamic, p: dynamic, G: dynamic, num: dynamic) -> dynamic
 {
   num[u] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G[u].size()))
     {
-      var v = G[u][i];
+      var v: dynamic = G[u][i];
       if ((v == p))
       {
         i += 1;
@@ -30,16 +30,16 @@ func dfs(u: dynamic, p: dynamic, G: dynamic, num: dynamic)
 
 class union_find
 {
-  var v: dynamic;
-  func union_find(n: dynamic)
+  var v: dynamic = cpp_uninitialized();
+  func union_find(n: dynamic) -> dynamic
   {
-      this->v = cpp_construct(n, -1);
+      self->v = cpp_construct(n, -1);
     }
-  func find(x: dynamic)
+  func find(x: dynamic) -> dynamic
   {
-      return if (((v[x] < 0))) x else (cpp_assign(v[x], "=", find(v[x])));
+      return  (((v[x] < 0))) ? x : (cpp_assign(v[x], "=", find(v[x])));
     }
-  func unite(x: dynamic, y: dynamic)
+  func unite(x: dynamic, y: dynamic) -> dynamic
   {
       x = find(x);
       y = find(y);
@@ -53,20 +53,20 @@ class union_find
         v[y] = x;
       }
     }
-  func same(x: dynamic, y: dynamic)
+  func same(x: dynamic, y: dynamic) -> dynamic
   {
       return (find(x) == find(y));
     }
-  func size(x: dynamic)
+  func size(x: dynamic) -> dynamic
   {
       return (-v[find(x)]);
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(N, x, y);
   x -= 1;
   y -= 1;
@@ -80,14 +80,14 @@ func main()
     write("No", "\n");
     return 0;
   }
-  var A: dynamic;
-  var B: dynamic;
+  var A: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (N - 1)))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       scanf("%d%d", (&a), (&b));
       a -= 1;
       b -= 1;
@@ -102,11 +102,11 @@ func main()
   }
   dfs(0, -1, G, num);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (N - 1)))
     {
-      var a = A[i];
-      var b = B[i];
+      var a: dynamic = A[i];
+      var b: dynamic = B[i];
       if (((i_i(a, b) == pp) || (i_i(b, a) == pp)))
       {
         d[a] -= 1;
@@ -119,7 +119,7 @@ func main()
     }
   }
   {
-    var u = 0;
+    var u: dynamic = 0;
     while ((u < N))
     {
       if ((d[u] >= 3))

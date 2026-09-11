@@ -10,30 +10,30 @@ class Sentinel
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func Point(a: dynamic = [0], b: dynamic = [0])
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func Point(a: dynamic = [0], b: dynamic = [0]) -> dynamic
   {
-      this->x = cpp_construct(a);
-      this->y = cpp_construct(b);
+      self->x = cpp_construct(a);
+      self->y = cpp_construct(b);
     }
-  func operator_less(other: dynamic)
+  func operator_less(other: dynamic) -> dynamic
   {
       return (((x < other.x)) || ((((x == other.x)) && ((y < other.y)))));
     }
-  func operator_greater(other: dynamic)
+  func operator_greater(other: dynamic) -> dynamic
   {
-      return (other < (*this));
+      return (other < (*self));
     }
-  func operator_multiply(other: dynamic)
+  func operator_multiply(other: dynamic) -> dynamic
   {
       return ((x * other.y) - (y * other.x));
     }
-  func inspect()
+  func inspect() -> dynamic
   {
       write(x, "-", y, "\n");
     }
-  func operator_subtract(other: dynamic)
+  func operator_subtract(other: dynamic) -> dynamic
   {
       return Point((x - other.x), (y - other.y));
     }
@@ -41,23 +41,23 @@ class Point
 
 class Sentinel
 {
-  func Sentinel()
+  func Sentinel() -> dynamic
   {
-      this->Point = cpp_construct(10000, 10000);
+      self->Point = cpp_construct(10000, 10000);
     }
 }
 
-func sort(vec: dynamic, left: dynamic, right: dynamic)
+func sort(vec: dynamic, left: dynamic, right: dynamic) -> dynamic
 {
   if ((left == right))
   {
     return [vec.at(left), Sentinel()];
   } else
   {
-    var l = sort(vec, left, (left + (((right - left)) / 2)));
-    var r = sort(vec, ((left + 1) + (((right - left)) / 2)), right);
-    var res: dynamic;
-    for (var a in l)
+    var l: dynamic = sort(vec, left, (left + (((right - left)) / 2)));
+    var r: dynamic = sort(vec, ((left + 1) + (((right - left)) / 2)), right);
+    var res: dynamic = cpp_uninitialized();
+    for (var a: dynamic in l)
     {
       while ((r.front() < a))
       {
@@ -70,35 +70,35 @@ func sort(vec: dynamic, left: dynamic, right: dynamic)
   }
 }
 
-func sub(a: dynamic, b: dynamic, c: dynamic)
+func sub(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return (((a - b)) * ((b - c)));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   while ((n != 0))
   {
-    for (var v in vec)
+    for (var v: dynamic in vec)
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%lf,%lf", (&x), (&y));
       v = Point(x, y);
     }
-    var list = sort(vec, 0, (n - 1));
+    var list: dynamic = sort(vec, 0, (n - 1));
     list.pop_back();
-    var a = cpp_construct((n + 2));
-    var b = cpp_construct((n + 2));
+    var a: dynamic = cpp_construct((n + 2));
+    var b: dynamic = cpp_construct((n + 2));
     a.at(0) = list.front();
     a.at(1) = list.front();
     b.at(0) = list.front();
     b.at(1) = list.front();
-    var i = 1;
-    var j = 1;
-    for (var p in list)
+    var i: dynamic = 1;
+    var j: dynamic = 1;
+    for (var p: dynamic in list)
     {
       while ((sub(a.at((i - 1)), a.at(i), p) > 0))
       {

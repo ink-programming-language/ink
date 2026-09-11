@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func read_file(outToFile: dynamic = 1)
+func read_file(outToFile: dynamic = 1) -> dynamic
 {
   freopen("in", "r", stdin);
   if (outToFile)
@@ -9,32 +9,32 @@ func read_file(outToFile: dynamic = 1)
   }
 }
 
-var v = cpp_array(300005);
+var v: dynamic = cpp_array(300005);
 
-var dp = cpp_array(2, 300005);
+var dp: dynamic = cpp_array(2, 300005);
 
-var ed = cpp_array(300005);
+var ed: dynamic = cpp_array(300005);
 
-var ze = cpp_array(300005);
+var ze: dynamic = cpp_array(300005);
 
-var bo = cpp_array(300005);
+var bo: dynamic = cpp_array(300005);
 
-var on = cpp_array(300005);
+var on: dynamic = cpp_array(300005);
 
-var P = cpp_array(300005);
+var P: dynamic = cpp_array(300005);
 
-func dfs(node: dynamic, p: dynamic = -1)
+func dfs(node: dynamic, p: dynamic = -1) -> dynamic
 {
   P[node] = p;
-  var isleaf = true;
-  var zero = 0;
-  var one = 0;
-  var both = 0;
+  var isleaf: dynamic = true;
+  var zero: dynamic = 0;
+  var one: dynamic = 0;
+  var both: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v[node].size()))
     {
-      var cur = v[node][i];
+      var cur: dynamic = v[node][i];
       if ((cur == p))
       {
         i += 1;
@@ -69,13 +69,13 @@ func dfs(node: dynamic, p: dynamic = -1)
   } else
   {
     dp[node][0] = cpp_assign(dp[node][1], "=", 0);
-    var edges = ((zero + one) + both);
+    var edges: dynamic = ((zero + one) + both);
     ed[node] = edges;
     ze[node] = zero;
     on[node] = one;
     bo[node] = both;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= 1))
       {
         if (((((i + edges)) % 2) == 0))
@@ -91,18 +91,18 @@ func dfs(node: dynamic, p: dynamic = -1)
   }
 }
 
-func out(node: dynamic, state: dynamic)
+func out(node: dynamic, state: dynamic) -> dynamic
 {
-  var parity = (((state + ed[node])) % 2);
+  var parity: dynamic = (((state + ed[node])) % 2);
   if (((parity % 2) == 0))
   {
     if (((on[node] % 2) == 0))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < v[node].size()))
         {
-          var cur = v[node][i];
+          var cur: dynamic = v[node][i];
           if ((cur == P[node]))
           {
             i += 1;
@@ -117,10 +117,10 @@ func out(node: dynamic, state: dynamic)
       }
       write((node + 1), "\n");
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < v[node].size()))
         {
-          var cur = v[node][i];
+          var cur: dynamic = v[node][i];
           if ((cur == P[node]))
           {
             i += 1;
@@ -137,12 +137,12 @@ func out(node: dynamic, state: dynamic)
       }
     } else
     {
-      var mark = -1;
+      var mark: dynamic = -1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < v[node].size()))
         {
-          var cur = v[node][i];
+          var cur: dynamic = v[node][i];
           if ((cur == P[node]))
           {
             i += 1;
@@ -162,10 +162,10 @@ func out(node: dynamic, state: dynamic)
       }
       write((node + 1), "\n");
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < v[node].size()))
         {
-          var cur = v[node][i];
+          var cur: dynamic = v[node][i];
           if (((cur == P[node]) || (cur == mark)))
           {
             i += 1;
@@ -186,10 +186,10 @@ func out(node: dynamic, state: dynamic)
     if (((on[node] % 2) == 1))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < v[node].size()))
         {
-          var cur = v[node][i];
+          var cur: dynamic = v[node][i];
           if ((cur == P[node]))
           {
             i += 1;
@@ -204,10 +204,10 @@ func out(node: dynamic, state: dynamic)
       }
       write((node + 1), "\n");
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < v[node].size()))
         {
-          var cur = v[node][i];
+          var cur: dynamic = v[node][i];
           if ((cur == P[node]))
           {
             i += 1;
@@ -224,12 +224,12 @@ func out(node: dynamic, state: dynamic)
       }
     } else
     {
-      var mark = -1;
+      var mark: dynamic = -1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < v[node].size()))
         {
-          var cur = v[node][i];
+          var cur: dynamic = v[node][i];
           if ((cur == P[node]))
           {
             i += 1;
@@ -249,10 +249,10 @@ func out(node: dynamic, state: dynamic)
       }
       write((node + 1), "\n");
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < v[node].size()))
         {
-          var cur = v[node][i];
+          var cur: dynamic = v[node][i];
           if (((cur == P[node]) || (cur == mark)))
           {
             i += 1;
@@ -271,15 +271,15 @@ func out(node: dynamic, state: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       if ((x != 0))
       {

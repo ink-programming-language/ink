@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -18,16 +18,16 @@ func main()
   }
   sort(mass1.begin(), mass1.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a[i] = (lower_bound(mass1.begin(), mass1.end(), a[i]) - mass1.begin());
       i += 1;
     }
   }
-  var mass2: dynamic;
+  var mass2: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       mass2.push_back([a[i], i]);
@@ -35,25 +35,25 @@ func main()
     }
   }
   sort(mass2.begin(), mass2.end());
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
-      var j = i;
+      var j: dynamic = i;
       while (((j >= 0) && (mass2[j].first == mass2[i].first)))
       {
         j -= 1;
       }
       j += 1;
       {
-        var k = j;
+        var k: dynamic = j;
         while ((k <= i))
         {
-          var ind = mass2[k].second;
-          var ind1 = mass2[k].second;
+          var ind: dynamic = mass2[k].second;
+          var ind1: dynamic = mass2[k].second;
           {
-            var d = (i + 1);
+            var d: dynamic = (i + 1);
             while ((d < n))
             {
               if (((d == (i + 1)) && (mass2[d].second < ind)))
@@ -84,7 +84,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       if (((mass2[(i + 1)].second < mass2[i].second) && (mass2[(i + 1)].first > mass2[i].first)))
@@ -97,7 +97,7 @@ func main()
   }
   write(ans.size(), "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ans.size()))
     {
       write((ans[i].first + 1), " ", (ans[i].second + 1), "\n");

@@ -2,29 +2,29 @@
 
 class node
 {
-  var x: dynamic;
-  var t: dynamic;
-  var id: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(200002);
+var a: dynamic = cpp_array(200002);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-func read()
+func read() -> dynamic
 {
-  var c = getchar();
-  var w = 0;
+  var c: dynamic = getchar();
+  var w: dynamic = 0;
   while (((c < cpp_char("0")) || (c > cpp_char("9"))))
   {
     c = getchar();
@@ -37,7 +37,7 @@ func read()
   return w;
 }
 
-func cmp1(a: dynamic, b: dynamic)
+func cmp1(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.x == b.x))
   {
@@ -46,12 +46,12 @@ func cmp1(a: dynamic, b: dynamic)
   return (a.x < b.x);
 }
 
-func cmp2(a: dynamic, b: dynamic)
+func cmp2(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.t < b.t);
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   h = read();
@@ -76,10 +76,10 @@ func main()
       i += 1;
     }
   }
-  var ans = (1 << 30);
-  var tim: dynamic;
-  var l: dynamic;
-  var r: dynamic;
+  var ans: dynamic = (1 << 30);
+  var tim: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   {
     i = (n + 1);
     j = 1;

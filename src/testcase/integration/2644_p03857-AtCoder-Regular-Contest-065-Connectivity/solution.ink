@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-var MAXN = ((200 * 1000) + 20);
+var MAXN: dynamic = ((200 * 1000) + 20);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var g = cpp_array(MAXN);
+var g: dynamic = cpp_array(MAXN);
 
-var ans = cpp_array(MAXN);
+var ans: dynamic = cpp_array(MAXN);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var adj = cpp_array(MAXN);
+var adj: dynamic = cpp_array(MAXN);
 
-var adj2 = cpp_array(MAXN);
+var adj2: dynamic = cpp_array(MAXN);
 
-var tmp: dynamic;
+var tmp: dynamic = cpp_uninitialized();
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var connect: dynamic;
+var connect: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(MAXN);
+var vis: dynamic = cpp_array(MAXN);
 
-var vis2 = cpp_array(MAXN);
+var vis2: dynamic = cpp_array(MAXN);
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
   vis[v] = true;
   g[v] = cnt;
   connect[v] = 1;
-  for (var u in adj[v])
+  for (var u: dynamic in adj[v])
   {
     if ((!vis[u]))
     {
@@ -46,11 +46,11 @@ func dfs(v: dynamic)
   }
 }
 
-func dfs2(v: dynamic)
+func dfs2(v: dynamic) -> dynamic
 {
   vis2[v] = true;
   tmp.push_back(v);
-  for (var u in adj2[v])
+  for (var u: dynamic in adj2[v])
   {
     if ((!vis2[u]))
     {
@@ -59,14 +59,14 @@ func dfs2(v: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
   read(n, k, l);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       read(a, b);
@@ -76,7 +76,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < l))
     {
       read(a, b);
@@ -86,7 +86,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))
@@ -98,17 +98,17 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis2[i]))
       {
         dfs2(i);
-        for (var a in tmp)
+        for (var a: dynamic in tmp)
         {
           mp[g[a]] += 1;
         }
-        for (var a in tmp)
+        for (var a: dynamic in tmp)
         {
           ans[a] = mp[g[a]];
         }
@@ -119,7 +119,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(ans[i], cpp_char(" "));

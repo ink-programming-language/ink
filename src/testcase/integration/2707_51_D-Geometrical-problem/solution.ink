@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var b = cpp_array(100005);
+var b: dynamic = cpp_array(100005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func solve1(m: dynamic)
+func solve1(m: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (m - 1)))
     {
       if ((((b[i] * 1) * b[i]) != ((b[(i - 1)] * 1) * b[(i + 1)])))
@@ -22,16 +22,16 @@ func solve1(m: dynamic)
   return true;
 }
 
-func solve()
+func solve() -> dynamic
 {
   if (((n <= 2) && (a[0] != 0)))
   {
     puts("0");
     return;
   }
-  var nzc = 0;
+  var nzc: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       if ((a[i] != 0))
@@ -51,9 +51,9 @@ func solve()
     puts("1");
     return;
   }
-  var zc = 0;
+  var zc: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((a[i] == 0))
@@ -70,9 +70,9 @@ func solve()
   }
   if ((zc == 1))
   {
-    var m = 0;
+    var m: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((a[i] != 0))
@@ -82,12 +82,12 @@ func solve()
         i += 1;
       }
     }
-    puts(if (solve1(m)) "1" else "2");
+    puts( (solve1(m)) ? "1" : "2");
     return;
   }
-  var m = 0;
+  var m: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       b[cpp_update(m, "++")] = a[i];
@@ -101,7 +101,7 @@ func solve()
   }
   m = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       b[cpp_update(m, "++")] = a[i];
@@ -115,7 +115,7 @@ func solve()
   }
   m = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i != 1))
@@ -134,7 +134,7 @@ func solve()
   b[cpp_update(m, "++")] = a[0];
   b[cpp_update(m, "++")] = a[1];
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < n))
     {
       b[cpp_update(m, "++")] = a[i];
@@ -154,11 +154,11 @@ func solve()
   }
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));

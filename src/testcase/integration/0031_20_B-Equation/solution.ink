@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var A: dynamic;
-  var B: dynamic;
-  var C: dynamic;
-  var D: dynamic;
+  var A: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
+  var C: dynamic = cpp_uninitialized();
+  var D: dynamic = cpp_uninitialized();
   read(A, B, C);
-  var x1: dynamic;
-  var x2: dynamic;
+  var x1: dynamic = cpp_uninitialized();
+  var x2: dynamic = cpp_uninitialized();
   if ((!A))
   {
     if ((!B))
@@ -46,7 +46,7 @@ func main()
       printf("%lf", x1);
     } else
     {
-      if (((x1 > x2))) printf("2\n%lf\n%lf", x2, x1) else printf("2\n%lf\n%lf", x1, x2);
+       (((x1 > x2))) ? printf("2\n%lf\n%lf", x2, x1) : printf("2\n%lf\n%lf", x1, x2);
     }
   }
 }

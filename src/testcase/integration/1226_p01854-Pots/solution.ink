@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int (i)=0;(i)<(int)(n);++(i))");
 }
 
-func each(itr: dynamic, c: dynamic)
+func each(itr: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof(c.begin()) itr=c.begin(); itr!=c.end(); ++itr)");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k = cpp_array(200);
+var k: dynamic = cpp_array(200);
 
-var s = cpp_array(20, 200);
+var s: dynamic = cpp_array(20, 200);
 
-var h = cpp_array(20, 200);
+var h: dynamic = cpp_array(20, 200);
 
-var dp = cpp_array(201, 201);
+var dp: dynamic = cpp_array(201, 201);
 
-func dfs(now: dynamic, r: dynamic)
+func dfs(now: dynamic, r: dynamic) -> dynamic
 {
   if ((now == n))
   {
@@ -43,17 +43,17 @@ func dfs(now: dynamic, r: dynamic)
   {
     return dp[now][r];
   }
-  var ret = 0;
+  var ret: dynamic = 0;
   rep(i, (r + 1));
   {
-    var add = 0;
-    var tr = i;
+    var add: dynamic = 0;
+    var tr: dynamic = i;
     ret = max(ret, (dfs((now + 1), (r - i)) + add));
   }
   return cpp_assign(dp[now][r], "=", ret);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf(" %d %d", (&n), (&m));
   fill(dp[0], dp[201], -1.0);
@@ -61,9 +61,9 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, now: dynamic)
+func rep(argument_0: dynamic, now: dynamic) -> dynamic
 {
-      var d = (s[now][j] * h[now][j]);
+      var d: dynamic = (s[now][j] * h[now][j]);
       if (((tr - d) < 0))
       {
         add += (cpp_cast(tr) / s[now][j]);
@@ -73,7 +73,7 @@ func rep(argument_0: dynamic, now: dynamic)
       add += h[now][j];
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     scanf(" %d", (&k[i]));
     rep(j, k[i]);

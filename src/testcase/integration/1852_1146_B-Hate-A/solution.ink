@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func isprime(ar: dynamic)
+func isprime(ar: dynamic) -> dynamic
 {
   if ((ar == 1))
   {
     return false;
   }
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 2;
     while (((i * i) <= ar))
@@ -21,7 +21,7 @@ func isprime(ar: dynamic)
   return true;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -30,23 +30,23 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var m: dynamic;
-  var k: dynamic;
-  var s: dynamic;
-  var v = "";
-  var z = "";
-  var a = "";
-  var b = "";
-  var p: dynamic;
-  var t: dynamic;
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var v: dynamic = "";
+  var z: dynamic = "";
+  var a: dynamic = "";
+  var b: dynamic = "";
+  var p: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if ((s[i] != cpp_char("a")))

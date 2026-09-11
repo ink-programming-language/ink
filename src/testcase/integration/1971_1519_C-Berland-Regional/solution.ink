@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-func optimize()
+func optimize() -> dynamic
 {
   cpp_macro("ios_base::sync_with_stdio(0);");
 }
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var i: dynamic;
-    var j: dynamic;
-    var k = 1;
-    var x: dynamic;
-    var y: dynamic;
-    var m: dynamic;
-    var sum: dynamic;
-    var a = cpp_array(210000);
-    var b = cpp_array(210000);
-    var c: dynamic;
-    var mp1: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var i: dynamic = cpp_uninitialized();
+    var j: dynamic = cpp_uninitialized();
+    var k: dynamic = 1;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
+    var sum: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_array(210000);
+    var b: dynamic = cpp_array(210000);
+    var c: dynamic = cpp_uninitialized();
+    var mp1: dynamic = cpp_uninitialized();
     read(n);
-    var v = cpp_array((n + 3));
-    var v1 = cpp_array((n + 3));
-    var mp: dynamic;
-    var p: dynamic;
+    var v: dynamic = cpp_array((n + 3));
+    var v1: dynamic = cpp_array((n + 3));
+    var mp: dynamic = cpp_uninitialized();
+    var p: dynamic = cpp_uninitialized();
     {
       i = 1;
       while ((i <= n))
@@ -81,7 +81,7 @@ func main()
       while ((i <= n))
       {
         sum = 0;
-        for (var u in v1[i])
+        for (var u: dynamic in v1[i])
         {
           y = (v[u].size() / i);
           y = (y * i);

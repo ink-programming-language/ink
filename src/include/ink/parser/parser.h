@@ -3,7 +3,7 @@
 
 #include "ink/core/context.h"
 #include "ink/core/source_range.h"
-#include "ink/parser/cst.h"
+#include "ink/parser/ast.h"
 #include "ink/tokenizer/tokenizer.h"
 
 #include <cstddef>
@@ -37,7 +37,7 @@ namespace ink::parser
         return LexedFile;
       }
 
-      const CstTree &cst() const noexcept
+      const AstTree &ast() const noexcept
       {
         return Tree;
       }
@@ -48,13 +48,13 @@ namespace ink::parser
         return Completeness;
       }
 
-      core::SourceRange span(CstNodeId Id) const;
+      core::SourceRange span(AstNodeId Id) const;
 
     private:
-      ParsedFile(tokenizer::TokenizedBuffer LexedFile, CstTree Tree, bool Succeeded, ParseCompleteness Completeness);
+      ParsedFile(tokenizer::TokenizedBuffer LexedFile, AstTree Tree, bool Succeeded, ParseCompleteness Completeness);
 
       tokenizer::TokenizedBuffer LexedFile;
-      CstTree Tree;
+      AstTree Tree;
       bool Succeeded = false;
       ParseCompleteness Completeness = ParseCompleteness::Complete;
 

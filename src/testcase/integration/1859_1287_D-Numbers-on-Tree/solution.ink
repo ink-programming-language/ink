@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var g: dynamic;
+var g: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var numchild: dynamic;
+var numchild: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var segtree: dynamic;
+var segtree: dynamic = cpp_uninitialized();
 
-var root: dynamic;
+var root: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func build(id: dynamic = 1, l: dynamic = 1, r: dynamic = n)
+func build(id: dynamic = 1, l: dynamic = 1, r: dynamic = n) -> dynamic
 {
   if ((l == r))
   {
     segtree[id] += 1;
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   build((2 * id), l, mid);
   build(((2 * id) + 1), (mid + 1), r);
   segtree[id] = (segtree[(2 * id)] + segtree[((2 * id) + 1)]);
 }
 
-func get(val: dynamic, id: dynamic = 1, l: dynamic = 1, r: dynamic = n)
+func get(val: dynamic, id: dynamic = 1, l: dynamic = 1, r: dynamic = n) -> dynamic
 {
   if ((l == r))
   {
     segtree[id] = 0;
     return l;
   }
-  var mid = (((l + r)) >> 1);
-  var pos: dynamic;
+  var mid: dynamic = (((l + r)) >> 1);
+  var pos: dynamic = cpp_uninitialized();
   if ((val <= segtree[(2 * id)]))
   {
     pos = get(val, (2 * id), l, mid);
@@ -47,11 +47,11 @@ func get(val: dynamic, id: dynamic = 1, l: dynamic = 1, r: dynamic = n)
   return pos;
 }
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   numchild[u] = 1;
   ans[u] = get((c[u] + 1));
-  for (var v in g[u])
+  for (var v: dynamic in g[u])
   {
     dfs(v);
     numchild[u] += numchild[v];
@@ -63,7 +63,7 @@ func dfs(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
@@ -75,10 +75,10 @@ func main()
   numchild.resize((n + 1));
   ans.resize((n + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var p: dynamic;
+      var p: dynamic = cpp_uninitialized();
       read(p, c[i]);
       if ((!p))
       {
@@ -94,7 +94,7 @@ func main()
   dfs(root);
   write("YES\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < ans.size()))
     {
       write(ans[i], cpp_char(" "));

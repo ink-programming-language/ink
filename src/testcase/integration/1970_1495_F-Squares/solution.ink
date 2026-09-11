@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var ull = dynamic;
+var ull: dynamic = dynamic;
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-var mpr = cpp_expression("#include");
+var mpr: dynamic = cpp_expression("#include");
 
-var dingyi = cpp_expression("#include <iostream> #include <cstdio> #include <al");
+var dingyi: dynamic = cpp_expression("#include <iostream> #include <cstdio> #include <al");
 
-var y0 = cpp_expression("#include <io");
+var y0: dynamic = cpp_expression("#include <io");
 
-var y1 = cpp_expression("#include <io");
+var y1: dynamic = cpp_expression("#include <io");
 
-func rep(i: dynamic, x: dynamic, y: dynamic)
+func rep(i: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i = x; i <= y; ++i)");
 }
 
-func per(i: dynamic, x: dynamic, y: dynamic)
+func per(i: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i = x; i >= y; --i)");
 }
 
-func repg(i: dynamic, u: dynamic)
+func repg(i: dynamic, u: dynamic) -> dynamic
 {
   cpp_macro("for(int i = head[u]; i; i = e[i].nxt)");
 }
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -52,60 +52,60 @@ func read()
   return (x * f);
 }
 
-var N = 200010;
+var N: dynamic = 200010;
 
 class edge
 {
-  var v: dynamic;
-  var nxt: dynamic;
+  var v: dynamic = cpp_uninitialized();
+  var nxt: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array((N << 1));
+var e: dynamic = cpp_array((N << 1));
 
-var head = cpp_array(N);
+var head: dynamic = cpp_array(N);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var dis = cpp_array(N);
+var dis: dynamic = cpp_array(N);
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-var f = cpp_array(20, N);
+var f: dynamic = cpp_array(20, N);
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var sta = cpp_array(N);
+var sta: dynamic = cpp_array(N);
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var num = cpp_array(N);
+var num: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-var it: dynamic;
+var it: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-func add(u: dynamic, v: dynamic)
+func add(u: dynamic, v: dynamic) -> dynamic
 {
   e[cpp_update(cnt, "++")].v = v;
   e[cnt].nxt = head[u];
   head[u] = cnt;
 }
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   dep[u] = (dep[f[u][0]] + 1);
   rep(j, 1, 18)[u][j] = f[f[u][(j - 1)]][(j - 1)];
@@ -113,7 +113,7 @@ func dfs(u: dynamic)
   dfs(e[i].v);
 }
 
-func lca(x: dynamic, y: dynamic)
+func lca(x: dynamic, y: dynamic) -> dynamic
 {
   if ((dep[x] < dep[y]))
   {
@@ -137,34 +137,34 @@ func lca(x: dynamic, y: dynamic)
   return f[x][0];
 }
 
-func pat(x: dynamic, y: dynamic)
+func pat(x: dynamic, y: dynamic) -> dynamic
 {
   return ((dis[x] + dis[y]) - (2 * dis[lca(x, y)]));
 }
 
-func Insert(x: dynamic)
+func Insert(x: dynamic) -> dynamic
 {
   it = st.insert(x).fi;
-  var y = (*(cpp_update(it, "--")));
+  var y: dynamic = (*(cpp_update(it, "--")));
   it += 1;
   it += 1;
-  var z = (if (((it == st.end()))) (*st.begin()) else (*it));
+  var z: dynamic = ( (((it == st.end()))) ? (*st.begin()) : (*it));
   ans += ((pat(y, x) + pat(x, z)) - pat(y, z));
 }
 
-func Delete(x: dynamic)
+func Delete(x: dynamic) -> dynamic
 {
   it = st.find(x);
-  var y = (*(cpp_update(it, "--")));
+  var y: dynamic = (*(cpp_update(it, "--")));
   it += 1;
   it += 1;
-  var z = (if (((it == st.end()))) (*st.begin()) else (*it));
+  var z: dynamic = ( (((it == st.end()))) ? (*st.begin()) : (*it));
   ans -= ((pat(y, x) + pat(x, z)) - pat(y, z));
   it -= 1;
   st.erase(it);
 }
 
-func mian()
+func mian() -> dynamic
 {
   n = read();
   m = read();
@@ -194,7 +194,7 @@ func mian()
   st.insert(0);
   while (cpp_update(m, "--"))
   {
-    var x = read();
+    var x: dynamic = read();
     if (vis[x])
     {
       vis[x] = 0;
@@ -214,9 +214,9 @@ func mian()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var qwq = 1;
+  var qwq: dynamic = 1;
   while (cpp_update(qwq, "--"))
   {
     mian();

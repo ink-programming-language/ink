@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func mo(a: dynamic)
+func mo(a: dynamic) -> dynamic
 {
   return (a % cpp_cast(((1e9 + 7))));
 }
 
-func po(x: dynamic, y: dynamic, p: dynamic)
+func po(x: dynamic, y: dynamic, p: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   x = (x % p);
   while ((y > 0))
   {
@@ -21,15 +21,15 @@ func po(x: dynamic, y: dynamic, p: dynamic)
   return (res % p);
 }
 
-var g: dynamic;
+var g: dynamic = cpp_uninitialized();
 
-var vis: dynamic;
+var vis: dynamic = cpp_uninitialized();
 
-var col: dynamic;
+var col: dynamic = cpp_uninitialized();
 
-var ty: dynamic;
+var ty: dynamic = cpp_uninitialized();
 
-func dfs(par: dynamic, anc: dynamic = -1, type_cpp: dynamic = -1)
+func dfs(par: dynamic, anc: dynamic = -1, type_cpp: dynamic = -1) -> dynamic
 {
   if ((anc == -1))
   {
@@ -48,7 +48,7 @@ func dfs(par: dynamic, anc: dynamic = -1, type_cpp: dynamic = -1)
     }
   }
   vis[par] = 1;
-  for (var e in g[par])
+  for (var e: dynamic in g[par])
   {
     if ((!vis[e.first]))
     {
@@ -57,27 +57,27 @@ func dfs(par: dynamic, anc: dynamic = -1, type_cpp: dynamic = -1)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var r = cpp_construct(n, vector(2, -1));
-    var c = cpp_construct(n, vector(2, -1));
+    var r: dynamic = cpp_construct(n, vector(2, -1));
+    var c: dynamic = cpp_construct(n, vector(2, -1));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 2))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
-            var x: dynamic;
+            var x: dynamic = cpp_uninitialized();
             read(x);
             x -= 1;
             if ((r[x][0] == -1))
@@ -100,9 +100,9 @@ func main()
         i += 1;
       }
     }
-    var pos = 1;
+    var pos: dynamic = 1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if (((r[i][0] == -1) || (r[i][1] == -1)))
@@ -122,7 +122,7 @@ func main()
     col.assign(n, -1);
     ty.assign(2, []);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if (((r[i][0] == r[i][1]) && (c[i][0] != c[i][1])))
@@ -138,9 +138,9 @@ func main()
         i += 1;
       }
     }
-    var ans: dynamic;
+    var ans: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((!vis[i]))
@@ -152,7 +152,7 @@ func main()
           {
             swap(ty[0], ty[1]);
           }
-          for (var e in ty[0])
+          for (var e: dynamic in ty[0])
           {
             ans.push_back(e);
           }
@@ -161,7 +161,7 @@ func main()
       }
     }
     write(ans.size(), "\n");
-    for (var e in ans)
+    for (var e: dynamic in ans)
     {
       write((e + 1), " ");
     }

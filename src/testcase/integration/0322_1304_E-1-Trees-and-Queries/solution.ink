@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   a += b;
   if ((a >= mod))
@@ -12,7 +12,7 @@ func add(a: dynamic, b: dynamic)
   return a;
 }
 
-func sub(a: dynamic, b: dynamic)
+func sub(a: dynamic, b: dynamic) -> dynamic
 {
   a -= b;
   if ((a < 0))
@@ -22,20 +22,20 @@ func sub(a: dynamic, b: dynamic)
   return a;
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_cast((((cpp_cast(a) * b) % mod)));
 }
 
-var adj: dynamic;
+var adj: dynamic = cpp_uninitialized();
 
-var dp: dynamic;
+var dp: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var lvl: dynamic;
+var lvl: dynamic = cpp_uninitialized();
 
-func DFSUtil(u: dynamic, p: dynamic)
+func DFSUtil(u: dynamic, p: dynamic) -> dynamic
 {
   if ((u != 0))
   {
@@ -43,14 +43,14 @@ func DFSUtil(u: dynamic, p: dynamic)
   }
   dp[u][0] = p;
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (20)))
     {
       dp[u][i] = dp[dp[u][(i - 1)]][(i - 1)];
       i += 1;
     }
   }
-  for (var it in adj[u])
+  for (var it: dynamic in adj[u])
   {
     if ((it != p))
     {
@@ -59,14 +59,14 @@ func DFSUtil(u: dynamic, p: dynamic)
   }
 }
 
-func DFS()
+func DFS() -> dynamic
 {
-  var V = adj.size();
+  var V: dynamic = adj.size();
   lvl.assign(V, 0);
   DFSUtil(0, 0);
 }
 
-func lca(x: dynamic, y: dynamic)
+func lca(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x == y))
   {
@@ -76,10 +76,10 @@ func lca(x: dynamic, y: dynamic)
   {
     swap(x, y);
   }
-  var d = (lvl[x] - lvl[y]);
-  var x1 = x;
+  var d: dynamic = (lvl[x] - lvl[y]);
+  var x1: dynamic = x;
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i <= (20)))
     {
       if ((((1 << i)) & d))
@@ -93,10 +93,10 @@ func lca(x: dynamic, y: dynamic)
   {
     return d;
   }
-  var xx = x1;
-  var yy = y;
+  var xx: dynamic = x1;
+  var yy: dynamic = y;
   {
-    var i = (20);
+    var i: dynamic = (20);
     while ((i >= (0)))
     {
       if ((dp[xx][i] != dp[yy][i]))
@@ -112,23 +112,23 @@ func lca(x: dynamic, y: dynamic)
   return d;
 }
 
-func query()
+func query() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var k: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(a, b, x, y, k);
   x -= 1;
   y -= 1;
   a -= 1;
   b -= 1;
-  var v1 = lca(x, y);
-  var v2 = lca(x, a);
-  var v3 = lca(x, b);
-  var v4 = lca(y, a);
-  var v5 = lca(y, b);
+  var v1: dynamic = lca(x, y);
+  var v2: dynamic = lca(x, a);
+  var v3: dynamic = lca(x, b);
+  var v4: dynamic = lca(y, a);
+  var v5: dynamic = lca(y, b);
   if (((v1 <= k) && ((((k - v1)) % 2) == 0)))
   {
     return true;
@@ -144,23 +144,23 @@ func query()
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
     adj.resize((n + 1));
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i <= ((n - 1))))
       {
-        var p: dynamic;
-        var q: dynamic;
+        var p: dynamic = cpp_uninitialized();
+        var q: dynamic = cpp_uninitialized();
         read(p, q);
         p -= 1;
         q -= 1;
@@ -171,10 +171,10 @@ func main()
     }
     dp.assign((n + 1), vector(21, 0));
     DFS();
-    var m: dynamic;
+    var m: dynamic = cpp_uninitialized();
     read(m);
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i <= (m)))
       {
         if (query())

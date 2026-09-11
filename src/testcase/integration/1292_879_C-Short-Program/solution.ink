@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var res = cpp_array(2, 15);
+var res: dynamic = cpp_array(2, 15);
 
-var commands = cpp_array(500005);
+var commands: dynamic = cpp_array(500005);
 
-var num = cpp_array(500005);
+var num: dynamic = cpp_array(500005);
 
-var Xor: dynamic;
+var Xor: dynamic = cpp_uninitialized();
 
-var Or: dynamic;
+var Or: dynamic = cpp_uninitialized();
 
-var And: dynamic;
+var And: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var st = 1;
-  var j2: dynamic;
-  var b: dynamic;
-  var b2: dynamic;
-  var BB: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var st: dynamic = 1;
+  var j2: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var b2: dynamic = cpp_uninitialized();
+  var BB: dynamic = cpp_uninitialized();
   read(n);
   {
     i = 0;

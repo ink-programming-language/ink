@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var INF = (((1 << 30)) - 1);
+var INF: dynamic = (((1 << 30)) - 1);
 
-var LINF = (((1 << 62)) - 1);
+var LINF: dynamic = (((1 << 62)) - 1);
 
-var MOD = (cpp_cast(1e9) + 7);
+var MOD: dynamic = (cpp_cast(1e9) + 7);
 
-var NMAX = cpp_cast(1e6);
+var NMAX: dynamic = cpp_cast(1e6);
 
-var P: dynamic;
+var P: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var root = cpp_array((NMAX + 5));
+var root: dynamic = cpp_array((NMAX + 5));
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-func expLog(B: dynamic, E: dynamic)
+func expLog(B: dynamic, E: dynamic) -> dynamic
 {
-  var Q = B;
-  var sol = 1;
+  var Q: dynamic = B;
+  var sol: dynamic = 1;
   {
-    var i = E;
+    var i: dynamic = E;
     while (i)
     {
       if ((i & 1))
@@ -35,7 +35,7 @@ func expLog(B: dynamic, E: dynamic)
   return sol;
 }
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
   if ((x != root[x]))
   {
@@ -44,14 +44,14 @@ func find(x: dynamic)
   return root[x];
 }
 
-func unite(x: dynamic, y: dynamic)
+func unite(x: dynamic, y: dynamic) -> dynamic
 {
   x = find(x);
   y = find(y);
   root[y] = x;
 }
 
-func main()
+func main() -> dynamic
 {
   cin.sync_with_stdio(false);
   scanf("%d%d", (&P), (&K));
@@ -65,7 +65,7 @@ func main()
     return 0;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (P - 1)))
     {
       root[i] = i;
@@ -73,8 +73,8 @@ func main()
     }
   }
   {
-    var i = 1;
-    var j: dynamic;
+    var i: dynamic = 1;
+    var j: dynamic = cpp_uninitialized();
     while ((i <= (P - 1)))
     {
       j = ((((K * 1) * i)) % P);
@@ -83,14 +83,14 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (P - 1)))
     {
       M.insert(find(i));
       i += 1;
     }
   }
-  var sol = expLog(P, cpp_cast(M.size()));
+  var sol: dynamic = expLog(P, cpp_cast(M.size()));
   printf("%d\n", sol);
   return 0;
 }

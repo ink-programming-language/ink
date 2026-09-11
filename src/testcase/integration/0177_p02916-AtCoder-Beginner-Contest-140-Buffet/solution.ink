@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(201);
+var a: dynamic = cpp_array(201);
 
-var b = cpp_array(201);
+var b: dynamic = cpp_array(201);
 
-var c = cpp_array(201);
+var c: dynamic = cpp_array(201);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -21,7 +21,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&b[i]));
@@ -30,7 +30,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       scanf("%d", (&c[i]));
@@ -38,7 +38,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       if (((a[i] + 1) == a[(i + 1)]))

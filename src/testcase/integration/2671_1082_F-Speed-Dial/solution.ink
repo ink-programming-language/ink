@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func cmin(a: dynamic, b: dynamic)
+func cmin(a: dynamic, b: dynamic) -> dynamic
 {
   ((((a > b)) && (cpp_assign(a, "=", b))));
 }
 
-func cmax(a: dynamic, b: dynamic)
+func cmax(a: dynamic, b: dynamic) -> dynamic
 {
   ((((a < b)) && (cpp_assign(a, "=", b))));
 }
 
-var IO: dynamic;
+var IO: dynamic = cpp_uninitialized();
 
-func rd()
+func rd() -> dynamic
 {
-  var s = 0;
-  var f = 0;
+  var s: dynamic = 0;
+  var f: dynamic = 0;
   while ((!isdigit(cpp_assign(IO, "=", getchar()))))
   {
     f |= (IO == cpp_char("-"));
@@ -28,36 +28,36 @@ func rd()
       break;
     }
   }
-  return if (f) (-s) else s;
+  return  (f) ? (-s) : s;
 }
 
-var N = 510;
+var N: dynamic = 510;
 
-var INF = (1e9 + 10);
+var INF: dynamic = (1e9 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var trie = cpp_array(10, N);
+var trie: dynamic = cpp_array(10, N);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var dp = cpp_array(12, N, N);
+var dp: dynamic = cpp_array(12, N, N);
 
-var F = cpp_array(12, N);
+var F: dynamic = cpp_array(12, N);
 
-var G = cpp_array(12);
+var G: dynamic = cpp_array(12);
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
-  for (var v in trie[u])
+  for (var v: dynamic in trie[u])
   {
     if (v)
     {
@@ -67,26 +67,26 @@ func dfs(u: dynamic)
   }
   memset(F, 63, cpp_sizeof(F));
   {
-    var i = 0;
-    var iend = dep[u];
+    var i: dynamic = 0;
+    var iend: dynamic = dep[u];
     while ((i <= iend))
     {
       F[i][0] = (c[u] * ((dep[u] - i)));
       i += 1;
     }
   }
-  for (var v in trie[u])
+  for (var v: dynamic in trie[u])
   {
     if (v)
     {
       {
-        var j = 0;
-        var jend = dep[u];
+        var j: dynamic = 0;
+        var jend: dynamic = dep[u];
         while ((j <= jend))
         {
           {
-            var k = 0;
-            var kend = m;
+            var k: dynamic = 0;
+            var kend: dynamic = m;
             while ((k <= kend))
             {
               G[k] = F[j][k];
@@ -95,13 +95,13 @@ func dfs(u: dynamic)
             }
           }
           {
-            var k = 0;
-            var kend = m;
+            var k: dynamic = 0;
+            var kend: dynamic = m;
             while ((k <= kend))
             {
               {
-                var d = 0;
-                var dend = (m - k);
+                var d: dynamic = 0;
+                var dend: dynamic = (m - k);
                 while ((d <= dend))
                 {
                   cmin(F[j][(k + d)], (G[k] + dp[v][j][d]));
@@ -117,13 +117,13 @@ func dfs(u: dynamic)
     }
   }
   {
-    var d = 0;
-    var dend = dep[u];
+    var d: dynamic = 0;
+    var dend: dynamic = dep[u];
     while ((d <= dend))
     {
       {
-        var i = 0;
-        var iend = m;
+        var i: dynamic = 0;
+        var iend: dynamic = m;
         while ((i <= iend))
         {
           dp[u][d][i] = INF;
@@ -131,8 +131,8 @@ func dfs(u: dynamic)
         }
       }
       {
-        var i = 0;
-        var iend = m;
+        var i: dynamic = 0;
+        var iend: dynamic = m;
         while ((i <= iend))
         {
           cmin(dp[u][d][(i + 1)], F[dep[u]][i]);
@@ -145,22 +145,22 @@ func dfs(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   n = rd();
   m = rd();
   {
-    var i = 1;
-    var iend = n;
+    var i: dynamic = 1;
+    var iend: dynamic = n;
     while ((i <= iend))
     {
       scanf("%s", (s + 1));
-      var u = 0;
+      var u: dynamic = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while (s[j])
         {
-          var v = trie[u][(s[j] - cpp_char("0"))];
+          var v: dynamic = trie[u][(s[j] - cpp_char("0"))];
           if ((!v))
           {
             v = cpp_update(cnt, "++");
@@ -174,10 +174,10 @@ func main()
     }
   }
   dfs(0);
-  var ans = INF;
+  var ans: dynamic = INF;
   {
-    var i = 0;
-    var iend = m;
+    var i: dynamic = 0;
+    var iend: dynamic = m;
     while ((i <= iend))
     {
       cmin(ans, dp[0][0][i]);

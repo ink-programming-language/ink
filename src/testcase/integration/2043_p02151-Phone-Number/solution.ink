@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int (i)=0;(i)<(int)(n);++(i))");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func dbg(x: dynamic)
+func dbg(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> u");
 }
 
-func operator_shift_left(o: dynamic, p: dynamic)
+func operator_shift_left(o: dynamic, p: dynamic) -> dynamic
 {
   (((((o << "(") << p.fi) << ",") << p.se) << ")");
   return o;
 }
 
-func operator_shift_left(o: dynamic, v: dynamic)
+func operator_shift_left(o: dynamic, v: dynamic) -> dynamic
 {
   (o << "[");
-  for (var t in v)
+  for (var t: dynamic in v)
   {
     ((o << t) << ",");
   }
@@ -38,39 +38,39 @@ func operator_shift_left(o: dynamic, v: dynamic)
   return o;
 }
 
-var INF = 19191919;
+var INF: dynamic = 19191919;
 
-func dist(p: dynamic, q: dynamic)
+func dist(p: dynamic, q: dynamic) -> dynamic
 {
   return (abs((p.fi - q.fi)) + abs((p.se - q.se)));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, s);
-  var ct: dynamic;
+  var ct: dynamic = cpp_uninitialized();
   rep(i, (n - 1));
   {
-    var a = (s[i] - cpp_char("0"));
-    var b = (s[(i + 1)] - cpp_char("0"));
+    var a: dynamic = (s[i] - cpp_char("0"));
+    var b: dynamic = (s[(i + 1)] - cpp_char("0"));
     ct[[a, b]] += 1;
   }
-  var ans = INF;
-  var v = cpp_construct(9);
-  var p = cpp_construct(9);
+  var ans: dynamic = INF;
+  var v: dynamic = cpp_construct(9);
+  var p: dynamic = cpp_construct(9);
   rep(i, 9)[i] = (i + 1);
   while (true)
   {
-    var pos = cpp_construct(10);
+    var pos: dynamic = cpp_construct(10);
     rep(i, 9)[p[i]] = [(i / 3), (i % 3)];
-    var t = 0;
-    for (var pp in ct)
+    var t: dynamic = 0;
+    for (var pp: dynamic in ct)
     {
-      var num = pp.se;
-      var a = pp.fi.fi;
-      var b = pp.fi.se;
+      var num: dynamic = pp.se;
+      var a: dynamic = pp.fi.fi;
+      var b: dynamic = pp.fi.se;
       t += (num * dist(pos[a], pos[b]));
     }
     if ((t < ans))

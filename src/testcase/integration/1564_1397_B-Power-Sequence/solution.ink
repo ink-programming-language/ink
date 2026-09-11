@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func solve(a: dynamic, n: dynamic)
+func solve(a: dynamic, n: dynamic) -> dynamic
 {
-  var big = cpp_cast(1e15);
-  var ans = big;
-  var c = 1;
-  var k = 0;
+  var big: dynamic = cpp_cast(1e15);
+  var ans: dynamic = big;
+  var c: dynamic = 1;
+  var k: dynamic = 0;
   while (1)
   {
-    var val = 0;
-    var pw = 1;
+    var val: dynamic = 0;
+    var pw: dynamic = 1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((pw >= big))
@@ -34,14 +34,14 @@ func solve(a: dynamic, n: dynamic)
   write(ans);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);

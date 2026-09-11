@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var maxn = (1e6 + 7);
+var maxn: dynamic = (1e6 + 7);
 
-var dat = cpp_array(maxn);
+var dat: dynamic = cpp_array(maxn);
 
-var minv = cpp_array((maxn << 2));
+var minv: dynamic = cpp_array((maxn << 2));
 
-var maxv = cpp_array((maxn << 2));
+var maxv: dynamic = cpp_array((maxn << 2));
 
-var addv = cpp_array((maxn << 2));
+var addv: dynamic = cpp_array((maxn << 2));
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
-func pushdown(o: dynamic)
+func pushdown(o: dynamic) -> dynamic
 {
   if ((!addv[o]))
   {
@@ -27,13 +27,13 @@ func pushdown(o: dynamic)
   addv[o] = 0;
 }
 
-func pushup(o: dynamic)
+func pushup(o: dynamic) -> dynamic
 {
   minv[o] = min(minv[((o << 1))], minv[(((o << 1) | 1))]);
   maxv[o] = max(maxv[((o << 1))], maxv[(((o << 1) | 1))]);
 }
 
-func build(o: dynamic, l: dynamic, r: dynamic)
+func build(o: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   addv[o] = 0;
   if ((l == r))
@@ -42,13 +42,13 @@ func build(o: dynamic, l: dynamic, r: dynamic)
     maxv[o] = dat[l];
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   build(((o << 1)), l, mid);
   build((((o << 1) | 1)), (mid + 1), r);
   pushup(o);
 }
 
-func change(o: dynamic, l: dynamic, r: dynamic, ql: dynamic, qr: dynamic, v: dynamic)
+func change(o: dynamic, l: dynamic, r: dynamic, ql: dynamic, qr: dynamic, v: dynamic) -> dynamic
 {
   if (((ql <= l) && (qr >= r)))
   {
@@ -57,7 +57,7 @@ func change(o: dynamic, l: dynamic, r: dynamic, ql: dynamic, qr: dynamic, v: dyn
     addv[o] += v;
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   pushdown(o);
   if ((ql <= mid))
   {
@@ -70,14 +70,14 @@ func change(o: dynamic, l: dynamic, r: dynamic, ql: dynamic, qr: dynamic, v: dyn
   pushup(o);
 }
 
-func query_min(o: dynamic, l: dynamic, r: dynamic, ql: dynamic, qr: dynamic)
+func query_min(o: dynamic, l: dynamic, r: dynamic, ql: dynamic, qr: dynamic) -> dynamic
 {
   if (((ql <= l) && (qr >= r)))
   {
     return minv[o];
   }
-  var mid = (((l + r)) >> 1);
-  var ans = 0x3f3f3f3f;
+  var mid: dynamic = (((l + r)) >> 1);
+  var ans: dynamic = 0x3f3f3f3f;
   pushdown(o);
   if ((ql <= mid))
   {
@@ -90,14 +90,14 @@ func query_min(o: dynamic, l: dynamic, r: dynamic, ql: dynamic, qr: dynamic)
   return ans;
 }
 
-func query_max(o: dynamic, l: dynamic, r: dynamic, ql: dynamic, qr: dynamic)
+func query_max(o: dynamic, l: dynamic, r: dynamic, ql: dynamic, qr: dynamic) -> dynamic
 {
   if (((ql <= l) && (qr >= r)))
   {
     return maxv[o];
   }
-  var mid = (((l + r)) >> 1);
-  var ans = -1;
+  var mid: dynamic = (((l + r)) >> 1);
+  var ans: dynamic = -1;
   pushdown(o);
   if ((ql <= mid))
   {
@@ -110,21 +110,21 @@ func query_max(o: dynamic, l: dynamic, r: dynamic, ql: dynamic, qr: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   build(1, 1, n);
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   read(a);
-  var pos = 0;
-  var sum = 0;
+  var pos: dynamic = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
-      var q = 0;
+      var q: dynamic = 0;
       if ((a[i] == cpp_char("(")))
       {
         q += 1;

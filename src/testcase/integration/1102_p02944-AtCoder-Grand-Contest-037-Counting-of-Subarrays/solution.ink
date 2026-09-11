@@ -1,55 +1,55 @@
 // Translated from solution.cpp.
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-var MAXN = 200000;
+var MAXN: dynamic = 200000;
 
-var que: dynamic;
+var que: dynamic = cpp_uninitialized();
 
-var lst = cpp_array((MAXN + 5));
+var lst: dynamic = cpp_array((MAXN + 5));
 
-var nxt = cpp_array((MAXN + 5));
+var nxt: dynamic = cpp_array((MAXN + 5));
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-func link(x: dynamic, y: dynamic)
+func link(x: dynamic, y: dynamic) -> dynamic
 {
   lst[y] = x;
   nxt[x] = y;
 }
 
-func check(x: dynamic, y: dynamic)
+func check(x: dynamic, y: dynamic) -> dynamic
 {
   return (nxt[x] == y);
 }
 
-var lf = cpp_array((MAXN + 5));
+var lf: dynamic = cpp_array((MAXN + 5));
 
-var rf = cpp_array((MAXN + 5));
+var rf: dynamic = cpp_array((MAXN + 5));
 
-var f1 = cpp_array((MAXN + 5));
+var f1: dynamic = cpp_array((MAXN + 5));
 
-var f2 = cpp_array((MAXN + 5));
+var f2: dynamic = cpp_array((MAXN + 5));
 
-var v1: dynamic;
+var v1: dynamic = cpp_uninitialized();
 
-var v2: dynamic;
+var v2: dynamic = cpp_uninitialized();
 
-func solve(x: dynamic)
+func solve(x: dynamic) -> dynamic
 {
-  var ret = 0;
-  var tmp = 0;
-  var lt = v2.size();
-  var lb = lst[v2[0]];
-  var rb = nxt[v2[(lt - 1)]];
+  var ret: dynamic = 0;
+  var tmp: dynamic = 0;
+  var lt: dynamic = v2.size();
+  var lb: dynamic = lst[v2[0]];
+  var rb: dynamic = nxt[v2[(lt - 1)]];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < lt))
     {
       if ((((i - L) + 1) >= 0))
@@ -61,7 +61,7 @@ func solve(x: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < lt))
     {
       f1[v2[i]] = lf[v2[i]];
@@ -70,29 +70,29 @@ func solve(x: dynamic)
       i += 1;
     }
   }
-  var c = (lt / L);
+  var c: dynamic = (lt / L);
   if (c)
   {
     {
-      var i = (L - 1);
+      var i: dynamic = (L - 1);
       while ((i < lt))
       {
-        var t = ((((i + 1)) / L) - 1);
+        var t: dynamic = ((((i + 1)) / L) - 1);
         rf[v2[t]] += f2[v2[i]];
         i += 1;
       }
     }
     {
-      var i = (lt - L);
+      var i: dynamic = (lt - L);
       while ((i >= 0))
       {
-        var t = (c - (((lt - i)) / L));
+        var t: dynamic = (c - (((lt - i)) / L));
         lf[v2[t]] += f1[v2[i]];
         i -= 1;
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < c))
       {
         link(v2[(i - 1)], v2[i]);
@@ -102,7 +102,7 @@ func solve(x: dynamic)
     link(lb, v2[0]);
     link(v2[(c - 1)], rb);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < c))
       {
         que.push(mp((x + 1), v2[i]));
@@ -111,7 +111,7 @@ func solve(x: dynamic)
     }
     tmp = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < c))
       {
         if ((((i - L) + 1) >= 0))
@@ -131,14 +131,14 @@ func solve(x: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&N), (&L));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       que.push(mp(x, i));
       link(i, (i + 1));
@@ -146,11 +146,11 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   link(0, 1);
   while ((!que.empty()))
   {
-    var x = que.top().fi;
+    var x: dynamic = que.top().fi;
     v1.clear();
     while (((!que.empty()) && (que.top().fi == x)))
     {
@@ -160,7 +160,7 @@ func main()
     v2.clear();
     v2.push_back(v1[0]);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < v1.size()))
       {
         if ((!check(v1[(i - 1)], v1[i])))

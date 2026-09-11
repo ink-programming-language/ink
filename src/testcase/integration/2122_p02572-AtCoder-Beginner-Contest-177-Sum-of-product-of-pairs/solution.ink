@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var mod = cpp_expression("#include <");
+var mod: dynamic = cpp_expression("#include <");
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var p: dynamic;
-  var sum = 0;
-  var ans = 0;
+  var p: dynamic = cpp_uninitialized();
+  var sum: dynamic = 0;
+  var ans: dynamic = 0;
   while (cpp_update(N, "--"))
   {
     read(p);

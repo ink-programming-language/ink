@@ -2,19 +2,19 @@
 
 class debugger
 {
-  func operator(v: dynamic)
+  func operator(v: dynamic) -> dynamic
   {
       write(v, " ");
-      return (*this);
+      return (*self);
     }
 }
 
-var dbg: dynamic;
+var dbg: dynamic = cpp_uninitialized();
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  a = (if (((a) < 0)) (-(a)) else (a));
-  b = (if (((b) < 0)) (-(b)) else (b));
+  a = ( (((a) < 0)) ? (-(a)) : (a));
+  b = ( (((b) < 0)) ? (-(b)) : (b));
   while (b)
   {
     a = (a % b);
@@ -23,18 +23,18 @@ func gcd(a: dynamic, b: dynamic)
   return a;
 }
 
-func ext_gcd(A: dynamic, B: dynamic, X: dynamic, Y: dynamic)
+func ext_gcd(A: dynamic, B: dynamic, X: dynamic, Y: dynamic) -> dynamic
 {
-  var x2: dynamic;
-  var y2: dynamic;
-  var x1: dynamic;
-  var y1: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var r2: dynamic;
-  var r1: dynamic;
-  var q: dynamic;
-  var r: dynamic;
+  var x2: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
+  var x1: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var r2: dynamic = cpp_uninitialized();
+  var r1: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   x2 = 1;
   y2 = 0;
   x1 = 0;
@@ -61,10 +61,10 @@ func ext_gcd(A: dynamic, B: dynamic, X: dynamic, Y: dynamic)
   return r2;
 }
 
-func modInv(a: dynamic, m: dynamic)
+func modInv(a: dynamic, m: dynamic) -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   ext_gcd(a, m, (&x), (&y));
   x %= m;
   if ((x < 0))
@@ -74,10 +74,10 @@ func modInv(a: dynamic, m: dynamic)
   return x;
 }
 
-func bigmod(a: dynamic, p: dynamic, m: dynamic)
+func bigmod(a: dynamic, p: dynamic, m: dynamic) -> dynamic
 {
-  var res = (1 % m);
-  var x = (a % m);
+  var res: dynamic = (1 % m);
+  var x: dynamic = (a % m);
   while (p)
   {
     if ((p & 1))
@@ -90,49 +90,49 @@ func bigmod(a: dynamic, p: dynamic, m: dynamic)
   return res;
 }
 
-var inf = 2147383647;
+var inf: dynamic = 2147383647;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var pi = (2 * acos(0.0));
+var pi: dynamic = (2 * acos(0.0));
 
-var eps = 1e-11;
+var eps: dynamic = 1e-11;
 
-var myStack: dynamic;
+var myStack: dynamic = cpp_uninitialized();
 
-var myVec: dynamic;
+var myVec: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   while ((!myStack.empty()))
   {
     myStack.pop();
   }
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a: dynamic;
+      var a: dynamic = cpp_uninitialized();
       read(a);
       myVec.push_back(a);
       i += 1;
     }
   }
-  var flag = 1;
-  var mx = -1;
+  var flag: dynamic = 1;
+  var mx: dynamic = -1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < myVec.size()))
     {
-      var curr = myVec[i];
+      var curr: dynamic = myVec[i];
       if (myStack.empty())
       {
         myStack.push(curr);
       } else
       {
-        var top = myStack.top();
+        var top: dynamic = myStack.top();
         if ((top == curr))
         {
           myStack.pop();

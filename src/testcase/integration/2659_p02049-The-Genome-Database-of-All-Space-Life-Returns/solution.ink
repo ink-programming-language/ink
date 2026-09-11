@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -8,11 +8,11 @@ func chmin(a: dynamic, b: dynamic)
   }
 }
 
-func __cpp_top_level_1()
+func __cpp_top_level_1() -> dynamic
 {
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -20,24 +20,24 @@ func chmax(a: dynamic, b: dynamic)
   }
 }
 
-func __cpp_top_level_2()
+func __cpp_top_level_2() -> dynamic
 {
 }
 
 class RollingHash
 {
-  var hash: dynamic;
-  var p: dynamic;
-  func RollingHash()
+  var hash: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  func RollingHash() -> dynamic
   {
     }
-  func RollingHash(s: dynamic)
+  func RollingHash(s: dynamic) -> dynamic
   {
-      var n = s.size();
+      var n: dynamic = s.size();
       hash.assign((n + 1), 0);
       p.assign((n + 1), 1);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           hash[(i + 1)] = ((((hash[i] * B) + s[i])) % MOD);
@@ -46,34 +46,34 @@ class RollingHash
         }
       }
     }
-  func find(l: dynamic, r: dynamic)
+  func find(l: dynamic, r: dynamic) -> dynamic
   {
-      var res = ((hash[r] + MOD) - ((hash[l] * p[(r - l)]) % MOD));
-      return if ((res >= MOD)) (res - MOD) else res;
+      var res: dynamic = ((hash[r] + MOD) - ((hash[l] * p[(r - l)]) % MOD));
+      return  ((res >= MOD)) ? (res - MOD) : res;
     }
 }
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var B = 1777771;
+var B: dynamic = 1777771;
 
-var pat: dynamic;
+var pat: dynamic = cpp_uninitialized();
 
-var base: dynamic;
+var base: dynamic = cpp_uninitialized();
 
-func calc(s: dynamic, t: dynamic)
+func calc(s: dynamic, t: dynamic) -> dynamic
 {
-  var res = 0;
-  var n = s.size();
-  var m = t.size();
-  var len = pat.size();
+  var res: dynamic = 0;
+  var n: dynamic = s.size();
+  var m: dynamic = t.size();
+  var len: dynamic = pat.size();
   if (((n + m) < len))
   {
     return 0;
   }
-  var rh = cpp_construct((s + t));
+  var rh: dynamic = cpp_construct((s + t));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i < n) && ((i + len) <= (n + m))))
     {
       if (((i + len) <= n))
@@ -93,12 +93,12 @@ func calc(s: dynamic, t: dynamic)
 
 class State
 {
-  var type_cpp: dynamic;
-  var cnt: dynamic;
-  var all: dynamic;
-  var lft: dynamic;
-  var rgh: dynamic;
-  func State(c: dynamic)
+  var type_cpp: dynamic = cpp_uninitialized();
+  var cnt: dynamic = cpp_uninitialized();
+  var all: dynamic = cpp_uninitialized();
+  var lft: dynamic = cpp_uninitialized();
+  var rgh: dynamic = cpp_uninitialized();
+  func State(c: dynamic) -> dynamic
   {
       type_cpp = 0;
       cnt = 0;
@@ -108,14 +108,14 @@ class State
         cnt += 1;
       }
     }
-  func State()
+  func State() -> dynamic
   {
       type_cpp = 0;
       cnt = 0;
     }
-  func merge(oth: dynamic)
+  func merge(oth: dynamic) -> dynamic
   {
-      var res: dynamic;
+      var res: dynamic = cpp_uninitialized();
       res.cnt = (cnt + oth.cnt);
       if ((pat.size() != 1))
       {
@@ -158,17 +158,17 @@ class State
           }
         }
       }
-      ((*this)) = res;
+      ((*self)) = res;
     }
-  func repeat(num: dynamic)
+  func repeat(num: dynamic) -> dynamic
   {
       if ((num == 1))
       {
-        return (*this);
+        return (*self);
       }
       num -= 1;
-      var res = cpp_construct((*this));
-      var dbl = cpp_construct((*this));
+      var res: dynamic = cpp_construct((*self));
+      var dbl: dynamic = cpp_construct((*self));
       while (num)
       {
         if ((num & 1))
@@ -180,15 +180,15 @@ class State
       }
       return res;
     }
-  func State(c: dynamic, num: dynamic)
+  func State(c: dynamic, num: dynamic) -> dynamic
   {
-      ((*this)) = State(c).repeat(num);
+      ((*self)) = State(c).repeat(num);
     }
 }
 
-var DEBUG = 0;
+var DEBUG: dynamic = 0;
 
-func letter(s: dynamic, p: dynamic)
+func letter(s: dynamic, p: dynamic) -> dynamic
 {
   if (DEBUG)
   {
@@ -198,13 +198,13 @@ func letter(s: dynamic, p: dynamic)
   return State(s[cpp_update(p, "++")]);
 }
 
-func number(s: dynamic, p: dynamic)
+func number(s: dynamic, p: dynamic) -> dynamic
 {
   if (DEBUG)
   {
     write(s, ":n:", p, "\n");
   }
-  var res = 0;
+  var res: dynamic = 0;
   while (((p < cpp_cast(s.size())) && isdigit(s[p])))
   {
     res = ((res * 10) + ((s[p] - cpp_char("0"))));
@@ -213,22 +213,22 @@ func number(s: dynamic, p: dynamic)
   return res;
 }
 
-func expr(s: dynamic, p: dynamic)
+func expr(s: dynamic, p: dynamic) -> dynamic
 {
   if (DEBUG)
   {
     write(s, ":e:", p, "\n");
   }
-  var res = factor(s, p);
+  var res: dynamic = factor(s, p);
   while (((p < cpp_cast(s.size())) && (s[p] != cpp_char(")"))))
   {
-    var nxt = factor(s, p);
+    var nxt: dynamic = factor(s, p);
     res.merge(nxt);
   }
   return res;
 }
 
-func factor(s: dynamic, p: dynamic)
+func factor(s: dynamic, p: dynamic) -> dynamic
 {
   if (DEBUG)
   {
@@ -236,14 +236,14 @@ func factor(s: dynamic, p: dynamic)
   }
   if (isdigit(s[p]))
   {
-    var num = number(s, p);
+    var num: dynamic = number(s, p);
     if (isupper(s[p]))
     {
       return State(s[cpp_update(p, "++")], num);
     }
     assert((s[p] == cpp_char("(")));
     p += 1;
-    var res = expr(s, p);
+    var res: dynamic = expr(s, p);
     assert((s[p] == cpp_char(")")));
     p += 1;
     return res.repeat(num);
@@ -251,17 +251,17 @@ func factor(s: dynamic, p: dynamic)
   return letter(s, p);
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(0);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   while (cpp_comma((cin >> s), (s != "#")))
   {
     read(pat);
     base = RH(pat);
-    var p = 0;
-    var res = expr(s, p);
+    var p: dynamic = 0;
+    var res: dynamic = expr(s, p);
     write(res.cnt, "\n");
   }
   return 0;

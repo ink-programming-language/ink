@@ -2,65 +2,65 @@
 
 class debugger
 {
-  func operator(v: dynamic)
+  func operator(v: dynamic) -> dynamic
   {
       write(v, " ");
-      return (*this);
+      return (*self);
     }
 }
 
-var dbg: dynamic;
+var dbg: dynamic = cpp_uninitialized();
 
-var N = (100000 + 10);
+var N: dynamic = (100000 + 10);
 
 class data
 {
-  var to: dynamic;
-  var next: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
-var tu = cpp_array((N * 2));
+var tu: dynamic = cpp_array((N * 2));
 
-var head = cpp_array(N);
+var head: dynamic = cpp_array(N);
 
-var ip: dynamic;
+var ip: dynamic = cpp_uninitialized();
 
-var dfn = cpp_array(N);
+var dfn: dynamic = cpp_array(N);
 
-var low = cpp_array(N);
+var low: dynamic = cpp_array(N);
 
-var sccno = cpp_array(N);
+var sccno: dynamic = cpp_array(N);
 
-var step: dynamic;
+var step: dynamic = cpp_uninitialized();
 
-var scc_cnt: dynamic;
+var scc_cnt: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
   ip = 0;
   memset(head, -1, cpp_sizeof((head)));
 }
 
-func add(u: dynamic, v: dynamic)
+func add(u: dynamic, v: dynamic) -> dynamic
 {
   tu[ip].to = v;
   tu[ip].next = head[u];
   head[u] = cpp_update(ip, "++");
 }
 
-var scc = cpp_array(N);
+var scc: dynamic = cpp_array(N);
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   dfn[u] = cpp_assign(low[u], "=", cpp_update(step, "++"));
   S.push(u);
   {
-    var i = head[u];
+    var i: dynamic = head[u];
     while ((i != -1))
     {
-      var v = tu[i].to;
+      var v: dynamic = tu[i].to;
       if ((!dfn[v]))
       {
         dfs(v);
@@ -78,7 +78,7 @@ func dfs(u: dynamic)
     scc[scc_cnt].clear();
     while (1)
     {
-      var x = S.top();
+      var x: dynamic = S.top();
       S.pop();
       if ((sccno[x] != scc_cnt))
       {
@@ -93,13 +93,13 @@ func dfs(u: dynamic)
   }
 }
 
-func tarjan(n: dynamic)
+func tarjan(n: dynamic) -> dynamic
 {
   memset(sccno, 0, cpp_sizeof((sccno)));
   memset(dfn, 0, cpp_sizeof((dfn)));
   step = cpp_assign(scc_cnt, "=", 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!dfn[i]))
@@ -111,19 +111,19 @@ func tarjan(n: dynamic)
   }
 }
 
-var u = cpp_array((100000 + 10));
+var u: dynamic = cpp_array((100000 + 10));
 
-var ou = cpp_array((100000 + 10));
+var ou: dynamic = cpp_array((100000 + 10));
 
-func main()
+func main() -> dynamic
 {
   init();
-  var n: dynamic;
-  var m: dynamic;
-  var h: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&m), (&h));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&u[i]));
@@ -131,11 +131,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       scanf("%d%d", (&a), (&b));
       if (((((u[a] + 1)) % (h)) == u[b]))
       {
@@ -151,11 +151,11 @@ func main()
   tarjan(n);
   memset(ou, true, cpp_sizeof((ou)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = head[i];
+        var j: dynamic = head[i];
         while ((j != -1))
         {
           if ((sccno[i] != sccno[tu[j].to]))
@@ -168,9 +168,9 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= scc_cnt))
     {
       if (ou[i])
@@ -184,7 +184,7 @@ func main()
     }
   }
   printf("%d\n", int_cpp(scc[ans].size()));
-  for (var i in scc[ans])
+  for (var i: dynamic in scc[ans])
   {
     printf("%d ", i);
   }

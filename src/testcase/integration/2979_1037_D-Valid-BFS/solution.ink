@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var SZ = 200010;
+var SZ: dynamic = 200010;
 
-var INF = (1e9 + 10);
+var INF: dynamic = (1e9 + 10);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-func read()
+func read() -> dynamic
 {
-  var n = 0;
-  var a = getchar();
-  var flag = 0;
+  var n: dynamic = 0;
+  var a: dynamic = getchar();
+  var flag: dynamic = 0;
   while (((a > cpp_char("9")) || (a < cpp_char("0"))))
   {
     if ((a == cpp_char("-")))
@@ -33,27 +33,27 @@ func read()
   return n;
 }
 
-var g = cpp_array(SZ);
+var g: dynamic = cpp_array(SZ);
 
-var fa = cpp_array(SZ);
+var fa: dynamic = cpp_array(SZ);
 
-var son = cpp_array(SZ);
+var son: dynamic = cpp_array(SZ);
 
-var deep = cpp_array(SZ);
+var deep: dynamic = cpp_array(SZ);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(SZ);
+var a: dynamic = cpp_array(SZ);
 
-func dfs(u: dynamic, f: dynamic)
+func dfs(u: dynamic, f: dynamic) -> dynamic
 {
   deep[u] = (deep[f] + 1);
   fa[u] = f;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < g[u].size()))
     {
-      var v = g[u][i];
+      var v: dynamic = g[u][i];
       if ((v == f))
       {
         i += 1;
@@ -66,22 +66,22 @@ func dfs(u: dynamic, f: dynamic)
   }
 }
 
-func check()
+func check() -> dynamic
 {
   {
-    var i = 2;
-    var pf = 1;
-    var p = 2;
+    var i: dynamic = 2;
+    var pf: dynamic = 1;
+    var p: dynamic = 2;
     while ((i <= n))
     {
       if (((i == n) || (deep[a[i]] != deep[a[(i + 1)]])))
       {
-        var npf = p;
-        var ed = (p - 1);
-        var deepnow = deep[a[p]];
+        var npf: dynamic = p;
+        var ed: dynamic = (p - 1);
+        var deepnow: dynamic = deep[a[p]];
         while ((pf <= ed))
         {
-          var t = 0;
+          var t: dynamic = 0;
           while ((((p <= n) && (deep[a[p]] == deepnow)) && (fa[a[p]] == a[pf])))
           {
             p += 1;
@@ -102,15 +102,15 @@ func check()
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var x = read();
-      var y = read();
+      var x: dynamic = read();
+      var y: dynamic = read();
       g[x].push_back(y);
       g[y].push_back(x);
       i += 1;
@@ -118,7 +118,7 @@ func main()
   }
   dfs(1, 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = read();
@@ -126,8 +126,8 @@ func main()
     }
   }
   {
-    var i = 1;
-    var maxdep = 0;
+    var i: dynamic = 1;
+    var maxdep: dynamic = 0;
     while ((i <= n))
     {
       if ((deep[a[i]] < maxdep))

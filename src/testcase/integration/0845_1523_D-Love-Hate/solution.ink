@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var arr = cpp_array(65, 200100);
+var arr: dynamic = cpp_array(65, 200100);
 
-var cnt = cpp_array(33010);
+var cnt: dynamic = cpp_array(33010);
 
-var dp = cpp_array(33010);
+var dp: dynamic = cpp_array(33010);
 
-func popcnt(msk: dynamic)
+func popcnt(msk: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   while ((msk > 0))
   {
     ret += 1;
@@ -21,20 +21,20 @@ func popcnt(msk: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var p: dynamic;
-  var maxv = -1;
-  var ans: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var maxv: dynamic = -1;
+  var ans: dynamic = cpp_uninitialized();
   scanf("%d %d %d", (&n), (&m), (&p));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           scanf("%1d", (&arr[i][j]));
@@ -46,14 +46,14 @@ func main()
   }
   srand(time(null));
   {
-    var t = 0;
+    var t: dynamic = 0;
     while ((t < 50))
     {
-      var idx = ((((rand() * 30000) + rand())) % n);
-      var curr: dynamic;
-      var siz = 0;
+      var idx: dynamic = ((((rand() * 30000) + rand())) % n);
+      var curr: dynamic = cpp_uninitialized();
+      var siz: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if (arr[idx][j])
@@ -67,12 +67,12 @@ func main()
       memset(cnt, 0, cpp_sizeof((cnt)));
       memset(dp, 0, cpp_sizeof((dp)));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
-          var msk = 0;
+          var msk: dynamic = 0;
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < siz))
             {
               if (arr[i][curr[j]])
@@ -87,11 +87,11 @@ func main()
         }
       }
       {
-        var msk = 0;
+        var msk: dynamic = 0;
         while ((msk < ((1 << siz))))
         {
           {
-            var smsk = msk;
+            var smsk: dynamic = msk;
             while (true)
             {
               dp[smsk] += cnt[msk];
@@ -106,16 +106,16 @@ func main()
         }
       }
       {
-        var smsk = 0;
+        var smsk: dynamic = 0;
         while ((smsk < ((1 << siz))))
         {
           if ((dp[smsk] >= (((n + 1)) / 2)))
           {
             if ((maxv < popcnt(smsk)))
             {
-              var now = string_cpp(m, cpp_char("0"));
+              var now: dynamic = string_cpp(m, cpp_char("0"));
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < siz))
                 {
                   if ((smsk & ((1 << j))))

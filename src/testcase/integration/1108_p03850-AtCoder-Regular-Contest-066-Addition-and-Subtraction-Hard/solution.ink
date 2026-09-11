@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var f = cpp_array(3, N);
+var f: dynamic = cpp_array(3, N);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&a[1]));
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
-      var op = cpp_array(2);
+      var op: dynamic = cpp_array(2);
       scanf("%s%d", op, (&a[i]));
-      a[i] = (if ((op[0] == cpp_char("+"))) a[i] else (-a[i]));
+      a[i] = ( ((op[0] == cpp_char("+"))) ? a[i] : (-a[i]));
       i += 1;
     }
   }
   f[1][0] = a[1];
   f[1][1] = cpp_assign(f[1][2], "=", (-1 << 60));
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       f[i][0] = (max(f[(i - 1)][0], max(f[(i - 1)][1], f[(i - 1)][2])) + a[i]);

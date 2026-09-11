@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func fpm(b: dynamic, e: dynamic, m: dynamic)
+func fpm(b: dynamic, e: dynamic, m: dynamic) -> dynamic
 {
-  var t = 1;
+  var t: dynamic = 1;
   {
     while (e)
     {
-      if ((e & 1)) cpp_assign(t, "=", ((t * b) % m)) else 0;
+       ((e & 1)) ? cpp_assign(t, "=", ((t * b) % m)) : 0;
       e >>= 1;
       b = ((b * b) % m);
     }
@@ -14,65 +14,65 @@ func fpm(b: dynamic, e: dynamic, m: dynamic)
   return t;
 }
 
-func chkmin(a: dynamic, b: dynamic)
+func chkmin(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a > b)) cpp_comma(cpp_assign(a, "=", b), true) else false;
+  return  ((a > b)) ? cpp_comma(cpp_assign(a, "=", b), true) : false;
 }
 
-func chkmax(a: dynamic, b: dynamic)
+func chkmax(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) cpp_comma(cpp_assign(a, "=", b), true) else false;
+  return  ((a < b)) ? cpp_comma(cpp_assign(a, "=", b), true) : false;
 }
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return (x * x);
 }
 
 class Graph
 {
-  var adj: dynamic;
-  func Graph(n: dynamic)
+  var adj: dynamic = cpp_uninitialized();
+  func Graph(n: dynamic) -> dynamic
   {
       adj.clear();
       adj.resize((n + 5));
     }
-  func Graph()
+  func Graph() -> dynamic
   {
       adj.clear();
     }
-  func resize(n: dynamic)
+  func resize(n: dynamic) -> dynamic
   {
       adj.resize((n + 5));
     }
-  func add(s: dynamic, e: dynamic)
+  func add(s: dynamic, e: dynamic) -> dynamic
   {
       adj[s].push_back(e);
     }
-  func del(s: dynamic, e: dynamic)
+  func del(s: dynamic, e: dynamic) -> dynamic
   {
       adj[s].erase(find(iter(adj[s]), e));
     }
-  func deg(v: dynamic)
+  func deg(v: dynamic) -> dynamic
   {
       return adj[v].size();
     }
-  func operator_index(t: dynamic)
+  func operator_index(t: dynamic) -> dynamic
   {
       return adj[t];
     }
 }
 
-var maxn = 524288;
+var maxn: dynamic = 524288;
 
-var maxlevel = 20;
+var maxlevel: dynamic = 20;
 
 class seg_tree
 {
   var f: dynamic = cpp_array((maxn << 1));
-  func query(L: dynamic, R: dynamic)
+  func query(L: dynamic, R: dynamic) -> dynamic
   {
-      var ret = 0x3F3F3F3F;
+      var ret: dynamic = 0x3F3F3F3F;
       {
         L += (maxn - 1);
         R += (maxn + 1);
@@ -92,10 +92,10 @@ class seg_tree
       }
       return ret;
     }
-  func build(g: dynamic)
+  func build(g: dynamic) -> dynamic
   {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < maxn))
         {
           f[(maxn + i)] = g.query(g.f[(maxn + i)], i);
@@ -103,7 +103,7 @@ class seg_tree
         }
       }
       {
-        var i = (maxn - 1);
+        var i: dynamic = (maxn - 1);
         while (i)
         {
           f[i] = min(f[(i * 2)], f[((i * 2) + 1)]);
@@ -113,17 +113,17 @@ class seg_tree
     }
 }
 
-var f = cpp_array(maxlevel);
+var f: dynamic = cpp_array(maxlevel);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var n: dynamic;
-  var level = 0;
+  var n: dynamic = cpp_uninitialized();
+  var level: dynamic = 0;
   read(n);
   {
-    var i = 1;
-    var x: dynamic;
+    var i: dynamic = 1;
+    var x: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
       read(x);
@@ -133,7 +133,7 @@ func main()
     }
   }
   {
-    var i = (maxn - 1);
+    var i: dynamic = (maxn - 1);
     while (i)
     {
       f[0].f[i] = min(f[0].f[(i * 2)], f[0].f[((i * 2) + 1)]);
@@ -141,7 +141,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while (((1 << i) <= (n * 2)))
     {
       f[i].build(f[(i - 1)]);
@@ -149,17 +149,17 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var L = ((i + n) - 1);
-      var ret = 0x3F3F3F3F;
-      var now = 0;
+      var L: dynamic = ((i + n) - 1);
+      var ret: dynamic = 0x3F3F3F3F;
+      var now: dynamic = 0;
       {
-        var b = level;
-        var t: dynamic;
+        var b: dynamic = level;
+        var t: dynamic = cpp_uninitialized();
         while ((b >= 0))
         {
           if (((cpp_assign(t, "=", f[b].query(L, ((i + n) - 1)))) <= i))

@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func printList(list: dynamic)
+func printList(list: dynamic) -> dynamic
 {
   write("list : ");
   {
@@ -14,7 +14,7 @@ func printList(list: dynamic)
   write("\n");
 }
 
-func printT_VPII(v: dynamic)
+func printT_VPII(v: dynamic) -> dynamic
 {
   write("list : ");
   {
@@ -28,19 +28,19 @@ func printT_VPII(v: dynamic)
   write("\n");
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var nodeToListPointer: dynamic;
+var nodeToListPointer: dynamic = cpp_uninitialized();
 
-var listPointers: dynamic;
+var listPointers: dynamic = cpp_uninitialized();
 
-var oldEdges: dynamic;
+var oldEdges: dynamic = cpp_uninitialized();
 
-var validEdges: dynamic;
+var validEdges: dynamic = cpp_uninitialized();
 
-func buildValidEdgeSetFromGraph(buildGraph: dynamic, graus: dynamic, lastUsedEdgeIndex: dynamic)
+func buildValidEdgeSetFromGraph(buildGraph: dynamic, graus: dynamic, lastUsedEdgeIndex: dynamic) -> dynamic
 {
   if ((buildGraph.size() == m))
   {
@@ -50,7 +50,7 @@ func buildValidEdgeSetFromGraph(buildGraph: dynamic, graus: dynamic, lastUsedEdg
     typeof((lastUsedEdgeIndex + 1)) = ((lastUsedEdgeIndex + 1));
     while ((i <= ((static_cast(validEdges.size()) - 1))))
     {
-      var edge = validEdges[i];
+      var edge: dynamic = validEdges[i];
       if (cpp_binary((graus[edge.first] >= 2), "or", (graus[edge.second] >= 2)))
       {
         i += 1;
@@ -59,7 +59,7 @@ func buildValidEdgeSetFromGraph(buildGraph: dynamic, graus: dynamic, lastUsedEdg
       buildGraph.insert(edge);
       graus[edge.first] += 1;
       graus[edge.second] += 1;
-      var resolved = buildValidEdgeSetFromGraph(buildGraph, graus, i);
+      var resolved: dynamic = buildValidEdgeSetFromGraph(buildGraph, graus, i);
       if (resolved)
       {
         return true;
@@ -73,9 +73,9 @@ func buildValidEdgeSetFromGraph(buildGraph: dynamic, graus: dynamic, lastUsedEdg
   return false;
 }
 
-func resolveBruteForce()
+func resolveBruteForce() -> dynamic
 {
-  var validEdgeSet: dynamic;
+  var validEdgeSet: dynamic = cpp_uninitialized();
   {
     typeof(1) = (1);
     while ((i <= ((n - 1))))
@@ -95,8 +95,8 @@ func resolveBruteForce()
     typeof(m);
     while (cpp_assign(i, "=", 0))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       if ((u > v))
       {
@@ -108,9 +108,9 @@ func resolveBruteForce()
     }
   }
   validEdges = vector((validEdgeSet).begin(), (validEdgeSet).end());
-  var result: dynamic;
-  var graus = vector((n + 1), 0);
-  var resolved = buildValidEdgeSetFromGraph(result, graus, -1);
+  var result: dynamic = cpp_uninitialized();
+  var graus: dynamic = vector((n + 1), 0);
+  var resolved: dynamic = buildValidEdgeSetFromGraph(result, graus, -1);
   if (cpp_unary("not", resolved))
   {
     write("-1", "\n");
@@ -120,7 +120,7 @@ func resolveBruteForce()
       typeof((result).begin()) = ((result).begin());
       while ((e != (result).end()))
       {
-        var edge = (*e);
+        var edge: dynamic = (*e);
         write(edge.first, " ", edge.second, "\n");
         e += 1;
       }
@@ -128,7 +128,7 @@ func resolveBruteForce()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   if ((n < 10))
@@ -140,11 +140,11 @@ func main()
     typeof(m) = 0;
     while ((i < (m)))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
-      var listEdgeNode_u = null;
-      var listEdgeNode_v = null;
+      var listEdgeNode_u: dynamic = null;
+      var listEdgeNode_v: dynamic = null;
       if (nodeToListPointer.count(u))
       {
         listEdgeNode_u = nodeToListPointer[u];
@@ -164,7 +164,7 @@ func main()
       {
       } else if (cpp_binary((listEdgeNode_v == null), "or", (listEdgeNode_u == null)))
       {
-        var listEdgeNode = if ((listEdgeNode_v == null)) listEdgeNode_u else listEdgeNode_v;
+        var listEdgeNode: dynamic =  ((listEdgeNode_v == null)) ? listEdgeNode_u : listEdgeNode_v;
         if ((listEdgeNode->front() == u))
         {
           listEdgeNode->push_front(v);
@@ -216,14 +216,14 @@ func main()
       i += 1;
     }
   }
-  var subgraph = null;
+  var subgraph: dynamic = null;
   {
-    var numNodes = 0;
+    var numNodes: dynamic = 0;
     {
       typeof((listPointers).begin()) = ((listPointers).begin());
       while ((lp != (listPointers).end()))
       {
-        var g = (*lp);
+        var g: dynamic = (*lp);
         if ((g->size() > numNodes))
         {
           numNodes = g->size();
@@ -235,9 +235,9 @@ func main()
   }
   if (((m / 2) <= subgraph->size()))
   {
-    var oddList = cpp_new();
-    var evenList = cpp_new();
-    var odd = true;
+    var oddList: dynamic = cpp_new();
+    var evenList: dynamic = cpp_new();
+    var odd: dynamic = true;
     {
       typeof(((*subgraph)).begin()) = (((*subgraph)).begin());
       while ((v != ((*subgraph)).end()))
@@ -260,8 +260,8 @@ func main()
     subgraph = oddList;
     if (((subgraph->size() % 2) == 0))
     {
-      var ite1: dynamic;
-      var ite2: dynamic;
+      var ite1: dynamic = cpp_uninitialized();
+      var ite2: dynamic = cpp_uninitialized();
       ite1 = cpp_assign(ite2, "=", subgraph->begin());
       ite1 += 1;
       swap((*ite1), (*ite2));
@@ -270,12 +270,12 @@ func main()
   {
     listPointers.erase(subgraph);
   }
-  var it = subgraph->begin();
+  var it: dynamic = subgraph->begin();
   {
     typeof((listPointers).begin()) = ((listPointers).begin());
     while ((listPointerIte != (listPointers).end()))
     {
-      var listToMergePtr = (*listPointerIte);
+      var listToMergePtr: dynamic = (*listPointerIte);
       {
         typeof(((*listToMergePtr)).begin()) = (((*listToMergePtr)).begin());
         while ((uIte != ((*listToMergePtr)).end()))
@@ -294,8 +294,8 @@ func main()
   }
   {
     write(subgraph->back(), " ", subgraph->front(), "\n");
-    var numPrintedEdges = 1;
-    var lastU = subgraph->front();
+    var numPrintedEdges: dynamic = 1;
+    var lastU: dynamic = subgraph->front();
     subgraph->pop_front();
     {
       typeof(((*subgraph)).begin()) = (((*subgraph)).begin());

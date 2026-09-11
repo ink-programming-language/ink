@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var g1 = 0;
-  var g2 = 0;
-  var a = cpp_array((n / 2));
+  var g1: dynamic = 0;
+  var g2: dynamic = 0;
+  var a: dynamic = cpp_array((n / 2));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n / 2)))
     {
       read(a[i]);
@@ -19,7 +19,7 @@ func main()
   }
   sort(a, (a + (n / 2)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n / 2)))
     {
       g1 += abs((a[(i - 1)] - (((i * 2) - 1))));
@@ -27,7 +27,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n / 2)))
     {
       g2 += abs((a[(i - 1)] - ((i * 2))));

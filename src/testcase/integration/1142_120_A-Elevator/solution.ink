@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var ifile = cpp_construct("input.txt");
+  var ifile: dynamic = cpp_construct("input.txt");
   if (ifile)
   {
     freopen("input.txt", "rt", stdin);
@@ -11,9 +11,9 @@ func main()
   {
     freopen("output.txt", "wt", stdout);
   }
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var r: dynamic;
+  var r: dynamic = cpp_uninitialized();
   read(r);
   if ((s == "front"))
   {

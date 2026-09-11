@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var a = cpp_array(300005);
+var a: dynamic = cpp_array(300005);
 
-func maximum(k: dynamic, n: dynamic)
+func maximum(k: dynamic, n: dynamic) -> dynamic
 {
   if (((k > 0) && (a[k] < a[(k - 1)])))
   {
@@ -17,7 +17,7 @@ func maximum(k: dynamic, n: dynamic)
   return 1;
 }
 
-func minimum(k: dynamic, n: dynamic)
+func minimum(k: dynamic, n: dynamic) -> dynamic
 {
   if (((k == (n - 1)) || (k == 0)))
   {
@@ -30,20 +30,20 @@ func minimum(k: dynamic, n: dynamic)
   return 1;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var sum = 0;
-    var n: dynamic;
-    var q: dynamic;
+    var sum: dynamic = 0;
+    var n: dynamic = cpp_uninitialized();
+    var q: dynamic = cpp_uninitialized();
     read(n, q);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -51,7 +51,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if (maximum(i, n))
@@ -68,13 +68,13 @@ func main()
     write(sum, cpp_char("\n"));
     while (cpp_update(q, "--"))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       u -= 1;
       v -= 1;
       {
-        var i = -1;
+        var i: dynamic = -1;
         while ((i <= 1))
         {
           if ((((u + i) < 0) || ((u + i) >= n)))
@@ -88,7 +88,7 @@ func main()
       }
       swap(u, v);
       {
-        var i = -1;
+        var i: dynamic = -1;
         while ((i <= 1))
         {
           if ((((u + i) < 0) || ((u + i) >= n)))
@@ -100,7 +100,7 @@ func main()
           i += 1;
         }
       }
-      for (var i in s)
+      for (var i: dynamic in s)
       {
         if (maximum(i, n))
         {
@@ -112,7 +112,7 @@ func main()
         }
       }
       swap(a[u], a[v]);
-      for (var i in s)
+      for (var i: dynamic in s)
       {
         if (maximum(i, n))
         {

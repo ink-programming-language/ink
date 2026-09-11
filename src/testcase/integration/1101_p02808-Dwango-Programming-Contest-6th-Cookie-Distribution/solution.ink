@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var N = (1e3 + 2);
+var N: dynamic = (1e3 + 2);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var dp = cpp_array(N);
+var dp: dynamic = cpp_array(N);
 
-var c = cpp_array(N, N);
+var c: dynamic = cpp_array(N, N);
 
-var ar = cpp_array(N);
+var ar: dynamic = cpp_array(N);
 
-var ndp = cpp_array(N);
+var ndp: dynamic = cpp_array(N);
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
   x += y;
   if ((x >= mod))
@@ -21,21 +21,21 @@ func add(x: dynamic, y: dynamic)
   }
 }
 
-func mul(x: dynamic, y: dynamic)
+func mul(x: dynamic, y: dynamic) -> dynamic
 {
   return ((((1 * x) * y)) % mod);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
-  var num: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var num: dynamic = cpp_uninitialized();
   read(n, num);
   {
     i = 1;

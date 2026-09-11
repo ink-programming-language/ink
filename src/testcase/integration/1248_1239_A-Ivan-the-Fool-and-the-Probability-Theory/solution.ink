@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var N = (1e5 + 10);
+var N: dynamic = (1e5 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   f[1] = 1;
   f[2] = 2;
   {
-    var i = 3;
+    var i: dynamic = 3;
     while ((i < N))
     {
       f[i] = (((f[(i - 1)] + f[(i - 2)])) % mod);

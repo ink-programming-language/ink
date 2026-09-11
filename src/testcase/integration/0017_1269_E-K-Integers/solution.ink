@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var N = (1e6 + 10);
+var N: dynamic = (1e6 + 10);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var head = cpp_array(N);
+var head: dynamic = cpp_array(N);
 
-var dis = cpp_array(N);
+var dis: dynamic = cpp_array(N);
 
-var ecnt: dynamic;
+var ecnt: dynamic = cpp_uninitialized();
 
-var fa = cpp_array(N);
+var fa: dynamic = cpp_array(N);
 
-var cat = cpp_array(2005, 2005);
+var cat: dynamic = cpp_array(2005, 2005);
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (((a % b) == 0)) b else gcd(b, (a % b));
+  return  (((a % b) == 0)) ? b : gcd(b, (a % b));
 }
 
-func qpow(base: dynamic, n: dynamic)
+func qpow(base: dynamic, n: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while (n)
   {
     if ((n & 1))
@@ -36,38 +36,38 @@ func qpow(base: dynamic, n: dynamic)
 
 class Node
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var nd = cpp_array(N);
+var nd: dynamic = cpp_array(N);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
 class EDGE
 {
-  var u: dynamic;
-  var v: dynamic;
-  var nxt: dynamic;
-  var w: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var nxt: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array(N);
+var e: dynamic = cpp_array(N);
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.w < b.w);
 }
 
-func add_edge(u: dynamic, v: dynamic, w: dynamic)
+func add_edge(u: dynamic, v: dynamic, w: dynamic) -> dynamic
 {
   e[ecnt].u = u;
   e[ecnt].v = v;
@@ -76,19 +76,19 @@ func add_edge(u: dynamic, v: dynamic, w: dynamic)
   head[u] = cpp_update(ecnt, "++");
 }
 
-func fd(x: dynamic)
+func fd(x: dynamic) -> dynamic
 {
-  return if ((-1 == fa[x])) x else cpp_assign(fa[x], "=", fd(fa[x]));
+  return  ((-1 == fa[x])) ? x : cpp_assign(fa[x], "=", fd(fa[x]));
 }
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-func lowbit(x: dynamic)
+func lowbit(x: dynamic) -> dynamic
 {
   return (x & ((-x)));
 }
 
-func add(c: dynamic, x: dynamic, y: dynamic)
+func add(c: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   while ((x <= n))
   {
@@ -97,9 +97,9 @@ func add(c: dynamic, x: dynamic, y: dynamic)
   }
 }
 
-func getsum(c: dynamic, x: dynamic)
+func getsum(c: dynamic, x: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   while ((x > 0))
   {
     res += c[x];
@@ -108,51 +108,51 @@ func getsum(c: dynamic, x: dynamic)
   return res;
 }
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var C = cpp_array(55, 55);
+var C: dynamic = cpp_array(55, 55);
 
-var dp = cpp_array(150, 150);
+var dp: dynamic = cpp_array(150, 150);
 
-var posar = cpp_array(N);
+var posar: dynamic = cpp_array(N);
 
-var smar = cpp_array(N);
+var smar: dynamic = cpp_array(N);
 
 class H
 {
-  var p: dynamic;
-  var s: dynamic;
+  var p: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
 }
 
-var he = cpp_array(N);
+var he: dynamic = cpp_array(N);
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (a > b);
 }
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var v = cpp_array(30);
+var v: dynamic = cpp_array(30);
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var ar = cpp_array(N);
+var ar: dynamic = cpp_array(N);
 
-var br = cpp_array(N);
+var br: dynamic = cpp_array(N);
 
-var vv = cpp_array(10);
+var vv: dynamic = cpp_array(10);
 
-func main()
+func main() -> dynamic
 {
   {
     read(n);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         scanf("%d", (&ar[i]));
@@ -160,17 +160,17 @@ func main()
         i += 1;
       }
     }
-    var inv = 0;
+    var inv: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         inv += ((i - 1) - getsum(smar, p[i]));
         add(smar, p[i], 1);
         add(posar, p[i], p[i]);
-        var l = 1;
-        var r = n;
-        var mid: dynamic;
+        var l: dynamic = 1;
+        var r: dynamic = n;
+        var mid: dynamic = cpp_uninitialized();
         while ((l < r))
         {
           mid = (((1 + l) + r) >> 1);
@@ -183,10 +183,10 @@ func main()
           }
         }
         mid = l;
-        var pre_cnt_sum = getsum(smar, mid);
-        var pre_pos_sum = getsum(posar, mid);
-        var mov = (((pre_cnt_sum * mid) - pre_pos_sum) - ((pre_cnt_sum * ((pre_cnt_sum - 1))) / 2));
-        var aft_cnt_sum = (i - pre_cnt_sum);
+        var pre_cnt_sum: dynamic = getsum(smar, mid);
+        var pre_pos_sum: dynamic = getsum(posar, mid);
+        var mov: dynamic = (((pre_cnt_sum * mid) - pre_pos_sum) - ((pre_cnt_sum * ((pre_cnt_sum - 1))) / 2));
+        var aft_cnt_sum: dynamic = (i - pre_cnt_sum);
         mov += (((getsum(posar, n) - pre_pos_sum) - (aft_cnt_sum * mid)) - ((aft_cnt_sum * ((aft_cnt_sum + 1))) / 2));
         write((inv + mov), " \n"[(i == n)]);
         i += 1;

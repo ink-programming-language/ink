@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var X = cpp_array(200005);
+var X: dynamic = cpp_array(200005);
 
-var Y = cpp_array(200005);
+var Y: dynamic = cpp_array(200005);
 
-var W = cpp_array(200005);
+var W: dynamic = cpp_array(200005);
 
-var S = cpp_array(200005);
+var S: dynamic = cpp_array(200005);
 
-var colormark = cpp_array(200005);
+var colormark: dynamic = cpp_array(200005);
 
-var mark = cpp_array(200005);
+var mark: dynamic = cpp_array(200005);
 
-var V = cpp_array(200005);
+var V: dynamic = cpp_array(200005);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var pq: dynamic;
-  var n: dynamic;
-  var m: dynamic;
+  var pq: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(W[i]);
@@ -31,7 +31,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(X[i], Y[i]);
@@ -43,7 +43,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (S[i])
@@ -55,16 +55,16 @@ func main()
   }
   while (pq.size())
   {
-    var q = ((*pq.begin()));
+    var q: dynamic = ((*pq.begin()));
     pq.erase(pq.begin());
     if ((q.first > 0))
     {
       write("DEAD", cpp_char("\n"));
       exit(0);
     }
-    var id = q.second;
-    var wt: dynamic;
-    for (var j in V[id])
+    var id: dynamic = q.second;
+    var wt: dynamic = cpp_uninitialized();
+    for (var j: dynamic in V[id])
     {
       if (mark[j])
       {
@@ -78,7 +78,7 @@ func main()
       wt.push_back(X[j]);
       mark[j] = 1;
     }
-    for (var j in wt)
+    for (var j: dynamic in wt)
     {
       pq.erase([(S[j] - W[j]), j]);
       S[j] -= 1;
@@ -90,7 +90,7 @@ func main()
   }
   reverse(ans.begin(), ans.end());
   write("ALIVE", cpp_char("\n"));
-  for (var j in ans)
+  for (var j: dynamic in ans)
   {
     write((j + 1), " ");
   }

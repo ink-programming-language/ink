@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1000001);
+var a: dynamic = cpp_array(1000001);
 
-var f = cpp_array(1000001);
+var f: dynamic = cpp_array(1000001);
 
-var g = cpp_array(1000001);
+var g: dynamic = cpp_array(1000001);
 
-var sz = cpp_array(1000001);
+var sz: dynamic = cpp_array(1000001);
 
-var fa: dynamic;
+var fa: dynamic = cpp_uninitialized();
 
-var d = cpp_array(1000001);
+var d: dynamic = cpp_array(1000001);
 
-var ch: dynamic;
+var ch: dynamic = cpp_uninitialized();
 
-func dfs(x: dynamic, pre: dynamic)
+func dfs(x: dynamic, pre: dynamic) -> dynamic
 {
   f[x] = (f[pre] + 1);
   g[x] = min(f[x], (g[pre] + sz[pre]));
@@ -27,18 +27,18 @@ func dfs(x: dynamic, pre: dynamic)
     f[x] = min(f[x], (g[x] + 1));
   }
   sort(d[x].begin(), d[x].end());
-  for (var nxt in d[x])
+  for (var nxt: dynamic in d[x])
   {
     dfs(nxt.second, x);
     sz[x] += sz[nxt.second];
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d %c", (&fa), (&ch));
@@ -48,7 +48,7 @@ func main()
   }
   scanf("%d", (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       scanf("%d", (&a[i]));
@@ -59,10 +59,10 @@ func main()
   f[0] = -1;
   dfs(0, 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
-      printf("%d%c", f[a[i]], if ((i < k)) cpp_char(" ") else cpp_char("\n"));
+      printf("%d%c", f[a[i]],  ((i < k)) ? cpp_char(" ") : cpp_char("\n"));
       i += 1;
     }
   }

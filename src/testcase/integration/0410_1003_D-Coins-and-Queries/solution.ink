@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var q: dynamic;
-  var coins: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var coins: dynamic = cpp_uninitialized();
   read(n, q);
-  var queries = cpp_array(q);
+  var queries: dynamic = cpp_array(q);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var val: dynamic;
+      var val: dynamic = cpp_uninitialized();
       read(val);
       coins[val] += 1;
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       read(queries[i]);
@@ -26,16 +26,16 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      var counter = 0;
-      var curr = 0;
+      var counter: dynamic = 0;
+      var curr: dynamic = 0;
       {
-        var it = coins.rbegin();
+        var it: dynamic = coins.rbegin();
         while ((it != coins.rend()))
         {
-          var num = min(it->second, (((queries[i] - curr)) / (it->first)));
+          var num: dynamic = min(it->second, (((queries[i] - curr)) / (it->first)));
           counter += num;
           curr += (num * (it->first));
           it += 1;

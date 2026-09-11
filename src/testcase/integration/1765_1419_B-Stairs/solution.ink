@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
-  var dp = cpp_array(35);
+  var dp: dynamic = cpp_array(35);
   dp[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 35))
     {
       dp[i] = ((2 * dp[(i - 1)]) + 1);
       i += 1;
     }
   }
-  var cells = cpp_array(35);
+  var cells: dynamic = cpp_array(35);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 35))
     {
       cells[i] = ((dp[i] * ((dp[i] + 1))) / 2);
@@ -24,7 +24,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 35))
     {
       cells[i] += cells[(i - 1)];
@@ -33,11 +33,11 @@ func main()
   }
   while (cpp_update(t, "--"))
   {
-    var x: dynamic;
+    var x: dynamic = cpp_uninitialized();
     read(x);
-    var ans = 0;
+    var ans: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 35))
       {
         if ((cells[i] > x))

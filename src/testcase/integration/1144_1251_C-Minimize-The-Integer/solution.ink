@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var N = 1e5;
+var N: dynamic = 1e5;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var eps = 1E-7;
+var eps: dynamic = 1E-7;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var mx: dynamic;
+var mx: dynamic = cpp_uninitialized();
 
-var mn = 1e9;
+var mn: dynamic = 1e9;
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var s1: dynamic;
-  var s2: dynamic;
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if (((s[i] % 2) == 0))
@@ -44,10 +44,10 @@ func solve()
   write(s, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   read(T);
   while (cpp_update(T, "--"))
   {

@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var N: dynamic;
-  var P: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var ans = 1;
+  var N: dynamic = cpp_uninitialized();
+  var P: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var ans: dynamic = 1;
   read(N, P);
   if ((N == 1))
   {

@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var inf = (1e9 + 7);
+var inf: dynamic = (1e9 + 7);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var maxn = (1e5 + 7);
+var maxn: dynamic = (1e5 + 7);
 
-var maxmsk = (((1 << 17)) + 7);
+var maxmsk: dynamic = (((1 << 17)) + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var num = cpp_array(maxn);
+var num: dynamic = cpp_array(maxn);
 
-var ok = cpp_array(27, 27);
+var ok: dynamic = cpp_array(27, 27);
 
-var bad = cpp_array(maxmsk);
+var bad: dynamic = cpp_array(maxmsk);
 
-var met = cpp_array(27);
+var met: dynamic = cpp_array(27);
 
-var sum = cpp_array(27);
+var sum: dynamic = cpp_array(27);
 
-var hve = cpp_array(27);
+var hve: dynamic = cpp_array(27);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
   scanf("%d%d", (&n), (&p));
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       num[i] = (s[i] - cpp_char("a"));
@@ -40,11 +40,11 @@ func init()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < p))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < p))
         {
           scanf("%d", (ok[i] + j));
@@ -56,14 +56,14 @@ func init()
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < p))
         {
           if ((!hve[j]))
@@ -90,7 +90,7 @@ func solve()
       }
       hve[num[i]] = true;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < p))
         {
           met[j] |= ((1 << num[i]));
@@ -102,11 +102,11 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < p))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ((1 << p))))
         {
           if ((((j >> i)) & 1))
@@ -119,9 +119,9 @@ func solve()
       i += 1;
     }
   }
-  var ans = n;
+  var ans: dynamic = n;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < ((1 << p))))
     {
       if (bad[i])
@@ -129,9 +129,9 @@ func solve()
         i += 1;
         continue;
       }
-      var isbad = true;
+      var isbad: dynamic = true;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < p))
         {
           if ((((i >> j)) & 1))
@@ -151,9 +151,9 @@ func solve()
         i += 1;
         continue;
       }
-      var res = 0;
+      var res: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < p))
         {
           if ((!((((i >> j)) & 1))))
@@ -170,7 +170,7 @@ func solve()
   printf("%d\n", ans);
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   solve();

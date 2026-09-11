@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var s = "1001010111001010";
+var s: dynamic = "1001010111001010";
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   write(s[(n - 1)], "\n");
   return 0;

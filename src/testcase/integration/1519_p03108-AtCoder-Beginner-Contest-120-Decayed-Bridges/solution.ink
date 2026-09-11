@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var MAXN = (1e5 + 5);
+var MAXN: dynamic = (1e5 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var fa = cpp_array(MAXN);
+var fa: dynamic = cpp_array(MAXN);
 
 class EDGE
 {
-  var u: dynamic;
-  var v: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array(MAXN);
+var e: dynamic = cpp_array(MAXN);
 
-var ans = cpp_array(MAXN);
+var ans: dynamic = cpp_array(MAXN);
 
-var sz = cpp_array(MAXN);
+var sz: dynamic = cpp_array(MAXN);
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
   if ((x == fa[x]))
   {
@@ -29,11 +29,11 @@ func find(x: dynamic)
   return cpp_assign(fa[x], "=", find(fa[x]));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       read(e[i].u, e[i].v);
@@ -41,7 +41,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fa[i] = i;
@@ -51,11 +51,11 @@ func main()
   }
   ans[m] = ((cpp_cast(n) * ((n - 1))) / 2);
   {
-    var i = m;
+    var i: dynamic = m;
     while ((i >= 1))
     {
-      var u = find(e[i].u);
-      var v = find(e[i].v);
+      var u: dynamic = find(e[i].u);
+      var v: dynamic = find(e[i].v);
       if ((u == v))
       {
         ans[(i - 1)] = ans[i];
@@ -69,7 +69,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       write(ans[i], "\n");

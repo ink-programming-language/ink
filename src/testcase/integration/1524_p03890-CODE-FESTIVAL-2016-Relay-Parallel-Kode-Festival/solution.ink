@@ -1,102 +1,102 @@
 // Translated from solution.cpp.
 
-var GLIBCXX_DEBUG = cpp_expression("#ifd");
+var GLIBCXX_DEBUG: dynamic = cpp_expression("#ifd");
 
-var NDEBUG = cpp_expression("#ifd");
+var NDEBUG: dynamic = cpp_expression("#ifd");
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-func operator_shift_left(os: dynamic, p: dynamic)
+func operator_shift_left(os: dynamic, p: dynamic) -> dynamic
 {
   write(cpp_char("("), p.first, cpp_char(" "), p.second, cpp_char(")"));
   return os;
 }
 
-var endl = cpp_expression("#ifd");
+var endl: dynamic = cpp_expression("#ifd");
 
-func ALL(a: dynamic)
+func ALL(a: dynamic) -> dynamic
 {
   return cpp_expression("#ifdef LOCAL111 #def");
 }
 
-func SZ(a: dynamic)
+func SZ(a: dynamic) -> dynamic
 {
   return cpp_expression("#ifdef LOCAL111");
 }
 
-func FOR(i: dynamic, a: dynamic, b: dynamic)
+func FOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(a);i<(b);++i)");
 }
 
-func RFOR(i: dynamic, a: dynamic, b: dynamic)
+func RFOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for (int i=(b)-1;i>=(a);i--)");
 }
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#ifdef LOC");
 }
 
-func RREP(i: dynamic, n: dynamic)
+func RREP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int i=(n)-1;i>=0;i--)");
 }
 
-func DEBUG(x: dynamic)
+func DEBUG(x: dynamic) -> dynamic
 {
   return cpp_expression("#ifdef LOCAL111 #define");
 }
 
-func dpite(a: dynamic, b: dynamic)
+func dpite(a: dynamic, b: dynamic) -> dynamic
 {
   {
-    var ite = a;
+    var ite: dynamic = a;
     while ((ite != b))
     {
-      write((if ((ite == a)) "" else " "), (*ite));
+      write(( ((ite == a)) ? "" : " "), (*ite));
       ite += 1;
     }
   }
   write("\n");
 }
 
-func DEBUG(x: dynamic)
+func DEBUG(x: dynamic) -> dynamic
 {
   return cpp_expression("#ifd");
 }
 
-func dpite(a: dynamic, b: dynamic)
+func dpite(a: dynamic, b: dynamic) -> dynamic
 {
   return;
 }
 
-var F = cpp_expression("#ifde");
+var F: dynamic = cpp_expression("#ifde");
 
-var S = cpp_expression("#ifdef");
+var S: dynamic = cpp_expression("#ifdef");
 
-var SNP = cpp_expression("#ifdef LOCAL");
+var SNP: dynamic = cpp_expression("#ifdef LOCAL");
 
-func WRC(hoge: dynamic)
+func WRC(hoge: dynamic) -> dynamic
 {
   return cpp_expression("#ifdef LOCAL111 #define _GLIBCXX_DE");
 }
 
-func pite(a: dynamic, b: dynamic)
+func pite(a: dynamic, b: dynamic) -> dynamic
 {
   {
-    var ite = a;
+    var ite: dynamic = a;
     while ((ite != b))
     {
-      write((if ((ite == a)) "" else " "), (*ite));
+      write(( ((ite == a)) ? "" : " "), (*ite));
       ite += 1;
     }
   }
   write("\n");
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -106,7 +106,7 @@ func chmax(a: dynamic, b: dynamic)
   return false;
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -116,25 +116,25 @@ func chmin(a: dynamic, b: dynamic)
   return false;
 }
 
-func ios_init()
+func ios_init() -> dynamic
 {
   return;
   ios.sync_with_stdio(false);
   cin.tie(0);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_init();
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while ((cin >> n))
   {
-    var a = cpp_construct((1 << n));
+    var a: dynamic = cpp_construct((1 << n));
     REP(i, (1 << n));
     {
       read(a[i]);
     }
-    var v: dynamic;
+    var v: dynamic = cpp_uninitialized();
     while ((SZ(a) > 1))
     {
       dpite(ALL(a));

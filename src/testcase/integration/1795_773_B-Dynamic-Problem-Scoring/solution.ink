@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var MAX_D = 1e5;
+var MAX_D: dynamic = 1e5;
 
-var TASK_COUNT = 5;
+var TASK_COUNT: dynamic = 5;
 
-var STATE_COUNT = 6;
+var STATE_COUNT: dynamic = 6;
 
-var COEF = [2, 4, 8, 16, 32];
+var COEF: dynamic = [2, 4, 8, 16, 32];
 
-var SCORE = [500, 1000, 1500, 2000, 2500, 3000];
+var SCORE: dynamic = [500, 1000, 1500, 2000, 2500, 3000];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var answer = MAX_D;
+var answer: dynamic = MAX_D;
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var success: dynamic;
+var success: dynamic = cpp_uninitialized();
 
-var taskScore: dynamic;
+var taskScore: dynamic = cpp_uninitialized();
 
-var successBuffer: dynamic;
+var successBuffer: dynamic = cpp_uninitialized();
 
-var precalcTotal: dynamic;
+var precalcTotal: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-func UpdateAnswer(d: dynamic)
+func UpdateAnswer(d: dynamic) -> dynamic
 {
-  var total = (d + n);
+  var total: dynamic = (d + n);
   successBuffer.assign(TASK_COUNT, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < TASK_COUNT))
     {
       if ((a[0][i] == -1))
@@ -44,7 +44,7 @@ func UpdateAnswer(d: dynamic)
         successBuffer[i] = 0;
       } else
       {
-        var x = (total - (COEF[s[i]] * success[i]));
+        var x: dynamic = (total - (COEF[s[i]] * success[i]));
         if ((x < 0))
         {
           successBuffer[i] = 0;
@@ -57,7 +57,7 @@ func UpdateAnswer(d: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < TASK_COUNT))
     {
       if ((successBuffer[i] > d))
@@ -69,10 +69,10 @@ func UpdateAnswer(d: dynamic)
   }
   taskScore.assign(TASK_COUNT, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < TASK_COUNT))
     {
-      var x = (success[i] + successBuffer[i]);
+      var x: dynamic = (success[i] + successBuffer[i]);
       if ((total < (x * 2)))
       {
         taskScore[i] = 500;
@@ -95,14 +95,14 @@ func UpdateAnswer(d: dynamic)
       i += 1;
     }
   }
-  var score = cpp_array(2);
+  var score: dynamic = cpp_array(2);
   score[0] = cpp_assign(score[1], "=", 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < TASK_COUNT))
         {
           if ((a[i][j] != -1))
@@ -121,10 +121,10 @@ func UpdateAnswer(d: dynamic)
   }
 }
 
-func UpdateAnswer()
+func UpdateAnswer() -> dynamic
 {
   {
-    var d = 0;
+    var d: dynamic = 0;
     while ((d < MAX_D))
     {
       UpdateAnswer(d);
@@ -133,18 +133,18 @@ func UpdateAnswer()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   read(n);
   a.resize(n, vector(TASK_COUNT, -1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < TASK_COUNT))
         {
           read(a[i][j]);
@@ -156,11 +156,11 @@ func main()
   }
   success.resize(TASK_COUNT, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < TASK_COUNT))
         {
           if ((a[i][j] >= 0))
@@ -174,13 +174,13 @@ func main()
     }
   }
   {
-    var d = 0;
+    var d: dynamic = 0;
     while ((d <= MAX_D))
     {
-      var total = (n + d);
+      var total: dynamic = (n + d);
       successBuffer.assign(TASK_COUNT, 0);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < TASK_COUNT))
         {
           if ((((a[1][i] != -1) && (a[0][i] != -1)) && (a[1][i] < a[0][i])))
@@ -192,10 +192,10 @@ func main()
       }
       taskScore.assign(TASK_COUNT, 0);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < TASK_COUNT))
         {
-          var x = (success[i] + successBuffer[i]);
+          var x: dynamic = (success[i] + successBuffer[i]);
           if ((total < (x * 2)))
           {
             taskScore[i] = 500;
@@ -218,14 +218,14 @@ func main()
           i += 1;
         }
       }
-      var score = cpp_array(2);
+      var score: dynamic = cpp_array(2);
       score[0] = cpp_assign(score[1], "=", 0);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 2))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < TASK_COUNT))
             {
               if ((a[i][j] != -1))

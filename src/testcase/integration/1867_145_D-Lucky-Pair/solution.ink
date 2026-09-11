@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var mm: dynamic;
+var mm: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var li = cpp_array(100005);
+var li: dynamic = cpp_array(100005);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func islucky(x: dynamic)
+func islucky(x: dynamic) -> dynamic
 {
   {
     while ((x > 0))
@@ -27,19 +27,19 @@ func islucky(x: dynamic)
   return true;
 }
 
-func work()
+func work() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var up_k: dynamic;
-  var x: dynamic;
-  var sum: dynamic;
-  var visit: dynamic;
-  var seg: dynamic;
-  var itL: dynamic;
-  var it: dynamic;
-  var itR: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var up_k: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  var visit: dynamic = cpp_uninitialized();
+  var seg: dynamic = cpp_uninitialized();
+  var itL: dynamic = cpp_uninitialized();
+  var it: dynamic = cpp_uninitialized();
+  var itR: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= m))
@@ -57,7 +57,7 @@ func work()
           {
             x = a[li[j]];
             visit.insert(x);
-            var que = mm[x];
+            var que: dynamic = mm[x];
             up_k = que.size();
             {
               k = 0;
@@ -92,12 +92,12 @@ func work()
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var nn = [(n - 1), n, (n + 1), (n + 2)];
+  var nn: dynamic = [(n - 1), n, (n + 1), (n + 2)];
   {
     i = 4;
     while ((i >= 2))

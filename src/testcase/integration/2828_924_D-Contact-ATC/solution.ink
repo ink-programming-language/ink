@@ -1,47 +1,47 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
 class plane
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
 }
 
-var p = cpp_array(100005);
+var p: dynamic = cpp_array(100005);
 
-var temp = cpp_array(100005);
+var temp: dynamic = cpp_array(100005);
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
   return ((x.a < y.a) || (((x.a == y.a) && (x.b > y.b))));
 }
 
-func CDQ(l: dynamic, r: dynamic)
+func CDQ(l: dynamic, r: dynamic) -> dynamic
 {
   if ((l == r))
   {
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   CDQ(l, mid);
   CDQ((mid + 1), r);
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i <= r))
     {
       temp[i] = p[i];
       i += 1;
     }
   }
-  var cnt = l;
+  var cnt: dynamic = l;
   {
-    var i = l;
-    var j = (mid + 1);
+    var i: dynamic = l;
+    var j: dynamic = (mid + 1);
     while (((i <= mid) || (j <= r)))
     {
       if (((((j > r) || (temp[i].b < temp[j].b))) && (i <= mid)))
@@ -56,13 +56,13 @@ func CDQ(l: dynamic, r: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&n), (&w));
   {
-    var i = 1;
-    var x: dynamic;
-    var v: dynamic;
+    var i: dynamic = 1;
+    var x: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
       scanf("%d %d", (&x), (&v));

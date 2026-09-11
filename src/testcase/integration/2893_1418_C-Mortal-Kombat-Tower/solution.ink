@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var t: dynamic;
-  var n: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     read(n);
-    var arr = cpp_array(n);
-    var dp = cpp_array(2, 2, n);
+    var arr: dynamic = cpp_array(n);
+    var dp: dynamic = cpp_array(2, 2, n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(arr[i]);
@@ -25,7 +25,7 @@ func main()
     dp[0][1][0] = (2 * n);
     dp[0][1][1] = (2 * n);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         dp[i][0][0] = min(dp[(i - 1)][1][0], dp[(i - 1)][1][1]);

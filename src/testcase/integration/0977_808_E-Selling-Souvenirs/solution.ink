@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var N = 1e5;
+var N: dynamic = 1e5;
 
-var w = cpp_array(N);
+var w: dynamic = cpp_array(N);
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var items: dynamic;
+var items: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(w[i], c[i]);
@@ -25,24 +25,24 @@ func main()
     }
   }
   sort(items.begin(), items.end());
-  var vals = cpp_array(10);
+  var vals: dynamic = cpp_array(10);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 10))
     {
       vals[i] = 0;
       i += 1;
     }
   }
-  var base = 0;
-  var high = 0;
+  var base: dynamic = 0;
+  var high: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(items.size())))
     {
-      var ind = items[i].second;
+      var ind: dynamic = items[i].second;
       {
-        var j = (9 - w[ind]);
+        var j: dynamic = (9 - w[ind]);
         while ((j >= 0))
         {
           if (vals[j])
@@ -59,11 +59,11 @@ func main()
       high += w[ind];
       if ((high > 5))
       {
-        var dist = max(min((high - 5), ((m - base) - 9)), 0);
+        var dist: dynamic = max(min((high - 5), ((m - base) - 9)), 0);
         base += dist;
         high -= dist;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < dist))
           {
             vals[j] = 0;
@@ -71,10 +71,10 @@ func main()
           }
         }
         {
-          var j = dist;
+          var j: dynamic = dist;
           while ((j < 10))
           {
-            var tmp = vals[j];
+            var tmp: dynamic = vals[j];
             vals[j] = 0;
             vals[(j - dist)] = tmp;
             j += 1;
@@ -84,9 +84,9 @@ func main()
       i += 1;
     }
   }
-  var max = 0;
+  var max: dynamic = 0;
   {
-    var i = base;
+    var i: dynamic = base;
     while ((((i <= m)) && ((i < (base + 10)))))
     {
       if ((vals[(i - base)] > max))

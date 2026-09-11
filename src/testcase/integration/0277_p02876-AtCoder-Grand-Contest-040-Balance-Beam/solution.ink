@@ -1,47 +1,47 @@
 // Translated from solution.cpp.
 
-func ALL(v: dynamic)
+func ALL(v: dynamic) -> dynamic
 {
   return cpp_expression("#ifndef BZ #pragma GCC");
 }
 
-func rep(i: dynamic, l: dynamic, r: dynamic)
+func rep(i: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   cpp_macro("for (int i = (l); i < (r); ++i)");
 }
 
 class st
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
 }
 
-var N = 120000;
+var N: dynamic = 120000;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var sm = cpp_array(N);
+var sm: dynamic = cpp_array(N);
 
-var ap = 0;
+var ap: dynamic = 0;
 
-var aq = 1;
+var aq: dynamic = 1;
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   while (b)
   {
-    var q = (a % b);
+    var q: dynamic = (a % b);
     a = b;
     b = q;
   }
   return a;
 }
 
-func upd(p: dynamic, q: dynamic)
+func upd(p: dynamic, q: dynamic) -> dynamic
 {
-  var g = gcd(p, q);
+  var g: dynamic = gcd(p, q);
   p /= g;
   q /= g;
   if (((lll(ap) * q) < (lll(p) * aq)))
@@ -51,7 +51,7 @@ func upd(p: dynamic, q: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
@@ -59,9 +59,9 @@ func main()
   cout.setf(ios.fixed);
   cout.precision(20);
   read(n);
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i].a, a[i].b);
@@ -72,7 +72,7 @@ func main()
   sort(a, (a + n), __cpp_lambda_1);
   sm[0] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       sm[(i + 1)] = (sm[i] + max(a[i].a, a[i].b));
@@ -80,15 +80,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var l = 0;
-      var r = (n + 1);
+      var l: dynamic = 0;
+      var r: dynamic = (n + 1);
       while (((r - l) > 1))
       {
-        var m = (((l + r)) >> 1);
-        var cur = ((sum - a[i].b) - sm[m]);
+        var m: dynamic = (((l + r)) >> 1);
+        var cur: dynamic = ((sum - a[i].b) - sm[m]);
         if ((i < m))
         {
           cur += max(a[i].a, a[i].b);
@@ -103,13 +103,13 @@ func main()
       }
       if ((r <= n))
       {
-        var cnt = r;
+        var cnt: dynamic = r;
         if ((i >= r))
         {
           cnt += 1;
         }
         cnt = (n - cnt);
-        var cur = (sum - sm[r]);
+        var cur: dynamic = (sum - sm[r]);
         if ((i < r))
         {
           cur += max(a[i].a, a[i].b);
@@ -120,8 +120,8 @@ func main()
         } else
         {
           assert((cur <= a[i].b));
-          var p = (((cnt * a[i].b) + a[i].b) - cur);
-          var q = (a[i].b * n);
+          var p: dynamic = (((cnt * a[i].b) + a[i].b) - cur);
+          var q: dynamic = (a[i].b * n);
           upd(p, q);
         }
       }
@@ -132,7 +132,7 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_1(a: dynamic, b: dynamic)
+func __cpp_lambda_1(a: dynamic, b: dynamic) -> dynamic
 {
   return (max(a.a, a.b) > max(b.a, b.b));
 }

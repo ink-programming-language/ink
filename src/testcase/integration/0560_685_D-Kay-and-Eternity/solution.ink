@@ -2,69 +2,69 @@
 
 class POINT
 {
-  var x: dynamic;
-  var y: dynamic;
-  var v: dynamic;
-  func POINT(x: dynamic = 0, y: dynamic = 0, v: dynamic = 0)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  func POINT(x: dynamic = 0, y: dynamic = 0, v: dynamic = 0) -> dynamic
   {
-      this->x = cpp_construct(x);
-      this->y = cpp_construct(y);
-      this->v = cpp_construct(v);
+      self->x = cpp_construct(x);
+      self->y = cpp_construct(y);
+      self->v = cpp_construct(v);
     }
-  func operator_less(other: dynamic)
+  func operator_less(other: dynamic) -> dynamic
   {
-      if ((this->x != other.x))
+      if ((self->x != other.x))
       {
-        return (this->x < other.x);
+        return (self->x < other.x);
       }
-      if ((this->y != other.y))
+      if ((self->y != other.y))
       {
-        return (this->y < other.y);
+        return (self->y < other.y);
       }
-      if ((this->v != other.v))
+      if ((self->v != other.v))
       {
-        return (this->v < other.v);
+        return (self->v < other.v);
       }
     }
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var pt = cpp_array((100013 * 3));
+var pt: dynamic = cpp_array((100013 * 3));
 
-var ans = cpp_array(100013);
+var ans: dynamic = cpp_array(100013);
 
-var tmpans = cpp_array((100013 * 2));
+var tmpans: dynamic = cpp_array((100013 * 2));
 
-var num = cpp_array((100013 * 2));
+var num: dynamic = cpp_array((100013 * 2));
 
-var mapy = cpp_array((100013 * 2));
+var mapy: dynamic = cpp_array((100013 * 2));
 
-var loc = cpp_array((100013 * 2));
+var loc: dynamic = cpp_array((100013 * 2));
 
-func cmpx(a: dynamic, b: dynamic)
+func cmpx(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.x < b.x);
 }
 
-func cmpy(a: dynamic, b: dynamic)
+func cmpy(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.y < b.y);
 }
 
-func solve(k: dynamic, x: dynamic)
+func solve(k: dynamic, x: dynamic) -> dynamic
 {
-  var y = pt[k].y;
-  var S = 0;
+  var y: dynamic = pt[k].y;
+  var S: dynamic = 0;
   while (((y >= 0) && ((mapy[pt[k].y] - mapy[y]) < K)))
   {
     S += num[cpp_update(y, "--")];
   }
   y += 1;
-  var up = pt[k].y;
-  var down = y;
+  var up: dynamic = pt[k].y;
+  var down: dynamic = y;
   while ((down <= pt[k].y))
   {
     ans[S] += (cpp_cast(((mapy[(up + 1)] - mapy[up]))) * ((x - loc[up])));
@@ -78,12 +78,12 @@ func solve(k: dynamic, x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&N), (&K));
   srand(time(0));
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp(N)))
     {
       scanf("%d%d", (&pt[i].x), (&pt[i].y));
@@ -96,11 +96,11 @@ func main()
     }
   }
   sort(pt, (pt + (3 * N)), cmpy);
-  var k = 0;
-  var last = pt[0].y;
+  var k: dynamic = 0;
+  var last: dynamic = pt[0].y;
   mapy[0] = pt[0].y;
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp((3 * N))))
     {
       if ((pt[i].y > last))
@@ -116,7 +116,7 @@ func main()
   mapy[(k + 1)] = 0x7fffffff;
   k = (3 * N);
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp((2 * N))))
     {
       while ((pt[i].v == 0))
@@ -129,9 +129,9 @@ func main()
   sort(pt, (pt + (2 * N)), cmpx);
   k = 0;
   last = pt[0].x;
-  var head = 0;
+  var head: dynamic = 0;
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp((2 * N))))
     {
       if ((pt[i].x > last))
@@ -139,7 +139,7 @@ func main()
         k += 1;
         last = pt[i].x;
         {
-          var j = int_cpp(head);
+          var j: dynamic = int_cpp(head);
           while ((j < int_cpp(i)))
           {
             num[pt[j].y] += pt[j].v;
@@ -153,7 +153,7 @@ func main()
     }
   }
   {
-    var i = int_cpp(1);
+    var i: dynamic = int_cpp(1);
     while ((i < int_cpp((N + 1))))
     {
       printf("%I64d%c", ans[i], " \n"[(i == N)]);

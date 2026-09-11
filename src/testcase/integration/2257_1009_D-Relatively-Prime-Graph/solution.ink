@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var inf = 1e20;
+var inf: dynamic = 1e20;
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-var maxn = (1e6 + 7);
+var maxn: dynamic = (1e6 + 7);
 
-var vis = cpp_array(maxn, 2);
+var vis: dynamic = cpp_array(maxn, 2);
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b == 0)) a else gcd(b, (a % b));
+  return  ((b == 0)) ? a : gcd(b, (a % b));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   while (((cin >> n) >> m))
   {
     if ((m < (n - 1)))
@@ -26,14 +26,14 @@ func main()
       puts("Impossible");
       continue;
     }
-    var k = 0;
+    var k: dynamic = 0;
     memset(vis, 0, cpp_sizeof((vis)));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j <= n))
           {
             if ((gcd(i, j) == 1))
@@ -59,7 +59,7 @@ func main()
     {
       puts("Possible");
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
           printf("%lld %lld\n", vis[0][i], vis[1][i]);

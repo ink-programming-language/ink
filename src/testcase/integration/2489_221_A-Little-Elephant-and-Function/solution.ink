@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while ((~scanf("%d", (&n))))
   {
     printf("%d", n);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         printf(" %d", i);

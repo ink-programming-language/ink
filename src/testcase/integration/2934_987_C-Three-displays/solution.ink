@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var big = pow(10, 13);
+var big: dynamic = pow(10, 13);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var s = cpp_new();
-  var c = cpp_new();
-  var mp = cpp_new();
+  var s: dynamic = cpp_new();
+  var c: dynamic = cpp_new();
+  var mp: dynamic = cpp_new();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s[i]);
@@ -19,7 +19,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(c[i]);
@@ -27,11 +27,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       {
-        var t = (i - 1);
+        var t: dynamic = (i - 1);
         while ((t >= 0))
         {
           if ((s[i] > s[t]))
@@ -44,14 +44,14 @@ func main()
       i += 1;
     }
   }
-  var ans = big;
-  var flag = 0;
+  var ans: dynamic = big;
+  var flag: dynamic = 0;
   {
-    var k = 2;
+    var k: dynamic = 2;
     while ((k < n))
     {
       {
-        var j = (k - 1);
+        var j: dynamic = (k - 1);
         while ((j >= 0))
         {
           if (((s[k] > s[j]) && (mp[j] != big)))

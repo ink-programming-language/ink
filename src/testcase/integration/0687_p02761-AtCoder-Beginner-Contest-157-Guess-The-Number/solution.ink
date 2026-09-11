@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(10);
+var a: dynamic = cpp_array(10);
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   memset(a, -1, cpp_sizeof(a));
-  var f = 1;
+  var f: dynamic = 1;
   while (cpp_update(m, "--"))
   {
-    var pos: dynamic;
-    var c: dynamic;
+    var pos: dynamic = cpp_uninitialized();
+    var c: dynamic = cpp_uninitialized();
     read(pos, c);
     if (((a[pos] != -1) && (c != a[pos])))
     {
@@ -42,7 +42,7 @@ func main()
       a[1] = 1;
     }
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i <= n))
       {
         if ((a[i] == -1))
@@ -59,7 +59,7 @@ func main()
   } else
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         write(a[i]);

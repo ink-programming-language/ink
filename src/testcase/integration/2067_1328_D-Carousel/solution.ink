@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var s = 0;
-  var w = 1;
-  var ch = getchar();
+  var s: dynamic = 0;
+  var w: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,34 +21,34 @@ func read()
   return (s * w);
 }
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var N = 2000100;
+var N: dynamic = 2000100;
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
-  var T = read();
+  var T: dynamic = read();
   while (cpp_update(T, "--"))
   {
     n = read();
-    var cnt = 1;
-    var mark = 0;
+    var cnt: dynamic = 1;
+    var mark: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         a[i] = read();
@@ -69,7 +69,7 @@ func main()
     {
       printf("1\n");
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           printf("1 ");
@@ -86,7 +86,7 @@ func main()
         {
           printf("3\n");
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= (n - 1)))
             {
               if (((i % 2) == 1))
@@ -106,7 +106,7 @@ func main()
         {
           printf("2\n");
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= n))
             {
               if (((i % 2) == 0))
@@ -127,9 +127,9 @@ func main()
         if ((((n % 2) == 1) && (a[1] != a[n])))
         {
           printf("2\n");
-          var loc = 1;
+          var loc: dynamic = 1;
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= n))
             {
               if ((i == 1))
@@ -178,7 +178,7 @@ func main()
         {
           printf("2\n");
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= n))
             {
               if (((i % 2) == 0))

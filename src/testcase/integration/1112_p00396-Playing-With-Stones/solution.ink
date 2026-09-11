@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var grundy = cpp_array(101, 201);
+var grundy: dynamic = cpp_array(101, 201);
 
-func dfs(w: dynamic, b: dynamic)
+func dfs(w: dynamic, b: dynamic) -> dynamic
 {
   if ((grundy[w][b] >= 0))
   {
     return grundy[w][b];
   }
-  var st: dynamic;
+  var st: dynamic = cpp_uninitialized();
   if ((w > 0))
   {
     st.insert(dfs((w - 1), b));
@@ -18,14 +18,14 @@ func dfs(w: dynamic, b: dynamic)
     st.insert(dfs((w + 1), (b - 1)));
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while (((i <= b) && (i <= w)))
     {
       st.insert(dfs(w, (b - i)));
       i += 1;
     }
   }
-  var res = 0;
+  var res: dynamic = 0;
   while (st.count(res))
   {
     res += 1;
@@ -33,21 +33,21 @@ func dfs(w: dynamic, b: dynamic)
   return cpp_assign(grundy[w][b], "=", res);
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
   fill(grundy[0], grundy[201], -1);
   grundy[0][0] = 0;
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var v = 0;
+  var v: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var w: dynamic;
-      var b: dynamic;
+      var w: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(w, b);
       v ^= dfs(w, b);
       i += 1;

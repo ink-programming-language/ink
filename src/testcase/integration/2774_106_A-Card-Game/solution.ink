@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var v = cpp_construct(9);
+  var v: dynamic = cpp_construct(9);
   v[0].first = cpp_char("6");
   v[1].first = cpp_char("7");
   v[2].first = cpp_char("8");
@@ -23,11 +23,11 @@ func main()
   v[6].second = 12;
   v[7].second = 13;
   v[8].second = 14;
-  var trump: dynamic;
-  var s1: dynamic;
-  var s2: dynamic;
-  var valu_s1: dynamic;
-  var valu_s2: dynamic;
+  var trump: dynamic = cpp_uninitialized();
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
+  var valu_s1: dynamic = cpp_uninitialized();
+  var valu_s2: dynamic = cpp_uninitialized();
   read(trump);
   read(s1, s2);
   if (((s1[1] == trump) && (s2[1] != trump)))
@@ -36,7 +36,7 @@ func main()
   } else if ((s1[1] == s2[1]))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 9))
       {
         if ((s1[0] == v[i].first))

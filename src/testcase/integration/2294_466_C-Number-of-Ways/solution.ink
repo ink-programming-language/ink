@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var x: dynamic;
-  var sum = 0;
-  var ans = 0;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var sum: dynamic = 0;
+  var ans: dynamic = 0;
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x);
@@ -21,11 +21,11 @@ func main()
   }
   if (((sum % 3) == 0))
   {
-    var a = (sum / 3);
-    var b = (a * 2);
+    var a: dynamic = (sum / 3);
+    var b: dynamic = (a * 2);
     x = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         if ((v[i].second == b))

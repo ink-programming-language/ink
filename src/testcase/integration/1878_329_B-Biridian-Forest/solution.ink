@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var N = 1005;
+var N: dynamic = 1005;
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var D = cpp_array(N, N);
+var D: dynamic = cpp_array(N, N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var er: dynamic;
+var er: dynamic = cpp_uninitialized();
 
-var ec: dynamic;
+var ec: dynamic = cpp_uninitialized();
 
-var sr: dynamic;
+var sr: dynamic = cpp_uninitialized();
 
-var sc: dynamic;
+var sc: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var mark = cpp_array(N, N);
+var mark: dynamic = cpp_array(N, N);
 
-var t = cpp_array(N, N);
+var t: dynamic = cpp_array(N, N);
 
-var dx = [0, -1, 1, 0];
+var dx: dynamic = [0, -1, 1, 0];
 
-var dy = [-1, 0, 0, 1];
+var dy: dynamic = [-1, 0, 0, 1];
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func bfs(r: dynamic, c: dynamic)
+func bfs(r: dynamic, c: dynamic) -> dynamic
 {
   mark[r][c] = true;
   D[r][c] = 0;
   q.push([r, c]);
   while (q.size())
   {
-    var v = q.front();
+    var v: dynamic = q.front();
     q.pop();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
-        var u = [(v.first + dx[i]), (v.second + dy[i])];
+        var u: dynamic = [(v.first + dx[i]), (v.second + dy[i])];
         if (((((((!mark[u.first][u.second]) && (t[u.first][u.second] != cpp_char("T"))) && (u.first <= n)) && (u.first > 0)) && (u.second <= m)) && (u.second > 0)))
         {
           mark[u.first][u.second] = true;
@@ -56,15 +56,15 @@ func bfs(r: dynamic, c: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           read(t[i][j]);
@@ -87,11 +87,11 @@ func main()
   }
   bfs(er, ec);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           if (((D[i][j] <= D[sr][sc]) && isdigit(t[i][j])))

@@ -8,12 +8,12 @@ class outputable
 {
 }
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return (x * x);
 }
 
-func umx(a: dynamic, b: dynamic)
+func umx(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -23,7 +23,7 @@ func umx(a: dynamic, b: dynamic)
   return 0;
 }
 
-func umn(a: dynamic, b: dynamic)
+func umn(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b < a))
   {
@@ -33,22 +33,22 @@ func umn(a: dynamic, b: dynamic)
   return 0;
 }
 
-var N = 200000;
+var N: dynamic = 200000;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
 class Input
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   var a: dynamic = cpp_array(N);
-  func read()
+  func read() -> dynamic
   {
       if ((!((cin >> n))))
       {
         return 0;
       }
       {
-        var i = int_cpp(0);
+        var i: dynamic = int_cpp(0);
         while ((i < int_cpp(n)))
         {
           scanf(cpp_expression("\"%\""), SCNd64, (&a[i]));
@@ -57,16 +57,16 @@ class Input
       }
       return 1;
     }
-  func init(input: dynamic)
+  func init(input: dynamic) -> dynamic
   {
-      (*this) = input;
+      (*self) = input;
     }
 }
 
 class Data
 {
-  var ans: dynamic;
-  func write()
+  var ans: dynamic = cpp_uninitialized();
+  func write() -> dynamic
   {
       write(ans, "\n");
     }
@@ -76,13 +76,13 @@ class Solution
 {
   var f: dynamic = cpp_array((N + 1));
   var rf: dynamic = cpp_array((N + 1));
-  func c(x: dynamic, y: dynamic)
+  func c(x: dynamic, y: dynamic) -> dynamic
   {
       return ((((f[(x + y)] * rf[x]) % mod) * rf[y]) % mod);
     }
-  func pw(val: dynamic, k: dynamic)
+  func pw(val: dynamic, k: dynamic) -> dynamic
   {
-      var res = 1;
+      var res: dynamic = 1;
       while (k)
       {
         if ((k & 1))
@@ -94,12 +94,12 @@ class Solution
       }
       return res;
     }
-  var sgn: dynamic;
-  func iteration()
+  var sgn: dynamic = cpp_uninitialized();
+  func iteration() -> dynamic
   {
       n -= 1;
       {
-        var i = int_cpp(0);
+        var i: dynamic = int_cpp(0);
         while ((i < int_cpp(n)))
         {
           a[i] = ((((a[i] + (sgn * a[(i + 1)])) + mod)) % mod);
@@ -108,12 +108,12 @@ class Solution
         }
       }
     }
-  func calc(t: dynamic)
+  func calc(t: dynamic) -> dynamic
   {
-      var m = ((((n + 1) - t)) / 2);
-      var res = 0;
+      var m: dynamic = ((((n + 1) - t)) / 2);
+      var res: dynamic = 0;
       {
-        var i = int_cpp(0);
+        var i: dynamic = int_cpp(0);
         while ((i < int_cpp(m)))
         {
           res = (((res + (a[(t + (2 * i))] * c(i, ((m - 1) - i))))) % mod);
@@ -122,11 +122,11 @@ class Solution
       }
       return res;
     }
-  func solve()
+  func solve() -> dynamic
   {
       f[0] = 1;
       {
-        var i = int_cpp(0);
+        var i: dynamic = int_cpp(0);
         while ((i < int_cpp(n)))
         {
           f[(i + 1)] = ((f[i] * ((i + 1))) % mod);
@@ -134,7 +134,7 @@ class Solution
         }
       }
       {
-        var i = int_cpp(0);
+        var i: dynamic = int_cpp(0);
         while ((i < int_cpp((n + 1))))
         {
           rf[i] = pw(f[i], (mod - 2));
@@ -151,23 +151,23 @@ class Solution
       {
         iteration();
       }
-      var val0 = calc(0);
-      var val1 = calc(1);
+      var val0: dynamic = calc(0);
+      var val1: dynamic = calc(1);
       if ((((n / 2) % 2) == 0))
       {
         sgn *= -1;
       }
       ans = ((((val0 + (sgn * val1)) + mod)) % mod);
     }
-  func clear()
+  func clear() -> dynamic
   {
-      (*this) = Solution();
+      (*self) = Solution();
     }
 }
 
-var sol: dynamic;
+var sol: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   cout.setf((ios.showpoint | ios.fixed));
   cout.precision(20);

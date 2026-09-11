@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 7);
+var N: dynamic = (1e5 + 7);
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var Pi = acos(-1.0);
+var Pi: dynamic = acos(-1.0);
 
-var E = exp(1.0);
+var E: dynamic = exp(1.0);
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -31,19 +31,19 @@ func read()
   return (x * f);
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (((b == 0))) a else gcd(b, (a % b));
+  return  (((b == 0))) ? a : gcd(b, (a % b));
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a / gcd(a, b)) * b);
 }
 
-func qmod(a: dynamic, b: dynamic, c: dynamic)
+func qmod(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   while (b)
   {
     if ((b & 1))
@@ -56,32 +56,32 @@ func qmod(a: dynamic, b: dynamic, c: dynamic)
   return ret;
 }
 
-var trie = cpp_array(3, (N * 40));
+var trie: dynamic = cpp_array(3, (N * 40));
 
-var sum = cpp_array((N * 40));
+var sum: dynamic = cpp_array((N * 40));
 
-var val = cpp_array((N * 40));
+var val: dynamic = cpp_array((N * 40));
 
-var to = cpp_array((N * 40));
+var to: dynamic = cpp_array((N * 40));
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var weishu = (30 - 1);
+var weishu: dynamic = (30 - 1);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var ta: dynamic;
+var ta: dynamic = cpp_uninitialized();
 
-var tt: dynamic;
+var tt: dynamic = cpp_uninitialized();
 
-func insert(x: dynamic)
+func insert(x: dynamic) -> dynamic
 {
-  var now = 0;
+  var now: dynamic = 0;
   {
-    var i = weishu;
-    var bt: dynamic;
+    var i: dynamic = weishu;
+    var bt: dynamic = cpp_uninitialized();
     while ((i >= 0))
     {
       bt = (1 - ((0 == ((x & ((1 << i)))))));
@@ -97,12 +97,12 @@ func insert(x: dynamic)
   val[now] = x;
 }
 
-func query(x: dynamic, pre: dynamic)
+func query(x: dynamic, pre: dynamic) -> dynamic
 {
-  var now = 0;
+  var now: dynamic = 0;
   {
-    var i = weishu;
-    var bt: dynamic;
+    var i: dynamic = weishu;
+    var bt: dynamic = cpp_uninitialized();
     while ((i >= 0))
     {
       bt = (1 - ((0 == ((x & ((1 << i)))))));
@@ -121,7 +121,7 @@ func query(x: dynamic, pre: dynamic)
   return now;
 }
 
-func dfs2(x: dynamic, pre: dynamic)
+func dfs2(x: dynamic, pre: dynamic) -> dynamic
 {
   if (trie[x][0])
   {
@@ -133,7 +133,7 @@ func dfs2(x: dynamic, pre: dynamic)
   }
   if (((!trie[x][0]) && (!trie[x][1])))
   {
-    var now = query(val[x], pre);
+    var now: dynamic = query(val[x], pre);
     if ((ta == ((val[now] ^ val[x]))))
     {
       tt = (((tt + (((1 * sum[now]) * sum[x]) % MOD))) % MOD);
@@ -146,7 +146,7 @@ func dfs2(x: dynamic, pre: dynamic)
   }
 }
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
   if (trie[x][0])
   {
@@ -175,7 +175,7 @@ func dfs(x: dynamic)
   }
 }
 
-func dfs1(x: dynamic)
+func dfs1(x: dynamic) -> dynamic
 {
   if (((!trie[x][0]) && (!trie[x][1])))
   {
@@ -192,16 +192,16 @@ func dfs1(x: dynamic)
   return to[x];
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   cnt = 0;
   ans = 0;
   tot = 1;
   {
-    var i = 1;
-    var x: dynamic;
+    var i: dynamic = 1;
+    var x: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
       x = read();

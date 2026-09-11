@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func ALL(v: dynamic)
+func ALL(v: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostr");
 }
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);++i)");
 }
 
-func RREP(i: dynamic, n: dynamic)
+func RREP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(n)-1;i>=0;--i)");
 }
 
-var targets = [[1, 1, 2, 2, 2, 1, 8, 8, 8], [3, 2, 2, 3, 4, 4, 4, 3, 2], [5, 5, 4, 4, 4, 5, 6, 6, 6], [7, 8, 8, 7, 6, 6, 6, 7, 8]];
+var targets: dynamic = [[1, 1, 2, 2, 2, 1, 8, 8, 8], [3, 2, 2, 3, 4, 4, 4, 3, 2], [5, 5, 4, 4, 4, 5, 6, 6, 6], [7, 8, 8, 7, 6, 6, 6, 7, 8]];
 
-func getdir(c: dynamic)
+func getdir(c: dynamic) -> dynamic
 {
-  var __cpp_switch_1 = c;
+  var __cpp_switch_1: dynamic = c;
   if (__cpp_switch_1 == cpp_char("R"))
   {
     return 0;
@@ -41,23 +41,23 @@ func getdir(c: dynamic)
 
 class solver
 {
-  var n: dynamic;
-  func solver(n: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  func solver(n: dynamic) -> dynamic
   {
-      this->n = cpp_construct(n);
+      self->n = cpp_construct(n);
     }
   var ids: dynamic = cpp_array(9);
   var trs: dynamic = cpp_array(4);
-  var unit: dynamic;
-  var p: dynamic;
-  func mul(x: dynamic, y: dynamic)
+  var unit: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  func mul(x: dynamic, y: dynamic) -> dynamic
   {
-      var sz = x.size();
+      var sz: dynamic = x.size();
       return ret;
     }
-  func pow(x: dynamic, y: dynamic)
+  func pow(x: dynamic, y: dynamic) -> dynamic
   {
-      var a = unit;
+      var a: dynamic = unit;
       while (y)
       {
         if ((y & 1))
@@ -69,24 +69,24 @@ class solver
       }
       return a;
     }
-  func parse()
+  func parse() -> dynamic
   {
-      var a = unit;
-      var b: dynamic;
+      var a: dynamic = unit;
+      var b: dynamic = cpp_uninitialized();
       while (1)
       {
         if (((*p) == cpp_char("(")))
         {
           p += 1;
-          var x = parse();
+          var x: dynamic = parse();
           p += 1;
-          var endp: dynamic;
-          var r = strtoll(p, (&endp), 10);
+          var endp: dynamic = cpp_uninitialized();
+          var r: dynamic = strtoll(p, (&endp), 10);
           p = endp;
           b = pow(x, r);
         } else if (isalpha((*p)))
         {
-          var dir = getdir((*p));
+          var dir: dynamic = getdir((*p));
           p += 1;
           b = trs[dir];
         } else
@@ -97,12 +97,12 @@ class solver
       }
       return a;
     }
-  func solve()
+  func solve() -> dynamic
   {
-      var op: dynamic;
+      var op: dynamic = cpp_uninitialized();
       read(op);
-      var fstdir = -1;
-      for (var c in op)
+      var fstdir: dynamic = -1;
+      for (var c: dynamic in op)
       {
         if (isalpha(c))
         {
@@ -110,7 +110,7 @@ class solver
           break;
         }
       }
-      var in_cpp = cpp_construct(n, string_cpp(n, cpp_char(".")));
+      var in_cpp: dynamic = cpp_construct(n, string_cpp(n, cpp_char(".")));
       if ((fstdir == 0))
       {
       } else if ((fstdir == 1))
@@ -124,9 +124,9 @@ class solver
       {
         ids[i].assign(n, vint(n, -1));
       }
-      var id = 0;
+      var id: dynamic = 0;
       REP(i, n);
-      var pcnt = id;
+      var pcnt: dynamic = id;
       REP(i, 4);
       {
         trs[i].assign((9 * pcnt), -1);
@@ -135,8 +135,8 @@ class solver
       iota(ALL(unit), 0);
       REP(from_cpp, 9);
       {
-        var to: dynamic;
-        var dir: dynamic;
+        var to: dynamic = cpp_uninitialized();
+        var dir: dynamic = cpp_uninitialized();
         dir = 0;
         to = targets[dir][from_cpp];
         id = (to * pcnt);
@@ -151,35 +151,35 @@ class solver
         id = (to * pcnt);
       }
       p = op.c_str();
-      var res = parse();
-      var val = cpp_construct((9 * pcnt));
+      var res: dynamic = parse();
+      var val: dynamic = cpp_construct((9 * pcnt));
       REP(y, n);
-      var ans = cpp_construct(n, string_cpp(n, cpp_char(".")));
+      var ans: dynamic = cpp_construct(n, string_cpp(n, cpp_char(".")));
       REP(i, 9);
       REP(y, n);
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while (((cin >> n) && n))
   {
     solver(n).solve();
   }
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       ret[i] = y[x[i]];
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       read(in0[i]);
     }
 
-func RREP(argument_0: dynamic, argument_1: dynamic)
+func RREP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
           if ((in0[y][x] != cpp_char(".")))
           {
@@ -187,12 +187,12 @@ func RREP(argument_0: dynamic, argument_1: dynamic)
           }
         }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var u = (n - 1);
+        var u: dynamic = (n - 1);
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
           if ((in0[y][x] != cpp_char(".")))
           {
@@ -200,12 +200,12 @@ func REP(argument_0: dynamic, argument_1: dynamic)
           }
         }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var u = 0;
+        var u: dynamic = 0;
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
           if ((in0[y][x] != cpp_char(".")))
           {
@@ -213,12 +213,12 @@ func REP(argument_0: dynamic, argument_1: dynamic)
           }
         }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var u = 0;
+        var u: dynamic = 0;
       }
 
-func RREP(argument_0: dynamic, argument_1: dynamic)
+func RREP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
           if ((in0[y][x] != cpp_char(".")))
           {
@@ -226,12 +226,12 @@ func RREP(argument_0: dynamic, argument_1: dynamic)
           }
         }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var u = (n - 1);
+        var u: dynamic = (n - 1);
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       if ((in_cpp[i][j] != cpp_char(".")))
       {
@@ -240,11 +240,11 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func RREP(argument_0: dynamic, argument_1: dynamic)
+func RREP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
           if ((ids[from_cpp][y][x] >= 0))
           {
-            var r = ids[to][y][u];
+            var r: dynamic = ids[to][y][u];
             u -= 1;
             if ((r == -1))
             {
@@ -254,16 +254,16 @@ func RREP(argument_0: dynamic, argument_1: dynamic)
           }
         }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var u = (n - 1);
+        var u: dynamic = (n - 1);
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
           if ((ids[from_cpp][y][x] >= 0))
           {
-            var r = ids[to][u][x];
+            var r: dynamic = ids[to][u][x];
             u += 1;
             if ((r == -1))
             {
@@ -273,16 +273,16 @@ func REP(argument_0: dynamic, argument_1: dynamic)
           }
         }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var u = 0;
+        var u: dynamic = 0;
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
           if ((ids[from_cpp][y][x] >= 0))
           {
-            var r = ids[to][y][u];
+            var r: dynamic = ids[to][y][u];
             u += 1;
             if ((r == -1))
             {
@@ -292,16 +292,16 @@ func REP(argument_0: dynamic, argument_1: dynamic)
           }
         }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var u = 0;
+        var u: dynamic = 0;
       }
 
-func RREP(argument_0: dynamic, argument_1: dynamic)
+func RREP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
           if ((ids[from_cpp][y][x] >= 0))
           {
-            var r = ids[to][u][x];
+            var r: dynamic = ids[to][u][x];
             u -= 1;
             if ((r == -1))
             {
@@ -311,30 +311,30 @@ func RREP(argument_0: dynamic, argument_1: dynamic)
           }
         }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var u = (n - 1);
+        var u: dynamic = (n - 1);
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var k = ids[0][y][x];
+      var k: dynamic = ids[0][y][x];
       if ((k >= 0))
       {
         val[res[k]] = in_cpp[y][x];
       }
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var k = ids[i][y][x];
+      var k: dynamic = ids[i][y][x];
       if (((k >= 0) && (val[k] != 0)))
       {
         ans[y][x] = val[k];
       }
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       write(ans[i], cpp_char("\n"));
     }

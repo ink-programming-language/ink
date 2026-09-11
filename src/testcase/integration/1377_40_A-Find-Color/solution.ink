@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(x, y);
-  var dist = sqrt((((x * x) + (y * y))));
+  var dist: dynamic = sqrt((((x * x) + (y * y))));
   if (((((y >= 0) && (x >= 0))) || (((y < 0) && (x < 0)))))
   {
     if (((int_cpp(dist) % 2) && (int_cpp(dist) != dist)))

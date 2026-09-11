@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var alpha = cpp_expression("#include <bits/stdc++.h>");
+var alpha: dynamic = cpp_expression("#include <bits/stdc++.h>");
 
-var B = 130000;
+var B: dynamic = 130000;
 
-var w = cpp_array(((2 * B) + 5), 2);
+var w: dynamic = cpp_array(((2 * B) + 5), 2);
 
-var s = cpp_array(((2 * B) + 5), 2);
+var s: dynamic = cpp_array(((2 * B) + 5), 2);
 
-var ans = cpp_array(505);
+var ans: dynamic = cpp_array(505);
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var MOD: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var MOD: dynamic = cpp_uninitialized();
   read(n, MOD);
   w[0][B] = cpp_assign(s[0][B], "=", 1);
   {
-    var i = B;
+    var i: dynamic = B;
     while ((i <= (2 * B)))
     {
       s[0][i] = 1;
@@ -25,17 +25,17 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var curs = 1;
-      var I = (i & 1);
-      var J = (I ^ 1);
+      var curs: dynamic = 1;
+      var I: dynamic = (i & 1);
+      var J: dynamic = (I ^ 1);
       memset(w[I], 0, cpp_sizeof((w[I])));
       memset(s[I], 0, cpp_sizeof((s[I])));
-      var u = ((i * ((i - 1))) / 2);
+      var u: dynamic = ((i * ((i - 1))) / 2);
       {
-        var j = ((-u) + B);
+        var j: dynamic = ((-u) + B);
         while ((j <= (u + B)))
         {
           w[I][j] = curs;
@@ -44,8 +44,8 @@ func solve()
         }
       }
       {
-        var j = (B - ((i * ((i - 1))) / 2));
-        var v = (((((i + 2)) * ((i + 1))) / 2) + B);
+        var j: dynamic = (B - ((i * ((i - 1))) / 2));
+        var v: dynamic = (((((i + 2)) * ((i + 1))) / 2) + B);
         while ((j <= v))
         {
           s[I][j] = (((s[I][(j - 1)] + w[I][j])) % MOD);
@@ -53,7 +53,7 @@ func solve()
         }
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < i))
         {
           ans[i] = (((ans[i] + (((1 * (((s[J][(((((i + 1)) * i) / 2) + B)] - s[J][(j + B)]) + MOD))) % MOD) * ((i - j))))) % MOD);
@@ -64,7 +64,7 @@ func solve()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       ans[i] = (((ans[i] + ((1 * i) * ans[(i - 1)]))) % MOD);
@@ -74,13 +74,13 @@ func solve()
   write(ans[n]);
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   alpha;
   freopen("input.txt", "r", stdin);
   freopen("error.txt", "w", stderr);
   freopen("output.txt", "w", stdout);
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
     solve();

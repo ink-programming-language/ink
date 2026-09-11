@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var N = (1e4 + 4);
+var N: dynamic = (1e4 + 4);
 
-var frq: dynamic;
+var frq: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var test: dynamic;
+  var test: dynamic = cpp_uninitialized();
   read(test);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       frq[(((1 * i) * i) * i)] = true;
@@ -20,14 +20,14 @@ func main()
   }
   while (cpp_update(test, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var mark = false;
+    var mark: dynamic = false;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((((i * i) * i) < n))
       {
-        var dif = (n - ((i * i) * i));
+        var dif: dynamic = (n - ((i * i) * i));
         if ((frq[dif] == true))
         {
           mark = true;

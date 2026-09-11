@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var mars = cpp_array((2 * 100005));
+var mars: dynamic = cpp_array((2 * 100005));
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d %d", (&n), (&m), (&c));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -24,7 +24,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d", (&x));
@@ -33,9 +33,9 @@ func main()
       i += 1;
     }
   }
-  var act = 0;
+  var act: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       act += mars[i];
@@ -45,7 +45,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(mars[i], cpp_char(" "));

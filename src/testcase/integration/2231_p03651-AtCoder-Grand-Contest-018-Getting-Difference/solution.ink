@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var Max: dynamic;
+var Max: dynamic = cpp_uninitialized();
 
-var GCD: dynamic;
+var GCD: dynamic = cpp_uninitialized();
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((!b))
   {
@@ -17,10 +17,10 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var x: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&N), (&K), (&x));
   Max = cpp_assign(GCD, "=", x);
   {

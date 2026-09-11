@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var can = cpp_array(101, 101);
+var can: dynamic = cpp_array(101, 101);
 
-var comp = cpp_array(101);
+var comp: dynamic = cpp_array(101);
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-func init(k: dynamic)
+func init(k: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       comp[i] = i;
@@ -23,10 +23,10 @@ func init(k: dynamic)
   tot = (n - k);
 }
 
-func f(i: dynamic, j: dynamic)
+func f(i: dynamic, j: dynamic) -> dynamic
 {
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < m))
     {
       if ((can[i][k] && can[j][k]))
@@ -39,12 +39,12 @@ func f(i: dynamic, j: dynamic)
   return false;
 }
 
-func find(i: dynamic)
+func find(i: dynamic) -> dynamic
 {
-  return if ((i == comp[i])) i else cpp_assign(comp[i], "=", find(comp[i]));
+  return  ((i == comp[i])) ? i : cpp_assign(comp[i], "=", find(comp[i]));
 }
 
-func join(i: dynamic, j: dynamic)
+func join(i: dynamic, j: dynamic) -> dynamic
 {
   if ((find(i) == find(j)))
   {
@@ -54,20 +54,20 @@ func join(i: dynamic, j: dynamic)
   tot -= 1;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
-  var a: dynamic;
-  var b: dynamic;
-  var c = 0;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a);
       c += ((a == 0));
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < a))
         {
           read(b);
@@ -81,11 +81,11 @@ func main()
   }
   init(c);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if (f(i, j))
@@ -98,5 +98,5 @@ func main()
       i += 1;
     }
   }
-  printf("%d\n", if ((c < n)) ((tot - 1) + (c)) else c);
+  printf("%d\n",  ((c < n)) ? ((tot - 1) + (c)) : c);
 }

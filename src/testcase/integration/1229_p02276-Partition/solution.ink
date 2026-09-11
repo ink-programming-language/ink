@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var A = cpp_array(100000);
+var A: dynamic = cpp_array(100000);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(A[i]);
       i += 1;
     }
   }
-  var x = A[(n - 1)];
-  var j = if ((A[0] < x)) 1 else 0;
+  var x: dynamic = A[(n - 1)];
+  var j: dynamic =  ((A[0] < x)) ? 1 : 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n - 1)))
     {
       if ((A[i] <= x))
       {
-        var aj = A[j];
+        var aj: dynamic = A[j];
         A[j] = A[i];
         A[i] = aj;
         j += 1;
@@ -34,7 +34,7 @@ func main()
   A[(n - 1)] = A[j];
   A[j] = x;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < j))
     {
       if (i)
@@ -51,7 +51,7 @@ func main()
   }
   write(cpp_char("["), A[j], cpp_char("]"));
   {
-    var i = (j + 1);
+    var i: dynamic = (j + 1);
     while ((i < n))
     {
       write(cpp_char(" "), A[i]);

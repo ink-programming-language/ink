@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var LINF = 1e18;
+var LINF: dynamic = 1e18;
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-func fin(a: dynamic)
+func fin(a: dynamic) -> dynamic
 {
   write(a, "\n");
   exit(0);
 }
 
-func pw(n: dynamic, k: dynamic)
+func pw(n: dynamic, k: dynamic) -> dynamic
 {
   if ((k < 0))
   {
     return pw(n, ((k + MOD) - 1));
   }
-  var res = 1;
+  var res: dynamic = 1;
   while (k)
   {
     if ((k & 1))
@@ -35,18 +35,18 @@ func pw(n: dynamic, k: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var t: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(s, t);
-  var N = s.size();
-  var v = cpp_construct(223456);
-  var a = cpp_construct(223456);
-  var w = cpp_construct(11);
+  var N: dynamic = s.size();
+  var v: dynamic = cpp_construct(223456);
+  var a: dynamic = cpp_construct(223456);
+  var w: dynamic = cpp_construct(11);
   w[0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 10))
     {
       w[i] = (w[(i - 1)] + i);
@@ -56,7 +56,7 @@ func main()
   reverse(t.begin(), t.end());
   a[0] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((t[i] == cpp_char("?")))
@@ -71,9 +71,9 @@ func main()
     }
   }
   v[0] = 0;
-  var now = 1;
+  var now: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((t[i] == cpp_char("?")))
@@ -90,16 +90,16 @@ func main()
     }
   }
   reverse(t.begin(), t.end());
-  var gyaku = pw(10, (MOD - 2));
+  var gyaku: dynamic = pw(10, (MOD - 2));
   now = pw(10, (N - 1));
-  var ans = 0;
-  var res = 0;
-  var flg = 0;
+  var ans: dynamic = 0;
+  var res: dynamic = 0;
+  var flg: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var j = (s[i] - cpp_char("0"));
+      var j: dynamic = (s[i] - cpp_char("0"));
       if ((t[i] == cpp_char("?")))
       {
         if ((j > 0))

@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var maxn = cpp_expression("#inc");
+var maxn: dynamic = cpp_expression("#inc");
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var head = cpp_array(maxn);
+var head: dynamic = cpp_array(maxn);
 
-var top: dynamic;
+var top: dynamic = cpp_uninitialized();
 
 class E
 {
-  var to: dynamic;
-  var nxt: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var nxt: dynamic = cpp_uninitialized();
 }
 
-var edge = cpp_array((maxn << 1));
+var edge: dynamic = cpp_array((maxn << 1));
 
-func insert(u: dynamic, v: dynamic)
+func insert(u: dynamic, v: dynamic) -> dynamic
 {
   edge[cpp_update(top, "++")] = [v, head[u]];
   head[u] = top;
 }
 
-var cur: dynamic;
+var cur: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic, pre: dynamic, d: dynamic)
+func dfs(u: dynamic, pre: dynamic, d: dynamic) -> dynamic
 {
   if ((d > (k / 2)))
   {
     cur += 1;
   }
   {
-    var i = head[u];
+    var i: dynamic = head[u];
     while (i)
     {
-      var v = edge[i].to;
+      var v: dynamic = edge[i].to;
       if ((v == pre))
       {
         i = edge[i].nxt;
@@ -48,14 +48,14 @@ func dfs(u: dynamic, pre: dynamic, d: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, k);
-  var u: dynamic;
-  var v: dynamic;
-  var ans = cpp_cast(2e9);
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_cast(2e9);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       read(u, v);
@@ -67,15 +67,15 @@ func main()
   if ((k & 1))
   {
     {
-      var u = 1;
+      var u: dynamic = 1;
       while ((u <= n))
       {
         {
-          var i = head[u];
+          var i: dynamic = head[u];
           while (i)
           {
             cur = 0;
-            var v = edge[i].to;
+            var v: dynamic = edge[i].to;
             dfs(u, v, 0);
             dfs(v, u, 0);
             ans = min(ans, cur);
@@ -88,7 +88,7 @@ func main()
   } else
   {
     {
-      var u = 1;
+      var u: dynamic = 1;
       while ((u <= n))
       {
         cur = 0;

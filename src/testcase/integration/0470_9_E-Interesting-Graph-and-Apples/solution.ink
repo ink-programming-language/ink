@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func fun()
+func fun() -> dynamic
 {
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -13,7 +13,7 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func poww(a: dynamic, b: dynamic, md: dynamic)
+func poww(a: dynamic, b: dynamic, md: dynamic) -> dynamic
 {
   if ((b < 0))
   {
@@ -23,7 +23,7 @@ func poww(a: dynamic, b: dynamic, md: dynamic)
   {
     return 0;
   }
-  var res = 1;
+  var res: dynamic = 1;
   while (b)
   {
     if ((b & 1))
@@ -36,24 +36,24 @@ func poww(a: dynamic, b: dynamic, md: dynamic)
   return res;
 }
 
-func divide(a: dynamic, b: dynamic, md: dynamic)
+func divide(a: dynamic, b: dynamic, md: dynamic) -> dynamic
 {
-  var rr = (a * (poww(b, (md - 2), md)));
+  var rr: dynamic = (a * (poww(b, (md - 2), md)));
   rr %= md;
   return rr;
 }
 
-var size = 55;
+var size: dynamic = 55;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var degree = cpp_array(size);
+var degree: dynamic = cpp_array(size);
 
-var parent = cpp_array(size);
+var parent: dynamic = cpp_array(size);
 
-func findp(node: dynamic)
+func findp(node: dynamic) -> dynamic
 {
   if ((parent[node] == node))
   {
@@ -62,14 +62,14 @@ func findp(node: dynamic)
   return cpp_assign(parent[node], "=", findp(parent[node]));
 }
 
-func unite(x: dynamic, y: dynamic)
+func unite(x: dynamic, y: dynamic) -> dynamic
 {
   x = findp(x);
   y = findp(y);
   parent[y] = x;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
@@ -90,9 +90,9 @@ func main()
     }
     return 0;
   }
-  var hasCycle = false;
+  var hasCycle: dynamic = false;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       parent[i] = i;
@@ -100,11 +100,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       degree[u] += 1;
       degree[v] += 1;
@@ -118,10 +118,10 @@ func main()
       i += 1;
     }
   }
-  var maxdegree = 0;
-  var mindegree = 1e9;
+  var maxdegree: dynamic = 0;
+  var mindegree: dynamic = 1e9;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       maxdegree = max(maxdegree, degree[i]);
@@ -129,9 +129,9 @@ func main()
       i += 1;
     }
   }
-  var components = 0;
+  var components: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((parent[i] == i))
@@ -153,11 +153,11 @@ func main()
   }
   write("YES\n", (n - m), cpp_char("\n"));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while (((i <= n) && ((m - 1) < n)))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while (((j <= n) && ((m - 1) < n)))
         {
           if ((((findp(i) != findp(j)) && (degree[i] < 2)) && (degree[j] < 2)))
@@ -174,9 +174,9 @@ func main()
       i += 1;
     }
   }
-  var node1 = -1;
+  var node1: dynamic = -1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((degree[i] == 1) && (node1 != -1)))

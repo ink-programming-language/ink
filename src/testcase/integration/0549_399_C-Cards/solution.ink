@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var ans = (-1 << 60);
+var ans: dynamic = (-1 << 60);
 
-func get(t: dynamic)
+func get(t: dynamic) -> dynamic
 {
   x = (m / t);
   y = (m % t);
   return (((((t - y)) * x) * x) + ((y * ((x + 1))) * ((x + 1))));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   if ((!n))
   {
     write(((-m) * m), "\n");
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         write("x");
@@ -40,7 +40,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       res = (((((n - i)) * ((n - i))) + i) - get((i + 2)));
@@ -57,7 +57,7 @@ func main()
   x = (m / t);
   y = (m % t);
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < (s + 2)))
     {
       if (j)
@@ -68,7 +68,7 @@ func main()
         } else
         {
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < (n - s)))
             {
               write("o");
@@ -78,7 +78,7 @@ func main()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (x + ((j < y)))))
         {
           write("x");

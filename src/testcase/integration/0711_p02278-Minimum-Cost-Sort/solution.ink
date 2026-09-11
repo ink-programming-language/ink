@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var W: dynamic;
-  var MIN = 100001;
-  var sum = 0;
-  var p = 0;
-  var pp: dynamic;
-  var cost = 0;
-  var k = 0;
-  var min = 100001;
+  var n: dynamic = cpp_uninitialized();
+  var W: dynamic = cpp_uninitialized();
+  var MIN: dynamic = 100001;
+  var sum: dynamic = 0;
+  var p: dynamic = 0;
+  var pp: dynamic = cpp_uninitialized();
+  var cost: dynamic = 0;
+  var k: dynamic = 0;
+  var min: dynamic = 100001;
   read(n);
-  var box: dynamic;
-  var list: dynamic;
-  var mark: dynamic;
+  var box: dynamic = cpp_uninitialized();
+  var list: dynamic = cpp_uninitialized();
+  var mark: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(W);

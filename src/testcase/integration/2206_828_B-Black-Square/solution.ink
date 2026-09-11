@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var max_r = -1;
-  var cnt = 0;
-  var max_c = -1;
-  var min_r = 100000;
-  var min_c = 100000;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var max_r: dynamic = -1;
+  var cnt: dynamic = 0;
+  var max_c: dynamic = -1;
+  var min_r: dynamic = 100000;
+  var min_c: dynamic = 100000;
   read(n, m);
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(x);
@@ -39,9 +39,9 @@ func main()
     write(1, "\n");
     return 0;
   }
-  var c: dynamic;
-  var r: dynamic;
-  var len = 0;
+  var c: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var len: dynamic = 0;
   c = ((max_c - min_c) + 1);
   r = ((max_r - min_r) + 1);
   len = max(c, r);

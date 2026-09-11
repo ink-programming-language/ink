@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-var disconn: dynamic;
+var disconn: dynamic = cpp_uninitialized();
 
-var ans_vec: dynamic;
+var ans_vec: dynamic = cpp_uninitialized();
 
-var temp: dynamic;
+var temp: dynamic = cpp_uninitialized();
 
-var temper: dynamic;
+var temper: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   while (cpp_update(m, "--"))
   {
     read(x, y);
     g[x].insert(y);
     g[y].insert(x);
   }
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       v.push_back(i);
       i += 1;
     }
   }
-  var it: dynamic;
+  var it: dynamic = cpp_uninitialized();
   {
     it = g[1].begin();
     while ((it != g[1].end()))
@@ -45,11 +45,11 @@ func main()
       it += 1;
     }
   }
-  var sz = n;
+  var sz: dynamic = n;
   while ((!v.empty()))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while (((i < v.size()) && (!disconn.empty())))
       {
         x = v[i];
@@ -71,7 +71,7 @@ func main()
             }
           }
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < temp.size()))
             {
               disconn.erase(temp[j]);
@@ -83,7 +83,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < temp.size()))
       {
         x = temp[i];
@@ -99,7 +99,7 @@ func main()
           }
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < temper.size()))
           {
             disconn.erase(temper[j]);
@@ -110,7 +110,7 @@ func main()
         {
           temp.clear();
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < temper.size()))
             {
               temp.push_back(temper[j]);
@@ -143,7 +143,7 @@ func main()
   sort(ans_vec.begin(), ans_vec.end());
   write(ans_vec.size(), "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ans_vec.size()))
     {
       write(ans_vec[i], " ");

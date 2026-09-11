@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var MAX = (1000000 + 5);
+var MAX: dynamic = (1000000 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var visited: dynamic;
+var visited: dynamic = cpp_uninitialized();
 
-var V: dynamic;
+var V: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-func Input()
+func Input() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       V[x].push_back(y);
       V[y].push_back(x);
@@ -27,15 +27,15 @@ func Input()
   }
 }
 
-func DFS(s: dynamic)
+func DFS(s: dynamic) -> dynamic
 {
   Q.push(s);
   visited[s] = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V[s].size()))
     {
-      var t = V[s][i];
+      var t: dynamic = V[s][i];
       if ((visited[t] == false))
       {
         DFS(t);
@@ -45,11 +45,11 @@ func DFS(s: dynamic)
   }
 }
 
-func Solve()
+func Solve() -> dynamic
 {
-  var temp = 0;
-  var t = 0;
-  var s = 0;
+  var temp: dynamic = 0;
+  var t: dynamic = 0;
+  var s: dynamic = 0;
   {
     typeof(V.begin()) = V.begin();
     while ((i != V.end()))
@@ -71,7 +71,7 @@ func Solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   Input();
   Solve();

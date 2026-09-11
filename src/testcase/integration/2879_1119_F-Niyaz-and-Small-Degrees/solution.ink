@@ -1,48 +1,48 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var N = (3e5 + 100);
+var N: dynamic = (3e5 + 100);
 
-var debug = false;
+var debug: dynamic = false;
 
-var vc = cpp_array(N);
+var vc: dynamic = cpp_array(N);
 
-var gg1 = cpp_array(N);
+var gg1: dynamic = cpp_array(N);
 
-var gg2 = cpp_array(N);
+var gg2: dynamic = cpp_array(N);
 
-var gg3 = cpp_array(N);
+var gg3: dynamic = cpp_array(N);
 
-var iit: dynamic;
+var iit: dynamic = cpp_uninitialized();
 
-var in_cpp = cpp_array(N);
+var in_cpp: dynamic = cpp_array(N);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var ord = cpp_array(N);
+var ord: dynamic = cpp_array(N);
 
-var dp = cpp_array(2, N);
+var dp: dynamic = cpp_array(2, N);
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (in_cpp[a.first] > in_cpp[b.first]);
 }
 
-func cmp1(a: dynamic, b: dynamic)
+func cmp1(a: dynamic, b: dynamic) -> dynamic
 {
   return (in_cpp[a] > in_cpp[b]);
 }
 
-func dfs(o: dynamic, u: dynamic, op: dynamic)
+func dfs(o: dynamic, u: dynamic, op: dynamic) -> dynamic
 {
   vis[o] = op;
   dp[o][1] = 0;
   while ((!vc[o].empty()))
   {
-    var it = vc[o].back();
+    var it: dynamic = vc[o].back();
     if ((in_cpp[it.first] != op))
     {
       break;
@@ -60,7 +60,7 @@ func dfs(o: dynamic, u: dynamic, op: dynamic)
     sum[o] -= gg2[o].rbegin()->first;
     gg2[o].erase(cpp_update(gg2[o].end(), "--"));
   }
-  for (var it in vc[o])
+  for (var it: dynamic in vc[o])
   {
     if ((vis[it.first] == op))
     {
@@ -68,7 +68,7 @@ func dfs(o: dynamic, u: dynamic, op: dynamic)
     }
     dfs(it.first, o, op);
     dp[o][1] += dp[it.first][0];
-    var now = (min((dp[it.first][1] - dp[it.first][0]), 0) + it.second);
+    var now: dynamic = (min((dp[it.first][1] - dp[it.first][0]), 0) + it.second);
     gg1[o].insert([now, it.first]);
     gg2[o].insert([now, it.first]);
     sum[o] += now;
@@ -85,12 +85,12 @@ func dfs(o: dynamic, u: dynamic, op: dynamic)
   }
   dp[o][0] = (dp[o][1] + sum[o]);
   dp[o][1] = (dp[o][0] - gg2[o].rbegin()->first);
-  for (var it in gg3[o])
+  for (var it: dynamic in gg3[o])
   {
     gg2[o].insert(it);
     sum[o] += it.first;
   }
-  for (var it in gg1[o])
+  for (var it: dynamic in gg1[o])
   {
     gg2[o].erase(it);
     sum[o] -= it.first;
@@ -99,15 +99,15 @@ func dfs(o: dynamic, u: dynamic, op: dynamic)
   gg3[o].clear();
 }
 
-var ret: dynamic;
+var ret: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ord[i] = i;
@@ -115,10 +115,10 @@ func main()
     }
   }
   {
-    var i = 1;
-    var u: dynamic;
-    var v: dynamic;
-    var x: dynamic;
+    var i: dynamic = 1;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
     while ((i < n))
     {
       scanf("%d %d %d", (&u), (&v), (&x));
@@ -132,7 +132,7 @@ func main()
   }
   sort((ord + 1), ((ord + n) + 1), cmp1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sort(vc[i].begin(), vc[i].end(), cmp);
@@ -140,14 +140,14 @@ func main()
     }
   }
   ret.push_back(ans);
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       ans = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((in_cpp[ord[j]] <= i))
@@ -166,7 +166,7 @@ func main()
       i += 1;
     }
   }
-  for (var it in ret)
+  for (var it: dynamic in ret)
   {
     printf("%I64d ", it);
   }

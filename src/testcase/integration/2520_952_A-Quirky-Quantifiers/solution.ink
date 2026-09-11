@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   read(a);
   if (((a % 2) == 1))
   {

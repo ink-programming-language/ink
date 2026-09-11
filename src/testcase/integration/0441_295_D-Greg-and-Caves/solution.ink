@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var c = cpp_array(2005, 2005);
+var c: dynamic = cpp_array(2005, 2005);
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
-  var p: dynamic;
-  var q: dynamic;
-  var s: dynamic;
+  var p: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       p = 1;
       q = 0;
       {
-        var j = 2;
+        var j: dynamic = 2;
         while ((j <= m))
         {
           q = (((q + c[(i - 1)][j])) % 1000000007);
@@ -35,13 +35,13 @@ func main()
   }
   res = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       p = 1;
       q = 0;
       {
-        var j = 2;
+        var j: dynamic = 2;
         while ((j <= m))
         {
           s = ((m - j) + 1);
@@ -56,7 +56,7 @@ func main()
     }
   }
   {
-    var j = 2;
+    var j: dynamic = 2;
     while ((j <= m))
     {
       s = ((m - j) + 1);

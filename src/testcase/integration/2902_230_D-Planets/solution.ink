@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var start = 0;
+var start: dynamic = 0;
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var MAX = 1e18;
+var MAX: dynamic = 1e18;
 
-var wait = cpp_construct(100005);
+var wait: dynamic = cpp_construct(100005);
 
-var adj = cpp_construct(100005);
+var adj: dynamic = cpp_construct(100005);
 
-func binarySearch(v: dynamic, d: dynamic)
+func binarySearch(v: dynamic, d: dynamic) -> dynamic
 {
   if ((wait[v].size() == 0))
   {
     return;
   }
-  var low = 0;
-  var high = (wait[v].size() - 1);
-  var mid: dynamic;
+  var low: dynamic = 0;
+  var high: dynamic = (wait[v].size() - 1);
+  var mid: dynamic = cpp_uninitialized();
   while ((low <= high))
   {
     mid = (((low + high)) >> 1);
@@ -53,13 +53,13 @@ func binarySearch(v: dynamic, d: dynamic)
   return;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (m - 1)))
     {
       read(a, b, w);
@@ -71,12 +71,12 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 2)))
     {
       read(k);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= k))
         {
           read(w);
@@ -87,11 +87,11 @@ func main(argument_0: dynamic)
       i += 1;
     }
   }
-  var s: dynamic;
-  var present = cpp_construct(n, 1);
+  var s: dynamic = cpp_uninitialized();
+  var present: dynamic = cpp_construct(n, 1);
   dist[start] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       s.insert([dist[i], i]);
@@ -100,14 +100,14 @@ func main(argument_0: dynamic)
   }
   while ((!s.empty()))
   {
-    var c = (*(s.begin()));
+    var c: dynamic = (*(s.begin()));
     s.erase(c);
-    var v = c.second;
+    var v: dynamic = c.second;
     present[v] = 0;
     binarySearch(v, dist[v]);
-    for (var e in adj[v])
+    for (var e: dynamic in adj[v])
     {
-      var u = e.first;
+      var u: dynamic = e.first;
       w = e.second;
       if (cpp_binary(present[u], "and", (dist[u] > (dist[v] + (1 * w)))))
       {

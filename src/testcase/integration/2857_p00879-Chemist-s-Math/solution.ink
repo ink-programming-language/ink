@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-func get_num()
+func get_num() -> dynamic
 {
-  var num = 0;
+  var num: dynamic = 0;
   while (((a != st.size()) && isdigit(st[a])))
   {
     num *= 10;
@@ -16,45 +16,45 @@ func get_num()
   return num;
 }
 
-func uni_group()
+func uni_group() -> dynamic
 {
   if ((st[a] == cpp_char("(")))
   {
     a += 1;
-    var mp = mole();
+    var mp: dynamic = mole();
     assert((st[a] == cpp_char(")")));
     a += 1;
     return mp;
   } else
   {
-    var name = string_cpp(1, st[a]);
+    var name: dynamic = string_cpp(1, st[a]);
     a += 1;
     if ((((a != st.size()) && (cpp_char("a") <= st[a])) && (st[a] <= cpp_char("z"))))
     {
       name.push_back(st[a]);
       a += 1;
     }
-    var amp: dynamic;
+    var amp: dynamic = cpp_uninitialized();
     amp[name] = 1;
     return amp;
   }
 }
 
-func group()
+func group() -> dynamic
 {
-  var num = 1;
+  var num: dynamic = 1;
   if (((a != st.size()) && isdigit(st[a])))
   {
     num = get_num();
   }
-  for (var m in mp)
+  for (var m: dynamic in mp)
   {
     m.second *= num;
   }
   return mp;
 }
 
-func mole()
+func mole() -> dynamic
 {
   while (true)
   {
@@ -63,7 +63,7 @@ func mole()
       break;
     } else
     {
-      for (var n_m in n_mp)
+      for (var n_m: dynamic in n_mp)
       {
         mp[n_m.first] += n_m.second;
       }
@@ -72,28 +72,28 @@ func mole()
   return mp;
 }
 
-var EPS = 1e-11;
+var EPS: dynamic = 1e-11;
 
-func isZero(e: dynamic)
+func isZero(e: dynamic) -> dynamic
 {
   return (abs(e) < EPS);
 }
 
 class Matrix
 {
-  var matrix: dynamic;
-  var n: dynamic;
-  var m: dynamic;
+  var matrix: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
 }
 
-func operator_multiply(lambda: dynamic, rhs: dynamic)
+func operator_multiply(lambda: dynamic, rhs: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < rhs.m))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < rhs.n))
         {
           tmp.set(i, j, (tmp.get(i, j) * lambda));
@@ -106,7 +106,7 @@ func operator_multiply(lambda: dynamic, rhs: dynamic)
   return tmp;
 }
 
-func Matrix(matrix: dynamic)
+func Matrix(matrix: dynamic) -> dynamic
 {
   cpp_base_construct(matrix);
   m = matrix.size();
@@ -119,13 +119,13 @@ func Matrix(matrix: dynamic)
   }
 }
 
-func Matrix(n: dynamic)
+func Matrix(n: dynamic) -> dynamic
 {
   cpp_base_construct(n);
   cpp_base_construct(n);
   matrix = VV(n, Row(n, 0));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       set(i, i, 1);
@@ -134,29 +134,29 @@ func Matrix(n: dynamic)
   }
 }
 
-func Matrix(row: dynamic)
+func Matrix(row: dynamic) -> dynamic
 {
   cpp_base_construct(1);
   cpp_base_construct(row.size());
   cpp_base_construct(VV(1, row));
-  ((*this)) = transport();
+  ((*self)) = transport();
 }
 
-func Matrix(m: dynamic, n: dynamic)
+func Matrix(m: dynamic, n: dynamic) -> dynamic
 {
   cpp_base_construct(m);
   cpp_base_construct(n);
   matrix = VV(m, Row(n, 0));
 }
 
-func Matrix(m: dynamic, n: dynamic, e: dynamic)
+func Matrix(m: dynamic, n: dynamic, e: dynamic) -> dynamic
 {
   cpp_base_construct(m);
   cpp_base_construct(n);
   matrix = VV(m, Row(n, e));
 }
 
-func get(i: dynamic, j: dynamic)
+func get(i: dynamic, j: dynamic) -> dynamic
 {
   if (((((0 <= i) && (i < m)) && (0 <= j)) && (j < n)))
   {
@@ -166,7 +166,7 @@ func get(i: dynamic, j: dynamic)
   return 0;
 }
 
-func set(i: dynamic, j: dynamic, k: dynamic)
+func set(i: dynamic, j: dynamic, k: dynamic) -> dynamic
 {
   if (((((0 <= i) && (i < m)) && (0 <= j)) && (j < n)))
   {
@@ -177,16 +177,16 @@ func set(i: dynamic, j: dynamic, k: dynamic)
   return;
 }
 
-func operator_add(rhs: dynamic)
+func operator_add(rhs: dynamic) -> dynamic
 {
   assert(((m == rhs.m) && (n == rhs.n)));
-  var tmp = cpp_construct(m, n, 0);
+  var tmp: dynamic = cpp_construct(m, n, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           tmp.set(i, j, (get(i, j) + rhs.get(i, j)));
@@ -199,22 +199,22 @@ func operator_add(rhs: dynamic)
   return tmp;
 }
 
-func operator_multiply(rhs: dynamic)
+func operator_multiply(rhs: dynamic) -> dynamic
 {
   assert((n == rhs.m));
-  var tmp = cpp_construct(m, rhs.n, 0);
-  var sum: dynamic;
+  var tmp: dynamic = cpp_construct(m, rhs.n, 0);
+  var sum: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < rhs.n))
         {
           sum = 0;
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < n))
             {
               sum += (get(i, k) * rhs.get(k, j));
@@ -231,41 +231,41 @@ func operator_multiply(rhs: dynamic)
   return tmp;
 }
 
-func operator_subtract(rhs: dynamic)
+func operator_subtract(rhs: dynamic) -> dynamic
 {
-  return ((*this) + ((cpp_cast(-1) * rhs)));
+  return ((*self) + ((cpp_cast(-1) * rhs)));
 }
 
-func operator_add_assign(rhs: dynamic)
+func operator_add_assign(rhs: dynamic) -> dynamic
 {
-  return cpp_assign((*this), "=", ((*this) + rhs));
+  return cpp_assign((*self), "=", ((*self) + rhs));
 }
 
-func operator(rhs: dynamic)
+func operator(rhs: dynamic) -> dynamic
 {
-  return cpp_assign((*this), "=", ((*this) * rhs));
+  return cpp_assign((*self), "=", ((*self) * rhs));
 }
 
-func operator_subtract_assign(rhs: dynamic)
+func operator_subtract_assign(rhs: dynamic) -> dynamic
 {
-  return cpp_assign((*this), "=", ((*this) - rhs));
+  return cpp_assign((*self), "=", ((*self) - rhs));
 }
 
-func operator_index(x: dynamic)
+func operator_index(x: dynamic) -> dynamic
 {
   return matrix[x];
 }
 
-func transport()
+func transport() -> dynamic
 {
-  var tmp: dynamic;
+  var tmp: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var row: dynamic;
+      var row: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           row.push_back(get(j, i));
@@ -279,11 +279,11 @@ func transport()
   return tmp;
 }
 
-func pow(x: dynamic)
+func pow(x: dynamic) -> dynamic
 {
-  var tmp = cpp_construct((*this));
+  var tmp: dynamic = cpp_construct((*self));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= x))
     {
       if ((((x & i)) > 0))
@@ -297,11 +297,11 @@ func pow(x: dynamic)
   return e;
 }
 
-func cofactor(x: dynamic, y: dynamic)
+func cofactor(x: dynamic, y: dynamic) -> dynamic
 {
-  var tmp: dynamic;
+  var tmp: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       if ((x == i))
@@ -309,9 +309,9 @@ func cofactor(x: dynamic, y: dynamic)
         i += 1;
         continue;
       }
-      var row: dynamic;
+      var row: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((y == j))
@@ -330,13 +330,13 @@ func cofactor(x: dynamic, y: dynamic)
   return Matrix(tmp);
 }
 
-func det()
+func det() -> dynamic
 {
   assert((n == m));
-  var tri = triangulate();
-  var ans = 1;
+  var tri: dynamic = triangulate();
+  var ans: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       ans *= tri[i][i];
@@ -348,39 +348,39 @@ func det()
   {
     return get(0, 0);
   }
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      sum += ((((if (((i % 2) == 0)) 1 else -1) * get(i, 0))) * Matrix(cofactor(i, 0)).det());
+      sum += (((( (((i % 2) == 0)) ? 1 : -1) * get(i, 0))) * Matrix(cofactor(i, 0)).det());
       i += 1;
     }
   }
   return sum;
 }
 
-func triangulate()
+func triangulate() -> dynamic
 {
-  var tmp = cpp_construct((*this));
-  var e: dynamic;
-  var p = 0;
+  var tmp: dynamic = cpp_construct((*self));
+  var e: dynamic = cpp_uninitialized();
+  var p: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i < m) && (p < n)))
     {
       if (isZero(tmp.get(i, p)))
       {
         tmp.set(i, p, 0);
-        var flag = true;
+        var flag: dynamic = true;
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j < m))
           {
             if ((!isZero(tmp.get(j, p))))
             {
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < n))
                 {
                   tmp.set(i, k, (tmp.get(i, k) + tmp.get(j, k)));
@@ -402,12 +402,12 @@ func triangulate()
         }
       }
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < m))
         {
           e = (tmp.get(j, p) / tmp.get(i, p));
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < n))
             {
               tmp.set(j, k, (tmp.get(j, k) - (tmp.get(i, k) * e)));
@@ -424,14 +424,14 @@ func triangulate()
   return tmp;
 }
 
-func rank()
+func rank() -> dynamic
 {
   {
-    var i = min((tmp.m - 1), (tmp.n - 1));
+    var i: dynamic = min((tmp.m - 1), (tmp.n - 1));
     while ((i >= 0))
     {
       {
-        var j = (tmp.n - 1);
+        var j: dynamic = (tmp.n - 1);
         while ((j >= i))
         {
           if (isZero(tmp.get(i, j)))
@@ -451,19 +451,19 @@ func rank()
   return 0;
 }
 
-func pre_inverse()
+func pre_inverse() -> dynamic
 {
   assert((m == n));
-  var tmp = cpp_construct(m, n, 0);
+  var tmp: dynamic = cpp_construct(m, n, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
-          tmp.set(i, j, ((if (((((i + j)) % 2) == 0)) 1 else -1) * cofactor(i, j).det()));
+          tmp.set(i, j, (( (((((i + j)) % 2) == 0)) ? 1 : -1) * cofactor(i, j).det()));
           j += 1;
         }
       }
@@ -473,16 +473,16 @@ func pre_inverse()
   return tmp.transport();
 }
 
-func inverse()
+func inverse() -> dynamic
 {
   assert((m == n));
-  var tmp = cpp_construct(m, (n * 2));
+  var tmp: dynamic = cpp_construct(m, (n * 2));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           tmp.set(i, j, get(i, j));
@@ -493,7 +493,7 @@ func inverse()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       tmp.set(i, (i + n), 1);
@@ -502,7 +502,7 @@ func inverse()
   }
   tmp = tmp.rowReduction();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       assert(isZero((tmp.get(i, i) - 1)));
@@ -510,11 +510,11 @@ func inverse()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           tmp2.set(i, j, tmp.get(i, (j + n)));
@@ -527,27 +527,27 @@ func inverse()
   return tmp2;
 }
 
-func rowReduction()
+func rowReduction() -> dynamic
 {
-  var tmp = cpp_construct((*this));
-  var e: dynamic;
-  var p = 0;
+  var tmp: dynamic = cpp_construct((*self));
+  var e: dynamic = cpp_uninitialized();
+  var p: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i < m) && (p < n)))
     {
       if (isZero(tmp.get(i, p)))
       {
         tmp.set(i, p, 0);
-        var flag = true;
+        var flag: dynamic = true;
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j < m))
           {
             if ((!isZero(tmp.get(j, p))))
             {
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < n))
                 {
                   tmp.set(i, k, (tmp.get(i, k) + tmp.get(j, k)));
@@ -571,7 +571,7 @@ func rowReduction()
       e = (1 / tmp.get(i, p));
       tmp.set(i, p, 1);
       {
-        var k = (i + 1);
+        var k: dynamic = (i + 1);
         while ((k < n))
         {
           tmp.set(i, k, (tmp.get(i, k) * e));
@@ -579,7 +579,7 @@ func rowReduction()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((i == j))
@@ -589,7 +589,7 @@ func rowReduction()
           }
           e = tmp.get(j, p);
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < n))
             {
               tmp.set(j, k, (tmp.get(j, k) - (tmp.get(i, k) * e)));
@@ -606,9 +606,9 @@ func rowReduction()
   return tmp;
 }
 
-func mole_seq()
+func mole_seq() -> dynamic
 {
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   v.push_back(mp);
   while (true)
   {
@@ -625,45 +625,45 @@ func mole_seq()
   return v;
 }
 
-func get_mat(l: dynamic, r: dynamic)
+func get_mat(l: dynamic, r: dynamic) -> dynamic
 {
-  var sts: dynamic;
-  for (var m in l)
+  var sts: dynamic = cpp_uninitialized();
+  for (var m: dynamic in l)
   {
-    for (var k in m)
+    for (var k: dynamic in m)
     {
       sts.push_back(k.first);
     }
   }
-  for (var m in r)
+  for (var m: dynamic in r)
   {
-    for (var k in m)
+    for (var k: dynamic in m)
     {
       sts.push_back(k.first);
     }
   }
   sort(sts.begin(), sts.end());
   sts.erase(unique(sts.begin(), sts.end()), sts.end());
-  var mat = cpp_construct((sts.size() + 1), (((l.size() + r.size()) + 1)));
+  var mat: dynamic = cpp_construct((sts.size() + 1), (((l.size() + r.size()) + 1)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < l.size()))
     {
-      for (var k in l[i])
+      for (var k: dynamic in l[i])
       {
-        var x = (find(sts.begin(), sts.end(), k.first) - sts.begin());
+        var x: dynamic = (find(sts.begin(), sts.end(), k.first) - sts.begin());
         mat[x][i] = k.second;
       }
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < r.size()))
     {
-      for (var k in r[i])
+      for (var k: dynamic in r[i])
       {
-        var x = (find(sts.begin(), sts.end(), k.first) - sts.begin());
+        var x: dynamic = (find(sts.begin(), sts.end(), k.first) - sts.begin());
         mat[x][(l.size() + i)] = (-k.second);
       }
       i += 1;
@@ -676,17 +676,17 @@ func get_mat(l: dynamic, r: dynamic)
   return mat;
 }
 
-func main()
+func main() -> dynamic
 {
-  var name: dynamic;
+  var name: dynamic = cpp_uninitialized();
   while (cpp_comma((cin >> name), (name != ".")))
   {
     a = 0;
     st = name;
-    var l: dynamic;
-    var r: dynamic;
-    var l_st = st.substr(0, st.find("->"));
-    var r_st = st.substr((st.find("->") + 2));
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
+    var l_st: dynamic = st.substr(0, st.find("->"));
+    var r_st: dynamic = st.substr((st.find("->") + 2));
     r_st.pop_back();
     a = 0;
     st = l_st;
@@ -694,21 +694,21 @@ func main()
     a = 0;
     st = r_st;
     r = mole_seq();
-    var mat = get_mat(l, r);
-    var ans = mat.rowReduction();
+    var mat: dynamic = get_mat(l, r);
+    var ans: dynamic = mat.rowReduction();
     mat = ans;
-    var anss = cpp_construct((l.size() + r.size()));
-    var k = 1;
+    var anss: dynamic = cpp_construct((l.size() + r.size()));
+    var k: dynamic = 1;
     {
       k = 1;
       while ((k < 1000000))
       {
-        var ok = true;
+        var ok: dynamic = true;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < (l.size() + r.size())))
           {
-            var num = (k * mat[i][(mat[i].size() - 1)]);
+            var num: dynamic = (k * mat[i][(mat[i].size() - 1)]);
             if ((abs((num - round(num))) > 1e-5))
             {
               ok = false;
@@ -724,7 +724,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (l.size() + r.size())))
       {
         anss[i] = (((k * mat[i][(mat[i].size() - 1)]) + 1e-5));
@@ -732,7 +732,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < anss.size()))
       {
         write(anss[i]);

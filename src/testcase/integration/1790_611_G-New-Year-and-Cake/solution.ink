@@ -1,55 +1,55 @@
 // Translated from solution.cpp.
 
-var MOD = (cpp_cast(1e9) + 7);
+var MOD: dynamic = (cpp_cast(1e9) + 7);
 
-var N = (500000 + 5);
+var N: dynamic = (500000 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func Point()
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func Point() -> dynamic
   {
     }
-  func Point(x: dynamic, y: dynamic)
+  func Point(x: dynamic, y: dynamic) -> dynamic
   {
-      this->x = cpp_construct(x);
-      this->y = cpp_construct(y);
+      self->x = cpp_construct(x);
+      self->y = cpp_construct(y);
     }
-  func operator_subtract(rhs: dynamic)
+  func operator_subtract(rhs: dynamic) -> dynamic
   {
       return Point((x - rhs.x), (y - rhs.y));
     }
-  func operator_multiply(t: dynamic)
+  func operator_multiply(t: dynamic) -> dynamic
   {
       return Point((x * t), (y * t));
     }
-  func operator_add(rhs: dynamic)
+  func operator_add(rhs: dynamic) -> dynamic
   {
       return Point((x + rhs.x), (y + rhs.y));
     }
 }
 
-func det(a: dynamic, b: dynamic)
+func det(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.y) - (a.y * b.x));
 }
 
-func det(a: dynamic, b: dynamic, c: dynamic)
+func det(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return det((b - a), (c - a));
 }
 
-var points = cpp_array((N + N));
+var points: dynamic = cpp_array((N + N));
 
-func brute()
+func brute() -> dynamic
 {
-  var ret = 0;
-  var area = 0;
+  var ret: dynamic = 0;
+  var area: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       area += det(points[i], points[(((i + 1)) % n)], points[0]);
@@ -57,11 +57,11 @@ func brute()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = (i + 2);
+        var j: dynamic = (i + 2);
         while ((j < n))
         {
           if ((((i + n) - j) < 2))
@@ -69,9 +69,9 @@ func brute()
             j += 1;
             continue;
           }
-          var a = 0;
+          var a: dynamic = 0;
           {
-            var k = (i + 1);
+            var k: dynamic = (i + 1);
             while ((k < j))
             {
               a += det(points[i], points[k], points[(k + 1)]);
@@ -89,34 +89,34 @@ func brute()
   return ((((ret % MOD) + MOD)) % MOD);
 }
 
-func work()
+func work() -> dynamic
 {
   copy(points, (points + n), (points + n));
-  var area = 0;
+  var area: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       area += det(points[i], points[(i + 1)]);
       i += 1;
     }
   }
-  var a = 0;
-  var d = 0;
-  var b = cpp_construct(0, 0);
-  var c = cpp_construct(0, 0);
-  var now = 0;
-  var small = 0;
-  var cnt = 0;
+  var a: dynamic = 0;
+  var d: dynamic = 0;
+  var b: dynamic = cpp_construct(0, 0);
+  var c: dynamic = cpp_construct(0, 0);
+  var now: dynamic = 0;
+  var small: dynamic = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 0;
-    var j = 0;
+    var i: dynamic = 0;
+    var j: dynamic = 0;
     while ((i < n))
     {
       {
         while ((j < (i + n)))
         {
-          var tmp = det(points[j], points[(j + 1)], points[i]);
+          var tmp: dynamic = det(points[j], points[(j + 1)], points[i]);
           if (((((1 * now) + tmp) << 1) > area))
           {
             break;
@@ -135,7 +135,7 @@ func work()
           j += 1;
         }
       }
-      var tmp = ((-(((a + (det(b, points[i]) % MOD)) + (det(points[i], c) % MOD)))) + (j * ((d + (det(points[j], points[i]) % MOD)))));
+      var tmp: dynamic = ((-(((a + (det(b, points[i]) % MOD)) + (det(points[i], c) % MOD)))) + (j * ((d + (det(points[j], points[i]) % MOD)))));
       tmp %= MOD;
       small += tmp;
       small %= MOD;
@@ -160,12 +160,12 @@ func work()
   return (((((((((((((n * 1) * ((n - 3))) / 2) % MOD) * ((area % MOD))) % MOD) - (small * 2)) + (((((cnt / 2) * 1) * ((area % MOD)))) % MOD))) % MOD) + MOD)) % MOD);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(points[i].x, points[i].y);

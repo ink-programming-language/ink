@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var num = cpp_array(60010);
+var num: dynamic = cpp_array(60010);
 
-func main()
+func main() -> dynamic
 {
   read(n);
-  var k = ((((1 * n) * ((n + 1))) / 2));
+  var k: dynamic = ((((1 * n) * ((n + 1))) / 2));
   if ((k & 1))
   {
     write(1, "\n");
@@ -22,7 +22,7 @@ func main()
     sum = (k / 2);
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       if (((sum - i) > 0))
@@ -40,7 +40,7 @@ func main()
   }
   write(cnt, cpp_char(" "));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cnt))
     {
       write(num[i], cpp_char(" "));

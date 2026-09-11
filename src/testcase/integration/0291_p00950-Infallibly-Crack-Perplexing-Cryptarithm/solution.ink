@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var used: dynamic;
+var used: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var idx: dynamic;
+var idx: dynamic = cpp_uninitialized();
 
-var valid: dynamic;
+var valid: dynamic = cpp_uninitialized();
 
-var ch = [cpp_char("0"), cpp_char("1"), cpp_char("+"), cpp_char("-"), cpp_char("*"), cpp_char("("), cpp_char(")"), cpp_char("=")];
+var ch: dynamic = [cpp_char("0"), cpp_char("1"), cpp_char("+"), cpp_char("-"), cpp_char("*"), cpp_char("("), cpp_char(")"), cpp_char("=")];
 
-var ord = cpp_array(8);
+var ord: dynamic = cpp_array(8);
 
-func check(a: dynamic)
+func check(a: dynamic) -> dynamic
 {
-  var par = 0;
-  for (var s in a)
+  var par: dynamic = 0;
+  for (var s: dynamic in a)
   {
     par += (((s == cpp_char("("))) - ((s == cpp_char(")"))));
     if ((s == cpp_char("=")))
@@ -32,9 +32,9 @@ func check(a: dynamic)
   return (par == 0);
 }
 
-func getNum()
+func getNum() -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   if (((S[idx] == cpp_char("0")) && isdigit(S[(idx + 1)])))
   {
     valid = 0;
@@ -46,11 +46,11 @@ func getNum()
   return res;
 }
 
-func cal()
+func cal() -> dynamic
 {
-  var ch = S[idx];
-  var res = 0;
-  var sign = 1;
+  var ch: dynamic = S[idx];
+  var res: dynamic = 0;
+  var sign: dynamic = 1;
   if ((((ch == cpp_char("+")) || (ch == cpp_char("*"))) || (ch == cpp_char(")"))))
   {
     valid = 0;
@@ -82,16 +82,16 @@ func cal()
   return 0;
 }
 
-func bnf()
+func bnf() -> dynamic
 {
-  var res = cal();
+  var res: dynamic = cal();
   while ((idx < cpp_cast(S.size())))
   {
     if ((valid == 0))
     {
       return -1;
     }
-    var ch = S[idx];
+    var ch: dynamic = S[idx];
     if ((ch == cpp_char("(")))
     {
       valid = 0;
@@ -122,10 +122,10 @@ func bnf()
   return res;
 }
 
-func mkS(a: dynamic)
+func mkS(a: dynamic) -> dynamic
 {
-  var res: dynamic;
-  for (var s in a)
+  var res: dynamic = cpp_uninitialized();
+  for (var s: dynamic in a)
   {
     if (isalpha(s))
     {
@@ -138,7 +138,7 @@ func mkS(a: dynamic)
   return res;
 }
 
-func calc(A: dynamic, B: dynamic)
+func calc(A: dynamic, B: dynamic) -> dynamic
 {
   if (((A.size() == 0) || (B.size() == 0)))
   {
@@ -152,18 +152,18 @@ func calc(A: dynamic, B: dynamic)
   valid = (check(A) && check(B));
   idx = 0;
   S = A;
-  var ra = bnf();
+  var ra: dynamic = bnf();
   idx = 0;
   S = B;
-  var rb = bnf();
+  var rb: dynamic = bnf();
   return ((ra == rb) && valid);
 }
 
-func calc(s: dynamic)
+func calc(s: dynamic) -> dynamic
 {
   s = mkS(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(s.size())))
     {
       if ((s[i] == cpp_char("=")))
@@ -176,15 +176,15 @@ func calc(s: dynamic)
   return 0;
 }
 
-func dfs(num: dynamic, s: dynamic)
+func dfs(num: dynamic, s: dynamic) -> dynamic
 {
   if ((num == 8))
   {
     return calc(s);
   }
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 8))
     {
       if ((ord[i] != -1))
@@ -201,18 +201,18 @@ func dfs(num: dynamic, s: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
-  var str: dynamic;
+  var str: dynamic = cpp_uninitialized();
   read(str);
   if ((str.size() < 3))
   {
     write(0, "\n");
     exit(0);
   }
-  var cnt: dynamic;
+  var cnt: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(str.size())))
     {
       if (isalpha(str[i]))
@@ -227,8 +227,8 @@ func main()
     write(0, "\n");
     exit(0);
   }
-  var c = 0;
-  for (var p in cnt)
+  var c: dynamic = 0;
+  for (var p: dynamic in cnt)
   {
     if (isalpha(p.first))
     {

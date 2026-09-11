@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var c: dynamic;
-      var sum: dynamic;
+      var c: dynamic = cpp_uninitialized();
+      var sum: dynamic = cpp_uninitialized();
       read(c, sum);
-      var x = (sum / c);
-      var big = (sum - (c * x));
-      var small = (c - big);
-      var ans = (((small * x) * x) + ((big * ((x + 1))) * ((x + 1))));
+      var x: dynamic = (sum / c);
+      var big: dynamic = (sum - (c * x));
+      var small: dynamic = (c - big);
+      var ans: dynamic = (((small * x) * x) + ((big * ((x + 1))) * ((x + 1))));
       write(ans, cpp_char("\n"));
       i += 1;
     }

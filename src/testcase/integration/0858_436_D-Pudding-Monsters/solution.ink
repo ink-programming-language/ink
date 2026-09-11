@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var MAXN = 100005;
+var MAXN: dynamic = 100005;
 
-var MAXM = 2005;
+var MAXM: dynamic = 2005;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var mon = cpp_array(MAXN);
+var mon: dynamic = cpp_array(MAXN);
 
-var cell = cpp_array(MAXM);
+var cell: dynamic = cpp_array(MAXM);
 
-var start = cpp_array(MAXN);
+var start: dynamic = cpp_array(MAXN);
 
-var use = cpp_array(MAXN);
+var use: dynamic = cpp_array(MAXN);
 
-var dp = cpp_array(MAXN);
+var dp: dynamic = cpp_array(MAXN);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(N, M);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(mon[i]);
@@ -31,7 +31,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       read(cell[i]);
@@ -41,7 +41,7 @@ func main()
   sort(mon, (mon + N));
   sort(cell, (cell + M));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (((i == 0) || (mon[i] != (mon[(i - 1)] + 1))))
@@ -55,10 +55,10 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var next = (upper_bound(cell, (cell + M), mon[i]) - cell);
+      var next: dynamic = (upper_bound(cell, (cell + M), mon[i]) - cell);
       if ((start[i] > 0))
       {
         use[i] = max(use[i], dp[(start[i] - 1)]);
@@ -68,10 +68,10 @@ func main()
         dp[i] = max(dp[i], dp[(i - 1)]);
       }
       {
-        var j = (next - 1);
+        var j: dynamic = (next - 1);
         while ((j >= 0))
         {
-          var left = (i - ((mon[i] - cell[j])));
+          var left: dynamic = (i - ((mon[i] - cell[j])));
           if ((left < 0))
           {
             break;
@@ -81,10 +81,10 @@ func main()
         }
       }
       {
-        var j = next;
+        var j: dynamic = next;
         while ((j < M))
         {
-          var right = (i + ((cell[j] - mon[i])));
+          var right: dynamic = (i + ((cell[j] - mon[i])));
           if ((right >= N))
           {
             break;

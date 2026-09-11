@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var MOD = cpp_expression("#include <");
+var MOD: dynamic = cpp_expression("#include <");
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var h: dynamic;
-  var w: dynamic;
-  var n: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(h, w, n);
-  var ans = [];
-  var sum = 0;
+  var ans: dynamic = [];
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= 2))
         {
           if ((((a - j) <= 0) || (((a - j) + 2) > h)))
@@ -29,7 +29,7 @@ func main()
             continue;
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= 2))
             {
               if ((((b - k) <= 0) || (((b - k) + 2) > w)))
@@ -47,14 +47,14 @@ func main()
       i += 1;
     }
   }
-  for (var z in mp)
+  for (var z: dynamic in mp)
   {
     ans[z.second] += 1;
     sum += 1;
   }
   ans[0] = ((((w - 2)) * ((h - 2))) - sum);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 9))
     {
       write(ans[i], "\n");

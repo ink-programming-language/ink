@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var INF = (1 << 29);
+var INF: dynamic = (1 << 29);
 
 class UnionFind
 {
-  var data: dynamic;
-  func UnionFind(sz: dynamic)
+  var data: dynamic = cpp_uninitialized();
+  func UnionFind(sz: dynamic) -> dynamic
   {
       data.assign(sz, -1);
     }
-  func find(k: dynamic)
+  func find(k: dynamic) -> dynamic
   {
-      return (cpp_assign(if ((data[k] < 0)) k else data[k], "=", find(data[k])));
+      return (cpp_assign( ((data[k] < 0)) ? k : data[k], "=", find(data[k])));
     }
-  func unite(x: dynamic, y: dynamic)
+  func unite(x: dynamic, y: dynamic) -> dynamic
   {
       x = find(x);
       y = find(y);
@@ -30,28 +30,28 @@ class UnionFind
     }
 }
 
-var g = cpp_array(100001);
+var g: dynamic = cpp_array(100001);
 
-var leftt = cpp_array(100001);
+var leftt: dynamic = cpp_array(100001);
 
-var rightt = cpp_array(100001);
+var rightt: dynamic = cpp_array(100001);
 
-var just = cpp_array(100001);
+var just: dynamic = cpp_array(100001);
 
-var gg = cpp_array(100001);
+var gg: dynamic = cpp_array(100001);
 
-var deg = cpp_array(100001);
+var deg: dynamic = cpp_array(100001);
 
-func rec(idx: dynamic, back: dynamic = -1)
+func rec(idx: dynamic, back: dynamic = -1) -> dynamic
 {
   if ((rightt[idx][0] == INF))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < g[idx].size()))
       {
-        var to: dynamic;
-        var rev: dynamic;
+        var to: dynamic = cpp_uninitialized();
+        var rev: dynamic = cpp_uninitialized();
         tie(to, rev) = g[idx][i];
         if ((i == back))
         {
@@ -63,7 +63,7 @@ func rec(idx: dynamic, back: dynamic = -1)
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < g[idx].size()))
       {
         leftt[idx][(i + 1)] = max(leftt[idx][i], just[idx][i]);
@@ -71,7 +71,7 @@ func rec(idx: dynamic, back: dynamic = -1)
       }
     }
     {
-      var i = (cpp_cast(g[idx].size()) - 1);
+      var i: dynamic = (cpp_cast(g[idx].size()) - 1);
       while ((i >= 0))
       {
         rightt[idx][i] = max(rightt[idx][(i + 1)], just[idx][i]);
@@ -86,20 +86,20 @@ func rec(idx: dynamic, back: dynamic = -1)
   return (max(leftt[idx][back], rightt[idx][(back + 1)]));
 }
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var M: dynamic;
-  var edges: dynamic;
-  var arcs: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
+  var edges: dynamic = cpp_uninitialized();
+  var arcs: dynamic = cpp_uninitialized();
   scanf("%d %d", (&N), (&M));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
-      var x: dynamic;
-      var y: dynamic;
-      var t: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
       read(x, y, t);
       x -= 1;
       y -= 1;
@@ -123,14 +123,14 @@ func main()
     }
   }
   {
-    for (var e in arcs)
+    for (var e: dynamic in arcs)
     {
       gg[uf.find(e.first)].push_back(uf.find(e.second));
       deg[uf.find(e.second)] += 1;
     }
-    var order: dynamic;
+    var order: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         if ((deg[i] == 0))
@@ -141,10 +141,10 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < order.size()))
       {
-        for (var e in gg[order[i]])
+        for (var e: dynamic in gg[order[i]])
         {
           if ((cpp_update(deg[e], "--") == 0))
           {
@@ -160,12 +160,12 @@ func main()
       return (0);
     }
   }
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var sz = g[i].size();
+      var sz: dynamic = g[i].size();
       just[i].assign(sz, INF);
       leftt[i].assign((sz + 1), INF);
       rightt[i].assign((sz + 1), INF);
@@ -174,7 +174,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       ret = max(ret, rec(i));

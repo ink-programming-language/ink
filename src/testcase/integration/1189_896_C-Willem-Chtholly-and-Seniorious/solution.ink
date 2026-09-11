@@ -1,52 +1,52 @@
 // Translated from solution.cpp.
 
-var INF = (1e18 + 7);
+var INF: dynamic = (1e18 + 7);
 
-var N = (1e5 + 7);
+var N: dynamic = (1e5 + 7);
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var seed: dynamic;
+var seed: dynamic = cpp_uninitialized();
 
-var v_max: dynamic;
+var v_max: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var op: dynamic;
+var op: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-func plusi(a: dynamic, b: dynamic, mo: dynamic)
+func plusi(a: dynamic, b: dynamic, mo: dynamic) -> dynamic
 {
-  var cur = ((((0 + a) + b)) % mo);
+  var cur: dynamic = ((((0 + a) + b)) % mo);
   return cur;
 }
 
-func multi(a: dynamic, b: dynamic, mo: dynamic)
+func multi(a: dynamic, b: dynamic, mo: dynamic) -> dynamic
 {
   a %= mo;
   b %= mo;
-  var cur = ((((1 * a) * b)) % mo);
+  var cur: dynamic = ((((1 * a) * b)) % mo);
   return cur;
 }
 
-func power(base: dynamic, pow: dynamic, mo: dynamic)
+func power(base: dynamic, pow: dynamic, mo: dynamic) -> dynamic
 {
   if ((pow == 0))
   {
@@ -57,7 +57,7 @@ func power(base: dynamic, pow: dynamic, mo: dynamic)
     base %= mo;
     return base;
   }
-  var cur = power(base, (pow / 2), mo);
+  var cur: dynamic = power(base, (pow / 2), mo);
   cur = multi(cur, cur, mo);
   if ((pow % 2))
   {
@@ -66,14 +66,14 @@ func power(base: dynamic, pow: dynamic, mo: dynamic)
   return cur;
 }
 
-func rnd()
+func rnd() -> dynamic
 {
-  var cur = seed;
+  var cur: dynamic = seed;
   seed = (((((seed * 7)) + 13)) % MOD);
   return cur;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
@@ -86,13 +86,13 @@ func main()
       i += 1;
     }
   }
-  var prv: dynamic;
-  var pq: dynamic;
+  var prv: dynamic = cpp_uninitialized();
+  var pq: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))
     {
-      var u = [i, i];
+      var u: dynamic = [i, i];
       pq.push(u);
       i += 1;
     }
@@ -123,10 +123,10 @@ func main()
       {
         while ((!pq.empty()))
         {
-          var cur = pq.front();
+          var cur: dynamic = pq.front();
           pq.pop();
-          var q = cur.first;
-          var w = cur.second;
+          var q: dynamic = cur.first;
+          var w: dynamic = cur.second;
           if (((q == l) && (w == r)))
           {
             a[q] += x;
@@ -185,10 +185,10 @@ func main()
       {
         while ((!pq.empty()))
         {
-          var cur = pq.front();
+          var cur: dynamic = pq.front();
           pq.pop();
-          var q = cur.first;
-          var w = cur.second;
+          var q: dynamic = cur.first;
+          var w: dynamic = cur.second;
           if (((q == l) && (w > r)))
           {
             prv.push([(r + 1), w]);
@@ -223,13 +223,13 @@ func main()
       }
       if ((op == 3))
       {
-        var ans: dynamic;
+        var ans: dynamic = cpp_uninitialized();
         while ((!pq.empty()))
         {
-          var cur = pq.front();
+          var cur: dynamic = pq.front();
           pq.pop();
-          var q = cur.first;
-          var w = cur.second;
+          var q: dynamic = cur.first;
+          var w: dynamic = cur.second;
           if (((q == l) && (w == r)))
           {
             ans.push([(-a[q]), ((r - l) + 1)]);
@@ -268,8 +268,8 @@ func main()
           }
           prv.push([q, w]);
         }
-        var here = 0;
-        var prin = (1e18 + 7);
+        var here: dynamic = 0;
+        var prin: dynamic = (1e18 + 7);
         while ((here < x))
         {
           here += ans.top().second;
@@ -280,13 +280,13 @@ func main()
       }
       if ((op == 4))
       {
-        var ans = 0;
+        var ans: dynamic = 0;
         while ((!pq.empty()))
         {
-          var cur = pq.front();
+          var cur: dynamic = pq.front();
           pq.pop();
-          var q = cur.first;
-          var w = cur.second;
+          var q: dynamic = cur.first;
+          var w: dynamic = cur.second;
           if (((q == l) && (w == r)))
           {
             ans = multi(((r - l) + 1), power(a[q], x, y), y);

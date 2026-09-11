@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  var f = 1;
+  var f: dynamic = 1;
   x = 0;
-  var c = getchar();
+  var c: dynamic = getchar();
   while (((c < cpp_char("0")) || (c > cpp_char("9"))))
   {
     if ((c == cpp_char("-")))
@@ -21,14 +21,14 @@ func read(x: dynamic)
   x *= f;
 }
 
-func main()
+func main() -> dynamic
 {
-  var T: dynamic;
-  var x: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var n: dynamic;
-  var m: dynamic;
+  var T: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(T);
   while (cpp_update(T, "--"))
   {
@@ -43,7 +43,7 @@ func main()
           while ((j <= m))
           {
             read(x);
-            printf("%d ", if (((x % 2) == (((i + j)) % 2))) x else (x + 1));
+            printf("%d ",  (((x % 2) == (((i + j)) % 2))) ? x : (x + 1));
             j += 1;
           }
         }

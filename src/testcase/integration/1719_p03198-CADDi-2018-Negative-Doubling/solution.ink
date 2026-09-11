@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<");
 }
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var ld = dynamic;
+var ld: dynamic = dynamic;
 
-var PI = cpp_expression("#include<bits");
+var PI: dynamic = cpp_expression("#include<bits");
 
-func gc()
+func gc() -> dynamic
 {
-  var buf = cpp_array(100000);
-  var p1 = buf;
-  var p2 = buf;
-  return if (((p1 == p2) && (cpp_comma(p2, cpp_expression("=(p1=buf)+fread(buf,1,100000,stdin)"), (p1 == p2))))) EOF else (*cpp_update(p1, "++"));
+  var buf: dynamic = cpp_array(100000);
+  var p1: dynamic = buf;
+  var p2: dynamic = buf;
+  return  (((p1 == p2) && (cpp_comma(p2, cpp_expression("=(p1=buf)+fread(buf,1,100000,stdin)"), (p1 == p2))))) ? EOF : (*cpp_update(p1, "++"));
 }
 
-var gc = cpp_expression("#includ");
+var gc: dynamic = cpp_expression("#includ");
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var ch = gc();
-  var positive = 1;
+  var x: dynamic = 0;
+  var ch: dynamic = gc();
+  var positive: dynamic = 1;
   {
     while ((!isdigit(ch)))
     {
@@ -43,10 +43,10 @@ func read()
       ch = gc();
     }
   }
-  return if (positive) x else (-x);
+  return  (positive) ? x : (-x);
 }
 
-func write(a: dynamic)
+func write(a: dynamic) -> dynamic
 {
   if ((a < 0))
   {
@@ -60,33 +60,33 @@ func write(a: dynamic)
   putchar((cpp_char("0") + (a % 10)));
 }
 
-func writeln(a: dynamic)
+func writeln(a: dynamic) -> dynamic
 {
   write(a);
   puts("");
 }
 
-func wri(a: dynamic)
+func wri(a: dynamic) -> dynamic
 {
   write(a);
   putchar(cpp_char(" "));
 }
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var q = cpp_array(N);
+var q: dynamic = cpp_array(N);
 
-var top: dynamic;
+var top: dynamic = cpp_uninitialized();
 
-var A = cpp_array(N);
+var A: dynamic = cpp_array(N);
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-func cmp(a: dynamic, b: dynamic, c: dynamic)
+func cmp(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -107,11 +107,11 @@ func cmp(a: dynamic, b: dynamic, c: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n = read();
+  var n: dynamic = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = read();
@@ -119,15 +119,15 @@ func main()
     }
   }
   q[0] = (n + 1);
-  var dq = 0;
+  var dq: dynamic = 0;
   {
-    var i = n;
+    var i: dynamic = n;
     while (i)
     {
-      var t = 0;
+      var t: dynamic = 0;
       while (top)
       {
-        var jb = cmp(a[(q[top] - 1)], a[q[top]], t);
+        var jb: dynamic = cmp(a[(q[top] - 1)], a[q[top]], t);
         if ((jb > 0))
         {
           dq += (cpp_cast(jb) * ((q[(top - 1)] - q[top])));
@@ -146,14 +146,14 @@ func main()
   }
   dq = cpp_assign(top, "=", cpp_assign(q[0], "=", 0));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var t = 0;
+      var t: dynamic = 0;
       a[i] *= 2;
       while (top)
       {
-        var jb = cmp(a[(q[top] + 1)], a[q[top]], t);
+        var jb: dynamic = cmp(a[(q[top] + 1)], a[q[top]], t);
         if ((jb > 0))
         {
           dq += (cpp_cast(jb) * ((q[top] - q[(top - 1)])));
@@ -170,9 +170,9 @@ func main()
       i += 1;
     }
   }
-  var ans = 1e18;
+  var ans: dynamic = 1e18;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       ans = min(ans, ((g[i] + f[(i + 1)]) + i));

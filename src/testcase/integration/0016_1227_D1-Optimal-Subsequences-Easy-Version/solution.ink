@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i]);
       i += 1;
     }
   }
-  var v2 = v;
+  var v2: dynamic = v;
   sort(v.rbegin(), v.rend());
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   read(m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var k: dynamic;
-      var ind: dynamic;
+      var k: dynamic = cpp_uninitialized();
+      var ind: dynamic = cpp_uninitialized();
       read(k, ind);
-      var kmax: dynamic;
+      var kmax: dynamic = cpp_uninitialized();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < k))
         {
           kmax.insert(v[i]);
           i += 1;
         }
       }
-      var seq: dynamic;
+      var seq: dynamic = cpp_uninitialized();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
-          var it = kmax.find(v2[i]);
+          var it: dynamic = kmax.find(v2[i]);
           if ((it != kmax.end()))
           {
             kmax.erase(it);

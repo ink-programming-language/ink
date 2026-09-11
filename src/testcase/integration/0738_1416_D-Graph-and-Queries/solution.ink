@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var val = cpp_array(200005);
+var val: dynamic = cpp_array(200005);
 
-var e = cpp_array(300005);
+var e: dynamic = cpp_array(300005);
 
-var del = cpp_array(300005);
+var del: dynamic = cpp_array(300005);
 
-var qT = cpp_array(500005);
+var qT: dynamic = cpp_array(500005);
 
-var qV = cpp_array(500005);
+var qV: dynamic = cpp_array(500005);
 
-var color = cpp_array(200005);
+var color: dynamic = cpp_array(200005);
 
-func repr(x: dynamic)
+func repr(x: dynamic) -> dynamic
 {
-  return if ((color[x] == x)) x else (cpp_assign(color[x], "=", repr(color[x])));
+  return  ((color[x] == x)) ? x : (cpp_assign(color[x], "=", repr(color[x])));
 }
 
-var f = cpp_array(200005);
+var f: dynamic = cpp_array(200005);
 
-var op = cpp_array(500005);
+var op: dynamic = cpp_array(500005);
 
-func join(x: dynamic, y: dynamic, ind: dynamic)
+func join(x: dynamic, y: dynamic, ind: dynamic) -> dynamic
 {
   x = repr(x);
   y = repr(y);
@@ -40,18 +40,18 @@ func join(x: dynamic, y: dynamic, ind: dynamic)
   }
 }
 
-var root = cpp_array(200005);
+var root: dynamic = cpp_array(200005);
 
-var ff = cpp_array(200005);
+var ff: dynamic = cpp_array(200005);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&m), (&q));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(val[i]);
@@ -59,7 +59,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d%d", (&e[i].first), (&e[i].second));
@@ -69,7 +69,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       scanf("%d%d", (&qT[i]), (&qV[i]));
@@ -82,7 +82,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       color[i] = i;
@@ -91,7 +91,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       if (del[i])
@@ -104,7 +104,7 @@ func main()
     }
   }
   {
-    var i = (q - 1);
+    var i: dynamic = (q - 1);
     while ((i >= 0))
     {
       if ((qT[i] == 2))
@@ -115,7 +115,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       ff[repr(i)].insert([(-val[i]), i]);
@@ -124,12 +124,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       if ((qT[i] == 1))
       {
-        var p = root[qV[i]];
+        var p: dynamic = root[qV[i]];
         if ((ff[p].size() > 0))
         {
           printf("%d\n", (-ff[p].begin()->first));
@@ -141,7 +141,7 @@ func main()
         }
       } else if ((op[i].first != op[i].second))
       {
-        for (var t in f[op[i].second])
+        for (var t: dynamic in f[op[i].second])
         {
           root[t] = op[i].second;
           if ((val[t] > 0))

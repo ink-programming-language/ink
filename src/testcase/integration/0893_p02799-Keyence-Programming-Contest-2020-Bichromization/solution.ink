@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var LL = dynamic;
+var LL: dynamic = dynamic;
 
-var uLL = dynamic;
+var uLL: dynamic = dynamic;
 
-var N = (2e5 + 10);
+var N: dynamic = (2e5 + 10);
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-func rd()
+func rd() -> dynamic
 {
-  var x = 0;
-  var w = 1;
-  var ch = 0;
+  var x: dynamic = 0;
+  var w: dynamic = 1;
+  var ch: dynamic = 0;
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -29,15 +29,15 @@ func rd()
   return (x * w);
 }
 
-var to = cpp_array((N << 1));
+var to: dynamic = cpp_array((N << 1));
 
-var nt = cpp_array((N << 1));
+var nt: dynamic = cpp_array((N << 1));
 
-var hd = cpp_array(N);
+var hd: dynamic = cpp_array(N);
 
-var tot = 1;
+var tot: dynamic = 1;
 
-func adde(x: dynamic, y: dynamic)
+func adde(x: dynamic, y: dynamic) -> dynamic
 {
   tot += 1;
   to[tot] = y;
@@ -49,31 +49,31 @@ func adde(x: dynamic, y: dynamic)
   hd[y] = tot;
 }
 
-var co = [cpp_char("W"), cpp_char("B")];
+var co: dynamic = [cpp_char("W"), cpp_char("B")];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var sq = cpp_array(N);
+var sq: dynamic = cpp_array(N);
 
-var a1 = cpp_array(N);
+var a1: dynamic = cpp_array(N);
 
-var a2 = cpp_array(N);
+var a2: dynamic = cpp_array(N);
 
-func cmp(aa: dynamic, bb: dynamic)
+func cmp(aa: dynamic, bb: dynamic) -> dynamic
 {
   return (a[aa] < a[bb]);
 }
 
-func main()
+func main() -> dynamic
 {
   n = rd();
   m = rd();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = rd();
@@ -81,7 +81,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       adde(rd(), rd());
@@ -89,7 +89,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= max(n, m)))
     {
       a1[i] = -1;
@@ -98,7 +98,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sq[i] = i;
@@ -107,15 +107,15 @@ func main()
   }
   sort((sq + 1), ((sq + n) + 1), cmp);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x = sq[i];
+      var x: dynamic = sq[i];
       {
-        var j = hd[x];
+        var j: dynamic = hd[x];
         while (j)
         {
-          var y = to[j];
+          var y: dynamic = to[j];
           if (((a[y] > a[x]) || ((((~a1[x])) && ((~a1[y]))))))
           {
             j = nt[j];
@@ -147,7 +147,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a1[i] < 0))
@@ -159,7 +159,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       putchar(co[a1[i]]);
@@ -168,7 +168,7 @@ func main()
   }
   puts("");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       printf("%d\n", min(a2[i], inf));

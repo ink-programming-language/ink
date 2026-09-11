@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func fastPow(a: dynamic, p: dynamic)
+func fastPow(a: dynamic, p: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (p)
   {
     if ((p & 1))
@@ -15,7 +15,7 @@ func fastPow(a: dynamic, p: dynamic)
   return res;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == 0))
   {
@@ -24,13 +24,13 @@ func gcd(a: dynamic, b: dynamic)
   return gcd((b % a), a);
 }
 
-func solve(num: dynamic)
+func solve(num: dynamic) -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a = cpp_array(n);
+  var a: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -38,20 +38,20 @@ func solve(num: dynamic)
     }
   }
   sort(a, (a + n));
-  var ans: dynamic;
-  var used = cpp_construct(n, 0);
+  var ans: dynamic = cpp_uninitialized();
+  var used: dynamic = cpp_construct(n, 0);
   used[(n - 1)] = 1;
   ans.push_back(a[(n - 1)]);
-  var last = a[(n - 1)];
+  var last: dynamic = a[(n - 1)];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var take: dynamic;
-      var maks = -1;
-      var cek: dynamic;
+      var take: dynamic = cpp_uninitialized();
+      var maks: dynamic = -1;
+      var cek: dynamic = cpp_uninitialized();
       {
-        var j = (n - 1);
+        var j: dynamic = (n - 1);
         while ((j >= 0))
         {
           if ((used[j] == 0))
@@ -72,17 +72,17 @@ func solve(num: dynamic)
       i += 1;
     }
   }
-  for (var i in ans)
+  for (var i: dynamic in ans)
   {
     write(i, " ");
   }
   write("\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var tc = 1;
-  var num = 0;
+  var tc: dynamic = 1;
+  var num: dynamic = 0;
   read(tc);
   while (cpp_update(tc, "--"))
   {

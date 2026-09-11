@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
-  var i: dynamic;
-  var a: dynamic;
-  var b: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   scanf("%d", (&t));
   {
     i = 0;

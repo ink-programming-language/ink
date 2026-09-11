@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var MaxN = 200002;
+var MaxN: dynamic = 200002;
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var test: dynamic;
-  var tests = 1;
+  var test: dynamic = cpp_uninitialized();
+  var tests: dynamic = 1;
   scanf("%d", (&tests));
   {
     test = 0;
@@ -17,17 +17,17 @@ func main(argument_0: dynamic)
   }
 }
 
-var dp = cpp_array(2, MaxN);
+var dp: dynamic = cpp_array(2, MaxN);
 
-var b = cpp_array(MaxN);
+var b: dynamic = cpp_array(MaxN);
 
-func Run_Case(argument_0: dynamic)
+func Run_Case(argument_0: dynamic) -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var n = s.size();
+  var n: dynamic = s.size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       b[i] = 0;
@@ -49,10 +49,10 @@ func Run_Case(argument_0: dynamic)
     dp[0][0] = 1;
     dp[0][1] = 1;
   }
-  var answer = max(dp[0][0], dp[0][1]);
+  var answer: dynamic = max(dp[0][0], dp[0][1]);
   b[0] = answer;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       if ((s[i] == cpp_char("0")))

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var s: dynamic;
-    var x: dynamic;
-    var n: dynamic;
+    var s: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
+    var n: dynamic = cpp_uninitialized();
     s.clear();
     read(x, s);
     n = s.size();
@@ -19,15 +19,15 @@ func main()
       write(1, "\n");
       continue;
     }
-    var done = 0;
+    var done: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= x))
       {
         if (done)
         {
-          var left = i;
-          var right = ((n - i) + MOD);
+          var left: dynamic = i;
+          var right: dynamic = ((n - i) + MOD);
           right %= MOD;
           right *= ((s[(i - 1)] - cpp_char("0")));
           right %= MOD;
@@ -35,15 +35,15 @@ func main()
           n %= MOD;
         } else
         {
-          var y = s.size();
+          var y: dynamic = s.size();
           if ((s[(i - 1)] == cpp_char("1")))
           {
             i += 1;
             continue;
           }
-          var tmp2 = s.substr(i, y);
+          var tmp2: dynamic = s.substr(i, y);
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j < ((s[(i - 1)] - cpp_char("0")))))
             {
               s += tmp2;

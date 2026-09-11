@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios_base.sync_with_stdio(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a = cpp_construct((n - 1));
-  var b = cpp_construct((n - 1));
+  var a: dynamic = cpp_construct((n - 1));
+  var b: dynamic = cpp_construct((n - 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       read(a[i]);
@@ -17,7 +17,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       read(b[i]);
@@ -25,17 +25,17 @@ func main()
     }
   }
   {
-    var t = 0;
+    var t: dynamic = 0;
     while ((t < 4))
     {
-      var ans: dynamic;
+      var ans: dynamic = cpp_uninitialized();
       ans.push_back(t);
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < n))
         {
           {
-            var x = 0;
+            var x: dynamic = 0;
             while ((x < 4))
             {
               if (((((ans.back() & x)) == b[(i - 1)]) && (((ans.back() | x)) == a[(i - 1)])))
@@ -57,7 +57,7 @@ func main()
       {
         write("YES\n");
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < n))
           {
             write(ans[i], cpp_char(" "));

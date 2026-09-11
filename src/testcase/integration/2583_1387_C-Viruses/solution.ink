@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func chkmax(a: dynamic, b: dynamic)
+func chkmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b > a))
   {
@@ -10,7 +10,7 @@ func chkmax(a: dynamic, b: dynamic)
   return 0;
 }
 
-func chkmin(a: dynamic, b: dynamic)
+func chkmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b < a))
   {
@@ -20,7 +20,7 @@ func chkmin(a: dynamic, b: dynamic)
   return 0;
 }
 
-func output(begin: dynamic, end: dynamic, out: dynamic = cerr)
+func output(begin: dynamic, end: dynamic, out: dynamic = cerr) -> dynamic
 {
   while ((begin != end))
   {
@@ -30,73 +30,73 @@ func output(begin: dynamic, end: dynamic, out: dynamic = cerr)
   (out << endl);
 }
 
-func output(x: dynamic, out: dynamic = cerr)
+func output(x: dynamic, out: dynamic = cerr) -> dynamic
 {
   output(x.begin(), x.end(), out);
 }
 
-func fast_io()
+func fast_io() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
 }
 
-var G0: dynamic;
+var G0: dynamic = cpp_uninitialized();
 
-var G: dynamic;
+var G: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var singleMut: dynamic;
+var singleMut: dynamic = cpp_uninitialized();
 
-var doubleMut: dynamic;
+var doubleMut: dynamic = cpp_uninitialized();
 
-func newGene()
+func newGene() -> dynamic
 {
   singleMut.push_back(vector());
   doubleMut.push_back(vector());
   return cpp_update(G, "++");
 }
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-func read()
+func read() -> dynamic
 {
   read(G0, n, m);
   G = G0;
   singleMut.resize(G);
   doubleMut.resize(G);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a: dynamic;
-      var k: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var k: dynamic = cpp_uninitialized();
       read(a, k);
       if ((k == 1))
       {
-        var b: dynamic;
+        var b: dynamic = cpp_uninitialized();
         read(b);
         singleMut[a].push_back(b);
       } else
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < (k - 2)))
           {
-            var a1 = newGene();
-            var b: dynamic;
+            var a1: dynamic = newGene();
+            var b: dynamic = cpp_uninitialized();
             read(b);
             doubleMut[a].emplace_back(b, a1);
             a = a1;
             j += 1;
           }
         }
-        var b1: dynamic;
-        var b2: dynamic;
+        var b1: dynamic = cpp_uninitialized();
+        var b2: dynamic = cpp_uninitialized();
         read(b1, b2);
         doubleMut[a].emplace_back(b1, b2);
       }
@@ -104,13 +104,13 @@ func read()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var k: dynamic;
+      var k: dynamic = cpp_uninitialized();
       read(k);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < k))
         {
           read(cur[j]);
@@ -123,24 +123,24 @@ func read()
   }
 }
 
-var K = 2;
+var K: dynamic = 2;
 
-var mx = 55;
+var mx: dynamic = 55;
 
-var maxG = 205;
+var maxG: dynamic = 205;
 
-var V: dynamic;
+var V: dynamic = cpp_uninitialized();
 
-var go = cpp_array(K, mx);
+var go: dynamic = cpp_array(K, mx);
 
-var link = cpp_array(mx);
+var link: dynamic = cpp_array(mx);
 
-var term = cpp_array(mx);
+var term: dynamic = cpp_array(mx);
 
-func new_vertex()
+func new_vertex() -> dynamic
 {
   {
-    var it = 0;
+    var it: dynamic = 0;
     while ((it < K))
     {
       go[V][it] = -1;
@@ -150,15 +150,15 @@ func new_vertex()
   return (cpp_update(V, "++"));
 }
 
-func init()
+func init() -> dynamic
 {
   new_vertex();
 }
 
-func add_string(s: dynamic)
+func add_string(s: dynamic) -> dynamic
 {
-  var v = 0;
-  for (var c in s)
+  var v: dynamic = 0;
+  for (var c: dynamic in s)
   {
     if ((go[v][c] == -1))
     {
@@ -169,29 +169,29 @@ func add_string(s: dynamic)
   term[v] = 1;
 }
 
-func bfs()
+func bfs() -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.push(0);
   while ((!q.empty()))
   {
-    var v = q.front();
+    var v: dynamic = q.front();
     q.pop();
     if (term[link[v]])
     {
       term[v] = 1;
     }
     {
-      var c = 0;
+      var c: dynamic = 0;
       while ((c < K))
       {
         if ((go[v][c] == -1))
         {
-          go[v][c] = (if ((v == 0)) 0 else go[link[v]][c]);
+          go[v][c] = ( ((v == 0)) ? 0 : go[link[v]][c]);
         } else
         {
           q.push(go[v][c]);
-          link[go[v][c]] = (if ((v == 0)) 0 else go[link[v]][c]);
+          link[go[v][c]] = ( ((v == 0)) ? 0 : go[link[v]][c]);
         }
         c += 1;
       }
@@ -199,36 +199,36 @@ func bfs()
   }
 }
 
-func build()
+func build() -> dynamic
 {
   init();
-  for (var s in C)
+  for (var s: dynamic in C)
   {
     add_string(s);
   }
   bfs();
 }
 
-var rev_single: dynamic;
+var rev_single: dynamic = cpp_uninitialized();
 
-var rev_double_l: dynamic;
+var rev_double_l: dynamic = cpp_uninitialized();
 
-var rev_double_r: dynamic;
+var rev_double_r: dynamic = cpp_uninitialized();
 
-func prepare_aux()
+func prepare_aux() -> dynamic
 {
   rev_single.resize(G);
   rev_double_l.resize(G);
   rev_double_r.resize(G);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G))
     {
-      for (var v in singleMut[i])
+      for (var v: dynamic in singleMut[i])
       {
         rev_single[v].push_back(i);
       }
-      for (var pp in doubleMut[i])
+      for (var pp: dynamic in doubleMut[i])
       {
         rev_double_l[pp.first].emplace_back(pp.second, i);
         rev_double_r[pp.second].emplace_back(pp.first, i);
@@ -240,37 +240,37 @@ func prepare_aux()
 
 class Achievement
 {
-  var t: dynamic;
-  var geneId: dynamic;
-  var from_cpp: dynamic;
-  var to: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var geneId: dynamic = cpp_uninitialized();
+  var from_cpp: dynamic = cpp_uninitialized();
+  var to: dynamic = cpp_uninitialized();
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.t < b.t);
 }
 
-var INF = (cpp_cast(1) << 63);
+var INF: dynamic = (cpp_cast(1) << 63);
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var dist = cpp_array(mx, mx, maxG);
+var dist: dynamic = cpp_array(mx, mx, maxG);
 
-var used = cpp_array(mx, mx, maxG);
+var used: dynamic = cpp_array(mx, mx, maxG);
 
-func djkstra()
+func djkstra() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G))
     {
       {
-        var from_cpp = 0;
+        var from_cpp: dynamic = 0;
         while ((from_cpp < V))
         {
           {
-            var to = 0;
+            var to: dynamic = 0;
             while ((to < V))
             {
               dist[i][from_cpp][to] = INF;
@@ -284,11 +284,11 @@ func djkstra()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V))
     {
       {
-        var it = 0;
+        var it: dynamic = 0;
         while ((it < K))
         {
           if (((!term[i]) && (!term[go[i][it]])))
@@ -304,29 +304,29 @@ func djkstra()
   }
   while ((!S.empty()))
   {
-    var cur = ((*S.begin()));
+    var cur: dynamic = ((*S.begin()));
     S.erase(S.begin());
-    var gene = cur.geneId;
-    var from_cpp = cur.from_cpp;
-    var to = cur.to;
-    var t = cur.t;
+    var gene: dynamic = cur.geneId;
+    var from_cpp: dynamic = cur.from_cpp;
+    var to: dynamic = cur.to;
+    var t: dynamic = cur.t;
     if (used[gene][from_cpp][to])
     {
       continue;
     }
-    for (var v1 in rev_single[gene])
+    for (var v1: dynamic in rev_single[gene])
     {
       if (chkmin(dist[v1][from_cpp][to], t))
       {
         S.insert([dist[v1][from_cpp][to], v1, from_cpp, to]);
       }
     }
-    for (var pp in rev_double_l[gene])
+    for (var pp: dynamic in rev_double_l[gene])
     {
-      var v1 = pp.first;
-      var v2 = pp.second;
+      var v1: dynamic = pp.first;
+      var v2: dynamic = pp.second;
       {
-        var final_cpp = 0;
+        var final_cpp: dynamic = 0;
         while ((final_cpp < V))
         {
           if (((!term[final_cpp]) && chkmin(dist[v2][from_cpp][final_cpp], (t + dist[v1][to][final_cpp]))))
@@ -337,12 +337,12 @@ func djkstra()
         }
       }
     }
-    for (var pp in rev_double_r[gene])
+    for (var pp: dynamic in rev_double_r[gene])
     {
-      var v1 = pp.first;
-      var v2 = pp.second;
+      var v1: dynamic = pp.first;
+      var v2: dynamic = pp.second;
       {
-        var start = 0;
+        var start: dynamic = 0;
         while ((start < V))
         {
           if (((!term[start]) && chkmin(dist[v2][start][to], (dist[v1][start][from_cpp] + t))))
@@ -356,15 +356,15 @@ func djkstra()
   }
 }
 
-func print_ans()
+func print_ans() -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < G0))
     {
-      var opt = INF;
+      var opt: dynamic = INF;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < V))
         {
           if ((!term[j]))
@@ -386,7 +386,7 @@ func print_ans()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   fast_io();
   read();

@@ -11,7 +11,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <sstream>
 #include <string>
+#include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -37,7 +40,7 @@ namespace ink::parser::test
     ink::test::SharedDiagnosticTestContext &TestContext = ink::test::sharedDiagnosticTestContext();
     const std::size_t Checkpoint = TestContext.checkpoint();
     core::FrontendContext Context(TestContext.compilationContext());
-    tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(Context, std::move(Source));
+    tokenizer::TokenizedBuffer LexedFile = tokenizer::tokenize(Context, std::move(Source), tokenizer::TokenizerOptions{0, true});
     if (!LexedFile.succeeded())
     {
       ADD_FAILURE() << "parser test source must tokenize successfully";
@@ -78,12 +81,12 @@ namespace ink::parser::test
     return true;
   }
 
-  inline std::vector<CstNodeId> nodesOfKind(const ParsedFile &File, CstKind Kind)
+  inline std::vector<AstNodeId> nodesOfKind(const ParsedFile &File, AstKind Kind)
   {
-    std::vector<CstNodeId> Result;
-    for (CstNodeId Id = 0; Id < File.cst().nodes().size(); ++Id)
+    std::vector<AstNodeId> Result;
+    for (AstNodeId Id = 0; Id < File.ast().size(); ++Id)
     {
-      if (File.cst().nodes()[Id].Kind == Kind)
+      if (File.ast().node(Id).kind() == Kind)
       {
         Result.push_back(Id);
       }
@@ -91,15 +94,12 @@ namespace ink::parser::test
     return Result;
   }
 
-  inline std::size_t countKind(const ParsedFile &File, CstKind Kind)
+  inline std::size_t countKind(const ParsedFile &File, AstKind Kind)
   {
-    return static_cast<std::size_t>(std::count_if(File.cst().nodes().begin(), File.cst().nodes().end(), [Kind](const CstNode &Node)
-                                                  {
-                                                    return Node.Kind == Kind;
-                                                  }));
+    return nodesOfKind(File, Kind).size();
   }
 
-  inline bool hasKind(const ParsedFile &File, CstKind Kind)
+  inline bool hasKind(const ParsedFile &File, AstKind Kind)
   {
     return countKind(File, Kind) != 0;
   }
@@ -112,334 +112,231 @@ namespace ink::parser::test
                        });
   }
 
-  namespace detail
+  inline bool hasExpectedDiagnostic(const ParsedFile &File, std::string_view Expected, std::size_t Anchor)
   {
-    struct NodeLocationFrame
+    for (const core::Diagnostic &Diagnostic : testDiagnostics(File))
     {
-        CstNodeId Id;
-        std::size_t NodeStart;
-    };
-
-    inline std::size_t nodeTokenStart(const ParsedFile &File, CstNodeId Target)
-    {
-      const CstTree &Tree = File.cst();
-      if (Target >= Tree.nodes().size())
+      if (Diagnostic.Kind != core::DiagnosticKind::ExpectedToken || Diagnostic.Span != core::SourceRange{Anchor, Anchor})
       {
-        ADD_FAILURE() << "requested CST node is out of range";
-        return 0;
-      }
-
-      std::vector<NodeLocationFrame> Work = {{Tree.root(), 0}};
-      std::vector<bool> Visited(Tree.nodes().size(), false);
-      while (!Work.empty())
-      {
-        const NodeLocationFrame Current = Work.back();
-        Work.pop_back();
-        if (Current.Id >= Tree.nodes().size())
-        {
-          ADD_FAILURE() << "CST contains an out-of-range node reference";
-          return 0;
-        }
-        if (Visited[Current.Id])
-        {
-          ADD_FAILURE() << "CST node is reachable more than once";
-          return 0;
-        }
-        Visited[Current.Id] = true;
-        if (Current.Id == Target)
-        {
-          return Current.NodeStart;
-        }
-
-        const CstNode &Node = Tree.node(Current.Id);
-        if (Node.FirstChild > Tree.children().size() || Node.ChildCount > Tree.children().size() - Node.FirstChild)
-        {
-          ADD_FAILURE() << "CST child range is out of bounds";
-          return 0;
-        }
-        std::size_t ConsumedTokens = 0;
-        for (std::size_t Offset = 0; Offset < Node.ChildCount; ++Offset)
-        {
-          const CstElement &Element = Tree.children()[Node.FirstChild + Offset];
-          if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
-          {
-            if (Child->Id >= Tree.nodes().size())
-            {
-              ADD_FAILURE() << "CST contains an out-of-range node reference";
-              return 0;
-            }
-            Work.push_back({Child->Id, Current.NodeStart + ConsumedTokens});
-            ConsumedTokens += Tree.node(Child->Id).TokenCount;
-          }
-          else if (std::holds_alternative<CstTokenRef>(Element))
-          {
-            ++ConsumedTokens;
-          }
-        }
-      }
-      ADD_FAILURE() << "requested CST node is unreachable from the root";
-      return 0;
-    }
-
-    struct TextFrame
-    {
-        CstNodeId Id;
-        std::size_t NodeStart;
-        std::size_t NextChild = 0;
-        std::size_t ConsumedTokens = 0;
-    };
-  } // namespace detail
-
-  inline void appendNodeText(const ParsedFile &File, CstNodeId Id, std::string &Result)
-  {
-    const CstTree &Tree = File.cst();
-    if (Id >= Tree.nodes().size())
-    {
-      ADD_FAILURE() << "requested CST node is out of range";
-      return;
-    }
-    const std::size_t NodeStart = detail::nodeTokenStart(File, Id);
-    std::vector<detail::TextFrame> Frames = {{Id, NodeStart}};
-    std::vector<bool> ActiveNodes(Tree.nodes().size(), false);
-    ActiveNodes[Id] = true;
-    while (!Frames.empty())
-    {
-      detail::TextFrame &Frame = Frames.back();
-      if (Frame.Id >= Tree.nodes().size())
-      {
-        ADD_FAILURE() << "CST contains an out-of-range node reference";
-        return;
-      }
-      const CstNode &Node = Tree.node(Frame.Id);
-      if (Node.FirstChild > Tree.children().size() || Node.ChildCount > Tree.children().size() - Node.FirstChild)
-      {
-        ADD_FAILURE() << "CST child range is out of bounds";
-        return;
-      }
-      if (Frame.NextChild == Node.ChildCount)
-      {
-        ActiveNodes[Frame.Id] = false;
-        Frames.pop_back();
         continue;
       }
-
-      const CstElement &Element = Tree.children()[Node.FirstChild + Frame.NextChild];
-      ++Frame.NextChild;
-      if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
+      for (const core::DiagnosticArgument &Argument : Diagnostic.Arguments)
       {
-        if (Child->Id >= Tree.nodes().size())
+        const std::string *Spelling = std::get_if<std::string>(&Argument.Value);
+        if (Argument.Name == core::DiagnosticArgumentName::Expected && Spelling != nullptr && *Spelling == Expected)
         {
-          ADD_FAILURE() << "CST contains an out-of-range node reference";
-          return;
+          return true;
         }
-        if (ActiveNodes[Child->Id])
-        {
-          ADD_FAILURE() << "CST contains a node-reference cycle";
-          return;
-        }
-        const std::size_t ChildStart = Frame.NodeStart + Frame.ConsumedTokens;
-        Frame.ConsumedTokens += Tree.node(Child->Id).TokenCount;
-        ActiveNodes[Child->Id] = true;
-        Frames.push_back({Child->Id, ChildStart});
-      }
-      else if (const CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
-      {
-        if (TokenReference->TokenOffset != Frame.ConsumedTokens)
-        {
-          ADD_FAILURE() << "CST token offset does not match child order";
-          return;
-        }
-        const std::size_t TokenIndex = Frame.NodeStart + TokenReference->TokenOffset;
-        if (TokenIndex >= File.lexedFile().tokens().size())
-        {
-          ADD_FAILURE() << "CST token reference is out of range";
-          return;
-        }
-        const tokenizer::Token &Token = File.lexedFile().tokens()[TokenIndex];
-        Result.append(File.lexedFile().raw(Token));
-        ++Frame.ConsumedTokens;
       }
     }
+    return false;
   }
 
-  inline std::string nodeText(const ParsedFile &File, CstNodeId Id)
+  inline std::string tokenText(const ParsedFile &File, AstTokenId Id)
   {
-    std::string Result;
-    appendNodeText(File, Id, Result);
-    return Result;
+    if (Id >= File.lexedFile().tokens().size())
+    {
+      ADD_FAILURE() << "AST token reference is out of bounds";
+      return {};
+    }
+    return std::string(File.lexedFile().raw(File.lexedFile().tokens()[Id]));
   }
 
-  inline std::vector<std::string> nodeTextsOfKind(const ParsedFile &File, CstKind Kind)
+  inline std::string nodeText(const ParsedFile &File, AstNodeId Id)
+  {
+    if (Id >= File.ast().size())
+    {
+      ADD_FAILURE() << "AST node reference is out of bounds";
+      return {};
+    }
+    const core::SourceRange Span = File.ast().node(Id).Span;
+    if (Span.Start > Span.End || Span.End > File.lexedFile().source().size())
+    {
+      ADD_FAILURE() << "AST node range is out of source bounds";
+      return {};
+    }
+    return std::string(File.lexedFile().source().substr(Span.Start, Span.size()));
+  }
+
+  inline std::vector<std::string> nodeTextsOfKind(const ParsedFile &File, AstKind Kind)
   {
     std::vector<std::string> Result;
-    for (CstNodeId Id : nodesOfKind(File, Kind))
+    for (AstNodeId Id : nodesOfKind(File, Kind))
     {
       Result.push_back(nodeText(File, Id));
     }
     return Result;
   }
 
-  inline std::vector<MissingToken> missingTokens(const ParsedFile &File)
+  inline std::vector<AstTokenId> namedTokens(const AstNode &Node)
   {
-    std::vector<MissingToken> Result;
-    for (const CstElement &Element : File.cst().children())
+    std::vector<AstTokenId> Result;
+    const auto Visit = [&Result](const auto &Value)
     {
-      if (const MissingToken *Missing = std::get_if<MissingToken>(&Element))
+      using NodeType = std::decay_t<decltype(Value)>;
+      if constexpr (std::is_same_v<NodeType, ImportDeclaration>)
       {
-        Result.push_back(*Missing);
+        Result = Value.Package;
+        Result.push_back(Value.Member);
+        Result.push_back(Value.Alias);
       }
-    }
+      else if constexpr (std::is_same_v<NodeType, FunctionDeclaration>)
+      {
+        Result = {Value.Name, Value.Linkage};
+      }
+      else if constexpr (std::is_same_v<NodeType, ClassDeclaration> || std::is_same_v<NodeType, InterfaceDeclaration> || std::is_same_v<NodeType, EnumDeclaration> || std::is_same_v<NodeType, ClassFieldDeclaration> || std::is_same_v<NodeType, EnumFieldDeclaration> || std::is_same_v<NodeType, GenericParameter> || std::is_same_v<NodeType, NamePattern> || std::is_same_v<NodeType, NameExpression>)
+      {
+        Result.push_back(Value.Name);
+      }
+      else if constexpr (std::is_same_v<NodeType, FunctionTypeExpression>)
+      {
+        Result.push_back(Value.Linkage);
+      }
+      else if constexpr (std::is_same_v<NodeType, MemberExpression>)
+      {
+        Result.push_back(Value.Member);
+      }
+      else if constexpr (std::is_same_v<NodeType, LiteralExpression>)
+      {
+        Result.push_back(Value.Token);
+      }
+    };
+    visitAstNode(Node, Visit);
+    Result.erase(std::remove(Result.begin(), Result.end(), InvalidAstTokenId), Result.end());
     return Result;
   }
 
-  namespace detail
+  inline std::string astSnapshot(const ParsedFile &File)
   {
-    struct MeasuredNode
+    std::ostringstream Result;
+    Result << "root=" << File.ast().root() << '\n';
+    for (AstNodeId Id = 0; Id < File.ast().size(); ++Id)
     {
-        std::size_t TokenCount = 0;
-        std::size_t TextLength = 0;
-        CstNodeFlags Flags = CstNodeFlags::None;
-    };
-
-    struct MeasureFrame
-    {
-        CstNodeId Id;
-        std::size_t NodeStart;
-        std::size_t NextChild = 0;
-        std::size_t ConsumedTokens = 0;
-        MeasuredNode Result;
-    };
-
-    inline bool pushMeasureFrame(const ParsedFile &File, CstNodeId Id, std::size_t NodeStart, std::vector<std::size_t> &NodeVisits, std::vector<MeasureFrame> &Frames)
-    {
-      const CstTree &Tree = File.cst();
-      if (Id >= Tree.nodes().size())
+      const AstNode &Node = File.ast().node(Id);
+      Result << Id << ':' << astKindName(Node.kind()) << ':' << Node.Span.Start << ':' << Node.Span.End << ':' << static_cast<unsigned>(Node.Flags);
+      for (AstTokenId Token : namedTokens(Node))
       {
-        ADD_FAILURE() << "CST contains an out-of-range node reference " << Id;
-        return false;
+        Result << ":token=" << Token;
       }
-      ++NodeVisits[Id];
-      if (NodeVisits[Id] != 1)
+      for (const AstChildEdge &Child : File.ast().children(Id))
       {
-        ADD_FAILURE() << "CST node " << Id << " is reachable more than once";
-        return false;
+        Result << ':' << Child.Role << '[' << Child.Index << "]=" << Child.Id;
       }
-
-      const CstNode &Node = Tree.nodes()[Id];
-      if (Node.FirstChild > Tree.children().size() || Node.ChildCount > Tree.children().size() - Node.FirstChild)
+      const auto Visit = [&Result](const auto &Value)
       {
-        ADD_FAILURE() << "CST node " << Id << " has an out-of-range child slice";
-        return false;
-      }
-      MeasureFrame Frame{Id, NodeStart};
-      if (Node.Kind == CstKind::Error)
-      {
-        Frame.Result.Flags |= CstNodeFlags::HasError;
-      }
-      Frames.push_back(Frame);
-      return true;
+        using NodeType = std::decay_t<decltype(Value)>;
+        if constexpr (std::is_same_v<NodeType, Error>)
+        {
+          Result << ":expected=" << Value.Expected;
+        }
+        if constexpr (std::is_same_v<NodeType, ImportDeclaration>)
+        {
+          Result << ":member=" << Value.IsMemberImport << ":alias=" << Value.Alias;
+        }
+        if constexpr (std::is_same_v<NodeType, FunctionDeclaration> || std::is_same_v<NodeType, ClassDeclaration> || std::is_same_v<NodeType, InterfaceDeclaration> || std::is_same_v<NodeType, EnumDeclaration> || std::is_same_v<NodeType, ClassFieldDeclaration> || std::is_same_v<NodeType, BindingDeclaration>)
+        {
+          Result << ":access=" << static_cast<unsigned>(Value.Access);
+        }
+        if constexpr (std::is_same_v<NodeType, FunctionDeclaration>)
+        {
+          Result << ":method=" << Value.IsClassMethod;
+        }
+        if constexpr (std::is_same_v<NodeType, FunctionDeclaration> || std::is_same_v<NodeType, ClassFieldDeclaration> || std::is_same_v<NodeType, ReferenceTypeExpression> || std::is_same_v<NodeType, PointerTypeExpression>)
+        {
+          Result << ":const=" << Value.IsConst;
+        }
+        if constexpr (std::is_same_v<NodeType, BindingDeclaration> || std::is_same_v<NodeType, ForInStatement>)
+        {
+          Result << ":binding=" << static_cast<unsigned>(Value.Binding);
+        }
+        if constexpr (std::is_same_v<NodeType, FunctionParameter> || std::is_same_v<NodeType, GenericParameter>)
+        {
+          Result << ":variadic=" << Value.IsVariadic;
+        }
+        if constexpr (std::is_same_v<NodeType, BinaryExpression> || std::is_same_v<NodeType, UnaryExpression> || std::is_same_v<NodeType, AssignmentStatement>)
+        {
+          Result << ":operator=" << static_cast<unsigned>(Value.Operator);
+        }
+        if constexpr (std::is_same_v<NodeType, MemberExpression>)
+        {
+          Result << ":pointer=" << Value.IsPointer;
+        }
+        if constexpr (std::is_same_v<NodeType, BuiltinTypeExpression>)
+        {
+          Result << ":type=" << static_cast<unsigned>(Value.Type);
+        }
+        if constexpr (std::is_same_v<NodeType, ReceiverExpression>)
+        {
+          Result << ":receiver=" << static_cast<unsigned>(Value.Receiver);
+        }
+        if constexpr (std::is_same_v<NodeType, CallExpression> || std::is_same_v<NodeType, GenericInstantiationExpression>)
+        {
+          for (const AstArgument &Argument : Value.Arguments)
+          {
+            Result << ":argument=" << Argument.Expression << ':' << Argument.IsPackExpansion << ':' << Argument.Span.Start << ':' << Argument.Span.End;
+          }
+        }
+        if constexpr (std::is_same_v<NodeType, FunctionTypeExpression>)
+        {
+          for (const FunctionTypeParameter &Parameter : Value.Parameters)
+          {
+            Result << ":parameter=" << Parameter.TypeExpression << ':' << Parameter.IsVariadic << ':' << Parameter.Span.Start << ':' << Parameter.Span.End;
+          }
+        }
+      };
+      visitAstNode(Node, Visit);
+      Result << '\n';
     }
+    return Result.str();
+  }
 
-    inline MeasuredNode measureNode(const ParsedFile &File, CstNodeId Id, std::vector<std::size_t> &NodeVisits, std::vector<std::size_t> &TokenVisits, std::vector<std::size_t> &TokenOrder)
-    {
-      const CstTree &Tree = File.cst();
-      std::vector<MeasureFrame> Frames;
-      if (!pushMeasureFrame(File, Id, 0, NodeVisits, Frames))
-      {
-        return {};
-      }
-      MeasuredNode RootResult;
-      while (!Frames.empty())
-      {
-        MeasureFrame &Frame = Frames.back();
-        const CstNode &Node = Tree.node(Frame.Id);
-        if (Frame.NextChild == Node.ChildCount)
-        {
-          EXPECT_EQ(Node.TokenCount, Frame.Result.TokenCount) << "metadata mismatch in node " << Frame.Id << " (" << cstKindName(Node.Kind) << ")";
-          EXPECT_EQ(Node.TextLength, Frame.Result.TextLength) << "metadata mismatch in node " << Frame.Id << " (" << cstKindName(Node.Kind) << ")";
-          EXPECT_EQ(static_cast<std::uint8_t>(Node.Flags), static_cast<std::uint8_t>(Frame.Result.Flags)) << "metadata mismatch in node " << Frame.Id << " (" << cstKindName(Node.Kind) << ")";
-
-          const MeasuredNode Completed = Frame.Result;
-          Frames.pop_back();
-          if (Frames.empty())
-          {
-            RootResult = Completed;
-          }
-          else
-          {
-            MeasureFrame &Parent = Frames.back();
-            Parent.Result.TokenCount += Completed.TokenCount;
-            Parent.Result.TextLength += Completed.TextLength;
-            Parent.Result.Flags |= Completed.Flags;
-            Parent.ConsumedTokens += Completed.TokenCount;
-          }
-          continue;
-        }
-
-        const CstElement &Element = Tree.children()[Node.FirstChild + Frame.NextChild];
-        ++Frame.NextChild;
-        if (const CstNodeRef *Child = std::get_if<CstNodeRef>(&Element))
-        {
-          const std::size_t ChildStart = Frame.NodeStart + Frame.ConsumedTokens;
-          pushMeasureFrame(File, Child->Id, ChildStart, NodeVisits, Frames);
-        }
-        else if (const CstTokenRef *TokenReference = std::get_if<CstTokenRef>(&Element))
-        {
-          EXPECT_EQ(TokenReference->TokenOffset, Frame.ConsumedTokens) << "token offset mismatch in node " << Frame.Id;
-          const std::size_t TokenIndex = Frame.NodeStart + TokenReference->TokenOffset;
-          ++Frame.ConsumedTokens;
-          if (TokenIndex >= File.lexedFile().tokens().size())
-          {
-            ADD_FAILURE() << "CST contains an out-of-range token reference " << TokenIndex;
-            continue;
-          }
-          const tokenizer::Token &Token = File.lexedFile().tokens()[TokenIndex];
-          ++TokenVisits[TokenIndex];
-          TokenOrder.push_back(TokenIndex);
-          ++Frame.Result.TokenCount;
-          Frame.Result.TextLength += Token.Span.size();
-        }
-        else
-        {
-          Frame.Result.Flags |= CstNodeFlags::HasMissing;
-        }
-      }
-      return RootResult;
-    }
-  } // namespace detail
-
-  inline void expectFullFidelity(const ParsedFile &File)
+  inline void expectAstIntegrity(const ParsedFile &File)
   {
-    const CstTree &Tree = File.cst();
-    ASSERT_FALSE(Tree.nodes().empty());
-    ASSERT_LT(Tree.root(), Tree.nodes().size());
-    EXPECT_EQ(Tree.node(Tree.root()).Kind, CstKind::SourceFile);
-
-    std::vector<std::size_t> NodeVisits(Tree.nodes().size(), 0);
-    std::vector<std::size_t> TokenVisits(File.lexedFile().tokens().size(), 0);
-    std::vector<std::size_t> TokenOrder;
-    const detail::MeasuredNode RootMeasurement = detail::measureNode(File, Tree.root(), NodeVisits, TokenVisits, TokenOrder);
-
-    for (CstNodeId Id = 0; Id < NodeVisits.size(); ++Id)
+    const AstTree &Tree = File.ast();
+    ASSERT_FALSE(Tree.empty());
+    ASSERT_LT(Tree.root(), Tree.size());
+    EXPECT_EQ(Tree.node(Tree.root()).kind(), AstKind::SourceFile);
+    EXPECT_EQ(Tree.node(Tree.root()).Span, (core::SourceRange{0, File.lexedFile().source().size()}));
+    std::vector<std::size_t> Visits(Tree.size(), 0);
+    std::vector<AstNodeId> Work = {Tree.root()};
+    while (!Work.empty())
     {
-      EXPECT_EQ(NodeVisits[Id], 1u) << "CST node " << Id << " is not reachable exactly once from the root";
+      const AstNodeId Id = Work.back();
+      Work.pop_back();
+      ASSERT_LT(Id, Tree.size());
+      ASSERT_EQ(Visits[Id]++, 0u) << "AST node " << Id << " is reached more than once";
+      const AstNode &Node = Tree.node(Id);
+      SCOPED_TRACE(Id);
+      EXPECT_LE(Node.Span.Start, Node.Span.End);
+      EXPECT_LE(Node.Span.End, File.lexedFile().source().size());
+      EXPECT_EQ(File.span(Id), Node.Span);
+      if (File.succeeded())
+      {
+        EXPECT_EQ(Node.Flags, AstNodeFlags::None);
+        EXPECT_NE(Node.kind(), AstKind::Error);
+      }
+      for (AstTokenId Token : namedTokens(Node))
+      {
+        ASSERT_LT(Token, File.lexedFile().tokens().size());
+        const tokenizer::Token &TokenValue = File.lexedFile().tokens()[Token];
+        EXPECT_FALSE(TokenValue.isTrivia());
+        EXPECT_LE(Node.Span.Start, TokenValue.Span.Start);
+        EXPECT_GE(Node.Span.End, TokenValue.Span.End);
+      }
+      for (const AstChildEdge &Child : Tree.children(Id))
+      {
+        ASSERT_LT(Child.Id, Tree.size());
+        const AstNode &ChildNode = Tree.node(Child.Id);
+        EXPECT_LE(Node.Span.Start, ChildNode.Span.Start);
+        EXPECT_GE(Node.Span.End, ChildNode.Span.End);
+        EXPECT_EQ(Node.Flags | ChildNode.Flags, Node.Flags);
+        Work.push_back(Child.Id);
+      }
     }
-    ASSERT_EQ(TokenOrder.size(), File.lexedFile().tokens().size());
-    for (std::size_t TokenIndex = 0; TokenIndex < TokenVisits.size(); ++TokenIndex)
+    for (AstNodeId Id = 0; Id < Visits.size(); ++Id)
     {
-      EXPECT_EQ(TokenVisits[TokenIndex], 1u) << "token " << TokenIndex << " is not owned exactly once";
-      EXPECT_EQ(TokenOrder[TokenIndex], TokenIndex) << "token DFS order differs at position " << TokenIndex;
+      EXPECT_EQ(Visits[Id], 1u) << "AST node " << Id << " is not reachable from the source file";
     }
-
-    std::string Rebuilt;
-    for (std::size_t TokenIndex : TokenOrder)
-    {
-      Rebuilt.append(File.lexedFile().raw(File.lexedFile().tokens()[TokenIndex]));
-    }
-    EXPECT_EQ(Rebuilt, File.lexedFile().source());
-    EXPECT_EQ(RootMeasurement.TokenCount, File.lexedFile().tokens().size());
-    EXPECT_EQ(RootMeasurement.TextLength, File.lexedFile().source().size());
-    EXPECT_EQ(File.span(Tree.root()), (core::SourceRange{0, File.lexedFile().source().size()}));
   }
 } // namespace ink::parser::test
 

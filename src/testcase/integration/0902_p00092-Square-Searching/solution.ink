@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(3000, 3000);
+var dp: dynamic = cpp_array(3000, 3000);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var x = cpp_array(3000, 3000);
+var x: dynamic = cpp_array(3000, 3000);
 
-var maxn: dynamic;
+var maxn: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   while (true)
   {
@@ -21,11 +21,11 @@ func main()
       break;
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             read(a);
@@ -44,11 +44,11 @@ func main()
     }
     maxn = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             if ((x[i][j] == 1))

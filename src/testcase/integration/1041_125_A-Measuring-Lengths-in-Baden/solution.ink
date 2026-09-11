@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func token(a: dynamic)
+func token(a: dynamic) -> dynamic
 {
-  var w: dynamic;
+  var w: dynamic = cpp_uninitialized();
   a.push_back(cpp_char(" "));
   while ((!a.empty()))
   {
@@ -12,11 +12,11 @@ func token(a: dynamic)
   return w;
 }
 
-var mapik: dynamic;
+var mapik: dynamic = cpp_uninitialized();
 
-var amapik: dynamic;
+var amapik: dynamic = cpp_uninitialized();
 
-func dodaj(a: dynamic)
+func dodaj(a: dynamic) -> dynamic
 {
   if ((mapik.count(a) == 0))
   {
@@ -26,22 +26,22 @@ func dodaj(a: dynamic)
   return mapik[a];
 }
 
-var tmp_str = cpp_array(1000);
+var tmp_str: dynamic = cpp_array(1000);
 
-func scanf_string()
+func scanf_string() -> dynamic
 {
   scanf("%s", tmp_str);
   return tmp_str;
 }
 
-var N = 1000;
+var N: dynamic = 1000;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
-  var inches = (((n + 1)) / 3);
+  var inches: dynamic = (((n + 1)) / 3);
   printf("%d %d\n", (inches / 12), (inches % 12));
   return 0;
 }

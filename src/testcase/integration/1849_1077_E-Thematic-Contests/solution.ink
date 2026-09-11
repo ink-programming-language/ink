@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%lld", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%lld", (&a));
@@ -15,19 +15,19 @@ func main()
       i += 1;
     }
   }
-  var v: dynamic;
-  for (var e in m)
+  var v: dynamic = cpp_uninitialized();
+  for (var e: dynamic in m)
   {
     v.push_back(e.second);
   }
   sort(v.begin(), v.end());
   reverse(v.begin(), v.end());
-  var ans = v[0];
-  var tmp: dynamic;
-  var now = v[0];
-  var kal = 2;
+  var ans: dynamic = v[0];
+  var tmp: dynamic = cpp_uninitialized();
+  var now: dynamic = v[0];
+  var kal: dynamic = 2;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < v.size()))
     {
       now >>= 1;

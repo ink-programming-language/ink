@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func comparar(i: dynamic, j: dynamic)
+func comparar(i: dynamic, j: dynamic) -> dynamic
 {
   if (((j - i) > 1e-07))
   {
@@ -15,15 +15,15 @@ func comparar(i: dynamic, j: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var V: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var V: dynamic = cpp_uninitialized();
   scanf("%d %d", (&n), (&V));
   v.clear();
   v.resize(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&v[i].first));
@@ -31,21 +31,21 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&v[i].second));
       i += 1;
     }
   }
-  var a: dynamic;
-  var b: dynamic;
-  var min: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var min: dynamic = cpp_uninitialized();
   a = v[0].second;
   b = (a / v[0].first);
   min = b;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       a = v[i].second;
@@ -57,10 +57,10 @@ func main()
       i += 1;
     }
   }
-  var vRes = 0;
-  var vMax = V;
+  var vRes: dynamic = 0;
+  var vMax: dynamic = V;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       vRes += ((min * v[i].first));

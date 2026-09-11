@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-func all(v: dynamic)
+func all(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -26,7 +26,7 @@ func chmin(a: dynamic, b: dynamic)
   }
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -34,15 +34,15 @@ func chmax(a: dynamic, b: dynamic)
   }
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var A = cpp_array(222222);
+var A: dynamic = cpp_array(222222);
 
-var B = cpp_array(222222);
+var B: dynamic = cpp_array(222222);
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld%lld", (&N), (&Q));
   N *= 2;
@@ -50,12 +50,12 @@ func main()
   scanf("%lld", (&A[i]));
   rep(i, N);
   scanf("%lld", (&B[i]));
-  var x: dynamic;
-  var y: dynamic;
-  var sumx = 0;
-  var base = accumulate(A, (A + N), 0);
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var sumx: dynamic = 0;
+  var base: dynamic = accumulate(A, (A + N), 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while (((i + 1) < N))
     {
       if ((A[i] <= B[i]))
@@ -71,9 +71,9 @@ func main()
   }
   while (cpp_update(Q, "--"))
   {
-    var p: dynamic;
-    var a: dynamic;
-    var b: dynamic;
+    var p: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     scanf("%lld%lld%lld", (&p), (&a), (&b));
     p -= 1;
     base -= A[p];
@@ -82,11 +82,11 @@ func main()
       if ((A[p] <= B[p]))
       {
         sumx -= (B[p] - A[p]);
-        var it = x.find((B[p] - A[p]));
+        var it: dynamic = x.find((B[p] - A[p]));
         x.erase(it);
       } else
       {
-        var it = y.find((B[p] - A[p]));
+        var it: dynamic = y.find((B[p] - A[p]));
         y.erase(it);
       }
     }
@@ -104,7 +104,7 @@ func main()
         y.insert((B[p] - A[p]));
       }
     }
-    var ans = 0;
+    var ans: dynamic = 0;
     if (((x.size() % 2) == 0))
     {
       ans = sumx;

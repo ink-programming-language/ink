@@ -1,53 +1,53 @@
 // Translated from solution.cpp.
 
-var N = (300000 + 7);
+var N: dynamic = (300000 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var val = cpp_array(N);
+var val: dynamic = cpp_array(N);
 
 class edge
 {
-  var to: dynamic;
-  var nex: dynamic;
-  var wei: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var nex: dynamic = cpp_uninitialized();
+  var wei: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array((N << 1));
+var e: dynamic = cpp_array((N << 1));
 
-var fir = cpp_array(N);
+var fir: dynamic = cpp_array(N);
 
-var eid: dynamic;
+var eid: dynamic = cpp_uninitialized();
 
-var siz = cpp_array(N);
+var siz: dynamic = cpp_array(N);
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-var fa = cpp_array(N);
+var fa: dynamic = cpp_array(N);
 
-var son = cpp_array(N);
+var son: dynamic = cpp_array(N);
 
-var ltp = cpp_array(N);
+var ltp: dynamic = cpp_array(N);
 
-var faw = cpp_array(N);
+var faw: dynamic = cpp_array(N);
 
-var dfn = cpp_array(N);
+var dfn: dynamic = cpp_array(N);
 
-var inx: dynamic;
+var inx: dynamic = cpp_uninitialized();
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-var bit = cpp_array(N);
+var bit: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&q));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (val + i));
@@ -55,10 +55,10 @@ func main()
     }
   }
   {
-    var i = 1;
-    var u: dynamic;
-    var v: dynamic;
-    var w: dynamic;
+    var i: dynamic = 1;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
+    var w: dynamic = cpp_uninitialized();
     while ((i < n))
     {
       scanf("%d%d%d", (&u), (&v), (&w));
@@ -73,9 +73,9 @@ func main()
   dfs3(1, 0);
   build();
   {
-    var x: dynamic;
-    var y: dynamic;
-    var z: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
+    var z: dynamic = cpp_uninitialized();
     while (q)
     {
       scanf("%d%d", (&x), (&y));
@@ -93,18 +93,18 @@ func main()
   return 0;
 }
 
-func addedge(u: dynamic, v: dynamic, w: dynamic)
+func addedge(u: dynamic, v: dynamic, w: dynamic) -> dynamic
 {
   e[cpp_update(eid, "++")] = [v, fir[u], (1 * w)];
   fir[u] = eid;
 }
 
-func dfs1(s: dynamic)
+func dfs1(s: dynamic) -> dynamic
 {
   siz[s] = 1;
   f[s] = val[s];
   {
-    var i = fir[s];
+    var i: dynamic = fir[s];
     while (i)
     {
       if ((e[i].to == fa[s]))
@@ -117,14 +117,14 @@ func dfs1(s: dynamic)
       dep[e[i].to] = (dep[s] + 1);
       dfs1(e[i].to);
       siz[s] += siz[e[i].to];
-      son[s] = if ((siz[e[i].to] > siz[son[s]])) e[i].to else son[s];
+      son[s] =  ((siz[e[i].to] > siz[son[s]])) ? e[i].to : son[s];
       f[s] += max(0, (f[e[i].to] - (2 * e[i].wei)));
       i = e[i].nex;
     }
   }
 }
 
-func dfs2(s: dynamic)
+func dfs2(s: dynamic) -> dynamic
 {
   dfn[s] = cpp_update(inx, "++");
   if ((!son[s]))
@@ -134,7 +134,7 @@ func dfs2(s: dynamic)
   ltp[son[s]] = ltp[s];
   dfs2(son[s]);
   {
-    var i = fir[s];
+    var i: dynamic = fir[s];
     while (i)
     {
       if (((e[i].to != fa[s]) && (e[i].to != son[s])))
@@ -147,11 +147,11 @@ func dfs2(s: dynamic)
   }
 }
 
-func dfs3(s: dynamic, up: dynamic)
+func dfs3(s: dynamic, up: dynamic) -> dynamic
 {
   g[s] = (f[s] + max(0, up));
   {
-    var i = fir[s];
+    var i: dynamic = fir[s];
     while (i)
     {
       if ((e[i].to != fa[s]))
@@ -163,10 +163,10 @@ func dfs3(s: dynamic, up: dynamic)
   }
 }
 
-func build()
+func build() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       add(dfn[i], ((f[i] - max(0, (f[i] - (2 * faw[i])))) - faw[i]));
@@ -175,7 +175,7 @@ func build()
   }
 }
 
-func lca(x: dynamic, y: dynamic)
+func lca(x: dynamic, y: dynamic) -> dynamic
 {
   {
     while ((ltp[x] != ltp[y]))
@@ -187,12 +187,12 @@ func lca(x: dynamic, y: dynamic)
       x = fa[ltp[x]];
     }
   }
-  return if ((dep[x] < dep[y])) x else y;
+  return  ((dep[x] < dep[y])) ? x : y;
 }
 
-func get(x: dynamic, z: dynamic)
+func get(x: dynamic, z: dynamic) -> dynamic
 {
-  var t = 0;
+  var t: dynamic = 0;
   {
     while ((ltp[x] != ltp[z]))
     {
@@ -203,7 +203,7 @@ func get(x: dynamic, z: dynamic)
   return ((t + sum(dfn[x])) - sum(dfn[z]));
 }
 
-func add(i: dynamic, v: dynamic)
+func add(i: dynamic, v: dynamic) -> dynamic
 {
   {
     while ((i <= n))
@@ -214,9 +214,9 @@ func add(i: dynamic, v: dynamic)
   }
 }
 
-func sum(i: dynamic)
+func sum(i: dynamic) -> dynamic
 {
-  var t = 0;
+  var t: dynamic = 0;
   {
     while (i)
     {

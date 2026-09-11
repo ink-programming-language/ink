@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var grid: dynamic;
+var grid: dynamic = cpp_uninitialized();
 
 class Data
 {
-  var p: dynamic;
-  var bs: dynamic;
-  func Data(p0: dynamic, bs0: dynamic)
+  var p: dynamic = cpp_uninitialized();
+  var bs: dynamic = cpp_uninitialized();
+  func Data(p0: dynamic, bs0: dynamic) -> dynamic
   {
       p = p0;
       bs = bs0;
     }
-  func toInt()
+  func toInt() -> dynamic
   {
-      var ret = bs.to_ulong();
+      var ret: dynamic = bs.to_ulong();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           ret *= (h * w);
@@ -33,19 +33,19 @@ class Data
     }
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var gridLine = accumulate(grid.begin(), grid.end(), string_cpp());
-  var diff = [1, -1, w, (-w)];
+  var gridLine: dynamic = accumulate(grid.begin(), grid.end(), string_cpp());
+  var diff: dynamic = [1, -1, w, (-w)];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
-          var c = grid[i][j];
+          var c: dynamic = grid[i][j];
           if (((cpp_char("a") <= c) && (c <= cpp_char("c"))))
           {
             sp[(c - cpp_char("a"))] = ((i * w) + j);
@@ -59,24 +59,24 @@ func solve()
       i += 1;
     }
   }
-  var size = (1 << n);
+  var size: dynamic = (1 << n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       size *= (h * w);
       i += 1;
     }
   }
-  var check = cpp_construct(2, vector(size, false));
+  var check: dynamic = cpp_construct(2, vector(size, false));
   check[0][Data(sp, 0).toInt()] = true;
   check[1][Data(gp, 0).toInt()] = true;
-  var dq = cpp_construct(2);
+  var dq: dynamic = cpp_construct(2);
   dq[0].push_back(Data(sp, 0));
   dq[1].push_back(Data(gp, 0));
-  var turn = 0;
-  var m = 1;
-  var ret = 1;
+  var turn: dynamic = 0;
+  var m: dynamic = 1;
+  var ret: dynamic = 1;
   {
     while (true)
     {
@@ -86,11 +86,11 @@ func solve()
         turn ^= 1;
         m = dq[turn].size();
       }
-      var d = dq[turn].front();
+      var d: dynamic = dq[turn].front();
       dq[turn].pop_front();
       m -= 1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if (d.bs[i])
@@ -100,17 +100,17 @@ func solve()
           }
           d.bs[i] = true;
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < 4))
             {
               d.p[i] += diff[j];
-              var ok = true;
+              var ok: dynamic = true;
               if ((gridLine[d.p[i]] == cpp_char("#")))
               {
                 ok = false;
               }
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < n))
                 {
                   if (((k != i) && (d.p[k] == d.p[i])))
@@ -122,7 +122,7 @@ func solve()
               }
               if (ok)
               {
-                var a = d.toInt();
+                var a: dynamic = d.toInt();
                 if ((!check[turn][a]))
                 {
                   dq[turn].push_front(d);
@@ -139,7 +139,7 @@ func solve()
         }
       }
       d.bs = 0;
-      var a = d.toInt();
+      var a: dynamic = d.toInt();
       if ((!check[turn][a]))
       {
         if (check[(turn ^ 1)][a])
@@ -153,7 +153,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   {
     while (true)
@@ -166,7 +166,7 @@ func main()
       cin.ignore();
       grid.resize(h);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < h))
         {
           getline(cin, grid[i]);

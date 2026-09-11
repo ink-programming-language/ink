@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(105, 105);
+var a: dynamic = cpp_array(105, 105);
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   read(k);
   memset(a, 0, cpp_sizeof((a)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 3))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= 3))
         {
           if ((i != j))
@@ -26,7 +26,7 @@ func main()
     }
   }
   k -= 1;
-  var ans = 3;
+  var ans: dynamic = 3;
   if (k)
   {
     {
@@ -34,12 +34,12 @@ func main()
       while ((ans <= 100))
       {
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i < ans))
           {
-            var cnt = 0;
+            var cnt: dynamic = 0;
             {
-              var j = 1;
+              var j: dynamic = 1;
               while ((j < i))
               {
                 if ((a[i][j] && a[j][ans]))
@@ -71,11 +71,11 @@ func main()
   }
   write(ans, "\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= ans))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= ans))
         {
           write(a[i][j]);

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func rdInt(n: dynamic)
+func rdInt(n: dynamic) -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,25 +21,25 @@ func rdInt(n: dynamic)
   n = (x * f);
 }
 
-var mpx: dynamic;
+var mpx: dynamic = cpp_uninitialized();
 
-var mpy: dynamic;
+var mpy: dynamic = cpp_uninitialized();
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while ((~scanf("%d", (&n))))
   {
     mpx.clear();
     mpy.clear();
     st.clear();
-    var an = 0;
-    var x: dynamic;
-    var y: dynamic;
+    var an: dynamic = 0;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         rdInt(x);

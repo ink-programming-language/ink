@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(ll i=0;i<(ll)(n);i++)");
 }
 
-func all(a: dynamic)
+func all(a: dynamic) -> dynamic
 {
   return cpp_expression("#include \"bits/stdc++");
 }
 
-var pb = cpp_expression("#include \"bi");
+var pb: dynamic = cpp_expression("#include \"bi");
 
-var INF = cpp_expression("#includ");
+var INF: dynamic = cpp_expression("#includ");
 
-func isSubstr(s: dynamic, t: dynamic)
+func isSubstr(s: dynamic, t: dynamic) -> dynamic
 {
-  var p = 0;
+  var p: dynamic = 0;
   rep(i, s.size());
   {
     if ((s[i] == t[p]))
@@ -37,16 +37,16 @@ func isSubstr(s: dynamic, t: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var t: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(s, t);
-  var vs = cpp_construct(2);
+  var vs: dynamic = cpp_construct(2);
   vs[1] = t;
-  var ok = 0;
+  var ok: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 18))
     {
       if (isSubstr(s, vs[(i % 2)]))
@@ -56,7 +56,7 @@ func main()
       {
         break;
       }
-      var l = ((((vs[(i % 2)].size() + 1)) * t.size()) + vs[(i % 2)].size());
+      var l: dynamic = ((((vs[(i % 2)].size() + 1)) * t.size()) + vs[(i % 2)].size());
       if ((l > s.size()))
       {
         break;

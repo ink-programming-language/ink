@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     while (cpp_comma(scanf("%d", (&n)), n))
     {
-      var ans = [];
-      var tot = [];
-      var s = ["lunch", "dinner", "midnight"];
+      var ans: dynamic = [];
+      var tot: dynamic = [];
+      var s: dynamic = ["lunch", "dinner", "midnight"];
       rep(i, 3);
       {
         if ((tot[i] == 0))
@@ -29,17 +29,17 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var h: dynamic;
-        var m: dynamic;
-        var m2: dynamic;
+        var h: dynamic = cpp_uninitialized();
+        var m: dynamic = cpp_uninitialized();
+        var m2: dynamic = cpp_uninitialized();
         scanf("%d:%d%d", (&h), (&m), (&m2));
         if ((m2 < m))
         {
           m2 += 60;
         }
-        var t = ((60 * h) + m);
+        var t: dynamic = ((60 * h) + m);
         if (((11 <= h) && (h < 15)))
         {
           tot[0] += 1;

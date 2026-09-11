@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var CR7 = cpp_expression("#include <bits/stdc++.h>");
+var CR7: dynamic = cpp_expression("#include <bits/stdc++.h>");
 
-var pii = cpp_expression("#include <bi");
+var pii: dynamic = cpp_expression("#include <bi");
 
-var MOD = cpp_expression("#include <");
+var MOD: dynamic = cpp_expression("#include <");
 
-var vi = cpp_expression("#include <");
+var vi: dynamic = cpp_expression("#include <");
 
-var vii = cpp_expression("#include <b");
+var vii: dynamic = cpp_expression("#include <b");
 
-var mi = cpp_expression("#include <b");
+var mi: dynamic = cpp_expression("#include <b");
 
-var a = cpp_array(100000);
+var a: dynamic = cpp_array(100000);
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var N = 1005;
+var N: dynamic = 1005;
 
-var fact = cpp_array(N);
+var fact: dynamic = cpp_array(N);
 
-func mod_pow(a: dynamic, n: dynamic, mod: dynamic)
+func mod_pow(a: dynamic, n: dynamic, mod: dynamic) -> dynamic
 {
   if ((n == 0))
   {
     return 1;
   }
-  var res = mod_pow((((a * a)) % mod), (n / 2), mod);
+  var res: dynamic = mod_pow((((a * a)) % mod), (n / 2), mod);
   if ((n % 2))
   {
     res = (((res * a)) % mod);
@@ -38,21 +38,21 @@ func mod_pow(a: dynamic, n: dynamic, mod: dynamic)
   return res;
 }
 
-func mod_inv(x: dynamic, mod: dynamic)
+func mod_inv(x: dynamic, mod: dynamic) -> dynamic
 {
   return mod_pow(x, (mod - 2), mod);
 }
 
-func nCr(n: dynamic, r: dynamic, mod: dynamic)
+func nCr(n: dynamic, r: dynamic, mod: dynamic) -> dynamic
 {
   return ((((((fact[n] * mod_inv(fact[r], mod)) % mod)) * ((mod_inv(fact[(n - r)], mod) % mod)))) % mod);
 }
 
-func factorial(mod: dynamic)
+func factorial(mod: dynamic) -> dynamic
 {
   fact[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       fact[i] = ((i * fact[(i - 1)]));
@@ -62,21 +62,21 @@ func factorial(mod: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   CR7;
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   factorial(MOD);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n, k);
-    var b = cpp_array(n);
-    var ma: dynamic;
-    var mk: dynamic;
+    var b: dynamic = cpp_array(n);
+    var ma: dynamic = cpp_uninitialized();
+    var mk: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -87,9 +87,9 @@ func main()
     }
     sort(b, (b + n));
     reverse(b, (b + n));
-    var sum = 0;
+    var sum: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < k))
       {
         sum += b[i];
@@ -97,8 +97,8 @@ func main()
         i += 1;
       }
     }
-    var mxans = 1;
-    for (var g in mk)
+    var mxans: dynamic = 1;
+    for (var g: dynamic in mk)
     {
       mxans = ((((((mxans % MOD)) * nCr(ma[g.first], g.second, MOD)) % MOD)) % MOD);
       if ((mxans < 0))

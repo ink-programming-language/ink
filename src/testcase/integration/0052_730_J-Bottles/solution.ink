@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(10005);
+var dp: dynamic = cpp_array(10005);
 
-var a = cpp_array(105);
+var a: dynamic = cpp_array(105);
 
-var b = cpp_array(105);
+var b: dynamic = cpp_array(105);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var cap = 0;
-  var mx = 0;
+  var cap: dynamic = 0;
+  var mx: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
@@ -22,7 +22,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&b[i]));
@@ -31,7 +31,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= mx))
     {
       dp[i] = make_pair(-1, -1);
@@ -39,11 +39,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = mx;
+        var j: dynamic = mx;
         while ((j >= 0))
         {
           if ((dp[j].first == -1))
@@ -51,7 +51,7 @@ func main()
             j -= 1;
             continue;
           }
-          var nxt = (j + b[i]);
+          var nxt: dynamic = (j + b[i]);
           if ((dp[nxt].first == -1))
           {
             dp[nxt] = make_pair((dp[j].first + 1), (dp[j].second + a[i]));
@@ -68,9 +68,9 @@ func main()
       i += 1;
     }
   }
-  var mn = make_pair(cpp_cast(1e9), 0);
+  var mn: dynamic = make_pair(cpp_cast(1e9), 0);
   {
-    var i = cap;
+    var i: dynamic = cap;
     while ((i <= mx))
     {
       if ((dp[i].first == -1))

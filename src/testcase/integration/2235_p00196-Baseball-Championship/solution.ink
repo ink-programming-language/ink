@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var make = cpp_array(100);
+var make: dynamic = cpp_array(100);
 
-var kati = cpp_array(100);
+var kati: dynamic = cpp_array(100);
 
-var name = cpp_array(100);
+var name: dynamic = cpp_array(100);
 
-func change()
+func change() -> dynamic
 {
-  var tmp1: dynamic;
-  var tmp2: dynamic;
-  var tmp3: dynamic;
+  var tmp1: dynamic = cpp_uninitialized();
+  var tmp2: dynamic = cpp_uninitialized();
+  var tmp3: dynamic = cpp_uninitialized();
   tmp1 = kati[(j + 1)];
   kati[(j + 1)] = kati[j];
   kati[j] = tmp1;
@@ -26,10 +26,10 @@ func change()
   name[j] = tmp3;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   while (1)
   {
     read(n);

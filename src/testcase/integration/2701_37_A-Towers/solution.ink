@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var Freq = cpp_array(1001);
+var Freq: dynamic = cpp_array(1001);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
-  var L = cpp_array(n);
-  var count = 0;
+  var L: dynamic = cpp_array(n);
+  var count: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&L[i]));
@@ -17,9 +17,9 @@ func main()
       i += 1;
     }
   }
-  var max = Freq[0];
+  var max: dynamic = Freq[0];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 1001))
     {
       if ((Freq[i] > max))

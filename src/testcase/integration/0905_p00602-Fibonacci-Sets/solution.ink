@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var N = cpp_expression("#inc");
+var N: dynamic = cpp_expression("#inc");
 
-var M = cpp_expression("#inc");
+var M: dynamic = cpp_expression("#inc");
 
-var P = cpp_expression("#i");
+var P: dynamic = cpp_expression("#i");
 
-func main()
+func main() -> dynamic
 {
-  var v: dynamic;
-  var d: dynamic;
-  var f = cpp_array(N);
-  var F: dynamic;
+  var v: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_array(N);
+  var F: dynamic = cpp_uninitialized();
   while (((cin >> v) >> d))
   {
     f[0] = cpp_assign(f[1], "=", 1);
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i < (2 + v)))
       {
         f[i] = (((f[(i - 1)] + f[(i - 2)])) % M);
@@ -25,9 +25,9 @@ func main()
       }
     }
     sort(F.begin(), F.end());
-    var ans = 0;
+    var ans: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < F.size()))
       {
         if ((abs((F[i] - F[(i - 1)])) >= d))

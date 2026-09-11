@@ -4,9 +4,9 @@
 
 INK_DIAGNOSTIC(Unknown, 0x00000000U, Unknown, "INK-0000", Unknown, Unknown, "unknown diagnostic", "unknown diagnostic", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(InvalidUtf8, 0x01000001U, Tokenizer, "INK-T0001", User, Error, "invalid UTF-8", "invalid UTF-8", INK_DIAGNOSTIC_ARGUMENTS())
-INK_DIAGNOSTIC(UnexpectedBom, 0x01000002U, Tokenizer, "INK-T0002", User, Error, "UTF-8 BOM is only allowed at the start of a file", "UTF-8 BOM is only allowed at the start of a file", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(UnexpectedBom, 0x01000002U, Tokenizer, "INK-T0002", User, Error, "UTF-8 BOM is not source whitespace or an Ink token", "UTF-8 BOM is not source whitespace or an Ink token", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(LoneCarriageReturn, 0x01000003U, Tokenizer, "INK-T0003", User, Error, "carriage return must be followed by line feed", "carriage return must be followed by line feed", INK_DIAGNOSTIC_ARGUMENTS())
-INK_DIAGNOSTIC(NonAsciiWhitespace, 0x01000004U, Tokenizer, "INK-T0004", User, Error, "only ASCII space and tab are source whitespace", "only ASCII space and tab are source whitespace", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(NonAsciiWhitespace, 0x01000004U, Tokenizer, "INK-T0004", User, Error, "only ASCII space, tab, carriage return and line feed are source whitespace", "only ASCII space, tab, carriage return and line feed are source whitespace", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(ForbiddenControlCharacter, 0x01000005U, Tokenizer, "INK-T0005", User, Error, "forbidden raw control character", "forbidden raw control character", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(InvalidCharacter, 0x01000006U, Tokenizer, "INK-T0006", User, Error, "character cannot start an Ink token", "character cannot start an Ink token", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(IdentifierNotNfc, 0x01000007U, Tokenizer, "INK-T0007", User, Error, "identifier is not in Unicode NFC", "identifier is not in Unicode NFC", INK_DIAGNOSTIC_ARGUMENTS())
@@ -32,6 +32,8 @@ INK_DIAGNOSTIC(InvalidMultilineIndentation, 0x0100001AU, Tokenizer, "INK-T0026",
 INK_DIAGNOSTIC(UnterminatedBlockComment, 0x0100001BU, Tokenizer, "INK-T0027", User, Error, "block comment is not terminated", "block comment is not terminated; remaining nesting depth: {RemainingNestingDepth}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(RemainingNestingDepth, UnsignedInteger)))
 INK_DIAGNOSTIC(BlockCommentNestingLimit, 0x0100001CU, Tokenizer, "INK-T0028", User, Error, "block comment nesting limit exceeded", "block comment nesting limit exceeded", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(InvisibleCharacterInContext, 0x0100001DU, Tokenizer, "INK-T0029", User, Error, "invisible format character must be written explicitly", "invisible format character {Character} {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Character, Character), INK_DIAGNOSTIC_ARGUMENT(Context, SourceContext)))
+INK_DIAGNOSTIC(TokenizerSourceNotFound, 0x0100001EU, Tokenizer, "INK-T0030", InternalCompilerError, Error, "requested tokenizer source is not registered", "requested tokenizer source is not registered", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(IdentifierNormalizationFailed, 0x0100001FU, Tokenizer, "INK-T0031", InternalCompilerError, Error, "identifier Unicode normalization failed", "identifier Unicode normalization failed", INK_DIAGNOSTIC_ARGUMENTS())
 
 INK_DIAGNOSTIC(UnexpectedToken, 0x02000001U, Parser, "INK-P0001", User, Error, "unexpected token", "unexpected token '{Actual}'", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Actual, String)))
 INK_DIAGNOSTIC(ExpectedToken, 0x02000002U, Parser, "INK-P0002", User, Error, "expected token", "expected token '{Expected}'", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Expected, String)))

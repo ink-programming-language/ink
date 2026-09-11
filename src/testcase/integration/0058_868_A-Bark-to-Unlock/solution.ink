@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(3, 101);
+var s: dynamic = cpp_array(3, 101);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var k = 0;
-  var c1 = 0;
-  var c2 = 0;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var k: dynamic = 0;
+  var c1: dynamic = 0;
+  var c2: dynamic = 0;
   cin.get(s[0], 3);
   read(n);
   {

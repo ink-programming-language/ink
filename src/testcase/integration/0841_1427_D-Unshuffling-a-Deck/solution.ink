@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func operator_shift_left(out: dynamic, v: dynamic)
+func operator_shift_left(out: dynamic, v: dynamic) -> dynamic
 {
   (out << "[");
-  for (var k in v)
+  for (var k: dynamic in v)
   {
     ((out << k) << " ");
   }
@@ -11,10 +11,10 @@ func operator_shift_left(out: dynamic, v: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, s: dynamic)
+func operator_shift_left(out: dynamic, s: dynamic) -> dynamic
 {
   (out << "{");
-  for (var k in s)
+  for (var k: dynamic in s)
   {
     ((out << k) << " ");
   }
@@ -22,31 +22,31 @@ func operator_shift_left(out: dynamic, s: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, p: dynamic)
+func operator_shift_left(out: dynamic, p: dynamic) -> dynamic
 {
   (((((out << "[ ") << p.first) << " , ") << p.second) << " ] ");
   return out;
 }
 
-func operator_shift_right(in_cpp: dynamic, p: dynamic)
+func operator_shift_right(in_cpp: dynamic, p: dynamic) -> dynamic
 {
   ((in_cpp >> p.first) >> p.second);
   return in_cpp;
 }
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func Ejecutar(par: dynamic, d: dynamic)
+func Ejecutar(par: dynamic, d: dynamic) -> dynamic
 {
-  var pars: dynamic;
-  var loc: dynamic;
-  var p = 0;
-  for (var k in par)
+  var pars: dynamic = cpp_uninitialized();
+  var loc: dynamic = cpp_uninitialized();
+  var p: dynamic = 0;
+  for (var k: dynamic in par)
   {
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < int_cpp(k)))
       {
         loc.push_back(d[p]);
@@ -58,10 +58,10 @@ func Ejecutar(par: dynamic, d: dynamic)
     loc.resize(0);
   }
   reverse(pars.begin(), pars.end());
-  var ld: dynamic;
-  for (var k in pars)
+  var ld: dynamic = cpp_uninitialized();
+  for (var k: dynamic in pars)
   {
-    for (var j in k)
+    for (var j: dynamic in k)
     {
       ld.push_back(j);
     }
@@ -69,20 +69,20 @@ func Ejecutar(par: dynamic, d: dynamic)
   d = ld;
 }
 
-func Paso(d: dynamic, i: dynamic)
+func Paso(d: dynamic, i: dynamic) -> dynamic
 {
   if ((d[0] == 1))
   {
-    var p = 0;
+    var p: dynamic = 0;
     while ((d[p] != i))
     {
       p += 1;
     }
     if (((p + 1) != i))
     {
-      var par: dynamic;
+      var par: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < int_cpp((i - 1))))
         {
           par.push_back(1);
@@ -103,16 +103,16 @@ func Paso(d: dynamic, i: dynamic)
     }
   } else
   {
-    var p = 0;
+    var p: dynamic = 0;
     while ((d[((n - p) - 1)] != i))
     {
       p += 1;
     }
     if (((p + 1) != i))
     {
-      var par: dynamic;
+      var par: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < int_cpp((i - 1))))
         {
           par.push_back(1);
@@ -135,13 +135,13 @@ func Paso(d: dynamic, i: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   cin.sync_with_stdio(0);
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(n)))
     {
       read(d[i]);
@@ -149,14 +149,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(n)))
     {
       if ((d[i] == 1))
       {
         if (((i != 0) && (i != (n - 1))))
         {
-          var p = [i, (n - i)];
+          var p: dynamic = [i, (n - i)];
           if ((p.size() > 1))
           {
             res.push_back(p);
@@ -169,7 +169,7 @@ func main()
     }
   }
   {
-    var i = int_cpp(2);
+    var i: dynamic = int_cpp(2);
     while ((i < int_cpp(n)))
     {
       Paso(d, i);
@@ -179,7 +179,7 @@ func main()
   if ((d[0] == n))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < int_cpp(n)))
       {
         r[i] = 1;
@@ -193,10 +193,10 @@ func main()
     Ejecutar(r, d);
   }
   write(res.size(), "\n");
-  for (var r in res)
+  for (var r: dynamic in res)
   {
     write(r.size(), " ");
-    for (var k in r)
+    for (var k: dynamic in r)
     {
       write(k, " ");
     }

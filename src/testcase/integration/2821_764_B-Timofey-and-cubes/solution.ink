@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func isodd(x: dynamic)
+func isodd(x: dynamic) -> dynamic
 {
   return (x % 2);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i != -1))
     {
       read(arr[i]);
@@ -24,12 +24,12 @@ func main()
     return 0;
   }
   ans.push_back(arr[0]);
-  var size = ((n / 2) - 1);
-  var p = cpp_array(size);
-  var b = 1;
-  var e = (n - 2);
+  var size: dynamic = ((n / 2) - 1);
+  var p: dynamic = cpp_array(size);
+  var b: dynamic = 1;
+  var e: dynamic = (n - 2);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < size))
     {
       p[i] = make_pair(arr[e], arr[b]);
@@ -39,7 +39,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < size))
     {
       if ((i % 2))
@@ -57,7 +57,7 @@ func main()
     ans.push_back(arr[(n / 2)]);
   }
   {
-    var i = (size - 1);
+    var i: dynamic = (size - 1);
     while ((i != -1))
     {
       if ((i % 2))
@@ -71,7 +71,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       write(ans[i], " ");

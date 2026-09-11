@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var c = cpp_array(1005, 1005);
+var c: dynamic = cpp_array(1005, 1005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
   memset(c, 0, cpp_sizeof((c)));
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i <= 1000))
@@ -31,15 +31,15 @@ func init()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   init();
   while ((scanf("%d%d%d", (&n), (&m), (&k)) != EOF))
   {
-    var ans = 0;
+    var ans: dynamic = 0;
     if ((((2 * k) <= (n - 1)) && ((2 * k) <= (m - 1))))
     {
       ans = (((c[(n - 1)][(2 * k)] * c[(m - 1)][(2 * k)])) % 1000000007);

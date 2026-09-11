@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var l: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var r: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   read(l, r);
   if (((((r - l) < 2)) || ((((r - l) == 2) && ((l % 2) == 1)))))
   {

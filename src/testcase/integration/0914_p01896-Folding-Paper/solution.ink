@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func TEN(n: dynamic)
+func TEN(n: dynamic) -> dynamic
 {
-  return if (((n == 0))) 1 else (10 * TEN((n - 1)));
+  return  (((n == 0))) ? 1 : (10 * TEN((n - 1)));
 }
 
-func ok(v: dynamic)
+func ok(v: dynamic) -> dynamic
 {
-  for (var p in v)
+  for (var p: dynamic in v)
   {
     if ((p.first > p.second))
     {
@@ -15,8 +15,8 @@ func ok(v: dynamic)
     }
   }
   sort(begin(v), end(v));
-  var st: dynamic;
-  for (var p in v)
+  var st: dynamic = cpp_uninitialized();
+  for (var p: dynamic in v)
   {
     while ((st.size() && (st.back().second < p.first)))
     {
@@ -31,33 +31,33 @@ func ok(v: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
-  var h: dynamic;
-  var w: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   scanf("%d %d", (&h), (&w));
-  var n = (h * w);
-  var rid = cpp_array(n);
+  var n: dynamic = (h * w);
+  var rid: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a: dynamic;
+      var a: dynamic = cpp_uninitialized();
       read(a);
       rid[a] = i;
       i += 1;
     }
   }
   {
-    var y = 0;
+    var y: dynamic = 0;
     while ((y < h))
     {
-      var v = cpp_array(2);
+      var v: dynamic = cpp_array(2);
       {
-        var x = 0;
+        var x: dynamic = 0;
         while ((x < (w - 1)))
         {
-          var id = ((y * w) + x);
+          var id: dynamic = ((y * w) + x);
           v[(x % 2)].push_back(P(rid[id], rid[(id + 1)]));
           x += 1;
         }
@@ -71,15 +71,15 @@ func main()
     }
   }
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x < w))
     {
-      var v = cpp_array(2);
+      var v: dynamic = cpp_array(2);
       {
-        var y = 0;
+        var y: dynamic = 0;
         while ((y < (h - 1)))
         {
-          var id = ((y * w) + x);
+          var id: dynamic = ((y * w) + x);
           v[(y % 2)].push_back(P(rid[id], rid[(id + w)]));
           y += 1;
         }

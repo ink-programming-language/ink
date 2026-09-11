@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100100);
+var a: dynamic = cpp_array(100100);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -17,9 +17,9 @@ func main()
       i += 1;
     }
   }
-  var Ans = 0;
+  var Ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       mp[a[i]] -= 1;

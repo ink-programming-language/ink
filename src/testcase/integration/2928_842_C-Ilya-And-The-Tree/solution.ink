@@ -1,46 +1,46 @@
 // Translated from solution.cpp.
 
-var maxN = 200005;
+var maxN: dynamic = 200005;
 
-var vec = cpp_array(maxN);
+var vec: dynamic = cpp_array(maxN);
 
-var a = cpp_array(maxN);
+var a: dynamic = cpp_array(maxN);
 
-var dp = cpp_array(maxN);
+var dp: dynamic = cpp_array(maxN);
 
-var head = cpp_array(maxN);
+var head: dynamic = cpp_array(maxN);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (b) gcd(b, (a % b)) else a;
+  return  (b) ? gcd(b, (a % b)) : a;
 }
 
 class node
 {
-  var v: dynamic;
-  var next: dynamic;
+  var v: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array((maxN * 2));
+var e: dynamic = cpp_array((maxN * 2));
 
-func add(u: dynamic, v: dynamic)
+func add(u: dynamic, v: dynamic) -> dynamic
 {
   e[cnt].v = v;
   e[cnt].next = head[u];
   head[u] = cpp_update(cnt, "++");
 }
 
-func dfs(u: dynamic, pre: dynamic)
+func dfs(u: dynamic, pre: dynamic) -> dynamic
 {
   {
-    var i = head[u];
+    var i: dynamic = head[u];
     while ((~i))
     {
-      var v = e[i].v;
+      var v: dynamic = e[i].v;
       if ((v == pre))
       {
         i = e[i].next;
@@ -49,7 +49,7 @@ func dfs(u: dynamic, pre: dynamic)
       dp[v] = gcd(dp[u], a[v]);
       vec[v].push_back(dp[u]);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < vec[u].size()))
         {
           vec[v].push_back(gcd(vec[u][i], a[v]));
@@ -64,23 +64,23 @@ func dfs(u: dynamic, pre: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   memset((head), (-1), cpp_sizeof((head)));
   cnt = 0;
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
       i += 1;
     }
   }
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       scanf("%d%d", (&x), (&y));
@@ -93,7 +93,7 @@ func main()
   vec[1].push_back(0);
   dfs(1, -1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dp[i] = max(dp[i], vec[i].back());
@@ -101,7 +101,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       printf("%d ", dp[i]);

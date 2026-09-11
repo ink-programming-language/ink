@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(300005);
+var a: dynamic = cpp_array(300005);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -16,8 +16,8 @@ func main()
     }
   }
   {
-    var i = 1;
-    var j = 1;
+    var i: dynamic = 1;
+    var j: dynamic = 1;
     while ((i <= n))
     {
       while (1)
@@ -33,7 +33,7 @@ func main()
         j += 2;
       }
       {
-        var k = i;
+        var k: dynamic = i;
         while ((k <= j))
         {
           if (((a[k] < i) || (a[k] > j)))
@@ -44,9 +44,9 @@ func main()
         }
       }
       {
-        var k = i;
-        var x = 0;
-        var y = 0;
+        var k: dynamic = i;
+        var x: dynamic = 0;
+        var y: dynamic = 0;
         while ((k <= j))
         {
           if ((a[k] < k))

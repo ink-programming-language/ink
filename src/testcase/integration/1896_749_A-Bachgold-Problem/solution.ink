@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var a: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
   read(a);
   if (((a % 2) == 0))
   {
     write((a / 2), "\n");
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (a / 2)))
       {
         write("2 ");
@@ -24,7 +24,7 @@ func main()
   {
     write(((((a - 3)) / 2) + 1), "\n");
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (((a - 3)) / 2)))
       {
         write("2 ");

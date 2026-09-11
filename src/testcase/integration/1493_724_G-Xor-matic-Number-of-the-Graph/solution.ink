@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var mxn = 400005;
+var mxn: dynamic = 400005;
 
-var maxnn = 100005;
+var maxnn: dynamic = 100005;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var num: dynamic;
+var num: dynamic = cpp_uninitialized();
 
-var cir: dynamic;
+var cir: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var head = cpp_array(maxnn);
+var head: dynamic = cpp_array(maxnn);
 
-var que = cpp_array(maxnn);
+var que: dynamic = cpp_array(maxnn);
 
 class edge
 {
-  var to: dynamic;
-  var next: dynamic;
-  var w: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
 }
 
-var f = cpp_array((mxn << 2));
+var f: dynamic = cpp_array((mxn << 2));
 
-var p = cpp_array(70);
+var p: dynamic = cpp_array(70);
 
-var circle = cpp_array(mxn);
+var circle: dynamic = cpp_array(mxn);
 
-var dis = cpp_array(maxnn);
+var dis: dynamic = cpp_array(maxnn);
 
-var dig = cpp_array(2);
+var dig: dynamic = cpp_array(2);
 
-var pw = cpp_array(105);
+var pw: dynamic = cpp_array(105);
 
-func add(u: dynamic, v: dynamic, w: dynamic)
+func add(u: dynamic, v: dynamic, w: dynamic) -> dynamic
 {
   f[cpp_update(cnt, "++")].to = v;
   f[cnt].w = w;
@@ -51,15 +51,15 @@ func add(u: dynamic, v: dynamic, w: dynamic)
   head[u] = cnt;
 }
 
-func dfs(u: dynamic, fa: dynamic, now: dynamic)
+func dfs(u: dynamic, fa: dynamic, now: dynamic) -> dynamic
 {
   dis[u] = now;
   que[cpp_update(num, "++")] = u;
   {
-    var i = head[u];
+    var i: dynamic = head[u];
     while (i)
     {
-      var v = f[i].to;
+      var v: dynamic = f[i].to;
       if ((v == fa))
       {
         i = f[i].next;
@@ -77,17 +77,17 @@ func dfs(u: dynamic, fa: dynamic, now: dynamic)
   }
 }
 
-func init()
+func init() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   r = 0;
   memset(p, 0, cpp_sizeof(p));
   {
     i = 1;
     while ((i <= cir))
     {
-      var x = circle[i];
+      var x: dynamic = circle[i];
       {
         j = 62;
         while ((j >= 0))
@@ -122,16 +122,16 @@ func init()
   }
 }
 
-func calc()
+func calc() -> dynamic
 {
   init();
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     j = 0;
     while ((j <= 62))
     {
-      var flag = 0;
+      var flag: dynamic = 0;
       dig[0] = cpp_assign(dig[1], "=", 0);
       {
         i = 1;
@@ -153,7 +153,7 @@ func calc()
           i += 1;
         }
       }
-      var now = (((((dig[0] * ((dig[0] - 1))) / 2) + ((dig[1] * ((dig[1] - 1))) / 2))) % mod);
+      var now: dynamic = (((((dig[0] * ((dig[0] - 1))) / 2) + ((dig[1] * ((dig[1] - 1))) / 2))) % mod);
       if (flag)
       {
         if (r)
@@ -181,13 +181,13 @@ func calc()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var u: dynamic;
-  var v: dynamic;
-  var w: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   memset(dis, -1, cpp_sizeof(dis));
   pw[0] = 1;
   {

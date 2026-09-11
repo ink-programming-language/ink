@@ -1,56 +1,56 @@
 // Translated from solution.cpp.
 
-var maxN = (1e5 + 5);
+var maxN: dynamic = (1e5 + 5);
 
-var maxM = (1e3 + 5);
+var maxM: dynamic = (1e3 + 5);
 
-var INF = 1e18;
+var INF: dynamic = 1e18;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((!b)) a else gcd(b, (a % b));
+  return  ((!b)) ? a : gcd(b, (a % b));
 }
 
-func sq(x: dynamic)
+func sq(x: dynamic) -> dynamic
 {
   return (((x * x)) % MOD);
 }
 
-func modP(a: dynamic, b: dynamic)
+func modP(a: dynamic, b: dynamic) -> dynamic
 {
-  return (if ((!b)) 1 else (((sq(modP(a, (b / 2))) * (if ((b % 2)) a else 1))) % MOD));
+  return ( ((!b)) ? 1 : (((sq(modP(a, (b / 2))) * ( ((b % 2)) ? a : 1))) % MOD));
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxN);
+var a: dynamic = cpp_array(maxN);
 
-var b = cpp_array(maxN);
+var b: dynamic = cpp_array(maxN);
 
-var lazy = cpp_array((4 * maxN));
+var lazy: dynamic = cpp_array((4 * maxN));
 
-var st = cpp_array(maxN);
+var st: dynamic = cpp_array(maxN);
 
-var fn = cpp_array(maxN);
+var fn: dynamic = cpp_array(maxN);
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var G = cpp_array(maxN);
+var G: dynamic = cpp_array(maxN);
 
-var prime: dynamic;
+var prime: dynamic = cpp_uninitialized();
 
-var seg = cpp_array((4 * maxN));
+var seg: dynamic = cpp_array((4 * maxN));
 
-var null_cpp: dynamic;
+var null_cpp: dynamic = cpp_uninitialized();
 
-func DFS(v: dynamic, p: dynamic = -1)
+func DFS(v: dynamic, p: dynamic = -1) -> dynamic
 {
   st[v] = cpp_update(T, "++");
-  for (var u in G[v])
+  for (var u: dynamic in G[v])
   {
     if ((u == p))
     {
@@ -62,28 +62,28 @@ func DFS(v: dynamic, p: dynamic = -1)
   return;
 }
 
-func build(id: dynamic = 1, s: dynamic = 0, e: dynamic = n)
+func build(id: dynamic = 1, s: dynamic = 0, e: dynamic = n) -> dynamic
 {
   if (((e - s) <= 1))
   {
     seg[id].set((a[s] % m));
     return;
   }
-  var md = (((s + e)) / 2);
+  var md: dynamic = (((s + e)) / 2);
   build((2 * id), s, md);
   build(((2 * id) + 1), md, e);
   seg[id] = (seg[(2 * id)] | seg[((2 * id) + 1)]);
   return;
 }
 
-func apply(id: dynamic, x: dynamic)
+func apply(id: dynamic, x: dynamic) -> dynamic
 {
   seg[id] = (((seg[id] << x)) | ((seg[id] >> ((m - x)))));
   lazy[id] = (((lazy[id] + x)) % m);
   return;
 }
 
-func shift(id: dynamic)
+func shift(id: dynamic) -> dynamic
 {
   if ((lazy[id] == 0))
   {
@@ -95,7 +95,7 @@ func shift(id: dynamic)
   return;
 }
 
-func update(l: dynamic, r: dynamic, x: dynamic, id: dynamic = 1, s: dynamic = 0, e: dynamic = n)
+func update(l: dynamic, r: dynamic, x: dynamic, id: dynamic = 1, s: dynamic = 0, e: dynamic = n) -> dynamic
 {
   if (((l <= s) && (e <= r)))
   {
@@ -106,7 +106,7 @@ func update(l: dynamic, r: dynamic, x: dynamic, id: dynamic = 1, s: dynamic = 0,
   {
     return;
   }
-  var md = (((s + e)) / 2);
+  var md: dynamic = (((s + e)) / 2);
   shift(id);
   update(l, r, x, (2 * id), s, md);
   update(l, r, x, ((2 * id) + 1), md, e);
@@ -114,7 +114,7 @@ func update(l: dynamic, r: dynamic, x: dynamic, id: dynamic = 1, s: dynamic = 0,
   return;
 }
 
-func get(l: dynamic, r: dynamic, id: dynamic = 1, s: dynamic = 0, e: dynamic = n)
+func get(l: dynamic, r: dynamic, id: dynamic = 1, s: dynamic = 0, e: dynamic = n) -> dynamic
 {
   if (((l <= s) && (e <= r)))
   {
@@ -124,12 +124,12 @@ func get(l: dynamic, r: dynamic, id: dynamic = 1, s: dynamic = 0, e: dynamic = n
   {
     return null_cpp;
   }
-  var md = (((e + s)) / 2);
+  var md: dynamic = (((e + s)) / 2);
   shift(id);
   return ((get(l, r, (2 * id), s, md) | get(l, r, ((2 * id) + 1), md, e)));
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
@@ -139,13 +139,13 @@ func main()
   prime.set(0, 0);
   prime.set(1, 0);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < m))
     {
       if ((prime[i] == 1))
       {
         {
-          var j = (2 * i);
+          var j: dynamic = (2 * i);
           while ((j < m))
           {
             prime.set(j, 0);
@@ -157,7 +157,7 @@ func main()
     }
   }
   {
-    var i = m;
+    var i: dynamic = m;
     while ((i < maxM))
     {
       prime.set(i, 0);
@@ -165,7 +165,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(b[i]);
@@ -173,11 +173,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       u -= 1;
       v -= 1;
@@ -188,7 +188,7 @@ func main()
   }
   DFS(0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a[st[i]] = b[i];
@@ -196,22 +196,22 @@ func main()
     }
   }
   build();
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   read(q);
   while (cpp_update(q, "--"))
   {
-    var t: dynamic;
+    var t: dynamic = cpp_uninitialized();
     read(t);
     if ((t == 1))
     {
-      var v: dynamic;
-      var x: dynamic;
+      var v: dynamic = cpp_uninitialized();
+      var x: dynamic = cpp_uninitialized();
       read(v, x);
       v -= 1;
       update(st[v], fn[v], x);
     } else
     {
-      var v: dynamic;
+      var v: dynamic = cpp_uninitialized();
       read(v);
       v -= 1;
       write(((prime & get(st[v], fn[v]))).count(), "\n");

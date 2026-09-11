@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var N = 110;
+var N: dynamic = 110;
 
-var g = cpp_array(N, N);
+var g: dynamic = cpp_array(N, N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(N);
+var cnt: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var ppp: dynamic;
+var ppp: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic, dep: dynamic)
+func dfs(u: dynamic, dep: dynamic) -> dynamic
 {
   {
-    var i = (u + 1);
+    var i: dynamic = (u + 1);
     while ((i <= n))
     {
-      var flag = 1;
+      var flag: dynamic = 1;
       if (((cnt[i] + dep) <= ans))
       {
         return 0;
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < dep))
         {
           if ((!g[i][vis[j]]))
@@ -62,11 +62,11 @@ func dfs(u: dynamic, dep: dynamic)
   return 0;
 }
 
-func run()
+func run() -> dynamic
 {
   ans = -1;
   {
-    var i = n;
+    var i: dynamic = n;
     while (i)
     {
       vis[0] = i;
@@ -77,28 +77,28 @@ func run()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&m), (&n));
-  var Q: dynamic;
+  var Q: dynamic = cpp_uninitialized();
   memset(g, 1, cpp_sizeof(g));
   while (cpp_update(m, "--"))
   {
-    var x: dynamic;
+    var x: dynamic = cpp_uninitialized();
     scanf("%d", (&x));
     if ((x == 1))
     {
       Q.clear();
     } else
     {
-      var str: dynamic;
+      var str: dynamic = cpp_uninitialized();
       read(str);
       if ((!M[str]))
       {
         M[str] = cpp_update(ppp, "++");
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < Q.size()))
         {
           g[Q[i]][M[str]] = cpp_assign(g[M[str]][Q[i]], "=", 0);

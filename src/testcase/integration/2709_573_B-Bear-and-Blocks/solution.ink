@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var h = cpp_array(100005);
+var h: dynamic = cpp_array(100005);
 
-var ans = cpp_array(100005);
+var ans: dynamic = cpp_array(100005);
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&h[i]));
@@ -20,7 +20,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ans[i] = min((1 + ans[(i - 1)]), h[i]);
@@ -28,7 +28,7 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i > 0))
     {
       ans[i] = min((1 + ans[(i + 1)]), ans[i]);

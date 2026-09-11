@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func get()
+func get() -> dynamic
 {
-  var ch: dynamic;
+  var ch: dynamic = cpp_uninitialized();
   while (cpp_comma(cpp_assign(ch, "=", getchar()), ((((ch < cpp_char("0")) || (ch > cpp_char("9")))) && (ch != cpp_char("-")))))
   {
   }
   if ((ch == cpp_char("-")))
   {
-    var s = 0;
+    var s: dynamic = 0;
     while (cpp_comma(cpp_assign(ch, "=", getchar()), ((ch >= cpp_char("0")) && (ch <= cpp_char("9")))))
     {
       s = (((s * 10) + ch) - cpp_char("0"));
     }
     return (-s);
   }
-  var s = (ch - cpp_char("0"));
+  var s: dynamic = (ch - cpp_char("0"));
   while (cpp_comma(cpp_assign(ch, "=", getchar()), ((ch >= cpp_char("0")) && (ch <= cpp_char("9")))))
   {
     s = (((s * 10) + ch) - cpp_char("0"));
@@ -23,93 +23,93 @@ func get()
   return s;
 }
 
-var N = 65;
+var N: dynamic = 65;
 
-var mo = (1e9 + 7);
+var mo: dynamic = (1e9 + 7);
 
-var MAXN = 2e6;
+var MAXN: dynamic = 2e6;
 
-var js = cpp_array(100005);
+var js: dynamic = cpp_array(100005);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var fa = cpp_array(N);
+var fa: dynamic = cpp_array(N);
 
 class node
 {
-  var x: dynamic;
-  var y: dynamic;
-  var v: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var mi = cpp_array(70);
+var mi: dynamic = cpp_array(70);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var idx: dynamic;
+var idx: dynamic = cpp_uninitialized();
 
-var idy: dynamic;
+var idy: dynamic = cpp_uninitialized();
 
-var kx: dynamic;
+var kx: dynamic = cpp_uninitialized();
 
-var ky: dynamic;
+var ky: dynamic = cpp_uninitialized();
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var tmp = cpp_array(N);
+var tmp: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var suf = cpp_array(N);
+var suf: dynamic = cpp_array(N);
 
 class zt
 {
-  var u: dynamic;
-  var cnt: dynamic;
-  var val: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var cnt: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
 }
 
-var que = cpp_array((MAXN + 5));
+var que: dynamic = cpp_array((MAXN + 5));
 
-var id = cpp_array(N);
+var id: dynamic = cpp_array(N);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var kth = cpp_array(N);
+var kth: dynamic = cpp_array(N);
 
-var td = cpp_array(N);
+var td: dynamic = cpp_array(N);
 
-func getfather(x: dynamic)
+func getfather(x: dynamic) -> dynamic
 {
-  return if ((fa[x] == x)) x else cpp_assign(fa[x], "=", getfather(fa[x]));
+  return  ((fa[x] == x)) ? x : cpp_assign(fa[x], "=", getfather(fa[x]));
 }
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (kth[a.x] < kth[b.x]);
 }
 
-func dec(x: dynamic, y: dynamic)
+func dec(x: dynamic, y: dynamic) -> dynamic
 {
-  return if ((x < y)) ((x - y) + mo) else (x + y);
+  return  ((x < y)) ? ((x - y) + mo) : (x + y);
 }
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (((x + y) >= mo)) ((x + y) - mo) else (x + y);
+  return  (((x + y) >= mo)) ? ((x + y) - mo) : (x + y);
 }
 
-var num = cpp_array(N);
+var num: dynamic = cpp_array(N);
 
-func getcnt(v: dynamic)
+func getcnt(v: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   {
     while (v)
     {
@@ -120,12 +120,12 @@ func getcnt(v: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   n = get();
   k = get();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       a[i].x = get();
@@ -137,7 +137,7 @@ func main()
   srand(20010419);
   random_shuffle((a + 1), ((a + 1) + k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       fa[i] = i;
@@ -146,7 +146,7 @@ func main()
   }
   js[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 100000))
     {
       js[i] = ((js[(i - 1)] * i) % mo);
@@ -154,17 +154,17 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j <= k))
         {
           if (((a[i].x == a[j].x) || (a[i].y == a[j].y)))
           {
-            var fx = getfather(i);
-            var fy = getfather(j);
+            var fx: dynamic = getfather(i);
+            var fy: dynamic = getfather(j);
             fa[fy] = fx;
           }
           j += 1;
@@ -175,7 +175,7 @@ func main()
   }
   mi[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       mi[i] = (mi[(i - 1)] * 2);
@@ -184,7 +184,7 @@ func main()
   }
   c[0] = 1;
   {
-    var tp = 1;
+    var tp: dynamic = 1;
     while ((tp <= k))
     {
       if ((getfather(tp) == tp))
@@ -194,7 +194,7 @@ func main()
         idy.clear();
         kx = cpp_assign(ky, "=", 0);
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= k))
           {
             if ((getfather(i) == tp))
@@ -218,7 +218,7 @@ func main()
         {
           swap(kx, ky);
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= m))
             {
               swap(p[i].x, p[i].y);
@@ -227,7 +227,7 @@ func main()
           }
         }
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= kx))
           {
             vis[cpp_assign(num[i], "=", i)] = cpp_assign(td[i], "=", 0);
@@ -235,23 +235,23 @@ func main()
           }
         }
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= m))
           {
             td[p[i].x] |= mi[p[i].y];
             i += 1;
           }
         }
-        var now = 0;
+        var now: dynamic = 0;
         {
-          var i = kx;
+          var i: dynamic = kx;
           while ((i >= 1))
           {
-            var key = 0;
-            var cnt = 0;
-            var tp = 0;
+            var key: dynamic = 0;
+            var cnt: dynamic = 0;
+            var tp: dynamic = 0;
             {
-              var j = 1;
+              var j: dynamic = 1;
               while ((j <= kx))
               {
                 if ((!vis[j]))
@@ -275,44 +275,44 @@ func main()
         sort((p + 1), ((p + 1) + m), cmp);
         suf[(m + 1)] = 0;
         {
-          var i = m;
+          var i: dynamic = m;
           while ((i >= 1))
           {
             suf[i] = (suf[(i + 1)] | mi[p[i].y]);
             i -= 1;
           }
         }
-        var he = 0;
-        var ta = 1;
+        var he: dynamic = 0;
+        var ta: dynamic = 1;
         que[1].cnt = 0;
         que[1].val = 1;
         que[1].u = 0;
-        var w = 1;
+        var w: dynamic = 1;
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= kx))
           {
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j <= k))
               {
                 id[j].clear();
                 j += 1;
               }
             }
-            var qw = w;
+            var qw: dynamic = w;
             while (((w <= m) && (p[w].x == num[i])))
             {
               w += 1;
             }
-            var qt = ta;
+            var qt: dynamic = ta;
             while ((he < qt))
             {
               he += 1;
-              var nu = que[he].u;
-              var nv = que[he].val;
-              var cnt = que[he].cnt;
-              var to: dynamic;
+              var nu: dynamic = que[he].u;
+              var nv: dynamic = que[he].val;
+              var cnt: dynamic = que[he].cnt;
+              var to: dynamic = cpp_uninitialized();
               if (id[cnt][(nu & suf[w])])
               {
                 to = id[cnt][(nu & suf[w])];
@@ -326,13 +326,13 @@ func main()
               }
               que[to].val = add(que[to].val, nv);
               {
-                var x = qw;
+                var x: dynamic = qw;
                 while ((x <= (w - 1)))
                 {
                   if ((((nu & mi[p[x].y])) == 0))
                   {
-                    var u = (((nu ^ mi[p[x].y])) & suf[w]);
-                    var to: dynamic;
+                    var u: dynamic = (((nu ^ mi[p[x].y])) & suf[w]);
+                    var to: dynamic = cpp_uninitialized();
                     if (id[(cnt + 1)][u])
                     {
                       to = id[(cnt + 1)][u];
@@ -354,7 +354,7 @@ func main()
           }
         }
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i <= k))
           {
             tmp[i] = cpp_assign(s[i], "=", 0);
@@ -369,11 +369,11 @@ func main()
           }
         }
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i <= k))
           {
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j <= (k - i)))
               {
                 tmp[(i + j)] = add(tmp[(i + j)], ((c[i] * s[j]) % mo));
@@ -384,7 +384,7 @@ func main()
           }
         }
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i <= k))
           {
             c[i] = tmp[i];
@@ -395,9 +395,9 @@ func main()
       tp += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= k))
     {
       ans = add(ans, ((c[i] * js[(n - i)]) % mo));

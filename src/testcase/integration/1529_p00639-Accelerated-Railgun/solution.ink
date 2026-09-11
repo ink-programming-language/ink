@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var EPS = cpp_expression("#includ");
+var EPS: dynamic = cpp_expression("#includ");
 
-func EQ(a: dynamic, b: dynamic)
+func EQ(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostream> #");
 }
 
-func EQV(a: dynamic, b: dynamic)
+func EQV(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostream> #include<cmath> #include<cstdio> #include<comp");
 }
 
-func abs(a: dynamic, b: dynamic)
+func abs(a: dynamic, b: dynamic) -> dynamic
 {
   return sqrt(((((a.real() - b.real())) * ((a.real() - b.real()))) + (((a.imag() - b.imag())) * ((a.imag() - b.imag())))));
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a.real() * b.imag()) - (a.imag() * b.real())));
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a.real() * b.real()) + (a.imag() * b.imag())));
 }
 
-func is_parallel(a1: dynamic, a2: dynamic, b1: dynamic, b2: dynamic)
+func is_parallel(a1: dynamic, a2: dynamic, b1: dynamic, b2: dynamic) -> dynamic
 {
   return EQ(cross((a1 - a2), (b1 - b2)), 0.0);
 }
 
-func distance_ls_p(a: dynamic, b: dynamic, c: dynamic)
+func distance_ls_p(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   if ((dot((b - a), (c - a)) < EPS))
   {
@@ -45,9 +45,9 @@ func distance_ls_p(a: dynamic, b: dynamic, c: dynamic)
   return (abs(cross((b - a), (c - a))) / abs((b - a)));
 }
 
-func main()
+func main() -> dynamic
 {
-  var D: dynamic;
+  var D: dynamic = cpp_uninitialized();
   while (true)
   {
     read(D);
@@ -55,15 +55,15 @@ func main()
     {
       break;
     }
-    var vx: dynamic;
-    var vy: dynamic;
-    var px: dynamic;
-    var py: dynamic;
-    var st: dynamic;
+    var vx: dynamic = cpp_uninitialized();
+    var vy: dynamic = cpp_uninitialized();
+    var px: dynamic = cpp_uninitialized();
+    var py: dynamic = cpp_uninitialized();
+    var st: dynamic = cpp_uninitialized();
     read(px, py, vx, vy);
-    var as_cpp = Point(px, py);
-    var g = Point(0, 0);
-    var at = Point((px + vx), (py + vy));
+    var as_cpp: dynamic = Point(px, py);
+    var g: dynamic = Point(0, 0);
+    var at: dynamic = Point((px + vx), (py + vy));
     if ((!is_parallel(as_cpp, g, at, as_cpp)))
     {
       cpp_goto("goto NO;");

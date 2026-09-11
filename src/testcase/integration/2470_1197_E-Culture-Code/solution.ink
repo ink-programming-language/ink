@@ -1,53 +1,53 @@
 // Translated from solution.cpp.
 
-var N = 200005;
+var N: dynamic = 200005;
 
 class Doll
 {
-  var out: dynamic;
-  var in_cpp: dynamic;
-  func operator_less(b: dynamic)
+  var out: dynamic = cpp_uninitialized();
+  var in_cpp: dynamic = cpp_uninitialized();
+  func operator_less(b: dynamic) -> dynamic
   {
       return (in_cpp < b.in_cpp);
     }
 }
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
 class Edge
 {
-  var to: dynamic;
-  var nxt: dynamic;
-  var val: dynamic;
-  func Edge(to: dynamic = 0, nxt: dynamic = 0, val: dynamic = 0)
+  var to: dynamic = cpp_uninitialized();
+  var nxt: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
+  func Edge(to: dynamic = 0, nxt: dynamic = 0, val: dynamic = 0) -> dynamic
   {
-      this->to = cpp_construct(to);
-      this->nxt = cpp_construct(nxt);
-      this->val = cpp_construct(val);
+      self->to = cpp_construct(to);
+      self->nxt = cpp_construct(nxt);
+      self->val = cpp_construct(val);
     }
 }
 
-var edge = cpp_array((N << 1));
+var edge: dynamic = cpp_array((N << 1));
 
-var head = cpp_array(N);
+var head: dynamic = cpp_array(N);
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-func add(u: dynamic, v: dynamic, val: dynamic)
+func add(u: dynamic, v: dynamic, val: dynamic) -> dynamic
 {
   edge[cpp_update(tot, "++")] = [v, head[u], val];
   head[u] = tot;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func Erfen(x: dynamic)
+func Erfen(x: dynamic) -> dynamic
 {
-  var l = 1;
-  var r = n;
+  var l: dynamic = 1;
+  var r: dynamic = n;
   while ((l < r))
   {
-    var mid = (((l + r)) >> 1);
+    var mid: dynamic = (((l + r)) >> 1);
     if ((a[mid].in_cpp >= x))
     {
       r = mid;
@@ -65,15 +65,15 @@ func Erfen(x: dynamic)
   }
 }
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var dis = cpp_array(N);
+var dis: dynamic = cpp_array(N);
 
-var cnt = cpp_array(N);
+var cnt: dynamic = cpp_array(N);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-func topo()
+func topo() -> dynamic
 {
   memset(dis, 0x7f7f7f, cpp_sizeof((dis)));
   memset(cnt, 0, cpp_sizeof((cnt)));
@@ -81,14 +81,14 @@ func topo()
   cnt[0] = 1;
   dis[0] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       {
-        var j = head[i];
+        var j: dynamic = head[i];
         while ((j != -1))
         {
-          var v = edge[j].to;
+          var v: dynamic = edge[j].to;
           if ((dis[v] > (dis[i] + edge[j].val)))
           {
             dis[v] = (dis[i] + edge[j].val);
@@ -105,12 +105,12 @@ func topo()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   memset(head, -1, cpp_sizeof((head)));
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d%d", (&a[i].out), (&a[i].in_cpp));
@@ -119,7 +119,7 @@ func main()
   }
   sort((a + 1), ((a + n) + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       add(i, (i + 1), (a[(i + 1)].in_cpp - a[i].in_cpp));
@@ -127,10 +127,10 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var up = Erfen(a[i].out);
+      var up: dynamic = Erfen(a[i].out);
       if ((up == -1))
       {
         i += 1;
@@ -141,10 +141,10 @@ func main()
     }
   }
   topo();
-  var ans = 0;
-  var mindis = 1e15;
+  var ans: dynamic = 0;
+  var mindis: dynamic = 1e15;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a[i].out > a[n].in_cpp))
@@ -155,7 +155,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((a[i].out > a[n].in_cpp) && (mindis == dis[i])))

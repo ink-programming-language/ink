@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var answer = true;
+var answer: dynamic = true;
 
-func dfs(visited: dynamic, g: dynamic, vertex: dynamic, oddity: dynamic)
+func dfs(visited: dynamic, g: dynamic, vertex: dynamic, oddity: dynamic) -> dynamic
 {
   visited[vertex] = oddity;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < g[vertex].size()))
     {
       if ((visited[g[vertex][i]] == 0))
       {
-        dfs(visited, g, g[vertex][i], if ((oddity == 1)) -1 else 1);
+        dfs(visited, g, g[vertex][i],  ((oddity == 1)) ? -1 : 1);
       } else if ((visited[g[vertex][i]] == visited[vertex]))
       {
         answer = false;
@@ -23,15 +23,15 @@ func dfs(visited: dynamic, g: dynamic, vertex: dynamic, oddity: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(x, y);
@@ -44,7 +44,7 @@ func main()
       i += 1;
     }
   }
-  var visited = cpp_construct(n, 0);
+  var visited: dynamic = cpp_construct(n, 0);
   dfs(visited, g, 0, 1);
   if ((answer == false))
   {
@@ -53,7 +53,7 @@ func main()
   {
     write("YES", "\n");
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         if ((visited[edges[i].first] == 1))

@@ -1,50 +1,50 @@
 // Translated from solution.cpp.
 
-var maxn = 209;
+var maxn: dynamic = 209;
 
 class node
 {
-  var l: dynamic;
-  var r: dynamic;
-  func node()
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  func node() -> dynamic
   {
     }
-  func node(l: dynamic, r: dynamic)
+  func node(l: dynamic, r: dynamic) -> dynamic
   {
-      this->l = cpp_construct(l);
-      this->r = cpp_construct(r);
+      self->l = cpp_construct(l);
+      self->r = cpp_construct(r);
     }
-  func operator_less(R: dynamic)
+  func operator_less(R: dynamic) -> dynamic
   {
       return (l < R.l);
     }
 }
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var it: dynamic;
+var it: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   S.insert(node(1, 2e9));
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var l: dynamic;
-      var len: dynamic;
-      var r: dynamic;
+      var l: dynamic = cpp_uninitialized();
+      var len: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
       scanf("%d%d", (&l), (&len));
       r = ((l + len) - 1);
-      var have = 0;
+      var have: dynamic = 0;
       {
         it = S.begin();
         while ((it != S.end()))
         {
-          var L = ((*it)).l;
-          var R = ((*it)).r;
+          var L: dynamic = ((*it)).l;
+          var R: dynamic = ((*it)).r;
           if (((L <= l) && (R >= r)))
           {
             S.erase(it);
@@ -72,8 +72,8 @@ func main()
         it = S.begin();
         while ((it != S.end()))
         {
-          var L = ((*it)).l;
-          var R = ((*it)).r;
+          var L: dynamic = ((*it)).l;
+          var R: dynamic = ((*it)).r;
           if ((((R - L) + 1) >= len))
           {
             l = L;

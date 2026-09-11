@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var inf = cpp_cast(1e9);
+var inf: dynamic = cpp_cast(1e9);
 
-var INF = cpp_cast(5e18);
+var INF: dynamic = cpp_cast(5e18);
 
-var MOD = 998244353;
+var MOD: dynamic = 998244353;
 
-func abs(x: dynamic)
+func abs(x: dynamic) -> dynamic
 {
-  return if ((x < 0)) (-x) else x;
+  return  ((x < 0)) ? (-x) : x;
 }
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
   x += y;
-  return if ((x >= MOD)) (x - MOD) else x;
+  return  ((x >= MOD)) ? (x - MOD) : x;
 }
 
-func sub(x: dynamic, y: dynamic)
+func sub(x: dynamic, y: dynamic) -> dynamic
 {
   x -= y;
-  return if ((x < 0)) (x + MOD) else x;
+  return  ((x < 0)) ? (x + MOD) : x;
 }
 
-func Add(x: dynamic, y: dynamic)
+func Add(x: dynamic, y: dynamic) -> dynamic
 {
   x += y;
   if ((x >= MOD))
@@ -32,7 +32,7 @@ func Add(x: dynamic, y: dynamic)
   }
 }
 
-func Sub(x: dynamic, y: dynamic)
+func Sub(x: dynamic, y: dynamic) -> dynamic
 {
   x -= y;
   if ((x < 0))
@@ -41,14 +41,14 @@ func Sub(x: dynamic, y: dynamic)
   }
 }
 
-func Mul(x: dynamic, y: dynamic)
+func Mul(x: dynamic, y: dynamic) -> dynamic
 {
   x = ((cpp_cast((x)) * (y)) % MOD);
 }
 
-func qpow(x: dynamic, y: dynamic)
+func qpow(x: dynamic, y: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   while (y)
   {
     if ((y & 1))
@@ -61,7 +61,7 @@ func qpow(x: dynamic, y: dynamic)
   return ret;
 }
 
-func checkmin(x: dynamic, y: dynamic)
+func checkmin(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x > y))
   {
@@ -69,7 +69,7 @@ func checkmin(x: dynamic, y: dynamic)
   }
 }
 
-func checkmax(x: dynamic, y: dynamic)
+func checkmax(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x < y))
   {
@@ -77,7 +77,7 @@ func checkmax(x: dynamic, y: dynamic)
   }
 }
 
-func checkmin(x: dynamic, y: dynamic)
+func checkmin(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x > y))
   {
@@ -85,7 +85,7 @@ func checkmin(x: dynamic, y: dynamic)
   }
 }
 
-func checkmax(x: dynamic, y: dynamic)
+func checkmax(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x < y))
   {
@@ -93,11 +93,11 @@ func checkmax(x: dynamic, y: dynamic)
   }
 }
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var c = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   while (((c > cpp_char("9")) || (c < cpp_char("0"))))
   {
     if ((c == cpp_char("-")))
@@ -114,33 +114,33 @@ func read()
   return (x * f);
 }
 
-var N = 1001;
+var N: dynamic = 1001;
 
-var M = 500005;
+var M: dynamic = 500005;
 
-var first = cpp_array(N);
+var first: dynamic = cpp_array(N);
 
-var nxt = cpp_array(M);
+var nxt: dynamic = cpp_array(M);
 
-var point = cpp_array(M);
+var point: dynamic = cpp_array(M);
 
-var w = cpp_array(M);
+var w: dynamic = cpp_array(M);
 
-var cur = cpp_array(N);
+var cur: dynamic = cpp_array(N);
 
-var e = 0;
+var e: dynamic = 0;
 
-var tot = 0;
+var tot: dynamic = 0;
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var id = cpp_array(N, N);
+var id: dynamic = cpp_array(N, N);
 
-func add_edge(x: dynamic, y: dynamic, z: dynamic)
+func add_edge(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   point[e] = y;
   w[e] = z;
@@ -148,7 +148,7 @@ func add_edge(x: dynamic, y: dynamic, z: dynamic)
   first[x] = cpp_update(e, "++");
 }
 
-func add(x: dynamic, y: dynamic, z: dynamic)
+func add(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   add_edge(x, y, z);
   add_edge(y, x, 0);
@@ -156,19 +156,19 @@ func add(x: dynamic, y: dynamic, z: dynamic)
   id[y][x] = (e - 1);
 }
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-func bfs()
+func bfs() -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   while ((!q.empty()))
   {
     q.pop();
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= tot))
     {
       vis[i] = 0;
@@ -180,15 +180,15 @@ func bfs()
   dep[S] = 0;
   while ((!q.empty()))
   {
-    var u = q.front();
+    var u: dynamic = q.front();
     q.pop();
     {
-      var i = first[u];
+      var i: dynamic = first[u];
       while ((i != -1))
       {
         if (w[i])
         {
-          var to = point[i];
+          var to: dynamic = point[i];
           if (vis[to])
           {
             i = nxt[i];
@@ -205,26 +205,26 @@ func bfs()
   return vis[T];
 }
 
-func dfs(u: dynamic, flow: dynamic)
+func dfs(u: dynamic, flow: dynamic) -> dynamic
 {
   if ((u == T))
   {
     return flow;
   }
-  var ret = flow;
+  var ret: dynamic = flow;
   {
-    var i = cur[u];
+    var i: dynamic = cur[u];
     while ((i != -1))
     {
       if (w[i])
       {
-        var to = point[i];
+        var to: dynamic = point[i];
         if ((dep[to] != (dep[u] + 1)))
         {
           i = nxt[i];
           continue;
         }
-        var tmp = dfs(to, min(w[i], ret));
+        var tmp: dynamic = dfs(to, min(w[i], ret));
         if (tmp)
         {
           w[i] -= tmp;
@@ -242,13 +242,13 @@ func dfs(u: dynamic, flow: dynamic)
   return (flow - ret);
 }
 
-func Dinic()
+func Dinic() -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   while (bfs())
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= tot))
       {
         cur[i] = first[i];
@@ -260,16 +260,16 @@ func Dinic()
   return ret;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var bl = cpp_array(M);
+var bl: dynamic = cpp_array(M);
 
-func init()
+func init() -> dynamic
 {
   memset(first, -1, cpp_sizeof((first)));
   n = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = read();
@@ -277,13 +277,13 @@ func init()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < M))
     {
       if ((!bl[i]))
       {
         {
-          var j = (i + i);
+          var j: dynamic = (i + i);
           while ((j < M))
           {
             bl[j] = 1;
@@ -298,14 +298,14 @@ func init()
   S = cpp_update(tot, "++");
   T = cpp_update(tot, "++");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a[i] & 1))
       {
         Flow.add(S, i, 2);
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             if ((!bl[(a[i] + a[j])]))
@@ -324,34 +324,34 @@ func init()
   }
 }
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   init();
-  var F = Flow.Dinic();
+  var F: dynamic = Flow.Dinic();
   if ((F != n))
   {
     puts("Impossible");
     return 0;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))
       {
-        var v: dynamic;
-        var x = i;
+        var v: dynamic = cpp_uninitialized();
+        var x: dynamic = i;
         while (1)
         {
           vis[x] = 1;
           v.push_back(x);
-          var to = -1;
+          var to: dynamic = -1;
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= n))
             {
               if ((w[id[x][j]] && (!vis[j])))
@@ -374,10 +374,10 @@ func main()
     }
   }
   printf("%d\n", cpp_cast((ans).size()));
-  for (var v in ans)
+  for (var v: dynamic in ans)
   {
     printf("%d ", cpp_cast((v).size()));
-    for (var u in v)
+    for (var u: dynamic in v)
     {
       printf("%d ", u);
     }

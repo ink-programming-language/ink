@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-var N = 200200;
+var N: dynamic = 200200;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ANS = cpp_array(N);
+var ANS: dynamic = cpp_array(N);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-var G = cpp_array(N);
+var G: dynamic = cpp_array(N);
 
-var deg = cpp_array(N);
+var deg: dynamic = cpp_array(N);
 
-var q = cpp_array(N);
+var q: dynamic = cpp_array(N);
 
-var topQ: dynamic;
+var topQ: dynamic = cpp_uninitialized();
 
-var id = cpp_array(N);
+var id: dynamic = cpp_array(N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var Q = cpp_array(N);
+var Q: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var pref = cpp_array(N);
+var pref: dynamic = cpp_array(N);
 
-func read()
+func read() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&g[i]));
@@ -45,11 +45,11 @@ func read()
   }
   scanf("%d", (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var x: dynamic;
-      var v: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%lld%d", (&x), (&v));
       v -= 1;
       Q[v].push_back(make_pair(x, i));
@@ -58,10 +58,10 @@ func read()
   }
 }
 
-func solveTree(v: dynamic)
+func solveTree(v: dynamic) -> dynamic
 {
-  var big = -1;
-  for (var u in G[v])
+  var big: dynamic = -1;
+  for (var u: dynamic in G[v])
   {
     if (((big == -1) || (cpp_cast(a[id[u]].size()) > cpp_cast(a[id[big]].size()))))
     {
@@ -75,17 +75,17 @@ func solveTree(v: dynamic)
   {
     id[v] = id[big];
   }
-  var sz = cpp_cast(a[id[v]].size());
-  for (var u in G[v])
+  var sz: dynamic = cpp_cast(a[id[v]].size());
+  for (var u: dynamic in G[v])
   {
     if ((u == big))
     {
       continue;
     }
-    var z = id[u];
+    var z: dynamic = id[u];
     reverse(a[z].begin(), a[z].end());
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < cpp_cast(a[z].size())))
       {
         a[id[v]][((sz - 1) - i)] += a[z][i];
@@ -94,15 +94,15 @@ func solveTree(v: dynamic)
     }
   }
   a[id[v]].push_back(1);
-  for (var t in Q[v])
+  for (var t: dynamic in Q[v])
   {
-    var x = t.first;
+    var x: dynamic = t.first;
     if ((x <= sz))
     {
       ANS[t.second] = a[id[v]][(sz - x)];
     }
   }
-  var u = g[v];
+  var u: dynamic = g[v];
   G[u].push_back(v);
   deg[u] -= 1;
   if ((deg[u] == 0))
@@ -111,12 +111,12 @@ func solveTree(v: dynamic)
   }
 }
 
-func solveCycle(cycle: dynamic)
+func solveCycle(cycle: dynamic) -> dynamic
 {
   reverse(cycle.begin(), cycle.end());
-  var k = cpp_cast(cycle.size());
+  var k: dynamic = cpp_cast(cycle.size());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       b[i].clear();
@@ -125,12 +125,12 @@ func solveCycle(cycle: dynamic)
     }
   }
   {
-    var t = 0;
+    var t: dynamic = 0;
     while ((t < k))
     {
-      var v = cycle[t];
-      var big = -1;
-      for (var u in G[v])
+      var v: dynamic = cycle[t];
+      var big: dynamic = -1;
+      for (var u: dynamic in G[v])
       {
         if (((big == -1) || (cpp_cast(a[id[u]].size()) > cpp_cast(a[id[big]].size()))))
         {
@@ -144,17 +144,17 @@ func solveCycle(cycle: dynamic)
       {
         id[v] = id[big];
       }
-      var sz = cpp_cast(a[id[v]].size());
-      for (var u in G[v])
+      var sz: dynamic = cpp_cast(a[id[v]].size());
+      for (var u: dynamic in G[v])
       {
         if ((u == big))
         {
           continue;
         }
-        var z = id[u];
+        var z: dynamic = id[u];
         reverse(a[z].begin(), a[z].end());
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < cpp_cast(a[z].size())))
           {
             a[id[v]][((sz - 1) - i)] += a[z][i];
@@ -165,10 +165,10 @@ func solveCycle(cycle: dynamic)
       a[id[v]].push_back(1);
       reverse(a[id[v]].begin(), a[id[v]].end());
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= sz))
         {
-          var p = (((t + i)) % k);
+          var p: dynamic = (((t + i)) % k);
           b[p].push_back(make_pair(i, a[id[v]][i]));
           i += 1;
         }
@@ -177,12 +177,12 @@ func solveCycle(cycle: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       sort(b[i].begin(), b[i].end());
       pref[i].push_back(0);
-      for (var t in b[i])
+      for (var t: dynamic in b[i])
       {
         pref[i].push_back((pref[i].back() + t.second));
       }
@@ -190,14 +190,14 @@ func solveCycle(cycle: dynamic)
     }
   }
   {
-    var t = 0;
+    var t: dynamic = 0;
     while ((t < k))
     {
-      var v = cycle[t];
-      for (var z in Q[v])
+      var v: dynamic = cycle[t];
+      for (var z: dynamic in Q[v])
       {
-        var x = z.first;
-        var xx: dynamic;
+        var x: dynamic = z.first;
+        var xx: dynamic = cpp_uninitialized();
         if ((x > cpp_cast(1e7)))
         {
           xx = (x - (((((x - cpp_cast(1e7))) / k)) * k));
@@ -205,8 +205,8 @@ func solveCycle(cycle: dynamic)
         {
           xx = x;
         }
-        var p = (((xx + t)) % k);
-        var pos = (lower_bound(b[p].begin(), b[p].end(), make_pair(xx, N)) - b[p].begin());
+        var p: dynamic = (((xx + t)) % k);
+        var pos: dynamic = (lower_bound(b[p].begin(), b[p].end(), make_pair(xx, N)) - b[p].begin());
         ANS[z.second] = pref[p][pos];
       }
       t += 1;
@@ -214,11 +214,11 @@ func solveCycle(cycle: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read();
   {
-    var v = 0;
+    var v: dynamic = 0;
     while ((v < n))
     {
       if ((deg[v] == 0))
@@ -229,16 +229,16 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < topQ))
     {
-      var v = q[i];
+      var v: dynamic = q[i];
       solveTree(v);
       i += 1;
     }
   }
   {
-    var v = 0;
+    var v: dynamic = 0;
     while ((v < n))
     {
       if ((deg[v] == 0))
@@ -246,8 +246,8 @@ func main()
         v += 1;
         continue;
       }
-      var all: dynamic;
-      var u = v;
+      var all: dynamic = cpp_uninitialized();
+      var u: dynamic = v;
       while (true)
       {
         all.push_back(u);
@@ -258,7 +258,7 @@ func main()
         }
       }
       solveCycle(all);
-      for (var u in all)
+      for (var u: dynamic in all)
       {
         deg[u] = 0;
       }
@@ -266,7 +266,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       printf("%d\n", ANS[i]);

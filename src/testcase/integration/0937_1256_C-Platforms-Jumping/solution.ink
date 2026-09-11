@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1005);
+var a: dynamic = cpp_array(1005);
 
-var c = cpp_array(1005);
+var c: dynamic = cpp_array(1005);
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   {
     scanf("%d%d%d", (&n), (&m), (&d));
@@ -44,7 +44,7 @@ func main()
     i = cpp_assign(j, "=", 0);
     while ((i < n))
     {
-      var b = false;
+      var b: dynamic = false;
       if (((sum + j) >= n))
       {
         i -= 1;

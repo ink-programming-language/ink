@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   read(k);
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
-      var n: dynamic;
+      var n: dynamic = cpp_uninitialized();
       read(n);
       a[i].assign(n, 0);
-      var sum = 0;
+      var sum: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           read(a[i][j]);
@@ -26,18 +26,18 @@ func main()
       i += 1;
     }
   }
-  var b: dynamic;
-  var c: dynamic;
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
-      var m = a[i].size();
+      var m: dynamic = a[i].size();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
-          var index = (s[i] - a[i][j]);
+          var index: dynamic = (s[i] - a[i][j]);
           if ((c[index].find(i) != c[index].end()))
           {
             j += 1;
@@ -54,7 +54,7 @@ func main()
     }
   }
   {
-    var it = b.begin();
+    var it: dynamic = b.begin();
     while ((it != b.end()))
     {
       if (((it->second).size() >= 2))

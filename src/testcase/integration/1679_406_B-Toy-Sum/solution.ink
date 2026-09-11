@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var maxn = (1e6 + 1);
+var maxn: dynamic = (1e6 + 1);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var f = cpp_array(maxn);
+var f: dynamic = cpp_array(maxn);
 
-var g = cpp_array(maxn);
+var g: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&N));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       scanf("%d", (&a[i]));
@@ -29,7 +29,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < maxn))
     {
       if (f[i])
@@ -46,7 +46,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while (((i < maxn) && t))
     {
       if (((!f[i]) && (!f[(maxn - i)])))
@@ -61,7 +61,7 @@ func main()
   }
   printf("%d\n", M);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= M))
     {
       printf("%d ", s[i]);

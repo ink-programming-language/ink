@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var xx = [1, -1, 0, 0];
+var xx: dynamic = [1, -1, 0, 0];
 
-var yy = [0, 0, 1, -1];
+var yy: dynamic = [0, 0, 1, -1];
 
-var stx: dynamic;
+var stx: dynamic = cpp_uninitialized();
 
-var sty: dynamic;
+var sty: dynamic = cpp_uninitialized();
 
-var num: dynamic;
+var num: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var b = cpp_array(100005);
+var b: dynamic = cpp_array(100005);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func giv(x: dynamic, y: dynamic)
+func giv(x: dynamic, y: dynamic) -> dynamic
 {
   return (a[x] * b[y]);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
@@ -44,7 +44,7 @@ func main()
   stx = (((n + 1)) / 2);
   sty = (((m + 1)) / 2);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] += a[(i - 1)];
@@ -57,7 +57,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       b[i] += b[(i - 1)];
@@ -72,10 +72,10 @@ func main()
   q.push([giv(stx, sty), [stx, sty]]);
   while (q.size())
   {
-    var p = q.top();
+    var p: dynamic = q.top();
     q.pop();
-    var x = p.second.first;
-    var y = p.second.second;
+    var x: dynamic = p.second.first;
+    var y: dynamic = p.second.second;
     ans += p.first;
     num += 1;
     if ((num == k))
@@ -84,11 +84,11 @@ func main()
     }
     mp[[x, y]] = 1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
-        var nx = (x + xx[i]);
-        var ny = (y + yy[i]);
+        var nx: dynamic = (x + xx[i]);
+        var ny: dynamic = (y + yy[i]);
         if (((((nx <= 0) || (n < nx)) || (ny <= 0)) || (m < ny)))
         {
           i += 1;
@@ -105,6 +105,6 @@ func main()
       }
     }
   }
-  var x = ((((n - r) + 1)) * (((m - r) + 1)));
+  var x: dynamic = ((((n - r) + 1)) * (((m - r) + 1)));
   write(fixed, setprecision(10), (ans / x));
 }

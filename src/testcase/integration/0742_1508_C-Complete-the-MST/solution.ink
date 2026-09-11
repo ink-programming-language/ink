@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-var N = (2e5 + 20);
+var N: dynamic = (2e5 + 20);
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-var edges: dynamic;
+var edges: dynamic = cpp_uninitialized();
 
-var bal: dynamic;
+var bal: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var unvis: dynamic;
+var unvis: dynamic = cpp_uninitialized();
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var p2 = cpp_array(N);
+var p2: dynamic = cpp_array(N);
 
-var cnt = cpp_array(N);
+var cnt: dynamic = cpp_array(N);
 
-var sz = cpp_array(N);
+var sz: dynamic = cpp_array(N);
 
-func root(v: dynamic)
+func root(v: dynamic) -> dynamic
 {
   if ((p[v] == v))
   {
@@ -33,7 +33,7 @@ func root(v: dynamic)
   return cpp_assign(p[v], "=", root(p[v]));
 }
 
-func merge(a: dynamic, b: dynamic)
+func merge(a: dynamic, b: dynamic) -> dynamic
 {
   a = root(a);
   b = root(b);
@@ -45,7 +45,7 @@ func merge(a: dynamic, b: dynamic)
   sz[a] += sz[b];
 }
 
-func root2(v: dynamic)
+func root2(v: dynamic) -> dynamic
 {
   if ((p2[v] == v))
   {
@@ -54,7 +54,7 @@ func root2(v: dynamic)
   return cpp_assign(p2[v], "=", root2(p2[v]));
 }
 
-func merge2(a: dynamic, b: dynamic)
+func merge2(a: dynamic, b: dynamic) -> dynamic
 {
   a = root2(a);
   b = root2(b);
@@ -65,32 +65,32 @@ func merge2(a: dynamic, b: dynamic)
   p2[b] = a;
 }
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func bfs(s: dynamic)
+func bfs(s: dynamic) -> dynamic
 {
   q.push(s);
   vis[s] = true;
   unvis.erase(s);
   while ((!q.empty()))
   {
-    var v = q.front();
+    var v: dynamic = q.front();
     q.pop();
-    for (var x in g[v])
+    for (var x: dynamic in g[v])
     {
       if ((!vis[x]))
       {
         unvis.erase(x);
       }
     }
-    for (var x in unvis)
+    for (var x: dynamic in unvis)
     {
       merge(v, x);
       q.push(x);
       vis[x] = true;
     }
     unvis.clear();
-    for (var x in g[v])
+    for (var x: dynamic in g[v])
     {
       if ((!vis[x]))
       {
@@ -100,21 +100,21 @@ func bfs(s: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var u: dynamic;
-      var v: dynamic;
-      var w: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       read(u, v, w);
       u -= 1;
       v -= 1;
@@ -126,7 +126,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       unvis.insert(i);
@@ -137,7 +137,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((!vis[i]))
@@ -147,12 +147,12 @@ func main()
       i += 1;
     }
   }
-  var ok = false;
+  var ok: dynamic = false;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var (x, y) = edges[i].second;
+      var (x, y): dynamic = edges[i].second;
       if ((root(x) == root(y)))
       {
         cnt[root(x)] += 1;
@@ -162,10 +162,10 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x = root(i);
+      var x: dynamic = root(i);
       if (((((((sz[x] * (ll)((sz[x] - 1))) / 2) - cnt[x]) - sz[x]) + 1) > 0))
       {
         ok = true;
@@ -175,10 +175,10 @@ func main()
   }
   sort(edges.begin(), edges.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var (x, y) = edges[i].second;
+      var (x, y): dynamic = edges[i].second;
       if ((root(x) != root(y)))
       {
         ans += edges[i].first;
@@ -189,10 +189,10 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var (x, y) = edges[i].second;
+      var (x, y): dynamic = edges[i].second;
       if ((root2(x) != root2(y)))
       {
         bal = min(bal, edges[i].first);

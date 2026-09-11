@@ -1,63 +1,63 @@
 // Translated from solution.cpp.
 
-var arr = cpp_array(200005);
+var arr: dynamic = cpp_array(200005);
 
-var proc = cpp_array(200005);
+var proc: dynamic = cpp_array(200005);
 
-var payoff: dynamic;
+var payoff: dynamic = cpp_uninitialized();
 
-var queries = cpp_array(200005);
+var queries: dynamic = cpp_array(200005);
 
-func main()
+func main() -> dynamic
 {
   memset(proc, -1, cpp_sizeof((proc)));
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&arr[i]));
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
-      var type_cpp: dynamic;
-      var p: dynamic;
-      var x: dynamic;
+      var type_cpp: dynamic = cpp_uninitialized();
+      var p: dynamic = cpp_uninitialized();
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&type_cpp));
       if ((type_cpp == 1))
       {
         scanf("%d %d", (&p), (&x));
-        var pp = make_pair(1, make_pair(p, x));
+        var pp: dynamic = make_pair(1, make_pair(p, x));
         queries[i] = pp;
       } else
       {
         scanf("%d", (&x));
-        var pp = make_pair(2, make_pair(x, 0));
+        var pp: dynamic = make_pair(2, make_pair(x, 0));
         queries[i] = pp;
       }
       i += 1;
     }
   }
   {
-    var i = q;
+    var i: dynamic = q;
     while ((i >= 1))
     {
-      var pp = queries[i];
-      var typ = pp.first;
+      var pp: dynamic = queries[i];
+      var typ: dynamic = pp.first;
       if ((typ == 2))
       {
         payoff.insert((-(pp.second.first)));
       } else
       {
-        var p = pp.second.first;
-        var x = pp.second.second;
+        var p: dynamic = pp.second.first;
+        var x: dynamic = pp.second.second;
         if ((proc[p] != -1))
         {
           i -= 1;
@@ -65,7 +65,7 @@ func main()
         } else
         {
           proc[p] = x;
-          var xxx = (*(payoff.begin()));
+          var xxx: dynamic = (*(payoff.begin()));
           xxx = (xxx * (-1));
           if ((proc[p] < xxx))
           {
@@ -77,13 +77,13 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((proc[i] == -1))
       {
         proc[i] = arr[i];
-        var xxx = (*(payoff.begin()));
+        var xxx: dynamic = (*(payoff.begin()));
         xxx = (xxx * (-1));
         if ((proc[i] < xxx))
         {
@@ -94,7 +94,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%d ", proc[i]);

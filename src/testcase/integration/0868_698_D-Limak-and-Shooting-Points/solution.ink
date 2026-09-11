@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var tmp: dynamic;
-  var key = 0;
+  var tmp: dynamic = cpp_uninitialized();
+  var key: dynamic = 0;
   {
     tmp = getchar();
     while ((!isdigit(tmp)))
@@ -26,78 +26,78 @@ func read(x: dynamic)
   }
 }
 
-func ckmn(x: dynamic, y: dynamic)
+func ckmn(x: dynamic, y: dynamic) -> dynamic
 {
-  x = if ((x < y)) x else y;
+  x =  ((x < y)) ? x : y;
 }
 
-func ckmx(x: dynamic, y: dynamic)
+func ckmx(x: dynamic, y: dynamic) -> dynamic
 {
-  x = if ((x < y)) y else x;
+  x =  ((x < y)) ? y : x;
 }
 
 class point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func point(x: dynamic = 0, y: dynamic = 0)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func point(x: dynamic = 0, y: dynamic = 0) -> dynamic
   {
-      this->x = cpp_construct(x);
-      this->y = cpp_construct(y);
+      self->x = cpp_construct(x);
+      self->y = cpp_construct(y);
     }
-  func operator_add(a: dynamic)
+  func operator_add(a: dynamic) -> dynamic
   {
       return point((x + a.x), (y + a.y));
     }
-  func operator_subtract(a: dynamic)
+  func operator_subtract(a: dynamic) -> dynamic
   {
       return point((x - a.x), (y - a.y));
     }
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return (((1 * a.x) * b.y) - ((1 * a.y) * b.x));
 }
 
-func dot(a: dynamic, b: dynamic)
+func dot(a: dynamic, b: dynamic) -> dynamic
 {
   return (((1 * a.x) * b.x) + ((1 * a.y) * b.y));
 }
 
-var N = 1010;
+var N: dynamic = 1010;
 
-var K = 10;
+var K: dynamic = 10;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var per = cpp_array(K);
+var per: dynamic = cpp_array(K);
 
-var tmp: dynamic;
+var tmp: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var rec: dynamic;
+var rec: dynamic = cpp_uninitialized();
 
-var p1 = cpp_array(N);
+var p1: dynamic = cpp_array(N);
 
-var p2 = cpp_array(N);
+var p2: dynamic = cpp_array(N);
 
-var pat = cpp_array(N, K);
+var pat: dynamic = cpp_array(N, K);
 
-func dfs(cur: dynamic)
+func dfs(cur: dynamic) -> dynamic
 {
   if ((tmp >= k))
   {
     return false;
   }
-  var x = per[cpp_update(tmp, "++")];
+  var x: dynamic = per[cpp_update(tmp, "++")];
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i <= ((cpp_cast(pat[x][cur].size()) - 1))))
     {
       if ((vis[pat[x][cur][i]] != rec))
@@ -114,12 +114,12 @@ func dfs(cur: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   read(k);
   read(n);
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (k)))
     {
       read(p1[i].x);
@@ -128,7 +128,7 @@ func main()
     }
   }
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
       read(p2[i].x);
@@ -137,15 +137,15 @@ func main()
     }
   }
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (k)))
     {
       {
-        var a = (1);
+        var a: dynamic = (1);
         while ((a <= (n)))
         {
           {
-            var b = (1);
+            var b: dynamic = (1);
             while ((b <= (n)))
             {
               if ((cross((p2[b] - p1[i]), (p2[a] - p1[i])) == 0))
@@ -165,12 +165,12 @@ func main()
     }
   }
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i <= (n)))
     {
-      var key = 0;
+      var key: dynamic = 0;
       {
-        var j = (1);
+        var j: dynamic = (1);
         while ((j <= (k)))
         {
           per[j] = j;

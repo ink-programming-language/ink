@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s = cpp_array(200005);
+var s: dynamic = cpp_array(200005);
 
-var t = cpp_array(200005);
+var t: dynamic = cpp_array(200005);
 
-var ss = cpp_array(200005);
+var ss: dynamic = cpp_array(200005);
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", ss);
-  var n = strlen(ss);
+  var n: dynamic = strlen(ss);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       s[i] = (ss[(i - 1)] - cpp_char("0"));
       i += 1;
     }
   }
-  var tot = 0;
+  var tot: dynamic = 0;
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       if ((tot && s[i]))
@@ -45,7 +45,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%d", t[i]);

@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var S: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var S: dynamic = cpp_uninitialized();
   read(N, S);
-  var cnt1 = 0;
-  var cnt2 = 0;
+  var cnt1: dynamic = 0;
+  var cnt2: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((S[i] == cpp_char(".")))
@@ -18,9 +18,9 @@ func main()
       i += 1;
     }
   }
-  var ans = cnt2;
+  var ans: dynamic = cnt2;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((S[i] == cpp_char("#")))

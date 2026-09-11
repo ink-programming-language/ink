@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;++i)");
 }
 
-func rep1(i: dynamic, n: dynamic)
+func rep1(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=1;i<=n;++i)");
 }
 
-var a = [];
+var a: dynamic = [];
 
-var dx = [0, 0, -1, 1];
+var dx: dynamic = [0, 0, -1, 1];
 
-var dy = [-1, 1, 0, 0];
+var dy: dynamic = [-1, 1, 0, 0];
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-func paint(y: dynamic, x: dynamic, color: dynamic)
+func paint(y: dynamic, x: dynamic, color: dynamic) -> dynamic
 {
   if (((((fabs(a[y][x]) != 2) && (a[y][x] != 0))) || (a[y][x] == color)))
   {
@@ -35,13 +35,13 @@ func paint(y: dynamic, x: dynamic, color: dynamic)
   paint((y + dy[i]), (x + dx[i]), color);
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var tmp: dynamic;
+  var tmp: dynamic = cpp_uninitialized();
   while (cpp_comma(((cin >> w) >> h), (w | h)))
   {
-    var cntB = 0;
-    var cntW = 0;
+    var cntB: dynamic = 0;
+    var cntW: dynamic = 0;
     rep(y, (h + 2))[y][0] = cpp_assign(a[y][(w + 1)], "=", 100);
     rep(x, (w + 2))[0][x] = cpp_assign(a[(h + 1)][x], "=", 100);
     write(cntB, " ", cntW, "\n");
@@ -49,7 +49,7 @@ func main(argument_0: dynamic)
   return 0;
 }
 
-func rep1(argument_0: dynamic, argument_1: dynamic)
+func rep1(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         read(tmp);
         if ((tmp == cpp_char(".")))
@@ -64,11 +64,11 @@ func rep1(argument_0: dynamic, argument_1: dynamic)
         }
       }
 
-func rep1(argument_0: dynamic, argument_1: dynamic)
+func rep1(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     }
 
-func rep1(argument_0: dynamic, argument_1: dynamic)
+func rep1(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         if ((a[y][x] == 1))
         {
@@ -79,11 +79,11 @@ func rep1(argument_0: dynamic, argument_1: dynamic)
         }
       }
 
-func rep1(argument_0: dynamic, argument_1: dynamic)
+func rep1(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     }
 
-func rep1(argument_0: dynamic, argument_1: dynamic)
+func rep1(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         if ((a[y][x] == 2))
         {
@@ -94,6 +94,6 @@ func rep1(argument_0: dynamic, argument_1: dynamic)
         }
       }
 
-func rep1(argument_0: dynamic, argument_1: dynamic)
+func rep1(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     }

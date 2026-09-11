@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(3010);
+var a: dynamic = cpp_array(3010);
 
-func ksm(x: dynamic, y: dynamic = (mod - 2))
+func ksm(x: dynamic, y: dynamic = (mod - 2)) -> dynamic
 {
-  var z = 1;
+  var z: dynamic = 1;
   {
     while (y)
     {
@@ -27,7 +27,7 @@ func ksm(x: dynamic, y: dynamic = (mod - 2))
   return z;
 }
 
-func ADD(x: dynamic, y: dynamic)
+func ADD(x: dynamic, y: dynamic) -> dynamic
 {
   x += y;
   if ((x >= mod))
@@ -36,7 +36,7 @@ func ADD(x: dynamic, y: dynamic)
   }
 }
 
-func SUM(x: dynamic, y: dynamic)
+func SUM(x: dynamic, y: dynamic) -> dynamic
 {
   if (((x + y) >= mod))
   {
@@ -45,21 +45,21 @@ func SUM(x: dynamic, y: dynamic)
   return (x + y);
 }
 
-var g = cpp_array(3010, 3010);
+var g: dynamic = cpp_array(3010, 3010);
 
-var cnt = cpp_array(3010);
+var cnt: dynamic = cpp_array(3010);
 
-var pov = cpp_array(3010);
+var pov: dynamic = cpp_array(3010);
 
-var vop = cpp_array(3010);
+var vop: dynamic = cpp_array(3010);
 
-var s = cpp_array(3010, 3010);
+var s: dynamic = cpp_array(3010, 3010);
 
-func solve()
+func solve() -> dynamic
 {
   pov[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       pov[i] = (((pov[(i - 1)] << 1)) % mod);
@@ -67,7 +67,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       pov[i] = ((((pov[i] - 1) + mod)) % mod);
@@ -76,14 +76,14 @@ func solve()
     }
   }
   {
-    var l = 1;
+    var l: dynamic = 1;
     while ((l <= n))
     {
       memset(cnt, 0, cpp_sizeof((cnt)));
-      var ways = 1;
-      var nil = (c - 1);
+      var ways: dynamic = 1;
+      var nil: dynamic = (c - 1);
       {
-        var r = (l + 1);
+        var r: dynamic = (l + 1);
         while ((r <= n))
         {
           cnt[a[r]] += 1;
@@ -112,7 +112,7 @@ func solve()
       if (nil)
       {
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= c))
           {
             if (cnt[i])
@@ -125,7 +125,7 @@ func solve()
       } else
       {
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= c))
           {
             ways = (((1 * ways) * ((pov[cnt[i]] + ((i == a[l]))))) % mod);
@@ -140,15 +140,15 @@ func solve()
   }
   s[(n + 1)][0] = 1;
   {
-    var i = n;
+    var i: dynamic = n;
     while (i)
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           {
-            var k = ((i + c) - 1);
+            var k: dynamic = ((i + c) - 1);
             while ((k <= n))
             {
               s[i][j] += (g[i][k] * s[(k + 1)][(j - 1)]);
@@ -163,7 +163,7 @@ func solve()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= m))
         {
           (cpp_assign(s[i][j], "+=", s[(i + 1)][j])) %= mod;
@@ -174,7 +174,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       printf("%lld ", ((((s[1][i] + mod) - (!i))) % mod));
@@ -184,16 +184,16 @@ func solve()
   puts("");
 }
 
-var f = cpp_array((1 << 10), 3010, 2);
+var f: dynamic = cpp_array((1 << 10), 3010, 2);
 
-var lim: dynamic;
+var lim: dynamic = cpp_uninitialized();
 
-var res = cpp_array(3010);
+var res: dynamic = cpp_array(3010);
 
-func solve()
+func solve() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] -= 1;
@@ -203,15 +203,15 @@ func solve()
   lim = (1 << c);
   f[0][0][0] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= m))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < (lim - 1)))
             {
               f[(!((i & 1)))][j][k] = 0;
@@ -222,14 +222,14 @@ func solve()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= m))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < (lim - 1)))
             {
-              var K = (k | ((1 << a[(i + 1)])));
+              var K: dynamic = (k | ((1 << a[(i + 1)])));
               if ((K == (lim - 1)))
               {
                 K = 0;
@@ -246,11 +246,11 @@ func solve()
     }
   }
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j <= n))
     {
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < (lim - 1)))
         {
           (cpp_assign(res[j], "+=", f[(n & 1)][j][k])) %= mod;
@@ -261,7 +261,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       printf("%d ", ((((res[i] - (!i)) + mod)) % mod));
@@ -271,10 +271,10 @@ func solve()
   puts("");
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var c = getchar();
+  var c: dynamic = getchar();
   while (((c > cpp_char("9")) || (c < cpp_char("0"))))
   {
     c = getchar();
@@ -286,13 +286,13 @@ func read(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   read(c);
   m = (n / c);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);

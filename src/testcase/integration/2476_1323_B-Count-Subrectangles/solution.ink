@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func mul(a: dynamic, b: dynamic, m: dynamic = 1000000007)
+func mul(a: dynamic, b: dynamic, m: dynamic = 1000000007) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   a = (a % m);
   while ((b > 0))
   {
@@ -16,10 +16,10 @@ func mul(a: dynamic, b: dynamic, m: dynamic = 1000000007)
   return (res % m);
 }
 
-func expMod(a: dynamic, b: dynamic, m: dynamic = 1000000007)
+func expMod(a: dynamic, b: dynamic, m: dynamic = 1000000007) -> dynamic
 {
-  var x = 1;
-  var y = a;
+  var x: dynamic = 1;
+  var y: dynamic = a;
   while (b)
   {
     if (((b % 2) == 1))
@@ -32,25 +32,25 @@ func expMod(a: dynamic, b: dynamic, m: dynamic = 1000000007)
   return x;
 }
 
-func getBit(n: dynamic, i: dynamic)
+func getBit(n: dynamic, i: dynamic) -> dynamic
 {
   return (((n >> i)) & 1);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var N: dynamic;
-  var M: dynamic;
-  var k: dynamic;
-  var x: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(N, M, k);
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(x);
@@ -59,7 +59,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       read(x);
@@ -67,11 +67,11 @@ func main()
       i += 1;
     }
   }
-  var ta: dynamic;
-  var tb: dynamic;
-  var cnt = 0;
+  var ta: dynamic = cpp_uninitialized();
+  var tb: dynamic = cpp_uninitialized();
+  var cnt: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((a[i] == 0))
@@ -79,7 +79,7 @@ func main()
         if ((cnt != 0))
         {
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= cnt))
             {
               ta[j] += ((cnt - j) + 1);
@@ -99,7 +99,7 @@ func main()
   if ((cnt != 0))
   {
     {
-      var j = 1;
+      var j: dynamic = 1;
       while ((j <= cnt))
       {
         ta[j] += ((cnt - j) + 1);
@@ -109,7 +109,7 @@ func main()
   }
   cnt = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       if ((b[i] == 0))
@@ -117,7 +117,7 @@ func main()
         if ((cnt != 0))
         {
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= cnt))
             {
               tb[j] += ((cnt - j) + 1);
@@ -137,7 +137,7 @@ func main()
   if ((cnt != 0))
   {
     {
-      var j = 1;
+      var j: dynamic = 1;
       while ((j <= cnt))
       {
         tb[j] += ((cnt - j) + 1);
@@ -146,8 +146,8 @@ func main()
     }
   }
   cnt = 0;
-  var ans = 0;
-  for (var i in ta)
+  var ans: dynamic = 0;
+  for (var i: dynamic in ta)
   {
     if (((k % (i.first)) == 0))
     {

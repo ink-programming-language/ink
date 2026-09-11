@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(((cpp_cast(1e6) + 10)));
+var a: dynamic = cpp_array(((cpp_cast(1e6) + 10)));
 
-var b = cpp_array(((cpp_cast(1e6) + 10)));
+var b: dynamic = cpp_array(((cpp_cast(1e6) + 10)));
 
-var sum = 0;
+var sum: dynamic = 0;
 
-func calc(l: dynamic, r: dynamic, x: dynamic, sum: dynamic)
+func calc(l: dynamic, r: dynamic, x: dynamic, sum: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i <= r))
     {
-      var val = min(sum, b[i]);
+      var val: dynamic = min(sum, b[i]);
       sum -= val;
       res += (val * abs((i - x)));
       i += 1;
@@ -32,16 +32,16 @@ func calc(l: dynamic, r: dynamic, x: dynamic, sum: dynamic)
   return res;
 }
 
-func search(l: dynamic, r: dynamic, sum: dynamic)
+func search(l: dynamic, r: dynamic, sum: dynamic) -> dynamic
 {
-  var s = l;
-  var e = r;
+  var s: dynamic = l;
+  var e: dynamic = r;
   while (((r - l) >= 3))
   {
-    var m1 = (l + (((r - l)) / 3));
-    var m2 = (r - (((r - l)) / 3));
-    var f1 = calc(s, e, m1, sum);
-    var f2 = calc(s, e, m2, sum);
+    var m1: dynamic = (l + (((r - l)) / 3));
+    var m2: dynamic = (r - (((r - l)) / 3));
+    var f1: dynamic = calc(s, e, m1, sum);
+    var f2: dynamic = calc(s, e, m2, sum);
     if ((f1 < f2))
     {
       r = m2;
@@ -50,9 +50,9 @@ func search(l: dynamic, r: dynamic, sum: dynamic)
       l = m1;
     }
   }
-  var ans = calc(s, e, l, sum);
+  var ans: dynamic = calc(s, e, l, sum);
   {
-    var j = max(l, s);
+    var j: dynamic = max(l, s);
     while ((j <= min(e, r)))
     {
       ans = min(ans, calc(s, e, j, sum));
@@ -62,14 +62,14 @@ func search(l: dynamic, r: dynamic, sum: dynamic)
   return ans;
 }
 
-func try_this(d: dynamic)
+func try_this(d: dynamic) -> dynamic
 {
-  var res = 0;
-  var l = 0;
-  var r = -1;
-  var s = 0;
+  var res: dynamic = 0;
+  var l: dynamic = 0;
+  var r: dynamic = -1;
+  var s: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       b[i] = a[i];
@@ -77,7 +77,7 @@ func try_this(d: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((s == 0))
@@ -88,7 +88,7 @@ func try_this(d: dynamic)
       r = i;
       if (((s / d) > 0))
       {
-        var ds = (s - ((s % d)));
+        var ds: dynamic = (s - ((s % d)));
         res += search(l, r, ds);
         s = (s % d);
         b[i] = s;
@@ -100,11 +100,11 @@ func try_this(d: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%lld", (&a[i]));
@@ -117,10 +117,10 @@ func main()
     printf("%d\n", -1);
     return 0;
   }
-  var f: dynamic;
-  var s2 = sum;
+  var f: dynamic = cpp_uninitialized();
+  var s2: dynamic = sum;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= sum))
     {
       if (((s2 % i) == 0))
@@ -140,7 +140,7 @@ func main()
   }
   b[0] = a[0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       b[i] += b[(i - 1)];
@@ -148,9 +148,9 @@ func main()
       i += 1;
     }
   }
-  var ans = 1e18;
+  var ans: dynamic = 1e18;
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < f.size()))
     {
       ans = min(ans, try_this(f[j]));

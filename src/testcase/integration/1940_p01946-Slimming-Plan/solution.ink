@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var t: dynamic;
-  var d: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   read(s, t, d);
-  var aim = (s - t);
+  var aim: dynamic = (s - t);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < d))
     {
       read(w[i]);
       i += 1;
     }
   }
-  var sumw = w[0];
-  var dp = cpp_construct(d, 0);
+  var sumw: dynamic = w[0];
+  var dp: dynamic = cpp_construct(d, 0);
   dp[0] = w[0];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < d))
     {
       sumw += w[i];
@@ -29,9 +29,9 @@ func main()
       i += 1;
     }
   }
-  var mi = inf;
+  var mi: dynamic = inf;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < d))
     {
       if (((aim + dp[i]) <= 0))
@@ -49,7 +49,7 @@ func main()
     return 0;
   }
   mi = abs(mi);
-  var res = (((aim - mi)) / ((-sumw)));
+  var res: dynamic = (((aim - mi)) / ((-sumw)));
   aim += (res * sumw);
   res *= d;
   while ((aim > 0))

@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var h: dynamic;
-  var w: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   read(h, w);
-  var count: dynamic;
+  var count: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
-      var temp: dynamic;
+      var temp: dynamic = cpp_uninitialized();
       read(temp);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           count[temp[j]] += 1;
@@ -23,12 +23,12 @@ func main()
       i += 1;
     }
   }
-  var g1 = (((h % 2) * w) % 2);
-  var g2 = ((((w % 2) * h) / 2) + (((h % 2) * w) / 2));
-  var g4 = ((h / 2) * ((w / 2)));
+  var g1: dynamic = (((h % 2) * w) % 2);
+  var g2: dynamic = ((((w % 2) * h) / 2) + (((h % 2) * w) / 2));
+  var g4: dynamic = ((h / 2) * ((w / 2)));
   while (cpp_update(g1, "--"))
   {
-    for (var p in count)
+    for (var p: dynamic in count)
     {
       if ((p.second % 2))
       {
@@ -39,7 +39,7 @@ func main()
   }
   while (cpp_update(g2, "--"))
   {
-    for (var p in count)
+    for (var p: dynamic in count)
     {
       if (((p.second % 4) == 2))
       {
@@ -48,7 +48,7 @@ func main()
       }
     }
   }
-  for (var p in count)
+  for (var p: dynamic in count)
   {
     if ((p.second % 4))
     {

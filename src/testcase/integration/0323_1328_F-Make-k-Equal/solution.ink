@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var nmax = 200002;
+var nmax: dynamic = 200002;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(nmax);
+var a: dynamic = cpp_array(nmax);
 
-var s = cpp_array(nmax);
+var s: dynamic = cpp_array(nmax);
 
-var t = cpp_array(nmax);
+var t: dynamic = cpp_array(nmax);
 
-var c = cpp_array(nmax);
+var c: dynamic = cpp_array(nmax);
 
-var r = UINT64_MAX;
+var r: dynamic = UINT64_MAX;
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%llu%llu", (&n), (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%llu", (a + i));
@@ -33,7 +33,7 @@ func main()
   }
   sort((a + 1), ((a + n) + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       s[i] = (s[(i - 1)] + a[i]);
@@ -41,7 +41,7 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       t[i] = (t[(i + 1)] + a[i]);
@@ -49,7 +49,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a[i] == a[(i - 1)]))
@@ -68,7 +68,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((i >= k))

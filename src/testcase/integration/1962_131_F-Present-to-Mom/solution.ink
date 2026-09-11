@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var N = 510;
+var N: dynamic = 510;
 
-var data = cpp_array(N, N);
+var data: dynamic = cpp_array(N, N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N, N);
+var a: dynamic = cpp_array(N, N);
 
-var s = cpp_array(N, N);
+var s: dynamic = cpp_array(N, N);
 
-var go = [0, 0, -1, 0, 0, 1, 1, 0, 0, -1];
+var go: dynamic = [0, 0, -1, 0, 0, 1, 1, 0, 0, -1];
 
-func judge(x: dynamic, y: dynamic)
+func judge(x: dynamic, y: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 5))
     {
       if ((data[(x + go[i][0])][(y + go[i][1])] != cpp_char("1")))
@@ -32,20 +32,20 @@ func judge(x: dynamic, y: dynamic)
   return 1;
 }
 
-func cal(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
+func cal(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic) -> dynamic
 {
   return (((s[x2][y2] - s[(x1 - 1)][y2]) - s[x2][(y1 - 1)]) + s[(x1 - 1)][(y1 - 1)]);
 }
 
-func main()
+func main() -> dynamic
 {
   while ((scanf("%d%d%d", (&n), (&m), (&k)) != EOF))
   {
     memset(a, 0, cpp_sizeof((a)));
     memset(s, 0, cpp_sizeof((s)));
-    var i: dynamic;
-    var j: dynamic;
-    var p: dynamic;
+    var i: dynamic = cpp_uninitialized();
+    var j: dynamic = cpp_uninitialized();
+    var p: dynamic = cpp_uninitialized();
     {
       i = 1;
       while ((i <= n))
@@ -70,7 +70,7 @@ func main()
         i += 1;
       }
     }
-    var ans = 0;
+    var ans: dynamic = 0;
     {
       i = 1;
       while ((i <= n))
@@ -84,7 +84,7 @@ func main()
               j += 1;
               continue;
             }
-            var l = 1;
+            var l: dynamic = 1;
             {
               p = 3;
               while ((p <= m))

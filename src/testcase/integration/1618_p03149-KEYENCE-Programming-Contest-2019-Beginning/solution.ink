@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a = cpp_array(4);
+  var a: dynamic = cpp_array(4);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       read(a[i]);

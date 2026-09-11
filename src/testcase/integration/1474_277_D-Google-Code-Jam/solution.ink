@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var MAXN = 1605;
+var MAXN: dynamic = 1605;
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
 class data
 {
-  var a: dynamic;
-  var b: dynamic;
-  var s: dynamic;
-  var t: dynamic;
-  var p: dynamic;
-  func operator_less(d2: dynamic)
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  func operator_less(d2: dynamic) -> dynamic
   {
       return (((t * p) * ((1 - d2.p))) < ((d2.t * d2.p) * ((1 - p))));
     }
 }
 
-var a = cpp_array(MAXN);
+var a: dynamic = cpp_array(MAXN);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var f = cpp_array(MAXN, MAXN);
+var f: dynamic = cpp_array(MAXN, MAXN);
 
-var g = cpp_array(MAXN, MAXN);
+var g: dynamic = cpp_array(MAXN, MAXN);
 
-var ans = -1e100;
+var ans: dynamic = -1e100;
 
-var tim = 1e100;
+var tim: dynamic = 1e100;
 
-func main()
+func main() -> dynamic
 {
   read(N, T);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       read(a[i].a, a[i].b, a[i].s, a[i].t, a[i].p);
@@ -44,7 +44,7 @@ func main()
   }
   sort((a + 1), ((a + N) + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= T))
     {
       f[0][i] = -1e100;
@@ -52,11 +52,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= T))
         {
           f[i][j] = f[(i - 1)][j];
@@ -65,7 +65,7 @@ func main()
         }
       }
       {
-        var j = a[i].s;
+        var j: dynamic = a[i].s;
         while ((j <= T))
         {
           if ((((f[(i - 1)][(j - a[i].s)] + a[i].a) - f[i][j]) > eps))
@@ -80,7 +80,7 @@ func main()
         }
       }
       {
-        var j = (a[i].s + a[i].t);
+        var j: dynamic = (a[i].s + a[i].t);
         while ((j <= T))
         {
           if (((((f[(i - 1)][((j - a[i].s) - a[i].t)] + a[i].a) + (a[i].b * ((1 - a[i].p)))) - f[i][j]) > eps))
@@ -98,7 +98,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= T))
     {
       if (((f[N][i] - ans) > eps))

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var ch = cpp_array(256);
+var ch: dynamic = cpp_array(256);
 
-func main()
+func main() -> dynamic
 {
   ch[cpp_char("b")] = cpp_char("d");
   ch[cpp_char("d")] = cpp_char("b");
   ch[cpp_char("q")] = cpp_char("p");
   ch[cpp_char("p")] = cpp_char("q");
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < s.size()))

@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(105);
+var a: dynamic = cpp_array(105);
 
-var minn = 1e9;
+var minn: dynamic = 1e9;
 
-var maxx: dynamic;
+var maxx: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(105);
+var cnt: dynamic = cpp_array(105);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -40,7 +40,7 @@ func main()
     return 0;
   }
   {
-    var i = (minn + 1);
+    var i: dynamic = (minn + 1);
     while ((i < maxx))
     {
       if ((cnt[i] < 2))

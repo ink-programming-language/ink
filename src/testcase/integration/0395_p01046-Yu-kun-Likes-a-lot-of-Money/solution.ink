@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var INF = cpp_expression("#include <");
+var INF: dynamic = cpp_expression("#include <");
 
 class uftree
 {
   var par: dynamic = cpp_array(25);
   var rank: dynamic = cpp_array(25);
-  func uftree()
+  func uftree() -> dynamic
   {
     }
-  func init(n: dynamic)
+  func init(n: dynamic) -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           par[i] = i;
@@ -21,7 +21,7 @@ class uftree
         }
       }
     }
-  func find(x: dynamic)
+  func find(x: dynamic) -> dynamic
   {
       if ((par[x] == x))
       {
@@ -29,7 +29,7 @@ class uftree
       }
       return cpp_assign(par[x], "=", find(par[x]));
     }
-  func unite(x: dynamic, y: dynamic)
+  func unite(x: dynamic, y: dynamic) -> dynamic
   {
       x = find(x);
       y = find(y);
@@ -49,35 +49,35 @@ class uftree
         par[y] = x;
       }
     }
-  func same(x: dynamic, y: dynamic)
+  func same(x: dynamic, y: dynamic) -> dynamic
   {
       return (find(x) == find(y));
     }
 }
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-var vec: dynamic;
+var vec: dynamic = cpp_uninitialized();
 
-var tmp = cpp_array(8);
+var tmp: dynamic = cpp_array(8);
 
-var ki = cpp_array(8);
+var ki: dynamic = cpp_array(8);
 
-var id = cpp_array((1 << 25));
+var id: dynamic = cpp_array((1 << 25));
 
-func dfs(x: dynamic, c: dynamic)
+func dfs(x: dynamic, c: dynamic) -> dynamic
 {
   if ((x == w))
   {
-    var val = 0;
+    var val: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
         val += (tmp[i] * ki[i]);
@@ -101,7 +101,7 @@ func dfs(x: dynamic, c: dynamic)
         dfs((x + 1), (c + 1));
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= c))
         {
           tmp[x] = i;
@@ -113,13 +113,13 @@ func dfs(x: dynamic, c: dynamic)
   }
 }
 
-var dp = cpp_array(2, 100000, 10);
+var dp: dynamic = cpp_array(2, 100000, 10);
 
-func init()
+func init() -> dynamic
 {
   ki[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < w))
     {
       ki[i] = (ki[(i - 1)] * 5);
@@ -130,7 +130,7 @@ func init()
   sort(vec.begin(), vec.end());
   memset(id, -1, cpp_sizeof((id)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < vec.size()))
     {
       id[vec[i]] = i;
@@ -139,22 +139,22 @@ func init()
   }
 }
 
-var fie = cpp_array(8, 8);
+var fie: dynamic = cpp_array(8, 8);
 
-var val = cpp_array(64);
+var val: dynamic = cpp_array(64);
 
-var sx: dynamic;
+var sx: dynamic = cpp_uninitialized();
 
-var sy: dynamic;
+var sy: dynamic = cpp_uninitialized();
 
-func is_person(r: dynamic)
+func is_person(r: dynamic) -> dynamic
 {
   if ((sy != r))
   {
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
       if (((tmp[i] >= 1) && (sx == i)))
@@ -167,11 +167,11 @@ func is_person(r: dynamic)
   return 0;
 }
 
-func calc_rock(r: dynamic)
+func calc_rock(r: dynamic) -> dynamic
 {
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
       if (((tmp[i] >= 1) && (fie[r][i] == -1)))
@@ -188,11 +188,11 @@ func calc_rock(r: dynamic)
   return sum;
 }
 
-func calc_item(r: dynamic)
+func calc_item(r: dynamic) -> dynamic
 {
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
       if (((tmp[i] >= 1) && (fie[r][i] >= 1)))
@@ -205,11 +205,11 @@ func calc_item(r: dynamic)
   return sum;
 }
 
-func calc_id()
+func calc_id() -> dynamic
 {
-  var val = 0;
+  var val: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
       val += (tmp[i] * ki[i]);
@@ -219,7 +219,7 @@ func calc_id()
   if ((id[val] == -1))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
         printf("%d ", tmp[i]);
@@ -231,11 +231,11 @@ func calc_id()
   return id[val];
 }
 
-func calc_row0(r: dynamic, bit: dynamic)
+func calc_row0(r: dynamic, bit: dynamic) -> dynamic
 {
-  var sz = 0;
+  var sz: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
       if ((((bit >> i)) & 1))
@@ -262,38 +262,38 @@ func calc_row0(r: dynamic, bit: dynamic)
       i += 1;
     }
   }
-  var cost_r = calc_rock(r);
+  var cost_r: dynamic = calc_rock(r);
   if ((cost_r == -1))
   {
     return;
   }
-  var flag = is_person(r);
-  var cost_i = calc_item(r);
-  var index = calc_id();
+  var flag: dynamic = is_person(r);
+  var cost_i: dynamic = calc_item(r);
+  var index: dynamic = calc_id();
   dp[(r + 1)][index][flag] = (cost_i - cost_r);
 }
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, 1, 0, -1];
+var dy: dynamic = [0, 1, 0, -1];
 
-var fl1 = cpp_array(5);
+var fl1: dynamic = cpp_array(5);
 
-var fl2 = cpp_array(5);
+var fl2: dynamic = cpp_array(5);
 
-var tmp2 = cpp_array(8, 2);
+var tmp2: dynamic = cpp_array(8, 2);
 
-var tmp3 = cpp_array(8, 2);
+var tmp3: dynamic = cpp_array(8, 2);
 
-var colo = cpp_array(8);
+var colo: dynamic = cpp_array(8);
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-var po: dynamic;
+var po: dynamic = cpp_uninitialized();
 
-var uf: dynamic;
+var uf: dynamic = cpp_uninitialized();
 
-func dfs_row(x: dynamic, y: dynamic, sz: dynamic)
+func dfs_row(x: dynamic, y: dynamic, sz: dynamic) -> dynamic
 {
   tmp3[y][x] = sz;
   if ((y == 0))
@@ -308,11 +308,11 @@ func dfs_row(x: dynamic, y: dynamic, sz: dynamic)
     po = true;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
-      var nx = (x + dx[i]);
-      var ny = (y + dy[i]);
+      var nx: dynamic = (x + dx[i]);
+      var ny: dynamic = (y + dy[i]);
       if (((((nx >= 0) && (nx < w)) && (ny >= 0)) && (ny < 2)))
       {
         if (((tmp2[ny][nx] != 0) && (tmp3[ny][nx] == 0)))
@@ -325,12 +325,12 @@ func dfs_row(x: dynamic, y: dynamic, sz: dynamic)
   }
 }
 
-func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
+func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic) -> dynamic
 {
   memset(tmp2, 0, cpp_sizeof((tmp2)));
   {
-    var v = vec[index_p];
-    var x = 0;
+    var v: dynamic = vec[index_p];
+    var x: dynamic = 0;
     while ((v > 0))
     {
       if (((v % 5) >= 1))
@@ -345,7 +345,7 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
       if ((((bit >> i)) & 1))
@@ -360,7 +360,7 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
   memset(tmp3, 0, cpp_sizeof((tmp3)));
   uf.init(6);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
       if (((tmp2[0][i] != 0) && (tmp3[0][i] == 0)))
@@ -375,7 +375,7 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
         {
           while (st.size())
           {
-            var v = st.top();
+            var v: dynamic = st.top();
             st.pop();
             fl2[v] = true;
           }
@@ -384,11 +384,11 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
       i += 1;
     }
   }
-  var cn = 0;
-  var cn2 = 0;
+  var cn: dynamic = 0;
+  var cn2: dynamic = 0;
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
         if ((tmp2[0][i] > 0))
@@ -399,7 +399,7 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= 4))
       {
         if (fl1[i])
@@ -416,7 +416,7 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
     if ((cn >= 2))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= 4))
         {
           if ((fl1[i] && (!fl2[i])))
@@ -430,10 +430,10 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
   }
   if ((cn2 > 0))
   {
-    var prev = -2;
-    var kero = -100;
+    var prev: dynamic = -2;
+    var kero: dynamic = -100;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
         if (((tmp3[1][i] == 0) && (tmp2[1][i] == 1)))
@@ -453,7 +453,7 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
   } else
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
         if (((tmp3[1][i] == 0) && (tmp2[1][i] == 1)))
@@ -466,7 +466,7 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
   }
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
         if ((tmp3[1][i] > 0))
@@ -478,9 +478,9 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
     }
   }
   {
-    var vt: dynamic;
+    var vt: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
         tmp[i] = tmp3[1][i];
@@ -495,7 +495,7 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
     sort(vt.begin(), vt.end());
     vt.erase(unique(vt.begin(), vt.end()), vt.end());
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
         if ((tmp[i] == 0))
@@ -507,9 +507,9 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
         i += 1;
       }
     }
-    var mp: dynamic;
+    var mp: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
         if ((tmp[i] == 0))
@@ -525,7 +525,7 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < w))
       {
         if ((tmp[i] == 0))
@@ -538,21 +538,21 @@ func calc(r: dynamic, index_p: dynamic, flag_p: dynamic, bit: dynamic)
       }
     }
   }
-  var cost_r = calc_rock(r);
+  var cost_r: dynamic = calc_rock(r);
   if ((cost_r == -1))
   {
     return;
   }
-  var flag = (is_person(r) | flag_p);
-  var cost_i = calc_item(r);
-  var index = calc_id();
+  var flag: dynamic = (is_person(r) | flag_p);
+  var cost_i: dynamic = calc_item(r);
+  var index: dynamic = calc_id();
   dp[(r + 1)][index][flag] = max(dp[(r + 1)][index][flag], ((dp[r][index_p][flag_p] + cost_i) - cost_r));
   if ((((dp[r][index_p][flag_p] + cost_i) - cost_r) >= 0))
   {
   }
 }
 
-func is_ok(v: dynamic)
+func is_ok(v: dynamic) -> dynamic
 {
   while ((v > 0))
   {
@@ -565,18 +565,18 @@ func is_ok(v: dynamic)
   return true;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   scanf("%d%d%d%d", (&h), (&w), (&n), (&R));
   init();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       read(s);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           if (((s[j] >= cpp_char("0")) && (s[j] <= cpp_char("9"))))
@@ -611,11 +611,11 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var c: dynamic;
-      var a: dynamic;
+      var c: dynamic = cpp_uninitialized();
+      var a: dynamic = cpp_uninitialized();
       scanf(" %c%d", (&c), (&a));
       if (((c >= cpp_char("0")) && (c <= cpp_char("9"))))
       {
@@ -633,15 +633,15 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < vec.size()))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 2))
             {
               dp[i][j][k] = (-INF);
@@ -655,11 +655,11 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < h))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < ((1 << w))))
         {
           calc_row0(j, i);
@@ -670,15 +670,15 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < h))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < vec.size()))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 2))
             {
               if ((dp[i][j][k] == (-INF)))
@@ -687,7 +687,7 @@ func main(argument_0: dynamic)
                 continue;
               }
               {
-                var l = 0;
+                var l: dynamic = 0;
                 while ((l < ((1 << w))))
                 {
                   calc(i, j, k, l);
@@ -703,13 +703,13 @@ func main(argument_0: dynamic)
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= h))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < vec.size()))
         {
           if (is_ok(vec[i]))

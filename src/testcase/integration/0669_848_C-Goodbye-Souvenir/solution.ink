@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var MAXN = 100001;
+var MAXN: dynamic = 100001;
 
-var arr = cpp_array(MAXN);
+var arr: dynamic = cpp_array(MAXN);
 
-var mp = cpp_array(MAXN);
+var mp: dynamic = cpp_array(MAXN);
 
-var loga = cpp_array(MAXN);
+var loga: dynamic = cpp_array(MAXN);
 
-func add(a: dynamic, b: dynamic, x: dynamic)
+func add(a: dynamic, b: dynamic, x: dynamic) -> dynamic
 {
   {
-    var i = (a + 1);
+    var i: dynamic = (a + 1);
     while ((i < MAXN))
     {
       {
-        var j = (b + 1);
+        var j: dynamic = (b + 1);
         while ((j < MAXN))
         {
           loga[i][j] += x;
@@ -27,15 +27,15 @@ func add(a: dynamic, b: dynamic, x: dynamic)
   }
 }
 
-func get(a: dynamic, b: dynamic)
+func get(a: dynamic, b: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = (a + 1);
+    var i: dynamic = (a + 1);
     while (i)
     {
       {
-        var j = (b + 1);
+        var j: dynamic = (b + 1);
         while (j)
         {
           if (loga[i].count(j))
@@ -51,10 +51,10 @@ func get(a: dynamic, b: dynamic)
   return ret;
 }
 
-func remove(i: dynamic)
+func remove(i: dynamic) -> dynamic
 {
-  var s = mp[arr[i]];
-  var it = s.find(i);
+  var s: dynamic = mp[arr[i]];
+  var it: dynamic = s.find(i);
   if ((it != s.begin()))
   {
     add((*prev(it)), (*it), ((*prev(it)) - (*it)));
@@ -70,10 +70,10 @@ func remove(i: dynamic)
   s.erase(it);
 }
 
-func insert(i: dynamic)
+func insert(i: dynamic) -> dynamic
 {
-  var s = mp[arr[i]];
-  var it = s.insert(i).first;
+  var s: dynamic = mp[arr[i]];
+  var it: dynamic = s.insert(i).first;
   if ((it != s.begin()))
   {
     add((*prev(it)), (*it), ((*it) - (*prev(it))));
@@ -88,13 +88,13 @@ func insert(i: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   read(n, m);
   {
     i = 0;
@@ -105,12 +105,12 @@ func main()
       i += 1;
     }
   }
-  for (var x in mp)
+  for (var x: dynamic in mp)
   {
     if ((!x.empty()))
     {
       {
-        var it = next(x.begin());
+        var it: dynamic = next(x.begin());
         while ((it != x.end()))
         {
           add((*prev(it)), (*it), ((*it) - (*prev(it))));
@@ -121,9 +121,9 @@ func main()
   }
   while (cpp_update(m, "--"))
   {
-    var q: dynamic;
-    var a: dynamic;
-    var b: dynamic;
+    var q: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     read(q, a, b);
     a -= 1;
     if ((q == 1))

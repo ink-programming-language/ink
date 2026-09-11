@@ -1,63 +1,63 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(int)(n);++i)");
 }
 
-func FOR(i: dynamic, c: dynamic)
+func FOR(i: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof((c).begin())i=(c).begin();i!=(c).end();++i)");
 }
 
-func ALL(c: dynamic)
+func ALL(c: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #i");
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostr");
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostr");
 }
 
-func valid(y: dynamic, x: dynamic, h: dynamic, w: dynamic)
+func valid(y: dynamic, x: dynamic, h: dynamic, w: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #i");
 }
 
-var INF = (1 << 29);
+var INF: dynamic = (1 << 29);
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-var PI = acos(-1);
+var PI: dynamic = acos(-1);
 
-var e = cpp_array(100);
+var e: dynamic = cpp_array(100);
 
-var c = cpp_array(100);
+var c: dynamic = cpp_array(100);
 
-var h = cpp_array(100);
+var h: dynamic = cpp_array(100);
 
-var a = cpp_array(100);
+var a: dynamic = cpp_array(100);
 
-var dp = cpp_array(101, 101);
+var dp: dynamic = cpp_array(101, 101);
 
-var dp_tr = cpp_array(101, 101);
+var dp_tr: dynamic = cpp_array(101, 101);
 
-var dp_d = cpp_array(10000);
+var dp_d: dynamic = cpp_array(10000);
 
-func main()
+func main() -> dynamic
 {
-  var S: dynamic;
-  var T: dynamic;
-  var U: dynamic;
-  var N: dynamic;
-  var O: dynamic;
-  var D: dynamic;
+  var S: dynamic = cpp_uninitialized();
+  var T: dynamic = cpp_uninitialized();
+  var U: dynamic = cpp_uninitialized();
+  var N: dynamic = cpp_uninitialized();
+  var O: dynamic = cpp_uninitialized();
+  var D: dynamic = cpp_uninitialized();
   while (((((((cin >> S) >> T) >> U) >> N) >> O) >> D))
   {
     memset(dp_tr, -1, cpp_sizeof((dp_tr)));
@@ -69,20 +69,20 @@ func main()
   }
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       read(e[i], c[i]);
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       read(h[i], a[i]);
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       {
-        var j = (T - 1);
+        var j: dynamic = (T - 1);
         while ((j >= 0))
         {
           cpp_statement("REP(k,101)");
@@ -102,7 +102,7 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       REP(k, 10001);
       {
@@ -113,7 +113,7 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       cpp_statement("REP(j,S+1)");
       {

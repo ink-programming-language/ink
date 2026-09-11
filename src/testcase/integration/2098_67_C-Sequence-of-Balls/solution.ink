@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var maxn = 4111;
+var maxn: dynamic = 4111;
 
-var maxm = 257;
+var maxm: dynamic = 257;
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var f = cpp_array(maxn, maxn);
+var f: dynamic = cpp_array(maxn, maxn);
 
-var A = cpp_array(maxn);
+var A: dynamic = cpp_array(maxn);
 
-var B = cpp_array(maxn);
+var B: dynamic = cpp_array(maxn);
 
-var pos = cpp_array(maxm, 2);
+var pos: dynamic = cpp_array(maxm, 2);
 
-var t = cpp_array(5);
+var t: dynamic = cpp_array(5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func get()
+func get() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       if ((1 != scanf("%d", (t + i))))
@@ -37,7 +37,7 @@ func get()
   return 1;
 }
 
-func update(a: dynamic, b: dynamic)
+func update(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b < a))
   {
@@ -45,16 +45,16 @@ func update(a: dynamic, b: dynamic)
   }
 }
 
-func work()
+func work() -> dynamic
 {
   n = strlen((A + 1));
   m = strlen((B + 1));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= m))
         {
           f[i][j] = inf;
@@ -66,7 +66,7 @@ func work()
   }
   f[0][0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       f[i][0] = (i * t[1]);
@@ -74,7 +74,7 @@ func work()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       f[0][i] = (i * t[0]);
@@ -83,18 +83,18 @@ func work()
   }
   memset(pos, 0, cpp_sizeof(pos));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           update(f[i][j], (f[i][(j - 1)] + t[0]));
           update(f[i][j], (f[(i - 1)][j] + t[1]));
           update(f[i][j], (f[(i - 1)][(j - 1)] + (((A[i] != B[j])) * t[2])));
-          var a: dynamic;
-          var b: dynamic;
+          var a: dynamic = cpp_uninitialized();
+          var b: dynamic = cpp_uninitialized();
           if (((cpp_assign(b, "=", pos[1][A[i]])) && (cpp_assign(a, "=", pos[0][B[j]]))))
           {
             update(f[i][j], (((f[(a - 1)][(b - 1)] + t[3]) + ((((i - a) - 1)) * t[1])) + ((((j - b) - 1)) * t[0])));
@@ -111,7 +111,7 @@ func work()
   write(f[n][m], "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   while (get())
   {

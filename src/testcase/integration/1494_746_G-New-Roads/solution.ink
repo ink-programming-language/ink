@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var v = cpp_array(200005);
+var v: dynamic = cpp_array(200005);
 
-var ar = cpp_array(200005);
+var ar: dynamic = cpp_array(200005);
 
-func print(t: dynamic)
+func print(t: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= t))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ar[i]))
         {
           write(v[i][j], " ");
@@ -24,19 +24,19 @@ func print(t: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var t: dynamic;
-  var k: dynamic;
-  var mn: dynamic;
-  var mx: dynamic;
-  var f = 1;
+  var n: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var mn: dynamic = cpp_uninitialized();
+  var mx: dynamic = cpp_uninitialized();
+  var f: dynamic = 1;
   scanf("%d%d%d", (&n), (&t), (&k));
   mx = (n - t);
   ar[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= t))
     {
       scanf("%d", (&ar[i]));
@@ -45,12 +45,12 @@ func main()
   }
   mn = ar[t];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t))
     {
       v[i].push_back(ar[(i + 1)]);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < ar[i]))
         {
           v[i].push_back(0);
@@ -61,7 +61,7 @@ func main()
     }
   }
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= ar[t]))
     {
       v[t].push_back(0);
@@ -70,16 +70,16 @@ func main()
   }
   if (((k >= mn) && (k <= mx)))
   {
-    var z = ((n - ar[t]) - t);
+    var z: dynamic = ((n - ar[t]) - t);
     k = (k - ar[t]);
     z = (z - k);
     {
-      var i = (t - 1);
+      var i: dynamic = (t - 1);
       while (((i >= 1) && (z != 0)))
       {
-        var vl = ar[(i + 1)];
+        var vl: dynamic = ar[(i + 1)];
         {
-          var j = 0;
+          var j: dynamic = 0;
           while (((j < ar[i]) && (z != 0)))
           {
             if ((vl != 0))
@@ -112,18 +112,18 @@ func main()
   } else
   {
     write(n, "\n");
-    var a = 1;
+    var a: dynamic = 1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < t))
       {
         mn = (a + ar[i]);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ar[i]))
           {
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < v[i][j]))
               {
                 write(a, " ", mn, "\n");

@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var val = cpp_array(200010);
+var val: dynamic = cpp_array(200010);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var next = cpp_array(200010);
+var next: dynamic = cpp_array(200010);
 
-var head = cpp_array(200010);
+var head: dynamic = cpp_array(200010);
 
-var s = cpp_array(100010);
+var s: dynamic = cpp_array(100010);
 
-var ans = cpp_array(400010);
+var ans: dynamic = cpp_array(400010);
 
-var out: dynamic;
+var out: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(100010);
+var vis: dynamic = cpp_array(100010);
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   val[cpp_update(cnt, "++")] = b;
   next[cnt] = head[a];
   head[a] = cnt;
 }
 
-func work(x: dynamic)
+func work(x: dynamic) -> dynamic
 {
   s[x] ^= 1;
   ans[cpp_update(out, "++")] = x;
 }
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   work(u);
   vis[u] = true;
   {
-    var i = head[u];
+    var i: dynamic = head[u];
     while (i)
     {
-      var v = val[i];
+      var v: dynamic = val[i];
       if (vis[v])
       {
         i = next[i];
@@ -61,15 +61,15 @@ func dfs(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d%d", (&u), (&v));
       add(u, v);
       add(v, u);
@@ -77,7 +77,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&s[i]));
@@ -95,7 +95,7 @@ func main()
     out -= 1;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((s[i] != 0))
@@ -108,7 +108,7 @@ func main()
   }
   printf("%d\n", out);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= out))
     {
       printf("%d ", ans[i]);

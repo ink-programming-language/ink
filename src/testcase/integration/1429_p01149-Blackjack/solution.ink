@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-var f = cpp_array(128);
+var f: dynamic = cpp_array(128);
 
-func isAce11(hand: dynamic)
+func isAce11(hand: dynamic) -> dynamic
 {
-  var sc = 0;
-  var acecnt = 0;
+  var sc: dynamic = 0;
+  var acecnt: dynamic = 0;
   rep(i, hand.size());
   {
     sc += f[hand[i]];
@@ -24,10 +24,10 @@ func isAce11(hand: dynamic)
   return (((acecnt > 0) && (sc <= 11)));
 }
 
-func score(hand: dynamic)
+func score(hand: dynamic) -> dynamic
 {
-  var sc = 0;
-  var acecnt = 0;
+  var sc: dynamic = 0;
+  var acecnt: dynamic = 0;
   rep(i, hand.size());
   {
     sc += f[hand[i]];
@@ -43,7 +43,7 @@ func score(hand: dynamic)
   return sc;
 }
 
-func main()
+func main() -> dynamic
 {
   f[cpp_char("A")] = 1;
   f[cpp_char("2")] = 2;
@@ -58,23 +58,23 @@ func main()
   f[cpp_char("J")] = 10;
   f[cpp_char("Q")] = 10;
   f[cpp_char("K")] = 10;
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   scanf("%d", (&T));
   while (cpp_update(T, "--"))
   {
-    var hand = cpp_construct(2);
+    var hand: dynamic = cpp_construct(2);
     scanf(" %c %c", (&hand[0]), (&hand[1]));
-    var card = cpp_array(8);
+    var card: dynamic = cpp_array(8);
     rep(i, 8);
     scanf(" %c", (card + i));
-    var sc = score(hand);
+    var sc: dynamic = score(hand);
     if ((sc == 21))
     {
       puts("blackjack");
       continue;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while (true)
       {
         sc = score(hand);

@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var N = cpp_expression("#incl");
+var N: dynamic = cpp_expression("#incl");
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var x = cpp_array(N);
+var x: dynamic = cpp_array(N);
 
-var y = cpp_array(N);
+var y: dynamic = cpp_array(N);
 
-func solve()
+func solve() -> dynamic
 {
   {
     i = cpp_assign(j, "=", 1);
@@ -49,7 +49,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%s", (&n), (&k), (c + 1));
   k -= 1;

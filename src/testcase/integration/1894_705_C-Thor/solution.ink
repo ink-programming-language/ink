@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
-  var q: dynamic;
-  var unread = 0;
-  var clearupto = 0;
-  var t = 1;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var unread: dynamic = 0;
+  var clearupto: dynamic = 0;
+  var t: dynamic = 1;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, q);
-  var app = cpp_construct((n + 1));
-  var time = cpp_construct((q + 1));
-  var it: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var app: dynamic = cpp_construct((n + 1));
+  var time: dynamic = cpp_construct((q + 1));
+  var it: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   while (cpp_update(q, "--"))
   {
     read(x, y);

@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var dx = [0, 0, 1, -1, -1, -1, 1, 1];
+var dx: dynamic = [0, 0, 1, -1, -1, -1, 1, 1];
 
-var dy = [1, -1, 0, 0, -1, 1, 1, -1];
+var dy: dynamic = [1, -1, 0, 0, -1, 1, 1, -1];
 
-func biton(n: dynamic, pos: dynamic)
+func biton(n: dynamic, pos: dynamic) -> dynamic
 {
   return (n | ((cpp_cast(1) << pos)));
 }
 
-func bitoff(n: dynamic, pos: dynamic)
+func bitoff(n: dynamic, pos: dynamic) -> dynamic
 {
   return (n & (~((cpp_cast(1) << pos))));
 }
 
-func ison(n: dynamic, pos: dynamic)
+func ison(n: dynamic, pos: dynamic) -> dynamic
 {
   return cpp_cast(((n & ((cpp_cast(1) << pos)))));
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   while (b)
   {
@@ -29,37 +29,37 @@ func gcd(a: dynamic, b: dynamic)
   return a;
 }
 
-func NumberToString(Number: dynamic)
+func NumberToString(Number: dynamic) -> dynamic
 {
-  var second: dynamic;
+  var second: dynamic = cpp_uninitialized();
   (second << Number);
   return second.str();
 }
 
-func nxt()
+func nxt() -> dynamic
 {
-  var aaa: dynamic;
+  var aaa: dynamic = cpp_uninitialized();
   scanf("%d", (&aaa));
   return aaa;
 }
 
-func lxt()
+func lxt() -> dynamic
 {
-  var aaa: dynamic;
+  var aaa: dynamic = cpp_uninitialized();
   scanf("%lld", (&aaa));
   return aaa;
 }
 
-func dxt()
+func dxt() -> dynamic
 {
-  var aaa: dynamic;
+  var aaa: dynamic = cpp_uninitialized();
   scanf("%lf", (&aaa));
   return aaa;
 }
 
-func bigmod(p: dynamic, e: dynamic, m: dynamic)
+func bigmod(p: dynamic, e: dynamic, m: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   {
     while ((e > 0))
     {
@@ -74,15 +74,15 @@ func bigmod(p: dynamic, e: dynamic, m: dynamic)
   return cpp_cast(ret);
 }
 
-var ar = cpp_array(600010);
+var ar: dynamic = cpp_array(600010);
 
-var sum = cpp_array(600010);
+var sum: dynamic = cpp_array(600010);
 
-var cum = cpp_array(600010);
+var cum: dynamic = cpp_array(600010);
 
-var tree = cpp_array(600010);
+var tree: dynamic = cpp_array(600010);
 
-func update(pos: dynamic, limit: dynamic, val: dynamic)
+func update(pos: dynamic, limit: dynamic, val: dynamic) -> dynamic
 {
   while ((pos <= limit))
   {
@@ -91,9 +91,9 @@ func update(pos: dynamic, limit: dynamic, val: dynamic)
   }
 }
 
-func query(pos: dynamic)
+func query(pos: dynamic) -> dynamic
 {
-  var s = 0;
+  var s: dynamic = 0;
   while ((pos > 0))
   {
     s += tree[pos];
@@ -102,16 +102,16 @@ func query(pos: dynamic)
   return s;
 }
 
-func go(mid: dynamic, k: dynamic, n: dynamic, r: dynamic)
+func go(mid: dynamic, k: dynamic, n: dynamic, r: dynamic) -> dynamic
 {
-  var i = 1;
+  var i: dynamic = 1;
   memset(cum, 0, cpp_sizeof((cum)));
   while ((i <= n))
   {
     cum[i] += cum[(i - 1)];
     if (((sum[i] + cum[i]) < mid))
     {
-      var extra = (mid - ((sum[i] + cum[i])));
+      var extra: dynamic = (mid - ((sum[i] + cum[i])));
       cum[i] += extra;
       cum[min(((i + (2 * r)) + 1), (n + 1))] -= extra;
       k -= extra;
@@ -125,13 +125,13 @@ func go(mid: dynamic, k: dynamic, n: dynamic, r: dynamic)
   return (k >= 0);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n = nxt();
-  var r = nxt();
-  var k = lxt();
+  var n: dynamic = nxt();
+  var r: dynamic = nxt();
+  var k: dynamic = lxt();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ar[i] = lxt();
@@ -139,11 +139,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var le = (i - r);
-      var ri = (i + r);
+      var le: dynamic = (i - r);
+      var ri: dynamic = (i + r);
       le = max(le, 1);
       ri = min(ri, n);
       sum[le] += ar[i];
@@ -152,18 +152,18 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sum[i] += sum[(i - 1)];
       i += 1;
     }
   }
-  var b = 0;
-  var e = cpp_cast(LLONG_MAX);
+  var b: dynamic = 0;
+  var e: dynamic = cpp_cast(LLONG_MAX);
   while ((b <= e))
   {
-    var mid = (((b + e)) / 2);
+    var mid: dynamic = (((b + e)) / 2);
     if (go(mid, k, n, r))
     {
       b = (mid + 1);

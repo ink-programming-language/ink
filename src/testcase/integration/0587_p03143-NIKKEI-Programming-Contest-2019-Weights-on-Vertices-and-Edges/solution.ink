@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var N = 100010;
+var N: dynamic = 100010;
 
-var w = cpp_array(N);
+var w: dynamic = cpp_array(N);
 
-var fa = cpp_array(N);
+var fa: dynamic = cpp_array(N);
 
-var pa = cpp_array(N);
+var pa: dynamic = cpp_array(N);
 
-var q = cpp_array(N);
+var q: dynamic = cpp_array(N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-func gi()
+func gi() -> dynamic
 {
-  var x = 0;
-  var o = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var o: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
-    if ((ch == cpp_char("-"))) cpp_assign(o, "=", -1) else 0;
+     ((ch == cpp_char("-"))) ? cpp_assign(o, "=", -1) : 0;
     ch = getchar();
   }
   while (((ch >= cpp_char("0")) && (ch <= cpp_char("9"))))
@@ -34,36 +34,36 @@ func gi()
 
 class Dat
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
-  func operator_less(A: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
+  func operator_less(A: dynamic) -> dynamic
   {
       return (z < A.z);
     }
 }
 
-var g = cpp_array(N);
+var g: dynamic = cpp_array(N);
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
-  return if ((fa[x] == x)) x else cpp_assign(fa[x], "=", find(fa[x]));
+  return  ((fa[x] == x)) ? x : cpp_assign(fa[x], "=", find(fa[x]));
 }
 
-func get(x: dynamic)
+func get(x: dynamic) -> dynamic
 {
-  return if ((pa[x] == x)) x else cpp_assign(pa[x], "=", get(pa[x]));
+  return  ((pa[x] == x)) ? x : cpp_assign(pa[x], "=", get(pa[x]));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var ans: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   read(n, m);
   ans = m;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = cpp_assign(b[i], "=", gi());
@@ -72,7 +72,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       g[i].x = gi();
@@ -83,11 +83,11 @@ func main()
   }
   sort((g + 1), ((g + 1) + m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var x = find(g[i].x);
-      var y = find(g[i].y);
+      var x: dynamic = find(g[i].x);
+      var y: dynamic = find(g[i].y);
       if ((x != y))
       {
         if ((q[x].size() < q[y].size()))
@@ -98,16 +98,16 @@ func main()
         q[x].push_back(i);
         fa[y] = x;
         a[x] += a[y];
-        for (var j in q[y])
+        for (var j: dynamic in q[y])
         {
           q[x].push_back(j);
         }
         if ((a[x] >= g[i].z))
         {
-          for (var j in q[x])
+          for (var j: dynamic in q[x])
           {
-            var X = get(g[j].x);
-            var Y = get(g[j].y);
+            var X: dynamic = get(g[j].x);
+            var Y: dynamic = get(g[j].y);
             pa[Y] = X;
             b[X] += b[Y];
             ans -= 1;
@@ -119,7 +119,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       if (((!w[i]) && (b[get(g[i].x)] >= g[i].z)))

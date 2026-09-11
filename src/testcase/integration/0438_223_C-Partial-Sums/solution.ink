@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var maxn = 2005;
+var maxn: dynamic = 2005;
 
-func safe_mul(a: dynamic, b: dynamic)
+func safe_mul(a: dynamic, b: dynamic) -> dynamic
 {
   a = ((((a * 1) * b)) % mod);
 }
 
-func mypow(a: dynamic, b: dynamic)
+func mypow(a: dynamic, b: dynamic) -> dynamic
 {
-  var ans = 1;
-  var tmp = a;
+  var ans: dynamic = 1;
+  var tmp: dynamic = a;
   while (b)
   {
     if ((b & 1))
@@ -25,24 +25,24 @@ func mypow(a: dynamic, b: dynamic)
   return ans;
 }
 
-func inv(x: dynamic)
+func inv(x: dynamic) -> dynamic
 {
   return mypow(x, (mod - 2));
 }
 
-var koef = cpp_array(maxn);
+var koef: dynamic = cpp_array(maxn);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
   koef[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       koef[i] = koef[(i - 1)];
@@ -51,7 +51,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -59,12 +59,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var ans = 0;
+      var ans: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= i))
         {
           ans = (((ans + ((koef[j] * 1) * a[(i - j)]))) % mod);

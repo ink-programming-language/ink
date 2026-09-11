@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var xx = cpp_array(105);
+var xx: dynamic = cpp_array(105);
 
-var yy = cpp_array(105);
+var yy: dynamic = cpp_array(105);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d%d", (&x), (&y));
@@ -22,10 +22,10 @@ func main()
       i += 1;
     }
   }
-  var n1 = 0;
-  var n2 = 0;
+  var n1: dynamic = 0;
+  var n2: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 100))
     {
       if ((xx[i] == 1))

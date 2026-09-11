@@ -1,50 +1,50 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, s: dynamic, n: dynamic)
+func REP(i: dynamic, s: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=s;i<n;i++)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include<b");
 }
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var LP: dynamic;
+var LP: dynamic = cpp_uninitialized();
 
-var LP_dir: dynamic;
+var LP_dir: dynamic = cpp_uninitialized();
 
-var polluted_room = cpp_array(9, 9);
+var polluted_room: dynamic = cpp_array(9, 9);
 
-var visited = cpp_array(9, 9);
+var visited: dynamic = cpp_array(9, 9);
 
-var room = cpp_array(9, 9);
+var room: dynamic = cpp_array(9, 9);
 
-var dx8 = [+0, +1, +1, +1, +0, -1, -1, -1];
+var dx8: dynamic = [+0, +1, +1, +1, +0, -1, -1, -1];
 
-var dy8 = [-1, -1, +0, +1, +1, +1, +0, -1];
+var dy8: dynamic = [-1, -1, +0, +1, +1, +1, +0, -1];
 
-var dx = [0, 1, 0, -1];
+var dx: dynamic = [0, 1, 0, -1];
 
-var dy = [1, 0, -1, 0];
+var dy: dynamic = [1, 0, -1, 0];
 
-var statue: dynamic;
+var statue: dynamic = cpp_uninitialized();
 
-func isMirror(x: dynamic, y: dynamic)
+func isMirror(x: dynamic, y: dynamic) -> dynamic
 {
   return ((((((room[y][x] == cpp_char("/")) || (room[y][x] == cpp_char("\\"))) || (room[y][x] == cpp_char("-"))) || (room[y][x] == cpp_char("|"))) || (room[y][x] == cpp_char("O"))));
 }
 
-func isValid(x: dynamic, y: dynamic)
+func isValid(x: dynamic, y: dynamic) -> dynamic
 {
   return ((((0 <= x) && (x < W)) && (0 <= y)) && (y < H));
 }
 
-func validMove(x: dynamic, y: dynamic, dir: dynamic)
+func validMove(x: dynamic, y: dynamic, dir: dynamic) -> dynamic
 {
   if ((((((room[y][x] == cpp_char("#")) || (room[y][x] == cpp_char("*"))) || (room[y][x] == cpp_char("S"))) || (room[y][x] == cpp_char("L"))) || (room[y][x] == cpp_char("D"))))
   {
@@ -52,8 +52,8 @@ func validMove(x: dynamic, y: dynamic, dir: dynamic)
   }
   if (isMirror(x, y))
   {
-    var nx = (x + dx[dir]);
-    var ny = (y + dy[dir]);
+    var nx: dynamic = (x + dx[dir]);
+    var ny: dynamic = (y + dy[dir]);
     if ((!isValid(nx, ny)))
     {
       return false;
@@ -66,22 +66,22 @@ func validMove(x: dynamic, y: dynamic, dir: dynamic)
   return true;
 }
 
-func UruruBeam(sp: dynamic, sp_dir: dynamic)
+func UruruBeam(sp: dynamic, sp_dir: dynamic) -> dynamic
 {
   cpp_statement("rep(i,H) rep(j,W)");
   polluted_room[i][j] = false;
-  var deq: dynamic;
+  var deq: dynamic = cpp_uninitialized();
   deq.push_back(ii(sp, sp_dir));
   polluted_room[(sp / W)][(sp % W)] = true;
-  var S: dynamic;
+  var S: dynamic = cpp_uninitialized();
   S.insert(ii(sp, sp_dir));
   while ((!deq.empty()))
   {
-    var tmp = deq.front();
+    var tmp: dynamic = deq.front();
     deq.pop_front();
-    var x = (tmp.first % W);
-    var y = (tmp.first / W);
-    var dir = tmp.second;
+    var x: dynamic = (tmp.first % W);
+    var y: dynamic = (tmp.first / W);
+    var dir: dynamic = tmp.second;
     while (1)
     {
       x += dx8[dir];
@@ -109,7 +109,7 @@ func UruruBeam(sp: dynamic, sp_dir: dynamic)
         {
           break;
         }
-        var next_dir = -1;
+        var next_dir: dynamic = -1;
         if ((dir == 0))
         {
           next_dir = 2;
@@ -126,7 +126,7 @@ func UruruBeam(sp: dynamic, sp_dir: dynamic)
         {
           next_dir = 4;
         }
-        var next = ii((x + (y * W)), next_dir);
+        var next: dynamic = ii((x + (y * W)), next_dir);
         if (S.count(next))
         {
           break;
@@ -140,7 +140,7 @@ func UruruBeam(sp: dynamic, sp_dir: dynamic)
         {
           break;
         }
-        var next_dir = -1;
+        var next_dir: dynamic = -1;
         if ((dir == 0))
         {
           next_dir = 6;
@@ -160,7 +160,7 @@ func UruruBeam(sp: dynamic, sp_dir: dynamic)
         {
           next_dir = 0;
         }
-        var next = ii((x + (y * W)), next_dir);
+        var next: dynamic = ii((x + (y * W)), next_dir);
         if (S.count(next))
         {
           break;
@@ -174,7 +174,7 @@ func UruruBeam(sp: dynamic, sp_dir: dynamic)
         {
           break;
         }
-        var next_dir = -1;
+        var next_dir: dynamic = -1;
         if ((dir == 0))
         {
           next_dir = 4;
@@ -194,7 +194,7 @@ func UruruBeam(sp: dynamic, sp_dir: dynamic)
         {
           next_dir = 5;
         }
-        var next = ii((x + (y * W)), next_dir);
+        var next: dynamic = ii((x + (y * W)), next_dir);
         if (S.count(next))
         {
           break;
@@ -208,7 +208,7 @@ func UruruBeam(sp: dynamic, sp_dir: dynamic)
         {
           break;
         }
-        var next_dir = -1;
+        var next_dir: dynamic = -1;
         if ((dir == 1))
         {
           next_dir = 7;
@@ -228,7 +228,7 @@ func UruruBeam(sp: dynamic, sp_dir: dynamic)
         {
           next_dir = 1;
         }
-        var next = ii((x + (y * W)), next_dir);
+        var next: dynamic = ii((x + (y * W)), next_dir);
         if (S.count(next))
         {
           break;
@@ -238,7 +238,7 @@ func UruruBeam(sp: dynamic, sp_dir: dynamic)
         break;
       } else if ((room[y][x] == cpp_char("O")))
       {
-        var next = [ii((x + (y * W)), -1), ii((x + (y * W)), -1)];
+        var next: dynamic = [ii((x + (y * W)), -1), ii((x + (y * W)), -1)];
         if ((dir == 0))
         {
           next[0].second = 1;
@@ -286,7 +286,7 @@ func UruruBeam(sp: dynamic, sp_dir: dynamic)
   }
 }
 
-func solved(sp: dynamic)
+func solved(sp: dynamic) -> dynamic
 {
   rep(i, cpp_cast(statue.size()));
   if ((!polluted_room[(statue[i] / W)][(statue[i] % W)]))
@@ -295,12 +295,12 @@ func solved(sp: dynamic)
   }
   rep(i, H);
   rep(j, W)[i][j] = false;
-  var deq: dynamic;
+  var deq: dynamic = cpp_uninitialized();
   deq.push_back(sp);
   visited[(sp / W)][(sp % W)] = true;
   while ((!deq.empty()))
   {
-    var cur = deq.front();
+    var cur: dynamic = deq.front();
     deq.pop_front();
     if (polluted_room[(cur / W)][(cur % W)])
     {
@@ -312,8 +312,8 @@ func solved(sp: dynamic)
     }
     rep(i, 4);
     {
-      var nx = ((cur % W) + dx[i]);
-      var ny = ((cur / W) + dy[i]);
+      var nx: dynamic = ((cur % W) + dx[i]);
+      var ny: dynamic = ((cur / W) + dy[i]);
       if ((!isValid(nx, ny)))
       {
         continue;
@@ -333,15 +333,15 @@ func solved(sp: dynamic)
   return false;
 }
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-func BackTracking(cur: dynamic, prev: dynamic, deq: dynamic)
+func BackTracking(cur: dynamic, prev: dynamic, deq: dynamic) -> dynamic
 {
   if ((!deq.empty()))
   {
     sort(deq.begin(), deq.end());
   }
-  var tmper: dynamic;
+  var tmper: dynamic = cpp_uninitialized();
   rep(i, deq.size()).push_back(((deq[i] * 1000) + room[(deq[i] / W)][(deq[i] % W)]));
   if (S.count(ivi(cur, tmper)))
   {
@@ -363,8 +363,8 @@ func BackTracking(cur: dynamic, prev: dynamic, deq: dynamic)
     {
       continue;
     }
-    var nx = ((cur % W) + dx[i]);
-    var ny = ((cur / W) + dy[i]);
+    var nx: dynamic = ((cur % W) + dx[i]);
+    var ny: dynamic = ((cur / W) + dy[i]);
     if ((!isValid(nx, ny)))
     {
       continue;
@@ -373,8 +373,8 @@ func BackTracking(cur: dynamic, prev: dynamic, deq: dynamic)
     {
       continue;
     }
-    var mirror = false;
-    var new_one = -1;
+    var mirror: dynamic = false;
+    var new_one: dynamic = -1;
     if (isMirror(nx, ny))
     {
       rep(j, deq.size());
@@ -408,7 +408,7 @@ func BackTracking(cur: dynamic, prev: dynamic, deq: dynamic)
     {
       continue;
     }
-    if (BackTracking((nx + (ny * W)), (if (mirror) -1 else i), deq))
+    if (BackTracking((nx + (ny * W)), ( (mirror) ? -1 : i), deq))
     {
       return true;
     }
@@ -439,18 +439,18 @@ func BackTracking(cur: dynamic, prev: dynamic, deq: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   LP = cpp_assign(LP_dir, "=", -1);
-  var sp = -1;
+  var sp: dynamic = -1;
   read(W, H);
   rep(i, H);
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < 8))
     {
-      var nx = ((LP % W) + dx8[k]);
-      var ny = ((LP / W) + dy8[k]);
+      var nx: dynamic = ((LP % W) + dx8[k]);
+      var ny: dynamic = ((LP / W) + dy8[k]);
       if ((!isValid(nx, ny)))
       {
         k += 2;
@@ -477,12 +477,12 @@ func main()
     puts("Yes");
     return 0;
   }
-  var deq: dynamic;
-  puts(if (BackTracking(sp, -1, deq)) "Yes" else "No");
+  var deq: dynamic = cpp_uninitialized();
+  puts( (BackTracking(sp, -1, deq)) ? "Yes" : "No");
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     read(room[i][j]);
     if ((room[i][j] == cpp_char("@")))

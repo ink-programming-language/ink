@@ -1,52 +1,52 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 10);
+var N: dynamic = (1e5 + 10);
 
-var alpha = 128;
+var alpha: dynamic = 128;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var mx = -1;
+var mx: dynamic = -1;
 
-var mn = 1e9;
+var mn: dynamic = 1e9;
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var s1: dynamic;
+var s1: dynamic = cpp_uninitialized();
 
-var s2: dynamic;
+var s2: dynamic = cpp_uninitialized();
 
-var trie = cpp_array(alpha, N);
+var trie: dynamic = cpp_array(alpha, N);
 
-var ndcnt: dynamic;
+var ndcnt: dynamic = cpp_uninitialized();
 
-var ids = cpp_array(N);
+var ids: dynamic = cpp_array(N);
 
-var fail = cpp_array(N);
+var fail: dynamic = cpp_array(N);
 
-var sz = cpp_array(N);
+var sz: dynamic = cpp_array(N);
 
-var nxtid = cpp_array(N);
+var nxtid: dynamic = cpp_array(N);
 
-var myids = cpp_array(N);
+var myids: dynamic = cpp_array(N);
 
-var children = cpp_array(alpha, N);
+var children: dynamic = cpp_array(alpha, N);
 
-func addnode()
+func addnode() -> dynamic
 {
   memset(trie[ndcnt], -1, cpp_sizeof((trie[ndcnt])));
   ids[ndcnt] = -1;
@@ -55,10 +55,10 @@ func addnode()
   return;
 }
 
-func insert(str: dynamic, id: dynamic)
+func insert(str: dynamic, id: dynamic) -> dynamic
 {
-  var cur: dynamic;
-  var i: dynamic;
+  var cur: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   {
     cur = 0;
     i = 0;
@@ -82,7 +82,7 @@ func insert(str: dynamic, id: dynamic)
   return ids[cur];
 }
 
-func getnxt(f: dynamic, c: dynamic)
+func getnxt(f: dynamic, c: dynamic) -> dynamic
 {
   while ((trie[f][c] == -1))
   {
@@ -92,14 +92,14 @@ func getnxt(f: dynamic, c: dynamic)
   return f;
 }
 
-func buildfail()
+func buildfail() -> dynamic
 {
-  var qu: dynamic;
+  var qu: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < alpha))
     {
-      var r = trie[0][i];
+      var r: dynamic = trie[0][i];
       if ((r != -1))
       {
         fail[r] = 0;
@@ -114,13 +114,13 @@ func buildfail()
   }
   while (qu.size())
   {
-    var cur = qu.front();
+    var cur: dynamic = qu.front();
     qu.pop();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < sz[cur]))
       {
-        var c = children[cur][i];
+        var c: dynamic = children[cur][i];
         nxtid[trie[cur][c]] = cpp_assign(fail[trie[cur][c]], "=", getnxt(fail[cur], c));
         qu.push(trie[cur][c]);
         i += 1;
@@ -129,13 +129,13 @@ func buildfail()
   }
 }
 
-func getnxtid(cur: dynamic)
+func getnxtid(cur: dynamic) -> dynamic
 {
   if ((cur == 0))
   {
     return 0;
   }
-  var nxt = nxtid[cur];
+  var nxt: dynamic = nxtid[cur];
   if ((ids[nxt] != -1))
   {
     return nxt;
@@ -143,25 +143,25 @@ func getnxtid(cur: dynamic)
   return cpp_assign(nxt, "=", getnxtid(nxt));
 }
 
-func init()
+func init() -> dynamic
 {
   ndcnt = 0;
   addnode();
 }
 
-var SZ = 205;
+var SZ: dynamic = 205;
 
 class matrix
 {
   var a: dynamic = cpp_array(SZ, SZ);
-  func matrix()
+  func matrix() -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < SZ))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < SZ))
             {
               a[i][j] = -1e9;
@@ -172,19 +172,19 @@ class matrix
         }
       }
     }
-  func operator_multiply(other: dynamic)
+  func operator_multiply(other: dynamic) -> dynamic
   {
-      var ret: dynamic;
+      var ret: dynamic = cpp_uninitialized();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < SZ))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < SZ))
             {
               {
-                var k = 0;
+                var k: dynamic = 0;
                 while ((k < SZ))
                 {
                   ret.a[i][k] = max(ret.a[i][k], (a[i][j] + other.a[j][k]));
@@ -199,12 +199,12 @@ class matrix
       }
       return ret;
     }
-  func POW(b: dynamic)
+  func POW(b: dynamic) -> dynamic
   {
-      var res: dynamic;
-      var a = ((*this));
+      var res: dynamic = cpp_uninitialized();
+      var a: dynamic = ((*self));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < SZ))
         {
           res.a[i][i] = 0;
@@ -224,12 +224,12 @@ class matrix
     }
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   read(n, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -237,7 +237,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s1);
@@ -247,19 +247,19 @@ func main()
     }
   }
   buildfail();
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ndcnt))
     {
       {
-        var c = cpp_char("a");
+        var c: dynamic = cpp_char("a");
         while ((c <= cpp_char("z")))
         {
-          var nxt = getnxt(i, c);
-          var cnt = 0;
+          var nxt: dynamic = getnxt(i, c);
+          var cnt: dynamic = 0;
           {
-            var j = nxt;
+            var j: dynamic = nxt;
             while (j)
             {
               if ((ids[j] != -1))
@@ -278,7 +278,7 @@ func main()
   }
   ans = ans.POW(k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < SZ))
     {
       mx = max(mx, ans.a[i][0]);

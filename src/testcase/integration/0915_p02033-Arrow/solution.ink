@@ -1,46 +1,46 @@
 // Translated from solution.cpp.
 
-func ALL(x: dynamic)
+func ALL(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.");
 }
 
-func AND(x: dynamic, y: dynamic, z: dynamic)
+func AND(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   cpp_macro("#define DUMP(xs) for (auto x:xs) cout<<x<<' ';cout<<endl");
 }
 
-func DUMPP(xs: dynamic)
+func DUMPP(xs: dynamic) -> dynamic
 {
   cpp_macro("for (auto x:xs) cout<<'('<<x.first<<','<<x.second<<')';cout<<endl");
 }
 
-func FOR(i: dynamic, a: dynamic, b: dynamic)
+func FOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for (ll i=(ll)(a);i<(ll)(b);++i)");
 }
 
-func OUT(x: dynamic)
+func OUT(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bit");
 }
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <");
 }
 
-func YES(cond: dynamic)
+func YES(cond: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> usi");
 }
 
-func Yes(cond: dynamic)
+func Yes(cond: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> usi");
 }
 
-func gcd(x: dynamic, y: dynamic)
+func gcd(x: dynamic, y: dynamic) -> dynamic
 {
   if ((!y))
   {
@@ -49,18 +49,18 @@ func gcd(x: dynamic, y: dynamic)
   return gcd(y, (x % y));
 }
 
-func lcm(x: dynamic, y: dynamic)
+func lcm(x: dynamic, y: dynamic) -> dynamic
 {
   return ((x / gcd(x, y)) * y);
 }
 
-func __cpp_top_level_1()
+func __cpp_top_level_1() -> dynamic
 {
 }
 
-func modpow(x: dynamic, n: dynamic, mod: dynamic)
+func modpow(x: dynamic, n: dynamic, mod: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while ((n > 0))
   {
     if ((n % 2))
@@ -73,19 +73,19 @@ func modpow(x: dynamic, n: dynamic, mod: dynamic)
   return res;
 }
 
-func alltrue(a: dynamic)
+func alltrue(a: dynamic) -> dynamic
 {
   return all_of(ALL(a), __cpp_lambda_2);
 }
 
-func anytrue(a: dynamic)
+func anytrue(a: dynamic) -> dynamic
 {
   return any_of(ALL(a), __cpp_lambda_3);
 }
 
-func contain(a: dynamic, b: dynamic)
+func contain(a: dynamic, b: dynamic) -> dynamic
 {
-  for (var x in b)
+  for (var x: dynamic in b)
   {
     if ((a.find(x) == a.end()))
     {
@@ -95,7 +95,7 @@ func contain(a: dynamic, b: dynamic)
   return true;
 }
 
-func mmax(m: dynamic, q: dynamic)
+func mmax(m: dynamic, q: dynamic) -> dynamic
 {
   if ((m < q))
   {
@@ -107,7 +107,7 @@ func mmax(m: dynamic, q: dynamic)
   }
 }
 
-func mmin(m: dynamic, q: dynamic)
+func mmin(m: dynamic, q: dynamic) -> dynamic
 {
   if ((m > q))
   {
@@ -119,16 +119,16 @@ func mmin(m: dynamic, q: dynamic)
   }
 }
 
-func siz(a: dynamic)
+func siz(a: dynamic) -> dynamic
 {
   return cpp_cast(a.size());
 }
 
-func devisers(n: dynamic)
+func devisers(n: dynamic) -> dynamic
 {
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (cpp_cast(sqrt(n)) + 1)))
     {
       if (((n % i) == 0))
@@ -142,68 +142,68 @@ func devisers(n: dynamic)
   return res;
 }
 
-func concat(a: dynamic, b: dynamic)
+func concat(a: dynamic, b: dynamic) -> dynamic
 {
   a.insert(a.end(), b.begin(), b.end());
 }
 
-func getand(a: dynamic, b: dynamic, c: dynamic)
+func getand(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   set_intersection(a.begin(), a.end(), b.begin(), b.end(), inserter(c, c.end()));
 }
 
-func getor(a: dynamic, b: dynamic, c: dynamic)
+func getor(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   set_union(a.begin(), a.end(), b.begin(), b.end(), inserter(c, c.end()));
 }
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var MAX = (1e5 + 100);
+var MAX: dynamic = (1e5 + 100);
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var M: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
   read(N, M);
   REP(i, M);
   read(ms[i]);
-  var bs: dynamic;
+  var bs: dynamic = cpp_uninitialized();
   REP(i, M).set(((N - 1) - ((ms[i] - 1))));
-  var dp = cpp_construct(N, 0);
+  var dp: dynamic = cpp_construct(N, 0);
   dp[0] = (N - M);
-  var red = (100000 - N);
+  var red: dynamic = (100000 - N);
   FOR(n, 1, N);
   {
     bs |= (bs >> 1);
     dp[n] = ((100000 - bs.count()) - red);
   }
-  var Q: dynamic;
+  var Q: dynamic = cpp_uninitialized();
   read(Q);
   reverse(ALL(dp));
   return 0;
 }
 
-func __cpp_lambda_2(x: dynamic)
+func __cpp_lambda_2(x: dynamic) -> dynamic
 {
   return x;
 }
 
-func __cpp_lambda_3(x: dynamic)
+func __cpp_lambda_3(x: dynamic) -> dynamic
 {
   return x;
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var l: dynamic;
+    var l: dynamic = cpp_uninitialized();
     read(l);
     if ((dp[0] > l))
     {
       OUT(-1);
     } else
     {
-      var idx = ((lower_bound(ALL(dp), (l + 1)) - dp.begin()) - 1);
+      var idx: dynamic = ((lower_bound(ALL(dp), (l + 1)) - dp.begin()) - 1);
       OUT((N - idx));
     }
   }

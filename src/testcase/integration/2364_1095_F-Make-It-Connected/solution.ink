@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var edges: dynamic;
+var edges: dynamic = cpp_uninitialized();
 
-var par = cpp_array(N);
+var par: dynamic = cpp_array(N);
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
-  return if ((x == par[x])) x else cpp_assign(par[x], "=", find(par[x]));
+  return  ((x == par[x])) ? x : cpp_assign(par[x], "=", find(par[x]));
 }
 
-func unite(x: dynamic, y: dynamic)
+func unite(x: dynamic, y: dynamic) -> dynamic
 {
   x = find(x);
   y = find(y);
@@ -21,13 +21,13 @@ func unite(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -35,12 +35,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var u: dynamic;
-      var v: dynamic;
-      var w: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       read(u, v, w);
       u -= 1;
       v -= 1;
@@ -48,9 +48,9 @@ func main()
       i += 1;
     }
   }
-  var root = (min_element(a.begin(), a.end()) - a.begin());
+  var root: dynamic = (min_element(a.begin(), a.end()) - a.begin());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i != root))
@@ -62,19 +62,19 @@ func main()
   }
   sort(edges.begin(), edges.end());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       par[i] = i;
       i += 1;
     }
   }
-  var ans = 0;
-  for (var e in edges)
+  var ans: dynamic = 0;
+  for (var e: dynamic in edges)
   {
-    var w = e[0];
-    var u = e[1];
-    var v = e[2];
+    var w: dynamic = e[0];
+    var u: dynamic = e[1];
+    var v: dynamic = e[2];
     if ((find(u) != find(v)))
     {
       ans += w;

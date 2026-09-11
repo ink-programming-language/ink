@@ -1,55 +1,55 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var INF = (mod * mod);
+var INF: dynamic = (mod * mod);
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-func per(i: dynamic, n: dynamic)
+func per(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=n-1;i>=0;i--)");
 }
 
-func rep1(i: dynamic, n: dynamic)
+func rep1(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=1;i<=n;i++)");
 }
 
-func Rep(i: dynamic, sta: dynamic, n: dynamic)
+func Rep(i: dynamic, sta: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=sta;i<n;i++)");
 }
 
-var stop = cpp_expression("#include<i");
+var stop: dynamic = cpp_expression("#include<i");
 
 class edge
 {
-  var to: dynamic;
-  var cap: dynamic;
-  var rev: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var cap: dynamic = cpp_uninitialized();
+  var rev: dynamic = cpp_uninitialized();
 }
 
-var G = cpp_array(100000);
+var G: dynamic = cpp_array(100000);
 
-var used = cpp_array(100000);
+var used: dynamic = cpp_array(100000);
 
-var banned = cpp_array(100000);
+var banned: dynamic = cpp_array(100000);
 
-func add_edge(from_cpp: dynamic, to: dynamic)
+func add_edge(from_cpp: dynamic, to: dynamic) -> dynamic
 {
   G[from_cpp].push_back([to, 1, cpp_cast(G[to].size())]);
   G[to].push_back([from_cpp, 0, (cpp_cast(G[from_cpp].size()) - 1)]);
 }
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-func dfs(v: dynamic, t: dynamic, f: dynamic)
+func dfs(v: dynamic, t: dynamic, f: dynamic) -> dynamic
 {
   if ((v == t))
   {
@@ -57,13 +57,13 @@ func dfs(v: dynamic, t: dynamic, f: dynamic)
   }
   used[v] = true;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(G[v].size())))
     {
-      var e = G[v][i];
+      var e: dynamic = G[v][i];
       if ((((!used[e.to]) && (!banned[e.to])) && (e.cap > 0)))
       {
-        var d = dfs(e.to, t, min(f, e.cap));
+        var d: dynamic = dfs(e.to, t, min(f, e.cap));
         if ((d > 0))
         {
           e.cap -= d;
@@ -77,14 +77,14 @@ func dfs(v: dynamic, t: dynamic, f: dynamic)
   return 0;
 }
 
-func max_flow(s: dynamic, t: dynamic)
+func max_flow(s: dynamic, t: dynamic) -> dynamic
 {
-  var flow = 0;
+  var flow: dynamic = 0;
   {
     while (true)
     {
       memset(used, 0, cpp_sizeof((used)));
-      var f = dfs(s, t, mod);
+      var f: dynamic = dfs(s, t, mod);
       if ((f == 0))
       {
         return flow;
@@ -94,13 +94,13 @@ func max_flow(s: dynamic, t: dynamic)
   }
 }
 
-var isodd = cpp_array(6000);
+var isodd: dynamic = cpp_array(6000);
 
-var flow: dynamic;
+var flow: dynamic = cpp_uninitialized();
 
-var rest: dynamic;
+var rest: dynamic = cpp_uninitialized();
 
-func del(x: dynamic)
+func del(x: dynamic) -> dynamic
 {
   if (banned[x])
   {
@@ -108,10 +108,10 @@ func del(x: dynamic)
   }
   banned[x] = true;
   rest -= 1;
-  var nxt = -1;
+  var nxt: dynamic = -1;
   if (isodd[x])
   {
-    for (var e in G[x])
+    for (var e: dynamic in G[x])
     {
       if (((e.to == r) && (e.cap == 0)))
       {
@@ -127,7 +127,7 @@ func del(x: dynamic)
     }
     if ((nxt != -1))
     {
-      for (var e in G[nxt])
+      for (var e: dynamic in G[nxt])
       {
         if (((e.to == l) && (e.cap == 1)))
         {
@@ -138,7 +138,7 @@ func del(x: dynamic)
     }
   } else
   {
-    for (var e in G[x])
+    for (var e: dynamic in G[x])
     {
       if (((e.to == l) && (e.cap == 1)))
       {
@@ -154,7 +154,7 @@ func del(x: dynamic)
     }
     if ((nxt != -1))
     {
-      for (var e in G[nxt])
+      for (var e: dynamic in G[nxt])
       {
         if (((e.to == r) && (e.cap == 0)))
         {
@@ -166,21 +166,21 @@ func del(x: dynamic)
   }
 }
 
-func add(x: dynamic)
+func add(x: dynamic) -> dynamic
 {
   banned[x] = false;
   rest += 1;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var x = cpp_array(6666);
-  var y = cpp_array(6666);
-  var odd: dynamic;
-  var even: dynamic;
+  var x: dynamic = cpp_array(6666);
+  var y: dynamic = cpp_array(6666);
+  var odd: dynamic = cpp_uninitialized();
+  var even: dynamic = cpp_uninitialized();
   l = n;
   r = (n + 1);
   rep(i, even.size());
@@ -196,9 +196,9 @@ func solve()
   {
     rep(j, odd.size());
     {
-      var dx = (x[even[i]] - x[odd[j]]);
-      var dy = (y[even[i]] - y[odd[j]]);
-      var dif = ((dx * dx) + (dy * dy));
+      var dx: dynamic = (x[even[i]] - x[odd[j]]);
+      var dy: dynamic = (y[even[i]] - y[odd[j]]);
+      var dif: dynamic = ((dx * dx) + (dy * dy));
       if ((dif < 4))
       {
         add_edge(even[i], odd[j]);
@@ -212,9 +212,9 @@ func solve()
     write(-1, "\n");
     return;
   }
-  var ans: dynamic;
-  var cur = 0;
-  var use = 0;
+  var ans: dynamic = cpp_uninitialized();
+  var cur: dynamic = 0;
+  var use: dynamic = 0;
   while ((cur < n))
   {
     if (banned[cur])
@@ -224,8 +224,8 @@ func solve()
     }
     use += 1;
     del(cur);
-    var dels: dynamic;
-    for (var e in G[cur])
+    var dels: dynamic = cpp_uninitialized();
+    for (var e: dynamic in G[cur])
     {
       if ((((e.to != l) && (e.to != r)) && (!banned[e.to])))
       {
@@ -240,7 +240,7 @@ func solve()
     } else
     {
       use -= 1;
-      for (var e in dels)
+      for (var e: dynamic in dels)
       {
         add(e);
       }
@@ -250,7 +250,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
@@ -258,12 +258,12 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     read(x[i], y[i]);
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((((x[i] % 2) == 1) && ((y[i] % 2) == 0)))
     {
@@ -277,7 +277,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     write((ans[i] + 1), "\n");
   }

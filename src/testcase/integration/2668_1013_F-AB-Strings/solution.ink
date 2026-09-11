@@ -2,18 +2,18 @@
 
 class Solution
 {
-  func construct(s: dynamic, t: dynamic)
+  func construct(s: dynamic, t: dynamic) -> dynamic
   {
-      var qs: dynamic;
-      var qt: dynamic;
-      var n = s.length();
-      var m = t.length();
+      var qs: dynamic = cpp_uninitialized();
+      var qt: dynamic = cpp_uninitialized();
+      var n: dynamic = s.length();
+      var m: dynamic = t.length();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
-          var c = s[i];
-          var cnt = 1;
+          var c: dynamic = s[i];
+          var cnt: dynamic = 1;
           while ((((i + 1) < n) && (s[(i + 1)] == c)))
           {
             i += 1;
@@ -24,11 +24,11 @@ class Solution
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
-          var c = t[i];
-          var cnt = 1;
+          var c: dynamic = t[i];
+          var cnt: dynamic = 1;
           while ((((i + 1) < m) && (t[(i + 1)] == c)))
           {
             i += 1;
@@ -38,19 +38,19 @@ class Solution
           i += 1;
         }
       }
-      var res: dynamic;
+      var res: dynamic = cpp_uninitialized();
       res.reserve(((n + m) + 1000));
       while (((qs.size() != 1) || (qt.size() != 1)))
       {
         assert(((qs.size() > 0) && (qt.size() > 0)));
         if (qs.empty())
         {
-          var n = (qt.size() / 2);
+          var n: dynamic = (qt.size() / 2);
           if ((((n % 2) == 0) && ((n + 1) < qt.size())))
           {
             n += 1;
           }
-          var cnt = 0;
+          var cnt: dynamic = 0;
           while ((cpp_update(n, "--") > 0))
           {
             cnt += qt.front().second;
@@ -60,12 +60,12 @@ class Solution
           res.emplace_back(0, cnt);
         } else if (qt.empty())
         {
-          var n = (qs.size() / 2);
+          var n: dynamic = (qs.size() / 2);
           if ((((n % 2) == 0) && ((n + 1) < qs.size())))
           {
             n += 1;
           }
-          var cnt = 0;
+          var cnt: dynamic = 0;
           while ((cpp_update(n, "--") > 0))
           {
             cnt += qs.front().second;
@@ -75,14 +75,14 @@ class Solution
           res.emplace_back(cnt, 0);
         } else if ((qs.size() == 1))
         {
-          var n = (qt.size() / 2);
+          var n: dynamic = (qt.size() / 2);
           if ((((n % 2) == 0) && ((n + 1) < qt.size())))
           {
             n += 1;
           }
-          var cnt = 0;
-          var c = qs.front().first;
-          var cnt1 = qs.front().second;
+          var cnt: dynamic = 0;
+          var c: dynamic = qs.front().first;
+          var cnt1: dynamic = qs.front().second;
           qs.pop_front();
           while ((cpp_update(n, "--") > 0))
           {
@@ -110,14 +110,14 @@ class Solution
           res.emplace_back(cnt1, cnt);
         } else if ((qt.size() == 1))
         {
-          var n = (qs.size() / 2);
+          var n: dynamic = (qs.size() / 2);
           if ((((n % 2) == 0) && ((n + 1) < qs.size())))
           {
             n += 1;
           }
-          var cnt = 0;
-          var c = qt.front().first;
-          var cnt1 = qt.front().second;
+          var cnt: dynamic = 0;
+          var c: dynamic = qt.front().first;
+          var cnt1: dynamic = qt.front().second;
           qt.pop_front();
           while ((cpp_update(n, "--") > 0))
           {
@@ -149,11 +149,11 @@ class Solution
           {
             if ((qs.size() >= qt.size()))
             {
-              var p1 = qs.front();
+              var p1: dynamic = qs.front();
               qs.pop_front();
-              var p2 = qs.front();
+              var p2: dynamic = qs.front();
               qs.pop_front();
-              var p3 = qt.front();
+              var p3: dynamic = qt.front();
               qt.pop_front();
               if (qs.empty())
               {
@@ -167,11 +167,11 @@ class Solution
               res.emplace_back((p1.second + p2.second), p3.second);
             } else
             {
-              var p1 = qs.front();
+              var p1: dynamic = qs.front();
               qs.pop_front();
-              var p2 = qt.front();
+              var p2: dynamic = qt.front();
               qt.pop_front();
-              var p3 = qt.front();
+              var p3: dynamic = qt.front();
               qt.pop_front();
               qs.front().second += p3.second;
               qs.push_front(p2);
@@ -196,13 +196,13 @@ class Solution
         {
           if (((qs.size() > 3) && (qt.size() == 2)))
           {
-            var p1 = qs.front();
+            var p1: dynamic = qs.front();
             qs.pop_front();
-            var p2 = qs.front();
+            var p2: dynamic = qs.front();
             qs.pop_front();
-            var p3 = qs.front();
+            var p3: dynamic = qs.front();
             qs.pop_front();
-            var p4 = qt.front();
+            var p4: dynamic = qt.front();
             qt.pop_front();
             res.emplace_back(((p1.second + p2.second) + p3.second), p4.second);
             qs.front().second += p4.second;
@@ -212,13 +212,13 @@ class Solution
             continue;
           } else if (((qs.size() == 2) && (qt.size() > 3)))
           {
-            var p1 = qs.front();
+            var p1: dynamic = qs.front();
             qs.pop_front();
-            var p2 = qt.front();
+            var p2: dynamic = qt.front();
             qt.pop_front();
-            var p3 = qt.front();
+            var p3: dynamic = qt.front();
             qt.pop_front();
-            var p4 = qt.front();
+            var p4: dynamic = qt.front();
             qt.pop_front();
             res.emplace_back(p1.second, ((p2.second + p3.second) + p4.second));
             qs.front().second += p4.second;
@@ -227,8 +227,8 @@ class Solution
             qt.front().second += p1.second;
             continue;
           }
-          var cnt = qs.front().second;
-          var cnt1 = qt.front().second;
+          var cnt: dynamic = qs.front().second;
+          var cnt1: dynamic = qt.front().second;
           res.emplace_back(cnt, cnt1);
           qs.pop_front();
           qt.pop_front();
@@ -240,18 +240,18 @@ class Solution
     }
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var s: dynamic;
-  var t: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(s);
   read(t);
-  var sol: dynamic;
-  var res = sol.construct(s, t);
+  var sol: dynamic = cpp_uninitialized();
+  var res: dynamic = sol.construct(s, t);
   write(res.size(), "\n");
-  for (var p in res)
+  for (var p: dynamic in res)
   {
     write(p.first, " ", p.second, "\n");
   }

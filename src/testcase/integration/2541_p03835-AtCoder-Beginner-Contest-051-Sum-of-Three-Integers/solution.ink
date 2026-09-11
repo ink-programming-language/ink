@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var ans = 0;
-  var k: dynamic;
-  var s: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var ans: dynamic = 0;
+  var k: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
   read(k, s);
   {
     x = 0;

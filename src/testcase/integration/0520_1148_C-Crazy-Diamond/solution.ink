@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var maxn = (cpp_cast(3e5) + 7);
+var maxn: dynamic = (cpp_cast(3e5) + 7);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var b = cpp_array(maxn);
+var b: dynamic = cpp_array(maxn);
 
-var pos = cpp_array(maxn);
+var pos: dynamic = cpp_array(maxn);
 
 class node
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var ans = cpp_array((maxn * 5));
+var ans: dynamic = cpp_array((maxn * 5));
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -30,16 +30,16 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       pos[a[i]] = i;
       i += 1;
     }
   }
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n / 2)))
     {
       if ((pos[i] == i))
@@ -52,7 +52,7 @@ func main()
         if ((pos[1] > (n / 2)))
         {
           ans[cpp_update(cnt, "++")] = [1, pos[1]];
-          var temp = pos[1];
+          var temp: dynamic = pos[1];
           swap(pos[a[1]], pos[1]);
           swap(a[temp], a[1]);
         } else
@@ -60,7 +60,7 @@ func main()
           ans[cpp_update(cnt, "++")] = [1, n];
           ans[cpp_update(cnt, "++")] = [pos[1], n];
           ans[cpp_update(cnt, "++")] = [1, n];
-          var temp = pos[1];
+          var temp: dynamic = pos[1];
           swap(pos[a[1]], pos[1]);
           swap(a[temp], a[1]);
         }
@@ -70,12 +70,12 @@ func main()
       if ((abs((pos[i] - i)) >= (n / 2)))
       {
         ans[cpp_update(cnt, "++")] = [i, pos[i]];
-        var temp = pos[i];
+        var temp: dynamic = pos[i];
         swap(pos[a[i]], pos[i]);
         swap(a[temp], a[i]);
       } else if ((pos[i] <= (n / 2)))
       {
-        var temp = pos[i];
+        var temp: dynamic = pos[i];
         ans[cpp_update(cnt, "++")] = [i, n];
         ans[cpp_update(cnt, "++")] = [pos[i], n];
         ans[cpp_update(cnt, "++")] = [i, n];
@@ -88,7 +88,7 @@ func main()
         ans[cpp_update(cnt, "++")] = [1, n];
         ans[cpp_update(cnt, "++")] = [i, n];
         ans[cpp_update(cnt, "++")] = [pos[i], 1];
-        var temp = pos[i];
+        var temp: dynamic = pos[i];
         swap(pos[a[i]], pos[i]);
         swap(a[temp], a[i]);
       }
@@ -96,7 +96,7 @@ func main()
     }
   }
   {
-    var i = ((n / 2) + 1);
+    var i: dynamic = ((n / 2) + 1);
     while ((i <= n))
     {
       if ((pos[i] == i))
@@ -107,7 +107,7 @@ func main()
       ans[cpp_update(cnt, "++")] = [i, 1];
       ans[cpp_update(cnt, "++")] = [pos[i], 1];
       ans[cpp_update(cnt, "++")] = [i, 1];
-      var temp = pos[i];
+      var temp: dynamic = pos[i];
       swap(pos[a[i]], pos[i]);
       swap(a[temp], a[i]);
       i += 1;
@@ -115,7 +115,7 @@ func main()
   }
   write(cnt, "\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cnt))
     {
       write(ans[i].x, " ", ans[i].y, "\n");

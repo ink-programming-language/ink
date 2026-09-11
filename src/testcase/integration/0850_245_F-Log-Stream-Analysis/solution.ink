@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var que = cpp_array(10000000);
+var que: dynamic = cpp_array(10000000);
 
-var ss = cpp_array(10000000);
+var ss: dynamic = cpp_array(10000000);
 
-var day = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366];
+var day: dynamic = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366];
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var head = 0;
-  var tail = 0;
-  var now: dynamic;
-  var ye: dynamic;
-  var mo: dynamic;
-  var da: dynamic;
-  var h: dynamic;
-  var mi: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var head: dynamic = 0;
+  var tail: dynamic = 0;
+  var now: dynamic = cpp_uninitialized();
+  var ye: dynamic = cpp_uninitialized();
+  var mo: dynamic = cpp_uninitialized();
+  var da: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var mi: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, m);
   while ((scanf("%d-%d-%d %d:%d:%d:", (&ye), (&mo), (&da), (&h), (&mi), (&s)) != EOF))
   {

@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return (if ((b == 0)) a else gcd(b, (a % b)));
+  return ( ((b == 0)) ? a : gcd(b, (a % b)));
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return ((((a * b)) / gcd(a, b)));
 }
 
-func pw(b: dynamic, p: dynamic)
+func pw(b: dynamic, p: dynamic) -> dynamic
 {
   if ((!p))
   {
     return 1;
   }
-  var sq = pw(b, (p / 2));
+  var sq: dynamic = pw(b, (p / 2));
   sq *= sq;
   if ((p % 2))
   {
@@ -25,15 +25,15 @@ func pw(b: dynamic, p: dynamic)
   return sq;
 }
 
-func sd(x: dynamic)
+func sd(x: dynamic) -> dynamic
 {
-  return if ((x < 10)) x else ((x % 10) + sd((x / 10)));
+  return  ((x < 10)) ? x : ((x % 10) + sd((x / 10)));
 }
 
-func sq(x: dynamic)
+func sq(x: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < x))
     {
       if (((cpp_cast(i) * i) > x))
@@ -43,24 +43,24 @@ func sq(x: dynamic)
       i += 1;
     }
   }
-  return double(1);
+  return cpp_double(1);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var cnt = (k - 1);
+  var cnt: dynamic = (k - 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       v[i].resize(x);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < x))
         {
           read(v[i][j]);
@@ -71,13 +71,13 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       if ((v[i][0] == 1))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < (v[i].size() - 1)))
           {
             if (((v[i][(j + 1)] - 1) != v[i][j]))

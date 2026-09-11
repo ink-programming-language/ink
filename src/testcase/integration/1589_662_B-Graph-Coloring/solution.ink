@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var in_cpp = cpp_array(10);
+var in_cpp: dynamic = cpp_array(10);
 
-var V: dynamic;
+var V: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
 class Edge
 {
-  var x: dynamic;
-  var y: dynamic;
-  var c: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
 }
 
-var E = cpp_array(101000);
+var E: dynamic = cpp_array(101000);
 
-var v = cpp_array(101000);
+var v: dynamic = cpp_array(101000);
 
-var T = cpp_array(101000);
+var T: dynamic = cpp_array(101000);
 
-var col: dynamic;
+var col: dynamic = cpp_uninitialized();
 
-func BFS()
+func BFS() -> dynamic
 {
-  var Q: dynamic;
+  var Q: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((v[i] == false))
       {
-        var L: dynamic;
+        var L: dynamic = cpp_uninitialized();
         Q.push(i);
         L.push_back(i);
         v[i] = true;
         while ((!Q.empty()))
         {
-          var c = Q.front();
+          var c: dynamic = Q.front();
           Q.pop();
           {
-            var it = V[c].begin();
+            var it: dynamic = V[c].begin();
             while ((it != V[c].end()))
             {
               if ((v[(*it)] == false))
@@ -63,9 +63,9 @@ func BFS()
             }
           }
         }
-        var ncol = 0;
+        var ncol: dynamic = 0;
         {
-          var it = L.begin();
+          var it: dynamic = L.begin();
           while ((it != L.end()))
           {
             if ((T[(*it)] == true))
@@ -78,7 +78,7 @@ func BFS()
         if (((L.size() - ncol) < ncol))
         {
           {
-            var it = L.begin();
+            var it: dynamic = L.begin();
             while ((it != L.end()))
             {
               T[(*it)] = (!T[(*it)]);
@@ -92,15 +92,15 @@ func BFS()
   }
 }
 
-var Ans: dynamic;
+var Ans: dynamic = cpp_uninitialized();
 
-var ans = false;
+var ans: dynamic = false;
 
-func check()
+func check() -> dynamic
 {
-  var po = true;
+  var po: dynamic = true;
   {
-    var it = M.begin();
+    var it: dynamic = M.begin();
     while (((it != M.end()) && (po == true)))
     {
       if ((it->second == col))
@@ -123,9 +123,9 @@ func check()
   {
     return false;
   }
-  var ncol = 0;
+  var ncol: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((T[i] == true))
@@ -143,7 +143,7 @@ func check()
     }
     ans = true;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if ((T[i] == true))
@@ -157,14 +157,14 @@ func check()
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   V.resize((n + 100));
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d%d", (&a), (&b));
@@ -179,7 +179,7 @@ func main()
   BFS();
   check();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       T[i] = false;

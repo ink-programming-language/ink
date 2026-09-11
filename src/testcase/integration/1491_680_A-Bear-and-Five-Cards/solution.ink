@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var cc = [0];
-  var m = 0;
-  var s = 0;
+  var n: dynamic = cpp_uninitialized();
+  var cc: dynamic = [0];
+  var m: dynamic = 0;
+  var s: dynamic = 0;
   {
     i = 0;
     while ((i < 5))

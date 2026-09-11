@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var vis = cpp_array(1000000);
+var vis: dynamic = cpp_array(1000000);
 
-var n = cpp_array(1000000);
+var n: dynamic = cpp_array(1000000);
 
-func main()
+func main() -> dynamic
 {
-  var cnt = 0;
-  var l: dynamic;
+  var cnt: dynamic = 0;
+  var l: dynamic = cpp_uninitialized();
   read(l);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < l))
     {
       read(n[i]);
@@ -19,16 +19,16 @@ func main()
   }
   sort(n, (n + l));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < l))
     {
-      var x = (n[i] - 1);
+      var x: dynamic = (n[i] - 1);
       if ((x < 1))
       {
         x = 1;
       }
-      var y = n[i];
-      var z = (n[i] + 1);
+      var y: dynamic = n[i];
+      var z: dynamic = (n[i] + 1);
       if ((!vis[x]))
       {
         vis[x] = 1;

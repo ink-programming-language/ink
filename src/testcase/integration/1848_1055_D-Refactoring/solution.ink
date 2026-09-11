@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var cur: dynamic;
+var cur: dynamic = cpp_uninitialized();
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var w = cpp_array(3005);
+var w: dynamic = cpp_array(3005);
 
-var k = cpp_array(3005);
+var k: dynamic = cpp_array(3005);
 
-var stt = cpp_array(3005);
+var stt: dynamic = cpp_array(3005);
 
-var ed = cpp_array(3005);
+var ed: dynamic = cpp_array(3005);
 
-var f = cpp_array(3005);
+var f: dynamic = cpp_array(3005);
 
-var tmp = cpp_array(3005);
+var tmp: dynamic = cpp_array(3005);
 
-func build(s: dynamic)
+func build(s: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < cpp_cast(s.length())))
     {
       f[i] = f[(i - 1)];
@@ -40,12 +40,12 @@ func build(s: dynamic)
   }
 }
 
-func kmp(s: dynamic, patt: dynamic)
+func kmp(s: dynamic, patt: dynamic) -> dynamic
 {
-  var src = cpp_array(s.length());
-  var res = -1;
+  var src: dynamic = cpp_array(s.length());
+  var res: dynamic = -1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(s.length())))
     {
       if ((!i))
@@ -83,13 +83,13 @@ func kmp(s: dynamic, patt: dynamic)
   return res;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%s", (&tmp));
@@ -98,7 +98,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%s", (&tmp));
@@ -107,17 +107,17 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var s: dynamic;
-      var t: dynamic;
+      var s: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
       s = w[i];
       t = k[i];
-      var fi = -1;
-      var se = -1;
+      var fi: dynamic = -1;
+      var se: dynamic = -1;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast(s.length())))
         {
           if ((s[j] != t[j]))
@@ -155,9 +155,9 @@ func main()
   }
   while (1)
   {
-    var h = -1;
+    var h: dynamic = -1;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if ((!((~stt[i]))))
@@ -187,7 +187,7 @@ func main()
       break;
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if ((!((~stt[i]))))
@@ -202,9 +202,9 @@ func main()
   }
   while (1)
   {
-    var h = -1;
+    var h: dynamic = -1;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if ((!((~ed[i]))))
@@ -234,7 +234,7 @@ func main()
       break;
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         if ((!((~ed[i]))))
@@ -248,7 +248,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((stt[i] != -1))
@@ -262,10 +262,10 @@ func main()
   }
   build(cur);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var k = kmp(w[i], cur);
+      var k: dynamic = kmp(w[i], cur);
       if ((((((stt[i] == -1)) && ((k >= 0)))) || ((((stt[i] >= 0)) && ((k == -1))))))
       {
         printf("NO");

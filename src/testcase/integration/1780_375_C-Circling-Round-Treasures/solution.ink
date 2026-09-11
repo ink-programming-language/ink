@@ -1,70 +1,70 @@
 // Translated from solution.cpp.
 
-var N = 25;
+var N: dynamic = 25;
 
-var buf = cpp_array(N, N);
+var buf: dynamic = cpp_array(N, N);
 
-var K = 8;
+var K: dynamic = 8;
 
-var MSK = (1 << K);
+var MSK: dynamic = (1 << K);
 
 class vt
 {
-  var x: dynamic;
-  var y: dynamic;
-  func vt(x: dynamic, y: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func vt(x: dynamic, y: dynamic) -> dynamic
   {
       x = x;
       y = y;
     }
-  func vt()
+  func vt() -> dynamic
   {
     }
 }
 
-var T = cpp_array(K);
+var T: dynamic = cpp_array(K);
 
-var pos = cpp_array(K);
+var pos: dynamic = cpp_array(K);
 
-var oldi = cpp_array(K);
+var oldi: dynamic = cpp_array(K);
 
-var C = cpp_array(K);
+var C: dynamic = cpp_array(K);
 
-var dx = 42;
+var dx: dynamic = 42;
 
-var dy = 43;
+var dy: dynamic = 43;
 
-var D = cpp_array(N, N, MSK);
+var D: dynamic = cpp_array(N, N, MSK);
 
-var lpt = 0;
+var lpt: dynamic = 0;
 
-var rpt = 0;
+var rpt: dynamic = 0;
 
-var Q = cpp_array((((10 * MSK) * N) * N));
+var Q: dynamic = cpp_array((((10 * MSK) * N) * N));
 
-var vx = [1, 0, -1, 0];
+var vx: dynamic = [1, 0, -1, 0];
 
-var vy = [0, 1, 0, -1];
+var vy: dynamic = [0, 1, 0, -1];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var pt = 0;
+var pt: dynamic = 0;
 
-func sign(x: dynamic)
+func sign(x: dynamic) -> dynamic
 {
   return (((x > 0)) - ((x < 0)));
 }
 
-func inter(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+func inter(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
 {
   return ((((sign((((c - a)) ^ ((b - a)))) * sign((((d - a)) ^ ((b - a))))) == -1) && ((sign((((a - c)) ^ ((d - c)))) * sign((((b - c)) ^ ((d - c))))) == -1)));
 }
 
-var aff = cpp_array(K, 4, N, N);
+var aff: dynamic = cpp_array(K, 4, N, N);
 
-func affect(y: dynamic, x: dynamic, v: dynamic, i: dynamic)
+func affect(y: dynamic, x: dynamic, v: dynamic, i: dynamic) -> dynamic
 {
   if ((aff[y][x][v][i] != -1))
   {
@@ -75,7 +75,7 @@ func affect(y: dynamic, x: dynamic, v: dynamic, i: dynamic)
   }
 }
 
-func BFS(sy: dynamic, sx: dynamic)
+func BFS(sy: dynamic, sx: dynamic) -> dynamic
 {
   memset(D, -1, cpp_sizeof((D)));
   D[0][sy][sx] = 0;
@@ -84,15 +84,15 @@ func BFS(sy: dynamic, sx: dynamic)
   Q[cpp_update(rpt, "++")] = sx;
   while ((lpt != rpt))
   {
-    var msk = Q[cpp_update(lpt, "++")];
-    var y = Q[cpp_update(lpt, "++")];
-    var x = Q[cpp_update(lpt, "++")];
+    var msk: dynamic = Q[cpp_update(lpt, "++")];
+    var y: dynamic = Q[cpp_update(lpt, "++")];
+    var x: dynamic = Q[cpp_update(lpt, "++")];
     {
-      var v = 0;
+      var v: dynamic = 0;
       while ((v < 4))
       {
-        var ty = (y + vy[v]);
-        var tx = (x + vx[v]);
+        var ty: dynamic = (y + vy[v]);
+        var tx: dynamic = (x + vx[v]);
         if (((((ty < 0) || (tx < 0)) || (ty >= n)) || (tx >= m)))
         {
           v += 1;
@@ -103,9 +103,9 @@ func BFS(sy: dynamic, sx: dynamic)
           v += 1;
           continue;
         }
-        var tmsk = msk;
+        var tmsk: dynamic = msk;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < pt))
           {
             if (affect(y, x, v, i))
@@ -130,20 +130,20 @@ func BFS(sy: dynamic, sx: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   memset(aff, -1, cpp_sizeof((aff)));
   scanf("%d %d ", (&n), (&m));
-  var sx = -1;
-  var sy = -1;
-  var tr = 0;
+  var sx: dynamic = -1;
+  var sy: dynamic = -1;
+  var tr: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       gets(buf[i]);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((buf[i][j] == cpp_char("S")))
@@ -170,7 +170,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < tr))
     {
       scanf("%d", (&C[i]));
@@ -179,17 +179,17 @@ func main()
   }
   assert((sx != -1));
   BFS(sy, sx);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var msk = 0;
+    var msk: dynamic = 0;
     while ((msk < ((1 << pt))))
     {
       if ((D[msk][sy][sx] != -1))
       {
-        var cst = 0;
-        var bad = false;
+        var cst: dynamic = 0;
+        var bad: dynamic = false;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < pt))
           {
             if ((((msk >> i)) & 1))

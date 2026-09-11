@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-var maxn = (3e5 + 100);
+var maxn: dynamic = (3e5 + 100);
 
-var md = (1e9 + 7);
+var md: dynamic = (1e9 + 7);
 
-var add = cpp_array((maxn * 4));
+var add: dynamic = cpp_array((maxn * 4));
 
-var seg = cpp_array((maxn * 4));
+var seg: dynamic = cpp_array((maxn * 4));
 
-var lazy1 = cpp_array((maxn * 4));
+var lazy1: dynamic = cpp_array((maxn * 4));
 
-var lazy2 = cpp_array((maxn * 4));
+var lazy2: dynamic = cpp_array((maxn * 4));
 
-var adj = cpp_array(maxn);
+var adj: dynamic = cpp_array(maxn);
 
-var hgt = cpp_array(maxn);
+var hgt: dynamic = cpp_array(maxn);
 
-var ftm = cpp_array(maxn);
+var ftm: dynamic = cpp_array(maxn);
 
-var stm = cpp_array(maxn);
+var stm: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var type_cpp: dynamic;
+var type_cpp: dynamic = cpp_uninitialized();
 
-var tm: dynamic;
+var tm: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func dfs(v: dynamic, h: dynamic)
+func dfs(v: dynamic, h: dynamic) -> dynamic
 {
   stm[v] = cpp_update(tm, "++");
   hgt[v] = h;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(adj[v].size())))
     {
       dfs(adj[v][i], (h + 1));
@@ -43,7 +43,7 @@ func dfs(v: dynamic, h: dynamic)
   ftm[v] = tm;
 }
 
-func add_num(fi: dynamic, se: dynamic, val1: dynamic, val2: dynamic, be: dynamic, en: dynamic, ind: dynamic)
+func add_num(fi: dynamic, se: dynamic, val1: dynamic, val2: dynamic, be: dynamic, en: dynamic, ind: dynamic) -> dynamic
 {
   if (((fi >= en) || (se <= be)))
   {
@@ -55,12 +55,12 @@ func add_num(fi: dynamic, se: dynamic, val1: dynamic, val2: dynamic, be: dynamic
     lazy2[ind] = ((1 * ((lazy2[ind] + val2))) % md);
     return;
   }
-  var mid = (((be + en)) / 2);
+  var mid: dynamic = (((be + en)) / 2);
   add_num(fi, se, val1, val2, be, mid, ((ind * 2) + 1));
   add_num(fi, se, val1, val2, mid, en, ((ind * 2) + 2));
 }
 
-func get_ans(id: dynamic, be: dynamic, en: dynamic, ind: dynamic)
+func get_ans(id: dynamic, be: dynamic, en: dynamic, ind: dynamic) -> dynamic
 {
   if (((id < be) || (id >= en)))
   {
@@ -74,7 +74,7 @@ func get_ans(id: dynamic, be: dynamic, en: dynamic, ind: dynamic)
     lazy2[ind] = 0;
     return ind;
   }
-  var mid = (((be + en)) / 2);
+  var mid: dynamic = (((be + en)) / 2);
   lazy1[((ind * 2) + 1)] += lazy1[ind];
   lazy1[((ind * 2) + 2)] += lazy1[ind];
   add[ind] += lazy1[ind];
@@ -89,23 +89,23 @@ func get_ans(id: dynamic, be: dynamic, en: dynamic, ind: dynamic)
   lazy2[((ind * 2) + 1)] %= md;
   lazy2[((ind * 2) + 2)] %= md;
   seg[ind] %= md;
-  var ret1 = get_ans(id, be, mid, ((ind * 2) + 1));
-  var ret2 = get_ans(id, mid, en, ((ind * 2) + 2));
+  var ret1: dynamic = get_ans(id, be, mid, ((ind * 2) + 1));
+  var ret2: dynamic = get_ans(id, mid, en, ((ind * 2) + 2));
   return max(ret1, ret2);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
   read(n);
-  var a: dynamic;
-  var v: dynamic;
-  var type_cpp: dynamic;
-  var x: dynamic;
-  var k: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var type_cpp: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       read(a);
@@ -116,7 +116,7 @@ func main()
   dfs(0, 0);
   read(q);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       read(type_cpp);
@@ -130,7 +130,7 @@ func main()
       {
         read(v);
         v -= 1;
-        var pl = get_ans(stm[v], 0, maxn, 0);
+        var pl: dynamic = get_ans(stm[v], 0, maxn, 0);
         write(((((1 * ((add[pl] + md))) - (((((1 * hgt[v]) * seg[pl])) % md)))) % md), "\n");
       }
       i += 1;

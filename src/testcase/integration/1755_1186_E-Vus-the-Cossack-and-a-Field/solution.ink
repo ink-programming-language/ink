@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var maxn = 1010;
+var maxn: dynamic = 1010;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn, maxn);
+var a: dynamic = cpp_array(maxn, maxn);
 
-var s = cpp_array(maxn, maxn);
+var s: dynamic = cpp_array(maxn, maxn);
 
-var xa: dynamic;
+var xa: dynamic = cpp_uninitialized();
 
-var ya: dynamic;
+var ya: dynamic = cpp_uninitialized();
 
-var xb: dynamic;
+var xb: dynamic = cpp_uninitialized();
 
-var yb: dynamic;
+var yb: dynamic = cpp_uninitialized();
 
-var ch: dynamic;
+var ch: dynamic = cpp_uninitialized();
 
-func bitcnt(x: dynamic)
+func bitcnt(x: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   while (x)
   {
     if ((x & 1))
@@ -36,22 +36,22 @@ func bitcnt(x: dynamic)
   return ret;
 }
 
-func rev(x: dynamic, y: dynamic)
+func rev(x: dynamic, y: dynamic) -> dynamic
 {
   x -= 1;
   y -= 1;
   return (((bitcnt(x) + bitcnt(y))) & 1);
 }
 
-func sum(x: dynamic, y: dynamic)
+func sum(x: dynamic, y: dynamic) -> dynamic
 {
   if (((x == 0) || (y == 0)))
   {
     return 0;
   }
-  var ret = 0;
-  var fx = ((((x + n) - 1)) / n);
-  var fy = ((((y + m) - 1)) / m);
+  var ret: dynamic = 0;
+  var fx: dynamic = ((((x + n) - 1)) / n);
+  var fy: dynamic = ((((y + m) - 1)) / m);
   ret += ((((((fx - 1)) * ((fy - 1))) / 2) * n) * m);
   if ((((fx % 2) == 0) && ((fy % 2) == 0)))
   {
@@ -95,15 +95,15 @@ func sum(x: dynamic, y: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld%lld%lld", (&n), (&m), (&q));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           scanf(" %c", (&ch));
@@ -115,11 +115,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           s[i][j] = (((s[(i - 1)][j] + s[i][(j - 1)]) - s[(i - 1)][(j - 1)]) + a[i][j]);

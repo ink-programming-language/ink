@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var inf = cpp_expression("//Love a");
+var inf: dynamic = cpp_expression("//Love a");
 
-var N = cpp_expression("//Love");
+var N: dynamic = cpp_expression("//Love");
 
-func read()
+func read() -> dynamic
 {
-  var s = 0;
-  var f = 1;
-  var ch = getchar();
+  var s: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -27,27 +27,27 @@ func read()
   return (f * s);
 }
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-var mn: dynamic;
+var mn: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var e: dynamic;
+var e: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   n = read();
   e = read();
   t = read();
-  var l = 0;
+  var l: dynamic = 0;
   mn = 1e18;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       p[i] = read();
@@ -55,7 +55,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       while (((l <= i) && ((2 * ((p[i] - p[(l + 1)]))) > t)))

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s1: dynamic;
-  var s2: dynamic;
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
   read(s1, s2);
-  var n = s1.length();
-  var m: dynamic;
-  var arr = [];
-  var flag = 1;
+  var n: dynamic = s1.length();
+  var m: dynamic = cpp_uninitialized();
+  var arr: dynamic = [];
+  var flag: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((s1[i] != s2[i]))
@@ -60,7 +60,7 @@ func main()
     return 0;
   }
   write(m.size(), "\n");
-  for (var a in m)
+  for (var a: dynamic in m)
   {
     write(a.first, " ", a.second, "\n");
   }

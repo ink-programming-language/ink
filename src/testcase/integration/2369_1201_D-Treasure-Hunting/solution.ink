@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var inf = 2000000000;
+var inf: dynamic = 2000000000;
 
-var infLL = 9000000000000000000;
+var infLL: dynamic = 9000000000000000000;
 
-func operator_shift_left(os: dynamic, p: dynamic)
+func operator_shift_left(os: dynamic, p: dynamic) -> dynamic
 {
   return (((((os << "(") << p.first) << ", ") << p.second) << ")");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   (os << "{");
   {
-    var it = v.begin();
+    var it: dynamic = v.begin();
     while ((it != v.end()))
     {
       if ((it != v.begin()))
@@ -29,11 +29,11 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "}");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   (os << "[");
   {
-    var it = v.begin();
+    var it: dynamic = v.begin();
     while ((it != v.end()))
     {
       if ((it != v.begin()))
@@ -47,11 +47,11 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "]");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   (os << "[");
   {
-    var it = v.begin();
+    var it: dynamic = v.begin();
     while ((it != v.end()))
     {
       if ((it != v.begin()))
@@ -65,11 +65,11 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "]");
 }
 
-func operator_shift_left(os: dynamic, v: dynamic)
+func operator_shift_left(os: dynamic, v: dynamic) -> dynamic
 {
   (os << "[");
   {
-    var it = v.begin();
+    var it: dynamic = v.begin();
     while ((it != v.end()))
     {
       if ((it != v.begin()))
@@ -83,15 +83,15 @@ func operator_shift_left(os: dynamic, v: dynamic)
   return (os << "]");
 }
 
-func faltu()
+func faltu() -> dynamic
 {
   write(cpp_char("\n"));
 }
 
-func faltu(a: dynamic, n: dynamic)
+func faltu(a: dynamic, n: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(a[i], cpp_char(" "));
@@ -101,37 +101,37 @@ func faltu(a: dynamic, n: dynamic)
   write(cpp_char("\n"));
 }
 
-func faltu(arg: dynamic, rest: dynamic...)
+func faltu(arg: dynamic, rest: dynamic...) -> dynamic
 {
   write(arg, cpp_char(" "));
   faltu(cpp_expand(rest));
 }
 
-var mx = (2e5 + 5);
+var mx: dynamic = (2e5 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var r = cpp_array(mx);
+var r: dynamic = cpp_array(mx);
 
-var c = cpp_array(mx);
+var c: dynamic = cpp_array(mx);
 
-var b = cpp_array(mx);
+var b: dynamic = cpp_array(mx);
 
-var vec = cpp_array(mx);
+var vec: dynamic = cpp_array(mx);
 
-var dp = cpp_array(mx);
+var dp: dynamic = cpp_array(mx);
 
-var lim: dynamic;
+var lim: dynamic = cpp_uninitialized();
 
-var jump = cpp_array(mx);
+var jump: dynamic = cpp_array(mx);
 
-func recur(posR: dynamic, posC: dynamic)
+func recur(posR: dynamic, posC: dynamic) -> dynamic
 {
   if ((posR == lim))
   {
@@ -152,30 +152,30 @@ func recur(posR: dynamic, posC: dynamic)
   {
     return dp[posR][posC];
   }
-  var c = (jump[posR] - posR);
+  var c: dynamic = (jump[posR] - posR);
   if (vec[posR].empty())
   {
-    var idx = posC;
-    var sum = 0;
-    var ul = (lower_bound(b, (b + q), idx) - b);
+    var idx: dynamic = posC;
+    var sum: dynamic = 0;
+    var ul: dynamic = (lower_bound(b, (b + q), idx) - b);
     if ((posC != b[ul]))
     {
       if ((ul == q))
       {
         ul -= 1;
-        var temp = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
+        var temp: dynamic = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
         dp[posR][posC] = temp;
         return temp;
       } else if ((ul == 0))
       {
-        var temp = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
+        var temp: dynamic = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
         dp[posR][posC] = temp;
         return temp;
       } else
       {
-        var temp1 = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
+        var temp1: dynamic = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
         ul -= 1;
-        var temp2 = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
+        var temp2: dynamic = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
         dp[posR][posC] = min(temp1, temp2);
         return min(temp1, temp2);
       }
@@ -187,97 +187,97 @@ func recur(posR: dynamic, posC: dynamic)
   }
   if ((posC < vec[posR][0]))
   {
-    var sum = 0;
+    var sum: dynamic = 0;
     sum += (vec[posR].back() - posC);
-    var idx = vec[posR].back();
-    var ul = (lower_bound(b, (b + q), idx) - b);
+    var idx: dynamic = vec[posR].back();
+    var ul: dynamic = (lower_bound(b, (b + q), idx) - b);
     if ((ul == q))
     {
       ul -= 1;
-      var temp = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
+      var temp: dynamic = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
       dp[posR][posC] = temp;
       return temp;
     } else if ((ul == 0))
     {
-      var temp = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
+      var temp: dynamic = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
       dp[posR][posC] = temp;
       return temp;
     } else
     {
-      var temp1 = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
+      var temp1: dynamic = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
       ul -= 1;
-      var temp2 = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
+      var temp2: dynamic = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
       dp[posR][posC] = min(temp1, temp2);
       return min(temp1, temp2);
     }
   }
   if ((posC > vec[posR].back()))
   {
-    var sum = 0;
+    var sum: dynamic = 0;
     sum += (posC - vec[posR][0]);
-    var idx = vec[posR][0];
-    var ul = (lower_bound(b, (b + q), idx) - b);
+    var idx: dynamic = vec[posR][0];
+    var ul: dynamic = (lower_bound(b, (b + q), idx) - b);
     if ((ul == q))
     {
       ul -= 1;
-      var temp = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
+      var temp: dynamic = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
       dp[posR][posC] = temp;
       return temp;
     } else if ((ul == 0))
     {
-      var temp = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
+      var temp: dynamic = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
       dp[posR][posC] = temp;
       return temp;
     } else
     {
-      var temp1 = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
+      var temp1: dynamic = ((((sum + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
       ul -= 1;
-      var temp2 = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
+      var temp2: dynamic = ((((sum + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
       dp[posR][posC] = min(temp1, temp2);
       return min(temp1, temp2);
     }
   }
   if (((posC >= vec[posR][0]) && (posC <= vec[posR].back())))
   {
-    var ret = infLL;
-    var sum1 = 0;
+    var ret: dynamic = infLL;
+    var sum1: dynamic = 0;
     sum1 += (((posC - vec[posR][0]) + vec[posR].back()) - vec[posR][0]);
-    var idx = vec[posR].back();
-    var ul = (lower_bound(b, (b + q), idx) - b);
+    var idx: dynamic = vec[posR].back();
+    var ul: dynamic = (lower_bound(b, (b + q), idx) - b);
     if ((ul == q))
     {
       ul -= 1;
-      var temp = ((((sum1 + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
+      var temp: dynamic = ((((sum1 + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
       ret = min(ret, temp);
     } else if ((ul == 0))
     {
-      var temp = ((((sum1 + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
+      var temp: dynamic = ((((sum1 + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
       ret = min(ret, temp);
     } else
     {
-      var temp1 = ((((sum1 + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
+      var temp1: dynamic = ((((sum1 + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
       ul -= 1;
-      var temp2 = ((((sum1 + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
+      var temp2: dynamic = ((((sum1 + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
       ret = min([ret, temp1, temp2]);
     }
-    var sum2 = 0;
+    var sum2: dynamic = 0;
     sum2 += (((vec[posR].back() - posC) + vec[posR].back()) - vec[posR][0]);
     idx = vec[posR][0];
     ul = (lower_bound(b, (b + q), idx) - b);
     if ((ul == q))
     {
       ul -= 1;
-      var temp = ((((sum2 + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
+      var temp: dynamic = ((((sum2 + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
       ret = min(ret, temp);
     } else if ((ul == 0))
     {
-      var temp = ((((sum2 + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
+      var temp: dynamic = ((((sum2 + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
       ret = min(ret, temp);
     } else
     {
-      var temp1 = ((((sum2 + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
+      var temp1: dynamic = ((((sum2 + b[ul]) - idx) + c) + recur(jump[posR], b[ul]));
       ul -= 1;
-      var temp2 = ((((sum2 + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
+      var temp2: dynamic = ((((sum2 + idx) - b[ul]) + c) + recur(jump[posR], b[ul]));
       ret = min([ret, temp1, temp2]);
     }
     dp[posR][posC] = ret;
@@ -285,14 +285,14 @@ func recur(posR: dynamic, posC: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n, m, k, q);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       read(r[i], c[i]);
@@ -301,7 +301,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sort(vec[i].begin(), vec[i].end());
@@ -309,7 +309,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vec[i].empty()))
@@ -320,7 +320,7 @@ func main()
     }
   }
   {
-    var i = (lim - 1);
+    var i: dynamic = (lim - 1);
     while ((i >= 1))
     {
       if ((!vec[(i + 1)].empty()))
@@ -334,7 +334,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       read(b[i]);
@@ -342,6 +342,6 @@ func main()
     }
   }
   sort(b, (b + q));
-  var ans = recur(1, 1);
+  var ans: dynamic = recur(1, 1);
   write(ans, cpp_char("\n"));
 }

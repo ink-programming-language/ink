@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var MAX = (1e3 + 5);
+var MAX: dynamic = (1e3 + 5);
 
-var grid = cpp_array(MAX, MAX);
+var grid: dynamic = cpp_array(MAX, MAX);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var pos = cpp_array(30);
+var pos: dynamic = cpp_array(30);
 
-var row = cpp_array(MAX, MAX);
+var row: dynamic = cpp_array(MAX, MAX);
 
-var col = cpp_array(MAX, MAX);
+var col: dynamic = cpp_array(MAX, MAX);
 
-func inside(x: dynamic, y: dynamic)
+func inside(x: dynamic, y: dynamic) -> dynamic
 {
   return ((((x >= 1) && (x <= n)) && (y >= 1)) && (y <= m));
 }
 
-func row_wet(a: dynamic, b: dynamic)
+func row_wet(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.second > b.second))
   {
@@ -28,7 +28,7 @@ func row_wet(a: dynamic, b: dynamic)
   return (row[a.first][b.second] - row[a.first][(a.second - 1)]);
 }
 
-func col_wet(a: dynamic, b: dynamic)
+func col_wet(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.first > b.first))
   {
@@ -37,16 +37,16 @@ func col_wet(a: dynamic, b: dynamic)
   return (col[a.second][b.first] - col[a.second][(a.first - 1)]);
 }
 
-func main()
+func main() -> dynamic
 {
   memset(pos, -1, cpp_sizeof(pos));
   scanf("%d %d%*c", (&n), (&m));
   {
-    var i = int_cpp(1);
+    var i: dynamic = int_cpp(1);
     while ((i < int_cpp((n + 1))))
     {
       {
-        var j = int_cpp(1);
+        var j: dynamic = int_cpp(1);
         while ((j < int_cpp((m + 1))))
         {
           scanf("%c", (&grid[i][j]));
@@ -63,11 +63,11 @@ func main()
     }
   }
   {
-    var i = int_cpp(1);
+    var i: dynamic = int_cpp(1);
     while ((i < int_cpp((n + 1))))
     {
       {
-        var j = int_cpp(1);
+        var j: dynamic = int_cpp(1);
         while ((j < int_cpp((m + 1))))
         {
           row[i][j] = (row[i][(j - 1)] + ((grid[i][j] == cpp_char("#"))));
@@ -78,11 +78,11 @@ func main()
     }
   }
   {
-    var j = int_cpp(1);
+    var j: dynamic = int_cpp(1);
     while ((j < int_cpp((m + 1))))
     {
       {
-        var i = int_cpp(1);
+        var i: dynamic = int_cpp(1);
         while ((i < int_cpp((n + 1))))
         {
           col[j][i] = (col[j][(i - 1)] + ((grid[i][j] == cpp_char("#"))));
@@ -92,15 +92,15 @@ func main()
       j += 1;
     }
   }
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   scanf("%d%*c", (&k));
-  var ins: dynamic;
+  var ins: dynamic = cpp_uninitialized();
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp(k)))
     {
-      var c: dynamic;
-      var t: dynamic;
+      var c: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
       scanf("%c %d%*c", (&c), (&t));
       if ((c == cpp_char("N")))
       {
@@ -118,9 +118,9 @@ func main()
       i += 1;
     }
   }
-  var total = 0;
+  var total: dynamic = 0;
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp(26)))
     {
       if ((pos[i].first == -1))
@@ -128,11 +128,11 @@ func main()
         i += 1;
         continue;
       }
-      var good = true;
-      var cur = pos[i];
-      for (var each in ins)
+      var good: dynamic = true;
+      var cur: dynamic = pos[i];
+      for (var each: dynamic in ins)
       {
-        var nxt = pair((cur.first + each.first), (cur.second + each.second));
+        var nxt: dynamic = pair((cur.first + each.first), (cur.second + each.second));
         if ((!inside(nxt.first, nxt.second)))
         {
           good = false;

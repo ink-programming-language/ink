@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var mn: dynamic;
+var mn: dynamic = cpp_uninitialized();
 
-var mx: dynamic;
+var mx: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var ind: dynamic;
+var ind: dynamic = cpp_uninitialized();
 
-var inx: dynamic;
+var inx: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
@@ -37,7 +37,7 @@ func main()
   while (cpp_update(t, "--"))
   {
     read(n);
-    var a = cpp_array((n + 5));
+    var a: dynamic = cpp_array((n + 5));
     {
       i = 0;
       while ((i < n))
@@ -47,13 +47,13 @@ func main()
       }
     }
     sort(a, (a + n));
-    var f = cpp_array(1005);
+    var f: dynamic = cpp_array(1005);
     memset(f, 0, cpp_sizeof(f));
-    var s = "";
+    var s: dynamic = "";
     ind = 0;
     inx = 0;
     mx = 0;
-    var fl = 1;
+    var fl: dynamic = 1;
     {
       i = 0;
       while ((i < n))

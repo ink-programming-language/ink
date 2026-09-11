@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var N = 41414;
+var N: dynamic = 41414;
 
-var a = cpp_array(320, N);
+var a: dynamic = cpp_array(320, N);
 
-var as_cpp = cpp_array(320, N);
+var as_cpp: dynamic = cpp_array(320, N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var ty: dynamic;
+var ty: dynamic = cpp_uninitialized();
 
-var tl: dynamic;
+var tl: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-var mx: dynamic;
+var mx: dynamic = cpp_uninitialized();
 
-func pd(k: dynamic)
+func pd(k: dynamic) -> dynamic
 {
   if (((((((k < 0) || (k == 1)) || (k == 2)) || (k == 5)) || (k == 4)) || (((k == 8) && (n != 3)) && (m != 3))))
   {
@@ -31,7 +31,7 @@ func pd(k: dynamic)
   return 0;
 }
 
-func dfs(x: dynamic, y: dynamic, ct: dynamic)
+func dfs(x: dynamic, y: dynamic, ct: dynamic) -> dynamic
 {
   if (tl)
   {
@@ -41,11 +41,11 @@ func dfs(x: dynamic, y: dynamic, ct: dynamic)
   {
     tl = 1;
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i <= (n)))
       {
         {
-          var j = (1);
+          var j: dynamic = (1);
           while ((j <= (m)))
           {
             as_cpp[i][j] = a[i][j];
@@ -95,9 +95,9 @@ func dfs(x: dynamic, y: dynamic, ct: dynamic)
   dfs(x, (y + 1), ct);
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
@@ -121,14 +121,14 @@ func main()
     } else if (ty)
     {
       {
-        var j = (1);
+        var j: dynamic = (1);
         while ((j <= (m)))
         {
           {
-            var i = (1);
+            var i: dynamic = (1);
             while ((i <= (n)))
             {
-              putchar(if (as_cpp[i][j]) cpp_char("*") else cpp_char("."));
+              putchar( (as_cpp[i][j]) ? cpp_char("*") : cpp_char("."));
               i += 1;
             }
           }
@@ -139,14 +139,14 @@ func main()
     } else
     {
       {
-        var i = (1);
+        var i: dynamic = (1);
         while ((i <= (n)))
         {
           {
-            var j = (1);
+            var j: dynamic = (1);
             while ((j <= (m)))
             {
-              putchar(if (as_cpp[i][j]) cpp_char("*") else cpp_char("."));
+              putchar( (as_cpp[i][j]) ? cpp_char("*") : cpp_char("."));
               j += 1;
             }
           }

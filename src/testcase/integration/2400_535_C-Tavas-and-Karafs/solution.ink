@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func imprimirVector(v: dynamic)
+func imprimirVector(v: dynamic) -> dynamic
 {
   if ((!v.empty()))
   {
-    var p = v.size();
+    var p: dynamic = v.size();
     write("[");
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < cpp_cast(((p - 1)))))
       {
         write(v[i], ",");
@@ -21,13 +21,13 @@ func imprimirVector(v: dynamic)
   }
 }
 
-func cuadratica(a: dynamic, b: dynamic, c: dynamic)
+func cuadratica(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
-  var res = floor(((((-b) + sqrt(((b * b) - ((4 * a) * c))))) / ((2 * a))));
+  var res: dynamic = floor(((((-b) + sqrt(((b * b) - ((4 * a) * c))))) / ((2 * a))));
   return res;
 }
 
-func query(A: dynamic, B: dynamic, l: dynamic, t: dynamic, m: dynamic)
+func query(A: dynamic, B: dynamic, l: dynamic, t: dynamic, m: dynamic) -> dynamic
 {
   if ((t < ((A + (((l - 1)) * B)))))
   {
@@ -38,19 +38,19 @@ func query(A: dynamic, B: dynamic, l: dynamic, t: dynamic, m: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var A: dynamic;
-  var B: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var A: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
   read(A, B, n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((n))))
     {
-      var l: dynamic;
-      var t: dynamic;
-      var m: dynamic;
+      var l: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
+      var m: dynamic = cpp_uninitialized();
       read(l, t, m);
       write(query(A, B, l, t, m), "\n");
       i += 1;

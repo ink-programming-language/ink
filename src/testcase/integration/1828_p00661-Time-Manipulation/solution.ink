@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-func gcd(l: dynamic, r: dynamic)
+func gcd(l: dynamic, r: dynamic) -> dynamic
 {
   if ((l > r))
   {
@@ -19,22 +19,22 @@ func gcd(l: dynamic, r: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   write(setprecision(11), fixed);
   while (1)
   {
-    var N: dynamic;
-    var M: dynamic;
+    var N: dynamic = cpp_uninitialized();
+    var M: dynamic = cpp_uninitialized();
     read(N, M);
-    var sum = 0;
-    var year = 0;
+    var sum: dynamic = 0;
+    var year: dynamic = 0;
     if ((!N))
     {
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < M))
       {
         read(nums[i]);
@@ -42,12 +42,12 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ((1 << M))))
       {
-        var anum = 1;
+        var anum: dynamic = 1;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < M))
           {
             if (bs[j])
@@ -57,8 +57,8 @@ func main()
             j += 1;
           }
         }
-        var asum = (N / anum);
-        var ayear = ((((anum + N)) * ((N / anum))) / 2);
+        var asum: dynamic = (N / anum);
+        var ayear: dynamic = ((((anum + N)) * ((N / anum))) / 2);
         if ((bs.count() % 2))
         {
           sum -= asum;

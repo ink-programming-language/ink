@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var MN = 100005;
+var MN: dynamic = 100005;
 
-var inf = 1000000005;
+var inf: dynamic = 1000000005;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var INF = 1000000000000000005;
+var INF: dynamic = 1000000000000000005;
 
-var dp = cpp_array(MN, 2);
+var dp: dynamic = cpp_array(MN, 2);
 
-var naj = cpp_array(MN, 4);
+var naj: dynamic = cpp_array(MN, 4);
 
-var G = cpp_array(MN);
+var G: dynamic = cpp_array(MN);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func dfs_pre(x: dynamic, p: dynamic)
+func dfs_pre(x: dynamic, p: dynamic) -> dynamic
 {
-  var sons = (G[x].size() - ((p != 0)));
-  for (var v in G[x])
+  var sons: dynamic = (G[x].size() - ((p != 0)));
+  for (var v: dynamic in G[x])
   {
     if ((v != p))
     {
@@ -46,9 +46,9 @@ func dfs_pre(x: dynamic, p: dynamic)
   dp[1][x] = (1 + naj[0][x].first);
 }
 
-func dfs_licz(x: dynamic, p: dynamic, res_par_bez: dynamic, res_par_z: dynamic)
+func dfs_licz(x: dynamic, p: dynamic, res_par_bez: dynamic, res_par_z: dynamic) -> dynamic
 {
-  var sons = G[x].size();
+  var sons: dynamic = G[x].size();
   if ((res_par_bez >= naj[0][x].first))
   {
     naj[1][x] = naj[0][x];
@@ -65,15 +65,15 @@ func dfs_licz(x: dynamic, p: dynamic, res_par_bez: dynamic, res_par_z: dynamic)
   {
     naj[3][x] = [res_par_z, p];
   }
-  var res_bez = max(0, ((sons - 1) + max(naj[0][x].first, naj[2][x].first)));
-  var res_z = (1 + naj[0][x].first);
+  var res_bez: dynamic = max(0, ((sons - 1) + max(naj[0][x].first, naj[2][x].first)));
+  var res_z: dynamic = (1 + naj[0][x].first);
   ans = max(ans, max(res_bez, res_z));
-  for (var v in G[x])
+  for (var v: dynamic in G[x])
   {
     if ((v != p))
     {
-      var idx_bez = ((naj[0][x].second == v));
-      var idx_z = (2 + ((naj[2][x].second == v)));
+      var idx_bez: dynamic = ((naj[0][x].second == v));
+      var idx_z: dynamic = (2 + ((naj[2][x].second == v)));
       res_bez = max(0, ((sons - 2) + max(naj[idx_bez][x].first, naj[idx_z][x].first)));
       res_z = (1 + naj[idx_bez][x].first);
       dfs_licz(v, x, res_bez, res_z);
@@ -81,16 +81,16 @@ func dfs_licz(x: dynamic, p: dynamic, res_par_bez: dynamic, res_par_z: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d%d", (&u), (&v));
       G[u].push_back(v);
       G[v].push_back(u);

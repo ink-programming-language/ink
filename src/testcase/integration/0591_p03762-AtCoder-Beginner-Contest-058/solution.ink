@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var MOD = cpp_expression("#include <");
+var MOD: dynamic = cpp_expression("#include <");
 
-var INF = cpp_expression("#inc");
+var INF: dynamic = cpp_expression("#inc");
 
-var PI = cpp_expression("#include <bits/s");
+var PI: dynamic = cpp_expression("#include <bits/s");
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var x: dynamic;
-  var y: dynamic;
-  var xs = 0;
-  var ys = 0;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var xs: dynamic = 0;
+  var ys: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x);
@@ -27,7 +27,7 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(y);

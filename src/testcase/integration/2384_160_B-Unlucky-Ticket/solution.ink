@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var flag = 1;
-  var figure: dynamic;
-  var c1 = cpp_array(101);
-  var c2 = cpp_array(101);
-  var k: dynamic;
-  var c = cpp_array(201);
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var flag: dynamic = 1;
+  var figure: dynamic = cpp_uninitialized();
+  var c1: dynamic = cpp_array(101);
+  var c2: dynamic = cpp_array(101);
+  var k: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_array(201);
   scanf("%d", (&n));
   scanf("%s", c);
   {

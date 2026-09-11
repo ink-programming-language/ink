@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var even = 0;
-    var odd = 0;
+    var even: dynamic = 0;
+    var odd: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(arr[i]);
@@ -32,7 +32,7 @@ func main()
     {
       sort(arr.begin(), arr.end());
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (n - 1)))
         {
           if ((abs((arr[i] - arr[(i + 1)])) == 1))

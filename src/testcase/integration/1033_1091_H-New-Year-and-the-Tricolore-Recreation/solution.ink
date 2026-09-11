@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var L = (((1 << 20)) + 1);
+var L: dynamic = (((1 << 20)) + 1);
 
-var buf = cpp_array(L);
+var buf: dynamic = cpp_array(L);
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-func getchar()
+func getchar() -> dynamic
 {
   if (builtin_expect((S == T), 0))
   {
     T = ((cpp_assign(S, "=", buf)) + fread(buf, 1, L, stdin));
-    return (if ((S == T)) EOF else (*cpp_update(S, "++")));
+    return ( ((S == T)) ? EOF : (*cpp_update(S, "++")));
   }
   return (*cpp_update(S, "++"));
 }
 
-func inp()
+func inp() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch: dynamic;
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = cpp_uninitialized();
   {
     ch = getchar();
     while ((!isdigit(ch)))
@@ -46,10 +46,10 @@ func inp()
   return (x * f);
 }
 
-func inpu()
+func inpu() -> dynamic
 {
-  var x = 0;
-  var ch: dynamic;
+  var x: dynamic = 0;
+  var ch: dynamic = cpp_uninitialized();
   {
     ch = getchar();
     while ((!isdigit(ch)))
@@ -67,11 +67,11 @@ func inpu()
   return x;
 }
 
-func inp_ll()
+func inp_ll() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch: dynamic;
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = cpp_uninitialized();
   {
     ch = getchar();
     while ((!isdigit(ch)))
@@ -93,13 +93,13 @@ func inp_ll()
   return (x * f);
 }
 
-var B = cpp_array(25);
+var B: dynamic = cpp_array(25);
 
-var outs = (B + 20);
+var outs: dynamic = (B + 20);
 
-var outr = (B + 20);
+var outr: dynamic = (B + 20);
 
-func print(a: dynamic, x: dynamic = 0)
+func print(a: dynamic, x: dynamic = 0) -> dynamic
 {
   if (x)
   {
@@ -125,17 +125,17 @@ func print(a: dynamic, x: dynamic = 0)
   outs = outr;
 }
 
-func __cpp_top_level_1()
+func __cpp_top_level_1() -> dynamic
 {
 }
 
-func power(a: dynamic, b: dynamic, p: dynamic)
+func power(a: dynamic, b: dynamic, p: dynamic) -> dynamic
 {
   if ((!b))
   {
     return 1;
   }
-  var t = power(a, (b / 2), p);
+  var t: dynamic = power(a, (b / 2), p);
   t = ((t * t) % p);
   if ((b & 1))
   {
@@ -144,7 +144,7 @@ func power(a: dynamic, b: dynamic, p: dynamic)
   return t;
 }
 
-func exgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
+func exgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -152,15 +152,15 @@ func exgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
     y = 0;
     return a;
   }
-  var px: dynamic;
-  var py: dynamic;
-  var d = exgcd(b, (a % b), px, py);
+  var px: dynamic = cpp_uninitialized();
+  var py: dynamic = cpp_uninitialized();
+  var d: dynamic = exgcd(b, (a % b), px, py);
   x = py;
   y = (px - ((a / b) * py));
   return d;
 }
 
-func freshmin(a: dynamic, b: dynamic)
+func freshmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -168,7 +168,7 @@ func freshmin(a: dynamic, b: dynamic)
   }
 }
 
-func freshmax(a: dynamic, b: dynamic)
+func freshmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -176,44 +176,44 @@ func freshmax(a: dynamic, b: dynamic)
   }
 }
 
-var MAXN = 200010;
+var MAXN: dynamic = 200010;
 
-var MAXP = 200000;
+var MAXP: dynamic = 200000;
 
-var MAXK = 110;
+var MAXK: dynamic = 110;
 
-var MOD = 1000000009;
+var MOD: dynamic = 1000000009;
 
-var MI = (f80(1) / MOD);
+var MI: dynamic = (f80(1) / MOD);
 
-var INF = 1000000000;
+var INF: dynamic = 1000000000;
 
 class mybitset
 {
-  var LIMIT: dynamic;
+  var LIMIT: dynamic = cpp_uninitialized();
   var a: dynamic = cpp_array(LIMIT);
-  func mybitset()
+  func mybitset() -> dynamic
   {
       memset(a, 0, cpp_sizeof((a)));
     }
-  func set(x: dynamic)
+  func set(x: dynamic) -> dynamic
   {
       a[(x >> 6)] |= (1 << ((x & 63)));
     }
-  func reset(x: dynamic)
+  func reset(x: dynamic) -> dynamic
   {
       a[(x >> 6)] &= (0xffffffffffffffff ^ ((1 << ((x & 63)))));
     }
-  func test(x: dynamic)
+  func test(x: dynamic) -> dynamic
   {
       return ((a[(x >> 6)] >> ((x & 63))) & 1);
     }
-  func orshl(v: dynamic, shift: dynamic)
+  func orshl(v: dynamic, shift: dynamic) -> dynamic
   {
       if ((((shift & 63)) == 0))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < (LIMIT - ((shift >> 6)))))
           {
             a[(((shift >> 6)) + i)] |= v.a[i];
@@ -224,7 +224,7 @@ class mybitset
       {
         a[(shift >> 6)] |= (v.a[0] << shift);
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i < (LIMIT - ((shift >> 6)))))
           {
             a[(((shift >> 6)) + i)] |= (((v.a[(i - 1)] >> ((64 - shift)))) | ((v.a[i] << shift)));
@@ -235,25 +235,25 @@ class mybitset
     }
 }
 
-var b = cpp_array(MAXN);
+var b: dynamic = cpp_array(MAXN);
 
-var u: dynamic;
+var u: dynamic = cpp_uninitialized();
 
-var v = cpp_array(MAXK);
+var v: dynamic = cpp_array(MAXK);
 
-var f = cpp_array(MAXN);
+var f: dynamic = cpp_array(MAXN);
 
-func init(x: dynamic)
+func init(x: dynamic) -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= MAXP))
     {
       if ((!b[i]))
       {
         u.set(i);
         {
-          var j = (i + i);
+          var j: dynamic = (i + i);
           while ((j <= MAXP))
           {
             b[j] = i;
@@ -270,7 +270,7 @@ func init(x: dynamic)
   u.reset(x);
   v[0] = u;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= MAXP))
     {
       {
@@ -285,18 +285,18 @@ func init(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n = inp();
+  var n: dynamic = inp();
   init(inp());
-  var ans = 0;
+  var ans: dynamic = 0;
   while (cpp_update(n, "--"))
   {
-    var a = inp();
-    var b = inp();
-    var c = inp();
+    var a: dynamic = inp();
+    var b: dynamic = inp();
+    var c: dynamic = inp();
     ans ^= (f[((b - a) - 1)] ^ f[((c - b) - 1)]);
   }
-  puts(if (ans) "Alice\nBob" else "Bob\nAlice");
+  puts( (ans) ? "Alice\nBob" : "Bob\nAlice");
   return 0;
 }

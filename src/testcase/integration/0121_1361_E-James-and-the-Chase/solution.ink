@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var gene = cpp_construct(233);
+var gene: dynamic = cpp_construct(233);
 
-func GET_CHAR()
+func GET_CHAR() -> dynamic
 {
-  var maxn = 131072;
-  var buf = cpp_array(maxn);
-  var p1 = buf;
-  var p2 = buf;
-  return if (((p1 == p2) && (cpp_assign(p2, "=", (p1 == p2))))) EOF else (*cpp_update(p1, "++"));
+  var maxn: dynamic = 131072;
+  var buf: dynamic = cpp_array(maxn);
+  var p1: dynamic = buf;
+  var p2: dynamic = buf;
+  return  (((p1 == p2) && (cpp_assign(p2, "=", (p1 == p2))))) ? EOF : (*cpp_update(p1, "++"));
 }
 
-func getInt()
+func getInt() -> dynamic
 {
-  var res = cpp_construct(0);
-  var c = getchar();
+  var res: dynamic = cpp_construct(0);
+  var c: dynamic = getchar();
   while ((c < cpp_char("0")))
   {
     c = getchar();
@@ -27,9 +27,9 @@ func getInt()
   return res;
 }
 
-func fastpo(x: dynamic, n: dynamic, mod: dynamic)
+func fastpo(x: dynamic, n: dynamic, mod: dynamic) -> dynamic
 {
-  var res = cpp_construct(1);
+  var res: dynamic = cpp_construct(1);
   while (n)
   {
     if ((n & 1))
@@ -42,9 +42,9 @@ func fastpo(x: dynamic, n: dynamic, mod: dynamic)
   return res;
 }
 
-func itoa(x: dynamic, width: dynamic = 0)
+func itoa(x: dynamic, width: dynamic = 0) -> dynamic
 {
-  var res: dynamic;
+  var res: dynamic = cpp_uninitialized();
   if ((x == 0))
   {
     res.push_back(cpp_char("0"));
@@ -64,74 +64,74 @@ func itoa(x: dynamic, width: dynamic = 0)
 
 class MI
 {
-  var a: dynamic;
-  func operator_add(b: dynamic)
+  var a: dynamic = cpp_uninitialized();
+  func operator_add(b: dynamic) -> dynamic
   {
-      var res = [(a + b.a)];
+      var res: dynamic = [(a + b.a)];
       if ((res.a >= mod))
       {
         res.a -= mod;
       }
       return res;
     }
-  func operator_subtract(b: dynamic)
+  func operator_subtract(b: dynamic) -> dynamic
   {
-      var res = [(a - b.a)];
+      var res: dynamic = [(a - b.a)];
       if ((res.a <= 0))
       {
         res.a += mod;
       }
       return res;
     }
-  func operator_multiply(b: dynamic)
+  func operator_multiply(b: dynamic) -> dynamic
   {
       return [((a * b.a) % mod)];
     }
-  func operator_divide(b: dynamic)
+  func operator_divide(b: dynamic) -> dynamic
   {
       return [((a * fastpo(b.a, (mod - 2), mod)) % mod)];
     }
 }
 
-var N = 100033;
+var N: dynamic = 100033;
 
-var LOG = 20;
+var LOG: dynamic = 20;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var inf = (1e9 + 7);
+var inf: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, 1, 0, -1];
+var dy: dynamic = [0, 1, 0, -1];
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-var vst = cpp_array(N);
+var vst: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var e = cpp_array(N);
+var e: dynamic = cpp_array(N);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-var anc = cpp_array(N);
+var anc: dynamic = cpp_array(N);
 
-var o = cpp_array(N);
+var o: dynamic = cpp_array(N);
 
-var cur = cpp_array(N);
+var cur: dynamic = cpp_array(N);
 
-var insert = cpp_array(N);
+var insert: dynamic = cpp_array(N);
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
   vst[v] = true;
   insert[v] = true;
-  for (var y in e[v])
+  for (var y: dynamic in e[v])
   {
     if ((!vst[y]))
     {
@@ -152,13 +152,13 @@ func dfs(v: dynamic)
   return true;
 }
 
-var cpp_name = 0;
+var cpp_name: dynamic = 0;
 
-func d1(v: dynamic)
+func d1(v: dynamic) -> dynamic
 {
   vst[v] = true;
   cur[dep[v]] = v;
-  for (var y in e[v])
+  for (var y: dynamic in e[v])
   {
     if ((!vst[y]))
     {
@@ -168,7 +168,7 @@ func d1(v: dynamic)
       {
         swap(s[v], s[y]);
       }
-      for (var tmp in s[y])
+      for (var tmp: dynamic in s[y])
       {
         s[v].insert(tmp);
       }
@@ -192,14 +192,14 @@ func d1(v: dynamic)
   }
 }
 
-func d2(v: dynamic)
+func d2(v: dynamic) -> dynamic
 {
   vst[v] = true;
   if ((anc[v] != -1))
   {
     ans[v] &= ans[anc[v]];
   }
-  for (var y in e[v])
+  for (var y: dynamic in e[v])
   {
     if ((!vst[y]))
     {
@@ -209,22 +209,22 @@ func d2(v: dynamic)
   }
 }
 
-func run()
+func run() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d%d", (&x), (&y));
       e[x].push_back(y);
       i += 1;
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       o[i] = i;
@@ -232,12 +232,12 @@ func run()
       i += 1;
     }
   }
-  var LIM = 100;
+  var LIM: dynamic = 100;
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= min(LIM, n)))
     {
-      var v = o[j];
+      var v: dynamic = o[j];
       fill((insert + 1), ((insert + 1) + n), false);
       fill((vst + 1), ((vst + 1) + n), false);
       dep[v] = 1;
@@ -248,9 +248,9 @@ func run()
         d1(v);
         fill((vst + 1), ((vst + 1) + n), false);
         d2(v);
-        var cnt = 0;
+        var cnt: dynamic = 0;
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= n))
           {
             cnt += ans[i];
@@ -258,7 +258,7 @@ func run()
           }
         }
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= n))
           {
             s[i].clear();
@@ -272,13 +272,13 @@ func run()
         } else
         {
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i <= n))
             {
               if (ans[i])
               {
                 cnt -= 1;
-                printf("%d%c", i, if (cnt) cpp_char(" ") else cpp_char("\n"));
+                printf("%d%c", i,  (cnt) ? cpp_char(" ") : cpp_char("\n"));
               }
               i += 1;
             }
@@ -292,17 +292,17 @@ func run()
   printf("-1\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   scanf("%d", (&t));
   {
-    var qq = 1;
+    var qq: dynamic = 1;
     while ((qq <= t))
     {
       run();
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           e[i].clear();

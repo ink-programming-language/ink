@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var maxn = (1e5 + 10);
+var maxn: dynamic = (1e5 + 10);
 
-var str = cpp_array(maxn);
+var str: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(str[i]);
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i == 0))

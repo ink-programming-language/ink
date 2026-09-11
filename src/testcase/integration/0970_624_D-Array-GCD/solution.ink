@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var INF = 3000000000000000000;
+var INF: dynamic = 3000000000000000000;
 
-var dp = cpp_array(3, 1000001);
+var dp: dynamic = cpp_array(3, 1000001);
 
-func pf(a: dynamic, s: dynamic)
+func pf(a: dynamic, s: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 2;
     while (((i * i) <= a))
@@ -28,15 +28,15 @@ func pf(a: dynamic, s: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
-  var i: dynamic;
-  var j: dynamic;
-  var n: dynamic;
-  var A: dynamic;
-  var B: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var A: dynamic = cpp_uninitialized();
+  var B: dynamic = cpp_uninitialized();
   read(n, A, B);
   {
     i = 0;
@@ -46,19 +46,19 @@ func main()
       i += 1;
     }
   }
-  var p: dynamic;
+  var p: dynamic = cpp_uninitialized();
   pf((a[0] - 1), p);
   pf(a[0], p);
   pf((a[0] + 1), p);
   pf((a[(n - 1)] - 1), p);
   pf(a[(n - 1)], p);
   pf((a[(n - 1)] + 1), p);
-  var ans = INF;
+  var ans: dynamic = INF;
   {
     typeof(p.begin()) = p.begin();
     while ((it != p.end()))
     {
-      var d = (*it);
+      var d: dynamic = (*it);
       {
         i = 0;
         while ((i < 3))
@@ -71,7 +71,7 @@ func main()
         i = 0;
         while ((i < n))
         {
-          var x = (a[i] % d);
+          var x: dynamic = (a[i] % d);
           if ((x == 0))
           {
             dp[(i + 1)][0] = dp[i][0];
@@ -91,7 +91,7 @@ func main()
           i += 1;
         }
       }
-      var tmp = INF;
+      var tmp: dynamic = INF;
       {
         i = 0;
         while ((i < 3))

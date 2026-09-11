@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func isPrime(n: dynamic)
+func isPrime(n: dynamic) -> dynamic
 {
   if ((n <= 1))
   {
@@ -15,7 +15,7 @@ func isPrime(n: dynamic)
     return 0;
   }
   {
-    var i = 5;
+    var i: dynamic = 5;
     while (((i * i) <= n))
     {
       if ((((n % i) == 0) || ((n % ((i + 2))) == 0)))
@@ -28,7 +28,7 @@ func isPrime(n: dynamic)
   return 1;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -37,26 +37,26 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a * b)) / (gcd(a, b)));
 }
 
-func swap(a: dynamic, b: dynamic)
+func swap(a: dynamic, b: dynamic) -> dynamic
 {
   a = (a ^ b);
   b = (a ^ b);
   a = (a ^ b);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
-  var x = 0;
-  var y = 0;
-  var z = 0;
+  var x: dynamic = 0;
+  var y: dynamic = 0;
+  var z: dynamic = 0;
   while (((a % 2) == 0))
   {
     a = (a / 2);
@@ -96,16 +96,16 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var start_time = clock();
+  var start_time: dynamic = clock();
   write(setprecision(3), fixed);
   write(setprecision(15), fixed);
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
   solve();
-  var end_time = clock();
+  var end_time: dynamic = clock();
   write("Execution time: ", ((((end_time - start_time)) * cpp_cast(1e3)) / CLOCKS_PER_SEC), " ms\n");
   return 0;
 }

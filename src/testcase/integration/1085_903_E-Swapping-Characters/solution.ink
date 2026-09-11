@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var N = 5005;
+var N: dynamic = 5005;
 
-var mod = (1e17 + 7);
+var mod: dynamic = (1e17 + 7);
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var high: dynamic;
+var high: dynamic = cpp_uninitialized();
 
-var idx: dynamic;
+var idx: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(26);
+var cnt: dynamic = cpp_array(26);
 
-func satisfy(x: dynamic)
+func satisfy(x: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((s[x][i] != s[idx][i]))
@@ -37,26 +37,26 @@ func satisfy(x: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
-  var occ: dynamic;
+  var occ: dynamic = cpp_uninitialized();
   ios.sync_with_stdio(false);
   read(k, n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (k + 1)))
     {
       read(s[i]);
       i += 1;
     }
   }
-  var flag = true;
+  var flag: dynamic = true;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < k))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((s[i][j] != s[(i + 1)][j]))
@@ -83,7 +83,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       cnt[(s[1][i] - cpp_char("a"))] += 1;
@@ -92,12 +92,12 @@ func main()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < (k + 1)))
     {
-      var tmp = cpp_construct(26, 0);
+      var tmp: dynamic = cpp_construct(26, 0);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           tmp[(s[i][j] - cpp_char("a"))] += 1;
@@ -105,7 +105,7 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 26))
         {
           if ((tmp[j] != cnt[j]))
@@ -119,9 +119,9 @@ func main()
       i += 1;
     }
   }
-  var yo = false;
+  var yo: dynamic = false;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i == occ))
@@ -130,9 +130,9 @@ func main()
         continue;
       }
       swap(s[idx][i], s[idx][occ]);
-      var ret = true;
+      var ret: dynamic = true;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < (k + 1)))
         {
           if ((!satisfy(j)))
@@ -160,7 +160,7 @@ func main()
     idx += 1;
     yo = false;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((i == occ))
@@ -169,9 +169,9 @@ func main()
           continue;
         }
         swap(s[idx][i], s[idx][occ]);
-        var ret = true;
+        var ret: dynamic = true;
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < (k + 1)))
           {
             if ((!satisfy(j)))

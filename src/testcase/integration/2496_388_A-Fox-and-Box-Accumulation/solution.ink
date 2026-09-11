@@ -2,26 +2,26 @@
 
 class machine
 {
-  var n: dynamic;
-  var arr: dynamic;
-  var mn: dynamic;
-  var mx: dynamic;
-  var cur: dynamic;
-  var sz: dynamic;
-  func machine(n: dynamic)
+  var n: dynamic = cpp_uninitialized();
+  var arr: dynamic = cpp_uninitialized();
+  var mn: dynamic = cpp_uninitialized();
+  var mx: dynamic = cpp_uninitialized();
+  var cur: dynamic = cpp_uninitialized();
+  var sz: dynamic = cpp_uninitialized();
+  func machine(n: dynamic) -> dynamic
   {
-      this->n = n;
+      self->n = n;
       sz = 0;
       arr.resize(101);
       mn = 101;
       mx = 0;
       cur = -1;
     }
-  func getInput()
+  func getInput() -> dynamic
   {
-      var tmp: dynamic;
+      var tmp: dynamic = cpp_uninitialized();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           read(tmp);
@@ -32,11 +32,11 @@ class machine
         }
       }
     }
-  func getBegin()
+  func getBegin() -> dynamic
   {
       sz = 0;
       {
-        var i = mn;
+        var i: dynamic = mn;
         while ((i <= mx))
         {
           if (arr[i])
@@ -49,10 +49,10 @@ class machine
       }
       return -1;
     }
-  func getNext()
+  func getNext() -> dynamic
   {
       {
-        var i = cur;
+        var i: dynamic = cur;
         while ((i <= mx))
         {
           if (arr[i])
@@ -64,7 +64,7 @@ class machine
       }
       return -1;
     }
-  func use(i: dynamic)
+  func use(i: dynamic) -> dynamic
   {
       sz += 1;
       cur = max(i, sz);
@@ -77,14 +77,14 @@ class machine
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var arr = cpp_array(n);
+  var arr: dynamic = cpp_array(n);
   st.getInput();
-  var buf: dynamic;
-  var np = 0;
+  var buf: dynamic = cpp_uninitialized();
+  var np: dynamic = 0;
   while (true)
   {
     buf = st.getBegin();

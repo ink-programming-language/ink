@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var N = 1054;
+var N: dynamic = 1054;
 
-var M = (N * 2);
+var M: dynamic = (N * 2);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var E = 0;
+var E: dynamic = 0;
 
-var G: dynamic;
+var G: dynamic = cpp_uninitialized();
 
-var Gm = INT_MAX;
+var Gm: dynamic = INT_MAX;
 
-var to = cpp_array(M);
+var to: dynamic = cpp_array(M);
 
-var first = cpp_array(N);
+var first: dynamic = cpp_array(N);
 
-var next = cpp_array(M);
+var next: dynamic = cpp_array(M);
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var size = cpp_array(N);
+var size: dynamic = cpp_array(N);
 
-var cnt = 0;
+var cnt: dynamic = 0;
 
-var nb = cpp_array(N);
+var nb: dynamic = cpp_array(N);
 
-var du = cpp_array(N);
+var du: dynamic = cpp_array(N);
 
-var pq: dynamic;
+var pq: dynamic = cpp_uninitialized();
 
-func up(x: dynamic, y: dynamic)
+func up(x: dynamic, y: dynamic) -> dynamic
 {
-  if ((x < y)) cpp_assign(x, "=", y) else 0;
+   ((x < y)) ? cpp_assign(x, "=", y) : 0;
 }
 
-func addedge(u: dynamic, v: dynamic)
+func addedge(u: dynamic, v: dynamic) -> dynamic
 {
   to[cpp_update(E, "++")] = v;
   next[E] = first[u];
@@ -45,11 +45,11 @@ func addedge(u: dynamic, v: dynamic)
   first[v] = E;
 }
 
-func centr(x: dynamic, px: dynamic = 0)
+func centr(x: dynamic, px: dynamic = 0) -> dynamic
 {
-  var i: dynamic;
-  var y: dynamic;
-  var max = 0;
+  var i: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var max: dynamic = 0;
   size[x] = 1;
   {
     i = first[x];
@@ -71,10 +71,10 @@ func centr(x: dynamic, px: dynamic = 0)
   }
 }
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var y: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   size[x] = 1;
   {
     i = first[x];
@@ -91,14 +91,14 @@ func dfs(x: dynamic)
   }
 }
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-func ancestor(x: dynamic)
+func ancestor(x: dynamic) -> dynamic
 {
-  return if ((p[x] == x)) x else (cpp_assign(p[x], "=", ancestor(p[x])));
+  return  ((p[x] == x)) ? x : (cpp_assign(p[x], "=", ancestor(p[x])));
 }
 
-func test(x: dynamic, y: dynamic, un: dynamic = false)
+func test(x: dynamic, y: dynamic, un: dynamic = false) -> dynamic
 {
   if (((cpp_assign(x, "=", ancestor(x))) == (cpp_assign(y, "=", ancestor(y)))))
   {
@@ -107,25 +107,25 @@ func test(x: dynamic, y: dynamic, un: dynamic = false)
   return (un && (cpp_assign(p[x], "=", false)));
 }
 
-var current: dynamic;
+var current: dynamic = cpp_uninitialized();
 
-var step: dynamic;
+var step: dynamic = cpp_uninitialized();
 
-func reset(step: dynamic)
+func reset(step: dynamic) -> dynamic
 {
   current = 0;
   step = step;
 }
 
-func next()
+func next() -> dynamic
 {
   return cpp_assign(current, "+=", step);
 }
 
-func work(x: dynamic)
+func work(x: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var y: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   du[x] = next();
   {
     i = first[x];
@@ -141,13 +141,13 @@ func work(x: dynamic)
   du[x] -= du[p[x]];
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var u: dynamic;
-  var v: dynamic;
-  var Su: dynamic;
-  var Sv: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var Su: dynamic = cpp_uninitialized();
+  var Sv: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
     i = 1;

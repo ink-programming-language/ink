@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func ri()
+func ri() -> dynamic
 {
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   scanf("%d", (&x));
   return x;
 }
 
-func smax(a: dynamic, b: dynamic)
+func smax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -17,7 +17,7 @@ func smax(a: dynamic, b: dynamic)
   return false;
 }
 
-func smin(a: dynamic, b: dynamic)
+func smin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -27,9 +27,9 @@ func smin(a: dynamic, b: dynamic)
   return false;
 }
 
-func pw(a: dynamic, b: dynamic)
+func pw(a: dynamic, b: dynamic) -> dynamic
 {
-  var c = 1;
+  var c: dynamic = 1;
   while (b)
   {
     if ((b & 1))
@@ -44,79 +44,79 @@ func pw(a: dynamic, b: dynamic)
 
 class mint
 {
-  var mod: dynamic;
-  var x: dynamic;
-  func mint()
+  var mod: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  func mint() -> dynamic
   {
-      this->x = cpp_construct(0);
+      self->x = cpp_construct(0);
     }
-  func mint(x: dynamic)
+  func mint(x: dynamic) -> dynamic
   {
-      this->x = cpp_construct((((((x % mod)) + mod)) % mod));
+      self->x = cpp_construct((((((x % mod)) + mod)) % mod));
     }
-  func operator_add_assign(a: dynamic)
+  func operator_add_assign(a: dynamic) -> dynamic
   {
       if (((cpp_assign(x, "+=", a.x)) >= mod))
       {
         x -= mod;
       }
-      return (*this);
+      return (*self);
     }
-  func operator_subtract_assign(a: dynamic)
+  func operator_subtract_assign(a: dynamic) -> dynamic
   {
       if (((cpp_assign(x, "+=", (mod - a.x))) >= mod))
       {
         x -= mod;
       }
-      return (*this);
+      return (*self);
     }
-  func operator(a: dynamic)
+  func operator(a: dynamic) -> dynamic
   {
       (cpp_assign(x, "*=", a.x)) %= mod;
-      return (*this);
+      return (*self);
     }
-  func operator_add(a: dynamic)
+  func operator_add(a: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "+=", a);
+      return cpp_assign(mint((*self)), "+=", a);
     }
-  func operator_subtract(a: dynamic)
+  func operator_subtract(a: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "-=", a);
+      return cpp_assign(mint((*self)), "-=", a);
     }
-  func operator_multiply(a: dynamic)
+  func operator_multiply(a: dynamic) -> dynamic
   {
-      return cpp_assign(mint((*this)), "*=", a);
+      return cpp_assign(mint((*self)), "*=", a);
     }
-  func operator_equal(a: dynamic)
+  func operator_equal(a: dynamic) -> dynamic
   {
       return (x == a.x);
     }
 }
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func inv(a: dynamic)
+func inv(a: dynamic) -> dynamic
 {
   return pw(a, (mod - 2));
 }
 
-var maxn = 300010;
+var maxn: dynamic = 300010;
 
-var p = cpp_array(maxn);
+var p: dynamic = cpp_array(maxn);
 
-var cnt = cpp_array(maxn);
+var cnt: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var c = cpp_array(maxn);
+var c: dynamic = cpp_array(maxn);
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
-var g = cpp_array(maxn);
+var g: dynamic = cpp_array(maxn);
 
-func f(l: dynamic, r: dynamic)
+func f(l: dynamic, r: dynamic) -> dynamic
 {
   if ((((r < l) || (r < 0)) || (l > (n - 2))))
   {
@@ -130,24 +130,24 @@ func f(l: dynamic, r: dynamic)
   {
     r = (n - 2);
   }
-  return (s[r] - (if ((l == 0)) 0 else s[(l - 1)]));
+  return (s[r] - ( ((l == 0)) ? 0 : s[(l - 1)]));
 }
 
-func calc(v: dynamic)
+func calc(v: dynamic) -> dynamic
 {
   v[0] = n;
   {
-    var i = (1);
+    var i: dynamic = (1);
     while ((i < (20)))
     {
       v[0] -= v[i];
       i += 1;
     }
   }
-  var sum = 0;
-  var num = 0;
+  var sum: dynamic = 0;
+  var num: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (20)))
     {
       res += (f(num, ((v[i] + num) - 1)) * (((num * i) - sum)));
@@ -160,7 +160,7 @@ func calc(v: dynamic)
   sum = 0;
   num = 0;
   {
-    var i = 19;
+    var i: dynamic = 19;
     while ((i >= 0))
     {
       res += (f(num, ((v[i] + num) - 1)) * ((sum - (num * i))));
@@ -172,11 +172,11 @@ func calc(v: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   n = ri();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
       cnt[ri()] += 1;
@@ -185,7 +185,7 @@ func main()
   }
   c[0] = cpp_assign(s[0], "=", 1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((n - 2))))
     {
       c[(i + 1)] = ((c[i] * inv(mint((i + 1)))) * (((n - 2) - i)));
@@ -194,7 +194,7 @@ func main()
     }
   }
   {
-    var i = (2);
+    var i: dynamic = (2);
     while ((i < (maxn)))
     {
       if (p[i])
@@ -203,7 +203,7 @@ func main()
         continue;
       }
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j < maxn))
         {
           if ((!p[j]))
@@ -217,16 +217,16 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (maxn)))
     {
       if (cnt[i])
       {
-        var x = i;
+        var x: dynamic = i;
         while ((x > 1))
         {
-          var t = p[x];
-          var cur = 0;
+          var t: dynamic = p[x];
+          var cur: dynamic = 0;
           while (((x % t) == 0))
           {
             x /= t;
@@ -243,7 +243,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (maxn)))
     {
       if ((!g[i].empty()))

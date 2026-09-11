@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
-  var m: dynamic;
-  var z: dynamic;
-  var c = 0;
-  var v: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
+  var c: dynamic = 0;
+  var v: dynamic = cpp_uninitialized();
   read(n, m, z);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((((i * n)) <= z))
     {
       v.push_back((i * n));
@@ -19,7 +19,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((((i * m)) <= z))
     {
       if (binary_search(v.begin(), v.end(), (i * m)))

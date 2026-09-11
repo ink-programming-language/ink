@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var N = 200005;
+var N: dynamic = 200005;
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var Max = cpp_array(N);
+var Max: dynamic = cpp_array(N);
 
-var Max2 = cpp_array(N);
+var Max2: dynamic = cpp_array(N);
 
-var l = cpp_array(N);
+var l: dynamic = cpp_array(N);
 
-var z = cpp_array(N);
+var z: dynamic = cpp_array(N);
 
-var G = cpp_array(N);
+var G: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func upd(x: dynamic, y: dynamic)
+func upd(x: dynamic, y: dynamic) -> dynamic
 {
   if ((y > Max[x]))
   {
@@ -34,7 +34,7 @@ func upd(x: dynamic, y: dynamic)
   }
 }
 
-func dfs1(x: dynamic, y: dynamic)
+func dfs1(x: dynamic, y: dynamic) -> dynamic
 {
   l[x] = N;
   if ((s[x] == cpp_char("1")))
@@ -42,12 +42,12 @@ func dfs1(x: dynamic, y: dynamic)
     l[x] = 0;
     z[x] = 1;
   }
-  for (var i in G[x])
+  for (var i: dynamic in G[x])
   {
     if ((i != y))
     {
       dfs1(i, x);
-      var d = (Max[i] + 1);
+      var d: dynamic = (Max[i] + 1);
       upd(x, d);
       if (z[i])
       {
@@ -58,37 +58,37 @@ func dfs1(x: dynamic, y: dynamic)
   }
 }
 
-func dfs2(x: dynamic, y: dynamic)
+func dfs2(x: dynamic, y: dynamic) -> dynamic
 {
   if (y)
   {
-    var d = if (((Max[x] + 1) == Max[y])) (Max2[y] + 1) else (Max[y] + 1);
+    var d: dynamic =  (((Max[x] + 1) == Max[y])) ? (Max2[y] + 1) : (Max[y] + 1);
     upd(x, d);
     if ((z[1] > z[x]))
     {
       l[x] = min(l[x], d);
     }
   }
-  for (var i in G[x])
+  for (var i: dynamic in G[x])
   {
     if ((i != y))
     {
       dfs2(i, x);
     }
   }
-  var L = l[x];
-  var R = min((Max2[x] + 1), (Max[x] - 1));
+  var L: dynamic = l[x];
+  var R: dynamic = min((Max2[x] + 1), (Max[x] - 1));
   if ((L <= R))
   {
     ans += ((R - L) + 1);
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       scanf("%d%d", (&x), (&y));

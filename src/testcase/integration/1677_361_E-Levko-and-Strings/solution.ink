@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   {
     while ((!isdigit(ch)))
     {
@@ -25,17 +25,17 @@ func read()
   return (x * f);
 }
 
-var N = 2005;
+var N: dynamic = 2005;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var dp = cpp_array(N, N);
+var dp: dynamic = cpp_array(N, N);
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
   x += y;
   if ((x >= mod))
@@ -44,22 +44,22 @@ func add(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n = read();
-  var k = read();
+  var n: dynamic = read();
+  var k: dynamic = read();
   scanf("%s", (s + 1));
   sum[0] = cpp_assign(dp[0][0], "=", 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= k))
         {
           {
-            var l = (i - 1);
+            var l: dynamic = (i - 1);
             while (((l >= 0) && ((((i - l)) * (((n - i) + 1))) <= j)))
             {
               add(dp[i][j], dp[l][(j - (((i - l)) * (((n - i) + 1))))]);
@@ -75,9 +75,9 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       add(ans, dp[i][k]);

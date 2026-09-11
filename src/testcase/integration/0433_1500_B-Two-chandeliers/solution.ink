@@ -1,58 +1,58 @@
 // Translated from solution.cpp.
 
-var USE_MATH_DEFINES = cpp_expression("#def");
+var USE_MATH_DEFINES: dynamic = cpp_expression("#def");
 
-var pb = cpp_expression("#define _");
+var pb: dynamic = cpp_expression("#define _");
 
-var en = cpp_expression("#def");
+var en: dynamic = cpp_expression("#def");
 
-func forn(i: dynamic, n: dynamic)
+func forn(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0;i<n;i++)");
 }
 
-func for0(i: dynamic, n: dynamic)
+func for0(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0;i<n;i++)");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#define _USE_MATH_DEF");
 }
 
-func rall(x: dynamic)
+func rall(x: dynamic) -> dynamic
 {
   return cpp_expression("#define _USE_MATH_DEFIN");
 }
 
-var vec = cpp_expression("#defin");
+var vec: dynamic = cpp_expression("#defin");
 
-var pii = cpp_expression("#define _USE_");
+var pii: dynamic = cpp_expression("#define _USE_");
 
-var pll = cpp_expression("#define _US");
+var pll: dynamic = cpp_expression("#define _US");
 
-func szof(x: dynamic)
+func szof(x: dynamic) -> dynamic
 {
   return cpp_expression("#define _USE_");
 }
 
-var vi = cpp_expression("#define _US");
+var vi: dynamic = cpp_expression("#define _US");
 
-var vll = cpp_expression("#define _U");
+var vll: dynamic = cpp_expression("#define _U");
 
-var vvi = cpp_expression("#define _USE_MATH_D");
+var vvi: dynamic = cpp_expression("#define _USE_MATH_D");
 
-var vvll = cpp_expression("#define _USE_MATH_");
+var vvll: dynamic = cpp_expression("#define _USE_MATH_");
 
-var INF = (1000000000 + 1e8);
+var INF: dynamic = (1000000000 + 1e8);
 
-var LINF = 2000000000000000000;
+var LINF: dynamic = 2000000000000000000;
 
-func print(a: dynamic)
+func print(a: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       write(a[i], cpp_char(" "));
@@ -62,14 +62,14 @@ func print(a: dynamic)
   write(en);
 }
 
-func print(a: dynamic)
+func print(a: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < a[i].size()))
         {
           write(a[i][j], cpp_char(" "));
@@ -82,10 +82,10 @@ func print(a: dynamic)
   }
 }
 
-func input(a: dynamic)
+func input(a: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       read(a[i]);
@@ -94,14 +94,14 @@ func input(a: dynamic)
   }
 }
 
-func input(a: dynamic)
+func input(a: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < a[i].size()))
         {
           read(a[i][j]);
@@ -113,7 +113,7 @@ func input(a: dynamic)
   }
 }
 
-func gcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
+func gcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -121,25 +121,25 @@ func gcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
     y = 0;
     return a;
   }
-  var x1: dynamic;
-  var y1: dynamic;
-  var g = gcd(b, (a % b), x1, y1);
+  var x1: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var g: dynamic = gcd(b, (a % b), x1, y1);
   x = y1;
   y = (x1 - (((a / b)) * y1));
   return g;
 }
 
-func crt(a1: dynamic, a2: dynamic, n1: dynamic, n2: dynamic)
+func crt(a1: dynamic, a2: dynamic, n1: dynamic, n2: dynamic) -> dynamic
 {
-  var x1: dynamic;
-  var y1: dynamic;
-  var d = gcd(n1, n2, x1, y1);
+  var x1: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var d: dynamic = gcd(n1, n2, x1, y1);
   if (((((a1 - a2)) % d) != 0))
   {
     return -1;
   }
-  var k1 = ((((a2 - a1)) / d) * x1);
-  var t = (a1 + (n1 * ((k1 % n2))));
+  var k1: dynamic = ((((a2 - a1)) / d) * x1);
+  var t: dynamic = (a1 + (n1 * ((k1 % n2))));
   while ((t < 0))
   {
     t += ((n1 * n2) / d);
@@ -151,27 +151,27 @@ func crt(a1: dynamic, a2: dynamic, n1: dynamic, n2: dynamic)
   return t;
 }
 
-var lccm: dynamic;
+var lccm: dynamic = cpp_uninitialized();
 
-var pos1: dynamic;
+var pos1: dynamic = cpp_uninitialized();
 
-var pos2: dynamic;
+var pos2: dynamic = cpp_uninitialized();
 
-var N = 0;
+var N: dynamic = 0;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var crts: dynamic;
+var crts: dynamic = cpp_uninitialized();
 
-func get(cnt: dynamic)
+func get(cnt: dynamic) -> dynamic
 {
-  var ans = cnt;
+  var ans: dynamic = cnt;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (((pos1[i] == -1) || (pos2[i] == -1)))
@@ -180,12 +180,12 @@ func get(cnt: dynamic)
         continue;
       } else
       {
-        var fst = crts[i];
+        var fst: dynamic = crts[i];
         if ((fst != -1))
         {
           if (((cnt - fst) > 0))
           {
-            var t = (cnt - fst);
+            var t: dynamic = (cnt - fst);
             ans -= ((((t + lccm) - 1)) / lccm);
           }
         }
@@ -196,7 +196,7 @@ func get(cnt: dynamic)
   return ans;
 }
 
-func solve()
+func solve() -> dynamic
 {
   read(n, m, k);
   input(a);
@@ -211,11 +211,11 @@ func solve()
   fill(all(pos1), -1);
   fill(all(pos2), -1);
   crts.resize(N);
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   lccm = ((n * m) / gcd(n, m, x, y));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       pos1[a[i]] = i;
@@ -223,7 +223,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       pos2[b[i]] = i;
@@ -231,7 +231,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (((pos1[i] == -1) || (pos2[i] == -1)))
@@ -245,11 +245,11 @@ func solve()
       i += 1;
     }
   }
-  var l = 0;
-  var r = 1e18;
+  var l: dynamic = 0;
+  var r: dynamic = 1e18;
   while (((r - l) > 1))
   {
-    var m = (((l + r)) / 2);
+    var m: dynamic = (((l + r)) / 2);
     if ((get(m) >= k))
     {
       r = m;
@@ -261,14 +261,14 @@ func solve()
   write((l + 1));
 }
 
-func main()
+func main() -> dynamic
 {
   srand(time(0));
   ios.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
   freopen("input.txt", "r", stdin);
-  var tst = 1;
+  var tst: dynamic = 1;
   while (cpp_update(tst, "--"))
   {
     solve();

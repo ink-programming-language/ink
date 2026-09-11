@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var ans = 0;
+var ans: dynamic = 0;
 
-func main()
+func main() -> dynamic
 {
   read(a, b, c, d);
   ans = (((a / b)) / ((1 - (((1 - (a / b))) * ((1 - (c / d)))))));

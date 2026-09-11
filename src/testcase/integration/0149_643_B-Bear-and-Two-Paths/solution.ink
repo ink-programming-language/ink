@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func operator_shift_left(out: dynamic, v: dynamic)
+func operator_shift_left(out: dynamic, v: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       ((out << v[i]) << " ");
@@ -14,9 +14,9 @@ func operator_shift_left(out: dynamic, v: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, s: dynamic)
+func operator_shift_left(out: dynamic, s: dynamic) -> dynamic
 {
-  for (var e in s)
+  for (var e: dynamic in s)
   {
     ((out << e) << " ");
   }
@@ -24,16 +24,16 @@ func operator_shift_left(out: dynamic, s: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, p: dynamic)
+func operator_shift_left(out: dynamic, p: dynamic) -> dynamic
 {
   (((((out << "(") << p.first) << ", ") << p.second) << ") ");
   return out;
 }
 
-func operator_shift_left(out: dynamic, v: dynamic)
+func operator_shift_left(out: dynamic, v: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       write(v[i]);
@@ -44,14 +44,14 @@ func operator_shift_left(out: dynamic, v: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, v: dynamic)
+func operator_shift_left(out: dynamic, v: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < v[i].size()))
         {
           ((out << v[i][j]) << " ");
@@ -65,10 +65,10 @@ func operator_shift_left(out: dynamic, v: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, v: dynamic)
+func operator_shift_left(out: dynamic, v: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       (out << v[i]);
@@ -79,15 +79,15 @@ func operator_shift_left(out: dynamic, v: dynamic)
   return out;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   read(a, b, c, d);
   if (((n == 4) || (k < (n + 1))))
   {
@@ -95,9 +95,9 @@ func solve()
     return;
   }
   write(a, " ", c, " ");
-  var middle_vertices: dynamic;
+  var middle_vertices: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((((i != a) && (i != b)) && (i != c)) && (i != d)))
@@ -110,7 +110,7 @@ func solve()
   write(d, " ", b, "\n");
   write(c, " ", a, " ");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((((i != a) && (i != b)) && (i != c)) && (i != d)))
@@ -124,12 +124,12 @@ func solve()
   return;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   t = 1;
   while (cpp_update(t, "--"))
   {

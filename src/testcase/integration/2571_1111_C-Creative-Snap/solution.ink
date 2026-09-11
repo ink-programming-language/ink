@@ -2,32 +2,32 @@
 
 class node
 {
-  var no: dynamic;
-  var cnt: dynamic;
-  var len: dynamic;
-  var prc: dynamic;
+  var no: dynamic = cpp_uninitialized();
+  var cnt: dynamic = cpp_uninitialized();
+  var len: dynamic = cpp_uninitialized();
+  var prc: dynamic = cpp_uninitialized();
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var plc = cpp_array(100005);
+var plc: dynamic = cpp_array(100005);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var s1: dynamic;
+var s1: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n, k, a, b);
-  var mu = (1 << n);
+  var mu: dynamic = (1 << n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       read(plc[i]);
@@ -35,10 +35,10 @@ func main()
     }
   }
   sort((plc + 1), ((plc + k) + 1));
-  var it = 0;
+  var it: dynamic = 0;
   plc[0] = plc[1];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       if ((plc[i] != plc[(i - 1)]))
@@ -57,7 +57,7 @@ func main()
   {
     s1.clear();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < s.size()))
       {
         if (((i == (s.size() - 1)) || ((s[i].no / 2) != (s[(i + 1)].no / 2))))

@@ -1,60 +1,60 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var NINF = 0xc0c0c0c0;
+var NINF: dynamic = 0xc0c0c0c0;
 
-var maxn = (1e6 + 5);
+var maxn: dynamic = (1e6 + 5);
 
 class Edge
 {
-  var u: dynamic;
-  var v: dynamic;
-  var w: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
 }
 
-var edges = cpp_array(maxn);
+var edges: dynamic = cpp_array(maxn);
 
-var dp = cpp_array(maxn);
+var dp: dynamic = cpp_array(maxn);
 
-var val = cpp_array(maxn);
+var val: dynamic = cpp_array(maxn);
 
-var scc: dynamic;
+var scc: dynamic = cpp_uninitialized();
 
-var Index: dynamic;
+var Index: dynamic = cpp_uninitialized();
 
-var top: dynamic;
+var top: dynamic = cpp_uninitialized();
 
-var G_new = cpp_array(maxn);
+var G_new: dynamic = cpp_array(maxn);
 
-var G = cpp_array(maxn);
+var G: dynamic = cpp_array(maxn);
 
-var Stack = cpp_array(maxn);
+var Stack: dynamic = cpp_array(maxn);
 
-var low = cpp_array(maxn);
+var low: dynamic = cpp_array(maxn);
 
-var dfn = cpp_array(maxn);
+var dfn: dynamic = cpp_array(maxn);
 
-var belong = cpp_array(maxn);
+var belong: dynamic = cpp_array(maxn);
 
-var maps = cpp_array(maxn);
+var maps: dynamic = cpp_array(maxn);
 
-var cost = cpp_array(maxn);
+var cost: dynamic = cpp_array(maxn);
 
-var instack = cpp_array(maxn);
+var instack: dynamic = cpp_array(maxn);
 
-var vis = cpp_array(maxn);
+var vis: dynamic = cpp_array(maxn);
 
-func Tarjan(u: dynamic)
+func Tarjan(u: dynamic) -> dynamic
 {
   dfn[u] = cpp_assign(low[u], "=", cpp_update(Index, "++"));
   instack[u] = true;
   Stack[cpp_update(top, "++")] = u;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G[u].size()))
     {
-      var v = G[u][i];
+      var v: dynamic = G[u][i];
       if ((!dfn[v]))
       {
         Tarjan(v);
@@ -71,7 +71,7 @@ func Tarjan(u: dynamic)
     scc += 1;
     while ((top > 0))
     {
-      var now = Stack[cpp_update(top, "--")];
+      var now: dynamic = Stack[cpp_update(top, "--")];
       belong[now] = u;
       instack[now] = false;
       if ((now == u))
@@ -83,13 +83,13 @@ func Tarjan(u: dynamic)
   }
 }
 
-func solve(n: dynamic)
+func solve(n: dynamic) -> dynamic
 {
   memset(dfn, 0, cpp_sizeof((dfn)));
   memset(instack, 0, cpp_sizeof((instack)));
   scc = cpp_assign(Index, "=", cpp_assign(top, "=", 0));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!dfn[i]))
@@ -101,18 +101,18 @@ func solve(n: dynamic)
   }
 }
 
-func dfs(pos: dynamic)
+func dfs(pos: dynamic) -> dynamic
 {
   if ((~dp[pos]))
   {
     return dp[pos];
   }
   dp[pos] = 0;
-  for (var e in G_new[pos])
+  for (var e: dynamic in G_new[pos])
   {
-    var v = e.first;
-    var w = e.second;
-    var temp = (dfs(v) + w);
+    var v: dynamic = e.first;
+    var w: dynamic = e.second;
+    var temp: dynamic = (dfs(v) + w);
     if ((dp[pos] < temp))
     {
       dp[pos] = temp;
@@ -121,12 +121,12 @@ func dfs(pos: dynamic)
   return cpp_assign(dp[pos], "+=", cost[pos]);
 }
 
-func init()
+func init() -> dynamic
 {
   val[0] = 0;
-  var temp = 0;
+  var temp: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < maxn))
     {
       temp += i;
@@ -136,16 +136,16 @@ func init()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   init();
   while ((~scanf("%d%d", (&n), (&m))))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         G[i].clear();
@@ -154,12 +154,12 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
-        var u: dynamic;
-        var v: dynamic;
-        var w: dynamic;
+        var u: dynamic = cpp_uninitialized();
+        var v: dynamic = cpp_uninitialized();
+        var w: dynamic = cpp_uninitialized();
         scanf("%d%d%d", (&u), (&v), (&w));
         edges[i] = [u, v, w];
         G[edges[i].u].push_back(edges[i].v);
@@ -170,12 +170,12 @@ func main()
     memset(dp, -1, cpp_sizeof((dp)));
     memset(cost, 0, cpp_sizeof((cost)));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
-        var u: dynamic;
-        var v: dynamic;
-        var w: dynamic;
+        var u: dynamic = cpp_uninitialized();
+        var v: dynamic = cpp_uninitialized();
+        var w: dynamic = cpp_uninitialized();
         u = maps[belong[edges[i].u]];
         v = maps[belong[edges[i].v]];
         w = edges[i].w;
@@ -184,12 +184,12 @@ func main()
           G_new[u].push_back(make_pair(v, w));
         } else
         {
-          var l = 0;
-          var r = w;
-          var pos: dynamic;
+          var l: dynamic = 0;
+          var r: dynamic = w;
+          var pos: dynamic = cpp_uninitialized();
           while ((l <= r))
           {
-            var mid = (((l + r)) >> 1);
+            var mid: dynamic = (((l + r)) >> 1);
             if ((((((mid + 1)) * mid) / 2) <= w))
             {
               pos = mid;

@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var ml: dynamic;
-  var mr: dynamic;
-  var hl: dynamic;
-  var hr: dynamic;
+  var ml: dynamic = cpp_uninitialized();
+  var mr: dynamic = cpp_uninitialized();
+  var hl: dynamic = cpp_uninitialized();
+  var hr: dynamic = cpp_uninitialized();
   read(ml, mr, hl, hr);
-  var ok = 0;
+  var ok: dynamic = 0;
   if ((((hr + 1) >= ml) && (hr <= (2 * ((ml + 1))))))
   {
     ok = 1;
@@ -16,6 +16,6 @@ func main()
   {
     ok = 1;
   }
-  printf(if (ok) "YES\n" else "NO\n");
+  printf( (ok) ? "YES\n" : "NO\n");
   return 0;
 }

@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100001);
+var a: dynamic = cpp_array(100001);
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-func abso(x: dynamic)
+func abso(x: dynamic) -> dynamic
 {
   if ((x >= 0))
   {
@@ -25,12 +25,12 @@ func abso(x: dynamic)
   return (-x);
 }
 
-func main()
+func main() -> dynamic
 {
   c = 0;
   scanf("%lld %lld %lld %d", (&b), (&q), (&l), (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%lld", (&a[i]));
@@ -41,7 +41,7 @@ func main()
   if ((b == 0))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         if ((a[i] == 0))
@@ -62,10 +62,10 @@ func main()
       printf("0\n");
       return 0;
     }
-    var zf = false;
-    var bf = false;
+    var zf: dynamic = false;
+    var bf: dynamic = false;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         if ((a[i] == 0))
@@ -98,7 +98,7 @@ func main()
       return 0;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         if ((a[i] == b))
@@ -119,10 +119,10 @@ func main()
       printf("0\n");
       return 0;
     }
-    var pf = false;
-    var nf = false;
+    var pf: dynamic = false;
+    var nf: dynamic = false;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         if ((a[i] == b))
@@ -148,7 +148,7 @@ func main()
   n = -1;
   sort(a, (a + m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       if ((a[i] >= 0))

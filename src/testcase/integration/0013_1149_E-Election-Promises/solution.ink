@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 100);
+var N: dynamic = (2e5 + 100);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var h = cpp_array(N);
+var h: dynamic = cpp_array(N);
 
-var lev = cpp_array(N);
+var lev: dynamic = cpp_array(N);
 
-var Xor = cpp_array(N);
+var Xor: dynamic = cpp_array(N);
 
-var cnt = cpp_array(N);
+var cnt: dynamic = cpp_array(N);
 
-var deg = cpp_array(N);
+var deg: dynamic = cpp_array(N);
 
-var nxt = cpp_array(N);
+var nxt: dynamic = cpp_array(N);
 
-var rnxt = cpp_array(N);
+var rnxt: dynamic = cpp_array(N);
 
-var vec = cpp_array(N);
+var vec: dynamic = cpp_array(N);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(h[i]);
@@ -38,11 +38,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       rnxt[y].push_back(x);
       nxt[x].push_back(y);
@@ -51,7 +51,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!deg[i]))
@@ -63,9 +63,9 @@ func main()
   }
   while ((!q.empty()))
   {
-    var u = q.front();
+    var u: dynamic = q.front();
     q.pop();
-    for (var v in nxt[u])
+    for (var v: dynamic in nxt[u])
     {
       cnt[lev[v]] += 1;
     }
@@ -74,11 +74,11 @@ func main()
       lev[u] += 1;
     }
     Xor[lev[u]] ^= h[u];
-    for (var v in nxt[u])
+    for (var v: dynamic in nxt[u])
     {
       cnt[lev[v]] -= 1;
     }
-    for (var v in rnxt[u])
+    for (var v: dynamic in rnxt[u])
     {
       if ((!cpp_update(deg[v], "--")))
       {
@@ -87,20 +87,20 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((~i))
     {
       if (Xor[i])
       {
         puts("WIN");
         {
-          var u = 1;
+          var u: dynamic = 1;
           while ((u <= n))
           {
             if (((lev[u] == i) && (h[u] > ((h[u] ^ Xor[i])))))
             {
               h[u] ^= Xor[i];
-              for (var v in nxt[u])
+              for (var v: dynamic in nxt[u])
               {
                 if (Xor[lev[v]])
                 {
@@ -114,7 +114,7 @@ func main()
           }
         }
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             write(h[j], " ");

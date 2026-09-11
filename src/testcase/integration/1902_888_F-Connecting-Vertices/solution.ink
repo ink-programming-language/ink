@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(505, 505);
+var a: dynamic = cpp_array(505, 505);
 
-var f = cpp_array(505, 505);
+var f: dynamic = cpp_array(505, 505);
 
-var g = cpp_array(505, 505);
+var g: dynamic = cpp_array(505, 505);
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           scanf("%lld", (&a[i][j]));
@@ -29,7 +29,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       f[i][i] = 1;
@@ -37,18 +37,18 @@ func main()
     }
   }
   {
-    var len = 2;
+    var len: dynamic = 2;
     while ((len <= n))
     {
       {
-        var l = 1;
+        var l: dynamic = 1;
         while ((((l + len) - 1) <= n))
         {
-          var r = ((l + len) - 1);
+          var r: dynamic = ((l + len) - 1);
           if (a[l][r])
           {
             {
-              var k = l;
+              var k: dynamic = l;
               while ((k < r))
               {
                 f[l][r] = (((f[l][r] + ((((f[l][k] + g[l][k])) * ((f[(k + 1)][r] + g[(k + 1)][r]))) % mod))) % mod);
@@ -57,7 +57,7 @@ func main()
             }
           }
           {
-            var k = (l + 1);
+            var k: dynamic = (l + 1);
             while ((k < r))
             {
               if (a[l][k])

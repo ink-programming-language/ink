@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var a = cpp_array(810, 810);
+var a: dynamic = cpp_array(810, 810);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var dir = [0, 1, 1, 0, -1, 0, 0, -1];
+var dir: dynamic = [0, 1, 1, 0, -1, 0, 0, -1];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func IN(x: dynamic, y: dynamic)
+func IN(x: dynamic, y: dynamic) -> dynamic
 {
   return ((((x >= 0) && (x < n)) && (y >= 0)) && (y < m));
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d", (&n), (&m), (&k));
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%s", a[i]);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((a[i][j] == cpp_char("S")))
@@ -52,25 +52,25 @@ func main()
   }
   q.push(mp(mp(x, y), k));
   a[x][y] = cpp_char("#");
-  var ans = 0x3f3f3f3f;
+  var ans: dynamic = 0x3f3f3f3f;
   while ((!q.empty()))
   {
-    var t = q.front();
+    var t: dynamic = q.front();
     q.pop();
-    var x = t.fi.fi;
-    var y = t.fi.se;
-    var cnt = t.se;
+    var x: dynamic = t.fi.fi;
+    var y: dynamic = t.fi.se;
+    var cnt: dynamic = t.se;
     ans = min(ans, ((((min(min(x, y), min(((n - x) - 1), ((m - y) - 1))) + k) - 1)) / k));
     if ((t.se == 0))
     {
       continue;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
-        var xx = (x + dir[i][0]);
-        var yy = (y + dir[i][1]);
+        var xx: dynamic = (x + dir[i][0]);
+        var yy: dynamic = (y + dir[i][1]);
         if (((!IN(xx, yy)) || (a[xx][yy] != cpp_char("."))))
         {
           i += 1;

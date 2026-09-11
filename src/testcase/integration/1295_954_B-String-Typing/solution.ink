@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var ans = n;
+  var ans: dynamic = n;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n / 2)))
     {
-      var temp1 = s.substr(0, (i + 1));
-      var temp2 = s.substr((i + 1), (i + 1));
+      var temp1: dynamic = s.substr(0, (i + 1));
+      var temp2: dynamic = s.substr((i + 1), (i + 1));
       if ((temp1 == temp2))
       {
         ans = min(ans, (n - i));
@@ -23,12 +23,12 @@ func solve()
   write(ans);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   t = 1;
   while (cpp_update(t, "--"))
   {

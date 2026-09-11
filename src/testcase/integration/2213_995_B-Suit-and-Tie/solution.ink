@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a = cpp_array((2 * n));
+  var a: dynamic = cpp_array((2 * n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (2 * n)))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var ct = 0;
-  var j: dynamic;
+  var ct: dynamic = 0;
+  var j: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (2 * n)))
     {
       {
@@ -31,7 +31,7 @@ func main()
         }
       }
       {
-        var k = (j - 1);
+        var k: dynamic = (j - 1);
         while ((k > i))
         {
           a[(k + 1)] = a[k];

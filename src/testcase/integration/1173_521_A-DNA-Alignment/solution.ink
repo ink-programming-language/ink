@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(26);
+var a: dynamic = cpp_array(26);
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var ma: dynamic;
+var ma: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-func bin(a: dynamic, n: dynamic)
+func bin(a: dynamic, n: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while (n)
   {
     if ((n & 1))
@@ -27,11 +27,11 @@ func bin(a: dynamic, n: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("\n%c", (&c));
@@ -40,7 +40,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       if ((a[i] > ma))

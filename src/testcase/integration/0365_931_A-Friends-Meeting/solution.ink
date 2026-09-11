@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var temp: dynamic;
+var temp: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(a, b);
   temp = abs((b - a));
   if (((temp % 2) == 0))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= (temp / 2)))
       {
         ans += i;
@@ -26,7 +26,7 @@ func main()
   } else
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= ((temp / 2) + 1)))
       {
         ans += i;

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while ((!isdigit(ch)))
   {
     if ((ch == cpp_char("-")))
@@ -21,49 +21,49 @@ func read()
   return (x * f);
 }
 
-var N = (2e2 + 10);
+var N: dynamic = (2e2 + 10);
 
-var M = (2e6 + 10);
+var M: dynamic = (2e6 + 10);
 
-var dx = [-1, 1, 0, 0, 0];
+var dx: dynamic = [-1, 1, 0, 0, 0];
 
-var dy = [0, 0, -1, 1, 0];
+var dy: dynamic = [0, 0, -1, 1, 0];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var W = cpp_array(M);
+var W: dynamic = cpp_array(M);
 
-var f = cpp_array(M);
+var f: dynamic = cpp_array(M);
 
-var sx: dynamic;
+var sx: dynamic = cpp_uninitialized();
 
-var sy: dynamic;
+var sy: dynamic = cpp_uninitialized();
 
-var mat = cpp_array(N, N);
+var mat: dynamic = cpp_array(N, N);
 
-var vis = cpp_array(N, N, N, 25);
+var vis: dynamic = cpp_array(N, N, N, 25);
 
-var vec = cpp_array(N, N);
+var vec: dynamic = cpp_array(N, N);
 
 class Node
 {
-  var x: dynamic;
-  var y: dynamic;
-  var last: dynamic;
-  var k: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var last: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
 }
 
-var mp = [[cpp_char("N"), 0], [cpp_char("S"), 1], [cpp_char("W"), 2], [cpp_char("E"), 3], [cpp_char("C"), 4]];
+var mp: dynamic = [[cpp_char("N"), 0], [cpp_char("S"), 1], [cpp_char("W"), 2], [cpp_char("E"), 3], [cpp_char("C"), 4]];
 
-func check(x: dynamic, y: dynamic)
+func check(x: dynamic, y: dynamic) -> dynamic
 {
   if (((((x < 0) || (y < 0)) || (x >= n)) || (y >= m)))
   {
@@ -76,24 +76,24 @@ func check(x: dynamic, y: dynamic)
   return true;
 }
 
-func ha(x: dynamic)
+func ha(x: dynamic) -> dynamic
 {
   printf("ha:%d %d %d %d\n", x.x, x.y, x.last, x.k);
 }
 
-func bfs()
+func bfs() -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.push([sx, sy, 0, k]);
   while ((!q.empty()))
   {
-    var u = q.front();
+    var u: dynamic = q.front();
     q.pop();
-    var x = u.x;
-    var y = u.y;
-    var last = u.last;
-    var cur = u.k;
-    var t = ((f[last] + k) - cur);
+    var x: dynamic = u.x;
+    var y: dynamic = u.y;
+    var last: dynamic = u.last;
+    var cur: dynamic = u.k;
+    var t: dynamic = ((f[last] + k) - cur);
     if ((mat[x][y] == cpp_char("P")))
     {
       return t;
@@ -108,7 +108,7 @@ func bfs()
     }
     vis[last][x][y][cur] = true;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < vec[x][y].size()))
       {
         if ((t == f[vec[x][y][i]]))
@@ -129,11 +129,11 @@ func bfs()
       q.push(u);
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 4))
       {
-        var tx = ((x + dx[i]) + dx[W[t]]);
-        var ty = ((y + dy[i]) + dy[W[t]]);
+        var tx: dynamic = ((x + dx[i]) + dx[W[t]]);
+        var ty: dynamic = ((y + dy[i]) + dy[W[t]]);
         if ((((check((x + dx[i]), (y + dy[i])) && check(tx, ty))) || ((check((x + dx[W[t]]), (y + dy[W[t]])) && check(tx, ty)))))
         {
           u = [tx, ty, last, (cur - 1)];
@@ -149,7 +149,7 @@ func bfs()
   return -1;
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   m = read();
@@ -157,11 +157,11 @@ func main()
   t = read();
   w = read();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(mat[i][j]);
@@ -177,21 +177,21 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w))
     {
-      var ch: dynamic;
+      var ch: dynamic = cpp_uninitialized();
       read(ch);
       W[i] = mp[ch];
       i += 1;
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= t))
     {
-      var x = read();
-      var y = read();
+      var x: dynamic = read();
+      var y: dynamic = read();
       vec[x][y].push_back(i);
       f[i] = read();
       i += 1;

@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var MOD = cpp_expression("#include <");
+var MOD: dynamic = cpp_expression("#include <");
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var pow2 = [1];
+var pow2: dynamic = [1];
 
-func gcd(x: dynamic, y: dynamic)
+func gcd(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (y) gcd(y, (x % y)) else x;
+  return  (y) ? gcd(y, (x % y)) : x;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var tmp = -1;
-  var cnt = 1;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var tmp: dynamic = -1;
+  var cnt: dynamic = 1;
   scanf("%lld", (&n));
   while (cpp_update(n, "--"))
   {
@@ -33,7 +33,7 @@ func main(argument_0: dynamic)
       x = (-x);
       y = (-y);
     }
-    var GCD = gcd(abs(x), abs(y));
+    var GCD: dynamic = gcd(abs(x), abs(y));
     x /= GCD;
     y /= GCD;
     if ((y > 0))
@@ -52,7 +52,7 @@ func main(argument_0: dynamic)
       i += 1;
     }
   }
-  for (var p in M)
+  for (var p: dynamic in M)
   {
     cnt = ((cnt * (((pow2[p.second.first] + pow2[p.second.second]) - 1))) % MOD);
   }

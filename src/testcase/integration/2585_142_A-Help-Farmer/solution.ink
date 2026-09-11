@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while ((cin >> n))
   {
-    var factor: dynamic;
+    var factor: dynamic = cpp_uninitialized();
     {
-      var i = 1;
+      var i: dynamic = 1;
       while (((i * i) <= n))
       {
         if (((n % i) == 0))
@@ -22,18 +22,18 @@ func main()
       }
     }
     sort(factor.begin(), factor.end());
-    var mx = 0;
-    var mm = (1 << 60);
+    var mx: dynamic = 0;
+    var mm: dynamic = (1 << 60);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < factor.size()))
       {
-        var A = factor[i];
+        var A: dynamic = factor[i];
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < factor.size()))
           {
-            var B = factor[j];
+            var B: dynamic = factor[j];
             if ((((n % ((A * B))) == 0) && binary_search(factor.begin(), factor.end(), ((n / A) / B))))
             {
               mx = max(mx, ((((A + 1)) * ((B + 2))) * ((((n / A) / B) + 2))));

@@ -1,50 +1,50 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(int)n;++i)");
 }
 
-func FOR(i: dynamic, c: dynamic)
+func FOR(i: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof((c).begin())i=(c).begin();i!=(c).end();++i)");
 }
 
-func ALL(c: dynamic)
+func ALL(c: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #i");
 }
 
-var INF = (1 << 29);
+var INF: dynamic = (1 << 29);
 
 class Edge
 {
-  var src: dynamic;
-  var dst: dynamic;
-  var weight: dynamic;
-  func Edge(src: dynamic, dst: dynamic, weight: dynamic)
+  var src: dynamic = cpp_uninitialized();
+  var dst: dynamic = cpp_uninitialized();
+  var weight: dynamic = cpp_uninitialized();
+  func Edge(src: dynamic, dst: dynamic, weight: dynamic) -> dynamic
   {
-      this->src = cpp_construct(src);
-      this->dst = cpp_construct(dst);
-      this->weight = cpp_construct(weight);
+      self->src = cpp_construct(src);
+      self->dst = cpp_construct(dst);
+      self->weight = cpp_construct(weight);
     }
 }
 
-func operator_less(e: dynamic, f: dynamic)
+func operator_less(e: dynamic, f: dynamic) -> dynamic
 {
-  return if ((e.weight != f.weight)) (e.weight > f.weight) else if ((e.src != f.src)) (e.src < f.src) else (e.dst < f.dst);
+  return  ((e.weight != f.weight)) ? (e.weight > f.weight) :  ((e.src != f.src)) ? (e.src < f.src) : (e.dst < f.dst);
 }
 
-func prim(g: dynamic, r: dynamic)
+func prim(g: dynamic, r: dynamic) -> dynamic
 {
-  var n = g.size();
-  var T: dynamic;
-  var total = 0;
-  var Q: dynamic;
+  var n: dynamic = g.size();
+  var T: dynamic = cpp_uninitialized();
+  var total: dynamic = 0;
+  var Q: dynamic = cpp_uninitialized();
   REP(i, r).push(Edge(-1, i, 0));
   while ((!Q.empty()))
   {
-    var e = Q.top();
+    var e: dynamic = Q.top();
     Q.pop();
     if (visited[e.dst])
     {
@@ -62,20 +62,20 @@ func prim(g: dynamic, r: dynamic)
   return pair(total, T);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   while (cpp_comma(((cin >> n) >> m), (n || m)))
   {
-    var g = cpp_construct((n + m));
+    var g: dynamic = cpp_construct((n + m));
     write(prim(g, n).first, "\n");
   }
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var a: dynamic;
+        var a: dynamic = cpp_uninitialized();
         read(a);
         if (a)
         {
@@ -84,17 +84,17 @@ func REP(argument_0: dynamic, argument_1: dynamic)
         }
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < m))
         {
-          var a: dynamic;
+          var a: dynamic = cpp_uninitialized();
           read(a);
           if (a)
           {

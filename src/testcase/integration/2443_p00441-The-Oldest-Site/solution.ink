@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var p = cpp_array(3000);
+var p: dynamic = cpp_array(3000);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   while (((cin >> n) && n))
   {
     ans = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%d %d", (&p[i].first), (&p[i].second));
@@ -21,17 +21,17 @@ func main()
     }
     sort(p, (p + n));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while (((i + 1) < n))
       {
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j < n))
           {
-            var a = p[i];
-            var b = p[j];
-            var c: dynamic;
-            var d: dynamic;
+            var a: dynamic = p[i];
+            var b: dynamic = p[j];
+            var c: dynamic = cpp_uninitialized();
+            var d: dynamic = cpp_uninitialized();
             c.first = ((a.first + a.second) - b.second);
             c.second = ((a.second + b.first) - a.first);
             d.first = ((b.first + a.second) - b.second);
@@ -46,9 +46,9 @@ func main()
               j += 1;
               continue;
             }
-            var d1 = ((a.first - b.first));
-            var d2 = ((a.second - b.second));
-            var d3 = ((d1 * d1) + (d2 * d2));
+            var d1: dynamic = ((a.first - b.first));
+            var d2: dynamic = ((a.second - b.second));
+            var d3: dynamic = ((d1 * d1) + (d2 * d2));
             ans = max(ans, d3);
             j += 1;
           }

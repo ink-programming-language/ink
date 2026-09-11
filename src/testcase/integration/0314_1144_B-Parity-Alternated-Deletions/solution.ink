@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var myodd: dynamic;
+var myodd: dynamic = cpp_uninitialized();
 
-var myeven: dynamic;
+var myeven: dynamic = cpp_uninitialized();
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (a > b);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
-  var tmp: dynamic;
-  var sum = 0;
+  var tmp: dynamic = cpp_uninitialized();
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&tmp));
@@ -34,11 +34,11 @@ func main()
   }
   sort(myeven.begin(), myeven.end(), cmp);
   sort(myodd.begin(), myodd.end(), cmp);
-  var ans1 = 0;
-  var len1 = myeven.size();
-  var len2 = myodd.size();
-  var i = 0;
-  var j = 0;
+  var ans1: dynamic = 0;
+  var len1: dynamic = myeven.size();
+  var len2: dynamic = myodd.size();
+  var i: dynamic = 0;
+  var j: dynamic = 0;
   {
     while (((i < len1) && (j < len2)))
     {
@@ -56,7 +56,7 @@ func main()
   {
     ans1 += myodd[j];
   }
-  var ans2 = 0;
+  var ans2: dynamic = 0;
   i = 0;
   j = 0;
   {

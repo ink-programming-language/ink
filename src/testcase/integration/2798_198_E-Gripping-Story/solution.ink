@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var s = 0;
-  var f = 0;
-  var ch = cpp_char(" ");
+  var s: dynamic = 0;
+  var f: dynamic = 0;
+  var ch: dynamic = cpp_char(" ");
   while ((!isdigit(ch)))
   {
     f |= ((ch == cpp_char("-")));
@@ -15,10 +15,10 @@ func read()
     s = ((((s << 3)) + ((s << 1))) + ((ch ^ 48)));
     ch = getchar();
   }
-  return if ((f)) ((-s)) else (s);
+  return  ((f)) ? ((-s)) : (s);
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -34,51 +34,51 @@ func write(x: dynamic)
   putchar((((x % 10)) + cpp_char("0")));
 }
 
-var N = 250005;
+var N: dynamic = 250005;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var pp = cpp_array(N);
+var pp: dynamic = cpp_array(N);
 
-var jyl = 0;
+var jyl: dynamic = 0;
 
-var id = cpp_array(N);
+var id: dynamic = cpp_array(N);
 
-var rr = cpp_array(N);
+var rr: dynamic = cpp_array(N);
 
-var limit = cpp_array(N);
+var limit: dynamic = cpp_array(N);
 
 class node
 {
-  var m: dynamic;
-  var p: dynamic;
-  var r: dynamic;
-  var dis: dynamic;
+  var m: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var dis: dynamic = cpp_uninitialized();
 }
 
-var Fe = cpp_array(N);
+var Fe: dynamic = cpp_array(N);
 
-func cmpdis(aa: dynamic, bb: dynamic)
+func cmpdis(aa: dynamic, bb: dynamic) -> dynamic
 {
   return (Fe[aa].dis < Fe[bb].dis);
 }
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return ((1 * x) * x);
 }
 
 class segtree
 {
-  var sum: dynamic;
-  var wwx: dynamic;
+  var sum: dynamic = cpp_uninitialized();
+  var wwx: dynamic = cpp_uninitialized();
 }
 
-var T = cpp_array((N << 2));
+var T: dynamic = cpp_array((N << 2));
 
-func build(x: dynamic, l: dynamic, r: dynamic)
+func build(x: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   T[x].sum = ((r - l) + 1);
   {
     i = l;
@@ -92,12 +92,12 @@ func build(x: dynamic, l: dynamic, r: dynamic)
   {
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   build(((x << 1)), l, mid);
   build((((x << 1) | 1)), (mid + 1), r);
 }
 
-func query(x: dynamic, l: dynamic, r: dynamic, sr: dynamic, sp: dynamic)
+func query(x: dynamic, l: dynamic, r: dynamic, sr: dynamic, sp: dynamic) -> dynamic
 {
   if (((Fe[id[l]].dis > sr) || (T[x].sum == 0)))
   {
@@ -105,11 +105,11 @@ func query(x: dynamic, l: dynamic, r: dynamic, sr: dynamic, sp: dynamic)
   }
   if ((Fe[id[r]].dis <= sr))
   {
-    var it: dynamic;
+    var it: dynamic = cpp_uninitialized();
     while ((T[x].sum && (T[x].wwx.begin()->first <= sp)))
     {
       it = T[x].wwx.begin();
-      var oo = it->second;
+      var oo: dynamic = it->second;
       if ((!limit[oo]))
       {
         limit[oo] = 1;
@@ -122,18 +122,18 @@ func query(x: dynamic, l: dynamic, r: dynamic, sr: dynamic, sp: dynamic)
     }
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   query(((x << 1)), l, mid, sr, sp);
   query((((x << 1) | 1)), (mid + 1), r, sr, sp);
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var x0: dynamic;
-  var y0: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var x0: dynamic = cpp_uninitialized();
+  var y0: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   x0 = read();
   y0 = read();
   pp[0] = read();

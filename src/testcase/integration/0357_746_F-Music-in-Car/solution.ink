@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var N = 400000;
+var N: dynamic = 400000;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var t = cpp_array(N);
+var t: dynamic = cpp_array(N);
 
-var type_cpp = cpp_array(N);
+var type_cpp: dynamic = cpp_array(N);
 
-var us = cpp_array(N);
+var us: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
-  var n: dynamic;
-  var w: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, w, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -26,31 +26,31 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(t[i]);
       i += 1;
     }
   }
-  var r = -1;
-  var curr_time = 0;
-  var earn = 0;
-  var half: dynamic;
-  var full: dynamic;
-  var ans = 0;
+  var r: dynamic = -1;
+  var curr_time: dynamic = 0;
+  var earn: dynamic = 0;
+  var half: dynamic = cpp_uninitialized();
+  var full: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       r = max(r, (i - 1));
       while ((r < (n - 1)))
       {
         r += 1;
-        var temp = curr_time;
-        var pers_full: dynamic;
-        var pers_half: dynamic;
-        var pers_type: dynamic;
+        var temp: dynamic = curr_time;
+        var pers_full: dynamic = cpp_uninitialized();
+        var pers_half: dynamic = cpp_uninitialized();
+        var pers_type: dynamic = cpp_uninitialized();
         half.insert(make_pair(t[r], r));
         pers_half.push_back(make_pair(+1, r));
         pers_type.push_back(make_pair(r, type_cpp[r]));
@@ -58,7 +58,7 @@ func main()
         curr_time += (((t[r] + 1)) / 2);
         if ((half.size() > w))
         {
-          var p = (*half.begin());
+          var p: dynamic = (*half.begin());
           curr_time -= (((p.first + 1)) / 2);
           half.erase(half.find(p));
           pers_half.push_back(make_pair(-1, p.second));
@@ -72,7 +72,7 @@ func main()
         {
           while (pers_full.size())
           {
-            var p = pers_full.back();
+            var p: dynamic = pers_full.back();
             pers_full.pop_back();
             if ((p.first == -1))
             {
@@ -84,7 +84,7 @@ func main()
           }
           while (pers_half.size())
           {
-            var p = pers_half.back();
+            var p: dynamic = pers_half.back();
             pers_half.pop_back();
             if ((p.first == -1))
             {
@@ -96,7 +96,7 @@ func main()
           }
           while (pers_type.size())
           {
-            var p = pers_type.back();
+            var p: dynamic = pers_type.back();
             pers_type.pop_back();
             type_cpp[p.first] = p.second;
           }
@@ -125,7 +125,7 @@ func main()
         us[i] = 0;
         while ((full.size() && (half.size() < w)))
         {
-          var p = (*full.rbegin());
+          var p: dynamic = (*full.rbegin());
           full.erase(full.find(p));
           half.insert(p);
           curr_time -= p.first;

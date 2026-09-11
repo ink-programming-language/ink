@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var adj: dynamic;
+var adj: dynamic = cpp_uninitialized();
 
-var top: dynamic;
+var top: dynamic = cpp_uninitialized();
 
-var branched: dynamic;
+var branched: dynamic = cpp_uninitialized();
 
-var visited: dynamic;
+var visited: dynamic = cpp_uninitialized();
 
-var fertile: dynamic;
+var fertile: dynamic = cpp_uninitialized();
 
-var root = -1;
+var root: dynamic = -1;
 
-func fail()
+func fail() -> dynamic
 {
   write("No", "\n");
   exit(0);
 }
 
-func dfsFindRoot(u: dynamic)
+func dfsFindRoot(u: dynamic) -> dynamic
 {
   if ((root != -1))
   {
     return;
   }
   visited[u] = true;
-  var leaf = true;
-  for (var child in adj[u])
+  var leaf: dynamic = true;
+  for (var child: dynamic in adj[u])
   {
     if (visited[child])
     {
@@ -39,7 +39,7 @@ func dfsFindRoot(u: dynamic)
   if ((!leaf))
   {
     branched[u] = 0;
-    for (var child in adj[u])
+    for (var child: dynamic in adj[u])
     {
       if (visited[child])
       {
@@ -59,11 +59,11 @@ func dfsFindRoot(u: dynamic)
   }
 }
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   visited[u] = true;
-  var leaf = true;
-  for (var child in adj[u])
+  var leaf: dynamic = true;
+  for (var child: dynamic in adj[u])
   {
     if (visited[child])
     {
@@ -74,8 +74,8 @@ func dfs(u: dynamic)
   if ((!leaf))
   {
     branched[u] = 0;
-    var numTops = 0;
-    for (var child in adj[u])
+    var numTops: dynamic = 0;
+    for (var child: dynamic in adj[u])
     {
       if (visited[child])
       {
@@ -110,17 +110,17 @@ func dfs(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   read(n);
   adj = vector(n, vector(0));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       u -= 1;
       v -= 1;

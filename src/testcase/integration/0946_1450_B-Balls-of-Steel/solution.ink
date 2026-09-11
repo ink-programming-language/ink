@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
-  var e: dynamic;
-  var f: dynamic;
-  var g: dynamic;
-  var h: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
-  var m: dynamic;
-  var n: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
-  var t: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var e: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
+  var g: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     read(a, b);
-    var pp = cpp_array((a + 1));
-    var mp = cpp_array((a + 1));
+    var pp: dynamic = cpp_array((a + 1));
+    var mp: dynamic = cpp_array((a + 1));
     {
       i = 1;
       while ((i <= a))
       {
         read(c, d);
         pp[i] = make_pair(c, d);
-        var ct = 0;
+        var ct: dynamic = 0;
         if ((i > 1))
         {
           {

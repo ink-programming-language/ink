@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var MOD = cpp_expression("#include<c");
+var MOD: dynamic = cpp_expression("#include<c");
 
-func f(i: dynamic, n: dynamic)
+func f(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(long long i=0;i<(long long)(n);i++)");
 }
 
-var N = cpp_expression("#inclu");
+var N: dynamic = cpp_expression("#inclu");
 
-var e = cpp_array(N);
+var e: dynamic = cpp_array(N);
 
-var emp = cpp_array(N);
+var emp: dynamic = cpp_array(N);
 
-var used = cpp_array(N);
+var used: dynamic = cpp_array(N);
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var k = cpp_array(N);
+var k: dynamic = cpp_array(N);
 
-var r = cpp_array(N);
+var r: dynamic = cpp_array(N);
 
-func dfs(k: dynamic)
+func dfs(k: dynamic) -> dynamic
 {
   if (used[k])
   {
@@ -35,21 +35,21 @@ func dfs(k: dynamic)
   }
   used[k] = true;
   cnt += 1;
-  var sz = e[k].size();
+  var sz: dynamic = e[k].size();
   f(i, sz);
   dfs(e[k][i]);
   return;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var cc: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
-  var s: dynamic;
-  var ans: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var cc: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   scanf("%lld", (&n));
   cc = 0;
   k[0] = 1;
@@ -65,7 +65,7 @@ func main()
     r[(i + 1)] = (((r[i] * ((n - 1)))) % MOD);
   }
   b[0] = 1;
-  var sz = a.size();
+  var sz: dynamic = a.size();
   ans = 0;
   s = (n - cc);
   s = (((s * r[sz])) % MOD);
@@ -74,13 +74,13 @@ func main()
   return 0;
 }
 
-func f(argument_0: dynamic, argument_1: dynamic)
+func f(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     emp[i] = false;
     used[i] = false;
   }
 
-func f(argument_0: dynamic, argument_1: dynamic)
+func f(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     scanf("%lld", (&x));
     x -= 1;
@@ -94,7 +94,7 @@ func f(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func f(argument_0: dynamic, argument_1: dynamic)
+func f(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if (emp[i])
     {
@@ -104,7 +104,7 @@ func f(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func f(argument_0: dynamic, argument_1: dynamic)
+func f(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((!used[i]))
     {
@@ -113,13 +113,13 @@ func f(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func f(argument_0: dynamic, argument_1: dynamic)
+func f(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     b[i] = 0;
     c[i] = 0;
   }
 
-func f(argument_0: dynamic, argument_1: dynamic)
+func f(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       s = (((a[i] * b[(j + 1)])) % MOD);
       s = (((s * k[(j + 1)])) % MOD);
@@ -127,7 +127,7 @@ func f(argument_0: dynamic, argument_1: dynamic)
       ans = (((ans + s)) % MOD);
     }
 
-func f(argument_0: dynamic, argument_1: dynamic)
+func f(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     s = (((((a[i] - 1)) * r[(sz - 1)])) % MOD);
     ans = (((ans + s)) % MOD);

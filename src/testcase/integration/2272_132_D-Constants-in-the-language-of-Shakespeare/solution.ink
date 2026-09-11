@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-func abs(a: dynamic)
+func abs(a: dynamic) -> dynamic
 {
-  return (if (((a < 0))) (-a) else a);
+  return ( (((a < 0))) ? (-a) : a);
 }
 
-func sqr(a: dynamic)
+func sqr(a: dynamic) -> dynamic
 {
   return (a * a);
 }
 
-var INF = (cpp_cast(1E9) + 7);
+var INF: dynamic = (cpp_cast(1E9) + 7);
 
-var EPS = 1E-9;
+var EPS: dynamic = 1E-9;
 
-var PI = 3.1415926535897932384626433832795;
+var PI: dynamic = 3.1415926535897932384626433832795;
 
-var s = cpp_array(2000000);
+var s: dynamic = cpp_array(2000000);
 
-func main()
+func main() -> dynamic
 {
-  var n = strlen(gets(s));
-  var ans: dynamic;
+  var n: dynamic = strlen(gets(s));
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(n)))
     {
       if ((s[i] == cpp_char("0")))
@@ -37,7 +37,7 @@ func main()
         i += 1;
         continue;
       }
-      var j = i;
+      var j: dynamic = i;
       while ((j < n))
       {
         while (((j < n) && (s[i] == s[j])))
@@ -61,7 +61,7 @@ func main()
   }
   write(int_cpp((ans).size()), "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(int_cpp((ans).size()))))
     {
       if ((ans[i].first == 1))

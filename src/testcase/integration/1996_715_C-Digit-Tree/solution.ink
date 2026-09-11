@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var N = 100005;
+var N: dynamic = 100005;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var sz = cpp_array(N);
+var sz: dynamic = cpp_array(N);
 
-var mx = cpp_array(N);
+var mx: dynamic = cpp_array(N);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-var rt: dynamic;
+var rt: dynamic = cpp_uninitialized();
 
-var pw = [1];
+var pw: dynamic = [1];
 
-var iv = [0];
+var iv: dynamic = [0];
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var e = cpp_array(N);
+var e: dynamic = cpp_array(N);
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-func exgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
+func exgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   if ((!b))
   {
@@ -39,27 +39,27 @@ func exgcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
     return;
   }
   exgcd(b, (a % b), x, y);
-  var t = x;
+  var t: dynamic = x;
   x = y;
   y = (t - ((a / b) * y));
 }
 
-func inv(a: dynamic, k: dynamic)
+func inv(a: dynamic, k: dynamic) -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   exgcd(a, k, x, y);
   x = (((x + k)) % k);
   return x;
 }
 
-func root(u: dynamic, f: dynamic)
+func root(u: dynamic, f: dynamic) -> dynamic
 {
   sz[u] = 1;
   mx[u] = 0;
-  for (var i in e[u])
+  for (var i: dynamic in e[u])
   {
-    var v = i.first;
+    var v: dynamic = i.first;
     if (((v == f) || vis[v]))
     {
       continue;
@@ -78,13 +78,13 @@ func root(u: dynamic, f: dynamic)
   }
 }
 
-func dfs1(u: dynamic, f: dynamic, p: dynamic, d: dynamic)
+func dfs1(u: dynamic, f: dynamic, p: dynamic, d: dynamic) -> dynamic
 {
   a.push_back(p);
-  for (var i in e[u])
+  for (var i: dynamic in e[u])
   {
-    var v = i.first;
-    var w = i.second;
+    var v: dynamic = i.first;
+    var w: dynamic = i.second;
     if (((v == f) || vis[v]))
     {
       continue;
@@ -93,13 +93,13 @@ func dfs1(u: dynamic, f: dynamic, p: dynamic, d: dynamic)
   }
 }
 
-func dfs2(u: dynamic, f: dynamic, p: dynamic, d: dynamic)
+func dfs2(u: dynamic, f: dynamic, p: dynamic, d: dynamic) -> dynamic
 {
   b.emplace_back(p, d);
-  for (var i in e[u])
+  for (var i: dynamic in e[u])
   {
-    var v = i.first;
-    var w = i.second;
+    var v: dynamic = i.first;
+    var w: dynamic = i.second;
     if (((v == f) || vis[v]))
     {
       continue;
@@ -108,9 +108,9 @@ func dfs2(u: dynamic, f: dynamic, p: dynamic, d: dynamic)
   }
 }
 
-func cal(u: dynamic, d: dynamic)
+func cal(u: dynamic, d: dynamic) -> dynamic
 {
-  var s = 0;
+  var s: dynamic = 0;
   a.clear();
   b.clear();
   c.clear();
@@ -123,12 +123,12 @@ func cal(u: dynamic, d: dynamic)
     dfs1(u, 0, d, 10);
     dfs2(u, 0, d, 1);
   }
-  for (var i in b)
+  for (var i: dynamic in b)
   {
     c.push_back(((((k - i.first)) * iv[i.second]) % k));
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       if ((a[i] == c[i]))
@@ -139,21 +139,21 @@ func cal(u: dynamic, d: dynamic)
     }
   }
   sort(c.begin(), c.end());
-  for (var i in a)
+  for (var i: dynamic in a)
   {
     s += (upper_bound(c.begin(), c.end(), i) - lower_bound(c.begin(), c.end(), i));
   }
   return s;
 }
 
-func sol(u: dynamic)
+func sol(u: dynamic) -> dynamic
 {
   vis[u] = 1;
   ans += cal(u, 0);
-  for (var i in e[u])
+  for (var i: dynamic in e[u])
   {
-    var v = i.first;
-    var w = i.second;
+    var v: dynamic = i.first;
+    var w: dynamic = i.second;
     if (vis[v])
     {
       continue;
@@ -166,7 +166,7 @@ func sol(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(n, k);
@@ -176,7 +176,7 @@ func main()
     return 0;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       pw[i] = ((pw[(i - 1)] * 10) % k);
@@ -185,12 +185,12 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var u: dynamic;
-      var v: dynamic;
-      var w: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       read(u, v, w);
       w %= k;
       u += 1;

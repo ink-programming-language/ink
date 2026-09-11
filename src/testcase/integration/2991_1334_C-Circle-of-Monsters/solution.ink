@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   scanf("%d", (&t));
   while (cpp_update(t, "--"))
   {
-    var v: dynamic;
-    var v1: dynamic;
-    var n: dynamic;
-    var x: dynamic;
-    var y: dynamic;
-    var a: dynamic;
-    var b: dynamic;
-    var mn = 1000000000000;
-    var mn1 = 1000000000000;
-    var ans = 0;
-    var ans1 = 0;
-    var res = 0;
+    var v: dynamic = cpp_uninitialized();
+    var v1: dynamic = cpp_uninitialized();
+    var n: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
+    var mn: dynamic = 1000000000000;
+    var mn1: dynamic = 1000000000000;
+    var ans: dynamic = 0;
+    var ans1: dynamic = 0;
+    var res: dynamic = 0;
     scanf("%d", (&n));
     x = n;
     y = n;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%lld %lld", (&a), (&b));
@@ -39,7 +39,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         if (((v[(i + 1)].first - v[i].second) > 0))
@@ -62,7 +62,7 @@ func main()
       }
     }
     {
-      var i = x;
+      var i: dynamic = x;
       while ((i < n))
       {
         ans += v[i].first;
@@ -85,7 +85,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < x))
       {
         ans += v[i].first;
@@ -101,7 +101,7 @@ func main()
       }
     }
     {
-      var i = y;
+      var i: dynamic = y;
       while ((i < n))
       {
         ans1 += v1[i].first;
@@ -124,7 +124,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < y))
       {
         ans1 += v1[i].first;

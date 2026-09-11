@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var fastio = cpp_expression("#include<bits/stdc++.h> #include<");
+var fastio: dynamic = cpp_expression("#include<bits/stdc++.h> #include<");
 
-func main()
+func main() -> dynamic
 {
   fastio;
-  var s: dynamic;
-  var t: dynamic;
-  var n: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

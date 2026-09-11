@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var INF = 0x3fffffff;
+var INF: dynamic = 0x3fffffff;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var home = cpp_array(300);
+var home: dynamic = cpp_array(300);
 
-var gind = cpp_array(300);
+var gind: dynamic = cpp_array(300);
 
-var gra = cpp_array(220);
+var gra: dynamic = cpp_array(220);
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   scanf("%d", (&N));
   {
     i = 1;
@@ -45,12 +45,12 @@ func main()
       i += 1;
     }
   }
-  var ans = INF;
+  var ans: dynamic = INF;
   {
     i = 0;
     while ((i < 3))
     {
-      var tmp = solve(i);
+      var tmp: dynamic = solve(i);
       if ((tmp < ans))
       {
         ans = tmp;
@@ -62,16 +62,16 @@ func main()
   return 0;
 }
 
-func solve(s: dynamic)
+func solve(s: dynamic) -> dynamic
 {
-  var ind = cpp_array(300);
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var cnt = N;
-  var sameroom: dynamic;
-  var res = 0;
-  var used = cpp_array(300);
+  var ind: dynamic = cpp_array(300);
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var cnt: dynamic = N;
+  var sameroom: dynamic = cpp_uninitialized();
+  var res: dynamic = 0;
+  var used: dynamic = cpp_array(300);
   memset(used, 0, cpp_sizeof((used)));
   {
     i = 0;

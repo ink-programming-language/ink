@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var A = cpp_array(5001);
+var A: dynamic = cpp_array(5001);
 
-var B = cpp_array(5001);
+var B: dynamic = cpp_array(5001);
 
-var C = cpp_array(5001);
+var C: dynamic = cpp_array(5001);
 
-var D = cpp_array(5001);
+var D: dynamic = cpp_array(5001);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var S = [];
+var S: dynamic = [];
 
-func main()
+func main() -> dynamic
 {
   read(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (((N * ((N - 1))) / 2))))
     {
       read(A[i], B[i], C[i], D[i]);
@@ -38,14 +38,14 @@ func main()
       i += 1;
     }
   }
-  var T = 0;
+  var T: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (N + 1)))
     {
       T = 1;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < (N + 1)))
         {
           if ((S[i] < S[j]))

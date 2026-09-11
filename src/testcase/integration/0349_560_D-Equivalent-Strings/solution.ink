@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func minEquivalent(s: dynamic)
+func minEquivalent(s: dynamic) -> dynamic
 {
   if ((s.length() % 2))
   {
     return s;
   }
-  var s1 = minEquivalent(s.substr(0, (s.length() / 2)));
-  var s2 = minEquivalent(s.substr((s.length() / 2), (s.length() / 2)));
+  var s1: dynamic = minEquivalent(s.substr(0, (s.length() / 2)));
+  var s2: dynamic = minEquivalent(s.substr((s.length() / 2), (s.length() / 2)));
   if ((s1 < s2))
   {
     return (s1 + s2);
@@ -17,12 +17,12 @@ func minEquivalent(s: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
   if ((minEquivalent(a) == minEquivalent(b)))
   {

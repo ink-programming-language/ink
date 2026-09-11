@@ -1,84 +1,84 @@
 // Translated from solution.cpp.
 
-var mapii = cpp_expression("//84104971101");
+var mapii: dynamic = cpp_expression("//84104971101");
 
-func debug(a: dynamic)
+func debug(a: dynamic) -> dynamic
 {
   return cpp_expression("//84104971101048411497 - Can yo");
 }
 
-func debuga1(a: dynamic, l: dynamic, r: dynamic)
+func debuga1(a: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   cpp_macro("fto(i, l, r) cout << a[i] << \" \"; cout << endl");
 }
 
-func fdto(i: dynamic, r: dynamic, l: dynamic)
+func fdto(i: dynamic, r: dynamic, l: dynamic) -> dynamic
 {
   cpp_macro("for(int i = (r); i >= (l); --i)");
 }
 
-func fto(i: dynamic, l: dynamic, r: dynamic)
+func fto(i: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   cpp_macro("for(int i = (l); i <= (r); ++i)");
 }
 
-func forit(it: dynamic, var_cpp: dynamic)
+func forit(it: dynamic, var_cpp: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof(var.begin()) it = var.begin(); it != var.end(); it++)");
 }
 
-func forrit(rit: dynamic, var_cpp: dynamic)
+func forrit(rit: dynamic, var_cpp: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof(var.rbegin()) rit = var.rbegin(); rit != var.rend(); rit++)");
 }
 
-var ii = cpp_expression("//841049711010");
+var ii: dynamic = cpp_expression("//841049711010");
 
-var iii = cpp_expression("//84104971101");
+var iii: dynamic = cpp_expression("//84104971101");
 
-var ff = cpp_expression("//841");
+var ff: dynamic = cpp_expression("//841");
 
-var ss = cpp_expression("//8410");
+var ss: dynamic = cpp_expression("//8410");
 
-var mp = cpp_expression("//8410497");
+var mp: dynamic = cpp_expression("//8410497");
 
-var pb = cpp_expression("//8410497");
+var pb: dynamic = cpp_expression("//8410497");
 
-var maxN = cpp_expression("//8");
+var maxN: dynamic = cpp_expression("//8");
 
-var maxM = cpp_expression("//84");
+var maxM: dynamic = cpp_expression("//84");
 
-var oo = cpp_expression("//8410497110104841149");
+var oo: dynamic = cpp_expression("//8410497110104841149");
 
-func sz(a: dynamic)
+func sz(a: dynamic) -> dynamic
 {
   return cpp_expression("//84104971101");
 }
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-func fRand(fMin: dynamic, fMax: dynamic)
+func fRand(fMin: dynamic, fMax: dynamic) -> dynamic
 {
-  var f = (cpp_cast(rand()) / RAND_MAX);
+  var f: dynamic = (cpp_cast(rand()) / RAND_MAX);
   return (fMin + (f * ((fMax - fMin))));
 }
 
-func min(a: dynamic, b: dynamic, c: dynamic)
+func min(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return min(a, min(b, c));
 }
 
-func max(a: dynamic, b: dynamic, c: dynamic)
+func max(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return max(a, max(b, c));
 }
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   a = min((a + b), oo);
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == 0))
   {
@@ -91,21 +91,21 @@ func mul(a: dynamic, b: dynamic)
   return min(oo, (a * b));
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var z = cpp_array(maxN, maxM);
+var z: dynamic = cpp_array(maxN, maxM);
 
-var id: dynamic;
+var id: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(maxM);
+var cnt: dynamic = cpp_array(maxM);
 
-var dp = cpp_array(maxM);
+var dp: dynamic = cpp_array(maxM);
 
-var s = cpp_array(maxN);
+var s: dynamic = cpp_array(maxN);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%lld", (&n), (&m), (&id));
   fto(i, 0, (n - 1));
@@ -122,12 +122,12 @@ func main()
     }
   }
   dp[0] = 1;
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   fto(i, 1, m);
   {
     fto(c, cpp_char("a"), cpp_char("z"));
     {
-      var sum = 0;
+      var sum: dynamic = 0;
       fto(j, 0, (n - 1));
       {
         fto(p, max(1, ((i - sz(s[j])) + 1)), min(i, ((m - sz(s[j])) + 1)));

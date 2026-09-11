@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0; i<n; ++i)");
 }
 
 class Tree
 {
-  var name: dynamic;
-  var parent: dynamic;
-  var child: dynamic;
-  func Tree()
+  var name: dynamic = cpp_uninitialized();
+  var parent: dynamic = cpp_uninitialized();
+  var child: dynamic = cpp_uninitialized();
+  func Tree() -> dynamic
   {
-      this->parent = cpp_construct(null);
+      self->parent = cpp_construct(null);
     }
-  func ~Tree()
+  func cpp_destruct_Tree() -> dynamic
   {
       REP(i, child.size());
       cpp_delete(child[i]);
     }
 }
 
-var tree: dynamic;
+var tree: dynamic = cpp_uninitialized();
 
-func find(t: dynamic, name: dynamic)
+func find(t: dynamic, name: dynamic) -> dynamic
 {
   if ((name == t->name))
   {
@@ -31,7 +31,7 @@ func find(t: dynamic, name: dynamic)
   }
   REP(i, t->child.size());
   {
-    var ret = find(t->child[i], name);
+    var ret: dynamic = find(t->child[i], name);
     if ((ret != null))
     {
       return ret;
@@ -40,7 +40,7 @@ func find(t: dynamic, name: dynamic)
   return null;
 }
 
-func isChild(t: dynamic, name: dynamic)
+func isChild(t: dynamic, name: dynamic) -> dynamic
 {
   REP(i, t->child.size());
   {
@@ -52,7 +52,7 @@ func isChild(t: dynamic, name: dynamic)
   return false;
 }
 
-func isParent(t: dynamic, name: dynamic)
+func isParent(t: dynamic, name: dynamic) -> dynamic
 {
   if ((t->parent->name == name))
   {
@@ -61,15 +61,15 @@ func isParent(t: dynamic, name: dynamic)
   return false;
 }
 
-func isSibling(t: dynamic, name: dynamic)
+func isSibling(t: dynamic, name: dynamic) -> dynamic
 {
-  var p = t->parent;
+  var p: dynamic = t->parent;
   return isChild(p, name);
 }
 
-func isDescendant(t: dynamic, name: dynamic)
+func isDescendant(t: dynamic, name: dynamic) -> dynamic
 {
-  var ret = find(t, name);
+  var ret: dynamic = find(t, name);
   if ((ret == null))
   {
     return false;
@@ -77,7 +77,7 @@ func isDescendant(t: dynamic, name: dynamic)
   return true;
 }
 
-func isAncestor(t: dynamic, name: dynamic)
+func isAncestor(t: dynamic, name: dynamic) -> dynamic
 {
   if ((t->name == name))
   {
@@ -90,35 +90,35 @@ func isAncestor(t: dynamic, name: dynamic)
   return isAncestor(t->parent, name);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   while (cpp_comma(((cin >> n) >> q), ((n || q))))
   {
     tree = cpp_new();
-    var now = tree;
-    var prev = tree;
-    var sp = -1;
+    var now: dynamic = tree;
+    var prev: dynamic = tree;
+    var sp: dynamic = -1;
     cin.ignore();
     write("\n");
     cpp_delete(tree);
   }
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var str: dynamic;
+      var str: dynamic = cpp_uninitialized();
       getline(cin, str);
-      var cnt = 0;
+      var cnt: dynamic = 0;
       REP(j, str.size());
       if ((str[j] == cpp_char(" ")))
       {
         cnt += 1;
       }
-      var name = cpp_construct((str.begin() + cnt), str.end());
+      var name: dynamic = cpp_construct((str.begin() + cnt), str.end());
       REP(j, (((sp - cnt)) + 1)) = now->parent;
-      var nw = cpp_new();
+      var nw: dynamic = cpp_new();
       nw->parent = now;
       nw->name = name;
       now->child.push_back(nw);
@@ -126,15 +126,15 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       sp = cnt;
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var ret: dynamic;
-      var a: dynamic;
-      var b: dynamic;
-      var c: dynamic;
+      var ret: dynamic = cpp_uninitialized();
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
       read(a, b, b, b, c, c);
       c = c.substr(0, (c.size() - 1));
-      var s = find(tree, c);
+      var s: dynamic = find(tree, c);
       if ((s == null))
       {
         write("False", "\n");
@@ -160,6 +160,6 @@ func REP(argument_0: dynamic, argument_1: dynamic)
         {
           ret = isAncestor(s, a);
         }
-        write((if (ret) "True" else "False"), "\n");
+        write(( (ret) ? "True" : "False"), "\n");
       }
     }

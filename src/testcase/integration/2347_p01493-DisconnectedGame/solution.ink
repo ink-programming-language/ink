@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int64_t i = 0; i < (int64_t)(n); i++)");
 }
 
-func irep(i: dynamic, n: dynamic)
+func irep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int64_t i = 0; i <= (int64_t)(n); i++)");
 }
 
-func rrep(i: dynamic, n: dynamic)
+func rrep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int64_t i = (n)-1; i >= 0; i--)");
 }
 
-func rirep(i: dynamic, n: dynamic)
+func rirep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int64_t i = n; i >= 0; i--)");
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <algorithm> #includ");
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <algor");
 }
 
 class UFTree
 {
-  var m_parent: dynamic;
-  var m_height: dynamic;
-  var m_size: dynamic;
-  func UFTree(size: dynamic)
+  var m_parent: dynamic = cpp_uninitialized();
+  var m_height: dynamic = cpp_uninitialized();
+  var m_size: dynamic = cpp_uninitialized();
+  func UFTree(size: dynamic) -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < size))
         {
           m_parent.push_back(i);
@@ -48,7 +48,7 @@ class UFTree
         }
       }
     }
-  func root(node: dynamic)
+  func root(node: dynamic) -> dynamic
   {
       if ((m_parent[node] == node))
       {
@@ -56,10 +56,10 @@ class UFTree
       }
       return cpp_assign(m_parent[node], "=", root(m_parent[node]));
     }
-  func merge(n0: dynamic, n1: dynamic)
+  func merge(n0: dynamic, n1: dynamic) -> dynamic
   {
-      var r0 = root(n0);
-      var r1 = root(n1);
+      var r0: dynamic = root(n0);
+      var r1: dynamic = root(n1);
       if ((r0 == r1))
       {
         return;
@@ -75,27 +75,27 @@ class UFTree
       m_parent[r1] = r0;
       m_size[r0] += m_size[r1];
     }
-  func size(node: dynamic)
+  func size(node: dynamic) -> dynamic
   {
       return m_size[root(node)];
     }
 }
 
-func main()
+func main() -> dynamic
 {
-  var V: dynamic;
+  var V: dynamic = cpp_uninitialized();
   read(V);
-  var cnt = 0;
+  var cnt: dynamic = 0;
   cnt /= 2;
-  var group = 0;
-  var odd = 0;
-  var dp = cpp_construct((group + 1), vector((group + 1), vector(2, false)));
+  var group: dynamic = 0;
+  var odd: dynamic = 0;
+  var dp: dynamic = cpp_construct((group + 1), vector((group + 1), vector(2, false)));
   irep(j, 2);
   {
     dp[2][j][1] = true;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < group))
     {
       irep(j, (i + 1));
@@ -116,11 +116,11 @@ func main()
       i += 1;
     }
   }
-  write((if (dp[group][odd][(cnt % 2)]) "Taro" else "Hanako"), "\n");
+  write(( (dp[group][odd][(cnt % 2)]) ? "Taro" : "Hanako"), "\n");
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       if ((s[j] == cpp_char("Y")))
       {
@@ -129,18 +129,18 @@ func rep(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var s: dynamic;
+    var s: dynamic = cpp_uninitialized();
     read(s);
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((!is_visited[connectivity.root(i)]))
     {
       is_visited[connectivity.root(i)] = true;
-      var s = connectivity.size(i);
+      var s: dynamic = connectivity.size(i);
       cnt += ((s * ((s - 1))) / 2);
       group += 1;
       if (((s % 2) == 1))

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var N = 30;
+var N: dynamic = 30;
 
-var mod = (int_cpp(1e9) + 7);
+var mod: dynamic = (int_cpp(1e9) + 7);
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var dp = cpp_array((1 << 21));
+var dp: dynamic = cpp_array((1 << 21));
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&k));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%lf", (&p[i]));
@@ -29,12 +29,12 @@ func main()
   }
   dp[0] = 1;
   {
-    var mask = 0;
+    var mask: dynamic = 0;
     while ((mask < ((1 << n))))
     {
-      var sum = 0;
+      var sum: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((mask & ((1 << i))))
@@ -47,7 +47,7 @@ func main()
       if (((builtin_popcount(mask) == k) || (abs((sum - 1)) < eps)))
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < n))
           {
             if ((mask & ((1 << i))))
@@ -61,12 +61,12 @@ func main()
         continue;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((!((mask & ((1 << i))))))
           {
-            var nmask = (mask | ((1 << i)));
+            var nmask: dynamic = (mask | ((1 << i)));
             dp[nmask] += ((dp[mask] * p[i]) / ((1 - sum)));
           }
           i += 1;
@@ -76,10 +76,10 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      printf("%.12lf ", double(a[i]));
+      printf("%.12lf ", cpp_double(a[i]));
       i += 1;
     }
   }

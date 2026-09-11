@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var MAX = ((2e5) + 10);
+var MAX: dynamic = ((2e5) + 10);
 
-var ara = cpp_array(MAX);
+var ara: dynamic = cpp_array(MAX);
 
-var id = cpp_array(MAX);
+var id: dynamic = cpp_array(MAX);
 
-var didi = cpp_array(MAX);
+var didi: dynamic = cpp_array(MAX);
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       read(ara[i].first);
@@ -21,7 +21,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       read(ara[i].second);
@@ -29,13 +29,13 @@ func solve()
     }
   }
   sort(ara, (ara + n), __cpp_lambda_1);
-  var cp = -1;
-  var que: dynamic;
-  var sum: dynamic;
-  var prin: dynamic;
+  var cp: dynamic = -1;
+  var que: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  var prin: dynamic = cpp_uninitialized();
   sum = cpp_assign(prin, "=", 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       if ((cp >= ara[i].first))
@@ -69,15 +69,15 @@ func solve()
   write(prin, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
-  var tc: dynamic;
+  var tc: dynamic = cpp_uninitialized();
   solve();
   return 0;
 }
 
-func __cpp_lambda_1(x: dynamic, y: dynamic)
+func __cpp_lambda_1(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (((x.first == y.first))) (x.second > y.second) else (x.first < y.first);
+  return  (((x.first == y.first))) ? (x.second > y.second) : (x.first < y.first);
 }

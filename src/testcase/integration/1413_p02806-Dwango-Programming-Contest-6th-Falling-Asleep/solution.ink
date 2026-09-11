@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var c: dynamic;
-  var m = cpp_array(50);
+  var c: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_array(50);
   read(c);
-  var n = cpp_array(50);
+  var n: dynamic = cpp_array(50);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < c))
     {
       read(n[i]);
@@ -15,10 +15,10 @@ func main(argument_0: dynamic)
       i += 1;
     }
   }
-  var fm: dynamic;
+  var fm: dynamic = cpp_uninitialized();
   read(fm);
-  var j: dynamic;
-  var sum = 0;
+  var j: dynamic = cpp_uninitialized();
+  var sum: dynamic = 0;
   {
     j = 0;
     while ((j < c))

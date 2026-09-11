@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var maxn = 1400;
+var maxn: dynamic = 1400;
 
-var dp = cpp_array(maxn, maxn);
+var dp: dynamic = cpp_array(maxn, maxn);
 
-var g = cpp_array(maxn, maxn);
+var g: dynamic = cpp_array(maxn, maxn);
 
-func getlargestsquare(h: dynamic, w: dynamic)
+func getlargestsquare(h: dynamic, w: dynamic) -> dynamic
 {
-  var maxwidth = 0;
+  var maxwidth: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           dp[i][j] = (((g[i][j] + 1)) % 2);
@@ -26,11 +26,11 @@ func getlargestsquare(h: dynamic, w: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < h))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < w))
         {
           if (g[i][j])
@@ -50,17 +50,17 @@ func getlargestsquare(h: dynamic, w: dynamic)
   return (maxwidth * maxwidth);
 }
 
-func main()
+func main() -> dynamic
 {
-  var h: dynamic;
-  var w: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
   read(h, w);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           read(g[i][j]);

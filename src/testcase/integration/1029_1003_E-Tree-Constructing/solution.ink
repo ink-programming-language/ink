@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-var V1: dynamic;
+var V1: dynamic = cpp_uninitialized();
 
-var V2: dynamic;
+var V2: dynamic = cpp_uninitialized();
 
-func add(u: dynamic, v: dynamic)
+func add(u: dynamic, v: dynamic) -> dynamic
 {
   V1.push_back(u);
   V2.push_back(v);
 }
 
-func dfs(u: dynamic, dd: dynamic, p: dynamic)
+func dfs(u: dynamic, dd: dynamic, p: dynamic) -> dynamic
 {
   if (p)
   {
@@ -36,7 +36,7 @@ func dfs(u: dynamic, dd: dynamic, p: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, d, k);
   z = (d / 2);
@@ -65,7 +65,7 @@ func main()
   }
   puts("YES");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       printf("%d %d\n", V1[i], V2[i]);

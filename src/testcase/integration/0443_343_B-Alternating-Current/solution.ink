@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var INF = (~((1 << 31)));
+var INF: dynamic = (~((1 << 31)));
 
-var eps = 1e-6;
+var eps: dynamic = 1e-6;
 
-var PI = 3.1415926535;
+var PI: dynamic = 3.1415926535;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var st: dynamic;
+  var st: dynamic = cpp_uninitialized();
   {
     int_cpp(i) = 0;
     while (((i) < (s.size())))
     {
-      var g = (s[i] == cpp_char("+"));
+      var g: dynamic = (s[i] == cpp_char("+"));
       if ((st.size() && (st.top() == g)))
       {
         st.pop();

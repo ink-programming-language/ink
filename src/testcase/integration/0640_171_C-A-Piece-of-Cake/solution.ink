@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func getint()
+func getint() -> dynamic
 {
-  var f = 1;
-  var x = 0;
-  var c = getchar();
+  var f: dynamic = 1;
+  var x: dynamic = 0;
+  var c: dynamic = getchar();
   while ((!isdigit(c)))
   {
     if ((c == cpp_char("-")))
@@ -21,11 +21,11 @@ func getint()
   return (x * f);
 }
 
-func getll()
+func getll() -> dynamic
 {
-  var f = 1;
-  var x = 0;
-  var c = getchar();
+  var f: dynamic = 1;
+  var x: dynamic = 0;
+  var c: dynamic = getchar();
   while ((!isdigit(c)))
   {
     if ((c == cpp_char("-")))
@@ -42,11 +42,11 @@ func getll()
   return (x * f);
 }
 
-var a0: dynamic;
+var a0: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   a0 = getint();
   {

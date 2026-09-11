@@ -4,6 +4,7 @@ list(SORT INK_TEST_SOURCES)
 add_executable(ink_tests ${INK_TEST_SOURCES})
 add_dependencies(ink_tests ink_tokenize ink_parse inkc ink_interpreter)
 target_compile_features(ink_tests PRIVATE cxx_std_17)
+target_compile_definitions(ink_tests PRIVATE INK_GRAMMAR_SOURCE_DIRECTORY="${PROJECT_SOURCE_DIR}/docs")
 target_link_libraries(ink_tests PRIVATE ink::abi ink::cli ink::core ink::tokenizer ink::parser ink::ir ink::llvm_backend ink::execution GTest::gmock_main)
 ink_disable_exceptions(ink_tests)
 

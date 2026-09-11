@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var ep = cpp_array(200005);
+var ep: dynamic = cpp_array(200005);
 
-var dp = cpp_array(200005);
+var dp: dynamic = cpp_array(200005);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&k), (&m));
   while (cpp_update(n, "--"))
   {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     scanf("%d%d", (&a), (&b));
     ep[a] += 1;
     ep[(b + 1)] -= 1;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 200002))
     {
       ep[i] += ep[(i - 1)];
@@ -33,8 +33,8 @@ func main()
   }
   while (cpp_update(m, "--"))
   {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     scanf("%d%d", (&a), (&b));
     printf("%d\n", (dp[b] - dp[(a - 1)]));
   }

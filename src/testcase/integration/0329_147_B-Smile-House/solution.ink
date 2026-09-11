@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func gi()
+func gi() -> dynamic
 {
-  var w = 0;
-  var q = 1;
-  var c = getchar();
+  var w: dynamic = 0;
+  var q: dynamic = 1;
+  var c: dynamic = getchar();
   while (((((c < cpp_char("0")) || (c > cpp_char("9")))) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -19,30 +19,30 @@ func gi()
     w = (((w * 10) + c) - cpp_char("0"));
     c = getchar();
   }
-  return if (q) w else (-w);
+  return  (q) ? w : (-w);
 }
 
-var N = 510;
+var N: dynamic = 510;
 
-var f = cpp_array(N, N, 10);
+var f: dynamic = cpp_array(N, N, 10);
 
-var g = cpp_array(N, N, 10);
+var g: dynamic = cpp_array(N, N, 10);
 
-var h = cpp_array(N, N);
+var h: dynamic = cpp_array(N, N);
 
-var H = cpp_array(N, N);
+var H: dynamic = cpp_array(N, N);
 
-func main()
+func main() -> dynamic
 {
-  var n = gi();
-  var m = gi();
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var t: dynamic;
-  var ans: dynamic;
+  var n: dynamic = gi();
+  var m: dynamic = gi();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))

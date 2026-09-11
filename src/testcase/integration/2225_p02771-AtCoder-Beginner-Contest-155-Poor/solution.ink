@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   read(a, b, c);
-  write((if ((((((a == b)) + ((b == c))) + ((c == a))) == 1)) "Yes" else "No"), "\n");
+  write(( ((((((a == b)) + ((b == c))) + ((c == a))) == 1)) ? "Yes" : "No"), "\n");
 }

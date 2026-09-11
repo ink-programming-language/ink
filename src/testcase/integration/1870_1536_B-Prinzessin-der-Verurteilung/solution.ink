@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == 0))
   {
@@ -9,20 +9,20 @@ func gcd(a: dynamic, b: dynamic)
   return gcd((b % a), a);
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var str: dynamic;
+    var str: dynamic = cpp_uninitialized();
     read(str);
-    var arr = [0];
-    var c = 0;
+    var arr: dynamic = [0];
+    var c: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < str.length()))
       {
         arr[(str[i] - 97)] += 1;
@@ -33,11 +33,11 @@ func main()
         i += 1;
       }
     }
-    var s = "";
+    var s: dynamic = "";
     if ((c < 26))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 26))
         {
           if ((arr[i] == 0))
@@ -51,19 +51,19 @@ func main()
       write(s, "\n");
     } else
     {
-      var z = cpp_char("a");
+      var z: dynamic = cpp_char("a");
       {
-        var ch = cpp_char("a");
+        var ch: dynamic = cpp_char("a");
         while ((ch <= cpp_char("z")))
         {
           {
-            var k = cpp_char("a");
+            var k: dynamic = cpp_char("a");
             while ((k <= cpp_char("z")))
             {
-              var t = "";
+              var t: dynamic = "";
               t += ch;
               t += k;
-              var index: dynamic;
+              var index: dynamic = cpp_uninitialized();
               if (((cpp_assign(index, "=", str.find(t, 0))) == string_cpp.npos))
               {
                 write(t, "\n");
@@ -81,18 +81,18 @@ func main()
         while ((z < cpp_char("b")))
         {
           {
-            var ch = cpp_char("a");
+            var ch: dynamic = cpp_char("a");
             while ((ch <= cpp_char("z")))
             {
               {
-                var k = cpp_char("a");
+                var k: dynamic = cpp_char("a");
                 while ((k <= cpp_char("z")))
                 {
-                  var t = "";
+                  var t: dynamic = "";
                   t += z;
                   t += ch;
                   t += k;
-                  var index: dynamic;
+                  var index: dynamic = cpp_uninitialized();
                   if (((cpp_assign(index, "=", str.find(t, 0))) == string_cpp.npos))
                   {
                     write(t, "\n");

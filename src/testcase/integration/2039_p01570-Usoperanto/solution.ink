@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var pll = cpp_expression("#include<bit");
+var pll: dynamic = cpp_expression("#include<bit");
 
-var pii = cpp_expression("#include<bits/");
+var pii: dynamic = cpp_expression("#include<bits/");
 
-var X = cpp_expression("#incl");
+var X: dynamic = cpp_expression("#incl");
 
-var Y = cpp_expression("#inclu");
+var Y: dynamic = cpp_expression("#inclu");
 
-var MAXN = cpp_expression("#includ");
+var MAXN: dynamic = cpp_expression("#includ");
 
-var lson = cpp_expression("#include<bits/std");
+var lson: dynamic = cpp_expression("#include<bits/std");
 
-var rson = cpp_expression("#include<bits/stdc++.h>");
+var rson: dynamic = cpp_expression("#include<bits/stdc++.h>");
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var root: dynamic;
+var root: dynamic = cpp_uninitialized();
 
-var edge = cpp_array(MAXN);
+var edge: dynamic = cpp_array(MAXN);
 
-var value = cpp_array(MAXN);
+var value: dynamic = cpp_array(MAXN);
 
-var cost = cpp_array(MAXN);
+var cost: dynamic = cpp_array(MAXN);
 
-func cmp(i: dynamic, j: dynamic)
+func cmp(i: dynamic, j: dynamic) -> dynamic
 {
   return (value[i] < value[j]);
 }
 
-func init()
+func init() -> dynamic
 {
   root.clear();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       edge[i].clear();
@@ -45,19 +45,19 @@ func init()
   }
 }
 
-func solve(rt: dynamic)
+func solve(rt: dynamic) -> dynamic
 {
-  var q: dynamic;
-  var s: dynamic;
+  var q: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   q.push(rt);
   s.push(rt);
   while ((!q.empty()))
   {
-    var tmp = q.front();
+    var tmp: dynamic = q.front();
     q.pop();
-    var len = edge[tmp].size();
+    var len: dynamic = edge[tmp].size();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < len))
       {
         q.push(edge[tmp][i]);
@@ -68,14 +68,14 @@ func solve(rt: dynamic)
   }
   while ((!s.empty()))
   {
-    var tmp = s.top();
+    var tmp: dynamic = s.top();
     s.pop();
     sort(edge[tmp].begin(), edge[tmp].end(), cmp);
-    var len = edge[tmp].size();
+    var len: dynamic = edge[tmp].size();
     cost[tmp] = 0;
-    var res = 0;
+    var res: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < len))
       {
         cost[tmp] += (res + cost[edge[tmp][i]]);
@@ -87,14 +87,14 @@ func solve(rt: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   while ((~scanf("%d", (&n))))
   {
     init();
-    var x: dynamic;
+    var x: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%lld%d", (&value[i]), (&x));
@@ -108,10 +108,10 @@ func main()
         i += 1;
       }
     }
-    var len = root.size();
-    var ans = 0;
+    var len: dynamic = root.size();
+    var ans: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < len))
       {
         solve(root[i]);

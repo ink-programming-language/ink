@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
     read(a);
     read(b);
-    var k = 0;
+    var k: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((a[i] != b[i]))
@@ -29,7 +29,7 @@ func main()
     k *= 3;
     write(k);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((a[i] != b[i]))

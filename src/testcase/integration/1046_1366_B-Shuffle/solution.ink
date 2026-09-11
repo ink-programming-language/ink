@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var N = 1000005;
+var N: dynamic = 1000005;
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var m: dynamic;
-    var x: dynamic;
-    var l: dynamic;
-    var r: dynamic;
-    var ans = 0;
-    var left = 1000000000000;
-    var right = -1;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
+    var ans: dynamic = 0;
+    var left: dynamic = 1000000000000;
+    var right: dynamic = -1;
     read(n, x, m);
-    var xL = x;
-    var xR = x;
+    var xL: dynamic = x;
+    var xR: dynamic = x;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         read(l, r);

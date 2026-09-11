@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(300005);
+var a: dynamic = cpp_array(300005);
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", (a + 1));
-  var n = strlen((a + 1));
-  var ans = 0;
+  var n: dynamic = strlen((a + 1));
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var nl = min((i + 12), (n + 1));
+      var nl: dynamic = min((i + 12), (n + 1));
       ans += (((n + 1) - nl));
-      var fl = 0;
+      var fl: dynamic = 0;
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j < nl))
         {
-          var fl = 0;
+          var fl: dynamic = 0;
           {
-            var k = i;
+            var k: dynamic = i;
             while ((k <= j))
             {
               if (fl)
@@ -28,7 +28,7 @@ func main()
                 break;
               }
               {
-                var s = 1;
+                var s: dynamic = 1;
                 while ((s <= min((k - i), (j - k))))
                 {
                   if (((a[k] == a[(k - s)]) && (a[k] == a[(k + s)])))

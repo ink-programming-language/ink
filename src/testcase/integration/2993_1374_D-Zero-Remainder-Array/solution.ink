@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var k: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var k: dynamic = cpp_uninitialized();
     read(n, k);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
-        var c: dynamic;
+        var c: dynamic = cpp_uninitialized();
         read(c);
         a[i] = (c % k);
         i += 1;
       }
     }
     sort((a + 1), ((a + 1) + n));
-    var x = 0;
-    var y = 0;
-    var cur = 0;
-    var tmp = 0;
+    var x: dynamic = 0;
+    var y: dynamic = 0;
+    var cur: dynamic = 0;
+    var tmp: dynamic = 0;
     {
-      var i = n;
+      var i: dynamic = n;
       while ((i >= 1))
       {
         if ((a[i] != 0))

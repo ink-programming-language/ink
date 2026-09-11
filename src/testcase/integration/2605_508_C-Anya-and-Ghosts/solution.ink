@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var cnt = cpp_array(1005);
+var cnt: dynamic = cpp_array(1005);
 
-var arr = cpp_array(1005);
+var arr: dynamic = cpp_array(1005);
 
-func main()
+func main() -> dynamic
 {
-  var m: dynamic;
-  var t: dynamic;
-  var r: dynamic;
-  var a: dynamic;
-  var ans = 0;
+  var m: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   read(m, t, r);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(arr[i]);
@@ -21,12 +21,12 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var k = 0;
+      var k: dynamic = 0;
       {
-        var j = ((arr[i] - 1) + 305);
+        var j: dynamic = ((arr[i] - 1) + 305);
         while ((j > (((arr[i] - t) - 1) + 305)))
         {
           if ((cnt[j] == 1))
@@ -39,7 +39,7 @@ func main()
       if ((k < r))
       {
         {
-          var j = ((arr[i] - 1) + 305);
+          var j: dynamic = ((arr[i] - 1) + 305);
           while ((j > (((arr[i] - t) - 1) + 305)))
           {
             if ((cnt[j] == 0))

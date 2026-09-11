@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var tmp = 1;
+var tmp: dynamic = 1;
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
-  var x = 0;
+  var k: dynamic = cpp_uninitialized();
+  var x: dynamic = 0;
   read(n, k);
   while (((k != x) && (tmp < n)))
   {

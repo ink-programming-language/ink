@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var mo: dynamic;
+var mo: dynamic = cpp_uninitialized();
 
-var ans = cpp_array(1000);
+var ans: dynamic = cpp_array(1000);
 
-var res = cpp_array(1000);
+var res: dynamic = cpp_array(1000);
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b == 0)) 0 else (((((mul(a, (b >> 16)) << 16)) + (a * ((b & (((1 << 16)) - 1)))))) % mo);
+  return  ((b == 0)) ? 0 : (((((mul(a, (b >> 16)) << 16)) + (a * ((b & (((1 << 16)) - 1)))))) % mo);
 }
 
-func mul(f: dynamic, g: dynamic)
+func mul(f: dynamic, g: dynamic) -> dynamic
 {
-  var a = cpp_array(2, 2);
+  var a: dynamic = cpp_array(2, 2);
   a[0][0] = (((mul(f[0][0], g[0][0]) + mul(f[0][1], g[1][0]))) % mo);
   a[0][1] = (((mul(f[0][0], g[0][1]) + mul(f[0][1], g[1][1]))) % mo);
   a[1][0] = (((mul(f[1][0], g[0][0]) + mul(f[1][1], g[1][0]))) % mo);
@@ -21,15 +21,15 @@ func mul(f: dynamic, g: dynamic)
   memcpy(f, a, cpp_sizeof(a));
 }
 
-func prezro(g: dynamic)
+func prezro(g: dynamic) -> dynamic
 {
   g[0][0] = cpp_assign(g[1][1], "=", 1);
   g[0][1] = cpp_assign(g[1][0], "=", 0);
 }
 
-func quick(f: dynamic, n: dynamic)
+func quick(f: dynamic, n: dynamic) -> dynamic
 {
-  var g = cpp_array(2, 2);
+  var g: dynamic = cpp_array(2, 2);
   {
     prezro(g);
     while (n)
@@ -45,29 +45,29 @@ func quick(f: dynamic, n: dynamic)
   memcpy(f, g, cpp_sizeof(g));
 }
 
-func preget(f: dynamic)
+func preget(f: dynamic) -> dynamic
 {
   f[0][0] = 0;
   f[0][1] = cpp_assign(f[1][0], "=", cpp_assign(f[1][1], "=", 1));
 }
 
-func dw(g: dynamic)
+func dw(g: dynamic) -> dynamic
 {
   return ((((g[0][0] == 1) && (g[1][1] == 1)) && (!g[0][1])) && (!g[1][0]));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var tm: dynamic;
-  var f = cpp_array(2, 2);
-  var g = cpp_array(2, 2);
-  var h = cpp_array(2, 2);
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var cnt: dynamic;
-  var pp: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var tm: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_array(2, 2);
+  var g: dynamic = cpp_array(2, 2);
+  var h: dynamic = cpp_array(2, 2);
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var cnt: dynamic = cpp_uninitialized();
+  var pp: dynamic = cpp_uninitialized();
   scanf("%I64d", (&n));
   {
     mo = cpp_assign(tm, "=", 1);
@@ -110,6 +110,6 @@ func main()
       i += 1;
     }
   }
-  printf("%I64d\n", if ((cnt == 0)) -1 else ans[0]);
+  printf("%I64d\n",  ((cnt == 0)) ? -1 : ans[0]);
   return 0;
 }

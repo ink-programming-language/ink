@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var sent = cpp_array(1200);
-  var x: dynamic;
+  var sent: dynamic = cpp_array(1200);
+  var x: dynamic = cpp_uninitialized();
   gets(sent);
   {
     x = 0;

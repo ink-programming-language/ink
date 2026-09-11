@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -23,61 +23,61 @@ func read()
 
 class arr
 {
-  var x: dynamic;
-  var s: dynamic;
-  func operator_less(A: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  func operator_less(A: dynamic) -> dynamic
   {
       return (A.s < s);
     }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var v = cpp_array(200005);
+var v: dynamic = cpp_array(200005);
 
-var w = cpp_array(200005);
+var w: dynamic = cpp_array(200005);
 
-var head = cpp_array(200005);
+var head: dynamic = cpp_array(200005);
 
-var nxt = cpp_array(200005);
+var nxt: dynamic = cpp_array(200005);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var dis = cpp_array(200005);
+var dis: dynamic = cpp_array(200005);
 
-var ds = cpp_array(200005);
+var ds: dynamic = cpp_array(200005);
 
-var dt = cpp_array(200005);
+var dt: dynamic = cpp_array(200005);
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
-var f = cpp_array(2005, 2005, 2);
+var f: dynamic = cpp_array(2005, 2005, 2);
 
-var num = cpp_array(2005, 2005);
+var num: dynamic = cpp_array(2005, 2005);
 
-var sum = cpp_array(2005, 2005);
+var sum: dynamic = cpp_array(2005, 2005);
 
-var vis = cpp_array(200005);
+var vis: dynamic = cpp_array(200005);
 
-var sumx = cpp_array(2005, 2005);
+var sumx: dynamic = cpp_array(2005, 2005);
 
-var sumy = cpp_array(2005, 2005);
+var sumy: dynamic = cpp_array(2005, 2005);
 
-var numx = cpp_array(2005, 2005);
+var numx: dynamic = cpp_array(2005, 2005);
 
-var numy = cpp_array(2005, 2005);
+var numy: dynamic = cpp_array(2005, 2005);
 
-var dds: dynamic;
+var dds: dynamic = cpp_uninitialized();
 
-var ddt: dynamic;
+var ddt: dynamic = cpp_uninitialized();
 
-func add(a: dynamic, b: dynamic, c: dynamic)
+func add(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   v[cpp_update(cnt, "++")] = b;
   w[cnt] = c;
@@ -85,16 +85,16 @@ func add(a: dynamic, b: dynamic, c: dynamic)
   head[a] = cnt;
 }
 
-func dijkstra(S: dynamic)
+func dijkstra(S: dynamic) -> dynamic
 {
   memset(dis, 999999, cpp_sizeof((dis)));
   memset(vis, 0, cpp_sizeof((vis)));
   dis[S] = 0;
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.push([S, 0]);
   while ((!q.empty()))
   {
-    var x = q.top().x;
+    var x: dynamic = q.top().x;
     q.pop();
     if (vis[x])
     {
@@ -102,7 +102,7 @@ func dijkstra(S: dynamic)
     }
     vis[x] = 1;
     {
-      var i = head[x];
+      var i: dynamic = head[x];
       while (i)
       {
         if ((dis[v[i]] > (dis[x] + w[i])))
@@ -116,34 +116,34 @@ func dijkstra(S: dynamic)
   }
 }
 
-func getsumx(x: dynamic, l: dynamic, r: dynamic)
+func getsumx(x: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   return (sumx[x][r] - sumx[x][(l - 1)]);
 }
 
-func getsumy(y: dynamic, l: dynamic, r: dynamic)
+func getsumy(y: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   return (sumy[r][y] - sumy[(l - 1)][y]);
 }
 
-func getnumx(x: dynamic, l: dynamic, r: dynamic)
+func getnumx(x: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   return (sumx[x][r] - sumx[x][(l - 1)]);
 }
 
-func getnumy(y: dynamic, l: dynamic, r: dynamic)
+func getnumy(y: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   return (sumy[r][y] - sumy[(l - 1)][y]);
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   m = read();
   s = read();
   t = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = read();
@@ -151,12 +151,12 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var x = read();
-      var y = read();
-      var z = read();
+      var x: dynamic = read();
+      var y: dynamic = read();
+      var z: dynamic = read();
       add(x, y, z);
       add(y, x, z);
       i += 1;
@@ -164,7 +164,7 @@ func main()
   }
   dijkstra(s);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ds[i] = dis[i];
@@ -174,7 +174,7 @@ func main()
   }
   dijkstra(t);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dt[i] = dis[i];
@@ -184,25 +184,25 @@ func main()
   }
   sort(dds.begin(), dds.end());
   sort(ddt.begin(), ddt.end());
-  var ds = (unique(dds.begin(), dds.end()) - dds.begin());
-  var dt = (unique(ddt.begin(), ddt.end()) - ddt.begin());
+  var ds: dynamic = (unique(dds.begin(), dds.end()) - dds.begin());
+  var dt: dynamic = (unique(ddt.begin(), ddt.end()) - ddt.begin());
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var xx = ((lower_bound(dds.begin(), dds.end(), ds[i]) - dds.begin()) + 1);
-      var yy = ((lower_bound(ddt.begin(), ddt.end(), dt[i]) - ddt.begin()) + 1);
+      var xx: dynamic = ((lower_bound(dds.begin(), dds.end(), ds[i]) - dds.begin()) + 1);
+      var yy: dynamic = ((lower_bound(ddt.begin(), ddt.end(), dt[i]) - ddt.begin()) + 1);
       num[xx][yy] += 1;
       sum[xx][yy] += a[i];
       i += 1;
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (dt + 1)))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= (ds + 1)))
         {
           sumx[i][j] = (sumx[i][(j - 1)] + sum[i][j]);
@@ -216,17 +216,17 @@ func main()
     }
   }
   {
-    var i = dt;
+    var i: dynamic = dt;
     while ((i >= 0))
     {
       {
-        var j = ds;
+        var j: dynamic = ds;
         while ((j >= 0))
         {
           if ((i != dt))
           {
-            var now = getnumx((i + 1), (j + 1), ds);
-            var sc = getsumx((i + 1), (j + 1), ds);
+            var now: dynamic = getnumx((i + 1), (j + 1), ds);
+            var sc: dynamic = getsumx((i + 1), (j + 1), ds);
             if ((!now))
             {
               f[0][i][j] = f[0][(i + 1)][j];
@@ -237,8 +237,8 @@ func main()
           }
           if ((j != ds))
           {
-            var now = getnumy((j + 1), (i + 1), dt);
-            var sc = getsumy((j + 1), (i + 1), dt);
+            var now: dynamic = getnumy((j + 1), (i + 1), dt);
+            var sc: dynamic = getsumy((j + 1), (i + 1), dt);
             if ((!now))
             {
               f[1][i][j] = f[1][i][(j + 1)];

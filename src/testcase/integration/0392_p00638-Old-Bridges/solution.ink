@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var num: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var num: dynamic = cpp_uninitialized();
   read(n);
   while (1)
   {
@@ -11,10 +11,10 @@ func main()
     {
       break;
     }
-    var vec1: dynamic;
-    var vec2: dynamic;
+    var vec1: dynamic = cpp_uninitialized();
+    var vec2: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(num);
@@ -24,16 +24,16 @@ func main()
         i += 1;
       }
     }
-    var x: dynamic;
-    var flag = 1;
-    var w = 0;
+    var x: dynamic = cpp_uninitialized();
+    var flag: dynamic = 1;
+    var w: dynamic = 0;
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < vec1.size()))
       {
-        var min = 9999999;
+        var min: dynamic = 9999999;
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < vec2.size()))
           {
             if (((vec2[i] != -1) && (min > vec2[i])))

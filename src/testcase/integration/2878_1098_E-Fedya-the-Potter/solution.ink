@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var Inf = 0x7fffffff;
+var Inf: dynamic = 0x7fffffff;
 
-var INF = 0x3f3f3f3f3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-func rnd()
+func rnd() -> dynamic
 {
-  var seed = 416;
+  var seed: dynamic = 416;
   return cpp_comma(cpp_assign(seed, "+=", 0x71dad4bf), cpp_comma(cpp_assign(seed, "^=", (seed >> 5)), cpp_comma(cpp_assign(seed, "+=", 0xc6f74d88), cpp_comma(cpp_assign(seed, "^=", (seed << 17)), cpp_comma(cpp_assign(seed, "+=", 0x25e6561), cpp_assign(seed, "^=", (seed >> 13)))))));
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (((!b))) a else gcd(b, (a % b));
+  return  (((!b))) ? a : gcd(b, (a % b));
 }
 
-func abs(a: dynamic)
+func abs(a: dynamic) -> dynamic
 {
-  return if ((a >= 0)) a else (-a);
+  return  ((a >= 0)) ? a : (-a);
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   (((a < b)) && (cpp_assign(a, "=", b)));
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   (((b < a)) && (cpp_assign(a, "=", b)));
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  var f = cpp_construct(false);
+  var f: dynamic = cpp_construct(false);
   while ((!isdigit(ch)))
   {
     f |= (ch == 45);
@@ -50,29 +50,29 @@ func read(x: dynamic)
   (f && (cpp_assign(x, "=", (-x))));
 }
 
-func read(t: dynamic, args: dynamic...)
+func read(t: dynamic, args: dynamic...) -> dynamic
 {
   read(t);
   read(cpp_expand(args));
 }
 
-func min(a: dynamic, b: dynamic, args: dynamic...)
+func min(a: dynamic, b: dynamic, args: dynamic...) -> dynamic
 {
-  return if ((a < b)) min(a, cpp_expand(args)) else min(b, cpp_expand(args));
+  return  ((a < b)) ? min(a, cpp_expand(args)) : min(b, cpp_expand(args));
 }
 
-func max(a: dynamic, b: dynamic, args: dynamic...)
+func max(a: dynamic, b: dynamic, args: dynamic...) -> dynamic
 {
-  return if ((a < b)) max(b, cpp_expand(args)) else max(a, cpp_expand(args));
+  return  ((a < b)) ? max(b, cpp_expand(args)) : max(a, cpp_expand(args));
 }
 
-func read_str(s: dynamic)
+func read_str(s: dynamic) -> dynamic
 {
   while ((((ch == cpp_char(" ")) || (ch == cpp_char("\r"))) || (ch == cpp_char("\n"))))
   {
     ch = getchar();
   }
-  var tar = s;
+  var tar: dynamic = s;
   (*tar) = ch;
   ch = getchar();
   while (((((ch != cpp_char(" ")) && (ch != cpp_char("\r"))) && (ch != cpp_char("\n"))) && (ch != EOF)))
@@ -83,28 +83,28 @@ func read_str(s: dynamic)
   return ((tar - s) + 1);
 }
 
-var N = 50005;
+var N: dynamic = 50005;
 
-var MAXN = 100005;
+var MAXN: dynamic = 100005;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var g = cpp_array(21, N);
+var g: dynamic = cpp_array(21, N);
 
-var Log2 = cpp_array(N);
+var Log2: dynamic = cpp_array(N);
 
-func query(l: dynamic, r: dynamic)
+func query(l: dynamic, r: dynamic) -> dynamic
 {
-  var k = Log2[((r - l) + 1)];
+  var k: dynamic = Log2[((r - l) + 1)];
   return gcd(g[l][k], g[((r - ((1 << k))) + 1)][k]);
 }
 
-func s(x: dynamic)
+func s(x: dynamic) -> dynamic
 {
   return (((1 * x) * ((x + 1))) >> 1);
 }
 
-func f(n: dynamic, a: dynamic, b: dynamic, c: dynamic)
+func f(n: dynamic, a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   if ((!a))
   {
@@ -112,28 +112,28 @@ func f(n: dynamic, a: dynamic, b: dynamic, c: dynamic)
   }
   if (((((a < 0) || (b < 0)) || (a >= c)) || (b >= c)))
   {
-    var A = (a % c);
-    var B = (b % c);
+    var A: dynamic = (a % c);
+    var B: dynamic = (b % c);
     (((A < 0)) && (cpp_assign(A, "+=", c)));
     (((B < 0)) && (cpp_assign(B, "+=", c)));
     return ((f(n, A, B, c) + (((((a - A)) / c)) * s(n))) + (((((b - B)) / c)) * ((n + 1))));
   }
-  var m = ((((a * n) + b)) / c);
+  var m: dynamic = ((((a * n) + b)) / c);
   return ((n * m) - f((m - 1), c, ((c - b) - 1), a));
 }
 
-var cnt = cpp_array(MAXN);
+var cnt: dynamic = cpp_array(MAXN);
 
-var val = cpp_array(MAXN);
+var val: dynamic = cpp_array(MAXN);
 
-func calc(mid: dynamic)
+func calc(mid: dynamic) -> dynamic
 {
-  var ans = 0;
-  var sum = 0;
-  var qwq = 0;
-  var pos = 100000;
+  var ans: dynamic = 0;
+  var sum: dynamic = 0;
+  var qwq: dynamic = 0;
+  var pos: dynamic = 100000;
   {
-    var i = 100000;
+    var i: dynamic = 100000;
     while ((i >= 1))
     {
       if ((!cnt[i]))
@@ -141,7 +141,7 @@ func calc(mid: dynamic)
         i -= 1;
         continue;
       }
-      var l = 1;
+      var l: dynamic = 1;
       while ((l <= cnt[i]))
       {
         while ((((sum + ((1 * l) * i)) > mid) && (pos > i)))
@@ -152,7 +152,7 @@ func calc(mid: dynamic)
         }
         if (((pos > i) || (((pos == i) && (((1 * l) * i) <= mid)))))
         {
-          var r = min((((mid - sum)) / i), cpp_cast(cnt[i]));
+          var r: dynamic = min((((mid - sum)) / i), cpp_cast(cnt[i]));
           ans += (((+s(r)) - s((l - 1))) + ((1 * (((r - l) + 1))) * qwq));
           if (cnt[(pos + 1)])
           {
@@ -161,7 +161,7 @@ func calc(mid: dynamic)
           l = (r + 1);
         } else
         {
-          var tmp = (mid / i);
+          var tmp: dynamic = (mid / i);
           if ((l >= tmp))
           {
             ans += ((((cnt[i] - l) + 1)) * tmp);
@@ -182,20 +182,20 @@ func calc(mid: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < N))
     {
       Log2[i] = (Log2[(i >> 1)] + 1);
       i += 1;
     }
   }
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -203,12 +203,12 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       g[i][0] = a[i];
       {
-        var j = 1;
+        var j: dynamic = 1;
         while (((j <= 20) && ((i + ((1 << ((j - 1))))) <= n)))
         {
           g[i][j] = gcd(g[i][(j - 1)], g[(i + ((1 << ((j - 1)))))][(j - 1)]);
@@ -219,18 +219,18 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var cur = i;
+      var cur: dynamic = i;
       while ((cur <= n))
       {
-        var l = cur;
-        var r = n;
-        var tmp = query(i, cur);
+        var l: dynamic = cur;
+        var r: dynamic = n;
+        var tmp: dynamic = query(i, cur);
         while ((l < r))
         {
-          var mid = ((((l + r) + 1)) >> 1);
+          var mid: dynamic = ((((l + r) + 1)) >> 1);
           if ((query(i, mid) == tmp))
           {
             l = mid;
@@ -245,12 +245,12 @@ func main()
       i += 1;
     }
   }
-  var cnt = ((((((s(n) * ((s(n) + 1))) / 2)) + 1)) / 2);
-  var l = 1;
-  var r = 1e18;
+  var cnt: dynamic = ((((((s(n) * ((s(n) + 1))) / 2)) + 1)) / 2);
+  var l: dynamic = 1;
+  var r: dynamic = 1e18;
   while ((l < r))
   {
-    var mid = (((l + r)) >> 1);
+    var mid: dynamic = (((l + r)) >> 1);
     if ((calc(mid) >= cnt))
     {
       r = mid;

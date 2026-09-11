@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var MOD = 998244353;
+var MOD: dynamic = 998244353;
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var INF_LL = 0x3f3f3f3f3f3f3f3f;
+var INF_LL: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-func QPow(bas: dynamic, t: dynamic)
+func QPow(bas: dynamic, t: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   bas %= MOD;
   while (t)
   {
@@ -24,20 +24,20 @@ func QPow(bas: dynamic, t: dynamic)
   return ret;
 }
 
-func Inv(x: dynamic)
+func Inv(x: dynamic) -> dynamic
 {
   return QPow(x, (MOD - 2));
 }
 
-var fac = cpp_array(N);
+var fac: dynamic = cpp_array(N);
 
-var ifac = cpp_array(N);
+var ifac: dynamic = cpp_array(N);
 
-func Init()
+func Init() -> dynamic
 {
   fac[0] = cpp_assign(ifac[0], "=", 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       fac[i] = ((fac[(i - 1)] * i) % MOD);
@@ -47,7 +47,7 @@ func Init()
   }
 }
 
-func C(n: dynamic, a: dynamic)
+func C(n: dynamic, a: dynamic) -> dynamic
 {
   if ((((n < 0) || (a < 0)) || ((n - a) < 0)))
   {
@@ -58,14 +58,14 @@ func C(n: dynamic, a: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   Init();
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var l = (n - k);
+  var l: dynamic = (n - k);
   if ((l < 0))
   {
     write(0, "\n");
@@ -76,12 +76,12 @@ func main()
     write(fac[n], "\n");
     return 0;
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= l))
     {
-      var tmp = (((QPow(-1, i) * C(l, i)) % MOD) * QPow((l - i), n));
+      var tmp: dynamic = (((QPow(-1, i) * C(l, i)) % MOD) * QPow((l - i), n));
       ans = (((ans + tmp)) % MOD);
       i += 1;
     }

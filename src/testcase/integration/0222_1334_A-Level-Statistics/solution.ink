@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n = 0;
+    var n: dynamic = 0;
     read(n);
-    var mp = 0;
-    var mc = 0;
-    var is = 1;
+    var mp: dynamic = 0;
+    var mc: dynamic = 0;
+    var is: dynamic = 1;
     while (true)
     {
-      var p: dynamic;
-      var c: dynamic;
+      var p: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
       read(p, c);
       if (((((((p < mp) || (c < mc)) || (c > p)) || ((p - mp) < (c - mc)))) && is))
       {

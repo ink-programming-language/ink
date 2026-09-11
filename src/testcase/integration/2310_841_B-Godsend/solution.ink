@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var count = 0;
+  var count: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var elements: dynamic;
+      var elements: dynamic = cpp_uninitialized();
       read(elements);
       if (((elements % 2) != 0))
       {
@@ -18,7 +18,7 @@ func main()
       i += 1;
     }
   }
-  var res = if (((count == 0))) "Second" else "First";
+  var res: dynamic =  (((count == 0))) ? "Second" : "First";
   write(res);
   return 0;
 }

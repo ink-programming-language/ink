@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var kMod = (1e9 + 7);
+var kMod: dynamic = (1e9 + 7);
 
-var dp = cpp_array(301, 301, 301);
+var dp: dynamic = cpp_array(301, 301, 301);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   dp[0][(n - 1)][1] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       {
-        var j = n;
+        var j: dynamic = n;
         while ((j >= 0))
         {
           {
-            var k = 1;
+            var k: dynamic = 1;
             while ((k <= n))
             {
               dp[i][j][k] %= kMod;

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var maxn = 500010;
+var maxn: dynamic = 500010;
 
-var maxk = 5010;
+var maxk: dynamic = 5010;
 
-var oo = 1e13;
+var oo: dynamic = 1e13;
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var f = cpp_array(3, maxk, 3);
+var f: dynamic = cpp_array(3, maxk, 3);
 
-var ti: dynamic;
+var ti: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(k, n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -29,7 +29,7 @@ func main()
   }
   sort((a + 1), ((a + n) + 1));
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       ti.push_back(make_pair((a[i] - a[(i - 1)]), i));
@@ -37,10 +37,10 @@ func main()
     }
   }
   sort(ti.begin(), ti.end());
-  var le = ti.size();
-  var t4k: dynamic;
+  var le: dynamic = ti.size();
+  var t4k: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < min((2 * k), le)))
     {
       t4k.insert(a[ti[i].second]);
@@ -49,21 +49,21 @@ func main()
     }
   }
   n = 1;
-  for (var x in t4k)
+  for (var x: dynamic in t4k)
   {
     a[cpp_update(n, "++")] = x;
   }
   n -= 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 2))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= k))
         {
           {
-            var tt = 0;
+            var tt: dynamic = 0;
             while ((tt < 2))
             {
               f[i][j][tt] = oo;
@@ -76,18 +76,18 @@ func main()
       i += 1;
     }
   }
-  var t = 0;
+  var t: dynamic = 0;
   f[(1 - t)][0][0] = 0;
   {
-    var tim = 2;
+    var tim: dynamic = 2;
     while ((tim <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= k))
         {
           {
-            var tt = 0;
+            var tt: dynamic = 0;
             while ((tt < 2))
             {
               f[t][j][tt] = oo;
@@ -98,7 +98,7 @@ func main()
         }
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= min(tim, k)))
         {
           f[t][j][0] = min(f[(1 - t)][j][1], f[(1 - t)][j][0]);

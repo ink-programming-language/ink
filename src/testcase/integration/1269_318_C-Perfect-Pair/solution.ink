@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var con: dynamic;
+var con: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   con = 0;
   read(a, b, m);
@@ -50,7 +50,7 @@ func main()
     }
     while ((b < m))
     {
-      var tmp = (a + b);
+      var tmp: dynamic = (a + b);
       a = b;
       b = tmp;
       con += 1;

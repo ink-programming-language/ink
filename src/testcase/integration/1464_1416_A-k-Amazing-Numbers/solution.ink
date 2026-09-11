@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var first = cpp_array(300005);
+var first: dynamic = cpp_array(300005);
 
-var l = cpp_array(300005);
+var l: dynamic = cpp_array(300005);
 
-var ans = cpp_array(300005);
+var ans: dynamic = cpp_array(300005);
 
-var arr = cpp_array(300005);
+var arr: dynamic = cpp_array(300005);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var t = 1;
+  var t: dynamic = 1;
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
     {
       i = 1;
@@ -49,7 +49,7 @@ func main()
       {
         first[i] = max(first[i], ((n + 1) - l[i]));
         {
-          var x = first[i];
+          var x: dynamic = first[i];
           while (((x <= n) && (ans[x] == -1)))
           {
             ans[x] = i;

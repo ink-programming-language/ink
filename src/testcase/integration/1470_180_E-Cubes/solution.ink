@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k);
-  var c = cpp_construct((m + 5), 0);
+  var c: dynamic = cpp_construct((m + 5), 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i]);
       i += 1;
     }
   }
-  var l = 0;
-  var r = 0;
-  var res = 1;
+  var l: dynamic = 0;
+  var r: dynamic = 0;
+  var res: dynamic = 1;
   c[(v[0] - 1)] += 1;
-  var maxC = 1;
-  var maxI = (v[0] - 1);
+  var maxC: dynamic = 1;
+  var maxI: dynamic = (v[0] - 1);
   while ((r < n))
   {
     if ((c[(v[r] - 1)] > maxC))

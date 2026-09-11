@@ -1,42 +1,42 @@
 // Translated from solution.cpp.
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-var maxn = (cpp_cast(1e5) + 10);
+var maxn: dynamic = (cpp_cast(1e5) + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var ql: dynamic;
+var ql: dynamic = cpp_uninitialized();
 
-var qr: dynamic;
+var qr: dynamic = cpp_uninitialized();
 
-var w = cpp_array(maxn);
+var w: dynamic = cpp_array(maxn);
 
-var sum = cpp_array(maxn);
+var sum: dynamic = cpp_array(maxn);
 
-func solve()
+func solve() -> dynamic
 {
   sum[0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sum[i] = (sum[(i - 1)] + w[i]);
       i += 1;
     }
   }
-  var res = cpp_cast(1e18);
-  var ll = 1;
-  var rr = n;
-  var cur = 0;
+  var res: dynamic = cpp_cast(1e18);
+  var ll: dynamic = 1;
+  var rr: dynamic = n;
+  var cur: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((i & 1))
@@ -57,18 +57,18 @@ func solve()
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, l, r, ql, qr);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&w[i]));
       i += 1;
     }
   }
-  var res = cpp_cast(1e18);
+  var res: dynamic = cpp_cast(1e18);
   res = min(res, solve());
   reverse((w + 1), ((w + n) + 1));
   swap(l, r);

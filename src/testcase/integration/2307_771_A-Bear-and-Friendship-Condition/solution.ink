@@ -1,86 +1,86 @@
 // Translated from solution.cpp.
 
-func R(x: dynamic)
+func R(x: dynamic) -> dynamic
 {
   read(x);
 }
 
-func R(x: dynamic)
+func R(x: dynamic) -> dynamic
 {
   scanf("%d", (&x));
 }
 
-func R(x: dynamic)
+func R(x: dynamic) -> dynamic
 {
   scanf("%lld", (&x));
 }
 
-func R(x: dynamic)
+func R(x: dynamic) -> dynamic
 {
   scanf("%lf", (&x));
 }
 
-func R(x: dynamic)
+func R(x: dynamic) -> dynamic
 {
   scanf(" %c", (&x));
 }
 
-func R(x: dynamic)
+func R(x: dynamic) -> dynamic
 {
   scanf("%s", x);
 }
 
-func R()
+func R() -> dynamic
 {
 }
 
-func R(head: dynamic, tail: dynamic...)
+func R(head: dynamic, tail: dynamic...) -> dynamic
 {
   R(head);
   R(cpp_expand(tail));
 }
 
-func W(x: dynamic)
+func W(x: dynamic) -> dynamic
 {
   write(x);
 }
 
-func W(x: dynamic)
+func W(x: dynamic) -> dynamic
 {
   printf("%d", x);
 }
 
-func W(x: dynamic)
+func W(x: dynamic) -> dynamic
 {
   printf("%lld", x);
 }
 
-func W(x: dynamic)
+func W(x: dynamic) -> dynamic
 {
   printf("%.16f", x);
 }
 
-func W(x: dynamic)
+func W(x: dynamic) -> dynamic
 {
   putchar(x);
 }
 
-func W(x: dynamic)
+func W(x: dynamic) -> dynamic
 {
   printf("%s", x);
 }
 
-func W(x: dynamic)
+func W(x: dynamic) -> dynamic
 {
   W(x.first);
   putchar(cpp_char(" "));
   W(x.second);
 }
 
-func W(x: dynamic)
+func W(x: dynamic) -> dynamic
 {
   {
-    var i = x.begin();
+    var i: dynamic = x.begin();
     while ((i != x.end()))
     {
       if ((i != x.cbegin()))
@@ -92,20 +92,20 @@ func W(x: dynamic)
   }
 }
 
-func W()
+func W() -> dynamic
 {
 }
 
-func W(head: dynamic, tail: dynamic...)
+func W(head: dynamic, tail: dynamic...) -> dynamic
 {
   W(head);
-  putchar(if (cpp_sizeof(tail)) cpp_char(" ") else cpp_char("\n"));
+  putchar( (cpp_sizeof(tail)) ? cpp_char(" ") : cpp_char("\n"));
   W(cpp_expand(tail));
 }
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-func ADD(x: dynamic, v: dynamic)
+func ADD(x: dynamic, v: dynamic) -> dynamic
 {
   x = (((x + v)) % MOD);
   if ((x < 0))
@@ -114,16 +114,16 @@ func ADD(x: dynamic, v: dynamic)
   }
 }
 
-var SIZE = (1e6 + 10);
+var SIZE: dynamic = (1e6 + 10);
 
 class Union_Find
 {
   var d: dynamic = cpp_array(SIZE);
   var num: dynamic = cpp_array(SIZE);
-  func init(n: dynamic)
+  func init(n: dynamic) -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (n)))
         {
           d[i] = i;
@@ -132,10 +132,10 @@ class Union_Find
         }
       }
     }
-  func find(x: dynamic)
+  func find(x: dynamic) -> dynamic
   {
-      var y = x;
-      var z = x;
+      var y: dynamic = x;
+      var z: dynamic = x;
       while ((y != d[y]))
       {
         y = d[y];
@@ -148,11 +148,11 @@ class Union_Find
       }
       return y;
     }
-  func is_root(x: dynamic)
+  func is_root(x: dynamic) -> dynamic
   {
       return (d[x] == x);
     }
-  func uu(x: dynamic, y: dynamic)
+  func uu(x: dynamic, y: dynamic) -> dynamic
   {
       x = find(x);
       y = find(y);
@@ -170,25 +170,25 @@ class Union_Find
     }
 }
 
-var U: dynamic;
+var U: dynamic = cpp_uninitialized();
 
-func C2(x: dynamic)
+func C2(x: dynamic) -> dynamic
 {
   return ((x * ((x - 1))) / 2);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   R(n, m);
   U.init(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (m)))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       R(x, y);
       x -= 1;
       y -= 1;
@@ -196,9 +196,9 @@ func main()
       i += 1;
     }
   }
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n)))
     {
       if (U.is_root(i))
@@ -208,6 +208,6 @@ func main()
       i += 1;
     }
   }
-  W(if ((res == m)) "YES" else "NO");
+  W( ((res == m)) ? "YES" : "NO");
   return 0;
 }

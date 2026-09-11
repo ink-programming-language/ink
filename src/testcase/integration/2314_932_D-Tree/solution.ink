@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var INF = 0x3f3f3f3f3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var N = (5e5 + 7);
+var N: dynamic = (5e5 + 7);
 
-var M = 22;
+var M: dynamic = 22;
 
-var w = cpp_array(N);
+var w: dynamic = cpp_array(N);
 
-var last: dynamic;
+var last: dynamic = cpp_uninitialized();
 
-var sum = cpp_array(M, N);
+var sum: dynamic = cpp_array(M, N);
 
-var nx = cpp_array(M, N);
+var nx: dynamic = cpp_array(M, N);
 
-var cnt = 1;
+var cnt: dynamic = 1;
 
-func add(u: dynamic, v: dynamic)
+func add(u: dynamic, v: dynamic) -> dynamic
 {
   if ((w[u] <= w[v]))
   {
@@ -26,7 +26,7 @@ func add(u: dynamic, v: dynamic)
   } else
   {
     {
-      var i = 20;
+      var i: dynamic = 20;
       while ((i >= 0))
       {
         if (((nx[v][i] != -1) && (w[nx[v][i]] < w[u])))
@@ -43,7 +43,7 @@ func add(u: dynamic, v: dynamic)
     sum[u][0] = w[nx[u][0]];
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 20))
     {
       if ((nx[u][(i - 1)] == -1))
@@ -59,16 +59,16 @@ func add(u: dynamic, v: dynamic)
   }
 }
 
-func cal(u: dynamic, all: dynamic)
+func cal(u: dynamic, all: dynamic) -> dynamic
 {
   if ((w[u] > all))
   {
     return 0;
   }
   all -= w[u];
-  var ans = 1;
+  var ans: dynamic = 1;
   {
-    var i = 20;
+    var i: dynamic = 20;
     while ((i >= 0))
     {
       if (((u != -1) && (all >= sum[u][i])))
@@ -83,26 +83,26 @@ func cal(u: dynamic, all: dynamic)
   return ans;
 }
 
-func init()
+func init() -> dynamic
 {
   memset(sum, INF, cpp_sizeof((sum)));
   memset(nx, -1, cpp_sizeof((nx)));
   w[0] = INF;
 }
 
-func main()
+func main() -> dynamic
 {
   init();
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   while (cpp_update(q, "--"))
   {
-    var op: dynamic;
+    var op: dynamic = cpp_uninitialized();
     scanf("%d", (&op));
     if ((op == 1))
     {
-      var p: dynamic;
-      var q: dynamic;
+      var p: dynamic = cpp_uninitialized();
+      var q: dynamic = cpp_uninitialized();
       scanf("%lld", (&p));
       scanf("%lld", (&q));
       p ^= last;
@@ -111,8 +111,8 @@ func main()
       add(cnt, p);
     } else
     {
-      var p: dynamic;
-      var q: dynamic;
+      var p: dynamic = cpp_uninitialized();
+      var q: dynamic = cpp_uninitialized();
       scanf("%lld", (&p));
       scanf("%lld", (&q));
       p ^= last;

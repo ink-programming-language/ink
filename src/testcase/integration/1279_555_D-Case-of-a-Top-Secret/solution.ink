@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var maxn = 200003;
+var maxn: dynamic = 200003;
 
-var INF = 0x3f3f3f3f3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var pos = cpp_array(maxn);
+var pos: dynamic = cpp_array(maxn);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&Q));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&a[i].first));
@@ -28,7 +28,7 @@ func main()
   a[0].first = (-INF);
   a[(n + 1)].first = INF;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       pos[a[i].second] = i;
@@ -37,13 +37,13 @@ func main()
   }
   while (cpp_update(Q, "--"))
   {
-    var y: dynamic;
-    var p: dynamic;
-    var l: dynamic;
+    var y: dynamic = cpp_uninitialized();
+    var p: dynamic = cpp_uninitialized();
+    var l: dynamic = cpp_uninitialized();
     scanf("%d%lld", (&y), (&l));
     y = pos[y];
-    var dir = 1;
-    var flag = 0;
+    var dir: dynamic = 1;
+    var flag: dynamic = 0;
     while (1)
     {
       if ((flag == 2))
@@ -54,7 +54,7 @@ func main()
       if (dir)
       {
         p = ((upper_bound((a + 1), ((a + n) + 1), pair((a[y].first + l), maxn)) - a) - 1);
-        var len = (a[p].first - a[y].first);
+        var len: dynamic = (a[p].first - a[y].first);
         if ((p == y))
         {
           flag += 1;
@@ -79,7 +79,7 @@ func main()
       } else
       {
         p = (lower_bound((a + 1), ((a + n) + 1), pair((a[y].first - l), 0)) - a);
-        var len = (a[y].first - a[p].first);
+        var len: dynamic = (a[y].first - a[p].first);
         if ((p == y))
         {
           flag += 1;

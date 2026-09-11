@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var ull = cpp_expression("#includ");
+var ull: dynamic = cpp_expression("#includ");
 
-var vll = cpp_expression("#include <");
+var vll: dynamic = cpp_expression("#include <");
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func g(c: dynamic)
+func g(c: dynamic) -> dynamic
 {
   return ((((ull)(1)) << c));
 }
 
-func f(x: dynamic, c: dynamic)
+func f(x: dynamic, c: dynamic) -> dynamic
 {
   if ((x & g(c)))
   {
@@ -22,21 +22,21 @@ func f(x: dynamic, c: dynamic)
   return 0;
 }
 
-func sol()
+func sol() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  for (var i in x)
+  for (var i: dynamic in x)
   {
     read(i);
   }
-  var fre = cpp_construct(60);
+  var fre: dynamic = cpp_construct(60);
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < 60))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if (f(x[i], j))
@@ -49,15 +49,15 @@ func sol()
       j += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < n))
     {
-      var p1 = 0;
-      var p2 = 0;
+      var p1: dynamic = 0;
+      var p2: dynamic = 0;
       {
-        var c = 0;
+        var c: dynamic = 0;
         while ((c < 60))
         {
           p1 += ((((g(c) % mod)) * f(x[j], c)) * fre[c]);
@@ -75,11 +75,11 @@ func sol()
   write(ans, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios_base.sync_with_stdio(false);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

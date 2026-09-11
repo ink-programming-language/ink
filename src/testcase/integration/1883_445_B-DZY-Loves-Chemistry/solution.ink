@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var pa = cpp_array(55);
+var pa: dynamic = cpp_array(55);
 
-var r = cpp_array(55);
+var r: dynamic = cpp_array(55);
 
-func findset(x: dynamic)
+func findset(x: dynamic) -> dynamic
 {
-  return if ((pa[x] != x)) cpp_assign(pa[x], "=", findset(pa[x])) else x;
+  return  ((pa[x] != x)) ? cpp_assign(pa[x], "=", findset(pa[x])) : x;
 }
 
-var f = [0];
+var f: dynamic = [0];
 
-var mm = cpp_array(55);
+var mm: dynamic = cpp_array(55);
 
-func get_2()
+func get_2() -> dynamic
 {
   mm[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 55))
     {
       mm[i] = (mm[(i - 1)] * 2);
@@ -28,18 +28,18 @@ func get_2()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   get_2();
   ans = 1;
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   scanf("%d", (&m));
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n + 1)))
     {
       pa[i] = i;
@@ -47,9 +47,9 @@ func main()
       i += 1;
     }
   }
-  var k = 0;
+  var k: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d", (&x));
@@ -75,7 +75,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n + 1)))
     {
       f[findset(i)] += 1;
@@ -83,7 +83,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < (n + 1)))
     {
       if (f[i])

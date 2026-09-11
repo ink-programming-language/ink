@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var inf = 1E17;
+var inf: dynamic = 1E17;
 
-var mod = 1;
+var mod: dynamic = 1;
 
-var a = cpp_array(300010);
+var a: dynamic = cpp_array(300010);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var chnk: dynamic;
+var chnk: dynamic = cpp_uninitialized();
 
-var dp = cpp_array(5001, 5001);
+var dp: dynamic = cpp_array(5001, 5001);
 
-func solve(pos: dynamic, xtra: dynamic, l: dynamic)
+func solve(pos: dynamic, xtra: dynamic, l: dynamic) -> dynamic
 {
   if ((pos == 0))
   {
@@ -24,7 +24,7 @@ func solve(pos: dynamic, xtra: dynamic, l: dynamic)
     }
     return inf;
   }
-  var ret = dp[pos][xtra];
+  var ret: dynamic = dp[pos][xtra];
   if ((ret != -1))
   {
     return ret;
@@ -37,13 +37,13 @@ func solve(pos: dynamic, xtra: dynamic, l: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   while (((cin >> n) >> k))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         read(a[i]);

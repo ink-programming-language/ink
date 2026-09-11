@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var maxn = 210;
+var maxn: dynamic = 210;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var mp = cpp_array(maxn);
+var mp: dynamic = cpp_array(maxn);
 
-var dp = cpp_array(maxn, maxn);
+var dp: dynamic = cpp_array(maxn, maxn);
 
-var tmp = cpp_array(maxn);
+var tmp: dynamic = cpp_array(maxn);
 
-func dfs(rt: dynamic, f: dynamic)
+func dfs(rt: dynamic, f: dynamic) -> dynamic
 {
   dp[rt][0] = 1;
   dp[rt][(k + 1)] = 1;
-  for (var v in mp[rt])
+  for (var v: dynamic in mp[rt])
   {
     if ((v == f))
     {
@@ -27,11 +27,11 @@ func dfs(rt: dynamic, f: dynamic)
     dfs(v, rt);
     memset(tmp, 0, cpp_sizeof((tmp)));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= ((k * 2) + 1)))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j <= (2 * k)))
           {
             if ((((j + i) + 1) <= ((2 * k) + 1)))
@@ -50,7 +50,7 @@ func dfs(rt: dynamic, f: dynamic)
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= ((2 * k) + 1)))
       {
         dp[rt][i] = tmp[i];
@@ -60,15 +60,15 @@ func dfs(rt: dynamic, f: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n - 1)))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       scanf("%d%d", (&x), (&y));
       mp[x].push_back(y);
       mp[y].push_back(x);
@@ -76,9 +76,9 @@ func main()
     }
   }
   dfs(1, 0);
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= k))
     {
       res += dp[1][i];

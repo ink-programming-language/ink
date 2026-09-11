@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var hh: dynamic;
-  var mm: dynamic;
-  var x: dynamic;
-  var ans = 0;
+  var hh: dynamic = cpp_uninitialized();
+  var mm: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   read(x, hh, mm);
   while ((((hh % 10) != 7) && ((mm % 10) != 7)))
   {

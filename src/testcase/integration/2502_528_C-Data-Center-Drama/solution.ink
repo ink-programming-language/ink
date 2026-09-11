@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var out = cpp_array(100010);
+var out: dynamic = cpp_array(100010);
 
-var deg = cpp_array(100010);
+var deg: dynamic = cpp_array(100010);
 
-var q = cpp_array(100010);
+var q: dynamic = cpp_array(100010);
 
-var vis = cpp_array((100010 * 3));
+var vis: dynamic = cpp_array((100010 * 3));
 
 class Node
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
 }
 
-var ans = cpp_array((3 * 100010));
+var ans: dynamic = cpp_array((3 * 100010));
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var v: dynamic;
-  var now: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var now: dynamic = cpp_uninitialized();
   while ((!q[u].empty()))
   {
     now = q[u].front();
@@ -39,17 +39,17 @@ func dfs(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var a: dynamic;
-  var b: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
-  var num = 0;
+  var num: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d%d", (&a), (&b));
@@ -60,9 +60,9 @@ func main()
       i += 1;
     }
   }
-  var last = -1;
+  var last: dynamic = -1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((deg[i] & 1))
@@ -89,7 +89,7 @@ func main()
   dfs(1);
   write(cnt, "\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cnt))
     {
       if ((i & 1))

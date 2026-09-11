@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var inf = 1e18;
+var inf: dynamic = 1e18;
 
 class SegTree
 {
-  var tag: dynamic;
-  var mn: dynamic;
-  var lc: dynamic;
-  var rc: dynamic;
+  var tag: dynamic = cpp_uninitialized();
+  var mn: dynamic = cpp_uninitialized();
+  var lc: dynamic = cpp_uninitialized();
+  var rc: dynamic = cpp_uninitialized();
 }
 
-var null_cpp = cpp_new();
+var null_cpp: dynamic = cpp_new();
 
-var pool: dynamic;
+var pool: dynamic = cpp_uninitialized();
 
-func newTree()
+func newTree() -> dynamic
 {
-  var cpp_name = 0;
+  var cpp_name: dynamic = 0;
   pool[cpp_name] = cpp_new();
-  var t = pool[cpp_update(cpp_name, "++")];
+  var t: dynamic = pool[cpp_update(cpp_name, "++")];
   t->lc = cpp_assign(t->rc, "=", null_cpp);
   t->tag = 0;
   t->mn = inf;
   return t;
 }
 
-func add(p: dynamic, v: dynamic)
+func add(p: dynamic, v: dynamic) -> dynamic
 {
   p->mn += v;
   p->tag += v;
 }
 
-func push(p: dynamic)
+func push(p: dynamic) -> dynamic
 {
   if (p->lc)
   {
@@ -44,12 +44,12 @@ func push(p: dynamic)
   p->tag = 0;
 }
 
-func pull(p: dynamic)
+func pull(p: dynamic) -> dynamic
 {
   p->mn = min(p->lc->mn, p->rc->mn);
 }
 
-func modify(p: dynamic, l: dynamic, r: dynamic, x: dynamic, v: dynamic)
+func modify(p: dynamic, l: dynamic, r: dynamic, x: dynamic, v: dynamic) -> dynamic
 {
   if ((p == null_cpp))
   {
@@ -61,7 +61,7 @@ func modify(p: dynamic, l: dynamic, r: dynamic, x: dynamic, v: dynamic)
     return;
   }
   push(p);
-  var m = (((l + r)) / 2);
+  var m: dynamic = (((l + r)) / 2);
   if ((x <= m))
   {
     modify(p->lc, l, m, x, v);
@@ -72,7 +72,7 @@ func modify(p: dynamic, l: dynamic, r: dynamic, x: dynamic, v: dynamic)
   pull(p);
 }
 
-func query(p: dynamic, l: dynamic, r: dynamic, x: dynamic)
+func query(p: dynamic, l: dynamic, r: dynamic, x: dynamic) -> dynamic
 {
   if ((p == null_cpp))
   {
@@ -83,7 +83,7 @@ func query(p: dynamic, l: dynamic, r: dynamic, x: dynamic)
     return p->mn;
   }
   push(p);
-  var m = (((l + r)) / 2);
+  var m: dynamic = (((l + r)) / 2);
   if ((x <= m))
   {
     return query(p->lc, l, m, x);
@@ -93,7 +93,7 @@ func query(p: dynamic, l: dynamic, r: dynamic, x: dynamic)
   }
 }
 
-func merge(x: dynamic, y: dynamic)
+func merge(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x == null_cpp))
   {
@@ -112,13 +112,13 @@ func merge(x: dynamic, y: dynamic)
   }
 }
 
-var lim = 262144;
+var lim: dynamic = 262144;
 
-func solve(s: dynamic, v: dynamic, ban: dynamic)
+func solve(s: dynamic, v: dynamic, ban: dynamic) -> dynamic
 {
-  var t = null_cpp;
+  var t: dynamic = null_cpp;
   modify(t, 0, lim, s, v);
-  var op: dynamic;
+  var op: dynamic = cpp_uninitialized();
   while ((cin >> op))
   {
     if ((op == "end"))
@@ -126,10 +126,10 @@ func solve(s: dynamic, v: dynamic, ban: dynamic)
       return t;
     } else if ((op == "set"))
     {
-      var y: dynamic;
-      var v: dynamic;
+      var y: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(y, v);
-      var mn = t->mn;
+      var mn: dynamic = t->mn;
       add(t, v);
       if ((y != ban))
       {
@@ -137,9 +137,9 @@ func solve(s: dynamic, v: dynamic, ban: dynamic)
       }
     } else
     {
-      var y: dynamic;
+      var y: dynamic = cpp_uninitialized();
       read(y);
-      var nt = solve(y, query(t, 0, lim, y), ban);
+      var nt: dynamic = solve(y, query(t, 0, lim, y), ban);
       modify(t, 0, lim, y, inf);
       t = merge(t, nt);
     }
@@ -147,14 +147,14 @@ func solve(s: dynamic, v: dynamic, ban: dynamic)
   return t;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
   null_cpp->mn = inf;
   null_cpp->lc = cpp_assign(null_cpp->rc, "=", null_cpp);
-  var n: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, s);
   write(solve(0, 0, s)->mn, "\n");
   return 0;

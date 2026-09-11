@@ -1,52 +1,52 @@
 // Translated from solution.cpp.
 
-var F = cpp_expression("#incl");
+var F: dynamic = cpp_expression("#incl");
 
-var S = cpp_expression("#inclu");
+var S: dynamic = cpp_expression("#inclu");
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var popb = cpp_expression("#include <");
+var popb: dynamic = cpp_expression("#include <");
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-func sz(x: dynamic)
+func sz(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <map");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <map> #in");
 }
 
-func forn(x: dynamic)
+func forn(x: dynamic) -> dynamic
 {
   cpp_macro("for(int i=1;i<=x;i++)");
 }
 
-func sforn(x: dynamic, y: dynamic)
+func sforn(x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i=1;i<=x;i++)for(int j=1;j<=y;j++)");
 }
 
-var pii = cpp_expression("#include <map>");
+var pii: dynamic = cpp_expression("#include <map>");
 
-var speed = cpp_expression("#include <map> #include <set>");
+var speed: dynamic = cpp_expression("#include <map> #include <set>");
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var s1: dynamic;
-  var s2: dynamic;
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
   read(s1, s2);
-  var cnt1 = 0;
-  var cnt2 = 0;
+  var cnt1: dynamic = 0;
+  var cnt2: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s1.size()))
     {
       if ((s1[i] > s2[i]))
@@ -71,12 +71,12 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= t))
     {
       solve();

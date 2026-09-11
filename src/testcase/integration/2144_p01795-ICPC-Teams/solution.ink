@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-var N = 1000100;
+var N: dynamic = 1000100;
 
-var P = (1e9 + 9);
+var P: dynamic = (1e9 + 9);
 
-var X = cpp_expression("#incl");
+var X: dynamic = cpp_expression("#incl");
 
-var Y = cpp_expression("#inclu");
+var Y: dynamic = cpp_expression("#inclu");
 
-var a = cpp_array(18);
+var a: dynamic = cpp_array(18);
 
-var b = cpp_array(18);
+var b: dynamic = cpp_array(18);
 
-var c = cpp_array(18);
+var c: dynamic = cpp_array(18);
 
-var dp = cpp_array(N);
+var dp: dynamic = cpp_array(N);
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-var sz: dynamic;
+var sz: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   memset(dp, -1, cpp_sizeof((dp)));
-  var n: dynamic;
-  var m: dynamic;
-  var ans = 0;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   scanf("%d%d", (&n), (&m));
   dp[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dp[i] = ((((((1 * (((3 * i) - 1))) * (((3 * i) - 2))) / 2) % P) * dp[(i - 1)]) % P);
@@ -37,7 +37,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d%d%d", (&a[i]), (&b[i]), (&c[i]));
@@ -45,17 +45,17 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << m))))
     {
-      var coef = 1;
-      var res = 1;
-      var cnt = [];
-      var ff = 0;
+      var coef: dynamic = 1;
+      var res: dynamic = 1;
+      var cnt: dynamic = [];
+      var ff: dynamic = 0;
       f.clear();
       sz.clear();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((i & ((1 << j))))
@@ -99,7 +99,7 @@ func main()
       if ((!ff))
       {
         {
-          var it = f.begin();
+          var it: dynamic = f.begin();
           while ((it != f.end()))
           {
             if ((it->X == it->Y))
@@ -111,7 +111,7 @@ func main()
         }
         cnt[1] = (((3 * n) - (2 * cnt[2])) - (3 * cnt[3]));
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < cnt[2]))
           {
             res = (((1 * res) * cnt[1]) % P);

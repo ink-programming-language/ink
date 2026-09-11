@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -8,7 +8,7 @@ func chmin(a: dynamic, b: dynamic)
   }
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -18,45 +18,45 @@ func chmax(a: dynamic, b: dynamic)
 
 class Dinic
 {
-  var INF: dynamic;
-  var n: dynamic;
-  var G: dynamic;
-  var M: dynamic;
-  var level: dynamic;
-  var iter: dynamic;
-  func Dinic()
+  var INF: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var G: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
+  var level: dynamic = cpp_uninitialized();
+  var iter: dynamic = cpp_uninitialized();
+  func Dinic() -> dynamic
   {
     }
-  func Dinic(sz: dynamic)
+  func Dinic(sz: dynamic) -> dynamic
   {
-      this->n = cpp_construct(sz);
-      this->G = cpp_construct(n);
-      this->M = cpp_construct(n);
-      this->level = cpp_construct(n);
-      this->iter = cpp_construct(n);
+      self->n = cpp_construct(sz);
+      self->G = cpp_construct(n);
+      self->M = cpp_construct(n);
+      self->level = cpp_construct(n);
+      self->iter = cpp_construct(n);
     }
-  func add_edge(from_cpp: dynamic, to: dynamic, cap: dynamic)
+  func add_edge(from_cpp: dynamic, to: dynamic, cap: dynamic) -> dynamic
   {
       M[from_cpp][to] = G[from_cpp].size();
       M[to][from_cpp] = G[to].size();
       G[from_cpp].push_back(edge(to, cap, G[to].size()));
       G[to].push_back(edge(from_cpp, 0, (G[from_cpp].size() - 1)));
     }
-  func bfs(s: dynamic)
+  func bfs(s: dynamic) -> dynamic
   {
       fill(level.begin(), level.end(), -1);
-      var que: dynamic;
+      var que: dynamic = cpp_uninitialized();
       level[s] = 0;
       que.push(s);
       while ((!que.empty()))
       {
-        var v = que.front();
+        var v: dynamic = que.front();
         que.pop();
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < cpp_cast(G[v].size())))
           {
-            var e = G[v][i];
+            var e: dynamic = G[v][i];
             if (((e.cap > 0) && (level[e.to] < 0)))
             {
               level[e.to] = (level[v] + 1);
@@ -67,20 +67,20 @@ class Dinic
         }
       }
     }
-  func dfs(v: dynamic, t: dynamic, f: dynamic)
+  func dfs(v: dynamic, t: dynamic, f: dynamic) -> dynamic
   {
       if ((v == t))
       {
         return f;
       }
       {
-        var i = iter[v];
+        var i: dynamic = iter[v];
         while ((i < cpp_cast(G[v].size())))
         {
-          var e = G[v][i];
+          var e: dynamic = G[v][i];
           if (((e.cap > 0) && (level[v] < level[e.to])))
           {
-            var d = dfs(e.to, t, min(f, e.cap));
+            var d: dynamic = dfs(e.to, t, min(f, e.cap));
             if ((d > 0))
             {
               e.cap -= d;
@@ -93,9 +93,9 @@ class Dinic
       }
       return 0;
     }
-  func flow(s: dynamic, t: dynamic, lim: dynamic)
+  func flow(s: dynamic, t: dynamic, lim: dynamic) -> dynamic
   {
-      var fl = 0;
+      var fl: dynamic = 0;
       {
         while (true)
         {
@@ -105,7 +105,7 @@ class Dinic
             return fl;
           }
           fill(iter.begin(), iter.end(), 0);
-          var f: dynamic;
+          var f: dynamic = cpp_uninitialized();
           while (((cpp_assign(f, "=", dfs(s, t, lim))) > 0))
           {
             fl += f;
@@ -114,17 +114,17 @@ class Dinic
         }
       }
     }
-  func flow(s: dynamic, t: dynamic)
+  func flow(s: dynamic, t: dynamic) -> dynamic
   {
       return flow(s, t, INF);
     }
-  func back_edge(s: dynamic, t: dynamic, from_cpp: dynamic, to: dynamic)
+  func back_edge(s: dynamic, t: dynamic, from_cpp: dynamic, to: dynamic) -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < cpp_cast(G[from_cpp].size())))
         {
-          var e = G[from_cpp][i];
+          var e: dynamic = G[from_cpp][i];
           if ((e.to == to))
           {
             if (((e.cap == 0) && (flow(from_cpp, to, 1) == 0)))
@@ -141,20 +141,20 @@ class Dinic
     }
 }
 
-var b = cpp_array(55, 55);
+var b: dynamic = cpp_array(55, 55);
 
-func main()
+func main() -> dynamic
 {
-  var h: dynamic;
-  var w: dynamic;
-  var c: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   read(h, w, c);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           read(b[i][j]);
@@ -164,16 +164,16 @@ func main()
       i += 1;
     }
   }
-  var G = cpp_construct((((h * w) / 2) + 2));
-  var S = ((h * w) / 2);
-  var T = (S + 1);
-  var ans = 0;
+  var G: dynamic = cpp_construct((((h * w) / 2) + 2));
+  var S: dynamic = ((h * w) / 2);
+  var T: dynamic = (S + 1);
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           ans += b[i][j];
@@ -184,13 +184,13 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i + 1) < h))
     {
       if ((i & 1))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < (w / 2)))
           {
             G.add_edge(((i * ((w / 2))) + j), T, c);
@@ -204,7 +204,7 @@ func main()
       } else
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < (w / 2)))
           {
             G.add_edge(S, ((i * ((w / 2))) + j), c);

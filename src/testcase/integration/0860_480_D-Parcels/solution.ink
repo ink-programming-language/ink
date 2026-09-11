@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-var md = 1000000007;
+var md: dynamic = 1000000007;
 
-var maxn = 1100;
+var maxn: dynamic = 1100;
 
-var inf = 2020202020202020202;
+var inf: dynamic = 2020202020202020202;
 
 class box
 {
-  var in_cpp: dynamic;
-  var out: dynamic;
-  var w: dynamic;
-  var s: dynamic;
-  var v: dynamic;
+  var in_cpp: dynamic = cpp_uninitialized();
+  var out: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
 }
 
-var dp = cpp_array(1100, 1100);
+var dp: dynamic = cpp_array(1100, 1100);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var subdp = cpp_array(1100);
+var subdp: dynamic = cpp_array(1100);
 
-var nice: dynamic;
+var nice: dynamic = cpp_uninitialized();
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.in_cpp < b.in_cpp) || ((a.in_cpp == b.in_cpp) && (a.out > b.out)));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var j: dynamic;
+      var j: dynamic = cpp_uninitialized();
       read(j.in_cpp, j.out, j.w, j.s, j.v);
       j.in_cpp += 1;
       j.out += 1;
@@ -45,18 +45,18 @@ func main()
       i += 1;
     }
   }
-  var jj = [0, 1002, 0, s, md];
+  var jj: dynamic = [0, 1002, 0, s, md];
   nice.push_back(jj);
   sort(nice.begin(), nice.end(), (&cmp));
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 0))
     {
       {
-        var pr = 0;
+        var pr: dynamic = 0;
         while ((pr < (s + 1)))
         {
-          var prn = min(nice[i].s, (pr - nice[i].w));
+          var prn: dynamic = min(nice[i].s, (pr - nice[i].w));
           if ((prn >= 0))
           {
             dp[i][pr] += nice[i].v;
@@ -64,28 +64,28 @@ func main()
           if ((prn >= 0))
           {
             {
-              var it = nice[i].in_cpp;
+              var it: dynamic = nice[i].in_cpp;
               while ((it <= nice[i].out))
               {
                 subdp[it] = 0;
                 it += 1;
               }
             }
-            var curr = 0;
+            var curr: dynamic = 0;
             {
-              var u = n;
+              var u: dynamic = n;
               while ((u > i))
               {
                 if ((((nice[i].in_cpp <= nice[u].in_cpp)) && ((nice[i].out >= nice[u].out))))
                 {
-                  var x = (subdp[nice[u].out] + dp[u][prn]);
+                  var x: dynamic = (subdp[nice[u].out] + dp[u][prn]);
                   if ((x > curr))
                   {
                     curr = x;
                   }
                   subdp[nice[u].in_cpp] = curr;
                 }
-                var y = nice[u].in_cpp;
+                var y: dynamic = nice[u].in_cpp;
                 while ((nice[(u - 1)].in_cpp <= y))
                 {
                   subdp[y] = curr;
@@ -102,9 +102,9 @@ func main()
       i -= 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (s + 1)))
     {
       ans = max(ans, dp[0][i]);

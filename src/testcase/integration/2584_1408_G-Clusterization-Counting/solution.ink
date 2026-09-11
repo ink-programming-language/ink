@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var c = 1502;
+var c: dynamic = 1502;
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var dp = cpp_array(c, c);
+var dp: dynamic = cpp_array(c, c);
 
-var el = cpp_array(c, c);
+var el: dynamic = cpp_array(c, c);
 
-var inv = cpp_array(c, c);
+var inv: dynamic = cpp_array(c, c);
 
-var f = cpp_array(c);
+var f: dynamic = cpp_array(c);
 
-var db = cpp_array(c);
+var db: dynamic = cpp_array(c);
 
-var ki = cpp_array(c);
+var ki: dynamic = cpp_array(c);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var cnt = 0;
+var cnt: dynamic = 0;
 
-var v = cpp_array(c);
+var v: dynamic = cpp_array(c);
 
-var h = cpp_array(c);
+var h: dynamic = cpp_array(c);
 
-var kesz: dynamic;
+var kesz: dynamic = cpp_uninitialized();
 
-var sz = cpp_array(c);
+var sz: dynamic = cpp_array(c);
 
-var jo = cpp_array(c);
+var jo: dynamic = cpp_array(c);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func dfs(a: dynamic, b: dynamic)
+func dfs(a: dynamic, b: dynamic) -> dynamic
 {
   if ((!v[a]))
   {
@@ -43,7 +43,7 @@ func dfs(a: dynamic, b: dynamic)
   {
     kesz = 1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < jo[a].size()))
       {
         if ((jo[a][i] >= inv[a][b]))
@@ -58,7 +58,7 @@ func dfs(a: dynamic, b: dynamic)
   while (((f[a] + 1) <= cnt))
   {
     f[a] += 1;
-    var x = sz[a][f[a]].second;
+    var x: dynamic = sz[a][f[a]].second;
     if ((!v[x]))
     {
       dfs(x, b);
@@ -70,10 +70,10 @@ func dfs(a: dynamic, b: dynamic)
     if (((f[a] == cnt) && (a == b)))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= cnt))
         {
-          var x = sz[a][i].second;
+          var x: dynamic = sz[a][i].second;
           if ((f[x] != cnt))
           {
             dfs(x, b);
@@ -97,14 +97,14 @@ func dfs(a: dynamic, b: dynamic)
   }
 }
 
-func unio(a: dynamic, b: dynamic)
+func unio(a: dynamic, b: dynamic) -> dynamic
 {
   h[b] = 1;
-  var sb = 0;
-  var sa = 0;
-  var st = 0;
+  var sb: dynamic = 0;
+  var sa: dynamic = 0;
+  var st: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (dp[b][i])
@@ -123,12 +123,12 @@ func unio(a: dynamic, b: dynamic)
     }
   }
   {
-    var i = (sa + sb);
+    var i: dynamic = (sa + sb);
     while ((i >= 1))
     {
       dp[a][i] = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= min(i, sb)))
         {
           dp[a][i] += (dp[a][(i - j)] * dp[b][j]);
@@ -140,7 +140,7 @@ func unio(a: dynamic, b: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < st))
     {
       dp[a][i] = 0;
@@ -149,22 +149,22 @@ func unio(a: dynamic, b: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sz[i].push_back([-1, 0]);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
-          var x: dynamic;
+          var x: dynamic = cpp_uninitialized();
           read(x);
           sz[i].push_back([x, j]);
           j += 1;
@@ -172,7 +172,7 @@ func main()
       }
       sort(sz[i].begin(), sz[i].end());
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           inv[i][sz[i][j].second] = j;
@@ -188,13 +188,13 @@ func main()
     return 0;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       cnt = 0;
       kesz = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           v[j] = 0;
@@ -207,7 +207,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dp[i][1] = 1;
@@ -217,18 +217,18 @@ func main()
   }
   while ((q.size() > 0))
   {
-    var tav = (-q.top().first);
-    var id = q.top().second.first;
-    var pos = q.top().second.second;
-    var db = jo[id][pos];
+    var tav: dynamic = (-q.top().first);
+    var id: dynamic = q.top().second.first;
+    var pos: dynamic = q.top().second.second;
+    var db: dynamic = jo[id][pos];
     q.pop();
     if ((!h[id]))
     {
       {
-        var i = (db + 1);
+        var i: dynamic = (db + 1);
         while ((i <= (db + tav)))
         {
-          var x = sz[id][i].second;
+          var x: dynamic = sz[id][i].second;
           if ((!h[x]))
           {
             unio(id, x);
@@ -243,7 +243,7 @@ func main()
       } else
       {
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i <= n))
           {
             write(dp[id][i], " ");

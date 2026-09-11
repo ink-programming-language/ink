@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var maxn = (6e5 + 100);
+var maxn: dynamic = (6e5 + 100);
 
-var mx = (1e9 + 10);
+var mx: dynamic = (1e9 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var cc = cpp_array(maxn);
+var cc: dynamic = cpp_array(maxn);
 
-var tree = cpp_array(maxn);
+var tree: dynamic = cpp_array(maxn);
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func getid(x: dynamic)
+func getid(x: dynamic) -> dynamic
 {
   return ((lower_bound(v.begin(), v.end(), x) - v.begin()) + 1);
 }
 
-func __cpp_top_level_1()
+func __cpp_top_level_1() -> dynamic
 {
 }
 
-func lowbit(x: dynamic)
+func lowbit(x: dynamic) -> dynamic
 {
   return (x & ((-x)));
 }
 
-func add(id: dynamic, x: dynamic)
+func add(id: dynamic, x: dynamic) -> dynamic
 {
   {
-    var i = id;
+    var i: dynamic = id;
     while ((i <= maxn))
     {
       tree[i] += x;
@@ -44,11 +44,11 @@ func add(id: dynamic, x: dynamic)
   }
 }
 
-func getsum(x: dynamic)
+func getsum(x: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = x;
+    var i: dynamic = x;
     while (i)
     {
       ret += tree[i];
@@ -58,10 +58,10 @@ func getsum(x: dynamic)
   return ret;
 }
 
-func adds(id: dynamic)
+func adds(id: dynamic) -> dynamic
 {
   {
-    var i = id;
+    var i: dynamic = id;
     while ((i <= maxn))
     {
       cc[i] += 1;
@@ -70,11 +70,11 @@ func adds(id: dynamic)
   }
 }
 
-func getsums(x: dynamic)
+func getsums(x: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = x;
+    var i: dynamic = x;
     while (i)
     {
       ret += cc[i];
@@ -84,11 +84,11 @@ func getsums(x: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -101,12 +101,12 @@ func main()
   sort(v.begin(), v.end());
   v.erase(unique(v.begin(), v.end()), v.end());
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var id = getid(a[i]);
-      var id1 = getid((a[i] + 1));
-      var id2 = getid((a[i] - 2));
+      var id: dynamic = getid(a[i]);
+      var id1: dynamic = getid((a[i] + 1));
+      var id2: dynamic = getid((a[i] - 2));
       ans += ((a[i] * (((i - 1) - ((getsums(id1) - getsums(id2)))))) - ((sum - ((getsum(id1) - getsum(id2))))));
       sum += a[i];
       add(id, a[i]);

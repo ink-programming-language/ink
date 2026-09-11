@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var K: dynamic;
-  var L = cpp_array(222222);
-  var R = cpp_array(222222);
+  var N: dynamic = cpp_uninitialized();
+  var K: dynamic = cpp_uninitialized();
+  var L: dynamic = cpp_array(222222);
+  var R: dynamic = cpp_array(222222);
   read(N, K);
-  var i: dynamic;
-  var k: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i <= (K - 1)))
@@ -17,9 +17,9 @@ func main()
       i += 1;
     }
   }
-  var dp = [0];
+  var dp: dynamic = [0];
   dp[1] = 1;
-  var sum = [0];
+  var sum: dynamic = [0];
   sum[1] = 1;
   {
     i = 2;

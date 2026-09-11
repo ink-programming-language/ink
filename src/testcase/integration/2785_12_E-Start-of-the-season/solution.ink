@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var lastrow = cpp_array(1002);
+var lastrow: dynamic = cpp_array(1002);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var r: dynamic;
-  var c: dynamic;
-  var p: dynamic;
-  var remember: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var remember: dynamic = cpp_uninitialized();
   read(n);
   lastrow[0] = (n - 1);
   lastrow[(n - 1)] = 0;

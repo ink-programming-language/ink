@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var n: dynamic;
-  var m: dynamic;
-  var x: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x);
@@ -27,7 +27,7 @@ func main()
   }
   read(m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(x);
@@ -36,7 +36,7 @@ func main()
     }
   }
   set_intersection(all(a), all(b), inserter(c, c.end()));
-  for (var i in c)
+  for (var i: dynamic in c)
   {
     write(i, "\n");
   }

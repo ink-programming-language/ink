@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 1010);
+var N: dynamic = (1e5 + 1010);
 
-var L = cpp_array(N);
+var L: dynamic = cpp_array(N);
 
-var R = cpp_array(N);
+var R: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var q: dynamic;
-  var ans = 0;
-  var s: dynamic;
-  var sr: dynamic;
+  var q: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
+  var s: dynamic = cpp_uninitialized();
+  var sr: dynamic = cpp_uninitialized();
   read(s);
   sr = s;
   reverse(sr.begin(), sr.end());
   read(q);
   while (cpp_update(q, "--"))
   {
-    var t: dynamic;
+    var t: dynamic = cpp_uninitialized();
     read(t);
-    var a = ((t + cpp_char("#")) + s);
+    var a: dynamic = ((t + cpp_char("#")) + s);
     reverse(t.begin(), t.end());
-    var b = ((t + cpp_char("#")) + sr);
+    var b: dynamic = ((t + cpp_char("#")) + sr);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < a.size()))
       {
-        var j = L[(i - 1)];
+        var j: dynamic = L[(i - 1)];
         while ((j && (a[i] != a[j])))
         {
           j = L[(j - 1)];
@@ -54,7 +54,7 @@ func main()
       }
     }
     {
-      var i = (t.size() + 1);
+      var i: dynamic = (t.size() + 1);
       while ((i < a.size()))
       {
         if ((L[i] == t.size()))
@@ -71,7 +71,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < s.size()))
       {
         if ((t.size() <= (L[(t.size() + i)] + R[((t.size() + s.size()) - i)])))

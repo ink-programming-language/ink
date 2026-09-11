@@ -2,24 +2,24 @@
 
 class Tnode
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
 }
 
-var doing = cpp_array(1000050);
+var doing: dynamic = cpp_array(1000050);
 
 class Type
 {
-  var pos: dynamic;
-  var val: dynamic;
-  var size: dynamic;
-  var father: dynamic;
-  var son: dynamic;
-  func Type()
+  var pos: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
+  var size: dynamic = cpp_uninitialized();
+  var father: dynamic = cpp_uninitialized();
+  var son: dynamic = cpp_uninitialized();
+  func Type() -> dynamic
   {
     }
-  func Type(f: dynamic, p: dynamic, v: dynamic, s: dynamic)
+  func Type(f: dynamic, p: dynamic, v: dynamic, s: dynamic) -> dynamic
   {
       pos = p;
       val = v;
@@ -29,47 +29,47 @@ class Type
     }
 }
 
-var memory = cpp_array(1000050);
+var memory: dynamic = cpp_array(1000050);
 
-var root: dynamic;
+var root: dynamic = cpp_uninitialized();
 
 class Tree
 {
-  var best: dynamic;
-  var add: dynamic;
+  var best: dynamic = cpp_uninitialized();
+  var add: dynamic = cpp_uninitialized();
 }
 
-var tree = cpp_array(2222222);
+var tree: dynamic = cpp_array(2222222);
 
-var vs: dynamic;
+var vs: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var data = cpp_array(1000050);
+var data: dynamic = cpp_array(1000050);
 
-var x = cpp_array(1000050);
+var x: dynamic = cpp_array(1000050);
 
-var y = cpp_array(1000050);
+var y: dynamic = cpp_array(1000050);
 
-var z = cpp_array(1000050);
+var z: dynamic = cpp_array(1000050);
 
-func Rand()
+func Rand() -> dynamic
 {
   return (((rand() << 15)) | rand());
 }
 
-func Cmp(a: dynamic, b: dynamic)
+func Cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.x < b.x);
 }
 
-func Half(ask: dynamic)
+func Half(ask: dynamic) -> dynamic
 {
-  var low: dynamic;
-  var mid: dynamic;
-  var high: dynamic;
+  var low: dynamic = cpp_uninitialized();
+  var mid: dynamic = cpp_uninitialized();
+  var high: dynamic = cpp_uninitialized();
   low = 0;
   high = (m + 1);
   while (((low + 1) < high))
@@ -86,7 +86,7 @@ func Half(ask: dynamic)
   return low;
 }
 
-func Down(root: dynamic)
+func Down(root: dynamic) -> dynamic
 {
   if ((tree[root].add != 0))
   {
@@ -98,9 +98,9 @@ func Down(root: dynamic)
   return;
 }
 
-func Add(root: dynamic, nowleft: dynamic, nowright: dynamic, askleft: dynamic, askright: dynamic, add: dynamic)
+func Add(root: dynamic, nowleft: dynamic, nowright: dynamic, askleft: dynamic, askright: dynamic, add: dynamic) -> dynamic
 {
-  var mid = (((nowleft + nowright)) >> 1);
+  var mid: dynamic = (((nowleft + nowright)) >> 1);
   Down(root);
   if (((nowright < askleft) || (askright < nowleft)))
   {
@@ -118,9 +118,9 @@ func Add(root: dynamic, nowleft: dynamic, nowright: dynamic, askleft: dynamic, a
   return;
 }
 
-func Ask(root: dynamic, nowleft: dynamic, nowright: dynamic, askleft: dynamic, askright: dynamic)
+func Ask(root: dynamic, nowleft: dynamic, nowright: dynamic, askleft: dynamic, askright: dynamic) -> dynamic
 {
-  var mid = (((nowleft + nowright)) >> 1);
+  var mid: dynamic = (((nowleft + nowright)) >> 1);
   Down(root);
   if (((nowright < askleft) || (askright < nowleft)))
   {
@@ -133,7 +133,7 @@ func Ask(root: dynamic, nowleft: dynamic, nowright: dynamic, askleft: dynamic, a
   return min(Ask((root << 1), nowleft, mid, askleft, askright), Ask((((root << 1)) | 1), (mid + 1), nowright, askleft, askright));
 }
 
-func Update(current: dynamic)
+func Update(current: dynamic) -> dynamic
 {
   if ((!current))
   {
@@ -151,7 +151,7 @@ func Update(current: dynamic)
   return;
 }
 
-func Rotate(current: dynamic, flag: dynamic)
+func Rotate(current: dynamic, flag: dynamic) -> dynamic
 {
   current->father->son[(flag ^ 1)] = current->son[flag];
   if (current->son[flag])
@@ -169,7 +169,7 @@ func Rotate(current: dynamic, flag: dynamic)
   return;
 }
 
-func Splay(current: dynamic, target: dynamic)
+func Splay(current: dynamic, target: dynamic) -> dynamic
 {
   while ((current->father != target))
   {
@@ -198,10 +198,10 @@ func Splay(current: dynamic, target: dynamic)
   return;
 }
 
-func Bigger(ask: dynamic, target: dynamic)
+func Bigger(ask: dynamic, target: dynamic) -> dynamic
 {
-  var current = root;
-  var best = 0;
+  var current: dynamic = root;
+  var best: dynamic = 0;
   while (current)
   {
     if ((current->pos > ask))
@@ -217,10 +217,10 @@ func Bigger(ask: dynamic, target: dynamic)
   return;
 }
 
-func Smaller(ask: dynamic, target: dynamic)
+func Smaller(ask: dynamic, target: dynamic) -> dynamic
 {
-  var current = root;
-  var best = 0;
+  var current: dynamic = root;
+  var best: dynamic = 0;
   while (current)
   {
     if ((current->pos < ask))
@@ -236,9 +236,9 @@ func Smaller(ask: dynamic, target: dynamic)
   return;
 }
 
-func Find(ask: dynamic, target: dynamic)
+func Find(ask: dynamic, target: dynamic) -> dynamic
 {
-  var current = root;
+  var current: dynamic = root;
   while (current)
   {
     if (current->son[0])
@@ -268,7 +268,7 @@ func Find(ask: dynamic, target: dynamic)
   return;
 }
 
-func Find_Left(current: dynamic)
+func Find_Left(current: dynamic) -> dynamic
 {
   while (true)
   {
@@ -282,7 +282,7 @@ func Find_Left(current: dynamic)
   return;
 }
 
-func Find_Right(current: dynamic)
+func Find_Right(current: dynamic) -> dynamic
 {
   while (true)
   {
@@ -296,21 +296,21 @@ func Find_Right(current: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var temp: dynamic;
-  var best: dynamic;
-  var delta: dynamic;
-  var rank: dynamic;
-  var last: dynamic;
-  var maxi: dynamic;
-  var mx: dynamic;
-  var my: dynamic;
-  var mz: dynamic;
-  var solved: dynamic;
-  var current: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var temp: dynamic = cpp_uninitialized();
+  var best: dynamic = cpp_uninitialized();
+  var delta: dynamic = cpp_uninitialized();
+  var rank: dynamic = cpp_uninitialized();
+  var last: dynamic = cpp_uninitialized();
+  var maxi: dynamic = cpp_uninitialized();
+  var mx: dynamic = cpp_uninitialized();
+  var my: dynamic = cpp_uninitialized();
+  var mz: dynamic = cpp_uninitialized();
+  var solved: dynamic = cpp_uninitialized();
+  var current: dynamic = cpp_uninitialized();
   srand(cpp_cast(time(0)));
   scanf("%d", (&n));
   m = 0;

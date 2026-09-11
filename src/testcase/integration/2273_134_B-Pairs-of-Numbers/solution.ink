@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func input()
+func input() -> dynamic
 {
   read(n);
   return 0;
 }
 
-func gcd(p: dynamic, q: dynamic)
+func gcd(p: dynamic, q: dynamic) -> dynamic
 {
-  var r: dynamic;
+  var r: dynamic = cpp_uninitialized();
   if ((p < q))
   {
-    var t = p;
+    var t: dynamic = p;
     p = q;
     q = t;
   }
@@ -30,20 +30,20 @@ func gcd(p: dynamic, q: dynamic)
   return q;
 }
 
-func f(a: dynamic, b: dynamic)
+func f(a: dynamic, b: dynamic) -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   if ((gcd(a, b) != 1))
   {
     return -1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (true)
     {
       if ((a < b))
       {
-        var t = a;
+        var t: dynamic = a;
         a = b;
         b = t;
       }
@@ -75,11 +75,11 @@ func f(a: dynamic, b: dynamic)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var i: dynamic;
-  var min = -1;
-  var x: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var min: dynamic = -1;
+  var x: dynamic = cpp_uninitialized();
   if ((n == 1))
   {
     return 0;
@@ -104,7 +104,7 @@ func solve()
   return min;
 }
 
-func main()
+func main() -> dynamic
 {
   input();
   write(solve(), "\n");

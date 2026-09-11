@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func print(v: dynamic)
+func print(v: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       write(v[i], cpp_char(" "));
@@ -13,13 +13,13 @@ func print(v: dynamic)
   write(cpp_char("\n"));
 }
 
-func z_function(s: dynamic)
+func z_function(s: dynamic) -> dynamic
 {
-  var n = cpp_cast(s.length());
+  var n: dynamic = cpp_cast(s.length());
   {
-    var i = 1;
-    var l = 0;
-    var r = 0;
+    var i: dynamic = 1;
+    var l: dynamic = 0;
+    var r: dynamic = 0;
     while ((i < n))
     {
       if ((i <= r))
@@ -41,25 +41,25 @@ func z_function(s: dynamic)
   return z;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var n = s.length();
-  var q: dynamic;
+  var n: dynamic = s.length();
+  var q: dynamic = cpp_uninitialized();
   read(q);
-  var sr = s;
+  var sr: dynamic = s;
   reverse(sr.begin(), sr.end());
-  var v = cpp_construct(n, (n + 1));
+  var v: dynamic = cpp_construct(n, (n + 1));
   while (cpp_update(q, "--"))
   {
-    var t: dynamic;
+    var t: dynamic = cpp_uninitialized();
     read(t);
-    var l = t.length();
+    var l: dynamic = t.length();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if (((i + l) > n))
@@ -74,14 +74,14 @@ func main()
       }
     }
   }
-  var maxlen = if (((v[0] == 1))) 0 else 1;
-  var index = 0;
-  var ans = maxlen;
+  var maxlen: dynamic =  (((v[0] == 1))) ? 0 : 1;
+  var index: dynamic = 0;
+  var ans: dynamic = maxlen;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var len = min((v[i] - 1), (ans + 1));
+      var len: dynamic = min((v[i] - 1), (ans + 1));
       if ((len > maxlen))
       {
         maxlen = len;

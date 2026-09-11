@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var a1 = [1, 2, 4, 7, 12, 20, 29, 38, 52, 101];
+var a1: dynamic = [1, 2, 4, 7, 12, 20, 29, 38, 52, 101];
 
-var a2 = [1, 2, 4, 7, 12, 20, 30, 39, 67, 101];
+var a2: dynamic = [1, 2, 4, 7, 12, 20, 30, 39, 67, 101];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var an = cpp_array(15, 15);
+var an: dynamic = cpp_array(15, 15);
 
-var no = 1;
+var no: dynamic = 1;
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       an[i][i] = 0;
@@ -22,11 +22,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j <= n))
         {
           an[i][j] = cpp_assign(an[j][i], "=", (no * a1[((j - i) - 1)]));
@@ -38,11 +38,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           write(an[i][j], cpp_char(" "));

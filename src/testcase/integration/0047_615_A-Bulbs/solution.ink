@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var mas = cpp_construct(k, 0);
+  var mas: dynamic = cpp_construct(k, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var m: dynamic;
+      var m: dynamic = cpp_uninitialized();
       read(m);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
-          var x: dynamic;
+          var x: dynamic = cpp_uninitialized();
           read(x);
           mas[(x - 1)] += 1;
           i += 1;
@@ -26,7 +26,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       if ((mas[i] == 0))
@@ -40,12 +40,12 @@ func solve()
   write("YES");
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var tst = 1;
+  var tst: dynamic = 1;
   while (cpp_update(tst, "--"))
   {
     solve();

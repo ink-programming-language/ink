@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var N = 1010;
+var N: dynamic = 1010;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < ((n + 1))))
     {
       scanf("%d", (a + i));
@@ -25,23 +25,23 @@ func main()
   {
     n -= 1;
   }
-  var Min = (1 << 30);
-  var d = 1;
+  var Min: dynamic = (1 << 30);
+  var d: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < ((n + 1))))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < ((n + 1))))
         {
           b[j] = (a[j] - (((j >= i) && a[j])));
           j += 1;
         }
       }
-      var cost = (-i);
+      var cost: dynamic = (-i);
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < ((n + 1))))
         {
           cost += ((3 * b[i]) + (2 * max(0, (b[i] - b[(i - 1)]))));
@@ -57,7 +57,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < ((n + 1))))
     {
       b[i] = (a[i] - (((i >= d) && a[i])));
@@ -65,12 +65,12 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < ((n + 1))))
     {
       while (b[i])
       {
-        var j = i;
+        var j: dynamic = i;
         {
           while (b[j])
           {

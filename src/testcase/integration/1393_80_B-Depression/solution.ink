@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var pt: dynamic;
+var pt: dynamic = cpp_uninitialized();
 
-func get_int()
+func get_int() -> dynamic
 {
-  var temp = 0;
+  var temp: dynamic = 0;
   while ((((*pt) < cpp_char("0")) && ((*pt) > cpp_char("9"))))
   {
     pt += 1;
@@ -18,7 +18,7 @@ func get_int()
   return temp;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if (((b == 1) || (a == 1)))
   {
@@ -33,7 +33,7 @@ func gcd(a: dynamic, b: dynamic)
   }
 }
 
-func fastPower(a: dynamic, b: dynamic)
+func fastPower(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -43,7 +43,7 @@ func fastPower(a: dynamic, b: dynamic)
   {
     return (a % 747474747);
   }
-  var ans = fastPower(a, (b / 2));
+  var ans: dynamic = fastPower(a, (b / 2));
   ans *= ans;
   ans %= 747474747;
   if ((b % 2))
@@ -53,7 +53,7 @@ func fastPower(a: dynamic, b: dynamic)
   return (ans % 747474747);
 }
 
-func fastPowerCustomMod(a: dynamic, b: dynamic, c: dynamic)
+func fastPowerCustomMod(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -63,7 +63,7 @@ func fastPowerCustomMod(a: dynamic, b: dynamic, c: dynamic)
   {
     return (a % c);
   }
-  var ans = fastPower(a, (b / 2));
+  var ans: dynamic = fastPower(a, (b / 2));
   ans *= ans;
   ans %= c;
   if ((b % 2))
@@ -73,7 +73,7 @@ func fastPowerCustomMod(a: dynamic, b: dynamic, c: dynamic)
   return (ans % c);
 }
 
-func is_prime(num: dynamic)
+func is_prime(num: dynamic) -> dynamic
 {
   if (((num == 2) || (num == 3)))
   {
@@ -83,8 +83,8 @@ func is_prime(num: dynamic)
   {
     return 0;
   }
-  var i = 5;
-  var w = 2;
+  var i: dynamic = 5;
+  var w: dynamic = 2;
   while (((i * i) <= num))
   {
     if (((num % i) == 0))
@@ -97,21 +97,21 @@ func is_prime(num: dynamic)
   return 1;
 }
 
-func compare(a: dynamic, b: dynamic)
+func compare(a: dynamic, b: dynamic) -> dynamic
 {
   return (((*cpp_cast(a)) - (*cpp_cast(b))));
 }
 
-func dec_compare(a: dynamic, b: dynamic)
+func dec_compare(a: dynamic, b: dynamic) -> dynamic
 {
   return (((-(*cpp_cast(a))) + (*cpp_cast(b))));
 }
 
-func eularTotient(n: dynamic)
+func eularTotient(n: dynamic) -> dynamic
 {
-  var result = n;
+  var result: dynamic = n;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= n))
     {
       if (((n % i) == 0))
@@ -132,21 +132,21 @@ func eularTotient(n: dynamic)
   return result;
 }
 
-var in_cpp: dynamic;
+var in_cpp: dynamic = cpp_uninitialized();
 
-var out: dynamic;
+var out: dynamic = cpp_uninitialized();
 
-var str = cpp_array(1000000);
+var str: dynamic = cpp_array(1000000);
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", str);
-  var h: dynamic;
-  var min: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var min: dynamic = cpp_uninitialized();
   h = (((((str[0] - cpp_char("0"))) * 10) + str[1]) - cpp_char("0"));
   min = (((((str[3] - cpp_char("0"))) * 10) + str[4]) - cpp_char("0"));
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   a = ((h * 30.0) + (((min * 30.0)) / 60.0));
   b = (min * 6.0);
   while ((a >= 360.0))

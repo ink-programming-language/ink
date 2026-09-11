@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a = 1;
-  var b = 1;
-  var c = 1;
-  var ans: dynamic;
+  var a: dynamic = 1;
+  var b: dynamic = 1;
+  var c: dynamic = 1;
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       a = (((a * 10)) % 1000000007);

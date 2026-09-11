@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var mxN = (1e4 + 2);
+var mxN: dynamic = (1e4 + 2);
 
-var adj = cpp_array(mxN);
+var adj: dynamic = cpp_array(mxN);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var cn = 0;
-  var sm = 0;
-  var mx = INT_MIN;
-  var mn = INT_MAX;
-  var k: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var cn: dynamic = 0;
+  var sm: dynamic = 0;
+  var mx: dynamic = INT_MIN;
+  var mn: dynamic = INT_MAX;
+  var k: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, m);
   {
     i = 0;
@@ -54,7 +54,7 @@ func main()
     i = 0;
     while ((i <= 10000))
     {
-      for (var j in adj[i])
+      for (var j: dynamic in adj[i])
       {
         sm += (cnt[i] * cpp_cast(cnt[j]));
       }

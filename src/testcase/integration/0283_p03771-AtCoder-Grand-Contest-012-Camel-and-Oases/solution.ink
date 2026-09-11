@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for ((i)=1;(i)<=(n);(i)++)");
 }
 
-func repd(i: dynamic, n: dynamic)
+func repd(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for ((i)=(n);(i)>=1;(i)--)");
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
-var d = cpp_array(200005);
+var d: dynamic = cpp_array(200005);
 
-var lim = cpp_array(25);
+var lim: dynamic = cpp_array(25);
 
-var tor = cpp_array(25, 200005);
+var tor: dynamic = cpp_array(25, 200005);
 
-var tol = cpp_array(25, 200005);
+var tol: dynamic = cpp_array(25, 200005);
 
-var dppre = cpp_array((1 << 19));
+var dppre: dynamic = cpp_array((1 << 19));
 
-var dpsuf = cpp_array((1 << 19));
+var dpsuf: dynamic = cpp_array((1 << 19));
 
-func calc(x: dynamic)
+func calc(x: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   tol[(n + 1)][x] = (n + 1);
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, lim[cpp_assign(m, "=", 1)]);
   rep(i, n);
@@ -49,7 +49,7 @@ func main()
     m += 1;
     lim[m] = (lim[(m - 1)] / 2);
   }
-  var c = 0;
+  var c: dynamic = 0;
   {
     i = 1;
     while ((i <= n))
@@ -86,7 +86,7 @@ func main()
     i = 1;
     while ((i <= n))
     {
-      var f = 0;
+      var f: dynamic = 0;
       {
         j = 0;
         while ((j < ((1 << ((m - 1))))))
@@ -110,7 +110,7 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     tor[i][x] = tor[(i - 1)][x];
     if ((tor[i][x] < i))
@@ -123,7 +123,7 @@ func rep(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func repd(argument_0: dynamic, argument_1: dynamic)
+func repd(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     tol[i][x] = tol[(i + 1)][x];
     if ((tol[i][x] > i))
@@ -136,12 +136,12 @@ func repd(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     calc(i);
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       puts("Impossible");
       return 0;

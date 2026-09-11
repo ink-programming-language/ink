@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var B = 300;
+var B: dynamic = 300;
 
-func main()
+func main() -> dynamic
 {
   cin.tie(null);
   ios.sync_with_stdio(false);
-  var n: dynamic;
-  var m: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(n, m, q);
-  for (var ai in a)
+  for (var ai: dynamic in a)
   {
     read(ai);
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var k: dynamic;
+      var k: dynamic = cpp_uninitialized();
       read(k);
       s[i].resize(k);
-      for (var sij in s[i])
+      for (var sij: dynamic in s[i])
       {
         read(sij);
         sij -= 1;
@@ -30,25 +30,25 @@ func main()
       i += 1;
     }
   }
-  var is_large = __cpp_lambda_1;
-  var id: dynamic;
-  var large_num = 0;
+  var is_large: dynamic = __cpp_lambda_1;
+  var id: dynamic = cpp_uninitialized();
+  var large_num: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       if (is_large(i))
       {
-        for (var si in s[i])
+        for (var si: dynamic in s[i])
         {
           b[si] = true;
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
-            var cnt = 0;
-            for (var sj in s[j])
+            var cnt: dynamic = 0;
+            for (var sj: dynamic in s[j])
             {
               cnt += b[sj];
             }
@@ -64,9 +64,9 @@ func main()
   }
   while (cpp_update(q, "--"))
   {
-    var op: dynamic;
+    var op: dynamic = cpp_uninitialized();
     read(op);
-    var k: dynamic;
+    var k: dynamic = cpp_uninitialized();
     read(k);
     k -= 1;
     if ((op == cpp_char("?")))
@@ -76,13 +76,13 @@ func main()
         write((init_sum[k] + large_sum[k]), "\n");
       } else
       {
-        var ans = init_sum[k];
-        for (var sk in s[k])
+        var ans: dynamic = init_sum[k];
+        for (var sk: dynamic in s[k])
         {
           ans += small_add[sk];
         }
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < large_num))
           {
             ans += (large_add[id[i]] * ist_sz[k][i]);
@@ -94,10 +94,10 @@ func main()
     }
     if ((op == cpp_char("+")))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < large_num))
         {
           large_sum[id[i]] += (x * ist_sz[k][i]);
@@ -109,7 +109,7 @@ func main()
         large_add[k] += x;
       } else
       {
-        for (var sk in s[k])
+        for (var sk: dynamic in s[k])
         {
           small_add[sk] += x;
         }
@@ -119,7 +119,7 @@ func main()
   return 0;
 }
 
-func __cpp_lambda_1(i: dynamic)
+func __cpp_lambda_1(i: dynamic) -> dynamic
 {
   return (s[i].size() >= B);
 }

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var INF = 1e17;
+var INF: dynamic = 1e17;
 
-var maxn = (2e5 + 700);
+var maxn: dynamic = (2e5 + 700);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func read(a: dynamic)
+func read(a: dynamic) -> dynamic
 {
-  var c = getchar();
-  var x = 0;
-  var f = 1;
+  var c: dynamic = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
   while ((!isdigit(c)))
   {
     if ((c == cpp_char("-")))
@@ -27,21 +27,21 @@ func read(a: dynamic)
   a = (f * x);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var b = cpp_array(maxn);
+var b: dynamic = cpp_array(maxn);
 
-func digit(x: dynamic, d: dynamic)
+func digit(x: dynamic, d: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   while (x)
   {
     d[cpp_update(ans, "++")] = (x % 10);
@@ -50,9 +50,9 @@ func digit(x: dynamic, d: dynamic)
   return ans;
 }
 
-var path = cpp_array(maxn);
+var path: dynamic = cpp_array(maxn);
 
-func check(pos: dynamic, lbound: dynamic, rbound: dynamic)
+func check(pos: dynamic, lbound: dynamic, rbound: dynamic) -> dynamic
 {
   if ((!pos))
   {
@@ -62,10 +62,10 @@ func check(pos: dynamic, lbound: dynamic, rbound: dynamic)
   {
     return 1;
   }
-  var l = if (lbound) a[pos] else 0;
-  var r = if (rbound) b[pos] else 9;
+  var l: dynamic =  (lbound) ? a[pos] : 0;
+  var r: dynamic =  (rbound) ? b[pos] : 9;
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i <= r))
     {
       if ((path[i] > 0))
@@ -84,11 +84,11 @@ func check(pos: dynamic, lbound: dynamic, rbound: dynamic)
   return 0;
 }
 
-var pos: dynamic;
+var pos: dynamic = cpp_uninitialized();
 
-var res = 0;
+var res: dynamic = 0;
 
-func dfs(u: dynamic, w: dynamic)
+func dfs(u: dynamic, w: dynamic) -> dynamic
 {
   if ((u == 9))
   {
@@ -100,7 +100,7 @@ func dfs(u: dynamic, w: dynamic)
     return;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= w))
     {
       path[u] = i;
@@ -110,7 +110,7 @@ func dfs(u: dynamic, w: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   read(m);

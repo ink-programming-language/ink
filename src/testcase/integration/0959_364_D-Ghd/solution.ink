@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var MAXN = (1e6 + 10);
+var MAXN: dynamic = (1e6 + 10);
 
-var a = cpp_array(MAXN);
+var a: dynamic = cpp_array(MAXN);
 
-var d = cpp_array(MAXN);
+var d: dynamic = cpp_array(MAXN);
 
-var cnt = cpp_array(MAXN);
+var cnt: dynamic = cpp_array(MAXN);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var siz: dynamic;
+var siz: dynamic = cpp_uninitialized();
 
-func cut(x: dynamic)
+func cut(x: dynamic) -> dynamic
 {
   siz = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while (((i * i) <= x))
     {
       if (((x % i) == 0))
@@ -35,22 +35,22 @@ func cut(x: dynamic)
   memset(cnt, 0, cpp_sizeof((cnt)));
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (b) gcd(b, (a % b)) else a;
+  return  (b) ? gcd(b, (a % b)) : a;
 }
 
-func random(x: dynamic, y: dynamic)
+func random(x: dynamic, y: dynamic) -> dynamic
 {
   return (((cpp_cast(rand()) * rand()) % (((y - x) + 1))) + x);
 }
 
-func main()
+func main() -> dynamic
 {
   srand(time(null));
   scanf("%I64d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%I64d", (&a[i]));
@@ -58,27 +58,27 @@ func main()
     }
   }
   {
-    var T = 1;
+    var T: dynamic = 1;
     while ((T <= 10))
     {
-      var x = a[random(1, n)];
+      var x: dynamic = a[random(1, n)];
       cut(x);
       sort((d + 1), ((d + siz) + 1));
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
-          var pos = (lower_bound((d + 1), ((d + siz) + 1), gcd(x, a[i])) - d);
+          var pos: dynamic = (lower_bound((d + 1), ((d + siz) + 1), gcd(x, a[i])) - d);
           cnt[pos] += 1;
           i += 1;
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= siz))
         {
           {
-            var j = (i + 1);
+            var j: dynamic = (i + 1);
             while ((j <= siz))
             {
               if (((d[j] % d[i]) == 0))
@@ -92,7 +92,7 @@ func main()
         }
       }
       {
-        var i = siz;
+        var i: dynamic = siz;
         while ((i >= 1))
         {
           if (((cnt[i] * 2) >= n))

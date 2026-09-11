@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(2020);
+var a: dynamic = cpp_array(2020);
 
-var b = cpp_array(2020);
+var b: dynamic = cpp_array(2020);
 
-var vis = cpp_array(128);
+var vis: dynamic = cpp_array(128);
 
-var e = cpp_array(2020);
+var e: dynamic = cpp_array(2020);
 
-var g = cpp_array(128);
+var g: dynamic = cpp_array(128);
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var u: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < g[v].size()))
@@ -38,13 +38,13 @@ func dfs(v: dynamic)
   }
 }
 
-func rec(v: dynamic, sm: dynamic, pa: dynamic)
+func rec(v: dynamic, sm: dynamic, pa: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var u: dynamic;
-  var fl = 0;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  var fl: dynamic = 0;
   b[(pa - 1)] = v;
   if ((sm == 0))
   {
@@ -147,11 +147,11 @@ func rec(v: dynamic, sm: dynamic, pa: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   scanf("%d %d", (&n), (&m));
   {
     i = 1;

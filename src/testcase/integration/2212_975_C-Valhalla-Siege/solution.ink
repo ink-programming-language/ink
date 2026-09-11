@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var pref: dynamic;
+var pref: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func count(cur: dynamic, j: dynamic, i: dynamic)
+func count(cur: dynamic, j: dynamic, i: dynamic) -> dynamic
 {
   if ((k[i] > cur))
   {
-    var x = ((k[i] - cur) + pref[j]);
+    var x: dynamic = ((k[i] - cur) + pref[j]);
     j = (lower_bound(pref.begin(), pref.end(), x) - pref.begin());
     if ((j != n))
     {
@@ -34,25 +34,25 @@ func count(cur: dynamic, j: dynamic, i: dynamic)
   return (n - j);
 }
 
-func main()
+func main() -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   scanf("%d %d", (&n), (&q));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       a.push_back(x);
       i += 1;
     }
   }
-  var j = 0;
-  var cur = a[j];
+  var j: dynamic = 0;
+  var cur: dynamic = a[j];
   pref.push_back(a[0]);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       pref.push_back((pref[(i - 1)] + a[i]));
@@ -60,10 +60,10 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      var k_i: dynamic;
+      var k_i: dynamic = cpp_uninitialized();
       scanf("%lld", (&k_i));
       k.push_back(k_i);
       printf("%d\n", count(cur, j, i));

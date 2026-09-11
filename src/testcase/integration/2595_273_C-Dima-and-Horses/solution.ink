@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var maxn = 300005;
+var maxn: dynamic = 300005;
 
-var adj = cpp_array(maxn);
+var adj: dynamic = cpp_array(maxn);
 
-var deg = cpp_array(maxn);
+var deg: dynamic = cpp_array(maxn);
 
-var c = cpp_array(maxn);
+var c: dynamic = cpp_array(maxn);
 
-func dfs(u: dynamic, p: dynamic, col: dynamic)
+func dfs(u: dynamic, p: dynamic, col: dynamic) -> dynamic
 {
   c[u] = col;
-  for (var v in adj[u])
+  for (var v: dynamic in adj[u])
   {
     if (((v == p) || (c[v] != -1)))
     {
@@ -21,15 +21,15 @@ func dfs(u: dynamic, p: dynamic, col: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       c[i] = -1;
@@ -37,11 +37,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       adj[u].push_back(v);
       adj[v].push_back(u);
@@ -49,7 +49,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((c[i] == -1))
@@ -60,17 +60,17 @@ func main()
     }
   }
   {
-    var veces = 0;
+    var veces: dynamic = 0;
     while ((veces < 1))
     {
-      var change = false;
+      var change: dynamic = false;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
-          var mismo = 0;
-          var u = i;
-          for (var v in adj[u])
+          var mismo: dynamic = 0;
+          var u: dynamic = i;
+          for (var v: dynamic in adj[u])
           {
             if ((c[v] == c[u]))
             {
@@ -80,14 +80,14 @@ func main()
           if ((mismo > 1))
           {
             change = true;
-            var q: dynamic;
+            var q: dynamic = cpp_uninitialized();
             q.push(u);
             while ((!q.empty()))
             {
-              var curr = q.front();
+              var curr: dynamic = q.front();
               q.pop();
-              var igual = 0;
-              for (var v in adj[curr])
+              var igual: dynamic = 0;
+              for (var v: dynamic in adj[curr])
               {
                 if ((c[v] == c[curr]))
                 {
@@ -99,10 +99,10 @@ func main()
                 continue;
               }
               c[curr] = (!c[curr]);
-              for (var v in adj[curr])
+              for (var v: dynamic in adj[curr])
               {
-                var mismo2 = 0;
-                for (var w in adj[v])
+                var mismo2: dynamic = 0;
+                for (var w: dynamic in adj[v])
                 {
                   if ((c[w] == c[v]))
                   {
@@ -127,7 +127,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       assert((c[i] >= 0));

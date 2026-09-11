@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var o = 0;
-  var x: dynamic;
-  var y: dynamic;
-  var v: dynamic;
-  var cnt = 0;
-  var f = 0;
-  var a: dynamic;
-  var p = 2;
+  var n: dynamic = cpp_uninitialized();
+  var o: dynamic = 0;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var cnt: dynamic = 0;
+  var f: dynamic = 0;
+  var a: dynamic = cpp_uninitialized();
+  var p: dynamic = 2;
   scanf("%d%d%d", (&n), (&x), (&y));
   while ((p <= n))
   {

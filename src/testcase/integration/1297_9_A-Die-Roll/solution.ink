@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(y, w);
-  var maxi = max(y, w);
-  var past = (((6 - maxi)) + 1);
-  var res = ((past * 1.0) / 6);
+  var maxi: dynamic = max(y, w);
+  var past: dynamic = (((6 - maxi)) + 1);
+  var res: dynamic = ((past * 1.0) / 6);
   if ((res == 1))
   {
     write("1/1", "\n");

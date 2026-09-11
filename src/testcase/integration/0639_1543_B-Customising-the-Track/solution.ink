@@ -1,74 +1,74 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var MOD = cpp_expression("#include<i");
+var MOD: dynamic = cpp_expression("#include<i");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-var inf = cpp_expression("#includ");
+var inf: dynamic = cpp_expression("#includ");
 
-var FASTIO = cpp_expression("#include<iostream> #include<bits/");
+var FASTIO: dynamic = cpp_expression("#include<iostream> #include<bits/");
 
-func all(v: dynamic)
+func all(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostream");
 }
 
-func sumof(v: dynamic)
+func sumof(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostream> #include<bits/st");
 }
 
-func maxof(v: dynamic)
+func maxof(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostream>");
 }
 
-func minof(v: dynamic)
+func minof(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostream>");
 }
 
-var Vl = cpp_expression("#include<i");
+var Vl: dynamic = cpp_expression("#include<i");
 
-var Vlp = cpp_expression("#include<iostream>");
+var Vlp: dynamic = cpp_expression("#include<iostream>");
 
-var Vll = cpp_expression("#include<iostream>");
+var Vll: dynamic = cpp_expression("#include<iostream>");
 
-var Vi = cpp_expression("#include<io");
+var Vi: dynamic = cpp_expression("#include<io");
 
-var Vip = cpp_expression("#include<iostream> #i");
+var Vip: dynamic = cpp_expression("#include<iostream> #i");
 
-var Vii = cpp_expression("#include<iostream>");
+var Vii: dynamic = cpp_expression("#include<iostream>");
 
-func repU(i: dynamic, x: dynamic, y: dynamic, d: dynamic)
+func repU(i: dynamic, x: dynamic, y: dynamic, d: dynamic) -> dynamic
 {
   cpp_macro("for(int i=x;i<y;i+=d)");
 }
 
-func repD(i: dynamic, x: dynamic, y: dynamic, d: dynamic)
+func repD(i: dynamic, x: dynamic, y: dynamic, d: dynamic) -> dynamic
 {
   cpp_macro("for(int i=x;i>=y;i-=d)");
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var int_cpp = 1;
+  var int_cpp: dynamic = 1;
   read(t);
   while (cpp_update(t, "--"))
   {
-    var val: dynamic;
+    var val: dynamic = cpp_uninitialized();
     read(n);
-    var sm = 0;
+    var sm: dynamic = 0;
     repU(i, 0, n, 1);
     {
       read(val);

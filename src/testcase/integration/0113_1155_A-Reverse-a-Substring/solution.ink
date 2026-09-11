@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
 class node
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
 }
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x.a == y.a))
   {
@@ -27,18 +27,18 @@ func cmp(x: dynamic, y: dynamic)
   return (x.a > y.a);
 }
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var num = cpp_array(30);
+var num: dynamic = cpp_array(30);
 
-var cr: dynamic;
+var cr: dynamic = cpp_uninitialized();
 
-var cr1: dynamic;
+var cr1: dynamic = cpp_uninitialized();
 
-func check(cc: dynamic)
+func check(cc: dynamic) -> dynamic
 {
   {
-    var i = ((cc - cpp_char("a")) + 1);
+    var i: dynamic = ((cc - cpp_char("a")) + 1);
     while ((i < 26))
     {
       if (num[i])
@@ -51,7 +51,7 @@ func check(cc: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   getchar();

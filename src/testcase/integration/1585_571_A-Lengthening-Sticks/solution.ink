@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func gao(a: dynamic, b: dynamic, xl: dynamic, xr: dynamic)
+func gao(a: dynamic, b: dynamic, xl: dynamic, xr: dynamic) -> dynamic
 {
   if ((xl > xr))
   {
@@ -20,8 +20,8 @@ func gao(a: dynamic, b: dynamic, xl: dynamic, xr: dynamic)
   {
     return 0;
   }
-  var key = (((-b) * 1.0) / a);
-  var keyx: dynamic;
+  var key: dynamic = (((-b) * 1.0) / a);
+  var keyx: dynamic = cpp_uninitialized();
   if ((a > 0))
   {
     keyx = ((key - EPS));
@@ -38,28 +38,28 @@ func gao(a: dynamic, b: dynamic, xl: dynamic, xr: dynamic)
   {
     xr = keyx;
   }
-  var ans = (b * (((xr - xl) + 1)));
-  var tmp = ((((xr + xl)) * (((xr - xl) + 1))) / 2);
+  var ans: dynamic = (b * (((xr - xl) + 1)));
+  var tmp: dynamic = ((((xr + xl)) * (((xr - xl) + 1))) / 2);
   ans += (tmp * a);
   return ans;
 }
 
-func first_old(a: dynamic, b: dynamic, c: dynamic)
+func first_old(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
-  var ans = 0;
-  var i1: dynamic;
-  var i2: dynamic;
-  var jl: dynamic;
-  var jr: dynamic;
-  var tmp: dynamic;
-  var oldAns: dynamic;
+  var ans: dynamic = 0;
+  var i1: dynamic = cpp_uninitialized();
+  var i2: dynamic = cpp_uninitialized();
+  var jl: dynamic = cpp_uninitialized();
+  var jr: dynamic = cpp_uninitialized();
+  var tmp: dynamic = cpp_uninitialized();
+  var oldAns: dynamic = cpp_uninitialized();
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x <= s))
     {
       tmp = 0;
       oldAns = ans;
-      var keyi = min(((a + x) - b), (s - x));
+      var keyi: dynamic = min(((a + x) - b), (s - x));
       if ((keyi < 0))
       {
         x += 1;
@@ -130,11 +130,11 @@ func first_old(a: dynamic, b: dynamic, c: dynamic)
   return ans;
 }
 
-func first(a: dynamic, b: dynamic, c: dynamic)
+func first(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var x = 0;
+    var x: dynamic = 0;
     while ((x <= s))
     {
       if (((b > (a + x)) || (c > (a + x))))
@@ -142,7 +142,7 @@ func first(a: dynamic, b: dynamic, c: dynamic)
         x += 1;
         continue;
       }
-      var tmp = (((((s - x) + 2)) * (((s - x) + 1))) / 2);
+      var tmp: dynamic = (((((s - x) + 2)) * (((s - x) + 1))) / 2);
       if ((((s - x) - ((((a + x) + 1) - b))) >= 0))
       {
         tmp -= ((((((s - x) - ((((a + x) + 1) - b))) + 2)) * ((((s - x) - ((((a + x) + 1) - b))) + 1))) / 2);
@@ -155,7 +155,7 @@ func first(a: dynamic, b: dynamic, c: dynamic)
       {
         tmp += (((((((s - x) - ((((a + x) + 1) - b))) - ((((a + x) + 1) - c))) + 2)) * (((((s - x) - ((((a + x) + 1) - b))) - ((((a + x) + 1) - c))) + 1))) / 2);
       }
-      var sum = (((a + x) - b) - c);
+      var sum: dynamic = (((a + x) - b) - c);
       if ((sum >= 0))
       {
         sum = min(sum, (s - x));
@@ -168,11 +168,11 @@ func first(a: dynamic, b: dynamic, c: dynamic)
   return ans;
 }
 
-func second(a: dynamic, b: dynamic, c: dynamic)
+func second(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = max(a, b);
+    var i: dynamic = max(a, b);
     while (true)
     {
       if ((i < c))
@@ -180,7 +180,7 @@ func second(a: dynamic, b: dynamic, c: dynamic)
         i += 1;
         continue;
       }
-      var t = (((i - a) + i) - b);
+      var t: dynamic = (((i - a) + i) - b);
       t = (s - t);
       if ((t < 0))
       {
@@ -199,16 +199,16 @@ func second(a: dynamic, b: dynamic, c: dynamic)
   return ans;
 }
 
-func third(a: dynamic, b: dynamic, c: dynamic)
+func third(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
-  var ans = 0;
-  var t = max(a, b);
+  var ans: dynamic = 0;
+  var t: dynamic = max(a, b);
   t = max(t, c);
   {
-    var i = t;
+    var i: dynamic = t;
     while (true)
     {
-      var used = ((((3 * i) - a) - b) - c);
+      var used: dynamic = ((((3 * i) - a) - b) - c);
       if ((used > s))
       {
         break;
@@ -220,9 +220,9 @@ func third(a: dynamic, b: dynamic, c: dynamic)
   return ans;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   ans += first(a, b, c);
   ans += first(b, a, c);
   ans += first(c, a, b);
@@ -233,7 +233,7 @@ func solve()
   printf("%I64d\n", ans);
 }
 
-func main()
+func main() -> dynamic
 {
   while ((scanf("%I64d%I64d%I64d%I64d", (&a), (&b), (&c), (&s)) != EOF))
   {

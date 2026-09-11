@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var b = cpp_array(500005);
+var b: dynamic = cpp_array(500005);
 
-var ans = cpp_array(500005);
+var ans: dynamic = cpp_array(500005);
 
 class Base
 {
   var a: dynamic = cpp_array(23);
   var pos: dynamic = cpp_array(23);
-  func Base()
+  func Base() -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 23))
         {
           a[i] = 0;
@@ -19,17 +19,17 @@ class Base
         }
       }
     }
-  func up(a: dynamic, b: dynamic)
+  func up(a: dynamic, b: dynamic) -> dynamic
   {
       if ((b > a))
       {
         a = b;
       }
     }
-  func ins(x: dynamic, r: dynamic)
+  func ins(x: dynamic, r: dynamic) -> dynamic
   {
       {
-        var i = 22;
+        var i: dynamic = 22;
         while ((~i))
         {
           if (((x >> i) & 1))
@@ -53,11 +53,11 @@ class Base
         }
       }
     }
-  func ask(r: dynamic)
+  func ask(r: dynamic) -> dynamic
   {
-      var t = 0;
+      var t: dynamic = 0;
       {
-        var i = 22;
+        var i: dynamic = 22;
         while ((~i))
         {
           if ((pos[i] >= r))
@@ -71,14 +71,14 @@ class Base
     }
 }
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
 class node
 {
-  var l: dynamic;
-  var r: dynamic;
-  var idx: dynamic;
-  func operator_less(a: dynamic)
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var idx: dynamic = cpp_uninitialized();
+  func operator_less(a: dynamic) -> dynamic
   {
       if ((r == a.r))
       {
@@ -88,24 +88,24 @@ class node
     }
 }
 
-var e = cpp_array(500005);
+var e: dynamic = cpp_array(500005);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&b[i]));
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       scanf("%d%d", (&e[i].l), (&e[i].r));
@@ -114,9 +114,9 @@ func main()
     }
   }
   sort((e + 1), ((e + 1) + q));
-  var r = 0;
+  var r: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       while (((r < n) && (r < e[i].r)))
@@ -129,7 +129,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       printf("%d\n", ans[i]);

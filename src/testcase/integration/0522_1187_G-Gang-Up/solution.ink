@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var maxm = (5e3 + 10);
+var maxm: dynamic = (5e3 + 10);
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var SIZE = (((1 << 21)) + 1);
+var SIZE: dynamic = (((1 << 21)) + 1);
 
-var ibuf = cpp_array(SIZE);
+var ibuf: dynamic = cpp_array(SIZE);
 
-var iS: dynamic;
+var iS: dynamic = cpp_uninitialized();
 
-var iT: dynamic;
+var iT: dynamic = cpp_uninitialized();
 
-var obuf = cpp_array(SIZE);
+var obuf: dynamic = cpp_array(SIZE);
 
-var oS = obuf;
+var oS: dynamic = obuf;
 
-var oT = ((oS + SIZE) - 1);
+var oT: dynamic = ((oS + SIZE) - 1);
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var qu = cpp_array(55);
+var qu: dynamic = cpp_array(55);
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-var qr: dynamic;
+var qr: dynamic = cpp_uninitialized();
 
-func flush()
+func flush() -> dynamic
 {
   fwrite(obuf, 1, (oS - obuf), stdout);
   oS = obuf;
 }
 
-func putc(x: dynamic)
+func putc(x: dynamic) -> dynamic
 {
   (*cpp_update(oS, "++")) = x;
   if ((oS == oT))
@@ -43,11 +43,11 @@ func putc(x: dynamic)
   }
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   {
     f = 1;
-    c = (if ((iS == iT)) (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))(if ((iS == iT)) EOF else (*cpp_update(iS, "++"))))) else (*cpp_update(iS, "++")));
+    c = ( ((iS == iT)) ? (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))( ((iS == iT)) ? EOF : (*cpp_update(iS, "++"))))) : (*cpp_update(iS, "++")));
     while (((c < cpp_char("0")) || (c > cpp_char("9"))))
     {
       if ((c == cpp_char("-")))
@@ -57,7 +57,7 @@ func read(x: dynamic)
       {
         return 0;
       }
-      c = (if ((iS == iT)) (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))(if ((iS == iT)) EOF else (*cpp_update(iS, "++"))))) else (*cpp_update(iS, "++")));
+      c = ( ((iS == iT)) ? (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))( ((iS == iT)) ? EOF : (*cpp_update(iS, "++"))))) : (*cpp_update(iS, "++")));
     }
   }
   {
@@ -65,24 +65,24 @@ func read(x: dynamic)
     while (((c <= cpp_char("9")) && (c >= cpp_char("0"))))
     {
       x = ((x * 10) + ((c & 15)));
-      c = (if ((iS == iT)) (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))(if ((iS == iT)) EOF else (*cpp_update(iS, "++"))))) else (*cpp_update(iS, "++")));
+      c = ( ((iS == iT)) ? (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))( ((iS == iT)) ? EOF : (*cpp_update(iS, "++"))))) : (*cpp_update(iS, "++")));
     }
   }
   x *= f;
   return 1;
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  while (((((cpp_assign(x, "=", (if ((iS == iT)) (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))(if ((iS == iT)) EOF else (*cpp_update(iS, "++"))))) else (*cpp_update(iS, "++"))))) == cpp_char(" ")) || (x == cpp_char("\n"))) || (x == cpp_char("\r"))))
+  while (((((cpp_assign(x, "=", ( ((iS == iT)) ? (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))( ((iS == iT)) ? EOF : (*cpp_update(iS, "++"))))) : (*cpp_update(iS, "++"))))) == cpp_char(" ")) || (x == cpp_char("\n"))) || (x == cpp_char("\r"))))
   {
   }
   return (x != EOF);
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  while (((((cpp_assign((*x), "=", (if ((iS == iT)) (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))(if ((iS == iT)) EOF else (*cpp_update(iS, "++"))))) else (*cpp_update(iS, "++"))))) == cpp_char("\n")) || ((*x) == cpp_char(" "))) || ((*x) == cpp_char("\r"))))
+  while (((((cpp_assign((*x), "=", ( ((iS == iT)) ? (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))( ((iS == iT)) ? EOF : (*cpp_update(iS, "++"))))) : (*cpp_update(iS, "++"))))) == cpp_char("\n")) || ((*x) == cpp_char(" "))) || ((*x) == cpp_char("\r"))))
   {
   }
   if (((*x) == EOF))
@@ -91,18 +91,18 @@ func read(x: dynamic)
   }
   while ((!((((((*x) == cpp_char("\n")) || ((*x) == cpp_char(" "))) || ((*x) == cpp_char("\r"))) || ((*x) == EOF)))))
   {
-    (*(cpp_update(x, "++"))) = (if ((iS == iT)) (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))(if ((iS == iT)) EOF else (*cpp_update(iS, "++"))))) else (*cpp_update(iS, "++")));
+    (*(cpp_update(x, "++"))) = ( ((iS == iT)) ? (cpp_assign(iT, "=", ((cpp_assign(iS, "=", ibuf)) + fread(ibuf, 1, SIZE, stdin))( ((iS == iT)) ? EOF : (*cpp_update(iS, "++"))))) : (*cpp_update(iS, "++")));
   }
   (*x) = 0;
   return 1;
 }
 
-func read(x: dynamic, y: dynamic...)
+func read(x: dynamic, y: dynamic...) -> dynamic
 {
   return (read(x) && read(cpp_expand(y)));
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((!x))
   {
@@ -125,13 +125,13 @@ func write(x: dynamic)
   return 0;
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   putc(x);
   return 0;
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   while ((*x))
   {
@@ -141,7 +141,7 @@ func write(x: dynamic)
   return 0;
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   while ((*x))
   {
@@ -151,57 +151,57 @@ func write(x: dynamic)
   return 0;
 }
 
-func write(x: dynamic, y: dynamic...)
+func write(x: dynamic, y: dynamic...) -> dynamic
 {
   return (write(x) || write(cpp_expand(y)));
 }
 
 class Flusher
 {
-  func ~Flusher()
+  func cpp_destruct_Flusher() -> dynamic
   {
       flush();
     }
 }
 
-var io_flusher: dynamic;
+var io_flusher: dynamic = cpp_uninitialized();
 
-var eee = cpp_array(maxm);
+var eee: dynamic = cpp_array(maxm);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var dis = cpp_array(maxm);
+var dis: dynamic = cpp_array(maxm);
 
-var h = cpp_array(maxm);
+var h: dynamic = cpp_array(maxm);
 
-var fnasiofnoas = cpp_array(maxm);
+var fnasiofnoas: dynamic = cpp_array(maxm);
 
-var pree = cpp_array(maxm);
+var pree: dynamic = cpp_array(maxm);
 
-var num = cpp_array(maxm);
+var num: dynamic = cpp_array(maxm);
 
 class edge
 {
-  var u: dynamic;
-  var v: dynamic;
-  var c: dynamic;
-  var w: dynamic;
-  var rev: dynamic;
-  func edge(a: dynamic = -1, b: dynamic = 0, cc: dynamic = 0, d: dynamic = 0, f: dynamic = 0)
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var rev: dynamic = cpp_uninitialized();
+  func edge(a: dynamic = -1, b: dynamic = 0, cc: dynamic = 0, d: dynamic = 0, f: dynamic = 0) -> dynamic
   {
-      this->rev = cpp_construct(a);
-      this->u = cpp_construct(b);
-      this->v = cpp_construct(cc);
-      this->c = cpp_construct(d);
-      this->w = cpp_construct(f);
+      self->rev = cpp_construct(a);
+      self->u = cpp_construct(b);
+      self->v = cpp_construct(cc);
+      self->c = cpp_construct(d);
+      self->w = cpp_construct(f);
     }
 }
 
-var ed = cpp_array(maxm);
+var ed: dynamic = cpp_array(maxm);
 
-func addedge(u: dynamic, v: dynamic, c: dynamic, w: dynamic)
+func addedge(u: dynamic, v: dynamic, c: dynamic, w: dynamic) -> dynamic
 {
   ed[u].push_back(edge(cpp_cast(ed[v].size()), u, v, c, w));
   ed[v].push_back(edge((cpp_cast(ed[u].size()) - 1), v, u, 0, (-w)));
@@ -209,22 +209,22 @@ func addedge(u: dynamic, v: dynamic, c: dynamic, w: dynamic)
 
 class node
 {
-  var id: dynamic;
-  var val: dynamic;
-  func node(a: dynamic = 0, b: dynamic = 0)
+  var id: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
+  func node(a: dynamic = 0, b: dynamic = 0) -> dynamic
   {
-      this->id = cpp_construct(a);
-      this->val = cpp_construct(b);
+      self->id = cpp_construct(a);
+      self->val = cpp_construct(b);
     }
 }
 
-var pq: dynamic;
+var pq: dynamic = cpp_uninitialized();
 
-func costflow()
+func costflow() -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   memset(h, 0, cpp_sizeof((h)));
-  var tot = inf;
+  var tot: dynamic = inf;
   while ((tot > 0))
   {
     memset(dis, 0x3f, cpp_sizeof((dis)));
@@ -236,21 +236,21 @@ func costflow()
     pq.push(node(s, 0));
     while ((!pq.empty()))
     {
-      var now = pq.top();
+      var now: dynamic = pq.top();
       pq.pop();
-      var u = now.id;
+      var u: dynamic = now.id;
       if ((dis[u] < now.val))
       {
         continue;
       }
-      var len = cpp_cast(ed[u].size());
+      var len: dynamic = cpp_cast(ed[u].size());
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < len))
         {
-          var v = ed[u][i].v;
-          var f = ed[u][i].c;
-          var w = ed[u][i].w;
+          var v: dynamic = ed[u][i].v;
+          var f: dynamic = ed[u][i].c;
+          var w: dynamic = ed[u][i].w;
           if ((ed[u][i].c && (dis[v] > (((dis[u] + w) + h[u]) - h[v]))))
           {
             dis[v] = (((dis[u] + w) + h[u]) - h[v]);
@@ -267,16 +267,16 @@ func costflow()
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= t))
       {
         h[i] += dis[i];
         i += 1;
       }
     }
-    var flow = inf;
+    var flow: dynamic = inf;
     {
-      var i = t;
+      var i: dynamic = t;
       while (i)
       {
         flow = min(flow, ed[fnasiofnoas[i]][pree[i]].c);
@@ -286,10 +286,10 @@ func costflow()
     tot -= flow;
     res += (flow * h[t]);
     {
-      var i = t;
+      var i: dynamic = t;
       while (i)
       {
-        var e = ed[fnasiofnoas[i]][pree[i]];
+        var e: dynamic = ed[fnasiofnoas[i]][pree[i]];
         e.c -= flow;
         ed[e.v][e.rev].c += flow;
         i = fnasiofnoas[i];
@@ -299,30 +299,30 @@ func costflow()
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
-  var c: dynamic;
-  var d: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   read(n, m, k, c, d);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       num[x] += 1;
       i += 1;
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       eee[u].push_back(v);
       eee[v].push_back(u);
@@ -332,7 +332,7 @@ func main()
   s = 0;
   t = ((n * 100) + 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       addedge(s, i, num[i], 0);
@@ -340,18 +340,18 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 99))
     {
-      var N = (((i - 1)) * n);
+      var N: dynamic = (((i - 1)) * n);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
-          for (var v in eee[j])
+          for (var v: dynamic in eee[j])
           {
             {
-              var z = 1;
+              var z: dynamic = 1;
               while ((z <= k))
               {
                 addedge((j + N), ((v + N) + n), 1, (((((2 * z) - 1)) * d) + c));

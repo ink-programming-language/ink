@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var u: dynamic;
+var u: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1000);
+var a: dynamic = cpp_array(1000);
 
-var d = cpp_array(1000);
+var d: dynamic = cpp_array(1000);
 
-var minn = -1e17;
+var minn: dynamic = -1e17;
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&a[i]));
@@ -25,11 +25,11 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 0))
     {
       {
-        var j = n;
+        var j: dynamic = n;
         while ((j >= 0))
         {
           if ((j == 0))
@@ -49,7 +49,7 @@ func main()
   while (cpp_update(m, "--"))
   {
     scanf("%lld", (&u));
-    var k = (lower_bound(d, ((d + n) + 1), (-u)) - d);
+    var k: dynamic = (lower_bound(d, ((d + n) + 1), (-u)) - d);
     write(k, "\n");
   }
   return 0;

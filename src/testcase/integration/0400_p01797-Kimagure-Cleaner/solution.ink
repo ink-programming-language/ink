@@ -1,80 +1,80 @@
 // Translated from solution.cpp.
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-var INF = (2e+9 + 3);
+var INF: dynamic = (2e+9 + 3);
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int i = 0; i < (int)(n); i++)");
 }
 
-func FOR(i: dynamic, s: dynamic, n: dynamic)
+func FOR(i: dynamic, s: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int i = (s); i < (int)(n); i++)");
 }
 
-func FOREQ(i: dynamic, s: dynamic, n: dynamic)
+func FOREQ(i: dynamic, s: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int i = (s); i <= (int)(n); i++)");
 }
 
-func FORIT(it: dynamic, c: dynamic)
+func FORIT(it: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for (__typeof((c).begin())it = (c).begin(); it != (c).end(); it++)");
 }
 
-func MEMSET(v: dynamic, h: dynamic)
+func MEMSET(v: dynamic, h: dynamic) -> dynamic
 {
   return cpp_expression("// // Problem: Kimagagure");
 }
 
 class Node
 {
-  var v: dynamic;
-  var sum: dynamic;
-  func Node()
+  var v: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  func Node() -> dynamic
   {
-      this->v = cpp_construct(0);
-      this->sum = cpp_construct(0);
+      self->v = cpp_construct(0);
+      self->sum = cpp_construct(0);
     }
-  func Node(v: dynamic)
+  func Node(v: dynamic) -> dynamic
   {
-      this->v = cpp_construct(v);
-      this->sum = cpp_construct(0);
+      self->v = cpp_construct(v);
+      self->sum = cpp_construct(0);
     }
 }
 
-func Merge(left: dynamic, right: dynamic)
+func Merge(left: dynamic, right: dynamic) -> dynamic
 {
   return Node(max((left.v + left.sum), (right.v + right.sum)));
 }
 
 class SegmentTree
 {
-  var MAX_DEPTH: dynamic;
-  var SIZE: dynamic;
+  var MAX_DEPTH: dynamic = cpp_uninitialized();
+  var SIZE: dynamic = cpp_uninitialized();
   var updated: dynamic = cpp_array(SIZE);
   var data: dynamic = cpp_array(SIZE);
-  func SegmentTree()
+  func SegmentTree() -> dynamic
   {
       memset(updated, false, cpp_sizeof((updated)));
       MEMSET(data, 0);
     }
-  func change(left: dynamic, right: dynamic, v: dynamic)
+  func change(left: dynamic, right: dynamic, v: dynamic) -> dynamic
   {
       assert((left <= right));
       return in_set(v, 0, 1, left, right);
     }
-  func get(left: dynamic, right: dynamic)
+  func get(left: dynamic, right: dynamic) -> dynamic
   {
       assert((left <= right));
-      var node = in_get(0, 1, left, right);
+      var node: dynamic = in_get(0, 1, left, right);
       return (node.v + node.sum);
     }
-  func Divide(node: dynamic)
+  func Divide(node: dynamic) -> dynamic
   {
       if (((!updated[node]) || (node >= ((1 << MAX_DEPTH)))))
       {
@@ -88,12 +88,12 @@ class SegmentTree
       data[node].v += data[node].sum;
       data[node].sum = 0;
     }
-  func in_set(v: dynamic, depth: dynamic, node: dynamic, left: dynamic, right: dynamic)
+  func in_set(v: dynamic, depth: dynamic, node: dynamic, left: dynamic, right: dynamic) -> dynamic
   {
-      var width = (1 << ((MAX_DEPTH - depth)));
-      var index = (node - ((1 << depth)));
-      var node_left = (index * width);
-      var node_mid = (node_left + ((width >> 1)));
+      var width: dynamic = (1 << ((MAX_DEPTH - depth)));
+      var index: dynamic = (node - ((1 << depth)));
+      var node_left: dynamic = (index * width);
+      var node_mid: dynamic = (node_left + ((width >> 1)));
       Divide(node);
       if (((((right - left) + 1) == width) && (left == node_left)))
       {
@@ -115,12 +115,12 @@ class SegmentTree
         data[node] = Merge(data[(node * 2)], data[((node * 2) + 1)]);
       }
     }
-  func in_get(depth: dynamic, node: dynamic, left: dynamic, right: dynamic)
+  func in_get(depth: dynamic, node: dynamic, left: dynamic, right: dynamic) -> dynamic
   {
-      var width = (1 << ((MAX_DEPTH - depth)));
-      var index = (node - ((1 << depth)));
-      var node_left = (index * width);
-      var node_mid = (node_left + ((width >> 1)));
+      var width: dynamic = (1 << ((MAX_DEPTH - depth)));
+      var index: dynamic = (node - ((1 << depth)));
+      var node_left: dynamic = (index * width);
+      var node_mid: dynamic = (node_left + ((width >> 1)));
       Divide(node);
       if (((((right - left) + 1) == width) && (left == node_left)))
       {
@@ -138,29 +138,29 @@ class SegmentTree
 
 class Rect
 {
-  var dirs: dynamic;
-  var initial_dir: dynamic;
-  var dir: dynamic;
-  var x1: dynamic;
-  var y1: dynamic;
-  var x2: dynamic;
-  var y2: dynamic;
-  func Rect()
+  var dirs: dynamic = cpp_uninitialized();
+  var initial_dir: dynamic = cpp_uninitialized();
+  var dir: dynamic = cpp_uninitialized();
+  var x1: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var x2: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
+  func Rect() -> dynamic
   {
-      this->dirs = cpp_construct(0);
-      this->initial_dir = cpp_construct(0);
+      self->dirs = cpp_construct(0);
+      self->initial_dir = cpp_construct(0);
     }
-  func Rect(dir: dynamic, x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic)
+  func Rect(dir: dynamic, x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic) -> dynamic
   {
-      this->dirs = cpp_construct(0);
-      this->initial_dir = cpp_construct(dir);
-      this->dir = cpp_construct(dir);
-      this->x1 = cpp_construct(x1);
-      this->y1 = cpp_construct(y1);
-      this->x2 = cpp_construct(x2);
-      this->y2 = cpp_construct(y2);
+      self->dirs = cpp_construct(0);
+      self->initial_dir = cpp_construct(dir);
+      self->dir = cpp_construct(dir);
+      self->x1 = cpp_construct(x1);
+      self->y1 = cpp_construct(y1);
+      self->x2 = cpp_construct(x2);
+      self->y2 = cpp_construct(y2);
     }
-  func Move(d: dynamic, lower: dynamic, upper: dynamic, index: dynamic)
+  func Move(d: dynamic, lower: dynamic, upper: dynamic, index: dynamic) -> dynamic
   {
       assert((dir != -1));
       assert(((d == 1) || (d == -1)));
@@ -186,7 +186,7 @@ class Rect
         Expand(0, (-upper), 0, (-lower));
       }
     }
-  func Move2(pm: dynamic, lower: dynamic, upper: dynamic, index: dynamic)
+  func Move2(pm: dynamic, lower: dynamic, upper: dynamic, index: dynamic) -> dynamic
   {
       assert((dir != -1));
       assert(((pm == 0) || (pm == 1)));
@@ -194,10 +194,10 @@ class Rect
       {
         dirs |= (1 << index);
       }
-      var ds = [-1, 1];
+      var ds: dynamic = [-1, 1];
       REP(i, 2);
       {
-        var ndir = ((((dir + ds[i]) + 4)) % 4);
+        var ndir: dynamic = ((((dir + ds[i]) + 4)) % 4);
         if (((((pm == 0) && (ndir >= 2))) || (((pm == 1) && (ndir <= 1)))))
         {
           dir = ndir;
@@ -221,7 +221,7 @@ class Rect
         Expand(0, (-upper), 0, (-lower));
       }
     }
-  func Expand(lx: dynamic, ly: dynamic, ux: dynamic, uy: dynamic)
+  func Expand(lx: dynamic, ly: dynamic, ux: dynamic, uy: dynamic) -> dynamic
   {
       x1 += lx;
       y1 += ly;
@@ -230,12 +230,12 @@ class Rect
     }
 }
 
-func Hit(r1: dynamic, r2: dynamic)
+func Hit(r1: dynamic, r2: dynamic) -> dynamic
 {
   return ((((r1.x1 <= r2.x2) && (r2.x1 <= r1.x2)) && (r1.y1 <= r2.y2)) && (r2.y1 <= r1.y2));
 }
 
-func operator_shift_left(os: dynamic, rhs: dynamic)
+func operator_shift_left(os: dynamic, rhs: dynamic) -> dynamic
 {
   (((((((((os << "(") << rhs.x1) << ", ") << rhs.y1) << ", ") << rhs.x2) << ", ") << rhs.y2) << ")");
   return os;
@@ -243,20 +243,20 @@ func operator_shift_left(os: dynamic, rhs: dynamic)
 
 class Event
 {
-  var index: dynamic;
-  var inout: dynamic;
-  var x: dynamic;
-  var y1: dynamic;
-  var y2: dynamic;
-  func Event(index: dynamic, inout: dynamic, x: dynamic, y1: dynamic, y2: dynamic)
+  var index: dynamic = cpp_uninitialized();
+  var inout: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
+  func Event(index: dynamic, inout: dynamic, x: dynamic, y1: dynamic, y2: dynamic) -> dynamic
   {
-      this->index = cpp_construct(index);
-      this->inout = cpp_construct(inout);
-      this->x = cpp_construct(x);
-      this->y1 = cpp_construct(y1);
-      this->y2 = cpp_construct(y2);
+      self->index = cpp_construct(index);
+      self->inout = cpp_construct(inout);
+      self->x = cpp_construct(x);
+      self->y1 = cpp_construct(y1);
+      self->y2 = cpp_construct(y2);
     }
-  func operator_less(rhs: dynamic)
+  func operator_less(rhs: dynamic) -> dynamic
   {
       if ((x != rhs.x))
       {
@@ -266,12 +266,12 @@ class Event
     }
 }
 
-func Mirror(rect: dynamic, init_dir: dynamic, X: dynamic, Y: dynamic)
+func Mirror(rect: dynamic, init_dir: dynamic, X: dynamic, Y: dynamic) -> dynamic
 {
   REP(i, rect.size());
   {
-    var r = rect[i];
-    var rev = r;
+    var r: dynamic = rect[i];
+    var rev: dynamic = r;
     rev.x1 = (X - r.x2);
     rev.y1 = (Y - r.y2);
     rev.x2 = (X - r.x1);
@@ -281,27 +281,27 @@ func Mirror(rect: dynamic, init_dir: dynamic, X: dynamic, Y: dynamic)
   }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-var dirs = cpp_array(100);
+var dirs: dynamic = cpp_array(100);
 
-var lower = cpp_array(100);
+var lower: dynamic = cpp_array(100);
 
-var upper = cpp_array(100);
+var upper: dynamic = cpp_array(100);
 
-var ans_dirs = cpp_array(100);
+var ans_dirs: dynamic = cpp_array(100);
 
-var ans_l = cpp_array(100);
+var ans_l: dynamic = cpp_array(100);
 
-func simulate(rects: dynamic, dir: dynamic, l: dynamic, u: dynamic, index: dynamic)
+func simulate(rects: dynamic, dir: dynamic, l: dynamic, u: dynamic, index: dynamic) -> dynamic
 {
-  var cnt = 0;
-  var ret: dynamic;
-  var ds: dynamic;
+  var cnt: dynamic = 0;
+  var ret: dynamic = cpp_uninitialized();
+  var ds: dynamic = cpp_uninitialized();
   if ((dir != 0))
   {
     ds.push_back(dir);
@@ -315,17 +315,17 @@ func simulate(rects: dynamic, dir: dynamic, l: dynamic, u: dynamic, index: dynam
   return ret;
 }
 
-var stree: dynamic;
+var stree: dynamic = cpp_uninitialized();
 
-func IntersectRect(rs1: dynamic, rs2: dynamic, swapxy: dynamic)
+func IntersectRect(rs1: dynamic, rs2: dynamic, swapxy: dynamic) -> dynamic
 {
   if (((rs1.size() == 0) || (rs2.size() == 0)))
   {
     return -1;
   }
-  var rss = [(&rs1), (&rs2)];
+  var rss: dynamic = [(&rs1), (&rs2)];
   {
-    var ys: dynamic;
+    var ys: dynamic = cpp_uninitialized();
     REP(iter, 2);
     {
       FORIT(it, (*rss[iter]));
@@ -339,7 +339,7 @@ func IntersectRect(rs1: dynamic, rs2: dynamic, swapxy: dynamic)
         ys[it->y2] = 0;
       }
     }
-    var index = 0;
+    var index: dynamic = 0;
     REP(iter, 2);
     {
       FORIT(it, (*rss[iter]));
@@ -352,13 +352,13 @@ func IntersectRect(rs1: dynamic, rs2: dynamic, swapxy: dynamic)
   REP(iter, 2);
   {
     stree = SegmentTree();
-    var events: dynamic;
+    var events: dynamic = cpp_uninitialized();
     FORIT(it, (*rss[0]));
     {
       events.push_back(Event(-1, 1, it->x1, it->y1, it->y2));
       events.push_back(Event(-1, -1, (it->x2 + 1), it->y1, it->y2));
     }
-    var cnt = 0;
+    var cnt: dynamic = 0;
     FORIT(it, (*rss[1]));
     {
       events.push_back(Event(cnt, 2, it->x1, it->y1, it->y2));
@@ -371,13 +371,13 @@ func IntersectRect(rs1: dynamic, rs2: dynamic, swapxy: dynamic)
   return -1;
 }
 
-func IntersectRect2(rs1: dynamic, rs2: dynamic, swapxy: dynamic)
+func IntersectRect2(rs1: dynamic, rs2: dynamic, swapxy: dynamic) -> dynamic
 {
   if (((rs1.size() == 0) || (rs2.size() == 0)))
   {
     return -1;
   }
-  var rss = [(&rs1), (&rs2)];
+  var rss: dynamic = [(&rs1), (&rs2)];
   {
     REP(iter, 2);
     {
@@ -393,13 +393,13 @@ func IntersectRect2(rs1: dynamic, rs2: dynamic, swapxy: dynamic)
   }
   REP(iter, 2);
   {
-    var events: dynamic;
+    var events: dynamic = cpp_uninitialized();
     FORIT(it, (*rss[0]));
     {
       events.push_back(Event(-1, 1, it->x1, it->y1, it->y2));
       events.push_back(Event(-1, -1, (it->x2 + 1), it->y1, it->y2));
     }
-    var cnt = 0;
+    var cnt: dynamic = 0;
     FORIT(it, (*rss[1]));
     {
       events.push_back(Event(cnt, 2, it->x1, it->y1, it->y2));
@@ -407,13 +407,13 @@ func IntersectRect2(rs1: dynamic, rs2: dynamic, swapxy: dynamic)
       cnt += 1;
     }
     sort(events.begin(), events.end());
-    var hit = 0;
+    var hit: dynamic = 0;
     swap(rss[0], rss[1]);
   }
   return -1;
 }
 
-func GetSolvingDir(depth: dynamic, xy: dynamic, flags: dynamic)
+func GetSolvingDir(depth: dynamic, xy: dynamic, flags: dynamic) -> dynamic
 {
   if ((dirs[depth] != 0))
   {
@@ -430,11 +430,11 @@ func GetSolvingDir(depth: dynamic, xy: dynamic, flags: dynamic)
   return (((flags >> depth)) & 1);
 }
 
-func simulate2(rects: dynamic, pm: dynamic, l: dynamic, u: dynamic, index: dynamic)
+func simulate2(rects: dynamic, pm: dynamic, l: dynamic, u: dynamic, index: dynamic) -> dynamic
 {
-  var cnt = 0;
-  var ret: dynamic;
-  var pms: dynamic;
+  var cnt: dynamic = 0;
+  var ret: dynamic = cpp_uninitialized();
+  var pms: dynamic = cpp_uninitialized();
   if ((pm >= 0))
   {
     pms.push_back(pm);
@@ -448,29 +448,29 @@ func simulate2(rects: dynamic, pm: dynamic, l: dynamic, u: dynamic, index: dynam
   return ret;
 }
 
-func Solve(flags: dynamic)
+func Solve(flags: dynamic) -> dynamic
 {
-  var ans_flags = [-1, -1];
+  var ans_flags: dynamic = [-1, -1];
   REP(xy, 2);
   {
-    var center = n;
-    var rect1: dynamic;
+    var center: dynamic = n;
+    var rect1: dynamic = cpp_uninitialized();
     rect1.push_back(Rect(0, 0, 0, 0, 0));
-    var rect2: dynamic;
-    var left_upper = (center % 2);
+    var rect2: dynamic = cpp_uninitialized();
+    var left_upper: dynamic = (center % 2);
     rect2.push_back(Rect(left_upper, 0, 0, 0, 0));
     rect2.push_back(Rect((left_upper + 2), 0, 0, 0, 0));
-    var lx = if ((xy == 0)) 0 else X;
-    var ly = if ((xy == 0)) Y else 0;
+    var lx: dynamic =  ((xy == 0)) ? 0 : X;
+    var ly: dynamic =  ((xy == 0)) ? Y : 0;
     Mirror(rect2, left_upper, lx, ly);
-    var rs1 = cpp_array(4);
-    var rs2 = cpp_array(4);
+    var rs1: dynamic = cpp_array(4);
+    var rs2: dynamic = cpp_array(4);
     if ((((center != n) && (dirs[center] == 0)) && (dirs[(center + 1)] != 0)))
     {
     } else
     {
     }
-    var ans_dir_flags = -1;
+    var ans_dir_flags: dynamic = -1;
     REP(dir, 4);
     {
       ans_dir_flags = IntersectRect2(rs1[dir], rs2[dir], (xy ^ 1));
@@ -485,11 +485,11 @@ func Solve(flags: dynamic)
     }
     ans_flags[xy] = ans_dir_flags;
   }
-  var dir = 0;
+  var dir: dynamic = 0;
   return 1;
 }
 
-func Dfs(depth: dynamic, flags: dynamic)
+func Dfs(depth: dynamic, flags: dynamic) -> dynamic
 {
   if ((depth == n))
   {
@@ -500,7 +500,7 @@ func Dfs(depth: dynamic, flags: dynamic)
     assert((dirs[depth] == 0));
     REP(iter, 2);
     {
-      var nflags = (flags | ((cpp_cast(iter) << depth)));
+      var nflags: dynamic = (flags | ((cpp_cast(iter) << depth)));
       if ((Dfs((depth + 1), nflags) != -1))
       {
         return 1;
@@ -511,19 +511,19 @@ func Dfs(depth: dynamic, flags: dynamic)
   return Dfs((depth + 1), flags);
 }
 
-func RestoreDistance()
+func RestoreDistance() -> dynamic
 {
-  var r = cpp_construct(0, 0, 0, 0, 0);
+  var r: dynamic = cpp_construct(0, 0, 0, 0, 0);
   {
-    var rects = cpp_construct(1, r);
-    var rect = rects[0];
+    var rects: dynamic = cpp_construct(1, r);
+    var rect: dynamic = rects[0];
     assert(Hit(Rect(0, X, Y, X, Y), rect));
   }
 }
 
-func Check()
+func Check() -> dynamic
 {
-  var rect = cpp_construct(1, Rect(0, 0, 0, 0, 0));
+  var rect: dynamic = cpp_construct(1, Rect(0, 0, 0, 0, 0));
   if (((rect[0].x1 != X) || (rect[0].y1 != Y)))
   {
     return false;
@@ -531,26 +531,26 @@ func Check()
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   while ((scanf("%d %lld %lld", (&n), (&X), (&Y)) > 0))
   {
-    var center = n;
-    var div = 0;
+    var center: dynamic = n;
+    var div: dynamic = 0;
     dirs[n] = 0;
-    var segment = 0;
-    var ans_dir = -1;
+    var segment: dynamic = 0;
+    var ans_dir: dynamic = -1;
     if ((segment > ((n / 4) + 1)))
     {
-      var rect1: dynamic;
+      var rect1: dynamic = cpp_uninitialized();
       rect1.push_back(Rect(0, 0, 0, 0, 0));
-      var rect2: dynamic;
-      var left_upper = (center % 2);
+      var rect2: dynamic = cpp_uninitialized();
+      var left_upper: dynamic = (center % 2);
       rect2.push_back(Rect(left_upper, 0, 0, 0, 0));
       rect2.push_back(Rect((left_upper + 2), 0, 0, 0, 0));
       Mirror(rect2, left_upper, X, Y);
-      var rs1 = cpp_array(4);
-      var rs2 = cpp_array(4);
+      var rs1: dynamic = cpp_array(4);
+      var rs2: dynamic = cpp_array(4);
       REP(dir, 4);
       {
         ans_dir = IntersectRect(rs1[dir], rs2[dir], false);
@@ -574,26 +574,26 @@ func main()
   }
 }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var r = (*it2);
+      var r: dynamic = (*it2);
       r.Move(d, l, u, index);
       ret[cpp_update(cnt, "++")] = r;
     }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var d = (*it1);
+    var d: dynamic = (*it1);
   }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       it->second = cpp_update(index, "++");
     }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var e = (*it);
+      var e: dynamic = (*it);
       if ((e.index == -1))
       {
         stree.change(e.y1, e.y2, e.inout);
@@ -601,7 +601,7 @@ func FORIT(argument_0: dynamic, argument_1: dynamic)
       {
         if ((stree.get(e.y1, e.y2) > 0))
         {
-          var rect2 = ((*rss[1]))[e.index];
+          var rect2: dynamic = ((*rss[1]))[e.index];
           REP(i, rss[0]->size());
           {
             if (Hit(((*rss[0]))[i], rect2))
@@ -614,9 +614,9 @@ func FORIT(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var e = (*it);
+      var e: dynamic = (*it);
       if ((e.index == -1))
       {
         hit += e.inout;
@@ -625,7 +625,7 @@ func FORIT(argument_0: dynamic, argument_1: dynamic)
       {
         if ((hit > 0))
         {
-          var rect2 = ((*rss[1]))[e.index];
+          var rect2: dynamic = ((*rss[1]))[e.index];
           REP(i, rss[0]->size());
           {
             if (Hit(((*rss[0]))[i], rect2))
@@ -638,23 +638,23 @@ func FORIT(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var r = (*it2);
+      var r: dynamic = (*it2);
       r.Move2(v, l, u, index);
       ret[cpp_update(cnt, "++")] = r;
     }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var v = (*it1);
+    var v: dynamic = (*it1);
   }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var pm = GetSolvingDir(i, xy, flags);
-      var l = lower[i];
-      var u = upper[i];
+      var pm: dynamic = GetSolvingDir(i, xy, flags);
+      var l: dynamic = lower[i];
+      var u: dynamic = upper[i];
       if ((xy != (i % 2)))
       {
         l = 0;
@@ -674,11 +674,11 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func FOR(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic) -> dynamic
 {
-      var pm = GetSolvingDir(i, xy, flags);
-      var l = lower[i];
-      var u = upper[i];
+      var pm: dynamic = GetSolvingDir(i, xy, flags);
+      var l: dynamic = lower[i];
+      var u: dynamic = upper[i];
       if ((xy != (i % 2)))
       {
         l = 0;
@@ -693,39 +693,39 @@ func FOR(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic)
       }
     }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         rs1[0].push_back((*it));
       }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         rs2[0].push_back((*it));
       }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         rs1[it->dir].push_back((*it));
       }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         rs2[it->dir].push_back((*it));
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if ((dirs[depth] != 0))
     {
       ans_dirs[depth] = dirs[depth];
     } else
     {
-      var xy = (depth % 2);
-      var v = (((ans_flags[xy] >> depth)) & 1);
-      var ds = [-1, 1];
+      var xy: dynamic = (depth % 2);
+      var v: dynamic = (((ans_flags[xy] >> depth)) & 1);
+      var ds: dynamic = [-1, 1];
       REP(i, 2);
       {
-        var ndir = ((((dir + ds[i]) + 4)) % 4);
+        var ndir: dynamic = ((((dir + ds[i]) + 4)) % 4);
         if (((((v == 0) && (ndir >= 2))) || (((v == 1) && (ndir <= 1)))))
         {
           ans_dirs[depth] = ds[i];
@@ -735,27 +735,27 @@ func REP(argument_0: dynamic, argument_1: dynamic)
     dir = ((((dir + ans_dirs[depth]) + 4)) % 4);
   }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       rects = simulate(rects, ans_dirs[i], lower[i], upper[i], i);
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var ndir = ((((r.dir + ans_dirs[i]) + 4)) % 4);
-    var l = lower[i];
-    var u = upper[i];
+    var ndir: dynamic = ((((r.dir + ans_dirs[i]) + 4)) % 4);
+    var l: dynamic = lower[i];
+    var u: dynamic = upper[i];
     while ((l != u))
     {
-      var m = (((l + u)) / 2);
+      var m: dynamic = (((l + u)) / 2);
       assert((l < u));
-      var rects = cpp_construct(1, r);
+      var rects: dynamic = cpp_construct(1, r);
       rects = simulate(rects, ans_dirs[i], m, m, i);
       FOR(j, (i + 1), n);
       {
         rects = simulate(rects, ans_dirs[j], lower[j], upper[j], j);
       }
-      var rect = rects[0];
+      var rect: dynamic = rects[0];
       if (((((((ndir == 0) && (rect.x2 < X))) || (((ndir == 1) && (rect.y2 < Y)))) || (((ndir == 2) && (X < rect.x1)))) || (((ndir == 3) && (Y < rect.y1)))))
       {
         l = (m + 1);
@@ -768,7 +768,7 @@ func REP(argument_0: dynamic, argument_1: dynamic)
     r.Move(ans_dirs[i], l, l, i);
   }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if (((ans_l[i] < lower[i]) || (upper[i] < ans_l[i])))
     {
@@ -781,10 +781,10 @@ func REP(argument_0: dynamic, argument_1: dynamic)
     rect = simulate(rect, ans_dirs[i], ans_l[i], ans_l[i], i);
   }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var c: dynamic;
-      var v = scanf(" %c %lld %lld", (&c), (&lower[i]), (&upper[i]));
+      var c: dynamic = cpp_uninitialized();
+      var v: dynamic = scanf(" %c %lld %lld", (&c), (&lower[i]), (&upper[i]));
       assert((v == 3));
       if ((c == cpp_char("L")))
       {
@@ -808,7 +808,7 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       if (((dirs[i] == 0) && (dirs[(i + 1)] != 0)))
       {
@@ -816,32 +816,32 @@ func REP(argument_0: dynamic, argument_1: dynamic)
       }
     }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         rect1 = simulate(rect1, dirs[i], lower[i], upper[i], i);
       }
 
-func FOR(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic) -> dynamic
 {
         rect2 = simulate(rect2, dirs[i], lower[i], upper[i], i);
       }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         rs1[it->dir].push_back((*it));
       }
 
-func FORIT(argument_0: dynamic, argument_1: dynamic)
+func FORIT(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         rs2[it->dir].push_back((*it));
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        ans_dirs[i] = if (((((ans_dir >> i)) & 1))) 1 else -1;
+        ans_dirs[i] =  (((((ans_dir >> i)) & 1))) ? 1 : -1;
       }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      printf("%c %lld\n", if ((ans_dirs[i] == 1)) cpp_char("L") else cpp_char("R"), ans_l[i]);
+      printf("%c %lld\n",  ((ans_dirs[i] == 1)) ? cpp_char("L") : cpp_char("R"), ans_l[i]);
     }

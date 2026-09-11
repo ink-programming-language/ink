@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var k: dynamic;
-  var p: dynamic;
-  var cell = cpp_array(1001);
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var cell: dynamic = cpp_array(1001);
   read(n);
   k = 0;
   p = 0;
@@ -29,7 +29,7 @@ func main()
       (i) += 1;
     }
   }
-  var sum: dynamic;
+  var sum: dynamic = cpp_uninitialized();
   sum = 0;
   sum += min(k, (n - k));
   sum += min(p, (n - p));

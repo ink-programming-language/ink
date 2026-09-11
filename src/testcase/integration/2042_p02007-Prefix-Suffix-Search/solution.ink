@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-func lp(i: dynamic, n: dynamic)
+func lp(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(int)n;i++)");
 }
 
 class RollingHash
 {
-  var hashed: dynamic;
-  var power: dynamic;
-  func mul(a: dynamic, b: dynamic)
+  var hashed: dynamic = cpp_uninitialized();
+  var power: dynamic = cpp_uninitialized();
+  func mul(a: dynamic, b: dynamic) -> dynamic
   {
-      var x = (cpp_cast(a) * b);
-      var xh = unsigned((x >> 32));
-      var xl = cpp_cast(x);
-      var d: dynamic;
-      var m: dynamic;
+      var x: dynamic = (cpp_cast(a) * b);
+      var xh: dynamic = unsigned((x >> 32));
+      var xl: dynamic = cpp_cast(x);
+      var d: dynamic = cpp_uninitialized();
+      var m: dynamic = cpp_uninitialized();
       cpp_expression("asm(\"divl %4; \\n\\t\" : \"=a\"(d),\"=d\"(m):\"d\"(xh),\"a\"(xl),\"r\"(mod))");
       return m;
     }
-  func RollingHash(s: dynamic, base: dynamic = 10007)
+  func RollingHash(s: dynamic, base: dynamic = 10007) -> dynamic
   {
-      var sz = cpp_cast(s.size());
+      var sz: dynamic = cpp_cast(s.size());
       hashed.assign((sz + 1), 0);
       power.assign((sz + 1), 0);
       power[0] = 1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < sz))
         {
           power[(i + 1)] = mul(power[i], base);
@@ -39,9 +39,9 @@ class RollingHash
         }
       }
     }
-  func get(l: dynamic, r: dynamic)
+  func get(l: dynamic, r: dynamic) -> dynamic
   {
-      var ret = ((hashed[r] + mod) - mul(hashed[l], power[(r - l)]));
+      var ret: dynamic = ((hashed[r] + mod) - mul(hashed[l], power[(r - l)]));
       if ((ret >= mod))
       {
         ret -= mod;
@@ -50,28 +50,28 @@ class RollingHash
     }
 }
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-func calc(v: dynamic, s: dynamic)
+func calc(v: dynamic, s: dynamic) -> dynamic
 {
-  var l = (lower_bound(v.begin(), v.end(), s) - v.begin());
+  var l: dynamic = (lower_bound(v.begin(), v.end(), s) - v.begin());
   s[(s.size() - 1)] += 1;
-  var r = (lower_bound(v.begin(), v.end(), s) - v.begin());
+  var r: dynamic = (lower_bound(v.begin(), v.end(), s) - v.begin());
   return abs((l - r));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(n, q);
-  var m: dynamic;
-  var ch: dynamic;
+  var m: dynamic = cpp_uninitialized();
+  var ch: dynamic = cpp_uninitialized();
 }
 
-func lp(argument_0: dynamic, argument_1: dynamic)
+func lp(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var s: dynamic;
+    var s: dynamic = cpp_uninitialized();
     read(s);
     lp(i, s.size());
     {
@@ -79,14 +79,14 @@ func lp(argument_0: dynamic, argument_1: dynamic)
     }
   }
 
-func lp(argument_0: dynamic, argument_1: dynamic)
+func lp(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     read(a, b);
-    var hs = rh.get(0, b.size());
-    var ss = sh.get(0, b.size());
-    var v = m[[hs, ss]];
+    var hs: dynamic = rh.get(0, b.size());
+    var ss: dynamic = sh.get(0, b.size());
+    var v: dynamic = m[[hs, ss]];
     if (v.empty())
     {
       write(0, "\n");

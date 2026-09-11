@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func operator_shift_left(out: dynamic, obj: dynamic)
+func operator_shift_left(out: dynamic, obj: dynamic) -> dynamic
 {
   (((((out << "(") << obj.first) << ",") << obj.second) << ")");
   return out;
 }
 
-func operator_shift_left(out: dynamic, cont: dynamic)
+func operator_shift_left(out: dynamic, cont: dynamic) -> dynamic
 {
-  var itr = cont.begin();
-  var ends = cont.end();
+  var itr: dynamic = cont.begin();
+  var ends: dynamic = cont.end();
   {
     while ((itr != ends))
     {
@@ -21,10 +21,10 @@ func operator_shift_left(out: dynamic, cont: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, cont: dynamic)
+func operator_shift_left(out: dynamic, cont: dynamic) -> dynamic
 {
-  var itr = cont.begin();
-  var ends = cont.end();
+  var itr: dynamic = cont.begin();
+  var ends: dynamic = cont.end();
   {
     while ((itr != ends))
     {
@@ -36,10 +36,10 @@ func operator_shift_left(out: dynamic, cont: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, cont: dynamic)
+func operator_shift_left(out: dynamic, cont: dynamic) -> dynamic
 {
-  var itr = cont.begin();
-  var ends = cont.end();
+  var itr: dynamic = cont.begin();
+  var ends: dynamic = cont.end();
   {
     while ((itr != ends))
     {
@@ -51,10 +51,10 @@ func operator_shift_left(out: dynamic, cont: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, cont: dynamic)
+func operator_shift_left(out: dynamic, cont: dynamic) -> dynamic
 {
-  var itr = cont.begin();
-  var ends = cont.end();
+  var itr: dynamic = cont.begin();
+  var ends: dynamic = cont.end();
   {
     while ((itr != ends))
     {
@@ -66,10 +66,10 @@ func operator_shift_left(out: dynamic, cont: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, arr: dynamic)
+func operator_shift_left(out: dynamic, arr: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       ((out << arr[i]) << " ");
@@ -80,27 +80,27 @@ func operator_shift_left(out: dynamic, arr: dynamic)
   return out;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  var min_v = min(a, b);
-  var max_v = max(a, b);
+  var min_v: dynamic = min(a, b);
+  var max_v: dynamic = max(a, b);
   while (min_v)
   {
-    var temp = (max_v % min_v);
+    var temp: dynamic = (max_v % min_v);
     max_v = min_v;
     min_v = temp;
   }
   return max_v;
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a * b)) / gcd(a, b));
 }
 
-func fast_exp_pow(base: dynamic, exp: dynamic, mod: dynamic)
+func fast_exp_pow(base: dynamic, exp: dynamic, mod: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (exp)
   {
     if ((exp & 1))
@@ -115,22 +115,22 @@ func fast_exp_pow(base: dynamic, exp: dynamic, mod: dynamic)
   return (res % mod);
 }
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-var A_b: dynamic;
+var A_b: dynamic = cpp_uninitialized();
 
-var B_b: dynamic;
+var B_b: dynamic = cpp_uninitialized();
 
-var base: dynamic;
+var base: dynamic = cpp_uninitialized();
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&A), (&B));
-  var tmp = A;
+  var tmp: dynamic = A;
   while (tmp)
   {
     base = max(base, (tmp % 10));
@@ -144,7 +144,7 @@ func main()
   }
   base += 1;
   tmp = A;
-  var Tpow = 1;
+  var Tpow: dynamic = 1;
   while (tmp)
   {
     A_b += (Tpow * ((tmp % 10)));
@@ -159,7 +159,7 @@ func main()
     tmp /= 10;
     Tpow *= base;
   }
-  var sum = (A_b + B_b);
+  var sum: dynamic = (A_b + B_b);
   while (sum)
   {
     len += 1;

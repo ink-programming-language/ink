@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func rd(x: dynamic)
+func rd(x: dynamic) -> dynamic
 {
   x = 0;
-  var f = 1;
-  var ch = getchar();
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,11 +21,11 @@ func rd(x: dynamic)
   x *= f;
 }
 
-func lrd(x: dynamic)
+func lrd(x: dynamic) -> dynamic
 {
   x = 0;
-  var f = 1;
-  var ch = getchar();
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -42,34 +42,34 @@ func lrd(x: dynamic)
   x *= f;
 }
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var LINF = 1e18;
+var LINF: dynamic = 1e18;
 
-var N = 2050;
+var N: dynamic = 2050;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var l = cpp_array(N);
+var l: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var c = cpp_array((N << 1));
+var c: dynamic = cpp_array((N << 1));
 
-var f = cpp_array(N, (N << 1));
+var f: dynamic = cpp_array(N, (N << 1));
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var mx = cpp_array(N);
+var mx: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   rd(n);
   rd(m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       rd(l[i]);
@@ -77,7 +77,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       rd(s[i]);
@@ -85,7 +85,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n + m)))
     {
       rd(c[i]);
@@ -93,7 +93,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       s[i] = (c[l[i]] - s[i]);
@@ -102,7 +102,7 @@ func main()
   }
   memset(f, -0x7f, cpp_sizeof((f)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (m + 20)))
     {
       f[i][0] = 0;
@@ -110,18 +110,18 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
-      var u = l[i];
+      var u: dynamic = l[i];
       {
-        var j = mx[u];
+        var j: dynamic = mx[u];
         while ((j >= 0))
         {
-          var x = (f[u][j] + s[i]);
-          var y = (j + 1);
+          var x: dynamic = (f[u][j] + s[i]);
+          var y: dynamic = (j + 1);
           {
-            var o = u;
+            var o: dynamic = u;
             while (y)
             {
               mx[o] = max(mx[o], y);
@@ -136,7 +136,7 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= (m + 20)))
         {
           f[i][0] = max(f[i][0], max(f[(i - 1)][0], f[(i - 1)][1]));

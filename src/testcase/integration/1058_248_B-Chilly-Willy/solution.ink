@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var N = 100005;
+var N: dynamic = 100005;
 
-var vmod: dynamic;
+var vmod: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
   vmod.push_back(0);
   vmod.push_back(0);
   vmod.push_back(0);
@@ -22,8 +22,8 @@ func main()
     vmod.push_back((((vmod[(i - 1)] * 10)) % 210));
     i += 1;
   }
-  var n: dynamic;
-  var x: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(n);
   if ((!vmod[n]))
   {

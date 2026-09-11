@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var A: dynamic;
+var A: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var D = cpp_array(100);
+var D: dynamic = cpp_array(100);
 
-func main()
+func main() -> dynamic
 {
   read(N, A, B, C);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i != N))
     {
       read(D[i]);
@@ -22,10 +22,10 @@ func main()
     }
   }
   sort(D, (D + N), greater());
-  var sum = 0;
-  var ans = 0;
+  var sum: dynamic = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i != N))
     {
       sum += D[i];

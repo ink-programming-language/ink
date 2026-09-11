@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var visited = [];
+var visited: dynamic = [];
 
-func dfs(grid: dynamic, start: dynamic, visited: dynamic, cnt: dynamic, comp: dynamic)
+func dfs(grid: dynamic, start: dynamic, visited: dynamic, cnt: dynamic, comp: dynamic) -> dynamic
 {
   cnt += 1;
   visited[start] = 1;
@@ -12,7 +12,7 @@ func dfs(grid: dynamic, start: dynamic, visited: dynamic, cnt: dynamic, comp: dy
     return;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < grid[start].size()))
     {
       if ((visited[grid[start][i]] == 0))
@@ -24,39 +24,39 @@ func dfs(grid: dynamic, start: dynamic, visited: dynamic, cnt: dynamic, comp: dy
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var m: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
     read(n, m);
-    var grid = cpp_array(n);
+    var grid: dynamic = cpp_array(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
-        var size: dynamic;
+        var size: dynamic = cpp_uninitialized();
         read(size);
-        var v: dynamic;
+        var v: dynamic = cpp_uninitialized();
         if ((size == 0))
         {
           i += 1;
           continue;
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < size))
           {
-            var x: dynamic;
+            var x: dynamic = cpp_uninitialized();
             read(x);
             v.push_back((x - 1));
             j += 1;
           }
         }
         {
-          var k = 0;
+          var k: dynamic = 0;
           while ((k < (v.size() - 1)))
           {
             grid[v[k]].push_back(v[(k + 1)]);
@@ -67,17 +67,17 @@ func main()
         i += 1;
       }
     }
-    var ans = cpp_array(n);
+    var ans: dynamic = cpp_array(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((!visited[i]))
         {
-          var cnt = 0;
-          var comp: dynamic;
+          var cnt: dynamic = 0;
+          var comp: dynamic = cpp_uninitialized();
           dfs(grid, i, visited, cnt, comp);
-          for (var x in comp)
+          for (var x: dynamic in comp)
           {
             ans[x] = cnt;
           }
@@ -86,7 +86,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write(ans[i], " ");

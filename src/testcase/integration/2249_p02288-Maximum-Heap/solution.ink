@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func maxHeapify(a: dynamic, n: dynamic, i: dynamic)
+func maxHeapify(a: dynamic, n: dynamic, i: dynamic) -> dynamic
 {
-  var l = (i * 2);
-  var r = (l + 1);
-  var larg = i;
+  var l: dynamic = (i * 2);
+  var r: dynamic = (l + 1);
+  var larg: dynamic = i;
   if (((l <= n) && (a[l] > a[larg])))
   {
     larg = l;
@@ -15,17 +15,17 @@ func maxHeapify(a: dynamic, n: dynamic, i: dynamic)
   }
   if ((larg != i))
   {
-    var t = a[larg];
+    var t: dynamic = a[larg];
     a[larg] = a[i];
     a[i] = t;
     maxHeapify(a, n, larg);
   }
 }
 
-func buildMaxHeap(n: dynamic, a: dynamic)
+func buildMaxHeap(n: dynamic, a: dynamic) -> dynamic
 {
   {
-    var i = (n / 2);
+    var i: dynamic = (n / 2);
     while ((i >= 1))
     {
       maxHeapify(a, n, i);
@@ -34,12 +34,12 @@ func buildMaxHeap(n: dynamic, a: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   read(n);
-  var a = cpp_array((n + 1));
+  var a: dynamic = cpp_array((n + 1));
   {
     i = 1;
     while ((i <= n))

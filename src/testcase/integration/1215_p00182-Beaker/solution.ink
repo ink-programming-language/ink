@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(50);
+var a: dynamic = cpp_array(50);
 
-var b = cpp_array(50);
+var b: dynamic = cpp_array(50);
 
-func pour(p: dynamic, q: dynamic, rest: dynamic)
+func pour(p: dynamic, q: dynamic, rest: dynamic) -> dynamic
 {
   if ((!rest))
   {
@@ -28,7 +28,7 @@ func pour(p: dynamic, q: dynamic, rest: dynamic)
   return pour(p, (q + 1), rest);
 }
 
-func pourAll(p: dynamic)
+func pourAll(p: dynamic) -> dynamic
 {
   if ((p == n))
   {
@@ -45,12 +45,12 @@ func pourAll(p: dynamic)
   return pourAll((p + 1));
 }
 
-func solve()
+func solve() -> dynamic
 {
   sort(a, (a + n), greater());
   b[0] = true;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       b[i] = false;
@@ -60,9 +60,9 @@ func solve()
   return pourAll(0);
 }
 
-func main()
+func main() -> dynamic
 {
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   while (1)
   {
     read(n);
@@ -71,7 +71,7 @@ func main()
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -79,7 +79,7 @@ func main()
       }
     }
     ans = solve();
-    write((if (ans) "YES" else "NO"), "\n");
+    write(( (ans) ? "YES" : "NO"), "\n");
   }
   return 0;
 }

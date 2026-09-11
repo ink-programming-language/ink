@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-func FastIO()
+func FastIO() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(null);
   cout.tie(null);
 }
 
-func main()
+func main() -> dynamic
 {
   FastIO();
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   read(m);
-  var h = cpp_array(2);
-  var a = cpp_array(2);
-  var x = cpp_array(2);
-  var y = cpp_array(2);
+  var h: dynamic = cpp_array(2);
+  var a: dynamic = cpp_array(2);
+  var x: dynamic = cpp_array(2);
+  var y: dynamic = cpp_array(2);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(2)))
     {
       read(h[i], a[i], x[i], y[i]);
       i += 1;
     }
   }
-  var steps1 = 0;
+  var steps1: dynamic = 0;
   {
-    var i = cpp_cast(1);
+    var i: dynamic = cpp_cast(1);
     while ((i <= cpp_cast(m)))
     {
       h[0] = ((((x[0] * h[0]) + y[0])) % m);
@@ -43,9 +43,9 @@ func main()
     write("-1", cpp_char("\n"));
     return 0;
   }
-  var steps2 = 0;
+  var steps2: dynamic = 0;
   {
-    var i = cpp_cast(1);
+    var i: dynamic = cpp_cast(1);
     while ((i <= cpp_cast(m)))
     {
       h[0] = ((((x[0] * h[0]) + y[0])) % m);
@@ -57,9 +57,9 @@ func main()
       i += 1;
     }
   }
-  var steps3 = 0;
+  var steps3: dynamic = 0;
   {
-    var i = cpp_cast(1);
+    var i: dynamic = cpp_cast(1);
     while ((i <= cpp_cast(m)))
     {
       h[1] = ((((x[1] * h[1]) + y[1])) % m);
@@ -76,9 +76,9 @@ func main()
     write("-1", cpp_char("\n"));
     return 0;
   }
-  var steps4 = 0;
+  var steps4: dynamic = 0;
   {
-    var i = cpp_cast(1);
+    var i: dynamic = cpp_cast(1);
     while ((i <= cpp_cast(m)))
     {
       h[1] = ((((x[1] * h[1]) + y[1])) % m);
@@ -90,11 +90,11 @@ func main()
       i += 1;
     }
   }
-  var ans = 1e18;
+  var ans: dynamic = 1e18;
   if ((steps2 && steps4))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < cpp_cast(1e7)))
       {
         if (((((((steps1 + (i * steps2)) - steps3)) % steps4) == 0) && ((((steps1 + (i * steps2)) - steps3)) >= 0)))
@@ -108,7 +108,7 @@ func main()
   } else if (steps2)
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < cpp_cast(1e7)))
       {
         if ((((steps1 + (i * steps2)) == steps3)))
@@ -122,7 +122,7 @@ func main()
   } else if (steps4)
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < cpp_cast(1e7)))
       {
         if ((((steps3 + (i * steps4)) == steps1)))

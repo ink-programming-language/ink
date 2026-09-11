@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   read(x, y);
   if ((x == y))
   {
@@ -28,7 +28,7 @@ func main()
     }
   } else
   {
-    var c = y;
+    var c: dynamic = y;
     y = x;
     x = c;
     if (((x >= 3) && (y > 3)))

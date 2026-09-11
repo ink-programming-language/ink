@@ -1,45 +1,45 @@
 // Translated from solution.cpp.
 
-var maxn = 100005;
+var maxn: dynamic = 100005;
 
-var qq = cpp_array(maxn);
+var qq: dynamic = cpp_array(maxn);
 
-var q = cpp_array(maxn);
+var q: dynamic = cpp_array(maxn);
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var o = cpp_array(maxn);
+var o: dynamic = cpp_array(maxn);
 
-var w = cpp_array(maxn);
+var w: dynamic = cpp_array(maxn);
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var qa: dynamic;
-  var qb: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var qa: dynamic = cpp_uninitialized();
+  var qb: dynamic = cpp_uninitialized();
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(q[i]);
       s += q[i];
       qq[i] = make_pair(q[i], i);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < q[i]))
         {
-          var t: dynamic;
+          var t: dynamic = cpp_uninitialized();
           read(t);
           t -= 1;
           w[t].insert(i);
@@ -55,7 +55,7 @@ func main()
   qa = (n - qb);
   sort(qq, (qq + n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < qa))
     {
       o[qq[i].second] = a;
@@ -63,7 +63,7 @@ func main()
     }
   }
   {
-    var i = qa;
+    var i: dynamic = qa;
     while ((i < n))
     {
       o[qq[i].second] = b;
@@ -71,7 +71,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((q[i] < o[i]))
@@ -82,18 +82,18 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var k = 0;
-      for (var t in w[i])
+      var k: dynamic = 0;
+      for (var t: dynamic in w[i])
       {
         if ((q[t] > o[t]))
         {
-          var flag = false;
+          var flag: dynamic = false;
           while (1)
           {
-            var it = z.lower_bound(k);
+            var it: dynamic = z.lower_bound(k);
             if ((it == z.end()))
             {
               flag = true;
@@ -127,7 +127,7 @@ func main()
   }
   write(r.size(), "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < r.size()))
     {
       write((r[i].first.first + 1), " ", (r[i].first.second + 1), " ", (r[i].second + 1), "\n");

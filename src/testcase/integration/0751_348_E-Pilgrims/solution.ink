@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var ch = getchar();
-  var x = 0;
+  var ch: dynamic = getchar();
+  var x: dynamic = 0;
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     ch = getchar();
@@ -16,61 +16,61 @@ func read()
   return x;
 }
 
-var maxn = (2e5 + 5);
+var maxn: dynamic = (2e5 + 5);
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
 class Data
 {
-  var next: dynamic;
-  var to: dynamic;
-  var w: dynamic;
+  var next: dynamic = cpp_uninitialized();
+  var to: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
 }
 
 class LinkTable
 {
   var data: dynamic = cpp_array(maxn);
   var head: dynamic = cpp_array(maxn);
-  var cnt: dynamic;
-  func add(x: dynamic, y: dynamic, w: dynamic)
+  var cnt: dynamic = cpp_uninitialized();
+  func add(x: dynamic, y: dynamic, w: dynamic) -> dynamic
   {
       data[cpp_update(cnt, "++")] = [head[x], y, w];
       head[x] = cnt;
     }
 }
 
-var E: dynamic;
+var E: dynamic = cpp_uninitialized();
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
 class DP
 {
-  var sum: dynamic;
-  var id: dynamic;
-  var lca: dynamic;
+  var sum: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  var lca: dynamic = cpp_uninitialized();
 }
 
-var f = cpp_array(maxn);
+var f: dynamic = cpp_array(maxn);
 
-var g = cpp_array(maxn);
+var g: dynamic = cpp_array(maxn);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var mx = cpp_array(5);
+var mx: dynamic = cpp_array(5);
 
-var mi = cpp_array(5);
+var mi: dynamic = cpp_array(5);
 
-var ret = cpp_array(maxn);
+var ret: dynamic = cpp_array(maxn);
 
-var fa = cpp_array(maxn);
+var fa: dynamic = cpp_array(maxn);
 
-var w = cpp_array(maxn);
+var w: dynamic = cpp_array(maxn);
 
-var mark = cpp_array(maxn);
+var mark: dynamic = cpp_array(maxn);
 
-func update(x: dynamic, y: dynamic)
+func update(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x < y))
   {
@@ -83,17 +83,17 @@ func update(x: dynamic, y: dynamic)
   return -1;
 }
 
-func F(x: dynamic)
+func F(x: dynamic) -> dynamic
 {
-  var sum = if (mark[x]) 0 else (-inf);
-  var id = x;
+  var sum: dynamic =  (mark[x]) ? 0 : (-inf);
+  var id: dynamic = x;
   {
-    var i = E.head[x];
+    var i: dynamic = E.head[x];
     while (i)
     {
       if ((E.data[i].to != fa[x]))
       {
-        var e = E.data[i];
+        var e: dynamic = E.data[i];
         fa[e.to] = x;
         w[e.to] = e.w;
         F(e.to);
@@ -113,7 +113,7 @@ func F(x: dynamic)
   f[x].lca = x;
 }
 
-func G(x: dynamic)
+func G(x: dynamic) -> dynamic
 {
   g[x] = g[fa[x]];
   g[x].sum += w[x];
@@ -123,12 +123,12 @@ func G(x: dynamic)
     g[x].id = cpp_assign(g[x].lca, "=", fa[x]);
   }
   {
-    var i = R.head[fa[x]];
+    var i: dynamic = R.head[fa[x]];
     while (i)
     {
       if ((R.data[i].to != x))
       {
-        var e = R.data[i];
+        var e: dynamic = R.data[i];
         if ((update(g[x].sum, ((f[e.to].sum + e.w) + w[x])) == 1))
         {
           g[x].id = f[e.to].id;
@@ -142,7 +142,7 @@ func G(x: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       mi[i] = 0;
@@ -151,12 +151,12 @@ func G(x: dynamic)
     }
   }
   {
-    var i = E.head[x];
+    var i: dynamic = E.head[x];
     while (i)
     {
       if ((E.data[i].to != fa[x]))
       {
-        var e = E.data[i];
+        var e: dynamic = E.data[i];
         if ((update(mx[0], (f[e.to].sum + e.w)) == 1))
         {
           mx[2] = mx[1];
@@ -178,7 +178,7 @@ func G(x: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       if (mi[i])
@@ -189,7 +189,7 @@ func G(x: dynamic)
     }
   }
   {
-    var i = E.head[x];
+    var i: dynamic = E.head[x];
     while (i)
     {
       if ((E.data[i].to != fa[x]))
@@ -201,12 +201,12 @@ func G(x: dynamic)
   }
 }
 
-func init()
+func init() -> dynamic
 {
   N = read();
   K = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= K))
     {
       mark[read()] = true;
@@ -214,10 +214,10 @@ func init()
     }
   }
   {
-    var i = 1;
-    var u: dynamic;
-    var v: dynamic;
-    var w: dynamic;
+    var i: dynamic = 1;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
+    var w: dynamic = cpp_uninitialized();
     while ((i < N))
     {
       u = read();
@@ -231,15 +231,15 @@ func init()
   g[0].sum = (-inf);
 }
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
   {
-    var i = E.head[x];
+    var i: dynamic = E.head[x];
     while (i)
     {
       if ((E.data[i].to != fa[x]))
       {
-        var e = E.data[i];
+        var e: dynamic = E.data[i];
         dfs(e.to);
         ret[x] += ret[e.to];
       }
@@ -248,10 +248,10 @@ func dfs(x: dynamic)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       if ((mark[i] && (f[i].sum != g[i].sum)))
@@ -272,10 +272,10 @@ func solve()
     }
   }
   dfs(1);
-  var sum = (-inf);
-  var once = 0;
+  var sum: dynamic = (-inf);
+  var once: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       if ((!mark[i]))
@@ -295,7 +295,7 @@ func solve()
   printf("%d %d\n", sum, once);
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   F(1);

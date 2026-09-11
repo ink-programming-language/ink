@@ -1,65 +1,65 @@
 // Translated from solution.cpp.
 
-var MAX = (800000 + 10);
+var MAX: dynamic = (800000 + 10);
 
-var INF = 1e30;
+var INF: dynamic = 1e30;
 
-var EPS = 0.02;
+var EPS: dynamic = 0.02;
 
 class point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func point(a: dynamic, b: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func point(a: dynamic, b: dynamic) -> dynamic
   {
       x = a;
       y = b;
     }
-  func point()
+  func point() -> dynamic
   {
     }
-  func print()
+  func print() -> dynamic
   {
       printf("%lf %lf\n", x, y);
     }
 }
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return (x * x);
 }
 
-func dist(a: dynamic, b: dynamic)
+func dist(a: dynamic, b: dynamic) -> dynamic
 {
   return sqrt((sqr((a.x - b.x)) + sqr((a.y - b.y))));
 }
 
-func chaji(s: dynamic, a: dynamic, b: dynamic)
+func chaji(s: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   return ((((a.x - s.x)) * ((b.y - s.y))) - (((a.y - s.y)) * ((b.x - s.x))));
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var d = cpp_array(MAX);
+var d: dynamic = cpp_array(MAX);
 
-var TOP = cpp_construct(0, INF);
+var TOP: dynamic = cpp_construct(0, INF);
 
-var head = cpp_array((MAX * 4));
+var head: dynamic = cpp_array((MAX * 4));
 
-var t = cpp_array((MAX * 4));
+var t: dynamic = cpp_array((MAX * 4));
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var nxt = cpp_array((MAX * 4));
+var nxt: dynamic = cpp_array((MAX * 4));
 
-var c = cpp_array((MAX * 4));
+var c: dynamic = cpp_array((MAX * 4));
 
-func addedge(x: dynamic, y: dynamic, v: dynamic)
+func addedge(x: dynamic, y: dynamic, v: dynamic) -> dynamic
 {
   t[cpp_update(tot, "++")] = y;
   nxt[tot] = head[x];
@@ -69,20 +69,20 @@ func addedge(x: dynamic, y: dynamic, v: dynamic)
 
 class line
 {
-  var s: dynamic;
-  var t: dynamic;
-  var type_cpp: dynamic;
-  var number: dynamic;
-  func line()
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var type_cpp: dynamic = cpp_uninitialized();
+  var number: dynamic = cpp_uninitialized();
+  func line() -> dynamic
   {
     }
-  func line(a: dynamic, b: dynamic)
+  func line(a: dynamic, b: dynamic) -> dynamic
   {
       s = a;
       t = b;
       type_cpp = 0;
     }
-  func print()
+  func print() -> dynamic
   {
       d[s].print();
       d[t].print();
@@ -90,21 +90,21 @@ class line
     }
 }
 
-var l = cpp_array(MAX);
+var l: dynamic = cpp_array(MAX);
 
-func get(b: dynamic, c: dynamic, x: dynamic)
+func get(b: dynamic, c: dynamic, x: dynamic) -> dynamic
 {
-  var k = (((x - b.x)) / ((c.x - b.x)));
+  var k: dynamic = (((x - b.x)) / ((c.x - b.x)));
   return point((b.x + (((c.x - b.x)) * k)), (b.y + (((c.y - b.y)) * k)));
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
-  var l = max(d[a.s].x, d[b.s].x);
-  var r = min(d[a.t].x, d[b.t].x);
-  var x = (((l + r)) * 0.5);
-  var s1 = get(d[a.s], d[a.t], x);
-  var s2 = get(d[b.s], d[b.t], x);
+  var l: dynamic = max(d[a.s].x, d[b.s].x);
+  var r: dynamic = min(d[a.t].x, d[b.t].x);
+  var x: dynamic = (((l + r)) * 0.5);
+  var s1: dynamic = get(d[a.s], d[a.t], x);
+  var s2: dynamic = get(d[b.s], d[b.t], x);
   if ((s1.y != s2.y))
   {
     return (s1.y < s2.y);
@@ -114,69 +114,69 @@ func operator_less(a: dynamic, b: dynamic)
   }
 }
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
 class accident
 {
-  var x: dynamic;
-  var num: dynamic;
-  var flag: dynamic;
-  func accident(c: dynamic, a: dynamic, b: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var num: dynamic = cpp_uninitialized();
+  var flag: dynamic = cpp_uninitialized();
+  func accident(c: dynamic, a: dynamic, b: dynamic) -> dynamic
   {
       x = c;
       num = a;
       flag = b;
     }
-  func accident()
+  func accident() -> dynamic
   {
     }
 }
 
-var p = cpp_array(MAX);
+var p: dynamic = cpp_array(MAX);
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.x < b.x);
 }
 
-var num: dynamic;
+var num: dynamic = cpp_uninitialized();
 
-func add(x: dynamic, A: dynamic, B: dynamic)
+func add(x: dynamic, A: dynamic, B: dynamic) -> dynamic
 {
-  var a = d[A.s];
-  var h = d[A.t];
-  var b = d[B.s];
-  var c = d[B.t];
-  var e = get(b, c, x);
-  var f = get(a, h, x);
+  var a: dynamic = d[A.s];
+  var h: dynamic = d[A.t];
+  var b: dynamic = d[B.s];
+  var c: dynamic = d[B.t];
+  var e: dynamic = get(b, c, x);
+  var f: dynamic = get(a, h, x);
   addedge(A.s, B.s, ((dist(a, f) + dist(f, e)) + dist(e, b)));
   addedge(A.s, B.t, ((dist(a, f) + dist(f, e)) + dist(e, c)));
   addedge(A.t, B.s, ((dist(h, f) + dist(f, e)) + dist(e, b)));
   addedge(A.t, B.t, ((dist(h, f) + dist(f, e)) + dist(e, c)));
 }
 
-func same(x: dynamic, A: dynamic, B: dynamic)
+func same(x: dynamic, A: dynamic, B: dynamic) -> dynamic
 {
-  var a = d[A.s];
-  var h = d[A.t];
-  var b = d[B.s];
-  var c = d[B.t];
-  var e = get(b, c, x);
-  var f = get(a, h, x);
+  var a: dynamic = d[A.s];
+  var h: dynamic = d[A.t];
+  var b: dynamic = d[B.s];
+  var c: dynamic = d[B.t];
+  var e: dynamic = get(b, c, x);
+  var f: dynamic = get(a, h, x);
   return (fabs((e.y - f.y)) < 0.0000000001);
 }
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var hh = cpp_array(MAX);
+var hh: dynamic = cpp_array(MAX);
 
-var dis = cpp_array(MAX);
+var dis: dynamic = cpp_array(MAX);
 
-func SPFA()
+func SPFA() -> dynamic
 {
-  var i: dynamic;
-  var u: dynamic;
-  var v: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))
@@ -214,10 +214,10 @@ func SPFA()
   return dis[T];
 }
 
-func update(now: dynamic)
+func update(now: dynamic) -> dynamic
 {
-  var ii: dynamic;
-  var it = st.find(l[p[now].num]);
+  var ii: dynamic = cpp_uninitialized();
+  var it: dynamic = st.find(l[p[now].num]);
   if ((it == st.end()))
   {
     return;
@@ -264,11 +264,11 @@ func update(now: dynamic)
   add(p[now].x, (*ii), (*it));
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var now: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var now: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   {
     i = 1;
@@ -283,7 +283,7 @@ func main()
     i = 1;
     while ((i <= n))
     {
-      j = (if ((i == n)) 1 else (i + 1));
+      j = ( ((i == n)) ? 1 : (i + 1));
       addedge(i, j, dist(d[i], d[j]));
       addedge(j, i, dist(d[j], d[i]));
       l[i] = line(i, j);
@@ -307,7 +307,7 @@ func main()
       i += 1;
     }
   }
-  var it: dynamic;
+  var it: dynamic = cpp_uninitialized();
   sort((p + 1), ((p + num) + 1));
   {
     now = 1;
@@ -340,7 +340,7 @@ func main()
       now = j;
     }
   }
-  var ans = SPFA();
+  var ans: dynamic = SPFA();
   printf("%lf\n", ans);
   return 0;
 }

@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var tt: dynamic;
+  var tt: dynamic = cpp_uninitialized();
   read(tt);
   while (cpp_update(tt, "--"))
   {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     read(a, b);
-    var res = 0;
+    var res: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 31))
       {
         if ((((((a >> i)) & 1)) && ((((b >> i)) & 1))))

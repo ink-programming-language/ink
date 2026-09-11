@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var MAX_N = cpp_expression("#includ");
+var MAX_N: dynamic = cpp_expression("#includ");
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-var INF = cpp_expression("#include<");
+var INF: dynamic = cpp_expression("#include<");
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0;i < n;i++)");
 }
 
-func gcm(a: dynamic, b: dynamic)
+func gcm(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -31,20 +31,20 @@ func gcm(a: dynamic, b: dynamic)
   return a;
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a / gcm(a, b)) * b);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var LCM: dynamic;
-  var GCM: dynamic;
-  var flag = cpp_array(MAX_N);
-  var count = cpp_array(MAX_N);
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var LCM: dynamic = cpp_uninitialized();
+  var GCM: dynamic = cpp_uninitialized();
+  var flag: dynamic = cpp_array(MAX_N);
+  var count: dynamic = cpp_array(MAX_N);
   while (1)
   {
     read(n, a, b);
@@ -54,8 +54,8 @@ func main()
     }
     LCM = lcm(a, b);
     GCM = gcm(a, b);
-    var ans: dynamic;
-    var irange = ((min((MAX_N - 1), LCM) / a) + 1);
+    var ans: dynamic = cpp_uninitialized();
+    var irange: dynamic = ((min((MAX_N - 1), LCM) / a) + 1);
     count[0] = 0;
     rep(i, (MAX_N - 1));
     {
@@ -72,17 +72,17 @@ func main()
   }
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       flag[i] = 0;
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
         flag[((a * i) + (b * j))] = true;
       }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var jrange = ((((min((MAX_N - 1), LCM) - (a * i))) / b) + 1);
+      var jrange: dynamic = ((((min((MAX_N - 1), LCM) - (a * i))) / b) + 1);
     }

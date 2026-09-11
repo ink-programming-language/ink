@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var W = 0;
+var W: dynamic = 0;
 
-var B = 1;
+var B: dynamic = 1;
 
-var R = 2;
+var R: dynamic = 2;
 
-var Y = 3;
+var Y: dynamic = 3;
 
-var N = 8;
+var N: dynamic = 8;
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var inv = 500000004;
+var inv: dynamic = 500000004;
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var mtx = cpp_array(N, N);
+var mtx: dynamic = cpp_array(N, N);
 
-var a = cpp_array(N, N);
+var a: dynamic = cpp_array(N, N);
 
-var st = cpp_array(4, 4);
+var st: dynamic = cpp_array(4, 4);
 
-var ts = cpp_array(N);
+var ts: dynamic = cpp_array(N);
 
-func check(i: dynamic, j: dynamic)
+func check(i: dynamic, j: dynamic) -> dynamic
 {
   if ((i == j))
   {
@@ -57,16 +57,16 @@ func check(i: dynamic, j: dynamic)
   return true;
 }
 
-func init()
+func init() -> dynamic
 {
-  var tot = 0;
+  var tot: dynamic = 0;
   memset(st, -1, cpp_sizeof((st)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((4))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast((4))))
         {
           if (check(i, j))
@@ -82,15 +82,15 @@ func init()
   }
   memset(mtx, 0, cpp_sizeof((mtx)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((N))))
     {
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < cpp_cast((4))))
         {
-          var a = (ts[i] / 4);
-          var b = (ts[i] % 4);
+          var a: dynamic = (ts[i] / 4);
+          var b: dynamic = (ts[i] % 4);
           if ((!check(b, k)))
           {
             k += 1;
@@ -115,15 +115,15 @@ func init()
   }
 }
 
-func add(dst: dynamic, a: dynamic, b: dynamic)
+func add(dst: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
-  var c = cpp_array(N, N);
+  var c: dynamic = cpp_array(N, N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((N))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast((N))))
         {
           c[i][j] = (((a[i][j] + b[i][j])) % mod);
@@ -136,20 +136,20 @@ func add(dst: dynamic, a: dynamic, b: dynamic)
   memcpy(dst, c, cpp_sizeof((c)));
 }
 
-func mult(dst: dynamic, a: dynamic, b: dynamic)
+func mult(dst: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
-  var c = cpp_array(N, N);
+  var c: dynamic = cpp_array(N, N);
   memset(c, 0, cpp_sizeof((c)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((N))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast((N))))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < cpp_cast((N))))
             {
               c[i][j] = (((c[i][j] + (cpp_cast(a[i][k]) * b[k][j]))) % mod);
@@ -165,14 +165,14 @@ func mult(dst: dynamic, a: dynamic, b: dynamic)
   memcpy(dst, c, cpp_sizeof((c)));
 }
 
-func power(dst: dynamic, a: dynamic, k: dynamic)
+func power(dst: dynamic, a: dynamic, k: dynamic) -> dynamic
 {
-  var r = cpp_array(N, N);
-  var t = cpp_array(N, N);
+  var r: dynamic = cpp_array(N, N);
+  var t: dynamic = cpp_array(N, N);
   memset(r, 0, cpp_sizeof((r)));
   memcpy(t, a, cpp_sizeof((t)));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((N))))
     {
       r[i][i] = 1;
@@ -191,19 +191,19 @@ func power(dst: dynamic, a: dynamic, k: dynamic)
   memcpy(dst, r, cpp_sizeof((r)));
 }
 
-func calc(dst: dynamic, a: dynamic, k: dynamic)
+func calc(dst: dynamic, a: dynamic, k: dynamic) -> dynamic
 {
   if ((k == 1))
   {
     memcpy(dst, a, ((cpp_sizeof(dynamic) * N) * N));
     return;
   }
-  var x = cpp_array(N, N);
-  var y = cpp_array(N, N);
+  var x: dynamic = cpp_array(N, N);
+  var y: dynamic = cpp_array(N, N);
   power(x, a, (k / 2));
   calc(y, a, (k / 2));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((N))))
     {
       x[i][i] += 1;
@@ -218,21 +218,21 @@ func calc(dst: dynamic, a: dynamic, k: dynamic)
   }
 }
 
-func f(n: dynamic)
+func f(n: dynamic) -> dynamic
 {
   if ((n == 2))
   {
     return 8;
   }
-  var a = cpp_array(N, N);
-  var ans = 8;
+  var a: dynamic = cpp_array(N, N);
+  var ans: dynamic = 8;
   calc(a, mtx, (n - 2));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((N))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cpp_cast((N))))
         {
           ans = (((ans + a[i][j])) % mod);
@@ -245,7 +245,7 @@ func f(n: dynamic)
   return ans;
 }
 
-func gao(n: dynamic)
+func gao(n: dynamic) -> dynamic
 {
   if ((n == 0))
   {
@@ -259,19 +259,19 @@ func gao(n: dynamic)
   {
     return 8;
   }
-  var ans = (f(n) + f((((n + 1)) / 2)));
+  var ans: dynamic = (f(n) + f((((n + 1)) / 2)));
   ans = ((cpp_cast(ans) * inv) % mod);
   return (((((ans % mod) + mod) + 4)) % mod);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var ans = (gao(r) - gao((l - 1)));
+  var ans: dynamic = (gao(r) - gao((l - 1)));
   ans = ((((ans % mod) + mod)) % mod);
   printf("%d\n", cpp_cast(ans));
 }
 
-func main()
+func main() -> dynamic
 {
   init();
   while ((scanf("%d%d", (&l), (&r)) != EOF))

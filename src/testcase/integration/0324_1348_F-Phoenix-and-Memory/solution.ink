@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var pos = cpp_array(200005);
+var pos: dynamic = cpp_array(200005);
 
-var tmp = cpp_array(200005);
+var tmp: dynamic = cpp_array(200005);
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
 class dsu
 {
   var fa: dynamic = cpp_array(200005);
-  func init(n: dynamic)
+  func init(n: dynamic) -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= n))
         {
           fa[i] = i;
@@ -28,7 +28,7 @@ class dsu
         }
       }
     }
-  func find(u: dynamic)
+  func find(u: dynamic) -> dynamic
   {
       while ((u != fa[u]))
       {
@@ -39,9 +39,9 @@ class dsu
     }
 }
 
-var num: dynamic;
+var num: dynamic = cpp_uninitialized();
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.first.second != b.first.second))
   {
@@ -50,14 +50,14 @@ func cmp(a: dynamic, b: dynamic)
   return (a.first.first < b.first.first);
 }
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var points: dynamic;
+var points: dynamic = cpp_uninitialized();
 
-func print(p: dynamic)
+func print(p: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(p[i], " ");
@@ -67,10 +67,10 @@ func print(p: dynamic)
   write("\n");
 }
 
-func swp(a: dynamic, b: dynamic)
+func swp(a: dynamic, b: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       tmp[i] = pos[i];
@@ -86,7 +86,7 @@ func swp(a: dynamic, b: dynamic)
   }
 }
 
-func cmp2(a: dynamic, b: dynamic)
+func cmp2(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.first.first != b.first.first))
   {
@@ -95,12 +95,12 @@ func cmp2(a: dynamic, b: dynamic)
   return (a.second < b.second);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i].first.first, a[i].first.second);
@@ -110,9 +110,9 @@ func main()
   }
   sort(a, (a + n), cmp);
   num.init(n);
-  var sud = 1;
+  var sud: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       pos[a[i].second] = num.find(a[i].first.first);
@@ -122,7 +122,7 @@ func main()
     }
   }
   sort(points.begin(), points.end(), cmp2);
-  for (var point in points)
+  for (var point: dynamic in points)
   {
     if ((point.second == 0))
     {

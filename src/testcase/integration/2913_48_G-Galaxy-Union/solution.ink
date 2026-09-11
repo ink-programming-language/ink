@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var debug = false;
+var debug: dynamic = false;
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
 class root
 {
-  var id: dynamic;
-  var edge: dynamic;
-  var ss: dynamic;
-  var subNodes: dynamic;
+  var id: dynamic = cpp_uninitialized();
+  var edge: dynamic = cpp_uninitialized();
+  var ss: dynamic = cpp_uninitialized();
+  var subNodes: dynamic = cpp_uninitialized();
 }
 
-var mp = cpp_array(200005);
+var mp: dynamic = cpp_array(200005);
 
-var rs: dynamic;
+var rs: dynamic = cpp_uninitialized();
 
-var v = cpp_array(200005);
+var v: dynamic = cpp_array(200005);
 
-var cpoint = cpp_array(200005);
+var cpoint: dynamic = cpp_array(200005);
 
-var sumNode = cpp_array(200005);
+var sumNode: dynamic = cpp_array(200005);
 
-var countNode = cpp_array(200005);
+var countNode: dynamic = cpp_array(200005);
 
-var dd = cpp_array(200005);
+var dd: dynamic = cpp_array(200005);
 
-var toOtherFromFAther = cpp_array(200005);
+var toOtherFromFAther: dynamic = cpp_array(200005);
 
-var ans = cpp_array(200005);
+var ans: dynamic = cpp_array(200005);
 
-var rr: dynamic;
+var rr: dynamic = cpp_uninitialized();
 
-func findCircle(i: dynamic, p: dynamic)
+func findCircle(i: dynamic, p: dynamic) -> dynamic
 {
   if (v[i])
   {
@@ -46,24 +46,24 @@ func findCircle(i: dynamic, p: dynamic)
   }
   v[i] = 1;
   {
-    var it = mp[i].begin();
+    var it: dynamic = mp[i].begin();
     while ((it != mp[i].end()))
     {
-      var w = it->first;
+      var w: dynamic = it->first;
       if ((w == p))
       {
         it += 1;
         continue;
       }
-      var t = findCircle(w, i);
+      var t: dynamic = findCircle(w, i);
       if ((t != -1))
       {
         cpoint[w] = 1;
-        var r: dynamic;
+        var r: dynamic = cpp_uninitialized();
         r.id = w;
         r.edge = it->second;
         rs.push_back(r);
-        return if ((t == i)) -1 else t;
+        return  ((t == i)) ? -1 : t;
       }
       it += 1;
     }
@@ -71,16 +71,16 @@ func findCircle(i: dynamic, p: dynamic)
   return -1;
 }
 
-func dfs(i: dynamic, p: dynamic)
+func dfs(i: dynamic, p: dynamic) -> dynamic
 {
   rr->subNodes.push_back(i);
   sumNode[i] = 0;
   countNode[i] = 1;
   {
-    var it = mp[i].begin();
+    var it: dynamic = mp[i].begin();
     while ((it != mp[i].end()))
     {
-      var w = it->first;
+      var w: dynamic = it->first;
       if (((w == p) || cpoint[w]))
       {
         it += 1;
@@ -95,13 +95,13 @@ func dfs(i: dynamic, p: dynamic)
   }
 }
 
-func dfs1(i: dynamic, p: dynamic)
+func dfs1(i: dynamic, p: dynamic) -> dynamic
 {
   {
-    var it = mp[i].begin();
+    var it: dynamic = mp[i].begin();
     while ((it != mp[i].end()))
     {
-      var w = it->first;
+      var w: dynamic = it->first;
       if (((w == p) || cpoint[w]))
       {
         it += 1;
@@ -114,7 +114,7 @@ func dfs1(i: dynamic, p: dynamic)
   }
 }
 
-func calTree(i: dynamic)
+func calTree(i: dynamic) -> dynamic
 {
   rr = (&rs[i]);
   dd[rr->id] = 0;
@@ -122,7 +122,7 @@ func calTree(i: dynamic)
   toOtherFromFAther[rr->id] = 0;
   dfs1(rr->id, -1);
   {
-    var it = rr->subNodes.begin();
+    var it: dynamic = rr->subNodes.begin();
     while ((it != rr->subNodes.end()))
     {
       ans[(*it)] = (sumNode[(*it)] + toOtherFromFAther[(*it)]);
@@ -132,16 +132,16 @@ func calTree(i: dynamic)
   rr->ss = ans[rr->id];
 }
 
-func calCircle()
+func calCircle() -> dynamic
 {
-  var cursum = 0;
-  var cnt = 0;
-  var cirlen = 0;
-  var sum = 0;
-  var q = 0;
-  var ee = cpp_array((200005 + 200005));
+  var cursum: dynamic = 0;
+  var cnt: dynamic = 0;
+  var cirlen: dynamic = 0;
+  var sum: dynamic = 0;
+  var q: dynamic = 0;
+  var ee: dynamic = cpp_array((200005 + 200005));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       cirlen += rs[i].edge;
@@ -159,7 +159,7 @@ func calCircle()
     q += 1;
   }
   {
-    var i = q;
+    var i: dynamic = q;
     while ((i < m))
     {
       cursum += (((cirlen - ((ee[i] - ee[0])))) * countNode[rs[i].id]);
@@ -167,7 +167,7 @@ func calCircle()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       while (((2 * ((ee[q] - ee[i]))) <= cirlen))
@@ -177,7 +177,7 @@ func calCircle()
         q += 1;
       }
       {
-        var it = rs[i].subNodes.begin();
+        var it: dynamic = rs[i].subNodes.begin();
         while ((it != rs[i].subNodes.end()))
         {
           ans[(*it)] += (((sum - rs[i].ss) + cursum) + (dd[(*it)] * ((n - countNode[rs[i].id]))));
@@ -192,14 +192,14 @@ func calCircle()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
-  var a: dynamic;
-  var b: dynamic;
-  var t: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d%d%d", (&a), (&b), (&t));
@@ -213,7 +213,7 @@ func main()
   findCircle(0, -1);
   m = cpp_cast(rs.size());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       calTree(i);
@@ -222,7 +222,7 @@ func main()
   }
   calCircle();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       printf("%I64d ", ans[i]);

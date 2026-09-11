@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func check(x: dynamic)
+func check(x: dynamic) -> dynamic
 {
-  var l: dynamic;
-  var r: dynamic;
-  var isUseI = cpp_array(1000001);
-  var isUseO = cpp_array(1000001);
-  var cntI = 0;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var isUseI: dynamic = cpp_array(1000001);
+  var isUseO: dynamic = cpp_array(1000001);
+  var cntI: dynamic = 0;
   {
     r = 0;
     while ((r < n))
@@ -47,7 +47,7 @@ func check(x: dynamic)
     {
       if (isUseI[r])
       {
-        var f = false;
+        var f: dynamic = false;
         {
           l = min(l, r);
           while ((l >= 0))
@@ -77,7 +77,7 @@ func check(x: dynamic)
     {
       if (isUseO[r])
       {
-        var f = false;
+        var f: dynamic = false;
         {
           l = min(l, r);
           while ((l >= 0))
@@ -102,14 +102,14 @@ func check(x: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   read(n);
   read(s);
-  var st = 0;
-  var ed = n;
-  var medi: dynamic;
+  var st: dynamic = 0;
+  var ed: dynamic = n;
+  var medi: dynamic = cpp_uninitialized();
   while (((ed - st) > 1))
   {
     medi = (((st + ed)) / 2);

@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var dp = cpp_array(1025, 64);
+var dp: dynamic = cpp_array(1025, 64);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var base: dynamic;
+var base: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100);
+var a: dynamic = cpp_array(100);
 
-var B = cpp_array(N);
+var B: dynamic = cpp_array(N);
 
-var L = cpp_array(N);
+var L: dynamic = cpp_array(N);
 
-var R = cpp_array(N);
+var R: dynamic = cpp_array(N);
 
-func dfs(cnt: dynamic, mask: dynamic, limit: dynamic, zero: dynamic)
+func dfs(cnt: dynamic, mask: dynamic, limit: dynamic, zero: dynamic) -> dynamic
 {
   if ((((!zero) && (!limit)) && (dp[cnt][mask] != -1)))
   {
@@ -34,13 +34,13 @@ func dfs(cnt: dynamic, mask: dynamic, limit: dynamic, zero: dynamic)
   {
     return (((mask == 0)) && ((!zero)));
   }
-  var res = 0;
+  var res: dynamic = 0;
   if (limit)
   {
     if (zero)
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < a[cnt]))
         {
           res += dfs((cnt - 1), (mask ^ ((1 << i))), 0, 0);
@@ -52,7 +52,7 @@ func dfs(cnt: dynamic, mask: dynamic, limit: dynamic, zero: dynamic)
     } else
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < a[cnt]))
         {
           res += dfs((cnt - 1), (mask ^ ((1 << i))), 0, 0);
@@ -66,7 +66,7 @@ func dfs(cnt: dynamic, mask: dynamic, limit: dynamic, zero: dynamic)
     if (zero)
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < base))
         {
           res += dfs((cnt - 1), (mask ^ ((1 << i))), 0, 0);
@@ -77,7 +77,7 @@ func dfs(cnt: dynamic, mask: dynamic, limit: dynamic, zero: dynamic)
     } else
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < base))
         {
           res += dfs((cnt - 1), (mask ^ ((1 << i))), 0, 0);
@@ -93,7 +93,7 @@ func dfs(cnt: dynamic, mask: dynamic, limit: dynamic, zero: dynamic)
   return res;
 }
 
-func cal(x: dynamic)
+func cal(x: dynamic) -> dynamic
 {
   if ((x <= 0))
   {
@@ -108,11 +108,11 @@ func cal(x: dynamic)
   return dfs(t, 0, 1, 1);
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d %I64d %I64d", (B + i), (L + i), (R + i));
@@ -120,16 +120,16 @@ func main()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= 10))
     {
       base = i;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 64))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < (1 << i)))
             {
               dp[j][k] = -1;
@@ -140,7 +140,7 @@ func main()
         }
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((B[j] != i))
@@ -156,7 +156,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%I64d\n", ans[i]);

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0; i < (int)(n); i++)");
 }
 
-func reps(i: dynamic, s: dynamic, n: dynamic)
+func reps(i: dynamic, s: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = (int)(s); i < (int)(n); i++)");
 }
 
-var inf = INT_MAX;
+var inf: dynamic = INT_MAX;
 
-var data = cpp_array((1 << 23));
+var data: dynamic = cpp_array((1 << 23));
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var wid: dynamic;
+var wid: dynamic = cpp_uninitialized();
 
-func init(f: dynamic, h: dynamic, w: dynamic)
+func init(f: dynamic, h: dynamic, w: dynamic) -> dynamic
 {
   H = cpp_assign(W, "=", 1);
   while ((H < h))
@@ -34,11 +34,11 @@ func init(f: dynamic, h: dynamic, w: dynamic)
   wid = ((2 * W) - 1);
   fill(begin(data), end(data), inf);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           data[(((((i + H) - 1)) * wid) + (((j + W) - 1)))] = f[((i * w) + j)];
@@ -49,11 +49,11 @@ func init(f: dynamic, h: dynamic, w: dynamic)
     }
   }
   {
-    var i = ((2 * H) - 2);
+    var i: dynamic = ((2 * H) - 2);
     while ((i > (H - 2)))
     {
       {
-        var j = (W - 2);
+        var j: dynamic = (W - 2);
         while ((j >= 0))
         {
           data[((i * wid) + j)] = min(data[((i * wid) + (((2 * j) + 1)))], data[((i * wid) + (((2 * j) + 2)))]);
@@ -64,11 +64,11 @@ func init(f: dynamic, h: dynamic, w: dynamic)
     }
   }
   {
-    var i = (H - 2);
+    var i: dynamic = (H - 2);
     while ((i >= 0))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ((2 * W) - 1)))
         {
           data[((i * wid) + j)] = min(data[(((((2 * i) + 1)) * wid) + j)], data[(((((2 * i) + 2)) * wid) + j)]);
@@ -80,7 +80,7 @@ func init(f: dynamic, h: dynamic, w: dynamic)
   }
 }
 
-func query_w(lj: dynamic, rj: dynamic, aj: dynamic, bj: dynamic, i: dynamic, k: dynamic)
+func query_w(lj: dynamic, rj: dynamic, aj: dynamic, bj: dynamic, i: dynamic, k: dynamic) -> dynamic
 {
   if (((rj <= aj) || (bj <= lj)))
   {
@@ -93,7 +93,7 @@ func query_w(lj: dynamic, rj: dynamic, aj: dynamic, bj: dynamic, i: dynamic, k: 
   return min(query_w(lj, rj, aj, (((aj + bj)) / 2), i, ((2 * k) + 1)), query_w(lj, rj, (((aj + bj)) / 2), bj, i, ((2 * k) + 2)));
 }
 
-func query_h(li: dynamic, lj: dynamic, ri: dynamic, rj: dynamic, ai: dynamic, bi: dynamic, k: dynamic)
+func query_h(li: dynamic, lj: dynamic, ri: dynamic, rj: dynamic, ai: dynamic, bi: dynamic, k: dynamic) -> dynamic
 {
   if (((ri <= ai) || (bi <= li)))
   {
@@ -106,28 +106,28 @@ func query_h(li: dynamic, lj: dynamic, ri: dynamic, rj: dynamic, ai: dynamic, bi
   return min(query_h(li, lj, ri, rj, ai, (((ai + bi)) / 2), ((2 * k) + 1)), query_h(li, lj, ri, rj, (((ai + bi)) / 2), bi, ((2 * k) + 2)));
 }
 
-func query(li: dynamic, lj: dynamic, ri: dynamic, rj: dynamic)
+func query(li: dynamic, lj: dynamic, ri: dynamic, rj: dynamic) -> dynamic
 {
   return query_h(li, lj, ri, rj, 0, H, 0);
 }
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var grid = cpp_array(1000100);
+var grid: dynamic = cpp_array(1000100);
 
-var lr: dynamic;
+var lr: dynamic = cpp_uninitialized();
 
-var lc: dynamic;
+var lc: dynamic = cpp_uninitialized();
 
-var rr: dynamic;
+var rr: dynamic = cpp_uninitialized();
 
-var rc: dynamic;
+var rc: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios_base.sync_with_stdio(0);

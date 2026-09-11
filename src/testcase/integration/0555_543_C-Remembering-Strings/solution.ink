@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var N = 22;
+var N: dynamic = 22;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var inf = 1e15;
+var inf: dynamic = 1e15;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N, N);
+var a: dynamic = cpp_array(N, N);
 
-var faa = cpp_array(N, N);
+var faa: dynamic = cpp_array(N, N);
 
-var famask = cpp_array(N, N);
+var famask: dynamic = cpp_array(N, N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var dp = cpp_array((1 << 20));
+var dp: dynamic = cpp_array((1 << 20));
 
-func smin(a: dynamic, b: dynamic)
+func smin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -28,11 +28,11 @@ func smin(a: dynamic, b: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s[i]);
@@ -40,11 +40,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(a[i][j]);
@@ -55,17 +55,17 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
-          var faval = 0;
-          var ma = 0;
+          var faval: dynamic = 0;
+          var ma: dynamic = 0;
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < n))
             {
               if ((s[i][j] == s[k][j]))
@@ -88,11 +88,11 @@ func main()
   fill((&dp[0]), ((&dp[0]) + ((1 << 20))), inf);
   dp[0] = 0;
   {
-    var mask = 0;
+    var mask: dynamic = 0;
     while ((mask < ((1 << n))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((((mask >> j)) & 1))
@@ -101,7 +101,7 @@ func main()
             continue;
           }
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < m))
             {
               smin(dp[(mask | ((1 << j)))], (dp[mask] + a[j][k]));

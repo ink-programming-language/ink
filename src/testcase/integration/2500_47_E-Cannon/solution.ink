@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func show(a: dynamic, n: dynamic)
+func show(a: dynamic, n: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(a[i], cpp_char(" "));
@@ -13,10 +13,10 @@ func show(a: dynamic, n: dynamic)
   write("\n");
 }
 
-func show(a: dynamic, r: dynamic, l: dynamic)
+func show(a: dynamic, r: dynamic, l: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < r))
     {
       show(a[i], l);
@@ -26,49 +26,49 @@ func show(a: dynamic, r: dynamic, l: dynamic)
   write("\n");
 }
 
-var N = 120000;
+var N: dynamic = 120000;
 
-var M = 120000;
+var M: dynamic = 120000;
 
-var oo = ((10000 * 10000) * 10);
+var oo: dynamic = ((10000 * 10000) * 10);
 
-var g = 9.8;
+var g: dynamic = 9.8;
 
-var ang = cpp_array(N);
+var ang: dynamic = cpp_array(N);
 
-var wx = cpp_array(M);
+var wx: dynamic = cpp_array(M);
 
-var wy = cpp_array(M);
+var wy: dynamic = cpp_array(M);
 
-var ax = cpp_array(N);
+var ax: dynamic = cpp_array(N);
 
-var ay = cpp_array(N);
+var ay: dynamic = cpp_array(N);
 
-var pd = cpp_array(N);
+var pd: dynamic = cpp_array(N);
 
-var wd = cpp_array(M);
+var wd: dynamic = cpp_array(M);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-func pcmp(i: dynamic, j: dynamic)
+func pcmp(i: dynamic, j: dynamic) -> dynamic
 {
   return (ang[i] < ang[j]);
 }
 
-func wcmp(i: dynamic, j: dynamic)
+func wcmp(i: dynamic, j: dynamic) -> dynamic
 {
   return (wx[i] < wx[j]);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < n))
@@ -92,18 +92,18 @@ func solve()
     i = 0;
     while ((i < n))
     {
-      var id = pd[i];
-      var vx = (v * cos(ang[id]));
-      var vy = (v * sin(ang[id]));
-      var t = ((2.0 * vy) / g);
-      var sx = (vx * t);
+      var id: dynamic = pd[i];
+      var vx: dynamic = (v * cos(ang[id]));
+      var vy: dynamic = (v * sin(ang[id]));
+      var t: dynamic = ((2.0 * vy) / g);
+      var sx: dynamic = (vx * t);
       while ((j < m))
       {
-        var jd = wd[j];
+        var jd: dynamic = wd[j];
         if ((wx[jd] <= sx))
         {
-          var tt = (wx[jd] / vx);
-          var ty = ((vy * tt) - (((0.5 * g) * tt) * tt));
+          var tt: dynamic = (wx[jd] / vx);
+          var ty: dynamic = ((vy * tt) - (((0.5 * g) * tt) * tt));
           if ((ty <= wy[jd]))
           {
             ax[id] = wx[jd];
@@ -138,11 +138,11 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var cas = 0;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var cas: dynamic = 0;
   scanf("%d", (&n));
   scanf("%lf", (&v));
   {

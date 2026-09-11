@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var i: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   read(n);
-  var dp = cpp_array(2, (n + 1));
-  var m = 1000000007;
+  var dp: dynamic = cpp_array(2, (n + 1));
+  var m: dynamic = 1000000007;
   dp[0][0] = 0;
   dp[0][1] = 0;
   {

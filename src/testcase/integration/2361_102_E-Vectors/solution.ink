@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-func possible(x: dynamic, y: dynamic)
+func possible(x: dynamic, y: dynamic) -> dynamic
 {
-  var bm = (((1 * p) * p) + ((1 * q) * q));
+  var bm: dynamic = (((1 * p) * p) + ((1 * q) * q));
   if ((bm == 0))
   {
     if (((x || y)))
@@ -29,14 +29,14 @@ func possible(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var ans = false;
-  var ax: dynamic;
-  var ay: dynamic;
+  var ans: dynamic = false;
+  var ax: dynamic = cpp_uninitialized();
+  var ay: dynamic = cpp_uninitialized();
   read(ax, ay, x, y, p, q);
-  var i: dynamic;
-  var tmp: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var tmp: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < 4))

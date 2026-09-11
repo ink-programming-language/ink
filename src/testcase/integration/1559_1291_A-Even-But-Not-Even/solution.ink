@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var num: dynamic;
+var num: dynamic = cpp_uninitialized();
 
-var flag: dynamic;
+var flag: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var str: dynamic;
+var str: dynamic = cpp_uninitialized();
 
-func checkc(c: dynamic)
+func checkc(c: dynamic) -> dynamic
 {
   return ((((((c == cpp_char("1")) || (c == cpp_char("3"))) || (c == cpp_char("5"))) || (c == cpp_char("7"))) || (c == cpp_char("9"))));
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&T));
   while (cpp_update(T, "--"))
@@ -27,7 +27,7 @@ func main()
     num = 0;
     flag = false;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if (checkc(str[i]))

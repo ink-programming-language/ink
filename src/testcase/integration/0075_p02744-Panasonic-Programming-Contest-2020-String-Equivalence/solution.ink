@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s = cpp_array(15);
+var s: dynamic = cpp_array(15);
 
-func dfs(dep: dynamic, mx: dynamic)
+func dfs(dep: dynamic, mx: dynamic) -> dynamic
 {
   if ((dep == n))
   {
@@ -12,7 +12,7 @@ func dfs(dep: dynamic, mx: dynamic)
     return;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < mx))
     {
       s[dep] = (i + cpp_char("a"));
@@ -24,7 +24,7 @@ func dfs(dep: dynamic, mx: dynamic)
   dfs((dep + 1), (mx + 1));
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   dfs(0, 0);

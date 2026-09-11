@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var fa = cpp_array(100005);
+var fa: dynamic = cpp_array(100005);
 
-func makeset(n: dynamic)
+func makeset(n: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fa[i] = i;
@@ -14,7 +14,7 @@ func makeset(n: dynamic)
   }
 }
 
-func findset(u: dynamic)
+func findset(u: dynamic) -> dynamic
 {
   if ((fa[u] == u))
   {
@@ -23,50 +23,50 @@ func findset(u: dynamic)
   return cpp_assign(fa[u], "=", findset(fa[u]));
 }
 
-func unionset(a: dynamic, b: dynamic)
+func unionset(a: dynamic, b: dynamic) -> dynamic
 {
-  var u = findset(a);
-  var v = findset(b);
+  var u: dynamic = findset(a);
+  var v: dynamic = findset(b);
   fa[u] = v;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var x = 1;
+var x: dynamic = 1;
 
-var y = 0;
+var y: dynamic = 0;
 
-var tot_white: dynamic;
+var tot_white: dynamic = cpp_uninitialized();
 
-var tot_black: dynamic;
+var tot_black: dynamic = cpp_uninitialized();
 
-var col = cpp_array(100005);
+var col: dynamic = cpp_array(100005);
 
-var id = cpp_array(100005);
+var id: dynamic = cpp_array(100005);
 
-var d = cpp_array(100005);
+var d: dynamic = cpp_array(100005);
 
-var used = cpp_array(100005);
+var used: dynamic = cpp_array(100005);
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var g = cpp_array(100005);
+var g: dynamic = cpp_array(100005);
 
-var v = cpp_array(100005);
+var v: dynamic = cpp_array(100005);
 
-var t = cpp_array(100005);
+var t: dynamic = cpp_array(100005);
 
-func pr()
+func pr() -> dynamic
 {
   write("YES\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write(id[i], cpp_char(" "));
@@ -76,14 +76,14 @@ func pr()
   exit(0);
 }
 
-func makenext(x: dynamic, y: dynamic)
+func makenext(x: dynamic, y: dynamic) -> dynamic
 {
   y += 1;
   x += (y / 3);
   y %= 3;
 }
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   if ((col[u] == 1))
   {
@@ -93,10 +93,10 @@ func dfs(u: dynamic)
     tot_black += 1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < g[u].size()))
     {
-      var v = g[u][i];
+      var v: dynamic = g[u][i];
       if ((col[v] != (col[u] * -1)))
       {
         col[v] = (col[u] * -1);
@@ -107,10 +107,10 @@ func dfs(u: dynamic)
   }
 }
 
-func prepare()
+func prepare() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((col[i] == 0))
@@ -125,7 +125,7 @@ func prepare()
   {
     swap(tot_white, tot_black);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         col[i] *= -1;
@@ -135,16 +135,16 @@ func prepare()
   }
 }
 
-func filp()
+func filp() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((v[i].size() >= 1))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < v[i].size()))
           {
             col[v[i][j]] *= -1;
@@ -158,7 +158,7 @@ func filp()
   }
   tot_white = cpp_assign(tot_black, "=", 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((col[i] == 1))
@@ -175,7 +175,7 @@ func filp()
   {
     swap(tot_white, tot_black);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         col[i] *= -1;
@@ -185,11 +185,11 @@ func filp()
   }
 }
 
-func make12(x: dynamic, y: dynamic)
+func make12(x: dynamic, y: dynamic) -> dynamic
 {
-  var ind: dynamic;
+  var ind: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w.size()))
     {
       if ((id[w[i]] == 0))
@@ -203,7 +203,7 @@ func make12(x: dynamic, y: dynamic)
   id[ind] = x;
   makenext(x, y);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < b.size()))
     {
       if (((id[b[i]] == 0) && (t[ind][b[i]] == 0)))
@@ -220,10 +220,10 @@ func make12(x: dynamic, y: dynamic)
   }
 }
 
-func makeall(x: dynamic, y: dynamic)
+func makeall(x: dynamic, y: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((col[i] == 1) && (id[i] == 0)))
@@ -235,7 +235,7 @@ func makeall(x: dynamic, y: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((col[i] == -1) && (id[i] == 0)))
@@ -248,12 +248,12 @@ func makeall(x: dynamic, y: dynamic)
   }
 }
 
-func check()
+func check() -> dynamic
 {
   w.clear();
   b.clear();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((col[i] == 1))
@@ -266,9 +266,9 @@ func check()
       i += 1;
     }
   }
-  var f = 0;
+  var f: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < w.size()))
     {
       if ((d[w[i]] <= (tot_black - 2)))
@@ -288,9 +288,9 @@ func check()
   }
   if ((tot_white >= 4))
   {
-    var tot = 0;
+    var tot: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < b.size()))
       {
         if (((d[b[i]] <= (tot_white - 2)) && (tot <= 1)))
@@ -306,7 +306,7 @@ func check()
       swap(tot_black, tot_white);
       swap(w, b);
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           col[i] *= -1;
@@ -321,15 +321,15 @@ func check()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(n, m);
   makeset(n);
   {
-    var i = 1;
-    var u: dynamic;
-    var v: dynamic;
+    var i: dynamic = 1;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
     while ((i <= m))
     {
       read(u, v);
@@ -343,7 +343,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((used[findset(i)] == 0))

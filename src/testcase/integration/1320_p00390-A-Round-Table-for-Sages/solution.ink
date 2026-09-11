@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<n;i++)");
 }
 
-func FOR(i: dynamic, s: dynamic, e: dynamic)
+func FOR(i: dynamic, s: dynamic, e: dynamic) -> dynamic
 {
   cpp_macro("for(int i=s;i<e;i++)");
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var N: dynamic;
-  var MINR = 1001;
-  var MINL = 1001;
+  var N: dynamic = cpp_uninitialized();
+  var MINR: dynamic = 1001;
+  var MINL: dynamic = 1001;
   read(N);
   REP(i, N);
   read(a[i]);
@@ -30,7 +30,7 @@ func main(argument_0: dynamic)
   return 0;
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     if (((a[i] == 0) && (w[i] < MINR)))
     {

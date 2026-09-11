@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, n: dynamic, N: dynamic)
+func REP(i: dynamic, n: dynamic, N: dynamic) -> dynamic
 {
   cpp_macro("for(int i=n;i<N;i++)");
 }
 
-func p(S: dynamic)
+func p(S: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/");
 }
 
-func ck(a: dynamic, b: dynamic)
+func ck(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/");
 }
 
-func abcgene(anss: dynamic)
+func abcgene(anss: dynamic) -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.push(anss);
-  var c = ["A", "B", "C"];
-  var m: dynamic;
+  var c: dynamic = ["A", "B", "C"];
+  var m: dynamic = cpp_uninitialized();
   m[anss] = true;
   while ((!q.empty()))
   {
-    var s = q.front();
+    var s: dynamic = q.front();
     q.pop();
     if ((s == "ABC"))
     {
@@ -32,8 +32,8 @@ func abcgene(anss: dynamic)
     }
     REP(j, 0, 3);
     {
-      var tmps = s;
-      var cnt = 0;
+      var tmps: dynamic = s;
+      var cnt: dynamic = 0;
       REP(i, 0, (cpp_cast(tmps.size()) - 2));
       {
         if ((((tmps[i] == cpp_char("A")) && (tmps[(i + 1)] == cpp_char("B"))) && (tmps[(i + 2)] == cpp_char("C"))))
@@ -56,9 +56,9 @@ func abcgene(anss: dynamic)
   return "No";
 }
 
-func main()
+func main() -> dynamic
 {
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   read(ans);
   p(abcgene(ans));
   return 0;

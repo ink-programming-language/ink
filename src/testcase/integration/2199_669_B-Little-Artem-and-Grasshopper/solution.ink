@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var size = cpp_array(112345);
+var size: dynamic = cpp_array(112345);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var cur = 0;
+  var n: dynamic = cpp_uninitialized();
+  var cur: dynamic = 0;
   scanf("%d", (&n));
   getchar();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var c = getchar();
+      var c: dynamic = getchar();
       if ((c == cpp_char(">")))
       {
         size[i] = 1;
@@ -25,10 +25,10 @@ func main()
   }
   getchar();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var a: dynamic;
+      var a: dynamic = cpp_uninitialized();
       scanf("%d", (&a));
       size[i] *= a;
       i += 1;
@@ -45,7 +45,7 @@ func main()
       {
         break;
       }
-      var t = cur;
+      var t: dynamic = cur;
       cur += size[cur];
       size[t] = 0;
     }

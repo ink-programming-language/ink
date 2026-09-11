@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, n: dynamic, m: dynamic)
+func REP(i: dynamic, n: dynamic, m: dynamic) -> dynamic
 {
   cpp_macro("for(int i=n;i<m;i++)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <");
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(14);
+var cnt: dynamic = cpp_array(14);
 
-var ans = cpp_array(54);
+var ans: dynamic = cpp_array(54);
 
-func solve(idx: dynamic, sum: dynamic)
+func solve(idx: dynamic, sum: dynamic) -> dynamic
 {
   if (((idx == 0) && (sum == 0)))
   {
@@ -42,13 +42,13 @@ func solve(idx: dynamic, sum: dynamic)
   return false;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   while (cpp_comma((cin >> n), n))
   {
-    var sum = 0;
+    var sum: dynamic = 0;
     memset(cnt, 0, cpp_sizeof((cnt)));
-    var flg = solve(n, sum);
+    var flg: dynamic = solve(n, sum);
     if (flg)
     {
       ((rep(i, (n - 1)) << ans[i]) << " ");
@@ -61,9 +61,9 @@ func main(argument_0: dynamic)
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       sum += x;
       cnt[x] += 1;

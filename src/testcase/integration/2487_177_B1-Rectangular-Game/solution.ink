@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var counter = n;
+  var counter: dynamic = n;
   while ((n > 1))
   {
-    var flag = false;
+    var flag: dynamic = false;
     {
-      var i = 2;
+      var i: dynamic = 2;
       while (((i * i) <= n))
       {
         if (((n % i) == 0))

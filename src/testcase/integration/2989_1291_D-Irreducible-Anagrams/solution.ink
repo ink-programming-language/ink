@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var TAM = (2e5 + 2);
+var TAM: dynamic = (2e5 + 2);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var acum = cpp_array(30, TAM);
+var acum: dynamic = cpp_array(30, TAM);
 
-func carry_on(pos: dynamic)
+func carry_on(pos: dynamic) -> dynamic
 {
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < 26))
     {
       acum[pos][j] = acum[(pos - 1)][j];
@@ -24,11 +24,11 @@ func carry_on(pos: dynamic)
   }
 }
 
-func check(a: dynamic, b: dynamic)
+func check(a: dynamic, b: dynamic) -> dynamic
 {
-  var cont = 0;
+  var cont: dynamic = 0;
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < 26))
     {
       if ((acum[b][j] - acum[(a - 1)][j]))
@@ -41,11 +41,11 @@ func check(a: dynamic, b: dynamic)
   return (cont >= 3);
 }
 
-func main()
+func main() -> dynamic
 {
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       carry_on((i + 1));

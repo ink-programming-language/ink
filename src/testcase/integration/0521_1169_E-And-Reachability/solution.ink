@@ -5,18 +5,18 @@ class node
   var next: dynamic = cpp_array(19);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var a = cpp_array(300005);
+var a: dynamic = cpp_array(300005);
 
-var nodes = cpp_array(300005);
+var nodes: dynamic = cpp_array(300005);
 
-func isReachable(curr: dynamic, end: dynamic)
+func isReachable(curr: dynamic, end: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 19))
     {
       if (((((a[end] & ((1 << i)))) && nodes[curr].next[i]) && (nodes[curr].next[i] <= end)))
@@ -29,28 +29,28 @@ func isReachable(curr: dynamic, end: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&n), (&q));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
       i += 1;
     }
   }
-  var ns = cpp_array(19, 19);
-  var has = cpp_array(19);
-  var wants = cpp_array(19);
+  var ns: dynamic = cpp_array(19, 19);
+  var has: dynamic = cpp_array(19);
+  var wants: dynamic = cpp_array(19);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var hasCount = 0;
-      var wantsCount = 0;
+      var hasCount: dynamic = 0;
+      var wantsCount: dynamic = 0;
       {
-        var bit = 0;
+        var bit: dynamic = 0;
         while ((bit < 19))
         {
           if (((a[i] & ((1 << bit)))))
@@ -65,20 +65,20 @@ func main()
         }
       }
       {
-        var i2 = 0;
+        var i2: dynamic = 0;
         while ((i2 < hasCount))
         {
           {
-            var i3 = 0;
+            var i3: dynamic = 0;
             while ((i3 < hasCount))
             {
-              for (var v in ns[has[i2]][has[i3]])
+              for (var v: dynamic in ns[has[i2]][has[i3]])
               {
                 if ((!nodes[v].next[has[i3]]))
                 {
                   nodes[v].next[has[i3]] = i;
                   {
-                    var bit = 0;
+                    var bit: dynamic = 0;
                     while ((bit < 19))
                     {
                       if ((!nodes[v].next[i]))
@@ -98,11 +98,11 @@ func main()
         }
       }
       {
-        var i2 = 0;
+        var i2: dynamic = 0;
         while ((i2 < hasCount))
         {
           {
-            var i3 = 0;
+            var i3: dynamic = 0;
             while ((i3 < wantsCount))
             {
               ns[has[i2]][wants[i3]].push_back(i);
@@ -116,13 +116,13 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      var l: dynamic;
-      var r: dynamic;
+      var l: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
       scanf("%d %d", (&l), (&r));
-      printf("%s\n", if (isReachable(l, r)) "Shi" else "Fou");
+      printf("%s\n",  (isReachable(l, r)) ? "Shi" : "Fou");
       i += 1;
     }
   }

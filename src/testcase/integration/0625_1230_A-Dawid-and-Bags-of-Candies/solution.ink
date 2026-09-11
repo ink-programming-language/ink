@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a = cpp_array(4);
-  var i: dynamic;
+  var a: dynamic = cpp_array(4);
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < 4))

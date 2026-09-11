@@ -2,32 +2,32 @@
 
 class Split
 {
-  var totSz: dynamic;
-  var pcs: dynamic;
+  var totSz: dynamic = cpp_uninitialized();
+  var pcs: dynamic = cpp_uninitialized();
 }
 
-func cost(s: dynamic)
+func cost(s: dynamic) -> dynamic
 {
-  var q = (s.totSz / s.pcs);
-  var r = (s.totSz % s.pcs);
+  var q: dynamic = (s.totSz / s.pcs);
+  var r: dynamic = (s.totSz % s.pcs);
   return ((((1 * q) * q) * ((s.pcs - r))) + (((1 * ((q + 1))) * ((q + 1))) * r));
 }
 
-func valNext(s: dynamic)
+func valNext(s: dynamic) -> dynamic
 {
-  var pc = cost(s);
+  var pc: dynamic = cost(s);
   s.pcs += 1;
   assert(((pc - cost(s)) >= 0));
   return (pc - cost(s));
 }
 
-func nPieces(initLen: dynamic, val: dynamic)
+func nPieces(initLen: dynamic, val: dynamic) -> dynamic
 {
-  var L = 1;
-  var R = initLen;
+  var L: dynamic = 1;
+  var R: dynamic = initLen;
   while ((L < R))
   {
-    var M = (((L + R)) / 2);
+    var M: dynamic = (((L + R)) / 2);
     if ((valNext([initLen, M]) < val))
     {
       R = M;
@@ -39,27 +39,27 @@ func nPieces(initLen: dynamic, val: dynamic)
   return L;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var a = vector(n);
-  var max_ai = 0;
-  for (var ai in a)
+  var a: dynamic = vector(n);
+  var max_ai: dynamic = 0;
+  for (var ai: dynamic in a)
   {
     read(ai);
     max_ai = max(max_ai, ai);
   }
-  var L = 1;
-  var R = ((1 * max_ai) * max_ai);
+  var L: dynamic = 1;
+  var R: dynamic = ((1 * max_ai) * max_ai);
   while ((L < R))
   {
-    var M = ((((L + R) + 1)) / 2);
-    var pieceTot = 0;
-    for (var ai in a)
+    var M: dynamic = ((((L + R) + 1)) / 2);
+    var pieceTot: dynamic = 0;
+    for (var ai: dynamic in a)
     {
       pieceTot += nPieces(ai, M);
     }
@@ -71,11 +71,11 @@ func main()
       L = M;
     }
   }
-  var pieceTot = 0;
-  var sqTot = 0;
-  for (var ai in a)
+  var pieceTot: dynamic = 0;
+  var sqTot: dynamic = 0;
+  for (var ai: dynamic in a)
   {
-    var ci = nPieces(ai, L);
+    var ci: dynamic = nPieces(ai, L);
     pieceTot += ci;
     sqTot += cost([ai, ci]);
   }

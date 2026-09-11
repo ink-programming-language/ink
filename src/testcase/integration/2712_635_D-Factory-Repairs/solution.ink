@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var sa = cpp_array((4 * 200005));
+var sa: dynamic = cpp_array((4 * 200005));
 
-var sb = cpp_array((4 * 200005));
+var sb: dynamic = cpp_array((4 * 200005));
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var n = 200003;
+var n: dynamic = 200003;
 
-func modify_sa(pos: dynamic, val: dynamic, id: dynamic = 1, l: dynamic = 0, r: dynamic = n)
+func modify_sa(pos: dynamic, val: dynamic, id: dynamic = 1, l: dynamic = 0, r: dynamic = n) -> dynamic
 {
   if (((r - l) < 2))
   {
@@ -18,7 +18,7 @@ func modify_sa(pos: dynamic, val: dynamic, id: dynamic = 1, l: dynamic = 0, r: d
     sa[id] = min(sa[id], a);
     return;
   }
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   if ((pos < mid))
   {
     modify_sa(pos, val, (2 * id), l, mid);
@@ -29,7 +29,7 @@ func modify_sa(pos: dynamic, val: dynamic, id: dynamic = 1, l: dynamic = 0, r: d
   sa[id] = (sa[(2 * id)] + sa[((2 * id) + 1)]);
 }
 
-func modify_sb(pos: dynamic, val: dynamic, id: dynamic = 1, l: dynamic = 0, r: dynamic = n)
+func modify_sb(pos: dynamic, val: dynamic, id: dynamic = 1, l: dynamic = 0, r: dynamic = n) -> dynamic
 {
   if (((r - l) < 2))
   {
@@ -37,7 +37,7 @@ func modify_sb(pos: dynamic, val: dynamic, id: dynamic = 1, l: dynamic = 0, r: d
     sb[id] = min(sb[id], b);
     return;
   }
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   if ((pos < mid))
   {
     modify_sb(pos, val, (2 * id), l, mid);
@@ -48,7 +48,7 @@ func modify_sb(pos: dynamic, val: dynamic, id: dynamic = 1, l: dynamic = 0, r: d
   sb[id] = (sb[(2 * id)] + sb[((2 * id) + 1)]);
 }
 
-func sum_sa(b: dynamic, e: dynamic, id: dynamic = 1, l: dynamic = 0, r: dynamic = n)
+func sum_sa(b: dynamic, e: dynamic, id: dynamic = 1, l: dynamic = 0, r: dynamic = n) -> dynamic
 {
   if (((b >= r) || (e <= l)))
   {
@@ -58,11 +58,11 @@ func sum_sa(b: dynamic, e: dynamic, id: dynamic = 1, l: dynamic = 0, r: dynamic 
   {
     return sa[id];
   }
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   return (sum_sa(b, e, (2 * id), l, mid) + sum_sa(b, e, ((2 * id) + 1), mid, r));
 }
 
-func sum_sb(b: dynamic, e: dynamic, id: dynamic = 1, l: dynamic = 0, r: dynamic = n)
+func sum_sb(b: dynamic, e: dynamic, id: dynamic = 1, l: dynamic = 0, r: dynamic = n) -> dynamic
 {
   if (((b >= r) || (e <= l)))
   {
@@ -72,16 +72,16 @@ func sum_sb(b: dynamic, e: dynamic, id: dynamic = 1, l: dynamic = 0, r: dynamic 
   {
     return sb[id];
   }
-  var mid = (((l + r)) / 2);
+  var mid: dynamic = (((l + r)) / 2);
   return (sum_sb(b, e, (2 * id), l, mid) + sum_sb(b, e, ((2 * id) + 1), mid, r));
 }
 
-func main()
+func main() -> dynamic
 {
-  var m: dynamic;
-  var k: dynamic;
-  var q: dynamic;
-  var i: dynamic;
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   scanf("%d", (&m));
   scanf("%d", (&k));
   scanf("%d", (&a));
@@ -93,19 +93,19 @@ func main()
     i = 0;
     while ((i < q))
     {
-      var type_cpp: dynamic;
+      var type_cpp: dynamic = cpp_uninitialized();
       scanf("%d", (&type_cpp));
       if ((type_cpp == 1))
       {
-        var pos: dynamic;
-        var val: dynamic;
+        var pos: dynamic = cpp_uninitialized();
+        var val: dynamic = cpp_uninitialized();
         scanf("%d", (&pos));
         scanf("%d", (&val));
         modify_sa(pos, val);
         modify_sb(pos, val);
       } else
       {
-        var st: dynamic;
+        var st: dynamic = cpp_uninitialized();
         scanf("%d", (&st));
         printf("%d\n", (sum_sb(0, st) + sum_sa((st + k), n)));
       }

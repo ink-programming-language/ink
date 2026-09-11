@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var arr = cpp_array(n);
+  var arr: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);
       i += 1;
     }
   }
-  var i = 0;
-  var j = 2;
-  var maxi = 1;
-  var sum = (arr[0] + arr[1]);
+  var i: dynamic = 0;
+  var j: dynamic = 2;
+  var maxi: dynamic = 1;
+  var sum: dynamic = (arr[0] + arr[1]);
   while ((j < n))
   {
     if ((sum == arr[j]))

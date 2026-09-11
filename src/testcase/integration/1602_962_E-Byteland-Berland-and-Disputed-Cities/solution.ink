@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-var P: dynamic;
+var P: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-func maxgap(q: dynamic)
+func maxgap(q: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i + 1) < cpp_cast(q.size())))
     {
       res = max(res, (q[(i + 1)] - q[i]));
@@ -22,16 +22,16 @@ func maxgap(q: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var x: dynamic;
-      var c: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var c: dynamic = cpp_uninitialized();
       read(x, c);
       if ((c == cpp_char("R")))
       {
@@ -49,11 +49,11 @@ func main()
   sort(R.begin(), R.end());
   sort(P.begin(), P.end());
   sort(B.begin(), B.end());
-  var ir = 0;
-  var ib = 0;
-  var wynik = 0;
+  var ir: dynamic = 0;
+  var ib: dynamic = 0;
+  var wynik: dynamic = 0;
   {
-    var ip = 0;
+    var ip: dynamic = 0;
     while (((ip + 1) < cpp_cast(P.size())))
     {
       while (((ir < cpp_cast(R.size())) && (R[ir] < P[ip])))
@@ -64,7 +64,7 @@ func main()
       {
         ib += 1;
       }
-      var pomr: dynamic;
+      var pomr: dynamic = cpp_uninitialized();
       pomr.push_back(P[ip]);
       while (((ir < cpp_cast(R.size())) && (R[ir] <= P[(ip + 1)])))
       {
@@ -72,7 +72,7 @@ func main()
         ir += 1;
       }
       pomr.push_back(P[(ip + 1)]);
-      var pomb: dynamic;
+      var pomb: dynamic = cpp_uninitialized();
       pomb.push_back(P[ip]);
       while (((ib < cpp_cast(B.size())) && (B[ib] <= P[(ip + 1)])))
       {
@@ -80,8 +80,8 @@ func main()
         ib += 1;
       }
       pomb.push_back(P[(ip + 1)]);
-      var dis = (P[(ip + 1)] - P[ip]);
-      var res = (((3 * dis) - maxgap(pomr)) - maxgap(pomb));
+      var dis: dynamic = (P[(ip + 1)] - P[ip]);
+      var res: dynamic = (((3 * dis) - maxgap(pomr)) - maxgap(pomb));
       res = min(res, (2 * dis));
       wynik += res;
       ip += 1;

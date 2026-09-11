@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var mon = 0;
-  var k = cpp_array(10, 10);
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var mon: dynamic = 0;
+  var k: dynamic = cpp_array(10, 10);
   read(a, b);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 9))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= 9))
         {
           read(k[i][j]);
@@ -24,15 +24,15 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 9))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= 9))
         {
           {
-            var kk = 0;
+            var kk: dynamic = 0;
             while ((kk <= 9))
             {
               if ((k[j][kk] > (k[j][i] + k[i][kk])))
@@ -49,11 +49,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < b))
         {
           read(c);

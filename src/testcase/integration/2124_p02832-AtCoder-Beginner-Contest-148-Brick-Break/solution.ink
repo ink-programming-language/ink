@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0; i<(n); i++)");
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var c = 1;
+var c: dynamic = 1;
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
-  printf("%d\n", if ((c == 1)) -1 else ((n - c) + 1));
+  printf("%d\n",  ((c == 1)) ? -1 : ((n - c) + 1));
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     scanf("%d", (&a));
     if ((a == c))

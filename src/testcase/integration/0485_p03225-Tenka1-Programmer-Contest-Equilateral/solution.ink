@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var MAXN = 305;
+var MAXN: dynamic = 305;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var ps = cpp_array((3 * MAXN), (3 * MAXN));
+var ps: dynamic = cpp_array((3 * MAXN), (3 * MAXN));
 
-var ps2 = cpp_array((3 * MAXN), (3 * MAXN));
+var ps2: dynamic = cpp_array((3 * MAXN), (3 * MAXN));
 
-var arr = cpp_array(MAXN, MAXN);
+var arr: dynamic = cpp_array(MAXN, MAXN);
 
-var utama = cpp_array((2 * MAXN));
+var utama: dynamic = cpp_array((2 * MAXN));
 
-var lain = cpp_array((2 * MAXN));
+var lain: dynamic = cpp_array((2 * MAXN));
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   read(N, M);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < M))
         {
           read(arr[i][j]);
@@ -42,11 +42,11 @@ func main()
     }
   }
   {
-    var i = (-N);
+    var i: dynamic = (-N);
     while ((i < (2 * N)))
     {
       {
-        var j = (-M);
+        var j: dynamic = (-M);
         while ((j < (2 * M)))
         {
           ps[(i + MAXN)][(j + MAXN)] = ps[((i - 1) + MAXN)][((j + 1) + MAXN)];
@@ -62,22 +62,22 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var miring = 0;
+    var miring: dynamic = 0;
     while ((miring < (N + M)))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < cpp_cast(utama[miring].size())))
         {
           {
-            var j = (i + 1);
+            var j: dynamic = (i + 1);
             while ((j < cpp_cast(utama[miring].size())))
             {
-              var p = utama[miring][i];
-              var q = utama[miring][j];
-              var x = (((p.second - q.second) + q.first) - p.first);
+              var p: dynamic = utama[miring][i];
+              var q: dynamic = utama[miring][j];
+              var x: dynamic = (((p.second - q.second) + q.first) - p.first);
               assert((x > 0));
               ans += (ps[(p.first + MAXN)][(((miring - x) - p.first) + MAXN)] - ps[(((miring - x) - ((q.second + 1))) + MAXN)][((q.second + 1) + MAXN)]);
               ans += (ps[(((miring + x) - p.second) + MAXN)][(p.second + MAXN)] - ps[((q.first - 1) + MAXN)][(((miring + x) - ((q.first - 1))) + MAXN)]);
@@ -91,20 +91,20 @@ func main()
     }
   }
   {
-    var miring = (-M);
+    var miring: dynamic = (-M);
     while ((miring < N))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < cpp_cast(lain[(miring + MAXN)].size())))
         {
           {
-            var j = (i + 1);
+            var j: dynamic = (i + 1);
             while ((j < cpp_cast(lain[(miring + MAXN)].size())))
             {
-              var p = lain[(miring + MAXN)][i];
-              var q = lain[(miring + MAXN)][j];
-              var x = (((q.first - p.first) + q.second) - p.second);
+              var p: dynamic = lain[(miring + MAXN)][i];
+              var q: dynamic = lain[(miring + MAXN)][j];
+              var x: dynamic = (((q.first - p.first) + q.second) - p.second);
               assert((x > 0));
               ans += (ps2[((((miring + x) + p.second) - 1) + MAXN)][((p.second - 1) + MAXN)] - ps2[(q.first + MAXN)][((((-miring) - x) + q.first) + MAXN)]);
               ans += (ps2[((p.first - 1) + MAXN)][((((-miring) + x) + ((p.first - 1))) + MAXN)] - ps2[(((miring - x) + q.second) + MAXN)][(q.second + MAXN)]);

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var b = cpp_array(102);
+var b: dynamic = cpp_array(102);
 
-var g = cpp_array(102);
+var g: dynamic = cpp_array(102);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(b[i]);
@@ -19,7 +19,7 @@ func main()
   }
   read(m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(g[i]);
@@ -28,10 +28,10 @@ func main()
   }
   sort(b, (b + n));
   sort(g, (g + m));
-  var itb: dynamic;
-  var itg: dynamic;
+  var itb: dynamic = cpp_uninitialized();
+  var itg: dynamic = cpp_uninitialized();
   itb = cpp_assign(itg, "=", 0);
-  var cnt = 0;
+  var cnt: dynamic = 0;
   while (((itb < n) && (itg < m)))
   {
     if ((abs((b[itb] - g[itg])) <= 1))

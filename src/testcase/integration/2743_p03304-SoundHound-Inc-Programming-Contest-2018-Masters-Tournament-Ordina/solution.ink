@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var ld = dynamic;
+var ld: dynamic = dynamic;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n, m, d);
-  var a = 2.0;
+  var a: dynamic = 2.0;
   if ((!d))
   {
     a = 1.0;

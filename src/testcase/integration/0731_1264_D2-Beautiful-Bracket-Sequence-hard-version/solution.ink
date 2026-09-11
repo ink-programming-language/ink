@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var maxn = (1e6 + 10);
+var maxn: dynamic = (1e6 + 10);
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var inf = 1e18;
+var inf: dynamic = 1e18;
 
-var fac = cpp_array(maxn);
+var fac: dynamic = cpp_array(maxn);
 
-var ifac = cpp_array(maxn);
+var ifac: dynamic = cpp_array(maxn);
 
-var sm1 = cpp_array(maxn);
+var sm1: dynamic = cpp_array(maxn);
 
-var sm2 = cpp_array(maxn);
+var sm2: dynamic = cpp_array(maxn);
 
-func Pow(a: dynamic, b: dynamic)
+func Pow(a: dynamic, b: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   {
     while (b)
     {
@@ -31,7 +31,7 @@ func Pow(a: dynamic, b: dynamic)
   return ans;
 }
 
-func C(n: dynamic, k: dynamic)
+func C(n: dynamic, k: dynamic) -> dynamic
 {
   if ((((n < 0) || (k < 0)) || (n < k)))
   {
@@ -40,14 +40,14 @@ func C(n: dynamic, k: dynamic)
   return (((((1 * fac[n]) * ifac[k]) % mod) * ifac[(n - k)]) % mod);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie();
   fac[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < maxn))
     {
       fac[i] = (((1 * i) * fac[(i - 1)]) % mod);
@@ -56,20 +56,20 @@ func main()
   }
   ifac[(maxn - 1)] = Pow(fac[(maxn - 1)], (mod - 2));
   {
-    var i = (maxn - 2);
+    var i: dynamic = (maxn - 2);
     while ((i >= 0))
     {
       ifac[i] = (((1 * ifac[(i + 1)]) * ((i + 1))) % mod);
       i -= 1;
     }
   }
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var n = int_cpp((s).size());
-  var cls = 0;
-  var qus = 0;
+  var n: dynamic = int_cpp((s).size());
+  var cls: dynamic = 0;
+  var qus: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp((s).size())))
     {
       qus += (s[i] == cpp_char("?"));
@@ -78,7 +78,7 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 0))
     {
       sm1[i] = (((sm1[(i + 1)] + C(qus, i))) % mod);
@@ -86,9 +86,9 @@ func main()
       i -= 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp((s).size())))
     {
       if ((s[i] == cpp_char("?")))

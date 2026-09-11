@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func EXEC()
+func EXEC() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var s = 0;
-      var t: dynamic;
+      var s: dynamic = 0;
+      var t: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           read(t);
@@ -30,7 +30,7 @@ func EXEC()
   write("\n");
 }
 
-func main()
+func main() -> dynamic
 {
   EXEC();
   return 0;

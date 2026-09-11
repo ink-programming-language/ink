@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var INF = 2e9;
+var INF: dynamic = 2e9;
 
-var ML = 4e18;
+var ML: dynamic = 4e18;
 
-func query(a: dynamic)
+func query(a: dynamic) -> dynamic
 {
   write("? ", a.size());
-  for (var i in a)
+  for (var i: dynamic in a)
   {
     write(" ", i);
   }
@@ -15,17 +15,17 @@ func query(a: dynamic)
   fflush(stdout);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var edges = cpp_construct((n + 1));
+  var edges: dynamic = cpp_construct((n + 1));
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < ((n - 1))))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       edges[a].push_back(b);
       edges[b].push_back(a);
@@ -33,34 +33,34 @@ func solve()
     }
   }
   {
-    var i = (0);
+    var i: dynamic = (0);
     while ((i < (n)))
     {
       a[i] = (i + 1);
       i += 1;
     }
   }
-  var x: dynamic;
-  var d: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   query(a);
   read(x, d);
-  var q: dynamic;
-  var rs: dynamic;
+  var q: dynamic = cpp_uninitialized();
+  var rs: dynamic = cpp_uninitialized();
   q.push([x, 0]);
-  var f = cpp_construct((n + 1));
+  var f: dynamic = cpp_construct((n + 1));
   f[x] = 0;
   while ((!q.empty()))
   {
-    var sz = q.size();
-    var r: dynamic;
+    var sz: dynamic = q.size();
+    var r: dynamic = cpp_uninitialized();
     {
-      var i = (0);
+      var i: dynamic = (0);
       while ((i < (sz)))
       {
-        var p = q.front();
+        var p: dynamic = q.front();
         q.pop();
         r.push_back(p.first);
-        for (var j in edges[p.first])
+        for (var j: dynamic in edges[p.first])
         {
           if ((j == p.second))
           {
@@ -74,14 +74,14 @@ func solve()
     }
     rs.push_back(r);
   }
-  var low = (((d + 1)) / 2);
-  var high = min(d, int_cpp((rs.size() - 1)));
-  var ans = -1;
-  var rx: dynamic;
-  var rd: dynamic;
+  var low: dynamic = (((d + 1)) / 2);
+  var high: dynamic = min(d, int_cpp((rs.size() - 1)));
+  var ans: dynamic = -1;
+  var rx: dynamic = cpp_uninitialized();
+  var rd: dynamic = cpp_uninitialized();
   while ((low < high))
   {
-    var mid = ((((low + high) + 1)) / 2);
+    var mid: dynamic = ((((low + high) + 1)) / 2);
     query(rs[mid]);
     read(rx, rd);
     if ((rd == d))
@@ -98,7 +98,7 @@ func solve()
     query(rs[high]);
     read(ans, rd);
   }
-  var ok: dynamic;
+  var ok: dynamic = cpp_uninitialized();
   if ((low == d))
   {
     write("! ", x, " ", ans, "\n");
@@ -106,23 +106,23 @@ func solve()
     fflush(stdout);
     return;
   }
-  var p = (d - low);
-  var st: dynamic;
-  var cur = ans;
+  var p: dynamic = (d - low);
+  var st: dynamic = cpp_uninitialized();
+  var cur: dynamic = ans;
   while (cur)
   {
     st.insert(cur);
     cur = f[cur];
   }
-  var last: dynamic;
-  for (var i in rs[p])
+  var last: dynamic = cpp_uninitialized();
+  for (var i: dynamic in rs[p])
   {
     if ((!st.count(i)))
     {
       last.push_back(i);
     }
   }
-  var res = -1;
+  var res: dynamic = -1;
   query(last);
   read(res, d);
   write("! ", res, " ", ans, "\n");
@@ -130,14 +130,14 @@ func solve()
   fflush(stdout);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var T: dynamic;
+  var T: dynamic = cpp_uninitialized();
   read(T);
   {
-    var kase = 1;
+    var kase: dynamic = 1;
     while ((kase <= T))
     {
       solve();

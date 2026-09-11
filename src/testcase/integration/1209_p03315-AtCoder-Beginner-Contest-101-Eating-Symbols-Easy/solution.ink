@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s = cpp_array(5);
+  var s: dynamic = cpp_array(5);
   read(s);
-  var o = 0;
+  var o: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       if ((s[i] == cpp_char("-")))

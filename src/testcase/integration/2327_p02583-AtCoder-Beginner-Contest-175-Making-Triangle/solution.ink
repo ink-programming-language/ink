@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(L[i]);
@@ -13,17 +13,17 @@ func main()
     }
   }
   sort(L.begin(), L.end());
-  var cnt = 0;
+  var cnt: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < N))
         {
           {
-            var k = (j + 1);
+            var k: dynamic = (j + 1);
             while ((k < N))
             {
               if (((((L[k] < (L[i] + L[j])) && (L[i] != L[j])) && (L[i] != L[k])) && (L[j] != L[k])))

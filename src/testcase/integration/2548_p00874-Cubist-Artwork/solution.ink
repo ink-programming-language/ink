@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var D: dynamic;
+var D: dynamic = cpp_uninitialized();
 
-var hw = cpp_array(21);
+var hw: dynamic = cpp_array(21);
 
-var hd = cpp_array(21);
+var hd: dynamic = cpp_array(21);
 
-func main()
+func main() -> dynamic
 {
-  var h: dynamic;
+  var h: dynamic = cpp_uninitialized();
   while (cpp_comma(((cin >> W) >> D), W))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 21))
       {
         hw[i] = 0;
@@ -23,7 +23,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < W))
       {
         read(h);
@@ -32,7 +32,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < D))
       {
         read(h);
@@ -40,9 +40,9 @@ func main()
         i += 1;
       }
     }
-    var ans = 0;
+    var ans: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= 20))
       {
         ans += (max(hd[i], hw[i]) * i);

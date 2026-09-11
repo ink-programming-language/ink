@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var MAXN = 200007;
+var MAXN: dynamic = 200007;
 
-var MAXQ = 100003;
+var MAXQ: dynamic = 100003;
 
-var LOGN = 18;
+var LOGN: dynamic = 18;
 
-var ALPHA_SZ = 29;
+var ALPHA_SZ: dynamic = 29;
 
-var ALPHA_OFFSET = cpp_char("_");
+var ALPHA_OFFSET: dynamic = cpp_char("_");
 
-var SOLANUM_TUBEROSUM = 128;
+var SOLANUM_TUBEROSUM: dynamic = 128;
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var sa = cpp_array(MAXN);
+var sa: dynamic = cpp_array(MAXN);
 
-var rk = cpp_array(MAXN);
+var rk: dynamic = cpp_array(MAXN);
 
-var lcp = cpp_array(MAXN);
+var lcp: dynamic = cpp_array(MAXN);
 
-var nw = cpp_array(MAXN);
+var nw: dynamic = cpp_array(MAXN);
 
-var st = cpp_array(LOGN, MAXN);
+var st: dynamic = cpp_array(LOGN, MAXN);
 
-func bucket_sort(k: dynamic)
+func bucket_sort(k: dynamic) -> dynamic
 {
-  var sz = max(ALPHA_SZ, n);
-  var ct = cpp_array(MAXN);
+  var sz: dynamic = max(ALPHA_SZ, n);
+  var ct: dynamic = cpp_array(MAXN);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < sz))
     {
       ct[i] = 0;
@@ -39,17 +39,17 @@ func bucket_sort(k: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       ct[rk[(sa[i] + k)]] += 1;
       i += 1;
     }
   }
-  var sum = 0;
-  var t: dynamic;
+  var sum: dynamic = 0;
+  var t: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < sz))
     {
       t = ct[i];
@@ -59,7 +59,7 @@ func bucket_sort(k: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       nw[cpp_update(ct[rk[(sa[i] + k)]], "++")] = sa[i];
@@ -67,7 +67,7 @@ func bucket_sort(k: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       sa[i] = nw[i];
@@ -76,13 +76,13 @@ func bucket_sort(k: dynamic)
   }
 }
 
-func calc(n: dynamic, s: dynamic)
+func calc(n: dynamic, s: dynamic) -> dynamic
 {
   n = n;
   s = s;
   fill(rk, (rk + MAXN), 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       sa[i] = i;
@@ -91,14 +91,14 @@ func calc(n: dynamic, s: dynamic)
     }
   }
   {
-    var k = 1;
+    var k: dynamic = 1;
     while ((k < n))
     {
       bucket_sort(k);
       bucket_sort(0);
       nw[sa[0]] = 0;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < n))
         {
           nw[sa[i]] = (nw[sa[(i - 1)]] + (((rk[sa[i]] != rk[sa[(i - 1)]]) || (rk[(sa[i] + k)] != rk[(sa[(i - 1)] + k)]))));
@@ -106,7 +106,7 @@ func calc(n: dynamic, s: dynamic)
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           rk[i] = nw[i];
@@ -116,14 +116,14 @@ func calc(n: dynamic, s: dynamic)
       k <<= 1;
     }
   }
-  var h = 0;
+  var h: dynamic = 0;
   lcp[0] = 0;
   lcp[n] = -1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var j = sa[(rk[i] - 1)];
+      var j: dynamic = sa[(rk[i] - 1)];
       {
         ((h > 0) && cpp_update(h, "--"));
         while (((((i + h) < n) && ((j + h) < n)) && (s[(i + h)] == s[(j + h)])))
@@ -136,7 +136,7 @@ func calc(n: dynamic, s: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       st[i][0] = lcp[i];
@@ -144,11 +144,11 @@ func calc(n: dynamic, s: dynamic)
     }
   }
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j < LOGN))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= (n - ((1 << j)))))
         {
           st[i][j] = min(st[i][(j - 1)], st[(i + ((1 << ((j - 1)))))][(j - 1)]);
@@ -160,60 +160,60 @@ func calc(n: dynamic, s: dynamic)
   }
 }
 
-func get_lcp(p: dynamic, q: dynamic)
+func get_lcp(p: dynamic, q: dynamic) -> dynamic
 {
   if ((p > q))
   {
     swap(p, q);
   }
   q -= 1;
-  var sz = (((8 * cpp_sizeof(dynamic)) - builtin_clz((q - p))) - 1);
+  var sz: dynamic = (((8 * cpp_sizeof(dynamic)) - builtin_clz((q - p))) - 1);
   return min(st[p][sz], st[((q - ((1 << sz))) + 1)][sz]);
 }
 
-var s = cpp_array(MAXN);
+var s: dynamic = cpp_array(MAXN);
 
-var t = cpp_array(MAXN);
+var t: dynamic = cpp_array(MAXN);
 
-var slen: dynamic;
+var slen: dynamic = cpp_uninitialized();
 
-var tlen: dynamic;
+var tlen: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var l = cpp_array(MAXQ);
+var l: dynamic = cpp_array(MAXQ);
 
-var r = cpp_array(MAXQ);
+var r: dynamic = cpp_array(MAXQ);
 
-var k = cpp_array(MAXQ);
+var k: dynamic = cpp_array(MAXQ);
 
-var x = cpp_array(MAXQ);
+var x: dynamic = cpp_array(MAXQ);
 
-var y = cpp_array(MAXQ);
+var y: dynamic = cpp_array(MAXQ);
 
-var ans = cpp_array(MAXQ);
+var ans: dynamic = cpp_array(MAXQ);
 
-func cmp_substring(p: dynamic, q: dynamic, len: dynamic)
+func cmp_substring(p: dynamic, q: dynamic, len: dynamic) -> dynamic
 {
   if ((sfx.get_lcp(sfx.rk[p], sfx.rk[q]) >= len))
   {
     return 0;
   } else
   {
-    return if ((sfx.rk[p] < sfx.rk[q])) -1 else +1;
+    return  ((sfx.rk[p] < sfx.rk[q])) ? -1 : +1;
   }
 }
 
-func cmp_options(p: dynamic, q: dynamic)
+func cmp_options(p: dynamic, q: dynamic) -> dynamic
 {
-  var rev = ((p > q));
+  var rev: dynamic = ((p > q));
   if (rev)
   {
     swap(p, q);
   }
-  var cur: dynamic;
+  var cur: dynamic = cpp_uninitialized();
   if (((q - p) >= tlen))
   {
     if (((cpp_assign(cur, "=", cmp_substring(p, (slen + 1), tlen))) != 0))
@@ -246,17 +246,17 @@ func cmp_options(p: dynamic, q: dynamic)
   return false;
 }
 
-var opt_at = cpp_array(MAXN);
+var opt_at: dynamic = cpp_array(MAXN);
 
-var opt_rk = cpp_array(MAXN);
+var opt_rk: dynamic = cpp_array(MAXN);
 
 class rmq
 {
   var f: dynamic = cpp_array((MAXN / 2), LOGN);
-  func build(n: dynamic, arr: dynamic)
+  func build(n: dynamic, arr: dynamic) -> dynamic
   {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           f[0][i] = make_pair(arr[i], i);
@@ -264,11 +264,11 @@ class rmq
         }
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < LOGN))
         {
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i <= (n - ((1 << j)))))
             {
               f[j][i] = min(f[(j - 1)][i], f[(j - 1)][(i + ((1 << ((j - 1)))))]);
@@ -279,7 +279,7 @@ class rmq
         }
       }
     }
-  func query(l: dynamic, r: dynamic)
+  func query(l: dynamic, r: dynamic) -> dynamic
   {
       if ((l > r))
       {
@@ -288,38 +288,38 @@ class rmq
       {
         return f[0][l];
       }
-      var sz = (((8 * cpp_sizeof(dynamic)) - builtin_clz((r - l))) - 1);
+      var sz: dynamic = (((8 * cpp_sizeof(dynamic)) - builtin_clz((r - l))) - 1);
       return min(f[sz][l], f[sz][((r - ((1 << sz))) + 1)]);
     }
 }
 
-var patrick: dynamic;
+var patrick: dynamic = cpp_uninitialized();
 
-func solve_queries()
+func solve_queries() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       ans[i] = -1;
       i += 1;
     }
   }
-  var t = cpp_array(MAXN);
-  var idx = cpp_array(MAXN);
-  var modulo_seg_start = cpp_array(SOLANUM_TUBEROSUM);
+  var t: dynamic = cpp_array(MAXN);
+  var idx: dynamic = cpp_array(MAXN);
+  var modulo_seg_start: dynamic = cpp_array(SOLANUM_TUBEROSUM);
   {
-    var cur_k = (SOLANUM_TUBEROSUM - 1);
+    var cur_k: dynamic = (SOLANUM_TUBEROSUM - 1);
     while ((cur_k >= 1))
     {
-      var ttop = 0;
+      var ttop: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < cur_k))
         {
           modulo_seg_start[j] = ttop;
           {
-            var k = j;
+            var k: dynamic = j;
             while ((k <= slen))
             {
               idx[ttop] = k;
@@ -332,21 +332,21 @@ func solve_queries()
       }
       patrick.build(ttop, t);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < q))
         {
           if ((k[i] == cur_k))
           {
-            var cur = make_pair(MAXN, -1);
+            var cur: dynamic = make_pair(MAXN, -1);
             {
-              var rem = x[i];
+              var rem: dynamic = x[i];
               while ((rem <= y[i]))
               {
                 cur = min(cur, patrick.query(((modulo_seg_start[rem] + cpp_cast(floor((cpp_cast((((l[i] - rem) - 1))) / cur_k)))) + 1), (modulo_seg_start[rem] + cpp_cast(floor((cpp_cast(((r[i] - rem))) / cur_k))))));
                 rem += 1;
               }
             }
-            ans[i] = if ((cur.second == -1)) -1 else idx[cur.second];
+            ans[i] =  ((cur.second == -1)) ? -1 : idx[cur.second];
           }
           i += 1;
         }
@@ -355,28 +355,28 @@ func solve_queries()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       if ((k[i] >= SOLANUM_TUBEROSUM))
       {
-        var cur = make_pair(MAXN, -1);
+        var cur: dynamic = make_pair(MAXN, -1);
         {
-          var mul = 0;
+          var mul: dynamic = 0;
           while ((mul <= slen))
           {
             cur = min(cur, patrick.query(max(l[i], (mul + x[i])), min(r[i], (mul + y[i]))));
             mul += k[i];
           }
         }
-        ans[i] = if ((cur.second == -1)) -1 else idx[cur.second];
+        ans[i] =  ((cur.second == -1)) ? -1 : idx[cur.second];
       }
       i += 1;
     }
   }
 }
 
-func main()
+func main() -> dynamic
 {
   {
     slen = 0;
@@ -398,7 +398,7 @@ func main()
   t[tlen] = cpp_char("\u{0}");
   s[slen] = cpp_char("_");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < tlen))
     {
       s[((slen + 1) + i)] = t[i];
@@ -410,7 +410,7 @@ func main()
   n = ((slen + tlen) + 2);
   sfx.calc(n, s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= slen))
     {
       opt_at[i] = i;
@@ -419,7 +419,7 @@ func main()
   }
   stable_sort(opt_at, ((opt_at + slen) + 1), cmp_options);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= slen))
     {
       opt_rk[opt_at[i]] = i;
@@ -428,7 +428,7 @@ func main()
   }
   scanf("%d", (&q));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       scanf("%d%d%d%d%d", (&l[i]), (&r[i]), (&k[i]), (&x[i]), (&y[i]));
@@ -437,10 +437,10 @@ func main()
   }
   solve_queries();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      printf("%d%c", ans[i], if ((i == (q - 1))) cpp_char("\n") else cpp_char(" "));
+      printf("%d%c", ans[i],  ((i == (q - 1))) ? cpp_char("\n") : cpp_char(" "));
       i += 1;
     }
   }

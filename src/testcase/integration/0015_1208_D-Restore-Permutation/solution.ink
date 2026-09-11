@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-var maxN = (2 * 100224);
+var maxN: dynamic = (2 * 100224);
 
 class BIT
 {
   var data: dynamic = cpp_array(maxN);
-  func update(idx: dynamic, val: dynamic)
+  func update(idx: dynamic, val: dynamic) -> dynamic
   {
       while ((idx < maxN))
       {
@@ -13,14 +13,14 @@ class BIT
         idx += (idx & (-idx));
       }
     }
-  func update(l: dynamic, r: dynamic, val: dynamic)
+  func update(l: dynamic, r: dynamic, val: dynamic) -> dynamic
   {
       update(l, val);
       update((r + 1), (-val));
     }
-  func query(idx: dynamic)
+  func query(idx: dynamic) -> dynamic
   {
-      var res = 0;
+      var res: dynamic = 0;
       while ((idx > 0))
       {
         res += data[idx];
@@ -28,7 +28,7 @@ class BIT
       }
       return res;
     }
-  func query(l: dynamic, r: dynamic)
+  func query(l: dynamic, r: dynamic) -> dynamic
   {
       return (query(r) - query(l));
     }
@@ -36,35 +36,35 @@ class BIT
 
 class LazyBIT
 {
-  var bitAdd: dynamic;
-  var bitSub: dynamic;
-  func update(l: dynamic, r: dynamic, val: dynamic)
+  var bitAdd: dynamic = cpp_uninitialized();
+  var bitSub: dynamic = cpp_uninitialized();
+  func update(l: dynamic, r: dynamic, val: dynamic) -> dynamic
   {
       bitAdd.update(l, r, val);
       bitSub.update(l, r, (((l - 1)) * val));
       bitSub.update((r + 1), (((((-r) + l) - 1)) * val));
     }
-  func query(idx: dynamic)
+  func query(idx: dynamic) -> dynamic
   {
       return ((idx * bitAdd.query(idx)) - bitSub.query(idx));
     }
-  func query(l: dynamic, r: dynamic)
+  func query(l: dynamic, r: dynamic) -> dynamic
   {
       return (query(r) - query((l - 1)));
     }
 }
 
-var parent = cpp_array(maxN);
+var parent: dynamic = cpp_array(maxN);
 
-var rnk = cpp_array(maxN);
+var rnk: dynamic = cpp_array(maxN);
 
-var lfmost = cpp_array(maxN);
+var lfmost: dynamic = cpp_array(maxN);
 
-var rtmost = cpp_array(maxN);
+var rtmost: dynamic = cpp_array(maxN);
 
-var vis = cpp_array(maxN);
+var vis: dynamic = cpp_array(maxN);
 
-func make_set(v: dynamic)
+func make_set(v: dynamic) -> dynamic
 {
   parent[v] = v;
   rnk[v] = 0;
@@ -72,7 +72,7 @@ func make_set(v: dynamic)
   rtmost[v] = v;
 }
 
-func find_set(v: dynamic)
+func find_set(v: dynamic) -> dynamic
 {
   if ((v == parent[v]))
   {
@@ -81,7 +81,7 @@ func find_set(v: dynamic)
   return cpp_assign(parent[v], "=", find_set(parent[v]));
 }
 
-func union_sets(a: dynamic, b: dynamic)
+func union_sets(a: dynamic, b: dynamic) -> dynamic
 {
   a = find_set(a);
   b = find_set(b);
@@ -101,24 +101,24 @@ func union_sets(a: dynamic, b: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i]);
       i += 1;
     }
   }
-  var sum = 0;
-  var B: dynamic;
+  var sum: dynamic = 0;
+  var B: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       B.update(i, i, sum);
@@ -126,17 +126,17 @@ func main()
       i += 1;
     }
   }
-  var haha: dynamic;
+  var haha: dynamic = cpp_uninitialized();
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
-      var lo = 1;
-      var hi = n;
-      var mid: dynamic;
-      var ans: dynamic;
-      var val: dynamic;
-      var temp: dynamic;
+      var lo: dynamic = 1;
+      var hi: dynamic = n;
+      var mid: dynamic = cpp_uninitialized();
+      var ans: dynamic = cpp_uninitialized();
+      var val: dynamic = cpp_uninitialized();
+      var temp: dynamic = cpp_uninitialized();
       while ((lo <= hi))
       {
         mid = (((lo + hi)) / 2);
@@ -182,7 +182,7 @@ func main()
     }
   }
   reverse(haha.begin(), haha.end());
-  for (var u in haha)
+  for (var u: dynamic in haha)
   {
     write(u, " ");
   }

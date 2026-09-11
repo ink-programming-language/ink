@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
 class node
 {
-  var l: dynamic;
-  var r: dynamic;
-  var id: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var p = cpp_array(100010);
+var p: dynamic = cpp_array(100010);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return ((cpp_cast(a))->l - (cpp_cast(b))->l);
 }
 
-var ans = cpp_array(100010);
+var ans: dynamic = cpp_array(100010);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d%d", (&x), (&y));
@@ -41,10 +41,10 @@ func main()
     }
   }
   qsort((p + 1), m, cpp_sizeof((node)), cmp);
-  var j = 1;
-  var cnt = 0;
+  var j: dynamic = 1;
+  var cnt: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       while (((j <= m) && (p[j].l <= i)))
@@ -54,7 +54,7 @@ func main()
       }
       while ((!q.empty()))
       {
-        var t = q.top();
+        var t: dynamic = q.top();
         q.pop();
         if (((-t.first) >= i))
         {
@@ -68,7 +68,7 @@ func main()
   }
   printf("%d\n", cnt);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cnt))
     {
       printf("%d ", ans[i]);

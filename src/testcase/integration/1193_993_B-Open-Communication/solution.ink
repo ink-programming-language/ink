@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var v1: dynamic;
+var v1: dynamic = cpp_uninitialized();
 
-var v2: dynamic;
+var v2: dynamic = cpp_uninitialized();
 
-var a1: dynamic;
+var a1: dynamic = cpp_uninitialized();
 
-var a2: dynamic;
+var a2: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var first: dynamic;
-      var second: dynamic;
+      var first: dynamic = cpp_uninitialized();
+      var second: dynamic = cpp_uninitialized();
       read(first, second);
       v1.push_back([min(first, second), max(first, second)]);
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var first: dynamic;
-      var second: dynamic;
+      var first: dynamic = cpp_uninitialized();
+      var second: dynamic = cpp_uninitialized();
       read(first, second);
       v2.push_back([min(first, second), max(first, second)]);
       i += 1;
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var s1: dynamic;
+      var s1: dynamic = cpp_uninitialized();
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < m))
         {
           if ((v1[i] == v2[k]))
@@ -51,7 +51,7 @@ func solve()
             k += 1;
             continue;
           }
-          var s: dynamic;
+          var s: dynamic = cpp_uninitialized();
           s.insert(v1[i].first);
           s.insert(v1[i].second);
           s.insert(v2[k].first);
@@ -81,12 +81,12 @@ func solve()
   }
   swap(v1, v2);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var s1: dynamic;
+      var s1: dynamic = cpp_uninitialized();
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < n))
         {
           if ((v1[i] == v2[k]))
@@ -94,7 +94,7 @@ func solve()
             k += 1;
             continue;
           }
-          var s: dynamic;
+          var s: dynamic = cpp_uninitialized();
           s.insert(v1[i].first);
           s.insert(v1[i].second);
           s.insert(v2[k].first);
@@ -131,12 +131,12 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
     solve();

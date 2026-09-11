@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  var v = 0;
-  var f = 1;
-  var c = getchar();
+  var v: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   while (((!isdigit(c)) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -23,11 +23,11 @@ func read(x: dynamic)
   x = (v * f);
 }
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  var v = 0;
-  var f = 1;
-  var c = getchar();
+  var v: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   while (((!isdigit(c)) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -46,26 +46,26 @@ func read(x: dynamic)
   x = (v * f);
 }
 
-func readc(x: dynamic)
+func readc(x: dynamic) -> dynamic
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   while (((cpp_assign(c, "=", getchar())) == cpp_char(" ")))
   {
   }
   x = c;
 }
 
-func writes(s: dynamic)
+func writes(s: dynamic) -> dynamic
 {
   puts(s.c_str());
 }
 
-func writeln()
+func writeln() -> dynamic
 {
   writes("");
 }
 
-func writei(x: dynamic)
+func writei(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -76,8 +76,8 @@ func writei(x: dynamic)
   {
     putchar(cpp_char("0"));
   }
-  var a = cpp_array(25);
-  var top = 0;
+  var a: dynamic = cpp_array(25);
+  var top: dynamic = 0;
   while (x)
   {
     a[cpp_update(top, "++")] = (((x % 10)) + cpp_char("0"));
@@ -90,7 +90,7 @@ func writei(x: dynamic)
   }
 }
 
-func writell(x: dynamic)
+func writell(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -101,8 +101,8 @@ func writell(x: dynamic)
   {
     putchar(cpp_char("0"));
   }
-  var a = cpp_array(25);
-  var top = 0;
+  var a: dynamic = cpp_array(25);
+  var top: dynamic = 0;
   while (x)
   {
     a[cpp_update(top, "++")] = (((x % 10)) + cpp_char("0"));
@@ -115,31 +115,31 @@ func writell(x: dynamic)
   }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var s = cpp_array(800005);
+var s: dynamic = cpp_array(800005);
 
-var ans = cpp_array(200005);
+var ans: dynamic = cpp_array(200005);
 
 class ii
 {
-  var l: dynamic;
-  var r: dynamic;
-  var lys: dynamic;
-  var inc: dynamic;
-  var pref: dynamic;
-  var op: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var lys: dynamic = cpp_uninitialized();
+  var inc: dynamic = cpp_uninitialized();
+  var pref: dynamic = cpp_uninitialized();
+  var op: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
   if (((x.op == 0) && (y.op == 0)))
   {
@@ -161,20 +161,20 @@ func cmp(x: dynamic, y: dynamic)
 
 class query
 {
-  var x: dynamic;
-  var y: dynamic;
-  var op: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var op: dynamic = cpp_uninitialized();
 }
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var allx: dynamic;
+var allx: dynamic = cpp_uninitialized();
 
-var ally: dynamic;
+var ally: dynamic = cpp_uninitialized();
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = x;
     while (i)
@@ -185,10 +185,10 @@ func add(x: dynamic, y: dynamic)
   }
 }
 
-func qry(x: dynamic)
+func qry(x: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var sss = 0;
+  var i: dynamic = cpp_uninitialized();
+  var sss: dynamic = 0;
   {
     i = x;
     while ((i <= 800000))
@@ -200,7 +200,7 @@ func qry(x: dynamic)
   return sss;
 }
 
-func solve(v: dynamic, l: dynamic, r: dynamic)
+func solve(v: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (v.empty())
   {
@@ -210,9 +210,9 @@ func solve(v: dynamic, l: dynamic, r: dynamic)
   {
     return;
   }
-  var mid = (((l + r)) / 2);
-  var vl: dynamic;
-  var vr: dynamic;
+  var mid: dynamic = (((l + r)) / 2);
+  var vl: dynamic = cpp_uninitialized();
+  var vr: dynamic = cpp_uninitialized();
   {
     typeof((v).begin()) = (v).begin();
     while ((it != (v).end()))
@@ -253,7 +253,7 @@ func solve(v: dynamic, l: dynamic, r: dynamic)
   solve(vr, (mid + 1), r);
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   read(m);

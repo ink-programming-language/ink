@@ -1,44 +1,44 @@
 // Translated from solution.cpp.
 
-var tinf = (cpp_cast(1e9) + 7);
+var tinf: dynamic = (cpp_cast(1e9) + 7);
 
-var inf = (cpp_cast(1e18) + 7);
+var inf: dynamic = (cpp_cast(1e18) + 7);
 
-var N = (4e5 + 5);
+var N: dynamic = (4e5 + 5);
 
-var used = cpp_array(N);
+var used: dynamic = cpp_array(N);
 
-var tin = cpp_array(N);
+var tin: dynamic = cpp_array(N);
 
-var tout = cpp_array(N);
+var tout: dynamic = cpp_array(N);
 
-var up = cpp_array(40, N);
+var up: dynamic = cpp_array(40, N);
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var timer: dynamic;
+var timer: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array(N);
+var cnt: dynamic = cpp_array(N);
 
-func dfs(v: dynamic, p: dynamic = 0)
+func dfs(v: dynamic, p: dynamic = 0) -> dynamic
 {
   used[v] = 1;
   up[v][0] = p;
   tin[v] = cpp_update(timer, "++");
   cnt[v] = (((v != p)) * ((cnt[p] + 1)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= l))
     {
       up[v][i] = up[up[v][(i - 1)]][(i - 1)];
       i += 1;
     }
   }
-  for (var i in g[v])
+  for (var i: dynamic in g[v])
   {
     if ((i != p))
     {
@@ -48,12 +48,12 @@ func dfs(v: dynamic, p: dynamic = 0)
   tout[v] = cpp_update(timer, "++");
 }
 
-func upper(a: dynamic, b: dynamic)
+func upper(a: dynamic, b: dynamic) -> dynamic
 {
   return ((tin[a] <= tin[b]) && (tout[a] >= tout[b]));
 }
 
-func lca(a: dynamic, b: dynamic)
+func lca(a: dynamic, b: dynamic) -> dynamic
 {
   if (upper(a, b))
   {
@@ -64,7 +64,7 @@ func lca(a: dynamic, b: dynamic)
     return b;
   }
   {
-    var i = l;
+    var i: dynamic = l;
     while ((i >= 0))
     {
       if ((!upper(up[a][i], b)))
@@ -77,11 +77,11 @@ func lca(a: dynamic, b: dynamic)
   return up[a][0];
 }
 
-func solver(second: dynamic, t: dynamic, first: dynamic)
+func solver(second: dynamic, t: dynamic, first: dynamic) -> dynamic
 {
-  var ans = 0;
-  var is1 = (lca(first, second) == first);
-  var is2 = (lca(first, t) == first);
+  var ans: dynamic = 0;
+  var is1: dynamic = (lca(first, second) == first);
+  var is2: dynamic = (lca(first, t) == first);
   if ((is1 != is2))
   {
     return 1;
@@ -99,24 +99,24 @@ func solver(second: dynamic, t: dynamic, first: dynamic)
   return (ans + 1);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var a = cpp_array(3);
-  var ans = (-inf);
+  var a: dynamic = cpp_array(3);
+  var ans: dynamic = (-inf);
   read(a[0], a[1], a[2]);
   a[0] -= 1;
   a[1] -= 1;
   a[2] -= 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 3))
         {
           {
-            var z = 0;
+            var z: dynamic = 0;
             while ((z < 3))
             {
               if ((((i != j) && (i != z)) && (j != z)))
@@ -135,7 +135,7 @@ func solve()
   write(ans, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   {
     ios.sync_with_stdio(false);
@@ -148,10 +148,10 @@ func main()
     l += 1;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var p: dynamic;
+      var p: dynamic = cpp_uninitialized();
       read(p);
       p -= 1;
       g[i].push_back(p);
@@ -161,7 +161,7 @@ func main()
   }
   dfs(0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
       solve();

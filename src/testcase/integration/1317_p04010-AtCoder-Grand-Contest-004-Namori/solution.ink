@@ -1,60 +1,60 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var N = 200010;
+var N: dynamic = 200010;
 
-var size = cpp_array(N);
+var size: dynamic = cpp_array(N);
 
-var Flag: dynamic;
+var Flag: dynamic = cpp_uninitialized();
 
-var cnt2 = cpp_array(N);
+var cnt2: dynamic = cpp_array(N);
 
-var pp = cpp_array(N);
+var pp: dynamic = cpp_array(N);
 
-var cc: dynamic;
+var cc: dynamic = cpp_uninitialized();
 
-var sd = cpp_array(N);
+var sd: dynamic = cpp_array(N);
 
-var cnt = cpp_array(N);
+var cnt: dynamic = cpp_array(N);
 
-var col = cpp_array(N);
+var col: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ne = cpp_array(N);
+var ne: dynamic = cpp_array(N);
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var fi = cpp_array(N);
+var fi: dynamic = cpp_array(N);
 
-var zz = cpp_array(N);
+var zz: dynamic = cpp_array(N);
 
-var flag = cpp_array(N);
+var flag: dynamic = cpp_array(N);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-func jb(x: dynamic, y: dynamic)
+func jb(x: dynamic, y: dynamic) -> dynamic
 {
   ne[cpp_update(tot, "++")] = fi[x];
   fi[x] = tot;
   zz[tot] = y;
 }
 
-func dfs2(x: dynamic)
+func dfs2(x: dynamic) -> dynamic
 {
   cnt2[x] = col[x];
   flag[x] = 1;
   {
-    var i = fi[x];
+    var i: dynamic = fi[x];
     while (i)
     {
       if (((!flag[zz[i]]) && (!pp[i])))
@@ -67,13 +67,13 @@ func dfs2(x: dynamic)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
   memset(flag, 0, cpp_sizeof(flag));
   dfs2(1);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ans += abs(((size[i] - cnt2[i]) - cnt[i]));
@@ -83,22 +83,22 @@ func solve()
   return ans;
 }
 
-func check(x: dynamic)
+func check(x: dynamic) -> dynamic
 {
   col[X] -= x;
   col[Y] += x;
-  var k = solve();
+  var k: dynamic = solve();
   col[X] += x;
   col[Y] -= x;
   return (k + abs(x));
 }
 
-func dfs(x: dynamic, y: dynamic)
+func dfs(x: dynamic, y: dynamic) -> dynamic
 {
   size[x] = cpp_assign(flag[x], "=", 1);
   cnt[x] = col[x];
   {
-    var i = fi[x];
+    var i: dynamic = fi[x];
     while (i)
     {
       if ((i != y))
@@ -129,12 +129,12 @@ func dfs(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld%lld", (&n), (&m));
   tot = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%lld%lld", (&x), (&y));
@@ -145,8 +145,8 @@ func main()
   }
   col[1] = 1;
   dfs(1, 0);
-  var S = cnt[1];
-  var T = (n - cnt[1]);
+  var S: dynamic = cnt[1];
+  var T: dynamic = (n - cnt[1]);
   if ((m == (n - 1)))
   {
     if ((S != T))
@@ -162,12 +162,12 @@ func main()
       puts("-1");
       return 0;
     }
-    var l = (-n);
-    var r = n;
+    var l: dynamic = (-n);
+    var r: dynamic = n;
     while (((l + 5) < r))
     {
-      var mid1 = (l + (((r - l)) / 3));
-      var mid2 = (r - (((r - l)) / 3));
+      var mid1: dynamic = (l + (((r - l)) / 3));
+      var mid2: dynamic = (r - (((r - l)) / 3));
       if ((check(mid1) > check(mid2)))
       {
         l = mid1;
@@ -176,9 +176,9 @@ func main()
         r = mid2;
       }
     }
-    var ans = 1e18;
+    var ans: dynamic = 1e18;
     {
-      var i = l;
+      var i: dynamic = l;
       while ((i <= r))
       {
         ans = min(ans, check(i));

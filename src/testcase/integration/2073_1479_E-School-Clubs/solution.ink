@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var N = 1010;
+var N: dynamic = 1010;
 
-var MOD = 998244353;
+var MOD: dynamic = 998244353;
 
-func bigMod(a: dynamic, e: dynamic)
+func bigMod(a: dynamic, e: dynamic) -> dynamic
 {
   if ((e == -1))
   {
     e = (MOD - 2);
   }
-  var ret = 1;
+  var ret: dynamic = 1;
   while (e)
   {
     if ((e & 1))
@@ -23,17 +23,17 @@ func bigMod(a: dynamic, e: dynamic)
   return ret;
 }
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   read(m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       read(a[i]);
@@ -42,14 +42,14 @@ func main()
     }
   }
   sort((a + 1), ((a + m) + 1));
-  var ans = 0;
-  var up = 1;
-  var down = 1;
-  var at = 0;
-  var p = (n + n);
-  var q = (n + 1);
+  var ans: dynamic = 0;
+  var up: dynamic = 1;
+  var down: dynamic = 1;
+  var at: dynamic = 0;
+  var p: dynamic = (n + n);
+  var q: dynamic = (n + 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       while ((at < a[i]))

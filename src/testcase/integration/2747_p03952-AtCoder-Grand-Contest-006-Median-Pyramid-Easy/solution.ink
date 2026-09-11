@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func gm(x: dynamic, n: dynamic)
+func gm(x: dynamic, n: dynamic) -> dynamic
 {
   if ((x > n))
   {
@@ -13,23 +13,23 @@ func gm(x: dynamic, n: dynamic)
   return x;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
-  var n: dynamic;
-  var x: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(n, x);
-  var z = ((2 * n) - 1);
+  var z: dynamic = ((2 * n) - 1);
   if (((x == 1) || (x == z)))
   {
     write("No\n");
     return 0;
   }
   write("Yes\n");
-  var st = gm(((x - n) + 1), z);
+  var st: dynamic = gm(((x - n) + 1), z);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < z))
     {
       write(st, "\n");

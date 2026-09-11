@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var N = ((200 * 1000) + 555);
+var N: dynamic = ((200 * 1000) + 555);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   read(n, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -21,10 +21,10 @@ func main()
   }
   sort(a, (a + n));
   a[cpp_update(n, "++")] = int_cpp(2e9);
-  var ans = 0;
-  var u = 0;
+  var ans: dynamic = 0;
+  var u: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       while (((u < n) && (a[i] == a[u])))

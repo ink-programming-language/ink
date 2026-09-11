@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var sl: dynamic;
+var sl: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1000000);
+var a: dynamic = cpp_array(1000000);
 
-var b = cpp_array(1000000);
+var b: dynamic = cpp_array(1000000);
 
-var que: dynamic;
+var que: dynamic = cpp_uninitialized();
 
-var tk: dynamic;
+var tk: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -31,16 +31,16 @@ func main()
     }
   }
   sort((b + 1), ((b + 1) + n));
-  var dd = 0;
+  var dd: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((dd == 1))
       {
         que.push(a[i]);
         tk.push(b[i]);
-        var kt = 0;
+        var kt: dynamic = 0;
         while ((((!que.empty()) && (!tk.empty())) && (que.front() == tk.top())))
         {
           que.pop();

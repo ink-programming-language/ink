@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var size: dynamic;
+  var size: dynamic = cpp_uninitialized();
   read(size);
-  var i: dynamic;
-  var arr: dynamic;
-  var new_size = 0;
+  var i: dynamic = cpp_uninitialized();
+  var arr: dynamic = cpp_uninitialized();
+  var new_size: dynamic = 0;
   {
     i = 0;
     while ((i < size))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
-      var has = false;
+      var has: dynamic = false;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < i))
         {
           if ((x == arr[j]))

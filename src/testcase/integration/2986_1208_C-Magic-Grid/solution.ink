@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 9);
+var N: dynamic = (1e5 + 9);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a = cpp_array(n, n);
-  var c = 0;
+  var a: dynamic = cpp_array(n, n);
+  var c: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n / 2)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (n / 2)))
         {
           a[i][j] = (4 * c);
@@ -33,11 +33,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           write(a[i][j], " ");

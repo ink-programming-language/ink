@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var N = 4050;
+var N: dynamic = 4050;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var G = cpp_array((N << 1));
+var G: dynamic = cpp_array((N << 1));
 
-var mark = cpp_array((N << 1));
+var mark: dynamic = cpp_array((N << 1));
 
-var S = cpp_array((N << 1));
+var S: dynamic = cpp_array((N << 1));
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
   if (mark[(x ^ 1)])
   {
@@ -25,7 +25,7 @@ func dfs(x: dynamic)
   mark[x] = 1;
   S[cpp_update(c, "++")] = x;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G[x].size()))
     {
       if ((!dfs(G[x][i])))
@@ -38,11 +38,11 @@ func dfs(x: dynamic)
   return 1;
 }
 
-func init(xd: dynamic)
+func init(xd: dynamic) -> dynamic
 {
   n = xd;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (2 * n)))
     {
       G[i].clear();
@@ -52,7 +52,7 @@ func init(xd: dynamic)
   memset(mark, 0, cpp_sizeof((mark)));
 }
 
-func add_clause(x: dynamic, xval: dynamic, y: dynamic, yval: dynamic)
+func add_clause(x: dynamic, xval: dynamic, y: dynamic, yval: dynamic) -> dynamic
 {
   x = (((x << 1)) + xval);
   y = (((y << 1)) + yval);
@@ -60,32 +60,32 @@ func add_clause(x: dynamic, xval: dynamic, y: dynamic, yval: dynamic)
   G[(y ^ 1)].push_back(x);
 }
 
-func add_xor(x: dynamic, y: dynamic)
+func add_xor(x: dynamic, y: dynamic) -> dynamic
 {
   add_clause(x, 0, y, 0);
   add_clause(x, 1, y, 1);
 }
 
-func add_xnor(x: dynamic, y: dynamic)
+func add_xnor(x: dynamic, y: dynamic) -> dynamic
 {
   add_clause(x, 1, y, 0);
   add_clause(x, 0, y, 1);
 }
 
-func add_true(x: dynamic)
+func add_true(x: dynamic) -> dynamic
 {
   add_clause(x, 1, x, 1);
 }
 
-func add_false(x: dynamic)
+func add_false(x: dynamic) -> dynamic
 {
   add_clause(x, 0, x, 0);
 }
 
-func solve()
+func solve() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (2 * n)))
     {
       if (((!mark[i]) && (!mark[(i + 1)])))
@@ -109,31 +109,31 @@ func solve()
   return 1;
 }
 
-func fail()
+func fail() -> dynamic
 {
   write(-1, "\n");
   exit(0);
 }
 
-var mat = cpp_array(2005, 2005);
+var mat: dynamic = cpp_array(2005, 2005);
 
-var tab = cpp_array(2005);
+var tab: dynamic = cpp_array(2005);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var first: dynamic;
+  var first: dynamic = cpp_uninitialized();
   read(first);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (first)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (first)))
         {
-          var x: dynamic;
+          var x: dynamic = cpp_uninitialized();
           read(x);
           mat[i][j] = cpp_cast(((x == cpp_char("1"))));
           j += 1;
@@ -143,14 +143,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (first)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (first)))
         {
-          var a: dynamic;
+          var a: dynamic = cpp_uninitialized();
           read(a);
           mat[i][j] ^= cpp_cast(((a == cpp_char("1"))));
           j += 1;
@@ -160,10 +160,10 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (first)))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       tab[i] = cpp_cast(((x == cpp_char("1"))));
       i += 1;
@@ -171,15 +171,15 @@ func main()
   }
   init((2 * first));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (first)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (first)))
         {
-          var a = tab[j];
-          var b = tab[i];
+          var a: dynamic = tab[j];
+          var b: dynamic = tab[i];
           if ((mat[i][j] == 1))
           {
             if (((a == 0) && (b == 0)))
@@ -224,9 +224,9 @@ func main()
     write(-1, "\n");
   } else
   {
-    var ans: dynamic;
+    var ans: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (first)))
       {
         if (mark[(((i << 1)) + 1)])
@@ -237,7 +237,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (first)))
       {
         if (mark[(((((i + first)) << 1)) + 1)])
@@ -248,7 +248,7 @@ func main()
       }
     }
     write(cpp_cast((ans).size()), "\n");
-    for (var i in (ans))
+    for (var i: dynamic in (ans))
     {
       if ((i.first == 0))
       {

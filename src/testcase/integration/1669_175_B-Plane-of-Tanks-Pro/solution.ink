@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-func mego()
+func mego() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
-  var x: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   a = cpp_assign(b, "=", cpp_assign(c, "=", cpp_assign(d, "=", 0)));
   read(n);
-  var ma: dynamic;
-  var mb: dynamic;
-  var v: dynamic;
-  var se: dynamic;
-  var ans: dynamic;
+  var ma: dynamic = cpp_uninitialized();
+  var mb: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var se: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s, x);
@@ -38,25 +38,25 @@ func main()
       i += 1;
     }
   }
-  for (var it in ma)
+  for (var it: dynamic in ma)
   {
     mb.push_back([it.second, it.first]);
     se.insert(it.second);
   }
-  for (var it in se)
+  for (var it: dynamic in se)
   {
     v.push_back(it);
   }
   sort(mb.begin(), mb.end());
   x = 0;
-  var idx = 0;
+  var idx: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < mb.size()))
     {
       a = i;
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j < mb.size()))
         {
           if ((mb[j].first == mb[i].first))
@@ -91,7 +91,7 @@ func main()
     }
   }
   write(ans.size(), "\n");
-  for (var it in ans)
+  for (var it: dynamic in ans)
   {
     write(it.first, " ", it.second, "\n");
   }

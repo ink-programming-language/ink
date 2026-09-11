@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s1: dynamic;
-  var s2: dynamic;
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
   read(s1, s2);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      if ((i == n)) (((cout << s1) << " ") << s2) else ((((cout << s1) << " ") << s2) << endl);
-      var f: dynamic;
-      var s: dynamic;
+       ((i == n)) ? (((cout << s1) << " ") << s2) : ((((cout << s1) << " ") << s2) << endl);
+      var f: dynamic = cpp_uninitialized();
+      var s: dynamic = cpp_uninitialized();
       read(f, s);
       if ((f == s1))
       {

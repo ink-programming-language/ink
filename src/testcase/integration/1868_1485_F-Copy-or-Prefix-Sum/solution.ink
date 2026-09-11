@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
-  var c = getchar();
-  var f = 0;
+  var c: dynamic = getchar();
+  var f: dynamic = 0;
   x = 0;
   while ((!isdigit(c)))
   {
@@ -22,7 +22,7 @@ func read(x: dynamic)
   return x;
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -38,26 +38,26 @@ func write(x: dynamic)
   }
 }
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-func doit()
+func doit() -> dynamic
 {
-  var ans = 0;
-  var sum: dynamic;
-  var sf: dynamic;
+  var ans: dynamic = 0;
+  var sum: dynamic = cpp_uninitialized();
+  var sf: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -67,17 +67,17 @@ func doit()
   }
   sf[0] = cpp_assign(sum, "=", 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var f = sum;
+      var f: dynamic = sum;
       (cpp_assign(sum, "+=", ((mod - sf[s[(i - 1)]]) + f))) %= mod;
       sf.erase(s[(i - 1)]);
       (cpp_assign(sf[(s[i] - a[i])], "+=", f)) %= mod;
       i += 1;
     }
   }
-  for (var x in sf)
+  for (var x: dynamic in sf)
   {
     (cpp_assign(ans, "+=", x.second)) %= mod;
   }
@@ -85,9 +85,9 @@ func doit()
   puts("");
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

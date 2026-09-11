@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var MAXN = 1e5;
+var MAXN: dynamic = 1e5;
 
-var a = cpp_array(MAXN);
+var a: dynamic = cpp_array(MAXN);
 
-func main()
+func main() -> dynamic
 {
   fill(a, (a + MAXN), 0);
-  var n: dynamic;
-  var x: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(n, x);
   if ((n == 1))
   {
@@ -20,7 +20,7 @@ func main()
   {
     a[n] = x;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= (n - 1)))
       {
         a[i] = i;
@@ -42,7 +42,7 @@ func main()
     }
     write("YES", "\n");
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         write(a[i], " ");

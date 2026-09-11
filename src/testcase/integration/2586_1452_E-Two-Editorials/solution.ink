@@ -2,21 +2,21 @@
 
 class segment
 {
-  var l: dynamic;
-  var r: dynamic;
-  func segment(l: dynamic = 0, r: dynamic = 0)
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  func segment(l: dynamic = 0, r: dynamic = 0) -> dynamic
   {
-      this->l = cpp_construct(l);
-      this->r = cpp_construct(r);
+      self->l = cpp_construct(l);
+      self->r = cpp_construct(r);
     }
 }
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.l + a.r) < (b.l + b.r));
 }
 
-func overlap(a: dynamic, b: dynamic)
+func overlap(a: dynamic, b: dynamic) -> dynamic
 {
   if (((a.r < b.l) || (b.r < a.l)))
   {
@@ -25,17 +25,17 @@ func overlap(a: dynamic, b: dynamic)
   return ((min(a.r, b.r) - max(a.l, b.l)) + 1);
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(v[i].l, v[i].r);
@@ -45,13 +45,13 @@ func main()
     }
   }
   sort(v.begin(), v.end(), cmp);
-  var s = cpp_construct((m + 1), vector(n, 0));
+  var s: dynamic = cpp_construct((m + 1), vector(n, 0));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((((j + k) - 1) < n))
         {
           s[i][j] = (s[(i - 1)][j] + overlap(v[(i - 1)], segment(j, ((j + k) - 1))));
@@ -61,23 +61,23 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var pf = 0;
+    var pf: dynamic = 0;
     while ((pf <= m))
     {
-      var ans1 = 0;
+      var ans1: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((((i + k) - 1) < n))
         {
           ans1 = max(ans1, s[pf][i]);
           i += 1;
         }
       }
-      var ans2 = 0;
+      var ans2: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((((i + k) - 1) < n))
         {
           ans2 = max(ans2, (s[m][i] - s[pf][i]));

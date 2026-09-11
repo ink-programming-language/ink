@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var N = (4e5 + 5);
+var N: dynamic = (4e5 + 5);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var t = cpp_array(N);
+var t: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -23,11 +23,11 @@ func main()
     }
   }
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k <= 24))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           t[i] = (a[i] % ((1 << ((k + 1)))));
@@ -35,9 +35,9 @@ func main()
         }
       }
       sort(t, (t + n));
-      var cnt = 0;
+      var cnt: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (n - 1)))
         {
           cnt += ((lower_bound(((t + i) + 1), (t + n), (((1 << ((k + 1)))) - t[i])) - lower_bound(((t + i) + 1), (t + n), (((1 << k)) - t[i]))));

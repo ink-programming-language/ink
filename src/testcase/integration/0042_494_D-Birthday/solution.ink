@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var r: dynamic;
-  var sign: dynamic;
-  var c: dynamic;
+  var r: dynamic = cpp_uninitialized();
+  var sign: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   r = 0;
   sign = 1;
   while (true)
@@ -28,10 +28,10 @@ func read()
   return (sign * r);
 }
 
-func print(a: dynamic, n: dynamic)
+func print(a: dynamic, n: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       write(a[i], " ");
@@ -41,21 +41,21 @@ func print(a: dynamic, n: dynamic)
   write(a[n], "\n");
 }
 
-var mod = (cpp_cast(1e9) + 7);
+var mod: dynamic = (cpp_cast(1e9) + 7);
 
 class hashInt
 {
-  var x: dynamic;
-  func hashInt()
+  var x: dynamic = cpp_uninitialized();
+  func hashInt() -> dynamic
   {
     }
-  func hashInt(x: dynamic)
+  func hashInt(x: dynamic) -> dynamic
   {
-      this->x = cpp_construct(x);
+      self->x = cpp_construct(x);
     }
-  func operator_add(y: dynamic)
+  func operator_add(y: dynamic) -> dynamic
   {
-      var z = (x + y.x);
+      var z: dynamic = (x + y.x);
       if ((z >= mod))
       {
         z -= mod;
@@ -66,9 +66,9 @@ class hashInt
       }
       return hashInt(z);
     }
-  func operator_subtract(y: dynamic)
+  func operator_subtract(y: dynamic) -> dynamic
   {
-      var z = (x - y.x);
+      var z: dynamic = (x - y.x);
       if ((z >= mod))
       {
         z -= mod;
@@ -79,7 +79,7 @@ class hashInt
       }
       return hashInt(z);
     }
-  func operator_multiply(y: dynamic)
+  func operator_multiply(y: dynamic) -> dynamic
   {
       return hashInt(((cpp_cast(x) * y.x) % mod));
     }
@@ -87,18 +87,18 @@ class hashInt
 
 class edge
 {
-  var next: dynamic;
-  var node: dynamic;
-  var w: dynamic;
+  var next: dynamic = cpp_uninitialized();
+  var node: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array(((100100 << 1) | 1));
+var e: dynamic = cpp_array(((100100 << 1) | 1));
 
-var head = cpp_array((100100 + 1));
+var head: dynamic = cpp_array((100100 + 1));
 
-var tot = 0;
+var tot: dynamic = 0;
 
-func addedge(a: dynamic, b: dynamic, w: dynamic)
+func addedge(a: dynamic, b: dynamic, w: dynamic) -> dynamic
 {
   e[cpp_update(tot, "++")].next = head[a];
   head[a] = tot;
@@ -108,47 +108,47 @@ func addedge(a: dynamic, b: dynamic, w: dynamic)
 
 class DP
 {
-  var sum: dynamic;
-  var sqr: dynamic;
-  func DP()
+  var sum: dynamic = cpp_uninitialized();
+  var sqr: dynamic = cpp_uninitialized();
+  func DP() -> dynamic
   {
     }
-  func DP(s: dynamic, q: dynamic)
+  func DP(s: dynamic, q: dynamic) -> dynamic
   {
-      this->sum = cpp_construct(s);
-      this->sqr = cpp_construct(q);
+      self->sum = cpp_construct(s);
+      self->sqr = cpp_construct(q);
     }
-  func DP(s: dynamic, q: dynamic)
+  func DP(s: dynamic, q: dynamic) -> dynamic
   {
-      this->sum = cpp_construct(s);
-      this->sqr = cpp_construct(q);
+      self->sum = cpp_construct(s);
+      self->sqr = cpp_construct(q);
     }
 }
 
-var up = cpp_array((100100 + 1));
+var up: dynamic = cpp_array((100100 + 1));
 
-var down = cpp_array((100100 + 1));
+var down: dynamic = cpp_array((100100 + 1));
 
-var downex = cpp_array((100100 + 1));
+var downex: dynamic = cpp_array((100100 + 1));
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var size = cpp_array((100100 + 1));
+var size: dynamic = cpp_array((100100 + 1));
 
-func delta(x: dynamic, n: dynamic, b: dynamic)
+func delta(x: dynamic, n: dynamic, b: dynamic) -> dynamic
 {
   return ((x.sqr + ((b * b) * n)) + ((b * 2) * x.sum));
 }
 
-func preUp(x: dynamic, f: dynamic)
+func preUp(x: dynamic, f: dynamic) -> dynamic
 {
   size[x] = 1;
   up[x].sum = cpp_assign(up[x].sqr, "=", 0);
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var node = e[i].node;
+      var node: dynamic = e[i].node;
       if ((node == f))
       {
         i = e[i].next;
@@ -163,19 +163,19 @@ func preUp(x: dynamic, f: dynamic)
   }
 }
 
-func preDown(x: dynamic, f: dynamic)
+func preDown(x: dynamic, f: dynamic) -> dynamic
 {
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var node = e[i].node;
+      var node: dynamic = e[i].node;
       if ((node == f))
       {
         i = e[i].next;
         continue;
       }
-      var cur: dynamic;
+      var cur: dynamic = cpp_uninitialized();
       cur.sum = (((down[x].sum + up[x].sum) - up[node].sum) - (e[i].w * size[node]));
       cur.sqr = ((down[x].sqr + up[x].sqr) - delta(up[node], size[node], e[i].w));
       downex[node] = cur;
@@ -187,26 +187,26 @@ func preDown(x: dynamic, f: dynamic)
   }
 }
 
-var p = cpp_array((100100 + 1), (18 + 1));
+var p: dynamic = cpp_array((100100 + 1), (18 + 1));
 
-var logn: dynamic;
+var logn: dynamic = cpp_uninitialized();
 
-var dep = cpp_array((100100 + 1));
+var dep: dynamic = cpp_array((100100 + 1));
 
-var dis = cpp_array((100100 + 1));
+var dis: dynamic = cpp_array((100100 + 1));
 
-var dissum = cpp_array((100100 + 1));
+var dissum: dynamic = cpp_array((100100 + 1));
 
-var dissqr = cpp_array((100100 + 1));
+var dissqr: dynamic = cpp_array((100100 + 1));
 
-func preDA(x: dynamic, f: dynamic)
+func preDA(x: dynamic, f: dynamic) -> dynamic
 {
   p[0][x] = f;
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var node = e[i].node;
+      var node: dynamic = e[i].node;
       if ((node == f))
       {
         i = e[i].next;
@@ -222,14 +222,14 @@ func preDA(x: dynamic, f: dynamic)
   }
 }
 
-func LCA(x: dynamic, y: dynamic)
+func LCA(x: dynamic, y: dynamic) -> dynamic
 {
   if ((dep[x] > dep[y]))
   {
     swap(x, y);
   }
   {
-    var i = logn;
+    var i: dynamic = logn;
     while ((i >= 0))
     {
       if ((dep[x] <= dep[p[i][y]]))
@@ -244,7 +244,7 @@ func LCA(x: dynamic, y: dynamic)
     return x;
   }
   {
-    var i = logn;
+    var i: dynamic = logn;
     while ((i >= 0))
     {
       if ((p[i][x] != p[i][y]))
@@ -258,10 +258,10 @@ func LCA(x: dynamic, y: dynamic)
   return p[0][x];
 }
 
-func LCA2(x: dynamic, y: dynamic)
+func LCA2(x: dynamic, y: dynamic) -> dynamic
 {
   {
-    var i = logn;
+    var i: dynamic = logn;
     while ((i >= 0))
     {
       if ((dep[x] < dep[p[i][y]]))
@@ -274,24 +274,24 @@ func LCA2(x: dynamic, y: dynamic)
   return y;
 }
 
-var Q = cpp_array((100100 + 1));
+var Q: dynamic = cpp_array((100100 + 1));
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var ans = cpp_array((100100 + 1));
+var ans: dynamic = cpp_array((100100 + 1));
 
-var seq = cpp_array((100100 + 1));
+var seq: dynamic = cpp_array((100100 + 1));
 
-var cnt = 0;
+var cnt: dynamic = 0;
 
-var pre = cpp_array((100100 + 1));
+var pre: dynamic = cpp_array((100100 + 1));
 
-var suf = cpp_array((100100 + 1));
+var suf: dynamic = cpp_array((100100 + 1));
 
 class BIT
 {
   var a: dynamic = cpp_array((100100 + 1));
-  func modify(x: dynamic, w: dynamic)
+  func modify(x: dynamic, w: dynamic) -> dynamic
   {
       {
         while ((x <= n))
@@ -301,9 +301,9 @@ class BIT
         }
       }
     }
-  func query(x: dynamic)
+  func query(x: dynamic) -> dynamic
   {
-      var r = 0;
+      var r: dynamic = 0;
       {
         while ((x > 0))
         {
@@ -315,29 +315,29 @@ class BIT
     }
 }
 
-var sufsum: dynamic;
+var sufsum: dynamic = cpp_uninitialized();
 
-var sufsqr: dynamic;
+var sufsqr: dynamic = cpp_uninitialized();
 
-func dfs(x: dynamic, f: dynamic)
+func dfs(x: dynamic, f: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Q[x].size()))
     {
-      var node = Q[x][i].first;
-      var id = Q[x][i].second;
-      var p = LCA(x, node);
-      var b = (dis[node] - dis[p]);
+      var node: dynamic = Q[x][i].first;
+      var id: dynamic = Q[x][i].second;
+      var p: dynamic = LCA(x, node);
+      var b: dynamic = (dis[node] - dis[p]);
       b = (b * b);
       i += 1;
     }
   }
   {
-    var i = head[x];
+    var i: dynamic = head[x];
     while (i)
     {
-      var node = e[i].node;
+      var node: dynamic = e[i].node;
       if ((node == f))
       {
         i = e[i].next;
@@ -353,16 +353,16 @@ func dfs(x: dynamic, f: dynamic)
   }
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var x: dynamic;
-      var y: dynamic;
-      var w: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       scanf("%d%d%d", (&x), (&y), (&w));
       addedge(x, y, w);
       addedge(y, x, w);
@@ -375,11 +375,11 @@ func main(argc: dynamic, argv: dynamic)
   preDA(1, 0);
   logn = cpp_cast(((log(cpp_cast(n)) / log(2.0))));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= logn))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           p[i][j] = p[(i - 1)][p[(i - 1)][j]];
@@ -392,12 +392,12 @@ func main(argc: dynamic, argv: dynamic)
   scanf("%d", (&q));
   while (cpp_update(q, "--"))
   {
-    var x: dynamic;
-    var y: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     scanf("%d%d", (&x), (&y));
-    var p = LCA(x, y);
-    var d = ((dis[x] + dis[y]) - (dis[p] * 2));
-    var ans = 0;
+    var p: dynamic = LCA(x, y);
+    var d: dynamic = ((dis[x] + dis[y]) - (dis[p] * 2));
+    var ans: dynamic = 0;
     if ((p == y))
     {
       ans = delta(down[y], (n - size[y]), d);

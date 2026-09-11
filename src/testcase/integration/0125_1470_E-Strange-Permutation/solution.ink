@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var wmem: dynamic;
+var wmem: dynamic = cpp_uninitialized();
 
-var memarr = cpp_array(96000000);
+var memarr: dynamic = cpp_array(96000000);
 
-func min_L(a: dynamic, b: dynamic)
+func min_L(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a <= b)) a else b;
+  return  ((a <= b)) ? a : b;
 }
 
-func walloc1d(arr: dynamic, x: dynamic, mem: dynamic = (&wmem))
+func walloc1d(arr: dynamic, x: dynamic, mem: dynamic = (&wmem)) -> dynamic
 {
-  var skip = [0, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+  var skip: dynamic = [0, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
   ((*mem)) = cpp_cast((((cpp_cast(((*mem)))) + skip[((cpp_cast(((*mem)))) & 15)])));
   ((*arr)) = cpp_cast(((*mem)));
   ((*mem)) = ((((*arr)) + x));
 }
 
-func walloc1d(arr: dynamic, x1: dynamic, x2: dynamic, mem: dynamic = (&wmem))
+func walloc1d(arr: dynamic, x1: dynamic, x2: dynamic, mem: dynamic = (&wmem)) -> dynamic
 {
   walloc1d(arr, (x2 - x1), mem);
   ((*arr)) -= x1;
 }
 
-func sortA_L(N: dynamic, a: dynamic, mem: dynamic = wmem)
+func sortA_L(N: dynamic, a: dynamic, mem: dynamic = wmem) -> dynamic
 {
   sort(a, (a + N));
 }
 
-func sortA_L(N: dynamic, a: dynamic, b: dynamic, mem: dynamic = wmem)
+func sortA_L(N: dynamic, a: dynamic, b: dynamic, mem: dynamic = wmem) -> dynamic
 {
-  var i: dynamic;
-  var arr: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var arr: dynamic = cpp_uninitialized();
   walloc1d((&arr), N, (&mem));
   {
     i = (0);
@@ -54,11 +54,11 @@ func sortA_L(N: dynamic, a: dynamic, b: dynamic, mem: dynamic = wmem)
   }
 }
 
-func my_getchar()
+func my_getchar() -> dynamic
 {
-  var buf = cpp_array(1048576);
-  var s = 1048576;
-  var e = 1048576;
+  var buf: dynamic = cpp_array(1048576);
+  var s: dynamic = 1048576;
+  var e: dynamic = 1048576;
   if (((s == e) && (e == 1048576)))
   {
     e = fread(buf, 1, 1048576, stdin);
@@ -71,10 +71,10 @@ func my_getchar()
   return buf[cpp_update(s, "++")];
 }
 
-func rd(x: dynamic)
+func rd(x: dynamic) -> dynamic
 {
-  var k: dynamic;
-  var m = 0;
+  var k: dynamic = cpp_uninitialized();
+  var m: dynamic = 0;
   x = 0;
   {
     while (true)
@@ -109,10 +109,10 @@ func rd(x: dynamic)
   }
 }
 
-func rd(x: dynamic)
+func rd(x: dynamic) -> dynamic
 {
-  var k: dynamic;
-  var m = 0;
+  var k: dynamic = cpp_uninitialized();
+  var m: dynamic = 0;
   x = 0;
   {
     while (true)
@@ -147,9 +147,9 @@ func rd(x: dynamic)
   }
 }
 
-func rd_int(argument_0: dynamic)
+func rd_int(argument_0: dynamic) -> dynamic
 {
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   rd(x);
   return x;
 }
@@ -157,14 +157,14 @@ func rd_int(argument_0: dynamic)
 class MY_WRITER
 {
   var buf: dynamic = cpp_array(1048576);
-  var s: dynamic;
-  var e: dynamic;
-  func MY_WRITER()
+  var s: dynamic = cpp_uninitialized();
+  var e: dynamic = cpp_uninitialized();
+  func MY_WRITER() -> dynamic
   {
       s = 0;
       e = 1048576;
     }
-  func ~MY_WRITER()
+  func cpp_destruct_MY_WRITER() -> dynamic
   {
       if (s)
       {
@@ -173,9 +173,9 @@ class MY_WRITER
     }
 }
 
-var MY_WRITER_VAR: dynamic;
+var MY_WRITER_VAR: dynamic = cpp_uninitialized();
 
-func my_putchar(a: dynamic)
+func my_putchar(a: dynamic) -> dynamic
 {
   if ((MY_WRITER_VAR.s == MY_WRITER_VAR.e))
   {
@@ -185,16 +185,16 @@ func my_putchar(a: dynamic)
   MY_WRITER_VAR.buf[cpp_update(MY_WRITER_VAR.s, "++")] = a;
 }
 
-func wt_L(a: dynamic)
+func wt_L(a: dynamic) -> dynamic
 {
   my_putchar(a);
 }
 
-func wt_L(x: dynamic)
+func wt_L(x: dynamic) -> dynamic
 {
-  var s = 0;
-  var m = 0;
-  var f = cpp_array(10);
+  var s: dynamic = 0;
+  var m: dynamic = 0;
+  var f: dynamic = cpp_array(10);
   if ((x < 0))
   {
     m = 1;
@@ -219,9 +219,9 @@ func wt_L(x: dynamic)
   }
 }
 
-func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic)
+func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   sz += 1;
   {
     i = (sz - 1);
@@ -234,9 +234,9 @@ func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic)
   a[k] = aval;
 }
 
-func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic, b: dynamic, bval: dynamic)
+func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic, b: dynamic, bval: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   sz += 1;
   {
     i = (sz - 1);
@@ -258,9 +258,9 @@ func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic, b: dynamic, b
   b[k] = bval;
 }
 
-func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic, b: dynamic, bval: dynamic, c: dynamic, cval: dynamic)
+func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic, b: dynamic, bval: dynamic, c: dynamic, cval: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   sz += 1;
   {
     i = (sz - 1);
@@ -291,9 +291,9 @@ func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic, b: dynamic, b
   c[k] = cval;
 }
 
-func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic, b: dynamic, bval: dynamic, c: dynamic, cval: dynamic, d: dynamic, dval: dynamic)
+func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic, b: dynamic, bval: dynamic, c: dynamic, cval: dynamic, d: dynamic, dval: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   sz += 1;
   {
     i = (sz - 1);
@@ -333,7 +333,7 @@ func arrInsert(k: dynamic, sz: dynamic, a: dynamic, aval: dynamic, b: dynamic, b
   d[k] = dval;
 }
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -342,7 +342,7 @@ func chmin(a: dynamic, b: dynamic)
   return a;
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -351,58 +351,58 @@ func chmax(a: dynamic, b: dynamic)
   return a;
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var C: dynamic;
+var C: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var A = cpp_array(30000);
+var A: dynamic = cpp_array(30000);
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-var cnt = cpp_array((30000 + 2), 5);
+var cnt: dynamic = cpp_array((30000 + 2), 5);
 
-var sz: dynamic;
+var sz: dynamic = cpp_uninitialized();
 
-var lis = cpp_array(5);
+var lis: dynamic = cpp_array(5);
 
-var ind = cpp_array(5);
+var ind: dynamic = cpp_array(5);
 
-var usz = cpp_array((30000 + 2));
+var usz: dynamic = cpp_array((30000 + 2));
 
-var ulis = cpp_array(5, (30000 + 2));
+var ulis: dynamic = cpp_array(5, (30000 + 2));
 
-var dsz = cpp_array((30000 + 2));
+var dsz: dynamic = cpp_array((30000 + 2));
 
-var dlis = cpp_array(5, (30000 + 2));
+var dlis: dynamic = cpp_array(5, (30000 + 2));
 
-var skipL = cpp_array((30000 + 2), 5);
+var skipL: dynamic = cpp_array((30000 + 2), 5);
 
-var skipR = cpp_array((30000 + 2), 5);
+var skipR: dynamic = cpp_array((30000 + 2), 5);
 
-var skipV = cpp_array((30000 + 2), 5);
+var skipV: dynamic = cpp_array((30000 + 2), 5);
 
-var skip = 150;
+var skip: dynamic = 150;
 
-var skip2L = cpp_array((30000 + 2), 5);
+var skip2L: dynamic = cpp_array((30000 + 2), 5);
 
-var skip2R = cpp_array((30000 + 2), 5);
+var skip2R: dynamic = cpp_array((30000 + 2), 5);
 
-var skip2V = cpp_array((30000 + 2), 5);
+var skip2V: dynamic = cpp_array((30000 + 2), 5);
 
-var skip2 = 30;
+var skip2: dynamic = 30;
 
-func main()
+func main() -> dynamic
 {
-  var t_ynMSdg: dynamic;
+  var t_ynMSdg: dynamic = cpp_uninitialized();
   wmem = memarr;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var c: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   {
     i = (0);
     while ((i < (5)))
@@ -437,17 +437,17 @@ func main()
       i += 1;
     }
   }
-  var KrdatlYV = rd_int();
+  var KrdatlYV: dynamic = rd_int();
   {
     t_ynMSdg = (0);
     while ((t_ynMSdg < (KrdatlYV)))
     {
-      var dtiCQK_a: dynamic;
+      var dtiCQK_a: dynamic = cpp_uninitialized();
       rd(N);
       rd(C);
       rd(Q);
       {
-        var a2conNHc: dynamic;
+        var a2conNHc: dynamic = cpp_uninitialized();
         {
           a2conNHc = (0);
           while ((a2conNHc < (N)))
@@ -507,7 +507,7 @@ func main()
             c = (0);
             while ((c < ((C + 1))))
             {
-              var sm = 0;
+              var sm: dynamic = 0;
               skipL[c][k] = -4611686016279904256;
               skipR[c][k] = 4611686016279904256;
               if ((((k + skip) + 5) >= N))
@@ -555,7 +555,7 @@ func main()
             c = (0);
             while ((c < ((C + 1))))
             {
-              var sm = 0;
+              var sm: dynamic = 0;
               skip2L[c][k] = -4611686016279904256;
               skip2R[c][k] = 4611686016279904256;
               if ((((k + skip2) + 5) >= N))

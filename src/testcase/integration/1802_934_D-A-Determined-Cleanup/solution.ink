@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-func getNext(curr: dynamic)
+func getNext(curr: dynamic) -> dynamic
 {
   if ((curr > 0))
   {
@@ -23,7 +23,7 @@ func getNext(curr: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld %lld", (&p), (&k));
   a.reserve(100);
@@ -39,7 +39,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (true)
     {
       a.push_back(getNext(a[i]));
@@ -58,7 +58,7 @@ func main()
   printf("%d\n", (a.size() + 1));
   printf("%lld ", ((k * a[0]) + p));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (((i + 1) < a.size()))
     {
       printf("%lld ", ((k * a[(i + 1)]) + a[i]));

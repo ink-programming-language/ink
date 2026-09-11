@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var N = (1e6 + 10);
+var N: dynamic = (1e6 + 10);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
   if ((n < (3 * k)))
   {
@@ -19,7 +19,7 @@ func main()
   if (((k % 2) == 0))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= (3 * k)))
       {
         ans[i] = cpp_assign(ans[(i + 1)], "=", cpp_assign(ans[(i + 3)], "=", (2 * ((i / 6)))));
@@ -28,7 +28,7 @@ func main()
       }
     }
     {
-      var i = ((3 * k) + 1);
+      var i: dynamic = ((3 * k) + 1);
       while ((i <= n))
       {
         ans[i] = 0;
@@ -38,7 +38,7 @@ func main()
   } else
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= (3 * k)))
       {
         ans[(i + 1)] = cpp_assign(ans[(i + 2)], "=", cpp_assign(ans[(i + 4)], "=", (2 * ((i / 6)))));
@@ -47,7 +47,7 @@ func main()
       }
     }
     {
-      var i = ((3 * k) + 1);
+      var i: dynamic = ((3 * k) + 1);
       while ((i <= n))
       {
         ans[i] = (k - 1);
@@ -57,7 +57,7 @@ func main()
     ans[1] = (k - 1);
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       write((ans[i] + 1), cpp_char(" "));

@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var v = cpp_array(1001);
+var v: dynamic = cpp_array(1001);
 
-var u = cpp_array(1001);
+var u: dynamic = cpp_array(1001);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
@@ -29,7 +29,7 @@ func main()
       printf("-1");
       return 0;
     }
-    var e = (15 - ((((a + b) + c) + d)));
+    var e: dynamic = (15 - ((((a + b) + c) + d)));
     printf("%d %d %d %d %d\n%d %d %d %d %d", a, d, e, c, b, c, b, e, a, d);
     return 0;
   }
@@ -38,7 +38,7 @@ func main()
     printf("-1");
     return 0;
   }
-  var e = 1;
+  var e: dynamic = 1;
   while (((((e == a) || (e == b)) || (e == c)) || (e == d)))
   {
     e += 1;
@@ -47,9 +47,9 @@ func main()
   v[2] = c;
   v[3] = e;
   v[4] = d;
-  var cnt = 4;
+  var cnt: dynamic = 4;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((((((i - a) && (i - b)) && (i - c)) && (i - d)) && (i - e)))
@@ -61,7 +61,7 @@ func main()
   }
   v[n] = b;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%d ", v[i]);
@@ -74,7 +74,7 @@ func main()
   u[4] = b;
   cnt = 4;
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 4))
     {
       u[cpp_update(cnt, "++")] = v[i];
@@ -83,7 +83,7 @@ func main()
   }
   printf("\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%d ", u[i]);

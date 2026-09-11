@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var a = cpp_array(200, 3);
+var a: dynamic = cpp_array(200, 3);
 
-var vis = cpp_array(200, 3);
+var vis: dynamic = cpp_array(200, 3);
 
-func check(x: dynamic, y: dynamic)
+func check(x: dynamic, y: dynamic) -> dynamic
 {
   return (((((x >= 0) && (y >= 0)) && (x < 3)) && (y < 200)));
 }
 
-func solve(cx: dynamic, cy: dynamic)
+func solve(cx: dynamic, cy: dynamic) -> dynamic
 {
   if (vis[cx][cy])
   {
@@ -36,18 +36,18 @@ func solve(cx: dynamic, cy: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(t);
   while (cpp_update(t, "--"))
   {
     memset(vis, 0, cpp_sizeof((vis)));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 3))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 200))
           {
             a[i][j] = cpp_char(".");
@@ -58,14 +58,14 @@ func main()
       }
     }
     read(n, k);
-    var x: dynamic;
-    var y: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 3))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             read(a[i][j]);
@@ -81,13 +81,13 @@ func main()
       }
     }
     solve(x, y);
-    var ans = false;
+    var ans: dynamic = false;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 3))
       {
         {
-          var j = (n - 1);
+          var j: dynamic = (n - 1);
           while ((j < 200))
           {
             ans |= vis[i][j];

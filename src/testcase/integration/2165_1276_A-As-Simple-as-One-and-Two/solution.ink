@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var max_n = 200111;
+var max_n: dynamic = 200111;
 
-var inf = 1000111222;
+var inf: dynamic = 1000111222;
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var buf = cpp_array(max_n);
+var buf: dynamic = cpp_array(max_n);
 
-func read_str()
+func read_str() -> dynamic
 {
   scanf("%s", buf);
   return buf;
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     s = read_str();
-    var ans: dynamic;
+    var ans: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < s.size()))
       {
         if (((i + 4) >= s.size()))
@@ -39,7 +39,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < s.size()))
       {
         if (((i + 2) >= s.size()))
@@ -55,7 +55,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < s.size()))
       {
         if (((i + 2) >= s.size()))
@@ -71,7 +71,7 @@ func main()
       }
     }
     write(ans.size(), "\n");
-    for (var a in ans)
+    for (var a: dynamic in ans)
     {
       write((a + 1), cpp_char(" "));
     }

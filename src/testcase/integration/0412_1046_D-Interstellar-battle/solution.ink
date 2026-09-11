@@ -1,51 +1,51 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
 class Edge
 {
-  var v: dynamic;
-  var next: dynamic;
+  var v: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var pool = cpp_array((100005 << 1));
+var pool: dynamic = cpp_array((100005 << 1));
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-func addEdge(u: dynamic, v: dynamic)
+func addEdge(u: dynamic, v: dynamic) -> dynamic
 {
-  var p = (&pool[cpp_update(tot, "++")]);
+  var p: dynamic = (&pool[cpp_update(tot, "++")]);
   p->v = v;
   p->next = h[u];
   h[u] = p;
 }
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var um: dynamic;
+var um: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var fa = cpp_array(100005);
+var fa: dynamic = cpp_array(100005);
 
-var son = cpp_array(100005);
+var son: dynamic = cpp_array(100005);
 
-func dfs(u: dynamic, father: dynamic)
+func dfs(u: dynamic, father: dynamic) -> dynamic
 {
   fa[u] = father;
   ans += (((1 - a[u])) * a[fa[u]]);
   {
-    var p = h[u];
+    var p: dynamic = h[u];
     while (p)
     {
       if ((p->v != father))
@@ -58,11 +58,11 @@ func dfs(u: dynamic, father: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lf", (&a[i]));
@@ -70,7 +70,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n - 1)))
     {
       scanf("%d%d", (&x), (&y));
@@ -85,7 +85,7 @@ func main()
   scanf("%d", (&m));
   dfs(1, 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d%lf", (&um), (&r));

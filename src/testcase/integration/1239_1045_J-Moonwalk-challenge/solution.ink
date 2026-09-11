@@ -1,64 +1,64 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 7);
+var N: dynamic = (1e5 + 7);
 
-var M = 110;
+var M: dynamic = 110;
 
 class node
 {
-  var u: dynamic;
-  var v: dynamic;
-  var id: dynamic;
-  var s: dynamic;
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var hd = cpp_array(N);
+var hd: dynamic = cpp_array(N);
 
-var fa = cpp_array(20, N);
+var fa: dynamic = cpp_array(20, N);
 
-var dep = cpp_array(N);
+var dep: dynamic = cpp_array(N);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-var v = cpp_array((N << 1));
+var v: dynamic = cpp_array((N << 1));
 
-var nxt = cpp_array((N << 1));
+var nxt: dynamic = cpp_array((N << 1));
 
-var rt = cpp_array(N);
+var rt: dynamic = cpp_array(N);
 
-var sum = cpp_array((N * 50));
+var sum: dynamic = cpp_array((N * 50));
 
-var lc = cpp_array((N * 50));
+var lc: dynamic = cpp_array((N * 50));
 
-var rc = cpp_array((N * 50));
+var rc: dynamic = cpp_array((N * 50));
 
-var val = cpp_array(M, N);
+var val: dynamic = cpp_array(M, N);
 
-var nv = cpp_array(N);
+var nv: dynamic = cpp_array(N);
 
-var dv = cpp_array(M);
+var dv: dynamic = cpp_array(M);
 
-var rv = cpp_array(M);
+var rv: dynamic = cpp_array(M);
 
-var c = cpp_array((N << 1));
+var c: dynamic = cpp_array((N << 1));
 
-var str: dynamic;
+var str: dynamic = cpp_uninitialized();
 
-var q = cpp_array(M);
+var q: dynamic = cpp_array(M);
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-func add(x: dynamic, y: dynamic, z: dynamic)
+func add(x: dynamic, y: dynamic, z: dynamic) -> dynamic
 {
   v[cpp_update(tot, "++")] = y;
   nxt[tot] = hd[x];
@@ -66,13 +66,13 @@ func add(x: dynamic, y: dynamic, z: dynamic)
   hd[x] = tot;
 }
 
-func dfs(u: dynamic, f: dynamic)
+func dfs(u: dynamic, f: dynamic) -> dynamic
 {
   dep[u] = (dep[f] + 1);
   fa[u][0] = f;
   {
-    var i = 2;
-    var j = f;
+    var i: dynamic = 2;
+    var j: dynamic = f;
     while ((i <= 100))
     {
       val[u][i] = ((val[u][(i - 1)] * 233) + val[j][1]);
@@ -81,7 +81,7 @@ func dfs(u: dynamic, f: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while (((i < 20) && fa[u][(i - 1)]))
     {
       fa[u][i] = fa[fa[u][(i - 1)]][(i - 1)];
@@ -89,7 +89,7 @@ func dfs(u: dynamic, f: dynamic)
     }
   }
   {
-    var i = hd[u];
+    var i: dynamic = hd[u];
     while (i)
     {
       if ((v[i] != f))
@@ -102,14 +102,14 @@ func dfs(u: dynamic, f: dynamic)
   }
 }
 
-func lca(x: dynamic, y: dynamic)
+func lca(x: dynamic, y: dynamic) -> dynamic
 {
   if ((dep[x] < dep[y]))
   {
     swap(x, y);
   }
   {
-    var i = 19;
+    var i: dynamic = 19;
     while ((~i))
     {
       if ((dep[fa[x][i]] >= dep[y]))
@@ -124,7 +124,7 @@ func lca(x: dynamic, y: dynamic)
     return x;
   }
   {
-    var i = 19;
+    var i: dynamic = 19;
     while ((~i))
     {
       if ((fa[x][i] != fa[y][i]))
@@ -138,10 +138,10 @@ func lca(x: dynamic, y: dynamic)
   return fa[x][0];
 }
 
-func up(x: dynamic, k: dynamic)
+func up(x: dynamic, k: dynamic) -> dynamic
 {
   {
-    var i = 19;
+    var i: dynamic = 19;
     while ((~i))
     {
       if ((((k >> i)) & 1))
@@ -154,7 +154,7 @@ func up(x: dynamic, k: dynamic)
   return x;
 }
 
-func update(x: dynamic, y: dynamic, k: dynamic, l: dynamic, r: dynamic)
+func update(x: dynamic, y: dynamic, k: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   x = cpp_update(cnt, "++");
   lc[x] = lc[y];
@@ -164,7 +164,7 @@ func update(x: dynamic, y: dynamic, k: dynamic, l: dynamic, r: dynamic)
   {
     return;
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   if ((k <= mid))
   {
     update(lc[x], lc[y], k, l, mid);
@@ -174,13 +174,13 @@ func update(x: dynamic, y: dynamic, k: dynamic, l: dynamic, r: dynamic)
   }
 }
 
-func query(k: dynamic, x: dynamic, y: dynamic, l: dynamic, r: dynamic)
+func query(k: dynamic, x: dynamic, y: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if ((l == r))
   {
     return (sum[x] - sum[y]);
   }
-  var mid = (((l + r)) >> 1);
+  var mid: dynamic = (((l + r)) >> 1);
   if ((k <= mid))
   {
     return query(k, lc[x], lc[y], l, mid);
@@ -188,14 +188,14 @@ func query(k: dynamic, x: dynamic, y: dynamic, l: dynamic, r: dynamic)
   return query(k, rc[x], rc[y], (mid + 1), r);
 }
 
-func solve(pos: dynamic)
+func solve(pos: dynamic) -> dynamic
 {
-  var ret = 0;
-  var z = lca(pos.u, pos.v);
-  var l = pos.s.size();
+  var ret: dynamic = 0;
+  var z: dynamic = lca(pos.u, pos.v);
+  var l: dynamic = pos.s.size();
   dv[0] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < l))
     {
       dv[(i + 1)] = (((dv[i] * 233) + pos.s[i]) - cpp_char("a"));
@@ -204,7 +204,7 @@ func solve(pos: dynamic)
   }
   rv[0] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < l))
     {
       rv[(i + 1)] = (((rv[i] * 233) + pos.s[((l - i) - 1)]) - cpp_char("a"));
@@ -213,7 +213,7 @@ func solve(pos: dynamic)
   }
   if (((dep[pos.u] - dep[z]) >= l))
   {
-    var v = ((lower_bound(h.begin(), h.end(), dv[l]) - h.begin()) + 1);
+    var v: dynamic = ((lower_bound(h.begin(), h.end(), dv[l]) - h.begin()) + 1);
     if (((v <= m) && (dv[l] == h[(v - 1)])))
     {
       ret += query(v, rt[pos.u], rt[up(pos.u, (((dep[pos.u] - dep[z]) - l) + 1))], 1, m);
@@ -221,19 +221,19 @@ func solve(pos: dynamic)
   }
   if (((dep[pos.v] - dep[z]) >= l))
   {
-    var v = ((lower_bound(h.begin(), h.end(), rv[l]) - h.begin()) + 1);
+    var v: dynamic = ((lower_bound(h.begin(), h.end(), rv[l]) - h.begin()) + 1);
     if (((v <= m) && (rv[l] == h[(v - 1)])))
     {
       ret += query(v, rt[pos.v], rt[up(pos.v, (((dep[pos.v] - dep[z]) - l) + 1))], 1, m);
     }
   }
   {
-    var i = up(pos.u, max(0, (((dep[pos.u] - dep[z]) - l) + 1)));
+    var i: dynamic = up(pos.u, max(0, (((dep[pos.u] - dep[z]) - l) + 1)));
     while ((i != z))
     {
       if ((((((dep[pos.v] - dep[z]) - l) + dep[i]) - dep[z]) >= 0))
       {
-        var j = up(pos.v, ((((dep[pos.v] - dep[z]) - l) + dep[i]) - dep[z]));
+        var j: dynamic = up(pos.v, ((((dep[pos.v] - dep[z]) - l) + dep[i]) - dep[z]));
         if (((val[i][(dep[i] - dep[z])] == dv[(dep[i] - dep[z])]) && (val[j][(dep[j] - dep[z])] == rv[(dep[j] - dep[z])])))
         {
           ret += 1;
@@ -245,11 +245,11 @@ func solve(pos: dynamic)
   return ret;
 }
 
-func modify(u: dynamic)
+func modify(u: dynamic) -> dynamic
 {
   update(rt[u], rt[fa[u][0]], nv[u], 1, m);
   {
-    var i = hd[u];
+    var i: dynamic = hd[u];
     while (i)
     {
       if ((v[i] != fa[u][0]))
@@ -261,14 +261,14 @@ func modify(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
-  var z: dynamic;
+  var z: dynamic = cpp_uninitialized();
   {
-    var i = 1;
-    var x: dynamic;
-    var y: dynamic;
+    var i: dynamic = 1;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     while ((i < n))
     {
       scanf("%d%d %c", (&x), (&y), (&z));
@@ -280,9 +280,9 @@ func main()
   dfs(1, 0);
   scanf("%d", (&Q));
   {
-    var i = 1;
-    var x: dynamic;
-    var y: dynamic;
+    var i: dynamic = 1;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     while ((i <= Q))
     {
       read(x, y, str);
@@ -291,7 +291,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 100))
     {
       if (q[i].size())
@@ -299,7 +299,7 @@ func main()
         h.clear();
         cnt = 1;
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             h.push_back(val[j][i]);
@@ -309,7 +309,7 @@ func main()
         sort(h.begin(), h.end());
         h.erase(unique(h.begin(), h.end()), h.end());
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             nv[j] = ((lower_bound(h.begin(), h.end(), val[j][i]) - h.begin()) + 1);
@@ -319,7 +319,7 @@ func main()
         m = h.size();
         modify(1);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < q[i].size()))
           {
             ans[q[i][j].id] = solve(q[i][j]);
@@ -331,7 +331,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= Q))
     {
       printf("%d\n", ans[i]);

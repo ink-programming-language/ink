@@ -2,80 +2,80 @@
 
 class yts
 {
-  var x: dynamic;
-  var t: dynamic;
-  var l: dynamic;
-  var ne: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var ne: dynamic = cpp_uninitialized();
 }
 
-var e = cpp_array(4000010);
+var e: dynamic = cpp_array(4000010);
 
 class yts2
 {
-  var x: dynamic;
-  var t: dynamic;
-  var ne: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var ne: dynamic = cpp_uninitialized();
 }
 
-var E = cpp_array(4000010);
+var E: dynamic = cpp_array(4000010);
 
 class PP
 {
-  var x: dynamic;
-  var id: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var vec1 = cpp_array(1000010);
+var vec1: dynamic = cpp_array(1000010);
 
-var vec2 = cpp_array(1000010);
+var vec2: dynamic = cpp_array(1000010);
 
-var v = cpp_array(2000010);
+var v: dynamic = cpp_array(2000010);
 
-var V = cpp_array(2000010);
+var V: dynamic = cpp_array(2000010);
 
-var scc = cpp_array(2000010);
+var scc: dynamic = cpp_array(2000010);
 
-var dfn = cpp_array(2000010);
+var dfn: dynamic = cpp_array(2000010);
 
-var low = cpp_array(2000010);
+var low: dynamic = cpp_array(2000010);
 
-var st = cpp_array(2000010);
+var st: dynamic = cpp_array(2000010);
 
-var q = cpp_array(2000010);
+var q: dynamic = cpp_array(2000010);
 
-var du = cpp_array(2000010);
+var du: dynamic = cpp_array(2000010);
 
-var f = cpp_array(2000010);
+var f: dynamic = cpp_array(2000010);
 
-var ID = cpp_array(2000010);
+var ID: dynamic = cpp_array(2000010);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var rnum: dynamic;
+var rnum: dynamic = cpp_uninitialized();
 
-var num: dynamic;
+var num: dynamic = cpp_uninitialized();
 
-var dfs_cnt: dynamic;
+var dfs_cnt: dynamic = cpp_uninitialized();
 
-var scc_cnt: dynamic;
+var scc_cnt: dynamic = cpp_uninitialized();
 
-var top: dynamic;
+var top: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.x < b.x);
 }
 
-func go(x: dynamic, y: dynamic)
+func go(x: dynamic, y: dynamic) -> dynamic
 {
   return ((((x - 1)) * m) + y);
 }
 
-func reput(x: dynamic, y: dynamic)
+func reput(x: dynamic, y: dynamic) -> dynamic
 {
   rnum += 1;
   E[rnum].x = x;
@@ -85,7 +85,7 @@ func reput(x: dynamic, y: dynamic)
   V[x] = rnum;
 }
 
-func put(x: dynamic, y: dynamic, l: dynamic)
+func put(x: dynamic, y: dynamic, l: dynamic) -> dynamic
 {
   num += 1;
   e[num].x = x;
@@ -95,15 +95,15 @@ func put(x: dynamic, y: dynamic, l: dynamic)
   v[x] = num;
 }
 
-func tarjan(x: dynamic)
+func tarjan(x: dynamic) -> dynamic
 {
   dfn[x] = cpp_assign(low[x], "=", cpp_update(dfs_cnt, "++"));
   st[cpp_update(top, "++")] = x;
   {
-    var i = v[x];
+    var i: dynamic = v[x];
     while (i)
     {
-      var y = e[i].t;
+      var y: dynamic = e[i].t;
       if ((!dfn[y]))
       {
         tarjan(y);
@@ -117,7 +117,7 @@ func tarjan(x: dynamic)
   }
   if ((dfn[x] == low[x]))
   {
-    var y: dynamic;
+    var y: dynamic = cpp_uninitialized();
     scc_cnt += 1;
     while (true)
     {
@@ -131,17 +131,17 @@ func tarjan(x: dynamic)
   }
 }
 
-func rebuild()
+func rebuild() -> dynamic
 {
   {
-    var x = 1;
+    var x: dynamic = 1;
     while ((x <= cnt))
     {
       {
-        var i = v[x];
+        var i: dynamic = v[x];
         while (i)
         {
-          var y = e[i].t;
+          var y: dynamic = e[i].t;
           if ((scc[x] != scc[y]))
           {
             reput(scc[x], scc[y]);
@@ -154,12 +154,12 @@ func rebuild()
   }
 }
 
-func tp()
+func tp() -> dynamic
 {
-  var h = 0;
-  var w = 1;
+  var h: dynamic = 0;
+  var w: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= scc_cnt))
     {
       if ((du[i] == 0))
@@ -171,13 +171,13 @@ func tp()
   }
   while ((h != w))
   {
-    var x = q[cpp_update(h, "++")];
+    var x: dynamic = q[cpp_update(h, "++")];
     f[x] += 1;
     {
-      var i = V[x];
+      var i: dynamic = V[x];
       while (i)
       {
-        var y = E[i].t;
+        var y: dynamic = E[i].t;
         f[y] = max(f[y], f[x]);
         du[y] -= 1;
         if ((du[y] == 0))
@@ -190,18 +190,18 @@ func tp()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
-          var x: dynamic;
+          var x: dynamic = cpp_uninitialized();
           scanf("%d", (&x));
           vec1[i].push_back([x, j]);
           vec2[j].push_back([x, i]);
@@ -213,13 +213,13 @@ func main()
   }
   cnt = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       sort(vec1[i].begin(), vec1[i].end(), cmp);
-      var now = -1;
+      var now: dynamic = -1;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((vec1[i][j].x != now))
@@ -239,13 +239,13 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       sort(vec2[i].begin(), vec2[i].end(), cmp);
-      var now = -1;
+      var now: dynamic = -1;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           if ((vec2[i][j].x != now))
@@ -257,7 +257,7 @@ func main()
               put((cnt - 1), cnt, 1);
             }
           }
-          var y = ID[go(vec2[i][j].id, i)];
+          var y: dynamic = ID[go(vec2[i][j].id, i)];
           put(cnt, y, 0);
           put(y, cnt, 0);
           j += 1;
@@ -267,7 +267,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cnt))
     {
       if ((!dfn[i]))
@@ -280,11 +280,11 @@ func main()
   rebuild();
   tp();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           printf("%d ", f[scc[ID[go(i, j)]]]);

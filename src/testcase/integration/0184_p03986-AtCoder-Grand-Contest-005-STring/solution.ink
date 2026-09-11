@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if ((s[i] == cpp_char("S")))

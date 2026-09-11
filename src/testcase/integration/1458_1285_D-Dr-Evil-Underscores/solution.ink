@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var cnt = 1;
+var cnt: dynamic = 1;
 
-var T = cpp_array(2, (N * 31));
+var T: dynamic = cpp_array(2, (N * 31));
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var a = cpp_array((N * 31));
+var a: dynamic = cpp_array((N * 31));
 
-func insert(x: dynamic)
+func insert(x: dynamic) -> dynamic
 {
-  var u = 0;
+  var u: dynamic = 0;
   {
-    var i = 30;
+    var i: dynamic = 30;
     while ((i >= 0))
     {
-      var v = (((x >> i)) & 1);
+      var v: dynamic = (((x >> i)) & 1);
       if ((!T[u][v]))
       {
         memset(T[cnt], 0, cpp_sizeof((T[cnt])));
@@ -33,7 +33,7 @@ func insert(x: dynamic)
   a[u] = x;
 }
 
-func dfs(p: dynamic, k: dynamic)
+func dfs(p: dynamic, k: dynamic) -> dynamic
 {
   if (((!T[p][0]) && (!T[p][1])))
   {
@@ -50,11 +50,11 @@ func dfs(p: dynamic, k: dynamic)
   return (((1 << k)) + min(dfs(T[p][0], (k - 1)), dfs(T[p][1], (k - 1))));
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&t));

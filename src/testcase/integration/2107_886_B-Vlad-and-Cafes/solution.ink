@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(200005);
+var a: dynamic = cpp_array(200005);
 
-var myset: dynamic;
+var myset: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = (0);
-    var b = ((n - 1));
+    var i: dynamic = (0);
+    var b: dynamic = ((n - 1));
     while ((i <= b))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var res = -1;
+  var res: dynamic = -1;
   {
-    var i = ((n - 1));
-    var b = (0);
+    var i: dynamic = ((n - 1));
+    var b: dynamic = (0);
     while ((i >= b))
     {
-      var pre = myset.size();
+      var pre: dynamic = myset.size();
       myset.insert(a[i]);
       if ((myset.size() > pre))
       {
@@ -37,15 +37,15 @@ func main()
   return 0;
 }
 
-func checkDefine()
+func checkDefine() -> dynamic
 {
-  var n: dynamic;
-  var a = cpp_array(200005);
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_array(200005);
+  var m: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = (0);
-    var b = ((n - 1));
+    var i: dynamic = (0);
+    var b: dynamic = ((n - 1));
     while ((i <= b))
     {
       read(a[i]);
@@ -53,7 +53,7 @@ func checkDefine()
       i += 1;
     }
   }
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
   {
     write("s", " = ");
@@ -62,8 +62,8 @@ func checkDefine()
   {
     write("a", " = ");
     {
-      var cpp_name = 0;
-      var a = (n);
+      var cpp_name: dynamic = 0;
+      var a: dynamic = (n);
       while ((cpp_name < a))
       {
         write(a[cpp_name], cpp_char(" "));

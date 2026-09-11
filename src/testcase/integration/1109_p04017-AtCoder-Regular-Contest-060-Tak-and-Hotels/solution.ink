@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var MAXN = 100005;
+var MAXN: dynamic = 100005;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var x = cpp_array(MAXN);
+var x: dynamic = cpp_array(MAXN);
 
-var nxt = cpp_array(25, MAXN);
+var nxt: dynamic = cpp_array(25, MAXN);
 
-var ans = cpp_array(MAXN);
+var ans: dynamic = cpp_array(MAXN);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&N));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       scanf("%d", (&x[i]));
@@ -28,7 +28,7 @@ func main()
   scanf("%d%d", (&L), (&Q));
   memset(nxt, 0x3F, cpp_sizeof(nxt));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= N))
     {
       nxt[i][0] = (lower_bound((x + 1), ((x + N) + 1), (x[i] + L)) - x);
@@ -40,11 +40,11 @@ func main()
     }
   }
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((((1 << j)) < N))
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= N))
         {
           if (((nxt[i][(j - 1)] != 0x3F3F3F3F) && (nxt[nxt[i][(j - 1)]][(j - 1)] != 0x3F3F3F3F)))
@@ -58,9 +58,9 @@ func main()
     }
   }
   {
-    var i = 1;
-    var a: dynamic;
-    var b: dynamic;
+    var i: dynamic = 1;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     while ((i <= Q))
     {
       scanf("%d%d", (&a), (&b));
@@ -68,9 +68,9 @@ func main()
       {
         swap(a, b);
       }
-      var ans = 0;
+      var ans: dynamic = 0;
       {
-        var j = 20;
+        var j: dynamic = 20;
         while ((j >= 0))
         {
           if ((nxt[a][j] <= b))

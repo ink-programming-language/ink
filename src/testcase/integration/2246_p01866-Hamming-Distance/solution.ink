@@ -1,59 +1,59 @@
 // Translated from solution.cpp.
 
-func FOR(i: dynamic, s: dynamic, e: dynamic)
+func FOR(i: dynamic, s: dynamic, e: dynamic) -> dynamic
 {
   cpp_macro("for(int (i)=(s);(i)<(int)(e);(i)++)");
 }
 
-func REP(i: dynamic, e: dynamic)
+func REP(i: dynamic, e: dynamic) -> dynamic
 {
   return cpp_expression("#include <");
 }
 
-func RFOR(i: dynamic, e: dynamic, s: dynamic)
+func RFOR(i: dynamic, e: dynamic, s: dynamic) -> dynamic
 {
   cpp_macro("for(int (i)=(e)-1;(i)>=(int)(s);(i)--)");
 }
 
-func RREP(i: dynamic, e: dynamic)
+func RREP(i: dynamic, e: dynamic) -> dynamic
 {
   return cpp_expression("#include <b");
 }
 
-func all(o: dynamic)
+func all(o: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.");
 }
 
-func psb(x: dynamic)
+func psb(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bi");
 }
 
-func mp(x: dynamic, y: dynamic)
+func mp(x: dynamic, y: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/std");
 }
 
-var EPS = 1e-10;
+var EPS: dynamic = 1e-10;
 
-var N = 1000;
+var N: dynamic = 1000;
 
-var usd = cpp_array(N);
+var usd: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   memset(usd, 0, cpp_sizeof((usd)));
-  var n: dynamic;
-  var d: dynamic;
-  var x: dynamic;
-  var res: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var res: dynamic = cpp_uninitialized();
   scanf("%d ", (&n));
   read(x);
   res = x;
   scanf("%d ", (&d));
-  var i = 0;
-  var j = 0;
+  var i: dynamic = 0;
+  var j: dynamic = 0;
   while (((i < n) && (j < d)))
   {
     if (((x[i] == cpp_char("0")) && (!usd[i])))

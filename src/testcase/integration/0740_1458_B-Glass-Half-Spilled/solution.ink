@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var USE_MATH_DEFINES = cpp_expression("#def");
+var USE_MATH_DEFINES: dynamic = cpp_expression("#def");
 
-var N = 102;
+var N: dynamic = 102;
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var dp = cpp_array(N, (N * N), N);
+var dp: dynamic = cpp_array(N, (N * N), N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var watersum: dynamic;
+var watersum: dynamic = cpp_uninitialized();
 
-var volumesum: dynamic;
+var volumesum: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   cin.sync_with_stdio(0);
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i], b[i]);
@@ -30,7 +30,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       watersum += b[i];
@@ -38,7 +38,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       volumesum += a[i];
@@ -48,15 +48,15 @@ func main()
   memset(dp, -1, cpp_sizeof((dp)));
   dp[0][0][0] = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= volumesum))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k <= n))
             {
               if ((~dp[i][j][k]))
@@ -73,13 +73,13 @@ func main()
       i += 1;
     }
   }
-  var res = cpp_construct((n + 1));
+  var res: dynamic = cpp_construct((n + 1));
   {
-    var k = 1;
+    var k: dynamic = 1;
     while ((k <= n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= volumesum))
         {
           if ((~dp[n][j][k]))
@@ -93,7 +93,7 @@ func main()
     }
   }
   {
-    var k = 1;
+    var k: dynamic = 1;
     while ((k <= n))
     {
       write(fixed, setprecision(10), res[k], " ");

@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-func maxtt(t1: dynamic, t2: dynamic)
+func maxtt(t1: dynamic, t2: dynamic) -> dynamic
 {
   t1 = max(t1, t2);
 }
 
-func mintt(t1: dynamic, t2: dynamic)
+func mintt(t1: dynamic, t2: dynamic) -> dynamic
 {
   t1 = min(t1, t2);
 }
 
-var debug = 0;
+var debug: dynamic = 0;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var direc = "RDLU";
+var direc: dynamic = "RDLU";
 
-var MOD2 = (cpp_cast(998244353) * cpp_cast(998244353));
+var MOD2: dynamic = (cpp_cast(998244353) * cpp_cast(998244353));
 
-var ln: dynamic;
+var ln: dynamic = cpp_uninitialized();
 
-var lk: dynamic;
+var lk: dynamic = cpp_uninitialized();
 
-var lm: dynamic;
+var lm: dynamic = cpp_uninitialized();
 
-func etp(f: dynamic = 0)
+func etp(f: dynamic = 0) -> dynamic
 {
-  puts(if (f) "YES" else "NO");
+  puts( (f) ? "YES" : "NO");
   exit(0);
 }
 
-func addmod(x: dynamic, y: dynamic, mod: dynamic = 998244353)
+func addmod(x: dynamic, y: dynamic, mod: dynamic = 998244353) -> dynamic
 {
   x += y;
   if ((x >= mod))
@@ -48,15 +48,15 @@ func addmod(x: dynamic, y: dynamic, mod: dynamic = 998244353)
   assert(((x >= 0) && (x < mod)));
 }
 
-func et(x: dynamic = -1)
+func et(x: dynamic = -1) -> dynamic
 {
   printf("%d\n", x);
   exit(0);
 }
 
-func fastPow(x: dynamic, y: dynamic, mod: dynamic = 998244353)
+func fastPow(x: dynamic, y: dynamic, mod: dynamic = 998244353) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while ((y > 0))
   {
     if ((y & 1))
@@ -69,21 +69,21 @@ func fastPow(x: dynamic, y: dynamic, mod: dynamic = 998244353)
   return ans;
 }
 
-func gcd1(x: dynamic, y: dynamic)
+func gcd1(x: dynamic, y: dynamic) -> dynamic
 {
-  return if (y) gcd1(y, (x % y)) else x;
+  return  (y) ? gcd1(y, (x % y)) : x;
 }
 
-var a = cpp_array(200135);
+var a: dynamic = cpp_array(200135);
 
 class lsp
 {
   var a: dynamic = cpp_array(60);
-  var maxBit: dynamic;
-  func insert(x: dynamic)
+  var maxBit: dynamic = cpp_uninitialized();
+  func insert(x: dynamic) -> dynamic
   {
       {
-        var i = maxBit;
+        var i: dynamic = maxBit;
         while ((~i))
         {
           if ((x & ((1 << i))))
@@ -105,7 +105,7 @@ class lsp
                 }
               }
               {
-                var j = (i + 1);
+                var j: dynamic = (i + 1);
                 while ((j <= maxBit))
                 {
                   if ((a[j] & ((1 << i))))
@@ -124,12 +124,12 @@ class lsp
       }
       return 0;
     }
-  func getOrthogonal(m: dynamic)
+  func getOrthogonal(m: dynamic) -> dynamic
   {
-      var res: dynamic;
-      var vp: dynamic;
+      var res: dynamic = cpp_uninitialized();
+      var vp: dynamic = cpp_uninitialized();
       {
-        var j = (m - 1);
+        var j: dynamic = (m - 1);
         while ((j >= 0))
         {
           if ((!a[j]))
@@ -141,19 +141,19 @@ class lsp
         }
       }
       {
-        var j = (m - 1);
+        var j: dynamic = (m - 1);
         while ((j >= 0))
         {
           if (a[j])
           {
-            var cc = 0;
+            var cc: dynamic = 0;
             {
-              var z = (m - 1);
+              var z: dynamic = (m - 1);
               while ((z >= 0))
               {
                 if ((!a[z]))
                 {
-                  var w = (((a[j] >> z)) & 1);
+                  var w: dynamic = (((a[j] >> z)) & 1);
                   res.a[vp[cc]] |= (w << j);
                   cc += 1;
                 }
@@ -168,16 +168,16 @@ class lsp
     }
 }
 
-var sp: dynamic;
+var sp: dynamic = cpp_uninitialized();
 
-var p = cpp_array(66);
+var p: dynamic = cpp_array(66);
 
-var q = cpp_array(66);
+var q: dynamic = cpp_array(66);
 
-func ppt()
+func ppt() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= m))
     {
       printf("%lld ", ((cpp_cast(p[i]) * fastPow(2, (n - k))) % 998244353));
@@ -187,9 +187,9 @@ func ppt()
   exit(0);
 }
 
-var bs: dynamic;
+var bs: dynamic = cpp_uninitialized();
 
-func dfs(p: dynamic, k: dynamic, i: dynamic, x: dynamic)
+func dfs(p: dynamic, k: dynamic, i: dynamic, x: dynamic) -> dynamic
 {
   if ((i == k))
   {
@@ -200,7 +200,7 @@ func dfs(p: dynamic, k: dynamic, i: dynamic, x: dynamic)
   dfs(p, k, (i + 1), (x ^ bs[i]));
 }
 
-func calsm(sp: dynamic, p: dynamic, k: dynamic)
+func calsm(sp: dynamic, p: dynamic, k: dynamic) -> dynamic
 {
   bs.clear();
   {
@@ -218,17 +218,17 @@ func calsm(sp: dynamic, p: dynamic, k: dynamic)
   dfs(p, k, 0, 0);
 }
 
-func calbg()
+func calbg() -> dynamic
 {
-  var C = cpp_construct(60, vector(60, 0));
+  var C: dynamic = cpp_construct(60, vector(60, 0));
   C[0][0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 55))
     {
       C[i][0] = cpp_assign(C[i][i], "=", 1);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < i))
         {
           C[i][j] = (((C[(i - 1)][(j - 1)] + C[(i - 1)][j])) % 998244353);
@@ -238,20 +238,20 @@ func calbg()
       i += 1;
     }
   }
-  var w = cpp_construct((m + 1), vector((m + 1), 0));
+  var w: dynamic = cpp_construct((m + 1), vector((m + 1), 0));
   {
-    var c = 0;
+    var c: dynamic = 0;
     while ((c <= m))
     {
       {
-        var d = 0;
+        var d: dynamic = 0;
         while ((d <= m))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j <= c))
             {
-              var val = ((cpp_cast(C[d][j]) * C[(m - d)][(c - j)]) % 998244353);
+              var val: dynamic = ((cpp_cast(C[d][j]) * C[(m - d)][(c - j)]) % 998244353);
               if (((j % 2) == 0))
               {
                 addmod(w[c][d], val);
@@ -268,14 +268,14 @@ func calbg()
       c += 1;
     }
   }
-  var B = sp.getOrthogonal(m);
+  var B: dynamic = sp.getOrthogonal(m);
   calsm(B, q, (m - k));
   {
     int_cpp(c) = 0;
     while (((c) < cpp_cast(((m + 1)))))
     {
       {
-        var d = 0;
+        var d: dynamic = 0;
         while ((d <= m))
         {
           addmod(p[c], ((cpp_cast(q[d]) * w[c][d]) % 998244353));
@@ -285,7 +285,7 @@ func calbg()
       (c) += 1;
     }
   }
-  var tmp = fastPow(2, (m - k));
+  var tmp: dynamic = fastPow(2, (m - k));
   tmp = fastPow(tmp, (998244353 - 2));
   {
     int_cpp(c) = 0;
@@ -298,7 +298,7 @@ func calbg()
   ppt();
 }
 
-func fmain(tid: dynamic)
+func fmain(tid: dynamic) -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
@@ -325,9 +325,9 @@ func fmain(tid: dynamic)
   calbg();
 }
 
-func main()
+func main() -> dynamic
 {
-  var t = 1;
+  var t: dynamic = 1;
   {
     int_cpp(i) = 1;
     while (((i) <= cpp_cast((t))))

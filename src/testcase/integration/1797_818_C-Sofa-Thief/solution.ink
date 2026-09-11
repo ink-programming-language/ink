@@ -1,66 +1,66 @@
 // Translated from solution.cpp.
 
-var inf = (1e9 + 7);
+var inf: dynamic = (1e9 + 7);
 
-var big = ((inf * 1) * inf);
+var big: dynamic = ((inf * 1) * inf);
 
-var maxn = 1e6;
+var maxn: dynamic = 1e6;
 
-var vert = cpp_array(100010);
+var vert: dynamic = cpp_array(100010);
 
-var hori = cpp_array(100010);
+var hori: dynamic = cpp_array(100010);
 
-var cntVert = cpp_array(100010);
+var cntVert: dynamic = cpp_array(100010);
 
-var cntHori = cpp_array(100010);
+var cntHori: dynamic = cpp_array(100010);
 
-var topBefore = cpp_array(100010);
+var topBefore: dynamic = cpp_array(100010);
 
 class Sofa
 {
-  var x1: dynamic;
-  var y1: dynamic;
-  var x2: dynamic;
-  var y2: dynamic;
-  func Sofa()
+  var x1: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var x2: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
+  func Sofa() -> dynamic
   {
     }
-  func Sofa(a: dynamic, b: dynamic, c: dynamic, d: dynamic)
+  func Sofa(a: dynamic, b: dynamic, c: dynamic, d: dynamic) -> dynamic
   {
-      this->x1 = cpp_construct(a);
-      this->y1 = cpp_construct(b);
-      this->x2 = cpp_construct(c);
-      this->y2 = cpp_construct(d);
+      self->x1 = cpp_construct(a);
+      self->y1 = cpp_construct(b);
+      self->x2 = cpp_construct(c);
+      self->y2 = cpp_construct(d);
     }
-  func isVert()
+  func isVert() -> dynamic
   {
       return (x1 == x2);
     }
-  func isHori()
+  func isHori() -> dynamic
   {
       return (y1 == y2);
     }
 }
 
-var sofas = cpp_array(100010);
+var sofas: dynamic = cpp_array(100010);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
-  var d: dynamic;
+  var d: dynamic = cpp_uninitialized();
   read(d);
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < d))
     {
-      var x1: dynamic;
-      var y1: dynamic;
-      var x2: dynamic;
-      var y2: dynamic;
+      var x1: dynamic = cpp_uninitialized();
+      var y1: dynamic = cpp_uninitialized();
+      var x2: dynamic = cpp_uninitialized();
+      var y2: dynamic = cpp_uninitialized();
       read(x1, y1, x2, y2);
       sofas[i] = Sofa(x1, y1, x2, y2);
       if ((x1 == x2))
@@ -78,21 +78,21 @@ func main()
     }
   }
   {
-    var row = 1;
+    var row: dynamic = 1;
     while ((row <= m))
     {
       topBefore[row] = (topBefore[(row - 1)] + hori[row].size());
       row += 1;
     }
   }
-  var cntl: dynamic;
-  var cntr: dynamic;
-  var cntt: dynamic;
-  var cntb: dynamic;
+  var cntl: dynamic = cpp_uninitialized();
+  var cntr: dynamic = cpp_uninitialized();
+  var cntt: dynamic = cpp_uninitialized();
+  var cntb: dynamic = cpp_uninitialized();
   read(cntl, cntr, cntt, cntb);
-  var toTheLeft = 0;
+  var toTheLeft: dynamic = 0;
   {
-    var col = 1;
+    var col: dynamic = 1;
     while ((col <= n))
     {
       if ((!vert[col].size()))
@@ -100,12 +100,12 @@ func main()
         col += 1;
         continue;
       }
-      for (var id in vert[col])
+      for (var id: dynamic in vert[col])
       {
-        var sofa = sofas[id];
-        var toTheRight: dynamic;
-        var toTheTop: dynamic;
-        var toTheBottom: dynamic;
+        var sofa: dynamic = sofas[id];
+        var toTheRight: dynamic = cpp_uninitialized();
+        var toTheTop: dynamic = cpp_uninitialized();
+        var toTheBottom: dynamic = cpp_uninitialized();
         if (sofa.isVert())
         {
           toTheRight = ((d - toTheLeft) - cntVert[col]);

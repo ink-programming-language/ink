@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read(n: dynamic)
+func read(n: dynamic) -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -21,11 +21,11 @@ func read(n: dynamic)
   n = (x * f);
 }
 
-var outputarray = cpp_array(20);
+var outputarray: dynamic = cpp_array(20);
 
-func write(k: dynamic)
+func write(k: dynamic) -> dynamic
 {
-  var num = 0;
+  var num: dynamic = 0;
   if ((k < 0))
   {
     putchar(cpp_char("-"));
@@ -46,45 +46,45 @@ func write(k: dynamic)
   }
 }
 
-var maxn = 200001;
+var maxn: dynamic = 200001;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ans = cpp_array(maxn);
+var ans: dynamic = cpp_array(maxn);
 
 class T
 {
-  var p: dynamic;
-  var q: dynamic;
-  func operator_less(b: dynamic)
+  var p: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  func operator_less(b: dynamic) -> dynamic
   {
-      return if ((q != b.q)) (q > b.q) else (p < b.p);
+      return  ((q != b.q)) ? (q > b.q) : (p < b.p);
     }
 }
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
 class node
 {
-  var key: dynamic;
-  var id: dynamic;
-  var l1: dynamic;
-  var l2: dynamic;
-  var s1: dynamic;
-  var s2: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  func node(w: dynamic, id: dynamic)
+  var key: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  var l1: dynamic = cpp_uninitialized();
+  var l2: dynamic = cpp_uninitialized();
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  func node(w: dynamic, id: dynamic) -> dynamic
   {
-      this->s1 = cpp_construct(w);
-      this->id = cpp_construct(id);
+      self->s1 = cpp_construct(w);
+      self->id = cpp_construct(id);
       key = rand();
       l1 = cpp_assign(l2, "=", cpp_assign(s2, "=", 0));
       l = cpp_assign(r, "=", null);
     }
-  func pushdown()
+  func pushdown() -> dynamic
   {
       if (l1)
       {
@@ -117,7 +117,7 @@ class node
     }
 }
 
-func split(root: dynamic, a: dynamic, b: dynamic, v: dynamic)
+func split(root: dynamic, a: dynamic, b: dynamic, v: dynamic) -> dynamic
 {
   if ((root == null))
   {
@@ -136,7 +136,7 @@ func split(root: dynamic, a: dynamic, b: dynamic, v: dynamic)
   }
 }
 
-func merge(a: dynamic, b: dynamic)
+func merge(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == null))
   {
@@ -157,19 +157,19 @@ func merge(a: dynamic, b: dynamic)
   return b;
 }
 
-func insert(a: dynamic, b: dynamic)
+func insert(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == null))
   {
     return b;
   }
-  var l: dynamic;
-  var r: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
   split(a, l, r, b->s1);
   return merge(l, merge(b, r));
 }
 
-func left(root: dynamic)
+func left(root: dynamic) -> dynamic
 {
   while ((root->l != null))
   {
@@ -179,7 +179,7 @@ func left(root: dynamic)
   return root;
 }
 
-func right(root: dynamic)
+func right(root: dynamic) -> dynamic
 {
   while ((root->r != null))
   {
@@ -189,7 +189,7 @@ func right(root: dynamic)
   return root;
 }
 
-func updata(root: dynamic, v: dynamic, w: dynamic)
+func updata(root: dynamic, v: dynamic, w: dynamic) -> dynamic
 {
   root->l1 += v;
   root->l2 += w;
@@ -197,7 +197,7 @@ func updata(root: dynamic, v: dynamic, w: dynamic)
   root->s2 += w;
 }
 
-func query(root: dynamic)
+func query(root: dynamic) -> dynamic
 {
   if ((root == null))
   {
@@ -215,11 +215,11 @@ func query(root: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(s[i].p);
@@ -229,10 +229,10 @@ func main()
   }
   sort((s + 1), ((s + n) + 1));
   read(m);
-  var root = null;
-  var k: dynamic;
+  var root: dynamic = null;
+  var k: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       read(k);
@@ -240,14 +240,14 @@ func main()
       i += 1;
     }
   }
-  var l: dynamic;
-  var r: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var L: dynamic;
-  var R: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var L: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       split(root, l, r, s[i].p);
@@ -284,7 +284,7 @@ func main()
   }
   query(root);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       write(ans[i]);

@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   read(k);
-  var a = cpp_array(k);
+  var a: dynamic = cpp_array(k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < k))
     {
       read(a[i]);
       i += 1;
     }
   }
-  var ng = 1;
-  var ok = 2;
+  var ng: dynamic = 1;
+  var ok: dynamic = 2;
   {
-    var i = (k - 1);
+    var i: dynamic = (k - 1);
     while ((i >= 0))
     {
       ng = ((((1 + (ng / a[i]))) * a[i]) - 1);

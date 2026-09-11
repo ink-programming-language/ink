@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
-  var N: dynamic;
-  var ans = 0;
+  var N: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
   read(N);
-  var s = cpp_array(N);
+  var s: dynamic = cpp_array(N);
   rep(i, N);
   read(s[i]);
   {
-    var k = 0;
+    var k: dynamic = 0;
     while ((k < N))
     {
-      var ok = 1;
+      var ok: dynamic = 1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < N))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < N))
             {
               if (((((i + k)) % N) == j))

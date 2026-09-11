@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var dpp = cpp_array(4, 510, 510);
+var dpp: dynamic = cpp_array(4, 510, 510);
 
-var dpc = cpp_array(4, 510, 510);
+var dpc: dynamic = cpp_array(4, 510, 510);
 
-var f = cpp_array(510);
+var f: dynamic = cpp_array(510);
 
-var g = cpp_array(510);
+var g: dynamic = cpp_array(510);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var tp2: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var n: dynamic;
-  var k: dynamic;
-  var cnt = 0;
-  var tp: dynamic;
+  var tp2: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var cnt: dynamic = 0;
+  var tp: dynamic = cpp_uninitialized();
   read(n, tp2);
   tp2 -= 1;
   dpp[1][1][1] = 1;

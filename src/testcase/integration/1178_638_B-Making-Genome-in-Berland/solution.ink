@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var N = (cpp_cast(2e5) + 5);
+var N: dynamic = (cpp_cast(2e5) + 5);
 
-var INF = cpp_cast(1e9);
+var INF: dynamic = cpp_cast(1e9);
 
-var mod = (cpp_cast(1e9) + 7);
+var mod: dynamic = (cpp_cast(1e9) + 7);
 
-var LLINF = cpp_cast(1e18);
+var LLINF: dynamic = cpp_cast(1e18);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(26, 26);
+var a: dynamic = cpp_array(26, 26);
 
-var was = cpp_array(26);
+var was: dynamic = cpp_array(26);
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
   write(char((97 + x)));
   {
-    var to = 0;
+    var to: dynamic = 0;
     while ((to < 26))
     {
       if (a[x][to])
@@ -30,18 +30,18 @@ func dfs(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var t: dynamic;
+      var t: dynamic = cpp_uninitialized();
       read(t);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < t.size()))
         {
           was[(t[j] - cpp_char("a"))] = true;
@@ -49,7 +49,7 @@ func main()
         }
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < t.size()))
         {
           a[(t[(j - 1)] - cpp_char("a"))][(t[j] - cpp_char("a"))] = true;
@@ -60,7 +60,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
       if ((!was[i]))
@@ -68,9 +68,9 @@ func main()
         i += 1;
         continue;
       }
-      var ok = true;
+      var ok: dynamic = true;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 26))
         {
           if ((a[j][i] == true))

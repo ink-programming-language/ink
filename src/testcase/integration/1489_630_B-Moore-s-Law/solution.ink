@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var lsbl: dynamic;
+var lsbl: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var lsbl1: dynamic;
+var lsbl1: dynamic = cpp_uninitialized();
 
-func ksm(a: dynamic, b: dynamic)
+func ksm(a: dynamic, b: dynamic) -> dynamic
 {
-  var sumend = 1;
+  var sumend: dynamic = 1;
   while (b)
   {
     if (((b % 2) == 1))
@@ -29,7 +29,7 @@ func ksm(a: dynamic, b: dynamic)
   return sumend;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, t);
   lsbl1 = (n * ksm(1.000000011, t));

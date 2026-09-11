@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var r: dynamic;
+  var r: dynamic = cpp_uninitialized();
   read(r);
   if (((r % 2) == 0))
   {

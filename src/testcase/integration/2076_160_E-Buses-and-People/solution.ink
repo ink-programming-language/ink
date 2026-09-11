@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var maxn = (1e5 + 10);
+var maxn: dynamic = (1e5 + 10);
 
-var b = cpp_array((maxn << 3));
+var b: dynamic = cpp_array((maxn << 3));
 
-var id = cpp_array((maxn << 3));
+var id: dynamic = cpp_array((maxn << 3));
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
 class seg
 {
-  var l: dynamic;
-  var r: dynamic;
-  var t: dynamic;
-  var id: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
 }
 
-var val: dynamic;
+var val: dynamic = cpp_uninitialized();
 
-func pos(x: dynamic)
+func pos(x: dynamic) -> dynamic
 {
   return ((lower_bound(val.begin(), val.end(), x) - val.begin()) + 1);
 }
 
-func build(o: dynamic, l: dynamic, r: dynamic)
+func build(o: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if ((r == l))
   {
@@ -37,7 +37,7 @@ func build(o: dynamic, l: dynamic, r: dynamic)
   b[o] = max(b[((o * 2))], b[(((o * 2) + 1))]);
 }
 
-func A(o: dynamic, l: dynamic, r: dynamic, qd: dynamic, d1: dynamic, d2: dynamic)
+func A(o: dynamic, l: dynamic, r: dynamic, qd: dynamic, d1: dynamic, d2: dynamic) -> dynamic
 {
   if ((r == l))
   {
@@ -55,13 +55,13 @@ func A(o: dynamic, l: dynamic, r: dynamic, qd: dynamic, d1: dynamic, d2: dynamic
   b[o] = max(b[((o * 2))], b[(((o * 2) + 1))]);
 }
 
-func Q(o: dynamic, l: dynamic, r: dynamic, qd: dynamic, d: dynamic)
+func Q(o: dynamic, l: dynamic, r: dynamic, qd: dynamic, d: dynamic) -> dynamic
 {
   if ((b[o] < d))
   {
     return -1;
   }
-  var ans: dynamic;
+  var ans: dynamic = cpp_uninitialized();
   if ((r == l))
   {
     return id[o];
@@ -77,19 +77,19 @@ func Q(o: dynamic, l: dynamic, r: dynamic, qd: dynamic, d: dynamic)
   return Q((((o * 2) + 1)), (((((l + r)) >> 1)) + 1), r, qd, d);
 }
 
-var ans = cpp_array(maxn);
+var ans: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n + m)))
     {
-      var l: dynamic;
-      var r: dynamic;
-      var t: dynamic;
+      var l: dynamic = cpp_uninitialized();
+      var r: dynamic = cpp_uninitialized();
+      var t: dynamic = cpp_uninitialized();
       scanf("%d%d%d", (&l), (&r), (&t));
       v.push_back([l, r, t, i]);
       val.push_back(t);
@@ -101,7 +101,7 @@ func main()
   sort(v.begin(), v.end(), __cpp_lambda_1);
   build(1, 1, val.size());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v.size()))
     {
       if ((v[i].id <= n))
@@ -115,7 +115,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       printf("%d%c", ans[i], " \n"[(i == n)]);
@@ -124,7 +124,7 @@ func main()
   }
 }
 
-func __cpp_lambda_1(a: dynamic, b: dynamic)
+func __cpp_lambda_1(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a.l == b.l))
   {

@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var inp: dynamic;
+var inp: dynamic = cpp_uninitialized();
 
-var diff: dynamic;
+var diff: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
@@ -15,7 +15,7 @@ func main()
   diff.push_back(inp[0]);
   cnt.push_back(1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < inp.size()))
     {
       if ((inp[i] != inp[(i - 1)]))
@@ -35,7 +35,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (diff.size() / 2)))
     {
       if ((diff[i] != diff[((diff.size() - 1) - i)]))

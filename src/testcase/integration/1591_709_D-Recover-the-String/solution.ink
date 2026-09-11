@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   read(a, b, c, d);
   if (((a == 0) && (d == 0)))
   {
@@ -30,13 +30,13 @@ func main()
       return 0;
     }
   }
-  var cnt0: dynamic;
-  var cnt1: dynamic;
-  var l = 0;
-  var r = 1000001;
+  var cnt0: dynamic = cpp_uninitialized();
+  var cnt1: dynamic = cpp_uninitialized();
+  var l: dynamic = 0;
+  var r: dynamic = 1000001;
   while (((r - l) > 1))
   {
-    var m = (((l + r)) / 2);
+    var m: dynamic = (((l + r)) / 2);
     if (((m * ((m - 1))) <= (a * 2)))
     {
       l = m;
@@ -55,7 +55,7 @@ func main()
   r = 1000001;
   while (((r - l) > 1))
   {
-    var m = (((l + r)) / 2);
+    var m: dynamic = (((l + r)) / 2);
     if (((m * ((m - 1))) <= (d * 2)))
     {
       l = m;
@@ -70,7 +70,7 @@ func main()
     return 0;
   }
   cnt1 = l;
-  var solve = -1;
+  var solve: dynamic = -1;
   if (((cnt0 * cnt1) == (b + c)))
   {
     solve = 1;
@@ -90,9 +90,9 @@ func main()
     write("Impossible");
     return 0;
   }
-  var bb = (cnt0 * cnt1);
-  var first = 0;
-  var kek = cnt0;
+  var bb: dynamic = (cnt0 * cnt1);
+  var first: dynamic = 0;
+  var kek: dynamic = cnt0;
   while ((bb != b))
   {
     if (((bb - b) >= cnt0))
@@ -105,7 +105,7 @@ func main()
     break;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < first))
     {
       write(1);
@@ -114,7 +114,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < kek))
     {
       cnt0 -= 1;
@@ -128,7 +128,7 @@ func main()
     cnt1 -= 1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cnt0))
     {
       write(0);
@@ -136,7 +136,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cnt1))
     {
       write(1);

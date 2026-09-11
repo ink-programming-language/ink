@@ -1,108 +1,108 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, s: dynamic, n: dynamic)
+func REP(i: dynamic, s: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=s;i<n;i++)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include<b");
 }
 
-var EPS = cpp_expression("#includ");
+var EPS: dynamic = cpp_expression("#includ");
 
-func equals(a: dynamic, b: dynamic)
+func equals(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc+");
 }
 
-func LT(a: dynamic, b: dynamic)
+func LT(a: dynamic, b: dynamic) -> dynamic
 {
   return ((!equals(a, b)) && (a < b));
 }
 
-func LTE(a: dynamic, b: dynamic)
+func LTE(a: dynamic, b: dynamic) -> dynamic
 {
   return (equals(a, b) || (a < b));
 }
 
 class Point
 {
-  var x: dynamic;
-  var y: dynamic;
-  var z: dynamic;
-  func operator_subtract(p: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var z: dynamic = cpp_uninitialized();
+  func operator_subtract(p: dynamic) -> dynamic
   {
       return [(x - p.x), (y - p.y), (z - p.z)];
     }
-  func operator_less(p: dynamic)
+  func operator_less(p: dynamic) -> dynamic
   {
-      return (if (((!equals(z, p.z)))) (z > p.z) else (if (((!equals(y, p.y)))) (y < p.y) else LT(x, p.x)));
+      return ( (((!equals(z, p.z)))) ? (z > p.z) : ( (((!equals(y, p.y)))) ? (y < p.y) : LT(x, p.x)));
     }
 }
 
 class Edge
 {
-  var to: dynamic;
-  var cap: dynamic;
-  var cost: dynamic;
-  var rev: dynamic;
-  func Edge(to: dynamic = 0, cap: dynamic = 0, cost: dynamic = 0, rev: dynamic = 0)
+  var to: dynamic = cpp_uninitialized();
+  var cap: dynamic = cpp_uninitialized();
+  var cost: dynamic = cpp_uninitialized();
+  var rev: dynamic = cpp_uninitialized();
+  func Edge(to: dynamic = 0, cap: dynamic = 0, cost: dynamic = 0, rev: dynamic = 0) -> dynamic
   {
-      this->to = cpp_construct(to);
-      this->cap = cpp_construct(cap);
-      this->cost = cpp_construct(cost);
-      this->rev = cpp_construct(rev);
+      self->to = cpp_construct(to);
+      self->cap = cpp_construct(cap);
+      self->cost = cpp_construct(cost);
+      self->rev = cpp_construct(rev);
     }
 }
 
-var MAX_V = 1100;
+var MAX_V: dynamic = 1100;
 
-var IINF = INT_MAX;
+var IINF: dynamic = INT_MAX;
 
-var V: dynamic;
+var V: dynamic = cpp_uninitialized();
 
-var G = cpp_array(MAX_V);
+var G: dynamic = cpp_array(MAX_V);
 
-var h = cpp_array(MAX_V);
+var h: dynamic = cpp_array(MAX_V);
 
-var dist = cpp_array(MAX_V);
+var dist: dynamic = cpp_array(MAX_V);
 
-var prevv = cpp_array(MAX_V);
+var prevv: dynamic = cpp_array(MAX_V);
 
-var preve = cpp_array(MAX_V);
+var preve: dynamic = cpp_array(MAX_V);
 
-func add_edge(from_cpp: dynamic, to: dynamic, cap: dynamic, cost: dynamic)
+func add_edge(from_cpp: dynamic, to: dynamic, cap: dynamic, cost: dynamic) -> dynamic
 {
   G[from_cpp].push_back(Edge(to, cap, cost, G[to].size()));
   G[to].push_back(Edge(from_cpp, 0, (-cost), (G[from_cpp].size() - 1)));
 }
 
-func min_cost_flow(s: dynamic, t: dynamic)
+func min_cost_flow(s: dynamic, t: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   fill(h, (h + V), 0);
   while (1)
   {
-    var Q: dynamic;
+    var Q: dynamic = cpp_uninitialized();
     fill(dist, (dist + V), IINF);
     dist[s] = 0;
     Q.push(ii(0, s));
     while ((!Q.empty()))
     {
-      var p = Q.top();
+      var p: dynamic = Q.top();
       Q.pop();
-      var v = p.second;
+      var v: dynamic = p.second;
       if ((dist[v] < p.first))
       {
         continue;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < G[v].size()))
         {
-          var e = G[v][i];
+          var e: dynamic = G[v][i];
           if (((LT(0, e.cap) && (!equals((((dist[v] + e.cost) + h[v]) - h[e.to]), dist[e.to]))) && (dist[e.to] > (((dist[v] + e.cost) + h[v]) - h[e.to]))))
           {
             dist[e.to] = (((dist[v] + e.cost) + h[v]) - h[e.to]);
@@ -119,9 +119,9 @@ func min_cost_flow(s: dynamic, t: dynamic)
     {
       break;
     }
-    var d = IINF;
+    var d: dynamic = IINF;
     {
-      var v = t;
+      var v: dynamic = t;
       while ((v != s))
       {
         d = min(d, G[prevv[v]][preve[v]].cap);
@@ -130,10 +130,10 @@ func min_cost_flow(s: dynamic, t: dynamic)
     }
     res += (d * h[t]);
     {
-      var v = t;
+      var v: dynamic = t;
       while ((v != s))
       {
-        var e = G[prevv[v]][preve[v]];
+        var e: dynamic = G[prevv[v]][preve[v]];
         e.cap -= d;
         G[v][e.rev].cap += d;
         v = prevv[v];
@@ -143,31 +143,31 @@ func min_cost_flow(s: dynamic, t: dynamic)
   return res;
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var ps = cpp_array(100);
+var ps: dynamic = cpp_array(100);
 
-var MAX = 10000;
+var MAX: dynamic = 10000;
 
-func getDist(p: dynamic)
+func getDist(p: dynamic) -> dynamic
 {
   return sqrt((((p.x * p.x) + (p.y * p.y)) + (p.z * p.z)));
 }
 
-func compute()
+func compute() -> dynamic
 {
   if ((N <= K))
   {
     puts("0");
     return;
   }
-  var counter: dynamic;
-  var failed = false;
+  var counter: dynamic = cpp_uninitialized();
+  var failed: dynamic = false;
   rep(i, N)[cpp_cast(ps[i].z)] += 1;
   {
-    var it = counter.begin();
+    var it: dynamic = counter.begin();
     while ((it != counter.end()))
     {
       if ((it->second > K))
@@ -184,8 +184,8 @@ func compute()
     return;
   }
   rep(i, (N * 4))[i].clear();
-  var source = (N * 2);
-  var sink = (source + 2);
+  var source: dynamic = (N * 2);
+  var sink: dynamic = (source + 2);
   V = (sink + 1);
   add_edge(source, (source + 1), K, 0);
   rep(i, N);
@@ -197,7 +197,7 @@ func compute()
   printf("%.10f\n", (min_cost_flow(source, sink) + (N * MAX)));
 }
 
-func main()
+func main() -> dynamic
 {
   while (cpp_comma(((cin >> N) >> K), (N | K)))
   {
@@ -208,7 +208,7 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     add_edge((source + 1), i, 1, 0);
     add_edge(i, (N + i), 1, (-MAX));

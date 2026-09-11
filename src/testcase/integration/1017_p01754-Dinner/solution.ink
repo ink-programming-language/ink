@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-func syosu(x: dynamic)
+func syosu(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream> #i");
 }
 
-var inf = (1 << 28);
+var inf: dynamic = (1 << 28);
 
-var INF = (1 << 60);
+var INF: dynamic = (1 << 60);
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var dx = [0, 1, 0, -1];
+var dx: dynamic = [0, 1, 0, -1];
 
-var dy = [1, 0, -1, 0];
+var dy: dynamic = [1, 0, -1, 0];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n, p, q);
   a = vl(n);
-  var sum = 0;
-  var res: dynamic;
+  var sum: dynamic = 0;
+  var res: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -46,7 +46,7 @@ func main()
   sort(a.rbegin(), a.rend());
   res = sum;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       sum += a[i];

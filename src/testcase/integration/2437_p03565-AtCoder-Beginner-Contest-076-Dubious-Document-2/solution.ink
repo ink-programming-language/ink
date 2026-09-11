@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func loop(i: dynamic, a: dynamic, b: dynamic)
+func loop(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<b;i++)");
 }
 
-func rep(i: dynamic, a: dynamic)
+func rep(i: dynamic, a: dynamic) -> dynamic
 {
   return cpp_expression("#include<io");
 }
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var t: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(s, t);
-  var tmp = false;
+  var tmp: dynamic = false;
   {
-    var i = (s.size() - t.size());
+    var i: dynamic = (s.size() - t.size());
     while ((i >= 0))
     {
-      var check = true;
+      var check: dynamic = true;
       rep(j, t.size());
       {
         if (cpp_binary((s[(i + j)] == cpp_char("?")), "or", (s[(i + j)] == t[j])))
@@ -44,6 +44,6 @@ func main()
   {
     s[i] = cpp_char("a");
   }
-  write((if ((tmp)) s else "UNRESTORABLE"), "\n");
+  write(( ((tmp)) ? s : "UNRESTORABLE"), "\n");
   return 0;
 }

@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var eps = 0.00000001;
+var eps: dynamic = 0.00000001;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var PI = 3.141592653589793238463;
+var PI: dynamic = 3.141592653589793238463;
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(25, 25);
+var a: dynamic = cpp_array(25, 25);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var half: dynamic;
+var half: dynamic = cpp_uninitialized();
 
-func isOK(x: dynamic, y: dynamic)
+func isOK(x: dynamic, y: dynamic) -> dynamic
 {
   if (((((x >= 1) && (x <= n)) && (y >= 1)) && (y <= m)))
   {
@@ -29,7 +29,7 @@ func isOK(x: dynamic, y: dynamic)
   return false;
 }
 
-func dfs(x: dynamic, y: dynamic, res: dynamic)
+func dfs(x: dynamic, y: dynamic, res: dynamic) -> dynamic
 {
   res ^= a[x][y];
   if (((x + y) == half))
@@ -47,7 +47,7 @@ func dfs(x: dynamic, y: dynamic, res: dynamic)
   }
 }
 
-func back_dfs(x: dynamic, y: dynamic, res: dynamic)
+func back_dfs(x: dynamic, y: dynamic, res: dynamic) -> dynamic
 {
   if (((x + y) == half))
   {
@@ -65,14 +65,14 @@ func back_dfs(x: dynamic, y: dynamic, res: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   fflush(stdin);
   write(fixed);
   cout.precision(18);
   ios_base.sync_with_stdio(false);
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   read(n, m, k);
   {
     i = 1;

@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 100);
+var N: dynamic = (2e5 + 100);
 
-var is_query = (-((1 << 62)));
+var is_query: dynamic = (-((1 << 62)));
 
 class Line
 {
-  var m: dynamic;
-  var b: dynamic;
-  var succ: dynamic;
-  func operator_less(rhs: dynamic)
+  var m: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var succ: dynamic = cpp_uninitialized();
+  func operator_less(rhs: dynamic) -> dynamic
   {
       if ((rhs.b != is_query))
       {
         return (m < rhs.m);
       }
-      var s = succ();
+      var s: dynamic = succ();
       if ((!s))
       {
         return 0;
       }
-      var x = rhs.m;
+      var x: dynamic = rhs.m;
       return ((b - s->b) < (((s->m - m)) * x));
     }
 }
 
 class CHT
 {
-  func bad(y: dynamic)
+  func bad(y: dynamic) -> dynamic
   {
-      var z = next(y);
+      var z: dynamic = next(y);
       if ((y == begin()))
       {
         if ((z == end()))
@@ -38,16 +38,16 @@ class CHT
         }
         return ((y->m == z->m) && (y->b <= z->b));
       }
-      var x = prev(y);
+      var x: dynamic = prev(y);
       if ((z == end()))
       {
         return ((y->m == x->m) && (y->b <= x->b));
       }
       return ((((x->b - y->b)) * ((z->m - y->m))) >= (((y->b - z->b)) * ((y->m - x->m))));
     }
-  func insert_line(m: dynamic, b: dynamic)
+  func insert_line(m: dynamic, b: dynamic) -> dynamic
   {
-      var y = insert([m, b]);
+      var y: dynamic = insert([m, b]);
       if (bad(y))
       {
         erase(y);
@@ -67,36 +67,36 @@ class CHT
         prev(y)->succ = __cpp_lambda_2;
       }
     }
-  func eval(x: dynamic)
+  func eval(x: dynamic) -> dynamic
   {
-      var l = (*lower_bound([x, is_query]));
+      var l: dynamic = (*lower_bound([x, is_query]));
       return ((l.m * x) + l.b);
     }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var sz = cpp_array(N);
+var sz: dynamic = cpp_array(N);
 
-var big = cpp_array(N);
+var big: dynamic = cpp_array(N);
 
-var dead = cpp_array(N);
+var dead: dynamic = cpp_array(N);
 
-var nei = cpp_array(N);
+var nei: dynamic = cpp_array(N);
 
-func input()
+func input() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       nei[cpp_update(u, "--")].push_back(cpp_update(v, "--"));
       nei[v].push_back(u);
@@ -104,7 +104,7 @@ func input()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -113,10 +113,10 @@ func input()
   }
 }
 
-func dfs(v: dynamic, par: dynamic, len: dynamic, sigma1: dynamic, sigma2: dynamic, sum: dynamic, vec: dynamic)
+func dfs(v: dynamic, par: dynamic, len: dynamic, sigma1: dynamic, sigma2: dynamic, sum: dynamic, vec: dynamic) -> dynamic
 {
   vec->push_back(pair(pair(sum, len), pair(sigma1, sigma2)));
-  for (var u in nei[v])
+  for (var u: dynamic in nei[v])
   {
     if (((dead[u] == false) && (u != par)))
     {
@@ -125,11 +125,11 @@ func dfs(v: dynamic, par: dynamic, len: dynamic, sigma1: dynamic, sigma2: dynami
   }
 }
 
-func go(v: dynamic, par: dynamic = -1)
+func go(v: dynamic, par: dynamic = -1) -> dynamic
 {
   sz[v] = 1;
   big[v] = -1;
-  for (var u in nei[v])
+  for (var u: dynamic in nei[v])
   {
     if (((dead[u] == false) && (u != par)))
     {
@@ -143,10 +143,10 @@ func go(v: dynamic, par: dynamic = -1)
   }
 }
 
-func get_cen(v: dynamic)
+func get_cen(v: dynamic) -> dynamic
 {
   go(v);
-  var n = sz[v];
+  var n: dynamic = sz[v];
   while (((big[v] != -1) && ((2 * sz[big[v]]) > n)))
   {
     v = big[v];
@@ -154,25 +154,25 @@ func get_cen(v: dynamic)
   return v;
 }
 
-func solve(v: dynamic = 0)
+func solve(v: dynamic = 0) -> dynamic
 {
-  var cen = get_cen(v);
+  var cen: dynamic = get_cen(v);
   dead[cen] = true;
-  var data: dynamic;
+  var data: dynamic = cpp_uninitialized();
   data.insert_line(1, a[cen]);
-  for (var u in nei[cen])
+  for (var u: dynamic in nei[cen])
   {
     if ((dead[u] == false))
     {
       solve(u);
-      var vec: dynamic;
+      var vec: dynamic = cpp_uninitialized();
       dfs(u, cen, 1, a[u], a[u], a[u], (&vec));
-      for (var p in vec)
+      for (var p: dynamic in vec)
       {
         ans = max(ans, (p.second.first + data.eval(p.first.first)));
         ans = max(ans, ((((p.first.second + 1)) * a[cen]) + p.second.second));
       }
-      for (var p in vec)
+      for (var p: dynamic in vec)
       {
         data.insert_line((p.first.second + 1), (p.second.second + (((p.first.second + 1)) * a[cen])));
       }
@@ -181,17 +181,17 @@ func solve(v: dynamic = 0)
   data.clear();
   data.insert_line(1, a[cen]);
   reverse(nei[cen].begin(), nei[cen].end());
-  for (var u in nei[cen])
+  for (var u: dynamic in nei[cen])
   {
     if ((dead[u] == false))
     {
-      var vec: dynamic;
+      var vec: dynamic = cpp_uninitialized();
       dfs(u, cen, 1, a[u], a[u], a[u], (&vec));
-      for (var p in vec)
+      for (var p: dynamic in vec)
       {
         ans = max(ans, (p.second.first + data.eval(p.first.first)));
       }
-      for (var p in vec)
+      for (var p: dynamic in vec)
       {
         data.insert_line((p.first.second + 1), (p.second.second + (((p.first.second + 1)) * a[cen])));
       }
@@ -200,7 +200,7 @@ func solve(v: dynamic = 0)
   dead[cen] = false;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
@@ -210,12 +210,12 @@ func main()
   write(ans, cpp_char("\n"));
 }
 
-func __cpp_lambda_1()
+func __cpp_lambda_1() -> dynamic
 {
-  return if ((next(y) == end())) 0 else (&(*next(y)));
+  return  ((next(y) == end())) ? 0 : (&(*next(y)));
 }
 
-func __cpp_lambda_2()
+func __cpp_lambda_2() -> dynamic
 {
   return (&(*y));
 }

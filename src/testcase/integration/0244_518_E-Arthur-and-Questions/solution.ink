@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(220020);
+var a: dynamic = cpp_array(220020);
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var f = cpp_array(220020);
+var f: dynamic = cpp_array(220020);
 
-var s = cpp_array(100);
+var s: dynamic = cpp_array(100);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%s", s);
@@ -40,7 +40,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       a[(i + n)] = 1020000000;
@@ -49,13 +49,13 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       l = -1020000000;
       t = 0;
       {
-        var j = i;
+        var j: dynamic = i;
         while ((j <= (n + k)))
         {
           if ((!f[j]))
@@ -80,7 +80,7 @@ func main()
               st = (r - t);
             }
             {
-              var p = t;
+              var p: dynamic = t;
               while ((p > 0))
               {
                 a[(j - (p * k))] = cpp_update(st, "++");
@@ -97,7 +97,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       printf("%d ", a[i]);

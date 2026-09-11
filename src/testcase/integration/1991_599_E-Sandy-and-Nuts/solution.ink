@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var dp = cpp_array((1 << 15), 15);
+var dp: dynamic = cpp_array((1 << 15), 15);
 
-var con = cpp_array(15);
+var con: dynamic = cpp_array(15);
 
-var lca = cpp_array(105);
+var lca: dynamic = cpp_array(105);
 
-func myinit()
+func myinit() -> dynamic
 {
   read(n, m, q);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       u -= 1;
       v -= 1;
@@ -29,12 +29,12 @@ func myinit()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
-      var u: dynamic;
-      var v: dynamic;
-      var w: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var w: dynamic = cpp_uninitialized();
       read(u, v, w);
       u -= 1;
       v -= 1;
@@ -45,22 +45,22 @@ func myinit()
   }
 }
 
-func dfs(root: dynamic, mask: dynamic)
+func dfs(root: dynamic, mask: dynamic) -> dynamic
 {
   if (dp[root][mask])
   {
     return;
   }
-  var maskll = mask;
+  var maskll: dynamic = mask;
   mask -= (1 << root);
   if ((mask == 0))
   {
     dp[root][maskll] = 1;
     return;
   }
-  var least = ((mask) - (((mask) & (((mask) - 1)))));
-  var newmask = mask;
-  var newroot: dynamic;
+  var least: dynamic = ((mask) - (((mask) & (((mask) - 1)))));
+  var newmask: dynamic = mask;
+  var newroot: dynamic = cpp_uninitialized();
   {
     newmask = mask;
     while ((newmask != 0))
@@ -70,14 +70,14 @@ func dfs(root: dynamic, mask: dynamic)
         newmask = (((newmask - 1)) & mask);
         continue;
       }
-      var was = true;
-      var cnt = 0;
+      var was: dynamic = true;
+      var cnt: dynamic = 0;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= m))
         {
-          var u: dynamic;
-          var v: dynamic;
+          var u: dynamic = cpp_uninitialized();
+          var v: dynamic = cpp_uninitialized();
           u = con[i].first;
           v = con[i].second;
           if (((!(((maskll) & ((1 << u))))) || (!(((maskll) & ((1 << v)))))))
@@ -111,12 +111,12 @@ func dfs(root: dynamic, mask: dynamic)
         continue;
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= q))
         {
-          var u: dynamic;
-          var v: dynamic;
-          var w: dynamic;
+          var u: dynamic = cpp_uninitialized();
+          var v: dynamic = cpp_uninitialized();
+          var w: dynamic = cpp_uninitialized();
           u = lca[i].first.first;
           v = lca[i].first.second;
           w = lca[i].second;
@@ -139,7 +139,7 @@ func dfs(root: dynamic, mask: dynamic)
             }
           } else
           {
-            var t = 0;
+            var t: dynamic = 0;
             if ((newmask & ((1 << u))))
             {
               t += 1;
@@ -170,7 +170,7 @@ func dfs(root: dynamic, mask: dynamic)
         } else
         {
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < n))
             {
               if ((newmask & ((1 << i))))
@@ -190,7 +190,7 @@ func dfs(root: dynamic, mask: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   myinit();
   dfs(0, (((1 << n)) - 1));

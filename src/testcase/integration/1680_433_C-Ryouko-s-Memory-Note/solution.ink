@@ -2,21 +2,21 @@
 
 class node
 {
-  var data: dynamic;
-  var next: dynamic;
+  var data: dynamic = cpp_uninitialized();
+  var next: dynamic = cpp_uninitialized();
 }
 
 class node
 {
 }
 
-var SortedMerge: dynamic;
+var SortedMerge: dynamic = cpp_uninitialized();
 
-func MergeSort(headRef: dynamic)
+func MergeSort(headRef: dynamic) -> dynamic
 {
-  var head = (*headRef);
-  var a: dynamic;
-  var b: dynamic;
+  var head: dynamic = (*headRef);
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   if ((((head == null)) || ((head->next == null))))
   {
     return;
@@ -27,9 +27,9 @@ func MergeSort(headRef: dynamic)
   (*headRef) = SortedMerge(a, b);
 }
 
-func SortedMerge(a: dynamic, b: dynamic)
+func SortedMerge(a: dynamic, b: dynamic) -> dynamic
 {
-  var result = null;
+  var result: dynamic = null;
   if ((a == null))
   {
     return (b);
@@ -49,10 +49,10 @@ func SortedMerge(a: dynamic, b: dynamic)
   return (result);
 }
 
-func FrontBackSplit(source: dynamic, frontRef: dynamic, backRef: dynamic)
+func FrontBackSplit(source: dynamic, frontRef: dynamic, backRef: dynamic) -> dynamic
 {
-  var fast: dynamic;
-  var slow: dynamic;
+  var fast: dynamic = cpp_uninitialized();
+  var slow: dynamic = cpp_uninitialized();
   if (((source == null) || (source->next == null)))
   {
     (*frontRef) = source;
@@ -76,7 +76,7 @@ func FrontBackSplit(source: dynamic, frontRef: dynamic, backRef: dynamic)
   }
 }
 
-func printList(node: dynamic)
+func printList(node: dynamic) -> dynamic
 {
   while ((node != null))
   {
@@ -85,25 +85,25 @@ func printList(node: dynamic)
   }
 }
 
-func push(head_ref: dynamic, new_data: dynamic)
+func push(head_ref: dynamic, new_data: dynamic) -> dynamic
 {
-  var new_node = cpp_cast(malloc(cpp_sizeof(dynamic)));
+  var new_node: dynamic = cpp_cast(malloc(cpp_sizeof(dynamic)));
   new_node->data = new_data;
   new_node->next = ((*head_ref));
   ((*head_ref)) = new_node;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n);
   read(m);
-  var a = cpp_new();
-  var count = cpp_new();
-  var b = cpp_new();
+  var a: dynamic = cpp_new();
+  var count: dynamic = cpp_new();
+  var b: dynamic = cpp_new();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       b[i] = null;
@@ -111,9 +111,9 @@ func main()
       i += 1;
     }
   }
-  var d = 0;
+  var d: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(a[i]);
@@ -130,7 +130,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       if ((i > 0))
@@ -152,26 +152,26 @@ func main()
       i += 1;
     }
   }
-  var w = 0;
+  var w: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((count[i] != 0))
       {
         MergeSort((&b[i]));
-        var temp = b[i];
+        var temp: dynamic = b[i];
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ((((count[i] + 1)) / 2) - 1)))
           {
             temp = temp->next;
             j += 1;
           }
         }
-        var median = temp->data;
-        var w1 = 0;
-        var w2 = 0;
+        var median: dynamic = temp->data;
+        var w1: dynamic = 0;
+        var w2: dynamic = 0;
         temp = b[i];
         while ((temp != null))
         {

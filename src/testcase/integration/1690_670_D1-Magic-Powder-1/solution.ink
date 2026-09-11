@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var dx4 = [0, 0, -1, 1];
+var dx4: dynamic = [0, 0, -1, 1];
 
-var dy4 = [-1, 1, 0, 0];
+var dy4: dynamic = [-1, 1, 0, 0];
 
-func valid(r: dynamic, c: dynamic, x: dynamic, y: dynamic)
+func valid(r: dynamic, c: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   if (((((x >= 1) && (x <= r)) && (y >= 1)) && (y <= c)))
   {
@@ -13,15 +13,15 @@ func valid(r: dynamic, c: dynamic, x: dynamic, y: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
-  var a = cpp_array((n + 2));
-  var b = cpp_array((n + 2));
+  var a: dynamic = cpp_array((n + 2));
+  var b: dynamic = cpp_array((n + 2));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -29,15 +29,15 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(b[i]);
       i += 1;
     }
   }
-  var ans = 0;
-  var cnt = 1;
+  var ans: dynamic = 0;
+  var cnt: dynamic = 1;
   while (true)
   {
     if ((cnt == ((n + 1))))

@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(null);
   cout.tie(null);
-  var t: dynamic;
-  var i: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   read(t);
-  var m: dynamic;
-  var n: dynamic;
-  var p: dynamic;
-  var j: dynamic;
-  var e: dynamic;
+  var m: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var e: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < t))
     {
       read(m);
-      var arr = cpp_array(m);
+      var arr: dynamic = cpp_array(m);
       {
         j = 0;
         while ((j < m))
@@ -28,7 +28,7 @@ func main()
         }
       }
       sort(arr, (arr + n));
-      var flag = 0;
+      var flag: dynamic = 0;
       {
         j = 0;
         while ((j < (m - 1)))

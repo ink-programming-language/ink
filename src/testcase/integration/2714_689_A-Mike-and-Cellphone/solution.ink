@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var nr: dynamic;
+var nr: dynamic = cpp_uninitialized();
 
-var ok: dynamic;
+var ok: dynamic = cpp_uninitialized();
 
-var okc: dynamic;
+var okc: dynamic = cpp_uninitialized();
 
-var m = cpp_array(5, 5);
+var m: dynamic = cpp_array(5, 5);
 
-var v = cpp_array(11);
+var v: dynamic = cpp_array(11);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   read(v);

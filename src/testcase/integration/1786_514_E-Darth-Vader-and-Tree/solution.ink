@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var MAXN = 222222;
+var MAXN: dynamic = 222222;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var a = cpp_array(MAXN);
+var a: dynamic = cpp_array(MAXN);
 
-var cnt = [0];
+var cnt: dynamic = [0];
 
-var dp = [0];
+var dp: dynamic = [0];
 
-func preProcess()
+func preProcess() -> dynamic
 {
   dp[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 100))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < i))
         {
           dp[i] += (dp[j] * cnt[(i - j)]);
@@ -35,11 +35,11 @@ func preProcess()
   }
 }
 
-func makeMatrix(r: dynamic, c: dynamic, m: dynamic)
+func makeMatrix(r: dynamic, c: dynamic, m: dynamic) -> dynamic
 {
   m.resize(r);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < r))
     {
       m[i].resize(c);
@@ -48,19 +48,19 @@ func makeMatrix(r: dynamic, c: dynamic, m: dynamic)
   }
 }
 
-func unit(r: dynamic, c: dynamic)
+func unit(r: dynamic, c: dynamic) -> dynamic
 {
-  var temp: dynamic;
+  var temp: dynamic = cpp_uninitialized();
   makeMatrix(r, c, temp);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < r))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < c))
         {
-          temp[i][j] = if (((i == j))) 1 else 0;
+          temp[i][j] =  (((i == j))) ? 1 : 0;
           j += 1;
         }
       }
@@ -70,20 +70,20 @@ func unit(r: dynamic, c: dynamic)
   return temp;
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
-  var temp: dynamic;
+  var temp: dynamic = cpp_uninitialized();
   makeMatrix(cpp_cast(a.size()), cpp_cast(b[0].size()), temp);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < a[0].size()))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < b.size()))
             {
               temp[i][j] += (a[i][k] * b[k][j]);
@@ -100,11 +100,11 @@ func mul(a: dynamic, b: dynamic)
   return temp;
 }
 
-func Pow(n: dynamic, c: dynamic)
+func Pow(n: dynamic, c: dynamic) -> dynamic
 {
-  var u: dynamic;
+  var u: dynamic = cpp_uninitialized();
   u = unit(101, 101);
-  var i = 0;
+  var i: dynamic = 0;
   while (n)
   {
     if ((n & ((1 << i))))
@@ -118,12 +118,12 @@ func Pow(n: dynamic, c: dynamic)
   return u;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, x);
   memset(dp, 0, cpp_sizeof((dp)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -132,11 +132,11 @@ func main()
     }
   }
   preProcess();
-  var sum = 0;
+  var sum: dynamic = 0;
   if ((x <= 100))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i <= x))
       {
         sum += dp[i];
@@ -149,7 +149,7 @@ func main()
   }
   sum = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 100))
     {
       sum += dp[i];
@@ -157,12 +157,12 @@ func main()
       i += 1;
     }
   }
-  var w: dynamic;
-  var ans: dynamic;
+  var w: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   makeMatrix(101, 101, w);
   w[100][100] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 98))
     {
       w[i][(i + 1)] = 1;
@@ -170,7 +170,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= 99))
     {
       w[99][i] = cnt[(100 - i)];
@@ -181,7 +181,7 @@ func main()
   ans = Pow((x - 100), w);
   sum *= ans[100][100];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 100))
     {
       sum += (((dp[(i + 1)] % mod)) * ((ans[100][i] % mod)));

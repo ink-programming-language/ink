@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var data = cpp_array(100010, 2);
+var data: dynamic = cpp_array(100010, 2);
 
-var t = cpp_array(100010);
+var t: dynamic = cpp_array(100010);
 
-var num = cpp_array(100010);
+var num: dynamic = cpp_array(100010);
 
-var que: dynamic;
+var que: dynamic = cpp_uninitialized();
 
-func dis(x: dynamic, y: dynamic)
+func dis(x: dynamic, y: dynamic) -> dynamic
 {
   return abs((data[0][x] - data[1][y]));
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%*d%*d", (&n), (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&data[0][i]));
@@ -29,7 +29,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d", (&data[1][i]));
@@ -37,16 +37,16 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       t[i] = 0x7fffffff;
       i += 1;
     }
   }
-  var j = 0;
+  var j: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       while ((((j + 1) < m) && (dis(i, (j + 1)) < dis(i, j))))
@@ -59,7 +59,7 @@ func main()
         i += 1;
         continue;
       }
-      var k = j;
+      var k: dynamic = j;
       if ((((j + 1) < m) && (dis(i, (j + 1)) < dis(i, j))))
       {
         k += 1;
@@ -78,8 +78,8 @@ func main()
   }
   while ((!que.empty()))
   {
-    var i = que.front().first;
-    var j = que.front().second;
+    var i: dynamic = que.front().first;
+    var j: dynamic = que.front().second;
     que.pop();
     if (((dis(i, j) == t[j]) || (t[j] == 0x7fffffff)))
     {
@@ -91,9 +91,9 @@ func main()
       t[(j + 1)] = dis(i, (j + 1));
     }
   }
-  var ans = n;
+  var ans: dynamic = n;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       ans -= num[i];

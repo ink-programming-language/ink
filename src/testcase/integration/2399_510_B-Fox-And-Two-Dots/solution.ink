@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var board = cpp_array(51, 50);
+var board: dynamic = cpp_array(51, 50);
 
-var bb = cpp_array(26);
+var bb: dynamic = cpp_array(26);
 
-var visit = cpp_array(50, 50);
+var visit: dynamic = cpp_array(50, 50);
 
-func dfs(d: dynamic, x: dynamic, y: dynamic, a: dynamic)
+func dfs(d: dynamic, x: dynamic, y: dynamic, a: dynamic) -> dynamic
 {
   if ((((d != 0) && ((x + 1) < n)) && (board[(x + 1)][y] == a)))
   {
@@ -63,16 +63,16 @@ func dfs(d: dynamic, x: dynamic, y: dynamic, a: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&n), (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%s", board[i]);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           bb[(board[i][j] - cpp_char("A"))] = true;
@@ -83,7 +83,7 @@ func main()
     }
   }
   {
-    var a = 0;
+    var a: dynamic = 0;
     while ((a < 26))
     {
       if ((!bb[a]))
@@ -92,11 +92,11 @@ func main()
         continue;
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               if ((board[i][j] == (a + cpp_char("A"))))
@@ -110,11 +110,11 @@ func main()
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               if (((board[i][j] == (a + cpp_char("A"))) && (!visit[i][j])))

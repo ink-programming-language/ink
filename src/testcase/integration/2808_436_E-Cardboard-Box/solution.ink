@@ -2,18 +2,18 @@
 
 class Level
 {
-  var one: dynamic;
-  var two: dynamic;
-  var id: dynamic;
-  func getOneKey()
+  var one: dynamic = cpp_uninitialized();
+  var two: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  func getOneKey() -> dynamic
   {
       return make_pair(one, (2 * id));
     }
-  func getTwoKey()
+  func getTwoKey() -> dynamic
   {
       return make_pair((two - one), ((2 * id) + 1));
     }
-  func operator_less(a: dynamic)
+  func operator_less(a: dynamic) -> dynamic
   {
       return (two < a.two);
     }
@@ -21,14 +21,14 @@ class Level
 
 class FenwickTree
 {
-  var keys: dynamic;
-  var sum: dynamic;
-  var cnt: dynamic;
-  var n: dynamic;
-  func update(x: dynamic, delta: dynamic)
+  var keys: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  var cnt: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  func update(x: dynamic, delta: dynamic) -> dynamic
   {
       {
-        var i = x;
+        var i: dynamic = x;
         while ((i < n))
         {
           sum[i] += (delta * keys[x].first);
@@ -37,11 +37,11 @@ class FenwickTree
         }
       }
     }
-  func get(x: dynamic)
+  func get(x: dynamic) -> dynamic
   {
-      var res: dynamic;
+      var res: dynamic = cpp_uninitialized();
       {
-        var i = x;
+        var i: dynamic = x;
         while ((i >= 0))
         {
           res.first += sum[i];
@@ -51,7 +51,7 @@ class FenwickTree
       }
       return res;
     }
-  func FenwickTree(key: dynamic)
+  func FenwickTree(key: dynamic) -> dynamic
   {
       sort(key.begin(), key.end());
       n = key.size();
@@ -59,13 +59,13 @@ class FenwickTree
       cnt.assign(n, 0);
       keys = key;
     }
-  func update(key: dynamic, delta: dynamic)
+  func update(key: dynamic, delta: dynamic) -> dynamic
   {
-      var pos = (lower_bound(keys.begin(), keys.end(), key) - keys.begin());
+      var pos: dynamic = (lower_bound(keys.begin(), keys.end(), key) - keys.begin());
       assert((keys.at(pos) == key));
       update(pos, delta);
     }
-  func minElementSum(m: dynamic)
+  func minElementSum(m: dynamic) -> dynamic
   {
       if ((m <= 0))
       {
@@ -75,11 +75,11 @@ class FenwickTree
       {
         return cpp_cast(1e18);
       }
-      var low = 0;
-      var high = (n - 1);
+      var low: dynamic = 0;
+      var high: dynamic = (n - 1);
       while ((low < high))
       {
-        var mid = (((low + high)) / 2);
+        var mid: dynamic = (((low + high)) / 2);
         if ((get(mid).second >= m))
         {
           high = mid;
@@ -92,22 +92,22 @@ class FenwickTree
     }
 }
 
-var N = cpp_cast(3e5);
+var N: dynamic = cpp_cast(3e5);
 
-var INF = cpp_cast(2e9);
+var INF: dynamic = cpp_cast(2e9);
 
-var level = cpp_array(N);
+var level: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(n, w);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(level[i].one, level[i].two);
@@ -116,9 +116,9 @@ func main()
     }
   }
   sort(level, (level + n));
-  var value: dynamic;
+  var value: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       value.push_back(level[i].getOneKey());
@@ -127,21 +127,21 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       tree.update(level[i].getOneKey(), 1);
       i += 1;
     }
   }
-  var bestCost = cpp_cast(1e18);
-  var firstCost = 0;
-  var bestPrefix = -1;
+  var bestCost: dynamic = cpp_cast(1e18);
+  var firstCost: dynamic = 0;
+  var bestPrefix: dynamic = -1;
   {
-    var prefix = 0;
+    var prefix: dynamic = 0;
     while ((prefix <= n))
     {
-      var secondCost = tree.minElementSum((w - prefix));
+      var secondCost: dynamic = tree.minElementSum((w - prefix));
       if (((firstCost + secondCost) < bestCost))
       {
         bestCost = (firstCost + secondCost);
@@ -156,18 +156,18 @@ func main()
       prefix += 1;
     }
   }
-  var res = cpp_construct(n, cpp_char("0"));
+  var res: dynamic = cpp_construct(n, cpp_char("0"));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < bestPrefix))
     {
       res[level[i].id] = cpp_char("1");
       i += 1;
     }
   }
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < bestPrefix))
     {
       q.push(level[i].getTwoKey());
@@ -175,7 +175,7 @@ func main()
     }
   }
   {
-    var i = bestPrefix;
+    var i: dynamic = bestPrefix;
     while ((i < n))
     {
       q.push(level[i].getOneKey());
@@ -183,7 +183,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (w - bestPrefix)))
     {
       res[(q.top().second / 2)] += 1;

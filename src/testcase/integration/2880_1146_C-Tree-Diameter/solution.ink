@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   a.clear();
   b.clear();
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i / 2) < n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           {
-            var k = j;
+            var k: dynamic = j;
             while ((k < (j + (i / 2))))
             {
               if ((k > n))
@@ -30,7 +30,7 @@ func solve()
             }
           }
           {
-            var k = (j + (i / 2));
+            var k: dynamic = (j + (i / 2));
             while ((k < (j + i)))
             {
               if ((k > n))
@@ -46,7 +46,7 @@ func solve()
       }
       write(a.size(), " ", b.size(), " ");
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < a.size()))
         {
           write(a[k], " ");
@@ -54,7 +54,7 @@ func solve()
         }
       }
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < b.size()))
         {
           write(b[k], " ");
@@ -65,7 +65,7 @@ func solve()
       a.clear();
       b.clear();
       cout.flush();
-      var in_cpp: dynamic;
+      var in_cpp: dynamic = cpp_uninitialized();
       read(in_cpp);
       ans = max(ans, in_cpp);
       i *= 2;
@@ -74,9 +74,9 @@ func solve()
   write(-1, " ", ans, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(300010);
+var a: dynamic = cpp_array(300010);
 
-var t = cpp_array(300010);
+var t: dynamic = cpp_array(300010);
 
-var l = cpp_array(300010);
+var l: dynamic = cpp_array(300010);
 
-var r = cpp_array(300010);
+var r: dynamic = cpp_array(300010);
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(q);
@@ -25,7 +25,7 @@ func main()
     memset(t, 0x3f, cpp_sizeof((t)));
     read(n, k);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= k))
       {
         read(a[i]);
@@ -33,7 +33,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= k))
       {
         read(t[a[i]]);
@@ -42,7 +42,7 @@ func main()
     }
     p = 0x3f3f3f3f;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         p = min((p + 1), t[i]);
@@ -52,7 +52,7 @@ func main()
     }
     p = 0x3f3f3f3f;
     {
-      var i = n;
+      var i: dynamic = n;
       while ((i >= 1))
       {
         p = min((p + 1), t[i]);
@@ -61,7 +61,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         write(min(l[i], r[i]), " ");

@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func mini(a: dynamic, b: dynamic)
+func mini(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -10,7 +10,7 @@ func mini(a: dynamic, b: dynamic)
   return false;
 }
 
-func maxi(a: dynamic, b: dynamic)
+func maxi(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -20,23 +20,23 @@ func maxi(a: dynamic, b: dynamic)
   return false;
 }
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var oo = 1e9;
+var oo: dynamic = 1e9;
 
-var adj = cpp_array(N);
+var adj: dynamic = cpp_array(N);
 
-var dp = cpp_array(2, N);
+var dp: dynamic = cpp_array(2, N);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic, p: dynamic = -1)
+func dfs(u: dynamic, p: dynamic = -1) -> dynamic
 {
-  for (var v in adj[u])
+  for (var v: dynamic in adj[u])
   {
     if ((v != p))
     {
@@ -46,18 +46,18 @@ func dfs(u: dynamic, p: dynamic = -1)
   dp[u][0] = cpp_assign(dp[u][1], "=", oo);
   if ((a[u] == 0))
   {
-    var d = oo;
+    var d: dynamic = oo;
     {
-      var val = 0;
+      var val: dynamic = 0;
       while ((val < 2))
       {
         dp[u][val] = 0;
-        var tmp = make_pair(0, 0);
-        for (var v in adj[u])
+        var tmp: dynamic = make_pair(0, 0);
+        for (var v: dynamic in adj[u])
         {
           if ((v != p))
           {
-            var res = min((dp[v][0] + val), (dp[v][1] + ((!val))));
+            var res: dynamic = min((dp[v][0] + val), (dp[v][1] + ((!val))));
             maxi(dp[u][val], res);
             maxi(tmp.second, res);
             if ((tmp.second > tmp.first))
@@ -73,14 +73,14 @@ func dfs(u: dynamic, p: dynamic = -1)
     maxi(ans, d);
   } else
   {
-    var val = (a[u] - 1);
+    var val: dynamic = (a[u] - 1);
     dp[u][val] = 0;
-    var tmp = make_pair(0, 0);
-    for (var v in adj[u])
+    var tmp: dynamic = make_pair(0, 0);
+    for (var v: dynamic in adj[u])
     {
       if ((v != p))
       {
-        var res = min((dp[v][0] + val), (dp[v][1] + ((!val))));
+        var res: dynamic = min((dp[v][0] + val), (dp[v][1] + ((!val))));
         maxi(dp[u][val], res);
         maxi(tmp.second, res);
         if ((tmp.second > tmp.first))
@@ -93,11 +93,11 @@ func dfs(u: dynamic, p: dynamic = -1)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       adj[i].clear();
@@ -106,11 +106,11 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       adj[u].push_back(v);
       adj[v].push_back(u);
@@ -122,11 +122,11 @@ func solve()
   write((((((ans + 1)) >> 1)) + 1), "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

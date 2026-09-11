@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var cin = cpp_expression("#in");
+var cin: dynamic = cpp_expression("#in");
 
-var cout = cpp_expression("#inc");
+var cout: dynamic = cpp_expression("#inc");
 
-var fin = cpp_construct("test.in");
+var fin: dynamic = cpp_construct("test.in");
 
-var fout = cpp_construct("test.out");
+var fout: dynamic = cpp_construct("test.out");
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(200001);
+var a: dynamic = cpp_array(200001);
 
-var f = cpp_array(200001);
+var f: dynamic = cpp_array(200001);
 
-var nra: dynamic;
+var nra: dynamic = cpp_uninitialized();
 
-var p = cpp_array(100001);
+var p: dynamic = cpp_array(100001);
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func rasp(mij: dynamic)
+func rasp(mij: dynamic) -> dynamic
 {
-  var r = 0;
+  var r: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
       if (((p[i] - mij) < 0))
@@ -42,20 +42,20 @@ func rasp(mij: dynamic)
   return r;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(null);
   read(t);
   {
-    var tt = 1;
+    var tt: dynamic = 1;
     while ((tt <= t))
     {
       read(n);
-      var r = (n + 1);
+      var r: dynamic = (n + 1);
       k = 0;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           read(a[i]);
@@ -68,7 +68,7 @@ func main()
       a[0] = a[1];
       a[(n + 1)] = (a[n] + 1);
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= (n + 1)))
         {
           if ((a[i] == a[(i - 1)]))
@@ -83,7 +83,7 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           if (f[i])
@@ -94,7 +94,7 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= k))
         {
           r = min(r, rasp(p[i]));

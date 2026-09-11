@@ -1,45 +1,45 @@
 // Translated from solution.cpp.
 
-var eps = 1e-8;
+var eps: dynamic = 1e-8;
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var val = cpp_array(111, 111);
+var val: dynamic = cpp_array(111, 111);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var pos: dynamic;
+var pos: dynamic = cpp_uninitialized();
 
-var ddist = cpp_array(111, 111);
+var ddist: dynamic = cpp_array(111, 111);
 
-var way = cpp_array(10, 10);
+var way: dynamic = cpp_array(10, 10);
 
-var dist = cpp_array(10, 211);
+var dist: dynamic = cpp_array(10, 211);
 
-var used = cpp_array(111, 111);
+var used: dynamic = cpp_array(111, 111);
 
-var pre = cpp_array((1 << 8), 211);
+var pre: dynamic = cpp_array((1 << 8), 211);
 
-var dp = cpp_array((1 << 8), 211);
+var dp: dynamic = cpp_array((1 << 8), 211);
 
-var dx = [0, 0, 1, -1];
+var dx: dynamic = [0, 0, 1, -1];
 
-var dy = [1, -1, 0, 0];
+var dy: dynamic = [1, -1, 0, 0];
 
-var que: dynamic;
+var que: dynamic = cpp_uninitialized();
 
-func bfs(x: dynamic, y: dynamic, o: dynamic)
+func bfs(x: dynamic, y: dynamic, o: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var u: dynamic;
-  var v: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
   while ((!que.empty()))
   {
     que.pop();
@@ -121,12 +121,12 @@ func bfs(x: dynamic, y: dynamic, o: dynamic)
   }
 }
 
-var S = cpp_array(2);
+var S: dynamic = cpp_array(2);
 
-func doit(p: dynamic, sta: dynamic)
+func doit(p: dynamic, sta: dynamic) -> dynamic
 {
-  var u = ((((p - 1)) / m) + 1);
-  var v = ((((p - 1)) % m) + 1);
+  var u: dynamic = ((((p - 1)) / m) + 1);
+  var v: dynamic = ((((p - 1)) % m) + 1);
   used[u][v] = 1;
   if ((pre[p][sta].first == -1))
   {
@@ -136,21 +136,21 @@ func doit(p: dynamic, sta: dynamic)
   doit(p, (sta - pre[p][sta].second));
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var l: dynamic;
-  var ll: dynamic;
-  var u: dynamic;
-  var v: dynamic;
-  var w: dynamic;
-  var st: dynamic;
-  var pt: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var p: dynamic;
-  var q: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var ll: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var st: dynamic = cpp_uninitialized();
+  var pt: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   while ((scanf("%d%d%d", (&n), (&m), (&k)) != EOF))
   {
     {
@@ -227,8 +227,8 @@ func main()
         i += 1;
       }
     }
-    var uu = 0;
-    var vv = 1;
+    var uu: dynamic = 0;
+    var vv: dynamic = 1;
     {
       j = 1;
       while ((j <= (n * m)))
@@ -295,7 +295,7 @@ func main()
         j += 1;
       }
     }
-    var ans = MOD;
+    var ans: dynamic = MOD;
     {
       i = 1;
       while ((i <= n))

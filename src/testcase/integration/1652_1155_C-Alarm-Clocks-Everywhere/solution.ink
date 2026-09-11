@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var M: dynamic;
+var M: dynamic = cpp_uninitialized();
 
-var a = cpp_array(300005);
+var a: dynamic = cpp_array(300005);
 
-var p = cpp_array(300005);
+var p: dynamic = cpp_array(300005);
 
-var diff: dynamic;
+var diff: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func gcd(x: dynamic, y: dynamic)
+func gcd(x: dynamic, y: dynamic) -> dynamic
 {
   if ((y == 0))
   {
@@ -21,11 +21,11 @@ func gcd(x: dynamic, y: dynamic)
   return gcd(y, (x % y));
 }
 
-func main()
+func main() -> dynamic
 {
   read(N, M);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(a[i]);
@@ -33,7 +33,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       read(p[i]);
@@ -41,7 +41,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
       diff = (a[i] - a[(i - 1)]);
@@ -50,7 +50,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       if ((gcd(k, p[i]) == p[i]))

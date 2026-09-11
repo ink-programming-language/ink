@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var mmax: dynamic;
+var mmax: dynamic = cpp_uninitialized();
 
-var s = cpp_array(5005);
+var s: dynamic = cpp_array(5005);
 
-var f = cpp_array(1000005);
+var f: dynamic = cpp_array(1000005);
 
-var smax: dynamic;
+var smax: dynamic = cpp_uninitialized();
 
-var flag = cpp_array(1000005);
+var flag: dynamic = cpp_array(1000005);
 
-func comp(a: dynamic, b: dynamic)
+func comp(a: dynamic, b: dynamic) -> dynamic
 {
   return ((*cpp_cast(a)) - (*cpp_cast(b)));
 }
 
-func calcans(argument_0: dynamic)
+func calcans(argument_0: dynamic) -> dynamic
 {
-  var ans: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var same: dynamic;
+  var ans: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var same: dynamic = cpp_uninitialized();
   {
     ans = 1;
     while (true)
@@ -82,10 +82,10 @@ func calcans(argument_0: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
   mmax = ((((m + 1)) * m) / 2);
   memset(f, 0, cpp_sizeof((f)));

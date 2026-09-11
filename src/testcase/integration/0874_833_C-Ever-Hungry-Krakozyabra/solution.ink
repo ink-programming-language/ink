@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var MAXN = 19;
+var MAXN: dynamic = 19;
 
-var L = cpp_array((MAXN + 5));
+var L: dynamic = cpp_array((MAXN + 5));
 
-var R = cpp_array((MAXN + 5));
+var R: dynamic = cpp_array((MAXN + 5));
 
-var x = cpp_array((MAXN + 5));
+var x: dynamic = cpp_array((MAXN + 5));
 
-var y = cpp_array((MAXN + 5));
+var y: dynamic = cpp_array((MAXN + 5));
 
-var c = cpp_array(10);
+var c: dynamic = cpp_array(10);
 
-var cc = cpp_array(10);
+var cc: dynamic = cpp_array(10);
 
-func check_less(i: dynamic, nz: dynamic)
+func check_less(i: dynamic, nz: dynamic) -> dynamic
 {
   if ((i == MAXN))
   {
@@ -27,7 +27,7 @@ func check_less(i: dynamic, nz: dynamic)
     }
   }
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < y[i]))
     {
       if ((cc[j] > 0))
@@ -47,7 +47,7 @@ func check_less(i: dynamic, nz: dynamic)
   {
     cc[y[i]] -= 1;
     nz -= 1;
-    var ok = check_less((i + 1), nz);
+    var ok: dynamic = check_less((i + 1), nz);
     cc[y[i]] += 1;
     nz += 1;
     return ok;
@@ -57,7 +57,7 @@ func check_less(i: dynamic, nz: dynamic)
   }
 }
 
-func check_more(i: dynamic, nz: dynamic)
+func check_more(i: dynamic, nz: dynamic) -> dynamic
 {
   if ((i == MAXN))
   {
@@ -70,7 +70,7 @@ func check_more(i: dynamic, nz: dynamic)
     }
   }
   {
-    var j = (x[i] + 1);
+    var j: dynamic = (x[i] + 1);
     while ((j < 10))
     {
       if ((cc[j] > 0))
@@ -90,7 +90,7 @@ func check_more(i: dynamic, nz: dynamic)
   {
     cc[x[i]] -= 1;
     nz -= 1;
-    var ok = check_more((i + 1), nz);
+    var ok: dynamic = check_more((i + 1), nz);
     cc[x[i]] += 1;
     nz += 1;
     return ok;
@@ -100,12 +100,12 @@ func check_more(i: dynamic, nz: dynamic)
   }
 }
 
-func check()
+func check() -> dynamic
 {
   memcpy(cc, c, cpp_sizeof(c));
-  var nz = 0;
+  var nz: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 10))
     {
       nz += cc[i];
@@ -113,7 +113,7 @@ func check()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < MAXN))
     {
       if ((x[i] == y[i]))
@@ -127,7 +127,7 @@ func check()
       } else
       {
         {
-          var j = (x[i] + 1);
+          var j: dynamic = (x[i] + 1);
           while ((j < y[i]))
           {
             if ((cc[j] > 0))
@@ -171,7 +171,7 @@ func check()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 10))
     {
       if ((cc[i] > 0))
@@ -184,7 +184,7 @@ func check()
   return true;
 }
 
-func solve(i: dynamic, d: dynamic)
+func solve(i: dynamic, d: dynamic) -> dynamic
 {
   if ((i == MAXN))
   {
@@ -197,7 +197,7 @@ func solve(i: dynamic, d: dynamic)
     }
   } else
   {
-    var r = 0;
+    var r: dynamic = 0;
     c[d] += 1;
     r += solve((i + 1), d);
     c[d] -= 1;
@@ -209,15 +209,15 @@ func solve(i: dynamic, d: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s %s", L, R);
-  var n = strlen(L);
-  var m = strlen(R);
+  var n: dynamic = strlen(L);
+  var m: dynamic = strlen(R);
   reverse(L, (L + n));
   reverse(R, (R + m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < MAXN))
     {
       if ((i < n))

@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var arr = cpp_array(6);
+var arr: dynamic = cpp_array(6);
 
-var bar = cpp_array(6);
+var bar: dynamic = cpp_array(6);
 
-var ans = 6;
+var ans: dynamic = 6;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func f(pos: dynamic)
+func f(pos: dynamic) -> dynamic
 {
   if ((pos == 6))
   {
-    var tmp = 0;
+    var tmp: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 6))
       {
         if ((bar[i] < n))
@@ -28,7 +28,7 @@ func f(pos: dynamic)
     return;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 6))
     {
       if ((bar[i] >= arr[pos]))
@@ -42,19 +42,19 @@ func f(pos: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 6))
     {
       bar[i] = n;
       i += 1;
     }
   }
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   scanf("%d%d", (&a), (&b));
   arr[0] = cpp_assign(arr[1], "=", cpp_assign(arr[2], "=", cpp_assign(arr[3], "=", a)));
   arr[4] = cpp_assign(arr[5], "=", b);

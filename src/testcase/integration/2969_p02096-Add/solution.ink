@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var maxn = cpp_expression("#inclu");
+var maxn: dynamic = cpp_expression("#inclu");
 
-var mod = cpp_expression("#incl");
+var mod: dynamic = cpp_expression("#incl");
 
-var db = cpp_expression("#inclu");
+var db: dynamic = cpp_expression("#inclu");
 
-var vi = cpp_expression("#include <b");
+var vi: dynamic = cpp_expression("#include <b");
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var pi = cpp_expression("#include <bits");
+var pi: dynamic = cpp_expression("#include <bits");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func ksm(a: dynamic, b: dynamic)
+func ksm(a: dynamic, b: dynamic) -> dynamic
 {
   if ((!b))
   {
     return 1;
   }
-  var ns = ksm(a, (b >> 1));
+  var ns: dynamic = ksm(a, (b >> 1));
   ns = ((ns * ns) % mod);
   if ((b & 1))
   {
@@ -35,30 +35,30 @@ func ksm(a: dynamic, b: dynamic)
   return ns;
 }
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   a += b;
-  return if (((a < mod))) a else ((a - mod));
+  return  (((a < mod))) ? a : ((a - mod));
 }
 
-func sub(a: dynamic, b: dynamic)
+func sub(a: dynamic, b: dynamic) -> dynamic
 {
   a -= b;
-  return if (((a < 0))) (a + mod) else a;
+  return  (((a < 0))) ? (a + mod) : a;
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   return ((cpp_cast(a) * b) % mod);
 }
 
-func power(a: dynamic, b: dynamic)
+func power(a: dynamic, b: dynamic) -> dynamic
 {
   if ((!b))
   {
     return 1;
   }
-  var u = power(a, (b >> 1));
+  var u: dynamic = power(a, (b >> 1));
   u = mul(u, u);
   if ((b & 1))
   {
@@ -67,26 +67,26 @@ func power(a: dynamic, b: dynamic)
   return u;
 }
 
-var rev: dynamic;
+var rev: dynamic = cpp_uninitialized();
 
-var roots: dynamic;
+var roots: dynamic = cpp_uninitialized();
 
-var mx = -1;
+var mx: dynamic = -1;
 
-func init()
+func init() -> dynamic
 {
   mx = 16;
   roots.resize((1 << mx));
   {
-    var j = 1;
+    var j: dynamic = 1;
     while ((j <= mx))
     {
-      var mn = power(3, (((mod - 1)) >> j));
+      var mn: dynamic = power(3, (((mod - 1)) >> j));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < ((1 << ((j - 1))))))
         {
-          var npl = (((1 << ((j - 1)))) | i);
+          var npl: dynamic = (((1 << ((j - 1)))) | i);
           if ((i == 0))
           {
             roots[npl] = 1;
@@ -102,7 +102,7 @@ func init()
   }
 }
 
-func calr(m: dynamic)
+func calr(m: dynamic) -> dynamic
 {
   rev.resize((1 << m));
   if ((mx == -1))
@@ -111,11 +111,11 @@ func calr(m: dynamic)
   }
   rev[0] = 0;
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < m))
     {
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < ((1 << j))))
         {
           rev[(k | ((1 << j)))] = (rev[k] + ((1 << (((m - j) - 1)))));
@@ -127,17 +127,17 @@ func calr(m: dynamic)
   }
 }
 
-func dft(a: dynamic)
+func dft(a: dynamic) -> dynamic
 {
-  var n = a.size();
-  var r = 0;
+  var n: dynamic = a.size();
+  var r: dynamic = 0;
   while ((((1 << r)) < n))
   {
     r += 1;
   }
   calr(r);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((rev[i] > i))
@@ -148,18 +148,18 @@ func dft(a: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < i))
             {
-              var mr = mul(a[((i + j) + k)], roots[(i + k)]);
+              var mr: dynamic = mul(a[((i + j) + k)], roots[(i + k)]);
               a[((i + j) + k)] = sub(a[(j + k)], mr);
               a[(j + k)] = add(a[(j + k)], mr);
               k += 1;
@@ -173,10 +173,10 @@ func dft(a: dynamic)
   }
 }
 
-func mul1(a: dynamic, b: dynamic)
+func mul1(a: dynamic, b: dynamic) -> dynamic
 {
-  var l = ((a.size() + b.size()) - 1);
-  var r = 0;
+  var l: dynamic = ((a.size() + b.size()) - 1);
+  var r: dynamic = 0;
   while ((((1 << r)) < l))
   {
     r += 1;
@@ -185,9 +185,9 @@ func mul1(a: dynamic, b: dynamic)
   b.resize((1 << r));
   dft(a);
   dft(b);
-  var bk = power((1 << r), (mod - 2));
+  var bk: dynamic = power((1 << r), (mod - 2));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << r))))
     {
       a[i] = mul(mul(a[i], b[i]), bk);
@@ -200,25 +200,25 @@ func mul1(a: dynamic, b: dynamic)
   return a;
 }
 
-func mult(a: dynamic, b: dynamic)
+func mult(a: dynamic, b: dynamic) -> dynamic
 {
-  var dv = ((a.size() / 2));
-  var fn = cpp_construct(((a.size() + b.size()) - 1));
-  var u = cpp_array(2, 2);
-  var t = [a, b];
+  var dv: dynamic = ((a.size() / 2));
+  var fn: dynamic = cpp_construct(((a.size() + b.size()) - 1));
+  var u: dynamic = cpp_array(2, 2);
+  var t: dynamic = [a, b];
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < 2))
     {
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < 2))
         {
           if ((k == 0))
           {
             u[j][k].resize(dv);
             {
-              var s = 0;
+              var s: dynamic = 0;
               while ((s < dv))
               {
                 u[j][k][s] = t[j][s];
@@ -229,7 +229,7 @@ func mult(a: dynamic, b: dynamic)
           {
             u[j][k].resize((t[j].size() - dv));
             {
-              var s = dv;
+              var s: dynamic = dv;
               while ((s < t[j].size()))
               {
                 u[j][k][(s - dv)] = t[j][s];
@@ -244,19 +244,19 @@ func mult(a: dynamic, b: dynamic)
     }
   }
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < 2))
     {
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < 2))
         {
-          var f1 = mul1(u[0][j], u[1][k]);
+          var f1: dynamic = mul1(u[0][j], u[1][k]);
           {
-            var m = 0;
+            var m: dynamic = 0;
             while ((m < f1.size()))
             {
-              var id = (m + (((j + k)) * dv));
+              var id: dynamic = (m + (((j + k)) * dv));
               fn[id] = add(fn[id], f1[m]);
               m += 1;
             }
@@ -270,10 +270,10 @@ func mult(a: dynamic, b: dynamic)
   return fn;
 }
 
-func otp(a: dynamic)
+func otp(a: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       printf("%d ", a[i]);
@@ -283,21 +283,21 @@ func otp(a: dynamic)
   printf("\n");
 }
 
-var jc = cpp_array(maxn);
+var jc: dynamic = cpp_array(maxn);
 
-var bjc = cpp_array(maxn);
+var bjc: dynamic = cpp_array(maxn);
 
-var b = cpp_array(maxn);
+var b: dynamic = cpp_array(maxn);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   jc[0] = cpp_assign(bjc[0], "=", 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < maxn))
     {
       jc[i] = ((jc[(i - 1)] * i) % mod);
@@ -306,14 +306,14 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t))
     {
-      var n: dynamic;
-      var m: dynamic;
+      var n: dynamic = cpp_uninitialized();
+      var m: dynamic = cpp_uninitialized();
       read(n, m);
       {
-        var j = (n - 1);
+        var j: dynamic = (n - 1);
         while ((j >= 0))
         {
           scanf("%d", (&b[j]));
@@ -329,7 +329,7 @@ func main()
       if ((!m))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             a[j] = b[j];
@@ -343,9 +343,9 @@ func main()
           m += mod;
         }
         m = (mod - m);
-        var bk = ksm(m, (mod - 2));
+        var bk: dynamic = ksm(m, (mod - 2));
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             h[j] = bjc[j];
@@ -353,7 +353,7 @@ func main()
             j += 1;
           }
         }
-        var fn: dynamic;
+        var fn: dynamic = cpp_uninitialized();
         if ((n <= 20000))
         {
           fn = mul1(g, h);
@@ -362,7 +362,7 @@ func main()
           fn = mult(g, h);
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             a[j] = mul(mul(fn[j], ksm(m, j)), jc[j]);
@@ -371,7 +371,7 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           printf("%d", a[j]);

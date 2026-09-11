@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-var ans = 0;
+var ans: dynamic = 0;
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var e: dynamic;
+var e: dynamic = cpp_uninitialized();
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-var g: dynamic;
+var g: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var y: dynamic;
+var y: dynamic = cpp_uninitialized();
 
-var z: dynamic;
+var z: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d%d%d%d%d", (&a), (&b), (&c), (&d), (&e), (&f), (&g));
   ans = b;
   x = a;
   y = d;
   z = e;
-  var t = ((((x & 1)) + ((y & 1))) + ((z & 1)));
+  var t: dynamic = ((((x & 1)) + ((y & 1))) + ((z & 1)));
   if ((y & 1))
   {
     swap(x, y);

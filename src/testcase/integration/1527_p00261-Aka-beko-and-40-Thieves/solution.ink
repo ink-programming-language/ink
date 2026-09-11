@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func dfs(c: dynamic, p: dynamic)
+func dfs(c: dynamic, p: dynamic) -> dynamic
 {
   if ((p == s.size()))
   {
@@ -83,10 +83,10 @@ func dfs(c: dynamic, p: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   while (((cin >> s) && (s != "#")))
   {
-    write((if (dfs(cpp_char("A"), 0)) "Yes" else "No"), "\n");
+    write(( (dfs(cpp_char("A"), 0)) ? "Yes" : "No"), "\n");
   }
 }

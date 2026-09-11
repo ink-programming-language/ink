@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var fst = cpp_expression("#incl");
+var fst: dynamic = cpp_expression("#incl");
 
-var snd = cpp_expression("#inclu");
+var snd: dynamic = cpp_expression("#inclu");
 
-func fore(i: dynamic, a: dynamic, b: dynamic)
+func fore(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a,ThxDem=b;i<ThxDem;++i)");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-func ALL(s: dynamic)
+func ALL(s: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/st");
 }
 
-var FIN = cpp_expression("#include <bits/stdc++.h> #def");
+var FIN: dynamic = cpp_expression("#include <bits/stdc++.h> #def");
 
-func SZ(s: dynamic)
+func SZ(s: dynamic) -> dynamic
 {
   return cpp_expression("#include <bit");
 }
 
-var MAXN = (5e5 + 10);
+var MAXN: dynamic = (5e5 + 10);
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   a += b;
   if ((a >= MOD))
@@ -37,7 +37,7 @@ func add(a: dynamic, b: dynamic)
   return a;
 }
 
-func sub(a: dynamic, b: dynamic)
+func sub(a: dynamic, b: dynamic) -> dynamic
 {
   a -= b;
   if ((a < 0))
@@ -47,14 +47,14 @@ func sub(a: dynamic, b: dynamic)
   return a;
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a * b) % MOD);
 }
 
-func fpow(a: dynamic, b: dynamic)
+func fpow(a: dynamic, b: dynamic) -> dynamic
 {
-  var r = 1;
+  var r: dynamic = 1;
   while (b)
   {
     if ((b & 1))
@@ -67,18 +67,18 @@ func fpow(a: dynamic, b: dynamic)
   return r;
 }
 
-var p = cpp_array(MAXN);
+var p: dynamic = cpp_array(MAXN);
 
-var am = cpp_array(MAXN);
+var am: dynamic = cpp_array(MAXN);
 
-var did = cpp_array(MAXN);
+var did: dynamic = cpp_array(MAXN);
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
-  return cpp_assign(p[x], "=", if ((p[x] == x)) x else find(p[x]));
+  return cpp_assign(p[x], "=",  ((p[x] == x)) ? x : find(p[x]));
 }
 
-func join(x: dynamic, y: dynamic)
+func join(x: dynamic, y: dynamic) -> dynamic
 {
   x = find(x);
   y = find(y);
@@ -94,21 +94,21 @@ func join(x: dynamic, y: dynamic)
   return 1;
 }
 
-func main()
+func main() -> dynamic
 {
   FIN;
-  var n: dynamic;
-  var m: dynamic;
-  var tot = 0;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var tot: dynamic = 0;
   read(n, m);
   fore(i, 0, m)[i] = i;
   fore(i, 0, n);
   {
-    var k: dynamic;
+    var k: dynamic = cpp_uninitialized();
     read(k);
     if ((k == 1))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       read(x);
       x -= 1;
       if ((!am[find(x)]))
@@ -120,12 +120,12 @@ func main()
     }
     if ((k == 2))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       x -= 1;
       y -= 1;
-      var has = (am[find(x)] && am[find(y)]);
+      var has: dynamic = (am[find(x)] && am[find(y)]);
       if ((join(x, y) && (!has)))
       {
         did[i] = 1;

@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var sx = mod;
+var sx: dynamic = mod;
 
-var sy = mod;
+var sy: dynamic = mod;
 
-var bx: dynamic;
+var bx: dynamic = cpp_uninitialized();
 
-var by: dynamic;
+var by: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(5001);
+var vis: dynamic = cpp_array(5001);
 
-var cost = cpp_array(5001, 5001);
+var cost: dynamic = cpp_array(5001, 5001);
 
-var x = cpp_array(5001);
+var x: dynamic = cpp_array(5001);
 
-var y = cpp_array(5001);
+var y: dynamic = cpp_array(5001);
 
-func dfs(v: dynamic, c: dynamic, mid: dynamic)
+func dfs(v: dynamic, c: dynamic, mid: dynamic) -> dynamic
 {
   if ((vis[v] && (c != vis[v])))
   {
@@ -34,7 +34,7 @@ func dfs(v: dynamic, c: dynamic, mid: dynamic)
   }
   vis[v] = c;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((cost[v][i] > mid))
@@ -50,11 +50,11 @@ func dfs(v: dynamic, c: dynamic, mid: dynamic)
   return 1;
 }
 
-func check(mid: dynamic)
+func check(mid: dynamic) -> dynamic
 {
   cnt = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))
@@ -71,11 +71,11 @@ func check(mid: dynamic)
   return 1;
 }
 
-func out()
+func out() -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= cnt))
     {
       ans = ((ans * 2) % mod);
@@ -85,11 +85,11 @@ func out()
   write(ans, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d%d", (&x[i]), (&y[i]));
@@ -101,11 +101,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           cost[i][j] = (abs((x[j] - x[i])) + abs((y[j] - y[i])));
@@ -115,12 +115,12 @@ func main()
       i += 1;
     }
   }
-  var lb = 0;
-  var ub = (((bx + by) - sx) - sy);
+  var lb: dynamic = 0;
+  var ub: dynamic = (((bx + by) - sx) - sy);
   while ((lb <= ub))
   {
     memset(vis, 0, cpp_sizeof((vis)));
-    var mid = (((lb + ub)) / 2);
+    var mid: dynamic = (((lb + ub)) / 2);
     if ((!check(mid)))
     {
       lb = (mid + 1);

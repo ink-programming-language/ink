@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var y: dynamic;
-  var y2: dynamic;
-  var i: dynamic;
-  var flg: dynamic;
-  var flg2: dynamic;
+  var y: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var flg: dynamic = cpp_uninitialized();
+  var flg2: dynamic = cpp_uninitialized();
   flg = 0;
   scanf("%d %d", (&y), (&y2));
   while (((y != 0) && (y2 != 0)))

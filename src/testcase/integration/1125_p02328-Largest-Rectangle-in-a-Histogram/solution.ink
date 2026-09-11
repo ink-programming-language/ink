@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var LINF = 1e18;
+var LINF: dynamic = 1e18;
 
-func operator_shift_left(out: dynamic, o: dynamic)
+func operator_shift_left(out: dynamic, o: dynamic) -> dynamic
 {
   (((((out << "(") << o.first) << ",") << o.second) << ")");
   return out;
 }
 
-func operator_shift_left(out: dynamic, V: dynamic)
+func operator_shift_left(out: dynamic, V: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V.size()))
     {
       (out << V[i]);
@@ -27,10 +27,10 @@ func operator_shift_left(out: dynamic, V: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, Mat: dynamic)
+func operator_shift_left(out: dynamic, Mat: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Mat.size()))
     {
       if ((i != 0))
@@ -44,11 +44,11 @@ func operator_shift_left(out: dynamic, Mat: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, mp: dynamic)
+func operator_shift_left(out: dynamic, mp: dynamic) -> dynamic
 {
   (out << "{ ");
   {
-    var it = mp.begin();
+    var it: dynamic = mp.begin();
     while ((it != mp.end()))
     {
       (((out << it->first) << ":") << it->second);
@@ -65,19 +65,19 @@ func operator_shift_left(out: dynamic, mp: dynamic)
 
 class Rectangle
 {
-  var h: dynamic;
-  var p: dynamic;
+  var h: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
 }
 
-func max_area_of_histgram(n: dynamic, height: dynamic)
+func max_area_of_histgram(n: dynamic, height: dynamic) -> dynamic
 {
-  var S: dynamic;
-  var maxv = 0;
+  var S: dynamic = cpp_uninitialized();
+  var maxv: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
-      var rect: dynamic;
+      var rect: dynamic = cpp_uninitialized();
       rect.h = height[i];
       rect.p = i;
       if (S.empty())
@@ -88,12 +88,12 @@ func max_area_of_histgram(n: dynamic, height: dynamic)
         S.push(rect);
       } else if ((S.top().h > rect.h))
       {
-        var now = i;
+        var now: dynamic = i;
         while ((((!S.empty())) && ((S.top().h >= rect.h))))
         {
-          var pre = S.top();
+          var pre: dynamic = S.top();
           S.pop();
-          var area = ((1 * pre.h) * ((i - pre.p)));
+          var area: dynamic = ((1 * pre.h) * ((i - pre.p)));
           maxv = max(maxv, area);
           now = pre.p;
         }
@@ -106,12 +106,12 @@ func max_area_of_histgram(n: dynamic, height: dynamic)
   return maxv;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var dp = cpp_construct(N, 0);
-  for (var in_cpp in dp)
+  var dp: dynamic = cpp_construct(N, 0);
+  for (var in_cpp: dynamic in dp)
   {
     read(in_cpp);
   }
@@ -119,7 +119,7 @@ func solve()
   return max_area_of_histgram(N, dp);
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   cin.tie(0);
   ios_base.sync_with_stdio(false);

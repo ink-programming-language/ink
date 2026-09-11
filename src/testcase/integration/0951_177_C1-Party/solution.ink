@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var N_max = 0;
+var N_max: dynamic = 0;
 
 class graph
 {
-  var V: dynamic;
-  var k: dynamic;
-  var m: dynamic;
-  var L: dynamic;
-  var L2: dynamic;
-  func graph(n: dynamic)
+  var V: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var L: dynamic = cpp_uninitialized();
+  var L2: dynamic = cpp_uninitialized();
+  func graph(n: dynamic) -> dynamic
   {
       V = n;
     }
-  func add_edge(u: dynamic, v: dynamic)
+  func add_edge(u: dynamic, v: dynamic) -> dynamic
   {
       L.push_back([u, v]);
     }
-  func find_set(i: dynamic, parent: dynamic)
+  func find_set(i: dynamic, parent: dynamic) -> dynamic
   {
       if ((parent[i] == -1))
       {
@@ -26,10 +26,10 @@ class graph
       parent[i] = find_set(parent[i], parent);
       return find_set(parent[i], parent);
     }
-  func union_set(x: dynamic, y: dynamic, parent: dynamic, rank: dynamic)
+  func union_set(x: dynamic, y: dynamic, parent: dynamic, rank: dynamic) -> dynamic
   {
-      var S1 = find_set(x, parent);
-      var S2 = find_set(y, parent);
+      var S1: dynamic = find_set(x, parent);
+      var S2: dynamic = find_set(y, parent);
       if ((S1 != S2))
       {
         if ((rank[S1] < rank[S2]))
@@ -43,20 +43,20 @@ class graph
         }
       }
     }
-  func solve()
+  func solve() -> dynamic
   {
-      var m: dynamic;
-      var i: dynamic;
-      var x: dynamic;
-      var y: dynamic;
-      var u: dynamic;
-      var v: dynamic;
-      var ans: dynamic;
-      var leader: dynamic;
-      var sz: dynamic;
-      var parent = cpp_array(V);
-      var rank = cpp_array(V);
-      var isValid = cpp_array(V);
+      var m: dynamic = cpp_uninitialized();
+      var i: dynamic = cpp_uninitialized();
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
+      var ans: dynamic = cpp_uninitialized();
+      var leader: dynamic = cpp_uninitialized();
+      var sz: dynamic = cpp_uninitialized();
+      var parent: dynamic = cpp_array(V);
+      var rank: dynamic = cpp_array(V);
+      var isValid: dynamic = cpp_array(V);
       {
         i = 0;
         while ((i < V))
@@ -67,7 +67,7 @@ class graph
           i += 1;
         }
       }
-      for (var edge in L)
+      for (var edge: dynamic in L)
       {
         u = edge.first;
         v = edge.second;
@@ -108,13 +108,13 @@ class graph
     }
 }
 
-func run_case()
+func run_case() -> dynamic
 {
-  var n: dynamic;
-  var i: dynamic;
-  var k: dynamic;
-  var u: dynamic;
-  var v: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
   read(n);
   read(k);
   {
@@ -131,11 +131,11 @@ func run_case()
   G.solve();
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var T = 1;
+  var T: dynamic = 1;
   while (cpp_update(T, "--"))
   {
     run_case();

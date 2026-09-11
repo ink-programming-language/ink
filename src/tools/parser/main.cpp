@@ -8,11 +8,12 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -42,118 +43,284 @@ namespace
     }
   }
 
-  struct PrintFrame
+  void printSpelling(std::ostream &Output, std::string_view Spelling)
   {
-      ink::parser::CstNodeId Id;
-      std::size_t Depth;
-      std::size_t NodeStart;
-      std::size_t NextChild = 0;
-      std::size_t ConsumedTokens = 0;
-  };
+    constexpr char HexDigits[] = "0123456789ABCDEF";
+    Output << '\"';
+    for (const unsigned char Byte : Spelling)
+    {
+      if (Byte == '\"' || Byte == '\\')
+      {
+        Output << '\\' << static_cast<char>(Byte);
+      }
+      else if (Byte >= 0x20 && Byte < 0x7F)
+      {
+        Output << static_cast<char>(Byte);
+      }
+      else
+      {
+        Output << "\\x" << HexDigits[Byte >> 4] << HexDigits[Byte & 0x0F];
+      }
+    }
+    Output << '\"';
+  }
 
-  bool pushPrintFrame(const ink::parser::CstTree &Tree, ink::parser::CstNodeId Id, std::size_t Depth, std::size_t NodeStart, std::vector<bool> &ActiveNodes, std::vector<PrintFrame> &Frames, std::ostream &Output)
+  void printRange(std::ostream &Output, ink::core::SourceRange Span)
   {
-    if (Id >= ActiveNodes.size())
-    {
-      return false;
-    }
-    if (ActiveNodes[Id])
-    {
-      return false;
-    }
-    ActiveNodes[Id] = true;
+    Output << '[' << Span.Start << ", " << Span.End << ')';
+  }
 
-    const ink::parser::CstNode &Node = Tree.nodes()[Id];
-    printIndent(Output, Depth);
-    Output << "Node " << Id << ' ' << ink::parser::cstKindName(Node.Kind) << " tokens=" << Node.TokenCount << " text=" << Node.TextLength << " flags=" << static_cast<unsigned int>(Node.Flags) << '\n';
-
-    const std::vector<ink::parser::CstElement> &Children = Tree.children();
-    if (Node.FirstChild > Children.size() || Node.ChildCount > Children.size() - Node.FirstChild)
+  bool printTokenField(const ink::tokenizer::TokenizedBuffer &LexedFile, const char *Name, ink::parser::AstTokenId Id, std::ostream &Output)
+  {
+    if (Id == ink::parser::InvalidAstTokenId)
     {
-      ActiveNodes[Id] = false;
+      return true;
+    }
+    if (Id >= LexedFile.tokens().size())
+    {
       return false;
     }
-    Frames.push_back({Id, Depth, NodeStart});
+    Output << ' ' << Name << '=';
+    printSpelling(Output, LexedFile.raw(LexedFile.tokens()[Id]));
     return true;
   }
 
-  bool printNode(const ink::parser::CstTree &Tree, const ink::tokenizer::TokenizedBuffer &LexedFile, ink::parser::CstNodeId Id, std::size_t NodeStart, std::vector<bool> &ActiveNodes, std::ostream &Output)
+  const char *accessName(ink::parser::AccessKind Access)
   {
+    switch (Access)
+    {
+    case ink::parser::AccessKind::Unspecified:
+      return "Unspecified";
+    case ink::parser::AccessKind::Public:
+      return "Public";
+    case ink::parser::AccessKind::Private:
+      return "Private";
+    }
+    return "Unknown";
+  }
+
+  const char *bindingName(ink::parser::BindingKind Binding)
+  {
+    switch (Binding)
+    {
+    case ink::parser::BindingKind::Let:
+      return "Let";
+    case ink::parser::BindingKind::Var:
+      return "Var";
+    case ink::parser::BindingKind::Const:
+      return "Const";
+    }
+    return "Unknown";
+  }
+
+  void printArguments(const std::vector<ink::parser::AstArgument> &Arguments, std::ostream &Output)
+  {
+    for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
+    {
+      const ink::parser::AstArgument &Argument = Arguments[Index];
+      Output << " Argument[" << Index << "]={Pack=" << (Argument.IsPackExpansion ? "true" : "false") << " Span=";
+      printRange(Output, Argument.Span);
+      Output << '}';
+    }
+  }
+
+  bool printPayload(const ink::parser::AstNode &Node, const ink::tokenizer::TokenizedBuffer &LexedFile, std::ostream &Output)
+  {
+    const auto Print = [&LexedFile, &Output](const auto &Data) -> bool
+    {
+      using NodeType = std::decay_t<decltype(Data)>;
+      if constexpr (std::is_same_v<NodeType, ink::parser::Error>)
+      {
+        Output << " Expected=";
+        printSpelling(Output, Data.Expected);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::ImportDeclaration>)
+      {
+        Output << " MemberImport=" << (Data.IsMemberImport ? "true" : "false") << " Package=[";
+        for (std::size_t Index = 0; Index < Data.Package.size(); ++Index)
+        {
+          if (Index != 0)
+          {
+            Output << ", ";
+          }
+          if (Data.Package[Index] == ink::parser::InvalidAstTokenId)
+          {
+            Output << "<missing>";
+            continue;
+          }
+          if (Data.Package[Index] >= LexedFile.tokens().size())
+          {
+            return false;
+          }
+          printSpelling(Output, LexedFile.raw(LexedFile.tokens()[Data.Package[Index]]));
+        }
+        Output << ']';
+        return printTokenField(LexedFile, "Member", Data.Member, Output) && printTokenField(LexedFile, "Alias", Data.Alias, Output);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::FunctionDeclaration>)
+      {
+        Output << " Access=" << accessName(Data.Access) << " Const=" << (Data.IsConst ? "true" : "false") << " ClassMethod=" << (Data.IsClassMethod ? "true" : "false");
+        return printTokenField(LexedFile, "Name", Data.Name, Output) && printTokenField(LexedFile, "Linkage", Data.Linkage, Output);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::ClassDeclaration> || std::is_same_v<NodeType, ink::parser::InterfaceDeclaration> || std::is_same_v<NodeType, ink::parser::EnumDeclaration>)
+      {
+        Output << " Access=" << accessName(Data.Access);
+        return printTokenField(LexedFile, "Name", Data.Name, Output);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::ClassFieldDeclaration>)
+      {
+        Output << " Access=" << accessName(Data.Access) << " Const=" << (Data.IsConst ? "true" : "false");
+        return printTokenField(LexedFile, "Name", Data.Name, Output);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::EnumFieldDeclaration> || std::is_same_v<NodeType, ink::parser::NamePattern> || std::is_same_v<NodeType, ink::parser::NameExpression>)
+      {
+        return printTokenField(LexedFile, "Name", Data.Name, Output);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::BindingDeclaration>)
+      {
+        Output << " Access=" << accessName(Data.Access) << " Binding=" << bindingName(Data.Binding);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::GenericParameter>)
+      {
+        Output << " Variadic=" << (Data.IsVariadic ? "true" : "false");
+        return printTokenField(LexedFile, "Name", Data.Name, Output);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::FunctionParameter>)
+      {
+        Output << " Variadic=" << (Data.IsVariadic ? "true" : "false");
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::ForInStatement>)
+      {
+        Output << " Binding=" << bindingName(Data.Binding);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::AssignmentStatement> || std::is_same_v<NodeType, ink::parser::BinaryExpression> || std::is_same_v<NodeType, ink::parser::UnaryExpression>)
+      {
+        Output << " Operator=";
+        printSpelling(Output, ink::tokenizer::symbolSpelling(Data.Operator));
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::ReferenceTypeExpression> || std::is_same_v<NodeType, ink::parser::PointerTypeExpression>)
+      {
+        Output << " Const=" << (Data.IsConst ? "true" : "false");
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::FunctionTypeExpression>)
+      {
+        if (!printTokenField(LexedFile, "Linkage", Data.Linkage, Output))
+        {
+          return false;
+        }
+        for (std::size_t Index = 0; Index < Data.Parameters.size(); ++Index)
+        {
+          const ink::parser::FunctionTypeParameter &Parameter = Data.Parameters[Index];
+          Output << " Parameter[" << Index << "]={Variadic=" << (Parameter.IsVariadic ? "true" : "false") << " Bare=" << (Parameter.TypeExpression == ink::parser::InvalidAstNodeId ? "true" : "false") << " Span=";
+          printRange(Output, Parameter.Span);
+          Output << '}';
+        }
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::CallExpression> || std::is_same_v<NodeType, ink::parser::GenericInstantiationExpression>)
+      {
+        printArguments(Data.Arguments, Output);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::MemberExpression>)
+      {
+        Output << " Pointer=" << (Data.IsPointer ? "true" : "false");
+        return printTokenField(LexedFile, "Member", Data.Member, Output);
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::LiteralExpression>)
+      {
+        if (Data.Token >= LexedFile.tokens().size() || !printTokenField(LexedFile, "Literal", Data.Token, Output))
+        {
+          return false;
+        }
+        const ink::tokenizer::Token &Token = LexedFile.tokens()[Data.Token];
+        Output << " Kind=" << ink::tokenizer::tokenKindName(Token.Kind);
+        if (const ink::tokenizer::NumericInfo *Numeric = std::get_if<ink::tokenizer::NumericInfo>(&Token.Payload))
+        {
+          Output << " Base=" << Numeric->Base;
+        }
+        if (const ink::tokenizer::StringInfo *String = std::get_if<ink::tokenizer::StringInfo>(&Token.Payload))
+        {
+          Output << " StringMode=" << static_cast<unsigned int>(String->Mode) << " Decoded=";
+          printSpelling(Output, String->Decoded);
+        }
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::BuiltinTypeExpression>)
+      {
+        Output << " Type=";
+        printSpelling(Output, ink::tokenizer::keywordSpelling(Data.Type));
+      }
+      else if constexpr (std::is_same_v<NodeType, ink::parser::ReceiverExpression>)
+      {
+        Output << " Receiver=";
+        printSpelling(Output, ink::tokenizer::keywordSpelling(Data.Receiver));
+      }
+      return true;
+    };
+    return ink::parser::visitAstNode(Node, Print);
+  }
+
+  struct PrintFrame
+  {
+      ink::parser::AstNodeId Id;
+      std::size_t Depth;
+      std::vector<ink::parser::AstChildEdge> Children;
+      std::size_t NextChild = 0;
+  };
+
+  bool pushPrintFrame(const ink::parser::AstTree &Tree, const ink::tokenizer::TokenizedBuffer &LexedFile, ink::parser::AstChildEdge Edge, std::size_t Depth, std::vector<bool> &ActiveNodes, std::vector<PrintFrame> &Frames, std::ostream &Output)
+  {
+    if (Edge.Id >= ActiveNodes.size() || ActiveNodes[Edge.Id])
+    {
+      return false;
+    }
+    const ink::parser::AstNode &Node = Tree.node(Edge.Id);
+    if (Node.Span.Start > Node.Span.End || Node.Span.End > LexedFile.source().size())
+    {
+      return false;
+    }
+    printIndent(Output, Depth);
+    Output << Edge.Role;
+    if (Edge.Index != ink::parser::InvalidAstNodeId)
+    {
+      Output << '[' << Edge.Index << ']';
+    }
+    Output << ": Node " << Edge.Id << ' ' << ink::parser::astKindName(Node.kind()) << ' ';
+    printRange(Output, Node.Span);
+    Output << " error=" << (ink::parser::hasFlag(Node.Flags, ink::parser::AstNodeFlags::HasError) ? "true" : "false") << " missing=" << (ink::parser::hasFlag(Node.Flags, ink::parser::AstNodeFlags::HasMissing) ? "true" : "false");
+    if (!printPayload(Node, LexedFile, Output))
+    {
+      return false;
+    }
+    Output << '\n';
+    ActiveNodes[Edge.Id] = true;
+    Frames.push_back({Edge.Id, Depth, Tree.children(Edge.Id)});
+    return true;
+  }
+
+  bool printAst(const ink::parser::ParsedFile &Result, std::ostream &Output)
+  {
+    const ink::parser::AstTree &Tree = Result.ast();
+    std::vector<bool> ActiveNodes(Tree.size(), false);
     std::vector<PrintFrame> Frames;
-    if (!pushPrintFrame(Tree, Id, 0, NodeStart, ActiveNodes, Frames, Output))
+    if (!pushPrintFrame(Tree, Result.lexedFile(), {"Root", Tree.root()}, 0, ActiveNodes, Frames, Output))
     {
       return false;
     }
     while (!Frames.empty())
     {
       PrintFrame &Frame = Frames.back();
-      if (Frame.Id >= Tree.nodes().size())
-      {
-        return false;
-      }
-      const ink::parser::CstNode &Node = Tree.nodes()[Frame.Id];
-      if (Frame.NextChild == Node.ChildCount)
+      if (Frame.NextChild == Frame.Children.size())
       {
         ActiveNodes[Frame.Id] = false;
         Frames.pop_back();
         continue;
       }
-
-      const ink::parser::CstElement &Element = Tree.children()[Node.FirstChild + Frame.NextChild];
-      ++Frame.NextChild;
-      if (const ink::parser::CstNodeRef *NodeRef = std::get_if<ink::parser::CstNodeRef>(&Element))
-      {
-        if (NodeRef->Id >= Tree.nodes().size())
-        {
-          return false;
-        }
-        const std::size_t ChildStart = Frame.NodeStart + Frame.ConsumedTokens;
-        Frame.ConsumedTokens += Tree.nodes()[NodeRef->Id].TokenCount;
-        if (!pushPrintFrame(Tree, NodeRef->Id, Frame.Depth + 1, ChildStart, ActiveNodes, Frames, Output))
-        {
-          return false;
-        }
-        continue;
-      }
-      if (const ink::parser::CstTokenRef *TokenRef = std::get_if<ink::parser::CstTokenRef>(&Element))
-      {
-        const std::size_t TokenIndex = Frame.NodeStart + TokenRef->TokenOffset;
-        if (TokenIndex >= LexedFile.tokens().size())
-        {
-          return false;
-        }
-        const ink::tokenizer::Token &Token = LexedFile.tokens()[TokenIndex];
-        printIndent(Output, Frame.Depth + 1);
-        Output << "Token " << TokenIndex << ' ' << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ")\n";
-        ++Frame.ConsumedTokens;
-        continue;
-      }
-
-      const ink::parser::MissingToken *Missing = std::get_if<ink::parser::MissingToken>(&Element);
-      if (Missing == nullptr)
+      const ink::parser::AstChildEdge Edge = Frame.Children[Frame.NextChild++];
+      if (!pushPrintFrame(Tree, Result.lexedFile(), Edge, Frame.Depth + 1, ActiveNodes, Frames, Output))
       {
         return false;
       }
-      printIndent(Output, Frame.Depth + 1);
-      Output << "Missing " << ink::tokenizer::tokenKindName(Missing->ExpectedKind);
-      if (!Missing->ExpectedSpelling.empty())
-      {
-        Output << ' ' << std::quoted(Missing->ExpectedSpelling);
-      }
-      Output << " [" << Missing->AnchorByteOffset << ", " << Missing->AnchorByteOffset << ")\n";
     }
     return true;
-  }
-
-  bool printCst(const ink::parser::ParsedFile &Result, std::ostream &Output)
-  {
-    const ink::parser::CstTree &Tree = Result.cst();
-    if (Tree.root() >= Tree.nodes().size())
-    {
-      return false;
-    }
-    std::vector<bool> ActiveNodes(Tree.nodes().size(), false);
-    return printNode(Tree, Result.lexedFile(), Tree.root(), 0, ActiveNodes, Output);
   }
 
   void printDiagnostics(const ink::core::SourceManager &Sources, const std::vector<ink::core::Diagnostic> &Diagnostics, std::ostream &ErrorOutput)
@@ -182,7 +349,7 @@ namespace
 
   int runParser(int ArgumentCount, char **ArgumentValues)
   {
-    ink::cli::Application Command({"ink-parse", "Parse Ink source and print the concrete syntax tree.", "development"});
+    ink::cli::Application Command({"ink-parse", "Parse Ink source and print the abstract syntax tree.", "development"});
     std::string SourceFile = "-";
     Command.addOption("INPUT", SourceFile, "Input file, or '-' for standard input").typeName("FILE");
     const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
@@ -232,15 +399,20 @@ namespace
       std::ostringstream BufferedErrorOutput;
       printDiagnostics(Compilation.sourceManager(), Diagnostics.diagnostics(), BufferedErrorOutput);
       const bool ErrorOutputSucceeded = ink::cli::writeOutput(std::cerr, BufferedErrorOutput.str());
-      return ink::cli::exitStatus(ErrorOutputSucceeded ? ink::cli::ExitCode::SourceError : ink::cli::ExitCode::InvocationError);
+      bool InternalError = false;
+      for (const ink::core::Diagnostic &Diagnostic : Diagnostics.diagnostics())
+      {
+        InternalError = InternalError || Diagnostic.classification() == ink::core::DiagnosticClass::InternalCompilerError;
+      }
+      return ink::cli::exitStatus(ErrorOutputSucceeded ? InternalError ? ink::cli::ExitCode::InternalError : ink::cli::ExitCode::SourceError : ink::cli::ExitCode::InvocationError);
     }
 
     const ink::parser::ParsedFile Result = ink::parser::parse(Context, std::move(LexedFile));
     std::ostringstream BufferedOutput;
     std::ostringstream BufferedErrorOutput;
-    if (!printCst(Result, BufferedOutput))
+    if (!printAst(Result, BufferedOutput))
     {
-      ink::cli::writeOutput(std::cerr, "ink-parse: internal compiler error: concrete syntax tree cannot be traversed\n");
+      ink::cli::writeOutput(std::cerr, "ink-parse: internal compiler error: abstract syntax tree cannot be traversed\n");
       return ink::cli::exitStatus(ink::cli::ExitCode::InternalError);
     }
     printDiagnostics(Compilation.sourceManager(), Diagnostics.diagnostics(), BufferedErrorOutput);
@@ -256,8 +428,9 @@ namespace
 
 int main(int ArgumentCount, char **ArgumentValues)
 {
-  return ink::cli::runMain("ink-parse", [ArgumentCount, ArgumentValues]()
-                           {
-                             return runParser(ArgumentCount, ArgumentValues);
-                           });
+  const auto Run = [ArgumentCount, ArgumentValues]()
+  {
+    return runParser(ArgumentCount, ArgumentValues);
+  };
+  return ink::cli::runMain("ink-parse", Run);
 }

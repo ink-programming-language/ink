@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-func powmod(a: dynamic, b: dynamic)
+func powmod(a: dynamic, b: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   a %= mod;
   assert((b >= 0));
   {
@@ -21,27 +21,27 @@ func powmod(a: dynamic, b: dynamic)
   return res;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (b) gcd(b, (a % b)) else a;
+  return  (b) ? gcd(b, (a % b)) : a;
 }
 
-func getint()
+func getint() -> dynamic
 {
-  var ret = 0;
-  var ok = 0;
-  var neg = 0;
+  var ret: dynamic = 0;
+  var ok: dynamic = 0;
+  var neg: dynamic = 0;
   {
     while (true)
     {
-      var c = getchar();
+      var c: dynamic = getchar();
       if (((c >= cpp_char("0")) && (c <= cpp_char("9"))))
       {
         ret = ((((((ret << 3)) + ret) + ret) + c) - cpp_char("0"));
         ok = 1;
       } else if (ok)
       {
-        return if (neg) (-ret) else ret;
+        return  (neg) ? (-ret) : ret;
       } else if ((c == cpp_char("-")))
       {
         neg = 1;
@@ -50,33 +50,33 @@ func getint()
   }
 }
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var base = cpp_array(10, 10);
+var base: dynamic = cpp_array(10, 10);
 
-var a = cpp_array(10);
+var a: dynamic = cpp_array(10);
 
-var hs: dynamic;
+var hs: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   m = getint();
   d = getint();
   {
-    var zz = 0;
+    var zz: dynamic = 0;
     while ((zz < m))
     {
-      var c = getint();
+      var c: dynamic = getint();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < d))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < d))
             {
               base[j][k] = 0;
@@ -87,11 +87,11 @@ func main()
         }
       }
       {
-        var z = 0;
+        var z: dynamic = 0;
         while ((z < c))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < d))
             {
               a[k] = getint();
@@ -103,7 +103,7 @@ func main()
             }
           }
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < d))
             {
               if ((!a[j]))
@@ -113,9 +113,9 @@ func main()
               }
               if (base[j][j])
               {
-                var w = (mod - a[j]);
+                var w: dynamic = (mod - a[j]);
                 {
-                  var k = j;
+                  var k: dynamic = j;
                   while ((k < d))
                   {
                     a[k] = (((a[k] + (w * base[j][k]))) % mod);
@@ -124,9 +124,9 @@ func main()
                 }
               } else
               {
-                var w = powmod(a[j], (mod - 2));
+                var w: dynamic = powmod(a[j], (mod - 2));
                 {
-                  var k = j;
+                  var k: dynamic = j;
                   while ((k < d))
                   {
                     base[j][k] = ((a[k] * w) % mod);
@@ -142,20 +142,20 @@ func main()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < d))
         {
           if (base[j][j])
           {
             {
-              var i = 0;
+              var i: dynamic = 0;
               while ((i < j))
               {
                 if (base[i][j])
                 {
-                  var w = (mod - base[i][j]);
+                  var w: dynamic = (mod - base[i][j]);
                   {
-                    var k = j;
+                    var k: dynamic = j;
                     while ((k < d))
                     {
                       base[i][k] = (((base[i][k] + (w * base[j][k]))) % mod);
@@ -170,13 +170,13 @@ func main()
           j += 1;
         }
       }
-      var p = 0;
+      var p: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < d))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < d))
             {
               p = ((p * 13331) + base[j][k]);

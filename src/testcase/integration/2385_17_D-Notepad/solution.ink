@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func po(x: dynamic, n: dynamic, mo: dynamic)
+func po(x: dynamic, n: dynamic, mo: dynamic) -> dynamic
 {
-  var s = 1;
-  var m = x;
+  var s: dynamic = 1;
+  var m: dynamic = x;
   while (n)
   {
     if ((n & cpp_cast(1)))
@@ -16,11 +16,11 @@ func po(x: dynamic, n: dynamic, mo: dynamic)
   return (((mo + s)) % mo);
 }
 
-func ou(x: dynamic)
+func ou(x: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= sqrt(x)))
     {
       if (((x % i) == 0))
@@ -43,32 +43,32 @@ func ou(x: dynamic)
   return ans;
 }
 
-var b = cpp_array(1000009);
+var b: dynamic = cpp_array(1000009);
 
-var n = cpp_array(1000009);
+var n: dynamic = cpp_array(1000009);
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   while ((scanf("%s%s%lld", b, n, (&c)) != EOF))
   {
-    var rb = 0;
-    var l1 = strlen(b);
-    var l2 = strlen(n);
+    var rb: dynamic = 0;
+    var l1: dynamic = strlen(b);
+    var l2: dynamic = strlen(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < l1))
       {
         rb = (((((rb * 10) + b[i]) - cpp_char("0"))) % c);
         i += 1;
       }
     }
-    var rn = 0;
-    var ol = ou(c);
-    var flag = 0;
+    var rn: dynamic = 0;
+    var ol: dynamic = ou(c);
+    var flag: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < l2))
       {
         rn = ((((rn * 10) + n[i]) - cpp_char("0")));
@@ -82,19 +82,19 @@ func main()
     }
     if (flag)
     {
-      var ans1 = 0;
+      var ans1: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < l2))
         {
           ans1 = (((((ans1 * 10) + n[i]) - cpp_char("0"))) % ol);
           i += 1;
         }
       }
-      var ans2 = ((((ans1 - 1) + ol)) % ol);
-      var pp = po(rb, (ans1 + ol), c);
-      var qq = po(rb, (ans2 + ol), c);
-      var ss = ((((pp - qq) + c)) % c);
+      var ans2: dynamic = ((((ans1 - 1) + ol)) % ol);
+      var pp: dynamic = po(rb, (ans1 + ol), c);
+      var qq: dynamic = po(rb, (ans2 + ol), c);
+      var ss: dynamic = ((((pp - qq) + c)) % c);
       if (ss)
       {
         printf("%lld\n", ss);
@@ -104,9 +104,9 @@ func main()
       }
     } else
     {
-      var nn = po(rb, rn, c);
-      var mm = po(rb, (rn - 1), c);
-      var ss = ((((nn - mm) + c)) % c);
+      var nn: dynamic = po(rb, rn, c);
+      var mm: dynamic = po(rb, (rn - 1), c);
+      var ss: dynamic = ((((nn - mm) + c)) % c);
       if (ss)
       {
         printf("%lld\n", ss);

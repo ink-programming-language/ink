@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(5555);
+var s: dynamic = cpp_array(5555);
 
-var b = cpp_array(5555);
+var b: dynamic = cpp_array(5555);
 
-var mark = cpp_array(5555);
+var mark: dynamic = cpp_array(5555);
 
-var moze = cpp_array(5555);
+var moze: dynamic = cpp_array(5555);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var x: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var t: dynamic;
-  var q: dynamic;
-  var br: dynamic;
-  var of: dynamic;
-  var bb: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var br: dynamic = cpp_uninitialized();
+  var of: dynamic = cpp_uninitialized();
+  var bb: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&x));
   {
     i = 0;

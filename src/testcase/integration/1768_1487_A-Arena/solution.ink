@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var time = cpp_expression("#include <bits/stdc++.h> using namespace std ; #define time cerr<<\"t");
+var time: dynamic = cpp_expression("#include <bits/stdc++.h> using namespace std ; #define time cerr<<\"t");
 
-var fast = cpp_expression("#include <bits/stdc++.h> using na");
+var fast: dynamic = cpp_expression("#include <bits/stdc++.h> using na");
 
-var MOD = 100000007;
+var MOD: dynamic = 100000007;
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -15,27 +15,27 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a * b)) / gcd(a, b));
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);
       i += 1;
     }
   }
-  var mini = (*min_element(arr.begin(), arr.end()));
-  var same = 0;
+  var mini: dynamic = (*min_element(arr.begin(), arr.end()));
+  var same: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((arr[i] == mini))
@@ -48,13 +48,13 @@ func solve()
   write((n - same), "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   fast;
   time;
   freopen("input.txt", "r", stdin);
   freopen("output.txt", "w", stdout);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var INF = 1000000007;
+var INF: dynamic = 1000000007;
 
-var N = 100100;
+var N: dynamic = 100100;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var used = cpp_array(N);
+var used: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   read(n, k);
-  var last = (1 + k);
+  var last: dynamic = (1 + k);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < k))
     {
       if (used[i])
@@ -36,7 +36,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!used[i]))

@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < n))
@@ -13,7 +13,7 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
     i = (n - 1);
     while ((i >= 0))

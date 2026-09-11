@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var INF = int_cpp(1e9);
+var INF: dynamic = int_cpp(1e9);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var a: dynamic;
-    var b: dynamic;
-    var p: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
+    var p: dynamic = cpp_uninitialized();
     read(a, b, p);
-    var s: dynamic;
+    var s: dynamic = cpp_uninitialized();
     read(s);
-    var n = s.size();
-    var ans = s.size();
-    var cost = 0;
+    var n: dynamic = s.size();
+    var ans: dynamic = s.size();
+    var cost: dynamic = 0;
     {
-      var i = (n - 2);
+      var i: dynamic = (n - 2);
       while ((i >= 0))
       {
-        var j = i;
+        var j: dynamic = i;
         while (((j >= 0) && (s[i] == s[j])))
         {
           j -= 1;

@@ -2,20 +2,20 @@
 
 class graph
 {
-  var v: dynamic;
-  var adj: dynamic;
-  var par: dynamic;
-  var n: dynamic;
-  var depth: dynamic;
-  var visited: dynamic;
-  var flag: dynamic;
-  var vis: dynamic;
-  var clr: dynamic;
-  var odd: dynamic;
-  var even: dynamic;
-  func graph(v: dynamic)
+  var v: dynamic = cpp_uninitialized();
+  var adj: dynamic = cpp_uninitialized();
+  var par: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var depth: dynamic = cpp_uninitialized();
+  var visited: dynamic = cpp_uninitialized();
+  var flag: dynamic = cpp_uninitialized();
+  var vis: dynamic = cpp_uninitialized();
+  var clr: dynamic = cpp_uninitialized();
+  var odd: dynamic = cpp_uninitialized();
+  var even: dynamic = cpp_uninitialized();
+  func graph(v: dynamic) -> dynamic
   {
-      this->v = v;
+      self->v = v;
       flag = true;
       odd = 0;
       even = 0;
@@ -26,7 +26,7 @@ class graph
       vis = cpp_new();
       clr = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < v))
         {
           clr[i] = -1;
@@ -38,14 +38,14 @@ class graph
         }
       }
     }
-  func add(a: dynamic, b: dynamic)
+  func add(a: dynamic, b: dynamic) -> dynamic
   {
       adj[a].push_back(b);
       adj[b].push_back(a);
     }
 }
 
-func dfs(i: dynamic, d: dynamic)
+func dfs(i: dynamic, d: dynamic) -> dynamic
 {
   visited[i] = true;
   depth[i] = d;
@@ -56,7 +56,7 @@ func dfs(i: dynamic, d: dynamic)
   {
     even += 1;
   }
-  for (var t in adj[i])
+  for (var t: dynamic in adj[i])
   {
     if (((t != par[i]) && visited[t]))
     {
@@ -73,7 +73,7 @@ func dfs(i: dynamic, d: dynamic)
   }
 }
 
-func dfs1(i: dynamic, d: dynamic, cl: dynamic, k: dynamic)
+func dfs1(i: dynamic, d: dynamic, cl: dynamic, k: dynamic) -> dynamic
 {
   vis[i] = true;
   if ((d & 1))
@@ -109,7 +109,7 @@ func dfs1(i: dynamic, d: dynamic, cl: dynamic, k: dynamic)
       }
     }
   }
-  for (var t in adj[i])
+  for (var t: dynamic in adj[i])
   {
     if ((!vis[t]))
     {
@@ -118,22 +118,22 @@ func dfs1(i: dynamic, d: dynamic, cl: dynamic, k: dynamic)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var n1: dynamic;
-  var n2: dynamic;
-  var n3: dynamic;
+  var n1: dynamic = cpp_uninitialized();
+  var n2: dynamic = cpp_uninitialized();
+  var n3: dynamic = cpp_uninitialized();
   read(n1, n2, n3);
   g.n = n1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       u -= 1;
       v -= 1;
@@ -141,9 +141,9 @@ func solve()
       i += 1;
     }
   }
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((!g.visited[i]))
@@ -161,15 +161,15 @@ func solve()
     write("NO", "\n");
     return;
   }
-  var dp = cpp_array((n + 1), (v.size() + 1));
+  var dp: dynamic = cpp_array((n + 1), (v.size() + 1));
   memset(dp, -1, cpp_sizeof(dp));
   dp[0][0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= v.size()))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= n))
         {
           if ((((j - v[(i - 1)].first) >= 0) && (dp[(i - 1)][(j - v[(i - 1)].first)] >= 0)))
@@ -192,11 +192,11 @@ func solve()
   } else
   {
     write("YES", "\n");
-    var e = n2;
-    var o = (n1 + n2);
-    var cl: dynamic;
+    var e: dynamic = n2;
+    var o: dynamic = (n1 + n2);
+    var cl: dynamic = cpp_uninitialized();
     {
-      var i = v.size();
+      var i: dynamic = v.size();
       while ((i > 0))
       {
         if ((dp[i][e] == 1))
@@ -211,10 +211,10 @@ func solve()
         i -= 1;
       }
     }
-    var k = 0;
-    var idx = (cl.size() - 1);
+    var k: dynamic = 0;
+    var idx: dynamic = (cl.size() - 1);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((!g.vis[i]))
@@ -226,7 +226,7 @@ func solve()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write(g.clr[i]);
@@ -236,9 +236,9 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t = 1;
+  var t: dynamic = 1;
   while (cpp_update(t, "--"))
   {
     solve();

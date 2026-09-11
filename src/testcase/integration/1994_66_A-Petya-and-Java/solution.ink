@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var range = ["-128", "127", "-32768", "32767", "-2147483648", "2147483647", "-9223372036854775808", "9223372036854775807"];
+var range: dynamic = ["-128", "127", "-32768", "32767", "-2147483648", "2147483647", "-9223372036854775808", "9223372036854775807"];
 
-var a = cpp_array(105);
+var a: dynamic = cpp_array(105);
 
-func in_cpp(a: dynamic)
+func in_cpp(a: dynamic) -> dynamic
 {
-  var i = 1;
+  var i: dynamic = 1;
   if ((a[0] == cpp_char("-")))
   {
     i -= 1;
   }
-  var x = strlen(a);
+  var x: dynamic = strlen(a);
   {
     while ((i < 8))
     {
-      var flag = 0;
+      var flag: dynamic = 0;
       if ((x < strlen(range[i])))
       {
         return i;
@@ -27,7 +27,7 @@ func in_cpp(a: dynamic)
       }
       if ((x == strlen(range[i])))
       {
-        var j: dynamic;
+        var j: dynamic = cpp_uninitialized();
         {
           j = 0;
           while ((a[j] != cpp_char("\u{0}")))
@@ -56,11 +56,11 @@ func in_cpp(a: dynamic)
   return 9;
 }
 
-func main()
+func main() -> dynamic
 {
   while ((scanf("%s", a) != EOF))
   {
-    var x = in_cpp(a);
+    var x: dynamic = in_cpp(a);
     x /= 2;
     if ((x == 0))
     {

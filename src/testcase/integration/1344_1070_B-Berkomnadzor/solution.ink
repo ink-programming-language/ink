@@ -2,18 +2,18 @@
 
 class TrieNode
 {
-  var postive: dynamic;
-  var leaf: dynamic;
-  var zero: dynamic;
-  var one: dynamic;
-  func TrieNode()
+  var postive: dynamic = cpp_uninitialized();
+  var leaf: dynamic = cpp_uninitialized();
+  var zero: dynamic = cpp_uninitialized();
+  var one: dynamic = cpp_uninitialized();
+  func TrieNode() -> dynamic
   {
       postive = cpp_assign(leaf, "=", 0);
       zero = cpp_assign(one, "=", null);
     }
 }
 
-func add(s: dynamic, idx: dynamic, postive: dynamic, cur: dynamic)
+func add(s: dynamic, idx: dynamic, postive: dynamic, cur: dynamic) -> dynamic
 {
   cur->postive |= postive;
   if ((idx == s.size()))
@@ -42,7 +42,7 @@ func add(s: dynamic, idx: dynamic, postive: dynamic, cur: dynamic)
   }
 }
 
-func search(s: dynamic, idx: dynamic, postive: dynamic, cur: dynamic)
+func search(s: dynamic, idx: dynamic, postive: dynamic, cur: dynamic) -> dynamic
 {
   if (cur->leaf)
   {
@@ -69,9 +69,9 @@ func search(s: dynamic, idx: dynamic, postive: dynamic, cur: dynamic)
   }
 }
 
-var ips: dynamic;
+var ips: dynamic = cpp_uninitialized();
 
-func solve(s: dynamic, cur: dynamic)
+func solve(s: dynamic, cur: dynamic) -> dynamic
 {
   if ((!cur->postive))
   {
@@ -92,9 +92,9 @@ func solve(s: dynamic, cur: dynamic)
   }
 }
 
-func to_binary(num: dynamic)
+func to_binary(num: dynamic) -> dynamic
 {
-  var ret: dynamic;
+  var ret: dynamic = cpp_uninitialized();
   while ((num != 0))
   {
     ret += (((num % 2)) + cpp_char("0"));
@@ -108,13 +108,13 @@ func to_binary(num: dynamic)
   return ret;
 }
 
-func convert(s: dynamic)
+func convert(s: dynamic) -> dynamic
 {
-  var bs = -1;
-  var sub: dynamic;
-  var cur = 0;
+  var bs: dynamic = -1;
+  var sub: dynamic = cpp_uninitialized();
+  var cur: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < s.size()))
     {
       if ((s[i] == 47))
@@ -135,8 +135,8 @@ func convert(s: dynamic)
     }
   }
   sub.push_back(cur);
-  var ret: dynamic;
-  for (var x in sub)
+  var ret: dynamic = cpp_uninitialized();
+  for (var x: dynamic in sub)
   {
     ret += to_binary(x);
   }
@@ -144,7 +144,7 @@ func convert(s: dynamic)
   {
     cur = 0;
     {
-      var i = (bs + 1);
+      var i: dynamic = (bs + 1);
       while ((i < s.size()))
       {
         cur *= 10;
@@ -157,12 +157,12 @@ func convert(s: dynamic)
   return ret;
 }
 
-func to_number(s: dynamic)
+func to_number(s: dynamic) -> dynamic
 {
-  var mul = 1;
-  var ret = 0;
+  var mul: dynamic = 1;
+  var ret: dynamic = 0;
   {
-    var i = (s.size() - 1);
+    var i: dynamic = (s.size() - 1);
     while ((i >= 0))
     {
       ret += (mul * ((s[i] - cpp_char("0"))));
@@ -170,7 +170,7 @@ func to_number(s: dynamic)
       i -= 1;
     }
   }
-  var ret2: dynamic;
+  var ret2: dynamic = cpp_uninitialized();
   if ((ret == 0))
   {
     ret2 = "0";
@@ -184,13 +184,13 @@ func to_number(s: dynamic)
   return ret2;
 }
 
-func tostring(number: dynamic)
+func tostring(number: dynamic) -> dynamic
 {
   if ((number == 0))
   {
     return "0";
   }
-  var ret: dynamic;
+  var ret: dynamic = cpp_uninitialized();
   while ((number != 0))
   {
     ret += (((number % 10)) + cpp_char("0"));
@@ -200,22 +200,22 @@ func tostring(number: dynamic)
   return ret;
 }
 
-func to_ip()
+func to_ip() -> dynamic
 {
-  for (var s in ips)
+  for (var s: dynamic in ips)
   {
-    var cur = s;
-    var r = s.size();
+    var cur: dynamic = s;
+    var r: dynamic = s.size();
     while ((cur.size() < 32))
     {
       cur += cpp_char("0");
     }
     s = "";
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 32))
       {
-        var sub = cur.substr(i, 8);
+        var sub: dynamic = cur.substr(i, 8);
         if (i)
         {
           s += cpp_char(".");
@@ -229,21 +229,21 @@ func to_ip()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var root = cpp_new();
-  var black: dynamic;
-  var white: dynamic;
-  var n: dynamic;
+  var root: dynamic = cpp_new();
+  var black: dynamic = cpp_uninitialized();
+  var white: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var s: dynamic;
+      var s: dynamic = cpp_uninitialized();
       read(s);
       if ((s[0] == cpp_char("-")))
       {
@@ -255,36 +255,36 @@ func main()
       i += 1;
     }
   }
-  for (var x in black)
+  for (var x: dynamic in black)
   {
-    var cur = convert(x);
+    var cur: dynamic = convert(x);
     if ((!search(cur, 0, 0, root)))
     {
       add(cur, 0, 0, root);
     }
   }
-  for (var x in white)
+  for (var x: dynamic in white)
   {
-    var cur = convert(x);
+    var cur: dynamic = convert(x);
     if (search(cur, 0, 1, root))
     {
       write(-1);
       return 0;
     }
   }
-  for (var x in white)
+  for (var x: dynamic in white)
   {
-    var cur = convert(x);
+    var cur: dynamic = convert(x);
     if ((!search(cur, 0, 1, root)))
     {
       add(cur, 0, 1, root);
     }
   }
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   solve(s, root);
   to_ip();
   write(ips.size(), cpp_char("\n"));
-  for (var x in ips)
+  for (var x: dynamic in ips)
   {
     write(x, cpp_char("\n"));
   }

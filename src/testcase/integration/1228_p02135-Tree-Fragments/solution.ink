@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-func all(v: dynamic)
+func all(v: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/stdc++.");
 }
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -26,7 +26,7 @@ func chmin(a: dynamic, b: dynamic)
   }
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -34,32 +34,32 @@ func chmax(a: dynamic, b: dynamic)
   }
 }
 
-var INF = 1001001001001001001;
+var INF: dynamic = 1001001001001001001;
 
-var par = cpp_array(111111, 20);
+var par: dynamic = cpp_array(111111, 20);
 
-var A = cpp_array(111111);
+var A: dynamic = cpp_array(111111);
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var G = cpp_array(111111);
+var G: dynamic = cpp_array(111111);
 
-var dep = cpp_array(111111);
+var dep: dynamic = cpp_array(111111);
 
-var latte = cpp_array(111111);
+var latte: dynamic = cpp_array(111111);
 
-var dp = cpp_array(111111, 20);
+var dp: dynamic = cpp_array(111111, 20);
 
-var lis = cpp_array(111111);
+var lis: dynamic = cpp_array(111111);
 
-func dfs(v: dynamic, p: dynamic, d: dynamic)
+func dfs(v: dynamic, p: dynamic, d: dynamic) -> dynamic
 {
   dep[v] = d;
   par[0][v] = p;
   latte[v] = A[v];
   lis[v].pb(0);
   lis[v].pb(0);
-  for (var u in G[v])
+  for (var u: dynamic in G[v])
   {
     if ((u == p))
     {
@@ -71,7 +71,7 @@ func dfs(v: dynamic, p: dynamic, d: dynamic)
   }
 }
 
-func lca(a: dynamic, b: dynamic)
+func lca(a: dynamic, b: dynamic) -> dynamic
 {
   if ((dep[a] < dep[b]))
   {
@@ -87,7 +87,7 @@ func lca(a: dynamic, b: dynamic)
     return a;
   }
   {
-    var i = 19;
+    var i: dynamic = 19;
     while ((i >= 0))
     {
       if ((par[i][a] != par[i][b]))
@@ -101,15 +101,15 @@ func lca(a: dynamic, b: dynamic)
   return par[0][a];
 }
 
-func main()
+func main() -> dynamic
 {
   read(N);
   rep(i, N);
   read(A[i]);
   rep(i, (N - 1));
   {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     read(a, b);
     a -= 1;
     b -= 1;
@@ -118,10 +118,10 @@ func main()
   }
   dfs(0, -1, 0);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < N))
     {
-      var p = par[0][i];
+      var p: dynamic = par[0][i];
       if ((lis[p][0] == latte[i]))
       {
         dp[0][i] = lis[p][1];
@@ -135,28 +135,28 @@ func main()
   rep(i, 19);
   {
   }
-  var sumall = accumulate(A, (A + N), 0);
-  var Q: dynamic;
+  var sumall: dynamic = accumulate(A, (A + N), 0);
+  var Q: dynamic = cpp_uninitialized();
   read(Q);
   while (cpp_update(Q, "--"))
   {
-    var a: dynamic;
-    var b: dynamic;
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     read(a, b);
     a -= 1;
     b -= 1;
-    var p = lca(a, b);
-    var ans = 0;
+    var p: dynamic = lca(a, b);
+    var ans: dynamic = 0;
     rep(lattemalta, 2);
     {
       swap(a, b);
-      var x = a;
+      var x: dynamic = a;
       if ((a == p))
       {
         continue;
       }
       chmax(ans, lis[a][0]);
-      var d = ((dep[x] - dep[p]) - 1);
+      var d: dynamic = ((dep[x] - dep[p]) - 1);
       rep(i, 20);
       {
         if (((d >> i) & 1))
@@ -168,9 +168,9 @@ func main()
       a = x;
     }
     {
-      var flaga = false;
-      var flagb = false;
-      for (var x in lis[p])
+      var flaga: dynamic = false;
+      var flagb: dynamic = false;
+      for (var x: dynamic in lis[p])
       {
         if (((!flaga) && (x == latte[a])))
         {
@@ -192,13 +192,13 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     sort(all(lis[i]));
     reverse(all(lis[i]));
   }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
       if ((par[i][j] == -1))
       {

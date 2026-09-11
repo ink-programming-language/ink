@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var g = cpp_array(300010);
+var g: dynamic = cpp_array(300010);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var rec: dynamic;
+var rec: dynamic = cpp_uninitialized();
 
-var edge: dynamic;
+var edge: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var u: dynamic;
+var u: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var dis = cpp_array(300010);
+var dis: dynamic = cpp_array(300010);
 
-var fa = cpp_array(300010);
+var fa: dynamic = cpp_array(300010);
 
-var in_cpp = cpp_array(300010);
+var in_cpp: dynamic = cpp_array(300010);
 
-var cls = cpp_array(300010);
+var cls: dynamic = cpp_array(300010);
 
-var vis = cpp_array(300010);
+var vis: dynamic = cpp_array(300010);
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   rec.push_back(u);
   vis[u] = 1;
-  for (var v in g[u])
+  for (var v: dynamic in g[u])
   {
     if ((!vis[v]))
     {
@@ -39,11 +39,11 @@ func dfs(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d %d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       scanf("%d %d", (&u), (&v));
@@ -55,21 +55,21 @@ func main()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       dis[i] = 1e9;
       i += 1;
     }
   }
-  var que: dynamic;
+  var que: dynamic = cpp_uninitialized();
   que.push(1);
   while ((!que.empty()))
   {
-    var u = que.front();
+    var u: dynamic = que.front();
     que.pop();
     in_cpp[u] = 0;
-    for (var v in g[u])
+    for (var v: dynamic in g[u])
     {
       if ((dis[v] > (dis[u] + 1)))
       {
@@ -86,7 +86,7 @@ func main()
   if ((dis[n] != 1e9))
   {
     {
-      var u = n;
+      var u: dynamic = n;
       while (u)
       {
         ans.push_back(u);
@@ -97,15 +97,15 @@ func main()
   }
   if ((ans.empty() || (ans.size() > 4)))
   {
-    for (var u in g[1])
+    for (var u: dynamic in g[1])
     {
       cls[u] = 1;
     }
     cls[1] = 1;
-    var ok = false;
-    for (var u in g[1])
+    var ok: dynamic = false;
+    for (var u: dynamic in g[1])
     {
-      for (var v in g[u])
+      for (var v: dynamic in g[u])
       {
         if ((!cls[v]))
         {
@@ -123,8 +123,8 @@ func main()
   if ((ans.empty() || (ans.size() > 5)))
   {
     vis[1] = 1;
-    var ok = false;
-    for (var u in g[1])
+    var ok: dynamic = false;
+    for (var u: dynamic in g[1])
     {
       if (vis[u])
       {
@@ -134,13 +134,13 @@ func main()
       dfs(u);
       if ((g[u].size() != rec.size()))
       {
-        var cur = 1;
+        var cur: dynamic = 1;
         while (((cur < rec.size()) && edge.count([u, rec[cur]])))
         {
           cur += 1;
         }
         {
-          var i = 1;
+          var i: dynamic = 1;
           while ((i < cur))
           {
             if (edge.count([rec[i], rec[cur]]))
@@ -154,11 +154,11 @@ func main()
       } else
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < g[u].size()))
           {
             {
-              var j = (i + 1);
+              var j: dynamic = (i + 1);
               while ((j < g[u].size()))
               {
                 if ((((g[u][i] != 1) && (g[u][j] != 1)) && (!edge.count([g[u][i], g[u][j]]))))
@@ -190,7 +190,7 @@ func main()
   } else
   {
     printf("%d\n", (cpp_cast(ans.size()) - 1));
-    for (var u in ans)
+    for (var u: dynamic in ans)
     {
       printf("%d ", u);
     }

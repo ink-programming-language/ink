@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var maxn = (5e5 + 6);
+var maxn: dynamic = (5e5 + 6);
 
-var sp = cpp_array(maxn);
+var sp: dynamic = cpp_array(maxn);
 
-var divisor = cpp_array(maxn);
+var divisor: dynamic = cpp_array(maxn);
 
-func seive()
+func seive() -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < maxn))
     {
       sp[i] = i;
@@ -17,11 +17,11 @@ func seive()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < maxn))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((((1 * i) * j) < maxn))
         {
           sp[(i * j)] = min(sp[(i * j)], sp[i]);
@@ -34,36 +34,36 @@ func seive()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   seive();
-  var n: dynamic;
-  var q: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
   read(n, q);
-  var arr = cpp_construct((n + 1));
+  var arr: dynamic = cpp_construct((n + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(arr[i]);
       i += 1;
     }
   }
-  var in_self = cpp_construct((n + 1));
-  var in_self_cnt = 0;
-  var get = __cpp_lambda_1;
-  var ans = 0;
+  var in_self: dynamic = cpp_construct((n + 1));
+  var in_self_cnt: dynamic = 0;
+  var get: dynamic = __cpp_lambda_1;
+  var ans: dynamic = 0;
   while (cpp_update(q, "--"))
   {
-    var pos: dynamic;
+    var pos: dynamic = cpp_uninitialized();
     read(pos);
-    var prime_factors: dynamic;
-    var num = arr[pos];
+    var prime_factors: dynamic = cpp_uninitialized();
+    var num: dynamic = arr[pos];
     while ((num > 1))
     {
-      var x = sp[num];
+      var x: dynamic = sp[num];
       prime_factors.push_back(x);
       while (((num % x) == 0))
       {
@@ -74,7 +74,7 @@ func main()
     num = arr[pos];
     if (in_self[pos])
     {
-      for (var d in divisor[num])
+      for (var d: dynamic in divisor[num])
       {
         divi[d] -= 1;
       }
@@ -84,7 +84,7 @@ func main()
     } else
     {
       ans += (in_self_cnt - get(prime_factors));
-      for (var d in divisor[num])
+      for (var d: dynamic in divisor[num])
       {
         divi[d] += 1;
       }
@@ -95,18 +95,18 @@ func main()
   }
 }
 
-func __cpp_lambda_1(vec: dynamic)
+func __cpp_lambda_1(vec: dynamic) -> dynamic
 {
-  var n = vec.size();
-  var coprime = 0;
+  var n: dynamic = vec.size();
+  var coprime: dynamic = 0;
   {
-    var mask = 0;
+    var mask: dynamic = 0;
     while ((mask < ((1 << n))))
     {
-      var d = 1;
-      var bitCnt = 0;
+      var d: dynamic = 1;
+      var bitCnt: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           if ((((mask >> i)) & 1))

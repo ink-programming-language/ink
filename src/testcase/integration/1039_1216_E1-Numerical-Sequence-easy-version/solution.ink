@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var maxn = (2e5 + 7);
+var maxn: dynamic = (2e5 + 7);
 
-var inf = (1e18 + 7);
+var inf: dynamic = (1e18 + 7);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(10);
+var a: dynamic = cpp_array(10);
 
-var b = cpp_array(50);
+var b: dynamic = cpp_array(50);
 
-var c = cpp_array(10);
+var c: dynamic = cpp_array(10);
 
-var ci = cpp_array(10);
+var ci: dynamic = cpp_array(10);
 
-func wer(nub: dynamic, k: dynamic)
+func wer(nub: dynamic, k: dynamic) -> dynamic
 {
-  var ct = 0;
+  var ct: dynamic = 0;
   while ((ci[ct] < k))
   {
     ct += 1;
   }
   k = (k - ci[(ct - 1)]);
-  var ki = ((((k - 1)) / ct) + (c[ct] / 9));
-  var cnt = (ct - (((k - 1)) % ct));
+  var ki: dynamic = ((((k - 1)) / ct) + (c[ct] / 9));
+  var cnt: dynamic = (ct - (((k - 1)) % ct));
   while (cpp_update(cnt, "--"))
   {
     ki = (ki / 10);
@@ -35,13 +35,13 @@ func wer(nub: dynamic, k: dynamic)
   return (ki % 10);
 }
 
-func main()
+func main() -> dynamic
 {
-  var h = 9;
+  var h: dynamic = 9;
   ci[0] = 0;
   c[0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 9))
     {
       c[i] = h;
@@ -52,20 +52,20 @@ func main()
   }
   a[0] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 9))
     {
       a[i] = (a[(i - 1)] + ((((((2 * ci[(i - 1)]) + (i * c[i])) + i)) * c[i]) / 2));
       i += 1;
     }
   }
-  var th = 1;
+  var th: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 9))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= i))
         {
           b[cpp_update(th, "++")] = j;
@@ -79,7 +79,7 @@ func main()
   while (cpp_update(q, "--"))
   {
     read(k);
-    var ct = 0;
+    var ct: dynamic = 0;
     while ((a[ct] < k))
     {
       ct += 1;
@@ -90,10 +90,10 @@ func main()
       continue;
     }
     k = (k - a[(ct - 1)]);
-    var l = 1;
-    var r = c[ct];
-    var mid: dynamic;
-    var kh: dynamic;
+    var l: dynamic = 1;
+    var r: dynamic = c[ct];
+    var mid: dynamic = cpp_uninitialized();
+    var kh: dynamic = cpp_uninitialized();
     while ((l <= r))
     {
       mid = (((l + r)) / 2);
@@ -106,7 +106,7 @@ func main()
         l = (mid + 1);
       }
     }
-    var ans = (((c[ct] / 9) - 1) + kh);
+    var ans: dynamic = (((c[ct] / 9) - 1) + kh);
     k = (k - ((((((2 * ci[(ct - 1)]) + (ct * kh))) * ((kh - 1))) / 2)));
     write(wer(ans, k), "\n");
   }

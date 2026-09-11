@@ -1,58 +1,58 @@
 // Translated from solution.cpp.
 
-var N = (3e6 + 7);
+var N: dynamic = (3e6 + 7);
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var c = cpp_array(N);
+var c: dynamic = cpp_array(N);
 
-var tree = cpp_array(N);
+var tree: dynamic = cpp_array(N);
 
-var lazy = cpp_array(N);
+var lazy: dynamic = cpp_array(N);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var s2: dynamic;
+var s2: dynamic = cpp_uninitialized();
 
-var mx: dynamic;
+var mx: dynamic = cpp_uninitialized();
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var u: dynamic;
+var u: dynamic = cpp_uninitialized();
 
-var vp: dynamic;
+var vp: dynamic = cpp_uninitialized();
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(111111);
+var vis: dynamic = cpp_array(111111);
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var ss: dynamic;
+var ss: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
-  var m = 0;
-  var d: dynamic;
-  var i = 0;
-  var s1 = 0;
-  var s2 = 0;
-  var q = 5;
-  var x = 0;
-  var y: dynamic;
-  var k: dynamic;
-  var j: dynamic;
-  var s = "";
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = 0;
+  var d: dynamic = cpp_uninitialized();
+  var i: dynamic = 0;
+  var s1: dynamic = 0;
+  var s2: dynamic = 0;
+  var q: dynamic = 5;
+  var x: dynamic = 0;
+  var y: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var s: dynamic = "";
   read(n, x);
   if ((x == 0))
   {

@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var INF = inf;
+var INF: dynamic = inf;
 
-var EPS = eps;
+var EPS: dynamic = eps;
 
-var dx = [1, -1, 0, 0];
+var dx: dynamic = [1, -1, 0, 0];
 
-var dy = [0, 0, 1, -1];
+var dy: dynamic = [0, 0, 1, -1];
 
-var N = cpp_array(((1100 * 1100) * 4), 2);
+var N: dynamic = cpp_array(((1100 * 1100) * 4), 2);
 
-var T = cpp_array(110000);
+var T: dynamic = cpp_array(110000);
 
-var V = cpp_array(110000);
+var V: dynamic = cpp_array(110000);
 
-func main()
+func main() -> dynamic
 {
-  var x: dynamic;
-  var y: dynamic;
-  var n: dynamic;
-  var q: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
-  var bb: dynamic;
-  var it: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var nx: dynamic;
-  var ny: dynamic;
-  var ch: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var q: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var bb: dynamic = cpp_uninitialized();
+  var it: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var nx: dynamic = cpp_uninitialized();
+  var ny: dynamic = cpp_uninitialized();
+  var ch: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&b));
   {
     i = 0;
@@ -71,7 +71,7 @@ func main()
     {
       scanf("%d%d%d%d", (&a), (&bb), (&c), (&d));
       assert(((a != c) || (bb != d)));
-      var len = (abs((a - c)) + abs((bb - d)));
+      var len: dynamic = (abs((a - c)) + abs((bb - d)));
       {
         it = 0;
         while ((it < 4))
@@ -84,7 +84,7 @@ func main()
               {
                 x = (a + (j * dx[it]));
                 y = (bb + (j * dy[it]));
-                var id = ((((x * ((b + 1))) + y)) * 4);
+                var id: dynamic = ((((x * ((b + 1))) + y)) * 4);
                 {
                   k = 0;
                   while ((k < 4))

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, k);
   {
-    var idx = 0;
+    var idx: dynamic = 0;
     while ((idx < n))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       songs[idx].first = b;
       songs[idx].second = a;
@@ -19,11 +19,11 @@ func main()
     }
   }
   sort(songs.begin(), songs.end());
-  var curSum = 0;
-  var maxPleasure = LLONG_MIN;
-  var q: dynamic;
+  var curSum: dynamic = 0;
+  var maxPleasure: dynamic = LLONG_MIN;
+  var q: dynamic = cpp_uninitialized();
   {
-    var idx = (n - 1);
+    var idx: dynamic = (n - 1);
     while ((idx >= 0))
     {
       if ((q.size() < k))

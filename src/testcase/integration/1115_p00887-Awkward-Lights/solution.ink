@@ -1,90 +1,90 @@
 // Translated from solution.cpp.
 
-func toInt(s: dynamic)
+func toInt(s: dynamic) -> dynamic
 {
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   (sin >> v);
   return v;
 }
 
-func toString(x: dynamic)
+func toString(x: dynamic) -> dynamic
 {
-  var sout: dynamic;
+  var sout: dynamic = cpp_uninitialized();
   (sout << x);
   return sout.str();
 }
 
-func sqr(x: dynamic)
+func sqr(x: dynamic) -> dynamic
 {
   return (x * x);
 }
 
-func all(a: dynamic)
+func all(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++");
 }
 
-func rall(a: dynamic)
+func rall(a: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h>");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-func each(i: dynamic, c: dynamic)
+func each(i: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(typeof((c).begin()) i=(c).begin(); i!=(c).end(); ++i)");
 }
 
-func exist(s: dynamic, e: dynamic)
+func exist(s: dynamic, e: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h>");
 }
 
-func range(i: dynamic, a: dynamic, b: dynamic)
+func range(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(a);i<(b);++i)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <bi");
 }
 
-func clr(a: dynamic, b: dynamic)
+func clr(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> u");
 }
 
-func dump(x: dynamic)
+func dump(x: dynamic) -> dynamic
 {
   cpp_macro("cerr << #x << \" = \" << (x) << endl;");
 }
 
-func debug(x: dynamic)
+func debug(x: dynamic) -> dynamic
 {
   cpp_macro("cerr << #x << \" = \" << (x) << \" (L\" << __LINE__ << \")\" << \" \" << __FILE__ << endl;");
 }
 
-var eps = 1e-10;
+var eps: dynamic = 1e-10;
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-var INF = (1 << 62);
+var INF: dynamic = (1 << 62);
 
-var inf = (1 << 29);
+var inf: dynamic = (1 << 29);
 
-func check(a: dynamic)
+func check(a: dynamic) -> dynamic
 {
-  var n = a.size();
-  var m = a[0].size();
-  var r = 0;
-  var c = 0;
+  var n: dynamic = a.size();
+  var m: dynamic = a[0].size();
+  var r: dynamic = 0;
+  var c: dynamic = 0;
   rep(i, (n - 1));
   {
-    var index = -1;
+    var index: dynamic = -1;
     while (((c < m) && (index == -1)))
     {
       range(j, i, n);
@@ -106,12 +106,12 @@ func check(a: dynamic)
     }
     range(j, (i + 1), n);
     {
-      var d = (a[j][c] / a[i][c]);
+      var d: dynamic = (a[j][c] / a[i][c]);
     }
     c += 1;
   }
-  var rank = 0;
-  var add = 0;
+  var rank: dynamic = 0;
+  var add: dynamic = 0;
   r = 0;
   c = 0;
   while (((r < n) && (c < (m - 1))))
@@ -146,44 +146,44 @@ func check(a: dynamic)
   return (!add);
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var m: dynamic;
-  var n: dynamic;
-  var d: dynamic;
+  var m: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   while ((((cin >> m) >> n) >> d))
   {
-    var num = (m * n);
+    var num: dynamic = (m * n);
     if ((num == 0))
     {
       break;
     }
-    var state = cpp_construct(vec(0, (num + 1)), num);
+    var state: dynamic = cpp_construct(vec(0, (num + 1)), num);
     rep(i, n);
     write(check(state), "\n");
   }
   return 0;
 }
 
-func range(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic)
+func range(argument_0: dynamic, argument_1: dynamic, argument_2: dynamic) -> dynamic
 {
         a[j][k] += (a[i][k] * d);
         a[j][k] %= 2;
       }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var col = ((a * m) + b);
-        var dist = (abs((i - a)) + abs((j - b)));
+        var col: dynamic = ((a * m) + b);
+        var dist: dynamic = (abs((i - a)) + abs((j - b)));
         if ((dist == d))
         {
           state[row][col] = 1;
         }
       }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var row = ((i * m) + j);
+      var row: dynamic = ((i * m) + j);
       rep(a, n);
       state[row][row] = 1;
       read(state[row][num]);

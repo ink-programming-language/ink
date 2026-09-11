@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var pii = cpp_expression("#include <bit");
+var pii: dynamic = cpp_expression("#include <bit");
 
-var ff = cpp_expression("#incl");
+var ff: dynamic = cpp_expression("#incl");
 
-var ss = cpp_expression("#inclu");
+var ss: dynamic = cpp_expression("#inclu");
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var s: dynamic;
+    var s: dynamic = cpp_uninitialized();
     read(s);
-    var T = 0;
-    var M = 0;
-    var t1: dynamic;
-    var t2: dynamic;
-    var m: dynamic;
-    for (var c in s)
+    var T: dynamic = 0;
+    var M: dynamic = 0;
+    var t1: dynamic = cpp_uninitialized();
+    var t2: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
+    for (var c: dynamic in s)
     {
       if ((c == cpp_char("T")))
       {
@@ -39,8 +39,8 @@ func main()
     }
     if (((!((T & 1))) && ((2 * M) == T)))
     {
-      var cnt = 0;
-      var i: dynamic;
+      var cnt: dynamic = 0;
+      var i: dynamic = cpp_uninitialized();
       {
         i = 0;
         while (((i < n) && (cnt < M)))
@@ -78,9 +78,9 @@ func main()
           i += 1;
         }
       }
-      var chk = 1;
+      var chk: dynamic = 1;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while (((i < m.size()) && chk))
         {
           if (((t1[i] < m[i]) && (m[i] < t2[i])))

@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
-  var b: dynamic;
-  var n: dynamic;
-  var t: dynamic;
+  var k: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   while (((((cin >> k) >> b) >> n) >> t))
   {
-    var s = 1;
-    var cas = 0;
+    var s: dynamic = 1;
+    var cas: dynamic = 0;
     while (((s <= t) && (cas < n)))
     {
       s = ((s * k) + b);

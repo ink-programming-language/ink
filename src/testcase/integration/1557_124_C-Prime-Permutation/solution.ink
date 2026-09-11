@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(1050);
+var s: dynamic = cpp_array(1050);
 
-var ans = cpp_array(1050);
+var ans: dynamic = cpp_array(1050);
 
-var fl = cpp_array(1050);
+var fl: dynamic = cpp_array(1050);
 
-var c = cpp_array(1050);
+var c: dynamic = cpp_array(1050);
 
-func is_prime(n: dynamic)
+func is_prime(n: dynamic) -> dynamic
 {
-  var sqd = n;
+  var sqd: dynamic = n;
   sqd = sqrt(sqd);
-  var sq = sqd;
+  var sq: dynamic = sqd;
   sq += 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= sq))
     {
       if ((((n % i)) == 0))
@@ -28,17 +28,17 @@ func is_prime(n: dynamic)
   return 1;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
-  var test: dynamic;
-  var t = 1;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var test: dynamic = cpp_uninitialized();
+  var t: dynamic = 1;
   scanf("%s", s);
-  var len = strlen(s);
-  var now = 1;
+  var len: dynamic = strlen(s);
+  var now: dynamic = 1;
   fl[0] = 1;
   j = (len / 2);
   if (j)
@@ -56,7 +56,7 @@ func main()
       }
     }
   }
-  var req = (len - now);
+  var req: dynamic = (len - now);
   {
     i = 0;
     while (s[i])
@@ -65,8 +65,8 @@ func main()
       i += 1;
     }
   }
-  var flag = 0;
-  var mark = 0;
+  var flag: dynamic = 0;
+  var mark: dynamic = 0;
   {
     i = 0;
     while ((i < 26))

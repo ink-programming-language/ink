@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-var MAXN = 2100;
+var MAXN: dynamic = 2100;
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var S: dynamic;
+var S: dynamic = cpp_uninitialized();
 
-var edge = cpp_array(MAXN);
+var edge: dynamic = cpp_array(MAXN);
 
-var nnode = cpp_array(MAXN);
+var nnode: dynamic = cpp_array(MAXN);
 
-var ddep = cpp_array(MAXN);
+var ddep: dynamic = cpp_array(MAXN);
 
-var dmin = cpp_array(MAXN);
+var dmin: dynamic = cpp_array(MAXN);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func flood(cloc: dynamic, last: dynamic)
+func flood(cloc: dynamic, last: dynamic) -> dynamic
 {
-  var ntot = 0;
-  var nbest = 0;
-  var nmin = 0;
+  var ntot: dynamic = 0;
+  var nbest: dynamic = 0;
+  var nmin: dynamic = 0;
   nnode[cloc] = (S[cloc] - cpp_char("0"));
   ddep[cloc] = 0;
-  for (var neigh in edge[cloc])
+  for (var neigh: dynamic in edge[cloc])
   {
     if ((neigh == last))
     {
@@ -31,7 +31,7 @@ func flood(cloc: dynamic, last: dynamic)
     }
     flood(neigh, cloc);
     nnode[cloc] += nnode[neigh];
-    var nb = (ddep[neigh] + nnode[neigh]);
+    var nb: dynamic = (ddep[neigh] + nnode[neigh]);
     ddep[cloc] += nb;
     ntot += nb;
     if ((nb > nbest))
@@ -43,7 +43,7 @@ func flood(cloc: dynamic, last: dynamic)
   dmin[cloc] = max(0, ((nbest + nmin) - ntot));
 }
 
-func solve_root(x: dynamic)
+func solve_root(x: dynamic) -> dynamic
 {
   flood(x, -1);
   if (((dmin[x] == 0) && ((ddep[x] % 2) == 0)))
@@ -52,16 +52,16 @@ func solve_root(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   read(N, S);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (N - 1)))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       a -= 1;
       b -= 1;
@@ -72,7 +72,7 @@ func main()
   }
   ans = 1e9;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       solve_root(i);

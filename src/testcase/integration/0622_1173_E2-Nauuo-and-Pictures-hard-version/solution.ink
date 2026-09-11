@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var md = 998244353;
+var md: dynamic = 998244353;
 
-var N = 200010;
+var N: dynamic = 200010;
 
-var M = 3010;
+var M: dynamic = 3010;
 
-func pow_mod(a: dynamic, b: dynamic)
+func pow_mod(a: dynamic, b: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   while (b)
   {
     if ((b & 1))
@@ -21,31 +21,31 @@ func pow_mod(a: dynamic, b: dynamic)
   return ret;
 }
 
-var inv = cpp_array((M << 1));
+var inv: dynamic = cpp_array((M << 1));
 
-var f = cpp_array(M, M);
+var f: dynamic = cpp_array(M, M);
 
-var g = cpp_array(M, M);
+var g: dynamic = cpp_array(M, M);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
-  var w = cpp_construct((n + 1));
-  var a = cpp_construct((n + 1));
+  var w: dynamic = cpp_construct((n + 1));
+  var a: dynamic = cpp_construct((n + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
       i += 1;
     }
   }
-  var SA = 0;
-  var SB = 0;
+  var SA: dynamic = 0;
+  var SB: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&w[i]));
@@ -59,9 +59,9 @@ func main()
       i += 1;
     }
   }
-  var inv = cpp_construct((M << 1));
+  var inv: dynamic = cpp_construct((M << 1));
   {
-    var delta = (-m);
+    var delta: dynamic = (-m);
     while ((delta <= m))
     {
       if ((((SA + SB) + delta) > 0))
@@ -72,12 +72,12 @@ func main()
     }
   }
   {
-    var i = m;
+    var i: dynamic = m;
     while ((i >= 0))
     {
       f[i][(m - i)] = cpp_assign(g[i][(m - i)], "=", 1);
       {
-        var j = min(SB, ((m - i) - 1));
+        var j: dynamic = min(SB, ((m - i) - 1));
         while ((j >= 0))
         {
           f[i][j] += (((((1 * (((SA + i) + 1))) * f[(i + 1)][j]) % md) * inv[((i - j) + m)]) % md);
@@ -95,7 +95,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((a[i] == 1))

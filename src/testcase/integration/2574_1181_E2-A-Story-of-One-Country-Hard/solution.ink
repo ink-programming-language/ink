@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var f = 1;
-  var res = 0;
-  var ch: dynamic;
+  var f: dynamic = 1;
+  var res: dynamic = 0;
+  var ch: dynamic = cpp_uninitialized();
   while (true)
   {
     ch = getchar();
@@ -26,43 +26,43 @@ func read()
       break;
     }
   }
-  return if ((f == 1)) res else (-res);
+  return  ((f == 1)) ? res : (-res);
 }
 
-func fast_io()
+func fast_io() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
 }
 
-var N = 100005;
+var N: dynamic = 100005;
 
-var M = 3010;
+var M: dynamic = 3010;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var INF = 1e18;
+var INF: dynamic = 1e18;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var A = cpp_array(N);
+var A: dynamic = cpp_array(N);
 
-var B = cpp_array(N);
+var B: dynamic = cpp_array(N);
 
-var str = cpp_array(N);
+var str: dynamic = cpp_array(N);
 
-var head = cpp_array(N);
+var head: dynamic = cpp_array(N);
 
-var to = cpp_array((N * 2));
+var to: dynamic = cpp_array((N * 2));
 
-var nxt = cpp_array((N * 2));
+var nxt: dynamic = cpp_array((N * 2));
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-func addEdge(u: dynamic, v: dynamic)
+func addEdge(u: dynamic, v: dynamic) -> dynamic
 {
   tot += 1;
   nxt[tot] = head[u];
@@ -70,19 +70,19 @@ func addEdge(u: dynamic, v: dynamic)
   head[u] = tot;
 }
 
-func mmax(a: dynamic, b: dynamic)
+func mmax(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) b else a;
+  return  ((a < b)) ? b : a;
 }
 
-func mmin(a: dynamic, b: dynamic)
+func mmin(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) a else b;
+  return  ((a < b)) ? a : b;
 }
 
-func countOne(set: dynamic)
+func countOne(set: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   while (set)
   {
     res += 1;
@@ -91,18 +91,18 @@ func countOne(set: dynamic)
   return res;
 }
 
-func contain(set: dynamic, i: dynamic)
+func contain(set: dynamic, i: dynamic) -> dynamic
 {
   return (((set & ((1 << i)))) > 0);
 }
 
-func myPow(a: dynamic, p: dynamic)
+func myPow(a: dynamic, p: dynamic) -> dynamic
 {
   if ((p == 0))
   {
     return 1;
   }
-  var res = myPow(a, (p / 2));
+  var res: dynamic = myPow(a, (p / 2));
   res *= res;
   res %= mod;
   if (((p % 2) == 1))
@@ -113,55 +113,55 @@ func myPow(a: dynamic, p: dynamic)
   return (res % mod);
 }
 
-func addMode(a: dynamic, b: dynamic)
+func addMode(a: dynamic, b: dynamic) -> dynamic
 {
   a = (((a + b)) % mod);
 }
 
-func mul(a: dynamic, b: dynamic)
+func mul(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a * b) % mod);
 }
 
-func mySwap(a: dynamic, b: dynamic)
+func mySwap(a: dynamic, b: dynamic) -> dynamic
 {
-  var tmp = a;
+  var tmp: dynamic = a;
   a = b;
   b = tmp;
 }
 
-var p = cpp_array(2, 2, N);
+var p: dynamic = cpp_array(2, 2, N);
 
-func no()
+func no() -> dynamic
 {
   write("NO\n");
   exit(0);
 }
 
-func go(sz: dynamic, nums: dynamic)
+func go(sz: dynamic, nums: dynamic) -> dynamic
 {
   if ((sz == 1))
   {
     return;
   }
-  var mx = [(-INF), (-INF), (-INF), (-INF)];
-  var its = cpp_array(4);
+  var mx: dynamic = [(-INF), (-INF), (-INF), (-INF)];
+  var its: dynamic = cpp_array(4);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       its[i] = nums[i].begin();
       i += 1;
     }
   }
-  var okok = false;
-  var idxs: dynamic;
+  var okok: dynamic = false;
+  var idxs: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < sz))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 4))
         {
           mx[j] = mmax(mx[j], (-p[its[j]->second][(((j >> 1)) ^ 1)][((j & 1))]));
@@ -170,14 +170,14 @@ func go(sz: dynamic, nums: dynamic)
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 4))
         {
           if ((mx[j] <= its[j]->first))
           {
             okok = true;
             {
-              var it = nums[j].begin();
+              var it: dynamic = nums[j].begin();
               while ((it != its[j]))
               {
                 idxs.push_back(it->second);
@@ -203,8 +203,8 @@ func go(sz: dynamic, nums: dynamic)
   {
     no();
   }
-  var nnums = cpp_construct(4);
-  for (var i in idxs)
+  var nnums: dynamic = cpp_construct(4);
+  for (var i: dynamic in idxs)
   {
     nnums[0].insert(make_pair(p[i][0][0], i));
     nnums[1].insert(make_pair(p[i][0][1], i));
@@ -219,12 +219,12 @@ func go(sz: dynamic, nums: dynamic)
   go((sz - idxs.size()), nums);
 }
 
-func main()
+func main() -> dynamic
 {
   fast_io();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(p[i][0][0], p[i][0][1]);
@@ -232,9 +232,9 @@ func main()
       i += 1;
     }
   }
-  var nums = cpp_construct(4);
+  var nums: dynamic = cpp_construct(4);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       p[i][1][0] *= -1;

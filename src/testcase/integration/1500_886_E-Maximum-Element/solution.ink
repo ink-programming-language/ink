@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var N = (1e6 + 10);
+var N: dynamic = (1e6 + 10);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var f = cpp_array(N);
+var f: dynamic = cpp_array(N);
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-var fac = cpp_array(N);
+var fac: dynamic = cpp_array(N);
 
-var ifac = cpp_array(N);
+var ifac: dynamic = cpp_array(N);
 
-func power(a: dynamic, b: dynamic)
+func power(a: dynamic, b: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   while (b)
   {
     if ((b & 1))
@@ -31,12 +31,12 @@ func power(a: dynamic, b: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&k));
   fac[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fac[i] = (((1 * fac[(i - 1)]) * i) % mod);
@@ -46,7 +46,7 @@ func main()
   ifac[0] = 1;
   ifac[n] = power(fac[n], (mod - 2));
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 1))
     {
       ifac[i] = (((1 * ifac[(i + 1)]) * ((i + 1))) % mod);
@@ -55,7 +55,7 @@ func main()
   }
   f[0] = cpp_assign(sum[0], "=", 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((i >= (k + 1)))

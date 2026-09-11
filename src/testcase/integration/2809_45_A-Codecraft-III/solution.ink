@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
-  var s = ["0", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  var a: dynamic;
+  var s: dynamic = ["0", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var a: dynamic = cpp_uninitialized();
   read(a);
-  var n: dynamic;
-  var x: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 13))
     {
       if ((a == s[i]))
@@ -22,7 +22,7 @@ func main()
       i += 1;
     }
   }
-  var b = (n % 12);
+  var b: dynamic = (n % 12);
   if ((b == 0))
   {
     write(s[x], "\n");

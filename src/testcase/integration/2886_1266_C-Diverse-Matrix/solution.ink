@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var dx = [1, 0, -1, 0, -1, -1, 1, 1];
+var dx: dynamic = [1, 0, -1, 0, -1, -1, 1, 1];
 
-var dy = [0, 1, 0, -1, -1, 1, -1, 1];
+var dy: dynamic = [0, 1, 0, -1, -1, 1, -1, 1];
 
-func fast()
+func fast() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(null);
   cout.tie(null);
 }
 
-var mxN = (3e5 + 5);
+var mxN: dynamic = (3e5 + 5);
 
-var oo = 0x3f3f3f3f;
+var oo: dynamic = 0x3f3f3f3f;
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   if (((n == m) && (n == 1)))
   {
@@ -30,7 +30,7 @@ func solve()
   if ((n == 1))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < (m + 1)))
       {
         write((i + 1), cpp_char(" "));
@@ -40,7 +40,7 @@ func solve()
   } else if ((m == 1))
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < (n + 1)))
       {
         write((i + 1), "\n");
@@ -50,11 +50,11 @@ func solve()
   } else
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < (n + 1)))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < (m + 1)))
           {
             write((i * ((j + n))), cpp_char(" "));
@@ -68,7 +68,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   fast();
   solve();

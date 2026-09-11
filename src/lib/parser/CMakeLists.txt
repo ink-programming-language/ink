@@ -1,4 +1,4 @@
-add_library(ink_parser STATIC cst.cpp parser.cpp)
+add_library(ink_parser STATIC ast.cpp parser.cpp)
 add_library(ink::parser ALIAS ink_parser)
 
 target_compile_features(ink_parser PUBLIC cxx_std_17)

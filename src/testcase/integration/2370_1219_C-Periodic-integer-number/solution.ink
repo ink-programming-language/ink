@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-var N = 200005;
+var N: dynamic = 200005;
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
   vis[v] = 1;
-  for (var i in adj[v])
+  for (var i: dynamic in adj[v])
   {
     if ((!vis[i]))
     {
@@ -17,14 +17,14 @@ func dfs(v: dynamic)
   return;
 }
 
-func isPrime(n: dynamic)
+func isPrime(n: dynamic) -> dynamic
 {
   if ((n < 2))
   {
     return false;
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) <= n))
     {
       if (((n % i) == 0))
@@ -37,14 +37,14 @@ func isPrime(n: dynamic)
   return true;
 }
 
-func factorial(n: dynamic)
+func factorial(n: dynamic) -> dynamic
 {
-  return if ((((n == 1) || (n == 0)))) 1 else (n * factorial((n - 1)));
+  return  ((((n == 1) || (n == 0)))) ? 1 : (n * factorial((n - 1)));
 }
 
-func power(x: dynamic, y: dynamic)
+func power(x: dynamic, y: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   x = x;
   while ((y > 0))
   {
@@ -58,7 +58,7 @@ func power(x: dynamic, y: dynamic)
   return (res % mod);
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a == 0))
   {
@@ -67,24 +67,24 @@ func gcd(a: dynamic, b: dynamic)
   return gcd((b % a), a);
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a / gcd(a, b)) * b));
 }
 
-func max(a: dynamic, b: dynamic)
+func max(a: dynamic, b: dynamic) -> dynamic
 {
-  var ans = if ((a > b)) a else b;
+  var ans: dynamic =  ((a > b)) ? a : b;
   return ans;
 }
 
-func min(a: dynamic, b: dynamic)
+func min(a: dynamic, b: dynamic) -> dynamic
 {
-  var ans = if ((a < b)) a else b;
+  var ans: dynamic =  ((a < b)) ? a : b;
   return ans;
 }
 
-func root(a: dynamic, i: dynamic)
+func root(a: dynamic, i: dynamic) -> dynamic
 {
   while ((a[i] != i))
   {
@@ -94,47 +94,47 @@ func root(a: dynamic, i: dynamic)
   return i;
 }
 
-func unionn(a: dynamic, i: dynamic, j: dynamic)
+func unionn(a: dynamic, i: dynamic, j: dynamic) -> dynamic
 {
-  var root_i = root(a, i);
-  var root_j = root(a, j);
+  var root_i: dynamic = root(a, i);
+  var root_j: dynamic = root(a, j);
   a[root_i] = root_j;
   return;
 }
 
-func fun()
+func fun() -> dynamic
 {
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   fun();
-  var tt = 1;
+  var tt: dynamic = 1;
   while (cpp_update(tt, "--"))
   {
-    var k: dynamic;
+    var k: dynamic = cpp_uninitialized();
     read(k);
-    var a: dynamic;
+    var a: dynamic = cpp_uninitialized();
     read(a);
-    var n = a.size();
+    var n: dynamic = a.size();
     if ((n % k))
     {
-      var s = "1";
+      var s: dynamic = "1";
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < k))
         {
           s += cpp_char("0");
           i += 1;
         }
       }
-      var m = (n / k);
-      var ans = s;
+      var m: dynamic = (n / k);
+      var ans: dynamic = s;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
           ans += s;
@@ -144,11 +144,11 @@ func main()
       write(ans, "\n");
     } else
     {
-      var t = a.substr(0, k);
-      var s = "";
-      var m = (n / k);
+      var t: dynamic = a.substr(0, k);
+      var s: dynamic = "";
+      var m: dynamic = (n / k);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < m))
         {
           s += t;
@@ -160,9 +160,9 @@ func main()
         write(s, "\n");
       } else
       {
-        var j = -1;
+        var j: dynamic = -1;
         {
-          var i = (k - 1);
+          var i: dynamic = (k - 1);
           while ((i >= 0))
           {
             if ((a[i] != cpp_char("9")))
@@ -175,19 +175,19 @@ func main()
         }
         if ((j == -1))
         {
-          var s = "1";
+          var s: dynamic = "1";
           {
-            var i = 1;
+            var i: dynamic = 1;
             while ((i < k))
             {
               s += cpp_char("0");
               i += 1;
             }
           }
-          var m = (n / k);
-          var ans = s;
+          var m: dynamic = (n / k);
+          var ans: dynamic = s;
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < m))
             {
               ans += s;
@@ -197,20 +197,20 @@ func main()
           write(ans, "\n");
         } else
         {
-          var t = a.substr(0, k);
+          var t: dynamic = a.substr(0, k);
           t[j] += 1;
           {
-            var i = (j + 1);
+            var i: dynamic = (j + 1);
             while ((i < k))
             {
               t[i] = cpp_char("0");
               i += 1;
             }
           }
-          var m = (n / k);
-          var ans = t;
+          var m: dynamic = (n / k);
+          var ans: dynamic = t;
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < (m - 1)))
             {
               ans += t;

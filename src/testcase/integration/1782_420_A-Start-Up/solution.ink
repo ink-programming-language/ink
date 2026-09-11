@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func is_palindrom(a: dynamic)
+func is_palindrom(a: dynamic) -> dynamic
 {
-  var s_reversed = "";
+  var s_reversed: dynamic = "";
   {
-    var i = (a.size() - 1);
+    var i: dynamic = (a.size() - 1);
     while ((i >= 0))
     {
       s_reversed += a[i];
@@ -18,10 +18,10 @@ func is_palindrom(a: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
-  var no = "BCDEFGJKLNPQRSZ";
-  var s: dynamic;
+  var no: dynamic = "BCDEFGJKLNPQRSZ";
+  var s: dynamic = cpp_uninitialized();
   read(s);
   if (((s.find_first_of(no) != -1) || (is_palindrom(s) == false)))
   {

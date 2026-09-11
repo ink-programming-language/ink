@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var matrix = cpp_array(52);
-  var n: dynamic;
-  var fila = cpp_construct(52, 0);
+  var matrix: dynamic = cpp_array(52);
+  var n: dynamic = cpp_uninitialized();
+  var fila: dynamic = cpp_construct(52, 0);
   read(n);
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp(n)))
     {
       {
-        var j = int_cpp(0);
+        var j: dynamic = int_cpp(0);
         while ((j < int_cpp(n)))
         {
-          var num: dynamic;
+          var num: dynamic = cpp_uninitialized();
           read(num);
           matrix[i].push_back(num);
           j += 1;
@@ -24,22 +24,22 @@ func main()
     }
   }
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp(n)))
     {
-      var rep = cpp_construct(51, 0);
+      var rep: dynamic = cpp_construct(51, 0);
       {
-        var j = int_cpp(0);
+        var j: dynamic = int_cpp(0);
         while ((j < int_cpp(n)))
         {
           rep[matrix[i][j]] += 1;
           j += 1;
         }
       }
-      var pos = 0;
-      var maxi = 0;
+      var pos: dynamic = 0;
+      var maxi: dynamic = 0;
       {
-        var j = int_cpp(1);
+        var j: dynamic = int_cpp(1);
         while ((j < int_cpp(n)))
         {
           if ((maxi < rep[j]))
@@ -52,7 +52,7 @@ func main()
       }
       fila[i] = pos;
       {
-        var j = int_cpp(0);
+        var j: dynamic = int_cpp(0);
         while ((j < int_cpp(n)))
         {
           if ((matrix[i][j] == j))
@@ -65,14 +65,14 @@ func main()
       i += 1;
     }
   }
-  var pos1 = -1;
-  var pos2: dynamic;
+  var pos1: dynamic = -1;
+  var pos2: dynamic = cpp_uninitialized();
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp(n)))
     {
       {
-        var j = int_cpp(0);
+        var j: dynamic = int_cpp(0);
         while ((j < int_cpp(n)))
         {
           if ((matrix[i][j] == (n - 1)))
@@ -92,7 +92,7 @@ func main()
     }
   }
   {
-    var i = int_cpp(0);
+    var i: dynamic = int_cpp(0);
     while ((i < int_cpp(n)))
     {
       if ((i == pos1))

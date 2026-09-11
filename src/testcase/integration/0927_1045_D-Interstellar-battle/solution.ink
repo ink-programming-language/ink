@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var N = 100010;
+var N: dynamic = 100010;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var adj = cpp_array(N);
+var adj: dynamic = cpp_array(N);
 
-var par = cpp_array(N);
+var par: dynamic = cpp_array(N);
 
-var sum = cpp_array(N);
+var sum: dynamic = cpp_array(N);
 
-func dfs(u: dynamic, pa: dynamic)
+func dfs(u: dynamic, pa: dynamic) -> dynamic
 {
   par[u] = pa;
-  for (var v in adj[u])
+  for (var v: dynamic in adj[u])
   {
     if ((v == pa))
     {
@@ -26,11 +26,11 @@ func dfs(u: dynamic, pa: dynamic)
   }
 }
 
-func preCalc()
+func preCalc() -> dynamic
 {
-  var res = (1.0 - p[0]);
+  var res: dynamic = (1.0 - p[0]);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       res += (p[par[i]] * ((1.0 - p[i])));
@@ -40,18 +40,18 @@ func preCalc()
   return res;
 }
 
-func getVal(u: dynamic)
+func getVal(u: dynamic) -> dynamic
 {
-  var res = if (u) (p[par[u]] * ((1.0 - p[u]))) else ((1.0 - p[u]));
+  var res: dynamic =  (u) ? (p[par[u]] * ((1.0 - p[u]))) : ((1.0 - p[u]));
   res += (p[u] * sum[u]);
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%lf", (p + i));
@@ -59,11 +59,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d %d", (&u), (&v));
       adj[u].push_back(v);
       adj[v].push_back(u);
@@ -71,13 +71,13 @@ func main()
     }
   }
   dfs(0, -1);
-  var res = preCalc();
-  var q: dynamic;
+  var res: dynamic = preCalc();
+  var q: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   while (cpp_update(q, "--"))
   {
-    var u: dynamic;
-    var x: dynamic;
+    var u: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
     scanf("%d %lf", (&u), (&x));
     res -= getVal(u);
     if (u)

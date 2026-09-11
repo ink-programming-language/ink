@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(10, 10);
+var a: dynamic = cpp_array(10, 10);
 
-var b = cpp_array(10, 10);
+var b: dynamic = cpp_array(10, 10);
 
-var viz = cpp_array(10, 10);
+var viz: dynamic = cpp_array(10, 10);
 
-var rasp = cpp_array(10, 10);
+var rasp: dynamic = cpp_array(10, 10);
 
-var sa = cpp_array(10, 10);
+var sa: dynamic = cpp_array(10, 10);
 
-var sb = cpp_array(10, 10);
+var sb: dynamic = cpp_array(10, 10);
 
-func scor(x: dynamic, y: dynamic)
+func scor(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x == 3))
   {
@@ -61,23 +61,23 @@ func scor(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
-  var a1: dynamic;
-  var b1: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var scora = 0;
-  var scorb = 0;
-  var k: dynamic;
-  var lasta: dynamic;
-  var lastb: dynamic;
-  var cnt = 1;
-  var tempa: dynamic;
-  var tempb: dynamic;
-  var s1: dynamic;
-  var s2: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var a1: dynamic = cpp_uninitialized();
+  var b1: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var scora: dynamic = 0;
+  var scorb: dynamic = 0;
+  var k: dynamic = cpp_uninitialized();
+  var lasta: dynamic = cpp_uninitialized();
+  var lastb: dynamic = cpp_uninitialized();
+  var cnt: dynamic = 1;
+  var tempa: dynamic = cpp_uninitialized();
+  var tempb: dynamic = cpp_uninitialized();
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
   read(t, a1, b1);
   {
     i = 1;

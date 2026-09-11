@@ -57,6 +57,22 @@ namespace ink::core
       EXPECT_EQ(Second->text(), "value");
     }
 
+    // Verifies that CR, LF, and CRLF each advance one physical line without changing byte offsets.
+    TEST(SourceManagerTest, TracksAllGrammarLineBreakSpellings)
+    {
+      SourceManager Manager;
+      const auto Source = Manager.findSource(Manager.addSource("line-endings.ink", "a\rb\r\nc\n\r"));
+
+      ASSERT_NE(Source, nullptr);
+      EXPECT_EQ(Source->lineStarts(), (std::vector<std::size_t>{0, 2, 5, 7, 8}));
+      EXPECT_EQ(Source->lineNumber(1), 1U);
+      EXPECT_EQ(Source->lineNumber(2), 2U);
+      EXPECT_EQ(Source->lineNumber(3), 2U);
+      EXPECT_EQ(Source->lineNumber(4), 2U);
+      EXPECT_EQ(Source->lineNumber(5), 3U);
+      EXPECT_EQ(Source->lineNumber(8), 5U);
+    }
+
     // Verifies that invalid and out-of-range identities fail lookup without aliasing an existing source.
     TEST(SourceManagerTest, RejectsUnknownSourceIds)
     {

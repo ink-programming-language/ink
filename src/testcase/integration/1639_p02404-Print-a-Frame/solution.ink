@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b = 5;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = 5;
   while (1)
   {
     read(a, b);
@@ -12,11 +12,11 @@ func main()
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < a))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < b))
           {
             if (((((i == 0) || (j == 0)) || (i == (a - 1))) || (j == (b - 1))))

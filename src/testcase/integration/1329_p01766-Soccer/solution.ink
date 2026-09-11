@@ -1,53 +1,53 @@
 // Translated from solution.cpp.
 
-var USE_MATH_DEFINES = cpp_expression("#def");
+var USE_MATH_DEFINES: dynamic = cpp_expression("#def");
 
-var CRT_SECURE_NO_DEPRECATE = cpp_expression("#def");
+var CRT_SECURE_NO_DEPRECATE: dynamic = cpp_expression("#def");
 
-func FOR(i: dynamic, n: dynamic)
+func FOR(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0; i < (n); i++)");
 }
 
-func sz(c: dynamic)
+func sz(c: dynamic) -> dynamic
 {
   return cpp_expression("#define _USE_MATH");
 }
 
-func ten(x: dynamic)
+func ten(x: dynamic) -> dynamic
 {
   return cpp_expression("#define _USE");
 }
 
-func tenll(x: dynamic)
+func tenll(x: dynamic) -> dynamic
 {
   return cpp_expression("#define _US");
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var v: dynamic;
-  var ans = cpp_array(2, 2);
+  var v: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_array(2, 2);
   ans[0][0] = cpp_assign(ans[0][1], "=", cpp_assign(ans[1][0], "=", cpp_assign(ans[1][1], "=", -1)));
   FOR(i, (n - 1));
   {
-    var pf: dynamic;
-    var pa: dynamic;
-    var pt: dynamic;
-    var px: dynamic;
-    var py: dynamic;
-    var f: dynamic;
-    var a: dynamic;
-    var t: dynamic;
-    var x: dynamic;
-    var y: dynamic;
+    var pf: dynamic = cpp_uninitialized();
+    var pa: dynamic = cpp_uninitialized();
+    var pt: dynamic = cpp_uninitialized();
+    var px: dynamic = cpp_uninitialized();
+    var py: dynamic = cpp_uninitialized();
+    var f: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var t: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     tie(pf, pa, pt, px, py) = v[i];
     tie(f, a, t, x, y) = v[(i + 1)];
     if (((pt == t) && (a != pa)))
     {
-      var nt = sqrt((pow((x - px), 2) + pow((y - py), 2)));
+      var nt: dynamic = sqrt((pow((x - px), 2) + pow((y - py), 2)));
       if ((ans[t][0] <= nt))
       {
         if ((abs((ans[t][0] - nt)) < 1e-6))
@@ -65,13 +65,13 @@ func main()
   printf("%.10lf %.10lf\n", ans[i][0], ans[i][1]);
 }
 
-func FOR(argument_0: dynamic, argument_1: dynamic)
+func FOR(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var f: dynamic;
-    var a: dynamic;
-    var t: dynamic;
-    var x: dynamic;
-    var y: dynamic;
+    var f: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var t: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     read(f, a, t, x, y);
     v.emplace_back(f, a, t, x, y);
   }

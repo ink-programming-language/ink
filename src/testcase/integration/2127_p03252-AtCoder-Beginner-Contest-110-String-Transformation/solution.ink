@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var fr1 = cpp_array(150);
+var fr1: dynamic = cpp_array(150);
 
-var fr2 = cpp_array(130);
+var fr2: dynamic = cpp_array(130);
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var t: dynamic;
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(s, t);
-  var y = 1;
-  var mp: dynamic;
+  var y: dynamic = 1;
+  var mp: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       fr1[s[i]] += 1;

@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   scanf("%d", (&k));
-  var maxn = 0;
+  var maxn: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       if ((x >= 500001))
       {

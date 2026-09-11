@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var num: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var ans: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var num: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
   while ((~scanf("%d", (&n))))
   {
-    var q: dynamic;
+    var q: dynamic = cpp_uninitialized();
     ans = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%d", (&num));

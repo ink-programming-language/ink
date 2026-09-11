@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var const1 = (1e9 + 7);
+var const1: dynamic = (1e9 + 7);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s[i]);
@@ -17,7 +17,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(f[i], h[i]);
@@ -26,7 +26,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((p[i].size() != 0))
@@ -36,10 +36,10 @@ func main()
       i += 1;
     }
   }
-  var iter1 = cpp_construct(n, 0);
-  var iter2 = cpp_construct(n, 0);
+  var iter1: dynamic = cpp_construct(n, 0);
+  var iter2: dynamic = cpp_construct(n, 0);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       sumpost[s[i]] += 1;
@@ -47,7 +47,7 @@ func main()
     }
   }
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < n))
     {
       while (((iter2[j] < p[j].size()) && (p[j][iter2[j]] <= sumpost[j])))
@@ -57,11 +57,11 @@ func main()
       j += 1;
     }
   }
-  var sum = 0;
-  var val = 1;
-  var flag = false;
+  var sum: dynamic = 0;
+  var val: dynamic = 1;
+  var flag: dynamic = false;
   {
-    var j = 0;
+    var j: dynamic = 0;
     while ((j < n))
     {
       if ((iter2[j] != 0))
@@ -72,23 +72,23 @@ func main()
       j += 1;
     }
   }
-  var anscnt: dynamic;
-  var ansres: dynamic;
+  var anscnt: dynamic = cpp_uninitialized();
+  var ansres: dynamic = cpp_uninitialized();
   anscnt = sum;
   ansres = val;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var sum = 0;
-      var val = 1;
+      var sum: dynamic = 0;
+      var val: dynamic = 1;
       sumpref[s[i]] += 1;
       sumpost[s[i]] -= 1;
       while (((iter2[s[i]] > 0) && (p[s[i]][(iter2[s[i]] - 1)] > sumpost[s[i]])))
       {
         iter2[s[i]] -= 1;
       }
-      var prefval = iter1[s[i]];
+      var prefval: dynamic = iter1[s[i]];
       while (((iter1[s[i]] < p[s[i]].size()) && (p[s[i]][iter1[s[i]]] <= sumpref[s[i]])))
       {
         iter1[s[i]] += 1;
@@ -96,7 +96,7 @@ func main()
       if ((i == (n - 1)))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             if ((s[i] != j))
@@ -117,7 +117,7 @@ func main()
       } else
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < n))
           {
             if ((s[i] == j))
@@ -131,7 +131,7 @@ func main()
                 {
                   sum += 2;
                 }
-                var k2 = iter2[j];
+                var k2: dynamic = iter2[j];
                 if ((iter2[j] == 0))
                 {
                   k2 = 1;
@@ -148,15 +148,15 @@ func main()
                   {
                     sum += 2;
                   }
-                  var k1 = (iter1[j] - prefval);
-                  var k2 = iter2[j];
+                  var k1: dynamic = (iter1[j] - prefval);
+                  var k2: dynamic = iter2[j];
                   val = (((val * (((k1 * ((k1 - 1))) + (((k2 - k1)) * k1))))) % const1);
                 }
               }
             } else
             {
-              var k1 = max(iter1[j], iter2[j]);
-              var k2 = min(iter1[j], iter2[j]);
+              var k1: dynamic = max(iter1[j], iter2[j]);
+              var k2: dynamic = min(iter1[j], iter2[j]);
               if (((max(k1, k2) >= 2) && (min(k1, k2) >= 1)))
               {
                 sum += 2;

@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func rev(x: dynamic)
+func rev(x: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   while (x)
   {
     ret *= 10;
@@ -16,19 +16,19 @@ func rev(x: dynamic)
   return ret;
 }
 
-var vis = cpp_array((4000000 + 10));
+var vis: dynamic = cpp_array((4000000 + 10));
 
-func init()
+func init() -> dynamic
 {
   vis[1] = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= 4000000))
     {
       if ((!vis[i]))
       {
         {
-          var j = (i + i);
+          var j: dynamic = (i + i);
           while ((j <= 4000000))
           {
             vis[j] = 1;
@@ -41,15 +41,15 @@ func init()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var ans = -1;
-  var A = 0;
-  var B = 0;
+  var ans: dynamic = -1;
+  var A: dynamic = 0;
+  var B: dynamic = 0;
   scanf("%d%d", (&p), (&q));
   init();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 4000000))
     {
       if ((i == rev(i)))

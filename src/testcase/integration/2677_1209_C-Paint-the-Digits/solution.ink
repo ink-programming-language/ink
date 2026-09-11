@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var s: dynamic;
+    var s: dynamic = cpp_uninitialized();
     read(s);
-    var v = cpp_array(10);
+    var v: dynamic = cpp_array(10);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var x = (s[i] - cpp_char("0"));
+        var x: dynamic = (s[i] - cpp_char("0"));
         v[x].push_back(i);
         i += 1;
       }
     }
-    var ans = cpp_array(n);
-    var mn1 = -1;
-    var mn2 = -1;
-    var m1 = 0;
-    var m2 = 0;
-    var ok1 = true;
-    var ok = true;
+    var ans: dynamic = cpp_array(n);
+    var mn1: dynamic = -1;
+    var mn2: dynamic = -1;
+    var m1: dynamic = 0;
+    var m2: dynamic = 0;
+    var ok1: dynamic = true;
+    var ok: dynamic = true;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 10))
       {
         if ((v[i].size() != 0))
         {
-          for (var x in v[i])
+          for (var x: dynamic in v[i])
           {
             if (((x > mn1) && ok1))
             {
@@ -76,7 +76,7 @@ func main()
     } else
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           write(ans[i]);

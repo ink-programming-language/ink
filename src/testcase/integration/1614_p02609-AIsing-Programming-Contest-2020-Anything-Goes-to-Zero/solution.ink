@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var maxN = (2e5 + 1);
+var maxN: dynamic = (2e5 + 1);
 
-var pw = cpp_array(maxN);
+var pw: dynamic = cpp_array(maxN);
 
-func ciclos(x: dynamic)
+func ciclos(x: dynamic) -> dynamic
 {
   if ((x == 0))
   {
     return 0;
   }
-  var bits = builtin_popcount(x);
+  var bits: dynamic = builtin_popcount(x);
   return (1 + ciclos((x % bits)));
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var s: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
   read(n, s);
   reverse(s.begin(), s.end());
-  var unos = 0;
+  var unos: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((s[i] == cpp_char("1")))
@@ -32,23 +32,23 @@ func main()
       i += 1;
     }
   }
-  var mod = (unos + 1);
+  var mod: dynamic = (unos + 1);
   if (((unos - 1) > 0))
   {
     mod *= ((unos - 1));
   }
   pw[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       pw[i] = (((pw[(i - 1)] * 2)) % mod);
       i += 1;
     }
   }
-  var tot = 0;
+  var tot: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((s[i] == cpp_char("1")))
@@ -59,7 +59,7 @@ func main()
     }
   }
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 0))
     {
       if ((s[i] == cpp_char("1")))
@@ -69,12 +69,12 @@ func main()
           write(0, cpp_char("\n"));
         } else
         {
-          var queda = ((((tot - pw[i]) + mod)) % ((unos - 1)));
+          var queda: dynamic = ((((tot - pw[i]) + mod)) % ((unos - 1)));
           write((1 + ciclos(queda)), cpp_char("\n"));
         }
       } else
       {
-        var queda = (((tot + pw[i])) % ((unos + 1)));
+        var queda: dynamic = (((tot + pw[i])) % ((unos + 1)));
         write((1 + ciclos(queda)), cpp_char("\n"));
       }
       i -= 1;

@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(1000000);
+var dp: dynamic = cpp_array(1000000);
 
-var arr = cpp_array(1000000);
+var arr: dynamic = cpp_array(1000000);
 
-var arr2 = cpp_array(300);
+var arr2: dynamic = cpp_array(300);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var maxn = 1;
+var maxn: dynamic = 1;
 
-var mx = 1;
+var mx: dynamic = 1;
 
-func main()
+func main() -> dynamic
 {
   read(n);
   read(t);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);
@@ -29,9 +29,9 @@ func main()
       i += 1;
     }
   }
-  var k = min(n, t);
+  var k: dynamic = min(n, t);
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i < (n * k)))
     {
       arr[i] = arr[(i - n)];
@@ -40,11 +40,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n * k)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < i))
         {
           if ((arr[i] >= arr[j]))

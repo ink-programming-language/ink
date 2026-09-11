@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var R0: dynamic;
-  var W0: dynamic;
-  var C: dynamic;
-  var R: dynamic;
+  var R0: dynamic = cpp_uninitialized();
+  var W0: dynamic = cpp_uninitialized();
+  var C: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
   while (((((cin >> R0) >> W0) >> C) >> R))
   {
     if (((((R0 == 0) && (W0 == 0)) && (C == 0)) && (R == 0)))
     {
       return 0;
     }
-    var LOSS = ((W0 * C) - R0);
+    var LOSS: dynamic = ((W0 * C) - R0);
     if ((LOSS <= 0))
     {
       write(0, "\n");

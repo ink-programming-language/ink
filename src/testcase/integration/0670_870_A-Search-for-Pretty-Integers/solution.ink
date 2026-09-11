@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var a = cpp_array(100);
-  var b = cpp_array(100);
+  var a: dynamic = cpp_array(100);
+  var b: dynamic = cpp_array(100);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -17,7 +17,7 @@ func main()
   }
   sort(a, (a + n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(b[i]);
@@ -26,11 +26,11 @@ func main()
   }
   sort(b, (b + m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((a[i] == b[j]))

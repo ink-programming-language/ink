@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var second: dynamic;
-  var ans = 0;
-  var k = 1;
-  var i: dynamic;
-  var a: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var second: dynamic = cpp_uninitialized();
+  var ans: dynamic = 0;
+  var k: dynamic = 1;
+  var i: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
   read(n, second);
-  var mp: dynamic;
+  var mp: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))
@@ -47,7 +47,7 @@ func solve()
   write(ans);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);

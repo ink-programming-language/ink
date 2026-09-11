@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var qq: dynamic;
+var qq: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1000009);
+var a: dynamic = cpp_array(1000009);
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
@@ -27,7 +27,7 @@ func main()
     read(n, k);
     m = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
@@ -57,11 +57,11 @@ func main()
       continue;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j < n))
           {
             if (((j - i) > 2))

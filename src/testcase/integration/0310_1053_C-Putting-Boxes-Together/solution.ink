@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var nn: dynamic;
+var nn: dynamic = cpp_uninitialized();
 
-var arra: dynamic;
+var arra: dynamic = cpp_uninitialized();
 
-var arrw: dynamic;
+var arrw: dynamic = cpp_uninitialized();
 
-var suml: dynamic;
+var suml: dynamic = cpp_uninitialized();
 
-var sumr: dynamic;
+var sumr: dynamic = cpp_uninitialized();
 
-var sum: dynamic;
+var sum: dynamic = cpp_uninitialized();
 
-var mod = (1E9 + 7);
+var mod: dynamic = (1E9 + 7);
 
-var mx: dynamic;
+var mx: dynamic = cpp_uninitialized();
 
-var sm: dynamic;
+var sm: dynamic = cpp_uninitialized();
 
-var TEST = 0;
+var TEST: dynamic = 0;
 
-func read()
+func read() -> dynamic
 {
   read(n, q);
   nn = ((ceil(log2(n)) * n) - 1);
@@ -39,7 +39,7 @@ func read()
   sum = cpp_new();
   sm = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arra[i]);
@@ -48,7 +48,7 @@ func read()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arrw[i]);
@@ -59,28 +59,28 @@ func read()
   mx = arra[(n - 1)];
 }
 
-func getValLeft(ind: dynamic)
+func getValLeft(ind: dynamic) -> dynamic
 {
-  var w = arrw[ind];
+  var w: dynamic = arrw[ind];
   w *= (arra[ind] - (cpp_cast(ind)));
   w %= mod;
   return w;
 }
 
-func getVal(ind: dynamic)
+func getVal(ind: dynamic) -> dynamic
 {
   return arrw[ind];
 }
 
-func getValRight(ind: dynamic)
+func getValRight(ind: dynamic) -> dynamic
 {
-  var w = arrw[ind];
+  var w: dynamic = arrw[ind];
   w *= (((cpp_cast(mx)) - (cpp_cast(arra[ind]))) - (cpp_cast((((n - ind) - 1)))));
   w %= mod;
   return w;
 }
 
-func buildSeg(arr: dynamic, val: dynamic, s: dynamic, e: dynamic, i: dynamic, ismod: dynamic = true)
+func buildSeg(arr: dynamic, val: dynamic, s: dynamic, e: dynamic, i: dynamic, ismod: dynamic = true) -> dynamic
 {
   if ((s == e))
   {
@@ -91,7 +91,7 @@ func buildSeg(arr: dynamic, val: dynamic, s: dynamic, e: dynamic, i: dynamic, is
     }
     return arr[i];
   }
-  var m = (((s + e)) / 2);
+  var m: dynamic = (((s + e)) / 2);
   arr[i] = ((buildSeg(arr, val, s, m, ((i * 2) + 1), ismod) + buildSeg(arr, val, (m + 1), e, ((i * 2) + 2), ismod)));
   if (ismod)
   {
@@ -100,7 +100,7 @@ func buildSeg(arr: dynamic, val: dynamic, s: dynamic, e: dynamic, i: dynamic, is
   return arr[i];
 }
 
-func sumSeg(arr: dynamic, s: dynamic, e: dynamic, i: dynamic, rs: dynamic, re: dynamic, ismod: dynamic = true)
+func sumSeg(arr: dynamic, s: dynamic, e: dynamic, i: dynamic, rs: dynamic, re: dynamic, ismod: dynamic = true) -> dynamic
 {
   if (((s >= rs) && (e <= re)))
   {
@@ -110,8 +110,8 @@ func sumSeg(arr: dynamic, s: dynamic, e: dynamic, i: dynamic, rs: dynamic, re: d
   {
     return 0;
   }
-  var m = (((s + e)) / 2);
-  var res = sumSeg(arr, s, m, ((i * 2) + 1), rs, re, ismod);
+  var m: dynamic = (((s + e)) / 2);
+  var res: dynamic = sumSeg(arr, s, m, ((i * 2) + 1), rs, re, ismod);
   res += sumSeg(arr, (m + 1), e, ((i * 2) + 2), rs, re, ismod);
   if (ismod)
   {
@@ -120,7 +120,7 @@ func sumSeg(arr: dynamic, s: dynamic, e: dynamic, i: dynamic, rs: dynamic, re: d
   return res;
 }
 
-func updateSeg(arr: dynamic, s: dynamic, e: dynamic, i: dynamic, ind: dynamic, diff: dynamic, ismod: dynamic = true)
+func updateSeg(arr: dynamic, s: dynamic, e: dynamic, i: dynamic, ind: dynamic, diff: dynamic, ismod: dynamic = true) -> dynamic
 {
   if (((ind < s) || (ind > e)))
   {
@@ -135,18 +135,18 @@ func updateSeg(arr: dynamic, s: dynamic, e: dynamic, i: dynamic, ind: dynamic, d
   {
     return;
   }
-  var m = (((s + e)) / 2);
+  var m: dynamic = (((s + e)) / 2);
   updateSeg(arr, s, m, ((i * 2) + 1), ind, diff, ismod);
   updateSeg(arr, (m + 1), e, ((i * 2) + 2), ind, diff, ismod);
 }
 
-func segIndex(arr: dynamic, s: dynamic, e: dynamic, i: dynamic, sml: dynamic)
+func segIndex(arr: dynamic, s: dynamic, e: dynamic, i: dynamic, sml: dynamic) -> dynamic
 {
   if ((s == e))
   {
     return s;
   }
-  var m = (((s + e)) / 2);
+  var m: dynamic = (((s + e)) / 2);
   if ((arr[((i * 2) + 1)] > sml))
   {
     return segIndex(arr, s, m, ((i * 2) + 1), sml);
@@ -154,19 +154,19 @@ func segIndex(arr: dynamic, s: dynamic, e: dynamic, i: dynamic, sml: dynamic)
   return segIndex(arr, (m + 1), e, ((i * 2) + 2), (sml - arr[((i * 2) + 1)]));
 }
 
-func getMedian(s: dynamic, e: dynamic)
+func getMedian(s: dynamic, e: dynamic) -> dynamic
 {
-  var sml = sumSeg(sum, 0, (n - 1), 0, s, e, false);
-  var smlb = 0;
+  var sml: dynamic = sumSeg(sum, 0, (n - 1), 0, s, e, false);
+  var smlb: dynamic = 0;
   if ((s > 0))
   {
     smlb = sumSeg(sum, 0, (n - 1), 0, 0, (s - 1), false);
   }
-  var ind = segIndex(sum, 0, (n - 1), 0, (smlb + (sml / 2)));
+  var ind: dynamic = segIndex(sum, 0, (n - 1), 0, (smlb + (sml / 2)));
   return ind;
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
@@ -178,7 +178,7 @@ func main()
   {
     write("\n", "--------------", "\n");
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < nn))
       {
         write(sum[i], " ");
@@ -187,7 +187,7 @@ func main()
     }
     write("\n");
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write(getVal(i), " ");
@@ -196,7 +196,7 @@ func main()
     }
     write("\n");
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write(getValLeft(i), " ");
@@ -205,7 +205,7 @@ func main()
     }
     write("\n");
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         write(getValRight(i), " ");
@@ -216,26 +216,26 @@ func main()
     write("--------------", "\n");
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       if ((x < 0))
       {
         x = (-x);
         x -= 1;
-        var vl = getValLeft(x);
-        var vr = getValRight(x);
-        var vm = getVal(x);
+        var vl: dynamic = getValLeft(x);
+        var vr: dynamic = getValRight(x);
+        var vm: dynamic = getVal(x);
         arrw[x] = y;
-        var nl = getValLeft(x);
-        var nr = getValRight(x);
-        var nm = y;
-        var dl = (((((nl - vl)) + (mod * 2))) % mod);
-        var dr = (((((nr - vr)) + (mod * 2))) % mod);
-        var dm = (nm - vm);
+        var nl: dynamic = getValLeft(x);
+        var nr: dynamic = getValRight(x);
+        var nm: dynamic = y;
+        var dl: dynamic = (((((nl - vl)) + (mod * 2))) % mod);
+        var dr: dynamic = (((((nr - vr)) + (mod * 2))) % mod);
+        var dm: dynamic = (nm - vm);
         updateSeg(suml, 0, (n - 1), 0, x, dl);
         updateSeg(sumr, 0, (n - 1), 0, x, dr);
         updateSeg(sum, 0, (n - 1), 0, x, dm, false);
@@ -243,15 +243,15 @@ func main()
       {
         x -= 1;
         y -= 1;
-        var med = getMedian(x, y);
-        var need = 0;
-        var pb: dynamic;
-        var pa: dynamic;
-        var tb: dynamic;
-        var ta: dynamic;
+        var med: dynamic = getMedian(x, y);
+        var need: dynamic = 0;
+        var pb: dynamic = cpp_uninitialized();
+        var pa: dynamic = cpp_uninitialized();
+        var tb: dynamic = cpp_uninitialized();
+        var ta: dynamic = cpp_uninitialized();
         pa = (med + 1);
         pb = med;
-        var smm = sumSeg(sum, 0, (n - 1), 0, x, y, false);
+        var smm: dynamic = sumSeg(sum, 0, (n - 1), 0, x, y, false);
         if (TEST)
         {
           write("-------------", "\n");
@@ -264,7 +264,7 @@ func main()
           ta = (arra[med] + 1);
         } else
         {
-          var sb = 0;
+          var sb: dynamic = 0;
           if ((med > x))
           {
             sb = sumSeg(sum, 0, (n - 1), 0, x, (med - 1), false);

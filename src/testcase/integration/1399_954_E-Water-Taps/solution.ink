@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 7);
+var N: dynamic = (2e5 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var T: dynamic;
+var T: dynamic = cpp_uninitialized();
 
-var t = cpp_array(N);
+var t: dynamic = cpp_array(N);
 
-var x = cpp_array(N);
+var x: dynamic = cpp_array(N);
 
-var sa: dynamic;
+var sa: dynamic = cpp_uninitialized();
 
-var sb: dynamic;
+var sb: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n, T);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(x[i]);
@@ -35,7 +35,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(t[i]);
@@ -60,9 +60,9 @@ func main()
   }
   sort(a.begin(), a.end());
   sort(b.begin(), b.end());
-  var can = min(sa, sb);
+  var can: dynamic = min(sa, sb);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.size()))
     {
       if ((can < (a[i].first * a[i].second)))
@@ -77,7 +77,7 @@ func main()
   }
   can = min(sa, sb);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < b.size()))
     {
       if ((can < (b[i].first * b[i].second)))

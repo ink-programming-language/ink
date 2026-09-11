@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var N = 1000001;
+var N: dynamic = 1000001;
 
-func highp2(n: dynamic)
+func highp2(n: dynamic) -> dynamic
 {
   return ((n & ((~((n - 1))))));
 }
 
-func isPrime(n: dynamic)
+func isPrime(n: dynamic) -> dynamic
 {
   if ((n <= 1))
   {
@@ -22,7 +22,7 @@ func isPrime(n: dynamic)
     return false;
   }
   {
-    var i = 5;
+    var i: dynamic = 5;
     while (((i * i) <= n))
     {
       if ((((n % i) == 0) || ((n % ((i + 2))) == 0)))
@@ -35,11 +35,11 @@ func isPrime(n: dynamic)
   return true;
 }
 
-func binarysearchlf(l: dynamic, h: dynamic, a: dynamic, k: dynamic)
+func binarysearchlf(l: dynamic, h: dynamic, a: dynamic, k: dynamic) -> dynamic
 {
   while ((l < h))
   {
-    var mid = (l + (((((h - l) + 1)) / 2)));
+    var mid: dynamic = (l + (((((h - l) + 1)) / 2)));
     if ((a[mid] < k))
     {
       l = mid;
@@ -51,11 +51,11 @@ func binarysearchlf(l: dynamic, h: dynamic, a: dynamic, k: dynamic)
   return l;
 }
 
-func binarysearchft(l: dynamic, h: dynamic, a: dynamic, k: dynamic)
+func binarysearchft(l: dynamic, h: dynamic, a: dynamic, k: dynamic) -> dynamic
 {
   while ((l < h))
   {
-    var mid = (l + ((((h - l)) / 2)));
+    var mid: dynamic = (l + ((((h - l)) / 2)));
     if ((a[mid] < k))
     {
       l = (mid + 1);
@@ -67,7 +67,7 @@ func binarysearchft(l: dynamic, h: dynamic, a: dynamic, k: dynamic)
   return l;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -80,17 +80,17 @@ func gcd(a: dynamic, b: dynamic)
   return (cpp_comma(b, (a % b)));
 }
 
-func getstring(k: dynamic, x: dynamic)
+func getstring(k: dynamic, x: dynamic) -> dynamic
 {
   return s;
 }
 
-func sort1(a: dynamic, b: dynamic)
+func sort1(a: dynamic, b: dynamic) -> dynamic
 {
   return (a.second < b.second);
 }
 
-func sort2(v1: dynamic, v2: dynamic)
+func sort2(v1: dynamic, v2: dynamic) -> dynamic
 {
   if ((v1[1] > v2[1]))
   {
@@ -104,20 +104,20 @@ func sort2(v1: dynamic, v2: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var i1: dynamic;
-  var i2: dynamic;
-  var flag1 = 0;
-  var flag2 = 0;
-  var n = s.length();
+  var i1: dynamic = cpp_uninitialized();
+  var i2: dynamic = cpp_uninitialized();
+  var flag1: dynamic = 0;
+  var flag2: dynamic = 0;
+  var n: dynamic = s.length();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       if (((s[i] == cpp_char("A")) && (s[(i + 1)] == cpp_char("B"))))
@@ -130,7 +130,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
       if (((s[i] == cpp_char("B")) && (s[(i + 1)] == cpp_char("A"))))
@@ -152,9 +152,9 @@ func main()
     write("YES", "\n");
   } else
   {
-    var flag = 0;
+    var flag: dynamic = 0;
     {
-      var i = (i2 + 2);
+      var i: dynamic = (i2 + 2);
       while ((i < (n - 1)))
       {
         if (((s[i] == cpp_char("A")) && (s[(i + 1)] == cpp_char("B"))))
@@ -165,7 +165,7 @@ func main()
       }
     }
     {
-      var i = (i1 + 2);
+      var i: dynamic = (i1 + 2);
       while ((i < (n - 1)))
       {
         if (((s[i] == cpp_char("B")) && (s[(i + 1)] == cpp_char("A"))))

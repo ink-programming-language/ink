@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
-  var t = "keyence";
+  var s: dynamic = cpp_uninitialized();
+  var t: dynamic = "keyence";
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.length()))
     {
       {
-        var j = (i - 1);
+        var j: dynamic = (i - 1);
         while ((j < s.length()))
         {
           if (((s.substr(0, i) + s.substr((j + 1), ((s.length() - j) + 1))) == t))

@@ -14,7 +14,10 @@ namespace ink::tokenizer
 {
   struct TokenizerOptions
   {
-      std::size_t MaxBlockCommentDepth = 1024;
+      // Zero permits arbitrary nesting; block comments are scanned iteratively.
+      std::size_t MaxBlockCommentDepth = 0;
+      // The language token stream discards trivia. Editors and source tools may retain it.
+      bool PreserveTrivia = false;
   };
 
   class TokenizedBuffer

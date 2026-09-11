@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var num = 1;
+var num: dynamic = 1;
 
-var ans1: dynamic;
+var ans1: dynamic = cpp_uninitialized();
 
-var ans2: dynamic;
+var ans2: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld", (&n));
   {
-    var x = n;
+    var x: dynamic = n;
     while (x)
     {
       ans1 += (x % 10);
@@ -22,13 +22,13 @@ func main()
   }
   num /= 10;
   {
-    var x = (((n / num) * num) - 1);
+    var x: dynamic = (((n / num) * num) - 1);
     while (x)
     {
       ans2 += (x % 10);
       x /= 10;
     }
   }
-  printf("%d", if ((ans1 > ans2)) ans1 else ans2);
+  printf("%d",  ((ans1 > ans2)) ? ans1 : ans2);
   return 0;
 }

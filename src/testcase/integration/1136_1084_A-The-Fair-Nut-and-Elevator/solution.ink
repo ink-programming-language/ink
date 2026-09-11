@@ -1,15 +1,15 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(200);
+var a: dynamic = cpp_array(200);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var pos = 0;
-  var maxx = 0;
+  var pos: dynamic = 0;
+  var maxx: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -17,7 +17,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((maxx < a[i]))
@@ -32,9 +32,9 @@ func main()
   {
     return cpp_comma(puts("0"), 0);
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       ans += ((4 * a[i]) * ((i - 1)));

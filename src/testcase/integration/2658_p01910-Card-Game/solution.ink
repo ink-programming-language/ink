@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var INF = (1 << 58);
+var INF: dynamic = (1 << 58);
 
 class edge
 {
-  var to: dynamic;
-  var cost: dynamic;
+  var to: dynamic = cpp_uninitialized();
+  var cost: dynamic = cpp_uninitialized();
 }
 
-func dijkstra(st: dynamic, G: dynamic, d: dynamic)
+func dijkstra(st: dynamic, G: dynamic, d: dynamic) -> dynamic
 {
-  var que: dynamic;
+  var que: dynamic = cpp_uninitialized();
   fill(d.begin(), d.end(), INF);
-  for (var s in st)
+  for (var s: dynamic in st)
   {
     d[s] = 0;
     que.push(P(0, s));
   }
   while ((!que.empty()))
   {
-    var p = que.top();
+    var p: dynamic = que.top();
     que.pop();
-    var v = p.second;
+    var v: dynamic = p.second;
     if ((d[v] < p.first))
     {
       continue;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < G[v].size()))
       {
-        var e = G[v][i];
+        var e: dynamic = G[v][i];
         if ((d[e.to] > (d[v] + e.cost)))
         {
           d[e.to] = (d[v] + e.cost);
@@ -42,24 +42,24 @@ func dijkstra(st: dynamic, G: dynamic, d: dynamic)
   }
 }
 
-var a = cpp_array(200000);
+var a: dynamic = cpp_array(200000);
 
-var b = cpp_array(200000);
+var b: dynamic = cpp_array(200000);
 
-var c = cpp_array(200000);
+var c: dynamic = cpp_array(200000);
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
-  var N: dynamic;
-  var M: dynamic;
-  var R: dynamic;
-  var Q: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var M: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
+  var Q: dynamic = cpp_uninitialized();
   read(N, M, R, Q);
-  var id: dynamic;
+  var id: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       read(a[i], b[i], c[i]);
@@ -67,28 +67,28 @@ func main()
       i += 1;
     }
   }
-  var K = 0;
-  for (var v in id)
+  var K: dynamic = 0;
+  for (var v: dynamic in id)
   {
     id[v.first] = cpp_update(K, "++");
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < M))
     {
       G[id[b[i]]].push_back([id[a[i]], c[i]]);
       i += 1;
     }
   }
-  var d = cpp_array(10);
+  var d: dynamic = cpp_array(10);
   {
-    var r = 0;
+    var r: dynamic = 0;
     while ((r < R))
     {
       d[r] = vector(K);
-      var st: dynamic;
+      var st: dynamic = cpp_uninitialized();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < M))
         {
           if (((b[i] % R) == r))
@@ -102,23 +102,23 @@ func main()
       r += 1;
     }
   }
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var q = 0;
+    var q: dynamic = 0;
     while ((q < Q))
     {
-      var x = cpp_array(2);
-      var z: dynamic;
+      var x: dynamic = cpp_array(2);
+      var z: dynamic = cpp_uninitialized();
       read(x[0], x[1], z);
-      var s = 0;
+      var s: dynamic = 0;
       {
-        var r = 0;
+        var r: dynamic = 0;
         while ((r < R))
         {
-          var ok = true;
-          var cost_sum = 0;
+          var ok: dynamic = true;
+          var cost_sum: dynamic = 0;
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < 2))
             {
               if (((x[i] % R) != r))

@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var maxn = (2e6 + 100);
+var maxn: dynamic = (2e6 + 100);
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var iinf = (1 << 30);
+var iinf: dynamic = (1 << 30);
 
-var linf = 2e18;
+var linf: dynamic = 2e18;
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var eps = 1e-7;
+var eps: dynamic = 1e-7;
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", min(a, b));
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   return cpp_assign(a, "=", max(a, b));
 }
 
-func read()
+func read() -> dynamic
 {
-  var f = 1;
-  var a = 0;
-  var ch = getchar();
+  var f: dynamic = 1;
+  var a: dynamic = 0;
+  var ch: dynamic = getchar();
   while ((!isdigit(ch)))
   {
     if ((ch == cpp_char("-")))
@@ -43,35 +43,35 @@ func read()
   return (a * f);
 }
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var dif_sum: dynamic;
+var dif_sum: dynamic = cpp_uninitialized();
 
-var s = cpp_array(maxn);
+var s: dynamic = cpp_array(maxn);
 
-var sum = cpp_array(maxn);
+var sum: dynamic = cpp_array(maxn);
 
-var dif: dynamic;
+var dif: dynamic = cpp_uninitialized();
 
-var col: dynamic;
+var col: dynamic = cpp_uninitialized();
 
-var near = cpp_array(maxn);
+var near: dynamic = cpp_array(maxn);
 
 class node
 {
-  var l: dynamic;
-  var r: dynamic;
-  var val: dynamic;
-  var tag: dynamic;
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var val: dynamic = cpp_uninitialized();
+  var tag: dynamic = cpp_uninitialized();
 }
 
-var tr = cpp_array(maxn);
+var tr: dynamic = cpp_array(maxn);
 
-func build(tot: dynamic, l: dynamic, r: dynamic)
+func build(tot: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   tr[tot].l = l;
   tr[tot].r = r;
@@ -84,7 +84,7 @@ func build(tot: dynamic, l: dynamic, r: dynamic)
   build((((tot << 1) | 1)), (((((tr[tot].l + tr[tot].r)) >> 1)) + 1), r);
 }
 
-func stag(tot: dynamic)
+func stag(tot: dynamic) -> dynamic
 {
   tr[tot].val = ((tr[tot].r - tr[tot].l) + 1);
   if ((tr[tot].l != tr[tot].r))
@@ -93,7 +93,7 @@ func stag(tot: dynamic)
   }
 }
 
-func pushdown(tot: dynamic)
+func pushdown(tot: dynamic) -> dynamic
 {
   if ((!tr[tot].tag))
   {
@@ -104,12 +104,12 @@ func pushdown(tot: dynamic)
   tr[tot].tag = 0;
 }
 
-func maintain(tot: dynamic)
+func maintain(tot: dynamic) -> dynamic
 {
   tr[tot].val = (tr[((tot << 1))].val + tr[(((tot << 1) | 1))].val);
 }
 
-func modify(tot: dynamic, l: dynamic, r: dynamic)
+func modify(tot: dynamic, l: dynamic, r: dynamic) -> dynamic
 {
   if (((tr[tot].l >= l) && (tr[tot].r <= r)))
   {
@@ -127,14 +127,14 @@ func modify(tot: dynamic, l: dynamic, r: dynamic)
   maintain(tot);
 }
 
-func query(tot: dynamic, r: dynamic)
+func query(tot: dynamic, r: dynamic) -> dynamic
 {
   if ((tr[tot].r <= r))
   {
     return tr[tot].val;
   }
   pushdown(tot);
-  var ret = query(((tot << 1)), r);
+  var ret: dynamic = query(((tot << 1)), r);
   if ((r > ((((tr[tot].l + tr[tot].r)) >> 1))))
   {
     ret += query((((tot << 1) | 1)), r);
@@ -142,7 +142,7 @@ func query(tot: dynamic, r: dynamic)
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld", (&t));
   while (cpp_update(t, "--"))
@@ -152,7 +152,7 @@ func main()
     build(1, 1, n);
     dif_sum = 0;
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i <= ((n - 1))))
       {
         if ((s[i] == s[(i + 1)]))
@@ -165,7 +165,7 @@ func main()
       }
     }
     {
-      var i = (0);
+      var i: dynamic = (0);
       while ((i <= (25)))
       {
         if (sum[i])
@@ -175,14 +175,14 @@ func main()
         i += 1;
       }
     }
-    var last = dif.begin();
+    var last: dynamic = dif.begin();
     if ((last == dif.end()))
     {
       puts("1");
       cpp_goto("goto end;");
     }
     {
-      var i = cpp_update(dif.begin(), "++");
+      var i: dynamic = cpp_update(dif.begin(), "++");
       while ((i != dif.end()))
       {
         if ((i->second != last->second))
@@ -198,16 +198,16 @@ func main()
     printf("%lld\n", ans);
     while ((col.size() > 1))
     {
-      var b = (*col.begin());
-      var del = (*near[b.second].begin());
-      var l = ((del.first.first + 1) - query(1, (del.first.first + 1)));
-      var r = (del.second.first - query(1, del.second.first));
+      var b: dynamic = (*col.begin());
+      var del: dynamic = (*near[b.second].begin());
+      var l: dynamic = ((del.first.first + 1) - query(1, (del.first.first + 1)));
+      var r: dynamic = (del.second.first - query(1, del.second.first));
       printf("%lld %lld\n", l, r);
       modify(1, (del.first.first + 1), del.second.first);
       near[del.first.second].erase(near[del.first.second].find(del));
       near[del.second.second].erase(near[del.second.second].find(del));
-      var posl = dif.find(del.first);
-      var posr = cpp_update(dif.find(del.second), "++");
+      var posl: dynamic = dif.find(del.first);
+      var posr: dynamic = cpp_update(dif.find(del.second), "++");
       if ((posl != dif.begin()))
       {
         posl -= 1;
@@ -256,7 +256,7 @@ func main()
       col.clear();
       while (dif.size())
       {
-        var top = dif.begin();
+        var top: dynamic = dif.begin();
         printf("1 %lld\n", (top->first - query(1, top->first)));
         modify(1, 1, top->first);
         dif.erase(top);

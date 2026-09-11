@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var maxn = 21;
+var maxn: dynamic = 21;
 
-var maxs = (1 << 21);
+var maxs: dynamic = (1 << 21);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn, maxn);
+var a: dynamic = cpp_array(maxn, maxn);
 
-var str = cpp_array(maxn, maxn);
+var str: dynamic = cpp_array(maxn, maxn);
 
-var dp = cpp_array(maxs);
+var dp: dynamic = cpp_array(maxs);
 
-func lowzero(s: dynamic)
+func lowzero(s: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < maxn))
     {
       if ((!((s & ((1 << i))))))
@@ -32,12 +32,12 @@ func lowzero(s: dynamic)
   return (maxn - 1);
 }
 
-func main()
+func main() -> dynamic
 {
   while ((~scanf("%d%d", (&n), (&m))))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%s", str[i]);
@@ -45,11 +45,11 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             scanf("%d", (&a[i][j]));
@@ -61,9 +61,9 @@ func main()
     }
     memset(dp, 0xff, cpp_sizeof((dp)));
     dp[0] = 0;
-    var M = (1 << n);
+    var M: dynamic = (1 << n);
     {
-      var s = 0;
+      var s: dynamic = 0;
       while ((s < M))
       {
         if ((dp[s] == -1))
@@ -71,20 +71,20 @@ func main()
           s += 1;
           continue;
         }
-        var bit = lowzero(s);
+        var bit: dynamic = lowzero(s);
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             if (((dp[(s | ((1 << bit)))] == -1) || (dp[(s | ((1 << bit)))] > (dp[s] + a[bit][j]))))
             {
               dp[(s | ((1 << bit)))] = (dp[s] + a[bit][j]);
             }
-            var sum = 0;
-            var bits = 0;
-            var mw = 0;
+            var sum: dynamic = 0;
+            var bits: dynamic = 0;
+            var mw: dynamic = 0;
             {
-              var i = 0;
+              var i: dynamic = 0;
               while ((i < n))
               {
                 if ((str[i][j] == str[bit][j]))

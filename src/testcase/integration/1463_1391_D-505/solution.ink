@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var maxn = (1e6 + 7);
+var maxn: dynamic = (1e6 + 7);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var MAXN = (1e6 + 7);
+var MAXN: dynamic = (1e6 + 7);
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var INF = 1e18;
+var INF: dynamic = 1e18;
 
-var inf = 1e9;
+var inf: dynamic = 1e9;
 
-var rnd = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rnd: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var L = ((1 << 4));
+var L: dynamic = ((1 << 4));
 
-var dp = cpp_array(L);
+var dp: dynamic = cpp_array(L);
 
-var dp1 = cpp_array(L);
+var dp1: dynamic = cpp_array(L);
 
-func get(mask: dynamic, col: dynamic)
+func get(mask: dynamic, col: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((((((mask >> i)) & 1)) != ((a[i][col] - cpp_char("0")))))
@@ -43,14 +43,14 @@ func get(mask: dynamic, col: dynamic)
   return ans;
 }
 
-var match_cpp = cpp_array(L, L);
+var match_cpp: dynamic = cpp_array(L, L);
 
-func M(mask: dynamic, mask1: dynamic)
+func M(mask: dynamic, mask1: dynamic) -> dynamic
 {
-  var L: dynamic;
-  var R: dynamic;
+  var L: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       L.push_back((((mask >> i)) & 1));
@@ -59,7 +59,7 @@ func M(mask: dynamic, mask1: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       if (((((((L[i] + R[i]) + L[(i - 1)]) + R[(i - 1)])) % 2) == 0))
@@ -72,11 +72,11 @@ func M(mask: dynamic, mask1: dynamic)
   return true;
 }
 
-func get1(mask: dynamic, row: dynamic)
+func get1(mask: dynamic, row: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       if ((((((mask >> i)) & 1)) != ((a[row][i] - cpp_char("0")))))
@@ -89,12 +89,12 @@ func get1(mask: dynamic, row: dynamic)
   return ans;
 }
 
-func M1(mask: dynamic, mask1: dynamic)
+func M1(mask: dynamic, mask1: dynamic) -> dynamic
 {
-  var L: dynamic;
-  var R: dynamic;
+  var L: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       L.push_back((((mask >> i)) & 1));
@@ -103,7 +103,7 @@ func M1(mask: dynamic, mask1: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < m))
     {
       if (((((((L[i] + R[i]) + L[(i - 1)]) + R[(i - 1)])) % 2) == 0))
@@ -116,10 +116,10 @@ func M1(mask: dynamic, mask1: dynamic)
   return true;
 }
 
-func print(mask: dynamic)
+func print(mask: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       write(((((mask >> i)) & 1)));
@@ -129,7 +129,7 @@ func print(mask: dynamic)
   write(cpp_char("\n"));
 }
 
-func solve()
+func solve() -> dynamic
 {
   read(n, m);
   if (((n == 1) || (m == 1)))
@@ -143,7 +143,7 @@ func solve()
     return;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -153,11 +153,11 @@ func solve()
   if ((n < 4))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ((1 << n))))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ((1 << n))))
           {
             match_cpp[i][j] = M(i, j);
@@ -168,7 +168,7 @@ func solve()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < L))
       {
         dp[i] = inf;
@@ -176,7 +176,7 @@ func solve()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < L))
       {
         dp1[i] = inf;
@@ -184,7 +184,7 @@ func solve()
       }
     }
     {
-      var mask = 0;
+      var mask: dynamic = 0;
       while ((mask < ((1 << n))))
       {
         dp[mask] = get(mask, 0);
@@ -192,16 +192,16 @@ func solve()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < m))
       {
         {
-          var mask1 = 0;
+          var mask1: dynamic = 0;
           while ((mask1 < ((1 << n))))
           {
-            var add = get(mask1, i);
+            var add: dynamic = get(mask1, i);
             {
-              var mask = 0;
+              var mask: dynamic = 0;
               while ((mask < ((1 << n))))
               {
                 if (match_cpp[mask][mask1])
@@ -215,7 +215,7 @@ func solve()
           }
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ((1 << n))))
           {
             dp[j] = dp1[j];
@@ -226,9 +226,9 @@ func solve()
         i += 1;
       }
     }
-    var ans = inf;
+    var ans: dynamic = inf;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ((1 << n))))
       {
         ans = min(ans, dp[i]);
@@ -239,11 +239,11 @@ func solve()
   } else
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ((1 << n))))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ((1 << n))))
           {
             match_cpp[i][j] = M1(i, j);
@@ -254,7 +254,7 @@ func solve()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < L))
       {
         dp[i] = inf;
@@ -262,7 +262,7 @@ func solve()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < L))
       {
         dp1[i] = inf;
@@ -270,7 +270,7 @@ func solve()
       }
     }
     {
-      var mask = 0;
+      var mask: dynamic = 0;
       while ((mask < ((1 << m))))
       {
         dp[mask] = get1(mask, 0);
@@ -278,16 +278,16 @@ func solve()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         {
-          var mask1 = 0;
+          var mask1: dynamic = 0;
           while ((mask1 < ((1 << m))))
           {
-            var add = get1(mask1, i);
+            var add: dynamic = get1(mask1, i);
             {
-              var mask = 0;
+              var mask: dynamic = 0;
               while ((mask < ((1 << m))))
               {
                 if (match_cpp[mask][mask1])
@@ -301,7 +301,7 @@ func solve()
           }
         }
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < ((1 << m))))
           {
             dp[j] = dp1[j];
@@ -312,9 +312,9 @@ func solve()
         i += 1;
       }
     }
-    var ans = inf;
+    var ans: dynamic = inf;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < ((1 << m))))
       {
         ans = min(ans, dp[i]);
@@ -325,15 +325,15 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.precision(20);
   write(fixed);
-  var t = 1;
+  var t: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < t))
     {
       solve();

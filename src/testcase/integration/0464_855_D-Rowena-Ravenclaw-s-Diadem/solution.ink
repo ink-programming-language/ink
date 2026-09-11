@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var LG = 17;
+var LG: dynamic = 17;
 
-var anc = cpp_array(LG, N);
+var anc: dynamic = cpp_array(LG, N);
 
-var sum = cpp_array(LG, N);
+var sum: dynamic = cpp_array(LG, N);
 
-var depth = cpp_array(N);
+var depth: dynamic = cpp_array(N);
 
-var chld = cpp_array(N);
+var chld: dynamic = cpp_array(N);
 
-var parent = cpp_array(N);
+var parent: dynamic = cpp_array(N);
 
-var type_cpp = cpp_array(N);
+var type_cpp: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func build(now: dynamic, par: dynamic, val: dynamic)
+func build(now: dynamic, par: dynamic, val: dynamic) -> dynamic
 {
   anc[now][0] = par;
   sum[now][0] = val;
   depth[now] = (depth[par] + 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((((1 << i)) <= depth[now]))
     {
-      var par = anc[now][(i - 1)];
-      var cur_sum = (sum[now][(i - 1)] + sum[par][(i - 1)]);
+      var par: dynamic = anc[now][(i - 1)];
+      var cur_sum: dynamic = (sum[now][(i - 1)] + sum[par][(i - 1)]);
       anc[now][i] = anc[par][(i - 1)];
       sum[now][i] = cur_sum;
       i += 1;
@@ -36,20 +36,20 @@ func build(now: dynamic, par: dynamic, val: dynamic)
   }
 }
 
-func dfs(now: dynamic)
+func dfs(now: dynamic) -> dynamic
 {
-  for (var nex in chld[now])
+  for (var nex: dynamic in chld[now])
   {
     build(nex.first, now, nex.second);
     dfs(nex.first);
   }
 }
 
-func read()
+func read() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d %d", (parent + i), (type_cpp + i));
@@ -58,10 +58,10 @@ func read()
   }
 }
 
-func init()
+func init() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((parent[i] != -1))
@@ -72,7 +72,7 @@ func init()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((parent[i] == -1))
@@ -84,15 +84,15 @@ func init()
   }
 }
 
-func get_lca(u: dynamic, v: dynamic)
+func get_lca(u: dynamic, v: dynamic) -> dynamic
 {
   if ((depth[v] > depth[u]))
   {
     swap(u, v);
   }
-  var diff = (depth[u] - depth[v]);
+  var diff: dynamic = (depth[u] - depth[v]);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while (diff)
     {
       if ((diff & ((1 << i))))
@@ -108,7 +108,7 @@ func get_lca(u: dynamic, v: dynamic)
     return u;
   }
   {
-    var i = (LG - 1);
+    var i: dynamic = (LG - 1);
     while ((i >= 0))
     {
       if (((depth[u] >= ((1 << i))) && (anc[u][i] != anc[v][i])))
@@ -126,11 +126,11 @@ func get_lca(u: dynamic, v: dynamic)
   return anc[u][0];
 }
 
-func get_sum(now: dynamic, up: dynamic)
+func get_sum(now: dynamic, up: dynamic) -> dynamic
 {
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = (LG - 1);
+    var i: dynamic = (LG - 1);
     while ((i >= 0))
     {
       if ((up & ((1 << i))))
@@ -145,18 +145,18 @@ func get_sum(now: dynamic, up: dynamic)
   return ret;
 }
 
-func is_special(u: dynamic, v: dynamic)
+func is_special(u: dynamic, v: dynamic) -> dynamic
 {
   if ((u == v))
   {
     return false;
   }
-  var lca = get_lca(u, v);
+  var lca: dynamic = get_lca(u, v);
   if ((lca != u))
   {
     return false;
   }
-  var up = (depth[v] - depth[lca]);
+  var up: dynamic = (depth[v] - depth[lca]);
   if ((get_sum(v, up) != 0))
   {
     return false;
@@ -164,13 +164,13 @@ func is_special(u: dynamic, v: dynamic)
   return true;
 }
 
-func is_part(u: dynamic, v: dynamic)
+func is_part(u: dynamic, v: dynamic) -> dynamic
 {
   if ((u == v))
   {
     return false;
   }
-  var lca = get_lca(u, v);
+  var lca: dynamic = get_lca(u, v);
   if ((lca == -1))
   {
     return false;
@@ -179,7 +179,7 @@ func is_part(u: dynamic, v: dynamic)
   {
     return false;
   }
-  var up = (depth[v] - depth[lca]);
+  var up: dynamic = (depth[v] - depth[lca]);
   if ((get_sum(v, up) != up))
   {
     return false;
@@ -192,19 +192,19 @@ func is_part(u: dynamic, v: dynamic)
   return true;
 }
 
-func work()
+func work() -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   scanf("%d", (&q));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      var t: dynamic;
-      var u: dynamic;
-      var v: dynamic;
+      var t: dynamic = cpp_uninitialized();
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d %d %d", (&t), (&u), (&v));
-      var ret: dynamic;
+      var ret: dynamic = cpp_uninitialized();
       if ((t == 1))
       {
         ret = is_special(u, v);
@@ -212,13 +212,13 @@ func work()
       {
         ret = is_part(u, v);
       }
-      printf("%s\n", if (ret) "YES" else "NO");
+      printf("%s\n",  (ret) ? "YES" : "NO");
       i += 1;
     }
   }
 }
 
-func main()
+func main() -> dynamic
 {
   read();
   init();

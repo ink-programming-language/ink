@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var N = (1e5 + 10);
+var N: dynamic = (1e5 + 10);
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var c = getchar();
-  var op = 1;
+  var c: dynamic = getchar();
+  var op: dynamic = 1;
   {
     while (((c < cpp_char("0")) || (c > cpp_char("9"))))
     {
@@ -43,7 +43,7 @@ func read(x: dynamic)
   x *= op;
 }
 
-func main()
+func main() -> dynamic
 {
   read(t);
   while (cpp_update(t, "--"))
@@ -53,7 +53,7 @@ func main()
     read(n);
     read(m);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         read(a[i]);
@@ -61,15 +61,15 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= m))
       {
         read(b[i]);
         i += 1;
       }
     }
-    var i = 1;
-    var j = 1;
+    var i: dynamic = 1;
+    var j: dynamic = 1;
     while (((i <= n) || (j <= m)))
     {
       while (((a[i] == 0) && (i <= n)))
@@ -103,7 +103,7 @@ func main()
     } else
     {
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= tot))
         {
           printf("%d ", ans[i]);

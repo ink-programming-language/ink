@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var a = cpp_array(2020);
+var a: dynamic = cpp_array(2020);
 
-func ok(M: dynamic)
+func ok(M: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var z = 0;
-      var c = 0;
+      var z: dynamic = 0;
+      var c: dynamic = 0;
       {
-        var j = 0;
-        var k: dynamic;
+        var j: dynamic = 0;
+        var k: dynamic = cpp_uninitialized();
         while ((j < n))
         {
           {
@@ -54,22 +54,22 @@ func ok(M: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d%d", (&n), (&m), (&q));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&a[i]));
       i += 1;
     }
   }
-  var L = -1;
-  var R = 1e9;
+  var L: dynamic = -1;
+  var R: dynamic = 1e9;
   while ((L < (R - 1)))
   {
-    var M = (((L + R)) / 2);
+    var M: dynamic = (((L + R)) / 2);
     if (ok(M))
     {
       R = M;

@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var water = cpp_construct(n, 0);
-  var land = cpp_construct(n, 0);
-  var time = 0;
+  var water: dynamic = cpp_construct(n, 0);
+  var land: dynamic = cpp_construct(n, 0);
+  var time: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
@@ -17,14 +17,14 @@ func main()
       i += 1;
     }
   }
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      water[i] = (if (((s[i] == cpp_char("W")))) a[i] else 0);
-      land[i] = (if (((s[i] == cpp_char("G")))) a[i] else 0);
+      water[i] = ( (((s[i] == cpp_char("W")))) ? a[i] : 0);
+      land[i] = ( (((s[i] == cpp_char("G")))) ? a[i] : 0);
       if ((i != 0))
       {
         water[i] += water[(i - 1)];
@@ -33,16 +33,16 @@ func main()
       i += 1;
     }
   }
-  var timePlus = 0;
-  var usedWater = 0;
-  var usedLand = 0;
+  var timePlus: dynamic = 0;
+  var usedWater: dynamic = 0;
+  var usedLand: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var avaWater = (water[i] - usedWater);
-      var avaLand = (land[i] - usedLand);
-      var need = (a[i] / 2);
+      var avaWater: dynamic = (water[i] - usedWater);
+      var avaLand: dynamic = (land[i] - usedLand);
+      var need: dynamic = (a[i] / 2);
       if ((avaWater >= need))
       {
         usedWater += need;

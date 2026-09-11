@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var s = cpp_array(155);
+var s: dynamic = cpp_array(155);
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var a = cpp_array(155);
+var a: dynamic = cpp_array(155);
 
-var best = cpp_array(155, 155);
+var best: dynamic = cpp_array(155, 155);
 
-var f = cpp_array(155, 155, 155);
+var f: dynamic = cpp_array(155, 155, 155);
 
-var flag: dynamic;
+var flag: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-func upd(x: dynamic)
+func upd(x: dynamic) -> dynamic
 {
   if ((x > f[i][j][k]))
   {
@@ -38,7 +38,7 @@ func upd(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {

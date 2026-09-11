@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while ((!isdigit(ch)))
   {
     if ((ch == cpp_char("-")))
@@ -21,7 +21,7 @@ func read()
   return (x * f);
 }
 
-func prim(x: dynamic)
+func prim(x: dynamic) -> dynamic
 {
   if (((x == 1) || (x == 4)))
   {
@@ -31,13 +31,13 @@ func prim(x: dynamic)
   {
     return true;
   }
-  var m = cpp_cast(sqrt(x));
+  var m: dynamic = cpp_cast(sqrt(x));
   if ((((x % 6) != 1) && ((x % 6) != 5)))
   {
     return false;
   }
   {
-    var i = 5;
+    var i: dynamic = 5;
     while ((i <= m))
     {
       if (((((x % i) == 0)) || (((x % ((i + 2))) == 0))))
@@ -50,19 +50,19 @@ func prim(x: dynamic)
   return true;
 }
 
-var pr = cpp_array(10000000);
+var pr: dynamic = cpp_array(10000000);
 
-func prime(n: dynamic)
+func prime(n: dynamic) -> dynamic
 {
   pr[1] = true;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       if ((!pr[i]))
       {
         {
-          var j = 2;
+          var j: dynamic = 2;
           while (((j * i) <= n))
           {
             pr[(i * j)] = true;
@@ -75,12 +75,12 @@ func prime(n: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
-  var x: dynamic;
+  var x: dynamic = cpp_uninitialized();
   read(x);
   if ((x == 1))
   {
@@ -92,11 +92,11 @@ func main()
   } else
   {
     prime(cpp_cast(sqrt(x)));
-    var res = 0;
-    var b = -1;
-    var up = -1;
+    var res: dynamic = 0;
+    var b: dynamic = -1;
+    var up: dynamic = -1;
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((((i * 1) * i) <= x))
       {
         if (((!pr[i]) && (((x % ((i * 1))) == 0))))

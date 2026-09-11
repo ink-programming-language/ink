@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var MAXN = (cpp_cast(1e5) + 5);
+var MAXN: dynamic = (cpp_cast(1e5) + 5);
 
-var MAXM = (cpp_cast(1e6) + 5);
+var MAXM: dynamic = (cpp_cast(1e6) + 5);
 
-var INF = cpp_cast(1e18);
+var INF: dynamic = cpp_cast(1e18);
 
-var vec = cpp_array(MAXM);
+var vec: dynamic = cpp_array(MAXM);
 
-var e = cpp_array(MAXN);
+var e: dynamic = cpp_array(MAXN);
 
-var adj = cpp_array(MAXN);
+var adj: dynamic = cpp_array(MAXN);
 
-var w = cpp_array(MAXN);
+var w: dynamic = cpp_array(MAXN);
 
-var dist = cpp_array(MAXN);
+var dist: dynamic = cpp_array(MAXN);
 
-var dist2 = cpp_array(MAXN);
+var dist2: dynamic = cpp_array(MAXN);
 
-var w2 = cpp_array(MAXN);
+var w2: dynamic = cpp_array(MAXN);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func dijkstraSlow()
+func dijkstraSlow() -> dynamic
 {
-  var Q: dynamic;
+  var Q: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dist[i] = INF;
@@ -41,17 +41,17 @@ func dijkstraSlow()
   Q.push(make_pair(0, 1));
   while ((!Q.empty()))
   {
-    var cd = (-Q.top().first);
-    var v = Q.top().second;
+    var cd: dynamic = (-Q.top().first);
+    var v: dynamic = Q.top().second;
     Q.pop();
     if ((cd != dist[v]))
     {
       continue;
     }
-    for (var id in adj[v])
+    for (var id: dynamic in adj[v])
     {
-      var to = e[id].second;
-      var nd = (cd + w[id]);
+      var to: dynamic = e[id].second;
+      var nd: dynamic = (cd + w[id]);
       if ((nd < dist[to]))
       {
         dist[to] = nd;
@@ -61,10 +61,10 @@ func dijkstraSlow()
   }
 }
 
-func dijkstraFast(lim: dynamic)
+func dijkstraFast(lim: dynamic) -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       dist2[i] = INF;
@@ -73,27 +73,27 @@ func dijkstraFast(lim: dynamic)
   }
   dist2[1] = 0;
   vec[0].push_back(1);
-  var ptr = 0;
+  var cpp_ptr: dynamic = 0;
   while (1)
   {
-    while (((ptr <= lim) && vec[ptr].empty()))
+    while (((cpp_ptr <= lim) && vec[cpp_ptr].empty()))
     {
-      ptr += 1;
+      cpp_ptr += 1;
     }
-    if ((ptr > lim))
+    if ((cpp_ptr > lim))
     {
       break;
     }
-    var v = vec[ptr].back();
-    vec[ptr].pop_back();
-    if ((dist2[v] != ptr))
+    var v: dynamic = vec[cpp_ptr].back();
+    vec[cpp_ptr].pop_back();
+    if ((dist2[v] != cpp_ptr))
     {
       continue;
     }
-    for (var id in adj[v])
+    for (var id: dynamic in adj[v])
     {
-      var to = e[id].second;
-      var nd = (ptr + w2[id]);
+      var to: dynamic = e[id].second;
+      var nd: dynamic = (cpp_ptr + w2[id]);
       if (((nd <= lim) && (nd < dist2[to])))
       {
         dist2[to] = nd;
@@ -103,15 +103,15 @@ func dijkstraFast(lim: dynamic)
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
   scanf("%d %d %d", (&n), (&m), (&q));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       scanf("%d %d %d", (&u), (&v), (&w[i]));
       e[i] = make_pair(u, v);
       adj[u].push_back(i);
@@ -121,11 +121,11 @@ func solve()
   dijkstraSlow();
   while (cpp_update(q, "--"))
   {
-    var tp: dynamic;
+    var tp: dynamic = cpp_uninitialized();
     scanf("%d", (&tp));
     if ((tp == 1))
     {
-      var x: dynamic;
+      var x: dynamic = cpp_uninitialized();
       scanf("%d", (&x));
       if ((dist[x] == INF))
       {
@@ -136,23 +136,23 @@ func solve()
       }
     } else
     {
-      var k: dynamic;
+      var k: dynamic = cpp_uninitialized();
       scanf("%d", (&k));
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= m))
         {
-          var u = e[i].first;
-          var v = e[i].second;
+          var u: dynamic = e[i].first;
+          var v: dynamic = e[i].second;
           w2[i] = ((w[i] + dist[u]) - dist[v]);
           i += 1;
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= k))
         {
-          var x: dynamic;
+          var x: dynamic = cpp_uninitialized();
           scanf("%d", (&x));
           w[x] += 1;
           w2[x] += 1;
@@ -161,7 +161,7 @@ func solve()
       }
       dijkstraFast(k);
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= n))
         {
           if ((dist[i] != INF))
@@ -175,9 +175,9 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var tt = 1;
+  var tt: dynamic = 1;
   while (cpp_update(tt, "--"))
   {
     solve();

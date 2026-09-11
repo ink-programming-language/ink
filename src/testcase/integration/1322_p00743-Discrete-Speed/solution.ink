@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var s: dynamic;
-  var g: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var g: dynamic = cpp_uninitialized();
   while (cpp_comma(((cin >> n) >> m), (n || m)))
   {
     read(s, g);
     s -= 1;
     g -= 1;
-    var d = cpp_array(n, n);
-    var c = cpp_array(n, n);
+    var d: dynamic = cpp_array(n, n);
+    var c: dynamic = cpp_array(n, n);
     memset(d, -1, cpp_sizeof((d)));
     memset(c, -1, cpp_sizeof((c)));
-    var i: dynamic;
-    var j: dynamic;
-    var k: dynamic;
-    var l: dynamic;
-    var x: dynamic;
-    var y: dynamic;
+    var i: dynamic = cpp_uninitialized();
+    var j: dynamic = cpp_uninitialized();
+    var k: dynamic = cpp_uninitialized();
+    var l: dynamic = cpp_uninitialized();
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     {
       i = 0;
       while ((i < m))
@@ -33,10 +33,10 @@ func main()
         i += 1;
       }
     }
-    var v = cpp_array(n, 50, n);
-    var inf = (1 << 28);
-    var p: dynamic;
-    var ans = inf;
+    var v: dynamic = cpp_array(n, 50, n);
+    var inf: dynamic = (1 << 28);
+    var p: dynamic = cpp_uninitialized();
+    var ans: dynamic = inf;
     {
       i = 0;
       while ((i < n))
@@ -59,7 +59,7 @@ func main()
         i += 1;
       }
     }
-    var q: dynamic;
+    var q: dynamic = cpp_uninitialized();
     q.push(PP(0, P(s, PPP(1, -1))));
     while ((!q.empty()))
     {

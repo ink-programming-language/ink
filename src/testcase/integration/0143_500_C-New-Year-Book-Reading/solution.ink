@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var N = 1005;
+var N: dynamic = 1005;
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var w = 1;
-  var ch = 0;
+  var x: dynamic = 0;
+  var w: dynamic = 1;
+  var ch: dynamic = 0;
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     ch = getchar();
@@ -23,30 +23,30 @@ func read()
   return (x * w);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-var Ans: dynamic;
+var Ans: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var w = cpp_array(N);
+var w: dynamic = cpp_array(N);
 
-var ans = cpp_array(N);
+var ans: dynamic = cpp_array(N);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   n = read();
   m = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       w[i] = read();
@@ -54,13 +54,13 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       a[i] = read();
       memset(vis, 0, cpp_sizeof((vis)));
       {
-        var j = (i - 1);
+        var j: dynamic = (i - 1);
         while (j)
         {
           if ((a[i] == a[j]))

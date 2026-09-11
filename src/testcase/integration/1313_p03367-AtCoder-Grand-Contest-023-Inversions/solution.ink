@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var ld = cpp_expression("#inclu");
+var ld: dynamic = cpp_expression("#inclu");
 
-var ull = dynamic;
+var ull: dynamic = dynamic;
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var pii = cpp_expression("#include<bits/");
+var pii: dynamic = cpp_expression("#include<bits/");
 
-var iiii = cpp_expression("#include<bits/");
+var iiii: dynamic = cpp_expression("#include<bits/");
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var INF = cpp_expression("#include<b");
+var INF: dynamic = cpp_expression("#include<b");
 
-var MOD = cpp_expression("#include<b");
+var MOD: dynamic = cpp_expression("#include<b");
 
-func rep(i: dynamic, x: dynamic)
+func rep(i: dynamic, x: dynamic) -> dynamic
 {
   cpp_macro("for(int (i)=0;(i)<(x);(i)++)");
 }
 
-func getint()
+func getint() -> dynamic
 {
-  var x = 0;
-  var p = 1;
-  var c = getchar();
+  var x: dynamic = 0;
+  var p: dynamic = 1;
+  var c: dynamic = getchar();
   while ((c <= 32))
   {
     c = getchar();
@@ -43,27 +43,27 @@ func getint()
   return (x * p);
 }
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var inv2 = (((MOD + 1)) / 2);
+var inv2: dynamic = (((MOD + 1)) / 2);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-var cnt = cpp_array(N);
+var cnt: dynamic = cpp_array(N);
 
-var ib = cpp_array(N);
+var ib: dynamic = cpp_array(N);
 
-var pre = cpp_array(N);
+var pre: dynamic = cpp_array(N);
 
-var dx = cpp_array(N);
+var dx: dynamic = cpp_array(N);
 
-var dy = cpp_array(N);
+var dy: dynamic = cpp_array(N);
 
-func add(x: dynamic, y: dynamic)
+func add(x: dynamic, y: dynamic) -> dynamic
 {
   x += y;
   if ((x >= MOD))
@@ -72,7 +72,7 @@ func add(x: dynamic, y: dynamic)
   }
 }
 
-func sub(x: dynamic, y: dynamic)
+func sub(x: dynamic, y: dynamic) -> dynamic
 {
   x -= y;
   if ((x < 0))
@@ -81,21 +81,21 @@ func sub(x: dynamic, y: dynamic)
   }
 }
 
-func sub2(x: dynamic, y: dynamic)
+func sub2(x: dynamic, y: dynamic) -> dynamic
 {
   x -= y;
-  return if (((x < 0))) (x + MOD) else x;
+  return  (((x < 0))) ? (x + MOD) : x;
 }
 
-func mul(x: dynamic, y: dynamic)
+func mul(x: dynamic, y: dynamic) -> dynamic
 {
-  var ans = ((1 * x) * y);
+  var ans: dynamic = ((1 * x) * y);
   return (ans % MOD);
 }
 
-func modpow(x: dynamic, y: dynamic)
+func modpow(x: dynamic, y: dynamic) -> dynamic
 {
-  var ans = 1;
+  var ans: dynamic = 1;
   while (y)
   {
     if ((y & 1))
@@ -108,12 +108,12 @@ func modpow(x: dynamic, y: dynamic)
   return ans;
 }
 
-func modinv(x: dynamic)
+func modinv(x: dynamic) -> dynamic
 {
   return modpow(x, (MOD - 2));
 }
 
-func upd(x: dynamic, y: dynamic)
+func upd(x: dynamic, y: dynamic) -> dynamic
 {
   while ((x < N))
   {
@@ -123,9 +123,9 @@ func upd(x: dynamic, y: dynamic)
   }
 }
 
-func qry(d: dynamic, x: dynamic)
+func qry(d: dynamic, x: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   while (x)
   {
     add(ans, d[x]);
@@ -134,11 +134,11 @@ func qry(d: dynamic, x: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
   n = getint();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = getint();
@@ -147,7 +147,7 @@ func main()
     }
   }
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((i >= 1))
     {
       cnt[i] += cnt[(i + 1)];
@@ -155,7 +155,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       cnt[i] -= (n - i);
@@ -163,7 +163,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((cnt[i] <= 0))
@@ -173,10 +173,10 @@ func main()
       i += 1;
     }
   }
-  var s = 1;
+  var s: dynamic = 1;
   pre[0] = cpp_assign(b[0], "=", 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       s = mul(s, cnt[i]);
@@ -184,7 +184,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       b[i] = mul((cnt[i] - 1), modinv(cnt[i]));
@@ -201,9 +201,9 @@ func main()
       i += 1;
     }
   }
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       add(res, mul(b[a[i]], mul(s, mul(inv2, sub2(qry(dy, a[i]), qry(dy, (pre[a[i]] - 1)))))));
@@ -214,7 +214,7 @@ func main()
   memset(dx, 0, cpp_sizeof((dx)));
   memset(dy, 0, cpp_sizeof((dy)));
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       sub(res, mul(b[a[i]], mul(s, mul(inv2, sub2(qry(dy, (a[i] - 1)), qry(dy, (pre[a[i]] - 1)))))));

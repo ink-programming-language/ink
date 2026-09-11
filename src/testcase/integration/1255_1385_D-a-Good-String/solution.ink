@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var M = ((2 * N) + 5);
+var M: dynamic = ((2 * N) + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s = cpp_array(N);
+var s: dynamic = cpp_array(N);
 
-func solve(l: dynamic, r: dynamic, lev: dynamic, state: dynamic)
+func solve(l: dynamic, r: dynamic, lev: dynamic, state: dynamic) -> dynamic
 {
   if ((l > r))
   {
@@ -16,9 +16,9 @@ func solve(l: dynamic, r: dynamic, lev: dynamic, state: dynamic)
   }
   if (((l == r) || (state == false)))
   {
-    var ret = 0;
+    var ret: dynamic = 0;
     {
-      var j = l;
+      var j: dynamic = l;
       while ((j <= r))
       {
         ret += (((s[j] - cpp_char("a")) != lev));
@@ -27,16 +27,16 @@ func solve(l: dynamic, r: dynamic, lev: dynamic, state: dynamic)
     }
     return ret;
   }
-  var ret = (n + 5);
-  var mid = (((l + r)) / 2);
+  var ret: dynamic = (n + 5);
+  var mid: dynamic = (((l + r)) / 2);
   ret = min(ret, (solve(l, mid, lev, false) + solve((mid + 1), r, (lev + 1), true)));
   ret = min(ret, (solve(l, mid, (lev + 1), true) + solve((mid + 1), r, lev, false)));
   return ret;
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   scanf("%d", (&t));
   while (cpp_update(t, "--"))
   {

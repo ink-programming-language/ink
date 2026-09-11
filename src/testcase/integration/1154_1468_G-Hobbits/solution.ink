@@ -1,52 +1,52 @@
 // Translated from solution.cpp.
 
-var debug = cpp_expression("#include<bits/stdc++.h> using namespace");
+var debug: dynamic = cpp_expression("#include<bits/stdc++.h> using namespace");
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var mk = cpp_expression("#include<");
+var mk: dynamic = cpp_expression("#include<");
 
-var ins = cpp_expression("#inclu");
+var ins: dynamic = cpp_expression("#inclu");
 
-var era = cpp_expression("#incl");
+var era: dynamic = cpp_expression("#incl");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func lowbit(x: dynamic)
+func lowbit(x: dynamic) -> dynamic
 {
   return cpp_expression("#inc");
 }
 
-func ALL(a: dynamic)
+func ALL(a: dynamic) -> dynamic
 {
   return cpp_expression("#include<bits/std");
 }
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var INFLL = 0x3f3f3f3f3f3f3f3f;
+var INFLL: dynamic = 0x3f3f3f3f3f3f3f3f;
 
-var PI = acos(-1.0);
+var PI: dynamic = acos(-1.0);
 
-func chkmin(a: dynamic, b: dynamic)
+func chkmin(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((b < a)) cpp_comma(cpp_assign(a, "=", b), true) else false;
+  return  ((b < a)) ? cpp_comma(cpp_assign(a, "=", b), true) : false;
 }
 
-func chkmax(a: dynamic, b: dynamic)
+func chkmax(a: dynamic, b: dynamic) -> dynamic
 {
-  return if ((a < b)) cpp_comma(cpp_assign(a, "=", b), true) else false;
+  return  ((a < b)) ? cpp_comma(cpp_assign(a, "=", b), true) : false;
 }
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-func slo(na: dynamic, nb: dynamic)
+func slo(na: dynamic, nb: dynamic) -> dynamic
 {
   if ((na.fi == nb.fi))
   {
@@ -57,23 +57,23 @@ func slo(na: dynamic, nb: dynamic)
   }
 }
 
-func sq(u: dynamic)
+func sq(u: dynamic) -> dynamic
 {
   return (u * u);
 }
 
-func dis(na: dynamic, nb: dynamic)
+func dis(na: dynamic, nb: dynamic) -> dynamic
 {
   return sqrt((sq((nb.fi - na.fi)) + sq((nb.se - na.se))));
 }
 
-func its(naa: dynamic, nab: dynamic, nba: dynamic, nbb: dynamic)
+func its(naa: dynamic, nab: dynamic, nba: dynamic, nbb: dynamic) -> dynamic
 {
-  var l = naa.fi;
-  var r = nab.fi;
+  var l: dynamic = naa.fi;
+  var r: dynamic = nab.fi;
   while (((r - l) > 1e-10))
   {
-    var mid = (((l + r)) / 2);
+    var mid: dynamic = (((l + r)) / 2);
     if ((slo(mk(mid, (naa.se + (((mid - naa.fi)) * slo(naa, nab)))), nba) > slo(nba, nbb)))
     {
       r = mid;
@@ -85,21 +85,21 @@ func its(naa: dynamic, nab: dynamic, nba: dynamic, nbb: dynamic)
   return mk(l, (naa.se + (((l - naa.fi)) * slo(naa, nab))));
 }
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var nd = cpp_array(N);
+var nd: dynamic = cpp_array(N);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func solve()
+func solve() -> dynamic
 {
   scanf("%d%d", (&n), (&h));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lf%lf", (&nd[i].fi), (&nd[i].se));
@@ -107,7 +107,7 @@ func solve()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       ans += dis(nd[i], nd[(i + 1)]);
@@ -115,8 +115,8 @@ func solve()
     }
   }
   nd[(n + 1)] = mk(nd[n].fi, (nd[n].se + h));
-  var pos = n;
-  var ite = n;
+  var pos: dynamic = n;
+  var ite: dynamic = n;
   while ((pos > 1))
   {
     while (((pos > 1) && (slo(nd[(pos - 1)], nd[pos]) <= slo(nd[pos], nd[(n + 1)]))))
@@ -139,7 +139,7 @@ func solve()
   printf("%.10lf\n", ans);
 }
 
-func main()
+func main() -> dynamic
 {
   w = scanf("%d", (&t));
   while (cpp_update(t, "--"))

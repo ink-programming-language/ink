@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var num = cpp_array(10);
-  var i: dynamic;
-  var j: dynamic;
-  var flag: dynamic;
-  var c: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var num: dynamic = cpp_array(10);
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var flag: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
   scanf("%d", (&n));
   memset(num, 0, cpp_sizeof((num)));
   {

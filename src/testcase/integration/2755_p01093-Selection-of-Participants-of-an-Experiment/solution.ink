@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(1000);
+var a: dynamic = cpp_array(1000);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while (cpp_comma(scanf("%d", (&n)), n))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%d", (&a[i]));
         i += 1;
       }
     }
-    var ans = (1 << 30);
+    var ans: dynamic = (1 << 30);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = (i + 1);
+          var j: dynamic = (i + 1);
           while ((j < n))
           {
             ans = min(ans, abs((a[i] - a[j])));

@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-func loop(i: dynamic, a: dynamic, b: dynamic)
+func loop(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=a;i<b;i++)");
 }
 
-func rep(i: dynamic, a: dynamic)
+func rep(i: dynamic, a: dynamic) -> dynamic
 {
   return cpp_expression("#include<io");
 }
 
-var INF = cpp_expression("#inc");
+var INF: dynamic = cpp_expression("#inc");
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var dp = cpp_array((m + 1), (n + 1));
-  var d = cpp_array((n + 1));
-  var c = cpp_array((m + 1));
+  var dp: dynamic = cpp_array((m + 1), (n + 1));
+  var d: dynamic = cpp_array((n + 1));
+  var c: dynamic = cpp_array((m + 1));
   rep(i, (n + 1));
   {
     cpp_statement("rep(j,m+1)");

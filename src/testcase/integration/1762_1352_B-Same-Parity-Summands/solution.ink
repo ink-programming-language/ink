@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var k: dynamic;
-    var p = 0;
-    var c = 0;
-    var ck: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var k: dynamic = cpp_uninitialized();
+    var p: dynamic = 0;
+    var c: dynamic = 0;
+    var ck: dynamic = cpp_uninitialized();
     read(n, k);
     if ((k > n))
     {
@@ -23,7 +23,7 @@ func main()
         {
           write("YES", "\n");
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < (k - 1)))
             {
               write(1, cpp_char(" "));
@@ -39,7 +39,7 @@ func main()
       {
         write("YES", "\n");
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < (k - 1)))
           {
             write(2, cpp_char(" "));

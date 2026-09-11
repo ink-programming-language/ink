@@ -1,49 +1,49 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var K: dynamic;
+var K: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var pv = cpp_array(101000);
+var pv: dynamic = cpp_array(101000);
 
-var IT = cpp_array(((131072 + 131072) + 1));
+var IT: dynamic = cpp_array(((131072 + 131072) + 1));
 
-var E = cpp_array(101000);
+var E: dynamic = cpp_array(101000);
 
-var chk = cpp_array(201000);
+var chk: dynamic = cpp_array(201000);
 
 class point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func operator_less(p: dynamic)
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func operator_less(p: dynamic) -> dynamic
   {
       return (y < p.y);
     }
 }
 
-var w = cpp_array(201000);
+var w: dynamic = cpp_array(201000);
 
 class Query
 {
-  var x1: dynamic;
-  var x2: dynamic;
-  var y1: dynamic;
-  var y2: dynamic;
-  var num: dynamic;
-  func operator_less(p: dynamic)
+  var x1: dynamic = cpp_uninitialized();
+  var x2: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var y2: dynamic = cpp_uninitialized();
+  var num: dynamic = cpp_uninitialized();
+  func operator_less(p: dynamic) -> dynamic
   {
       return (y1 < p.y1);
     }
 }
 
-var P = cpp_array(201000);
+var P: dynamic = cpp_array(201000);
 
-func Push(x: dynamic, y: dynamic)
+func Push(x: dynamic, y: dynamic) -> dynamic
 {
   x += 131072;
   IT[x] = y;
@@ -54,11 +54,11 @@ func Push(x: dynamic, y: dynamic)
   }
 }
 
-func Max(b: dynamic, e: dynamic)
+func Max(b: dynamic, e: dynamic) -> dynamic
 {
   b += 131072;
   e += 131072;
-  var r = 0;
+  var r: dynamic = 0;
   while ((b <= e))
   {
     r = max(r, IT[b]);
@@ -69,10 +69,10 @@ func Max(b: dynamic, e: dynamic)
   return r;
 }
 
-func Do()
+func Do() -> dynamic
 {
-  var i: dynamic;
-  var pv2 = 1;
+  var i: dynamic = cpp_uninitialized();
+  var pv2: dynamic = 1;
   {
     i = 1;
     while ((i <= 100000))
@@ -122,9 +122,9 @@ func Do()
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   scanf("%d%d%d%d", (&n), (&m), (&K), (&Q));
   {
     i = 1;

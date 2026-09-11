@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var sum = cpp_array(101);
+var sum: dynamic = cpp_array(101);
 
-var s = cpp_array(101);
+var s: dynamic = cpp_array(101);
 
-func main()
+func main() -> dynamic
 {
-  var Q: dynamic;
+  var Q: dynamic = cpp_uninitialized();
   scanf("%d", (&Q));
   while (cpp_update(Q, "--"))
   {
-    var c = cpp_array(10);
-    var x: dynamic;
+    var c: dynamic = cpp_array(10);
+    var x: dynamic = cpp_uninitialized();
     scanf("%s%d", c, (&x));
-    var i = 0;
+    var i: dynamic = 0;
     {
       while ((((1 << ((i + 1)))) <= x))
       {
@@ -29,8 +29,8 @@ func main()
       sum[i] -= x;
       s[i].erase(s[i].find(x));
     }
-    var S = 0;
-    var ans = 0;
+    var S: dynamic = 0;
+    var ans: dynamic = 0;
     {
       i = 0;
       while ((i <= 30))

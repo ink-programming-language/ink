@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var h = cpp_array(n);
-  var m = cpp_array(n);
+  var h: dynamic = cpp_array(n);
+  var m: dynamic = cpp_array(n);
   {
     int_cpp(i) = (0);
     while (((i) < (n)))
@@ -14,12 +14,12 @@ func main()
       (i) += 1;
     }
   }
-  var maxi = 0;
+  var maxi: dynamic = 0;
   {
     int_cpp(i) = (0);
     while (((i) < (n)))
     {
-      var a = 1;
+      var a: dynamic = 1;
       while (((((i + a) < n) && (h[i] == h[(i + a)])) && (m[i] == m[(i + a)])))
       {
         a += 1;

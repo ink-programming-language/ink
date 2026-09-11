@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var now = 0;
-  var nxt = 1;
-  var dp = cpp_array(10, 2);
+  var now: dynamic = 0;
+  var nxt: dynamic = 1;
+  var dp: dynamic = cpp_array(10, 2);
   memset(dp, -1, cpp_sizeof((dp)));
   dp[0][0] = 0;
   while (cpp_update(n, "--"))
   {
-    var k: dynamic;
+    var k: dynamic = cpp_uninitialized();
     read(k);
-    var v = cpp_array(4);
+    var v: dynamic = cpp_array(4);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < k))
       {
-        var c: dynamic;
-        var d: dynamic;
+        var c: dynamic = cpp_uninitialized();
+        var d: dynamic = cpp_uninitialized();
         read(c, d);
         v[c].push_back(d);
         i += 1;
@@ -32,7 +32,7 @@ func main()
     sort(v[3].begin(), v[3].end(), greater());
     memcpy(dp[nxt], dp[now], cpp_sizeof((dp[now])));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 10))
       {
         if ((dp[now][i] == -1))
@@ -41,7 +41,7 @@ func main()
           continue;
         }
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= 3))
           {
             if ((cpp_cast(v[j].size()) != 0))
@@ -68,9 +68,9 @@ func main()
     }
     swap(now, nxt);
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 10))
     {
       ans = max(ans, dp[now][i]);

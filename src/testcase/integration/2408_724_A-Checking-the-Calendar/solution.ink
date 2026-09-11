@@ -1,59 +1,59 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(4000001);
+var a: dynamic = cpp_array(4000001);
 
-var b = cpp_array(4000001);
+var b: dynamic = cpp_array(4000001);
 
-var qsum = cpp_array(4000001);
+var qsum: dynamic = cpp_array(4000001);
 
-var rakha = cpp_array(4000001);
+var rakha: dynamic = cpp_array(4000001);
 
 class node
 {
-  var x: dynamic;
-  var y: dynamic;
-  var sum: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
 }
 
 class cmp
 {
-  func operator_call(a: dynamic, b: dynamic)
+  func operator_call(a: dynamic, b: dynamic) -> dynamic
   {
       return (a.sum < b.sum);
     }
 }
 
-var pq: dynamic;
+var pq: dynamic = cpp_uninitialized();
 
-var ar = cpp_array(100, 100);
+var ar: dynamic = cpp_array(100, 100);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var t: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var n1: dynamic;
-  var k: dynamic;
-  var ans: dynamic;
-  var m: dynamic;
-  var f = 0;
-  var s = 0;
-  var c = 0;
-  var p = 1;
-  var c1 = 0;
-  var p1 = 0;
-  var p2 = 0;
-  var res = 0;
-  var c2: dynamic;
-  var s1: dynamic;
-  var s2: dynamic;
-  var ss: dynamic;
-  var pp: dynamic;
-  var x: dynamic;
-  var y: dynamic;
-  var st: dynamic;
-  var str: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var n1: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var ans: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var f: dynamic = 0;
+  var s: dynamic = 0;
+  var c: dynamic = 0;
+  var p: dynamic = 1;
+  var c1: dynamic = 0;
+  var p1: dynamic = 0;
+  var p2: dynamic = 0;
+  var res: dynamic = 0;
+  var c2: dynamic = cpp_uninitialized();
+  var s1: dynamic = cpp_uninitialized();
+  var s2: dynamic = cpp_uninitialized();
+  var ss: dynamic = cpp_uninitialized();
+  var pp: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var st: dynamic = cpp_uninitialized();
+  var str: dynamic = cpp_uninitialized();
   read(st, str);
   if ((st == str))
   {

@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var a = cpp_array(50);
+var a: dynamic = cpp_array(50);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var b = cpp_array(50);
+var b: dynamic = cpp_array(50);
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   read(n);
   i = 1;

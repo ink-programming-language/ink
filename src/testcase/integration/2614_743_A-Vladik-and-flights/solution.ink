@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var arr = cpp_array(100005);
-  var n: dynamic;
-  var i: dynamic;
-  var a: dynamic;
-  var b: dynamic;
+  var arr: dynamic = cpp_array(100005);
+  var n: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   while ((scanf("%d %d %d", (&n), (&a), (&b)) == 3))
   {
     getchar();

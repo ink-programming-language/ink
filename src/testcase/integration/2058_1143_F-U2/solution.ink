@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var MAXN = (1e5 + 7);
+var MAXN: dynamic = (1e5 + 7);
 
-var p = cpp_array(MAXN);
+var p: dynamic = cpp_array(MAXN);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var res = 0;
+var res: dynamic = 0;
 
-func cw(a: dynamic, b: dynamic, c: dynamic)
+func cw(a: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   return (((((b.first - a.first)) * ((c.second - b.second))) - (((c.first - b.first)) * ((b.second - a.second)))) < 0);
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(p[i].first, p[i].second);
@@ -26,10 +26,10 @@ func main()
     }
   }
   sort((p + 1), ((p + 1) + n));
-  var hull: dynamic;
+  var hull: dynamic = cpp_uninitialized();
   hull.push_back(p[1]);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       if ((cw(p[1], p[i], p[n]) || (i == n)))
@@ -44,7 +44,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < cpp_cast(hull.size())))
     {
       if ((hull[i].first != hull[(i - 1)].first))

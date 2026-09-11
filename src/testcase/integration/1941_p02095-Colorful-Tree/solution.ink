@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var fi = cpp_expression("#incl");
+var fi: dynamic = cpp_expression("#incl");
 
-var se = cpp_expression("#inclu");
+var se: dynamic = cpp_expression("#inclu");
 
-func chkmax(x: dynamic, y: dynamic)
+func chkmax(x: dynamic, y: dynamic) -> dynamic
 {
-  return if ((x < y)) cpp_comma(cpp_assign(x, "=", y), true) else false;
+  return  ((x < y)) ? cpp_comma(cpp_assign(x, "=", y), true) : false;
 }
 
-func chkmin(x: dynamic, y: dynamic)
+func chkmin(x: dynamic, y: dynamic) -> dynamic
 {
-  return if ((x > y)) cpp_comma(cpp_assign(x, "=", y), true) else false;
+  return  ((x > y)) ? cpp_comma(cpp_assign(x, "=", y), true) : false;
 }
 
-func readint()
+func readint() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char("-")))
@@ -39,44 +39,44 @@ func readint()
   return (x * f);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var tot: dynamic;
+var tot: dynamic = cpp_uninitialized();
 
-var now: dynamic;
+var now: dynamic = cpp_uninitialized();
 
-var v = cpp_array(200005);
+var v: dynamic = cpp_array(200005);
 
-var nxt = cpp_array(200005);
+var nxt: dynamic = cpp_array(200005);
 
-var h = cpp_array(100005);
+var h: dynamic = cpp_array(100005);
 
-var siz = cpp_array(100005);
+var siz: dynamic = cpp_array(100005);
 
-var f = cpp_array(200005);
+var f: dynamic = cpp_array(200005);
 
-var son = cpp_array(100005);
+var son: dynamic = cpp_array(100005);
 
-var col = cpp_array(200005);
+var col: dynamic = cpp_array(200005);
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var b = cpp_array(100005);
+var b: dynamic = cpp_array(100005);
 
-var ans = cpp_array(100005);
+var ans: dynamic = cpp_array(100005);
 
-var vis = cpp_array(200005);
+var vis: dynamic = cpp_array(200005);
 
-var gar: dynamic;
+var gar: dynamic = cpp_uninitialized();
 
-func getf(x: dynamic)
+func getf(x: dynamic) -> dynamic
 {
-  return if ((x == f[x])) x else cpp_assign(f[x], "=", getf(f[x]));
+  return  ((x == f[x])) ? x : cpp_assign(f[x], "=", getf(f[x]));
 }
 
-func addedge(x: dynamic, y: dynamic)
+func addedge(x: dynamic, y: dynamic) -> dynamic
 {
   v[cpp_update(tot, "++")] = y;
   nxt[tot] = h[x];
@@ -86,11 +86,11 @@ func addedge(x: dynamic, y: dynamic)
   h[y] = tot;
 }
 
-func dfs1(u: dynamic, fa: dynamic)
+func dfs1(u: dynamic, fa: dynamic) -> dynamic
 {
   siz[u] = 1;
   {
-    var p = h[u];
+    var p: dynamic = h[u];
     while (p)
     {
       if ((v[p] == fa))
@@ -109,7 +109,7 @@ func dfs1(u: dynamic, fa: dynamic)
   }
 }
 
-func change(x: dynamic, y: dynamic)
+func change(x: dynamic, y: dynamic) -> dynamic
 {
   if ((!col[x]))
   {
@@ -121,8 +121,8 @@ func change(x: dynamic, y: dynamic)
     gar.pb(y);
     col[y] = 1;
   }
-  var fx = getf(x);
-  var fy = getf(y);
+  var fx: dynamic = getf(x);
+  var fy: dynamic = getf(y);
   if ((fx == fy))
   {
     if ((!vis[fx]))
@@ -146,11 +146,11 @@ func change(x: dynamic, y: dynamic)
   now += 1;
 }
 
-func add(u: dynamic, fa: dynamic)
+func add(u: dynamic, fa: dynamic) -> dynamic
 {
   change(a[u], b[u]);
   {
-    var p = h[u];
+    var p: dynamic = h[u];
     while (p)
     {
       if ((v[p] == fa))
@@ -164,10 +164,10 @@ func add(u: dynamic, fa: dynamic)
   }
 }
 
-func dfs2(u: dynamic, fa: dynamic, kp: dynamic)
+func dfs2(u: dynamic, fa: dynamic, kp: dynamic) -> dynamic
 {
   {
-    var p = h[u];
+    var p: dynamic = h[u];
     while (p)
     {
       if (((v[p] != fa) && (v[p] != son[u])))
@@ -182,7 +182,7 @@ func dfs2(u: dynamic, fa: dynamic, kp: dynamic)
     dfs2(son[u], u, 1);
   }
   {
-    var p = h[u];
+    var p: dynamic = h[u];
     while (p)
     {
       if (((v[p] != fa) && (v[p] != son[u])))
@@ -196,7 +196,7 @@ func dfs2(u: dynamic, fa: dynamic, kp: dynamic)
   ans[u] = now;
   if ((!kp))
   {
-    for (var x in gar)
+    for (var x: dynamic in gar)
     {
       f[x] = x;
       vis[x] = 0;
@@ -207,12 +207,12 @@ func dfs2(u: dynamic, fa: dynamic, kp: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   n = readint();
   m = readint();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       f[i] = i;
@@ -220,7 +220,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       addedge(readint(), readint());
@@ -228,7 +228,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       a[i] = readint();
@@ -239,7 +239,7 @@ func main()
   dfs1(1, -1);
   dfs2(1, -1, 1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       printf("%d\n", ans[i]);

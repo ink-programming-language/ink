@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var LINF = 1e18;
+var LINF: dynamic = 1e18;
 
-func operator_shift_left(out: dynamic, o: dynamic)
+func operator_shift_left(out: dynamic, o: dynamic) -> dynamic
 {
   (((((out << "(") << o.first) << ",") << o.second) << ")");
   return out;
 }
 
-func operator_shift_left(out: dynamic, V: dynamic)
+func operator_shift_left(out: dynamic, V: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V.size()))
     {
       (out << V[i]);
@@ -27,10 +27,10 @@ func operator_shift_left(out: dynamic, V: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, Mat: dynamic)
+func operator_shift_left(out: dynamic, Mat: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Mat.size()))
     {
       if ((i != 0))
@@ -44,11 +44,11 @@ func operator_shift_left(out: dynamic, Mat: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, mp: dynamic)
+func operator_shift_left(out: dynamic, mp: dynamic) -> dynamic
 {
   (out << "{ ");
   {
-    var it = mp.begin();
+    var it: dynamic = mp.begin();
     while ((it != mp.end()))
     {
       (((out << it->first) << ":") << it->second);
@@ -63,11 +63,11 @@ func operator_shift_left(out: dynamic, mp: dynamic)
   return out;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var res = 0;
-  var n: dynamic;
-  var d: dynamic;
+  var res: dynamic = 0;
+  var n: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   read(n, d);
   if ((d == 1))
   {
@@ -79,7 +79,7 @@ func solve()
   return res;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   cin.tie(0);
   ios_base.sync_with_stdio(false);

@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var c = cpp_array(100009);
+var c: dynamic = cpp_array(100009);
 
-func main()
+func main() -> dynamic
 {
   read(s);
-  var depth = 0;
+  var depth: dynamic = 0;
   c[0] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
       if ((s[i] == cpp_char("(")))
@@ -25,9 +25,9 @@ func main()
       i += 1;
     }
   }
-  var ret = 0;
+  var ret: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= s.size()))
     {
       ret += (((1 * c[i]) * ((c[i] - 1))) / 2);

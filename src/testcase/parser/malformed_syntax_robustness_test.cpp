@@ -10,234 +10,171 @@ namespace ink::parser
 {
   namespace
   {
-    using test::expectFullFidelity;
-    using test::hasDiagnostic;
-    using test::hasKind;
-    using test::missingTokens;
-    using test::nodeTextsOfKind;
-    using test::parseSource;
-
-    struct MalformedSyntaxCase
+    void expectMalformedSyntax(std::string Source)
     {
-        const char *Name;
-        const char *Source;
-        core::DiagnosticKind ExpectedDiagnostic;
-        bool ExpectsErrorNode;
-        bool ExpectsMissingToken;
-        CstKind RecoveredKind = CstKind::Unknown;
-    };
-
-    bool containsRecoveredAfterDeclaration(const ParsedFile &File)
-    {
-      const std::vector<std::string> Bindings = nodeTextsOfKind(File, CstKind::TopLevelBindingDeclaration);
-      return std::any_of(Bindings.begin(), Bindings.end(), [](const std::string &Text)
-                         {
-                           return Text.find("After = 1;") != std::string::npos;
-                         });
-    }
-
-    void expectMalformedSyntax(const MalformedSyntaxCase &TestCase)
-    {
-      SCOPED_TRACE(TestCase.Name);
-      const ParsedFile First = parseSource(TestCase.Source);
-      const ParsedFile Second = parseSource(TestCase.Source);
-
+      Source += " let After: int32 = 1;";
+      SCOPED_TRACE(Source);
+      const ParsedFile First = test::parseSource(Source);
+      const ParsedFile Second = test::parseSource(Source);
       EXPECT_FALSE(First.succeeded());
+      EXPECT_FALSE(test::testDiagnostics(First).empty());
       EXPECT_EQ(First.completeness(), ParseCompleteness::Complete);
-      EXPECT_TRUE(hasDiagnostic(First, TestCase.ExpectedDiagnostic)) << "missing " << core::diagnosticKindName(TestCase.ExpectedDiagnostic);
-      if (TestCase.ExpectsErrorNode)
+      const std::vector<std::string> Bindings = test::nodeTextsOfKind(First, AstKind::BindingDeclaration);
+      EXPECT_TRUE(std::any_of(Bindings.begin(), Bindings.end(), [](const std::string &Text)
       {
-        EXPECT_TRUE(hasKind(First, CstKind::Error));
-        EXPECT_TRUE(hasFlag(First.cst().node(First.cst().root()).Flags, CstNodeFlags::HasError));
-      }
-      if (TestCase.ExpectsMissingToken)
-      {
-        EXPECT_FALSE(missingTokens(First).empty());
-        EXPECT_TRUE(hasFlag(First.cst().node(First.cst().root()).Flags, CstNodeFlags::HasMissing));
-      }
-      if (TestCase.RecoveredKind != CstKind::Unknown)
-      {
-        EXPECT_TRUE(hasKind(First, TestCase.RecoveredKind)) << "recovery did not reach " << cstKindName(TestCase.RecoveredKind);
-      }
-      EXPECT_TRUE(containsRecoveredAfterDeclaration(First));
-      EXPECT_EQ(First.completeness(), Second.completeness());
-      EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
-      EXPECT_EQ(First.cst().children(), Second.cst().children());
+        return Text == "let After: int32 = 1;";
+      }));
+      EXPECT_EQ(test::astSnapshot(First), test::astSnapshot(Second));
       EXPECT_TRUE(test::diagnosticsEqual(First, Second));
-      expectFullFidelity(First);
-      expectFullFidelity(Second);
+      test::expectAstIntegrity(First);
+      test::expectAstIntegrity(Second);
     }
 
-    // Verifies malformed module paths and forbidden semicolon-only constructs report their committed error and resume at a later declaration.
+    // Verifies malformed module paths, multiple selective imports, and empty statements recover at the next declaration.
     TEST(ParserMalformedSyntaxRobustnessTest, RecoversMalformedImportsAndSemicolonBoundaries)
     {
-      const std::vector<MalformedSyntaxCase> Cases = {
-          {"SingleSegmentAbsoluteImport", "import core; const After = 1;", core::DiagnosticKind::ExpectedToken, false, true},
-          {"TriviaSplitsRelativePrefix", "import . /* gap */ .common; const After = 1;", core::DiagnosticKind::ExpectedToken, false, true},
-          {"EmptyStatement", "func Broken() { ; return; } const After = 1;", core::DiagnosticKind::ExpectedSyntax, true, true, CstKind::ReturnStatement},
-          {"SemicolonAfterNestedBlock", "func Broken() { {} ; return; } const After = 1;", core::DiagnosticKind::ExpectedSyntax, true, true, CstKind::ReturnStatement},
-          {"SemicolonAfterFunctionDeclaration", "func Broken() {}; const After = 1;", core::DiagnosticKind::UnexpectedToken, true, false},
-      };
-
-      for (const MalformedSyntaxCase &TestCase : Cases)
+      for (const std::string Source : {"import .core;", "import core.;", "from core import A, B;", "import core as ;", ";", "func f() -> void {}; "})
       {
-        expectMalformedSyntax(TestCase);
+        expectMalformedSyntax(Source);
       }
     }
 
-    // Verifies incomplete bindings, local access prefixes, argument ordering, and mixed forward-all syntax preserve missing or rejected input and keep parsing.
+    // Verifies bindings require both a type and initializer and calls admit positional arguments only.
     TEST(ParserMalformedSyntaxRobustnessTest, RecoversBindingsAndCallArguments)
     {
-      const std::vector<MalformedSyntaxCase> Cases = {
-          {"VarMissingNameAndValue", "func Broken() { var; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"VarMissingTypeOrInitializer", "func Broken() { var Value; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"ConstMissingInitializer", "func Broken() { const Value: i32; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"TupleBindingMissingInitializer", "func Broken() { const (First, Second); return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"LocalAccessModifier", "func Broken() { public var Value = 1; return; } const After = 1;", core::DiagnosticKind::ExpectedSyntax, true, true, CstKind::ReturnStatement},
-          {"PositionalAfterNamed", "func Broken() { call(name = Value, Positional); return; } const After = 1;", core::DiagnosticKind::ExpectedSyntax, true, true, CstKind::ReturnStatement},
-          {"ForwardAllAfterPositional", "func Broken() { call(Value, ...); return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"ForwardAllBeforePositional", "func Broken() { call(..., Value); return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"ForwardAllBeforeNamed", "func Broken() { call(..., name = Value); return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"AttributeBareForwardAll", "[reflect(...)] func Broken() {} const After = 1;", core::DiagnosticKind::ExpectedToken, false, true},
-          {"DecoratorBareForwardAll", "@trace(...) func Broken() {} const After = 1;", core::DiagnosticKind::ExpectedToken, false, true},
+      const std::vector<std::string> Sources = {
+          "var;",
+          "var Value;",
+          "const Value: int32;",
+          "let Value = 1;",
+          "let (A, B): Pair;",
+          "let Value: int32 = ;",
+          "call(name = Value);",
+          "call(...);",
+          "call(...Values);",
+          "call(Values..., More);",
       };
-
-      for (const MalformedSyntaxCase &TestCase : Cases)
+      for (const std::string &Source : Sources)
       {
-        expectMalformedSyntax(TestCase);
+        expectMalformedSyntax(Source);
       }
     }
 
-    // Verifies generic terminator ambiguity, malformed slices, and postfixes on unparenthesized function-type values recover at the enclosing semicolon.
-    TEST(ParserMalformedSyntaxRobustnessTest, RecoversGenericSliceAndFunctionTypeBoundaries)
+    // Verifies current generic syntax rejects old angle forms, empty arguments, malformed indices, and omitted function-type results.
+    TEST(ParserMalformedSyntaxRobustnessTest, RecoversGenericIndexAndFunctionTypeBoundaries)
     {
-      const std::vector<MalformedSyntaxCase> Cases = {
-          {"UnparenthesizedGenericGreaterThan", "const Broken = Box::<N > 0>; const After = 1;", core::DiagnosticKind::ExpectedToken, true, true},
-          {"UnparenthesizedGenericGreaterEqual", "const Broken = Box::<N >= 0>; const After = 1;", core::DiagnosticKind::ExpectedToken, true, true},
-          {"UnparenthesizedGenericRightShift", "const Broken = Box::<N >> 1>; const After = 1;", core::DiagnosticKind::ExpectedToken, true, true},
-          {"RepeatedSliceColon", "func Broken() { Value[Low::High]; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, true, true, CstKind::ReturnStatement},
-          {"ThirdSliceBound", "func Broken() { Value[Low:High:Step]; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, true, true, CstKind::ReturnStatement},
-          {"RepeatedEmptySliceColon", "func Broken() { Value[::]; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, true, true, CstKind::ReturnStatement},
-          {"DirectFunctionTypePointer", "const Broken = func()*; const After = 1;", core::DiagnosticKind::ExpectedToken, false, true},
-          {"DirectFunctionTypeReference", "const Broken = func()&; const After = 1;", core::DiagnosticKind::ExpectedToken, false, true},
-          {"DirectFunctionTypeEmptyBrackets", "const Broken = func()[]; const After = 1;", core::DiagnosticKind::ExpectedToken, true, true},
-          {"DirectFunctionTypeCall", "const Broken = func()(Value); const After = 1;", core::DiagnosticKind::ExpectedToken, true, true},
+      const std::vector<std::string> Sources = {
+          "F::<T>;",
+          "F::[];",
+          "F::[T,,U];",
+          "Value[];",
+          "Value[Low:High];",
+          "Value[::];",
+          "Value.0;",
+          "let F: type = func();",
+          "let F: type = func(int32) -> ;",
       };
-
-      for (const MalformedSyntaxCase &TestCase : Cases)
+      for (const std::string &Source : Sources)
       {
-        expectMalformedSyntax(TestCase);
+        expectMalformedSyntax(Source);
       }
     }
 
-    // Verifies malformed loop headers and missing control-flow blocks do not absorb following statements or declarations.
+    // Verifies generic and function parameter defaults must be trailing and parameter packs must be last.
+    TEST(ParserMalformedSyntaxRobustnessTest, RejectsInvalidParameterOrdering)
+    {
+      const std::vector<std::string> Sources = {
+          "func f[]() -> void;",
+          "func f[T: type = Default, U: type]() -> void;",
+          "func f[T: type..., U: type]() -> void;",
+          "func f(A: T = Value, B: T) -> void;",
+          "func f(A: T..., B: T) -> void;",
+          "func f(..., B: T) -> void;",
+          "func f() ;",
+          "class_method f();",
+      };
+      for (const std::string &Source : Sources)
+      {
+        expectMalformedSyntax(Source);
+      }
+    }
+
+    // Verifies missing control-flow operands, types, and required blocks preserve following declarations.
     TEST(ParserMalformedSyntaxRobustnessTest, RecoversControlFlowSyntax)
     {
-      const std::vector<MalformedSyntaxCase> Cases = {
-          {"TupleForPattern", "func Broken() { for (var (First, Second) in Values) {} return; } const After = 1;", core::DiagnosticKind::ExpectedToken, true, true, CstKind::ReturnStatement},
-          {"ForMissingModeAndPattern", "func Broken() { for (in Values) {} return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"IfMissingBlock", "func Broken() { if (Ready) return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
-          {"WhileMissingBlock", "func Broken() { while (Ready) return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
+      const std::vector<std::string> Sources = {
+          "for (let Item in Items) {}",
+          "for (const Item: T in Items) {}",
+          "for (in Items) {}",
+          "for (let Item: T in ) {}",
+          "for (var I: int32 = 0; ; I += ) {}",
+          "if () {}",
+          "if (Ready) return;",
+          "while (Ready) return;",
       };
-
-      for (const MalformedSyntaxCase &TestCase : Cases)
+      for (const std::string &Source : Sources)
       {
-        expectMalformedSyntax(TestCase);
+        expectMalformedSyntax(Source);
       }
     }
 
-    // Verifies each parser region rejects an item from another region, synchronizes locally, and still recognizes a later top-level declaration.
-    TEST(ParserMalformedSyntaxRobustnessTest, RecoversItemsPlacedInWrongRegions)
+    // Verifies object braces, empty and singleton tuples, named arguments, and other removed forms cannot silently retain old meanings.
+    TEST(ParserMalformedSyntaxRobustnessTest, RejectsRemovedSyntaxForms)
     {
-      const std::vector<MalformedSyntaxCase> Cases = {
-          {"RuntimeStatementAtTopLevel", "return; const After = 1;", core::DiagnosticKind::UnexpectedToken, true, false},
-          {"ExpressionStatementAtTopLevel", "Value; const After = 1;", core::DiagnosticKind::UnexpectedToken, true, false},
-          {"PackageHeaderAtTopLevel", "package demo; const After = 1;", core::DiagnosticKind::UnexpectedToken, true, false},
-          {"ModuleHeaderAtTopLevel", "module demo; const After = 1;", core::DiagnosticKind::UnexpectedToken, true, false},
-          {"ImportInStatementRegion", "func Broken() { import core.io; return; } const After = 1;", core::DiagnosticKind::ExpectedSyntax, true, true, CstKind::ReturnStatement},
-          {"RuntimeStatementInClassRegion", "class Broken { return; var Good: i32; } const After = 1;", core::DiagnosticKind::UnexpectedToken, true, false, CstKind::FieldDeclaration},
-          {"DecoratorDeclarationInInterfaceRegion", "interface Broken { decorator Bad(); func Good(); } const After = 1;", core::DiagnosticKind::UnexpectedToken, true, false, CstKind::FunctionDeclaration},
-          {"FunctionDeclarationInEnumRegion", "enum Broken { func Bad(); Good } const After = 1;", core::DiagnosticKind::UnexpectedToken, true, true, CstKind::EnumBranch},
+      const std::vector<std::string> Sources = {
+          "Point{1, 2};",
+          "Point{};",
+          "let Value: Point = Point{1, 2};",
+          "();",
+          "(Value,);",
+          "let (Value,): T = Input;",
+          "let X: type = class {};",
+          "func f<T: type>() -> void;",
+          "class C : Base {}",
+          "interface I implements Base {}",
+          "enum E { Ready, Busy }",
       };
-
-      for (const MalformedSyntaxCase &TestCase : Cases)
+      for (const std::string &Source : Sources)
       {
-        expectMalformedSyntax(TestCase);
+        expectMalformedSyntax(Source);
       }
     }
 
-    // Verifies assignment nesting and unsupported comptime operands retain their tokens and recover through the next valid construct.
-    TEST(ParserMalformedSyntaxRobustnessTest, RecoversAssignmentsAndComptimeOperands)
+    // Verifies assignments are allowed only in designated statement clauses and require a unary target.
+    TEST(ParserMalformedSyntaxRobustnessTest, RecoversInvalidAssignmentsAndComptimeOperands)
     {
-      const std::vector<MalformedSyntaxCase> Cases = {
-          {"EmbeddedAssignment", "const Broken = (Left = Right); const After = 1;", core::DiagnosticKind::ExpectedToken, true, true},
-          {"ChainedAssignment", "func Broken() { Left = Middle = Right; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, true, true, CstKind::ReturnStatement},
-          {"TopLevelComptimeValue", "comptime Value; const After = 1;", core::DiagnosticKind::ExpectedSyntax, true, true},
-          {"StatementComptimeReturn", "func Broken() { comptime return; return; } const After = 1;", core::DiagnosticKind::ExpectedToken, false, true, CstKind::ReturnStatement},
+      const std::vector<std::string> Sources = {
+          "let Value: T = (Left = Right);",
+          "Left = Middle = Right;",
+          "Left + Offset = Right;",
+          "call(Left = Right);",
+          "let Value: T = comptime ;",
+          "let Value: T = comptime if (Ready) {}",
+          "Value++;",
+          "Value--;",
       };
-
-      for (const MalformedSyntaxCase &TestCase : Cases)
+      for (const std::string &Source : Sources)
       {
-        expectMalformedSyntax(TestCase);
+        expectMalformedSyntax(Source);
       }
     }
 
-    // Verifies every ordinary comma-list family rejects a trailing comma while retaining the complete following declaration.
-    TEST(ParserMalformedSyntaxRobustnessTest, RejectsTrailingCommasAcrossOrdinaryLists)
-    {
-      const std::vector<MalformedSyntaxCase> Cases = {
-          {"AttributeList", "[reflect,] func Broken() {} const After = 1;", core::DiagnosticKind::TrailingComma, true, false},
-          {"InheritanceList", "class Broken : Base, {} const After = 1;", core::DiagnosticKind::TrailingComma, true, false},
-          {"ConstructorInitializerList", "func Broken() : Base(), {} const After = 1;", core::DiagnosticKind::TrailingComma, true, false},
-          {"EnumPayloadList", "enum Broken { Item(i32,) } const After = 1;", core::DiagnosticKind::TrailingComma, true, false},
-          {"ArrayElementList", "const Broken = [1,]; const After = 1;", core::DiagnosticKind::TrailingComma, true, false},
-          {"TupleValueList", "const Broken = (1, 2,); const After = 1;", core::DiagnosticKind::TrailingComma, true, false},
-          {"TupleTypeList", "var Broken: (i32, u32,); const After = 1;", core::DiagnosticKind::TrailingComma, true, false},
-          {"FunctionTypeParameterList", "var Broken: func(i32,); const After = 1;", core::DiagnosticKind::TrailingComma, true, false},
-      };
-
-      for (const MalformedSyntaxCase &TestCase : Cases)
-      {
-        expectMalformedSyntax(TestCase);
-      }
-    }
-
-    // Verifies both prefix and postfix increment/decrement spellings use the reserved-sequence diagnostic and do not disrupt later parsing.
-    TEST(ParserMalformedSyntaxRobustnessTest, RejectsReservedIncrementAndDecrementSequences)
-    {
-      const std::vector<MalformedSyntaxCase> Cases = {
-          {"PrefixIncrement", "func Broken() { ++Value; return; } const After = 1;", core::DiagnosticKind::ReservedSymbolSequence, true, false, CstKind::ReturnStatement},
-          {"PrefixDecrement", "func Broken() { --Value; return; } const After = 1;", core::DiagnosticKind::ReservedSymbolSequence, true, false, CstKind::ReturnStatement},
-          {"PostfixIncrement", "func Broken() { Value++; return; } const After = 1;", core::DiagnosticKind::ReservedSymbolSequence, true, false, CstKind::ReturnStatement},
-          {"PostfixDecrement", "func Broken() { Value--; return; } const After = 1;", core::DiagnosticKind::ReservedSymbolSequence, true, false, CstKind::ReturnStatement},
-      };
-
-      for (const MalformedSyntaxCase &TestCase : Cases)
-      {
-        expectMalformedSyntax(TestCase);
-      }
-    }
-
-    // Verifies configured syntax-depth exhaustion reports its dedicated diagnostic, preserves an Error node, and resumes after the bounded expression.
+    // Verifies configured depth exhaustion preserves the rejected region and resumes at a later valid declaration.
     TEST(ParserMalformedSyntaxRobustnessTest, RecoversAfterSyntaxNestingLimit)
     {
       ParserOptions Options;
       Options.MaxSyntaxNestingDepth = 2;
-      const std::string Source = "const Broken = [[0]]; const After = 1;";
-      const ParsedFile First = parseSource(Source, Options);
-      const ParsedFile Second = parseSource(Source, Options);
-
+      const std::string Source = "let Broken: Data = [[0]]; let After: int32 = 1;";
+      const ParsedFile First = test::parseSource(Source, Options);
+      const ParsedFile Second = test::parseSource(Source, Options);
       EXPECT_FALSE(First.succeeded());
-      EXPECT_EQ(First.completeness(), ParseCompleteness::Complete);
-      EXPECT_TRUE(hasDiagnostic(First, core::DiagnosticKind::SyntaxNestingLimit));
-      EXPECT_TRUE(hasKind(First, CstKind::Error));
-      EXPECT_TRUE(hasFlag(First.cst().node(First.cst().root()).Flags, CstNodeFlags::HasError));
-      EXPECT_TRUE(containsRecoveredAfterDeclaration(First));
-      EXPECT_EQ(First.cst().nodes(), Second.cst().nodes());
-      EXPECT_EQ(First.cst().children(), Second.cst().children());
+      EXPECT_TRUE(test::hasDiagnostic(First, core::DiagnosticKind::SyntaxNestingLimit));
+      EXPECT_TRUE(test::hasKind(First, AstKind::Error));
+      const auto Bindings = test::nodeTextsOfKind(First, AstKind::BindingDeclaration);
+      EXPECT_TRUE(std::find(Bindings.begin(), Bindings.end(), "let After: int32 = 1;") != Bindings.end());
+      EXPECT_EQ(test::astSnapshot(First), test::astSnapshot(Second));
       EXPECT_TRUE(test::diagnosticsEqual(First, Second));
-      expectFullFidelity(First);
-      expectFullFidelity(Second);
+      test::expectAstIntegrity(First);
     }
   } // namespace
 } // namespace ink::parser

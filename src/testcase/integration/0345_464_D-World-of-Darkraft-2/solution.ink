@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var maxn = 100005;
+var maxn: dynamic = 100005;
 
-var maxk = 105;
+var maxk: dynamic = 105;
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-var tmp: dynamic;
+var tmp: dynamic = cpp_uninitialized();
 
-var g = cpp_array(maxn);
+var g: dynamic = cpp_array(maxn);
 
-var t = cpp_array(maxn);
+var t: dynamic = cpp_array(maxn);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&k));
   f.push_back(make_pair(1, 1.0));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       tmp.clear();
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < cpp_cast(f.size())))
         {
-          var j = f[k].first;
-          var p = f[k].second;
+          var j: dynamic = f[k].first;
+          var p: dynamic = f[k].second;
           if ((p < 1e-15))
           {
             k += 1;
@@ -45,10 +45,10 @@ func main()
           k += 1;
         }
       }
-      var last = tmp[0];
+      var last: dynamic = tmp[0];
       f.clear();
       {
-        var k = 1;
+        var k: dynamic = 1;
         while ((k < cpp_cast(tmp.size())))
         {
           if ((tmp[k].first == last.first))
@@ -67,7 +67,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       g[i] += g[(i - 1)];
@@ -78,7 +78,7 @@ func main()
   {
     t[0] = log(1);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         t[0] = ((t[0] + log((k - 1))) - log(k));
@@ -86,7 +86,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         t[i] = (((t[(i - 1)] + log(((n - i) + 1))) - log(i)) - log((k - 1)));
@@ -94,7 +94,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         t[i] = exp(t[i]);
@@ -106,7 +106,7 @@ func main()
     t[n] = 1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       ans += (g[i] * t[i]);

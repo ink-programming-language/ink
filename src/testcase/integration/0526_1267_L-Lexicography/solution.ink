@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var S = cpp_array(1000002);
+var S: dynamic = cpp_array(1000002);
 
-var D = cpp_array(1000002);
+var D: dynamic = cpp_array(1000002);
 
-var R = cpp_array(1002, 1002);
+var R: dynamic = cpp_array(1002, 1002);
 
-func mS(s: dynamic, d: dynamic, o: dynamic, t: dynamic)
+func mS(s: dynamic, d: dynamic, o: dynamic, t: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var c = ((o + t) >> 1);
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var c: dynamic = ((o + t) >> 1);
   if ((o < c))
   {
     mS(d, s, o, c);
@@ -50,17 +50,17 @@ func mS(s: dynamic, d: dynamic, o: dynamic, t: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var a: dynamic;
-  var t: dynamic;
-  var n: dynamic;
-  var l: dynamic;
-  var k: dynamic;
-  var temp: dynamic;
-  var C: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var temp: dynamic = cpp_uninitialized();
+  var C: dynamic = cpp_uninitialized();
   scanf("%d %d %d", (&n), (&l), (&k));
   scanf("%s", (&S));
   {

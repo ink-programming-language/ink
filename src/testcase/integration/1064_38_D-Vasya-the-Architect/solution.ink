@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   solve();
   return 0;
 }
 
-var rects = cpp_array(100);
+var rects: dynamic = cpp_array(100);
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(rects[i].first.first, rects[i].first.second, rects[i].second.first, rects[i].second.second);
@@ -27,21 +27,21 @@ func solve()
         swap(rects[i].first.second, rects[i].second.second);
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < i))
         {
-          var cx = 0;
-          var cy = 0;
-          var m = 0;
+          var cx: dynamic = 0;
+          var cy: dynamic = 0;
+          var m: dynamic = 0;
           {
-            var k = (j + 1);
+            var k: dynamic = (j + 1);
             while ((k <= i))
             {
-              var l = fabs((rects[k].first.first - rects[k].second.first));
-              var lll = ((l * l) * l);
+              var l: dynamic = fabs((rects[k].first.first - rects[k].second.first));
+              var lll: dynamic = ((l * l) * l);
               m += lll;
-              var x = (((rects[k].first.first + rects[k].second.first)) / 2.0);
-              var y = (((rects[k].first.second + rects[k].second.second)) / 2.0);
+              var x: dynamic = (((rects[k].first.first + rects[k].second.first)) / 2.0);
+              var y: dynamic = (((rects[k].first.second + rects[k].second.second)) / 2.0);
               cx += (lll * x);
               cy += (lll * y);
               k += 1;

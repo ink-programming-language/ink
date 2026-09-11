@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a1: dynamic;
+var a1: dynamic = cpp_uninitialized();
 
-var a2: dynamic;
+var a2: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-func can(mid: dynamic)
+func can(mid: dynamic) -> dynamic
 {
-  var msk = cpp_construct((1 << m), -1);
+  var msk: dynamic = cpp_construct((1 << m), -1);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var cur = 0;
+      var cur: dynamic = 0;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((a[i][j] >= mid))
@@ -39,11 +39,11 @@ func can(mid: dynamic)
     return true;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < ((1 << m))))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < ((1 << m))))
         {
           if ((((msk[i] != -1) && (msk[j] != -1)) && (((i | j)) == (((1 << m)) - 1))))
@@ -61,16 +61,16 @@ func can(mid: dynamic)
   return false;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m);
   a.resize(n, vector(m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(a[i][j]);
@@ -80,11 +80,11 @@ func main()
       i += 1;
     }
   }
-  var lf = 0;
-  var rg = (int_cpp(1e9) + 43);
+  var lf: dynamic = 0;
+  var rg: dynamic = (int_cpp(1e9) + 43);
   while (((rg - lf) > 1))
   {
-    var m = (((lf + rg)) / 2);
+    var m: dynamic = (((lf + rg)) / 2);
     if (can(m))
     {
       lf = m;

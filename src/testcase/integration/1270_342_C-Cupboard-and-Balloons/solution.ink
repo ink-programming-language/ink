@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
-  var r: dynamic;
-  var h: dynamic;
+  var r: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
   read(r, h);
   if (((h % r) == 0))
   {
     write(((2 * ((h / r))) + 1), "\n");
   } else
   {
-    var c = (h / r);
-    var ans = (2 * c);
+    var c: dynamic = (h / r);
+    var ans: dynamic = (2 * c);
     if (((2 * ((h - (c * r)))) >= r))
     {
       ans += 2;

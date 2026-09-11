@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var maxn = (2e5 + 10);
+var maxn: dynamic = (2e5 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var cur: dynamic;
+var cur: dynamic = cpp_uninitialized();
 
-var keep: dynamic;
+var keep: dynamic = cpp_uninitialized();
 
-var basis: dynamic;
+var basis: dynamic = cpp_uninitialized();
 
-func ins(x: dynamic)
+func ins(x: dynamic) -> dynamic
 {
-  var now = x;
-  for (var i in basis)
+  var now: dynamic = x;
+  for (var i: dynamic in basis)
   {
     x = min(x, (x ^ i));
   }
@@ -22,7 +22,7 @@ func ins(x: dynamic)
     keep.push_back(now);
     basis.push_back(x);
     {
-      var i = (cpp_cast(basis.size()) - 1);
+      var i: dynamic = (cpp_cast(basis.size()) - 1);
       while ((i > 0))
       {
         if ((basis[i] > basis[(i - 1)]))
@@ -38,11 +38,11 @@ func ins(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (&s[i]));
@@ -50,10 +50,10 @@ func main()
     }
   }
   sort(s.begin(), s.end());
-  var has = 0;
-  var pt = 0;
+  var has: dynamic = 0;
+  var pt: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 19))
     {
       while (((pt < n) && (s[pt] < ((1 << i)))))
@@ -74,11 +74,11 @@ func main()
   printf("%d\n", has);
   cur = [0, 1];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < has))
     {
       {
-        var j = (cpp_cast(cur.size()) - 1);
+        var j: dynamic = (cpp_cast(cur.size()) - 1);
         while ((j >= 0))
         {
           cur.push_back(((cur[j] * 2) + 1));
@@ -89,12 +89,12 @@ func main()
       i += 1;
     }
   }
-  var toprint = 0;
-  for (var i in cur)
+  var toprint: dynamic = 0;
+  for (var i: dynamic in cur)
   {
     toprint = 0;
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < has))
       {
         if (((i >> j) & 1))

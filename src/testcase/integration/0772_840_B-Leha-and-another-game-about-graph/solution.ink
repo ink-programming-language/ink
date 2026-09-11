@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var N = (3e5 + 100);
+var N: dynamic = (3e5 + 100);
 
-var adj = cpp_array(N);
+var adj: dynamic = cpp_array(N);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var d = cpp_array(N);
+var d: dynamic = cpp_array(N);
 
-var edge: dynamic;
+var edge: dynamic = cpp_uninitialized();
 
-var in_cpp = cpp_array(N);
+var in_cpp: dynamic = cpp_array(N);
 
-var wildcard: dynamic;
+var wildcard: dynamic = cpp_uninitialized();
 
-var sz = cpp_array(N);
+var sz: dynamic = cpp_array(N);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
   vis[u] = true;
   if ((d[u] == -1))
@@ -28,10 +28,10 @@ func dfs(u: dynamic)
     wildcard = u;
   }
   sz[u] = ((d[u] == 1));
-  for (var id in adj[u])
+  for (var id: dynamic in adj[u])
   {
-    var e = edge[id];
-    var v = ((e.first + e.second) - u);
+    var e: dynamic = edge[id];
+    var v: dynamic = ((e.first + e.second) - u);
     if (vis[v])
     {
       continue;
@@ -42,14 +42,14 @@ func dfs(u: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast((n))))
     {
       read(d[i]);
@@ -57,11 +57,11 @@ func main()
     }
   }
   {
-    var cpp_name = 0;
+    var cpp_name: dynamic = 0;
     while ((cpp_name < cpp_cast((m))))
     {
-      var u: dynamic;
-      var v: dynamic;
+      var u: dynamic = cpp_uninitialized();
+      var v: dynamic = cpp_uninitialized();
       read(u, v);
       u -= 1;
       v -= 1;
@@ -71,9 +71,9 @@ func main()
       cpp_name += 1;
     }
   }
-  var ok = 1;
+  var ok: dynamic = 1;
   {
-    var u = 0;
+    var u: dynamic = 0;
     while ((u < cpp_cast((n))))
     {
       if ((!vis[u]))
@@ -99,7 +99,7 @@ func main()
   {
     fill_n(vis, n, false);
     {
-      var u = 0;
+      var u: dynamic = 0;
       while ((u < cpp_cast((n))))
       {
         if ((!vis[u]))
@@ -109,9 +109,9 @@ func main()
         u += 1;
       }
     }
-    var ans: dynamic;
+    var ans: dynamic = cpp_uninitialized();
     {
-      var id = 0;
+      var id: dynamic = 0;
       while ((id < cpp_cast((m))))
       {
         if (in_cpp[id])
@@ -122,7 +122,7 @@ func main()
       }
     }
     write((cpp_cast((ans).size())), "\n");
-    for (var x in ans)
+    for (var x: dynamic in ans)
     {
       write((x + 1), cpp_char("\n"));
     }

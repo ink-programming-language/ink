@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-func max(i: dynamic, j: dynamic)
+func max(i: dynamic, j: dynamic) -> dynamic
 {
-  return if ((i > j)) i else j;
+  return  ((i > j)) ? i : j;
 }
 
-var v1: dynamic;
+var v1: dynamic = cpp_uninitialized();
 
-var v2: dynamic;
+var v2: dynamic = cpp_uninitialized();
 
-var c = cpp_array(25, 25);
+var c: dynamic = cpp_array(25, 25);
 
-var minx: dynamic;
+var minx: dynamic = cpp_uninitialized();
 
-var miny: dynamic;
+var miny: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-func ju(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic, x: dynamic, y: dynamic)
+func ju(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
-  var cp1 = cpp_array(25, 25);
-  var cp2 = cpp_array(25, 25);
-  var i: dynamic;
-  var j: dynamic;
-  var flag1 = 0;
-  var flag2 = 0;
-  var flag3 = 0;
-  var flag4 = 0;
+  var cp1: dynamic = cpp_array(25, 25);
+  var cp2: dynamic = cpp_array(25, 25);
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var flag1: dynamic = 0;
+  var flag2: dynamic = 0;
+  var flag3: dynamic = 0;
+  var flag4: dynamic = 0;
   {
     i = 0;
     while ((i < x))
@@ -172,12 +172,12 @@ func ju(x1: dynamic, y1: dynamic, x2: dynamic, y2: dynamic, x: dynamic, y: dynam
   }
 }
 
-func cnt(x: dynamic, y: dynamic)
+func cnt(x: dynamic, y: dynamic) -> dynamic
 {
-  var xi: dynamic;
-  var xj: dynamic;
-  var yi: dynamic;
-  var yj: dynamic;
+  var xi: dynamic = cpp_uninitialized();
+  var xj: dynamic = cpp_uninitialized();
+  var yi: dynamic = cpp_uninitialized();
+  var yj: dynamic = cpp_uninitialized();
   {
     xi = 0;
     while ((xi < a))
@@ -234,10 +234,10 @@ func cnt(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   while ((scanf("%d%d", (&a), (&b)) != EOF))
   {
     ans = 0;

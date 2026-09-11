@@ -5,9 +5,9 @@
    - At statement start, "comptime" introduces a comptime_statement and
      applies to the complete following statement. In an expression it is
      a unary prefix; parentheses extend its operand to a larger expression.
-   - In header_type, an unparenthesized "{" starts the enclosing declaration
-     body. Object construction in that type expression must occur inside
-     parentheses, a call argument, an index, or a generic argument.
+   - Function calls and object construction share call_suffix: "callee(args)".
+     Braces delimit statement blocks and declaration bodies; "T{args}" is
+     not an expression or an object construction form.
    - Special sequences below are syntactic predicates. They do not consult
      name resolution, type information, or compile-time evaluation results.
 
@@ -22,6 +22,15 @@
    - An enum base type must additionally evaluate to an integer type.
    - Explicit comptime expressions and statements must be evaluable or
      executable at compile time; failure is an error, with no runtime fallback.
+
+   Call evaluation:
+   - A call suffix invokes a function when its callee is a function value.
+     When its callee is a type value, it constructs an object of that type;
+     constructor selection and argument checking belong to semantic analysis.
+   - A construction target must evaluate to a type value at compile time.
+     Computed targets use the same syntax, for example "makeType()(value)".
+     This requirement does not make the construction or its arguments
+     comptime unless the surrounding context requires it.
 *)
 
 source_file =
@@ -46,7 +55,7 @@ function_introducer =
 
 function_signature =
     function_introducer, identifier, [ generic_parameter_list ],
-    parameter_list, "->", header_type ;
+    parameter_list, "->", type ;
 
 generic_parameter_list =
     "[",
@@ -108,11 +117,11 @@ class_declaration =
     [ class_inheritance_clause ], class_body ;
 
 class_inheritance_clause =
-      "extends", header_type, [ "implements", header_type_list ]
+      "extends", type, [ "implements", header_type_list ]
     | "implements", header_type_list ;
 
 header_type_list =
-    header_type, { ",", header_type } ;
+    type, { ",", type } ;
 
 class_body =
     block_statement ;
@@ -131,7 +140,7 @@ enum_declaration =
     [ enum_base_clause ], enum_body ;
 
 enum_base_clause =
-      ":", header_type, [ "implements", header_type_list ]
+      ":", type, [ "implements", header_type_list ]
     | "implements", header_type_list ;
 
 enum_body =
@@ -146,9 +155,6 @@ class_field_statement =
 
 type =
     expression ;
-
-header_type =
-    type ;
 
 (* Prefix type constructors consume one unary operand. Use parentheses for
    a binary or conditional type computation, for example "ptr (a ? T : U)".
@@ -171,10 +177,6 @@ builtin_type =
     | "uint64"
     | "float"
     | "double" ;
-
-user_defined_type =
-    identifier, [ generic_argument_list ],
-    { ".", identifier, [ generic_argument_list ] } ;
 
 generic_argument_list =
     "::", "[",
@@ -311,15 +313,7 @@ primary_expression =
     | metatype
     | parenthesized_expression
     | tuple_expression
-    | array_expression
-    | object_construction_expression ;
-
-object_construction_expression =
-    ? outside header_type, or nested within parentheses or brackets of header_type ?,
-    user_defined_type, object_initializer ;
-
-object_initializer =
-    "{", [ argument_list ], "}" ;
+    | array_expression ;
 
 parenthesized_expression =
     "(", expression, ")" ;

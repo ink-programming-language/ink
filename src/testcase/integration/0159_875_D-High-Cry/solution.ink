@@ -1,35 +1,35 @@
 // Translated from solution.cpp.
 
-var N = (2e5 + 5);
+var N: dynamic = (2e5 + 5);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(N);
+var a: dynamic = cpp_array(N);
 
-var go = cpp_array(N);
+var go: dynamic = cpp_array(N);
 
 class cell
 {
-  var max_l: dynamic;
-  var max_r: dynamic;
-  var or_l: dynamic;
-  var or_r: dynamic;
+  var max_l: dynamic = cpp_uninitialized();
+  var max_r: dynamic = cpp_uninitialized();
+  var or_l: dynamic = cpp_uninitialized();
+  var or_r: dynamic = cpp_uninitialized();
 }
 
-var d = cpp_array(35, N);
+var d: dynamic = cpp_array(35, N);
 
-var b = cpp_array(N);
+var b: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -37,11 +37,11 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var q = a[i];
-      var k = 1;
+      var q: dynamic = a[i];
+      var k: dynamic = 1;
       while ((q != 0))
       {
         d[i][k] = (q % 2);
@@ -53,7 +53,7 @@ func main()
   }
   q.push([0, 2e9]);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       while ((q.top().second <= a[i]))
@@ -71,7 +71,7 @@ func main()
   }
   q.push([(n + 1), 2e9]);
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i > 0))
     {
       while ((q.top().second < a[i]))
@@ -88,12 +88,12 @@ func main()
     q.pop();
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var k = 0;
+      var k: dynamic = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < 35))
         {
           if ((d[i][j] == 0))
@@ -111,7 +111,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 35))
     {
       go[i] = (n + 1);
@@ -119,12 +119,12 @@ func main()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i > 0))
     {
-      var k = (n + 1);
+      var k: dynamic = (n + 1);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j < 35))
         {
           if ((d[i][j] == 0))
@@ -141,9 +141,9 @@ func main()
       i -= 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((b[i].max_l >= b[i].or_l))

@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func powInt(x: dynamic, y: dynamic)
+func powInt(x: dynamic, y: dynamic) -> dynamic
 {
-  var r = 1;
+  var r: dynamic = 1;
   while ((y > 0))
   {
     if ((y & 1))
@@ -15,9 +15,9 @@ func powInt(x: dynamic, y: dynamic)
   return r;
 }
 
-func qrt(k: dynamic, ex: dynamic)
+func qrt(k: dynamic, ex: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while ((powInt(res, ex) <= k))
   {
     res += 1;
@@ -25,21 +25,21 @@ func qrt(k: dynamic, ex: dynamic)
   return (res - 1);
 }
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   read(k);
-  var nds: dynamic;
-  var ex = 3;
-  var sum: dynamic;
-  var n: dynamic;
+  var nds: dynamic = cpp_uninitialized();
+  var ex: dynamic = 3;
+  var sum: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   while (true)
   {
-    var tmpk = k;
+    var tmpk: dynamic = k;
     sum = 0;
     while ((tmpk > 0))
     {
-      var tmp = qrt(cpp_cast(tmpk), ex);
+      var tmp: dynamic = qrt(cpp_cast(tmpk), ex);
       nds.push_back(tmp);
       tmpk -= powInt(tmp, ex);
     }
@@ -62,7 +62,7 @@ func main()
       break;
     }
   }
-  var init = cpp_construct(n, cpp_char("N"));
+  var init: dynamic = cpp_construct(n, cpp_char("N"));
   {
     int_cpp(i) = (2);
     while (((i) < ((sum + 2))))
@@ -74,13 +74,13 @@ func main()
       (i) += 1;
     }
   }
-  var offset = 2;
+  var offset: dynamic = 2;
   write(n, "\n");
   {
     int_cpp((i)) = (0);
     while ((((i)) < ((nds.size()))))
     {
-      var c = nds[i];
+      var c: dynamic = nds[i];
       {
         int_cpp(j) = (offset);
         while (((j) < ((offset + c))))

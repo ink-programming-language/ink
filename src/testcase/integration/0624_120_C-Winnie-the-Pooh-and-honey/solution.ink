@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-func check()
+func check() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var s = 0;
-  var k: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var s: dynamic = 0;
+  var k: dynamic = cpp_uninitialized();
   read(a, b);
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
     typeof(a) = 0;
     while ((i < (a)))
@@ -21,7 +21,7 @@ func check()
     typeof(a) = 0;
     while ((i < (a)))
     {
-      var c = v[i];
+      var c: dynamic = v[i];
       {
         typeof(3) = 0;
         while ((j < (3)))
@@ -40,9 +40,9 @@ func check()
   write("\n", s);
 }
 
-func main()
+func main() -> dynamic
 {
-  var ifile = cpp_construct("input.txt");
+  var ifile: dynamic = cpp_construct("input.txt");
   if (ifile)
   {
     freopen("input.txt", "rt", stdin);

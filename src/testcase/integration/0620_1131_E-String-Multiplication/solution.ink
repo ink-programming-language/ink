@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func get_answer_direct(str: dynamic, ch: dynamic)
+func get_answer_direct(str: dynamic, ch: dynamic) -> dynamic
 {
-  var answer = 0;
-  var begin = 0;
+  var answer: dynamic = 0;
+  var begin: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < str.size()))
     {
       if ((str[i] != str[begin]))
@@ -26,16 +26,16 @@ func get_answer_direct(str: dynamic, ch: dynamic)
   return answer;
 }
 
-func get_answer(n: dynamic, strings: dynamic, ch: dynamic)
+func get_answer(n: dynamic, strings: dynamic, ch: dynamic) -> dynamic
 {
   if ((n == 1))
   {
     return get_answer_direct(strings[0], ch);
   } else
   {
-    var all_ch = true;
+    var all_ch: dynamic = true;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < strings[(n - 1)].size()))
       {
         if ((strings[(n - 1)][i] != ch))
@@ -48,13 +48,13 @@ func get_answer(n: dynamic, strings: dynamic, ch: dynamic)
     }
     if (all_ch)
     {
-      var answer_prev = get_answer((n - 1), strings, ch);
+      var answer_prev: dynamic = get_answer((n - 1), strings, ch);
       return (answer_prev + (((answer_prev + 1)) * strings[(n - 1)].size()));
     } else
     {
-      var char_exists = cpp_new();
+      var char_exists: dynamic = cpp_new();
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 26))
         {
           char_exists[i] = false;
@@ -62,11 +62,11 @@ func get_answer(n: dynamic, strings: dynamic, ch: dynamic)
         }
       }
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < (n - 1)))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < strings[i].size()))
             {
               char_exists[(strings[i][j] - cpp_char("a"))] = true;
@@ -76,9 +76,9 @@ func get_answer(n: dynamic, strings: dynamic, ch: dynamic)
           i += 1;
         }
       }
-      var answer = 0;
+      var answer: dynamic = 0;
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 26))
         {
           if ((!char_exists[i]))
@@ -86,7 +86,7 @@ func get_answer(n: dynamic, strings: dynamic, ch: dynamic)
             i += 1;
             continue;
           }
-          var str_cur = ((strings[(n - 1)] + string_cpp(1, cpp_cast(((cpp_char("a") + i))))) + strings[(n - 1)]);
+          var str_cur: dynamic = ((strings[(n - 1)] + string_cpp(1, cpp_cast(((cpp_char("a") + i))))) + strings[(n - 1)]);
           answer = max(answer, get_answer_direct(str_cur, ch));
           i += 1;
         }
@@ -96,22 +96,22 @@ func get_answer(n: dynamic, strings: dynamic, ch: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var strings = cpp_new();
+  var strings: dynamic = cpp_new();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(strings[i]);
       i += 1;
     }
   }
-  var answer = 1;
+  var answer: dynamic = 1;
   {
-    var ch = cpp_char("a");
+    var ch: dynamic = cpp_char("a");
     while ((ch <= cpp_char("z")))
     {
       answer = max(answer, get_answer(n, strings, ch));

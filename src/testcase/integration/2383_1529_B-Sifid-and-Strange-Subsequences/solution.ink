@@ -1,39 +1,39 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var F = cpp_expression("#incl");
+var F: dynamic = cpp_expression("#incl");
 
-var S = cpp_expression("#inclu");
+var S: dynamic = cpp_expression("#inclu");
 
-var vii = cpp_expression("#include<b");
+var vii: dynamic = cpp_expression("#include<b");
 
-var pii = cpp_expression("#include<bi");
+var pii: dynamic = cpp_expression("#include<bi");
 
-var mii = cpp_expression("#include<b");
+var mii: dynamic = cpp_expression("#include<b");
 
-func fastio()
+func fastio() -> dynamic
 {
   cpp_macro("ios::sync_with_stdio(0);cin.tie(0);cout.tie(0);");
 }
 
-func main()
+func main() -> dynamic
 {
   fastio();
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var a = cpp_array(n);
-    for (var x in a)
+    var a: dynamic = cpp_array(n);
+    for (var x: dynamic in a)
     {
       read(x);
     }
     sort(a, (a + n));
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         if (((a[(i + 1)] - a[i]) < a[(n - 1)]))

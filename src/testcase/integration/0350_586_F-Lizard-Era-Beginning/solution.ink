@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var MOD = (1000000000 + 7);
+var MOD: dynamic = (1000000000 + 7);
 
-var MAXN = (100000 + 100);
+var MAXN: dynamic = (100000 + 100);
 
-var MAGIC = 123123123;
+var MAGIC: dynamic = 123123123;
 
-var PI = (4 * atan(1.0));
+var PI: dynamic = (4 * atan(1.0));
 
-var EPS = 1E-7;
+var EPS: dynamic = 1E-7;
 
 class cmp_for_set
 {
-  func operator_call(a: dynamic, b: dynamic)
+  func operator_call(a: dynamic, b: dynamic) -> dynamic
   {
       return (a > b);
     }
 }
 
-func time_elapsed()
+func time_elapsed() -> dynamic
 {
   write("\nTIME ELAPSED: ", (cpp_cast(clock()) / CLOCKS_PER_SEC), " sec\n");
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return (if (((!b))) a else gcd(b, (a % b)));
+  return ( (((!b))) ? a : gcd(b, (a % b)));
 }
 
-func gcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
+func gcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   if ((!a))
   {
@@ -36,27 +36,27 @@ func gcd(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
     y = 1;
     return b;
   }
-  var x1: dynamic;
-  var y1: dynamic;
-  var d = gcd((b % a), a, x1, y1);
+  var x1: dynamic = cpp_uninitialized();
+  var y1: dynamic = cpp_uninitialized();
+  var d: dynamic = gcd((b % a), a, x1, y1);
   x = (y1 - (((b / a)) * x1));
   y = x1;
   return d;
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a / gcd(a, b))) * b);
 }
 
-func neg_mod(a: dynamic, mod: dynamic)
+func neg_mod(a: dynamic, mod: dynamic) -> dynamic
 {
   return (((((a % mod)) + mod)) % mod);
 }
 
-func binpow(x: dynamic, p: dynamic)
+func binpow(x: dynamic, p: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (p)
   {
     if ((p & 1))
@@ -69,9 +69,9 @@ func binpow(x: dynamic, p: dynamic)
   return res;
 }
 
-func binpow_mod(x: dynamic, p: dynamic, m: dynamic)
+func binpow_mod(x: dynamic, p: dynamic, m: dynamic) -> dynamic
 {
-  var res = 1;
+  var res: dynamic = 1;
   while (p)
   {
     if ((p & 1))
@@ -86,34 +86,34 @@ func binpow_mod(x: dynamic, p: dynamic, m: dynamic)
 
 class state
 {
-  var mask: dynamic;
+  var mask: dynamic = cpp_uninitialized();
   var sum: dynamic = cpp_array(3);
-  func state()
+  func state() -> dynamic
   {
       mask = 0;
       sum[0] = cpp_assign(sum[1], "=", cpp_assign(sum[2], "=", 0));
     }
 }
 
-func operator_less(a: dynamic, b: dynamic)
+func operator_less(a: dynamic, b: dynamic) -> dynamic
 {
   return ((((a.sum[0] < b.sum[0]) || (((a.sum[0] == b.sum[0]) && (a.sum[1] < b.sum[1])))) || ((((a.sum[0] == b.sum[0]) && (a.sum[1] == b.sum[1])) && (a.sum[2] < b.sum[2])))));
 }
 
-var let_cpp = [cpp_char("L"), cpp_char("M"), cpp_char("W")];
+var let_cpp: dynamic = [cpp_char("L"), cpp_char("M"), cpp_char("W")];
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var vec1 = cpp_construct((n / 2), vector(3));
-  var vec2 = cpp_construct((n - (n / 2)), vector(3));
+  var vec1: dynamic = cpp_construct((n / 2), vector(3));
+  var vec2: dynamic = cpp_construct((n - (n / 2)), vector(3));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 3))
         {
           if ((i < (n / 2)))
@@ -129,25 +129,25 @@ func main()
       i += 1;
     }
   }
-  var mem: dynamic;
-  var pow3 = cpp_construct(20);
+  var mem: dynamic = cpp_uninitialized();
+  var pow3: dynamic = cpp_construct(20);
   pow3[0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 20))
     {
       pow3[i] = (pow3[(i - 1)] * 3);
       i += 1;
     }
   }
-  var cmask = cpp_construct(20);
+  var cmask: dynamic = cpp_construct(20);
   {
-    var mask = 0;
+    var mask: dynamic = 0;
     while ((mask < pow3[vec1.size()]))
     {
-      var mm = mask;
+      var mm: dynamic = mask;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < vec1.size()))
         {
           cmask[j] = (mm % 3);
@@ -155,13 +155,13 @@ func main()
           j += 1;
         }
       }
-      var cur_state: dynamic;
+      var cur_state: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < vec1.size()))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 3))
             {
               cur_state.sum[k] += vec1[j][k];
@@ -173,7 +173,7 @@ func main()
         }
       }
       cur_state.mask = mask;
-      var cur_delta = make_pair((cur_state.sum[1] - cur_state.sum[0]), (cur_state.sum[2] - cur_state.sum[0]));
+      var cur_delta: dynamic = make_pair((cur_state.sum[1] - cur_state.sum[0]), (cur_state.sum[2] - cur_state.sum[0]));
       if ((!mem.count(cur_delta)))
       {
         mem[cur_delta] = cur_state;
@@ -184,15 +184,15 @@ func main()
       mask += 1;
     }
   }
-  var best: dynamic;
-  var best_sum = -9999999999999999;
+  var best: dynamic = cpp_uninitialized();
+  var best_sum: dynamic = -9999999999999999;
   {
-    var mask = 0;
+    var mask: dynamic = 0;
     while ((mask < pow3[vec2.size()]))
     {
-      var mm = mask;
+      var mm: dynamic = mask;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < vec2.size()))
         {
           cmask[j] = (mm % 3);
@@ -200,13 +200,13 @@ func main()
           j += 1;
         }
       }
-      var cur_state: dynamic;
+      var cur_state: dynamic = cpp_uninitialized();
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < vec2.size()))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 3))
             {
               cur_state.sum[k] += vec2[j][k];
@@ -218,13 +218,13 @@ func main()
         }
       }
       cur_state.mask = mask;
-      var cur_delta = make_pair((cur_state.sum[1] - cur_state.sum[0]), (cur_state.sum[2] - cur_state.sum[0]));
-      var need = cur_delta;
+      var cur_delta: dynamic = make_pair((cur_state.sum[1] - cur_state.sum[0]), (cur_state.sum[2] - cur_state.sum[0]));
+      var need: dynamic = cur_delta;
       need.first *= -1;
       need.second *= -1;
       if (mem.count(need))
       {
-        var ss = mem[need];
+        var ss: dynamic = mem[need];
         if (((cur_state.sum[0] + ss.sum[0]) > best_sum))
         {
           best_sum = (cur_state.sum[0] + ss.sum[0]);
@@ -240,12 +240,12 @@ func main()
   } else
   {
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < vec1.size()))
       {
-        var mm = best.first;
+        var mm: dynamic = best.first;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < vec1.size()))
           {
             cmask[j] = (mm % 3);
@@ -254,7 +254,7 @@ func main()
           }
         }
         {
-          var k = 0;
+          var k: dynamic = 0;
           while ((k < 3))
           {
             if ((cmask[j] != k))
@@ -269,12 +269,12 @@ func main()
       }
     }
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < vec2.size()))
       {
-        var mm = best.second;
+        var mm: dynamic = best.second;
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < vec2.size()))
           {
             cmask[j] = (mm % 3);
@@ -283,7 +283,7 @@ func main()
           }
         }
         {
-          var k = 0;
+          var k: dynamic = 0;
           while ((k < 3))
           {
             if ((cmask[j] != k))

@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var pi = acos(-1);
+var pi: dynamic = acos(-1);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var arr = cpp_array(150005);
+var arr: dynamic = cpp_array(150005);
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var mp2: dynamic;
+var mp2: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d%d", (&arr[i].first), (&arr[i].second));
@@ -24,7 +24,7 @@ func main()
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= sqrt(arr[(n - 1)].first)))
     {
       if (((arr[(n - 1)].first % i) == 0))
@@ -39,9 +39,9 @@ func main()
   {
     mp[arr[(n - 1)].first] += 1;
   }
-  var temp = mp.size();
+  var temp: dynamic = mp.size();
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= sqrt(arr[(n - 1)].second)))
     {
       if (((arr[(n - 1)].second % i) == 0))
@@ -56,10 +56,10 @@ func main()
   {
     mp[arr[(n - 1)].second] += 1;
   }
-  for (var j in mp)
+  for (var j: dynamic in mp)
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < (n - 1)))
       {
         if (((arr[i].first % j.first) == 0))

@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-func SORT(c: dynamic)
+func SORT(c: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.h> ty");
 }
 
-func FOR(i: dynamic, a: dynamic, b: dynamic)
+func FOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(a);i<(b);++i)");
 }
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include <");
 }
 
-func hex(n: dynamic)
+func hex(n: dynamic) -> dynamic
 {
   if ((n / 16))
   {
     hex((n / 16));
   }
-  var las = (n % 16);
+  var las: dynamic = (n % 16);
   if ((las < 10))
   {
     write(char((las + cpp_char("0"))));
@@ -31,17 +31,17 @@ func hex(n: dynamic)
   }
 }
 
-func solve(argument_0: dynamic)
+func solve(argument_0: dynamic) -> dynamic
 {
-  var ins = cpp_construct(9);
+  var ins: dynamic = cpp_construct(9);
   REP(i, 9);
   read(ins[i]);
-  var cs = cpp_construct(9, 0);
+  var cs: dynamic = cpp_construct(9, 0);
   REP(i, 9);
   {
     REP(k, ins[i].size());
     {
-      var j = ((ins[i].size() - 1) - k);
+      var j: dynamic = ((ins[i].size() - 1) - k);
       if (((cpp_char("0") <= ins[i][j]) && (ins[i][j] <= cpp_char("9"))))
       {
         ins[i][j] -= cpp_char("0");
@@ -56,11 +56,11 @@ func solve(argument_0: dynamic)
       }
     }
   }
-  var answer = 0;
-  var carry = 0;
+  var answer: dynamic = 0;
+  var carry: dynamic = 0;
   REP(i, 32);
   {
-    var pari = 0;
+    var pari: dynamic = 0;
     REP(j, 8);
     if ((cs[j] & ((1 << i))))
     {
@@ -84,18 +84,18 @@ func solve(argument_0: dynamic)
   return answer;
 }
 
-func __cpp_top_level_1()
+func __cpp_top_level_1() -> dynamic
 {
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   return 0;
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     hex(solve());
     write("\n");

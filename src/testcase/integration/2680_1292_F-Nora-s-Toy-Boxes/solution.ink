@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(65);
+var a: dynamic = cpp_array(65);
 
-var mask = cpp_array(65);
+var mask: dynamic = cpp_array(65);
 
-var cnt = cpp_array((1 << 15));
+var cnt: dynamic = cpp_array((1 << 15));
 
-var bl = cpp_array(65);
+var bl: dynamic = cpp_array(65);
 
-var fa = cpp_array(65);
+var fa: dynamic = cpp_array(65);
 
-func qpow(x: dynamic, y: dynamic)
+func qpow(x: dynamic, y: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   while (y)
   {
     if ((y & 1))
@@ -27,16 +27,16 @@ func qpow(x: dynamic, y: dynamic)
   return ret;
 }
 
-func C(n: dynamic, m: dynamic)
+func C(n: dynamic, m: dynamic) -> dynamic
 {
   if ((m > n))
   {
     return 0;
   }
-  var a = 1;
-  var b = 1;
+  var a: dynamic = 1;
+  var b: dynamic = 1;
   {
-    var i = ((n - m) + 1);
+    var i: dynamic = ((n - m) + 1);
     while ((i <= n))
     {
       a = ((cpp_cast(a) * i) % 1000000007);
@@ -44,7 +44,7 @@ func C(n: dynamic, m: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       b = ((cpp_cast(b) * i) % 1000000007);
@@ -54,7 +54,7 @@ func C(n: dynamic, m: dynamic)
   return ((cpp_cast(a) * qpow(b, (1000000007 - 2))) % 1000000007);
 }
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
   if ((fa[x] == x))
   {
@@ -63,27 +63,27 @@ func find(x: dynamic)
   return cpp_assign(fa[x], "=", find(fa[x]));
 }
 
-func merge(x: dynamic, y: dynamic)
+func merge(x: dynamic, y: dynamic) -> dynamic
 {
-  var fx = find(x);
-  var fy = find(y);
+  var fx: dynamic = find(x);
+  var fy: dynamic = find(y);
   if ((fx != fy))
   {
     fa[fx] = fy;
   }
 }
 
-var f = cpp_array((1 << 15), 65);
+var f: dynamic = cpp_array((1 << 15), 65);
 
-var rk = cpp_array(65);
+var rk: dynamic = cpp_array(65);
 
-func calc(x: dynamic)
+func calc(x: dynamic) -> dynamic
 {
-  var num = 0;
-  var m = 0;
+  var num: dynamic = 0;
+  var m: dynamic = 0;
   f[0][0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((find(i) == x) && bl[i]))
@@ -94,14 +94,14 @@ func calc(x: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((find(i) == x) && (!bl[i])))
       {
         num += 1;
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= n))
           {
             if ((bl[j] && ((a[i] % a[j]) == 0)))
@@ -120,12 +120,12 @@ func calc(x: dynamic)
     return make_pair(1, 0);
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (((1 << m)) - 1)))
     {
       cnt[i] = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if ((((find(j) == x) && (!bl[j])) && (((mask[j] | i)) == i)))
@@ -140,7 +140,7 @@ func calc(x: dynamic)
   }
   memset(f, 0, cpp_sizeof((f)));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((find(i) == x) && (!bl[i])))
@@ -151,18 +151,18 @@ func calc(x: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (num - 1)))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= (((1 << m)) - 1)))
         {
           if (f[i][j])
           {
             (cpp_assign(f[(i + 1)][j], "+=", ((cpp_cast(f[i][j]) * ((cnt[j] - i))) % 1000000007))) %= 1000000007;
             {
-              var k = 1;
+              var k: dynamic = 1;
               while ((k <= n))
               {
                 if (((((find(k) == x) && (!bl[k])) && (((mask[k] & j)) != 0)) && (((mask[k] | j)) != j)))
@@ -182,11 +182,11 @@ func calc(x: dynamic)
   return make_pair(f[num][(((1 << m)) - 1)], (num - 1));
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&a[i]));
@@ -195,12 +195,12 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var flag = true;
+      var flag: dynamic = true;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           if (((i != j) && ((a[i] % a[j]) == 0)))
@@ -215,15 +215,15 @@ func main()
       i += 1;
     }
   }
-  var ans = 1;
-  var tot_cnt = 0;
+  var ans: dynamic = 1;
+  var tot_cnt: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((find(i) == i))
       {
-        var tmp = calc(i);
+        var tmp: dynamic = calc(i);
         ans = ((((cpp_cast(ans) * tmp.first) % 1000000007) * C((tot_cnt + tmp.second), tot_cnt)) % 1000000007);
         tot_cnt += tmp.second;
       }

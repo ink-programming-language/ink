@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var an: dynamic;
+var an: dynamic = cpp_uninitialized();
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var ti = cpp_array(1010);
+var ti: dynamic = cpp_array(1010);
 
 class Xn
 {
-  var x: dynamic;
-  var y: dynamic;
-  var vx: dynamic;
-  var vy: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  var vx: dynamic = cpp_uninitialized();
+  var vy: dynamic = cpp_uninitialized();
 }
 
-var xn = cpp_array(1010);
+var xn: dynamic = cpp_array(1010);
 
-var tmp: dynamic;
+var tmp: dynamic = cpp_uninitialized();
 
 class Dn
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var jd = cpp_array(1010);
+var jd: dynamic = cpp_array(1010);
 
-func cj(u: dynamic, v: dynamic)
+func cj(u: dynamic, v: dynamic) -> dynamic
 {
   return ((u.x * v.y) - (u.y * v.x));
 }
 
-func cmp(u: dynamic, v: dynamic)
+func cmp(u: dynamic, v: dynamic) -> dynamic
 {
   if ((fabs(cj(u, v)) < 1e-8))
   {
@@ -48,17 +48,17 @@ func cmp(u: dynamic, v: dynamic)
   return (cj(u, v) < 0);
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var d: dynamic;
-  var e: dynamic;
-  var f: dynamic;
-  var t: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
+  var e: dynamic = cpp_uninitialized();
+  var f: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   read(n);
   {
     i = 1;
@@ -91,7 +91,7 @@ func main()
           tmp.y = (xn[i].y - xn[j].y);
           tmp.vx = (xn[i].vx - xn[j].vx);
           tmp.vy = (xn[i].vy - xn[j].vy);
-          t = if ((fabs(tmp.vx) > 1e-8)) (tmp.x / tmp.vx) else if ((fabs(tmp.vy) > 1e-8)) (tmp.y / tmp.vy) else 0;
+          t =  ((fabs(tmp.vx) > 1e-8)) ? (tmp.x / tmp.vx) :  ((fabs(tmp.vy) > 1e-8)) ? (tmp.y / tmp.vy) : 0;
           if (((fabs(((tmp.vx * t) - tmp.x)) < 1e-8) && (fabs(((tmp.vy * t) - tmp.y)) < 1e-8)))
           {
             ti[cpp_update(cnt, "++")] = t;

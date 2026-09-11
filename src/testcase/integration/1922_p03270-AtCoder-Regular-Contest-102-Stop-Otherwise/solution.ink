@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var MOD = cpp_expression("#include<ios");
+var MOD: dynamic = cpp_expression("#include<ios");
 
-var cmemo = cpp_array(4000, 4000);
+var cmemo: dynamic = cpp_array(4000, 4000);
 
-func C(x: dynamic, y: dynamic)
+func C(x: dynamic, y: dynamic) -> dynamic
 {
   if ((x < y))
   {
     return 0;
   }
-  var res = cmemo[x][y];
+  var res: dynamic = cmemo[x][y];
   if ((res != -1))
   {
     return res;
@@ -22,7 +22,7 @@ func C(x: dynamic, y: dynamic)
   return cpp_assign(res, "=", (((C((x - 1), y) + C((x - 1), (y - 1)))) % MOD));
 }
 
-func cnt(n: dynamic, k: dynamic)
+func cnt(n: dynamic, k: dynamic) -> dynamic
 {
   if ((n < 0))
   {
@@ -31,12 +31,12 @@ func cnt(n: dynamic, k: dynamic)
   return C(((n + k) - 1), n);
 }
 
-func solve(n: dynamic, ban: dynamic, k: dynamic)
+func solve(n: dynamic, ban: dynamic, k: dynamic) -> dynamic
 {
-  var res = 0;
-  var p = 1;
+  var res: dynamic = 0;
+  var p: dynamic = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= ban))
     {
       res += (((p * C(ban, i)) * cnt((n - (2 * i)), k)) % MOD);
@@ -52,14 +52,14 @@ func solve(n: dynamic, ban: dynamic, k: dynamic)
   return (cnt(n, k) - res);
 }
 
-func cnthoge(x: dynamic, k: dynamic)
+func cnthoge(x: dynamic, k: dynamic) -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= k))
     {
-      var kk = (x - i);
+      var kk: dynamic = (x - i);
       if ((((0 < kk) && (kk <= k)) && (kk != i)))
       {
         res += 1;
@@ -70,16 +70,16 @@ func cnthoge(x: dynamic, k: dynamic)
   return (res / 2);
 }
 
-func main()
+func main() -> dynamic
 {
-  var k: dynamic;
-  var n: dynamic;
+  var k: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4000))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 4000))
         {
           cmemo[i][j] = -1;
@@ -91,10 +91,10 @@ func main()
   }
   read(k, n);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= (2 * k)))
     {
-      var res = 0;
+      var res: dynamic = 0;
       if (((i % 2) == 0))
       {
         res += solve(n, cnthoge(i, k), (k - 1));

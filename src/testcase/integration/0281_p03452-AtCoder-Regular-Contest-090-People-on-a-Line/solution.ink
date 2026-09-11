@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-var maxn = 112345;
+var maxn: dynamic = 112345;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var l: dynamic;
+var l: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var d = cpp_array(maxn);
+var d: dynamic = cpp_array(maxn);
 
-var vis = cpp_array(maxn);
+var vis: dynamic = cpp_array(maxn);
 
-var G = cpp_array(maxn);
+var G: dynamic = cpp_array(maxn);
 
-func dfs(u: dynamic, dep: dynamic)
+func dfs(u: dynamic, dep: dynamic) -> dynamic
 {
   vis[u] = 1;
   d[u] = dep;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cpp_cast(G[u].size())))
     {
-      var v = G[u][i].first;
-      var w = G[u][i].second;
+      var v: dynamic = G[u][i].first;
+      var w: dynamic = G[u][i].second;
       if ((vis[v] && ((d[u] + w) != d[v])))
       {
         return false;
@@ -42,11 +42,11 @@ func dfs(u: dynamic, dep: dynamic)
   return true;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       scanf("%d%d%d", (&l), (&r), (&x));
@@ -56,7 +56,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((!vis[i]) && (!dfs(i, 0))))

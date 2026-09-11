@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func mod(n: dynamic, m: dynamic)
+func mod(n: dynamic, m: dynamic) -> dynamic
 {
-  var ret = (n % m);
+  var ret: dynamic = (n % m);
   if ((ret < 0))
   {
     ret += m;
@@ -10,12 +10,12 @@ func mod(n: dynamic, m: dynamic)
   return ret;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return (if ((b == 0)) a else gcd(b, (a % b)));
+  return ( ((b == 0)) ? a : gcd(b, (a % b)));
 }
 
-func exp(a: dynamic, b: dynamic, m: dynamic)
+func exp(a: dynamic, b: dynamic, m: dynamic) -> dynamic
 {
   if ((b == 0))
   {
@@ -25,7 +25,7 @@ func exp(a: dynamic, b: dynamic, m: dynamic)
   {
     return mod(a, m);
   }
-  var k = mod(exp(a, (b / 2), m), m);
+  var k: dynamic = mod(exp(a, (b / 2), m), m);
   if ((b & 1))
   {
     return mod((a * mod((k * k), m)), m);
@@ -37,17 +37,17 @@ func exp(a: dynamic, b: dynamic, m: dynamic)
 
 class Bit
 {
-  var BIT: dynamic;
-  var N: dynamic;
-  func Bit()
+  var BIT: dynamic = cpp_uninitialized();
+  var N: dynamic = cpp_uninitialized();
+  func Bit() -> dynamic
   {
     }
-  func Bit(n: dynamic)
+  func Bit(n: dynamic) -> dynamic
   {
       BIT.resize((n + 100), 0);
       N = (n + 10);
     }
-  func update(x: dynamic, v: dynamic)
+  func update(x: dynamic, v: dynamic) -> dynamic
   {
       while ((x < N))
       {
@@ -55,9 +55,9 @@ class Bit
         x += ((x & (-x)));
       }
     }
-  func sum(x: dynamic)
+  func sum(x: dynamic) -> dynamic
   {
-      var r = 0;
+      var r: dynamic = 0;
       while ((x > 0))
       {
         r += BIT[x];
@@ -65,19 +65,19 @@ class Bit
       }
       return r;
     }
-  func query(l: dynamic, r: dynamic)
+  func query(l: dynamic, r: dynamic) -> dynamic
   {
       return (sum(r) - sum((l - 1)));
     }
 }
 
-var mat = cpp_array(200100);
+var mat: dynamic = cpp_array(200100);
 
-var S = cpp_array(3);
+var S: dynamic = cpp_array(3);
 
-var BIT: dynamic;
+var BIT: dynamic = cpp_uninitialized();
 
-func upd(pos: dynamic, c: dynamic, f: dynamic)
+func upd(pos: dynamic, c: dynamic, f: dynamic) -> dynamic
 {
   if (f)
   {
@@ -85,7 +85,7 @@ func upd(pos: dynamic, c: dynamic, f: dynamic)
     S[c].insert(pos);
   } else
   {
-    var last = mat[pos];
+    var last: dynamic = mat[pos];
     BIT[last].update(pos, -1);
     S[last].erase(pos);
     mat[pos] = c;
@@ -94,14 +94,14 @@ func upd(pos: dynamic, c: dynamic, f: dynamic)
   }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func ask()
+func ask() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       if ((S[i].size() == 0))
@@ -132,15 +132,15 @@ func ask()
       i += 1;
     }
   }
-  var res = n;
+  var res: dynamic = n;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       if ((i == 0))
       {
-        var l = (*S[1].begin());
-        var r = (*S[2].begin());
+        var l: dynamic = (*S[1].begin());
+        var r: dynamic = (*S[2].begin());
         if ((l <= r))
         {
           res -= BIT[i].query(l, r);
@@ -154,8 +154,8 @@ func ask()
       }
       if ((i == 1))
       {
-        var l = (*S[2].begin());
-        var r = (*S[0].begin());
+        var l: dynamic = (*S[2].begin());
+        var r: dynamic = (*S[0].begin());
         if ((l <= r))
         {
           res -= BIT[i].query(l, r);
@@ -169,8 +169,8 @@ func ask()
       }
       if ((i == 2))
       {
-        var l = (*S[0].begin());
-        var r = (*S[1].begin());
+        var l: dynamic = (*S[0].begin());
+        var r: dynamic = (*S[1].begin());
         if ((l <= r))
         {
           res -= BIT[i].query(l, r);
@@ -188,24 +188,24 @@ func ask()
   write(res, "\n");
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
   read(n, q);
-  var mp: dynamic;
+  var mp: dynamic = cpp_uninitialized();
   mp[cpp_char("P")] = 0;
   mp[cpp_char("S")] = 1;
   mp[cpp_char("R")] = 2;
   BIT = vector(3);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 3))
     {
       BIT[i] = Bit(n);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < (n + 10)))
         {
           BIT[i].BIT[j] = 0;
@@ -216,10 +216,10 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
-      var cc: dynamic;
+      var cc: dynamic = cpp_uninitialized();
       read(cc);
       mat[i] = mp[cc];
       upd(i, mat[i], 1);
@@ -229,10 +229,10 @@ func main()
   ask();
   while (cpp_update(q, "--"))
   {
-    var p: dynamic;
-    var cc: dynamic;
+    var p: dynamic = cpp_uninitialized();
+    var cc: dynamic = cpp_uninitialized();
     read(p, cc);
-    var c = mp[cc];
+    var c: dynamic = mp[cc];
     upd(p, c, 0);
     ask();
   }

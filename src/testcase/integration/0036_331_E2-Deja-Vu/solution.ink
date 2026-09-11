@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var MAX = (100 + 10);
+var MAX: dynamic = (100 + 10);
 
-var Mod = (cpp_cast(1e9) + 7);
+var Mod: dynamic = (cpp_cast(1e9) + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var g = cpp_array(MAX, MAX);
+var g: dynamic = cpp_array(MAX, MAX);
 
-var can = cpp_array(MAX, MAX);
+var can: dynamic = cpp_array(MAX, MAX);
 
-var p = cpp_array(MAX, MAX);
+var p: dynamic = cpp_array(MAX, MAX);
 
-func get(before: dynamic, kind: dynamic, could: dynamic, have: dynamic)
+func get(before: dynamic, kind: dynamic, could: dynamic, have: dynamic) -> dynamic
 {
-  var j: dynamic;
-  var now = 0;
-  var cc = have;
+  var j: dynamic = cpp_uninitialized();
+  var now: dynamic = 0;
+  var cc: dynamic = have;
   {
     while ((now < cpp_cast(before.size())))
     {
@@ -26,13 +26,13 @@ func get(before: dynamic, kind: dynamic, could: dynamic, have: dynamic)
       {
         break;
       }
-      var a = before[now];
-      var b = before[(now + 1)];
+      var a: dynamic = before[now];
+      var b: dynamic = before[(now + 1)];
       if (((g[a][b] != kind) || (((!could) && can[a][b]))))
       {
         return 0;
       }
-      var nL = p[a][b];
+      var nL: dynamic = p[a][b];
       {
         (j) = (0);
         while (((j) != (cpp_cast(nL.size()))))
@@ -68,11 +68,11 @@ func get(before: dynamic, kind: dynamic, could: dynamic, have: dynamic)
   return (cc == cpp_cast(before.size()));
 }
 
-func isCan(a: dynamic, b: dynamic)
+func isCan(a: dynamic, b: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var L = p[a][b];
-  var len = L.size();
+  var i: dynamic = cpp_uninitialized();
+  var L: dynamic = p[a][b];
+  var len: dynamic = L.size();
   {
     (i) = (0);
     while (((i) <= ((len - 2))))
@@ -87,28 +87,28 @@ func isCan(a: dynamic, b: dynamic)
   return 0;
 }
 
-var f_Before = cpp_array(MAX, MAX, MAX);
+var f_Before: dynamic = cpp_array(MAX, MAX, MAX);
 
-var f_After = cpp_array(MAX, MAX, MAX);
+var f_After: dynamic = cpp_array(MAX, MAX, MAX);
 
-var tmp = cpp_array(MAX, MAX, MAX);
+var tmp: dynamic = cpp_array(MAX, MAX, MAX);
 
-var Before = cpp_array(MAX, MAX);
+var Before: dynamic = cpp_array(MAX, MAX);
 
-var After = cpp_array(MAX, MAX);
+var After: dynamic = cpp_array(MAX, MAX);
 
-var ans = cpp_array(MAX);
+var ans: dynamic = cpp_array(MAX);
 
-func work(u: dynamic, kind: dynamic, f: dynamic)
+func work(u: dynamic, kind: dynamic, f: dynamic) -> dynamic
 {
-  var v: dynamic;
+  var v: dynamic = cpp_uninitialized();
   {
     (v) = (1);
     while (((v) <= (n)))
     {
       if (((g[u][v] == kind) && (!can[v][u])))
       {
-        var after: dynamic;
+        var after: dynamic = cpp_uninitialized();
         after.push_back(u);
         after.push_back(v);
         if ((!get(after, kind, (kind != 2), 1)))
@@ -116,7 +116,7 @@ func work(u: dynamic, kind: dynamic, f: dynamic)
           (v) += 1;
           continue;
         }
-        var Len = after.size();
+        var Len: dynamic = after.size();
         f[u][after[(Len - 1)]][(Len - 1)] += 1;
       }
       (v) += 1;
@@ -124,7 +124,7 @@ func work(u: dynamic, kind: dynamic, f: dynamic)
   }
 }
 
-func add(a: dynamic, b: dynamic)
+func add(a: dynamic, b: dynamic) -> dynamic
 {
   a += b;
   if ((a >= Mod))
@@ -133,20 +133,20 @@ func add(a: dynamic, b: dynamic)
   }
 }
 
-func work2(a: dynamic, b: dynamic)
+func work2(a: dynamic, b: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var L = p[a][b];
-  var len = L.size();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var L: dynamic = p[a][b];
+  var len: dynamic = L.size();
   {
     (i) = (0);
     while (((i) <= ((len - 2))))
     {
       if (((L[i] == a) && (L[(i + 1)] == b)))
       {
-        var before: dynamic;
-        var after: dynamic;
+        var before: dynamic = cpp_uninitialized();
+        var after: dynamic = cpp_uninitialized();
         {
           j = i;
           while ((j >= 0))
@@ -166,12 +166,12 @@ func work2(a: dynamic, b: dynamic)
         if ((get(before, 2, 0, before.size()) && get(after, 1, 1, after.size())))
         {
           reverse(before.begin(), before.end());
-          var A = before[0];
-          var B = after[(after.size() - 1)];
-          var Len = ((before.size() + after.size()) - 1);
-          var k: dynamic;
-          var l: dynamic;
-          var o: dynamic;
+          var A: dynamic = before[0];
+          var B: dynamic = after[(after.size() - 1)];
+          var Len: dynamic = ((before.size() + after.size()) - 1);
+          var k: dynamic = cpp_uninitialized();
+          var l: dynamic = cpp_uninitialized();
+          var o: dynamic = cpp_uninitialized();
           {
             (l) = (1);
             while (((l) <= (n)))
@@ -211,17 +211,17 @@ func work2(a: dynamic, b: dynamic)
   return;
 }
 
-var tot = 0;
+var tot: dynamic = 0;
 
-var First: dynamic;
+var First: dynamic = cpp_uninitialized();
 
-func Dp1(f: dynamic, after: dynamic)
+func Dp1(f: dynamic, after: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
-  var o: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var o: dynamic = cpp_uninitialized();
   memset(tmp, 0, cpp_sizeof(tmp));
   {
     (i) = (1);
@@ -231,7 +231,7 @@ func Dp1(f: dynamic, after: dynamic)
       (i) += 1;
     }
   }
-  var up = (2 * n);
+  var up: dynamic = (2 * n);
   {
     (l) = (1);
     while (((l) <= (up)))
@@ -298,12 +298,12 @@ func Dp1(f: dynamic, after: dynamic)
   }
 }
 
-func Dp2(f: dynamic, after: dynamic)
+func Dp2(f: dynamic, after: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
   {
     (i) = (1);
     while (((i) <= (n)))
@@ -312,7 +312,7 @@ func Dp2(f: dynamic, after: dynamic)
       (i) += 1;
     }
   }
-  var up = (2 * n);
+  var up: dynamic = (2 * n);
   {
     (l) = (1);
     while (((l) <= (up)))
@@ -344,20 +344,20 @@ func Dp2(f: dynamic, after: dynamic)
   }
 }
 
-func check(a: dynamic, b: dynamic)
+func check(a: dynamic, b: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var L = p[a][b];
-  var len = L.size();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var L: dynamic = p[a][b];
+  var len: dynamic = L.size();
   {
     (i) = (0);
     while (((i) <= ((len - 2))))
     {
       if (((L[i] == a) && (L[(i + 1)] == b)))
       {
-        var before: dynamic;
-        var after: dynamic;
+        var before: dynamic = cpp_uninitialized();
+        var after: dynamic = cpp_uninitialized();
         {
           j = i;
           while ((j >= 0))
@@ -377,11 +377,11 @@ func check(a: dynamic, b: dynamic)
         if ((get(before, 2, 0, before.size()) && get(after, 1, 1, after.size())))
         {
           reverse(before.begin(), before.end());
-          var A = before[0];
-          var B = after[(after.size() - 1)];
-          var Len = ((before.size() + after.size()) - 1);
-          var l1: dynamic;
-          var l2: dynamic;
+          var A: dynamic = before[0];
+          var B: dynamic = after[(after.size() - 1)];
+          var Len: dynamic = ((before.size() + after.size()) - 1);
+          var l1: dynamic = cpp_uninitialized();
+          var l2: dynamic = cpp_uninitialized();
           {
             (l1) = (0);
             while (((l1) <= ((2 * n))))
@@ -411,17 +411,17 @@ func check(a: dynamic, b: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   scanf("%d%d", (&n), (&m));
   {
     (i) = (1);
     while (((i) <= (m)))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       scanf("%d%d", (&a), (&b));
       if ((!First))
       {
@@ -429,8 +429,8 @@ func main()
       }
       g[a][b] = 1;
       g[b][a] = 2;
-      var k: dynamic;
-      var first: dynamic;
+      var k: dynamic = cpp_uninitialized();
+      var first: dynamic = cpp_uninitialized();
       scanf("%d", (&k));
       while (cpp_update(k, "--"))
       {

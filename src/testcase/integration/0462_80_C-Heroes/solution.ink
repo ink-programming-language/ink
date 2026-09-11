@@ -1,50 +1,50 @@
 // Translated from solution.cpp.
 
-var nm = ["", "Anka", "Chapay", "Snowy", "Hexadecimal", "Dracul", "Troll", "Cleo"];
+var nm: dynamic = ["", "Anka", "Chapay", "Snowy", "Hexadecimal", "Dracul", "Troll", "Cleo"];
 
-var m = [[0]];
+var m: dynamic = [[0]];
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var k1: dynamic;
+var k1: dynamic = cpp_uninitialized();
 
-var k2: dynamic;
+var k2: dynamic = cpp_uninitialized();
 
-var k3: dynamic;
+var k3: dynamic = cpp_uninitialized();
 
-var m1: dynamic;
+var m1: dynamic = cpp_uninitialized();
 
-var m2: dynamic;
+var m2: dynamic = cpp_uninitialized();
 
-var m3: dynamic;
+var m3: dynamic = cpp_uninitialized();
 
-var md: dynamic;
+var md: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-var p1: dynamic;
+var p1: dynamic = cpp_uninitialized();
 
-var p2: dynamic;
+var p2: dynamic = cpp_uninitialized();
 
-var p3: dynamic;
+var p3: dynamic = cpp_uninitialized();
 
-var pp1: dynamic;
+var pp1: dynamic = cpp_uninitialized();
 
-var pp2: dynamic;
+var pp2: dynamic = cpp_uninitialized();
 
-var aa = [[0]];
+var aa: dynamic = [[0]];
 
-var mm: dynamic;
+var mm: dynamic = cpp_uninitialized();
 
-func gen(k1: dynamic, k2: dynamic, k3: dynamic, f: dynamic = 0)
+func gen(k1: dynamic, k2: dynamic, k3: dynamic, f: dynamic = 0) -> dynamic
 {
   p1 = (a / k1);
   p2 = (b / k2);
@@ -64,14 +64,14 @@ func gen(k1: dynamic, k2: dynamic, k3: dynamic, f: dynamic = 0)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var s1 = [0];
-  var s2 = [0];
-  var s3 = [0];
+  var s1: dynamic = [0];
+  var s2: dynamic = [0];
+  var s3: dynamic = [0];
   read(n);
-  var t: dynamic;
-  var j: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))
@@ -151,15 +151,15 @@ func main()
       j += 1;
     }
   }
-  var mm1 = 0;
+  var mm1: dynamic = 0;
   {
-    var ii = 1;
+    var ii: dynamic = 1;
     while ((ii <= mm))
     {
       m1 = aa[ii][1];
       m2 = aa[ii][2];
       m3 = aa[ii][3];
-      var bb = [0];
+      var bb: dynamic = [0];
       {
         i = 1;
         while ((i <= m1))
@@ -184,7 +184,7 @@ func main()
           i += 1;
         }
       }
-      var k = cpp_array(4);
+      var k: dynamic = cpp_array(4);
       while (true)
       {
         k[3] = cpp_assign(k[1], "=", cpp_assign(k[2], "=", 0));

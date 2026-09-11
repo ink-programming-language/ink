@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var MAXN = (2e5 + 10);
+var MAXN: dynamic = (2e5 + 10);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(MAXN);
+var a: dynamic = cpp_array(MAXN);
 
-var vis = cpp_array(MAXN);
+var vis: dynamic = cpp_array(MAXN);
 
-var nxt = cpp_array(MAXN);
+var nxt: dynamic = cpp_array(MAXN);
 
-func get_nxt(u: dynamic)
+func get_nxt(u: dynamic) -> dynamic
 {
-  return if ((nxt[u] == u)) u else cpp_assign(nxt[u], "=", get_nxt(nxt[u]));
+  return  ((nxt[u] == u)) ? u : cpp_assign(nxt[u], "=", get_nxt(nxt[u]));
 }
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var q = cpp_array(MAXN);
+var q: dynamic = cpp_array(MAXN);
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
-  var op: dynamic;
+  var op: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n * 2)))
     {
       read(op);
@@ -42,7 +42,7 @@ func main()
   }
   vis[((n * 2) + 1)] = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= ((n * 2) + 1)))
     {
       nxt[i] = (i + (!vis[i]));
@@ -51,9 +51,9 @@ func main()
   }
   q[cpp_assign(h, "=", cpp_assign(t, "=", n))] = pair(0x3f3f3f3f, 0);
   {
-    var i = 1;
-    var j: dynamic;
-    var k: dynamic;
+    var i: dynamic = 1;
+    var j: dynamic = cpp_uninitialized();
+    var k: dynamic = cpp_uninitialized();
     while ((i <= (n * 2)))
     {
       if ((!vis[i]))
@@ -80,7 +80,7 @@ func main()
   }
   printf("YES\n");
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= (n * 2)))
     {
       if (vis[i])

@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-func sieve_of_eratosthenes(n: dynamic)
+func sieve_of_eratosthenes(n: dynamic) -> dynamic
 {
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i < n))
     {
       primes[i] = i;
@@ -15,13 +15,13 @@ func sieve_of_eratosthenes(n: dynamic)
     }
   }
   {
-    var i = 2;
+    var i: dynamic = 2;
     while (((i * i) < n))
     {
       if (primes[i])
       {
         {
-          var j = (i * i);
+          var j: dynamic = (i * i);
           while ((j < n))
           {
             primes[j] = 0;
@@ -35,29 +35,29 @@ func sieve_of_eratosthenes(n: dynamic)
   return primes;
 }
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   ios.sync_with_stdio(false);
-  var primes = sieve_of_eratosthenes(1000005);
-  var N: dynamic;
+  var primes: dynamic = sieve_of_eratosthenes(1000005);
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(A[i]);
       i += 1;
     }
   }
-  var B: dynamic;
-  var C: dynamic;
-  var f1: dynamic;
-  var f2: dynamic;
-  var f3: dynamic;
+  var B: dynamic = cpp_uninitialized();
+  var C: dynamic = cpp_uninitialized();
+  var f1: dynamic = cpp_uninitialized();
+  var f2: dynamic = cpp_uninitialized();
+  var f3: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if ((i > 0))
@@ -104,10 +104,10 @@ func main()
       i += 1;
     }
   }
-  var dp = cpp_construct((cpp_cast(B.size()) + 1), vector(3, 0));
+  var dp: dynamic = cpp_construct((cpp_cast(B.size()) + 1), vector(3, 0));
   dp[0][1] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < B.size()))
     {
       if ((C[i] == 0))

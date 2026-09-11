@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   scanf("%lld", (&N));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       scanf("%lld", (&a));
@@ -19,9 +19,9 @@ func main()
     }
   }
   a = 0;
-  for (var i in m)
+  for (var i: dynamic in m)
   {
-    a += if ((i.second >= i.first)) (i.second - i.first) else i.second;
+    a +=  ((i.second >= i.first)) ? (i.second - i.first) : i.second;
   }
   write(a, "\n");
   return 0;

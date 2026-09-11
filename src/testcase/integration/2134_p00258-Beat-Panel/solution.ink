@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var dp = cpp_array(65536, 100);
+var dp: dynamic = cpp_array(65536, 100);
 
-var c = cpp_array(16, 30);
+var c: dynamic = cpp_array(16, 30);
 
-var d = cpp_array(16, 30);
+var d: dynamic = cpp_array(16, 30);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var p = cpp_array(16);
+var p: dynamic = cpp_array(16);
 
-var q = cpp_array(16);
+var q: dynamic = cpp_array(16);
 
-func count()
+func count() -> dynamic
 {
-  var cnt2 = 0;
+  var cnt2: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 16))
     {
       cnt2 += (q[i] * ((1 << i)));
@@ -28,16 +28,16 @@ func count()
   return cnt2;
 }
 
-func main()
+func main() -> dynamic
 {
   while (true)
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 100))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 65536))
           {
             dp[i][j] = -1;
@@ -50,17 +50,17 @@ func main()
       }
     }
     read(n, m);
-    var cnt = 0;
+    var cnt: dynamic = 0;
     if (((n == 0) && (m == 0)))
     {
       break;
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 16))
           {
             read(c[i][j]);
@@ -71,11 +71,11 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 16))
           {
             read(d[i][j]);
@@ -86,7 +86,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         cnt += (c[0][i] * ((1 << i)));
@@ -95,11 +95,11 @@ func main()
     }
     dp[0][0] = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < 65536))
           {
             if ((dp[i][j] == -1))
@@ -108,7 +108,7 @@ func main()
               continue;
             }
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < 16))
               {
                 p[k] = (((j / ((1 << k)))) % 2);
@@ -116,7 +116,7 @@ func main()
               }
             }
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < 16))
               {
                 if ((c[i][k] == 1))
@@ -127,11 +127,11 @@ func main()
               }
             }
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < m))
               {
                 {
-                  var l = 0;
+                  var l: dynamic = 0;
                   while ((l < 16))
                   {
                     q[l] = p[l];
@@ -140,7 +140,7 @@ func main()
                 }
                 cnt = 0;
                 {
-                  var l = 0;
+                  var l: dynamic = 0;
                   while ((l < 16))
                   {
                     if ((d[k][l] == 1))
@@ -164,9 +164,9 @@ func main()
         i += 1;
       }
     }
-    var minx = 0;
+    var minx: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 65536))
       {
         minx = max(minx, dp[n][i]);

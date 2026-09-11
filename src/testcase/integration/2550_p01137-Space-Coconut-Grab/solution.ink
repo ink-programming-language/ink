@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var cpp_name = cpp_expression("#include<bits/stdc++.h> #defi");
+var cpp_name: dynamic = cpp_expression("#include<bits/stdc++.h> #defi");
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(int)(n);i++)");
 }
 
-func main()
+func main() -> dynamic
 {
   cpp_name;
-  var e: dynamic;
+  var e: dynamic = cpp_uninitialized();
   while (cpp_comma((cin >> e), (e != 0)))
   {
-    var m = (1 << 29);
+    var m: dynamic = (1 << 29);
     REP(i, 101);
     {
       if ((((i * i) * i) > e))

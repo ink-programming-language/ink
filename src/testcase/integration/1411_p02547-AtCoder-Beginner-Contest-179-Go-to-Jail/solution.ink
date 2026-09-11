@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
+  var N: dynamic = cpp_uninitialized();
   read(N);
-  var num = 0;
-  var ans = false;
+  var num: dynamic = 0;
+  var ans: dynamic = false;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var d1: dynamic;
-      var d2: dynamic;
+      var d1: dynamic = cpp_uninitialized();
+      var d2: dynamic = cpp_uninitialized();
       read(d1, d2);
       if ((d1 == d2))
       {
@@ -27,5 +27,5 @@ func main()
       i += 1;
     }
   }
-  write((if (ans) "Yes" else "No"), "\n");
+  write(( (ans) ? "Yes" : "No"), "\n");
 }

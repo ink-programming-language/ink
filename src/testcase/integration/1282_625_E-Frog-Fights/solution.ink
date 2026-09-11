@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-var INF = (1e9 + 7);
+var INF: dynamic = (1e9 + 7);
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while ((!isdigit(ch)))
   {
     if ((ch == cpp_char("-")))
@@ -23,34 +23,34 @@ func read()
   return (x * f);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var p = cpp_array(100005);
+var p: dynamic = cpp_array(100005);
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var pre = cpp_array(100005);
+var pre: dynamic = cpp_array(100005);
 
-var nxt = cpp_array(100005);
+var nxt: dynamic = cpp_array(100005);
 
-var x = cpp_array(100005);
+var x: dynamic = cpp_array(100005);
 
-func cmp(a: dynamic, b: dynamic)
+func cmp(a: dynamic, b: dynamic) -> dynamic
 {
   return (p[a] < p[b]);
 }
 
-var st: dynamic;
+var st: dynamic = cpp_uninitialized();
 
-func dis(i: dynamic, j: dynamic)
+func dis(i: dynamic, j: dynamic) -> dynamic
 {
   if ((i == j))
   {
     return INF;
   }
-  var d = ((((p[j] - p[i]) + L)) % L);
+  var d: dynamic = ((((p[j] - p[i]) + L)) % L);
   if ((i > j))
   {
     d = (((d + a[j])) % L);
@@ -66,12 +66,12 @@ func dis(i: dynamic, j: dynamic)
   return (((((d - a[j]) - 1)) / ((a[i] - a[j]))) + 1);
 }
 
-func main()
+func main() -> dynamic
 {
   n = read();
   L = read();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       p[i] = read();
@@ -83,7 +83,7 @@ func main()
   sort((x + 1), ((x + 1) + n), cmp);
   pre[x[1]] = x[n];
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((i > 1))
@@ -95,19 +95,19 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       st.insert(make_pair(dis(i, nxt[i]), i));
       i += 1;
     }
   }
-  var it: dynamic;
+  var it: dynamic = cpp_uninitialized();
   while (st.size())
   {
     it = st.begin();
-    var i = it->second;
-    var d = it->first;
+    var i: dynamic = it->second;
+    var d: dynamic = it->first;
     if ((d == INF))
     {
       break;

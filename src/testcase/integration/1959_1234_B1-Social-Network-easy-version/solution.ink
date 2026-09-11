@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var N = (200 + 5);
+var N: dynamic = (200 + 5);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var id = cpp_array(N);
+var id: dynamic = cpp_array(N);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var map: dynamic;
+var map: dynamic = cpp_uninitialized();
 
-func print()
+func print() -> dynamic
 {
   if (q.empty())
   {
     return;
   }
-  var t = q.front();
+  var t: dynamic = q.front();
   q.pop();
   print();
   printf("%d ", t);
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&k));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&id[i]));
@@ -36,7 +36,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (map[id[i]])

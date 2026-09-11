@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func swap(x: dynamic, y: dynamic)
+func swap(x: dynamic, y: dynamic) -> dynamic
 {
-  var t = x;
+  var t: dynamic = x;
   x = y;
   y = t;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var p = cpp_new();
-  var k: dynamic;
+  var p: dynamic = cpp_new();
+  var k: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(p[i]);
@@ -23,9 +23,9 @@ func main()
     }
   }
   sort(k.begin(), k.end());
-  var count = 0;
+  var count: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((p[i] != k[i]))

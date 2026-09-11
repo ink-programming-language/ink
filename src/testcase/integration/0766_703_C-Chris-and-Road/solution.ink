@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var B: dynamic;
+var B: dynamic = cpp_uninitialized();
 
-var P: dynamic;
+var P: dynamic = cpp_uninitialized();
 
-var bus = cpp_array(10001);
+var bus: dynamic = cpp_array(10001);
 
-var win = true;
+var win: dynamic = true;
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   if (fopen("cf703c.in", "r"))
@@ -24,11 +24,11 @@ func main()
   }
   read(N, W, B, P);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
-      var a: dynamic;
-      var b: dynamic;
+      var a: dynamic = cpp_uninitialized();
+      var b: dynamic = cpp_uninitialized();
       read(a, b);
       bus[i].first = (a * 1.0);
       bus[i].second = (b * 1.0);

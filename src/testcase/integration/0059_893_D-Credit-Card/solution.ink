@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   write(fixed, setprecision(10));
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var n: dynamic;
-  var d: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var d: dynamic = cpp_uninitialized();
   read(n, d);
-  var a = cpp_array(n);
-  var b = cpp_array(n);
+  var a: dynamic = cpp_array(n);
+  var b: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
-      b[i] = (if (i) (b[(i - 1)] + a[i]) else a[i]);
+      b[i] = ( (i) ? (b[(i - 1)] + a[i]) : a[i]);
       if ((b[i] > d))
       {
         write(-1);
@@ -25,19 +25,19 @@ func main()
       i += 1;
     }
   }
-  var maxi = cpp_array((n + 1));
+  var maxi: dynamic = cpp_array((n + 1));
   maxi[n] = 0;
   maxi[(n - 1)] = b[(n - 1)];
   {
-    var i = (n - 2);
+    var i: dynamic = (n - 2);
     while ((i >= 0))
     {
       maxi[i] = max(b[i], maxi[(i + 1)]);
       i -= 1;
     }
   }
-  var added = 0;
-  var ans = 0;
+  var added: dynamic = 0;
+  var ans: dynamic = 0;
   if (((a[0] == 0) && (b[0] < 0)))
   {
     added += (d - maxi[0]);
@@ -49,13 +49,13 @@ func main()
     ans += 1;
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       b[i] += added;
       if (((a[i] == 0) && (b[i] < 0)))
       {
-        var here = ((d - maxi[i]) - added);
+        var here: dynamic = ((d - maxi[i]) - added);
         added += here;
         ans += 1;
         b[i] += here;

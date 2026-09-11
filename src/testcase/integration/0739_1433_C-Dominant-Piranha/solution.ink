@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var mod = (1e8 + 7);
+var mod: dynamic = (1e8 + 7);
 
-var N = (3e5 + 10);
+var N: dynamic = (3e5 + 10);
 
-var vis = cpp_array(N);
+var vis: dynamic = cpp_array(N);
 
-func main()
+func main() -> dynamic
 {
-  var num: dynamic;
+  var num: dynamic = cpp_uninitialized();
   scanf("%d", (&num));
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   while (cpp_update(num, "--"))
   {
     scanf("%d", (&n));
-    var maxx = 0;
+    var maxx: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         scanf("%d", (&vis[i]));
@@ -25,9 +25,9 @@ func main()
         i += 1;
       }
     }
-    var num = -1;
+    var num: dynamic = -1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((vis[i] == maxx))

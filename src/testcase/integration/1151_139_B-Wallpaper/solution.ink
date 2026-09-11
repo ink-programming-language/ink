@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
-  return if (((b == 0))) a else gcd(b, (a % b));
+  return  (((b == 0))) ? a : gcd(b, (a % b));
 }
 
-func xabs(a: dynamic)
+func xabs(a: dynamic) -> dynamic
 {
-  return if ((a > 0)) a else (-a);
+  return  ((a > 0)) ? a : (-a);
 }
 
-func getCost(l: dynamic, w: dynamic, h: dynamic, rl: dynamic, rw: dynamic, cost: dynamic)
+func getCost(l: dynamic, w: dynamic, h: dynamic, rl: dynamic, rw: dynamic, cost: dynamic) -> dynamic
 {
-  var cnt = 1;
-  var p = (2 * ((l + w)));
-  var crl = rl;
-  var pok = 0;
+  var cnt: dynamic = 1;
+  var p: dynamic = (2 * ((l + w)));
+  var crl: dynamic = rl;
+  var pok: dynamic = 0;
   while (true)
   {
     if ((crl >= h))
@@ -40,41 +40,41 @@ func getCost(l: dynamic, w: dynamic, h: dynamic, rl: dynamic, rw: dynamic, cost:
   return (cnt * cost);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(l[i], w[i], h[i]);
       i += 1;
     }
   }
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   read(m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(rl[i], rw[i], cost[i]);
       i += 1;
     }
   }
-  var sum = 0;
+  var sum: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var msum = -1;
+      var msum: dynamic = -1;
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           if ((rl[j] >= h[i]))
           {
-            var s = getCost(l[i], w[i], h[i], rl[j], rw[j], cost[j]);
+            var s: dynamic = getCost(l[i], w[i], h[i], rl[j], rw[j], cost[j]);
             if (((msum == -1) || (s < msum)))
             {
               msum = s;

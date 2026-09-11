@@ -1,22 +1,22 @@
 // Translated from solution.cpp.
 
-var INF = (((1 << 30)) - 1);
+var INF: dynamic = (((1 << 30)) - 1);
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   a = min(a, b);
 }
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var dp = cpp_array(20, 1005);
-  var S = cpp_array(1005);
-  var pq: dynamic;
+  var N: dynamic = cpp_uninitialized();
+  var dp: dynamic = cpp_array(20, 1005);
+  var S: dynamic = cpp_array(1005);
+  var pq: dynamic = cpp_uninitialized();
   fill_n((*dp), (1005 * 20), INF);
   read(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(S[i]);
@@ -27,15 +27,15 @@ func main()
   }
   while ((!pq.empty()))
   {
-    var dat = pq.top();
+    var dat: dynamic = pq.top();
     pq.pop();
-    var cost = dat.first;
-    var node = dat.second.first;
-    var pos = dat.second.second;
-    var nodesize = S[node].size();
-    var remainsize = (nodesize - pos);
+    var cost: dynamic = dat.first;
+    var node: dynamic = dat.second.first;
+    var pos: dynamic = dat.second.second;
+    var nodesize: dynamic = S[node].size();
+    var remainsize: dynamic = (nodesize - pos);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < N))
       {
         if (((i == node) && (pos == 0)))
@@ -43,12 +43,12 @@ func main()
           i += 1;
           continue;
         }
-        var len = S[i].size();
+        var len: dynamic = S[i].size();
         if ((len > remainsize))
         {
           if ((S[node].substr(pos, remainsize) == S[i].substr(0, remainsize)))
           {
-            var ncost = (cost + remainsize);
+            var ncost: dynamic = (cost + remainsize);
             if ((dp[i][remainsize] > ncost))
             {
               chmin(dp[i][remainsize], ncost);
@@ -57,7 +57,7 @@ func main()
           }
         } else if ((S[node].substr(pos, len) == S[i]))
         {
-          var ncost = (cost + len);
+          var ncost: dynamic = (cost + len);
           if ((dp[node][(pos + len)] > ncost))
           {
             chmin(dp[node][(pos + len)], ncost);
@@ -71,9 +71,9 @@ func main()
       }
     }
   }
-  var minv = INF;
+  var minv: dynamic = INF;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       minv = min(minv, dp[i][S[i].size()]);

@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func power(x: dynamic, n: dynamic)
+func power(x: dynamic, n: dynamic) -> dynamic
 {
-  var result = 1;
+  var result: dynamic = 1;
   while (n)
   {
     if (((n % 2) == 1))
@@ -15,7 +15,7 @@ func power(x: dynamic, n: dynamic)
   return result;
 }
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((!b))
   {
@@ -24,16 +24,16 @@ func gcd(a: dynamic, b: dynamic)
   return gcd(b, (a % b));
 }
 
-func lcm(a: dynamic, b: dynamic)
+func lcm(a: dynamic, b: dynamic) -> dynamic
 {
   return (((a * b)) / gcd(a, b));
 }
 
-func BS(a: dynamic, s: dynamic, n: dynamic, val: dynamic)
+func BS(a: dynamic, s: dynamic, n: dynamic, val: dynamic) -> dynamic
 {
-  var mid: dynamic;
-  var beg = s;
-  var end = (n - 1);
+  var mid: dynamic = cpp_uninitialized();
+  var beg: dynamic = s;
+  var end: dynamic = (n - 1);
   while ((beg <= end))
   {
     mid = (((beg + end)) / 2);
@@ -51,9 +51,9 @@ func BS(a: dynamic, s: dynamic, n: dynamic, val: dynamic)
   return mid;
 }
 
-func mul(x: dynamic, y: dynamic, m: dynamic)
+func mul(x: dynamic, y: dynamic, m: dynamic) -> dynamic
 {
-  var z = ((1 * x) * y);
+  var z: dynamic = ((1 * x) * y);
   if ((z >= m))
   {
     z %= m;
@@ -61,9 +61,9 @@ func mul(x: dynamic, y: dynamic, m: dynamic)
   return z;
 }
 
-func powmod(x: dynamic, y: dynamic, m: dynamic)
+func powmod(x: dynamic, y: dynamic, m: dynamic) -> dynamic
 {
-  var r = 1;
+  var r: dynamic = 1;
   while (y)
   {
     if ((y & 1))
@@ -76,26 +76,26 @@ func powmod(x: dynamic, y: dynamic, m: dynamic)
   return r;
 }
 
-func start()
+func start() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
 }
 
-func main()
+func main() -> dynamic
 {
   start();
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read((t));
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var s: dynamic;
+    var s: dynamic = cpp_uninitialized();
     read(s);
-    var c = 0;
+    var c: dynamic = 0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         if ((s[i] == s[(i - 1)]))

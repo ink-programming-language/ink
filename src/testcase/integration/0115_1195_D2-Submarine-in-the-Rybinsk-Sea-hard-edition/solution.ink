@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var Nmax = 100555;
+var Nmax: dynamic = 100555;
 
-var digit_tally = cpp_array(11);
+var digit_tally: dynamic = cpp_array(11);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(Nmax);
+var a: dynamic = cpp_array(Nmax);
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i]);
-      var digits = (floor(log10(a[i])) + 1);
+      var digits: dynamic = (floor(log10(a[i])) + 1);
       digit_tally[digits] += 1;
       i += 1;
     }
   }
-  var result = 0;
+  var result: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var b = cpp_array(2, 11);
+      var b: dynamic = cpp_array(2, 11);
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k < 11))
         {
           b[k][0] = 0;
@@ -38,8 +38,8 @@ func main(argument_0: dynamic)
           k += 1;
         }
       }
-      var digits = 0;
-      var x = a[i];
+      var digits: dynamic = 0;
+      var x: dynamic = a[i];
       while (x)
       {
         digits += 1;
@@ -47,10 +47,10 @@ func main(argument_0: dynamic)
         x /= 10;
         b[digits][1] = x;
       }
-      var power = 1;
-      var sparsed = 0;
+      var power: dynamic = 1;
+      var sparsed: dynamic = 0;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= 10))
         {
           sparsed = ((((power * b[j][0]) + sparsed)) % mod);
@@ -62,7 +62,7 @@ func main(argument_0: dynamic)
           }
           if ((digits > j))
           {
-            var rest = ((1 * b[j][1]) * power);
+            var rest: dynamic = ((1 * b[j][1]) * power);
             result += (((((((rest * 2)) % mod)) * digit_tally[j])) % mod);
           }
           result += (((((((sparsed * 11)) % mod)) * digit_tally[j])) % mod);

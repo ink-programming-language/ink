@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func gi()
+func gi() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while ((!isdigit(ch)))
   {
     f ^= (ch == cpp_char("-"));
@@ -15,12 +15,12 @@ func gi()
     x = (((x * 10) + ch) - cpp_char("0"));
     ch = getchar();
   }
-  return if (f) x else (-x);
+  return  (f) ? x : (-x);
 }
 
-func pow(x: dynamic, y: dynamic)
+func pow(x: dynamic, y: dynamic) -> dynamic
 {
-  var ret = 1;
+  var ret: dynamic = 1;
   while (y)
   {
     if ((y & 1))
@@ -33,37 +33,37 @@ func pow(x: dynamic, y: dynamic)
   return ret;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var fir = cpp_array(110);
+var fir: dynamic = cpp_array(110);
 
-var dis = cpp_array(210);
+var dis: dynamic = cpp_array(210);
 
-var nxt = cpp_array(210);
+var nxt: dynamic = cpp_array(210);
 
-var id: dynamic;
+var id: dynamic = cpp_uninitialized();
 
-func link(a: dynamic, b: dynamic)
+func link(a: dynamic, b: dynamic) -> dynamic
 {
   nxt[cpp_update(id, "++")] = fir[a];
   fir[a] = id;
   dis[id] = b;
 }
 
-var siz = cpp_array(101);
+var siz: dynamic = cpp_array(101);
 
-var dp = cpp_array(101, 101, 101);
+var dp: dynamic = cpp_array(101, 101, 101);
 
-var dp = cpp_array(101, 101);
+var dp: dynamic = cpp_array(101, 101);
 
-var C = cpp_array(101, 101);
+var C: dynamic = cpp_array(101, 101);
 
-func dfs(x: dynamic, fa: dynamic = -1)
+func dfs(x: dynamic, fa: dynamic = -1) -> dynamic
 {
   siz[x] = 1;
   dp[x][1][1] = 1;
   {
-    var i = fir[x];
+    var i: dynamic = fir[x];
     while (i)
     {
       if ((dis[i] == fa))
@@ -73,11 +73,11 @@ func dfs(x: dynamic, fa: dynamic = -1)
       }
       dfs(dis[i], x);
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= siz[x]))
         {
           {
-            var k = 1;
+            var k: dynamic = 1;
             while ((k <= siz[x]))
             {
               dp[j][k] = dp[x][j][k];
@@ -89,21 +89,21 @@ func dfs(x: dynamic, fa: dynamic = -1)
         }
       }
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= siz[dis[i]]))
         {
           {
-            var k = 1;
+            var k: dynamic = 1;
             while ((k <= siz[dis[i]]))
             {
               if (dp[dis[i]][j][k])
               {
                 {
-                  var J = 1;
+                  var J: dynamic = 1;
                   while ((J <= siz[x]))
                   {
                     {
-                      var K = 1;
+                      var K: dynamic = 1;
                       while ((K <= siz[x]))
                       {
                         if (dp[J][K])
@@ -130,15 +130,15 @@ func dfs(x: dynamic, fa: dynamic = -1)
   }
 }
 
-var ans = cpp_array(101);
+var ans: dynamic = cpp_array(101);
 
-func main()
+func main() -> dynamic
 {
   n = gi();
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < n))
     {
       a = gi();
@@ -151,12 +151,12 @@ func main()
   dfs(1);
   ans[(n - 1)] = 1;
   {
-    var i = (n - 2);
-    var pn = 1;
+    var i: dynamic = (n - 2);
+    var pn: dynamic = 1;
     while ((~i))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= n))
         {
           ans[i] = (((ans[i] + ((1 * dp[1][(n - i)][j]) * j))) % 1000000007);
@@ -170,12 +170,12 @@ func main()
   }
   C[0][0] = 1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       C[i][0] = 1;
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= i))
         {
           C[i][j] = (((C[(i - 1)][(j - 1)] + C[(i - 1)][j])) % 1000000007);
@@ -186,11 +186,11 @@ func main()
     }
   }
   {
-    var i = (n - 1);
+    var i: dynamic = (n - 1);
     while ((~i))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < n))
         {
           ans[i] = ((((ans[i] - (((1 * C[j][i]) * ans[j]) % 1000000007)) + 1000000007)) % 1000000007);
@@ -201,7 +201,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       printf("%d ", ans[i]);

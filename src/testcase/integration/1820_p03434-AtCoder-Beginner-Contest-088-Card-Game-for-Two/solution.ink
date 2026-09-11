@@ -1,12 +1,12 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var N: dynamic;
-  var k = 0;
+  var N: dynamic = cpp_uninitialized();
+  var k: dynamic = 0;
   read(N);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       read(A.at(i));
@@ -15,7 +15,7 @@ func main()
   }
   sort(A.begin(), A.end(), greater());
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < N))
     {
       if (((i % 2) == 0))

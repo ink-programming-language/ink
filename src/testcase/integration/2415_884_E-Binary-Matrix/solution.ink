@@ -1,10 +1,10 @@
 // Translated from solution.cpp.
 
-func readi(x: dynamic)
+func readi(x: dynamic) -> dynamic
 {
-  var v = 0;
-  var f = 1;
-  var c = getchar();
+  var v: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   while (((!isdigit(c)) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -23,11 +23,11 @@ func readi(x: dynamic)
   x = (v * f);
 }
 
-func readll(x: dynamic)
+func readll(x: dynamic) -> dynamic
 {
-  var v = 0;
-  var f = 1;
-  var c = getchar();
+  var v: dynamic = 0;
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   while (((!isdigit(c)) && (c != cpp_char("-"))))
   {
     c = getchar();
@@ -46,33 +46,33 @@ func readll(x: dynamic)
   x = (v * f);
 }
 
-func readc(x: dynamic)
+func readc(x: dynamic) -> dynamic
 {
-  var c: dynamic;
+  var c: dynamic = cpp_uninitialized();
   while (((cpp_assign(c, "=", getchar())) == cpp_char(" ")))
   {
   }
   x = c;
 }
 
-func writes(s: dynamic)
+func writes(s: dynamic) -> dynamic
 {
   puts(s.c_str());
 }
 
-func writeln()
+func writeln() -> dynamic
 {
   writes("");
 }
 
-func writei(x: dynamic)
+func writei(x: dynamic) -> dynamic
 {
   if ((!x))
   {
     putchar(cpp_char("0"));
   }
-  var a = cpp_array(25);
-  var top = 0;
+  var a: dynamic = cpp_array(25);
+  var top: dynamic = 0;
   while (x)
   {
     a[cpp_update(top, "++")] = (((x % 10)) + cpp_char("0"));
@@ -85,14 +85,14 @@ func writei(x: dynamic)
   }
 }
 
-func writell(x: dynamic)
+func writell(x: dynamic) -> dynamic
 {
   if ((!x))
   {
     putchar(cpp_char("0"));
   }
-  var a = cpp_array(25);
-  var top = 0;
+  var a: dynamic = cpp_array(25);
+  var top: dynamic = 0;
   while (x)
   {
     a[cpp_update(top, "++")] = (((x % 10)) + cpp_char("0"));
@@ -105,25 +105,25 @@ func writell(x: dynamic)
   }
 }
 
-var lst = cpp_array((((1 << 15)) + 7));
+var lst: dynamic = cpp_array((((1 << 15)) + 7));
 
-var cur = cpp_array((((1 << 15)) + 7));
+var cur: dynamic = cpp_array((((1 << 15)) + 7));
 
-var fa = cpp_array((((1 << 15)) + 7));
+var fa: dynamic = cpp_array((((1 << 15)) + 7));
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var i: dynamic;
+var i: dynamic = cpp_uninitialized();
 
-var j: dynamic;
+var j: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-func find(x: dynamic)
+func find(x: dynamic) -> dynamic
 {
   if ((x == fa[x]))
   {
@@ -132,7 +132,7 @@ func find(x: dynamic)
   return cpp_assign(fa[x], "=", find(fa[x]));
 }
 
-func merge(x: dynamic, y: dynamic)
+func merge(x: dynamic, y: dynamic) -> dynamic
 {
   if ((find(x) == find(y)))
   {
@@ -142,7 +142,7 @@ func merge(x: dynamic, y: dynamic)
   return 1;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   read(n, m);
@@ -167,7 +167,7 @@ func main()
         j = 1;
         while ((j <= m))
         {
-          var x = (s[((((j - 1)) / 4) + 1)] - cpp_char("0"));
+          var x: dynamic = (s[((((j - 1)) / 4) + 1)] - cpp_char("0"));
           cur[j] = cpp_cast(((x & ((1 << ((3 - (((j - 1)) % 4))))))));
           ans += cur[j];
           j += 1;

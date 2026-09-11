@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var LINF = 1e18;
+var LINF: dynamic = 1e18;
 
-func operator_shift_left(out: dynamic, o: dynamic)
+func operator_shift_left(out: dynamic, o: dynamic) -> dynamic
 {
   (((((out << "(") << o.first) << ",") << o.second) << ")");
   return out;
 }
 
-func operator_shift_left(out: dynamic, V: dynamic)
+func operator_shift_left(out: dynamic, V: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < V.size()))
     {
       (out << V[i]);
@@ -27,10 +27,10 @@ func operator_shift_left(out: dynamic, V: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, Mat: dynamic)
+func operator_shift_left(out: dynamic, Mat: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < Mat.size()))
     {
       if ((i != 0))
@@ -44,11 +44,11 @@ func operator_shift_left(out: dynamic, Mat: dynamic)
   return out;
 }
 
-func operator_shift_left(out: dynamic, mp: dynamic)
+func operator_shift_left(out: dynamic, mp: dynamic) -> dynamic
 {
   (out << "{ ");
   {
-    var it = mp.begin();
+    var it: dynamic = mp.begin();
     while ((it != mp.end()))
     {
       (((out << it->first) << ":") << it->second);
@@ -63,21 +63,21 @@ func operator_shift_left(out: dynamic, mp: dynamic)
   return out;
 }
 
-var dx = [1, 0];
+var dx: dynamic = [1, 0];
 
-var dy = [0, 1];
+var dy: dynamic = [0, 1];
 
-var MAX_WH = cpp_expression("#i");
+var MAX_WH: dynamic = cpp_expression("#i");
 
-var alpha = cpp_array(30);
+var alpha: dynamic = cpp_array(30);
 
-var dp = cpp_array(MAX_WH, MAX_WH, MAX_WH, MAX_WH);
+var dp: dynamic = cpp_array(MAX_WH, MAX_WH, MAX_WH, MAX_WH);
 
-var can = cpp_array(MAX_WH, MAX_WH, MAX_WH, MAX_WH);
+var can: dynamic = cpp_array(MAX_WH, MAX_WH, MAX_WH, MAX_WH);
 
-func dfs(y1: dynamic, x1: dynamic, y2: dynamic, x2: dynamic, maze: dynamic)
+func dfs(y1: dynamic, x1: dynamic, y2: dynamic, x2: dynamic, maze: dynamic) -> dynamic
 {
-  var ret = dp[y1][x1][y2][x2];
+  var ret: dynamic = dp[y1][x1][y2][x2];
   if ((ret != -1))
   {
     return ret;
@@ -99,14 +99,14 @@ func dfs(y1: dynamic, x1: dynamic, y2: dynamic, x2: dynamic, maze: dynamic)
   {
     ret = max(ret, dfs(y1, (x1 + 1), y2, x2, maze));
   }
-  var c = maze[y1][x1];
+  var c: dynamic = maze[y1][x1];
   if (((c >= cpp_char("a")) && (c <= cpp_char("z"))))
   {
-    var idx = (c - cpp_char("a"));
-    for (var p in alpha[idx])
+    var idx: dynamic = (c - cpp_char("a"));
+    for (var p: dynamic in alpha[idx])
     {
-      var ny = p.first;
-      var nx = p.second;
+      var ny: dynamic = p.first;
+      var nx: dynamic = p.second;
       if (((ny > y2) || (nx > x2)))
       {
         continue;
@@ -117,17 +117,17 @@ func dfs(y1: dynamic, x1: dynamic, y2: dynamic, x2: dynamic, maze: dynamic)
       } else
       {
         {
-          var i = 0;
+          var i: dynamic = 0;
           while ((i < 2))
           {
             {
-              var j = 0;
+              var j: dynamic = 0;
               while ((j < 2))
               {
-                var innery1 = (y1 + dy[i]);
-                var innerx1 = (x1 + dx[i]);
-                var innery2 = (ny - dy[j]);
-                var innerx2 = (nx - dx[j]);
+                var innery1: dynamic = (y1 + dy[i]);
+                var innerx1: dynamic = (x1 + dx[i]);
+                var innery2: dynamic = (ny - dy[j]);
+                var innerx2: dynamic = (nx - dx[j]);
                 if (((((innery1 > y2) || (innerx1 > x2)) || (innery2 < y1)) || (innerx2 < x1)))
                 {
                   j += 1;
@@ -151,12 +151,12 @@ func dfs(y1: dynamic, x1: dynamic, y2: dynamic, x2: dynamic, maze: dynamic)
   return ret;
 }
 
-func solve(H: dynamic, W: dynamic)
+func solve(H: dynamic, W: dynamic) -> dynamic
 {
-  var res = -1;
-  var maze = cpp_construct((H + 2), vector((W + 2), cpp_char("#")));
+  var res: dynamic = -1;
+  var maze: dynamic = cpp_construct((H + 2), vector((W + 2), cpp_char("#")));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 30))
     {
       alpha[i].clear();
@@ -164,14 +164,14 @@ func solve(H: dynamic, W: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= H))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= W))
         {
-          var c: dynamic;
+          var c: dynamic = cpp_uninitialized();
           read(c);
           maze[i][j] = c;
           if (((c >= cpp_char("A")) && (c <= cpp_char("Z"))))
@@ -186,11 +186,11 @@ func solve(H: dynamic, W: dynamic)
   }
   memset(can, false, cpp_sizeof((can)));
   {
-    var i = H;
+    var i: dynamic = H;
     while ((i >= 1))
     {
       {
-        var j = W;
+        var j: dynamic = W;
         while ((j >= 1))
         {
           if ((maze[i][j] == cpp_char("#")))
@@ -202,11 +202,11 @@ func solve(H: dynamic, W: dynamic)
           if ((maze[(i + 1)][j] != cpp_char("#")))
           {
             {
-              var ii = (i + 1);
+              var ii: dynamic = (i + 1);
               while ((ii <= H))
               {
                 {
-                  var jj = j;
+                  var jj: dynamic = j;
                   while ((jj <= W))
                   {
                     can[i][j][ii][jj] |= can[(i + 1)][j][ii][jj];
@@ -220,11 +220,11 @@ func solve(H: dynamic, W: dynamic)
           if ((maze[i][(j + 1)] != cpp_char("#")))
           {
             {
-              var ii = i;
+              var ii: dynamic = i;
               while ((ii <= H))
               {
                 {
-                  var jj = (j + 1);
+                  var jj: dynamic = (j + 1);
                   while ((jj <= W))
                   {
                     can[i][j][ii][jj] |= can[i][(j + 1)][ii][jj];
@@ -246,12 +246,12 @@ func solve(H: dynamic, W: dynamic)
   return res;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   cin.tie(0);
   ios_base.sync_with_stdio(false);
-  var H: dynamic;
-  var W: dynamic;
+  var H: dynamic = cpp_uninitialized();
+  var W: dynamic = cpp_uninitialized();
   while (cpp_comma(((cin >> H) >> W), (H | W)))
   {
     write(solve(H, W), "\n");

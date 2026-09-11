@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var f = cpp_array(1000, 1000);
+var f: dynamic = cpp_array(1000, 1000);
 
-var sum = cpp_array(1000);
+var sum: dynamic = cpp_array(1000);
 
 class arr
 {
-  var x: dynamic;
-  var y: dynamic;
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
 }
 
-var a = cpp_array(1000);
+var a: dynamic = cpp_array(1000);
 
-func cmp(x: dynamic, y: dynamic)
+func cmp(x: dynamic, y: dynamic) -> dynamic
 {
   return (((x.x > y.x)) || ((((x.x == y.x)) && ((x.y > y.y)))));
 }
 
-func check(x: dynamic)
+func check(x: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= n))
         {
           f[i][j] = 10000000000000;
@@ -38,8 +38,8 @@ func check(x: dynamic)
   }
   f[0][0] = 0;
   {
-    var i = 1;
-    var j: dynamic;
+    var i: dynamic = 1;
+    var j: dynamic = cpp_uninitialized();
     while ((i <= n))
     {
       {
@@ -50,7 +50,7 @@ func check(x: dynamic)
         }
       }
       {
-        var k = i;
+        var k: dynamic = i;
         while ((k < j))
         {
           sum[((k - i) + 1)] = ((sum[(k - i)] + a[k].x) - (a[k].y * x));
@@ -58,11 +58,11 @@ func check(x: dynamic)
         }
       }
       {
-        var k = 0;
+        var k: dynamic = 0;
         while ((k <= n))
         {
           {
-            var ij = 0;
+            var ij: dynamic = 0;
             while ((ij <= min(k, (j - i))))
             {
               f[(j - 1)][((((k - ij)) + ((j - i))) - ij)] = min(f[(j - 1)][((((k - ij)) + ((j - i))) - ij)], (sum[(((j - i)) - ij)] + f[(i - 1)][k]));
@@ -76,7 +76,7 @@ func check(x: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= n))
     {
       if ((f[n][i] <= 0))
@@ -89,11 +89,11 @@ func check(x: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d", (&n));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&a[i].x));
@@ -102,7 +102,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%lld", (&a[i].y));
@@ -110,9 +110,9 @@ func main()
     }
   }
   sort((a + 1), ((a + n) + 1), cmp);
-  var l = 0;
-  var r = 100000000000;
-  var mid = (((l + r)) >> 1);
+  var l: dynamic = 0;
+  var r: dynamic = 100000000000;
+  var mid: dynamic = (((l + r)) >> 1);
   while (true)
   {
     if (check(mid))

@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var c = getchar();
+  var c: dynamic = getchar();
   while ((!isdigit(c)))
   {
     c = getchar();
@@ -15,13 +15,13 @@ func read(x: dynamic)
   }
 }
 
-var P = 1e18;
+var P: dynamic = 1e18;
 
-var mask = (((1 << 30)) - 1);
+var mask: dynamic = (((1 << 30)) - 1);
 
-var inf = (2e9 + 100);
+var inf: dynamic = (2e9 + 100);
 
-func MIN(a: dynamic, b: dynamic)
+func MIN(a: dynamic, b: dynamic) -> dynamic
 {
   if ((b < a))
   {
@@ -29,37 +29,37 @@ func MIN(a: dynamic, b: dynamic)
   }
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func operator_add(a: dynamic, x: dynamic)
+func operator_add(a: dynamic, x: dynamic) -> dynamic
 {
   return make_pair((((a.first + x)) % P), (a.second + (((a.first + x)) / P)));
 }
 
-func operator_remainder(a: dynamic, x: dynamic)
+func operator_remainder(a: dynamic, x: dynamic) -> dynamic
 {
   return (((a.first + ((((a.second % x) * ((P % x))) % x)))) % x);
 }
 
-var w = cpp_array(601000);
+var w: dynamic = cpp_array(601000);
 
-var s = cpp_array(601000);
+var s: dynamic = cpp_array(601000);
 
-var fail = cpp_array(26, 601000);
+var fail: dynamic = cpp_array(26, 601000);
 
-var ls = cpp_array((601000 << 2));
+var ls: dynamic = cpp_array((601000 << 2));
 
-var rs = cpp_array((601000 << 2));
+var rs: dynamic = cpp_array((601000 << 2));
 
-var val = cpp_array((601000 << 2));
+var val: dynamic = cpp_array((601000 << 2));
 
-var root: dynamic;
+var root: dynamic = cpp_uninitialized();
 
-var ttot: dynamic;
+var ttot: dynamic = cpp_uninitialized();
 
-func build(L: dynamic, R: dynamic, cur: dynamic)
+func build(L: dynamic, R: dynamic, cur: dynamic) -> dynamic
 {
   cur = cpp_update(ttot, "++");
   val[cur] = inf;
@@ -67,19 +67,19 @@ func build(L: dynamic, R: dynamic, cur: dynamic)
   {
     return;
   }
-  var mid = (((L + R)) >> 1);
+  var mid: dynamic = (((L + R)) >> 1);
   build(L, mid, ls[cur]);
   build((mid + 1), R, rs[cur]);
 }
 
-func modify(L: dynamic, R: dynamic, pos: dynamic, x: dynamic, cur: dynamic)
+func modify(L: dynamic, R: dynamic, pos: dynamic, x: dynamic, cur: dynamic) -> dynamic
 {
   MIN(val[cur], x);
   if ((L == R))
   {
     return;
   }
-  var mid = (((L + R)) >> 1);
+  var mid: dynamic = (((L + R)) >> 1);
   if ((pos <= mid))
   {
     modify(L, mid, pos, x, ls[cur]);
@@ -89,14 +89,14 @@ func modify(L: dynamic, R: dynamic, pos: dynamic, x: dynamic, cur: dynamic)
   }
 }
 
-func query(L: dynamic, R: dynamic, l: dynamic, r: dynamic, cur: dynamic)
+func query(L: dynamic, R: dynamic, l: dynamic, r: dynamic, cur: dynamic) -> dynamic
 {
   if (((l <= L) && (R <= r)))
   {
     return val[cur];
   }
-  var mid = (((L + R)) >> 1);
-  var res = inf;
+  var mid: dynamic = (((L + R)) >> 1);
+  var res: dynamic = inf;
   if ((l <= mid))
   {
     res = query(L, mid, l, r, ls[cur]);
@@ -108,12 +108,12 @@ func query(L: dynamic, R: dynamic, l: dynamic, r: dynamic, cur: dynamic)
   return res;
 }
 
-func query(l: dynamic, r: dynamic)
+func query(l: dynamic, r: dynamic) -> dynamic
 {
   return query(1, n, l, r, root);
 }
 
-func Print(pr: dynamic)
+func Print(pr: dynamic) -> dynamic
 {
   if (pr.second)
   {
@@ -124,13 +124,13 @@ func Print(pr: dynamic)
   }
 }
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-func init()
+func init() -> dynamic
 {
   ans = make_pair(0, 0);
   build(1, n, root);
-  var ch = cpp_array(3);
+  var ch: dynamic = cpp_array(3);
   scanf("%s", ch);
   s[1] = (ch[0] - cpp_char("a"));
   read(w[1]);
@@ -139,21 +139,21 @@ func init()
   Print(ans);
 }
 
-var nxt = cpp_array(601000);
+var nxt: dynamic = cpp_array(601000);
 
-func main()
+func main() -> dynamic
 {
   read(n);
   ans = make_pair(0, 0);
   build(1, n, root);
   init();
-  var ptr = 0;
-  var nwres = 0;
+  var cpp_ptr: dynamic = 0;
+  var nwres: dynamic = 0;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
-      var ch = cpp_array(3);
+      var ch: dynamic = cpp_array(3);
       scanf("%s", ch);
       s[i] = ((((ch[0] - cpp_char("a")) + ((ans % 26)))) % 26);
       read(w[i]);
@@ -166,15 +166,15 @@ func main()
       }
       ans = (ans + query(1, i));
       {
-        var c = 0;
+        var c: dynamic = 0;
         while ((c < 26))
         {
           if ((c != s[i]))
           {
-            var p = fail[(i - 1)][c];
+            var p: dynamic = fail[(i - 1)][c];
             while (p)
             {
-              var v = query((i - p), (i - 1));
+              var v: dynamic = query((i - p), (i - 1));
               nwres -= v;
               mp[v] -= 1;
               p = fail[p][c];
@@ -183,27 +183,27 @@ func main()
           c += 1;
         }
       }
-      while ((ptr && (s[(ptr + 1)] != s[i])))
+      while ((cpp_ptr && (s[(cpp_ptr + 1)] != s[i])))
       {
-        ptr = nxt[ptr];
+        cpp_ptr = nxt[cpp_ptr];
       }
-      if ((s[(ptr + 1)] == s[i]))
+      if ((s[(cpp_ptr + 1)] == s[i]))
       {
-        ptr += 1;
+        cpp_ptr += 1;
       }
-      nxt[i] = ptr;
+      nxt[i] = cpp_ptr;
       {
-        var c = 0;
+        var c: dynamic = 0;
         while ((c < 26))
         {
-          fail[i][c] = fail[ptr][c];
+          fail[i][c] = fail[cpp_ptr][c];
           c += 1;
         }
       }
-      fail[i][s[(ptr + 1)]] = ptr;
-      var cnt = 0;
+      fail[i][s[(cpp_ptr + 1)]] = cpp_ptr;
+      var cnt: dynamic = 0;
       {
-        var it = mp.upper_bound(w[i]);
+        var it: dynamic = mp.upper_bound(w[i]);
         while ((it != mp.end()))
         {
           cnt += it->second;

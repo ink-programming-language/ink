@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-func getString(n: dynamic)
+func getString(n: dynamic) -> dynamic
 {
-  var k: dynamic;
+  var k: dynamic = cpp_uninitialized();
   while ((n != 0))
   {
     k += (((n % 10)) + cpp_char("0"));
@@ -12,11 +12,11 @@ func getString(n: dynamic)
   return k;
 }
 
-func getSo(a: dynamic)
+func getSo(a: dynamic) -> dynamic
 {
-  var x = 0;
+  var x: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a.length()))
     {
       x = ((x * 10) + ((a[i] - cpp_char("0"))));
@@ -26,21 +26,21 @@ func getSo(a: dynamic)
   return x;
 }
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
+  var a: dynamic = cpp_uninitialized();
   read(a);
-  var b: dynamic;
+  var b: dynamic = cpp_uninitialized();
   read(b);
-  var k = (a + b);
-  var a1 = getString(a);
-  var b1 = getString(b);
-  var c1 = getString(k);
-  var a2: dynamic;
-  var b2: dynamic;
-  var c2: dynamic;
+  var k: dynamic = (a + b);
+  var a1: dynamic = getString(a);
+  var b1: dynamic = getString(b);
+  var c1: dynamic = getString(k);
+  var a2: dynamic = cpp_uninitialized();
+  var b2: dynamic = cpp_uninitialized();
+  var c2: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < a1.length()))
     {
       if ((a1[i] == cpp_char("0")))
@@ -53,7 +53,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < b1.length()))
     {
       if ((b1[i] == cpp_char("0")))
@@ -66,7 +66,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < c1.length()))
     {
       if ((c1[i] == cpp_char("0")))
@@ -78,9 +78,9 @@ func main()
       i += 1;
     }
   }
-  var x1 = getSo(a2);
-  var x2 = getSo(b2);
-  var x3 = getSo(c2);
+  var x1: dynamic = getSo(a2);
+  var x2: dynamic = getSo(b2);
+  var x3: dynamic = getSo(c2);
   if (((x1 + x2) == x3))
   {
     write("YES", "\n");

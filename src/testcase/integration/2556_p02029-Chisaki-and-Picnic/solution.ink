@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func chmin(a: dynamic, b: dynamic)
+func chmin(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -8,7 +8,7 @@ func chmin(a: dynamic, b: dynamic)
   }
 }
 
-func chmax(a: dynamic, b: dynamic)
+func chmax(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -16,13 +16,13 @@ func chmax(a: dynamic, b: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(a[i], b[i]);
@@ -30,7 +30,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
       read(c[i], d[i]);
@@ -38,12 +38,12 @@ func main()
     }
   }
   {
-    var x: dynamic;
-    var y: dynamic;
+    var x: dynamic = cpp_uninitialized();
+    var y: dynamic = cpp_uninitialized();
     x.emplace_back(c[0]);
     y.emplace_back(d[0]);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < m))
       {
         if ((y.back() <= d[i]))
@@ -66,10 +66,10 @@ func main()
     c = x;
     d = y;
   }
-  var pq: dynamic;
-  var j = (n - 1);
+  var pq: dynamic = cpp_uninitialized();
+  var j: dynamic = (n - 1);
   {
-    var i = (m - 1);
+    var i: dynamic = (m - 1);
     while ((i >= 0))
     {
       while (((j >= 0) && (a[j] >= c[i])))
@@ -87,7 +87,7 @@ func main()
   {
     pq.emplace(b[cpp_update(j, "--")]);
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   while ((!pq.empty()))
   {
     ans += pq.top();

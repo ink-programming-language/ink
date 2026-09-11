@@ -1,62 +1,62 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(int)n;i++)");
 }
 
-func fr(i: dynamic, c: dynamic)
+func fr(i: dynamic, c: dynamic) -> dynamic
 {
   cpp_macro("for(__typeof(c.begin()) i=c.begin();i!=c.end();i++)");
 }
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-func all(c: dynamic)
+func all(c: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostream");
 }
 
-func dbg(x: dynamic)
+func dbg(x: dynamic) -> dynamic
 {
   return cpp_expression("#include<iostream> #includ");
 }
 
-var inf = cpp_cast(1e9);
+var inf: dynamic = cpp_cast(1e9);
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var INF = 1e12;
+var INF: dynamic = 1e12;
 
 class Edge
 {
-  var src: dynamic;
-  var dst: dynamic;
-  var weight: dynamic;
-  func Edge(src: dynamic, dst: dynamic, weight: dynamic)
+  var src: dynamic = cpp_uninitialized();
+  var dst: dynamic = cpp_uninitialized();
+  var weight: dynamic = cpp_uninitialized();
+  func Edge(src: dynamic, dst: dynamic, weight: dynamic) -> dynamic
   {
-      this->src = cpp_construct(src);
-      this->dst = cpp_construct(dst);
-      this->weight = cpp_construct(weight);
+      self->src = cpp_construct(src);
+      self->dst = cpp_construct(dst);
+      self->weight = cpp_construct(weight);
     }
 }
 
-func operator_less(e: dynamic, f: dynamic)
+func operator_less(e: dynamic, f: dynamic) -> dynamic
 {
-  return if ((e.weight != f.weight)) (e.weight > f.weight) else if ((e.src != f.src)) (e.src < f.src) else (e.dst < f.dst);
+  return  ((e.weight != f.weight)) ? (e.weight > f.weight) :  ((e.src != f.src)) ? (e.src < f.src) : (e.dst < f.dst);
 }
 
-func k_shortestPath(g: dynamic, s: dynamic, t: dynamic, k: dynamic, h: dynamic)
+func k_shortestPath(g: dynamic, s: dynamic, t: dynamic, k: dynamic, h: dynamic) -> dynamic
 {
-  var n = g.size();
-  var dist = cpp_array(n);
-  var Q: dynamic;
+  var n: dynamic = g.size();
+  var dist: dynamic = cpp_array(n);
+  var Q: dynamic = cpp_uninitialized();
   Q.push(Edge(-1, s, 0));
   while ((!Q.empty()))
   {
-    var e = Q.top();
+    var e: dynamic = Q.top();
     Q.pop();
     if ((dist[e.dst].size() >= k))
     {
@@ -69,13 +69,13 @@ func k_shortestPath(g: dynamic, s: dynamic, t: dynamic, k: dynamic, h: dynamic)
   return dist[t];
 }
 
-func buildFail(p: dynamic)
+func buildFail(p: dynamic) -> dynamic
 {
-  var m = strlen(p);
-  var fail = cpp_new();
-  var j = cpp_assign(fail[0], "=", -1);
+  var m: dynamic = strlen(p);
+  var fail: dynamic = cpp_new();
+  var j: dynamic = cpp_assign(fail[0], "=", -1);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       while (((j >= 0) && (p[j] != p[(i - 1)])))
@@ -89,14 +89,14 @@ func buildFail(p: dynamic)
   return fail;
 }
 
-func match_cpp(t: dynamic, p: dynamic, fail: dynamic)
+func match_cpp(t: dynamic, p: dynamic, fail: dynamic) -> dynamic
 {
-  var n = strlen(t);
-  var m = strlen(p);
-  var count = 0;
+  var n: dynamic = strlen(t);
+  var m: dynamic = strlen(p);
+  var count: dynamic = 0;
   {
-    var i = 0;
-    var k = 0;
+    var i: dynamic = 0;
+    var k: dynamic = 0;
     while ((i < n))
     {
       while (((k >= 0) && (p[k] != t[i])))
@@ -114,39 +114,39 @@ func match_cpp(t: dynamic, p: dynamic, fail: dynamic)
   return count;
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var col = cpp_array(100);
+var col: dynamic = cpp_array(100);
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(1000);
+var a: dynamic = cpp_array(1000);
 
-var b = cpp_array(1000);
+var b: dynamic = cpp_array(1000);
 
-var c = cpp_array(1000);
+var c: dynamic = cpp_array(1000);
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var ptn = cpp_array(20);
+var ptn: dynamic = cpp_array(20);
 
-var V: dynamic;
+var V: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var h = cpp_array(1111);
+var h: dynamic = cpp_array(1111);
 
-var G: dynamic;
+var G: dynamic = cpp_uninitialized();
 
-var rG: dynamic;
+var rG: dynamic = cpp_uninitialized();
 
-var v = cpp_array(1111);
+var v: dynamic = cpp_array(1111);
 
-var rv = cpp_array(1111);
+var rv: dynamic = cpp_array(1111);
 
-func main()
+func main() -> dynamic
 {
   while (cpp_comma((cin >> n), n))
   {
@@ -163,15 +163,15 @@ func main()
       write(-1, "\n");
       continue;
     }
-    var ans = k_shortestPath(G, s, t, k, h);
-    var sum = 0;
+    var ans: dynamic = k_shortestPath(G, s, t, k, h);
+    var sum: dynamic = 0;
     rep(i, ans.size()) += ans[i];
     write(ans.size(), " ", sum, "\n");
   }
   return 0;
 }
 
-func dfs(c: dynamic, g: dynamic, v: dynamic)
+func dfs(c: dynamic, g: dynamic, v: dynamic) -> dynamic
 {
   v[c] = 1;
   fr(i, g[c]);
@@ -181,7 +181,7 @@ func dfs(c: dynamic, g: dynamic, v: dynamic)
   }
 }
 
-func calc_potential()
+func calc_potential() -> dynamic
 {
   fill(h, ((h + V) + 1), 0);
   rep(k, V);
@@ -203,15 +203,15 @@ func calc_potential()
   return 1;
 }
 
-func push(g: dynamic, src: dynamic, dst: dynamic, weight: dynamic)
+func push(g: dynamic, src: dynamic, dst: dynamic, weight: dynamic) -> dynamic
 {
   g[src].pb(Edge(src, dst, weight));
 }
 
-func make_graph()
+func make_graph() -> dynamic
 {
-  var fail = buildFail(ptn);
-  var len = strlen(ptn);
+  var fail: dynamic = buildFail(ptn);
+  var len: dynamic = strlen(ptn);
   G.clear();
   rG.clear();
   V = ((n * ((len + 1))) + 1);
@@ -238,9 +238,9 @@ func make_graph()
   return (v[t] && rv[s]);
 }
 
-func fr(argument_0: dynamic, i: dynamic)
+func fr(argument_0: dynamic, i: dynamic) -> dynamic
 {
-      var to = j;
+      var to: dynamic = j;
       while (((to >= 0) && ((ptn[to] - cpp_char("0")) != col[k->first])))
       {
         to = fail[to];
@@ -253,7 +253,7 @@ func fr(argument_0: dynamic, i: dynamic)
       push(rG, ((k->first * ((len + 1))) + to), ((i * ((len + 1))) + j), 0);
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
     push(G, ((((n - 1)) * ((len + 1))) + j), t, 0);
     push(rG, t, ((((n - 1)) * ((len + 1))) + j), 0);

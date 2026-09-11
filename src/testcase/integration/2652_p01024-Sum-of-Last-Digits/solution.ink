@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var k: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
   read(n, m, k);
   n %= 10;
   m %= 4;
-  var a = n;
-  var d = cpp_array(4);
+  var a: dynamic = n;
+  var d: dynamic = cpp_array(4);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       d[i] = a;
@@ -19,9 +19,9 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       ans += ((k / 4) * d[((m * i) % 4)]);

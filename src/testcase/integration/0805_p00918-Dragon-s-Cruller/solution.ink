@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-var pDec = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000];
+var pDec: dynamic = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000];
 
-var fct = [40320, 5040, 720, 120, 24, 6, 2, 1];
+var fct: dynamic = [40320, 5040, 720, 120, 24, 6, 2, 1];
 
-var dif = [-1, 1, -3, 3];
+var dif: dynamic = [-1, 1, -3, 3];
 
-func makeHash(num: dynamic)
+func makeHash(num: dynamic) -> dynamic
 {
-  var ans = 0;
-  var f = 0;
+  var ans: dynamic = 0;
+  var f: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 8))
     {
-      var tmp = (num % 10);
+      var tmp: dynamic = (num % 10);
       ans += (((tmp - builtin_popcount((f & (((1 << tmp)) - 1))))) * fct[i]);
       f |= ((1 << tmp));
       num /= 10;
@@ -24,21 +24,21 @@ func makeHash(num: dynamic)
   return ans;
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var vDigit = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-  var h: dynamic;
-  var v: dynamic;
+  var vDigit: dynamic = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  var h: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
   while (cpp_comma(((cin >> h) >> v), (h || v)))
   {
-    var hv = [h, h, v, v];
-    var st = 0;
-    var end = 0;
-    var a: dynamic;
-    var visited = cpp_construct(362880, false);
+    var hv: dynamic = [h, h, v, v];
+    var st: dynamic = 0;
+    var end: dynamic = 0;
+    var a: dynamic = cpp_uninitialized();
+    var visited: dynamic = cpp_construct(362880, false);
     read(st);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 8))
       {
         st *= 10;
@@ -49,7 +49,7 @@ func main(argument_0: dynamic)
     }
     read(end);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 8))
       {
         end *= 10;
@@ -58,32 +58,32 @@ func main(argument_0: dynamic)
         i += 1;
       }
     }
-    var q: dynamic;
+    var q: dynamic = cpp_uninitialized();
     q.emplace(0, st);
     while (1)
     {
-      var pos = q.top().second;
-      var cost = q.top().first;
+      var pos: dynamic = q.top().second;
+      var cost: dynamic = q.top().first;
       if ((pos == end))
       {
         write((-cost), "\n");
         break;
       }
       q.pop();
-      var hash = makeHash(pos);
+      var hash: dynamic = makeHash(pos);
       if (visited[hash])
       {
         continue;
       }
       visited[hash] = true;
-      var zero = (to_string((pos + 1000000000)).find(cpp_char("0")) - 1);
+      var zero: dynamic = (to_string((pos + 1000000000)).find(cpp_char("0")) - 1);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 4))
         {
-          var s = pos;
-          var t = (8 - (((((zero + dif[i]) + 9)) % 9)));
-          var tmp = (((pos / pDec[t])) % 10);
+          var s: dynamic = pos;
+          var t: dynamic = (8 - (((((zero + dif[i]) + 9)) % 9)));
+          var tmp: dynamic = (((pos / pDec[t])) % 10);
           s += (((pDec[(8 - zero)] * tmp) - (pDec[t] * tmp)));
           q.emplace((cost - hv[i]), s);
           i += 1;

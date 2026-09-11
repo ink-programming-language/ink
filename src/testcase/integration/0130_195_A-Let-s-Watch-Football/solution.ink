@@ -1,6 +1,6 @@
 // Translated from solution.cpp.
 
-func gcd(a: dynamic, b: dynamic)
+func gcd(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -8,22 +8,22 @@ func gcd(a: dynamic, b: dynamic)
     b ^= a;
     a ^= b;
   }
-  return if (((a > b))) gcd((a - b), b) else a;
+  return  (((a > b))) ? gcd((a - b), b) : a;
 }
 
-func abs(x: dynamic)
+func abs(x: dynamic) -> dynamic
 {
-  return if ((x > 0)) x else (-x);
+  return  ((x > 0)) ? x : (-x);
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
-  var c: dynamic;
-  var t: dynamic;
-  var all: dynamic;
-  var fin = false;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var all: dynamic = cpp_uninitialized();
+  var fin: dynamic = false;
   read(a, b, c);
   if ((b >= a))
   {
@@ -42,7 +42,7 @@ func solve()
   write(t);
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);

@@ -1,57 +1,57 @@
 // Translated from solution.cpp.
 
-var PI = acosl(-1);
+var PI: dynamic = acosl(-1);
 
-var rng = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
+var rng: dynamic = cpp_construct(chrono.steady_clock.now().time_since_epoch().count());
 
 class point
 {
-  var x: dynamic;
-  var y: dynamic;
-  func point()
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
+  func point() -> dynamic
   {
     }
-  func point(x: dynamic, y: dynamic)
+  func point(x: dynamic, y: dynamic) -> dynamic
   {
-      this->x = cpp_construct(x);
-      this->y = cpp_construct(y);
+      self->x = cpp_construct(x);
+      self->y = cpp_construct(y);
     }
-  func kampas()
+  func kampas() -> dynamic
   {
       return atan2l(y, x);
     }
 }
 
-func operator_add(a: dynamic, b: dynamic)
+func operator_add(a: dynamic, b: dynamic) -> dynamic
 {
   return point((a.x + b.x), (a.y + b.y));
 }
 
-func operator_subtract(a: dynamic, b: dynamic)
+func operator_subtract(a: dynamic, b: dynamic) -> dynamic
 {
   return point((a.x - b.x), (a.y - b.y));
 }
 
-func operator_multiply(a: dynamic, k: dynamic)
+func operator_multiply(a: dynamic, k: dynamic) -> dynamic
 {
   return point((a.x * k), (a.y * k));
 }
 
-func cross(a: dynamic, b: dynamic)
+func cross(a: dynamic, b: dynamic) -> dynamic
 {
   return ((a.x * b.y) - (a.y * b.x));
 }
 
-func f(alfa: dynamic, beta: dynamic, ab: dynamic)
+func f(alfa: dynamic, beta: dynamic, ab: dynamic) -> dynamic
 {
-  var a = ab.first;
-  var b = ab.second;
+  var a: dynamic = ab.first;
+  var b: dynamic = ab.second;
   va = (va * ((cross(a, b) / cross(va, (b - a)))));
   vb = (vb * ((cross(a, b) / cross(vb, (b - a)))));
   return (cross(va, vb) / 2);
 }
 
-func calc(alfa: dynamic, beta: dynamic, A: dynamic, mn: dynamic = [point(1e10, 1e10), point(1e10, 1e10)], mn1: dynamic = [point(1e10, 1e10), point(1e10, 1e10)])
+func calc(alfa: dynamic, beta: dynamic, A: dynamic, mn: dynamic = [point(1e10, 1e10), point(1e10, 1e10)], mn1: dynamic = [point(1e10, 1e10), point(1e10, 1e10)]) -> dynamic
 {
   if (A.empty())
   {
@@ -67,14 +67,14 @@ func calc(alfa: dynamic, beta: dynamic, A: dynamic, mn: dynamic = [point(1e10, 1
   {
     return 0;
   }
-  var L: dynamic;
-  var R: dynamic;
-  var gamma = (((alfa + beta)) / 2);
-  var ok = true;
-  for (var i in A)
+  var L: dynamic = cpp_uninitialized();
+  var R: dynamic = cpp_uninitialized();
+  var gamma: dynamic = (((alfa + beta)) / 2);
+  var ok: dynamic = true;
+  for (var i: dynamic in A)
   {
-    var k1 = i.first.kampas();
-    var k2 = i.second.kampas();
+    var k1: dynamic = i.first.kampas();
+    var k2: dynamic = i.second.kampas();
     if (((beta < k1) || (k2 < alfa)))
     {
       continue;
@@ -83,9 +83,9 @@ func calc(alfa: dynamic, beta: dynamic, A: dynamic, mn: dynamic = [point(1e10, 1
     {
       if (((k1 < (alfa + 1e-9)) && (beta < (k2 + 1e-9))))
       {
-        var k1 = abs((cross(mn.first, mn.second) / cross(v, (mn.second - mn.first))));
-        var k2 = abs((cross(mn1.first, mn1.second) / cross(v, (mn1.second - mn1.first))));
-        var d = abs((cross(i.first, i.second) / cross(v, (i.second - i.first))));
+        var k1: dynamic = abs((cross(mn.first, mn.second) / cross(v, (mn.second - mn.first))));
+        var k2: dynamic = abs((cross(mn1.first, mn1.second) / cross(v, (mn1.second - mn1.first))));
+        var d: dynamic = abs((cross(i.first, i.second) / cross(v, (i.second - i.first))));
         if (((mn.first.x >= 1e9) || (d <= k1)))
         {
           mn1 = mn;
@@ -114,7 +114,7 @@ func calc(alfa: dynamic, beta: dynamic, A: dynamic, mn: dynamic = [point(1e10, 1
   return (calc(alfa, gamma, L, mn, mn1) + calc(gamma, beta, R, mn, mn1));
 }
 
-func sgn(x: dynamic)
+func sgn(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -127,25 +127,25 @@ func sgn(x: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
   write(fixed, setprecision(3));
   ios_base.sync_with_stdio(false);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
-  var A: dynamic;
+  var A: dynamic = cpp_uninitialized();
   while (cpp_update(n, "--"))
   {
-    var k: dynamic;
+    var k: dynamic = cpp_uninitialized();
     read(k);
-    var a0: dynamic;
+    var a0: dynamic = cpp_uninitialized();
     read(a0.x, a0.y);
-    var aj = a0;
+    var aj: dynamic = a0;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < k))
       {
-        var ai: dynamic;
+        var ai: dynamic = cpp_uninitialized();
         read(ai.x, ai.y);
         A.push_back([aj, ai]);
         aj = ai;
@@ -156,7 +156,7 @@ func main()
   }
   n = A.size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if (((abs(A[i].first.y) < 0.5) || (abs(A[i].second.y) < 0.5)))
@@ -166,23 +166,23 @@ func main()
       }
       if ((((A[i].first.y > 0)) != ((A[i].second.y > 0))))
       {
-        var k = ((-A[i].first.y) / ((A[i].second - A[i].first)).y);
-        var B = (A[i].first + (((A[i].second - A[i].first)) * k));
+        var k: dynamic = ((-A[i].first.y) / ((A[i].second - A[i].first)).y);
+        var B: dynamic = (A[i].first + (((A[i].second - A[i].first)) * k));
         A.push_back([B, A[i].second]);
         A[i].second = B;
       }
       i += 1;
     }
   }
-  var A: dynamic;
-  for (var b in A)
+  var A: dynamic = cpp_uninitialized();
+  for (var b: dynamic in A)
   {
     if ((abs((b.first.kampas() - b.second.kampas())) > 1e-8))
     {
       A.push_back(b);
     }
   }
-  for (var i in A)
+  for (var i: dynamic in A)
   {
     while ((sgn(i.first.y) != sgn(i.second.y)))
     {

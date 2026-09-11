@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var a = cpp_array(6, 6);
+var a: dynamic = cpp_array(6, 6);
 
-var ans = 8;
+var ans: dynamic = 8;
 
-func parse(s: dynamic)
+func parse(s: dynamic) -> dynamic
 {
-  var x = 0;
-  var y = cpp_cast(((s[1] - cpp_char("1"))));
+  var x: dynamic = 0;
+  var y: dynamic = cpp_cast(((s[1] - cpp_char("1"))));
   if ((s[0] == cpp_char("G")))
   {
     x = 1;
@@ -29,11 +29,11 @@ func parse(s: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(s);
@@ -42,16 +42,16 @@ func main()
     }
   }
   {
-    var m1 = 0;
+    var m1: dynamic = 0;
     while ((m1 < 32))
     {
       {
-        var m2 = 0;
+        var m2: dynamic = 0;
         while ((m2 < 32))
         {
-          var k = 0;
+          var k: dynamic = 0;
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < 5))
             {
               if ((m1 & ((1 << i))))
@@ -62,7 +62,7 @@ func main()
             }
           }
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < 5))
             {
               if ((m2 & ((1 << i))))
@@ -77,13 +77,13 @@ func main()
             m2 += 1;
             continue;
           }
-          var x = 0;
+          var x: dynamic = 0;
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < 5))
             {
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < 5))
                 {
                   if (((a[i][j] && (((m1 & ((1 << i)))) == 0)) && (((m2 & ((1 << j)))) == 0)))
@@ -101,9 +101,9 @@ func main()
             m2 += 1;
             continue;
           }
-          var good = 1;
+          var good: dynamic = 1;
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < 5))
             {
               if ((((m1 & ((1 << i)))) == 0))
@@ -111,9 +111,9 @@ func main()
                 i += 1;
                 continue;
               }
-              var x = 0;
+              var x: dynamic = 0;
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < 5))
                 {
                   if ((a[i][j] && (((m2 & ((1 << j)))) == 0)))
@@ -131,7 +131,7 @@ func main()
             }
           }
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < 5))
             {
               if ((((m2 & ((1 << i)))) == 0))
@@ -139,9 +139,9 @@ func main()
                 i += 1;
                 continue;
               }
-              var x = 0;
+              var x: dynamic = 0;
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < 5))
                 {
                   if ((a[j][i] && (((m1 & ((1 << j)))) == 0)))

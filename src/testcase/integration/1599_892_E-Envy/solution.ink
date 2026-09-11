@@ -1,13 +1,13 @@
 // Translated from solution.cpp.
 
-var Finish_read: dynamic;
+var Finish_read: dynamic = cpp_uninitialized();
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   Finish_read = 0;
   x = 0;
-  var f = 1;
-  var ch = getchar();
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while ((!isdigit(ch)))
   {
     if ((ch == cpp_char("-")))
@@ -29,7 +29,7 @@ func read(x: dynamic)
   Finish_read = 1;
 }
 
-func print(x: dynamic)
+func print(x: dynamic) -> dynamic
 {
   if (((x / 10) != 0))
   {
@@ -38,7 +38,7 @@ func print(x: dynamic)
   putchar(((x % 10) + cpp_char("0")));
 }
 
-func writeln(x: dynamic)
+func writeln(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -49,7 +49,7 @@ func writeln(x: dynamic)
   putchar(cpp_char("\n"));
 }
 
-func write(x: dynamic)
+func write(x: dynamic) -> dynamic
 {
   if ((x < 0))
   {
@@ -59,54 +59,54 @@ func write(x: dynamic)
   print(x);
 }
 
-var maxn = 500010;
+var maxn: dynamic = 500010;
 
 class Edge
 {
-  var u: dynamic;
-  var v: dynamic;
-  var w: dynamic;
-  var id: dynamic;
-  func operator_less(rhs: dynamic)
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var w: dynamic = cpp_uninitialized();
+  var id: dynamic = cpp_uninitialized();
+  func operator_less(rhs: dynamic) -> dynamic
   {
       return (w < rhs.w);
     }
 }
 
-var e = cpp_array(maxn);
+var e: dynamic = cpp_array(maxn);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var from_cpp = cpp_array(maxn);
+var from_cpp: dynamic = cpp_array(maxn);
 
-var to = cpp_array(maxn);
+var to: dynamic = cpp_array(maxn);
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var fa = cpp_array(maxn);
+var fa: dynamic = cpp_array(maxn);
 
-var ver: dynamic;
+var ver: dynamic = cpp_uninitialized();
 
-var edg: dynamic;
+var edg: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(maxn);
+var vis: dynamic = cpp_array(maxn);
 
-var can = cpp_array(maxn);
+var can: dynamic = cpp_array(maxn);
 
-var G = cpp_array(maxn);
+var G: dynamic = cpp_array(maxn);
 
-func gf(x: dynamic)
+func gf(x: dynamic) -> dynamic
 {
-  return if ((x == fa[x])) x else cpp_assign(fa[x], "=", gf(fa[x]));
+  return  ((x == fa[x])) ? x : cpp_assign(fa[x], "=", gf(fa[x]));
 }
 
-func dfs(tag: dynamic, x: dynamic)
+func dfs(tag: dynamic, x: dynamic) -> dynamic
 {
   if ((vis[x] == tag))
   {
@@ -116,7 +116,7 @@ func dfs(tag: dynamic, x: dynamic)
   ver += 1;
   edg += G[x].size();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < G[x].size()))
     {
       dfs(tag, G[x][i]);
@@ -125,19 +125,19 @@ func dfs(tag: dynamic, x: dynamic)
   }
 }
 
-func check(tag: dynamic, x: dynamic)
+func check(tag: dynamic, x: dynamic) -> dynamic
 {
   ver = cpp_assign(edg, "=", 0);
   dfs(tag, x);
   return (edg == (2 * ((ver - 1))));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n);
   read(m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       read(e[i].u);
@@ -150,7 +150,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       fa[i] = i;
@@ -159,14 +159,14 @@ func main()
   }
   sort((e + 1), ((e + m) + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
-      var pos = i;
+      var pos: dynamic = i;
       while (((e[pos].w == e[i].w) && (pos <= m)))
       {
-        var u = gf(e[pos].u);
-        var v = gf(e[pos].v);
+        var u: dynamic = gf(e[pos].u);
+        var v: dynamic = gf(e[pos].v);
         from_cpp[e[pos].id] = u;
         to[e[pos].id] = v;
         can[e[pos].id] = (u != v);
@@ -185,13 +185,13 @@ func main()
   }
   read(q);
   {
-    var c = 1;
+    var c: dynamic = 1;
     while ((c <= q))
     {
       read(k);
-      var yes = 1;
+      var yes: dynamic = 1;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= k))
         {
           read(a[i]);
@@ -205,7 +205,7 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= k))
         {
           G[from_cpp[a[i]]].push_back(to[a[i]]);
@@ -214,11 +214,11 @@ func main()
         }
       }
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= k))
         {
-          var x = from_cpp[a[i]];
-          var y = to[a[i]];
+          var x: dynamic = from_cpp[a[i]];
+          var y: dynamic = to[a[i]];
           if ((vis[x] != c))
           {
             yes &= check(c, x);
@@ -230,7 +230,7 @@ func main()
           i += 1;
         }
       }
-      puts(if (yes) "YES" else "NO");
+      puts( (yes) ? "YES" : "NO");
       c += 1;
     }
   }

@@ -1,21 +1,21 @@
 // Translated from solution.cpp.
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var vc: dynamic;
+var vc: dynamic = cpp_uninitialized();
 
-var psum = cpp_array(300001);
+var psum: dynamic = cpp_array(300001);
 
-var a = cpp_array(300001);
+var a: dynamic = cpp_array(300001);
 
-func main()
+func main() -> dynamic
 {
-  var ans = -2000000001;
-  var n: dynamic;
-  var ansi: dynamic;
+  var ans: dynamic = -2000000001;
+  var n: dynamic = cpp_uninitialized();
+  var ansi: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(a[i]);
@@ -31,7 +31,7 @@ func main()
         mp.insert(make_pair(a[i], i));
       } else
       {
-        var hoge = (psum[i] - psum[(mp[a[i]] - 1)]);
+        var hoge: dynamic = (psum[i] - psum[(mp[a[i]] - 1)]);
         if ((a[i] < 0))
         {
           hoge += ((2 * a[i]));
@@ -46,8 +46,8 @@ func main()
     }
   }
   write(ans);
-  var j = 1;
-  var cnt = 0;
+  var j: dynamic = 1;
+  var cnt: dynamic = 0;
   {
     while ((j <= n))
     {
@@ -80,7 +80,7 @@ func main()
   }
   write(" ", vc.size(), "\n");
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < vc.size()))
     {
       write(vc[i], " ");

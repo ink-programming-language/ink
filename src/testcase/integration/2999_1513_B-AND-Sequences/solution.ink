@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var mod = 1000000007;
+var mod: dynamic = 1000000007;
 
-func main()
+func main() -> dynamic
 {
-  var test: dynamic;
+  var test: dynamic = cpp_uninitialized();
   read(test);
   while (cpp_update(test, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(a[i]);
         i += 1;
       }
     }
-    var brim = cpp_construct(40, 0);
-    var bnod = n;
+    var brim: dynamic = cpp_construct(40, 0);
+    var bnod: dynamic = n;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var t = a[i];
-        var counter = 0;
+        var t: dynamic = a[i];
+        var counter: dynamic = 0;
         while ((t > 0))
         {
           brim[counter] += (t % 2);
@@ -36,12 +36,12 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var od = false;
-        var t = a[i];
-        var counter = 0;
+        var od: dynamic = false;
+        var t: dynamic = a[i];
+        var counter: dynamic = 0;
         while ((t > 0))
         {
           if ((((t % 2) == 1) && (brim[counter] < n)))
@@ -63,11 +63,11 @@ func main()
       write("0", "\n");
       continue;
     }
-    var rjes = 1;
+    var rjes: dynamic = 1;
     rjes = (bnod * ((bnod - 1)));
     rjes %= mod;
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= (n - 2)))
       {
         rjes *= i;

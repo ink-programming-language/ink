@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
-    var m: dynamic;
+    var n: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
     read(n, m);
-    var count = 0;
+    var count: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         {
-          var j = 0;
+          var j: dynamic = 0;
           while ((j < m))
           {
             read(f[i][j]);
@@ -34,15 +34,15 @@ func main()
         i += 1;
       }
     }
-    var k = 0;
+    var k: dynamic = 0;
     if ((count == (n * m)))
     {
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               if (((i == 0) && (j == 0)))
@@ -76,15 +76,15 @@ func main()
     } else
     {
       {
-        var z = 0;
+        var z: dynamic = 0;
         while ((z < 100))
         {
           {
-            var i = 0;
+            var i: dynamic = 0;
             while ((i < n))
             {
               {
-                var j = 0;
+                var j: dynamic = 0;
                 while ((j < m))
                 {
                   if (((i - 1) >= 0))
@@ -168,11 +168,11 @@ func main()
     {
       write("YES", cpp_char("\n"));
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < n))
         {
           {
-            var j = 0;
+            var j: dynamic = 0;
             while ((j < m))
             {
               write(f[i][j]);

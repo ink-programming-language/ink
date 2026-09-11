@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var a: dynamic;
+var a: dynamic = cpp_uninitialized();
 
-var b: dynamic;
+var b: dynamic = cpp_uninitialized();
 
-var c: dynamic;
+var c: dynamic = cpp_uninitialized();
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-func f(a: dynamic, b: dynamic, c: dynamic, d: dynamic, n: dynamic)
+func f(a: dynamic, b: dynamic, c: dynamic, d: dynamic, n: dynamic) -> dynamic
 {
   if (((a > b) || (c > d)))
   {
@@ -27,7 +27,7 @@ func f(a: dynamic, b: dynamic, c: dynamic, d: dynamic, n: dynamic)
   {
     return ((d - c) + 1);
   }
-  var x = (1 << n);
+  var x: dynamic = (1 << n);
   if (((b < x) && (d < x)))
   {
     return f(a, b, c, d, (n - 1));
@@ -43,7 +43,7 @@ func f(a: dynamic, b: dynamic, c: dynamic, d: dynamic, n: dynamic)
   return max(((b - c) + 1), max(f(a, b, c, (x - 1), n), f(a, b, (x + 1), d, n)));
 }
 
-func main()
+func main() -> dynamic
 {
   read(a, b, c, d);
   write(f(a, b, c, d, 30));

@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var a = cpp_array(100, 100);
+var a: dynamic = cpp_array(100, 100);
 
-var xc: dynamic;
+var xc: dynamic = cpp_uninitialized();
 
-var yc: dynamic;
+var yc: dynamic = cpp_uninitialized();
 
-func lolol(x: dynamic, y: dynamic)
+func lolol(x: dynamic, y: dynamic) -> dynamic
 {
   return (abs((x - xc)) + abs((y - yc)));
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, k);
   xc = (((k + 1)) / 2);
   yc = (((k + 1)) / 2);
   {
-    var asdasd = 0;
+    var asdasd: dynamic = 0;
     while ((asdasd < n))
     {
-      var m: dynamic;
+      var m: dynamic = cpp_uninitialized();
       read(m);
-      var ans = 999999999;
-      var xx1: dynamic;
-      var yy1: dynamic;
-      var p: dynamic;
+      var ans: dynamic = 999999999;
+      var xx1: dynamic = cpp_uninitialized();
+      var yy1: dynamic = cpp_uninitialized();
+      var p: dynamic = cpp_uninitialized();
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= k))
         {
           p = 0;
-          var kol = 0;
+          var kol: dynamic = 0;
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j <= k))
             {
               if ((j > m))
@@ -66,7 +66,7 @@ func main()
       {
         write(xx1, " ", ((yy1 - m) + 1), " ", yy1, "\n");
         {
-          var j = ((yy1 - m) + 1);
+          var j: dynamic = ((yy1 - m) + 1);
           while ((j <= yy1))
           {
             a[xx1][j] = 1;

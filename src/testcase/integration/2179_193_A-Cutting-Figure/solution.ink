@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var adj = cpp_array(2505);
+var adj: dynamic = cpp_array(2505);
 
-var visited = cpp_array(2505);
+var visited: dynamic = cpp_array(2505);
 
-var a_points: dynamic;
+var a_points: dynamic = cpp_uninitialized();
 
-var tin = cpp_array(2505);
+var tin: dynamic = cpp_array(2505);
 
-var low = cpp_array(2505);
+var low: dynamic = cpp_array(2505);
 
-var timer: dynamic;
+var timer: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic, p: dynamic)
+func dfs(u: dynamic, p: dynamic) -> dynamic
 {
   visited[u] = true;
   tin[u] = cpp_assign(low[u], "=", cpp_update(timer, "++"));
-  var child = 0;
-  for (var v in adj[u])
+  var child: dynamic = 0;
+  for (var v: dynamic in adj[u])
   {
     if ((p == v))
     {
@@ -42,7 +42,7 @@ func dfs(u: dynamic, p: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
@@ -51,25 +51,25 @@ func main()
   memset(visited, false, cpp_sizeof((visited)));
   memset(tin, 0, cpp_sizeof((tin)));
   memset(low, 0, cpp_sizeof((low)));
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var c: dynamic;
-  var mat = cpp_array(m, n);
-  var arr = cpp_array(m, n);
-  var dx = [1, -1, 0, 0];
-  var dy = [0, 0, -1, 1];
-  var cnt = 1;
-  var total = 0;
-  var tx: dynamic;
-  var ty: dynamic;
-  var last: dynamic;
+  var c: dynamic = cpp_uninitialized();
+  var mat: dynamic = cpp_array(m, n);
+  var arr: dynamic = cpp_array(m, n);
+  var dx: dynamic = [1, -1, 0, 0];
+  var dy: dynamic = [0, 0, -1, 1];
+  var cnt: dynamic = 1;
+  var total: dynamic = 0;
+  var tx: dynamic = cpp_uninitialized();
+  var ty: dynamic = cpp_uninitialized();
+  var last: dynamic = cpp_uninitialized();
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           read(c);
@@ -82,11 +82,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < m))
         {
           c = mat[i][j];
@@ -95,7 +95,7 @@ func main()
             total += 1;
             last = arr[i][j];
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < 4))
               {
                 tx = (i + dx[k]);

@@ -1,34 +1,34 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var s: dynamic;
+var s: dynamic = cpp_uninitialized();
 
-var p = cpp_array(10005);
+var p: dynamic = cpp_array(10005);
 
-var c = cpp_array(105);
+var c: dynamic = cpp_array(105);
 
-var y = cpp_array(30, 30);
+var y: dynamic = cpp_array(30, 30);
 
-var d = cpp_array(10005);
+var d: dynamic = cpp_array(10005);
 
-var q = cpp_array(10005);
+var q: dynamic = cpp_array(10005);
 
-var f: dynamic;
+var f: dynamic = cpp_uninitialized();
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-var g = cpp_array(1100005);
+var g: dynamic = cpp_array(1100005);
 
-var a = cpp_array(10005);
+var a: dynamic = cpp_array(10005);
 
-func work(x: dynamic, y: dynamic)
+func work(x: dynamic, y: dynamic) -> dynamic
 {
   if ((((x > 0) && (x <= n)) && (y < d[x])))
   {
@@ -37,9 +37,9 @@ func work(x: dynamic, y: dynamic)
   }
 }
 
-func bfs(x: dynamic)
+func bfs(x: dynamic) -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   memset(d, 1, cpp_sizeof((d)));
   d[x] = 0;
   f = 0;
@@ -73,11 +73,11 @@ func bfs(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var l: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
   scanf("%d%d%d", (&n), (&k), (&m));
   n += 1;
   {

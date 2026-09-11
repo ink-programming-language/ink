@@ -1,29 +1,29 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, b: dynamic, n: dynamic)
+func REP(i: dynamic, b: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=b;i<n;i++)");
 }
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   return cpp_expression("#include<i");
 }
 
-var pb = cpp_expression("#include<");
+var pb: dynamic = cpp_expression("#include<");
 
-var inf = ((1) << 50);
+var inf: dynamic = ((1) << 50);
 
 enum cpp_enum_1
 {
-  IDLE = -1,
-  PUTR = 0,
-  PUTL = 1,
-  DRAW = 2,
-  BACK = 3
+  enum_field IDLE = -1;
+  enum_field PUTR = 0;
+  enum_field PUTL = 1;
+  enum_field DRAW = 2;
+  enum_field BACK = 3;
 }
 
-func isend(a: dynamic)
+func isend(a: dynamic) -> dynamic
 {
   cpp_statement("rep(i,4)");
   if ((a[i] != -1))
@@ -33,14 +33,14 @@ func isend(a: dynamic)
   return true;
 }
 
-func canput(a: dynamic, b: dynamic)
+func canput(a: dynamic, b: dynamic) -> dynamic
 {
-  var vala = (a / 4);
-  var valb = (b / 4);
+  var vala: dynamic = (a / 4);
+  var valb: dynamic = (b / 4);
   return (((((vala + 1)) % 13) == valb) || ((((valb + 1)) % 13) == vala));
 }
 
-func isgreater(a: dynamic, b: dynamic)
+func isgreater(a: dynamic, b: dynamic) -> dynamic
 {
   if (((a / 4) != (b / 4)))
   {
@@ -51,16 +51,16 @@ func isgreater(a: dynamic, b: dynamic)
   }
 }
 
-func solve(deck: dynamic)
+func solve(deck: dynamic) -> dynamic
 {
-  var now = 0;
-  var time = cpp_array(2);
-  var have = cpp_array(4, 2);
-  var table = cpp_array(2);
-  var state = cpp_array(2);
-  var hand = cpp_array(2);
-  var place = cpp_array(2);
-  var lastput = cpp_array(2);
+  var now: dynamic = 0;
+  var time: dynamic = cpp_array(2);
+  var have: dynamic = cpp_array(4, 2);
+  var table: dynamic = cpp_array(2);
+  var state: dynamic = cpp_array(2);
+  var hand: dynamic = cpp_array(2);
+  var place: dynamic = cpp_array(2);
+  var lastput: dynamic = cpp_array(2);
   rep(i, 2);
   {
     rep(j, 4)[i][j] = -1;
@@ -74,7 +74,7 @@ func solve(deck: dynamic)
   state[1] = IDLE;
   while (true)
   {
-    var next = inf;
+    var next: dynamic = inf;
     if (((state[0] == IDLE) && (state[1] == IDLE)))
     {
       cpp_statement("rep(i,2)");
@@ -211,24 +211,24 @@ func solve(deck: dynamic)
   assert(false);
 }
 
-func main()
+func main() -> dynamic
 {
-  var suit = "CDHS";
-  var tmp = "23456789XJQKA";
-  var M: dynamic;
+  var suit: dynamic = "CDHS";
+  var tmp: dynamic = "23456789XJQKA";
+  var M: dynamic = cpp_uninitialized();
   rep(j, tmp.size());
   {
     rep(i, suit.size());
     {
-      var ins = string_cpp(1, suit[i]);
+      var ins: dynamic = string_cpp(1, suit[i]);
       ins += tmp[j];
       M[ins] = (i + (j * 4));
     }
   }
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while (((cin >> n) && n))
   {
-    var S = cpp_array(2);
+    var S: dynamic = cpp_array(2);
     read(n);
     if (solve(S))
     {
@@ -241,16 +241,16 @@ func main()
   return false;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var in_cpp: dynamic;
+      var in_cpp: dynamic = cpp_uninitialized();
       read(in_cpp);
       S[0].push(M[in_cpp]);
     }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var in_cpp: dynamic;
+      var in_cpp: dynamic = cpp_uninitialized();
       read(in_cpp);
       S[1].push(M[in_cpp]);
     }

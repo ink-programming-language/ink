@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var field = cpp_array(9, 9);
+var field: dynamic = cpp_array(9, 9);
 
-var dx = [-1, 0, 1, 0];
+var dx: dynamic = [-1, 0, 1, 0];
 
-var dy = [0, -1, 0, 1];
+var dy: dynamic = [0, -1, 0, 1];
 
-func solve()
+func solve() -> dynamic
 {
-  var cargo = -1;
-  var man = -1;
+  var cargo: dynamic = -1;
+  var man: dynamic = -1;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= h))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= w))
         {
           if ((field[i][j] == 2))
@@ -35,15 +35,15 @@ func solve()
       i += 1;
     }
   }
-  var st: dynamic;
-  var dq: dynamic;
+  var st: dynamic = cpp_uninitialized();
+  var dq: dynamic = cpp_uninitialized();
   dq.push_back(((cargo << 16) | man));
   st.insert(dq.front());
   dq.push_back(-1);
-  var ans = 1;
+  var ans: dynamic = 1;
   while ((dq.size() > 1))
   {
-    var t = dq.front();
+    var t: dynamic = dq.front();
     dq.pop_front();
     if ((t < 0))
     {
@@ -51,27 +51,27 @@ func solve()
       dq.push_back(t);
     } else
     {
-      var mx = (t & 255);
-      var my = (((t >> 8)) & 255);
-      var cx = (((t >> 16)) & 255);
-      var cy = (((t >> 24)) & 255);
+      var mx: dynamic = (t & 255);
+      var my: dynamic = (((t >> 8)) & 255);
+      var cx: dynamic = (((t >> 16)) & 255);
+      var cy: dynamic = (((t >> 24)) & 255);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < 4))
         {
-          var mx2 = (mx + dx[i]);
-          var my2 = (my + dy[i]);
+          var mx2: dynamic = (mx + dx[i]);
+          var my2: dynamic = (my + dy[i]);
           if (((mx2 == cx) && (my2 == cy)))
           {
-            var cx2 = (cx + dx[i]);
-            var cy2 = (cy + dy[i]);
+            var cx2: dynamic = (cx + dx[i]);
+            var cy2: dynamic = (cy + dy[i]);
             if ((field[cy2][cx2] == 3))
             {
               return ans;
             }
             if ((field[cy2][cx2] != 1))
             {
-              var u = ((((cy2 << 24) | (cx2 << 16)) | (my2 << 8)) | mx2);
+              var u: dynamic = ((((cy2 << 24) | (cx2 << 16)) | (my2 << 8)) | mx2);
               if (st.insert(u).second)
               {
                 dq.push_back(u);
@@ -79,7 +79,7 @@ func solve()
             }
           } else if ((field[my2][mx2] != 1))
           {
-            var u = ((((cy << 24) | (cx << 16)) | (my2 << 8)) | mx2);
+            var u: dynamic = ((((cy << 24) | (cx << 16)) | (my2 << 8)) | mx2);
             if (st.insert(u).second)
             {
               dq.push_front(u);
@@ -93,18 +93,18 @@ func solve()
   return -1;
 }
 
-func main()
+func main() -> dynamic
 {
   while (cpp_comma(scanf("%d%d", (&w), (&h)), (w != 0)))
   {
     memset(field, 1, cpp_sizeof((field)));
-    var d: dynamic;
+    var d: dynamic = cpp_uninitialized();
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= h))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= w))
           {
             scanf("%d", (&d));

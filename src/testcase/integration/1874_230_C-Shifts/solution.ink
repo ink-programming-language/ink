@@ -1,43 +1,43 @@
 // Translated from solution.cpp.
 
-var EPS = 1e-9;
+var EPS: dynamic = 1e-9;
 
-var INF = 1000000005;
+var INF: dynamic = 1000000005;
 
-var INFF = 1000000000000000005;
+var INFF: dynamic = 1000000000000000005;
 
-var PI = acos(-1);
+var PI: dynamic = acos(-1);
 
-var dirx = [-1, 0, 0, 1, -1, -1, 1, 1];
+var dirx: dynamic = [-1, 0, 0, 1, -1, -1, 1, 1];
 
-var diry = [0, 1, -1, 0, -1, 1, -1, 1];
+var diry: dynamic = [0, 1, -1, 0, -1, 1, -1, 1];
 
-func SIZE(t: dynamic)
+func SIZE(t: dynamic) -> dynamic
 {
   return t.size();
 }
 
-func SIZE(t: dynamic)
+func SIZE(t: dynamic) -> dynamic
 {
   return N;
 }
 
-func to_string(t: dynamic)
+func to_string(t: dynamic) -> dynamic
 {
   return (("'" + string_cpp([t])) + "'");
 }
 
-func to_string(t: dynamic)
+func to_string(t: dynamic) -> dynamic
 {
-  return if (t) "true" else "false";
+  return  (t) ? "true" : "false";
 }
 
-func to_string(t: dynamic, x1: dynamic = 0, x2: dynamic = 1e9)
+func to_string(t: dynamic, x1: dynamic = 0, x2: dynamic = 1e9) -> dynamic
 {
-  var ret = "";
+  var ret: dynamic = "";
   {
-    var i = min(x1, SIZE(t));
-    var i = min(x2, (SIZE(t) - 1));
+    var i: dynamic = min(x1, SIZE(t));
+    var i: dynamic = min(x2, (SIZE(t) - 1));
     while ((i <= i))
     {
       ret += t[i];
@@ -47,16 +47,16 @@ func to_string(t: dynamic, x1: dynamic = 0, x2: dynamic = 1e9)
   return ((cpp_char("\"") + ret) + cpp_char("\""));
 }
 
-func to_string(t: dynamic)
+func to_string(t: dynamic) -> dynamic
 {
   return to_string(ret);
 }
 
-func to_string(t: dynamic, x1: dynamic = 0, x2: dynamic = 1e9)
+func to_string(t: dynamic, x1: dynamic = 0, x2: dynamic = 1e9) -> dynamic
 {
-  var ret = "";
+  var ret: dynamic = "";
   {
-    var i = min(x1, SIZE(t));
+    var i: dynamic = min(x1, SIZE(t));
     while ((i <= min(x2, (SIZE(t) - 1))))
     {
       ret += (t[i] + cpp_char("0"));
@@ -66,23 +66,23 @@ func to_string(t: dynamic, x1: dynamic = 0, x2: dynamic = 1e9)
   return to_string(ret);
 }
 
-func to_string(t: dynamic)
+func to_string(t: dynamic) -> dynamic
 {
   return (((("(" + to_string(t.first)) + ", ") + to_string(t.second)) + ")");
 }
 
-func to_string(t: dynamic, x1: dynamic, x2: dynamic, C: dynamic...)
+func to_string(t: dynamic, x1: dynamic, x2: dynamic, C: dynamic...) -> dynamic
 {
-  var ret = "[";
+  var ret: dynamic = "[";
   x1 = min(x1, SIZE(t));
-  var e = begin(t);
+  var e: dynamic = begin(t);
   advance(e, x1);
   {
-    var i = x1;
-    var i = min(x2, (SIZE(t) - 1));
+    var i: dynamic = x1;
+    var i: dynamic = min(x2, (SIZE(t) - 1));
     while ((i <= i))
     {
-      ret += (to_string((*e), cpp_expand(C)) + (if ((i != i)) ", " else ""));
+      ret += (to_string((*e), cpp_expand(C)) + ( ((i != i)) ? ", " : ""));
       e = next(e);
       i += 1;
     }
@@ -92,51 +92,51 @@ func to_string(t: dynamic, x1: dynamic, x2: dynamic, C: dynamic...)
 
 class print_tuple
 {
-  func operator_call(t: dynamic)
+  func operator_call(t: dynamic) -> dynamic
   {
-      var ret = [](t);
-      ret += (if (Index) ", " else "");
+      var ret: dynamic = [](t);
+      ret += ( (Index) ? ", " : "");
       return (ret + to_string(get(t)));
     }
 }
 
 class print_tuple_0_Ts
 {
-  func operator_call(t: dynamic)
+  func operator_call(t: dynamic) -> dynamic
   {
       return to_string(get(t));
     }
 }
 
-func to_string(t: dynamic)
+func to_string(t: dynamic) -> dynamic
 {
-  var Size = tuple_size.value;
+  var Size: dynamic = tuple_size.value;
   return [](t);
 }
 
-func dbgr()
+func dbgr() -> dynamic
 {
 }
 
-func dbgr(H: dynamic, T: dynamic...)
+func dbgr(H: dynamic, T: dynamic...) -> dynamic
 {
   write(to_string(H), " | ");
   dbgr(cpp_expand(T));
 }
 
-func dbgs()
+func dbgs() -> dynamic
 {
 }
 
-func dbgs(H: dynamic, T: dynamic...)
+func dbgs(H: dynamic, T: dynamic...) -> dynamic
 {
   write(H, " ");
   dbgs(cpp_expand(T));
 }
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-func output_vector(v: dynamic, line_break: dynamic = false, add_one: dynamic = false, start: dynamic = -1, end: dynamic = -1)
+func output_vector(v: dynamic, line_break: dynamic = false, add_one: dynamic = false, start: dynamic = -1, end: dynamic = -1) -> dynamic
 {
   if ((start < 0))
   {
@@ -147,19 +147,19 @@ func output_vector(v: dynamic, line_break: dynamic = false, add_one: dynamic = f
     end = int_cpp(v.size());
   }
   {
-    var i = start;
+    var i: dynamic = start;
     while ((i < end))
     {
-      write((v[i] + (if (add_one) 1 else 0)), (if (line_break) cpp_char("\n") else if ((i < (end - 1))) cpp_char(" ") else cpp_char("\n")));
+      write((v[i] + ( (add_one) ? 1 : 0)), ( (line_break) ? cpp_char("\n") :  ((i < (end - 1))) ? cpp_char(" ") : cpp_char("\n")));
       i += 1;
     }
   }
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
   {
     int_cpp(i) = (0);
@@ -173,7 +173,7 @@ func solve()
     int_cpp(i) = (0);
     while (((i) < (n)))
     {
-      var t = INF;
+      var t: dynamic = INF;
       {
         int_cpp(k) = (0);
         while (((k) < (2)))
@@ -221,12 +221,12 @@ func solve()
       (i) += 1;
     }
   }
-  var ans = INF;
+  var ans: dynamic = INF;
   {
     int_cpp(i) = (0);
     while (((i) < (m)))
     {
-      var t = 0;
+      var t: dynamic = 0;
       {
         int_cpp(j) = (0);
         while (((j) < (n)))
@@ -248,7 +248,7 @@ func solve()
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);

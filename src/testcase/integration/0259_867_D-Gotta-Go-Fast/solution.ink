@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var a = cpp_array(55);
+var a: dynamic = cpp_array(55);
 
-var b = cpp_array(55);
+var b: dynamic = cpp_array(55);
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var f = cpp_array(5050, 55);
+var f: dynamic = cpp_array(5050, 55);
 
-var c = cpp_array(55);
+var c: dynamic = cpp_array(55);
 
-var now: dynamic;
+var now: dynamic = cpp_uninitialized();
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-func doit()
+func doit() -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= m))
     {
       f[(n + 1)][i] = 0;
@@ -29,15 +29,15 @@ func doit()
     }
   }
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i > 0))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j <= m))
         {
-          f[i][j] = (c[i] * ((a[i] + (if (((j + a[i]) > m)) now else min(f[(i + 1)][(j + a[i])], now)))));
-          f[i][j] += (((1 - c[i])) * ((b[i] + (if (((j + b[i]) > m)) now else min(f[(i + 1)][(j + b[i])], now)))));
+          f[i][j] = (c[i] * ((a[i] + ( (((j + a[i]) > m)) ? now : min(f[(i + 1)][(j + a[i])], now)))));
+          f[i][j] += (((1 - c[i])) * ((b[i] + ( (((j + b[i]) > m)) ? now : min(f[(i + 1)][(j + b[i])], now)))));
           j += 1;
         }
       }
@@ -47,11 +47,11 @@ func doit()
   res = f[1][0];
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d%d%d", (a + i), (b + i), (&x));
@@ -59,10 +59,10 @@ func main()
       i += 1;
     }
   }
-  var l = 0.0;
-  var r = 1000000000.0;
+  var l: dynamic = 0.0;
+  var r: dynamic = 1000000000.0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= 233))
     {
       now = (((l + r)) / 2.0);

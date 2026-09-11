@@ -1,38 +1,38 @@
 // Translated from solution.cpp.
 
-var N = cpp_expression("#include <iostream> #");
+var N: dynamic = cpp_expression("#include <iostream> #");
 
-var ans = 0;
+var ans: dynamic = 0;
 
-var ch = cpp_array(27, 1000005);
+var ch: dynamic = cpp_array(27, 1000005);
 
-var cnt: dynamic;
+var cnt: dynamic = cpp_uninitialized();
 
-var len: dynamic;
+var len: dynamic = cpp_uninitialized();
 
-var tot = 1;
+var tot: dynamic = 1;
 
-var ed = cpp_array(1000005);
+var ed: dynamic = cpp_array(1000005);
 
-var siz = cpp_array(1000005);
+var siz: dynamic = cpp_array(1000005);
 
-var fa = cpp_array(1000005);
+var fa: dynamic = cpp_array(1000005);
 
-var f = cpp_array(27, 1000005);
+var f: dynamic = cpp_array(27, 1000005);
 
-var id = cpp_array(1000005);
+var id: dynamic = cpp_array(1000005);
 
-var s = cpp_array(1000005);
+var s: dynamic = cpp_array(1000005);
 
-func add(s: dynamic)
+func add(s: dynamic) -> dynamic
 {
-  var len = strlen(s);
-  var x = 1;
+  var len: dynamic = strlen(s);
+  var x: dynamic = 1;
   {
-    var i = (len - 1);
+    var i: dynamic = (len - 1);
     while ((i >= 0))
     {
-      var f = (s[i] - cpp_char("a"));
+      var f: dynamic = (s[i] - cpp_char("a"));
       if ((!ch[x][f]))
       {
         ch[x][f] = cpp_update(tot, "++");
@@ -46,7 +46,7 @@ func add(s: dynamic)
   ed[x] += 1;
 }
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
   if ((x == 0))
   {
@@ -54,15 +54,15 @@ func dfs(x: dynamic)
   }
   siz[x] = ed[x];
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 26))
     {
-      var v = ch[x][i];
+      var v: dynamic = ch[x][i];
       dfs(v);
       siz[x] += siz[v];
       f[x][i] += siz[v];
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 26))
         {
           if ((j != i))
@@ -77,12 +77,12 @@ func dfs(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%s", s);
@@ -92,7 +92,7 @@ func main()
   }
   dfs(1);
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= tot))
     {
       if (ed[i])

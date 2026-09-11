@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var s: dynamic;
+  var s: dynamic = cpp_uninitialized();
   read(s);
-  var ans = 105;
+  var ans: dynamic = 105;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < s.size()))
     {
-      var cnt = 0;
-      var maxcnt = 0;
+      var cnt: dynamic = 0;
+      var maxcnt: dynamic = 0;
       {
-        var j = (s.size() - 1);
+        var j: dynamic = (s.size() - 1);
         while ((j >= 0))
         {
           if ((s[i] == s[j]))

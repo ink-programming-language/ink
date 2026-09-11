@@ -1,8 +1,8 @@
 // Translated from solution.cpp.
 
-var INF = 500000000;
+var INF: dynamic = 500000000;
 
-func debug(a: dynamic, b: dynamic)
+func debug(a: dynamic, b: dynamic) -> dynamic
 {
   {
     while ((a != b))
@@ -14,27 +14,27 @@ func debug(a: dynamic, b: dynamic)
   write("\n");
 }
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var buf = cpp_array(55, 55);
+var buf: dynamic = cpp_array(55, 55);
 
-var moveTo = cpp_array(2, 4, 55, 55);
+var moveTo: dynamic = cpp_array(2, 4, 55, 55);
 
-var state = cpp_array(2, 4, 55, 55);
+var state: dynamic = cpp_array(2, 4, 55, 55);
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, 1, 0, -1];
+var dy: dynamic = [0, 1, 0, -1];
 
-func main()
+func main() -> dynamic
 {
   read(h, n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       read(buf[i]);
@@ -43,27 +43,27 @@ func main()
   }
   w = strlen(buf[0]);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < h))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < w))
         {
           {
-            var k = 0;
+            var k: dynamic = 0;
             while ((k < 4))
             {
               {
-                var l = 0;
+                var l: dynamic = 0;
                 while ((l < 2))
                 {
-                  var cx = j;
-                  var cy = i;
+                  var cx: dynamic = j;
+                  var cy: dynamic = i;
                   while (1)
                   {
-                    var px = (cx + dx[k]);
-                    var py = (cy + dy[k]);
+                    var px: dynamic = (cx + dx[k]);
+                    var py: dynamic = (cy + dy[k]);
                     if ((((((px < 0) || (py < 0)) || (px >= w)) || (py >= h)) || (buf[py][px] != buf[cy][cx])))
                     {
                       break;
@@ -71,7 +71,7 @@ func main()
                     cx = px;
                     cy = py;
                   }
-                  var add: dynamic;
+                  var add: dynamic = cpp_uninitialized();
                   if ((l == 0))
                   {
                     add = 3;
@@ -79,9 +79,9 @@ func main()
                   {
                     add = 1;
                   }
-                  var k2 = (((k + add)) % 4);
-                  var px: dynamic;
-                  var py: dynamic;
+                  var k2: dynamic = (((k + add)) % 4);
+                  var px: dynamic = cpp_uninitialized();
+                  var py: dynamic = cpp_uninitialized();
                   while (1)
                   {
                     px = (cx + dx[k2]);
@@ -115,16 +115,16 @@ func main()
       i += 1;
     }
   }
-  var cx = 0;
-  var cy = 0;
-  var dir = 0;
-  var hand = 0;
+  var cx: dynamic = 0;
+  var cy: dynamic = 0;
+  var dir: dynamic = 0;
+  var hand: dynamic = 0;
   {
-    var hoge = 0;
+    var hoge: dynamic = 0;
     while ((hoge < n))
     {
-      var nxt = moveTo[cy][cx][dir][hand];
-      var flag = state[cy][cx][dir][hand];
+      var nxt: dynamic = moveTo[cy][cx][dir][hand];
+      var flag: dynamic = state[cy][cx][dir][hand];
       cy = nxt.first;
       cx = nxt.second;
       if (flag)

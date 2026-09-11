@@ -1,51 +1,51 @@
 // Translated from solution.cpp.
 
-var db = cpp_expression("#inclu");
+var db: dynamic = cpp_expression("#inclu");
 
-var ls = cpp_expression("#includ");
+var ls: dynamic = cpp_expression("#includ");
 
-var rs = cpp_expression("#include <b");
+var rs: dynamic = cpp_expression("#include <b");
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var ll = dynamic;
+var ll: dynamic = dynamic;
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var pii = cpp_expression("#include <bits");
+var pii: dynamic = cpp_expression("#include <bits");
 
-var X = cpp_expression("#incl");
+var X: dynamic = cpp_expression("#incl");
 
-var Y = cpp_expression("#inclu");
+var Y: dynamic = cpp_expression("#inclu");
 
-var pcc = cpp_expression("#include <bits/s");
+var pcc: dynamic = cpp_expression("#include <bits/s");
 
-var vi = cpp_expression("#include <b");
+var vi: dynamic = cpp_expression("#include <b");
 
-var vl = cpp_expression("#include <");
+var vl: dynamic = cpp_expression("#include <");
 
-func rep(i: dynamic, x: dynamic, y: dynamic)
+func rep(i: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i = x - 1; i < y; i ++)");
 }
 
-func rrep(i: dynamic, x: dynamic, y: dynamic)
+func rrep(i: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   cpp_macro("for(int i = x; i >= y; i - - )");
 }
 
-var eps = cpp_expression("#inclu");
+var eps: dynamic = cpp_expression("#inclu");
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.");
 }
 
-func read()
+func read() -> dynamic
 {
-  var x = 0;
-  var f = 1;
-  var ch = getchar();
+  var x: dynamic = 0;
+  var f: dynamic = 1;
+  var ch: dynamic = getchar();
   while (((ch < cpp_char("0")) || (ch > cpp_char("9"))))
   {
     if ((ch == cpp_char(" - ")))
@@ -62,26 +62,26 @@ func read()
   return (x * f);
 }
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var l = cpp_array(100001);
+var l: dynamic = cpp_array(100001);
 
-var r = cpp_array(100001);
+var r: dynamic = cpp_array(100001);
 
-var L: dynamic;
+var L: dynamic = cpp_uninitialized();
 
-var R: dynamic;
+var R: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
   n = read();
   rep(i, 1, n);
   scanf("%lld%lld", (&l[i]), (&r[i]));
   L.insert(((-1) << 60));
   R.insert((1 << 60));
-  var ol = 0;
-  var Or = 0;
-  var res = 0;
+  var ol: dynamic = 0;
+  var Or: dynamic = 0;
+  var res: dynamic = 0;
   rep(i, 1, n);
   {
     if ((i > 0))

@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var MAX = 100000;
+var MAX: dynamic = 100000;
 
-var w: dynamic;
+var w: dynamic = cpp_uninitialized();
 
-var h: dynamic;
+var h: dynamic = cpp_uninitialized();
 
-var gx: dynamic;
+var gx: dynamic = cpp_uninitialized();
 
-var gy: dynamic;
+var gy: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var input: dynamic;
+var input: dynamic = cpp_uninitialized();
 
-var vec = cpp_array((MAX + 1), 4);
+var vec: dynamic = cpp_array((MAX + 1), 4);
 
-var r: dynamic;
+var r: dynamic = cpp_uninitialized();
 
-func check(x: dynamic, y: dynamic, d: dynamic)
+func check(x: dynamic, y: dynamic, d: dynamic) -> dynamic
 {
-  var f = false;
+  var f: dynamic = false;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= r.size()))
     {
-      var nx: dynamic;
-      var ny: dynamic;
+      var nx: dynamic = cpp_uninitialized();
+      var ny: dynamic = cpp_uninitialized();
       if ((d == 0))
       {
         nx = x;
@@ -104,15 +104,15 @@ func check(x: dynamic, y: dynamic, d: dynamic)
   return false;
 }
 
-func solve()
+func solve() -> dynamic
 {
-  var res = 0;
+  var res: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= MAX))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 4))
         {
           vec[j][i].clear();
@@ -123,7 +123,7 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < input.size()))
     {
       vec[1][input[i].second].push_back(input[i].first);
@@ -134,7 +134,7 @@ func solve()
   vec[1][gy].push_back(gx);
   vec[3][gy].push_back(gx);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < input.size()))
     {
       vec[0][input[i].first].push_back(input[i].second);
@@ -145,15 +145,15 @@ func solve()
   vec[0][gx].push_back(gy);
   vec[2][gx].push_back(gy);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 4))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= MAX))
         {
           vec[i][j].push_back(0);
-          vec[i][j].push_back(((if (((i % 2) == 0)) h else w) + 1));
+          vec[i][j].push_back((( (((i % 2) == 0)) ? h : w) + 1));
           j += 1;
         }
       }
@@ -161,11 +161,11 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= MAX))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < vec[0][i].size()))
         {
           vec[0][i][j] = (-vec[0][i][j]);
@@ -173,7 +173,7 @@ func solve()
         }
       }
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < vec[3][i].size()))
         {
           vec[3][i][j] = (-vec[3][i][j]);
@@ -184,11 +184,11 @@ func solve()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= MAX))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 4))
         {
           if ((vec[j][i].size() > 0))
@@ -202,21 +202,21 @@ func solve()
     }
   }
   {
-    var d = 0;
+    var d: dynamic = 0;
     while ((d < 4))
     {
-      var upper = (if (((d % 2) == 0)) w else h);
+      var upper: dynamic = ( (((d % 2) == 0)) ? w : h);
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i <= upper))
         {
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j < vec[d][i].size()))
             {
               if (((d % 2) == 1))
               {
-                var sx = (vec[d][i][j] - 1);
+                var sx: dynamic = (vec[d][i][j] - 1);
                 if ((d == 3))
                 {
                   sx = (-sx);
@@ -233,7 +233,7 @@ func solve()
               }
               if (((d % 2) == 0))
               {
-                var sy = (vec[d][i][j] - 1);
+                var sy: dynamic = (vec[d][i][j] - 1);
                 if ((d == 0))
                 {
                   sy = (-sy);
@@ -260,15 +260,15 @@ func solve()
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   read(w, h, gx, gy, n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       input.push_back(P(x, y));
       i += 1;

@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var width = 0;
-  var n: dynamic;
-  var h: dynamic;
+  var width: dynamic = 0;
+  var n: dynamic = cpp_uninitialized();
+  var h: dynamic = cpp_uninitialized();
   read(n, h);
-  var arr = cpp_array(n);
+  var arr: dynamic = cpp_array(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(arr[i]);

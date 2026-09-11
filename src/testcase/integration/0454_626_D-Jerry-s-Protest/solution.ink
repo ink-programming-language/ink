@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var t = cpp_array(2222);
+var t: dynamic = cpp_array(2222);
 
-var p1 = cpp_array(5555);
+var p1: dynamic = cpp_array(5555);
 
-var p2 = cpp_array(20000);
+var p2: dynamic = cpp_array(20000);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(t[i]);
@@ -20,11 +20,11 @@ func main()
   }
   sort(t, (t + n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = (i + 1);
+        var j: dynamic = (i + 1);
         while ((j < n))
         {
           p1[(t[j] - t[i])] += 1;
@@ -35,11 +35,11 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < 5555))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < 5555))
         {
           p2[(i + j)] += (p1[i] * p1[j]);
@@ -49,10 +49,10 @@ func main()
       i += 1;
     }
   }
-  var ans = 0;
-  var q = 0;
+  var ans: dynamic = 0;
+  var q: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < 5555))
     {
       q += p2[(i - 1)];

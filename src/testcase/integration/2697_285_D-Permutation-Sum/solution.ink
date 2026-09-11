@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var EPS = 1e-8;
+var EPS: dynamic = 1e-8;
 
-var PI = 3.1415926535897932384626433832795;
+var PI: dynamic = 3.1415926535897932384626433832795;
 
-var E = 2.7182818284;
+var E: dynamic = 2.7182818284;
 
-var INF = 1000000000;
+var INF: dynamic = 1000000000;
 
-var t = cpp_array(16, 16);
+var t: dynamic = cpp_array(16, 16);
 
-var res = 0;
+var res: dynamic = 0;
 
-var m = 1000000007;
+var m: dynamic = 1000000007;
 
-var fact = 1;
+var fact: dynamic = 1;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var f = cpp_array(16);
+var f: dynamic = cpp_array(16);
 
-var vz = cpp_array(16);
+var vz: dynamic = cpp_array(16);
 
-func pereb(j: dynamic)
+func pereb(j: dynamic) -> dynamic
 {
   if ((j == n))
   {
@@ -31,7 +31,7 @@ func pereb(j: dynamic)
     return;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((f[i] || vz[(t[i][j] - 1)]))
@@ -49,7 +49,7 @@ func pereb(j: dynamic)
   }
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
   read(n);
   if ((n == 1))
@@ -67,9 +67,9 @@ func main(argument_0: dynamic)
     write("150347555");
     return 0;
   }
-  var fact = 1;
+  var fact: dynamic = 1;
   {
-    var i = 2;
+    var i: dynamic = 2;
     while ((i <= n))
     {
       fact *= (1 * i);
@@ -78,11 +78,11 @@ func main(argument_0: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < n))
         {
           t[i][j] = ((((i + j)) % n) + 1);

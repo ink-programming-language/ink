@@ -1,36 +1,36 @@
 // Translated from solution.cpp.
 
-var INF = 0x3f3f3f3f;
+var INF: dynamic = 0x3f3f3f3f;
 
-var mod = 998244353;
+var mod: dynamic = 998244353;
 
-var MXN = (1e6 + 7);
+var MXN: dynamic = (1e6 + 7);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-var ar = cpp_array(MXN);
+var ar: dynamic = cpp_array(MXN);
 
-var ls = cpp_array(MXN);
+var ls: dynamic = cpp_array(MXN);
 
-var rs = cpp_array(MXN);
+var rs: dynamic = cpp_array(MXN);
 
-var stk = cpp_array(MXN);
+var stk: dynamic = cpp_array(MXN);
 
-var ans = cpp_array(MXN);
+var ans: dynamic = cpp_array(MXN);
 
-var vs = cpp_array(MXN);
+var vs: dynamic = cpp_array(MXN);
 
 class FenwickTree
 {
   var BIT: dynamic = cpp_array(MXN);
-  var N: dynamic;
-  func init(n: dynamic)
+  var N: dynamic = cpp_uninitialized();
+  func init(n: dynamic) -> dynamic
   {
       N = (n + 3);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i <= (n + 3)))
         {
           BIT[i] = 0;
@@ -38,11 +38,11 @@ class FenwickTree
         }
       }
     }
-  func lowbit(x: dynamic)
+  func lowbit(x: dynamic) -> dynamic
   {
       return (x & ((-x)));
     }
-  func add(x: dynamic, val: dynamic)
+  func add(x: dynamic, val: dynamic) -> dynamic
   {
       {
         while ((x <= N))
@@ -52,9 +52,9 @@ class FenwickTree
         }
       }
     }
-  func query(x: dynamic)
+  func query(x: dynamic) -> dynamic
   {
-      var ans = 0;
+      var ans: dynamic = 0;
       {
         while (x)
         {
@@ -66,26 +66,26 @@ class FenwickTree
     }
 }
 
-var bit1: dynamic;
+var bit1: dynamic = cpp_uninitialized();
 
-var bit2: dynamic;
+var bit2: dynamic = cpp_uninitialized();
 
-func go()
+func go() -> dynamic
 {
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       vs[ls[i]].emplace_back(i);
       i += 1;
     }
   }
-  var top = 0;
+  var top: dynamic = 0;
   bit1.init(n);
   bit2.init(n);
   {
-    var i = n;
-    var j: dynamic;
+    var i: dynamic = n;
+    var j: dynamic = cpp_uninitialized();
     while ((i >= 1))
     {
       while ((top && (ar[stk[top]] < ar[i])))
@@ -103,7 +103,7 @@ func go()
       bit1.add(j, (i - 1));
       bit2.add(i, 1);
       bit2.add(j, -1);
-      for (var id in vs[i])
+      for (var id: dynamic in vs[i])
       {
         ans[id] += ((bit1.query(rs[id]) + (rs[id] * bit2.query(rs[id]))));
       }
@@ -112,11 +112,11 @@ func go()
   }
 }
 
-func main(argc: dynamic, argv: dynamic)
+func main(argc: dynamic, argv: dynamic) -> dynamic
 {
   scanf("%d%d", (&n), (&q));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       scanf("%d", (&ar[i]));
@@ -124,7 +124,7 @@ func main(argc: dynamic, argv: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       scanf("%d", (&ls[i]));
@@ -132,7 +132,7 @@ func main(argc: dynamic, argv: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       scanf("%d", (&rs[i]));
@@ -141,7 +141,7 @@ func main(argc: dynamic, argv: dynamic)
   }
   go();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       vs[i].clear();
@@ -150,7 +150,7 @@ func main(argc: dynamic, argv: dynamic)
   }
   reverse((ar + 1), ((ar + n) + 1));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       ls[i] = ((n + 1) - ls[i]);
@@ -159,7 +159,7 @@ func main(argc: dynamic, argv: dynamic)
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
       swap(ls[i], rs[i]);
@@ -168,10 +168,10 @@ func main(argc: dynamic, argv: dynamic)
   }
   go();
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= q))
     {
-      printf("%lld%c", (ans[i] - (((rs[i] - ls[i]) + 1))), if ((i == q)) cpp_char("\n") else cpp_char(" "));
+      printf("%lld%c", (ans[i] - (((rs[i] - ls[i]) + 1))),  ((i == q)) ? cpp_char("\n") : cpp_char(" "));
       i += 1;
     }
   }

@@ -1,18 +1,18 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var bs = cpp_construct(0);
-  var q: dynamic;
+  var bs: dynamic = cpp_construct(0);
+  var q: dynamic = cpp_uninitialized();
   read(q);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < q))
     {
-      var op: dynamic;
-      var k: dynamic;
+      var op: dynamic = cpp_uninitialized();
+      var k: dynamic = cpp_uninitialized();
       read(op);
-      var __cpp_switch_1 = op;
+      var __cpp_switch_1: dynamic = op;
       if (__cpp_switch_1 == 0)
       {
         read(k);

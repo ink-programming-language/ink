@@ -8,8 +8,8 @@
    Notation:
    - Alternatives use "|", concatenation uses ",", and an optional sequence
      uses "[ ... ]". A missing optional sequence consumes no tokens.
-   - There are no syntactic or semantic predicates. The normal and header
-     expression families encode the declaration-body boundary explicitly.
+   - There are no syntactic or semantic predicates. Declaration headers and
+     other expression positions use the same expression grammar.
    - Production choices depend only on the next token. Rule names describe
      syntax, never the result of name lookup or compile-time evaluation.
 
@@ -28,6 +28,15 @@
    - Explicit comptime expressions and statements must evaluate or execute
      at compile time; failure is an error.
 
+   Calls and object construction:
+   - Calls and object construction both use call_suffix: "callee(arguments)".
+     The semantic phase distinguishes a function value from a type value.
+     A construction target must evaluate at compile time to a type value;
+     this alone does not make construction or its arguments comptime.
+   - Computed type values can be construction targets, as in
+     "makeType()(arguments)". Braces do not construct objects; they delimit
+     blocks and declaration bodies.
+
    Scope and grouping:
    - At statement start, comptime applies to the complete following statement.
      Within an expression, comptime consumes one unary operand. Parentheses
@@ -35,9 +44,6 @@
    - ref/ptr operands and the result of a function type consume one unary
      expression; larger computations require parentheses, for example
      "ptr (flag ? T : U)" and "func() -> (flag ? T : U)".
-   - Header expressions cannot consume an outer object initializer. Parentheses,
-     call arguments, indices, generic arguments, array elements, and function
-     type parameters use normal expressions within their delimiters.
    - Repeated binary operators retain the precedence and left associativity
      of grammar.bnf. Conditional expressions associate to the right.
    - Assignment remains a statement operation with a unary-expression left
@@ -123,7 +129,7 @@ extern_function_declaration_tail =
     | "class_method", named_function_declaration_tail ;
 
 named_function_declaration_tail =
-    identifier, optional_generic_parameter_list, parameter_list, "->", header_expression, function_declaration_end ;
+    identifier, optional_generic_parameter_list, parameter_list, "->", expression, function_declaration_end ;
 
 function_declaration_end =
       block_statement
@@ -140,7 +146,7 @@ enum_declaration_tail =
 
 optional_class_inheritance_clause =
     [
-        "extends", header_expression, optional_implements_clause
+        "extends", expression, optional_implements_clause
       | "implements", header_type_list
     ] ;
 
@@ -149,7 +155,7 @@ optional_interface_inheritance_clause =
 
 optional_enum_base_clause =
     [
-        ":", header_expression, optional_implements_clause
+        ":", expression, optional_implements_clause
       | "implements", header_type_list
     ] ;
 
@@ -157,7 +163,7 @@ optional_implements_clause =
     [ "implements", header_type_list ] ;
 
 header_type_list =
-    header_expression, header_type_list_tail ;
+    expression, header_type_list_tail ;
 
 header_type_list_tail =
     [ ",", header_type_list ] ;
@@ -346,7 +352,7 @@ assignment_operator =
     | "<<="
     | ">>=" ;
 
-(* Shared delimited expressions. Parentheses and brackets return to the normal expression family. *)
+(* Shared delimited expressions. Calls and construction share their argument syntax. *)
 
 argument_list =
     expression, argument_list_tail ;
@@ -368,9 +374,6 @@ call_suffix =
 
 index_suffix =
     "[", expression, "]" ;
-
-object_initializer =
-    "{", optional_argument_list, "}" ;
 
 optional_array_elements =
     [ expression, expression_list_tail ] ;
@@ -409,7 +412,7 @@ non_name_primary_expression =
     | "(", expression, parenthesized_expression_tail, ")"
     | "[", optional_array_elements, "]" ;
 
-(* Normal expressions. A complete unary prefix is consumed before parsing operator continuations. *)
+(* Expressions. A complete unary prefix is consumed before parsing operator continuations. *)
 
 expression =
     logical_or_expression, conditional_expression_tail ;
@@ -529,31 +532,11 @@ unary_operator =
     | "&"
     | "*" ;
 
-(* Named postfix paths. named_path_tail permits one generic argument list on the current segment; instantiated_named_path_tail records that it has been used. Calls, indices, pointer-member access, or repeated instantiation enter postfix_tail, which cannot later accept an object initializer. No name or type lookup is involved. *)
+(* Postfix operations share one continuation, independent of name or type lookup. *)
 
 postfix_expression =
-      identifier, named_path_tail
+      identifier, postfix_tail
     | non_name_primary_expression, postfix_tail ;
-
-named_path_tail =
-    [
-        ".", identifier, named_path_tail
-      | generic_argument_list, instantiated_named_path_tail
-      | call_suffix, postfix_tail
-      | index_suffix, postfix_tail
-      | "->", identifier, postfix_tail
-      | object_initializer, postfix_tail
-    ] ;
-
-instantiated_named_path_tail =
-    [
-        ".", identifier, named_path_tail
-      | generic_argument_list, postfix_tail
-      | call_suffix, postfix_tail
-      | index_suffix, postfix_tail
-      | "->", identifier, postfix_tail
-      | object_initializer, postfix_tail
-    ] ;
 
 postfix_tail =
     [
@@ -561,136 +544,5 @@ postfix_tail =
       | call_suffix, postfix_tail
       | index_suffix, postfix_tail
       | ".", identifier, postfix_tail
-      | "->", identifier, postfix_tail
-    ] ;
-
-(* Header expressions. These mirror normal precedence, but their named paths have no object-initializer branch. Thus an outer opening brace remains available to the enclosing declaration body. *)
-
-header_expression =
-    header_logical_or_expression, header_conditional_expression_tail ;
-
-header_conditional_expression_tail =
-    [ "?", header_expression, ":", header_expression ] ;
-
-header_logical_or_expression =
-    header_logical_and_expression, header_logical_or_expression_tail ;
-
-header_logical_or_expression_tail =
-    [ "||", header_logical_and_expression, header_logical_or_expression_tail ] ;
-
-header_logical_and_expression =
-    header_bitwise_or_expression, header_logical_and_expression_tail ;
-
-header_logical_and_expression_tail =
-    [ "&&", header_bitwise_or_expression, header_logical_and_expression_tail ] ;
-
-header_bitwise_or_expression =
-    header_bitwise_xor_expression, header_bitwise_or_expression_tail ;
-
-header_bitwise_or_expression_tail =
-    [ "|", header_bitwise_xor_expression, header_bitwise_or_expression_tail ] ;
-
-header_bitwise_xor_expression =
-    header_bitwise_and_expression, header_bitwise_xor_expression_tail ;
-
-header_bitwise_xor_expression_tail =
-    [ "^", header_bitwise_and_expression, header_bitwise_xor_expression_tail ] ;
-
-header_bitwise_and_expression =
-    header_equality_expression, header_bitwise_and_expression_tail ;
-
-header_bitwise_and_expression_tail =
-    [ "&", header_equality_expression, header_bitwise_and_expression_tail ] ;
-
-header_equality_expression =
-    header_relational_expression, header_equality_expression_tail ;
-
-header_equality_expression_tail =
-    [
-        "==", header_relational_expression
-      | "!=", header_relational_expression
-    ] ;
-
-header_relational_expression =
-    header_shift_expression, header_relational_expression_tail ;
-
-header_relational_expression_tail =
-    [
-        "<", header_shift_expression
-      | "<=", header_shift_expression
-      | ">", header_shift_expression
-      | ">=", header_shift_expression
-    ] ;
-
-header_shift_expression =
-    header_additive_expression, header_shift_expression_tail ;
-
-header_shift_expression_tail =
-    [
-        "<<", header_additive_expression, header_shift_expression_tail
-      | ">>", header_additive_expression, header_shift_expression_tail
-    ] ;
-
-header_additive_expression =
-    header_multiplicative_expression, header_additive_expression_tail ;
-
-header_additive_expression_tail =
-    [
-        "+", header_multiplicative_expression, header_additive_expression_tail
-      | "-", header_multiplicative_expression, header_additive_expression_tail
-    ] ;
-
-header_multiplicative_expression =
-    header_unary_expression, header_multiplicative_expression_tail ;
-
-header_multiplicative_expression_tail =
-    [
-        "*", header_unary_expression, header_multiplicative_expression_tail
-      | "/", header_unary_expression, header_multiplicative_expression_tail
-      | "%", header_unary_expression, header_multiplicative_expression_tail
-    ] ;
-
-header_unary_expression =
-      header_non_const_unary_expression
-    | "const", header_const_type_expression_tail ;
-
-header_non_const_unary_expression =
-      header_basic_unary_expression
-    | "comptime", header_unary_expression
-    | "func", header_function_type_tail
-    | "extern", string_literal, "func", header_function_type_tail ;
-
-header_basic_unary_expression =
-      unary_operator, header_unary_expression
-    | "ref", header_unary_expression
-    | "ptr", header_unary_expression
-    | header_postfix_expression ;
-
-header_const_type_expression_tail =
-      "ref", header_unary_expression
-    | "ptr", header_unary_expression ;
-
-header_function_type_tail =
-    "(", optional_function_type_parameters, ")", "->", header_unary_expression ;
-
-header_postfix_expression =
-      identifier, header_named_path_tail
-    | non_name_primary_expression, postfix_tail ;
-
-header_named_path_tail =
-    [
-        ".", identifier, header_named_path_tail
-      | generic_argument_list, header_instantiated_named_path_tail
-      | call_suffix, postfix_tail
-      | index_suffix, postfix_tail
-      | "->", identifier, postfix_tail
-    ] ;
-
-header_instantiated_named_path_tail =
-    [
-        ".", identifier, header_named_path_tail
-      | generic_argument_list, postfix_tail
-      | call_suffix, postfix_tail
-      | index_suffix, postfix_tail
       | "->", identifier, postfix_tail
     ] ;

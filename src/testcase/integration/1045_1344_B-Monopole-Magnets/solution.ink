@@ -1,37 +1,37 @@
 // Translated from solution.cpp.
 
-var maxn = 1005;
+var maxn: dynamic = 1005;
 
-var inf = 0x3f3f3f3f;
+var inf: dynamic = 0x3f3f3f3f;
 
-var m1 = cpp_array(maxn, maxn);
+var m1: dynamic = cpp_array(maxn, maxn);
 
-var m2 = cpp_array(maxn, maxn);
+var m2: dynamic = cpp_array(maxn, maxn);
 
-var hang = cpp_array(maxn);
+var hang: dynamic = cpp_array(maxn);
 
-var lie = cpp_array(maxn);
+var lie: dynamic = cpp_array(maxn);
 
-var have: dynamic;
+var have: dynamic = cpp_uninitialized();
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var dxy = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+var dxy: dynamic = [[0, 1], [0, -1], [1, 0], [-1, 0]];
 
-var p: dynamic;
+var p: dynamic = cpp_uninitialized();
 
-var ch: dynamic;
+var ch: dynamic = cpp_uninitialized();
 
-func ju1()
+func ju1() -> dynamic
 {
-  var b1 = 0;
-  var b2 = 0;
+  var b1: dynamic = 0;
+  var b2: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!hang[i]))
@@ -43,7 +43,7 @@ func ju1()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       if ((!lie[i]))
@@ -65,20 +65,20 @@ func ju1()
   return 0;
 }
 
-func ju2(xx: dynamic, yy: dynamic)
+func ju2(xx: dynamic, yy: dynamic) -> dynamic
 {
-  var q: dynamic;
+  var q: dynamic = cpp_uninitialized();
   q.push([xx, yy]);
-  var a = inf;
-  var b = (-inf);
-  var c = inf;
-  var d = (-inf);
+  var a: dynamic = inf;
+  var b: dynamic = (-inf);
+  var c: dynamic = inf;
+  var d: dynamic = (-inf);
   while (q.size())
   {
     p = q.front();
     q.pop();
-    var x = p.first;
-    var y = p.second;
+    var x: dynamic = p.first;
+    var y: dynamic = p.second;
     if (((((((x < 1) || (x > n)) || (y < 1)) || (y > m)) || m1[x][y]) || m2[x][y]))
     {
       continue;
@@ -86,7 +86,7 @@ func ju2(xx: dynamic, yy: dynamic)
     m2[x][y] = 1;
     m1[x][y] = 1;
     {
-      var cpp_name = 0;
+      var cpp_name: dynamic = 0;
       while ((cpp_name < 3))
       {
         if ((!m1[(x + dxy[cpp_name][0])][(y + dxy[cpp_name][1])]))
@@ -102,12 +102,12 @@ func ju2(xx: dynamic, yy: dynamic)
   c = 1;
   d = m;
   {
-    var i = a;
+    var i: dynamic = a;
     while ((i <= b))
     {
-      var tmp = -1;
+      var tmp: dynamic = -1;
       {
-        var j = c;
+        var j: dynamic = c;
         while ((j <= d))
         {
           if (m2[i][j])
@@ -127,12 +127,12 @@ func ju2(xx: dynamic, yy: dynamic)
     }
   }
   {
-    var i = c;
+    var i: dynamic = c;
     while ((i <= d))
     {
-      var tmp = -1;
+      var tmp: dynamic = -1;
       {
-        var j = a;
+        var j: dynamic = a;
         while ((j <= b))
         {
           if (m2[j][i])
@@ -154,18 +154,18 @@ func ju2(xx: dynamic, yy: dynamic)
   return 1;
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(false);
   cin.tie(0);
   cout.tie(0);
   read(n, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
-        var j = 1;
+        var j: dynamic = 1;
         while ((j <= m))
         {
           read(ch);
@@ -190,11 +190,11 @@ func main()
   } else
   {
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j <= m))
           {
             if ((!m1[i][j]))

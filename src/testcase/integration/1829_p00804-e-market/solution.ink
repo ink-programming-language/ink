@@ -1,33 +1,33 @@
 // Translated from solution.cpp.
 
-func REP(i: dynamic, n: dynamic)
+func REP(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i = 0; i < (int)n; i++)");
 }
 
-func FOR(i: dynamic, a: dynamic, b: dynamic)
+func FOR(i: dynamic, a: dynamic, b: dynamic) -> dynamic
 {
   cpp_macro("for(int i = a; i < (int)b; i++)");
 }
 
-var pb = cpp_expression("#include");
+var pb: dynamic = cpp_expression("#include");
 
-var mp = cpp_expression("#include");
+var mp: dynamic = cpp_expression("#include");
 
-var INF = (1 << 28);
+var INF: dynamic = (1 << 28);
 
-var MOD = 1000000007;
+var MOD: dynamic = 1000000007;
 
-var dx = [1, 0, -1, 0];
+var dx: dynamic = [1, 0, -1, 0];
 
-var dy = [0, 1, 0, -1];
+var dy: dynamic = [0, 1, 0, -1];
 
 class order
 {
-  var name: dynamic;
-  var com: dynamic;
-  var price: dynamic;
-  func operator_less(a: dynamic)
+  var name: dynamic = cpp_uninitialized();
+  var com: dynamic = cpp_uninitialized();
+  var price: dynamic = cpp_uninitialized();
+  func operator_less(a: dynamic) -> dynamic
   {
       return (price < a.price);
     }
@@ -35,17 +35,17 @@ class order
 
 class comodity
 {
-  var min: dynamic;
-  var max: dynamic;
-  var sum: dynamic;
-  var cnt: dynamic;
+  var min: dynamic = cpp_uninitialized();
+  var max: dynamic = cpp_uninitialized();
+  var sum: dynamic = cpp_uninitialized();
+  var cnt: dynamic = cpp_uninitialized();
 }
 
-func addCom(m: dynamic, v: dynamic, name: dynamic)
+func addCom(m: dynamic, v: dynamic, name: dynamic) -> dynamic
 {
   if ((!m.count(name)))
   {
-    var c: dynamic;
+    var c: dynamic = cpp_uninitialized();
     c.min = cpp_assign(c.max, "=", cpp_assign(c.sum, "=", v));
     c.cnt = 1;
     m[name] = c;
@@ -58,23 +58,23 @@ func addCom(m: dynamic, v: dynamic, name: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(0);
   cin.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   while (cpp_comma((cin >> n), n))
   {
-    var buy: dynamic;
-    var sell: dynamic;
-    var ppl: dynamic;
-    var m: dynamic;
-    for (var i in m)
+    var buy: dynamic = cpp_uninitialized();
+    var sell: dynamic = cpp_uninitialized();
+    var ppl: dynamic = cpp_uninitialized();
+    var m: dynamic = cpp_uninitialized();
+    for (var i: dynamic in m)
     {
       write(i.first, cpp_char(" "), i.second.min, cpp_char(" "), (i.second.sum / i.second.cnt), cpp_char(" "), i.second.max, "\n");
     }
     write("--", "\n");
-    for (var i in ppl)
+    for (var i: dynamic in ppl)
     {
       write(i.first, cpp_char(" "), i.second.first, cpp_char(" "), i.second.second, "\n");
     }
@@ -83,18 +83,18 @@ func main()
   return 0;
 }
 
-func REP(argument_0: dynamic, argument_1: dynamic)
+func REP(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-      var o: dynamic;
-      var in_cpp: dynamic;
+      var o: dynamic = cpp_uninitialized();
+      var in_cpp: dynamic = cpp_uninitialized();
       read(o.name, in_cpp, o.com, o.price);
       if ((!ppl.count(o.name)))
       {
         ppl[o.name] = mp(0, 0);
       }
-      var flg = false;
-      var v: dynamic;
-      var pnt: dynamic;
+      var flg: dynamic = false;
+      var v: dynamic = cpp_uninitialized();
+      var pnt: dynamic = cpp_uninitialized();
       if ((in_cpp == "SELL"))
       {
         REP(j, buy.size());

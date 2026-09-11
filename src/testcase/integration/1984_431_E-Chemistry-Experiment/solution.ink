@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-func FastMax(x: dynamic, y: dynamic)
+func FastMax(x: dynamic, y: dynamic) -> dynamic
 {
   return (((((((y - x)) >> ((32 - 1)))) & ((x ^ y)))) ^ y);
 }
 
-func FastMin(x: dynamic, y: dynamic)
+func FastMin(x: dynamic, y: dynamic) -> dynamic
 {
   return (((((((y - x)) >> ((32 - 1)))) & ((x ^ y)))) ^ x);
 }
 
-var N: dynamic;
+var N: dynamic = cpp_uninitialized();
 
-var Q: dynamic;
+var Q: dynamic = cpp_uninitialized();
 
-var A = cpp_array((1000007 + 7));
+var A: dynamic = cpp_array((1000007 + 7));
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var wh: dynamic;
+var wh: dynamic = cpp_uninitialized();
 
-var qr: dynamic;
+var qr: dynamic = cpp_uninitialized();
 
-var BIT_vol = cpp_array((1000007 + 7));
+var BIT_vol: dynamic = cpp_array((1000007 + 7));
 
-var BIT_cnt = cpp_array((1000007 + 7));
+var BIT_cnt: dynamic = cpp_array((1000007 + 7));
 
-func Update(B: dynamic, I: dynamic, v: dynamic)
+func Update(B: dynamic, I: dynamic, v: dynamic) -> dynamic
 {
   while (cpp_binary(I, "and", (I <= 1000007)))
   {
@@ -35,9 +35,9 @@ func Update(B: dynamic, I: dynamic, v: dynamic)
   }
 }
 
-func Find(B: dynamic, I: dynamic)
+func Find(B: dynamic, I: dynamic) -> dynamic
 {
-  var s = 0;
+  var s: dynamic = 0;
   while (I)
   {
     s += B[I];
@@ -46,11 +46,11 @@ func Find(B: dynamic, I: dynamic)
   return s;
 }
 
-func isPos(I: dynamic, v: dynamic, ans: dynamic)
+func isPos(I: dynamic, v: dynamic, ans: dynamic) -> dynamic
 {
-  var c = Find(BIT_cnt, I);
-  var tot = Find(BIT_vol, I);
-  var Lim = ((wh[I] * c) - tot);
+  var c: dynamic = Find(BIT_cnt, I);
+  var tot: dynamic = Find(BIT_vol, I);
+  var Lim: dynamic = ((wh[I] * c) - tot);
   if ((Lim > v))
   {
     ans = min(ans, cpp_cast(wh[I]));
@@ -62,16 +62,16 @@ func isPos(I: dynamic, v: dynamic, ans: dynamic)
   }
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var t: dynamic;
-  var p: dynamic;
-  var x: dynamic;
-  var v: dynamic;
-  var Icase: dynamic;
-  var k = 0;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var Icase: dynamic = cpp_uninitialized();
+  var k: dynamic = 0;
   scanf("%I64d%I64d", (&N), (&Q));
   mp[-1] = cpp_assign(mp[0], "=", cpp_assign(mp[1000000007], "=", 0));
   {
@@ -101,7 +101,7 @@ func main(argument_0: dynamic)
       i += 1;
     }
   }
-  var it = mp.begin();
+  var it: dynamic = mp.begin();
   i = 0;
   while ((it != mp.end()))
   {
@@ -136,12 +136,12 @@ func main(argument_0: dynamic)
       } else
       {
         v = qr[i].second.first;
-        var lo = 1;
-        var hi = mp.size();
-        var ans = 1e17;
+        var lo: dynamic = 1;
+        var hi: dynamic = mp.size();
+        var ans: dynamic = 1e17;
         while ((lo <= hi))
         {
-          var mid = (((lo + hi)) / 2);
+          var mid: dynamic = (((lo + hi)) / 2);
           if (isPos(mid, v, ans))
           {
             hi = (mid - 1);

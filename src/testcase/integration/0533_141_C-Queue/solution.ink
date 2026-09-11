@@ -1,20 +1,20 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var nop: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var l: dynamic;
-  var a: dynamic;
-  var temp: dynamic;
-  var b = cpp_array(100);
-  var stt = cpp_array(3010);
-  var vct: dynamic;
-  var v2: dynamic;
-  var v3: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var nop: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var temp: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_array(100);
+  var stt: dynamic = cpp_array(3010);
+  var vct: dynamic = cpp_uninitialized();
+  var v2: dynamic = cpp_uninitialized();
+  var v3: dynamic = cpp_uninitialized();
   read(n);
   nop = n;
   {
@@ -41,7 +41,7 @@ func main()
       i += 1;
     }
   }
-  var nn = n;
+  var nn: dynamic = n;
   {
     i = (nn - 1);
     while ((i >= 0))

@@ -1,14 +1,14 @@
 // Translated from solution.cpp.
 
-var MAXN = (2e5 + 5);
+var MAXN: dynamic = (2e5 + 5);
 
-var P = (1e9 + 7);
+var P: dynamic = (1e9 + 7);
 
-func read(x: dynamic)
+func read(x: dynamic) -> dynamic
 {
   x = 0;
-  var f = 1;
-  var c = getchar();
+  var f: dynamic = 1;
+  var c: dynamic = getchar();
   {
     while ((!isdigit(c)))
     {
@@ -29,17 +29,17 @@ func read(x: dynamic)
   x *= f;
 }
 
-var s = cpp_array(MAXN);
+var s: dynamic = cpp_array(MAXN);
 
-var dp = cpp_array(MAXN);
+var dp: dynamic = cpp_array(MAXN);
 
-var pre = cpp_array(MAXN);
+var pre: dynamic = cpp_array(MAXN);
 
-var lst = cpp_array(3, MAXN);
+var lst: dynamic = cpp_array(3, MAXN);
 
-var trans = cpp_array(3, MAXN);
+var trans: dynamic = cpp_array(3, MAXN);
 
-func update(x: dynamic, y: dynamic)
+func update(x: dynamic, y: dynamic) -> dynamic
 {
   x += y;
   if ((x >= P))
@@ -48,13 +48,13 @@ func update(x: dynamic, y: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%s", (s + 1));
-  var n = strlen((s + 1));
+  var n: dynamic = strlen((s + 1));
   memset(lst[0], -1, cpp_sizeof((lst[0])));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((s[i] == cpp_char("a")))
@@ -71,7 +71,7 @@ func main()
   }
   memset(trans[0], -1, cpp_sizeof((trans[0])));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if (((i != 1) && (s[(i - 1)] == s[i])))
@@ -91,7 +91,7 @@ func main()
   }
   dp[n] = 1;
   {
-    var i = n;
+    var i: dynamic = n;
     while ((i >= 1))
     {
       update(dp[(i - 1)], dp[i]);
@@ -111,9 +111,9 @@ func main()
       i -= 1;
     }
   }
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i <= (n - 1)))
     {
       if ((pre[i] == 0))

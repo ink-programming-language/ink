@@ -1,40 +1,40 @@
 // Translated from solution.cpp.
 
-var mo = 1000000007;
+var mo: dynamic = 1000000007;
 
-var x: dynamic;
+var x: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var X: dynamic;
+var X: dynamic = cpp_uninitialized();
 
-var Y: dynamic;
+var Y: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var u = cpp_array(100005);
+var u: dynamic = cpp_array(100005);
 
-var ans = cpp_array(2);
+var ans: dynamic = cpp_array(2);
 
-var f = cpp_array(2);
+var f: dynamic = cpp_array(2);
 
-var g = cpp_array(2, 2, 2);
+var g: dynamic = cpp_array(2, 2, 2);
 
-var G = cpp_array(2, 2, 2);
+var G: dynamic = cpp_array(2, 2, 2);
 
-var vis = cpp_array(100005);
+var vis: dynamic = cpp_array(100005);
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var A = cpp_array(100005);
+var A: dynamic = cpp_array(100005);
 
-var e = cpp_array(100005);
+var e: dynamic = cpp_array(100005);
 
-var w = cpp_array(100005);
+var w: dynamic = cpp_array(100005);
 
-func dfs(x: dynamic)
+func dfs(x: dynamic) -> dynamic
 {
   if (vis[x])
   {
@@ -42,20 +42,20 @@ func dfs(x: dynamic)
   }
   vis[x] = 1;
   memset(G, 0, cpp_sizeof(G));
-  var j = (a[x][0] == Y);
-  var i = (j ^ 1);
+  var j: dynamic = (a[x][0] == Y);
+  var i: dynamic = (j ^ 1);
   if ((a[x].size() == 1))
   {
     {
-      var p = 0;
+      var p: dynamic = 0;
       while ((p < 2))
       {
         {
-          var q = 0;
+          var q: dynamic = 0;
           while ((q < 2))
           {
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < 2))
               {
                 (cpp_assign(G[p][q][((k ^ q) ^ w[x][0])], "+=", g[p][q][k])) %= mo;
@@ -73,25 +73,25 @@ func dfs(x: dynamic)
   } else
   {
     {
-      var p = 0;
+      var p: dynamic = 0;
       while ((p < 2))
       {
         {
-          var q = 0;
+          var q: dynamic = 0;
           while ((q < 2))
           {
             {
-              var k = 0;
+              var k: dynamic = 0;
               while ((k < 2))
               {
                 if ((X == a[x][j]))
                 {
-                  var t = p;
+                  var t: dynamic = p;
                   (cpp_assign(G[p][t][(k ^ ((((q ^ w[x][i])) | ((t ^ w[x][j])))))], "+=", g[p][q][k])) %= mo;
                 } else
                 {
                   {
-                    var t = 0;
+                    var t: dynamic = 0;
                     while ((t < 2))
                     {
                       (cpp_assign(G[p][t][(k ^ ((((q ^ w[x][i])) | ((t ^ w[x][j])))))], "+=", g[p][q][k])) %= mo;
@@ -120,11 +120,11 @@ func dfs(x: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   scanf("%d%d", (&n), (&m));
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       {
@@ -144,7 +144,7 @@ func main()
   ans[0] = 1;
   ans[1] = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       if (((A[i].size() == 2) && (A[i][0] != A[i][1])))
@@ -161,7 +161,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))
@@ -178,11 +178,11 @@ func main()
             if ((a[i][0] != a[i][1]))
             {
               {
-                var p = 0;
+                var p: dynamic = 0;
                 while ((p < 2))
                 {
                   {
-                    var q = 0;
+                    var q: dynamic = 0;
                     while ((q < 2))
                     {
                       f[(((p ^ w[i][0])) | ((q ^ w[i][1])))] += 1;
@@ -195,7 +195,7 @@ func main()
             } else
             {
               {
-                var p = 0;
+                var p: dynamic = 0;
                 while ((p < 2))
                 {
                   f[(((p ^ w[i][0])) | ((p ^ w[i][1])))] += 1;
@@ -204,8 +204,8 @@ func main()
               }
             }
           }
-          var pp = ((f[0] * ans[0]) + (f[1] * ans[1]));
-          var qq = ((f[1] * ans[0]) + (f[0] * ans[1]));
+          var pp: dynamic = ((f[0] * ans[0]) + (f[1] * ans[1]));
+          var qq: dynamic = ((f[1] * ans[0]) + (f[0] * ans[1]));
           ans[0] = (pp % mo);
           ans[1] = (qq % mo);
         } else if ((u[i] == 1))
@@ -222,15 +222,15 @@ func main()
           dfs(i);
           f[0] = cpp_assign(f[1], "=", 0);
           {
-            var p = 0;
+            var p: dynamic = 0;
             while ((p < 2))
             {
               {
-                var q = 0;
+                var q: dynamic = 0;
                 while ((q < 2))
                 {
                   {
-                    var k = 0;
+                    var k: dynamic = 0;
                     while ((k < 2))
                     {
                       (cpp_assign(f[k], "+=", g[p][q][k])) %= mo;
@@ -243,8 +243,8 @@ func main()
               p += 1;
             }
           }
-          var pp = ((f[0] * ans[0]) + (f[1] * ans[1]));
-          var qq = ((f[1] * ans[0]) + (f[0] * ans[1]));
+          var pp: dynamic = ((f[0] * ans[0]) + (f[1] * ans[1]));
+          var qq: dynamic = ((f[1] * ans[0]) + (f[0] * ans[1]));
           ans[0] = (pp % mo);
           ans[1] = (qq % mo);
         }
@@ -253,7 +253,7 @@ func main()
     }
   }
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!vis[i]))
@@ -264,15 +264,15 @@ func main()
         dfs(i);
         f[0] = cpp_assign(f[1], "=", 0);
         {
-          var p = 0;
+          var p: dynamic = 0;
           while ((p < 2))
           {
             {
-              var q = 0;
+              var q: dynamic = 0;
               while ((q < 2))
               {
                 {
-                  var k = 0;
+                  var k: dynamic = 0;
                   while ((k < 2))
                   {
                     (cpp_assign(f[k], "+=", g[p][q][k])) %= mo;
@@ -285,8 +285,8 @@ func main()
             p += 1;
           }
         }
-        var pp = ((f[0] * ans[0]) + (f[1] * ans[1]));
-        var qq = ((f[1] * ans[0]) + (f[0] * ans[1]));
+        var pp: dynamic = ((f[0] * ans[0]) + (f[1] * ans[1]));
+        var qq: dynamic = ((f[1] * ans[0]) + (f[0] * ans[1]));
         ans[0] = (pp % mo);
         ans[1] = (qq % mo);
       }

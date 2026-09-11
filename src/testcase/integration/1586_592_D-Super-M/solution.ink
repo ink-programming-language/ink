@@ -1,23 +1,23 @@
 // Translated from solution.cpp.
 
-var maxn = 124000;
+var maxn: dynamic = 124000;
 
-var tag = cpp_array(maxn);
+var tag: dynamic = cpp_array(maxn);
 
-var v1 = cpp_array(maxn);
+var v1: dynamic = cpp_array(maxn);
 
-var v2 = cpp_array(maxn);
+var v2: dynamic = cpp_array(maxn);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var check = cpp_array(maxn);
+var check: dynamic = cpp_array(maxn);
 
-var d: dynamic;
+var d: dynamic = cpp_uninitialized();
 
-func Go(x: dynamic, fa: dynamic)
+func Go(x: dynamic, fa: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v1[x].size()))
     {
       if ((fa == v1[x][i]))
@@ -40,11 +40,11 @@ func Go(x: dynamic, fa: dynamic)
   return false;
 }
 
-func print(x: dynamic, fa: dynamic)
+func print(x: dynamic, fa: dynamic) -> dynamic
 {
   printf("%d ", x);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v2[x].size()))
     {
       if ((v2[x][i] == fa))
@@ -61,18 +61,18 @@ func print(x: dynamic, fa: dynamic)
 
 class point
 {
-  var x: dynamic;
-  var t: dynamic;
-  func point(x: dynamic = 0, t: dynamic = 0)
+  var x: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
+  func point(x: dynamic = 0, t: dynamic = 0) -> dynamic
   {
-      this->x = cpp_construct(x);
-      this->t = cpp_construct(t);
+      self->x = cpp_construct(x);
+      self->t = cpp_construct(t);
     }
 }
 
-var q: dynamic;
+var q: dynamic = cpp_uninitialized();
 
-func bfs(x: dynamic)
+func bfs(x: dynamic) -> dynamic
 {
   while ((!q.empty()))
   {
@@ -81,8 +81,8 @@ func bfs(x: dynamic)
   memset(check, 0, cpp_sizeof((check)));
   q.push(point(x, 0));
   check[x] = 1;
-  var p: dynamic;
-  var t: dynamic;
+  var p: dynamic = cpp_uninitialized();
+  var t: dynamic = cpp_uninitialized();
   while ((!q.empty()))
   {
     p = q.top();
@@ -90,7 +90,7 @@ func bfs(x: dynamic)
     x = p.x;
     t = p.t;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < v2[x].size()))
       {
         if ((!check[v2[x][i]]))
@@ -106,11 +106,11 @@ func bfs(x: dynamic)
   return x;
 }
 
-func getson(x: dynamic, fa: dynamic)
+func getson(x: dynamic, fa: dynamic) -> dynamic
 {
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < v2[x].size()))
     {
       if ((v2[x][i] == fa))
@@ -125,18 +125,18 @@ func getson(x: dynamic, fa: dynamic)
   return (ans + 1);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var l: dynamic;
-  var r: dynamic;
-  var ansnum: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var ansnum: dynamic = cpp_uninitialized();
   while ((~scanf("%d%d", (&n), (&m))))
   {
     memset(tag, 0, cpp_sizeof((tag)));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         v1[i].clear();
@@ -145,7 +145,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < n))
       {
         scanf("%d%d", (&l), (&r));
@@ -155,7 +155,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= m))
       {
         scanf("%d", (&a[i]));

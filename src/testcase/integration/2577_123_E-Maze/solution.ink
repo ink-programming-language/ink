@@ -1,26 +1,26 @@
 // Translated from solution.cpp.
 
-var INF = 1e9;
+var INF: dynamic = 1e9;
 
-var MOD = (1e9 + 7);
+var MOD: dynamic = (1e9 + 7);
 
-var N = (1e5 + 5);
+var N: dynamic = (1e5 + 5);
 
-var S = cpp_array(N);
+var S: dynamic = cpp_array(N);
 
-var T = cpp_array(N);
+var T: dynamic = cpp_array(N);
 
-var SZ = cpp_array(N);
+var SZ: dynamic = cpp_array(N);
 
-var P = cpp_array(N);
+var P: dynamic = cpp_array(N);
 
-var G = cpp_array(N);
+var G: dynamic = cpp_array(N);
 
-func DFS(v: dynamic, p: dynamic = 0)
+func DFS(v: dynamic, p: dynamic = 0) -> dynamic
 {
   SZ[v] = 1;
   P[v] = p;
-  for (var u in G[v])
+  for (var u: dynamic in G[v])
   {
     if ((u != p))
     {
@@ -31,30 +31,30 @@ func DFS(v: dynamic, p: dynamic = 0)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios.sync_with_stdio(0);
   cin.tie(0);
   cout.tie(0);
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   read(n);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < (n - 1)))
     {
-      var v: dynamic;
-      var u: dynamic;
+      var v: dynamic = cpp_uninitialized();
+      var u: dynamic = cpp_uninitialized();
       read(v, u);
       G[v].push_back(u);
       G[u].push_back(v);
       i += 1;
     }
   }
-  var s = 0;
-  var t = 0;
-  var ans = 0;
+  var s: dynamic = 0;
+  var t: dynamic = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       read(S[i], T[i]);
@@ -65,11 +65,11 @@ func main()
   }
   DFS(1);
   {
-    var v = 1;
+    var v: dynamic = 1;
     while ((v <= n))
     {
-      var tmp = 0;
-      for (var u in G[v])
+      var tmp: dynamic = 0;
+      for (var u: dynamic in G[v])
       {
         if ((u == P[v]))
         {

@@ -1,11 +1,11 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var x: dynamic;
-  var y: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var x: dynamic = cpp_uninitialized();
+  var y: dynamic = cpp_uninitialized();
   while (true)
   {
     read(n);
@@ -13,9 +13,9 @@ func main()
     {
       break;
     }
-    var jew = cpp_array(21, 21);
+    var jew: dynamic = cpp_array(21, 21);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < 441))
       {
         jew[(i % 21)][(i / 21)] = true;
@@ -23,7 +23,7 @@ func main()
       }
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         read(x, y);
@@ -32,10 +32,10 @@ func main()
       }
     }
     read(m);
-    var dir = cpp_array(m);
-    var len = cpp_array(m);
+    var dir: dynamic = cpp_array(m);
+    var len: dynamic = cpp_array(m);
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         read(dir[i], len[i]);
@@ -44,14 +44,14 @@ func main()
     }
     x = 10;
     y = 10;
-    var correct = 0;
+    var correct: dynamic = 0;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < m))
       {
         while ((len[i] > 0))
         {
-          var __cpp_switch_1 = dir[i];
+          var __cpp_switch_1: dynamic = dir[i];
           if (__cpp_switch_1 == cpp_char("N"))
           {
             y += 1;

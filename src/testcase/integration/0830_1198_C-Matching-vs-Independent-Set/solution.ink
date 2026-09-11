@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var pi = acos(-1.0);
+var pi: dynamic = acos(-1.0);
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var vis = cpp_array(300010);
+var vis: dynamic = cpp_array(300010);
 
-var ans: dynamic;
+var ans: dynamic = cpp_uninitialized();
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
     scanf("%d %d", (&n), (&m));
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i < ((3 * n) + 1)))
       {
         vis[i] = false;
@@ -26,13 +26,13 @@ func main()
       }
     }
     ans.clear();
-    var findans = false;
+    var findans: dynamic = false;
     {
-      var j = 0;
+      var j: dynamic = 0;
       while ((j < m))
       {
-        var u: dynamic;
-        var v: dynamic;
+        var u: dynamic = cpp_uninitialized();
+        var v: dynamic = cpp_uninitialized();
         scanf("%d %d", (&u), (&v));
         if (findans)
         {
@@ -48,7 +48,7 @@ func main()
           {
             findans = true;
             printf("Matching\n");
-            for (var item in ans)
+            for (var item: dynamic in ans)
             {
               printf("%d ", item);
             }
@@ -61,9 +61,9 @@ func main()
     if ((!findans))
     {
       printf("IndSet\n");
-      var cnt = 0;
+      var cnt: dynamic = 0;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < ((3 * n) + 1)))
         {
           if ((vis[i] == false))

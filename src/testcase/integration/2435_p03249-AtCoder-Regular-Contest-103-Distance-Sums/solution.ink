@@ -1,28 +1,28 @@
 // Translated from solution.cpp.
 
-var MX = (1e5 + 5);
+var MX: dynamic = (1e5 + 5);
 
-var a = cpp_array(MX);
+var a: dynamic = cpp_array(MX);
 
-var mp: dynamic;
+var mp: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var p = cpp_array(MX);
+var p: dynamic = cpp_array(MX);
 
-var visit = cpp_array(MX);
+var visit: dynamic = cpp_array(MX);
 
-var s = cpp_array(MX);
+var s: dynamic = cpp_array(MX);
 
-var dp = cpp_array(MX);
+var dp: dynamic = cpp_array(MX);
 
-func main()
+func main() -> dynamic
 {
   cin.tie(0);
   cout.tie(0);
   ios_base.sync_with_stdio(0);
   read(n);
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= n))
@@ -39,7 +39,7 @@ func main()
     while ((i >= 2))
     {
       s[a[i].second] += 1;
-      var k = mp[((a[i].first + (2 * s[a[i].second])) - n)];
+      var k: dynamic = mp[((a[i].first + (2 * s[a[i].second])) - n)];
       if ((((k == 0) || (k == a[i].second)) || (((a[i].first + (2 * s[a[i].second])) - n) >= a[i].first)))
       {
         write(-1);

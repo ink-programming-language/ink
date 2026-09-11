@@ -1,25 +1,25 @@
 // Translated from solution.cpp.
 
-var vi = cpp_expression("#include <b");
+var vi: dynamic = cpp_expression("#include <b");
 
-var int_cpp = dynamic;
+var int_cpp: dynamic = dynamic;
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for (int i = 0; i < n; i++)");
 }
 
-func all(x: dynamic)
+func all(x: dynamic) -> dynamic
 {
   return cpp_expression("#include <bits/stdc++.");
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   read(n, m);
-  var data = cpp_construct((n * 2));
+  var data: dynamic = cpp_construct((n * 2));
   sort(all(data));
   rep(i, data.size());
   {
@@ -28,7 +28,7 @@ func main()
       data[i].second += data[(i - 1)].second;
     }
   }
-  var mx = -1;
+  var mx: dynamic = -1;
   rep(i, data.size());
   {
     if ((mx < data[i].second))
@@ -38,9 +38,9 @@ func main()
   }
   if ((mx % 2))
   {
-    var ans = 0;
+    var ans: dynamic = 0;
     {
-      var i = (data.size() - 1);
+      var i: dynamic = (data.size() - 1);
       while ((i >= 0))
       {
         if ((data[ans].second < data[i].second))
@@ -53,7 +53,7 @@ func main()
     write(((((mx - 1)) * m) + ((data[(ans + 1)].first - 1))), "\n");
   } else
   {
-    var ans = (data.size() - 1);
+    var ans: dynamic = (data.size() - 1);
     rep(i, data.size());
     {
       if ((data[ans].second < data[i].second))
@@ -66,10 +66,10 @@ func main()
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-    var l: dynamic;
-    var r: dynamic;
+    var l: dynamic = cpp_uninitialized();
+    var r: dynamic = cpp_uninitialized();
     read(l, r);
     data[(i * 2)] = [l, 1];
     data[((i * 2) + 1)] = [(r + 1), -1];

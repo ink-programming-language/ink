@@ -1,9 +1,9 @@
 // Translated from solution.cpp.
 
-func input(v: dynamic, n: dynamic)
+func input(v: dynamic, n: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       read(v[i]);
@@ -12,18 +12,18 @@ func input(v: dynamic, n: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var t: dynamic;
-  var n: dynamic;
+  var t: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
   read(t);
-  var Case = 0;
+  var Case: dynamic = 0;
   while (cpp_update(t, "--"))
   {
     read(n);
-    var mp1: dynamic;
+    var mp1: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         mp1.insert([i, 0]);
@@ -35,14 +35,14 @@ func main()
         {
           v2[i] = (n - ((abs(v[i])) % n));
         }
-        var z = (((v2[i] + i)) % n);
+        var z: dynamic = (((v2[i] + i)) % n);
         mp1[z] += 1;
         i += 1;
       }
     }
-    var flag = 1;
+    var flag: dynamic = 1;
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((mp1[i] == 0))

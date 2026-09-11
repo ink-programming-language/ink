@@ -1,30 +1,30 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, n: dynamic)
+func rep(i: dynamic, n: dynamic) -> dynamic
 {
   cpp_macro("for(int i=0;i<(n);i++)");
 }
 
-var V_MAX = 109;
+var V_MAX: dynamic = 109;
 
-var E_MAX = 1000;
+var E_MAX: dynamic = 1000;
 
 class graph
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   var head: dynamic = cpp_array(V_MAX);
   var next: dynamic = cpp_array((2 * E_MAX));
   var to: dynamic = cpp_array((2 * E_MAX));
   var capa: dynamic = cpp_array((2 * E_MAX));
   var flow: dynamic = cpp_array((2 * E_MAX));
-  func init(N: dynamic)
+  func init(N: dynamic) -> dynamic
   {
       n = N;
       m = 0;
       rep(u, n)[u] = -1;
     }
-  func add_directed_edge(u: dynamic, v: dynamic, ca: dynamic)
+  func add_directed_edge(u: dynamic, v: dynamic, ca: dynamic) -> dynamic
   {
       next[m] = head[u];
       head[u] = m;
@@ -39,7 +39,7 @@ class graph
       flow[m] = 0;
       m += 1;
     }
-  func add_undirected_edge(u: dynamic, v: dynamic, ca: dynamic)
+  func add_undirected_edge(u: dynamic, v: dynamic, ca: dynamic) -> dynamic
   {
       next[m] = head[u];
       head[u] = m;
@@ -56,30 +56,30 @@ class graph
     }
 }
 
-var INF = (1 << 61);
+var INF: dynamic = (1 << 61);
 
-var layer = cpp_array(V_MAX);
+var layer: dynamic = cpp_array(V_MAX);
 
-var now = cpp_array(V_MAX);
+var now: dynamic = cpp_array(V_MAX);
 
-func make_layer(G: dynamic, s: dynamic, t: dynamic)
+func make_layer(G: dynamic, s: dynamic, t: dynamic) -> dynamic
 {
-  var n = G.n;
-  rep(u, n)[u] = (if ((u == s)) 0 else -1);
-  var head = 0;
-  var tail = 0;
-  var Q = cpp_array(V_MAX);
+  var n: dynamic = G.n;
+  rep(u, n)[u] = ( ((u == s)) ? 0 : -1);
+  var head: dynamic = 0;
+  var tail: dynamic = 0;
+  var Q: dynamic = cpp_array(V_MAX);
   Q[cpp_update(tail, "++")] = s;
   while (((head < tail) && (layer[t] == -1)))
   {
-    var u = Q[cpp_update(head, "++")];
+    var u: dynamic = Q[cpp_update(head, "++")];
     {
-      var e = G.head[u];
+      var e: dynamic = G.head[u];
       while ((e != -1))
       {
-        var v = G.to[e];
-        var capa = G.capa[e];
-        var flow = G.flow[e];
+        var v: dynamic = G.to[e];
+        var capa: dynamic = G.capa[e];
+        var flow: dynamic = G.flow[e];
         if ((((capa - flow) > 0) && (layer[v] == -1)))
         {
           layer[v] = (layer[u] + 1);
@@ -92,22 +92,22 @@ func make_layer(G: dynamic, s: dynamic, t: dynamic)
   return (layer[t] != -1);
 }
 
-func augment(G: dynamic, u: dynamic, t: dynamic, water: dynamic)
+func augment(G: dynamic, u: dynamic, t: dynamic, water: dynamic) -> dynamic
 {
   if ((u == t))
   {
     return water;
   }
   {
-    var e = now[u];
+    var e: dynamic = now[u];
     while ((e != -1))
     {
-      var v = G.to[e];
-      var capa = G.capa[e];
-      var flow = G.flow[e];
+      var v: dynamic = G.to[e];
+      var capa: dynamic = G.capa[e];
+      var flow: dynamic = G.flow[e];
       if ((((capa - flow) > 0) && (layer[v] > layer[u])))
       {
-        var w = augment(G, v, t, min(water, (capa - flow)));
+        var w: dynamic = augment(G, v, t, min(water, (capa - flow)));
         if ((w > 0))
         {
           G.flow[e] += w;
@@ -121,15 +121,15 @@ func augment(G: dynamic, u: dynamic, t: dynamic, water: dynamic)
   return 0;
 }
 
-func Dinic(G: dynamic, s: dynamic, t: dynamic)
+func Dinic(G: dynamic, s: dynamic, t: dynamic) -> dynamic
 {
-  var n = G.n;
-  var ans = 0;
+  var n: dynamic = G.n;
+  var ans: dynamic = 0;
   while (make_layer(G, s, t))
   {
     rep(u, n)[u] = G.head[u];
     {
-      var water = 1;
+      var water: dynamic = 1;
       while ((water > 0))
       {
         water = augment(G, s, t, INF);
@@ -140,37 +140,37 @@ func Dinic(G: dynamic, s: dynamic, t: dynamic)
   return ans;
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
+  var n: dynamic = cpp_uninitialized();
   {
-    var W: dynamic;
+    var W: dynamic = cpp_uninitialized();
     while (cpp_comma(scanf("%d%lld", (&n), (&W)), n))
     {
-      var aki = [];
-      var need = cpp_array(100);
-      var s = (n + 7);
-      var t = (s + 1);
-      var G: dynamic;
+      var aki: dynamic = [];
+      var need: dynamic = cpp_array(100);
+      var s: dynamic = (n + 7);
+      var t: dynamic = (s + 1);
+      var G: dynamic = cpp_uninitialized();
       G.init((n + 9));
       rep(u, 7).add_directed_edge(s, u, W);
       rep(i, n);
       rep(j, 7);
       if (aki[i][j])
       {
-        var u = j;
-        var v = (7 + i);
+        var u: dynamic = j;
+        var v: dynamic = (7 + i);
         G.add_directed_edge(u, v, W);
       }
-      puts(if ((Dinic(G, s, t) == accumulate(need, (need + n), 0))) "Yes" else "No");
+      puts( ((Dinic(G, s, t) == accumulate(need, (need + n), 0))) ? "Yes" : "No");
     }
   }
   return 0;
 }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-          var s = cpp_array(16);
+          var s: dynamic = cpp_array(16);
           scanf("%s", s);
           if (((s[0] == cpp_char("S")) && (s[1] == cpp_char("u"))))
           {
@@ -202,14 +202,14 @@ func rep(argument_0: dynamic, argument_1: dynamic)
           }
         }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var m: dynamic;
+        var m: dynamic = cpp_uninitialized();
         scanf("%lld%d", (need + i), (&m));
       }
 
-func rep(argument_0: dynamic, argument_1: dynamic)
+func rep(argument_0: dynamic, argument_1: dynamic) -> dynamic
 {
-        var v = (7 + i);
+        var v: dynamic = (7 + i);
         G.add_directed_edge(v, t, need[i]);
       }

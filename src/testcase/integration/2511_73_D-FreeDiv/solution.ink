@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var aa = cpp_array(1000010);
+var aa: dynamic = cpp_array(1000010);
 
-var f = cpp_array(1000010);
+var f: dynamic = cpp_array(1000010);
 
-func dfs(v: dynamic)
+func dfs(v: dynamic) -> dynamic
 {
   f[v] = true;
-  var res = 1;
+  var res: dynamic = 1;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < int_cpp(aa[v].size())))
     {
-      var a = aa[v][i];
+      var a: dynamic = aa[v][i];
       if ((!f[a]))
       {
         res += dfs(a);
@@ -29,25 +29,25 @@ func dfs(v: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   read(n, m, k);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < m))
     {
-      var x: dynamic;
-      var y: dynamic;
+      var x: dynamic = cpp_uninitialized();
+      var y: dynamic = cpp_uninitialized();
       read(x, y);
       aa[x].push_back(y);
       aa[y].push_back(x);
       i += 1;
     }
   }
-  var s = 2;
-  var q = 0;
+  var s: dynamic = 2;
+  var q: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= n))
     {
       if ((!f[i]))

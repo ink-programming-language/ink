@@ -1,27 +1,27 @@
 // Translated from solution.cpp.
 
-var maxn = (3e5 + 5);
+var maxn: dynamic = (3e5 + 5);
 
-var inf = 1e18;
+var inf: dynamic = 1e18;
 
-var t: dynamic;
+var t: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var ans = cpp_array(maxn);
+var ans: dynamic = cpp_array(maxn);
 
-var p = cpp_array(maxn);
+var p: dynamic = cpp_array(maxn);
 
-func main()
+func main() -> dynamic
 {
   read(t);
   while (cpp_update(t, "--"))
   {
     read(n);
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         p[i].clear();
@@ -31,7 +31,7 @@ func main()
       }
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         read(a[i]);
@@ -45,14 +45,14 @@ func main()
       continue;
     }
     {
-      var i = 1;
+      var i: dynamic = 1;
       while ((i <= n))
       {
         p[i].push_back((n + 1));
-        var mi = 0;
-        var sz = p[i].size();
+        var mi: dynamic = 0;
+        var sz: dynamic = p[i].size();
         {
-          var j = 1;
+          var j: dynamic = 1;
           while ((j < sz))
           {
             mi = max(mi, (p[i][j] - p[i][(j - 1)]));
@@ -71,7 +71,7 @@ func main()
     }
     printf("%d ", ans[1]);
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i <= n))
       {
         if ((ans[i] == -1))
@@ -85,7 +85,7 @@ func main()
       }
     }
     {
-      var i = 2;
+      var i: dynamic = 2;
       while ((i <= n))
       {
         printf("%d ", ans[i]);

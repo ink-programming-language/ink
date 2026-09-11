@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-var LIM = 26;
+var LIM: dynamic = 26;
 
-var INF = 1e+9;
+var INF: dynamic = 1e+9;
 
 class str
 {
   var a: dynamic = cpp_array(LIM);
-  func str(s: dynamic)
+  func str(s: dynamic) -> dynamic
   {
       fill(a, (a + LIM), 0);
       {
-        var i = 0;
+        var i: dynamic = 0;
         while ((i < cpp_cast(s.length())))
         {
           a[(s[i] - cpp_char("a"))] += 1;
@@ -21,17 +21,17 @@ class str
     }
 }
 
-var sa: dynamic;
+var sa: dynamic = cpp_uninitialized();
 
-var sb: dynamic;
+var sb: dynamic = cpp_uninitialized();
 
-var sc: dynamic;
+var sc: dynamic = cpp_uninitialized();
 
-func check(a: dynamic, cur: dynamic, b: dynamic, c: dynamic)
+func check(a: dynamic, cur: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
-  var ans = INF;
+  var ans: dynamic = INF;
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LIM))
     {
       if ((a.a[i] < (b.a[i] * cur)))
@@ -51,19 +51,19 @@ func check(a: dynamic, cur: dynamic, b: dynamic, c: dynamic)
   return ans;
 }
 
-func print(a: dynamic, cur: dynamic, b: dynamic, c: dynamic)
+func print(a: dynamic, cur: dynamic, b: dynamic, c: dynamic) -> dynamic
 {
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < cur))
     {
       write(sb);
       i += 1;
     }
   }
-  var sec = (check(a, cur, b, c) - cur);
+  var sec: dynamic = (check(a, cur, b, c) - cur);
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < sec))
     {
       write(sc);
@@ -71,13 +71,13 @@ func print(a: dynamic, cur: dynamic, b: dynamic, c: dynamic)
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < LIM))
     {
       a.a[i] -= (b.a[i] * cur);
       a.a[i] -= (c.a[i] * sec);
       {
-        var j = 0;
+        var j: dynamic = 0;
         while ((j < a.a[i]))
         {
           write(cpp_cast(((cpp_char("a") + i))));
@@ -89,16 +89,16 @@ func print(a: dynamic, cur: dynamic, b: dynamic, c: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   read(sa, sb, sc);
-  var ans = -1;
-  var step = -1;
-  var cur = 0;
+  var ans: dynamic = -1;
+  var step: dynamic = -1;
+  var cur: dynamic = 0;
   while (true)
   {
-    var cur_a = check(a, cur, b, c);
+    var cur_a: dynamic = check(a, cur, b, c);
     if ((cur_a == -1))
     {
       break;

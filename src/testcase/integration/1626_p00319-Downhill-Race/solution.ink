@@ -1,41 +1,41 @@
 // Translated from solution.cpp.
 
-var big = (1e15 + 100000);
+var big: dynamic = (1e15 + 100000);
 
-var mod = (1e9 + 7);
+var mod: dynamic = (1e9 + 7);
 
-var eps = 1e-9;
+var eps: dynamic = 1e-9;
 
-var pai = 3.141592653589793238462643;
+var pai: dynamic = 3.141592653589793238462643;
 
-var mt = cpp_expression("#include<c");
+var mt: dynamic = cpp_expression("#include<c");
 
-var mp = cpp_expression("#include<");
+var mp: dynamic = cpp_expression("#include<");
 
-var fir = cpp_expression("#incl");
+var fir: dynamic = cpp_expression("#incl");
 
-var sec = cpp_expression("#inclu");
+var sec: dynamic = cpp_expression("#inclu");
 
-var pub = cpp_expression("#include<");
+var pub: dynamic = cpp_expression("#include<");
 
-var puf = cpp_expression("#include<c");
+var puf: dynamic = cpp_expression("#include<c");
 
-var pob = cpp_expression("#include");
+var pob: dynamic = cpp_expression("#include");
 
-var pof = cpp_expression("#include<");
+var pof: dynamic = cpp_expression("#include<");
 
-var res = cpp_expression("#inclu");
+var res: dynamic = cpp_expression("#inclu");
 
-var ins = cpp_expression("#inclu");
+var ins: dynamic = cpp_expression("#inclu");
 
-var era = cpp_expression("#incl");
+var era: dynamic = cpp_expression("#incl");
 
-func dme(in_cpp: dynamic)
+func dme(in_cpp: dynamic) -> dynamic
 {
   cpp_macro("cout<<in<<endl;return 0");
 }
 
-func mineq(a: dynamic, b: dynamic)
+func mineq(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a > b))
   {
@@ -43,7 +43,7 @@ func mineq(a: dynamic, b: dynamic)
   }
 }
 
-func maxeq(a: dynamic, b: dynamic)
+func maxeq(a: dynamic, b: dynamic) -> dynamic
 {
   if ((a < b))
   {
@@ -51,17 +51,17 @@ func maxeq(a: dynamic, b: dynamic)
   }
 }
 
-func main(argument_0: dynamic)
+func main(argument_0: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var k: dynamic;
-  var n: dynamic;
-  var p: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var k: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var p: dynamic = cpp_uninitialized();
   read(n, p);
-  var dp = [0];
-  var dag: dynamic;
-  var kra: dynamic;
+  var dp: dynamic = [0];
+  var dag: dynamic = cpp_uninitialized();
+  var kra: dynamic = cpp_uninitialized();
   kra.push((n - 1));
   {
     i = 0;
@@ -83,10 +83,10 @@ func main(argument_0: dynamic)
     i = 0;
     while ((i < p))
     {
-      var s: dynamic;
-      var e: dynamic;
-      var t1: dynamic;
-      var t2: dynamic;
+      var s: dynamic = cpp_uninitialized();
+      var e: dynamic = cpp_uninitialized();
+      var t1: dynamic = cpp_uninitialized();
+      var t2: dynamic = cpp_uninitialized();
       read(s, e, t1, t2);
       s -= 1;
       e -= 1;
@@ -97,7 +97,7 @@ func main(argument_0: dynamic)
   }
   while ((!kra.empty()))
   {
-    var ba = kra.front();
+    var ba: dynamic = kra.front();
     kra.pop();
     dag.pub(ba);
     {
@@ -118,14 +118,14 @@ func main(argument_0: dynamic)
     i = 1;
     while ((i < dag.size()))
     {
-      var no = dag[i];
+      var no: dynamic = dag[i];
       {
         j = 0;
         while ((j < mti[no].size()))
         {
-          var mae = mti[no][j].fir;
+          var mae: dynamic = mti[no][j].fir;
           mineq(dp[no][no], (dp[mae][mae] + mti[no][j].sec.sec));
-          var ti = mti[no][j].sec.fir;
+          var ti: dynamic = mti[no][j].sec.fir;
           {
             k = 0;
             while ((k < i))
@@ -139,13 +139,13 @@ func main(argument_0: dynamic)
             k = 0;
             while ((k < mti[no].size()))
             {
-              var mak = mti[no][k].fir;
+              var mak: dynamic = mti[no][k].fir;
               if ((mae == mak))
               {
                 k += 1;
                 continue;
               }
-              var tk = mti[no][k].sec.fir;
+              var tk: dynamic = mti[no][k].sec.fir;
               mineq(dp[no][no], ((dp[mae][mak] + ti) + tk));
               k += 1;
             }

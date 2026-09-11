@@ -1,17 +1,17 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
-  var a: dynamic;
-  var b: dynamic;
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(a, b);
-  var ans = 0;
-  var t = 1;
+  var ans: dynamic = 0;
+  var t: dynamic = 1;
   while ((a || b))
   {
-    var x = (a % 3);
-    var y = (b % 3);
-    var z = ((((y - x) + 3)) % 3);
+    var x: dynamic = (a % 3);
+    var y: dynamic = (b % 3);
+    var z: dynamic = ((((y - x) + 3)) % 3);
     ans += (z * t);
     t *= 3;
     a /= 3;

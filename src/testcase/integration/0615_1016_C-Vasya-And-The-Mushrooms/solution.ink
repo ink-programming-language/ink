@@ -1,45 +1,45 @@
 // Translated from solution.cpp.
 
-var maxn = (3e5 + 100);
+var maxn: dynamic = (3e5 + 100);
 
-var a = cpp_array(maxn);
+var a: dynamic = cpp_array(maxn);
 
-var b = cpp_array(maxn);
+var b: dynamic = cpp_array(maxn);
 
-var res: dynamic;
+var res: dynamic = cpp_uninitialized();
 
-var sumaL = cpp_array(maxn);
+var sumaL: dynamic = cpp_array(maxn);
 
-var sumaR = cpp_array(maxn);
+var sumaR: dynamic = cpp_array(maxn);
 
-var sumbL = cpp_array(maxn);
+var sumbL: dynamic = cpp_array(maxn);
 
-var sumbR = cpp_array(maxn);
+var sumbR: dynamic = cpp_array(maxn);
 
-var sal = cpp_array(maxn);
+var sal: dynamic = cpp_array(maxn);
 
-var sar = cpp_array(maxn);
+var sar: dynamic = cpp_array(maxn);
 
-var sbl = cpp_array(maxn);
+var sbl: dynamic = cpp_array(maxn);
 
-var sbr = cpp_array(maxn);
+var sbr: dynamic = cpp_array(maxn);
 
-func downToRight(ans: dynamic, i: dynamic, n: dynamic, t: dynamic)
+func downToRight(ans: dynamic, i: dynamic, n: dynamic, t: dynamic) -> dynamic
 {
   ans += ((((((t * sumbR[(i + 1)]) + sbr[(i + 1)]) + ((((t + n) - i)) * sumaR[i])) - sal[(i - 1)]) + sal[n]) - (sumaL[(i - 1)] * (((n - i) + 1))));
   res = max(res, ans);
 }
 
-func upToRight(ans: dynamic, i: dynamic, n: dynamic, t: dynamic)
+func upToRight(ans: dynamic, i: dynamic, n: dynamic, t: dynamic) -> dynamic
 {
   ans += ((((((t * sumaR[(i + 1)]) + sar[(i + 1)]) + ((((t + n) - i)) * sumbR[i])) - sbl[(i - 1)]) + sbl[n]) - (sumbL[(i - 1)] * (((n - i) + 1))));
   res = max(res, ans);
 }
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var ca = 0;
+  var n: dynamic = cpp_uninitialized();
+  var ca: dynamic = 0;
   while ((scanf("%d", (&n)) != EOF))
   {
     if (cpp_update(ca, "++"))
@@ -54,7 +54,7 @@ func main()
       sbr[0] = cpp_assign(sbr[(n + 1)], "=", 0);
     }
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i <= (n)))
       {
         scanf("%lld", (a + i));
@@ -63,7 +63,7 @@ func main()
       }
     }
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i <= (n)))
       {
         scanf("%lld", (b + i));
@@ -77,7 +77,7 @@ func main()
       continue;
     }
     {
-      var i = (n);
+      var i: dynamic = (n);
       while ((i >= (1)))
       {
         sumaR[i] = (sumaR[(i + 1)] + a[i]);
@@ -86,7 +86,7 @@ func main()
       }
     }
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i <= (n)))
       {
         sal[i] = (sal[(i - 1)] + sumaL[i]);
@@ -95,7 +95,7 @@ func main()
       }
     }
     {
-      var i = (n);
+      var i: dynamic = (n);
       while ((i >= (0)))
       {
         sar[i] = (sar[(i + 1)] + sumaR[i]);
@@ -105,10 +105,10 @@ func main()
     }
     res = 0;
     res = ((sar[2] + sbl[n]) + (sumbL[n] * ((n - 1))));
-    var t = 0;
-    var ans = 0;
+    var t: dynamic = 0;
+    var ans: dynamic = 0;
     {
-      var i = (1);
+      var i: dynamic = (1);
       while ((i <= (n)))
       {
         t += 1;

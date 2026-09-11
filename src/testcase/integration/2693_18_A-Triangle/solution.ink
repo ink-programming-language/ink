@@ -1,16 +1,16 @@
 // Translated from solution.cpp.
 
-func distance(a: dynamic, b: dynamic, x: dynamic, y: dynamic)
+func distance(a: dynamic, b: dynamic, x: dynamic, y: dynamic) -> dynamic
 {
   return (((((a - x)) * ((a - x))) + (((b - y)) * ((b - y)))));
 }
 
-func check(cod: dynamic)
+func check(cod: dynamic) -> dynamic
 {
-  var d1: dynamic;
-  var d2: dynamic;
-  var d3: dynamic;
-  var i = 0;
+  var d1: dynamic = cpp_uninitialized();
+  var d2: dynamic = cpp_uninitialized();
+  var d3: dynamic = cpp_uninitialized();
+  var i: dynamic = 0;
   {
     i = 0;
     while ((i < cod.size()))
@@ -56,23 +56,23 @@ func check(cod: dynamic)
   return 0;
 }
 
-func main()
+func main() -> dynamic
 {
-  var cod: dynamic;
-  var i: dynamic;
+  var cod: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
   {
     i = 0;
     while ((i < 6))
     {
-      var temp: dynamic;
+      var temp: dynamic = cpp_uninitialized();
       read(temp);
       cod.push_back(temp);
       i += 1;
     }
   }
-  var d1: dynamic;
-  var d2: dynamic;
-  var d3: dynamic;
+  var d1: dynamic = cpp_uninitialized();
+  var d2: dynamic = cpp_uninitialized();
+  var d3: dynamic = cpp_uninitialized();
   d1 = distance(cod[0], cod[1], cod[2], cod[3]);
   d2 = distance(cod[0], cod[1], cod[4], cod[5]);
   d3 = distance(cod[2], cod[3], cod[4], cod[5]);

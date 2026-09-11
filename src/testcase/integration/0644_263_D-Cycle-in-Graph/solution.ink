@@ -1,31 +1,31 @@
 // Translated from solution.cpp.
 
-var N = 100100;
+var N: dynamic = 100100;
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var k: dynamic;
+var k: dynamic = cpp_uninitialized();
 
-var p = cpp_array(N);
+var p: dynamic = cpp_array(N);
 
-var niv = cpp_array(N);
+var niv: dynamic = cpp_array(N);
 
-var sol: dynamic;
+var sol: dynamic = cpp_uninitialized();
 
-var tata: dynamic;
+var tata: dynamic = cpp_uninitialized();
 
-var v = cpp_array(N);
+var v: dynamic = cpp_array(N);
 
-func dfs(nod: dynamic)
+func dfs(nod: dynamic) -> dynamic
 {
   if (sol)
   {
     return;
   }
   {
-    var it = v[nod].begin();
+    var it: dynamic = v[nod].begin();
     while ((it != v[nod].end()))
     {
       if ((p[nod] != (*it)))
@@ -50,11 +50,11 @@ func dfs(nod: dynamic)
   }
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var a: dynamic;
-  var b: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
   read(n, m, k);
   {
     i = 1;

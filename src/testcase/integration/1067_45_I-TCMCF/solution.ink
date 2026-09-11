@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-func cmp(n1: dynamic, n2: dynamic)
+func cmp(n1: dynamic, n2: dynamic) -> dynamic
 {
   return (((*(cpp_cast(n1)))) - ((*(cpp_cast(n2)))));
 }
 
-func main()
+func main() -> dynamic
 {
-  var ar = cpp_array(100);
-  var n: dynamic;
-  var neg = 0;
-  var qna = 0;
+  var ar: dynamic = cpp_array(100);
+  var n: dynamic = cpp_uninitialized();
+  var neg: dynamic = 0;
+  var qna: dynamic = 0;
   scanf("%d", (&n));
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       scanf("%d", (ar + i));
@@ -24,7 +24,7 @@ func main()
   if ((ar[0] > 0))
   {
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         printf("%d ", ar[i]);
@@ -34,7 +34,7 @@ func main()
     return 0;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((ar[i] < 0))
     {
       neg += 1;
@@ -46,7 +46,7 @@ func main()
     neg -= 1;
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < neg))
     {
       printf("%d ", ar[i]);
@@ -55,7 +55,7 @@ func main()
     }
   }
   {
-    var i = 0;
+    var i: dynamic = 0;
     while ((i < n))
     {
       if ((ar[i] > 0))

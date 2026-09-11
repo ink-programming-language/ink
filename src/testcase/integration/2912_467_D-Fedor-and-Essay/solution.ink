@@ -1,59 +1,59 @@
 // Translated from solution.cpp.
 
-var sm: dynamic;
+var sm: dynamic = cpp_uninitialized();
 
-var str = cpp_array(500005);
+var str: dynamic = cpp_array(500005);
 
-var nstr = cpp_array(500005);
+var nstr: dynamic = cpp_array(500005);
 
-var graph = cpp_array(500005);
+var graph: dynamic = cpp_array(500005);
 
-var v: dynamic;
+var v: dynamic = cpp_uninitialized();
 
-var m: dynamic;
+var m: dynamic = cpp_uninitialized();
 
-var n: dynamic;
+var n: dynamic = cpp_uninitialized();
 
-var R = cpp_array(500005);
+var R: dynamic = cpp_array(500005);
 
-var RC = cpp_array(500005);
+var RC: dynamic = cpp_array(500005);
 
-var LC = cpp_array(500005);
+var LC: dynamic = cpp_array(500005);
 
-var ele: dynamic;
+var ele: dynamic = cpp_uninitialized();
 
-var len = cpp_array(500005);
+var len: dynamic = cpp_array(500005);
 
-var dag = cpp_array(500005);
+var dag: dynamic = cpp_array(500005);
 
-var stk: dynamic;
+var stk: dynamic = cpp_uninitialized();
 
-var tstk: dynamic;
+var tstk: dynamic = cpp_uninitialized();
 
-var col = cpp_array(500005);
+var col: dynamic = cpp_array(500005);
 
-var dis = cpp_array(500005);
+var dis: dynamic = cpp_array(500005);
 
-var low = cpp_array(500005);
+var low: dynamic = cpp_array(500005);
 
-var id = cpp_array(500005);
+var id: dynamic = cpp_array(500005);
 
-var elements = cpp_array(500005);
+var elements: dynamic = cpp_array(500005);
 
-var node: dynamic;
+var node: dynamic = cpp_uninitialized();
 
-var edge: dynamic;
+var edge: dynamic = cpp_uninitialized();
 
-var components: dynamic;
+var components: dynamic = cpp_uninitialized();
 
-var timer: dynamic;
+var timer: dynamic = cpp_uninitialized();
 
-func dfs(u: dynamic)
+func dfs(u: dynamic) -> dynamic
 {
-  var sz: dynamic;
-  var v: dynamic;
-  var i: dynamic;
-  var tem: dynamic;
+  var sz: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var tem: dynamic = cpp_uninitialized();
   col[u] = 1;
   timer += 1;
   dis[u] = cpp_assign(low[u], "=", timer);
@@ -120,9 +120,9 @@ func dfs(u: dynamic)
   return;
 }
 
-func scctarjan()
+func scctarjan() -> dynamic
 {
-  var i: dynamic;
+  var i: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= node))
@@ -137,13 +137,13 @@ func scctarjan()
   return;
 }
 
-func new_DAG_graph()
+func new_DAG_graph() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var u: dynamic;
-  var v: dynamic;
-  var sz: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var u: dynamic = cpp_uninitialized();
+  var v: dynamic = cpp_uninitialized();
+  var sz: dynamic = cpp_uninitialized();
   {
     i = 1;
     while ((i <= node))
@@ -168,11 +168,11 @@ func new_DAG_graph()
   return;
 }
 
-func dfs2(n: dynamic)
+func dfs2(n: dynamic) -> dynamic
 {
-  var sz: dynamic;
-  var i: dynamic;
-  var j: dynamic;
+  var sz: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
   col[n] = 1;
   sz = dag[n].size();
   {
@@ -209,16 +209,16 @@ func dfs2(n: dynamic)
   return;
 }
 
-func main()
+func main() -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var c: dynamic;
-  var r: dynamic;
-  var sz: dynamic;
-  var l: dynamic;
-  var ansr: dynamic;
-  var ansl: dynamic;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var c: dynamic = cpp_uninitialized();
+  var r: dynamic = cpp_uninitialized();
+  var sz: dynamic = cpp_uninitialized();
+  var l: dynamic = cpp_uninitialized();
+  var ansr: dynamic = cpp_uninitialized();
+  var ansl: dynamic = cpp_uninitialized();
   c = 0;
   read(n);
   {
@@ -310,7 +310,7 @@ func main()
   memset(col, 0, cpp_sizeof((col)));
   ansr = cpp_assign(ansl, "=", 0);
   sz = v.size();
-  var tot = 0;
+  var tot: dynamic = 0;
   {
     i = 1;
     while ((i <= components))

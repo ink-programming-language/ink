@@ -1,55 +1,55 @@
 // Translated from solution.cpp.
 
-func rep(i: dynamic, j: dynamic)
+func rep(i: dynamic, j: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostre");
 }
 
-func REP(i: dynamic, j: dynamic, k: dynamic)
+func REP(i: dynamic, j: dynamic, k: dynamic) -> dynamic
 {
   cpp_macro("for(int i=(j);(i)<(k);++i)");
 }
 
-func BW(a: dynamic, x: dynamic, b: dynamic)
+func BW(a: dynamic, x: dynamic, b: dynamic) -> dynamic
 {
   return cpp_expression("#include <iostream>");
 }
 
-var MP = cpp_expression("#include");
+var MP: dynamic = cpp_expression("#include");
 
-var PB = cpp_expression("#include");
+var PB: dynamic = cpp_expression("#include");
 
-var F = cpp_expression("#incl");
+var F: dynamic = cpp_expression("#incl");
 
-var S = cpp_expression("#inclu");
+var S: dynamic = cpp_expression("#inclu");
 
-var INF = cpp_expression("#includ");
+var INF: dynamic = cpp_expression("#includ");
 
-var EPS = cpp_expression("#incl");
+var EPS: dynamic = cpp_expression("#incl");
 
-var H: dynamic;
+var H: dynamic = cpp_uninitialized();
 
-var W: dynamic;
+var W: dynamic = cpp_uninitialized();
 
-var t = cpp_array(20, 20);
+var t: dynamic = cpp_array(20, 20);
 
-var dy = [0, 1];
+var dy: dynamic = [0, 1];
 
-var dx = [1, 0];
+var dx: dynamic = [1, 0];
 
-func judge(y: dynamic, x: dynamic)
+func judge(y: dynamic, x: dynamic) -> dynamic
 {
-  var m: dynamic;
+  var m: dynamic = cpp_uninitialized();
   {
-    var i = -1;
+    var i: dynamic = -1;
     while ((i < 1))
     {
       {
-        var j = -1;
+        var j: dynamic = -1;
         while ((j < 1))
         {
-          var ny = (y + i);
-          var nx = (x + j);
+          var ny: dynamic = (y + i);
+          var nx: dynamic = (x + j);
           if (((((ny < 0) || (nx < 0)) || (t[ny][nx] == -1)) || m.count(t[ny][nx])))
           {
             j += 1;
@@ -69,11 +69,11 @@ func judge(y: dynamic, x: dynamic)
   return 0;
 }
 
-func dfs(n: dynamic)
+func dfs(n: dynamic) -> dynamic
 {
-  var i: dynamic;
-  var j: dynamic;
-  var res = 0;
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var res: dynamic = 0;
   {
     i = 0;
     while ((i < H))
@@ -96,14 +96,14 @@ func dfs(n: dynamic)
   {
     return 1;
   }
-  var tmp = cpp_array(20, 20);
+  var tmp: dynamic = cpp_array(20, 20);
   rep(i, H);
   rep(j, W)[i][j] = t[i][j];
   t[i][j] = n;
   rep(d, 2);
   {
-    var x = (j + dx[d]);
-    var y = (i + dy[d]);
+    var x: dynamic = (j + dx[d]);
+    var y: dynamic = (i + dy[d]);
     if ((((((x < 0) || (x >= W)) || (y < 0)) || (y >= H)) || (t[y][x] != -1)))
     {
       continue;
@@ -120,7 +120,7 @@ func dfs(n: dynamic)
   return res;
 }
 
-func main()
+func main() -> dynamic
 {
   while ((scanf("%d%d", (&H), (&W)) && (H + W)))
   {

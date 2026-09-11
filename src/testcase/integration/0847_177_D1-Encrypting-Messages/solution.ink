@@ -1,19 +1,19 @@
 // Translated from solution.cpp.
 
-var a = cpp_array(100005);
+var a: dynamic = cpp_array(100005);
 
-var b = cpp_array(100005);
+var b: dynamic = cpp_array(100005);
 
-var ans = cpp_array(100005);
+var ans: dynamic = cpp_array(100005);
 
-func main()
+func main() -> dynamic
 {
-  var mod: dynamic;
-  var n: dynamic;
-  var m: dynamic;
-  var i: dynamic;
-  var j: dynamic;
-  var sum = 0;
+  var mod: dynamic = cpp_uninitialized();
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var i: dynamic = cpp_uninitialized();
+  var j: dynamic = cpp_uninitialized();
+  var sum: dynamic = 0;
   scanf("%d %d %d", (&n), (&m), (&mod));
   {
     i = 0;

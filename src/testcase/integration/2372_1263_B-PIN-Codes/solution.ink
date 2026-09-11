@@ -1,24 +1,24 @@
 // Translated from solution.cpp.
 
-func main()
+func main() -> dynamic
 {
   ios_base.sync_with_stdio(false);
   cin.tie(null);
   cout.tie(null);
-  var t: dynamic;
+  var t: dynamic = cpp_uninitialized();
   read(t);
   while (cpp_update(t, "--"))
   {
-    var n: dynamic;
+    var n: dynamic = cpp_uninitialized();
     read(n);
-    var v: dynamic;
-    var ms: dynamic;
-    var st: dynamic;
+    var v: dynamic = cpp_uninitialized();
+    var ms: dynamic = cpp_uninitialized();
+    var st: dynamic = cpp_uninitialized();
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
-        var s: dynamic;
+        var s: dynamic = cpp_uninitialized();
         read(s);
         v.push_back(s);
         ms.insert(s);
@@ -26,13 +26,13 @@ func main()
         i += 1;
       }
     }
-    var ans = 0;
-    for (var u in st)
+    var ans: dynamic = 0;
+    for (var u: dynamic in st)
     {
       ans += (ms.count(u) - 1);
     }
     {
-      var i = 0;
+      var i: dynamic = 0;
       while ((i < n))
       {
         if ((ms.count(v[i]) == 1))
@@ -40,16 +40,16 @@ func main()
           i += 1;
           continue;
         }
-        var it = ms.find(v[i]);
+        var it: dynamic = ms.find(v[i]);
         ms.erase(it);
         {
-          var j = cpp_char("0");
+          var j: dynamic = cpp_char("0");
           while ((j <= cpp_char("9")))
           {
             v[i][0] = char(j);
-            var t = true;
+            var t: dynamic = true;
             {
-              var z = 0;
+              var z: dynamic = 0;
               while ((z < n))
               {
                 if ((z == i))
@@ -76,7 +76,7 @@ func main()
       }
     }
     write(ans, "\n");
-    for (var u in v)
+    for (var u: dynamic in v)
     {
       write(u, "\n");
     }

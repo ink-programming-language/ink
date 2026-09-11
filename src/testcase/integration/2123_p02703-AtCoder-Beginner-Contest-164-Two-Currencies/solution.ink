@@ -2,34 +2,34 @@
 
 class nobe
 {
-  var v: dynamic;
-  var a: dynamic;
-  var b: dynamic;
+  var v: dynamic = cpp_uninitialized();
+  var a: dynamic = cpp_uninitialized();
+  var b: dynamic = cpp_uninitialized();
 }
 
-var gg = cpp_array(55);
+var gg: dynamic = cpp_array(55);
 
-var c = cpp_array(55);
+var c: dynamic = cpp_array(55);
 
-var d = cpp_array(55);
+var d: dynamic = cpp_array(55);
 
-var f = cpp_array(3030, 55);
+var f: dynamic = cpp_array(3030, 55);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
-  var s: dynamic;
-  var i = 1;
-  var j = 0;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
+  var s: dynamic = cpp_uninitialized();
+  var i: dynamic = 1;
+  var j: dynamic = 0;
   scanf("%d%d%d", (&n), (&m), (&s));
   s = min(s, 2500);
   while ((i <= m))
   {
-    var u: dynamic;
-    var v: dynamic;
-    var a: dynamic;
-    var b: dynamic;
+    var u: dynamic = cpp_uninitialized();
+    var v: dynamic = cpp_uninitialized();
+    var a: dynamic = cpp_uninitialized();
+    var b: dynamic = cpp_uninitialized();
     scanf("%d%d%d%d", (&u), (&v), (&a), (&b));
     gg[u].push_back([v, a, b]);
     gg[v].push_back([u, a, b]);
@@ -43,13 +43,13 @@ func main()
   }
   memset(f, 63, cpp_sizeof((f)));
   f[1][s] = 0;
-  var qu: dynamic;
+  var qu: dynamic = cpp_uninitialized();
   qu.push(tt(0, 1, s));
   while ((!qu.empty()))
   {
-    var t = get(qu.top());
-    var u = get(qu.top());
-    var w = get(qu.top());
+    var t: dynamic = get(qu.top());
+    var u: dynamic = get(qu.top());
+    var w: dynamic = get(qu.top());
     qu.pop();
     if ((f[u][w] > t))
     {
@@ -58,9 +58,9 @@ func main()
     i = 0;
     while ((i < gg[u].size()))
     {
-      var v = gg[u][i].v;
-      var a = gg[u][i].a;
-      var b = gg[u][i].b;
+      var v: dynamic = gg[u][i].v;
+      var a: dynamic = gg[u][i].a;
+      var b: dynamic = gg[u][i].b;
       if ((((w >= a)) && ((f[v][(w - a)] > (t + b)))))
       {
         f[v][(w - a)] = (t + b);
@@ -77,7 +77,7 @@ func main()
   i = 2;
   while ((i <= n))
   {
-    var ans = 999999999999999999;
+    var ans: dynamic = 999999999999999999;
     j = 0;
     while ((j <= 2500))
     {

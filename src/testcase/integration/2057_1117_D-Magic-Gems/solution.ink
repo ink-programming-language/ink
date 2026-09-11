@@ -1,32 +1,32 @@
 // Translated from solution.cpp.
 
-var eps = 1e-13;
+var eps: dynamic = 1e-13;
 
-var PI = acos(-1);
+var PI: dynamic = acos(-1);
 
-var INF = (cpp_cast(1e9) + 7);
+var INF: dynamic = (cpp_cast(1e9) + 7);
 
-var INFF = cpp_cast(1e18);
+var INFF: dynamic = cpp_cast(1e18);
 
-var mod = (cpp_cast(1e9) + 7);
+var mod: dynamic = (cpp_cast(1e9) + 7);
 
-var MXN = (cpp_cast(1e2) + 7);
+var MXN: dynamic = (cpp_cast(1e2) + 7);
 
 class Mat
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   var a: dynamic = cpp_array(MXN, MXN);
-  func init(n: dynamic, m: dynamic)
+  func init(n: dynamic, m: dynamic) -> dynamic
   {
       n = n;
       m = m;
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < (n + 1)))
         {
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j < (m + 1)))
             {
               a[i][j] = 0;
@@ -37,20 +37,20 @@ class Mat
         }
       }
     }
-  func operator_multiply(p2: dynamic)
+  func operator_multiply(p2: dynamic) -> dynamic
   {
-      var res: dynamic;
+      var res: dynamic = cpp_uninitialized();
       res.init(n, p2.m);
       {
-        var i = 1;
+        var i: dynamic = 1;
         while ((i < (n + 1)))
         {
           {
-            var j = 1;
+            var j: dynamic = 1;
             while ((j < (m + 1)))
             {
               {
-                var k = 1;
+                var k: dynamic = 1;
                 while ((k < (p2.m + 1)))
                 {
                   res.a[i][k] = (((res.a[i][k] + (a[i][j] * p2.a[j][k]))) % mod);
@@ -65,11 +65,11 @@ class Mat
       }
       return res;
     }
-  func operator(p2: dynamic)
+  func operator(p2: dynamic) -> dynamic
   {
-      var t = (p2 - 1);
-      var res = (*this);
-      var x = (*this);
+      var t: dynamic = (p2 - 1);
+      var res: dynamic = (*self);
+      var x: dynamic = (*self);
       while (t)
       {
         if ((t & 1))
@@ -83,12 +83,12 @@ class Mat
     }
 }
 
-var b = cpp_array(2);
+var b: dynamic = cpp_array(2);
 
-func main()
+func main() -> dynamic
 {
-  var n: dynamic;
-  var m: dynamic;
+  var n: dynamic = cpp_uninitialized();
+  var m: dynamic = cpp_uninitialized();
   scanf("%lld %d", (&n), (&m));
   if ((n <= m))
   {
@@ -103,7 +103,7 @@ func main()
   }
   b[0].init(m, m);
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i < m))
     {
       b[0].a[i][(i + 1)] = 1;
@@ -112,9 +112,9 @@ func main()
   }
   b[0].a[m][1] = cpp_assign(b[0].a[m][m], "=", 1);
   b[1] = (b[0] ^ ((n - m)));
-  var ans = 0;
+  var ans: dynamic = 0;
   {
-    var i = 1;
+    var i: dynamic = 1;
     while ((i <= m))
     {
       ans = (((ans + b[1].a[m][i])) % mod);
