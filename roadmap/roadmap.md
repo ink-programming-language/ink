@@ -1,5 +1,7 @@
 # Ink 编译器实现 Roadmap
 
+> 本文是早期实现路线规划，尚未按新的交互设计逐项修订。已确认的语义分析、泛型、comptime 与新 IR 规则以 [IR.md](../docs/IR.md) 为准；当前 Parser 的 AST 行为以 [tokenizer-parser.md](../docs/tokenizer-parser.md) 为准。下面的 CST、初始 IR 全部强类型化、未执行分支检查等旧设想不视为新的已确认规则。
+
 ## 1. 总体方向
 
 Tokenizer 和 Parser 完成后，下一阶段应优先建设语义层和最小端到端纵切片，而不是直接实现完整 AOT，也不应建立独立的 AST 解释器。
