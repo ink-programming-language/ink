@@ -12,10 +12,16 @@
      name resolution, type information, or compile-time evaluation results.
 
    Type evaluation:
-   - Every expression used as a type is implicitly comptime. It must be
-     evaluable at compile time and produce a type value; otherwise report
+   - Every expression used as a type is implicitly comptime. A single-type
+     position must produce one type value at compile time; otherwise report
      an error. This includes calls such as "let x: makeType() = value;".
      The initializer "value" is not made comptime by the type annotation.
+   - In a typed ordinary parameter declaration ending in "...", such as
+     "args: Ts...", the type expression may instead produce a known generic
+     pack of type values. Expand it in order into a fixed ordinary parameter
+     list, checking each element as a valid parameter type. An empty pack
+     contributes no parameters. This exception does not apply to ordinary
+     non-variadic parameter types or result types.
    - Type operands and function-type parameter and result types obey the
      same rule. Tuple and array type spellings reuse tuple_expression and
      index_suffix; their interpretation as types is checked during evaluation.
