@@ -875,8 +875,20 @@ namespace ink::parser
 
       AstNodeId parseBinaryTail(AstNodeId Left, BinaryPrecedence Minimum)
       {
-        bool Equality = false;
-        bool Relational = false;
+        struct PendingBinary
+        {
+            AstNodeId Left;
+            tokenizer::SymbolKind Operator;
+            BinaryPrecedence Precedence;
+            ParseMark Mark;
+        };
+        std::vector<PendingBinary> Pending;
+        const auto Reduce = [&]()
+        {
+          const PendingBinary Current = Pending.back();
+          Pending.pop_back();
+          Left = makeNode(BinaryExpression{Current.Operator, Current.Left, Left}, Current.Mark);
+        };
         while (true)
         {
           const BinaryPrecedence Precedence = precedence();
@@ -884,28 +896,75 @@ namespace ink::parser
           {
             break;
           }
-          const ParseMark Mark = markFrom(Left);
-          if ((Precedence == BinaryPrecedence::Equality && Equality) || (Precedence == BinaryPrecedence::Relational && Relational))
+          while (!Pending.empty() && Pending.back().Precedence >= Precedence)
           {
-            reportUnexpected();
-            return makeNode(Error{"non-chained comparison", {Left}}, Mark);
+            const bool ChainedComparison = Pending.back().Precedence == Precedence && (Precedence == BinaryPrecedence::Equality || Precedence == BinaryPrecedence::Relational);
+            Reduce();
+            if (ChainedComparison)
+            {
+              const ParseMark Mark = markFrom(Left);
+              reportUnexpected();
+              Left = makeNode(Error{"non-chained comparison", {Left}}, Mark);
+              while (!Pending.empty())
+              {
+                Reduce();
+              }
+              return Left;
+            }
           }
-          Equality = Equality || Precedence == BinaryPrecedence::Equality;
-          Relational = Relational || Precedence == BinaryPrecedence::Relational;
-          if (Precedence < BinaryPrecedence::Equality)
-          {
-            Equality = false;
-          }
-          if (Precedence < BinaryPrecedence::Relational)
-          {
-            Relational = false;
-          }
-          const tokenizer::SymbolKind Operator = peek().symbol();
+          Pending.push_back({Left, peek().symbol(), Precedence, markFrom(Left)});
           consume();
-          const AstNodeId Right = parseBinary(static_cast<BinaryPrecedence>(static_cast<unsigned>(Precedence) + 1));
-          Left = makeNode(BinaryExpression{Operator, Left, Right}, Mark);
+          Left = parseUnary();
+        }
+        while (!Pending.empty())
+        {
+          Reduce();
         }
         return Left;
+      }
+
+      bool isStatementRecoveryStart() const
+      {
+        std::size_t Position = Index;
+        const auto Next = [&]() -> const Token &
+        {
+          while (Position < LexedFile.tokens().size() && LexedFile.tokens()[Position].isTrivia())
+          {
+            ++Position;
+          }
+          return Position < LexedFile.tokens().size() ? LexedFile.tokens()[Position++] : LexedFile.tokens().back();
+        };
+        const Token *Current = &Next();
+        while (Current->is(KeywordKind::Comptime))
+        {
+          Current = &Next();
+        }
+        if (Current->isOneOf(SymbolKind::LeftBrace, KeywordKind::Import, KeywordKind::From, KeywordKind::Public, KeywordKind::Private, KeywordKind::Class, KeywordKind::Interface, KeywordKind::Enum, KeywordKind::ClassMethod, KeywordKind::ClassField, KeywordKind::EnumField, KeywordKind::Let, KeywordKind::Var, KeywordKind::If, KeywordKind::While, KeywordKind::For, KeywordKind::Return, KeywordKind::Break, KeywordKind::Continue, KeywordKind::Defer))
+        {
+          return true;
+        }
+        if (Current->is(KeywordKind::Const))
+        {
+          return Next().isOneOf(TokenKind::Identifier, SymbolKind::Underscore, SymbolKind::LeftParen, KeywordKind::Func, KeywordKind::ClassField);
+        }
+        if (Current->is(KeywordKind::Extern))
+        {
+          if (!Next().is(TokenKind::StringLiteral))
+          {
+            return false;
+          }
+          Current = &Next();
+          if (Current->isOneOf(KeywordKind::Const, KeywordKind::ClassMethod))
+          {
+            return true;
+          }
+        }
+        return Current->is(KeywordKind::Func) && Next().is(TokenKind::Identifier);
+      }
+
+      bool isExpressionRecoveryBoundary() const
+      {
+        return atAny(TokenKind::EndOfFile, SymbolKind::Semicolon, SymbolKind::RightParen, SymbolKind::RightBracket, SymbolKind::RightBrace, SymbolKind::Comma, SymbolKind::Colon, SymbolKind::Assign, SymbolKind::LeftBrace, KeywordKind::Else, KeywordKind::In, KeywordKind::As, KeywordKind::Extends, KeywordKind::Implements) || isStatementRecoveryStart();
       }
 
       AstNodeId parseUnary()
@@ -930,6 +989,11 @@ namespace ink::parser
         std::vector<Prefix> Prefixes;
         while (true)
         {
+          // Inspect a contiguous comptime prefix only once so long unary chains remain linear.
+          if (atAny(KeywordKind::Const, KeywordKind::Func, KeywordKind::Extern, KeywordKind::Comptime) && (!at(KeywordKind::Comptime) || Prefixes.empty() || Prefixes.back().Kind != PrefixKind::Comptime) && isStatementRecoveryStart())
+          {
+            break;
+          }
           if (atAny(SymbolKind::Plus, SymbolKind::Minus, SymbolKind::Exclamation, SymbolKind::Tilde, SymbolKind::Ampersand, SymbolKind::Star, KeywordKind::Comptime, KeywordKind::Ref, KeywordKind::Ptr, KeywordKind::Const))
           {
             Prefix Current;
@@ -1143,7 +1207,7 @@ namespace ink::parser
           return makeNode(TupleExpression{std::move(Elements)}, Mark);
         }
         missing("expression");
-        if (!atEnd() && !atAny(SymbolKind::Semicolon, SymbolKind::RightParen, SymbolKind::RightBracket, SymbolKind::RightBrace, SymbolKind::Comma, SymbolKind::Colon, SymbolKind::Assign, SymbolKind::LeftBrace))
+        if (!isExpressionRecoveryBoundary())
         {
           reportUnexpected();
           consume();

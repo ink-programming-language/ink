@@ -64,6 +64,33 @@ namespace ink::parser
       test::expectAstIntegrity(BeyondLimit);
     }
 
+    // Verifies mixed binary precedence inside 120 nested parentheses parses under the default stack and nesting budget.
+    TEST(ParserNestingLimitTest, DeepMixedBinaryPrecedenceUsesIteration)
+    {
+      constexpr std::size_t Depth = 120;
+      const std::string Source = repeatedNestedSource("a || a && a | a ^ a & a == a < a << a + a * (", "a", ")", Depth) + ";";
+      const ParsedFile File = test::parseSource(Source);
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_TRUE(test::testDiagnostics(File).empty());
+      EXPECT_EQ(test::countKind(File, AstKind::BinaryExpression), Depth * 10);
+      EXPECT_EQ(test::countKind(File, AstKind::ParenthesizedExpression), Depth);
+      test::expectAstIntegrity(File);
+    }
+
+    // Verifies mixed-precedence nesting reaches the configured boundary and reports a normal diagnostic one level beyond it.
+    TEST(ParserNestingLimitTest, MixedBinaryPrecedenceHonorsDefaultNestingBoundary)
+    {
+      const ParserOptions Options;
+      const std::string Prefix = "a || a && a | a ^ a & a == a < a << a + a * (";
+      const ParsedFile WithinLimit = test::parseSource(repeatedNestedSource(Prefix, "a", ")", Options.MaxSyntaxNestingDepth - 1) + ";", Options);
+      ASSERT_TRUE(WithinLimit.succeeded());
+      test::expectAstIntegrity(WithinLimit);
+      const ParsedFile BeyondLimit = test::parseSource(repeatedNestedSource(Prefix, "a", ")", Options.MaxSyntaxNestingDepth) + ";", Options);
+      EXPECT_FALSE(BeyondLimit.succeeded());
+      EXPECT_TRUE(test::hasDiagnostic(BeyondLimit, core::DiagnosticKind::SyntaxNestingLimit));
+      test::expectAstIntegrity(BeyondLimit);
+    }
+
     // Verifies genuine nesting in arrays, tuples, patterns, blocks, declarations, comptime regions, and generics produces bounded deterministic recovery.
     TEST(ParserNestingLimitTest, RecoversDeepSyntaxDeterministically)
     {

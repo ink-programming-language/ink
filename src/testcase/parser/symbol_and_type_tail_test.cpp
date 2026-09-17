@@ -157,7 +157,7 @@ namespace ink::parser
     // Verifies equal-precedence comparison chains are rejected while explicitly grouped or lower-precedence-separated comparisons remain valid.
     TEST(ParserSymbolSequenceTest, EnforcesNonAssociativeComparisons)
     {
-      const std::vector<std::string> Invalid = {"A < B < C;", "A < B >= C;", "A == B != C;", "A < B == C < D < E;", "A == B < C == D;"};
+      const std::vector<std::string> Invalid = {"A < B < C;", "A < B >= C;", "A == B != C;", "A < B == C < D < E;", "A == B < C == D;", "A || B == C * D != E;", "A & B < C + D < E;"};
       for (const std::string &Source : Invalid)
       {
         SCOPED_TRACE(Source);
@@ -165,7 +165,7 @@ namespace ink::parser
         EXPECT_FALSE(File.succeeded());
         test::expectAstIntegrity(File);
       }
-      const std::vector<std::string> Valid = {"(A < B) < C;", "A < (B < C);", "A < B == C < D;", "A < B && C < D;", "A == B | C == D;"};
+      const std::vector<std::string> Valid = {"(A < B) < C;", "A < (B < C);", "A < B == C < D;", "A < B && C < D;", "A == B | C == D;", "A || B == C * D | E != F;", "A & B < C + D == E < F;"};
       for (const std::string &Source : Valid)
       {
         SCOPED_TRACE(Source);

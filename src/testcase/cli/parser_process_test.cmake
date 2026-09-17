@@ -7,12 +7,18 @@ set(ValidInput "${INK_TEST_DIRECTORY}/valid.ink")
 set(MetadataInput "${INK_TEST_DIRECTORY}/metadata.ink")
 set(SyntaxErrorInput "${INK_TEST_DIRECTORY}/syntax-error.ink")
 set(MissingImportInput "${INK_TEST_DIRECTORY}/missing-import.ink")
+set(DeepExpressionInput "${INK_TEST_DIRECTORY}/deep-expression.ink")
+set(RecoveredDeclarationInput "${INK_TEST_DIRECTORY}/recovered-declaration.ink")
 set(LexicalErrorInput "${INK_TEST_DIRECTORY}/lexical-error.ink")
 set(MissingInput "${INK_TEST_DIRECTORY}/missing.ink")
 file(WRITE "${ValidInput}" "func main() -> void { /* discarded comment */ let value: int32 = Point::[int32](1 + 2, 3); \"line\\n\"; if (true) { return; } }")
 file(WRITE "${MetadataInput}" "f(xs...); let callback: func(...) -> void = value;")
 file(WRITE "${SyntaxErrorInput}" ")")
 file(WRITE "${MissingImportInput}" "import ; from . import ;")
+string(REPEAT "a || a && a | a ^ a & a == a < a << a + a * (" 120 DeepExpressionPrefix)
+string(REPEAT ")" 120 DeepExpressionSuffix)
+file(WRITE "${DeepExpressionInput}" "${DeepExpressionPrefix}a${DeepExpressionSuffix};")
+file(WRITE "${RecoveredDeclarationInput}" "let Bad: int32 =\nlet Good: int32 = 2;")
 file(WRITE "${LexicalErrorInput}" "\"")
 file(REMOVE "${MissingInput}")
 
@@ -51,6 +57,18 @@ string(FIND "${MetadataOutput}" "Argument[0]={Pack=true Span=[" MetadataPackOffs
 string(FIND "${MetadataOutput}" "Parameter[0]={Variadic=true Bare=true Span=[" MetadataVariadicOffset)
 if(MetadataPackOffset EQUAL -1 OR MetadataVariadicOffset EQUAL -1)
   message(FATAL_ERROR "AST output omitted pack expansion or bare variadic metadata: ${MetadataOutput}")
+endif()
+
+# Exercise mixed-precedence nesting in the real parser process with its normal stack configuration.
+execute_process(COMMAND "${INK_PARSER}" "${DeepExpressionInput}" RESULT_VARIABLE DeepExpressionResult OUTPUT_FILE "${INK_TEST_DIRECTORY}/deep-expression.ast.txt" ERROR_VARIABLE DeepExpressionError TIMEOUT 30)
+if(NOT DeepExpressionResult EQUAL 0 OR NOT "${DeepExpressionError}" STREQUAL "")
+  message(FATAL_ERROR "deep mixed-precedence expression did not parse successfully: result=${DeepExpressionResult}\nstderr=${DeepExpressionError}")
+endif()
+
+# A missing initializer must not consume the next declaration's keyword or manufacture extra statements.
+execute_process(COMMAND "${INK_PARSER}" "${RecoveredDeclarationInput}" RESULT_VARIABLE RecoveredDeclarationResult OUTPUT_VARIABLE RecoveredDeclarationOutput ERROR_VARIABLE RecoveredDeclarationError TIMEOUT 30)
+if(NOT RecoveredDeclarationResult EQUAL 1 OR NOT RecoveredDeclarationOutput MATCHES "Statements\\[1\\]: Node [0-9]+ BindingDeclaration [^\r\n]*error=false missing=false" OR RecoveredDeclarationOutput MATCHES "Statements\\[2\\]" OR "${RecoveredDeclarationError}" STREQUAL "")
+  message(FATAL_ERROR "missing initializer did not retain the following declaration: result=${RecoveredDeclarationResult}\nstdout=${RecoveredDeclarationOutput}\nstderr=${RecoveredDeclarationError}")
 endif()
 
 execute_process(COMMAND "${INK_PARSER}" "${SyntaxErrorInput}" RESULT_VARIABLE SyntaxErrorResult OUTPUT_VARIABLE SyntaxErrorOutput ERROR_VARIABLE SyntaxErrorError)

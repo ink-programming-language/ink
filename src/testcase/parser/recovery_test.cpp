@@ -37,6 +37,114 @@ namespace ink::parser
       }
     }
 
+    // Verifies a missing initializer and semicolon leave the following binding intact and confine diagnostics to the broken declaration.
+    TEST(ParserRecoveryTest, MissingInitializerPreservesFollowingBinding)
+    {
+      const std::string Source = "let Bad: int32 =\nlet Good: int32 = 2;";
+      const ParsedFile File = test::parseSource(Source);
+      ASSERT_FALSE(File.succeeded());
+      const AstTree &Tree = File.ast();
+      const auto &Statements = Tree.node(Tree.root()).get<SourceFile>().Statements;
+      ASSERT_EQ(Statements.size(), 2u);
+      const BindingDeclaration &Bad = Tree.node(Statements[0]).get<BindingDeclaration>();
+      EXPECT_EQ(Tree.node(Bad.Initializer).kind(), AstKind::Error);
+      EXPECT_TRUE(hasFlag(Bad.Flags, AstNodeFlags::HasMissing));
+      const BindingDeclaration &Good = Tree.node(Statements[1]).get<BindingDeclaration>();
+      EXPECT_EQ(test::tokenText(File, Tree.node(Good.Pattern).get<NamePattern>().Name), "Good");
+      EXPECT_EQ(test::nodeText(File, Statements[1]), "let Good: int32 = 2;");
+      EXPECT_EQ(test::nodeText(File, Good.Initializer), "2");
+      EXPECT_EQ(Good.Flags, AstNodeFlags::None);
+      EXPECT_EQ(test::testDiagnostics(File).size(), 2u);
+      EXPECT_TRUE(test::hasExpectedDiagnostic(File, "expression", Source.find("let Good")));
+      EXPECT_TRUE(test::hasExpectedDiagnostic(File, ";", Source.find("let Good")));
+      EXPECT_FALSE(test::hasDiagnostic(File, core::DiagnosticKind::UnexpectedToken));
+      EXPECT_EQ(test::countKind(File, AstKind::AssignmentStatement), 0u);
+      test::expectAstIntegrity(File);
+    }
+
+    // Verifies recovery retains declarations, control statements, and comptime prefixes after missing operands in several expression contexts.
+    TEST(ParserRecoveryTest, MissingOperandsPreserveStatementBoundaries)
+    {
+      const std::vector<std::string> FollowingStatements = {
+          "var Good: int32 = 2;",
+          "const Good: int32 = 2;",
+          "const (First, Second): Pair = Value;",
+          "public let Good: int32 = 2;",
+          "class Good {}",
+          "interface Good {}",
+          "enum Good {}",
+          "func good() -> void {}",
+          "const func good() -> void;",
+          "extern \"C\" func good() -> void;",
+          "extern \"C\" const func good() -> void;",
+          "extern \"C\" class_method good() -> void;",
+          "class_field Good: int32;",
+          "const class_field Good: int32;",
+          "enum_field Good;",
+          "import core;",
+          "from core import Good;",
+          "if (Ready) {}",
+          "while (Ready) {}",
+          "for (;;) {}",
+          "return;",
+          "break;",
+          "continue;",
+          "defer cleanup();",
+          "comptime comptime class Good {}",
+          "comptime { let Good: int32 = 2; }",
+      };
+      for (const std::string &Prefix : {"let Bad: int32 = ", "let Bad: int32 = 1 + - ", "let Bad: int32 = call(1, ", "let Bad: type = func("})
+      {
+        for (const std::string &Following : FollowingStatements)
+        {
+          const std::string Source = Prefix + "/* gap */ " + Following;
+          SCOPED_TRACE(Source);
+          const ParsedFile File = test::parseSource(Source);
+          ASSERT_FALSE(File.succeeded());
+          const auto &Statements = File.ast().node(File.ast().root()).get<SourceFile>().Statements;
+          ASSERT_EQ(Statements.size(), 2u);
+          EXPECT_EQ(test::nodeText(File, Statements[1]), Following);
+          EXPECT_EQ(File.ast().node(Statements[1]).Flags, AstNodeFlags::None);
+          test::expectAstIntegrity(File);
+        }
+      }
+    }
+
+    // Verifies declaration recovery lookahead still accepts function types, qualified pointer/reference types, and long comptime expressions.
+    TEST(ParserRecoveryTest, StatementLookaheadPreservesTypeAndComptimeExpressions)
+    {
+      const std::string Source = "let A: type = func(T) -> U; let B: type = extern \"C\" func(T) -> U; let C: type = const ptr T; let D: type = const ref T; let E: type = comptime func(T) -> U;";
+      const ParsedFile File = test::parseSource(Source);
+      ASSERT_TRUE(File.succeeded());
+      EXPECT_EQ(test::countKind(File, AstKind::FunctionTypeExpression), 3u);
+      EXPECT_EQ(test::countKind(File, AstKind::PointerTypeExpression), 1u);
+      EXPECT_EQ(test::countKind(File, AstKind::ReferenceTypeExpression), 1u);
+      test::expectAstIntegrity(File);
+      std::string LongSource = "let Value: int32 = ";
+      for (std::size_t Index = 0; Index < 10000; ++Index)
+      {
+        LongSource += "comptime ";
+      }
+      LongSource += "1;";
+      const ParsedFile Long = test::parseSource(LongSource);
+      ASSERT_TRUE(Long.succeeded());
+      EXPECT_EQ(test::countKind(Long, AstKind::ComptimeExpression), 10000u);
+      test::expectAstIntegrity(Long);
+    }
+
+    // Verifies unfinished ambiguous type prefixes remain appendable in interactive mode after adding statement recovery lookahead.
+    TEST(ParserInteractiveTest, RecoveryLookaheadPreservesIncompleteTypePrefixes)
+    {
+      for (const std::string &Prefix : {"const", "const ref", "func", "extern \"C\"", "extern \"C\" func", "comptime const", "comptime func"})
+      {
+        SCOPED_TRACE(Prefix);
+        const ParsedFile File = test::parseSource("let Value: type = " + Prefix, ParserOptions{ParseMode::Interactive});
+        EXPECT_FALSE(File.succeeded());
+        EXPECT_EQ(File.completeness(), ParseCompleteness::Incomplete);
+        test::expectAstIntegrity(File);
+      }
+    }
+
     // Verifies rejected syntax creates explicit error nodes and parsing resumes at a subsequent declaration.
     TEST(ParserRecoveryTest, PreservesUnexpectedTokensAndContinues)
     {
