@@ -1,0 +1,81 @@
+﻿decl ::= attributes decl_core ;
+
+decl_core ::= class_decl
+            | var_decl
+            | enum_decl
+            | interface_decl
+            | function_decl ;
+
+class_decl ::= "class" IDENTIFIER [generic_params] [base_clause] class_body ";" ;
+
+function_decl ::= "func" callable_signature callable_body ;
+
+callable_signature ::= identifier generic_params_opt "(" params_opt ")" ":" expr ;
+
+callable_body ::= block_stmt
+                | ";" ;
+
+generic_params_opt ::= [ "[" typed_param_list "]" ] ;
+
+typed_param_list ::= typed_param typed_param_tail ;
+
+typed_param_tail ::= [ "," typed_param typed_param_tail ] ;
+
+typed_param ::= identifier ":" expr ;
+
+params_opt ::= [typed_param_list] ;
+
+class_body ::= "{" { stmt } "}" ;
+
+stmt ::= [ "comptime" ] stmt_core ;
+
+stmt_core ::= var_decl
+            | other_stmt ;
+
+var_decl ::= declaration ";" ;
+
+declaration ::= decl_kind identifier ":" type_expr "=" expr ;
+
+decl_kind ::= "var"
+            | "const"
+            | "field" ;
+
+other_stmt ::= block_stmt
+             | if_stmt
+             | for_stmt
+             | while_stmt
+             | continue_stmt
+             | break_stmt
+             | return_stmt
+             | assignment_stmt
+             | expr_stmt ;
+
+block_stmt    ::= "{" { stmt } "}" ;
+if_stmt       ::= "if" "(" expr ")" stmt [ "else" stmt ] ;
+while_stmt    ::= "while" "(" expr ")" stmt ;
+return_stmt   ::= "return" [ expr ] ";" ;
+break_stmt    ::= "break" ";" ;
+continue_stmt ::= "continue" ";" ;
+expr_stmt     ::= expr ";" ;
+
+assignment_stmt ::= expr_list "=" expr_list ;
+
+expr_list ::= expr { "," expr } ;
+
+expr ::= add ;
+
+add ::= mul { ("+" | "-") mul } ;
+
+mul ::= unary { ("*" | "/") unary } ;
+
+unary ::= ("+" | "-") unary
+        | "comptime" unary
+        | postfix ;
+
+postfix ::= primary { "(" [args] ")" | "[" expr "]" } ;
+
+args ::= expr { "," expr } ;
+
+primary ::= NUMBER
+          | IDENTIFIER
+          | "(" expr ")" ;
