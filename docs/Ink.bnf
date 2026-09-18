@@ -20,7 +20,8 @@ open_stmt ::= [ "comptime" ] open_stmt_core ;
 
 closed_stmt_core ::= "if" "(" expr ")" closed_stmt "else" closed_stmt
                    | "while" "(" expr ")" closed_stmt
-                   | "for" "(" for_header ")" closed_stmt ;
+                   | "for" "(" for_header ")" closed_stmt
+                   | switch_stmt ;
 
 open_stmt_core ::= "if" "(" expr ")" stmt
                  | "if" "(" expr ")" closed_stmt "else" open_stmt
@@ -37,10 +38,27 @@ basic_stmt ::= [ "comptime" ] decl_stmt
              | return_stmt
              | simple_stmt  ;
 
+switch_stmt ::= "switch" "(" expr ")" "{"
+                    { switch_clause }
+                "}" ;
+
+switch_clause ::= switch_label { stmt } ;
+
+switch_label ::= "case" expr ":"
+               | "default" ":" ;
+
 defer_stmt ::= "defer" ( simple_stmt | block_stmt ) ;
 
 import_stmt ::= "import" module_import_list ";"
-              | "from" module_path "import" name_import_list ";" ;
+              | "from" import_source "import" name_import_list ";" ;
+
+import_source ::= module_path
+                | relative_prefix [ module_path ] ;
+
+relative_prefix ::= relative_dot { relative_dot } ;
+
+relative_dot ::= "."
+               | "..." ;
 
 module_import_list ::= module_import { "," module_import } ;
 
@@ -52,7 +70,7 @@ name_import ::= IDENTIFIER [ import_alias ] ;
 
 import_alias ::= "as" IDENTIFIER ;
 
-module_path ::= IDENTIFIER { "." IDENTIFIER } ;
+module_path ::= qualified_name ;
 
 simple_stmt ::= simple_stmt_list ";" ;
 
@@ -66,7 +84,7 @@ decl ::= attributes decl_core ;
 
 attributes ::= [ "[" attribute { "," attribute } "]" ] ;
 
-attribute ::= IDENTIFIER [ attribute_suffix ] ;
+attribute ::= qualified_name [ attribute_suffix ] ;
 
 attribute_suffix ::= "(" [ argument_list ] ")"
                    | "=" expr ;
@@ -157,7 +175,11 @@ assignment_op ::= "="
 
 expr ::= conditional ;
 
-conditional ::= logical_or [ "?" expr ":" conditional ] ;
+conditional ::= null_coalescing
+                [ "?" expr ":" conditional ] ;
+
+null_coalescing ::= logical_or
+                   [ "??" null_coalescing ] ;
 
 
 logical_or ::= logical_and { "||" logical_and } ;
@@ -204,6 +226,9 @@ postfix_op ::= "(" [ argument_list ] ")"
              | generic_args
              | "." IDENTIFIER
              | "->" IDENTIFIER
+             | "?." IDENTIFIER
+             | "?." "[" expr "]"
+             | "?." "(" [ argument_list ] ")"
              | "++"
              | "--" ;
 
@@ -260,6 +285,8 @@ type_primary ::= IDENTIFIER
                | grouped_expr
                | array_expr
                | tuple_expr ;
+
+qualified_name ::= IDENTIFIER { "." IDENTIFIER } ;
 
 literal ::= INTEGER_LITERAL
           | FLOAT_LITERAL
