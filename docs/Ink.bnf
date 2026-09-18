@@ -1,13 +1,49 @@
-﻿module ::= { stmt } EOF ;
+﻿// 文法约定：
+// 1. 小写下划线名称表示非终结符，必须在本文件中定义产生式。
+// 2. 大写下划线名称表示词法层提供的终结符，例如 IDENTIFIER、INTEGER_LITERAL。
+//    本文件不展开这些终结符的字符匹配规则。
+// 3. 双引号中的文本表示固定拼写的终结符，例如 "if"、"+"、"("。
+// 4. EOF 表示输入结束标记，不对应源码字符。
+// 5. 空白和注释由词法层处理，不进入语法分析使用的 token 序列。
 
-stmt ::= [ "comptime" ] stmt_core ;
+module ::= { stmt } EOF ;
 
-stmt_core ::= decl_stmt
-            | other_stmt ;
+stmt ::= closed_stmt
+       | open_stmt ;
+
+
+closed_stmt ::= [ "comptime" ] closed_stmt_core ;
+
+open_stmt ::= [ "comptime" ] open_stmt_core ;
+
+closed_stmt_core ::= basic_stmt
+                   | "if" "(" expr ")" closed_stmt "else" closed_stmt
+                   | "while" "(" expr ")" closed_stmt
+                   | "for" "(" for_header ")" closed_stmt ;
+
+open_stmt_core ::= "if" "(" expr ")" stmt
+                 | "if" "(" expr ")" closed_stmt "else" open_stmt
+                 | "while" "(" expr ")" open_stmt
+                 | "for" "(" for_header ")" open_stmt ;
+
+basic_stmt ::= decl_stmt
+             | block_stmt
+             | continue_stmt
+             | break_stmt
+             | return_stmt
+             | assignment_stmt
+             | expr_stmt ;
 
 decl_stmt ::= decl ;
 
 decl ::= attributes decl_core ;
+
+attributes ::= [ "[" attribute { "," attribute } "]" ] ;
+
+attribute ::= IDENTIFIER [ attribute_suffix ] ;
+
+attribute_suffix ::= "(" [ expr_list ] ")"
+                   | "=" expr ;
 
 decl_core ::= class_decl
             | var_decl
@@ -23,7 +59,7 @@ interface_decl ::= "interface" IDENTIFIER [generic_params] [base_clause] class_b
 
 generic_params ::= "[" generic_param { "," generic_param } "]" ;
 
-generic_param ::= identifier ":" expr ;
+generic_param ::= IDENTIFIER ":" expr ;
 
 
 base_clause ::= ":" base_spec { "," base_spec } ;
@@ -33,7 +69,7 @@ base_spec ::= expr
 
 function_decl ::= "func" callable_signature callable_body ;
 
-callable_signature ::= identifier generic_params_opt "(" params_opt ")" ":" expr ;
+callable_signature ::= IDENTIFIER generic_params_opt "(" params_opt ")" ":" expr ;
 
 callable_body ::= block_stmt
                 | ";" ;
@@ -44,7 +80,7 @@ typed_param_list ::= typed_param typed_param_tail ;
 
 typed_param_tail ::= [ "," typed_param typed_param_tail ] ;
 
-typed_param ::= identifier ":" expr ;
+typed_param ::= IDENTIFIER ":" expr ;
 
 params_opt ::= [typed_param_list] ;
 
@@ -52,32 +88,18 @@ class_body ::= "{" { stmt } "}" ;
 
 var_decl ::= declaration ";" ;
 
-declaration ::= decl_kind identifier ":" expr "=" expr
-            | "field" identifier [ "=" expr ] ;
+declaration ::= "var" IDENTIFIER declaration_tail
+              | "const" IDENTIFIER [ ":" expr ] "=" expr
+              | "field" IDENTIFIER [ declaration_tail ] ;
 
-decl_kind ::= "var"
-            | "const"
-            | "field" ;
-
-other_stmt ::= block_stmt
-             | if_stmt
-             | for_stmt
-             | while_stmt
-             | continue_stmt
-             | break_stmt
-             | return_stmt
-             | assignment_stmt
-             | expr_stmt ;
+declaration_tail ::= ":" expr [ "=" expr ]
+                   | "=" expr ;
 
 block_stmt    ::= "{" { stmt } "}" ;
-if_stmt       ::= "if" "(" expr ")" stmt [ "else" stmt ] ;
-while_stmt    ::= "while" "(" expr ")" stmt ;
 return_stmt   ::= "return" [ expr ] ";" ;
 break_stmt    ::= "break" ";" ;
 continue_stmt ::= "continue" ";" ;
 expr_stmt     ::= expr ";" ;
-
-for_stmt ::= "for" "(" for_header ")" stmt ;
 
 for_header ::= for_classic_header
              | for_in_header ;
@@ -152,12 +174,19 @@ postfix ::= primary { postfix_op } ;
 
 postfix_op ::= "(" [ expr_list ] ")"
              | "[" expr "]"
-             | "." identifier
-             | "->" identifier
+             | generic_args
+             | "." IDENTIFIER
+             | "->" IDENTIFIER
              | "++"
              | "--" ;
 
+generic_args ::= "::" "[" [ expr_list ] "]" ;
 
 primary ::= IDENTIFIER
           | literal
           | "(" expr ")" ;
+
+literal ::= INTEGER_LITERAL
+          | FLOAT_LITERAL
+          | CHAR_LITERAL
+          | STRING_LITERAL ;
