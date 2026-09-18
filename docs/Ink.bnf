@@ -1,4 +1,13 @@
-﻿decl ::= attributes decl_core ;
+﻿module ::= { stmt } EOF ;
+
+stmt ::= [ "comptime" ] stmt_core ;
+
+stmt_core ::= decl_stmt
+            | other_stmt ;
+
+decl_stmt ::= decl ;
+
+decl ::= attributes decl_core ;
 
 decl_core ::= class_decl
             | var_decl
@@ -7,6 +16,20 @@ decl_core ::= class_decl
             | function_decl ;
 
 class_decl ::= "class" IDENTIFIER [generic_params] [base_clause] class_body ";" ;
+
+enum_decl ::= "enum" IDENTIFIER [generic_params] [base_clause] class_body ";" ;
+
+interface_decl ::= "interface" IDENTIFIER [generic_params] [base_clause] class_body ";" ;
+
+generic_params ::= "[" generic_param { "," generic_param } "]" ;
+
+generic_param ::= identifier ":" expr ;
+
+
+base_clause ::= ":" base_spec { "," base_spec } ;
+
+base_spec ::= expr
+            | "implements" expr ;
 
 function_decl ::= "func" callable_signature callable_body ;
 
@@ -27,14 +50,10 @@ params_opt ::= [typed_param_list] ;
 
 class_body ::= "{" { stmt } "}" ;
 
-stmt ::= [ "comptime" ] stmt_core ;
-
-stmt_core ::= var_decl
-            | other_stmt ;
-
 var_decl ::= declaration ";" ;
 
-declaration ::= decl_kind identifier ":" type_expr "=" expr ;
+declaration ::= decl_kind identifier ":" expr "=" expr
+            | "field" identifier [ "=" expr ] ;
 
 decl_kind ::= "var"
             | "const"
@@ -58,24 +77,87 @@ break_stmt    ::= "break" ";" ;
 continue_stmt ::= "continue" ";" ;
 expr_stmt     ::= expr ";" ;
 
-assignment_stmt ::= expr_list "=" expr_list ;
+for_stmt ::= "for" "(" for_header ")" stmt ;
+
+for_header ::= for_classic_header
+             | for_in_header ;
+
+for_classic_header ::= [ for_init ] ";" [ expr ] ";" [ for_step ] ;
+
+for_in_header ::= for_binding "in" expr ;
+
+for_binding ::= IDENTIFIER ;
+
+for_init ::= declaration
+           | assignment
+           | expr ;
+
+for_step ::= assignment
+           | expr ;
+
+assignment ::= expr_list assignment_op expr_list ;
+
+assignment_stmt ::= assignment ";" ;
+
+assignment_op ::= "="
+                | "+=" | "-=" | "*=" | "/=" | "%="
+                | "<<=" | ">>="
+                | "&=" | "^=" | "|=" ;
 
 expr_list ::= expr { "," expr } ;
 
-expr ::= add ;
+
+expr ::= conditional ;
+
+conditional ::= logical_or [ "?" expr ":" conditional ] ;
+
+
+logical_or ::= logical_and { "||" logical_and } ;
+
+logical_and ::= bit_or { "&&" bit_or } ;
+
+
+bit_or ::= bit_xor { "|" bit_xor } ;
+
+bit_xor ::= bit_and { "^" bit_and } ;
+
+bit_and ::= equality { "&" equality } ;
+
+
+equality ::= relational { ("==" | "!=") relational } ;
+
+relational ::= shift { ("<" | "<=" | ">" | ">=") shift } ;
+
+
+shift ::= add { ("<<" | ">>") add } ;
 
 add ::= mul { ("+" | "-") mul } ;
 
-mul ::= unary { ("*" | "/") unary } ;
+mul ::= unary { ("*" | "/" | "%") unary } ;
 
-unary ::= ("+" | "-") unary
-        | "comptime" unary
+
+unary ::= unary_op unary
+        | comptime_expr
         | postfix ;
 
-postfix ::= primary { "(" [args] ")" | "[" expr "]" } ;
+comptime_expr ::= "comptime" unary ;
 
-args ::= expr { "," expr } ;
+unary_op ::= "+" | "-"
+           | "!" | "~"
+           | "++" | "--"
+           | "&" | "*" ;
 
-primary ::= NUMBER
-          | IDENTIFIER
+
+postfix ::= primary { postfix_op } ;
+
+postfix_op ::= "(" [ expr_list ] ")"
+             | "[" expr "]"
+             | "." identifier
+             | "->" identifier
+             | "++"
+             | "--" ;
+
+
+primary ::= IDENTIFIER
+          | literal
           | "(" expr ")" ;
