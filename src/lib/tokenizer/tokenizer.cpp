@@ -1,306 +1,240 @@
 #include "ink/tokenizer/tokenizer.h"
-
 #include "ink/tokenizer/unicode.h"
 
 #include <algorithm>
-#include <cstdint>
-#include <string>
-#include <string_view>
 #include <utility>
-#include <vector>
 
 namespace ink::tokenizer
 {
   namespace
   {
-    using core::Diagnostic;
     using core::DiagnosticKind;
-    using core::DiagnosticRelatedKind;
-    using core::makeDiagnosticBuilder;
-    using unicode::DecodeResult;
 
-    bool startsWith(std::string_view Source, std::size_t Offset, std::string_view Expected) noexcept
+    bool isDecimal(char Character) noexcept
     {
-      return Offset <= Source.size() && Expected.size() <= Source.size() - Offset && Source.compare(Offset, Expected.size(), Expected) == 0;
+      return Character >= '0' && Character <= '9';
     }
 
-    bool isAsciiDigit(char Value) noexcept
+    int digitValue(char Character) noexcept
     {
-      return Value >= '0' && Value <= '9';
-    }
-
-    int digitValue(char Value) noexcept
-    {
-      if (Value >= '0' && Value <= '9')
+      if (isDecimal(Character))
       {
-        return Value - '0';
+        return Character - '0';
       }
-      if (Value >= 'a' && Value <= 'f')
+      if (Character >= 'a' && Character <= 'f')
       {
-        return Value - 'a' + 10;
+        return Character - 'a' + 10;
       }
-      if (Value >= 'A' && Value <= 'F')
+      if (Character >= 'A' && Character <= 'F')
       {
-        return Value - 'A' + 10;
+        return Character - 'A' + 10;
       }
       return -1;
     }
 
-    bool isDigitInBase(char Value, unsigned Base) noexcept
+    bool isScalar(char32_t Value) noexcept
     {
-      const int Digit = digitValue(Value);
-      return Digit >= 0 && static_cast<unsigned>(Digit) < Base;
-    }
-
-    bool isScalarValue(char32_t Value) noexcept
-    {
-      return Value <= 0x10FFFF && !(Value >= 0xD800 && Value <= 0xDFFF);
+      return Value <= 0x10FFFF && (Value < 0xD800 || Value > 0xDFFF);
     }
 
     class Scanner
     {
       public:
-        Scanner(const std::string &Source, std::vector<Token> &Tokens, std::vector<Diagnostic> &Diagnostics, TokenizerOptions Options)
+        Scanner(const std::string &Source, std::vector<Token> &Tokens, std::vector<core::Diagnostic> &Diagnostics)
             : Source(Source),
               Tokens(Tokens),
-              Diagnostics(Diagnostics),
-              Options(Options)
+              Diagnostics(Diagnostics)
         {
         }
 
-        void run()
+        bool run()
         {
+          // Validate the entire buffer first, including bytes hidden in comments
+          // and raw literals. Scanning then only visits valid scalar boundaries.
+          if (!validateSource())
+          {
+            return false;
+          }
           while (Position < Source.size())
           {
-            const std::size_t Before = Position;
-            Token TokenValue = scanToken();
-            if (Position <= Before)
+            const char Character = Source[Position];
+            if (Character == ' ' || Character == '\t' || isNewline())
             {
-              Position = Before + 1;
-              addDiagnostic<DiagnosticKind::InvalidCharacter>({Before, Position});
-              TokenValue = makeToken(TokenKind::InvalidCharacter, Before, Position);
+              ++Position;
+              continue;
             }
-            if (Options.PreserveTrivia || !TokenValue.isTrivia())
+            if (startsWith("//"))
             {
-              Tokens.push_back(std::move(TokenValue));
+              Position += 2;
+              while (Position < Source.size() && !isNewline())
+              {
+                ++Position;
+              }
+              continue;
             }
+            if (startsWith("/*"))
+            {
+              const std::size_t Start = Position;
+              const std::size_t End = Source.find("*/", Position + 2);
+              if (End == std::string::npos)
+              {
+                return fail<DiagnosticKind::UnterminatedBlockComment>(Start, Source.size());
+              }
+              Position = End + 2;
+              continue;
+            }
+            const bool Raw = (Character == 'r' || Character == 'R') && Position + 1 < Source.size() && (Source[Position + 1] == '"' || Source[Position + 1] == '\'');
+            if (Raw || Character == '"' || Character == '\'')
+            {
+              if (!scanLiteral(Raw))
+              {
+                return false;
+              }
+              continue;
+            }
+            if (isDecimal(Character))
+            {
+              if (!scanNumber())
+              {
+                return false;
+              }
+              continue;
+            }
+            const unicode::DecodeResult Decoded = unicode::decode(Source, Position);
+            if (Decoded.Value == '_' || unicode::isXidStart(Decoded.Value))
+            {
+              if (!scanIdentifier())
+              {
+                return false;
+              }
+              continue;
+            }
+            if (const auto Kind = matchSymbolPrefix(std::string_view(Source).substr(Position)))
+            {
+              const std::size_t Start = Position;
+              Position += tokenSpelling(*Kind).size();
+              emit(*Kind, Start);
+              continue;
+            }
+            return fail<DiagnosticKind::InvalidCharacter>(Position, Position + Decoded.Length);
           }
-          Tokens.push_back(makeToken(TokenKind::EndOfFile, Source.size(), Source.size()));
+          emit(TokenKind::EndOfFile, Position);
+          return true;
         }
 
       private:
-        Token scanToken()
+        template <DiagnosticKind Kind>
+        bool fail(std::size_t Start, std::size_t End)
         {
-          const std::size_t Start = Position;
-          const DecodeResult Decoded = unicode::decode(Source, Position);
-          if (!Decoded.Valid)
-          {
-            consumeInvalidEncoding(Position, Decoded);
-            return makeToken(TokenKind::InvalidEncoding, Start, Position);
-          }
-
-          if (Decoded.Value == U'\r' || Decoded.Value == U'\n')
-          {
-            Position += startsWith(Source, Position, "\r\n") ? 2 : 1;
-            return makeToken(TokenKind::LineBreak, Start, Position);
-          }
-          if (Decoded.Value == U' ' || Decoded.Value == U'\t')
-          {
-            do
-            {
-              ++Position;
-            } while (Position < Source.size() && (Source[Position] == ' ' || Source[Position] == '\t'));
-            return makeToken(TokenKind::SpacesAndTabs, Start, Position);
-          }
-          if (startsWith(Source, Position, "//"))
-          {
-            return scanLineComment();
-          }
-          if (startsWith(Source, Position, "/*"))
-          {
-            return scanBlockComment();
-          }
-          if (startsWith(Source, Position, "r\"\"\""))
-          {
-            return scanString(true, true);
-          }
-          if (startsWith(Source, Position, "r\""))
-          {
-            return scanString(true, false);
-          }
-          if (startsWith(Source, Position, "\"\"\""))
-          {
-            return scanString(false, true);
-          }
-          if (Decoded.Value == U'"')
-          {
-            return scanString(false, false);
-          }
-          if (Decoded.Value >= U'0' && Decoded.Value <= U'9')
-          {
-            return scanNumber();
-          }
-          if (Decoded.Value == U'_' || unicode::isXidStart(Decoded.Value))
-          {
-            return scanIdentifier();
-          }
-          if (const auto Symbol = matchSymbolPrefix(std::string_view(Source).substr(Position)))
-          {
-            Position += symbolSpelling(*Symbol).size();
-            return makeToken(TokenKind::Symbol, Start, Position, *Symbol);
-          }
-
-          Position += Decoded.Length;
-          if (Decoded.Value == 0xFEFF)
-          {
-            addDiagnostic<DiagnosticKind::UnexpectedBom>({Start, Position});
-          }
-          else if (unicode::isUnicodeWhitespace(Decoded.Value))
-          {
-            addDiagnostic<DiagnosticKind::NonAsciiWhitespace>({Start, Position});
-          }
-          else
-          {
-            addDiagnostic<DiagnosticKind::InvalidCharacter>({Start, Position});
-          }
-          return makeToken(TokenKind::InvalidCharacter, Start, Position);
+          Diagnostics.push_back(core::makeDiagnostic<Kind>(core::SourceRange::fromByteOffsets(Start, End)));
+          return false;
         }
 
-        Token scanLineComment()
+        bool validateSource()
         {
-          const std::size_t Start = Position;
-          Position += 2;
-          bool Valid = true;
-          while (Position < Source.size() && Source[Position] != '\n' && Source[Position] != '\r')
+          if (Source.size() > core::SourceLocation::MaxByteOffset)
           {
-            const DecodeResult Decoded = unicode::decode(Source, Position);
+            Diagnostics.push_back(core::makeDiagnostic<DiagnosticKind::SourceTooLarge>({}));
+            return false;
+          }
+          for (std::size_t Cursor = 0; Cursor < Source.size();)
+          {
+            const unicode::DecodeResult Decoded = unicode::decode(Source, Cursor);
             if (!Decoded.Valid)
             {
-              consumeInvalidEncoding(Position, Decoded);
-              Valid = false;
+              return fail<DiagnosticKind::InvalidUtf8>(Cursor, Cursor + Decoded.Length);
             }
-            else
+            if (Decoded.Value == 0)
             {
-              Position += Decoded.Length;
+              return fail<DiagnosticKind::NullInSource>(Cursor, Cursor + 1);
             }
+            if (Cursor == 0 && Decoded.Value == 0xFEFF)
+            {
+              return fail<DiagnosticKind::UnexpectedBom>(0, Decoded.Length);
+            }
+            Cursor += Decoded.Length;
           }
-          return makeToken(Valid ? TokenKind::LineComment : TokenKind::InvalidEncoding, Start, Position);
+          return true;
         }
 
-        Token scanBlockComment()
+        bool startsWith(std::string_view Text) const noexcept
         {
-          const std::size_t Start = Position;
-          std::size_t Depth = 1;
-          std::vector<std::size_t> OpeningPositions = {Start};
-          bool NestingLimitExceeded = false;
-          bool ValidEncoding = true;
-          Position += 2;
-          while (Position < Source.size() && Depth != 0)
-          {
-            if (startsWith(Source, Position, "/*"))
-            {
-              ++Depth;
-              if (Options.MaxBlockCommentDepth == 0 || Depth <= Options.MaxBlockCommentDepth)
-              {
-                OpeningPositions.push_back(Position);
-              }
-              else if (!NestingLimitExceeded)
-              {
-                NestingLimitExceeded = true;
-                addDiagnostic<DiagnosticKind::BlockCommentNestingLimit>({Position, Position + 2});
-              }
-              Position += 2;
-            }
-            else if (startsWith(Source, Position, "*/"))
-            {
-              if (Options.MaxBlockCommentDepth == 0 || Depth <= Options.MaxBlockCommentDepth)
-              {
-                OpeningPositions.pop_back();
-              }
-              --Depth;
-              Position += 2;
-            }
-            else
-            {
-              const DecodeResult Decoded = unicode::decode(Source, Position);
-              if (!Decoded.Valid)
-              {
-                consumeInvalidEncoding(Position, Decoded);
-                ValidEncoding = false;
-              }
-              else
-              {
-                Position += Decoded.Length;
-              }
-            }
-          }
-          if (Depth != 0)
-          {
-            auto Builder = makeDiagnosticBuilder<DiagnosticKind::UnterminatedBlockComment>({Start, Start + 2}, static_cast<std::uint64_t>(Depth));
-            if (Options.MaxBlockCommentDepth == 0 || Depth <= Options.MaxBlockCommentDepth)
-            {
-              const std::size_t MostRecentOpening = OpeningPositions.back();
-              if (MostRecentOpening != Start)
-              {
-                Builder.related(DiagnosticRelatedKind::MostRecentUnclosedBlockComment, {MostRecentOpening, MostRecentOpening + 2});
-              }
-            }
-            else
-            {
-              Builder.related(DiagnosticRelatedKind::MostRecentBlockCommentOpeningUnavailable, {});
-            }
-            Diagnostics.push_back(std::move(Builder).build());
-            return makeToken(TokenKind::UnterminatedBlockComment, Start, Position);
-          }
-          if (!ValidEncoding)
-          {
-            return makeToken(TokenKind::InvalidEncoding, Start, Position);
-          }
-          return makeToken(NestingLimitExceeded ? TokenKind::InvalidCharacter : TokenKind::BlockComment, Start, Position);
+          return std::string_view(Source).substr(Position, Text.size()) == Text;
         }
 
-        Token scanIdentifier()
+        bool isNewline() const noexcept
+        {
+          return Position < Source.size() && (Source[Position] == '\r' || Source[Position] == '\n');
+        }
+
+        void consumeNewline() noexcept
+        {
+          const char First = Source[Position++];
+          if (First == '\r' && Position < Source.size() && Source[Position] == '\n')
+          {
+            ++Position;
+          }
+        }
+
+        void emit(TokenKind Kind, std::size_t Start, TokenPayload Payload = {})
+        {
+          Tokens.push_back({Kind, core::SourceRange::fromByteOffsets(Start, Position), std::move(Payload)});
+        }
+
+        bool scanIdentifier()
         {
           const std::size_t Start = Position;
           Position += unicode::decode(Source, Position).Length;
           while (Position < Source.size())
           {
-            const DecodeResult Decoded = unicode::decode(Source, Position);
-            if (!Decoded.Valid || (Decoded.Value != U'_' && !unicode::isXidContinue(Decoded.Value)))
+            const unicode::DecodeResult Decoded = unicode::decode(Source, Position);
+            if (!unicode::isXidContinue(Decoded.Value))
             {
               break;
             }
             Position += Decoded.Length;
           }
-          const std::string_view Spelling(Source.data() + Start, Position - Start);
-          const unicode::NfcCheckResult NfcResult = unicode::checkNfc(Spelling);
-          if (NfcResult == unicode::NfcCheckResult::Failed)
+          std::string Name;
+          if (!unicode::normalizeNfc(std::string_view(Source).substr(Start, Position - Start), Name))
           {
-            addDiagnostic<DiagnosticKind::IdentifierNormalizationFailed>({Start, Position});
-            return makeToken(TokenKind::InvalidIdentifier, Start, Position);
+            return fail<DiagnosticKind::NormalizationFailed>(Start, Position);
           }
-          if (NfcResult == unicode::NfcCheckResult::NotNormalized)
+          if (Name == "_")
           {
-            addDiagnostic<DiagnosticKind::IdentifierNotNfc>({Start, Position});
-            return makeToken(TokenKind::InvalidIdentifier, Start, Position);
+            emit(TokenKind::Underscore, Start);
           }
-          const auto Keyword = lookupKeyword(Spelling);
-          if (Keyword.has_value())
+          else if (const auto Keyword = lookupKeyword(Name))
           {
-            return makeToken(TokenKind::Keyword, Start, Position, *Keyword);
+            emit(*Keyword, Start);
           }
-          if (Spelling == "_")
+          else
           {
-            return makeToken(TokenKind::Symbol, Start, Position, SymbolKind::Underscore);
+            emit(TokenKind::Identifier, Start, IdentifierInfo{std::move(Name)});
           }
-          return makeToken(TokenKind::Identifier, Start, Position);
+          return true;
         }
 
-        Token scanNumber()
+        std::size_t numericTailEnd() const noexcept
+        {
+          std::size_t End = Position;
+          while (End < Source.size())
+          {
+            const unicode::DecodeResult Decoded = unicode::decode(Source, End);
+            if (!unicode::isXidContinue(Decoded.Value))
+            {
+              break;
+            }
+            End += Decoded.Length;
+          }
+          return End;
+        }
+
+        bool scanNumber()
         {
           const std::size_t Start = Position;
           unsigned Base = 10;
-          if (Source[Position] == '0' && Source.size() - Position >= 3)
+          bool Floating = false;
+          if (Source[Position] == '0' && Position + 1 < Source.size())
           {
             switch (Source[Position + 1])
             {
@@ -319,262 +253,257 @@ namespace ink::tokenizer
             default:
               break;
             }
-            if (Base != 10 && isDigitInBase(Source[Position + 2], Base))
+          }
+          if (Base != 10)
+          {
+            Position += 2;
+            const std::size_t DigitsStart = Position;
+            while (Position < Source.size())
             {
-              Position += 3;
-              while (Position < Source.size() && isDigitInBase(Source[Position], Base))
+              const int Digit = digitValue(Source[Position]);
+              if (Digit < 0 || static_cast<unsigned>(Digit) >= Base)
+              {
+                break;
+              }
+              ++Position;
+            }
+            if (Position < Source.size() && isDecimal(Source[Position]))
+            {
+              return fail<DiagnosticKind::DigitOutOfRange>(Start, numericTailEnd());
+            }
+            if (Position == DigitsStart)
+            {
+              return fail<DiagnosticKind::MissingBaseDigits>(Start, numericTailEnd());
+            }
+            if (Base == 16 && Position < Source.size())
+            {
+              const char Next = Source[Position];
+              const bool HexFraction = Next == '.' && Position + 1 < Source.size() && (digitValue(Source[Position + 1]) >= 0 || Source[Position + 1] == 'p' || Source[Position + 1] == 'P');
+              if (Next == 'p' || Next == 'P' || HexFraction)
+              {
+                return fail<DiagnosticKind::HexadecimalFloat>(Start, Position + 1);
+              }
+            }
+          }
+          else
+          {
+            while (Position < Source.size() && isDecimal(Source[Position]))
+            {
+              ++Position;
+            }
+            if (Position + 1 < Source.size() && Source[Position] == '.' && isDecimal(Source[Position + 1]))
+            {
+              Floating = true;
+              ++Position;
+              while (Position < Source.size() && isDecimal(Source[Position]))
               {
                 ++Position;
               }
-              return makeToken(TokenKind::IntegerLiteral, Start, Position, NumericInfo{Base});
             }
-          }
-
-          scanDecimalDigits();
-          bool Floating = false;
-          if (Source.size() - Position >= 2 && Source[Position] == '.' && isAsciiDigit(Source[Position + 1]))
-          {
-            Floating = true;
-            ++Position;
-            scanDecimalDigits();
-          }
-          if (Position < Source.size() && (Source[Position] == 'e' || Source[Position] == 'E'))
-          {
-            std::size_t ExponentDigits = Position + 1;
-            if (ExponentDigits < Source.size() && (Source[ExponentDigits] == '+' || Source[ExponentDigits] == '-'))
-            {
-              ++ExponentDigits;
-            }
-            if (ExponentDigits < Source.size() && isAsciiDigit(Source[ExponentDigits]))
+            if (Position < Source.size() && (Source[Position] == 'e' || Source[Position] == 'E'))
             {
               Floating = true;
-              Position = ExponentDigits;
-              scanDecimalDigits();
-            }
-          }
-          return makeToken(Floating ? TokenKind::FloatLiteral : TokenKind::IntegerLiteral, Start, Position, NumericInfo{10});
-        }
-
-        void scanDecimalDigits()
-        {
-          while (Position < Source.size() && isAsciiDigit(Source[Position]))
-          {
-            ++Position;
-          }
-        }
-
-        Token scanString(bool RawMode, bool Multiline)
-        {
-          const std::size_t Start = Position;
-          const std::string_view Delimiter = Multiline ? "\"\"\"" : "\"";
-          Position += (RawMode ? 1 : 0) + Delimiter.size();
-          std::string DecodedValue;
-          bool Valid = true;
-          bool Closed = false;
-          while (Position < Source.size())
-          {
-            if (startsWith(Source, Position, Delimiter))
-            {
-              Position += Delimiter.size();
-              Closed = true;
-              break;
-            }
-            if (!Multiline && (Source[Position] == '\r' || Source[Position] == '\n'))
-            {
-              break;
-            }
-            if (!RawMode && Source[Position] == '\\')
-            {
-              if (!scanEscape(DecodedValue))
+              ++Position;
+              if (Position < Source.size() && (Source[Position] == '+' || Source[Position] == '-'))
               {
-                Valid = false;
+                ++Position;
               }
-              continue;
-            }
-            const DecodeResult Decoded = unicode::decode(Source, Position);
-            if (!Decoded.Valid)
-            {
-              consumeInvalidEncoding(Position, Decoded);
-              Valid = false;
-            }
-            else
-            {
-              DecodedValue.append(Source, Position, Decoded.Length);
-              Position += Decoded.Length;
+              const std::size_t ExponentStart = Position;
+              while (Position < Source.size() && isDecimal(Source[Position]))
+              {
+                ++Position;
+              }
+              if (Position == ExponentStart)
+              {
+                return fail<DiagnosticKind::MissingExponentDigits>(Start, numericTailEnd());
+              }
             }
           }
-          if (!Closed)
+          const std::size_t TailEnd = numericTailEnd();
+          if (TailEnd != Position)
           {
-            if (Multiline)
-            {
-              addDiagnostic<DiagnosticKind::UnterminatedMultilineStringLiteral>({Start, Position});
-            }
-            else
-            {
-              addDiagnostic<DiagnosticKind::UnterminatedStringLiteral>({Start, Position});
-            }
-            return makeToken(TokenKind::InvalidStringLiteral, Start, Position);
+            return fail<DiagnosticKind::InvalidNumericSuffix>(Start, TailEnd);
           }
-          if (!Valid)
-          {
-            return makeToken(TokenKind::InvalidStringLiteral, Start, Position);
-          }
-          const StringMode Mode = Multiline ? (RawMode ? StringMode::RawMultiline : StringMode::EscapedMultiline) : (RawMode ? StringMode::RawSingleLine : StringMode::EscapedSingleLine);
-          return makeToken(TokenKind::StringLiteral, Start, Position, StringInfo{Mode, std::move(DecodedValue)});
+          emit(Floating ? TokenKind::FloatLiteral : TokenKind::IntegerLiteral, Start, NumericInfo{Base});
+          return true;
         }
 
-        bool scanEscape(std::string &DecodedValue)
+        bool scanEscape(char32_t &Value, bool &ProducesScalar)
         {
           const std::size_t Start = Position++;
-          if (Position == Source.size() || Source[Position] == '\r' || Source[Position] == '\n')
+          if (Position == Source.size())
           {
-            addDiagnostic<DiagnosticKind::UnknownEscape>({Start, Position});
-            return false;
+            return fail<DiagnosticKind::InvalidEscape>(Start, Position);
           }
-          const DecodeResult Decoded = unicode::decode(Source, Position);
-          if (!Decoded.Valid)
+          if (isNewline())
           {
-            consumeInvalidEncoding(Position, Decoded);
-            return false;
+            consumeNewline();
+            ProducesScalar = false;
+            return true;
           }
-          const char Kind = Source[Position];
-          Position += Decoded.Length;
-          char32_t Value = 0;
-          switch (Kind)
+          const char Character = Source[Position++];
+          switch (Character)
           {
-          case '"':
-            Value = U'"';
-            break;
           case '\\':
-            Value = U'\\';
-            break;
-          case '0':
-            Value = U'\0';
-            break;
+            Value = '\\';
+            return true;
+          case '\'':
+            Value = '\'';
+            return true;
+          case '"':
+            Value = '"';
+            return true;
           case 'a':
-            Value = U'\a';
-            break;
+            Value = '\a';
+            return true;
           case 'b':
-            Value = U'\b';
-            break;
+            Value = '\b';
+            return true;
           case 'f':
-            Value = U'\f';
-            break;
+            Value = '\f';
+            return true;
           case 'n':
-            Value = U'\n';
-            break;
+            Value = '\n';
+            return true;
           case 'r':
-            Value = U'\r';
-            break;
+            Value = '\r';
+            return true;
           case 't':
-            Value = U'\t';
-            break;
+            Value = '\t';
+            return true;
           case 'v':
-            Value = U'\v';
-            break;
-          case 'x':
-          {
-            unsigned Count = 0;
-            while (Position < Source.size() && Count < 2 && isDigitInBase(Source[Position], 16))
-            {
-              Value = static_cast<char32_t>((Value << 4U) | digitValue(Source[Position]));
-              ++Count;
-              ++Position;
-            }
-            if (Count != 2)
-            {
-              addDiagnostic<DiagnosticKind::InvalidHexEscape>({Start, Position});
-              return false;
-            }
-            break;
-          }
-          case 'u':
-            return scanUnicodeEscape(Start, DecodedValue);
+            Value = '\v';
+            return true;
           default:
-            addDiagnostic<DiagnosticKind::UnknownEscape>({Start, Position});
-            return false;
+            break;
           }
-          // Preserve the existing string value model: \xNN denotes U+00NN.
-          unicode::appendUtf8(DecodedValue, Value);
-          return true;
+          if (Character >= '0' && Character <= '7')
+          {
+            Value = Character - '0';
+            for (unsigned Count = 1; Count < 3 && Position < Source.size() && Source[Position] >= '0' && Source[Position] <= '7'; ++Count)
+            {
+              Value = Value * 8 + Source[Position++] - '0';
+            }
+            return Value <= 0xFF || fail<DiagnosticKind::OctalEscapeOutOfRange>(Start, Position);
+          }
+          if (Character == 'x' || Character == 'u' || Character == 'U')
+          {
+            const unsigned Digits = Character == 'x' ? 2 : Character == 'u' ? 4
+                                                                            : 8;
+            Value = 0;
+            for (unsigned Count = 0; Count < Digits; ++Count)
+            {
+              if (Position == Source.size() || digitValue(Source[Position]) < 0)
+              {
+                return fail<DiagnosticKind::InvalidEscape>(Start, Position);
+              }
+              Value = (Value << 4U) | static_cast<char32_t>(digitValue(Source[Position++]));
+            }
+            return isScalar(Value) || fail<DiagnosticKind::InvalidUnicodeScalar>(Start, Position);
+          }
+          if (Character == 'N')
+          {
+            if (Position == Source.size() || Source[Position] != '{')
+            {
+              return fail<DiagnosticKind::InvalidNamedEscape>(Start, Position);
+            }
+            const std::size_t NameStart = ++Position;
+            while (Position < Source.size() && Source[Position] != '}' && Source[Position] != '"' && Source[Position] != '\'' && !isNewline())
+            {
+              Position += unicode::decode(Source, Position).Length;
+            }
+            if (Position == Source.size() || Source[Position] != '}' || Position == NameStart)
+            {
+              return fail<DiagnosticKind::InvalidNamedEscape>(Start, Position);
+            }
+            const std::string_view Name = std::string_view(Source).substr(NameStart, Position - NameStart);
+            ++Position;
+            const std::optional<char32_t> NamedValue = unicode::lookupName(Name);
+            if (!NamedValue)
+            {
+              return fail<DiagnosticKind::UnknownUnicodeName>(Start, Position);
+            }
+            Value = *NamedValue;
+            return isScalar(Value) || fail<DiagnosticKind::InvalidUnicodeScalar>(Start, Position);
+          }
+          // Include the whole offending scalar in the diagnostic range.
+          Position += unicode::decode(Source, Position - 1).Length - 1;
+          return fail<DiagnosticKind::InvalidEscape>(Start, Position);
         }
 
-        bool scanUnicodeEscape(std::size_t Start, std::string &DecodedValue)
+        bool scanLiteral(bool Raw)
         {
-          if (Position == Source.size() || Source[Position] != '{')
+          const std::size_t Start = Position;
+          Position += Raw ? 1 : 0;
+          const char Quote = Source[Position];
+          const bool Character = Quote == '\'';
+          const bool Multiline = !Character && startsWith("\"\"\"");
+          const std::size_t DelimiterLength = Multiline ? 3 : 1;
+          Position += DelimiterLength;
+          std::string Decoded;
+          std::size_t ScalarCount = 0;
+          char32_t LastScalar = 0;
+          while (Position < Source.size())
           {
-            addDiagnostic<DiagnosticKind::InvalidUnicodeEscape>({Start, Position});
-            return false;
-          }
-          ++Position;
-          std::size_t DigitCount = 0;
-          char32_t Value = 0;
-          bool ValidDigits = true;
-          while (Position < Source.size() && Source[Position] != '}' && Source[Position] != '"' && Source[Position] != '\\' && Source[Position] != '\r' && Source[Position] != '\n')
-          {
-            const DecodeResult Decoded = unicode::decode(Source, Position);
-            if (!Decoded.Valid)
+            if (Source[Position] == Quote && (!Multiline || startsWith("\"\"\"")))
             {
-              consumeInvalidEncoding(Position, Decoded);
-              ValidDigits = false;
+              Position += DelimiterLength;
+              if (Character)
+              {
+                if (ScalarCount != 1)
+                {
+                  return fail<DiagnosticKind::InvalidCharacterLength>(Start, Position);
+                }
+                emit(TokenKind::CharLiteral, Start, CharInfo{LastScalar, Raw});
+              }
+              else
+              {
+                const StringMode Mode = Multiline ? (Raw ? StringMode::RawMultiline : StringMode::EscapedMultiline) : (Raw ? StringMode::RawSingleLine : StringMode::EscapedSingleLine);
+                emit(TokenKind::StringLiteral, Start, StringInfo{Mode, std::move(Decoded)});
+              }
+              return true;
+            }
+            char32_t Value = 0;
+            bool ProducesScalar = true;
+            if (isNewline())
+            {
+              const std::size_t NewlineStart = Position;
+              consumeNewline();
+              if (!Multiline)
+              {
+                return fail<DiagnosticKind::NewlineInLiteral>(NewlineStart, Position);
+              }
+              Value = '\n';
+            }
+            else if (!Raw && Source[Position] == '\\')
+            {
+              if (!scanEscape(Value, ProducesScalar))
+              {
+                return false;
+              }
             }
             else
             {
-              const int Digit = digitValue(Source[Position]);
-              if (Digit < 0)
-              {
-                ValidDigits = false;
-              }
-              else if (DigitCount < 6)
-              {
-                Value = static_cast<char32_t>((Value << 4U) | Digit);
-              }
-              Position += Decoded.Length;
+              const unicode::DecodeResult Scalar = unicode::decode(Source, Position);
+              Value = Scalar.Value;
+              Position += Scalar.Length;
             }
-            ++DigitCount;
+            if (ProducesScalar)
+            {
+              ++ScalarCount;
+              LastScalar = Value;
+              if (!Character)
+              {
+                unicode::appendUtf8(Decoded, Value);
+              }
+            }
           }
-          if (Position == Source.size() || Source[Position] != '}')
-          {
-            addDiagnostic<DiagnosticKind::InvalidUnicodeEscape>({Start, Position});
-            return false;
-          }
-          ++Position;
-          if (!ValidDigits || DigitCount == 0 || DigitCount > 6)
-          {
-            addDiagnostic<DiagnosticKind::InvalidUnicodeEscape>({Start, Position});
-            return false;
-          }
-          if (!isScalarValue(Value))
-          {
-            addDiagnostic<DiagnosticKind::InvalidUnicodeScalar>({Start, Position});
-            return false;
-          }
-          unicode::appendUtf8(DecodedValue, Value);
-          return true;
-        }
-
-        void consumeInvalidEncoding(std::size_t &Cursor, DecodeResult Decoded)
-        {
-          const std::size_t Start = Cursor;
-          Cursor += std::min(std::max<std::size_t>(Decoded.Length, 1), Source.size() - Cursor);
-          addDiagnostic<DiagnosticKind::InvalidUtf8>({Start, Cursor});
-        }
-
-        template <DiagnosticKind Kind>
-        void addDiagnostic(core::SourceRange Span)
-        {
-          Diagnostics.push_back(core::makeDiagnostic<Kind>(Span));
-        }
-
-        Token makeToken(TokenKind Kind, std::size_t Start, std::size_t End, TokenPayload Payload = {}) const
-        {
-          return {Kind, {Start, End}, std::move(Payload)};
+          return Character ? fail<DiagnosticKind::UnterminatedCharacter>(Start, Position) : fail<DiagnosticKind::UnterminatedString>(Start, Position);
         }
 
         const std::string &Source;
         std::vector<Token> &Tokens;
-        std::vector<Diagnostic> &Diagnostics;
-        TokenizerOptions Options;
+        std::vector<core::Diagnostic> &Diagnostics;
         std::size_t Position = 0;
     };
   } // namespace
@@ -604,11 +533,11 @@ namespace ink::tokenizer
 
   std::string_view TokenizedBuffer::raw(const Token &Token) const noexcept
   {
-    if (Token.Span.Start > Token.Span.End || Token.Span.End > source().size())
+    if (Source == nullptr || Token.Span.isInvalid() || Token.Span.getEnd().getByteOffset() > source().size())
     {
       return {};
     }
-    return std::string_view(source().data() + Token.Span.Start, Token.Span.size());
+    return std::string_view(source()).substr(Token.Span.getBegin().getByteOffset(), Token.Span.size());
   }
 
   std::size_t TokenizedBuffer::lineNumber(std::size_t ByteOffset) const noexcept
@@ -622,14 +551,8 @@ namespace ink::tokenizer
     return Registered != nullptr && Registered == Source;
   }
 
-  bool TokenizedBuffer::succeeded() const noexcept
-  {
-    return Succeeded && Source != nullptr;
-  }
-
-  Tokenizer::Tokenizer(core::FrontendContext &Context, TokenizerOptions Options)
-      : Context(Context),
-        Options(Options)
+  Tokenizer::Tokenizer(core::FrontendContext &Context)
+      : Context(Context)
   {
   }
 
@@ -645,33 +568,28 @@ namespace ink::tokenizer
     Result.Source = Context.sourceManager().findSource(Source);
     if (Result.Source == nullptr)
     {
-      Diagnostic DiagnosticEntry = core::makeDiagnostic<DiagnosticKind::TokenizerSourceNotFound>({});
-      DiagnosticEntry.Source = Source;
-      Context.diagnosticEngine().report(DiagnosticEntry);
+      core::Diagnostic Entry = core::makeDiagnostic<DiagnosticKind::TokenizerSourceNotFound>({});
+      Entry.Source = Source;
+      Context.diagnosticEngine().report(Entry);
       return Result;
     }
-    std::vector<Diagnostic> Diagnostics;
-    Scanner ScannerValue(Result.Source->text(), Result.Tokens, Diagnostics, Options);
-    ScannerValue.run();
-    Result.Succeeded = Diagnostics.empty() && std::none_of(Result.Tokens.begin(), Result.Tokens.end(), [](const Token &TokenValue)
-                                                           {
-                                                             return TokenValue.isError();
-                                                           });
-    for (Diagnostic &DiagnosticEntry : Diagnostics)
+    std::vector<core::Diagnostic> Diagnostics;
+    Result.Succeeded = Scanner(Result.Source->text(), Result.Tokens, Diagnostics).run();
+    for (core::Diagnostic &Entry : Diagnostics)
     {
-      DiagnosticEntry.Source = Result.sourceId();
-      Context.diagnosticEngine().report(DiagnosticEntry);
+      Entry.Source = Source;
+      Context.diagnosticEngine().report(Entry);
     }
     return Result;
   }
 
-  TokenizedBuffer tokenize(core::FrontendContext &Context, std::string Source, TokenizerOptions Options)
+  TokenizedBuffer tokenize(core::FrontendContext &Context, std::string Source)
   {
-    return Tokenizer(Context, Options).tokenize(std::move(Source));
+    return Tokenizer(Context).tokenize(std::move(Source));
   }
 
-  TokenizedBuffer tokenizeSource(core::FrontendContext &Context, core::SourceId Source, TokenizerOptions Options)
+  TokenizedBuffer tokenizeSource(core::FrontendContext &Context, core::SourceId Source)
   {
-    return Tokenizer(Context, Options).tokenizeSource(Source);
+    return Tokenizer(Context).tokenizeSource(Source);
   }
 } // namespace ink::tokenizer

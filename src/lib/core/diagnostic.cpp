@@ -11,19 +11,6 @@ namespace ink::core
 {
   namespace
   {
-    template <typename ValueType>
-    const ValueType *findArgument(const std::vector<DiagnosticArgument> &Arguments, DiagnosticArgumentName Name)
-    {
-      for (const DiagnosticArgument &Argument : Arguments)
-      {
-        if (Argument.Name == Name)
-        {
-          return std::get_if<ValueType>(&Argument.Value);
-        }
-      }
-      return nullptr;
-    }
-
     std::string codePointName(char32_t Value)
     {
       constexpr char Digits[] = "0123456789ABCDEF";
@@ -127,44 +114,6 @@ namespace ink::core
 #undef INK_DIAGNOSTIC
       }
       return "unknown diagnostic";
-    }
-
-    void appendUnterminatedBlockCommentNotes(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
-    {
-      for (const DiagnosticRelatedInformation &RelatedEntry : DiagnosticEntry.Related)
-      {
-        if (RelatedEntry.Kind == DiagnosticRelatedKind::MostRecentUnclosedBlockComment)
-        {
-          Result.Notes.push_back({RelatedEntry.Span, "most recent unclosed block comment opening is here"});
-        }
-        else if (RelatedEntry.Kind == DiagnosticRelatedKind::MostRecentBlockCommentOpeningUnavailable)
-        {
-          Result.Notes.push_back({std::nullopt, "most recent unclosed opening was not retained after the nesting limit was exceeded"});
-        }
-      }
-    }
-
-    void appendInvisibleCharacterNotes(const Diagnostic &DiagnosticEntry, FormattedDiagnostic &Result)
-    {
-      for (const DiagnosticRelatedInformation &RelatedEntry : DiagnosticEntry.Related)
-      {
-        const bool IsPrevious = RelatedEntry.Kind == DiagnosticRelatedKind::PreviousVisibleCharacter;
-        const bool IsNext = RelatedEntry.Kind == DiagnosticRelatedKind::NextVisibleCharacter;
-        if (!IsPrevious && !IsNext)
-        {
-          continue;
-        }
-        std::string Message = IsPrevious ? "previous visible character" : "next visible character";
-        if (const char32_t *Character = findArgument<char32_t>(RelatedEntry.Arguments, DiagnosticArgumentName::Character))
-        {
-          Message += " is " + codePointName(*Character);
-        }
-        else
-        {
-          Message += " is here";
-        }
-        Result.Notes.push_back({RelatedEntry.Span, std::move(Message)});
-      }
     }
   } // namespace
 
@@ -520,14 +469,6 @@ namespace ink::core
   FormattedDiagnostic DiagnosticFormatter::format(const Diagnostic &DiagnosticEntry) const
   {
     FormattedDiagnostic Result{diagnosticDefaultSeverity(DiagnosticEntry.Kind), formatRegisteredMessage(DiagnosticEntry), {}};
-    if (DiagnosticEntry.Kind == DiagnosticKind::UnterminatedBlockComment)
-    {
-      appendUnterminatedBlockCommentNotes(DiagnosticEntry, Result);
-    }
-    else if (DiagnosticEntry.Kind == DiagnosticKind::InvisibleCharacterInContext)
-    {
-      appendInvisibleCharacterNotes(DiagnosticEntry, Result);
-    }
     return Result;
   }
 

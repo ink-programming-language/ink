@@ -3,9 +3,13 @@
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <algorithm>
+#include <iterator>
 
 #include <UnicodeCharSets.h>
 #include <utf8proc.h>
+#include <llvm/ADT/StringRef.h>
+#include <llvm/Support/Unicode.h>
 
 namespace ink::tokenizer::unicode
 {
@@ -16,33 +20,15 @@ namespace ink::tokenizer::unicode
     const llvm::sys::UnicodeCharSet XidStartCharacters(XIDStartRanges);
     const llvm::sys::UnicodeCharSet XidContinueCharacters(XIDContinueRanges);
 
-    struct CodePointRange
+    struct NameAlias
     {
-        char32_t Lower;
-        char32_t Upper;
+        std::string_view Name;
+        char32_t Value;
     };
 
-    template <typename Range, std::size_t Size>
-    bool contains(const Range (&Ranges)[Size], char32_t Value) noexcept
-    {
-      std::size_t First = 0;
-      std::size_t Count = Size;
-      while (Count != 0)
-      {
-        const std::size_t Step = Count / 2;
-        const std::size_t Index = First + Step;
-        if (Ranges[Index].Upper < Value)
-        {
-          First = Index + 1;
-          Count -= Step + 1;
-        }
-        else
-        {
-          Count = Step;
-        }
-      }
-      return First != Size && Ranges[First].Lower <= Value;
-    }
+    constexpr NameAlias NameAliases[] = {
+#include "unicode_name_aliases.inc"
+    };
 
     bool isContinuation(unsigned char Value) noexcept
     {
@@ -134,11 +120,12 @@ namespace ink::tokenizer::unicode
     return isXidStart(Value) || XidContinueCharacters.contains(static_cast<std::uint32_t>(Value));
   }
 
-  NfcCheckResult checkNfc(std::string_view Source) noexcept
+  bool normalizeNfc(std::string_view Source, std::string &Output)
   {
     if (Source.empty())
     {
-      return NfcCheckResult::Normalized;
+      Output.assign(Source);
+      return true;
     }
     bool IsAscii = true;
     for (const char Character : Source)
@@ -151,11 +138,12 @@ namespace ink::tokenizer::unicode
     }
     if (IsAscii)
     {
-      return NfcCheckResult::Normalized;
+      Output.assign(Source);
+      return true;
     }
     if (Source.size() > static_cast<std::size_t>(std::numeric_limits<utf8proc_ssize_t>::max()))
     {
-      return NfcCheckResult::Failed;
+      return false;
     }
 
     utf8proc_uint8_t *NormalizedData = nullptr;
@@ -164,34 +152,71 @@ namespace ink::tokenizer::unicode
     if (NormalizedLength < 0)
     {
       std::free(NormalizedData);
-      return NfcCheckResult::Failed;
+      return false;
     }
 
     const std::string_view Normalized(reinterpret_cast<const char *>(NormalizedData), static_cast<std::size_t>(NormalizedLength));
-    const bool IsNormalized = Source == Normalized;
+    Output.assign(Normalized);
     std::free(NormalizedData);
-    return IsNormalized ? NfcCheckResult::Normalized : NfcCheckResult::NotNormalized;
+    return true;
   }
 
-  bool isDefaultIgnorable(char32_t Value) noexcept
+  std::optional<char32_t> lookupName(std::string_view Name)
   {
-    return utf8proc_get_property(static_cast<utf8proc_int32_t>(Value))->ignorable != 0;
-  }
-
-  bool isUnicodeWhitespace(char32_t Value) noexcept
-  {
-    static constexpr CodePointRange Ranges[] = {
-        {0x0085, 0x0085},
-        {0x00A0, 0x00A0},
-        {0x1680, 0x1680},
-        {0x2000, 0x200A},
-        {0x2028, 0x2029},
-        {0x202F, 0x202F},
-        {0x205F, 0x205F},
-        {0x3000, 0x3000},
-        {0xFEFF, 0xFEFF},
+    std::string Uppercase;
+    Uppercase.reserve(Name.size());
+    for (const unsigned char Character : Name)
+    {
+      if (Character >= 0x80)
+      {
+        return std::nullopt;
+      }
+      Uppercase.push_back(static_cast<char>(Character >= 'a' && Character <= 'z' ? Character - 'a' + 'A' : Character));
+    }
+    // LLVM omits figment and abbreviation aliases for C++ compatibility.
+    const auto LessThanName = [](const NameAlias &Entry, std::string_view Query)
+    {
+      return Entry.Name < Query;
     };
-    return contains(Ranges, Value);
+    const auto Alias = std::lower_bound(std::begin(NameAliases), std::end(NameAliases), std::string_view(Uppercase), LessThanName);
+    if (Alias != std::end(NameAliases) && Alias->Name == Uppercase)
+    {
+      return Alias->Value;
+    }
+    const auto Value = llvm::sys::unicode::nameToCodepointStrict(llvm::StringRef(Uppercase));
+    if (!Value)
+    {
+      return std::nullopt;
+    }
+    // LLVM's algorithmic-name parser also accepts extra leading zeroes and
+    // numeric prefixes. Require the actual Unicode spelling of its suffix.
+    constexpr std::string_view Prefixes[] = {
+        "CJK UNIFIED IDEOGRAPH-",
+        "CJK COMPATIBILITY IDEOGRAPH-",
+        "TANGUT IDEOGRAPH-",
+        "KHITAN SMALL SCRIPT CHARACTER-",
+        "NUSHU CHARACTER-",
+    };
+    for (const std::string_view Prefix : Prefixes)
+    {
+      if (Uppercase.compare(0, Prefix.size(), Prefix) != 0)
+      {
+        continue;
+      }
+      constexpr char Digits[] = "0123456789ABCDEF";
+      std::string Suffix;
+      for (char32_t Remaining = *Value; Remaining != 0; Remaining >>= 4U)
+      {
+        Suffix.push_back(Digits[Remaining & 0xFU]);
+      }
+      std::reverse(Suffix.begin(), Suffix.end());
+      if (std::string_view(Uppercase).substr(Prefix.size()) != Suffix)
+      {
+        return std::nullopt;
+      }
+      break;
+    }
+    return Value;
   }
 
   void appendUtf8(std::string &Output, char32_t Value)

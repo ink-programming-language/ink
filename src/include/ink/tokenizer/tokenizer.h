@@ -12,34 +12,28 @@
 
 namespace ink::tokenizer
 {
-  struct TokenizerOptions
-  {
-      // Zero permits arbitrary nesting; block comments are scanned iteratively.
-      std::size_t MaxBlockCommentDepth = 0;
-      // The language token stream discards trivia. Editors and source tools may retain it.
-      bool PreserveTrivia = false;
-  };
-
+  // Owns the source buffer and decoded values. Global encoding validation runs
+  // first. Subsequent failures retain the completed prefix without an EOF/error token.
   class TokenizedBuffer
   {
     public:
       const std::string &source() const noexcept;
-
       const std::string &sourceName() const noexcept;
+      core::SourceId sourceId() const noexcept;
+      const std::vector<std::size_t> &lineStarts() const noexcept;
+      std::string_view raw(const Token &Token) const noexcept;
+      std::size_t lineNumber(std::size_t ByteOffset) const noexcept;
+      bool isRegisteredWith(const core::SourceManager &Sources) const noexcept;
 
       const std::vector<Token> &tokens() const noexcept
       {
         return Tokens;
       }
 
-      core::SourceId sourceId() const noexcept;
-
-      const std::vector<std::size_t> &lineStarts() const noexcept;
-
-      std::string_view raw(const Token &Token) const noexcept;
-      std::size_t lineNumber(std::size_t ByteOffset) const noexcept;
-      bool isRegisteredWith(const core::SourceManager &Sources) const noexcept;
-      bool succeeded() const noexcept;
+      bool succeeded() const noexcept
+      {
+        return Succeeded;
+      }
 
     private:
       TokenizedBuffer() = default;
@@ -54,17 +48,16 @@ namespace ink::tokenizer
   class Tokenizer
   {
     public:
-      explicit Tokenizer(core::FrontendContext &Context, TokenizerOptions Options = {});
+      explicit Tokenizer(core::FrontendContext &Context);
       TokenizedBuffer tokenize(std::string Source) const;
       TokenizedBuffer tokenizeSource(core::SourceId Source) const;
 
     private:
       core::FrontendContext &Context;
-      TokenizerOptions Options;
   };
 
-  TokenizedBuffer tokenize(core::FrontendContext &Context, std::string Source, TokenizerOptions Options = {});
-  TokenizedBuffer tokenizeSource(core::FrontendContext &Context, core::SourceId Source, TokenizerOptions Options = {});
+  TokenizedBuffer tokenize(core::FrontendContext &Context, std::string Source);
+  TokenizedBuffer tokenizeSource(core::FrontendContext &Context, core::SourceId Source);
 } // namespace ink::tokenizer
 
 #endif

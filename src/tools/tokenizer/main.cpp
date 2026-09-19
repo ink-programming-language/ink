@@ -55,8 +55,6 @@ namespace
   {
     ink::cli::Application Command({"ink-tokenize", "Tokenize Ink source and print the token stream.", "development"});
     std::string SourceFile = "-";
-    ink::tokenizer::TokenizerOptions Options;
-    Command.addFlag("--trivia", Options.PreserveTrivia, "Include whitespace and comments in the token dump");
     Command.addOption("INPUT", SourceFile, "Input file, or '-' for standard input").typeName("FILE");
     const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
     if (ParsedArguments.ShouldExit)
@@ -99,12 +97,12 @@ namespace
     ink::core::CollectingDiagnosticConsumer Diagnostics;
     Compilation.diagnosticEngine().addConsumer(Diagnostics);
     const ink::core::SourceId SourceId = Compilation.sourceManager().addSource(SourceFile == "-" ? "<stdin>" : SourceFile, std::move(Source));
-    const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenizeSource(Context, SourceId, Options);
+    const ink::tokenizer::TokenizedBuffer Result = ink::tokenizer::tokenizeSource(Context, SourceId);
     std::ostringstream BufferedOutput;
     std::ostringstream BufferedErrorOutput;
     for (const ink::tokenizer::Token &Token : Result.tokens())
     {
-      BufferedOutput << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.Start << ", " << Token.Span.End << ") ";
+      BufferedOutput << ink::tokenizer::tokenKindName(Token.Kind) << " [" << Token.Span.getBegin().getByteOffset() << ", " << Token.Span.getEnd().getByteOffset() << ") ";
       printSpelling(BufferedOutput, Result.raw(Token));
       BufferedOutput << '\n';
     }
@@ -115,17 +113,22 @@ namespace
       HasInternalError = HasInternalError || Diagnostic.classification() == ink::core::DiagnosticClass::InternalCompilerError;
       const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
       const std::shared_ptr<const ink::core::SourceBuffer> DiagnosticSource = Compilation.sourceManager().findSource(Diagnostic.Source);
-      if (DiagnosticSource != nullptr)
+      if (DiagnosticSource != nullptr && Diagnostic.Span.isValid())
       {
-        BufferedErrorOutput << DiagnosticSource->name() << ':' << DiagnosticSource->lineNumber(Diagnostic.Span.Start) << ": ";
+        BufferedErrorOutput << DiagnosticSource->name() << ':' << DiagnosticSource->lineNumber(Diagnostic.Span.getBegin().getByteOffset()) << ": ";
       }
-      BufferedErrorOutput << (Diagnostic.classification() == ink::core::DiagnosticClass::InternalCompilerError ? ink::core::diagnosticClassName(Diagnostic.classification()) : ink::core::diagnosticSeverityName(Formatted.Severity)) << "[" << Diagnostic.code() << "]: " << Formatted.Message << " [" << Diagnostic.Span.Start << ", " << Diagnostic.Span.End << ")\n";
+      BufferedErrorOutput << (Diagnostic.classification() == ink::core::DiagnosticClass::InternalCompilerError ? ink::core::diagnosticClassName(Diagnostic.classification()) : ink::core::diagnosticSeverityName(Formatted.Severity)) << "[" << Diagnostic.code() << "]: " << Formatted.Message;
+      if (Diagnostic.Span.isValid())
+      {
+        BufferedErrorOutput << " [" << Diagnostic.Span.getBegin().getByteOffset() << ", " << Diagnostic.Span.getEnd().getByteOffset() << ")";
+      }
+      BufferedErrorOutput << '\n';
       for (const ink::core::FormattedDiagnosticNote &Note : Formatted.Notes)
       {
         BufferedErrorOutput << "note: " << Note.Message;
         if (Note.Span)
         {
-          BufferedErrorOutput << " [" << Note.Span->Start << ", " << Note.Span->End << ")";
+          BufferedErrorOutput << " [" << Note.Span->getBegin().getByteOffset() << ", " << Note.Span->getEnd().getByteOffset() << ")";
         }
         BufferedErrorOutput << '\n';
       }
@@ -136,7 +139,8 @@ namespace
     {
       return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
     }
-    return ink::cli::exitStatus(HasInternalError ? ink::cli::ExitCode::InternalError : Result.succeeded() ? ink::cli::ExitCode::Success : ink::cli::ExitCode::SourceError);
+    return ink::cli::exitStatus(HasInternalError ? ink::cli::ExitCode::InternalError : Result.succeeded() ? ink::cli::ExitCode::Success
+                                                                                                          : ink::cli::ExitCode::SourceError);
   }
 } // namespace
 

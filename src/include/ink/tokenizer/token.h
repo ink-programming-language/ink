@@ -14,36 +14,23 @@ namespace ink::tokenizer
 
   enum class TokenKind
   {
-    SpacesAndTabs,
-    LineBreak,
-    LineComment,
-    BlockComment,
-    Identifier,
-    Keyword,
-    IntegerLiteral,
-    FloatLiteral,
-    StringLiteral,
-    Symbol,
-    InvalidEncoding,
-    InvalidCharacter,
-    InvalidIdentifier,
-    InvalidStringLiteral,
-    UnterminatedBlockComment,
-    EndOfFile,
-  };
-
-  enum class KeywordKind
-  {
-#define INK_KEYWORD(Name, Spelling) Name,
-#include "ink/tokenizer/token.def"
-#undef INK_KEYWORD
-  };
-
-  enum class SymbolKind
-  {
-#define INK_SYMBOL(Name, Spelling) Name,
+#define INK_TOKEN(Name, DisplayName) Name,
+#define INK_KEYWORD(Name, DisplayName, Spelling) Name,
+#define INK_SYMBOL(Name, DisplayName, Spelling) Name,
 #include "ink/tokenizer/token.def"
 #undef INK_SYMBOL
+#undef INK_KEYWORD
+#undef INK_TOKEN
+  };
+
+  struct IdentifierInfo
+  {
+      std::string Name;
+  };
+
+  struct NumericInfo
+  {
+      unsigned Base = 10;
   };
 
   enum class StringMode
@@ -54,61 +41,30 @@ namespace ink::tokenizer
     RawMultiline,
   };
 
-  struct NumericInfo
-  {
-      unsigned Base = 10;
-  };
-
-  inline bool operator==(const NumericInfo &Left, const NumericInfo &Right) noexcept
-  {
-    return Left.Base == Right.Base;
-  }
-
-  inline bool operator!=(const NumericInfo &Left, const NumericInfo &Right) noexcept
-  {
-    return !(Left == Right);
-  }
-
   struct StringInfo
   {
       StringMode Mode = StringMode::EscapedSingleLine;
-      // Escapes decode to Unicode scalars encoded as UTF-8; hexadecimal escapes designate U+00NN.
+      // Unicode scalar values encoded as UTF-8, including escaped NUL.
       std::string Decoded;
   };
 
-  inline bool operator==(const StringInfo &Left, const StringInfo &Right) noexcept
+  struct CharInfo
   {
-    return Left.Mode == Right.Mode && Left.Decoded == Right.Decoded;
-  }
+      char32_t Value = 0;
+      bool Raw = false;
+  };
 
-  inline bool operator!=(const StringInfo &Left, const StringInfo &Right) noexcept
-  {
-    return !(Left == Right);
-  }
-
-  using TokenPayload = std::variant<std::monostate, KeywordKind, SymbolKind, NumericInfo, StringInfo>;
+  using TokenPayload = std::variant<std::monostate, IdentifierInfo, NumericInfo, StringInfo, CharInfo>;
 
   struct Token
   {
-      TokenKind Kind = TokenKind::InvalidCharacter;
+      TokenKind Kind = TokenKind::EndOfFile;
       core::SourceRange Span;
       TokenPayload Payload;
 
       bool is(TokenKind Expected) const noexcept
       {
         return Kind == Expected;
-      }
-
-      bool is(KeywordKind Expected) const noexcept
-      {
-        const KeywordKind *Value = std::get_if<KeywordKind>(&Payload);
-        return is(TokenKind::Keyword) && Value != nullptr && *Value == Expected;
-      }
-
-      bool is(SymbolKind Expected) const noexcept
-      {
-        const SymbolKind *Value = std::get_if<SymbolKind>(&Payload);
-        return is(TokenKind::Symbol) && Value != nullptr && *Value == Expected;
       }
 
       template <typename... Kinds>
@@ -118,32 +74,29 @@ namespace ink::tokenizer
         return (is(Expected) || ...);
       }
 
-      KeywordKind keyword() const noexcept;
-      SymbolKind symbol() const noexcept;
-      bool isTrivia() const noexcept;
-      bool isError() const noexcept;
+      core::SourceLocation getLocation() const noexcept
+      {
+        return Span.getBegin();
+      }
+
+      core::SourceRange getSourceRange() const noexcept
+      {
+        return Span;
+      }
+
+      std::size_t getLength() const noexcept
+      {
+        return Span.size();
+      }
   };
 
-  inline bool operator==(const Token &Left, const Token &Right)
-  {
-    return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Payload == Right.Payload;
-  }
-
-  inline bool operator!=(const Token &Left, const Token &Right)
-  {
-    return !(Left == Right);
-  }
-
-  bool isTrivia(TokenKind Kind) noexcept;
-  bool isError(TokenKind Kind) noexcept;
   const char *tokenKindName(TokenKind Kind) noexcept;
-  std::optional<KeywordKind> lookupKeyword(std::string_view Spelling) noexcept;
-  std::optional<SymbolKind> lookupSymbol(std::string_view Spelling) noexcept;
-  // Finds the longest symbol at the beginning of the remaining source bytes.
-  std::optional<SymbolKind> matchSymbolPrefix(std::string_view Source) noexcept;
-  std::string_view keywordSpelling(KeywordKind Kind) noexcept;
-  std::string_view symbolSpelling(SymbolKind Kind) noexcept;
-  std::string_view symbolSpelling(const Token &Token) noexcept;
+  std::string_view tokenSpelling(TokenKind Kind) noexcept;
+  bool isKeyword(TokenKind Kind) noexcept;
+  bool isSymbol(TokenKind Kind) noexcept;
+  std::optional<TokenKind> lookupKeyword(std::string_view Spelling) noexcept;
+  std::optional<TokenKind> lookupSymbol(std::string_view Spelling) noexcept;
+  std::optional<TokenKind> matchSymbolPrefix(std::string_view Source) noexcept;
 } // namespace ink::tokenizer
 
 #endif
