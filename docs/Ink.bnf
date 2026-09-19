@@ -354,6 +354,7 @@ type_primary ::= IDENTIFIER
                | grouped_expr
                | array_expr
                | tuple_expr
+               | match_expr
                | block_expr ;
 
 qualified_name ::= IDENTIFIER { "." IDENTIFIER } ;
