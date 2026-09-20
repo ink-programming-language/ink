@@ -1,78 +1,93 @@
-#ifndef INK_PARSER_PARSER_H
-#define INK_PARSER_PARSER_H
-
-#include "ink/core/context.h"
-#include "ink/core/source_range.h"
-#include "ink/parser/ast.h"
-#include "ink/tokenizer/tokenizer.h"
-
-#include <cstddef>
-#include <vector>
-
+#pragma once
+#include "ink/parser/token_cursor.h"
+#include <functional>
 namespace ink::parser
 {
-  enum class ParseMode
+  enum class ParseStatus
   {
-    Batch,
-    Interactive,
+    Completed,
+    LimitExceeded,
+    Cancelled
   };
-
-  enum class ParseCompleteness
+  struct ParseLimits
   {
-    Complete,
-    Incomplete,
+      std::size_t MaxNestingDepth = 128;
+      std::size_t MaxDiagnostics = 100;
+      std::size_t MaxWork = 10000000;
+      // Parsing stops at this budget. Bounded stack unwinding may allocate the
+      // parent nodes and final arrays needed to publish a valid partial tree.
+      std::size_t MaxAllocationBytes = 64 * 1024 * 1024;
+      std::function<bool()> IsCancelled;
   };
-
-  struct ParserOptions
+  enum class ExpectStatus
   {
-      ParseMode Mode = ParseMode::Batch;
-      std::size_t MaxSyntaxNestingDepth = 128;
+    Matched,
+    Inserted,
+    Recovered
   };
-
-  class ParsedFile
+  struct ExpectResult
+  {
+      TokenKind Expected;
+      std::optional<TokenId> Actual;
+      SourceRange Range;
+      ExpectStatus Status;
+  };
+  struct RecoveryEntry
+  {
+      const ASTNodeBase *Node;
+      ExpectResult Token;
+      std::optional<SourceRange> Skipped;
+  };
+  struct SyntaxRecoveryInfo
+  {
+      std::vector<RecoveryEntry> Entries;
+  };
+  class ParsedUnit
   {
     public:
-      const tokenizer::TokenizedBuffer &lexedFile() const noexcept
+      explicit ParsedUnit(std::shared_ptr<const TokenBuffer> Input)
+          : Input(std::move(Input)),
+            Context(std::make_unique<ASTContext>())
       {
-        return LexedFile;
       }
-
-      const AstTree &ast() const noexcept
+      const TokenBuffer &input() const noexcept
       {
-        return Tree;
+        return *Input;
       }
-
-      bool succeeded() const noexcept;
-      ParseCompleteness completeness() const noexcept
+      ASTContext &context() noexcept
       {
-        return Completeness;
+        return *Context;
       }
-
-      core::SourceRange span(AstNodeId Id) const;
+      ModuleAST *root() noexcept
+      {
+        return Root;
+      }
+      const ModuleAST *root() const noexcept
+      {
+        return Root;
+      }
+      const SyntaxRecoveryInfo &recoveryInfo() const noexcept
+      {
+        return Recovery;
+      }
 
     private:
-      ParsedFile(tokenizer::TokenizedBuffer LexedFile, AstTree Tree, bool Succeeded, ParseCompleteness Completeness);
-
-      tokenizer::TokenizedBuffer LexedFile;
-      AstTree Tree;
-      bool Succeeded = false;
-      ParseCompleteness Completeness = ParseCompleteness::Complete;
-
+      // Destruction order intentionally releases nodes before their input.
+      std::shared_ptr<const TokenBuffer> Input;
+      std::unique_ptr<ASTContext> Context;
+      ModuleAST *Root = nullptr;
+      SyntaxRecoveryInfo Recovery;
       friend class Parser;
   };
-
-  class Parser
+  struct ParseResult
   {
-    public:
-      explicit Parser(core::FrontendContext &Context, ParserOptions Options = {});
-      ParsedFile parse(tokenizer::TokenizedBuffer LexedFile) const;
-
-    private:
-      core::FrontendContext &Context;
-      ParserOptions Options;
+      std::unique_ptr<ParsedUnit> Unit;
+      ParseStatus Status = ParseStatus::Completed;
+      bool HasSyntaxErrors = false;
+      bool succeeded() const noexcept
+      {
+        return Unit && Status == ParseStatus::Completed && !HasSyntaxErrors && Unit->input().lexedFile().succeeded();
+      }
   };
-
-  ParsedFile parse(core::FrontendContext &Context, tokenizer::TokenizedBuffer LexedFile, ParserOptions Options = {});
+  ParseResult parse(core::FrontendContext &Context, tokenizer::TokenizedBuffer Input, ParseLimits Limits = {});
 } // namespace ink::parser
-
-#endif

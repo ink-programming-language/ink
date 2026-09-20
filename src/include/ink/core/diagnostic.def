@@ -2,7 +2,7 @@
 #error "Define INK_DIAGNOSTIC before including diagnostic.def"
 #endif
 
-// Rebuilt for docs/Ink-Lexical-Rules.md. Other frontend stages have no entries yet.
+// Frontend diagnostics are shared by the tokenizer and parser.
 INK_DIAGNOSTIC(Unknown, 0x00000000U, Unknown, "INK-0000", Unknown, Unknown, "unknown diagnostic", "unknown diagnostic", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(InvalidUtf8, 0x01000001U, Tokenizer, "INK-T0001", User, Error, "source is not valid UTF-8", "source is not valid UTF-8", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(UnexpectedBom, 0x01000002U, Tokenizer, "INK-T0002", User, Error, "a UTF-8 BOM is not permitted at the start of a source file", "a UTF-8 BOM is not permitted at the start of a source file", INK_DIAGNOSTIC_ARGUMENTS())
@@ -26,3 +26,7 @@ INK_DIAGNOSTIC(UnterminatedBlockComment, 0x01000013U, Tokenizer, "INK-T0019", Us
 INK_DIAGNOSTIC(NormalizationFailed, 0x01000014U, Tokenizer, "INK-T0020", InternalCompilerError, Error, "could not normalize the identifier to NFC", "could not normalize the identifier to NFC", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(TokenizerSourceNotFound, 0x01000015U, Tokenizer, "INK-T0021", InternalCompilerError, Error, "source buffer is not registered with this context", "source buffer is not registered with this context", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SourceTooLarge, 0x01000016U, Tokenizer, "INK-T0022", User, Error, "source exceeds the representable byte-offset limit", "source exceeds the representable byte-offset limit", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(ParserExpectedToken, 0x02000001U, Parser, "INK-P0001", User, Error, "expected token", "expected {Expected}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Expected, String)))
+INK_DIAGNOSTIC(ParserExpectedExpression, 0x02000002U, Parser, "INK-P0002", User, Error, "expected expression", "expected expression", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(ParserInvalidSyntax, 0x02000003U, Parser, "INK-P0003", User, Error, "invalid syntax", "invalid syntax", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(ParserLimitExceeded, 0x02000004U, Parser, "INK-P0004", User, Error, "parser resource limit exceeded", "parser resource limit exceeded", INK_DIAGNOSTIC_ARGUMENTS())

@@ -75,5 +75,7 @@ if(BUILD_TESTING)
 
   add_subdirectory("${INK_GOOGLETEST_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/third_party/googletest" EXCLUDE_FROM_ALL)
   add_subdirectory(src/testcase)
-  add_custom_target(run_all_tests COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}" --build-config "$<CONFIG>" --output-on-failure DEPENDS ink_tests COMMENT "Running all Ink tests" USES_TERMINAL VERBATIM)
+  include(cmake/InkParserCoverage.cmake)
+  ink_add_parser_coverage()
+  add_custom_target(run_all_tests COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}" --build-config "$<CONFIG>" --output-on-failure DEPENDS ink_tests ink_parser_tests ink_parse COMMENT "Running all Ink tests" USES_TERMINAL VERBATIM)
 endif()

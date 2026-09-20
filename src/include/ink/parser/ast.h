@@ -1,1187 +1,2659 @@
-#ifndef INK_PARSER_AST_H
-#define INK_PARSER_AST_H
-
+#pragma once
+#include "ink/parser/ast_context.h"
+#include "ink/parser/ast_kind.h"
 #include "ink/core/source_range.h"
 #include "ink/tokenizer/token.h"
-
-#include <cassert>
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
-#include <limits>
-#include <memory>
-#include <string>
+#include <optional>
+#include <string_view>
 #include <type_traits>
-#include <utility>
-#include <vector>
-
 namespace ink::parser
 {
-  using AstNodeId = std::size_t;
-  // Absolute token indices in ParsedFile::lexedFile(), including any retained
-  // trivia. Token storage and source ownership stay with the parsed file.
-  using AstTokenId = std::size_t;
-  inline constexpr AstNodeId InvalidAstNodeId = std::numeric_limits<AstNodeId>::max();
-  inline constexpr AstTokenId InvalidAstTokenId = std::numeric_limits<AstTokenId>::max();
-
-  enum class AstNodeFlags : std::uint8_t
+  using core::SourceRange;
+  using tokenizer::TokenKind;
+  using TokenId = std::size_t;
+  inline constexpr TokenId InvalidTokenId = static_cast<TokenId>(-1);
+  struct NameToken
   {
-    None = 0,
-    HasError = 1U << 0U,
-    HasMissing = 1U << 1U,
+      TokenId Id = InvalidTokenId;
+      std::string_view Text;
+      SourceRange Range;
   };
-
-  constexpr AstNodeFlags operator|(AstNodeFlags Left, AstNodeFlags Right) noexcept
+  struct RestBinding
   {
-    return static_cast<AstNodeFlags>(static_cast<std::uint8_t>(Left) | static_cast<std::uint8_t>(Right));
-  }
-
-  constexpr AstNodeFlags &operator|=(AstNodeFlags &Left, AstNodeFlags Right) noexcept
-  {
-    Left = Left | Right;
-    return Left;
-  }
-
-  constexpr bool hasFlag(AstNodeFlags Value, AstNodeFlags Flag) noexcept
-  {
-    return (static_cast<std::uint8_t>(Value) & static_cast<std::uint8_t>(Flag)) != 0;
-  }
-
-  enum class AccessKind
-  {
-    Unspecified,
-    Public,
-    Private,
+      NameToken Name;
+      bool Wildcard;
+      SourceRange EllipsisRange;
   };
-
-  enum class BindingKind
+  enum class ArgumentKind
   {
-    Let,
-    Var,
-    Const,
+    Named,
+    Positional,
+    SpreadPositional
   };
-
-  struct AstArgument
+  enum class AttributeSuffix
   {
-      AstNodeId Expression = InvalidAstNodeId;
-      bool IsPackExpansion = false;
-      core::SourceRange Span;
+    None,
+    Arguments,
+    Value
   };
-
-  struct FunctionTypeParameter
+  enum class VarDeclForm
   {
-      AstNodeId TypeExpression = InvalidAstNodeId;
-      bool IsVariadic = false;
-      core::SourceRange Span;
+    Uninitialized,
+    Initialized
   };
-
-  enum class AstKind
+  enum class FieldTailKind
   {
-#define INK_AST_KIND(Name, Base) Name,
-#include "ink/parser/ast_kind.def"
-#undef INK_AST_KIND
+    None,
+    Typed,
+    InitializerOnly,
+    Payload
   };
-
-  const char *astKindName(AstKind Kind) noexcept;
-
-  // Nodes use a kind tag for checked casts, as in Clang. Only the tree owns
-  // nodes; child IDs do not recursively own their descendants.
-  class AstNode
+  enum class FunctionBodyKind
+  {
+    DeclarationOnly,
+    Definition
+  };
+  enum class AggregateForm
+  {
+    Forward,
+    Definition
+  };
+  class ASTNodeBase
   {
     public:
-      core::SourceRange Span;
-      AstNodeFlags Flags = AstNodeFlags::None;
-
-      AstKind kind() const noexcept
+      ASTKind getKind() const noexcept
       {
-        return Kind;
+        return NodeKind;
       }
-
-      static bool classof(const AstNode *) noexcept
+      SourceRange getSourceRange() const noexcept
       {
-        return true;
+        return Range;
       }
-
-      template <typename NodeType>
-      const NodeType *as() const noexcept
+      core::SourceLocation getLocation() const noexcept
       {
-        static_assert(std::is_base_of_v<AstNode, NodeType>, "Expected an AST node type");
-        return NodeType::classof(this) ? static_cast<const NodeType *>(this) : nullptr;
+        return Range.getBegin();
       }
-
-      template <typename NodeType>
-      const NodeType &get() const noexcept
-      {
-        const NodeType *Value = as<NodeType>();
-        assert(Value != nullptr);
-        return *Value;
-      }
+      ASTNodeBase(const ASTNodeBase &) = delete;
+      ASTNodeBase &operator=(const ASTNodeBase &) = delete;
 
     protected:
-      explicit AstNode(AstKind Kind) noexcept
-          : Kind(Kind)
+      ASTNodeBase(ASTKind Kind, SourceRange Range)
+          : NodeKind(Kind),
+            Range(Range)
       {
       }
-
-      AstNode(const AstNode &) = default;
-      AstNode(AstNode &&) = default;
-      ~AstNode() = default;
+      ~ASTNodeBase() = default;
 
     private:
-      const AstKind Kind;
+      ASTKind NodeKind;
+      SourceRange Range;
   };
-
-  class AstDeclaration : public AstNode
+  class Expr : public ASTNodeBase
   {
     public:
-      static bool classof(const AstNode *Node) noexcept;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && categoryOf(Node->getKind()) == ASTCategory::Expr;
+      }
 
     protected:
-      explicit AstDeclaration(AstKind Kind) noexcept
-          : AstNode(Kind)
-      {
-      }
-
-      AstDeclaration(const AstDeclaration &) = default;
-      AstDeclaration(AstDeclaration &&) = default;
-      ~AstDeclaration() = default;
+      using ASTNodeBase::ASTNodeBase;
   };
-
-  class AstStatement : public AstNode
+  class Stmt : public ASTNodeBase
   {
     public:
-      static bool classof(const AstNode *Node) noexcept;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && categoryOf(Node->getKind()) == ASTCategory::Stmt;
+      }
 
     protected:
-      explicit AstStatement(AstKind Kind) noexcept
-          : AstNode(Kind)
-      {
-      }
-
-      AstStatement(const AstStatement &) = default;
-      AstStatement(AstStatement &&) = default;
-      ~AstStatement() = default;
+      using ASTNodeBase::ASTNodeBase;
   };
-
-  class AstExpression : public AstNode
+  class Decl : public ASTNodeBase
   {
     public:
-      static bool classof(const AstNode *Node) noexcept;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && categoryOf(Node->getKind()) == ASTCategory::Decl;
+      }
 
     protected:
-      explicit AstExpression(AstKind Kind) noexcept
-          : AstNode(Kind)
-      {
-      }
-
-      AstExpression(const AstExpression &) = default;
-      AstExpression(AstExpression &&) = default;
-      ~AstExpression() = default;
+      using ASTNodeBase::ASTNodeBase;
   };
-
-  class AstPattern : public AstNode
+  class SimpleItem : public ASTNodeBase
   {
     public:
-      static bool classof(const AstNode *Node) noexcept;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && categoryOf(Node->getKind()) == ASTCategory::SimpleItem;
+      }
 
     protected:
-      explicit AstPattern(AstKind Kind) noexcept
-          : AstNode(Kind)
-      {
-      }
-
-      AstPattern(const AstPattern &) = default;
-      AstPattern(AstPattern &&) = default;
-      ~AstPattern() = default;
+      using ASTNodeBase::ASTNodeBase;
   };
-
-  class SourceFile final : public AstNode
+  class BindingPattern : public ASTNodeBase
   {
     public:
-      explicit SourceFile(std::vector<AstNodeId> Statements = {})
-          : AstNode(AstKind::SourceFile),
-            Statements(std::move(Statements))
+      static bool classof(const ASTNodeBase *Node)
       {
+        return Node && categoryOf(Node->getKind()) == ASTCategory::BindingPattern;
       }
 
-      std::vector<AstNodeId> Statements;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::SourceFile;
-      }
+    protected:
+      using ASTNodeBase::ASTNodeBase;
   };
-
-  class Error final : public AstNode
+  class MatchPattern : public ASTNodeBase
   {
     public:
-      explicit Error(std::string Expected = {}, std::vector<AstNodeId> Recovered = {})
-          : AstNode(AstKind::Error),
-            Expected(std::move(Expected)),
-            Recovered(std::move(Recovered))
+      static bool classof(const ASTNodeBase *Node)
       {
+        return Node && categoryOf(Node->getKind()) == ASTCategory::MatchPattern;
       }
 
-      std::string Expected;
-      std::vector<AstNodeId> Recovered;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::Error;
-      }
+    protected:
+      using ASTNodeBase::ASTNodeBase;
   };
-
-  class ImportDeclaration final : public AstDeclaration
+  class ModuleAST;
+  class TypeSyntax;
+  class MissingExpr;
+  class ErrorExpr;
+  class MissingStmt;
+  class ErrorStmt;
+  class MissingDecl;
+  class ErrorDecl;
+  class MissingBindingPattern;
+  class ErrorBindingPattern;
+  class MissingMatchPattern;
+  class ErrorMatchPattern;
+  class NameExpr;
+  class LiteralExpr;
+  class UnaryExpr;
+  class ComptimeExpr;
+  class BinaryExpr;
+  class ConditionalExpr;
+  class ParenExpr;
+  class TupleExpr;
+  class ArrayExpr;
+  class ArrayRepeatExpr;
+  class CallExpr;
+  class IndexExpr;
+  class MemberExpr;
+  class GenericApplyExpr;
+  class PostfixUpdateExpr;
+  class FunctionTypeExpr;
+  class LambdaExpr;
+  class MatchExpr;
+  class BlockExpr;
+  class ExprItem;
+  class AssignmentItem;
+  class SimpleStmt;
+  class BlockStmt;
+  class DeclStmt;
+  class IfStmt;
+  class WhileStmt;
+  class ClassicForStmt;
+  class ForInStmt;
+  class SwitchStmt;
+  class ReturnStmt;
+  class BreakStmt;
+  class ContinueStmt;
+  class YieldStmt;
+  class DeferStmt;
+  class ComptimeStmt;
+  class DirectImportStmt;
+  class FromImportStmt;
+  class VarDecl;
+  class FieldDecl;
+  class FunctionDecl;
+  class ClassDecl;
+  class EnumDecl;
+  class InterfaceDecl;
+  class WildcardBindingPattern;
+  class NameBindingPattern;
+  class TupleBindingPattern;
+  class ArrayBindingPattern;
+  class WildcardMatchPattern;
+  class NameMatchPattern;
+  class TupleMatchPattern;
+  class ArrayMatchPattern;
+  class LiteralMatchPattern;
+  class GroupedMatchPattern;
+  class OrMatchPattern;
+  class Parameter;
+  class FunctionTypeParameter;
+  class Argument;
+  class PathSegment;
+  class Attribute;
+  class BaseSpec;
+  class MatchArm;
+  class SwitchClause;
+  class ImportEntry;
+  class Parameter
   {
     public:
-      explicit ImportDeclaration(std::vector<AstTokenId> Package = {}, AstTokenId Member = InvalidAstTokenId, AstTokenId Alias = InvalidAstTokenId, bool IsMemberImport = false)
-          : AstDeclaration(AstKind::ImportDeclaration),
-            Package(std::move(Package)),
-            Member(Member),
-            Alias(Alias),
-            IsMemberImport(IsMemberImport)
+      Parameter(NameToken Name, TypeSyntax *Type, Expr *DefaultValue, bool Variadic, SourceRange Range)
+          : Name(Name),
+            Type(Type),
+            DefaultValue(DefaultValue),
+            Variadic(Variadic),
+            Range(Range)
       {
       }
-
-      std::vector<AstTokenId> Package;
-      AstTokenId Member;
-      AstTokenId Alias;
-      bool IsMemberImport;
-
-      static bool classof(const AstNode *Node) noexcept
+      NameToken name() const noexcept
       {
-        return Node->kind() == AstKind::ImportDeclaration;
+        return Name;
       }
+      TypeSyntax *type() noexcept
+      {
+        return Type;
+      }
+      const TypeSyntax *type() const noexcept
+      {
+        return Type;
+      }
+      Expr *defaultValue() noexcept
+      {
+        return DefaultValue;
+      }
+      const Expr *defaultValue() const noexcept
+      {
+        return DefaultValue;
+      }
+      bool variadic() const noexcept
+      {
+        return Variadic;
+      }
+      SourceRange range() const noexcept
+      {
+        return Range;
+      }
+
+    private:
+      NameToken Name;
+      TypeSyntax *Type;
+      Expr *DefaultValue;
+      bool Variadic;
+      SourceRange Range;
   };
-
-  class FunctionDeclaration final : public AstDeclaration
+  class FunctionTypeParameter
   {
     public:
-      explicit FunctionDeclaration(AccessKind Access = AccessKind::Unspecified, AstTokenId Linkage = InvalidAstTokenId, bool IsConst = false, bool IsClassMethod = false, AstTokenId Name = InvalidAstTokenId, std::vector<AstNodeId> GenericParameters = {}, std::vector<AstNodeId> Parameters = {}, AstNodeId ReturnType = InvalidAstNodeId, AstNodeId Body = InvalidAstNodeId)
-          : AstDeclaration(AstKind::FunctionDeclaration),
-            Access(Access),
-            Linkage(Linkage),
-            IsConst(IsConst),
-            IsClassMethod(IsClassMethod),
+      FunctionTypeParameter(std::optional<NameToken> Name, TypeSyntax *Type, bool Variadic, SourceRange Range)
+          : Name(Name),
+            Type(Type),
+            Variadic(Variadic),
+            Range(Range)
+      {
+      }
+      std::optional<NameToken> name() const noexcept
+      {
+        return Name;
+      }
+      TypeSyntax *type() noexcept
+      {
+        return Type;
+      }
+      const TypeSyntax *type() const noexcept
+      {
+        return Type;
+      }
+      bool variadic() const noexcept
+      {
+        return Variadic;
+      }
+      SourceRange range() const noexcept
+      {
+        return Range;
+      }
+
+    private:
+      std::optional<NameToken> Name;
+      TypeSyntax *Type;
+      bool Variadic;
+      SourceRange Range;
+  };
+  class Argument
+  {
+    public:
+      Argument(ArgumentKind Form, std::optional<NameToken> Name, Expr *Value, SourceRange Range)
+          : Form(Form),
             Name(Name),
-            GenericParameters(std::move(GenericParameters)),
-            Parameters(std::move(Parameters)),
+            Value(Value),
+            Range(Range)
+      {
+      }
+      ArgumentKind form() const noexcept
+      {
+        return Form;
+      }
+      std::optional<NameToken> name() const noexcept
+      {
+        return Name;
+      }
+      Expr *value() noexcept
+      {
+        return Value;
+      }
+      const Expr *value() const noexcept
+      {
+        return Value;
+      }
+      SourceRange range() const noexcept
+      {
+        return Range;
+      }
+
+    private:
+      ArgumentKind Form;
+      std::optional<NameToken> Name;
+      Expr *Value;
+      SourceRange Range;
+  };
+  class PathSegment
+  {
+    public:
+      PathSegment(NameToken Name, bool HasGenericArguments, ASTArray<Argument> Arguments, SourceRange Range)
+          : Name(Name),
+            HasGenericArguments(HasGenericArguments),
+            Arguments(Arguments),
+            Range(Range)
+      {
+      }
+      NameToken name() const noexcept
+      {
+        return Name;
+      }
+      bool hasGenericArguments() const noexcept
+      {
+        return HasGenericArguments;
+      }
+      ASTArray<Argument> arguments() const noexcept
+      {
+        return Arguments;
+      }
+      SourceRange range() const noexcept
+      {
+        return Range;
+      }
+
+    private:
+      NameToken Name;
+      bool HasGenericArguments;
+      ASTArray<Argument> Arguments;
+      SourceRange Range;
+  };
+  class Attribute
+  {
+    public:
+      Attribute(ASTArray<NameToken> Path, AttributeSuffix Suffix, ASTArray<Argument> Arguments, Expr *Value, SourceRange Range)
+          : Path(Path),
+            Suffix(Suffix),
+            Arguments(Arguments),
+            Value(Value),
+            Range(Range)
+      {
+      }
+      ASTArray<NameToken> path() const noexcept
+      {
+        return Path;
+      }
+      AttributeSuffix suffix() const noexcept
+      {
+        return Suffix;
+      }
+      ASTArray<Argument> arguments() const noexcept
+      {
+        return Arguments;
+      }
+      Expr *value() noexcept
+      {
+        return Value;
+      }
+      const Expr *value() const noexcept
+      {
+        return Value;
+      }
+      SourceRange range() const noexcept
+      {
+        return Range;
+      }
+
+    private:
+      ASTArray<NameToken> Path;
+      AttributeSuffix Suffix;
+      ASTArray<Argument> Arguments;
+      Expr *Value;
+      SourceRange Range;
+  };
+  class BaseSpec
+  {
+    public:
+      BaseSpec(bool Implements, TypeSyntax *Type, SourceRange Range)
+          : Implements(Implements),
+            Type(Type),
+            Range(Range)
+      {
+      }
+      bool implements() const noexcept
+      {
+        return Implements;
+      }
+      TypeSyntax *type() noexcept
+      {
+        return Type;
+      }
+      const TypeSyntax *type() const noexcept
+      {
+        return Type;
+      }
+      SourceRange range() const noexcept
+      {
+        return Range;
+      }
+
+    private:
+      bool Implements;
+      TypeSyntax *Type;
+      SourceRange Range;
+  };
+  class MatchArm
+  {
+    public:
+      MatchArm(MatchPattern *Pattern, Expr *Guard, Expr *Value, SourceRange Range)
+          : Pattern(Pattern),
+            Guard(Guard),
+            Value(Value),
+            Range(Range)
+      {
+      }
+      MatchPattern *pattern() noexcept
+      {
+        return Pattern;
+      }
+      const MatchPattern *pattern() const noexcept
+      {
+        return Pattern;
+      }
+      Expr *guard() noexcept
+      {
+        return Guard;
+      }
+      const Expr *guard() const noexcept
+      {
+        return Guard;
+      }
+      Expr *value() noexcept
+      {
+        return Value;
+      }
+      const Expr *value() const noexcept
+      {
+        return Value;
+      }
+      SourceRange range() const noexcept
+      {
+        return Range;
+      }
+
+    private:
+      MatchPattern *Pattern;
+      Expr *Guard;
+      Expr *Value;
+      SourceRange Range;
+  };
+  class SwitchClause
+  {
+    public:
+      SwitchClause(bool Default, Expr *Value, ASTArray<Stmt *> Statements, SourceRange Range)
+          : Default(Default),
+            Value(Value),
+            Statements(Statements),
+            Range(Range)
+      {
+      }
+      bool isDefault() const noexcept
+      {
+        return Default;
+      }
+      Expr *value() noexcept
+      {
+        return Value;
+      }
+      const Expr *value() const noexcept
+      {
+        return Value;
+      }
+      ASTArray<Stmt *> statements() noexcept
+      {
+        return Statements;
+      }
+      ConstNodeArray<Stmt> statements() const noexcept
+      {
+        return ConstNodeArray<Stmt>(Statements);
+      }
+      SourceRange range() const noexcept
+      {
+        return Range;
+      }
+
+    private:
+      bool Default;
+      Expr *Value;
+      ASTArray<Stmt *> Statements;
+      SourceRange Range;
+  };
+  class ImportEntry
+  {
+    public:
+      ImportEntry(ASTArray<NameToken> Path, std::optional<NameToken> Alias, SourceRange Range)
+          : Path(Path),
+            Alias(Alias),
+            Range(Range)
+      {
+      }
+      ASTArray<NameToken> path() const noexcept
+      {
+        return Path;
+      }
+      std::optional<NameToken> alias() const noexcept
+      {
+        return Alias;
+      }
+      SourceRange range() const noexcept
+      {
+        return Range;
+      }
+
+    private:
+      ASTArray<NameToken> Path;
+      std::optional<NameToken> Alias;
+      SourceRange Range;
+  };
+  class ModuleAST final : public ASTNodeBase
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ModuleAST;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ModuleAST(SourceRange Range, ASTArray<Stmt *> Statements)
+          : ASTNodeBase(Kind, Range),
+            Statements(Statements)
+      {
+      }
+      ASTArray<Stmt *> statements() noexcept
+      {
+        return Statements;
+      }
+      ConstNodeArray<Stmt> statements() const noexcept
+      {
+        return ConstNodeArray<Stmt>(Statements);
+      }
+
+    private:
+      ASTArray<Stmt *> Statements;
+  };
+  class TypeSyntax final : public ASTNodeBase
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::TypeSyntax;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      TypeSyntax(SourceRange Range, Expr *Expression)
+          : ASTNodeBase(Kind, Range),
+            Expression(Expression)
+      {
+      }
+      Expr *expression() noexcept
+      {
+        return Expression;
+      }
+      const Expr *expression() const noexcept
+      {
+        return Expression;
+      }
+
+    private:
+      Expr *Expression;
+  };
+  class MissingExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::MissingExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      MissingExpr(SourceRange Range)
+          : Expr(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class ErrorExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ErrorExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ErrorExpr(SourceRange Range)
+          : Expr(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class MissingStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::MissingStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      MissingStmt(SourceRange Range)
+          : Stmt(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class ErrorStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ErrorStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ErrorStmt(SourceRange Range)
+          : Stmt(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class MissingDecl final : public Decl
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::MissingDecl;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      MissingDecl(SourceRange Range, ASTArray<Attribute> Attributes)
+          : Decl(Kind, Range),
+            Attributes(Attributes)
+      {
+      }
+      ASTArray<Attribute> attributes() const noexcept
+      {
+        return Attributes;
+      }
+
+    private:
+      ASTArray<Attribute> Attributes;
+  };
+  class ErrorDecl final : public Decl
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ErrorDecl;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ErrorDecl(SourceRange Range, ASTArray<Attribute> Attributes)
+          : Decl(Kind, Range),
+            Attributes(Attributes)
+      {
+      }
+      ASTArray<Attribute> attributes() const noexcept
+      {
+        return Attributes;
+      }
+
+    private:
+      ASTArray<Attribute> Attributes;
+  };
+  class MissingBindingPattern final : public BindingPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::MissingBindingPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      MissingBindingPattern(SourceRange Range)
+          : BindingPattern(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class ErrorBindingPattern final : public BindingPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ErrorBindingPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ErrorBindingPattern(SourceRange Range)
+          : BindingPattern(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class MissingMatchPattern final : public MatchPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::MissingMatchPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      MissingMatchPattern(SourceRange Range)
+          : MatchPattern(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class ErrorMatchPattern final : public MatchPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ErrorMatchPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ErrorMatchPattern(SourceRange Range)
+          : MatchPattern(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class NameExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::NameExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      NameExpr(SourceRange Range, NameToken Name)
+          : Expr(Kind, Range),
+            Name(Name)
+      {
+      }
+      NameToken name() const noexcept
+      {
+        return Name;
+      }
+
+    private:
+      NameToken Name;
+  };
+  class LiteralExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::LiteralExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      LiteralExpr(SourceRange Range, TokenId Token, TokenKind LiteralKind)
+          : Expr(Kind, Range),
+            Token(Token),
+            LiteralKind(LiteralKind)
+      {
+      }
+      TokenId token() const noexcept
+      {
+        return Token;
+      }
+      TokenKind literalKind() const noexcept
+      {
+        return LiteralKind;
+      }
+
+    private:
+      TokenId Token;
+      TokenKind LiteralKind;
+  };
+  class UnaryExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::UnaryExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      UnaryExpr(SourceRange Range, TokenKind Op, SourceRange OperatorRange, Expr *Operand)
+          : Expr(Kind, Range),
+            Op(Op),
+            OperatorRange(OperatorRange),
+            Operand(Operand)
+      {
+      }
+      TokenKind op() const noexcept
+      {
+        return Op;
+      }
+      SourceRange operatorRange() const noexcept
+      {
+        return OperatorRange;
+      }
+      Expr *operand() noexcept
+      {
+        return Operand;
+      }
+      const Expr *operand() const noexcept
+      {
+        return Operand;
+      }
+
+    private:
+      TokenKind Op;
+      SourceRange OperatorRange;
+      Expr *Operand;
+  };
+  class ComptimeExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ComptimeExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ComptimeExpr(SourceRange Range, Expr *Operand)
+          : Expr(Kind, Range),
+            Operand(Operand)
+      {
+      }
+      Expr *operand() noexcept
+      {
+        return Operand;
+      }
+      const Expr *operand() const noexcept
+      {
+        return Operand;
+      }
+
+    private:
+      Expr *Operand;
+  };
+  class BinaryExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::BinaryExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      BinaryExpr(SourceRange Range, Expr *Left, TokenKind Op, SourceRange OperatorRange, Expr *Right)
+          : Expr(Kind, Range),
+            Left(Left),
+            Op(Op),
+            OperatorRange(OperatorRange),
+            Right(Right)
+      {
+      }
+      Expr *left() noexcept
+      {
+        return Left;
+      }
+      const Expr *left() const noexcept
+      {
+        return Left;
+      }
+      TokenKind op() const noexcept
+      {
+        return Op;
+      }
+      SourceRange operatorRange() const noexcept
+      {
+        return OperatorRange;
+      }
+      Expr *right() noexcept
+      {
+        return Right;
+      }
+      const Expr *right() const noexcept
+      {
+        return Right;
+      }
+
+    private:
+      Expr *Left;
+      TokenKind Op;
+      SourceRange OperatorRange;
+      Expr *Right;
+  };
+  class ConditionalExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ConditionalExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ConditionalExpr(SourceRange Range, Expr *Condition, Expr *Then, Expr *Else)
+          : Expr(Kind, Range),
+            Condition(Condition),
+            Then(Then),
+            Else(Else)
+      {
+      }
+      Expr *condition() noexcept
+      {
+        return Condition;
+      }
+      const Expr *condition() const noexcept
+      {
+        return Condition;
+      }
+      Expr *then() noexcept
+      {
+        return Then;
+      }
+      const Expr *then() const noexcept
+      {
+        return Then;
+      }
+      Expr *elseValue() noexcept
+      {
+        return Else;
+      }
+      const Expr *elseValue() const noexcept
+      {
+        return Else;
+      }
+
+    private:
+      Expr *Condition;
+      Expr *Then;
+      Expr *Else;
+  };
+  class ParenExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ParenExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ParenExpr(SourceRange Range, Expr *Expression)
+          : Expr(Kind, Range),
+            Expression(Expression)
+      {
+      }
+      Expr *expression() noexcept
+      {
+        return Expression;
+      }
+      const Expr *expression() const noexcept
+      {
+        return Expression;
+      }
+
+    private:
+      Expr *Expression;
+  };
+  class TupleExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::TupleExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      TupleExpr(SourceRange Range, ASTArray<Expr *> Elements)
+          : Expr(Kind, Range),
+            Elements(Elements)
+      {
+      }
+      ASTArray<Expr *> elements() noexcept
+      {
+        return Elements;
+      }
+      ConstNodeArray<Expr> elements() const noexcept
+      {
+        return ConstNodeArray<Expr>(Elements);
+      }
+
+    private:
+      ASTArray<Expr *> Elements;
+  };
+  class ArrayExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ArrayExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ArrayExpr(SourceRange Range, ASTArray<Expr *> Elements)
+          : Expr(Kind, Range),
+            Elements(Elements)
+      {
+      }
+      ASTArray<Expr *> elements() noexcept
+      {
+        return Elements;
+      }
+      ConstNodeArray<Expr> elements() const noexcept
+      {
+        return ConstNodeArray<Expr>(Elements);
+      }
+
+    private:
+      ASTArray<Expr *> Elements;
+  };
+  class ArrayRepeatExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ArrayRepeatExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ArrayRepeatExpr(SourceRange Range, Expr *Value, Expr *Count)
+          : Expr(Kind, Range),
+            Value(Value),
+            Count(Count)
+      {
+      }
+      Expr *value() noexcept
+      {
+        return Value;
+      }
+      const Expr *value() const noexcept
+      {
+        return Value;
+      }
+      Expr *count() noexcept
+      {
+        return Count;
+      }
+      const Expr *count() const noexcept
+      {
+        return Count;
+      }
+
+    private:
+      Expr *Value;
+      Expr *Count;
+  };
+  class CallExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::CallExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      CallExpr(SourceRange Range, Expr *Callee, ASTArray<Argument> Arguments, bool Optional)
+          : Expr(Kind, Range),
+            Callee(Callee),
+            Arguments(Arguments),
+            Optional(Optional)
+      {
+      }
+      Expr *callee() noexcept
+      {
+        return Callee;
+      }
+      const Expr *callee() const noexcept
+      {
+        return Callee;
+      }
+      ASTArray<Argument> arguments() const noexcept
+      {
+        return Arguments;
+      }
+      bool optional() const noexcept
+      {
+        return Optional;
+      }
+
+    private:
+      Expr *Callee;
+      ASTArray<Argument> Arguments;
+      bool Optional;
+  };
+  class IndexExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::IndexExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      IndexExpr(SourceRange Range, Expr *Object, Expr *Index, bool Optional)
+          : Expr(Kind, Range),
+            Object(Object),
+            Index(Index),
+            Optional(Optional)
+      {
+      }
+      Expr *object() noexcept
+      {
+        return Object;
+      }
+      const Expr *object() const noexcept
+      {
+        return Object;
+      }
+      Expr *index() noexcept
+      {
+        return Index;
+      }
+      const Expr *index() const noexcept
+      {
+        return Index;
+      }
+      bool optional() const noexcept
+      {
+        return Optional;
+      }
+
+    private:
+      Expr *Object;
+      Expr *Index;
+      bool Optional;
+  };
+  class MemberExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::MemberExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      MemberExpr(SourceRange Range, Expr *Object, TokenKind Access, NameToken Member)
+          : Expr(Kind, Range),
+            Object(Object),
+            Access(Access),
+            Member(Member)
+      {
+      }
+      Expr *object() noexcept
+      {
+        return Object;
+      }
+      const Expr *object() const noexcept
+      {
+        return Object;
+      }
+      TokenKind access() const noexcept
+      {
+        return Access;
+      }
+      NameToken member() const noexcept
+      {
+        return Member;
+      }
+
+    private:
+      Expr *Object;
+      TokenKind Access;
+      NameToken Member;
+  };
+  class GenericApplyExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::GenericApplyExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      GenericApplyExpr(SourceRange Range, Expr *Object, ASTArray<Argument> Arguments)
+          : Expr(Kind, Range),
+            Object(Object),
+            Arguments(Arguments)
+      {
+      }
+      Expr *object() noexcept
+      {
+        return Object;
+      }
+      const Expr *object() const noexcept
+      {
+        return Object;
+      }
+      ASTArray<Argument> arguments() const noexcept
+      {
+        return Arguments;
+      }
+
+    private:
+      Expr *Object;
+      ASTArray<Argument> Arguments;
+  };
+  class PostfixUpdateExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::PostfixUpdateExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      PostfixUpdateExpr(SourceRange Range, Expr *Operand, TokenKind Op, SourceRange OperatorRange)
+          : Expr(Kind, Range),
+            Operand(Operand),
+            Op(Op),
+            OperatorRange(OperatorRange)
+      {
+      }
+      Expr *operand() noexcept
+      {
+        return Operand;
+      }
+      const Expr *operand() const noexcept
+      {
+        return Operand;
+      }
+      TokenKind op() const noexcept
+      {
+        return Op;
+      }
+      SourceRange operatorRange() const noexcept
+      {
+        return OperatorRange;
+      }
+
+    private:
+      Expr *Operand;
+      TokenKind Op;
+      SourceRange OperatorRange;
+  };
+  class FunctionTypeExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::FunctionTypeExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      FunctionTypeExpr(SourceRange Range, ASTArray<FunctionTypeParameter> Parameters, TypeSyntax *ReturnType)
+          : Expr(Kind, Range),
+            Parameters(Parameters),
+            ReturnType(ReturnType)
+      {
+      }
+      ASTArray<FunctionTypeParameter> parameters() const noexcept
+      {
+        return Parameters;
+      }
+      TypeSyntax *returnType() noexcept
+      {
+        return ReturnType;
+      }
+      const TypeSyntax *returnType() const noexcept
+      {
+        return ReturnType;
+      }
+
+    private:
+      ASTArray<FunctionTypeParameter> Parameters;
+      TypeSyntax *ReturnType;
+  };
+  class LambdaExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::LambdaExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      LambdaExpr(SourceRange Range, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, BlockStmt *Body)
+          : Expr(Kind, Range),
+            GenericParameters(GenericParameters),
+            Parameters(Parameters),
             ReturnType(ReturnType),
             Body(Body)
       {
       }
-
-      AccessKind Access;
-      AstTokenId Linkage;
-      bool IsConst;
-      bool IsClassMethod;
-      AstTokenId Name;
-      std::vector<AstNodeId> GenericParameters;
-      std::vector<AstNodeId> Parameters;
-      AstNodeId ReturnType;
-      AstNodeId Body;
-
-      static bool classof(const AstNode *Node) noexcept
+      ASTArray<Parameter> genericParameters() const noexcept
       {
-        return Node->kind() == AstKind::FunctionDeclaration;
+        return GenericParameters;
       }
-  };
+      ASTArray<Parameter> parameters() const noexcept
+      {
+        return Parameters;
+      }
+      TypeSyntax *returnType() noexcept
+      {
+        return ReturnType;
+      }
+      const TypeSyntax *returnType() const noexcept
+      {
+        return ReturnType;
+      }
+      BlockStmt *body() noexcept
+      {
+        return Body;
+      }
+      const BlockStmt *body() const noexcept
+      {
+        return Body;
+      }
 
-  class ClassDeclaration final : public AstDeclaration
+    private:
+      ASTArray<Parameter> GenericParameters;
+      ASTArray<Parameter> Parameters;
+      TypeSyntax *ReturnType;
+      BlockStmt *Body;
+  };
+  class MatchExpr final : public Expr
   {
     public:
-      explicit ClassDeclaration(AccessKind Access = AccessKind::Unspecified, AstTokenId Name = InvalidAstTokenId, std::vector<AstNodeId> GenericParameters = {}, AstNodeId BaseType = InvalidAstNodeId, std::vector<AstNodeId> Interfaces = {}, AstNodeId Body = InvalidAstNodeId)
-          : AstDeclaration(AstKind::ClassDeclaration),
-            Access(Access),
-            Name(Name),
-            GenericParameters(std::move(GenericParameters)),
-            BaseType(BaseType),
-            Interfaces(std::move(Interfaces)),
+      static constexpr ASTKind Kind = ASTKind::MatchExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      MatchExpr(SourceRange Range, Expr *Value, ASTArray<MatchArm> Arms)
+          : Expr(Kind, Range),
+            Value(Value),
+            Arms(Arms)
+      {
+      }
+      Expr *value() noexcept
+      {
+        return Value;
+      }
+      const Expr *value() const noexcept
+      {
+        return Value;
+      }
+      ASTArray<MatchArm> arms() const noexcept
+      {
+        return Arms;
+      }
+
+    private:
+      Expr *Value;
+      ASTArray<MatchArm> Arms;
+  };
+  class BlockExpr final : public Expr
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::BlockExpr;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      BlockExpr(SourceRange Range, BlockStmt *Body)
+          : Expr(Kind, Range),
             Body(Body)
       {
       }
-
-      AccessKind Access;
-      AstTokenId Name;
-      std::vector<AstNodeId> GenericParameters;
-      AstNodeId BaseType;
-      std::vector<AstNodeId> Interfaces;
-      AstNodeId Body;
-
-      static bool classof(const AstNode *Node) noexcept
+      BlockStmt *body() noexcept
       {
-        return Node->kind() == AstKind::ClassDeclaration;
+        return Body;
       }
-  };
+      const BlockStmt *body() const noexcept
+      {
+        return Body;
+      }
 
-  class InterfaceDeclaration final : public AstDeclaration
+    private:
+      BlockStmt *Body;
+  };
+  class ExprItem final : public SimpleItem
   {
     public:
-      explicit InterfaceDeclaration(AccessKind Access = AccessKind::Unspecified, AstTokenId Name = InvalidAstTokenId, std::vector<AstNodeId> GenericParameters = {}, std::vector<AstNodeId> BaseTypes = {}, AstNodeId Body = InvalidAstNodeId)
-          : AstDeclaration(AstKind::InterfaceDeclaration),
-            Access(Access),
-            Name(Name),
-            GenericParameters(std::move(GenericParameters)),
-            BaseTypes(std::move(BaseTypes)),
-            Body(Body)
+      static constexpr ASTKind Kind = ASTKind::ExprItem;
+      static bool classof(const ASTNodeBase *Node)
       {
+        return Node && Node->getKind() == Kind;
       }
-
-      AccessKind Access;
-      AstTokenId Name;
-      std::vector<AstNodeId> GenericParameters;
-      std::vector<AstNodeId> BaseTypes;
-      AstNodeId Body;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::InterfaceDeclaration;
-      }
-  };
-
-  class EnumDeclaration final : public AstDeclaration
-  {
-    public:
-      explicit EnumDeclaration(AccessKind Access = AccessKind::Unspecified, AstTokenId Name = InvalidAstTokenId, std::vector<AstNodeId> GenericParameters = {}, AstNodeId BaseType = InvalidAstNodeId, std::vector<AstNodeId> Interfaces = {}, AstNodeId Body = InvalidAstNodeId)
-          : AstDeclaration(AstKind::EnumDeclaration),
-            Access(Access),
-            Name(Name),
-            GenericParameters(std::move(GenericParameters)),
-            BaseType(BaseType),
-            Interfaces(std::move(Interfaces)),
-            Body(Body)
-      {
-      }
-
-      AccessKind Access;
-      AstTokenId Name;
-      std::vector<AstNodeId> GenericParameters;
-      AstNodeId BaseType;
-      std::vector<AstNodeId> Interfaces;
-      AstNodeId Body;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::EnumDeclaration;
-      }
-  };
-
-  class ClassFieldDeclaration final : public AstDeclaration
-  {
-    public:
-      explicit ClassFieldDeclaration(AccessKind Access = AccessKind::Unspecified, bool IsConst = false, AstTokenId Name = InvalidAstTokenId, AstNodeId TypeExpression = InvalidAstNodeId, AstNodeId Initializer = InvalidAstNodeId)
-          : AstDeclaration(AstKind::ClassFieldDeclaration),
-            Access(Access),
-            IsConst(IsConst),
-            Name(Name),
-            TypeExpression(TypeExpression),
-            Initializer(Initializer)
-      {
-      }
-
-      AccessKind Access;
-      bool IsConst;
-      AstTokenId Name;
-      AstNodeId TypeExpression;
-      AstNodeId Initializer;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::ClassFieldDeclaration;
-      }
-  };
-
-  class EnumFieldDeclaration final : public AstDeclaration
-  {
-    public:
-      explicit EnumFieldDeclaration(AstTokenId Name = InvalidAstTokenId, AstNodeId Initializer = InvalidAstNodeId)
-          : AstDeclaration(AstKind::EnumFieldDeclaration),
-            Name(Name),
-            Initializer(Initializer)
-      {
-      }
-
-      AstTokenId Name;
-      AstNodeId Initializer;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::EnumFieldDeclaration;
-      }
-  };
-
-  class BindingDeclaration final : public AstDeclaration
-  {
-    public:
-      explicit BindingDeclaration(AccessKind Access = AccessKind::Unspecified, BindingKind Binding = BindingKind::Let, AstNodeId Pattern = InvalidAstNodeId, AstNodeId TypeExpression = InvalidAstNodeId, AstNodeId Initializer = InvalidAstNodeId)
-          : AstDeclaration(AstKind::BindingDeclaration),
-            Access(Access),
-            Binding(Binding),
-            Pattern(Pattern),
-            TypeExpression(TypeExpression),
-            Initializer(Initializer)
-      {
-      }
-
-      AccessKind Access;
-      BindingKind Binding;
-      AstNodeId Pattern;
-      // Type annotations remain expressions; compile-time evaluation and the
-      // requirement to produce a type value belong to semantic analysis.
-      AstNodeId TypeExpression;
-      AstNodeId Initializer;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::BindingDeclaration;
-      }
-  };
-
-  class FunctionParameter final : public AstNode
-  {
-    public:
-      explicit FunctionParameter(AstNodeId Pattern = InvalidAstNodeId, AstNodeId TypeExpression = InvalidAstNodeId, AstNodeId DefaultValue = InvalidAstNodeId, bool IsVariadic = false)
-          : AstNode(AstKind::FunctionParameter),
-            Pattern(Pattern),
-            TypeExpression(TypeExpression),
-            DefaultValue(DefaultValue),
-            IsVariadic(IsVariadic)
-      {
-      }
-
-      AstNodeId Pattern;
-      AstNodeId TypeExpression;
-      AstNodeId DefaultValue;
-      bool IsVariadic;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::FunctionParameter;
-      }
-  };
-
-  class GenericParameter final : public AstNode
-  {
-    public:
-      explicit GenericParameter(AstTokenId Name = InvalidAstTokenId, AstNodeId TypeExpression = InvalidAstNodeId, AstNodeId DefaultValue = InvalidAstNodeId, bool IsVariadic = false)
-          : AstNode(AstKind::GenericParameter),
-            Name(Name),
-            TypeExpression(TypeExpression),
-            DefaultValue(DefaultValue),
-            IsVariadic(IsVariadic)
-      {
-      }
-
-      AstTokenId Name;
-      AstNodeId TypeExpression;
-      AstNodeId DefaultValue;
-      bool IsVariadic;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::GenericParameter;
-      }
-  };
-
-  class NamePattern final : public AstPattern
-  {
-    public:
-      explicit NamePattern(AstTokenId Name = InvalidAstTokenId)
-          : AstPattern(AstKind::NamePattern),
-            Name(Name)
-      {
-      }
-
-      AstTokenId Name;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::NamePattern;
-      }
-  };
-
-  class WildcardPattern final : public AstPattern
-  {
-    public:
-      WildcardPattern()
-          : AstPattern(AstKind::WildcardPattern)
-      {
-      }
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::WildcardPattern;
-      }
-  };
-
-  class TuplePattern final : public AstPattern
-  {
-    public:
-      explicit TuplePattern(std::vector<AstNodeId> Elements = {})
-          : AstPattern(AstKind::TuplePattern),
-            Elements(std::move(Elements))
-      {
-      }
-
-      std::vector<AstNodeId> Elements;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::TuplePattern;
-      }
-  };
-
-  class BlockStatement final : public AstStatement
-  {
-    public:
-      explicit BlockStatement(std::vector<AstNodeId> Statements = {})
-          : AstStatement(AstKind::BlockStatement),
-            Statements(std::move(Statements))
-      {
-      }
-
-      std::vector<AstNodeId> Statements;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::BlockStatement;
-      }
-  };
-
-  class ExpressionStatement final : public AstStatement
-  {
-    public:
-      explicit ExpressionStatement(AstNodeId Expression = InvalidAstNodeId)
-          : AstStatement(AstKind::ExpressionStatement),
+      ExprItem(SourceRange Range, Expr *Expression)
+          : SimpleItem(Kind, Range),
             Expression(Expression)
       {
       }
-
-      AstNodeId Expression;
-
-      static bool classof(const AstNode *Node) noexcept
+      Expr *expression() noexcept
       {
-        return Node->kind() == AstKind::ExpressionStatement;
+        return Expression;
       }
-  };
+      const Expr *expression() const noexcept
+      {
+        return Expression;
+      }
 
-  class AssignmentStatement final : public AstStatement
+    private:
+      Expr *Expression;
+  };
+  class AssignmentItem final : public SimpleItem
   {
     public:
-      explicit AssignmentStatement(tokenizer::SymbolKind Operator = tokenizer::SymbolKind::Assign, AstNodeId Target = InvalidAstNodeId, AstNodeId Value = InvalidAstNodeId)
-          : AstStatement(AstKind::AssignmentStatement),
-            Operator(Operator),
-            Target(Target),
-            Value(Value)
+      static constexpr ASTKind Kind = ASTKind::AssignmentItem;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      AssignmentItem(SourceRange Range, Expr *Left, TokenKind Op, SourceRange OperatorRange, SimpleItem *Right)
+          : SimpleItem(Kind, Range),
+            Left(Left),
+            Op(Op),
+            OperatorRange(OperatorRange),
+            Right(Right)
       {
       }
-
-      tokenizer::SymbolKind Operator;
-      AstNodeId Target;
-      AstNodeId Value;
-
-      static bool classof(const AstNode *Node) noexcept
+      Expr *left() noexcept
       {
-        return Node->kind() == AstKind::AssignmentStatement;
+        return Left;
       }
+      const Expr *left() const noexcept
+      {
+        return Left;
+      }
+      TokenKind op() const noexcept
+      {
+        return Op;
+      }
+      SourceRange operatorRange() const noexcept
+      {
+        return OperatorRange;
+      }
+      SimpleItem *right() noexcept
+      {
+        return Right;
+      }
+      const SimpleItem *right() const noexcept
+      {
+        return Right;
+      }
+
+    private:
+      Expr *Left;
+      TokenKind Op;
+      SourceRange OperatorRange;
+      SimpleItem *Right;
   };
-
-  class IfStatement final : public AstStatement
+  class SimpleStmt final : public Stmt
   {
     public:
-      explicit IfStatement(AstNodeId Condition = InvalidAstNodeId, AstNodeId Then = InvalidAstNodeId, AstNodeId Else = InvalidAstNodeId)
-          : AstStatement(AstKind::IfStatement),
+      static constexpr ASTKind Kind = ASTKind::SimpleStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      SimpleStmt(SourceRange Range, ASTArray<SimpleItem *> Items)
+          : Stmt(Kind, Range),
+            Items(Items)
+      {
+      }
+      ASTArray<SimpleItem *> items() noexcept
+      {
+        return Items;
+      }
+      ConstNodeArray<SimpleItem> items() const noexcept
+      {
+        return ConstNodeArray<SimpleItem>(Items);
+      }
+
+    private:
+      ASTArray<SimpleItem *> Items;
+  };
+  class BlockStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::BlockStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      BlockStmt(SourceRange Range, ASTArray<Stmt *> Statements, bool Synthetic)
+          : Stmt(Kind, Range),
+            Statements(Statements),
+            Synthetic(Synthetic)
+      {
+      }
+      ASTArray<Stmt *> statements() noexcept
+      {
+        return Statements;
+      }
+      ConstNodeArray<Stmt> statements() const noexcept
+      {
+        return ConstNodeArray<Stmt>(Statements);
+      }
+      bool synthetic() const noexcept
+      {
+        return Synthetic;
+      }
+
+    private:
+      ASTArray<Stmt *> Statements;
+      bool Synthetic;
+  };
+  class DeclStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::DeclStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      DeclStmt(SourceRange Range, Decl *Declaration)
+          : Stmt(Kind, Range),
+            Declaration(Declaration)
+      {
+      }
+      Decl *declaration() noexcept
+      {
+        return Declaration;
+      }
+      const Decl *declaration() const noexcept
+      {
+        return Declaration;
+      }
+
+    private:
+      Decl *Declaration;
+  };
+  class IfStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::IfStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      IfStmt(SourceRange Range, Expr *Condition, Stmt *ThenBranch, Stmt *ElseBranch)
+          : Stmt(Kind, Range),
             Condition(Condition),
-            Then(Then),
-            Else(Else)
+            ThenBranch(ThenBranch),
+            ElseBranch(ElseBranch)
       {
       }
-
-      AstNodeId Condition;
-      AstNodeId Then;
-      AstNodeId Else;
-
-      static bool classof(const AstNode *Node) noexcept
+      Expr *condition() noexcept
       {
-        return Node->kind() == AstKind::IfStatement;
+        return Condition;
       }
+      const Expr *condition() const noexcept
+      {
+        return Condition;
+      }
+      Stmt *thenBranch() noexcept
+      {
+        return ThenBranch;
+      }
+      const Stmt *thenBranch() const noexcept
+      {
+        return ThenBranch;
+      }
+      Stmt *elseBranch() noexcept
+      {
+        return ElseBranch;
+      }
+      const Stmt *elseBranch() const noexcept
+      {
+        return ElseBranch;
+      }
+
+    private:
+      Expr *Condition;
+      Stmt *ThenBranch;
+      Stmt *ElseBranch;
   };
-
-  class WhileStatement final : public AstStatement
+  class WhileStmt final : public Stmt
   {
     public:
-      explicit WhileStatement(AstNodeId Condition = InvalidAstNodeId, AstNodeId Body = InvalidAstNodeId)
-          : AstStatement(AstKind::WhileStatement),
+      static constexpr ASTKind Kind = ASTKind::WhileStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      WhileStmt(SourceRange Range, Expr *Condition, Stmt *Body)
+          : Stmt(Kind, Range),
             Condition(Condition),
             Body(Body)
       {
       }
-
-      AstNodeId Condition;
-      AstNodeId Body;
-
-      static bool classof(const AstNode *Node) noexcept
+      Expr *condition() noexcept
       {
-        return Node->kind() == AstKind::WhileStatement;
+        return Condition;
       }
-  };
+      const Expr *condition() const noexcept
+      {
+        return Condition;
+      }
+      Stmt *body() noexcept
+      {
+        return Body;
+      }
+      const Stmt *body() const noexcept
+      {
+        return Body;
+      }
 
-  class ForStatement final : public AstStatement
+    private:
+      Expr *Condition;
+      Stmt *Body;
+  };
+  class ClassicForStmt final : public Stmt
   {
     public:
-      explicit ForStatement(std::vector<AstNodeId> Initializers = {}, AstNodeId Condition = InvalidAstNodeId, std::vector<AstNodeId> Updates = {}, AstNodeId Body = InvalidAstNodeId)
-          : AstStatement(AstKind::ForStatement),
-            Initializers(std::move(Initializers)),
+      static constexpr ASTKind Kind = ASTKind::ClassicForStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ClassicForStmt(SourceRange Range, Stmt *Initializer, Expr *Condition, ASTArray<SimpleItem *> Step, Stmt *Body)
+          : Stmt(Kind, Range),
+            Initializer(Initializer),
             Condition(Condition),
-            Updates(std::move(Updates)),
+            Step(Step),
             Body(Body)
       {
       }
-
-      std::vector<AstNodeId> Initializers;
-      AstNodeId Condition;
-      std::vector<AstNodeId> Updates;
-      AstNodeId Body;
-
-      static bool classof(const AstNode *Node) noexcept
+      Stmt *initializer() noexcept
       {
-        return Node->kind() == AstKind::ForStatement;
+        return Initializer;
       }
-  };
+      const Stmt *initializer() const noexcept
+      {
+        return Initializer;
+      }
+      Expr *condition() noexcept
+      {
+        return Condition;
+      }
+      const Expr *condition() const noexcept
+      {
+        return Condition;
+      }
+      ASTArray<SimpleItem *> step() noexcept
+      {
+        return Step;
+      }
+      ConstNodeArray<SimpleItem> step() const noexcept
+      {
+        return ConstNodeArray<SimpleItem>(Step);
+      }
+      Stmt *body() noexcept
+      {
+        return Body;
+      }
+      const Stmt *body() const noexcept
+      {
+        return Body;
+      }
 
-  class ForInStatement final : public AstStatement
+    private:
+      Stmt *Initializer;
+      Expr *Condition;
+      ASTArray<SimpleItem *> Step;
+      Stmt *Body;
+  };
+  class ForInStmt final : public Stmt
   {
     public:
-      explicit ForInStatement(BindingKind Binding = BindingKind::Let, AstNodeId Pattern = InvalidAstNodeId, AstNodeId TypeExpression = InvalidAstNodeId, AstNodeId Iterable = InvalidAstNodeId, AstNodeId Body = InvalidAstNodeId)
-          : AstStatement(AstKind::ForInStatement),
+      static constexpr ASTKind Kind = ASTKind::ForInStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ForInStmt(SourceRange Range, BindingPattern *Binding, Expr *Iterable, Stmt *Body)
+          : Stmt(Kind, Range),
             Binding(Binding),
-            Pattern(Pattern),
-            TypeExpression(TypeExpression),
             Iterable(Iterable),
             Body(Body)
       {
       }
-
-      BindingKind Binding;
-      AstNodeId Pattern;
-      AstNodeId TypeExpression;
-      AstNodeId Iterable;
-      AstNodeId Body;
-
-      static bool classof(const AstNode *Node) noexcept
+      BindingPattern *binding() noexcept
       {
-        return Node->kind() == AstKind::ForInStatement;
+        return Binding;
       }
-  };
-
-  class BreakStatement final : public AstStatement
-  {
-    public:
-      BreakStatement()
-          : AstStatement(AstKind::BreakStatement)
+      const BindingPattern *binding() const noexcept
       {
+        return Binding;
       }
-
-      static bool classof(const AstNode *Node) noexcept
+      Expr *iterable() noexcept
       {
-        return Node->kind() == AstKind::BreakStatement;
+        return Iterable;
       }
-  };
-
-  class ContinueStatement final : public AstStatement
-  {
-    public:
-      ContinueStatement()
-          : AstStatement(AstKind::ContinueStatement)
+      const Expr *iterable() const noexcept
       {
+        return Iterable;
       }
-
-      static bool classof(const AstNode *Node) noexcept
+      Stmt *body() noexcept
       {
-        return Node->kind() == AstKind::ContinueStatement;
+        return Body;
       }
-  };
-
-  class ReturnStatement final : public AstStatement
-  {
-    public:
-      explicit ReturnStatement(AstNodeId Value = InvalidAstNodeId)
-          : AstStatement(AstKind::ReturnStatement),
-            Value(Value)
+      const Stmt *body() const noexcept
       {
-      }
-
-      AstNodeId Value;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::ReturnStatement;
-      }
-  };
-
-  class DeferStatement final : public AstStatement
-  {
-    public:
-      explicit DeferStatement(AstNodeId Action = InvalidAstNodeId)
-          : AstStatement(AstKind::DeferStatement),
-            Action(Action)
-      {
-      }
-
-      AstNodeId Action;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::DeferStatement;
-      }
-  };
-
-  class ComptimeStatement final : public AstStatement
-  {
-    public:
-      explicit ComptimeStatement(AstNodeId Statement = InvalidAstNodeId)
-          : AstStatement(AstKind::ComptimeStatement),
-            Statement(Statement)
-      {
-      }
-
-      AstNodeId Statement;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::ComptimeStatement;
-      }
-  };
-
-  class ConditionalExpression final : public AstExpression
-  {
-    public:
-      explicit ConditionalExpression(AstNodeId Condition = InvalidAstNodeId, AstNodeId Then = InvalidAstNodeId, AstNodeId Else = InvalidAstNodeId)
-          : AstExpression(AstKind::ConditionalExpression),
-            Condition(Condition),
-            Then(Then),
-            Else(Else)
-      {
-      }
-
-      AstNodeId Condition;
-      AstNodeId Then;
-      AstNodeId Else;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::ConditionalExpression;
-      }
-  };
-
-  class BinaryExpression final : public AstExpression
-  {
-    public:
-      explicit BinaryExpression(tokenizer::SymbolKind Operator = tokenizer::SymbolKind::Plus, AstNodeId Left = InvalidAstNodeId, AstNodeId Right = InvalidAstNodeId)
-          : AstExpression(AstKind::BinaryExpression),
-            Operator(Operator),
-            Left(Left),
-            Right(Right)
-      {
-      }
-
-      tokenizer::SymbolKind Operator;
-      AstNodeId Left;
-      AstNodeId Right;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::BinaryExpression;
-      }
-  };
-
-  class UnaryExpression final : public AstExpression
-  {
-    public:
-      explicit UnaryExpression(tokenizer::SymbolKind Operator = tokenizer::SymbolKind::Plus, AstNodeId Operand = InvalidAstNodeId)
-          : AstExpression(AstKind::UnaryExpression),
-            Operator(Operator),
-            Operand(Operand)
-      {
-      }
-
-      tokenizer::SymbolKind Operator;
-      AstNodeId Operand;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::UnaryExpression;
-      }
-  };
-
-  class ComptimeExpression final : public AstExpression
-  {
-    public:
-      explicit ComptimeExpression(AstNodeId Operand = InvalidAstNodeId)
-          : AstExpression(AstKind::ComptimeExpression),
-            Operand(Operand)
-      {
-      }
-
-      AstNodeId Operand;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::ComptimeExpression;
-      }
-  };
-
-  class ReferenceTypeExpression final : public AstExpression
-  {
-    public:
-      explicit ReferenceTypeExpression(bool IsConst = false, AstNodeId Operand = InvalidAstNodeId)
-          : AstExpression(AstKind::ReferenceTypeExpression),
-            IsConst(IsConst),
-            Operand(Operand)
-      {
-      }
-
-      bool IsConst;
-      AstNodeId Operand;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::ReferenceTypeExpression;
-      }
-  };
-
-  class PointerTypeExpression final : public AstExpression
-  {
-    public:
-      explicit PointerTypeExpression(bool IsConst = false, AstNodeId Operand = InvalidAstNodeId)
-          : AstExpression(AstKind::PointerTypeExpression),
-            IsConst(IsConst),
-            Operand(Operand)
-      {
-      }
-
-      bool IsConst;
-      AstNodeId Operand;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::PointerTypeExpression;
-      }
-  };
-
-  class FunctionTypeExpression final : public AstExpression
-  {
-    public:
-      explicit FunctionTypeExpression(AstTokenId Linkage = InvalidAstTokenId, std::vector<FunctionTypeParameter> Parameters = {}, AstNodeId ReturnType = InvalidAstNodeId)
-          : AstExpression(AstKind::FunctionTypeExpression),
-            Linkage(Linkage),
-            Parameters(std::move(Parameters)),
-            ReturnType(ReturnType)
-      {
-      }
-
-      AstTokenId Linkage;
-      std::vector<FunctionTypeParameter> Parameters;
-      AstNodeId ReturnType;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::FunctionTypeExpression;
-      }
-  };
-
-  class CallExpression final : public AstExpression
-  {
-    public:
-      explicit CallExpression(AstNodeId Callee = InvalidAstNodeId, std::vector<AstArgument> Arguments = {})
-          : AstExpression(AstKind::CallExpression),
-            Callee(Callee),
-            Arguments(std::move(Arguments))
-      {
-      }
-
-      // The semantic stage decides whether the callee invokes a function or
-      // constructs an object. Both have the same syntax and argument layout.
-      AstNodeId Callee;
-      std::vector<AstArgument> Arguments;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::CallExpression;
-      }
-  };
-
-  class GenericInstantiationExpression final : public AstExpression
-  {
-    public:
-      explicit GenericInstantiationExpression(AstNodeId Target = InvalidAstNodeId, std::vector<AstArgument> Arguments = {})
-          : AstExpression(AstKind::GenericInstantiationExpression),
-            Target(Target),
-            Arguments(std::move(Arguments))
-      {
-      }
-
-      AstNodeId Target;
-      std::vector<AstArgument> Arguments;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::GenericInstantiationExpression;
-      }
-  };
-
-  class IndexExpression final : public AstExpression
-  {
-    public:
-      explicit IndexExpression(AstNodeId Target = InvalidAstNodeId, AstNodeId Index = InvalidAstNodeId)
-          : AstExpression(AstKind::IndexExpression),
-            Target(Target),
-            Index(Index)
-      {
-      }
-
-      AstNodeId Target;
-      AstNodeId Index;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::IndexExpression;
-      }
-  };
-
-  class MemberExpression final : public AstExpression
-  {
-    public:
-      explicit MemberExpression(AstNodeId Target = InvalidAstNodeId, AstTokenId Member = InvalidAstTokenId, bool IsPointer = false)
-          : AstExpression(AstKind::MemberExpression),
-            Target(Target),
-            Member(Member),
-            IsPointer(IsPointer)
-      {
-      }
-
-      AstNodeId Target;
-      AstTokenId Member;
-      bool IsPointer;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::MemberExpression;
-      }
-  };
-
-  class LiteralExpression final : public AstExpression
-  {
-    public:
-      explicit LiteralExpression(AstTokenId Token = InvalidAstTokenId)
-          : AstExpression(AstKind::LiteralExpression),
-            Token(Token)
-      {
-      }
-
-      AstTokenId Token;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::LiteralExpression;
-      }
-  };
-
-  class NameExpression final : public AstExpression
-  {
-    public:
-      explicit NameExpression(AstTokenId Name = InvalidAstTokenId)
-          : AstExpression(AstKind::NameExpression),
-            Name(Name)
-      {
-      }
-
-      AstTokenId Name;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::NameExpression;
-      }
-  };
-
-  class BuiltinTypeExpression final : public AstExpression
-  {
-    public:
-      explicit BuiltinTypeExpression(tokenizer::KeywordKind Type = tokenizer::KeywordKind::Type)
-          : AstExpression(AstKind::BuiltinTypeExpression),
-            Type(Type)
-      {
-      }
-
-      tokenizer::KeywordKind Type;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::BuiltinTypeExpression;
-      }
-  };
-
-  class ReceiverExpression final : public AstExpression
-  {
-    public:
-      explicit ReceiverExpression(tokenizer::KeywordKind Receiver = tokenizer::KeywordKind::Self)
-          : AstExpression(AstKind::ReceiverExpression),
-            Receiver(Receiver)
-      {
-      }
-
-      tokenizer::KeywordKind Receiver;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::ReceiverExpression;
-      }
-  };
-
-  class ParenthesizedExpression final : public AstExpression
-  {
-    public:
-      explicit ParenthesizedExpression(AstNodeId Expression = InvalidAstNodeId)
-          : AstExpression(AstKind::ParenthesizedExpression),
-            Expression(Expression)
-      {
-      }
-
-      AstNodeId Expression;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::ParenthesizedExpression;
-      }
-  };
-
-  class TupleExpression final : public AstExpression
-  {
-    public:
-      explicit TupleExpression(std::vector<AstNodeId> Elements = {})
-          : AstExpression(AstKind::TupleExpression),
-            Elements(std::move(Elements))
-      {
-      }
-
-      std::vector<AstNodeId> Elements;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::TupleExpression;
-      }
-  };
-
-  class ArrayExpression final : public AstExpression
-  {
-    public:
-      explicit ArrayExpression(std::vector<AstNodeId> Elements = {})
-          : AstExpression(AstKind::ArrayExpression),
-            Elements(std::move(Elements))
-      {
-      }
-
-      std::vector<AstNodeId> Elements;
-
-      static bool classof(const AstNode *Node) noexcept
-      {
-        return Node->kind() == AstKind::ArrayExpression;
-      }
-  };
-
-  // Exhaustive dispatch over concrete subclasses; adding a node updates all
-  // visitors at compile time without requiring C++ RTTI or virtual functions.
-  template <typename Visitor>
-  decltype(auto) visitAstNode(const AstNode &Node, Visitor &&Visit)
-  {
-    switch (Node.kind())
-    {
-#define INK_AST_KIND(Name, Base) \
-  case AstKind::Name:            \
-    return std::forward<Visitor>(Visit)(Node.get<Name>());
-#include "ink/parser/ast_kind.def"
-#undef INK_AST_KIND
-    }
-    std::abort();
-  }
-
-  struct AstChildEdge
-  {
-      const char *Role;
-      AstNodeId Id;
-      std::size_t Index = InvalidAstNodeId;
-  };
-
-  // This is a derived traversal view. Concrete nodes own their named fields;
-  // neither punctuation tokens nor grammar-only list wrappers are tree nodes.
-  std::vector<AstChildEdge> astChildren(const AstNode &Node);
-
-  struct AstNodeDeleter
-  {
-      void operator()(AstNode *Node) const noexcept;
-  };
-
-  class AstTree
-  {
-    public:
-      AstTree() = default;
-      AstTree(const AstTree &) = delete;
-      AstTree &operator=(const AstTree &) = delete;
-      AstTree(AstTree &&Other) noexcept;
-      AstTree &operator=(AstTree &&Other) noexcept;
-
-      std::size_t size() const noexcept
-      {
-        return Nodes.size();
-      }
-
-      bool empty() const noexcept
-      {
-        return Nodes.empty();
-      }
-
-      // An empty result (for example after lexical failure) has an invalid root.
-      AstNodeId root() const noexcept
-      {
-        return Root;
-      }
-
-      const AstNode &node(AstNodeId Id) const noexcept
-      {
-        assert(Id < Nodes.size());
-        return *Nodes[Id];
-      }
-
-      std::vector<AstChildEdge> children(AstNodeId Id) const
-      {
-        return astChildren(node(Id));
+        return Body;
       }
 
     private:
-      using NodeOwner = std::unique_ptr<AstNode, AstNodeDeleter>;
-
-      template <typename NodeType>
-      AstNodeId addNode(NodeType Value, core::SourceRange Span, AstNodeFlags Flags = AstNodeFlags::None)
-      {
-        static_assert(std::is_base_of_v<AstNode, NodeType> && std::is_final_v<NodeType>, "Only concrete AST nodes can be stored");
-        return addNode(NodeOwner(new NodeType(std::move(Value))), Span, Flags);
-      }
-
-      AstNodeId addNode(NodeOwner Node, core::SourceRange Span, AstNodeFlags Flags);
-
-      void setRoot(AstNodeId Id) noexcept
-      {
-        assert(Id < Nodes.size());
-        Root = Id;
-      }
-
-      // Individual allocations preserve node addresses when the index grows.
-      // Typed deletion releases vector/string fields without following child IDs.
-      std::vector<NodeOwner> Nodes;
-      AstNodeId Root = InvalidAstNodeId;
-
-      friend class ParserImpl;
+      BindingPattern *Binding;
+      Expr *Iterable;
+      Stmt *Body;
   };
-} // namespace ink::parser
+  class SwitchStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::SwitchStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      SwitchStmt(SourceRange Range, Expr *Value, ASTArray<SwitchClause> Clauses)
+          : Stmt(Kind, Range),
+            Value(Value),
+            Clauses(Clauses)
+      {
+      }
+      Expr *value() noexcept
+      {
+        return Value;
+      }
+      const Expr *value() const noexcept
+      {
+        return Value;
+      }
+      ASTArray<SwitchClause> clauses() const noexcept
+      {
+        return Clauses;
+      }
 
-#endif
+    private:
+      Expr *Value;
+      ASTArray<SwitchClause> Clauses;
+  };
+  class ReturnStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ReturnStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ReturnStmt(SourceRange Range, Expr *Value)
+          : Stmt(Kind, Range),
+            Value(Value)
+      {
+      }
+      Expr *value() noexcept
+      {
+        return Value;
+      }
+      const Expr *value() const noexcept
+      {
+        return Value;
+      }
+
+    private:
+      Expr *Value;
+  };
+  class BreakStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::BreakStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      BreakStmt(SourceRange Range)
+          : Stmt(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class ContinueStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ContinueStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ContinueStmt(SourceRange Range)
+          : Stmt(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class YieldStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::YieldStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      YieldStmt(SourceRange Range, bool Return, Expr *Value)
+          : Stmt(Kind, Range),
+            Return(Return),
+            Value(Value)
+      {
+      }
+      bool isReturn() const noexcept
+      {
+        return Return;
+      }
+      Expr *value() noexcept
+      {
+        return Value;
+      }
+      const Expr *value() const noexcept
+      {
+        return Value;
+      }
+
+    private:
+      bool Return;
+      Expr *Value;
+  };
+  class DeferStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::DeferStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      DeferStmt(SourceRange Range, Stmt *Body)
+          : Stmt(Kind, Range),
+            Body(Body)
+      {
+      }
+      Stmt *body() noexcept
+      {
+        return Body;
+      }
+      const Stmt *body() const noexcept
+      {
+        return Body;
+      }
+
+    private:
+      Stmt *Body;
+  };
+  class ComptimeStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ComptimeStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ComptimeStmt(SourceRange Range, SourceRange KeywordRange, Stmt *Body)
+          : Stmt(Kind, Range),
+            KeywordRange(KeywordRange),
+            Body(Body)
+      {
+      }
+      SourceRange keywordRange() const noexcept
+      {
+        return KeywordRange;
+      }
+      Stmt *body() noexcept
+      {
+        return Body;
+      }
+      const Stmt *body() const noexcept
+      {
+        return Body;
+      }
+
+    private:
+      SourceRange KeywordRange;
+      Stmt *Body;
+  };
+  class DirectImportStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::DirectImportStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      DirectImportStmt(SourceRange Range, ASTArray<ImportEntry> Imports)
+          : Stmt(Kind, Range),
+            Imports(Imports)
+      {
+      }
+      ASTArray<ImportEntry> imports() const noexcept
+      {
+        return Imports;
+      }
+
+    private:
+      ASTArray<ImportEntry> Imports;
+  };
+  class FromImportStmt final : public Stmt
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::FromImportStmt;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      FromImportStmt(SourceRange Range, std::size_t RelativeLevel, ASTArray<TokenId> RelativeTokens, ASTArray<NameToken> Path, ASTArray<ImportEntry> Imports)
+          : Stmt(Kind, Range),
+            RelativeLevel(RelativeLevel),
+            RelativeTokens(RelativeTokens),
+            Path(Path),
+            Imports(Imports)
+      {
+      }
+      std::size_t relativeLevel() const noexcept
+      {
+        return RelativeLevel;
+      }
+      ASTArray<TokenId> relativeTokens() const noexcept
+      {
+        return RelativeTokens;
+      }
+      ASTArray<NameToken> path() const noexcept
+      {
+        return Path;
+      }
+      ASTArray<ImportEntry> imports() const noexcept
+      {
+        return Imports;
+      }
+
+    private:
+      std::size_t RelativeLevel;
+      ASTArray<TokenId> RelativeTokens;
+      ASTArray<NameToken> Path;
+      ASTArray<ImportEntry> Imports;
+  };
+  class VarDecl final : public Decl
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::VarDecl;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      VarDecl(SourceRange Range, ASTArray<Attribute> Attributes, bool Constant, BindingPattern *Binding, TypeSyntax *Type, Expr *Initializer, VarDeclForm Form)
+          : Decl(Kind, Range),
+            Attributes(Attributes),
+            Constant(Constant),
+            Binding(Binding),
+            Type(Type),
+            Initializer(Initializer),
+            Form(Form)
+      {
+      }
+      ASTArray<Attribute> attributes() const noexcept
+      {
+        return Attributes;
+      }
+      bool constant() const noexcept
+      {
+        return Constant;
+      }
+      BindingPattern *binding() noexcept
+      {
+        return Binding;
+      }
+      const BindingPattern *binding() const noexcept
+      {
+        return Binding;
+      }
+      TypeSyntax *type() noexcept
+      {
+        return Type;
+      }
+      const TypeSyntax *type() const noexcept
+      {
+        return Type;
+      }
+      Expr *initializer() noexcept
+      {
+        return Initializer;
+      }
+      const Expr *initializer() const noexcept
+      {
+        return Initializer;
+      }
+      VarDeclForm form() const noexcept
+      {
+        return Form;
+      }
+
+    private:
+      ASTArray<Attribute> Attributes;
+      bool Constant;
+      BindingPattern *Binding;
+      TypeSyntax *Type;
+      Expr *Initializer;
+      VarDeclForm Form;
+  };
+  class FieldDecl final : public Decl
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::FieldDecl;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      FieldDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, FieldTailKind Tail, TypeSyntax *Type, ASTArray<Parameter> Payload, Expr *Initializer)
+          : Decl(Kind, Range),
+            Attributes(Attributes),
+            Name(Name),
+            Tail(Tail),
+            Type(Type),
+            Payload(Payload),
+            Initializer(Initializer)
+      {
+      }
+      ASTArray<Attribute> attributes() const noexcept
+      {
+        return Attributes;
+      }
+      NameToken name() const noexcept
+      {
+        return Name;
+      }
+      FieldTailKind tail() const noexcept
+      {
+        return Tail;
+      }
+      TypeSyntax *type() noexcept
+      {
+        return Type;
+      }
+      const TypeSyntax *type() const noexcept
+      {
+        return Type;
+      }
+      ASTArray<Parameter> payload() const noexcept
+      {
+        return Payload;
+      }
+      Expr *initializer() noexcept
+      {
+        return Initializer;
+      }
+      const Expr *initializer() const noexcept
+      {
+        return Initializer;
+      }
+
+    private:
+      ASTArray<Attribute> Attributes;
+      NameToken Name;
+      FieldTailKind Tail;
+      TypeSyntax *Type;
+      ASTArray<Parameter> Payload;
+      Expr *Initializer;
+  };
+  class FunctionDecl final : public Decl
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::FunctionDecl;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body)
+          : Decl(Kind, Range),
+            Attributes(Attributes),
+            Name(Name),
+            GenericParameters(GenericParameters),
+            Parameters(Parameters),
+            ReturnType(ReturnType),
+            BodyKind(BodyKind),
+            Body(Body)
+      {
+      }
+      ASTArray<Attribute> attributes() const noexcept
+      {
+        return Attributes;
+      }
+      NameToken name() const noexcept
+      {
+        return Name;
+      }
+      ASTArray<Parameter> genericParameters() const noexcept
+      {
+        return GenericParameters;
+      }
+      ASTArray<Parameter> parameters() const noexcept
+      {
+        return Parameters;
+      }
+      TypeSyntax *returnType() noexcept
+      {
+        return ReturnType;
+      }
+      const TypeSyntax *returnType() const noexcept
+      {
+        return ReturnType;
+      }
+      FunctionBodyKind bodyKind() const noexcept
+      {
+        return BodyKind;
+      }
+      BlockStmt *body() noexcept
+      {
+        return Body;
+      }
+      const BlockStmt *body() const noexcept
+      {
+        return Body;
+      }
+
+    private:
+      ASTArray<Attribute> Attributes;
+      NameToken Name;
+      ASTArray<Parameter> GenericParameters;
+      ASTArray<Parameter> Parameters;
+      TypeSyntax *ReturnType;
+      FunctionBodyKind BodyKind;
+      BlockStmt *Body;
+  };
+  class ClassDecl final : public Decl
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ClassDecl;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ClassDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<BaseSpec> Bases, AggregateForm Form, BlockStmt *Body, SourceRange SemicolonRange)
+          : Decl(Kind, Range),
+            Attributes(Attributes),
+            Name(Name),
+            GenericParameters(GenericParameters),
+            Bases(Bases),
+            Form(Form),
+            Body(Body),
+            SemicolonRange(SemicolonRange)
+      {
+      }
+      ASTArray<Attribute> attributes() const noexcept
+      {
+        return Attributes;
+      }
+      NameToken name() const noexcept
+      {
+        return Name;
+      }
+      ASTArray<Parameter> genericParameters() const noexcept
+      {
+        return GenericParameters;
+      }
+      ASTArray<BaseSpec> bases() const noexcept
+      {
+        return Bases;
+      }
+      AggregateForm form() const noexcept
+      {
+        return Form;
+      }
+      BlockStmt *body() noexcept
+      {
+        return Body;
+      }
+      const BlockStmt *body() const noexcept
+      {
+        return Body;
+      }
+      SourceRange semicolonRange() const noexcept
+      {
+        return SemicolonRange;
+      }
+
+    private:
+      ASTArray<Attribute> Attributes;
+      NameToken Name;
+      ASTArray<Parameter> GenericParameters;
+      ASTArray<BaseSpec> Bases;
+      AggregateForm Form;
+      BlockStmt *Body;
+      SourceRange SemicolonRange;
+  };
+  class EnumDecl final : public Decl
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::EnumDecl;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      EnumDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<BaseSpec> Bases, AggregateForm Form, BlockStmt *Body, SourceRange SemicolonRange)
+          : Decl(Kind, Range),
+            Attributes(Attributes),
+            Name(Name),
+            GenericParameters(GenericParameters),
+            Bases(Bases),
+            Form(Form),
+            Body(Body),
+            SemicolonRange(SemicolonRange)
+      {
+      }
+      ASTArray<Attribute> attributes() const noexcept
+      {
+        return Attributes;
+      }
+      NameToken name() const noexcept
+      {
+        return Name;
+      }
+      ASTArray<Parameter> genericParameters() const noexcept
+      {
+        return GenericParameters;
+      }
+      ASTArray<BaseSpec> bases() const noexcept
+      {
+        return Bases;
+      }
+      AggregateForm form() const noexcept
+      {
+        return Form;
+      }
+      BlockStmt *body() noexcept
+      {
+        return Body;
+      }
+      const BlockStmt *body() const noexcept
+      {
+        return Body;
+      }
+      SourceRange semicolonRange() const noexcept
+      {
+        return SemicolonRange;
+      }
+
+    private:
+      ASTArray<Attribute> Attributes;
+      NameToken Name;
+      ASTArray<Parameter> GenericParameters;
+      ASTArray<BaseSpec> Bases;
+      AggregateForm Form;
+      BlockStmt *Body;
+      SourceRange SemicolonRange;
+  };
+  class InterfaceDecl final : public Decl
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::InterfaceDecl;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      InterfaceDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<BaseSpec> Bases, AggregateForm Form, BlockStmt *Body, SourceRange SemicolonRange)
+          : Decl(Kind, Range),
+            Attributes(Attributes),
+            Name(Name),
+            GenericParameters(GenericParameters),
+            Bases(Bases),
+            Form(Form),
+            Body(Body),
+            SemicolonRange(SemicolonRange)
+      {
+      }
+      ASTArray<Attribute> attributes() const noexcept
+      {
+        return Attributes;
+      }
+      NameToken name() const noexcept
+      {
+        return Name;
+      }
+      ASTArray<Parameter> genericParameters() const noexcept
+      {
+        return GenericParameters;
+      }
+      ASTArray<BaseSpec> bases() const noexcept
+      {
+        return Bases;
+      }
+      AggregateForm form() const noexcept
+      {
+        return Form;
+      }
+      BlockStmt *body() noexcept
+      {
+        return Body;
+      }
+      const BlockStmt *body() const noexcept
+      {
+        return Body;
+      }
+      SourceRange semicolonRange() const noexcept
+      {
+        return SemicolonRange;
+      }
+
+    private:
+      ASTArray<Attribute> Attributes;
+      NameToken Name;
+      ASTArray<Parameter> GenericParameters;
+      ASTArray<BaseSpec> Bases;
+      AggregateForm Form;
+      BlockStmt *Body;
+      SourceRange SemicolonRange;
+  };
+  class WildcardBindingPattern final : public BindingPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::WildcardBindingPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      WildcardBindingPattern(SourceRange Range)
+          : BindingPattern(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class NameBindingPattern final : public BindingPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::NameBindingPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      NameBindingPattern(SourceRange Range, NameToken Name)
+          : BindingPattern(Kind, Range),
+            Name(Name)
+      {
+      }
+      NameToken name() const noexcept
+      {
+        return Name;
+      }
+
+    private:
+      NameToken Name;
+  };
+  class TupleBindingPattern final : public BindingPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::TupleBindingPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      TupleBindingPattern(SourceRange Range, ASTArray<BindingPattern *> Elements)
+          : BindingPattern(Kind, Range),
+            Elements(Elements)
+      {
+      }
+      ASTArray<BindingPattern *> elements() noexcept
+      {
+        return Elements;
+      }
+      ConstNodeArray<BindingPattern> elements() const noexcept
+      {
+        return ConstNodeArray<BindingPattern>(Elements);
+      }
+
+    private:
+      ASTArray<BindingPattern *> Elements;
+  };
+  class ArrayBindingPattern final : public BindingPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ArrayBindingPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ArrayBindingPattern(SourceRange Range, ASTArray<BindingPattern *> Elements, std::optional<RestBinding> Rest)
+          : BindingPattern(Kind, Range),
+            Elements(Elements),
+            Rest(Rest)
+      {
+      }
+      ASTArray<BindingPattern *> elements() noexcept
+      {
+        return Elements;
+      }
+      ConstNodeArray<BindingPattern> elements() const noexcept
+      {
+        return ConstNodeArray<BindingPattern>(Elements);
+      }
+      std::optional<RestBinding> rest() const noexcept
+      {
+        return Rest;
+      }
+
+    private:
+      ASTArray<BindingPattern *> Elements;
+      std::optional<RestBinding> Rest;
+  };
+  class WildcardMatchPattern final : public MatchPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::WildcardMatchPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      WildcardMatchPattern(SourceRange Range)
+          : MatchPattern(Kind, Range)
+      {
+      }
+
+    private:
+  };
+  class NameMatchPattern final : public MatchPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::NameMatchPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      NameMatchPattern(SourceRange Range, ASTArray<PathSegment> Path, bool HasArguments, ASTArray<MatchPattern *> Arguments)
+          : MatchPattern(Kind, Range),
+            Path(Path),
+            HasArguments(HasArguments),
+            Arguments(Arguments)
+      {
+      }
+      ASTArray<PathSegment> path() const noexcept
+      {
+        return Path;
+      }
+      bool hasArguments() const noexcept
+      {
+        return HasArguments;
+      }
+      ASTArray<MatchPattern *> arguments() noexcept
+      {
+        return Arguments;
+      }
+      ConstNodeArray<MatchPattern> arguments() const noexcept
+      {
+        return ConstNodeArray<MatchPattern>(Arguments);
+      }
+
+    private:
+      ASTArray<PathSegment> Path;
+      bool HasArguments;
+      ASTArray<MatchPattern *> Arguments;
+  };
+  class TupleMatchPattern final : public MatchPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::TupleMatchPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      TupleMatchPattern(SourceRange Range, ASTArray<MatchPattern *> Elements)
+          : MatchPattern(Kind, Range),
+            Elements(Elements)
+      {
+      }
+      ASTArray<MatchPattern *> elements() noexcept
+      {
+        return Elements;
+      }
+      ConstNodeArray<MatchPattern> elements() const noexcept
+      {
+        return ConstNodeArray<MatchPattern>(Elements);
+      }
+
+    private:
+      ASTArray<MatchPattern *> Elements;
+  };
+  class ArrayMatchPattern final : public MatchPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::ArrayMatchPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      ArrayMatchPattern(SourceRange Range, ASTArray<MatchPattern *> Elements, std::optional<RestBinding> Rest)
+          : MatchPattern(Kind, Range),
+            Elements(Elements),
+            Rest(Rest)
+      {
+      }
+      ASTArray<MatchPattern *> elements() noexcept
+      {
+        return Elements;
+      }
+      ConstNodeArray<MatchPattern> elements() const noexcept
+      {
+        return ConstNodeArray<MatchPattern>(Elements);
+      }
+      std::optional<RestBinding> rest() const noexcept
+      {
+        return Rest;
+      }
+
+    private:
+      ASTArray<MatchPattern *> Elements;
+      std::optional<RestBinding> Rest;
+  };
+  class LiteralMatchPattern final : public MatchPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::LiteralMatchPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      LiteralMatchPattern(SourceRange Range, LiteralExpr *Value, bool Negative)
+          : MatchPattern(Kind, Range),
+            Value(Value),
+            Negative(Negative)
+      {
+      }
+      LiteralExpr *value() noexcept
+      {
+        return Value;
+      }
+      const LiteralExpr *value() const noexcept
+      {
+        return Value;
+      }
+      bool negative() const noexcept
+      {
+        return Negative;
+      }
+
+    private:
+      LiteralExpr *Value;
+      bool Negative;
+  };
+  class GroupedMatchPattern final : public MatchPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::GroupedMatchPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      GroupedMatchPattern(SourceRange Range, MatchPattern *Pattern)
+          : MatchPattern(Kind, Range),
+            Pattern(Pattern)
+      {
+      }
+      MatchPattern *pattern() noexcept
+      {
+        return Pattern;
+      }
+      const MatchPattern *pattern() const noexcept
+      {
+        return Pattern;
+      }
+
+    private:
+      MatchPattern *Pattern;
+  };
+  class OrMatchPattern final : public MatchPattern
+  {
+    public:
+      static constexpr ASTKind Kind = ASTKind::OrMatchPattern;
+      static bool classof(const ASTNodeBase *Node)
+      {
+        return Node && Node->getKind() == Kind;
+      }
+      OrMatchPattern(SourceRange Range, ASTArray<MatchPattern *> Alternatives)
+          : MatchPattern(Kind, Range),
+            Alternatives(Alternatives)
+      {
+      }
+      ASTArray<MatchPattern *> alternatives() noexcept
+      {
+        return Alternatives;
+      }
+      ConstNodeArray<MatchPattern> alternatives() const noexcept
+      {
+        return ConstNodeArray<MatchPattern>(Alternatives);
+      }
+
+    private:
+      ASTArray<MatchPattern *> Alternatives;
+  };
+
+  template <typename T>
+  bool isa(const ASTNodeBase *Node)
+  {
+    return T::classof(Node);
+  }
+  template <typename T>
+  T *dyn_cast(ASTNodeBase *Node)
+  {
+    return isa<T>(Node) ? static_cast<T *>(Node) : nullptr;
+  }
+  template <typename T>
+  const T *dyn_cast(const ASTNodeBase *Node)
+  {
+    return isa<T>(Node) ? static_cast<const T *>(Node) : nullptr;
+  }
+  template <typename T>
+  T *cast(ASTNodeBase *Node)
+  {
+    assert(isa<T>(Node));
+    return static_cast<T *>(Node);
+  }
+  template <typename T>
+  const T *cast(const ASTNodeBase *Node)
+  {
+    assert(isa<T>(Node));
+    return static_cast<const T *>(Node);
+  }
+} // namespace ink::parser
