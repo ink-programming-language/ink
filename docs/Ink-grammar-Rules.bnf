@@ -123,7 +123,7 @@ simple_stmt ::= simple_stmt_list ";" ;
 
 simple_stmt_list ::= simple_stmt_item { "," simple_stmt_item } ;
 
-simple_stmt_item ::= expr [ assignment_op expr ] ;
+simple_stmt_item ::= expr [ assignment_op simple_stmt_item ] ;
 
 decl_stmt ::= decl ;
 
