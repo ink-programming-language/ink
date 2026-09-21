@@ -142,6 +142,9 @@ namespace ink::parser
       template <typename T, typename... Args>
       T *make(SourceRange Range, Args &&...Values)
       {
+        // Missing children may sit beyond the last consumed token after trivia.
+        // Enclosing ranges must include those insertion points as well.
+        LastEnd = std::max(LastEnd, Range.getEnd().getByteOffset());
         return AST.make<T>(Range, std::forward<Args>(Values)...);
       }
       template <typename T>

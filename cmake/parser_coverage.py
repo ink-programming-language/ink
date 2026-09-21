@@ -81,13 +81,13 @@ def run_focused_tests(test_executable, test_filter, build_root, environment=None
 
 def is_instrumented_parser_object(path):
     spelling = path.as_posix()
-    return "/CMakeFiles/ink_parser.dir/" in spelling or "/CMakeFiles/ink_parser_tests.dir/parser/" in spelling
+    return "/CMakeFiles/ink_parser.dir/" in spelling or "/CMakeFiles/ink_tests.dir/parser/" in spelling
 
 
 def find_gcc_objects(build_root):
     objects = sorted(path for path in build_root.rglob("*.gcno") if is_instrumented_parser_object(path))
     if not objects:
-        raise RuntimeError("no parser .gcno files were found; build ink_parser_tests after enabling INK_ENABLE_PARSER_COVERAGE")
+        raise RuntimeError("no parser .gcno files were found; build ink_tests after enabling INK_ENABLE_PARSER_COVERAGE")
     return objects
 
 

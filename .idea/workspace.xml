@@ -289,6 +289,7 @@
       <config projectName="ink" targetName="obj.clangRewrite" />
       <config projectName="ink" targetName="llvm-reduce" />
       <config projectName="ink" targetName="install-clangTransformer-stripped" />
+      <config projectName="ink" targetName="ink_parse" />
       <config projectName="ink" targetName="DsymutilTableGen" />
       <config projectName="ink" targetName="clangToolingRefactoring" />
       <config projectName="ink" targetName="obj.clangBasic" />
@@ -628,6 +629,7 @@
       <config projectName="ink" targetName="utf8proc" />
       <config projectName="ink" targetName="LLVMRuntimeDyld" />
       <config projectName="ink" targetName="llvm-undname" />
+      <config projectName="ink" targetName="ink_parser_tests" />
       <config projectName="ink" targetName="install-LLVMX86AsmParser-stripped" />
       <config projectName="ink" targetName="clang-repl" />
       <config projectName="ink" targetName="install-LLVMX86Info-stripped" />
@@ -956,6 +958,7 @@
       <config projectName="ink" targetName="llvm-ml" />
       <config projectName="ink" targetName="LLVMTextAPIBinaryReader" />
       <config projectName="ink" targetName="llvm-xray" />
+      <config projectName="ink" targetName="ink_parser" />
       <config projectName="ink" targetName="llvm-mc" />
       <config projectName="ink" targetName="install-clangBasic-stripped" />
       <config projectName="ink" targetName="ClangSyntaxNodeList" />
@@ -1043,8 +1046,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="75c92d51-4c7b-4d11-8d7d-8de7163a5f4a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/ink.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ink.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/parser/parser_internal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/parser/parser_internal.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/parser/parser_test_support.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/parser/parser_test_support.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -1171,41 +1176,48 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;CidrDebugProfileConversion&quot;: &quot;true&quot;,
-    &quot;Google Test.ink_tests.executor&quot;: &quot;Debug&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;ctest.advertisement.all.test.configuration.is.created&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.jshint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.jshint&quot;: &quot;&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.AcpAgentsConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "CidrDebugProfileConversion": "true",
+    "Google Test.ink_parser_tests.executor": "Run",
+    "Google Test.ink_tests.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "cf.advertisement.text.overridden": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "ctest.advertisement.all.test.configuration.is.created": "true",
+    "git-widget-placeholder": "main",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.jshint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.jshint": "",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "ml.llm.AcpAgentsConfigurable",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\github\ink\docs" />
     </key>
   </component>
   <component name="RunManager" selected="Google Test.ink_tests">
+    <configuration name="ink_parser_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_parser_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ink" RUN_TARGET_NAME="ink_parser_tests" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="ink_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ink" RUN_TARGET_NAME="ink_tests" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -1282,6 +1294,16 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="ink_parse" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_parse" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ink" RUN_TARGET_NAME="ink_parse">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ink_parser" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_parser" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="ink_tokenize" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_tokenize" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ink" RUN_TARGET_NAME="ink_tokenize">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -1328,6 +1350,7 @@
       <item itemvalue="CMake Application.run_all_tests" />
       <item itemvalue="CMake Application.ink_cli" />
       <item itemvalue="CMake Application.ink_core" />
+      <item itemvalue="CMake Application.ink_parser" />
       <item itemvalue="CMake Application.ink_tokenizer" />
       <item itemvalue="CMake Application.gtest" />
       <item itemvalue="CMake Application.gtest_main" />
@@ -1342,9 +1365,11 @@
       <item itemvalue="CMake Application.cmake-exports" />
       <item itemvalue="CMake Application.spdlog" />
       <item itemvalue="CMake Application.utf8proc" />
+      <item itemvalue="CMake Application.ink_parse" />
       <item itemvalue="CMake Application.ink_tokenize" />
       <item itemvalue="CMake Application.ink_libffi" />
       <item itemvalue="CTest Application.All CTest" />
+      <item itemvalue="Google Test.ink_parser_tests" />
       <item itemvalue="Google Test.ink_tests" />
     </list>
   </component>
