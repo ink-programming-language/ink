@@ -150,17 +150,17 @@ public:
 
 BinaryExpr 的构造函数固定传入自身 Kind，不接受调用者任意指定种类。其左右操作数是必需子节点，必须指向 Expr；缺失时使用 MissingExpr。基类析构为 protected 且非虚，禁止通过 ASTNodeBase 指针 delete。节点生命周期只由 ASTContext 管理，析构时按分配的具体类型调用析构函数。
 
-所有具体节点在 ASTNodes.def 中登记，至少记录节点名称、直接基类和分类。
+所有具体节点在 ASTNodes.def 中登记，记录节点名称、直接基类、分类和显式 ID。
 
 ```cpp
-AST_NODE(NameExpr,       Expr, Expr)
-AST_NODE(BinaryExpr,     Expr, Expr)
-AST_NODE(MissingExpr,    Expr, Expr)
-AST_NODE(BlockStmt,      Stmt, Stmt)
-AST_NODE(AssignmentItem, SimpleItem, SimpleItem)
+AST_NODE(NameExpr, Expr, Expr, 12)
+AST_NODE(BinaryExpr, Expr, Expr, 16)
+AST_NODE(MissingExpr, Expr, Expr, 2)
+AST_NODE(BlockStmt, Stmt, Stmt, 34)
+AST_NODE(AssignmentItem, SimpleItem, SimpleItem, 32)
 ```
 
-由该表生成 ASTKind、种类名称、分类映射、Visitor 分派和节点覆盖检查。ASTKind 是进程内实现细节，不直接作为持久化文件格式或 ABI。抽象分类不依赖枚举值连续，categoryOf 使用生成的映射判断。
+由该表生成 ASTKind、种类名称、分类映射、Visitor 分派和节点覆盖检查。ASTKind 使用显式 ID，不依赖登记顺序；新增节点分配新 ID，不修改已有节点的 ID，也不复用已删除节点的 ID。ASTKind 仍是进程内实现细节，不直接作为持久化文件格式或 ABI。抽象分类不依赖枚举值连续，categoryOf 使用生成的映射判断。
 
 叶节点 classof 判断精确 Kind，Expr::classof 判断分类。提供 isa<T>、dyn_cast<T> 和 cast<T>：isa 与 dyn_cast 对空指针返回 false 或空；cast 要求非空且种类匹配，违反时属于内部错误。const 重载保留 const，不允许转为可写指针。LLVM 的类型转换接口可作为接口风格参考，项目不必因此引入 LLVM 依赖。[1]
 
@@ -178,7 +178,7 @@ public:
     void visit(ASTNodeBase* node) {
         assert(node != nullptr);
         switch (node->getKind()) {
-#define AST_NODE(Name, Base, Category) \
+#define AST_NODE(Name, Base, Category, Id) \
         case ASTKind::Name: \
             return impl().visit##Name(static_cast<Name*>(node));
 #include "ASTNodes.def"
@@ -187,7 +187,7 @@ public:
         unreachableInternalError();
     }
 
-#define AST_NODE(Name, Base, Category) \
+#define AST_NODE(Name, Base, Category, Id) \
     void visit##Name(Name* node) { impl().visit##Base(node); }
 #include "ASTNodes.def"
 #undef AST_NODE

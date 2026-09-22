@@ -93,7 +93,7 @@ namespace ink::parser::test
     Nodes.push_back(Context.make<GroupedMatchPattern>(Range, static_cast<MatchPattern *>(nullptr)));
     Nodes.push_back(Context.make<OrMatchPattern>(Range, ASTArray<MatchPattern *>{}));
     constexpr std::size_t RegisteredCount = 0
-#define AST_NODE(Name, Base, Category) +1
+#define AST_NODE(Name, Base, Category, Id) +1
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
         ;

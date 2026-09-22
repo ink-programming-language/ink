@@ -14,7 +14,7 @@ namespace ink::parser
   };
   enum class ASTKind : std::uint8_t
   {
-#define AST_NODE(Name, Base, Category) Name,
+#define AST_NODE(Name, Base, Category, Id) Name = Id,
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
   };
@@ -22,8 +22,8 @@ namespace ink::parser
   {
     switch (Kind)
     {
-#define AST_NODE(Name, Base, Category) \
-  case ASTKind::Name:                  \
+#define AST_NODE(Name, Base, Category, Id) \
+  case ASTKind::Name:                      \
     return ASTCategory::Category;
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
@@ -34,8 +34,8 @@ namespace ink::parser
   {
     switch (Kind)
     {
-#define AST_NODE(Name, Base, Category) \
-  case ASTKind::Name:                  \
+#define AST_NODE(Name, Base, Category, Id) \
+  case ASTKind::Name:                      \
     return #Name;
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE

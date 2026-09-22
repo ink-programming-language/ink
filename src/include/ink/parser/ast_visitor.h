@@ -12,18 +12,18 @@ namespace ink::parser
         assert(Node);
         switch (Node->getKind())
         {
-#define AST_NODE(Name, Base, Category) \
-  case ASTKind::Name:                  \
+#define AST_NODE(Name, Base, Category, Id) \
+  case ASTKind::Name:                      \
     return impl().visit##Name(static_cast<Name *>(Node));
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
         }
         std::abort();
       }
-#define AST_NODE(Name, Base, Category) \
-  void visit##Name(Name *Node)         \
-  {                                    \
-    impl().visit##Base(Node);          \
+#define AST_NODE(Name, Base, Category, Id) \
+  void visit##Name(Name *Node)             \
+  {                                        \
+    impl().visit##Base(Node);              \
   }
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
@@ -70,18 +70,18 @@ namespace ink::parser
         assert(Node);
         switch (Node->getKind())
         {
-#define AST_NODE(Name, Base, Category) \
-  case ASTKind::Name:                  \
+#define AST_NODE(Name, Base, Category, Id) \
+  case ASTKind::Name:                      \
     return impl().visit##Name(static_cast<const Name *>(Node));
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
         }
         std::abort();
       }
-#define AST_NODE(Name, Base, Category) \
-  void visit##Name(const Name *Node)   \
-  {                                    \
-    impl().visit##Base(Node);          \
+#define AST_NODE(Name, Base, Category, Id) \
+  void visit##Name(const Name *Node)       \
+  {                                        \
+    impl().visit##Base(Node);              \
   }
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
@@ -138,7 +138,7 @@ namespace ink::parser
 #define INK_STRICT_SimpleItem(Name)
 #define INK_STRICT_BindingPattern(Name)
 #define INK_STRICT_MatchPattern(Name)
-#define AST_NODE(Name, Base, Category) INK_STRICT_##Category(Name)
+#define AST_NODE(Name, Base, Category, Id) INK_STRICT_##Category(Name)
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
 #undef INK_STRICT_Expr

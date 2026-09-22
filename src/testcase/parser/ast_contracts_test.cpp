@@ -63,7 +63,7 @@ namespace ink::parser::test
 #define INK_TEST_SimpleItem(Name)
 #define INK_TEST_BindingPattern(Name)
 #define INK_TEST_MatchPattern(Name)
-#define AST_NODE(Name, Base, Category) INK_TEST_##Category(Name)
+#define AST_NODE(Name, Base, Category, Id) INK_TEST_##Category(Name)
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
 #undef INK_TEST_Expr
