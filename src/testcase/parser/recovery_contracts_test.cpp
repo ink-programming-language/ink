@@ -423,6 +423,7 @@ namespace ink::parser::test
       EXPECT_TRUE(Result.HasSyntaxErrors);
       ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
       EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ParserLimitExceeded);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
     }
   }
 

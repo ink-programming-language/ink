@@ -1,0 +1,33 @@
+ModuleAST [0, 151)
+  DeclStmt [0, 57)
+    FunctionDecl [0, 57) Attributes=[] Name=identity@[5, 13) GenericParameters=[{ Name=T@[14, 15) Type=TypeSyntax@[17, 21) DefaultValue=none Variadic=0 Range=[14, 21) }] Parameters=[{ Name=value@[23, 28) Type=TypeSyntax@[30, 31) DefaultValue=none Variadic=0 Range=[23, 31) }] BodyKind=Definition
+      TypeSyntax [17, 21)
+        NameExpr [17, 21) Name=type@[17, 21)
+      TypeSyntax [30, 31)
+        NameExpr [30, 31) Name=T@[30, 31)
+      TypeSyntax [34, 35)
+        NameExpr [34, 35) Name=T@[34, 35)
+      BlockStmt [36, 57) Synthetic=0
+        ReturnStmt [42, 55)
+          NameExpr [49, 54) Name=value@[49, 54)
+  DeclStmt [59, 83)
+    VarDecl [59, 82) Attributes=[] Constant=0 Form=Initialized
+      NameBindingPattern [63, 70) Name=numbers@[63, 70)
+      ArrayExpr [73, 82)
+        LiteralExpr [74, 75) Token=23 LiteralKind=INTEGER_LITERAL
+        LiteralExpr [77, 78) Token=25 LiteralKind=INTEGER_LITERAL
+        LiteralExpr [80, 81) Token=27 LiteralKind=INTEGER_LITERAL
+  DeclStmt [84, 125)
+    VarDecl [84, 124) Attributes=[] Constant=0 Form=Initialized
+      NameBindingPattern [88, 94) Name=result@[88, 94)
+      CallExpr [97, 124) Arguments=[{ Form=Positional Name=none Value=IndexExpr@[113, 123) Range=[113, 123) }] Optional=0
+        GenericApplyExpr [97, 112) Arguments=[{ Form=Positional Name=none Value=NameExpr@[108, 111) Range=[108, 111) }]
+          NameExpr [97, 105) Name=identity@[97, 105)
+          NameExpr [108, 111) Name=i32@[108, 111)
+        IndexExpr [113, 123) Optional=0
+          NameExpr [113, 120) Name=numbers@[113, 120)
+          LiteralExpr [121, 122) Token=41 LiteralKind=INTEGER_LITERAL
+  DeclStmt [126, 150)
+    VarDecl [126, 149) Attributes=[] Constant=0 Form=Initialized
+      NameBindingPattern [130, 134) Name=text@[130, 134)
+      LiteralExpr [137, 149) Token=48 LiteralKind=STRING_LITERAL

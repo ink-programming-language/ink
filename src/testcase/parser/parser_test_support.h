@@ -36,7 +36,7 @@ namespace ink::parser::test
         for (const auto &Diagnostic : Diagnostics.diagnostics())
         {
           EXPECT_EQ(Diagnostic.Source, Source.sourceId());
-          EXPECT_EQ(Diagnostic.classification(), core::DiagnosticClass::User);
+          EXPECT_EQ(Diagnostic.classification(), Diagnostic.Kind == core::DiagnosticKind::ParserLimitExceeded ? core::DiagnosticClass::InternalCompilerError : core::DiagnosticClass::User);
           CheckRange(Diagnostic.Span);
           EXPECT_FALSE(core::DiagnosticFormatter{}.format(Diagnostic).Message.empty());
         }

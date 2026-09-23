@@ -30,8 +30,8 @@ namespace ink::core
   enum class DiagnosticClass : std::uint8_t
   {
     Unknown,
-    User,
-    InternalCompilerError,
+    User,                  // Incorrect user source code.
+    InternalCompilerError, // Every other failure, including limits and invalid artifacts.
   };
 
   enum class DiagnosticSeverity : std::uint8_t
@@ -206,6 +206,7 @@ namespace ink::core
   template <>                                                                                                     \
   struct DiagnosticTraits<DiagnosticKind::Name>                                                                   \
   {                                                                                                               \
+      static constexpr DiagnosticClass Classification = DiagnosticClass::Class;                                   \
       using Arguments = Schema;                                                                                   \
   };
 #include "ink/core/diagnostic.def"

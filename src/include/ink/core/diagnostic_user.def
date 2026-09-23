@@ -1,0 +1,27 @@
+#ifndef INK_DIAGNOSTIC
+#error "Define INK_DIAGNOSTIC before including diagnostic_user.def"
+#endif
+
+// Errors caused by incorrect user source code.
+INK_DIAGNOSTIC(InvalidUtf8, 0x01000001U, Tokenizer, "INK-T0001", User, Error, "source is not valid UTF-8", "source is not valid UTF-8", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(UnexpectedBom, 0x01000002U, Tokenizer, "INK-T0002", User, Error, "a UTF-8 BOM is not permitted at the start of a source file", "a UTF-8 BOM is not permitted at the start of a source file", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(NullInSource, 0x01000003U, Tokenizer, "INK-T0003", User, Error, "a literal NUL byte is not permitted in source text", "a literal NUL byte is not permitted in source text", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(InvalidCharacter, 0x01000004U, Tokenizer, "INK-T0004", User, Error, "character cannot start an Ink token", "character cannot start an Ink token", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(MissingBaseDigits, 0x01000005U, Tokenizer, "INK-T0005", User, Error, "base prefix must be followed by a digit", "base prefix must be followed by a digit", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(DigitOutOfRange, 0x01000006U, Tokenizer, "INK-T0006", User, Error, "digit does not belong to the literal base", "digit does not belong to the literal base", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(MissingExponentDigits, 0x01000007U, Tokenizer, "INK-T0007", User, Error, "exponent must contain at least one ASCII decimal digit", "exponent must contain at least one ASCII decimal digit", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(InvalidNumericSuffix, 0x01000008U, Tokenizer, "INK-T0008", User, Error, "numeric separators and suffixes are not permitted", "numeric separators and suffixes are not permitted", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(HexadecimalFloat, 0x01000009U, Tokenizer, "INK-T0009", User, Error, "hexadecimal floating-point literals are not permitted", "hexadecimal floating-point literals are not permitted", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(UnterminatedString, 0x0100000AU, Tokenizer, "INK-T0010", User, Error, "string literal is not terminated", "string literal is not terminated", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(UnterminatedCharacter, 0x0100000BU, Tokenizer, "INK-T0011", User, Error, "character literal is not terminated", "character literal is not terminated", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(NewlineInLiteral, 0x0100000CU, Tokenizer, "INK-T0012", User, Error, "an unescaped physical newline is not permitted in a short literal", "an unescaped physical newline is not permitted in a short literal", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(InvalidCharacterLength, 0x0100000DU, Tokenizer, "INK-T0013", User, Error, "character literal must decode to exactly one Unicode scalar value", "character literal must decode to exactly one Unicode scalar value", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(InvalidEscape, 0x0100000EU, Tokenizer, "INK-T0014", User, Error, "unknown or incomplete escape sequence", "unknown or incomplete escape sequence", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(OctalEscapeOutOfRange, 0x0100000FU, Tokenizer, "INK-T0015", User, Error, "octal escape value must not exceed 0o377", "octal escape value must not exceed 0o377", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(InvalidUnicodeScalar, 0x01000010U, Tokenizer, "INK-T0016", User, Error, "escape must designate a Unicode scalar value", "escape must designate a Unicode scalar value", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(InvalidNamedEscape, 0x01000011U, Tokenizer, "INK-T0017", User, Error, "named escape requires a nonempty name enclosed in braces", "named escape requires a nonempty name enclosed in braces", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(UnknownUnicodeName, 0x01000012U, Tokenizer, "INK-T0018", User, Error, "unknown Unicode character name or alias", "unknown Unicode character name or alias", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(UnterminatedBlockComment, 0x01000013U, Tokenizer, "INK-T0019", User, Error, "block comment is not terminated", "block comment is not terminated", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(ParserExpectedToken, 0x02000001U, Parser, "INK-P0001", User, Error, "expected token", "expected {Expected}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Expected, String)))
+INK_DIAGNOSTIC(ParserExpectedExpression, 0x02000002U, Parser, "INK-P0002", User, Error, "expected expression", "expected expression", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(ParserInvalidSyntax, 0x02000003U, Parser, "INK-P0003", User, Error, "invalid syntax", "invalid syntax", INK_DIAGNOSTIC_ARGUMENTS())

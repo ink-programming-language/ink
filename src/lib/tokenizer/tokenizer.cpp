@@ -551,6 +551,125 @@ namespace ink::tokenizer
     return Registered != nullptr && Registered == Source;
   }
 
+  std::optional<TokenizedBuffer> TokenizedBuffer::fromSnapshot(core::SourceManager &Sources, std::string Name, std::string Text, std::vector<Token> Tokens, bool Succeeded)
+  {
+    if (Text.size() > core::SourceLocation::MaxByteOffset || (Succeeded && (Tokens.empty() || Tokens.back().Kind != TokenKind::EndOfFile)))
+    {
+      return std::nullopt;
+    }
+    if (Succeeded)
+    {
+      for (std::size_t Offset = 0; Offset < Text.size();)
+      {
+        const auto Decoded = unicode::decode(Text, Offset);
+        if (!Decoded.Valid || Decoded.Value == 0 || (Offset == 0 && Decoded.Value == 0xFEFF))
+        {
+          return std::nullopt;
+        }
+        Offset += Decoded.Length;
+      }
+    }
+    std::size_t PreviousEnd = 0;
+    for (std::size_t Index = 0; Index < Tokens.size(); ++Index)
+    {
+      const auto &Entry = Tokens[Index];
+      if (!Entry.Span.isValid() || Entry.Span.getBegin().getByteOffset() < PreviousEnd || Entry.Span.getEnd().getByteOffset() > Text.size())
+      {
+        return std::nullopt;
+      }
+      PreviousEnd = Entry.Span.getEnd().getByteOffset();
+      if (Entry.Kind == TokenKind::EndOfFile)
+      {
+        if (!Succeeded || Index + 1 != Tokens.size() || !Entry.Span.empty() || PreviousEnd != Text.size())
+        {
+          return std::nullopt;
+        }
+      }
+      else if (Entry.Span.empty())
+      {
+        return std::nullopt;
+      }
+      switch (Entry.Kind)
+      {
+      case TokenKind::Identifier:
+      {
+        const auto *Info = std::get_if<IdentifierInfo>(&Entry.Payload);
+        if (!Info || Info->Name != std::string_view(Text).substr(Entry.Span.getBegin().getByteOffset(), Entry.Span.size()))
+        {
+          return std::nullopt;
+        }
+        break;
+      }
+      case TokenKind::IntegerLiteral:
+      case TokenKind::FloatLiteral:
+      {
+        const auto *Info = std::get_if<NumericInfo>(&Entry.Payload);
+        if (!Info || (Info->Base != 2 && Info->Base != 8 && Info->Base != 10 && Info->Base != 16))
+        {
+          return std::nullopt;
+        }
+        break;
+      }
+      case TokenKind::StringLiteral:
+      {
+        const auto *Info = std::get_if<StringInfo>(&Entry.Payload);
+        if (!Info)
+        {
+          return std::nullopt;
+        }
+        switch (Info->Mode)
+        {
+        case StringMode::EscapedSingleLine:
+        case StringMode::RawSingleLine:
+        case StringMode::EscapedMultiline:
+        case StringMode::RawMultiline:
+          break;
+        default:
+          return std::nullopt;
+        }
+        for (std::size_t Offset = 0; Offset < Info->Decoded.size();)
+        {
+          const auto Decoded = unicode::decode(Info->Decoded, Offset);
+          if (!Decoded.Valid)
+          {
+            return std::nullopt;
+          }
+          Offset += Decoded.Length;
+        }
+        break;
+      }
+      case TokenKind::CharLiteral:
+      {
+        const auto *Info = std::get_if<CharInfo>(&Entry.Payload);
+        if (!Info || !isScalar(Info->Value))
+        {
+          return std::nullopt;
+        }
+        break;
+      }
+      case TokenKind::EndOfFile:
+#define INK_KEYWORD(Name, DisplayName, Spelling) case TokenKind::Name:
+#define INK_SYMBOL(Name, DisplayName, Spelling) case TokenKind::Name:
+#include "ink/tokenizer/token.def"
+#undef INK_SYMBOL
+#undef INK_KEYWORD
+        if (!std::holds_alternative<std::monostate>(Entry.Payload))
+        {
+          return std::nullopt;
+        }
+        break;
+      default:
+        return std::nullopt;
+      }
+    }
+    TokenizedBuffer Result;
+    const core::SourceId Id = Sources.addSource(std::move(Name), std::move(Text));
+    Result.Source = Sources.findSource(Id);
+    Result.Tokens = std::move(Tokens);
+    Result.Succeeded = Succeeded;
+    return Result;
+  }
+
   Tokenizer::Tokenizer(core::FrontendContext &Context)
       : Context(Context)
   {

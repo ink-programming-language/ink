@@ -5,6 +5,7 @@
 | 文件 | 覆盖内容 |
 | --- | --- |
 | `grammar_corpus_test.cpp` / `corpus/grammar_cases.inc` | 2026-09-21 BNF 审查的全部 539 个逐分支样例和 2,400 个固定种子组合样例，共 2,939 个独立参数化测试 |
+| `ast_serialization_test.cpp` | 全部 2,939 个语法样例与 66 种节点的二进制往返、Token/payload/恢复信息、独立生命周期、深树、损坏输入和资源限制、ICE 诊断及首次失败去重；格式及接口见 [AST 序列化说明](../../../docs/Ink-AST-Serialization.md) |
 | `recovery_test.cpp` | 原有设计示例、恢复边界、长链、固定种子随机 token 流 |
 | `recovery_contracts_test.cpp` | 精确的插入与删除位置、成对定界符同步、后续声明保留、表达式和模式的 missing/error 节点、参数列表、条件与 match 分支、else/switch 归属、for-in 推测回滚、声明族及 EOF、诊断风暴、嵌套/工作/分配预算、取消与复用 |
 | `unicode_security_test.cpp` | 非法 UTF-8、完整枚举非法连续字节、标量边界与截断、过长编码伪装 ASCII 语法、NUL/BOM、UTF-16/32 输入、双向控制与不可见字符、Unicode 空白和标点混淆、NFC 与组合字符、非法转义、原始字节偏移、字节变异与固定种子随机输入 |

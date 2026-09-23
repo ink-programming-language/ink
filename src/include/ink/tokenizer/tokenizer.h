@@ -35,6 +35,10 @@ namespace ink::tokenizer
         return Succeeded;
       }
 
+      // Validate a saved lexical snapshot before registering its owned source.
+      // This restores tokens without rerunning the tokenizer or emitting diagnostics.
+      static std::optional<TokenizedBuffer> fromSnapshot(core::SourceManager &Sources, std::string Name, std::string Text, std::vector<Token> Tokens, bool Succeeded);
+
     private:
       TokenizedBuffer() = default;
 
