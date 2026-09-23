@@ -1,4 +1,6 @@
-﻿## 1 概念
+﻿> 历史 TemplateIR 草案。当前采用 [Ink-Semantic-Design.md](Ink-Semantic-Design.md) 中的 AST 泛型实例化与 comptime 方案；本文不再作为该流程的前置表示要求，以下内容保留作历史参考。
+
+## 1 概念
 
 ### 1.1 %ID 值
 ### 1.2 $ID 名字
