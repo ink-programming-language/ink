@@ -1,7 +1,7 @@
-#ifndef INK_SEMANTIC_CONSTANT_H
-#define INK_SEMANTIC_CONSTANT_H
+#ifndef INK_SEMANTIC_MODEL_CONSTANT_H
+#define INK_SEMANTIC_MODEL_CONSTANT_H
 
-#include "ink/semantic/type.h"
+#include "ink/semantic/model/integer_type.h"
 
 #include <llvm/ADT/APInt.h>
 

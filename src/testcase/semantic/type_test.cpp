@@ -1,4 +1,8 @@
-#include "ink/semantic/context.h"
+#include "ink/semantic/model/context.h"
+
+#include "ink/semantic/model/class_type.h"
+#include "ink/semantic/model/enum_type.h"
+#include "ink/semantic/model/interface_type.h"
 
 #include <gtest/gtest.h>
 #include <llvm/Support/Casting.h>

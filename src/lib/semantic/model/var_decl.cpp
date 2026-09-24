@@ -1,5 +1,5 @@
-#include "ink/semantic/decl.h"
-#include "ink/semantic/type.h"
+#include "ink/semantic/model/var_decl.h"
+#include "ink/semantic/model/type.h"
 
 namespace ink::semantic
 {

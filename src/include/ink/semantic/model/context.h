@@ -1,11 +1,20 @@
-#ifndef INK_SEMANTIC_CONTEXT_H
-#define INK_SEMANTIC_CONTEXT_H
+#ifndef INK_SEMANTIC_MODEL_CONTEXT_H
+#define INK_SEMANTIC_MODEL_CONTEXT_H
 
 #include "ink/core/context.h"
-#include "ink/semantic/constant.h"
-#include "ink/semantic/decl.h"
-#include "ink/semantic/expr_value.h"
-#include "ink/semantic/name_pool.h"
+#include "ink/semantic/model/array_type.h"
+#include "ink/semantic/model/builtin_type.h"
+#include "ink/semantic/model/constant.h"
+#include "ink/semantic/model/expr_value.h"
+#include "ink/semantic/model/float_type.h"
+#include "ink/semantic/model/integer_type.h"
+#include "ink/semantic/model/name_pool.h"
+#include "ink/semantic/model/pointer_type.h"
+#include "ink/semantic/model/reference_type.h"
+#include "ink/semantic/model/slice_type.h"
+#include "ink/semantic/model/type_decl.h"
+#include "ink/semantic/model/user_defined_type.h"
+#include "ink/semantic/model/var_decl.h"
 
 namespace ink::semantic
 {

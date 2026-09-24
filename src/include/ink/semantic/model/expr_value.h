@@ -1,8 +1,8 @@
-#ifndef INK_SEMANTIC_EXPR_VALUE_H
-#define INK_SEMANTIC_EXPR_VALUE_H
+#ifndef INK_SEMANTIC_MODEL_EXPR_VALUE_H
+#define INK_SEMANTIC_MODEL_EXPR_VALUE_H
 
 #include "ink/core/source_id.h"
-#include "ink/semantic/type.h"
+#include "ink/semantic/model/type.h"
 
 namespace ink::parser
 {

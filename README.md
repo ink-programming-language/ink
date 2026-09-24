@@ -45,7 +45,8 @@ Ink 跨 module 函数、成员函数、闭合实例、全局变量、Imported �
 
 ## Semantic 对象模型
 
-- `src/include/ink/semantic/Types.def` 用 `INK_SEMANTIC_TYPE(Name, Base)` 集中登记类型种类，`Base` 配置为 `BuiltinType` 或 `UserDefinedType`；`TypeKind` 与两个基类的 `classof()` 分类判断均由该表生成。
+- 对象模型头文件位于 `src/include/ink/semantic/model`，实现位于 `src/lib/semantic/model`；`Type` 和 `Decl` 的派生类各自使用独立头文件，按需包含对应的 `*_type.h` 或 `*_decl.h`。
+- `src/include/ink/semantic/model/Types.def` 用 `INK_SEMANTIC_TYPE(Name, Base)` 集中登记类型种类，`Base` 配置为 `BuiltinType` 或 `UserDefinedType`；`TypeKind` 与两个基类的 `classof()` 分类判断均由该表生成。
 - `SemanticContext` 借用 `core::CompilationContext`，拥有 `NamePool`、规范类型与常量、独立的表达式值和声明；对象地址在上下文存活期间保持稳定。后续语义 Session 可以组合这份存储。
 - `Name` 只有一个 32 位索引，默认无效。`namePool().intern(Text)` 为相同字节串复用索引，`find(Text)` 不插入，`text(Name)` 返回池拥有的稳定视图。名称只在所属池内比较；调用方负责携带池或上下文，不能将一个池的索引交给另一个池解释。池不执行词法验证或 Unicode 规范化，前端名称应来自已经验证的 token。
 - `Type`、`Constant` 和 `ExprValue` 都继承 `Value`，`Decl` 独立于该层次。`Type` 分为 `BuiltinType` 与 `UserDefinedType`：前者包括元类型、void、bool、整数、IEEE 16/32/64 位浮点、定长数组、切片、指针和引用；后者包括由声明身份区分的 `ClassType`、`EnumType`、`InterfaceType`。类型值的类型为元类型，元类型的类型为自身。当前常量仍为 bool 和整数，整数 payload 使用 LLVM `APInt`，宽度不匹配或类型来自其他上下文时返回空指针，不隐式截断。

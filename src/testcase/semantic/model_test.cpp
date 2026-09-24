@@ -1,4 +1,4 @@
-#include "ink/semantic/context.h"
+#include "ink/semantic/model/context.h"
 #include "ink/parser/parser.h"
 
 #include <gtest/gtest.h>
