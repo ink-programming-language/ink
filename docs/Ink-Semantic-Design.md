@@ -50,6 +50,7 @@
 
 当前公共头位于 `src/include/ink/semantic`，由 `SemanticContext` 借用 Core 编译上下文并统一拥有模型对象；完整 `SemanticSession` 后续组合这份存储。
 
+- `model/coredefines.h` 集中定义 `ValueKind`、`TypeKind`、`AccessKind`、`BindingMutability` 和 `VisibilityKind`，仅依赖 `<cstdint>` 与枚举注册表，可独立包含。`VisibilityKind::Public/Private` 表示声明或成员的可见性，具体访问检查尚未接入。
 - `model/Values.def` 生成 `ValueKind`，以 C++ 类名标识实际对象，如 `IntegerType`、`FunctionType`、`ExprValue`、`CallInstruction`；类型、常量和指令条目分别生成 `Type::classof()`、`Constant::classof()`、`Instruction::classof()`，具体类的 `classof()` 直接检查同名值种类。元类型、void、bool 共用实际类 `BuiltinType`，通过 `TypeKind` 区分。`Type`、`UserDefinedType`、`Constant`、`Instruction` 仅作为中间基类，不单独占用值种类。
 - `model/type/Types.def` 是类型种类与基类分类的注册表，每条记录为 `INK_SEMANTIC_TYPE(Name, Base)`，`Base` 为 `BuiltinType` 或 `UserDefinedType`。`TypeKind` 和两个基类的 `classof()` 从同一张表生成；具体类型类体与构造定义在 `model/type` 的独立头文件中，其继承关系应与注册表一致。
 - `Name` 是一个 32 位池内索引，`NamePool` 为同名字节串只保存一份内容；池扩容保持名称与字符串视图稳定。空输入和索引耗尽返回无效名称。名称相等和哈希仅在同一池内有意义；索引本身不携带池身份，无法检测恰好落在另一池有效范围内的外来索引。词法验证与 NFC 处理仍由 tokenizer 负责。

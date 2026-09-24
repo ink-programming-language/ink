@@ -46,6 +46,7 @@ Ink 跨 module 函数、成员函数、闭合实例、全局变量、Imported �
 ## Semantic 对象模型
 
 - 对象模型头文件位于 `src/include/ink/semantic/model`，实现位于 `src/lib/semantic/model`；声明基类及其派生类放在 `model/decl` 子目录，类型基类、派生类及类型注册表放在 `model/type` 子目录，按需包含对应的独立头文件。
+- `src/include/ink/semantic/model/coredefines.h` 集中定义 `ValueKind`、`TypeKind`、`AccessKind`、`BindingMutability` 和 `VisibilityKind`，仅依赖 `<cstdint>` 与枚举注册表，可独立包含。`VisibilityKind::Public/Private` 表示声明或成员的可见性，具体访问检查尚未接入。
 - `src/include/ink/semantic/model/Values.def` 集中定义 `ValueKind`，枚举项与 C++ 类同名，如 `IntegerType`、`FunctionType`、`ExprValue` 和 `CallInstruction`；类型、常量和指令条目分别生成 `Type::classof()`、`Constant::classof()`、`Instruction::classof()`。元类型、void、bool 的实际对象均为 `BuiltinType`，由 `TypeKind` 继续区分；仅作为中间基类的 `Type`、`UserDefinedType`、`Constant`、`Instruction` 不单独占用值种类。
 - `src/include/ink/semantic/model/type/Types.def` 用 `INK_SEMANTIC_TYPE(Name, Base)` 集中登记类型种类，`Base` 配置为 `BuiltinType` 或 `UserDefinedType`；`TypeKind` 与两个基类的 `classof()` 分类判断均由该表生成。
 - `src/include/ink/semantic/model/instruction` 保存抽象指令基类 `Instruction` 及具体指令；当前 `CallInstruction` 使用同名 `ValueKind`，其 `type()` 为调用签名的返回类型。

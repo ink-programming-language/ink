@@ -1,17 +1,11 @@
 #ifndef INK_SEMANTIC_MODEL_VALUE_H
 #define INK_SEMANTIC_MODEL_VALUE_H
 
-#include <cstdint>
+#include "ink/semantic/model/coredefines.h"
 
 namespace ink::semantic
 {
   class Type;
-
-  enum class ValueKind : std::uint8_t
-  {
-#define INK_SEMANTIC_VALUE(Name) Name,
-#include "ink/semantic/model/Values.def"
-  };
 
   // Semantic values have stable identities within their owning context.
   // ExprValue retains a checked expression's origin; mutable execution slots

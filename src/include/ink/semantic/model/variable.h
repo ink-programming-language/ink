@@ -1,6 +1,7 @@
 #ifndef INK_SEMANTIC_MODEL_VARIABLE_H
 #define INK_SEMANTIC_MODEL_VARIABLE_H
 
+#include "ink/semantic/model/coredefines.h"
 #include "ink/semantic/model/name.h"
 
 namespace ink::semantic
@@ -8,13 +9,6 @@ namespace ink::semantic
   class SemanticContext;
   class Type;
   class Value;
-
-  // Binding mutability is independent of access through a value and compile-time evaluation.
-  enum class BindingMutability : std::uint8_t
-  {
-    Mutable,
-    Immutable,
-  };
 
   // An analyzed variable binding, not a generic Decl or an execution-time storage slot.
   class Variable final

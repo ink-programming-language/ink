@@ -1,6 +1,7 @@
 #ifndef INK_SEMANTIC_MODEL_TYPE_H
 #define INK_SEMANTIC_MODEL_TYPE_H
 
+#include "ink/semantic/model/coredefines.h"
 #include "ink/semantic/model/value.h"
 
 namespace ink::semantic
@@ -8,20 +9,6 @@ namespace ink::semantic
   class SemanticContext;
   class BuiltinType;
   class UserDefinedType;
-
-  enum class TypeKind : std::uint8_t
-  {
-#define INK_SEMANTIC_TYPE(Name, Base) Name,
-#include "ink/semantic/model/type/Types.def"
-#undef INK_SEMANTIC_TYPE
-  };
-
-  // Access through a pointer/reference/slice, independent of binding mutability.
-  enum class AccessKind : std::uint8_t
-  {
-    ReadOnly,
-    ReadWrite,
-  };
 
   class Type : public Value
   {
