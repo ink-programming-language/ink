@@ -2,9 +2,9 @@
 
 基于 AST 的语义分析、泛型实例化与 comptime 执行
 
-日期：2026 年 9 月 22 日。状态：待实现的架构设计。
+日期：2026 年 9 月 23 日。状态：基础对象模型已实现，其余为待实现的架构设计。
 
-本文采用本次确定的方向：**泛型实例化和 comptime 都在 AST 层完成，完成后的运行时语义再 lowering 为 Closed InkIR**。下面的类是建议实现结构，不表示仓库已经实现这些接口。语言语法继续以 [Ink-grammar-Rules.bnf](Ink-grammar-Rules.bnf) 为准；本文不增加新的泛型、反射或声明生成语法。
+本文采用本次确定的方向：**泛型实例化和 comptime 都在 AST 层完成，完成后的运行时语义再 lowering 为 Closed InkIR**。除第 1.3 节列出的基础对象模型外，下面的类是建议实现结构，不表示仓库已经实现这些接口。语言语法继续以 [Ink-grammar-Rules.bnf](Ink-grammar-Rules.bnf) 为准；本文不增加新的泛型、反射或声明生成语法。
 
 ## 1 当前基础与目标边界
 
@@ -17,7 +17,7 @@
 | [ast_context.h](../src/include/ink/parser/ast_context.h) | Arena 管理稳定地址的节点和数组；semantic 不接管单个节点的释放 |
 | [ASTNodes.def](../src/include/ink/parser/ASTNodes.def) | 节点种类有稳定显式编号；种类编号不是某个声明或实例的身份 |
 | [core/context.h](../src/include/ink/core/context.h) | 已有 `CompilationContext`、`FrontendContext`、源码管理、诊断及目标信息，直接复用 |
-| [semantic/CMakeLists.txt](../src/lib/semantic/CMakeLists.txt) 与 [lib/CMakeLists.txt](../src/lib/CMakeLists.txt) | semantic 只有 CMake 骨架，没有分析实现，也未接入当前构建 |
+| [semantic/CMakeLists.txt](../src/lib/semantic/CMakeLists.txt) 与 [lib/CMakeLists.txt](../src/lib/CMakeLists.txt) | semantic 对象模型已接入构建；名称解析和语义分析器尚未实现 |
 | [source_module_compiler.h](../src/include/ink/ir/compilation/source_module_compiler.h) 及其 [实现](../src/lib/ir/compilation/source_module_compiler.cpp) | 现有 `ir::SourceModuleCompiler` 默认读取 `.ir` 并反序列化，不是 `.ink` 源码编译器 |
 | [inkc/main.cpp](../src/tools/inkc/main.cpp) | 当前仅处理命令行参数；以下流程仍需接入驱动 |
 
@@ -45,6 +45,21 @@
 语义分析、实例化和编译期执行相互按需请求结果，并非必须先完整检查所有函数体，再统一执行 comptime。例如 `TypeSyntax` 包装的表达式可能调用一个编译期函数；这个函数又可能使用某个泛型实例。
 
 这条路径不要求先建立 TemplateIR 或 Staged InkIR。`CheckedBody` 是 AST 的语义旁表及少量展开记录，不另建一棵逐节点复制的 Typed AST，也不是交给后端执行的指令集。运行时解释器仍只接收 Closed InkIR。
+
+### 1.3 已实现的对象模型
+
+当前公共头位于 `src/include/ink/semantic`，由 `SemanticContext` 借用 Core 编译上下文并统一拥有模型对象；完整 `SemanticSession` 后续组合这份存储。
+
+- `Types.def` 是类型种类与基类分类的注册表，每条记录为 `INK_SEMANTIC_TYPE(Name, Base)`，`Base` 为 `BuiltinType` 或 `UserDefinedType`。`TypeKind` 和两个基类的 `classof()` 从同一张表生成；具体类型类体与构造仍在 `type.h` 中定义，其继承关系应与注册表一致。
+- `Name` 是一个 32 位池内索引，`NamePool` 为同名字节串只保存一份内容；池扩容保持名称与字符串视图稳定。空输入和索引耗尽返回无效名称。名称相等和哈希仅在同一池内有意义；索引本身不携带池身份，无法检测恰好落在另一池有效范围内的外来索引。词法验证与 NFC 处理仍由 tokenizer 负责。
+- `Value` 是语义值基类，`Type`、`Constant` 与 `ExprValue` 是三个分支。`Type` 下分 `BuiltinType` 与 `UserDefinedType`：builtin 当前提供元类型、void、bool、带符号性和宽度的整数、IEEE binary16/32/64 浮点、定长数组、切片、指针和引用；user-defined 提供 `ClassType`、`EnumType` 与 `InterfaceType`。当前常量仍为 bool、任意位宽整数常量。所有类型值的类型是元类型，元类型的类型为自身。类型和常量在上下文内规范化；不同上下文的指针不可用于语义相等比较。LLVM 的公开 `StringMap`、`APInt` 和哈希工具仅用于基础存储，不连接 LLVM IR 或后端执行。
+- `ExprValue`（`ValueKind::Expr`）保存已检查表达式的结果类型、借用的只读 AST 表达式以及文件身份；`context()` 返回所属的 `SemanticContext` 模型存储。`createExprValue()` 校验结果类型归属，由调用方负责表达式检查，不执行表达式，也不标记为仅能在运行时执行。同一 AST 的每次创建均得到独立身份，避免将不同语义分析或实例的结果按 AST 指针错误合并。定义环境、泛型替换环境与 `SemanticContextId` 尚未实现；后续语义旁表须按表达式值身份关联相应的绑定、转换和实例上下文，模型存储上下文不能替代这些环境。
+- `ArrayType` 的规范键为元素类型和 64 位长度，多维数组通过嵌套 `ArrayType` 表示；`SliceType` 表示具有运行期长度的视图，不拥有动态容器的分配策略。`PointerType`、`ReferenceType` 和 `SliceType` 的规范键都包括目标类型和 `AccessKind`，且三种类型使用不同存储。访问权限与 `VarDecl::isMutable()` 分别描述间接访问和绑定可变性，`ReferenceType` 不替代表达式的值/位置类别。即使元素或目标是用户定义类型，这些语言内建类型构造器仍归 `BuiltinType`。
+- `TypeDecl` 为类、枚举和接口登记独立的语义声明身份，`UserDefinedType` 关联该声明；同一声明复用同一名义类型，同名但不同身份的声明不合并。当前可在成员分析前发布身份以供指针等引用；成员、基类、枚举底层类型、接口约束和泛型实例仍是后续工作。组合类型工厂验证上下文归属与访问权限枚举，不在这一层冻结数组元素合法性、大小限制、引用折叠或可空性等语言规则；允许记录零长度或尚未验证目标布局的数组形状不代表已经通过语义检查。
+- `Decl` 独立于 `Value`，稳定地址代表声明身份，`VarDecl` 保存名称、`BindingMutability`、来源和可空的 `const Value *Initializer`。初始化值可以是类型、常量或表达式值。`var/const` 分别映射到 `Mutable/Immutable`，通过 `mutability()` 和 `isMutable()` 查询；该信息描述初始化后的绑定可变性，间接访问权限和编译期可求值性另行表示。变量声明工厂拒绝无效的可变性枚举和其他上下文的初始化值。类型和初始化值可在声明登记之后分别通过 `setType()`、`setInitializer()` 一次性发布，允许以相同对象重复发布，拒绝替换成不同对象；两者均存在时要求转换后的初始化值类型与声明类型相同，失败保留原有状态。每次创建声明都有独立身份，同名声明不会合并。`DeclSource` 保存 Core 的文件身份、范围和可选的只读语法声明引用。
+- 语法声明和初始化表达式所属的 `ParsedUnit` 必须保持存活；当前上下文不拥有或复制 AST。变量的执行期槽位、初始化表达式求得的常量及表达式检查结果分别属于后续的执行环境、常量存储和语义旁表，不能把变量当前内容放进 `VarDecl`。
+
+这一阶段不提供 `Scope`、`LookupResult`、`Binding`、`ExprInfo`、名称解析、comptime 或 IR lowering。下文的 ID、类型/常量独立存储门面和会话结构仍为后续接口规划；当前类型、常量和声明引用使用上下文内稳定指针，不能直接持久化。
 
 ## 2 所有权、身份和上下文
 
@@ -418,7 +433,7 @@ Reader 必须检查版本、长度、分配预算、种类编号、必需子节�
 
 依赖方向为 `semantic → core / tokenizer / parser`，IR lowering 适配部分另依赖 `ir`。Core 和 Parser 不反向依赖 semantic，comptime 求值不依赖运行时 ExecutionEngine 或 LLVM。是否把 lowering 和模块存档拆为独立 target 可在接入时决定，不影响上述类边界。
 
-接入构建时需修正 semantic 现有 CMake 骨架的源文件列表展开，使用与 Parser 公共头兼容的 C++20，并保持目标级禁用异常。这些是后续实现工作，本文没有修改构建代码。
+semantic 对象模型已使用显式源文件列表接入构建，采用与 Parser 公共头兼容的 C++20，并保持目标级禁用异常；测试加入统一的 `ink_tests`。后续新增分析器实现时继续维护目标源文件列表。
 
 ### 9.2 实现阶段
 

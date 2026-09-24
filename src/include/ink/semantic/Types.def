@@ -1,0 +1,14 @@
+// INK_SEMANTIC_TYPE(Name, Base). Base is BuiltinType or UserDefinedType.
+// Included multiple times to generate TypeKind and its base-class classification.
+INK_SEMANTIC_TYPE(Meta, BuiltinType)
+INK_SEMANTIC_TYPE(Void, BuiltinType)
+INK_SEMANTIC_TYPE(Bool, BuiltinType)
+INK_SEMANTIC_TYPE(Integer, BuiltinType)
+INK_SEMANTIC_TYPE(Float, BuiltinType)
+INK_SEMANTIC_TYPE(Array, BuiltinType)
+INK_SEMANTIC_TYPE(Slice, BuiltinType)
+INK_SEMANTIC_TYPE(Pointer, BuiltinType)
+INK_SEMANTIC_TYPE(Reference, BuiltinType)
+INK_SEMANTIC_TYPE(Class, UserDefinedType)
+INK_SEMANTIC_TYPE(Enum, UserDefinedType)
+INK_SEMANTIC_TYPE(Interface, UserDefinedType)

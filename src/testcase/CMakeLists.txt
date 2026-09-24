@@ -1,9 +1,11 @@
 file(GLOB INK_CORE_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/core/*_test.cpp")
 file(GLOB INK_TOKENIZER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tokenizer/*_test.cpp")
 file(GLOB INK_PARSER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/parser/*_test.cpp")
+file(GLOB INK_SEMANTIC_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/semantic/*_test.cpp")
 list(SORT INK_CORE_TEST_SOURCES)
 list(SORT INK_TOKENIZER_TEST_SOURCES)
 list(SORT INK_PARSER_TEST_SOURCES)
+list(SORT INK_SEMANTIC_TEST_SOURCES)
 
 # Preserve the tokenizer tests' C++17 UTF-8 literal behavior while linking every test into one executable.
 add_library(ink_tokenizer_test_objects OBJECT ${INK_TOKENIZER_TEST_SOURCES})
@@ -12,10 +14,10 @@ target_compile_definitions(ink_tokenizer_test_objects PRIVATE INK_LEXICAL_RULES_
 target_link_libraries(ink_tokenizer_test_objects PRIVATE ink::core ink::tokenizer GTest::gtest)
 ink_disable_exceptions(ink_tokenizer_test_objects)
 
-add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES})
+add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_SEMANTIC_TEST_SOURCES})
 add_dependencies(ink_tests ink_tokenize ink_parse)
 target_compile_features(ink_tests PRIVATE cxx_std_20)
-target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::parser ink::llvm LLVMBitstreamReader GTest::gtest_main)
+target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::parser ink::semantic ink::llvm LLVMBitstreamReader GTest::gtest_main)
 ink_disable_exceptions(ink_tests)
 
 if(MSVC)
