@@ -2,7 +2,6 @@
 #include "ink/parser/ast.h"
 
 #include <gtest/gtest.h>
-#include <llvm/Support/Casting.h>
 
 namespace ink::semantic::test
 {
@@ -29,8 +28,8 @@ namespace ink::semantic::test
     EXPECT_EQ(&First->context(), &Context);
     EXPECT_FALSE(First->sourceId().valid());
     const Value *ValueObject = First;
-    EXPECT_EQ(ValueObject->kind(), ValueKind::Expr);
-    EXPECT_EQ(llvm::dyn_cast<ExprValue>(ValueObject), First);
+    EXPECT_EQ(ValueObject->kind(), ValueKind::ExprValue);
+    EXPECT_TRUE(ExprValue::classof(ValueObject));
     EXPECT_FALSE(Type::classof(ValueObject));
     EXPECT_FALSE(Constant::classof(ValueObject));
     EXPECT_FALSE(BuiltinType::classof(ValueObject));
@@ -44,7 +43,7 @@ namespace ink::semantic::test
     }
     EXPECT_EQ(&First->expression(), &Expression);
     EXPECT_EQ(&First->type(), Int32);
-    EXPECT_EQ(llvm::dyn_cast<ExprValue>(ValueObject), First);
+    EXPECT_TRUE(ExprValue::classof(ValueObject));
   }
 
   // An expression result cannot borrow a type owned by a different model context.
@@ -70,13 +69,13 @@ namespace ink::semantic::test
     const IntegerType *Int32 = Context.getIntegerType(32, true);
     const Value *Initializers[] = {
         Int32,
-        Context.getIntegerConstant(*Int32, llvm::APInt(32, 0)),
+        Context.getIntegerConstant(*Int32, IntegerBits(32, 0)),
         Context.createExprValue(*Int32, Expression),
     };
     for (const Value *Initializer : Initializers)
     {
       ASSERT_NE(Initializer, nullptr);
-      VarDecl *Declaration = Context.createVarDecl(X, BindingMutability::Immutable, {}, Initializer);
+      Variable *Declaration = Context.createVariable(X, BindingMutability::Immutable, Initializer);
       ASSERT_NE(Declaration, nullptr);
       EXPECT_EQ(Declaration->initializer(), Initializer);
       EXPECT_EQ(Declaration->type(), nullptr);
@@ -93,9 +92,9 @@ namespace ink::semantic::test
     parser::NameExpr Expression({}, {});
     SemanticContext Context(Compilation);
     const IntegerType *Int32 = Context.getIntegerType(32, true);
-    const IntegerConstant *Zero = Context.getIntegerConstant(*Int32, llvm::APInt(32, 0));
+    const IntegerConstant *Zero = Context.getIntegerConstant(*Int32, IntegerBits(32, 0));
     const ExprValue *Computed = Context.createExprValue(*Int32, Expression);
-    VarDecl *Declaration = Context.createVarDecl(Context.namePool().intern("X"), BindingMutability::Mutable);
+    Variable *Declaration = Context.createVariable(Context.namePool().intern("X"), BindingMutability::Mutable);
     ASSERT_NE(Declaration, nullptr);
     ASSERT_NE(Zero, nullptr);
     ASSERT_NE(Computed, nullptr);
@@ -117,19 +116,19 @@ namespace ink::semantic::test
     SemanticContext Context(Compilation);
     SemanticContext Other(Compilation);
     const IntegerType *Int32 = Context.getIntegerType(32, true);
-    const IntegerConstant *Zero = Context.getIntegerConstant(*Int32, llvm::APInt(32, 0));
+    const IntegerConstant *Zero = Context.getIntegerConstant(*Int32, IntegerBits(32, 0));
     const Name X = Context.namePool().intern("X");
     ASSERT_NE(Zero, nullptr);
-    VarDecl *FromFactory = Context.createVarDecl(X, BindingMutability::Mutable, {}, Zero);
-    VarDecl *FromSetter = Context.createVarDecl(X, BindingMutability::Mutable);
+    Variable *FromFactory = Context.createVariable(X, BindingMutability::Mutable, Zero);
+    Variable *FromSetter = Context.createVariable(X, BindingMutability::Mutable);
     ASSERT_NE(FromFactory, nullptr);
     ASSERT_NE(FromSetter, nullptr);
     ASSERT_TRUE(FromSetter->setInitializer(*Zero));
-    VarDecl *Declarations[] = {
+    Variable *Declarations[] = {
         FromFactory,
         FromSetter,
     };
-    for (VarDecl *Declaration : Declarations)
+    for (Variable *Declaration : Declarations)
     {
       EXPECT_FALSE(Declaration->setType(Context.getBoolType()));
       EXPECT_FALSE(Declaration->setType(*Other.getIntegerType(32, true)));
@@ -151,15 +150,15 @@ namespace ink::semantic::test
     const IntegerType *ForeignType = Other.getIntegerType(32, true);
     const Value *ForeignValues[] = {
         ForeignType,
-        Other.getIntegerConstant(*ForeignType, llvm::APInt(32, 0)),
+        Other.getIntegerConstant(*ForeignType, IntegerBits(32, 0)),
         Other.createExprValue(*ForeignType, Expression),
     };
-    VarDecl *Declaration = Context.createVarDecl(X, BindingMutability::Mutable);
+    Variable *Declaration = Context.createVariable(X, BindingMutability::Mutable);
     ASSERT_NE(Declaration, nullptr);
     for (const Value *Foreign : ForeignValues)
     {
       ASSERT_NE(Foreign, nullptr);
-      EXPECT_EQ(Context.createVarDecl(X, BindingMutability::Mutable, {}, Foreign), nullptr);
+      EXPECT_EQ(Context.createVariable(X, BindingMutability::Mutable, Foreign), nullptr);
       EXPECT_FALSE(Declaration->setInitializer(*Foreign));
       EXPECT_EQ(Declaration->initializer(), nullptr);
       EXPECT_EQ(Declaration->type(), nullptr);

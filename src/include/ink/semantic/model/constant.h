@@ -1,14 +1,20 @@
 #ifndef INK_SEMANTIC_MODEL_CONSTANT_H
 #define INK_SEMANTIC_MODEL_CONSTANT_H
 
-#include "ink/semantic/model/integer_type.h"
+#include "ink/semantic/model/float_bits.h"
+#include "ink/semantic/model/integer_bits.h"
+#include "ink/semantic/model/type/float_type.h"
+#include "ink/semantic/model/type/integer_type.h"
+#include "ink/semantic/model/type/slice_type.h"
 
-#include <llvm/ADT/APInt.h>
-
+#include <string>
+#include <string_view>
 #include <utility>
 
 namespace ink::semantic
 {
+  class ConstantPool;
+
   // Concrete immutable data constants. A Type is also a compile-time value,
   // so Constant membership alone does not describe evaluation availability.
   class Constant : public Value
@@ -21,7 +27,18 @@ namespace ink::semantic
 
       static bool classof(const Value *ValueObject) noexcept
       {
-        return ValueObject && (ValueObject->kind() == ValueKind::IntegerConstant || ValueObject->kind() == ValueKind::BoolConstant);
+        if (!ValueObject)
+        {
+          return false;
+        }
+        switch (ValueObject->kind())
+        {
+#define INK_SEMANTIC_CONSTANT_VALUE(Name) case ValueKind::Name:
+#include "ink/semantic/model/Values.def"
+          return true;
+        default:
+          return false;
+        }
       }
 
     protected:
@@ -39,7 +56,7 @@ namespace ink::semantic
   {
     public:
       // Bits have exactly the declared integer width; signedness is in the type.
-      const llvm::APInt &value() const noexcept
+      const IntegerBits &value() const noexcept
       {
         return Payload;
       }
@@ -50,15 +67,15 @@ namespace ink::semantic
       }
 
     private:
-      IntegerConstant(const IntegerType &ValueType, llvm::APInt Payload)
+      IntegerConstant(const IntegerType &ValueType, IntegerBits Payload)
           : Constant(ValueKind::IntegerConstant, ValueType),
             Payload(std::move(Payload))
       {
       }
 
-      llvm::APInt Payload;
+      IntegerBits Payload;
 
-      friend class SemanticContext;
+      friend class ConstantPool;
   };
 
   class BoolConstant final : public Constant
@@ -83,7 +100,59 @@ namespace ink::semantic
 
       bool Payload;
 
-      friend class SemanticContext;
+      friend class ConstantPool;
+  };
+
+  class StringConst final : public Constant
+  {
+    public:
+      // Owned decoded UTF-8 bytes, including embedded NULs; no terminator is added to the value.
+      std::string_view value() const noexcept
+      {
+        return Payload;
+      }
+
+      static bool classof(const Value *ValueObject) noexcept
+      {
+        return ValueObject && ValueObject->kind() == ValueKind::StringConst;
+      }
+
+    private:
+      StringConst(const SliceType &ValueType, std::string_view Payload)
+          : Constant(ValueKind::StringConst, ValueType),
+            Payload(Payload)
+      {
+      }
+
+      std::string Payload;
+
+      friend class ConstantPool;
+  };
+
+  class FloatConst final : public Constant
+  {
+    public:
+      // Exact IEEE binary16/32/64 payload, including signed zero and NaN payload bits.
+      const FloatBits &value() const noexcept
+      {
+        return Payload;
+      }
+
+      static bool classof(const Value *ValueObject) noexcept
+      {
+        return ValueObject && ValueObject->kind() == ValueKind::FloatConst;
+      }
+
+    private:
+      FloatConst(const FloatType &ValueType, FloatBits Payload) noexcept
+          : Constant(ValueKind::FloatConst, ValueType),
+            Payload(Payload)
+      {
+      }
+
+      FloatBits Payload;
+
+      friend class ConstantPool;
   };
 } // namespace ink::semantic
 

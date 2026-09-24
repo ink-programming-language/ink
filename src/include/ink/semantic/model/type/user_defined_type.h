@@ -1,21 +1,20 @@
 #ifndef INK_SEMANTIC_MODEL_USER_DEFINED_TYPE_H
 #define INK_SEMANTIC_MODEL_USER_DEFINED_TYPE_H
 
-#include "ink/semantic/model/type.h"
+#include "ink/semantic/model/type/type.h"
+#include "ink/semantic/model/name.h"
 
 #include <type_traits>
 
 namespace ink::semantic
 {
-  class TypeDecl;
-
-  // Nominal identity is the declaration, never just its interned name.
+  // Each resolved nominal type has its own identity; names do not merge instances.
   class UserDefinedType : public Type
   {
     public:
-      const TypeDecl &declaration() const noexcept
+      Name name() const noexcept
       {
-        return Declaration;
+        return TypeName;
       }
 
       static bool classof(const Value *ValueObject) noexcept
@@ -29,7 +28,7 @@ namespace ink::semantic
 #define INK_SEMANTIC_TYPE(Name, Base) \
   case TypeKind::Name:                \
     return std::is_same_v<Base, UserDefinedType>;
-#include "ink/semantic/model/Types.def"
+#include "ink/semantic/model/type/Types.def"
 #undef INK_SEMANTIC_TYPE
         default:
           return false;
@@ -37,13 +36,13 @@ namespace ink::semantic
       }
 
     private:
-      UserDefinedType(SemanticContext &Context, TypeKind Kind, const Type &MetaType, const TypeDecl &Declaration) noexcept
-          : Type(Context, Kind, &MetaType),
-            Declaration(Declaration)
+      UserDefinedType(SemanticContext &Context, ValueKind ValueKindValue, TypeKind Kind, const Type &MetaType, Name TypeName) noexcept
+          : Type(Context, ValueKindValue, Kind, &MetaType),
+            TypeName(TypeName)
       {
       }
 
-      const TypeDecl &Declaration;
+      Name TypeName;
 
       friend class ClassType;
       friend class EnumType;

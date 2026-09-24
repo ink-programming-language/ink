@@ -1,9 +1,9 @@
-add_library(ink_semantic STATIC model/context.cpp model/name_pool.cpp model/var_decl.cpp)
+add_library(ink_semantic STATIC model/constant_pool.cpp model/context.cpp model/variable.cpp model/name_pool.cpp)
 add_library(ink::semantic ALIAS ink_semantic)
 
 target_compile_features(ink_semantic PUBLIC cxx_std_20)
 target_include_directories(ink_semantic PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>")
-target_link_libraries(ink_semantic PUBLIC ink::core ink::llvm)
+target_link_libraries(ink_semantic PUBLIC ink::core)
 ink_disable_exceptions(ink_semantic)
 
 if(MSVC)

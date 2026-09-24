@@ -1,7 +1,7 @@
 #ifndef INK_SEMANTIC_MODEL_ENUM_TYPE_H
 #define INK_SEMANTIC_MODEL_ENUM_TYPE_H
 
-#include "ink/semantic/model/user_defined_type.h"
+#include "ink/semantic/model/type/user_defined_type.h"
 
 namespace ink::semantic
 {
@@ -10,12 +10,12 @@ namespace ink::semantic
     public:
       static bool classof(const Value *ValueObject) noexcept
       {
-        return Type::classof(ValueObject) && static_cast<const Type *>(ValueObject)->typeKind() == TypeKind::Enum;
+        return ValueObject && ValueObject->kind() == ValueKind::EnumType;
       }
 
     private:
-      EnumType(SemanticContext &Context, const Type &MetaType, const TypeDecl &Declaration) noexcept
-          : UserDefinedType(Context, TypeKind::Enum, MetaType, Declaration)
+      EnumType(SemanticContext &Context, const Type &MetaType, Name TypeName) noexcept
+          : UserDefinedType(Context, ValueKind::EnumType, TypeKind::Enum, MetaType, TypeName)
       {
       }
 

@@ -1,9 +1,9 @@
-#include "ink/semantic/model/var_decl.h"
-#include "ink/semantic/model/type.h"
+#include "ink/semantic/model/variable.h"
+#include "ink/semantic/model/type/type.h"
 
 namespace ink::semantic
 {
-  bool VarDecl::setType(const Type &ResolvedType) noexcept
+  bool Variable::setType(const Type &ResolvedType) noexcept
   {
     if (&ResolvedType.context() != &context() || (ValueType && ValueType != &ResolvedType) || (Initializer && &Initializer->type() != &ResolvedType))
     {
@@ -13,7 +13,7 @@ namespace ink::semantic
     return true;
   }
 
-  bool VarDecl::setInitializer(const Value &InitializerValue) noexcept
+  bool Variable::setInitializer(const Value &InitializerValue) noexcept
   {
     if (&InitializerValue.type().context() != &context() || (Initializer && Initializer != &InitializerValue) || (ValueType && ValueType != &InitializerValue.type()))
     {

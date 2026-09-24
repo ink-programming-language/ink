@@ -50,16 +50,24 @@
 
 当前公共头位于 `src/include/ink/semantic`，由 `SemanticContext` 借用 Core 编译上下文并统一拥有模型对象；完整 `SemanticSession` 后续组合这份存储。
 
-- `Types.def` 是类型种类与基类分类的注册表，每条记录为 `INK_SEMANTIC_TYPE(Name, Base)`，`Base` 为 `BuiltinType` 或 `UserDefinedType`。`TypeKind` 和两个基类的 `classof()` 从同一张表生成；具体类型类体与构造仍在 `type.h` 中定义，其继承关系应与注册表一致。
+- `model/Values.def` 生成 `ValueKind`，以 C++ 类名标识实际对象，如 `IntegerType`、`FunctionType`、`ExprValue`、`CallInstruction`；类型、常量和指令条目分别生成 `Type::classof()`、`Constant::classof()`、`Instruction::classof()`，具体类的 `classof()` 直接检查同名值种类。元类型、void、bool 共用实际类 `BuiltinType`，通过 `TypeKind` 区分。`Type`、`UserDefinedType`、`Constant`、`Instruction` 仅作为中间基类，不单独占用值种类。
+- `model/type/Types.def` 是类型种类与基类分类的注册表，每条记录为 `INK_SEMANTIC_TYPE(Name, Base)`，`Base` 为 `BuiltinType` 或 `UserDefinedType`。`TypeKind` 和两个基类的 `classof()` 从同一张表生成；具体类型类体与构造定义在 `model/type` 的独立头文件中，其继承关系应与注册表一致。
 - `Name` 是一个 32 位池内索引，`NamePool` 为同名字节串只保存一份内容；池扩容保持名称与字符串视图稳定。空输入和索引耗尽返回无效名称。名称相等和哈希仅在同一池内有意义；索引本身不携带池身份，无法检测恰好落在另一池有效范围内的外来索引。词法验证与 NFC 处理仍由 tokenizer 负责。
-- `Value` 是语义值基类，`Type`、`Constant` 与 `ExprValue` 是三个分支。`Type` 下分 `BuiltinType` 与 `UserDefinedType`：builtin 当前提供元类型、void、bool、带符号性和宽度的整数、IEEE binary16/32/64 浮点、定长数组、切片、指针和引用；user-defined 提供 `ClassType`、`EnumType` 与 `InterfaceType`。当前常量仍为 bool、任意位宽整数常量。所有类型值的类型是元类型，元类型的类型为自身。类型和常量在上下文内规范化；不同上下文的指针不可用于语义相等比较。LLVM 的公开 `StringMap`、`APInt` 和哈希工具仅用于基础存储，不连接 LLVM IR 或后端执行。
-- `ExprValue`（`ValueKind::Expr`）保存已检查表达式的结果类型、借用的只读 AST 表达式以及文件身份；`context()` 返回所属的 `SemanticContext` 模型存储。`createExprValue()` 校验结果类型归属，由调用方负责表达式检查，不执行表达式，也不标记为仅能在运行时执行。同一 AST 的每次创建均得到独立身份，避免将不同语义分析或实例的结果按 AST 指针错误合并。定义环境、泛型替换环境与 `SemanticContextId` 尚未实现；后续语义旁表须按表达式值身份关联相应的绑定、转换和实例上下文，模型存储上下文不能替代这些环境。
-- `ArrayType` 的规范键为元素类型和 64 位长度，多维数组通过嵌套 `ArrayType` 表示；`SliceType` 表示具有运行期长度的视图，不拥有动态容器的分配策略。`PointerType`、`ReferenceType` 和 `SliceType` 的规范键都包括目标类型和 `AccessKind`，且三种类型使用不同存储。访问权限与 `VarDecl::isMutable()` 分别描述间接访问和绑定可变性，`ReferenceType` 不替代表达式的值/位置类别。即使元素或目标是用户定义类型，这些语言内建类型构造器仍归 `BuiltinType`。
-- `TypeDecl` 为类、枚举和接口登记独立的语义声明身份，`UserDefinedType` 关联该声明；同一声明复用同一名义类型，同名但不同身份的声明不合并。当前可在成员分析前发布身份以供指针等引用；成员、基类、枚举底层类型、接口约束和泛型实例仍是后续工作。组合类型工厂验证上下文归属与访问权限枚举，不在这一层冻结数组元素合法性、大小限制、引用折叠或可空性等语言规则；允许记录零长度或尚未验证目标布局的数组形状不代表已经通过语义检查。
-- `Decl` 独立于 `Value`，稳定地址代表声明身份，`VarDecl` 保存名称、`BindingMutability`、来源和可空的 `const Value *Initializer`。初始化值可以是类型、常量或表达式值。`var/const` 分别映射到 `Mutable/Immutable`，通过 `mutability()` 和 `isMutable()` 查询；该信息描述初始化后的绑定可变性，间接访问权限和编译期可求值性另行表示。变量声明工厂拒绝无效的可变性枚举和其他上下文的初始化值。类型和初始化值可在声明登记之后分别通过 `setType()`、`setInitializer()` 一次性发布，允许以相同对象重复发布，拒绝替换成不同对象；两者均存在时要求转换后的初始化值类型与声明类型相同，失败保留原有状态。每次创建声明都有独立身份，同名声明不会合并。`DeclSource` 保存 Core 的文件身份、范围和可选的只读语法声明引用。
-- 语法声明和初始化表达式所属的 `ParsedUnit` 必须保持存活；当前上下文不拥有或复制 AST。变量的执行期槽位、初始化表达式求得的常量及表达式检查结果分别属于后续的执行环境、常量存储和语义旁表，不能把变量当前内容放进 `VarDecl`。
+- `ConstantPool` 由 `SemanticContext` 独占，通过 `constantPool()` 访问；当前驻留 bool、任意位宽整数、`StringConst` 和 `FloatConst`，`SemanticContext` 的常量工厂转发到同一池。池在基础类型创建后初始化，并在类型存储销毁前释放；false、true 预先创建，其他常量按规范类型身份与完整 payload 先查找、未命中才分配，哈希碰撞后继续精确比较。外来类型和 payload 与类型不匹配的请求返回空指针且不改变池。`size()` 包含两个 bool 常量，`owns()` 检查具体对象归属，池与常量地址在上下文生命周期内保持稳定。聚合常量、源码字面量语义分析及 IR lowering 仍待后续实现。
+- `StringConst` 的类型固定为本上下文的只读 `u8` 切片；`getStringConst(SliceType, Payload)` 复制调用方已验证、解码的 UTF-8 字节，以完整字节序列比较，支持空串、内嵌 NUL 和非 ASCII 内容，不做转义解码或 Unicode 规范化。`value()` 返回池拥有的稳定 `std::string_view`，长度不包含额外终止符。不同源码位置或不同转义拼写只要解码内容相同就复用常量；AST 节点仍独立保存来源。
+- `IntegerConstant` 保存自有 `IntegerBits`，由位宽与低位字在前的 `uint64_t` 字数组组成；符号性由 `IntegerType` 决定，负数使用二进制补码。单字构造允许显式零扩展到宽于 64 位的表示，多字构造复制全部输入；`valid()` 检查非零位宽、精确字数与最后一个字的未用高位，常量池拒绝无效表示及类型宽度不匹配，不静默丢弃或补齐输入字。
+- `FloatConst` 保存自有 `FloatBits`，由 IEEE binary16/32/64 位宽与 `uint64_t` 原始位模式组成；`valid()` 拒绝不支持的位宽及编码之外的高位。`getFloatConst(FloatType, Payload)` 验证表示有效且位宽与类型匹配，再按完整位模式驻留，区分正负零、无穷、NaN 符号、静默/信号位与 payload。输入必须已经采用对应 IEEE 格式编码，不通过宿主浮点类型转换。十进制字面量解析、浮点运算、格式转换、舍入和溢出诊断由后续语义分析负责；池只保存位表示。
+- `Value` 是语义值基类，当前分支为 `Type`、`Constant`、`ExprValue`、`Function` 和抽象指令基类 `Instruction`。`Type` 下分 `BuiltinType` 与 `UserDefinedType`：builtin 提供元类型、void、bool、整数、IEEE binary16/32/64 浮点、定长数组、切片、指针、引用和函数类型；user-defined 提供 `ClassType`、`EnumType` 与 `InterfaceType`。所有类型值的类型是元类型，元类型的类型为自身。结构类型和常量在上下文内规范化；名义类型拥有独立身份，由分析器复用同一类型或实例的对象。不同上下文的对象不可直接混用。semantic 的接口、实现与测试使用项目自有模型及标准库，`ink_semantic` 仅依赖 `ink::core`；LLVM IR 类型转换限定在后端适配层。
+- `ExprValue`（`ValueKind::ExprValue`）保存已检查表达式的结果类型、借用的只读 AST 表达式以及文件身份；`context()` 返回所属的 `SemanticContext` 模型存储。`createExprValue()` 校验结果类型归属，由调用方负责表达式检查，不执行表达式，也不标记为仅能在运行时执行。同一 AST 的每次创建均得到独立身份，避免将不同语义分析或实例的结果按 AST 指针错误合并。定义环境、泛型替换环境与 `SemanticContextId` 尚未实现；后续语义旁表须按表达式值身份关联相应的绑定、转换和实例上下文，模型存储上下文不能替代这些环境。
+- `ArrayType` 的规范键为元素类型和 64 位长度，多维数组通过嵌套 `ArrayType` 表示；`SliceType` 表示具有运行期长度的视图，不拥有动态容器的分配策略。`PointerType`、`ReferenceType` 和 `SliceType` 的规范键都包括目标类型和 `AccessKind`，且三种类型使用不同存储。访问权限与 `Variable::isMutable()` 分别描述间接访问和绑定可变性，`ReferenceType` 不替代表达式的值/位置类别。即使元素或目标是用户定义类型，这些语言内建类型构造器仍归 `BuiltinType`。
+- `FunctionType` 保存已确定的固定参数签名，`getFunctionType(ReturnType, ParameterTypes)` 按返回类型和有序形参类型身份驻留，哈希命中后仍精确比较完整签名。返回和形参类型必须属于当前上下文，形参不能为空；形参列表复制为类型自身拥有的存储，支持零参数、void 返回值、名义类型及嵌套函数类型。参数名、默认值、参数包和泛型绑定不放入这份签名，参数类型的语言合法性仍由分析器检查。
+- `Decl` 只保存名称和借用的只读 AST，派生类不增加字段；不保存上下文、种类、重复的源码位置、类型、签名或初始化值。当前只有泛型函数和泛型类生成语义 `Decl`：`createFunctionDecl(Name, AST)` 与 `createClassDecl(Name, AST)` 检查 AST 含有泛型参数，普通函数和普通类返回空指针。`FunctionDecl::ast()`、`ClassDecl::ast()` 返回具体 AST，`classof()` 根据 AST 分类；参数、函数体、类成员及范围从 AST 读取。语义层暂不提供 `VarDecl`。模板保持不变，类型检查结果、定义环境和实例状态由独立对象或旁表保存。
+- `Function` 是具有已确定 `FunctionType` 和独立身份的函数值，由 `createFunction(Name, Signature)` 创建，供普通函数和闭合泛型实例使用。`CallInstruction` 保存函数类型的 `Value` 引用及实参引用列表；`directCallee()` 识别 `Function`，其他函数值由 `indirectCallee()` 返回，`callee()` 提供统一入口。`functionType()` 返回签名，`type()` 返回签名的返回类型。工厂拒绝非函数目标、外来上下文对象、空实参及数量或类型不匹配。泛型 `FunctionDecl` 不能直接调用，须先实例化得到闭合函数值。每次调用独立分配，列表和对象地址在扩容后保持稳定；创建不执行函数，也不进行重载选择、参数转换或泛型实例化。
+- `createClassType(Name)`、`createEnumType(Name)` 和 `createInterfaceType(Name)` 直接创建具体名义类型，不经过语义 `Decl`。对象地址代表类型身份，同名对象不合并；分析器负责按普通类型或泛型实例身份复用已经创建的对象，避免仅按名字或共享 AST 合并不同实例。成员、基类、枚举底层类型、接口约束、布局和实例缓存仍待实现。组合类型工厂验证上下文归属与访问权限，不在存储层决定数组元素合法性、大小限制、引用折叠或可空性等语言规则。
+- `Variable` 保存普通变量绑定的名称、上下文、可变性、已解析类型和初始化值，独立于 `Decl` 与 `Value`。`createVariable(Name, Mutability, Initializer)` 检查名称、`BindingMutability` 和初始化值归属；`Mutable/Immutable` 分别对应 `var/const`。`setType()` 与 `setInitializer()` 各发布一次，允许重复发布同一对象，拒绝冲突及外来对象；两者都有值时类型必须一致。初始化值可以是本地类型、常量、函数或表达式结果。每个绑定具有独立身份，不保存 AST 或执行时的变量内容；源码绑定关系由后续分析器旁表记录。
+- 泛型定义和表达式值借用的 AST 所属 `ParsedUnit` 必须保持存活，当前上下文不拥有或复制 AST。源码中的普通 `parser::VarDecl`、`parser::FunctionDecl` 和 `parser::ClassDecl` 是语法节点，不意味着创建同名语义 `Decl`。执行期变量槽位、编译期结果及语义分析状态分别保存，不能写回共享泛型 AST。
 
-这一阶段不提供 `Scope`、`LookupResult`、`Binding`、`ExprInfo`、名称解析、comptime 或 IR lowering。下文的 ID、类型/常量独立存储门面和会话结构仍为后续接口规划；当前类型、常量和声明引用使用上下文内稳定指针，不能直接持久化。
+这一阶段不提供 `Scope`、`LookupResult`、`Binding`、`ExprInfo`、名称解析、comptime 或 IR lowering。下文的 ID、类型独立存储门面、扩展常量种类和会话结构仍为后续接口规划；当前类型、常量和声明引用使用上下文内稳定指针，不能直接持久化。
 
 ## 2 所有权、身份和上下文
 
@@ -77,7 +85,7 @@ Parser 发布 AST 后，semantic 只通过只读接口访问。当前 Parser API
 | --- | --- |
 | `ModuleId`、`UnitId` | 当前会话中的模块和 AST 单元 |
 | `NodeRef` | `UnitId` 加只读节点指针；只在节点所属单元存活期间有效 |
-| `DeclId` | 语义声明；不是源码文本中的名字，也不是 ASTKind |
+| `DeclId` | 泛型语义定义；普通函数、名义类型和变量使用各自的对象身份 |
 | `GlobalDeclRef` | 跨模块的声明身份：模块身份、接口版本及模块内声明身份 |
 | `ScopeId`、`BindingId` | 词法作用域和具体名称绑定；同名局部变量必须可区分 |
 | `TypeId`、`ConstValueId` | 会话内规范化的类型和不可变常量 |
@@ -123,7 +131,7 @@ Parser 发布 AST 后，semantic 只通过只读接口访问。当前 Parser API
 
 | 类 | 具体职责 | 保存的关键数据 |
 | --- | --- | --- |
-| `DeclStore` | 为函数、类型、字段、变量、参数及生成声明分配身份；统一保存声明头的完成状态 | `DeclInfo`、来源 `NodeRef`、定义环境、签名、所属实例 |
+| `DeclStore` | 仅为泛型函数和泛型类保存不可变定义；分析及实例状态放在独立旁表 | 名称、借用的只读 AST；普通对象由对应模型存储拥有 |
 | `ScopeStore` | 保存模块、类型、函数、块作用域及其名称索引；记录声明的可见条件和导入来源 | `ScopeInfo`、`BindingInfo`、重载集合、可见性边界 |
 | `TypeContext` | 规范化内建、名义、复合、函数及元类型；处理类型相等、完整性和目标布局查询 | `TypeId`、类型结构、名义声明身份、布局状态 |
 | `ConstantPool` | 驻留不可变的标量、聚合、类型值及允许持久化的符号常量，提供规范相等和哈希 | `ConstValueId`、类型、规范值；不保存可变局部对象 |
@@ -137,7 +145,7 @@ Parser 发布 AST 后，semantic 只通过只读接口访问。当前 Parser API
 
 | 类 | 具体职责 | 主要入口或输出 |
 | --- | --- | --- |
-| `DeclCollector` | 在允许的作用域登记声明身份及头部索引；记录尚未激活的声明区域；不执行函数体 | `collectScope()`、`registerDeclaration()` |
+| `DeclCollector` | 在允许的作用域登记源码名称和绑定；只有泛型函数及泛型类创建语义 `Decl`，记录尚未激活的区域 | `collectScope()`、`registerDeclaration()` |
 | `NameResolver` | 执行词法、模块、成员及导入名称查找，检查访问权限；返回声明、绑定或重载集合 | `lookupName()`、`lookupMember()` → `LookupResult` |
 | `DeclAnalyzer` | 检查泛型形参、函数签名、基类/接口、字段、全局初始化和属性；按需完成声明 | `analyzeHeader()`、`completeType()`、`analyzeInitializer()` |
 | `TypeResolver` | 将 `TypeSyntax` 包装的表达式解释为类型；必要时请求 comptime；返回具体类型或依赖配方 | `resolveType()` → 具体 `TypeId` 或依赖结果 |

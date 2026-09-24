@@ -1,11 +1,10 @@
 #include "ink/semantic/model/context.h"
 
-#include "ink/semantic/model/class_type.h"
-#include "ink/semantic/model/enum_type.h"
-#include "ink/semantic/model/interface_type.h"
+#include "ink/semantic/model/type/class_type.h"
+#include "ink/semantic/model/type/enum_type.h"
+#include "ink/semantic/model/type/interface_type.h"
 
 #include <gtest/gtest.h>
-#include <llvm/Support/Casting.h>
 
 #include <limits>
 #include <type_traits>
@@ -20,6 +19,7 @@ namespace ink::semantic::test
   static_assert(std::is_base_of_v<BuiltinType, SliceType>);
   static_assert(std::is_base_of_v<BuiltinType, PointerType>);
   static_assert(std::is_base_of_v<BuiltinType, ReferenceType>);
+  static_assert(std::is_base_of_v<BuiltinType, FunctionType>);
   static_assert(std::is_base_of_v<UserDefinedType, ClassType>);
   static_assert(std::is_base_of_v<UserDefinedType, EnumType>);
   static_assert(std::is_base_of_v<UserDefinedType, InterfaceType>);
@@ -41,14 +41,14 @@ namespace ink::semantic::test
         Context.getSliceType(*Int32, AccessKind::ReadOnly),
         Context.getPointerType(*Int32, AccessKind::ReadWrite),
         Context.getReferenceType(*Int32, AccessKind::ReadOnly),
+        Context.getFunctionType(*Int32),
     };
     for (const Type *Item : Types)
     {
       ASSERT_NE(Item, nullptr);
       const Value *ValueObject = Item;
-      EXPECT_TRUE(llvm::isa<BuiltinType>(ValueObject));
-      EXPECT_EQ(llvm::dyn_cast<BuiltinType>(ValueObject), Item);
-      EXPECT_FALSE(llvm::isa<UserDefinedType>(Item));
+      EXPECT_TRUE(BuiltinType::classof(ValueObject));
+      EXPECT_FALSE(UserDefinedType::classof(Item));
       EXPECT_EQ(&Item->type(), &Context.getMetaType());
     }
     EXPECT_FALSE(BuiltinType::classof(nullptr));
@@ -169,12 +169,13 @@ namespace ink::semantic::test
     const PointerType *Nested = Context.getPointerType(*Pointer, AccessKind::ReadWrite);
     ASSERT_NE(Nested, nullptr);
     EXPECT_EQ(&Nested->pointeeType(), Pointer);
-    VarDecl *Binding = Context.createVarDecl(Context.namePool().intern("P"), BindingMutability::Immutable);
+    Variable *Binding = Context.createVariable(Context.namePool().intern("P"), BindingMutability::Immutable);
     ASSERT_NE(Binding, nullptr);
     ASSERT_TRUE(Binding->setType(*Context.getPointerType(*Int32, AccessKind::ReadWrite)));
     EXPECT_FALSE(Binding->isMutable());
     EXPECT_EQ(Binding->mutability(), BindingMutability::Immutable);
-    EXPECT_EQ(llvm::cast<PointerType>(Binding->type())->access(), AccessKind::ReadWrite);
+    ASSERT_TRUE(PointerType::classof(Binding->type()));
+    EXPECT_EQ(static_cast<const PointerType *>(Binding->type())->access(), AccessKind::ReadWrite);
   }
 
   // Composite types reject foreign-context components and unknown access flags explicitly.
@@ -194,37 +195,28 @@ namespace ink::semantic::test
     EXPECT_EQ(Context.getReferenceType(Context.getBoolType(), InvalidAccess), nullptr);
   }
 
-  // Nominal types canonicalize declaration identity; equal names never merge distinct declarations.
-  TEST(SemanticTypeTest, UserDefinedTypesUseDeclarationIdentityAndSpecificKinds)
+  // Resolved nominal types have distinct identities and specific kinds without allocating generic declarations.
+  TEST(SemanticTypeTest, UserDefinedTypesHaveIndependentIdentityAndSpecificKinds)
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
     const Name NameValue = Context.namePool().intern("Point");
-    const DeclSource Source{core::SourceId(1), core::SourceRange::fromByteOffsets(0, 12), nullptr};
-    TypeDecl *First = Context.createTypeDecl(NameValue, DeclKind::Class, Source);
-    TypeDecl *Second = Context.createTypeDecl(NameValue, DeclKind::Class);
-    ASSERT_NE(First, nullptr);
-    ASSERT_NE(Second, nullptr);
-    const UserDefinedType *Class = Context.getUserDefinedType(*First);
+    const ClassType *Class = Context.createClassType(NameValue);
+    const ClassType *Second = Context.createClassType(NameValue);
     ASSERT_NE(Class, nullptr);
-    EXPECT_EQ(Class, Context.getUserDefinedType(*First));
-    EXPECT_NE(Class, Context.getUserDefinedType(*Second));
-    EXPECT_EQ(&Class->declaration(), First);
-    EXPECT_EQ(First->name(), Second->name());
-    EXPECT_EQ(First->source().Range, Source.Range);
-    EXPECT_EQ(First->source().Source, Source.Source);
+    ASSERT_NE(Second, nullptr);
+    EXPECT_NE(Class, Second);
+    EXPECT_EQ(Class->name(), Second->name());
+    EXPECT_EQ(&Class->context(), &Context);
     EXPECT_EQ(Context.namePool().size(), 1U);
-    EXPECT_TRUE(TypeDecl::classof(First));
-    EXPECT_FALSE(VarDecl::classof(First));
-    EXPECT_FALSE(TypeDecl::classof(Context.createVarDecl(NameValue, BindingMutability::Mutable)));
-    const UserDefinedType *Enum = Context.getUserDefinedType(*Context.createTypeDecl(NameValue, DeclKind::Enum));
-    const UserDefinedType *Interface = Context.getUserDefinedType(*Context.createTypeDecl(NameValue, DeclKind::Interface));
+    const EnumType *Enum = Context.createEnumType(NameValue);
+    const InterfaceType *Interface = Context.createInterfaceType(NameValue);
     ASSERT_NE(Enum, nullptr);
     ASSERT_NE(Interface, nullptr);
-    EXPECT_TRUE(llvm::isa<ClassType>(Class));
-    EXPECT_FALSE(llvm::isa<ClassType>(Enum));
-    EXPECT_TRUE(llvm::isa<EnumType>(Enum));
-    EXPECT_TRUE(llvm::isa<InterfaceType>(Interface));
+    EXPECT_TRUE(ClassType::classof(Class));
+    EXPECT_FALSE(ClassType::classof(Enum));
+    EXPECT_TRUE(EnumType::classof(Enum));
+    EXPECT_TRUE(InterfaceType::classof(Interface));
     const UserDefinedType *Types[] = {
         Class,
         Enum,
@@ -233,15 +225,18 @@ namespace ink::semantic::test
     for (const Type *Item : Types)
     {
       const Value *ValueObject = Item;
-      EXPECT_EQ(llvm::dyn_cast<UserDefinedType>(ValueObject), Item);
+      EXPECT_TRUE(UserDefinedType::classof(ValueObject));
       EXPECT_FALSE(BuiltinType::classof(Item));
       EXPECT_EQ(&Item->type(), &Context.getMetaType());
     }
-    EXPECT_EQ(Context.createTypeDecl(Name{}, DeclKind::Class), nullptr);
-    EXPECT_EQ(Context.createTypeDecl(NameValue, DeclKind::Variable), nullptr);
-    EXPECT_EQ(Context.createTypeDecl(NameValue, static_cast<DeclKind>(255)), nullptr);
+    EXPECT_EQ(Context.createClassType(Name{}), nullptr);
+    EXPECT_EQ(Context.createEnumType(Name{}), nullptr);
+    EXPECT_EQ(Context.createInterfaceType(Name{}), nullptr);
     SemanticContext Other(Compilation);
-    EXPECT_EQ(Other.getUserDefinedType(*First), nullptr);
+    EXPECT_EQ(Other.createClassType(NameValue), nullptr);
+    EXPECT_EQ(Other.createEnumType(NameValue), nullptr);
+    EXPECT_EQ(Other.createInterfaceType(NameValue), nullptr);
+    EXPECT_EQ(Other.getPointerType(*Class, AccessKind::ReadOnly), nullptr);
   }
 
   // Builtin type constructors remain builtin when their component is a nominal user type.
@@ -249,9 +244,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    TypeDecl *Declaration = Context.createTypeDecl(Context.namePool().intern("Node"), DeclKind::Class);
-    ASSERT_NE(Declaration, nullptr);
-    const UserDefinedType *Node = Context.getUserDefinedType(*Declaration);
+    const ClassType *Node = Context.createClassType(Context.namePool().intern("Node"));
     ASSERT_NE(Node, nullptr);
     const ArrayType *Array = Context.getArrayType(*Node, 8);
     const SliceType *Slice = Context.getSliceType(*Node, AccessKind::ReadOnly);
@@ -284,8 +277,8 @@ namespace ink::semantic::test
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
     const Name NameValue = Context.namePool().intern("Node");
-    const TypeDecl *Declaration = Context.createTypeDecl(NameValue, DeclKind::Class);
-    const UserDefinedType *Node = Context.getUserDefinedType(*Declaration);
+    const ClassType *Node = Context.createClassType(NameValue);
+    ASSERT_NE(Node, nullptr);
     const ArrayType *Array = Context.getArrayType(*Node, 3);
     const SliceType *Slice = Context.getSliceType(*Node, AccessKind::ReadWrite);
     const PointerType *Pointer = Context.getPointerType(*Node, AccessKind::ReadWrite);
@@ -297,14 +290,14 @@ namespace ink::semantic::test
       ASSERT_NE(Context.getSliceType(*Item, AccessKind::ReadWrite), nullptr);
       ASSERT_NE(Context.getPointerType(*Item, AccessKind::ReadWrite), nullptr);
       ASSERT_NE(Context.getReferenceType(*Item, AccessKind::ReadOnly), nullptr);
-      ASSERT_NE(Context.getUserDefinedType(*Context.createTypeDecl(NameValue, DeclKind::Class)), nullptr);
+      ASSERT_NE(Context.createClassType(NameValue), nullptr);
     }
-    EXPECT_EQ(Context.getUserDefinedType(*Declaration), Node);
     EXPECT_EQ(Context.getArrayType(*Node, 3), Array);
     EXPECT_EQ(Context.getSliceType(*Node, AccessKind::ReadWrite), Slice);
     EXPECT_EQ(Context.getPointerType(*Node, AccessKind::ReadWrite), Pointer);
     EXPECT_EQ(Context.getReferenceType(*Node, AccessKind::ReadOnly), Reference);
     EXPECT_EQ(&Pointer->pointeeType(), Node);
-    EXPECT_EQ(&Node->declaration(), Declaration);
+    EXPECT_EQ(Node->name(), NameValue);
+    EXPECT_EQ(&Node->context(), &Context);
   }
 } // namespace ink::semantic::test

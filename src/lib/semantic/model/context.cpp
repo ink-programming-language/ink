@@ -1,11 +1,13 @@
 #include "ink/semantic/model/context.h"
 
-#include "ink/semantic/model/class_type.h"
-#include "ink/semantic/model/enum_type.h"
-#include "ink/semantic/model/interface_type.h"
+#include "ink/semantic/model/type/class_type.h"
+#include "ink/semantic/model/type/enum_type.h"
+#include "ink/semantic/model/type/interface_type.h"
 
-#include <llvm/ADT/Hashing.h>
+#include "hash.h"
 
+#include <algorithm>
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -25,7 +27,7 @@ namespace ink::semantic
     {
         std::size_t operator()(const ArrayTypeKey &Key) const noexcept
         {
-          return llvm::hash_combine(Key.ElementType, Key.ElementCount);
+          return combineHash(std::hash<const Type *>{}(Key.ElementType), std::hash<std::uint64_t>{}(Key.ElementCount));
         }
     };
 
@@ -41,13 +43,40 @@ namespace ink::semantic
     {
         std::size_t operator()(const AccessTypeKey &Key) const noexcept
         {
-          return llvm::hash_combine(Key.TargetType, static_cast<std::uint8_t>(Key.Access));
+          return combineHash(std::hash<const Type *>{}(Key.TargetType), static_cast<std::uint8_t>(Key.Access));
         }
     };
 
     bool isValidAccess(AccessKind Access) noexcept
     {
       return Access == AccessKind::ReadOnly || Access == AccessKind::ReadWrite;
+    }
+
+    std::size_t functionTypeHash(const Type &ReturnType, std::span<const Type *const> ParameterTypes) noexcept
+    {
+      std::size_t Hash = combineHash(std::hash<const Type *>{}(&ReturnType), ParameterTypes.size());
+      for (const Type *ParameterType : ParameterTypes)
+      {
+        Hash = combineHash(Hash, std::hash<const Type *>{}(ParameterType));
+      }
+      return Hash;
+    }
+
+    bool matchesCallArguments(const FunctionType &Signature, std::span<const Value *const> Arguments) noexcept
+    {
+      const auto Parameters = Signature.parameterTypes();
+      if (Arguments.size() != Parameters.size())
+      {
+        return false;
+      }
+      for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
+      {
+        if (!Arguments[Index] || &Arguments[Index]->type() != Parameters[Index])
+        {
+          return false;
+        }
+      }
+      return true;
     }
   } // namespace
 
@@ -57,33 +86,45 @@ namespace ink::semantic
       std::unique_ptr<BuiltinType> MetaType;
       std::unique_ptr<BuiltinType> VoidType;
       std::unique_ptr<BuiltinType> BoolType;
-      // Model destructors never traverse borrowed declaration/type edges.
+      // Model destructors never traverse borrowed AST/type/value edges.
       std::vector<std::unique_ptr<Decl>> Declarations;
+      std::vector<std::unique_ptr<Variable>> Variables;
       std::unordered_map<std::uint64_t, std::unique_ptr<IntegerType>> IntegerTypes;
       std::unordered_map<std::uint32_t, std::unique_ptr<FloatType>> FloatTypes;
-      std::unordered_map<const TypeDecl *, std::unique_ptr<UserDefinedType>> UserDefinedTypes;
+      std::vector<std::unique_ptr<UserDefinedType>> UserDefinedTypes;
       std::unordered_map<ArrayTypeKey, std::unique_ptr<ArrayType>, ArrayTypeKeyHash> ArrayTypes;
       std::unordered_map<AccessTypeKey, std::unique_ptr<SliceType>, AccessTypeKeyHash> SliceTypes;
       std::unordered_map<AccessTypeKey, std::unique_ptr<PointerType>, AccessTypeKeyHash> PointerTypes;
       std::unordered_map<AccessTypeKey, std::unique_ptr<ReferenceType>, AccessTypeKeyHash> ReferenceTypes;
-      std::unordered_multimap<std::size_t, std::unique_ptr<IntegerConstant>> IntegerConstants;
-      std::unique_ptr<BoolConstant> FalseValue;
-      std::unique_ptr<BoolConstant> TrueValue;
+      std::unordered_multimap<std::size_t, std::unique_ptr<FunctionType>> FunctionTypes;
+      // Constants are destroyed before the types they reference.
+      std::unique_ptr<ConstantPool> Constants;
       std::vector<std::unique_ptr<ExprValue>> ExpressionValues;
+      std::vector<std::unique_ptr<Function>> Functions;
+      std::vector<std::unique_ptr<CallInstruction>> Calls;
   };
 
   SemanticContext::SemanticContext(core::CompilationContext &Compilation)
       : Compilation(Compilation),
         Storage(std::make_unique<Impl>())
   {
-    Storage->MetaType.reset(new BuiltinType(*this, TypeKind::Meta, nullptr));
-    Storage->VoidType.reset(new BuiltinType(*this, TypeKind::Void, Storage->MetaType.get()));
-    Storage->BoolType.reset(new BuiltinType(*this, TypeKind::Bool, Storage->MetaType.get()));
-    Storage->FalseValue.reset(new BoolConstant(*Storage->BoolType, false));
-    Storage->TrueValue.reset(new BoolConstant(*Storage->BoolType, true));
+    Storage->MetaType.reset(new BuiltinType(*this, ValueKind::BuiltinType, TypeKind::Meta, nullptr));
+    Storage->VoidType.reset(new BuiltinType(*this, ValueKind::BuiltinType, TypeKind::Void, Storage->MetaType.get()));
+    Storage->BoolType.reset(new BuiltinType(*this, ValueKind::BuiltinType, TypeKind::Bool, Storage->MetaType.get()));
+    Storage->Constants.reset(new ConstantPool(*this));
   }
 
   SemanticContext::~SemanticContext() = default;
+
+  ConstantPool &SemanticContext::constantPool() noexcept
+  {
+    return *Storage->Constants;
+  }
+
+  const ConstantPool &SemanticContext::constantPool() const noexcept
+  {
+    return *Storage->Constants;
+  }
 
   const BuiltinType &SemanticContext::getMetaType() const noexcept
   {
@@ -185,62 +226,89 @@ namespace ink::semantic
     return Entry->second.get();
   }
 
-  const UserDefinedType *SemanticContext::getUserDefinedType(const TypeDecl &Declaration)
+  const FunctionType *SemanticContext::getFunctionType(const Type &ReturnType, std::span<const Type *const> ParameterTypes)
   {
-    if (&Declaration.context() != this)
+    if (&ReturnType.context() != this)
     {
       return nullptr;
     }
-    const auto Existing = Storage->UserDefinedTypes.find(&Declaration);
-    if (Existing != Storage->UserDefinedTypes.end())
+    for (const Type *ParameterType : ParameterTypes)
     {
-      return Existing->second.get();
+      if (!ParameterType || &ParameterType->context() != this)
+      {
+        return nullptr;
+      }
     }
-    std::unique_ptr<UserDefinedType> Result;
-    switch (Declaration.kind())
-    {
-    case DeclKind::Class:
-      Result.reset(new ClassType(*this, getMetaType(), Declaration));
-      break;
-    case DeclKind::Enum:
-      Result.reset(new EnumType(*this, getMetaType(), Declaration));
-      break;
-    case DeclKind::Interface:
-      Result.reset(new InterfaceType(*this, getMetaType(), Declaration));
-      break;
-    default:
-      return nullptr;
-    }
-    const UserDefinedType *Pointer = Result.get();
-    Storage->UserDefinedTypes.emplace(&Declaration, std::move(Result));
-    return Pointer;
-  }
-
-  const IntegerConstant *SemanticContext::getIntegerConstant(const IntegerType &ValueType, const llvm::APInt &Payload)
-  {
-    if (&ValueType.context() != this || ValueType.bitWidth() != Payload.getBitWidth())
-    {
-      return nullptr;
-    }
-    const std::size_t Hash = llvm::hash_combine(&ValueType, llvm::hash_value(Payload));
-    const auto Candidates = Storage->IntegerConstants.equal_range(Hash);
+    const std::size_t Hash = functionTypeHash(ReturnType, ParameterTypes);
+    const auto Candidates = Storage->FunctionTypes.equal_range(Hash);
     for (auto Entry = Candidates.first; Entry != Candidates.second; ++Entry)
     {
-      const IntegerConstant &Candidate = *Entry->second;
-      if (&Candidate.type() == &ValueType && Candidate.value() == Payload)
+      const FunctionType &Candidate = *Entry->second;
+      if (&Candidate.returnType() == &ReturnType && std::equal(Candidate.parameterTypes().begin(), Candidate.parameterTypes().end(), ParameterTypes.begin(), ParameterTypes.end()))
       {
         return &Candidate;
       }
     }
-    auto Result = std::unique_ptr<IntegerConstant>(new IntegerConstant(ValueType, Payload));
-    const IntegerConstant *Pointer = Result.get();
-    Storage->IntegerConstants.emplace(Hash, std::move(Result));
+    auto Result = std::unique_ptr<FunctionType>(new FunctionType(*this, getMetaType(), ReturnType, ParameterTypes));
+    const FunctionType *Pointer = Result.get();
+    Storage->FunctionTypes.emplace(Hash, std::move(Result));
     return Pointer;
+  }
+
+  const ClassType *SemanticContext::createClassType(Name TypeName)
+  {
+    if (!Names.contains(TypeName))
+    {
+      return nullptr;
+    }
+    auto Result = std::unique_ptr<ClassType>(new ClassType(*this, getMetaType(), TypeName));
+    const ClassType *Pointer = Result.get();
+    Storage->UserDefinedTypes.push_back(std::move(Result));
+    return Pointer;
+  }
+
+  const EnumType *SemanticContext::createEnumType(Name TypeName)
+  {
+    if (!Names.contains(TypeName))
+    {
+      return nullptr;
+    }
+    auto Result = std::unique_ptr<EnumType>(new EnumType(*this, getMetaType(), TypeName));
+    const EnumType *Pointer = Result.get();
+    Storage->UserDefinedTypes.push_back(std::move(Result));
+    return Pointer;
+  }
+
+  const InterfaceType *SemanticContext::createInterfaceType(Name TypeName)
+  {
+    if (!Names.contains(TypeName))
+    {
+      return nullptr;
+    }
+    auto Result = std::unique_ptr<InterfaceType>(new InterfaceType(*this, getMetaType(), TypeName));
+    const InterfaceType *Pointer = Result.get();
+    Storage->UserDefinedTypes.push_back(std::move(Result));
+    return Pointer;
+  }
+
+  const IntegerConstant *SemanticContext::getIntegerConstant(const IntegerType &ValueType, const IntegerBits &Payload)
+  {
+    return constantPool().getIntegerConstant(ValueType, Payload);
   }
 
   const BoolConstant &SemanticContext::getBoolConstant(bool Payload) const noexcept
   {
-    return Payload ? *Storage->TrueValue : *Storage->FalseValue;
+    return constantPool().getBoolConstant(Payload);
+  }
+
+  const StringConst *SemanticContext::getStringConst(const SliceType &ValueType, std::string_view Payload)
+  {
+    return constantPool().getStringConst(ValueType, Payload);
+  }
+
+  const FloatConst *SemanticContext::getFloatConst(const FloatType &ValueType, const FloatBits &Payload)
+  {
+    return constantPool().getFloatConst(ValueType, Payload);
   }
 
   const ExprValue *SemanticContext::createExprValue(const Type &ValueType, const parser::Expr &Expression, core::SourceId Source)
@@ -255,26 +323,67 @@ namespace ink::semantic
     return Pointer;
   }
 
-  VarDecl *SemanticContext::createVarDecl(Name DeclName, BindingMutability Mutability, DeclSource Source, const Value *Initializer)
+  const Function *SemanticContext::createFunction(Name FunctionName, const FunctionType &Signature)
   {
-    if (!Names.contains(DeclName) || (Mutability != BindingMutability::Mutable && Mutability != BindingMutability::Immutable) || (Initializer && &Initializer->type().context() != this))
+    if (!Names.contains(FunctionName) || &Signature.context() != this)
     {
       return nullptr;
     }
-    auto Result = std::unique_ptr<VarDecl>(new VarDecl(*this, DeclName, Mutability, Source, Initializer));
-    VarDecl *Pointer = Result.get();
+    auto Result = std::unique_ptr<Function>(new Function(FunctionName, Signature));
+    const Function *Pointer = Result.get();
+    Storage->Functions.push_back(std::move(Result));
+    return Pointer;
+  }
+
+  const CallInstruction *SemanticContext::createCallInstruction(const Value &Callee, std::span<const Value *const> Arguments)
+  {
+    if (&Callee.type().context() != this || !FunctionType::classof(&Callee.type()))
+    {
+      return nullptr;
+    }
+    const auto &Signature = static_cast<const FunctionType &>(Callee.type());
+    if (!matchesCallArguments(Signature, Arguments))
+    {
+      return nullptr;
+    }
+    auto Result = std::unique_ptr<CallInstruction>(new CallInstruction(Callee, Arguments));
+    const CallInstruction *Pointer = Result.get();
+    Storage->Calls.push_back(std::move(Result));
+    return Pointer;
+  }
+
+  Variable *SemanticContext::createVariable(Name VariableName, BindingMutability Mutability, const Value *Initializer)
+  {
+    if (!Names.contains(VariableName) || (Mutability != BindingMutability::Mutable && Mutability != BindingMutability::Immutable) || (Initializer && &Initializer->type().context() != this))
+    {
+      return nullptr;
+    }
+    auto Result = std::unique_ptr<Variable>(new Variable(*this, VariableName, Mutability, Initializer));
+    Variable *Pointer = Result.get();
+    Storage->Variables.push_back(std::move(Result));
+    return Pointer;
+  }
+
+  const FunctionDecl *SemanticContext::createFunctionDecl(Name DeclName, const parser::FunctionDecl &AST)
+  {
+    if (!Names.contains(DeclName) || AST.genericParameters().empty())
+    {
+      return nullptr;
+    }
+    auto Result = std::unique_ptr<FunctionDecl>(new FunctionDecl(DeclName, AST));
+    const FunctionDecl *Pointer = Result.get();
     Storage->Declarations.push_back(std::move(Result));
     return Pointer;
   }
 
-  TypeDecl *SemanticContext::createTypeDecl(Name DeclName, DeclKind Kind, DeclSource Source)
+  const ClassDecl *SemanticContext::createClassDecl(Name DeclName, const parser::ClassDecl &AST)
   {
-    if (!Names.contains(DeclName) || (Kind != DeclKind::Class && Kind != DeclKind::Enum && Kind != DeclKind::Interface))
+    if (!Names.contains(DeclName) || AST.genericParameters().empty())
     {
       return nullptr;
     }
-    auto Result = std::unique_ptr<TypeDecl>(new TypeDecl(*this, Kind, DeclName, Source));
-    TypeDecl *Pointer = Result.get();
+    auto Result = std::unique_ptr<ClassDecl>(new ClassDecl(DeclName, AST));
+    const ClassDecl *Pointer = Result.get();
     Storage->Declarations.push_back(std::move(Result));
     return Pointer;
   }

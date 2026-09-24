@@ -1,0 +1,47 @@
+// INK_SEMANTIC_VALUE(Name) registers a value kind named after its C++ class.
+// INK_SEMANTIC_TYPE_VALUE(Name) also marks membership in the Type hierarchy.
+// INK_SEMANTIC_CONSTANT_VALUE(Name) also marks membership in the Constant hierarchy.
+// INK_SEMANTIC_INSTRUCTION_VALUE(Name) also marks membership in the Instruction hierarchy.
+// Included multiple times; Type, UserDefinedType, Constant and Instruction are base-only classes.
+// Meta, void and bool are all BuiltinType objects, distinguished by TypeKind.
+
+#ifndef INK_SEMANTIC_VALUE
+#define INK_SEMANTIC_VALUE(Name)
+#endif
+
+#ifndef INK_SEMANTIC_TYPE_VALUE
+#define INK_SEMANTIC_TYPE_VALUE(Name) INK_SEMANTIC_VALUE(Name)
+#endif
+
+#ifndef INK_SEMANTIC_CONSTANT_VALUE
+#define INK_SEMANTIC_CONSTANT_VALUE(Name) INK_SEMANTIC_VALUE(Name)
+#endif
+
+#ifndef INK_SEMANTIC_INSTRUCTION_VALUE
+#define INK_SEMANTIC_INSTRUCTION_VALUE(Name) INK_SEMANTIC_VALUE(Name)
+#endif
+
+INK_SEMANTIC_TYPE_VALUE(BuiltinType)
+INK_SEMANTIC_TYPE_VALUE(IntegerType)
+INK_SEMANTIC_TYPE_VALUE(FloatType)
+INK_SEMANTIC_TYPE_VALUE(ArrayType)
+INK_SEMANTIC_TYPE_VALUE(SliceType)
+INK_SEMANTIC_TYPE_VALUE(PointerType)
+INK_SEMANTIC_TYPE_VALUE(ReferenceType)
+INK_SEMANTIC_TYPE_VALUE(ClassType)
+INK_SEMANTIC_TYPE_VALUE(EnumType)
+INK_SEMANTIC_TYPE_VALUE(InterfaceType)
+
+INK_SEMANTIC_CONSTANT_VALUE(IntegerConstant)
+INK_SEMANTIC_CONSTANT_VALUE(BoolConstant)
+INK_SEMANTIC_VALUE(ExprValue)
+INK_SEMANTIC_INSTRUCTION_VALUE(CallInstruction)
+INK_SEMANTIC_CONSTANT_VALUE(StringConst)
+INK_SEMANTIC_CONSTANT_VALUE(FloatConst)
+INK_SEMANTIC_TYPE_VALUE(FunctionType)
+INK_SEMANTIC_VALUE(Function)
+
+#undef INK_SEMANTIC_INSTRUCTION_VALUE
+#undef INK_SEMANTIC_CONSTANT_VALUE
+#undef INK_SEMANTIC_TYPE_VALUE
+#undef INK_SEMANTIC_VALUE

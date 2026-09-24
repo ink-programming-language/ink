@@ -2,7 +2,7 @@
 #define INK_SEMANTIC_MODEL_EXPR_VALUE_H
 
 #include "ink/core/source_id.h"
-#include "ink/semantic/model/type.h"
+#include "ink/semantic/model/type/type.h"
 
 namespace ink::parser
 {
@@ -39,12 +39,12 @@ namespace ink::semantic
 
       static bool classof(const Value *ValueObject) noexcept
       {
-        return ValueObject && ValueObject->kind() == ValueKind::Expr;
+        return ValueObject && ValueObject->kind() == ValueKind::ExprValue;
       }
 
     private:
       ExprValue(const Type &ValueType, const parser::Expr &Expression, core::SourceId Source) noexcept
-          : Value(ValueKind::Expr),
+          : Value(ValueKind::ExprValue),
             ValueType(ValueType),
             Expression(Expression),
             Source(Source)

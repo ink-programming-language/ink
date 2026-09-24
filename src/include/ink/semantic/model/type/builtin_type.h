@@ -1,7 +1,7 @@
 #ifndef INK_SEMANTIC_MODEL_BUILTIN_TYPE_H
 #define INK_SEMANTIC_MODEL_BUILTIN_TYPE_H
 
-#include "ink/semantic/model/type.h"
+#include "ink/semantic/model/type/type.h"
 
 #include <type_traits>
 
@@ -22,7 +22,7 @@ namespace ink::semantic
 #define INK_SEMANTIC_TYPE(Name, Base) \
   case TypeKind::Name:                \
     return std::is_same_v<Base, BuiltinType>;
-#include "ink/semantic/model/Types.def"
+#include "ink/semantic/model/type/Types.def"
 #undef INK_SEMANTIC_TYPE
         default:
           return false;
@@ -30,8 +30,8 @@ namespace ink::semantic
       }
 
     private:
-      BuiltinType(SemanticContext &Context, TypeKind Kind, const Type *MetaType) noexcept
-          : Type(Context, Kind, MetaType)
+      BuiltinType(SemanticContext &Context, ValueKind ValueKindValue, TypeKind Kind, const Type *MetaType) noexcept
+          : Type(Context, ValueKindValue, Kind, MetaType)
       {
       }
 
@@ -42,6 +42,7 @@ namespace ink::semantic
       friend class SliceType;
       friend class PointerType;
       friend class ReferenceType;
+      friend class FunctionType;
   };
 } // namespace ink::semantic
 

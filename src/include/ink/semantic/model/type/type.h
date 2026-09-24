@@ -12,7 +12,7 @@ namespace ink::semantic
   enum class TypeKind : std::uint8_t
   {
 #define INK_SEMANTIC_TYPE(Name, Base) Name,
-#include "ink/semantic/model/Types.def"
+#include "ink/semantic/model/type/Types.def"
 #undef INK_SEMANTIC_TYPE
   };
 
@@ -43,13 +43,24 @@ namespace ink::semantic
 
       static bool classof(const Value *ValueObject) noexcept
       {
-        return ValueObject && ValueObject->kind() == ValueKind::Type;
+        if (!ValueObject)
+        {
+          return false;
+        }
+        switch (ValueObject->kind())
+        {
+#define INK_SEMANTIC_TYPE_VALUE(Name) case ValueKind::Name:
+#include "ink/semantic/model/Values.def"
+          return true;
+        default:
+          return false;
+        }
       }
 
     private:
       // Only the context's metatype supplies null and is its own value type.
-      Type(SemanticContext &Context, TypeKind Kind, const Type *MetaType) noexcept
-          : Value(ValueKind::Type),
+      Type(SemanticContext &Context, ValueKind ValueKindValue, TypeKind Kind, const Type *MetaType) noexcept
+          : Value(ValueKindValue),
             Context(Context),
             Kind(Kind),
             MetaType(MetaType ? MetaType : this)

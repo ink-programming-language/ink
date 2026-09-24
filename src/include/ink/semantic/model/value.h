@@ -9,10 +9,8 @@ namespace ink::semantic
 
   enum class ValueKind : std::uint8_t
   {
-    Type,
-    IntegerConstant,
-    BoolConstant,
-    Expr,
+#define INK_SEMANTIC_VALUE(Name) Name,
+#include "ink/semantic/model/Values.def"
   };
 
   // Semantic values have stable identities within their owning context.

@@ -1,17 +1,30 @@
 #include "ink/semantic/model/name_pool.h"
 
-#include <llvm/ADT/StringMap.h>
-
+#include <functional>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace ink::semantic
 {
+  namespace
+  {
+    struct StringHash
+    {
+        using is_transparent = void;
+
+        std::size_t operator()(std::string_view Text) const noexcept
+        {
+          return std::hash<std::string_view>{}(Text);
+        }
+    };
+  } // namespace
+
   class NamePool::Impl
   {
     public:
-      // StringMap owns the bytes in separately allocated entries, so rehashing
-      // never invalidates the views and no second spelling copy is necessary.
-      llvm::StringMap<Name> Names;
+      // Map keys own the only spelling copy; node references survive rehashing.
+      std::unordered_map<std::string, Name, StringHash, std::equal_to<>> Names;
       std::vector<std::string_view> Spellings;
   };
 
@@ -28,8 +41,7 @@ namespace ink::semantic
     {
       return {};
     }
-    const llvm::StringRef Key(Text.data(), Text.size());
-    const auto Existing = Storage->Names.find(Key);
+    const auto Existing = Storage->Names.find(Text);
     if (Existing != Storage->Names.end())
     {
       return Existing->second;
@@ -39,9 +51,8 @@ namespace ink::semantic
       return {};
     }
     const Name Result(static_cast<Name::IndexType>(Storage->Spellings.size()));
-    const auto Entry = Storage->Names.try_emplace(Key, Result).first;
-    const llvm::StringRef Spelling = Entry->getKey();
-    Storage->Spellings.emplace_back(Spelling.data(), Spelling.size());
+    const auto Entry = Storage->Names.try_emplace(std::string(Text), Result).first;
+    Storage->Spellings.emplace_back(Entry->first);
     return Result;
   }
 
@@ -51,7 +62,7 @@ namespace ink::semantic
     {
       return {};
     }
-    const auto Entry = Storage->Names.find(llvm::StringRef(Text.data(), Text.size()));
+    const auto Entry = Storage->Names.find(Text);
     return Entry == Storage->Names.end() ? Name{} : Entry->second;
   }
 

@@ -1,7 +1,7 @@
 #ifndef INK_SEMANTIC_MODEL_FLOAT_TYPE_H
 #define INK_SEMANTIC_MODEL_FLOAT_TYPE_H
 
-#include "ink/semantic/model/builtin_type.h"
+#include "ink/semantic/model/type/builtin_type.h"
 
 namespace ink::semantic
 {
@@ -16,12 +16,12 @@ namespace ink::semantic
 
       static bool classof(const Value *ValueObject) noexcept
       {
-        return Type::classof(ValueObject) && static_cast<const Type *>(ValueObject)->typeKind() == TypeKind::Float;
+        return ValueObject && ValueObject->kind() == ValueKind::FloatType;
       }
 
     private:
       FloatType(SemanticContext &Context, const Type &MetaType, std::uint32_t BitWidth) noexcept
-          : BuiltinType(Context, TypeKind::Float, &MetaType),
+          : BuiltinType(Context, ValueKind::FloatType, TypeKind::Float, &MetaType),
             BitWidth(BitWidth)
       {
       }

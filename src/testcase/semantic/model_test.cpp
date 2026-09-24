@@ -11,7 +11,7 @@ namespace ink::semantic::test
   static_assert(std::is_base_of_v<Value, Constant>);
   static_assert(std::is_base_of_v<Value, ExprValue>);
   static_assert(!std::is_base_of_v<Value, Decl>);
-  static_assert(!std::is_copy_constructible_v<VarDecl>);
+  static_assert(!std::is_copy_constructible_v<Variable>);
 
   // Type values use the unique metatype, whose own value type closes the cycle.
   TEST(SemanticModelTest, TypesAndConstantsHaveDistinctKindsAndValueTypes)
@@ -63,19 +63,23 @@ namespace ink::semantic::test
     SemanticContext Context(Compilation);
     const IntegerType *Signed = Context.getIntegerType(128, true);
     const IntegerType *Unsigned = Context.getIntegerType(128, false);
-    llvm::APInt Bits = llvm::APInt::getAllOnes(128);
+    const std::uint64_t AllOneWords[] = {
+        UINT64_MAX,
+        UINT64_MAX,
+    };
+    IntegerBits Bits(128, AllOneWords);
     const IntegerConstant *Negative = Context.getIntegerConstant(*Signed, Bits);
     const IntegerConstant *Positive = Context.getIntegerConstant(*Unsigned, Bits);
     ASSERT_NE(Negative, nullptr);
     ASSERT_NE(Positive, nullptr);
-    EXPECT_EQ(Negative, Context.getIntegerConstant(*Signed, llvm::APInt::getAllOnes(128)));
+    EXPECT_EQ(Negative, Context.getIntegerConstant(*Signed, IntegerBits(128, AllOneWords)));
     EXPECT_NE(Negative, Positive);
-    EXPECT_EQ(Negative->value().getBitWidth(), 128U);
-    EXPECT_TRUE(Negative->value().isAllOnes());
+    EXPECT_EQ(Negative->value().bitWidth(), 128U);
+    EXPECT_EQ(Negative->value(), IntegerBits(128, AllOneWords));
     EXPECT_EQ(&Negative->type(), Signed);
     EXPECT_EQ(&Positive->type(), Unsigned);
-    Bits.clearAllBits();
-    EXPECT_TRUE(Negative->value().isAllOnes());
+    Bits = IntegerBits(128, 0);
+    EXPECT_EQ(Negative->value(), IntegerBits(128, AllOneWords));
     EXPECT_NE(Negative, Context.getIntegerConstant(*Signed, Bits));
     EXPECT_TRUE(IntegerConstant::classof(Negative));
   }
@@ -87,9 +91,9 @@ namespace ink::semantic::test
     SemanticContext Context(Compilation);
     SemanticContext Other(Compilation);
     const IntegerType *Signed32 = Context.getIntegerType(32, true);
-    EXPECT_EQ(Context.getIntegerConstant(*Signed32, llvm::APInt(64, 1)), nullptr);
-    EXPECT_EQ(Context.getIntegerConstant(*Other.getIntegerType(32, true), llvm::APInt(32, 1)), nullptr);
-    EXPECT_NE(Context.getIntegerConstant(*Signed32, llvm::APInt(32, 1)), nullptr);
+    EXPECT_EQ(Context.getIntegerConstant(*Signed32, IntegerBits(64, 1)), nullptr);
+    EXPECT_EQ(Context.getIntegerConstant(*Other.getIntegerType(32, true), IntegerBits(32, 1)), nullptr);
+    EXPECT_NE(Context.getIntegerConstant(*Signed32, IntegerBits(32, 1)), nullptr);
   }
 
   // Repeated bool requests share immutable values and keep false and true distinct.
@@ -107,15 +111,15 @@ namespace ink::semantic::test
     EXPECT_EQ(&False.type(), &Context.getBoolType());
   }
 
-  // Same-spelling variables retain distinct declaration identities and one shared name.
+  // Same-spelling variables retain distinct binding identities and one shared name without semantic Decls.
   TEST(SemanticModelTest, VariablesHaveIndependentIdentityAndSingleAssignmentTypes)
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
     SemanticContext Other(Compilation);
     const Name X = Context.namePool().intern("X");
-    VarDecl *First = Context.createVarDecl(X, BindingMutability::Mutable);
-    VarDecl *Second = Context.createVarDecl(X, BindingMutability::Immutable);
+    Variable *First = Context.createVariable(X, BindingMutability::Mutable);
+    Variable *Second = Context.createVariable(X, BindingMutability::Immutable);
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
     EXPECT_NE(First, Second);
@@ -127,45 +131,45 @@ namespace ink::semantic::test
     EXPECT_EQ(Second->mutability(), BindingMutability::Immutable);
     EXPECT_TRUE(First->isMutable());
     EXPECT_FALSE(Second->isMutable());
-    EXPECT_TRUE(VarDecl::classof(First));
+    static_assert(!std::is_base_of_v<Decl, Variable>);
     EXPECT_FALSE(First->setType(*Other.getIntegerType(32, true)));
     const IntegerType *Int32 = Context.getIntegerType(32, true);
     EXPECT_TRUE(First->setType(*Int32));
     EXPECT_TRUE(First->setType(*Int32));
     EXPECT_FALSE(First->setType(*Context.getIntegerType(64, true)));
     EXPECT_EQ(First->type(), Int32);
-    EXPECT_EQ(Context.createVarDecl(Name{}, BindingMutability::Mutable), nullptr);
-    EXPECT_EQ(Context.createVarDecl(X, static_cast<BindingMutability>(255)), nullptr);
+    EXPECT_EQ(Context.createVariable(Name{}, BindingMutability::Mutable), nullptr);
+    EXPECT_EQ(Context.createVariable(X, static_cast<BindingMutability>(255)), nullptr);
     EXPECT_EQ(&First->context(), &Context);
   }
 
-  // Container growth preserves declaration, type and constant addresses used as identities.
+  // Container growth preserves variable, type and constant addresses used as identities.
   TEST(SemanticModelTest, ModelIdentitiesSurviveStorageGrowth)
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
     const Name X = Context.namePool().intern("X");
-    VarDecl *Declaration = Context.createVarDecl(X, BindingMutability::Mutable);
+    Variable *Declaration = Context.createVariable(X, BindingMutability::Mutable);
     const IntegerType *Int32 = Context.getIntegerType(32, true);
-    const IntegerConstant *Zero = Context.getIntegerConstant(*Int32, llvm::APInt(32, 0));
+    const IntegerConstant *Zero = Context.getIntegerConstant(*Int32, IntegerBits(32, 0));
     ASSERT_NE(Declaration, nullptr);
     ASSERT_NE(Zero, nullptr);
     ASSERT_TRUE(Declaration->setType(*Int32));
     for (std::uint32_t Index = 1; Index <= 1024; ++Index)
     {
       ASSERT_NE(Context.getIntegerType(Index, false), nullptr);
-      ASSERT_NE(Context.getIntegerConstant(*Int32, llvm::APInt(32, Index)), nullptr);
-      ASSERT_NE(Context.createVarDecl(X, BindingMutability::Mutable), nullptr);
+      ASSERT_NE(Context.getIntegerConstant(*Int32, IntegerBits(32, Index)), nullptr);
+      ASSERT_NE(Context.createVariable(X, BindingMutability::Mutable), nullptr);
     }
     EXPECT_EQ(Declaration->name(), X);
     EXPECT_EQ(Declaration->type(), Int32);
     EXPECT_EQ(Int32, Context.getIntegerType(32, true));
-    EXPECT_EQ(Zero, Context.getIntegerConstant(*Int32, llvm::APInt(32, 0)));
-    EXPECT_TRUE(Zero->value().isZero());
+    EXPECT_EQ(Zero, Context.getIntegerConstant(*Int32, IntegerBits(32, 0)));
+    EXPECT_EQ(Zero->value(), IntegerBits(32, 0));
   }
 
-  // Parsed var/const declarations retain source and typed expression values with explicit binding mutability.
-  TEST(SemanticModelTest, VariableModelCanReferenceAnExistingParsedDeclaration)
+  // Ordinary var/const syntax becomes a variable binding whose initializer retains the source expression.
+  TEST(SemanticModelTest, OrdinaryVariablesDoNotRequireSemanticDecls)
   {
     core::CompilationContext Compilation;
     core::FrontendContext Frontend(Compilation);
@@ -193,21 +197,18 @@ namespace ink::semantic::test
       const auto *Binding = static_cast<const parser::NameBindingPattern *>(Syntax->binding());
       SemanticContext Context(Compilation);
       const Name X = Context.namePool().intern(Binding->name().Text);
-      const DeclSource Source{Parsed.Unit->input().lexedFile().sourceId(), Syntax->getSourceRange(), Syntax};
+      const core::SourceId Source = Parsed.Unit->input().lexedFile().sourceId();
       const BindingMutability Mutability = Syntax->constant() ? BindingMutability::Immutable : BindingMutability::Mutable;
       const IntegerType *Int32 = Context.getIntegerType(32, true);
       ASSERT_NE(Syntax->initializer(), nullptr);
-      const ExprValue *Initializer = Context.createExprValue(*Int32, *Syntax->initializer(), Source.Source);
+      const ExprValue *Initializer = Context.createExprValue(*Int32, *Syntax->initializer(), Source);
       ASSERT_NE(Initializer, nullptr);
-      VarDecl *Declaration = Context.createVarDecl(X, Mutability, Source, Initializer);
+      Variable *Declaration = Context.createVariable(X, Mutability, Initializer);
       ASSERT_NE(Declaration, nullptr);
       EXPECT_EQ(Context.namePool().text(Declaration->name()), "X");
-      EXPECT_EQ(Declaration->source().Source, Source.Source);
-      EXPECT_EQ(Declaration->source().Range, Source.Range);
-      EXPECT_EQ(Declaration->source().Syntax, Syntax);
       EXPECT_EQ(Declaration->initializer(), Initializer);
       EXPECT_EQ(&Initializer->expression(), Syntax->initializer());
-      EXPECT_EQ(Initializer->sourceId(), Source.Source);
+      EXPECT_EQ(Initializer->sourceId(), Source);
       EXPECT_EQ(&Initializer->context(), &Context);
       EXPECT_EQ(Declaration->mutability(), Case.ExpectedMutability);
       EXPECT_EQ(Declaration->isMutable(), Case.ExpectedMutability == BindingMutability::Mutable);
