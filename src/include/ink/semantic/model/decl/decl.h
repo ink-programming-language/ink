@@ -3,14 +3,16 @@
 
 #include "ink/semantic/model/name.h"
 
+#include <vector>
+
 namespace ink::parser
 {
-  class Decl;
+  class ASTNodeBase;
 } // namespace ink::parser
 
 namespace ink::semantic
 {
-  // An uninstantiated generic definition. Its AST is borrowed and must outlive the context.
+  // A module or uninstantiated generic definition. Its AST is borrowed and must outlive the context.
   // Resolved types, values, bindings and instance state are stored separately.
   class Decl
   {
@@ -26,23 +28,33 @@ namespace ink::semantic
         return DeclName;
       }
 
-      const parser::Decl &ast() const noexcept
+      const parser::ASTNodeBase &ast() const noexcept
       {
         return AST;
       }
 
-    private:
-      Decl(Name DeclName, const parser::Decl &AST) noexcept
+      // Non-owning child declarations in insertion order.
+      std::vector<const Decl *> &child() noexcept
+      {
+        return Child;
+      }
+
+      const std::vector<const Decl *> &child() const noexcept
+      {
+        return Child;
+      }
+
+    protected:
+      Decl(Name DeclName, const parser::ASTNodeBase &AST) noexcept
           : DeclName(DeclName),
             AST(AST)
       {
       }
 
+    private:
       Name DeclName;
-      const parser::Decl &AST;
-
-      friend class FunctionDecl;
-      friend class ClassDecl;
+      const parser::ASTNodeBase &AST;
+      std::vector<const Decl *> Child;
   };
 } // namespace ink::semantic
 

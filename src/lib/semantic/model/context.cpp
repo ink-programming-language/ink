@@ -86,6 +86,8 @@ namespace ink::semantic
       std::unique_ptr<BuiltinType> MetaType;
       std::unique_ptr<BuiltinType> VoidType;
       std::unique_ptr<BuiltinType> BoolType;
+      std::unique_ptr<BuiltinType> LabelType;
+      std::unique_ptr<BuiltinType> ModuleType;
       // Model destructors never traverse borrowed AST/type/value edges.
       std::vector<std::unique_ptr<Decl>> Declarations;
       std::vector<std::unique_ptr<Variable>> Variables;
@@ -101,6 +103,8 @@ namespace ink::semantic
       std::unique_ptr<ConstantPool> Constants;
       std::vector<std::unique_ptr<ExprValue>> ExpressionValues;
       std::vector<std::unique_ptr<Function>> Functions;
+      std::vector<std::unique_ptr<BasicBlock>> BasicBlocks;
+      std::vector<std::unique_ptr<Module>> Modules;
       std::vector<std::unique_ptr<CallInstruction>> Calls;
   };
 
@@ -111,6 +115,8 @@ namespace ink::semantic
     Storage->MetaType.reset(new BuiltinType(*this, ValueKind::BuiltinType, TypeKind::Meta, nullptr));
     Storage->VoidType.reset(new BuiltinType(*this, ValueKind::BuiltinType, TypeKind::Void, Storage->MetaType.get()));
     Storage->BoolType.reset(new BuiltinType(*this, ValueKind::BuiltinType, TypeKind::Bool, Storage->MetaType.get()));
+    Storage->LabelType.reset(new BuiltinType(*this, ValueKind::BuiltinType, TypeKind::Label, Storage->MetaType.get()));
+    Storage->ModuleType.reset(new BuiltinType(*this, ValueKind::BuiltinType, TypeKind::Module, Storage->MetaType.get()));
     Storage->Constants.reset(new ConstantPool(*this));
   }
 
@@ -139,6 +145,16 @@ namespace ink::semantic
   const BuiltinType &SemanticContext::getBoolType() const noexcept
   {
     return *Storage->BoolType;
+  }
+
+  const BuiltinType &SemanticContext::getLabelType() const noexcept
+  {
+    return *Storage->LabelType;
+  }
+
+  const BuiltinType &SemanticContext::getModuleType() const noexcept
+  {
+    return *Storage->ModuleType;
   }
 
   const IntegerType *SemanticContext::getIntegerType(std::uint32_t BitWidth, bool Signed)
@@ -311,33 +327,109 @@ namespace ink::semantic
     return constantPool().getFloatConst(ValueType, Payload);
   }
 
-  const ExprValue *SemanticContext::createExprValue(const Type &ValueType, const parser::Expr &Expression, core::SourceId Source)
+  ExprValue *SemanticContext::createExprValue(const Type &ValueType, const parser::Expr &Expression, core::SourceId Source)
   {
     if (&ValueType.context() != this)
     {
       return nullptr;
     }
     auto Result = std::unique_ptr<ExprValue>(new ExprValue(ValueType, Expression, Source));
-    const ExprValue *Pointer = Result.get();
+    ExprValue *Pointer = Result.get();
     Storage->ExpressionValues.push_back(std::move(Result));
     return Pointer;
   }
 
-  const Function *SemanticContext::createFunction(Name FunctionName, const FunctionType &Signature)
+  Function *SemanticContext::createFunction(Name FunctionName, const FunctionType &Signature)
   {
     if (!Names.contains(FunctionName) || &Signature.context() != this)
     {
       return nullptr;
     }
     auto Result = std::unique_ptr<Function>(new Function(FunctionName, Signature));
-    const Function *Pointer = Result.get();
+    Function *Pointer = Result.get();
     Storage->Functions.push_back(std::move(Result));
     return Pointer;
   }
 
-  const CallInstruction *SemanticContext::createCallInstruction(const Value &Callee, std::span<const Value *const> Arguments)
+  BasicBlock *SemanticContext::createFunctionBody(Function &FunctionValue)
   {
-    if (&Callee.type().context() != this || !FunctionType::classof(&Callee.type()))
+    if (&FunctionValue.context() != this || FunctionValue.hasBody())
+    {
+      return nullptr;
+    }
+    return createBasicBlock(FunctionValue);
+  }
+
+  BasicBlock *SemanticContext::createBasicBlock()
+  {
+    auto Result = std::unique_ptr<BasicBlock>(new BasicBlock(*this));
+    BasicBlock *Pointer = Result.get();
+    Storage->BasicBlocks.push_back(std::move(Result));
+    return Pointer;
+  }
+
+  BasicBlock *SemanticContext::createBasicBlock(Function &FunctionValue)
+  {
+    if (&FunctionValue.context() != this)
+    {
+      return nullptr;
+    }
+    BasicBlock *Block = createBasicBlock();
+    FunctionValue.Blocks.push_back(Block);
+    Block->Outer = &FunctionValue;
+    return Block;
+  }
+
+  bool SemanticContext::appendValue(BasicBlock &Block, Value &Child)
+  {
+    if (&Block.context() != this || &Child.context() != this || Child.outer() || Type::classof(&Child) || Constant::classof(&Child))
+    {
+      return false;
+    }
+    for (const Value *Ancestor = &Block; Ancestor; Ancestor = Ancestor->outer())
+    {
+      if (Ancestor == &Child)
+      {
+        return false;
+      }
+    }
+    Block.Values.push_back(&Child);
+    Child.Outer = &Block;
+    return true;
+  }
+
+  bool SemanticContext::removeValue(BasicBlock &Block, Value &Child) noexcept
+  {
+    if (&Block.context() != this || &Child.context() != this || Child.outer() != &Block)
+    {
+      return false;
+    }
+    const auto Position = std::find(Block.Values.begin(), Block.Values.end(), &Child);
+    if (Position == Block.Values.end())
+    {
+      return false;
+    }
+    Block.Values.erase(Position);
+    Child.Outer = nullptr;
+    return true;
+  }
+
+  Module *SemanticContext::createModule(Name ModuleName)
+  {
+    if (!Names.contains(ModuleName))
+    {
+      return nullptr;
+    }
+    auto Result = std::unique_ptr<Module>(new Module(*this, ModuleName, *createBasicBlock()));
+    Module *Pointer = Result.get();
+    Storage->Modules.push_back(std::move(Result));
+    Pointer->EntryBlock.Outer = Pointer;
+    return Pointer;
+  }
+
+  CallInstruction *SemanticContext::createCallInstruction(const Value &Callee, std::span<const Value *const> Arguments)
+  {
+    if (&Callee.context() != this || !FunctionType::classof(&Callee.type()))
     {
       return nullptr;
     }
@@ -347,14 +439,14 @@ namespace ink::semantic
       return nullptr;
     }
     auto Result = std::unique_ptr<CallInstruction>(new CallInstruction(Callee, Arguments));
-    const CallInstruction *Pointer = Result.get();
+    CallInstruction *Pointer = Result.get();
     Storage->Calls.push_back(std::move(Result));
     return Pointer;
   }
 
   Variable *SemanticContext::createVariable(Name VariableName, BindingMutability Mutability, const Value *Initializer)
   {
-    if (!Names.contains(VariableName) || (Mutability != BindingMutability::Mutable && Mutability != BindingMutability::Immutable) || (Initializer && &Initializer->type().context() != this))
+    if (!Names.contains(VariableName) || (Mutability != BindingMutability::Mutable && Mutability != BindingMutability::Immutable) || (Initializer && &Initializer->context() != this))
     {
       return nullptr;
     }
@@ -364,26 +456,38 @@ namespace ink::semantic
     return Pointer;
   }
 
-  const FunctionDecl *SemanticContext::createFunctionDecl(Name DeclName, const parser::FunctionDecl &AST)
+  ModuleDecl *SemanticContext::createModuleDecl(Name DeclName, const parser::ModuleAST &AST)
+  {
+    if (!Names.contains(DeclName))
+    {
+      return nullptr;
+    }
+    auto Result = std::unique_ptr<ModuleDecl>(new ModuleDecl(DeclName, AST));
+    ModuleDecl *Pointer = Result.get();
+    Storage->Declarations.push_back(std::move(Result));
+    return Pointer;
+  }
+
+  FunctionDecl *SemanticContext::createFunctionDecl(Name DeclName, const parser::FunctionDecl &AST)
   {
     if (!Names.contains(DeclName) || AST.genericParameters().empty())
     {
       return nullptr;
     }
     auto Result = std::unique_ptr<FunctionDecl>(new FunctionDecl(DeclName, AST));
-    const FunctionDecl *Pointer = Result.get();
+    FunctionDecl *Pointer = Result.get();
     Storage->Declarations.push_back(std::move(Result));
     return Pointer;
   }
 
-  const ClassDecl *SemanticContext::createClassDecl(Name DeclName, const parser::ClassDecl &AST)
+  ClassDecl *SemanticContext::createClassDecl(Name DeclName, const parser::ClassDecl &AST)
   {
     if (!Names.contains(DeclName) || AST.genericParameters().empty())
     {
       return nullptr;
     }
     auto Result = std::unique_ptr<ClassDecl>(new ClassDecl(DeclName, AST));
-    const ClassDecl *Pointer = Result.get();
+    ClassDecl *Pointer = Result.get();
     Storage->Declarations.push_back(std::move(Result));
     return Pointer;
   }

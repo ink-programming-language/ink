@@ -10,6 +10,8 @@ namespace ink::semantic::test
   static_assert(std::is_base_of_v<Value, Type>);
   static_assert(std::is_base_of_v<Value, Constant>);
   static_assert(std::is_base_of_v<Value, ExprValue>);
+  static_assert(std::is_base_of_v<Value, BasicBlock>);
+  static_assert(std::is_base_of_v<Value, Module>);
   static_assert(!std::is_base_of_v<Value, Decl>);
   static_assert(!std::is_copy_constructible_v<Variable>);
 
@@ -25,6 +27,8 @@ namespace ink::semantic::test
     EXPECT_EQ(Meta.typeKind(), TypeKind::Meta);
     EXPECT_EQ(Context.getVoidType().typeKind(), TypeKind::Void);
     EXPECT_EQ(Context.getBoolType().typeKind(), TypeKind::Bool);
+    EXPECT_EQ(Context.getLabelType().typeKind(), TypeKind::Label);
+    EXPECT_EQ(Context.getModuleType().typeKind(), TypeKind::Module);
     EXPECT_TRUE(Type::classof(&Meta));
     EXPECT_FALSE(Constant::classof(&Meta));
     const Value &Boolean = Context.getBoolConstant(true);

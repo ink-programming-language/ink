@@ -35,6 +35,8 @@ namespace ink::semantic::test
         &Context.getMetaType(),
         &Context.getVoidType(),
         &Context.getBoolType(),
+        &Context.getLabelType(),
+        &Context.getModuleType(),
         Int32,
         Context.getFloatType(32),
         Context.getArrayType(*Int32, 4),

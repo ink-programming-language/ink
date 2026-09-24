@@ -8,7 +8,7 @@
 
 namespace ink::semantic
 {
-  // A resolved, fixed-arity signature. Names, defaults and generic bindings belong to analysis.
+  // A resolved, fixed-arity function signature. Names, defaults and generic bindings belong to analysis.
   class FunctionType final : public BuiltinType
   {
     public:

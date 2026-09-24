@@ -29,20 +29,14 @@ namespace ink::semantic
         }
       }
 
-    private:
+    protected:
       BuiltinType(SemanticContext &Context, ValueKind ValueKindValue, TypeKind Kind, const Type *MetaType) noexcept
           : Type(Context, ValueKindValue, Kind, MetaType)
       {
       }
 
+    private:
       friend class SemanticContext;
-      friend class IntegerType;
-      friend class FloatType;
-      friend class ArrayType;
-      friend class SliceType;
-      friend class PointerType;
-      friend class ReferenceType;
-      friend class FunctionType;
   };
 } // namespace ink::semantic
 

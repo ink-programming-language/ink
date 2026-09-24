@@ -1,9 +1,9 @@
 #ifndef INK_SEMANTIC_MODEL_CALL_INSTRUCTION_H
 #define INK_SEMANTIC_MODEL_CALL_INSTRUCTION_H
 
-#include "ink/semantic/model/function.h"
-#include "ink/semantic/model/instruction/instruction.h"
-#include "ink/semantic/model/type/function_type.h"
+#include "ink/semantic/model/function/function.h"
+#include "ink/semantic/model/function/function_type.h"
+#include "ink/semantic/model/value.h"
 
 #include <span>
 #include <vector>
@@ -12,7 +12,7 @@ namespace ink::semantic
 {
   // One checked call occurrence; targets and arguments are borrowed context-local objects.
   // Arguments have already been mapped and converted to the signature's parameter order.
-  class CallInstruction final : public Instruction
+  class CallInstruction final : public Value
   {
     public:
       const Type &type() const noexcept override
@@ -53,7 +53,7 @@ namespace ink::semantic
 
     private:
       CallInstruction(const Value &Callee, std::span<const Value *const> Arguments)
-          : Instruction(ValueKind::CallInstruction),
+          : Value(Callee.context(), ValueKind::CallInstruction),
             Callee(Callee),
             Arguments(Arguments.begin(), Arguments.end())
       {

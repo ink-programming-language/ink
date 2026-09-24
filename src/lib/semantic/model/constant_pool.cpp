@@ -157,7 +157,7 @@ namespace ink::semantic
     {
       return true;
     }
-    if (&ConstantValue.type().context() != &Context)
+    if (&ConstantValue.context() != &Context)
     {
       return false;
     }

@@ -8,7 +8,7 @@
 
 namespace ink::semantic::test
 {
-  static_assert(std::is_base_of_v<Instruction, CallInstruction>);
+  static_assert(std::is_base_of_v<Value, CallInstruction>);
   static_assert(!std::is_copy_constructible_v<CallInstruction>);
   static_assert(!std::is_move_constructible_v<CallInstruction>);
 
@@ -47,7 +47,6 @@ namespace ink::semantic::test
     EXPECT_EQ(First->arguments()[0], One);
     EXPECT_EQ(First->arguments()[1], &Context.getBoolConstant(true));
     EXPECT_EQ(First->kind(), ValueKind::CallInstruction);
-    EXPECT_TRUE(Instruction::classof(First));
     EXPECT_TRUE(CallInstruction::classof(First));
     EXPECT_FALSE(Constant::classof(First));
     EXPECT_FALSE(Type::classof(First));
@@ -192,12 +191,14 @@ namespace ink::semantic::test
     EXPECT_EQ(Context.createCallInstruction(*ForeignValue), nullptr);
     EXPECT_EQ(Context.createCallInstruction(Context.getBoolConstant(true)), nullptr);
     EXPECT_EQ(Context.createCallInstruction(*Signature), nullptr);
+    const BasicBlock *Block = Context.createBasicBlock();
+    ASSERT_NE(Block, nullptr);
+    EXPECT_EQ(Context.createCallInstruction(*Block), nullptr);
     const CallInstruction *Call = Context.createCallInstruction(*Target);
     ASSERT_NE(Call, nullptr);
     EXPECT_EQ(Call->directCallee(), Target);
     EXPECT_EQ(Other.createCallInstruction(*Target), nullptr);
     EXPECT_FALSE(CallInstruction::classof(nullptr));
-    EXPECT_FALSE(Instruction::classof(Signature));
     EXPECT_FALSE(CallInstruction::classof(&Context.getBoolConstant(true)));
   }
 

@@ -5,6 +5,7 @@
 
 namespace ink::semantic
 {
+  class SemanticContext;
   class Type;
 
   // Semantic values have stable identities within their owning context.
@@ -24,16 +25,37 @@ namespace ink::semantic
         return Kind;
       }
 
+      const SemanticContext &context() const noexcept
+      {
+        return Context;
+      }
+
+      // Structural parent; storage lifetime is still managed by SemanticContext.
+      Value *outer() noexcept
+      {
+        return Outer;
+      }
+
+      const Value *outer() const noexcept
+      {
+        return Outer;
+      }
+
       virtual const Type &type() const noexcept = 0;
 
     protected:
-      explicit Value(ValueKind Kind) noexcept
-          : Kind(Kind)
+      Value(const SemanticContext &Context, ValueKind Kind) noexcept
+          : Context(Context),
+            Kind(Kind)
       {
       }
 
     private:
+      const SemanticContext &Context;
       ValueKind Kind;
+      Value *Outer = nullptr;
+
+      friend class SemanticContext;
   };
 } // namespace ink::semantic
 

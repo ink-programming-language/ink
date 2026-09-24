@@ -43,7 +43,7 @@ namespace ink::semantic
 
     protected:
       Constant(ValueKind Kind, const Type &ValueType) noexcept
-          : Value(Kind),
+          : Value(ValueType.context(), Kind),
             ValueType(ValueType)
       {
       }

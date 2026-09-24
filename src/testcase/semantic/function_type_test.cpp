@@ -1,3 +1,4 @@
+#include "ink/semantic/model/function/function_type.h"
 #include "ink/semantic/model/context.h"
 
 #include <gtest/gtest.h>

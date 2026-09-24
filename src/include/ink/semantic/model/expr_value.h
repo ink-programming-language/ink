@@ -22,11 +22,6 @@ namespace ink::semantic
         return ValueType;
       }
 
-      const SemanticContext &context() const noexcept
-      {
-        return ValueType.context();
-      }
-
       const parser::Expr &expression() const noexcept
       {
         return Expression;
@@ -44,7 +39,7 @@ namespace ink::semantic
 
     private:
       ExprValue(const Type &ValueType, const parser::Expr &Expression, core::SourceId Source) noexcept
-          : Value(ValueKind::ExprValue),
+          : Value(ValueType.context(), ValueKind::ExprValue),
             ValueType(ValueType),
             Expression(Expression),
             Source(Source)

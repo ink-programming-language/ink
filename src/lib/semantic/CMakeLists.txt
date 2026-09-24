@@ -1,4 +1,4 @@
-add_library(ink_semantic STATIC model/constant_pool.cpp model/context.cpp model/variable.cpp model/name_pool.cpp)
+add_library(ink_semantic STATIC model/constant_pool.cpp model/context.cpp model/function/basic_block.cpp model/module/module.cpp model/variable.cpp model/name_pool.cpp)
 add_library(ink::semantic ALIAS ink_semantic)
 
 target_compile_features(ink_semantic PUBLIC cxx_std_20)

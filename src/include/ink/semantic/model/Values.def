@@ -1,9 +1,8 @@
 // INK_SEMANTIC_VALUE(Name) registers a value kind named after its C++ class.
 // INK_SEMANTIC_TYPE_VALUE(Name) also marks membership in the Type hierarchy.
 // INK_SEMANTIC_CONSTANT_VALUE(Name) also marks membership in the Constant hierarchy.
-// INK_SEMANTIC_INSTRUCTION_VALUE(Name) also marks membership in the Instruction hierarchy.
-// Included multiple times; Type, UserDefinedType, Constant and Instruction are base-only classes.
-// Meta, void and bool are all BuiltinType objects, distinguished by TypeKind.
+// Included multiple times; Type, UserDefinedType and Constant are base-only classes.
+// Meta, void, bool, label and module are all BuiltinType objects, distinguished by TypeKind.
 
 #ifndef INK_SEMANTIC_VALUE
 #define INK_SEMANTIC_VALUE(Name)
@@ -15,10 +14,6 @@
 
 #ifndef INK_SEMANTIC_CONSTANT_VALUE
 #define INK_SEMANTIC_CONSTANT_VALUE(Name) INK_SEMANTIC_VALUE(Name)
-#endif
-
-#ifndef INK_SEMANTIC_INSTRUCTION_VALUE
-#define INK_SEMANTIC_INSTRUCTION_VALUE(Name) INK_SEMANTIC_VALUE(Name)
 #endif
 
 INK_SEMANTIC_TYPE_VALUE(BuiltinType)
@@ -35,13 +30,14 @@ INK_SEMANTIC_TYPE_VALUE(InterfaceType)
 INK_SEMANTIC_CONSTANT_VALUE(IntegerConstant)
 INK_SEMANTIC_CONSTANT_VALUE(BoolConstant)
 INK_SEMANTIC_VALUE(ExprValue)
-INK_SEMANTIC_INSTRUCTION_VALUE(CallInstruction)
+INK_SEMANTIC_VALUE(CallInstruction)
 INK_SEMANTIC_CONSTANT_VALUE(StringConst)
 INK_SEMANTIC_CONSTANT_VALUE(FloatConst)
 INK_SEMANTIC_TYPE_VALUE(FunctionType)
 INK_SEMANTIC_VALUE(Function)
+INK_SEMANTIC_VALUE(BasicBlock)
+INK_SEMANTIC_VALUE(Module)
 
-#undef INK_SEMANTIC_INSTRUCTION_VALUE
 #undef INK_SEMANTIC_CONSTANT_VALUE
 #undef INK_SEMANTIC_TYPE_VALUE
 #undef INK_SEMANTIC_VALUE

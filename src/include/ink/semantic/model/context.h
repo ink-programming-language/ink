@@ -7,13 +7,16 @@
 #include "ink/semantic/model/constant_pool.h"
 #include "ink/semantic/model/decl/class_decl.h"
 #include "ink/semantic/model/decl/function_decl.h"
+#include "ink/semantic/model/decl/module_decl.h"
 #include "ink/semantic/model/expr_value.h"
-#include "ink/semantic/model/function.h"
+#include "ink/semantic/model/function/basic_block.h"
+#include "ink/semantic/model/function/function.h"
+#include "ink/semantic/model/function/function_type.h"
 #include "ink/semantic/model/instruction/call_instruction.h"
+#include "ink/semantic/model/module/module.h"
 #include "ink/semantic/model/type/class_type.h"
 #include "ink/semantic/model/type/enum_type.h"
 #include "ink/semantic/model/type/float_type.h"
-#include "ink/semantic/model/type/function_type.h"
 #include "ink/semantic/model/type/integer_type.h"
 #include "ink/semantic/model/type/interface_type.h"
 #include "ink/semantic/model/name_pool.h"
@@ -63,6 +66,10 @@ namespace ink::semantic
       const BuiltinType &getMetaType() const noexcept;
       const BuiltinType &getVoidType() const noexcept;
       const BuiltinType &getBoolType() const noexcept;
+      // Internal type for basic block identities.
+      const BuiltinType &getLabelType() const noexcept;
+      // Internal type for module values.
+      const BuiltinType &getModuleType() const noexcept;
       // BitWidth == 0 is invalid. Signedness participates in canonical identity.
       const IntegerType *getIntegerType(std::uint32_t BitWidth, bool Signed);
       // IEEE binary16/32/64. Other widths return null.
@@ -92,20 +99,34 @@ namespace ink::semantic
       const FloatConst *getFloatConst(const FloatType &ValueType, const FloatBits &Payload);
       // The caller has checked Expression and supplies its local result type.
       // This records its origin without evaluation or AST-based interning.
-      const ExprValue *createExprValue(const Type &ValueType, const parser::Expr &Expression, core::SourceId Source = {});
-      // Closed functions carry a local signature and have independent callable identities.
-      const Function *createFunction(Name FunctionName, const FunctionType &Signature);
+      ExprValue *createExprValue(const Type &ValueType, const parser::Expr &Expression, core::SourceId Source = {});
+      // Closed functions carry a local signature and initially have no body.
+      Function *createFunction(Name FunctionName, const FunctionType &Signature);
+      // Creates a local function's empty entry block and sets its parent. Foreign functions or existing bodies return null.
+      BasicBlock *createFunctionBody(Function &FunctionValue);
+      // Each block has an independent identity, the local label type and an initially empty value list.
+      BasicBlock *createBasicBlock();
+      // Appends a new block to a local function; the first block becomes its entry. Foreign functions return null.
+      BasicBlock *createBasicBlock(Function &FunctionValue);
+      // Both objects must belong here. Rejects existing parents, cycles, types and constants without changing either object.
+      bool appendValue(BasicBlock &Block, Value &Child);
+      // Detaches a local direct child without destroying it; a non-child or foreign object returns false.
+      bool removeValue(BasicBlock &Block, Value &Child) noexcept;
+      // Requires a local name; each module receives a distinct empty entry block.
+      Module *createModule(Name ModuleName);
       // A function-typed value is required. Arguments are
       // non-null local values with exactly matching types after analysis/conversion.
       // Each call has its own identity; these factories do not execute the function.
-      const CallInstruction *createCallInstruction(const Value &Callee, std::span<const Value *const> Arguments = {});
+      CallInstruction *createCallInstruction(const Value &Callee, std::span<const Value *const> Arguments = {});
       // Name must originate in namePool(); an initializer must belong here too.
       // Invalid indices, mutability or foreign initializers fail.
       Variable *createVariable(Name VariableName, BindingMutability Mutability, const Value *Initializer = nullptr);
-      // Only generic AST definitions produce a Decl. Names must belong to namePool().
+      // Declaration names must belong to namePool(); child lists are populated by the caller.
       // The borrowed AST and its ParsedUnit must outlive this context.
-      const FunctionDecl *createFunctionDecl(Name DeclName, const parser::FunctionDecl &AST);
-      const ClassDecl *createClassDecl(Name DeclName, const parser::ClassDecl &AST);
+      ModuleDecl *createModuleDecl(Name DeclName, const parser::ModuleAST &AST);
+      // Function/class declarations require generic AST definitions.
+      FunctionDecl *createFunctionDecl(Name DeclName, const parser::FunctionDecl &AST);
+      ClassDecl *createClassDecl(Name DeclName, const parser::ClassDecl &AST);
 
     private:
       class Impl;

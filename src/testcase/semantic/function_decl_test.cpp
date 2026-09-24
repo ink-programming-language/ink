@@ -60,7 +60,7 @@ namespace ink::semantic::test
     EXPECT_FALSE(FunctionDecl::classof(nullptr));
   }
 
-  // A generic class remains an immutable AST definition while separate closed class types carry instance identity.
+  // A generic class retains its borrowed AST while separate closed class types carry instance identity.
   TEST(SemanticClassDeclTest, GenericClassIsSeparateFromResolvedTypes)
   {
     core::CompilationContext Compilation;
@@ -89,7 +89,7 @@ namespace ink::semantic::test
     static_assert(!std::is_base_of_v<Decl, ClassType>);
   }
 
-  // Ordinary function/class ASTs and invalid names cannot be registered as generic semantic definitions.
+  // Invalid names cannot register declarations; ordinary function/class ASTs cannot register generic definitions.
   TEST(SemanticFunctionDeclTest, FactoriesRejectOrdinaryDefinitionsAndInvalidNames)
   {
     core::CompilationContext Compilation;
@@ -105,10 +105,12 @@ namespace ink::semantic::test
     SemanticContext Context(Compilation);
     SemanticContext Other(Compilation);
     const Name OutOfRange = Other.namePool().intern("Foreign");
+    EXPECT_EQ(Context.createModuleDecl(OutOfRange, *Parsed.Unit->root()), nullptr);
     EXPECT_EQ(Context.createFunctionDecl(OutOfRange, *Generic), nullptr);
     EXPECT_EQ(Context.createClassDecl(OutOfRange, *GenericClass), nullptr);
     EXPECT_EQ(Context.createFunctionDecl(Name{}, *Generic), nullptr);
     EXPECT_EQ(Context.createClassDecl(Name{}, *GenericClass), nullptr);
+    EXPECT_EQ(Context.createModuleDecl(Name{}, *Parsed.Unit->root()), nullptr);
     EXPECT_EQ(Context.createFunctionDecl(Context.namePool().intern(Plain->name().Text), *Plain), nullptr);
     EXPECT_EQ(Context.createClassDecl(Context.namePool().intern(PlainClass->name().Text), *PlainClass), nullptr);
     EXPECT_NE(Context.createFunctionDecl(Context.namePool().intern(Generic->name().Text), *Generic), nullptr);
@@ -130,8 +132,12 @@ namespace ink::semantic::test
     const Name ClassName = Context.namePool().intern(ClassAST->name().Text);
     const FunctionDecl *Definition = Context.createFunctionDecl(FunctionName, *FunctionAST);
     const ClassDecl *ClassDefinition = Context.createClassDecl(ClassName, *ClassAST);
+    ModuleDecl *Module = Context.createModuleDecl(Context.namePool().intern("Example"), *Parsed.Unit->root());
     ASSERT_NE(Definition, nullptr);
     ASSERT_NE(ClassDefinition, nullptr);
+    ASSERT_NE(Module, nullptr);
+    Module->child().push_back(Definition);
+    Module->child().push_back(ClassDefinition);
     const FunctionType *Signature = Context.getFunctionType(Context.getBoolType());
     ASSERT_NE(Signature, nullptr);
     const Function *Closed = Context.createFunction(FunctionName, *Signature);
@@ -141,14 +147,21 @@ namespace ink::semantic::test
     {
       const FunctionDecl *Next = Context.createFunctionDecl(FunctionName, *FunctionAST);
       const ClassDecl *NextClass = Context.createClassDecl(ClassName, *ClassAST);
+      const ModuleDecl *NextModule = Context.createModuleDecl(Module->name(), *Parsed.Unit->root());
       ASSERT_NE(Next, nullptr);
       ASSERT_NE(NextClass, nullptr);
+      ASSERT_NE(NextModule, nullptr);
+      EXPECT_NE(NextModule, Module);
+      EXPECT_TRUE(NextModule->child().empty());
       EXPECT_NE(Next, Definition);
       EXPECT_NE(NextClass, ClassDefinition);
     }
     EXPECT_EQ(Definition->name(), FunctionName);
     EXPECT_EQ(&Definition->ast(), FunctionAST);
     EXPECT_EQ(&ClassDefinition->ast(), ClassAST);
+    ASSERT_EQ(Module->child().size(), 2U);
+    EXPECT_EQ(Module->child()[0], Definition);
+    EXPECT_EQ(Module->child()[1], ClassDefinition);
     EXPECT_EQ(&Closed->type(), Signature);
     EXPECT_EQ(FunctionAST->genericParameters().size(), 1U);
   }

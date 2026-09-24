@@ -35,18 +35,15 @@ namespace ink::semantic
         }
       }
 
-    private:
+    protected:
       UserDefinedType(SemanticContext &Context, ValueKind ValueKindValue, TypeKind Kind, const Type &MetaType, Name TypeName) noexcept
           : Type(Context, ValueKindValue, Kind, &MetaType),
             TypeName(TypeName)
       {
       }
 
+    private:
       Name TypeName;
-
-      friend class ClassType;
-      friend class EnumType;
-      friend class InterfaceType;
   };
 } // namespace ink::semantic
 

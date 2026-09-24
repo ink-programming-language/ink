@@ -15,7 +15,7 @@ namespace ink::semantic
 
   bool Variable::setInitializer(const Value &InitializerValue) noexcept
   {
-    if (&InitializerValue.type().context() != &context() || (Initializer && Initializer != &InitializerValue) || (ValueType && ValueType != &InitializerValue.type()))
+    if (&InitializerValue.context() != &context() || (Initializer && Initializer != &InitializerValue) || (ValueType && ValueType != &InitializerValue.type()))
     {
       return false;
     }
