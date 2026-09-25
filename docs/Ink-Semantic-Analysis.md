@@ -1,73 +1,34 @@
-# 初版语义分析
+# 语义分析接口
 
-入口为 [`semantic::analyze`](../src/include/ink/semantic/analyzer.h)，输入是成功的 `parser::ParseResult`，输出是由 `SemanticContext` 拥有的 `Module *`。输入和上下文必须使用同一个 `CompilationContext`。
+入口为 [`Analyzer::analyze`](../src/include/ink/semantic/analyze/analyzer.h)，头文件和实现分别位于 `src/include/ink/semantic/analyze` 和 `src/lib/semantic/analyze`：
 
 ```cpp
-#include "ink/parser/parser.h"
-#include "ink/semantic/analyzer.h"
-#include "ink/semantic/model/context.h"
-
-ink::core::CompilationContext Compilation;
-ink::core::FrontendContext Frontend(Compilation);
-ink::semantic::SemanticContext Semantic(Compilation);
-auto Parsed = ink::parser::parse(Frontend, ink::tokenizer::tokenize(Frontend, R"(
-func main(): int32
+class Analyzer
 {
-  var a: int32 = 2;
-  var b: int32 = 4;
-  print("hello， world");
-  return a+b;
-}
-)"));
-ink::semantic::Module *ModuleValue = ink::semantic::analyze(Semantic, Parsed, "example");
+  public:
+    Module *analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName = "main");
+};
 ```
 
-空指针表示词法、语法或语义失败，诊断通过 Core 的 DiagnosticEngine 交给注册的 consumer。词法/语法失败时不重复报告语义错误；语义分析遇到第一个错误即停止，不暴露半成品模块。失败过程中已经分配的对象保留到上下文销毁，不会污染下一次分析的符号表。
+通过 `Analyzer` 实例调用。当前方法仍为空实现，始终返回 `nullptr`，不检查输入、不创建模块、不注册内置函数，也不报告诊断。
 
-成功模块不借用 AST：名称已驻留，字符串已复制，操作数引用上下文对象。Parsed 可以先于 Semantic 销毁；手动创建的泛型 Decl、ExprValue 仍遵守原来的借用生命周期约束。
+## 名字绑定与作用域
 
-## 目标程序的对象图
+[`NameResolver`](../src/include/ink/semantic/name_resolve/name_resolver.h) 是独立的语义分析辅助类，借用 `SemanticContext`，拥有作用域树和名字绑定。它不遍历 AST，也不执行类型检查或重载选择。
 
-下面是对象关系示意，并非已经实现的文本 IR 格式：
+名字解析的头文件位于 `src/include/ink/semantic/name_resolve`，实现位于 `src/lib/semantic/name_resolve`。[`Binding`](../src/include/ink/semantic/name_resolve/binding.h)、[`Scope`](../src/include/ink/semantic/name_resolve/scope.h) 和 `NameResolver` 是 `ink::semantic` 命名空间下的三个独立类型：`Binding` 保存名字及候选值，`Scope` 保存词法父作用域及绑定表，`NameResolver` 管理作用域生命周期、当前作用域、实体成员作用域关联和查找。
 
-```text
-Module("example")
-  EntryBlock
-    Function("print", (string) -> void, 无函数体)
-    Function("main", () -> int32)
-      EntryBlock
-        A  = AllocaInstruction(int32)
-             StoreInstruction(A, IntegerConstant(2))
-        B  = AllocaInstruction(int32)
-             StoreInstruction(B, IntegerConstant(4))
-             CallInstruction(Print, [StringConstant("hello， world")])
-        A1 = LoadInstruction(A)
-        B1 = LoadInstruction(B)
-        S  = AddInstruction(A1, B1)
-             ReturnInstruction(S)
-```
+- 构造后当前作用域为根作用域；`rootScope()` 返回根作用域，`currentScope()` 返回当前作用域。
+- `enterScope()` 创建并进入当前作用域的一个新子作用域，返回该作用域的引用；`exitScope()` 回到父作用域并返回 `true`。在根作用域调用 `exitScope()` 返回 `false`，当前作用域保持不变。退出不会销毁作用域或已有绑定，再次进入会创建新的子作用域。
+- `enterScope(Value &Owner)` 创建并进入实体的成员作用域，返回作用域指针；词法父作用域为调用前的当前作用域。同一实体只允许创建一次，重复创建或传入外来上下文的实体返回空指针，当前作用域和已有绑定保持不变。该接口不自动登记实体的名字，调用方通过 `bind()` 单独登记；无参数的 `enterScope()` 用于创建不关联实体的词法作用域。
+- `bind(Name, Value &)` 在当前作用域登记值，可使用别名；绑定内部直接保存 `Value *`，不接受 `Decl`。非 `Function` 的值在同一作用域中只能绑定一个实体；函数类型的表达式结果也是普通值绑定。
+- 多个 `Function` 可以同名，按登记顺序组成候选集合。单个函数同样表示重载集合。不同函数实体即使签名相同也保留，由后续声明检查判断重声明或非法重复，由调用分析选择重载。
+- 重复登记同一实体返回 `AlreadyBound`，不重复添加；非函数同名冲突返回 `Conflict`，保留已有绑定。成功返回 `Inserted`；无效或越界名称、外来上下文的值分别返回 `InvalidName`、`ForeignValue`。这些接口不自行报告诊断。
+- `lookup(Name)` 从当前作用域沿父作用域查找最近的绑定；内层同名绑定遮蔽整个外层集合，不合并外层重载。`lookupLocal(Name)` 只查当前作用域。兄弟和子作用域不可见，退出后恢复父作用域的可见绑定。未命中或无效名称返回空指针，查找不驻留新名称。
+- `lookupMember(Value &Owner, Name)` 只查实体关联的成员作用域，不沿词法父作用域回退，也不查其子作用域，不切换当前作用域。实体未关联成员作用域、名称无效或没有对应成员时返回空指针。关联以 `Value *` 身份为键，实体的别名共享成员绑定；不同实体即使名称相同，成员作用域也各自独立。函数成员返回完整的重载候选集合。
+- 限定名由调用方逐段解析：`A.B.C` 先用 `lookup(A)` 找到 A，再依次调用 `lookupMember(AValue, B)` 和 `lookupMember(BValue, C)`；在 A 内解析 `B.C` 时先用 `lookup(B)`。没有遮蔽且 B 指向同一实体时，两条路径取得同一个 C 绑定。接口不拆分名字字符串，AST 成员访问分析尚未接入。
+- 名称在何时可见由调用方选择登记时机。模块导入、继承成员查找、访问控制和条件声明激活仍需后续实现。
 
-A、A1、S 是说明标签；实际通过 `const Value &` / `const Value *` 引用对象，不通过变量名或数值 ID 查找。源码名称仅参与分析期间的作用域查找，同名遮蔽绑定对应不同地址。常量不插入基本块，通过指令操作数引用。ReturnInstruction 只保存可选返回值；function() 从 outer → BasicBlock → Function 取得所属函数，未挂接时为空。加入块时检查返回类型，移除后再挂接会重新检查目标函数。
+作用域及 `Binding` 的地址在 `NameResolver` 存活期间保持稳定，退出后实体与成员作用域的关联仍然有效。`Binding::targets()` 返回 `std::span<Value *const>`，候选指针列表只读，目标值可修改；继续向同一绑定添加候选后须重新获取视图。绑定和成员作用域索引不拥有 `Value`；上下文、绑定目标和成员作用域所属实体必须比 NameResolver 活得更久。`Name` 必须使用该上下文的名称池，紧凑名称索引不能识别来自其他池但数值相同的名称。
 
-## 支持范围
-
-- 模块级普通函数定义和无函数体声明。先登记所有签名，再分析函数体，支持前向调用和递归引用。暂不支持重载或合并声明与定义，同模块重名报错。
-- 固定数量、显式类型的参数。FunctionParameter 通过 outer 取得所属函数，保存 Name 类型的 ParameterName、零起始索引、值类型和 ParameterKind，name() 返回驻留名称；当前分析器创建 Positional 参数，模型也可通过 createFunction 的种类列表创建 Named、Variadic 参数，命名绑定与变参展开仍待实现；参数是只读传入值，需要可变副本时写 `var local = parameter;`。
-- int8/16/32/64、uint8/16/32/64、bool、string 和返回位置的 void。函数必须显式声明返回类型；string 表示只读 uint8 切片。
-- 整数及正负整数字面量、解码字符串、true/false、名称、括号、整数加法和位置参数调用。整数常量检查目标类型范围，不截断溢出值，支持 tokenizer 接受的各进制。
-- 声明、赋值、参数和返回提供期望类型，整数常量据此定型；没有上下文时默认为 int32。加法从上下文或左操作数确定类型，并约束右操作数。已有类型的值不进行隐式数值转换。AddInstruction 的行为定义为模 2^bitWidth 加法，带符号和无符号都按位宽回绕。
-- 局部 var、类型推断、显式类型的未初始化变量、简单赋值、嵌套词法块、表达式语句。先分析初始化表达式，再引入新绑定，允许读取被遮蔽的外层变量。同作用域不能重复定义。直线代码检查读取前初始化。
-- 每个函数生成一个基本块，词法块只影响作用域。非 void 函数须显式返回匹配类型的值；void 函数允许无值 return，并在自然结束时补 return。return 后的语句报不可达错误。
-- 每个模块预置 `print(string): void` 声明，模块级名称 print 不可重定义。这里只构建调用关系，尚未提供宿主绑定或执行输出。
-
-const、泛型、comptime、属性、复合类型表达式、全局变量、成员访问、浮点/字符字面量、其他运算符、复合/链式赋值、命名/展开实参、默认/变长参数和控制流等尚未实现，遇到时明确诊断。递归分析限制为 256 层。按 Core 规则，实现缺口和资源限制归 InternalCompilerError；名称、类型、范围、初始化和返回错误归 User。
-
-示例采用现有 Ink 文法 `func main(): int32` 和普通双引号。`void main()` 不是当前函数文法；`func main(): void { return a+b; }` 会报告返回类型错误。
-
-## 后续边界
-
-当前交付止于生成 Module，没有新增编译器 CLI、解释器、LLVM lowering 或 print 运行库实现。验证器、控制流、目标布局等缺口见 [可执行 IR 状态](Ink-Executable-IR-Status.md)。
-
-旧 src/include/ink/ir、src/lib/ir、src/include/ink/execution、src/lib/execution 及相应测试目录已删除。原有 backend、interpreter 工具仍是未接入构建的旧接口调用方，需要基于新 Module 重写，不能作为当前执行能力使用。
-
-测试见 [analyzer_test.cpp](../src/testcase/semantic/analyzer_test.cpp) 和 [arithmetic_return_test.cpp](../src/testcase/semantic/arithmetic_return_test.cpp)。
+`semantic/model` 的对象模型和工厂接口仍可独立使用。当前模型能力和后续缺口见 [可执行 IR 状态](Ink-Executable-IR-Status.md)，后续分析器架构见 [Semantic 模块设计](Ink-Semantic-Design.md)。

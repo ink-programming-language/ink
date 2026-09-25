@@ -9,8 +9,7 @@ namespace ink::semantic
   class Type;
 
   // Semantic values have stable identities within their owning context.
-  // ExprValue retains a checked expression's origin; mutable execution slots
-  // and values produced by individual executions are represented separately.
+  // Each value's type is fixed at construction and owned by the same context.
   class Value
   {
     public:
@@ -41,18 +40,23 @@ namespace ink::semantic
         return Outer;
       }
 
-      virtual const Type &type() const noexcept = 0;
+      const Type &type() const noexcept
+      {
+        return ValueType;
+      }
 
     protected:
-      Value(const SemanticContext &Context, ValueKind Kind) noexcept
+      Value(const SemanticContext &Context, ValueKind Kind, const Type &ValueType) noexcept
           : Context(Context),
-            Kind(Kind)
+            Kind(Kind),
+            ValueType(ValueType)
       {
       }
 
     private:
       const SemanticContext &Context;
       ValueKind Kind;
+      const Type &ValueType;
       Value *Outer = nullptr;
 
       friend class SemanticContext;

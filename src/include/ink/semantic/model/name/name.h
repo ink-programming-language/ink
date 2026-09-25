@@ -1,5 +1,5 @@
-#ifndef INK_SEMANTIC_MODEL_NAME_H
-#define INK_SEMANTIC_MODEL_NAME_H
+#ifndef INK_SEMANTIC_MODEL_NAME_NAME_H
+#define INK_SEMANTIC_MODEL_NAME_NAME_H
 
 #include <cstddef>
 #include <cstdint>

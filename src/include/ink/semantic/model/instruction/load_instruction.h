@@ -9,11 +9,6 @@ namespace ink::semantic
   class LoadInstruction final : public Value
   {
     public:
-      const Type &type() const noexcept override
-      {
-        return static_cast<const PointerType &>(Address.type()).pointeeType();
-      }
-
       const Value &address() const noexcept
       {
         return Address;
@@ -26,7 +21,7 @@ namespace ink::semantic
 
     private:
       explicit LoadInstruction(const Value &Address) noexcept
-          : Value(Address.context(), ValueKind::LoadInstruction),
+          : Value(Address.context(), ValueKind::LoadInstruction, static_cast<const PointerType &>(Address.type()).pointeeType()),
             Address(Address)
       {
       }

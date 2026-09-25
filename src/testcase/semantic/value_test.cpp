@@ -1,9 +1,8 @@
 #include "ink/semantic/model/function/basic_block.h"
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 #include "ink/semantic/model/type/class_type.h"
 #include "ink/semantic/model/type/enum_type.h"
 #include "ink/semantic/model/type/interface_type.h"
-#include "ink/parser/ast.h"
 
 #include <gtest/gtest.h>
 
@@ -17,18 +16,9 @@ namespace ink::semantic::test
     {
       public:
         explicit UnknownValue(const Type &ValueType) noexcept
-            : Value(ValueType.context(), static_cast<ValueKind>(255)),
-              ValueType(ValueType)
+            : Value(ValueType.context(), static_cast<ValueKind>(255), ValueType)
         {
         }
-
-        const Type &type() const noexcept override
-        {
-          return ValueType;
-        }
-
-      private:
-        const Type &ValueType;
     };
 
     template <typename Concrete>
@@ -38,6 +28,7 @@ namespace ink::semantic::test
       SCOPED_TRACE(static_cast<unsigned>(ExpectedKind));
       const Value *ValueObject = Object;
       EXPECT_EQ(&ValueObject->context(), &Context);
+      EXPECT_EQ(&ValueObject->type().context(), &Context);
       EXPECT_EQ(ValueObject->kind(), ExpectedKind);
       EXPECT_EQ(Type::classof(ValueObject), (std::is_base_of_v<Type, Concrete>));
       EXPECT_EQ(UserDefinedType::classof(ValueObject), (std::is_base_of_v<UserDefinedType, Concrete>));
@@ -51,7 +42,6 @@ namespace ink::semantic::test
   TEST(SemanticValueTest, KindsAndClassificationMatchConcreteClasses)
   {
     core::CompilationContext Compilation;
-    parser::NameExpr Expression({}, {});
     SemanticContext Context(Compilation);
     expectValueKind(Context, &Context.getMetaType(), ValueKind::BuiltinType);
     expectValueKind(Context, &Context.getVoidType(), ValueKind::BuiltinType);
@@ -91,7 +81,6 @@ namespace ink::semantic::test
     ASSERT_NE(Float32, nullptr);
     expectValueKind(Context, Context.getStringConstant(*String, "hello,world"), ValueKind::StringConstant);
     expectValueKind(Context, Context.getFloatConstant(*Float32, FloatBits(32, 0x3f800000)), ValueKind::FloatConstant);
-    expectValueKind(Context, Context.createExprValue(*Int32, Expression), ValueKind::ExprValue);
     const FunctionType *Signature = Context.getFunctionType(*Int32);
     ASSERT_NE(Signature, nullptr);
     expectValueKind(Context, Signature, ValueKind::FunctionType);
@@ -106,6 +95,15 @@ namespace ink::semantic::test
     expectValueKind(Context, Loaded, ValueKind::LoadInstruction);
     ASSERT_NE(Loaded, nullptr);
     expectValueKind(Context, Context.createStoreInstruction(*Slot, *Loaded), ValueKind::StoreInstruction);
+    expectValueKind(Context, Context.createAddInstruction(*Loaded, *Loaded), ValueKind::AddInstruction);
+    expectValueKind(Context, Context.createReturnInstruction(Loaded), ValueKind::ReturnInstruction);
+    const Type *ParameterTypes[] = {Int32};
+    const FunctionType *ParameterizedSignature = Context.getFunctionType(*Int32, ParameterTypes);
+    ASSERT_NE(ParameterizedSignature, nullptr);
+    const Function *Parameterized = Context.createFunction(NameValue, *ParameterizedSignature);
+    ASSERT_NE(Parameterized, nullptr);
+    EXPECT_EQ(&Parameterized->functionType(), ParameterizedSignature);
+    expectValueKind(Context, Parameterized->parameters()[0], ValueKind::FunctionParameter);
   }
 
   // Null pointers and unregistered value tags never match a model class.

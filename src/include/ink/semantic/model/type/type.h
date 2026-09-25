@@ -18,11 +18,6 @@ namespace ink::semantic
         return Kind;
       }
 
-      const Type &type() const noexcept final
-      {
-        return *MetaType;
-      }
-
       static bool classof(const Value *ValueObject) noexcept
       {
         if (!ValueObject)
@@ -42,15 +37,13 @@ namespace ink::semantic
     protected:
       // Only the context's metatype supplies null and is its own value type.
       Type(SemanticContext &Context, ValueKind ValueKindValue, TypeKind Kind, const Type *MetaType) noexcept
-          : Value(Context, ValueKindValue),
-            Kind(Kind),
-            MetaType(MetaType ? MetaType : this)
+          : Value(Context, ValueKindValue, MetaType ? *MetaType : *this),
+            Kind(Kind)
       {
       }
 
     private:
       TypeKind Kind;
-      const Type *MetaType;
   };
 } // namespace ink::semantic
 

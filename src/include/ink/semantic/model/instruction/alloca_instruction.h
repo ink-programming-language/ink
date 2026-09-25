@@ -10,14 +10,9 @@ namespace ink::semantic
   class AllocaInstruction final : public Value
   {
     public:
-      const PointerType &type() const noexcept override
-      {
-        return ResultType;
-      }
-
       const Type &allocatedType() const noexcept
       {
-        return ResultType.pointeeType();
+        return static_cast<const PointerType &>(type()).pointeeType();
       }
 
       static bool classof(const Value *ValueObject) noexcept
@@ -27,12 +22,9 @@ namespace ink::semantic
 
     private:
       explicit AllocaInstruction(const PointerType &ResultType) noexcept
-          : Value(ResultType.context(), ValueKind::AllocaInstruction),
-            ResultType(ResultType)
+          : Value(ResultType.context(), ValueKind::AllocaInstruction, ResultType)
       {
       }
-
-      const PointerType &ResultType;
 
       friend class SemanticContext;
   };

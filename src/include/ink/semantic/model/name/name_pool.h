@@ -1,7 +1,7 @@
-#ifndef INK_SEMANTIC_MODEL_NAME_POOL_H
-#define INK_SEMANTIC_MODEL_NAME_POOL_H
+#ifndef INK_SEMANTIC_MODEL_NAME_NAME_POOL_H
+#define INK_SEMANTIC_MODEL_NAME_NAME_POOL_H
 
-#include "ink/semantic/model/name.h"
+#include "ink/semantic/model/name/name.h"
 
 #include <functional>
 #include <string>

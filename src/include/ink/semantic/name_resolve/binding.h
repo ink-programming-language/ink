@@ -1,0 +1,49 @@
+#ifndef INK_SEMANTIC_NAME_RESOLVE_BINDING_H
+#define INK_SEMANTIC_NAME_RESOLVE_BINDING_H
+
+#include "ink/semantic/model/name/name.h"
+
+#include <span>
+#include <vector>
+
+namespace ink::semantic
+{
+  class NameResolver;
+  class Value;
+
+  class Binding final
+  {
+    public:
+      Name name() const noexcept
+      {
+        return BoundName;
+      }
+
+      // Even a single function is an overload set. Function-typed variables are not.
+      bool isOverloadSet() const noexcept
+      {
+        return OverloadSet;
+      }
+
+      // In insertion order. A later insertion into this binding invalidates the span.
+      std::span<Value *const> targets() const noexcept
+      {
+        return Targets;
+      }
+
+    private:
+      Binding(Name BoundName, bool OverloadSet)
+          : BoundName(BoundName),
+            OverloadSet(OverloadSet)
+      {
+      }
+
+      Name BoundName;
+      bool OverloadSet;
+      std::vector<Value *> Targets;
+
+      friend class NameResolver;
+  };
+} // namespace ink::semantic
+
+#endif

@@ -2,7 +2,7 @@
 #define INK_SEMANTIC_MODEL_FUNCTION_PARAMETER_H
 
 #include "ink/semantic/model/type/type.h"
-#include "ink/semantic/model/name.h"
+#include "ink/semantic/model/name/name.h"
 
 #include <cstddef>
 
@@ -19,11 +19,6 @@ namespace ink::semantic
       Name name() const noexcept
       {
         return ParameterName;
-      }
-
-      const Type &type() const noexcept override
-      {
-        return ValueType;
       }
 
       const Function &function() const noexcept;
@@ -45,16 +40,14 @@ namespace ink::semantic
 
     private:
       FunctionParameter(Name ParameterName, const Type &ValueType, std::size_t Index, ParameterKind Kind) noexcept
-          : Value(ValueType.context(), ValueKind::FunctionParameter),
+          : Value(ValueType.context(), ValueKind::FunctionParameter, ValueType),
             ParameterName(ParameterName),
-            ValueType(ValueType),
             Index(Index),
             Kind(Kind)
       {
       }
 
       Name ParameterName;
-      const Type &ValueType;
       std::size_t Index;
       ParameterKind Kind;
 

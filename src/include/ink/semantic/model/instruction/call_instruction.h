@@ -15,11 +15,6 @@ namespace ink::semantic
   class CallInstruction final : public Value
   {
     public:
-      const Type &type() const noexcept override
-      {
-        return functionType().returnType();
-      }
-
       const FunctionType &functionType() const noexcept
       {
         return static_cast<const FunctionType &>(Callee.type());
@@ -53,7 +48,7 @@ namespace ink::semantic
 
     private:
       CallInstruction(const Value &Callee, std::span<const Value *const> Arguments)
-          : Value(Callee.context(), ValueKind::CallInstruction),
+          : Value(Callee.context(), ValueKind::CallInstruction, static_cast<const FunctionType &>(Callee.type()).returnType()),
             Callee(Callee),
             Arguments(Arguments.begin(), Arguments.end())
       {

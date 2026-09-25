@@ -1,5 +1,5 @@
 #include "ink/semantic/model/function/function.h"
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 
 #include <gtest/gtest.h>
 
@@ -27,6 +27,8 @@ namespace ink::semantic::test
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
     EXPECT_NE(First, Second);
+    EXPECT_EQ(First->callingConvention(), CallingConvention::C);
+    EXPECT_EQ(First->languageLinkage(), LanguageLinkage::Ink);
     EXPECT_FALSE(First->hasBody());
     EXPECT_FALSE(Second->hasBody());
     EXPECT_TRUE(First->blocks().empty());
@@ -43,6 +45,35 @@ namespace ink::semantic::test
     ASSERT_NE(Call, nullptr);
     EXPECT_EQ(Call->directCallee(), First);
     EXPECT_EQ(&Call->type(), &Context.getBoolType());
+  }
+
+  // Calling conventions and language linkages vary independently on a shared signature and survive body creation.
+  TEST(SemanticFunctionTest, CallingConventionAndLanguageLinkageSurviveDefinition)
+  {
+    core::CompilationContext Compilation;
+    SemanticContext Context(Compilation);
+    const FunctionType *Signature = Context.getFunctionType(Context.getVoidType());
+    ASSERT_NE(Signature, nullptr);
+    const Name NameValue = Context.namePool().intern("Target");
+    for (CallingConvention Convention : {CallingConvention::C, CallingConvention::Fast, CallingConvention::Cold})
+    {
+      for (LanguageLinkage Linkage : {LanguageLinkage::Ink, LanguageLinkage::C})
+      {
+        Function *Target = Context.createFunction(NameValue, *Signature, {}, {}, Convention, Linkage);
+        ASSERT_NE(Target, nullptr);
+        EXPECT_FALSE(Target->hasBody());
+        EXPECT_EQ(Target->callingConvention(), Convention);
+        EXPECT_EQ(Target->languageLinkage(), Linkage);
+        CallInstruction *Call = Context.createCallInstruction(*Target);
+        ASSERT_NE(Call, nullptr);
+        ASSERT_NE(Context.createFunctionBody(*Target), nullptr);
+        EXPECT_TRUE(Target->hasBody());
+        EXPECT_EQ(Target->callingConvention(), Convention);
+        EXPECT_EQ(Target->languageLinkage(), Linkage);
+        EXPECT_EQ(&Target->type(), Signature);
+        EXPECT_EQ(Call->directCallee(), Target);
+      }
+    }
   }
 
   // Defining a previously referenced function preserves its identity and keeps the body stable through storage growth.
@@ -237,8 +268,8 @@ namespace ink::semantic::test
     EXPECT_TRUE(RootEntry->values().empty());
   }
 
-  // Closed functions require a valid local name and signature and cannot retain foreign type dependencies.
-  TEST(SemanticFunctionTest, InvalidNamesAndForeignSignaturesAreRejected)
+  // Closed functions reject invalid names, foreign signatures and undefined calling-convention or language-linkage values.
+  TEST(SemanticFunctionTest, InvalidNamesSignaturesAndFunctionMetadataAreRejected)
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
@@ -251,6 +282,8 @@ namespace ink::semantic::test
     EXPECT_EQ(Context.createFunction(Other.namePool().intern("Foreign"), *Signature), nullptr);
     const Name NameValue = Context.namePool().intern("Local");
     EXPECT_EQ(Context.createFunction(NameValue, *Foreign), nullptr);
+    EXPECT_EQ(Context.createFunction(NameValue, *Signature, {}, {}, static_cast<CallingConvention>(255)), nullptr);
+    EXPECT_EQ(Context.createFunction(NameValue, *Signature, {}, {}, CallingConvention::C, static_cast<LanguageLinkage>(255)), nullptr);
     EXPECT_NE(Context.createFunction(NameValue, *Signature), nullptr);
   }
 } // namespace ink::semantic::test

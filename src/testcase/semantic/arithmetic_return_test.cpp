@@ -1,9 +1,32 @@
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 
 #include <gtest/gtest.h>
 
 namespace ink::semantic::test
 {
+  // Deep addition chains retain their canonical result type without recursively walking operands.
+  TEST(SemanticInstructionTest, DeepAdditionChainsKeepCanonicalResultTypes)
+  {
+    core::CompilationContext Compilation;
+    SemanticContext Context(Compilation);
+    const IntegerType *Int32 = Context.getIntegerType(32, true);
+    ASSERT_NE(Int32, nullptr);
+    const IntegerConstant *One = Context.getIntegerConstant(*Int32, IntegerBits(32, 1));
+    ASSERT_NE(One, nullptr);
+    const Value *Result = One;
+    for (unsigned Index = 0; Index < 32768; ++Index)
+    {
+      Result = Context.createAddInstruction(*Result, *One);
+      ASSERT_NE(Result, nullptr);
+    }
+    EXPECT_EQ(&Result->type(), Int32);
+    EXPECT_EQ(&Result->context(), &Context);
+    AllocaInstruction *Slot = Context.createAllocaInstruction(*Int32);
+    ASSERT_NE(Slot, nullptr);
+    EXPECT_NE(Context.createStoreInstruction(*Slot, *Result), nullptr);
+    EXPECT_NE(Context.createReturnInstruction(Result), nullptr);
+  }
+
   // Add accepts only same-context, exactly matching integer types and preserves operand identity.
   TEST(SemanticInstructionTest, ChecksIntegerAdditionOperands)
   {
@@ -124,7 +147,7 @@ namespace ink::semantic::test
     ASSERT_NE(Body, nullptr);
     for (std::size_t Index = 0; Index < 256; ++Index)
     {
-      ASSERT_NE(Context.createFunction(Context.namePool().intern("other"), FunctionValue->type()), nullptr);
+      ASSERT_NE(Context.createFunction(Context.namePool().intern("other"), FunctionValue->functionType()), nullptr);
     }
     EXPECT_EQ(FunctionValue->parameters()[0], First);
     EXPECT_EQ(&First->type(), ParameterTypes[0]);

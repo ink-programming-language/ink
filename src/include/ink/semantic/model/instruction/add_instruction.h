@@ -9,11 +9,6 @@ namespace ink::semantic
   class AddInstruction final : public Value
   {
     public:
-      const IntegerType &type() const noexcept override
-      {
-        return static_cast<const IntegerType &>(Left.type());
-      }
-
       const Value &left() const noexcept
       {
         return Left;
@@ -31,7 +26,7 @@ namespace ink::semantic
 
     private:
       AddInstruction(const Value &Left, const Value &Right) noexcept
-          : Value(Left.context(), ValueKind::AddInstruction),
+          : Value(Left.context(), ValueKind::AddInstruction, Left.type()),
             Left(Left),
             Right(Right)
       {

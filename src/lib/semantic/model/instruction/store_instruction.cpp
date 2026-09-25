@@ -1,11 +1,13 @@
 #include "ink/semantic/model/instruction/store_instruction.h"
 
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 
 namespace ink::semantic
 {
-  const BuiltinType &StoreInstruction::type() const noexcept
+  StoreInstruction::StoreInstruction(const Value &Address, const Value &StoredValue) noexcept
+      : Value(Address.context(), ValueKind::StoreInstruction, Address.context().getVoidType()),
+        Address(Address),
+        StoredValue(StoredValue)
   {
-    return context().getVoidType();
   }
 } // namespace ink::semantic

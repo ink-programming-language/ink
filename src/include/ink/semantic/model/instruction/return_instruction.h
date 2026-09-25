@@ -11,8 +11,6 @@ namespace ink::semantic
   class ReturnInstruction final : public Value
   {
     public:
-      const Type &type() const noexcept override;
-
       // Derived from outer() -> BasicBlock -> Function; null while detached.
       const Function *function() const noexcept;
 
@@ -27,11 +25,7 @@ namespace ink::semantic
       }
 
     private:
-      ReturnInstruction(const SemanticContext &Context, const Value *ReturnedValue) noexcept
-          : Value(Context, ValueKind::ReturnInstruction),
-            ReturnedValue(ReturnedValue)
-      {
-      }
+      ReturnInstruction(const SemanticContext &Context, const Value *ReturnedValue) noexcept;
 
       const Value *ReturnedValue;
 

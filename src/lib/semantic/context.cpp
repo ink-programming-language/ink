@@ -1,10 +1,10 @@
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 
 #include "ink/semantic/model/type/class_type.h"
 #include "ink/semantic/model/type/enum_type.h"
 #include "ink/semantic/model/type/interface_type.h"
 
-#include "hash.h"
+#include "model/hash.h"
 
 #include <algorithm>
 #include <functional>
@@ -295,21 +295,13 @@ namespace ink::semantic
     return constantPool().getFloatConstant(ValueType, Payload);
   }
 
-  ExprValue *SemanticContext::createExprValue(const Type &ValueType, const parser::Expr &Expression, core::SourceId Source)
+  Function *SemanticContext::createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds, std::span<const Name> ParameterNames, CallingConvention Convention, LanguageLinkage Linkage)
   {
-    if (&ValueType.context() != this)
+    if (!Names.contains(FunctionName) || &Signature.context() != this || (!ParameterKinds.empty() && ParameterKinds.size() != Signature.parameterTypes().size()) || (!ParameterNames.empty() && ParameterNames.size() != Signature.parameterTypes().size()))
     {
       return nullptr;
     }
-    auto Result = std::unique_ptr<ExprValue>(new ExprValue(ValueType, Expression, Source));
-    ExprValue *Pointer = Result.get();
-    ExpressionValues.push_back(std::move(Result));
-    return Pointer;
-  }
-
-  Function *SemanticContext::createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds, std::span<const Name> ParameterNames)
-  {
-    if (!Names.contains(FunctionName) || &Signature.context() != this || (!ParameterKinds.empty() && ParameterKinds.size() != Signature.parameterTypes().size()) || (!ParameterNames.empty() && ParameterNames.size() != Signature.parameterTypes().size()))
+    if ((Convention != CallingConvention::C && Convention != CallingConvention::Fast && Convention != CallingConvention::Cold) || (Linkage != LanguageLinkage::Ink && Linkage != LanguageLinkage::C))
     {
       return nullptr;
     }
@@ -327,7 +319,7 @@ namespace ink::semantic
         return nullptr;
       }
     }
-    auto Result = std::unique_ptr<Function>(new Function(FunctionName, Signature));
+    auto Result = std::unique_ptr<Function>(new Function(FunctionName, Signature, Convention, Linkage));
     Function *Pointer = Result.get();
     for (const Type *ParameterType : Signature.parameterTypes())
     {
@@ -385,7 +377,7 @@ namespace ink::semantic
         return false;
       }
       const auto &FunctionValue = static_cast<const Function &>(*Block.outer());
-      const Type &ReturnType = FunctionValue.type().returnType();
+      const Type &ReturnType = FunctionValue.functionType().returnType();
       const Value *ReturnedValue = static_cast<const ReturnInstruction &>(Child).returnedValue();
       if (ReturnType.typeKind() == TypeKind::Void ? ReturnedValue != nullptr : (!ReturnedValue || &ReturnedValue->type() != &ReturnType))
       {

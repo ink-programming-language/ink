@@ -1,5 +1,5 @@
-#ifndef INK_SEMANTIC_MODEL_CONTEXT_H
-#define INK_SEMANTIC_MODEL_CONTEXT_H
+#ifndef INK_SEMANTIC_CONTEXT_H
+#define INK_SEMANTIC_CONTEXT_H
 
 #include "ink/core/context.h"
 #include "ink/semantic/model/type/array_type.h"
@@ -8,7 +8,6 @@
 #include "ink/semantic/model/decl/class_decl.h"
 #include "ink/semantic/model/decl/function_decl.h"
 #include "ink/semantic/model/decl/module_decl.h"
-#include "ink/semantic/model/expr_value.h"
 #include "ink/semantic/model/function/basic_block.h"
 #include "ink/semantic/model/function/function.h"
 #include "ink/semantic/model/function/function_type.h"
@@ -24,7 +23,7 @@
 #include "ink/semantic/model/type/float_type.h"
 #include "ink/semantic/model/type/integer_type.h"
 #include "ink/semantic/model/type/interface_type.h"
-#include "ink/semantic/model/name_pool.h"
+#include "ink/semantic/model/name/name_pool.h"
 #include "ink/semantic/model/type/pointer_type.h"
 #include "ink/semantic/model/type/reference_type.h"
 #include "ink/semantic/model/type/slice_type.h"
@@ -107,15 +106,14 @@ namespace ink::semantic
       const StringConstant *getStringConstant(const SliceType &ValueType, std::string_view Payload);
       // Requires valid bits in the local type's exact IEEE binary16/32/64 format.
       const FloatConstant *getFloatConstant(const FloatType &ValueType, const FloatBits &Payload);
-      // The caller has checked Expression and supplies its local result type.
-      // This records its origin without evaluation or AST-based interning.
-      ExprValue *createExprValue(const Type &ValueType, const parser::Expr &Expression, core::SourceId Source = {});
       // Closed functions carry a local signature and initially have no body.
       // Creates parameters with this function as their outer. Empty kinds default to Positional;
       // otherwise exactly one valid kind per signature slot is required. Kinds are binding metadata,
       // not part of FunctionType identity, and do not enable named-argument binding or variadic expansion.
       // Empty names leave all slots unnamed; otherwise supply one local Name (or unnamed Name{}) per slot.
-      Function *createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds = {}, std::span<const Name> ParameterNames = {});
+      // Calling convention and language linkage are independent function metadata, not FunctionType identity.
+      // Defaults to the target C calling convention and Ink language linkage; undefined enum values return null.
+      Function *createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds = {}, std::span<const Name> ParameterNames = {}, CallingConvention Convention = CallingConvention::C, LanguageLinkage Linkage = LanguageLinkage::Ink);
       // Creates a local function's empty entry block and sets its parent. Foreign functions or existing bodies return null.
       BasicBlock *createFunctionBody(Function &FunctionValue);
       // Each block has an independent identity, the local label type and an initially empty value list.
@@ -200,7 +198,6 @@ namespace ink::semantic
       std::unordered_multimap<std::size_t, std::unique_ptr<FunctionType>> FunctionTypes;
       // Constants are destroyed before the types they reference.
       std::unique_ptr<ConstantPool> Constants;
-      std::vector<std::unique_ptr<ExprValue>> ExpressionValues;
       std::vector<std::unique_ptr<Function>> Functions;
       std::vector<std::unique_ptr<BasicBlock>> BasicBlocks;
       std::vector<std::unique_ptr<Module>> Modules;

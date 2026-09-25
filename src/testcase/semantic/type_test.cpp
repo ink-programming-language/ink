@@ -1,4 +1,4 @@
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 
 #include "ink/semantic/model/type/class_type.h"
 #include "ink/semantic/model/type/enum_type.h"
@@ -173,7 +173,7 @@ namespace ink::semantic::test
     EXPECT_EQ(&Nested->pointeeType(), Pointer);
     const AllocaInstruction *Slot = Context.createAllocaInstruction(*Pointer);
     ASSERT_NE(Slot, nullptr);
-    EXPECT_EQ(Slot->type().access(), AccessKind::ReadWrite);
+    EXPECT_EQ(static_cast<const PointerType &>(Slot->type()).access(), AccessKind::ReadWrite);
     EXPECT_EQ(&Slot->allocatedType(), Pointer);
     EXPECT_EQ(Pointer->access(), AccessKind::ReadOnly);
   }

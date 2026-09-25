@@ -1,4 +1,4 @@
-add_library(ink_semantic STATIC analyzer.cpp model/constant/constant_pool.cpp model/context.cpp model/function/basic_block.cpp model/function/function_parameter.cpp model/instruction/return_instruction.cpp model/instruction/store_instruction.cpp model/module/module.cpp model/name_pool.cpp)
+add_library(ink_semantic STATIC analyze/analyzer.cpp context.cpp name_resolve/name_resolver.cpp model/constant/constant_pool.cpp model/function/basic_block.cpp model/function/function_parameter.cpp model/instruction/return_instruction.cpp model/instruction/store_instruction.cpp model/module/module.cpp model/name/name_pool.cpp)
 add_library(ink::semantic ALIAS ink_semantic)
 
 target_compile_features(ink_semantic PUBLIC cxx_std_20)

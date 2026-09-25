@@ -1,5 +1,5 @@
 #include "ink/semantic/model/constant/float_constant.h"
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 
 #include <gtest/gtest.h>
 

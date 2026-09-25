@@ -2,9 +2,9 @@
 
 基于 AST 的语义分析、泛型实例化与 comptime 执行
 
-日期：2026 年 9 月 25 日。状态：基础对象模型与初版直线代码语义分析已实现，其余为待实现的架构设计。
+日期：2026 年 9 月 25 日。状态：基础对象模型及词法名字绑定已实现，Analyzer::analyze 仍为空接口，其余为待实现的架构设计。
 
-本文采用确定的方向：**泛型实例化和 comptime 都在 AST 层完成，完成后的运行时语义再 lowering 为闭合运行时模型**。当前先实现 [初版语义分析](Ink-Semantic-Analysis.md)，直接生成 `semantic::Module`；除该入口和第 1.3 节对象模型外，下文的类仍是建议结构。语言语法以 [Ink-grammar-Rules.bnf](Ink-grammar-Rules.bnf) 为准；本文不增加泛型、反射或声明生成语法。
+本文采用确定的方向：**泛型实例化和 comptime 都在 AST 层完成，完成后的运行时语义再 lowering 为闭合运行时模型**。当前 [语义分析接口](Ink-Semantic-Analysis.md) 为空实现；第 1.3 节对象模型和 NameResolver 的词法作用域基础已实现，其余分析器类及扩展能力仍是建议结构。语言语法以 [Ink-grammar-Rules.bnf](Ink-grammar-Rules.bnf) 为准；本文不增加泛型、反射或声明生成语法。
 
 ## 1 当前基础与目标边界
 
@@ -12,13 +12,13 @@
 
 | 现有设施 | 当前状态及设计影响 |
 | --- | --- |
-| [parser.h](../src/include/ink/parser/parser.h) 中的 `ParsedUnit` | 持有 token、AST 和恢复记录；分析时必须存活，初版分析成功的 Module 不再借用它；泛型 Decl 和 ExprValue 仍借用 AST |
+| [parser.h](../src/include/ink/parser/parser.h) 中的 `ParsedUnit` | 持有 token、AST 和恢复记录；泛型 Decl 借用 AST，其所属 ParsedUnit 必须保持存活 |
 | [ast.h](../src/include/ink/parser/ast.h) | 具体继承节点通过指针连接；已有 `TypeSyntax`、`GenericApplyExpr`、`ComptimeExpr`、`ComptimeStmt`、`FunctionDecl` 等 |
 | [ast_context.h](../src/include/ink/parser/ast_context.h) | Arena 管理稳定地址的节点和数组；semantic 不接管单个节点的释放 |
 | [ASTNodes.def](../src/include/ink/parser/ASTNodes.def) | 节点种类有稳定显式编号；种类编号不是某个声明或实例的身份 |
 | [core/context.h](../src/include/ink/core/context.h) | 已有 `CompilationContext`、`FrontendContext`、源码管理、诊断及目标信息，直接复用 |
-| [semantic/CMakeLists.txt](../src/lib/semantic/CMakeLists.txt) 与 [lib/CMakeLists.txt](../src/lib/CMakeLists.txt) | 对象模型和初版语义分析器已接入构建 |
-| [analyzer.h](../src/include/ink/semantic/analyzer.h) | 普通函数和直线函数体的名称、类型、调用与返回检查，生成 semantic::Module；旧 IR/execution 已删除 |
+| [semantic/CMakeLists.txt](../src/lib/semantic/CMakeLists.txt) 与 [lib/CMakeLists.txt](../src/lib/CMakeLists.txt) | 对象模型、NameResolver 和 Analyzer::analyze 空实现已接入构建 |
+| [analyze/analyzer.h](../src/include/ink/semantic/analyze/analyzer.h) | Analyzer 类提供 analyze 成员函数，空实现返回 nullptr；旧 IR/execution 已删除 |
 | [inkc/main.cpp](../src/tools/inkc/main.cpp) | 当前仅处理命令行参数；以下流程仍需接入驱动 |
 
 ### 1.2 目标流水线
@@ -48,38 +48,37 @@
 
 ### 1.3 已实现的对象模型
 
-当前 `semantic/model` 正向可执行 IR 演进，初版分析器已生成显式内存、加法、调用和返回节点。旧 IR/execution 已删除；下文其他章节仍是分层语义分析方案。当前实现边界与缺口以 [可执行 IR 状态](Ink-Executable-IR-Status.md) 为准。
+当前 `semantic/model` 正向可执行 IR 演进，提供显式内存、加法、调用和返回节点的构造接口；源码分析器尚未实现。旧 IR/execution 已删除；下文其他章节仍是分层语义分析方案。当前实现边界与缺口以 [可执行 IR 状态](Ink-Executable-IR-Status.md) 为准。
 
-- `createFunction()` 根据签名创建 `FunctionParameter`，通过 `parameters()` 访问；形参通过 `outer()` 关联函数，`function()` 从该父节点取得所属函数，不再重复保存 Owner；同时保存 `Name ParameterName`（通过 `name()` 访问）、零起始索引、值类型和 `ParameterKind`（Positional、Named、Variadic），通过 `parameterKind()` 查询。`createFunction()` 的可选种类列表必须与签名槽位数量一致，省略时全部为 Positional；第四个可选参数 `ParameterNames` 按签名顺序提供名称，省略时参数匿名，源码分析器会驻留并填写全部源码形参名；种类是绑定元数据，不改变规范化运行时签名或开启变参展开。`createAddInstruction()` 接受同型整数并定义按位宽回绕的加法；`createReturnInstruction(ReturnedValue)` 创建未挂接的 void 类型终结节点，只校验操作数归属和非 void 类型；`appendValue()` 校验目标块属于函数且返回值匹配该函数签名。返回指令不保存 Owner，`function()` 沿 outer → BasicBlock → Function 查询，未挂接时返回空指针。工厂不检查整体控制流，首版分析器保证自身生成的直线块以 return 结束。
+- `createFunction()` 根据签名创建 `FunctionParameter`，通过 `parameters()` 访问；形参通过 `outer()` 关联函数，`function()` 从该父节点取得所属函数，不再重复保存 Owner；同时保存 `Name ParameterName`（通过 `name()` 访问）、零起始索引、值类型和 `ParameterKind`（Positional、Named、Variadic），通过 `parameterKind()` 查询。`createFunction()` 的可选种类列表必须与签名槽位数量一致，省略时全部为 Positional；第四个可选参数 `ParameterNames` 按签名顺序提供名称，省略时参数匿名，由调用方驻留并填写形参名；种类是绑定元数据，不改变规范化运行时签名或开启变参展开。`createAddInstruction()` 接受同型整数并定义按位宽回绕的加法；`createReturnInstruction(ReturnedValue)` 创建未挂接的 void 类型终结节点，只校验操作数归属和非 void 类型；`appendValue()` 校验目标块属于函数且返回值匹配该函数签名。返回指令不保存 Owner，`function()` 沿 outer → BasicBlock → Function 查询，未挂接时返回空指针。工厂不检查整体控制流，返回路径检查仍待实现。
 
-当前公共头位于 `src/include/ink/semantic`，由 `SemanticContext` 借用 Core 编译上下文并统一拥有模型对象；完整 `SemanticSession` 后续组合这份存储。
+当前公共头位于 `src/include/ink/semantic`，其中 [`context.h`](../src/include/ink/semantic/context.h) 的 `SemanticContext` 借用 Core 编译上下文并统一拥有模型对象，实现位于 `src/lib/semantic/context.cpp`；完整 `SemanticSession` 后续组合这份存储。
 
 - `model/coredefines.h` 集中定义 `ValueKind`、`TypeKind`、`ParameterKind`、`AccessKind` 和 `VisibilityKind`，仅依赖 `<cstdint>` 与枚举注册表，可独立包含。`VisibilityKind::Public/Private` 表示声明或成员的可见性，具体访问检查尚未接入。
-- `model/Values.def` 生成 `ValueKind`，以 C++ 类名标识实际对象，如 `IntegerType`、`FunctionType`、`ExprValue`、`CallInstruction`；类型和常量条目分别生成 `Type::classof()`、`Constant::classof()`，具体类的 `classof()` 直接检查同名值种类。元类型、void、bool、label、module 共用实际类 `BuiltinType`，通过 `TypeKind` 区分。`Type`、`UserDefinedType`、`Constant` 仅作为中间基类，不单独占用值种类。
+- `model/Values.def` 生成 `ValueKind`，以 C++ 类名标识实际对象，如 `IntegerType`、`FunctionType`、`CallInstruction`；类型和常量条目分别生成 `Type::classof()`、`Constant::classof()`，具体类的 `classof()` 直接检查同名值种类。元类型、void、bool、label、module 共用实际类 `BuiltinType`，通过 `TypeKind` 区分。`Type`、`UserDefinedType`、`Constant` 仅作为中间基类，不单独占用值种类。
 - `model/type/Types.def` 是类型种类与基类分类的注册表，每条记录为 `INK_SEMANTIC_TYPE(Name, Base)`，`Base` 为 `BuiltinType` 或 `UserDefinedType`。`TypeKind` 和两个基类的 `classof()` 从同一张表生成；`FunctionType` 定义在 `model/function/function_type.h`，其余具体类型类体与构造定义在 `model/type` 的独立头文件中，其继承关系应与注册表一致。
 - `Name` 是一个 32 位池内索引，`NamePool` 为同名字节串只保存一份内容；池扩容保持名称与字符串视图稳定。空输入和索引耗尽返回无效名称。名称相等和哈希仅在同一池内有意义；索引本身不携带池身份，无法检测恰好落在另一池有效范围内的外来索引。词法验证与 NFC 处理仍由 tokenizer 负责。
-- `ConstantPool` 由 `SemanticContext` 独占，通过 `constantPool()` 访问；当前驻留 bool、任意位宽整数、`StringConstant` 和 `FloatConstant`，`SemanticContext` 的常量工厂转发到同一池。池在基础类型创建后初始化，并在类型存储销毁前释放；false、true 预先创建，其他常量按规范类型身份与完整 payload 先查找、未命中才分配，哈希碰撞后继续精确比较。外来类型和 payload 与类型不匹配的请求返回空指针且不改变池。`size()` 包含两个 bool 常量，`owns()` 检查具体对象归属，池与常量地址在上下文生命周期内保持稳定。初版分析器已处理整数和字符串字面量，聚合常量、浮点字面量语义和后端 lowering 仍待实现。
+- `ConstantPool` 由 `SemanticContext` 独占，通过 `constantPool()` 访问；当前驻留 bool、任意位宽整数、`StringConstant` 和 `FloatConstant`，`SemanticContext` 的常量工厂转发到同一池。池在基础类型创建后初始化，并在类型存储销毁前释放；false、true 预先创建，其他常量按规范类型身份与完整 payload 先查找、未命中才分配，哈希碰撞后继续精确比较。外来类型和 payload 与类型不匹配的请求返回空指针且不改变池。`size()` 包含两个 bool 常量，`owns()` 检查具体对象归属，池与常量地址在上下文生命周期内保持稳定。聚合常量、源码字面量语义和后端 lowering 仍待实现。
 - `StringConstant` 的类型固定为本上下文的只读 `u8` 切片；`getStringConstant(SliceType, Payload)` 复制调用方已验证、解码的 UTF-8 字节，以完整字节序列比较，支持空串、内嵌 NUL 和非 ASCII 内容，不做转义解码或 Unicode 规范化。`value()` 返回池拥有的稳定 `std::string_view`，长度不包含额外终止符。不同源码位置或不同转义拼写只要解码内容相同就复用常量；AST 节点仍独立保存来源。
 - `IntegerConstant` 保存自有 `IntegerBits`，由位宽与低位字在前的 `uint64_t` 字数组组成；符号性由 `IntegerType` 决定，负数使用二进制补码。单字构造允许显式零扩展到宽于 64 位的表示，多字构造复制全部输入；`valid()` 检查非零位宽、精确字数与最后一个字的未用高位，常量池拒绝无效表示及类型宽度不匹配，不静默丢弃或补齐输入字。
 - `FloatConstant` 保存自有 `FloatBits`，由 IEEE binary16/32/64 位宽与 `uint64_t` 原始位模式组成；`valid()` 拒绝不支持的位宽及编码之外的高位。`getFloatConstant(FloatType, Payload)` 验证表示有效且位宽与类型匹配，再按完整位模式驻留，区分正负零、无穷、NaN 符号、静默/信号位与 payload。输入必须已经采用对应 IEEE 格式编码，不通过宿主浮点类型转换。十进制字面量解析、浮点运算、格式转换、舍入和溢出诊断由后续语义分析负责；池只保存位表示。
-- `Value` 是语义值基类，当前分支为 `Type`、`Constant`、`ExprValue`、`Function`、`BasicBlock`、`Module`、`CallInstruction`、`AllocaInstruction`、`LoadInstruction`、`StoreInstruction`、`FunctionParameter`、`AddInstruction` 和 `ReturnInstruction`。`Type` 下分 `BuiltinType` 与 `UserDefinedType`：builtin 提供元类型、void、bool、整数、IEEE binary16/32/64 浮点、定长数组、切片、指针、引用和函数类型；user-defined 提供 `ClassType`、`EnumType` 与 `InterfaceType`。所有类型值的类型是元类型，元类型的类型为自身。结构类型和常量在上下文内规范化；名义类型拥有独立身份，由分析器复用同一类型或实例的对象。不同上下文的对象不可直接混用。semantic 的接口、实现与测试使用项目自有模型及标准库，`ink_semantic` 对象模型依赖 `ink::core`，分析器另依赖 `ink::parser`；LLVM IR 类型转换限定在后端适配层。
-- `Value` 统一保存所属 `SemanticContext` 的只读引用，所有派生类通过继承的 `context()` 查询归属；`Type` 不再重复保存上下文，`ExprValue` 也不再单独实现该访问器。`Module::type()` 和 `BasicBlock::type()` 分别从上下文取得共享的 module、label 类型，不在每个对象中保存固定类型引用；函数签名和其他实际值类型仍由对应对象保存。
+- `Value` 是语义值基类，当前分支为 `Type`、`Constant`、`Function`、`BasicBlock`、`Module`、`CallInstruction`、`AllocaInstruction`、`LoadInstruction`、`StoreInstruction`、`FunctionParameter`、`AddInstruction` 和 `ReturnInstruction`。`Type` 下分 `BuiltinType` 与 `UserDefinedType`：builtin 提供元类型、void、bool、整数、IEEE binary16/32/64 浮点、定长数组、切片、指针、引用和函数类型；user-defined 提供 `ClassType`、`EnumType` 与 `InterfaceType`。所有类型值的类型是元类型，元类型的类型为自身。结构类型和常量在上下文内规范化；名义类型拥有独立身份，由分析器复用同一类型或实例的对象。不同上下文的对象不可直接混用。semantic 的接口、实现与测试使用项目自有模型及标准库，`ink_semantic` 对象模型依赖 `ink::core`，保留对 `ink::parser` 的构建依赖；LLVM IR 类型转换限定在后端适配层。
+- `Value` 统一保存所属 `SemanticContext` 和自身类型 `const Type &ValueType`，派生类通过继承的 `context()`、非虚 `type()` 查询。类型在构造时确定，派生类不重复保存自身类型，也不沿操作数链递归推导；元类型的自身类型指向自己。`Function::functionType()` 提供函数签名访问，数组元素类型、函数返回类型等类型结构成员仍由具体类型保存。
 - `Value::outer()` 返回可空的结构父节点，内存生命周期仍由 `SemanticContext` 管理；顶层模块、未挂接对象、类型和常量没有父节点。父子关系只能通过 `SemanticContext` 的结构编辑接口维护，每个对象最多有一个结构父节点；调用目标、实参等引用不会改变被引用对象的 `Outer`。
 - `Value`、`Type`、`BuiltinType`、`UserDefinedType`、`Constant` 和 `Decl` 的基类构造函数使用 `protected`，字段保持 `private`；派生类无需逐个列入基类友元名单。具体模型类保留私有构造函数，仅授权 `SemanticContext`、`ConstantPool` 或 `NamePool` 等创建入口。结构父子关系的写权限集中给 `SemanticContext`，基类不再授权具体容器。
-- `ExprValue`（`ValueKind::ExprValue`）保存已检查表达式的结果类型、借用的只读 AST 表达式以及文件身份；`context()` 返回所属的 `SemanticContext` 模型存储。`createExprValue()` 校验结果类型归属，由调用方负责表达式检查，不执行表达式，也不标记为仅能在运行时执行。同一 AST 的每次创建均得到独立身份，避免将不同语义分析或实例的结果按 AST 指针错误合并。定义环境、泛型替换环境与 `SemanticContextId` 尚未实现；后续语义旁表须按表达式值身份关联相应的绑定、转换和实例上下文，模型存储上下文不能替代这些环境。
 - `ArrayType` 的规范键为元素类型和 64 位长度，多维数组通过嵌套 `ArrayType` 表示；`SliceType` 表示具有运行期长度的视图，不拥有动态容器的分配策略。`PointerType`、`ReferenceType` 和 `SliceType` 的规范键都包括目标类型和 `AccessKind`，且三种类型使用不同存储。访问权限描述间接访问；源码绑定的可变性由语义分析器单独检查，`ReferenceType` 不替代表达式的值/位置类别。即使元素或目标是用户定义类型，这些语言内建类型构造器仍归 `BuiltinType`。
 - `FunctionType` 保存已确定的固定参数签名，`getFunctionType(ReturnType, ParameterTypes)` 按返回类型和有序形参类型身份驻留，哈希命中后仍精确比较完整签名。返回和形参类型必须属于当前上下文，形参不能为空；形参列表复制为类型自身拥有的存储，支持零参数、void 返回值、名义类型及嵌套函数类型。参数名、默认值、参数包和泛型绑定不放入这份签名，参数类型的语言合法性仍由分析器检查。
 - `Decl` 保存名称、借用的只读 AST 和 `Child` 子声明列表，派生类不增加字段；不保存上下文、种类、重复的源码位置、类型、签名或初始化值。`Child` 为 `std::vector<const Decl *>`，`child()` 提供可写和只读访问，由调用方按顺序填充；子声明由上下文拥有，列表只保存非拥有指针。`createModuleDecl(Name, ModuleAST)` 创建模块声明；`createFunctionDecl(Name, AST)` 与 `createClassDecl(Name, AST)` 检查 AST 含有泛型参数，普通函数和普通类返回空指针。三个工厂均返回可写指针，以支持逐步登记子声明。基类 `ast()` 返回 `ASTNodeBase`，`ModuleDecl::ast()`、`FunctionDecl::ast()`、`ClassDecl::ast()` 返回具体 AST，`classof()` 根据 AST 分类；参数、函数体、类成员及范围从 AST 读取。语义层暂不提供 `VarDecl`。模板 AST 保持不变，类型检查结果、定义环境和实例状态由独立对象或旁表保存。
 - `Function` 是具有已确定 `FunctionType` 和独立身份的函数值，由 `createFunction(Name, Signature)` 创建，供普通函数和闭合泛型实例使用。`CallInstruction` 保存函数类型的 `Value` 引用及实参引用列表；`directCallee()` 识别 `Function`，其他函数值由 `indirectCallee()` 返回，`callee()` 提供统一入口。`functionType()` 返回签名，`type()` 返回签名的返回类型。工厂拒绝非函数目标、外来上下文对象、空实参及数量或类型不匹配。泛型 `FunctionDecl` 不能直接调用，须先实例化得到闭合函数值。每次调用独立分配，列表和对象地址在扩容后保持稳定；创建不执行函数，也不进行重载选择、参数转换或泛型实例化。
-- `Function` 以 `std::vector<BasicBlock *> Blocks` 保存函数体，`blocks()` 提供只读列表；空列表表示没有函数体，`hasBody()` 检查列表是否非空。`entryBlock()` 返回首块的可写或只读指针，列表为空时返回空指针，不重复保存入口字段。`SemanticContext::createBasicBlock(Function &)` 按顺序追加新块，并将各块的 `Outer` 设置为同一函数；首块自动成为入口，外来函数返回空指针。`createFunctionBody(Function &)` 保留为只创建首块的便捷接口，已有函数体时返回空指针。外部函数可以保持无函数体，块和函数均由上下文拥有；列表顺序不代表执行顺序，块内通过 `appendValue()` 填充值。初版分析器检查直线函数的返回；跳转节点、控制流连接和完整返回路径检查仍待实现。
-- `BasicBlock` 继承 `Value`，使用 `ValueKind::BasicBlock` 分类；`createBasicBlock()` 创建由上下文拥有的独立基本块并返回可写指针。`type()` 返回本上下文唯一的 `getLabelType()`，其种类为 `TypeKind::Label`。`Values` 为 `std::vector<Value *>`，`values()` 只提供只读列表；`SemanticContext::appendValue(BasicBlock &, Value &)` 按顺序插入并设置子值的 `Outer`，要求两个对象都属于调用上下文，拒绝已有父节点、循环包含、类型和常量；返回指令另外要求目标块属于函数且返回值匹配其签名。`SemanticContext::removeValue(BasicBlock &, Value &)` 移除本上下文的直接子值并清空其 `Outer`，允许随后显式加入另一容器；失败返回 false 且不改变关系。列表不拥有对象的内存。函数、调用和表达式工厂返回可写指针以支持插入；类型和常量池仍返回只读对象，可通过调用参数等引用。
-- `model/module/module.h` 的 `Module` 直接继承 `Value`，保存名称和 `EntryBlock` 引用。`createModule(Name)` 校验名称后创建独立模块及其空入口块，两者都由 `SemanticContext` 拥有；`entryBlock()` 提供可写和只读访问，入口块的 `Outer` 由上下文在创建模块时设置。`type()` 返回 `getModuleType()`，其种类为 `TypeKind::Module`。模块值与借用文件 AST 的 `ModuleDecl` 分开，初版分析器已接入函数与局部名称解析，模块运行时执行仍待实现。
+- `Function` 以 `std::vector<BasicBlock *> Blocks` 保存函数体，`blocks()` 提供只读列表；空列表表示没有函数体，`hasBody()` 检查列表是否非空。`entryBlock()` 返回首块的可写或只读指针，列表为空时返回空指针，不重复保存入口字段。`SemanticContext::createBasicBlock(Function &)` 按顺序追加新块，并将各块的 `Outer` 设置为同一函数；首块自动成为入口，外来函数返回空指针。`createFunctionBody(Function &)` 保留为只创建首块的便捷接口，已有函数体时返回空指针。外部函数可以保持无函数体，块和函数均由上下文拥有；列表顺序不代表执行顺序，块内通过 `appendValue()` 填充值。源码返回检查、跳转节点、控制流连接和完整返回路径检查仍待实现。
+- `BasicBlock` 继承 `Value`，使用 `ValueKind::BasicBlock` 分类；`createBasicBlock()` 创建由上下文拥有的独立基本块并返回可写指针。`type()` 返回本上下文唯一的 `getLabelType()`，其种类为 `TypeKind::Label`。`Values` 为 `std::vector<Value *>`，`values()` 只提供只读列表；`SemanticContext::appendValue(BasicBlock &, Value &)` 按顺序插入并设置子值的 `Outer`，要求两个对象都属于调用上下文，拒绝已有父节点、循环包含、类型和常量；返回指令另外要求目标块属于函数且返回值匹配其签名。`SemanticContext::removeValue(BasicBlock &, Value &)` 移除本上下文的直接子值并清空其 `Outer`，允许随后显式加入另一容器；失败返回 false 且不改变关系。列表不拥有对象的内存。函数和指令工厂返回可写指针以支持插入；类型和常量池仍返回只读对象，可通过调用参数等引用。
+- `model/module/module.h` 的 `Module` 直接继承 `Value`，保存名称和 `EntryBlock` 引用。`createModule(Name)` 校验名称后创建独立模块及其空入口块，两者都由 `SemanticContext` 拥有；`entryBlock()` 提供可写和只读访问，入口块的 `Outer` 由上下文在创建模块时设置。`type()` 返回 `getModuleType()`，其种类为 `TypeKind::Module`。模块值与借用文件 AST 的 `ModuleDecl` 分开，函数与局部名称解析、模块运行时执行仍待实现。
 - `createClassType(Name)`、`createEnumType(Name)` 和 `createInterfaceType(Name)` 直接创建具体名义类型，不经过语义 `Decl`。对象地址代表类型身份，同名对象不合并；分析器负责按普通类型或泛型实例身份复用已经创建的对象，避免仅按名字或共享 AST 合并不同实例。成员、基类、枚举底层类型、接口约束、布局和实例缓存仍待实现。组合类型工厂验证上下文归属与访问权限，不在存储层决定数组元素合法性、大小限制、引用折叠或可空性等语言规则。
 - `createAllocaInstruction(AllocatedType)` 创建单对象、未初始化的分配指令，结果为对应的可读写指针；数组通过 `ArrayType` 表示。当前支持 bool、整数、浮点、指针、引用、切片及这些类型组成的定长数组，拒绝外来类型、元类型、void、label、module、原始函数签名和布局未完成的名义类型。`createLoadInstruction(Address)` 从指针读取并产生元素类型的值，接受只读或可读写指针；`createStoreInstruction(Address, StoredValue)` 要求可读写指针、同一上下文和完全一致的元素类型，结果类型为 void。对象和操作数地址由上下文保持稳定，每次创建均有独立身份，调用者通过 `appendValue()` 安排执行顺序；构建节点不会执行内存操作，也不检查初始化、支配关系或实际地址有效性。
-- 执行模型不再保存源码变量绑定对象。初版分析器用独立词法作用域表将局部 var 映射到地址、只读形参映射到参数值；const 分析仍待实现。初始化和赋值由各自位置的 `StoreInstruction` 表示，读取使用 `LoadInstruction`；`StoreInstruction::type()` 从上下文取得唯一 void 类型。
-- 泛型定义和表达式值借用的 AST 所属 `ParsedUnit` 必须保持存活，当前上下文不拥有或复制 AST。源码中的普通 `parser::VarDecl`、`parser::FunctionDecl` 和 `parser::ClassDecl` 是语法节点，不意味着创建同名语义 `Decl`。执行期变量槽位、编译期结果及语义分析状态分别保存，不能写回共享泛型 AST。
+- 执行模型不再保存源码变量绑定对象。源码变量和形参与模型对象的绑定、const 分析仍待实现。初始化和赋值由各自位置的 `StoreInstruction` 表示，读取使用 `LoadInstruction`；`StoreInstruction` 在构造时将自身类型设置为上下文唯一的 void 类型，由 `Value::type()` 返回。
+- 泛型定义借用的 AST 所属 `ParsedUnit` 必须保持存活，当前上下文不拥有或复制 AST。源码中的普通 `parser::VarDecl`、`parser::FunctionDecl` 和 `parser::ClassDecl` 是语法节点，不意味着创建同名语义 `Decl`。执行期变量槽位、编译期结果及语义分析状态分别保存，不能写回共享泛型 AST。
 
-这一阶段不提供 `Scope`、`LookupResult`、`Binding`、`ExprInfo`、名称解析、comptime 或 IR lowering。下文的 ID、类型独立存储门面、扩展常量种类和会话结构仍为后续接口规划；当前类型、常量和声明引用使用上下文内稳定指针，不能直接持久化。
+名字解析代码位于 `name_resolve` 目录，`Scope`、`Binding` 和 `NameResolver` 已拆分为独立类型和头文件。`NameResolver` 提供当前作用域的进入与退出、`Value *` 绑定、沿父作用域或仅当前作用域的查找、实体关联的成员作用域及直接成员查找、函数重载集合；详见 [语义分析接口](Ink-Semantic-Analysis.md)。这一阶段尚未提供完整 `LookupResult`、`ExprInfo`、AST 名称分析、comptime 或 IR lowering。下文的 ID、类型独立存储门面、扩展常量种类和会话结构仍为后续接口规划；当前类型、常量和声明引用使用上下文内稳定指针，不能直接持久化。
 
 ## 2 所有权、身份和上下文
 
@@ -158,7 +157,7 @@ Parser 发布 AST 后，semantic 只通过只读接口访问。当前 Parser API
 | 类 | 具体职责 | 主要入口或输出 |
 | --- | --- | --- |
 | `DeclCollector` | 在允许的作用域登记源码名称和绑定；只有泛型函数及泛型类创建语义 `Decl`，记录尚未激活的区域 | `collectScope()`、`registerDeclaration()` |
-| `NameResolver` | 执行词法、模块、成员及导入名称查找，检查访问权限；返回声明、绑定或重载集合 | `lookupName()`、`lookupMember()` → `LookupResult` |
+| `NameResolver` | 已实现词法作用域、实体成员作用域、绑定及重载候选集合；导入、继承成员及访问权限检查待扩展 | 当前为 `bind()`、`lookup()`、`lookupLocal()`、`lookupMember()`；后续扩展 `LookupResult` |
 | `DeclAnalyzer` | 检查泛型形参、函数签名、基类/接口、字段、全局初始化和属性；按需完成声明 | `analyzeHeader()`、`completeType()`、`analyzeInitializer()` |
 | `TypeResolver` | 将 `TypeSyntax` 包装的表达式解释为类型；必要时请求 comptime；返回具体类型或依赖配方 | `resolveType()` → 具体 `TypeId` 或依赖结果 |
 | `ExprAnalyzer` | 检查表达式，确定类型、值类别、可写性、阶段依赖和操作含义；不执行运行时表达式 | `analyzeExpr()` → `ExprInfo` |
@@ -436,11 +435,13 @@ Reader 必须检查版本、长度、分配预算、种类编号、必需子节�
 
 | 文件组 | 主要内容 |
 | --- | --- |
+| `analyze/analyzer.h` | 已实现的 Analyzer 入口占位接口 |
+| `name_resolve/binding.h`、`name_resolve/scope.h`、`name_resolve/name_resolver.h` | 已实现的名字绑定、作用域及名字解析 |
 | `semantic.h`、`semantic_result.h`、`semantic_ids.h` | 对外入口、结果状态和强类型身份 |
 | `semantic_session.h`、`semantic_module.h`、`semantic_driver.h` | 会话、模块、调度入口 |
 | `decl_store.h`、`scope_store.h`、`type_context.h`、`constant_pool.h` | 基础存储 |
 | `semantic_info.h`、`semantic_queries.h` | 语义上下文、旁表、各类计划和查询缓存 |
-| `decl_analyzer.h`、`name_resolver.h`、`type_resolver.h` | 声明收集/完成、名称和类型解析 |
+| `decl_analyzer.h`、`type_resolver.h` | 声明收集/完成和类型解析 |
 | `expr_analyzer.h`、`stmt_analyzer.h`、`call_resolver.h` | 表达式、语句和调用分析 |
 | `conversion_checker.h`、`pattern_analyzer.h` | 转换、初始化、模式分析 |
 | `generic_binder.h`、`generic_instantiator.h`、`instance_store.h` | 泛型绑定、实例完成和缓存 |

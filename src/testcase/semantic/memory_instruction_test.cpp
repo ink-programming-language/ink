@@ -1,7 +1,7 @@
 #include "ink/semantic/model/instruction/alloca_instruction.h"
 #include "ink/semantic/model/instruction/load_instruction.h"
 #include "ink/semantic/model/instruction/store_instruction.h"
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 
 #include <gtest/gtest.h>
 
@@ -35,7 +35,7 @@ namespace ink::semantic::test
     EXPECT_NE(Slot, SecondSlot);
     EXPECT_EQ(&Slot->type(), &SecondSlot->type());
     EXPECT_EQ(&Slot->allocatedType(), Int32);
-    EXPECT_EQ(Slot->type().access(), AccessKind::ReadWrite);
+    EXPECT_EQ(static_cast<const PointerType &>(Slot->type()).access(), AccessKind::ReadWrite);
     EXPECT_EQ(Slot->outer(), nullptr);
 
     const IntegerConstant *Two = Context.getIntegerConstant(*Int32, IntegerBits(32, 2));

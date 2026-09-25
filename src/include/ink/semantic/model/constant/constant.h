@@ -12,11 +12,6 @@ namespace ink::semantic
   class Constant : public Value
   {
     public:
-      const Type &type() const noexcept final
-      {
-        return ValueType;
-      }
-
       static bool classof(const Value *ValueObject) noexcept
       {
         if (!ValueObject)
@@ -35,13 +30,9 @@ namespace ink::semantic
 
     protected:
       Constant(ValueKind Kind, const Type &ValueType) noexcept
-          : Value(ValueType.context(), Kind),
-            ValueType(ValueType)
+          : Value(ValueType.context(), Kind, ValueType)
       {
       }
-
-    private:
-      const Type &ValueType;
   };
 } // namespace ink::semantic
 

@@ -2,7 +2,7 @@
 #define INK_SEMANTIC_MODEL_USER_DEFINED_TYPE_H
 
 #include "ink/semantic/model/type/type.h"
-#include "ink/semantic/model/name.h"
+#include "ink/semantic/model/name/name.h"
 
 #include <type_traits>
 

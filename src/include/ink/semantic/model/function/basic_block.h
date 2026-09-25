@@ -11,8 +11,6 @@ namespace ink::semantic
   class BasicBlock final : public Value
   {
     public:
-      const BuiltinType &type() const noexcept override;
-
       // Structural children in insertion order. SemanticContext manages membership and parent links.
       const std::vector<Value *> &values() const noexcept
       {
@@ -25,10 +23,7 @@ namespace ink::semantic
       }
 
     private:
-      explicit BasicBlock(const SemanticContext &Context) noexcept
-          : Value(Context, ValueKind::BasicBlock)
-      {
-      }
+      explicit BasicBlock(const SemanticContext &Context) noexcept;
 
       std::vector<Value *> Values;
 

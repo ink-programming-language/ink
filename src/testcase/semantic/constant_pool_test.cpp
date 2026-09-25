@@ -1,5 +1,5 @@
 #include "ink/semantic/model/constant/constant_pool.h"
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 
 #include <gtest/gtest.h>
 

@@ -1,6 +1,5 @@
 #include "ink/semantic/model/module/module.h"
-#include "ink/semantic/model/context.h"
-#include "ink/parser/ast.h"
+#include "ink/semantic/context.h"
 
 #include <gtest/gtest.h>
 
@@ -10,7 +9,6 @@ namespace ink::semantic::test
   TEST(SemanticModuleTest, EntryBlockPreservesMixedValuesAndIdentity)
   {
     core::CompilationContext Compilation;
-    parser::NameExpr Expression({}, {});
     SemanticContext Context(Compilation);
     const Name ModuleName = Context.namePool().intern("Example");
     Module *Object = Context.createModule(ModuleName);
@@ -24,16 +22,16 @@ namespace ink::semantic::test
     Function *Target = Context.createFunction(Context.namePool().intern("Ready"), *Signature);
     ASSERT_NE(Target, nullptr);
     CallInstruction *Call = Context.createCallInstruction(*Target);
-    ExprValue *ExpressionValue = Context.createExprValue(Context.getBoolType(), Expression);
+    AllocaInstruction *Slot = Context.createAllocaInstruction(Context.getBoolType());
     Module *Nested = Context.createModule(Context.namePool().intern("Nested"));
     ASSERT_NE(Call, nullptr);
-    ASSERT_NE(ExpressionValue, nullptr);
+    ASSERT_NE(Slot, nullptr);
     ASSERT_NE(Nested, nullptr);
     EXPECT_EQ(Target->outer(), nullptr);
     EXPECT_EQ(Call->outer(), nullptr);
     ASSERT_TRUE(Context.appendValue(*Entry, *Target));
     ASSERT_TRUE(Context.appendValue(*Entry, *Call));
-    ASSERT_TRUE(Context.appendValue(*Entry, *ExpressionValue));
+    ASSERT_TRUE(Context.appendValue(*Entry, *Slot));
     ASSERT_TRUE(Context.appendValue(*Entry, *Nested));
     for (unsigned Index = 0; Index < 64; ++Index)
     {
@@ -55,16 +53,16 @@ namespace ink::semantic::test
     ASSERT_EQ(Values.size(), 4U);
     EXPECT_EQ(Values[0], Target);
     EXPECT_EQ(Values[1], Call);
-    EXPECT_EQ(Values[2], ExpressionValue);
+    EXPECT_EQ(Values[2], Slot);
     EXPECT_EQ(Values[3], Nested);
     EXPECT_TRUE(Function::classof(Values[0]));
     EXPECT_TRUE(CallInstruction::classof(Values[1]));
-    EXPECT_TRUE(ExprValue::classof(Values[2]));
+    EXPECT_TRUE(AllocaInstruction::classof(Values[2]));
     EXPECT_TRUE(Module::classof(Values[3]));
     EXPECT_EQ(Call->directCallee(), Target);
     EXPECT_EQ(Target->outer(), Entry);
     EXPECT_EQ(Call->outer(), Entry);
-    EXPECT_EQ(ExpressionValue->outer(), Entry);
+    EXPECT_EQ(Slot->outer(), Entry);
     EXPECT_EQ(Nested->outer(), Entry);
     EXPECT_EQ(Nested->entryBlock().outer(), Nested);
     EXPECT_TRUE(Nested->entryBlock().values().empty());

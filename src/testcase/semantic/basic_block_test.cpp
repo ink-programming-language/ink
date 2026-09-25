@@ -1,5 +1,5 @@
 #include "ink/semantic/model/function/basic_block.h"
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 
 #include <gtest/gtest.h>
 

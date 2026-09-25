@@ -2,7 +2,7 @@
 #define INK_SEMANTIC_MODEL_MODULE_H
 
 #include "ink/semantic/model/function/basic_block.h"
-#include "ink/semantic/model/name.h"
+#include "ink/semantic/model/name/name.h"
 
 namespace ink::semantic
 {
@@ -14,8 +14,6 @@ namespace ink::semantic
       {
         return ModuleName;
       }
-
-      const BuiltinType &type() const noexcept override;
 
       BasicBlock &entryBlock() noexcept
       {
@@ -33,12 +31,7 @@ namespace ink::semantic
       }
 
     private:
-      Module(const SemanticContext &Context, Name ModuleName, BasicBlock &EntryBlock) noexcept
-          : Value(Context, ValueKind::Module),
-            ModuleName(ModuleName),
-            EntryBlock(EntryBlock)
-      {
-      }
+      Module(const SemanticContext &Context, Name ModuleName, BasicBlock &EntryBlock) noexcept;
 
       Name ModuleName;
       BasicBlock &EntryBlock;

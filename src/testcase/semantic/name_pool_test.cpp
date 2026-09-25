@@ -1,4 +1,4 @@
-#include "ink/semantic/model/name_pool.h"
+#include "ink/semantic/model/name/name_pool.h"
 
 #include <gtest/gtest.h>
 

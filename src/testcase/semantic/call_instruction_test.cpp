@@ -1,5 +1,4 @@
-#include "ink/semantic/model/context.h"
-#include "ink/parser/ast.h"
+#include "ink/semantic/context.h"
 
 #include <gtest/gtest.h>
 
@@ -80,17 +79,20 @@ namespace ink::semantic::test
     EXPECT_EQ(First->directCallee(), Target);
   }
 
-  // Both function-valued expressions and the result of a higher-order call can be indirect callees.
+  // Both function-typed parameters and the result of a higher-order call can be indirect callees.
   TEST(SemanticCallInstructionTest, FunctionValuesAndCallResultsSupportIndirectCalls)
   {
     core::CompilationContext Compilation;
-    parser::NameExpr Expression({}, {});
     SemanticContext Context(Compilation);
     const Type *Parameters[] = {&Context.getBoolType()};
     const FunctionType *Signature = Context.getFunctionType(Context.getBoolType(), Parameters);
     ASSERT_NE(Signature, nullptr);
-    const ExprValue *Callee = Context.createExprValue(*Signature, Expression);
-    ASSERT_NE(Callee, nullptr);
+    const Type *CallerParameters[] = {Signature};
+    const FunctionType *CallerType = Context.getFunctionType(Context.getBoolType(), CallerParameters);
+    ASSERT_NE(CallerType, nullptr);
+    const Function *Caller = Context.createFunction(Context.namePool().intern("Caller"), *CallerType);
+    ASSERT_NE(Caller, nullptr);
+    const FunctionParameter *Callee = Caller->parameters()[0];
     const Value *Arguments[] = {&Context.getBoolConstant(false)};
     const CallInstruction *Call = Context.createCallInstruction(*Callee, Arguments);
     ASSERT_NE(Call, nullptr);
@@ -116,7 +118,6 @@ namespace ink::semantic::test
   TEST(SemanticCallInstructionTest, ArgumentsMustExactlyMatchTheResolvedSignature)
   {
     core::CompilationContext Compilation;
-    parser::NameExpr Expression({}, {});
     SemanticContext Context(Compilation);
     SemanticContext Other(Compilation);
     const IntegerType *Integer = Context.getIntegerType(32, true);
@@ -134,7 +135,11 @@ namespace ink::semantic::test
     const FunctionType *Signature = Context.getFunctionType(Context.getBoolType(), Parameters);
     ASSERT_NE(Signature, nullptr);
     const Function *Target = Context.createFunction(Context.namePool().intern("Target"), *Signature);
-    const ExprValue *FunctionValue = Context.createExprValue(*Signature, Expression);
+    const FunctionType *FactoryType = Context.getFunctionType(*Signature);
+    ASSERT_NE(FactoryType, nullptr);
+    const Function *Factory = Context.createFunction(Context.namePool().intern("Factory"), *FactoryType);
+    ASSERT_NE(Factory, nullptr);
+    const CallInstruction *FunctionValue = Context.createCallInstruction(*Factory);
     const IntegerConstant *One = Context.getIntegerConstant(*Integer, IntegerBits(32, 1));
     const IntegerConstant *UnsignedOne = Context.getIntegerConstant(*Unsigned, IntegerBits(32, 1));
     const IntegerConstant *WideOne = Context.getIntegerConstant(*Wide, IntegerBits(64, 1));
@@ -175,7 +180,6 @@ namespace ink::semantic::test
   TEST(SemanticCallInstructionTest, ForeignAndNonFunctionTargetsAreRejected)
   {
     core::CompilationContext Compilation;
-    parser::NameExpr Expression({}, {});
     SemanticContext Context(Compilation);
     SemanticContext Other(Compilation);
     const FunctionType *Signature = Context.getFunctionType(Context.getBoolType());
@@ -184,7 +188,12 @@ namespace ink::semantic::test
     ASSERT_NE(ForeignSignature, nullptr);
     const Function *Target = Context.createFunction(Context.namePool().intern("Target"), *Signature);
     const Function *Foreign = Other.createFunction(Other.namePool().intern("Target"), *ForeignSignature);
-    const ExprValue *ForeignValue = Other.createExprValue(*ForeignSignature, Expression);
+    const Type *CallerParameters[] = {ForeignSignature};
+    const FunctionType *CallerType = Other.getFunctionType(Other.getBoolType(), CallerParameters);
+    ASSERT_NE(CallerType, nullptr);
+    const Function *Caller = Other.createFunction(Other.namePool().intern("Caller"), *CallerType);
+    ASSERT_NE(Caller, nullptr);
+    const FunctionParameter *ForeignValue = Caller->parameters()[0];
     ASSERT_NE(Target, nullptr);
     ASSERT_NE(Foreign, nullptr);
     ASSERT_NE(ForeignValue, nullptr);

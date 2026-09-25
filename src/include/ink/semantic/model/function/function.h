@@ -4,7 +4,7 @@
 #include "ink/semantic/model/function/basic_block.h"
 #include "ink/semantic/model/function/function_type.h"
 #include "ink/semantic/model/function/function_parameter.h"
-#include "ink/semantic/model/name.h"
+#include "ink/semantic/model/name/name.h"
 
 #include <vector>
 
@@ -19,9 +19,19 @@ namespace ink::semantic
         return FunctionName;
       }
 
-      const FunctionType &type() const noexcept override
+      const FunctionType &functionType() const noexcept
       {
-        return Signature;
+        return static_cast<const FunctionType &>(type());
+      }
+
+      CallingConvention callingConvention() const noexcept
+      {
+        return Convention;
+      }
+
+      LanguageLinkage languageLinkage() const noexcept
+      {
+        return Linkage;
       }
 
       bool hasBody() const noexcept
@@ -57,15 +67,17 @@ namespace ink::semantic
       }
 
     private:
-      Function(Name FunctionName, const FunctionType &Signature) noexcept
-          : Value(Signature.context(), ValueKind::Function),
+      Function(Name FunctionName, const FunctionType &Signature, CallingConvention Convention, LanguageLinkage Linkage) noexcept
+          : Value(Signature.context(), ValueKind::Function, Signature),
             FunctionName(FunctionName),
-            Signature(Signature)
+            Convention(Convention),
+            Linkage(Linkage)
       {
       }
 
       Name FunctionName;
-      const FunctionType &Signature;
+      CallingConvention Convention;
+      LanguageLinkage Linkage;
       std::vector<BasicBlock *> Blocks;
       std::vector<const FunctionParameter *> Parameters;
 

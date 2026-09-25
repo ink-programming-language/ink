@@ -1,7 +1,7 @@
 #ifndef INK_SEMANTIC_MODEL_DECL_H
 #define INK_SEMANTIC_MODEL_DECL_H
 
-#include "ink/semantic/model/name.h"
+#include "ink/semantic/model/name/name.h"
 
 #include <vector>
 

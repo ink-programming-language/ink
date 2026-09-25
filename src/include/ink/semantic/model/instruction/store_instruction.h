@@ -9,8 +9,6 @@ namespace ink::semantic
   class StoreInstruction final : public Value
   {
     public:
-      const BuiltinType &type() const noexcept override;
-
       const Value &address() const noexcept
       {
         return Address;
@@ -27,12 +25,7 @@ namespace ink::semantic
       }
 
     private:
-      StoreInstruction(const Value &Address, const Value &StoredValue) noexcept
-          : Value(Address.context(), ValueKind::StoreInstruction),
-            Address(Address),
-            StoredValue(StoredValue)
-      {
-      }
+      StoreInstruction(const Value &Address, const Value &StoredValue) noexcept;
 
       const Value &Address;
       const Value &StoredValue;

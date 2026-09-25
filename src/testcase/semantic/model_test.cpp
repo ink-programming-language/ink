@@ -1,5 +1,4 @@
-#include "ink/semantic/model/context.h"
-#include "ink/parser/parser.h"
+#include "ink/semantic/context.h"
 
 #include <gtest/gtest.h>
 
@@ -9,7 +8,6 @@ namespace ink::semantic::test
 {
   static_assert(std::is_base_of_v<Value, Type>);
   static_assert(std::is_base_of_v<Value, Constant>);
-  static_assert(std::is_base_of_v<Value, ExprValue>);
   static_assert(std::is_base_of_v<Value, BasicBlock>);
   static_assert(std::is_base_of_v<Value, Module>);
   static_assert(!std::is_base_of_v<Value, Decl>);
@@ -139,54 +137,5 @@ namespace ink::semantic::test
     EXPECT_EQ(Int32, Context.getIntegerType(32, true));
     EXPECT_EQ(Zero, Context.getIntegerConstant(*Int32, IntegerBits(32, 0)));
     EXPECT_EQ(Zero->value(), IntegerBits(32, 0));
-  }
-
-  // Manually lowering var/const initializers uses explicit stores while the AST retains source mutability.
-  TEST(SemanticModelTest, SourceInitializersCanBeAttachedToExplicitStores)
-  {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    struct SourceCase
-    {
-        const char *Source;
-        bool Constant;
-    };
-    constexpr SourceCase Cases[] = {
-        {"var X: int32 = 0;", false},
-        {"const X: int32 = 0;", true},
-    };
-    for (const SourceCase &Case : Cases)
-    {
-      SCOPED_TRACE(Case.Source);
-      auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, Case.Source));
-      ASSERT_TRUE(Parsed.succeeded());
-      const parser::ModuleAST *Module = Parsed.Unit->root();
-      ASSERT_EQ(Module->statements().size(), 1U);
-      ASSERT_TRUE(parser::DeclStmt::classof(Module->statements()[0]));
-      const auto *Statement = static_cast<const parser::DeclStmt *>(Module->statements()[0]);
-      ASSERT_TRUE(parser::VarDecl::classof(Statement->declaration()));
-      const auto *Syntax = static_cast<const parser::VarDecl *>(Statement->declaration());
-      EXPECT_EQ(Syntax->constant(), Case.Constant);
-      ASSERT_NE(Syntax->initializer(), nullptr);
-      SemanticContext Context(Compilation);
-      const IntegerType *Int32 = Context.getIntegerType(32, true);
-      const core::SourceId Source = Parsed.Unit->input().lexedFile().sourceId();
-      ExprValue *Initializer = Context.createExprValue(*Int32, *Syntax->initializer(), Source);
-      AllocaInstruction *Slot = Context.createAllocaInstruction(*Int32);
-      ASSERT_NE(Initializer, nullptr);
-      ASSERT_NE(Slot, nullptr);
-      StoreInstruction *Store = Context.createStoreInstruction(*Slot, *Initializer);
-      ASSERT_NE(Store, nullptr);
-      BasicBlock *Block = Context.createBasicBlock();
-      ASSERT_NE(Block, nullptr);
-      ASSERT_TRUE(Context.appendValue(*Block, *Slot));
-      ASSERT_TRUE(Context.appendValue(*Block, *Initializer));
-      ASSERT_TRUE(Context.appendValue(*Block, *Store));
-      EXPECT_EQ(&Store->storedValue(), Initializer);
-      EXPECT_EQ(&Store->address(), Slot);
-      EXPECT_EQ(&Initializer->expression(), Syntax->initializer());
-      EXPECT_EQ(Initializer->sourceId(), Source);
-      EXPECT_EQ(Store->outer(), Block);
-    }
   }
 } // namespace ink::semantic::test

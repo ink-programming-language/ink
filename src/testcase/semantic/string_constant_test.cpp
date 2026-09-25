@@ -1,5 +1,5 @@
 #include "ink/semantic/model/constant/string_constant.h"
-#include "ink/semantic/model/context.h"
+#include "ink/semantic/context.h"
 #include "ink/tokenizer/tokenizer.h"
 
 #include <gtest/gtest.h>
