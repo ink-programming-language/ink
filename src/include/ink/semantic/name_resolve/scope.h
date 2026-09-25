@@ -3,8 +3,6 @@
 
 #include "ink/semantic/name_resolve/binding.h"
 
-#include <unordered_map>
-
 namespace ink::semantic
 {
   class NameResolver;
@@ -30,8 +28,8 @@ namespace ink::semantic
 
       Scope *Parent;
       // Both maps participate in one lexical namespace.
-      std::unordered_map<Name, Binding<Value *>> ValueBindings;
-      std::unordered_map<Name, Binding<Decl *>> DeclBindings;
+      BindingTable<Value *> ValueBindings;
+      BindingTable<Decl *> DeclBindings;
 
       friend class NameResolver;
   };

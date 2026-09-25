@@ -107,17 +107,25 @@ namespace ink::semantic
       const Scope *findScope(Name BoundName) const noexcept;
 
       template <BindingTarget T>
+      static BindResult bindInTable(BindingTable<T> &Bindings, Name BoundName, T Target, bool OverloadSet);
+
+      template <BindingTarget T>
+      static const Binding<T> *lookupInTable(const BindingTable<T> &Bindings, Name BoundName) noexcept
+      {
+        const auto Found = Bindings.find(BoundName);
+        return Found == Bindings.end() ? nullptr : &Found->second;
+      }
+
+      template <BindingTarget T>
       static const Binding<T> *lookupInScope(const Scope &ScopeValue, Name BoundName) noexcept
       {
         if constexpr (std::is_same_v<T, Value *>)
         {
-          const auto Found = ScopeValue.ValueBindings.find(BoundName);
-          return Found == ScopeValue.ValueBindings.end() ? nullptr : &Found->second;
+          return lookupInTable(ScopeValue.ValueBindings, BoundName);
         }
         else
         {
-          const auto Found = ScopeValue.DeclBindings.find(BoundName);
-          return Found == ScopeValue.DeclBindings.end() ? nullptr : &Found->second;
+          return lookupInTable(ScopeValue.DeclBindings, BoundName);
         }
       }
 

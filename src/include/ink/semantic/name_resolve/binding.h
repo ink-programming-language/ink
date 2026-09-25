@@ -5,6 +5,7 @@
 
 #include <span>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 namespace ink::semantic
@@ -50,6 +51,9 @@ namespace ink::semantic
 
       friend class NameResolver;
   };
+
+  template <BindingTarget T>
+  using BindingTable = std::unordered_map<Name, Binding<T>>;
 } // namespace ink::semantic
 
 #endif

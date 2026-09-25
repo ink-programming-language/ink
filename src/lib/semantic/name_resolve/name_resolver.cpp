@@ -43,6 +43,26 @@ namespace ink::semantic
     return true;
   }
 
+  template <BindingTarget T>
+  NameResolver::BindResult NameResolver::bindInTable(BindingTable<T> &Bindings, Name BoundName, T Target, bool OverloadSet)
+  {
+    auto [Entry, Inserted] = Bindings.try_emplace(BoundName, Binding<T>(BoundName, OverloadSet));
+    Binding<T> &Found = Entry->second;
+    for (T Existing : Found.Targets)
+    {
+      if (Existing == Target)
+      {
+        return BindResult::AlreadyBound;
+      }
+    }
+    if (!Inserted && (!Found.OverloadSet || !OverloadSet))
+    {
+      return BindResult::Conflict;
+    }
+    Found.Targets.push_back(Target);
+    return BindResult::Inserted;
+  }
+
   NameResolver::BindResult NameResolver::bind(Name BoundName, Value &ValueObject)
   {
     if (&ValueObject.context() != &Context)
@@ -59,21 +79,7 @@ namespace ink::semantic
     {
       return BindResult::Conflict;
     }
-    auto [Entry, Inserted] = CurrentScope->ValueBindings.try_emplace(BoundName, Binding<Value *>(BoundName, OverloadSet));
-    Binding<Value *> &Found = Entry->second;
-    for (Value *Existing : Found.Targets)
-    {
-      if (Existing == &ValueObject)
-      {
-        return BindResult::AlreadyBound;
-      }
-    }
-    if (!Inserted && (!Found.OverloadSet || !OverloadSet))
-    {
-      return BindResult::Conflict;
-    }
-    Found.Targets.push_back(&ValueObject);
-    return BindResult::Inserted;
+    return bindInTable(CurrentScope->ValueBindings, BoundName, &ValueObject, OverloadSet);
   }
 
   NameResolver::BindResult NameResolver::bind(Name BoundName, Decl &Declaration)
@@ -96,22 +102,12 @@ namespace ink::semantic
     {
       return BindResult::Conflict;
     }
-    auto [Entry, Inserted] = CurrentScope->DeclBindings.try_emplace(BoundName, Binding<Decl *>(BoundName, OverloadSet));
-    Binding<Decl *> &Found = Entry->second;
-    for (Decl *Existing : Found.Targets)
+    const BindResult Result = bindInTable(CurrentScope->DeclBindings, BoundName, &Declaration, OverloadSet);
+    if (Result == BindResult::Inserted)
     {
-      if (Existing == &Declaration)
-      {
-        return BindResult::AlreadyBound;
-      }
+      DefinitionScopes.try_emplace(&Declaration, CurrentScope);
     }
-    if (!Inserted && (!Found.OverloadSet || !OverloadSet))
-    {
-      return BindResult::Conflict;
-    }
-    Found.Targets.push_back(&Declaration);
-    DefinitionScopes.try_emplace(&Declaration, CurrentScope);
-    return BindResult::Inserted;
+    return Result;
   }
 
   const Scope *NameResolver::definitionScope(const Decl &Declaration) const noexcept

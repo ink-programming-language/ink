@@ -22,7 +22,7 @@ class Analyzer
 
 [`NameResolver`](../src/include/ink/semantic/name_resolve/name_resolver.h) 是独立的语义分析辅助类，借用 `SemanticContext`，拥有作用域树和名字绑定。它不遍历 AST，也不执行类型检查、实例化或重载选择。
 
-名字解析的头文件位于 `src/include/ink/semantic/name_resolve`，实现位于 `src/lib/semantic/name_resolve`。[`Binding<T>`](../src/include/ink/semantic/name_resolve/binding.h)、[`Scope`](../src/include/ink/semantic/name_resolve/scope.h) 和 `NameResolver` 是独立类型。`Binding<T>` 仅接受 `Value *` 或 `Decl *` 两种模板参数，保存名称和该类别的候选指针。`Scope` 分别保存两类绑定表，但两表共同组成一个词法名字空间。
+名字解析的头文件位于 `src/include/ink/semantic/name_resolve`，实现位于 `src/lib/semantic/name_resolve`。[`Binding<T>`](../src/include/ink/semantic/name_resolve/binding.h)、[`Scope`](../src/include/ink/semantic/name_resolve/scope.h) 和 `NameResolver` 是独立类型。`Binding<T>` 仅接受 `Value *` 或 `Decl *` 两种模板参数，保存名称和该类别的候选指针。同一头文件中的 `BindingTable<T>` 是 `std::unordered_map<Name, Binding<T>>` 的受约束别名，供 `Scope` 保存 `BindingTable<Value *>` 和 `BindingTable<Decl *>`。两表共同组成一个词法名字空间，复用 `NameResolver` 的表内插入、去重及查找模板；跨类别冲突、遮蔽和定义作用域记录仍由同一个 `NameResolver` 处理。
 
 - 构造后当前作用域为根作用域；`rootScope()` 返回根作用域，`currentScope()` 返回当前作用域。
 - `enterScope()` 创建并进入当前作用域的新子作用域；`exitScope()` 回到父作用域并返回 `true`，在根作用域返回 `false`。退出不销毁作用域或绑定，再次进入会创建新作用域。
