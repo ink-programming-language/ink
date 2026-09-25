@@ -12,7 +12,7 @@ namespace ink::semantic
   class SemanticContext;
   class Value;
 
-  // Owns lexical scopes and bindings, not their values. Context and values must
+  // Owns lexical scopes and bindings, not their values or declarations. Context and targets must
   // outlive the resolver. Names must use Context's name pool; compact Name indices
   // cannot prove provenance.
   class NameResolver final
@@ -25,6 +25,8 @@ namespace ink::semantic
         Conflict,
         InvalidName,
         ForeignValue,
+        ForeignDecl,
+        InvalidDecl,
       };
 
       explicit NameResolver(const SemanticContext &Context);
@@ -65,24 +67,64 @@ namespace ink::semantic
       bool exitScope() noexcept;
 
       // Binds in the current scope. Names may alias their values.
-      // Only Function values may share a name. Rebinding the same value is a
+      // Only Function values and generic FunctionDecls may share a name. Rebinding the same target is a
       // no-op; signature legality and overload selection belong to later analysis.
       BindResult bind(Name BoundName, Value &ValueObject);
+      // Accepts only local generic FunctionDecl/ClassDecl definitions, not ModuleDecl.
+      // The first successful binding records the definition scope; later aliases preserve it.
+      BindResult bind(Name BoundName, Decl &Declaration);
+
+      const Scope *definitionScope(const Decl &Declaration) const noexcept;
 
       // Searches the current scope and its parents; lookupLocal searches only the current scope.
-      // The nearest scope containing the name hides the entire outer binding.
+      // The nearest scope containing either target category hides both outer categories.
+      // Select Decl * explicitly for generic candidates; the default preserves value lookup.
+      // Mixed function overloads are retrieved as two typed lists from that same scope.
       // Invalid names and misses return null without interning.
-      const Binding *lookup(Name BoundName) const noexcept;
-      const Binding *lookupLocal(Name BoundName) const noexcept;
+      template <BindingTarget T = Value *>
+      const Binding<T> *lookup(Name BoundName) const noexcept
+      {
+        const Scope *Found = findScope(BoundName);
+        return Found ? lookupInScope<T>(*Found, BoundName) : nullptr;
+      }
+
+      template <BindingTarget T = Value *>
+      const Binding<T> *lookupLocal(Name BoundName) const noexcept
+      {
+        return lookupInScope<T>(*CurrentScope, BoundName);
+      }
 
       // Searches only Owner's member scope, without changing the current scope or searching lexical parents.
       // Missing scopes, invalid names and misses return null; aliases of the same owner share one scope.
-      const Binding *lookupMember(Value &Owner, Name MemberName) const noexcept;
+      template <BindingTarget T = Value *>
+      const Binding<T> *lookupMember(Value &Owner, Name MemberName) const noexcept
+      {
+        const auto Found = MemberScopes.find(&Owner);
+        return Found == MemberScopes.end() ? nullptr : lookupInScope<T>(*Found->second, MemberName);
+      }
 
     private:
+      const Scope *findScope(Name BoundName) const noexcept;
+
+      template <BindingTarget T>
+      static const Binding<T> *lookupInScope(const Scope &ScopeValue, Name BoundName) noexcept
+      {
+        if constexpr (std::is_same_v<T, Value *>)
+        {
+          const auto Found = ScopeValue.ValueBindings.find(BoundName);
+          return Found == ScopeValue.ValueBindings.end() ? nullptr : &Found->second;
+        }
+        else
+        {
+          const auto Found = ScopeValue.DeclBindings.find(BoundName);
+          return Found == ScopeValue.DeclBindings.end() ? nullptr : &Found->second;
+        }
+      }
+
       const SemanticContext &Context;
       std::vector<std::unique_ptr<Scope>> Scopes;
       std::unordered_map<Value *, Scope *> MemberScopes;
+      std::unordered_map<const Decl *, Scope *> DefinitionScopes;
       Scope *CurrentScope;
   };
 } // namespace ink::semantic

@@ -522,6 +522,7 @@ namespace ink::semantic
     auto Result = std::unique_ptr<ModuleDecl>(new ModuleDecl(DeclName, AST));
     ModuleDecl *Pointer = Result.get();
     Declarations.push_back(std::move(Result));
+    OwnedDeclarations.insert(Pointer);
     return Pointer;
   }
 
@@ -534,6 +535,7 @@ namespace ink::semantic
     auto Result = std::unique_ptr<FunctionDecl>(new FunctionDecl(DeclName, AST));
     FunctionDecl *Pointer = Result.get();
     Declarations.push_back(std::move(Result));
+    OwnedDeclarations.insert(Pointer);
     return Pointer;
   }
 
@@ -546,6 +548,7 @@ namespace ink::semantic
     auto Result = std::unique_ptr<ClassDecl>(new ClassDecl(DeclName, AST));
     ClassDecl *Pointer = Result.get();
     Declarations.push_back(std::move(Result));
+    OwnedDeclarations.insert(Pointer);
     return Pointer;
   }
 } // namespace ink::semantic

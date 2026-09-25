@@ -29,7 +29,9 @@ namespace ink::semantic
       }
 
       Scope *Parent;
-      std::unordered_map<Name, Binding> Bindings;
+      // Both maps participate in one lexical namespace.
+      std::unordered_map<Name, Binding<Value *>> ValueBindings;
+      std::unordered_map<Name, Binding<Decl *>> DeclBindings;
 
       friend class NameResolver;
   };

@@ -33,6 +33,7 @@
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace ink::semantic
@@ -152,6 +153,11 @@ namespace ink::semantic
       FunctionDecl *createFunctionDecl(Name DeclName, const parser::FunctionDecl &AST);
       ClassDecl *createClassDecl(Name DeclName, const parser::ClassDecl &AST);
 
+      bool owns(const Decl &Declaration) const noexcept
+      {
+        return OwnedDeclarations.contains(&Declaration);
+      }
+
     private:
       struct ArrayTypeKey
       {
@@ -188,6 +194,7 @@ namespace ink::semantic
       std::unique_ptr<BuiltinType> ModuleType;
       // Model destructors never traverse borrowed AST/type/value edges.
       std::vector<std::unique_ptr<Decl>> Declarations;
+      std::unordered_set<const Decl *> OwnedDeclarations;
       std::unordered_map<std::uint64_t, std::unique_ptr<IntegerType>> IntegerTypes;
       std::unordered_map<std::uint32_t, std::unique_ptr<FloatType>> FloatTypes;
       std::vector<std::unique_ptr<UserDefinedType>> UserDefinedTypes;

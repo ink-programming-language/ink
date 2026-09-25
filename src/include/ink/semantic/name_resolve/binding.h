@@ -4,13 +4,19 @@
 #include "ink/semantic/model/name/name.h"
 
 #include <span>
+#include <type_traits>
 #include <vector>
 
 namespace ink::semantic
 {
   class NameResolver;
   class Value;
+  class Decl;
 
+  template <typename T>
+  concept BindingTarget = std::is_same_v<T, Value *> || std::is_same_v<T, Decl *>;
+
+  template <BindingTarget T>
   class Binding final
   {
     public:
@@ -19,14 +25,14 @@ namespace ink::semantic
         return BoundName;
       }
 
-      // Even a single function is an overload set. Function-typed variables are not.
+      // Even a single function or generic function is an overload set. Function-typed variables are not.
       bool isOverloadSet() const noexcept
       {
         return OverloadSet;
       }
 
       // In insertion order. A later insertion into this binding invalidates the span.
-      std::span<Value *const> targets() const noexcept
+      std::span<const T> targets() const noexcept
       {
         return Targets;
       }
@@ -40,7 +46,7 @@ namespace ink::semantic
 
       Name BoundName;
       bool OverloadSet;
-      std::vector<Value *> Targets;
+      std::vector<T> Targets;
 
       friend class NameResolver;
   };

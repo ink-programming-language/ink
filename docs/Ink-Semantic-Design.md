@@ -2,9 +2,9 @@
 
 基于 AST 的语义分析、泛型实例化与 comptime 执行
 
-日期：2026 年 9 月 25 日。状态：基础对象模型及词法名字绑定已实现，Analyzer::analyze 仍为空接口，其余为待实现的架构设计。
+日期：2026 年 9 月 25 日。状态：基础对象模型、值/泛型定义的词法名字绑定及 Analyzer 严格分派骨架已实现，其余为待实现的架构设计。
 
-本文采用确定的方向：**泛型实例化和 comptime 都在 AST 层完成，完成后的运行时语义再 lowering 为闭合运行时模型**。当前 [语义分析接口](Ink-Semantic-Analysis.md) 为空实现；第 1.3 节对象模型和 NameResolver 的词法作用域基础已实现，其余分析器类及扩展能力仍是建议结构。语言语法以 [Ink-grammar-Rules.bnf](Ink-grammar-Rules.bnf) 为准；本文不增加泛型、反射或声明生成语法。
+本文采用确定的方向：**泛型实例化和 comptime 都在 AST 层完成，完成后的运行时语义再 lowering 为闭合运行时模型**。当前 [语义分析接口](Ink-Semantic-Analysis.md) 已有模块创建和语句/声明严格分派骨架，仅空模块及空块可成功，其余语义明确报告未支持；第 1.3 节对象模型和 NameResolver 的词法作用域基础已实现，其余分析器类及扩展能力仍是建议结构。语言语法以 [Ink-grammar-Rules.bnf](Ink-grammar-Rules.bnf) 为准；本文不增加泛型、反射或声明生成语法。
 
 ## 1 当前基础与目标边界
 
@@ -17,8 +17,8 @@
 | [ast_context.h](../src/include/ink/parser/ast_context.h) | Arena 管理稳定地址的节点和数组；semantic 不接管单个节点的释放 |
 | [ASTNodes.def](../src/include/ink/parser/ASTNodes.def) | 节点种类有稳定显式编号；种类编号不是某个声明或实例的身份 |
 | [core/context.h](../src/include/ink/core/context.h) | 已有 `CompilationContext`、`FrontendContext`、源码管理、诊断及目标信息，直接复用 |
-| [semantic/CMakeLists.txt](../src/lib/semantic/CMakeLists.txt) 与 [lib/CMakeLists.txt](../src/lib/CMakeLists.txt) | 对象模型、NameResolver 和 Analyzer::analyze 空实现已接入构建 |
-| [analyze/analyzer.h](../src/include/ink/semantic/analyze/analyzer.h) | Analyzer 类提供 analyze 成员函数，空实现返回 nullptr；旧 IR/execution 已删除 |
+| [semantic/CMakeLists.txt](../src/lib/semantic/CMakeLists.txt) 与 [lib/CMakeLists.txt](../src/lib/CMakeLists.txt) | 对象模型、NameResolver 和 Analyzer 严格分派骨架已接入构建 |
+| [analyze/analyzer.h](../src/include/ink/semantic/analyze/analyzer.h) | Analyzer 创建模块并按 AST 宏表分派语句/声明，尚未支持的语义报告诊断并返回 nullptr；旧 IR/execution 已删除 |
 | [inkc/main.cpp](../src/tools/inkc/main.cpp) | 当前仅处理命令行参数；以下流程仍需接入驱动 |
 
 ### 1.2 目标流水线
@@ -78,7 +78,7 @@
 - 执行模型不再保存源码变量绑定对象。源码变量和形参与模型对象的绑定、const 分析仍待实现。初始化和赋值由各自位置的 `StoreInstruction` 表示，读取使用 `LoadInstruction`；`StoreInstruction` 在构造时将自身类型设置为上下文唯一的 void 类型，由 `Value::type()` 返回。
 - 泛型定义借用的 AST 所属 `ParsedUnit` 必须保持存活，当前上下文不拥有或复制 AST。源码中的普通 `parser::VarDecl`、`parser::FunctionDecl` 和 `parser::ClassDecl` 是语法节点，不意味着创建同名语义 `Decl`。执行期变量槽位、编译期结果及语义分析状态分别保存，不能写回共享泛型 AST。
 
-名字解析代码位于 `name_resolve` 目录，`Scope`、`Binding` 和 `NameResolver` 已拆分为独立类型和头文件。`NameResolver` 提供当前作用域的进入与退出、`Value *` 绑定、沿父作用域或仅当前作用域的查找、实体关联的成员作用域及直接成员查找、函数重载集合；详见 [语义分析接口](Ink-Semantic-Analysis.md)。这一阶段尚未提供完整 `LookupResult`、`ExprInfo`、AST 名称分析、comptime 或 IR lowering。下文的 ID、类型独立存储门面、扩展常量种类和会话结构仍为后续接口规划；当前类型、常量和声明引用使用上下文内稳定指针，不能直接持久化。
+名字解析代码位于 `name_resolve` 目录，`Scope`、`Binding<T>` 和 `NameResolver` 已拆分为独立类型和头文件。`Binding<T>` 仅支持 `Value *` 和 `Decl *`；两类绑定共享词法名字空间及遮蔽规则，普通函数与泛型函数候选按类别保存。`NameResolver` 提供作用域进入与退出、有类型查找、实体成员作用域、直接成员查找、重载候选及泛型定义首次绑定作用域；详见 [语义分析接口](Ink-Semantic-Analysis.md)。这一阶段尚未提供完整 `LookupResult`、`ExprInfo`、AST 名称分析、comptime 或 IR lowering。下文的 ID、类型独立存储门面、扩展常量种类和会话结构仍为后续接口规划；当前类型、常量和声明引用使用上下文内稳定指针，不能直接持久化。
 
 ## 2 所有权、身份和上下文
 
@@ -435,7 +435,7 @@ Reader 必须检查版本、长度、分配预算、种类编号、必需子节�
 
 | 文件组 | 主要内容 |
 | --- | --- |
-| `analyze/analyzer.h` | 已实现的 Analyzer 入口占位接口 |
+| `analyze/analyzer.h` | 已实现的 Analyzer 流程骨架及语句/声明严格分派 |
 | `name_resolve/binding.h`、`name_resolve/scope.h`、`name_resolve/name_resolver.h` | 已实现的名字绑定、作用域及名字解析 |
 | `semantic.h`、`semantic_result.h`、`semantic_ids.h` | 对外入口、结果状态和强类型身份 |
 | `semantic_session.h`、`semantic_module.h`、`semantic_driver.h` | 会话、模块、调度入口 |

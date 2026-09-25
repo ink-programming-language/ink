@@ -4,9 +4,9 @@
 
 ## 当前入口与对象模型
 
-`tokenize → parse` 已实现；`semantic::Analyzer::analyze` 仅保留空接口，始终返回 `nullptr`，尚未接通从 AST 到 `semantic::Module` 的分析链路。接口状态见 [语义分析接口](Ink-Semantic-Analysis.md)。
+`tokenize → parse` 已实现；`semantic::Analyzer::analyze` 已有输入检查、模块创建和严格 AST 分派骨架，仅空模块及空块可成功返回 `semantic::Module`，其余语义报告未支持。接口状态见 [语义分析接口](Ink-Semantic-Analysis.md)。
 
-`Analyzer` 当前只提供入口占位方法。独立的 `NameResolver` 已提供词法作用域、实体成员作用域、名字绑定、直接成员查找、遮蔽和重载候选集合；AST 遍历、类型、初始化、调用与返回检查尚未接入，也不预置 print 声明。对象模型仍可通过工厂独立构建以下节点。
+`Analyzer` 从 `ASTNodes.def` 生成语句和声明分派，每个具体种类有显式处理函数。独立的 `NameResolver` 已提供词法作用域、实体成员作用域、`Binding<Value *>`/`Binding<Decl *>`、有类型查找、跨类别遮蔽和函数重载候选集合；AST 名字登记、类型、初始化、调用与返回检查尚未接入，也不预置 print 声明。对象模型仍可通过工厂独立构建以下节点。
 
 | 节点 | 操作数与结果 | 约束 |
 | --- | --- | --- |
@@ -24,7 +24,7 @@
 
 | 优先级 | 能力 | 待补内容 |
 | --- | --- | --- |
-| 首先 | 源码语义分析 | 将已有 NameResolver 接入 AST 声明登记，补充类型解析、表达式和语句检查，以及从 AST 构建 Module。Analyzer::analyze 当前为空实现。 |
+| 首先 | 源码语义分析 | 在 Analyzer 分派骨架中接入 AST 声明登记，补充类型解析、表达式和语句检查，以及非空 Module 的构建和验证。 |
 | 首先 | 执行与后端 | 新模型的解释器或 LLVM lowering、入口选择和驱动接线。生成 Module 不会执行程序。 |
 | 首先 | 外部调用 | 外部函数的声明与宿主绑定、外部链接身份、调用约定和字符串 ABI。声明不能产生输出。 |
 | 首先 | 完整图验证器 | 定义先于使用、跨函数操作数、归属、支配关系、终结后指令和运行时值合法性；BasicBlock 仍允许任意符合基础条件的 Value，removeValue 可拆下仍被引用的定义。 |

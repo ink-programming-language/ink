@@ -54,8 +54,13 @@ namespace ink::semantic
       return BindResult::InvalidName;
     }
     const bool OverloadSet = Function::classof(&ValueObject);
-    auto [Entry, Inserted] = CurrentScope->Bindings.try_emplace(BoundName, Binding(BoundName, OverloadSet));
-    Binding &Found = Entry->second;
+    const auto *Generic = lookupLocal<Decl *>(BoundName);
+    if (Generic && (!Generic->isOverloadSet() || !OverloadSet))
+    {
+      return BindResult::Conflict;
+    }
+    auto [Entry, Inserted] = CurrentScope->ValueBindings.try_emplace(BoundName, Binding<Value *>(BoundName, OverloadSet));
+    Binding<Value *> &Found = Entry->second;
     for (Value *Existing : Found.Targets)
     {
       if (Existing == &ValueObject)
@@ -71,7 +76,51 @@ namespace ink::semantic
     return BindResult::Inserted;
   }
 
-  const Binding *NameResolver::lookup(Name BoundName) const noexcept
+  NameResolver::BindResult NameResolver::bind(Name BoundName, Decl &Declaration)
+  {
+    if (!Context.owns(Declaration))
+    {
+      return BindResult::ForeignDecl;
+    }
+    const bool OverloadSet = FunctionDecl::classof(&Declaration);
+    if (!OverloadSet && !ClassDecl::classof(&Declaration))
+    {
+      return BindResult::InvalidDecl;
+    }
+    if (!Context.namePool().contains(BoundName))
+    {
+      return BindResult::InvalidName;
+    }
+    const auto *Values = lookupLocal(BoundName);
+    if (Values && (!Values->isOverloadSet() || !OverloadSet))
+    {
+      return BindResult::Conflict;
+    }
+    auto [Entry, Inserted] = CurrentScope->DeclBindings.try_emplace(BoundName, Binding<Decl *>(BoundName, OverloadSet));
+    Binding<Decl *> &Found = Entry->second;
+    for (Decl *Existing : Found.Targets)
+    {
+      if (Existing == &Declaration)
+      {
+        return BindResult::AlreadyBound;
+      }
+    }
+    if (!Inserted && (!Found.OverloadSet || !OverloadSet))
+    {
+      return BindResult::Conflict;
+    }
+    Found.Targets.push_back(&Declaration);
+    DefinitionScopes.try_emplace(&Declaration, CurrentScope);
+    return BindResult::Inserted;
+  }
+
+  const Scope *NameResolver::definitionScope(const Decl &Declaration) const noexcept
+  {
+    const auto Found = DefinitionScopes.find(&Declaration);
+    return Found == DefinitionScopes.end() ? nullptr : Found->second;
+  }
+
+  const Scope *NameResolver::findScope(Name BoundName) const noexcept
   {
     if (!Context.namePool().contains(BoundName))
     {
@@ -79,38 +128,11 @@ namespace ink::semantic
     }
     for (const Scope *Current = CurrentScope; Current; Current = Current->Parent)
     {
-      const auto Found = Current->Bindings.find(BoundName);
-      if (Found != Current->Bindings.end())
+      if (Current->ValueBindings.contains(BoundName) || Current->DeclBindings.contains(BoundName))
       {
-        return &Found->second;
+        return Current;
       }
     }
     return nullptr;
-  }
-
-  const Binding *NameResolver::lookupLocal(Name BoundName) const noexcept
-  {
-    if (!Context.namePool().contains(BoundName))
-    {
-      return nullptr;
-    }
-    const auto Found = CurrentScope->Bindings.find(BoundName);
-    return Found == CurrentScope->Bindings.end() ? nullptr : &Found->second;
-  }
-
-  const Binding *NameResolver::lookupMember(Value &Owner, Name MemberName) const noexcept
-  {
-    if (!Context.namePool().contains(MemberName))
-    {
-      return nullptr;
-    }
-    const auto ScopeEntry = MemberScopes.find(&Owner);
-    if (ScopeEntry == MemberScopes.end())
-    {
-      return nullptr;
-    }
-    const auto &Bindings = ScopeEntry->second->Bindings;
-    const auto Found = Bindings.find(MemberName);
-    return Found == Bindings.end() ? nullptr : &Found->second;
   }
 } // namespace ink::semantic
