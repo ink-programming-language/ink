@@ -89,8 +89,8 @@ namespace ink::semantic::test
     const FloatType *Float32 = Context.getFloatType(32);
     ASSERT_NE(String, nullptr);
     ASSERT_NE(Float32, nullptr);
-    expectValueKind(Context, Context.getStringConst(*String, "hello,world"), ValueKind::StringConst);
-    expectValueKind(Context, Context.getFloatConst(*Float32, FloatBits(32, 0x3f800000)), ValueKind::FloatConst);
+    expectValueKind(Context, Context.getStringConstant(*String, "hello,world"), ValueKind::StringConstant);
+    expectValueKind(Context, Context.getFloatConstant(*Float32, FloatBits(32, 0x3f800000)), ValueKind::FloatConstant);
     expectValueKind(Context, Context.createExprValue(*Int32, Expression), ValueKind::ExprValue);
     const FunctionType *Signature = Context.getFunctionType(*Int32);
     ASSERT_NE(Signature, nullptr);
@@ -99,6 +99,13 @@ namespace ink::semantic::test
     ASSERT_NE(Target, nullptr);
     expectValueKind(Context, Target, ValueKind::Function);
     expectValueKind(Context, Context.createCallInstruction(*Target), ValueKind::CallInstruction);
+    AllocaInstruction *Slot = Context.createAllocaInstruction(*Int32);
+    ASSERT_NE(Slot, nullptr);
+    expectValueKind(Context, Slot, ValueKind::AllocaInstruction);
+    const LoadInstruction *Loaded = Context.createLoadInstruction(*Slot);
+    expectValueKind(Context, Loaded, ValueKind::LoadInstruction);
+    ASSERT_NE(Loaded, nullptr);
+    expectValueKind(Context, Context.createStoreInstruction(*Slot, *Loaded), ValueKind::StoreInstruction);
   }
 
   // Null pointers and unregistered value tags never match a model class.

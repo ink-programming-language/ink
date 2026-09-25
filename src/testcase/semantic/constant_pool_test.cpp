@@ -1,4 +1,4 @@
-#include "ink/semantic/model/constant_pool.h"
+#include "ink/semantic/model/constant/constant_pool.h"
 #include "ink/semantic/model/context.h"
 
 #include <gtest/gtest.h>
@@ -286,7 +286,7 @@ namespace ink::semantic::test
     EXPECT_EQ(OtherPool.size(), 3U);
   }
 
-  // Rehashing the pool preserves constant addresses, payload references and declaration initializers.
+  // Rehashing the pool preserves constant addresses, payload references and store operands.
   TEST(SemanticConstantPoolTest, StorageGrowthPreservesBorrowedReferences)
   {
     core::CompilationContext Compilation;
@@ -298,9 +298,10 @@ namespace ink::semantic::test
     ASSERT_NE(Zero, nullptr);
     const IntegerBits &Bits = Zero->value();
     const BoolConstant &False = Pool.getBoolConstant(false);
-    Variable *Declaration = Context.createVariable(Context.namePool().intern("Value"), BindingMutability::Immutable, Zero);
-    ASSERT_NE(Declaration, nullptr);
-    ASSERT_TRUE(Declaration->setType(*Integer));
+    AllocaInstruction *Slot = Context.createAllocaInstruction(*Integer);
+    ASSERT_NE(Slot, nullptr);
+    const StoreInstruction *Store = Context.createStoreInstruction(*Slot, *Zero);
+    ASSERT_NE(Store, nullptr);
     for (std::uint64_t Index = 1; Index <= 2048; ++Index)
     {
       const IntegerConstant *Item = Pool.getIntegerConstant(*Integer, IntegerBits(128, Index));
@@ -312,8 +313,8 @@ namespace ink::semantic::test
     EXPECT_EQ(&Zero->value(), &Bits);
     EXPECT_EQ(Bits, IntegerBits(128, 0));
     EXPECT_EQ(&Pool.getBoolConstant(false), &False);
-    EXPECT_EQ(Declaration->initializer(), Zero);
-    EXPECT_EQ(Declaration->type(), Integer);
+    EXPECT_EQ(&Store->storedValue(), Zero);
+    EXPECT_EQ(&Slot->allocatedType(), Integer);
     EXPECT_TRUE(Pool.owns(*Zero));
     EXPECT_TRUE(Pool.owns(False));
     EXPECT_EQ(Pool.size(), 2051U);

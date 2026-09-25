@@ -3,6 +3,7 @@
 
 #include "ink/semantic/model/function/basic_block.h"
 #include "ink/semantic/model/function/function_type.h"
+#include "ink/semantic/model/function/function_parameter.h"
 #include "ink/semantic/model/name.h"
 
 #include <vector>
@@ -26,6 +27,11 @@ namespace ink::semantic
       bool hasBody() const noexcept
       {
         return !Blocks.empty();
+      }
+
+      std::span<const FunctionParameter *const> parameters() const noexcept
+      {
+        return Parameters;
       }
 
       // The first block is the entry; declarations have no blocks and return null.
@@ -61,6 +67,7 @@ namespace ink::semantic
       Name FunctionName;
       const FunctionType &Signature;
       std::vector<BasicBlock *> Blocks;
+      std::vector<const FunctionParameter *> Parameters;
 
       friend class SemanticContext;
   };

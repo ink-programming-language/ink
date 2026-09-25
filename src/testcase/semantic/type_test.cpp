@@ -171,13 +171,11 @@ namespace ink::semantic::test
     const PointerType *Nested = Context.getPointerType(*Pointer, AccessKind::ReadWrite);
     ASSERT_NE(Nested, nullptr);
     EXPECT_EQ(&Nested->pointeeType(), Pointer);
-    Variable *Binding = Context.createVariable(Context.namePool().intern("P"), BindingMutability::Immutable);
-    ASSERT_NE(Binding, nullptr);
-    ASSERT_TRUE(Binding->setType(*Context.getPointerType(*Int32, AccessKind::ReadWrite)));
-    EXPECT_FALSE(Binding->isMutable());
-    EXPECT_EQ(Binding->mutability(), BindingMutability::Immutable);
-    ASSERT_TRUE(PointerType::classof(Binding->type()));
-    EXPECT_EQ(static_cast<const PointerType *>(Binding->type())->access(), AccessKind::ReadWrite);
+    const AllocaInstruction *Slot = Context.createAllocaInstruction(*Pointer);
+    ASSERT_NE(Slot, nullptr);
+    EXPECT_EQ(Slot->type().access(), AccessKind::ReadWrite);
+    EXPECT_EQ(&Slot->allocatedType(), Pointer);
+    EXPECT_EQ(Pointer->access(), AccessKind::ReadOnly);
   }
 
   // Composite types reject foreign-context components and unknown access flags explicitly.

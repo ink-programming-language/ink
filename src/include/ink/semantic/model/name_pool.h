@@ -3,8 +3,11 @@
 
 #include "ink/semantic/model/name.h"
 
-#include <memory>
+#include <functional>
+#include <string>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
 namespace ink::semantic
 {
@@ -30,8 +33,16 @@ namespace ink::semantic
       std::size_t size() const noexcept;
 
     private:
-      class Impl;
-      std::unique_ptr<Impl> Storage;
+      struct StringHash
+      {
+          using is_transparent = void;
+
+          std::size_t operator()(std::string_view Text) const noexcept;
+      };
+
+      // Map keys own the only spelling copy; node references survive rehashing.
+      std::unordered_map<std::string, Name, StringHash, std::equal_to<>> Names;
+      std::vector<std::string_view> Spellings;
   };
 } // namespace ink::semantic
 

@@ -14,7 +14,7 @@ namespace ink::semantic::test
   static_assert(!std::is_move_constructible_v<Function>);
   static_assert(std::is_same_v<decltype(std::declval<Function &>().blocks()), const std::vector<BasicBlock *> &>);
 
-  // Same-named functions share a structural signature while keeping independent callable identities and bindings.
+  // Same-named functions share a structural signature while keeping independent callable identities.
   TEST(SemanticFunctionTest, ClosedFunctionsHaveIndependentValueIdentity)
   {
     core::CompilationContext Compilation;
@@ -39,10 +39,7 @@ namespace ink::semantic::test
     EXPECT_FALSE(Function::classof(Signature));
     EXPECT_FALSE(Function::classof(nullptr));
     EXPECT_FALSE(Constant::classof(First));
-    Variable *Binding = Context.createVariable(Context.namePool().intern("Callback"), BindingMutability::Immutable, First);
-    ASSERT_NE(Binding, nullptr);
-    EXPECT_TRUE(Binding->setType(*Signature));
-    const CallInstruction *Call = Context.createCallInstruction(*Binding->initializer());
+    const CallInstruction *Call = Context.createCallInstruction(*First);
     ASSERT_NE(Call, nullptr);
     EXPECT_EQ(Call->directCallee(), First);
     EXPECT_EQ(&Call->type(), &Context.getBoolType());

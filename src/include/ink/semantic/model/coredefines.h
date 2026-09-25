@@ -18,18 +18,19 @@ namespace ink::semantic
 #undef INK_SEMANTIC_TYPE
   };
 
+  // Parameter binding category, independent of the value's ValueKind.
+  enum class ParameterKind : std::uint8_t
+  {
+    Positional,
+    Named,
+    Variadic,
+  };
+
   // Access through a pointer/reference/slice, independent of binding mutability.
   enum class AccessKind : std::uint8_t
   {
     ReadOnly,
     ReadWrite,
-  };
-
-  // Binding mutability is independent of access through a value and compile-time evaluation.
-  enum class BindingMutability : std::uint8_t
-  {
-    Mutable,
-    Immutable,
   };
 
   // Declaration/member visibility, independent of data access and binding mutability.

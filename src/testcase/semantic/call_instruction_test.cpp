@@ -50,10 +50,11 @@ namespace ink::semantic::test
     EXPECT_TRUE(CallInstruction::classof(First));
     EXPECT_FALSE(Constant::classof(First));
     EXPECT_FALSE(Type::classof(First));
-    Variable *Binding = Context.createVariable(Context.namePool().intern("Result"), BindingMutability::Immutable, First);
-    ASSERT_NE(Binding, nullptr);
-    EXPECT_TRUE(Binding->setType(*Integer));
-    EXPECT_EQ(Binding->initializer(), First);
+    AllocaInstruction *Slot = Context.createAllocaInstruction(*Integer);
+    ASSERT_NE(Slot, nullptr);
+    const StoreInstruction *Store = Context.createStoreInstruction(*Slot, *First);
+    ASSERT_NE(Store, nullptr);
+    EXPECT_EQ(&Store->storedValue(), First);
     Arguments[0] = First;
     const CallInstruction *Nested = Context.createCallInstruction(*Target, Arguments);
     ASSERT_NE(Nested, nullptr);

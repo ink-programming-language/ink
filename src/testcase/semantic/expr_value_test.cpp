@@ -59,110 +59,28 @@ namespace ink::semantic::test
     EXPECT_EQ(&Local->context(), &Context);
   }
 
-  // A variable initializer accepts a type value, a known constant or an unevaluated expression result.
-  TEST(SemanticExprValueTest, InitializersSupportAllThreeValueCategories)
+  // Store operands may reference typed expressions, but meta values and foreign expressions are rejected.
+  TEST(SemanticExprValueTest, ExpressionsCanBeStoredWithExactLocalTypes)
   {
     core::CompilationContext Compilation;
     parser::NameExpr Expression({}, {});
     SemanticContext Context(Compilation);
-    const Name X = Context.namePool().intern("X");
+    SemanticContext Other(Compilation);
     const IntegerType *Int32 = Context.getIntegerType(32, true);
-    const Value *Initializers[] = {
-        Int32,
-        Context.getIntegerConstant(*Int32, IntegerBits(32, 0)),
-        Context.createExprValue(*Int32, Expression),
-    };
-    for (const Value *Initializer : Initializers)
-    {
-      ASSERT_NE(Initializer, nullptr);
-      Variable *Declaration = Context.createVariable(X, BindingMutability::Immutable, Initializer);
-      ASSERT_NE(Declaration, nullptr);
-      EXPECT_EQ(Declaration->initializer(), Initializer);
-      EXPECT_EQ(Declaration->type(), nullptr);
-      EXPECT_TRUE(Declaration->setType(Initializer->type()));
-      EXPECT_EQ(Declaration->type(), &Initializer->type());
-      EXPECT_FALSE(Declaration->isMutable());
-    }
-  }
-
-  // Late initializer publication is idempotent and failed updates preserve the checked declaration.
-  TEST(SemanticExprValueTest, InitializersPublishOnceAfterDeclarationRegistration)
-  {
-    core::CompilationContext Compilation;
-    parser::NameExpr Expression({}, {});
-    SemanticContext Context(Compilation);
-    const IntegerType *Int32 = Context.getIntegerType(32, true);
-    const IntegerConstant *Zero = Context.getIntegerConstant(*Int32, IntegerBits(32, 0));
+    AllocaInstruction *Slot = Context.createAllocaInstruction(*Int32);
     const ExprValue *Computed = Context.createExprValue(*Int32, Expression);
-    Variable *Declaration = Context.createVariable(Context.namePool().intern("X"), BindingMutability::Mutable);
-    ASSERT_NE(Declaration, nullptr);
-    ASSERT_NE(Zero, nullptr);
+    const ExprValue *Foreign = Other.createExprValue(*Other.getIntegerType(32, true), Expression);
+    ASSERT_NE(Slot, nullptr);
     ASSERT_NE(Computed, nullptr);
-    ASSERT_TRUE(Declaration->setType(*Int32));
-    EXPECT_FALSE(Declaration->setInitializer(Context.getBoolConstant(false)));
-    EXPECT_EQ(Declaration->initializer(), nullptr);
-    EXPECT_TRUE(Declaration->setInitializer(*Computed));
-    EXPECT_TRUE(Declaration->setInitializer(*Computed));
-    EXPECT_FALSE(Declaration->setInitializer(*Zero));
-    EXPECT_FALSE(Declaration->setType(Context.getBoolType()));
-    EXPECT_EQ(Declaration->initializer(), Computed);
-    EXPECT_EQ(Declaration->type(), Int32);
-  }
-
-  // Publishing an initializer before the type enforces the same type contract in the opposite order.
-  TEST(SemanticExprValueTest, InitializerFirstRequiresAMatchingPublishedType)
-  {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
-    SemanticContext Other(Compilation);
-    const IntegerType *Int32 = Context.getIntegerType(32, true);
-    const IntegerConstant *Zero = Context.getIntegerConstant(*Int32, IntegerBits(32, 0));
-    const Name X = Context.namePool().intern("X");
-    ASSERT_NE(Zero, nullptr);
-    Variable *FromFactory = Context.createVariable(X, BindingMutability::Mutable, Zero);
-    Variable *FromSetter = Context.createVariable(X, BindingMutability::Mutable);
-    ASSERT_NE(FromFactory, nullptr);
-    ASSERT_NE(FromSetter, nullptr);
-    ASSERT_TRUE(FromSetter->setInitializer(*Zero));
-    Variable *Declarations[] = {
-        FromFactory,
-        FromSetter,
-    };
-    for (Variable *Declaration : Declarations)
-    {
-      EXPECT_FALSE(Declaration->setType(Context.getBoolType()));
-      EXPECT_FALSE(Declaration->setType(*Other.getIntegerType(32, true)));
-      EXPECT_EQ(Declaration->type(), nullptr);
-      EXPECT_EQ(Declaration->initializer(), Zero);
-      EXPECT_TRUE(Declaration->setType(*Int32));
-      EXPECT_EQ(Declaration->type(), Int32);
-    }
-  }
-
-  // Both creation and deferred initialization reject foreign values without retaining dangling dependencies.
-  TEST(SemanticExprValueTest, ForeignInitializersAreRejectedForEveryValueCategory)
-  {
-    core::CompilationContext Compilation;
-    parser::NameExpr Expression({}, {});
-    SemanticContext Context(Compilation);
-    SemanticContext Other(Compilation);
-    const Name X = Context.namePool().intern("X");
-    const IntegerType *ForeignType = Other.getIntegerType(32, true);
-    const Value *ForeignValues[] = {
-        ForeignType,
-        Other.getIntegerConstant(*ForeignType, IntegerBits(32, 0)),
-        Other.createExprValue(*ForeignType, Expression),
-    };
-    Variable *Declaration = Context.createVariable(X, BindingMutability::Mutable);
-    ASSERT_NE(Declaration, nullptr);
-    for (const Value *Foreign : ForeignValues)
-    {
-      ASSERT_NE(Foreign, nullptr);
-      EXPECT_EQ(Context.createVariable(X, BindingMutability::Mutable, Foreign), nullptr);
-      EXPECT_FALSE(Declaration->setInitializer(*Foreign));
-      EXPECT_EQ(Declaration->initializer(), nullptr);
-      EXPECT_EQ(Declaration->type(), nullptr);
-    }
-    EXPECT_TRUE(Declaration->setInitializer(Context.getBoolConstant(true)));
+    ASSERT_NE(Foreign, nullptr);
+    EXPECT_EQ(Context.createStoreInstruction(*Slot, *Foreign), nullptr);
+    EXPECT_EQ(Context.createStoreInstruction(*Slot, *Int32), nullptr);
+    EXPECT_EQ(Context.createStoreInstruction(*Slot, Context.getBoolConstant(false)), nullptr);
+    const StoreInstruction *Store = Context.createStoreInstruction(*Slot, *Computed);
+    ASSERT_NE(Store, nullptr);
+    EXPECT_EQ(&Store->storedValue(), Computed);
+    EXPECT_EQ(&Store->address(), Slot);
+    EXPECT_EQ(&Store->type(), &Context.getVoidType());
+    EXPECT_EQ(&Computed->expression(), &Expression);
   }
 } // namespace ink::semantic::test
