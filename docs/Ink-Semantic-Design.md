@@ -18,7 +18,7 @@
 | [ASTNodes.def](../src/include/ink/parser/ASTNodes.def) | 节点种类有稳定显式编号；种类编号不是某个声明或实例的身份 |
 | [core/context.h](../src/include/ink/core/context.h) | 已有 `CompilationContext`、`FrontendContext`、源码管理、诊断及目标信息，直接复用 |
 | [semantic/CMakeLists.txt](../src/lib/semantic/CMakeLists.txt) 与 [lib/CMakeLists.txt](../src/lib/CMakeLists.txt) | 对象模型、NameResolver 和 Analyzer 严格分派骨架已接入构建 |
-| [analyze/analyzer.h](../src/include/ink/semantic/analyze/analyzer.h) | Analyzer 创建模块并按 AST 宏表分派语句/声明，尚未支持的语义报告诊断并返回 nullptr；旧 IR/execution 已删除 |
+| [analyzer/analyzer.h](../src/include/ink/semantic/analyzer/analyzer.h) | Analyzer 创建模块并按 AST 宏表分派语句/声明，尚未支持的语义报告诊断并返回 nullptr；旧 IR/execution 已删除 |
 | [inkc/main.cpp](../src/tools/inkc/main.cpp) | 当前仅处理命令行参数；以下流程仍需接入驱动 |
 
 ### 1.2 目标流水线
@@ -435,7 +435,7 @@ Reader 必须检查版本、长度、分配预算、种类编号、必需子节�
 
 | 文件组 | 主要内容 |
 | --- | --- |
-| `analyze/analyzer.h` | 已实现的 Analyzer 流程骨架及语句/声明严格分派 |
+| `analyzer/analyzer.h` | 已实现的 Analyzer 流程骨架及语句/声明严格分派 |
 | `name_resolve/binding.h`、`name_resolve/scope.h`、`name_resolve/name_resolver.h` | 已实现的名字绑定、作用域及名字解析 |
 | `semantic.h`、`semantic_result.h`、`semantic_ids.h` | 对外入口、结果状态和强类型身份 |
 | `semantic_session.h`、`semantic_module.h`、`semantic_driver.h` | 会话、模块、调度入口 |

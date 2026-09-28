@@ -1,4 +1,4 @@
-#include "ink/semantic/analyze/analyzer.h"
+#include "ink/semantic/analyzer/analyzer.h"
 
 #include "ink/parser/parser.h"
 #include "ink/semantic/context.h"

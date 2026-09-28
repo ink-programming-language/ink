@@ -45,7 +45,7 @@ Ink 跨 module 函数、成员函数、闭合实例、全局变量、Imported �
 
 ## Semantic 分析接口
 
-`Analyzer` 的头文件和实现放在 semantic 的 `analyze` 子目录；名字解析放在 `name_resolve` 子目录，拆分为 `binding.h`、`scope.h`、`name_resolver.h` 和 `name_resolver.cpp`，三个类型均位于 `ink::semantic` 命名空间。
+`Analyzer` 的头文件和实现放在 semantic 的 `analyzer` 子目录；名字解析放在 `name_resolve` 子目录，拆分为 `binding.h`、`scope.h`、`name_resolver.h` 和 `name_resolver.cpp`，三个类型均位于 `ink::semantic` 命名空间。
 
 `Analyzer::analyze(SemanticContext &, const parser::ParseResult &, std::string_view ModuleName)` 为成员函数，当前仍返回 `nullptr`。`NameResolver` 通过 `enterScope()` 和 `exitScope()` 管理当前作用域，直接绑定 `Value *`；`lookup()` 查找当前及父作用域，`lookupLocal()` 仅查当前作用域。`enterScope(Owner)` 为实体创建成员作用域，`lookupMember(Owner, Name)` 查找该实体的直接成员，别名共享同一实体的成员绑定。`Function` 支持同名候选集合，普通绑定重名返回冲突。重载选择和 AST 分析尚未接入。接口、生命周期和状态码见 [语义分析接口](docs/Ink-Semantic-Analysis.md)。
 

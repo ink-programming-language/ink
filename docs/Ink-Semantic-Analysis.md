@@ -1,6 +1,6 @@
 # 语义分析接口
 
-入口为 [`Analyzer::analyze`](../src/include/ink/semantic/analyze/analyzer.h)，头文件和实现分别位于 `src/include/ink/semantic/analyze` 和 `src/lib/semantic/analyze`：
+入口为 [`Analyzer::analyze`](../src/include/ink/semantic/analyzer/analyzer.h)，头文件和实现分别位于 `src/include/ink/semantic/analyzer` 和 `src/lib/semantic/analyzer`：
 
 ```cpp
 class Analyzer
