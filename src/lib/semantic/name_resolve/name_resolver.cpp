@@ -1,12 +1,14 @@
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include "ink/semantic/context.h"
-#include "ink/semantic/model/decl/class_decl.h"
-#include "ink/semantic/model/decl/function_decl.h"
-#include "ink/semantic/model/function/function.h"
+#include "ink/ir/decl/class_decl.h"
+#include "ink/ir/decl/function_decl.h"
+#include "ink/ir/function/function.h"
 
 namespace ink::semantic
 {
+  using namespace ink::ir;
+
   NameResolver::NameResolver(SemanticContext &Context) noexcept
       : NameResolver(Context.scopeStore().rootScope())
   {
@@ -48,7 +50,7 @@ namespace ink::semantic
 
   Scope *NameResolver::enterScope(Value &Owner)
   {
-    if (&Owner.context() != &Store.context() || Store.memberScope(Owner))
+    if (&Owner.context() != &Store.context().irContext() || Store.memberScope(Owner))
     {
       return nullptr;
     }
@@ -89,7 +91,7 @@ namespace ink::semantic
 
   NameResolver::BindResult NameResolver::bind(Name BoundName, Value &ValueObject)
   {
-    if (&ValueObject.context() != &Store.context())
+    if (&ValueObject.context() != &Store.context().irContext())
     {
       return BindResult::ForeignValue;
     }
@@ -113,7 +115,7 @@ namespace ink::semantic
 
   NameResolver::BindResult NameResolver::bind(Name BoundName, Decl &Declaration)
   {
-    if (&Declaration.module().context() != &Store.context())
+    if (&Declaration.module().context() != &Store.context().irContext())
     {
       return BindResult::ForeignDecl;
     }

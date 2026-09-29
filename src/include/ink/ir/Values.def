@@ -1,0 +1,49 @@
+// INK_IR_VALUE(Name) registers a value kind named after its C++ class.
+// INK_IR_TYPE_VALUE(Name) also marks membership in the Type hierarchy.
+// INK_IR_CONSTANT_VALUE(Name) also marks membership in the Constant hierarchy.
+// Included multiple times; Type, UserDefinedType and Constant are base-only classes.
+// Meta, void, bool, label and module are all BuiltinType objects, distinguished by TypeKind.
+
+#ifndef INK_IR_VALUE
+#define INK_IR_VALUE(Name)
+#endif
+
+#ifndef INK_IR_TYPE_VALUE
+#define INK_IR_TYPE_VALUE(Name) INK_IR_VALUE(Name)
+#endif
+
+#ifndef INK_IR_CONSTANT_VALUE
+#define INK_IR_CONSTANT_VALUE(Name) INK_IR_VALUE(Name)
+#endif
+
+INK_IR_TYPE_VALUE(BuiltinType)
+INK_IR_TYPE_VALUE(IntegerType)
+INK_IR_TYPE_VALUE(FloatType)
+INK_IR_TYPE_VALUE(ArrayType)
+INK_IR_TYPE_VALUE(SliceType)
+INK_IR_TYPE_VALUE(PointerType)
+INK_IR_TYPE_VALUE(ReferenceType)
+INK_IR_TYPE_VALUE(ClassType)
+INK_IR_TYPE_VALUE(EnumType)
+INK_IR_TYPE_VALUE(InterfaceType)
+
+INK_IR_CONSTANT_VALUE(IntegerConstant)
+INK_IR_CONSTANT_VALUE(BoolConstant)
+INK_IR_VALUE(CallInstruction)
+INK_IR_VALUE(CStringInstruction)
+INK_IR_VALUE(AllocaInstruction)
+INK_IR_VALUE(LoadInstruction)
+INK_IR_VALUE(StoreInstruction)
+INK_IR_CONSTANT_VALUE(StringConstant)
+INK_IR_CONSTANT_VALUE(FloatConstant)
+INK_IR_TYPE_VALUE(FunctionType)
+INK_IR_VALUE(Function)
+INK_IR_VALUE(BasicBlock)
+INK_IR_VALUE(Module)
+INK_IR_VALUE(FunctionParameter)
+INK_IR_VALUE(AddInstruction)
+INK_IR_VALUE(ReturnInstruction)
+
+#undef INK_IR_CONSTANT_VALUE
+#undef INK_IR_TYPE_VALUE
+#undef INK_IR_VALUE

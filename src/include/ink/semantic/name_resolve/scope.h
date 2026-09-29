@@ -31,8 +31,8 @@ namespace ink::semantic
       ScopeStore &Store;
       Scope *Parent;
       // Both maps participate in one lexical namespace.
-      BindingTable<Value *> ValueBindings;
-      BindingTable<Decl *> DeclBindings;
+      BindingTable<ir::Value *> ValueBindings;
+      BindingTable<ir::Decl *> DeclBindings;
 
       friend class NameResolver;
       friend class ScopeStore;

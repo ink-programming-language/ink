@@ -9,6 +9,8 @@
 
 namespace ink::semantic
 {
+  using namespace ink::ir;
+
   std::optional<LanguageLinkage> Analyzer::analyzeFunctionLinkage(AnalysisState &State, const parser::FunctionDecl &Node)
   {
     const parser::Expr *LinkageNode = Node.linkage();
@@ -150,6 +152,7 @@ namespace ink::semantic
     }
     AnalysisState FunctionState(State.Context, State.Resolver.currentScope(), State.Input);
     FunctionState.BlockDepth = State.BlockDepth;
+    FunctionState.CurrentFunction = &FunctionValue;
     NameResolver::ScopeGuard FunctionScope(FunctionState.Resolver, FunctionValue);
     if (!FunctionScope.scope())
     {
@@ -175,6 +178,19 @@ namespace ink::semantic
       if (!analyzeBlockStmt(FunctionState, *Node.body()))
       {
         return false;
+      }
+      if (!FunctionState.Terminated)
+      {
+        if (ReturnType->typeKind() != TypeKind::Void)
+        {
+          State.report<core::DiagnosticKind::SemanticMissingReturn>(Node.body()->getSourceRange(), Node.name().Text);
+          return false;
+        }
+        if (!FunctionState.Builder.createReturnInstruction())
+        {
+          State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.body()->getSourceRange());
+          return false;
+        }
       }
     }
     if (!State.Builder.appendValue(*State.Builder.insertBlock(), std::move(FunctionOwner)))

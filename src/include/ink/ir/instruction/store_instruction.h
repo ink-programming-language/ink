@@ -1,0 +1,37 @@
+#ifndef INK_IR_STORE_INSTRUCTION_H
+#define INK_IR_STORE_INSTRUCTION_H
+
+#include "ink/ir/type/builtin_type.h"
+
+namespace ink::ir
+{
+  // An ordinary, non-atomic write through a read-write pointer; it produces no result value.
+  class StoreInstruction final : public Value
+  {
+    public:
+      const Value &address() const noexcept
+      {
+        return Address;
+      }
+
+      const Value &storedValue() const noexcept
+      {
+        return StoredValue;
+      }
+
+      static bool classof(const Value *ValueObject) noexcept
+      {
+        return ValueObject && ValueObject->kind() == ValueKind::StoreInstruction;
+      }
+
+    private:
+      StoreInstruction(const Value &Address, const Value &StoredValue) noexcept;
+
+      const Value &Address;
+      const Value &StoredValue;
+
+      friend class IRBuilder;
+  };
+} // namespace ink::ir
+
+#endif

@@ -5,6 +5,7 @@
 // INK_CONFIG(Kind, EnvironmentName, DefaultValue)
 INK_CONFIG(SemanticBlockDepthLimit, "INK_SEMANTIC_BLOCK_DEPTH_LIMIT", "256")
 INK_CONFIG(SemanticTypeDepthLimit, "INK_SEMANTIC_TYPE_DEPTH_LIMIT", "256")
+INK_CONFIG(SemanticExpressionDepthLimit, "INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT", "256")
 
 INK_CONFIG(ParserMaxNestingDepth, "INK_PARSER_MAX_NESTING_DEPTH", "128")
 INK_CONFIG(ParserMaxDiagnostics, "INK_PARSER_MAX_DIAGNOSTICS", "100")

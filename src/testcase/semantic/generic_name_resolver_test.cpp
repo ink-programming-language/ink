@@ -1,4 +1,4 @@
-#include "ink/semantic/ir_builder.h"
+#include "ink/ir/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include "ink/parser/parser.h"
@@ -11,6 +11,8 @@
 
 namespace ink::semantic::test
 {
+  using namespace ink::ir;
+
   static_assert(BindingTarget<Value *> && BindingTarget<Decl *>);
   static_assert(!BindingTarget<Value> && !BindingTarget<Function *> && !BindingTarget<const Decl *>);
   static_assert(std::is_same_v<decltype(std::declval<const Binding<Value *> &>().targets()), std::span<Value *const>>);
@@ -23,7 +25,7 @@ namespace ink::semantic::test
           : Frontend(Compilation),
             Parsed(parser::parse(Frontend, tokenizer::tokenize(Frontend, "func F[T: type](Value: T): T { return Value; } func F[U: type](Value: U): U { return Value; } class Box[T: type] { field Item: T; }; class Other[T: type] { field Item: T; };"))),
             Context(Compilation),
-            Factory(Context),
+            Factory(Context.irContext()),
             Resolver(Context)
       {
       }
@@ -204,7 +206,7 @@ namespace ink::semantic::test
   TEST_F(GenericNameResolverTest, RejectsInvalidDeclarationBindings)
   {
     SemanticContext Foreign(Compilation);
-    IRBuilder ForeignFactory(Foreign);
+    IRBuilder ForeignFactory(Foreign.irContext());
     const Name F = First->name();
     Module *ForeignModule = ForeignFactory.createModule(Foreign.namePool().intern("Root"));
     ASSERT_NE(ForeignModule, nullptr);
@@ -216,7 +218,7 @@ namespace ink::semantic::test
     ASSERT_NE(ModuleDefinition, nullptr);
     EXPECT_EQ(&First->module(), &Root->module());
     EXPECT_EQ(&Box->module(), &Root->module());
-    EXPECT_EQ(&ModuleDefinition->module().context(), &Context);
+    EXPECT_EQ(&ModuleDefinition->module().context(), &Context.irContext());
     EXPECT_EQ(&ForeignDefinition->module(), ForeignModule);
     EXPECT_EQ(Resolver.bind(F, *ForeignDefinition), BindResult::ForeignDecl);
     EXPECT_EQ(Resolver.bind(F, *ModuleDefinition), BindResult::InvalidDecl);

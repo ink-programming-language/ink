@@ -1,7 +1,7 @@
 #ifndef INK_SEMANTIC_ANALYZER_ANALYZER_H
 #define INK_SEMANTIC_ANALYZER_ANALYZER_H
 
-#include "ink/semantic/model/coredefines.h"
+#include "ink/ir/coredefines.h"
 
 #include <cstddef>
 #include <optional>
@@ -19,30 +19,39 @@ namespace ink::parser
 #undef AST_NODE
 } // namespace ink::parser
 
-namespace ink::semantic
+namespace ink::ir
 {
-  class SemanticContext;
   class Module;
   class Type;
   class FunctionType;
+  class Value;
+} // namespace ink::ir
+
+namespace ink::semantic
+{
+  class SemanticContext;
 
   class Analyzer
   {
     public:
       // Builds a module from successfully parsed input. Unsupported syntax reports
-      // a diagnostic and returns null. Supports fixed-arity function signatures and
-      // bodies composed of supported statements; expression/return analysis is still pending.
+      // an ICE. User errors return null. Supports fixed-arity functions, calls,
+      // literal/parameter expressions and straight-line bodies with checked returns.
       // The returned module is owned by Context. Analysis state is local to each call.
-      // Module declaration roots borrow Input's AST; its ParsedUnit must outlive any allocated module, including on failure.
-      Module *analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName = "main");
+      // ir::Module declaration roots borrow Input's AST; its ParsedUnit must outlive any allocated module, including on failure.
+      ir::Module *analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName = "main");
 
     private:
       struct AnalysisState;
+      struct ExpressionResult;
 
       bool analyzeStmt(AnalysisState &State, const parser::Stmt &Stmt);
       bool analyzeDecl(AnalysisState &State, const parser::Decl &Declaration);
       bool reportUnsupported(AnalysisState &State, const parser::ASTNodeBase &Node);
-      const Type *analyzeType(AnalysisState &State, const parser::Expr &Node, std::size_t Depth = 0);
+      const ir::Type *analyzeType(AnalysisState &State, const parser::Expr &Node, std::size_t Depth = 0);
+      ExpressionResult analyzeExpr(AnalysisState &State, const parser::Expr &Node, std::size_t Depth = 0);
+      ExpressionResult analyzeCallExpr(AnalysisState &State, const parser::CallExpr &Node, std::size_t Depth);
+      const ir::Value *convertExpression(AnalysisState &State, const ExpressionResult &Expression, const ir::Type &Target, const parser::Expr &Node, bool CArgument = false);
 
       // Keep handlers explicit: a new AST statement/declaration must choose its behavior.
       // Recovery nodes remain unsupported and are handled in analyzer.cpp.
@@ -75,8 +84,8 @@ namespace ink::semantic
       bool analyzeFieldDecl(AnalysisState &State, const parser::FieldDecl &Node);
 
       bool analyzeFunctionDecl(AnalysisState &State, const parser::FunctionDecl &Node);
-      std::optional<LanguageLinkage> analyzeFunctionLinkage(AnalysisState &State, const parser::FunctionDecl &Node);
-      bool checkFunctionConflicts(AnalysisState &State, const parser::FunctionDecl &Node, const FunctionType &Signature, LanguageLinkage Linkage);
+      std::optional<ir::LanguageLinkage> analyzeFunctionLinkage(AnalysisState &State, const parser::FunctionDecl &Node);
+      bool checkFunctionConflicts(AnalysisState &State, const parser::FunctionDecl &Node, const ir::FunctionType &Signature, ir::LanguageLinkage Linkage);
       bool analyzeClassDecl(AnalysisState &State, const parser::ClassDecl &Node);
       bool analyzeEnumDecl(AnalysisState &State, const parser::EnumDecl &Node);
       bool analyzeInterfaceDecl(AnalysisState &State, const parser::InterfaceDecl &Node);

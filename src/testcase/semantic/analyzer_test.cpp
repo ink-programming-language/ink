@@ -4,7 +4,7 @@
 
 #include "ink/parser/parser.h"
 #include "ink/semantic/context.h"
-#include "ink/semantic/model/decl/module_decl.h"
+#include "ink/ir/decl/module_decl.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <gtest/gtest.h>
@@ -13,6 +13,8 @@
 
 namespace ink::semantic::test
 {
+  using namespace ink::ir;
+
   // Empty modules and nested empty blocks produce distinct context-owned modules across repeated calls.
   TEST(SemanticAnalyzerTest, CreatesModulesAndKeepsCallsIndependent)
   {
@@ -29,7 +31,7 @@ namespace ink::semantic::test
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
     EXPECT_NE(First, Second);
-    EXPECT_EQ(&First->context(), &Context);
+    EXPECT_EQ(&First->context(), &Context.irContext());
     EXPECT_EQ(Context.namePool().text(First->name()), "main");
     EXPECT_EQ(Context.namePool().text(Second->name()), "second");
     EXPECT_EQ(First->entryBlock().outer(), First);
@@ -100,13 +102,12 @@ namespace ink::semantic::test
         const char *Kind;
     };
     constexpr Case Cases[] = {
-        {"1;", "SimpleStmt"},
+        {"x = 1;", "AssignmentItem"},
         {"if (true) {}", "IfStmt"},
         {"while (true) {}", "WhileStmt"},
         {"for (;;) {}", "ClassicForStmt"},
         {"for (Item in Items) {}", "ForInStmt"},
         {"switch (X) {}", "SwitchStmt"},
-        {"return;", "ReturnStmt"},
         {"break;", "BreakStmt"},
         {"continue;", "ContinueStmt"},
         {"yield 1;", "YieldStmt"},

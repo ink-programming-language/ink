@@ -1,4 +1,4 @@
-#include "ink/semantic/ir_builder.h"
+#include "ink/ir/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include "ink/semantic/context.h"
@@ -10,13 +10,15 @@
 
 namespace ink::semantic::test
 {
+  using namespace ink::ir;
+
   namespace
   {
     using BindResult = NameResolver::BindResult;
 
     std::unique_ptr<Function> createUnaryFunction(SemanticContext &Context, Name FunctionName, const Type &ParameterType)
     {
-      IRBuilder Builder(Context);
+      IRBuilder Builder(Context.irContext());
       const Type *Parameters[] = {&ParameterType};
       const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>(), Parameters);
       return Signature ? Builder.createFunction(FunctionName, *Signature) : nullptr;
@@ -35,7 +37,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     Scope &Original = Resolver.enterScope();
     const Name X = Context.namePool().intern("X");
@@ -76,8 +78,8 @@ namespace ink::semantic::test
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
     SemanticContext Other(Compilation);
-    IRBuilder Builder(Context);
-    IRBuilder OtherBuilder(Other);
+    IRBuilder Builder(Context.irContext());
+    IRBuilder OtherBuilder(Other.irContext());
     Module *Owner = Builder.createModule(Context.namePool().intern("Owner"));
     Module *Foreign = OtherBuilder.createModule(Other.namePool().intern("Foreign"));
     ASSERT_NE(Owner, nullptr);
@@ -116,7 +118,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     auto &Root = Resolver.rootScope();
     EXPECT_EQ(&Resolver.currentScope(), &Root);
@@ -179,7 +181,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
     const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
@@ -216,7 +218,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
     const Name Variable = Context.namePool().intern("Variable");
@@ -258,7 +260,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
     const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
@@ -310,9 +312,9 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     SemanticContext OtherContext(Compilation);
-    IRBuilder OtherContextBuilder(OtherContext);
+    IRBuilder OtherContextBuilder(OtherContext.irContext());
     NameResolver Resolver(Context);
     NameResolver OtherResolver(Context);
     const Name Missing = Context.namePool().intern("Missing");
@@ -347,7 +349,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name A = Context.namePool().intern("A");
     const Name B = Context.namePool().intern("B");
@@ -406,7 +408,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name OwnerName = Context.namePool().intern("Owner");
     const Name ParentName = Context.namePool().intern("ParentOnly");
@@ -458,9 +460,9 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     SemanticContext OtherContext(Compilation);
-    IRBuilder OtherContextBuilder(OtherContext);
+    IRBuilder OtherContextBuilder(OtherContext.irContext());
     NameResolver Resolver(Context);
     const Name OwnerName = Context.namePool().intern("Owner");
     const Name MemberName = Context.namePool().intern("Member");
@@ -521,7 +523,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     auto &Root = Resolver.rootScope();
     const Name NameValue = Context.namePool().intern("Visible");

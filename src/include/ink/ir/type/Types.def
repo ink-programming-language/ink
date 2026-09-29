@@ -1,0 +1,17 @@
+// INK_IR_TYPE(Name, Base). Base is BuiltinType or UserDefinedType.
+// Included multiple times to generate TypeKind and its base-class classification.
+INK_IR_TYPE(Meta, BuiltinType)
+INK_IR_TYPE(Void, BuiltinType)
+INK_IR_TYPE(Bool, BuiltinType)
+INK_IR_TYPE(Integer, BuiltinType)
+INK_IR_TYPE(Float, BuiltinType)
+INK_IR_TYPE(Array, BuiltinType)
+INK_IR_TYPE(Slice, BuiltinType)
+INK_IR_TYPE(Pointer, BuiltinType)
+INK_IR_TYPE(Reference, BuiltinType)
+INK_IR_TYPE(Class, UserDefinedType)
+INK_IR_TYPE(Enum, UserDefinedType)
+INK_IR_TYPE(Interface, UserDefinedType)
+INK_IR_TYPE(Function, BuiltinType)
+INK_IR_TYPE(Label, BuiltinType)
+INK_IR_TYPE(Module, BuiltinType)

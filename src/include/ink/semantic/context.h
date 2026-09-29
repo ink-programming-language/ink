@@ -1,33 +1,20 @@
 #ifndef INK_SEMANTIC_CONTEXT_H
 #define INK_SEMANTIC_CONTEXT_H
 
-#include "ink/core/core_define.h"
-#include "ink/core/context.h"
-#include "ink/semantic/model/constant/constant_pool.h"
-#include "ink/semantic/model/module/module.h"
-#include "ink/semantic/model/name/name_pool.h"
-#include "ink/semantic/model/type/type_pool.h"
+#include "ink/ir/context.h"
 #include "ink/semantic/name_resolve/scope_store.h"
-
-#include <memory>
-#include <vector>
 
 namespace ink::semantic
 {
-  class IRBuilder;
-
-  // Owns shared scopes, types, constants and root modules; modules own independent declaration and IR trees.
-  // CompilationContext must outlive this context, which must outlive detached IR owners.
-  // Borrowed AST units must outlive their declaration-owning modules.
+  // Combines independent IR storage with frontend scopes and bindings.
+  // ScopeStore unregisters its observer before IR storage is destroyed.
   class SemanticContext final
   {
     public:
       FORCE_INLINE explicit SemanticContext(core::CompilationContext &Compilation)
-          : Compilation(Compilation)
+          : IR(Compilation)
       {
         Scopes.reset(new ScopeStore(*this));
-        Types.reset(new TypePool(*this));
-        Constants.reset(new ConstantPool(*this));
       }
 
       FORCE_INLINE ~SemanticContext() = default;
@@ -36,24 +23,34 @@ namespace ink::semantic
       SemanticContext(SemanticContext &&) = delete;
       SemanticContext &operator=(SemanticContext &&) = delete;
 
+      FORCE_INLINE ir::IRContext &irContext() noexcept
+      {
+        return IR;
+      }
+
+      FORCE_INLINE const ir::IRContext &irContext() const noexcept
+      {
+        return IR;
+      }
+
       FORCE_INLINE core::CompilationContext &compilationContext() noexcept
       {
-        return Compilation;
+        return IR.compilationContext();
       }
 
       FORCE_INLINE const core::CompilationContext &compilationContext() const noexcept
       {
-        return Compilation;
+        return IR.compilationContext();
       }
 
-      FORCE_INLINE NamePool &namePool() noexcept
+      FORCE_INLINE ir::NamePool &namePool() noexcept
       {
-        return Names;
+        return IR.namePool();
       }
 
-      FORCE_INLINE const NamePool &namePool() const noexcept
+      FORCE_INLINE const ir::NamePool &namePool() const noexcept
       {
-        return Names;
+        return IR.namePool();
       }
 
       FORCE_INLINE ScopeStore &scopeStore() noexcept
@@ -66,43 +63,34 @@ namespace ink::semantic
         return *Scopes;
       }
 
-      FORCE_INLINE TypePool &typePool() noexcept
+      FORCE_INLINE ir::TypePool &typePool() noexcept
       {
-        return *Types;
+        return IR.typePool();
       }
 
-      FORCE_INLINE const TypePool &typePool() const noexcept
+      FORCE_INLINE const ir::TypePool &typePool() const noexcept
       {
-        return *Types;
+        return IR.typePool();
       }
 
-      FORCE_INLINE ConstantPool &constantPool() noexcept
+      FORCE_INLINE ir::ConstantPool &constantPool() noexcept
       {
-        return *Constants;
+        return IR.constantPool();
       }
 
-      FORCE_INLINE const ConstantPool &constantPool() const noexcept
+      FORCE_INLINE const ir::ConstantPool &constantPool() const noexcept
       {
-        return *Constants;
+        return IR.constantPool();
       }
 
-      FORCE_INLINE const std::vector<std::unique_ptr<Module>> &modules() const noexcept
+      FORCE_INLINE const std::vector<std::unique_ptr<ir::Module>> &modules() const noexcept
       {
-        return Modules;
+        return IR.modules();
       }
 
     private:
-      core::CompilationContext &Compilation;
-      NamePool Names;
-      // Values and declarations unregister bindings during destruction, before scopes are released.
+      ir::IRContext IR;
       std::unique_ptr<ScopeStore> Scopes;
-      std::unique_ptr<TypePool> Types;
-      std::unique_ptr<ConstantPool> Constants;
-      std::vector<std::unique_ptr<Module>> Modules;
-
-      friend class IRBuilder;
-      friend class Value;
-      friend class Decl;
   };
 } // namespace ink::semantic
 

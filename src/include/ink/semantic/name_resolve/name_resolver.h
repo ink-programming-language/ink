@@ -6,10 +6,9 @@
 namespace ink::semantic
 {
   class SemanticContext;
-  class Value;
 
   // Borrows context-owned scopes and bindings, retaining only an independent current scope.
-  // Context must outlive the resolver. Names use its name pool; compact Name indices cannot prove provenance.
+  // Context must outlive the resolver. Names use its name pool; compact ir::Name indices cannot prove provenance.
   class NameResolver final
   {
     public:
@@ -30,7 +29,7 @@ namespace ink::semantic
       {
         public:
           explicit ScopeGuard(NameResolver &Resolver);
-          ScopeGuard(NameResolver &Resolver, Value &Owner);
+          ScopeGuard(NameResolver &Resolver, ir::Value &Owner);
           ~ScopeGuard() noexcept;
           ScopeGuard(const ScopeGuard &) = delete;
           ScopeGuard &operator=(const ScopeGuard &) = delete;
@@ -83,7 +82,7 @@ namespace ink::semantic
 
       // Creates and enters Owner's member scope under the current scope.
       // Foreign owners or owners already associated with a scope return null without changing state.
-      Scope *enterScope(Value &Owner);
+      Scope *enterScope(ir::Value &Owner);
 
       // Restores the parent without destroying the exited scope; false at the root.
       bool exitScope() noexcept;
@@ -91,58 +90,58 @@ namespace ink::semantic
       // Binds in the current scope. Names may alias their values.
       // Only Function values and generic FunctionDecls may share a name. Rebinding the same target is a
       // no-op; signature legality and overload selection belong to later analysis.
-      BindResult bind(Name BoundName, Value &ValueObject);
+      BindResult bind(ir::Name BoundName, ir::Value &ValueObject);
       // Accepts only local generic FunctionDecl/ClassDecl definitions, not ModuleDecl.
       // The first successful binding records the definition scope; later aliases preserve it.
-      BindResult bind(Name BoundName, Decl &Declaration);
+      BindResult bind(ir::Name BoundName, ir::Decl &Declaration);
 
-      Scope *definitionScope(const Decl &Declaration) noexcept;
-      const Scope *definitionScope(const Decl &Declaration) const noexcept;
+      Scope *definitionScope(const ir::Decl &Declaration) noexcept;
+      const Scope *definitionScope(const ir::Decl &Declaration) const noexcept;
 
       // Searches the current scope and its parents; lookupLocal searches only the current scope.
       // The nearest scope containing either target category hides both outer categories.
-      // Select Decl * explicitly for generic candidates; the default preserves value lookup.
+      // Select ir::Decl * explicitly for generic candidates; the default preserves value lookup.
       // Mixed function overloads are retrieved as two typed lists from that same scope.
       // Invalid names and misses return null without interning.
-      template <BindingTarget T = Value *>
-      const Binding<T> *lookup(Name BoundName) const noexcept
+      template <BindingTarget T = ir::Value *>
+      const Binding<T> *lookup(ir::Name BoundName) const noexcept
       {
         const Scope *Found = findScope(BoundName);
         return Found ? lookupInScope<T>(*Found, BoundName) : nullptr;
       }
 
-      template <BindingTarget T = Value *>
-      const Binding<T> *lookupLocal(Name BoundName) const noexcept
+      template <BindingTarget T = ir::Value *>
+      const Binding<T> *lookupLocal(ir::Name BoundName) const noexcept
       {
         return lookupInScope<T>(*CurrentScope, BoundName);
       }
 
       // Searches only Owner's member scope, without changing the current scope or searching lexical parents.
       // Missing scopes, invalid names and misses return null; aliases of the same owner share one scope.
-      template <BindingTarget T = Value *>
-      const Binding<T> *lookupMember(Value &Owner, Name MemberName) const noexcept
+      template <BindingTarget T = ir::Value *>
+      const Binding<T> *lookupMember(ir::Value &Owner, ir::Name MemberName) const noexcept
       {
         const Scope *Members = Store.memberScope(Owner);
         return Members ? lookupInScope<T>(*Members, MemberName) : nullptr;
       }
 
     private:
-      const Scope *findScope(Name BoundName) const noexcept;
+      const Scope *findScope(ir::Name BoundName) const noexcept;
 
       template <BindingTarget T>
-      static BindResult bindInTable(BindingTable<T> &Bindings, Name BoundName, T Target, bool OverloadSet);
+      static BindResult bindInTable(BindingTable<T> &Bindings, ir::Name BoundName, T Target, bool OverloadSet);
 
       template <BindingTarget T>
-      static const Binding<T> *lookupInTable(const BindingTable<T> &Bindings, Name BoundName) noexcept
+      static const Binding<T> *lookupInTable(const BindingTable<T> &Bindings, ir::Name BoundName) noexcept
       {
         const auto Found = Bindings.find(BoundName);
         return Found == Bindings.end() ? nullptr : &Found->second;
       }
 
       template <BindingTarget T>
-      static const Binding<T> *lookupInScope(const Scope &ScopeValue, Name BoundName) noexcept
+      static const Binding<T> *lookupInScope(const Scope &ScopeValue, ir::Name BoundName) noexcept
       {
-        if constexpr (std::is_same_v<T, Value *>)
+        if constexpr (std::is_same_v<T, ir::Value *>)
         {
           return lookupInTable(ScopeValue.ValueBindings, BoundName);
         }

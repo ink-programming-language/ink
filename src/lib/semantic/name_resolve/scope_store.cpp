@@ -1,12 +1,16 @@
 #include "ink/semantic/name_resolve/scope_store.h"
+#include "ink/semantic/context.h"
 
 #include <algorithm>
 #include <utility>
 
 namespace ink::semantic
 {
-  ScopeStore::ScopeStore(const SemanticContext &Context)
-      : Context(Context)
+  using namespace ink::ir;
+
+  ScopeStore::ScopeStore(SemanticContext &Context)
+      : ir::LifetimeObserver(Context.irContext()),
+        Context(Context)
   {
     Scopes.push_back(std::unique_ptr<Scope>(new Scope(*this, nullptr)));
   }
@@ -50,13 +54,13 @@ namespace ink::semantic
     Locations.erase(Found);
   }
 
-  void ScopeStore::forget(Value &Target) noexcept
+  void ScopeStore::valueDestroyed(Value &Target) noexcept
   {
     removeBindings(&Target, ValueBindingLocations);
     MemberScopes.erase(&Target);
   }
 
-  void ScopeStore::forget(Decl &Target) noexcept
+  void ScopeStore::declDestroyed(Decl &Target) noexcept
   {
     removeBindings(&Target, DeclBindingLocations);
     DefinitionScopes.erase(&Target);

@@ -9,6 +9,8 @@
 
 namespace ink::semantic
 {
+  using namespace ink::ir;
+
   namespace
   {
     class BlockDepthGuard final
@@ -39,6 +41,11 @@ namespace ink::semantic
 
   bool Analyzer::analyzeStmt(AnalysisState &State, const parser::Stmt &Stmt)
   {
+    if (State.Terminated)
+    {
+      State.report<core::DiagnosticKind::SemanticUnreachableStatement>(Stmt.getSourceRange());
+      return false;
+    }
     switch (Stmt.getKind())
     {
 #define INK_ANALYZE_Root(Name)
@@ -67,7 +74,21 @@ namespace ink::semantic
 
   bool Analyzer::analyzeSimpleStmt(AnalysisState &State, const parser::SimpleStmt &Node)
   {
-    return reportUnsupported(State, Node);
+    bool Succeeded = true;
+    for (const parser::SimpleItem *Item : Node.items())
+    {
+      if (!parser::ExprItem::classof(Item))
+      {
+        return reportUnsupported(State, *Item);
+      }
+      const auto &Expression = *static_cast<const parser::ExprItem &>(*Item).expression();
+      const ExpressionResult Result = analyzeExpr(State, Expression);
+      if (!Result || (Result.IntegerLiteral && !convertExpression(State, Result, *State.Context.typePool().getType<TypeKind::Integer>(32, true), Expression)))
+      {
+        Succeeded = false;
+      }
+    }
+    return Succeeded;
   }
 
   bool Analyzer::analyzeBlockStmt(AnalysisState &State, const parser::BlockStmt &Node)

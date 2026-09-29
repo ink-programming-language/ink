@@ -2,11 +2,13 @@
 
 #include "ink/parser/parser.h"
 #include "ink/semantic/context.h"
-#include "ink/semantic/ir_builder.h"
+#include "ink/ir/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 namespace ink::semantic
 {
+  using namespace ink::ir;
+
   Module *Analyzer::analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName)
   {
     if (!Input.succeeded() || !Input.Unit->root())
@@ -19,7 +21,7 @@ namespace ink::semantic
       return nullptr;
     }
     const parser::ModuleAST &Root = *Input.Unit->root();
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     Module *Result = Builder.createModule(Context.namePool().intern(ModuleName));
     if (!Result || !Builder.createModuleDecl(*Result, Root))
     {

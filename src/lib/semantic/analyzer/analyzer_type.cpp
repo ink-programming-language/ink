@@ -6,6 +6,8 @@
 
 namespace ink::semantic
 {
+  using namespace ink::ir;
+
   namespace
   {
     const Type *builtinType(TypePool &Types, std::string_view Text)

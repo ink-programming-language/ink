@@ -3,7 +3,7 @@
 
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"
-#include "ink/semantic/ir_builder.h"
+#include "ink/ir/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 #include "ink/parser/token_cursor.h"
 
@@ -12,16 +12,32 @@
 #include "ink/core/source_id.h"
 
 #include <cstddef>
+#include <string>
 #include <utility>
 
 namespace ink::semantic
 {
+  std::string describeType(const ir::Type &ValueType);
+
+  // Integer literals keep their source until an expected type or overload is known.
+  struct Analyzer::ExpressionResult
+  {
+      const ir::Value *ValueObject = nullptr;
+      const parser::LiteralExpr *IntegerLiteral = nullptr;
+      bool Negative = false;
+
+      explicit operator bool() const noexcept
+      {
+        return ValueObject || IntegerLiteral;
+      }
+  };
+
   struct Analyzer::AnalysisState
   {
       AnalysisState(SemanticContext &Context, Scope &InitialScope, const parser::TokenBuffer &Input)
           : Context(Context),
             Resolver(InitialScope),
-            Builder(Context),
+            Builder(Context.irContext()),
             Input(Input),
             Source(Input.lexedFile().sourceId())
       {
@@ -35,11 +51,14 @@ namespace ink::semantic
 
       SemanticContext &Context;
       NameResolver Resolver;
-      IRBuilder Builder;
+      ir::IRBuilder Builder;
       const parser::TokenBuffer &Input;
       core::SourceId Source;
       const std::size_t TypeDepthLimit = core::ConfigManager::getSize<core::ConfigKind::SemanticTypeDepthLimit>();
+      const std::size_t ExpressionDepthLimit = core::ConfigManager::getSize<core::ConfigKind::SemanticExpressionDepthLimit>();
       std::size_t BlockDepth = 0;
+      ir::Function *CurrentFunction = nullptr;
+      bool Terminated = false;
   };
 } // namespace ink::semantic
 

@@ -6,15 +6,15 @@
 class Analyzer
 {
   public:
-    Module *analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName = "main");
+    ir::Module *analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName = "main");
 };
 ```
 
-通过 `Analyzer` 实例调用。当前已实现可编译的流程骨架：检查解析结果和源码归属，通过 `IRBuilder` 创建 Context 拥有的模块、模块独立拥有的声明根及入口块。每次调用的 `AnalysisState` 直接拥有独立 `NameResolver`，从 Context 的共享根作用域开始，再进入与本次模块关联的成员作用域，逐条分析顶层语句。成功返回上下文拥有的 `Module *`，失败返回 `nullptr`；调用结束时销毁 resolver，作用域及绑定仍保存在 Context 中。
+通过 `Analyzer` 实例调用。模型和构建器统一位于 `ink::ir`；`SemanticContext` 组合独立的 `IRContext` 与 `ScopeStore`，分析器使用 `IRBuilder(Context.irContext())`。当前已实现可编译的流程骨架：检查解析结果和源码归属，通过 `IRBuilder` 创建 Context 拥有的模块、模块独立拥有的声明根及入口块。每次调用的 `AnalysisState` 直接拥有独立 `NameResolver`，从 Context 的共享根作用域开始，再进入与本次模块关联的成员作用域，逐条分析顶层语句。成功返回上下文拥有的 `Module *`，失败返回 `nullptr`；调用结束时销毁 resolver，作用域及绑定仍保存在 Context 中。
 
 `analyzeStmt()` 与 `analyzeDecl()` 从 Parser 的 `ASTNodes.def` 按 `Category` 生成严格分派。每种语句和声明均有手工声明、定义的 `analyzeXXX()`，不存在自动生成的空处理函数或基类回退；新增 AST 种类后缺少处理函数会导致编译失败，只有声明没有定义则导致链接失败。`DeclStmt` 转发到声明分派，`BlockStmt` 使用 `BlockDepthGuard` 管理嵌套深度、`NameResolver::ScopeGuard` 管理子作用域，并递归处理子语句；正常结束或提前返回时均自动恢复进入前的深度和作用域。块嵌套上限由 `INK_SEMANTIC_BLOCK_DEPTH_LIMIT` 配置，默认 256，模块和函数的成员作用域也使用 `ScopeGuard`。
 
-当前支持空模块、块作用域，以及普通定参函数的声明和定义。函数签名通过检查后创建 `Function`，保存形参名称、类型、C 调用约定及 Ink/C 语言链接，并登记到当前词法作用域；成功的函数由当前 IR 块拥有。函数成员作用域绑定形参，函数体另建词法块作用域并逐条分派语句，嵌套函数继承外层查找环境。函数声明分析不检查返回路径，也不补充返回指令；返回路径检查及隐式返回等待后续控制流分析实现。函数在分析主体前临时绑定，失败时通过 RAII 销毁函数及子节点并撤销相关绑定，不影响后续同级声明的作用域或插入点。
+当前支持空模块、块作用域，以及普通定参函数的声明和定义。函数签名通过检查后创建 `Function`，保存形参名称、类型、C 调用约定及 Ink/C 语言链接，并登记到当前词法作用域；成功的函数由当前 IR 块拥有。函数成员作用域绑定形参，函数体另建词法块作用域并逐条分派语句，嵌套函数继承外层查找环境，但不支持捕获外层形参。当前直线函数体支持显式 return、返回值类型检查、嵌套块的返回传播及 return 后不可达语句诊断；非 void 函数走到结尾报错，void 函数走到结尾补充无值返回。分支与循环的完整返回路径分析仍待实现。函数在分析主体前临时绑定，失败时通过 RAII 销毁函数及子节点并撤销相关绑定，不影响后续同级声明的作用域或插入点。
 
 `analyzeType()` 支持 `void`、`bool`、`i8/i16/i32/i64/i128`、对应的无符号整数、`f16/f32/f64`、括号类型及 `*T`/`&T`；未限定指针和引用暂按 `ReadWrite` 构造，允许 `*void`，拒绝 `&void` 和 `*type`。类型名字先查词法绑定，再回退到内建类型；值不能用于类型位置。形参不能是 void 或元类型；未知类型、重名形参和冲突函数报告源码诊断。普通 Ink 函数可按不同参数类型列表形成重载集，不能仅按返回类型重载；同一作用域的 C 链接函数不能形成重载。类型表达式递归上限由 `INK_SEMANTIC_TYPE_DEPTH_LIMIT` 配置，默认 256，每次分析开始时读取一次；深度从 0 计数，达到上限即报告 ICE 并 panic，0 会拒绝任何类型分析。
 
@@ -22,9 +22,24 @@ class Analyzer
 
 `analyzeFunctionLinkage()` 返回 `std::optional<LanguageLinkage>`：没有 extern 时返回 Ink，完整解码字符串精确为 `"C"` 时返回 C，其他情况报告诊断并返回 `std::nullopt`；不截断内嵌 NUL。`checkFunctionConflicts()` 集中检查当前作用域的已有函数。参数列表、返回类型和语言链接全部一致，且至少一份声明没有函数体时，才属于将来可合并的兼容重复声明；目前仍报告未实现。linkage 是独立于 `FunctionType` 的函数元数据，关系到语言链接及符号命名约定，因此不能仅比较函数类型就忽略 Ink/C 的差异。不同 linkage 不用于区分合法重载，而按当前规则报告名称冲突。
 
-泛型、属性、默认参数、变参、其他语言链接、函数重复声明与声明/定义合并、数组/切片/函数类型语法、类型值返回仍明确报告 `SemanticUnsupported`。表达式语句及显式 `return` 的分析尚未实现：`extern "C" func printf(msg: *u8): i32;` 可以独立成功分析，但包含调用和 `return 0` 的 hello-world 主体仍分别报告 `SimpleStmt` 和 `ReturnStmt` 未支持，整个分析返回 `nullptr`。
+`analyzeExpr()` 支持名字、括号、整数和字符串字面量、整数常量的一元正负号、固定位置参数调用；未绑定的 true/false 名字作为 bool 常量。整数在参数或返回类型确定后按目标位宽解析，支持 2/8/10/16 进制和完整 128 位范围；无期望类型时默认为 i32。已具有类型的值只接受完全同型传递，不隐式窄化、改变符号或把 bool 当整数。调用先分析实参，再选择重载，不在候选试探中生成调用；逐参数比较转换等级，整数常量优先 i32，其余能容纳该常量的整数类型同级，无法唯一选择时诊断歧义。未知名字、非可调用对象、实参数量或类型不符均报告用户错误。表达式深度由 `INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT` 控制，默认 256，达到上限报告 ICE。
 
-一处失败不会阻止后续同级语句的诊断。恢复节点有显式处理函数，但公开入口拒绝带词法或语法错误、取消、超限或缺少根节点的输入。模块名无效时报告 `SemanticConstructionFailed`。分析失败时模块中已成功分析的同级函数仍由 Context 拥有，但不会返回成功模块。
+字符串常量保持只读 u8 切片类型。在直接调用 C 链接函数时，字符串常量可传给可写 `*u8` 形参：`CStringInstruction` 表示每次执行都创建独立可写副本，包含完整 UTF-8 字节和额外终止 NUL，存活到调用者函数返回。不同调用的副本不共享可写存储；副本指针不能在该函数返回后继续使用。该转换仅用于 C 调用实参，不允许从函数返回字符串时隐式创建副本，也不适用于普通 Ink 函数、其他指针类型或一般切片。含内嵌 NUL 的字符串报告 `SemanticEmbeddedNull`，避免静默截断；宿主 `tryGetCString()` 只用于检查，不作为目标程序地址。调用者必须处于函数体内。
+
+以下程序能完成语义分析，main 的基本块依次包含 `CStringInstruction`、`CallInstruction` 和返回 i32 零的 `ReturnInstruction`：
+
+```ink
+extern "C" func printf(msg: *u8): i32;
+func main(): i32
+{
+  printf("hello, world");
+  return 0;
+}
+```
+
+这里按源码声明将 printf 视为定参外部函数；C 变参原型、变参实参提升、目标 ABI、字符串存储的后端 lowering、符号解析及链接仍未接入，不表示已经能够执行 libc 的 printf。泛型、属性、默认参数、变参、命名/展开实参、其他语言链接、声明合并、数组/切片/函数类型语法以及其他表达式和控制流仍报告 `SemanticUnsupported` ICE 并终止。
+
+一处可恢复的用户错误不会阻止后续同级语句的诊断；ICE 会立即终止。恢复节点有显式处理函数，但公开入口拒绝带词法或语法错误、取消、超限或缺少根节点的输入。模块名无效时报告 `SemanticConstructionFailed`。分析失败时模块中已成功分析的同级函数仍由 Context 拥有，但不会返回成功模块。
 
 内建名称的统一登记、声明预登记、完整类型/表达式分析、泛型实例化、编译期执行及完整结果验证尚未实现。当前按源码顺序处理声明；辅助类的泛型绑定能力可以独立使用，不表示 Analyzer 已支持泛型源码。
 
@@ -41,6 +56,7 @@ class Analyzer
 | `analyzer_decl.cpp` | 声明分派、变量声明与字段声明 |
 | `analyzer_function.cpp` | 函数签名、链接方式、名称冲突、形参作用域及函数体分析 |
 | `analyzer_type.cpp` | 基础类型名称、括号类型、指针与引用类型解析 |
+| `analyzer_expr.cpp` | 字面量、表达式名字、重载选择、参数转换与调用 |
 | `analyzer_class.cpp` | 类声明 |
 | `analyzer_enum.cpp` | 枚举声明 |
 | `analyzer_interface.cpp` | 接口声明 |
@@ -49,7 +65,7 @@ class Analyzer
 
 ## 名字绑定与作用域
 
-[`ScopeStore`](../src/include/ink/semantic/name_resolve/scope_store.h) 由 `SemanticContext` 独占，通过 `scopeStore()` 访问，拥有作用域树、名字绑定、实体成员作用域索引与泛型定义作用域索引。它在类型和常量池之前初始化，在模块、常量和类型全部销毁后释放；这些对象析构时仍可清理绑定。
+[`ScopeStore`](../src/include/ink/semantic/name_resolve/scope_store.h) 由 `SemanticContext` 独占，通过 `scopeStore()` 访问，拥有作用域树、名字绑定、实体成员作用域索引与泛型定义作用域索引。它通过 IR 的 `LifetimeObserver` 订阅值和声明的销毁通知，以清理借用绑定。SemanticContext 销毁时先释放 ScopeStore 并注销订阅，再销毁 IRContext 的模块、常量和类型；IR 不包含或依赖 semantic 头文件。
 
 [`NameResolver`](../src/include/ink/semantic/name_resolve/name_resolver.h) 借用 `ScopeStore`，只保存本实例的当前作用域并提供绑定和查找操作。多个 resolver 共享持久数据，各自维护当前位置；创建或销毁 resolver 不会清空名字绑定，也不会改变其他 resolver 的当前位置。它不遍历 AST，也不执行类型检查、实例化或重载选择。
 
@@ -79,7 +95,7 @@ const Binding<Value *> *Functions = Resolver.lookup(FunctionName);
 const Binding<Decl *> *GenericFunctions = Resolver.lookup<Decl *>(FunctionName);
 ```
 
-作用域地址在 `SemanticContext` 存活期间保持稳定；绑定在仍有目标时保持地址稳定。`targets()` 返回 `std::span<const T>`：分别为 `std::span<Value *const>` 和 `std::span<Decl *const>`，只读的是指针列表；添加候选或销毁目标后须重新获取视图。`Value`、`Decl` 析构时通过反向绑定位置索引移除自身在所有作用域中的候选和别名，并清理成员作用域或定义作用域索引；空绑定被删除，此时指向该绑定的旧指针失效，其他重载候选继续保留。模块摘除或转移不改变绑定，实际销毁时才清理；作用域对象本身继续由 Context 保存。
+作用域地址在 `SemanticContext` 存活期间保持稳定；绑定在仍有目标时保持地址稳定。`targets()` 返回 `std::span<const T>`：分别为 `std::span<Value *const>` 和 `std::span<Decl *const>`，只读的是指针列表；添加候选或销毁目标后须重新获取视图。`ir::Value`、`ir::Decl` 析构时通知 ScopeStore，由 ScopeStore 通过反向绑定位置索引移除自身在所有作用域中的候选和别名，并清理成员作用域或定义作用域索引；空绑定被删除，此时指向该绑定的旧指针失效，其他重载候选继续保留。模块摘除或转移不改变绑定，实际销毁时才清理；作用域对象本身继续由 Context 保存。
 
 绑定、成员及定义作用域索引不拥有目标，清理也不负责修复 IR 操作数或 Builder 插入点。Context 必须比 resolver 和所有借用它的对象活得更久，借用的 AST 单元必须比 Module 活得更久。共享存储不提供并发写入同步。`Name` 必须来自同一上下文的名称池，紧凑名称索引不能识别另一池中数值相同的名称。
 

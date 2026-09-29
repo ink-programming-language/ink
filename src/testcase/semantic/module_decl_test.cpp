@@ -1,4 +1,4 @@
-#include "ink/semantic/ir_builder.h"
+#include "ink/ir/ir_builder.h"
 #include "ink/semantic/context.h"
 #include "ink/parser/parser.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
@@ -10,6 +10,8 @@
 
 namespace ink::semantic::test
 {
+  using namespace ink::ir;
+
   static_assert(std::is_same_v<decltype(std::declval<Decl &>().children()), const std::vector<std::unique_ptr<Decl>> &>);
 
   // The module owns one root, whose nested children retain their owners, parents and AST-based classification.
@@ -22,7 +24,7 @@ namespace ink::semantic::test
     const auto *ClassAST = static_cast<const parser::ClassDecl *>(static_cast<const parser::DeclStmt *>(Parsed.Unit->root()->statements()[0])->declaration());
     const auto *FunctionAST = static_cast<const parser::FunctionDecl *>(static_cast<const parser::DeclStmt *>(ClassAST->body()->statements()[0])->declaration());
     SemanticContext Context(Compilation);
-    IRBuilder Factory(Context);
+    IRBuilder Factory(Context.irContext());
     Module *Owner = Factory.createModule(Context.namePool().intern("Example"));
     ASSERT_NE(Owner, nullptr);
     EXPECT_EQ(Owner->declarationRoot(), nullptr);
@@ -81,8 +83,8 @@ namespace ink::semantic::test
     const auto *ClassAST = static_cast<const parser::ClassDecl *>(static_cast<const parser::DeclStmt *>(Statements[1])->declaration());
     SemanticContext Context(Compilation);
     SemanticContext Foreign(Compilation);
-    IRBuilder Factory(Context);
-    IRBuilder ForeignFactory(Foreign);
+    IRBuilder Factory(Context.irContext());
+    IRBuilder ForeignFactory(Foreign.irContext());
     Module *Owner = Factory.createModule(Context.namePool().intern("Local"));
     Module *ForeignOwner = ForeignFactory.createModule(Foreign.namePool().intern("Foreign"));
     ASSERT_NE(Owner, nullptr);
@@ -112,7 +114,7 @@ namespace ink::semantic::test
     ASSERT_TRUE(Parsed.succeeded());
     const auto *FunctionAST = static_cast<const parser::FunctionDecl *>(static_cast<const parser::DeclStmt *>(Parsed.Unit->root()->statements()[0])->declaration());
     SemanticContext Context(Compilation);
-    IRBuilder Factory(Context);
+    IRBuilder Factory(Context.irContext());
     Module *Owner = Factory.createModule(Context.namePool().intern("Example"));
     ASSERT_NE(Owner, nullptr);
     ModuleDecl *Root = Factory.createModuleDecl(*Owner, *Parsed.Unit->root());

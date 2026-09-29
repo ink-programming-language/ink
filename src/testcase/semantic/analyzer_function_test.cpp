@@ -1,8 +1,9 @@
 #include "ink/semantic/analyzer/analyzer.h"
+#include "ink/semantic/context.h"
 #include "../core/environment_test_support.h"
 
 #include "ink/parser/parser.h"
-#include "ink/semantic/ir_builder.h"
+#include "ink/ir/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <gtest/gtest.h>
@@ -11,6 +12,8 @@
 
 namespace ink::semantic::test
 {
+  using namespace ink::ir;
+
   namespace
   {
     class FunctionAnalysis
@@ -75,24 +78,25 @@ namespace ink::semantic::test
     EXPECT_TRUE(Result->declarationRoot()->children().empty());
   }
 
-  // Definitions create empty entry blocks without synthesizing returns or checking return paths; prototypes have no body.
+  // Void definitions receive a return, including nested empty blocks; prototypes remain bodyless.
   TEST(SemanticFunctionAnalyzerTest, BuildsEmptyDefinitionsAndPrototypes)
   {
-    FunctionAnalysis Input("func declared(x: (i64), flag: bool, y: f32, p: **u8, r: &i16): void; func empty(): void { {} } extern \"C\" func c(): void {} func pending(): i32 {}");
+    FunctionAnalysis Input("func declared(x: (i64), flag: bool, y: f32, p: **u8, r: &i16): void; func empty(): void { {} } extern \"C\" func c(): void {}");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
-    ASSERT_EQ(Result->entryBlock().values().size(), 4U);
+    ASSERT_EQ(Result->entryBlock().values().size(), 3U);
     auto &Declared = static_cast<Function &>(*Result->entryBlock().values()[0]);
     EXPECT_FALSE(Declared.hasBody());
     EXPECT_EQ(Declared.languageLinkage(), LanguageLinkage::Ink);
     ASSERT_EQ(Declared.parameters().size(), 5U);
     EXPECT_EQ(Declared.parameters()[4]->type().typeKind(), TypeKind::Reference);
-    for (std::size_t Index = 1; Index < 4; ++Index)
+    for (std::size_t Index = 1; Index < 3; ++Index)
     {
       auto &Definition = static_cast<Function &>(*Result->entryBlock().values()[Index]);
       ASSERT_TRUE(Definition.hasBody());
-      EXPECT_TRUE(Definition.entryBlock()->values().empty());
+      ASSERT_EQ(Definition.entryBlock()->values().size(), 1U);
+      EXPECT_TRUE(ReturnInstruction::classof(Definition.entryBlock()->values()[0].get()));
     }
     EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
   }
@@ -135,7 +139,7 @@ namespace ink::semantic::test
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
     const auto &Outer = static_cast<const Function &>(*Result->entryBlock().values()[0]);
-    ASSERT_EQ(Outer.entryBlock()->values().size(), 1U);
+    ASSERT_EQ(Outer.entryBlock()->values().size(), 2U);
     auto &Inner = static_cast<Function &>(*Outer.entryBlock()->values()[0]);
     EXPECT_EQ(Inner.outer(), Outer.entryBlock());
     Scope *InnerScope = Input.Context.scopeStore().memberScope(Inner);
@@ -300,12 +304,214 @@ namespace ink::semantic::test
     EXPECT_EQ(Input.lookup(Result, "child"), nullptr);
   }
 
-  // The hello-world example accepts printf's signature and panics at the first unsupported body statement.
+  // Hello-world produces a writable C string copy, a typed C call and an i32 return of zero.
   TEST(SemanticFunctionAnalyzerTest, AnalyzesHelloWorldThroughFunctionBodies)
   {
     FunctionAnalysis Input("extern \"C\" func printf(msg: *u8): i32; func main(): i32 { printf(\"hello, world\"); return 0; }");
     ASSERT_TRUE(Input.Parsed.succeeded());
-    EXPECT_DEATH(Input.analyze(), "initial semantic analyzer does not support SimpleStmt");
+    Module *Result = Input.analyze();
+    ASSERT_NE(Result, nullptr);
+    EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
+    ASSERT_EQ(Result->entryBlock().values().size(), 2U);
+    const auto &Printf = static_cast<const Function &>(*Result->entryBlock().values()[0]);
+    const auto &Main = static_cast<const Function &>(*Result->entryBlock().values()[1]);
+    ASSERT_EQ(Main.entryBlock()->values().size(), 3U);
+    const auto &Values = Main.entryBlock()->values();
+    ASSERT_TRUE(CStringInstruction::classof(Values[0].get()));
+    const auto &String = static_cast<const CStringInstruction &>(*Values[0]);
+    EXPECT_EQ(String.source().value(), "hello, world");
+    EXPECT_EQ(String.source().nullTerminatedValue().size(), 13U);
+    EXPECT_EQ(String.source().nullTerminatedValue().back(), '\0');
+    EXPECT_EQ(&String.type(), &Printf.parameters()[0]->type());
+    ASSERT_TRUE(CallInstruction::classof(Values[1].get()));
+    const auto &Call = static_cast<const CallInstruction &>(*Values[1]);
+    EXPECT_EQ(Call.directCallee(), &Printf);
+    EXPECT_EQ(Call.directCallee()->languageLinkage(), LanguageLinkage::C);
+    ASSERT_EQ(Call.arguments().size(), 1U);
+    EXPECT_EQ(Call.arguments()[0], &String);
+    ASSERT_TRUE(ReturnInstruction::classof(Values[2].get()));
+    const auto &Return = static_cast<const ReturnInstruction &>(*Values[2]);
+    ASSERT_TRUE(IntegerConstant::classof(Return.returnedValue()));
+    EXPECT_EQ(&Return.returnedValue()->type(), &Main.functionType().returnType());
+    EXPECT_EQ(static_cast<const IntegerConstant &>(*Return.returnedValue()).value().words()[0], 0U);
+    EXPECT_EQ(Return.function(), &Main);
+  }
+
+  // Integer literals use the expected signed width, all lexical bases, and full 128-bit precision.
+  TEST(SemanticFunctionAnalyzerTest, ChecksIntegerLiteralBoundaries)
+  {
+    struct Case
+    {
+        const char *TypeName;
+        const char *Literal;
+        std::uint64_t Low;
+        std::uint64_t High;
+    };
+    const Case Cases[] = {
+        {"i8", "-128", 128, 0},
+        {"i8", "+127", 127, 0},
+        {"u8", "0xff", 255, 0},
+        {"u8", "0b11111111", 255, 0},
+        {"u8", "0o377", 255, 0},
+        {"i32", "-2147483648", 0x80000000ULL, 0},
+        {"i64", "-9223372036854775808", 0x8000000000000000ULL, 0},
+        {"u64", "18446744073709551615", 0xffffffffffffffffULL, 0},
+        {"i128", "-170141183460469231731687303715884105728", 0, 0x8000000000000000ULL},
+        {"i128", "170141183460469231731687303715884105727", 0xffffffffffffffffULL, 0x7fffffffffffffffULL},
+        {"u128", "340282366920938463463374607431768211455", 0xffffffffffffffffULL, 0xffffffffffffffffULL},
+        {"i128", "-1", 0xffffffffffffffffULL, 0xffffffffffffffffULL},
+        {"i16", "-(-32767)", 32767, 0},
+    };
+    for (const Case &Entry : Cases)
+    {
+      const std::string Source = std::string("func f(): ") + Entry.TypeName + " { return " + Entry.Literal + "; }";
+      SCOPED_TRACE(Source);
+      FunctionAnalysis Input(Source);
+      ASSERT_TRUE(Input.Parsed.succeeded());
+      Module *Result = Input.analyze();
+      ASSERT_NE(Result, nullptr);
+      const auto &FunctionValue = static_cast<const Function &>(*Result->entryBlock().values()[0]);
+      const auto &Return = static_cast<const ReturnInstruction &>(*FunctionValue.entryBlock()->values()[0]);
+      ASSERT_TRUE(IntegerConstant::classof(Return.returnedValue()));
+      const auto &Constant = static_cast<const IntegerConstant &>(*Return.returnedValue());
+      EXPECT_EQ(&Constant.type(), &FunctionValue.functionType().returnType());
+      EXPECT_EQ(Constant.value().words()[0], Entry.Low);
+      if (Constant.value().bitWidth() == 128)
+      {
+        EXPECT_EQ(Constant.value().words()[1], Entry.High);
+      }
+    }
+  }
+
+  // Invalid calls, returns and literals produce recoverable source errors without publishing the failed function.
+  TEST(SemanticFunctionAnalyzerTest, DiagnosesInvalidExpressionsAndReturns)
+  {
+    struct Case
+    {
+        const char *Source;
+        core::DiagnosticKind Kind;
+    };
+    const Case Cases[] = {
+        {"func f(): i32 { return missing; }", core::DiagnosticKind::SemanticUnknownName},
+        {"func f(x: i32): void { x(); }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func f(): void { 0(); }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func g(x: i32): void; func f(): void { g(); }", core::DiagnosticKind::SemanticArgumentCount},
+        {"func g(): void; func f(): void { g(1); }", core::DiagnosticKind::SemanticArgumentCount},
+        {"func g(x: i32): void; func f(): void { g(true); }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func f(): i32 {}", core::DiagnosticKind::SemanticMissingReturn},
+        {"func f(): i32 { return; }", core::DiagnosticKind::SemanticMissingReturn},
+        {"func f(): void { return 0; }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func f(): void {} func g(): i32 { return f(); }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"return 0;", core::DiagnosticKind::SemanticReturnOutsideFunction},
+        {"func f(): i32 { { return 0; } 1; }", core::DiagnosticKind::SemanticUnreachableStatement},
+        {"func f(): i8 { return 128; }", core::DiagnosticKind::SemanticIntegerOutOfRange},
+        {"func f(): i8 { return -129; }", core::DiagnosticKind::SemanticIntegerOutOfRange},
+        {"func f(): u8 { return 256; }", core::DiagnosticKind::SemanticIntegerOutOfRange},
+        {"func f(): u8 { return -1; }", core::DiagnosticKind::SemanticIntegerOutOfRange},
+        {"func f(): i128 { return 170141183460469231731687303715884105728; }", core::DiagnosticKind::SemanticIntegerOutOfRange},
+        {"func f(): u128 { return 340282366920938463463374607431768211456; }", core::DiagnosticKind::SemanticIntegerOutOfRange},
+        {"func f(): i32 { return \"text\"; }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func f(): *u8 { return \"text\"; }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func g(x: *u8): void; func f(): void { g(\"text\"); }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"extern \"C\" func g(x: *u8): void; func f(): void { g(\"a\\0b\"); }", core::DiagnosticKind::SemanticEmbeddedNull},
+        {"extern \"C\" func g(x: *i8): void; func f(): void { g(\"text\"); }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func f(x: i32): void { func inner(): i32 { return x; } }", core::DiagnosticKind::SemanticInvalidCapture},
+    };
+    for (const Case &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Source);
+      FunctionAnalysis Input(Entry.Source);
+      ASSERT_TRUE(Input.Parsed.succeeded());
+      EXPECT_EQ(Input.analyze(), nullptr);
+      ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Input.Diagnostics.diagnostics()[0].Kind, Entry.Kind);
+    }
+  }
+
+  // Calls preserve argument evaluation order and bind parameter uses and recursive callees to their owners.
+  TEST(SemanticFunctionAnalyzerTest, AnalyzesNestedAndRecursiveCalls)
+  {
+    FunctionAnalysis Input("func echo(x: i32): i32 { return x; } func recurse(x: i32): i32 { return recurse(x); } func main(): i32 { return (echo)(echo(7)); }");
+    ASSERT_TRUE(Input.Parsed.succeeded());
+    Module *Result = Input.analyze();
+    ASSERT_NE(Result, nullptr);
+    const auto &Echo = static_cast<const Function &>(*Result->entryBlock().values()[0]);
+    EXPECT_EQ(static_cast<const ReturnInstruction &>(*Echo.entryBlock()->values()[0]).returnedValue(), Echo.parameters()[0].get());
+    const auto &Recursive = static_cast<const Function &>(*Result->entryBlock().values()[1]);
+    const auto &SelfCall = static_cast<const CallInstruction &>(*Recursive.entryBlock()->values()[0]);
+    EXPECT_EQ(SelfCall.directCallee(), &Recursive);
+    EXPECT_EQ(SelfCall.arguments()[0], Recursive.parameters()[0].get());
+    const auto &Main = static_cast<const Function &>(*Result->entryBlock().values()[2]);
+    ASSERT_EQ(Main.entryBlock()->values().size(), 3U);
+    const auto &Inner = static_cast<const CallInstruction &>(*Main.entryBlock()->values()[0]);
+    const auto &Outer = static_cast<const CallInstruction &>(*Main.entryBlock()->values()[1]);
+    EXPECT_EQ(Inner.directCallee(), &Echo);
+    EXPECT_EQ(Outer.arguments()[0], &Inner);
+    EXPECT_EQ(static_cast<const ReturnInstruction &>(*Main.entryBlock()->values()[2]).returnedValue(), &Outer);
+  }
+
+  // Overloads prefer exact types and i32 literals; other fitting integer widths remain equally ranked.
+  TEST(SemanticFunctionAnalyzerTest, SelectsOverloadsWithoutSpeculativeCalls)
+  {
+    FunctionAnalysis Input("func pick(x: i32): i32; func pick(x: u8): i32; func test(x: u8): i32 { pick(1); return pick(x); }");
+    ASSERT_TRUE(Input.Parsed.succeeded());
+    Module *Result = Input.analyze();
+    ASSERT_NE(Result, nullptr);
+    const auto &Values = static_cast<const Function &>(*Result->entryBlock().values()[2]).entryBlock()->values();
+    ASSERT_EQ(Values.size(), 3U);
+    EXPECT_EQ(static_cast<const CallInstruction &>(*Values[0]).directCallee(), Result->entryBlock().values()[0].get());
+    EXPECT_EQ(static_cast<const CallInstruction &>(*Values[1]).directCallee(), Result->entryBlock().values()[1].get());
+    const char *Invalid[] = {
+        "func pick(x: i8): void; func pick(x: u8): void; func f(): void { pick(1); }",
+        "func pick(x: i32, y: u8): void; func pick(x: u8, y: i32): void; func f(): void { pick(1, 1); }",
+        "func pick(x: i32): void; func pick(x: u8): void; func f(): void { pick; }",
+    };
+    for (const char *Source : Invalid)
+    {
+      FunctionAnalysis Ambiguous(Source);
+      ASSERT_TRUE(Ambiguous.Parsed.succeeded());
+      EXPECT_EQ(Ambiguous.analyze(), nullptr);
+      ASSERT_EQ(Ambiguous.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Ambiguous.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticAmbiguousName);
+    }
+    FunctionAnalysis NoMatch("func pick(x: i32): void; func pick(x: u8): void; func f(): void { pick(false); }");
+    ASSERT_TRUE(NoMatch.Parsed.succeeded());
+    EXPECT_EQ(NoMatch.analyze(), nullptr);
+    ASSERT_EQ(NoMatch.Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(NoMatch.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticNoMatchingOverload);
+  }
+
+  // Equal decoded strings share only the immutable source; each C argument owns a distinct copy operation.
+  TEST(SemanticFunctionAnalyzerTest, CopiesCStringArgumentsPerCall)
+  {
+    FunctionAnalysis Input("extern \"C\" func sink(x: *u8): void; func f(): void { sink(\"hello\"); sink(\"\\x68ello\"); sink(\"\"); return; }");
+    ASSERT_TRUE(Input.Parsed.succeeded());
+    Module *Result = Input.analyze();
+    ASSERT_NE(Result, nullptr);
+    const auto &Values = static_cast<const Function &>(*Result->entryBlock().values()[1]).entryBlock()->values();
+    ASSERT_EQ(Values.size(), 7U);
+    const auto &First = static_cast<const CStringInstruction &>(*Values[0]);
+    const auto &Second = static_cast<const CStringInstruction &>(*Values[2]);
+    EXPECT_NE(&First, &Second);
+    EXPECT_EQ(&First.source(), &Second.source());
+    EXPECT_EQ(static_cast<const CStringInstruction &>(*Values[4]).source().nullTerminatedValue().size(), 1U);
+    EXPECT_EQ(static_cast<const CallInstruction &>(*Values[1]).arguments()[0], &First);
+    EXPECT_EQ(static_cast<const CallInstruction &>(*Values[3]).arguments()[0], &Second);
+  }
+
+  // Expression depth includes call targets and parentheses and is refreshed on each analysis.
+  TEST(SemanticFunctionAnalyzerTest, BoundsExpressionDepth)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT");
+    ASSERT_TRUE(Environment.set("2"));
+    FunctionAnalysis AtLimit("func f(): i32 { return (0); }");
+    FunctionAnalysis OverLimit("func f(): i32 { return ((0)); }");
+    ASSERT_TRUE(AtLimit.Parsed.succeeded());
+    ASSERT_TRUE(OverLimit.Parsed.succeeded());
+    EXPECT_NE(AtLimit.analyze(), nullptr);
+    EXPECT_DEATH(OverLimit.analyze(), "internal compiler error\\[INK-S0014\\]");
+    ASSERT_TRUE(Environment.set("3"));
+    EXPECT_NE(OverLimit.analyze(), nullptr);
   }
 
   // A visible function or parameter in a type position is rejected as a value, respecting lexical shadowing.

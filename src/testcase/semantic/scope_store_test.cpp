@@ -1,5 +1,5 @@
 #include "ink/semantic/context.h"
-#include "ink/semantic/ir_builder.h"
+#include "ink/ir/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <gtest/gtest.h>
@@ -9,6 +9,8 @@
 
 namespace ink::semantic::test
 {
+  using namespace ink::ir;
+
   namespace
   {
     using BindResult = NameResolver::BindResult;
@@ -17,7 +19,7 @@ namespace ink::semantic::test
     {
       public:
         explicit ReusableValue(const SemanticContext &Context)
-            : Value(Context, static_cast<ValueKind>(255), Context.typePool().getType<TypeKind::Bool>())
+            : Value(Context.irContext(), static_cast<ValueKind>(255), Context.typePool().getType<TypeKind::Bool>())
         {
         }
     };
@@ -31,7 +33,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     Module *Owner = Builder.createModule(Context.namePool().intern("Owner"));
     ASSERT_NE(Owner, nullptr);
     const Name MemberName = Context.namePool().intern("Member");
@@ -64,7 +66,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     Module *First = Builder.createModule(Context.namePool().intern("First"));
     Module *Second = Builder.createModule(Context.namePool().intern("Second"));
     ASSERT_NE(First, nullptr);
@@ -100,8 +102,8 @@ namespace ink::semantic::test
     core::CompilationContext Compilation;
     SemanticContext First(Compilation);
     SemanticContext Second(Compilation);
-    IRBuilder FirstBuilder(First);
-    IRBuilder SecondBuilder(Second);
+    IRBuilder FirstBuilder(First.irContext());
+    IRBuilder SecondBuilder(Second.irContext());
     Module *Local = FirstBuilder.createModule(First.namePool().intern("Local"));
     Module *Foreign = SecondBuilder.createModule(Second.namePool().intern("Foreign"));
     ASSERT_NE(Local, nullptr);
@@ -153,7 +155,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    IRBuilder Builder(Context);
+    IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
     const Name Alias = Context.namePool().intern("Alias");
