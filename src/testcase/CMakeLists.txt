@@ -19,7 +19,7 @@ ink_disable_exceptions(ink_tokenizer_test_objects)
 # Compile model tests with IR dependencies only, keeping semantic headers out of this boundary.
 add_library(ink_ir_test_objects OBJECT ${INK_IR_TEST_SOURCES})
 target_compile_features(ink_ir_test_objects PRIVATE cxx_std_20)
-target_link_libraries(ink_ir_test_objects PRIVATE ink::ir GTest::gtest GTest::gmock)
+target_link_libraries(ink_ir_test_objects PRIVATE ink::ir ink::llvm GTest::gtest GTest::gmock)
 ink_disable_exceptions(ink_ir_test_objects)
 
 add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_SEMANTIC_TEST_SOURCES})

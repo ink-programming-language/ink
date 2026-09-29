@@ -49,6 +49,8 @@ namespace ink::parser
       {
         return Status == ASTArchiveStatus::Success && Parsed.Unit != nullptr;
       }
+      // Cumulative decoded storage charged against MaxAllocationBytes.
+      std::size_t AllocationBytes = 0;
   };
 
   inline constexpr std::uint32_t ASTArchiveVersion = 2;
@@ -59,4 +61,12 @@ namespace ink::parser
   // Failed operations do not return a result or partial bytes/AST to the caller.
   ASTSerializeResult serializeAST(core::FrontendContext &Context, const ParseResult &Parsed, ASTArchiveLimits Limits = {});
   ASTDeserializeResult deserializeAST(core::FrontendContext &Context, std::string_view Bytes, ASTArchiveLimits Limits = {});
+
+  // Composable archive operations: return the same errors without reporting an ICE or panicking.
+  // Intended for containers such as module archives that handle invalid input through explicit status.
+  ASTSerializeResult trySerializeAST(const ParseResult &Parsed, ASTArchiveLimits Limits = {});
+  ASTDeserializeResult tryDeserializeAST(core::FrontendContext &Context, std::string_view Bytes, ASTArchiveLimits Limits = {});
+  // Readable, independently versioned syntax snapshots used by textual module archives.
+  ASTSerializeResult trySerializeASTText(const ParseResult &Parsed, ASTArchiveLimits Limits = {});
+  ASTDeserializeResult tryDeserializeASTText(core::FrontendContext &Context, std::string_view Text, ASTArchiveLimits Limits = {});
 } // namespace ink::parser

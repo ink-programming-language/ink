@@ -160,42 +160,46 @@ namespace ink::parser::test
 
     void expectRoundTrip(const ParseResult &Original, core::FrontendContext &Frontend, std::set<ASTKind> *Kinds = nullptr)
     {
-      const auto Saved = serializeAST(Frontend, Original);
-      ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
-      auto Loaded = deserializeAST(Frontend, Saved.Bytes);
-      ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
-      EXPECT_EQ(Loaded.Parsed.Status, Original.Status);
-      EXPECT_EQ(Loaded.Parsed.HasSyntaxErrors, Original.HasSyntaxErrors);
-      EXPECT_EQ(Loaded.Parsed.succeeded(), Original.succeeded());
-      EXPECT_NE(Loaded.Parsed.Unit->root(), Original.Unit->root());
-      EXPECT_TRUE(Loaded.Parsed.Unit->input().lexedFile().isRegisteredWith(Frontend.sourceManager()));
-      EXPECT_NE(Loaded.Parsed.Unit->input().lexedFile().sourceId(), Original.Unit->input().lexedFile().sourceId());
-      EXPECT_EQ(dumpAST(*Loaded.Parsed.Unit), dumpAST(*Original.Unit));
-      EXPECT_TRUE(verifyAST(Loaded.Parsed.Unit->root(), Loaded.Parsed.Unit->input().lexedFile().source().size()));
-      expectTokensEqual(Original.Unit->input().lexedFile(), Loaded.Parsed.Unit->input().lexedFile());
-      const auto &Before = Original.Unit->recoveryInfo().Entries;
-      const auto &After = Loaded.Parsed.Unit->recoveryInfo().Entries;
-      ASSERT_EQ(Before.size(), After.size());
-      for (std::size_t Index = 0; Index < Before.size(); ++Index)
+      for (bool Text : {false, true})
       {
-        EXPECT_NE(Before[Index].Node, After[Index].Node);
-        EXPECT_EQ(Before[Index].Node->getKind(), After[Index].Node->getKind());
-        EXPECT_EQ(Before[Index].Token.Expected, After[Index].Token.Expected);
-        EXPECT_EQ(Before[Index].Token.Actual, After[Index].Token.Actual);
-        EXPECT_EQ(Before[Index].Token.Range, After[Index].Token.Range);
-        EXPECT_EQ(Before[Index].Token.Status, After[Index].Token.Status);
-        EXPECT_EQ(Before[Index].Skipped, After[Index].Skipped);
-      }
-      const auto Repeated = serializeAST(Frontend, Loaded.Parsed);
-      ASSERT_TRUE(Repeated.succeeded()) << Repeated.Message;
-      EXPECT_EQ(Repeated.Bytes, Saved.Bytes);
-      if (Kinds)
-      {
-        ASTWalker{}.walk(Loaded.Parsed.Unit->root(), [&](const ASTNodeBase *Node)
-                         {
-                           Kinds->insert(Node->getKind());
-                           return WalkAction::Continue;
-                         });
+        SCOPED_TRACE(Text ? "text" : "binary");
+        const auto Saved = Text ? trySerializeASTText(Original) : serializeAST(Frontend, Original);
+        ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
+        auto Loaded = Text ? tryDeserializeASTText(Frontend, Saved.Bytes) : deserializeAST(Frontend, Saved.Bytes);
+        ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
+        EXPECT_EQ(Loaded.Parsed.Status, Original.Status);
+        EXPECT_EQ(Loaded.Parsed.HasSyntaxErrors, Original.HasSyntaxErrors);
+        EXPECT_EQ(Loaded.Parsed.succeeded(), Original.succeeded());
+        EXPECT_NE(Loaded.Parsed.Unit->root(), Original.Unit->root());
+        EXPECT_TRUE(Loaded.Parsed.Unit->input().lexedFile().isRegisteredWith(Frontend.sourceManager()));
+        EXPECT_NE(Loaded.Parsed.Unit->input().lexedFile().sourceId(), Original.Unit->input().lexedFile().sourceId());
+        EXPECT_EQ(dumpAST(*Loaded.Parsed.Unit), dumpAST(*Original.Unit));
+        EXPECT_TRUE(verifyAST(Loaded.Parsed.Unit->root(), Loaded.Parsed.Unit->input().lexedFile().source().size()));
+        expectTokensEqual(Original.Unit->input().lexedFile(), Loaded.Parsed.Unit->input().lexedFile());
+        const auto &Before = Original.Unit->recoveryInfo().Entries;
+        const auto &After = Loaded.Parsed.Unit->recoveryInfo().Entries;
+        ASSERT_EQ(Before.size(), After.size());
+        for (std::size_t Index = 0; Index < Before.size(); ++Index)
+        {
+          EXPECT_NE(Before[Index].Node, After[Index].Node);
+          EXPECT_EQ(Before[Index].Node->getKind(), After[Index].Node->getKind());
+          EXPECT_EQ(Before[Index].Token.Expected, After[Index].Token.Expected);
+          EXPECT_EQ(Before[Index].Token.Actual, After[Index].Token.Actual);
+          EXPECT_EQ(Before[Index].Token.Range, After[Index].Token.Range);
+          EXPECT_EQ(Before[Index].Token.Status, After[Index].Token.Status);
+          EXPECT_EQ(Before[Index].Skipped, After[Index].Skipped);
+        }
+        const auto Repeated = Text ? trySerializeASTText(Loaded.Parsed) : serializeAST(Frontend, Loaded.Parsed);
+        ASSERT_TRUE(Repeated.succeeded()) << Repeated.Message;
+        EXPECT_EQ(Repeated.Bytes, Saved.Bytes);
+        if (Kinds)
+        {
+          ASTWalker{}.walk(Loaded.Parsed.Unit->root(), [&](const ASTNodeBase *Node)
+                           {
+                             Kinds->insert(Node->getKind());
+                             return WalkAction::Continue;
+                           });
+        }
       }
     }
 
@@ -220,6 +224,54 @@ namespace ink::parser::test
 #endif
     }
   } // namespace
+
+  // Text snapshots reject truncation, unknown enums/fields and bounded mutations through explicit status.
+  TEST_F(ParserTest, ASTTextSerializationRejectsMalformedInput)
+  {
+    const auto Original = read("func Identity[T: type](Value: T): T { return Value; }");
+    const auto Saved = trySerializeASTText(Original);
+    ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
+    EXPECT_NE(Saved.Bytes.find("FunctionDecl { range = range("), std::string::npos);
+    EXPECT_NE(Saved.Bytes.find("genericParameters = ["), std::string::npos);
+    EXPECT_EQ(Saved.Bytes.find("IAST"), std::string::npos);
+    for (std::size_t Length = 0; Length < Saved.Bytes.size(); ++Length)
+    {
+      const auto Result = tryDeserializeASTText(Frontend, std::string_view(Saved.Bytes).substr(0, Length));
+      EXPECT_FALSE(Result.succeeded()) << Length;
+      EXPECT_EQ(Result.Parsed.Unit, nullptr);
+    }
+    const std::pair<std::string_view, std::string_view> Changes[] = {
+        {"Completed", "InvalidState"},
+        {"genericParameters", "unknownField"},
+        {"FunctionDecl", "UnknownNode"},
+        {"source_name", "invalid_name"},
+    };
+    for (const auto &[From, To] : Changes)
+    {
+      auto Text = Saved.Bytes;
+      ASSERT_NE(Text.find(From), std::string::npos);
+      Text.replace(Text.find(From), From.size(), To);
+      const auto Result = tryDeserializeASTText(Frontend, Text);
+      EXPECT_EQ(Result.Status, ASTArchiveStatus::InvalidArchive) << Result.Message;
+    }
+    for (std::size_t Index = 0; Index < Saved.Bytes.size(); Index += 7)
+    {
+      auto Text = Saved.Bytes;
+      Text[Index] = static_cast<char>((Index * 37) & 255);
+      const auto Result = tryDeserializeASTText(Frontend, Text);
+      if (Result.succeeded())
+      {
+        EXPECT_TRUE(verifyAST(Result.Parsed.Unit->root(), Result.Parsed.Unit->input().lexedFile().source().size()));
+      }
+      else
+      {
+        EXPECT_EQ(Result.Parsed.Unit, nullptr);
+      }
+    }
+    ASTArchiveLimits Limits;
+    Limits.MaxAllocationBytes = 64;
+    EXPECT_EQ(tryDeserializeASTText(Frontend, Saved.Bytes, Limits).Status, ASTArchiveStatus::LimitExceeded);
+  }
 
   // Every accepted grammar sample round-trips with identical fields, tokens, recovery state and canonical bytes.
   TEST_F(ParserTest, ASTSerializationGrammarCorpus)

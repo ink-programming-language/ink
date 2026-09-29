@@ -1,0 +1,1088 @@
+#include "module_serialization_internal.h"
+
+#include "ink/ir/ir_builder.h"
+#include "ink/parser/ast_walker.h"
+
+#include <algorithm>
+#include <unordered_map>
+
+namespace ink::ir
+{
+  class ModuleArchiveAccess
+  {
+    public:
+      static void retain(Module &Owner, std::shared_ptr<const parser::ParseResult> Parsed)
+      {
+        if (std::find(Owner.ArchivedASTs.begin(), Owner.ArchivedASTs.end(), Parsed) == Owner.ArchivedASTs.end())
+        {
+          Owner.ArchivedASTs.push_back(std::move(Parsed));
+        }
+      }
+  };
+} // namespace ink::ir
+
+namespace ink::ir::archive
+{
+  namespace
+  {
+    // These small enums are part of the wire schema; changing their C++ order requires an explicit mapping.
+    static_assert(static_cast<unsigned>(AccessKind::ReadOnly) == 0 && static_cast<unsigned>(AccessKind::ReadWrite) == 1);
+    static_assert(static_cast<unsigned>(ParameterKind::Positional) == 0 && static_cast<unsigned>(ParameterKind::Named) == 1 && static_cast<unsigned>(ParameterKind::Variadic) == 2);
+    static_assert(static_cast<unsigned>(CallingConvention::C) == 0 && static_cast<unsigned>(CallingConvention::Fast) == 1 && static_cast<unsigned>(CallingConvention::Cold) == 2);
+    static_assert(static_cast<unsigned>(LanguageLinkage::Ink) == 0 && static_cast<unsigned>(LanguageLinkage::C) == 1);
+
+    bool isType(Tag Kind)
+    {
+      return Kind >= Tag::Meta && Kind <= Tag::FunctionType;
+    }
+
+    bool isPool(Tag Kind)
+    {
+      return Kind >= Tag::Meta && Kind <= Tag::StringConstant;
+    }
+
+    bool syntax(Tag Kind)
+    {
+      return Kind == Tag::AST || Kind == Tag::ModuleDecl || Kind == Tag::FunctionDecl || Kind == Tag::ClassDecl;
+    }
+
+    ModuleArchiveStatus astStatus(parser::ASTArchiveStatus Status)
+    {
+      switch (Status)
+      {
+      case parser::ASTArchiveStatus::Success:
+        return ModuleArchiveStatus::Success;
+      case parser::ASTArchiveStatus::InvalidInput:
+        return ModuleArchiveStatus::InvalidInput;
+      case parser::ASTArchiveStatus::InvalidArchive:
+        return ModuleArchiveStatus::InvalidArchive;
+      case parser::ASTArchiveStatus::UnsupportedVersion:
+        return ModuleArchiveStatus::UnsupportedVersion;
+      case parser::ASTArchiveStatus::LimitExceeded:
+        return ModuleArchiveStatus::LimitExceeded;
+      }
+      return ModuleArchiveStatus::InvalidArchive;
+    }
+
+    class Collector
+    {
+      public:
+        Collector(const Module &Root, State &Data, std::span<const parser::ParseResult *const> Sources)
+            : Root(Root),
+              Data(Data),
+              Sources(Sources.begin(), Sources.end())
+        {
+        }
+
+        bool run()
+        {
+          add(Root, 0, 1);
+          // Breadth-first ownership traversal keeps parents before children without host recursion.
+          for (std::size_t Index = 0; Data.good() && Index < Objects.size(); ++Index)
+          {
+            const Value &Object = *Objects[Index];
+            const auto Child = [&](const Value &ValueObject)
+            {
+              if (ValueObject.outer() != &Object)
+              {
+                Data.fail("Inconsistent IR ownership", ModuleArchiveStatus::InvalidInput);
+                return;
+              }
+              add(ValueObject, Index + 1, Depths[Index] + 1);
+            };
+            if (Module::classof(&Object))
+            {
+              Child(static_cast<const Module &>(Object).entryBlock());
+            }
+            else if (Function::classof(&Object))
+            {
+              const auto &FunctionValue = static_cast<const Function &>(Object);
+              for (const auto &Parameter : FunctionValue.parameters())
+              {
+                Child(*Parameter);
+              }
+              for (const auto &Block : FunctionValue.blocks())
+              {
+                Child(*Block);
+              }
+            }
+            else if (BasicBlock::classof(&Object))
+            {
+              for (const auto &ValueObject : static_cast<const BasicBlock &>(Object).values())
+              {
+                Child(*ValueObject);
+              }
+            }
+          }
+          for (std::size_t Index = 0; Data.good() && Index < Objects.size(); ++Index)
+          {
+            // References can grow Records, so construct the payload off-vector.
+            Record Entry;
+            Entry.Parent = Data.Records[Index].Parent;
+            const Value &Object = *Objects[Index];
+            Entry.Type = reference(Object.type());
+            encode(Object, Entry);
+            if (Data.good())
+            {
+              Data.Records[Index] = std::move(Entry);
+            }
+          }
+          return Data.good() && declarations();
+        }
+
+      private:
+        bool declarations()
+        {
+          struct PendingDecl
+          {
+              const Decl *Object;
+              std::uint64_t Parent;
+              std::size_t Depth;
+          };
+          std::vector<PendingDecl> PendingDeclarations;
+          for (std::size_t Index = 0; Index < Objects.size(); ++Index)
+          {
+            if (Module::classof(Objects[Index]))
+            {
+              const auto &Owner = static_cast<const Module &>(*Objects[Index]);
+              for (const auto &Source : Owner.archivedASTs())
+              {
+                if (std::find(Sources.begin(), Sources.end(), Source.get()) == Sources.end())
+                {
+                  Sources.push_back(Source.get());
+                }
+              }
+              if (Owner.declarationRoot())
+              {
+                PendingDeclarations.push_back({Owner.declarationRoot(), Index + 1, Depths[Index] + 1});
+              }
+            }
+          }
+          if (PendingDeclarations.empty())
+          {
+            return true;
+          }
+          struct ASTReference
+          {
+              const parser::ParseResult *Parsed;
+              std::size_t Node;
+          };
+          std::unordered_map<const parser::ASTNodeBase *, ASTReference> References;
+          for (const auto *Source : Sources)
+          {
+            if (!Source || !Source->Unit || !Source->Unit->root())
+            {
+              return Data.fail("Missing declaration AST input", ModuleArchiveStatus::InvalidInput);
+            }
+            std::size_t NodeId = 0;
+            parser::ASTWalker{}.walk(Source->Unit->root(), [&](const parser::ASTNodeBase *)
+                                     {
+                                       return Data.good() ? parser::WalkAction::Continue : parser::WalkAction::Stop;
+                                     },
+                                     [&](const parser::ASTNodeBase *Node)
+                                     {
+                                       if (++NodeId > Data.Limits.AST.MaxNodes)
+                                       {
+                                         Data.fail("Module AST node limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                                       }
+                                       else if (Data.charge(1, 128))
+                                       {
+                                         References.emplace(Node, ASTReference{Source, NodeId});
+                                       }
+                                     });
+            if (!Data.good())
+            {
+              return false;
+            }
+          }
+          std::unordered_map<const parser::ParseResult *, std::size_t> ASTIds;
+          for (std::size_t Position = 0; Data.good() && Position < PendingDeclarations.size(); ++Position)
+          {
+            const auto Current = PendingDeclarations[Position];
+            if (Current.Depth > Data.Limits.MaxNestingDepth)
+            {
+              return Data.fail("Module declaration nesting limit exceeded", ModuleArchiveStatus::LimitExceeded);
+            }
+            const auto Found = References.find(&Current.Object->ast());
+            if (Found == References.end())
+            {
+              return Data.fail("Provide the ParseResult owning each declaration AST in Sources", ModuleArchiveStatus::InvalidInput);
+            }
+            auto ASTId = ASTIds.find(Found->second.Parsed);
+            if (ASTId == ASTIds.end())
+            {
+              auto Snapshot = Data.TextFormat ? parser::trySerializeASTText(*Found->second.Parsed, Data.astLimits()) : parser::trySerializeAST(*Found->second.Parsed, Data.astLimits());
+              if (!Snapshot.succeeded())
+              {
+                return Data.fail(Snapshot.Message, astStatus(Snapshot.Status));
+              }
+              if (!Data.addRecord() || !Data.string(Snapshot.Bytes.size()))
+              {
+                return false;
+              }
+              auto &ASTRecord = Data.Records.back();
+              ASTRecord.Kind = Tag::AST;
+              ASTRecord.Text = std::move(Snapshot.Bytes);
+              ASTId = ASTIds.emplace(Found->second.Parsed, Data.Records.size()).first;
+            }
+            Record Entry;
+            Entry.Parent = Current.Parent;
+            Entry.Kind = ModuleDecl::classof(Current.Object) ? Tag::ModuleDecl : FunctionDecl::classof(Current.Object) ? Tag::FunctionDecl
+                                                                                                                       : Tag::ClassDecl;
+            field(Entry, ASTId->second);
+            field(Entry, Found->second.Node);
+            name(Entry, Current.Object->name());
+            if (!Data.addRecord())
+            {
+              return false;
+            }
+            Data.Records.back() = std::move(Entry);
+            const auto Id = Data.Records.size();
+            for (const auto &Child : Current.Object->children())
+            {
+              if (Child->parent() != Current.Object || &Child->module() != &Current.Object->module())
+              {
+                return Data.fail("Inconsistent declaration ownership", ModuleArchiveStatus::InvalidInput);
+              }
+              PendingDeclarations.push_back({Child.get(), Id, Current.Depth + 1});
+            }
+          }
+          return Data.good();
+        }
+
+        std::uint64_t add(const Value &Object, std::uint64_t Parent, std::size_t Depth)
+        {
+          if (!Data.good())
+          {
+            return 0;
+          }
+          if (&Object.context() != &Root.context() || Ids.contains(&Object))
+          {
+            Data.fail("Foreign or multiply owned IR object", ModuleArchiveStatus::InvalidInput);
+            return 0;
+          }
+          if (Depth > Data.Limits.MaxNestingDepth)
+          {
+            Data.fail("Module archive nesting limit exceeded", ModuleArchiveStatus::LimitExceeded);
+            return 0;
+          }
+          if (!Data.addRecord())
+          {
+            return 0;
+          }
+          Data.Records.back().Parent = Parent;
+          Objects.push_back(&Object);
+          Depths.push_back(Depth);
+          Ids.emplace(&Object, Objects.size());
+          return Objects.size();
+        }
+
+        std::uint64_t reference(const Value &Object)
+        {
+          const auto Found = Ids.find(&Object);
+          if (Found != Ids.end())
+          {
+            return Found->second;
+          }
+          if (!Type::classof(&Object) && !Constant::classof(&Object))
+          {
+            Data.fail("IR operand is outside the module ownership tree", ModuleArchiveStatus::InvalidInput);
+            return 0;
+          }
+          return add(Object, 0, 1);
+        }
+
+        void field(Record &Entry, std::uint64_t Number)
+        {
+          if (Entry.Fields.size() >= Data.Limits.MaxFields)
+          {
+            Data.fail("Module archive field limit exceeded", ModuleArchiveStatus::LimitExceeded);
+          }
+          else if (Data.fields(1))
+          {
+            Entry.Fields.push_back(Number);
+          }
+        }
+
+        void ref(Record &Entry, const Value &Object)
+        {
+          field(Entry, reference(Object));
+        }
+
+        void text(Record &Entry, std::string_view Text)
+        {
+          if (Data.string(Text.size()))
+          {
+            Entry.Text = Text;
+          }
+        }
+
+        void name(Record &Entry, Name NameValue)
+        {
+          text(Entry, Root.context().namePool().text(NameValue));
+        }
+
+        void encode(const Value &Object, Record &Entry)
+        {
+          if (Type::classof(&Object))
+          {
+            encodeType(static_cast<const Type &>(Object), Entry);
+            return;
+          }
+          switch (Object.kind())
+          {
+          case ValueKind::IntegerConstant:
+            Entry.Kind = Tag::IntegerConstant;
+            for (auto Word : static_cast<const IntegerConstant &>(Object).value().words())
+            {
+              field(Entry, Word);
+            }
+            break;
+          case ValueKind::FloatConstant:
+            Entry.Kind = Tag::FloatConstant;
+            field(Entry, static_cast<const FloatConstant &>(Object).value().bits());
+            break;
+          case ValueKind::BoolConstant:
+            Entry.Kind = Tag::BoolConstant;
+            field(Entry, static_cast<const BoolConstant &>(Object).value());
+            break;
+          case ValueKind::StringConstant:
+            Entry.Kind = Tag::StringConstant;
+            text(Entry, static_cast<const StringConstant &>(Object).value());
+            break;
+          case ValueKind::Module:
+            Entry.Kind = Tag::Module;
+            name(Entry, static_cast<const Module &>(Object).name());
+            break;
+          case ValueKind::Function:
+          {
+            Entry.Kind = Tag::Function;
+            const auto &FunctionValue = static_cast<const Function &>(Object);
+            name(Entry, FunctionValue.name());
+            field(Entry, static_cast<unsigned>(FunctionValue.callingConvention()));
+            field(Entry, static_cast<unsigned>(FunctionValue.languageLinkage()));
+            break;
+          }
+          case ValueKind::BasicBlock:
+            Entry.Kind = Tag::Block;
+            break;
+          case ValueKind::FunctionParameter:
+          {
+            Entry.Kind = Tag::Parameter;
+            const auto &Parameter = static_cast<const FunctionParameter &>(Object);
+            name(Entry, Parameter.name());
+            field(Entry, Parameter.index());
+            field(Entry, static_cast<unsigned>(Parameter.parameterKind()));
+            break;
+          }
+          case ValueKind::CallInstruction:
+          {
+            Entry.Kind = Tag::Call;
+            const auto &Call = static_cast<const CallInstruction &>(Object);
+            ref(Entry, Call.callee());
+            for (const Value *Argument : Call.arguments())
+            {
+              ref(Entry, *Argument);
+            }
+            break;
+          }
+          case ValueKind::CStringInstruction:
+            Entry.Kind = Tag::CString;
+            ref(Entry, static_cast<const CStringInstruction &>(Object).source());
+            break;
+          case ValueKind::AllocaInstruction:
+            Entry.Kind = Tag::Alloca;
+            ref(Entry, static_cast<const AllocaInstruction &>(Object).allocatedType());
+            break;
+          case ValueKind::LoadInstruction:
+            Entry.Kind = Tag::Load;
+            ref(Entry, static_cast<const LoadInstruction &>(Object).address());
+            break;
+          case ValueKind::StoreInstruction:
+            Entry.Kind = Tag::Store;
+            ref(Entry, static_cast<const StoreInstruction &>(Object).address());
+            ref(Entry, static_cast<const StoreInstruction &>(Object).storedValue());
+            break;
+          case ValueKind::AddInstruction:
+            Entry.Kind = Tag::Add;
+            ref(Entry, static_cast<const AddInstruction &>(Object).left());
+            ref(Entry, static_cast<const AddInstruction &>(Object).right());
+            break;
+          case ValueKind::ReturnInstruction:
+            Entry.Kind = Tag::Return;
+            if (const Value *Returned = static_cast<const ReturnInstruction &>(Object).returnedValue())
+            {
+              ref(Entry, *Returned);
+            }
+            break;
+          default:
+            Data.fail("Unsupported IR value kind", ModuleArchiveStatus::InvalidInput);
+          }
+        }
+
+        void encodeType(const Type &Object, Record &Entry)
+        {
+          switch (Object.typeKind())
+          {
+          case TypeKind::Meta:
+            Entry.Kind = Tag::Meta;
+            break;
+          case TypeKind::Void:
+            Entry.Kind = Tag::Void;
+            break;
+          case TypeKind::Bool:
+            Entry.Kind = Tag::Bool;
+            break;
+          case TypeKind::Label:
+            Entry.Kind = Tag::Label;
+            break;
+          case TypeKind::Module:
+            Entry.Kind = Tag::ModuleType;
+            break;
+          case TypeKind::Integer:
+            Entry.Kind = Tag::Integer;
+            field(Entry, static_cast<const IntegerType &>(Object).bitWidth());
+            field(Entry, static_cast<const IntegerType &>(Object).isSigned());
+            break;
+          case TypeKind::Float:
+            Entry.Kind = Tag::Float;
+            field(Entry, static_cast<const FloatType &>(Object).bitWidth());
+            break;
+          case TypeKind::Array:
+            Entry.Kind = Tag::Array;
+            ref(Entry, static_cast<const ArrayType &>(Object).elementType());
+            field(Entry, static_cast<const ArrayType &>(Object).elementCount());
+            break;
+          case TypeKind::Slice:
+            Entry.Kind = Tag::Slice;
+            ref(Entry, static_cast<const SliceType &>(Object).elementType());
+            field(Entry, static_cast<unsigned>(static_cast<const SliceType &>(Object).access()));
+            break;
+          case TypeKind::Pointer:
+            Entry.Kind = Tag::Pointer;
+            ref(Entry, static_cast<const PointerType &>(Object).pointeeType());
+            field(Entry, static_cast<unsigned>(static_cast<const PointerType &>(Object).access()));
+            break;
+          case TypeKind::Reference:
+            Entry.Kind = Tag::Reference;
+            ref(Entry, static_cast<const ReferenceType &>(Object).referentType());
+            field(Entry, static_cast<unsigned>(static_cast<const ReferenceType &>(Object).access()));
+            break;
+          case TypeKind::Class:
+            Entry.Kind = Tag::Class;
+            name(Entry, static_cast<const UserDefinedType &>(Object).name());
+            break;
+          case TypeKind::Enum:
+            Entry.Kind = Tag::Enum;
+            name(Entry, static_cast<const UserDefinedType &>(Object).name());
+            break;
+          case TypeKind::Interface:
+            Entry.Kind = Tag::Interface;
+            name(Entry, static_cast<const UserDefinedType &>(Object).name());
+            break;
+          case TypeKind::Function:
+            Entry.Kind = Tag::FunctionType;
+            ref(Entry, static_cast<const FunctionType &>(Object).returnType());
+            for (const Type *Parameter : static_cast<const FunctionType &>(Object).parameterTypes())
+            {
+              ref(Entry, *Parameter);
+            }
+            break;
+          }
+        }
+
+        const Module &Root;
+        State &Data;
+        std::vector<const Value *> Objects;
+        std::vector<std::size_t> Depths;
+        std::unordered_map<const Value *, std::uint64_t> Ids;
+        std::vector<const parser::ParseResult *> Sources;
+    };
+
+    class Restorer
+    {
+      public:
+        Restorer(IRContext &Context, State &Data)
+            : Context(Context),
+              Data(Data),
+              Builder(Context),
+              Values(Data.Records.size() + 1),
+              Owners(Values.size()),
+              Children(Values.size()),
+              Users(Values.size()),
+              Pending(Values.size()),
+              Depths(Values.size(), 1),
+              ASTs(Values.size()),
+              ASTNodes(Values.size()),
+              Declarations(Values.size())
+        {
+        }
+
+        Module *run()
+        {
+          if (!validate())
+          {
+            return nullptr;
+          }
+          std::vector<std::size_t> Ready;
+          for (std::size_t Id = 1; Id < Values.size(); ++Id)
+          {
+            if (Pending[Id] == 0 && !syntax(record(Id).Kind))
+            {
+              Ready.push_back(Id);
+            }
+          }
+          for (std::size_t Position = 0; Position < Ready.size(); ++Position)
+          {
+            const auto Id = Ready[Position];
+            Values[Id] = create(Id);
+            if (!Values[Id] || &Values[Id]->type() != Values[record(Id).Type])
+            {
+              Data.fail("Invalid IR object or mismatched result type at object " + std::to_string(Id) + " (" + std::string(tagInfo(static_cast<unsigned>(record(Id).Kind))->Text) + ")");
+              return nullptr;
+            }
+            for (auto User : Users[Id])
+            {
+              if (--Pending[User] == 0)
+              {
+                Ready.push_back(User);
+              }
+            }
+          }
+          if (Ready.size() != ValueCount)
+          {
+            Data.fail("Cyclic IR type or operand dependencies");
+            return nullptr;
+          }
+          for (const auto &[Operand, Type] : Data.OperandTypes)
+          {
+            if (!validId(Operand) || !validId(Type) || !Values[Operand] || &Values[Operand]->type() != Values[Type])
+            {
+              Data.fail("Operand type does not match its definition");
+              return nullptr;
+            }
+          }
+          for (std::size_t Id = 2; Id < Values.size(); ++Id)
+          {
+            if (!Owners[Id])
+            {
+              continue;
+            }
+            auto *Parent = const_cast<Value *>(Values[record(Id).Parent]);
+            if (!BasicBlock::classof(Parent) || !Builder.appendValue(static_cast<BasicBlock &>(*Parent), std::move(Owners[Id])))
+            {
+              Data.fail("Invalid block ownership or instruction placement at object " + std::to_string(Id));
+              return nullptr;
+            }
+          }
+          auto *Root = static_cast<Module *>(Owners[1].get());
+          if (!restoreDeclarations())
+          {
+            return nullptr;
+          }
+          if (!Builder.appendModule(std::move(Owners[1])))
+          {
+            Data.fail("Cannot attach restored module");
+            return nullptr;
+          }
+          return Root;
+        }
+
+      private:
+        const Record &record(std::size_t Id) const
+        {
+          return Data.Records[Id - 1];
+        }
+
+        bool validId(std::uint64_t Id) const
+        {
+          return Id && Id < Values.size();
+        }
+
+        bool dependency(std::size_t Id, std::uint64_t Target, bool NeedsType = false)
+        {
+          if (!validId(Target) || syntax(record(Target).Kind) || (NeedsType && !isType(record(Target).Kind)))
+          {
+            return Data.fail("Invalid IR reference at object " + std::to_string(Id));
+          }
+          Users[Target].push_back(Id);
+          ++Pending[Id];
+          return true;
+        }
+
+        bool validate()
+        {
+          if (Data.Records.empty() || record(1).Kind != Tag::Module || record(1).Parent)
+          {
+            return Data.fail("Archive must start with a root module");
+          }
+          for (std::size_t Id = 1; Id < Values.size(); ++Id)
+          {
+            const auto &Entry = record(Id);
+            const auto *Info = tagInfo(static_cast<unsigned>(Entry.Kind));
+            if (!Info || Entry.Fields.size() < Info->MinFields || Entry.Fields.size() > Info->MaxFields || (!Info->HasText && !Entry.Text.empty()))
+            {
+              return Data.fail("Invalid fields at object " + std::to_string(Id));
+            }
+            if (syntax(Entry.Kind))
+            {
+              if (Entry.Type)
+              {
+                return Data.fail("Syntax records cannot have an IR type");
+              }
+              if (Entry.Kind == Tag::AST)
+              {
+                if (Entry.Parent)
+                {
+                  return Data.fail("AST snapshots cannot have a structural parent");
+                }
+                continue;
+              }
+              if (!Entry.Parent || Entry.Parent >= Id || !validId(Entry.Fields[0]) || record(Entry.Fields[0]).Kind != Tag::AST || !Entry.Fields[1])
+              {
+                return Data.fail("Invalid declaration parent or AST reference");
+              }
+              const auto ParentKind = record(Entry.Parent).Kind;
+              if (Entry.Kind == Tag::ModuleDecl ? ParentKind != Tag::Module : ParentKind != Tag::ModuleDecl && ParentKind != Tag::FunctionDecl && ParentKind != Tag::ClassDecl)
+              {
+                return Data.fail("Invalid declaration parent kind");
+              }
+              Depths[Id] = Depths[Entry.Parent] + 1;
+              if (Depths[Id] > Data.Limits.MaxNestingDepth)
+              {
+                return Data.fail("Module declaration nesting limit exceeded", ModuleArchiveStatus::LimitExceeded);
+              }
+              continue;
+            }
+            ++ValueCount;
+            if (const auto Alias = Data.TypeAliases.find(Id); Alias != Data.TypeAliases.end() && !dependency(Id, Alias->second, true))
+            {
+              return false;
+            }
+            if (Entry.Kind == Tag::Meta)
+            {
+              if (Entry.Type != Id)
+              {
+                return Data.fail("Metatype must reference itself");
+              }
+            }
+            else if (!dependency(Id, Entry.Type, true))
+            {
+              return false;
+            }
+            if (isPool(Entry.Kind))
+            {
+              if (Entry.Parent)
+              {
+                return Data.fail("Pool objects cannot have owners");
+              }
+            }
+            else if (Id != 1)
+            {
+              if (!Entry.Parent || Entry.Parent >= Id)
+              {
+                return Data.fail("IR owners must precede their children");
+              }
+              const auto ParentKind = record(Entry.Parent).Kind;
+              if ((Entry.Kind == Tag::Parameter && ParentKind != Tag::Function) || (Entry.Kind == Tag::Block ? ParentKind != Tag::Function && ParentKind != Tag::Module && ParentKind != Tag::Block : Entry.Kind != Tag::Parameter && ParentKind != Tag::Block))
+              {
+                return Data.fail("Invalid IR parent kind");
+              }
+              Depths[Id] = Depths[Entry.Parent] + 1;
+              if (Depths[Id] > Data.Limits.MaxNestingDepth)
+              {
+                return Data.fail("Module archive ownership depth exceeded", ModuleArchiveStatus::LimitExceeded);
+              }
+              Children[Entry.Parent].push_back(Id);
+            }
+            switch (Entry.Kind)
+            {
+            case Tag::Array:
+            case Tag::Slice:
+            case Tag::Pointer:
+            case Tag::Reference:
+            case Tag::Alloca:
+              if (!dependency(Id, Entry.Fields[0], true))
+              {
+                return false;
+              }
+              break;
+            case Tag::FunctionType:
+            case Tag::Call:
+            case Tag::CString:
+            case Tag::Load:
+            case Tag::Store:
+            case Tag::Add:
+            case Tag::Return:
+              for (auto Target : Entry.Fields)
+              {
+                if (!dependency(Id, Target, Entry.Kind == Tag::FunctionType))
+                {
+                  return false;
+                }
+              }
+              break;
+            case Tag::Parameter:
+            case Tag::Block:
+              if (!dependency(Id, Entry.Parent))
+              {
+                return false;
+              }
+              break;
+            default:
+              break;
+            }
+          }
+          for (std::size_t Id = 1; Id < Values.size(); ++Id)
+          {
+            const auto &Entry = record(Id);
+            if (Entry.Kind == Tag::Module && (Children[Id].size() != 1 || record(Children[Id][0]).Kind != Tag::Block))
+            {
+              return Data.fail("Module requires exactly one entry block");
+            }
+            if (Entry.Kind != Tag::Function)
+            {
+              continue;
+            }
+            if (record(Entry.Type).Kind != Tag::FunctionType)
+            {
+              return Data.fail("Function requires a function signature");
+            }
+            std::size_t ParameterIndex = 0;
+            std::size_t PreviousBlock = 0;
+            const auto &Signature = record(Entry.Type).Fields;
+            for (auto Child : Children[Id])
+            {
+              const auto &ChildEntry = record(Child);
+              if (ChildEntry.Kind == Tag::Parameter)
+              {
+                if (PreviousBlock || ParameterIndex + 1 >= Signature.size() || ChildEntry.Fields[0] != ParameterIndex || ChildEntry.Type != Signature[ParameterIndex + 1] || ChildEntry.Fields[1] > 2)
+                {
+                  return Data.fail("Invalid function parameter metadata");
+                }
+                ++ParameterIndex;
+              }
+              else
+              {
+                if (PreviousBlock && !dependency(Child, PreviousBlock))
+                {
+                  return false;
+                }
+                PreviousBlock = Child;
+              }
+            }
+            if (ParameterIndex + 1 != Signature.size())
+            {
+              return Data.fail("Function parameter count does not match its signature");
+            }
+          }
+          return true;
+        }
+
+        bool restoreDeclarations()
+        {
+          core::FrontendContext Frontend(Context.compilationContext());
+          for (std::size_t Id = 1; Id < Values.size(); ++Id)
+          {
+            if (record(Id).Kind != Tag::AST)
+            {
+              continue;
+            }
+            auto Result = Data.TextFormat ? parser::tryDeserializeASTText(Frontend, record(Id).Text, Data.astLimits()) : parser::tryDeserializeAST(Frontend, record(Id).Text, Data.astLimits());
+            if (!Result.succeeded())
+            {
+              return Data.fail(Result.Message, astStatus(Result.Status));
+            }
+            if (!Data.charge(Result.AllocationBytes, 1))
+            {
+              return false;
+            }
+            ASTs[Id] = std::make_shared<const parser::ParseResult>(std::move(Result.Parsed));
+            parser::ASTWalker{}.walk(ASTs[Id]->Unit->root(), [&](const parser::ASTNodeBase *)
+                                     {
+                                       return Data.good() ? parser::WalkAction::Continue : parser::WalkAction::Stop;
+                                     },
+                                     [&](const parser::ASTNodeBase *Node)
+                                     {
+                                       if (Data.charge(1, sizeof(Node) * 2))
+                                       {
+                                         ASTNodes[Id].push_back(Node);
+                                       }
+                                     });
+            if (!Data.good())
+            {
+              return false;
+            }
+          }
+          for (std::size_t Id = 1; Id < Values.size(); ++Id)
+          {
+            const auto &Entry = record(Id);
+            if (!syntax(Entry.Kind) || Entry.Kind == Tag::AST)
+            {
+              continue;
+            }
+            const auto ASTId = Entry.Fields[0];
+            const auto NodeId = Entry.Fields[1];
+            if (NodeId > ASTNodes[ASTId].size())
+            {
+              return Data.fail("Declaration AST node ID is out of range");
+            }
+            const auto *Node = ASTNodes[ASTId][NodeId - 1];
+            const auto NameValue = Context.namePool().intern(Entry.Text);
+            if (Entry.Kind == Tag::ModuleDecl)
+            {
+              auto &Owner = *const_cast<Module *>(static_cast<const Module *>(Values[Entry.Parent]));
+              if (NameValue == Owner.name() && Node == ASTs[ASTId]->Unit->root())
+              {
+                Declarations[Id] = Builder.createModuleDecl(Owner, *static_cast<const parser::ModuleAST *>(Node));
+              }
+            }
+            else if (Entry.Kind == Tag::FunctionDecl && parser::FunctionDecl::classof(Node))
+            {
+              Declarations[Id] = Builder.createFunctionDecl(*Declarations[Entry.Parent], NameValue, *static_cast<const parser::FunctionDecl *>(Node));
+            }
+            else if (Entry.Kind == Tag::ClassDecl && parser::ClassDecl::classof(Node))
+            {
+              Declarations[Id] = Builder.createClassDecl(*Declarations[Entry.Parent], NameValue, *static_cast<const parser::ClassDecl *>(Node));
+            }
+            if (!Declarations[Id])
+            {
+              return Data.fail("Declaration AST kind, generic parameters or name is invalid");
+            }
+            ModuleArchiveAccess::retain(Declarations[Id]->module(), ASTs[ASTId]);
+          }
+          return true;
+        }
+
+        template <typename T>
+        const T *as(std::uint64_t Id) const
+        {
+          return T::classof(Values[Id]) ? static_cast<const T *>(Values[Id]) : nullptr;
+        }
+
+        const Value *own(std::size_t Id, std::unique_ptr<Value> Owner)
+        {
+          Owners[Id] = std::move(Owner);
+          return Owners[Id].get();
+        }
+
+        const Value *create(std::size_t Id)
+        {
+          if (const auto Alias = Data.TypeAliases.find(Id); Alias != Data.TypeAliases.end())
+          {
+            return Values[Alias->second];
+          }
+          const auto &Entry = record(Id);
+          const auto &Fields = Entry.Fields;
+          auto &Types = Context.typePool();
+          auto &Constants = Context.constantPool();
+          const auto NameValue = [&]()
+          {
+            return Context.namePool().intern(Entry.Text);
+          };
+          switch (Entry.Kind)
+          {
+          case Tag::Meta:
+            // Install before checking its self-referential type.
+            return Values[Id] = &Types.getType<TypeKind::Meta>();
+          case Tag::Void:
+            return &Types.getType<TypeKind::Void>();
+          case Tag::Bool:
+            return &Types.getType<TypeKind::Bool>();
+          case Tag::Label:
+            return &Types.getType<TypeKind::Label>();
+          case Tag::ModuleType:
+            return &Types.getType<TypeKind::Module>();
+          case Tag::Integer:
+            return Fields[0] <= UINT32_MAX && Fields[1] <= 1 ? Types.getType<TypeKind::Integer>(static_cast<std::uint32_t>(Fields[0]), Fields[1] != 0) : nullptr;
+          case Tag::Float:
+            return Fields[0] <= UINT32_MAX ? Types.getType<TypeKind::Float>(static_cast<std::uint32_t>(Fields[0])) : nullptr;
+          case Tag::Array:
+            return Types.getType<TypeKind::Array>(*as<Type>(Fields[0]), Fields[1]);
+          case Tag::Slice:
+            return Fields[1] <= 1 ? Types.getType<TypeKind::Slice>(*as<Type>(Fields[0]), static_cast<AccessKind>(Fields[1])) : nullptr;
+          case Tag::Pointer:
+            return Fields[1] <= 1 ? Types.getType<TypeKind::Pointer>(*as<Type>(Fields[0]), static_cast<AccessKind>(Fields[1])) : nullptr;
+          case Tag::Reference:
+            return Fields[1] <= 1 ? Types.getType<TypeKind::Reference>(*as<Type>(Fields[0]), static_cast<AccessKind>(Fields[1])) : nullptr;
+          case Tag::Class:
+            return Types.createClassType(NameValue());
+          case Tag::Enum:
+            return Types.createEnumType(NameValue());
+          case Tag::Interface:
+            return Types.createInterfaceType(NameValue());
+          case Tag::FunctionType:
+          {
+            std::vector<const Type *> Parameters;
+            for (std::size_t Index = 1; Index < Fields.size(); ++Index)
+            {
+              Parameters.push_back(as<Type>(Fields[Index]));
+            }
+            return Types.getType<TypeKind::Function>(*as<Type>(Fields[0]), Parameters);
+          }
+          case Tag::IntegerConstant:
+            if (const auto *TypeValue = as<IntegerType>(Entry.Type))
+            {
+              return Constants.getIntegerConstant(*TypeValue, IntegerBits(TypeValue->bitWidth(), Fields));
+            }
+            return nullptr;
+          case Tag::FloatConstant:
+            if (const auto *TypeValue = as<FloatType>(Entry.Type))
+            {
+              return Constants.getFloatConstant(*TypeValue, FloatBits(TypeValue->bitWidth(), Fields[0]));
+            }
+            return nullptr;
+          case Tag::BoolConstant:
+            return Fields[0] <= 1 ? &Constants.getBoolConstant(Fields[0] != 0) : nullptr;
+          case Tag::StringConstant:
+            if (const auto *TypeValue = as<SliceType>(Entry.Type))
+            {
+              return Constants.getStringConstant(*TypeValue, Entry.Text);
+            }
+            return nullptr;
+          case Tag::Module:
+            if (auto *ModuleValue = Builder.createModule(NameValue()))
+            {
+              return own(Id, Builder.removeModule(*ModuleValue));
+            }
+            return nullptr;
+          case Tag::Function:
+          {
+            if (Fields[0] > 2 || Fields[1] > 1)
+            {
+              return nullptr;
+            }
+            std::vector<ParameterKind> Kinds;
+            std::vector<Name> Names;
+            for (auto Child : Children[Id])
+            {
+              if (record(Child).Kind == Tag::Parameter)
+              {
+                Kinds.push_back(static_cast<ParameterKind>(record(Child).Fields[1]));
+                Names.push_back(Context.namePool().intern(record(Child).Text));
+              }
+            }
+            return own(Id, Builder.createFunction(NameValue(), *as<FunctionType>(Entry.Type), Kinds, Names, static_cast<CallingConvention>(Fields[0]), static_cast<LanguageLinkage>(Fields[1])));
+          }
+          case Tag::Parameter:
+            return static_cast<const Function *>(Values[Entry.Parent])->parameters()[Fields[0]].get();
+          case Tag::Block:
+          {
+            auto *Parent = const_cast<Value *>(Values[Entry.Parent]);
+            if (Module::classof(Parent))
+            {
+              return &static_cast<Module *>(Parent)->entryBlock();
+            }
+            if (Function::classof(Parent))
+            {
+              return Builder.createBasicBlock(*static_cast<Function *>(Parent));
+            }
+            return own(Id, Builder.createBasicBlock());
+          }
+          case Tag::Call:
+          {
+            std::vector<const Value *> Arguments;
+            for (std::size_t Index = 1; Index < Fields.size(); ++Index)
+            {
+              Arguments.push_back(Values[Fields[Index]]);
+            }
+            return own(Id, Builder.createDetachedCallInstruction(*Values[Fields[0]], Arguments));
+          }
+          case Tag::CString:
+            return as<StringConstant>(Fields[0]) ? own(Id, Builder.createDetachedCStringInstruction(*as<StringConstant>(Fields[0]))) : nullptr;
+          case Tag::Alloca:
+            return own(Id, Builder.createDetachedAllocaInstruction(*as<Type>(Fields[0])));
+          case Tag::Load:
+            return own(Id, Builder.createDetachedLoadInstruction(*Values[Fields[0]]));
+          case Tag::Store:
+            return own(Id, Builder.createDetachedStoreInstruction(*Values[Fields[0]], *Values[Fields[1]]));
+          case Tag::Add:
+            return own(Id, Builder.createDetachedAddInstruction(*Values[Fields[0]], *Values[Fields[1]]));
+          case Tag::Return:
+            return own(Id, Builder.createDetachedReturnInstruction(Fields.empty() ? nullptr : Values[Fields[0]]));
+          case Tag::AST:
+          case Tag::ModuleDecl:
+          case Tag::FunctionDecl:
+          case Tag::ClassDecl:
+            break;
+          }
+          return nullptr;
+        }
+
+        IRContext &Context;
+        State &Data;
+        IRBuilder Builder;
+        std::vector<const Value *> Values;
+        std::vector<std::unique_ptr<Value>> Owners;
+        std::vector<std::vector<std::size_t>> Children;
+        std::vector<std::vector<std::size_t>> Users;
+        std::vector<std::size_t> Pending;
+        std::vector<std::size_t> Depths;
+        std::vector<std::shared_ptr<const parser::ParseResult>> ASTs;
+        std::vector<std::vector<const parser::ASTNodeBase *>> ASTNodes;
+        std::vector<Decl *> Declarations;
+        std::size_t ValueCount = 0;
+    };
+  } // namespace
+
+  bool collect(const Module &ModuleValue, State &Data, std::span<const parser::ParseResult *const> Sources)
+  {
+    return Collector(ModuleValue, Data, Sources).run();
+  }
+
+  Module *restore(IRContext &Context, State &Data)
+  {
+    return Restorer(Context, Data).run();
+  }
+} // namespace ink::ir::archive
+
+namespace ink::ir
+{
+  namespace
+  {
+    ModuleSerializeResult serialize(const Module &ModuleValue, ModuleArchiveLimits Limits, bool Binary, std::span<const parser::ParseResult *const> Sources)
+    {
+      archive::State Data(Limits);
+      Data.TextFormat = !Binary;
+      if (!archive::collect(ModuleValue, Data, Sources))
+      {
+        return {{}, Data.Status, std::move(Data.Message)};
+      }
+      auto Bytes = Binary ? archive::writeBinary(Data) : archive::writeText(Data);
+      return {Data.good() ? std::move(Bytes) : std::string{}, Data.Status, std::move(Data.Message)};
+    }
+
+    ModuleDeserializeResult deserialize(IRContext &Context, std::string_view Bytes, ModuleArchiveLimits Limits, bool Binary)
+    {
+      archive::State Data(Limits);
+      Data.TextFormat = !Binary;
+      if (Bytes.size() > Limits.MaxArchiveBytes)
+      {
+        return {nullptr, ModuleArchiveStatus::LimitExceeded, "Module archive byte limit exceeded"};
+      }
+      const bool Read = Binary ? archive::readBinary(Bytes, Data) : archive::readText(Bytes, Data);
+      auto *ModuleValue = Read ? archive::restore(Context, Data) : nullptr;
+      return {ModuleValue, Data.Status, std::move(Data.Message)};
+    }
+  } // namespace
+
+  ModuleSerializeResult serializeModuleText(const Module &ModuleValue, ModuleArchiveLimits Limits, std::span<const parser::ParseResult *const> Sources)
+  {
+    return serialize(ModuleValue, Limits, false, Sources);
+  }
+
+  ModuleSerializeResult serializeModuleBinary(const Module &ModuleValue, ModuleArchiveLimits Limits, std::span<const parser::ParseResult *const> Sources)
+  {
+    return serialize(ModuleValue, Limits, true, Sources);
+  }
+
+  ModuleDeserializeResult deserializeModuleText(IRContext &Context, std::string_view Text, ModuleArchiveLimits Limits)
+  {
+    return deserialize(Context, Text, Limits, false);
+  }
+
+  ModuleDeserializeResult deserializeModuleBinary(IRContext &Context, std::string_view Bytes, ModuleArchiveLimits Limits)
+  {
+    return deserialize(Context, Bytes, Limits, true);
+  }
+} // namespace ink::ir

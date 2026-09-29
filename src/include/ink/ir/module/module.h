@@ -4,6 +4,11 @@
 #include "ink/ir/function/basic_block.h"
 #include "ink/ir/name/name.h"
 
+namespace ink::parser
+{
+  struct ParseResult;
+} // namespace ink::parser
+
 namespace ink::ir
 {
   class ModuleDecl;
@@ -40,6 +45,12 @@ namespace ink::ir
         return DeclarationRoot.get();
       }
 
+      // Complete syntax snapshots backing restored declarations; shared ownership also supports detached nested modules.
+      const std::vector<std::shared_ptr<const parser::ParseResult>> &archivedASTs() const noexcept
+      {
+        return ArchivedASTs;
+      }
+
       static bool classof(const Value *ValueObject) noexcept
       {
         return ValueObject && ValueObject->kind() == ValueKind::Module;
@@ -49,11 +60,14 @@ namespace ink::ir
       Module(const IRContext &Context, Name ModuleName, std::unique_ptr<BasicBlock> EntryBlock) noexcept;
 
       Name ModuleName;
+      // Syntax outlives both declaration and IR trees.
+      std::vector<std::shared_ptr<const parser::ParseResult>> ArchivedASTs;
       // IR is destroyed before declarations it may reference. Both trees borrow shared context objects.
       std::unique_ptr<ModuleDecl> DeclarationRoot;
       std::unique_ptr<BasicBlock> EntryBlock;
 
       friend class IRBuilder;
+      friend class ModuleArchiveAccess;
   };
 } // namespace ink::ir
 

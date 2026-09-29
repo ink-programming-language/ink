@@ -1,6 +1,7 @@
 #include "ink/parser/ast_serialization.h"
 #include "ink/parser/ast_visitor.h"
 #include "ink/parser/ast_walker.h"
+#include "../core/archive_text.h"
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Bitstream/BitstreamReader.h>
 #include <llvm/Bitstream/BitstreamWriter.h>
@@ -27,14 +28,15 @@ namespace ink::parser
 
     template <typename T>
     struct Fields;
-#define AST_FIELDS(Type, ...)                \
-  template <>                                \
-  struct Fields<Type>                        \
-  {                                          \
-      static auto get(const Type &Value)     \
-      {                                      \
-        return std::make_tuple(__VA_ARGS__); \
-      }                                      \
+#define AST_FIELDS(Type, ...)                                  \
+  template <>                                                  \
+  struct Fields<Type>                                          \
+  {                                                            \
+      static constexpr std::string_view Labels = #__VA_ARGS__; \
+      static auto get(const Type &Value)                       \
+      {                                                        \
+        return std::make_tuple(__VA_ARGS__);                   \
+      }                                                        \
   };
 #include "ast_serialization_fields.def"
 #undef AST_FIELDS
@@ -44,6 +46,7 @@ namespace ink::parser
     {
         T Value;
         std::uint64_t Id;
+        std::string_view Spelling;
     };
     template <typename T>
     struct EnumValues;
@@ -53,7 +56,7 @@ namespace ink::parser
   {                          \
       using Enum = Type;     \
       static constexpr EnumEntry<Enum> Values[] = {
-#define AST_ENUM_VALUE(Name, Id) {Enum::Name, Id},
+#define AST_ENUM_VALUE(Name, Id) {Enum::Name, Id, #Name},
 #define AST_ENUM_END() \
   }                    \
   ;                    \
@@ -171,7 +174,7 @@ namespace ink::parser
     class ASTWriter
     {
       public:
-        ASTWriter(core::FrontendContext &Context, const ParseResult &Parsed, ASTArchiveLimits Limits)
+        ASTWriter(core::FrontendContext *Context, const ParseResult &Parsed, ASTArchiveLimits Limits)
             : Context(Context),
               Parsed(Parsed),
               Limits(Limits),
@@ -341,7 +344,10 @@ namespace ink::parser
             Status = NewStatus;
             const auto Diagnostic = core::makeDiagnostic<Kind>({}, std::forward<ArgumentTypes>(Arguments)...);
             Message = core::DiagnosticFormatter{}.format(Diagnostic).Message;
-            Context.diagnosticEngine().report(Diagnostic);
+            if (Context)
+            {
+              Context->diagnosticEngine().report(Diagnostic);
+            }
           }
         }
         ASTSerializeResult result()
@@ -481,7 +487,7 @@ namespace ink::parser
           }
         }
 
-        core::FrontendContext &Context;
+        core::FrontendContext *Context;
         const ParseResult &Parsed;
         ASTArchiveLimits Limits;
         llvm::SmallVector<char, 0> Output;
@@ -499,12 +505,13 @@ namespace ink::parser
   class ASTReader
   {
     public:
-      ASTReader(core::FrontendContext &Context, std::string_view Bytes, ASTArchiveLimits Limits)
+      ASTReader(core::FrontendContext &Context, std::string_view Bytes, ASTArchiveLimits Limits, bool ReportDiagnostic = true)
           : Context(Context),
             Bytes(Bytes),
             Limits(Limits),
             Cursor(llvm::StringRef(Bytes.data(), Bytes.size())),
-            Arena(std::make_unique<ASTContext>())
+            Arena(std::make_unique<ASTContext>()),
+            ReportDiagnostic(ReportDiagnostic)
       {
       }
 
@@ -713,7 +720,7 @@ namespace ink::parser
         Unit->Context = std::move(Arena);
         Unit->Root = Root;
         Unit->Recovery = std::move(Recovery);
-        return {{std::move(Unit), *ParseState, *SyntaxErrors}, ASTArchiveStatus::Success, {}};
+        return {{std::move(Unit), *ParseState, *SyntaxErrors}, ASTArchiveStatus::Success, {}, Allocated};
       }
 
     private:
@@ -727,7 +734,10 @@ namespace ink::parser
           Failure = Status;
           const auto Diagnostic = core::makeDiagnostic<Kind>({}, std::forward<ArgumentTypes>(Arguments)...);
           Message = core::DiagnosticFormatter{}.format(Diagnostic).Message;
-          Context.diagnosticEngine().report(Diagnostic);
+          if (ReportDiagnostic)
+          {
+            Context.diagnosticEngine().report(Diagnostic);
+          }
         }
       }
       ASTDeserializeResult result()
@@ -1068,17 +1078,30 @@ namespace ink::parser
       std::uint64_t Remaining = 0;
       std::size_t Allocated = 0;
       bool Good = true;
+      bool ReportDiagnostic;
       ASTArchiveStatus Failure = ASTArchiveStatus::InvalidArchive;
       std::string Message;
   };
 
   ASTSerializeResult serializeAST(core::FrontendContext &Context, const ParseResult &Parsed, ASTArchiveLimits Limits)
   {
-    return ASTWriter(Context, Parsed, Limits).run();
+    return ASTWriter(&Context, Parsed, Limits).run();
   }
 
   ASTDeserializeResult deserializeAST(core::FrontendContext &Context, std::string_view Bytes, ASTArchiveLimits Limits)
   {
     return ASTReader(Context, Bytes, Limits).run();
   }
+
+  ASTSerializeResult trySerializeAST(const ParseResult &Parsed, ASTArchiveLimits Limits)
+  {
+    return ASTWriter(nullptr, Parsed, Limits).run();
+  }
+
+  ASTDeserializeResult tryDeserializeAST(core::FrontendContext &Context, std::string_view Bytes, ASTArchiveLimits Limits)
+  {
+    return ASTReader(Context, Bytes, Limits, false).run();
+  }
 } // namespace ink::parser
+
+#include "ast_serialization_text.inc"

@@ -2,6 +2,7 @@
 
 #include "ink/ir/context.h"
 #include "ink/ir/decl/module_decl.h"
+#include "ink/parser/parser.h"
 
 namespace ink::ir
 {
