@@ -21,12 +21,12 @@ namespace ink::semantic
       }
 
     private:
-      FunctionDecl(Name DeclName, const parser::FunctionDecl &AST) noexcept
-          : Decl(DeclName, AST)
+      FunctionDecl(Decl &Parent, Name DeclName, const parser::FunctionDecl &AST) noexcept
+          : Decl(Parent.module(), &Parent, DeclName, AST)
       {
       }
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

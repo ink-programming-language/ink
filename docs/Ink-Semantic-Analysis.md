@@ -10,7 +10,7 @@ class Analyzer
 };
 ```
 
-通过 `Analyzer` 实例调用。当前已实现可编译的流程骨架：检查解析结果和源码归属，通过 `SemanticContext` 创建模块及入口块，构造 `NameResolver` 的根作用域，再进入与模块关联的成员作用域，逐条分析顶层语句。分析状态属于本次调用，成功返回上下文拥有的 `Module *`，失败返回 `nullptr`。
+通过 `Analyzer` 实例调用。当前已实现可编译的流程骨架：检查解析结果和源码归属，通过 `IRBuilder` 创建 Context 拥有的模块、模块独立拥有的声明根及入口块，构造 `NameResolver` 的根作用域，再进入与模块关联的成员作用域，逐条分析顶层语句。分析状态属于本次调用，成功返回上下文拥有的 `Module *`，失败返回 `nullptr`。
 
 `analyzeStmt()` 与 `analyzeDecl()` 从 Parser 的 `ASTNodes.def` 按 `Category` 生成严格分派。每种语句和声明均有手工声明、定义的 `analyzeXXX()`，不存在自动生成的空处理函数或基类回退；新增 AST 种类后缺少处理函数会导致编译失败，只有声明没有定义则导致链接失败。`DeclStmt` 转发到声明分派，`BlockStmt` 创建子作用域并递归处理子语句，退出后恢复原作用域。块嵌套上限为 256。
 
@@ -30,7 +30,7 @@ class Analyzer
 - `bind(Name, Value &)` 登记值；`bind(Name, Decl &)` 登记本上下文的泛型 `FunctionDecl` 或 `ClassDecl`，拒绝 `ModuleDecl`。两者均允许别名。模块名称通过 `Module` 值绑定，泛型形参实例化后的类型或常量也属于值，不使用声明绑定。
 - 普通 `Function` 和泛型 `FunctionDecl` 可以同名，分别保存在该作用域的两份有类型候选列表中；即使各自只有一个函数，也标记为重载集合。每份列表保持自身的登记顺序，不提供跨类别的总登记顺序。函数类型的普通表达式结果不作为函数重载实体。
 - 泛型类和其他非函数值在同一作用域中占用独占名称，不能与另一类别同名。重绑定同一实体返回 `AlreadyBound`；非法同名返回 `Conflict`，原绑定不变，也不创建空的另一类别绑定。函数签名是否重复及重载选择仍由后续分析判断。
-- 成功返回 `Inserted`；无效或越界名称返回 `InvalidName`；外来值、外来声明分别返回 `ForeignValue`、`ForeignDecl`；本上下文内不允许绑定的声明返回 `InvalidDecl`。`SemanticContext::owns(const Decl &)` 使用独立归属索引，`Decl` 本身不增加上下文字段。绑定接口不自行报告诊断。
+- 成功返回 `Inserted`；无效或越界名称返回 `InvalidName`；外来值、外来声明分别返回 `ForeignValue`、`ForeignDecl`；本上下文内不允许绑定的声明返回 `InvalidDecl`。通过 `Declaration.module().context()` 检查声明归属，Context 不保存声明容器或归属索引；模块摘除或嵌套后仍保留原上下文归属。绑定接口不自行报告诊断。
 - `lookup(Name)` 等价于 `lookup<Value *>(Name)`；`lookup<Decl *>(Name)` 查询泛型定义。先从当前作用域向外找到包含任一类别同名绑定的最近作用域，再只返回该层请求类别的绑定。若这一层仅有另一类别，返回空指针，不能继续向外搜索。因此内层名称遮蔽外层两类候选，也不会合并不同层的函数重载。
 - `lookupLocal<T>(Name)` 只查当前作用域，模板参数同样默认为 `Value *`。未命中或无效名称返回空指针，查找不驻留名称。
 - `lookupMember<T>(Value &Owner, Name)` 只查实体关联的成员作用域，不沿词法父作用域回退、不查子作用域，也不改变当前作用域。模板参数默认为 `Value *`。实体未关联成员作用域或名称未命中时返回空指针；别名指向同一实体时共享成员作用域。
@@ -46,6 +46,6 @@ const Binding<Value *> *Functions = Resolver.lookup(FunctionName);
 const Binding<Decl *> *GenericFunctions = Resolver.lookup<Decl *>(FunctionName);
 ```
 
-作用域及各 `Binding<T>` 的地址在 `NameResolver` 存活期间保持稳定。`targets()` 返回 `std::span<const T>`：分别为 `std::span<Value *const>` 和 `std::span<Decl *const>`，只读的是指针列表；继续添加候选后须重新获取视图。绑定、成员及定义作用域索引不拥有目标；上下文、目标实体及泛型定义借用的 AST 必须覆盖相应使用期。`Name` 必须来自同一上下文的名称池，紧凑名称索引不能识别另一池中数值相同的名称。
+作用域及各 `Binding<T>` 的地址在 `NameResolver` 存活期间保持稳定。`targets()` 返回 `std::span<const T>`：分别为 `std::span<Value *const>` 和 `std::span<Decl *const>`，只读的是指针列表；继续添加候选后须重新获取视图。绑定、成员及定义作用域索引不拥有目标；上下文、目标实体及声明所属 Module 必须覆盖相应使用期，借用的 AST 单元必须比 Module 活得更久。销毁模块前必须先结束仍引用其声明或 IR 的绑定使用期。`Name` 必须来自同一上下文的名称池，紧凑名称索引不能识别另一池中数值相同的名称。
 
 当前对象模型能力和缺口见 [可执行 IR 状态](Ink-Executable-IR-Status.md)，后续架构见 [Semantic 模块设计](Ink-Semantic-Design.md)。

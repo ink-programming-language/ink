@@ -34,7 +34,7 @@ namespace ink::semantic
       std::uint32_t BitWidth;
       bool Signed;
 
-      friend class SemanticContext;
+      friend class TypePool;
   };
 } // namespace ink::semantic
 

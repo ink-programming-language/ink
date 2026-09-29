@@ -7,6 +7,7 @@
 namespace ink::semantic
 {
   class SemanticContext;
+  class TypePool;
   class BuiltinType;
   class UserDefinedType;
 

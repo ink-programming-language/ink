@@ -3,6 +3,7 @@
 
 #include "ink/semantic/model/name/name.h"
 
+#include <memory>
 #include <vector>
 
 namespace ink::parser
@@ -12,7 +13,10 @@ namespace ink::parser
 
 namespace ink::semantic
 {
-  // A module or uninstantiated generic definition. Its AST is borrowed and must outlive the context.
+  class Module;
+
+  // A module or uninstantiated generic definition in a module-owned declaration tree.
+  // Its AST is borrowed and must outlive the owning module.
   // Resolved types, values, bindings and instance state are stored separately.
   class Decl
   {
@@ -33,28 +37,50 @@ namespace ink::semantic
         return AST;
       }
 
-      // Non-owning child declarations in insertion order.
-      std::vector<const Decl *> &child() noexcept
+      Module &module() noexcept
       {
-        return Child;
+        return Owner;
       }
 
-      const std::vector<const Decl *> &child() const noexcept
+      const Module &module() const noexcept
       {
-        return Child;
+        return Owner;
+      }
+
+      // The module declaration root has no declaration parent.
+      Decl *parent() noexcept
+      {
+        return Parent;
+      }
+
+      const Decl *parent() const noexcept
+      {
+        return Parent;
+      }
+
+      // Owned children in insertion order. IRBuilder creates and attaches declarations.
+      const std::vector<std::unique_ptr<Decl>> &children() const noexcept
+      {
+        return Children;
       }
 
     protected:
-      Decl(Name DeclName, const parser::ASTNodeBase &AST) noexcept
-          : DeclName(DeclName),
+      Decl(Module &Owner, Decl *Parent, Name DeclName, const parser::ASTNodeBase &AST) noexcept
+          : Owner(Owner),
+            Parent(Parent),
+            DeclName(DeclName),
             AST(AST)
       {
       }
 
     private:
+      Module &Owner;
+      Decl *Parent;
       Name DeclName;
       const parser::ASTNodeBase &AST;
-      std::vector<const Decl *> Child;
+      std::vector<std::unique_ptr<Decl>> Children;
+
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

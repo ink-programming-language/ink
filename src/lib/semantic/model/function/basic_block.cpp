@@ -5,7 +5,7 @@
 namespace ink::semantic
 {
   BasicBlock::BasicBlock(const SemanticContext &Context) noexcept
-      : Value(Context, ValueKind::BasicBlock, Context.getLabelType())
+      : Value(Context, ValueKind::BasicBlock, Context.typePool().getType<TypeKind::Label>())
   {
   }
 } // namespace ink::semantic

@@ -1,3 +1,4 @@
+#include "ink/semantic/ir_builder.h"
 #include "ink/semantic/model/constant/constant_pool.h"
 #include "ink/semantic/context.h"
 
@@ -15,8 +16,8 @@ namespace ink::semantic::test
   static_assert(!std::is_move_assignable_v<ConstantPool>);
   static_assert(!std::is_constructible_v<ConstantPool, const SemanticContext &>);
 
-  // Both bool values are owned immediately, and const context/pool access preserves their identity.
-  TEST(SemanticConstantPoolTest, BoolConstantsArePreallocatedAndSharedWithContext)
+  // Both bool values are owned immediately, and const/non-const pool access preserves their identity.
+  TEST(SemanticConstantPoolTest, BoolConstantsArePreallocatedAndSharedByPoolAccessors)
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
@@ -29,38 +30,38 @@ namespace ink::semantic::test
     const BoolConstant &False = ConstPool.getBoolConstant(false);
     const BoolConstant &True = ConstPool.getBoolConstant(true);
     EXPECT_NE(&False, &True);
-    EXPECT_EQ(&False, &ConstContext.getBoolConstant(false));
-    EXPECT_EQ(&True, &Context.getBoolConstant(true));
+    EXPECT_EQ(&False, &Pool.getBoolConstant(false));
+    EXPECT_EQ(&True, &Pool.getBoolConstant(true));
     EXPECT_FALSE(False.value());
     EXPECT_TRUE(True.value());
-    EXPECT_EQ(&False.type(), &Context.getBoolType());
-    EXPECT_EQ(&True.type(), &Context.getBoolType());
+    EXPECT_EQ(&False.type(), &Context.typePool().getType<TypeKind::Bool>());
+    EXPECT_EQ(&True.type(), &Context.typePool().getType<TypeKind::Bool>());
     EXPECT_TRUE(ConstPool.owns(False));
     EXPECT_TRUE(ConstPool.owns(True));
     EXPECT_EQ(Pool.size(), 2U);
   }
 
-  // Pool and context factories share one store keyed by exact integer type and bits.
+  // Pool factories reuse constants keyed by exact integer type and bits.
   TEST(SemanticConstantPoolTest, IntegerInterningPreservesTypeAndPayloadIdentity)
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
     ConstantPool &Pool = Context.constantPool();
-    const IntegerType *Signed32 = Context.getIntegerType(32, true);
-    const IntegerType *Unsigned32 = Context.getIntegerType(32, false);
-    const IntegerType *Signed64 = Context.getIntegerType(64, true);
+    const IntegerType *Signed32 = Context.typePool().getType<TypeKind::Integer>(32, true);
+    const IntegerType *Unsigned32 = Context.typePool().getType<TypeKind::Integer>(32, false);
+    const IntegerType *Signed64 = Context.typePool().getType<TypeKind::Integer>(64, true);
     ASSERT_NE(Signed32, nullptr);
     ASSERT_NE(Unsigned32, nullptr);
     ASSERT_NE(Signed64, nullptr);
     const IntegerConstant *One = Pool.getIntegerConstant(*Signed32, IntegerBits(32, 1));
-    const IntegerConstant *Two = Context.getIntegerConstant(*Signed32, IntegerBits(32, 2));
+    const IntegerConstant *Two = Context.constantPool().getIntegerConstant(*Signed32, IntegerBits(32, 2));
     const IntegerConstant *UnsignedOne = Pool.getIntegerConstant(*Unsigned32, IntegerBits(32, 1));
     const IntegerConstant *WideOne = Pool.getIntegerConstant(*Signed64, IntegerBits(64, 1));
     ASSERT_NE(One, nullptr);
     ASSERT_NE(Two, nullptr);
     ASSERT_NE(UnsignedOne, nullptr);
     ASSERT_NE(WideOne, nullptr);
-    EXPECT_EQ(One, Context.getIntegerConstant(*Signed32, IntegerBits(32, 1)));
+    EXPECT_EQ(One, Context.constantPool().getIntegerConstant(*Signed32, IntegerBits(32, 1)));
     EXPECT_EQ(Two, Pool.getIntegerConstant(*Signed32, IntegerBits(32, 2)));
     EXPECT_NE(One, Two);
     EXPECT_NE(One, UnsignedOne);
@@ -81,7 +82,7 @@ namespace ink::semantic::test
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
     ConstantPool &Pool = Context.constantPool();
-    const IntegerType *Integer = Context.getIntegerType(257, false);
+    const IntegerType *Integer = Context.typePool().getType<TypeKind::Integer>(257, false);
     ASSERT_NE(Integer, nullptr);
     const IntegerConstant *HighBit = nullptr;
     const IntegerConstant *LowBits = nullptr;
@@ -118,7 +119,7 @@ namespace ink::semantic::test
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
     ConstantPool &Pool = Context.constantPool();
-    const IntegerType *Type = Context.getIntegerType(192, false);
+    const IntegerType *Type = Context.typePool().getType<TypeKind::Integer>(192, false);
     ASSERT_NE(Type, nullptr);
     const std::uint64_t ExpectedWords[] = {
         0x0123456789abcdef,
@@ -144,7 +145,7 @@ namespace ink::semantic::test
       ASSERT_NE(Other, nullptr);
       EXPECT_NE(Value, Other);
     }
-    EXPECT_EQ(Value, Context.getIntegerConstant(*Type, IntegerBits(192, ExpectedWords)));
+    EXPECT_EQ(Value, Context.constantPool().getIntegerConstant(*Type, IntegerBits(192, ExpectedWords)));
     EXPECT_EQ(Pool.size(), 6U);
   }
 
@@ -175,7 +176,7 @@ namespace ink::semantic::test
     for (const Boundary &Case : Boundaries)
     {
       SCOPED_TRACE(Case.Width);
-      const IntegerType *Type = Context.getIntegerType(Case.Width, false);
+      const IntegerType *Type = Context.typePool().getType<TypeKind::Integer>(Case.Width, false);
       ASSERT_NE(Type, nullptr);
       std::vector<std::uint64_t> Words(Case.WordCount, UINT64_MAX);
       Words.back() = Case.HighWord;
@@ -201,11 +202,11 @@ namespace ink::semantic::test
       {
         EXPECT_EQ(Pool.getIntegerConstant(*Type, IntegerBits(Case.Width, Case.HighWord + 1)), nullptr);
       }
-      EXPECT_EQ(Value, Context.getIntegerConstant(*Type, Payload));
+      EXPECT_EQ(Value, Context.constantPool().getIntegerConstant(*Type, Payload));
       EXPECT_TRUE(Pool.owns(*Value));
       EXPECT_EQ(Pool.size(), OriginalSize);
     }
-    const IntegerType *Type = Context.getIntegerType(32, false);
+    const IntegerType *Type = Context.typePool().getType<TypeKind::Integer>(32, false);
     ASSERT_NE(Type, nullptr);
     const std::uint64_t Word = 0;
     const IntegerBits ZeroWidth(0, 0);
@@ -228,8 +229,8 @@ namespace ink::semantic::test
     SemanticContext Context(Compilation);
     SemanticContext Other(Compilation);
     ConstantPool &Pool = Context.constantPool();
-    const IntegerType *Local = Context.getIntegerType(32, true);
-    const IntegerType *Foreign = Other.getIntegerType(32, true);
+    const IntegerType *Local = Context.typePool().getType<TypeKind::Integer>(32, true);
+    const IntegerType *Foreign = Other.typePool().getType<TypeKind::Integer>(32, true);
     ASSERT_NE(Local, nullptr);
     ASSERT_NE(Foreign, nullptr);
     const IntegerConstant *One = Pool.getIntegerConstant(*Local, IntegerBits(32, 1));
@@ -263,8 +264,8 @@ namespace ink::semantic::test
     SemanticContext Other(Compilation);
     ConstantPool &Pool = Context.constantPool();
     ConstantPool &OtherPool = Other.constantPool();
-    const IntegerType *LocalType = Context.getIntegerType(1, false);
-    const IntegerType *OtherType = Other.getIntegerType(1, false);
+    const IntegerType *LocalType = Context.typePool().getType<TypeKind::Integer>(1, false);
+    const IntegerType *OtherType = Other.typePool().getType<TypeKind::Integer>(1, false);
     ASSERT_NE(LocalType, nullptr);
     ASSERT_NE(OtherType, nullptr);
     const IntegerConstant *LocalOne = Pool.getIntegerConstant(*LocalType, IntegerBits(1, 1));
@@ -291,16 +292,19 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
     ConstantPool &Pool = Context.constantPool();
-    const IntegerType *Integer = Context.getIntegerType(128, true);
+    const IntegerType *Integer = Context.typePool().getType<TypeKind::Integer>(128, true);
     ASSERT_NE(Integer, nullptr);
     const IntegerConstant *Zero = Pool.getIntegerConstant(*Integer, IntegerBits(128, 0));
     ASSERT_NE(Zero, nullptr);
     const IntegerBits &Bits = Zero->value();
     const BoolConstant &False = Pool.getBoolConstant(false);
-    AllocaInstruction *Slot = Context.createAllocaInstruction(*Integer);
+    auto SlotOwner = Factory.createDetachedAllocaInstruction(*Integer);
+    AllocaInstruction *Slot = SlotOwner.get();
     ASSERT_NE(Slot, nullptr);
-    const StoreInstruction *Store = Context.createStoreInstruction(*Slot, *Zero);
+    auto StoreOwner = Factory.createDetachedStoreInstruction(*Slot, *Zero);
+    const StoreInstruction *Store = StoreOwner.get();
     ASSERT_NE(Store, nullptr);
     for (std::uint64_t Index = 1; Index <= 2048; ++Index)
     {
@@ -309,7 +313,7 @@ namespace ink::semantic::test
       EXPECT_TRUE(Pool.owns(*Item));
     }
     EXPECT_EQ(Pool.size(), 2051U);
-    EXPECT_EQ(Zero, Context.getIntegerConstant(*Integer, IntegerBits(128, 0)));
+    EXPECT_EQ(Zero, Context.constantPool().getIntegerConstant(*Integer, IntegerBits(128, 0)));
     EXPECT_EQ(&Zero->value(), &Bits);
     EXPECT_EQ(Bits, IntegerBits(128, 0));
     EXPECT_EQ(&Pool.getBoolConstant(false), &False);

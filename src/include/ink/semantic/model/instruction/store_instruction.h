@@ -30,7 +30,7 @@ namespace ink::semantic
       const Value &Address;
       const Value &StoredValue;
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

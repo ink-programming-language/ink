@@ -1,3 +1,4 @@
+#include "ink/semantic/ir_builder.h"
 #include "ink/semantic/model/module/module.h"
 #include "ink/semantic/context.h"
 
@@ -10,32 +11,37 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
     const Name ModuleName = Context.namePool().intern("Example");
-    Module *Object = Context.createModule(ModuleName);
+    Module *Object = Factory.createModule(ModuleName);
     ASSERT_NE(Object, nullptr);
     BasicBlock *Entry = &Object->entryBlock();
     EXPECT_EQ(Object->outer(), nullptr);
     EXPECT_EQ(Entry->outer(), Object);
     EXPECT_TRUE(Entry->values().empty());
-    const FunctionType *Signature = Context.getFunctionType(Context.getBoolType());
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Bool>());
     ASSERT_NE(Signature, nullptr);
-    Function *Target = Context.createFunction(Context.namePool().intern("Ready"), *Signature);
+    auto TargetOwner = Factory.createFunction(Context.namePool().intern("Ready"), *Signature);
+    Function *Target = TargetOwner.get();
     ASSERT_NE(Target, nullptr);
-    CallInstruction *Call = Context.createCallInstruction(*Target);
-    AllocaInstruction *Slot = Context.createAllocaInstruction(Context.getBoolType());
-    Module *Nested = Context.createModule(Context.namePool().intern("Nested"));
+    auto CallOwner = Factory.createDetachedCallInstruction(*Target);
+    CallInstruction *Call = CallOwner.get();
+    auto SlotOwner = Factory.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    AllocaInstruction *Slot = SlotOwner.get();
+    Module *Nested = Factory.createModule(Context.namePool().intern("Nested"));
+    auto NestedOwner = Factory.removeModule(*Nested);
     ASSERT_NE(Call, nullptr);
     ASSERT_NE(Slot, nullptr);
     ASSERT_NE(Nested, nullptr);
     EXPECT_EQ(Target->outer(), nullptr);
     EXPECT_EQ(Call->outer(), nullptr);
-    ASSERT_TRUE(Context.appendValue(*Entry, *Target));
-    ASSERT_TRUE(Context.appendValue(*Entry, *Call));
-    ASSERT_TRUE(Context.appendValue(*Entry, *Slot));
-    ASSERT_TRUE(Context.appendValue(*Entry, *Nested));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(TargetOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(CallOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(SlotOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(NestedOwner)));
     for (unsigned Index = 0; Index < 64; ++Index)
     {
-      Module *Next = Context.createModule(ModuleName);
+      Module *Next = Factory.createModule(ModuleName);
       ASSERT_NE(Next, nullptr);
       EXPECT_NE(Next, Object);
       EXPECT_NE(&Next->entryBlock(), Entry);
@@ -45,20 +51,20 @@ namespace ink::semantic::test
 
     const Module &View = *Object;
     EXPECT_EQ(View.name(), ModuleName);
-    EXPECT_EQ(&View.type(), &Context.getModuleType());
+    EXPECT_EQ(&View.type(), &Context.typePool().getType<TypeKind::Module>());
     EXPECT_EQ(&View.entryBlock(), Entry);
-    EXPECT_EQ(&View.entryBlock().type(), &Context.getLabelType());
+    EXPECT_EQ(&View.entryBlock().type(), &Context.typePool().getType<TypeKind::Label>());
     EXPECT_EQ(View.entryBlock().outer(), &View);
     const auto &Values = View.entryBlock().values();
     ASSERT_EQ(Values.size(), 4U);
-    EXPECT_EQ(Values[0], Target);
-    EXPECT_EQ(Values[1], Call);
-    EXPECT_EQ(Values[2], Slot);
-    EXPECT_EQ(Values[3], Nested);
-    EXPECT_TRUE(Function::classof(Values[0]));
-    EXPECT_TRUE(CallInstruction::classof(Values[1]));
-    EXPECT_TRUE(AllocaInstruction::classof(Values[2]));
-    EXPECT_TRUE(Module::classof(Values[3]));
+    EXPECT_EQ(Values[0].get(), Target);
+    EXPECT_EQ(Values[1].get(), Call);
+    EXPECT_EQ(Values[2].get(), Slot);
+    EXPECT_EQ(Values[3].get(), Nested);
+    EXPECT_TRUE(Function::classof(Values[0].get()));
+    EXPECT_TRUE(CallInstruction::classof(Values[1].get()));
+    EXPECT_TRUE(AllocaInstruction::classof(Values[2].get()));
+    EXPECT_TRUE(Module::classof(Values[3].get()));
     EXPECT_EQ(Call->directCallee(), Target);
     EXPECT_EQ(Target->outer(), Entry);
     EXPECT_EQ(Call->outer(), Entry);
@@ -73,12 +79,14 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
     SemanticContext Other(Compilation);
-    EXPECT_EQ(Context.createModule(Name{}), nullptr);
+    IRBuilder OtherFactory(Other);
+    EXPECT_EQ(Factory.createModule(Name{}), nullptr);
     const Name ForeignName = Other.namePool().intern("Foreign");
-    EXPECT_EQ(Context.createModule(ForeignName), nullptr);
-    Module *Local = Context.createModule(Context.namePool().intern("Local"));
-    Module *Foreign = Other.createModule(ForeignName);
+    EXPECT_EQ(Factory.createModule(ForeignName), nullptr);
+    Module *Local = Factory.createModule(Context.namePool().intern("Local"));
+    Module *Foreign = OtherFactory.createModule(ForeignName);
     ASSERT_NE(Local, nullptr);
     ASSERT_NE(Foreign, nullptr);
     EXPECT_EQ(&Local->context(), &Context);
@@ -91,6 +99,6 @@ namespace ink::semantic::test
     EXPECT_EQ(&Foreign->entryBlock().type().context(), &Other);
     EXPECT_NE(&Local->type(), &Foreign->type());
     EXPECT_EQ(Local->type().typeKind(), TypeKind::Module);
-    EXPECT_EQ(Context.createCallInstruction(*Local), nullptr);
+    EXPECT_EQ(Factory.createDetachedCallInstruction(*Local), nullptr);
   }
 } // namespace ink::semantic::test

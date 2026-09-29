@@ -12,8 +12,8 @@ namespace ink::semantic
   class SemanticContext;
   class Value;
 
-  // Owns lexical scopes and bindings, not their values or declarations. Context and targets must
-  // outlive the resolver. Names must use Context's name pool; compact Name indices
+  // Owns lexical scopes and bindings, not their values or declarations. Context must outlive the resolver;
+  // targets must remain alive while their bindings or member scopes are used. Names use Context's name pool; compact Name indices
   // cannot prove provenance.
   class NameResolver final
   {

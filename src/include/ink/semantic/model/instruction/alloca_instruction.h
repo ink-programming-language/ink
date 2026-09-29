@@ -26,7 +26,7 @@ namespace ink::semantic
       {
       }
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

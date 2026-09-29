@@ -2,6 +2,7 @@
 
 #include "ink/parser/parser.h"
 #include "ink/semantic/context.h"
+#include "ink/semantic/model/decl/module_decl.h"
 
 #include <gtest/gtest.h>
 
@@ -31,6 +32,13 @@ namespace ink::semantic::test
     EXPECT_EQ(First->entryBlock().outer(), First);
     EXPECT_TRUE(First->entryBlock().values().empty());
     EXPECT_TRUE(Second->entryBlock().values().empty());
+    ASSERT_NE(First->declarationRoot(), nullptr);
+    ASSERT_NE(Second->declarationRoot(), nullptr);
+    EXPECT_EQ(&First->declarationRoot()->ast(), Empty.Unit->root());
+    EXPECT_EQ(&Second->declarationRoot()->ast(), Blocks.Unit->root());
+    EXPECT_EQ(&First->declarationRoot()->module(), First);
+    EXPECT_EQ(&Second->declarationRoot()->module(), Second);
+    EXPECT_NE(First->declarationRoot(), Second->declarationRoot());
   }
 
   // Missing, erroneous, cancelled and incomplete parse inputs fail before allocating a module name.

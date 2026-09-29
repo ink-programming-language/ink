@@ -25,6 +25,7 @@ namespace ink::semantic
       // Builds a module from successfully parsed input. Unsupported syntax reports
       // a diagnostic and returns null; only empty modules/blocks are currently supported.
       // The returned module is owned by Context. Analysis state is local to each call.
+      // Module declaration roots borrow Input's AST; its ParsedUnit must outlive any allocated module, including on failure.
       Module *analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName = "main");
 
     private:

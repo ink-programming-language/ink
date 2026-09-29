@@ -57,7 +57,7 @@ namespace ink::semantic
       const Value &Callee;
       std::vector<const Value *> Arguments;
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

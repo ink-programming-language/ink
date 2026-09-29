@@ -1,3 +1,4 @@
+#include "ink/semantic/ir_builder.h"
 #include "ink/semantic/model/constant/string_constant.h"
 #include "ink/semantic/context.h"
 #include "ink/tokenizer/tokenizer.h"
@@ -14,8 +15,8 @@ namespace ink::semantic::test
   {
     const SliceType *getStringType(SemanticContext &Context)
     {
-      const IntegerType *Byte = Context.getIntegerType(8, false);
-      return Byte ? Context.getSliceType(*Byte, AccessKind::ReadOnly) : nullptr;
+      const IntegerType *Byte = Context.typePool().getType<TypeKind::Integer>(8, false);
+      return Byte ? Context.typePool().getType<TypeKind::Slice>(*Byte, AccessKind::ReadOnly) : nullptr;
     }
   } // namespace
 
@@ -43,7 +44,7 @@ namespace ink::semantic::test
         {
           const auto *Info = std::get_if<tokenizer::StringInfo>(&Token.Payload);
           ASSERT_NE(Info, nullptr);
-          const StringConstant *Value = Context.getStringConstant(*String, Info->Decoded);
+          const StringConstant *Value = Context.constantPool().getStringConstant(*String, Info->Decoded);
           ASSERT_NE(Value, nullptr);
           Constants.push_back(Value);
         }
@@ -90,7 +91,7 @@ namespace ink::semantic::test
       const StringConstant *Value = Pool.getStringConstant(*String, Payload);
       ASSERT_NE(Value, nullptr);
       EXPECT_EQ(Value->value(), Payload);
-      EXPECT_EQ(Value, Context.getStringConstant(*String, std::string(Payload)));
+      EXPECT_EQ(Value, Context.constantPool().getStringConstant(*String, std::string(Payload)));
       for (const StringConstant *Previous : Constants)
       {
         EXPECT_NE(Value, Previous);
@@ -114,9 +115,9 @@ namespace ink::semantic::test
     ConstantPool &Pool = Context.constantPool();
     const SliceType *String = getStringType(Context);
     const SliceType *Foreign = getStringType(Other);
-    const IntegerType *Byte = Context.getIntegerType(8, false);
-    const IntegerType *SignedByte = Context.getIntegerType(8, true);
-    const IntegerType *Wide = Context.getIntegerType(16, false);
+    const IntegerType *Byte = Context.typePool().getType<TypeKind::Integer>(8, false);
+    const IntegerType *SignedByte = Context.typePool().getType<TypeKind::Integer>(8, true);
+    const IntegerType *Wide = Context.typePool().getType<TypeKind::Integer>(16, false);
     ASSERT_NE(String, nullptr);
     ASSERT_NE(Foreign, nullptr);
     ASSERT_NE(Byte, nullptr);
@@ -125,21 +126,21 @@ namespace ink::semantic::test
     const StringConstant *Value = Pool.getStringConstant(*String, "hello,world");
     ASSERT_NE(Value, nullptr);
     const SliceType *InvalidTypes[] = {
-        Context.getSliceType(*Byte, AccessKind::ReadWrite),
-        Context.getSliceType(*SignedByte, AccessKind::ReadOnly),
-        Context.getSliceType(*Wide, AccessKind::ReadOnly),
-        Context.getSliceType(Context.getBoolType(), AccessKind::ReadOnly),
-        Context.getSliceType(*String, AccessKind::ReadOnly),
+        Context.typePool().getType<TypeKind::Slice>(*Byte, AccessKind::ReadWrite),
+        Context.typePool().getType<TypeKind::Slice>(*SignedByte, AccessKind::ReadOnly),
+        Context.typePool().getType<TypeKind::Slice>(*Wide, AccessKind::ReadOnly),
+        Context.typePool().getType<TypeKind::Slice>(Context.typePool().getType<TypeKind::Bool>(), AccessKind::ReadOnly),
+        Context.typePool().getType<TypeKind::Slice>(*String, AccessKind::ReadOnly),
         Foreign,
     };
     for (const SliceType *Invalid : InvalidTypes)
     {
       ASSERT_NE(Invalid, nullptr);
       EXPECT_EQ(Pool.getStringConstant(*Invalid, "hello,world"), nullptr);
-      EXPECT_EQ(Context.getStringConstant(*Invalid, ""), nullptr);
+      EXPECT_EQ(Context.constantPool().getStringConstant(*Invalid, ""), nullptr);
       EXPECT_EQ(Pool.size(), 3U);
     }
-    EXPECT_EQ(Other.getStringConstant(*String, "hello,world"), nullptr);
+    EXPECT_EQ(Other.constantPool().getStringConstant(*String, "hello,world"), nullptr);
     EXPECT_EQ(Other.constantPool().size(), 2U);
     EXPECT_EQ(Pool.getStringConstant(*String, "hello,world"), Value);
     EXPECT_TRUE(Pool.owns(*Value));
@@ -179,8 +180,8 @@ namespace ink::semantic::test
     EXPECT_EQ(Long->value().data(), LongView.data());
     EXPECT_EQ(ShortView, "hello,world");
     EXPECT_EQ(LongView, std::string(65536, 'x'));
-    EXPECT_EQ(Short, Context.getStringConstant(*String, ShortView));
-    EXPECT_EQ(Long, Context.getStringConstant(*String, LongView));
+    EXPECT_EQ(Short, Context.constantPool().getStringConstant(*String, ShortView));
+    EXPECT_EQ(Long, Context.constantPool().getStringConstant(*String, LongView));
     EXPECT_TRUE(Pool.owns(*Short));
     EXPECT_TRUE(Pool.owns(*Long));
     EXPECT_EQ(Pool.size(), 2052U);
@@ -191,6 +192,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
     SemanticContext Other(Compilation);
     const SliceType *LocalType = getStringType(Context);
     const SliceType *OtherType = getStringType(Other);
@@ -201,8 +203,8 @@ namespace ink::semantic::test
     const auto &Byte = static_cast<const IntegerType &>(LocalType->elementType());
     EXPECT_EQ(Byte.bitWidth(), 8U);
     EXPECT_FALSE(Byte.isSigned());
-    const StringConstant *Local = Context.getStringConstant(*LocalType, "hello,world");
-    const StringConstant *Foreign = Other.getStringConstant(*OtherType, "hello,world");
+    const StringConstant *Local = Context.constantPool().getStringConstant(*LocalType, "hello,world");
+    const StringConstant *Foreign = Other.constantPool().getStringConstant(*OtherType, "hello,world");
     ASSERT_NE(Local, nullptr);
     ASSERT_NE(Foreign, nullptr);
     EXPECT_NE(Local, Foreign);
@@ -210,15 +212,18 @@ namespace ink::semantic::test
     EXPECT_FALSE(Context.constantPool().owns(*Foreign));
     EXPECT_TRUE(Other.constantPool().owns(*Foreign));
     EXPECT_FALSE(Other.constantPool().owns(*Local));
-    AllocaInstruction *Slot = Context.createAllocaInstruction(*LocalType);
+    auto SlotOwner = Factory.createDetachedAllocaInstruction(*LocalType);
+    AllocaInstruction *Slot = SlotOwner.get();
     ASSERT_NE(Slot, nullptr);
-    EXPECT_EQ(Context.createStoreInstruction(*Slot, *Foreign), nullptr);
-    const SliceType *Writable = Context.getSliceType(Byte, AccessKind::ReadWrite);
+    EXPECT_EQ(Factory.createDetachedStoreInstruction(*Slot, *Foreign), nullptr);
+    const SliceType *Writable = Context.typePool().getType<TypeKind::Slice>(Byte, AccessKind::ReadWrite);
     ASSERT_NE(Writable, nullptr);
-    AllocaInstruction *WritableSlot = Context.createAllocaInstruction(*Writable);
+    auto WritableSlotOwner = Factory.createDetachedAllocaInstruction(*Writable);
+    AllocaInstruction *WritableSlot = WritableSlotOwner.get();
     ASSERT_NE(WritableSlot, nullptr);
-    EXPECT_EQ(Context.createStoreInstruction(*WritableSlot, *Local), nullptr);
-    const StoreInstruction *Store = Context.createStoreInstruction(*Slot, *Local);
+    EXPECT_EQ(Factory.createDetachedStoreInstruction(*WritableSlot, *Local), nullptr);
+    auto StoreOwner = Factory.createDetachedStoreInstruction(*Slot, *Local);
+    const StoreInstruction *Store = StoreOwner.get();
     ASSERT_NE(Store, nullptr);
     EXPECT_EQ(&Store->storedValue(), Local);
   }

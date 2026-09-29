@@ -1,3 +1,6 @@
+#include "ink/semantic/ir_builder.h"
+#include "ownership_test_support.h"
+
 #include "ink/semantic/model/function/function.h"
 #include "ink/semantic/context.h"
 
@@ -12,18 +15,21 @@ namespace ink::semantic::test
   static_assert(!std::is_base_of_v<Decl, Function>);
   static_assert(!std::is_copy_constructible_v<Function>);
   static_assert(!std::is_move_constructible_v<Function>);
-  static_assert(std::is_same_v<decltype(std::declval<Function &>().blocks()), const std::vector<BasicBlock *> &>);
+  static_assert(std::is_same_v<decltype(std::declval<Function &>().blocks()), const std::vector<std::unique_ptr<BasicBlock>> &>);
 
   // Same-named functions share a structural signature while keeping independent callable identities.
   TEST(SemanticFunctionTest, ClosedFunctionsHaveIndependentValueIdentity)
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    const FunctionType *Signature = Context.getFunctionType(Context.getBoolType());
+    IRBuilder Factory(Context);
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Bool>());
     ASSERT_NE(Signature, nullptr);
     const Name NameValue = Context.namePool().intern("Ready");
-    const Function *First = Context.createFunction(NameValue, *Signature);
-    const Function *Second = Context.createFunction(NameValue, *Signature);
+    auto FirstOwner = Factory.createFunction(NameValue, *Signature);
+    const Function *First = FirstOwner.get();
+    auto SecondOwner = Factory.createFunction(NameValue, *Signature);
+    const Function *Second = SecondOwner.get();
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
     EXPECT_NE(First, Second);
@@ -41,10 +47,11 @@ namespace ink::semantic::test
     EXPECT_FALSE(Function::classof(Signature));
     EXPECT_FALSE(Function::classof(nullptr));
     EXPECT_FALSE(Constant::classof(First));
-    const CallInstruction *Call = Context.createCallInstruction(*First);
+    auto CallOwner = Factory.createDetachedCallInstruction(*First);
+    const CallInstruction *Call = CallOwner.get();
     ASSERT_NE(Call, nullptr);
     EXPECT_EQ(Call->directCallee(), First);
-    EXPECT_EQ(&Call->type(), &Context.getBoolType());
+    EXPECT_EQ(&Call->type(), &Context.typePool().getType<TypeKind::Bool>());
   }
 
   // Calling conventions and language linkages vary independently on a shared signature and survive body creation.
@@ -52,21 +59,24 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    const FunctionType *Signature = Context.getFunctionType(Context.getVoidType());
+    IRBuilder Factory(Context);
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
     ASSERT_NE(Signature, nullptr);
     const Name NameValue = Context.namePool().intern("Target");
     for (CallingConvention Convention : {CallingConvention::C, CallingConvention::Fast, CallingConvention::Cold})
     {
       for (LanguageLinkage Linkage : {LanguageLinkage::Ink, LanguageLinkage::C})
       {
-        Function *Target = Context.createFunction(NameValue, *Signature, {}, {}, Convention, Linkage);
+        auto TargetOwner = Factory.createFunction(NameValue, *Signature, {}, {}, Convention, Linkage);
+        Function *Target = TargetOwner.get();
         ASSERT_NE(Target, nullptr);
         EXPECT_FALSE(Target->hasBody());
         EXPECT_EQ(Target->callingConvention(), Convention);
         EXPECT_EQ(Target->languageLinkage(), Linkage);
-        CallInstruction *Call = Context.createCallInstruction(*Target);
+        auto CallOwner = Factory.createDetachedCallInstruction(*Target);
+        CallInstruction *Call = CallOwner.get();
         ASSERT_NE(Call, nullptr);
-        ASSERT_NE(Context.createFunctionBody(*Target), nullptr);
+        ASSERT_NE(Factory.createFunctionBody(*Target), nullptr);
         EXPECT_TRUE(Target->hasBody());
         EXPECT_EQ(Target->callingConvention(), Convention);
         EXPECT_EQ(Target->languageLinkage(), Linkage);
@@ -81,51 +91,59 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    const FunctionType *Signature = Context.getFunctionType(Context.getVoidType());
+    IRBuilder Factory(Context);
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
     ASSERT_NE(Signature, nullptr);
     const Name NameValue = Context.namePool().intern("Main");
-    Function *Target = Context.createFunction(NameValue, *Signature);
+    auto TargetOwner = Factory.createFunction(NameValue, *Signature);
+    Function *Target = TargetOwner.get();
     ASSERT_NE(Target, nullptr);
-    CallInstruction *FirstCall = Context.createCallInstruction(*Target);
-    CallInstruction *SecondCall = Context.createCallInstruction(*Target);
+    auto FirstCallOwner = Factory.createDetachedCallInstruction(*Target);
+    CallInstruction *FirstCall = FirstCallOwner.get();
+    auto SecondCallOwner = Factory.createDetachedCallInstruction(*Target);
+    CallInstruction *SecondCall = SecondCallOwner.get();
     ASSERT_NE(FirstCall, nullptr);
     ASSERT_NE(SecondCall, nullptr);
     EXPECT_FALSE(Target->hasBody());
     EXPECT_EQ(Target->entryBlock(), nullptr);
 
-    BasicBlock *Entry = Context.createFunctionBody(*Target);
+    BasicBlock *Entry = Factory.createFunctionBody(*Target);
     ASSERT_NE(Entry, nullptr);
     EXPECT_TRUE(Target->hasBody());
     EXPECT_EQ(Target->entryBlock(), Entry);
     const Function &View = *Target;
     ASSERT_EQ(View.blocks().size(), 1U);
-    EXPECT_EQ(View.blocks().front(), Entry);
+    EXPECT_EQ(View.blocks().front().get(), Entry);
     EXPECT_EQ(View.entryBlock(), Entry);
     EXPECT_EQ(View.entryBlock()->outer(), &View);
     EXPECT_EQ(&Entry->context(), &Context);
-    EXPECT_EQ(&Entry->type(), &Context.getLabelType());
+    EXPECT_EQ(&Entry->type(), &Context.typePool().getType<TypeKind::Label>());
     EXPECT_TRUE(Entry->values().empty());
-    ASSERT_TRUE(Context.appendValue(*Entry, *FirstCall));
-    ASSERT_TRUE(Context.appendValue(*Entry, *SecondCall));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(FirstCallOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(SecondCallOwner)));
 
+    auto Container = Factory.createBasicBlock();
+    ASSERT_TRUE(Factory.appendValue(*Container, std::move(TargetOwner)));
     for (unsigned Index = 0; Index < 64; ++Index)
     {
-      Function *Next = Context.createFunction(NameValue, *Signature);
+      auto NextOwner = Factory.createFunction(NameValue, *Signature);
+      Function *Next = NextOwner.get();
       ASSERT_NE(Next, nullptr);
-      BasicBlock *NextEntry = Context.createFunctionBody(*Next);
+      BasicBlock *NextEntry = Factory.createFunctionBody(*Next);
       ASSERT_NE(NextEntry, nullptr);
       EXPECT_NE(NextEntry, Entry);
       EXPECT_EQ(NextEntry->outer(), Next);
       EXPECT_TRUE(NextEntry->values().empty());
+      ASSERT_TRUE(Factory.appendValue(*Container, std::move(NextOwner)));
     }
 
     EXPECT_EQ(Target->entryBlock(), Entry);
     EXPECT_EQ(Entry->outer(), Target);
-    EXPECT_EQ(Target->outer(), nullptr);
+    EXPECT_EQ(Target->outer(), Container.get());
     EXPECT_EQ(&Target->type(), Signature);
     ASSERT_EQ(Entry->values().size(), 2U);
-    EXPECT_EQ(Entry->values()[0], FirstCall);
-    EXPECT_EQ(Entry->values()[1], SecondCall);
+    EXPECT_EQ(Entry->values()[0].get(), FirstCall);
+    EXPECT_EQ(Entry->values()[1].get(), SecondCall);
     EXPECT_EQ(FirstCall->outer(), Entry);
     EXPECT_EQ(SecondCall->outer(), Entry);
     EXPECT_EQ(FirstCall->directCallee(), Target);
@@ -137,44 +155,48 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    const FunctionType *Signature = Context.getFunctionType(Context.getVoidType());
+    IRBuilder Factory(Context);
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
     ASSERT_NE(Signature, nullptr);
-    Function *Target = Context.createFunction(Context.namePool().intern("Main"), *Signature);
+    auto TargetOwner = Factory.createFunction(Context.namePool().intern("Main"), *Signature);
+    Function *Target = TargetOwner.get();
     ASSERT_NE(Target, nullptr);
-    BasicBlock *Entry = Context.createBasicBlock(*Target);
+    BasicBlock *Entry = Factory.createBasicBlock(*Target);
     ASSERT_NE(Entry, nullptr);
     EXPECT_TRUE(Target->hasBody());
     EXPECT_EQ(Target->entryBlock(), Entry);
-    EXPECT_EQ(Context.createFunctionBody(*Target), nullptr);
-    CallInstruction *EntryCall = Context.createCallInstruction(*Target);
+    EXPECT_EQ(Factory.createFunctionBody(*Target), nullptr);
+    auto EntryCallOwner = Factory.createDetachedCallInstruction(*Target);
+    CallInstruction *EntryCall = EntryCallOwner.get();
     ASSERT_NE(EntryCall, nullptr);
-    ASSERT_TRUE(Context.appendValue(*Entry, *EntryCall));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(EntryCallOwner)));
     std::vector<BasicBlock *> Expected = {Entry};
     for (unsigned Index = 0; Index < 64; ++Index)
     {
-      BasicBlock *Next = Context.createBasicBlock(*Target);
+      BasicBlock *Next = Factory.createBasicBlock(*Target);
       ASSERT_NE(Next, nullptr);
       EXPECT_NE(Next, Entry);
       EXPECT_EQ(Next->outer(), Target);
       EXPECT_EQ(&Next->context(), &Context);
-      EXPECT_EQ(&Next->type(), &Context.getLabelType());
+      EXPECT_EQ(&Next->type(), &Context.typePool().getType<TypeKind::Label>());
       EXPECT_TRUE(Next->values().empty());
       Expected.push_back(Next);
     }
-    CallInstruction *LastCall = Context.createCallInstruction(*Target);
+    auto LastCallOwner = Factory.createDetachedCallInstruction(*Target);
+    CallInstruction *LastCall = LastCallOwner.get();
     ASSERT_NE(LastCall, nullptr);
-    ASSERT_TRUE(Context.appendValue(*Expected.back(), *LastCall));
+    ASSERT_TRUE(Factory.appendValue(*Expected.back(), std::move(LastCallOwner)));
 
     const Function &View = *Target;
-    EXPECT_EQ(View.blocks(), Expected);
+    EXPECT_EQ(borrowedPointers(View.blocks()), Expected);
     EXPECT_EQ(View.entryBlock(), Entry);
     EXPECT_EQ(Entry->outer(), Target);
     ASSERT_EQ(Entry->values().size(), 1U);
-    EXPECT_EQ(Entry->values().front(), EntryCall);
+    EXPECT_EQ(Entry->values().front().get(), EntryCall);
     EXPECT_EQ(EntryCall->outer(), Entry);
     ASSERT_EQ(View.blocks().back()->values().size(), 1U);
-    EXPECT_EQ(View.blocks().back()->values().front(), LastCall);
-    EXPECT_EQ(LastCall->outer(), View.blocks().back());
+    EXPECT_EQ(View.blocks().back()->values().front().get(), LastCall);
+    EXPECT_EQ(LastCall->outer(), View.blocks().back().get());
     EXPECT_EQ(&View.type(), Signature);
   }
 
@@ -183,35 +205,39 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
     SemanticContext Other(Compilation);
-    const FunctionType *Signature = Context.getFunctionType(Context.getVoidType());
+    IRBuilder OtherFactory(Other);
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
     ASSERT_NE(Signature, nullptr);
-    Function *Target = Context.createFunction(Context.namePool().intern("Target"), *Signature);
+    auto TargetOwner = Factory.createFunction(Context.namePool().intern("Target"), *Signature);
+    Function *Target = TargetOwner.get();
     ASSERT_NE(Target, nullptr);
-    EXPECT_EQ(Other.createFunctionBody(*Target), nullptr);
-    EXPECT_EQ(Other.createBasicBlock(*Target), nullptr);
+    EXPECT_EQ(OtherFactory.createFunctionBody(*Target), nullptr);
+    EXPECT_EQ(OtherFactory.createBasicBlock(*Target), nullptr);
     EXPECT_FALSE(Target->hasBody());
     EXPECT_EQ(Target->entryBlock(), nullptr);
     EXPECT_TRUE(Target->blocks().empty());
-    BasicBlock *Entry = Context.createFunctionBody(*Target);
+    BasicBlock *Entry = Factory.createFunctionBody(*Target);
     ASSERT_NE(Entry, nullptr);
-    CallInstruction *Call = Context.createCallInstruction(*Target);
+    auto CallOwner = Factory.createDetachedCallInstruction(*Target);
+    CallInstruction *Call = CallOwner.get();
     ASSERT_NE(Call, nullptr);
-    ASSERT_TRUE(Context.appendValue(*Entry, *Call));
-    BasicBlock *Tail = Context.createBasicBlock(*Target);
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(CallOwner)));
+    BasicBlock *Tail = Factory.createBasicBlock(*Target);
     ASSERT_NE(Tail, nullptr);
 
-    EXPECT_EQ(Context.createFunctionBody(*Target), nullptr);
-    EXPECT_EQ(Other.createFunctionBody(*Target), nullptr);
-    EXPECT_EQ(Other.createBasicBlock(*Target), nullptr);
+    EXPECT_EQ(Factory.createFunctionBody(*Target), nullptr);
+    EXPECT_EQ(OtherFactory.createFunctionBody(*Target), nullptr);
+    EXPECT_EQ(OtherFactory.createBasicBlock(*Target), nullptr);
     EXPECT_EQ(Target->entryBlock(), Entry);
     EXPECT_EQ(Entry->outer(), Target);
     ASSERT_EQ(Target->blocks().size(), 2U);
-    EXPECT_EQ(Target->blocks()[0], Entry);
-    EXPECT_EQ(Target->blocks()[1], Tail);
+    EXPECT_EQ(Target->blocks()[0].get(), Entry);
+    EXPECT_EQ(Target->blocks()[1].get(), Tail);
     EXPECT_EQ(Tail->outer(), Target);
     ASSERT_EQ(Entry->values().size(), 1U);
-    EXPECT_EQ(Entry->values()[0], Call);
+    EXPECT_EQ(Entry->values()[0].get(), Call);
     EXPECT_EQ(Call->outer(), Entry);
   }
 
@@ -220,32 +246,35 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    const FunctionType *Signature = Context.getFunctionType(Context.getVoidType());
+    IRBuilder Factory(Context);
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
     ASSERT_NE(Signature, nullptr);
-    Function *Root = Context.createFunction(Context.namePool().intern("Root"), *Signature);
-    Function *Nested = Context.createFunction(Context.namePool().intern("Nested"), *Signature);
+    auto RootOwner = Factory.createFunction(Context.namePool().intern("Root"), *Signature);
+    Function *Root = RootOwner.get();
+    auto NestedOwner = Factory.createFunction(Context.namePool().intern("Nested"), *Signature);
+    Function *Nested = NestedOwner.get();
     ASSERT_NE(Root, nullptr);
     ASSERT_NE(Nested, nullptr);
-    BasicBlock *RootEntry = Context.createFunctionBody(*Root);
-    BasicBlock *NestedEntry = Context.createFunctionBody(*Nested);
-    BasicBlock *RootTail = Context.createBasicBlock(*Root);
-    BasicBlock *NestedTail = Context.createBasicBlock(*Nested);
-    BasicBlock *Detached = Context.createBasicBlock();
+    BasicBlock *RootEntry = Factory.createFunctionBody(*Root);
+    BasicBlock *NestedEntry = Factory.createFunctionBody(*Nested);
+    BasicBlock *RootTail = Factory.createBasicBlock(*Root);
+    BasicBlock *NestedTail = Factory.createBasicBlock(*Nested);
+    auto DetachedOwner = Factory.createBasicBlock();
+    BasicBlock *Detached = DetachedOwner.get();
     ASSERT_NE(RootEntry, nullptr);
     ASSERT_NE(NestedEntry, nullptr);
     ASSERT_NE(RootTail, nullptr);
     ASSERT_NE(NestedTail, nullptr);
     ASSERT_NE(Detached, nullptr);
-    EXPECT_FALSE(Context.appendValue(*RootEntry, *Root));
-    EXPECT_FALSE(Context.appendValue(*RootTail, *Root));
-    EXPECT_FALSE(Context.appendValue(*Detached, *RootEntry));
-    EXPECT_FALSE(Context.appendValue(*Detached, *RootTail));
-    EXPECT_FALSE(Context.removeValue(*Detached, *RootEntry));
-    ASSERT_TRUE(Context.appendValue(*RootEntry, *Nested));
-    EXPECT_FALSE(Context.appendValue(*NestedEntry, *Root));
-    EXPECT_FALSE(Context.appendValue(*NestedEntry, *RootEntry));
-    EXPECT_FALSE(Context.appendValue(*NestedTail, *Root));
-    EXPECT_FALSE(Context.appendValue(*NestedTail, *RootTail));
+    EXPECT_FALSE(Factory.appendValue(*RootEntry, std::move(RootOwner)));
+    EXPECT_FALSE(Factory.appendValue(*RootTail, std::move(RootOwner)));
+    EXPECT_EQ(Factory.removeValue(*Detached, *RootTail), nullptr);
+    EXPECT_FALSE(Factory.removeValue(*Detached, *RootEntry));
+    ASSERT_TRUE(Factory.appendValue(*RootEntry, std::move(NestedOwner)));
+    EXPECT_FALSE(Factory.appendValue(*NestedEntry, std::move(RootOwner)));
+    EXPECT_EQ(Factory.removeValue(*NestedEntry, *RootEntry), nullptr);
+    EXPECT_FALSE(Factory.appendValue(*NestedTail, std::move(RootOwner)));
+    EXPECT_EQ(Factory.removeValue(*NestedTail, *RootTail), nullptr);
     EXPECT_EQ(RootEntry->outer(), Root);
     EXPECT_EQ(NestedEntry->outer(), Nested);
     EXPECT_EQ(RootTail->outer(), Root);
@@ -254,17 +283,18 @@ namespace ink::semantic::test
     EXPECT_TRUE(NestedEntry->values().empty());
     EXPECT_TRUE(Detached->values().empty());
 
-    ASSERT_TRUE(Context.removeValue(*RootEntry, *Nested));
+    auto RemovedNestedOwner = Factory.removeValue(*RootEntry, *Nested);
+    ASSERT_EQ(RemovedNestedOwner.get(), Nested);
     EXPECT_EQ(Nested->outer(), nullptr);
     EXPECT_EQ(NestedEntry->outer(), Nested);
     EXPECT_EQ(Nested->entryBlock(), NestedEntry);
-    ASSERT_TRUE(Context.appendValue(*Detached, *Nested));
+    ASSERT_TRUE(Factory.appendValue(*Detached, std::move(RemovedNestedOwner)));
     EXPECT_EQ(Nested->outer(), Detached);
     EXPECT_EQ(NestedEntry->outer(), Nested);
     EXPECT_EQ(NestedTail->outer(), Nested);
     ASSERT_EQ(Nested->blocks().size(), 2U);
-    EXPECT_EQ(Nested->blocks()[0], NestedEntry);
-    EXPECT_EQ(Nested->blocks()[1], NestedTail);
+    EXPECT_EQ(Nested->blocks()[0].get(), NestedEntry);
+    EXPECT_EQ(Nested->blocks()[1].get(), NestedTail);
     EXPECT_TRUE(RootEntry->values().empty());
   }
 
@@ -273,17 +303,18 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
     SemanticContext Other(Compilation);
-    const FunctionType *Signature = Context.getFunctionType(Context.getVoidType());
-    const FunctionType *Foreign = Other.getFunctionType(Other.getVoidType());
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
+    const FunctionType *Foreign = Other.typePool().getType<TypeKind::Function>(Other.typePool().getType<TypeKind::Void>());
     ASSERT_NE(Signature, nullptr);
     ASSERT_NE(Foreign, nullptr);
-    EXPECT_EQ(Context.createFunction(Name{}, *Signature), nullptr);
-    EXPECT_EQ(Context.createFunction(Other.namePool().intern("Foreign"), *Signature), nullptr);
+    EXPECT_EQ(Factory.createFunction(Name{}, *Signature), nullptr);
+    EXPECT_EQ(Factory.createFunction(Other.namePool().intern("Foreign"), *Signature), nullptr);
     const Name NameValue = Context.namePool().intern("Local");
-    EXPECT_EQ(Context.createFunction(NameValue, *Foreign), nullptr);
-    EXPECT_EQ(Context.createFunction(NameValue, *Signature, {}, {}, static_cast<CallingConvention>(255)), nullptr);
-    EXPECT_EQ(Context.createFunction(NameValue, *Signature, {}, {}, CallingConvention::C, static_cast<LanguageLinkage>(255)), nullptr);
-    EXPECT_NE(Context.createFunction(NameValue, *Signature), nullptr);
+    EXPECT_EQ(Factory.createFunction(NameValue, *Foreign), nullptr);
+    EXPECT_EQ(Factory.createFunction(NameValue, *Signature, {}, {}, static_cast<CallingConvention>(255)), nullptr);
+    EXPECT_EQ(Factory.createFunction(NameValue, *Signature, {}, {}, CallingConvention::C, static_cast<LanguageLinkage>(255)), nullptr);
+    EXPECT_NE(Factory.createFunction(NameValue, *Signature), nullptr);
   }
 } // namespace ink::semantic::test

@@ -1,6 +1,9 @@
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include "ink/semantic/context.h"
+#include "ink/semantic/model/decl/class_decl.h"
+#include "ink/semantic/model/decl/function_decl.h"
+#include "ink/semantic/model/function/function.h"
 
 #include <utility>
 
@@ -84,7 +87,7 @@ namespace ink::semantic
 
   NameResolver::BindResult NameResolver::bind(Name BoundName, Decl &Declaration)
   {
-    if (!Context.owns(Declaration))
+    if (&Declaration.module().context() != &Context)
     {
       return BindResult::ForeignDecl;
     }

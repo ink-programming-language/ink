@@ -2,6 +2,7 @@
 
 #include "ink/parser/parser.h"
 #include "ink/semantic/context.h"
+#include "ink/semantic/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <cstdlib>
@@ -28,8 +29,9 @@ namespace ink::semantic
       return nullptr;
     }
     const parser::ModuleAST &Root = *Input.Unit->root();
-    Module *Result = Context.createModule(Context.namePool().intern(ModuleName));
-    if (!Result)
+    IRBuilder Builder(Context);
+    Module *Result = Builder.createModule(Context.namePool().intern(ModuleName));
+    if (!Result || !Builder.createModuleDecl(*Result, Root))
     {
       auto Diagnostic = core::makeDiagnostic<core::DiagnosticKind::SemanticConstructionFailed>(Root.getSourceRange());
       Diagnostic.Source = Lexed.sourceId();

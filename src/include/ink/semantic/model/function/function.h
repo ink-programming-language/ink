@@ -39,7 +39,7 @@ namespace ink::semantic
         return !Blocks.empty();
       }
 
-      std::span<const FunctionParameter *const> parameters() const noexcept
+      const std::vector<std::unique_ptr<FunctionParameter>> &parameters() const noexcept
       {
         return Parameters;
       }
@@ -47,16 +47,16 @@ namespace ink::semantic
       // The first block is the entry; declarations have no blocks and return null.
       BasicBlock *entryBlock() noexcept
       {
-        return Blocks.empty() ? nullptr : Blocks.front();
+        return Blocks.empty() ? nullptr : Blocks.front().get();
       }
 
       const BasicBlock *entryBlock() const noexcept
       {
-        return Blocks.empty() ? nullptr : Blocks.front();
+        return Blocks.empty() ? nullptr : Blocks.front().get();
       }
 
-      // Structural children in insertion order, not execution order. Context manages membership.
-      const std::vector<BasicBlock *> &blocks() const noexcept
+      // Owned blocks in insertion order, not execution order. IRBuilder creates and attaches blocks.
+      const std::vector<std::unique_ptr<BasicBlock>> &blocks() const noexcept
       {
         return Blocks;
       }
@@ -78,10 +78,11 @@ namespace ink::semantic
       Name FunctionName;
       CallingConvention Convention;
       LanguageLinkage Linkage;
-      std::vector<BasicBlock *> Blocks;
-      std::vector<const FunctionParameter *> Parameters;
+      // Blocks are destroyed before the parameters referenced by their instructions.
+      std::vector<std::unique_ptr<FunctionParameter>> Parameters;
+      std::vector<std::unique_ptr<BasicBlock>> Blocks;
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

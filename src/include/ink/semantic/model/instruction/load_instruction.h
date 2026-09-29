@@ -28,7 +28,7 @@ namespace ink::semantic
 
       const Value &Address;
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

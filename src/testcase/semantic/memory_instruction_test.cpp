@@ -1,3 +1,4 @@
+#include "ink/semantic/ir_builder.h"
 #include "ink/semantic/model/instruction/alloca_instruction.h"
 #include "ink/semantic/model/instruction/load_instruction.h"
 #include "ink/semantic/model/instruction/store_instruction.h"
@@ -22,13 +23,17 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    const IntegerType *Int32 = Context.getIntegerType(32, true);
-    const FunctionType *Signature = Context.getFunctionType(Context.getVoidType());
-    Function *Main = Context.createFunction(Context.namePool().intern("Main"), *Signature);
+    IRBuilder Factory(Context);
+    const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
+    auto MainOwner = Factory.createFunction(Context.namePool().intern("Main"), *Signature);
+    Function *Main = MainOwner.get();
     ASSERT_NE(Main, nullptr);
-    BasicBlock *Entry = Context.createFunctionBody(*Main);
-    AllocaInstruction *Slot = Context.createAllocaInstruction(*Int32);
-    AllocaInstruction *SecondSlot = Context.createAllocaInstruction(*Int32);
+    BasicBlock *Entry = Factory.createFunctionBody(*Main);
+    auto SlotOwner = Factory.createDetachedAllocaInstruction(*Int32);
+    AllocaInstruction *Slot = SlotOwner.get();
+    auto SecondSlotOwner = Factory.createDetachedAllocaInstruction(*Int32);
+    AllocaInstruction *SecondSlot = SecondSlotOwner.get();
     ASSERT_NE(Entry, nullptr);
     ASSERT_NE(Slot, nullptr);
     ASSERT_NE(SecondSlot, nullptr);
@@ -38,14 +43,18 @@ namespace ink::semantic::test
     EXPECT_EQ(static_cast<const PointerType &>(Slot->type()).access(), AccessKind::ReadWrite);
     EXPECT_EQ(Slot->outer(), nullptr);
 
-    const IntegerConstant *Two = Context.getIntegerConstant(*Int32, IntegerBits(32, 2));
-    const IntegerConstant *Four = Context.getIntegerConstant(*Int32, IntegerBits(32, 4));
+    const IntegerConstant *Two = Context.constantPool().getIntegerConstant(*Int32, IntegerBits(32, 2));
+    const IntegerConstant *Four = Context.constantPool().getIntegerConstant(*Int32, IntegerBits(32, 4));
     ASSERT_NE(Two, nullptr);
     ASSERT_NE(Four, nullptr);
-    StoreInstruction *Initialize = Context.createStoreInstruction(*Slot, *Two);
-    LoadInstruction *FirstRead = Context.createLoadInstruction(*Slot);
-    StoreInstruction *Assign = Context.createStoreInstruction(*Slot, *Four);
-    LoadInstruction *SecondRead = Context.createLoadInstruction(*Slot);
+    auto InitializeOwner = Factory.createDetachedStoreInstruction(*Slot, *Two);
+    StoreInstruction *Initialize = InitializeOwner.get();
+    auto FirstReadOwner = Factory.createDetachedLoadInstruction(*Slot);
+    LoadInstruction *FirstRead = FirstReadOwner.get();
+    auto AssignOwner = Factory.createDetachedStoreInstruction(*Slot, *Four);
+    StoreInstruction *Assign = AssignOwner.get();
+    auto SecondReadOwner = Factory.createDetachedLoadInstruction(*Slot);
+    LoadInstruction *SecondRead = SecondReadOwner.get();
     ASSERT_NE(Initialize, nullptr);
     ASSERT_NE(FirstRead, nullptr);
     ASSERT_NE(Assign, nullptr);
@@ -56,15 +65,23 @@ namespace ink::semantic::test
     EXPECT_EQ(&FirstRead->address(), Slot);
     EXPECT_EQ(&SecondRead->address(), Slot);
     EXPECT_EQ(&FirstRead->type(), Int32);
-    EXPECT_EQ(&Assign->type(), &Context.getVoidType());
+    EXPECT_EQ(&Assign->type(), &Context.typePool().getType<TypeKind::Void>());
 
     const Type *Parameters[] = {Int32};
-    const FunctionType *PrintType = Context.getFunctionType(Context.getVoidType(), Parameters);
-    const Function *Print = Context.createFunction(Context.namePool().intern("Print"), *PrintType);
+    const FunctionType *PrintType = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>(), Parameters);
+    auto PrintOwner = Factory.createFunction(Context.namePool().intern("Print"), *PrintType);
+    const Function *Print = PrintOwner.get();
     ASSERT_NE(Print, nullptr);
     const Value *Arguments[] = {SecondRead};
-    CallInstruction *Call = Context.createCallInstruction(*Print, Arguments);
+    auto CallOwner = Factory.createDetachedCallInstruction(*Print, Arguments);
+    CallInstruction *Call = CallOwner.get();
     ASSERT_NE(Call, nullptr);
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(SlotOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(InitializeOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(FirstReadOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(AssignOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(SecondReadOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(CallOwner)));
     Value *Sequence[] = {
         Slot,
         Initialize,
@@ -75,24 +92,24 @@ namespace ink::semantic::test
     };
     for (Value *Operation : Sequence)
     {
-      ASSERT_TRUE(Context.appendValue(*Entry, *Operation));
       EXPECT_EQ(Operation->outer(), Entry);
     }
     ASSERT_EQ(Entry->values().size(), 6U);
     for (std::size_t Index = 0; Index < Entry->values().size(); ++Index)
     {
-      EXPECT_EQ(Entry->values()[Index], Sequence[Index]);
+      EXPECT_EQ(Entry->values()[Index].get(), Sequence[Index]);
     }
     EXPECT_EQ(Entry->outer(), Main);
     EXPECT_EQ(Two->outer(), nullptr);
     EXPECT_EQ(Four->outer(), nullptr);
     EXPECT_EQ(Print->outer(), nullptr);
-    EXPECT_FALSE(Context.appendValue(*Entry, *Initialize));
-    ASSERT_TRUE(Context.removeValue(*Entry, *Call));
+    EXPECT_FALSE(Factory.appendValue(*Entry, std::move(InitializeOwner)));
+    auto RemovedCallOwner = Factory.removeValue(*Entry, *Call);
+    ASSERT_EQ(RemovedCallOwner.get(), Call);
     EXPECT_EQ(Call->outer(), nullptr);
     EXPECT_EQ(Call->arguments()[0], SecondRead);
-    ASSERT_TRUE(Context.appendValue(*Entry, *Call));
-    EXPECT_EQ(Entry->values().back(), Call);
+    ASSERT_TRUE(Factory.appendValue(*Entry, std::move(RemovedCallOwner)));
+    EXPECT_EQ(Entry->values().back().get(), Call);
   }
 
   // Scalars, indirect values, slices and nested fixed arrays use canonical writable address types.
@@ -100,38 +117,42 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    const IntegerType *Int32 = Context.getIntegerType(32, true);
-    const ArrayType *Row = Context.getArrayType(*Int32, 3);
+    IRBuilder Factory(Context);
+    const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
+    const ArrayType *Row = Context.typePool().getType<TypeKind::Array>(*Int32, 3);
     const Type *Types[] = {
-        &Context.getBoolType(),
+        &Context.typePool().getType<TypeKind::Bool>(),
         Int32,
-        Context.getIntegerType(129, false),
-        Context.getFloatType(16),
-        Context.getFloatType(32),
-        Context.getFloatType(64),
-        Context.getPointerType(*Int32, AccessKind::ReadOnly),
-        Context.getReferenceType(*Int32, AccessKind::ReadWrite),
-        Context.getSliceType(*Int32, AccessKind::ReadOnly),
+        Context.typePool().getType<TypeKind::Integer>(129, false),
+        Context.typePool().getType<TypeKind::Float>(16),
+        Context.typePool().getType<TypeKind::Float>(32),
+        Context.typePool().getType<TypeKind::Float>(64),
+        Context.typePool().getType<TypeKind::Pointer>(*Int32, AccessKind::ReadOnly),
+        Context.typePool().getType<TypeKind::Reference>(*Int32, AccessKind::ReadWrite),
+        Context.typePool().getType<TypeKind::Slice>(*Int32, AccessKind::ReadOnly),
         Row,
-        Context.getArrayType(*Row, 2),
-        Context.getArrayType(*Int32, 0),
+        Context.typePool().getType<TypeKind::Array>(*Row, 2),
+        Context.typePool().getType<TypeKind::Array>(*Int32, 0),
     };
     for (const Type *TypeValue : Types)
     {
       ASSERT_NE(TypeValue, nullptr);
-      AllocaInstruction *Slot = Context.createAllocaInstruction(*TypeValue);
+      auto SlotOwner = Factory.createDetachedAllocaInstruction(*TypeValue);
+      AllocaInstruction *Slot = SlotOwner.get();
       ASSERT_NE(Slot, nullptr);
       EXPECT_EQ(&Slot->allocatedType(), TypeValue);
-      EXPECT_EQ(&Slot->type(), Context.getPointerType(*TypeValue, AccessKind::ReadWrite));
+      EXPECT_EQ(&Slot->type(), Context.typePool().getType<TypeKind::Pointer>(*TypeValue, AccessKind::ReadWrite));
       EXPECT_EQ(&Slot->context(), &Context);
       // Construction validates types; definite initialization is a separate verifier obligation.
-      LoadInstruction *Read = Context.createLoadInstruction(*Slot);
+      auto ReadOwner = Factory.createDetachedLoadInstruction(*Slot);
+      LoadInstruction *Read = ReadOwner.get();
       ASSERT_NE(Read, nullptr);
       EXPECT_EQ(&Read->type(), TypeValue);
-      const StoreInstruction *Write = Context.createStoreInstruction(*Slot, *Read);
+      auto WriteOwner = Factory.createDetachedStoreInstruction(*Slot, *Read);
+      const StoreInstruction *Write = WriteOwner.get();
       ASSERT_NE(Write, nullptr);
       EXPECT_EQ(&Write->storedValue(), Read);
-      EXPECT_EQ(&Write->type(), &Context.getVoidType());
+      EXPECT_EQ(&Write->type(), &Context.typePool().getType<TypeKind::Void>());
     }
   }
 
@@ -140,32 +161,35 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
     const Name NameValue = Context.namePool().intern("Opaque");
-    const ArrayType *VoidArray = Context.getArrayType(Context.getVoidType(), 1);
+    const ArrayType *VoidArray = Context.typePool().getType<TypeKind::Array>(Context.typePool().getType<TypeKind::Void>(), 1);
     const Type *Unsupported[] = {
-        &Context.getMetaType(),
-        &Context.getVoidType(),
-        &Context.getLabelType(),
-        &Context.getModuleType(),
-        Context.getFunctionType(Context.getVoidType()),
-        Context.createClassType(NameValue),
-        Context.createEnumType(NameValue),
-        Context.createInterfaceType(NameValue),
+        &Context.typePool().getType<TypeKind::Meta>(),
+        &Context.typePool().getType<TypeKind::Void>(),
+        &Context.typePool().getType<TypeKind::Label>(),
+        &Context.typePool().getType<TypeKind::Module>(),
+        Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>()),
+        Factory.createClassType(NameValue),
+        Factory.createEnumType(NameValue),
+        Factory.createInterfaceType(NameValue),
         VoidArray,
-        Context.getArrayType(*VoidArray, 2),
+        Context.typePool().getType<TypeKind::Array>(*VoidArray, 2),
     };
     for (const Type *TypeValue : Unsupported)
     {
       ASSERT_NE(TypeValue, nullptr);
-      EXPECT_EQ(Context.createAllocaInstruction(*TypeValue), nullptr);
-      const PointerType *Pointer = Context.getPointerType(*TypeValue, AccessKind::ReadWrite);
+      EXPECT_EQ(Factory.createDetachedAllocaInstruction(*TypeValue), nullptr);
+      const PointerType *Pointer = Context.typePool().getType<TypeKind::Pointer>(*TypeValue, AccessKind::ReadWrite);
       // Storing an address is allowed even when dereferencing its pointee is not yet supported.
-      AllocaInstruction *PointerSlot = Context.createAllocaInstruction(*Pointer);
+      auto PointerSlotOwner = Factory.createDetachedAllocaInstruction(*Pointer);
+      AllocaInstruction *PointerSlot = PointerSlotOwner.get();
       ASSERT_NE(PointerSlot, nullptr);
-      LoadInstruction *Address = Context.createLoadInstruction(*PointerSlot);
+      auto AddressOwner = Factory.createDetachedLoadInstruction(*PointerSlot);
+      LoadInstruction *Address = AddressOwner.get();
       ASSERT_NE(Address, nullptr);
-      EXPECT_EQ(Context.createLoadInstruction(*Address), nullptr);
-      EXPECT_EQ(Context.createStoreInstruction(*Address, Context.getBoolConstant(false)), nullptr);
+      EXPECT_EQ(Factory.createDetachedLoadInstruction(*Address), nullptr);
+      EXPECT_EQ(Factory.createDetachedStoreInstruction(*Address, Context.constantPool().getBoolConstant(false)), nullptr);
     }
   }
 
@@ -174,30 +198,37 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    const IntegerType *Int32 = Context.getIntegerType(32, true);
-    const PointerType *ReadOnly = Context.getPointerType(*Int32, AccessKind::ReadOnly);
-    const PointerType *ReadWrite = Context.getPointerType(*Int32, AccessKind::ReadWrite);
+    IRBuilder Factory(Context);
+    const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
+    const PointerType *ReadOnly = Context.typePool().getType<TypeKind::Pointer>(*Int32, AccessKind::ReadOnly);
+    const PointerType *ReadWrite = Context.typePool().getType<TypeKind::Pointer>(*Int32, AccessKind::ReadWrite);
     for (const PointerType *Pointer : {ReadOnly, ReadWrite})
     {
-      AllocaInstruction *PointerSlot = Context.createAllocaInstruction(*Pointer);
+      auto PointerSlotOwner = Factory.createDetachedAllocaInstruction(*Pointer);
+      AllocaInstruction *PointerSlot = PointerSlotOwner.get();
       ASSERT_NE(PointerSlot, nullptr);
-      LoadInstruction *Address = Context.createLoadInstruction(*PointerSlot);
+      auto AddressOwner = Factory.createDetachedLoadInstruction(*PointerSlot);
+      LoadInstruction *Address = AddressOwner.get();
       ASSERT_NE(Address, nullptr);
-      LoadInstruction *Read = Context.createLoadInstruction(*Address);
+      auto ReadOwner = Factory.createDetachedLoadInstruction(*Address);
+      LoadInstruction *Read = ReadOwner.get();
       ASSERT_NE(Read, nullptr);
       EXPECT_EQ(&Read->type(), Int32);
       EXPECT_EQ(&Read->address(), Address);
-      const StoreInstruction *Write = Context.createStoreInstruction(*Address, *Read);
+      auto WriteOwner = Factory.createDetachedStoreInstruction(*Address, *Read);
+      const StoreInstruction *Write = WriteOwner.get();
       EXPECT_EQ(Write != nullptr, Pointer->access() == AccessKind::ReadWrite);
-      EXPECT_NE(Context.createStoreInstruction(*PointerSlot, *Address), nullptr);
+      EXPECT_NE(Factory.createDetachedStoreInstruction(*PointerSlot, *Address), nullptr);
     }
-    const ReferenceType *Reference = Context.getReferenceType(*Int32, AccessKind::ReadWrite);
-    AllocaInstruction *ReferenceSlot = Context.createAllocaInstruction(*Reference);
+    const ReferenceType *Reference = Context.typePool().getType<TypeKind::Reference>(*Int32, AccessKind::ReadWrite);
+    auto ReferenceSlotOwner = Factory.createDetachedAllocaInstruction(*Reference);
+    AllocaInstruction *ReferenceSlot = ReferenceSlotOwner.get();
     ASSERT_NE(ReferenceSlot, nullptr);
-    LoadInstruction *ReferenceValue = Context.createLoadInstruction(*ReferenceSlot);
+    auto ReferenceValueOwner = Factory.createDetachedLoadInstruction(*ReferenceSlot);
+    LoadInstruction *ReferenceValue = ReferenceValueOwner.get();
     ASSERT_NE(ReferenceValue, nullptr);
-    EXPECT_EQ(Context.createLoadInstruction(*ReferenceValue), nullptr);
-    EXPECT_EQ(Context.createStoreInstruction(*ReferenceValue, Context.getBoolConstant(false)), nullptr);
+    EXPECT_EQ(Factory.createDetachedLoadInstruction(*ReferenceValue), nullptr);
+    EXPECT_EQ(Factory.createDetachedStoreInstruction(*ReferenceValue, Context.constantPool().getBoolConstant(false)), nullptr);
   }
 
   // Memory operands must be local, pointer-typed and exactly match width, signedness and pointee identity.
@@ -205,70 +236,87 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
     SemanticContext Other(Compilation);
-    const IntegerType *Int32 = Context.getIntegerType(32, true);
-    const IntegerType *ForeignInt32 = Other.getIntegerType(32, true);
-    AllocaInstruction *Slot = Context.createAllocaInstruction(*Int32);
-    AllocaInstruction *ForeignSlot = Other.createAllocaInstruction(*ForeignInt32);
+    IRBuilder OtherFactory(Other);
+    const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
+    const IntegerType *ForeignInt32 = Other.typePool().getType<TypeKind::Integer>(32, true);
+    auto SlotOwner = Factory.createDetachedAllocaInstruction(*Int32);
+    AllocaInstruction *Slot = SlotOwner.get();
+    auto ForeignSlotOwner = OtherFactory.createDetachedAllocaInstruction(*ForeignInt32);
+    AllocaInstruction *ForeignSlot = ForeignSlotOwner.get();
     ASSERT_NE(Slot, nullptr);
     ASSERT_NE(ForeignSlot, nullptr);
-    EXPECT_EQ(Context.createAllocaInstruction(*ForeignInt32), nullptr);
-    EXPECT_EQ(Context.createLoadInstruction(*ForeignSlot), nullptr);
-    EXPECT_EQ(Context.createStoreInstruction(*ForeignSlot, Context.getBoolConstant(false)), nullptr);
+    EXPECT_EQ(Factory.createDetachedAllocaInstruction(*ForeignInt32), nullptr);
+    EXPECT_EQ(Factory.createDetachedLoadInstruction(*ForeignSlot), nullptr);
+    EXPECT_EQ(Factory.createDetachedStoreInstruction(*ForeignSlot, Context.constantPool().getBoolConstant(false)), nullptr);
     const Value *InvalidValues[] = {
-        Context.getIntegerConstant(*Context.getIntegerType(32, false), IntegerBits(32, 2)),
-        Context.getIntegerConstant(*Context.getIntegerType(64, true), IntegerBits(64, 2)),
-        Other.getIntegerConstant(*ForeignInt32, IntegerBits(32, 2)),
-        Context.getFloatConstant(*Context.getFloatType(32), FloatBits(32, 0)),
-        &Context.getBoolConstant(false),
+        Context.constantPool().getIntegerConstant(*Context.typePool().getType<TypeKind::Integer>(32, false), IntegerBits(32, 2)),
+        Context.constantPool().getIntegerConstant(*Context.typePool().getType<TypeKind::Integer>(64, true), IntegerBits(64, 2)),
+        Other.constantPool().getIntegerConstant(*ForeignInt32, IntegerBits(32, 2)),
+        Context.constantPool().getFloatConstant(*Context.typePool().getType<TypeKind::Float>(32), FloatBits(32, 0)),
+        &Context.constantPool().getBoolConstant(false),
         Int32,
         ForeignSlot,
     };
     for (const Value *Invalid : InvalidValues)
     {
       ASSERT_NE(Invalid, nullptr);
-      EXPECT_EQ(Context.createStoreInstruction(*Slot, *Invalid), nullptr);
+      EXPECT_EQ(Factory.createDetachedStoreInstruction(*Slot, *Invalid), nullptr);
     }
-    const IntegerConstant *Two = Context.getIntegerConstant(*Int32, IntegerBits(32, 2));
+    const IntegerConstant *Two = Context.constantPool().getIntegerConstant(*Int32, IntegerBits(32, 2));
     ASSERT_NE(Two, nullptr);
-    EXPECT_EQ(Context.createLoadInstruction(*Two), nullptr);
-    EXPECT_EQ(Context.createLoadInstruction(Slot->type()), nullptr);
-    EXPECT_EQ(Context.createStoreInstruction(*Two, *Two), nullptr);
-    EXPECT_EQ(Context.createStoreInstruction(Slot->type(), *Two), nullptr);
-    StoreInstruction *Store = Context.createStoreInstruction(*Slot, *Two);
+    EXPECT_EQ(Factory.createDetachedLoadInstruction(*Two), nullptr);
+    EXPECT_EQ(Factory.createDetachedLoadInstruction(Slot->type()), nullptr);
+    EXPECT_EQ(Factory.createDetachedStoreInstruction(*Two, *Two), nullptr);
+    EXPECT_EQ(Factory.createDetachedStoreInstruction(Slot->type(), *Two), nullptr);
+    auto StoreOwner = Factory.createDetachedStoreInstruction(*Slot, *Two);
+    StoreInstruction *Store = StoreOwner.get();
     ASSERT_NE(Store, nullptr);
-    EXPECT_EQ(Context.createStoreInstruction(*Slot, *Store), nullptr);
-    EXPECT_EQ(Context.createLoadInstruction(*Store), nullptr);
+    EXPECT_EQ(Factory.createDetachedStoreInstruction(*Slot, *Store), nullptr);
+    EXPECT_EQ(Factory.createDetachedLoadInstruction(*Store), nullptr);
     EXPECT_EQ(Slot->outer(), nullptr);
     EXPECT_EQ(&Store->storedValue(), Two);
-    EXPECT_NE(Context.createLoadInstruction(*Slot), nullptr);
+    EXPECT_NE(Factory.createDetachedLoadInstruction(*Slot), nullptr);
   }
 
-  // Growing each instruction arena preserves all borrowed address, result and constant references.
+  // Growing a block's owning list preserves all borrowed address, result and constant references.
   TEST(SemanticMemoryInstructionTest, InstructionOperandsSurviveStorageGrowth)
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    AllocaInstruction *Slot = Context.createAllocaInstruction(Context.getBoolType());
+    IRBuilder Factory(Context);
+    auto SlotOwner = Factory.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    AllocaInstruction *Slot = SlotOwner.get();
     ASSERT_NE(Slot, nullptr);
-    const StoreInstruction *FirstStore = Context.createStoreInstruction(*Slot, Context.getBoolConstant(true));
-    const LoadInstruction *FirstLoad = Context.createLoadInstruction(*Slot);
+    auto FirstStoreOwner = Factory.createDetachedStoreInstruction(*Slot, Context.constantPool().getBoolConstant(true));
+    const StoreInstruction *FirstStore = FirstStoreOwner.get();
+    auto FirstLoadOwner = Factory.createDetachedLoadInstruction(*Slot);
+    const LoadInstruction *FirstLoad = FirstLoadOwner.get();
     ASSERT_NE(FirstStore, nullptr);
     ASSERT_NE(FirstLoad, nullptr);
-    const StoreInstruction *SecondStore = Context.createStoreInstruction(*Slot, *FirstLoad);
+    auto SecondStoreOwner = Factory.createDetachedStoreInstruction(*Slot, *FirstLoad);
+    const StoreInstruction *SecondStore = SecondStoreOwner.get();
     ASSERT_NE(SecondStore, nullptr);
+    auto Block = Factory.createBasicBlock();
+    ASSERT_TRUE(Factory.appendValue(*Block, std::move(SlotOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Block, std::move(FirstStoreOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Block, std::move(FirstLoadOwner)));
+    ASSERT_TRUE(Factory.appendValue(*Block, std::move(SecondStoreOwner)));
     for (unsigned Index = 0; Index < 1024; ++Index)
     {
-      AllocaInstruction *Next = Context.createAllocaInstruction(Context.getBoolType());
+      auto NextOwner = Factory.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+      AllocaInstruction *Next = NextOwner.get();
       ASSERT_NE(Next, nullptr);
-      ASSERT_NE(Context.createStoreInstruction(*Next, *FirstLoad), nullptr);
-      ASSERT_NE(Context.createLoadInstruction(*Next), nullptr);
+      ASSERT_TRUE(Factory.appendValue(*Block, std::move(NextOwner)));
+      ASSERT_TRUE(Factory.appendValue(*Block, Factory.createDetachedStoreInstruction(*Next, *FirstLoad)));
+      ASSERT_TRUE(Factory.appendValue(*Block, Factory.createDetachedLoadInstruction(*Next)));
     }
     EXPECT_EQ(&FirstStore->address(), Slot);
-    EXPECT_EQ(&FirstStore->storedValue(), &Context.getBoolConstant(true));
+    EXPECT_EQ(&FirstStore->storedValue(), &Context.constantPool().getBoolConstant(true));
     EXPECT_EQ(&FirstLoad->address(), Slot);
     EXPECT_EQ(&SecondStore->storedValue(), FirstLoad);
-    EXPECT_EQ(&FirstLoad->type(), &Context.getBoolType());
-    EXPECT_EQ(&SecondStore->type(), &Context.getVoidType());
+    EXPECT_EQ(&FirstLoad->type(), &Context.typePool().getType<TypeKind::Bool>());
+    EXPECT_EQ(&SecondStore->type(), &Context.typePool().getType<TypeKind::Void>());
   }
 } // namespace ink::semantic::test

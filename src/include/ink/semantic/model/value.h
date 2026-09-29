@@ -8,8 +8,8 @@ namespace ink::semantic
   class SemanticContext;
   class Type;
 
-  // Semantic values have stable identities within their owning context.
-  // Each value's type is fixed at construction and owned by the same context.
+  // Semantic values keep their addresses while alive, including across ownership transfers.
+  // Context owns shared types/constants and must outlive every detached or attached value that refers to it.
   class Value
   {
     public:
@@ -29,7 +29,7 @@ namespace ink::semantic
         return Context;
       }
 
-      // Structural parent; storage lifetime is still managed by SemanticContext.
+      // Non-owning parent link. A structural parent owns this value; operands and types remain borrowed.
       Value *outer() noexcept
       {
         return Outer;
@@ -59,7 +59,7 @@ namespace ink::semantic
       const Type &ValueType;
       Value *Outer = nullptr;
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

@@ -51,7 +51,7 @@ namespace ink::semantic
       std::size_t Index;
       ParameterKind Kind;
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

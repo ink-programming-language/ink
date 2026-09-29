@@ -35,7 +35,7 @@ namespace ink::semantic
       const Value &Left;
       const Value &Right;
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

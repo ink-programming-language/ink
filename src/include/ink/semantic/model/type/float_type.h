@@ -28,7 +28,7 @@ namespace ink::semantic
 
       std::uint32_t BitWidth;
 
-      friend class SemanticContext;
+      friend class TypePool;
   };
 } // namespace ink::semantic
 

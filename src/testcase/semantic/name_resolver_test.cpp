@@ -1,3 +1,4 @@
+#include "ink/semantic/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include "ink/semantic/context.h"
@@ -13,11 +14,12 @@ namespace ink::semantic::test
   {
     using BindResult = NameResolver::BindResult;
 
-    Function *createUnaryFunction(SemanticContext &Context, Name FunctionName, const Type &ParameterType)
+    std::unique_ptr<Function> createUnaryFunction(SemanticContext &Context, Name FunctionName, const Type &ParameterType)
     {
+      IRBuilder Builder(Context);
       const Type *Parameters[] = {&ParameterType};
-      const FunctionType *Signature = Context.getFunctionType(Context.getVoidType(), Parameters);
-      return Signature ? Context.createFunction(FunctionName, *Signature) : nullptr;
+      const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>(), Parameters);
+      return Signature ? Builder.createFunction(FunctionName, *Signature) : nullptr;
     }
   } // namespace
 
@@ -31,6 +33,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Builder(Context);
     NameResolver Resolver(Context);
     auto &Root = Resolver.rootScope();
     EXPECT_EQ(&Resolver.currentScope(), &Root);
@@ -39,8 +42,10 @@ namespace ink::semantic::test
     EXPECT_EQ(&Resolver.currentScope(), &Root);
     const Name X = Context.namePool().intern("X");
     const Name Local = Context.namePool().intern("Local");
-    Value *Outer = Context.createAllocaInstruction(Context.getBoolType());
-    Value *Inner = Context.createAllocaInstruction(Context.getBoolType());
+    auto OuterOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *Outer = OuterOwner.get();
+    auto InnerOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *Inner = InnerOwner.get();
     ASSERT_NE(Outer, nullptr);
     ASSERT_NE(Inner, nullptr);
     ASSERT_EQ(Resolver.bind(X, *Outer), BindResult::Inserted);
@@ -91,14 +96,19 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Builder(Context);
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
-    const IntegerType *Int32 = Context.getIntegerType(32, true);
+    const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
     ASSERT_NE(Int32, nullptr);
-    Function *IntegerOverload = createUnaryFunction(Context, F, *Int32);
-    Function *BoolOverload = createUnaryFunction(Context, F, Context.getBoolType());
-    Function *RepeatedSignature = createUnaryFunction(Context, F, *Int32);
-    Value *Variable = Context.createAllocaInstruction(Context.getBoolType());
+    auto IntegerOverloadOwner = createUnaryFunction(Context, F, *Int32);
+    Function *IntegerOverload = IntegerOverloadOwner.get();
+    auto BoolOverloadOwner = createUnaryFunction(Context, F, Context.typePool().getType<TypeKind::Bool>());
+    Function *BoolOverload = BoolOverloadOwner.get();
+    auto RepeatedSignatureOwner = createUnaryFunction(Context, F, *Int32);
+    Function *RepeatedSignature = RepeatedSignatureOwner.get();
+    auto VariableOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *Variable = VariableOwner.get();
     ASSERT_NE(IntegerOverload, nullptr);
     ASSERT_NE(BoolOverload, nullptr);
     ASSERT_NE(RepeatedSignature, nullptr);
@@ -123,18 +133,24 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Builder(Context);
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
     const Name Variable = Context.namePool().intern("Variable");
-    Function *FunctionValue = createUnaryFunction(Context, F, Context.getBoolType());
+    auto FunctionValueOwner = createUnaryFunction(Context, F, Context.typePool().getType<TypeKind::Bool>());
+    Function *FunctionValue = FunctionValueOwner.get();
     ASSERT_NE(FunctionValue, nullptr);
-    const FunctionType *FactoryType = Context.getFunctionType(FunctionValue->functionType());
+    const FunctionType *FactoryType = Context.typePool().getType<TypeKind::Function>(FunctionValue->functionType());
     ASSERT_NE(FactoryType, nullptr);
-    Function *Factory = Context.createFunction(Context.namePool().intern("Factory"), *FactoryType);
+    auto FactoryOwner = Builder.createFunction(Context.namePool().intern("Factory"), *FactoryType);
+    Function *Factory = FactoryOwner.get();
     ASSERT_NE(Factory, nullptr);
-    Value *Result = Context.createCallInstruction(*Factory);
-    Value *First = Context.createAllocaInstruction(Context.getBoolType());
-    Value *Second = Context.createAllocaInstruction(Context.getBoolType());
+    auto ResultOwner = Builder.createDetachedCallInstruction(*Factory);
+    Value *Result = ResultOwner.get();
+    auto FirstOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *First = FirstOwner.get();
+    auto SecondOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *Second = SecondOwner.get();
     ASSERT_NE(Result, nullptr);
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
@@ -159,13 +175,17 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Builder(Context);
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
-    const IntegerType *Int32 = Context.getIntegerType(32, true);
+    const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
     ASSERT_NE(Int32, nullptr);
-    Function *Outer = createUnaryFunction(Context, F, *Int32);
-    Function *SecondOuter = createUnaryFunction(Context, F, Context.getBoolType());
-    Function *Inner = createUnaryFunction(Context, F, Context.getBoolType());
+    auto OuterOwner = createUnaryFunction(Context, F, *Int32);
+    Function *Outer = OuterOwner.get();
+    auto SecondOuterOwner = createUnaryFunction(Context, F, Context.typePool().getType<TypeKind::Bool>());
+    Function *SecondOuter = SecondOuterOwner.get();
+    auto InnerOwner = createUnaryFunction(Context, F, Context.typePool().getType<TypeKind::Bool>());
+    Function *Inner = InnerOwner.get();
     ASSERT_NE(Outer, nullptr);
     ASSERT_NE(SecondOuter, nullptr);
     ASSERT_NE(Inner, nullptr);
@@ -183,7 +203,8 @@ namespace ink::semantic::test
     ASSERT_EQ(Binding->targets().size(), 1U);
     EXPECT_EQ(Binding->targets()[0], Inner);
     Resolver.enterScope();
-    Value *Variable = Context.createAllocaInstruction(Context.getBoolType());
+    auto VariableOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *Variable = VariableOwner.get();
     ASSERT_NE(Variable, nullptr);
     ASSERT_EQ(Resolver.bind(F, *Variable), BindResult::Inserted);
     const auto *Local = Resolver.lookup(F);
@@ -206,14 +227,18 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Builder(Context);
     SemanticContext OtherContext(Compilation);
+    IRBuilder OtherContextBuilder(OtherContext);
     NameResolver Resolver(Context);
     NameResolver OtherResolver(Context);
     const Name Missing = Context.namePool().intern("Missing");
     OtherContext.namePool().intern("Other");
     const Name OutOfRange = OtherContext.namePool().intern("OutOfRange");
-    Value *LocalValue = Context.createAllocaInstruction(Context.getBoolType());
-    Value *ForeignValue = OtherContext.createAllocaInstruction(OtherContext.getBoolType());
+    auto LocalValueOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *LocalValue = LocalValueOwner.get();
+    auto ForeignValueOwner = OtherContextBuilder.createDetachedAllocaInstruction(OtherContext.typePool().getType<TypeKind::Bool>());
+    Value *ForeignValue = ForeignValueOwner.get();
     ASSERT_NE(LocalValue, nullptr);
     ASSERT_NE(ForeignValue, nullptr);
     const std::size_t NameCount = Context.namePool().size();
@@ -238,14 +263,16 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Builder(Context);
     NameResolver Resolver(Context);
     const Name A = Context.namePool().intern("A");
     const Name B = Context.namePool().intern("B");
     const Name C = Context.namePool().intern("C");
     const Name Alias = Context.namePool().intern("Alias");
-    Module *AValue = Context.createModule(A);
-    Module *BValue = Context.createModule(B);
-    Value *CValue = Context.createAllocaInstruction(Context.getBoolType());
+    Module *AValue = Builder.createModule(A);
+    Module *BValue = Builder.createModule(B);
+    auto CValueOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *CValue = CValueOwner.get();
     ASSERT_NE(AValue, nullptr);
     ASSERT_NE(BValue, nullptr);
     ASSERT_NE(CValue, nullptr);
@@ -295,19 +322,23 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Builder(Context);
     NameResolver Resolver(Context);
     const Name OwnerName = Context.namePool().intern("Owner");
     const Name ParentName = Context.namePool().intern("ParentOnly");
     const Name ChildName = Context.namePool().intern("ChildOnly");
     const Name F = Context.namePool().intern("F");
-    Module *Owner = Context.createModule(OwnerName);
-    Value *Variable = Context.createAllocaInstruction(Context.getBoolType());
-    const IntegerType *Int32 = Context.getIntegerType(32, true);
+    Module *Owner = Builder.createModule(OwnerName);
+    auto VariableOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *Variable = VariableOwner.get();
+    const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
     ASSERT_NE(Owner, nullptr);
     ASSERT_NE(Variable, nullptr);
     ASSERT_NE(Int32, nullptr);
-    Function *First = createUnaryFunction(Context, F, Context.getBoolType());
-    Function *Second = createUnaryFunction(Context, F, *Int32);
+    auto FirstOwner = createUnaryFunction(Context, F, Context.typePool().getType<TypeKind::Bool>());
+    Function *First = FirstOwner.get();
+    auto SecondOwner = createUnaryFunction(Context, F, *Int32);
+    Function *Second = SecondOwner.get();
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
     ASSERT_EQ(Resolver.bind(ParentName, *Variable), BindResult::Inserted);
@@ -343,15 +374,19 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Builder(Context);
     SemanticContext OtherContext(Compilation);
+    IRBuilder OtherContextBuilder(OtherContext);
     NameResolver Resolver(Context);
     const Name OwnerName = Context.namePool().intern("Owner");
     const Name MemberName = Context.namePool().intern("Member");
-    Module *First = Context.createModule(OwnerName);
-    Module *Second = Context.createModule(OwnerName);
-    Value *FirstMember = Context.createAllocaInstruction(Context.getBoolType());
-    Value *SecondMember = Context.createAllocaInstruction(Context.getBoolType());
-    Module *Foreign = OtherContext.createModule(OtherContext.namePool().intern("Owner"));
+    Module *First = Builder.createModule(OwnerName);
+    Module *Second = Builder.createModule(OwnerName);
+    auto FirstMemberOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *FirstMember = FirstMemberOwner.get();
+    auto SecondMemberOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *SecondMember = SecondMemberOwner.get();
+    Module *Foreign = OtherContextBuilder.createModule(OtherContext.namePool().intern("Owner"));
     OtherContext.namePool().intern("Member");
     const Name OutOfRange = OtherContext.namePool().intern("OutOfRange");
     ASSERT_NE(First, nullptr);
@@ -402,10 +437,12 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
+    IRBuilder Builder(Context);
     NameResolver Resolver(Context);
     auto &Root = Resolver.rootScope();
     const Name NameValue = Context.namePool().intern("Visible");
-    Value *Variable = Context.createAllocaInstruction(Context.getBoolType());
+    auto VariableOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *Variable = VariableOwner.get();
     ASSERT_NE(Variable, nullptr);
     ASSERT_EQ(Resolver.bind(NameValue, *Variable), BindResult::Inserted);
     const auto *Binding = Resolver.lookup(NameValue);

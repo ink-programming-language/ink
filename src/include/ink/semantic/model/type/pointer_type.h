@@ -34,7 +34,7 @@ namespace ink::semantic
       const Type &PointeeType;
       AccessKind Access;
 
-      friend class SemanticContext;
+      friend class TypePool;
   };
 } // namespace ink::semantic
 

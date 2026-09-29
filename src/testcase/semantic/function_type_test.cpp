@@ -1,3 +1,4 @@
+#include "ink/semantic/ir_builder.h"
 #include "ink/semantic/model/function/function_type.h"
 #include "ink/semantic/context.h"
 
@@ -12,50 +13,50 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    const IntegerType *Integer = Context.getIntegerType(32, true);
-    const IntegerType *Unsigned = Context.getIntegerType(32, false);
+    const IntegerType *Integer = Context.typePool().getType<TypeKind::Integer>(32, true);
+    const IntegerType *Unsigned = Context.typePool().getType<TypeKind::Integer>(32, false);
     ASSERT_NE(Integer, nullptr);
     ASSERT_NE(Unsigned, nullptr);
     const Type *Parameters[] = {
         Integer,
-        &Context.getBoolType(),
+        &Context.typePool().getType<TypeKind::Bool>(),
     };
     const Type *Reversed[] = {
-        &Context.getBoolType(),
+        &Context.typePool().getType<TypeKind::Bool>(),
         Integer,
     };
     const Type *Different[] = {
         Unsigned,
-        &Context.getBoolType(),
+        &Context.typePool().getType<TypeKind::Bool>(),
     };
     const Type *Repeated[] = {
         Integer,
         Integer,
     };
-    const FunctionType *Signature = Context.getFunctionType(*Integer, Parameters);
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(*Integer, Parameters);
     ASSERT_NE(Signature, nullptr);
-    EXPECT_EQ(Signature, Context.getFunctionType(*Integer, Parameters));
-    EXPECT_NE(Signature, Context.getFunctionType(Context.getBoolType(), Parameters));
-    EXPECT_NE(Signature, Context.getFunctionType(*Integer, Reversed));
-    EXPECT_NE(Signature, Context.getFunctionType(*Integer, Different));
-    EXPECT_NE(Signature, Context.getFunctionType(*Integer, Repeated));
-    EXPECT_NE(Signature, Context.getFunctionType(*Integer, std::span(Parameters).first(1)));
-    EXPECT_NE(Signature, Context.getFunctionType(*Integer));
+    EXPECT_EQ(Signature, Context.typePool().getType<TypeKind::Function>(*Integer, Parameters));
+    EXPECT_NE(Signature, Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Bool>(), Parameters));
+    EXPECT_NE(Signature, Context.typePool().getType<TypeKind::Function>(*Integer, Reversed));
+    EXPECT_NE(Signature, Context.typePool().getType<TypeKind::Function>(*Integer, Different));
+    EXPECT_NE(Signature, Context.typePool().getType<TypeKind::Function>(*Integer, Repeated));
+    EXPECT_NE(Signature, Context.typePool().getType<TypeKind::Function>(*Integer, std::span(Parameters).first(1)));
+    EXPECT_NE(Signature, Context.typePool().getType<TypeKind::Function>(*Integer));
     EXPECT_EQ(&Signature->returnType(), Integer);
     ASSERT_EQ(Signature->parameterTypes().size(), 2U);
     EXPECT_EQ(Signature->parameterTypes()[0], Integer);
-    EXPECT_EQ(Signature->parameterTypes()[1], &Context.getBoolType());
-    EXPECT_EQ(&Signature->type(), &Context.getMetaType());
+    EXPECT_EQ(Signature->parameterTypes()[1], &Context.typePool().getType<TypeKind::Bool>());
+    EXPECT_EQ(&Signature->type(), &Context.typePool().getType<TypeKind::Meta>());
     EXPECT_EQ(Signature->typeKind(), TypeKind::Function);
     EXPECT_TRUE(Type::classof(Signature));
     EXPECT_TRUE(BuiltinType::classof(Signature));
     EXPECT_TRUE(FunctionType::classof(Signature));
     EXPECT_FALSE(UserDefinedType::classof(Signature));
-    const FunctionType *Empty = Context.getFunctionType(Context.getVoidType());
+    const FunctionType *Empty = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
     ASSERT_NE(Empty, nullptr);
     EXPECT_TRUE(Empty->parameterTypes().empty());
-    EXPECT_EQ(&Empty->returnType(), &Context.getVoidType());
-    EXPECT_EQ(Empty, Context.getFunctionType(Context.getVoidType(), {}));
+    EXPECT_EQ(&Empty->returnType(), &Context.typePool().getType<TypeKind::Void>());
+    EXPECT_EQ(Empty, Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>(), {}));
   }
 
   // Null parameters and foreign return or parameter types cannot create a local signature.
@@ -65,31 +66,31 @@ namespace ink::semantic::test
     SemanticContext Context(Compilation);
     SemanticContext Other(Compilation);
     const Type *Parameters[] = {
-        &Context.getBoolType(),
-        &Context.getBoolType(),
+        &Context.typePool().getType<TypeKind::Bool>(),
+        &Context.typePool().getType<TypeKind::Bool>(),
     };
-    const FunctionType *Signature = Context.getFunctionType(Context.getBoolType(), Parameters);
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Bool>(), Parameters);
     ASSERT_NE(Signature, nullptr);
-    EXPECT_EQ(Context.getFunctionType(Other.getBoolType(), Parameters), nullptr);
+    EXPECT_EQ(Context.typePool().getType<TypeKind::Function>(Other.typePool().getType<TypeKind::Bool>(), Parameters), nullptr);
     for (std::size_t Index = 0; Index < 2; ++Index)
     {
       Parameters[Index] = nullptr;
-      EXPECT_EQ(Context.getFunctionType(Context.getBoolType(), Parameters), nullptr);
-      Parameters[Index] = &Other.getBoolType();
-      EXPECT_EQ(Context.getFunctionType(Context.getBoolType(), Parameters), nullptr);
-      Parameters[Index] = &Context.getBoolType();
+      EXPECT_EQ(Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Bool>(), Parameters), nullptr);
+      Parameters[Index] = &Other.typePool().getType<TypeKind::Bool>();
+      EXPECT_EQ(Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Bool>(), Parameters), nullptr);
+      Parameters[Index] = &Context.typePool().getType<TypeKind::Bool>();
     }
-    EXPECT_EQ(Signature, Context.getFunctionType(Context.getBoolType(), Parameters));
+    EXPECT_EQ(Signature, Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Bool>(), Parameters));
     const Type *OtherParameters[] = {
-        &Other.getBoolType(),
-        &Other.getBoolType(),
+        &Other.typePool().getType<TypeKind::Bool>(),
+        &Other.typePool().getType<TypeKind::Bool>(),
     };
-    const FunctionType *Foreign = Other.getFunctionType(Other.getBoolType(), OtherParameters);
+    const FunctionType *Foreign = Other.typePool().getType<TypeKind::Function>(Other.typePool().getType<TypeKind::Bool>(), OtherParameters);
     ASSERT_NE(Foreign, nullptr);
     EXPECT_NE(Signature, Foreign);
     EXPECT_EQ(&Foreign->context(), &Other);
     EXPECT_FALSE(FunctionType::classof(nullptr));
-    EXPECT_FALSE(FunctionType::classof(&Context.getBoolType()));
+    EXPECT_FALSE(FunctionType::classof(&Context.typePool().getType<TypeKind::Bool>()));
   }
 
   // Parameter storage is copied once and borrowed signature views survive caller changes and type-map growth.
@@ -99,26 +100,26 @@ namespace ink::semantic::test
     SemanticContext Context(Compilation);
     const FunctionType *Signature = nullptr;
     {
-      std::vector<const Type *> Parameters(3, &Context.getBoolType());
-      Signature = Context.getFunctionType(Context.getVoidType(), Parameters);
+      std::vector<const Type *> Parameters(3, &Context.typePool().getType<TypeKind::Bool>());
+      Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>(), Parameters);
       ASSERT_NE(Signature, nullptr);
-      Parameters[0] = &Context.getMetaType();
+      Parameters[0] = &Context.typePool().getType<TypeKind::Meta>();
       Parameters.clear();
     }
     const auto Parameters = Signature->parameterTypes();
     ASSERT_EQ(Parameters.size(), 3U);
     for (std::uint32_t Width = 1; Width <= 2048; ++Width)
     {
-      const IntegerType *Integer = Context.getIntegerType(Width, false);
+      const IntegerType *Integer = Context.typePool().getType<TypeKind::Integer>(Width, false);
       ASSERT_NE(Integer, nullptr);
-      ASSERT_NE(Context.getFunctionType(*Integer, Parameters), nullptr);
+      ASSERT_NE(Context.typePool().getType<TypeKind::Function>(*Integer, Parameters), nullptr);
     }
     EXPECT_EQ(Signature->parameterTypes().data(), Parameters.data());
     for (const Type *Parameter : Parameters)
     {
-      EXPECT_EQ(Parameter, &Context.getBoolType());
+      EXPECT_EQ(Parameter, &Context.typePool().getType<TypeKind::Bool>());
     }
-    EXPECT_EQ(Signature, Context.getFunctionType(Context.getVoidType(), Parameters));
+    EXPECT_EQ(Signature, Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>(), Parameters));
   }
 
   // Function signatures compose with other function types, nominal types and pointer/reference constructors.
@@ -126,22 +127,23 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     SemanticContext Context(Compilation);
-    const ClassType *Record = Context.createClassType(Context.namePool().intern("Record"));
+    IRBuilder Builder(Context);
+    const ClassType *Record = Builder.createClassType(Context.namePool().intern("Record"));
     ASSERT_NE(Record, nullptr);
-    const FunctionType *Factory = Context.getFunctionType(*Record);
+    const FunctionType *Factory = Context.typePool().getType<TypeKind::Function>(*Record);
     ASSERT_NE(Factory, nullptr);
     const Type *Parameters[] = {
         Factory,
         Record,
     };
-    const FunctionType *HigherOrder = Context.getFunctionType(*Factory, Parameters);
+    const FunctionType *HigherOrder = Context.typePool().getType<TypeKind::Function>(*Factory, Parameters);
     ASSERT_NE(HigherOrder, nullptr);
     EXPECT_EQ(&HigherOrder->returnType(), Factory);
     EXPECT_EQ(HigherOrder->parameterTypes()[0], Factory);
     EXPECT_EQ(HigherOrder->parameterTypes()[1], Record);
     EXPECT_TRUE(BuiltinType::classof(HigherOrder));
-    const PointerType *Pointer = Context.getPointerType(*Factory, AccessKind::ReadOnly);
-    const ReferenceType *Reference = Context.getReferenceType(*Factory, AccessKind::ReadOnly);
+    const PointerType *Pointer = Context.typePool().getType<TypeKind::Pointer>(*Factory, AccessKind::ReadOnly);
+    const ReferenceType *Reference = Context.typePool().getType<TypeKind::Reference>(*Factory, AccessKind::ReadOnly);
     ASSERT_NE(Pointer, nullptr);
     ASSERT_NE(Reference, nullptr);
     EXPECT_EQ(&Pointer->pointeeType(), Factory);

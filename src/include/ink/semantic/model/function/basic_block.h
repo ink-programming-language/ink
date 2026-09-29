@@ -3,16 +3,17 @@
 
 #include "ink/semantic/model/type/builtin_type.h"
 
+#include <memory>
 #include <vector>
 
 namespace ink::semantic
 {
-  // A context-owned block with the dedicated label type and an ordered value list.
+  // A block owns its ordered children; detached blocks are owned by the caller.
   class BasicBlock final : public Value
   {
     public:
-      // Structural children in insertion order. SemanticContext manages membership and parent links.
-      const std::vector<Value *> &values() const noexcept
+      // Owning children in insertion order. IRBuilder's edit APIs transfer ownership and maintain parent links.
+      const std::vector<std::unique_ptr<Value>> &values() const noexcept
       {
         return Values;
       }
@@ -25,9 +26,9 @@ namespace ink::semantic
     private:
       explicit BasicBlock(const SemanticContext &Context) noexcept;
 
-      std::vector<Value *> Values;
+      std::vector<std::unique_ptr<Value>> Values;
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

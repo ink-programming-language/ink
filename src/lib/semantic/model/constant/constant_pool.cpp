@@ -57,8 +57,8 @@ namespace ink::semantic
   ConstantPool::ConstantPool(const SemanticContext &Context)
       : Context(Context)
   {
-    FalseValue.reset(new BoolConstant(Context.getBoolType(), false));
-    TrueValue.reset(new BoolConstant(Context.getBoolType(), true));
+    FalseValue.reset(new BoolConstant(Context.typePool().getType<TypeKind::Bool>(), false));
+    TrueValue.reset(new BoolConstant(Context.typePool().getType<TypeKind::Bool>(), true));
   }
 
   ConstantPool::~ConstantPool() = default;

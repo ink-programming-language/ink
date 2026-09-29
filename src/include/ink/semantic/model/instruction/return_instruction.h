@@ -29,7 +29,7 @@ namespace ink::semantic
 
       const Value *ReturnedValue;
 
-      friend class SemanticContext;
+      friend class IRBuilder;
   };
 } // namespace ink::semantic
 

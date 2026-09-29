@@ -36,7 +36,7 @@ namespace ink::semantic
       }
 
     private:
-      friend class SemanticContext;
+      friend class TypePool;
   };
 } // namespace ink::semantic
 

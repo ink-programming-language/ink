@@ -1,3 +1,4 @@
+#include "ink/semantic/ir_builder.h"
 #include "ink/semantic/context.h"
 #include "ink/parser/parser.h"
 
@@ -43,8 +44,13 @@ namespace ink::semantic::test
     ASSERT_TRUE(parser::FunctionDecl::classof(Statement->declaration()));
     const auto *AST = static_cast<const parser::FunctionDecl *>(Statement->declaration());
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
+    Module *Owner = Factory.createModule(Context.namePool().intern("Example"));
+    ASSERT_NE(Owner, nullptr);
+    ModuleDecl *Root = Factory.createModuleDecl(*Owner, *Parsed.Unit->root());
+    ASSERT_NE(Root, nullptr);
     const Name NameValue = Context.namePool().intern(AST->name().Text);
-    const FunctionDecl *Definition = Context.createFunctionDecl(NameValue, *AST);
+    const FunctionDecl *Definition = Factory.createFunctionDecl(*Root, NameValue, *AST);
     ASSERT_NE(Definition, nullptr);
     const Decl *Base = Definition;
     EXPECT_EQ(Context.namePool().text(Definition->name()), "Identity");
@@ -71,11 +77,16 @@ namespace ink::semantic::test
     ASSERT_TRUE(parser::ClassDecl::classof(Statement->declaration()));
     const auto *AST = static_cast<const parser::ClassDecl *>(Statement->declaration());
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
+    Module *Owner = Factory.createModule(Context.namePool().intern("Example"));
+    ASSERT_NE(Owner, nullptr);
+    ModuleDecl *Root = Factory.createModuleDecl(*Owner, *Parsed.Unit->root());
+    ASSERT_NE(Root, nullptr);
     const Name NameValue = Context.namePool().intern(AST->name().Text);
-    const ClassDecl *Definition = Context.createClassDecl(NameValue, *AST);
+    const ClassDecl *Definition = Factory.createClassDecl(*Root, NameValue, *AST);
     ASSERT_NE(Definition, nullptr);
-    const ClassType *First = Context.createClassType(NameValue);
-    const ClassType *Second = Context.createClassType(NameValue);
+    const ClassType *First = Factory.createClassType(NameValue);
+    const ClassType *Second = Factory.createClassType(NameValue);
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
     EXPECT_NE(First, Second);
@@ -103,18 +114,22 @@ namespace ink::semantic::test
     const auto *Generic = static_cast<const parser::FunctionDecl *>(static_cast<const parser::DeclStmt *>(Statements[2])->declaration());
     const auto *GenericClass = static_cast<const parser::ClassDecl *>(static_cast<const parser::DeclStmt *>(Statements[3])->declaration());
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
+    Module *Owner = Factory.createModule(Context.namePool().intern("Example"));
+    ASSERT_NE(Owner, nullptr);
+    ModuleDecl *Root = Factory.createModuleDecl(*Owner, *Parsed.Unit->root());
+    ASSERT_NE(Root, nullptr);
     SemanticContext Other(Compilation);
+    Other.namePool().intern("Example");
     const Name OutOfRange = Other.namePool().intern("Foreign");
-    EXPECT_EQ(Context.createModuleDecl(OutOfRange, *Parsed.Unit->root()), nullptr);
-    EXPECT_EQ(Context.createFunctionDecl(OutOfRange, *Generic), nullptr);
-    EXPECT_EQ(Context.createClassDecl(OutOfRange, *GenericClass), nullptr);
-    EXPECT_EQ(Context.createFunctionDecl(Name{}, *Generic), nullptr);
-    EXPECT_EQ(Context.createClassDecl(Name{}, *GenericClass), nullptr);
-    EXPECT_EQ(Context.createModuleDecl(Name{}, *Parsed.Unit->root()), nullptr);
-    EXPECT_EQ(Context.createFunctionDecl(Context.namePool().intern(Plain->name().Text), *Plain), nullptr);
-    EXPECT_EQ(Context.createClassDecl(Context.namePool().intern(PlainClass->name().Text), *PlainClass), nullptr);
-    EXPECT_NE(Context.createFunctionDecl(Context.namePool().intern(Generic->name().Text), *Generic), nullptr);
-    EXPECT_NE(Context.createClassDecl(Context.namePool().intern(GenericClass->name().Text), *GenericClass), nullptr);
+    EXPECT_EQ(Factory.createFunctionDecl(*Root, OutOfRange, *Generic), nullptr);
+    EXPECT_EQ(Factory.createClassDecl(*Root, OutOfRange, *GenericClass), nullptr);
+    EXPECT_EQ(Factory.createFunctionDecl(*Root, Name{}, *Generic), nullptr);
+    EXPECT_EQ(Factory.createClassDecl(*Root, Name{}, *GenericClass), nullptr);
+    EXPECT_EQ(Factory.createFunctionDecl(*Root, Context.namePool().intern(Plain->name().Text), *Plain), nullptr);
+    EXPECT_EQ(Factory.createClassDecl(*Root, Context.namePool().intern(PlainClass->name().Text), *PlainClass), nullptr);
+    EXPECT_NE(Factory.createFunctionDecl(*Root, Context.namePool().intern(Generic->name().Text), *Generic), nullptr);
+    EXPECT_NE(Factory.createClassDecl(*Root, Context.namePool().intern(GenericClass->name().Text), *GenericClass), nullptr);
   }
 
   // Repeated registration and storage growth retain definition identity and borrowed ASTs without publishing instance state.
@@ -128,40 +143,38 @@ namespace ink::semantic::test
     const auto *FunctionAST = static_cast<const parser::FunctionDecl *>(static_cast<const parser::DeclStmt *>(Statements[0])->declaration());
     const auto *ClassAST = static_cast<const parser::ClassDecl *>(static_cast<const parser::DeclStmt *>(Statements[1])->declaration());
     SemanticContext Context(Compilation);
+    IRBuilder Factory(Context);
+    Module *Owner = Factory.createModule(Context.namePool().intern("Example"));
+    ASSERT_NE(Owner, nullptr);
+    ModuleDecl *Root = Factory.createModuleDecl(*Owner, *Parsed.Unit->root());
+    ASSERT_NE(Root, nullptr);
     const Name FunctionName = Context.namePool().intern(FunctionAST->name().Text);
     const Name ClassName = Context.namePool().intern(ClassAST->name().Text);
-    const FunctionDecl *Definition = Context.createFunctionDecl(FunctionName, *FunctionAST);
-    const ClassDecl *ClassDefinition = Context.createClassDecl(ClassName, *ClassAST);
-    ModuleDecl *Module = Context.createModuleDecl(Context.namePool().intern("Example"), *Parsed.Unit->root());
+    const FunctionDecl *Definition = Factory.createFunctionDecl(*Root, FunctionName, *FunctionAST);
+    const ClassDecl *ClassDefinition = Factory.createClassDecl(*Root, ClassName, *ClassAST);
     ASSERT_NE(Definition, nullptr);
     ASSERT_NE(ClassDefinition, nullptr);
-    ASSERT_NE(Module, nullptr);
-    Module->child().push_back(Definition);
-    Module->child().push_back(ClassDefinition);
-    const FunctionType *Signature = Context.getFunctionType(Context.getBoolType());
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Bool>());
     ASSERT_NE(Signature, nullptr);
-    const Function *Closed = Context.createFunction(FunctionName, *Signature);
+    auto ClosedOwner = Factory.createFunction(FunctionName, *Signature);
+    const Function *Closed = ClosedOwner.get();
     ASSERT_NE(Closed, nullptr);
-    ASSERT_NE(Context.createCallInstruction(*Closed), nullptr);
+    ASSERT_NE(Factory.createDetachedCallInstruction(*Closed), nullptr);
     for (unsigned Index = 0; Index < 1024; ++Index)
     {
-      const FunctionDecl *Next = Context.createFunctionDecl(FunctionName, *FunctionAST);
-      const ClassDecl *NextClass = Context.createClassDecl(ClassName, *ClassAST);
-      const ModuleDecl *NextModule = Context.createModuleDecl(Module->name(), *Parsed.Unit->root());
+      const FunctionDecl *Next = Factory.createFunctionDecl(*Root, FunctionName, *FunctionAST);
+      const ClassDecl *NextClass = Factory.createClassDecl(*Root, ClassName, *ClassAST);
       ASSERT_NE(Next, nullptr);
       ASSERT_NE(NextClass, nullptr);
-      ASSERT_NE(NextModule, nullptr);
-      EXPECT_NE(NextModule, Module);
-      EXPECT_TRUE(NextModule->child().empty());
       EXPECT_NE(Next, Definition);
       EXPECT_NE(NextClass, ClassDefinition);
     }
     EXPECT_EQ(Definition->name(), FunctionName);
     EXPECT_EQ(&Definition->ast(), FunctionAST);
     EXPECT_EQ(&ClassDefinition->ast(), ClassAST);
-    ASSERT_EQ(Module->child().size(), 2U);
-    EXPECT_EQ(Module->child()[0], Definition);
-    EXPECT_EQ(Module->child()[1], ClassDefinition);
+    ASSERT_EQ(Root->children().size(), 2050U);
+    EXPECT_EQ(Root->children()[0].get(), Definition);
+    EXPECT_EQ(Root->children()[1].get(), ClassDefinition);
     EXPECT_EQ(&Closed->type(), Signature);
     EXPECT_EQ(FunctionAST->genericParameters().size(), 1U);
   }

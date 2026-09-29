@@ -1,3 +1,4 @@
+#include "ink/semantic/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include "ink/parser/parser.h"
@@ -22,6 +23,7 @@ namespace ink::semantic::test
           : Frontend(Compilation),
             Parsed(parser::parse(Frontend, tokenizer::tokenize(Frontend, "func F[T: type](Value: T): T { return Value; } func F[U: type](Value: U): U { return Value; } class Box[T: type] { field Item: T; }; class Other[T: type] { field Item: T; };"))),
             Context(Compilation),
+            Factory(Context),
             Resolver(Context)
       {
       }
@@ -30,6 +32,10 @@ namespace ink::semantic::test
       {
         ASSERT_TRUE(Parsed.succeeded());
         ASSERT_EQ(Parsed.Unit->root()->statements().size(), 4U);
+        Module *Owner = Factory.createModule(Context.namePool().intern("Root"));
+        ASSERT_NE(Owner, nullptr);
+        Root = Factory.createModuleDecl(*Owner, *Parsed.Unit->root());
+        ASSERT_NE(Root, nullptr);
         First = makeFunction(0);
         Second = makeFunction(1);
         Box = makeClass(2);
@@ -44,14 +50,14 @@ namespace ink::semantic::test
       {
         const auto *Statement = static_cast<const parser::DeclStmt *>(Parsed.Unit->root()->statements()[Index]);
         const auto &AST = static_cast<const parser::FunctionDecl &>(*Statement->declaration());
-        return Context.createFunctionDecl(Context.namePool().intern(AST.name().Text), AST);
+        return Factory.createFunctionDecl(*Root, Context.namePool().intern(AST.name().Text), AST);
       }
 
       ClassDecl *makeClass(std::size_t Index)
       {
         const auto *Statement = static_cast<const parser::DeclStmt *>(Parsed.Unit->root()->statements()[Index]);
         const auto &AST = static_cast<const parser::ClassDecl &>(*Statement->declaration());
-        return Context.createClassDecl(Context.namePool().intern(AST.name().Text), AST);
+        return Factory.createClassDecl(*Root, Context.namePool().intern(AST.name().Text), AST);
       }
 
       using BindResult = NameResolver::BindResult;
@@ -59,7 +65,9 @@ namespace ink::semantic::test
       core::FrontendContext Frontend;
       parser::ParseResult Parsed;
       SemanticContext Context;
+      IRBuilder Factory;
       NameResolver Resolver;
+      ModuleDecl *Root = nullptr;
       FunctionDecl *First = nullptr;
       FunctionDecl *Second = nullptr;
       ClassDecl *Box = nullptr;
@@ -89,10 +97,12 @@ namespace ink::semantic::test
   // Closed and generic functions coexist in either insertion order, while variables and generic classes conflict with both.
   TEST_F(GenericNameResolverTest, CollectsMixedFunctionCandidates)
   {
-    const auto *Signature = Context.getFunctionType(Context.getVoidType());
+    const auto *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
     ASSERT_NE(Signature, nullptr);
-    Function *FunctionValue = Context.createFunction(First->name(), *Signature);
-    Value *Variable = Context.createAllocaInstruction(Context.getBoolType());
+    auto FunctionValueOwner = Factory.createFunction(First->name(), *Signature);
+    Function *FunctionValue = FunctionValueOwner.get();
+    auto VariableOwner = Factory.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *Variable = VariableOwner.get();
     ASSERT_NE(FunctionValue, nullptr);
     ASSERT_NE(Variable, nullptr);
     for (bool GenericFirst : {false, true})
@@ -130,7 +140,8 @@ namespace ink::semantic::test
   TEST_F(GenericNameResolverTest, RejectsClassAndValueCollisions)
   {
     const Name NameValue = Box->name();
-    Value *Variable = Context.createAllocaInstruction(Context.getBoolType());
+    auto VariableOwner = Factory.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *Variable = VariableOwner.get();
     ASSERT_NE(Variable, nullptr);
     ASSERT_EQ(Resolver.bind(NameValue, *Box), BindResult::Inserted);
     EXPECT_EQ(Resolver.bind(NameValue, *Box), BindResult::AlreadyBound);
@@ -157,10 +168,12 @@ namespace ink::semantic::test
   TEST_F(GenericNameResolverTest, ShadowsAcrossTargetCategories)
   {
     const Name F = First->name();
-    const auto *Signature = Context.getFunctionType(Context.getVoidType());
+    const auto *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
     ASSERT_NE(Signature, nullptr);
-    Function *FunctionValue = Context.createFunction(F, *Signature);
-    Value *Variable = Context.createAllocaInstruction(Context.getBoolType());
+    auto FunctionValueOwner = Factory.createFunction(F, *Signature);
+    Function *FunctionValue = FunctionValueOwner.get();
+    auto VariableOwner = Factory.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    Value *Variable = VariableOwner.get();
     ASSERT_NE(FunctionValue, nullptr);
     ASSERT_NE(Variable, nullptr);
     ASSERT_EQ(Resolver.bind(F, *First), BindResult::Inserted);
@@ -191,15 +204,20 @@ namespace ink::semantic::test
   TEST_F(GenericNameResolverTest, RejectsInvalidDeclarationBindings)
   {
     SemanticContext Foreign(Compilation);
+    IRBuilder ForeignFactory(Foreign);
     const Name F = First->name();
-    auto *ForeignDefinition = Foreign.createFunctionDecl(Foreign.namePool().intern("F"), First->ast());
-    auto *ModuleDefinition = Context.createModuleDecl(Context.namePool().intern("Module"), *Parsed.Unit->root());
+    Module *ForeignModule = ForeignFactory.createModule(Foreign.namePool().intern("Root"));
+    ASSERT_NE(ForeignModule, nullptr);
+    ModuleDecl *ForeignRoot = ForeignFactory.createModuleDecl(*ForeignModule, *Parsed.Unit->root());
+    ASSERT_NE(ForeignRoot, nullptr);
+    auto *ForeignDefinition = ForeignFactory.createFunctionDecl(*ForeignRoot, Foreign.namePool().intern("F"), First->ast());
+    auto *ModuleDefinition = Root;
     ASSERT_NE(ForeignDefinition, nullptr);
     ASSERT_NE(ModuleDefinition, nullptr);
-    EXPECT_TRUE(Context.owns(*First));
-    EXPECT_TRUE(Context.owns(*Box));
-    EXPECT_TRUE(Context.owns(*ModuleDefinition));
-    EXPECT_FALSE(Context.owns(*ForeignDefinition));
+    EXPECT_EQ(&First->module(), &Root->module());
+    EXPECT_EQ(&Box->module(), &Root->module());
+    EXPECT_EQ(&ModuleDefinition->module().context(), &Context);
+    EXPECT_EQ(&ForeignDefinition->module(), ForeignModule);
     EXPECT_EQ(Resolver.bind(F, *ForeignDefinition), BindResult::ForeignDecl);
     EXPECT_EQ(Resolver.bind(F, *ModuleDefinition), BindResult::InvalidDecl);
     EXPECT_EQ(Resolver.bind(Name{}, *First), BindResult::InvalidName);
@@ -223,8 +241,8 @@ namespace ink::semantic::test
   {
     const Name F = First->name();
     ASSERT_EQ(Resolver.bind(F, *First), BindResult::Inserted);
-    auto *Owner = Context.createModule(Context.namePool().intern("Owner"));
-    auto *OtherOwner = Context.createModule(Context.namePool().intern("OtherOwner"));
+    auto *Owner = Factory.createModule(Context.namePool().intern("Owner"));
+    auto *OtherOwner = Factory.createModule(Context.namePool().intern("OtherOwner"));
     ASSERT_NE(Owner, nullptr);
     ASSERT_NE(OtherOwner, nullptr);
     auto *Members = Resolver.enterScope(*Owner);

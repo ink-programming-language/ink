@@ -5,7 +5,7 @@
 namespace ink::semantic
 {
   StoreInstruction::StoreInstruction(const Value &Address, const Value &StoredValue) noexcept
-      : Value(Address.context(), ValueKind::StoreInstruction, Address.context().getVoidType()),
+      : Value(Address.context(), ValueKind::StoreInstruction, Address.context().typePool().getType<TypeKind::Void>()),
         Address(Address),
         StoredValue(StoredValue)
   {

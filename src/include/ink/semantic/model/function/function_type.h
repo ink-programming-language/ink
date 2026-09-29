@@ -38,7 +38,7 @@ namespace ink::semantic
       const Type &ReturnType;
       std::vector<const Type *> ParameterTypes;
 
-      friend class SemanticContext;
+      friend class TypePool;
   };
 } // namespace ink::semantic
 

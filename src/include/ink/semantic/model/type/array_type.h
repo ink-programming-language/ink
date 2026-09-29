@@ -34,7 +34,7 @@ namespace ink::semantic
       const Type &ElementType;
       std::uint64_t ElementCount;
 
-      friend class SemanticContext;
+      friend class TypePool;
   };
 } // namespace ink::semantic
 
