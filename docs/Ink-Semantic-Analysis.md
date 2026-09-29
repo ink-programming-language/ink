@@ -12,11 +12,11 @@ class Analyzer
 
 通过 `Analyzer` 实例调用。当前已实现可编译的流程骨架：检查解析结果和源码归属，通过 `IRBuilder` 创建 Context 拥有的模块、模块独立拥有的声明根及入口块。每次调用的 `AnalysisState` 直接拥有独立 `NameResolver`，从 Context 的共享根作用域开始，再进入与本次模块关联的成员作用域，逐条分析顶层语句。成功返回上下文拥有的 `Module *`，失败返回 `nullptr`；调用结束时销毁 resolver，作用域及绑定仍保存在 Context 中。
 
-`analyzeStmt()` 与 `analyzeDecl()` 从 Parser 的 `ASTNodes.def` 按 `Category` 生成严格分派。每种语句和声明均有手工声明、定义的 `analyzeXXX()`，不存在自动生成的空处理函数或基类回退；新增 AST 种类后缺少处理函数会导致编译失败，只有声明没有定义则导致链接失败。`DeclStmt` 转发到声明分派，`BlockStmt` 使用 `BlockDepthGuard` 管理嵌套深度、`NameResolver::ScopeGuard` 管理子作用域，并递归处理子语句；正常结束或提前返回时均自动恢复进入前的深度和作用域。块嵌套上限为 256，模块和函数的成员作用域也使用 `ScopeGuard`。
+`analyzeStmt()` 与 `analyzeDecl()` 从 Parser 的 `ASTNodes.def` 按 `Category` 生成严格分派。每种语句和声明均有手工声明、定义的 `analyzeXXX()`，不存在自动生成的空处理函数或基类回退；新增 AST 种类后缺少处理函数会导致编译失败，只有声明没有定义则导致链接失败。`DeclStmt` 转发到声明分派，`BlockStmt` 使用 `BlockDepthGuard` 管理嵌套深度、`NameResolver::ScopeGuard` 管理子作用域，并递归处理子语句；正常结束或提前返回时均自动恢复进入前的深度和作用域。块嵌套上限由 `INK_SEMANTIC_BLOCK_DEPTH_LIMIT` 配置，默认 256，模块和函数的成员作用域也使用 `ScopeGuard`。
 
 当前支持空模块、块作用域，以及普通定参函数的声明和定义。函数签名通过检查后创建 `Function`，保存形参名称、类型、C 调用约定及 Ink/C 语言链接，并登记到当前词法作用域；成功的函数由当前 IR 块拥有。函数成员作用域绑定形参，函数体另建词法块作用域并逐条分派语句，嵌套函数继承外层查找环境。函数声明分析不检查返回路径，也不补充返回指令；返回路径检查及隐式返回等待后续控制流分析实现。函数在分析主体前临时绑定，失败时通过 RAII 销毁函数及子节点并撤销相关绑定，不影响后续同级声明的作用域或插入点。
 
-`analyzeType()` 支持 `void`、`bool`、`i8/i16/i32/i64/i128`、对应的无符号整数、`f16/f32/f64`、括号类型及 `*T`/`&T`；未限定指针和引用暂按 `ReadWrite` 构造，允许 `*void`，拒绝 `&void` 和 `*type`。类型名字先查词法绑定，再回退到内建类型；值不能用于类型位置。形参不能是 void 或元类型；未知类型、重名形参和冲突函数报告源码诊断。普通 Ink 函数可按不同参数类型列表形成重载集，不能仅按返回类型重载；同一作用域的 C 链接函数不能形成重载。类型表达式递归上限为 256。
+`analyzeType()` 支持 `void`、`bool`、`i8/i16/i32/i64/i128`、对应的无符号整数、`f16/f32/f64`、括号类型及 `*T`/`&T`；未限定指针和引用暂按 `ReadWrite` 构造，允许 `*void`，拒绝 `&void` 和 `*type`。类型名字先查词法绑定，再回退到内建类型；值不能用于类型位置。形参不能是 void 或元类型；未知类型、重名形参和冲突函数报告源码诊断。普通 Ink 函数可按不同参数类型列表形成重载集，不能仅按返回类型重载；同一作用域的 C 链接函数不能形成重载。类型表达式递归上限由 `INK_SEMANTIC_TYPE_DEPTH_LIMIT` 配置，默认 256，每次分析开始时读取一次；深度从 0 计数，达到上限即报告 ICE 并 panic，0 会拒绝任何类型分析。
 
 同一函数的形参名必须唯一；每个重复出现的名字使用专用诊断 `SemanticDuplicateParameterName`（`INK-S0015`），定位到该次形参名的 token，消息明确说明函数内形参名不得重复。普通符号冲突仍使用 `SemanticDuplicateName`。
 

@@ -1,4 +1,5 @@
 #include "ink/semantic/analyzer/analyzer.h"
+#include "../core/environment_test_support.h"
 
 #include "ink/parser/parser.h"
 #include "ink/semantic/ir_builder.h"
@@ -227,10 +228,7 @@ namespace ink::semantic::test
       SCOPED_TRACE(Source);
       FunctionAnalysis Input(Source);
       ASSERT_TRUE(Input.Parsed.succeeded());
-      EXPECT_EQ(Input.analyze(), nullptr);
-      ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
-      EXPECT_EQ(Input.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnsupported);
-      EXPECT_TRUE(Input.Context.modules()[0]->entryBlock().values().empty());
+      EXPECT_DEATH(Input.analyze(), "internal compiler error\\[INK-S0012\\]");
     }
   }
 
@@ -282,24 +280,19 @@ namespace ink::semantic::test
       SCOPED_TRACE(Entry.Source);
       FunctionAnalysis Input(Entry.Source);
       ASSERT_TRUE(Input.Parsed.succeeded());
-      EXPECT_EQ(Input.analyze(), nullptr);
-      ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
-      EXPECT_EQ(Input.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnsupported);
-      EXPECT_EQ(core::DiagnosticFormatter{}.format(Input.Diagnostics.diagnostics()[0]).Message, "initial semantic analyzer does not support function redeclarations");
-      ASSERT_EQ(Input.Context.modules()[0]->entryBlock().values().size(), 1U);
-      EXPECT_EQ(static_cast<const Function &>(*Input.Context.modules()[0]->entryBlock().values()[0]).hasBody(), Entry.FirstHasBody);
+      EXPECT_DEATH(Input.analyze(), "initial semantic analyzer does not support function redeclarations");
     }
   }
 
   // A failed body discards its nested functions, while later declarations retain the enclosing insertion point and scope.
   TEST(SemanticFunctionAnalyzerTest, DiscardsFailedBodiesAndContinuesSiblings)
   {
-    FunctionAnalysis Input("func bad(): i32 { func child(): void {} 1; } func good(): void {}");
+    FunctionAnalysis Input("func bad(): i32 { func child(): void {} func invalid(x: Missing): void; } func good(): void {}");
     ASSERT_TRUE(Input.Parsed.succeeded());
     EXPECT_EQ(Input.analyze(), nullptr);
     ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
-    EXPECT_EQ(Input.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnsupported);
-    EXPECT_EQ(core::DiagnosticFormatter{}.format(Input.Diagnostics.diagnostics()[0]).Message, "initial semantic analyzer does not support SimpleStmt");
+    EXPECT_EQ(Input.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownType);
+    EXPECT_EQ(core::DiagnosticFormatter{}.format(Input.Diagnostics.diagnostics()[0]).Message, "unknown type 'Missing'");
     Module &Result = *Input.Context.modules()[0];
     ASSERT_EQ(Result.entryBlock().values().size(), 1U);
     EXPECT_NE(Input.lookup(Result, "good"), nullptr);
@@ -307,20 +300,12 @@ namespace ink::semantic::test
     EXPECT_EQ(Input.lookup(Result, "child"), nullptr);
   }
 
-  // The original hello-world example now accepts printf's signature and reaches the unsupported call and return handlers.
+  // The hello-world example accepts printf's signature and panics at the first unsupported body statement.
   TEST(SemanticFunctionAnalyzerTest, AnalyzesHelloWorldThroughFunctionBodies)
   {
     FunctionAnalysis Input("extern \"C\" func printf(msg: *u8): i32; func main(): i32 { printf(\"hello, world\"); return 0; }");
     ASSERT_TRUE(Input.Parsed.succeeded());
-    EXPECT_EQ(Input.analyze(), nullptr);
-    ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 2U);
-    const core::DiagnosticFormatter Formatter;
-    EXPECT_EQ(Formatter.format(Input.Diagnostics.diagnostics()[0]).Message, "initial semantic analyzer does not support SimpleStmt");
-    EXPECT_EQ(Formatter.format(Input.Diagnostics.diagnostics()[1]).Message, "initial semantic analyzer does not support ReturnStmt");
-    Module &Result = *Input.Context.modules()[0];
-    ASSERT_EQ(Result.entryBlock().values().size(), 1U);
-    EXPECT_NE(Input.lookup(Result, "printf"), nullptr);
-    EXPECT_EQ(Input.lookup(Result, "main"), nullptr);
+    EXPECT_DEATH(Input.analyze(), "initial semantic analyzer does not support SimpleStmt");
   }
 
   // A visible function or parameter in a type position is rejected as a value, respecting lexical shadowing.
@@ -355,16 +340,49 @@ namespace ink::semantic::test
     EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
   }
 
-  // Long pointer type chains stop at the semantic nesting budget even with a permissive parser budget.
+  // Long pointer chains stop at the default semantic budget and succeed when its override is raised.
   TEST(SemanticFunctionAnalyzerTest, BoundsSignatureTypeNesting)
   {
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_TYPE_DEPTH_LIMIT");
+    ASSERT_TRUE(Environment.set(nullptr));
     parser::ParseLimits Limits;
     Limits.MaxNestingDepth = 1024;
     FunctionAnalysis Input(std::string("func f(x: ") + std::string(260, '*') + "u8): void;", Limits);
     ASSERT_TRUE(Input.Parsed.succeeded());
-    EXPECT_EQ(Input.analyze(), nullptr);
-    ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
-    EXPECT_EQ(Input.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticNestingLimit);
-    EXPECT_TRUE(Input.Context.modules()[0]->entryBlock().values().empty());
+    EXPECT_DEATH(Input.analyze(), "internal compiler error\\[INK-S0014\\]");
+    ASSERT_TRUE(Environment.set("300"));
+    EXPECT_NE(Input.analyze(), nullptr);
+  }
+
+  // Type depth is bounded independently of block depth and refreshed for each analysis, including invalid overrides.
+  TEST(SemanticFunctionAnalyzerTest, UsesConfiguredTypeDepthLimit)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_TYPE_DEPTH_LIMIT");
+    core::test::ScopedEnvironmentVariable BlockEnvironment("INK_SEMANTIC_BLOCK_DEPTH_LIMIT");
+    ASSERT_TRUE(Environment.set("2"));
+    ASSERT_TRUE(BlockEnvironment.set("0"));
+    FunctionAnalysis AtLimit("func f(x: *u8): void;");
+    FunctionAnalysis OverLimit("func f(x: **u8): void;");
+    ASSERT_TRUE(AtLimit.Parsed.succeeded());
+    ASSERT_TRUE(OverLimit.Parsed.succeeded());
+    EXPECT_NE(AtLimit.analyze(), nullptr);
+    EXPECT_DEATH(OverLimit.analyze(), "internal compiler error\\[INK-S0014\\]");
+    ASSERT_TRUE(Environment.set("3"));
+    EXPECT_NE(OverLimit.analyze(), nullptr);
+    ASSERT_TRUE(Environment.set("invalid"));
+    EXPECT_NE(OverLimit.analyze(), nullptr);
+  }
+
+  // A zero type-depth limit rejects even a scalar return type while still allowing an empty module.
+  TEST(SemanticFunctionAnalyzerTest, ZeroTypeDepthLimitRejectsAnyType)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_TYPE_DEPTH_LIMIT");
+    ASSERT_TRUE(Environment.set("0"));
+    FunctionAnalysis Empty("");
+    FunctionAnalysis Function("func f(): void;");
+    ASSERT_TRUE(Empty.Parsed.succeeded());
+    ASSERT_TRUE(Function.Parsed.succeeded());
+    EXPECT_NE(Empty.analyze(), nullptr);
+    EXPECT_DEATH(Function.analyze(), "internal compiler error\\[INK-S0014\\]");
   }
 } // namespace ink::semantic::test

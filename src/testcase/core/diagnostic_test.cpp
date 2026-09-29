@@ -1,9 +1,60 @@
 #include "ink/core/diagnostic.h"
+#include "ink/core/core_define.h"
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
+#include <cstdlib>
 #include <set>
 
 namespace ink::core::test
 {
+  // PANIC flushes its message and call-site location before terminating, even when normal logging is disabled.
+  TEST(DiagnosticDeathTest, PanicWritesBeforeTerminating)
+  {
+    const auto Fail = []()
+    {
+      spdlog::set_level(spdlog::level::off);
+      PANIC("fatal {message}");
+    };
+    EXPECT_DEATH(Fail(), "fatal \\{message\\}");
+    EXPECT_DEATH(PANIC("fatal"), "panic at .*diagnostic_test.cpp:");
+  }
+
+  // An ICE is printed and aborts even without a diagnostic consumer.
+  TEST(DiagnosticDeathTest, PrintsParameterizedICEWithoutConsumers)
+  {
+    DiagnosticEngine Engine;
+    EXPECT_DEATH(Engine.report<DiagnosticKind::ASTArchiveSizeLimitExceeded>({}, 300U, 256U), "internal compiler error\\[INK-P0013\\]: AST archive size 300 bytes exceeds limit 256 bytes");
+    EXPECT_DEATH(Engine.report<DiagnosticKind::ASTArchiveUnsupportedVersion>({}, 9U, 1U), "unsupported AST archive version 9; supported version is 1");
+  }
+
+  // A consumer cannot intercept or suppress an ICE before the engine prints and panics.
+  TEST(DiagnosticDeathTest, PanicsBeforeDispatchingToConsumers)
+  {
+    class SuppressingConsumer final : public DiagnosticConsumer
+    {
+      public:
+        void consume(const Diagnostic &) override
+        {
+          std::_Exit(0);
+        }
+    };
+    DiagnosticEngine Engine;
+    SuppressingConsumer Consumer;
+    Engine.addConsumer(Consumer);
+    EXPECT_DEATH(Engine.report<DiagnosticKind::SemanticConstructionFailed>({}), "internal compiler error\\[INK-S0013\\]");
+  }
+
+  // The effective classification controls termination, including an explicitly promoted user diagnostic.
+  TEST(DiagnosticDeathTest, HonorsExplicitICEClassificationAndFormattingFallback)
+  {
+    DiagnosticEngine Engine;
+    auto Promoted = makeDiagnosticBuilder<DiagnosticKind::ParserExpectedToken>({}, ";").classification(DiagnosticClass::InternalCompilerError).build();
+    EXPECT_DEATH(Engine.report(Promoted), "internal compiler error\\[INK-P0001\\]: expected ;");
+    auto Malformed = makeDiagnostic<DiagnosticKind::ASTArchiveInvalidTree>({}, "missing required child");
+    Malformed.Arguments.clear();
+    EXPECT_DEATH(Engine.report(Malformed), "internal compiler error\\[INK-P0009\\]: invalid AST archive tree");
+  }
+
   // The two definition files stay disjoint, retain unique stable identities and enforce their declared classifications.
   TEST(DiagnosticTest, DefinitionTablesHaveDistinctClassesAndIdentities)
   {
@@ -52,21 +103,19 @@ namespace ink::core::test
     EXPECT_EQ(diagnosticClass(DiagnosticKind::ParserExpectedToken), DiagnosticClass::User);
   }
 
-  // Both classifications use the existing engine and formatter, with archive values retained as typed arguments.
+  // User errors return to their caller, while ICE values can be inspected and formatted before reporting.
   TEST(DiagnosticTest, EngineDeliversUserErrorsAndParameterizedICE)
   {
     DiagnosticEngine Engine;
     CollectingDiagnosticConsumer Consumer;
     Engine.addConsumer(Consumer);
     Engine.report<DiagnosticKind::ParserExpectedToken>(SourceRange::fromByteOffsets(2, 2), ";");
-    Engine.report<DiagnosticKind::ASTArchiveSizeLimitExceeded>({}, 300U, 256U);
-    Engine.report<DiagnosticKind::ASTArchiveUnsupportedVersion>({}, 9U, 1U);
     Engine.removeConsumer(Consumer);
-    ASSERT_EQ(Consumer.diagnostics().size(), 3U);
+    ASSERT_EQ(Consumer.diagnostics().size(), 1U);
     const auto &User = Consumer.diagnostics()[0];
     EXPECT_EQ(User.classification(), DiagnosticClass::User);
     EXPECT_EQ(DiagnosticFormatter{}.format(User).Message, "expected ;");
-    const auto &Limit = Consumer.diagnostics()[1];
+    const auto Limit = makeDiagnostic<DiagnosticKind::ASTArchiveSizeLimitExceeded>({}, 300U, 256U);
     EXPECT_EQ(Limit.classification(), DiagnosticClass::InternalCompilerError);
     EXPECT_TRUE(Limit.Span.isInvalid());
     EXPECT_EQ(DiagnosticFormatter{}.format(Limit).Severity, DiagnosticSeverity::Error);
@@ -76,7 +125,7 @@ namespace ink::core::test
     EXPECT_EQ(std::get<std::uint64_t>(Limit.Arguments[0].Value), 300U);
     EXPECT_EQ(Limit.Arguments[1].Name, DiagnosticArgumentName::MaximumSize);
     EXPECT_EQ(std::get<std::uint64_t>(Limit.Arguments[1].Value), 256U);
-    const auto &Version = Consumer.diagnostics()[2];
+    const auto Version = makeDiagnostic<DiagnosticKind::ASTArchiveUnsupportedVersion>({}, 9U, 1U);
     EXPECT_EQ(Version.classification(), DiagnosticClass::InternalCompilerError);
     EXPECT_EQ(DiagnosticFormatter{}.format(Version).Message, "unsupported AST archive version 9; supported version is 1");
   }
@@ -93,12 +142,12 @@ namespace ink::core::test
     const SourceRange FirstSpan = SourceRange::fromByteOffsets(2, 8);
     const SourceRange SecondSpan = SourceRange::fromByteOffsets(11, 11);
     std::string ExpectedToken = ";";
-    View.report<DiagnosticKind::SemanticConstructionFailed>(FirstSource, FirstSpan);
+    View.report<DiagnosticKind::InvalidUtf8>(FirstSource, FirstSpan);
     View.report<DiagnosticKind::ParserExpectedToken>(SecondSource, SecondSpan, ExpectedToken);
     ExpectedToken = ")";
     ASSERT_EQ(Consumer.diagnostics().size(), 2U);
     const auto &First = Consumer.diagnostics()[0];
-    EXPECT_EQ(First.Kind, DiagnosticKind::SemanticConstructionFailed);
+    EXPECT_EQ(First.Kind, DiagnosticKind::InvalidUtf8);
     EXPECT_EQ(First.Source, FirstSource);
     EXPECT_EQ(First.Span, FirstSpan);
     EXPECT_TRUE(First.Arguments.empty());

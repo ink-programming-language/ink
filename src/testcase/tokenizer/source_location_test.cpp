@@ -103,15 +103,10 @@ namespace ink::tokenizer::test
     EXPECT_TRUE(Buffer.raw(Invalid).empty());
   }
 
-  // An unknown source ID produces an explicit diagnostic without a fake EOF.
+  // An unknown source ID prints an ICE and terminates before returning a token buffer.
   TEST_F(TokenizerTest, UnregisteredSourceReportsFailure)
   {
-    const auto Buffer = tokenizeSource(Context, {});
-    EXPECT_FALSE(Buffer.succeeded());
-    EXPECT_TRUE(Buffer.tokens().empty());
-    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, DiagnosticKind::TokenizerSourceNotFound);
-    EXPECT_TRUE(Diagnostics.diagnostics()[0].Span.isInvalid());
+    EXPECT_DEATH(tokenizeSource(Context, {}), "internal compiler error\\[INK-T0021\\]");
   }
 
   // A buffer owns its source and decoded payload after its compilation context is destroyed.

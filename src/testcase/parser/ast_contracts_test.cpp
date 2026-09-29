@@ -263,6 +263,18 @@ namespace ink::parser::test
     EXPECT_EQ(std::get<std::string>(Diagnostics.diagnostics()[0].Arguments[0].Value), "retained");
   }
 
+  // ICE bypasses a zero diagnostic budget and nested speculative transactions instead of being buffered or rolled back.
+  TEST_F(ParserTest, ICEBypassesDiagnosticSuppressionAndTransactions)
+  {
+    ParserDiagnosticEmitter Emitter(Frontend.diagnosticEngine(), {}, 0);
+    Emitter.begin();
+    Emitter.begin();
+    EXPECT_DEATH(Emitter.report(core::makeDiagnostic<core::DiagnosticKind::ParserLimitExceeded>({})), "internal compiler error\\[INK-P0004\\]");
+    Emitter.rollback();
+    Emitter.rollback();
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
   // Structural verification rejects missing required children and children outside their parent's range.
   TEST(ASTVerifierTest, InvalidContracts)
   {

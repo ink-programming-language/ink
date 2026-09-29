@@ -42,7 +42,7 @@ namespace ink::semantic
 
   const Type *Analyzer::analyzeType(AnalysisState &State, const parser::Expr &Node, std::size_t Depth)
   {
-    if (Depth == 256)
+    if (Depth >= State.TypeDepthLimit)
     {
       State.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
       return nullptr;

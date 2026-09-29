@@ -5,6 +5,10 @@ namespace ink::parser
   void ParserDiagnosticEmitter::report(core::Diagnostic Diagnostic)
   {
     Diagnostic.Source = Source;
+    if (Diagnostic.classification() == core::DiagnosticClass::InternalCompilerError)
+    {
+      Engine.report(Diagnostic);
+    }
     if (Count++ >= Limit)
     {
       return;

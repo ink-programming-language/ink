@@ -1,8 +1,30 @@
 # ink
 
-当前按 [`docs/Ink-Lexical-Rules.md`](docs/Ink-Lexical-Rules.md)、[`docs/Ink-grammar-Rules.bnf`](docs/Ink-grammar-Rules.bnf) 和 [`docs/Ink-Parser-Design.md`](docs/Ink-Parser-Design.md) 构建前端，包含 Core、CLI 支持库、tokenizer、parser、semantic 对象模型及分析入口占位接口、`ink-tokenize`、`ink-parse` 和测试。`semantic::Analyzer::analyze` 当前支持空模块和空块，其余语义报告未支持并返回空指针；`NameResolver` 提供词法作用域、名字绑定和函数重载候选集合。旧 IR 和 execution 目录已删除；旧 backend 和 interpreter 工具仍未接入当前构建。测试分别位于 `src/testcase/tokenizer`、`src/testcase/parser` 与 `src/testcase/semantic`。
+当前按 [`docs/Ink-Lexical-Rules.md`](docs/Ink-Lexical-Rules.md)、[`docs/Ink-grammar-Rules.bnf`](docs/Ink-grammar-Rules.bnf) 和 [`docs/Ink-Parser-Design.md`](docs/Ink-Parser-Design.md) 构建前端，包含 Core、CLI 支持库、tokenizer、parser、semantic 对象模型及分析入口占位接口、`ink-tokenize`、`ink-parse` 和测试。`semantic::Analyzer::analyze` 当前支持空模块和空块，未支持的语义输出 ICE 后立即 panic；`NameResolver` 提供词法作用域、名字绑定和函数重载候选集合。旧 IR 和 execution 目录已删除；旧 backend 和 interpreter 工具仍未接入当前构建。测试分别位于 `src/testcase/tokenizer`、`src/testcase/parser` 与 `src/testcase/semantic`。
+
+Core 的 `PANIC(Message)` 宏通过独立的 spdlog stderr logger 输出消息和调用位置、同步刷新后调用 `abort()`，不依赖全局日志开关。`DiagnosticEngine::report` 遇到 ICE 会立即输出诊断编号和格式化消息并 panic，先于消费者分发；普通用户错误仍正常分发并返回。无效 AST 归档、资源上限等现有 ICE 同样遵循此规则。
 
 ## 构建
+
+Core 配置集中定义在 `src/include/ink/core/config.def`，每项包含枚举名、环境变量名和字符串默认值，并生成 `ink::core::ConfigKind` 枚举及以枚举为键的配置映射。`ink::core::ConfigManager::get<ink::core::ConfigKind::SemanticBlockDepthLimit>()` 直接返回 `std::string`，每次读取对应环境变量，未设置时返回定义中的默认值；配置项通过枚举模板参数选择，找不到枚举对应的配置时报告 `INK-C0001` 并立即 panic。`getSize<ink::core::ConfigKind::SemanticBlockDepthLimit>()` 直接返回 `std::size_t`，读取非负十进制整数，空值、非法格式或溢出的环境变量会回退到默认值；默认值也无法解析时报告 `INK-C0002` 并立即 panic。`INK_SEMANTIC_BLOCK_DEPTH_LIMIT` 控制语义分析的块嵌套上限，默认 `256`，`0` 表示不允许任何块；例如 PowerShell 中执行 `$env:INK_SEMANTIC_BLOCK_DEPTH_LIMIT = "128"` 可覆盖该上限。
+
+其他资源限制也由 `config.def` 提供默认值，字节预算的环境变量使用十进制字节数：
+
+| 环境变量 | 默认值 | 用途 |
+| --- | --- | --- |
+| `INK_SEMANTIC_TYPE_DEPTH_LIMIT` | `256` | 语义类型递归深度 |
+| `INK_PARSER_MAX_NESTING_DEPTH` | `128` | Parser 嵌套深度 |
+| `INK_PARSER_MAX_DIAGNOSTICS` | `100` | Parser 用户诊断数量 |
+| `INK_PARSER_MAX_WORK` | `10000000` | Parser 工作量 |
+| `INK_PARSER_MAX_ALLOCATION_BYTES` | `67108864`（64 MiB） | Parser AST 分配预算 |
+| `INK_AST_ARCHIVE_MAX_BYTES` | `268435456`（256 MiB） | AST 归档大小 |
+| `INK_AST_ARCHIVE_MAX_SOURCE_BYTES` | `67108864`（64 MiB） | 归档源码大小 |
+| `INK_AST_ARCHIVE_MAX_NODES` | `1000000` | 归档 AST 节点数 |
+| `INK_AST_ARCHIVE_MAX_TOKENS` | `2000000` | 归档 Token 数 |
+| `INK_AST_ARCHIVE_MAX_ARRAY_ELEMENTS` | `1000000` | 归档数组元素数 |
+| `INK_AST_ARCHIVE_MAX_ALLOCATION_BYTES` | `268435456`（256 MiB） | 归档解码分配预算 |
+
+`ParseLimits` 和 `ASTArchiveLimits` 在构造时读取配置，调用方可以继续显式设置各字段，优先级为调用方显式值、有效环境变量、`config.def` 默认值。之后修改环境变量只影响新建的 Limits；解析、序列化和反序列化省略 Limits 参数时会读取当前配置。Parser 嵌套深度仍受内部 `512` 层硬上限约束。语义类型递归上限在每次 `Analyzer::analyze()` 开始时读取，深度从 `0` 计数，达到上限即报告 ICE 并 panic；`0` 会拒绝任何类型分析。
 
 初始化固定版本的第三方依赖：
 
@@ -38,7 +60,7 @@ Ink 跨 module 函数、成员函数、闭合实例、全局变量、Imported �
 ## Parser 接口
 
 - `ink::parser::parse(FrontendContext &, TokenizedBuffer, ParseLimits)` 返回 `ParseResult`。`Unit` 持有不可变 TokenBuffer、ASTContext、ModuleAST 和恢复记录；节点和源码引用在 Unit 销毁前有效。`succeeded()` 同时检查词法结果、当前调用的语法错误和解析状态。
-- `Completed` 表示扫描结束，错误输入仍能返回恢复后的 AST。`LimitExceeded` 和 `Cancelled` 明确标识部分结果。ParseLimits 控制嵌套、诊断、工作量与 AST 分配；分配预算触发停止后仍允许构造父节点和最终列表，以返回结构完整的部分树。
+- `Completed` 表示扫描结束，错误输入仍能返回恢复后的 AST。`Cancelled` 明确标识取消时的部分结果。ParseLimits 控制嵌套、诊断、工作量与 AST 分配；嵌套、工作量或分配预算耗尽会输出 ICE 并立即 panic，不再返回部分 AST。ICE 不受诊断数量上限或诊断事务影响。
 - `ASTVisitor`／`ConstASTVisitor` 只分派当前节点，`StrictExprVisitor` 要求覆盖全部表达式。`ASTWalker` 使用显式栈按源码顺序遍历，支持跳过子节点和提前停止。`verifyAST` 校验结构契约；`dumpAST` 返回字符串，不直接产生进程输出。
 - `ink-parse INPUT` 或通过标准输入运行 `ink-parse -` 可查看结构与恢复记录。正常退出为 0，词法或语法错误为 1，输入读取失败为 2。
 - 测试包含文法家族、恢复边界、Arena 析构与回滚、Visitor、源码生命周期、长链、资源预算、Token 边界扰动及确定性随机输入。可运行 `cmake --build build --config Release --target run_all_tests` 执行完整回归。

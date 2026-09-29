@@ -104,18 +104,18 @@ namespace ink::parser::test
     EXPECT_TRUE(Syntax.HasSyntaxErrors);
   }
 
-  // Nesting, total work, allocation and cancellation each produce a valid explicitly incomplete result.
+  // Resource exhaustion panics, while explicit cancellation still returns an incomplete result.
   TEST_F(ParserTest, ResourceLimits)
   {
     ParseLimits Limits;
     Limits.MaxNestingDepth = 12;
-    EXPECT_EQ(read(std::string(1000, '(') + "x;", Limits).Status, ParseStatus::LimitExceeded);
+    EXPECT_DEATH(read(std::string(1000, '(') + "x;", Limits), "internal compiler error\\[INK-P0004\\]");
     Limits = {};
     Limits.MaxWork = 20;
-    EXPECT_EQ(read("for ([x,y,z]; a; b) { var x = 1; }", Limits).Status, ParseStatus::LimitExceeded);
+    EXPECT_DEATH(read("for ([x,y,z]; a; b) { var x = 1; }", Limits), "internal compiler error\\[INK-P0004\\]");
     Limits = {};
     Limits.MaxAllocationBytes = 128;
-    EXPECT_EQ(read("a + b + c + d + e + f;", Limits).Status, ParseStatus::LimitExceeded);
+    EXPECT_DEATH(read("a + b + c + d + e + f;", Limits), "internal compiler error\\[INK-P0004\\]");
     Limits = {};
     Limits.IsCancelled = []
     {

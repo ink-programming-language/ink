@@ -1,5 +1,6 @@
 #include "analyzer_internal.h"
 
+#include "ink/core/config_manager.h"
 #include "ink/parser/ast.h"
 #include "ink/semantic/context.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
@@ -71,7 +72,8 @@ namespace ink::semantic
 
   bool Analyzer::analyzeBlockStmt(AnalysisState &State, const parser::BlockStmt &Node)
   {
-    if (State.BlockDepth == 256)
+    const auto BlockDepthLimit = core::ConfigManager::getSize<core::ConfigKind::SemanticBlockDepthLimit>();
+    if (State.BlockDepth >= BlockDepthLimit)
     {
       State.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
       return false;

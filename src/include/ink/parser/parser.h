@@ -1,4 +1,5 @@
 #pragma once
+#include "ink/core/config_manager.h"
 #include "ink/parser/token_cursor.h"
 #include <functional>
 namespace ink::parser
@@ -11,12 +12,12 @@ namespace ink::parser
   };
   struct ParseLimits
   {
-      std::size_t MaxNestingDepth = 128;
-      std::size_t MaxDiagnostics = 100;
-      std::size_t MaxWork = 10000000;
-      // Parsing stops at this budget. Bounded stack unwinding may allocate the
-      // parent nodes and final arrays needed to publish a valid partial tree.
-      std::size_t MaxAllocationBytes = 64 * 1024 * 1024;
+      // Snapshot configured defaults at construction; callers can override individual fields.
+      std::size_t MaxNestingDepth = core::ConfigManager::getSize<core::ConfigKind::ParserMaxNestingDepth>();
+      std::size_t MaxDiagnostics = core::ConfigManager::getSize<core::ConfigKind::ParserMaxDiagnostics>();
+      std::size_t MaxWork = core::ConfigManager::getSize<core::ConfigKind::ParserMaxWork>();
+      // Exhausting the allocation budget reports an ICE and panics without returning a partial tree.
+      std::size_t MaxAllocationBytes = core::ConfigManager::getSize<core::ConfigKind::ParserMaxAllocationBytes>();
       std::function<bool()> IsCancelled;
   };
   enum class ExpectStatus

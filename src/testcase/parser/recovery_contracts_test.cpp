@@ -418,12 +418,7 @@ namespace ink::parser::test
       Source += Case.Suffix;
       ParseLimits Limits;
       Limits.MaxNestingDepth = 24;
-      const auto Result = read(Source, Limits);
-      EXPECT_EQ(Result.Status, ParseStatus::LimitExceeded);
-      EXPECT_TRUE(Result.HasSyntaxErrors);
-      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::ParserLimitExceeded);
-      EXPECT_EQ(Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::InternalCompilerError);
+      EXPECT_DEATH(read(Source, Limits), "internal compiler error\\[INK-P0004\\]");
     }
   }
 
@@ -451,7 +446,7 @@ namespace ink::parser::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Stopping at each work/cancellation checkpoint and tiny allocation budgets still publishes valid partial recovery trees.
+  // Work/allocation exhaustion always panics; cancellation checkpoints still publish valid partial recovery trees.
   TEST_F(ParserTest, RecoveryBudgetCheckpoints)
   {
     std::string Source;
@@ -464,9 +459,7 @@ namespace ink::parser::test
       SCOPED_TRACE(Budget);
       ParseLimits Limits;
       Limits.MaxWork = Budget;
-      const auto Limited = read(Source, Limits);
-      EXPECT_EQ(Limited.Status, ParseStatus::LimitExceeded);
-      EXPECT_FALSE(Limited.succeeded());
+      EXPECT_DEATH(read(Source, Limits), "internal compiler error\\[INK-P0004\\]");
       std::size_t Checks = 0;
       Limits = {};
       Limits.IsCancelled = [&Checks, Budget]
@@ -482,10 +475,7 @@ namespace ink::parser::test
       ParseLimits Limits;
       Limits.MaxAllocationBytes = Bytes;
       Limits.MaxDiagnostics = 0;
-      const auto Result = read(Source, Limits);
-      EXPECT_EQ(Result.Status, ParseStatus::LimitExceeded);
-      EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+      EXPECT_DEATH(read(Source, Limits), "internal compiler error\\[INK-P0004\\]");
     }
   }
 

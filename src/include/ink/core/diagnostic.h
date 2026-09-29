@@ -25,6 +25,7 @@ namespace ink::core
     Execution = 0x05,
     Driver = 0x06,
     Backend = 0x07,
+    Core = 0x08,
   };
 
   enum class DiagnosticClass : std::uint8_t
@@ -365,6 +366,7 @@ namespace ink::core
 
       void addConsumer(DiagnosticConsumer &Consumer);
       void removeConsumer(DiagnosticConsumer &Consumer) noexcept;
+      // ICE is printed synchronously and panics before any consumer can defer or suppress it.
       void report(const Diagnostic &DiagnosticEntry) const;
 
       template <DiagnosticKind Kind, typename... ArgumentTypes>

@@ -2,9 +2,12 @@
 #error "Define INK_DIAGNOSTIC before including diagnostic_ice.def"
 #endif
 
+INK_DIAGNOSTIC(ConfigNotFound, 0x08000001U, Core, "INK-C0001", InternalCompilerError, Error, "configuration key is not registered", "configuration key {ActualValue} is not registered", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(ActualValue, UnsignedInteger)))
+INK_DIAGNOSTIC(ConfigInvalidSizeDefault, 0x08000002U, Core, "INK-C0002", InternalCompilerError, Error, "configuration size default is invalid", "configuration '{SymbolName}' has invalid size default '{Actual}'", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(SymbolName, String), INK_DIAGNOSTIC_ARGUMENT(Actual, String)))
+
 INK_DIAGNOSTIC(SemanticUnsupported, 0x0300000CU, Semantic, "INK-S0012", InternalCompilerError, Error, "semantic feature not implemented", "initial semantic analyzer does not support {Description}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Description, String)))
 INK_DIAGNOSTIC(SemanticConstructionFailed, 0x0300000DU, Semantic, "INK-S0013", InternalCompilerError, Error, "semantic model construction failed", "semantic model construction failed", INK_DIAGNOSTIC_ARGUMENTS())
-INK_DIAGNOSTIC(SemanticNestingLimit, 0x0300000EU, Semantic, "INK-S0014", InternalCompilerError, Error, "semantic nesting limit exceeded", "semantic analysis nesting exceeds 256 levels", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(SemanticNestingLimit, 0x0300000EU, Semantic, "INK-S0014", InternalCompilerError, Error, "semantic nesting limit exceeded", "semantic analysis nesting exceeds the permitted limit", INK_DIAGNOSTIC_ARGUMENTS())
 
 // All failures other than incorrect user source code, including resource limits and invalid archives.
 INK_DIAGNOSTIC(NormalizationFailed, 0x01000014U, Tokenizer, "INK-T0020", InternalCompilerError, Error, "could not normalize the identifier to NFC", "could not normalize the identifier to NFC", INK_DIAGNOSTIC_ARGUMENTS())

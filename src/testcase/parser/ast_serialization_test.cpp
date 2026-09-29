@@ -3,7 +3,12 @@
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Bitstream/BitstreamReader.h>
 #include <llvm/Bitstream/BitstreamWriter.h>
+#include <gmock/gmock.h>
+#include <spdlog/logger.h>
+#include <spdlog/sinks/stdout_sinks.h>
 #include <array>
+#include <csignal>
+#include <cstdlib>
 #include <limits>
 #include <set>
 
@@ -196,39 +201,23 @@ namespace ink::parser::test
 
     void expectRejected(core::FrontendContext &Frontend, std::string_view Bytes, ASTArchiveStatus Status = ASTArchiveStatus::InvalidArchive, ASTArchiveLimits Limits = {})
     {
-      const auto SourceCount = Frontend.sourceManager().sourceCount();
-      core::CollectingDiagnosticConsumer Diagnostics;
-      Frontend.diagnosticEngine().addConsumer(Diagnostics);
-      const auto Result = deserializeAST(Frontend, Bytes, Limits);
-      Frontend.diagnosticEngine().removeConsumer(Diagnostics);
-      EXPECT_FALSE(Result.succeeded());
-      EXPECT_EQ(Result.Status, Status) << Result.Message;
-      EXPECT_FALSE(Result.Message.empty());
-      EXPECT_EQ(Result.Parsed.Unit, nullptr);
-      EXPECT_EQ(Frontend.sourceManager().sourceCount(), SourceCount);
-      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-      const auto &Diagnostic = Diagnostics.diagnostics().front();
-      EXPECT_EQ(Diagnostic.classification(), core::DiagnosticClass::InternalCompilerError);
-      EXPECT_EQ(core::diagnosticDefaultSeverity(Diagnostic.Kind), core::DiagnosticSeverity::Error);
-      EXPECT_EQ(core::DiagnosticFormatter{}.format(Diagnostic).Message, Result.Message);
-      EXPECT_TRUE(Diagnostic.Span.isInvalid());
+      const char *Pattern = Status == ASTArchiveStatus::UnsupportedVersion ? "internal compiler error\\[INK-P0023\\]" : "internal compiler error\\[INK-P";
+      EXPECT_DEATH(deserializeAST(Frontend, Bytes, Limits), Pattern);
     }
 
-    void expectWriteRejected(core::FrontendContext &Frontend, const ParseResult &Parsed, ASTArchiveStatus Status, core::DiagnosticKind Kind, ASTArchiveLimits Limits = {})
+    void expectWriteRejected(core::FrontendContext &Frontend, const ParseResult &Parsed, core::DiagnosticKind Kind, ASTArchiveLimits Limits = {})
     {
-      core::CollectingDiagnosticConsumer Diagnostics;
-      Frontend.diagnosticEngine().addConsumer(Diagnostics);
-      const auto Result = serializeAST(Frontend, Parsed, Limits);
-      Frontend.diagnosticEngine().removeConsumer(Diagnostics);
-      EXPECT_EQ(Result.Status, Status);
-      EXPECT_FALSE(Result.succeeded());
-      EXPECT_TRUE(Result.Bytes.empty());
-      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-      const auto &Diagnostic = Diagnostics.diagnostics().front();
-      EXPECT_EQ(Diagnostic.Kind, Kind);
-      EXPECT_EQ(Diagnostic.classification(), core::DiagnosticClass::InternalCompilerError);
-      EXPECT_EQ(core::DiagnosticFormatter{}.format(Diagnostic).Message, Result.Message);
-      EXPECT_FALSE(Result.Message.empty());
+      const std::string Pattern = std::string("internal compiler error\\[") + core::diagnosticCode(Kind) + "\\]";
+      EXPECT_DEATH(serializeAST(Frontend, Parsed, Limits), Pattern);
+    }
+
+    bool completedOrPanicked(int Status)
+    {
+#ifdef _WIN32
+      return ::testing::ExitedWithCode(0)(Status) || ::testing::ExitedWithCode(3)(Status);
+#else
+      return ::testing::ExitedWithCode(0)(Status) || ::testing::KilledBySignal(SIGABRT)(Status);
+#endif
     }
   } // namespace
 
@@ -361,7 +350,7 @@ namespace ink::parser::test
     }
   }
 
-  // Cancellation and parser resource limits retain their distinct status after restoring a structurally valid partial AST.
+  // Cancellation retains its status in a round trip; parser resource exhaustion terminates before producing an archive.
   TEST_F(ParserTest, ASTSerializationInterruptedParses)
   {
     ParseLimits Limits;
@@ -374,9 +363,7 @@ namespace ink::parser::test
     expectRoundTrip(Cancelled, Frontend);
     Limits = {};
     Limits.MaxWork = 3;
-    const auto Limited = read("func f(x: T): T { return x; }", Limits);
-    ASSERT_EQ(Limited.Status, ParseStatus::LimitExceeded);
-    expectRoundTrip(Limited, Frontend);
+    EXPECT_DEATH(read("func f(x: T): T { return x; }", Limits), "internal compiler error\\[INK-P0004\\]");
   }
 
   // Names, nondecimal numbers, raw/multiline strings, escaped NUL and Unicode scalars preserve their decoded payloads.
@@ -756,27 +743,27 @@ namespace ink::parser::test
     ASTArchiveLimits Limits;
     Limits.MaxArchiveBytes = Saved.Bytes.size() - 1;
     expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::LimitExceeded, core::DiagnosticKind::ASTArchiveSizeLimitExceeded, Limits);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveSizeLimitExceeded, Limits);
     Limits = {};
     Limits.MaxSourceBytes = 2;
     expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::LimitExceeded, core::DiagnosticKind::ASTArchiveSourceLimitExceeded, Limits);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveSourceLimitExceeded, Limits);
     Limits = {};
     Limits.MaxNodes = 1;
     expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::LimitExceeded, core::DiagnosticKind::ASTArchiveNodeLimitExceeded, Limits);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveNodeLimitExceeded, Limits);
     Limits = {};
     Limits.MaxTokens = 1;
     expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::LimitExceeded, core::DiagnosticKind::ASTArchiveTokenLimitExceeded, Limits);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveTokenLimitExceeded, Limits);
     Limits = {};
     Limits.MaxArrayElements = 0;
     expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::LimitExceeded, core::DiagnosticKind::ASTArchiveArrayLimitExceeded, Limits);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveArrayLimitExceeded, Limits);
     Limits = {};
     Limits.MaxAllocationBytes = 1;
     expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::LimitExceeded, core::DiagnosticKind::ASTArchiveRecordStorageLimitExceeded, Limits);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveRecordStorageLimitExceeded, Limits);
     Limits = {};
     Limits.MaxArchiveBytes = Saved.Bytes.size();
     Limits.MaxSourceBytes = 6;
@@ -788,7 +775,7 @@ namespace ink::parser::test
     expectRejected(Frontend, archive(Records), ASTArchiveStatus::LimitExceeded);
   }
 
-  // Random byte mutations either fail cleanly or produce independently verifiable, serializable trees under strict budgets.
+  // Each random byte mutation runs in a subprocess and either prints an ICE or completes a verified round trip.
   TEST_F(ParserTest, ASTSerializationMutationCorpus)
   {
     const auto Saved = serializeAST(Frontend, read("func f[T: type](x: T = 1): T { return x + 2; }"));
@@ -807,38 +794,36 @@ namespace ink::parser::test
       const auto Offset = State % Bytes.size();
       State = State * 1664525U + 1013904223U;
       Bytes[Offset] ^= static_cast<char>((State >> 24) | 1);
-      core::CompilationContext LocalCompilation;
-      core::FrontendContext LocalFrontend(LocalCompilation);
-      core::CollectingDiagnosticConsumer MutationDiagnostics;
-      LocalFrontend.diagnosticEngine().addConsumer(MutationDiagnostics);
-      auto Loaded = deserializeAST(LocalFrontend, Bytes, Limits);
-      if (Loaded.succeeded())
+      SCOPED_TRACE(Iteration);
+      const auto CheckMutation = [&]()
       {
+        core::CompilationContext LocalCompilation;
+        core::FrontendContext LocalFrontend(LocalCompilation);
+        core::CollectingDiagnosticConsumer MutationDiagnostics;
+        LocalFrontend.diagnosticEngine().addConsumer(MutationDiagnostics);
+        auto Loaded = deserializeAST(LocalFrontend, Bytes, Limits);
+        ASSERT_TRUE(Loaded.succeeded());
         ASSERT_TRUE(verifyAST(Loaded.Parsed.Unit->root(), Loaded.Parsed.Unit->input().lexedFile().source().size()));
         const auto Again = serializeAST(LocalFrontend, Loaded.Parsed, Limits);
         ASSERT_TRUE(Again.succeeded()) << Iteration << ' ' << Again.Message;
         ASSERT_TRUE(deserializeAST(LocalFrontend, Again.Bytes, Limits).succeeded());
-        EXPECT_TRUE(MutationDiagnostics.diagnostics().empty());
-      }
-      else
-      {
-        EXPECT_EQ(Loaded.Parsed.Unit, nullptr);
-        EXPECT_FALSE(Loaded.Message.empty());
-        EXPECT_EQ(LocalCompilation.sourceManager().sourceCount(), 0U);
-        ASSERT_EQ(MutationDiagnostics.diagnostics().size(), 1U);
-        const auto &Diagnostic = MutationDiagnostics.diagnostics().front();
-        EXPECT_EQ(Diagnostic.classification(), core::DiagnosticClass::InternalCompilerError);
-        EXPECT_EQ(core::DiagnosticFormatter{}.format(Diagnostic).Message, Loaded.Message);
-      }
+        ASSERT_TRUE(MutationDiagnostics.diagnostics().empty());
+        const auto Sink = std::make_shared<spdlog::sinks::stderr_sink_mt>();
+        spdlog::logger Logger("archive-mutation-test", Sink);
+        Logger.info("archive mutation round trip succeeded");
+        Logger.flush();
+        std::_Exit(0);
+      };
+      EXPECT_EXIT(CheckMutation(), completedOrPanicked, ::testing::AnyOf(::testing::HasSubstr("internal compiler error[INK-P"), ::testing::HasSubstr("archive mutation round trip succeeded")));
     }
   }
 
-  // Serializing an absent parse unit returns an explicit error and no partial bytes.
+  // Serializing an absent parse unit prints its ICE before terminating.
   TEST(ASTSerializationTest, MissingInput)
   {
     core::CompilationContext Compilation;
     core::FrontendContext Frontend(Compilation);
-    expectWriteRejected(Frontend, ParseResult{}, ASTArchiveStatus::InvalidInput, core::DiagnosticKind::ASTArchiveMissingInput);
+    expectWriteRejected(Frontend, ParseResult{}, core::DiagnosticKind::ASTArchiveMissingInput);
   }
 
   // Source syntax diagnostics are not replayed or converted to ICE when a recovered snapshot successfully round-trips.
@@ -855,7 +840,7 @@ namespace ink::parser::test
     expectRoundTrip(Parsed, Frontend);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
     expectRejected(Frontend, "not an archive");
-    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
     Diagnostics.clear();
     expectRoundTrip(Parsed, Frontend);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -869,17 +854,17 @@ namespace ink::parser::test
     ASTArchiveLimits Limits;
     Limits.MaxArrayElements = 0;
     Limits.MaxArchiveBytes = 0;
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::LimitExceeded, core::DiagnosticKind::ASTArchiveRecoveryLimitExceeded, Limits);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveRecoveryLimitExceeded, Limits);
     Limits = {};
     Limits.MaxNodes = 0;
     Limits.MaxAllocationBytes = 0;
     Limits.MaxArchiveBytes = 0;
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::LimitExceeded, core::DiagnosticKind::ASTArchiveNodeLimitExceeded, Limits);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveNodeLimitExceeded, Limits);
     Parsed.Status = static_cast<ParseStatus>(99);
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::InvalidInput, core::DiagnosticKind::ASTArchiveInvalidEnum);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveInvalidEnum);
   }
 
-  // Invalid in-memory trees and token metadata report ICE before publishing any bytes, and remain repairable by the caller.
+  // Invalid ASTs and token metadata terminate in child processes; repaired parent state still serializes successfully.
   TEST_F(ParserTest, ASTSerializationWriterInvalidAST)
   {
     auto Parsed = read("x;");
@@ -888,56 +873,36 @@ namespace ink::parser::test
     auto *Items = const_cast<SimpleItem **>(Statement->items().data());
     auto *Item = Items[0];
     Items[0] = nullptr;
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::InvalidInput, core::DiagnosticKind::ASTArchiveInvalidTree);
-    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-    ASSERT_EQ(Diagnostics.diagnostics()[0].Arguments.size(), 1U);
-    EXPECT_FALSE(std::get<std::string>(Diagnostics.diagnostics()[0].Arguments[0].Value).empty());
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveInvalidTree);
     const auto Range = SourceRange::fromByteOffsets(0, 1);
     auto &Arena = Parsed.Unit->context();
     auto *Literal = Arena.make<LiteralExpr>(Range, 999, TokenKind::IntegerLiteral);
     Items[0] = Arena.make<ExprItem>(Range, Literal);
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::InvalidInput, core::DiagnosticKind::ASTArchiveInvalidNodeToken);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveInvalidNodeToken);
     auto *Name = Arena.make<NameExpr>(Range, NameToken{0, "wrong", Range});
     Items[0] = Arena.make<ExprItem>(Range, Name);
-    expectWriteRejected(Frontend, Parsed, ASTArchiveStatus::InvalidInput, core::DiagnosticKind::ASTArchiveInvalidNameToken);
+    expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveInvalidNameToken);
     Items[0] = Item;
     Diagnostics.clear();
     expectRoundTrip(Parsed, Frontend);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Real archive failures report typed version and budget values that remain available after result destruction.
+  // Real archive failures print the actual version and budget values before aborting.
   TEST_F(ParserTest, ASTSerializationICEDiagnosticArguments)
   {
     const auto Saved = serializeAST(Frontend, read("var value = 1;"));
     ASSERT_TRUE(Saved.succeeded());
-    Diagnostics.clear();
     ASTArchiveLimits Limits;
     Limits.MaxArchiveBytes = Saved.Bytes.size() - 1;
-    expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
-    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-    const auto &Limit = Diagnostics.diagnostics().front();
-    EXPECT_EQ(Limit.Kind, core::DiagnosticKind::ASTArchiveSizeLimitExceeded);
-    ASSERT_EQ(Limit.Arguments.size(), 2U);
-    EXPECT_EQ(std::get<std::uint64_t>(Limit.Arguments[0].Value), Saved.Bytes.size());
-    EXPECT_EQ(std::get<std::uint64_t>(Limit.Arguments[1].Value), Limits.MaxArchiveBytes);
-    Diagnostics.clear();
+    const std::string SizeMessage = "AST archive size " + std::to_string(Saved.Bytes.size()) + " bytes exceeds limit " + std::to_string(Limits.MaxArchiveBytes) + " bytes";
+    EXPECT_DEATH(deserializeAST(Frontend, Saved.Bytes, Limits), SizeMessage);
     auto Records = records(Saved.Bytes);
     Records[0].Values[0] = ASTArchiveVersion + 7;
-    expectRejected(Frontend, archive(Records), ASTArchiveStatus::UnsupportedVersion);
-    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-    const auto &Version = Diagnostics.diagnostics().front();
-    EXPECT_EQ(Version.Kind, core::DiagnosticKind::ASTArchiveUnsupportedVersion);
-    ASSERT_EQ(Version.Arguments.size(), 2U);
-    EXPECT_EQ(std::get<std::uint64_t>(Version.Arguments[0].Value), ASTArchiveVersion + 7);
-    EXPECT_EQ(std::get<std::uint64_t>(Version.Arguments[1].Value), ASTArchiveVersion);
-    Diagnostics.clear();
+    const std::string VersionMessage = "unsupported AST archive version " + std::to_string(ASTArchiveVersion + 7) + "; supported version is " + std::to_string(ASTArchiveVersion);
+    EXPECT_DEATH(deserializeAST(Frontend, archive(Records)), VersionMessage);
     Records = records(Saved.Bytes);
     Records[0].Values[5] = std::numeric_limits<std::uint64_t>::max();
-    expectRejected(Frontend, archive(Records), ASTArchiveStatus::LimitExceeded);
-    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-    const auto &Count = Diagnostics.diagnostics().front();
-    ASSERT_EQ(Count.Arguments.size(), 2U);
-    EXPECT_EQ(std::get<std::uint64_t>(Count.Arguments[0].Value), std::numeric_limits<std::uint64_t>::max());
+    EXPECT_DEATH(deserializeAST(Frontend, archive(Records)), std::to_string(std::numeric_limits<std::uint64_t>::max()));
   }
 } // namespace ink::parser::test

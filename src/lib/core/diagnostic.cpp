@@ -1,4 +1,5 @@
 #include "ink/core/diagnostic.h"
+#include "ink/core/core_define.h"
 
 #include <spdlog/fmt/bundled/args.h>
 #include <spdlog/fmt/fmt.h>
@@ -487,6 +488,10 @@ namespace ink::core
 
   void DiagnosticEngine::report(const Diagnostic &DiagnosticEntry) const
   {
+    if (DiagnosticEntry.classification() == DiagnosticClass::InternalCompilerError)
+    {
+      PANIC(fmt::format("internal compiler error[{}]: {}", DiagnosticEntry.code(), DiagnosticFormatter{}.format(DiagnosticEntry).Message));
+    }
     const std::vector<DiagnosticConsumer *> Snapshot = Consumers;
     for (DiagnosticConsumer *Consumer : Snapshot)
     {

@@ -7,6 +7,7 @@
 #include "ink/semantic/name_resolve/name_resolver.h"
 #include "ink/parser/token_cursor.h"
 
+#include "ink/core/config_manager.h"
 #include "ink/core/diagnostic.h"
 #include "ink/core/source_id.h"
 
@@ -37,6 +38,7 @@ namespace ink::semantic
       IRBuilder Builder;
       const parser::TokenBuffer &Input;
       core::SourceId Source;
+      const std::size_t TypeDepthLimit = core::ConfigManager::getSize<core::ConfigKind::SemanticTypeDepthLimit>();
       std::size_t BlockDepth = 0;
   };
 } // namespace ink::semantic

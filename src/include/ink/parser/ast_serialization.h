@@ -1,4 +1,5 @@
 #pragma once
+#include "ink/core/config_manager.h"
 #include "ink/parser/parser.h"
 #include <cstdint>
 #include <string>
@@ -17,13 +18,14 @@ namespace ink::parser
 
   struct ASTArchiveLimits
   {
-      std::size_t MaxArchiveBytes = 256 * 1024 * 1024;
-      std::size_t MaxSourceBytes = 64 * 1024 * 1024;
-      std::size_t MaxNodes = 1000000;
-      std::size_t MaxTokens = 2000000;
-      std::size_t MaxArrayElements = 1000000;
+      // Snapshot configured defaults at construction; callers can override individual fields.
+      std::size_t MaxArchiveBytes = core::ConfigManager::getSize<core::ConfigKind::ASTArchiveMaxBytes>();
+      std::size_t MaxSourceBytes = core::ConfigManager::getSize<core::ConfigKind::ASTArchiveMaxSourceBytes>();
+      std::size_t MaxNodes = core::ConfigManager::getSize<core::ConfigKind::ASTArchiveMaxNodes>();
+      std::size_t MaxTokens = core::ConfigManager::getSize<core::ConfigKind::ASTArchiveMaxTokens>();
+      std::size_t MaxArrayElements = core::ConfigManager::getSize<core::ConfigKind::ASTArchiveMaxArrayElements>();
       // Cumulative decoded storage budget, including temporary copies; not a process RSS limit.
-      std::size_t MaxAllocationBytes = 256 * 1024 * 1024;
+      std::size_t MaxAllocationBytes = core::ConfigManager::getSize<core::ConfigKind::ASTArchiveMaxAllocationBytes>();
   };
 
   struct ASTSerializeResult
@@ -53,8 +55,8 @@ namespace ink::parser
 
   // Deterministic binary snapshots of syntax, tokens, source and recovery metadata.
   // No semantic state or declaration index is included. Bytes may contain NUL.
-  // Each failed operation reports its first failure as ICE through Context.diagnosticEngine().
-  // Message contains the formatted diagnostic; callers must not report the same failure again.
+  // The first failure reports an ICE through Context.diagnosticEngine() and panics.
+  // Failed operations do not return a result or partial bytes/AST to the caller.
   ASTSerializeResult serializeAST(core::FrontendContext &Context, const ParseResult &Parsed, ASTArchiveLimits Limits = {});
   ASTDeserializeResult deserializeAST(core::FrontendContext &Context, std::string_view Bytes, ASTArchiveLimits Limits = {});
 } // namespace ink::parser
