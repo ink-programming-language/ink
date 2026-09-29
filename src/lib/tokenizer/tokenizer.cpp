@@ -687,9 +687,7 @@ namespace ink::tokenizer
     Result.Source = Context.sourceManager().findSource(Source);
     if (Result.Source == nullptr)
     {
-      core::Diagnostic Entry = core::makeDiagnostic<DiagnosticKind::TokenizerSourceNotFound>({});
-      Entry.Source = Source;
-      Context.diagnosticEngine().report(Entry);
+      Context.diagnosticEngine().report<DiagnosticKind::TokenizerSourceNotFound>(Source, {});
       return Result;
     }
     std::vector<core::Diagnostic> Diagnostics;

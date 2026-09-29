@@ -21,7 +21,7 @@ namespace ink::semantic
   class Decl
   {
     public:
-      virtual ~Decl() = default;
+      virtual ~Decl();
       Decl(const Decl &) = delete;
       Decl &operator=(const Decl &) = delete;
       Decl(Decl &&) = delete;

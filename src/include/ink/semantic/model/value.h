@@ -13,7 +13,7 @@ namespace ink::semantic
   class Value
   {
     public:
-      virtual ~Value() = default;
+      virtual ~Value();
       Value(const Value &) = delete;
       Value &operator=(const Value &) = delete;
       Value(Value &&) = delete;

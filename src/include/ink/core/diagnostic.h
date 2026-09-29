@@ -373,6 +373,14 @@ namespace ink::core
         report(makeDiagnostic<Kind>(Span, std::forward<ArgumentTypes>(Arguments)...));
       }
 
+      template <DiagnosticKind Kind, typename... ArgumentTypes>
+      void report(SourceId Source, SourceRange Span, ArgumentTypes &&...Arguments) const
+      {
+        auto Entry = makeDiagnostic<Kind>(Span, std::forward<ArgumentTypes>(Arguments)...);
+        Entry.Source = Source;
+        report(Entry);
+      }
+
     private:
       std::vector<DiagnosticConsumer *> Consumers;
   };

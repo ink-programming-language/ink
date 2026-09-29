@@ -252,7 +252,8 @@ namespace ink::semantic::test
     Resolver.enterScope();
     EXPECT_EQ(&OtherResolver.currentScope(), &OtherResolver.rootScope());
     ASSERT_EQ(OtherResolver.bind(Missing, *LocalValue), BindResult::Inserted);
-    EXPECT_EQ(Resolver.lookup(Missing), nullptr);
+    EXPECT_EQ(&Resolver.rootScope(), &OtherResolver.rootScope());
+    EXPECT_EQ(Resolver.lookup(Missing), OtherResolver.lookup(Missing));
     EXPECT_EQ(Resolver.lookupLocal(Missing), nullptr);
     EXPECT_NE(OtherResolver.lookup(Missing), nullptr);
     EXPECT_EQ(Context.namePool().size(), NameCount);

@@ -2,19 +2,34 @@
 #define INK_LIB_SEMANTIC_ANALYZER_ANALYZER_INTERNAL_H
 
 #include "ink/semantic/analyzer/analyzer.h"
+#include "ink/semantic/context.h"
+#include "ink/semantic/name_resolve/name_resolver.h"
 
+#include "ink/core/diagnostic.h"
 #include "ink/core/source_id.h"
 
 #include <cstddef>
+#include <utility>
 
 namespace ink::semantic
 {
-  class NameResolver;
-
   struct Analyzer::AnalysisState
   {
+      AnalysisState(SemanticContext &Context, Scope &InitialScope, core::SourceId Source)
+          : Context(Context),
+            Resolver(InitialScope),
+            Source(Source)
+      {
+      }
+
+      template <core::DiagnosticKind Kind, typename... ArgumentTypes>
+      void report(core::SourceRange Span, ArgumentTypes &&...Arguments) const
+      {
+        Context.compilationContext().diagnosticEngine().report<Kind>(Source, Span, std::forward<ArgumentTypes>(Arguments)...);
+      }
+
       SemanticContext &Context;
-      NameResolver &Resolver;
+      NameResolver Resolver;
       core::SourceId Source;
       std::size_t BlockDepth = 0;
   };

@@ -5,34 +5,33 @@
 #include "ink/semantic/model/decl/function_decl.h"
 #include "ink/semantic/model/function/function.h"
 
-#include <utility>
-
 namespace ink::semantic
 {
-  NameResolver::NameResolver(const SemanticContext &Context)
-      : Context(Context)
+  NameResolver::NameResolver(SemanticContext &Context) noexcept
+      : NameResolver(Context.scopeStore().rootScope())
   {
-    Scopes.push_back(std::unique_ptr<Scope>(new Scope(nullptr)));
-    CurrentScope = Scopes.front().get();
+  }
+
+  NameResolver::NameResolver(Scope &InitialScope) noexcept
+      : Store(InitialScope.Store),
+        CurrentScope(&InitialScope)
+  {
   }
 
   Scope &NameResolver::enterScope()
   {
-    auto Result = std::unique_ptr<Scope>(new Scope(CurrentScope));
-    Scope *Pointer = Result.get();
-    Scopes.push_back(std::move(Result));
-    CurrentScope = Pointer;
+    CurrentScope = &Store.createScope(*CurrentScope);
     return *CurrentScope;
   }
 
   Scope *NameResolver::enterScope(Value &Owner)
   {
-    if (&Owner.context() != &Context || MemberScopes.contains(&Owner))
+    if (&Owner.context() != &Store.context() || Store.memberScope(Owner))
     {
       return nullptr;
     }
     Scope &Created = enterScope();
-    MemberScopes.emplace(&Owner, &Created);
+    Store.MemberScopes.emplace(&Owner, &Created);
     return &Created;
   }
 
@@ -68,11 +67,11 @@ namespace ink::semantic
 
   NameResolver::BindResult NameResolver::bind(Name BoundName, Value &ValueObject)
   {
-    if (&ValueObject.context() != &Context)
+    if (&ValueObject.context() != &Store.context())
     {
       return BindResult::ForeignValue;
     }
-    if (!Context.namePool().contains(BoundName))
+    if (!Store.context().namePool().contains(BoundName))
     {
       return BindResult::InvalidName;
     }
@@ -82,12 +81,17 @@ namespace ink::semantic
     {
       return BindResult::Conflict;
     }
-    return bindInTable(CurrentScope->ValueBindings, BoundName, &ValueObject, OverloadSet);
+    const BindResult Result = bindInTable(CurrentScope->ValueBindings, BoundName, &ValueObject, OverloadSet);
+    if (Result == BindResult::Inserted)
+    {
+      Store.ValueBindingLocations[&ValueObject].push_back({CurrentScope, BoundName});
+    }
+    return Result;
   }
 
   NameResolver::BindResult NameResolver::bind(Name BoundName, Decl &Declaration)
   {
-    if (&Declaration.module().context() != &Context)
+    if (&Declaration.module().context() != &Store.context())
     {
       return BindResult::ForeignDecl;
     }
@@ -96,7 +100,7 @@ namespace ink::semantic
     {
       return BindResult::InvalidDecl;
     }
-    if (!Context.namePool().contains(BoundName))
+    if (!Store.context().namePool().contains(BoundName))
     {
       return BindResult::InvalidName;
     }
@@ -108,20 +112,25 @@ namespace ink::semantic
     const BindResult Result = bindInTable(CurrentScope->DeclBindings, BoundName, &Declaration, OverloadSet);
     if (Result == BindResult::Inserted)
     {
-      DefinitionScopes.try_emplace(&Declaration, CurrentScope);
+      Store.DeclBindingLocations[&Declaration].push_back({CurrentScope, BoundName});
+      Store.DefinitionScopes.try_emplace(&Declaration, CurrentScope);
     }
     return Result;
   }
 
+  Scope *NameResolver::definitionScope(const Decl &Declaration) noexcept
+  {
+    return Store.definitionScope(Declaration);
+  }
+
   const Scope *NameResolver::definitionScope(const Decl &Declaration) const noexcept
   {
-    const auto Found = DefinitionScopes.find(&Declaration);
-    return Found == DefinitionScopes.end() ? nullptr : Found->second;
+    return Store.definitionScope(Declaration);
   }
 
   const Scope *NameResolver::findScope(Name BoundName) const noexcept
   {
-    if (!Context.namePool().contains(BoundName))
+    if (!Store.context().namePool().contains(BoundName))
     {
       return nullptr;
     }

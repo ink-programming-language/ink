@@ -1,20 +1,15 @@
 #ifndef INK_SEMANTIC_NAME_RESOLVE_NAME_RESOLVER_H
 #define INK_SEMANTIC_NAME_RESOLVE_NAME_RESOLVER_H
 
-#include "ink/semantic/name_resolve/scope.h"
-
-#include <memory>
-#include <unordered_map>
-#include <vector>
+#include "ink/semantic/name_resolve/scope_store.h"
 
 namespace ink::semantic
 {
   class SemanticContext;
   class Value;
 
-  // Owns lexical scopes and bindings, not their values or declarations. Context must outlive the resolver;
-  // targets must remain alive while their bindings or member scopes are used. Names use Context's name pool; compact Name indices
-  // cannot prove provenance.
+  // Borrows context-owned scopes and bindings, retaining only an independent current scope.
+  // Context must outlive the resolver. Names use its name pool; compact Name indices cannot prove provenance.
   class NameResolver final
   {
     public:
@@ -29,7 +24,9 @@ namespace ink::semantic
         InvalidDecl,
       };
 
-      explicit NameResolver(const SemanticContext &Context);
+      explicit NameResolver(SemanticContext &Context) noexcept;
+      // Resumes lookup in an existing scope, using that scope's store and context.
+      explicit NameResolver(Scope &InitialScope) noexcept;
       NameResolver(const NameResolver &) = delete;
       NameResolver &operator=(const NameResolver &) = delete;
       NameResolver(NameResolver &&) = delete;
@@ -37,12 +34,12 @@ namespace ink::semantic
 
       Scope &rootScope() noexcept
       {
-        return *Scopes.front();
+        return Store.rootScope();
       }
 
       const Scope &rootScope() const noexcept
       {
-        return *Scopes.front();
+        return Store.rootScope();
       }
 
       Scope &currentScope() noexcept
@@ -56,7 +53,7 @@ namespace ink::semantic
       }
 
       // Creates and enters a child of the current scope.
-      // Scopes and binding addresses remain stable until resolver destruction, even after exit.
+      // Scopes survive resolver destruction. Bindings remain until their last target is destroyed.
       Scope &enterScope();
 
       // Creates and enters Owner's member scope under the current scope.
@@ -74,6 +71,7 @@ namespace ink::semantic
       // The first successful binding records the definition scope; later aliases preserve it.
       BindResult bind(Name BoundName, Decl &Declaration);
 
+      Scope *definitionScope(const Decl &Declaration) noexcept;
       const Scope *definitionScope(const Decl &Declaration) const noexcept;
 
       // Searches the current scope and its parents; lookupLocal searches only the current scope.
@@ -99,8 +97,8 @@ namespace ink::semantic
       template <BindingTarget T = Value *>
       const Binding<T> *lookupMember(Value &Owner, Name MemberName) const noexcept
       {
-        const auto Found = MemberScopes.find(&Owner);
-        return Found == MemberScopes.end() ? nullptr : lookupInScope<T>(*Found->second, MemberName);
+        const Scope *Members = Store.memberScope(Owner);
+        return Members ? lookupInScope<T>(*Members, MemberName) : nullptr;
       }
 
     private:
@@ -129,10 +127,7 @@ namespace ink::semantic
         }
       }
 
-      const SemanticContext &Context;
-      std::vector<std::unique_ptr<Scope>> Scopes;
-      std::unordered_map<Value *, Scope *> MemberScopes;
-      std::unordered_map<const Decl *, Scope *> DefinitionScopes;
+      ScopeStore &Store;
       Scope *CurrentScope;
   };
 } // namespace ink::semantic

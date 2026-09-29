@@ -39,6 +39,14 @@ namespace ink::semantic::test
     EXPECT_EQ(&First->declarationRoot()->module(), First);
     EXPECT_EQ(&Second->declarationRoot()->module(), Second);
     EXPECT_NE(First->declarationRoot(), Second->declarationRoot());
+    const ScopeStore &Scopes = Context.scopeStore();
+    const Scope *FirstScope = Scopes.memberScope(*First);
+    const Scope *SecondScope = Scopes.memberScope(*Second);
+    ASSERT_NE(FirstScope, nullptr);
+    ASSERT_NE(SecondScope, nullptr);
+    EXPECT_NE(FirstScope, SecondScope);
+    EXPECT_EQ(FirstScope->parent(), &Scopes.rootScope());
+    EXPECT_EQ(SecondScope->parent(), &Scopes.rootScope());
   }
 
   // Missing, erroneous, cancelled and incomplete parse inputs fail before allocating a module name.

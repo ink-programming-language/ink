@@ -265,6 +265,57 @@ namespace ink::semantic::test
     EXPECT_EQ(Resolver.lookup<Decl *>(F)->targets()[0], First);
   }
 
+  // Definition scopes outlive their original resolver and remain unchanged when another resolver creates an alias.
+  TEST_F(GenericNameResolverTest, PreservesDefinitionsAcrossResolvers)
+  {
+    Scope *DefinitionScope = nullptr;
+    const Binding<Decl *> *Saved = nullptr;
+    {
+      NameResolver Original(Context);
+      DefinitionScope = &Original.enterScope();
+      ASSERT_EQ(Original.bind(First->name(), *First), BindResult::Inserted);
+      Saved = Original.lookup<Decl *>(First->name());
+      ASSERT_NE(Saved, nullptr);
+    }
+    EXPECT_EQ(Context.scopeStore().definitionScope(*First), DefinitionScope);
+    EXPECT_EQ(Resolver.definitionScope(*First), DefinitionScope);
+    NameResolver Resumed(*DefinitionScope);
+    EXPECT_EQ(Resumed.lookupLocal<Decl *>(First->name()), Saved);
+    ASSERT_EQ(Resolver.bind(Context.namePool().intern("Alias"), *First), BindResult::Inserted);
+    EXPECT_EQ(Resumed.definitionScope(*First), DefinitionScope);
+    EXPECT_EQ(Resolver.lookup<Decl *>(First->name()), nullptr);
+  }
+
+  // Detaching a module preserves generic bindings; destroying it removes its aliases while preserving another module's overload.
+  TEST_F(GenericNameResolverTest, RemovesDestroyedModuleDeclarations)
+  {
+    Module *OtherOwner = Factory.createModule(Context.namePool().intern("OtherModule"));
+    ASSERT_NE(OtherOwner, nullptr);
+    ModuleDecl *OtherRoot = Factory.createModuleDecl(*OtherOwner, *Parsed.Unit->root());
+    ASSERT_NE(OtherRoot, nullptr);
+    FunctionDecl *Survivor = Factory.createFunctionDecl(*OtherRoot, First->name(), First->ast());
+    ASSERT_NE(Survivor, nullptr);
+    const Name F = First->name();
+    const Name Alias = Context.namePool().intern("Alias");
+    ASSERT_EQ(Resolver.bind(F, *First), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(F, *Survivor), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Alias, *First), BindResult::Inserted);
+    const auto *Saved = Resolver.lookup<Decl *>(F);
+    ASSERT_NE(Saved, nullptr);
+    auto Detached = Factory.removeModule(Root->module());
+    ASSERT_NE(Detached, nullptr);
+    EXPECT_EQ(Resolver.lookup<Decl *>(F), Saved);
+    EXPECT_EQ(Resolver.definitionScope(*First), &Resolver.rootScope());
+    Detached.reset();
+    EXPECT_EQ(Resolver.lookup<Decl *>(F), Saved);
+    ASSERT_EQ(Saved->targets().size(), 1U);
+    EXPECT_EQ(Saved->targets()[0], Survivor);
+    EXPECT_EQ(Resolver.lookup<Decl *>(Alias), nullptr);
+    EXPECT_EQ(Resolver.definitionScope(*Survivor), &Resolver.rootScope());
+    ASSERT_TRUE(Factory.eraseModule(*OtherOwner));
+    EXPECT_EQ(Resolver.lookup<Decl *>(F), nullptr);
+  }
+
   // Definition environments and binding addresses survive scope/map growth and are not replaced by inner aliases.
   TEST_F(GenericNameResolverTest, PreservesDefinitionScopeAndBindingIdentity)
   {

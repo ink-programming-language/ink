@@ -6,6 +6,7 @@
 namespace ink::semantic
 {
   class NameResolver;
+  class ScopeStore;
 
   class Scope final
   {
@@ -21,17 +22,20 @@ namespace ink::semantic
       }
 
     private:
-      explicit Scope(Scope *Parent) noexcept
-          : Parent(Parent)
+      Scope(ScopeStore &Store, Scope *Parent) noexcept
+          : Store(Store),
+            Parent(Parent)
       {
       }
 
+      ScopeStore &Store;
       Scope *Parent;
       // Both maps participate in one lexical namespace.
       BindingTable<Value *> ValueBindings;
       BindingTable<Decl *> DeclBindings;
 
       friend class NameResolver;
+      friend class ScopeStore;
   };
 } // namespace ink::semantic
 

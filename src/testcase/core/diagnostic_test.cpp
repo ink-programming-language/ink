@@ -81,6 +81,34 @@ namespace ink::core::test
     EXPECT_EQ(DiagnosticFormatter{}.format(Version).Message, "unsupported AST archive version 9; supported version is 1");
   }
 
+  // Source-aware reporting preserves each source and span for both argument-free and parameterized diagnostics.
+  TEST(DiagnosticTest, EngineReportsSourceIdentityAndSpan)
+  {
+    DiagnosticEngine Engine;
+    CollectingDiagnosticConsumer Consumer;
+    Engine.addConsumer(Consumer);
+    const DiagnosticEngine &View = Engine;
+    const SourceId FirstSource(17);
+    const SourceId SecondSource(23);
+    const SourceRange FirstSpan = SourceRange::fromByteOffsets(2, 8);
+    const SourceRange SecondSpan = SourceRange::fromByteOffsets(11, 11);
+    std::string ExpectedToken = ";";
+    View.report<DiagnosticKind::SemanticConstructionFailed>(FirstSource, FirstSpan);
+    View.report<DiagnosticKind::ParserExpectedToken>(SecondSource, SecondSpan, ExpectedToken);
+    ExpectedToken = ")";
+    ASSERT_EQ(Consumer.diagnostics().size(), 2U);
+    const auto &First = Consumer.diagnostics()[0];
+    EXPECT_EQ(First.Kind, DiagnosticKind::SemanticConstructionFailed);
+    EXPECT_EQ(First.Source, FirstSource);
+    EXPECT_EQ(First.Span, FirstSpan);
+    EXPECT_TRUE(First.Arguments.empty());
+    const auto &Second = Consumer.diagnostics()[1];
+    EXPECT_EQ(Second.Kind, DiagnosticKind::ParserExpectedToken);
+    EXPECT_EQ(Second.Source, SecondSource);
+    EXPECT_EQ(Second.Span, SecondSpan);
+    EXPECT_EQ(DiagnosticFormatter{}.format(Second).Message, "expected ;");
+  }
+
   // An owned verifier reason survives its producer, and malformed diagnostic arguments use the registered fallback.
   TEST(DiagnosticTest, ArchiveICEOwnsReasonAndHasFormattingFallback)
   {

@@ -52,7 +52,7 @@
 
 - `IRBuilder::createFunction()` 根据签名创建 `FunctionParameter`，通过 `parameters()` 访问；形参通过 `outer()` 关联函数，`function()` 从该父节点取得所属函数，不再重复保存 Owner；同时保存 `Name ParameterName`（通过 `name()` 访问）、零起始索引、值类型和 `ParameterKind`（Positional、Named、Variadic），通过 `parameterKind()` 查询。`IRBuilder::createFunction()` 的可选种类列表必须与签名槽位数量一致，省略时全部为 Positional；第四个可选参数 `ParameterNames` 按签名顺序提供名称，省略时参数匿名，由调用方驻留并填写形参名；种类是绑定元数据，不改变规范化运行时签名或开启变参展开。`createAddInstruction()` 接受同型整数并定义按位宽回绕的加法；`IRBuilder::createDetachedReturnInstruction(ReturnedValue)` 创建未挂接的 void 类型终结节点，只校验操作数归属和非 void 类型；`IRBuilder::appendValue()` 校验目标块属于函数且返回值匹配该函数签名。返回指令不保存 Owner，`function()` 沿 outer → BasicBlock → Function 查询，未挂接时返回空指针。工厂不检查整体控制流，返回路径检查仍待实现。
 
-当前公共头位于 `src/include/ink/semantic`，其中 [`context.h`](../src/include/ink/semantic/context.h) 的 `SemanticContext` 借用 Core 编译上下文，拥有共享名称、类型、常量和根模块，各模块拥有声明树及 IR 树，所有可调用接口均在头文件中使用 [`core_define.h`](../src/include/ink/core/core_define.h) 提供的 `FORCE_INLINE` 定义；完整 `SemanticSession` 后续组合这份存储。
+当前公共头位于 `src/include/ink/semantic`，其中 [`context.h`](../src/include/ink/semantic/context.h) 的 `SemanticContext` 借用 Core 编译上下文，拥有共享名称、作用域、类型、常量和根模块，各模块拥有声明树及 IR 树，所有可调用接口均在头文件中使用 [`core_define.h`](../src/include/ink/core/core_define.h) 提供的 `FORCE_INLINE` 定义；完整 `SemanticSession` 后续组合这份存储。
 
 - `model/coredefines.h` 集中定义 `ValueKind`、`TypeKind`、`ParameterKind`、`AccessKind` 和 `VisibilityKind`，仅依赖 `<cstdint>` 与枚举注册表，可独立包含。`VisibilityKind::Public/Private` 表示声明或成员的可见性，具体访问检查尚未接入。
 - `model/Values.def` 生成 `ValueKind`，以 C++ 类名标识实际对象，如 `IntegerType`、`FunctionType`、`CallInstruction`；类型和常量条目分别生成 `Type::classof()`、`Constant::classof()`，具体类的 `classof()` 直接检查同名值种类。元类型、void、bool、label、module 共用实际类 `BuiltinType`，通过 `TypeKind` 区分。`Type`、`UserDefinedType`、`Constant` 仅作为中间基类，不单独占用值种类。
@@ -64,7 +64,7 @@
 - `FloatConstant` 保存自有 `FloatBits`，由 IEEE binary16/32/64 位宽与 `uint64_t` 原始位模式组成；`valid()` 拒绝不支持的位宽及编码之外的高位。`ConstantPool::getFloatConstant(FloatType, Payload)` 验证表示有效且位宽与类型匹配，再按完整位模式驻留，区分正负零、无穷、NaN 符号、静默/信号位与 payload。输入必须已经采用对应 IEEE 格式编码，不通过宿主浮点类型转换。十进制字面量解析、浮点运算、格式转换、舍入和溢出诊断由后续语义分析负责；池只保存位表示。
 - `Value` 是语义值基类，当前分支为 `Type`、`Constant`、`Function`、`BasicBlock`、`Module`、`CallInstruction`、`AllocaInstruction`、`LoadInstruction`、`StoreInstruction`、`FunctionParameter`、`AddInstruction` 和 `ReturnInstruction`。`Type` 下分 `BuiltinType` 与 `UserDefinedType`：builtin 提供元类型、void、bool、整数、IEEE binary16/32/64 浮点、定长数组、切片、指针、引用和函数类型；user-defined 提供 `ClassType`、`EnumType` 与 `InterfaceType`。所有类型值的类型是元类型，元类型的类型为自身。结构类型和常量在上下文内规范化；名义类型拥有独立身份，由分析器复用同一类型或实例的对象。不同上下文的对象不可直接混用。semantic 的接口、实现与测试使用项目自有模型及标准库，`ink_semantic` 对象模型依赖 `ink::core`，保留对 `ink::parser` 的构建依赖；LLVM IR 类型转换限定在后端适配层。
 - `Value` 统一保存所属 `SemanticContext` 和自身类型 `const Type &ValueType`，派生类通过继承的 `context()`、非虚 `type()` 查询。类型在构造时确定，派生类不重复保存自身类型，也不沿操作数链递归推导；元类型的自身类型指向自己。`Function::functionType()` 提供函数签名访问，数组元素类型、函数返回类型等类型结构成员仍由具体类型保存。
-- `Value::outer()` 返回非拥有的结构父节点指针；父节点通过 `unique_ptr` 拥有子节点。Context 拥有共享类型、常量和根 Module，Module 分别拥有声明树根和 IR 入口块，Function 拥有参数和函数块，BasicBlock 拥有块内节点。未挂载节点由调用方的 `unique_ptr` 拥有；调用目标、实参、类型和解析器绑定均为借用引用，不参与所有权。Context 必须比所有借用它的节点活得更久，删除节点前调用方必须处理仍引用它的操作数、名字绑定和 Builder 插入点；目前没有 use-def 自动修复。
+- `Value::outer()` 返回非拥有的结构父节点指针；父节点通过 `unique_ptr` 拥有子节点。Context 拥有作用域存储、共享类型、常量和根 Module，Module 分别拥有声明树根和 IR 入口块，Function 拥有参数和函数块，BasicBlock 拥有块内节点。未挂载节点由调用方的 `unique_ptr` 拥有；调用目标、实参、类型和解析器绑定均为借用引用，不参与所有权。Context 必须比所有借用它的节点活得更久，节点析构自动清理 ScopeStore 中的名字绑定；删除节点前调用方仍须处理操作数和 Builder 插入点；目前没有 use-def 自动修复。
 - `Value`、`Type`、`BuiltinType`、`UserDefinedType`、`Constant` 和 `Decl` 的基类构造函数使用 `protected`，字段保持 `private`；派生类无需逐个列入基类友元名单。函数、参数、基本块、模块、声明和指令的私有构造函数授权 `IRBuilder`，具体类型和常量分别授权 `TypePool`、`ConstantPool`。IRBuilder 负责节点创建、所有权转移和父子关系维护，并独占 Value、BasicBlock 等节点的结构写权限；Context 只持有共享存储和根模块。
 - `ArrayType` 的规范键为元素类型和 64 位长度，多维数组通过嵌套 `ArrayType` 表示；`SliceType` 表示具有运行期长度的视图，不拥有动态容器的分配策略。`PointerType`、`ReferenceType` 和 `SliceType` 的规范键都包括目标类型和 `AccessKind`，且三种类型使用不同存储。访问权限描述间接访问；源码绑定的可变性由语义分析器单独检查，`ReferenceType` 不替代表达式的值/位置类别。即使元素或目标是用户定义类型，这些语言内建类型构造器仍归 `BuiltinType`。
 - `IRBuilder` 提供名义类型、声明、模块、函数、基本块及指令的 `createXXX` 入口；`SemanticContext` 保留共享存储、Pool 访问器和根模块查询；所有权编辑及插入点校验统一由 IRBuilder 负责。函数和无参基本块工厂返回未挂载的 `unique_ptr`，根模块交给 Context 持有，声明根交给 Module 持有，子声明交给父声明持有，名义类型交给 TypePool 持有；这些创建操作均不使用或改变指令插入点。
@@ -80,7 +80,7 @@
 - 执行模型不再保存源码变量绑定对象。源码变量和形参与模型对象的绑定、const 分析仍待实现。初始化和赋值由各自位置的 `StoreInstruction` 表示，读取使用 `LoadInstruction`；`StoreInstruction` 在构造时将自身类型设置为上下文唯一的 void 类型，由 `Value::type()` 返回。
 - 声明借用的 AST 所属 `ParsedUnit` 必须比声明所属 Module 活得更久，当前上下文和模块不拥有或复制 AST。源码中的普通 `parser::VarDecl`、`parser::FunctionDecl` 和 `parser::ClassDecl` 是语法节点，不意味着创建同名语义 `Decl`。执行期变量槽位、编译期结果及语义分析状态分别保存，不能写回共享泛型 AST。
 
-名字解析代码位于 `name_resolve` 目录，`Scope`、`Binding<T>` 和 `NameResolver` 已拆分为独立类型和头文件。`Binding<T>` 仅支持 `Value *` 和 `Decl *`；两类绑定共享词法名字空间及遮蔽规则，普通函数与泛型函数候选按类别保存。`NameResolver` 提供作用域进入与退出、有类型查找、实体成员作用域、直接成员查找、重载候选及泛型定义首次绑定作用域；详见 [语义分析接口](Ink-Semantic-Analysis.md)。这一阶段尚未提供完整 `LookupResult`、`ExprInfo`、AST 名称分析、comptime 或 IR lowering。下文的 ID、类型独立存储门面、扩展常量种类和会话结构仍为后续接口规划；当前类型、常量和声明引用使用对象存活期间的稳定指针；类型与常量随 Context 存活，声明随所属 Module 存活，指针不能直接持久化。
+名字解析代码位于 `name_resolve` 目录，`Scope`、`Binding<T>`、`ScopeStore` 和 `NameResolver` 已拆分为独立类型和头文件。`SemanticContext::scopeStore()` 持久保存作用域、绑定、成员及定义作用域索引；每次分析由 `AnalysisState` 拥有独立 resolver，resolver 可从已有作用域恢复查找，销毁时不释放这些数据。`Binding<T>` 仅支持 `Value *` 和 `Decl *`；两类绑定共享词法名字空间及遮蔽规则，普通函数与泛型函数候选按类别保存。`NameResolver` 提供作用域进入与退出、有类型查找、实体成员作用域、直接成员查找、重载候选及泛型定义首次绑定作用域；详见 [语义分析接口](Ink-Semantic-Analysis.md)。这一阶段尚未提供完整 `LookupResult`、`ExprInfo`、AST 名称分析、comptime 或 IR lowering。下文的 ID、类型独立存储门面、扩展常量种类和会话结构仍为后续接口规划；当前类型、常量和声明引用使用对象存活期间的稳定指针；类型与常量随 Context 存活，声明随所属 Module 存活，指针不能直接持久化。
 
 ## 2 所有权、身份和上下文
 
@@ -145,7 +145,7 @@ Parser 发布 AST 后，semantic 只通过只读接口访问。当前 Parser API
 | 类 | 具体职责 | 保存的关键数据 |
 | --- | --- | --- |
 | `DeclStore` | 仅为泛型函数和泛型类保存不可变定义；分析及实例状态放在独立旁表 | 名称、借用的只读 AST；普通对象由对应模型存储拥有 |
-| `ScopeStore` | 保存模块、类型、函数、块作用域及其名称索引；记录声明的可见条件和导入来源 | `ScopeInfo`、`BindingInfo`、重载集合、可见性边界 |
+| `ScopeStore` | 已实现 Context 拥有的作用域、绑定、成员及定义作用域索引；可见条件和导入来源待扩展 | 当前为 `rootScope()`、`memberScope()`、`definitionScope()`；后续扩展可见性边界 |
 | `TypeContext` | 规范化内建、名义、复合、函数及元类型；处理类型相等、完整性和目标布局查询 | `TypeId`、类型结构、名义声明身份、布局状态 |
 | `ConstantPool` | 驻留不可变的标量、聚合、类型值及允许持久化的符号常量，提供规范相等和哈希 | `ConstValueId`、类型、规范值；不保存可变局部对象 |
 | `SemanticInfo` | 按语义上下文保存 AST 的绑定、表达式性质、调用/转换计划和函数体结果 | `ExprInfo`、`CallPlan`、`ConversionPlan`、`CheckedBody` |

@@ -23,19 +23,16 @@ namespace ink::semantic
     Module *Result = Builder.createModule(Context.namePool().intern(ModuleName));
     if (!Result || !Builder.createModuleDecl(*Result, Root))
     {
-      auto Diagnostic = core::makeDiagnostic<core::DiagnosticKind::SemanticConstructionFailed>(Root.getSourceRange());
-      Diagnostic.Source = Lexed.sourceId();
-      Context.compilationContext().diagnosticEngine().report(Diagnostic);
+      Context.compilationContext().diagnosticEngine().report<core::DiagnosticKind::SemanticConstructionFailed>(Lexed.sourceId(), Root.getSourceRange());
       return nullptr;
     }
 
-    // The resolver creates the root; the module has its own member scope below it.
-    NameResolver Resolver(Context);
-    if (!Resolver.enterScope(*Result))
+    // Each call starts at the shared root and enters a distinct module member scope.
+    AnalysisState State(Context, Context.scopeStore().rootScope(), Lexed.sourceId());
+    if (!State.Resolver.enterScope(*Result))
     {
       return nullptr;
     }
-    AnalysisState State{Context, Resolver, Lexed.sourceId()};
 
     // Builtin registration and declaration collection will precede body checking
     // when those features are implemented. No unsupported declaration is published.
@@ -52,9 +49,7 @@ namespace ink::semantic
 
   bool Analyzer::reportUnsupported(AnalysisState &State, const parser::ASTNodeBase &Node)
   {
-    auto Diagnostic = core::makeDiagnostic<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), parser::astKindName(Node.getKind()));
-    Diagnostic.Source = State.Source;
-    State.Context.compilationContext().diagnosticEngine().report(Diagnostic);
+    State.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), parser::astKindName(Node.getKind()));
     return false;
   }
 

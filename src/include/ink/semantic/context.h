@@ -7,6 +7,7 @@
 #include "ink/semantic/model/module/module.h"
 #include "ink/semantic/model/name/name_pool.h"
 #include "ink/semantic/model/type/type_pool.h"
+#include "ink/semantic/name_resolve/scope_store.h"
 
 #include <memory>
 #include <vector>
@@ -15,7 +16,7 @@ namespace ink::semantic
 {
   class IRBuilder;
 
-  // Owns shared types, constants and root modules; modules own independent declaration and IR trees.
+  // Owns shared scopes, types, constants and root modules; modules own independent declaration and IR trees.
   // CompilationContext must outlive this context, which must outlive detached IR owners.
   // Borrowed AST units must outlive their declaration-owning modules.
   class SemanticContext final
@@ -24,6 +25,7 @@ namespace ink::semantic
       FORCE_INLINE explicit SemanticContext(core::CompilationContext &Compilation)
           : Compilation(Compilation)
       {
+        Scopes.reset(new ScopeStore(*this));
         Types.reset(new TypePool(*this));
         Constants.reset(new ConstantPool(*this));
       }
@@ -54,6 +56,16 @@ namespace ink::semantic
         return Names;
       }
 
+      FORCE_INLINE ScopeStore &scopeStore() noexcept
+      {
+        return *Scopes;
+      }
+
+      FORCE_INLINE const ScopeStore &scopeStore() const noexcept
+      {
+        return *Scopes;
+      }
+
       FORCE_INLINE TypePool &typePool() noexcept
       {
         return *Types;
@@ -82,11 +94,15 @@ namespace ink::semantic
     private:
       core::CompilationContext &Compilation;
       NamePool Names;
+      // Values and declarations unregister bindings during destruction, before scopes are released.
+      std::unique_ptr<ScopeStore> Scopes;
       std::unique_ptr<TypePool> Types;
       std::unique_ptr<ConstantPool> Constants;
       std::vector<std::unique_ptr<Module>> Modules;
 
       friend class IRBuilder;
+      friend class Value;
+      friend class Decl;
   };
 } // namespace ink::semantic
 

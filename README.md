@@ -1,6 +1,6 @@
 # ink
 
-当前按 [`docs/Ink-Lexical-Rules.md`](docs/Ink-Lexical-Rules.md)、[`docs/Ink-grammar-Rules.bnf`](docs/Ink-grammar-Rules.bnf) 和 [`docs/Ink-Parser-Design.md`](docs/Ink-Parser-Design.md) 构建前端，包含 Core、CLI 支持库、tokenizer、parser、semantic 对象模型及分析入口占位接口、`ink-tokenize`、`ink-parse` 和测试。`semantic::Analyzer::analyze` 当前为空实现，始终返回空指针；`NameResolver` 提供词法作用域、名字绑定和函数重载候选集合。旧 IR 和 execution 目录已删除；旧 backend 和 interpreter 工具仍未接入当前构建。测试分别位于 `src/testcase/tokenizer`、`src/testcase/parser` 与 `src/testcase/semantic`。
+当前按 [`docs/Ink-Lexical-Rules.md`](docs/Ink-Lexical-Rules.md)、[`docs/Ink-grammar-Rules.bnf`](docs/Ink-grammar-Rules.bnf) 和 [`docs/Ink-Parser-Design.md`](docs/Ink-Parser-Design.md) 构建前端，包含 Core、CLI 支持库、tokenizer、parser、semantic 对象模型及分析入口占位接口、`ink-tokenize`、`ink-parse` 和测试。`semantic::Analyzer::analyze` 当前支持空模块和空块，其余语义报告未支持并返回空指针；`NameResolver` 提供词法作用域、名字绑定和函数重载候选集合。旧 IR 和 execution 目录已删除；旧 backend 和 interpreter 工具仍未接入当前构建。测试分别位于 `src/testcase/tokenizer`、`src/testcase/parser` 与 `src/testcase/semantic`。
 
 ## 构建
 
@@ -47,7 +47,7 @@ Ink 跨 module 函数、成员函数、闭合实例、全局变量、Imported �
 
 `Analyzer` 的头文件和实现放在 semantic 的 `analyzer` 子目录；名字解析放在 `name_resolve` 子目录，拆分为 `binding.h`、`scope.h`、`name_resolver.h` 和 `name_resolver.cpp`，三个类型均位于 `ink::semantic` 命名空间。
 
-`Analyzer::analyze(SemanticContext &, const parser::ParseResult &, std::string_view ModuleName)` 为成员函数，当前仍返回 `nullptr`。`NameResolver` 通过 `enterScope()` 和 `exitScope()` 管理当前作用域，直接绑定 `Value *`；`lookup()` 查找当前及父作用域，`lookupLocal()` 仅查当前作用域。`enterScope(Owner)` 为实体创建成员作用域，`lookupMember(Owner, Name)` 查找该实体的直接成员，别名共享同一实体的成员绑定。`Function` 支持同名候选集合，普通绑定重名返回冲突。重载选择和 AST 分析尚未接入。接口、生命周期和状态码见 [语义分析接口](docs/Ink-Semantic-Analysis.md)。
+`Analyzer::analyze(SemanticContext &, const parser::ParseResult &, std::string_view ModuleName)` 为成员函数，当前支持空模块和空块，其余语义报告未支持并返回 `nullptr`。`SemanticContext::scopeStore()` 持有作用域、绑定及成员/定义作用域索引；每次分析由 `AnalysisState` 拥有独立 `NameResolver`，通过 `enterScope()` 和 `exitScope()` 管理当前位置，并可从已有 `Scope` 恢复查找。resolver 销毁后绑定仍然保留，支持 `Value *` 和泛型 `Decl *`；`lookup()` 查找当前及父作用域，`lookupLocal()` 仅查当前作用域。`enterScope(Owner)` 为实体创建成员作用域，`lookupMember(Owner, Name)` 查找该实体的直接成员，别名共享同一实体的成员绑定。`Function` 支持同名候选集合，普通绑定重名返回冲突。重载选择和 AST 分析尚未接入。接口、生命周期和状态码见 [语义分析接口](docs/Ink-Semantic-Analysis.md)。
 
 ## Semantic 对象模型
 
@@ -68,7 +68,7 @@ Ink 跨 module 函数、成员函数、闭合实例、全局变量、Imported �
 - `Name` 只有一个 32 位索引，默认无效。`namePool().intern(Text)` 为相同字节串复用索引，`find(Text)` 不插入，`text(Name)` 返回池拥有的稳定视图。名称只在所属池内比较；调用方负责携带池或上下文，不能将一个池的索引交给另一个池解释。池不执行词法验证或 Unicode 规范化，前端名称应来自已经验证的 token。
 - `Type`、`Constant`、`Function`、`BasicBlock`、`Module`、`CallInstruction`、`AllocaInstruction`、`LoadInstruction` 和 `StoreInstruction` 都继承 `Value`，`Decl` 独立于该层次。`Type` 分为 `BuiltinType` 与 `UserDefinedType`：前者包括元类型、void、bool、整数、IEEE 16/32/64 位浮点、定长数组、切片、指针、引用和函数类型；后者包括以独立对象身份区分的 `ClassType`、`EnumType`、`InterfaceType`。类型值的类型为元类型，元类型的类型为自身。当前常量包括 bool、整数、字符串和浮点；整数 payload 使用自有 `IntegerBits`（位宽与低位字在前的 `uint64_t` 字数组），浮点使用自有 `FloatBits`（IEEE 位宽与 `uint64_t` 原始位模式），字符串拥有完整的解码字节。常量池拒绝无效位宽、错误字数和多余高位，不隐式截断或扩展。
 - `Value` 统一保存所属 `SemanticContext` 和自身类型 `const Type &ValueType`，派生类通过继承的 `context()`、非虚 `type()` 查询。类型在构造时确定，派生类不重复保存自身类型，也不沿操作数链递归推导；元类型的自身类型指向自己。`Function::functionType()` 提供函数签名访问，数组元素类型、函数返回类型等类型结构成员仍由具体类型保存。
-- `Value::outer()` 返回非拥有的结构父节点指针；父节点通过 `unique_ptr` 拥有子节点。Context 拥有共享类型、常量和根 Module，Module 分别拥有声明树根和 IR 入口块，Function 拥有参数和函数块，BasicBlock 拥有块内节点。未挂载节点由调用方的 `unique_ptr` 拥有；调用目标、实参、类型和解析器绑定均为借用引用，不参与所有权。Context 必须比所有借用它的节点活得更久，删除节点前调用方必须处理仍引用它的操作数、名字绑定和 Builder 插入点；目前没有 use-def 自动修复。
+- `Value::outer()` 返回非拥有的结构父节点指针；父节点通过 `unique_ptr` 拥有子节点。Context 拥有作用域存储、共享类型、常量和根 Module，Module 分别拥有声明树根和 IR 入口块，Function 拥有参数和函数块，BasicBlock 拥有块内节点。未挂载节点由调用方的 `unique_ptr` 拥有；调用目标、实参、类型和解析器绑定均为借用引用，不参与所有权。Context 必须比所有借用它的节点活得更久，节点析构自动清理 ScopeStore 中的名字绑定；删除节点前调用方仍须处理操作数和 Builder 插入点；目前没有 use-def 自动修复。
 - `Value`、`Type`、`BuiltinType`、`UserDefinedType`、`Constant` 和 `Decl` 的基类构造函数使用 `protected`，字段保持 `private`；派生类无需逐个列入基类友元名单。函数、参数、基本块、模块、声明和指令的私有构造函数授权 `IRBuilder`，具体类型和常量分别授权 `TypePool`、`ConstantPool`。IRBuilder 负责节点创建、所有权转移和父子关系维护，并独占 Value、BasicBlock 等节点的结构写权限；Context 只持有共享存储和根模块。
 - semantic 的公共接口、实现和测试使用项目自有模型与标准库，`ink_semantic` 对象模型依赖 `ink::core`，保留对 `ink::parser` 的构建依赖。名称池采用拥有字符串键的标准容器，哈希仅用于内存查找，分类通过 `classof()` 完成；LLVM IR 类型转换属于后端适配层。
 - `TypePool` 使用受约束的 `TypePool::getType<TypeKind::...>(...)` 模板重载获取类型。Meta、Void、Bool、Label、Module 无参数，返回 `const BuiltinType &` 并保留 `const noexcept`；参数化类型返回对应的具体类型指针，运行时参数无效时返回空指针。错误的种类与参数组合在编译期拒绝；名义类型仍通过 `IRBuilder::createClassType`、`IRBuilder::createEnumType`、`IRBuilder::createInterfaceType` 创建独立身份。

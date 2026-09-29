@@ -45,9 +45,7 @@ namespace ink::semantic
   {
     if (State.BlockDepth == 256)
     {
-      auto Diagnostic = core::makeDiagnostic<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
-      Diagnostic.Source = State.Source;
-      State.Context.compilationContext().diagnosticEngine().report(Diagnostic);
+      State.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
       return false;
     }
     ++State.BlockDepth;

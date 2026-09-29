@@ -11,6 +11,7 @@
 namespace ink::semantic
 {
   class NameResolver;
+  class ScopeStore;
   class Value;
   class Decl;
 
@@ -32,7 +33,7 @@ namespace ink::semantic
         return OverloadSet;
       }
 
-      // In insertion order. A later insertion into this binding invalidates the span.
+      // In insertion order. Insertion or target destruction invalidates the span.
       std::span<const T> targets() const noexcept
       {
         return Targets;
@@ -50,6 +51,7 @@ namespace ink::semantic
       std::vector<T> Targets;
 
       friend class NameResolver;
+      friend class ScopeStore;
   };
 
   template <BindingTarget T>
