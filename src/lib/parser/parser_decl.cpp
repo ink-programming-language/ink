@@ -139,7 +139,14 @@ namespace ink::parser
       expect(TokenKind::Semicolon);
       return Result;
     }
-    if (take(TokenKind::KwFunc))
+    Expr *Linkage = nullptr;
+    if (take(TokenKind::KwExtern))
+    {
+      const ExpectResult Language = expect(TokenKind::StringLiteral);
+      Linkage = Language.Actual ? static_cast<Expr *>(make<LiteralExpr>(Language.Range, *Language.Actual, TokenKind::StringLiteral)) : missingExpr();
+      expect(TokenKind::KwFunc);
+    }
+    if (Linkage || take(TokenKind::KwFunc))
     {
       const NameToken Name = name();
       const auto Generics = parseGenericParameters();
@@ -149,7 +156,7 @@ namespace ink::parser
       TypeSyntax *ReturnType = parseTypeSyntax();
       const bool Forward = take(TokenKind::Semicolon);
       BlockStmt *Body = Forward ? nullptr : parseBlock();
-      return make<FunctionDecl>(range(Start), Attributes, Name, Generics, Parameters, ReturnType, Forward ? FunctionBodyKind::DeclarationOnly : FunctionBodyKind::Definition, Body);
+      return make<FunctionDecl>(range(Start), Attributes, Name, Generics, Parameters, ReturnType, Forward ? FunctionBodyKind::DeclarationOnly : FunctionBodyKind::Definition, Body, Linkage);
     }
     if (take(TokenKind::KwField))
     {

@@ -28,6 +28,99 @@ namespace ink::parser::test
     const auto *Forward = cast<FunctionDecl>(declaration(Result, 1));
     EXPECT_EQ(Forward->bodyKind(), FunctionBodyKind::DeclarationOnly);
     EXPECT_EQ(Forward->body(), nullptr);
+    EXPECT_EQ(Function->linkage(), nullptr);
+    EXPECT_EQ(Forward->linkage(), nullptr);
+  }
+
+  // Extern preserves arbitrary decoded linkage names and the literal's original spelling and range.
+  TEST_F(ParserTest, ExternFunctionLinkageNames)
+  {
+    struct Case
+    {
+        const char *Spelling;
+        std::string_view Decoded;
+    };
+    const Case Cases[] = {
+        {"\"C\"", "C"},
+        {"\"C++\"", "C++"},
+        {"\"vendor.custom\"", "vendor.custom"},
+        {"\"\\x43\"", "C"},
+        {"r\"custom\\name\"", "custom\\name"},
+        {"\"\"\"custom\nname\"\"\"", "custom\nname"},
+        {"\"\"", ""},
+        {"\"C\\0other\"", std::string_view("C\0other", 7)},
+    };
+    for (const Case &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Spelling);
+      const std::string Source = std::string("extern ") + Entry.Spelling + " func f(msg: *u8): i32;";
+      const auto Result = read(Source);
+      ASSERT_TRUE(Result.succeeded());
+      const auto *Function = cast<FunctionDecl>(declaration(Result));
+      ASSERT_TRUE(isa<LiteralExpr>(Function->linkage()));
+      const auto *Linkage = cast<LiteralExpr>(Function->linkage());
+      EXPECT_EQ(Linkage->literalKind(), TokenKind::StringLiteral);
+      EXPECT_EQ(Result.Unit->input().spelling(Linkage->token()), Entry.Spelling);
+      EXPECT_EQ(std::get<tokenizer::StringInfo>(Result.Unit->input().token(Linkage->token()).Payload).Decoded, Entry.Decoded);
+      EXPECT_EQ(Linkage->getSourceRange().getBegin().getByteOffset(), 7U);
+      EXPECT_EQ(Function->getSourceRange(), SourceRange::fromByteOffsets(0, Source.size()));
+      EXPECT_EQ(Function->bodyKind(), FunctionBodyKind::DeclarationOnly);
+      EXPECT_EQ(Function->body(), nullptr);
+      EXPECT_EQ(Function->parameters().size(), 1U);
+    }
+  }
+
+  // Attributes and comptime prefixes retain extern function definitions, and walkers visit linkage before the signature.
+  TEST_F(ParserTest, ExternDefinitionsAndTraversal)
+  {
+    const auto Result = read("comptime [tag] extern \"other\" func f[T: type](x: T): T { return x; }");
+    ASSERT_TRUE(Result.succeeded());
+    const auto *Comptime = cast<ComptimeStmt>(Result.Unit->root()->statements()[0]);
+    const auto *Function = cast<FunctionDecl>(cast<DeclStmt>(Comptime->body())->declaration());
+    EXPECT_EQ(Function->attributes().size(), 1U);
+    EXPECT_EQ(Function->genericParameters().size(), 1U);
+    EXPECT_EQ(Function->bodyKind(), FunctionBodyKind::Definition);
+    EXPECT_NE(Function->body(), nullptr);
+    std::vector<const ASTNodeBase *> Visited;
+    ASTWalker{}.walk(Function, [&](const ASTNodeBase *Node)
+    {
+      Visited.push_back(Node);
+      return WalkAction::Continue;
+    });
+    ASSERT_GE(Visited.size(), 3U);
+    EXPECT_EQ(Visited[1], Function->linkage());
+    EXPECT_EQ(Visited[2], Function->genericParameters()[0].type());
+    EXPECT_NE(dumpAST(*Result.Unit).find("Linkage=LiteralExpr@"), std::string::npos);
+  }
+
+  // Malformed extern headers report errors and preserve a subsequent complete function declaration.
+  TEST_F(ParserTest, ExternHeaderRecovery)
+  {
+    const char *Sources[] = {
+        "extern func broken(): void;",
+        "extern 123 func broken(): void;",
+        "extern \"C\" broken(): void;",
+        "extern \"C\" func broken();",
+        "extern \"C\" \"other\" func broken(): void;",
+        "extern \"C\";",
+        "extern;",
+        "extern \"C\" var broken;",
+    };
+    for (const char *Source : Sources)
+    {
+      SCOPED_TRACE(Source);
+      const auto Result = read(std::string(Source) + " extern \"kept\" func kept(): void;");
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_GE(Result.Unit->root()->statements().size(), 2U);
+      const auto *Last = cast<DeclStmt>(Result.Unit->root()->statements().back());
+      ASSERT_TRUE(isa<FunctionDecl>(Last->declaration()));
+      EXPECT_EQ(cast<FunctionDecl>(Last->declaration())->name().Text, "kept");
+    }
+    const auto Missing = read("extern func f(): void;");
+    ASSERT_FALSE(Missing.succeeded());
+    EXPECT_TRUE(isa<MissingExpr>(cast<FunctionDecl>(declaration(Missing))->linkage()));
+    EXPECT_FALSE(read("extern").succeeded());
+    EXPECT_FALSE(read("extern \"C\"").succeeded());
   }
 
   // Lambda-only header features commit to lambdas even when their required block is missing.

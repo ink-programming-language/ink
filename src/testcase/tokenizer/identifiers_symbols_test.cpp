@@ -34,14 +34,14 @@ namespace ink::tokenizer::test
   // Removed keywords and prefixes of real keywords are ordinary identifiers.
   TEST_F(TokenizerTest, OnlyCompleteNewKeywordsAreReserved)
   {
-    const auto Buffer = lex("true false null bool int32 let self class_field class_method extends extern asx _as AS Match field2 yield_");
+    const auto Buffer = lex("true false null bool int32 let self class_field class_method extends external asx _as AS Match field2 yield_");
     ASSERT_TRUE(Buffer.succeeded());
     ASSERT_EQ(Buffer.tokens().size(), 18U);
     for (std::size_t Index = 0; Index + 1 < Buffer.tokens().size(); ++Index)
     {
       EXPECT_EQ(Buffer.tokens()[Index].Kind, TokenKind::Identifier) << Buffer.raw(Buffer.tokens()[Index]);
     }
-    expectKinds(lex("case default do field match switch yield"), {TokenKind::KwCase, TokenKind::KwDefault, TokenKind::KwDo, TokenKind::KwField, TokenKind::KwMatch, TokenKind::KwSwitch, TokenKind::KwYield});
+    expectKinds(lex("case default do extern field match switch yield"), {TokenKind::KwCase, TokenKind::KwDefault, TokenKind::KwDo, TokenKind::KwExtern, TokenKind::KwField, TokenKind::KwMatch, TokenKind::KwSwitch, TokenKind::KwYield});
   }
 
   // Every keyword and symbol spelling is checked against the normative document, independently of token.def.
@@ -86,7 +86,7 @@ namespace ink::tokenizer::test
         EXPECT_EQ(lookupSymbol(Spelling), Kind);
       }
     }
-    EXPECT_EQ(Names.size(), 78U);
+    EXPECT_EQ(Names.size(), 79U);
     EXPECT_FALSE(lookupKeyword("true"));
     EXPECT_FALSE(lookupSymbol("@"));
     EXPECT_TRUE(tokenSpelling(TokenKind::Identifier).empty());

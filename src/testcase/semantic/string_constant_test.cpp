@@ -91,6 +91,11 @@ namespace ink::semantic::test
       const StringConstant *Value = Pool.getStringConstant(*String, Payload);
       ASSERT_NE(Value, nullptr);
       EXPECT_EQ(Value->value(), Payload);
+      const std::string_view Storage = Value->nullTerminatedValue();
+      EXPECT_EQ(Storage.size(), Payload.size() + 1);
+      EXPECT_EQ(Storage.substr(0, Payload.size()), Payload);
+      EXPECT_EQ(Storage.back(), '\0');
+      EXPECT_EQ(Storage.data(), Value->value().data());
       EXPECT_EQ(Value, Context.constantPool().getStringConstant(*String, std::string(Payload)));
       for (const StringConstant *Previous : Constants)
       {
@@ -104,6 +109,61 @@ namespace ink::semantic::test
     const std::string Longer = "a-suffix";
     EXPECT_EQ(Constants[3], Pool.getStringConstant(*String, std::string_view(Longer.data(), 1)));
     EXPECT_EQ(Pool.size(), Constants.size() + 2);
+  }
+
+  // C conversion borrows the same NUL-terminated storage without copying, including empty, UTF-8 and sliced inputs.
+  TEST(SemanticStringConstantTest, LosslessCStringConversion)
+  {
+    core::CompilationContext Compilation;
+    SemanticContext Context(Compilation);
+    const SliceType *String = getStringType(Context);
+    ASSERT_NE(String, nullptr);
+    const char Bytes[] = {'h', 'i', '!'};
+    const std::string Long(65536, 'x');
+    const std::string_view Payloads[] = {
+        std::string_view{},
+        "hello, world",
+        "\u4e2d\U0001f600",
+        std::string_view(Bytes, 2),
+        Long,
+    };
+    for (std::string_view Payload : Payloads)
+    {
+      const StringConstant *Value = Context.constantPool().getStringConstant(*String, Payload);
+      ASSERT_NE(Value, nullptr);
+      const char *CString = Value->tryGetCString();
+      ASSERT_NE(CString, nullptr);
+      EXPECT_EQ(std::string_view(CString), Payload);
+      EXPECT_EQ(CString, Value->value().data());
+      EXPECT_EQ(CString[Payload.size()], '\0');
+      EXPECT_EQ(Value->value().size(), Payload.size());
+    }
+  }
+
+  // Leading, internal and payload-ending NULs remain distinct Ink values and explicitly fail C string conversion.
+  TEST(SemanticStringConstantTest, CStringConversionRejectsEmbeddedNul)
+  {
+    core::CompilationContext Compilation;
+    SemanticContext Context(Compilation);
+    const SliceType *String = getStringType(Context);
+    ASSERT_NE(String, nullptr);
+    const std::string_view Payloads[] = {
+        std::string_view("\0", 1),
+        std::string_view("\0a", 2),
+        std::string_view("a\0b", 3),
+        std::string_view("a\0", 2),
+        std::string_view("a\0\0", 3),
+    };
+    for (std::string_view Payload : Payloads)
+    {
+      const StringConstant *Value = Context.constantPool().getStringConstant(*String, Payload);
+      ASSERT_NE(Value, nullptr);
+      EXPECT_EQ(Value->tryGetCString(), nullptr);
+      EXPECT_EQ(Value->value(), Payload);
+      EXPECT_EQ(Value->nullTerminatedValue().size(), Payload.size() + 1);
+      EXPECT_EQ(Value->nullTerminatedValue().back(), '\0');
+      EXPECT_EQ(Value, Context.constantPool().getStringConstant(*String, Payload));
+    }
   }
 
   // Writable, signed-byte, wider-element, noninteger and foreign slices cannot type a string constant.
@@ -169,6 +229,8 @@ namespace ink::semantic::test
     }
     const std::string_view ShortView = Short->value();
     const std::string_view LongView = Long->value();
+    const char *ShortCString = Short->tryGetCString();
+    const char *LongCString = Long->tryGetCString();
     for (unsigned Index = 0; Index < 2048; ++Index)
     {
       const StringConstant *Item = Pool.getStringConstant(*String, "string-" + std::to_string(Index));
@@ -178,6 +240,8 @@ namespace ink::semantic::test
     EXPECT_EQ(Pool.size(), 2052U);
     EXPECT_EQ(Short->value().data(), ShortView.data());
     EXPECT_EQ(Long->value().data(), LongView.data());
+    EXPECT_EQ(Short->tryGetCString(), ShortCString);
+    EXPECT_EQ(Long->tryGetCString(), LongCString);
     EXPECT_EQ(ShortView, "hello,world");
     EXPECT_EQ(LongView, std::string(65536, 'x'));
     EXPECT_EQ(Short, Context.constantPool().getStringConstant(*String, ShortView));

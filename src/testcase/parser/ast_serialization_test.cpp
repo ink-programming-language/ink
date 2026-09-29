@@ -403,6 +403,53 @@ namespace ink::parser::test
     expectRoundTrip(Parsed, Frontend);
   }
 
+  // Linkage literals and recovered missing linkage survive snapshots without restricting vendor names or decoded bytes.
+  TEST_F(ParserTest, ASTSerializationExternLinkage)
+  {
+    const char *Sources[] = {
+        "extern \"C\" func f(msg: *u8): i32;",
+        "[tag] extern \"vendor.custom\" func f(): void {}",
+        "extern \"\\x43++\" func f(): void;",
+        "extern \"C\\0other\" func f(): void;",
+        "extern func f(): void;",
+    };
+    for (const char *Source : Sources)
+    {
+      SCOPED_TRACE(Source);
+      const auto Parsed = read(Source);
+      expectRoundTrip(Parsed, Frontend);
+    }
+  }
+
+  // A function linkage field cannot smuggle a non-string expression through the archive schema.
+  TEST_F(ParserTest, ASTSerializationRejectsNonStringLinkage)
+  {
+    const auto Parsed = read("extern \"C\" func f(): void;");
+    ASSERT_TRUE(Parsed.succeeded());
+    const auto Saved = serializeAST(Frontend, Parsed);
+    ASSERT_TRUE(Saved.succeeded());
+    auto Records = records(Saved.Bytes);
+    bool Changed = false;
+    for (auto &Entry : Records)
+    {
+      if (Entry.Code == 5 && Entry.Values[0] == static_cast<std::uint64_t>(ASTKind::FunctionDecl))
+      {
+        // The immediately preceding node is the return TypeSyntax, whose child is a valid NameExpr.
+        for (const auto &Candidate : Records)
+        {
+          if (Candidate.Code == 5 && Candidate.Values[0] == static_cast<std::uint64_t>(ASTKind::TypeSyntax))
+          {
+            Entry.Values.back() = Candidate.Values.back();
+            Changed = true;
+            break;
+          }
+        }
+      }
+    }
+    ASSERT_TRUE(Changed);
+    expectRejected(Frontend, archive(Records));
+  }
+
   // Loaded source, names and token payloads outlive the producer, input bytes and receiving compilation context.
   TEST(ASTSerializationTest, IndependentOwnership)
   {
@@ -413,7 +460,7 @@ namespace ink::parser::test
       {
         core::CompilationContext Producer;
         core::FrontendContext Frontend(Producer);
-        const auto Id = Producer.sourceManager().addSource("directory/源文件.ink", "func retained[T: type](x: T): T { return x; }");
+        const auto Id = Producer.sourceManager().addSource("directory/源文件.ink", "extern \"vendor.custom\" func retained[T: type](x: T): T { return x; }");
         const auto Parsed = parse(Frontend, tokenizer::tokenizeSource(Frontend, Id));
         ASSERT_TRUE(Parsed.succeeded());
         Expected = dumpAST(*Parsed.Unit);
@@ -434,6 +481,9 @@ namespace ink::parser::test
     EXPECT_EQ(Function->name().Text, "retained");
     EXPECT_EQ(Function->genericParameters()[0].name().Text, "T");
     EXPECT_EQ(Loaded.Parsed.Unit->input().spelling(Function->name().Id), "retained");
+    ASSERT_TRUE(isa<LiteralExpr>(Function->linkage()));
+    const auto *Linkage = cast<LiteralExpr>(Function->linkage());
+    EXPECT_EQ(std::get<tokenizer::StringInfo>(Loaded.Parsed.Unit->input().token(Linkage->token()).Payload).Decoded, "vendor.custom");
     core::CompilationContext Verification;
     core::FrontendContext Frontend(Verification);
     EXPECT_TRUE(serializeAST(Frontend, Loaded.Parsed).succeeded());
@@ -496,6 +546,8 @@ namespace ink::parser::test
     expectRejected(Frontend, Saved.Bytes + std::string(4, '\0'));
     auto Records = records(Saved.Bytes);
     Records[0].Values[0] = ASTArchiveVersion + 1;
+    expectRejected(Frontend, archive(Records), ASTArchiveStatus::UnsupportedVersion);
+    Records[0].Values[0] = 1;
     expectRejected(Frontend, archive(Records), ASTArchiveStatus::UnsupportedVersion);
     Records = records(Saved.Bytes);
     Records[0].Values.push_back(0);

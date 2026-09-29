@@ -2107,7 +2107,7 @@ namespace ink::parser
       {
         return Node && Node->getKind() == Kind;
       }
-      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body)
+      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body, Expr *Linkage = nullptr)
           : Decl(Kind, Range),
             Attributes(Attributes),
             Name(Name),
@@ -2115,7 +2115,8 @@ namespace ink::parser
             Parameters(Parameters),
             ReturnType(ReturnType),
             BodyKind(BodyKind),
-            Body(Body)
+            Body(Body),
+            Linkage(Linkage)
       {
       }
       ASTArray<Attribute> attributes() const noexcept
@@ -2146,6 +2147,15 @@ namespace ink::parser
       {
         return BodyKind;
       }
+      // Null without extern; a string literal, or MissingExpr during recovery, otherwise.
+      Expr *linkage() noexcept
+      {
+        return Linkage;
+      }
+      const Expr *linkage() const noexcept
+      {
+        return Linkage;
+      }
       BlockStmt *body() noexcept
       {
         return Body;
@@ -2163,6 +2173,7 @@ namespace ink::parser
       TypeSyntax *ReturnType;
       FunctionBodyKind BodyKind;
       BlockStmt *Body;
+      Expr *Linkage;
   };
   class ClassDecl final : public Decl
   {

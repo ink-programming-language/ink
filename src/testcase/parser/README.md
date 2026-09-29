@@ -4,8 +4,8 @@
 
 | 文件 | 覆盖内容 |
 | --- | --- |
-| `grammar_corpus_test.cpp` / `corpus/grammar_cases.inc` | 2026-09-21 BNF 审查的全部 539 个逐分支样例和 2,400 个固定种子组合样例，共 2,939 个独立参数化测试 |
-| `ast_serialization_test.cpp` | 全部 2,939 个语法样例与 66 种节点的二进制往返、Token/payload/恢复信息、独立生命周期、深树、损坏输入和资源限制、ICE 诊断及首次失败去重；格式及接口见 [AST 序列化说明](../../../docs/Ink-AST-Serialization.md) |
+| `grammar_corpus_test.cpp` / `corpus/grammar_cases.inc` | 当前 BNF 的全部 543 个逐分支样例和 2,400 个固定种子组合样例，共 2,943 个独立参数化测试 |
+| `ast_serialization_test.cpp` | 全部 2,943 个语法样例与 66 种节点的二进制往返、Token/payload/恢复信息、独立生命周期、深树、损坏输入和资源限制、ICE 诊断及首次失败去重；格式及接口见 [AST 序列化说明](../../../docs/Ink-AST-Serialization.md) |
 | `recovery_test.cpp` | 原有设计示例、恢复边界、长链、固定种子随机 token 流 |
 | `recovery_contracts_test.cpp` | 精确的插入与删除位置、成对定界符同步、后续声明保留、表达式和模式的 missing/error 节点、参数列表、条件与 match 分支、else/switch 归属、for-in 推测回滚、声明族及 EOF、诊断风暴、嵌套/工作/分配预算、取消与复用 |
 | `unicode_security_test.cpp` | 非法 UTF-8、完整枚举非法连续字节、标量边界与截断、过长编码伪装 ASCII 语法、NUL/BOM、UTF-16/32 输入、双向控制与不可见字符、Unicode 空白和标点混淆、NFC 与组合字符、非法转义、原始字节偏移、字节变异与固定种子随机输入 |
@@ -36,11 +36,11 @@ ctest --test-dir cmake-build-debug -R "ParserTest.Recovery|ParserUnicodeTest|Par
 
 ## BNF 固定语料
 
-`corpus/grammar_cases.inc` 固定保存这次审查的全部 2,939 个样例，保留原始顺序和编号，包括不同推导得到的重复源码及合法的空模块。每个样例单独注册到 GoogleTest 和 CTest；失败信息包含规则名、分支节点与选择，或随机种子、样例编号和生成预算，以及完整输入。
+`corpus/grammar_cases.inc` 固定保存当前文法的全部 2,943 个样例，保留原始顺序和编号，包括不同推导得到的重复源码及合法的空模块。每个样例单独注册到 GoogleTest 和 CTest；失败信息包含规则名、分支节点与选择，或随机种子、样例编号和生成预算，以及完整输入。
 
 每例都断言解析成功、`ParseStatus::Completed`、诊断为空、恢复记录为空，并经过 `ParserTest::read` 的 AST 必需子节点、源码范围和元数据校验。固定语料不依赖构建目录中的审查 JSON 文件，运行测试时也不需要 Python 或重新生成随机输入。
 
-`generate_grammar_cases.py` 直接读取 `docs/Ink-grammar-Rules.bnf`，以 `module` 为入口生成分支样例，并使用种子 `20260921` 在 8 种上下文中生成组合样例；不会通过 parser 的接受结果筛选或删除样例。当前分支语料触达全部 121 条产生式，并覆盖产生式选择、可选项的有无、重复项的 0/1/2 次展开。语料文件记录规范化为 LF 后的文法 SHA-256。
+`generate_grammar_cases.py` 直接读取 `docs/Ink-grammar-Rules.bnf`，以 `module` 为入口生成分支样例，并使用种子 `20260921` 在 8 种上下文中生成组合样例；不会通过 parser 的接受结果筛选或删除样例。当前分支语料触达全部 122 条产生式，并覆盖产生式选择、可选项的有无、重复项的 0/1/2 次展开。语料文件记录规范化为 LF 后的文法 SHA-256。
 
 从仓库根目录检查语料是否与当前 BNF 及生成器一致：
 
@@ -50,7 +50,7 @@ python src/testcase/parser/generate_grammar_cases.py --check
 
 有意修改 BNF 或生成规则后，运行 `python src/testcase/parser/generate_grammar_cases.py` 更新语料，检查生成 diff，再重新构建和运行测试。正常 C++ 构建直接使用已保存的语料，不增加 Python 构建依赖。
 
-只运行这 2,939 个语法样例，或单独复现一个组合样例：
+只运行这 2,943 个语法样例，或单独复现一个组合样例：
 
 ```sh
 ctest --test-dir cmake-build-debug -R "^Grammar(Branches|Combinations)/ParserGrammarCorpusTest\." --output-on-failure --parallel 4

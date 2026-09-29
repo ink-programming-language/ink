@@ -12,10 +12,22 @@ namespace ink::semantic
   class StringConstant final : public Constant
   {
     public:
-      // Owned decoded UTF-8 bytes, including embedded NULs; no terminator is added to the value.
+      // Owned decoded UTF-8 bytes, including embedded NULs; the storage terminator is not part of the value.
       std::string_view value() const noexcept
       {
         return Payload;
+      }
+
+      // Complete immutable storage for lowering: payload followed by one additional NUL, including for empty values.
+      std::string_view nullTerminatedValue() const noexcept
+      {
+        return {Payload.c_str(), Payload.size() + 1};
+      }
+
+      // Zero-copy C string conversion; nullptr explicitly rejects embedded NULs that would truncate the value.
+      const char *tryGetCString() const noexcept
+      {
+        return Payload.find('\0') == std::string::npos ? Payload.c_str() : nullptr;
       }
 
       static bool classof(const Value *ValueObject) noexcept

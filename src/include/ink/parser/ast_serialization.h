@@ -49,7 +49,7 @@ namespace ink::parser
       }
   };
 
-  inline constexpr std::uint32_t ASTArchiveVersion = 1;
+  inline constexpr std::uint32_t ASTArchiveVersion = 2;
 
   // Deterministic binary snapshots of syntax, tokens, source and recovery metadata.
   // No semantic state or declaration index is included. Bytes may contain NUL.

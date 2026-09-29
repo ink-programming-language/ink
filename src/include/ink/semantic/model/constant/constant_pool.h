@@ -36,6 +36,7 @@ namespace ink::semantic
       const BoolConstant &getBoolConstant(bool Payload) const noexcept;
       // Requires a local read-only u8 slice. The caller supplies validated, decoded UTF-8;
       // interning copies and compares every byte without escape decoding or normalization.
+      // Storage has an additional NUL; it is excluded from the value's length and interning identity.
       const StringConstant *getStringConstant(const SliceType &ValueType, std::string_view Payload);
       // Requires valid bits in the local type's exact IEEE format; never converts or rounds.
       const FloatConstant *getFloatConstant(const FloatType &ValueType, const FloatBits &Payload);

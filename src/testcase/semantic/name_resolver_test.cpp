@@ -27,6 +27,89 @@ namespace ink::semantic::test
   static_assert(!std::is_move_constructible_v<NameResolver>);
   static_assert(!std::is_copy_constructible_v<Scope>);
   static_assert(!std::is_move_constructible_v<Scope>);
+  static_assert(!std::is_copy_constructible_v<NameResolver::ScopeGuard>);
+  static_assert(!std::is_move_constructible_v<NameResolver::ScopeGuard>);
+
+  // Nested guards restore the caller's exact scope on early return while preserving exited scope bindings.
+  TEST(SemanticNameResolverTest, ScopeGuardsRestoreLookupOnEarlyReturn)
+  {
+    core::CompilationContext Compilation;
+    SemanticContext Context(Compilation);
+    IRBuilder Builder(Context);
+    NameResolver Resolver(Context);
+    Scope &Original = Resolver.enterScope();
+    const Name X = Context.namePool().intern("X");
+    auto Outer = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    auto Inner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    ASSERT_NE(Outer, nullptr);
+    ASSERT_NE(Inner, nullptr);
+    ASSERT_EQ(Resolver.bind(X, *Outer), BindResult::Inserted);
+    Scope *SavedChild = nullptr;
+    const auto AnalyzeNested = [&]()
+    {
+      NameResolver::ScopeGuard Child(Resolver);
+      SavedChild = Child.scope();
+      ASSERT_EQ(&Resolver.currentScope(), SavedChild);
+      ASSERT_EQ(Resolver.bind(X, *Inner), BindResult::Inserted);
+      {
+        NameResolver::ScopeGuard Nested(Resolver);
+        EXPECT_EQ(Nested.scope()->parent(), SavedChild);
+        // Even an additional manually entered scope cannot prevent exact restoration.
+        Resolver.enterScope();
+        EXPECT_EQ(Resolver.lookup(X)->targets()[0], Inner.get());
+        return;
+      }
+    };
+    AnalyzeNested();
+    EXPECT_EQ(&Resolver.currentScope(), &Original);
+    ASSERT_NE(Resolver.lookup(X), nullptr);
+    EXPECT_EQ(Resolver.lookup(X)->targets()[0], Outer.get());
+    ASSERT_NE(SavedChild, nullptr);
+    NameResolver Resumed(*SavedChild);
+    ASSERT_NE(Resumed.lookupLocal(X), nullptr);
+    EXPECT_EQ(Resumed.lookupLocal(X)->targets()[0], Inner.get());
+  }
+
+  // Member guards retain persistent scopes, and failed duplicate/foreign entries never undo subsequent scope changes.
+  TEST(SemanticNameResolverTest, MemberScopeGuardsHandleFailedEntry)
+  {
+    core::CompilationContext Compilation;
+    SemanticContext Context(Compilation);
+    SemanticContext Other(Compilation);
+    IRBuilder Builder(Context);
+    IRBuilder OtherBuilder(Other);
+    Module *Owner = Builder.createModule(Context.namePool().intern("Owner"));
+    Module *Foreign = OtherBuilder.createModule(Other.namePool().intern("Foreign"));
+    ASSERT_NE(Owner, nullptr);
+    ASSERT_NE(Foreign, nullptr);
+    NameResolver Resolver(Context);
+    Scope &Original = Resolver.currentScope();
+    Scope *Members = nullptr;
+    {
+      NameResolver::ScopeGuard Guard(Resolver, *Owner);
+      Members = Guard.scope();
+      ASSERT_NE(Members, nullptr);
+      EXPECT_EQ(&Resolver.currentScope(), Members);
+      EXPECT_EQ(Members->parent(), &Original);
+      {
+        NameResolver::ScopeGuard Duplicate(Resolver, *Owner);
+        EXPECT_EQ(Duplicate.scope(), nullptr);
+        EXPECT_EQ(&Resolver.currentScope(), Members);
+      }
+      EXPECT_EQ(&Resolver.currentScope(), Members);
+      Scope *Deeper = nullptr;
+      {
+        NameResolver::ScopeGuard Failed(Resolver, *Foreign);
+        EXPECT_EQ(Failed.scope(), nullptr);
+        EXPECT_EQ(&Resolver.currentScope(), Members);
+        Deeper = &Resolver.enterScope();
+      }
+      EXPECT_EQ(&Resolver.currentScope(), Deeper);
+    }
+    EXPECT_EQ(&Resolver.currentScope(), &Original);
+    EXPECT_EQ(Context.scopeStore().memberScope(*Owner), Members);
+    EXPECT_EQ(Context.scopeStore().memberScope(*Foreign), nullptr);
+  }
 
   // Enter and exit restore lexical lookup, isolate siblings and keep exited scopes and bindings alive.
   TEST(SemanticNameResolverTest, ResolvesNearestLexicalBinding)

@@ -3,6 +3,7 @@
 #include "ink/parser/parser.h"
 #include "ink/semantic/context.h"
 #include "ink/semantic/model/decl/module_decl.h"
+#include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <gtest/gtest.h>
 
@@ -113,7 +114,6 @@ namespace ink::semantic::test
         {"from Foo import Bar;", "FromImportStmt"},
         {"var X = 1;", "VarDecl"},
         {"field X: i32;", "FieldDecl"},
-        {"func F(): void {}", "FunctionDecl"},
         {"func F[T: type](X: T): T { return X; }", "FunctionDecl"},
         {"class C {};", "ClassDecl"},
         {"class C[T: type] {};", "ClassDecl"},
@@ -161,6 +161,38 @@ namespace ink::semantic::test
     Diagnostics.clear();
     EXPECT_NE(Analysis.analyze(Context, Empty), nullptr);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // A deeply nested error restores depth and scope before another deep sibling and a module-level function.
+  TEST(SemanticAnalyzerTest, RestoresGuardsAfterNestedError)
+  {
+    core::CompilationContext Compilation;
+    core::FrontendContext Frontend(Compilation);
+    std::string Source(200, '{');
+    Source.append("1;");
+    Source.append(200, '}');
+    Source.append(200, '{');
+    Source.append(200, '}');
+    Source.append("func after(): void;");
+    parser::ParseLimits Limits;
+    Limits.MaxNestingDepth = 1024;
+    auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, std::move(Source)), Limits);
+    ASSERT_TRUE(Parsed.succeeded());
+    SemanticContext Context(Compilation);
+    core::CollectingDiagnosticConsumer Diagnostics;
+    Compilation.diagnosticEngine().addConsumer(Diagnostics);
+    EXPECT_EQ(Analyzer{}.analyze(Context, Parsed), nullptr);
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnsupported);
+    EXPECT_EQ(core::DiagnosticFormatter{}.format(Diagnostics.diagnostics()[0]).Message, "initial semantic analyzer does not support SimpleStmt");
+    ASSERT_EQ(Context.modules().size(), 1U);
+    Module &Result = *Context.modules()[0];
+    ASSERT_EQ(Result.entryBlock().values().size(), 1U);
+    NameResolver Resolver(Context);
+    const auto *Binding = Resolver.lookupMember(Result, Context.namePool().find("after"));
+    ASSERT_NE(Binding, nullptr);
+    ASSERT_EQ(Binding->targets().size(), 1U);
+    EXPECT_EQ(Binding->targets()[0], Result.entryBlock().values()[0].get());
   }
 
   // An invalid empty module name reports a construction failure with the input source identity.

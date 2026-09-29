@@ -24,6 +24,31 @@ namespace ink::semantic
         InvalidDecl,
       };
 
+      // Enters a lexical/member scope and restores the original scope on destruction.
+      // The resolver and its context must outlive the guard; scopes and bindings remain stored.
+      class ScopeGuard final
+      {
+        public:
+          explicit ScopeGuard(NameResolver &Resolver);
+          ScopeGuard(NameResolver &Resolver, Value &Owner);
+          ~ScopeGuard() noexcept;
+          ScopeGuard(const ScopeGuard &) = delete;
+          ScopeGuard &operator=(const ScopeGuard &) = delete;
+          ScopeGuard(ScopeGuard &&) = delete;
+          ScopeGuard &operator=(ScopeGuard &&) = delete;
+
+          // Null when member scope creation failed; a failed guard does not change resolver state.
+          Scope *scope() const noexcept
+          {
+            return EnteredScope;
+          }
+
+        private:
+          NameResolver &Resolver;
+          Scope &SavedScope;
+          Scope *EnteredScope;
+      };
+
       explicit NameResolver(SemanticContext &Context) noexcept;
       // Resumes lookup in an existing scope, using that scope's store and context.
       explicit NameResolver(Scope &InitialScope) noexcept;

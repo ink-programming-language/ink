@@ -677,6 +677,10 @@ namespace ink::parser
         {
           children(Record, Visit);
         }
+        if (Value->linkage())
+        {
+          Visit(Value->linkage());
+        }
         for (auto &Record : Value->genericParameters())
         {
           children(Record, Visit);

@@ -74,6 +74,7 @@ KW_DEFER ::= "defer" ;
 KW_DO ::= "do" ;
 KW_ELSE ::= "else" ;
 KW_ENUM ::= "enum" ;
+KW_EXTERN ::= "extern" ;
 KW_FIELD ::= "field" ;
 KW_FOR ::= "for" ;
 KW_FROM ::= "from" ;
@@ -102,6 +103,7 @@ keyword ::= KW_AS
           | KW_DO
           | KW_ELSE
           | KW_ENUM
+          | KW_EXTERN
           | KW_FIELD
           | KW_FOR
           | KW_FROM
@@ -253,6 +255,7 @@ enum TokenKind
     KW_DO,
     KW_ELSE,
     KW_ENUM,
+    KW_EXTERN,
     KW_FIELD,
     KW_FOR,
     KW_FROM,

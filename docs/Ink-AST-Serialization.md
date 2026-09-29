@@ -44,7 +44,7 @@ Tokenizer 的 `TokenizedBuffer::fromSnapshot` 校验源码大小、成功源码�
 
 Token payload 使用明确标签：0=无数据、1=IdentifierInfo、2=NumericInfo、3=StringInfo、4=CharInfo，不依赖 `std::variant` 的 alternative 顺序。`ASTKind` 使用 ASTNodes.def 中的固定编号；其余枚举使用 `ast_serialization_enums.def` 中独立固定的文件编号，不依赖 C++ 枚举声明顺序。新增 TokenKind 但未补全映射会触发静态断言。
 
-V1 严格匹配 `ASTArchiveVersion`，不做旧版本迁移或未知字段跳过。改变字段含义、数量、顺序或编码时必须更新版本及格式测试。新增枚举值只使用未分配编号，删除后不复用编号。文件不提供签名或真实性认证，结构合法不代表输入源码、语义或编译结果可信。
+当前 V2 为 `FunctionDecl` 增加可选的 linkage 子节点，并为 `KwExtern` 分配新的固定 Token 编号 84。无 `extern` 时该子节点为空，正常时为 `STRING_LITERAL`，缺失链接字符串的恢复树使用 `MissingExpr`；链接名称的完整解码字节保存在对应 Token 的 `StringInfo` 中。格式严格匹配 `ASTArchiveVersion`，不读取 V1，也不做旧版本迁移或未知字段跳过。改变字段含义、数量、顺序或编码时必须更新版本及格式测试。新增枚举值只使用未分配编号，删除后不复用编号。文件不提供签名或真实性认证，结构合法不代表输入源码、语义或编译结果可信。
 
 ## 失败与预算
 
@@ -60,7 +60,7 @@ V1 严格匹配 `ASTArchiveVersion`，不做旧版本迁移或未知字段跳过
 
 `src/testcase/parser/ast_serialization_test.cpp` 接入统一的 `ink_tests`，覆盖：
 
-- 现有 2,939 个 BNF 样例的往返恢复，比较 AST dump、全部 Token/payload、源码、解析状态、恢复记录及再次序列化的字节。
+- 现有 2,943 个 BNF 样例的往返恢复，比较 AST dump、全部 Token/payload、源码、解析状态、恢复记录及再次序列化的字节。
 - 所有已注册节点种类，包括独立构造的 10 种 missing/error 节点及其类型正确的父节点。
 - 原对象、原输入字节和两个编译上下文均释放后的生命周期。
 - Unicode 名称、各进制、字符、四种字符串模式、解码后的 NUL、换行索引。

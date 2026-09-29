@@ -3,7 +3,9 @@
 
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"
+#include "ink/semantic/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
+#include "ink/parser/token_cursor.h"
 
 #include "ink/core/diagnostic.h"
 #include "ink/core/source_id.h"
@@ -15,10 +17,12 @@ namespace ink::semantic
 {
   struct Analyzer::AnalysisState
   {
-      AnalysisState(SemanticContext &Context, Scope &InitialScope, core::SourceId Source)
+      AnalysisState(SemanticContext &Context, Scope &InitialScope, const parser::TokenBuffer &Input)
           : Context(Context),
             Resolver(InitialScope),
-            Source(Source)
+            Builder(Context),
+            Input(Input),
+            Source(Input.lexedFile().sourceId())
       {
       }
 
@@ -30,6 +34,8 @@ namespace ink::semantic
 
       SemanticContext &Context;
       NameResolver Resolver;
+      IRBuilder Builder;
+      const parser::TokenBuffer &Input;
       core::SourceId Source;
       std::size_t BlockDepth = 0;
   };

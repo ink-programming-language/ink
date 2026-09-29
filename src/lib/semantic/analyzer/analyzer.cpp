@@ -28,14 +28,15 @@ namespace ink::semantic
     }
 
     // Each call starts at the shared root and enters a distinct module member scope.
-    AnalysisState State(Context, Context.scopeStore().rootScope(), Lexed.sourceId());
-    if (!State.Resolver.enterScope(*Result))
+    AnalysisState State(Context, Context.scopeStore().rootScope(), Input.Unit->input());
+    NameResolver::ScopeGuard ModuleScope(State.Resolver, *Result);
+    if (!ModuleScope.scope() || !State.Builder.setInsertPoint(Result->entryBlock()))
     {
       return nullptr;
     }
 
-    // Builtin registration and declaration collection will precede body checking
-    // when those features are implemented. No unsupported declaration is published.
+    // Declarations are currently analyzed in source order. Failed functions are
+    // discarded with their bindings, while later siblings still receive diagnostics.
     bool Succeeded = true;
     for (const parser::Stmt *Stmt : Root.statements())
     {

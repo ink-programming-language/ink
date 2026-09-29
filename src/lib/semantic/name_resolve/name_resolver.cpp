@@ -18,6 +18,28 @@ namespace ink::semantic
   {
   }
 
+  NameResolver::ScopeGuard::ScopeGuard(NameResolver &Resolver)
+      : Resolver(Resolver),
+        SavedScope(Resolver.currentScope()),
+        EnteredScope(&Resolver.enterScope())
+  {
+  }
+
+  NameResolver::ScopeGuard::ScopeGuard(NameResolver &Resolver, Value &Owner)
+      : Resolver(Resolver),
+        SavedScope(Resolver.currentScope()),
+        EnteredScope(Resolver.enterScope(Owner))
+  {
+  }
+
+  NameResolver::ScopeGuard::~ScopeGuard() noexcept
+  {
+    if (EnteredScope)
+    {
+      Resolver.CurrentScope = &SavedScope;
+    }
+  }
+
   Scope &NameResolver::enterScope()
   {
     CurrentScope = &Store.createScope(*CurrentScope);

@@ -385,6 +385,7 @@ namespace ink::parser
         const auto *Value = static_cast<const FunctionDecl *>(Node);
         Valid = Valid && validRecords(Value->attributes()) && validRecords(Value->genericParameters()) && validRecords(Value->parameters()) && Value->returnType() != nullptr;
         Valid = Valid && (Value->bodyKind() == FunctionBodyKind::Definition) == (Value->body() != nullptr);
+        Valid = Valid && (!Value->linkage() || isa<MissingExpr>(Value->linkage()) || (isa<LiteralExpr>(Value->linkage()) && cast<LiteralExpr>(Value->linkage())->literalKind() == TokenKind::StringLiteral));
         break;
       }
       case ASTKind::ClassDecl:

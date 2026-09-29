@@ -12,11 +12,21 @@ class Analyzer
 
 通过 `Analyzer` 实例调用。当前已实现可编译的流程骨架：检查解析结果和源码归属，通过 `IRBuilder` 创建 Context 拥有的模块、模块独立拥有的声明根及入口块。每次调用的 `AnalysisState` 直接拥有独立 `NameResolver`，从 Context 的共享根作用域开始，再进入与本次模块关联的成员作用域，逐条分析顶层语句。成功返回上下文拥有的 `Module *`，失败返回 `nullptr`；调用结束时销毁 resolver，作用域及绑定仍保存在 Context 中。
 
-`analyzeStmt()` 与 `analyzeDecl()` 从 Parser 的 `ASTNodes.def` 按 `Category` 生成严格分派。每种语句和声明均有手工声明、定义的 `analyzeXXX()`，不存在自动生成的空处理函数或基类回退；新增 AST 种类后缺少处理函数会导致编译失败，只有声明没有定义则导致链接失败。`DeclStmt` 转发到声明分派，`BlockStmt` 创建子作用域并递归处理子语句，退出后恢复原作用域。块嵌套上限为 256。
+`analyzeStmt()` 与 `analyzeDecl()` 从 Parser 的 `ASTNodes.def` 按 `Category` 生成严格分派。每种语句和声明均有手工声明、定义的 `analyzeXXX()`，不存在自动生成的空处理函数或基类回退；新增 AST 种类后缺少处理函数会导致编译失败，只有声明没有定义则导致链接失败。`DeclStmt` 转发到声明分派，`BlockStmt` 使用 `BlockDepthGuard` 管理嵌套深度、`NameResolver::ScopeGuard` 管理子作用域，并递归处理子语句；正常结束或提前返回时均自动恢复进入前的深度和作用域。块嵌套上限为 256，模块和函数的成员作用域也使用 `ScopeGuard`。
 
-当前仅空模块和只包含空块的模块可成功分析。其余具体语句、声明（包括泛型定义）报告现有的 `SemanticUnsupported` 诊断，包含节点种类、源码身份及范围；一处失败不会阻止后续同级语句的诊断。恢复节点也有显式处理函数，但公开入口拒绝带词法或语法错误、取消、超限或缺少根节点的输入。模块名无效时报告 `SemanticConstructionFailed`。失败时已分配的模型对象仍由上下文回收，不对调用者发布成功模块。
+当前支持空模块、块作用域，以及普通定参函数的声明和定义。函数签名通过检查后创建 `Function`，保存形参名称、类型、C 调用约定及 Ink/C 语言链接，并登记到当前词法作用域；成功的函数由当前 IR 块拥有。函数成员作用域绑定形参，函数体另建词法块作用域并逐条分派语句，嵌套函数继承外层查找环境。函数声明分析不检查返回路径，也不补充返回指令；返回路径检查及隐式返回等待后续控制流分析实现。函数在分析主体前临时绑定，失败时通过 RAII 销毁函数及子节点并撤销相关绑定，不影响后续同级声明的作用域或插入点。
 
-内建名称登记、声明预登记、类型/表达式分析、泛型实例化、编译期执行及完整结果验证尚未实现。辅助类的泛型绑定能力可以独立使用，不表示 Analyzer 已支持泛型源码。
+`analyzeType()` 支持 `void`、`bool`、`i8/i16/i32/i64/i128`、对应的无符号整数、`f16/f32/f64`、括号类型及 `*T`/`&T`；未限定指针和引用暂按 `ReadWrite` 构造，允许 `*void`，拒绝 `&void` 和 `*type`。类型名字先查词法绑定，再回退到内建类型；值不能用于类型位置。形参不能是 void 或元类型；未知类型、重名形参和冲突函数报告源码诊断。普通 Ink 函数可按不同参数类型列表形成重载集，不能仅按返回类型重载；同一作用域的 C 链接函数不能形成重载。类型表达式递归上限为 256。
+
+同一函数的形参名必须唯一；每个重复出现的名字使用专用诊断 `SemanticDuplicateParameterName`（`INK-S0015`），定位到该次形参名的 token，消息明确说明函数内形参名不得重复。普通符号冲突仍使用 `SemanticDuplicateName`。
+
+`analyzeFunctionLinkage()` 返回 `std::optional<LanguageLinkage>`：没有 extern 时返回 Ink，完整解码字符串精确为 `"C"` 时返回 C，其他情况报告诊断并返回 `std::nullopt`；不截断内嵌 NUL。`checkFunctionConflicts()` 集中检查当前作用域的已有函数。参数列表、返回类型和语言链接全部一致，且至少一份声明没有函数体时，才属于将来可合并的兼容重复声明；目前仍报告未实现。linkage 是独立于 `FunctionType` 的函数元数据，关系到语言链接及符号命名约定，因此不能仅比较函数类型就忽略 Ink/C 的差异。不同 linkage 不用于区分合法重载，而按当前规则报告名称冲突。
+
+泛型、属性、默认参数、变参、其他语言链接、函数重复声明与声明/定义合并、数组/切片/函数类型语法、类型值返回仍明确报告 `SemanticUnsupported`。表达式语句及显式 `return` 的分析尚未实现：`extern "C" func printf(msg: *u8): i32;` 可以独立成功分析，但包含调用和 `return 0` 的 hello-world 主体仍分别报告 `SimpleStmt` 和 `ReturnStmt` 未支持，整个分析返回 `nullptr`。
+
+一处失败不会阻止后续同级语句的诊断。恢复节点有显式处理函数，但公开入口拒绝带词法或语法错误、取消、超限或缺少根节点的输入。模块名无效时报告 `SemanticConstructionFailed`。分析失败时模块中已成功分析的同级函数仍由 Context 拥有，但不会返回成功模块。
+
+内建名称的统一登记、声明预登记、完整类型/表达式分析、泛型实例化、编译期执行及完整结果验证尚未实现。当前按源码顺序处理声明；辅助类的泛型绑定能力可以独立使用，不表示 Analyzer 已支持泛型源码。
 
 诊断通过 Core 的 `DiagnosticEngine::report<Kind>(SourceId, SourceRange, Arguments...)` 直接构造并报告，保留参数数量和类型的编译期检查。`AnalysisState::report<Kind>(SourceRange, Arguments...)` 自动使用本次分析的 Context 和 Source；在分析状态创建前，入口直接调用 Engine 的重载。诊断报告与失败返回分别处理。
 
@@ -29,7 +39,8 @@ class Analyzer
 | `analyzer_stmt.cpp` | 语句分派、简单语句、块作用域及声明语句转发 |
 | `analyzer_control_flow.cpp` | 条件、循环、switch、return、break、continue、yield 与 defer |
 | `analyzer_decl.cpp` | 声明分派、变量声明与字段声明 |
-| `analyzer_function.cpp` | 函数声明 |
+| `analyzer_function.cpp` | 函数签名、链接方式、名称冲突、形参作用域及函数体分析 |
+| `analyzer_type.cpp` | 基础类型名称、括号类型、指针与引用类型解析 |
 | `analyzer_class.cpp` | 类声明 |
 | `analyzer_enum.cpp` | 枚举声明 |
 | `analyzer_interface.cpp` | 接口声明 |
@@ -48,6 +59,7 @@ class Analyzer
 - `ScopeStore::memberScope(Owner)` 和 `definitionScope(Declaration)` 查询长期保存的作用域，未登记时返回空指针；非 const 存储返回 `Scope *`，可用于构造新的 resolver。const 存储返回 `const Scope *`。
 - `enterScope()` 创建并进入当前作用域的新子作用域；`exitScope()` 回到父作用域并返回 `true`，在根作用域返回 `false`。退出不销毁作用域或绑定，再次进入会创建新作用域。
 - `enterScope(Value &Owner)` 创建并进入实体成员作用域，词法父作用域为调用前的当前作用域。同一实体只允许创建一次，重复创建或传入外来上下文的实体返回空指针且不改变状态。该接口不自动登记实体名字；开放泛型定义的成员分析尚未实现。
+- `NameResolver::ScopeGuard(Resolver)` 创建并进入词法子作用域；带 `Owner` 的重载创建并进入成员作用域。`scope()` 返回创建的作用域，成员作用域创建失败时返回空指针。成功的 Guard 在析构时恢复原来的准确位置，失败的 Guard 不修改状态；退出不销毁作用域或绑定。Guard 禁止复制和移动，resolver 及 Context 必须比 Guard 活得更久。
 - `bind(Name, Value &)` 登记值；`bind(Name, Decl &)` 登记本上下文的泛型 `FunctionDecl` 或 `ClassDecl`，拒绝 `ModuleDecl`。两者均允许别名。模块名称通过 `Module` 值绑定，泛型形参实例化后的类型或常量也属于值，不使用声明绑定。
 - 普通 `Function` 和泛型 `FunctionDecl` 可以同名，分别保存在该作用域的两份有类型候选列表中；即使各自只有一个函数，也标记为重载集合。每份列表保持自身的登记顺序，不提供跨类别的总登记顺序。函数类型的普通表达式结果不作为函数重载实体。
 - 泛型类和其他非函数值在同一作用域中占用独占名称，不能与另一类别同名。重绑定同一实体返回 `AlreadyBound`；非法同名返回 `Conflict`，原绑定不变，也不创建空的另一类别绑定。函数签名是否重复及重载选择仍由后续分析判断。
@@ -71,4 +83,4 @@ const Binding<Decl *> *GenericFunctions = Resolver.lookup<Decl *>(FunctionName);
 
 绑定、成员及定义作用域索引不拥有目标，清理也不负责修复 IR 操作数或 Builder 插入点。Context 必须比 resolver 和所有借用它的对象活得更久，借用的 AST 单元必须比 Module 活得更久。共享存储不提供并发写入同步。`Name` 必须来自同一上下文的名称池，紧凑名称索引不能识别另一池中数值相同的名称。
 
-当前对象模型能力和缺口见 [可执行 IR 状态](Ink-Executable-IR-Status.md)，后续架构见 [Semantic 模块设计](Ink-Semantic-Design.md)。
+当前对象模型能力、缺口和后续架构见 [Semantic 模块设计](Ink-Semantic-Design.md)。

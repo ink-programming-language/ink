@@ -8,6 +8,34 @@
 
 namespace ink::semantic
 {
+  namespace
+  {
+    class BlockDepthGuard final
+    {
+      public:
+        explicit BlockDepthGuard(std::size_t &Depth) noexcept
+            : Depth(Depth),
+              SavedDepth(Depth)
+        {
+          ++Depth;
+        }
+
+        ~BlockDepthGuard() noexcept
+        {
+          Depth = SavedDepth;
+        }
+
+        BlockDepthGuard(const BlockDepthGuard &) = delete;
+        BlockDepthGuard &operator=(const BlockDepthGuard &) = delete;
+        BlockDepthGuard(BlockDepthGuard &&) = delete;
+        BlockDepthGuard &operator=(BlockDepthGuard &&) = delete;
+
+      private:
+        std::size_t &Depth;
+        std::size_t SavedDepth;
+    };
+  } // namespace
+
   bool Analyzer::analyzeStmt(AnalysisState &State, const parser::Stmt &Stmt)
   {
     switch (Stmt.getKind())
@@ -48,8 +76,8 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
       return false;
     }
-    ++State.BlockDepth;
-    State.Resolver.enterScope();
+    BlockDepthGuard DepthGuard(State.BlockDepth);
+    NameResolver::ScopeGuard ScopeGuard(State.Resolver);
     bool Succeeded = true;
     for (const parser::Stmt *Stmt : Node.statements())
     {
@@ -58,8 +86,6 @@ namespace ink::semantic
         Succeeded = false;
       }
     }
-    State.Resolver.exitScope();
-    --State.BlockDepth;
     return Succeeded;
   }
 

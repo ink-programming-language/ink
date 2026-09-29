@@ -364,6 +364,8 @@ func 的分流规则如下。语句入口看到 func 后紧跟 IDENTIFIER 时进
 
 ModuleAST、BlockStmt 以及类声明的主体都保存有序 Stmt 列表。DeclStmt 包装 Decl，使声明能够作为语句出现在模块、块和类体中。函数位于类中时仍使用 FunctionDecl。
 
+函数声明和定义均允许 `[属性] extern "链接名称" func 名称(...): 返回类型 ...`。`extern` 是关键字，链接名称必须是一个字符串字面量；Parser 不把名称限制为 `C`，也不验证目标 ABI 是否支持它。`FunctionDecl::linkage()` 无说明符时为空，正常时指向 `LiteralExpr`，缺失字符串时指向 `MissingExpr`；解码名称通过该字面量的 Token 对应 `StringInfo::Decoded` 获取。Walker 在属性表达式之后、函数签名之前访问该节点。`extern` 不引入声明块，也不修饰变量、类型或匿名函数。
+
 | 结构 | 数据模型 |
 | --- | --- |
 | IfStmt | condition、thenBranch、可选 elseBranch |

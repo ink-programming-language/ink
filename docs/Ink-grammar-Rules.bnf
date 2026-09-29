@@ -157,7 +157,11 @@ base_clause ::= ":" base_spec { "," base_spec } ;
 base_spec ::= type_expr
             | "implements" type_expr ;
 
-function_decl ::= "func" callable_signature callable_body ;
+// 链接名称保留 STRING_LITERAL 的完整解码值，不在语法层限定为 "C"。
+// 支持的链接名称及其 ABI 由后续语义分析和目标平台决定。
+function_decl ::= [ linkage_specifier ] "func" callable_signature callable_body ;
+
+linkage_specifier ::= "extern" STRING_LITERAL ;
 
 callable_signature ::= IDENTIFIER generic_params_opt "(" params_opt ")" ":" type_expr ;
 

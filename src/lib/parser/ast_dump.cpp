@@ -651,6 +651,8 @@ namespace ink::parser
           printValue(Output, Node->parameters());
           Output << " BodyKind=";
           printValue(Output, Node->bodyKind());
+          Output << " Linkage=";
+          printValue(Output, Node->linkage());
         }
         void visitClassDecl(const ClassDecl *Node)
         {

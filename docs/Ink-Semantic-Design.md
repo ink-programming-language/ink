@@ -4,7 +4,7 @@
 
 日期：2026 年 9 月 25 日。状态：基础对象模型、值/泛型定义的词法名字绑定及 Analyzer 严格分派骨架已实现，其余为待实现的架构设计。
 
-本文采用确定的方向：**泛型实例化和 comptime 都在 AST 层完成，完成后的运行时语义再 lowering 为闭合运行时模型**。当前 [语义分析接口](Ink-Semantic-Analysis.md) 已有模块创建和语句/声明严格分派骨架，仅空模块及空块可成功，其余语义明确报告未支持；第 1.3 节对象模型和 NameResolver 的词法作用域基础已实现，其余分析器类及扩展能力仍是建议结构。语言语法以 [Ink-grammar-Rules.bnf](Ink-grammar-Rules.bnf) 为准；本文不增加泛型、反射或声明生成语法。
+本文采用确定的方向：**泛型实例化和 comptime 都在 AST 层完成，完成后的运行时语义再 lowering 为闭合运行时模型**。当前 [语义分析接口](Ink-Semantic-Analysis.md) 已有模块创建、语句/声明严格分派，以及普通定参函数签名、链接方式、形参作用域和函数体遍历；调用与显式返回等其余语义明确报告未支持。第 1.3 节对象模型和 NameResolver 的词法作用域基础已实现，其余分析器类及扩展能力仍是建议结构。语言语法以 [Ink-grammar-Rules.bnf](Ink-grammar-Rules.bnf) 为准；本文不增加泛型、反射或声明生成语法。
 
 ## 1 当前基础与目标边界
 
@@ -48,7 +48,7 @@
 
 ### 1.3 已实现的对象模型
 
-当前 `semantic/model` 正向可执行 IR 演进，提供显式内存、加法、调用和返回节点的构造接口；源码分析器尚未实现。旧 IR/execution 已删除；下文其他章节仍是分层语义分析方案。当前实现边界与缺口以 [可执行 IR 状态](Ink-Executable-IR-Status.md) 为准。
+当前 `semantic/model` 正向可执行 IR 演进，提供显式内存、加法、调用和返回节点的构造接口；源码分析器已支持基础函数声明和定义。旧 IR/execution 已删除；下文其他章节仍是分层语义分析方案。当前实现边界与缺口以 [语义分析接口](Ink-Semantic-Analysis.md) 为准。
 
 - `IRBuilder::createFunction()` 根据签名创建 `FunctionParameter`，通过 `parameters()` 访问；形参通过 `outer()` 关联函数，`function()` 从该父节点取得所属函数，不再重复保存 Owner；同时保存 `Name ParameterName`（通过 `name()` 访问）、零起始索引、值类型和 `ParameterKind`（Positional、Named、Variadic），通过 `parameterKind()` 查询。`IRBuilder::createFunction()` 的可选种类列表必须与签名槽位数量一致，省略时全部为 Positional；第四个可选参数 `ParameterNames` 按签名顺序提供名称，省略时参数匿名，由调用方驻留并填写形参名；种类是绑定元数据，不改变规范化运行时签名或开启变参展开。`createAddInstruction()` 接受同型整数并定义按位宽回绕的加法；`IRBuilder::createDetachedReturnInstruction(ReturnedValue)` 创建未挂接的 void 类型终结节点，只校验操作数归属和非 void 类型；`IRBuilder::appendValue()` 校验目标块属于函数且返回值匹配该函数签名。返回指令不保存 Owner，`function()` 沿 outer → BasicBlock → Function 查询，未挂接时返回空指针。工厂不检查整体控制流，返回路径检查仍待实现。
 
@@ -59,7 +59,7 @@
 - `model/type/Types.def` 是类型种类与基类分类的注册表，每条记录为 `INK_SEMANTIC_TYPE(Name, Base)`，`Base` 为 `BuiltinType` 或 `UserDefinedType`。`TypeKind` 和两个基类的 `classof()` 从同一张表生成；`FunctionType` 定义在 `model/function/function_type.h`，其余具体类型类体与构造定义在 `model/type` 的独立头文件中，其继承关系应与注册表一致。
 - `Name` 是一个 32 位池内索引，`NamePool` 为同名字节串只保存一份内容；池扩容保持名称与字符串视图稳定。空输入和索引耗尽返回无效名称。名称相等和哈希仅在同一池内有意义；索引本身不携带池身份，无法检测恰好落在另一池有效范围内的外来索引。词法验证与 NFC 处理仍由 tokenizer 负责。
 - `ConstantPool` 由 `SemanticContext` 独占，通过 `constantPool()` 访问；当前驻留 bool、任意位宽整数、`StringConstant` 和 `FloatConstant`，常量获取统一通过 `Context.constantPool().getXXXConstant(...)`，Context 不提供转发接口。池在基础类型创建后初始化，并在类型存储销毁前释放；false、true 预先创建，其他常量按规范类型身份与完整 payload 先查找、未命中才分配，哈希碰撞后继续精确比较。外来类型和 payload 与类型不匹配的请求返回空指针且不改变池。`size()` 包含两个 bool 常量，`owns()` 检查具体对象归属，池与常量地址在上下文生命周期内保持稳定。聚合常量、源码字面量语义和后端 lowering 仍待实现。
-- `StringConstant` 的类型固定为本上下文的只读 `u8` 切片；`ConstantPool::getStringConstant(SliceType, Payload)` 复制调用方已验证、解码的 UTF-8 字节，以完整字节序列比较，支持空串、内嵌 NUL 和非 ASCII 内容，不做转义解码或 Unicode 规范化。`value()` 返回池拥有的稳定 `std::string_view`，长度不包含额外终止符。不同源码位置或不同转义拼写只要解码内容相同就复用常量；AST 节点仍独立保存来源。
+- `StringConstant` 的类型固定为本上下文的只读 `u8` 切片；`ConstantPool::getStringConstant(SliceType, Payload)` 复制调用方已验证、解码的 UTF-8 字节，以完整字节序列比较，支持空串、内嵌 NUL 和非 ASCII 内容，不做转义解码或 Unicode 规范化。存储保证在完整 payload 后附加一个 NUL，空串也有终止符。`value()` 返回池拥有的稳定 `std::string_view`，长度和常量身份均不包含额外终止符；`nullTerminatedValue()` 返回包含该终止符的完整存储视图，供后续 lowering 使用。`tryGetCString()` 在 payload 不含 NUL 时零拷贝返回稳定的 `const char *`；payload 中任何位置含有 NUL（包括结尾）时返回 `nullptr`，显式报告无法无损表示为 C 字符串，不截断、不拒绝原 Ink 常量。底层 `std::string` 自带的终止符提供这一存储保证；这些指针是宿主接口，源码到目标指针 IR 的转换仍须由语义分析和后端接入。不同源码位置或不同转义拼写只要解码内容相同就复用常量；AST 节点仍独立保存来源。
 - `IntegerConstant` 保存自有 `IntegerBits`，由位宽与低位字在前的 `uint64_t` 字数组组成；符号性由 `IntegerType` 决定，负数使用二进制补码。单字构造允许显式零扩展到宽于 64 位的表示，多字构造复制全部输入；`valid()` 检查非零位宽、精确字数与最后一个字的未用高位，常量池拒绝无效表示及类型宽度不匹配，不静默丢弃或补齐输入字。
 - `FloatConstant` 保存自有 `FloatBits`，由 IEEE binary16/32/64 位宽与 `uint64_t` 原始位模式组成；`valid()` 拒绝不支持的位宽及编码之外的高位。`ConstantPool::getFloatConstant(FloatType, Payload)` 验证表示有效且位宽与类型匹配，再按完整位模式驻留，区分正负零、无穷、NaN 符号、静默/信号位与 payload。输入必须已经采用对应 IEEE 格式编码，不通过宿主浮点类型转换。十进制字面量解析、浮点运算、格式转换、舍入和溢出诊断由后续语义分析负责；池只保存位表示。
 - `Value` 是语义值基类，当前分支为 `Type`、`Constant`、`Function`、`BasicBlock`、`Module`、`CallInstruction`、`AllocaInstruction`、`LoadInstruction`、`StoreInstruction`、`FunctionParameter`、`AddInstruction` 和 `ReturnInstruction`。`Type` 下分 `BuiltinType` 与 `UserDefinedType`：builtin 提供元类型、void、bool、整数、IEEE binary16/32/64 浮点、定长数组、切片、指针、引用和函数类型；user-defined 提供 `ClassType`、`EnumType` 与 `InterfaceType`。所有类型值的类型是元类型，元类型的类型为自身。结构类型和常量在上下文内规范化；名义类型拥有独立身份，由分析器复用同一类型或实例的对象。不同上下文的对象不可直接混用。semantic 的接口、实现与测试使用项目自有模型及标准库，`ink_semantic` 对象模型依赖 `ink::core`，保留对 `ink::parser` 的构建依赖；LLVM IR 类型转换限定在后端适配层。
