@@ -36,11 +36,16 @@ namespace ink::semantic
       bool reportUnsupported(AnalysisState &State, const parser::ASTNodeBase &Node);
 
       // Keep handlers explicit: a new AST statement/declaration must choose its behavior.
+      // Recovery nodes remain unsupported and are handled in analyzer.cpp.
       bool analyzeMissingStmt(AnalysisState &State, const parser::MissingStmt &Node);
       bool analyzeErrorStmt(AnalysisState &State, const parser::ErrorStmt &Node);
+      bool analyzeMissingDecl(AnalysisState &State, const parser::MissingDecl &Node);
+      bool analyzeErrorDecl(AnalysisState &State, const parser::ErrorDecl &Node);
+
       bool analyzeSimpleStmt(AnalysisState &State, const parser::SimpleStmt &Node);
       bool analyzeBlockStmt(AnalysisState &State, const parser::BlockStmt &Node);
       bool analyzeDeclStmt(AnalysisState &State, const parser::DeclStmt &Node);
+
       bool analyzeIfStmt(AnalysisState &State, const parser::IfStmt &Node);
       bool analyzeWhileStmt(AnalysisState &State, const parser::WhileStmt &Node);
       bool analyzeClassicForStmt(AnalysisState &State, const parser::ClassicForStmt &Node);
@@ -51,13 +56,15 @@ namespace ink::semantic
       bool analyzeContinueStmt(AnalysisState &State, const parser::ContinueStmt &Node);
       bool analyzeYieldStmt(AnalysisState &State, const parser::YieldStmt &Node);
       bool analyzeDeferStmt(AnalysisState &State, const parser::DeferStmt &Node);
+
       bool analyzeComptimeStmt(AnalysisState &State, const parser::ComptimeStmt &Node);
+
       bool analyzeDirectImportStmt(AnalysisState &State, const parser::DirectImportStmt &Node);
       bool analyzeFromImportStmt(AnalysisState &State, const parser::FromImportStmt &Node);
-      bool analyzeMissingDecl(AnalysisState &State, const parser::MissingDecl &Node);
-      bool analyzeErrorDecl(AnalysisState &State, const parser::ErrorDecl &Node);
+
       bool analyzeVarDecl(AnalysisState &State, const parser::VarDecl &Node);
       bool analyzeFieldDecl(AnalysisState &State, const parser::FieldDecl &Node);
+
       bool analyzeFunctionDecl(AnalysisState &State, const parser::FunctionDecl &Node);
       bool analyzeClassDecl(AnalysisState &State, const parser::ClassDecl &Node);
       bool analyzeEnumDecl(AnalysisState &State, const parser::EnumDecl &Node);

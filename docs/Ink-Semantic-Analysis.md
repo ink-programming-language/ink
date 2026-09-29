@@ -18,6 +18,22 @@ class Analyzer
 
 内建名称登记、声明预登记、类型/表达式分析、泛型实例化、编译期执行及完整结果验证尚未实现。辅助类的泛型绑定能力可以独立使用，不表示 Analyzer 已支持泛型源码。
 
+实现按职责拆分在 `src/lib/semantic/analyzer`，所有处理方法仍属于同一个 `Analyzer` 类：
+
+| 文件 | 职责 |
+| --- | --- |
+| `analyzer.cpp` | 模块分析入口、未支持诊断，以及 `MissingStmt`、`ErrorStmt`、`MissingDecl`、`ErrorDecl` 的未支持处理 |
+| `analyzer_internal.h` | 各实现文件共享的私有 `AnalysisState` 定义 |
+| `analyzer_stmt.cpp` | 语句分派、简单语句、块作用域及声明语句转发 |
+| `analyzer_control_flow.cpp` | 条件、循环、switch、return、break、continue、yield 与 defer |
+| `analyzer_decl.cpp` | 声明分派、变量声明与字段声明 |
+| `analyzer_function.cpp` | 函数声明 |
+| `analyzer_class.cpp` | 类声明 |
+| `analyzer_enum.cpp` | 枚举声明 |
+| `analyzer_interface.cpp` | 接口声明 |
+| `analyzer_import.cpp` | 直接导入与 from 导入 |
+| `analyzer_comptime.cpp` | comptime 语句 |
+
 ## 名字绑定与作用域
 
 [`NameResolver`](../src/include/ink/semantic/name_resolve/name_resolver.h) 是独立的语义分析辅助类，借用 `SemanticContext`，拥有作用域树和名字绑定。它不遍历 AST，也不执行类型检查、实例化或重载选择。
