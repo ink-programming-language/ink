@@ -1,4 +1,5 @@
-add_library(ink_backend_llvm STATIC function_lowering.cpp llvm_backend.cpp lowering_context.cpp type_lowering.cpp value_lowering.cpp)
+file(GLOB_RECURSE INK_BACKEND_LLVM_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_library(ink_backend_llvm STATIC ${INK_BACKEND_LLVM_SOURCES})
 add_library(ink::llvm_backend ALIAS ink_backend_llvm)
 
 target_compile_features(ink_backend_llvm PUBLIC cxx_std_17)

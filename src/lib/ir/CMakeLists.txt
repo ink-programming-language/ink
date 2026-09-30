@@ -1,4 +1,5 @@
-add_library(ink_ir STATIC constant/constant_pool.cpp context.cpp decl/decl.cpp function/basic_block.cpp function/function_parameter.cpp instruction/return_instruction.cpp instruction/store_instruction.cpp ir_builder.cpp module/module.cpp module/module_serialization.cpp module/module_serialization_text.cpp module/module_serialization_binary.cpp name/name_pool.cpp type/type_pool.cpp value.cpp)
+file(GLOB_RECURSE INK_IR_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_library(ink_ir STATIC ${INK_IR_SOURCES})
 add_library(ink::ir ALIAS ink_ir)
 
 target_compile_features(ink_ir PUBLIC cxx_std_20)

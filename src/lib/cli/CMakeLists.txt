@@ -1,4 +1,5 @@
-add_library(ink_cli STATIC application.cpp io.cpp)
+file(GLOB_RECURSE INK_CLI_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_library(ink_cli STATIC ${INK_CLI_SOURCES})
 add_library(ink::cli ALIAS ink_cli)
 
 target_compile_features(ink_cli PUBLIC cxx_std_17)

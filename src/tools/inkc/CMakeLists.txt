@@ -1,4 +1,5 @@
-add_executable(inkc main.cpp)
+file(GLOB_RECURSE INKC_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_executable(inkc ${INKC_SOURCES})
 target_compile_features(inkc PRIVATE cxx_std_17)
 target_link_libraries(inkc PRIVATE ink::cli)
 ink_disable_exceptions(inkc)

@@ -1,4 +1,5 @@
-add_library(ink_abi STATIC codec.cpp demangle.cpp linkage_identity.cpp mangle.cpp name_mangling.cpp)
+file(GLOB_RECURSE INK_ABI_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_library(ink_abi STATIC ${INK_ABI_SOURCES})
 add_library(ink::abi ALIAS ink_abi)
 
 target_compile_features(ink_abi PUBLIC cxx_std_17)

@@ -1,4 +1,5 @@
-add_library(ink_tokenizer STATIC token.cpp tokenizer.cpp unicode.cpp)
+file(GLOB_RECURSE INK_TOKENIZER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_library(ink_tokenizer STATIC ${INK_TOKENIZER_SOURCES})
 add_library(ink::tokenizer ALIAS ink_tokenizer)
 
 target_compile_features(ink_tokenizer PUBLIC cxx_std_17)

@@ -37,9 +37,11 @@ git submodule update --init --recursive
 
 ```powershell
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
-cmake --build build --config Release --target ink_tests
+cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 ```
+
+自有库和工具通过 `GLOB_RECURSE CONFIGURE_DEPENDS` 递归收集各自目标目录中的 `*.cpp`，测试按模块递归收集 `*_test.cpp`；新增或删除匹配文件会在下次构建时自动触发 CMake 重新配置，无需修改源文件清单。Visual Studio 下增删源码后使用上面的默认构建入口，避免直接构建单个目标时 MSBuild 在当前轮次保留该目标的旧源文件列表。
 
 `ink_tests` 是统一的 GoogleTest 入口，包含 Core、tokenizer、parser/AST、IR 和 semantic 的单元测试；在 CLion 中运行同名配置即可执行这些用例。构建该目标同时构建 `ink-tokenize` 和 `ink-parse`，CTest 再运行额外的 CLI 进程测试。
 

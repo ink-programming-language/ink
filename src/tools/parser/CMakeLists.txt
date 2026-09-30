@@ -1,4 +1,5 @@
-add_executable(ink_parse main.cpp)
+file(GLOB_RECURSE INK_PARSE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_executable(ink_parse ${INK_PARSE_SOURCES})
 target_compile_features(ink_parse PRIVATE cxx_std_20)
 target_link_libraries(ink_parse PRIVATE ink::cli ink::parser)
 ink_disable_exceptions(ink_parse)

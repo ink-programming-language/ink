@@ -1,4 +1,5 @@
-add_library(ink_semantic STATIC analyzer/analyzer.cpp analyzer/decl/analyzer_class.cpp analyzer/decl/analyzer_decl.cpp analyzer/decl/analyzer_enum.cpp analyzer/decl/analyzer_function.cpp analyzer/decl/analyzer_interface.cpp analyzer/expr/analyzer_call.cpp analyzer/expr/analyzer_conversion.cpp analyzer/expr/analyzer_expr.cpp analyzer/expr/analyzer_literal.cpp analyzer/expr/analyzer_name.cpp analyzer/expr/analyzer_paren.cpp analyzer/expr/analyzer_unary.cpp analyzer/stmt/analyzer_break.cpp analyzer/stmt/analyzer_classic_for.cpp analyzer/stmt/analyzer_comptime.cpp analyzer/stmt/analyzer_continue.cpp analyzer/stmt/analyzer_defer.cpp analyzer/stmt/analyzer_for_in.cpp analyzer/stmt/analyzer_if.cpp analyzer/stmt/analyzer_import.cpp analyzer/stmt/analyzer_return.cpp analyzer/stmt/analyzer_stmt.cpp analyzer/stmt/analyzer_switch.cpp analyzer/stmt/analyzer_while.cpp analyzer/stmt/analyzer_yield.cpp analyzer/type/analyzer_type.cpp name_resolve/name_resolver.cpp name_resolve/scope_store.cpp)
+file(GLOB_RECURSE INK_SEMANTIC_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_library(ink_semantic STATIC ${INK_SEMANTIC_SOURCES})
 add_library(ink::semantic ALIAS ink_semantic)
 
 target_compile_features(ink_semantic PUBLIC cxx_std_20)

@@ -1,4 +1,5 @@
-add_library(ink_core STATIC config_manager.cpp diagnostic.cpp panic.cpp source_manager.cpp)
+file(GLOB_RECURSE INK_CORE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_library(ink_core STATIC ${INK_CORE_SOURCES})
 add_library(ink::core ALIAS ink_core)
 
 target_compile_features(ink_core PUBLIC cxx_std_17)

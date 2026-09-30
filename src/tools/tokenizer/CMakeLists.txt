@@ -1,4 +1,5 @@
-add_executable(ink_tokenize main.cpp)
+file(GLOB_RECURSE INK_TOKENIZE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_executable(ink_tokenize ${INK_TOKENIZE_SOURCES})
 target_compile_features(ink_tokenize PRIVATE cxx_std_17)
 target_link_libraries(ink_tokenize PRIVATE ink::cli ink::tokenizer)
 ink_disable_exceptions(ink_tokenize)
