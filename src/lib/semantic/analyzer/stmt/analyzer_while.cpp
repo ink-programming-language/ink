@@ -1,10 +1,10 @@
-#include "analyzer_internal.h"
+#include "../analyzer_internal.h"
 
 #include "ink/parser/ast.h"
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeBreakStmt(AnalysisState &State, const parser::BreakStmt &Node)
+  bool Analyzer::analyzeWhileStmt(AnalysisState &State, const parser::WhileStmt &Node)
   {
     return reportUnsupported(State, Node);
   }

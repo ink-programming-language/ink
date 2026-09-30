@@ -1,10 +1,10 @@
-#include "analyzer_internal.h"
+#include "../analyzer_internal.h"
 
 #include "ink/parser/ast.h"
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeSwitchStmt(AnalysisState &State, const parser::SwitchStmt &Node)
+  bool Analyzer::analyzeComptimeStmt(AnalysisState &State, const parser::ComptimeStmt &Node)
   {
     return reportUnsupported(State, Node);
   }

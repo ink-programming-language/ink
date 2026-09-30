@@ -50,6 +50,10 @@ namespace ink::semantic
       bool reportUnsupported(AnalysisState &State, const parser::ASTNodeBase &Node);
       const ir::Type *analyzeType(AnalysisState &State, const parser::Expr &Node, std::size_t Depth = 0);
       ExpressionResult analyzeExpr(AnalysisState &State, const parser::Expr &Node, std::size_t Depth = 0);
+      ExpressionResult analyzeParenExpr(AnalysisState &State, const parser::ParenExpr &Node, std::size_t Depth);
+      ExpressionResult analyzeLiteralExpr(AnalysisState &State, const parser::LiteralExpr &Node);
+      ExpressionResult analyzeNameExpr(AnalysisState &State, const parser::NameExpr &Node);
+      ExpressionResult analyzeUnaryExpr(AnalysisState &State, const parser::UnaryExpr &Node, std::size_t Depth);
       ExpressionResult analyzeCallExpr(AnalysisState &State, const parser::CallExpr &Node, std::size_t Depth);
       const ir::Value *convertExpression(AnalysisState &State, const ExpressionResult &Expression, const ir::Type &Target, const parser::Expr &Node, bool CArgument = false);
 

@@ -1,10 +1,10 @@
-#include "analyzer_internal.h"
+#include "../analyzer_internal.h"
 
 #include "ink/parser/ast.h"
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeEnumDecl(AnalysisState &State, const parser::EnumDecl &Node)
+  bool Analyzer::analyzeDeferStmt(AnalysisState &State, const parser::DeferStmt &Node)
   {
     return reportUnsupported(State, Node);
   }

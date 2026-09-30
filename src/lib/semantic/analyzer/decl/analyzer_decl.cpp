@@ -1,4 +1,4 @@
-#include "analyzer_internal.h"
+#include "../analyzer_internal.h"
 
 #include "ink/parser/ast.h"
 

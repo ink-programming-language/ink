@@ -45,23 +45,32 @@ func main(): i32
 
 诊断通过 Core 的 `DiagnosticEngine::report<Kind>(SourceId, SourceRange, Arguments...)` 直接构造并报告，保留参数数量和类型的编译期检查。`AnalysisState::report<Kind>(SourceRange, Arguments...)` 自动使用本次分析的 Context 和 Source；在分析状态创建前，入口直接调用 Engine 的重载。诊断报告与失败返回分别处理。
 
-实现按职责拆分在 `src/lib/semantic/analyzer`，所有处理方法仍属于同一个 `Analyzer` 类：
+实现按职责分组在 `src/lib/semantic/analyzer` 的 `expr`（表达式与转换）、`stmt`（语句与控制流）、`decl`（声明）和 `type`（类型）子目录中；入口和共享头文件保留在父目录，所有处理方法仍属于同一个 `Analyzer` 类：
 
 | 文件 | 职责 |
 | --- | --- |
 | `analyzer.cpp` | 模块分析入口、未支持诊断，以及 `MissingStmt`、`ErrorStmt`、`MissingDecl`、`ErrorDecl` 的未支持处理 |
-| `analyzer_internal.h` | 各实现文件共享的私有 `AnalysisState` 定义 |
-| `analyzer_stmt.cpp` | 语句分派、简单语句、块作用域及声明语句转发 |
-| `analyzer_control_flow.cpp` | 条件、循环、switch、return、break、continue、yield 与 defer |
-| `analyzer_decl.cpp` | 声明分派、变量声明与字段声明 |
-| `analyzer_function.cpp` | 函数签名、链接方式、名称冲突、形参作用域及函数体分析 |
-| `analyzer_type.cpp` | 基础类型名称、括号类型、指针与引用类型解析 |
-| `analyzer_expr.cpp` | 字面量、表达式名字、重载选择、参数转换与调用 |
-| `analyzer_class.cpp` | 类声明 |
-| `analyzer_enum.cpp` | 枚举声明 |
-| `analyzer_interface.cpp` | 接口声明 |
-| `analyzer_import.cpp` | 直接导入与 from 导入 |
-| `analyzer_comptime.cpp` | comptime 语句 |
+| `analyzer_internal.h` | 各实现文件共享的私有 `AnalysisState`、`ExpressionResult` 定义与辅助函数声明 |
+| `expr/analyzer_expr.cpp` | 表达式分派与嵌套深度检查 |
+| `expr/analyzer_call.cpp` | 重载选择、实参分析与调用 |
+| `expr/analyzer_conversion.cpp` | 整数常量解析、表达式转换与类型诊断描述 |
+| `expr/analyzer_literal.cpp` | 整数与字符串字面量 |
+| `expr/analyzer_name.cpp` | 表达式名字解析与捕获检查 |
+| `expr/analyzer_paren.cpp` | 括号表达式 |
+| `expr/analyzer_unary.cpp` | 一元表达式 |
+| `stmt/analyzer_stmt.cpp` | 语句分派、简单语句、块作用域及声明语句转发 |
+| `stmt/analyzer_if.cpp`、`stmt/analyzer_switch.cpp` | 条件与 switch 语句 |
+| `stmt/analyzer_while.cpp`、`stmt/analyzer_classic_for.cpp`、`stmt/analyzer_for_in.cpp` | 循环语句 |
+| `stmt/analyzer_return.cpp` | 返回语句与返回值类型检查 |
+| `stmt/analyzer_break.cpp`、`stmt/analyzer_continue.cpp`、`stmt/analyzer_yield.cpp`、`stmt/analyzer_defer.cpp` | break、continue、yield 与 defer 语句 |
+| `stmt/analyzer_import.cpp` | 直接导入与 from 导入 |
+| `stmt/analyzer_comptime.cpp` | comptime 语句 |
+| `decl/analyzer_decl.cpp` | 声明分派、变量声明与字段声明 |
+| `decl/analyzer_function.cpp` | 函数签名、链接方式、名称冲突、形参作用域及函数体分析 |
+| `decl/analyzer_class.cpp` | 类声明 |
+| `decl/analyzer_enum.cpp` | 枚举声明 |
+| `decl/analyzer_interface.cpp` | 接口声明 |
+| `type/analyzer_type.cpp` | 基础类型名称、括号类型、指针与引用类型解析 |
 
 ## 名字绑定与作用域
 

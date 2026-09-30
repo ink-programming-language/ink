@@ -12,12 +12,15 @@
 #include "ink/core/source_id.h"
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <utility>
 
 namespace ink::semantic
 {
   std::string describeType(const ir::Type &ValueType);
+  std::optional<ir::IntegerBits> integerBits(const parser::TokenBuffer &Input, const parser::LiteralExpr &Literal, bool Negative, const ir::IntegerType &Target);
+  bool acceptsCString(const ir::Value &ValueObject, const ir::Type &Target, bool CArgument);
 
   // Integer literals keep their source until an expected type or overload is known.
   struct Analyzer::ExpressionResult
