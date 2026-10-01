@@ -8,6 +8,10 @@ namespace ink::semantic
 {
   bool Analyzer::analyzeDecl(AnalysisState &State, const parser::Decl &Declaration)
   {
+    if (Declaration.isComptime())
+    {
+      return reportUnsupported(State, Declaration);
+    }
     switch (Declaration.getKind())
     {
 #define INK_ANALYZE_Root(Name)

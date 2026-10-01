@@ -90,10 +90,10 @@ type !t4 = fn(i32, !t2) -> i32
 
 ### 泛型声明与 AST
 
-文本中的 AST 使用独立的 `ast 1` 语法，直接显示源码、token 名称、AST 节点类别、命名字段和恢复信息。以下仅展示区段结构，省略号不是有效语法：
+文本中的 AST 使用独立的 `ast 2` 语法，直接显示源码、token 名称、AST 节点类别、命名字段和恢复信息。以下仅展示区段结构，省略号不是有效语法：
 
 ```text
-syntax !ast0 ast 1 {
+syntax !ast0 ast 2 {
   source_name = "<input>"
   source = "func Identity[T: type](Value: T): T { return Value; }"
   status = Completed
@@ -103,7 +103,7 @@ syntax !ast0 ast 1 {
     ...
   ]
   nodes [
-    %1 = NameExpr { range = range(17, 21), name = name(6, "type", range(17, 21)) }
+    %1 = NameExpr { range = range(17, 21), name = name(6, "type", range(17, 21)), comptime = false }
     ...
   ]
   recovery [
@@ -116,7 +116,7 @@ declarations from !ast0 %23 {
 }
 ```
 
-节点使用从 1 开始的后序编号，`%N` 表示节点引用。字段使用 `range(begin, end)` 表示字节范围，`name(token_id + 1, "拼写", range(...))` 表示名字 token（0 表示缺失 token），`some(...)/none` 表示可选字段，`[...]` 表示数组，枚举直接使用名称。声明树引用 AST 快照及节点，多个声明可共享相同节点。
+节点使用从 1 开始的后序编号，`%N` 表示节点引用。字段使用 `range(begin, end)` 表示字节范围，`name(token_id + 1, "拼写", range(...))` 表示名字 token（0 表示缺失 token），`some(...)/none` 表示可选字段，`[...]` 表示数组，枚举直接使用名称。每个普通 AST 节点都包含 `comptime` 布尔属性，不再使用独立的 comptime 包装节点；旧的 `ast 1` 快照会被拒绝。声明树引用 AST 快照及节点，多个声明可共享相同节点。
 
 恢复过程使用完整字段构造 AST，不重新解析 `source`，因此也保留错误恢复节点、token payload、取消/中断状态和共享身份。文本 AST 读入后复用现有 AST 构造与校验逻辑；文本与二进制可互相转换。
 
@@ -145,7 +145,7 @@ declarations from !ast0 %23 {
 | 24 | u64 × 字段数 | 附加字段 |
 | 后续 | 原始字节 | 字符串或 AST payload，无 NUL 终止符 |
 
-对象 ID 由记录顺序隐含决定，从 1 开始；1 是根模块，0 表示无引用。父对象先于子对象；类型和操作数允许向前引用。类型与常量不具有结构父对象。整数常量保存低位字到高位字，浮点保存原始位模式；AST payload 直接使用现有 IAST v2 二进制快照。
+对象 ID 由记录顺序隐含决定，从 1 开始；1 是根模块，0 表示无引用。父对象先于子对象；类型和操作数允许向前引用。类型与常量不具有结构父对象。整数常量保存低位字到高位字，浮点保存原始位模式；AST payload 直接使用现有 IAST v3 二进制快照，旧的 IAST v1、v2 快照会被拒绝。
 
 读取器在分配前验证记录数量、字段数量和剩余字节，拒绝未知 kind、flags、截断、越界引用和尾随字节。版本由 `ModuleTextVersion` 和 `ModuleBinaryVersion` 分别管理；当前 v2 不兼容此前的 v1 实验格式。AST 文本和二进制版本也独立管理。相同 Module 的规范输出不依赖指针地址、无关池插入顺序或宿主大小端。
 

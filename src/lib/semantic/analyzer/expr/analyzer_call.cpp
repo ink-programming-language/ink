@@ -19,7 +19,7 @@ namespace ink::semantic
     }
     const parser::Expr *CalleeNode = Node.callee();
     std::size_t CalleeDepth = Depth + 1;
-    while (parser::ParenExpr::classof(CalleeNode) && CalleeDepth < State.ExpressionDepthLimit)
+    while (!CalleeNode->isComptime() && parser::ParenExpr::classof(CalleeNode) && CalleeDepth < State.ExpressionDepthLimit)
     {
       CalleeNode = static_cast<const parser::ParenExpr &>(*CalleeNode).expression();
       ++CalleeDepth;
@@ -30,7 +30,7 @@ namespace ink::semantic
       return {};
     }
     std::vector<const Value *> Candidates;
-    if (parser::NameExpr::classof(CalleeNode))
+    if (!CalleeNode->isComptime() && parser::NameExpr::classof(CalleeNode))
     {
       const Name Symbol = State.Context.namePool().find(static_cast<const parser::NameExpr &>(*CalleeNode).name().Text);
       if (const auto *Binding = State.Resolver.lookup(Symbol); Binding && Binding->targets().size() > 1)

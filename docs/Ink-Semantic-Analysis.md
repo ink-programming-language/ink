@@ -64,13 +64,14 @@ func main(): i32
 | `stmt/analyzer_return.cpp` | 返回语句与返回值类型检查 |
 | `stmt/analyzer_break.cpp`、`stmt/analyzer_continue.cpp`、`stmt/analyzer_yield.cpp`、`stmt/analyzer_defer.cpp` | break、continue、yield 与 defer 语句 |
 | `stmt/analyzer_import.cpp` | 直接导入与 from 导入 |
-| `stmt/analyzer_comptime.cpp` | comptime 语句 |
 | `decl/analyzer_decl.cpp` | 声明分派、变量声明与字段声明 |
 | `decl/analyzer_function.cpp` | 函数签名、链接方式、名称冲突、形参作用域及函数体分析 |
 | `decl/analyzer_class.cpp` | 类声明 |
 | `decl/analyzer_enum.cpp` | 枚举声明 |
 | `decl/analyzer_interface.cpp` | 接口声明 |
 | `type/analyzer_type.cpp` | 基础类型名称、括号类型、指针与引用类型解析 |
+
+comptime 复用普通 AST 节点上的 `isComptime()` 标记，语句、声明、表达式和类型分派入口统一检查该属性。当前编译期执行尚未实现，被标记节点仍报告未支持诊断；调用目标的括号展开和重载查找也保留这一检查，避免误生成运行时 IR。
 
 ## 名字绑定与作用域
 

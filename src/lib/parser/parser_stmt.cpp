@@ -112,9 +112,16 @@ namespace ink::parser
       const bool Modified = declarationStart(1) || Next == TokenKind::LBrace || Next == TokenKind::KwImport || Next == TokenKind::KwFrom || Next == TokenKind::KwIf || Next == TokenKind::KwWhile || Next == TokenKind::KwFor || Next == TokenKind::KwSwitch || (Next == TokenKind::LBracket && attributesAhead());
       if (Modified)
       {
-        const SourceRange Keyword = Input.token(bump()).Span;
+        bump();
         Stmt *Body = parseStmt();
-        return make<ComptimeStmt>(range(Start), Keyword, Body);
+        Body->setComptime();
+        Body->setSourceRange(range(Start));
+        if (auto *Declaration = dyn_cast<DeclStmt>(Body))
+        {
+          Declaration->declaration()->setComptime();
+          Declaration->declaration()->setSourceRange(range(Start));
+        }
+        return Body;
       }
     }
     if (declarationStart() || (at(TokenKind::LBracket) && attributesAhead()))

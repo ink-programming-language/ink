@@ -160,6 +160,12 @@ namespace ink::parser::test
 
     void expectRoundTrip(const ParseResult &Original, core::FrontendContext &Frontend, std::set<ASTKind> *Kinds = nullptr)
     {
+      std::vector<bool> OriginalComptime;
+      ASTWalker{}.walk(Original.Unit->root(), [&](const ASTNodeBase *Node)
+      {
+        OriginalComptime.push_back(Node->isComptime());
+        return WalkAction::Continue;
+      });
       for (bool Text : {false, true})
       {
         SCOPED_TRACE(Text ? "text" : "binary");
@@ -174,6 +180,13 @@ namespace ink::parser::test
         EXPECT_TRUE(Loaded.Parsed.Unit->input().lexedFile().isRegisteredWith(Frontend.sourceManager()));
         EXPECT_NE(Loaded.Parsed.Unit->input().lexedFile().sourceId(), Original.Unit->input().lexedFile().sourceId());
         EXPECT_EQ(dumpAST(*Loaded.Parsed.Unit), dumpAST(*Original.Unit));
+        std::vector<bool> LoadedComptime;
+        ASTWalker{}.walk(Loaded.Parsed.Unit->root(), [&](const ASTNodeBase *Node)
+        {
+          LoadedComptime.push_back(Node->isComptime());
+          return WalkAction::Continue;
+        });
+        EXPECT_EQ(LoadedComptime, OriginalComptime);
         EXPECT_TRUE(verifyAST(Loaded.Parsed.Unit->root(), Loaded.Parsed.Unit->input().lexedFile().source().size()));
         expectTokensEqual(Original.Unit->input().lexedFile(), Loaded.Parsed.Unit->input().lexedFile());
         const auto &Before = Original.Unit->recoveryInfo().Entries;
@@ -273,6 +286,64 @@ namespace ink::parser::test
     EXPECT_EQ(tryDeserializeASTText(Frontend, Saved.Bytes, Limits).Status, ASTArchiveStatus::LimitExceeded);
   }
 
+  // Ordinary expression and statement nodes retain their comptime flags and prefix-inclusive ranges in both formats.
+  TEST_F(ParserTest, ASTSerializationComptimeFlags)
+  {
+    const auto Parsed = read("comptime 42; comptime comptime 'x'; comptime(a + b); comptime if (x) {} comptime { var value = comptime 7; } var plain = 8;");
+    ASSERT_TRUE(Parsed.succeeded());
+    const auto *Literal = cast<LiteralExpr>(expression(Parsed));
+    EXPECT_TRUE(Literal->isComptime());
+    EXPECT_EQ(Literal->getSourceRange(), SourceRange::fromByteOffsets(0, 11));
+    EXPECT_TRUE(isa<LiteralExpr>(expression(Parsed, 1)));
+    EXPECT_TRUE(expression(Parsed, 1)->isComptime());
+    EXPECT_TRUE(isa<ParenExpr>(expression(Parsed, 2)));
+    EXPECT_TRUE(expression(Parsed, 2)->isComptime());
+    const auto *If = Parsed.Unit->root()->statements()[3];
+    EXPECT_TRUE(isa<IfStmt>(If));
+    EXPECT_TRUE(If->isComptime());
+    const auto *Block = Parsed.Unit->root()->statements()[4];
+    EXPECT_TRUE(isa<BlockStmt>(Block));
+    EXPECT_TRUE(Block->isComptime());
+    EXPECT_FALSE(cast<VarDecl>(declaration(Parsed, 5))->initializer()->isComptime());
+    expectRoundTrip(Parsed, Frontend);
+  }
+
+  // The common node flag is mandatory, boolean-valued, and incompatible with the previous wrapper-node versions.
+  TEST_F(ParserTest, ASTSerializationRejectsMalformedComptimeFlagsAndLegacyVersions)
+  {
+    const auto Parsed = read("comptime 42;");
+    ASSERT_TRUE(Parsed.succeeded());
+    const auto Binary = trySerializeAST(Parsed);
+    ASSERT_TRUE(Binary.succeeded()) << Binary.Message;
+    const auto OriginalRecords = records(Binary.Bytes);
+    auto Records = OriginalRecords;
+    nodeRecord(Records, ASTKind::LiteralExpr).Values.back() = 2;
+    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::InvalidArchive);
+    Records = OriginalRecords;
+    nodeRecord(Records, ASTKind::LiteralExpr).Values.pop_back();
+    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::InvalidArchive);
+    for (std::uint64_t Version : {1ULL, 2ULL})
+    {
+      Records = OriginalRecords;
+      Records.front().Values.front() = Version;
+      EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::UnsupportedVersion);
+    }
+    const auto Text = trySerializeASTText(Parsed);
+    ASSERT_TRUE(Text.succeeded()) << Text.Message;
+    const std::string_view Flag = ", comptime = true";
+    const auto Position = Text.Bytes.find(Flag);
+    ASSERT_NE(Position, std::string::npos);
+    for (const std::string_view Replacement : {"", ", comptime = 2"})
+    {
+      auto Malformed = Text.Bytes;
+      Malformed.replace(Position, Flag.size(), Replacement);
+      EXPECT_EQ(tryDeserializeASTText(Frontend, Malformed).Status, ASTArchiveStatus::InvalidArchive);
+    }
+    auto Legacy = Text.Bytes;
+    Legacy.replace(0, ("ast " + std::to_string(ASTTextArchiveVersion)).size(), "ast 1");
+    EXPECT_EQ(tryDeserializeASTText(Frontend, Legacy).Status, ASTArchiveStatus::UnsupportedVersion);
+  }
+
   // Every accepted grammar sample round-trips with identical fields, tokens, recovery state and canonical bytes.
   TEST_F(ParserTest, ASTSerializationGrammarCorpus)
   {
@@ -328,6 +399,7 @@ namespace ink::parser::test
       {
         Record Entry{5, {static_cast<std::uint64_t>(Type), 1, 1}};
         Entry.Values.insert(Entry.Values.end(), Fields.begin(), Fields.end());
+        Entry.Values.push_back(0);
         Records.push_back(std::move(Entry));
       };
       const auto Type = static_cast<ASTKind>(Kind);
@@ -478,7 +550,7 @@ namespace ink::parser::test
         {
           if (Candidate.Code == 5 && Candidate.Values[0] == static_cast<std::uint64_t>(ASTKind::TypeSyntax))
           {
-            Entry.Values.back() = Candidate.Values.back();
+            Entry.Values[Entry.Values.size() - 2] = Candidate.Values[Candidate.Values.size() - 2];
             Changed = true;
             break;
           }
@@ -614,12 +686,13 @@ namespace ink::parser::test
     for (std::uint64_t Reference : {0ULL, 3ULL, 999ULL, 1ULL})
     {
       Records = Original;
-      nodeRecord(Records, ASTKind::BinaryExpr).Values.back() = Reference;
+      auto &Values = nodeRecord(Records, ASTKind::BinaryExpr).Values;
+      Values[Values.size() - 2] = Reference;
       expectRejected(Frontend, archive(Records));
     }
     Records = Original;
     auto &Name = nodeRecord(Records, ASTKind::NameExpr);
-    Name.Values = {static_cast<unsigned>(ASTKind::BreakStmt), Name.Values[1], Name.Values[2]};
+    Name.Values = {static_cast<unsigned>(ASTKind::BreakStmt), Name.Values[1], Name.Values[2], 0};
     expectRejected(Frontend, archive(Records));
     Records = Original;
     nodeRecord(Records, ASTKind::ModuleAST).Values[3] = 0;
@@ -655,7 +728,8 @@ namespace ink::parser::test
     nodeRecord(Records, ASTKind::LiteralExpr).Values[4] = 999;
     expectRejected(Frontend, archive(Records));
     Records = Original;
-    nodeRecord(Records, ASTKind::CallExpr).Values.back() = 2;
+    auto &CallValues = nodeRecord(Records, ASTKind::CallExpr).Values;
+    CallValues[CallValues.size() - 2] = 2;
     expectRejected(Frontend, archive(Records));
     Records = Original;
     nodeRecord(Records, ASTKind::CallExpr).Values[4] = 100;

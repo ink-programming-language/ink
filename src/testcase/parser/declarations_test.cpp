@@ -8,7 +8,10 @@ namespace ink::parser::test
     const auto Result = read("var x: (A + B); var y: comptime *T::[U][n]; var z: do { yield T; };");
     ASSERT_TRUE(Result.succeeded());
     EXPECT_TRUE(isa<ParenExpr>(cast<VarDecl>(declaration(Result))->type()->expression()));
-    EXPECT_TRUE(isa<ComptimeExpr>(cast<VarDecl>(declaration(Result, 1))->type()->expression()));
+    const auto *ComptimeType = cast<VarDecl>(declaration(Result, 1))->type();
+    ASSERT_TRUE(isa<UnaryExpr>(ComptimeType->expression()));
+    EXPECT_TRUE(ComptimeType->expression()->isComptime());
+    EXPECT_FALSE(ComptimeType->isComptime());
     EXPECT_TRUE(isa<BlockExpr>(cast<VarDecl>(declaration(Result, 2))->type()->expression()));
   }
 
@@ -75,8 +78,10 @@ namespace ink::parser::test
   {
     const auto Result = read("comptime [tag] extern \"other\" func f[T: type](x: T): T { return x; }");
     ASSERT_TRUE(Result.succeeded());
-    const auto *Comptime = cast<ComptimeStmt>(Result.Unit->root()->statements()[0]);
-    const auto *Function = cast<FunctionDecl>(cast<DeclStmt>(Comptime->body())->declaration());
+    const auto *Statement = cast<DeclStmt>(Result.Unit->root()->statements()[0]);
+    const auto *Function = cast<FunctionDecl>(Statement->declaration());
+    EXPECT_TRUE(Statement->isComptime());
+    EXPECT_TRUE(Function->isComptime());
     EXPECT_EQ(Function->attributes().size(), 1U);
     EXPECT_EQ(Function->genericParameters().size(), 1U);
     EXPECT_EQ(Function->bodyKind(), FunctionBodyKind::Definition);
@@ -161,6 +166,47 @@ namespace ink::parser::test
     }
   }
 
+  // Declaration modifiers mark both ordinary declaration layers while initializer-only prefixes leave both layers runtime.
+  TEST_F(ParserTest, ComptimeDeclarationFlags)
+  {
+    struct Case
+    {
+        const char *Source;
+        ASTKind Kind;
+    };
+    const Case Cases[] = {
+        {"comptime var x = 1;", ASTKind::VarDecl},
+        {"comptime const x = 1;", ASTKind::VarDecl},
+        {"comptime [tag] field X: T;", ASTKind::FieldDecl},
+        {"comptime func f(): T;", ASTKind::FunctionDecl},
+        {"comptime class C;", ASTKind::ClassDecl},
+        {"comptime enum E {};", ASTKind::EnumDecl},
+        {"comptime interface I {};", ASTKind::InterfaceDecl},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Source);
+      const auto Result = read(Entry.Source);
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_EQ(Result.Unit->root()->statements().size(), 1U);
+      const auto *Statement = cast<DeclStmt>(Result.Unit->root()->statements()[0]);
+      const auto *Declaration = Statement->declaration();
+      EXPECT_EQ(Declaration->getKind(), Entry.Kind);
+      EXPECT_TRUE(Statement->isComptime());
+      EXPECT_TRUE(Declaration->isComptime());
+      const auto Range = SourceRange::fromByteOffsets(0, std::string_view(Entry.Source).size());
+      EXPECT_EQ(Statement->getSourceRange(), Range);
+      EXPECT_EQ(Declaration->getSourceRange(), Range);
+    }
+    const auto Result = read("var x = comptime 1;");
+    ASSERT_TRUE(Result.succeeded());
+    EXPECT_FALSE(Result.Unit->root()->statements()[0]->isComptime());
+    const auto *Variable = cast<VarDecl>(declaration(Result));
+    EXPECT_FALSE(Variable->isComptime());
+    EXPECT_TRUE(Variable->initializer()->isComptime());
+    EXPECT_FALSE(Variable->binding()->isComptime());
+  }
+
   // Field tails retain none, typed, initializer-only and payload forms without accepting parameter defaults.
   TEST_F(ParserTest, FieldForms)
   {
@@ -189,7 +235,8 @@ namespace ink::parser::test
     EXPECT_FALSE(Class->bases()[0].implements());
     EXPECT_TRUE(Class->bases()[1].implements());
     EXPECT_EQ(Class->body()->statements().size(), 3U);
-    EXPECT_TRUE(isa<ComptimeStmt>(Class->body()->statements()[1]));
+    EXPECT_TRUE(isa<IfStmt>(Class->body()->statements()[1]));
+    EXPECT_TRUE(Class->body()->statements()[1]->isComptime());
     EXPECT_TRUE(isa<EnumDecl>(declaration(Result, 2)));
     EXPECT_TRUE(isa<InterfaceDecl>(declaration(Result, 3)));
     EXPECT_FALSE(read("enum E;").succeeded());

@@ -49,6 +49,11 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
       return nullptr;
     }
+    if (Node.isComptime())
+    {
+      reportUnsupported(State, Node);
+      return nullptr;
+    }
     TypePool &Types = State.Context.typePool();
     if (parser::NameExpr::classof(&Node))
     {

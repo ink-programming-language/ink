@@ -393,11 +393,6 @@ namespace ink::parser
           Output << " OperatorRange=";
           printValue(Output, Node->operatorRange());
         }
-        void visitComptimeExpr(const ComptimeExpr *Node)
-        {
-          Output << "ComptimeExpr ";
-          printValue(Output, Node->getSourceRange());
-        }
         void visitBinaryExpr(const BinaryExpr *Node)
         {
           Output << "BinaryExpr ";
@@ -585,13 +580,6 @@ namespace ink::parser
         {
           Output << "DeferStmt ";
           printValue(Output, Node->getSourceRange());
-        }
-        void visitComptimeStmt(const ComptimeStmt *Node)
-        {
-          Output << "ComptimeStmt ";
-          printValue(Output, Node->getSourceRange());
-          Output << " KeywordRange=";
-          printValue(Output, Node->keywordRange());
         }
         void visitDirectImportStmt(const DirectImportStmt *Node)
         {
@@ -786,6 +774,10 @@ namespace ink::parser
                      {
                        Output << std::string(std::min<std::size_t>(Depth, 64) * 2, ' ');
                        Visitor.visit(Node);
+                       if (Node->isComptime())
+                       {
+                         Output << " Comptime=1";
+                       }
                        Output << '\n';
                        ++Depth;
                        return WalkAction::Continue;

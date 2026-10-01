@@ -61,6 +61,38 @@ namespace ink::parser::test
     }
   }
 
+  // Approved statement modifiers retain each original node kind and include the prefix in that node's source range.
+  TEST_F(ParserTest, ComptimeStatementFlags)
+  {
+    struct Case
+    {
+        const char *Source;
+        ASTKind Kind;
+    };
+    const Case Cases[] = {
+        {"comptime {}", ASTKind::BlockStmt},
+        {"comptime if (x) {} else {}", ASTKind::IfStmt},
+        {"comptime while (x) {}", ASTKind::WhileStmt},
+        {"comptime for (;;) {}", ASTKind::ClassicForStmt},
+        {"comptime for (x in xs) {}", ASTKind::ForInStmt},
+        {"comptime switch (x) {}", ASTKind::SwitchStmt},
+        {"comptime import foo;", ASTKind::DirectImportStmt},
+        {"comptime from foo import bar;", ASTKind::FromImportStmt},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Source);
+      const auto Result = read(Entry.Source);
+      ASSERT_TRUE(Result.succeeded());
+      ASSERT_EQ(Result.Unit->root()->statements().size(), 1U);
+      const auto *Statement = Result.Unit->root()->statements()[0];
+      EXPECT_EQ(Statement->getKind(), Entry.Kind);
+      EXPECT_TRUE(Statement->isComptime());
+      EXPECT_EQ(Statement->getSourceRange(), SourceRange::fromByteOffsets(0, std::string_view(Entry.Source).size()));
+      EXPECT_FALSE(Result.Unit->root()->isComptime());
+    }
+  }
+
   // Imports retain path segments, aliases and relative levels counted in dots, including ellipsis tokens.
   TEST_F(ParserTest, ImportForms)
   {

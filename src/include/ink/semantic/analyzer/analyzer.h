@@ -79,8 +79,6 @@ namespace ink::semantic
       bool analyzeYieldStmt(AnalysisState &State, const parser::YieldStmt &Node);
       bool analyzeDeferStmt(AnalysisState &State, const parser::DeferStmt &Node);
 
-      bool analyzeComptimeStmt(AnalysisState &State, const parser::ComptimeStmt &Node);
-
       bool analyzeDirectImportStmt(AnalysisState &State, const parser::DirectImportStmt &Node);
       bool analyzeFromImportStmt(AnalysisState &State, const parser::FromImportStmt &Node);
 

@@ -53,7 +53,9 @@ namespace ink::parser
       std::size_t AllocationBytes = 0;
   };
 
-  inline constexpr std::uint32_t ASTArchiveVersion = 2;
+  // V3 stores comptime on each ordinary node and rejects the former wrapper-node formats.
+  inline constexpr std::uint32_t ASTArchiveVersion = 3;
+  inline constexpr std::uint32_t ASTTextArchiveVersion = 2;
 
   // Deterministic binary snapshots of syntax, tokens, source and recovery metadata.
   // No semantic state or declaration index is included. Bytes may contain NUL.

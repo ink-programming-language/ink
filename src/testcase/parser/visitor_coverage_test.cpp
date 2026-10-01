@@ -20,7 +20,7 @@ namespace ink::parser::test
         }
     };
   } // namespace
-  // Every registered concrete kind dispatches through both visitors and reports its own category.
+  // Every concrete kind defaults to runtime and retains its dispatch and category when the common comptime flag changes.
   TEST(ASTVisitorTest, EveryRegisteredKind)
   {
     ASTContext Context;
@@ -41,7 +41,6 @@ namespace ink::parser::test
     Nodes.push_back(Context.make<NameExpr>(Range, NameToken{}));
     Nodes.push_back(Context.make<LiteralExpr>(Range, TokenId{}, TokenKind{}));
     Nodes.push_back(Context.make<UnaryExpr>(Range, TokenKind{}, Range, static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<ComptimeExpr>(Range, static_cast<Expr *>(nullptr)));
     Nodes.push_back(Context.make<BinaryExpr>(Range, static_cast<Expr *>(nullptr), TokenKind{}, Range, static_cast<Expr *>(nullptr)));
     Nodes.push_back(Context.make<ConditionalExpr>(Range, static_cast<Expr *>(nullptr), static_cast<Expr *>(nullptr), static_cast<Expr *>(nullptr)));
     Nodes.push_back(Context.make<ParenExpr>(Range, static_cast<Expr *>(nullptr)));
@@ -72,7 +71,6 @@ namespace ink::parser::test
     Nodes.push_back(Context.make<ContinueStmt>(Range));
     Nodes.push_back(Context.make<YieldStmt>(Range, bool{}, static_cast<Expr *>(nullptr)));
     Nodes.push_back(Context.make<DeferStmt>(Range, static_cast<Stmt *>(nullptr)));
-    Nodes.push_back(Context.make<ComptimeStmt>(Range, Range, static_cast<Stmt *>(nullptr)));
     Nodes.push_back(Context.make<DirectImportStmt>(Range, ASTArray<ImportEntry>{}));
     Nodes.push_back(Context.make<FromImportStmt>(Range, std::size_t{}, ASTArray<TokenId>{}, ASTArray<NameToken>{}, ASTArray<ImportEntry>{}));
     Nodes.push_back(Context.make<VarDecl>(Range, ASTArray<Attribute>{}, bool{}, static_cast<BindingPattern *>(nullptr), static_cast<TypeSyntax *>(nullptr), static_cast<Expr *>(nullptr), VarDeclForm{}));
@@ -102,6 +100,9 @@ namespace ink::parser::test
     ConstDispatchCounter Constant;
     for (auto *Node : Nodes)
     {
+      EXPECT_FALSE(Node->isComptime());
+      Node->setComptime();
+      EXPECT_TRUE(Node->isComptime());
       Mutable.visit(Node);
       Constant.visit(Node);
       EXPECT_NE(std::string_view(astKindName(Node->getKind())), "InvalidASTKind");
@@ -110,6 +111,8 @@ namespace ink::parser::test
       EXPECT_EQ(isa<Decl>(Node), categoryOf(Node->getKind()) == ASTCategory::Decl);
       EXPECT_EQ(isa<BindingPattern>(Node), categoryOf(Node->getKind()) == ASTCategory::BindingPattern);
       EXPECT_EQ(isa<MatchPattern>(Node), categoryOf(Node->getKind()) == ASTCategory::MatchPattern);
+      Node->setComptime(false);
+      EXPECT_FALSE(Node->isComptime());
     }
     EXPECT_EQ(Mutable.Count, RegisteredCount);
     EXPECT_EQ(Constant.Count, RegisteredCount);

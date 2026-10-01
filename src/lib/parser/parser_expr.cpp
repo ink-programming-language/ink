@@ -95,7 +95,9 @@ namespace ink::parser
     {
       bump();
       Expr *Operand = parseUnary(TypeOnly);
-      return make<ComptimeExpr>(range(Start), Operand);
+      Operand->setComptime();
+      Operand->setSourceRange(range(Start));
+      return Operand;
     }
     if (Op == TokenKind::Plus || Op == TokenKind::Minus || Op == TokenKind::Bang || Op == TokenKind::Tilde || Op == TokenKind::PlusPlus || Op == TokenKind::MinusMinus || Op == TokenKind::Amp || Op == TokenKind::Star)
     {

@@ -140,7 +140,14 @@ namespace ink::parser
       {
         const TokenId Id = Literal->token();
         const TokenKind Kind = Literal->literalKind();
-        return Id < Tokens.size() && Tokens[Id].Kind == Kind && Tokens[Id].Span == Literal->getSourceRange() && (Kind == TokenKind::IntegerLiteral || Kind == TokenKind::FloatLiteral || Kind == TokenKind::CharLiteral || Kind == TokenKind::StringLiteral);
+        if (Id >= Tokens.size() || Tokens[Id].Kind != Kind)
+        {
+          return false;
+        }
+        const auto Range = Literal->getSourceRange();
+        const auto TokenRange = Tokens[Id].Span;
+        const bool MatchingRange = Range == TokenRange || (Literal->isComptime() && Range.getBegin() <= TokenRange.getBegin() && Range.getEnd() == TokenRange.getEnd());
+        return MatchingRange && (Kind == TokenKind::IntegerLiteral || Kind == TokenKind::FloatLiteral || Kind == TokenKind::CharLiteral || Kind == TokenKind::StringLiteral);
       }
       if (const auto *Import = dyn_cast<FromImportStmt>(Node))
       {
@@ -305,6 +312,7 @@ namespace ink::parser
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
             }
+            write(Node->isComptime());
             emit(NodeRecord);
           }
           for (const auto &Entry : Parsed.Unit->recoveryInfo().Entries)
@@ -913,15 +921,18 @@ namespace ink::parser
       T *node()
       {
         auto Values = fields<T>();
-        if (!Values || !charge(1, sizeof(T) + alignof(T)))
+        const auto Comptime = read<bool>();
+        if (!Values || !Comptime || !charge(1, sizeof(T) + alignof(T)))
         {
           return nullptr;
         }
-        return std::apply([&](auto &&...Field)
-                          {
-                            return Arena->make<T>(std::forward<decltype(Field)>(Field)...);
-                          },
-                          std::move(*Values));
+        auto *Node = std::apply([&](auto &&...Field)
+                               {
+                                 return Arena->make<T>(std::forward<decltype(Field)>(Field)...);
+                               },
+                               std::move(*Values));
+        Node->setComptime(*Comptime);
+        return Node;
       }
       template <typename T>
       std::optional<T> read()

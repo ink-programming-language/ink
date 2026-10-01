@@ -69,6 +69,18 @@ namespace ink::parser
       {
         return Range;
       }
+      void setSourceRange(SourceRange Value) noexcept
+      {
+        Range = Value;
+      }
+      bool isComptime() const noexcept
+      {
+        return Comptime;
+      }
+      void setComptime(bool Value = true) noexcept
+      {
+        Comptime = Value;
+      }
       core::SourceLocation getLocation() const noexcept
       {
         return Range.getBegin();
@@ -86,6 +98,7 @@ namespace ink::parser
 
     private:
       ASTKind NodeKind;
+      bool Comptime = false;
       SourceRange Range;
   };
   class Expr : public ASTNodeBase
@@ -169,7 +182,6 @@ namespace ink::parser
   class NameExpr;
   class LiteralExpr;
   class UnaryExpr;
-  class ComptimeExpr;
   class BinaryExpr;
   class ConditionalExpr;
   class ParenExpr;
@@ -200,7 +212,6 @@ namespace ink::parser
   class ContinueStmt;
   class YieldStmt;
   class DeferStmt;
-  class ComptimeStmt;
   class DirectImportStmt;
   class FromImportStmt;
   class VarDecl;
@@ -865,31 +876,6 @@ namespace ink::parser
     private:
       TokenKind Op;
       SourceRange OperatorRange;
-      Expr *Operand;
-  };
-  class ComptimeExpr final : public Expr
-  {
-    public:
-      static constexpr ASTKind Kind = ASTKind::ComptimeExpr;
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && Node->getKind() == Kind;
-      }
-      ComptimeExpr(SourceRange Range, Expr *Operand)
-          : Expr(Kind, Range),
-            Operand(Operand)
-      {
-      }
-      Expr *operand() noexcept
-      {
-        return Operand;
-      }
-      const Expr *operand() const noexcept
-      {
-        return Operand;
-      }
-
-    private:
       Expr *Operand;
   };
   class BinaryExpr final : public Expr
@@ -1884,37 +1870,6 @@ namespace ink::parser
       }
 
     private:
-      Stmt *Body;
-  };
-  class ComptimeStmt final : public Stmt
-  {
-    public:
-      static constexpr ASTKind Kind = ASTKind::ComptimeStmt;
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && Node->getKind() == Kind;
-      }
-      ComptimeStmt(SourceRange Range, SourceRange KeywordRange, Stmt *Body)
-          : Stmt(Kind, Range),
-            KeywordRange(KeywordRange),
-            Body(Body)
-      {
-      }
-      SourceRange keywordRange() const noexcept
-      {
-        return KeywordRange;
-      }
-      Stmt *body() noexcept
-      {
-        return Body;
-      }
-      const Stmt *body() const noexcept
-      {
-        return Body;
-      }
-
-    private:
-      SourceRange KeywordRange;
       Stmt *Body;
   };
   class DirectImportStmt final : public Stmt

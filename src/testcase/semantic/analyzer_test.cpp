@@ -112,7 +112,6 @@ namespace ink::semantic::test
         {"continue;", "ContinueStmt"},
         {"yield 1;", "YieldStmt"},
         {"defer {}", "DeferStmt"},
-        {"comptime {}", "ComptimeStmt"},
         {"import Foo;", "DirectImportStmt"},
         {"from Foo import Bar;", "FromImportStmt"},
         {"var X = 1;", "VarDecl"},
@@ -135,6 +134,36 @@ namespace ink::semantic::test
       core::CollectingDiagnosticConsumer Diagnostics;
       Compilation.diagnosticEngine().addConsumer(Diagnostics);
       EXPECT_DEATH(Analysis.analyze(Context, Parsed), std::string("initial semantic analyzer does not support ") + Entry.Kind);
+    }
+  }
+
+  // Comptime flags reject otherwise supported syntax before blocks, expressions, types or call fast paths lower runtime IR.
+  TEST(SemanticAnalyzerTest, RejectsComptimeBeforeRuntimeLowering)
+  {
+    struct Case
+    {
+        const char *Source;
+        const char *Kind;
+    };
+    constexpr Case Cases[] = {
+        {"comptime {}", "BlockStmt"},
+        {"comptime func F(): void;", "DeclStmt"},
+        {"comptime 1;", "LiteralExpr"},
+        {"func F(): i32 { return comptime 1; }", "LiteralExpr"},
+        {"func F(X: comptime i32): void;", "NameExpr"},
+        {"func F(): comptime i32;", "NameExpr"},
+        {"func F(X: i32): void; (comptime (F))(1);", "ParenExpr"},
+        {"func F(X: i32): void; func F(X: i64): void; (comptime F)(1);", "NameExpr"},
+    };
+    for (const Case &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Source);
+      core::CompilationContext Compilation;
+      core::FrontendContext Frontend(Compilation);
+      auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, Entry.Source));
+      ASSERT_TRUE(Parsed.succeeded());
+      SemanticContext Context(Compilation);
+      EXPECT_DEATH(Analyzer{}.analyze(Context, Parsed), std::string("initial semantic analyzer does not support ") + Entry.Kind);
     }
   }
 

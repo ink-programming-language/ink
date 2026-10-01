@@ -313,7 +313,7 @@ Pratt 使用下表的优先级，数字越大结合越紧。普通左结合运�
 | 前缀层 | 一元运算符、comptime、函数类型 | 按 unary 规则处理 |
 | 后缀层 | 调用、索引、成员、泛型应用、递增递减 | 按 postfix 顺序构造 |
 
-三元运算的中间部分调用完整 parseExpr，冒号后保持条件表达式的右结合。冒号的结束符归属由当前三元结构负责，嵌套三元表达式优先消费自己的冒号。comptime 表达式的操作数由 parseUnary 读取，因此 comptime a + b 对应 BinaryExpr(ComptimeExpr(a), +, b)。
+三元运算的中间部分调用完整 parseExpr，冒号后保持条件表达式的右结合。冒号的结束符归属由当前三元结构负责，嵌套三元表达式优先消费自己的冒号。comptime 表达式的操作数由 parseUnary 读取，因此 comptime a + b 仍对应 BinaryExpr(NameExpr(a), +, NameExpr(b))，仅左侧 NameExpr 的 isComptime() 为 true；comptime(a + b) 则标记外层 ParenExpr。
 
 postfix 从 primary 开始循环构造 CallExpr、IndexExpr、MemberExpr、GenericApplyExpr 和 PostfixUpdateExpr。普通调用与空值调用通过节点字段区分；成员访问保留 Dot、Arrow、OptionalDot 三种方式。函数类型位于 unary 的独立分支，其返回类型可以包含后缀操作；不能把它擅自提升成可无条件继续解析后缀的 primary。
 
@@ -378,11 +378,11 @@ ModuleAST、BlockStmt 以及类声明的主体都保存有序 Stmt 列表。Decl
 | BreakStmt 与 ContinueStmt | 关键字和语句范围 |
 | YieldStmt | Value 或 Return 模式、必需表达式 |
 | DeferStmt | simple_stmt 或 block_stmt 子节点 |
-| ComptimeStmt | 关键字位置和被修饰的 Stmt |
+| comptime 修饰 | 普通 AST 节点上的 Comptime 布尔属性 |
 
 open_stmt 与 closed_stmt 不需要对应 AST 类型。parseIfStmt 递归解析完整 then 语句，再判断 else，落实最近未匹配 if 的绑定规则。恢复过程中要把可能属于外层 if 的 else 留给其所有者。
 
-ComptimeStmt 只能包裹当前 BNF 允许修饰的语句类别，不能通过通用包装函数使 comptime return 等额外结构成为合法语法。进入普通表达式分支的 comptime 则生成 ComptimeExpr。
+comptime 只修饰当前 BNF 允许的语句类别，不能使 comptime return 等额外结构成为合法语法。Parser 直接返回普通语句或表达式节点，通过 ASTNodeBase::setComptime() 标记需要编译期处理；默认 isComptime() 为 false。声明语句同时标记 DeclStmt 及其内部 Decl，标记不递归传播到其他子节点。被标记节点的源码范围包含 comptime 前缀，重复表达式前缀合并为同一个标记；遍历仍按普通节点结构进行。
 
 VarDecl 保存 var 或 const、绑定模式、可选类型和可选初始化器，同时记录源语法形式。当前规则只允许无初始化的 var IDENTIFIER；解构声明和 const 必须有初始化器。FieldDecl 保存名称和尾部种类，四种尾部分别是 None、Typed、InitializerOnly、Payload；对应的类型、初始化器和荷载列表按种类满足各自约束。
 
@@ -594,7 +594,7 @@ func test(): int {
 | import_stmt 及路径和别名规则 | DirectImportStmt、FromImportStmt 和导入记录 |
 | conditional | ConditionalExpr |
 | null_coalescing 至 mul | BinaryExpr，使用运算符种类区分 |
-| unary_op、comptime_expr | UnaryExpr、ComptimeExpr |
+| unary_op、comptime_expr | UnaryExpr；comptime 直接标记其普通操作数节点 |
 | 调用后缀、索引后缀、成员后缀 | CallExpr、IndexExpr、MemberExpr |
 | generic_args | GenericApplyExpr；路径和属性中的实参记录复用列表结构 |
 | 后缀递增递减 | PostfixUpdateExpr |

@@ -40,7 +40,7 @@ namespace ink::parser
                              Nodes.push_back(Node);
                            });
           const auto &Input = Parsed.Unit->input().lexedFile();
-          put("ast 1 {\n  source_name = ");
+          put("ast " + std::to_string(ASTTextArchiveVersion) + " {\n  source_name = ");
           value(Input.sourceName());
           put("\n  source = ");
           value(Input.source());
@@ -170,6 +170,11 @@ namespace ink::parser
                        (One(Field), ...);
                      },
                      Fields<T>::get(Object));
+          if constexpr (std::is_base_of_v<ASTNodeBase, T>)
+          {
+            put(", comptime = ");
+            value(Object.isComptime());
+          }
           put(" }");
         }
 
@@ -289,7 +294,7 @@ namespace ink::parser
             return {{}, ASTArchiveStatus::LimitExceeded, "AST text byte limit exceeded"};
           }
           Lex.expect("ast");
-          if (Lex.number() != 1 && Lex.good())
+          if (Lex.number() != ASTTextArchiveVersion && Lex.good())
           {
             return {{}, ASTArchiveStatus::UnsupportedVersion, "Unsupported AST text version"};
           }
@@ -524,6 +529,12 @@ namespace ink::parser
             read<std::tuple_element_t<Index, FieldTuple<T>>>();
           };
           (One.template operator()<I>(), ...);
+          if constexpr (std::is_base_of_v<ASTNodeBase, T>)
+          {
+            Lex.expect(",");
+            label("comptime");
+            read<bool>();
+          }
           Lex.expect("}");
         }
         template <typename T>

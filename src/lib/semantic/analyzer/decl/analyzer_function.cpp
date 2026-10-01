@@ -18,7 +18,7 @@ namespace ink::semantic
     {
       return LanguageLinkage::Ink;
     }
-    if (!parser::LiteralExpr::classof(LinkageNode))
+    if (LinkageNode->isComptime() || !parser::LiteralExpr::classof(LinkageNode))
     {
       reportUnsupported(State, *LinkageNode);
       return std::nullopt;
@@ -175,7 +175,7 @@ namespace ink::semantic
         State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
         return false;
       }
-      if (!analyzeBlockStmt(FunctionState, *Node.body()))
+      if (!analyzeStmt(FunctionState, *Node.body()))
       {
         return false;
       }

@@ -150,12 +150,6 @@ namespace ink::parser
         Valid = Valid && Value->operand() != nullptr;
         break;
       }
-      case ASTKind::ComptimeExpr:
-      {
-        const auto *Value = static_cast<const ComptimeExpr *>(Node);
-        Valid = Valid && Value->operand() != nullptr;
-        break;
-      }
       case ASTKind::BinaryExpr:
       {
         const auto *Value = static_cast<const BinaryExpr *>(Node);
@@ -344,12 +338,6 @@ namespace ink::parser
       case ASTKind::DeferStmt:
       {
         const auto *Value = static_cast<const DeferStmt *>(Node);
-        Valid = Valid && Value->body() != nullptr;
-        break;
-      }
-      case ASTKind::ComptimeStmt:
-      {
-        const auto *Value = static_cast<const ComptimeStmt *>(Node);
         Valid = Valid && Value->body() != nullptr;
         break;
       }

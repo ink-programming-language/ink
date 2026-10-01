@@ -46,6 +46,10 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticUnreachableStatement>(Stmt.getSourceRange());
       return false;
     }
+    if (Stmt.isComptime())
+    {
+      return reportUnsupported(State, Stmt);
+    }
     switch (Stmt.getKind())
     {
 #define INK_ANALYZE_Root(Name)

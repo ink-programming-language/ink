@@ -13,7 +13,7 @@
 | 现有设施 | 当前状态及设计影响 |
 | --- | --- |
 | [parser.h](../src/include/ink/parser/parser.h) 中的 `ParsedUnit` | 持有 token、AST 和恢复记录；泛型 Decl 借用 AST，其所属 ParsedUnit 必须保持存活 |
-| [ast.h](../src/include/ink/parser/ast.h) | 具体继承节点通过指针连接；已有 `TypeSyntax`、`GenericApplyExpr`、`ComptimeExpr`、`ComptimeStmt`、`FunctionDecl` 等 |
+| [ast.h](../src/include/ink/parser/ast.h) | 具体继承节点通过指针连接；已有 `TypeSyntax`、`GenericApplyExpr`、`FunctionDecl` 等，comptime 复用普通节点的 `isComptime()` 属性 |
 | [ast_context.h](../src/include/ink/parser/ast_context.h) | Arena 管理稳定地址的节点和数组；semantic 不接管单个节点的释放 |
 | [ASTNodes.def](../src/include/ink/parser/ASTNodes.def) | 节点种类有稳定显式编号；种类编号不是某个声明或实例的身份 |
 | [core/context.h](../src/include/ink/core/context.h) | 已有 `CompilationContext`、`FrontendContext`、源码管理、诊断及目标信息，直接复用 |
@@ -187,7 +187,7 @@ Parser 发布 AST 后，semantic 只通过只读接口访问。当前 Parser API
 
 泛型实例化的默认实现是“共享定义 AST，加一份独立语义实例”。只有语言功能确实产生新语法结构时才分配新节点。若使用新 AST，必须由独立 `ASTContext` 拥有，保留来源映射并通过结构验证；不把其他树的节点直接挂入新语法树。现有 `verifyAST` 会拒绝同一树内重复引用的节点。
 
-`ExpansionBuilder` 可以通过多个 `NodeRef + SemanticContextId` 表示同一语句在不同静态展开中的出现，无须复制整棵树。它提供承载结构变化的机制；`comptime for` 是否生成运行时语句、如何暴露生成的声明，仍由语言规则决定，不能从 AST 包装节点自行推导。
+`ExpansionBuilder` 可以通过多个 `NodeRef + SemanticContextId` 表示同一语句在不同静态展开中的出现，无须复制整棵树。它提供承载结构变化的机制；`comptime for` 是否生成运行时语句、如何暴露生成的声明，仍由语言规则决定，不能仅从 AST 的 comptime 标记自行推导。
 
 ### 3.5 AST 编译期执行
 
@@ -313,7 +313,7 @@ Created → ResolvingSignature → SignatureReady → CheckingBody → Ready
 
 | 场景 | 行为 |
 | --- | --- |
-| `ComptimeExpr`、必须确定的泛型实参、类型表达式 | 使用 `RequireConstant`；运行时依赖、非法操作和无法持久化的结果显式失败 |
+| `isComptime()` 为 true 的表达式、必须确定的泛型实参、类型表达式 | 使用 `RequireConstant`；运行时依赖、非法操作和无法持久化的结果显式失败 |
 | 编译期执行某个语句或普通函数 | 使用独立 `EvalContext`/`EvalFrame` 执行其活动 AST 路径；普通函数不必再复制为专用 comptime 函数类 |
 | 普通运行时表达式 | 由分析器建立运行时语义结果，保留给 lowering；不要求交给求值器先尝试执行 |
 | 尚未绑定的泛型上下文 | 保留 `Dependent` 结果；在必须闭合的位置仍未解决时报告错误 |

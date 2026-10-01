@@ -194,16 +194,6 @@ namespace ink::parser
         }
         return;
       }
-      case ASTKind::ComptimeExpr:
-      {
-        using Leaf = std::conditional_t<std::is_const_v<NodeType>, const ComptimeExpr, ComptimeExpr>;
-        auto *Value = static_cast<Leaf *>(Node);
-        if (Value->operand())
-        {
-          Visit(Value->operand());
-        }
-        return;
-      }
       case ASTKind::BinaryExpr:
       {
         using Leaf = std::conditional_t<std::is_const_v<NodeType>, const BinaryExpr, BinaryExpr>;
@@ -588,16 +578,6 @@ namespace ink::parser
       case ASTKind::DeferStmt:
       {
         using Leaf = std::conditional_t<std::is_const_v<NodeType>, const DeferStmt, DeferStmt>;
-        auto *Value = static_cast<Leaf *>(Node);
-        if (Value->body())
-        {
-          Visit(Value->body());
-        }
-        return;
-      }
-      case ASTKind::ComptimeStmt:
-      {
-        using Leaf = std::conditional_t<std::is_const_v<NodeType>, const ComptimeStmt, ComptimeStmt>;
         auto *Value = static_cast<Leaf *>(Node);
         if (Value->body())
         {

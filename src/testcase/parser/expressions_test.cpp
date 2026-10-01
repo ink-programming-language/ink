@@ -53,14 +53,51 @@ namespace ink::parser::test
     EXPECT_TRUE(isa<ConditionalExpr>(Conditional->elseValue()));
   }
 
-  // Comptime consumes one unary expression while parentheses explicitly widen its operand.
+  // Comptime marks the ordinary unary operand or parenthesized expression without propagating to its descendants.
   TEST_F(ParserTest, ComptimeUnaryScope)
   {
     const auto Result = read("comptime a + b; comptime(a + b); comptime if (x) {}");
     ASSERT_TRUE(Result.succeeded());
-    EXPECT_TRUE(isa<ComptimeExpr>(cast<BinaryExpr>(expression(Result))->left()));
-    EXPECT_TRUE(isa<ParenExpr>(cast<ComptimeExpr>(expression(Result, 1))->operand()));
-    EXPECT_TRUE(isa<IfStmt>(cast<ComptimeStmt>(Result.Unit->root()->statements()[2])->body()));
+    const auto *Binary = cast<BinaryExpr>(expression(Result));
+    ASSERT_TRUE(isa<NameExpr>(Binary->left()));
+    EXPECT_FALSE(Binary->isComptime());
+    EXPECT_TRUE(Binary->left()->isComptime());
+    EXPECT_FALSE(Binary->right()->isComptime());
+    EXPECT_EQ(Binary->left()->getSourceRange(), SourceRange::fromByteOffsets(0, 10));
+    const auto *Paren = cast<ParenExpr>(expression(Result, 1));
+    EXPECT_TRUE(Paren->isComptime());
+    ASSERT_TRUE(isa<BinaryExpr>(Paren->expression()));
+    EXPECT_FALSE(Paren->expression()->isComptime());
+    EXPECT_EQ(Paren->getSourceRange(), SourceRange::fromByteOffsets(16, 31));
+    const auto *If = cast<IfStmt>(Result.Unit->root()->statements()[2]);
+    EXPECT_TRUE(If->isComptime());
+    EXPECT_FALSE(If->condition()->isComptime());
+    EXPECT_FALSE(If->thenBranch()->isComptime());
+    EXPECT_FALSE(Result.Unit->root()->statements()[0]->isComptime());
+    EXPECT_FALSE(Result.Unit->root()->statements()[1]->isComptime());
+  }
+
+  // Repeated prefixes share a flag while prefixes on distinct unary nodes keep their independent scopes and ranges.
+  TEST_F(ParserTest, RepeatedAndNestedComptimeExpressions)
+  {
+    const std::string Source = "comptime comptime x; comptime -comptime y; -comptime z; comptime f(x)[i].value++;";
+    const auto Result = read(Source);
+    ASSERT_TRUE(Result.succeeded());
+    const auto *Name = cast<NameExpr>(expression(Result));
+    EXPECT_TRUE(Name->isComptime());
+    EXPECT_EQ(Name->getSourceRange(), SourceRange::fromByteOffsets(0, Source.find(';')));
+    const auto *Outer = cast<UnaryExpr>(expression(Result, 1));
+    EXPECT_TRUE(Outer->isComptime());
+    EXPECT_TRUE(Outer->operand()->isComptime());
+    EXPECT_EQ(Outer->getSourceRange().getBegin().getByteOffset(), Source.find("comptime -"));
+    EXPECT_EQ(Outer->operand()->getSourceRange().getBegin().getByteOffset(), Source.find("comptime y"));
+    const auto *RuntimeUnary = cast<UnaryExpr>(expression(Result, 2));
+    EXPECT_FALSE(RuntimeUnary->isComptime());
+    EXPECT_TRUE(RuntimeUnary->operand()->isComptime());
+    const auto *Update = cast<PostfixUpdateExpr>(expression(Result, 3));
+    EXPECT_TRUE(Update->isComptime());
+    EXPECT_FALSE(Update->operand()->isComptime());
+    EXPECT_EQ(Update->getSourceRange(), SourceRange::fromByteOffsets(Source.find("comptime f"), Source.size() - 1));
   }
 
   // Assignment chains belong to SimpleItem and commas divide independent items.

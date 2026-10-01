@@ -11,6 +11,11 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
       return {};
     }
+    if (Node.isComptime())
+    {
+      reportUnsupported(State, Node);
+      return {};
+    }
     if (parser::ParenExpr::classof(&Node))
     {
       return analyzeParenExpr(State, static_cast<const parser::ParenExpr &>(Node), Depth);

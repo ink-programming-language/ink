@@ -150,6 +150,52 @@ namespace ink::parser::test
     EXPECT_EQ(Mutable.Nodes, 1U);
   }
 
+  // Comptime flags do not introduce traversal nodes or change visitor dispatch, and dumps expose flags on ordinary kinds.
+  TEST_F(ParserTest, ComptimeTraversalAndDump)
+  {
+    const auto Result = read("comptime if (x) { comptime f(y); }");
+    ASSERT_TRUE(Result.succeeded());
+    std::vector<ASTKind> Kinds;
+    std::vector<ASTKind> ComptimeKinds;
+    const auto Visit = [&](const ASTNodeBase *Node)
+    {
+      Kinds.push_back(Node->getKind());
+      if (Node->isComptime())
+      {
+        ComptimeKinds.push_back(Node->getKind());
+      }
+      return WalkAction::Continue;
+    };
+    EXPECT_TRUE(ASTWalker{}.walk(Result.Unit->root()->statements()[0], Visit));
+    EXPECT_EQ(Kinds, (std::vector<ASTKind>{ASTKind::IfStmt, ASTKind::NameExpr, ASTKind::BlockStmt, ASTKind::SimpleStmt, ASTKind::ExprItem, ASTKind::CallExpr, ASTKind::NameExpr, ASTKind::NameExpr}));
+    EXPECT_EQ(ComptimeKinds, (std::vector<ASTKind>{ASTKind::IfStmt, ASTKind::CallExpr}));
+    const auto *Body = cast<BlockStmt>(cast<IfStmt>(Result.Unit->root()->statements()[0])->thenBranch());
+    const auto *Call = cast<ExprItem>(cast<SimpleStmt>(Body->statements()[0])->items()[0])->expression();
+    EXPECT_EQ(CompleteExprVisitor{}.visit(Call), ASTKind::CallExpr);
+    const auto Dump = dumpAST(*Result.Unit);
+    EXPECT_EQ(Dump.find("ComptimeExpr"), std::string::npos);
+    EXPECT_EQ(Dump.find("ComptimeStmt"), std::string::npos);
+    const auto FirstFlag = Dump.find(" Comptime=1");
+    ASSERT_NE(FirstFlag, std::string::npos);
+    const auto SecondFlag = Dump.find(" Comptime=1", FirstFlag + 1);
+    ASSERT_NE(SecondFlag, std::string::npos);
+    EXPECT_EQ(Dump.find(" Comptime=1", SecondFlag + 1), std::string::npos);
+  }
+
+  // Ordinary parsed declarations, expressions, patterns and statements start with the comptime flag cleared.
+  TEST_F(ParserTest, OrdinaryNodesDefaultToRuntime)
+  {
+    const auto Result = read("var x: T = f(1); if (x) { return x; }");
+    ASSERT_TRUE(Result.succeeded());
+    const auto Visit = [&](const ASTNodeBase *Node)
+    {
+      EXPECT_FALSE(Node->isComptime()) << astKindName(Node->getKind());
+      return WalkAction::Continue;
+    };
+    EXPECT_TRUE(ASTWalker{}.walk(Result.Unit->root(), Visit));
+    EXPECT_EQ(dumpAST(*Result.Unit).find("Comptime="), std::string::npos);
+  }
+
   // Walker enter/leave events follow source order, skipping descendants and stopping immediately when requested.
   TEST_F(ParserTest, WalkerControlAndSourceOrder)
   {
