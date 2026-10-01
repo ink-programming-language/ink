@@ -1,0 +1,140 @@
+#include "../analyzer_internal.h"
+
+#include "ink/parser/ast.h"
+
+namespace ink::semantic
+{
+  using namespace ir;
+  using tokenizer::TokenKind;
+
+  namespace
+  {
+    TokenKind assignmentOperation(TokenKind Operator)
+    {
+      switch (Operator)
+      {
+      case TokenKind::PlusAssign: return TokenKind::Plus;
+      case TokenKind::MinusAssign: return TokenKind::Minus;
+      case TokenKind::StarAssign: return TokenKind::Star;
+      case TokenKind::SlashAssign: return TokenKind::Slash;
+      case TokenKind::PercentAssign: return TokenKind::Percent;
+      case TokenKind::AmpAssign: return TokenKind::Amp;
+      case TokenKind::PipeAssign: return TokenKind::Pipe;
+      case TokenKind::CaretAssign: return TokenKind::Caret;
+      case TokenKind::ShiftLeftAssign: return TokenKind::ShiftLeft;
+      case TokenKind::ShiftRightAssign: return TokenKind::ShiftRight;
+      default: return Operator;
+      }
+    }
+  } // namespace
+
+  Analyzer::ExpressionResult Analyzer::analyzeSimpleItem(AnalysisState &State, const parser::SimpleItem &Node, std::size_t Depth)
+  {
+    AnalysisState::TraversalGuard Traversal(State);
+    if (!reportExecution(State, Traversal.status(), Node))
+    {
+      return {};
+    }
+    if (Depth >= State.ExpressionDepthLimit)
+    {
+      State.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
+      return {};
+    }
+    if (parser::ExprItem::classof(&Node))
+    {
+      const auto &Expression = *static_cast<const parser::ExprItem &>(Node).expression();
+      ExpressionResult Result = analyzeExpr(State, Expression, Depth);
+      if (Result.IntegerLiteral)
+      {
+        const Type *Target = State.ExpectedType ? State.ExpectedType : State.Context.typePool().getType<TypeKind::Integer>(32, true);
+        return {convertExpression(State, Result, *Target, Expression)};
+      }
+      return Result;
+    }
+    const auto &Assignment = static_cast<const parser::AssignmentItem &>(Node);
+    if (!State.Evaluating && !State.CurrentFunction)
+    {
+      reportUnsupported(State, Node);
+      return {};
+    }
+    const Value *Address = resolveVariable(State, *Assignment.left());
+    if (!Address)
+    {
+      return {};
+    }
+    auto &Execution = State.Context.comptimeState();
+    const auto Found = Execution.Variables.find(Address);
+    const bool HasVariable = Found != Execution.Variables.end();
+    if (State.Evaluating && ((HasVariable && !Found->second.Comptime) || (FunctionParameter::classof(Address) && !State.ExecutingFunction)))
+    {
+      reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
+      return {};
+    }
+    if ((Found != Execution.Variables.end() && Found->second.Constant) || (!State.Evaluating && (Found == Execution.Variables.end() || Found->second.Comptime || Found->second.Function != State.CurrentFunction)))
+    {
+      State.report<core::DiagnosticKind::SemanticInvalidAssignment>(Node.getSourceRange());
+      return {};
+    }
+    const Type &Target = AllocaInstruction::classof(Address) ? static_cast<const AllocaInstruction &>(*Address).allocatedType() : Address->type();
+    AnalysisState::EvaluationGuard Expected(State, State.Evaluating, &Target);
+    const ExpressionResult Right = analyzeSimpleItem(State, *Assignment.right(), Depth + 1);
+    if (!Right || !Right.ValueObject || &Right.ValueObject->type() != &Target)
+    {
+      if (Right)
+      {
+        State.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), describeType(Target), Right.ValueObject ? describeType(Right.ValueObject->type()) : "void");
+      }
+      return {};
+    }
+    const Value *Stored = Right.ValueObject;
+    if (State.Evaluating)
+    {
+      const auto Place = Execution.Engine.lookup(*State.Frame, Address);
+      if (!reportExecution(State, Place.Status, Node))
+      {
+        return {};
+      }
+      if (!Constant::classof(Stored))
+      {
+        reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
+        return {};
+      }
+      if (Assignment.op() != TokenKind::Assign)
+      {
+        const auto Previous = Execution.Engine.load(Place.Place);
+        if (!reportExecution(State, Previous.Status, Node))
+        {
+          return {};
+        }
+        const auto Result = Execution.Engine.evaluateBinary(assignmentOperation(Assignment.op()), *Previous.Value, static_cast<const Constant &>(*Stored));
+        if (!reportExecution(State, Result.Status, Node))
+        {
+          return {};
+        }
+        Stored = Result.Value;
+      }
+      if (!reportExecution(State, Execution.Engine.store(Place.Place, static_cast<const Constant &>(*Stored)), Node))
+      {
+        return {};
+      }
+    }
+    else
+    {
+      if (Assignment.op() != TokenKind::Assign)
+      {
+        reportUnsupported(State, Node);
+        return {};
+      }
+      if (!State.Builder.createStoreInstruction(*Address, *Stored))
+      {
+        State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
+        return {};
+      }
+    }
+    if (HasVariable)
+    {
+      Execution.Variables.find(Address)->second.Initialized = true;
+    }
+    return {Stored};
+  }
+} // namespace ink::semantic

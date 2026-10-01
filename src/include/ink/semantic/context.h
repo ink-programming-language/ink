@@ -3,6 +3,7 @@
 
 #include "ink/ir/context.h"
 #include "ink/semantic/name_resolve/scope_store.h"
+#include "ink/semantic/comptime_state.h"
 
 namespace ink::semantic
 {
@@ -12,7 +13,8 @@ namespace ink::semantic
   {
     public:
       FORCE_INLINE explicit SemanticContext(core::CompilationContext &Compilation)
-          : IR(Compilation)
+          : IR(Compilation),
+            Comptime(IR)
       {
         Scopes.reset(new ScopeStore(*this));
       }
@@ -88,8 +90,14 @@ namespace ink::semantic
         return IR.modules();
       }
 
+      ComptimeState &comptimeState() noexcept
+      {
+        return Comptime;
+      }
+
     private:
       ir::IRContext IR;
+      ComptimeState Comptime;
       std::unique_ptr<ScopeStore> Scopes;
   };
 } // namespace ink::semantic

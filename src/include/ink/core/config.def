@@ -3,25 +3,53 @@
 #endif
 
 // INK_CONFIG(Kind, EnvironmentName, DefaultValue)
+// Semantic analysis: at most 256 nested blocks.
 INK_CONFIG(SemanticBlockDepthLimit, "INK_SEMANTIC_BLOCK_DEPTH_LIMIT", "256")
+// Semantic analysis: at most 256 levels of recursive type analysis.
 INK_CONFIG(SemanticTypeDepthLimit, "INK_SEMANTIC_TYPE_DEPTH_LIMIT", "256")
+// Semantic analysis: at most 256 levels of recursive expression analysis.
 INK_CONFIG(SemanticExpressionDepthLimit, "INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT", "256")
 
+// Execution: a cumulative budget of 100,000 charged steps per engine.
+INK_CONFIG(ExecutionMaxSteps, "INK_EXECUTION_MAX_STEPS", "100000")
+// Execution: at most 16 * 1024 storage allocations, including objects later released.
+INK_CONFIG(ExecutionMaxObjects, "INK_EXECUTION_MAX_OBJECTS", "16384")
+// Execution: at most 256 simultaneously active call frames.
+INK_CONFIG(ExecutionMaxCallDepth, "INK_EXECUTION_MAX_CALL_DEPTH", "256")
+// Execution: at most 64 combined AST expression, statement and call traversal levels.
+INK_CONFIG(ExecutionMaxEvaluationDepth, "INK_EXECUTION_MAX_EVALUATION_DEPTH", "64")
+
+// Parser: at most 128 nesting levels.
 INK_CONFIG(ParserMaxNestingDepth, "INK_PARSER_MAX_NESTING_DEPTH", "128")
+// Parser: at most 100 diagnostics.
 INK_CONFIG(ParserMaxDiagnostics, "INK_PARSER_MAX_DIAGNOSTICS", "100")
+// Parser: a cumulative budget of 10,000,000 work units, charged by active() checks.
 INK_CONFIG(ParserMaxWork, "INK_PARSER_MAX_WORK", "10000000")
+// Parser AST storage budget: 64 MiB = 64 * 1024 * 1024 bytes.
 INK_CONFIG(ParserMaxAllocationBytes, "INK_PARSER_MAX_ALLOCATION_BYTES", "67108864")
 
+// Maximum AST archive size: 256 MiB = 256 * 1024 * 1024 bytes.
 INK_CONFIG(ASTArchiveMaxBytes, "INK_AST_ARCHIVE_MAX_BYTES", "268435456")
+// Maximum source text size in an AST archive: 64 MiB = 64 * 1024 * 1024 bytes.
 INK_CONFIG(ASTArchiveMaxSourceBytes, "INK_AST_ARCHIVE_MAX_SOURCE_BYTES", "67108864")
+// AST archive: at most 1,000,000 syntax nodes.
 INK_CONFIG(ASTArchiveMaxNodes, "INK_AST_ARCHIVE_MAX_NODES", "1000000")
+// AST archive: at most 2,000,000 tokens.
 INK_CONFIG(ASTArchiveMaxTokens, "INK_AST_ARCHIVE_MAX_TOKENS", "2000000")
+// AST archive: at most 1,000,000 elements per array or recovery record list.
 INK_CONFIG(ASTArchiveMaxArrayElements, "INK_AST_ARCHIVE_MAX_ARRAY_ELEMENTS", "1000000")
+// Cumulative decoded AST storage, including temporary copies: 256 MiB = 256 * 1024 * 1024 bytes.
 INK_CONFIG(ASTArchiveMaxAllocationBytes, "INK_AST_ARCHIVE_MAX_ALLOCATION_BYTES", "268435456")
 
+// Maximum module archive size: 64 MiB = 64 * 1024 * 1024 bytes.
 INK_CONFIG(ModuleArchiveMaxBytes, "INK_MODULE_ARCHIVE_MAX_BYTES", "67108864")
+// Module archive: at most 1024 * 1024 object records in total.
 INK_CONFIG(ModuleArchiveMaxObjects, "INK_MODULE_ARCHIVE_MAX_OBJECTS", "1048576")
+// Module archive: at most 1024 * 1024 fields per object record.
 INK_CONFIG(ModuleArchiveMaxFields, "INK_MODULE_ARCHIVE_MAX_FIELDS", "1048576")
+// Maximum individual module archive string size: 16 MiB = 16 * 1024 * 1024 bytes.
 INK_CONFIG(ModuleArchiveMaxStringBytes, "INK_MODULE_ARCHIVE_MAX_STRING_BYTES", "16777216")
+// Module archive cumulative storage budget: 256 MiB = 256 * 1024 * 1024 bytes.
 INK_CONFIG(ModuleArchiveMaxAllocationBytes, "INK_MODULE_ARCHIVE_MAX_ALLOCATION_BYTES", "268435456")
+// Module archive: at most 256 structural ownership and declaration nesting levels.
 INK_CONFIG(ModuleArchiveMaxNestingDepth, "INK_MODULE_ARCHIVE_MAX_NESTING_DEPTH", "256")

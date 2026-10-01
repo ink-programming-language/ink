@@ -49,9 +49,11 @@ namespace ink::semantic
         const auto &Existing = static_cast<const Function &>(*Target);
         const auto ExistingTypes = Existing.functionType().parameterTypes();
         const bool SameParameters = std::equal(ParameterTypes.begin(), ParameterTypes.end(), ExistingTypes.begin(), ExistingTypes.end());
+        const auto Definition = State.Context.comptimeState().Functions.find(&Existing);
+        const bool HasDefinition = Existing.hasBody() || (Definition != State.Context.comptimeState().Functions.end() && Definition->second.AST->body());
         // Compatible redeclarations must agree on language linkage as well as types.
         // Linkage is function metadata, so canonical FunctionType identity alone is insufficient.
-        if (SameParameters && &Existing.functionType().returnType() == &Signature.returnType() && Existing.languageLinkage() == Linkage && (!Existing.hasBody() || !Node.body()))
+        if (SameParameters && &Existing.functionType().returnType() == &Signature.returnType() && Existing.languageLinkage() == Linkage && (!HasDefinition || !Node.body()))
         {
           State.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), "function redeclarations");
           return false;
@@ -68,6 +70,10 @@ namespace ink::semantic
 
   bool Analyzer::analyzeFunctionDecl(AnalysisState &State, const parser::FunctionDecl &Node)
   {
+    if (State.Evaluating)
+    {
+      return reportExecution(State, execution::ExecutionStatus::UnsupportedOperation, Node);
+    }
     if (!Node.genericParameters().empty() || !Node.attributes().empty())
     {
       return reportUnsupported(State, Node);
@@ -76,6 +82,16 @@ namespace ink::semantic
     const std::optional<LanguageLinkage> Linkage = analyzeFunctionLinkage(State, Node);
     if (!Linkage)
     {
+      return false;
+    }
+    if (Node.isComptime() && !Node.body())
+    {
+      State.report<core::DiagnosticKind::SemanticComptimeFunctionRequiresBody>(Node.getSourceRange());
+      return false;
+    }
+    if (Node.isComptime() && *Linkage != LanguageLinkage::Ink)
+    {
+      State.report<core::DiagnosticKind::SemanticComptimeFunctionLinkage>(Node.getSourceRange());
       return false;
     }
 
@@ -151,8 +167,21 @@ namespace ink::semantic
       return false;
     }
     AnalysisState FunctionState(State.Context, State.Resolver.currentScope(), State.Input);
+    FunctionState.Frame = State.Frame;
+    AnalysisState::FrameGuard Frame(FunctionState, execution::ExecutionFrameKind::Analysis);
+    if (!Frame)
+    {
+      return reportExecution(State, State.Context.comptimeState().Engine.lastStatus(), Node);
+    }
     FunctionState.BlockDepth = State.BlockDepth;
     FunctionState.CurrentFunction = &FunctionValue;
+    Scope *DefinitionScope = State.Context.scopeStore().snapshotScope(State.Resolver.currentScope());
+    if (!DefinitionScope)
+    {
+      State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
+      return false;
+    }
+    State.Context.comptimeState().Functions[&FunctionValue] = {&Node, &State.Input, DefinitionScope, State.Frame, Node.isComptime()};
     NameResolver::ScopeGuard FunctionScope(FunctionState.Resolver, FunctionValue);
     if (!FunctionScope.scope())
     {
@@ -167,7 +196,9 @@ namespace ink::semantic
         return false;
       }
     }
-    if (Node.body())
+    // Compile-time-only bodies are checked on their actual execution path with
+    // bound argument values. Their callable identity has no runtime IR body.
+    if (Node.body() && !Node.isComptime())
     {
       BasicBlock *Body = FunctionState.Builder.createFunctionBody(FunctionValue);
       if (!Body || !FunctionState.Builder.setInsertPoint(*Body))

@@ -12,6 +12,11 @@ namespace ink::semantic
   {
     if (Node.literalKind() == tokenizer::TokenKind::IntegerLiteral)
     {
+      if (State.Evaluating)
+      {
+        const auto *Target = State.ExpectedType && IntegerType::classof(State.ExpectedType) ? static_cast<const IntegerType *>(State.ExpectedType) : State.Context.typePool().getType<TypeKind::Integer>(32, true);
+        return {convertExpression(State, {nullptr, &Node}, *Target, Node)};
+      }
       return {nullptr, &Node};
     }
     if (Node.literalKind() == tokenizer::TokenKind::StringLiteral)

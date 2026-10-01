@@ -150,6 +150,16 @@ namespace ink::semantic
       {
         return Expression.ValueObject;
       }
+      if (State.Evaluating && CArgument && StringConstant::classof(Expression.ValueObject) && PointerType::classof(&Target))
+      {
+        const Type &Pointee = static_cast<const PointerType &>(Target).pointeeType();
+        if (Pointee.typeKind() == TypeKind::Void || (IntegerType::classof(&Pointee) && static_cast<const IntegerType &>(Pointee).bitWidth() == 8 && !static_cast<const IntegerType &>(Pointee).isSigned()))
+        {
+          // The libffi bridge copies the bytes into call-local native storage.
+          // Preserve the constant here instead of constructing runtime IR.
+          return Expression.ValueObject;
+        }
+      }
       if (acceptsCString(*Expression.ValueObject, Target, CArgument))
       {
         const auto &String = static_cast<const StringConstant &>(*Expression.ValueObject);
@@ -171,7 +181,7 @@ namespace ink::semantic
         return Result;
       }
     }
-    State.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), describeType(Target), Expression.IntegerLiteral ? "integer literal" : describeType(Expression.ValueObject->type()));
+    State.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), describeType(Target), Expression.IntegerLiteral ? "integer literal" : (Expression.ValueObject ? describeType(Expression.ValueObject->type()) : "void"));
     return nullptr;
   }
 } // namespace ink::semantic

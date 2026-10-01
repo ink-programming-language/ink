@@ -19,7 +19,7 @@ namespace ink::semantic
     }
     const parser::Expr *CalleeNode = Node.callee();
     std::size_t CalleeDepth = Depth + 1;
-    while (!CalleeNode->isComptime() && parser::ParenExpr::classof(CalleeNode) && CalleeDepth < State.ExpressionDepthLimit)
+    while ((State.Evaluating || !CalleeNode->isComptime()) && parser::ParenExpr::classof(CalleeNode) && CalleeDepth < State.ExpressionDepthLimit)
     {
       CalleeNode = static_cast<const parser::ParenExpr &>(*CalleeNode).expression();
       ++CalleeDepth;
@@ -30,7 +30,7 @@ namespace ink::semantic
       return {};
     }
     std::vector<const Value *> Candidates;
-    if (!CalleeNode->isComptime() && parser::NameExpr::classof(CalleeNode))
+    if ((State.Evaluating || !CalleeNode->isComptime()) && parser::NameExpr::classof(CalleeNode))
     {
       const Name Symbol = State.Context.namePool().find(static_cast<const parser::NameExpr &>(*CalleeNode).name().Text);
       if (const auto *Binding = State.Resolver.lookup(Symbol); Binding && Binding->targets().size() > 1)
@@ -47,7 +47,7 @@ namespace ink::semantic
       }
       if (!Callee.ValueObject || !FunctionType::classof(&Callee.ValueObject->type()))
       {
-        State.report<core::DiagnosticKind::SemanticTypeMismatch>(CalleeNode->getSourceRange(), "callable value", Callee.IntegerLiteral ? "integer literal" : describeType(Callee.ValueObject->type()));
+        State.report<core::DiagnosticKind::SemanticTypeMismatch>(CalleeNode->getSourceRange(), "callable value", Callee.IntegerLiteral ? "integer literal" : (Callee.ValueObject ? describeType(Callee.ValueObject->type()) : "void"));
         return {};
       }
       Candidates.push_back(Callee.ValueObject);
@@ -62,6 +62,37 @@ namespace ink::semantic
         State.report<core::DiagnosticKind::SemanticUnsupported>(Argument.range(), "named or spread call arguments");
         return {};
       }
+      const auto CandidateParameters = static_cast<const FunctionType &>(Candidates.front()->type()).parameterTypes();
+      const Type *Expected = Candidates.size() == 1 && Arguments.size() < CandidateParameters.size() ? CandidateParameters[Arguments.size()] : nullptr;
+      // Preserve unconstrained integer literals until overload selection. Preparing
+      // a literal has no side effects and must not prematurely force it to i32.
+      const parser::Expr *LiteralNode = Argument.value();
+      bool Negative = false;
+      std::size_t LiteralDepth = Depth + 1;
+      while (!LiteralNode->isComptime() && LiteralDepth < State.ExpressionDepthLimit)
+      {
+        if (parser::ParenExpr::classof(LiteralNode))
+        {
+          LiteralNode = static_cast<const parser::ParenExpr *>(LiteralNode)->expression();
+        }
+        else if (parser::UnaryExpr::classof(LiteralNode) && (static_cast<const parser::UnaryExpr *>(LiteralNode)->op() == tokenizer::TokenKind::Plus || static_cast<const parser::UnaryExpr *>(LiteralNode)->op() == tokenizer::TokenKind::Minus))
+        {
+          const auto &Unary = static_cast<const parser::UnaryExpr &>(*LiteralNode);
+          Negative = Negative != (Unary.op() == tokenizer::TokenKind::Minus);
+          LiteralNode = Unary.operand();
+        }
+        else
+        {
+          break;
+        }
+        ++LiteralDepth;
+      }
+      if (State.Evaluating && !LiteralNode->isComptime() && LiteralDepth < State.ExpressionDepthLimit && parser::LiteralExpr::classof(LiteralNode) && static_cast<const parser::LiteralExpr *>(LiteralNode)->literalKind() == tokenizer::TokenKind::IntegerLiteral)
+      {
+        Arguments.push_back({nullptr, static_cast<const parser::LiteralExpr *>(LiteralNode), Negative});
+        continue;
+      }
+      AnalysisState::EvaluationGuard Guard(State, State.Evaluating, Expected);
       Arguments.push_back(analyzeExpr(State, *Argument.value(), Depth + 1));
       Succeeded = static_cast<bool>(Arguments.back()) && Succeeded;
     }
@@ -161,7 +192,22 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticArgumentCount>(Node.getSourceRange(), Parameters.size(), Arguments.size());
       return {};
     }
+    if (!State.Evaluating && Function::classof(Selected))
+    {
+      const auto &Functions = State.Context.comptimeState().Functions;
+      const auto Definition = Functions.find(Selected);
+      if (Definition != Functions.end() && Definition->second.Comptime)
+      {
+        State.report<core::DiagnosticKind::SemanticComptimeFunctionAtRuntime>(Node.getSourceRange());
+        return {};
+      }
+    }
     std::vector<const Value *> Converted;
+    if (State.Evaluating && !Function::classof(Selected))
+    {
+      reportExecution(State, execution::ExecutionStatus::UnsupportedOperation, Node);
+      return {};
+    }
     for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
     {
       const Value *Argument = convertExpression(State, Arguments[Index], *Parameters[Index], *Node.arguments()[Index].value(), IsCFunction(*Selected));
@@ -170,6 +216,15 @@ namespace ink::semantic
         return {};
       }
       Converted.push_back(Argument);
+    }
+    if (State.Evaluating)
+    {
+      if (!Function::classof(Selected))
+      {
+        reportExecution(State, execution::ExecutionStatus::UnsupportedOperation, Node);
+        return {};
+      }
+      return callComptime(State, static_cast<const Function &>(*Selected), Converted, Node);
     }
     const Value *Result = State.Builder.createCallInstruction(*Selected, Converted);
     if (!Result)

@@ -342,4 +342,62 @@ namespace ink::semantic::test
     EXPECT_EQ(Resolver.definitionScope(*First), &DefinitionScope);
     EXPECT_EQ(Found->targets()[0], First);
   }
+
+  // Snapshots copy both categories at one lexical level while an inner declaration hides all outer candidates of its name.
+  TEST_F(GenericNameResolverTest, SnapshotsPreserveMixedBindingsAndCrossCategoryShadowing)
+  {
+    const Name F = First->name();
+    const auto *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
+    ASSERT_NE(Signature, nullptr);
+    auto Closed = Factory.createFunction(F, *Signature);
+    ASSERT_NE(Closed, nullptr);
+    ASSERT_EQ(Resolver.bind(F, *Closed), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(F, *First), BindResult::Inserted);
+    Scope *OriginalDefinition = Resolver.definitionScope(*First);
+    Scope *MixedSnapshot = Context.scopeStore().snapshotScope(Resolver.currentScope());
+    ASSERT_NE(MixedSnapshot, nullptr);
+    NameResolver Mixed(*MixedSnapshot);
+    ASSERT_NE(Mixed.lookup(F), nullptr);
+    ASSERT_NE(Mixed.lookup<Decl *>(F), nullptr);
+    EXPECT_EQ(Mixed.lookup(F)->targets()[0], Closed.get());
+    EXPECT_EQ(Mixed.lookup<Decl *>(F)->targets()[0], First);
+    EXPECT_EQ(Resolver.definitionScope(*First), OriginalDefinition);
+    Resolver.enterScope();
+    ASSERT_EQ(Resolver.bind(F, *Second), BindResult::Inserted);
+    Scope *InnerSnapshot = Context.scopeStore().snapshotScope(Resolver.currentScope());
+    ASSERT_NE(InnerSnapshot, nullptr);
+    NameResolver Inner(*InnerSnapshot);
+    EXPECT_EQ(Inner.lookup(F), nullptr);
+    ASSERT_NE(Inner.lookup<Decl *>(F), nullptr);
+    ASSERT_EQ(Inner.lookup<Decl *>(F)->targets().size(), 1U);
+    EXPECT_EQ(Inner.lookup<Decl *>(F)->targets()[0], Second);
+    ASSERT_EQ(Resolver.bind(F, *First), BindResult::Inserted);
+    EXPECT_EQ(Resolver.lookup<Decl *>(F)->targets().size(), 2U);
+    EXPECT_EQ(Inner.lookup<Decl *>(F)->targets().size(), 1U);
+    EXPECT_EQ(Mixed.lookup<Decl *>(F)->targets().size(), 1U);
+  }
+
+  // Destroying a declaration owner clears snapshotted aliases while retaining unrelated closed-function candidates.
+  TEST_F(GenericNameResolverTest, SnapshotUnregistersDestroyedDeclarations)
+  {
+    const Name F = First->name();
+    const Name Alias = Context.namePool().intern("Alias");
+    const auto *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
+    ASSERT_NE(Signature, nullptr);
+    auto Closed = Factory.createFunction(F, *Signature);
+    ASSERT_NE(Closed, nullptr);
+    ASSERT_EQ(Resolver.bind(F, *Closed), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(F, *First), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Alias, *First), BindResult::Inserted);
+    Scope *Snapshot = Context.scopeStore().snapshotScope(Resolver.currentScope());
+    ASSERT_NE(Snapshot, nullptr);
+    NameResolver Saved(*Snapshot);
+    ASSERT_NE(Saved.lookup<Decl *>(F), nullptr);
+    ASSERT_NE(Saved.lookup<Decl *>(Alias), nullptr);
+    ASSERT_TRUE(Factory.eraseModule(Root->module()));
+    EXPECT_EQ(Saved.lookup<Decl *>(F), nullptr);
+    EXPECT_EQ(Saved.lookup<Decl *>(Alias), nullptr);
+    ASSERT_NE(Saved.lookup(F), nullptr);
+    EXPECT_EQ(Saved.lookup(F)->targets()[0], Closed.get());
+  }
 } // namespace ink::semantic::test

@@ -3,11 +3,13 @@ file(GLOB_RECURSE INK_TOKENIZER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_
 file(GLOB_RECURSE INK_PARSER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/parser/*_test.cpp")
 file(GLOB_RECURSE INK_IR_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/ir/*_test.cpp")
 file(GLOB_RECURSE INK_SEMANTIC_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/semantic/*_test.cpp")
+file(GLOB_RECURSE INK_EXECUTION_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/execution/*_test.cpp")
 list(SORT INK_CORE_TEST_SOURCES)
 list(SORT INK_TOKENIZER_TEST_SOURCES)
 list(SORT INK_PARSER_TEST_SOURCES)
 list(SORT INK_IR_TEST_SOURCES)
 list(SORT INK_SEMANTIC_TEST_SOURCES)
+list(SORT INK_EXECUTION_TEST_SOURCES)
 
 # Preserve the tokenizer tests' C++17 UTF-8 literal behavior while linking every test into one executable.
 add_library(ink_tokenizer_test_objects OBJECT ${INK_TOKENIZER_TEST_SOURCES})
@@ -22,8 +24,10 @@ target_compile_features(ink_ir_test_objects PRIVATE cxx_std_20)
 target_link_libraries(ink_ir_test_objects PRIVATE ink::ir ink::llvm GTest::gtest GTest::gmock)
 ink_disable_exceptions(ink_ir_test_objects)
 
-add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_SEMANTIC_TEST_SOURCES})
-add_dependencies(ink_tests ink_tokenize ink_parse)
+add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_SEMANTIC_TEST_SOURCES} ${INK_EXECUTION_TEST_SOURCES})
+# Expose the C ABI fixtures to the same process symbol lookup used by compile-time external calls.
+set_target_properties(ink_tests PROPERTIES ENABLE_EXPORTS ON)
+add_dependencies(ink_tests ink_tokenize ink_parse inkc)
 target_compile_features(ink_tests PRIVATE cxx_std_20)
 target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink_ir_test_objects ink::parser ink::semantic ink::llvm LLVMBitstreamReader GTest::gtest_main GTest::gmock spdlog::spdlog)
 ink_disable_exceptions(ink_tests)
@@ -42,3 +46,16 @@ add_test(NAME ParserProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_PARSER=$<TARGE
 add_test(NAME ParserAdversarialProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_PARSER=$<TARGET_FILE:ink_parse>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/parser-adversarial-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/parser/adversarial_process_test.cmake")
 set_tests_properties(ParserAdversarialProcessTest PROPERTIES TIMEOUT 120 LABELS "parser;adversarial")
 add_test(NAME TokenizerProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_TOKENIZER=$<TARGET_FILE:ink_tokenize>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/tokenizer-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/tokenizer/process_test.cmake")
+
+add_test(NAME InkcProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/inkc-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/inkc_process_test.cmake")
+set_tests_properties(InkcProcessTest PROPERTIES TIMEOUT 60 LABELS "execution;cli")
+
+if(WIN32)
+  set(INK_HELLO_WORLD_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/execution/programs/hello_world.windows.ink")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(INK_HELLO_WORLD_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/execution/programs/hello_world.linux.ink")
+endif()
+if(DEFINED INK_HELLO_WORLD_SOURCE)
+  add_test(NAME ExecutionSourceTest.HelloWorld COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_SOURCE=${INK_HELLO_WORLD_SOURCE}" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/execution-programs" "-DINK_WINDOWS_STDOUT=${WIN32}" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/hello_world_test.cmake")
+  set_tests_properties(ExecutionSourceTest.HelloWorld PROPERTIES TIMEOUT 30 LABELS "execution;source")
+endif()

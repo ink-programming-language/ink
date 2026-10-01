@@ -1,0 +1,106 @@
+#include "../analyzer_internal.h"
+
+#include "ink/parser/ast.h"
+
+namespace ink::semantic
+{
+  using namespace ir;
+  using namespace execution;
+
+  bool Analyzer::analyzeVarDecl(AnalysisState &State, const parser::VarDecl &Node)
+  {
+    const bool Comptime = State.Evaluating || Node.isComptime();
+    if ((!Comptime && !State.CurrentFunction) || !Node.attributes().empty() || !parser::NameBindingPattern::classof(Node.binding()))
+    {
+      return reportUnsupported(State, Node);
+    }
+    const auto NameToken = static_cast<const parser::NameBindingPattern *>(Node.binding())->name();
+    const Name Symbol = State.Context.namePool().intern(NameToken.Text);
+    if (State.Resolver.lookupLocal(Symbol) || State.Resolver.lookupLocal<Decl *>(Symbol))
+    {
+      State.report<core::DiagnosticKind::SemanticDuplicateName>(NameToken.Range, NameToken.Text);
+      return false;
+    }
+    const Type *ValueType = Node.type() ? analyzeType(State, *Node.type()->expression()) : nullptr;
+    if (Node.type() && !ValueType)
+    {
+      return false;
+    }
+    if (!ValueType && !Node.initializer())
+    {
+      State.report<core::DiagnosticKind::SemanticMissingVariableType>(Node.getSourceRange());
+      return false;
+    }
+    const Value *Initial = nullptr;
+    if (Node.initializer())
+    {
+      ExpressionResult Result;
+      AnalysisState::EvaluationGuard Expected(State, State.Evaluating, ValueType);
+      if (Comptime && !State.Evaluating)
+      {
+        Result = evaluateComptime(State, *Node.initializer());
+      }
+      else
+      {
+        Result = analyzeExpr(State, *Node.initializer());
+      }
+      if (!Result)
+      {
+        return false;
+      }
+      if (!ValueType)
+      {
+        ValueType = Result.IntegerLiteral ? State.Context.typePool().getType<TypeKind::Integer>(32, true) : (Result.ValueObject ? &Result.ValueObject->type() : &State.Context.typePool().getType<TypeKind::Void>());
+      }
+      Initial = convertExpression(State, Result, *ValueType, *Node.initializer());
+      if (!Initial)
+      {
+        return false;
+      }
+    }
+    if (!ValueType || (Comptime && ValueType->typeKind() != TypeKind::Integer && ValueType->typeKind() != TypeKind::Bool && ValueType->typeKind() != TypeKind::Float && !StringConstant::classof(Initial)))
+    {
+      return reportExecution(State, ExecutionStatus::UnsupportedOperation, Node);
+    }
+    auto Storage = State.Builder.createDetachedAllocaInstruction(*ValueType);
+    if (!Storage)
+    {
+      State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
+      return false;
+    }
+    AllocaInstruction *Address = Storage.get();
+    auto &Execution = State.Context.comptimeState();
+    if (Comptime)
+    {
+      if (Initial && !Constant::classof(Initial))
+      {
+        return reportExecution(State, ExecutionStatus::RuntimeValue, Node);
+      }
+      const auto Place = Execution.Engine.allocate(*State.Frame, Address, *ValueType, !Node.constant(), static_cast<const Constant *>(Initial));
+      if (!reportExecution(State, Place.Status, Node))
+      {
+        return false;
+      }
+      Execution.Bindings.push_back(std::move(Storage));
+    }
+    else
+    {
+      if (!State.Builder.appendValue(*State.Builder.insertBlock(), std::move(Storage)))
+      {
+        return false;
+      }
+      if (Initial && !State.Builder.createStoreInstruction(*Address, *Initial))
+      {
+        State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
+        return false;
+      }
+    }
+    Execution.Variables.insert_or_assign(Address, ComptimeState::Variable{Comptime, Node.constant(), Initial != nullptr, State.CurrentFunction});
+    if (State.Resolver.bind(Symbol, *Address) != NameResolver::BindResult::Inserted)
+    {
+      State.report<core::DiagnosticKind::SemanticDuplicateName>(NameToken.Range, NameToken.Text);
+      return false;
+    }
+    return true;
+  }
+} // namespace ink::semantic

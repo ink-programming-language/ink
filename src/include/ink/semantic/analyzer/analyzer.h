@@ -2,9 +2,12 @@
 #define INK_SEMANTIC_ANALYZER_ANALYZER_H
 
 #include "ink/ir/coredefines.h"
+#include "ink/execution/support/execution_result.h"
+#include "ink/tokenizer/token.h"
 
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <string_view>
 
 namespace ink::parser
@@ -14,6 +17,7 @@ namespace ink::parser
   class Stmt;
   class Decl;
   class Expr;
+  class SimpleItem;
 #define AST_NODE(Name, Base, Category, Id) class Name;
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
@@ -25,6 +29,7 @@ namespace ink::ir
   class Type;
   class FunctionType;
   class Value;
+  class Function;
 } // namespace ink::ir
 
 namespace ink::semantic
@@ -35,8 +40,8 @@ namespace ink::semantic
   {
     public:
       // Builds a module from successfully parsed input. Unsupported syntax reports
-      // an ICE. User errors return null. Supports fixed-arity functions, calls,
-      // literal/parameter expressions and straight-line bodies with checked returns.
+      // an ICE. User errors return null. Source-ordered comptime evaluation uses
+      // context-owned execution frames; runtime bodies support locals, calls, addition and returns.
       // The returned module is owned by Context. Analysis state is local to each call.
       // ir::Module declaration roots borrow Input's AST; its ParsedUnit must outlive any allocated module, including on failure.
       ir::Module *analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName = "main");
@@ -55,6 +60,13 @@ namespace ink::semantic
       ExpressionResult analyzeNameExpr(AnalysisState &State, const parser::NameExpr &Node);
       ExpressionResult analyzeUnaryExpr(AnalysisState &State, const parser::UnaryExpr &Node, std::size_t Depth);
       ExpressionResult analyzeCallExpr(AnalysisState &State, const parser::CallExpr &Node, std::size_t Depth);
+      ExpressionResult analyzeBinaryExpr(AnalysisState &State, const parser::BinaryExpr &Node, std::size_t Depth);
+      ExpressionResult analyzeUpdateExpr(AnalysisState &State, const parser::Expr &Operand, tokenizer::TokenKind Operator, bool Postfix, const parser::Expr &Node, std::size_t Depth);
+      ExpressionResult analyzeSimpleItem(AnalysisState &State, const parser::SimpleItem &Node, std::size_t Depth = 0);
+      ExpressionResult evaluateComptime(AnalysisState &State, const parser::Expr &Node);
+      ExpressionResult callComptime(AnalysisState &State, const ir::Function &Function, std::span<const ir::Value *const> Arguments, const parser::Expr &Node);
+      const ir::Value *resolveVariable(AnalysisState &State, const parser::Expr &Node);
+      bool reportExecution(AnalysisState &State, execution::ExecutionStatus Status, const parser::ASTNodeBase &Node);
       const ir::Value *convertExpression(AnalysisState &State, const ExpressionResult &Expression, const ir::Type &Target, const parser::Expr &Node, bool CArgument = false);
 
       // Keep handlers explicit: a new AST statement/declaration must choose its behavior.

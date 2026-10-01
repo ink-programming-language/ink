@@ -8,7 +8,7 @@ namespace ink::semantic
 {
   bool Analyzer::analyzeDecl(AnalysisState &State, const parser::Decl &Declaration)
   {
-    if (Declaration.isComptime())
+    if (Declaration.isComptime() && !parser::VarDecl::classof(&Declaration) && !parser::FunctionDecl::classof(&Declaration))
     {
       return reportUnsupported(State, Declaration);
     }
@@ -36,11 +36,6 @@ namespace ink::semantic
     default:
       std::abort();
     }
-  }
-
-  bool Analyzer::analyzeVarDecl(AnalysisState &State, const parser::VarDecl &Node)
-  {
-    return reportUnsupported(State, Node);
   }
 
   bool Analyzer::analyzeFieldDecl(AnalysisState &State, const parser::FieldDecl &Node)

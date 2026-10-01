@@ -41,12 +41,33 @@ namespace ink::semantic
 
   bool Analyzer::analyzeStmt(AnalysisState &State, const parser::Stmt &Stmt)
   {
+    AnalysisState::TraversalGuard Traversal(State);
+    if (!reportExecution(State, Traversal.status(), Stmt))
+    {
+      return false;
+    }
     if (State.Terminated)
     {
       State.report<core::DiagnosticKind::SemanticUnreachableStatement>(Stmt.getSourceRange());
       return false;
     }
-    if (Stmt.isComptime())
+    if (Stmt.isComptime() && !State.Evaluating && parser::BlockStmt::classof(&Stmt))
+    {
+      bool Entered = false;
+      bool ReusedResult = false;
+      const auto Result = State.Context.comptimeState().Engine.executeOnce(*State.Frame, &Stmt, [&]() -> execution::ExecutionResult
+      {
+        Entered = true;
+        AnalysisState::EvaluationGuard Guard(State);
+        return {analyzeBlockStmt(State, static_cast<const parser::BlockStmt &>(Stmt)) ? execution::ExecutionStatus::Success : execution::ExecutionStatus::UnsupportedOperation, nullptr};
+      }, &ReusedResult);
+      if (!Result && !Entered && !ReusedResult)
+      {
+        reportExecution(State, Result.Status, Stmt);
+      }
+      return static_cast<bool>(Result);
+    }
+    if (Stmt.isComptime() && !State.Evaluating && !parser::DeclStmt::classof(&Stmt) && !parser::IfStmt::classof(&Stmt) && !parser::WhileStmt::classof(&Stmt) && !parser::ClassicForStmt::classof(&Stmt))
     {
       return reportUnsupported(State, Stmt);
     }
@@ -81,15 +102,14 @@ namespace ink::semantic
     bool Succeeded = true;
     for (const parser::SimpleItem *Item : Node.items())
     {
-      if (!parser::ExprItem::classof(Item))
-      {
-        return reportUnsupported(State, *Item);
-      }
-      const auto &Expression = *static_cast<const parser::ExprItem &>(*Item).expression();
-      const ExpressionResult Result = analyzeExpr(State, Expression);
-      if (!Result || (Result.IntegerLiteral && !convertExpression(State, Result, *State.Context.typePool().getType<TypeKind::Integer>(32, true), Expression)))
+      const ExpressionResult Result = analyzeSimpleItem(State, *Item);
+      if (!Result)
       {
         Succeeded = false;
+        if (State.Evaluating)
+        {
+          break;
+        }
       }
     }
     return Succeeded;
@@ -105,12 +125,21 @@ namespace ink::semantic
     }
     BlockDepthGuard DepthGuard(State.BlockDepth);
     NameResolver::ScopeGuard ScopeGuard(State.Resolver);
+    AnalysisState::FrameGuard Frame(State, execution::ExecutionFrameKind::Block);
+    if (!Frame)
+    {
+      return reportExecution(State, State.Context.comptimeState().Engine.lastStatus(), Node);
+    }
     bool Succeeded = true;
     for (const parser::Stmt *Stmt : Node.statements())
     {
       if (!analyzeStmt(State, *Stmt))
       {
         Succeeded = false;
+      }
+      if (State.Breaking || State.Continuing || (State.Evaluating && (!Succeeded || State.Terminated)))
+      {
+        break;
       }
     }
     return Succeeded;

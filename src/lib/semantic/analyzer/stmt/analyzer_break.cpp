@@ -6,6 +6,11 @@ namespace ink::semantic
 {
   bool Analyzer::analyzeBreakStmt(AnalysisState &State, const parser::BreakStmt &Node)
   {
+    if (State.LoopDepth)
+    {
+      State.Breaking = true;
+      return true;
+    }
     return reportUnsupported(State, Node);
   }
 } // namespace ink::semantic

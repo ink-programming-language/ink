@@ -31,6 +31,12 @@ namespace ink::semantic
 
     // Each call starts at the shared root and enters a distinct module member scope.
     AnalysisState State(Context, Context.scopeStore().rootScope(), Input.Unit->input());
+    State.Frame = Context.comptimeState().Engine.createFrame(execution::ExecutionFrameKind::Module);
+    if (!State.Frame)
+    {
+      reportExecution(State, Context.comptimeState().Engine.lastStatus(), Root);
+      return nullptr;
+    }
     NameResolver::ScopeGuard ModuleScope(State.Resolver, *Result);
     if (!ModuleScope.scope() || !State.Builder.setInsertPoint(Result->entryBlock()))
     {
@@ -52,6 +58,10 @@ namespace ink::semantic
 
   bool Analyzer::reportUnsupported(AnalysisState &State, const parser::ASTNodeBase &Node)
   {
+    if (State.Evaluating)
+    {
+      return reportExecution(State, execution::ExecutionStatus::UnsupportedOperation, Node);
+    }
     State.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), parser::astKindName(Node.getKind()));
     return false;
   }

@@ -178,4 +178,93 @@ namespace ink::semantic::test
     Second.reset();
     EXPECT_EQ(Resolver.lookup(F), nullptr);
   }
+
+  // A parentless snapshot retains visible targets when later declarations change its original scope chain.
+  TEST(SemanticScopeStoreTest, SnapshotFreezesVisibleNamesAcrossLaterShadowing)
+  {
+    core::CompilationContext Compilation;
+    SemanticContext Context(Compilation);
+    IRBuilder Builder(Context.irContext());
+    NameResolver Resolver(Context);
+    const Name X = Context.namePool().intern("X");
+    const Name Y = Context.namePool().intern("Y");
+    const Name Later = Context.namePool().intern("Later");
+    auto Outer = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    auto Inner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    ASSERT_NE(Outer, nullptr);
+    ASSERT_NE(Inner, nullptr);
+    ASSERT_EQ(Resolver.bind(X, *Outer), BindResult::Inserted);
+    Resolver.enterScope();
+    ASSERT_EQ(Resolver.bind(Y, *Inner), BindResult::Inserted);
+    Scope *Snapshot = Context.scopeStore().snapshotScope(Resolver.currentScope());
+    ASSERT_NE(Snapshot, nullptr);
+    EXPECT_EQ(Snapshot->parent(), nullptr);
+    NameResolver Saved(*Snapshot);
+    ASSERT_NE(Saved.lookupLocal(X), nullptr);
+    ASSERT_NE(Saved.lookupLocal(Y), nullptr);
+    EXPECT_EQ(Saved.lookupLocal(X)->targets()[0], Outer.get());
+    EXPECT_EQ(Saved.lookupLocal(Y)->targets()[0], Inner.get());
+    ASSERT_EQ(Resolver.bind(X, *Inner), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Later, *Inner), BindResult::Inserted);
+    EXPECT_EQ(Resolver.lookup(X)->targets()[0], Inner.get());
+    EXPECT_EQ(Saved.lookup(X)->targets()[0], Outer.get());
+    EXPECT_EQ(Saved.lookup(Later), nullptr);
+    Outer.reset();
+    EXPECT_EQ(Saved.lookup(X), nullptr);
+    EXPECT_EQ(Resolver.lookup(X)->targets()[0], Inner.get());
+  }
+
+  // Snapshotted overload sets keep their original candidates and unregister destroyed targets without adding later overloads.
+  TEST(SemanticScopeStoreTest, SnapshotFreezesOverloadsAndTracksTargetDestruction)
+  {
+    core::CompilationContext Compilation;
+    SemanticContext Context(Compilation);
+    IRBuilder Builder(Context.irContext());
+    NameResolver Resolver(Context);
+    const Name F = Context.namePool().intern("F");
+    const Name Alias = Context.namePool().intern("Alias");
+    const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
+    ASSERT_NE(Signature, nullptr);
+    auto First = Builder.createFunction(F, *Signature);
+    auto Second = Builder.createFunction(F, *Signature);
+    auto Later = Builder.createFunction(F, *Signature);
+    ASSERT_NE(First, nullptr);
+    ASSERT_NE(Second, nullptr);
+    ASSERT_NE(Later, nullptr);
+    ASSERT_EQ(Resolver.bind(F, *First), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(F, *Second), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Alias, *First), BindResult::Inserted);
+    Scope *Snapshot = Context.scopeStore().snapshotScope(Resolver.currentScope());
+    ASSERT_NE(Snapshot, nullptr);
+    NameResolver Saved(*Snapshot);
+    const auto *Overloads = Saved.lookup(F);
+    ASSERT_NE(Overloads, nullptr);
+    EXPECT_TRUE(Overloads->isOverloadSet());
+    ASSERT_EQ(Overloads->targets().size(), 2U);
+    EXPECT_EQ(Overloads->targets()[0], First.get());
+    EXPECT_EQ(Overloads->targets()[1], Second.get());
+    ASSERT_EQ(Resolver.bind(F, *Later), BindResult::Inserted);
+    EXPECT_EQ(Resolver.lookup(F)->targets().size(), 3U);
+    EXPECT_EQ(Overloads->targets().size(), 2U);
+    First.reset();
+    EXPECT_EQ(Saved.lookup(F), Overloads);
+    ASSERT_EQ(Overloads->targets().size(), 1U);
+    EXPECT_EQ(Overloads->targets()[0], Second.get());
+    EXPECT_EQ(Saved.lookup(Alias), nullptr);
+    Second.reset();
+    EXPECT_EQ(Saved.lookup(F), nullptr);
+    ASSERT_NE(Resolver.lookup(F), nullptr);
+    EXPECT_EQ(Resolver.lookup(F)->targets()[0], Later.get());
+  }
+
+  // Snapshot creation rejects a scope from another store without importing its names or targets.
+  TEST(SemanticScopeStoreTest, SnapshotRejectsForeignScopes)
+  {
+    core::CompilationContext Compilation;
+    SemanticContext Context(Compilation);
+    SemanticContext Foreign(Compilation);
+    EXPECT_EQ(Context.scopeStore().snapshotScope(Foreign.scopeStore().rootScope()), nullptr);
+    EXPECT_EQ(Foreign.scopeStore().snapshotScope(Context.scopeStore().rootScope()), nullptr);
+    EXPECT_EQ(Context.scopeStore().rootScope().parent(), nullptr);
+  }
 } // namespace ink::semantic::test

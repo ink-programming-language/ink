@@ -28,10 +28,11 @@ namespace ink::semantic
       const ir::Value *ValueObject = nullptr;
       const parser::LiteralExpr *IntegerLiteral = nullptr;
       bool Negative = false;
+      bool Void = false;
 
       explicit operator bool() const noexcept
       {
-        return ValueObject || IntegerLiteral;
+        return ValueObject || IntegerLiteral || Void;
       }
   };
 
@@ -62,6 +63,98 @@ namespace ink::semantic
       std::size_t BlockDepth = 0;
       ir::Function *CurrentFunction = nullptr;
       bool Terminated = false;
+      execution::ExecutionFrame *Frame = nullptr;
+      bool Evaluating = false;
+      bool ExecutingFunction = false;
+      const ir::Type *ExpectedType = nullptr;
+      const ir::Constant *ReturnedValue = nullptr;
+      std::size_t LoopDepth = 0;
+      bool Breaking = false;
+      bool Continuing = false;
+
+      class TraversalGuard final
+      {
+        public:
+          explicit TraversalGuard(AnalysisState &State)
+              : Engine(State.Context.comptimeState().Engine),
+                Status(State.Evaluating ? Engine.enterEvaluation() : execution::ExecutionStatus::Success),
+                Active(State.Evaluating && Status == execution::ExecutionStatus::Success)
+          {
+          }
+
+          ~TraversalGuard()
+          {
+            if (Active)
+            {
+              Engine.leaveEvaluation();
+            }
+          }
+
+          execution::ExecutionStatus status() const noexcept
+          {
+            return Status;
+          }
+
+        private:
+          execution::ExecutionEngine &Engine;
+          execution::ExecutionStatus Status;
+          bool Active;
+      };
+
+      class FrameGuard final
+      {
+        public:
+          FrameGuard(AnalysisState &State, execution::ExecutionFrameKind Kind)
+              : State(State),
+                Saved(State.Frame),
+                Entered(State.Context.comptimeState().Engine.createFrame(Kind, Saved))
+          {
+            State.Frame = Entered;
+          }
+
+          ~FrameGuard()
+          {
+            if (Entered)
+            {
+              State.Context.comptimeState().Engine.endFrame(*Entered);
+            }
+            State.Frame = Saved;
+          }
+
+          explicit operator bool() const noexcept
+          {
+            return Entered != nullptr;
+          }
+
+        private:
+          AnalysisState &State;
+          execution::ExecutionFrame *Saved;
+          execution::ExecutionFrame *Entered;
+      };
+
+      class EvaluationGuard final
+      {
+        public:
+          explicit EvaluationGuard(AnalysisState &State, bool Evaluating = true, const ir::Type *Expected = nullptr)
+              : State(State),
+                Saved(State.Evaluating),
+                SavedType(State.ExpectedType)
+          {
+            State.Evaluating = Evaluating;
+            State.ExpectedType = Expected;
+          }
+
+          ~EvaluationGuard()
+          {
+            State.Evaluating = Saved;
+            State.ExpectedType = SavedType;
+          }
+
+        private:
+          AnalysisState &State;
+          bool Saved;
+          const ir::Type *SavedType;
+      };
   };
 } // namespace ink::semantic
 

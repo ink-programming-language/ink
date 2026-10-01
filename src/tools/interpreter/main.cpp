@@ -1,6 +1,6 @@
 #include "ink/cli/application.h"
 #include "ink/cli/io.h"
-#include "ink/execution/execution_engine.h"
+#include "ink/execution/engine/execution_engine.h"
 #include "ink/execution/module/compiling_module_provider.h"
 #include "ink/execution/runtime/runtime_symbols.h"
 #include "ink/ir/compilation/compilation_session.h"

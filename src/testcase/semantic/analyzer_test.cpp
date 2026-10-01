@@ -137,7 +137,7 @@ namespace ink::semantic::test
     }
   }
 
-  // Comptime flags reject otherwise supported syntax before blocks, expressions, types or call fast paths lower runtime IR.
+  // Unsupported comptime declaration and type forms fail before producing runtime IR.
   TEST(SemanticAnalyzerTest, RejectsComptimeBeforeRuntimeLowering)
   {
     struct Case
@@ -146,14 +146,9 @@ namespace ink::semantic::test
         const char *Kind;
     };
     constexpr Case Cases[] = {
-        {"comptime {}", "BlockStmt"},
-        {"comptime func F(): void;", "DeclStmt"},
-        {"comptime 1;", "LiteralExpr"},
-        {"func F(): i32 { return comptime 1; }", "LiteralExpr"},
         {"func F(X: comptime i32): void;", "NameExpr"},
         {"func F(): comptime i32;", "NameExpr"},
-        {"func F(X: i32): void; (comptime (F))(1);", "ParenExpr"},
-        {"func F(X: i32): void; func F(X: i64): void; (comptime F)(1);", "NameExpr"},
+        {"comptime import Foo;", "DirectImportStmt"},
     };
     for (const Case &Entry : Cases)
     {

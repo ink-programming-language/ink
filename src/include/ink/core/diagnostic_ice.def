@@ -9,6 +9,19 @@ INK_DIAGNOSTIC(SemanticUnsupported, 0x0300000CU, Semantic, "INK-S0012", Internal
 INK_DIAGNOSTIC(SemanticConstructionFailed, 0x0300000DU, Semantic, "INK-S0013", InternalCompilerError, Error, "semantic model construction failed", "semantic model construction failed", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticNestingLimit, 0x0300000EU, Semantic, "INK-S0014", InternalCompilerError, Error, "semantic nesting limit exceeded", "semantic analysis nesting exceeds the permitted limit", INK_DIAGNOSTIC_ARGUMENTS())
 
+INK_DIAGNOSTIC(ExecutionInvalidFrame, 0x05000001U, Execution, "INK-E0001", InternalCompilerError, Error, "invalid execution frame", "{Context}: invalid execution frame", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(ExecutionInvalidBinding, 0x05000002U, Execution, "INK-E0002", InternalCompilerError, Error, "invalid binding or execution event", "{Context}: invalid binding or execution event", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(ExecutionDuplicateBinding, 0x05000003U, Execution, "INK-E0003", InternalCompilerError, Error, "duplicate binding", "{Context}: duplicate binding", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(ExecutionUnknownBinding, 0x05000004U, Execution, "INK-E0004", InternalCompilerError, Error, "unknown binding", "{Context}: unknown binding", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(ExecutionInvalidPlace, 0x05000005U, Execution, "INK-E0005", InternalCompilerError, Error, "invalid execution place", "{Context}: invalid execution place", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(ExecutionForeignContext, 0x0500000BU, Execution, "INK-E0011", InternalCompilerError, Error, "value or type belongs to another IR context", "{Context}: value or type belongs to another IR context", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(ExecutionHostAbiMismatch, 0x05000010U, Execution, "INK-E0016", InternalCompilerError, Error, "external call requires the native host ABI", "{Context}: external call requires the native host ABI", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(ExecutionRecursiveEvent, 0x05000011U, Execution, "INK-E0017", InternalCompilerError, Error, "recursive event dependency", "{Context}: recursive event dependency", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(ExecutionUnsupportedOperation, 0x05000012U, Execution, "INK-E0018", InternalCompilerError, Error, "unsupported operation", "{Context}: unsupported operation", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(ExecutionBudgetExceeded, 0x05000016U, Execution, "INK-E0022", InternalCompilerError, Error, "execution budget exceeded", "{Context}: execution budget exceeded", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+// INK-E0023 is reserved for the non-diagnostic Cancelled status.
+INK_DIAGNOSTIC(ExecutionInvalidStatus, 0x05000018U, Execution, "INK-E0024", InternalCompilerError, Error, "invalid execution status", "{Context}: invalid execution status {ActualValue}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String), INK_DIAGNOSTIC_ARGUMENT(ActualValue, SignedInteger)))
+
 // All failures other than incorrect user source code, including resource limits and invalid archives.
 INK_DIAGNOSTIC(NormalizationFailed, 0x01000014U, Tokenizer, "INK-T0020", InternalCompilerError, Error, "could not normalize the identifier to NFC", "could not normalize the identifier to NFC", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(TokenizerSourceNotFound, 0x01000015U, Tokenizer, "INK-T0021", InternalCompilerError, Error, "source buffer is not registered with this context", "source buffer is not registered with this context", INK_DIAGNOSTIC_ARGUMENTS())

@@ -2,6 +2,7 @@
 #include "ink/semantic/context.h"
 
 #include <algorithm>
+#include <unordered_set>
 #include <utility>
 
 namespace ink::semantic
@@ -21,6 +22,53 @@ namespace ink::semantic
     Scope *Pointer = Result.get();
     Scopes.push_back(std::move(Result));
     return *Pointer;
+  }
+
+  Scope *ScopeStore::snapshotScope(const Scope &Source)
+  {
+    if (&Source.Store != this)
+    {
+      return nullptr;
+    }
+    auto Snapshot = std::unique_ptr<Scope>(new Scope(*this, nullptr));
+    Scope *Result = Snapshot.get();
+    std::unordered_set<Name> Seen;
+    for (const Scope *Current = &Source; Current; Current = Current->Parent)
+    {
+      const auto CopyName = [&](Name BoundName)
+      {
+        if (!Seen.insert(BoundName).second)
+        {
+          return;
+        }
+        if (const auto Values = Current->ValueBindings.find(BoundName); Values != Current->ValueBindings.end())
+        {
+          Result->ValueBindings.emplace(BoundName, Values->second);
+          for (Value *Target : Values->second.Targets)
+          {
+            ValueBindingLocations[Target].push_back({Result, BoundName});
+          }
+        }
+        if (const auto Declarations = Current->DeclBindings.find(BoundName); Declarations != Current->DeclBindings.end())
+        {
+          Result->DeclBindings.emplace(BoundName, Declarations->second);
+          for (Decl *Target : Declarations->second.Targets)
+          {
+            DeclBindingLocations[Target].push_back({Result, BoundName});
+          }
+        }
+      };
+      for (const auto &Entry : Current->ValueBindings)
+      {
+        CopyName(Entry.first);
+      }
+      for (const auto &Entry : Current->DeclBindings)
+      {
+        CopyName(Entry.first);
+      }
+    }
+    Scopes.push_back(std::move(Snapshot));
+    return Result;
   }
 
   template <BindingTarget T>
