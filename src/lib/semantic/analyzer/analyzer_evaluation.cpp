@@ -1,5 +1,6 @@
 #include "analyzer_internal.h"
 
+#include "ink/execution/support/execution_diagnostic.h"
 #include "ink/parser/ast.h"
 
 namespace ink::semantic
@@ -13,7 +14,10 @@ namespace ink::semantic
     {
       return true;
     }
-    State.report<core::DiagnosticKind::SemanticComptimeFailure>(Node.getSourceRange(), executionStatusName(Status));
+    if (const auto Diagnostic = makeExecutionDiagnostic(Status, State.Source, Node.getSourceRange(), "compile-time execution failed"))
+    {
+      State.Context.compilationContext().diagnosticEngine().report(*Diagnostic);
+    }
     return false;
   }
 
