@@ -1055,40 +1055,33 @@
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/Ink-Semantic-Analysis.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/Ink-Semantic-Analysis.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/Ink-Semantic-Design.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/Ink-Semantic-Design.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/core/config.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/config.def" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/command-line.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/command-line.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/core/diagnostic_ice.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/diagnostic_ice.def" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/core/diagnostic_user.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/diagnostic_user.def" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/semantic/analyzer/analyzer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/semantic/analyzer/analyzer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/semantic/context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/semantic/context.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/semantic/name_resolve/scope_store.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/semantic/name_resolve/scope_store.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/analyzer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/analyzer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/engine/execution_engine.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/engine/execution_engine.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/engine/execution_frame.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/engine/execution_frame.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/execution/support/execution_result.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/execution/support/execution_result.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/semantic/comptime_state.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/semantic/comptime_state.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/engine/execution_engine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/engine/execution_engine.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/engine/execution_interpreter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/engine/execution_interpreter.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/execution/support/execution_diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/execution/support/execution_diagnostic.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/analyzer_evaluation.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/analyzer_evaluation.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/analyzer_internal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/analyzer_internal.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/decl/analyzer_decl.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/decl/analyzer_decl.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/decl/analyzer_function.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/decl/analyzer_function.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_call.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_call.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_conversion.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_conversion.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_expr.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_expr.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_literal.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_literal.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_name.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_name.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_unary.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_unary.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_break.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_break.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_classic_for.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_classic_for.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_continue.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_continue.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_if.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_if.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_update.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/expr/analyzer_update.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_assignment.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_assignment.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_return.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_return.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_stmt.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_stmt.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_while.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/analyzer/stmt/analyzer_while.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/semantic/name_resolve/scope_store.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/semantic/name_resolve/scope_store.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/semantic/analyzer_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/semantic/analyzer_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/semantic/generic_name_resolver_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/semantic/generic_name_resolver_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/semantic/scope_store_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/semantic/scope_store_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tools/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tools/inkc/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/inkc/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/execution/engine/execution_call_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/engine/execution_call_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/execution/engine/execution_engine_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/engine/execution_engine_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/execution/ffi/external_call_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/ffi/external_call_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/execution/support/execution_diagnostic_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/execution/support/execution_diagnostic_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/semantic/comptime_call_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/semantic/comptime_call_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/semantic/comptime_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/semantic/comptime_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase/semantic/external_call_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/semantic/external_call_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tools/inkc/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/inkc/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tools/interpreter/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/interpreter/main.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -1107,6 +1100,8 @@
     <setting file="file://$PROJECT_DIR$/src/lib/execution/execution_engine.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/testcase/execution/execution_engine_test.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/semantic/name_resolve/scope_store.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/testcase/execution/engine/execution_call_test.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/testcase/execution/ffi/external_call_test.cpp" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="v7dQL6JS" />

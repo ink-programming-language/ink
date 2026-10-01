@@ -45,12 +45,6 @@ namespace ink::execution
       }
 
     private:
-      struct Event
-      {
-          bool Running = true;
-          ExecutionResult Result;
-      };
-
       ExecutionFrame(ExecutionEngine &Owner, ExecutionFrameKind Kind, ExecutionFrame *Parent);
 
       ExecutionEngine *Owner;
@@ -58,7 +52,6 @@ namespace ink::execution
       ExecutionFrame *Parent;
       bool Active = true;
       std::unordered_map<const void *, ExecutionPlace> Bindings;
-      std::unordered_map<const void *, Event> Events;
       // SSA values are snapshots belonging to this activation, never cached on IR nodes.
       std::unordered_map<const ir::Value *, ExecutionValueRef> Values;
       std::vector<ExecutionFrame *> Children;

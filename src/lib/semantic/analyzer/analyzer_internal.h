@@ -65,9 +65,8 @@ namespace ink::semantic
       bool Terminated = false;
       execution::ExecutionFrame *Frame = nullptr;
       bool Evaluating = false;
-      bool ExecutingFunction = false;
+      bool ComptimeFunction = false;
       const ir::Type *ExpectedType = nullptr;
-      const ir::Constant *ReturnedValue = nullptr;
       std::size_t LoopDepth = 0;
       bool Breaking = false;
       bool Continuing = false;

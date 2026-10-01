@@ -1,6 +1,8 @@
 #ifndef INK_SEMANTIC_COMPTIME_STATE_H
 #define INK_SEMANTIC_COMPTIME_STATE_H
 
+#include "ink/core/source_id.h"
+#include "ink/core/source_range.h"
 #include "ink/execution/engine/execution_engine.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/lifetime_observer.h"
@@ -9,12 +11,6 @@
 #include <unordered_map>
 #include <vector>
 
-namespace ink::parser
-{
-  class FunctionDecl;
-  class TokenBuffer;
-} // namespace ink::parser
-
 namespace ink::ir
 {
   class Function;
@@ -22,8 +18,6 @@ namespace ink::ir
 
 namespace ink::semantic
 {
-  class Scope;
-
   // Semantic identities remain separate from mutable execution storage. Detached
   // addresses are binding descriptors only; they are never emitted as runtime IR.
   class ComptimeState final
@@ -39,11 +33,9 @@ namespace ink::semantic
 
       struct FunctionDefinition
       {
-          const parser::FunctionDecl *AST = nullptr;
-          const parser::TokenBuffer *Input = nullptr;
-          Scope *DefinitionScope = nullptr;
-          execution::ExecutionFrame *DefinitionFrame = nullptr;
           bool Comptime = false;
+          core::SourceId Source;
+          core::SourceRange NameRange;
       };
 
       explicit ComptimeState(ir::IRContext &Context)

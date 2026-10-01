@@ -17,7 +17,7 @@ Core 配置集中定义在 `src/include/ink/core/config.def`，每项包含枚�
 | `INK_EXECUTION_MAX_STEPS` | `100000` | 编译期执行步骤预算 |
 | `INK_EXECUTION_MAX_OBJECTS` | `16384` | 执行期间累计存储分配预算（Cell/Buffer） |
 | `INK_EXECUTION_MAX_CALL_DEPTH` | `256` | 编译期活动调用深度 |
-| `INK_EXECUTION_MAX_EVALUATION_DEPTH` | `64` | 跨调用共享的 AST 求值嵌套 |
+| `INK_EXECUTION_MAX_EVALUATION_DEPTH` | `64` | 语义求值和 IR 调用共享的求值嵌套 |
 | `INK_PARSER_MAX_NESTING_DEPTH` | `128` | Parser 嵌套深度 |
 | `INK_PARSER_MAX_DIAGNOSTICS` | `100` | Parser 用户诊断数量 |
 | `INK_PARSER_MAX_WORK` | `10000000` | Parser 工作量 |
@@ -112,15 +112,15 @@ execution 的公共头与实现分别位于 `src/include/ink/execution` 和 `src
 
 七种值子类各有独立的 `value/execution_*_value.h` 和 `.cpp`，`ExecutionValueRef`、`ExecutionValueResult` 仍与基类位于 `value/execution_value.h`。测试位于 `src/testcase/execution` 的 `engine/`、`value/`、`ffi/` 和 `cli/`；源码样例保留在 `programs/`。
 
-`ink::execution` 模块提供 `ExecutionEngine`、模块/分析/调用帧、可变对象和静态求值事件去重，并已接入 Analyzer。支持整数/bool 编译期变量、表达式和块、赋值、函数调用、短路及编译期条件/循环；模块按源码顺序处理，变量修改只影响后续求值。运行时局部变量可用编译期结果初始化，但仍不能在编译期读取。接口与边界见 [语义分析接口](docs/Ink-Semantic-Analysis.md) 和 [执行设计](docs/Ink-Semantic-Design.md#65-当前最小执行模块的边界)。
+`ink::execution` 模块提供 `ExecutionEngine`、模块/分析/调用帧和可变对象，并已接入 Analyzer。支持整数/bool 编译期变量、表达式和块、赋值、函数调用、短路及编译期条件/循环；模块按源码顺序处理，表达式按实际控制流直接求值，变量修改只影响后续求值。初始化结果存入对象，后续读取取得对象当前值；每轮循环和每次实际调用使用独立帧执行。运行时局部变量可用编译期结果初始化，但仍不能在编译期读取。接口与边界见 [语义分析接口](docs/Ink-Semantic-Analysis.md) 和 [执行设计](docs/Ink-Semantic-Design.md#65-当前最小执行模块的边界)。
 
 [`ExecutionObject`](src/include/ink/execution/support/execution_object.h) 是执行对象基类；抽象的 [`ExecutionValue`](src/include/ink/execution/value/execution_value.h) 派生出不可变的 void、bool、整数、浮点位模式、字符串、指针和函数值。`ExecutionValueRef` 通过 RAII 引用计数共享只读载荷，复制结果不复制整数和字符串内容；标量和字符串结果可以在创建它们的引擎销毁后继续存在，但所借用的 IR 类型仍须有效，函数值也要求引用的 IR 函数保持有效。这套机制不使用 GC。
 
 [`ExecutionHeap`](src/include/ink/execution/memory/execution_heap.h) 统一创建值和存储，并唯一拥有 `ExecutionCell` 与 `ExecutionBuffer`；Cell 保存可替换的值引用，Buffer 保存固定字节数组。帧结束或显式 `release()` 真正释放对应存储。`ExecutionPlace` 和缓冲区指针使用弱 `ExecutionStorageRef`，不延长存储寿命；堆控制块身份和槽位代次共同阻止旧句柄访问重建堆或复用槽位中的新对象。槽位可以重用，累计存储分配预算不会随释放返还。
 
-`ExecutionEngine::execute(Function, span<const ExecutionValueRef>)` 从普通 IR 函数入口执行 `Alloca`、`Store`、`Load`、整数 `Add`、`CString`、`Call` 和 `Return`，并处理块内函数声明；调用帧保存参数和 SSA 值引用，记录局部存储的生命周期，同一调用结果被多次读取不会重复执行副作用，新调用建立独立帧。普通 if/循环 IR 尚未实现。`allocateValue()`、`loadValue()` 和 `storeValue()` 不将运行结果驻留到常量池；保留的编译期 `call()`、`load()` 在语义边界冻结可表示的常量。执行对象的 C++ 继承体系不新增 Ink class 实例或聚合值的执行语义。
+`ExecutionEngine::execute(Function, span<const ExecutionValueRef>)` 从普通 IR 函数入口执行 `Alloca`、`Store`、`Load`、整数 `Add`、`CString`、`Call` 和 `Return`；块内函数声明由 `makeFunctionValue()` 构造函数值，实际调用由 `Call` 指令执行。调用帧保存参数和 SSA 值引用，记录局部存储的生命周期，同一调用结果被多次读取不会重复执行副作用，新调用建立独立帧。普通 if/循环 IR 尚未实现。所有非泛型函数在定义处生成 IR 函数体，编译期调用和普通执行统一使用 `execute()`，返回独立的执行值；语义层仅在编译期结果边界转换为可表示的常量。`allocate()`、`load()`、`store()` 负责常量边界的转换，共用 `allocateValue()`、`loadValue()`、`storeValue()` 的存储实现，运行中间值不驻留到常量池。执行对象的 C++ 继承体系不新增 Ink class 实例或聚合值的执行语义。
 
-整数运算使用项目自有的 `ExecutionInteger`，execution 不使用 `llvm::APInt`，引擎和帧直接持有各自状态。`comptime func` 的签名和定义环境在声明处确定，函数体仍由语义层在编译期调用时按实际路径解释执行，支持分支、循环和递归；运行时使用这类函数会报告用户诊断。
+整数运算使用项目自有的 `ExecutionInteger`，execution 不使用 `llvm::APInt`，引擎和帧直接持有各自状态。`comptime func` 与普通函数一样在定义处检查并生成 IR，未调用的函数也检查函数体；运行时使用这类函数会报告用户诊断。函数体能力统一受当前 IR 限制，尚未支持的参数相关分支、循环和非加法运算显式诊断。显式 `comptime` 表达式、块和静态循环仍由语义层在生成 IR 时求值或展开；泛型延迟实例化另行实现。
 
 编译期和 IR 中的 `extern "C"` 调用通过系统 API 按声明中的原名查找当前进程符号，再根据 IR 签名使用现有 libffi 调用，不限制函数名。`ffi/native_symbol.cpp` 负责平台符号解析，`ffi/ffi_type.cpp` 负责类型映射，`ffi/ffi_argument.cpp` 负责 `ExecutionValueRef` 到原生参数的转换，`ffi/ffi_call.cpp` 负责调用编排和返回值处理；外部调用入口显式接收调用者的 `ExecutionHeap`。FFI 支持 bool、8/16/32/64 位整数、f32/f64、指针参数与返回值和 void 返回；聚合、变参及 f16 尚不支持。带类型的 `ExecutionPlace` 存储不能直接当作宿主缓冲区。缓冲区指针只保留弱存储身份和偏移，存储释放后 `status()` 返回 `ExpiredPlace`；原生不透明地址可继续传给 FFI，执行引擎不任意解引用。指针和函数结果不能冻结到 IR 常量。
 

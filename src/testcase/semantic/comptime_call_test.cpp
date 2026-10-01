@@ -2,9 +2,11 @@
 #include "ink/semantic/context.h"
 #include "../core/environment_test_support.h"
 
+#include "ink/execution/engine/execution_engine.h"
 #include "ink/ir/constant/bool_constant.h"
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/function/function.h"
+#include "ink/ir/instruction/add_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/parser/parser.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
@@ -121,46 +123,59 @@ func Second(): i32 { return comptime AddTwo(10); }
     EXPECT_TRUE(AddTwo->hasBody());
   }
 
-  // Declaring a compile-time function does not execute it; each actual call performs its module write once.
-  TEST(SemanticComptimeCallTest, ExecutesModuleSideEffectsPerActualCall)
+  // Both ordinary and compile-time calls execute constants captured while lowering the definition.
+  TEST(SemanticComptimeCallTest, ExecutesStoredIrAfterModuleStateChanges)
   {
     CallAnalysis Input(R"ink(
-comptime var Counter: i32 = 0;
-comptime func Next(): i32
-{
-    Counter += 1;
-    return Counter;
-}
-func Before(): i32 { return comptime Counter; }
-comptime var First: i32 = Next();
-comptime var Second: i32 = Next();
-func ReadFirst(): i32 { return comptime First; }
-func ReadSecond(): i32 { return comptime Second; }
-func After(): i32 { return comptime Counter; }
+comptime var Counter: i32 = 1;
+func Ordinary(): i32 { return Counter; }
+comptime func CompileTime(): i32 { return Counter; }
+comptime { Counter = 10; }
+func ReadOrdinary(): i32 { return comptime Ordinary(); }
+func ReadCompileTime(): i32 { return comptime CompileTime(); }
+func ReadCurrent(): i32 { return comptime Counter; }
 )ink");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
     EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
-    Input.expectIntegerReturn(*Result, "Before", 0);
-    Input.expectIntegerReturn(*Result, "ReadFirst", 1);
-    Input.expectIntegerReturn(*Result, "ReadSecond", 2);
-    Input.expectIntegerReturn(*Result, "After", 2);
-    const Function *Next = Input.function(*Result, "Next");
-    ASSERT_NE(Next, nullptr);
-    EXPECT_FALSE(Next->hasBody());
+    Input.expectIntegerReturn(*Result, "ReadOrdinary", 1);
+    Input.expectIntegerReturn(*Result, "ReadCompileTime", 1);
+    Input.expectIntegerReturn(*Result, "ReadCurrent", 10);
+    const Function *CompileTime = Input.function(*Result, "CompileTime");
+    ASSERT_NE(CompileTime, nullptr);
+    EXPECT_TRUE(CompileTime->hasBody());
   }
 
-  // Mutating a parameter and local in one call does not change the caller's variable or the next call's storage.
-  TEST(SemanticComptimeCallTest, IsolatesMutableParametersAndLocals)
+  // A non-generic compile-time function owns executable IR before its first call.
+  TEST(SemanticComptimeCallTest, LowersCompileTimeFunctionBeforeAnyCall)
+  {
+    CallAnalysis Input("comptime func AddOne(X: i32): i32 { return X + 1; }");
+    ASSERT_TRUE(Input.Parsed.succeeded());
+    Module *Result = Input.analyze();
+    ASSERT_NE(Result, nullptr);
+    EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
+    const Function *AddOne = Input.function(*Result, "AddOne");
+    ASSERT_NE(AddOne, nullptr);
+    ASSERT_TRUE(AddOne->hasBody());
+    EXPECT_TRUE(AddInstruction::classof(Input.returnedValue(*Result, "AddOne")));
+    execution::ExecutionEngine Engine(Input.Context.irContext());
+    const auto &Type = static_cast<const IntegerType &>(*AddOne->functionType().parameterTypes().front());
+    const execution::ExecutionValueRef Arguments[] = {Engine.heap().integer(Type, execution::ExecutionInteger(32, 10))};
+    const auto Executed = Engine.execute(*AddOne, Arguments);
+    ASSERT_TRUE(Executed);
+    EXPECT_EQ(Executed.Value.integer().bits().words().front(), 11U);
+  }
+
+  // Mutating a local does not change the caller's scalar argument or the next call's local storage.
+  TEST(SemanticComptimeCallTest, IsolatesLocalStorageAcrossCompileTimeCalls)
   {
     CallAnalysis Input(R"ink(
 comptime func Alter(X: i32): i32
 {
     var Local: i32 = X;
-    X += 10;
-    Local += X;
-    return Local;
+    Local = Local + 10;
+    return Local + X;
 }
 comptime var Argument: i32 = 3;
 comptime var First: i32 = Alter(Argument);
@@ -178,12 +193,12 @@ func ReadArgument(): i32 { return comptime Argument; }
     Input.expectIntegerReturn(*Result, "ReadArgument", 3);
   }
 
-  // Each argument executes once in source order before its value is installed in the callee's parameter frame.
+  // Each argument executes once in source order, including an unused second argument, before entering the stored IR body.
   TEST(SemanticComptimeCallTest, EvaluatesArgumentsOnceInSourceOrder)
   {
     CallAnalysis Input(R"ink(
 comptime var Counter: i32 = 0;
-comptime func Pair(First: i32, Second: i32): i32 { return First * 10 + Second; }
+comptime func Pair(First: i32, Second: i32): i32 { return First; }
 comptime var First: i32 = Pair(++Counter, ++Counter);
 comptime var Second: i32 = Pair(++Counter, ++Counter);
 func ReadFirst(): i32 { return comptime First; }
@@ -194,97 +209,77 @@ func ReadCounter(): i32 { return comptime Counter; }
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
     EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
-    Input.expectIntegerReturn(*Result, "ReadFirst", 12);
-    Input.expectIntegerReturn(*Result, "ReadSecond", 34);
+    Input.expectIntegerReturn(*Result, "ReadFirst", 1);
+    Input.expectIntegerReturn(*Result, "ReadSecond", 3);
     Input.expectIntegerReturn(*Result, "ReadCounter", 4);
   }
 
-  // The same parameter-dependent branch is selected independently for each compile-time call.
-  TEST(SemanticComptimeCallTest, SelectsBranchesUsingEachCallsArguments)
+  // Compile-time functions reject parameter-dependent control flow until the corresponding IR is supported.
+  TEST(SemanticComptimeCallTest, RejectsControlFlowWithoutIrSupportAtDefinition)
   {
-    CallAnalysis Input(R"ink(
-comptime func Choose(Flag: bool, X: i32): i32
-{
-    if (Flag)
+    const char *Cases[] = {
+        "comptime func F(Flag: bool): i32 { if (Flag) { return 1; } return 0; }",
+        "comptime func F(Flag: bool): void { while (Flag) {} }",
+        "comptime func F(X: i32): void { for (var I: i32 = 0; I < X; I++) {} }",
+        "comptime func F(N: i32): i32 { if (N <= 1) { return 1; } return N * F(N - 1); }",
+    };
+    for (const char *Source : Cases)
     {
-        return X + 1;
+      SCOPED_TRACE(Source);
+      CallAnalysis Input(Source);
+      ASSERT_TRUE(Input.Parsed.succeeded());
+      EXPECT_DEATH(Input.analyze(), "internal compiler error\\[INK-S0012\\]");
     }
-    return X - 1;
-}
-func First(): i32 { return comptime Choose(true, 10); }
-func Second(): i32 { return comptime Choose(false, 10); }
-)ink");
-    ASSERT_TRUE(Input.Parsed.succeeded());
-    Module *Result = Input.analyze();
-    ASSERT_NE(Result, nullptr);
-    EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
-    Input.expectIntegerReturn(*Result, "First", 11);
-    Input.expectIntegerReturn(*Result, "Second", 9);
   }
 
-  // Compile-time function loops preserve locals across iterations and apply continue, break and return to active paths.
-  TEST(SemanticComptimeCallTest, ExecutesForAndWhileInsideFunctionCalls)
+  // Unsupported ordinary IR operators are diagnosed even when the compile-time function is never called.
+  TEST(SemanticComptimeCallTest, RejectsOperatorsWithoutIrSupportAtDefinition)
   {
-    CallAnalysis Input(R"ink(
-comptime func Accumulate(X: i32): i32
-{
-    var Sum: i32 = 0;
-    for (var I: i32 = 0; I < X; I++)
+    const char *Cases[] = {
+        "comptime func F(X: i32): i32 { return X * 10; }",
+        "comptime func F(X: i32): i32 { return 1 / X; }",
+        "comptime func F(X: i32): bool { return X > 0; }",
+        "comptime func F(X: i32): i32 { var Local = X; Local += 1; return Local; }",
+        "comptime func F(X: i32): i32 { var Local = X; return ++Local; }",
+    };
+    for (const char *Source : Cases)
     {
-        if (I == 2) { continue; }
-        Sum += I;
+      SCOPED_TRACE(Source);
+      CallAnalysis Input(Source);
+      ASSERT_TRUE(Input.Parsed.succeeded());
+      EXPECT_DEATH(Input.analyze(), "internal compiler error\\[INK-S0012\\]");
     }
-    while (X > 0)
-    {
-        X -= 1;
-        if (X == 1) { break; }
-        Sum += 10;
-    }
-    return Sum;
-}
-func First(): i32 { return comptime Accumulate(4); }
-func Second(): i32 { return comptime Accumulate(1); }
-)ink");
-    ASSERT_TRUE(Input.Parsed.succeeded());
-    Module *Result = Input.analyze();
-    ASSERT_NE(Result, nullptr);
-    EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
-    Input.expectIntegerReturn(*Result, "First", 24);
-    Input.expectIntegerReturn(*Result, "Second", 10);
   }
 
-  // Recursive calls preserve each invocation's parameter until its nested call returns.
-  TEST(SemanticComptimeCallTest, EvaluatesTerminatingRecursion)
+  // Compile-time-only definitions use the ordinary rules for writes to parameters and module objects.
+  TEST(SemanticComptimeCallTest, RejectsParameterAndModuleWritesAtDefinition)
   {
-    CallAnalysis Input(R"ink(
-comptime func Factorial(N: i32): i32
-{
-    if (N <= 1) { return 1; }
-    return N * Factorial(N - 1);
-}
-func Six(): i32 { return comptime Factorial(6); }
-func Zero(): i32 { return comptime Factorial(0); }
-)ink");
-    ASSERT_TRUE(Input.Parsed.succeeded());
-    Module *Result = Input.analyze();
-    ASSERT_NE(Result, nullptr);
-    EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
-    Input.expectIntegerReturn(*Result, "Six", 720);
-    Input.expectIntegerReturn(*Result, "Zero", 1);
+    const char *Cases[] = {
+        "comptime func F(X: i32): i32 { X = 10; return X; }",
+        "comptime var Counter: i32 = 0; comptime func F(): i32 { Counter = 1; return Counter; }",
+    };
+    for (const char *Source : Cases)
+    {
+      SCOPED_TRACE(Source);
+      CallAnalysis Input(Source);
+      ASSERT_TRUE(Input.Parsed.succeeded());
+      EXPECT_EQ(Input.analyze(), nullptr);
+      EXPECT_EQ(Input.diagnosticCount(core::DiagnosticKind::SemanticInvalidAssignment), 1U);
+      EXPECT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
+    }
   }
 
-  // Void callbacks accept both fallthrough and explicit return and can be invoked by another compile-time function.
+  // Lowered void bodies support fallthrough and explicit return when invoked by another compile-time function.
   TEST(SemanticComptimeCallTest, ExecutesNestedVoidCallsAndExplicitReturns)
   {
     CallAnalysis Input(R"ink(
-comptime var Counter: i32 = 0;
-comptime func Fallthrough(): void { Counter += 1; }
-comptime func Explicit(): void { Counter += 2; return; }
+comptime func Fallthrough(): void { var Local: i32 = 1; }
+comptime func Explicit(): void { return; }
 comptime func Run(): i32
 {
     Fallthrough();
     Explicit();
-    return Counter;
+    return 7;
 }
 func First(): i32 { return comptime Run(); }
 func Second(): i32 { return comptime Run(); }
@@ -293,8 +288,8 @@ func Second(): i32 { return comptime Run(); }
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
     EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
-    Input.expectIntegerReturn(*Result, "First", 3);
-    Input.expectIntegerReturn(*Result, "Second", 6);
+    Input.expectIntegerReturn(*Result, "First", 7);
+    Input.expectIntegerReturn(*Result, "Second", 7);
   }
 
   // The callee signature supplies the width for integer arguments while a bool return retains its own type.
@@ -302,9 +297,9 @@ func Second(): i32 { return comptime Run(); }
   {
     CallAnalysis Input(R"ink(
 comptime func Identity(X: i64): i64 { return X; }
-comptime func Positive(X: i64): bool { return X > 0; }
+comptime func Boolean(X: bool): bool { return X; }
 func Wide(): i64 { return comptime Identity(2147483648); }
-func Check(): bool { return comptime Positive(2147483648); }
+func Check(): bool { return comptime Boolean(true); }
 )ink");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
@@ -339,8 +334,8 @@ func Check(): bool { return comptime Positive(2147483648); }
     }
   }
 
-  // Return mismatches and missing non-void returns report the body error once rather than adding an engine failure.
-  TEST(SemanticComptimeCallTest, RejectsInvalidReturnsWithoutDuplicateDiagnostics)
+  // Return mismatches and missing returns are diagnosed once while checking an unused definition.
+  TEST(SemanticComptimeCallTest, RejectsUnusedInvalidReturnsWithoutDuplicateDiagnostics)
   {
     struct Case
     {
@@ -348,10 +343,10 @@ func Check(): bool { return comptime Positive(2147483648); }
         core::DiagnosticKind Kind;
     };
     const Case Cases[] = {
-        {"comptime func F(): i32 { return true; } comptime F();", core::DiagnosticKind::SemanticTypeMismatch},
-        {"comptime func F(): void { return 1; } comptime F();", core::DiagnosticKind::SemanticTypeMismatch},
-        {"comptime func F(): i32 { return; } comptime F();", core::DiagnosticKind::SemanticMissingReturn},
-        {"comptime func F(): i32 { var X: i32 = 1; } comptime F();", core::DiagnosticKind::SemanticMissingReturn},
+        {"comptime func F(): i32 { return true; }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"comptime func F(): void { return 1; }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"comptime func F(): i32 { return; }", core::DiagnosticKind::SemanticMissingReturn},
+        {"comptime func F(): i32 { var X: i32 = 1; }", core::DiagnosticKind::SemanticMissingReturn},
     };
     for (const Case &Entry : Cases)
     {
@@ -364,7 +359,7 @@ func Check(): bool { return comptime Positive(2147483648); }
     }
   }
 
-  // Missing external symbols and Ink declarations without executable AST bodies produce compile-time diagnostics.
+  // Missing external symbols and Ink declarations without executable IR bodies produce compile-time diagnostics.
   TEST(SemanticComptimeCallTest, RejectsMissingExternalSymbolsAndInkBodies)
   {
     struct Case
@@ -406,7 +401,7 @@ func Check(): bool { return comptime Positive(2147483648); }
     }
   }
 
-  // A compile-time function's missing runtime IR body does not make a duplicate definition a forward declaration.
+  // A compile-time function with a stored IR body conflicts with a second definition of the same signature.
   TEST(SemanticComptimeCallTest, RejectsDuplicateCompileTimeFunctionDefinitions)
   {
     const char *Cases[] = {
@@ -424,43 +419,46 @@ func Check(): bool { return comptime Positive(2147483648); }
     }
   }
 
-  // Compile-time function execution skips an inactive branch even when that branch contains an unresolved name.
-  TEST(SemanticComptimeCallTest, AnalyzesOnlyTheActiveFunctionPath)
+  // Explicit compile-time branches still select code during lowering before the stored IR function executes.
+  TEST(SemanticComptimeCallTest, ExpandsExplicitCompileTimeBranchBeforeIrExecution)
   {
-    CallAnalysis Input(R"ink(
-comptime func Select(Flag: bool): i32
-{
-    if (Flag) { return 7; }
-    return Missing;
-}
-func Read(): i32 { return comptime Select(true); }
-)ink");
+    CallAnalysis Input("comptime func Select(): i32 { comptime if (false) { return Missing; } return 7; } func Read(): i32 { return comptime Select(); }");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
     EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
     Input.expectIntegerReturn(*Result, "Read", 7);
+    const Function *Select = Input.function(*Result, "Select");
+    ASSERT_NE(Select, nullptr);
+    EXPECT_TRUE(Select->hasBody());
   }
 
-  // Delaying compile-time-only bodies does not suppress diagnostics in an unused ordinary function.
-  TEST(SemanticComptimeCallTest, StillChecksUnusedOrdinaryFunctionBodies)
+  // Unused ordinary and compile-time definitions both resolve body names immediately.
+  TEST(SemanticComptimeCallTest, ChecksUnusedNonGenericFunctionBodies)
   {
-    CallAnalysis Input("func Broken(): i32 { return Missing; } comptime func Deferred(): i32 { return 1; }");
-    ASSERT_TRUE(Input.Parsed.succeeded());
-    EXPECT_EQ(Input.analyze(), nullptr);
-    EXPECT_EQ(Input.diagnosticCount(core::DiagnosticKind::SemanticUnknownName), 1U);
+    const char *Cases[] = {
+        "func Broken(): i32 { return Missing; }",
+        "comptime func Broken(): i32 { return Missing; }",
+    };
+    for (const char *Source : Cases)
+    {
+      SCOPED_TRACE(Source);
+      CallAnalysis Input(Source);
+      ASSERT_TRUE(Input.Parsed.succeeded());
+      EXPECT_EQ(Input.analyze(), nullptr);
+      EXPECT_EQ(Input.diagnosticCount(core::DiagnosticKind::SemanticUnknownName), 1U);
+      EXPECT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
+    }
   }
 
-  // An arithmetic failure propagating through nested calls retains one concrete diagnostic instead of a wrapper cascade.
-  TEST(SemanticComptimeCallTest, NestedCallsReportArithmeticFailureOnce)
+  // Execution errors in a nested IR call propagate to one source diagnostic without an AST callback wrapper.
+  TEST(SemanticComptimeCallTest, NestedCallsReportExecutionFailureOnce)
   {
-    CallAnalysis Input("comptime func Divide(Value: i32): i32 { return 1 / Value; } comptime func Middle(): i32 { return Divide(0); } comptime func Outer(): i32 { return Middle(); } comptime Outer();");
+    CallAnalysis Input("func MissingBody(): i32; comptime func Middle(): i32 { return MissingBody(); } comptime func Outer(): i32 { return Middle(); } comptime Outer();");
     ASSERT_TRUE(Input.Parsed.succeeded());
     EXPECT_EQ(Input.analyze(), nullptr);
     ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
-    const auto &Diagnostic = Input.Diagnostics.diagnostics().front();
-    EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::ExecutionDivisionByZero);
-    EXPECT_EQ(core::DiagnosticFormatter{}.format(Diagnostic).Message, "compile-time execution failed: division by zero");
+    EXPECT_EQ(Input.Diagnostics.diagnostics().front().Kind, core::DiagnosticKind::ExecutionMissingBody);
   }
 
   // Non-terminating recursion reaches the configured dynamic call depth and reports the execution budget ICE.

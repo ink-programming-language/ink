@@ -157,7 +157,7 @@ namespace ink::semantic::test
     Input.expectExecutionFailure(execution::ExecutionStatus::SymbolNotFound);
   }
 
-  // Nested compile-time function calls execute the same write AST separately and return the sum of actual byte counts.
+  // Nested compile-time calls execute stored IR write instructions separately and return the sum of actual byte counts.
   TEST(SemanticExternalCallTest, ExecutesNativeWritesInsideNestedCompileTimeFunctions)
   {
     NativePipe Pipe;
@@ -200,20 +200,25 @@ namespace ink::semantic::test
     EXPECT_EQ(Output, "X");
   }
 
-  // A host call in an inactive compile-time function branch is never executed while determining the returned constant.
-  TEST(SemanticExternalCallTest, SkipsNativeWriteInUnselectedFunctionBranch)
+  // An explicit compile-time branch is removed during function lowering before its native call can execute.
+  TEST(SemanticExternalCallTest, SkipsNativeWriteInUnselectedCompileTimeBranch)
   {
     NativePipe Pipe;
     ASSERT_TRUE(Pipe.valid());
     std::string Source = writeDeclaration();
-    Source += "comptime func Maybe(Fd: i32, Enabled: bool): " + writeReturnType() + " { if (Enabled) { return " + std::string(WriteSymbol) + "(Fd, \"X\", 1); } return 0; }\n";
-    Source += "func Read(): " + writeReturnType() + " { return comptime Maybe(" + std::to_string(Pipe.writer()) + ", false); }";
+    Source += "comptime func Maybe(Fd: i32): " + writeReturnType() + " { comptime if (false) { return " + std::string(WriteSymbol) + "(Fd, \"X\", 1); } return 0; }\n";
+    Source += "func Read(): " + writeReturnType() + " { return comptime Maybe(" + std::to_string(Pipe.writer()) + "); }";
     ExternalAnalysis Input(Source);
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
     EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
     Input.expectReturn(*Result, "Read", 0);
+    const auto *Binding = NameResolver(Input.Context).lookupMember(*Result, Input.Context.namePool().find("Maybe"));
+    ASSERT_NE(Binding, nullptr);
+    ASSERT_EQ(Binding->targets().size(), 1U);
+    ASSERT_TRUE(Function::classof(Binding->targets().front()));
+    EXPECT_TRUE(static_cast<const Function *>(Binding->targets().front())->hasBody());
     std::string Output;
     ASSERT_TRUE(Pipe.readAll(Output));
     EXPECT_TRUE(Output.empty());

@@ -13,7 +13,7 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticReturnOutsideFunction>(Node.getSourceRange());
       return false;
     }
-    if (State.Evaluating && !State.ExecutingFunction)
+    if (State.Evaluating)
     {
       State.report<core::DiagnosticKind::SemanticComptimeReturnAcrossRuntimeBoundary>(Node.getSourceRange());
       return false;
@@ -44,15 +44,6 @@ namespace ink::semantic
     {
       State.report<core::DiagnosticKind::SemanticMissingReturn>(Node.getSourceRange(), State.Context.namePool().text(State.CurrentFunction->name()));
       return false;
-    }
-    if (State.Evaluating)
-    {
-      if (ReturnedValue && !Constant::classof(ReturnedValue))
-      {
-        return reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
-      }
-      State.ReturnedValue = static_cast<const Constant *>(ReturnedValue);
-      return true;
     }
     if (!State.Builder.createReturnInstruction(ReturnedValue))
     {

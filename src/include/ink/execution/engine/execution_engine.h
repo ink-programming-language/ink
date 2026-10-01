@@ -8,15 +8,21 @@
 #include "ink/core/config_manager.h"
 
 #include <cstddef>
-#include <functional>
 #include <memory>
 #include <span>
 #include <vector>
 
 namespace ink::ir
 {
-  class IRContext;
+  class AddInstruction;
+  class AllocaInstruction;
+  class CallInstruction;
+  class CStringInstruction;
   class Function;
+  class IRContext;
+  class LoadInstruction;
+  class ReturnInstruction;
+  class StoreInstruction;
   class Type;
   class Value;
 } // namespace ink::ir
@@ -34,12 +40,12 @@ namespace ink::execution
       // Counts all storage allocations, including releases; reused slots get new generations.
       std::size_t MaxObjects = core::ConfigManager::getSize<core::ConfigKind::ExecutionMaxObjects>();
       std::size_t MaxCallDepth = core::ConfigManager::getSize<core::ConfigKind::ExecutionMaxCallDepth>();
-      // Bounds combined AST expression, statement and call traversal on the host stack.
+      // Bounds semantic evaluation and nested IR calls on the host stack.
       std::size_t MaxEvaluationDepth = core::ConfigManager::getSize<core::ConfigKind::ExecutionMaxEvaluationDepth>();
   };
 
   // Owned execution storage shared by sequential semantic evaluation requests and IR calls.
-  // The IR context must outlive the engine. Binding and event identities must remain
+  // The IR context must outlive the engine. Binding identities must remain
   // stable until their frame ends. The semantic driver determines execution order
   // and active paths; this class is single-threaded. Resolved native modules must
   // remain loaded until the symbol cache is cleared or the engine is destroyed.
@@ -82,19 +88,8 @@ namespace ink::execution
       ExecutionValueResult evaluate(const ir::Value &Value, ExecutionFrame &Frame);
       ExecutionValueResult execute(const ir::Function &Function, std::span<const ExecutionValueRef> Arguments = {});
 
-      // Only semantic events use this cache. Ordinary evaluation, loop iterations and
-      // actual calls execute afresh; use a distinct frame or key for each such event.
-      // Cancellation and budget exhaustion are never recorded as semantic failures.
-      // Either stops this engine permanently; cleanup remains available on stopped engines.
-      // ReusedResult distinguishes completed cached results from a callback or a rejected request.
-      ExecutionResult executeOnce(ExecutionFrame &Frame, const void *EventKey, const std::function<ExecutionResult()> &Callback, bool *ReusedResult = nullptr);
-
-      // Every invocation owns a fresh call frame; Ink callbacks execute the AST body.
-      // Ink parameters are writable objects bound by FunctionParameter identity;
-      // C linkage always uses a checked host adapter and ignores the body callback.
-      ExecutionResult call(const ir::Function &Function, ExecutionFrame &DefinitionFrame, std::span<const ir::Value *const> Arguments, const std::function<ExecutionResult(ExecutionFrame &)> &Body = {});
-
       // The semantic driver charges AST operations and loop back edges here as well.
+      // Cancellation and budget exhaustion permanently stop execution; cleanup remains available.
       ExecutionStatus consumeStep();
       // Every successful entry must be paired with a leave, including during failure cleanup.
       ExecutionStatus enterEvaluation();
@@ -108,10 +103,18 @@ namespace ink::execution
       ExecutionPlaceResult allocateObject(ExecutionFrame &Frame, const void *Binding, const ir::Type &Type, bool Writable, const ExecutionValueRef *Initial, bool Runtime);
       ExecutionStatus validatePlace(ExecutionPlace Place) const noexcept;
       ExecutionStatus validateValue(const ExecutionValueRef &Value) const noexcept;
+      ExecutionStatus finishStatus(ExecutionStatus Status) noexcept;
       ExecutionValueResult executeInvocation(const ir::Function &Function, std::span<const ExecutionValueRef> Arguments);
       ExecutionValueResult executeBody(const ir::Function &Function, ExecutionFrame &Frame);
       ExecutionValueResult executeInstruction(const ir::Value &Instruction, ExecutionFrame &Frame);
-      ExecutionValueResult executeCall(const ir::Value &Instruction, ExecutionFrame &Frame);
+      ExecutionValueResult makeFunctionValue(const ir::Function &Function);
+      ExecutionValueResult executeAlloca(const ir::AllocaInstruction &Alloca, ExecutionFrame &Frame);
+      ExecutionValueResult executeLoad(const ir::LoadInstruction &Load, ExecutionFrame &Frame);
+      ExecutionValueResult executeStore(const ir::StoreInstruction &Store, ExecutionFrame &Frame);
+      ExecutionValueResult executeAdd(const ir::AddInstruction &Add, ExecutionFrame &Frame);
+      ExecutionValueResult executeCString(const ir::CStringInstruction &CString, ExecutionFrame &Frame);
+      ExecutionValueResult executeCall(const ir::CallInstruction &Call, ExecutionFrame &Frame);
+      ExecutionValueResult executeReturn(const ir::ReturnInstruction &Return, ExecutionFrame &Frame);
       ExecutionValueResult loadPointer(const ExecutionValueRef &Address);
       ExecutionStatus storePointer(const ExecutionValueRef &Address, const ExecutionValueRef &Value);
       ExecutionResult freeze(const ExecutionValueResult &Result);

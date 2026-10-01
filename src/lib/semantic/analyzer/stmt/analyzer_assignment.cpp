@@ -65,7 +65,7 @@ namespace ink::semantic
     auto &Execution = State.Context.comptimeState();
     const auto Found = Execution.Variables.find(Address);
     const bool HasVariable = Found != Execution.Variables.end();
-    if (State.Evaluating && ((HasVariable && !Found->second.Comptime) || (FunctionParameter::classof(Address) && !State.ExecutingFunction)))
+    if (State.Evaluating && ((HasVariable && !Found->second.Comptime) || FunctionParameter::classof(Address)))
     {
       reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
       return {};

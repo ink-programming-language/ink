@@ -53,19 +53,8 @@ namespace ink::semantic
     }
     if (Stmt.isComptime() && !State.Evaluating && parser::BlockStmt::classof(&Stmt))
     {
-      bool Entered = false;
-      bool ReusedResult = false;
-      const auto Result = State.Context.comptimeState().Engine.executeOnce(*State.Frame, &Stmt, [&]() -> execution::ExecutionResult
-      {
-        Entered = true;
-        AnalysisState::EvaluationGuard Guard(State);
-        return {analyzeBlockStmt(State, static_cast<const parser::BlockStmt &>(Stmt)) ? execution::ExecutionStatus::Success : execution::ExecutionStatus::UnsupportedOperation, nullptr};
-      }, &ReusedResult);
-      if (!Result && !Entered && !ReusedResult)
-      {
-        reportExecution(State, Result.Status, Stmt);
-      }
-      return static_cast<bool>(Result);
+      AnalysisState::EvaluationGuard Guard(State);
+      return analyzeBlockStmt(State, static_cast<const parser::BlockStmt &>(Stmt));
     }
     if (Stmt.isComptime() && !State.Evaluating && !parser::DeclStmt::classof(&Stmt) && !parser::IfStmt::classof(&Stmt) && !parser::WhileStmt::classof(&Stmt) && !parser::ClassicForStmt::classof(&Stmt))
     {

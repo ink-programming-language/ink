@@ -57,7 +57,7 @@ namespace ink::semantic
     }
     const Value *Result = Binding->targets().front();
     auto &Execution = State.Context.comptimeState();
-    if (!State.Evaluating && Function::classof(Result))
+    if (!State.Evaluating && !State.ComptimeFunction && Function::classof(Result))
     {
       const auto Definition = Execution.Functions.find(Result);
       if (Definition != Execution.Functions.end() && Definition->second.Comptime)
@@ -68,18 +68,8 @@ namespace ink::semantic
     }
     if (State.Evaluating && FunctionParameter::classof(Result))
     {
-      if (!State.ExecutingFunction)
-      {
-        reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
-        return {};
-      }
-      const auto Place = Execution.Engine.lookup(*State.Frame, Result);
-      if (!reportExecution(State, Place.Status, Node))
-      {
-        return {};
-      }
-      const auto Loaded = Execution.Engine.load(Place.Place);
-      return reportExecution(State, Loaded.Status, Node) ? ExpressionResult{Loaded.Value} : ExpressionResult{};
+      reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
+      return {};
     }
     if (const auto Variable = Execution.Variables.find(Result); AllocaInstruction::classof(Result) && Variable != Execution.Variables.end())
     {

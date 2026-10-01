@@ -237,7 +237,7 @@ func Square(): i32
     EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
   }
 
-  // Two calls of the same ordinary function execute with different parameter storage rather than a cached first result.
+  // Two calls of the same ordinary function retain their own argument values in separate parameter storage.
   TEST(SemanticComptimeTest, SeparatesActualFunctionCallFrames)
   {
     ComptimeAnalysis Input(R"ink(
@@ -483,8 +483,8 @@ func Large(): i32 { return comptime F(2147483648); }
     EXPECT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
   }
 
-  // The same explicit compile-time increment gets a fresh semantic event for every static for iteration.
-  TEST(SemanticComptimeTest, RepeatsStaticExpressionEventsForEachExpansion)
+  // The explicit compile-time increment executes during every static for iteration.
+  TEST(SemanticComptimeTest, ExecutesComptimeExpressionForEachIteration)
   {
     ComptimeAnalysis Input(R"ink(
 comptime var Counter: i32 = 0;

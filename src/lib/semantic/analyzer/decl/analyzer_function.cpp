@@ -49,8 +49,7 @@ namespace ink::semantic
         const auto &Existing = static_cast<const Function &>(*Target);
         const auto ExistingTypes = Existing.functionType().parameterTypes();
         const bool SameParameters = std::equal(ParameterTypes.begin(), ParameterTypes.end(), ExistingTypes.begin(), ExistingTypes.end());
-        const auto Definition = State.Context.comptimeState().Functions.find(&Existing);
-        const bool HasDefinition = Existing.hasBody() || (Definition != State.Context.comptimeState().Functions.end() && Definition->second.AST->body());
+        const bool HasDefinition = Existing.hasBody();
         // Compatible redeclarations must agree on language linkage as well as types.
         // Linkage is function metadata, so canonical FunctionType identity alone is insufficient.
         if (SameParameters && &Existing.functionType().returnType() == &Signature.returnType() && Existing.languageLinkage() == Linkage && (!HasDefinition || !Node.body()))
@@ -175,13 +174,8 @@ namespace ink::semantic
     }
     FunctionState.BlockDepth = State.BlockDepth;
     FunctionState.CurrentFunction = &FunctionValue;
-    Scope *DefinitionScope = State.Context.scopeStore().snapshotScope(State.Resolver.currentScope());
-    if (!DefinitionScope)
-    {
-      State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
-      return false;
-    }
-    State.Context.comptimeState().Functions[&FunctionValue] = {&Node, &State.Input, DefinitionScope, State.Frame, Node.isComptime()};
+    FunctionState.ComptimeFunction = Node.isComptime();
+    State.Context.comptimeState().Functions[&FunctionValue] = {Node.isComptime(), State.Source, Node.name().Range};
     NameResolver::ScopeGuard FunctionScope(FunctionState.Resolver, FunctionValue);
     if (!FunctionScope.scope())
     {
@@ -196,9 +190,9 @@ namespace ink::semantic
         return false;
       }
     }
-    // Compile-time-only bodies are checked on their actual execution path with
-    // bound argument values. Their callable identity has no runtime IR body.
-    if (Node.body() && !Node.isComptime())
+    // Every non-generic function is checked and lowered when it is defined.
+    // Compile-time calls execute this same IR instead of revisiting its AST.
+    if (Node.body())
     {
       BasicBlock *Body = FunctionState.Builder.createFunctionBody(FunctionValue);
       if (!Body || !FunctionState.Builder.setInsertPoint(*Body))

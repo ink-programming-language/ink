@@ -20,7 +20,7 @@ namespace ink::semantic
       return {};
     }
     const auto Variable = State.Context.comptimeState().Variables.find(Binding);
-    if ((Variable != State.Context.comptimeState().Variables.end() && !Variable->second.Comptime) || (FunctionParameter::classof(Binding) && !State.ExecutingFunction))
+    if ((Variable != State.Context.comptimeState().Variables.end() && !Variable->second.Comptime) || FunctionParameter::classof(Binding))
     {
       reportExecution(State, ExecutionStatus::RuntimeValue, Node);
       return {};

@@ -32,7 +32,7 @@ namespace ink::semantic
       {
         break;
       }
-      // A fresh expansion frame makes each iteration a new semantic event.
+      // Each iteration has its own lexical scope and local storage.
       NameResolver::ScopeGuard Scope(State.Resolver);
       AnalysisState::FrameGuard Iteration(State, execution::ExecutionFrameKind::Block);
       if (!Iteration)

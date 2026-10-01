@@ -1,39 +1,9 @@
 #include "ink/execution/engine/execution_engine.h"
-#include "ink/execution/ffi/external_function.h"
 
 #include "ink/ir/context.h"
-#include "ink/ir/function/function.h"
 
 namespace ink::execution
 {
-  namespace
-  {
-    class CallFrameGuard final
-    {
-      public:
-        CallFrameGuard(ExecutionEngine &Engine, ExecutionFrame &Frame) noexcept
-            : Engine(Engine),
-              Frame(Frame)
-        {
-        }
-
-        ~CallFrameGuard()
-        {
-          if (Frame.active())
-          {
-            Engine.endFrame(Frame);
-          }
-        }
-
-        CallFrameGuard(const CallFrameGuard &) = delete;
-        CallFrameGuard &operator=(const CallFrameGuard &) = delete;
-
-      private:
-        ExecutionEngine &Engine;
-        ExecutionFrame &Frame;
-    };
-  } // namespace
-
   ExecutionEngine::ExecutionEngine(ir::IRContext &Context, ExecutionLimits Limits)
       : Context(Context),
         Limits(Limits),
@@ -66,6 +36,19 @@ namespace ink::execution
   ExecutionStatus ExecutionEngine::lastStatus() const noexcept
   {
     return LastStatus;
+  }
+
+  ExecutionStatus ExecutionEngine::finishStatus(ExecutionStatus Status) noexcept
+  {
+    if (StopStatus != ExecutionStatus::Success)
+    {
+      Status = StopStatus;
+    }
+    else if (Status == ExecutionStatus::Cancelled || Status == ExecutionStatus::BudgetExceeded)
+    {
+      StopStatus = Status;
+    }
+    return LastStatus = Status;
   }
 
   void ExecutionEngine::clearNativeSymbolCache() noexcept
@@ -171,7 +154,6 @@ namespace ink::execution
       }
       Candidate->Active = false;
       Candidate->Bindings.clear();
-      Candidate->Events.clear();
       Candidate->Values.clear();
       for (const ExecutionStorageRef &Storage : Candidate->Storage)
       {
@@ -230,9 +212,13 @@ namespace ink::execution
     {
       return {LastStatus = ExecutionStatus::ForeignContext};
     }
-    if (Initial && validateValue(*Initial) != ExecutionStatus::Success)
+    if (Initial)
     {
-      return {LastStatus = validateValue(*Initial)};
+      const ExecutionStatus InitialStatus = validateValue(*Initial);
+      if (InitialStatus != ExecutionStatus::Success)
+      {
+        return {LastStatus = InitialStatus};
+      }
     }
     if (Initial && Initial->type() != &Type)
     {
@@ -342,171 +328,5 @@ namespace ink::execution
       return LastStatus = ValueStatus;
     }
     return LastStatus = Heap.store(Place, Value);
-  }
-
-  ExecutionResult ExecutionEngine::executeOnce(ExecutionFrame &Frame, const void *EventKey, const std::function<ExecutionResult()> &Callback, bool *ReusedResult)
-  {
-    if (ReusedResult)
-    {
-      *ReusedResult = false;
-    }
-    if (consumeStep() != ExecutionStatus::Success)
-    {
-      return {LastStatus};
-    }
-    if (Frame.Owner != this || !Frame.Active)
-    {
-      return {LastStatus = ExecutionStatus::InvalidFrame};
-    }
-    if (!EventKey || !Callback)
-    {
-      return {LastStatus = ExecutionStatus::InvalidBinding};
-    }
-    const auto Found = Frame.Events.find(EventKey);
-    if (Found != Frame.Events.end())
-    {
-      if (Found->second.Running)
-      {
-        return {LastStatus = ExecutionStatus::RecursiveEvent};
-      }
-      if (ReusedResult)
-      {
-        *ReusedResult = true;
-      }
-      LastStatus = Found->second.Result.Status;
-      return Found->second.Result;
-    }
-    Frame.Events.emplace(EventKey, ExecutionFrame::Event{});
-    ExecutionResult Result = Callback();
-    // A callback can grow event tables or end the frame. Reacquire by key after it
-    // returns instead of retaining an iterator or a reference across reentrant work.
-    if (!Frame.Active)
-    {
-      return {LastStatus = ExecutionStatus::InvalidFrame};
-    }
-    if (StopStatus != ExecutionStatus::Success)
-    {
-      Result = {StopStatus};
-    }
-    if (Result.Value && !Context.constantPool().owns(*Result.Value))
-    {
-      Result = {ExecutionStatus::ForeignContext};
-    }
-    if (Result.Status == ExecutionStatus::Cancelled || Result.Status == ExecutionStatus::BudgetExceeded)
-    {
-      StopStatus = Result.Status;
-      Frame.Events.erase(EventKey);
-    }
-    else
-    {
-      auto &Event = Frame.Events.find(EventKey)->second;
-      Event.Running = false;
-      Event.Result = Result;
-    }
-    LastStatus = Result.Status;
-    return Result;
-  }
-
-  ExecutionResult ExecutionEngine::call(const ir::Function &Function, ExecutionFrame &DefinitionFrame, std::span<const ir::Value *const> Arguments, const std::function<ExecutionResult(ExecutionFrame &)> &Body)
-  {
-    if (consumeStep() != ExecutionStatus::Success)
-    {
-      return {LastStatus};
-    }
-    if (&Function.context() != &Context)
-    {
-      return {LastStatus = ExecutionStatus::ForeignContext};
-    }
-    if (DefinitionFrame.Owner != this || !DefinitionFrame.Active)
-    {
-      return {LastStatus = ExecutionStatus::InvalidFrame};
-    }
-    const bool External = Function.languageLinkage() == ir::LanguageLinkage::C;
-    if (!External && !Body)
-    {
-      return {LastStatus = ExecutionStatus::MissingBody};
-    }
-    const auto &Parameters = Function.parameters();
-    if (Parameters.size() != Arguments.size())
-    {
-      return {LastStatus = ExecutionStatus::InvalidArguments};
-    }
-    std::vector<ExecutionValueRef> EvaluatedArguments;
-    EvaluatedArguments.reserve(Arguments.size());
-    for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
-    {
-      if (!Arguments[Index])
-      {
-        return {LastStatus = ExecutionStatus::InvalidArguments};
-      }
-      if (&Arguments[Index]->context() != &Context)
-      {
-        return {LastStatus = ExecutionStatus::ForeignContext};
-      }
-      if (!External && &Arguments[Index]->type() != &Parameters[Index]->type())
-      {
-        return {LastStatus = ExecutionStatus::TypeMismatch};
-      }
-      ExecutionValueResult Argument = evaluate(*Arguments[Index], DefinitionFrame);
-      if (!Argument)
-      {
-        return {LastStatus = Argument.Status};
-      }
-      EvaluatedArguments.push_back(std::move(Argument.Value));
-    }
-    ExecutionFrame *Frame = createFrame(ExecutionFrameKind::Call, &DefinitionFrame);
-    if (!Frame)
-    {
-      return {LastStatus};
-    }
-    ExecutionResult Result;
-    {
-      CallFrameGuard Guard(*this, *Frame);
-      for (std::size_t Index = 0; !External && Index < Arguments.size(); ++Index)
-      {
-        const ExecutionPlaceResult Parameter = allocateValue(*Frame, Parameters[Index].get(), Parameters[Index]->type(), true, &EvaluatedArguments[Index]);
-        if (!Parameter)
-        {
-          Result = {Parameter.Status};
-          break;
-        }
-      }
-      if (Result)
-      {
-        Result = External ? freeze(callExternalFunction(Heap, NativeSymbols, Function, EvaluatedArguments)) : Body(*Frame);
-        if (!Frame->active() && Result.Status != ExecutionStatus::Cancelled && Result.Status != ExecutionStatus::BudgetExceeded)
-        {
-          Result = {ExecutionStatus::InvalidFrame};
-        }
-      }
-    }
-    // Cleanup may change LastStatus; terminal execution state takes precedence
-    // over a callback's reported result and can never be swallowed by a caller.
-    if (StopStatus != ExecutionStatus::Success)
-    {
-      Result = {StopStatus};
-    }
-    if (Result.Status == ExecutionStatus::Cancelled || Result.Status == ExecutionStatus::BudgetExceeded)
-    {
-      StopStatus = Result.Status;
-    }
-    if (Result)
-    {
-      const ir::Type &ReturnType = Function.functionType().returnType();
-      if (Result.Value && !Context.constantPool().owns(*Result.Value))
-      {
-        Result = {ExecutionStatus::ForeignContext};
-      }
-      else if (ReturnType.typeKind() == ir::TypeKind::Void ? Result.Value != nullptr : (!Result.Value || &Result.Value->type() != &ReturnType))
-      {
-        Result = {ExecutionStatus::TypeMismatch};
-      }
-    }
-    if (!Result)
-    {
-      Result.Value = nullptr;
-    }
-    LastStatus = Result.Status;
-    return Result;
   }
 } // namespace ink::execution

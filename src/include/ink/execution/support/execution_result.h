@@ -34,7 +34,6 @@ namespace ink::execution
     SymbolNotFound,
     UnsupportedExternalSignature,
     HostAbiMismatch,
-    RecursiveEvent,
     UnsupportedOperation,
     DivisionByZero,
     InvalidShift,

@@ -43,7 +43,6 @@ namespace ink::execution::test
         {ExecutionStatus::SymbolNotFound, DiagnosticKind::ExecutionSymbolNotFound, DiagnosticClass::User, "INK-E0014"},
         {ExecutionStatus::UnsupportedExternalSignature, DiagnosticKind::ExecutionUnsupportedExternalSignature, DiagnosticClass::User, "INK-E0015"},
         {ExecutionStatus::HostAbiMismatch, DiagnosticKind::ExecutionHostAbiMismatch, DiagnosticClass::InternalCompilerError, "INK-E0016"},
-        {ExecutionStatus::RecursiveEvent, DiagnosticKind::ExecutionRecursiveEvent, DiagnosticClass::InternalCompilerError, "INK-E0017"},
         {ExecutionStatus::UnsupportedOperation, DiagnosticKind::ExecutionUnsupportedOperation, DiagnosticClass::InternalCompilerError, "INK-E0018"},
         {ExecutionStatus::DivisionByZero, DiagnosticKind::ExecutionDivisionByZero, DiagnosticClass::User, "INK-E0019"},
         {ExecutionStatus::InvalidShift, DiagnosticKind::ExecutionInvalidShift, DiagnosticClass::User, "INK-E0020"},

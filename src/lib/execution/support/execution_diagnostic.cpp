@@ -60,9 +60,6 @@ namespace ink::execution
     case ExecutionStatus::HostAbiMismatch:
       Entry = core::makeDiagnostic<core::DiagnosticKind::ExecutionHostAbiMismatch>(Span, Context);
       break;
-    case ExecutionStatus::RecursiveEvent:
-      Entry = core::makeDiagnostic<core::DiagnosticKind::ExecutionRecursiveEvent>(Span, Context);
-      break;
     case ExecutionStatus::UnsupportedOperation:
       Entry = core::makeDiagnostic<core::DiagnosticKind::ExecutionUnsupportedOperation>(Span, Context);
       break;

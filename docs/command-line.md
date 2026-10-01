@@ -39,7 +39,7 @@ inkc --interpret [--entry NAME] --input FILE
 
 处理流程为源码 → tokenizer → parser AST → semantic IR → 选择入口 → `ExecutionEngine::execute()`。入口必须是模块内可唯一选择的零参数普通 Ink 函数，具有可执行 IR 函数体，返回 `void` 或有符号 `i32`。C 链接函数、仅声明而没有函数体的函数及编译期专用函数不能作为入口；程序实参传递尚未接入。
 
-解释器当前执行直线 Alloca、Store、Load、整数 Add、CString、Call 和 Return，以及块内函数声明。普通 if/循环 IR、聚合执行及完整后端编译仍未实现；编译期 AST 求值的控制流支持不意味着普通 IR 已有相同支持。
+解释器当前执行直线 Alloca、Store、Load、整数 Add、CString、Call 和 Return，以及块内函数声明。普通 if/循环 IR、聚合执行及完整后端编译仍未实现；非泛型函数的编译期调用同样执行生成的 IR，受相同能力限制；显式 `comptime` 语句块和静态循环仍可在语义分析期间求值或展开。
 
 `inkc` 不打印 AST 或 IR。编译和执行诊断写入 stderr，源程序调用 `_write` / `write` 等原生函数产生的 stdout 保持为程序输出。成功执行 void 入口时退出码为 0，i32 入口的结果作为进程退出码；shell 如何显示该值遵循宿主平台的进程退出约定。
 

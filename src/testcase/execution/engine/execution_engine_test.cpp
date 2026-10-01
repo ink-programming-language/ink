@@ -1,11 +1,14 @@
 #include "ink/execution/engine/execution_engine.h"
 #include "ink/ir/context.h"
+#include "ink/ir/ir_builder.h"
 #include "ink/tokenizer/token.h"
 
 #include <gtest/gtest.h>
 
 #include <cstdint>
 #include <limits>
+#include <memory>
+#include <span>
 
 namespace ink::execution::test
 {
@@ -24,6 +27,13 @@ namespace ink::execution::test
         const ir::IntegerConstant &integer(std::uint64_t Bits)
         {
           return *Context.constantPool().getIntegerConstant(Int32, ir::IntegerBits(32, Bits));
+        }
+
+        std::unique_ptr<ir::Function> function()
+        {
+          ir::IRBuilder Builder(Context);
+          const auto *Signature = Context.typePool().getType<ir::TypeKind::Function>(Int32, std::span<const ir::Type *const>{});
+          return Signature ? Builder.createFunction(Context.namePool().intern("F"), *Signature) : nullptr;
         }
 
         core::CompilationContext Compilation;
@@ -50,124 +60,6 @@ namespace ink::execution::test
     ASSERT_TRUE(After.succeeded());
     EXPECT_EQ(After.Value, &Test.integer(10));
     EXPECT_EQ(Before.Value, &Test.integer(1));
-  }
-
-  // Repeated semantic requests for one initializer return its saved result and do not increment the module twice.
-  TEST(ExecutionEngineTest, RepeatedEventCommitsItsSideEffectOnce)
-  {
-    TestContext Test;
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    int CounterBinding = 0;
-    int Initializer = 0;
-    const auto Counter = Test.Engine.allocate(*Module, &CounterBinding, Test.Int32, true, &Test.integer(0));
-    ASSERT_TRUE(Counter.succeeded());
-    unsigned Executions = 0;
-    auto Increment = [&]() -> ExecutionResult
-    {
-      ++Executions;
-      const ExecutionResult Current = Test.Engine.load(Counter.Place);
-      if (!Current.succeeded())
-      {
-        return Current;
-      }
-      const ExecutionResult Next = Test.Engine.evaluateBinary(tokenizer::TokenKind::Plus, *Current.Value, Test.integer(1));
-      if (!Next.succeeded())
-      {
-        return Next;
-      }
-      const ExecutionStatus Stored = Test.Engine.store(Counter.Place, *Next.Value);
-      return {Stored, Stored == ExecutionStatus::Success ? Next.Value : nullptr};
-    };
-    const ExecutionResult First = Test.Engine.executeOnce(*Module, &Initializer, Increment);
-    ASSERT_TRUE(First.succeeded());
-    ASSERT_EQ(Test.Engine.store(Counter.Place, Test.integer(10)), ExecutionStatus::Success);
-    const ExecutionResult Repeated = Test.Engine.executeOnce(*Module, &Initializer, Increment);
-    ASSERT_TRUE(Repeated.succeeded());
-    EXPECT_EQ(Executions, 1U);
-    EXPECT_EQ(First.Value, &Test.integer(1));
-    EXPECT_EQ(Repeated.Value, First.Value);
-    EXPECT_EQ(Test.Engine.load(Counter.Place).Value, &Test.integer(10));
-    int LaterInitializer = 0;
-    const ExecutionResult Later = Test.Engine.executeOnce(*Module, &LaterInitializer, Increment);
-    ASSERT_TRUE(Later.succeeded());
-    EXPECT_EQ(Later.Value, &Test.integer(11));
-    EXPECT_EQ(Test.Engine.load(Counter.Place).Value, &Test.integer(11));
-    EXPECT_EQ(Executions, 2U);
-  }
-
-  // A new call or iteration frame executes the same source event again with independent completion state.
-  TEST(ExecutionEngineTest, SameEventRunsAgainInANewFrame)
-  {
-    ExecutionLimits Limits;
-    Limits.MaxCallDepth = 1;
-    TestContext Test(Limits);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    int Event = 0;
-    unsigned Executions = 0;
-    auto Evaluate = [&]() -> ExecutionResult
-    {
-      ++Executions;
-      return {ExecutionStatus::Success, &Test.integer(Executions)};
-    };
-    ExecutionFrame *First = Test.Engine.createFrame(ExecutionFrameKind::Call, Module);
-    ASSERT_NE(First, nullptr);
-    EXPECT_EQ(Test.Engine.executeOnce(*First, &Event, Evaluate).Value, &Test.integer(1));
-    ASSERT_EQ(Test.Engine.endFrame(*First), ExecutionStatus::Success);
-    ExecutionFrame *Second = Test.Engine.createFrame(ExecutionFrameKind::Call, Module);
-    ASSERT_NE(Second, nullptr);
-    EXPECT_EQ(Test.Engine.executeOnce(*Second, &Event, Evaluate).Value, &Test.integer(2));
-    EXPECT_EQ(Executions, 2U);
-  }
-
-  // A failed initializer is cached without replaying side effects or reporting diagnostics at the execution layer.
-  TEST(ExecutionEngineTest, FailedEventDoesNotRepeatPartialSideEffects)
-  {
-    TestContext Test;
-    core::CollectingDiagnosticConsumer Diagnostics;
-    Test.Compilation.diagnosticEngine().addConsumer(Diagnostics);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    int Event = 0;
-    unsigned Executions = 0;
-    auto Fail = [&]() -> ExecutionResult
-    {
-      ++Executions;
-      return {ExecutionStatus::DivisionByZero, nullptr};
-    };
-    bool ReusedResult = true;
-    EXPECT_EQ(Test.Engine.executeOnce(*Module, &Event, Fail, &ReusedResult).Status, ExecutionStatus::DivisionByZero);
-    EXPECT_FALSE(ReusedResult);
-    EXPECT_TRUE(Diagnostics.diagnostics().empty());
-    EXPECT_EQ(Test.Engine.executeOnce(*Module, &Event, Fail, &ReusedResult).Status, ExecutionStatus::DivisionByZero);
-    EXPECT_TRUE(ReusedResult);
-    EXPECT_TRUE(Diagnostics.diagnostics().empty());
-    EXPECT_EQ(Executions, 1U);
-  }
-
-  // Reentering an unfinished event reports a dependency cycle instead of recursively rerunning its callback.
-  TEST(ExecutionEngineTest, RecursiveEventReportsCycleWithoutReentry)
-  {
-    TestContext Test;
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    int Event = 0;
-    unsigned NestedExecutions = 0;
-    auto Nested = [&]() -> ExecutionResult
-    {
-      ++NestedExecutions;
-      return {ExecutionStatus::Success, &Test.integer(1)};
-    };
-    auto Outer = [&]() -> ExecutionResult
-    {
-      bool ReusedResult = true;
-      const ExecutionResult Result = Test.Engine.executeOnce(*Module, &Event, Nested, &ReusedResult);
-      EXPECT_FALSE(ReusedResult);
-      return Result;
-    };
-    EXPECT_EQ(Test.Engine.executeOnce(*Module, &Event, Outer).Status, ExecutionStatus::RecursiveEvent);
-    EXPECT_EQ(NestedExecutions, 0U);
   }
 
   // A runtime local stays unavailable to compilation even when another compile-time expression produced its initializer.
@@ -394,47 +286,25 @@ namespace ink::execution::test
     EXPECT_EQ(Test.Engine.consumeStep(), ExecutionStatus::BudgetExceeded);
   }
 
-  // Cancellation prevents an event callback from starting or committing any side effect.
-  TEST(ExecutionEngineTest, CancellationPreventsEventExecution)
+  // Cancellation prevents IR execution from starting, creating storage or emitting diagnostics.
+  TEST(ExecutionEngineTest, CancellationPreventsCallExecution)
   {
     TestContext Test;
+    auto Function = Test.function();
+    ASSERT_NE(Function, nullptr);
+    ir::IRBuilder Builder(Test.Context);
+    auto *Body = Builder.createFunctionBody(*Function);
+    ASSERT_NE(Body, nullptr);
+    ASSERT_TRUE(Builder.setInsertPoint(*Body));
+    ASSERT_NE(Builder.createAllocaInstruction(Test.Int32), nullptr);
+    ASSERT_NE(Builder.createReturnInstruction(&Test.integer(1)), nullptr);
     core::CollectingDiagnosticConsumer Diagnostics;
     Test.Compilation.diagnosticEngine().addConsumer(Diagnostics);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    int Event = 0;
-    unsigned Executions = 0;
-    auto Evaluate = [&]() -> ExecutionResult
-    {
-      ++Executions;
-      return {ExecutionStatus::Success, &Test.integer(1)};
-    };
     Test.Engine.cancel();
     EXPECT_EQ(Test.Engine.consumeStep(), ExecutionStatus::Cancelled);
-    EXPECT_EQ(Test.Engine.executeOnce(*Module, &Event, Evaluate).Status, ExecutionStatus::Cancelled);
-    EXPECT_EQ(Executions, 0U);
+    EXPECT_EQ(Test.Engine.execute(*Function).Status, ExecutionStatus::Cancelled);
+    EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
-  }
-
-  // A callback cannot hide cancellation by returning success after the engine has been stopped.
-  TEST(ExecutionEngineTest, CancellationDuringEventOverridesItsReturnedValue)
-  {
-    TestContext Test;
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    int Event = 0;
-    unsigned Executions = 0;
-    auto Evaluate = [&]() -> ExecutionResult
-    {
-      ++Executions;
-      Test.Engine.cancel();
-      return {ExecutionStatus::Success, &Test.integer(1)};
-    };
-    const ExecutionResult Result = Test.Engine.executeOnce(*Module, &Event, Evaluate);
-    EXPECT_EQ(Result.Status, ExecutionStatus::Cancelled);
-    EXPECT_EQ(Result.Value, nullptr);
-    EXPECT_EQ(Test.Engine.executeOnce(*Module, &Event, Evaluate).Status, ExecutionStatus::Cancelled);
-    EXPECT_EQ(Executions, 1U);
   }
 
   // Recursive calls sharing a module definition environment still count against the dynamic call-depth budget.
@@ -478,41 +348,26 @@ namespace ink::execution::test
     EXPECT_EQ(Snapshot.Value, &Test.integer(1));
   }
 
-  // A callback that exhausts a budget cannot replay already performed side effects on a later request.
-  TEST(ExecutionEngineTest, BudgetFailurePreventsEventReplay)
-  {
-    TestContext Test;
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    int Event = 0;
-    unsigned Executions = 0;
-    auto Exhaust = [&]() -> ExecutionResult
-    {
-      ++Executions;
-      return {ExecutionStatus::BudgetExceeded, nullptr};
-    };
-    EXPECT_EQ(Test.Engine.executeOnce(*Module, &Event, Exhaust).Status, ExecutionStatus::BudgetExceeded);
-    EXPECT_EQ(Test.Engine.executeOnce(*Module, &Event, Exhaust).Status, ExecutionStatus::BudgetExceeded);
-    EXPECT_EQ(Executions, 1U);
-  }
-
-  // An exhausted engine rejects an event result even when its callback accidentally returns success.
-  TEST(ExecutionEngineTest, ExhaustedStepBudgetOverridesCallbackSuccess)
+  // Exhausting the instruction budget releases allocated locals, discards the result and prevents later invocations.
+  TEST(ExecutionEngineTest, ExhaustedStepBudgetStopsBodyAndReleasesStorage)
   {
     ExecutionLimits Limits;
-    Limits.MaxSteps = 2;
+    Limits.MaxSteps = 4;
     TestContext Test(Limits);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    int Event = 0;
-    auto Evaluate = [&]() -> ExecutionResult
-    {
-      EXPECT_EQ(Test.Engine.consumeStep(), ExecutionStatus::BudgetExceeded);
-      return {ExecutionStatus::Success, &Test.integer(1)};
-    };
-    const ExecutionResult Result = Test.Engine.executeOnce(*Module, &Event, Evaluate);
+    auto Function = Test.function();
+    ASSERT_NE(Function, nullptr);
+    ir::IRBuilder Builder(Test.Context);
+    auto *Body = Builder.createFunctionBody(*Function);
+    ASSERT_NE(Body, nullptr);
+    ASSERT_TRUE(Builder.setInsertPoint(*Body));
+    ASSERT_NE(Builder.createAllocaInstruction(Test.Int32), nullptr);
+    ASSERT_NE(Builder.createReturnInstruction(&Test.integer(1)), nullptr);
+    const auto Result = Test.Engine.execute(*Function);
     EXPECT_EQ(Result.Status, ExecutionStatus::BudgetExceeded);
-    EXPECT_EQ(Result.Value, nullptr);
+    EXPECT_FALSE(Result.Value.valid());
+    EXPECT_EQ(Test.Engine.lastStatus(), ExecutionStatus::BudgetExceeded);
+    EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
+    EXPECT_EQ(Test.Engine.execute(*Function).Status, ExecutionStatus::BudgetExceeded);
   }
 
   // Boolean operators produce canonical boolean constants and reject integer-only arithmetic on bool values.

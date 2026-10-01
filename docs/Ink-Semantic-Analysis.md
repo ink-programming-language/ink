@@ -50,7 +50,7 @@ func main(): i32
 | 文件 | 职责 |
 | --- | --- |
 | `analyzer.cpp` | 模块分析入口、未支持诊断，以及 `MissingStmt`、`ErrorStmt`、`MissingDecl`、`ErrorDecl` 的未支持处理 |
-| `analyzer_evaluation.cpp` | 公共编译期求值入口、求值事件、函数执行桥接与执行状态诊断 |
+| `analyzer_evaluation.cpp` | 公共编译期直接求值入口、函数执行桥接与执行状态诊断 |
 | `analyzer_internal.h` | 各实现文件共享的私有 `AnalysisState`、`ExpressionResult` 定义与辅助函数声明 |
 | `expr/analyzer_expr.cpp` | 表达式分派与嵌套深度检查 |
 | `expr/analyzer_binary.cpp` | 二元运算与布尔短路 |
@@ -76,27 +76,26 @@ func main(): i32
 | `decl/analyzer_interface.cpp` | 接口声明 |
 | `type/analyzer_type.cpp` | 基础类型名称、括号类型、指针与引用类型解析 |
 
-comptime 复用普通 AST 节点上的 `isComptime()` 标记。`SemanticContext::comptimeState()` 持有 `ink::execution::ExecutionEngine`、编译期变量的稳定绑定描述和函数定义环境。模块从首句到末句完成分析及编译期执行，模块对象持续可写；每次计算得到的常量保存当时快照，后续修改不会改变已生成的常量。分析帧保存局部编译期变量，实际编译期调用另建调用帧；普通运行时局部仅生成 alloca/store/load，不分配编译期对象。
+comptime 复用普通 AST 节点上的 `isComptime()` 标记。`SemanticContext::comptimeState()` 持有 `ink::execution::ExecutionEngine`、编译期变量的稳定绑定描述和函数的编译期专用标记及诊断来源。模块从首句到末句完成分析及编译期执行，模块对象持续可写；每次计算得到的常量保存当时快照，后续修改不会改变已生成的常量。分析帧保存局部编译期变量，实际编译期调用另建调用帧；普通运行时局部仅生成 alloca/store/load，不分配编译期对象。
 
 当前支持整数/bool 编译期变量与常量、显式编译期表达式和块、赋值及复合赋值、前后缀递增递减、整数运算/比较和 bool 短路。`comptime if` 选择活动分支，`comptime while/for` 按每轮独立帧展开；完整编译期块中的普通 if/while/for 按实际路径执行，支持 break/continue。运行时函数仍只支持直线 IR，普通运行时 if/循环保持未实现。编译期变量可变，`const` 不可写；`var B = comptime Expr` 的 B 仍是运行时变量，其值不能被后续编译期表达式读取。
 
 编译期变量也可保存浮点常量和字符串常量，用于保存外部函数结果或后续传参。浮点常量目前可来自外部函数；这不增加浮点字面量解析或浮点算术支持。字符串变量保存不可变常量，其外部指针参数转换使用本次调用的独立副本。
 
-定参 Ink 函数的实际编译期调用重新解释 AST，使用定义时可见绑定的 `ScopeStore::snapshotScope()` 快照及同一模块可变存储。名称和重载集合不会因后续声明改变，对象内容仍读取调用时的值。`ExecutionEngine::call()` 负责实参归属与类型校验、建立独立调用帧、分配参数对象、校验返回结果和退出清理；语义层的回调只绑定参数名字并执行 AST 函数体。每次调用独立绑定参数和局部变量，退出后返回常量仍有效；编译期调用不创建运行时调用指令。`extern "C"` 调用进入外部函数适配，无需 Ink 函数体回调。
+所有非泛型 Ink 函数在定义位置检查并生成 IR 函数体，包括显式 `comptime func`。编译期调用将已求值的实参转换为 `ExecutionValueRef`，通过 `ExecutionEngine::execute()` 执行该 IR，再将可表示的返回值转换为常量。每次调用建立独立帧，保存形参值、局部对象和 SSA 结果；不保存供调用时重新解释的函数 AST、定义作用域快照或函数体回调。名称绑定、重载选择和函数体中的编译期常量已在生成 IR 时确定，后续声明及模块对象修改不会改变已生成的 IR。`extern "C"` 调用由同一执行入口进入外部函数适配。
 
-普通函数仍在声明位置依次分析其运行时函数体。显式 `comptime func` 要求有 Ink 函数体，在声明处检查签名并保存定义环境，函数体在实际编译期调用时检查和执行活动路径，支持参数、局部变量、if、while、经典 for、break/continue、return 及递归。此类函数不生成运行时函数体，运行时调用或把它作为运行时值使用会报告 `SemanticComptimeFunctionAtRuntime`；缺少函数体和非 Ink 语言链接分别报告 `SemanticComptimeFunctionRequiresBody` 和 `SemanticComptimeFunctionLinkage`。未调用函数的函数体不提前执行，也不检查未执行路径；泛型函数体延迟检查和在执行中生成嵌套函数声明仍未实现。
+显式 `comptime func` 要求有 Ink 函数体，即使未调用也检查函数体；运行时调用或把它作为运行时值使用会报告 `SemanticComptimeFunctionAtRuntime`。缺少函数体和非 Ink 语言链接分别报告 `SemanticComptimeFunctionRequiresBody` 和 `SemanticComptimeFunctionLinkage`。普通函数与编译期函数共同支持当前直线 IR 的参数读取、局部存储、整数加法、嵌套调用及返回；参数相关的普通 if/while/for、非加法运算、复合赋值及参数写入仍按普通函数规则诊断。显式 `comptime if/while/for` 可以在定义处选择或展开代码，其条件不能依赖尚未取得实参的普通形参。泛型函数保留 AST 并延迟实例化的流程仍待实现。
 
 ```ink
-comptime func Factorial(N: i32): i32
+comptime func AddOne(X: i32): i32
 {
-  if (N <= 1) { return 1; }
-  return N * Factorial(N - 1);
+  return X + 1;
 }
 
-func Value(): i32 { return comptime Factorial(5); }
+func Value(): i32 { return comptime AddOne(5); }
 ```
 
-`executeOnce()` 仅用于当前分析帧中的静态求值事件，初始化表达式只执行一次，后续转换、存储和产物生成复用结果。实际调用及完整编译期循环直接执行 AST，不按节点地址缓存数值；静态循环每轮使用新展开帧。预算耗尽或取消会停止对应引擎，避免在已发生部分副作用的状态上重放请求。`ExecutionLimits` 的全部默认值通过 `ConfigManager::getSize()` 读取：`INK_EXECUTION_MAX_STEPS` 默认 100000、`INK_EXECUTION_MAX_OBJECTS` 默认 16384、`INK_EXECUTION_MAX_CALL_DEPTH` 默认 256、`INK_EXECUTION_MAX_EVALUATION_DEPTH` 默认 64。Limits 构造时读取快照，非法配置回退到 `config.def` 默认值，显式设置字段优先；最后一项保护当前递归 AST 执行实现的宿主栈。`endFrame()` 和求值深度退出在失败后仍允许清理状态。
+显式编译期表达式由语义层按源码顺序和实际控制流求值，其中的函数调用执行已生成 IR。声明到达初始化位置时取得结果，后续转换、存储和产物生成使用该结果；初始化结果存入对象后，读取变量取得对象当前值，不重新执行初始化表达式。每次 IR 调用及每轮编译期循环建立独立帧，执行各自的指令或静态展开路径。预算耗尽或取消会停止对应引擎，避免在已发生部分副作用的状态上重放请求。`ExecutionLimits` 的全部默认值通过 `ConfigManager::getSize()` 读取：`INK_EXECUTION_MAX_STEPS` 默认 100000、`INK_EXECUTION_MAX_OBJECTS` 默认 16384、`INK_EXECUTION_MAX_CALL_DEPTH` 默认 256、`INK_EXECUTION_MAX_EVALUATION_DEPTH` 默认 64。Limits 构造时读取快照，非法配置回退到 `config.def` 默认值，显式设置字段优先；最后一项共同保护语义求值及嵌套 IR 调用的宿主栈。`endFrame()` 和求值深度退出在失败后仍允许清理状态。
 
 执行引擎和帧直接保存状态，不使用 Impl。项目自有的 `ExecutionInteger` 提供精确位宽整数运算，使用标准无符号运算实现进位、借位、乘除和移位，不依赖 LLVM APInt 或宿主有符号溢出行为；常量池边界仍使用 `ir::IntegerBits`。
 
@@ -120,9 +119,9 @@ execution 的公共头与实现按 `engine/`、`memory/`、`value/`、`support/`
 
 [`ExecutionHeap`](../src/include/ink/execution/memory/execution_heap.h) 作为值和存储的统一创建入口，工厂校验类型、上下文和载荷，失败返回空 `ExecutionValueRef` 并提供显式状态。`ExecutionValueResult` 保存状态和一个值引用，默认结果为失败；`Success` 配空引用会规范化为 `InvalidArguments`。非空引用与当前有效性分开：指针结果可以在返回后因存储结束而失效，此时仍能查询其种类和失效状态。运行中间结果不进入 `ConstantPool`。
 
-`ExecutionEngine::execute(const ir::Function &, std::span<const ExecutionValueRef>)` 执行指定普通函数的 IR 入口，返回 `ExecutionValueResult`。每次调用建立独立调用帧，绑定参数并按入口基本块的指令顺序执行。当前支持 `AllocaInstruction`、`StoreInstruction`、`LoadInstruction`、整数 `AddInstruction`、`CStringInstruction`、`CallInstruction` 和 `ReturnInstruction`，包括嵌套 Ink 调用及 C 外部调用；基本块内的 Function 声明作为函数值处理。尚无普通 if/循环 IR 执行，也不会把多个基本块的存储顺序当成控制流。
+`ExecutionEngine::execute(const ir::Function &, std::span<const ExecutionValueRef>)` 执行指定具体函数的 IR 入口，返回 `ExecutionValueResult`。每次调用建立独立调用帧，绑定参数并按入口基本块的指令顺序执行。当前支持 `AllocaInstruction`、`StoreInstruction`、`LoadInstruction`、整数 `AddInstruction`、`CStringInstruction`、`CallInstruction` 和 `ReturnInstruction`，包括嵌套 Ink 调用及 C 外部调用；基本块内的 Function 声明通过 `makeFunctionValue()` 构造函数值，该操作不执行函数体。`executeInstruction()` 将指令分派到 `engine/instruction/` 下每种指令独立的实现文件。尚无普通 if/循环 IR 执行，也不会把多个基本块的存储顺序当成控制流。
 
-调用帧保存该次激活的 SSA 结果。`evaluate(Value, Frame)` 读取常量、函数、已执行指令的快照或当前绑定，不隐式执行尚未到达的指令；未取得的值返回 `RuntimeValue`。一次 Call 产生的结果被后续多个操作数使用时只读取快照，不重新调用函数。SSA 结果不保存在 IR 节点上，不跨调用复用，也不同于 `executeOnce()` 的静态语义事件缓存。
+调用帧保存该次激活的 SSA 结果。`evaluate(Value, Frame)` 读取常量、函数、已执行指令的快照或当前绑定，不隐式执行尚未到达的指令；未取得的值返回 `RuntimeValue`。一次 Call 产生的结果被后续多个操作数使用时只读取快照，不重新调用函数。SSA 结果保存在当前调用帧的结果表中，不保存在 IR 节点上，也不跨调用复用。
 
 `ExecutionStorage` 与值对象同属 `ExecutionObject` 体系，具体存储由 Heap 唯一拥有：`ExecutionCell` 保存带类型、可替换的 `ExecutionValueRef` 及可写性和运行时占位状态，`ExecutionBuffer` 保存固定大小的字节数组。`allocateValue()`、`loadValue()` 和 `storeValue()` 通过 Cell 检查类型、初始化、可写性及生命周期。赋值替换 Cell 当前的值引用，已读取的不可变值快照不随之改变。Alloca 的地址是 `ExecutionPlace` 身份，指针别名读写同一 Cell；不会把 Cell 的 C++ 地址暴露为宿主缓冲区。
 
@@ -132,11 +131,11 @@ execution 的公共头与实现按 `engine/`、`memory/`、`value/`、`support/`
 
 `CStringInstruction` 创建的缓冲区由 Heap 分配，释放时机归执行该指令的函数帧管理；该函数返回时真正释放缓冲区，FFI 返回别名仍只是指向同一分配身份的弱句柄，再访问报告 `ExpiredPlace`。例如被调用的 Ink 函数创建 CString 并返回其内部地址，调用者不能继续通过该地址读取或调用原生函数。执行对象继承及 Heap 管理目前不包含 Ink class 实例、字段位置或聚合值的执行语义。
 
-原有 `load()` 和 `call()` 保留 `ExecutionResult`，服务于语义分析中的常量边界。`call()` 仍接收 `std::span<const ir::Value *const>`，先在给定帧读取已求值载荷，再绑定 AST 调用参数或进入 FFI。`ExecutionValueRef::toConstant()` 转发到值对象，仅将同一上下文的 bool、整数、浮点和字符串冻结为常量；指针和函数拒绝冻结，void 由旧接口表示为成功且无常量结果。普通 `execute()` 保留执行值引用，不要求结果一定可表示为 IR 常量。
+`allocate()`、`load()` 和 `store()` 是语义分析中常量边界的适配入口，负责常量与执行值之间的转换，并分别复用 `allocateValue()`、`loadValue()`、`storeValue()` 的存储实现。`load()` 返回 `ExecutionResult`；函数调用统一使用 `execute()` 并返回 `ExecutionValueResult`。`ExecutionValueRef::toConstant()` 转发到值对象，仅将同一上下文的 bool、整数、浮点和字符串冻结为常量；指针和函数拒绝冻结，void 表示为成功且无常量结果。语义层在编译期调用的返回边界完成冻结，普通执行保留执行值引用，不要求结果一定可表示为 IR 常量。
 
 ### 编译期外部调用
 
-`ExecutionEngine::call()` 和 IR 执行遇到 C 链接函数时，使用同一外部调用路径，在当前宿主进程的已加载符号中查找声明的原始名字，不加载新的动态库，不改写符号名。C 链接调用不执行 Ink 函数体或传入的 AST 回调；源码声明即使带有函数体也遵循这一规则。Linux 使用 `dlsym(RTLD_DEFAULT, ...)`；Windows 使用 `GetProcAddress`，依次搜索当前可执行文件、当前 CRT 和其他已加载模块。Windows 源码直接声明 `_write`，Linux 源码声明 `write`。
+`ExecutionEngine::execute()` 遇到 C 链接函数时，使用同一外部调用路径，在当前宿主进程的已加载符号中查找声明的原始名字，不加载新的动态库，不改写符号名。C 链接调用不执行 Ink 函数体；源码声明即使带有函数体也遵循这一规则。Linux 使用 `dlsym(RTLD_DEFAULT, ...)`；Windows 使用 `GetProcAddress`，依次搜索当前可执行文件、当前 CRT 和其他已加载模块。Windows 源码直接声明 `_write`，Linux 源码声明 `write`。
 
 `ffi/external_function.cpp` 校验公共调用条件并查找符号；`ffi/native_symbol.cpp` 单独封装平台 API；`ffi/ffi_type.cpp` 按参数或返回值用途把 IR `Type` 映射为 libffi 类型；`ffi/ffi_argument.cpp` 通过 `FfiArgument` 把 `ExecutionValueRef` 转为原生参数，并负责本次调用临时缓冲区的释放；缓冲区本身由调用者传入的 Heap 唯一拥有。`ffi/ffi_call.cpp` 分别执行调用校验、签名准备、参数准备、原生调用和返回值转换。execution 链接仓库已有的 `ink::libffi`，不定义针对某个函数的 C++ 签名，也没有函数名称白名单。外部调用要求 `TargetContext::native()`，符号不存在返回 `SymbolNotFound`，尚无法封送的签名返回 `UnsupportedExternalSignature`。
 
@@ -162,13 +161,13 @@ extern "C" func _write(Fd: i32, Buffer: *u8, Count: u32): i32;
 comptime var Written: i32 = _write(1, "hello\n", 6);
 ```
 
-直接传入 FFI 的字符串执行值按原始 UTF-8 字节复制到调用者 Heap 中本次调用独有的可写 `ExecutionBuffer`，保留内嵌 NUL，并追加一个结尾 NUL。若原生函数返回该缓冲区内或尾后的地址，结果保存弱存储身份及偏移，调用层通过 `FfiArgument::promoteBuffer()` 明确撤销参数对象的临时清理责任，改由 Heap 保留副本直到显式 `release()` 或 Heap 销毁；返回指针本身不保活缓冲区。其余副本随参数对象在调用结束时立即释放，独立使用 `FfiArgument` 时则在重新准备或销毁时释放。原字符串和常量池内容不受写入影响，外部函数仅保存裸指针不会触发生命周期提升。已有缓冲区指针保留原有释放规则，FFI 返回别名不会提升 CString 等帧缓冲区的生命周期。编译期字符串适配不生成 `CStringInstruction`。通用调用层不推断长度参数、输入输出方向或错误码的含义，不执行函数专属的长度检查、CRT handler 安装或 SIGPIPE 处理；这些行为遵循实际原生函数的契约。源程序调用产生的输出属于其外部副作用，编译器自身日志仍使用 spdlog。
+直接传入 FFI 的字符串执行值按原始 UTF-8 字节复制到调用者 Heap 中本次调用独有的可写 `ExecutionBuffer`，保留内嵌 NUL，并追加一个结尾 NUL。若原生函数返回该缓冲区内或尾后的地址，结果保存弱存储身份及偏移，调用层通过 `FfiArgument::promoteBuffer()` 明确撤销参数对象的临时清理责任，改由 Heap 保留副本直到显式 `release()` 或 Heap 销毁；返回指针本身不保活缓冲区。其余副本随参数对象在调用结束时立即释放，独立使用 `FfiArgument` 时则在重新准备或销毁时释放。原字符串和常量池内容不受写入影响，外部函数仅保存裸指针不会触发生命周期提升。已有缓冲区指针保留原有释放规则，FFI 返回别名不会提升 CString 等帧缓冲区的生命周期。直接从语义求值进入 FFI 的字符串适配不生成 `CStringInstruction`；已生成的函数 IR 中仍使用该指令。通用调用层不推断长度参数、输入输出方向或错误码的含义，不执行函数专属的长度检查、CRT handler 安装或 SIGPIPE 处理；这些行为遵循实际原生函数的契约。源程序调用产生的输出属于其外部副作用，编译器自身日志仍使用 spdlog。
 
-外部调用遵守相同的执行预算和调用深度限制；静态语义事件去重与每次 IR 调用帧的 SSA 结果分别管理副作用。编译期测试从源码经过 tokenizer、parser 和 Analyzer 验证外部调用；[`entry_execution_test.cpp`](../src/testcase/semantic/entry_execution_test.cpp) 另覆盖“源码 → tokenizer/parser AST → semantic IR → 查找普通 Entry 函数 → `Engine.execute()` → `_write`/`write` → 管道断言”，检查运行时参数、嵌套调用、UTF-8 字节、返回值及同一调用结果多次使用不重复写入。指针测试覆盖原生返回地址经过局部存储再传给外部函数，以及 CString 逃逸后的失效；独立 ABI 测试覆盖标量、指针、void、零参数、多参数和字符串副本。
+外部调用遵守相同的执行预算和调用深度限制。编译期调用按源码顺序和实际控制流执行，后续读取已初始化对象不会重跑其外部初始化调用；IR 调用完成后的多次读取使用当前调用帧的 SSA 结果。编译期测试从源码经过 tokenizer、parser 和 Analyzer 验证外部调用；[`entry_execution_test.cpp`](../src/testcase/semantic/entry_execution_test.cpp) 另覆盖“源码 → tokenizer/parser AST → semantic IR → 查找普通 Entry 函数 → `Engine.execute()` → `_write`/`write` → 管道断言”，检查运行时参数、嵌套调用、UTF-8 字节、返回值及同一调用结果多次使用不重复写入。指针测试覆盖原生返回地址经过局部存储再传给外部函数，以及 CString 逃逸后的失效；独立 ABI 测试覆盖标量、指针、void、零参数、多参数和字符串副本。
 
 执行引擎及底层算术、存储操作通过 `ExecutionStatus` 返回结果，不直接输出诊断。[`makeExecutionDiagnostic()`](../src/include/ink/execution/support/execution_diagnostic.h) 将失败状态、源码位置和调用上下文转换为 Core 的具体 `Execution*` 诊断，由语义或 CLI 调用边界交给 `DiagnosticEngine` 报告，已报告的失败在传播时不重复报告。诊断编号、默认原因文案和格式模板统一定义在 Core；原因文案不绑定编译期或运行时，调用方分别提供编译期求值或入口执行上下文。`Success` 和 `Cancelled` 不生成诊断，取消仍作为失败状态向上传播。
 
-运行时值读取、除零、非法移位、整数溢出、只读对象写入、未初始化或失效对象读取、类型和实参不符、缺失函数体、外部符号缺失及不支持的外部函数签名分别报告对应的用户错误。无效帧、绑定、位置或 Context、递归事件依赖、未支持的执行操作、宿主 ABI 不匹配及执行预算耗尽属于 ICE；底层仍返回状态，边界报告 ICE 时遵循 Core 的立即 panic 策略。旧通用诊断 `SemanticComptimeFailure` 已移除，编号 `INK-S0021` 保留而不复用。
+运行时值读取、除零、非法移位、整数溢出、只读对象写入、未初始化或失效对象读取、类型和实参不符、缺失函数体、外部符号缺失及不支持的外部函数签名分别报告对应的用户错误。无效帧、绑定、位置或 Context、未支持的执行操作、宿主 ABI 不匹配及执行预算耗尽属于 ICE；底层仍返回状态，边界报告 ICE 时遵循 Core 的立即 panic 策略。旧通用诊断 `SemanticComptimeFailure` 已移除，编号 `INK-S0021` 保留而不复用。
 
 语义层提前发现的非法赋值保留 `SemanticInvalidAssignment`。完整编译期块不能通过 return 越过运行时函数边界，违反时报告 `SemanticComptimeReturnAcrossRuntimeBoundary`。类型元值、聚合、通用指针算术与目标布局、defer/yield、泛型、导入和完整闭合验证仍未接入；不支持的编译期执行操作显式失败，不调用运行时后端。
 

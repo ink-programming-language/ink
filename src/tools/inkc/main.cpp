@@ -175,8 +175,8 @@ namespace
       const auto Definition = Context.comptimeState().Functions.find(&Entry);
       if (Definition != Context.comptimeState().Functions.end())
       {
-        Source = Definition->second.Input->lexedFile().sourceId();
-        Span = Definition->second.AST->name().Range;
+        Source = Definition->second.Source;
+        Span = Definition->second.NameRange;
       }
       if (const auto Diagnostic = ink::execution::makeExecutionDiagnostic(Result.Status, Source, Span, "execution of entry '" + EntryName + "' failed"))
       {

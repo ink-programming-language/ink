@@ -192,7 +192,7 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticArgumentCount>(Node.getSourceRange(), Parameters.size(), Arguments.size());
       return {};
     }
-    if (!State.Evaluating && Function::classof(Selected))
+    if (!State.Evaluating && !State.ComptimeFunction && Function::classof(Selected))
     {
       const auto &Functions = State.Context.comptimeState().Functions;
       const auto Definition = Functions.find(Selected);

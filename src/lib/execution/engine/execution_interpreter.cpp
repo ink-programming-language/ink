@@ -11,6 +11,8 @@
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
 
+#include <utility>
+
 namespace ink::execution
 {
   ExecutionValueResult ExecutionEngine::evaluate(const ir::Value &Value, ExecutionFrame &Frame)
@@ -38,15 +40,15 @@ namespace ink::execution
     }
     if (ir::Function::classof(&Value))
     {
-      return {ExecutionStatus::Success, Heap.function(static_cast<const ir::Function &>(Value))};
+      return makeFunctionValue(static_cast<const ir::Function &>(Value));
     }
     const auto Found = Frame.Values.find(&Value);
     if (Found != Frame.Values.end())
     {
       return {ExecutionStatus::Success, Found->second};
     }
-    // AST interpretation binds mutable parameter/variable identities to places.
-    // IR instructions, in contrast, are read only after their ordered execution.
+    // Semantic evaluation binds compile-time variables to places. IR instruction
+    // results are available only after their ordered execution in this frame.
     for (ExecutionFrame *Current = &Frame; Current; Current = Current->Parent)
     {
       const auto Binding = Current->Bindings.find(&Value);
@@ -70,15 +72,11 @@ namespace ink::execution
     }
     ExecutionValueResult Result = executeInvocation(Function, Arguments);
     leaveEvaluation();
-    if (Result.Status == ExecutionStatus::Cancelled || Result.Status == ExecutionStatus::BudgetExceeded)
+    Result.Status = finishStatus(Result.Status);
+    if (!Result)
     {
-      StopStatus = Result.Status;
+      Result.Value = {};
     }
-    if (StopStatus != ExecutionStatus::Success)
-    {
-      Result = {StopStatus};
-    }
-    LastStatus = Result.Status;
     return Result;
   }
 
@@ -153,8 +151,7 @@ namespace ink::execution
       }
       if (ir::ReturnInstruction::classof(Instruction.get()))
       {
-        const ir::Value *ReturnedValue = static_cast<const ir::ReturnInstruction &>(*Instruction).returnedValue();
-        return ReturnedValue ? evaluate(*ReturnedValue, Frame) : ExecutionValueResult{ExecutionStatus::Success, Heap.voidValue(Instruction->type())};
+        return executeReturn(static_cast<const ir::ReturnInstruction &>(*Instruction), Frame);
       }
       ExecutionValueResult Result = executeInstruction(*Instruction, Frame);
       if (!Result)
@@ -167,104 +164,24 @@ namespace ink::execution
     return {ExecutionStatus::MissingBody};
   }
 
-  ExecutionValueResult ExecutionEngine::executeCall(const ir::Value &Instruction, ExecutionFrame &Frame)
-  {
-    const auto &Call = static_cast<const ir::CallInstruction &>(Instruction);
-    ExecutionValueResult Callee = evaluate(Call.callee(), Frame);
-    if (!Callee)
-    {
-      return Callee;
-    }
-    if (Callee.Value.kind() != ExecutionValueKind::Function || !Callee.Value.valid())
-    {
-      return {ExecutionStatus::TypeMismatch};
-    }
-    std::vector<ExecutionValueRef> Arguments;
-    Arguments.reserve(Call.arguments().size());
-    for (const ir::Value *Argument : Call.arguments())
-    {
-      ExecutionValueResult Result = evaluate(*Argument, Frame);
-      if (!Result)
-      {
-        return Result;
-      }
-      Arguments.push_back(std::move(Result.Value));
-    }
-    return execute(*Callee.Value.function(), Arguments);
-  }
-
   ExecutionValueResult ExecutionEngine::executeInstruction(const ir::Value &Instruction, ExecutionFrame &Frame)
   {
     switch (Instruction.kind())
     {
     case ir::ValueKind::Function:
-      return {ExecutionStatus::Success, Heap.function(static_cast<const ir::Function &>(Instruction))};
+      return makeFunctionValue(static_cast<const ir::Function &>(Instruction));
     case ir::ValueKind::AllocaInstruction:
-    {
-      const auto &Alloca = static_cast<const ir::AllocaInstruction &>(Instruction);
-      const ExecutionPlaceResult Result = allocateValue(Frame, &Alloca, Alloca.allocatedType());
-      return Result ? ExecutionValueResult{ExecutionStatus::Success, Heap.pointer(Alloca.type(), ExecutionPointer::fromPlace(Result.Place))} : ExecutionValueResult{Result.Status};
-    }
+      return executeAlloca(static_cast<const ir::AllocaInstruction &>(Instruction), Frame);
     case ir::ValueKind::LoadInstruction:
-    {
-      const auto &Load = static_cast<const ir::LoadInstruction &>(Instruction);
-      ExecutionValueResult Address = evaluate(Load.address(), Frame);
-      return Address ? loadPointer(Address.Value) : Address;
-    }
+      return executeLoad(static_cast<const ir::LoadInstruction &>(Instruction), Frame);
     case ir::ValueKind::StoreInstruction:
-    {
-      const auto &Store = static_cast<const ir::StoreInstruction &>(Instruction);
-      ExecutionValueResult Address = evaluate(Store.address(), Frame);
-      if (!Address)
-      {
-        return Address;
-      }
-      ExecutionValueResult Value = evaluate(Store.storedValue(), Frame);
-      if (!Value)
-      {
-        return Value;
-      }
-      const ExecutionStatus Status = storePointer(Address.Value, Value.Value);
-      return Status == ExecutionStatus::Success ? ExecutionValueResult{Status, Heap.voidValue(Store.type())} : ExecutionValueResult{Status};
-    }
+      return executeStore(static_cast<const ir::StoreInstruction &>(Instruction), Frame);
     case ir::ValueKind::AddInstruction:
-    {
-      const auto &Add = static_cast<const ir::AddInstruction &>(Instruction);
-      ExecutionValueResult Left = evaluate(Add.left(), Frame);
-      if (!Left)
-      {
-        return Left;
-      }
-      ExecutionValueResult Right = evaluate(Add.right(), Frame);
-      if (!Right)
-      {
-        return Right;
-      }
-      if (Left.Value.kind() != ExecutionValueKind::Integer || Right.Value.kind() != ExecutionValueKind::Integer || Left.Value.type() != Right.Value.type())
-      {
-        return {ExecutionStatus::TypeMismatch};
-      }
-      ExecutionInteger Sum(Left.Value.integer().bitWidth());
-      const ExecutionStatus Status = Left.Value.integer().add(Right.Value.integer(), Sum);
-      return Status == ExecutionStatus::Success ? ExecutionValueResult{Status, Heap.integer(Add.type(), std::move(Sum))} : ExecutionValueResult{Status};
-    }
+      return executeAdd(static_cast<const ir::AddInstruction &>(Instruction), Frame);
     case ir::ValueKind::CStringInstruction:
-    {
-      const auto &CString = static_cast<const ir::CStringInstruction &>(Instruction);
-      const ExecutionStorageRef Buffer = Heap.allocateBuffer(CString.source().value());
-      if (!Buffer.valid())
-      {
-        if (Heap.lastStatus() == ExecutionStatus::BudgetExceeded)
-        {
-          StopStatus = Heap.lastStatus();
-        }
-        return {Heap.lastStatus()};
-      }
-      Frame.Storage.push_back(Buffer);
-      return {ExecutionStatus::Success, Heap.pointer(CString.type(), ExecutionPointer::fromBuffer(Buffer))};
-    }
+      return executeCString(static_cast<const ir::CStringInstruction &>(Instruction), Frame);
     case ir::ValueKind::CallInstruction:
-      return executeCall(Instruction, Frame);
+      return executeCall(static_cast<const ir::CallInstruction &>(Instruction), Frame);
     default:
       return {ExecutionStatus::UnsupportedOperation};
     }

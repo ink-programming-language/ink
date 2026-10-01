@@ -78,7 +78,7 @@ namespace ink::execution::test
     };
   } // namespace
 
-  // The exact platform symbol copies UTF-8 and embedded NUL bytes through libffi without running an Ink callback.
+  // The exact platform symbol copies UTF-8 and embedded NUL bytes through the IR execution entry and libffi.
   TEST(ExecutionExternalCallTest, WritesExactBytesThroughTheNativeSymbol)
   {
     NativePipe Pipe;
@@ -86,21 +86,13 @@ namespace ink::execution::test
     ExternalContext Test;
     auto Function = Test.writeFunction();
     ASSERT_NE(Function, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
     std::string Payload = "\xe4\xb8\xad\xe6\x96\x87";
     Payload.push_back('\0');
     Payload += "tail";
-    const ir::Value *Arguments[] = {&Test.integer(Test.Int32, Pipe.writer()), &Test.string(Payload), &Test.integer(Test.CountType, Payload.size())};
-    unsigned BodyCalls = 0;
-    const auto Result = Test.Engine.call(*Function, *Module, Arguments, [&](ExecutionFrame &) -> ExecutionResult
-    {
-      ++BodyCalls;
-      return {};
-    });
+    const ExecutionValueRef Arguments[] = {Test.Engine.heap().fromConstant(Test.integer(Test.Int32, Pipe.writer())), Test.Engine.heap().fromConstant(Test.string(Payload)), Test.Engine.heap().fromConstant(Test.integer(Test.CountType, Payload.size()))};
+    const auto Result = Test.Engine.execute(*Function, Arguments);
     ASSERT_TRUE(Result);
-    EXPECT_EQ(Result.Value, &Test.integer(Test.ReturnType, Payload.size()));
-    EXPECT_EQ(BodyCalls, 0U);
+    EXPECT_EQ(Result.Value.toConstant(Test.Context), &Test.integer(Test.ReturnType, Payload.size()));
     std::string Output;
     ASSERT_TRUE(Pipe.readAll(Output));
     EXPECT_EQ(Output, Payload);
@@ -114,12 +106,10 @@ namespace ink::execution::test
     ExternalContext Test;
     auto Function = Test.writeFunction(true);
     ASSERT_NE(Function, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    const ir::Value *Arguments[] = {&Test.integer(Test.Int32, Pipe.writer()), &Test.string(""), &Test.integer(Test.CountType, 0)};
-    const auto Result = Test.Engine.call(*Function, *Module, Arguments, {});
+    const ExecutionValueRef Arguments[] = {Test.Engine.heap().fromConstant(Test.integer(Test.Int32, Pipe.writer())), Test.Engine.heap().fromConstant(Test.string("")), Test.Engine.heap().fromConstant(Test.integer(Test.CountType, 0))};
+    const auto Result = Test.Engine.execute(*Function, Arguments);
     ASSERT_TRUE(Result);
-    EXPECT_EQ(Result.Value, &Test.integer(Test.ReturnType, 0));
+    EXPECT_EQ(Result.Value.toConstant(Test.Context), &Test.integer(Test.ReturnType, 0));
     std::string Output;
     ASSERT_TRUE(Pipe.readAll(Output));
     EXPECT_TRUE(Output.empty());
@@ -136,14 +126,12 @@ namespace ink::execution::test
     ASSERT_NE(Zero, nullptr);
     ASSERT_NE(Set, nullptr);
     ASSERT_NE(Get, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    const ir::Value *Arguments[] = {&Test.integer(Test.Int32, 12345)};
-    EXPECT_EQ(Test.Engine.call(*Zero, *Module, {}, {}).Value, &Test.integer(Test.Int32, 37));
-    const auto Stored = Test.Engine.call(*Set, *Module, Arguments, {});
+    const ExecutionValueRef Arguments[] = {Test.Engine.heap().fromConstant(Test.integer(Test.Int32, 12345))};
+    EXPECT_EQ(Test.Engine.execute(*Zero).Value.toConstant(Test.Context), &Test.integer(Test.Int32, 37));
+    const auto Stored = Test.Engine.execute(*Set, Arguments);
     ASSERT_TRUE(Stored);
-    EXPECT_EQ(Stored.Value, nullptr);
-    EXPECT_EQ(Test.Engine.call(*Get, *Module, {}, {}).Value, &Test.integer(Test.Int32, 12345));
+    EXPECT_EQ(Stored.Value.kind(), ExecutionValueKind::Void);
+    EXPECT_EQ(Test.Engine.execute(*Get).Value.toConstant(Test.Context), &Test.integer(Test.Int32, 12345));
   }
 
   // Mixed native integer widths preserve signed inputs, unsigned upper bits and a negative 64-bit return.
@@ -163,16 +151,14 @@ namespace ink::execution::test
     auto Narrow = Test.function("inkTestExternalNarrow", U64, NarrowParameters);
     ASSERT_NE(Mix, nullptr);
     ASSERT_NE(Narrow, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    const ir::Value *MixArguments[] = {&Test.integer(I8, static_cast<std::uint8_t>(-7)), &Test.integer(U16, 60000), &Test.integer(Test.Int32, static_cast<std::uint32_t>(-100000)), &Test.integer(U64, 0xf000000000000000ULL)};
-    const ir::Value *NarrowArguments[] = {&Test.integer(U8, 255), &Test.integer(I16, static_cast<std::uint16_t>(-30000)), &Test.integer(U32, 4000000000ULL), &Test.integer(I64, static_cast<std::uint64_t>(-9999999983LL))};
-    const auto Mixed = Test.Engine.call(*Mix, *Module, MixArguments, {});
-    const auto Narrowed = Test.Engine.call(*Narrow, *Module, NarrowArguments, {});
+    const ExecutionValueRef MixArguments[] = {Test.Engine.heap().fromConstant(Test.integer(I8, static_cast<std::uint8_t>(-7))), Test.Engine.heap().fromConstant(Test.integer(U16, 60000)), Test.Engine.heap().fromConstant(Test.integer(Test.Int32, static_cast<std::uint32_t>(-100000))), Test.Engine.heap().fromConstant(Test.integer(U64, 0xf000000000000000ULL))};
+    const ExecutionValueRef NarrowArguments[] = {Test.Engine.heap().fromConstant(Test.integer(U8, 255)), Test.Engine.heap().fromConstant(Test.integer(I16, static_cast<std::uint16_t>(-30000))), Test.Engine.heap().fromConstant(Test.integer(U32, 4000000000ULL)), Test.Engine.heap().fromConstant(Test.integer(I64, static_cast<std::uint64_t>(-9999999983LL)))};
+    const auto Mixed = Test.Engine.execute(*Mix, MixArguments);
+    const auto Narrowed = Test.Engine.execute(*Narrow, NarrowArguments);
     ASSERT_TRUE(Mixed);
     ASSERT_TRUE(Narrowed);
-    EXPECT_EQ(Mixed.Value, &Test.integer(I64, static_cast<std::uint64_t>(-39992)));
-    EXPECT_EQ(Narrowed.Value, &Test.integer(U64, 4000000272ULL));
+    EXPECT_EQ(Mixed.Value.toConstant(Test.Context), &Test.integer(I64, static_cast<std::uint64_t>(-39992)));
+    EXPECT_EQ(Narrowed.Value.toConstant(Test.Context), &Test.integer(U64, 4000000272ULL));
   }
 
   // Narrow native returns are extracted at their declared width instead of retaining libffi return-register extension bits.
@@ -187,12 +173,10 @@ namespace ink::execution::test
     auto Increment = Test.function("inkTestExternalIncrement", U16, UnsignedParameters);
     ASSERT_NE(Negate, nullptr);
     ASSERT_NE(Increment, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    const ir::Value *SignedArguments[] = {&Test.integer(I8, 7)};
-    const ir::Value *UnsignedArguments[] = {&Test.integer(U16, 60000)};
-    EXPECT_EQ(Test.Engine.call(*Negate, *Module, SignedArguments, {}).Value, &Test.integer(I8, static_cast<std::uint8_t>(-7)));
-    EXPECT_EQ(Test.Engine.call(*Increment, *Module, UnsignedArguments, {}).Value, &Test.integer(U16, 60001));
+    const ExecutionValueRef SignedArguments[] = {Test.Engine.heap().fromConstant(Test.integer(I8, 7))};
+    const ExecutionValueRef UnsignedArguments[] = {Test.Engine.heap().fromConstant(Test.integer(U16, 60000))};
+    EXPECT_EQ(Test.Engine.execute(*Negate, SignedArguments).Value.toConstant(Test.Context), &Test.integer(I8, static_cast<std::uint8_t>(-7)));
+    EXPECT_EQ(Test.Engine.execute(*Increment, UnsignedArguments).Value.toConstant(Test.Context), &Test.integer(U16, 60001));
   }
 
   // libffi marshals arguments beyond platform register capacity in the declaration's original order.
@@ -203,16 +187,14 @@ namespace ink::execution::test
     std::vector<const ir::Type *> ParameterTypes(10, &Test.Int32);
     auto Function = Test.function("inkTestExternalMany", I64, ParameterTypes);
     ASSERT_NE(Function, nullptr);
-    std::vector<const ir::Value *> Arguments;
+    std::vector<ExecutionValueRef> Arguments;
     for (std::uint64_t Value = 1; Value <= 10; ++Value)
     {
-      Arguments.push_back(&Test.integer(Test.Int32, Value));
+      Arguments.push_back(Test.Engine.heap().fromConstant(Test.integer(Test.Int32, Value)));
     }
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    const auto Result = Test.Engine.call(*Function, *Module, Arguments, {});
+    const auto Result = Test.Engine.execute(*Function, Arguments);
     ASSERT_TRUE(Result);
-    EXPECT_EQ(Result.Value, &Test.integer(I64, 385));
+    EXPECT_EQ(Result.Value.toConstant(Test.Context), &Test.integer(I64, 385));
   }
 
   // Mixed single- and double-precision arguments and both floating return formats use their native ABI registers.
@@ -229,18 +211,16 @@ namespace ink::execution::test
     auto Single = Test.function("inkTestExternalFloat32", *F32, SingleParameters);
     ASSERT_NE(Mixed, nullptr);
     ASSERT_NE(Single, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
     const auto &OneAndHalf = Test.floating(32, std::bit_cast<std::uint32_t>(1.5F));
     const auto &TwoAndQuarter = Test.floating(64, std::bit_cast<std::uint64_t>(2.25));
-    const ir::Value *MixedArguments[] = {&OneAndHalf, &TwoAndQuarter};
-    const ir::Value *SingleArguments[] = {&OneAndHalf};
-    const auto MixedResult = Test.Engine.call(*Mixed, *Module, MixedArguments, {});
-    const auto SingleResult = Test.Engine.call(*Single, *Module, SingleArguments, {});
+    const ExecutionValueRef MixedArguments[] = {Test.Engine.heap().fromConstant(OneAndHalf), Test.Engine.heap().fromConstant(TwoAndQuarter)};
+    const ExecutionValueRef SingleArguments[] = {Test.Engine.heap().fromConstant(OneAndHalf)};
+    const auto MixedResult = Test.Engine.execute(*Mixed, MixedArguments);
+    const auto SingleResult = Test.Engine.execute(*Single, SingleArguments);
     ASSERT_TRUE(MixedResult);
     ASSERT_TRUE(SingleResult);
-    EXPECT_EQ(MixedResult.Value, &Test.floating(64, std::bit_cast<std::uint64_t>(5.25)));
-    EXPECT_EQ(SingleResult.Value, &Test.floating(32, std::bit_cast<std::uint32_t>(2.0F)));
+    EXPECT_EQ(MixedResult.Value.toConstant(Test.Context), &Test.floating(64, std::bit_cast<std::uint64_t>(5.25)));
+    EXPECT_EQ(SingleResult.Value.toConstant(Test.Context), &Test.floating(32, std::bit_cast<std::uint32_t>(2.0F)));
   }
 
   // Boolean native arguments and returns remain canonical true/false values through the generic bridge.
@@ -251,14 +231,12 @@ namespace ink::execution::test
     const ir::Type *Parameters[] = {&Bool};
     auto Function = Test.function("inkTestExternalNot", Bool, Parameters);
     ASSERT_NE(Function, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
     const auto &True = Test.Context.constantPool().getBoolConstant(true);
     const auto &False = Test.Context.constantPool().getBoolConstant(false);
-    const ir::Value *TrueArguments[] = {&True};
-    const ir::Value *FalseArguments[] = {&False};
-    EXPECT_EQ(Test.Engine.call(*Function, *Module, TrueArguments, {}).Value, &False);
-    EXPECT_EQ(Test.Engine.call(*Function, *Module, FalseArguments, {}).Value, &True);
+    const ExecutionValueRef TrueArguments[] = {Test.Engine.heap().fromConstant(True)};
+    const ExecutionValueRef FalseArguments[] = {Test.Engine.heap().fromConstant(False)};
+    EXPECT_EQ(Test.Engine.execute(*Function, TrueArguments).Value.toConstant(Test.Context), &False);
+    EXPECT_EQ(Test.Engine.execute(*Function, FalseArguments).Value.toConstant(Test.Context), &True);
   }
 
   // Pointer arguments receive writable NUL-terminated copies, preserving embedded NUL bytes and immutable pool contents.
@@ -273,17 +251,15 @@ namespace ink::execution::test
     auto Mutate = Test.function("inkTestExternalMutate", U32, MutateParameters);
     ASSERT_NE(Byte, nullptr);
     ASSERT_NE(Mutate, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
     const auto &Buffer = Test.string(std::string_view("A\0B", 3));
-    const ir::Value *NullArguments[] = {&Buffer, &Test.integer(U32, 1)};
-    const ir::Value *TailArguments[] = {&Buffer, &Test.integer(U32, 2)};
-    const ir::Value *TerminatorArguments[] = {&Buffer, &Test.integer(U32, 3)};
-    const ir::Value *MutateArguments[] = {&Buffer};
-    EXPECT_EQ(Test.Engine.call(*Byte, *Module, NullArguments, {}).Value, &Test.integer(U32, 0));
-    EXPECT_EQ(Test.Engine.call(*Byte, *Module, TailArguments, {}).Value, &Test.integer(U32, 'B'));
-    EXPECT_EQ(Test.Engine.call(*Byte, *Module, TerminatorArguments, {}).Value, &Test.integer(U32, 0));
-    EXPECT_EQ(Test.Engine.call(*Mutate, *Module, MutateArguments, {}).Value, &Test.integer(U32, 'Z'));
+    const ExecutionValueRef NullArguments[] = {Test.Engine.heap().fromConstant(Buffer), Test.Engine.heap().fromConstant(Test.integer(U32, 1))};
+    const ExecutionValueRef TailArguments[] = {Test.Engine.heap().fromConstant(Buffer), Test.Engine.heap().fromConstant(Test.integer(U32, 2))};
+    const ExecutionValueRef TerminatorArguments[] = {Test.Engine.heap().fromConstant(Buffer), Test.Engine.heap().fromConstant(Test.integer(U32, 3))};
+    const ExecutionValueRef MutateArguments[] = {Test.Engine.heap().fromConstant(Buffer)};
+    EXPECT_EQ(Test.Engine.execute(*Byte, NullArguments).Value.toConstant(Test.Context), &Test.integer(U32, 0));
+    EXPECT_EQ(Test.Engine.execute(*Byte, TailArguments).Value.toConstant(Test.Context), &Test.integer(U32, 'B'));
+    EXPECT_EQ(Test.Engine.execute(*Byte, TerminatorArguments).Value.toConstant(Test.Context), &Test.integer(U32, 0));
+    EXPECT_EQ(Test.Engine.execute(*Mutate, MutateArguments).Value.toConstant(Test.Context), &Test.integer(U32, 'Z'));
     EXPECT_EQ(Buffer.value(), std::string_view("A\0B", 3));
   }
 
@@ -299,14 +275,12 @@ namespace ink::execution::test
     ASSERT_NE(Missing, nullptr);
     ASSERT_NE(Wide, nullptr);
     ASSERT_NE(HalfReturn, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    EXPECT_EQ(Test.Engine.call(*Missing, *Module, {}, {}).Status, ExecutionStatus::SymbolNotFound);
-    EXPECT_EQ(Test.Engine.call(*Wide, *Module, {}, {}).Status, ExecutionStatus::UnsupportedExternalSignature);
-    EXPECT_EQ(Test.Engine.call(*HalfReturn, *Module, {}, {}).Status, ExecutionStatus::UnsupportedExternalSignature);
+    EXPECT_EQ(Test.Engine.execute(*Missing).Status, ExecutionStatus::SymbolNotFound);
+    EXPECT_EQ(Test.Engine.execute(*Wide).Status, ExecutionStatus::UnsupportedExternalSignature);
+    EXPECT_EQ(Test.Engine.execute(*HalfReturn).Status, ExecutionStatus::UnsupportedExternalSignature);
   }
 
-  // Native scalar parameters require exact local constant types and counts before the host function can execute.
+  // Native scalar parameters require exact local value types and counts before the host function can execute.
   TEST(ExecutionExternalCallTest, RejectsInvalidNativeArgumentsBeforeCalling)
   {
     ExternalContext Test;
@@ -314,19 +288,17 @@ namespace ink::execution::test
     const ir::Type *Parameters[] = {&Test.Int32};
     auto Function = Test.function("inkTestExternalSet", Test.Context.typePool().getType<ir::TypeKind::Void>(), Parameters);
     ASSERT_NE(Function, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    const ir::Value *Null[] = {nullptr};
-    const ir::Value *Wrong[] = {&Test.Context.constantPool().getBoolConstant(true)};
-    const ir::Value *Foreign[] = {&Other.integer(Other.Int32, 1)};
-    EXPECT_EQ(Test.Engine.call(*Function, *Module, {}, {}).Status, ExecutionStatus::InvalidArguments);
-    EXPECT_EQ(Test.Engine.call(*Function, *Module, Null, {}).Status, ExecutionStatus::InvalidArguments);
-    EXPECT_EQ(Test.Engine.call(*Function, *Module, Wrong, {}).Status, ExecutionStatus::TypeMismatch);
-    EXPECT_EQ(Test.Engine.call(*Function, *Module, Foreign, {}).Status, ExecutionStatus::ForeignContext);
+    const ExecutionValueRef Null[] = {ExecutionValueRef{}};
+    const ExecutionValueRef Wrong[] = {Test.Engine.heap().fromConstant(Test.Context.constantPool().getBoolConstant(true))};
+    const ExecutionValueRef Foreign[] = {Other.Engine.heap().fromConstant(Other.integer(Other.Int32, 1))};
+    EXPECT_EQ(Test.Engine.execute(*Function).Status, ExecutionStatus::InvalidArguments);
+    EXPECT_EQ(Test.Engine.execute(*Function, Null).Status, ExecutionStatus::InvalidArguments);
+    EXPECT_EQ(Test.Engine.execute(*Function, Wrong).Status, ExecutionStatus::TypeMismatch);
+    EXPECT_EQ(Test.Engine.execute(*Function, Foreign).Status, ExecutionStatus::ForeignContext);
   }
 
-  // A same-typed IR parameter cannot reach native code, while a constant passed through the same Value array can.
-  TEST(ExecutionExternalCallTest, RejectsUnevaluatedValuesWithoutChangingNativeState)
+  // An invalid execution handle cannot reach native code or overwrite state established by an earlier valid call.
+  TEST(ExecutionExternalCallTest, RejectsInvalidHandlesWithoutChangingNativeState)
   {
     ExternalContext Test;
     const ir::Type *Parameters[] = {&Test.Int32};
@@ -335,20 +307,18 @@ namespace ink::execution::test
     ASSERT_NE(Set, nullptr);
     ASSERT_NE(Get, nullptr);
     ASSERT_EQ(Set->parameters().size(), 1U);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    const ir::Value *Arguments[] = {&Test.integer(Test.Int32, 6789)};
-    ASSERT_TRUE(Test.Engine.call(*Set, *Module, Arguments));
-    Arguments[0] = Set->parameters().front().get();
-    EXPECT_EQ(Test.Engine.call(*Set, *Module, Arguments).Status, ExecutionStatus::RuntimeValue);
-    const auto Observed = Test.Engine.call(*Get, *Module, {});
+    ExecutionValueRef Arguments[] = {Test.Engine.heap().fromConstant(Test.integer(Test.Int32, 6789))};
+    ASSERT_TRUE(Test.Engine.execute(*Set, Arguments));
+    Arguments[0] = {};
+    EXPECT_EQ(Test.Engine.execute(*Set, Arguments).Status, ExecutionStatus::InvalidArguments);
+    const auto Observed = Test.Engine.execute(*Get);
     ASSERT_TRUE(Observed);
-    EXPECT_EQ(Observed.Value, &Test.integer(Test.Int32, 6789));
-    Arguments[0] = &Test.integer(Test.Int32, 1357);
-    ASSERT_TRUE(Test.Engine.call(*Set, *Module, Arguments));
-    const auto Updated = Test.Engine.call(*Get, *Module, {});
+    EXPECT_EQ(Observed.Value.toConstant(Test.Context), &Test.integer(Test.Int32, 6789));
+    Arguments[0] = Test.Engine.heap().fromConstant(Test.integer(Test.Int32, 1357));
+    ASSERT_TRUE(Test.Engine.execute(*Set, Arguments));
+    const auto Updated = Test.Engine.execute(*Get);
     ASSERT_TRUE(Updated);
-    EXPECT_EQ(Updated.Value, &Test.integer(Test.Int32, 1357));
+    EXPECT_EQ(Updated.Value.toConstant(Test.Context), &Test.integer(Test.Int32, 1357));
   }
 
   // An explicitly described target cannot invoke host code even when its pointer width matches the host.
@@ -358,44 +328,33 @@ namespace ink::execution::test
     ExternalContext Test(core::TargetContext(Native.pointerWidth(), Native.byteOrder()));
     auto Function = Test.function("inkTestExternalZero", Test.Int32);
     ASSERT_NE(Function, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    EXPECT_EQ(Test.Engine.call(*Function, *Module, {}, {}).Status, ExecutionStatus::HostAbiMismatch);
+    EXPECT_EQ(Test.Engine.execute(*Function).Status, ExecutionStatus::HostAbiMismatch);
   }
 
-  // Repeated queries for one event do not replay native output, while a distinct event makes a new generic call.
-  TEST(ExecutionExternalCallTest, CommitsExternalSideEffectsOncePerSemanticEvent)
+  // Every invocation of the same external function repeats its native output with the same arguments.
+  TEST(ExecutionExternalCallTest, RepeatedCallsRepeatNativeSideEffects)
   {
     NativePipe Pipe;
     ASSERT_TRUE(Pipe.valid());
     ExternalContext Test;
     auto Function = Test.writeFunction();
     ASSERT_NE(Function, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    const ir::Value *Arguments[] = {&Test.integer(Test.Int32, Pipe.writer()), &Test.string("X"), &Test.integer(Test.CountType, 1)};
-    int FirstEvent = 0;
-    int SecondEvent = 0;
-    unsigned Executions = 0;
-    auto Write = [&]() -> ExecutionResult
-    {
-      ++Executions;
-      return Test.Engine.call(*Function, *Module, Arguments, {});
-    };
-    const auto First = Test.Engine.executeOnce(*Module, &FirstEvent, Write);
-    const auto Repeated = Test.Engine.executeOnce(*Module, &FirstEvent, Write);
-    const auto Second = Test.Engine.executeOnce(*Module, &SecondEvent, Write);
+    const ExecutionValueRef Arguments[] = {Test.Engine.heap().fromConstant(Test.integer(Test.Int32, Pipe.writer())), Test.Engine.heap().fromConstant(Test.string("X")), Test.Engine.heap().fromConstant(Test.integer(Test.CountType, 1))};
+    const auto First = Test.Engine.execute(*Function, Arguments);
+    const auto Second = Test.Engine.execute(*Function, Arguments);
+    const auto Third = Test.Engine.execute(*Function, Arguments);
     ASSERT_TRUE(First);
-    ASSERT_TRUE(Repeated);
     ASSERT_TRUE(Second);
-    EXPECT_EQ(Repeated.Value, First.Value);
-    EXPECT_EQ(Executions, 2U);
+    ASSERT_TRUE(Third);
+    EXPECT_EQ(First.Value.toConstant(Test.Context), &Test.integer(Test.ReturnType, 1));
+    EXPECT_EQ(Second.Value.toConstant(Test.Context), First.Value.toConstant(Test.Context));
+    EXPECT_EQ(Third.Value.toConstant(Test.Context), First.Value.toConstant(Test.Context));
     std::string Output;
     ASSERT_TRUE(Pipe.readAll(Output));
-    EXPECT_EQ(Output, "XX");
+    EXPECT_EQ(Output, "XXX");
   }
 
-  // Cancellation is checked before entering a generic external function and leaves the output pipe untouched.
+  // Cancellation is checked before entering an external function and leaves the output pipe untouched.
   TEST(ExecutionExternalCallTest, CancellationPreventsNativeSideEffects)
   {
     NativePipe Pipe;
@@ -403,11 +362,9 @@ namespace ink::execution::test
     ExternalContext Test;
     auto Function = Test.writeFunction();
     ASSERT_NE(Function, nullptr);
-    ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
-    ASSERT_NE(Module, nullptr);
-    const ir::Value *Arguments[] = {&Test.integer(Test.Int32, Pipe.writer()), &Test.string("A"), &Test.integer(Test.CountType, 1)};
+    const ExecutionValueRef Arguments[] = {Test.Engine.heap().fromConstant(Test.integer(Test.Int32, Pipe.writer())), Test.Engine.heap().fromConstant(Test.string("A")), Test.Engine.heap().fromConstant(Test.integer(Test.CountType, 1))};
     Test.Engine.cancel();
-    EXPECT_EQ(Test.Engine.call(*Function, *Module, Arguments, {}).Status, ExecutionStatus::Cancelled);
+    EXPECT_EQ(Test.Engine.execute(*Function, Arguments).Status, ExecutionStatus::Cancelled);
     std::string Output;
     ASSERT_TRUE(Pipe.readAll(Output));
     EXPECT_TRUE(Output.empty());
