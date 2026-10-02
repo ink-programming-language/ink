@@ -61,12 +61,12 @@ Ink 跨 module 函数、成员函数、闭合实例、全局变量、Imported �
 
 `inkc --interpret -i FILE` 读取源码，经 tokenizer、parser、semantic 生成 IR 后默认执行 `main`；可用 `--entry NAME` 指定其他入口，`--input` 是 `-i` 的别名，`FILE` 为 `-` 时读取标准输入。入口须为零参数、具有 IR 函数体的普通 Ink 函数，返回 `void` 或 `i32`：void 退出为 0，i32 作为进程退出码。诊断写入 stderr，源程序的 stdout 输出直接保留，不打印 IR。当前仅支持解释模式；`-oir` 保留参数识别，与 `--interpret` 冲突，未指定解释模式时明确报告尚未实现。
 
-构建后在仓库根目录运行 hello world 或逻辑程序，均使用默认的 `main` 入口。Windows x64 / PowerShell：
+构建后在仓库根目录运行 hello world 或功能测试程序，均使用默认的 `main` 入口。Windows x64 / PowerShell：
 
 ```powershell
 .\build\src\tools\inkc\Release\inkc.exe --interpret -i src/testcase/execution/programs/hello_world.windows.ink
 .\build\src\tools\inkc\Release\inkc.exe --interpret -i src/testcase/execution/programs/logical_truth_tables.ink
-ctest --test-dir build -C Release -R '^(ExecutionSourceTest[.]HelloWorld|ExecutionSourceTest[.]Logical[.].*|InkcProcessTest)$' --output-on-failure
+ctest --test-dir build -C Release -R '^(ExecutionSourceTest[.].*|InkcProcessTest)$' --output-on-failure
 ```
 
 Linux x86-64 / 单配置构建：
@@ -74,12 +74,14 @@ Linux x86-64 / 单配置构建：
 ```sh
 ./build/src/tools/inkc/inkc --interpret -i src/testcase/execution/programs/hello_world.linux.ink
 ./build/src/tools/inkc/inkc --interpret -i src/testcase/execution/programs/logical_truth_tables.ink
-ctest --test-dir build -R '^(ExecutionSourceTest[.]HelloWorld|ExecutionSourceTest[.]Logical[.].*|InkcProcessTest)$' --output-on-failure
+ctest --test-dir build -R '^(ExecutionSourceTest[.].*|InkcProcessTest)$' --output-on-failure
 ```
 
 两份程序分别按 Windows `_write` 和 Linux `write` 的 ABI 声明外部函数，main 写入 `hello, world\n` 后返回 0。`ExecutionSourceTest.HelloWorld` 与逻辑源码测试共用 `source_program_test.cmake`，以默认 `main` 启动真实 `inkc`，通过 `OUTPUT_FILE` 捕获 stdout；HelloWorld 额外使用 `STDOUT_HEX` 逐字节检查 Windows CRLF / Linux LF，并断言空 stderr 和退出码 0；`InkcProcessTest` 检查入口选择、调用错误及返回结果。完整参数与退出规则见 [命令行接口](docs/command-line.md)。
 
-`src/testcase/execution/programs` 中的 6 份逻辑/比较源码都是可独立运行的 `main` 程序，共保留 56 项结果检查。每项先输出用例名，执行原有辅助函数并核对 i32 结果，再输出 `PASS`；失败输出 `FAIL` 并返回 1，全部成功返回 0。操作数的副作用输出位于用例名与结果之间。[源码测试清单](src/testcase/execution/cli/source_program_tests.cmake) 统一登记 HelloWorld，以及 Windows/Linux 上的 6 项逻辑成功程序测试和 11 项负向测试，共 17 项 `ExecutionSourceTest.Logical.*` CTest，核对完整 stdout、退出码和诊断；8 份类型错误与 3 份必达缺少函数体调用的输入独立放在 `src/testcase/execution/cli/inputs`。覆盖范围与运行规则见 [源码执行测试](docs/command-line.md#cli-与源码执行测试)。
+`src/testcase/execution/programs` 中的功能测试均可通过默认 `main` 独立运行，覆盖整数算术、普通函数与递归、C 外部调用、逻辑/比较、分支与局部作用域、编译期求值和静态循环。每项先输出用例名，核对结果后输出 `PASS`；失败输出 `FAIL` 并返回 1，全部成功返回 0。CTest 核对完整 stdout，包括副作用的顺序和次数，同时要求退出码 0、空 stderr。[源码测试清单](src/testcase/execution/cli/source_program_tests.cmake) 统一登记这些程序和 `src/testcase/execution/cli/inputs` 中的负向输入，后者分别核对类型、调用、初始化和执行错误诊断。
+
+算术用例区分已实现的执行路径：普通 IR 验证所有 i/u8、16、32、64、128 的加法及回绕；减、乘、除、取模、位运算、移位、复合赋值和增减在显式 `comptime` 表达式或块中验证。C 外调测试使用 Windows/Linux 的宿主 CRT；声明 `size_t` 为 `u64` 的字符串、指针和副作用程序仅在 64 位宿主注册。可用 `ctest --test-dir build -C Release -L arithmetic --output-on-failure` 按标签运行，也可选 `function`、`external`、`logical`、`control_flow` 或 `comptime`。完整覆盖与添加用例的规则见 [源码执行测试](docs/command-line.md#cli-与源码执行测试)。
 
 ## Tokenizer 接口
 
