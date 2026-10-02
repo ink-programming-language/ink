@@ -4,9 +4,9 @@
 
 namespace ink::execution
 {
-  ExecutionValueResult ExecutionEngine::executeReturn(const ir::ReturnInstruction &Return, ExecutionFrame &Frame)
+  ExecutionInstructionResult ExecutionEngine::executeReturn(const ir::ReturnInstruction &Return, ExecutionFrame &Frame)
   {
     const ir::Value *ReturnedValue = Return.returnedValue();
-    return ReturnedValue ? evaluate(*ReturnedValue, Frame) : ExecutionValueResult{ExecutionStatus::Success, Heap.voidValue(Return.type())};
+    return ReturnedValue ? ExecutionInstructionResult::returnValue(evaluate(*ReturnedValue, Frame)) : ExecutionInstructionResult::returnValue(Heap.voidValue(Return.type()));
   }
 } // namespace ink::execution

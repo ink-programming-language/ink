@@ -476,6 +476,7 @@ namespace ink::ir::archive
           Lex.next();
           std::size_t Result = 0;
           Tag Kind = Tag::Return;
+          std::vector<std::uint64_t> Fields;
           std::vector<Operand> Values;
           if (Opcode == "add")
           {
@@ -491,6 +492,38 @@ namespace ink::ir::archive
             const auto Element = type();
             Result = poolType(Tag::Pointer, {Element, 1});
             Values.push_back({Element});
+          }
+          else if (Opcode == "not")
+          {
+            Kind = Tag::LogicalNot;
+            Result = poolType(Tag::Bool);
+            Values.push_back(operand());
+          }
+          else if (Opcode == "and" || Opcode == "or")
+          {
+            Kind = Opcode == "and" ? Tag::LogicalAnd : Tag::LogicalOr;
+            Result = poolType(Tag::Bool);
+            const auto OperandType = type();
+            Values.push_back(value(OperandType));
+            Lex.expect(",");
+            Values.push_back(value(OperandType));
+          }
+          else if (Opcode == "cmp")
+          {
+            Kind = Tag::Compare;
+            Result = poolType(Tag::Bool);
+            const auto *Predicate = comparisonPredicateInfo(Lex.token());
+            if (!Predicate)
+            {
+              Lex.fail("Invalid comparison predicate");
+              return;
+            }
+            Fields.push_back(Predicate->Wire);
+            Lex.next();
+            const auto OperandType = type();
+            Values.push_back(value(OperandType));
+            Lex.expect(",");
+            Values.push_back(value(OperandType));
           }
           else if (Opcode == "load")
           {
@@ -548,6 +581,24 @@ namespace ink::ir::archive
               Values.push_back(operand());
             }
           }
+          else if (Opcode == "br")
+          {
+            Result = poolType(Tag::Void);
+            if (Lex.token() == "^")
+            {
+              Kind = Tag::Branch;
+              Values.push_back({0, 0, symbol("^")});
+            }
+            else
+            {
+              Kind = Tag::ConditionalBranch;
+              Values.push_back(operand());
+              Lex.expect(",");
+              Values.push_back({0, 0, symbol("^")});
+              Lex.expect(",");
+              Values.push_back({0, 0, symbol("^")});
+            }
+          }
           else
           {
             Lex.fail("Unknown IR instruction");
@@ -557,7 +608,7 @@ namespace ink::ir::archive
           {
             return;
           }
-          const auto Id = add(Kind, Result, Parent);
+          const auto Id = add(Kind, Result, Parent, std::move(Fields));
           operands(Id, Values);
           if (!Name.empty())
           {

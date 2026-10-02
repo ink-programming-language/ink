@@ -4,9 +4,9 @@
 
 namespace ink::execution
 {
-  ExecutionValueResult ExecutionEngine::executeLoad(const ir::LoadInstruction &Load, ExecutionFrame &Frame)
+  ExecutionInstructionResult ExecutionEngine::executeLoad(const ir::LoadInstruction &Load, ExecutionFrame &Frame)
   {
     ExecutionValueResult Address = evaluate(Load.address(), Frame);
-    return Address ? loadPointer(Address.Value) : Address;
+    return Address ? ExecutionInstructionResult::continueWith(loadPointer(Address.Value)) : ExecutionInstructionResult::failure(Address.Status);
   }
 } // namespace ink::execution

@@ -41,7 +41,7 @@ namespace ink::semantic
     public:
       // Builds a module from successfully parsed input. Unsupported syntax reports
       // an ICE. User errors return null. Source-ordered comptime evaluation uses
-      // context-owned execution frames; runtime bodies support locals, calls, addition and returns.
+      // context-owned execution frames; runtime bodies support locals, calls, addition, logic, comparisons and branches.
       // The returned module is owned by Context. Analysis state is local to each call.
       // ir::Module declaration roots borrow Input's AST; its ParsedUnit must outlive any allocated module, including on failure.
       ir::Module *analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName = "main");
@@ -59,8 +59,12 @@ namespace ink::semantic
       ExpressionResult analyzeLiteralExpr(AnalysisState &State, const parser::LiteralExpr &Node);
       ExpressionResult analyzeNameExpr(AnalysisState &State, const parser::NameExpr &Node);
       ExpressionResult analyzeUnaryExpr(AnalysisState &State, const parser::UnaryExpr &Node, std::size_t Depth);
+      bool prepareIntegerLiteral(AnalysisState &State, const parser::Expr &Node, std::size_t Depth);
+      ExpressionResult materializeIntegerLiteral(AnalysisState &State, const parser::Expr &Node, const ir::Type &Target);
       ExpressionResult analyzeCallExpr(AnalysisState &State, const parser::CallExpr &Node, std::size_t Depth);
       ExpressionResult analyzeBinaryExpr(AnalysisState &State, const parser::BinaryExpr &Node, std::size_t Depth);
+      ExpressionResult analyzeLogicalBinaryExpr(AnalysisState &State, const parser::BinaryExpr &Node, std::size_t Depth);
+      ExpressionResult analyzeComparisonExpr(AnalysisState &State, const parser::BinaryExpr &Node, std::size_t Depth);
       ExpressionResult analyzeUpdateExpr(AnalysisState &State, const parser::Expr &Operand, tokenizer::TokenKind Operator, bool Postfix, const parser::Expr &Node, std::size_t Depth);
       ExpressionResult analyzeSimpleItem(AnalysisState &State, const parser::SimpleItem &Node, std::size_t Depth = 0);
       ExpressionResult evaluateComptime(AnalysisState &State, const parser::Expr &Node);

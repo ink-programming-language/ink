@@ -21,6 +21,7 @@ namespace ink::semantic
   std::string describeType(const ir::Type &ValueType);
   std::optional<ir::IntegerBits> integerBits(const parser::TokenBuffer &Input, const parser::LiteralExpr &Literal, bool Negative, const ir::IntegerType &Target);
   bool acceptsCString(const ir::Value &ValueObject, const ir::Type &Target, bool CArgument);
+  const parser::LiteralExpr *findDeferredIntegerLiteral(const parser::Expr &Node, std::size_t Depth, std::size_t Limit);
 
   // Integer literals keep their source until an expected type or overload is known.
   struct Analyzer::ExpressionResult

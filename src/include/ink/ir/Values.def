@@ -43,6 +43,12 @@ INK_IR_VALUE(Module)
 INK_IR_VALUE(FunctionParameter)
 INK_IR_VALUE(AddInstruction)
 INK_IR_VALUE(ReturnInstruction)
+INK_IR_VALUE(BranchInstruction)
+INK_IR_VALUE(ConditionalBranchInstruction)
+INK_IR_VALUE(LogicalNotInstruction)
+INK_IR_VALUE(LogicalAndInstruction)
+INK_IR_VALUE(LogicalOrInstruction)
+INK_IR_VALUE(CompareInstruction)
 
 #undef INK_IR_CONSTANT_VALUE
 #undef INK_IR_TYPE_VALUE

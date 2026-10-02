@@ -7,16 +7,16 @@
 
 namespace ink::execution
 {
-  ExecutionValueResult ExecutionEngine::executeCall(const ir::CallInstruction &Call, ExecutionFrame &Frame)
+  ExecutionInstructionResult ExecutionEngine::executeCall(const ir::CallInstruction &Call, ExecutionFrame &Frame)
   {
     ExecutionValueResult Callee = evaluate(Call.callee(), Frame);
     if (!Callee)
     {
-      return Callee;
+      return ExecutionInstructionResult::failure(Callee.Status);
     }
     if (Callee.Value.kind() != ExecutionValueKind::Function || !Callee.Value.valid())
     {
-      return {ExecutionStatus::TypeMismatch};
+      return ExecutionInstructionResult::failure(ExecutionStatus::TypeMismatch);
     }
     std::vector<ExecutionValueRef> Arguments;
     Arguments.reserve(Call.arguments().size());
@@ -25,10 +25,10 @@ namespace ink::execution
       ExecutionValueResult Result = evaluate(*Argument, Frame);
       if (!Result)
       {
-        return Result;
+        return ExecutionInstructionResult::failure(Result.Status);
       }
       Arguments.push_back(std::move(Result.Value));
     }
-    return execute(*Callee.Value.function(), Arguments);
+    return ExecutionInstructionResult::continueWith(execute(*Callee.Value.function(), Arguments));
   }
 } // namespace ink::execution

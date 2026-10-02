@@ -18,6 +18,11 @@ namespace ink::ir
         return Values;
       }
 
+      const Value *terminator() const noexcept
+      {
+        return !Values.empty() && Values.back()->isTerminator() ? Values.back().get() : nullptr;
+      }
+
       static bool classof(const Value *ValueObject) noexcept
       {
         return ValueObject && ValueObject->kind() == ValueKind::BasicBlock;

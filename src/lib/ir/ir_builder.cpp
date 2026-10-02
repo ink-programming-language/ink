@@ -117,7 +117,7 @@ namespace ink::ir
     {
       return false;
     }
-    return Block.Values.empty() || !ReturnInstruction::classof(Block.Values.back().get()) || (Before && !IsTerminator);
+    return !Block.terminator() || (Before && !IsTerminator);
   }
 
   bool IRBuilder::canInsertReturn(const BasicBlock &Block, const Value *ReturnedValue, const Value *Before) const noexcept
@@ -131,6 +131,16 @@ namespace ink::ir
     return ReturnType.typeKind() == TypeKind::Void ? ReturnedValue == nullptr : (ReturnedValue && &ReturnedValue->context() == &Context && &ReturnedValue->type() == &ReturnType);
   }
 
+  bool IRBuilder::isValidBranchTarget(const BasicBlock &Target) const noexcept
+  {
+    return &Target.context() == &Context && (!Target.outer() || Function::classof(Target.outer()));
+  }
+
+  bool IRBuilder::canInsertBranch(const BasicBlock &Block, const BasicBlock &Target, const Value *Before) const noexcept
+  {
+    return canInsertAt(Block, Before, true) && Function::classof(Block.outer()) && &Target.context() == &Context && Target.outer() == Block.outer();
+  }
+
   bool IRBuilder::canInsertValue(const BasicBlock &Block, const Value &Child, const Value *Before) const noexcept
   {
     if (&Block.context() != &Context || &Child.context() != &Context || Child.outer() || Type::classof(&Child) || Constant::classof(&Child))
@@ -142,13 +152,25 @@ namespace ink::ir
     {
       return false;
     }
-    if (!canInsertAt(Block, Before, IsReturn))
+    if (!canInsertAt(Block, Before, Child.isTerminator()))
     {
       return false;
     }
     if (IsReturn && !canInsertReturn(Block, static_cast<const ReturnInstruction &>(Child).returnedValue(), Before))
     {
       return false;
+    }
+    if (BranchInstruction::classof(&Child) && !canInsertBranch(Block, static_cast<const BranchInstruction &>(Child).target(), Before))
+    {
+      return false;
+    }
+    if (ConditionalBranchInstruction::classof(&Child))
+    {
+      const auto &Branch = static_cast<const ConditionalBranchInstruction &>(Child);
+      if (!canInsertBranch(Block, Branch.trueTarget(), Before) || !canInsertBranch(Block, Branch.falseTarget(), Before))
+      {
+        return false;
+      }
     }
     for (const Value *Ancestor = &Block; Ancestor; Ancestor = Ancestor->outer())
     {
@@ -381,6 +403,59 @@ namespace ink::ir
     return std::unique_ptr<AddInstruction>(new AddInstruction(Left, Right));
   }
 
+  std::unique_ptr<LogicalNotInstruction> IRBuilder::createDetachedLogicalNotInstruction(const Value &Operand)
+  {
+    if (&Operand.context() != &Context || Operand.type().typeKind() != TypeKind::Bool)
+    {
+      return nullptr;
+    }
+    return std::unique_ptr<LogicalNotInstruction>(new LogicalNotInstruction(Operand));
+  }
+
+  std::unique_ptr<LogicalAndInstruction> IRBuilder::createDetachedLogicalAndInstruction(const Value &Left, const Value &Right)
+  {
+    if (&Left.context() != &Context || &Right.context() != &Context || Left.type().typeKind() != TypeKind::Bool || &Left.type() != &Right.type())
+    {
+      return nullptr;
+    }
+    return std::unique_ptr<LogicalAndInstruction>(new LogicalAndInstruction(Left, Right));
+  }
+
+  std::unique_ptr<LogicalOrInstruction> IRBuilder::createDetachedLogicalOrInstruction(const Value &Left, const Value &Right)
+  {
+    if (&Left.context() != &Context || &Right.context() != &Context || Left.type().typeKind() != TypeKind::Bool || &Left.type() != &Right.type())
+    {
+      return nullptr;
+    }
+    return std::unique_ptr<LogicalOrInstruction>(new LogicalOrInstruction(Left, Right));
+  }
+
+  std::unique_ptr<CompareInstruction> IRBuilder::createDetachedCompareInstruction(ComparisonPredicate Predicate, const Value &Left, const Value &Right)
+  {
+    if (&Left.context() != &Context || &Right.context() != &Context || &Left.type() != &Right.type() || (!IntegerType::classof(&Left.type()) && Left.type().typeKind() != TypeKind::Bool))
+    {
+      return nullptr;
+    }
+    switch (Predicate)
+    {
+    case ComparisonPredicate::Equal:
+    case ComparisonPredicate::NotEqual:
+      break;
+    case ComparisonPredicate::Less:
+    case ComparisonPredicate::LessEqual:
+    case ComparisonPredicate::Greater:
+    case ComparisonPredicate::GreaterEqual:
+      if (!IntegerType::classof(&Left.type()))
+      {
+        return nullptr;
+      }
+      break;
+    default:
+      return nullptr;
+    }
+    return std::unique_ptr<CompareInstruction>(new CompareInstruction(Context.typePool().getType<TypeKind::Bool>(), Predicate, Left, Right));
+  }
+
   std::unique_ptr<ReturnInstruction> IRBuilder::createDetachedReturnInstruction(const Value *ReturnedValue)
   {
     if (ReturnedValue && (&ReturnedValue->context() != &Context || ReturnedValue->type().typeKind() == TypeKind::Void))
@@ -388,6 +463,24 @@ namespace ink::ir
       return nullptr;
     }
     return std::unique_ptr<ReturnInstruction>(new ReturnInstruction(Context, ReturnedValue));
+  }
+
+  std::unique_ptr<BranchInstruction> IRBuilder::createDetachedBranchInstruction(const BasicBlock &Target)
+  {
+    if (!isValidBranchTarget(Target))
+    {
+      return nullptr;
+    }
+    return std::unique_ptr<BranchInstruction>(new BranchInstruction(Context.typePool().getType<TypeKind::Void>(), Target));
+  }
+
+  std::unique_ptr<ConditionalBranchInstruction> IRBuilder::createDetachedConditionalBranchInstruction(const Value &Condition, const BasicBlock &TrueTarget, const BasicBlock &FalseTarget)
+  {
+    if (&Condition.context() != &Context || Condition.type().typeKind() != TypeKind::Bool || !isValidBranchTarget(TrueTarget) || !isValidBranchTarget(FalseTarget) || (TrueTarget.outer() && FalseTarget.outer() && TrueTarget.outer() != FalseTarget.outer()))
+    {
+      return nullptr;
+    }
+    return std::unique_ptr<ConditionalBranchInstruction>(new ConditionalBranchInstruction(Context.typePool().getType<TypeKind::Void>(), Condition, TrueTarget, FalseTarget));
   }
 
   ModuleDecl *IRBuilder::createModuleDecl(Module &Owner, const parser::ModuleAST &AST)
@@ -483,6 +576,42 @@ namespace ink::ir
     return insert(createDetachedAddInstruction(Left, Right));
   }
 
+  LogicalNotInstruction *IRBuilder::createLogicalNotInstruction(const Value &Operand)
+  {
+    if (!canInsert())
+    {
+      return nullptr;
+    }
+    return insert(createDetachedLogicalNotInstruction(Operand));
+  }
+
+  LogicalAndInstruction *IRBuilder::createLogicalAndInstruction(const Value &Left, const Value &Right)
+  {
+    if (!canInsert())
+    {
+      return nullptr;
+    }
+    return insert(createDetachedLogicalAndInstruction(Left, Right));
+  }
+
+  LogicalOrInstruction *IRBuilder::createLogicalOrInstruction(const Value &Left, const Value &Right)
+  {
+    if (!canInsert())
+    {
+      return nullptr;
+    }
+    return insert(createDetachedLogicalOrInstruction(Left, Right));
+  }
+
+  CompareInstruction *IRBuilder::createCompareInstruction(ComparisonPredicate Predicate, const Value &Left, const Value &Right)
+  {
+    if (!canInsert())
+    {
+      return nullptr;
+    }
+    return insert(createDetachedCompareInstruction(Predicate, Left, Right));
+  }
+
   ReturnInstruction *IRBuilder::createReturnInstruction(const Value *ReturnedValue)
   {
     if (!Point.Block || !canInsertReturn(*Point.Block, ReturnedValue, Point.Before))
@@ -490,5 +619,23 @@ namespace ink::ir
       return nullptr;
     }
     return insert(createDetachedReturnInstruction(ReturnedValue));
+  }
+
+  BranchInstruction *IRBuilder::createBranchInstruction(const BasicBlock &Target)
+  {
+    if (!Point.Block || !canInsertBranch(*Point.Block, Target, Point.Before))
+    {
+      return nullptr;
+    }
+    return insert(createDetachedBranchInstruction(Target));
+  }
+
+  ConditionalBranchInstruction *IRBuilder::createConditionalBranchInstruction(const Value &Condition, const BasicBlock &TrueTarget, const BasicBlock &FalseTarget)
+  {
+    if (!Point.Block || !canInsertBranch(*Point.Block, TrueTarget, Point.Before) || !canInsertBranch(*Point.Block, FalseTarget, Point.Before))
+    {
+      return nullptr;
+    }
+    return insert(createDetachedConditionalBranchInstruction(Condition, TrueTarget, FalseTarget));
   }
 } // namespace ink::ir

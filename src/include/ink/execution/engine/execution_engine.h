@@ -4,6 +4,7 @@
 #include "ink/execution/engine/execution_frame.h"
 #include "ink/execution/memory/execution_heap.h"
 #include "ink/execution/support/execution_result.h"
+#include "ink/execution/support/execution_instruction_result.h"
 #include "ink/execution/ffi/native_symbol_cache.h"
 #include "ink/core/config_manager.h"
 
@@ -16,11 +17,17 @@ namespace ink::ir
 {
   class AddInstruction;
   class AllocaInstruction;
+  class BranchInstruction;
   class CallInstruction;
+  class ConditionalBranchInstruction;
+  class CompareInstruction;
   class CStringInstruction;
   class Function;
   class IRContext;
   class LoadInstruction;
+  class LogicalAndInstruction;
+  class LogicalNotInstruction;
+  class LogicalOrInstruction;
   class ReturnInstruction;
   class StoreInstruction;
   class Type;
@@ -106,15 +113,21 @@ namespace ink::execution
       ExecutionStatus finishStatus(ExecutionStatus Status) noexcept;
       ExecutionValueResult executeInvocation(const ir::Function &Function, std::span<const ExecutionValueRef> Arguments);
       ExecutionValueResult executeBody(const ir::Function &Function, ExecutionFrame &Frame);
-      ExecutionValueResult executeInstruction(const ir::Value &Instruction, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeInstruction(const ir::Value &Instruction, ExecutionFrame &Frame);
       ExecutionValueResult makeFunctionValue(const ir::Function &Function);
-      ExecutionValueResult executeAlloca(const ir::AllocaInstruction &Alloca, ExecutionFrame &Frame);
-      ExecutionValueResult executeLoad(const ir::LoadInstruction &Load, ExecutionFrame &Frame);
-      ExecutionValueResult executeStore(const ir::StoreInstruction &Store, ExecutionFrame &Frame);
-      ExecutionValueResult executeAdd(const ir::AddInstruction &Add, ExecutionFrame &Frame);
-      ExecutionValueResult executeCString(const ir::CStringInstruction &CString, ExecutionFrame &Frame);
-      ExecutionValueResult executeCall(const ir::CallInstruction &Call, ExecutionFrame &Frame);
-      ExecutionValueResult executeReturn(const ir::ReturnInstruction &Return, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeAlloca(const ir::AllocaInstruction &Alloca, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeLoad(const ir::LoadInstruction &Load, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeStore(const ir::StoreInstruction &Store, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeAdd(const ir::AddInstruction &Add, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeLogicalNot(const ir::LogicalNotInstruction &Not, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeLogicalAnd(const ir::LogicalAndInstruction &And, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeLogicalOr(const ir::LogicalOrInstruction &Or, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeCompare(const ir::CompareInstruction &Compare, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeCString(const ir::CStringInstruction &CString, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeCall(const ir::CallInstruction &Call, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeReturn(const ir::ReturnInstruction &Return, ExecutionFrame &Frame);
+      ExecutionInstructionResult executeBranch(const ir::BranchInstruction &Branch);
+      ExecutionInstructionResult executeConditionalBranch(const ir::ConditionalBranchInstruction &Branch, ExecutionFrame &Frame);
       ExecutionValueResult loadPointer(const ExecutionValueRef &Address);
       ExecutionStatus storePointer(const ExecutionValueRef &Address, const ExecutionValueRef &Value);
       ExecutionResult freeze(const ExecutionValueResult &Result);

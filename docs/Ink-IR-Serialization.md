@@ -78,6 +78,10 @@ type !t4 = fn(i32, !t2) -> i32
 | 指令 | 文本示例 |
 | --- | --- |
 | 加法 | `%sum = add i32 %x, 1` |
+| 逻辑非 | `%negated = not bool %condition` |
+| 逻辑与 | `%both = and bool %left, %right` |
+| 逻辑或 | `%either = or bool %left, %right` |
+| 比较 | `%less = cmp lt i32 %left, %right` 或 `%same = cmp eq bool %left, %right` |
 | 栈分配 | `%slot = alloca i32` |
 | 读取 | `%value = load i32, ptr<rw, i32> %slot` |
 | 写入 | `store i32 %value, ptr<rw, i32> %slot` |
@@ -85,8 +89,14 @@ type !t4 = fn(i32, !t2) -> i32
 | 直接调用 | `%result = call i32 @f(i32 %x)` |
 | 间接调用 | `%result = call i32 %callback(i32 %x)` |
 | 返回 | `ret i32 %result` 或 `ret void` |
+| 无条件跳转 | `br ^merge` |
+| 条件跳转 | `br bool %condition, ^then, ^else` |
 
 非 void 指令必须声明结果名；void 指令仅在其结果被其他对象引用时输出结果名。读取时校验所有显式操作数类型、调用签名、结果类型、指令位置及返回类型。
+
+`not`、`and` 和 `or` 只接受 bool 操作数，结果为 bool。`and`、`or` 是对已经求值的两个操作数执行的 IR 运算，不会跳过此前的操作数求值；源码 `&&`、`||` 的短路由条件分支、临时 bool 存储和汇合块表达。`cmp` 的结果为 bool，谓词 `eq`、`ne`、`lt`、`le`、`gt`、`ge` 分别对应相等、不等、小于、小于等于、大于、大于等于。两个整数操作数必须类型完全相同，比较遵守其符号属性和 IR 位宽；bool 仅允许 `eq` 和 `ne`。不支持浮点、指针或其他类型比较。
+
+跳转和返回都是基本块的终结指令，其后不得追加其他指令。条件跳转的条件必须为 `bool`；所有跳转目标必须是同一函数中的基本块。目标允许前向引用、回边、自环，以及条件跳转的两个目标相同；控制流中的环不会作为类型或操作数依赖循环被拒绝。恢复时先创建全部目标块，再挂载跳转指令。
 
 ### 泛型声明与 AST
 
@@ -148,6 +158,19 @@ declarations from !ast0 %23 {
 对象 ID 由记录顺序隐含决定，从 1 开始；1 是根模块，0 表示无引用。父对象先于子对象；类型和操作数允许向前引用。类型与常量不具有结构父对象。整数常量保存低位字到高位字，浮点保存原始位模式；AST payload 直接使用现有 IAST v3 二进制快照，旧的 IAST v1、v2 快照会被拒绝。
 
 读取器在分配前验证记录数量、字段数量和剩余字节，拒绝未知 kind、flags、截断、越界引用和尾随字节。版本由 `ModuleTextVersion` 和 `ModuleBinaryVersion` 分别管理；当前 v2 不兼容此前的 v1 实验格式。AST 文本和二进制版本也独立管理。相同 Module 的规范输出不依赖指针地址、无关池插入顺序或宿主大小端。
+
+跳转使用追加的稳定 kind ID，不改变既有记录：`Branch = 50` 的唯一字段为目标基本块 ID；`ConditionalBranch = 51` 的三个字段依次为条件值、真分支基本块、假分支基本块 ID。两种指令的结果类型均为 `void`，父对象为所属函数的基本块；文本和二进制格式版本仍为 v2，现有无跳转归档继续兼容。
+
+逻辑和比较指令继续追加稳定 ID，结果类型均为 bool：
+
+| kind | 字段 |
+| --- | --- |
+| `LogicalNot = 52` | 操作数 ID |
+| `LogicalAnd = 53` | 左操作数 ID、右操作数 ID |
+| `LogicalOr = 54` | 左操作数 ID、右操作数 ID |
+| `Compare = 55` | 谓词编号、左操作数 ID、右操作数 ID |
+
+比较谓词的稳定编号为 `eq = 0`、`ne = 1`、`lt = 2`、`le = 3`、`gt = 4`、`ge = 5`，通过显式映射与 C++ 枚举关联；谓词编号不作为对象引用参与依赖恢复。非法谓词、不匹配的操作数或结果类型、越界引用和循环操作数依赖均返回 `InvalidArchive`。格式版本保持 v2，既有归档不受追加指令影响。
 
 ## 验证与资源限制
 

@@ -12,6 +12,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace ink::execution::test
 {
@@ -215,6 +216,220 @@ namespace ink::execution::test
     ASSERT_NE(Test.Builder.createReturnInstruction(&Test.constant(7)), nullptr);
     Test.Engine.cancel();
     EXPECT_EQ(Test.Engine.execute(*Function).Status, ExecutionStatus::Cancelled);
+  }
+
+  // A condition call runs once and only its selected arm updates storage before an explicitly targeted merge block.
+  TEST(IRExecutionTest, BranchesOnCallResultsAndExecutesOnlyTheSelectedArm)
+  {
+    IRExecutionContext Test;
+    const auto &Bool = Test.Context.typePool().getType<ir::TypeKind::Bool>();
+    const auto *Pointer = Test.Context.typePool().getType<ir::TypeKind::Pointer>(Test.Int32, ir::AccessKind::ReadWrite);
+    const ir::Type *ConditionParameters[] = {&Bool, Pointer};
+    auto Condition = Test.function("Condition", Bool, ConditionParameters);
+    ASSERT_NE(Condition, nullptr);
+    ASSERT_TRUE(Test.begin(*Condition));
+    auto *Previous = Test.Builder.createLoadInstruction(*Condition->parameters()[1]);
+    ASSERT_NE(Previous, nullptr);
+    auto *Increment = Test.Builder.createAddInstruction(*Previous, Test.constant(1));
+    ASSERT_NE(Increment, nullptr);
+    ASSERT_NE(Test.Builder.createStoreInstruction(*Condition->parameters()[1], *Increment), nullptr);
+    ASSERT_NE(Test.Builder.createReturnInstruction(Condition->parameters()[0].get()), nullptr);
+
+    const ir::Type *Parameters[] = {&Bool};
+    auto Function = Test.function("Choose", Test.Int32, Parameters);
+    ASSERT_NE(Function, nullptr);
+    ASSERT_TRUE(Test.begin(*Function));
+    auto *Merge = Test.Builder.createBasicBlock(*Function);
+    auto *Then = Test.Builder.createBasicBlock(*Function);
+    auto *Else = Test.Builder.createBasicBlock(*Function);
+    ASSERT_NE(Merge, nullptr);
+    ASSERT_NE(Then, nullptr);
+    ASSERT_NE(Else, nullptr);
+    auto *Counter = Test.Builder.createAllocaInstruction(Test.Int32);
+    ASSERT_NE(Counter, nullptr);
+    ASSERT_NE(Test.Builder.createStoreInstruction(*Counter, Test.constant(0)), nullptr);
+    const ir::Value *Arguments[] = {Function->parameters()[0].get(), Counter};
+    auto *Flag = Test.Builder.createCallInstruction(*Condition, Arguments);
+    ASSERT_NE(Flag, nullptr);
+    ASSERT_NE(Test.Builder.createConditionalBranchInstruction(*Flag, *Then, *Else), nullptr);
+    for (const auto &[Block, Amount] : {std::pair{Then, 10U}, std::pair{Else, 100U}})
+    {
+      ASSERT_TRUE(Test.Builder.setInsertPoint(*Block));
+      auto *Loaded = Test.Builder.createLoadInstruction(*Counter);
+      ASSERT_NE(Loaded, nullptr);
+      auto *Sum = Test.Builder.createAddInstruction(*Loaded, Test.constant(Amount));
+      ASSERT_NE(Sum, nullptr);
+      ASSERT_NE(Test.Builder.createStoreInstruction(*Counter, *Sum), nullptr);
+      ASSERT_NE(Test.Builder.createBranchInstruction(*Merge), nullptr);
+    }
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Merge));
+    auto *Result = Test.Builder.createLoadInstruction(*Counter);
+    ASSERT_NE(Result, nullptr);
+    ASSERT_NE(Test.Builder.createReturnInstruction(Result), nullptr);
+    const auto ConstantCount = Test.Context.constantPool().size();
+    for (const bool FlagValue : {true, false, true})
+    {
+      const ExecutionValueRef Values[] = {Test.Engine.heap().boolean(Bool, FlagValue)};
+      expectInteger(Test.Engine.execute(*Function, Values), FlagValue ? 11 : 101);
+      EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
+    }
+    EXPECT_EQ(Test.Context.constantPool().size(), ConstantCount);
+  }
+
+  // An unselected arm may contain a failing call, while choosing that same arm reports its execution failure.
+  TEST(IRExecutionTest, DoesNotExecuteCallsInUnselectedBlocks)
+  {
+    IRExecutionContext Test;
+    const auto &Bool = Test.Context.typePool().getType<ir::TypeKind::Bool>();
+    auto Missing = Test.function("Missing", Test.Int32);
+    const ir::Type *Parameters[] = {&Bool};
+    auto Function = Test.function("SkipMissing", Test.Int32, Parameters);
+    ASSERT_NE(Missing, nullptr);
+    ASSERT_NE(Function, nullptr);
+    ASSERT_TRUE(Test.begin(*Function));
+    auto *Then = Test.Builder.createBasicBlock(*Function);
+    auto *Else = Test.Builder.createBasicBlock(*Function);
+    ASSERT_NE(Then, nullptr);
+    ASSERT_NE(Else, nullptr);
+    ASSERT_NE(Test.Builder.createConditionalBranchInstruction(*Function->parameters()[0], *Then, *Else), nullptr);
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Then));
+    ASSERT_NE(Test.Builder.createReturnInstruction(&Test.constant(7)), nullptr);
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Else));
+    auto *Call = Test.Builder.createCallInstruction(*Missing);
+    ASSERT_NE(Call, nullptr);
+    ASSERT_NE(Test.Builder.createReturnInstruction(Call), nullptr);
+    const ExecutionValueRef True[] = {Test.Engine.heap().boolean(Bool, true)};
+    const ExecutionValueRef False[] = {Test.Engine.heap().boolean(Bool, false)};
+    expectInteger(Test.Engine.execute(*Function, True), 7);
+    EXPECT_EQ(Test.Engine.execute(*Function, False).Status, ExecutionStatus::MissingBody);
+    expectInteger(Test.Engine.execute(*Function, True), 7);
+  }
+
+  // Revisiting a block refreshes its load results and allocates fresh storage instead of reusing stale SSA snapshots.
+  TEST(IRExecutionTest, BackEdgesRefreshInstructionResultsAndAllocations)
+  {
+    IRExecutionContext Test;
+    const auto &Bool = Test.Context.typePool().getType<ir::TypeKind::Bool>();
+    auto Function = Test.function("Revisit", Test.Int32);
+    ASSERT_NE(Function, nullptr);
+    ASSERT_TRUE(Test.begin(*Function));
+    auto *Header = Test.Builder.createBasicBlock(*Function);
+    auto *Body = Test.Builder.createBasicBlock(*Function);
+    auto *Exit = Test.Builder.createBasicBlock(*Function);
+    ASSERT_NE(Header, nullptr);
+    ASSERT_NE(Body, nullptr);
+    ASSERT_NE(Exit, nullptr);
+    auto *Flag = Test.Builder.createAllocaInstruction(Bool);
+    ASSERT_NE(Flag, nullptr);
+    ASSERT_NE(Test.Builder.createStoreInstruction(*Flag, Test.Context.constantPool().getBoolConstant(true)), nullptr);
+    ASSERT_NE(Test.Builder.createBranchInstruction(*Header), nullptr);
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Header));
+    auto *Temporary = Test.Builder.createAllocaInstruction(Test.Int32);
+    ASSERT_NE(Temporary, nullptr);
+    ASSERT_NE(Test.Builder.createStoreInstruction(*Temporary, Test.constant(7)), nullptr);
+    auto *Loaded = Test.Builder.createLoadInstruction(*Flag);
+    ASSERT_NE(Loaded, nullptr);
+    ASSERT_NE(Test.Builder.createConditionalBranchInstruction(*Loaded, *Body, *Exit), nullptr);
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Body));
+    ASSERT_NE(Test.Builder.createStoreInstruction(*Flag, Test.Context.constantPool().getBoolConstant(false)), nullptr);
+    ASSERT_NE(Test.Builder.createBranchInstruction(*Header), nullptr);
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Exit));
+    auto *Result = Test.Builder.createLoadInstruction(*Temporary);
+    ASSERT_NE(Result, nullptr);
+    ASSERT_NE(Test.Builder.createReturnInstruction(Result), nullptr);
+    expectInteger(Test.Engine.execute(*Function), 7);
+    EXPECT_EQ(Test.Engine.heap().allocatedStorageCount(), 3U);
+    EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
+  }
+
+  // A self-loop consumes the shared step budget and releases invocation storage when execution stops.
+  TEST(IRExecutionTest, BranchCyclesRespectTheStepBudget)
+  {
+    ExecutionLimits Limits;
+    Limits.MaxSteps = 16;
+    IRExecutionContext Test(Limits);
+    auto Function = Test.function("Forever", Test.Int32);
+    ASSERT_NE(Function, nullptr);
+    ASSERT_TRUE(Test.begin(*Function));
+    auto *Loop = Test.Builder.createBasicBlock(*Function);
+    ASSERT_NE(Loop, nullptr);
+    ASSERT_NE(Test.Builder.createAllocaInstruction(Test.Int32), nullptr);
+    ASSERT_NE(Test.Builder.createBranchInstruction(*Loop), nullptr);
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Loop));
+    ASSERT_NE(Test.Builder.createBranchInstruction(*Loop), nullptr);
+    EXPECT_EQ(Test.Engine.execute(*Function).Status, ExecutionStatus::BudgetExceeded);
+    EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
+    EXPECT_EQ(Test.Engine.heap().liveValueCount(), 0U);
+    EXPECT_EQ(Test.Engine.execute(*Function).Status, ExecutionStatus::BudgetExceeded);
+  }
+
+  // Reaching an empty target does not fall through into the next block in the function's storage order.
+  TEST(IRExecutionTest, DoesNotFallThroughAnUnterminatedBranchTarget)
+  {
+    IRExecutionContext Test;
+    auto Function = Test.function("Unterminated", Test.Int32);
+    ASSERT_NE(Function, nullptr);
+    ASSERT_TRUE(Test.begin(*Function));
+    auto *Empty = Test.Builder.createBasicBlock(*Function);
+    auto *Unrelated = Test.Builder.createBasicBlock(*Function);
+    ASSERT_NE(Empty, nullptr);
+    ASSERT_NE(Unrelated, nullptr);
+    ASSERT_NE(Test.Builder.createBranchInstruction(*Empty), nullptr);
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Unrelated));
+    ASSERT_NE(Test.Builder.createReturnInstruction(&Test.constant(9)), nullptr);
+    EXPECT_EQ(Test.Engine.execute(*Function).Status, ExecutionStatus::MissingBody);
+  }
+
+  // Void values from stores and nested calls continue the caller until its own explicit return is executed.
+  TEST(IRExecutionTest, VoidCallAndStoreResultsDoNotReturnFromTheCaller)
+  {
+    IRExecutionContext Test;
+    auto Callee = Test.function("VoidCallee", Test.Context.typePool().getType<ir::TypeKind::Void>());
+    ASSERT_NE(Callee, nullptr);
+    ASSERT_TRUE(Test.begin(*Callee));
+    ASSERT_NE(Test.Builder.createReturnInstruction(), nullptr);
+    auto Caller = Test.function("Caller", Test.Int32);
+    ASSERT_NE(Caller, nullptr);
+    ASSERT_TRUE(Test.begin(*Caller));
+    auto *Slot = Test.Builder.createAllocaInstruction(Test.Int32);
+    ASSERT_NE(Slot, nullptr);
+    ASSERT_NE(Test.Builder.createStoreInstruction(*Slot, Test.constant(3)), nullptr);
+    ASSERT_NE(Test.Builder.createCallInstruction(*Callee), nullptr);
+    ASSERT_NE(Test.Builder.createStoreInstruction(*Slot, Test.constant(9)), nullptr);
+    auto *Result = Test.Builder.createLoadInstruction(*Slot);
+    ASSERT_NE(Result, nullptr);
+    ASSERT_NE(Test.Builder.createReturnInstruction(Result), nullptr);
+    expectInteger(Test.Engine.execute(*Caller), 9);
+    EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
+  }
+
+  // A condition whose defining instruction was never reached reports RuntimeValue without executing that definition.
+  TEST(IRExecutionTest, BranchConditionFailuresKeepTheirStatusAndSkipUnreachedCalls)
+  {
+    IRExecutionContext Test;
+    const auto &Bool = Test.Context.typePool().getType<ir::TypeKind::Bool>();
+    auto Missing = Test.function("UnreachedCondition", Bool);
+    auto Function = Test.function("InvalidConditionUse", Test.Int32);
+    ASSERT_NE(Missing, nullptr);
+    ASSERT_NE(Function, nullptr);
+    ASSERT_TRUE(Test.begin(*Function));
+    auto *Skipped = Test.Builder.createBasicBlock(*Function);
+    auto *Exit = Test.Builder.createBasicBlock(*Function);
+    ASSERT_NE(Skipped, nullptr);
+    ASSERT_NE(Exit, nullptr);
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Skipped));
+    auto *Condition = Test.Builder.createCallInstruction(*Missing);
+    ASSERT_NE(Condition, nullptr);
+    ASSERT_NE(Test.Builder.createBranchInstruction(*Exit), nullptr);
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Exit));
+    ASSERT_NE(Test.Builder.createReturnInstruction(&Test.constant(7)), nullptr);
+    ASSERT_TRUE(Test.Builder.setInsertPoint(*Function->entryBlock()));
+    ASSERT_NE(Test.Builder.createConditionalBranchInstruction(*Condition, *Exit, *Exit), nullptr);
+    const auto Result = Test.Engine.execute(*Function);
+    EXPECT_EQ(Result.Status, ExecutionStatus::RuntimeValue);
+    EXPECT_FALSE(Result.Value);
+    EXPECT_EQ(Test.Engine.lastStatus(), ExecutionStatus::RuntimeValue);
+    EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
   }
 
   // Ending a parent frame physically reclaims its local and descendant cells while preserving loaded snapshots.

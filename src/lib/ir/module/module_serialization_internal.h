@@ -2,6 +2,7 @@
 #define INK_IR_MODULE_SERIALIZATION_INTERNAL_H
 
 #include "ink/ir/module/module_serialization.h"
+#include "ink/ir/instruction/compare_instruction.h"
 
 #include <limits>
 #include <algorithm>
@@ -33,6 +34,64 @@ namespace ink::ir::archive
 #include "module_serialization_tags.def"
 #undef IR_ARCHIVE_TAG
   };
+
+  inline bool isInstruction(Tag Kind)
+  {
+    return (Kind >= Tag::Call && Kind <= Tag::Return) || (Kind >= Tag::Branch && Kind <= Tag::Compare);
+  }
+
+  struct ComparisonPredicateInfo
+  {
+      ComparisonPredicate Predicate;
+      std::uint64_t Wire;
+      std::string_view Text;
+  };
+
+  // Wire values are explicit so changes to the public enum cannot change existing archives.
+  inline constexpr ComparisonPredicateInfo ComparisonPredicates[] = {
+      {ComparisonPredicate::Equal, 0, "eq"},
+      {ComparisonPredicate::NotEqual, 1, "ne"},
+      {ComparisonPredicate::Less, 2, "lt"},
+      {ComparisonPredicate::LessEqual, 3, "le"},
+      {ComparisonPredicate::Greater, 4, "gt"},
+      {ComparisonPredicate::GreaterEqual, 5, "ge"},
+  };
+
+  inline const ComparisonPredicateInfo *comparisonPredicateInfo(ComparisonPredicate Predicate)
+  {
+    for (const auto &Info : ComparisonPredicates)
+    {
+      if (Info.Predicate == Predicate)
+      {
+        return &Info;
+      }
+    }
+    return nullptr;
+  }
+
+  inline const ComparisonPredicateInfo *comparisonPredicateInfo(std::uint64_t Wire)
+  {
+    for (const auto &Info : ComparisonPredicates)
+    {
+      if (Info.Wire == Wire)
+      {
+        return &Info;
+      }
+    }
+    return nullptr;
+  }
+
+  inline const ComparisonPredicateInfo *comparisonPredicateInfo(std::string_view Text)
+  {
+    for (const auto &Info : ComparisonPredicates)
+    {
+      if (Info.Text == Text)
+      {
+        return &Info;
+      }
+    }
+    return nullptr;
+  }
 
   inline const TagInfo *tagInfo(unsigned Kind)
   {

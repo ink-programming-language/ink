@@ -50,12 +50,4 @@ add_test(NAME TokenizerProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_TOKENIZER=$
 add_test(NAME InkcProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/inkc-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/inkc_process_test.cmake")
 set_tests_properties(InkcProcessTest PROPERTIES TIMEOUT 60 LABELS "execution;cli")
 
-if(WIN32)
-  set(INK_HELLO_WORLD_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/execution/programs/hello_world.windows.ink")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(INK_HELLO_WORLD_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/execution/programs/hello_world.linux.ink")
-endif()
-if(DEFINED INK_HELLO_WORLD_SOURCE)
-  add_test(NAME ExecutionSourceTest.HelloWorld COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_SOURCE=${INK_HELLO_WORLD_SOURCE}" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/execution-programs" "-DINK_WINDOWS_STDOUT=${WIN32}" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/hello_world_test.cmake")
-  set_tests_properties(ExecutionSourceTest.HelloWorld PROPERTIES TIMEOUT 30 LABELS "execution;source")
-endif()
+include("${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/source_program_tests.cmake")

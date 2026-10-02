@@ -6,24 +6,24 @@
 
 namespace ink::execution
 {
-  ExecutionValueResult ExecutionEngine::executeAdd(const ir::AddInstruction &Add, ExecutionFrame &Frame)
+  ExecutionInstructionResult ExecutionEngine::executeAdd(const ir::AddInstruction &Add, ExecutionFrame &Frame)
   {
     ExecutionValueResult Left = evaluate(Add.left(), Frame);
     if (!Left)
     {
-      return Left;
+      return ExecutionInstructionResult::failure(Left.Status);
     }
     ExecutionValueResult Right = evaluate(Add.right(), Frame);
     if (!Right)
     {
-      return Right;
+      return ExecutionInstructionResult::failure(Right.Status);
     }
     if (Left.Value.kind() != ExecutionValueKind::Integer || Right.Value.kind() != ExecutionValueKind::Integer || Left.Value.type() != Right.Value.type())
     {
-      return {ExecutionStatus::TypeMismatch};
+      return ExecutionInstructionResult::failure(ExecutionStatus::TypeMismatch);
     }
     ExecutionInteger Sum(Left.Value.integer().bitWidth());
     const ExecutionStatus Status = Left.Value.integer().add(Right.Value.integer(), Sum);
-    return Status == ExecutionStatus::Success ? ExecutionValueResult{Status, Heap.integer(Add.type(), std::move(Sum))} : ExecutionValueResult{Status};
+    return Status == ExecutionStatus::Success ? ExecutionInstructionResult::continueWith(Heap.integer(Add.type(), std::move(Sum))) : ExecutionInstructionResult::failure(Status);
   }
 } // namespace ink::execution

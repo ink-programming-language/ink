@@ -408,6 +408,35 @@ namespace ink::ir::archive
             ref(Entry, static_cast<const AddInstruction &>(Object).left());
             ref(Entry, static_cast<const AddInstruction &>(Object).right());
             break;
+          case ValueKind::LogicalNotInstruction:
+            Entry.Kind = Tag::LogicalNot;
+            ref(Entry, static_cast<const LogicalNotInstruction &>(Object).operand());
+            break;
+          case ValueKind::LogicalAndInstruction:
+            Entry.Kind = Tag::LogicalAnd;
+            ref(Entry, static_cast<const LogicalAndInstruction &>(Object).left());
+            ref(Entry, static_cast<const LogicalAndInstruction &>(Object).right());
+            break;
+          case ValueKind::LogicalOrInstruction:
+            Entry.Kind = Tag::LogicalOr;
+            ref(Entry, static_cast<const LogicalOrInstruction &>(Object).left());
+            ref(Entry, static_cast<const LogicalOrInstruction &>(Object).right());
+            break;
+          case ValueKind::CompareInstruction:
+          {
+            Entry.Kind = Tag::Compare;
+            const auto &Compare = static_cast<const CompareInstruction &>(Object);
+            const auto *Predicate = comparisonPredicateInfo(Compare.predicate());
+            if (!Predicate)
+            {
+              Data.fail("Unsupported comparison predicate", ModuleArchiveStatus::InvalidInput);
+              break;
+            }
+            field(Entry, Predicate->Wire);
+            ref(Entry, Compare.left());
+            ref(Entry, Compare.right());
+            break;
+          }
           case ValueKind::ReturnInstruction:
             Entry.Kind = Tag::Return;
             if (const Value *Returned = static_cast<const ReturnInstruction &>(Object).returnedValue())
@@ -415,6 +444,19 @@ namespace ink::ir::archive
               ref(Entry, *Returned);
             }
             break;
+          case ValueKind::BranchInstruction:
+            Entry.Kind = Tag::Branch;
+            ref(Entry, static_cast<const BranchInstruction &>(Object).target());
+            break;
+          case ValueKind::ConditionalBranchInstruction:
+          {
+            Entry.Kind = Tag::ConditionalBranch;
+            const auto &Branch = static_cast<const ConditionalBranchInstruction &>(Object);
+            ref(Entry, Branch.condition());
+            ref(Entry, Branch.trueTarget());
+            ref(Entry, Branch.falseTarget());
+            break;
+          }
           default:
             Data.fail("Unsupported IR value kind", ModuleArchiveStatus::InvalidInput);
           }
@@ -714,12 +756,27 @@ namespace ink::ir::archive
             case Tag::Store:
             case Tag::Add:
             case Tag::Return:
+            case Tag::Branch:
+            case Tag::ConditionalBranch:
+            case Tag::LogicalNot:
+            case Tag::LogicalAnd:
+            case Tag::LogicalOr:
               for (auto Target : Entry.Fields)
               {
                 if (!dependency(Id, Target, Entry.Kind == Tag::FunctionType))
                 {
                   return false;
                 }
+              }
+              break;
+            case Tag::Compare:
+              if (!comparisonPredicateInfo(Entry.Fields[0]))
+              {
+                return Data.fail("Invalid comparison predicate");
+              }
+              if (!dependency(Id, Entry.Fields[1]) || !dependency(Id, Entry.Fields[2]))
+              {
+                return false;
               }
               break;
             case Tag::Parameter:
@@ -736,6 +793,22 @@ namespace ink::ir::archive
           for (std::size_t Id = 1; Id < Values.size(); ++Id)
           {
             const auto &Entry = record(Id);
+            if (Entry.Kind == Tag::Branch || Entry.Kind == Tag::ConditionalBranch)
+            {
+              const auto &SourceBlock = record(Entry.Parent);
+              if (SourceBlock.Kind != Tag::Block || !SourceBlock.Parent || record(SourceBlock.Parent).Kind != Tag::Function)
+              {
+                return Data.fail("Branch requires a function block");
+              }
+              for (std::size_t Index = Entry.Kind == Tag::ConditionalBranch ? 1 : 0; Index < Entry.Fields.size(); ++Index)
+              {
+                const auto &Target = record(Entry.Fields[Index]);
+                if (Target.Kind != Tag::Block || Target.Parent != SourceBlock.Parent)
+                {
+                  return Data.fail("Branch target must be a block in the same function");
+                }
+              }
+            }
             if (Entry.Kind == Tag::Module && (Children[Id].size() != 1 || record(Children[Id][0]).Kind != Tag::Block))
             {
               return Data.fail("Module requires exactly one entry block");
@@ -998,8 +1071,20 @@ namespace ink::ir::archive
             return own(Id, Builder.createDetachedStoreInstruction(*Values[Fields[0]], *Values[Fields[1]]));
           case Tag::Add:
             return own(Id, Builder.createDetachedAddInstruction(*Values[Fields[0]], *Values[Fields[1]]));
+          case Tag::LogicalNot:
+            return own(Id, Builder.createDetachedLogicalNotInstruction(*Values[Fields[0]]));
+          case Tag::LogicalAnd:
+            return own(Id, Builder.createDetachedLogicalAndInstruction(*Values[Fields[0]], *Values[Fields[1]]));
+          case Tag::LogicalOr:
+            return own(Id, Builder.createDetachedLogicalOrInstruction(*Values[Fields[0]], *Values[Fields[1]]));
+          case Tag::Compare:
+            return own(Id, Builder.createDetachedCompareInstruction(comparisonPredicateInfo(Fields[0])->Predicate, *Values[Fields[1]], *Values[Fields[2]]));
           case Tag::Return:
             return own(Id, Builder.createDetachedReturnInstruction(Fields.empty() ? nullptr : Values[Fields[0]]));
+          case Tag::Branch:
+            return own(Id, Builder.createDetachedBranchInstruction(*as<BasicBlock>(Fields[0])));
+          case Tag::ConditionalBranch:
+            return own(Id, Builder.createDetachedConditionalBranchInstruction(*Values[Fields[0]], *as<BasicBlock>(Fields[1]), *as<BasicBlock>(Fields[2])));
           case Tag::AST:
           case Tag::ModuleDecl:
           case Tag::FunctionDecl:

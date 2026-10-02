@@ -113,6 +113,23 @@ foreach(Name IN ITEMS missing_symbol missing_body)
   endif()
 endforeach()
 
+# Source branches share the same IR execution path for runtime entries and compile-time function calls.
+set(BranchInput "${RunDirectory}/branches.ink")
+file(WRITE "${BranchInput}" "func Missing(): i32; func Choose(Flag: bool): i32 { var Result: i32; if (Flag) { Result = 19; } else { Result = 23; } return Result; } func main(): i32 { return Choose(true); } func alternate(): i32 { return Choose(false); } func skipped(): i32 { if (false) { return Missing(); } else { return 17; } } comptime func StaticChoose(Flag: bool): i32 { if (Flag) { return 29; } else { return 31; } } func compiled(): i32 { return comptime StaticChoose(false); }")
+
+# Runtime bool arguments choose one branch and retain definite initialization through the merge.
+check_compiler(branch_true 19 "^$" "^$" "" --interpret -i "${BranchInput}")
+check_compiler(branch_false 23 "^$" "^$" "" --interpret --entry alternate -i "${BranchInput}")
+
+# A call in an unselected branch is not executed, and compile-time calls execute the same branch IR.
+check_compiler(branch_skipped_call 17 "^$" "^$" "" --interpret --entry skipped -i "${BranchInput}")
+check_compiler(branch_comptime 31 "^$" "^$" "" --interpret --entry compiled -i "${BranchInput}")
+
+# Branch checking rejects non-bool conditions, incomplete initialization, and incomplete return paths.
+check_source_failure(branch_condition_type "func main(): i32 { if (1) { return 1; } else { return 0; } }" 1 "INK-S0004")
+check_source_failure(branch_uninitialized "func Choose(Flag: bool): i32 { var Result: i32; if (Flag) { Result = 1; } return Result; } func main(): i32 { return Choose(false); }" 1 "INK-S0006")
+check_source_failure(branch_missing_return "func Choose(Flag: bool): i32 { if (Flag) { return 1; } } func main(): i32 { return Choose(false); }" 1 "INK-S0009")
+
 # The same arithmetic failure in compile-time evaluation keeps its concrete execution code and compile-time context.
 check_source_failure(comptime_division_by_zero "comptime var Result: i32 = 1 / 0; func main(): i32 { return 0; }" 1 "error\\[INK-E0019\\]: compile-time execution failed: division by zero")
 check_source_failure(comptime_invalid_shift "comptime var Result: i32 = 1 << 32; func main(): i32 { return 0; }" 1 "error\\[INK-E0020\\]: compile-time execution failed: invalid shift count")

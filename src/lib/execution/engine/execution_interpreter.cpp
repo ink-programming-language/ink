@@ -5,13 +5,17 @@
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/add_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
+#include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/c_string_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
+#include "ink/ir/instruction/conditional_branch_instruction.h"
+#include "ink/ir/instruction/compare_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
+#include "ink/ir/instruction/logical_and_instruction.h"
+#include "ink/ir/instruction/logical_not_instruction.h"
+#include "ink/ir/instruction/logical_or_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
-
-#include <utility>
 
 namespace ink::execution
 {
@@ -143,33 +147,50 @@ namespace ink::execution
   ExecutionValueResult ExecutionEngine::executeBody(const ir::Function &Function, ExecutionFrame &Frame)
   {
     const ir::BasicBlock *Block = Function.entryBlock();
-    for (const auto &Instruction : Block->values())
+    while (Block)
     {
-      if (consumeStep() != ExecutionStatus::Success)
+      if (Block->outer() != &Function || &Block->context() != &Context)
       {
-        return {LastStatus};
+        return {ExecutionStatus::InvalidArguments};
       }
-      if (ir::ReturnInstruction::classof(Instruction.get()))
+      const ir::BasicBlock *Next = nullptr;
+      for (const auto &Instruction : Block->values())
       {
-        return executeReturn(static_cast<const ir::ReturnInstruction &>(*Instruction), Frame);
+        if (consumeStep() != ExecutionStatus::Success)
+        {
+          return {LastStatus};
+        }
+        const ExecutionInstructionResult Result = executeInstruction(*Instruction, Frame);
+        switch (Result.action())
+        {
+        case ExecutionInstructionAction::Continue:
+          Frame.Values.insert_or_assign(Instruction.get(), Result.value());
+          break;
+        case ExecutionInstructionAction::Jump:
+          Next = Result.target();
+          break;
+        case ExecutionInstructionAction::Return:
+          return {ExecutionStatus::Success, Result.value()};
+        case ExecutionInstructionAction::Failure:
+          return {Result.status()};
+        }
+        if (Next)
+        {
+          break;
+        }
       }
-      ExecutionValueResult Result = executeInstruction(*Instruction, Frame);
-      if (!Result)
-      {
-        return Result;
-      }
-      Frame.Values.emplace(Instruction.get(), std::move(Result.Value));
+      Block = Next;
     }
     // Block insertion order is not control flow. Never fall through to another block.
     return {ExecutionStatus::MissingBody};
   }
 
-  ExecutionValueResult ExecutionEngine::executeInstruction(const ir::Value &Instruction, ExecutionFrame &Frame)
+  ExecutionInstructionResult ExecutionEngine::executeInstruction(const ir::Value &Instruction, ExecutionFrame &Frame)
   {
     switch (Instruction.kind())
     {
     case ir::ValueKind::Function:
-      return makeFunctionValue(static_cast<const ir::Function &>(Instruction));
+      return ExecutionInstructionResult::continueWith(makeFunctionValue(static_cast<const ir::Function &>(Instruction)));
     case ir::ValueKind::AllocaInstruction:
       return executeAlloca(static_cast<const ir::AllocaInstruction &>(Instruction), Frame);
     case ir::ValueKind::LoadInstruction:
@@ -178,12 +199,26 @@ namespace ink::execution
       return executeStore(static_cast<const ir::StoreInstruction &>(Instruction), Frame);
     case ir::ValueKind::AddInstruction:
       return executeAdd(static_cast<const ir::AddInstruction &>(Instruction), Frame);
+    case ir::ValueKind::LogicalNotInstruction:
+      return executeLogicalNot(static_cast<const ir::LogicalNotInstruction &>(Instruction), Frame);
+    case ir::ValueKind::LogicalAndInstruction:
+      return executeLogicalAnd(static_cast<const ir::LogicalAndInstruction &>(Instruction), Frame);
+    case ir::ValueKind::LogicalOrInstruction:
+      return executeLogicalOr(static_cast<const ir::LogicalOrInstruction &>(Instruction), Frame);
+    case ir::ValueKind::CompareInstruction:
+      return executeCompare(static_cast<const ir::CompareInstruction &>(Instruction), Frame);
     case ir::ValueKind::CStringInstruction:
       return executeCString(static_cast<const ir::CStringInstruction &>(Instruction), Frame);
     case ir::ValueKind::CallInstruction:
       return executeCall(static_cast<const ir::CallInstruction &>(Instruction), Frame);
+    case ir::ValueKind::ReturnInstruction:
+      return executeReturn(static_cast<const ir::ReturnInstruction &>(Instruction), Frame);
+    case ir::ValueKind::BranchInstruction:
+      return executeBranch(static_cast<const ir::BranchInstruction &>(Instruction));
+    case ir::ValueKind::ConditionalBranchInstruction:
+      return executeConditionalBranch(static_cast<const ir::ConditionalBranchInstruction &>(Instruction), Frame);
     default:
-      return {ExecutionStatus::UnsupportedOperation};
+      return ExecutionInstructionResult::failure(ExecutionStatus::UnsupportedOperation);
     }
   }
 } // namespace ink::execution

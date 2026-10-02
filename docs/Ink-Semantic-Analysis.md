@@ -14,7 +14,31 @@ class Analyzer
 
 `analyzeStmt()` 与 `analyzeDecl()` 从 Parser 的 `ASTNodes.def` 按 `Category` 生成严格分派。每种语句和声明均有手工声明、定义的 `analyzeXXX()`，不存在自动生成的空处理函数或基类回退；新增 AST 种类后缺少处理函数会导致编译失败，只有声明没有定义则导致链接失败。`DeclStmt` 转发到声明分派，`BlockStmt` 使用 `BlockDepthGuard` 管理嵌套深度、`NameResolver::ScopeGuard` 管理子作用域，并递归处理子语句；正常结束或提前返回时均自动恢复进入前的深度和作用域。块嵌套上限由 `INK_SEMANTIC_BLOCK_DEPTH_LIMIT` 配置，默认 256，模块和函数的成员作用域也使用 `ScopeGuard`。
 
-当前支持空模块、块作用域，以及普通定参函数的声明和定义。函数签名通过检查后创建 `Function`，保存形参名称、类型、C 调用约定及 Ink/C 语言链接，并登记到当前词法作用域；成功的函数由当前 IR 块拥有。函数成员作用域绑定形参，函数体另建词法块作用域并逐条分派语句，嵌套函数继承外层查找环境，但不支持捕获外层形参。当前直线函数体支持显式 return、返回值类型检查、嵌套块的返回传播及 return 后不可达语句诊断；非 void 函数走到结尾报错，void 函数走到结尾补充无值返回。分支与循环的完整返回路径分析仍待实现。函数在分析主体前临时绑定，失败时通过 RAII 销毁函数及子节点并撤销相关绑定，不影响后续同级声明的作用域或插入点。
+当前支持空模块、块作用域，以及普通定参函数的声明和定义。函数签名通过检查后创建 `Function`，保存形参名称、类型、C 调用约定及 Ink/C 语言链接，并登记到当前词法作用域；成功的函数由当前 IR 块拥有。函数成员作用域绑定形参，函数体另建词法块作用域并逐条分派语句，嵌套函数继承外层查找环境，但不支持捕获外层形参。当前函数体支持显式 return、返回值类型检查、嵌套块及 if 分支的返回传播；只有所有分支都返回时，后续语句才因该 if 不可达。非 void 函数存在到达结尾的路径时报错，void 函数在可达结尾补充无值返回。源码循环的控制流分析仍待实现。函数在分析主体前临时绑定，失败时通过 RAII 销毁函数及子节点并撤销相关绑定，不影响后续同级声明的作用域或插入点。
+
+函数内的普通 `if (Condition) Statement [else Statement]` 已支持 bool 参数、局部变量、函数返回值和常量条件，以及 else-if、嵌套和单语句分支。条件必须是 bool，不接受整数或指针的隐式真假转换；可使用 `!`、`&&`、`||` 及返回 bool 的比较表达式。普通 if 的两个分支均进行语义检查，即使条件是 bool 常量；`comptime if` 保留只分析选中分支的规则。每个运行时分支有独立词法作用域，单语句声明不会泄漏到另一分支或后续语句。
+
+两分支从相同的入口初始化状态开始分析，汇合时仅对仍能继续执行的路径取确定初始化交集；缺少 else 时，未执行 then 的入口状态也参与交集。已经 return 的分支不参与后续初始化判定，也不会生成到汇合块的跳转；两边均 return 时不创建空汇合块。局部变量继续通过 alloca/store/load 传递，无需 phi。普通运行时分支不能通过 break/continue 条件性地控制外层编译期循环的静态展开。
+
+逻辑非 `!` 和短路运算 `&&`、`||` 的操作数严格要求 bool，结果也为 bool。普通函数在定义处检查两侧表达式，包括因常量条件而在执行时跳过的右侧；执行时左侧仅求值一次，`&&` 只在左侧为 true 时求值右侧，`||` 只在左侧为 false 时求值右侧。lowering 先将左值保存到临时 bool 存储，再生成右侧块及汇合块，必要路径更新该存储，最后在汇合块加载结果；嵌套短路继续连接其实际结束块。`LogicalNotInstruction` 实现逻辑非，IR 的 `LogicalAndInstruction` 和 `LogicalOrInstruction` 对已经求值的两个 bool 执行运算，不承担跳过先前求值的职责。
+
+比较运算 `==`、`!=`、`<`、`<=`、`>`、`>=` 对完全同型的整数生成 `CompareInstruction`，结果为 bool；bool 仅支持 `==` 和 `!=`。整数比较按其类型的有符号或无符号含义执行，IR 支持任意整数位宽；源码使用当前已支持的 i/u8、16、32、64、128 类型。两侧已具有类型时不隐式改变位宽或符号属性；整数文字可以按另一侧的整数类型定型，无类型约束时使用 i32。浮点、指针和其他类型比较尚未支持。比较的两个操作数从左到右各求值一次，bool 结果不将嵌套整数算术的期望类型改成 bool。
+
+```ink
+func Select(Flag: bool): i32
+{
+  var Result: i32;
+  if (Flag)
+  {
+    Result = 1;
+  }
+  else
+  {
+    Result = 2;
+  }
+  return Result;
+}
+```
 
 `analyzeType()` 支持 `void`、`bool`、`i8/i16/i32/i64/i128`、对应的无符号整数、`f16/f32/f64`、括号类型及 `*T`/`&T`；未限定指针和引用暂按 `ReadWrite` 构造，允许 `*void`，拒绝 `&void` 和 `*type`。类型名字先查词法绑定，再回退到内建类型；值不能用于类型位置。形参不能是 void 或元类型；未知类型、重名形参和冲突函数报告源码诊断。普通 Ink 函数可按不同参数类型列表形成重载集，不能仅按返回类型重载；同一作用域的 C 链接函数不能形成重载。类型表达式递归上限由 `INK_SEMANTIC_TYPE_DEPTH_LIMIT` 配置，默认 256，每次分析开始时读取一次；深度从 0 计数，达到上限即报告 ICE 并 panic，0 会拒绝任何类型分析。
 
@@ -22,7 +46,7 @@ class Analyzer
 
 `analyzeFunctionLinkage()` 返回 `std::optional<LanguageLinkage>`：没有 extern 时返回 Ink，完整解码字符串精确为 `"C"` 时返回 C，其他情况报告诊断并返回 `std::nullopt`；不截断内嵌 NUL。`checkFunctionConflicts()` 集中检查当前作用域的已有函数。参数列表、返回类型和语言链接全部一致，且至少一份声明没有函数体时，才属于将来可合并的兼容重复声明；目前仍报告未实现。linkage 是独立于 `FunctionType` 的函数元数据，关系到语言链接及符号命名约定，因此不能仅比较函数类型就忽略 Ink/C 的差异。不同 linkage 不用于区分合法重载，而按当前规则报告名称冲突。
 
-`analyzeExpr()` 支持名字、括号、整数和字符串字面量、整数常量的一元正负号、固定位置参数调用；未绑定的 true/false 名字作为 bool 常量。整数在参数或返回类型确定后按目标位宽解析，支持 2/8/10/16 进制和完整 128 位范围；无期望类型时默认为 i32。已具有类型的值只接受完全同型传递，不隐式窄化、改变符号或把 bool 当整数。调用先分析实参，再选择重载，不在候选试探中生成调用；逐参数比较转换等级，整数常量优先 i32，其余能容纳该常量的整数类型同级，无法唯一选择时诊断歧义。未知名字、非可调用对象、实参数量或类型不符均报告用户错误。表达式深度由 `INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT` 控制，默认 256，达到上限报告 ICE。
+`analyzeExpr()` 支持名字、括号、整数和字符串字面量、整数常量的一元正负号、bool 逻辑非与短路、整数及 bool 比较、固定位置参数调用；未绑定的 true/false 名字作为 bool 常量。整数在参数或返回类型确定后按目标位宽解析，支持 2/8/10/16 进制和完整 128 位范围；无期望类型时默认为 i32。已具有类型的值只接受完全同型传递，不隐式窄化、改变符号或把 bool 当整数。调用先分析实参，再选择重载，不在候选试探中生成调用；逐参数比较转换等级，整数常量优先 i32，其余能容纳该常量的整数类型同级，无法唯一选择时诊断歧义。未知名字、非可调用对象、实参数量或类型不符均报告用户错误。表达式深度由 `INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT` 控制，默认 256，达到上限报告 ICE。
 
 字符串常量保持只读 u8 切片类型。在直接调用 C 链接函数时，字符串常量可传给可写 `*u8` 形参：`CStringInstruction` 表示每次执行都创建独立可写副本，包含完整 UTF-8 字节和额外终止 NUL，存活到调用者函数返回。不同调用的副本不共享可写存储；副本指针不能在该函数返回后继续使用。该转换仅用于 C 调用实参，不允许从函数返回字符串时隐式创建副本，也不适用于普通 Ink 函数、其他指针类型或一般切片。含内嵌 NUL 的字符串报告 `SemanticEmbeddedNull`，避免静默截断；宿主 `tryGetCString()` 只用于检查，不作为目标程序地址。调用者必须处于函数体内。
 
@@ -78,13 +102,13 @@ func main(): i32
 
 comptime 复用普通 AST 节点上的 `isComptime()` 标记。`SemanticContext::comptimeState()` 持有 `ink::execution::ExecutionEngine`、编译期变量的稳定绑定描述和函数的编译期专用标记及诊断来源。模块从首句到末句完成分析及编译期执行，模块对象持续可写；每次计算得到的常量保存当时快照，后续修改不会改变已生成的常量。分析帧保存局部编译期变量，实际编译期调用另建调用帧；普通运行时局部仅生成 alloca/store/load，不分配编译期对象。
 
-当前支持整数/bool 编译期变量与常量、显式编译期表达式和块、赋值及复合赋值、前后缀递增递减、整数运算/比较和 bool 短路。`comptime if` 选择活动分支，`comptime while/for` 按每轮独立帧展开；完整编译期块中的普通 if/while/for 按实际路径执行，支持 break/continue。运行时函数仍只支持直线 IR，普通运行时 if/循环保持未实现。编译期变量可变，`const` 不可写；`var B = comptime Expr` 的 B 仍是运行时变量，其值不能被后续编译期表达式读取。
+当前支持整数/bool 编译期变量与常量、显式编译期表达式和块、赋值及复合赋值、前后缀递增递减、整数运算/比较和 bool 短路。`comptime if` 选择活动分支，`comptime while/for` 按每轮独立帧展开；完整编译期块中的普通 if/while/for 按实际路径执行，支持 break/continue。运行时函数支持 bool 条件的普通 if/else/else-if 及嵌套分支，源码循环仍未实现。编译期变量可变，`const` 不可写；`var B = comptime Expr` 的 B 仍是运行时变量，其值不能被后续编译期表达式读取。
 
 编译期变量也可保存浮点常量和字符串常量，用于保存外部函数结果或后续传参。浮点常量目前可来自外部函数；这不增加浮点字面量解析或浮点算术支持。字符串变量保存不可变常量，其外部指针参数转换使用本次调用的独立副本。
 
 所有非泛型 Ink 函数在定义位置检查并生成 IR 函数体，包括显式 `comptime func`。编译期调用将已求值的实参转换为 `ExecutionValueRef`，通过 `ExecutionEngine::execute()` 执行该 IR，再将可表示的返回值转换为常量。每次调用建立独立帧，保存形参值、局部对象和 SSA 结果；不保存供调用时重新解释的函数 AST、定义作用域快照或函数体回调。名称绑定、重载选择和函数体中的编译期常量已在生成 IR 时确定，后续声明及模块对象修改不会改变已生成的 IR。`extern "C"` 调用由同一执行入口进入外部函数适配。
 
-显式 `comptime func` 要求有 Ink 函数体，即使未调用也检查函数体；运行时调用或把它作为运行时值使用会报告 `SemanticComptimeFunctionAtRuntime`。缺少函数体和非 Ink 语言链接分别报告 `SemanticComptimeFunctionRequiresBody` 和 `SemanticComptimeFunctionLinkage`。普通函数与编译期函数共同支持当前直线 IR 的参数读取、局部存储、整数加法、嵌套调用及返回；参数相关的普通 if/while/for、非加法运算、复合赋值及参数写入仍按普通函数规则诊断。显式 `comptime if/while/for` 可以在定义处选择或展开代码，其条件不能依赖尚未取得实参的普通形参。泛型函数保留 AST 并延迟实例化的流程仍待实现。
+显式 `comptime func` 要求有 Ink 函数体，即使未调用也检查函数体；运行时调用或把它作为运行时值使用会报告 `SemanticComptimeFunctionAtRuntime`。缺少函数体和非 Ink 语言链接分别报告 `SemanticComptimeFunctionRequiresBody` 和 `SemanticComptimeFunctionLinkage`。普通函数与编译期函数共同支持 IR 的参数读取、局部存储、整数加法、bool 逻辑与短路、整数及 bool 比较、bool 条件分支、嵌套调用及返回；bool 形参可作为普通 if 条件。普通 while/for、其余未接入的算术运算、复合赋值及参数写入仍按普通函数规则诊断。显式 `comptime if/while/for` 可以在定义处选择或展开代码，其条件不能依赖尚未取得实参的普通形参。泛型函数保留 AST 并延迟实例化的流程仍待实现。
 
 ```ink
 comptime func AddOne(X: i32): i32
@@ -119,7 +143,18 @@ execution 的公共头与实现按 `engine/`、`memory/`、`value/`、`support/`
 
 [`ExecutionHeap`](../src/include/ink/execution/memory/execution_heap.h) 作为值和存储的统一创建入口，工厂校验类型、上下文和载荷，失败返回空 `ExecutionValueRef` 并提供显式状态。`ExecutionValueResult` 保存状态和一个值引用，默认结果为失败；`Success` 配空引用会规范化为 `InvalidArguments`。非空引用与当前有效性分开：指针结果可以在返回后因存储结束而失效，此时仍能查询其种类和失效状态。运行中间结果不进入 `ConstantPool`。
 
-`ExecutionEngine::execute(const ir::Function &, std::span<const ExecutionValueRef>)` 执行指定具体函数的 IR 入口，返回 `ExecutionValueResult`。每次调用建立独立调用帧，绑定参数并按入口基本块的指令顺序执行。当前支持 `AllocaInstruction`、`StoreInstruction`、`LoadInstruction`、整数 `AddInstruction`、`CStringInstruction`、`CallInstruction` 和 `ReturnInstruction`，包括嵌套 Ink 调用及 C 外部调用；基本块内的 Function 声明通过 `makeFunctionValue()` 构造函数值，该操作不执行函数体。`executeInstruction()` 将指令分派到 `engine/instruction/` 下每种指令独立的实现文件。尚无普通 if/循环 IR 执行，也不会把多个基本块的存储顺序当成控制流。
+`ExecutionEngine::execute(const ir::Function &, std::span<const ExecutionValueRef>)` 执行指定具体函数的 IR 入口，返回 `ExecutionValueResult`。每次调用建立独立调用帧，绑定参数，从入口开始按块内指令顺序执行，并由分支指令选择下一基本块。当前支持 `AllocaInstruction`、`StoreInstruction`、`LoadInstruction`、整数 `AddInstruction`、`LogicalNotInstruction`、`LogicalAndInstruction`、`LogicalOrInstruction`、`CompareInstruction`、`CStringInstruction`、`CallInstruction`、`BranchInstruction`、`ConditionalBranchInstruction` 和 `ReturnInstruction`，包括嵌套 Ink 调用及 C 外部调用；基本块内的 Function 声明通过 `makeFunctionValue()` 构造函数值，该操作不执行函数体。全部指令由 `executeInstruction()` 分派到 `engine/instruction/` 下各自的处理函数，分支逻辑分别位于 `execution_branch.cpp` 和 `execution_conditional_branch.cpp`。Branch 无条件跳转，ConditionalBranch 根据 bool 执行值只选择一个目标；基本块的存储顺序不决定控制流。普通执行与编译期函数调用共享这一执行路径，未选中的分支不会执行。源码循环 lowering 仍未实现。
+
+`executeInstruction()` 和各指令处理函数统一返回 [`ExecutionInstructionResult`](../src/include/ink/execution/support/execution_instruction_result.h)，实现位于 `src/lib/execution/support/execution_instruction_result.cpp`。它表达以下四种执行动作：
+
+| 动作 | 载荷与执行效果 |
+| --- | --- |
+| `Continue(Value)` | 保存执行值作为当前指令的 SSA 结果，继续执行块内下一项 |
+| `Jump(Target)` | 携带借用的 `const ir::BasicBlock *`，从目标块开始执行 |
+| `Return(Value)` | 携带函数返回值，结束当前调用 |
+| `Failure(Status)` | 携带失败状态，停止并向调用方传播 |
+
+`executeBody()` 只负责执行预算及上述动作的消费、结果记录、跳转和返回，不检查具体 IR 指令种类。`makeFunctionValue()`、`evaluate()`、`loadValue()` 和公开的 `execute()` 继续返回 `ExecutionValueResult`；指令处理函数将这些值操作的成功或失败转换为相应动作。一次 Call 成功后产生 `Continue`，被调用函数内部的 `Return` 只结束其自身调用。
 
 调用帧保存该次激活的 SSA 结果。`evaluate(Value, Frame)` 读取常量、函数、已执行指令的快照或当前绑定，不隐式执行尚未到达的指令；未取得的值返回 `RuntimeValue`。一次 Call 产生的结果被后续多个操作数使用时只读取快照，不重新调用函数。SSA 结果保存在当前调用帧的结果表中，不保存在 IR 节点上，也不跨调用复用。
 
@@ -132,6 +167,8 @@ execution 的公共头与实现按 `engine/`、`memory/`、`value/`、`support/`
 `CStringInstruction` 创建的缓冲区由 Heap 分配，释放时机归执行该指令的函数帧管理；该函数返回时真正释放缓冲区，FFI 返回别名仍只是指向同一分配身份的弱句柄，再访问报告 `ExpiredPlace`。例如被调用的 Ink 函数创建 CString 并返回其内部地址，调用者不能继续通过该地址读取或调用原生函数。执行对象继承及 Heap 管理目前不包含 Ink class 实例、字段位置或聚合值的执行语义。
 
 `allocate()`、`load()` 和 `store()` 是语义分析中常量边界的适配入口，负责常量与执行值之间的转换，并分别复用 `allocateValue()`、`loadValue()`、`storeValue()` 的存储实现。`load()` 返回 `ExecutionResult`；函数调用统一使用 `execute()` 并返回 `ExecutionValueResult`。`ExecutionValueRef::toConstant()` 转发到值对象，仅将同一上下文的 bool、整数、浮点和字符串冻结为常量；指针和函数拒绝冻结，void 表示为成功且无常量结果。语义层在编译期调用的返回边界完成冻结，普通执行保留执行值引用，不要求结果一定可表示为 IR 常量。
+
+逻辑和比较的源码回归使用 `src/testcase/execution/programs` 中 6 个独立 `main` 程序，共执行 56 项成功结果检查，覆盖 bool 真值表、全部整数比较、符号及位宽、短路与嵌套汇合、普通及编译期调用。每项输出用例名，核对辅助函数的 i32 结果并打印 `PASS`；不匹配时打印 `FAIL`、退出 1，全部通过退出 0。操作数副作用输出位于用例名与结果之间，验证从左到右、右侧被跳过及每次只执行一次。8 份类型错误与 3 份必达缺少函数体调用的输入另放在 `src/testcase/execution/cli/inputs`；类型错误仍覆盖不可执行右侧须通过定义处检查。[`source_program_tests.cmake`](../src/testcase/execution/cli/source_program_tests.cmake) 统一登记 HelloWorld 和逻辑源码测试，在 Windows/Linux 注册 6 项成功程序和 11 项负向测试，共 17 项 `ExecutionSourceTest.Logical.*` CTest，共用 `source_program_test.cmake` 以默认 `main` 运行真实 `inkc`，通过 `OUTPUT_FILE` 捕获并核对完整 stdout、退出码和诊断；常规输出归一化 CRLF，HelloWorld 另外用 `STDOUT_HEX` 校验原始换行字节。
 
 ### 编译期外部调用
 

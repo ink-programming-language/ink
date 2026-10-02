@@ -4,7 +4,7 @@
 
 namespace ink::execution
 {
-  ExecutionValueResult ExecutionEngine::executeCString(const ir::CStringInstruction &CString, ExecutionFrame &Frame)
+  ExecutionInstructionResult ExecutionEngine::executeCString(const ir::CStringInstruction &CString, ExecutionFrame &Frame)
   {
     const ExecutionStorageRef Buffer = Heap.allocateBuffer(CString.source().value());
     if (!Buffer.valid())
@@ -13,9 +13,9 @@ namespace ink::execution
       {
         StopStatus = Heap.lastStatus();
       }
-      return {Heap.lastStatus()};
+      return ExecutionInstructionResult::failure(Heap.lastStatus());
     }
     Frame.Storage.push_back(Buffer);
-    return {ExecutionStatus::Success, Heap.pointer(CString.type(), ExecutionPointer::fromBuffer(Buffer))};
+    return ExecutionInstructionResult::continueWith(Heap.pointer(CString.type(), ExecutionPointer::fromBuffer(Buffer)));
   }
 } // namespace ink::execution

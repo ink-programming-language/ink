@@ -47,7 +47,7 @@ namespace ink::ir::archive
               Names[Id] = unique('^', ParentKind == Tag::Module ? "module_entry" : ParentKind == Tag::Function && BlockCounts[R.Parent]++ == 0 ? "entry"
                                                                                                                                                : "bb" + std::to_string(BlockNumber++));
             }
-            else if (R.Kind >= Tag::Call && R.Kind <= Tag::Return)
+            else if (isInstruction(R.Kind))
             {
               Names[Id] = unique('%', "v" + std::to_string(ValueNumber++));
             }
@@ -66,10 +66,11 @@ namespace ink::ir::archive
                 TypeAliases[Ref] = true;
               }
             }
-            if (R.Kind >= Tag::Call && R.Kind <= Tag::Return)
+            if (isInstruction(R.Kind))
             {
-              for (auto Ref : R.Fields)
+              for (std::size_t Index = R.Kind == Tag::Compare ? 1 : 0; Index < R.Fields.size(); ++Index)
               {
+                const auto Ref = R.Fields[Index];
                 Used[Ref] = true;
                 if (record(Ref).Kind <= Tag::FunctionType)
                 {
@@ -360,6 +361,18 @@ namespace ink::ir::archive
           case Tag::Add:
             Text += "add " + type(R.Type) + " " + value(F[0]) + ", " + value(F[1]);
             break;
+          case Tag::LogicalNot:
+            Text += "not " + operand(F[0]);
+            break;
+          case Tag::LogicalAnd:
+            Text += "and " + operand(F[0]) + ", " + value(F[1]);
+            break;
+          case Tag::LogicalOr:
+            Text += "or " + operand(F[0]) + ", " + value(F[1]);
+            break;
+          case Tag::Compare:
+            Text += "cmp " + std::string(comparisonPredicateInfo(F[0])->Text) + " " + operand(F[1]) + ", " + value(F[2]);
+            break;
           case Tag::Alloca:
             Text += "alloca " + type(F[0]);
             break;
@@ -374,6 +387,12 @@ namespace ink::ir::archive
             break;
           case Tag::Return:
             Text += "ret " + (F.empty() ? std::string("void") : operand(F[0]));
+            break;
+          case Tag::Branch:
+            Text += "br " + value(F[0]);
+            break;
+          case Tag::ConditionalBranch:
+            Text += "br " + operand(F[0]) + ", " + value(F[1]) + ", " + value(F[2]);
             break;
           case Tag::Call:
             Text += "call " + type(R.Type) + " " + value(F[0]) + "(";

@@ -24,6 +24,11 @@ namespace ink::ir
         return Kind;
       }
 
+      bool isTerminator() const noexcept
+      {
+        return Kind == ValueKind::ReturnInstruction || Kind == ValueKind::BranchInstruction || Kind == ValueKind::ConditionalBranchInstruction;
+      }
+
       const IRContext &context() const noexcept
       {
         return Context;

@@ -8,9 +8,15 @@
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/add_instruction.h"
+#include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/c_string_instruction.h"
+#include "ink/ir/instruction/conditional_branch_instruction.h"
+#include "ink/ir/instruction/compare_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
+#include "ink/ir/instruction/logical_and_instruction.h"
+#include "ink/ir/instruction/logical_not_instruction.h"
+#include "ink/ir/instruction/logical_or_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 
@@ -77,7 +83,7 @@ namespace ink::ir
       // Explicit ownership edits use their arguments and do not change the current insertion point.
       // Transfers ownership only on success; pass std::move(Owner). Failure leaves Owner and the block unchanged.
       // Both objects must belong to this builder's Context. Rejects existing parents, cycles, types and constants.
-      // Returns must end a function's block and match that function's return type; nothing may follow a return.
+      // Terminators must end a function's block; branches stay in that function and returns match its return type.
       template <typename ValueType>
       bool appendValue(BasicBlock &Block, std::unique_ptr<ValueType> &&Child)
       {
@@ -173,25 +179,43 @@ namespace ink::ir
       [[nodiscard]] std::unique_ptr<StoreInstruction> createDetachedStoreInstruction(const Value &Address, const Value &StoredValue);
       // Same local integer type for both operands; result wraps to that width.
       [[nodiscard]] std::unique_ptr<AddInstruction> createDetachedAddInstruction(const Value &Left, const Value &Right);
+      // Logical operations accept only local bool operands; And and Or are eager IR operations.
+      [[nodiscard]] std::unique_ptr<LogicalNotInstruction> createDetachedLogicalNotInstruction(const Value &Operand);
+      [[nodiscard]] std::unique_ptr<LogicalAndInstruction> createDetachedLogicalAndInstruction(const Value &Left, const Value &Right);
+      [[nodiscard]] std::unique_ptr<LogicalOrInstruction> createDetachedLogicalOrInstruction(const Value &Left, const Value &Right);
+      // Same local integer type for all predicates; bool operands support only Equal and NotEqual.
+      [[nodiscard]] std::unique_ptr<CompareInstruction> createDetachedCompareInstruction(ComparisonPredicate Predicate, const Value &Left, const Value &Right);
       // Creates a detached return; a supplied operand must be local and non-void.
       // Function identity and return-signature validation are determined when appendValue() attaches it.
       [[nodiscard]] std::unique_ptr<ReturnInstruction> createDetachedReturnInstruction(const Value *ReturnedValue = nullptr);
+      // Targets must be local function blocks or detached blocks; attachment requires the source and targets in one function.
+      [[nodiscard]] std::unique_ptr<BranchInstruction> createDetachedBranchInstruction(const BasicBlock &Target);
+      // Requires a local bool condition. Attached targets must belong to the same function.
+      [[nodiscard]] std::unique_ptr<ConditionalBranchInstruction> createDetachedConditionalBranchInstruction(const Value &Condition, const BasicBlock &TrueTarget, const BasicBlock &FalseTarget);
 
       // Inserting instruction factories require a valid point. Failure returns null without insertion.
-      // Instructions cannot follow a return. Alloca uses the selected point, with no implicit move to the entry block.
+      // Instructions cannot follow a terminator. Alloca uses the selected point, with no implicit move to the entry block.
       CallInstruction *createCallInstruction(const Value &Callee, std::span<const Value *const> Arguments = {});
       CStringInstruction *createCStringInstruction(const StringConstant &Source);
       AllocaInstruction *createAllocaInstruction(const Type &AllocatedType);
       LoadInstruction *createLoadInstruction(const Value &Address);
       StoreInstruction *createStoreInstruction(const Value &Address, const Value &StoredValue);
       AddInstruction *createAddInstruction(const Value &Left, const Value &Right);
+      LogicalNotInstruction *createLogicalNotInstruction(const Value &Operand);
+      LogicalAndInstruction *createLogicalAndInstruction(const Value &Left, const Value &Right);
+      LogicalOrInstruction *createLogicalOrInstruction(const Value &Left, const Value &Right);
+      CompareInstruction *createCompareInstruction(ComparisonPredicate Predicate, const Value &Left, const Value &Right);
       // Returns require a function block, a matching return value, and an unterminated block's end.
       ReturnInstruction *createReturnInstruction(const Value *ReturnedValue = nullptr);
+      BranchInstruction *createBranchInstruction(const BasicBlock &Target);
+      ConditionalBranchInstruction *createConditionalBranchInstruction(const Value &Condition, const BasicBlock &TrueTarget, const BasicBlock &FalseTarget);
 
     private:
       bool isValidInsertPoint(const BasicBlock &Block, const Value *Before) const noexcept;
       bool canInsertAt(const BasicBlock &Block, const Value *Before, bool IsTerminator) const noexcept;
       bool canInsertReturn(const BasicBlock &Block, const Value *ReturnedValue, const Value *Before) const noexcept;
+      bool isValidBranchTarget(const BasicBlock &Target) const noexcept;
+      bool canInsertBranch(const BasicBlock &Block, const BasicBlock &Target, const Value *Before) const noexcept;
       bool canInsertValue(const BasicBlock &Block, const Value &Child, const Value *Before) const noexcept;
       void insertOwnedValue(BasicBlock &Block, std::unique_ptr<Value> Child, Value *Before);
 
