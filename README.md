@@ -4,6 +4,10 @@
 
 Core 的 `PANIC(Message)` 宏通过独立的 spdlog stderr logger 输出消息和调用位置、同步刷新后调用 `abort()`，不依赖全局日志开关。`DiagnosticEngine::report` 遇到 ICE 会立即输出诊断编号和格式化消息并 panic，先于消费者分发；普通用户错误仍正常分发并返回。无效 AST 归档、资源上限等现有 ICE 同样遵循此规则。
 
+## 编辑器支持
+
+CLion / IntelliJ IDEA 可导入 [`editors/textmate/Ink.tmbundle`](editors/textmate/Ink.tmbundle) 获得 `.ink` 语法高亮，并安装 Ink Live Templates 展开函数、分支、循环和 `comptime` 代码骨架。安装和使用步骤见 [`editors/README.md`](editors/README.md)，预览样例见 [`example.ink`](editors/textmate/example.ink)。使用这些配置不需要编译 Ink；语义补全和跳转定义尚未提供。
+
 ## 构建
 
 Core 配置集中定义在 `src/include/ink/core/config.def`，每项包含枚举名、环境变量名和字符串默认值，并生成 `ink::core::ConfigKind` 枚举及以枚举为键的配置映射。`ink::core::ConfigManager::get<ink::core::ConfigKind::SemanticBlockDepthLimit>()` 直接返回 `std::string`，每次读取对应环境变量，未设置时返回定义中的默认值；配置项通过枚举模板参数选择，找不到枚举对应的配置时报告 `INK-C0001` 并立即 panic。`getSize<ink::core::ConfigKind::SemanticBlockDepthLimit>()` 直接返回 `std::size_t`，读取非负十进制整数，空值、非法格式或溢出的环境变量会回退到默认值；默认值也无法解析时报告 `INK-C0002` 并立即 panic。`INK_SEMANTIC_BLOCK_DEPTH_LIMIT` 控制语义分析的块嵌套上限，默认 `256`，`0` 表示不允许任何块；例如 PowerShell 中执行 `$env:INK_SEMANTIC_BLOCK_DEPTH_LIMIT = "128"` 可覆盖该上限。
