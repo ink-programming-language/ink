@@ -147,6 +147,37 @@ namespace ink::execution::test
     EXPECT_EQ(Test.Heap.allocatedStorageCount(), 1U);
   }
 
+  // A C call writes through an interior typed array pointer without changing siblings or earlier snapshots.
+  TEST(ExecutionNativeStorageTest, NativeWriteToInteriorArrayElementPreservesOtherElements)
+  {
+    NativeStorageContext Test;
+    const auto &Array = *Test.Context.typePool().getType<ir::TypeKind::Array>(Test.Int32, 3);
+    const auto Initial = Test.Heap.array(Array, {Test.integer(Test.Int32, 11), Test.integer(Test.Int32, 22), Test.integer(Test.Int32, 33)});
+    const auto Cell = Test.Heap.allocateCell(Array, true, Initial);
+    ASSERT_TRUE(Cell);
+    const auto Before = Test.Heap.load(Cell.Place);
+    ASSERT_TRUE(Before);
+    const ir::Type *Parameters[] = {&Test.Int32Pointer, &Test.Int32};
+    auto Function = Test.function(Test.Int32, Parameters);
+    ASSERT_NE(Function, nullptr);
+    auto Resolve = [](std::string_view) -> NativeSymbol
+    {
+      return reinterpret_cast<NativeSymbol>(&inkTestNativeStorageWrite);
+    };
+    NativeSymbolCache Cache(Resolve);
+    const auto Pointer = Test.Heap.pointer(Test.Int32Pointer, ExecutionPointer::fromPlace(Cell.Place, sizeof(std::int32_t)));
+    const ExecutionValueRef Arguments[] = {Pointer, Test.integer(Test.Int32, 77)};
+    const auto Result = callExternalFunction(Test.Heap, Cache, *Function, Arguments);
+    ASSERT_TRUE(Result);
+    EXPECT_EQ(Result.Value.integer().lowWord(), 22U);
+    const auto After = Test.Heap.load(Cell.Place);
+    ASSERT_TRUE(After);
+    EXPECT_EQ(After.Value.array()[0].integer().lowWord(), 11U);
+    EXPECT_EQ(After.Value.array()[1].integer().lowWord(), 77U);
+    EXPECT_EQ(After.Value.array()[2].integer().lowWord(), 33U);
+    EXPECT_EQ(Before.Value.array()[1].integer().lowWord(), 22U);
+  }
+
   // Ink stores update the same native address, including signed values observed through a const C pointer.
   TEST(ExecutionNativeStorageTest, InkStoresAreVisibleToNativeReadsAtStableAddress)
   {

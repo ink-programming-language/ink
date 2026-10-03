@@ -241,6 +241,10 @@ namespace ink::execution
               }
               Layout.Parameters.push_back(Type);
             }
+            if (Layout.Kind == RuntimeKind::Array && (!u32(Layout.ElementType) || !u64(Layout.ElementCount) || Layout.ElementType >= Index))
+            {
+              return fail(BytecodeStatus::InvalidFormat, "Array element type must precede its array layout");
+            }
             if (Layouts->append(std::move(Layout)) == InvalidRuntimeType)
             {
               return fail(BytecodeStatus::LimitExceeded, "Bytecode type table exhausted its ID space");
@@ -272,8 +276,12 @@ namespace ink::execution
           return true;
         }
 
-        bool value(RuntimeValue &Value)
+        bool value(RuntimeValue &Value, std::size_t Depth = 0)
         {
+          if (Depth >= Limits.MaxTypeDepth)
+          {
+            return fail(BytecodeStatus::LimitExceeded, "Bytecode array constant exceeds the nesting limit");
+          }
           RuntimeTypeId Type = InvalidRuntimeType;
           bool Initialized = false;
           std::uint8_t Payload = 0;
@@ -283,7 +291,7 @@ namespace ink::execution
             return false;
           }
           const StorageLayout *Layout = Layouts->get(Type);
-          if (!Layout || Payload > 3 || (!Initialized && (Payload != 0 || Bits != 0)) || (Payload != 0 && Bits != 0))
+          if (!Layout || Payload > 4 || (!Initialized && (Payload != 0 || Bits != 0)) || (Payload != 0 && Bits != 0))
           {
             return fail(BytecodeStatus::InvalidFormat, "Malformed bytecode initial value");
           }
@@ -296,6 +304,35 @@ namespace ink::execution
           if (!allocate(128))
           {
             return false;
+          }
+          if (Payload == 4)
+          {
+            std::size_t Count = 0;
+            if (!count(Count, 14, sizeof(RuntimeValue)))
+            {
+              return false;
+            }
+            if (Layout->Kind != RuntimeKind::Array || Count != Layout->ElementCount)
+            {
+              return fail(BytecodeStatus::InvalidFormat, "Bytecode array constant has an invalid type or element count");
+            }
+            std::vector<RuntimeValue> Elements;
+            Elements.reserve(Count);
+            for (std::size_t Index = 0; Index < Count; ++Index)
+            {
+              RuntimeValue Element;
+              if (!value(Element, Depth + 1))
+              {
+                return false;
+              }
+              if (!Element.Initialized || Element.Type != Layout->ElementType)
+              {
+                return fail(BytecodeStatus::InvalidFormat, "Bytecode array constant has an invalid element");
+              }
+              Elements.push_back(std::move(Element));
+            }
+            Value = RuntimeValue::fromArray(std::move(Elements), Type);
+            return true;
           }
           if (Payload == 1)
           {

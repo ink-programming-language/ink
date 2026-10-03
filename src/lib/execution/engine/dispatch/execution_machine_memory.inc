@@ -106,6 +106,34 @@ namespace ink::execution
       {
         return ExecutionStatus::ForeignContext;
       }
+      if (Cell.layout().Kind == RuntimeKind::Array)
+      {
+        const ExecutionStatus StepStatus = Engine.consumeStep();
+        if (StepStatus != ExecutionStatus::Success)
+        {
+          return StepStatus;
+        }
+        if (Store)
+        {
+          const ExecutionStatus Status = Cell.storeElement(Pointer.offset(), *Stored);
+          if (Status == ExecutionStatus::Success)
+          {
+            Destination = RuntimeValue::fromBits(0, DestinationType);
+          }
+          return Status;
+        }
+        const RuntimeValueResult Loaded = Cell.loadElement(Pointer.offset(), Pointee.Type);
+        if (!Loaded)
+        {
+          return Loaded.Status;
+        }
+        const ExecutionStatus Status = validateValue(Loaded.Value);
+        if (Status == ExecutionStatus::Success)
+        {
+          Destination = Loaded.Value;
+        }
+        return Status;
+      }
       if (Pointer.offset() == 0 && Cell.type() == Pointee.Type)
       {
         const ExecutionStatus StepStatus = Engine.consumeStep();

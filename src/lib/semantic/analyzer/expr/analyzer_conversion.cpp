@@ -124,6 +124,8 @@ namespace ink::semantic
       return "reference";
     case TypeKind::Slice:
       return "slice";
+    case TypeKind::Array:
+      return "[" + describeType(static_cast<const ArrayType &>(ValueType).elementType()) + "; " + std::to_string(static_cast<const ArrayType &>(ValueType).elementCount()) + "]";
     case TypeKind::Function:
       return "function";
     default:

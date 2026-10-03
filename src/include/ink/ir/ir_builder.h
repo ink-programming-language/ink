@@ -8,6 +8,9 @@
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/add_instruction.h"
+#include "ink/ir/instruction/array_instruction.h"
+#include "ink/ir/instruction/array_element_pointer_instruction.h"
+#include "ink/ir/instruction/array_extract_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/c_string_instruction.h"
@@ -184,6 +187,11 @@ namespace ink::ir
       [[nodiscard]] std::unique_ptr<StoreInstruction> createDetachedStoreInstruction(const Value &Address, const Value &StoredValue);
       // Same local integer type for both operands; result wraps to that width.
       [[nodiscard]] std::unique_ptr<AddInstruction> createDetachedAddInstruction(const Value &Left, const Value &Right);
+      // Requires exact local element types; repetition requires exactly one element operand.
+      [[nodiscard]] std::unique_ptr<ArrayInstruction> createDetachedArrayInstruction(const ArrayType &ValueType, std::span<const Value *const> Elements, bool Repeated = false);
+      // Indices are local integers; execution checks negative and out-of-range indices.
+      [[nodiscard]] std::unique_ptr<ArrayElementPointerInstruction> createDetachedArrayElementPointerInstruction(const Value &Address, const Value &Index);
+      [[nodiscard]] std::unique_ptr<ArrayExtractInstruction> createDetachedArrayExtractInstruction(const Value &Array, const Value &Index);
       // Logical operations accept only local bool operands; And and Or are eager IR operations.
       [[nodiscard]] std::unique_ptr<LogicalNotInstruction> createDetachedLogicalNotInstruction(const Value &Operand);
       [[nodiscard]] std::unique_ptr<LogicalAndInstruction> createDetachedLogicalAndInstruction(const Value &Left, const Value &Right);
@@ -206,6 +214,9 @@ namespace ink::ir
       LoadInstruction *createLoadInstruction(const Value &Address);
       StoreInstruction *createStoreInstruction(const Value &Address, const Value &StoredValue);
       AddInstruction *createAddInstruction(const Value &Left, const Value &Right);
+      ArrayInstruction *createArrayInstruction(const ArrayType &ValueType, std::span<const Value *const> Elements, bool Repeated = false);
+      ArrayElementPointerInstruction *createArrayElementPointerInstruction(const Value &Address, const Value &Index);
+      ArrayExtractInstruction *createArrayExtractInstruction(const Value &Array, const Value &Index);
       LogicalNotInstruction *createLogicalNotInstruction(const Value &Operand);
       LogicalAndInstruction *createLogicalAndInstruction(const Value &Left, const Value &Right);
       LogicalOrInstruction *createLogicalOrInstruction(const Value &Left, const Value &Right);

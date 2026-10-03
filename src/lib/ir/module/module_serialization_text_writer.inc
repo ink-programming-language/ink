@@ -68,7 +68,7 @@ namespace ink::ir::archive
             }
             if (isInstruction(R.Kind))
             {
-              for (std::size_t Index = R.Kind == Tag::Compare ? 1 : 0; Index < R.Fields.size(); ++Index)
+              for (std::size_t Index = R.Kind == Tag::Compare || R.Kind == Tag::ArrayValue ? 1 : 0; Index < R.Fields.size(); ++Index)
               {
                 const auto Ref = R.Fields[Index];
                 Used[Ref] = true;
@@ -198,8 +198,17 @@ namespace ink::ir::archive
             return type(Id);
           }
         }
-        std::string value(std::size_t Id) const
+        std::string value(std::size_t Id, std::size_t Depth = 0) const
         {
+          if (!Data.good())
+          {
+            return {};
+          }
+          if (Depth > Data.Limits.MaxNestingDepth)
+          {
+            Data.fail("Array constant text nesting limit exceeded", ModuleArchiveStatus::LimitExceeded);
+            return {};
+          }
           const auto &R = record(Id);
           if (R.Kind <= Tag::FunctionType)
           {
@@ -226,6 +235,25 @@ namespace ink::ir::archive
           if (R.Kind == Tag::StringConstant)
           {
             return core::archive::quote(R.Text);
+          }
+          if (R.Kind == Tag::ArrayConstant)
+          {
+            std::string Text = "[";
+            for (std::size_t Index = 0; Index < R.Fields.size(); ++Index)
+            {
+              const auto Element = value(R.Fields[Index], Depth + 1);
+              if (Text.size() > Data.Limits.MaxArchiveBytes || Element.size() + 3 > Data.Limits.MaxArchiveBytes - Text.size() || !Data.charge(Element.size() + 2, 1))
+              {
+                Data.fail("Array constant text byte limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                return {};
+              }
+              if (Index)
+              {
+                Text += ", ";
+              }
+              Text += Element;
+            }
+            return Text + "]";
           }
           return Names[Id];
         }
@@ -368,6 +396,24 @@ namespace ink::ir::archive
           {
           case Tag::Add:
             Text += "add " + type(R.Type) + " " + value(F[0]) + ", " + value(F[1]);
+            break;
+          case Tag::ArrayValue:
+            Text += std::string(F[0] ? "array.repeat " : "array ") + type(R.Type) + " [";
+            for (std::size_t Index = 1; Index < F.size(); ++Index)
+            {
+              if (Index != 1)
+              {
+                Text += ", ";
+              }
+              Text += value(F[Index]);
+            }
+            Text += "]";
+            break;
+          case Tag::ArrayElementPointer:
+            Text += "array.element " + type(R.Type) + ", " + operand(F[0]) + ", " + operand(F[1]);
+            break;
+          case Tag::ArrayExtract:
+            Text += "array.extract " + type(R.Type) + ", " + operand(F[0]) + ", " + operand(F[1]);
             break;
           case Tag::LogicalNot:
             Text += "not " + operand(F[0]);

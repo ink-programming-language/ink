@@ -37,7 +37,7 @@ namespace ink::ir::archive
 
   inline bool isInstruction(Tag Kind)
   {
-    return (Kind >= Tag::Call && Kind <= Tag::Return) || (Kind >= Tag::Branch && Kind <= Tag::Compare);
+    return (Kind >= Tag::Call && Kind <= Tag::Return) || (Kind >= Tag::Branch && Kind <= Tag::Compare) || (Kind >= Tag::ArrayValue && Kind <= Tag::ArrayExtract);
   }
 
   struct ComparisonPredicateInfo

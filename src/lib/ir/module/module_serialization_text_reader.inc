@@ -332,9 +332,9 @@ namespace ink::ir::archive
             Types[typeKey(record(Id).Kind, record(Id).Fields)] = Id;
           }
         }
-        Operand value(std::size_t Expected)
+        Operand value(std::size_t Expected, std::size_t Depth = 0)
         {
-          if (!good())
+          if (!good() || !depth(Depth))
           {
             return {};
           }
@@ -349,6 +349,28 @@ namespace ink::ir::archive
             return {};
           }
           const auto Kind = record(Expected).Kind;
+          if (Kind == Tag::Array)
+          {
+            const auto ElementType = record(Expected).Fields[0];
+            Lex.expect("[");
+            std::vector<Operand> Elements;
+            while (good() && !Lex.take("]"))
+            {
+              if (!Elements.empty())
+              {
+                Lex.expect(",");
+              }
+              if (Elements.size() >= Data.Limits.MaxFields || !Data.fields(1))
+              {
+                Data.fail("Array constant element limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                return {};
+              }
+              Elements.push_back(value(ElementType, Depth + 1));
+            }
+            const auto Id = add(Tag::ArrayConstant, Expected);
+            operands(Id, Elements);
+            return {Id, Expected, {}};
+          }
           if (Kind == Tag::Meta)
           {
             return {type(), Expected, {}};
@@ -485,6 +507,41 @@ namespace ink::ir::archive
             Values.push_back(value(Result));
             Lex.expect(",");
             Values.push_back(value(Result));
+          }
+          else if (Opcode == "array" || Opcode == "array.repeat")
+          {
+            Kind = Tag::ArrayValue;
+            Result = type();
+            if (!good() || record(Result).Kind != Tag::Array)
+            {
+              Lex.fail("Expected array result type");
+              return;
+            }
+            const auto ElementType = record(Result).Fields[0];
+            Fields.push_back(Opcode == "array.repeat");
+            Lex.expect("[");
+            while (good() && !Lex.take("]"))
+            {
+              if (!Values.empty())
+              {
+                Lex.expect(",");
+              }
+              if (Values.size() >= Data.Limits.MaxFields || !Data.fields(1))
+              {
+                Data.fail("Array instruction element limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                return;
+              }
+              Values.push_back(value(ElementType));
+            }
+          }
+          else if (Opcode == "array.element" || Opcode == "array.extract")
+          {
+            Kind = Opcode == "array.element" ? Tag::ArrayElementPointer : Tag::ArrayExtract;
+            Result = type();
+            Lex.expect(",");
+            Values.push_back(operand());
+            Lex.expect(",");
+            Values.push_back(operand());
           }
           else if (Opcode == "alloca")
           {

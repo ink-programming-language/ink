@@ -72,6 +72,9 @@ namespace ink::execution
     case ExecutionStatus::Overflow:
       Entry = core::makeDiagnostic<core::DiagnosticKind::ExecutionOverflow>(Span, Context);
       break;
+    case ExecutionStatus::IndexOutOfBounds:
+      Entry = core::makeDiagnostic<core::DiagnosticKind::ExecutionIndexOutOfBounds>(Span, Context);
+      break;
     case ExecutionStatus::BudgetExceeded:
       Entry = core::makeDiagnostic<core::DiagnosticKind::ExecutionBudgetExceeded>(Span, Context);
       break;

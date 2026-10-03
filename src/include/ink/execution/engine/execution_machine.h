@@ -65,6 +65,7 @@ namespace ink::execution
       // Instruction handlers are defined in the .inc files included by the dispatch translation unit.
       FORCE_INLINE ExecutionStatus executeCall(const BytecodeInstruction &InstructionValue, std::vector<CallFrame> &Stack);
       FORCE_INLINE ExecutionStatus executeMemory(const BytecodeInstruction &InstructionValue, CallFrame &Frame);
+      FORCE_INLINE ExecutionStatus executeArray(const BytecodeInstruction &InstructionValue, CallFrame &Frame);
       FORCE_INLINE ExecutionStatus executeWide(const BytecodeInstruction &InstructionValue, CallFrame &Frame);
       template <BytecodeOpcode Code>
       FORCE_INLINE ExecutionStatus executeScalar(const BytecodeInstruction &InstructionValue, CallFrame &Frame);

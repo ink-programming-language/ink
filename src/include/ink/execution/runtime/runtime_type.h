@@ -31,6 +31,7 @@ namespace ink::execution
     String,
     Pointer,
     Function,
+    Array,
   };
 
   // These owned descriptors contain representation and identity, never IR nodes.
@@ -48,6 +49,9 @@ namespace ink::execution
       bool Writable = false;
       RuntimeTypeId ReturnType = InvalidRuntimeType;
       std::vector<RuntimeTypeId> Parameters;
+      RuntimeTypeId ElementType = InvalidRuntimeType;
+      std::uint64_t ElementCount = 0;
+      std::shared_ptr<const StorageLayout> ElementLayout;
   };
 
   class RuntimeTypeTable final

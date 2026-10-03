@@ -70,7 +70,7 @@ namespace ink::execution
       {
         return ExecutionStatus::ReadOnly;
       }
-      if (!Layout.BytePointer && !Layout.VoidPointer && (Layout.Pointee != Cell.type() || (Pointer.offset() != 0 && Pointer.offset() != Cell.size())))
+      if (!Layout.BytePointer && !Layout.VoidPointer && !Cell.elementLayout(Pointer.offset(), Layout.Pointee, true))
       {
         return ExecutionStatus::TypeMismatch;
       }

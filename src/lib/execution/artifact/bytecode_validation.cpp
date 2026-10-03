@@ -40,6 +40,10 @@ namespace ink::execution
 
     bool validLayout(const StorageLayout &Layout, const RuntimeTypeTable &Types)
     {
+      if (Layout.Kind != RuntimeKind::Array && (Layout.ElementType != InvalidRuntimeType || Layout.ElementCount || Layout.ElementLayout))
+      {
+        return false;
+      }
       if (Layout.Domain != Types.domain() || (Layout.Kind != RuntimeKind::Integer && Layout.Signed) || (Layout.Kind != RuntimeKind::Pointer && (Layout.Pointee != InvalidRuntimeType || Layout.Writable)) || (Layout.Kind != RuntimeKind::Function && (Layout.ReturnType != InvalidRuntimeType || !Layout.Parameters.empty())))
       {
         return false;
@@ -56,6 +60,11 @@ namespace ink::execution
         return (Layout.BitWidth == 16 || Layout.BitWidth == 32 || Layout.BitWidth == 64) && Layout.Size == Layout.BitWidth / 8 && Layout.Alignment == (Layout.BitWidth == 32 ? alignof(float) : Layout.BitWidth == 64 ? alignof(double) : 1) && Layout.Native == (Layout.BitWidth != 16);
       case RuntimeKind::String:
         return Layout.BitWidth == 0 && Layout.Size == sizeof(void *) * 2 && Layout.Alignment == sizeof(void *) && !Layout.Native;
+      case RuntimeKind::Array:
+      {
+        const StorageLayout *Element = Types.get(Layout.ElementType);
+        return Element && Layout.ElementType < Layout.Type && Element->Kind != RuntimeKind::Void && Element->Kind != RuntimeKind::Invalid && Layout.ElementLayout && Layout.ElementLayout->Domain == Types.domain() && Layout.ElementLayout->Type == Layout.ElementType && Layout.BitWidth == 0 && (!Element->Size || Layout.ElementCount <= std::numeric_limits<std::size_t>::max() / Element->Size) && Layout.Size == Element->Size * Layout.ElementCount && Layout.Alignment == Element->Alignment && Layout.Native == Element->Native;
+      }
       case RuntimeKind::Pointer:
         return Layout.BitWidth == 0 && Layout.Size == sizeof(void *) && Layout.Alignment == sizeof(void *) && !Layout.Native && Types.get(Layout.Pointee);
       case RuntimeKind::Function:
@@ -135,8 +144,15 @@ namespace ink::execution
         return {BytecodeStatus::InvalidImage, "Bytecode function failed instruction or frame validation"};
       }
       const RuntimeTypeTable &Types = *Artifact.Image.Layouts;
+      std::vector<const RuntimeValue *> Pending;
       for (const RuntimeValue &Value : Function.InitialSlots)
       {
+        Pending.push_back(&Value);
+      }
+      while (!Pending.empty())
+      {
+        const RuntimeValue &Value = *Pending.back();
+        Pending.pop_back();
         if (!Value.Initialized)
         {
           continue;
@@ -156,6 +172,13 @@ namespace ink::execution
           if (Found == Artifact.Image.Descriptors.end() || Found->second.Signature != Value.Type)
           {
             return {BytecodeStatus::InvalidImage, "Bytecode function constant refers to a missing or incompatible function"};
+          }
+        }
+        if (Type.Kind == RuntimeKind::Array)
+        {
+          for (const RuntimeValue &Element : Value.array())
+          {
+            Pending.push_back(&Element);
           }
         }
       }
@@ -257,13 +280,30 @@ namespace ink::execution
         }
         for (const RuntimeValue &Value : Function->InitialSlots)
         {
-          if (Value.kind() == RuntimeKind::String && !Usage.string(Value.string()))
+          std::vector<const RuntimeValue *> Pending = {&Value};
+          while (!Pending.empty())
           {
-            return {BytecodeStatus::LimitExceeded, "Bytecode string constants exceed the configured storage limits"};
-          }
-          if (Value.kind() == RuntimeKind::Integer && !Usage.records((static_cast<std::uint64_t>(Value.integer().bitWidth()) + 63) / 64, sizeof(std::uint64_t)))
-          {
-            return {BytecodeStatus::LimitExceeded, "Bytecode integer constants exceed the configured storage limits"};
+            const RuntimeValue &Current = *Pending.back();
+            Pending.pop_back();
+            if (Current.kind() == RuntimeKind::String && !Usage.string(Current.string()))
+            {
+              return {BytecodeStatus::LimitExceeded, "Bytecode string constants exceed the configured storage limits"};
+            }
+            if (Current.kind() == RuntimeKind::Integer && !Usage.records((static_cast<std::uint64_t>(Current.integer().bitWidth()) + 63) / 64, sizeof(std::uint64_t)))
+            {
+              return {BytecodeStatus::LimitExceeded, "Bytecode integer constants exceed the configured storage limits"};
+            }
+            if (Current.kind() == RuntimeKind::Array)
+            {
+              if (!Usage.records(Current.array().size(), sizeof(RuntimeValue) + sizeof(RuntimeValue *)))
+              {
+                return {BytecodeStatus::LimitExceeded, "Bytecode array constants exceed the configured storage limits"};
+              }
+              for (const RuntimeValue &Element : Current.array())
+              {
+                Pending.push_back(&Element);
+              }
+            }
           }
         }
       }

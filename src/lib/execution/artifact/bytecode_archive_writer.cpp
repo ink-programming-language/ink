@@ -132,6 +132,10 @@ namespace ink::execution
               return false;
             }
           }
+          if (Layout.Kind == RuntimeKind::Array)
+          {
+            return u32(Layout.ElementType) && u64(Layout.ElementCount);
+          }
           return true;
         }
 
@@ -159,8 +163,12 @@ namespace ink::execution
           return true;
         }
 
-        bool value(const RuntimeValue &Value)
+        bool value(const RuntimeValue &Value, std::size_t Depth = 0)
         {
+          if (Depth >= Limits.MaxTypeDepth)
+          {
+            return fail(BytecodeStatus::LimitExceeded, "Bytecode array constant exceeds the nesting limit");
+          }
           std::uint8_t Payload = 0;
           if (Value.Object)
           {
@@ -171,6 +179,9 @@ namespace ink::execution
               break;
             case RuntimeKind::String:
               Payload = 2;
+              break;
+            case RuntimeKind::Array:
+              Payload = 4;
               break;
             case RuntimeKind::Pointer:
               if (Value.pointer().kind() != ExecutionPointer::Kind::Null)
@@ -207,6 +218,20 @@ namespace ink::execution
           else if (Payload == 2)
           {
             return string(Value.string());
+          }
+          else if (Payload == 4)
+          {
+            if (!count(Value.array().size()))
+            {
+              return false;
+            }
+            for (const RuntimeValue &Element : Value.array())
+            {
+              if (!value(Element, Depth + 1))
+              {
+                return false;
+              }
+            }
           }
           return true;
         }

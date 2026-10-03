@@ -40,7 +40,7 @@ namespace ink::ir::archive
 
     bool isPool(Tag Kind)
     {
-      return Kind >= Tag::Meta && Kind <= Tag::StringConstant;
+      return (Kind >= Tag::Meta && Kind <= Tag::StringConstant) || Kind == Tag::ArrayConstant;
     }
 
     bool syntax(Tag Kind)
@@ -351,6 +351,31 @@ namespace ink::ir::archive
           case ValueKind::StringConstant:
             Entry.Kind = Tag::StringConstant;
             text(Entry, static_cast<const StringConstant &>(Object).value());
+            break;
+          case ValueKind::ArrayConstant:
+            Entry.Kind = Tag::ArrayConstant;
+            for (const auto *Element : static_cast<const ArrayConstant &>(Object).elements())
+            {
+              ref(Entry, *Element);
+            }
+            break;
+          case ValueKind::ArrayInstruction:
+            Entry.Kind = Tag::ArrayValue;
+            field(Entry, static_cast<const ArrayInstruction &>(Object).repeated());
+            for (const auto *Element : static_cast<const ArrayInstruction &>(Object).elements())
+            {
+              ref(Entry, *Element);
+            }
+            break;
+          case ValueKind::ArrayElementPointerInstruction:
+            Entry.Kind = Tag::ArrayElementPointer;
+            ref(Entry, static_cast<const ArrayElementPointerInstruction &>(Object).address());
+            ref(Entry, static_cast<const ArrayElementPointerInstruction &>(Object).index());
+            break;
+          case ValueKind::ArrayExtractInstruction:
+            Entry.Kind = Tag::ArrayExtract;
+            ref(Entry, static_cast<const ArrayExtractInstruction &>(Object).array());
+            ref(Entry, static_cast<const ArrayExtractInstruction &>(Object).index());
             break;
           case ValueKind::Module:
             Entry.Kind = Tag::Module;
@@ -759,6 +784,9 @@ namespace ink::ir::archive
               }
               break;
             case Tag::FunctionType:
+            case Tag::ArrayConstant:
+            case Tag::ArrayElementPointer:
+            case Tag::ArrayExtract:
             case Tag::Call:
             case Tag::CString:
             case Tag::Load:
@@ -773,6 +801,19 @@ namespace ink::ir::archive
               for (auto Target : Entry.Fields)
               {
                 if (!dependency(Id, Target, Entry.Kind == Tag::FunctionType))
+                {
+                  return false;
+                }
+              }
+              break;
+            case Tag::ArrayValue:
+              if (Entry.Fields[0] > 1)
+              {
+                return Data.fail("Invalid array repetition flag");
+              }
+              for (std::size_t Index = 1; Index < Entry.Fields.size(); ++Index)
+              {
+                if (!dependency(Id, Entry.Fields[Index]))
                 {
                   return false;
                 }
@@ -1026,6 +1067,32 @@ namespace ink::ir::archive
               return Constants.getStringConstant(*TypeValue, Entry.Text);
             }
             return nullptr;
+          case Tag::ArrayConstant:
+            if (const auto *TypeValue = as<ArrayType>(Entry.Type))
+            {
+              std::vector<const Constant *> Elements;
+              for (auto Element : Fields)
+              {
+                Elements.push_back(as<Constant>(Element));
+              }
+              return Constants.getArrayConstant(*TypeValue, Elements);
+            }
+            return nullptr;
+          case Tag::ArrayValue:
+            if (const auto *TypeValue = as<ArrayType>(Entry.Type))
+            {
+              std::vector<const Value *> Elements;
+              for (std::size_t Index = 1; Index < Fields.size(); ++Index)
+              {
+                Elements.push_back(Values[Fields[Index]]);
+              }
+              return own(Id, Builder.createDetachedArrayInstruction(*TypeValue, Elements, Fields[0] != 0));
+            }
+            return nullptr;
+          case Tag::ArrayElementPointer:
+            return own(Id, Builder.createDetachedArrayElementPointerInstruction(*Values[Fields[0]], *Values[Fields[1]]));
+          case Tag::ArrayExtract:
+            return own(Id, Builder.createDetachedArrayExtractInstruction(*Values[Fields[0]], *Values[Fields[1]]));
           case Tag::Module:
             if (auto *ModuleValue = Builder.createModule(NameValue()))
             {

@@ -74,6 +74,12 @@ namespace ink::semantic
       ExpressionResult analyzeMemberExpr(AnalysisState &State, const parser::MemberExpr &Node, std::size_t Depth);
       bool resolveMemberFunctions(AnalysisState &State, const parser::MemberExpr &Node, std::vector<const ir::Value *> &Functions, std::size_t Depth);
       ExpressionResult analyzeUnaryExpr(AnalysisState &State, const parser::UnaryExpr &Node, std::size_t Depth);
+      ExpressionResult analyzeArrayExpr(AnalysisState &State, const parser::Expr &Node, std::size_t Depth);
+      ExpressionResult analyzeIndexExpr(AnalysisState &State, const parser::IndexExpr &Node, std::size_t Depth);
+      const ir::Value *analyzeArrayIndex(AnalysisState &State, const parser::Expr &Node, std::uint64_t Count, std::size_t Depth);
+      std::optional<std::uint64_t> analyzeArrayLength(AnalysisState &State, const parser::Expr &Node, std::size_t Depth);
+      bool checkArrayMaterialization(AnalysisState &State, const ir::Type &Element, std::uint64_t Count, const parser::ASTNodeBase &Node);
+      ExpressionResult assignComptimeArray(AnalysisState &State, const parser::AssignmentItem &Node, std::size_t Depth);
       bool prepareIntegerLiteral(AnalysisState &State, const parser::Expr &Node, std::size_t Depth);
       ExpressionResult materializeIntegerLiteral(AnalysisState &State, const parser::Expr &Node, const ir::Type &Target);
       ExpressionResult analyzeCallExpr(AnalysisState &State, const parser::CallExpr &Node, std::size_t Depth);

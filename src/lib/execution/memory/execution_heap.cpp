@@ -1,4 +1,6 @@
 #include "ink/execution/memory/execution_heap.h"
+#include "ink/execution/value/execution_array_value.h"
+#include "ink/ir/constant/array_constant.h"
 
 #include "ink/execution/value/execution_bool_value.h"
 #include "ink/execution/value/execution_float_value.h"
@@ -141,6 +143,20 @@ namespace ink::execution
       return floating(Value.type(), static_cast<const ir::FloatConstant &>(Value).value());
     case ir::ValueKind::StringConstant:
       return string(Value.type(), static_cast<const ir::StringConstant &>(Value).value());
+    case ir::ValueKind::ArrayConstant:
+    {
+      std::vector<ExecutionValueRef> Elements;
+      for (const ir::Constant *Element : static_cast<const ir::ArrayConstant &>(Value).elements())
+      {
+        ExecutionValueRef Converted = fromConstant(*Element);
+        if (!Converted)
+        {
+          return {};
+        }
+        Elements.push_back(std::move(Converted));
+      }
+      return array(Value.type(), std::move(Elements));
+    }
     default:
       LastStatus = ExecutionStatus::UnsupportedOperation;
       return {};
@@ -170,6 +186,11 @@ namespace ink::execution
   ExecutionValueRef ExecutionHeap::pointer(const ir::Type &Type, ExecutionPointer Value)
   {
     return ownValue(std::unique_ptr<ExecutionValue>(new ExecutionPointerValue(Type, std::move(Value))));
+  }
+
+  ExecutionValueRef ExecutionHeap::array(const ir::Type &Type, std::vector<ExecutionValueRef> Elements)
+  {
+    return ownValue(std::unique_ptr<ExecutionValue>(new ExecutionArrayValue(Type, std::move(Elements))));
   }
 
   ExecutionValueRef ExecutionHeap::pointerSnapshot(const ir::Type &Type, ExecutionPointer Value)

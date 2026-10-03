@@ -12,8 +12,8 @@
 | [`instruction.def`](../src/include/ink/execution/bytecode/instruction.def) | 统一登记操作码名称和每项操作数的种类，生成 `BytecodeOpcode` 与元数据 |
 | `BytecodeInstructionMetadata`、`bytecodeInstructionMetadata()` | 查询名称及操作数模式，供验证和工具使用 |
 | [`ExecutableFunction`](../src/include/ink/execution/bytecode/executable_function.h) | 拥有连续指令、运行时槽位类型 ID、初始槽、调用点、自有常量字节区与局部帧单元数量 |
-| [`RuntimeValue`](../src/include/ink/execution/runtime/runtime_value.h) | 标量位模式或拥有的宽整数、字符串、指针载荷，以及运行时类型 ID 和初始化状态 |
-| [`StorageLayout` / `RuntimeTypeTable`](../src/include/ink/execution/runtime/runtime_type.h) | 预先确定表示种类、位宽、符号、大小、对齐、指向类型、权限和函数签名 |
+| [`RuntimeValue`](../src/include/ink/execution/runtime/runtime_value.h) | 标量位模式或拥有的宽整数、字符串、指针、不可变数组载荷，以及运行时类型 ID 和初始化状态 |
+| [`StorageLayout` / `RuntimeTypeTable`](../src/include/ink/execution/runtime/runtime_type.h) | 预先确定表示种类、位宽、符号、大小、对齐、指向类型、数组元素类型与数量、权限和函数签名 |
 | `ExecutionCallSite` | 直接 `FunctionId` 或间接被调用者槽位、签名 ID，以及已经排序的实参槽位 |
 | [`ExecutionCompiler`](../src/include/ink/execution/bytecode/execution_compiler.h) | 按函数分配槽位、选择操作码、定位跳转并验证产物 |
 | [`ExecutionImage`](../src/include/ink/execution/bytecode/execution_image.h) / [`ExecutionLinker`](../src/include/ink/execution/engine/execution_linker.h) | 持有执行镜像和函数描述，准备运行时调用目标；支持按需编译与完整镜像两种入口 |
@@ -42,11 +42,17 @@ INK_INSTRUCTION(CallDirect, WriteSlot, CallSite, None, None)
 INK_INSTRUCTION(JumpIf, None, ReadSlot, Target, Target)
 INK_INSTRUCTION(AllocaLocal, WriteSlot, Layout, Local, None)
 INK_INSTRUCTION(CString, WriteSlot, DataOffset, DataLength, None)
+INK_INSTRUCTION(Array, WriteSlot, DataOffset, DataLength, None)
+INK_INSTRUCTION(ArrayRepeat, WriteSlot, ReadSlot, None, None)
+INK_INSTRUCTION(ArrayElementPointer, WriteSlot, ReadSlot, ReadSlot, None)
+INK_INSTRUCTION(ArrayExtract, WriteSlot, ReadSlot, ReadSlot, None)
 ```
 
 `AddI32` 将 `Operands[1]`、`Operands[2]` 指定的槽值相加后写入 `Operands[0]` 指定的槽；`CompareSigned32` 额外用 `Operands[3]` 指定谓词。`CallDirect` 的 `Operands[1]` 是调用点表索引，不是函数体宿主地址。`JumpIf` 的 `Operands[1]` 是 bool 条件槽，`Operands[2]` 和 `Operands[3]` 分别为真、假分支在本函数指令数组内的 PC。未使用项以 `None` 标记并置零。
 
 `AllocaLocal` 的 `Operands[1]` 是被分配值的运行时类型 ID，`Operands[2]` 是该函数独占的局部帧单元索引。`CString` 的 `Operands[1]`、`Operands[2]` 是自有 `ConstantData` 中的字节偏移与长度；`Function` 从 `InitialSlots[Operands[0]]` 取出预先编码的函数 ID。比较谓词使用独立的 `ExecutionPredicate`，编译器显式转换 IR 谓词，VM 不依赖 IR 枚举。
+
+`Array` 从 `ConstantData` 指定的范围读取小端 `u32` 源槽号，按顺序构造结果数组；字节长度必须为元素数乘 4。`ArrayRepeat` 读取一个元素槽，按结果数组布局的元素数复制，不会重新执行产生该元素的指令，零长度重复数组仍求值并检查该元素。`ArrayElementPointer` 的两个输入依次是数组地址和整数索引，结果为同权限的元素地址；`ArrayExtract` 的两个输入依次是数组值和整数索引，结果为元素值快照。普通构造与重复构造由 `ArrayInstruction::repeated()` 区分，其余两种操作分别降低对应的 IR 指令。
 
 指令构造使用嵌套聚合明确操作数数组，例如 `BytecodeInstruction{BytecodeOpcode::AddI32, {3, 1, 2, 0}}` 表示把槽 1 与槽 2 的和写入槽 3。
 
@@ -58,6 +64,7 @@ INK_INSTRUCTION(CString, WriteSlot, DataOffset, DataLength, None)
 | 定宽整数内存 | `LoadI8/I16/I32/I64`、`StoreI8/I16/I32/I64` | 预先选择整数访问位宽；原生 Cell 可直接读取或写入位模式 |
 | 已证明局部的存储 | `AllocaLocal`、`LoadLocal`、`StoreLocal` | 地址仅供本函数直接读写时使用内部局部存储路径 |
 | 字符串 | `CString` | 按执行次数创建独立可写、以 NUL 结尾的副本 |
+| 数组 | `Array`、`ArrayRepeat`、`ArrayElementPointer`、`ArrayExtract` | 构造数组值，按重复模式复制元素，或经边界检查取址、提取元素 |
 | 整数加法 | `AddI8/I16/I32/I64`、`AddWide` | 按精确位宽回绕；其他位宽走通用宽整数路径 |
 | bool | `LogicalNot`、`LogicalAnd`、`LogicalOr` | 对已求值 bool 操作，源码短路由控制流实现 |
 | 比较 | `CompareSigned8/16/32/64`、`CompareUnsigned8/16/32/64`、`CompareWide`、`CompareBool` | 编译时确定符号和位宽，保留比较谓词 |
@@ -80,12 +87,16 @@ INK_INSTRUCTION(CString, WriteSlot, DataOffset, DataLength, None)
 | 表 | 使用位置 | 保留原因 |
 | --- | --- | --- |
 | `Layouts` | 分配、验证、宽整数和通用内存操作 | 共享有主的 `RuntimeTypeTable`，表项只包含预先降低的执行布局与类型身份 |
-| `ConstantData` | `CString` 字节范围 | 自有字节区；执行时复制成独立的可写、带 NUL 缓冲区 |
+| `ConstantData` | `CString` 字节范围和 `Array` 源槽号表 | 自有字节区；CString 执行时复制成独立缓冲，数组按小端 `u32` 读取源槽号 |
 | `SlotTypes` | 产物验证与槽位初始化 | 每个槽的 `RuntimeTypeId`，不含 IR 指针 |
 | `InitialSlots` | 调用帧初始化和 `Function` 指令 | 与槽位等长；常量已经编码为位模式或拥有的载荷，其他槽保留类型 ID 与未初始化状态 |
 | `Calls` | 直接或间接调用 | 已确定的函数 ID、签名 ID 与实参槽位，不保存源函数指针 |
 
 这些表都是执行前已经确定的数据；普通 `AddI8/I16/I32/I64`、本机位宽比较和 bool 运算直接由 opcode 决定操作，不在每次运算时查询类型表。运行时布局仍保留必要的类型身份：相同大小的 `bool` 和 `u8` 不互换，不同函数签名也不因表示大小相同而互换。布局描述、签名 ID 和动态权限检查不承担源码名称解析或类型推导。
+
+数组布局使用 `RuntimeKind::Array`、`ElementType`、`ElementCount` 和拥有的 `ElementLayout`；大小为元素大小乘元素数，对齐继承元素类型。数组按值传参、赋值和返回，元素载荷不可变；写入数组存储或其元素不会修改先前取得的数组快照。指向元素的受控地址由原 Cell 身份和字节偏移组成，整个数组重新赋值后仍引用同一元素位置，所属调用结束后失效。嵌套数组逐层取址；空数组可以构造和传递，但没有合法元素索引。索引接受各整数位宽，负值、无法容纳的宽整数和超出元素数的索引返回 `IndexOutOfBounds`。
+
+具有原生元素表示的数组使用连续存储，可将元素地址交给原生函数，例如为 `read`／`_read` 提供可写字节数组。取出原生地址前沿用受控指针的权限、范围与生命周期检查；调用方仍需确保传给原生函数的长度不超过剩余数组容量。数组内部携带的指针也需要递归检查，不能通过数组值延长局部存储的生命周期。
 
 旧的 `Source`、`Types`、`Strings` 和借用 IR 的初始化表已经移除。函数镜像的常量、布局、验证和已链接代码的执行可以独立于原 IR 的生命周期。`ExecutionEngine::execute(ir::Function, ...)` 仍是服务于存活语义 Context 的入口；直接构造 `ExecutionLinker(ExecutionImage)` 后，`ExecutionMachine` 可按 `FunctionId` 执行自有镜像，缺少的函数体显式失败，不尝试返回源 IR 编译。磁盘加载由 `readBytecodeFile()` 和 `deserializeBytecodeArtifact()` 负责：验证通过的完整镜像交给上述入口执行，VM 继续使用 Engine 提供的存储与执行预算。
 
@@ -115,7 +126,7 @@ VM 保存调用者 PC、返回结果槽和各调用帧的独立状态，Ink 函�
 
 分派循环将 `CallDirect` 和 `CallIndirect` 交给 `ExecutionMachine::executeCall()`，实现位于 [`execution_machine_call.inc`](../src/lib/execution/engine/dispatch/execution_machine_call.inc)。该函数统一处理目标与签名校验、实参检查、原生调用和 Ink 帧入栈，并返回显式状态；调用栈扩容前完成全部调用者帧访问，失败仍由分派循环统一清理活动帧。
 
-所有指令处理函数集中放在 `src/lib/execution/engine/dispatch/` 目录下，按职责分为 `execution_machine_scalar.inc`、`execution_machine_wide.inc`、`execution_machine_control.inc`、`execution_machine_memory.inc` 和 `execution_machine_call.inc`，由 `execution_machine_dispatch.cpp` 包含到同一编译单元，并使用仓库现有的 `FORCE_INLINE` 宏。分派循环只选择处理函数和传播状态；内联实现及其依赖在该编译单元可见，最终机器码是否完全展开仍由编译器决定。
+所有指令处理函数集中放在 `src/lib/execution/engine/dispatch/` 目录下，按职责分为 `execution_machine_scalar.inc`、`execution_machine_wide.inc`、`execution_machine_control.inc`、`execution_machine_memory.inc`、`execution_machine_array.inc` 和 `execution_machine_call.inc`，由 `execution_machine_dispatch.cpp` 包含到同一编译单元，并使用仓库现有的 `FORCE_INLINE` 宏。分派循环只选择处理函数和传播状态；内联实现及其依赖在该编译单元可见，最终机器码是否完全展开仍由编译器决定。
 
 递归调用使用显式调用栈，每层都有独立的槽位、局部存储和 PC。正常 `Return` 只对栈顶帧执行 `endCall()` 并弹出该帧，把结果写回调用者后继续执行。执行失败、取消或预算耗尽时，`run()` 才在循环结束后逆序清理所有尚未返回的帧；正常返回到入口时调用栈已经为空，不会重复清理。
 
@@ -148,9 +159,15 @@ VM 保存调用者 PC、返回结果槽和各调用帧的独立状态，Ink 函�
 | `StoreLocal` | 4，包含地址、值读取与存储写入 |
 | `Load` / `LoadI*`、`Store` / `StoreI*` | 基础成本分别为 2、3；Cell 读写按现有内存路径再收取 1，Buffer 路径不额外收费 |
 | `CallDirect`、`CallIndirect` | 2 加实参数量，包含被调用者与实参读取；进入被调用函数另行计费 |
+| `Array`、`ArrayRepeat` | 基础成本分别为 1、2，再按结果元素数收取构造成本 |
+| `ArrayElementPointer`、`ArrayExtract` | 3，包含数组或地址与索引读取 |
 
 因此本地槽优化不会绕过步骤限制，某条 IR 操作选用本机位宽或宽整数 opcode 也不改变它的预算类别。调用深度、求值深度、累计对象数与累计存储字节继续通过 `ExecutionLimits` 约束；释放存储不退还累计分配预算。VM 栈消除了 Ink 调用对 C++ 调用栈的逐层依赖，但不取消这些逻辑限制。
 
 编译器在读取 IR 时检查常量归属。`ExecutionCompiler::verify()` 对独立产物检查操作码、槽位及布局 ID、参数/结果类型、调用签名、初始位模式、分支目标、常量字节范围、紧凑局部单元唯一性与内部句柄使用规则，不再访问源 IR。链接器另外检查直接函数 ID 的目标描述和签名。验证器不是完整的语义验证器，也不以静态验证替代实际路径上的未初始化、动态指针生命周期和预算检查。
+
+数组验证还检查元素数量、递归元素类型与初始化状态、源槽号表范围，以及索引类型和元素指针权限。重复构造在分配元素向量前检查 `MaxStorageBytes`，因此零大小元素也不能绕过元素数量预算；取址仍使用普通受控存储，不能把 `AllocaLocal` 的内部句柄传给数组元素地址操作。数组文件标签和条件布局字段见 [Ink 字节码文件格式](Ink-Bytecode-Format.md)，容器版本继续为 2、指令模式版本为 1。
+
+数组专项测试位于 [`array_bytecode_test.cpp`](../src/testcase/execution/bytecode/array_bytecode_test.cpp)、[`array_storage_test.cpp`](../src/testcase/execution/memory/array_storage_test.cpp) 和 [`array_artifact_test.cpp`](../src/testcase/execution/artifact/array_artifact_test.cpp)，覆盖 lowering、非法槽号与类型、各位宽动态越界、独立快照、重复求值次数、局部指针逃逸、空与嵌套数组、存储预算及独立对象归档链接。
 
 回归测试位于 [`execution_compiler_test.cpp`](../src/testcase/execution/bytecode/execution_compiler_test.cpp)、[`execution_image_test.cpp`](../src/testcase/execution/engine/execution_image_test.cpp)、[`bytecode_execution_test.cpp`](../src/testcase/execution/engine/bytecode_execution_test.cpp)、[`bytecode_storage_test.cpp`](../src/testcase/execution/engine/bytecode_storage_test.cpp) 和 [`context_revision_test.cpp`](../src/testcase/ir/context_revision_test.cpp)。除布局与签名身份、常量字节范围、局部索引、缓存更新、间接调用、整数边界及帧清理外，专门覆盖源 IR 全部析构后执行镜像内的函数调用、宽整数、局部存储，以及 CString 和重复原生调用；同时验证所有权编辑和归档恢复的 revision 边界。独立文件测试位于 [`execution/artifact`](../src/testcase/execution/artifact)：覆盖对象和完整镜像归档、三模块链接、ID 冲突、函数值调用、符号可见性、重载与泛型身份，以及截断、版本、target、宿主指针和资源预算错误。源码层的多模块主集成测试位于 [`execution/multifile`](../src/testcase/execution/multifile)，直接使用真实导入和 `public`/`private` 声明，覆盖各文件独立编译、正反顺序链接、跨模块编译期函数依赖及移走源码和对象文件后加载执行。普通 Ink 无体声明在语义阶段拒绝，不作为源码导入占位符。

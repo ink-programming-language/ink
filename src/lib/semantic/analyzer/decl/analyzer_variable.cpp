@@ -58,7 +58,7 @@ namespace ink::semantic
         return false;
       }
     }
-    if (!ValueType || (Comptime && ValueType->typeKind() != TypeKind::Integer && ValueType->typeKind() != TypeKind::Bool && ValueType->typeKind() != TypeKind::Float && !StringConstant::classof(Initial)))
+    if (!ValueType || (Comptime && ValueType->typeKind() != TypeKind::Integer && ValueType->typeKind() != TypeKind::Bool && ValueType->typeKind() != TypeKind::Float && ValueType->typeKind() != TypeKind::Array && !StringConstant::classof(Initial)))
     {
       return reportExecution(State, ExecutionStatus::UnsupportedOperation, Node);
     }

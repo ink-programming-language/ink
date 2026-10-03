@@ -52,6 +52,15 @@ namespace ink::semantic
       return Result;
     }
     const auto &Assignment = static_cast<const parser::AssignmentItem &>(Node);
+    const parser::Expr *Destination = Assignment.left();
+    while (parser::ParenExpr::classof(Destination))
+    {
+      Destination = static_cast<const parser::ParenExpr &>(*Destination).expression();
+    }
+    if (State.Evaluating && parser::IndexExpr::classof(Destination))
+    {
+      return assignComptimeArray(State, Assignment, Depth + 1);
+    }
     if (!State.Evaluating && !State.CurrentFunction)
     {
       reportUnsupported(State, Node);

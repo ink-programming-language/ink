@@ -33,6 +33,28 @@ namespace ink::semantic
     {
       return resolveAddress(State, *static_cast<const parser::ParenExpr &>(Node).expression(), Depth + 1, RequireInitialized);
     }
+    if (parser::IndexExpr::classof(&Node))
+    {
+      const auto &Index = static_cast<const parser::IndexExpr &>(Node);
+      if (Index.optional())
+      {
+        State.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "array index", "optional index");
+        return nullptr;
+      }
+      const Value *Object = resolveAddress(State, *Index.object(), Depth + 1, true);
+      if (!Object)
+      {
+        return nullptr;
+      }
+      const Type &ObjectType = static_cast<const PointerType &>(Object->type()).pointeeType();
+      if (!ArrayType::classof(&ObjectType))
+      {
+        State.report<core::DiagnosticKind::SemanticTypeMismatch>(Index.object()->getSourceRange(), "array", describeType(ObjectType));
+        return nullptr;
+      }
+      const Value *Offset = analyzeArrayIndex(State, *Index.index(), static_cast<const ArrayType &>(ObjectType).elementCount(), Depth + 1);
+      return Offset ? State.Builder.createArrayElementPointerInstruction(*Object, *Offset) : nullptr;
+    }
     if (parser::UnaryExpr::classof(&Node) && static_cast<const parser::UnaryExpr &>(Node).op() == tokenizer::TokenKind::Star)
     {
       const auto &Unary = static_cast<const parser::UnaryExpr &>(Node);

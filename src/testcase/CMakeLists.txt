@@ -53,5 +53,8 @@ set_tests_properties(InkcProcessTest PROPERTIES TIMEOUT 60 LABELS "execution;cli
 add_test(NAME BytecodeProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/bytecode-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/bytecode_process_test.cmake")
 set_tests_properties(BytecodeProcessTest PROPERTIES TIMEOUT 120 LABELS "execution;bytecode;cli")
 
+add_test(NAME ArrayReadProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_POINTER_BYTES=${CMAKE_SIZEOF_VOID_P}" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/array-read-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/array_read_process_test.cmake")
+set_tests_properties(ArrayReadProcessTest PROPERTIES TIMEOUT 120 LABELS "execution;arrays;ffi;bytecode;cli")
+
 include("${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/source_program_tests.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/multifile_program_tests.cmake")

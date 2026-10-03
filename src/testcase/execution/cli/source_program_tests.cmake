@@ -1,7 +1,8 @@
 # Each source runs its default main with exit-code/stdout assertions and an optional error diagnostic.
-# STDOUT_HEX additionally checks raw bytes; LABELS supplements the common execution/source labels.
+# STDIN_FILE supplies deterministic input; BYTECODE repeats checks after emitting, linking and reloading the program.
+# STDOUT_HEX checks raw bytes; BYTECODE_ERROR overrides saved-image error text; LABELS supplements common labels.
 function(add_source_program_test Name Source ExpectedStatus ExpectedOutput ExpectedError)
-  cmake_parse_arguments(PARSE_ARGV 5 Test "" "STDOUT_HEX" "LABELS")
+  cmake_parse_arguments(PARSE_ARGV 5 Test "BYTECODE" "STDOUT_HEX;STDIN_FILE;BYTECODE_ERROR" "LABELS")
   if(Test_UNPARSED_ARGUMENTS OR Test_KEYWORDS_MISSING_VALUES)
     message(FATAL_ERROR "Invalid source program test options for '${Name}'")
   endif()
@@ -12,8 +13,19 @@ function(add_source_program_test Name Source ExpectedStatus ExpectedOutput Expec
       message(FATAL_ERROR "Successful source program '${Source}' must define main and assert nonempty stdout")
     endif()
   endif()
-  add_test(NAME "ExecutionSourceTest.${Name}" COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_SOURCE=${SourcePath}" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/execution-programs" "-DINK_EXPECTED_STATUS=${ExpectedStatus}" "-DINK_EXPECTED_STDOUT=${ExpectedOutput}" "-DINK_EXPECTED_STDOUT_HEX=${Test_STDOUT_HEX}" "-DINK_EXPECTED_ERROR=${ExpectedError}" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/source_program_test.cmake")
-  set_tests_properties("ExecutionSourceTest.${Name}" PROPERTIES TIMEOUT 30 LABELS "execution;source;${Test_LABELS}")
+  set(InputPath "")
+  if(Test_STDIN_FILE)
+    set(InputPath "${CMAKE_CURRENT_SOURCE_DIR}/execution/${Test_STDIN_FILE}")
+    if(NOT EXISTS "${InputPath}")
+      message(FATAL_ERROR "Missing standard input fixture '${Test_STDIN_FILE}'")
+    endif()
+  endif()
+  add_test(NAME "ExecutionSourceTest.${Name}" COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_SOURCE=${SourcePath}" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/execution-programs" "-DINK_EXPECTED_STATUS=${ExpectedStatus}" "-DINK_EXPECTED_STDOUT=${ExpectedOutput}" "-DINK_EXPECTED_STDOUT_HEX=${Test_STDOUT_HEX}" "-DINK_EXPECTED_ERROR=${ExpectedError}" "-DINK_STDIN_FILE=${InputPath}" "-DINK_TEST_BYTECODE=${Test_BYTECODE}" "-DINK_BYTECODE_ERROR=${Test_BYTECODE_ERROR}" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/source_program_test.cmake")
+  if(Test_BYTECODE)
+    set_tests_properties("ExecutionSourceTest.${Name}" PROPERTIES TIMEOUT 90 LABELS "execution;source;bytecode;${Test_LABELS}")
+  else()
+    set_tests_properties("ExecutionSourceTest.${Name}" PROPERTIES TIMEOUT 30 LABELS "execution;source;${Test_LABELS}")
+  endif()
 endfunction()
 
 # Platform-specific ABI and exact newline bytes are fixture expectations, not separate runners.
@@ -71,6 +83,59 @@ if(WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_source_program_test(External.Invalid.UnsupportedFloat cli/inputs/external_unsupported_float.ink 1 "" "INK-E0015" LABELS external)
   add_source_program_test(External.Invalid.ExpiredPointer cli/inputs/external_expired_pointer.ink 1 "" "INK-E0006" LABELS external)
 endif()
+
+# Array programs exercise the same named checks in source and saved-bytecode execution.
+if(WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_source_program_test(Array.Main.Basics programs/arrays_basics.ink 0 "ArraysBasics.inferred_literals|PASS|ArraysBasics.contextual_elements|PASS|ArraysBasics.typed_value_inference|PASS|ArraysBasics.boolean_elements|PASS|ArraysBasics.repeated_values|PASS|ArraysBasics.compiletime_length|PASS|ArraysBasics.nested_elements|PASS|ArraysBasics.nested_repetition|PASS|ArraysBasics.empty_arrays|PASS|ArraysBasics.zero_length_inner_arrays|PASS|" "" BYTECODE LABELS arrays)
+  add_source_program_test(Array.Main.Widths programs/arrays_widths.ink 0 "ArraysWidths.i8|PASS|ArraysWidths.u8|PASS|ArraysWidths.i16|PASS|ArraysWidths.u16|PASS|ArraysWidths.i32|PASS|ArraysWidths.u32|PASS|ArraysWidths.i64|PASS|ArraysWidths.u64|PASS|ArraysWidths.i128|PASS|ArraysWidths.u128|PASS|" "" BYTECODE LABELS arrays)
+  add_source_program_test(Array.Main.Values programs/arrays_values.ink 0 "ArraysValues.independent_copies|PASS|ArraysValues.nested_copies|PASS|ArraysValues.whole_array_assignment|PASS|ArraysValues.stable_element_alias|PASS|ArraysValues.stable_nested_alias|PASS|ArraysValues.parameters_and_returns|PASS|ArraysValues.temporary_array_reads|PASS|ArraysValues.constant_array_reads|PASS|ArraysValues.pointer_element_copies|PASS|ArraysValues.pointer_to_array|PASS|ArraysValues.parameter_snapshot_during_mutation|PASS|ArraysValues.nested_parameters_and_returns|PASS|ArraysValues.repeated_calls_fresh_arrays|PASS|" "" BYTECODE LABELS arrays)
+  add_source_program_test(Array.Main.Effects programs/arrays_effects.ink 0 "ArraysEffects.literal_order|next|next|next|PASS|ArraysEffects.nested_literal_order|next|next|next|next|PASS|ArraysEffects.repeat_once|next|PASS|ArraysEffects.zero_repeat_once|next|PASS|ArraysEffects.assignment_index_before_rhs|index|rhs|PASS|ArraysEffects.load_after_index|index_write|PASS|ArraysEffects.argument_capture|mutate|capture|PASS|ArraysEffects.runtime_array_return|make|PASS|ArraysEffects.temporary_array_return|make|PASS|" "" BYTECODE LABELS arrays)
+  add_source_program_test(Array.Main.Comptime programs/arrays_comptime.ink 0 "ArraysComptime.nested_writes|PASS|ArraysComptime.independent_copies|PASS|ArraysComptime.compound_arithmetic|PASS|ArraysComptime.compound_bitwise|PASS|ArraysComptime.local_const_length|PASS|ArraysComptime.frozen_function_return|PASS|ArraysComptime.repeated_side_effect|PASS|ArraysComptime.zero_repeat_side_effect|PASS|ArraysComptime.sibling_assignment|PASS|" "" BYTECODE LABELS arrays comptime)
+endif()
+
+# Reopen the six-byte input fixture for each execution to independently verify read, short reads and EOF.
+set(ArrayReadOutput "ArrayRead.initialized_repeat|PASS|ArrayRead.interior_offset|PASS|ArrayRead.zero_count|PASS|ArrayRead.short_read|PASS|ArrayRead.value_copy|PASS|ArrayRead.element_write|PASS|ArrayRead.copy_independence|PASS|ArrayRead.eof|PASS|")
+if(WIN32)
+  add_source_program_test(Array.Main.Read programs/arrays_read.windows.ink 0 "${ArrayReadOutput}" "" BYTECODE STDIN_FILE programs/arrays_read.input LABELS arrays external)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  add_source_program_test(Array.Main.Read programs/arrays_read.linux.ink 0 "${ArrayReadOutput}" "" BYTECODE STDIN_FILE programs/arrays_read.input LABELS arrays external)
+endif()
+
+# Reject invalid array types, constructors, indices and mutation before executing main.
+add_source_program_test(Array.Invalid.EmptyInference cli/inputs/array_empty_inference.ink 1 "" "INK-S0052" LABELS arrays)
+add_source_program_test(Array.Invalid.NegativeLength cli/inputs/array_length_negative.ink 1 "" "INK-S0051" LABELS arrays)
+add_source_program_test(Array.Invalid.BoolLength cli/inputs/array_length_bool.ink 1 "" "INK-S0051" LABELS arrays)
+add_source_program_test(Array.Invalid.FloatLength cli/inputs/array_length_float.ink 1 "" "INK-S0051" LABELS arrays)
+add_source_program_test(Array.Invalid.UnrepresentableLength cli/inputs/array_length_unrepresentable.ink 1 "" "INK-S0051" LABELS arrays)
+add_source_program_test(Array.Invalid.ExcessiveLength cli/inputs/array_length_too_large.ink 1 "" "INK-S0055" LABELS arrays)
+add_source_program_test(Array.Invalid.RuntimeLength cli/inputs/array_length_runtime.ink 1 "" "INK-E0008" LABELS arrays)
+add_source_program_test(Array.Invalid.StorageOverflow cli/inputs/array_storage_overflow.ink 1 "" "INK-S0055" LABELS arrays)
+add_source_program_test(Array.Invalid.ElementType cli/inputs/array_element_type.ink 1 "" "INK-S0004" LABELS arrays)
+add_source_program_test(Array.Invalid.LengthMismatch cli/inputs/array_length_mismatch.ink 1 "" "INK-S0004" LABELS arrays)
+add_source_program_test(Array.Invalid.NestedTypeMismatch cli/inputs/array_nested_type_mismatch.ink 1 "" "INK-S0004" LABELS arrays)
+add_source_program_test(Array.Invalid.ByteOverflow cli/inputs/array_u8_overflow.ink 1 "" "INK-S0005" LABELS arrays)
+add_source_program_test(Array.Invalid.BoolIndex cli/inputs/array_index_bool.ink 1 "" "INK-S0053" LABELS arrays)
+add_source_program_test(Array.Invalid.FloatIndex cli/inputs/array_index_float.ink 1 "" "INK-S0053" LABELS arrays)
+add_source_program_test(Array.Invalid.NonarrayIndex cli/inputs/array_index_nonarray.ink 1 "" "INK-S0004" LABELS arrays)
+add_source_program_test(Array.Invalid.ConstantNegativeIndex cli/inputs/array_index_negative.ink 1 "" "INK-S0054" LABELS arrays)
+add_source_program_test(Array.Invalid.ConstantReadBounds cli/inputs/array_index_out_of_bounds.ink 1 "" "INK-S0054" LABELS arrays)
+add_source_program_test(Array.Invalid.ConstantWriteBounds cli/inputs/array_index_write_out_of_bounds.ink 1 "" "INK-S0054" LABELS arrays)
+add_source_program_test(Array.Invalid.ConstantAddressBounds cli/inputs/array_index_address_out_of_bounds.ink 1 "" "INK-S0054" LABELS arrays)
+add_source_program_test(Array.Invalid.EmptyArrayIndex cli/inputs/array_index_empty.ink 1 "" "INK-S0054" LABELS arrays)
+add_source_program_test(Array.Invalid.ConstWrite cli/inputs/array_const_write.ink 1 "" "INK-S0026" LABELS arrays)
+add_source_program_test(Array.Invalid.ConstAddress cli/inputs/array_const_address.ink 1 "" "INK-S0026" LABELS arrays)
+add_source_program_test(Array.Invalid.UninitializedRead cli/inputs/array_uninitialized_read.ink 1 "" "INK-S0006" LABELS arrays)
+add_source_program_test(Array.Invalid.UninitializedWrite cli/inputs/array_uninitialized_write.ink 1 "" "INK-S0006" LABELS arrays)
+add_source_program_test(Array.Invalid.ComptimeBounds cli/inputs/array_comptime_out_of_bounds.ink 1 "" "INK-S0054" LABELS arrays)
+
+# Dynamic bounds and expired element addresses must fail after both source and bytecode loading.
+add_source_program_test(Array.Runtime.NegativeIndex cli/inputs/array_runtime_negative_index.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
+add_source_program_test(Array.Runtime.ReadOutOfBounds cli/inputs/array_runtime_read_out_of_bounds.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
+add_source_program_test(Array.Runtime.WriteOutOfBounds cli/inputs/array_runtime_write_out_of_bounds.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
+add_source_program_test(Array.Runtime.AddressOutOfBounds cli/inputs/array_runtime_address_out_of_bounds.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
+add_source_program_test(Array.Runtime.EmptyIndex cli/inputs/array_runtime_empty_index.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
+add_source_program_test(Array.Runtime.WideIndex cli/inputs/array_runtime_wide_index.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
+add_source_program_test(Array.Runtime.EscapedElement cli/inputs/array_runtime_escaped_element.ink 1 "" "INK-E0006" BYTECODE BYTECODE_ERROR "expired execution place" LABELS arrays)
 
 # Declaration checks fail before host symbol lookup and do not depend on the host ABI.
 add_source_program_test(External.Invalid.ArgumentType cli/inputs/external_invalid_argument_type.ink 1 "" "INK-S0004" LABELS external)

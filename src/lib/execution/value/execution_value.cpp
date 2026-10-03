@@ -1,4 +1,5 @@
 #include "ink/execution/value/execution_value.h"
+#include "ink/execution/value/execution_array_value.h"
 
 #include "ink/execution/value/execution_bool_value.h"
 #include "ink/execution/value/execution_float_value.h"
@@ -10,6 +11,7 @@
 #include "ink/ir/context.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/type/slice_type.h"
+#include "ink/ir/constant/array_constant.h"
 
 #include <cassert>
 #include <utility>
@@ -60,6 +62,8 @@ namespace ink::execution
       return ExecutionValueKind::Pointer;
     case ExecutionObjectKind::FunctionValue:
       return ExecutionValueKind::Function;
+    case ExecutionObjectKind::ArrayValue:
+      return ExecutionValueKind::Array;
     case ExecutionObjectKind::Cell:
     case ExecutionObjectKind::Buffer:
       return ExecutionValueKind::Invalid;
@@ -89,6 +93,27 @@ namespace ink::execution
     }
     case ExecutionValueKind::String:
       return isStringType(ValueType);
+    case ExecutionValueKind::Array:
+    {
+      if (!ir::ArrayType::classof(&ValueType))
+      {
+        return false;
+      }
+      const auto &Type = static_cast<const ir::ArrayType &>(ValueType);
+      const auto Elements = static_cast<const ExecutionArrayValue &>(*this).value();
+      if (Elements.size() != Type.elementCount())
+      {
+        return false;
+      }
+      for (const auto &Element : Elements)
+      {
+        if (!Element.valid() || Element.type() != &Type.elementType())
+        {
+          return false;
+        }
+      }
+      return true;
+    }
     case ExecutionValueKind::Pointer:
       return ValueType.typeKind() == ir::TypeKind::Pointer && static_cast<const ExecutionPointerValue &>(*this).value().valid();
     case ExecutionValueKind::Function:
@@ -113,6 +138,20 @@ namespace ink::execution
       return Context.constantPool().getFloatConstant(static_cast<const ir::FloatType &>(ValueType), static_cast<const ExecutionFloatValue &>(*this).value());
     case ExecutionValueKind::String:
       return Context.constantPool().getStringConstant(static_cast<const ir::SliceType &>(ValueType), static_cast<const ExecutionStringValue &>(*this).value());
+    case ExecutionValueKind::Array:
+    {
+      std::vector<const ir::Constant *> Elements;
+      for (const auto &Element : static_cast<const ExecutionArrayValue &>(*this).value())
+      {
+        const ir::Constant *Constant = Element.toConstant(Context);
+        if (!Constant)
+        {
+          return nullptr;
+        }
+        Elements.push_back(Constant);
+      }
+      return Context.constantPool().getArrayConstant(static_cast<const ir::ArrayType &>(ValueType), Elements);
+    }
     default:
       return nullptr;
     }
@@ -157,6 +196,12 @@ namespace ink::execution
   {
     assert(kind() == ExecutionValueKind::Pointer && "execution value is not a pointer");
     return static_cast<const ExecutionPointerValue &>(*Value).value();
+  }
+
+  std::span<const ExecutionValueRef> ExecutionValueRef::array() const noexcept
+  {
+    assert(kind() == ExecutionValueKind::Array && "execution value is not an array");
+    return static_cast<const ExecutionArrayValue &>(*Value).value();
   }
 
   const ir::Function *ExecutionValueRef::function() const noexcept

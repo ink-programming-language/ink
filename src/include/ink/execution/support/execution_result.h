@@ -40,6 +40,7 @@ namespace ink::execution
     Overflow,
     BudgetExceeded,
     Cancelled,
+    IndexOutOfBounds,
   };
 
   // Frozen result at the compile-time semantic boundary; IR execution returns

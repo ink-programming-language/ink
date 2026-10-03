@@ -65,6 +65,28 @@ namespace ink::execution
       return Identity.Module + "::" + Identity.Name;
     }
 
+    RuntimeValue remapValue(const RuntimeValue &Value, const ObjectMapping &Mapping, const RuntimeTypeTable &Source)
+    {
+      const RuntimeTypeId Type = Mapping.Types[Value.Type];
+      if (Value.Initialized && Value.kind() == RuntimeKind::Array)
+      {
+        std::vector<RuntimeValue> Elements;
+        Elements.reserve(Value.array().size());
+        for (const RuntimeValue &Element : Value.array())
+        {
+          Elements.push_back(remapValue(Element, Mapping, Source));
+        }
+        return RuntimeValue::fromArray(std::move(Elements), Type);
+      }
+      RuntimeValue Result = Value;
+      if (Value.Initialized && Source.get(Value.Type)->Kind == RuntimeKind::Function)
+      {
+        Result.Bits = Mapping.Functions.find(static_cast<FunctionId>(Value.Bits))->second;
+      }
+      Result.Type = Type;
+      return Result;
+    }
+
     std::unique_ptr<ExecutableFunction> copyFunction(const ExecutableFunction &Source, const ObjectMapping &Mapping, const std::shared_ptr<const RuntimeTypeTable> &Types)
     {
       auto Function = std::make_unique<ExecutableFunction>(Source);
@@ -77,11 +99,7 @@ namespace ink::execution
       }
       for (RuntimeValue &Value : Function->InitialSlots)
       {
-        if (Value.Initialized && Source.Layouts->get(Value.Type)->Kind == RuntimeKind::Function)
-        {
-          Value.Bits = Mapping.Functions.find(static_cast<FunctionId>(Value.Bits))->second;
-        }
-        Value.Type = Mapping.Types[Value.Type];
+        Value = remapValue(Value, Mapping, *Source.Layouts);
       }
       for (ExecutionCallSite &Call : Function->Calls)
       {
@@ -215,6 +233,11 @@ namespace ink::execution
       if (Layout.Kind == RuntimeKind::Pointer)
       {
         Layout.Pointee = Mapping.Types[Layout.Pointee];
+      }
+      if (Layout.Kind == RuntimeKind::Array)
+      {
+        Layout.ElementType = Mapping.Types[Layout.ElementType];
+        Layout.ElementLayout.reset();
       }
       if (Layout.Kind == RuntimeKind::Function)
       {

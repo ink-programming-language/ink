@@ -4,12 +4,14 @@
 #include "ink/execution/engine/execution_linker.h"
 
 #include <string_view>
+#include <limits>
 #include <utility>
 
 // Keep every instruction handler visible to the compiler at its dispatch call site.
 #include "dispatch/execution_machine_scalar.inc"
 #include "dispatch/execution_machine_wide.inc"
 #include "dispatch/execution_machine_memory.inc"
+#include "dispatch/execution_machine_array.inc"
 #include "dispatch/execution_machine_call.inc"
 #include "dispatch/execution_machine_control.inc"
 
@@ -83,6 +85,12 @@ namespace ink::execution
       case BytecodeOpcode::StoreLocal:
       case BytecodeOpcode::CString:
         Status = executeMemory(Operation, Frame);
+        break;
+      case BytecodeOpcode::Array:
+      case BytecodeOpcode::ArrayRepeat:
+      case BytecodeOpcode::ArrayElementPointer:
+      case BytecodeOpcode::ArrayExtract:
+        Status = executeArray(Operation, Frame);
         break;
 #define INK_SCALAR_CASE(Name) case BytecodeOpcode::Name: Status = executeScalar<BytecodeOpcode::Name>(Operation, Frame); break;
       INK_SCALAR_CASE(AddI8)

@@ -1,4 +1,7 @@
 #include "ink/execution/bridge/semantic_value_bridge.h"
+#include "ink/ir/constant/array_constant.h"
+
+#include <limits>
 
 #include "ink/execution/memory/execution_heap.h"
 #include "ink/ir/context.h"
@@ -92,6 +95,23 @@ namespace ink::execution
       Layout.Writable = Pointer.access() == ir::AccessKind::ReadWrite;
       Layout.Size = Target.pointerByteWidth();
       Layout.Alignment = Layout.Size;
+      break;
+    }
+    case ir::TypeKind::Array:
+    {
+      const auto &Array = static_cast<const ir::ArrayType &>(Type);
+      Layout.ElementType = lowerType(Array.elementType());
+      const StorageLayout *Element = Types->get(Layout.ElementType);
+      if (!Element || Element->Kind == RuntimeKind::Invalid || Element->Kind == RuntimeKind::Void || Array.elementCount() > std::numeric_limits<std::size_t>::max() || (Element->Size != 0 && Array.elementCount() > std::numeric_limits<std::size_t>::max() / Element->Size))
+      {
+        return InvalidRuntimeType;
+      }
+      Layout.Kind = RuntimeKind::Array;
+      Layout.ElementCount = Array.elementCount();
+      Layout.ElementLayout = std::make_shared<const StorageLayout>(*Element);
+      Layout.Size = Element->Size * static_cast<std::size_t>(Layout.ElementCount);
+      Layout.Alignment = Element->Alignment;
+      Layout.Native = Element->Native;
       break;
     }
     case ir::TypeKind::Slice:
@@ -281,6 +301,20 @@ namespace ink::execution
       return {ExecutionStatus::Success, RuntimeValue::fromBits(Value.floating().bits(), Type)};
     case ExecutionValueKind::String:
       return {ExecutionStatus::Success, RuntimeValue::fromString(Value.string(), Type)};
+    case ExecutionValueKind::Array:
+    {
+      std::vector<RuntimeValue> Elements;
+      for (const auto &Element : Value.array())
+      {
+        RuntimeValueResult Converted = lowerValue(Element);
+        if (!Converted)
+        {
+          return Converted;
+        }
+        Elements.push_back(std::move(Converted.Value));
+      }
+      return {ExecutionStatus::Success, RuntimeValue::fromArray(std::move(Elements), Type)};
+    }
     case ExecutionValueKind::Pointer:
       return {ExecutionStatus::Success, RuntimeValue::fromPointer(Value.pointer(), Type)};
     case ExecutionValueKind::Function:
@@ -328,6 +362,20 @@ namespace ink::execution
       return {ExecutionStatus::Success, RuntimeValue::fromBits(static_cast<const ir::FloatConstant &>(Value).value().bits(), Type)};
     case ir::ValueKind::StringConstant:
       return {ExecutionStatus::Success, RuntimeValue::fromString(static_cast<const ir::StringConstant &>(Value).value(), Type)};
+    case ir::ValueKind::ArrayConstant:
+    {
+      std::vector<RuntimeValue> Elements;
+      for (const ir::Constant *Element : static_cast<const ir::ArrayConstant &>(Value).elements())
+      {
+        RuntimeValueResult Converted = lowerConstant(*Element);
+        if (!Converted)
+        {
+          return Converted;
+        }
+        Elements.push_back(std::move(Converted.Value));
+      }
+      return {ExecutionStatus::Success, RuntimeValue::fromArray(std::move(Elements), Type)};
+    }
     default:
       return {ExecutionStatus::UnsupportedOperation};
     }
@@ -409,6 +457,29 @@ namespace ink::execution
         return {ExecutionStatus::TypeMismatch};
       }
       Result = Heap.function(*Function);
+      break;
+    }
+    case RuntimeKind::Array:
+    {
+      if (Value.kind() != RuntimeKind::Array || Value.array().size() != Layout->ElementCount)
+      {
+        return {ExecutionStatus::TypeMismatch};
+      }
+      std::vector<ExecutionValueRef> Elements;
+      for (const RuntimeValue &Element : Value.array())
+      {
+        if (Element.kind() == RuntimeKind::Pointer && Element.pointer().status() != ExecutionStatus::Success)
+        {
+          return {Element.pointer().status()};
+        }
+        ExecutionValueResult Converted = raiseValue(Heap, Element, Layout->ElementType);
+        if (!Converted)
+        {
+          return Converted;
+        }
+        Elements.push_back(std::move(Converted.Value));
+      }
+      Result = Heap.array(*Source, std::move(Elements));
       break;
     }
     case RuntimeKind::Invalid:

@@ -31,6 +31,17 @@ namespace ink::execution
       std::vector<char> ConstantData;
       std::uint32_t LocalStorageCount = 0;
   };
+
+  // The verifier checks the byte span before any caller decodes its slot IDs.
+  inline SlotId arraySourceSlot(const ExecutableFunction &Function, std::size_t Offset) noexcept
+  {
+    SlotId Result = 0;
+    for (unsigned Byte = 0; Byte < 4; ++Byte)
+    {
+      Result |= static_cast<SlotId>(static_cast<unsigned char>(Function.ConstantData[Offset + Byte])) << (Byte * 8);
+    }
+    return Result;
+  }
 } // namespace ink::execution
 
 #endif

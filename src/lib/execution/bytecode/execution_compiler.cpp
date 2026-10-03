@@ -5,6 +5,9 @@
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/add_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
+#include "ink/ir/instruction/array_instruction.h"
+#include "ink/ir/instruction/array_element_pointer_instruction.h"
+#include "ink/ir/instruction/array_extract_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/c_string_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
@@ -297,6 +300,26 @@ namespace ink::execution
               case ir::ValueKind::LoadInstruction:
                 use(static_cast<const ir::LoadInstruction &>(Value).address(), LocalFunction);
                 break;
+              case ir::ValueKind::ArrayInstruction:
+                for (const ir::Value *Element : static_cast<const ir::ArrayInstruction &>(Value).elements())
+                {
+                  use(*Element);
+                }
+                break;
+              case ir::ValueKind::ArrayElementPointerInstruction:
+              {
+                const auto &Element = static_cast<const ir::ArrayElementPointerInstruction &>(Value);
+                use(Element.address());
+                use(Element.index());
+                break;
+              }
+              case ir::ValueKind::ArrayExtractInstruction:
+              {
+                const auto &Element = static_cast<const ir::ArrayExtractInstruction &>(Value);
+                use(Element.array());
+                use(Element.index());
+                break;
+              }
               case ir::ValueKind::StoreInstruction:
               {
                 const auto &Store = static_cast<const ir::StoreInstruction &>(Value);
@@ -389,6 +412,43 @@ namespace ink::execution
               break;
             }
             emit({Locals.contains(&Load.address()) ? BytecodeOpcode::LoadLocal : memoryOpcode(*Layout, false), {Destination, slot(Load.address())}});
+            break;
+          }
+          case ir::ValueKind::ArrayInstruction:
+          {
+            const auto &Array = static_cast<const ir::ArrayInstruction &>(Value);
+            if (Array.repeated())
+            {
+              emit({BytecodeOpcode::ArrayRepeat, {Destination, slot(*Array.elements().front())}});
+              break;
+            }
+            const auto Offset = index(Result->ConstantData.size());
+            if (Array.elements().size() > (InvalidSlot - Result->ConstantData.size()) / 4)
+            {
+              Status = ExecutionStatus::BudgetExceeded;
+              break;
+            }
+            for (const ir::Value *Element : Array.elements())
+            {
+              const SlotId SourceSlot = slot(*Element);
+              for (unsigned Byte = 0; Byte < 4; ++Byte)
+              {
+                Result->ConstantData.push_back(static_cast<char>((SourceSlot >> (Byte * 8)) & 0xff));
+              }
+            }
+            emit({BytecodeOpcode::Array, {Destination, Offset, index(Array.elements().size() * 4)}});
+            break;
+          }
+          case ir::ValueKind::ArrayElementPointerInstruction:
+          {
+            const auto &Element = static_cast<const ir::ArrayElementPointerInstruction &>(Value);
+            emit({BytecodeOpcode::ArrayElementPointer, {Destination, slot(Element.address()), slot(Element.index())}});
+            break;
+          }
+          case ir::ValueKind::ArrayExtractInstruction:
+          {
+            const auto &Element = static_cast<const ir::ArrayExtractInstruction &>(Value);
+            emit({BytecodeOpcode::ArrayExtract, {Destination, slot(Element.array()), slot(Element.index())}});
             break;
           }
           case ir::ValueKind::StoreInstruction:
@@ -543,7 +603,7 @@ namespace ink::execution
       case BytecodeOperandKind::DataLength:
         return Value <= Function.ConstantData.size();
       case BytecodeOperandKind::Status:
-        return Value > static_cast<std::uint32_t>(ExecutionStatus::Success) && Value <= static_cast<std::uint32_t>(ExecutionStatus::Cancelled);
+        return Value > static_cast<std::uint32_t>(ExecutionStatus::Success) && Value <= static_cast<std::uint32_t>(ExecutionStatus::IndexOutOfBounds);
       }
       return false;
     }
@@ -673,6 +733,42 @@ namespace ink::execution
         const auto *Pointee = Function.Layouts->get(Pointer->Pointee);
         return isKind(Pointee, RuntimeKind::Integer) && Pointee->BitWidth == 8 && !Pointee->Signed;
       }
+      case BytecodeOpcode::Array:
+      {
+        const auto *Array = SlotType(Value.Operands[0]);
+        const std::size_t Offset = Value.Operands[1];
+        const std::size_t Length = Value.Operands[2];
+        if (!isKind(Array, RuntimeKind::Array) || Length % 4 || Offset > Function.ConstantData.size() || Length > Function.ConstantData.size() - Offset || Array->ElementCount != Length / 4)
+        {
+          return false;
+        }
+        for (std::size_t Byte = 0; Byte < Length; Byte += 4)
+        {
+          const SlotId Source = arraySourceSlot(Function, Offset + Byte);
+          if (Source >= Function.SlotTypes.size() || Function.SlotTypes[Source] != Array->ElementType)
+          {
+            return false;
+          }
+        }
+        return true;
+      }
+      case BytecodeOpcode::ArrayRepeat:
+      {
+        const auto *Array = SlotType(Value.Operands[0]);
+        return isKind(Array, RuntimeKind::Array) && Array->ElementType == Function.SlotTypes[Value.Operands[1]];
+      }
+      case BytecodeOpcode::ArrayElementPointer:
+      {
+        const auto *Address = SlotType(Value.Operands[1]);
+        const auto *Destination = SlotType(Value.Operands[0]);
+        const auto *Array = isKind(Address, RuntimeKind::Pointer) ? Function.Layouts->get(Address->Pointee) : nullptr;
+        return isKind(Array, RuntimeKind::Array) && isKind(Destination, RuntimeKind::Pointer) && Destination->Pointee == Array->ElementType && Destination->Writable == Address->Writable && isKind(SlotType(Value.Operands[2]), RuntimeKind::Integer);
+      }
+      case BytecodeOpcode::ArrayExtract:
+      {
+        const auto *Array = SlotType(Value.Operands[1]);
+        return isKind(Array, RuntimeKind::Array) && Array->ElementType == Function.SlotTypes[Value.Operands[0]] && isKind(SlotType(Value.Operands[2]), RuntimeKind::Integer);
+      }
       case BytecodeOpcode::AddI8:
       case BytecodeOpcode::AddI16:
       case BytecodeOpcode::AddI32:
@@ -738,6 +834,19 @@ namespace ink::execution
         return !Value.Object && ((Layout.BitWidth == 16 || Layout.BitWidth == 32) ? (Value.Bits >> Layout.BitWidth) == 0 : Layout.BitWidth == 64);
       case RuntimeKind::String:
         return Value.Object && Value.kind() == RuntimeKind::String;
+      case RuntimeKind::Array:
+        if (!Value.Object || Value.kind() != RuntimeKind::Array || !Layout.ElementLayout || Value.array().size() != Layout.ElementCount)
+        {
+          return false;
+        }
+        for (const RuntimeValue &Element : Value.array())
+        {
+          if (!Element.Initialized || Element.Type != Layout.ElementType || !validInitialValue(Element, *Layout.ElementLayout))
+          {
+            return false;
+          }
+        }
+        return true;
       case RuntimeKind::Pointer:
         return Value.Object && Value.kind() == RuntimeKind::Pointer;
       case RuntimeKind::Function:
@@ -866,6 +975,16 @@ namespace ink::execution
         for (SlotId Argument : Call.Arguments)
         {
           if (LocalSlots[Argument])
+          {
+            return ExecutionStatus::InvalidArguments;
+          }
+        }
+      }
+      if (Value.Code == BytecodeOpcode::Array)
+      {
+        for (std::size_t Byte = 0; Byte < Value.Operands[2]; Byte += 4)
+        {
+          if (LocalSlots[arraySourceSlot(Function, Value.Operands[1] + Byte)])
           {
             return ExecutionStatus::InvalidArguments;
           }

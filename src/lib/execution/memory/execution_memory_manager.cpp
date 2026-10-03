@@ -7,6 +7,30 @@
 
 namespace ink::execution
 {
+  namespace
+  {
+    bool arrayMetadataBytes(const StorageLayout &Layout, std::size_t &Bytes)
+    {
+      Bytes = 0;
+      if (Layout.Kind != RuntimeKind::Array)
+      {
+        return true;
+      }
+      std::size_t ChildBytes = 0;
+      if (!Layout.ElementLayout || !arrayMetadataBytes(*Layout.ElementLayout, ChildBytes) || ChildBytes > std::numeric_limits<std::size_t>::max() - sizeof(RuntimeValue))
+      {
+        return false;
+      }
+      ChildBytes += sizeof(RuntimeValue);
+      if (Layout.ElementCount > std::numeric_limits<std::size_t>::max() / ChildBytes)
+      {
+        return false;
+      }
+      Bytes = static_cast<std::size_t>(Layout.ElementCount) * ChildBytes;
+      return true;
+    }
+  } // namespace
+
   struct ExecutionMemoryState
   {
       struct Slot
@@ -152,7 +176,26 @@ namespace ink::execution
     {
       return {LastStatus = ExecutionStatus::TypeMismatch};
     }
-    if (!checkBudget(sizeof(ExecutionCell)))
+    std::size_t Bytes = sizeof(ExecutionCell);
+    if (Layout.Kind == RuntimeKind::Array)
+    {
+      if (!Layout.ElementLayout || Layout.ElementLayout->Type != Layout.ElementType)
+      {
+        return {LastStatus = ExecutionStatus::TypeMismatch};
+      }
+      std::size_t MetadataBytes = 0;
+      if (!arrayMetadataBytes(Layout, MetadataBytes) || MetadataBytes > std::numeric_limits<std::size_t>::max() - Bytes)
+      {
+        return {LastStatus = ExecutionStatus::BudgetExceeded};
+      }
+      Bytes += MetadataBytes;
+      if (Layout.Size > std::numeric_limits<std::size_t>::max() - Bytes)
+      {
+        return {LastStatus = ExecutionStatus::BudgetExceeded};
+      }
+      Bytes += Layout.Size;
+    }
+    if (!checkBudget(Bytes))
     {
       return {LastStatus};
     }
@@ -169,7 +212,7 @@ namespace ink::execution
         return {LastStatus = Status};
       }
     }
-    const ExecutionStorageRef Storage = ownStorage(std::move(Cell), sizeof(ExecutionCell));
+    const ExecutionStorageRef Storage = ownStorage(std::move(Cell), Bytes);
     return {ExecutionStatus::Success, ExecutionPlace(Storage)};
   }
 

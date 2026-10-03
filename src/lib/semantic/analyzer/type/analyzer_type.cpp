@@ -55,6 +55,22 @@ namespace ink::semantic
       return nullptr;
     }
     TypePool &Types = State.Context.typePool();
+    if (parser::ArrayRepeatExpr::classof(&Node))
+    {
+      const auto &Array = static_cast<const parser::ArrayRepeatExpr &>(Node);
+      const Type *Element = analyzeType(State, *Array.value(), Depth + 1);
+      if (!Element)
+      {
+        return nullptr;
+      }
+      if (Element->typeKind() == TypeKind::Void || Element->typeKind() == TypeKind::Meta)
+      {
+        State.report<core::DiagnosticKind::SemanticTypeMismatch>(Array.value()->getSourceRange(), "array element value type", describeType(*Element));
+        return nullptr;
+      }
+      const auto Count = analyzeArrayLength(State, *Array.count(), Depth + 1);
+      return Count && checkArrayMaterialization(State, *Element, *Count, Node) ? Types.getType<TypeKind::Array>(*Element, *Count) : nullptr;
+    }
     if (parser::NameExpr::classof(&Node))
     {
       const auto NameToken = static_cast<const parser::NameExpr &>(Node).name();

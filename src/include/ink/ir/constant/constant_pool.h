@@ -2,6 +2,7 @@
 #define INK_IR_CONSTANT_CONSTANT_POOL_H
 
 #include "ink/ir/constant/bool_constant.h"
+#include "ink/ir/constant/array_constant.h"
 #include "ink/ir/constant/float_constant.h"
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/constant/string_constant.h"
@@ -41,6 +42,10 @@ namespace ink::ir
       // Requires valid bits in the local type's exact IEEE format; never converts or rounds.
       const FloatConstant *getFloatConstant(const FloatType &ValueType, const FloatBits &Payload);
 
+      // Requires the exact number of canonical local constants with the array's element type.
+      // Empty and nested arrays are canonicalized by their type and ordered element identities.
+      const ArrayConstant *getArrayConstant(const ArrayType &ValueType, std::span<const Constant *const> Elements);
+
       // Both bool constants are present from construction and included in size().
       std::size_t size() const noexcept;
       bool owns(const Constant &ConstantValue) const noexcept;
@@ -53,6 +58,7 @@ namespace ink::ir
       std::unordered_multimap<std::size_t, std::unique_ptr<IntegerConstant>> IntegerConstants;
       std::unordered_multimap<std::size_t, std::unique_ptr<StringConstant>> StringConstants;
       std::unordered_multimap<std::size_t, std::unique_ptr<FloatConstant>> FloatConstants;
+      std::unordered_multimap<std::size_t, std::unique_ptr<ArrayConstant>> ArrayConstants;
       std::unique_ptr<BoolConstant> FalseValue;
       std::unique_ptr<BoolConstant> TrueValue;
 

@@ -441,6 +441,62 @@ namespace ink::ir
     return std::unique_ptr<AddInstruction>(new AddInstruction(Left, Right));
   }
 
+  std::unique_ptr<ArrayInstruction> IRBuilder::createDetachedArrayInstruction(const ArrayType &ValueType, std::span<const Value *const> Elements, bool Repeated)
+  {
+    if (&ValueType.context() != &Context || !isMemoryValueType(ValueType) || (Repeated ? Elements.size() != 1 : Elements.size() != ValueType.elementCount()))
+    {
+      return nullptr;
+    }
+    for (const Value *Element : Elements)
+    {
+      if (!Element || &Element->context() != &Context || &Element->type() != &ValueType.elementType())
+      {
+        return nullptr;
+      }
+    }
+    return std::unique_ptr<ArrayInstruction>(new ArrayInstruction(ValueType, Elements, Repeated));
+  }
+
+  std::unique_ptr<ArrayElementPointerInstruction> IRBuilder::createDetachedArrayElementPointerInstruction(const Value &Address, const Value &Index)
+  {
+    if (&Address.context() != &Context || &Index.context() != &Context || !PointerType::classof(&Address.type()) || !IntegerType::classof(&Index.type()))
+    {
+      return nullptr;
+    }
+    const auto &AddressType = static_cast<const PointerType &>(Address.type());
+    if (!ArrayType::classof(&AddressType.pointeeType()) || !isMemoryValueType(AddressType.pointeeType()))
+    {
+      return nullptr;
+    }
+    const auto &Array = static_cast<const ArrayType &>(AddressType.pointeeType());
+    const auto *ResultType = Context.typePool().getType<TypeKind::Pointer>(Array.elementType(), AddressType.access());
+    return std::unique_ptr<ArrayElementPointerInstruction>(new ArrayElementPointerInstruction(*ResultType, Address, Index));
+  }
+
+  std::unique_ptr<ArrayExtractInstruction> IRBuilder::createDetachedArrayExtractInstruction(const Value &Array, const Value &Index)
+  {
+    if (&Array.context() != &Context || &Index.context() != &Context || !ArrayType::classof(&Array.type()) || !IntegerType::classof(&Index.type()) || !isMemoryValueType(Array.type()))
+    {
+      return nullptr;
+    }
+    return std::unique_ptr<ArrayExtractInstruction>(new ArrayExtractInstruction(Array, Index));
+  }
+
+  ArrayInstruction *IRBuilder::createArrayInstruction(const ArrayType &ValueType, std::span<const Value *const> Elements, bool Repeated)
+  {
+    return canInsert() ? insert(createDetachedArrayInstruction(ValueType, Elements, Repeated)) : nullptr;
+  }
+
+  ArrayElementPointerInstruction *IRBuilder::createArrayElementPointerInstruction(const Value &Address, const Value &Index)
+  {
+    return canInsert() ? insert(createDetachedArrayElementPointerInstruction(Address, Index)) : nullptr;
+  }
+
+  ArrayExtractInstruction *IRBuilder::createArrayExtractInstruction(const Value &Array, const Value &Index)
+  {
+    return canInsert() ? insert(createDetachedArrayExtractInstruction(Array, Index)) : nullptr;
+  }
+
   std::unique_ptr<LogicalNotInstruction> IRBuilder::createDetachedLogicalNotInstruction(const Value &Operand)
   {
     if (&Operand.context() != &Context || Operand.type().typeKind() != TypeKind::Bool)

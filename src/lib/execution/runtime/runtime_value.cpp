@@ -24,7 +24,12 @@ namespace ink::execution
       {
       }
 
-      std::variant<ExecutionInteger, ExecutionPointer, std::string> Value;
+      explicit RuntimePayload(std::vector<RuntimeValue> Elements)
+          : Value(std::move(Elements))
+      {
+      }
+
+      std::variant<ExecutionInteger, ExecutionPointer, std::string, std::vector<RuntimeValue>> Value;
   };
 
   RuntimeValue RuntimeValue::fromBits(std::uint64_t Bits, RuntimeTypeId Type) noexcept
@@ -71,6 +76,19 @@ namespace ink::execution
     return *std::get_if<ExecutionInteger>(&Object->Value);
   }
 
+  RuntimeValue RuntimeValue::fromArray(std::vector<RuntimeValue> Elements, RuntimeTypeId Type)
+  {
+    RuntimeValue Result = fromBits(0, Type);
+    Result.Object = std::make_shared<const RuntimePayload>(std::move(Elements));
+    return Result;
+  }
+
+  std::span<const RuntimeValue> RuntimeValue::array() const noexcept
+  {
+    assert(kind() == RuntimeKind::Array && "runtime payload is not an array");
+    return *std::get_if<std::vector<RuntimeValue>>(&Object->Value);
+  }
+
   const ExecutionPointer &RuntimeValue::pointer() const noexcept
   {
     assert(kind() == RuntimeKind::Pointer && "runtime payload is not a pointer");
@@ -97,6 +115,8 @@ namespace ink::execution
       return RuntimeKind::Pointer;
     case 2:
       return RuntimeKind::String;
+    case 3:
+      return RuntimeKind::Array;
     default:
       return RuntimeKind::Invalid;
     }

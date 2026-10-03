@@ -8,6 +8,7 @@
 #include "ink/ir/constant/float_constant.h"
 
 #include <memory>
+#include <span>
 #include <string_view>
 
 namespace ink::ir
@@ -30,6 +31,7 @@ namespace ink::execution
     String,
     Pointer,
     Function,
+    Array,
   };
 
   // Immutable execution payloads are shared through ExecutionValueRef. Their
@@ -47,7 +49,7 @@ namespace ink::execution
       }
 
       bool valid() const noexcept;
-      // Only local boolean, integer, float and string values can become IR constants.
+      // Local scalar constants and arrays of those constants can be frozen into IR.
       const ir::Constant *toConstant(ir::IRContext &Context) const;
 
     protected:
@@ -90,6 +92,7 @@ namespace ink::execution
       const ExecutionInteger &integer() const noexcept;
       ir::FloatBits floating() const noexcept;
       std::string_view string() const noexcept;
+      std::span<const ExecutionValueRef> array() const noexcept;
       const ExecutionPointer &pointer() const noexcept;
       const ir::Function *function() const noexcept;
 

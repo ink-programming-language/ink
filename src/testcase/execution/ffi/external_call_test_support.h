@@ -66,6 +66,16 @@ namespace ink::execution::test
         return Descriptors[1];
       }
 
+      int reader() const noexcept
+      {
+        return Descriptors[0];
+      }
+
+      void closeWriter() noexcept
+      {
+        closeDescriptor(Descriptors[1]);
+      }
+
       bool readAll(std::string &Output) noexcept
       {
         closeDescriptor(Descriptors[1]);

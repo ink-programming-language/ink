@@ -30,12 +30,12 @@ namespace ink::execution
 
     std::size_t childCount(const StorageLayout &Layout)
     {
-      return Layout.Kind == RuntimeKind::Pointer ? 1 : Layout.Kind == RuntimeKind::Function ? Layout.Parameters.size() + 1 : 0;
+      return Layout.Kind == RuntimeKind::Pointer || Layout.Kind == RuntimeKind::Array ? 1 : Layout.Kind == RuntimeKind::Function ? Layout.Parameters.size() + 1 : 0;
     }
 
     RuntimeTypeId childAt(const StorageLayout &Layout, std::size_t Index)
     {
-      return Layout.Kind == RuntimeKind::Pointer ? Layout.Pointee : Index == 0 ? Layout.ReturnType : Layout.Parameters[Index - 1];
+      return Layout.Kind == RuntimeKind::Array ? Layout.ElementType : Layout.Kind == RuntimeKind::Pointer ? Layout.Pointee : Index == 0 ? Layout.ReturnType : Layout.Parameters[Index - 1];
     }
 
     std::string layoutPrefix(const StorageLayout &Layout)
@@ -65,10 +65,13 @@ namespace ink::execution
       case RuntimeKind::Function:
         Kind = 7;
         break;
+      case RuntimeKind::Array:
+        Kind = 8;
+        break;
       case RuntimeKind::Invalid:
         break;
       }
-      return "t(" + std::to_string(Kind) + "," + std::to_string(Layout.BitWidth) + "," + std::to_string(Layout.Signed) + "," + std::to_string(Layout.Size) + "," + std::to_string(Layout.Alignment) + "," + std::to_string(Layout.Native) + "," + std::to_string(Layout.Writable) + "," + std::to_string(childCount(Layout)) + ")";
+      return "t(" + std::to_string(Kind) + "," + std::to_string(Layout.BitWidth) + "," + std::to_string(Layout.Signed) + "," + std::to_string(Layout.Size) + "," + std::to_string(Layout.Alignment) + "," + std::to_string(Layout.Native) + "," + std::to_string(Layout.Writable) + "," + std::to_string(childCount(Layout)) + (Layout.Kind == RuntimeKind::Array ? "," + std::to_string(Layout.ElementCount) : "") + ")";
     }
   } // namespace
 
@@ -204,7 +207,7 @@ namespace ink::execution
         {
           Visit &Current = Stack.back();
           const StorageLayout &Layout = *Types.get(Current.Type);
-          if (Layout.Kind <= RuntimeKind::Invalid || Layout.Kind > RuntimeKind::Function || Layout.Parameters.size() >= Limits.MaxRecords)
+          if (Layout.Kind <= RuntimeKind::Invalid || Layout.Kind > RuntimeKind::Array || Layout.Parameters.size() >= Limits.MaxRecords)
           {
             return {BytecodeStatus::InvalidImage, "Bytecode type graph contains an unsupported kind or invalid parameter count"};
           }

@@ -4,6 +4,7 @@
 #include "../hash.h"
 
 #include <functional>
+#include <algorithm>
 
 namespace ink::ir
 {
@@ -37,6 +38,16 @@ namespace ink::ir
       }
       const auto &Element = static_cast<const IntegerType &>(ValueType.elementType());
       return Element.bitWidth() == 8 && !Element.isSigned();
+    }
+
+    std::size_t arrayConstantHash(const Type &ValueType, std::span<const Constant *const> Elements) noexcept
+    {
+      std::size_t Hash = std::hash<const Type *>{}(&ValueType);
+      for (const Constant *Element : Elements)
+      {
+        Hash = combineHash(Hash, std::hash<const Constant *>{}(Element));
+      }
+      return Hash;
     }
 
     template <typename ConstantType>
@@ -136,7 +147,36 @@ namespace ink::ir
 
   std::size_t ConstantPool::size() const noexcept
   {
-    return IntegerConstants.size() + StringConstants.size() + FloatConstants.size() + 2;
+    return IntegerConstants.size() + StringConstants.size() + FloatConstants.size() + ArrayConstants.size() + 2;
+  }
+
+  const ArrayConstant *ConstantPool::getArrayConstant(const ArrayType &ValueType, std::span<const Constant *const> Elements)
+  {
+    if (&ValueType.context() != &Context || ValueType.elementCount() != Elements.size())
+    {
+      return nullptr;
+    }
+    for (const Constant *Element : Elements)
+    {
+      if (!Element || &Element->type() != &ValueType.elementType() || !owns(*Element))
+      {
+        return nullptr;
+      }
+    }
+    const std::size_t Hash = arrayConstantHash(ValueType, Elements);
+    const auto Candidates = ArrayConstants.equal_range(Hash);
+    for (auto Entry = Candidates.first; Entry != Candidates.second; ++Entry)
+    {
+      const ArrayConstant &Candidate = *Entry->second;
+      if (&Candidate.type() == &ValueType && std::equal(Candidate.elements().begin(), Candidate.elements().end(), Elements.begin(), Elements.end()))
+      {
+        return &Candidate;
+      }
+    }
+    auto Result = std::unique_ptr<ArrayConstant>(new ArrayConstant(ValueType, Elements));
+    const ArrayConstant *Pointer = Result.get();
+    ArrayConstants.emplace(Hash, std::move(Result));
+    return Pointer;
   }
 
   bool ConstantPool::owns(const Constant &ConstantValue) const noexcept
@@ -157,6 +197,8 @@ namespace ink::ir
       return containsConstant(StringConstants, stringConstantHash(ConstantValue.type(), static_cast<const StringConstant &>(ConstantValue).value()), ConstantValue);
     case ValueKind::FloatConstant:
       return containsConstant(FloatConstants, floatConstantHash(ConstantValue.type(), static_cast<const FloatConstant &>(ConstantValue).value()), ConstantValue);
+    case ValueKind::ArrayConstant:
+      return containsConstant(ArrayConstants, arrayConstantHash(ConstantValue.type(), static_cast<const ArrayConstant &>(ConstantValue).elements()), ConstantValue);
     default:
       return false;
     }

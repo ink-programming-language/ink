@@ -271,7 +271,7 @@ namespace ink::execution
       }
       const ir::Type &Pointee = Type.pointeeType();
       const bool ByteAccess = ir::IntegerType::classof(&Pointee) && static_cast<const ir::IntegerType &>(Pointee).bitWidth() == 8 && !static_cast<const ir::IntegerType &>(Pointee).isSigned();
-      if (!ByteAccess && Pointee.typeKind() != ir::TypeKind::Void && (&Pointee != Heap.bridge().sourceType(Cell.type()) || (Pointer.offset() != 0 && Pointer.offset() != Cell.size())))
+      if (!ByteAccess && Pointee.typeKind() != ir::TypeKind::Void && !Cell.elementLayout(Pointer.offset(), Heap.bridge().lowerType(Pointee), true))
       {
         return ExecutionStatus::TypeMismatch;
       }

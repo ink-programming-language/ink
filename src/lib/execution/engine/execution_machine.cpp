@@ -106,6 +106,17 @@ namespace ink::execution
     {
       return ExecutionStatus::RuntimeValue;
     }
+    if (Value.kind() == RuntimeKind::Array)
+    {
+      for (const RuntimeValue &Element : Value.array())
+      {
+        const ExecutionStatus Status = validateValue(Element);
+        if (Status != ExecutionStatus::Success)
+        {
+          return Status;
+        }
+      }
+    }
     return Value.kind() == RuntimeKind::Pointer ? Engine.Heap.memoryManager().validatePointer(Value.pointer()) : ExecutionStatus::Success;
   }
 
@@ -133,6 +144,25 @@ namespace ink::execution
       break;
     case RuntimeKind::String:
       Valid = Value.kind() == RuntimeKind::String;
+      break;
+    case RuntimeKind::Array:
+      if (Value.kind() != RuntimeKind::Array || Value.array().size() != Layout.ElementCount || !Layout.ElementLayout)
+      {
+        break;
+      }
+      for (const RuntimeValue &Element : Value.array())
+      {
+        if (Element.Type != Layout.ElementType)
+        {
+          return ExecutionStatus::TypeMismatch;
+        }
+        const ExecutionStatus ElementStatus = validateArgument(Element, *Layout.ElementLayout);
+        if (ElementStatus != ExecutionStatus::Success)
+        {
+          return ElementStatus;
+        }
+      }
+      Valid = true;
       break;
     case RuntimeKind::Pointer:
       Valid = Value.kind() == RuntimeKind::Pointer;

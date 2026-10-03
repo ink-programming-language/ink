@@ -58,6 +58,10 @@ namespace ink::execution::archive
       std::pair{BytecodeOpcode::ReturnVoid, 39U},
       std::pair{BytecodeOpcode::Function, 40U},
       std::pair{BytecodeOpcode::Failure, 41U},
+      std::pair{BytecodeOpcode::Array, 42U},
+      std::pair{BytecodeOpcode::ArrayRepeat, 43U},
+      std::pair{BytecodeOpcode::ArrayElementPointer, 44U},
+      std::pair{BytecodeOpcode::ArrayExtract, 45U},
   };
   static_assert(OpcodeTags.size() == static_cast<std::size_t>(BytecodeOpcode::Count), "Add an explicit archive tag for every opcode");
 
@@ -85,6 +89,7 @@ namespace ink::execution::archive
       std::pair{ExecutionStatus::Overflow, 20U},
       std::pair{ExecutionStatus::BudgetExceeded, 21U},
       std::pair{ExecutionStatus::Cancelled, 22U},
+      std::pair{ExecutionStatus::IndexOutOfBounds, 23U},
   };
 
   inline constexpr std::array PredicateTags = {
@@ -105,6 +110,7 @@ namespace ink::execution::archive
       std::pair{RuntimeKind::String, 5U},
       std::pair{RuntimeKind::Pointer, 6U},
       std::pair{RuntimeKind::Function, 7U},
+      std::pair{RuntimeKind::Array, 8U},
   };
 
   inline constexpr std::array ArtifactKindTags = {

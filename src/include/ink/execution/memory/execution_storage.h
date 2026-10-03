@@ -58,6 +58,9 @@ namespace ink::execution
 
       RuntimeValueResult loadRuntime() const;
       ExecutionStatus storeRuntime(const RuntimeValue &Value);
+      const StorageLayout *elementLayout(std::size_t Offset, RuntimeTypeId Type, bool AllowOnePast = false) const noexcept;
+      RuntimeValueResult loadElement(std::size_t Offset, RuntimeTypeId Type) const;
+      ExecutionStatus storeElement(std::size_t Offset, const RuntimeValue &Value);
       ExecutionStatus loadBits(std::uint64_t &Bits) const noexcept;
       ExecutionStatus storeBits(std::uint64_t Bits) noexcept;
       ExecutionStatus loadBits(std::uint64_t &Bits, std::size_t Width) const noexcept;
@@ -102,6 +105,7 @@ namespace ink::execution
       // Only types without native storage retain a value object.
       RuntimeValue Value;
       NativeScalar Native;
+      std::unique_ptr<std::byte[]> NativeArray;
       NativeKind NativeType = NativeKind::None;
       std::size_t NativeSize = 0;
       bool Writable;

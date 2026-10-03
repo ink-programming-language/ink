@@ -6,6 +6,7 @@
 #include "ink/execution/value/execution_integer.h"
 
 #include <memory>
+#include <span>
 #include <string_view>
 
 namespace ink::execution
@@ -13,7 +14,7 @@ namespace ink::execution
   struct RuntimePayload;
 
   // Scalar instructions use Bits directly. Only wide integers, pointers and
-  // strings retain an immutable, owned payload shared by value snapshots.
+  // strings and arrays retain an immutable, owned payload shared by value snapshots.
   // Type is relative to its execution image's type table. Crossing independent
   // type domains requires semantic bridging, never copying numeric IDs alone.
   struct RuntimeValue
@@ -22,9 +23,11 @@ namespace ink::execution
       static RuntimeValue fromInteger(ExecutionInteger Value, RuntimeTypeId Type = InvalidRuntimeType);
       static RuntimeValue fromPointer(ExecutionPointer Value, RuntimeTypeId Type = InvalidRuntimeType);
       static RuntimeValue fromString(std::string_view Value, RuntimeTypeId Type = InvalidRuntimeType);
+      static RuntimeValue fromArray(std::vector<RuntimeValue> Elements, RuntimeTypeId Type = InvalidRuntimeType);
       const ExecutionInteger &integer() const noexcept;
       const ExecutionPointer &pointer() const noexcept;
       std::string_view string() const noexcept;
+      std::span<const RuntimeValue> array() const noexcept;
       RuntimeKind kind() const noexcept;
 
       RuntimeTypeId Type = InvalidRuntimeType;
