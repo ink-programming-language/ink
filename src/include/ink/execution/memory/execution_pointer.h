@@ -23,7 +23,7 @@ namespace ink::execution
         Native,
       };
 
-      static ExecutionPointer fromPlace(ExecutionPlace Place) noexcept;
+      static ExecutionPointer fromPlace(ExecutionPlace Place, std::size_t Offset = 0) noexcept;
       static ExecutionPointer fromBuffer(ExecutionStorageRef Buffer, std::size_t Offset = 0) noexcept;
       static ExecutionPointer fromNative(void *Address) noexcept;
 
@@ -49,8 +49,8 @@ namespace ink::execution
         return Offset;
       }
 
-      // Null and places have no host address. A valid one-past buffer pointer
-      // may be passed or compared, but must not be dereferenced.
+      // Native-backed places and buffers expose stable host addresses. A valid
+      // one-past pointer may be passed or compared, but must not be dereferenced.
       void *address() const noexcept;
       ExecutionStatus status() const noexcept;
 

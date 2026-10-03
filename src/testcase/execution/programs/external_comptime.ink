@@ -1,9 +1,9 @@
 // Compile-time C results flow into runtime checks without replaying their effects.
-extern "C" func puts(Text: *u8): i32;
-extern "C" func abs(Value: i32): i32;
-extern "C" func atoi(Text: *u8): i32;
-extern "C" func strcmp(Left: *u8, Right: *u8): i32;
-extern "C" func InkMissingExternalProgramSymbola57e3f8d(): bool;
+import "C" func puts(Text: *u8): i32;
+import "C" func abs(Value: i32): i32;
+import "C" func atoi(Text: *u8): i32;
+import "C" func strcmp(Left: *u8, Right: *u8): i32;
+import "C" func InkMissingExternalProgramSymbola57e3f8d(): bool;
 
 comptime const Magnitude: i32 = abs(-37);
 comptime const Emitted: i32 = puts("External.comptime_initializer");

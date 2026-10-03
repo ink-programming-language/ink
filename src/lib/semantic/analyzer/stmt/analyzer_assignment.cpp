@@ -57,7 +57,7 @@ namespace ink::semantic
       reportUnsupported(State, Node);
       return {};
     }
-    const Value *Address = resolveVariable(State, *Assignment.left());
+    const Value *Address = State.Evaluating ? resolveVariable(State, *Assignment.left()) : resolveAddress(State, *Assignment.left(), Depth + 1, false);
     if (!Address)
     {
       return {};
@@ -70,12 +70,12 @@ namespace ink::semantic
       reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
       return {};
     }
-    if ((Found != Execution.Variables.end() && Found->second.Constant) || (!State.Evaluating && (Found == Execution.Variables.end() || Found->second.Comptime || Found->second.Function != State.CurrentFunction)))
+    if (HasVariable && (Found->second.Constant || (!State.Evaluating && (Found->second.Comptime || Found->second.Function != State.CurrentFunction))))
     {
       State.report<core::DiagnosticKind::SemanticInvalidAssignment>(Node.getSourceRange());
       return {};
     }
-    const Type &Target = AllocaInstruction::classof(Address) ? static_cast<const AllocaInstruction &>(*Address).allocatedType() : Address->type();
+    const Type &Target = AllocaInstruction::classof(Address) ? static_cast<const AllocaInstruction &>(*Address).allocatedType() : (!State.Evaluating ? static_cast<const PointerType &>(Address->type()).pointeeType() : Address->type());
     AnalysisState::EvaluationGuard Expected(State, State.Evaluating, &Target);
     const ExpressionResult Right = analyzeSimpleItem(State, *Assignment.right(), Depth + 1);
     if (!Right || !Right.ValueObject || &Right.ValueObject->type() != &Target)

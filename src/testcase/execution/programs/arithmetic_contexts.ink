@@ -1,5 +1,5 @@
 // Runtime addition composes with locals, branches, calls and left-to-right operand effects.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
 // Parentheses and left association preserve the same result for nested addition.
 func grouping(First: i32, Second: i32, Third: i32): bool

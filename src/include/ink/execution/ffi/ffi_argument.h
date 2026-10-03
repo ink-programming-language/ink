@@ -2,6 +2,8 @@
 #define INK_EXECUTION_FFI_FFI_ARGUMENT_H
 
 #include "ink/execution/memory/execution_heap.h"
+#include "ink/execution/ffi/ffi_value_layout.h"
+#include "ink/execution/runtime/runtime_value.h"
 
 #include <cstdint>
 
@@ -32,6 +34,7 @@ namespace ink::execution
       ExecutionStatus prepare(ExecutionHeap &Heap, const ir::Type &Type, const ExecutionValueRef &Value);
       // Constants adapt to execution values; other IR values require evaluation.
       ExecutionStatus prepare(ExecutionHeap &Heap, const ir::Type &Type, const ir::Value &Value);
+      ExecutionStatus prepare(ExecutionMemoryManager &Memory, const FfiValueLayout &Layout, const RuntimeValue &Value);
 
       void *address() noexcept
       {
@@ -70,14 +73,16 @@ namespace ink::execution
 
       void reset() noexcept;
       ExecutionStatus prepareBoolean(const ExecutionValueRef &Value);
-      ExecutionStatus prepareInteger(const ExecutionValueRef &Value);
-      ExecutionStatus prepareFloat(const ExecutionValueRef &Value);
-      ExecutionStatus prepareString(ExecutionHeap &Heap, const ExecutionValueRef &Value);
-      ExecutionStatus preparePointer(const ExecutionValueRef &Value);
+      ExecutionStatus prepareInteger(std::uint32_t BitWidth, bool Signed, std::uint64_t Bits);
+      ExecutionStatus prepareFloat(std::uint32_t BitWidth, std::uint64_t Bits);
+      ExecutionStatus prepareString(ExecutionHeap &Heap, std::string_view Value);
+      ExecutionStatus prepareString(ExecutionMemoryManager &Memory, std::string_view Value);
+      ExecutionStatus preparePointer(ExecutionHeap &Heap, const ExecutionValueRef &Value);
+      ExecutionStatus preparePointer(ExecutionMemoryManager &Memory, const FfiValueLayout &Layout, const ExecutionPointer &Pointer);
 
       NativeScalar Scalar;
       ExecutionStorageRef Buffer;
-      ExecutionHeap *Owner = nullptr;
+      ExecutionMemoryManager *Owner = nullptr;
       bool TemporaryBuffer = false;
       void *Address = nullptr;
   };

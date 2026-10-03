@@ -128,7 +128,9 @@ namespace ink::parser
     {
       const auto Attributes = parseAttributes();
       Decl *Declaration = parseDecl(Attributes);
-      return make<DeclStmt>(range(Start), Declaration);
+      auto *Statement = make<DeclStmt>(range(Start), Declaration);
+      Statement->setComptime(Declaration->isComptime());
+      return Statement;
     }
     if (at(TokenKind::LBrace))
     {

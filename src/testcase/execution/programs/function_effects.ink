@@ -1,5 +1,5 @@
 // Exact stdout records call ordering and detects duplicated or skipped side effects.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
 // The first operand reports when its call executes.
 func first(Value: i32): i32

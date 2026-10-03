@@ -1,5 +1,5 @@
 // Compile-time native symbol lookup reports the same explicit missing-symbol error.
-extern "C" func InkMissingExternalProgramSymbola57e3f8d(Value: i32): i32;
+import "C" func InkMissingExternalProgramSymbola57e3f8d(Value: i32): i32;
 
 func main(): i32
 {

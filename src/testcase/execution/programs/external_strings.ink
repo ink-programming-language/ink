@@ -1,8 +1,8 @@
 // These size_t signatures target the supported 64-bit Windows and Linux hosts.
-extern "C" func puts(Text: *u8): i32;
-extern "C" func strlen(Text: *u8): u64;
-extern "C" func strcmp(Left: *u8, Right: *u8): i32;
-extern "C" func memcmp(Left: *void, Right: *void, Count: u64): i32;
+import "C" func puts(Text: *u8): i32;
+import "C" func strlen(Text: *u8): u64;
+import "C" func strcmp(Left: *u8, Right: *u8): i32;
+import "C" func memcmp(Left: *void, Right: *void, Count: u64): i32;
 
 func check(Result: bool): bool
 {

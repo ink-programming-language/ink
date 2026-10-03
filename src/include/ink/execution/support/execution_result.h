@@ -60,7 +60,7 @@ namespace ink::execution
       }
   };
 
-  // A place borrows a heap-owned cell; it never owns or names host memory.
+  // A place borrows a managed cell identity without extending its lifetime.
   class ExecutionPlace final
   {
     public:

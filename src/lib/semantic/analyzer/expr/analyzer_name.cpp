@@ -6,6 +6,92 @@ namespace ink::semantic
 {
   using namespace ink::ir;
 
+  const Value *Analyzer::resolveAddress(AnalysisState &State, const parser::Expr &Node, std::size_t Depth, bool RequireInitialized)
+  {
+    const auto ReportInvalidOperand = [&]()
+    {
+      if (RequireInitialized)
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidAddressOperand>(Node.getSourceRange());
+      }
+      else
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidAssignment>(Node.getSourceRange());
+      }
+    };
+    if (Depth >= State.ExpressionDepthLimit)
+    {
+      State.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
+      return nullptr;
+    }
+    if (State.Evaluating || Node.isComptime())
+    {
+      ReportInvalidOperand();
+      return nullptr;
+    }
+    if (parser::ParenExpr::classof(&Node))
+    {
+      return resolveAddress(State, *static_cast<const parser::ParenExpr &>(Node).expression(), Depth + 1, RequireInitialized);
+    }
+    if (parser::UnaryExpr::classof(&Node) && static_cast<const parser::UnaryExpr &>(Node).op() == tokenizer::TokenKind::Star)
+    {
+      const auto &Unary = static_cast<const parser::UnaryExpr &>(Node);
+      AnalysisState::EvaluationGuard Expected(State, false, nullptr);
+      const ExpressionResult Pointer = analyzeExpr(State, *Unary.operand(), Depth + 1);
+      if (!Pointer)
+      {
+        return nullptr;
+      }
+      if (!Pointer.ValueObject || !PointerType::classof(&Pointer.ValueObject->type()) || static_cast<const PointerType &>(Pointer.ValueObject->type()).pointeeType().typeKind() == TypeKind::Void)
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidDereference>(Node.getSourceRange());
+        return nullptr;
+      }
+      if (static_cast<const PointerType &>(Pointer.ValueObject->type()).access() != AccessKind::ReadWrite)
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidAssignment>(Node.getSourceRange());
+        return nullptr;
+      }
+      return Pointer.ValueObject;
+    }
+    if (!parser::NameExpr::classof(&Node))
+    {
+      ReportInvalidOperand();
+      return nullptr;
+    }
+    const auto Name = static_cast<const parser::NameExpr &>(Node).name();
+    const auto *Binding = State.Resolver.lookup(State.Context.namePool().find(Name.Text));
+    if (!Binding)
+    {
+      State.report<core::DiagnosticKind::SemanticUnknownName>(Node.getSourceRange(), Name.Text);
+      return nullptr;
+    }
+    if (Binding->targets().size() != 1)
+    {
+      State.report<core::DiagnosticKind::SemanticAmbiguousName>(Node.getSourceRange());
+      return nullptr;
+    }
+    const Value *Address = Binding->targets().front();
+    const auto &Variables = State.Context.comptimeState().Variables;
+    const auto Variable = Variables.find(Address);
+    if (!AllocaInstruction::classof(Address) || Variable == Variables.end() || Variable->second.Comptime || Variable->second.Constant)
+    {
+      ReportInvalidOperand();
+      return nullptr;
+    }
+    if (Variable->second.Function != State.CurrentFunction)
+    {
+      State.report<core::DiagnosticKind::SemanticInvalidCapture>(Node.getSourceRange(), Name.Text);
+      return nullptr;
+    }
+    if (RequireInitialized && !Variable->second.Initialized)
+    {
+      State.report<core::DiagnosticKind::SemanticUninitializedRead>(Node.getSourceRange(), Name.Text);
+      return nullptr;
+    }
+    return Address;
+  }
+
   const Value *Analyzer::resolveVariable(AnalysisState &State, const parser::Expr &Node)
   {
     const parser::Expr *Expression = &Node;
@@ -56,6 +142,10 @@ namespace ink::semantic
       return {};
     }
     const Value *Result = Binding->targets().front();
+    if (State.Modules && State.CurrentFunction && Function::classof(Result))
+    {
+      State.Modules->Dependencies[State.CurrentFunction].insert(static_cast<const Function *>(Result));
+    }
     auto &Execution = State.Context.comptimeState();
     if (!State.Evaluating && !State.ComptimeFunction && Function::classof(Result))
     {

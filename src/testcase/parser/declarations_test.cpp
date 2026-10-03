@@ -1,6 +1,90 @@
 #include "parser_test_support.h"
 namespace ink::parser::test
 {
+  // Explicit public/private visibility is retained separately from the default on declarations and nested definitions.
+  TEST_F(ParserTest, DeclarationVisibilityModifiers)
+  {
+    const auto Result = read("func plain(): i32 { return 0; } public func exposed(): i32 { private func local(): i32 { return 1; } return local(); } private func hidden(): i32 { return 2; } public var value = 3; private class Hidden; public import \"C\" func native(): i32;");
+    ASSERT_TRUE(Result.succeeded());
+    EXPECT_EQ(declaration(Result, 0)->visibility(), DeclarationVisibility::Default);
+    EXPECT_EQ(declaration(Result, 1)->visibility(), DeclarationVisibility::Public);
+    EXPECT_EQ(declaration(Result, 2)->visibility(), DeclarationVisibility::Private);
+    EXPECT_EQ(declaration(Result, 3)->visibility(), DeclarationVisibility::Public);
+    EXPECT_EQ(declaration(Result, 4)->visibility(), DeclarationVisibility::Private);
+    EXPECT_EQ(declaration(Result, 5)->visibility(), DeclarationVisibility::Public);
+    const auto *Outer = cast<FunctionDecl>(declaration(Result, 1));
+    const auto *Local = cast<DeclStmt>(Outer->body()->statements()[0])->declaration();
+    EXPECT_EQ(Local->visibility(), DeclarationVisibility::Private);
+    EXPECT_NE(dumpAST(*Result.Unit).find("Visibility=Public"), std::string::npos);
+    EXPECT_NE(dumpAST(*Result.Unit).find("Visibility=Private"), std::string::npos);
+  }
+
+  // Visibility composes with attribute groups and comptime prefixes without losing declaration or statement metadata.
+  TEST_F(ParserTest, VisibilityAttributesAndComptime)
+  {
+    const char *Sources[] = {
+        "comptime [tag] public func f(): i32 { return 1; }",
+        "comptime public [tag] func f(): i32 { return 1; }",
+        "public comptime [tag] func f(): i32 { return 1; }",
+        "public [tag] comptime func f(): i32 { return 1; }",
+        "[tag] public comptime func f(): i32 { return 1; }",
+    };
+    for (const char *Source : Sources)
+    {
+      SCOPED_TRACE(Source);
+      const auto Result = read(Source);
+      ASSERT_TRUE(Result.succeeded());
+      const auto *Statement = cast<DeclStmt>(Result.Unit->root()->statements()[0]);
+      const auto *Function = cast<FunctionDecl>(Statement->declaration());
+      EXPECT_EQ(Function->visibility(), DeclarationVisibility::Public);
+      EXPECT_EQ(Function->attributes().size(), 1U);
+      EXPECT_TRUE(Function->isComptime());
+      EXPECT_TRUE(Statement->isComptime());
+      EXPECT_EQ(Statement->getSourceRange(), SourceRange::fromByteOffsets(0, std::string_view(Source).size()));
+    }
+  }
+
+  // Duplicate and contradictory visibility keywords diagnose the later modifier while preserving both surrounding functions.
+  TEST_F(ParserTest, RejectsDuplicateAndConflictingVisibility)
+  {
+    struct Case
+    {
+        const char *Modifiers;
+        core::DiagnosticKind Diagnostic;
+        DeclarationVisibility First;
+    };
+    const Case Cases[] = {
+        {"public public", core::DiagnosticKind::ParserDuplicateVisibilityModifier, DeclarationVisibility::Public},
+        {"private private", core::DiagnosticKind::ParserDuplicateVisibilityModifier, DeclarationVisibility::Private},
+        {"public private", core::DiagnosticKind::ParserConflictingVisibilityModifiers, DeclarationVisibility::Public},
+        {"private public", core::DiagnosticKind::ParserConflictingVisibilityModifiers, DeclarationVisibility::Private},
+        {"public [tag] private", core::DiagnosticKind::ParserConflictingVisibilityModifiers, DeclarationVisibility::Public},
+    };
+    for (const auto &Case : Cases)
+    {
+      SCOPED_TRACE(Case.Modifiers);
+      const std::string Source = std::string(Case.Modifiers) + " func broken(): i32 { return 0; } public func kept(): i32 { return 1; }";
+      const auto Result = read(Source);
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, Case.Diagnostic);
+      ASSERT_EQ(Result.Unit->root()->statements().size(), 2U);
+      EXPECT_EQ(declaration(Result)->visibility(), Case.First);
+      EXPECT_EQ(cast<FunctionDecl>(declaration(Result, 1))->name().Text, "kept");
+      EXPECT_EQ(declaration(Result, 1)->visibility(), DeclarationVisibility::Public);
+    }
+  }
+
+  // Declaration visibility participates in structural verification even for manually constructed or corrupted trees.
+  TEST_F(ParserTest, VerifierRejectsInvalidDeclarationVisibility)
+  {
+    auto Result = read("private func f(): i32 { return 0; }");
+    ASSERT_TRUE(Result.succeeded());
+    auto *Declaration = cast<DeclStmt>(Result.Unit->root()->statements()[0])->declaration();
+    Declaration->setVisibility(static_cast<DeclarationVisibility>(99));
+    EXPECT_FALSE(verifyAST(Result.Unit->root(), Result.Unit->input().lexedFile().source().size()));
+  }
+
   // Type positions reject ungrouped binary operators while allowing complete expressions in parentheses.
   TEST_F(ParserTest, TypeGrammar)
   {
@@ -33,10 +117,12 @@ namespace ink::parser::test
     EXPECT_EQ(Forward->body(), nullptr);
     EXPECT_EQ(Function->linkage(), nullptr);
     EXPECT_EQ(Forward->linkage(), nullptr);
+    EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::None);
+    EXPECT_EQ(Forward->nativeSymbolKind(), NativeSymbolKind::None);
   }
 
-  // Extern preserves arbitrary decoded linkage names and the literal's original spelling and range.
-  TEST_F(ParserTest, ExternFunctionLinkageNames)
+  // Native import preserves arbitrary decoded linkage names and the literal's original spelling and range.
+  TEST_F(ParserTest, NativeImportLinkageNames)
   {
     struct Case
     {
@@ -56,11 +142,12 @@ namespace ink::parser::test
     for (const Case &Entry : Cases)
     {
       SCOPED_TRACE(Entry.Spelling);
-      const std::string Source = std::string("extern ") + Entry.Spelling + " func f(msg: *u8): i32;";
+      const std::string Source = std::string("import ") + Entry.Spelling + " func f(msg: *u8): i32;";
       const auto Result = read(Source);
       ASSERT_TRUE(Result.succeeded());
       const auto *Function = cast<FunctionDecl>(declaration(Result));
       ASSERT_TRUE(isa<LiteralExpr>(Function->linkage()));
+      EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Import);
       const auto *Linkage = cast<LiteralExpr>(Function->linkage());
       EXPECT_EQ(Linkage->literalKind(), TokenKind::StringLiteral);
       EXPECT_EQ(Result.Unit->input().spelling(Linkage->token()), Entry.Spelling);
@@ -73,10 +160,10 @@ namespace ink::parser::test
     }
   }
 
-  // Attributes and comptime prefixes retain extern function definitions, and walkers visit linkage before the signature.
-  TEST_F(ParserTest, ExternDefinitionsAndTraversal)
+  // Attributes and comptime prefixes retain export function definitions, and walkers visit linkage before the signature.
+  TEST_F(ParserTest, NativeExportDefinitionsAndTraversal)
   {
-    const auto Result = read("comptime [tag] extern \"other\" func f[T: type](x: T): T { return x; }");
+    const auto Result = read("comptime [tag] export \"other\" func f[T: type](x: T): T { return x; }");
     ASSERT_TRUE(Result.succeeded());
     const auto *Statement = cast<DeclStmt>(Result.Unit->root()->statements()[0]);
     const auto *Function = cast<FunctionDecl>(Statement->declaration());
@@ -84,6 +171,7 @@ namespace ink::parser::test
     EXPECT_TRUE(Function->isComptime());
     EXPECT_EQ(Function->attributes().size(), 1U);
     EXPECT_EQ(Function->genericParameters().size(), 1U);
+    EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Export);
     EXPECT_EQ(Function->bodyKind(), FunctionBodyKind::Definition);
     EXPECT_NE(Function->body(), nullptr);
     std::vector<const ASTNodeBase *> Visited;
@@ -96,36 +184,97 @@ namespace ink::parser::test
     EXPECT_EQ(Visited[1], Function->linkage());
     EXPECT_EQ(Visited[2], Function->genericParameters()[0].type());
     EXPECT_NE(dumpAST(*Result.Unit).find("Linkage=LiteralExpr@"), std::string::npos);
+    EXPECT_NE(dumpAST(*Result.Unit).find("NativeSymbolKind=Export"), std::string::npos);
   }
 
-  // Malformed extern headers report errors and preserve a subsequent complete function declaration.
-  TEST_F(ParserTest, ExternHeaderRecovery)
+  // Native import/export remain separate from Ink module imports, declaration visibility and standalone ABI attributes.
+  TEST_F(ParserTest, NativeSymbolsAndModuleImports)
+  {
+    const auto Result = read("import math; from math import add; private import \"C\" func abs(Value: i32): i32; public export \"C\" func sum(A: i32, B: i32): i32 { return A + B; } [abi(\"C\")] private func callback(Value: i32): i32 { return Value; } private export \"C\" func hidden(): void {}");
+    ASSERT_TRUE(Result.succeeded());
+    ASSERT_EQ(Result.Unit->root()->statements().size(), 6U);
+    EXPECT_TRUE(isa<DirectImportStmt>(Result.Unit->root()->statements()[0]));
+    EXPECT_TRUE(isa<FromImportStmt>(Result.Unit->root()->statements()[1]));
+    const auto *Imported = cast<FunctionDecl>(declaration(Result, 2));
+    EXPECT_EQ(Imported->nativeSymbolKind(), NativeSymbolKind::Import);
+    EXPECT_EQ(Imported->visibility(), DeclarationVisibility::Private);
+    const auto *Exported = cast<FunctionDecl>(declaration(Result, 3));
+    EXPECT_EQ(Exported->nativeSymbolKind(), NativeSymbolKind::Export);
+    EXPECT_EQ(Exported->visibility(), DeclarationVisibility::Public);
+    const auto *Callback = cast<FunctionDecl>(declaration(Result, 4));
+    EXPECT_EQ(Callback->nativeSymbolKind(), NativeSymbolKind::None);
+    EXPECT_EQ(Callback->linkage(), nullptr);
+    ASSERT_EQ(Callback->attributes().size(), 1U);
+    EXPECT_EQ(Callback->attributes()[0].path()[0].Text, "abi");
+    const auto *Hidden = cast<FunctionDecl>(declaration(Result, 5));
+    EXPECT_EQ(Hidden->nativeSymbolKind(), NativeSymbolKind::Export);
+    EXPECT_EQ(Hidden->visibility(), DeclarationVisibility::Private);
+  }
+
+  // Removed extern syntax produces diagnostics while its spelling remains available as an ordinary identifier.
+  TEST_F(ParserTest, RemovedExternSyntax)
+  {
+    EXPECT_FALSE(read("extern \"C\" func legacy(): void;").succeeded());
+    EXPECT_TRUE(read("func extern(): i32 { return 1; }").succeeded());
+  }
+
+  // Malformed import headers report errors and preserve a subsequent complete function declaration.
+  TEST_F(ParserTest, NativeImportHeaderRecovery)
   {
     const char *Sources[] = {
-        "extern func broken(): void;",
-        "extern 123 func broken(): void;",
-        "extern \"C\" broken(): void;",
-        "extern \"C\" func broken();",
-        "extern \"C\" \"other\" func broken(): void;",
-        "extern \"C\";",
-        "extern;",
-        "extern \"C\" var broken;",
+        "import func broken(): void;",
+        "import 123 func broken(): void;",
+        "import \"C\" broken(): void;",
+        "import \"C\" func broken();",
+        "import \"C\" \"other\" func broken(): void;",
+        "import \"C\";",
+        "import;",
+        "import \"C\" var broken;",
     };
     for (const char *Source : Sources)
     {
       SCOPED_TRACE(Source);
-      const auto Result = read(std::string(Source) + " extern \"kept\" func kept(): void;");
+      const auto Result = read(std::string(Source) + " import \"kept\" func kept(): void;");
       ASSERT_FALSE(Result.succeeded());
       ASSERT_GE(Result.Unit->root()->statements().size(), 2U);
       const auto *Last = cast<DeclStmt>(Result.Unit->root()->statements().back());
       ASSERT_TRUE(isa<FunctionDecl>(Last->declaration()));
       EXPECT_EQ(cast<FunctionDecl>(Last->declaration())->name().Text, "kept");
     }
-    const auto Missing = read("extern func f(): void;");
+    const auto Missing = read("import func f(): void;");
     ASSERT_FALSE(Missing.succeeded());
     EXPECT_TRUE(isa<MissingExpr>(cast<FunctionDecl>(declaration(Missing))->linkage()));
-    EXPECT_FALSE(read("extern").succeeded());
-    EXPECT_FALSE(read("extern \"C\"").succeeded());
+    EXPECT_FALSE(read("import").succeeded());
+    EXPECT_FALSE(read("import \"C\"").succeeded());
+  }
+
+  // Export recovery keeps a later export and records a missing ABI string as a missing expression.
+  TEST_F(ParserTest, NativeExportHeaderRecovery)
+  {
+    const char *Sources[] = {
+        "export func broken(): void {}",
+        "export 123 func broken(): void {}",
+        "export \"C\" broken(): void {}",
+        "export \"C\";",
+        "export;",
+        "export \"C\" var broken;",
+    };
+    for (const char *Source : Sources)
+    {
+      SCOPED_TRACE(Source);
+      const auto Result = read(std::string(Source) + " public export \"C\" func kept(): void {}");
+      ASSERT_FALSE(Result.succeeded());
+      const auto *Last = cast<DeclStmt>(Result.Unit->root()->statements().back());
+      ASSERT_TRUE(isa<FunctionDecl>(Last->declaration()));
+      const auto *Function = cast<FunctionDecl>(Last->declaration());
+      EXPECT_EQ(Function->name().Text, "kept");
+      EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Export);
+    }
+    const auto Missing = read("export func f(): void {}");
+    ASSERT_FALSE(Missing.succeeded());
+    const auto *Function = cast<FunctionDecl>(declaration(Missing));
+    EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Export);
+    EXPECT_TRUE(isa<MissingExpr>(Function->linkage()));
   }
 
   // Lambda-only header features commit to lambdas even when their required block is missing.

@@ -1,8 +1,8 @@
 // Exercise real C integer arguments and returns through the default main entry.
-extern "C" func puts(Text: *u8): i32;
-extern "C" func abs(Value: i32): i32;
-extern "C" func llabs(Value: i64): i64;
-extern "C" func atoi(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
+import "C" func abs(Value: i32): i32;
+import "C" func llabs(Value: i64): i64;
+import "C" func atoi(Text: *u8): i32;
 
 func check(Result: bool): bool
 {

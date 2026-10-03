@@ -1,6 +1,6 @@
 # ink
 
-当前按 [`docs/Ink-Lexical-Rules.md`](docs/Ink-Lexical-Rules.md)、[`docs/Ink-grammar-Rules.bnf`](docs/Ink-grammar-Rules.bnf) 和 [`docs/Ink-Parser-Design.md`](docs/Ink-Parser-Design.md) 构建前端，包含 Core、CLI 支持库、tokenizer、parser、独立 IR 对象模型、execution 执行模块及 semantic 分析器、`ink-tokenize`、`ink-parse`、`inkc` 和测试。`semantic::Analyzer::analyze` 当前支持普通函数签名、bool 条件的 if/else/else-if 与嵌套分支、bool 逻辑与短路、整数及 bool 比较、定参调用、整数/字符串字面量、return 和整数/bool 编译期求值；`NameResolver` 提供词法作用域、名字绑定和函数重载候选集合。原 semantic/model 已迁入新 IR 模块，execution 支持编译期求值及带分支的 IR 函数执行，`inkc --interpret` 提供源码解释执行入口；旧 backend 和独立 interpreter 工具仍未接入当前构建。测试按模块位于 `src/testcase`。
+当前按 [`docs/Ink-Lexical-Rules.md`](docs/Ink-Lexical-Rules.md)、[`docs/Ink-grammar-Rules.bnf`](docs/Ink-grammar-Rules.bnf) 和 [`docs/Ink-Parser-Design.md`](docs/Ink-Parser-Design.md) 构建前端，包含 Core、CLI 支持库、tokenizer、parser、独立 IR 对象模型、execution 执行模块及 semantic 分析器、`ink-tokenize`、`ink-parse`、`inkc` 和测试。`semantic::Analyzer::analyze` 当前支持普通函数、原生导入导出与独立 C ABI 属性、bool 条件的 if/else/else-if 与嵌套分支、bool 逻辑与短路、整数及 bool 比较、定参调用、整数/字符串字面量、return 和整数/bool 编译期求值；`NameResolver` 提供词法作用域、名字绑定和函数重载候选集合。原 semantic/model 已迁入新 IR 模块，execution 支持编译期求值及带分支的 IR 函数执行，`inkc --interpret` 提供源码解释执行入口；旧 backend 和独立 interpreter 工具仍未接入当前构建。测试按模块位于 `src/testcase`。
 
 Core 的 `PANIC(Message)` 宏通过独立的 spdlog stderr logger 输出消息和调用位置、同步刷新后调用 `abort()`，不依赖全局日志开关。`DiagnosticEngine::report` 遇到 ICE 会立即输出诊断编号和格式化消息并 panic，先于消费者分发；普通用户错误仍正常分发并返回。无效 AST 归档、资源上限等现有 ICE 同样遵循此规则。
 
@@ -20,6 +20,7 @@ Core 配置集中定义在 `src/include/ink/core/config.def`，每项包含枚�
 | `INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT` | `256` | 语义表达式递归深度 |
 | `INK_EXECUTION_MAX_STEPS` | `100000` | 编译期执行步骤预算 |
 | `INK_EXECUTION_MAX_OBJECTS` | `16384` | 执行期间累计存储分配预算（Cell/Buffer） |
+| `INK_EXECUTION_MAX_STORAGE_BYTES` | `67108864`（64 MiB） | 执行期间累计可变存储字节预算（存储对象及缓冲区内容） |
 | `INK_EXECUTION_MAX_CALL_DEPTH` | `256` | 编译期活动调用深度 |
 | `INK_EXECUTION_MAX_EVALUATION_DEPTH` | `64` | 语义求值和 IR 调用共享的求值嵌套 |
 | `INK_PARSER_MAX_NESTING_DEPTH` | `128` | Parser 嵌套深度 |
@@ -59,11 +60,11 @@ Ink 所有工具共用的参数拼写、输入输出、诊断和退出码规则�
 
 基于 [`docs/grammar.bnf`](docs/grammar.bnf) 交互确认的语义分析、泛型、comptime 和新 IR 设计规则见 [`docs/IR.md`](docs/IR.md)。该文档记录设计约定，不表示相关编译管线已经实现。
 
-Ink 跨 module 函数、成员函数、闭合实例、全局变量、Imported 符号和 `extern "C"` 的链接名称规则见 [`docs/name-mangling.md`](docs/name-mangling.md)。
+Ink 跨 module 函数、成员函数、闭合实例、全局变量、Imported 符号和 `import "C"` 的链接名称规则见 [`docs/name-mangling.md`](docs/name-mangling.md)。
 
 ## inkc 解释执行
 
-`inkc --interpret -i FILE` 读取源码，经 tokenizer、parser、semantic 生成 IR 后默认执行 `main`；可用 `--entry NAME` 指定其他入口，`--input` 是 `-i` 的别名，`FILE` 为 `-` 时读取标准输入。入口须为零参数、具有 IR 函数体的普通 Ink 函数，返回 `void` 或 `i32`：void 退出为 0，i32 作为进程退出码。诊断写入 stderr，源程序的 stdout 输出直接保留，不打印 IR。当前仅支持解释模式；`-oir` 保留参数识别，与 `--interpret` 冲突，未指定解释模式时明确报告尚未实现。
+`inkc --interpret -i FILE` 读取源码，经 tokenizer、parser、semantic 生成 IR 后默认执行 `main`；可用 `--entry NAME` 指定其他入口，`--input` 是 `-i` 的别名，`FILE` 为 `-` 时读取标准输入。入口须为零参数、具有 IR 函数体的本地或导出函数，返回 `void` 或 `i32`：void 退出为 0，i32 作为进程退出码。诊断写入 stderr，源程序的 stdout 输出直接保留，不打印 IR。也可使用下面的字节码编译、链接和文件执行模式；`-oir` 仍只保留参数识别，当前未提供 IR 输出模式。
 
 构建后在仓库根目录运行 hello world 或功能测试程序，均使用默认的 `main` 入口。Windows x64 / PowerShell：
 
@@ -87,6 +88,27 @@ ctest --test-dir build -R '^(ExecutionSourceTest[.].*|InkcProcessTest)$' --outpu
 
 算术用例区分已实现的执行路径：普通 IR 验证所有 i/u8、16、32、64、128 的加法及回绕；减、乘、除、取模、位运算、移位、复合赋值和增减在显式 `comptime` 表达式或块中验证。C 外调测试使用 Windows/Linux 的宿主 CRT；声明 `size_t` 为 `u64` 的字符串、指针和副作用程序仅在 64 位宿主注册。可用 `ctest --test-dir build -C Release -L arithmetic --output-on-failure` 按标签运行，也可选 `function`、`external`、`logical`、`control_flow` 或 `comptime`。完整覆盖与添加用例的规则见 [源码执行测试](docs/command-line.md#cli-与源码执行测试)。
 
+## 字节码文件与多文件链接
+
+`--emit-bytecode` 将一个源文件的全部普通函数编译成可重定位对象，`--link-bytecode` 合并独立对象并选择入口，`--run-bytecode` 在新进程加载执行最终镜像。输出扩展名可自选，下例使用 `.inkobj` 和 `.inkbc`：
+
+```text
+inkc --emit-bytecode math.inkobj --module-root . -i math.ink
+inkc --emit-bytecode app.inkobj --module-root . -i app.ink
+inkc --link-bytecode math.inkobj --link-bytecode app.inkobj --entry app#main -o program.inkbc
+inkc --run-bytecode -i program.inkbc
+```
+
+例如 `math.ink` 定义 `func answer(): i32 { return 42; }`，`app.ink` 使用 `from math import answer;` 并定义 `func main(): i32 { return answer(); }`。最后一步返回 42。加载最终镜像不需要源码或输入对象文件，也不重新运行语义分析。
+
+顶层函数默认 `public`，显式 `private` 的函数只在定义文件内可访问；函数内的局部定义始终私有。Ink 模块间的名字访问必须通过 `from math import answer as localAnswer;` 或 `import math as library;` 后调用 `library.answer()`，签名和可见性从目标源码读取。普通 Ink 函数必须有函数体，只有 `import "C" func ...;` 可以只有声明。编译参数和 CMake 不提供可见性或导入映射覆盖。
+
+原生边界使用 `import "C" func ...;` 与 `export "C" func ... { ... }`；`[abi("C")] func ... { ... }` 设置本地定义的 C ABI，允许按参数列表重载。原生导入导出使用声明原名，不能形成同名重载；`public/private` 只控制 Ink 源码访问。`private export` 仍可被当前程序内同名同签名的原生导入匹配，但不能通过 Ink 模块导入访问。原生导入本身不会搜索或加载其他 Ink 源文件，导出定义必须已纳入分析或对象链接。尚未生成原生 DLL/SO，也不提供可传给 C 的本地回调地址；`link` 属性暂不支持，旧 `extern` 语法已移除。
+
+`--module-root` 指定源码搜索根，默认输入文件所在目录；模块身份由相对路径去掉 `.ink` 后用点连接，例如 `package/math.ink` 对应 `package.math`。各对象应使用同一个源码根编译；`from .math import answer;` 支持包内相对导入。生成对象或使用导入时，源码扩展必须是 `.ink`，相对根目录的各路径组件在移除扩展后不能包含字面量点号，例如使用 `pkg/value.ink`，拒绝 `pkg.value.ink`，以保证模块名与路径一一对应。不含导入的单文件 `--interpret` 使用虚拟模块名 `main`，不从文件名推导模块身份，仍接受 `points.windows.ink` 等任意文件名。`--entry module#function` 选择链接入口。当前源码导入支持普通函数及编译期函数；跨模块编译期调用按需分析所依赖的函数体，循环依赖尚未完成的函数体时报告用户错误。泛型实例化仍由前端另行实现；字节码构建 API 已支持闭合泛型实例身份。
+
+v2 文件限定相同宿主目标 ABI，保存代码、常量和符号，不保存运行中的堆、调用栈、宿主指针或原生调用缓存。完整协议、API 和验证规则见 [字节码文件格式与链接](docs/Ink-Bytecode-Format.md)，命令行细节见 [命令行接口](docs/command-line.md)。`ExecutionMultiFileTest` 以 [`execution/multifile`](src/testcase/execution/multifile) 中的多份真实源码为主要集成用例，分别编译各模块、链接、移走源码和对象文件后加载执行，并覆盖导入、可见性和相互调用。`BytecodeProcessTest` 补充 CLI 模式与参数边界；底层归档、验证和链接测试位于 `src/testcase/execution/artifact`。
+
 ## Tokenizer 接口
 
 - `tokenize(FrontendContext &, std::string)` 或 `tokenizeSource(FrontendContext &, SourceId)` 返回持有源码和解码值的 `TokenizedBuffer`。先检查 `succeeded()`；成功结果以唯一的 `END_OF_FILE` 结束。全局 UTF-8／NUL／BOM 校验失败不输出 token，其他词法错误保留此前完成的 token，不追加 EOF。
@@ -99,6 +121,7 @@ ctest --test-dir build -R '^(ExecutionSourceTest[.].*|InkcProcessTest)$' --outpu
 - `ink::parser::parse(FrontendContext &, TokenizedBuffer, ParseLimits)` 返回 `ParseResult`。`Unit` 持有不可变 TokenBuffer、ASTContext、ModuleAST 和恢复记录；节点和源码引用在 Unit 销毁前有效。`succeeded()` 同时检查词法结果、当前调用的语法错误和解析状态。
 - `Completed` 表示扫描结束，错误输入仍能返回恢复后的 AST。`Cancelled` 明确标识取消时的部分结果。ParseLimits 控制嵌套、诊断、工作量与 AST 分配；嵌套、工作量或分配预算耗尽会输出 ICE 并立即 panic，不再返回部分 AST。ICE 不受诊断数量上限或诊断事务影响。
 - `ASTVisitor`／`ConstASTVisitor` 只分派当前节点，`StrictExprVisitor` 要求覆盖全部表达式。`ASTWalker` 使用显式栈按源码顺序遍历，支持跳过子节点和提前停止。`verifyAST` 校验结构契约；`dumpAST` 返回字符串，不直接产生进程输出。
+- AST 二进制快照当前为 V5，文本快照为 `ast 4`；函数保存独立的原生导入导出方向和 ABI 字符串。IR 模块的二进制与文本归档当前均为 V4，字节码对象与镜像容器为 v2。各格式严格检查版本，旧版本不自动迁移。
 - `ink-parse INPUT` 或通过标准输入运行 `ink-parse -` 可查看结构与恢复记录。正常退出为 0，词法或语法错误为 1，输入读取失败为 2。
 - 测试包含文法家族、恢复边界、Arena 析构与回滚、Visitor、源码生命周期、长链、资源预算、Token 边界扰动及确定性随机输入。可运行 `cmake --build build --config Release --target run_all_tests` 执行完整回归。
 
@@ -106,7 +129,7 @@ ctest --test-dir build -R '^(ExecutionSourceTest[.].*|InkcProcessTest)$' --outpu
 
 `Analyzer` 的头文件和实现放在 semantic 的 `analyzer` 子目录；名字解析放在 `name_resolve` 子目录，拆分为 `binding.h`、`scope.h`、`name_resolver.h` 和 `name_resolver.cpp`，三个类型均位于 `ink::semantic` 命名空间。
 
-`Analyzer::analyze(SemanticContext &, const parser::ParseResult &, std::string_view ModuleName)` 为成员函数，当前支持空模块、块作用域和普通定参函数的声明/定义，包括 `extern "C"`、基础标量/指针/引用签名、形参绑定和函数体遍历；用户错误报告诊断并返回 `nullptr`，未支持的语义报告 ICE 并终止。`SemanticContext::scopeStore()` 持有作用域、绑定及成员/定义作用域索引；每次分析由 `AnalysisState` 拥有独立 `NameResolver`，通过 `enterScope()` 和 `exitScope()` 管理当前位置，并可从已有 `Scope` 恢复查找。resolver 销毁后绑定仍然保留，支持 `Value *` 和泛型 `Decl *`；`lookup()` 查找当前及父作用域，`lookupLocal()` 仅查当前作用域。`enterScope(Owner)` 为实体创建成员作用域，`lookupMember(Owner, Name)` 查找该实体的直接成员，别名共享同一实体的成员绑定。普通函数支持按参数类型形成重载集合及选择、定参调用、bool 条件分支、显式 return、分支返回路径与确定初始化检查和 void 隐式返回；C 调用中的字符串常量可通过独立可写副本传给 *u8。源码循环、泛型源码、C 变参及重复声明合并仍待实现。接口、生命周期和具体支持范围见 [语义分析接口](docs/Ink-Semantic-Analysis.md)。
+`Analyzer::analyze(SemanticContext &, const parser::ParseResult &, std::string_view ModuleName)` 为成员函数，当前支持空模块、块作用域、普通定参 Ink 函数定义、`import "C"` 声明、`export "C"` 定义和 `[abi("C")]` 本地定义，包括基础标量/指针/引用签名、形参绑定和函数体遍历；普通 Ink 无体声明报告用户错误。`analyze()` API 保留单模块源码顺序作为兼容入口；CLI 统一使用 `analyzeModules()`，无导入的单文件也先预声明顶层函数签名，以保持独立编译与作为导入依赖时的结果一致。`analyzeModules()` 先预声明各模块的顶层函数签名，再解析真实源码导入和分析函数体，支持跨文件调用及相互递归；用户错误报告诊断并返回 `nullptr`，未支持的语义报告 ICE 并终止。`SemanticContext::scopeStore()` 持有作用域、绑定及成员/定义作用域索引；每次分析由 `AnalysisState` 拥有独立 `NameResolver`，通过 `enterScope()` 和 `exitScope()` 管理当前位置，并可从已有 `Scope` 恢复查找。resolver 销毁后绑定仍然保留，支持 `Value *` 和泛型 `Decl *`；`lookup()` 查找当前及父作用域，`lookupLocal()` 仅查当前作用域。`enterScope(Owner)` 为实体创建成员作用域，`lookupMember(Owner, Name)` 查找该实体的直接成员，别名共享同一实体的成员绑定。普通函数支持按参数类型形成重载集合及选择、定参调用、bool 条件分支、显式 return、分支返回路径与确定初始化检查和 void 隐式返回；C 调用中的字符串常量可通过独立可写副本传给 *u8。源码循环、泛型源码、C 变参及重复声明合并仍待实现。接口、生命周期和具体支持范围见 [语义分析接口](docs/Ink-Semantic-Analysis.md)。
 
 ## Execution 执行接口
 
@@ -114,27 +137,34 @@ execution 的公共头与实现分别位于 `src/include/ink/execution` 和 `src
 
 | 子目录 | 职责 |
 | --- | --- |
-| `engine/` | 执行引擎、帧、IR 解释、内存访问与运算调度 |
+| `bytecode/` | 指令注册表、连续执行表示、槽位分配、跳转定位与验证 |
+| `runtime/` | 不含 IR 引用的类型/签名 ID、存储布局与值载荷 |
+| `bridge/` | 语义类型、常量、函数与运行时表示之间的转换 |
+| `engine/` | 执行引擎、语义帧、字节码虚拟机、内存访问与运算调度 |
 | `memory/` | Heap、Cell/Buffer 存储、弱存储身份与指针载荷 |
 | `value/` | 值基类、值引用与结果、七种不可变值子类、精确位宽整数运算 |
 | `support/` | 执行对象基类、公共状态与结果、状态名称转换 |
 | `ffi/` | 外部调用、参数封送、ABI 类型映射、宿主符号查找与缓存 |
 
-七种值子类各有独立的 `value/execution_*_value.h` 和 `.cpp`，`ExecutionValueRef`、`ExecutionValueResult` 仍与基类位于 `value/execution_value.h`；指令执行动作使用 `support/execution_instruction_result.h` 中的 `ExecutionInstructionResult`，实现位于对应的 `support/execution_instruction_result.cpp`。测试位于 `src/testcase/execution` 的 `engine/`、`value/`、`memory/`、`support/`、`ffi/` 和 `cli/`；源码样例保留在 `programs/`。
+七种值子类各有独立的 `value/execution_*_value.h` 和 `.cpp`，`ExecutionValueRef`、`ExecutionValueResult` 仍与基类位于 `value/execution_value.h`；`ExecutionInstructionResult` 保留为 `support/` 中的独立动作结果类型，字节码虚拟机直接调度自己的指令和调用帧。测试位于 `src/testcase/execution` 的 `bytecode/`、`engine/`、`value/`、`memory/`、`support/`、`ffi/`、`artifact/` 和 `cli/`；单文件源码样例保留在 `programs/`，多模块源码与编译链接清单位于 `multifile/`。
 
-`ink::execution` 模块提供 `ExecutionEngine`、模块/分析/调用帧和可变对象，并已接入 Analyzer。支持整数/bool 编译期变量、表达式和块、赋值、函数调用、短路及编译期条件/循环；模块按源码顺序处理，表达式按实际控制流直接求值，变量修改只影响后续求值。初始化结果存入对象，后续读取取得对象当前值；每轮循环和每次实际调用使用独立帧执行。运行时局部变量可用编译期结果初始化，但仍不能在编译期读取。接口与边界见 [语义分析接口](docs/Ink-Semantic-Analysis.md) 和 [执行设计](docs/Ink-Semantic-Design.md#65-当前最小执行模块的边界)。
+`ink::execution` 模块提供 `ExecutionEngine`、模块/分析/调用帧和可变对象，并已接入 Analyzer。支持整数/bool 编译期变量、表达式和块、赋值、函数调用、短路及编译期条件/循环；单模块 `analyze()` 按源码顺序处理；多模块入口预声明函数签名，编译期调用仍要求实际依赖的函数体已完成分析。表达式按实际控制流直接求值，变量修改只影响后续求值。初始化结果存入对象，后续读取取得对象当前值；每轮循环和每次实际调用使用独立帧执行。运行时局部变量可用编译期结果初始化，但仍不能在编译期读取。接口与边界见 [语义分析接口](docs/Ink-Semantic-Analysis.md) 和 [执行设计](docs/Ink-Semantic-Design.md#65-当前最小执行模块的边界)。
 
 [`ExecutionObject`](src/include/ink/execution/support/execution_object.h) 是执行对象基类；抽象的 [`ExecutionValue`](src/include/ink/execution/value/execution_value.h) 派生出不可变的 void、bool、整数、浮点位模式、字符串、指针和函数值。`ExecutionValueRef` 通过 RAII 引用计数共享只读载荷，复制结果不复制整数和字符串内容；标量和字符串结果可以在创建它们的引擎销毁后继续存在，但所借用的 IR 类型仍须有效，函数值也要求引用的 IR 函数保持有效。这套机制不使用 GC。
 
-[`ExecutionHeap`](src/include/ink/execution/memory/execution_heap.h) 统一创建值和存储，并唯一拥有 `ExecutionCell` 与 `ExecutionBuffer`；Cell 保存可替换的值引用，Buffer 保存固定字节数组。帧结束或显式 `release()` 真正释放对应存储。`ExecutionPlace` 和缓冲区指针使用弱 `ExecutionStorageRef`，不延长存储寿命；堆控制块身份和槽位代次共同阻止旧句柄访问重建堆或复用槽位中的新对象。槽位可以重用，累计存储分配预算不会随释放返还。
+[`ExecutionHeap`](src/include/ink/execution/memory/execution_heap.h) 提供值工厂和统一存储入口，所有 `ExecutionCell` 与 `ExecutionBuffer` 的分配、释放、地址查找、存储身份和额度由 [`ExecutionMemoryManager`](src/include/ink/execution/memory/execution_memory_manager.h) 管理。本机 ABI 下的 bool、i/u8/16/32/64、f32/f64 Cell 直接保存正确对齐的原生标量；`load()` 从当前内存生成不可变快照，`store()` 写入原地址，C 写入后的内容也由后续 load 读取。其他类型及非本机目标保存独立的 `RuntimeValue` 载荷。Buffer 保存固定字节数组，`allocateBuffer(Size)` 分配指定长度的零初始化缓冲区。帧结束或显式 `release()` 真正释放对应存储。`ExecutionPlace` 和缓冲区指针使用弱 `ExecutionStorageRef`，不延长存储寿命；管理器控制块身份和槽位代次共同阻止旧句柄访问重建管理器或复用槽位中的新对象。槽位可以重用，累计存储次数和字节预算不会随释放返还；可分别查询存活与累计存储数量、字节数。字节预算覆盖存储对象及其缓冲区内容，不是进程总内存或不可变值快照的预算。
 
-`ExecutionEngine::execute(Function, span<const ExecutionValueRef>)` 从普通 IR 函数入口执行 `Alloca`、`Store`、`Load`、整数 `Add`、`LogicalNot`、`LogicalAnd`、`LogicalOr`、`Compare`、`CString`、`Call`、`Branch`、`ConditionalBranch` 和 `Return`；块内函数声明由 `makeFunctionValue()` 构造函数值，实际调用由 `Call` 指令执行。调用帧保存参数和 SSA 值引用，记录局部存储的生命周期，同一调用结果被多次读取不会重复执行副作用，新调用建立独立帧。分支指令显式选择下一基本块，只执行实际选中的路径；基本块存储顺序不决定执行顺序。所有非泛型函数在定义处生成 IR 函数体，编译期调用和普通执行统一使用 `execute()`，返回独立的执行值；语义层仅在编译期结果边界转换为可表示的常量。`allocate()`、`load()`、`store()` 负责常量边界的转换，共用 `allocateValue()`、`loadValue()`、`storeValue()` 的存储实现，运行中间值不驻留到常量池。执行对象的 C++ 继承体系不新增 Ink class 实例或聚合值的执行语义。
+源码支持对本函数已初始化的可变局部变量取地址 `&Value`，以及 `*Pointer`、`*Pointer = Value` 和 `&*Pointer`；括号不改变可寻址性，指针操作数只求值一次。临时值、const 变量、直接形参和直接 AST 编译期取地址报告诊断；指针形参仍可解引用，const 指针绑定不限制其指向的可变对象。普通函数和编译期调用的函数体均通过相同 IR 内存操作执行，指针本身不能冻结为 IR 常量。当前局部存储的运行时生命周期延续到所属函数返回；返回悬空指针再访问会报告过期。示例见 [`address_of.ink`](src/testcase/execution/programs/address_of.ink)。
 
-`executeInstruction()` 将全部指令分派到 `engine/instruction/` 中各自的处理函数，统一返回 `ExecutionInstructionResult`：`Continue(Value)` 继续执行并记录结果，`Jump(Target)` 切换基本块，`Return(Value)` 结束本次函数调用，`Failure(Status)` 传播失败。分支逻辑分别位于 `execution_branch.cpp` 和 `execution_conditional_branch.cpp`。`executeBody()` 只负责执行预算、消费这些动作、记录 SSA 结果及跳转/返回，不识别具体 IR 指令种类；`makeFunctionValue()`、`evaluate()`、`loadValue()` 和 `execute()` 等值接口继续返回 `ExecutionValueResult`。
+`ExecutionEngine::execute(Function, span<const ExecutionValueRef>)` 通过 `ExecutionCompiler` 将普通 IR 函数降低为经过验证的 `ExecutableFunction`，再由 `ExecutionMachine` 执行并缓存。现有 `Alloca`、`Store`、`Load`、整数 `Add`、bool 逻辑、`Compare`、`CString`、`Call`、分支和返回均转换为字节码；函数声明记录已确定的函数身份，实际调用仍由调用指令执行。参数和 SSA 值预先分配固定槽号，每次调用有独立槽位及存储生命周期；重复读取调用结果不会重复副作用。分支目标预先转换为 PC，只执行实际选中的路径，缺少终结指令的块显式失败，不依赖块的存储顺序。编译期调用和普通执行统一使用 `execute()`，返回独立的执行值；语义层仅在编译期结果边界转换为可表示的常量。`allocate()`、`load()`、`store()` 负责常量边界的转换，共用 `allocateValue()`、`loadValue()`、`storeValue()` 的存储实现，运行中间值不驻留到常量池。执行对象的 C++ 继承体系不新增 Ink class 实例或聚合值的执行语义。
 
-整数运算使用项目自有的 `ExecutionInteger`，execution 不使用 `llvm::APInt`，引擎和帧直接持有各自状态。`comptime func` 与普通函数一样在定义处检查并生成 IR，未调用的函数也检查函数体；运行时使用这类函数会报告用户诊断。函数体支持 bool 的 `!`、`&&`、`||`，同型整数的六种比较及 bool 的 `==`、`!=`，可用于普通 if 条件；源码循环和其余未接入的算术运算仍显式诊断为未支持。显式 `comptime` 表达式、块和静态循环仍由语义层在生成 IR 时求值或展开；泛型延迟实例化另行实现。
+`bytecode/instruction.def` 统一登记操作码与操作数种类，生成枚举和验证元数据。`SemanticValueBridge` 在语义入口转换类型、常量与函数，`ExecutionLinker` 按函数 ID 持有和链接代码；执行镜像拥有 `ConstantData` 字节区、`InitialSlots` 与 `StorageLayout` 表，不保留 IR 指针。VM 在连续指令数组中分派，按槽号直接读写 `RuntimeValue`，以显式调用栈处理 Ink 函数调用。常用整数和 bool 使用内联位模式；整数读写也选择定宽 `LoadI*` / `StoreI*` 操作码。地址仅供本函数直接读写的 Alloca 使用固定帧单元，不逐次创建 Cell；再次执行分配时重置初始化状态并继续收取累计预算。地址传参、返回或保存时保留受控存储身份和生命周期、权限、边界检查。`IRContext::revision()` 变化时执行代码和原生调用计划缓存失效。语义求值的 `ExecutionFrame` 只保存词法绑定与存储，公开执行值在桥接边界转回 `ExecutionValueRef`。类型职责、指令布局和扩展方法见 [执行字节码设计](docs/Ink-Execution-Bytecode.md)。
 
-编译期和 IR 中的 `extern "C"` 调用通过系统 API 按声明中的原名查找当前进程符号，再根据 IR 签名使用现有 libffi 调用，不限制函数名。`ffi/native_symbol.cpp` 负责平台符号解析，`ffi/ffi_type.cpp` 负责类型映射，`ffi/ffi_argument.cpp` 负责 `ExecutionValueRef` 到原生参数的转换，`ffi/ffi_call.cpp` 负责调用编排和返回值处理；外部调用入口显式接收调用者的 `ExecutionHeap`。FFI 支持 bool、8/16/32/64 位整数、f32/f64、指针参数与返回值和 void 返回；聚合、变参及 f16 尚不支持。带类型的 `ExecutionPlace` 存储不能直接当作宿主缓冲区。缓冲区指针只保留弱存储身份和偏移，存储释放后 `status()` 返回 `ExpiredPlace`；原生不透明地址可继续传给 FFI，执行引擎不任意解引用。指针和函数结果不能冻结到 IR 常量。
+已经准备完整的 `ExecutionImage` 也可直接构造无桥接层的 `ExecutionLinker`，由 VM 按函数 ID 执行；源 IR 析构后，函数调用、存储、CString 与原生调用仍使用镜像自有数据。`execution/artifact` 提供完整对象构建、稳定符号身份、多文件静态链接及 v2 磁盘归档；归档加载后重新建立共享类型域和原生调用缓存。
+
+整数的通用精确位宽运算使用项目自有的 `ExecutionInteger`；字节码的常用位宽加法和比较直接处理内联位模式，保持既有回绕与符号规则，execution 不使用 `llvm::APInt`。`comptime func` 与普通函数一样在定义处检查并生成 IR，未调用的函数也检查函数体；运行时使用这类函数会报告用户诊断。函数体支持 bool 的 `!`、`&&`、`||`，同型整数的六种比较及 bool 的 `==`、`!=`，可用于普通 if 条件；源码循环和其余未接入的算术运算仍显式诊断为未支持。显式 `comptime` 表达式、块和静态循环仍由语义层在生成 IR 时求值或展开；泛型延迟实例化另行实现。
+
+编译期和 IR 中的 `import "C"` 调用优先匹配当前程序已纳入的同名同签名原生导出，未匹配的导入通过系统 API 按声明中的原名查找当前进程符号，不限制函数名。`ffi/native_symbol.cpp` 负责平台符号解析；`ffi/runtime_ffi_type.cpp`、`runtime_ffi_argument.cpp` 和 `runtime_ffi_call.cpp` 根据已降低的布局准备和缓存 `NativeCallPlan`，直接封送 VM 的 `RuntimeValue`，无须在每次调用时读取 IR 签名。原有 `ffi_type.cpp`、`ffi_argument.cpp`、`ffi_call.cpp` 保留语义值公共接口，外部入口显式接收调用者的 `ExecutionHeap`。FFI 支持 bool、8/16/32/64 位整数、f32/f64、指针参数与返回值和 void 返回；聚合、变参及 f16 尚不支持。已初始化、类型和权限匹配的原生标量 Place 可直接作为 C 指针参数，同一 Place 的多个别名使用同一地址。C 返回管理器已知的标量或缓冲区地址时，恢复原有存储身份和偏移，不延长生命周期；存储释放后 `status()` 返回 `ExpiredPlace`。未初始化、跨 Heap 及只读存储的可写借用被拒绝，i128、指针变量等尚无原生表示的 Cell 不能通过 FFI 取址。原生不透明地址可继续传给 FFI，执行引擎不任意解引用；C 保留裸地址后的使用期限仍须遵守所属存储生命周期。指针和函数结果不能冻结到 IR 常量。
 
 每个 `ExecutionEngine` 持有独立的 `NativeSymbolCache`，按精确符号名保存首次成功解析的地址，供编译期和 IR 外部调用共用；查找失败不会缓存。缓存拥有名称字符串，不持有 DLL／共享库的加载引用，调用方必须保证相关模块在缓存和返回地址的使用期间保持加载。如需卸载模块或重新绑定同名符号，应在相关调用和地址使用结束后、卸载前调用 `clearNativeSymbolCache()`；下一次调用会重新解析。
 
@@ -156,8 +186,8 @@ execution 的公共头与实现分别位于 `src/include/ink/execution` 和 `src
 - `IRBuilder::createFunction()` 根据签名创建 `FunctionParameter`，通过 `parameters()` 访问；形参通过 `outer()` 关联函数，`function()` 从该父节点取得所属函数，不再重复保存 Owner；同时保存 `Name ParameterName`（通过 `name()` 访问）、零起始索引、值类型和 `ParameterKind`（Positional、Named、Variadic），通过 `parameterKind()` 查询。`IRBuilder::createFunction()` 的可选种类列表必须与签名槽位数量一致，省略时全部为 Positional；第四个可选参数 `ParameterNames` 按签名顺序提供名称，省略时参数匿名，由调用方驻留并填写形参名；种类是绑定元数据，不改变规范化运行时签名或开启变参展开。`createAddInstruction()` 接受同型整数操作数，定义按位宽回绕的加法；`IRBuilder::createDetachedReturnInstruction(ReturnedValue)` 创建未挂接的 void 类型终结节点，只校验操作数归属和非 void 类型；`IRBuilder::appendValue()` 校验目标块属于函数且返回值匹配该函数签名。返回指令不保存 Owner，`function()` 沿 outer → BasicBlock → Function 查询，未挂接时返回空指针。
 
 - 对象模型头文件位于 `src/include/ink/ir`，实现位于 `src/lib/ir`；声明基类及其派生类放在 `ir/decl` 子目录，函数相关的 `Function`、`FunctionType`、`BasicBlock` 放在 `ir/function` 子目录，模块值 `Module` 放在 `ir/module` 子目录，`Name` 和 `NamePool` 放在 `ir/name` 子目录，其余类型及类型注册表放在 `ir/type` 子目录，按需包含对应的独立头文件。
-- `src/include/ink/ir/coredefines.h` 集中定义 `ValueKind`、`TypeKind`、`ParameterKind`、`CallingConvention`、`LanguageLinkage`、`AccessKind` 和 `VisibilityKind`，仅依赖 `<cstdint>` 与枚举注册表，可独立包含。`VisibilityKind::Public/Private` 表示声明或成员的可见性，具体访问检查尚未接入。
-- `Function` 保存独立的调用约定 `CallingConvention::C/Fast/Cold` 和语言链接规则 `LanguageLinkage::Ink/C`，分别通过 `callingConvention()`、`languageLinkage()` 查询。`IRBuilder::createFunction()` 的第五、六个可选参数设置它们，默认是目标平台 C 调用约定与 Ink 语言链接；无效枚举值返回空指针。两者不参与 `FunctionType` 的规范化身份，也不决定函数是否有定义；添加函数体会保留这些属性。Parser 已支持 `extern "名称" func f(): void;` 及带函数体的形式，并在 AST 中保留任意链接字符串；Analyzer 将普通函数和 `extern "C"` 函数分别映射为 Ink 与 C 语言链接，其他链接字符串报告不支持。符号命名和后端 ABI lowering 尚未接入。语言链接不表示 external/internal 符号链接性或导出可见性。
+- `src/include/ink/ir/coredefines.h` 集中定义 `ValueKind`、`TypeKind`、`ParameterKind`、`CallingConvention`、`LanguageLinkage`、`FunctionBinding`、`AccessKind` 和 `VisibilityKind`，仅依赖 `<cstdint>` 与枚举注册表，可独立包含。`VisibilityKind::Public/Private` 已接入函数导入检查和字节码符号输出；顶层函数默认 public，局部函数为 private。
+- `Function` 独立保存调用约定 `CallingConvention::C/Fast/Cold`、语言链接 `LanguageLinkage::Ink/C`、原生方向 `FunctionBinding::Local/Import/Export` 和源码可见性 `VisibilityKind::Public/Private`，分别通过 `callingConvention()`、`languageLinkage()`、`binding()`、`visibility()` 查询。`IRBuilder::createFunction()` 的第五、六、七个可选参数分别设置调用约定、语言链接和原生方向，默认为 C、Ink 和 Local；`setFunctionVisibility()` 设置可见性。Parser 在 AST 中保留 import/export 方向和完整 ABI 字符串；Analyzer 目前支持 `"C"`，`[abi("C")]` 仅设置本地定义的 ABI。Import 不允许函数体，Local 和 Export 执行其字节码函数体；源码签名、导出重名及导入导出签名匹配由语义层和链接器检查。这些属性不改变 `FunctionType` 的规范化身份；字节码对象单独保存 ABI 和导出信息，原生目标代码生成与回调地址桥接仍待实现。
 - `src/include/ink/ir/Values.def` 集中定义 `ValueKind`，枚举项与 C++ 类同名，如 `IntegerType`、`FunctionType` 和 `CallInstruction`；类型和常量条目分别生成 `Type::classof()`、`Constant::classof()`。元类型、void、bool、label、module 的实际对象均为 `BuiltinType`，由 `TypeKind` 继续区分；仅作为中间基类的 `Type`、`UserDefinedType`、`Constant` 不单独占用值种类。
 - `src/include/ink/ir/type/Types.def` 用 `INK_IR_TYPE(Name, Base)` 集中登记类型种类，`Base` 配置为 `BuiltinType` 或 `UserDefinedType`；`TypeKind` 与两个基类的 `classof()` 分类判断均由该表生成。
 - `src/include/ink/ir/instruction` 保存直接继承 `Value` 的 `CallInstruction`、`AllocaInstruction`、`LoadInstruction`、`StoreInstruction`、`LogicalNotInstruction`、`LogicalAndInstruction`、`LogicalOrInstruction` 和 `CompareInstruction` 等节点，每种指令有自己的头文件，使用同名 `ValueKind` 分类，由 `IRBuilder` 创建，成功插入后由所属基本块拥有。

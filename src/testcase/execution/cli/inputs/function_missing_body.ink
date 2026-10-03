@@ -1,4 +1,4 @@
-// A valid ordinary declaration still fails when execution reaches its absent body.
+// Ordinary Ink declarations require a body and fail during source analysis before main executes.
 func declared(Value: i32): i32;
 
 func main(): i32

@@ -14,6 +14,8 @@ INK_CONFIG(SemanticExpressionDepthLimit, "INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT", 
 INK_CONFIG(ExecutionMaxSteps, "INK_EXECUTION_MAX_STEPS", "100000")
 // Execution: at most 16 * 1024 storage allocations, including objects later released.
 INK_CONFIG(ExecutionMaxObjects, "INK_EXECUTION_MAX_OBJECTS", "16384")
+// Execution: a cumulative budget of 64 MiB for mutable storage objects and byte buffers.
+INK_CONFIG(ExecutionMaxStorageBytes, "INK_EXECUTION_MAX_STORAGE_BYTES", "67108864")
 // Execution: at most 256 simultaneously active call frames.
 INK_CONFIG(ExecutionMaxCallDepth, "INK_EXECUTION_MAX_CALL_DEPTH", "256")
 // Execution: at most 64 combined AST expression, statement and call traversal levels.

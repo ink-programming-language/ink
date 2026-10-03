@@ -449,7 +449,7 @@ namespace ink::execution::test
     auto Snapshot = Test.Engine.loadValue(ChildCell.Place);
     ASSERT_TRUE(Snapshot);
     EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 2U);
-    EXPECT_EQ(Test.Engine.heap().liveValueCount(), 2U);
+    EXPECT_EQ(Test.Engine.heap().liveValueCount(), 1U);
     ASSERT_EQ(Test.Engine.endFrame(*Parent), ExecutionStatus::Success);
     EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
     EXPECT_EQ(Test.Engine.heap().liveValueCount(), 1U);
@@ -528,7 +528,7 @@ namespace ink::execution::test
       const ir::Type *Parameters[] = {&Test.Int32, BufferType, CountType};
       const auto *Signature = Test.Context.typePool().getType<ir::TypeKind::Function>(*ReturnType, Parameters);
       ASSERT_NE(Signature, nullptr);
-      auto Write = Test.Builder.createFunction(Test.Context.namePool().intern(WriteSymbol), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C);
+      auto Write = Test.Builder.createFunction(Test.Context.namePool().intern(WriteSymbol), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
       ASSERT_NE(Write, nullptr);
       ExecutionValueRef Arguments[] = {Test.integer(Pipe.writer()), Test.Engine.heap().string(*Slice, "X"), Test.Engine.heap().integer(*CountType, ExecutionInteger(WriteCountWidth, 1))};
       EXPECT_EQ(Test.Engine.execute(*Write, Arguments).Status, ExecutionStatus::BudgetExceeded);
@@ -561,7 +561,7 @@ namespace ink::execution::test
     const ir::Type *WriteParameters[] = {&Test.Int32, BufferType, CountType};
     const auto *WriteType = Test.Context.typePool().getType<ir::TypeKind::Function>(*ReturnType, WriteParameters);
     ASSERT_NE(WriteType, nullptr);
-    auto Write = Test.Builder.createFunction(Test.Context.namePool().intern(WriteSymbol), *WriteType, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C);
+    auto Write = Test.Builder.createFunction(Test.Context.namePool().intern(WriteSymbol), *WriteType, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
     ASSERT_NE(Write, nullptr);
     const ir::Type *Parameters[] = {WriteType, &Test.Int32};
     auto Function = Test.function("CallIndirect", *ReturnType, Parameters);
@@ -598,7 +598,7 @@ namespace ink::execution::test
     const ir::Type *Parameters[] = {BufferType};
     const auto *Signature = Test.Context.typePool().getType<ir::TypeKind::Function>(*UInt32, Parameters);
     ASSERT_NE(Signature, nullptr);
-    auto Mutate = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestExternalMutate"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C);
+    auto Mutate = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestExternalMutate"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
     ASSERT_NE(Mutate, nullptr);
     auto Function = Test.function("LoadMutated", *UInt8);
     ASSERT_NE(Function, nullptr);

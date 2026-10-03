@@ -1,5 +1,5 @@
 // Runtime addition preserves each signed or unsigned integer width, including wraparound.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
 // Signed eight-bit addition covers both wrap boundaries and cancellation.
 func signedI8(): bool

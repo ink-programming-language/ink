@@ -1,5 +1,5 @@
 // A boolean cannot be passed to the declared i32 C parameter.
-extern "C" func abs(Value: i32): i32;
+import "C" func abs(Value: i32): i32;
 
 func main(): i32
 {

@@ -74,7 +74,7 @@ KW_DEFER ::= "defer" ;
 KW_DO ::= "do" ;
 KW_ELSE ::= "else" ;
 KW_ENUM ::= "enum" ;
-KW_EXTERN ::= "extern" ;
+KW_EXPORT ::= "export" ;
 KW_FIELD ::= "field" ;
 KW_FOR ::= "for" ;
 KW_FROM ::= "from" ;
@@ -85,6 +85,8 @@ KW_IMPORT ::= "import" ;
 KW_IN ::= "in" ;
 KW_INTERFACE ::= "interface" ;
 KW_MATCH ::= "match" ;
+KW_PRIVATE ::= "private" ;
+KW_PUBLIC ::= "public" ;
 KW_RETURN ::= "return" ;
 KW_SWITCH ::= "switch" ;
 KW_VAR ::= "var" ;
@@ -103,7 +105,7 @@ keyword ::= KW_AS
           | KW_DO
           | KW_ELSE
           | KW_ENUM
-          | KW_EXTERN
+          | KW_EXPORT
           | KW_FIELD
           | KW_FOR
           | KW_FROM
@@ -114,6 +116,8 @@ keyword ::= KW_AS
           | KW_IN
           | KW_INTERFACE
           | KW_MATCH
+          | KW_PRIVATE
+          | KW_PUBLIC
           | KW_RETURN
           | KW_SWITCH
           | KW_VAR
@@ -255,7 +259,7 @@ enum TokenKind
     KW_DO,
     KW_ELSE,
     KW_ENUM,
-    KW_EXTERN,
+    KW_EXPORT,
     KW_FIELD,
     KW_FOR,
     KW_FROM,
@@ -266,6 +270,8 @@ enum TokenKind
     KW_IN,
     KW_INTERFACE,
     KW_MATCH,
+    KW_PRIVATE,
+    KW_PUBLIC,
     KW_RETURN,
     KW_SWITCH,
     KW_VAR,

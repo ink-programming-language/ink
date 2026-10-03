@@ -1,7 +1,13 @@
 // Check both selected and unselected paths, initialization merges, lexical scopes and observable branch effects.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
-func missing(): i32;
+// Executing this wrapper would try to resolve a deliberately nonexistent native symbol.
+import "C" func InkMissingControlFlowSymbol71e4935b(): i32;
+
+func missing(): i32
+{
+  return InkMissingControlFlowSymbol71e4935b();
+}
 
 // Each arm initializes the same local before the common continuation reads it.
 func select(Flag: bool): i32
@@ -105,7 +111,7 @@ func effects(Flag: bool): i32
   return Result;
 }
 
-// A missing function body on an unreachable branch must never be executed.
+// An unreachable branch must never execute the wrapper that resolves the missing native symbol.
 func skipMissing(Flag: bool): i32
 {
   if (Flag)

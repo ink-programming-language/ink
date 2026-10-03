@@ -13,9 +13,9 @@ ModuleDeserializeResult deserializeModuleBinary(IRContext &Context, std::string_
 
 ## 内容与生命周期
 
-归档包含模块及嵌套模块、顺序基本块、函数、参数、全部当前指令种类、引用到的类型与常量，以及完整的声明树。整数按低位在前的 64 位字保存；浮点保存 IEEE 原始位模式，包括负零、NaN payload 和无穷。字符串和名称保存完整字节，允许包含 NUL。共享对象、递归调用、名义类型身份、参数类别和名字、调用约定、语言链接均保留。
+归档包含模块及嵌套模块、顺序基本块、函数、参数、全部当前指令种类、引用到的类型与常量，以及完整的声明树。整数按低位在前的 64 位字保存；浮点保存 IEEE 原始位模式，包括负零、NaN payload 和无穷。字符串和名称保存完整字节，允许包含 NUL。共享对象、递归调用、名义类型身份、参数类别和名字、调用约定、语言链接、源码可见性和原生符号方向均保留。
 
-泛型声明的 AST 在二进制中使用 AST archive v2，在文本中使用具名字段语法保存，包含整个所属 `ParsedUnit` 的源码、token、语法树、恢复记录和解析状态。声明引用通过 AST 快照编号与后序遍历节点编号恢复；不会重新解析源码。多个声明和模块可以共享同一 AST 快照。语义分析器的外部绑定、实例化缓存与目标机器状态不属于 Module 归档。
+泛型声明的 AST 在二进制中使用 AST archive v5，在文本中使用具名字段语法保存，包含整个所属 `ParsedUnit` 的源码、token、语法树、恢复记录和解析状态。声明引用通过 AST 快照编号与后序遍历节点编号恢复；不会重新解析源码。多个声明和模块可以共享同一 AST 快照。语义分析器的外部绑定、实例化缓存与目标机器状态不属于 Module 归档。
 
 原始 IR 声明只保存借用的 AST 节点，无法由节点查回所属 `ParseResult`。首次归档含声明树的模块时，调用方必须提供这些输入：
 
@@ -33,12 +33,12 @@ auto Loaded = ir::deserializeModuleBinary(DestinationContext, Saved.Bytes);
 
 非池对象的操作数必须位于待归档模块的拥有树中。引用其他根模块或游离函数会返回 `InvalidInput`；需要在模块内提供相应函数声明。归档不会将外部对象悄悄复制成新的身份。
 
-## 文本格式 v2
+## 文本格式 v4
 
 文本采用可编辑的 IR 汇编语法。模块、函数和基本块直接体现嵌套结构，操作数使用符号引用，常量内联。下面是 `serializeModuleText` 的实际输出，单元测试逐字节验证此例：
 
 ```text
-ink-ir 2
+ink-ir 4
 module @Example {
   define i32 @addOne(i32 %x) {
   entry:
@@ -56,7 +56,8 @@ module @Example {
 - 符号在整个归档内唯一，允许前向引用，包括递归调用和前向指令依赖。生成器给重复名字追加后缀，并用 `name "原名"` 保留模型中的原名。未命名参数同样用 `name ""` 保留。
 - 名字可以加引号，例如 `@"包含空格的函数"`。字符串支持 `\\\"`、`\\\\`、`\\n`、`\\r`、`\\t`、`\\xHH`，UTF-8 文本直接保留，NUL 等控制字节转义。
 - 分号 `;` 引入行注释；空格、制表符、LF 和 CRLF 都可使用。
-- 参数类别使用 `named` 或 `variadic`；默认是 positional。函数可追加 `cc fast`、`cc cold` 和 `linkage c`；默认调用约定为 C，语言链接为 Ink。
+- 参数类别使用 `named` 或 `variadic`；默认是 positional。函数可按顺序追加 `cc fast` / `cc cold`、`linkage c`、`visibility private` 和 `binding import` / `binding export`；默认调用约定为 C，语言链接为 Ink，可见性为 public，绑定为 local。Reader 也接受显式 `visibility public` 和 `binding local`，Writer 省略默认值。函数定义与声明都保留可见性和绑定。
+- 原生 import 必须是无函数体的 C 声明，原生 export 必须是有函数体的 C 定义；两者要求 C 调用约定。`linkage c` 本身不表示原生导入或导出，本地 C ABI 回调使用默认的 `binding local`。`visibility private binding export` 合法，表示 Ink 名字访问受限但原生符号对外导出。
 - 模块入口块通常隐含；如果其他指令引用它，模块头会附加 `entry ^label`。
 
 基本类型使用 `type`、`void`、`bool`、`label`、`module`、`i32`、`u8`、`f64` 等拼写。整数位宽不限于常见机器字长，浮点位宽为 16、32 或 64。复合类型可内联，也可用别名；规范输出用别名避免深层类型展开：
@@ -100,10 +101,10 @@ type !t4 = fn(i32, !t2) -> i32
 
 ### 泛型声明与 AST
 
-文本中的 AST 使用独立的 `ast 2` 语法，直接显示源码、token 名称、AST 节点类别、命名字段和恢复信息。以下仅展示区段结构，省略号不是有效语法：
+文本中的 AST 使用独立的 `ast 4` 语法，直接显示源码、token 名称、AST 节点类别、命名字段、声明可见性、原生符号方向和恢复信息。以下仅展示区段结构，省略号不是有效语法：
 
 ```text
-syntax !ast0 ast 2 {
+syntax !ast0 ast 4 {
   source_name = "<input>"
   source = "func Identity[T: type](Value: T): T { return Value; }"
   status = Completed
@@ -130,7 +131,7 @@ declarations from !ast0 %23 {
 
 恢复过程使用完整字段构造 AST，不重新解析 `source`，因此也保留错误恢复节点、token payload、取消/中断状态和共享身份。文本 AST 读入后复用现有 AST 构造与校验逻辑；文本与二进制可互相转换。
 
-## 二进制格式 v2
+## 二进制格式 v4
 
 二进制以编解码吞吐量为目标，独立于文本语法。所有整数固定宽度、小端序、字节对齐；没有逐字符 VBR 编解码，也不需要转义字符串。写入前计算完整长度，输出缓冲区只分配一次；字符串和 AST payload 整块复制。固定宽度元数据会比变长编码占更多空间。
 
@@ -139,7 +140,7 @@ declarations from !ast0 %23 {
 | 偏移 | 宽度 | 内容 |
 | --- | --- | --- |
 | 0 | 4 字节 | 签名 `IIRB` |
-| 4 | u32 | `ModuleBinaryVersion`，当前为 2 |
+| 4 | u32 | `ModuleBinaryVersion`，当前为 4 |
 | 8 | u32 | 对象记录数 |
 | 12 | u32 | 保留 flags，必须为 0 |
 
@@ -155,11 +156,11 @@ declarations from !ast0 %23 {
 | 24 | u64 × 字段数 | 附加字段 |
 | 后续 | 原始字节 | 字符串或 AST payload，无 NUL 终止符 |
 
-对象 ID 由记录顺序隐含决定，从 1 开始；1 是根模块，0 表示无引用。父对象先于子对象；类型和操作数允许向前引用。类型与常量不具有结构父对象。整数常量保存低位字到高位字，浮点保存原始位模式；AST payload 直接使用现有 IAST v3 二进制快照，旧的 IAST v1、v2 快照会被拒绝。
+对象 ID 由记录顺序隐含决定，从 1 开始；1 是根模块，0 表示无引用。父对象先于子对象；类型和操作数允许向前引用。类型和常量不具有结构父对象。整数常量保存低位字到高位字，浮点保存原始位模式；AST payload 直接使用现有 IAST v5 二进制快照，旧版本快照会被拒绝。
 
-读取器在分配前验证记录数量、字段数量和剩余字节，拒绝未知 kind、flags、截断、越界引用和尾随字节。版本由 `ModuleTextVersion` 和 `ModuleBinaryVersion` 分别管理；当前 v2 不兼容此前的 v1 实验格式。AST 文本和二进制版本也独立管理。相同 Module 的规范输出不依赖指针地址、无关池插入顺序或宿主大小端。
+读取器在分配前验证记录数量、字段数量和剩余字节，拒绝未知 kind、flags、截断、越界引用和尾随字节。版本由 `ModuleTextVersion` 和 `ModuleBinaryVersion` 分别管理；当前 v4 的 Function 记录依次保存调用约定、语言链接、可见性（`Public=0`、`Private=1`）和原生符号绑定（`Local=0`、`Import=1`、`Export=2`）。v4 不兼容此前的 v1、v2、v3 格式，缺失或非法字段、导入函数有函数体、导出函数缺少函数体会明确失败。AST 文本和二进制版本也独立管理。相同 Module 的规范输出不依赖指针地址、无关池插入顺序或宿主大小端。
 
-跳转使用追加的稳定 kind ID，不改变既有记录：`Branch = 50` 的唯一字段为目标基本块 ID；`ConditionalBranch = 51` 的三个字段依次为条件值、真分支基本块、假分支基本块 ID。两种指令的结果类型均为 `void`，父对象为所属函数的基本块；文本和二进制格式版本仍为 v2，现有无跳转归档继续兼容。
+跳转使用追加的稳定 kind ID，不改变既有记录：`Branch = 50` 的唯一字段为目标基本块 ID；`ConditionalBranch = 51` 的三个字段依次为条件值、真分支基本块、假分支基本块 ID。两种指令的结果类型均为 `void`，父对象为所属函数的基本块。
 
 逻辑和比较指令继续追加稳定 ID，结果类型均为 bool：
 
@@ -170,7 +171,7 @@ declarations from !ast0 %23 {
 | `LogicalOr = 54` | 左操作数 ID、右操作数 ID |
 | `Compare = 55` | 谓词编号、左操作数 ID、右操作数 ID |
 
-比较谓词的稳定编号为 `eq = 0`、`ne = 1`、`lt = 2`、`le = 3`、`gt = 4`、`ge = 5`，通过显式映射与 C++ 枚举关联；谓词编号不作为对象引用参与依赖恢复。非法谓词、不匹配的操作数或结果类型、越界引用和循环操作数依赖均返回 `InvalidArchive`。格式版本保持 v2，既有归档不受追加指令影响。
+比较谓词的稳定编号为 `eq = 0`、`ne = 1`、`lt = 2`、`le = 3`、`gt = 4`、`ge = 5`，通过显式映射与 C++ 枚举关联；谓词编号不作为对象引用参与依赖恢复。非法谓词、不匹配的操作数或结果类型、越界引用和循环操作数依赖均返回 `InvalidArchive`。
 
 ## 验证与资源限制
 

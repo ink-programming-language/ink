@@ -366,8 +366,8 @@ func Check(): bool { return comptime Boolean(true); }
         core::DiagnosticKind Kind;
     };
     const Case Cases[] = {
-        {"extern \"C\" func InkMissingExternalSymbol94c8f17e(): i32; comptime InkMissingExternalSymbol94c8f17e();", core::DiagnosticKind::ExecutionSymbolNotFound},
-        {"func F(): i32; comptime F();", core::DiagnosticKind::ExecutionMissingBody},
+        {"import \"C\" func InkMissingExternalSymbol94c8f17e(): i32; comptime InkMissingExternalSymbol94c8f17e();", core::DiagnosticKind::ExecutionSymbolNotFound},
+        {"func F(): i32;", core::DiagnosticKind::SemanticFunctionRequiresBody},
         {"comptime func F(): i32;", core::DiagnosticKind::SemanticComptimeFunctionRequiresBody},
     };
     for (const Case &Entry : Cases)
@@ -452,11 +452,11 @@ func Check(): bool { return comptime Boolean(true); }
   // Execution errors in a nested IR call propagate to one source diagnostic without an AST callback wrapper.
   TEST(SemanticComptimeCallTest, NestedCallsReportExecutionFailureOnce)
   {
-    CallAnalysis Input("func MissingBody(): i32; comptime func Middle(): i32 { return MissingBody(); } comptime func Outer(): i32 { return Middle(); } comptime Outer();");
+    CallAnalysis Input("import \"C\" func InkMissingExternalSymbol94c8f17e(): i32; comptime func Middle(): i32 { return InkMissingExternalSymbol94c8f17e(); } comptime func Outer(): i32 { return Middle(); } comptime Outer();");
     ASSERT_TRUE(Input.Parsed.succeeded());
     EXPECT_EQ(Input.analyze(), nullptr);
     ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
-    EXPECT_EQ(Input.Diagnostics.diagnostics().front().Kind, core::DiagnosticKind::ExecutionMissingBody);
+    EXPECT_EQ(Input.Diagnostics.diagnostics().front().Kind, core::DiagnosticKind::ExecutionSymbolNotFound);
   }
 
   // Non-terminating recursion reaches the configured dynamic call depth and reports the execution budget ICE.

@@ -35,6 +35,9 @@ namespace ink::ir::test
     EXPECT_NE(First, Second);
     EXPECT_EQ(First->callingConvention(), CallingConvention::C);
     EXPECT_EQ(First->languageLinkage(), LanguageLinkage::Ink);
+    EXPECT_EQ(First->binding(), FunctionBinding::Local);
+    EXPECT_FALSE(First->isNativeImport());
+    EXPECT_FALSE(First->isNativeExport());
     EXPECT_FALSE(First->hasBody());
     EXPECT_FALSE(Second->hasBody());
     EXPECT_TRUE(First->blocks().empty());
@@ -84,6 +87,80 @@ namespace ink::ir::test
         EXPECT_EQ(Call->directCallee(), Target);
       }
     }
+  }
+
+  // C ABI callbacks, imported declarations and private exports keep separate native direction and source visibility.
+  TEST(IRFunctionTest, NativeBindingsAreIndependentOfVisibilityAndLocalCABI)
+  {
+    core::CompilationContext Compilation;
+    IRContext Context(Compilation);
+    IRBuilder Factory(Context);
+    const auto *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
+    ASSERT_NE(Signature, nullptr);
+    for (FunctionBinding Binding : {FunctionBinding::Local, FunctionBinding::Import, FunctionBinding::Export})
+    {
+      auto Target = Factory.createFunction(Context.namePool().intern("Native"), *Signature, {}, {}, CallingConvention::C, LanguageLinkage::C, Binding);
+      ASSERT_NE(Target, nullptr);
+      EXPECT_EQ(Target->binding(), Binding);
+      EXPECT_EQ(Target->isNativeImport(), Binding == FunctionBinding::Import);
+      EXPECT_EQ(Target->isNativeExport(), Binding == FunctionBinding::Export);
+      ASSERT_TRUE(Factory.setFunctionVisibility(*Target, VisibilityKind::Private));
+      EXPECT_EQ(Target->visibility(), VisibilityKind::Private);
+      EXPECT_EQ(Target->binding(), Binding);
+      if (Binding == FunctionBinding::Import)
+      {
+        EXPECT_EQ(Factory.createFunctionBody(*Target), nullptr);
+        EXPECT_EQ(Factory.createBasicBlock(*Target), nullptr);
+        EXPECT_FALSE(Target->hasBody());
+      }
+      else
+      {
+        EXPECT_NE(Factory.createFunctionBody(*Target), nullptr);
+        EXPECT_TRUE(Target->hasBody());
+      }
+    }
+  }
+
+  // Changing native direction invalidates cached code only on success and rejects bodies, foreign contexts and non-C ABIs.
+  TEST(IRFunctionTest, BindingEditsValidateMetadataAndAdvanceRevision)
+  {
+    core::CompilationContext Compilation;
+    IRContext Context(Compilation);
+    IRContext Other(Compilation);
+    IRBuilder Factory(Context);
+    IRBuilder OtherFactory(Other);
+    const auto *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
+    ASSERT_NE(Signature, nullptr);
+    const auto NameValue = Context.namePool().intern("Native");
+    auto Target = Factory.createFunction(NameValue, *Signature, {}, {}, CallingConvention::C, LanguageLinkage::C);
+    auto InkTarget = Factory.createFunction(NameValue, *Signature);
+    auto FastTarget = Factory.createFunction(NameValue, *Signature, {}, {}, CallingConvention::Fast, LanguageLinkage::C);
+    ASSERT_NE(Target, nullptr);
+    ASSERT_NE(InkTarget, nullptr);
+    ASSERT_NE(FastTarget, nullptr);
+    std::uint64_t Previous = Context.revision();
+    EXPECT_FALSE(OtherFactory.setFunctionBinding(*Target, FunctionBinding::Import));
+    EXPECT_FALSE(Factory.setFunctionBinding(*InkTarget, FunctionBinding::Import));
+    EXPECT_FALSE(Factory.setFunctionBinding(*FastTarget, FunctionBinding::Export));
+    EXPECT_FALSE(Factory.setFunctionBinding(*Target, static_cast<FunctionBinding>(255)));
+    EXPECT_EQ(Context.revision(), Previous);
+    ASSERT_TRUE(Factory.setFunctionBinding(*Target, FunctionBinding::Import));
+    EXPECT_GT(Context.revision(), Previous);
+    EXPECT_TRUE(Target->isNativeImport());
+    Previous = Context.revision();
+    EXPECT_TRUE(Factory.setFunctionBinding(*Target, FunctionBinding::Import));
+    EXPECT_EQ(Context.revision(), Previous);
+    ASSERT_TRUE(Factory.setFunctionBinding(*Target, FunctionBinding::Export));
+    EXPECT_GT(Context.revision(), Previous);
+    ASSERT_NE(Factory.createFunctionBody(*Target), nullptr);
+    Previous = Context.revision();
+    EXPECT_FALSE(Factory.setFunctionBinding(*Target, FunctionBinding::Import));
+    EXPECT_EQ(Context.revision(), Previous);
+    EXPECT_TRUE(Target->isNativeExport());
+    EXPECT_TRUE(Target->hasBody());
+    EXPECT_TRUE(Factory.setFunctionBinding(*Target, FunctionBinding::Local));
+    EXPECT_EQ(Target->binding(), FunctionBinding::Local);
+    EXPECT_TRUE(Target->hasBody());
   }
 
   // Defining a previously referenced function preserves its identity and keeps the body stable through storage growth.
@@ -315,6 +392,9 @@ namespace ink::ir::test
     EXPECT_EQ(Factory.createFunction(NameValue, *Foreign), nullptr);
     EXPECT_EQ(Factory.createFunction(NameValue, *Signature, {}, {}, static_cast<CallingConvention>(255)), nullptr);
     EXPECT_EQ(Factory.createFunction(NameValue, *Signature, {}, {}, CallingConvention::C, static_cast<LanguageLinkage>(255)), nullptr);
+    EXPECT_EQ(Factory.createFunction(NameValue, *Signature, {}, {}, CallingConvention::C, LanguageLinkage::C, static_cast<FunctionBinding>(255)), nullptr);
+    EXPECT_EQ(Factory.createFunction(NameValue, *Signature, {}, {}, CallingConvention::C, LanguageLinkage::Ink, FunctionBinding::Import), nullptr);
+    EXPECT_EQ(Factory.createFunction(NameValue, *Signature, {}, {}, CallingConvention::Cold, LanguageLinkage::C, FunctionBinding::Export), nullptr);
     EXPECT_NE(Factory.createFunction(NameValue, *Signature), nullptr);
   }
 } // namespace ink::ir::test

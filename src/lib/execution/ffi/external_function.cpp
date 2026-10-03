@@ -18,7 +18,7 @@ namespace ink::execution
     {
       return {ExecutionStatus::HostAbiMismatch};
     }
-    if (Function.languageLinkage() != ir::LanguageLinkage::C || Function.callingConvention() != ir::CallingConvention::C)
+    if (!Function.isNativeImport() || Function.languageLinkage() != ir::LanguageLinkage::C || Function.callingConvention() != ir::CallingConvention::C)
     {
       return {ExecutionStatus::UnsupportedExternalSignature};
     }

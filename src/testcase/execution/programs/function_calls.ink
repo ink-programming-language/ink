@@ -1,5 +1,5 @@
 // Run typed calls from main and verify each returned value before reporting PASS.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
 // A zero-argument call returns a scalar value to its caller.
 func constant(): i32

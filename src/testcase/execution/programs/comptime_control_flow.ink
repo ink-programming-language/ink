@@ -1,5 +1,5 @@
 // Verify compile-time state, selected branches and static loops through runtime result assertions.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
 comptime var Snapshot: i32 = 2;
 

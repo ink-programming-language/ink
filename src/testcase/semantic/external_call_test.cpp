@@ -151,7 +151,7 @@ namespace ink::semantic::test
   // A missing host symbol produces a specific compile-time diagnostic rather than a missing Ink body error.
   TEST(SemanticExternalCallTest, DiagnosesMissingProcessSymbol)
   {
-    ExternalAnalysis Input("extern \"C\" func InkMissingExternalSymbol94c8f17e(X: i32): i32; comptime InkMissingExternalSymbol94c8f17e(1);");
+    ExternalAnalysis Input("import \"C\" func InkMissingExternalSymbol94c8f17e(X: i32): i32; comptime InkMissingExternalSymbol94c8f17e(1);");
     ASSERT_TRUE(Input.Parsed.succeeded());
     EXPECT_EQ(Input.analyze(), nullptr);
     Input.expectExecutionFailure(execution::ExecutionStatus::SymbolNotFound);
@@ -242,7 +242,7 @@ namespace ink::semantic::test
   TEST(SemanticExternalCallTest, CallsAbsStrlenAndStrcmpFromSource)
   {
     const std::uint32_t SizeWidth = sizeof(std::size_t) * 8;
-    std::string Source = "extern \"C\" func abs(Value: i32): i32; extern \"C\" func strlen(Value: *u8): u" + std::to_string(SizeWidth) + "; extern \"C\" func strcmp(Left: *u8, Right: *u8): i32;\n";
+    std::string Source = "import \"C\" func abs(Value: i32): i32; import \"C\" func strlen(Value: *u8): u" + std::to_string(SizeWidth) + "; import \"C\" func strcmp(Left: *u8, Right: *u8): i32;\n";
     Source += "comptime const Text = \"中文\";\n";
     Source += "func Absolute(): i32 { return comptime abs(-21); }\n";
     Source += "func Length(): u" + std::to_string(SizeWidth) + " { return comptime strlen(Text); }\n";
@@ -260,7 +260,7 @@ namespace ink::semantic::test
   // Exported functions with no arguments and void results execute from Ink without requiring a special host adapter.
   TEST(SemanticExternalCallTest, CallsExportedZeroArgumentAndVoidFunctions)
   {
-    const std::string Source = "extern \"C\" func inkTestExternalZero(): i32; extern \"C\" func inkTestExternalSet(Value: i32): void; extern \"C\" func inkTestExternalGet(): i32; comptime inkTestExternalSet(4567); func Zero(): i32 { return comptime inkTestExternalZero(); } func Observed(): i32 { return comptime inkTestExternalGet(); }";
+    const std::string Source = "import \"C\" func inkTestExternalZero(): i32; import \"C\" func inkTestExternalSet(Value: i32): void; import \"C\" func inkTestExternalGet(): i32; comptime inkTestExternalSet(4567); func Zero(): i32 { return comptime inkTestExternalZero(); } func Observed(): i32 { return comptime inkTestExternalGet(); }";
     ExternalAnalysis Input(Source);
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
@@ -273,8 +273,8 @@ namespace ink::semantic::test
   // Signed and unsigned integer arguments preserve every supported width and high bits through source-level calls.
   TEST(SemanticExternalCallTest, PreservesMixedIntegerWidthsAcrossNativeCalls)
   {
-    std::string Source = "extern \"C\" func inkTestExternalMix(Small: i8, Medium: u16, Signed: i32, Wide: u64): i64;\n";
-    Source += "extern \"C\" func inkTestExternalNarrow(Byte: u8, Half: i16, Word: u32, Wide: i64): u64;\n";
+    std::string Source = "import \"C\" func inkTestExternalMix(Small: i8, Medium: u16, Signed: i32, Wide: u64): i64;\n";
+    Source += "import \"C\" func inkTestExternalNarrow(Byte: u8, Half: i16, Word: u32, Wide: i64): u64;\n";
     Source += "func Mixed(): i64 { return comptime inkTestExternalMix(-7, 60000, -100000, 17293822569102704640); }\n";
     Source += "func Narrow(): u64 { return comptime inkTestExternalNarrow(255, -30000, 4000000000, -9999999983); }";
     ExternalAnalysis Input(Source);
@@ -289,7 +289,7 @@ namespace ink::semantic::test
   // Ten integer arguments verify native stack arguments in addition to the ABI's argument registers.
   TEST(SemanticExternalCallTest, PreservesArgumentsBeyondNativeRegisterCapacity)
   {
-    const std::string Source = "extern \"C\" func inkTestExternalMany(A: i32, B: i32, C: i32, D: i32, E: i32, F: i32, G: i32, H: i32, I: i32, J: i32): i64; func Read(): i64 { return comptime inkTestExternalMany(1, 2, 3, 4, 5, 6, 7, 8, 9, 10); }";
+    const std::string Source = "import \"C\" func inkTestExternalMany(A: i32, B: i32, C: i32, D: i32, E: i32, F: i32, G: i32, H: i32, I: i32, J: i32): i64; func Read(): i64 { return comptime inkTestExternalMany(1, 2, 3, 4, 5, 6, 7, 8, 9, 10); }";
     ExternalAnalysis Input(Source);
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
@@ -301,7 +301,7 @@ namespace ink::semantic::test
   // A native boolean return becomes an Ink boolean constant rather than an integer ABI carrier.
   TEST(SemanticExternalCallTest, PreservesBooleanNativeReturnType)
   {
-    ExternalAnalysis Input("extern \"C\" func inkTestExternalNot(Value: bool): bool; func Read(): bool { return comptime inkTestExternalNot(false); }");
+    ExternalAnalysis Input("import \"C\" func inkTestExternalNot(Value: bool): bool; func Read(): bool { return comptime inkTestExternalNot(false); }");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
@@ -314,7 +314,7 @@ namespace ink::semantic::test
   // Native float returns feed a mixed-precision call and survive storage in a compile-time variable before runtime lowering.
   TEST(SemanticExternalCallTest, PreservesFloatingValuesAcrossNestedNativeCalls)
   {
-    const std::string Source = "extern \"C\" func inkTestExternalFloatSeed32(): f32; extern \"C\" func inkTestExternalFloatSeed64(): f64; extern \"C\" func inkTestExternalFloat(Left: f32, Right: f64): f64; comptime var Stored = inkTestExternalFloat(inkTestExternalFloatSeed32(), inkTestExternalFloatSeed64()); func Read(): f64 { return comptime Stored; }";
+    const std::string Source = "import \"C\" func inkTestExternalFloatSeed32(): f32; import \"C\" func inkTestExternalFloatSeed64(): f64; import \"C\" func inkTestExternalFloat(Left: f32, Right: f64): f64; comptime var Stored = inkTestExternalFloat(inkTestExternalFloatSeed32(), inkTestExternalFloatSeed64()); func Read(): f64 { return comptime Stored; }";
     ExternalAnalysis Input(Source);
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
@@ -328,7 +328,7 @@ namespace ink::semantic::test
   // Native pointer arguments preserve embedded NUL bytes, add a terminator, and isolate writes from interned source strings.
   TEST(SemanticExternalCallTest, IsolatesNativeStringMutationAndPreservesEmbeddedNulls)
   {
-    std::string Source = "extern \"C\" func inkTestExternalByte(Buffer: *u8, Index: u32): u32; extern \"C\" func inkTestExternalMutate(Buffer: *u8): u32;\n";
+    std::string Source = "import \"C\" func inkTestExternalByte(Buffer: *u8, Index: u32): u32; import \"C\" func inkTestExternalMutate(Buffer: *u8): u32;\n";
     Source += "comptime const Text = \"A\\0B\"; comptime const MutableText = \"ABC\";\n";
     Source += "func NullByte(): u32 { return comptime inkTestExternalByte(Text, 1); }\n";
     Source += "func TailByte(): u32 { return comptime inkTestExternalByte(Text, 2); }\n";
@@ -351,8 +351,8 @@ namespace ink::semantic::test
   TEST(SemanticExternalCallTest, RejectsUnsupportedAbiTypesBeforeNativeExecution)
   {
     const std::string_view Sources[] = {
-        "extern \"C\" func inkTestExternalZero(): i128; comptime inkTestExternalZero();",
-        "extern \"C\" func inkTestExternalZero(): f16; comptime inkTestExternalZero();",
+        "import \"C\" func inkTestExternalZero(): i128; comptime inkTestExternalZero();",
+        "import \"C\" func inkTestExternalZero(): f16; comptime inkTestExternalZero();",
     };
     for (std::string_view Source : Sources)
     {

@@ -175,6 +175,11 @@ namespace ink::parser
             put(", comptime = ");
             value(Object.isComptime());
           }
+          if constexpr (std::is_base_of_v<Decl, T>)
+          {
+            put(", visibility = ");
+            value(Object.visibility());
+          }
           put(" }");
         }
 
@@ -534,6 +539,12 @@ namespace ink::parser
             Lex.expect(",");
             label("comptime");
             read<bool>();
+          }
+          if constexpr (std::is_base_of_v<Decl, T>)
+          {
+            Lex.expect(",");
+            label("visibility");
+            read<DeclarationVisibility>();
           }
           Lex.expect("}");
         }

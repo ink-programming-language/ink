@@ -67,7 +67,8 @@
 
 IR 公共头位于 `src/include/ink/ir`，实现位于 `src/lib/ir`，统一使用 `ink::ir` 命名空间；Value、类型、常量、函数、指令、名称池、Decl/泛型声明及其 AST 关联和 IRBuilder 均归 IR。独立 [`IRContext`](../src/include/ink/ir/context.h) 借用 Core 编译上下文，拥有名称、类型、常量和根模块，各模块拥有声明树及 IR 树。[`SemanticContext`](../src/include/ink/semantic/context.h) 组合 IRContext 和 ScopeStore，通过 `irContext()` 供 Analyzer 构造 IR；Analyzer、名称解析和作用域保留在 semantic。
 
-- `ir/coredefines.h` 集中定义 `ValueKind`、`TypeKind`、`ParameterKind`、`AccessKind` 和 `VisibilityKind`，仅依赖 `<cstdint>` 与枚举注册表，可独立包含。`VisibilityKind::Public/Private` 表示声明或成员的可见性，具体访问检查尚未接入。
+- `ir/coredefines.h` 集中定义 `ValueKind`、`TypeKind`、`ParameterKind`、`CallingConvention`、`LanguageLinkage`、`FunctionBinding`、`AccessKind` 和 `VisibilityKind`，仅依赖 `<cstdint>` 与枚举注册表，可独立包含。`VisibilityKind::Public/Private` 保存函数的源码可见性：顶层默认 Public，显式 private 和局部函数为 Private。import 绑定和模块成员访问检查目标函数权限，字节码生成保留这些权限；成员类型等尚未实现的声明继续由对应语义阶段报告。
+- 源码可见性、ABI 和原生方向分别保存。`import "C"` 使用 `FunctionBinding::Import` 且没有函数体，顶层 `export "C"` 使用 Export 且必须有函数体，`[abi("C")]` 只将 Local 定义设为 C ABI。普通本地定义和仅带 ABI 的定义允许按参数列表重载，原生导入导出名称不允许重载。`private export` 不开放 Ink 模块访问，但允许已纳入同一程序的原生导入按名字和签名匹配；重复导出和签名不匹配分别报告 `INK-S0049`、`INK-S0050`。原生导入不自动加载 Ink 源文件，也不加载新的宿主动态库；当前没有原生 DLL/SO 生成或可传给 C 的本地回调地址。
 - `ir/Values.def` 生成 `ValueKind`，以 C++ 类名标识实际对象，如 `IntegerType`、`FunctionType`、`CallInstruction`；类型和常量条目分别生成 `Type::classof()`、`Constant::classof()`，具体类的 `classof()` 直接检查同名值种类。元类型、void、bool、label、module 共用实际类 `BuiltinType`，通过 `TypeKind` 区分。`Type`、`UserDefinedType`、`Constant` 仅作为中间基类，不单独占用值种类。
 - `ir/type/Types.def` 是类型种类与基类分类的注册表，每条记录为 `INK_IR_TYPE(Name, Base)`，`Base` 为 `BuiltinType` 或 `UserDefinedType`。`TypeKind` 和两个基类的 `classof()` 从同一张表生成；`FunctionType` 定义在 `ir/function/function_type.h`，其余具体类型类体与构造定义在 `ir/type` 的独立头文件中，其继承关系应与注册表一致。
 - `Name` 是一个 32 位池内索引，`NamePool` 为同名字节串只保存一份内容；池扩容保持名称与字符串视图稳定。空输入和索引耗尽返回无效名称。名称相等和哈希仅在同一池内有意义；索引本身不携带池身份，无法检测恰好落在另一池有效范围内的外来索引。词法验证与 NFC 处理仍由 tokenizer 负责。
@@ -172,7 +173,7 @@ Parser 发布 AST 后，semantic 只通过只读接口访问。当前 Parser API
 | 类 | 具体职责 | 主要入口或输出 |
 | --- | --- | --- |
 | `DeclCollector` | 在允许的作用域登记源码名称和绑定；只有泛型函数及泛型类创建语义 `Decl`，记录尚未激活的区域 | `collectScope()`、`registerDeclaration()` |
-| `NameResolver` | 已实现词法作用域、实体成员作用域、绑定及重载候选集合；导入、继承成员及访问权限检查待扩展 | 当前为 `bind()`、`lookup()`、`lookupLocal()`、`lookupMember()`；后续扩展 `LookupResult` |
+| `NameResolver` | 已实现词法作用域、实体成员作用域、绑定及重载候选集合；Analyzer 已实现模块函数导入及可见性检查；继承成员及其他访问权限检查待扩展 | 当前为 `bind()`、`lookup()`、`lookupLocal()`、`lookupMember()`；后续扩展 `LookupResult` |
 | `DeclAnalyzer` | 检查泛型形参、函数签名、基类/接口、字段、全局初始化和属性；按需完成声明 | `analyzeHeader()`、`completeType()`、`analyzeInitializer()` |
 | `TypeResolver` | 将 `TypeSyntax` 包装的表达式解释为类型；必要时请求 comptime；返回具体类型或依赖配方 | `resolveType()` → 具体 `TypeId` 或依赖结果 |
 | `ExprAnalyzer` | 检查表达式，确定类型、值类别、可写性、阶段依赖和操作含义；不执行运行时表达式 | `analyzeExpr()` → `ExprInfo` |
@@ -208,14 +209,16 @@ Parser 发布 AST 后，semantic 只通过只读接口访问。当前 Parser API
 | --- | --- | --- |
 | `ComptimeEvaluator` | 求值显式 comptime 表达式和语句、展开静态结构；函数调用交给 ExecutionEngine 执行具体 IR | `evaluateExpr()`、`evaluatePlace()`、`executeStmt()`、`callFunction()` |
 | `EvalContext` | 一次求值请求的状态集合；关联语义上下文、共享模块存储、当前局部/调用帧、预算和诊断轨迹 | 求值模式、目标、请求位置、调用帧栈 |
-| `ExecutionEngine` / `ExecutionFrame` | 区分模块、函数分析、实际调用及词法块的活动记录；按绑定身份保存编译期对象或运行时占位 | `createFrame()`、`allocate()`、`bindRuntime()`、`lookup()`、`endFrame()` |
+| `ExecutionEngine` / `ExecutionFrame` | 管理模块、函数分析及词法块中的语义活动记录；按绑定身份保存编译期对象 | `createFrame()`、`allocate()`、`lookup()`、`resolveValue()`、`endFrame()` |
+| `ExecutionCompiler` / `ExecutionLinker` / `ExecutionMachine` | 将具体函数 IR 降低为自有执行镜像，按函数 ID 链接，以独立槽位数组和显式 VM 调用栈执行 | `compile()`、`verify()`；统一经 `ExecutionEngine::execute()` 进入 |
+| `SemanticValueBridge` / `RuntimeTypeTable` | 在语义边界转换类型、常量、函数与运行时 ID 和载荷；布局、签名和运行时值不借用 IR 对象 | `lowerType()`、`lowerFunction()`、`lowerValue()`、`raiseValue()` |
 | `EvalMemory` | 管理编译期对象及引用，验证初始化、越界、别名、生命周期和目标布局 | `allocate()`、`load()`、`store()`、`destroy()` |
 | `EvalBudget` | 限制步骤、递归、对象数量、分配字节和结构展开数量，支持取消 | 显式预算状态；贯穿嵌套求值与实例化请求 |
 | `BuiltinRegistry` | 登记语言内建的签名、编译期实现和运行时表示，确保两种执行方式使用一致的操作契约 | 内建操作描述、允许的编译期能力 |
 
 `EvalContext`、`EvalFrame` 和 `EvalBudget` 可以先实现为小型状态记录；无需为每个字段建立抽象接口。`BuiltinRegistry` 只在需要内建操作时扩展，不把任意宿主函数调用作为默认编译期能力。
 
-当前实现使用 [`ExecutionFrameKind`](../src/include/ink/execution/engine/execution_frame.h) 区分 `Module`、`Analysis`、`Call` 和 `Block`，使用 [`ExecutionEngine`](../src/include/ink/execution/engine/execution_engine.h) 管理存储及预算。上表其余 `Eval*` 名称描述后续完整求值器的逻辑职责，不表示这些类都已经存在。
+当前语义绑定帧使用 [`ExecutionFrameKind`](../src/include/ink/execution/engine/execution_frame.h)，保留 `Module`、`Analysis`、`Call` 和 `Block` 枚举；具体函数执行使用 `ExecutionMachine` 私有的 `CallFrame`，其参数和中间结果保存在相对槽位中。两条路径通过 [`ExecutionEngine`](../src/include/ink/execution/engine/execution_engine.h) 共享存储与预算，详见 [Ink 执行字节码](Ink-Execution-Bytecode.md)。上表其余 `Eval*` 名称描述后续完整求值器的逻辑职责，不表示这些类都已经存在。
 
 ### 3.6 控制流、验证与产物
 
@@ -346,7 +349,7 @@ Created → ResolvingSignature → SignatureReady → CheckingBody → Ready
 | --- | --- | --- |
 | 模块帧 `Module` | 开始分析模块时建立，在执行引擎生命周期内保持有效 | 模块级编译期对象；声明允许写入的对象持续可写，后续求值访问同一位置 |
 | 函数分析帧 `Analysis` | 开始检查并生成某个具体函数 IR 时建立，处理结束后退出 | 显式局部 `comptime` 对象；普通形参和局部变量生成 IR，不在此帧分配执行存储 |
-| 函数调用帧 `Call` | 每次实际 IR 调用建立，调用结束后退出 | 本次形参值、SSA 结果及 IR 局部存储；编译期与普通执行遵守同一规则 |
+| 函数调用帧 `ExecutionMachine::CallFrame` | 每次具体函数调用压入 VM 栈，返回或失败时退出 | 本次形参和中间结果的固定槽位、PC、返回槽及局部存储；编译期与普通执行遵守同一规则 |
 
 语义求值的词法块可建立 `Block` 子帧，使编译期局部对象的生命周期随块退出结束。函数 IR 中的名称已绑定到具体对象，实际调用不恢复 AST 名称环境，也不会读取调用者的同名局部变量。退出语义块帧不能销毁其父模块帧中的对象。
 
@@ -419,23 +422,24 @@ comptime var Y: int32 = Counter;
 
 模块级可变编译期内存显式属于模块帧，由后续语义求值共享。函数 IR 中已生成的编译期常量保存定义时的值，函数局部内存按其分析或调用身份隔离。初始化完成不冻结整个模块，后续合法编译期写入仍可更新模块对象。跨边界保存的是本次求值所需的结果快照，已经发布的常量、类型或实例不会被后续写入追溯修改。
 
-普通运行时全局变量的当前值不能作为编译期输入。当前已通过 libffi 开放原生宿主的定参 `extern "C"` 调用，不限制函数名，外部副作用按源程序的调用顺序执行；外部文件、环境等依赖跟踪仍需后续接入。模块帧尚未接入跨模块加载和存档协议；本节只规定当前分析中的对象与结果边界，不规定多个导入模块之间的全局执行顺序。
+普通运行时全局变量的当前值不能作为编译期输入。当前原生导入可匹配同一程序中已纳入的导出；未匹配的定参 `import "C"` 调用通过 libffi 进入原生宿主，不限制函数名，外部副作用按源程序的调用顺序执行；外部文件、环境等依赖跟踪仍需后续接入。模块帧尚未接入跨模块加载和存档协议；本节只规定当前分析中的对象与结果边界，不规定多个导入模块之间的全局执行顺序。
 
 ### 6.5 当前最小执行模块的边界
 
-[`ExecutionEngine`](../src/include/ink/execution/engine/execution_engine.h)、[`ExecutionFrame`](../src/include/ink/execution/engine/execution_frame.h)、[`ExecutionHeap`](../src/include/ink/execution/memory/execution_heap.h)、[`ExecutionObject`](../src/include/ink/execution/support/execution_object.h)、[`ExecutionValue`](../src/include/ink/execution/value/execution_value.h) 和 [`ExecutionResult`](../src/include/ink/execution/support/execution_result.h) 的公共头位于 `src/include/ink/execution`，实现位于 `src/lib/execution`；两侧按 `engine/`、`memory/`、`value/`、`support/`、`ffi/` 分目录。七种值子类分别使用 `value/execution_*_value.h` 和 `.cpp`，基类头 `value/execution_value.h` 保留 `ExecutionValueRef` 与 `ExecutionValueResult`；帧构造和析构位于 `engine/execution_frame.cpp`，执行状态的 Core 诊断适配位于 `support/execution_diagnostic.cpp`。它们同时服务于显式 comptime 语句求值和统一的 IR 函数执行，提供以下基础能力：
+[`ExecutionEngine`](../src/include/ink/execution/engine/execution_engine.h)、[`ExecutionFrame`](../src/include/ink/execution/engine/execution_frame.h)、[`ExecutionHeap`](../src/include/ink/execution/memory/execution_heap.h)、[`ExecutionObject`](../src/include/ink/execution/support/execution_object.h)、[`ExecutionValue`](../src/include/ink/execution/value/execution_value.h) 和 [`ExecutionResult`](../src/include/ink/execution/support/execution_result.h) 的公共头位于 `src/include/ink/execution`，实现位于 `src/lib/execution`；两侧按 `bytecode/`、`runtime/`、`bridge/`、`engine/`、`memory/`、`value/`、`support/`、`ffi/` 分目录。`bytecode/` 定义操作码模式、连续指令产物和函数编译器，`engine/execution_machine*.cpp` 承担槽位执行和显式调用栈。七种值子类分别使用 `value/execution_*_value.h` 和 `.cpp`，基类头 `value/execution_value.h` 保留 `ExecutionValueRef` 与 `ExecutionValueResult`；语义绑定帧构造和析构位于 `engine/execution_frame.cpp`，执行状态的 Core 诊断适配位于 `support/execution_diagnostic.cpp`。它们同时服务于显式 comptime 语句求值和统一的函数执行，执行表示、缓存与预算详见 [Ink 执行字节码](Ink-Execution-Bytecode.md)。当前提供以下基础能力：
 
 - `ExecutionObject` 是地址稳定、不可复制或移动的对象基类，`ExecutionValue` 是其抽象值子类；`ExecutionVoidValue`、`ExecutionBoolValue`、`ExecutionIntegerValue`、`ExecutionFloatValue`、`ExecutionStringValue`、`ExecutionPointerValue` 和 `ExecutionFunctionValue` 分别保存一种不可变载荷。`ExecutionValueRef` 通过 RAII 引用计数共享只读值对象，最后一个引用释放时销毁对象，不使用 GC。类型和函数身份仍借用 IR；标量和字符串结果可以越过引擎生命周期，只要其 IR 类型保持有效。普通结果使用 `ExecutionValueResult`，默认失败，成功结果必须有非空值引用；运行中间值不驻留到常量池。
-- `ExecutionHeap` 统一创建值和存储，唯一拥有 `ExecutionStorage` 的两个具体子类：Cell 保存可替换的值引用及类型、可写性和运行时占位状态，Buffer 保存固定字节数组。以绑定身份查询受控 `ExecutionPlace`，通过 `allocateValue()`、`loadValue()`、`storeValue()` 检查上下文、类型、初始化、可写性和对象生命周期；写入 Cell 不改变已读取的不可变值快照。指针别名访问同一存储，不使用宿主对象地址表示此身份。
-- 区分模块、分析、调用和块帧，保留模块存储，退出局部帧时释放其 Cell 及该帧创建的 CString Buffer。`ExecutionStorageRef` 是记录弱 Heap 控制块、槽位和代次的非拥有身份，`ExecutionPlace` 和缓冲区指针通过它借用存储。显式释放或帧结束会真正销毁存储并使旧句柄失效；槽位可以按新代次重用，重建 Heap 的控制块身份也不会与旧 Heap 混淆。累计存储分配预算包含 Cell 和 Buffer，不因释放或槽位重用返还。
+- `ExecutionHeap` 提供语义值与存储入口，Cell/Buffer 由不依赖 IRContext 的 `ExecutionMemoryManager` 独占管理：Cell 根据 `StorageLayout` 保存原生标量或 `RuntimeValue`，以及类型 ID、可写性和运行时占位状态，Buffer 保存固定字节数组。以绑定身份查询受控 `ExecutionPlace`，通过 `allocateValue()`、`loadValue()`、`storeValue()` 在桥接边界检查上下文、类型、初始化、可写性和对象生命周期；写入 Cell 不改变已读取的不可变值快照。指针别名访问同一存储，不使用宿主对象地址表示此身份。
+- 语义模块、分析和词法块使用 `ExecutionFrame` 管理绑定；实际函数调用使用独立 VM 帧管理参数槽、结果槽及局部存储。模块存储持续保留，局部语义帧或 VM 调用帧退出时释放其 Cell，VM 帧也释放该次调用创建的 CString Buffer。`ExecutionStorageRef` 是记录弱 Heap 控制块、槽位和代次的非拥有身份，`ExecutionPlace` 和缓冲区指针通过它借用存储。显式释放或帧结束会真正销毁存储并使旧句柄失效；槽位可以按新代次重用，重建 Heap 的控制块身份也不会与旧 Heap 混淆。累计存储分配预算包含 Cell 和 Buffer，不因释放或槽位重用返还。
 - 语义层将已求值实参转换为 `ExecutionValueRef`，通过 `execute()` 统一执行函数，并在编译期调用的返回边界冻结为常量；不保存 AST 函数体回调。`allocate()`、`load()`、`store()` 负责语义变量的常量边界转换，分别复用 `allocateValue()`、`loadValue()`、`storeValue()`。`load()` 返回 `ExecutionResult`；`execute()` 返回 `ExecutionValueResult`。常量冻结只支持同一上下文的 bool、整数、浮点和字符串，指针和函数拒绝冻结，void 表示成功且无常量。
-- `execute(Function, span<const ExecutionValueRef>)` 建立独立调用帧，从具体 IR 函数入口按块内顺序执行 Alloca、Store、Load、整数 Add、LogicalNot、LogicalAnd、LogicalOr、Compare、CString、Call、Branch、ConditionalBranch 和 Return，包括嵌套调用。块内 Function 声明由 `makeFunctionValue()` 构造函数值，不执行函数体；全部指令通过 `executeInstruction()` 分派到 `engine/instruction/` 下各自的处理函数，分支逻辑分别位于 `execution_branch.cpp` 和 `execution_conditional_branch.cpp`。调用帧保存参数及 SSA 值引用，函数调用返回 `ExecutionValueResult`；Branch 无条件跳转，ConditionalBranch 根据 bool 执行值只选择一个后继块，不把基本块存储顺序当作控制流；普通执行和编译期函数调用共享这一路径。源码循环 lowering 仍待实现。
-- 指令分派和各指令处理函数统一返回 [`ExecutionInstructionResult`](../src/include/ink/execution/support/execution_instruction_result.h)，其实现位于 `support/execution_instruction_result.cpp`。动作分为 `Continue(Value)`、`Jump(const ir::BasicBlock *)`、`Return(Value)` 和 `Failure(Status)`，分别表达继续并保存 SSA 结果、跳转、结束当前调用和失败传播。`executeBody()` 只负责预算检查和消费这些动作，不识别具体 IR 指令。`makeFunctionValue()`、`evaluate()`、`loadValue()` 和公开 `execute()` 继续使用 `ExecutionValueResult`；Call 将被调用函数的返回值转为自己的 `Continue` 结果，不结束调用者。
-- C 链接函数始终通过宿主符号和 FFI 调用，不执行 Ink 函数体。`ffi/external_function.cpp` 负责公共入口校验和符号查找；`ffi/native_symbol.cpp` 封装平台 API；`ffi/ffi_type.cpp` 映射 IR 类型；`ffi/ffi_argument.cpp` 验证 `ExecutionValueRef` 并准备稳定的原生参数；`ffi/ffi_call.cpp` 分步准备签名与参数、调用并读取执行结果。外部入口显式接收调用者的 `ExecutionHeap &` 和 `span<const ExecutionValueRef>`，不使用特定函数的 C++ 签名或名称白名单。IR 兼容参数转换拒绝未求值节点，需要执行引擎先取得其结果。
+- `execute(Function, span<const ExecutionValueRef>)` 通过 `ExecutionCompiler` 按函数将 Alloca、Store、Load、整数 Add、LogicalNot、LogicalAnd、LogicalOr、Compare、CString、Call、Branch、ConditionalBranch 和 Return 降低为连续字节码。`ExecutionMachine` 按相对槽位执行，在显式 VM 栈中压入和退出调用帧；函数内的 Function 声明只产生函数值。整数位宽与符号、操作数槽和分支 PC 在执行前确定，满足地址使用约束的局部存储使用专门的 Local 指令。代码及直接调用点链接按需缓存，`IRContext::revision()` 改变后失效；不会缓存函数结果。普通执行与编译期函数调用共享这一路径，源码循环 lowering 仍待实现。
+- 操作码和 `Operands[0..3]` 各项的操作数种类登记在 `bytecode/instruction.def`；VM 分派直接更新 PC、槽位和调用栈，失败通过 `ExecutionStatus` 传播，公开 `execute()` 返回 `ExecutionValueResult`。[`ExecutionInstructionResult`](../src/include/ink/execution/support/execution_instruction_result.h) 与 `support/execution_instruction_result.cpp` 保留为公共兼容类型，当前 VM 不使用它，也不调用旧的逐 IR 指令处理函数。
+- `SemanticValueBridge` 将语义类型、常量、函数降低为运行时 ID 和 `RuntimeValue`；`ExecutionLinker` 拥有并链接 `ExecutionImage`，按需编译具体函数。执行函数拥有初始槽与常量字节，共享不含 IR 指针的 `StorageLayout` 表；VM、Cell 和原生调用使用运行时表示，对外语义结果通过桥接层转换。定宽整数内存操作选择 `LoadI*` / `StoreI*`，不逃逸局部变量使用固定帧单元，每次动态分配重置初始化状态并继续计入预算。类型身份与大小/对齐分别保留，间接调用校验完整签名 ID。准备完整的 `ExecutionImage` 可直接构造无桥接层链接器，在源 IR 析构后执行；语义入口仍使用带桥接层的按需编译模式。
+- 原生导入优先匹配当前程序已纳入的同名同签名导出，未匹配时通过宿主符号和 FFI 调用；`export "C"` 和 `[abi("C")]` 本地函数执行各自的字节码函数体。VM 使用 `NativeCallCache` 按需准备和缓存 `NativeCallPlan`，其原生地址、libffi 签名、参数及返回值布局不保存 IR 引用；`runtime_ffi_type.cpp`、`runtime_ffi_argument.cpp`、`runtime_ffi_call.cpp` 每次直接封送 `RuntimeValue`。`ffi/external_function.cpp` 与原有 `ffi_type.cpp`、`ffi_argument.cpp`、`ffi_call.cpp` 保留语义值公共接口，入口显式接收调用者的 `ExecutionHeap &` 和 `span<const ExecutionValueRef>`。`ffi/native_symbol.cpp` 封装平台 API，不使用特定函数的 C++ 签名或名称白名单。IR 兼容参数转换拒绝未求值节点，需要执行引擎先取得其结果。
 - 编译期表达式由语义层按源码顺序和实际控制流直接求值，通过共享步骤/资源预算和取消状态限制执行。
 - 复用 IR 的 bool 和任意位宽整数常量，提供一元运算、整数算术/位运算/比较及 bool 逻辑；运算先由语义层确定操作数类型，不隐式执行类型转换。
 
-IR 指令执行后，其 SSA 结果保存在当前调用帧；`evaluate()` 只读取常量、函数、已执行指令快照或已有绑定，不按操作数引用重新执行 Call 等副作用。同一 Call 的结果被使用两次仍只调用一次，再次执行函数则使用新的帧及结果表。AST 循环和静态展开遵守前述每次实际执行的规则。
+函数指令执行后，其结果写入 `ExecutionMachine` 当前调用帧的固定槽位。`ExecutionFrame` 只保存语义绑定和所属存储，没有函数 SSA 结果表；`resolveValue()` 将常量、函数身份或已有语义绑定解析为执行值，不读取 VM 槽位，也不执行指令。同一 Call 的结果被使用两次仍只调用一次，再次执行函数则使用新的 VM 帧及槽位内容。AST 循环和静态展开遵守前述每次实际执行的规则。
 
 FFI 支持 bool、8/16/32/64 位整数、f32/f64、指针参数与返回值及 void 返回，拒绝聚合、变参、f16 和其他未映射类型。指针区分 null、受控 Place、带偏移的弱 Buffer 身份和 Native 原生地址；Place 不能直接封送为宿主缓冲区。Pointer 值引用只拥有指针载荷，不拥有其目标存储。`ExecutionPointer::status()` 将已释放的存储报告为 `ExpiredPlace`，缺少有效身份或偏移越界报告为 `InvalidPlace`；尾后地址可表示但不能解引用。当前引擎中的缓冲区读写限于 8 位整数，Native 只用于 FFI 流转，不开放任意宿主内存读取。
 
@@ -544,11 +548,14 @@ Reader 必须检查版本、长度、分配预算、种类编号、必需子节�
 | `generic_binder.h`、`generic_instantiator.h`、`instance_store.h` | 泛型绑定、实例完成和缓存 |
 | `expansion_builder.h` | 编译期结构展开及来源映射 |
 | `comptime_evaluator.h`、`eval_context.h`、`builtin_registry.h` | AST 求值与语义查询协调、控制流及内建操作；建议结构 |
-| `execution/engine/` | 已实现的执行入口、帧、带显式分支的 IR 执行、内存访问及运算调度 |
+| `execution/bytecode/` | opcode/操作数宏表、执行函数产物、槽位及跳转布局、函数编译与验证 |
+| `execution/runtime/` | 运行时类型/签名和函数 ID、自有存储布局、位模式与复杂值载荷 |
+| `execution/bridge/` | 语义类型、常量、函数身份与运行时表示的转换 |
+| `execution/engine/` | 执行入口、语义绑定帧、代码缓存、显式 VM 调用栈、槽位分派、内存访问及运算调度 |
 | `execution/memory/` | 统一堆工厂、唯一拥有的 Cell/Buffer、弱存储身份及指针载荷 |
 | `execution/value/` | 抽象值基类、RAII 值引用、执行值结果、七种独立值子类及精确位宽整数运算 |
-| `execution/support/` | 执行对象基类、公共状态、指令动作结果、常量结果与存储位置结果、Core 执行诊断适配 |
-| `execution/ffi/` | 外部调用入口、ABI 类型映射、参数封送、原生返回值处理及符号缓存 |
+| `execution/support/` | 执行对象基类、公共状态、保留兼容的指令动作结果、常量结果与存储位置结果、Core 执行诊断适配 |
+| `execution/ffi/` | 外部调用入口、ABI 类型映射、参数封送、原生返回值处理、符号与调用计划缓存 |
 | `flow_analyzer.h`、`cleanup_planner.h` | 控制流分析和清理计划 |
 | `semantic_verifier.h`、`runtime_lowerer.h` | 闭合验证和 IR 生成 |
 | `semantic_module_loader.h`、`semantic_module_io.h` | 模块加载和存档读写 |
@@ -556,7 +563,7 @@ Reader 必须检查版本、长度、分配预算、种类编号、必需子节�
 
 依赖方向为 `semantic → execution / ir / core / tokenizer / parser`，`execution → ir`；Core、Parser 和 ExecutionEngine 均不反向依赖 semantic。ExecutionInteger 使用项目自有的整数运算实现，execution 不增加直接 LLVM 依赖。是否把 lowering 和模块存档拆为独立 target 可在接入时决定，不影响上述类边界。
 
-semantic 对象模型已使用显式源文件列表接入构建，采用与 Parser 公共头兼容的 C++20，并保持目标级禁用异常；测试加入统一的 `ink_tests`。execution 测试按 `src/testcase/execution/engine`、`value`、`ffi` 和 `cli` 组织，源码样例仍位于 `src/testcase/execution/programs`。后续新增分析器实现时继续维护目标源文件列表。
+semantic 对象模型已使用显式源文件列表接入构建，采用与 Parser 公共头兼容的 C++20，并保持目标级禁用异常；测试加入统一的 `ink_tests`。execution 测试按 `src/testcase/execution/bytecode`、`engine`、`memory`、`value`、`support`、`ffi` 和 `cli` 组织，源码样例仍位于 `src/testcase/execution/programs`。后续新增分析器实现时继续维护目标源文件列表。
 
 ### 9.2 实现阶段
 

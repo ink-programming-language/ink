@@ -115,6 +115,35 @@ namespace ink::semantic
 
   Analyzer::ExpressionResult Analyzer::analyzeUnaryExpr(AnalysisState &State, const parser::UnaryExpr &Node, std::size_t Depth)
   {
+    if (Node.op() == tokenizer::TokenKind::Amp)
+    {
+      return {resolveAddress(State, *Node.operand(), Depth + 1)};
+    }
+    if (Node.op() == tokenizer::TokenKind::Star)
+    {
+      AnalysisState::EvaluationGuard Expected(State, State.Evaluating, nullptr);
+      const ExpressionResult Operand = analyzeExpr(State, *Node.operand(), Depth + 1);
+      if (!Operand)
+      {
+        return {};
+      }
+      if (!Operand.ValueObject || !ir::PointerType::classof(&Operand.ValueObject->type()) || static_cast<const ir::PointerType &>(Operand.ValueObject->type()).pointeeType().typeKind() == ir::TypeKind::Void)
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidDereference>(Node.getSourceRange());
+        return {};
+      }
+      if (State.Evaluating)
+      {
+        reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
+        return {};
+      }
+      const ir::Value *Result = State.Builder.createLoadInstruction(*Operand.ValueObject);
+      if (!Result)
+      {
+        State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
+      }
+      return {Result};
+    }
     if (Node.op() == tokenizer::TokenKind::PlusPlus || Node.op() == tokenizer::TokenKind::MinusMinus)
     {
       return analyzeUpdateExpr(State, *Node.operand(), Node.op(), false, Node, Depth);

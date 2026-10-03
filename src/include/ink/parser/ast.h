@@ -53,10 +53,22 @@ namespace ink::parser
     DeclarationOnly,
     Definition
   };
+  enum class NativeSymbolKind
+  {
+    None,
+    Import,
+    Export,
+  };
   enum class AggregateForm
   {
     Forward,
     Definition
+  };
+  enum class DeclarationVisibility
+  {
+    Default,
+    Public,
+    Private,
   };
   class ASTNodeBase
   {
@@ -126,6 +138,14 @@ namespace ink::parser
   class Decl : public ASTNodeBase
   {
     public:
+      DeclarationVisibility visibility() const noexcept
+      {
+        return Visibility;
+      }
+      void setVisibility(DeclarationVisibility Value) noexcept
+      {
+        Visibility = Value;
+      }
       static bool classof(const ASTNodeBase *Node)
       {
         return Node && categoryOf(Node->getKind()) == ASTCategory::Decl;
@@ -133,6 +153,9 @@ namespace ink::parser
 
     protected:
       using ASTNodeBase::ASTNodeBase;
+
+    private:
+      DeclarationVisibility Visibility = DeclarationVisibility::Default;
   };
   class SimpleItem : public ASTNodeBase
   {
@@ -2062,7 +2085,7 @@ namespace ink::parser
       {
         return Node && Node->getKind() == Kind;
       }
-      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body, Expr *Linkage = nullptr)
+      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body, Expr *Linkage = nullptr, NativeSymbolKind NativeSymbol = NativeSymbolKind::None)
           : Decl(Kind, Range),
             Attributes(Attributes),
             Name(Name),
@@ -2071,7 +2094,8 @@ namespace ink::parser
             ReturnType(ReturnType),
             BodyKind(BodyKind),
             Body(Body),
-            Linkage(Linkage)
+            Linkage(Linkage),
+            NativeSymbol(NativeSymbol)
       {
       }
       ASTArray<Attribute> attributes() const noexcept
@@ -2102,7 +2126,11 @@ namespace ink::parser
       {
         return BodyKind;
       }
-      // Null without extern; a string literal, or MissingExpr during recovery, otherwise.
+      NativeSymbolKind nativeSymbolKind() const noexcept
+      {
+        return NativeSymbol;
+      }
+      // Null without native import/export; a string literal, or MissingExpr during recovery, otherwise.
       Expr *linkage() noexcept
       {
         return Linkage;
@@ -2129,6 +2157,7 @@ namespace ink::parser
       FunctionBodyKind BodyKind;
       BlockStmt *Body;
       Expr *Linkage;
+      NativeSymbolKind NativeSymbol;
   };
   class ClassDecl final : public Decl
   {

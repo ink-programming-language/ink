@@ -31,6 +31,7 @@ namespace ink::semantic
 
     // Each call starts at the shared root and enters a distinct module member scope.
     AnalysisState State(Context, Context.scopeStore().rootScope(), Input.Unit->input());
+    State.CurrentModule = Result;
     State.Frame = Context.comptimeState().Engine.createFrame(execution::ExecutionFrameKind::Module);
     if (!State.Frame)
     {

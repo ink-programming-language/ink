@@ -57,6 +57,11 @@ check_compiler(default_entry 0 "^$" "^$" "" --interpret -i "${Input}")
 # Explicit entry selection preserves the selected i32 result as the process exit code.
 check_compiler(custom_entry 23 "^$" "^$" "" --interpret --entry custom -i "${Input}")
 
+# Standalone interpretation shares signature predeclaration with independently compiled source modules.
+set(ForwardInput "${RunDirectory}/forward helper.ink")
+file(WRITE "${ForwardInput}" "func main(): i32 { return helper(); } private func helper(): i32 { return 42; }")
+check_compiler(forward_helper 42 "^$" "^$" "" --interpret -i "${ForwardInput}")
+
 # A void entry in a UTF-8-named file succeeds without publishing an IR dump.
 set(VoidInput "${RunDirectory}/入口源码.ink")
 file(WRITE "${VoidInput}" "func main(): void { var Local: i32 = 7; }")
@@ -85,9 +90,9 @@ check_compiler(missing_entry 2 "^$" "entry 'absent' was not found" "" --interpre
 # Entry validation distinguishes invalid signatures, linkage, compile-time bodies and ambiguous overload sets.
 check_source_failure(entry_arguments "func main(Value: i32): i32 { return Value; }" 2 "must take no arguments")
 check_source_failure(entry_return_type "func main(): bool { return true; }" 2 "must return void or i32")
-check_source_failure(entry_external "extern \"C\" func main(): i32;" 2 "must use Ink language linkage")
+check_source_failure(entry_external "import \"C\" func main(): i32;" 2 "cannot be a native import")
 check_source_failure(entry_comptime "comptime func main(): i32 { return 0; }" 2 "cannot be a comptime function")
-check_source_failure(entry_missing_body "func main(): i32;" 2 "requires a runtime body")
+check_source_failure(entry_missing_body "func main(): i32;" 1 "INK-S0028")
 check_source_failure(entry_ambiguous "func main(): i32 { return 0; } func main(Value: i32): i32 { return Value; }" 2 "is ambiguous")
 
 # Lexical, syntactic and semantic source errors retain their stage diagnostics and source-error exit status.
@@ -96,9 +101,8 @@ check_source_failure(parse_error "func main(): i32 { return ;" 1 "INK-P")
 check_source_failure(semantic_error "func main(): i32 { return UnknownValue; }" 1 "INK-S")
 
 # Runtime user failures retain their execution code, entry source and context without compile-time wording or duplicate diagnostics.
-check_source_failure(missing_symbol "extern \"C\" func InkMissingCompilerProcessSymbol71e4935b(): i32; func main(): i32 { return InkMissingCompilerProcessSymbol71e4935b(); }" 1 "error\\[INK-E0014\\]: execution of entry 'main' failed: external symbol was not found")
-check_source_failure(missing_body "func F(): i32; func main(): i32 { return F(); }" 1 "error\\[INK-E0013\\]: execution of entry 'main' failed: missing function body")
-foreach(Name IN ITEMS missing_symbol missing_body)
+check_source_failure(missing_symbol "import \"C\" func InkMissingCompilerProcessSymbol71e4935b(): i32; func main(): i32 { return InkMissingCompilerProcessSymbol71e4935b(); }" 1 "error\\[INK-E0014\\]: execution of entry 'main' failed: external symbol was not found")
+foreach(Name IN ITEMS missing_symbol)
   file(READ "${RunDirectory}/${Name}.stderr" Error)
   if(NOT Error MATCHES "${Name}\\.ink:1: error\\[INK-E")
     message(FATAL_ERROR "${Name}: execution diagnostic lost its entry source: ${Error}; artifacts: ${RunDirectory}")
@@ -113,9 +117,12 @@ foreach(Name IN ITEMS missing_symbol missing_body)
   endif()
 endforeach()
 
+# Ordinary Ink declarations without bodies fail during analysis, even when a runtime entry could call them.
+check_source_failure(missing_body "func F(): i32; func main(): i32 { return F(); }" 1 "error\\[INK-S0028\\]")
+
 # Source branches share the same IR execution path for runtime entries and compile-time function calls.
 set(BranchInput "${RunDirectory}/branches.ink")
-file(WRITE "${BranchInput}" "func Missing(): i32; func Choose(Flag: bool): i32 { var Result: i32; if (Flag) { Result = 19; } else { Result = 23; } return Result; } func main(): i32 { return Choose(true); } func alternate(): i32 { return Choose(false); } func skipped(): i32 { if (false) { return Missing(); } else { return 17; } } comptime func StaticChoose(Flag: bool): i32 { if (Flag) { return 29; } else { return 31; } } func compiled(): i32 { return comptime StaticChoose(false); }")
+configure_file("${CMAKE_CURRENT_LIST_DIR}/inputs/interpreter_branches.ink" "${BranchInput}" COPYONLY)
 
 # Runtime bool arguments choose one branch and retain definite initialization through the merge.
 check_compiler(branch_true 19 "^$" "^$" "" --interpret -i "${BranchInput}")

@@ -322,7 +322,7 @@ namespace ink::parser::test
     Records = OriginalRecords;
     nodeRecord(Records, ASTKind::LiteralExpr).Values.pop_back();
     EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::InvalidArchive);
-    for (std::uint64_t Version : {1ULL, 2ULL})
+    for (std::uint64_t Version : {1ULL, 2ULL, 3ULL})
     {
       Records = OriginalRecords;
       Records.front().Values.front() = Version;
@@ -341,6 +341,61 @@ namespace ink::parser::test
     }
     auto Legacy = Text.Bytes;
     Legacy.replace(0, ("ast " + std::to_string(ASTTextArchiveVersion)).size(), "ast 1");
+    EXPECT_EQ(tryDeserializeASTText(Frontend, Legacy).Status, ASTArchiveStatus::UnsupportedVersion);
+  }
+
+  // Visibility is preserved for every declaration category and nested declarations in both binary and textual snapshots.
+  TEST_F(ParserTest, ASTSerializationDeclarationVisibility)
+  {
+    const auto Parsed = read("func plain(): i32 { return 0; } public func exposed(): i32 { private func hidden(): i32 { return 1; } return hidden(); } private var value = 2; public const fixed = 3; private field X: T; public class C; private enum E {}; public interface I {}; public import \"C\" func native(): i32;");
+    ASSERT_TRUE(Parsed.succeeded());
+    expectRoundTrip(Parsed, Frontend);
+    const auto Text = trySerializeASTText(Parsed);
+    ASSERT_TRUE(Text.succeeded()) << Text.Message;
+    EXPECT_NE(Text.Bytes.find("visibility = Default"), std::string::npos);
+    EXPECT_NE(Text.Bytes.find("visibility = Public"), std::string::npos);
+    EXPECT_NE(Text.Bytes.find("visibility = Private"), std::string::npos);
+    for (bool IsText : {false, true})
+    {
+      const auto Saved = IsText ? trySerializeASTText(Parsed) : trySerializeAST(Parsed);
+      ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
+      auto Loaded = IsText ? tryDeserializeASTText(Frontend, Saved.Bytes) : tryDeserializeAST(Frontend, Saved.Bytes);
+      ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
+      EXPECT_EQ(declaration(Loaded.Parsed, 0)->visibility(), DeclarationVisibility::Default);
+      EXPECT_EQ(declaration(Loaded.Parsed, 1)->visibility(), DeclarationVisibility::Public);
+      EXPECT_EQ(declaration(Loaded.Parsed, 2)->visibility(), DeclarationVisibility::Private);
+      const auto *Nested = cast<DeclStmt>(cast<FunctionDecl>(declaration(Loaded.Parsed, 1))->body()->statements()[0])->declaration();
+      EXPECT_EQ(Nested->visibility(), DeclarationVisibility::Private);
+    }
+  }
+
+  // Declaration visibility is mandatory and uses a closed enum; missing or invalid tags and the preceding text format are rejected.
+  TEST_F(ParserTest, ASTSerializationRejectsMalformedVisibility)
+  {
+    const auto Parsed = read("public func f(): i32 { return 0; }");
+    ASSERT_TRUE(Parsed.succeeded());
+    const auto Saved = trySerializeAST(Parsed);
+    ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
+    const auto Original = records(Saved.Bytes);
+    auto Records = Original;
+    nodeRecord(Records, ASTKind::FunctionDecl).Values.back() = 99;
+    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::InvalidArchive);
+    Records = Original;
+    nodeRecord(Records, ASTKind::FunctionDecl).Values.pop_back();
+    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::InvalidArchive);
+    const auto Text = trySerializeASTText(Parsed);
+    ASSERT_TRUE(Text.succeeded()) << Text.Message;
+    const std::string_view Field = ", visibility = Public";
+    const auto Position = Text.Bytes.find(Field);
+    ASSERT_NE(Position, std::string::npos);
+    for (std::string_view Replacement : {"", ", visibility = Unknown", ", visibility = 1"})
+    {
+      std::string Invalid = Text.Bytes;
+      Invalid.replace(Position, Field.size(), Replacement);
+      EXPECT_EQ(tryDeserializeASTText(Frontend, Invalid).Status, ASTArchiveStatus::InvalidArchive);
+    }
+    std::string Legacy = Text.Bytes;
+    Legacy.replace(0, ("ast " + std::to_string(ASTTextArchiveVersion)).size(), "ast 2");
     EXPECT_EQ(tryDeserializeASTText(Frontend, Legacy).Status, ASTArchiveStatus::UnsupportedVersion);
   }
 
@@ -400,6 +455,10 @@ namespace ink::parser::test
         Record Entry{5, {static_cast<std::uint64_t>(Type), 1, 1}};
         Entry.Values.insert(Entry.Values.end(), Fields.begin(), Fields.end());
         Entry.Values.push_back(0);
+        if (categoryOf(Type) == ASTCategory::Decl)
+        {
+          Entry.Values.push_back(0);
+        }
         Records.push_back(std::move(Entry));
       };
       const auto Type = static_cast<ASTKind>(Kind);
@@ -515,14 +574,17 @@ namespace ink::parser::test
   }
 
   // Linkage literals and recovered missing linkage survive snapshots without restricting vendor names or decoded bytes.
-  TEST_F(ParserTest, ASTSerializationExternLinkage)
+  TEST_F(ParserTest, ASTSerializationNativeLinkage)
   {
     const char *Sources[] = {
-        "extern \"C\" func f(msg: *u8): i32;",
-        "[tag] extern \"vendor.custom\" func f(): void {}",
-        "extern \"\\x43++\" func f(): void;",
-        "extern \"C\\0other\" func f(): void;",
-        "extern func f(): void;",
+        "import \"C\" func f(msg: *u8): i32;",
+        "[tag] export \"vendor.custom\" func f(): void {}",
+        "import \"\\x43++\" func f(): void;",
+        "import \"C\\0other\" func f(): void;",
+        "import func f(): void;",
+        "private export \"C\" func f(): void {}",
+        "[abi(\"C\")] private func f(): void {}",
+        "export func f(): void {}",
     };
     for (const char *Source : Sources)
     {
@@ -532,10 +594,32 @@ namespace ink::parser::test
     }
   }
 
+  // Binary and text snapshots reject unknown native directions and direction/linkage mismatches.
+  TEST_F(ParserTest, ASTSerializationRejectsInvalidNativeSymbolKind)
+  {
+    const auto Parsed = read("private export \"C\" func f(): void {}");
+    ASSERT_TRUE(Parsed.succeeded());
+    const auto Saved = serializeAST(Frontend, Parsed);
+    ASSERT_TRUE(Saved.succeeded());
+    for (std::uint64_t Invalid : {0U, 99U})
+    {
+      auto Records = records(Saved.Bytes);
+      auto &Values = nodeRecord(Records, ASTKind::FunctionDecl).Values;
+      Values[Values.size() - 3] = Invalid;
+      expectRejected(Frontend, archive(Records));
+    }
+    const auto Text = trySerializeASTText(Parsed);
+    ASSERT_TRUE(Text.succeeded());
+    ASSERT_NE(Text.Bytes.find("nativeSymbolKind = Export"), std::string::npos);
+    auto Invalid = Text.Bytes;
+    Invalid.replace(Invalid.find("nativeSymbolKind = Export"), std::string_view("nativeSymbolKind = Export").size(), "nativeSymbolKind = None");
+    EXPECT_FALSE(tryDeserializeASTText(Frontend, Invalid).succeeded());
+  }
+
   // A function linkage field cannot smuggle a non-string expression through the archive schema.
   TEST_F(ParserTest, ASTSerializationRejectsNonStringLinkage)
   {
-    const auto Parsed = read("extern \"C\" func f(): void;");
+    const auto Parsed = read("import \"C\" func f(): void;");
     ASSERT_TRUE(Parsed.succeeded());
     const auto Saved = serializeAST(Frontend, Parsed);
     ASSERT_TRUE(Saved.succeeded());
@@ -550,7 +634,7 @@ namespace ink::parser::test
         {
           if (Candidate.Code == 5 && Candidate.Values[0] == static_cast<std::uint64_t>(ASTKind::TypeSyntax))
           {
-            Entry.Values[Entry.Values.size() - 2] = Candidate.Values[Candidate.Values.size() - 2];
+            Entry.Values[Entry.Values.size() - 4] = Candidate.Values[Candidate.Values.size() - 2];
             Changed = true;
             break;
           }
@@ -571,7 +655,7 @@ namespace ink::parser::test
       {
         core::CompilationContext Producer;
         core::FrontendContext Frontend(Producer);
-        const auto Id = Producer.sourceManager().addSource("directory/源文件.ink", "extern \"vendor.custom\" func retained[T: type](x: T): T { return x; }");
+        const auto Id = Producer.sourceManager().addSource("directory/源文件.ink", "export \"vendor.custom\" func retained[T: type](x: T): T { return x; }");
         const auto Parsed = parse(Frontend, tokenizer::tokenizeSource(Frontend, Id));
         ASSERT_TRUE(Parsed.succeeded());
         Expected = dumpAST(*Parsed.Unit);
@@ -659,6 +743,8 @@ namespace ink::parser::test
     Records[0].Values[0] = ASTArchiveVersion + 1;
     expectRejected(Frontend, archive(Records), ASTArchiveStatus::UnsupportedVersion);
     Records[0].Values[0] = 1;
+    expectRejected(Frontend, archive(Records), ASTArchiveStatus::UnsupportedVersion);
+    Records[0].Values[0] = 4;
     expectRejected(Frontend, archive(Records), ASTArchiveStatus::UnsupportedVersion);
     Records = records(Saved.Bytes);
     Records[0].Values.push_back(0);

@@ -27,6 +27,10 @@ namespace ink::execution
           return Status;
         }
       }
+      else if (Pointer.kind() == ExecutionPointer::Kind::Buffer && !Heap.owns(Pointer.bufferRef()))
+      {
+        return ExecutionStatus::InvalidPlace;
+      }
       const ExecutionStatus Status = Pointer.status();
       if (Status != ExecutionStatus::Success)
       {
@@ -76,8 +80,33 @@ namespace ink::execution
     const ir::Type &Pointee = static_cast<const ir::PointerType &>(*Address.type()).pointeeType();
     if (Pointer.kind() == ExecutionPointer::Kind::Place)
     {
-      ExecutionValueResult Result = loadValue(Pointer.place());
-      return Result && Result.Value.type() != &Pointee ? ExecutionValueResult{ExecutionStatus::TypeMismatch} : Result;
+      const ExecutionCell &Cell = *Pointer.place().storage().cell();
+      if (Cell.layout().Domain != Heap.bridge().types()->domain())
+      {
+        return {ExecutionStatus::TypeMismatch};
+      }
+      if (Pointer.offset() == 0 && &Pointee == Heap.bridge().sourceType(Cell.type()))
+      {
+        return loadValue(Pointer.place());
+      }
+      if (!Cell.data() || !ir::IntegerType::classof(&Pointee) || static_cast<const ir::IntegerType &>(Pointee).bitWidth() != 8 || static_cast<const ir::IntegerType &>(Pointee).isSigned())
+      {
+        return {ExecutionStatus::TypeMismatch};
+      }
+      if (Pointer.offset() >= Cell.size())
+      {
+        return {ExecutionStatus::InvalidPlace};
+      }
+      if (!Cell.initialized())
+      {
+        return {ExecutionStatus::Uninitialized};
+      }
+      if (consumeStep() != ExecutionStatus::Success)
+      {
+        return {LastStatus};
+      }
+      const auto Byte = static_cast<const unsigned char *>(Cell.data())[Pointer.offset()];
+      return {ExecutionStatus::Success, Heap.integer(Pointee, ExecutionInteger(8, Byte))};
     }
     if (Pointer.kind() == ExecutionPointer::Kind::Buffer)
     {
@@ -124,7 +153,37 @@ namespace ink::execution
     const ExecutionPointer &Pointer = Address.pointer();
     if (Pointer.kind() == ExecutionPointer::Kind::Place)
     {
-      return storeValue(Pointer.place(), Value);
+      ExecutionCell &Cell = *Pointer.place().storage().cell();
+      if (Cell.layout().Domain != Heap.bridge().types()->domain())
+      {
+        return ExecutionStatus::TypeMismatch;
+      }
+      if (Pointer.offset() == 0 && Value.type() == Heap.bridge().sourceType(Cell.type()))
+      {
+        return storeValue(Pointer.place(), Value);
+      }
+      if (!Cell.data() || Value.kind() != ExecutionValueKind::Integer || Value.integer().bitWidth() != 8 || static_cast<const ir::IntegerType &>(*Value.type()).isSigned())
+      {
+        return ExecutionStatus::TypeMismatch;
+      }
+      if (Pointer.offset() >= Cell.size())
+      {
+        return ExecutionStatus::InvalidPlace;
+      }
+      if (!Cell.writable())
+      {
+        return ExecutionStatus::ReadOnly;
+      }
+      if (!Cell.initialized())
+      {
+        return ExecutionStatus::Uninitialized;
+      }
+      if (consumeStep() != ExecutionStatus::Success)
+      {
+        return LastStatus;
+      }
+      static_cast<unsigned char *>(Cell.data())[Pointer.offset()] = static_cast<unsigned char>(Value.integer().bits().words()[0]);
+      return ExecutionStatus::Success;
     }
     if (Pointer.kind() == ExecutionPointer::Kind::Buffer)
     {

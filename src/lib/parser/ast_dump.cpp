@@ -128,6 +128,21 @@ namespace ink::parser
         return;
       }
     }
+    void printValue(std::ostringstream &Output, NativeSymbolKind Value)
+    {
+      switch (Value)
+      {
+      case NativeSymbolKind::None:
+        Output << "None";
+        return;
+      case NativeSymbolKind::Import:
+        Output << "Import";
+        return;
+      case NativeSymbolKind::Export:
+        Output << "Export";
+        return;
+      }
+    }
     void printValue(std::ostringstream &Output, AggregateForm Value)
     {
       switch (Value)
@@ -639,6 +654,8 @@ namespace ink::parser
           printValue(Output, Node->parameters());
           Output << " BodyKind=";
           printValue(Output, Node->bodyKind());
+          Output << " NativeSymbolKind=";
+          printValue(Output, Node->nativeSymbolKind());
           Output << " Linkage=";
           printValue(Output, Node->linkage());
         }
@@ -777,6 +794,21 @@ namespace ink::parser
                        if (Node->isComptime())
                        {
                          Output << " Comptime=1";
+                       }
+                       if (const auto *Declaration = dyn_cast<Decl>(Node))
+                       {
+                         switch (Declaration->visibility())
+                         {
+                         case DeclarationVisibility::Default:
+                           Output << " Visibility=Default";
+                           break;
+                         case DeclarationVisibility::Public:
+                           Output << " Visibility=Public";
+                           break;
+                         case DeclarationVisibility::Private:
+                           Output << " Visibility=Private";
+                           break;
+                         }
                        }
                        Output << '\n';
                        ++Depth;

@@ -10,7 +10,7 @@ namespace ink::ir::test
 {
   namespace
   {
-    constexpr std::string_view BranchModuleText = R"(ink-ir 2
+    constexpr std::string_view BranchModuleText = R"(ink-ir 4
 module @Branches {
   define i32 @choose(bool %flag) {
   entry:
@@ -113,7 +113,7 @@ module @Branches {
     IRContext Context(Compilation);
     for (const auto Body : Bodies)
     {
-      const auto Result = deserializeModuleText(Context, "ink-ir 2 module @Invalid { " + std::string(Body) + " }");
+      const auto Result = deserializeModuleText(Context, "ink-ir 4 module @Invalid { " + std::string(Body) + " }");
       EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Body << ": " << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Context.modules().empty());

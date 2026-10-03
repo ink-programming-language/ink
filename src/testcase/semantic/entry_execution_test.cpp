@@ -204,7 +204,7 @@ namespace ink::semantic::test
   TEST(SemanticEntryExecutionTest, PassesNativePointerReturnsThroughRuntimeLocalStorage)
   {
     const std::uint32_t SizeWidth = sizeof(std::size_t) * 8;
-    const std::string Source = "extern \"C\" func strchr(Text: *u8, Needle: i32): *u8; extern \"C\" func strlen(Text: *u8): u" + std::to_string(SizeWidth) + "; func Entry(): u" + std::to_string(SizeWidth) + " { var Tail = strchr(\"prefix:tail\", 58); return strlen(Tail); }";
+    const std::string Source = "import \"C\" func strchr(Text: *u8, Needle: i32): *u8; import \"C\" func strlen(Text: *u8): u" + std::to_string(SizeWidth) + "; func Entry(): u" + std::to_string(SizeWidth) + " { var Tail = strchr(\"prefix:tail\", 58); return strlen(Tail); }";
     EntryAnalysis Input(Source);
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Module = Input.analyze();
@@ -220,7 +220,7 @@ namespace ink::semantic::test
   TEST(SemanticEntryExecutionTest, RejectsEscapedCStringPointerBeforeNativeDereference)
   {
     const std::uint32_t SizeWidth = sizeof(std::size_t) * 8;
-    const std::string Source = "extern \"C\" func strchr(Text: *u8, Needle: i32): *u8; extern \"C\" func strlen(Text: *u8): u" + std::to_string(SizeWidth) + "; func Find(): *u8 { return strchr(\"prefix:tail\", 58); } func Entry(): u" + std::to_string(SizeWidth) + " { var Tail = Find(); return strlen(Tail); }";
+    const std::string Source = "import \"C\" func strchr(Text: *u8, Needle: i32): *u8; import \"C\" func strlen(Text: *u8): u" + std::to_string(SizeWidth) + "; func Find(): *u8 { return strchr(\"prefix:tail\", 58); } func Entry(): u" + std::to_string(SizeWidth) + " { var Tail = Find(); return strlen(Tail); }";
     EntryAnalysis Input(Source);
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Module = Input.analyze();

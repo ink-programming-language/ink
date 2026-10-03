@@ -313,6 +313,10 @@ namespace ink::parser
 #undef AST_NODE
             }
             write(Node->isComptime());
+            if (const auto *Declaration = dyn_cast<Decl>(Node))
+            {
+              write(Declaration->visibility());
+            }
             emit(NodeRecord);
           }
           for (const auto &Entry : Parsed.Unit->recoveryInfo().Entries)
@@ -922,7 +926,12 @@ namespace ink::parser
       {
         auto Values = fields<T>();
         const auto Comptime = read<bool>();
-        if (!Values || !Comptime || !charge(1, sizeof(T) + alignof(T)))
+        std::optional<DeclarationVisibility> Visibility = DeclarationVisibility::Default;
+        if constexpr (std::is_base_of_v<Decl, T>)
+        {
+          Visibility = read<DeclarationVisibility>();
+        }
+        if (!Values || !Comptime || !Visibility || !charge(1, sizeof(T) + alignof(T)))
         {
           return nullptr;
         }
@@ -932,6 +941,10 @@ namespace ink::parser
                                },
                                std::move(*Values));
         Node->setComptime(*Comptime);
+        if constexpr (std::is_base_of_v<Decl, T>)
+        {
+          Node->setVisibility(*Visibility);
+        }
         return Node;
       }
       template <typename T>

@@ -629,7 +629,7 @@ namespace ink::ir::archive
           const auto Return = type();
           const auto Symbol = symbol("@");
           const auto Name = name(Symbol);
-          const auto Id = add(Tag::Function, 0, Parent, {0, 0}, Name);
+          const auto Id = add(Tag::Function, 0, Parent, {0, 0, 0, 0}, Name);
           define(Symbol, Id);
           Lex.expect("(");
           std::vector<std::uint64_t> Signature{Return};
@@ -684,6 +684,37 @@ namespace ink::ir::archive
             {
               Lex.expect("ink");
             }
+          }
+          if (Lex.take("visibility"))
+          {
+            if (Lex.take("private"))
+            {
+              record(Id).Fields[2] = 1;
+            }
+            else
+            {
+              Lex.expect("public");
+            }
+          }
+          if (Lex.take("binding"))
+          {
+            if (Lex.take("import"))
+            {
+              record(Id).Fields[3] = 1;
+            }
+            else if (Lex.take("export"))
+            {
+              record(Id).Fields[3] = 2;
+            }
+            else
+            {
+              Lex.expect("local");
+            }
+          }
+          if ((Body && record(Id).Fields[3] == 1) || (!Body && record(Id).Fields[3] == 2))
+          {
+            Lex.fail("Native import must be a declaration and native export must have a body");
+            return;
           }
           if (!Body || !Lex.expect("{") || !depth(Depth))
           {

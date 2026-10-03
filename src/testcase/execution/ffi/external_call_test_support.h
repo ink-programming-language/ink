@@ -114,7 +114,7 @@ namespace ink::execution::test
 
   inline std::string writeDeclaration(bool VoidBuffer = false)
   {
-    return "extern \"C\" func " + std::string(WriteSymbol) + "(Fd: i32, Buffer: " + std::string(VoidBuffer ? "*void" : "*u8") + ", Count: u" + std::to_string(WriteCountWidth) + "): i" + std::to_string(WriteReturnWidth) + ";\n";
+    return "import \"C\" func " + std::string(WriteSymbol) + "(Fd: i32, Buffer: " + std::string(VoidBuffer ? "*void" : "*u8") + ", Count: u" + std::to_string(WriteCountWidth) + "): i" + std::to_string(WriteReturnWidth) + ";\n";
   }
 
   inline std::string writeReturnType()

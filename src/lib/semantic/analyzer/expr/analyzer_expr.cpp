@@ -32,6 +32,10 @@ namespace ink::semantic
     {
       return analyzeNameExpr(State, static_cast<const parser::NameExpr &>(Node));
     }
+    if (parser::MemberExpr::classof(&Node))
+    {
+      return analyzeMemberExpr(State, static_cast<const parser::MemberExpr &>(Node), Depth);
+    }
     if (parser::UnaryExpr::classof(&Node))
     {
       return analyzeUnaryExpr(State, static_cast<const parser::UnaryExpr &>(Node), Depth);

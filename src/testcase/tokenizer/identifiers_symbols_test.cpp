@@ -6,6 +6,21 @@
 
 namespace ink::tokenizer::test
 {
+  // Visibility spellings are reserved only as complete lowercase keywords, preserving prefixed identifiers and case distinctions.
+  TEST_F(TokenizerTest, VisibilityKeywordsAndIdentifierBoundaries)
+  {
+    expectKinds(lex("public private public_value private2 Public Private"), {TokenKind::KwPublic, TokenKind::KwPrivate, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier});
+    EXPECT_EQ(lookupKeyword("public"), TokenKind::KwPublic);
+    EXPECT_EQ(lookupKeyword("private"), TokenKind::KwPrivate);
+  }
+
+  // Native boundary keywords are reserved, while removed linkage spellings and keyword prefixes remain identifiers.
+  TEST_F(TokenizerTest, NativeSymbolKeywordsAndIdentifierBoundaries)
+  {
+    expectKinds(lex("import export extern dllimport dllexport exported import_value Export"), {TokenKind::KwImport, TokenKind::KwExport, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier});
+    EXPECT_EQ(lookupKeyword("export"), TokenKind::KwExport);
+  }
+
   // Identifier boundaries use XID_Start plus underscore and the union of both Clang XID tables.
   TEST_F(TokenizerTest, UnicodeIdentifierBoundaries)
   {
@@ -34,14 +49,14 @@ namespace ink::tokenizer::test
   // Removed keywords and prefixes of real keywords are ordinary identifiers.
   TEST_F(TokenizerTest, OnlyCompleteNewKeywordsAreReserved)
   {
-    const auto Buffer = lex("true false null bool int32 let self class_field class_method extends external asx _as AS Match field2 yield_");
+    const auto Buffer = lex("true false null bool int32 let self class_field class_method extends extern external asx _as AS Match field2 yield_");
     ASSERT_TRUE(Buffer.succeeded());
-    ASSERT_EQ(Buffer.tokens().size(), 18U);
+    ASSERT_EQ(Buffer.tokens().size(), 19U);
     for (std::size_t Index = 0; Index + 1 < Buffer.tokens().size(); ++Index)
     {
       EXPECT_EQ(Buffer.tokens()[Index].Kind, TokenKind::Identifier) << Buffer.raw(Buffer.tokens()[Index]);
     }
-    expectKinds(lex("case default do extern field match switch yield"), {TokenKind::KwCase, TokenKind::KwDefault, TokenKind::KwDo, TokenKind::KwExtern, TokenKind::KwField, TokenKind::KwMatch, TokenKind::KwSwitch, TokenKind::KwYield});
+    expectKinds(lex("case default do export field match switch yield"), {TokenKind::KwCase, TokenKind::KwDefault, TokenKind::KwDo, TokenKind::KwExport, TokenKind::KwField, TokenKind::KwMatch, TokenKind::KwSwitch, TokenKind::KwYield});
   }
 
   // Every keyword and symbol spelling is checked against the normative document, independently of token.def.
@@ -86,7 +101,7 @@ namespace ink::tokenizer::test
         EXPECT_EQ(lookupSymbol(Spelling), Kind);
       }
     }
-    EXPECT_EQ(Names.size(), 79U);
+    EXPECT_EQ(Names.size(), 81U);
     EXPECT_FALSE(lookupKeyword("true"));
     EXPECT_FALSE(lookupSymbol("@"));
     EXPECT_TRUE(tokenSpelling(TokenKind::Identifier).empty());

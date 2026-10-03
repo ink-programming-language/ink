@@ -1,7 +1,13 @@
 // Run every case from main and assert its result before reporting PASS on stdout.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
-func missing(): bool;
+// Reaching this body would fail native lookup, exposing any eager evaluation of a skipped right operand.
+import "C" func InkMissingLogicalShortCircuitSymbol71e4935b(): bool;
+
+func missing(): bool
+{
+  return InkMissingLogicalShortCircuitSymbol71e4935b();
+}
 
 func encode(Value: bool): i32
 {

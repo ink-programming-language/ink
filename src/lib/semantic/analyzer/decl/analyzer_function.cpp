@@ -1,5 +1,6 @@
 #include "../analyzer_internal.h"
 
+#include "ink/execution/ffi/ffi_type.h"
 #include "ink/parser/ast.h"
 
 #include <algorithm>
@@ -14,26 +15,50 @@ namespace ink::semantic
   std::optional<LanguageLinkage> Analyzer::analyzeFunctionLinkage(AnalysisState &State, const parser::FunctionDecl &Node)
   {
     const parser::Expr *LinkageNode = Node.linkage();
+    for (const parser::Attribute &Attribute : Node.attributes())
+    {
+      if (Attribute.path().size() != 1 || Attribute.path()[0].Text != "abi")
+      {
+        State.report<core::DiagnosticKind::SemanticUnsupportedFunctionAttribute>(Attribute.range());
+        return std::nullopt;
+      }
+      if (LinkageNode)
+      {
+        State.report<core::DiagnosticKind::SemanticDuplicateAbi>(Attribute.range());
+        return std::nullopt;
+      }
+      if (Attribute.suffix() != parser::AttributeSuffix::Arguments || Attribute.arguments().size() != 1 || Attribute.arguments()[0].form() != parser::ArgumentKind::Positional)
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidAbiAttribute>(Attribute.range());
+        return std::nullopt;
+      }
+      LinkageNode = Attribute.arguments()[0].value();
+    }
     if (!LinkageNode)
     {
       return LanguageLinkage::Ink;
     }
     if (LinkageNode->isComptime() || !parser::LiteralExpr::classof(LinkageNode))
     {
-      reportUnsupported(State, *LinkageNode);
+      State.report<core::DiagnosticKind::SemanticInvalidAbiAttribute>(LinkageNode->getSourceRange());
       return std::nullopt;
     }
     const auto &Literal = static_cast<const parser::LiteralExpr &>(*LinkageNode);
     const auto *Text = std::get_if<tokenizer::StringInfo>(&State.Input.token(Literal.token()).Payload);
-    if (!Text || Text->Decoded != "C")
+    if (Literal.literalKind() != tokenizer::TokenKind::StringLiteral || !Text)
     {
-      reportUnsupported(State, *LinkageNode);
+      State.report<core::DiagnosticKind::SemanticInvalidAbiAttribute>(LinkageNode->getSourceRange());
+      return std::nullopt;
+    }
+    if (Text->Decoded != "C")
+    {
+      State.report<core::DiagnosticKind::SemanticUnsupportedAbi>(LinkageNode->getSourceRange());
       return std::nullopt;
     }
     return LanguageLinkage::C;
   }
 
-  bool Analyzer::checkFunctionConflicts(AnalysisState &State, const parser::FunctionDecl &Node, const FunctionType &Signature, LanguageLinkage Linkage)
+  bool Analyzer::checkFunctionConflicts(AnalysisState &State, const parser::FunctionDecl &Node, const FunctionType &Signature, FunctionBinding NativeBinding)
   {
     const Name FunctionName = State.Context.namePool().find(Node.name().Text);
     const auto ParameterTypes = Signature.parameterTypes();
@@ -49,15 +74,7 @@ namespace ink::semantic
         const auto &Existing = static_cast<const Function &>(*Target);
         const auto ExistingTypes = Existing.functionType().parameterTypes();
         const bool SameParameters = std::equal(ParameterTypes.begin(), ParameterTypes.end(), ExistingTypes.begin(), ExistingTypes.end());
-        const bool HasDefinition = Existing.hasBody();
-        // Compatible redeclarations must agree on language linkage as well as types.
-        // Linkage is function metadata, so canonical FunctionType identity alone is insufficient.
-        if (SameParameters && &Existing.functionType().returnType() == &Signature.returnType() && Existing.languageLinkage() == Linkage && (!HasDefinition || !Node.body()))
-        {
-          State.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), "function redeclarations");
-          return false;
-        }
-        if (SameParameters || Linkage == LanguageLinkage::C || Existing.languageLinkage() == LanguageLinkage::C)
+        if (SameParameters || NativeBinding != FunctionBinding::Local || Existing.binding() != FunctionBinding::Local)
         {
           State.report<core::DiagnosticKind::SemanticDuplicateName>(Node.name().Range, Node.name().Text);
           return false;
@@ -67,31 +84,50 @@ namespace ink::semantic
     return true;
   }
 
-  bool Analyzer::analyzeFunctionDecl(AnalysisState &State, const parser::FunctionDecl &Node)
+  std::unique_ptr<Function> Analyzer::declareFunction(AnalysisState &State, const parser::FunctionDecl &Node)
   {
     if (State.Evaluating)
     {
-      return reportExecution(State, execution::ExecutionStatus::UnsupportedOperation, Node);
+      reportExecution(State, execution::ExecutionStatus::UnsupportedOperation, Node);
+      return nullptr;
     }
-    if (!Node.genericParameters().empty() || !Node.attributes().empty())
+    if (!Node.genericParameters().empty())
     {
-      return reportUnsupported(State, Node);
+      reportUnsupported(State, Node);
+      return nullptr;
     }
 
     const std::optional<LanguageLinkage> Linkage = analyzeFunctionLinkage(State, Node);
     if (!Linkage)
     {
-      return false;
+      return nullptr;
+    }
+    const FunctionBinding Binding = Node.nativeSymbolKind() == parser::NativeSymbolKind::Import ? FunctionBinding::Import : (Node.nativeSymbolKind() == parser::NativeSymbolKind::Export ? FunctionBinding::Export : FunctionBinding::Local);
+    if (Binding == FunctionBinding::Import && Node.body())
+    {
+      State.report<core::DiagnosticKind::SemanticNativeImportHasBody>(Node.getSourceRange(), Node.name().Text);
+      return nullptr;
+    }
+    if (Binding == FunctionBinding::Export && !Node.body())
+    {
+      State.report<core::DiagnosticKind::SemanticNativeExportRequiresBody>(Node.getSourceRange(), Node.name().Text);
+      return nullptr;
+    }
+    const bool Local = State.CurrentFunction || State.BlockDepth != 0;
+    if (Binding == FunctionBinding::Export && Local)
+    {
+      State.report<core::DiagnosticKind::SemanticNativeExportRequiresTopLevel>(Node.getSourceRange());
+      return nullptr;
     }
     if (Node.isComptime() && !Node.body())
     {
       State.report<core::DiagnosticKind::SemanticComptimeFunctionRequiresBody>(Node.getSourceRange());
-      return false;
+      return nullptr;
     }
     if (Node.isComptime() && *Linkage != LanguageLinkage::Ink)
     {
       State.report<core::DiagnosticKind::SemanticComptimeFunctionLinkage>(Node.getSourceRange());
-      return false;
+      return nullptr;
     }
 
     bool Succeeded = true;
@@ -136,36 +172,90 @@ namespace ink::semantic
     }
     if (!Succeeded)
     {
-      return false;
+      return nullptr;
+    }
+
+    if (*Linkage == LanguageLinkage::C && Binding != FunctionBinding::Import)
+    {
+      if (!execution::ffiType(*ReturnType, execution::FfiTypeUsage::Return) || std::any_of(ParameterTypes.begin(), ParameterTypes.end(), [](const Type *Parameter)
+      {
+        return !execution::ffiType(*Parameter, execution::FfiTypeUsage::Argument);
+      }))
+      {
+        State.report<core::DiagnosticKind::SemanticUnsupportedAbiSignature>(Node.getSourceRange(), Node.name().Text);
+        return nullptr;
+      }
     }
 
     const FunctionType *Signature = State.Context.typePool().getType<TypeKind::Function>(*ReturnType, ParameterTypes);
     if (!Signature)
     {
       State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
-      return false;
+      return nullptr;
     }
-    if (!checkFunctionConflicts(State, Node, *Signature, *Linkage))
+    if (!checkFunctionConflicts(State, Node, *Signature, Binding))
     {
-      return false;
+      return nullptr;
+    }
+
+    if (Binding != FunctionBinding::Import && !Node.body())
+    {
+      State.report<core::DiagnosticKind::SemanticFunctionRequiresBody>(Node.getSourceRange(), Node.name().Text);
+      return nullptr;
+    }
+    if (Local && Node.visibility() == parser::DeclarationVisibility::Public)
+    {
+      State.report<core::DiagnosticKind::SemanticPublicLocal>(Node.getSourceRange(), Node.name().Text);
+      return nullptr;
     }
 
     const Name FunctionName = State.Context.namePool().intern(Node.name().Text);
-    auto FunctionOwner = State.Builder.createFunction(FunctionName, *Signature, {}, ParameterNames, CallingConvention::C, *Linkage);
+    auto FunctionOwner = State.Builder.createFunction(FunctionName, *Signature, {}, ParameterNames, CallingConvention::C, *Linkage, Binding);
     if (!FunctionOwner || !State.Builder.insertBlock())
     {
       State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
-      return false;
+      return nullptr;
     }
     Function &FunctionValue = *FunctionOwner;
+    if (!State.Builder.setFunctionVisibility(FunctionValue, Local || Node.visibility() == parser::DeclarationVisibility::Private ? VisibilityKind::Private : VisibilityKind::Public))
+    {
+      State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
+      return nullptr;
+    }
     // Bind before checking the body so recursive lookup can see this function.
     // The detached owner removes all bindings and child values on any failure.
     if (State.Resolver.bind(FunctionName, FunctionValue) != NameResolver::BindResult::Inserted)
     {
       State.report<core::DiagnosticKind::SemanticDuplicateName>(Node.name().Range, Node.name().Text);
-      return false;
+      return nullptr;
+    }
+    State.Context.comptimeState().Functions[&FunctionValue] = {Node.isComptime(), State.Source, Node.name().Range};
+    return FunctionOwner;
+  }
+
+  bool Analyzer::analyzeFunctionBody(AnalysisState &State, const parser::FunctionDecl &Node, Function &FunctionValue)
+  {
+    struct ActiveBodyGuard
+    {
+        ModuleGraph *Graph;
+        const Function *Value;
+
+        ~ActiveBodyGuard()
+        {
+          if (Graph)
+          {
+            Graph->ActiveBodies.erase(Value);
+          }
+        }
+    };
+    const ActiveBodyGuard Active{State.Modules, &FunctionValue};
+    if (State.Modules)
+    {
+      State.Modules->ActiveBodies.insert(&FunctionValue);
     }
     AnalysisState FunctionState(State.Context, State.Resolver.currentScope(), State.Input);
+    FunctionState.CurrentModule = State.CurrentModule;
+    FunctionState.Modules = State.Modules;
     FunctionState.Frame = State.Frame;
     AnalysisState::FrameGuard Frame(FunctionState, execution::ExecutionFrameKind::Analysis);
     if (!Frame)
@@ -175,7 +265,6 @@ namespace ink::semantic
     FunctionState.BlockDepth = State.BlockDepth;
     FunctionState.CurrentFunction = &FunctionValue;
     FunctionState.ComptimeFunction = Node.isComptime();
-    State.Context.comptimeState().Functions[&FunctionValue] = {Node.isComptime(), State.Source, Node.name().Range};
     NameResolver::ScopeGuard FunctionScope(FunctionState.Resolver, FunctionValue);
     if (!FunctionScope.scope())
     {
@@ -206,7 +295,7 @@ namespace ink::semantic
       }
       if (!FunctionState.Terminated)
       {
-        if (ReturnType->typeKind() != TypeKind::Void)
+        if (FunctionValue.functionType().returnType().typeKind() != TypeKind::Void)
         {
           State.report<core::DiagnosticKind::SemanticMissingReturn>(Node.body()->getSourceRange(), Node.name().Text);
           return false;
@@ -217,6 +306,16 @@ namespace ink::semantic
           return false;
         }
       }
+    }
+    return true;
+  }
+
+  bool Analyzer::analyzeFunctionDecl(AnalysisState &State, const parser::FunctionDecl &Node)
+  {
+    auto FunctionOwner = declareFunction(State, Node);
+    if (!FunctionOwner || !analyzeFunctionBody(State, Node, *FunctionOwner))
+    {
+      return false;
     }
     if (!State.Builder.appendValue(*State.Builder.insertBlock(), std::move(FunctionOwner)))
     {

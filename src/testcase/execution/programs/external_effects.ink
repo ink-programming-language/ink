@@ -1,11 +1,11 @@
 // Trace native side effects and argument order, and observe void/no-argument CRT calls.
-extern "C" func puts(Text: *u8): i32;
-extern "C" func abs(Value: i32): i32;
-extern "C" func srand(Seed: u32): void;
-extern "C" func rand(): i32;
-extern "C" func strchr(Text: *u8, Needle: i32): *u8;
-extern "C" func strcmp(Left: *u8, Right: *u8): i32;
-extern "C" func memset(Buffer: *u8, Byte: i32, Count: u64): *u8;
+import "C" func puts(Text: *u8): i32;
+import "C" func abs(Value: i32): i32;
+import "C" func srand(Seed: u32): void;
+import "C" func rand(): i32;
+import "C" func strchr(Text: *u8, Needle: i32): *u8;
+import "C" func strcmp(Left: *u8, Right: *u8): i32;
+import "C" func memset(Buffer: *u8, Byte: i32, Count: u64): *u8;
 
 func emit(): i32
 {

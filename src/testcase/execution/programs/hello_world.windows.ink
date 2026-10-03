@@ -1,4 +1,4 @@
-extern "C" func _write(Fd: i32, Buffer: *u8, Count: u32): i32;
+import "C" func _write(Fd: i32, Buffer: *u8, Count: u32): i32;
 
 func main(): i32
 {

@@ -4,6 +4,7 @@
 
 #include "ink/parser/parser.h"
 #include "ink/ir/ir_builder.h"
+#include "ink/execution/engine/execution_engine.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <gtest/gtest.h>
@@ -45,10 +46,93 @@ namespace ink::semantic::test
     };
   } // namespace
 
-  // C declarations preserve decoded linkage, pointer types, parameter names and declaration-only ownership.
-  TEST(SemanticFunctionAnalyzerTest, AnalyzesExternPrintfDeclaration)
+  // Native import, local C ABI and native export retain independent ownership and source visibility while executing local bodies.
+  TEST(SemanticFunctionAnalyzerTest, SeparatesNativeBindingFromAbiAndVisibility)
   {
-    FunctionAnalysis Input("extern \"\\x43\" func printf(msg: *u8): i32;");
+    FunctionAnalysis Input("private import \"C\" func abs(Value: i32): i32; [abi(\"\\x43\")] private func callback(Value: i32): i32 { return Value + 1; } private export \"C\" func hidden(Value: i32): i32 { return callback(Value); } public export \"C\" func exposed(): i32 { return hidden(41); } func main(): i32 { return exposed(); }");
+    ASSERT_TRUE(Input.Parsed.succeeded());
+    Module *Result = Input.analyze();
+    ASSERT_NE(Result, nullptr);
+    EXPECT_TRUE(Input.Diagnostics.diagnostics().empty());
+    const auto FunctionNamed = [&](std::string_view Name) -> const Function &
+    {
+      return static_cast<const Function &>(*Input.lookup(*Result, Name)->targets().front());
+    };
+    EXPECT_TRUE(FunctionNamed("abs").isNativeImport());
+    EXPECT_FALSE(FunctionNamed("abs").hasBody());
+    EXPECT_EQ(FunctionNamed("abs").visibility(), VisibilityKind::Private);
+    EXPECT_EQ(FunctionNamed("callback").languageLinkage(), LanguageLinkage::C);
+    EXPECT_EQ(FunctionNamed("callback").binding(), FunctionBinding::Local);
+    EXPECT_TRUE(FunctionNamed("callback").hasBody());
+    EXPECT_TRUE(FunctionNamed("hidden").isNativeExport());
+    EXPECT_EQ(FunctionNamed("hidden").visibility(), VisibilityKind::Private);
+    EXPECT_TRUE(FunctionNamed("exposed").isNativeExport());
+    EXPECT_EQ(FunctionNamed("exposed").visibility(), VisibilityKind::Public);
+    execution::ExecutionEngine Engine(Input.Context.irContext());
+    const auto Executed = Engine.execute(FunctionNamed("main"));
+    ASSERT_TRUE(Executed);
+    EXPECT_EQ(Executed.Value.integer().bits().words().front(), 42U);
+  }
+
+  // ABI-only local functions retain ordinary overload resolution because they expose no native symbol names.
+  TEST(SemanticFunctionAnalyzerTest, AllowsLocalCAbiOverloads)
+  {
+    FunctionAnalysis Input("[abi(\"C\")] func choose(Value: i8): i32 { return 0; } [abi(\"C\")] func choose(Value: i32): i32 { return Value + 1; } func main(): i32 { return choose(41); }");
+    ASSERT_TRUE(Input.Parsed.succeeded());
+    Module *Result = Input.analyze();
+    ASSERT_NE(Result, nullptr);
+    ASSERT_EQ(Input.lookup(*Result, "choose")->targets().size(), 2U);
+    const auto &Main = static_cast<const Function &>(*Input.lookup(*Result, "main")->targets().front());
+    execution::ExecutionEngine Engine(Input.Context.irContext());
+    const auto Executed = Engine.execute(Main);
+    ASSERT_TRUE(Executed);
+    EXPECT_EQ(Executed.Value.integer().bits().words().front(), 42U);
+  }
+
+  // Malformed ABI attributes, unsupported ABI names and invalid native declaration bodies produce source errors instead of ICEs.
+  TEST(SemanticFunctionAnalyzerTest, RejectsInvalidNativeDeclarationsAndAbiAttributes)
+  {
+    const std::pair<std::string_view, core::DiagnosticKind> Cases[] = {
+        {"import \"C\" func f(): void {}", core::DiagnosticKind::SemanticNativeImportHasBody},
+        {"export \"C\" func f(): void;", core::DiagnosticKind::SemanticNativeExportRequiresBody},
+        {"func outer(): void { export \"C\" func f(): void {} }", core::DiagnosticKind::SemanticNativeExportRequiresTopLevel},
+        {"[abi(\"C\")] func f(): void;", core::DiagnosticKind::SemanticFunctionRequiresBody},
+        {"[abi] func f(): void {}", core::DiagnosticKind::SemanticInvalidAbiAttribute},
+        {"[abi = \"C\"] func f(): void {}", core::DiagnosticKind::SemanticInvalidAbiAttribute},
+        {"[abi()] func f(): void {}", core::DiagnosticKind::SemanticInvalidAbiAttribute},
+        {"[abi(1)] func f(): void {}", core::DiagnosticKind::SemanticInvalidAbiAttribute},
+        {"[abi(Name)] func f(): void {}", core::DiagnosticKind::SemanticInvalidAbiAttribute},
+        {"[abi(Name = \"C\")] func f(): void {}", core::DiagnosticKind::SemanticInvalidAbiAttribute},
+        {"[abi(\"C\", \"C\")] func f(): void {}", core::DiagnosticKind::SemanticInvalidAbiAttribute},
+        {"[abi(\"C\"), abi(\"C\")] func f(): void {}", core::DiagnosticKind::SemanticDuplicateAbi},
+        {"[abi(\"C\")] import \"C\" func f(): void;", core::DiagnosticKind::SemanticDuplicateAbi},
+        {"[abi(\"C\")] export \"C\" func f(): void {}", core::DiagnosticKind::SemanticDuplicateAbi},
+        {"[abi(\"C++\")] func f(): void {}", core::DiagnosticKind::SemanticUnsupportedAbi},
+        {"import \"C++\" func f(): void;", core::DiagnosticKind::SemanticUnsupportedAbi},
+        {"import \"C\\0other\" func f(): void;", core::DiagnosticKind::SemanticUnsupportedAbi},
+        {"import \"\" func f(): void;", core::DiagnosticKind::SemanticUnsupportedAbi},
+        {"[link(name = \"alias\")] export \"C\" func f(): void {}", core::DiagnosticKind::SemanticUnsupportedFunctionAttribute},
+        {"[tag] func f(): void {}", core::DiagnosticKind::SemanticUnsupportedFunctionAttribute},
+        {"[abi(\"C\")] func f(Value: i128): void {}", core::DiagnosticKind::SemanticUnsupportedAbiSignature},
+        {"export \"C\" func f(Value: f16): void {}", core::DiagnosticKind::SemanticUnsupportedAbiSignature},
+        {"export \"C\" func f(Value: &i32): void {}", core::DiagnosticKind::SemanticUnsupportedAbiSignature},
+    };
+    for (const auto &[Source, Expected] : Cases)
+    {
+      SCOPED_TRACE(Source);
+      FunctionAnalysis Input(Source);
+      ASSERT_TRUE(Input.Parsed.succeeded());
+      EXPECT_EQ(Input.analyze(), nullptr);
+      ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Input.Diagnostics.diagnostics().front().Kind, Expected);
+      EXPECT_EQ(Input.Diagnostics.diagnostics().front().classification(), core::DiagnosticClass::User);
+    }
+  }
+
+  // C declarations preserve decoded linkage, pointer types, parameter names and declaration-only ownership.
+  TEST(SemanticFunctionAnalyzerTest, AnalyzesNativePrintfImport)
+  {
+    FunctionAnalysis Input("import \"\\x43\" func printf(msg: *u8): i32;");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
@@ -62,6 +146,7 @@ namespace ink::semantic::test
     EXPECT_EQ(FunctionValue.outer(), &Result->entryBlock());
     EXPECT_FALSE(FunctionValue.hasBody());
     EXPECT_EQ(FunctionValue.languageLinkage(), LanguageLinkage::C);
+    EXPECT_TRUE(FunctionValue.isNativeImport());
     EXPECT_EQ(FunctionValue.callingConvention(), CallingConvention::C);
     EXPECT_EQ(&FunctionValue.functionType().returnType(), Input.Context.typePool().getType<TypeKind::Integer>(32, true));
     ASSERT_EQ(FunctionValue.parameters().size(), 1U);
@@ -81,14 +166,14 @@ namespace ink::semantic::test
   // Void definitions receive a return, including nested empty blocks; prototypes remain bodyless.
   TEST(SemanticFunctionAnalyzerTest, BuildsEmptyDefinitionsAndPrototypes)
   {
-    FunctionAnalysis Input("func declared(x: (i64), flag: bool, y: f32, p: **u8, r: &i16): void; func empty(): void { {} } extern \"C\" func c(): void {}");
+    FunctionAnalysis Input("import \"C\" func declared(x: (i64), flag: bool, y: f32, p: **u8, r: &i16): void; func empty(): void { {} } export \"C\" func c(): void {}");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
     ASSERT_EQ(Result->entryBlock().values().size(), 3U);
     auto &Declared = static_cast<Function &>(*Result->entryBlock().values()[0]);
     EXPECT_FALSE(Declared.hasBody());
-    EXPECT_EQ(Declared.languageLinkage(), LanguageLinkage::Ink);
+    EXPECT_EQ(Declared.languageLinkage(), LanguageLinkage::C);
     ASSERT_EQ(Declared.parameters().size(), 5U);
     EXPECT_EQ(Declared.parameters()[4]->type().typeKind(), TypeKind::Reference);
     for (std::size_t Index = 1; Index < 3; ++Index)
@@ -104,7 +189,7 @@ namespace ink::semantic::test
   // Fixed builtin scalar spellings resolve to canonical types, including wide integers and all supported floats.
   TEST(SemanticFunctionAnalyzerTest, ResolvesBuiltinScalarSignatures)
   {
-    FunctionAnalysis Input("func f(a: i8, b: i16, c: i32, d: i64, e: i128, f: u8, g: u16, h: u32, i: u64, j: u128, k: f16, l: f32, m: f64, n: bool): *void;");
+    FunctionAnalysis Input("import \"C\" func f(a: i8, b: i16, c: i32, d: i64, e: i128, f: u8, g: u16, h: u32, i: u64, j: u128, k: f16, l: f32, m: f64, n: bool): *void;");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
@@ -119,7 +204,7 @@ namespace ink::semantic::test
   // Distinct parameter lists form an Ink overload set with signatures interned independently of parameter names.
   TEST(SemanticFunctionAnalyzerTest, BindsOrdinaryOverloads)
   {
-    FunctionAnalysis Input("func f(x: i32): void; func f(x: u8): void; func g(renamed: i32): void;");
+    FunctionAnalysis Input("func f(x: i32): void {} func f(x: u8): void {} func g(renamed: i32): void {}");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
@@ -134,7 +219,7 @@ namespace ink::semantic::test
   // Nested functions remain owned by the enclosing function and cannot leak into the module's bindings.
   TEST(SemanticFunctionAnalyzerTest, PreservesNestedFunctionOwnershipAndScopes)
   {
-    FunctionAnalysis Input("func outer(x: i32): void { func inner(y: u8): void {} } func after(x: f64): void;");
+    FunctionAnalysis Input("func outer(x: i32): void { func inner(y: u8): void {} } func after(x: f64): void {}");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
@@ -163,16 +248,16 @@ namespace ink::semantic::test
         core::DiagnosticKind Kind;
     };
     const Case Cases[] = {
-        {"func f(x: Missing): void;", core::DiagnosticKind::SemanticUnknownType},
+        {"func f(x: Missing): void {}", core::DiagnosticKind::SemanticUnknownType},
         {"func f(): Missing;", core::DiagnosticKind::SemanticUnknownType},
-        {"func f(x: void): void;", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func f(x: type): void;", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func f(x: &void): void;", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func f(x: *type): void;", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func f(x: i32, x: u8): void;", core::DiagnosticKind::SemanticDuplicateParameterName},
-        {"func f(x: i032): void;", core::DiagnosticKind::SemanticUnknownType},
-        {"func f(x: f128): void;", core::DiagnosticKind::SemanticUnknownType},
-        {"func f(x: i999999999999999999999): void;", core::DiagnosticKind::SemanticUnknownType},
+        {"func f(x: void): void {}", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func f(x: type): void {}", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func f(x: &void): void {}", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func f(x: *type): void {}", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func f(x: i32, x: u8): void {}", core::DiagnosticKind::SemanticDuplicateParameterName},
+        {"func f(x: i032): void {}", core::DiagnosticKind::SemanticUnknownType},
+        {"func f(x: f128): void {}", core::DiagnosticKind::SemanticUnknownType},
+        {"func f(x: i999999999999999999999): void {}", core::DiagnosticKind::SemanticUnknownType},
     };
     for (const Case &Entry : Cases)
     {
@@ -193,7 +278,7 @@ namespace ink::semantic::test
   // Each repeated parameter receives a dedicated uniqueness error on its own name token, regardless of its type.
   TEST(SemanticFunctionAnalyzerTest, ReportsDuplicateParameterNamesPrecisely)
   {
-    FunctionAnalysis Input("func f(x: i32, x: u8, x: bool): void;");
+    FunctionAnalysis Input("func f(x: i32, x: u8, x: bool): void {}");
     ASSERT_TRUE(Input.Parsed.succeeded());
     EXPECT_EQ(Input.analyze(), nullptr);
     const auto &Diagnostics = Input.Diagnostics.diagnostics();
@@ -217,14 +302,10 @@ namespace ink::semantic::test
   {
     const char *Cases[] = {
         "func f[T: type](x: T): T;",
-        "[tag] func f(): void;",
-        "func f(x: i32 = 1): void;",
-        "func f(x: i32...): void;",
-        "extern \"C++\" func f(): void;",
-        "extern \"C\\0other\" func f(): void;",
-        "extern \"\" func f(): void;",
+        "func f(x: i32 = 1): void {}",
+        "func f(x: i32...): void {}",
         "func f(): type;",
-        "func f(x: i32[4]): void;",
+        "func f(x: i32[4]): void {}",
         "func f(x: func(): void): void;",
     };
     for (const char *Source : Cases)
@@ -241,14 +322,14 @@ namespace ink::semantic::test
   {
     const char *Cases[] = {
         "func f(): void {} func f(): void {}",
-        "func f(x: i32): i32; func f(x: i32): u8;",
-        "extern \"C\" func f(x: i32): void; extern \"C\" func f(x: u8): void;",
-        "func f(x: i32): void; extern \"C\" func f(x: u8): void;",
-        "extern \"C\" func f(x: i32): void; func f(x: u8): void;",
-        "func f(x: i32): void; extern \"C\" func f(x: i32): void;",
-        "extern \"C\" func f(x: i32): void; func f(x: i32): void;",
-        "extern \"C\" func f(x: i32): void; func f(x: i32): void {}",
-        "func f(x: i32): void {} extern \"C\" func f(x: i32): void;",
+        "func f(x: i32): i32 { return 0; } func f(x: i32): u8 { return 0; }",
+        "import \"C\" func f(x: i32): void; import \"C\" func f(x: u8): void;",
+        "func f(x: i32): void {} import \"C\" func f(x: u8): void;",
+        "import \"C\" func f(x: i32): void; func f(x: u8): void {}",
+        "func f(x: i32): void {} import \"C\" func f(x: i32): void;",
+        "import \"C\" func f(x: i32): void; func f(x: i32): void {}",
+        "import \"C\" func f(x: i32): void; func f(x: i32): void {}",
+        "func f(x: i32): void {} import \"C\" func f(x: i32): void;",
     };
     for (const char *Source : Cases)
     {
@@ -263,35 +344,30 @@ namespace ink::semantic::test
     }
   }
 
-  // Compatible redeclarations remain explicitly unsupported until declaration/definition merging is implemented.
-  TEST(SemanticFunctionAnalyzerTest, RejectsUnimplementedRedeclarationMerging)
+  // Repeated C declarations are recoverable name conflicts until merging is supported.
+  TEST(SemanticFunctionAnalyzerTest, RejectsRedeclarationMergingWithUserDiagnostic)
   {
-    struct Case
-    {
-        const char *Source;
-        bool FirstHasBody;
+    const char *Cases[] = {
+        "import \"C\" func f(x: i32): void; export \"C\" func f(y: i32): void {}",
+        "import \"C\" func f(x: i32): void; import \"C\" func f(y: i32): void;",
+        "export \"C\" func f(x: i32): void {} import \"C\" func f(y: i32): void;",
     };
-    const Case Cases[] = {
-        {"func f(x: i32): void; func f(y: i32): void {}", false},
-        {"func f(x: i32): void; func f(y: i32): void;", false},
-        {"func f(x: i32): void {} func f(y: i32): void;", true},
-        {"extern \"C\" func f(x: i32): void; extern \"C\" func f(y: i32): void {}", false},
-        {"extern \"C\" func f(x: i32): void; extern \"C\" func f(y: i32): void;", false},
-        {"extern \"C\" func f(x: i32): void {} extern \"C\" func f(y: i32): void;", true},
-    };
-    for (const Case &Entry : Cases)
+    for (const char *Source : Cases)
     {
-      SCOPED_TRACE(Entry.Source);
-      FunctionAnalysis Input(Entry.Source);
+      SCOPED_TRACE(Source);
+      FunctionAnalysis Input(Source);
       ASSERT_TRUE(Input.Parsed.succeeded());
-      EXPECT_DEATH(Input.analyze(), "initial semantic analyzer does not support function redeclarations");
+      EXPECT_EQ(Input.analyze(), nullptr);
+      ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Input.Diagnostics.diagnostics().front().Kind, core::DiagnosticKind::SemanticDuplicateName);
+      EXPECT_EQ(Input.Diagnostics.diagnostics().front().classification(), core::DiagnosticClass::User);
     }
   }
 
   // A failed body discards its nested functions, while later declarations retain the enclosing insertion point and scope.
   TEST(SemanticFunctionAnalyzerTest, DiscardsFailedBodiesAndContinuesSiblings)
   {
-    FunctionAnalysis Input("func bad(): i32 { func child(): void {} func invalid(x: Missing): void; } func good(): void {}");
+    FunctionAnalysis Input("func bad(): i32 { func child(): void {} func invalid(x: Missing): void {} } func good(): void {}");
     ASSERT_TRUE(Input.Parsed.succeeded());
     EXPECT_EQ(Input.analyze(), nullptr);
     ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
@@ -307,7 +383,7 @@ namespace ink::semantic::test
   // Hello-world produces a writable C string copy, a typed C call and an i32 return of zero.
   TEST(SemanticFunctionAnalyzerTest, AnalyzesHelloWorldThroughFunctionBodies)
   {
-    FunctionAnalysis Input("extern \"C\" func printf(msg: *u8): i32; func main(): i32 { printf(\"hello, world\"); return 0; }");
+    FunctionAnalysis Input("import \"C\" func printf(msg: *u8): i32; func main(): i32 { printf(\"hello, world\"); return 0; }");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
@@ -395,9 +471,9 @@ namespace ink::semantic::test
         {"func f(): i32 { return missing; }", core::DiagnosticKind::SemanticUnknownName},
         {"func f(x: i32): void { x(); }", core::DiagnosticKind::SemanticTypeMismatch},
         {"func f(): void { 0(); }", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func g(x: i32): void; func f(): void { g(); }", core::DiagnosticKind::SemanticArgumentCount},
-        {"func g(): void; func f(): void { g(1); }", core::DiagnosticKind::SemanticArgumentCount},
-        {"func g(x: i32): void; func f(): void { g(true); }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func g(x: i32): void {} func f(): void { g(); }", core::DiagnosticKind::SemanticArgumentCount},
+        {"func g(): void {} func f(): void { g(1); }", core::DiagnosticKind::SemanticArgumentCount},
+        {"func g(x: i32): void {} func f(): void { g(true); }", core::DiagnosticKind::SemanticTypeMismatch},
         {"func f(): i32 {}", core::DiagnosticKind::SemanticMissingReturn},
         {"func f(): i32 { return; }", core::DiagnosticKind::SemanticMissingReturn},
         {"func f(): void { return 0; }", core::DiagnosticKind::SemanticTypeMismatch},
@@ -412,9 +488,9 @@ namespace ink::semantic::test
         {"func f(): u128 { return 340282366920938463463374607431768211456; }", core::DiagnosticKind::SemanticIntegerOutOfRange},
         {"func f(): i32 { return \"text\"; }", core::DiagnosticKind::SemanticTypeMismatch},
         {"func f(): *u8 { return \"text\"; }", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func g(x: *u8): void; func f(): void { g(\"text\"); }", core::DiagnosticKind::SemanticTypeMismatch},
-        {"extern \"C\" func g(x: *u8): void; func f(): void { g(\"a\\0b\"); }", core::DiagnosticKind::SemanticEmbeddedNull},
-        {"extern \"C\" func g(x: *i8): void; func f(): void { g(\"text\"); }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func g(x: *u8): void {} func f(): void { g(\"text\"); }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"import \"C\" func g(x: *u8): void; func f(): void { g(\"a\\0b\"); }", core::DiagnosticKind::SemanticEmbeddedNull},
+        {"import \"C\" func g(x: *i8): void; func f(): void { g(\"text\"); }", core::DiagnosticKind::SemanticTypeMismatch},
         {"func f(x: i32): void { func inner(): i32 { return x; } }", core::DiagnosticKind::SemanticInvalidCapture},
     };
     for (const Case &Entry : Cases)
@@ -453,7 +529,7 @@ namespace ink::semantic::test
   // Overloads prefer exact types and i32 literals; other fitting integer widths remain equally ranked.
   TEST(SemanticFunctionAnalyzerTest, SelectsOverloadsWithoutSpeculativeCalls)
   {
-    FunctionAnalysis Input("func pick(x: i32): i32; func pick(x: u8): i32; func test(x: u8): i32 { pick(1); return pick(x); }");
+    FunctionAnalysis Input("func pick(x: i32): i32 { return 0; } func pick(x: u8): i32 { return 0; } func test(x: u8): i32 { pick(1); return pick(x); }");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
@@ -462,9 +538,9 @@ namespace ink::semantic::test
     EXPECT_EQ(static_cast<const CallInstruction &>(*Values[0]).directCallee(), Result->entryBlock().values()[0].get());
     EXPECT_EQ(static_cast<const CallInstruction &>(*Values[1]).directCallee(), Result->entryBlock().values()[1].get());
     const char *Invalid[] = {
-        "func pick(x: i8): void; func pick(x: u8): void; func f(): void { pick(1); }",
-        "func pick(x: i32, y: u8): void; func pick(x: u8, y: i32): void; func f(): void { pick(1, 1); }",
-        "func pick(x: i32): void; func pick(x: u8): void; func f(): void { pick; }",
+        "func pick(x: i8): void {} func pick(x: u8): void {} func f(): void { pick(1); }",
+        "func pick(x: i32, y: u8): void {} func pick(x: u8, y: i32): void {} func f(): void { pick(1, 1); }",
+        "func pick(x: i32): void {} func pick(x: u8): void {} func f(): void { pick; }",
     };
     for (const char *Source : Invalid)
     {
@@ -474,7 +550,7 @@ namespace ink::semantic::test
       ASSERT_EQ(Ambiguous.Diagnostics.diagnostics().size(), 1U);
       EXPECT_EQ(Ambiguous.Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticAmbiguousName);
     }
-    FunctionAnalysis NoMatch("func pick(x: i32): void; func pick(x: u8): void; func f(): void { pick(false); }");
+    FunctionAnalysis NoMatch("func pick(x: i32): void {} func pick(x: u8): void {} func f(): void { pick(false); }");
     ASSERT_TRUE(NoMatch.Parsed.succeeded());
     EXPECT_EQ(NoMatch.analyze(), nullptr);
     ASSERT_EQ(NoMatch.Diagnostics.diagnostics().size(), 1U);
@@ -484,7 +560,7 @@ namespace ink::semantic::test
   // Equal decoded strings share only the immutable source; each C argument owns a distinct copy operation.
   TEST(SemanticFunctionAnalyzerTest, CopiesCStringArgumentsPerCall)
   {
-    FunctionAnalysis Input("extern \"C\" func sink(x: *u8): void; func f(): void { sink(\"hello\"); sink(\"\\x68ello\"); sink(\"\"); return; }");
+    FunctionAnalysis Input("import \"C\" func sink(x: *u8): void; func f(): void { sink(\"hello\"); sink(\"\\x68ello\"); sink(\"\"); return; }");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
@@ -518,8 +594,8 @@ namespace ink::semantic::test
   TEST(SemanticFunctionAnalyzerTest, ResolvesNamesBeforeBuiltinFallback)
   {
     const char *Cases[] = {
-        "func T(): void; func f(x: T): void;",
-        "func outer(i32: bool): void { func inner(x: i32): void; }",
+        "func T(): void {} func f(x: T): void {}",
+        "func outer(i32: bool): void { func inner(x: i32): void {} }",
     };
     for (const char *Source : Cases)
     {
@@ -553,7 +629,7 @@ namespace ink::semantic::test
     ASSERT_TRUE(Environment.set(nullptr));
     parser::ParseLimits Limits;
     Limits.MaxNestingDepth = 1024;
-    FunctionAnalysis Input(std::string("func f(x: ") + std::string(260, '*') + "u8): void;", Limits);
+    FunctionAnalysis Input(std::string("import \"C\" func f(x: ") + std::string(260, '*') + "u8): void;", Limits);
     ASSERT_TRUE(Input.Parsed.succeeded());
     EXPECT_DEATH(Input.analyze(), "internal compiler error\\[INK-S0014\\]");
     ASSERT_TRUE(Environment.set("300"));
@@ -567,8 +643,8 @@ namespace ink::semantic::test
     core::test::ScopedEnvironmentVariable BlockEnvironment("INK_SEMANTIC_BLOCK_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set("2"));
     ASSERT_TRUE(BlockEnvironment.set("0"));
-    FunctionAnalysis AtLimit("func f(x: *u8): void;");
-    FunctionAnalysis OverLimit("func f(x: **u8): void;");
+    FunctionAnalysis AtLimit("import \"C\" func f(x: *u8): void;");
+    FunctionAnalysis OverLimit("import \"C\" func f(x: **u8): void;");
     ASSERT_TRUE(AtLimit.Parsed.succeeded());
     ASSERT_TRUE(OverLimit.Parsed.succeeded());
     EXPECT_NE(AtLimit.analyze(), nullptr);
@@ -585,7 +661,7 @@ namespace ink::semantic::test
     core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_TYPE_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set("0"));
     FunctionAnalysis Empty("");
-    FunctionAnalysis Function("func f(): void;");
+    FunctionAnalysis Function("func f(): void {}");
     ASSERT_TRUE(Empty.Parsed.succeeded());
     ASSERT_TRUE(Function.Parsed.succeeded());
     EXPECT_NE(Empty.analyze(), nullptr);

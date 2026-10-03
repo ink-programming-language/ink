@@ -46,19 +46,23 @@ namespace ink::semantic
 
   Analyzer::ExpressionResult Analyzer::callComptime(AnalysisState &State, const Function &FunctionValue, std::span<const Value *const> Arguments, const parser::Expr &Node)
   {
+    if (!prepareComptimeFunctions(State, FunctionValue, Node))
+    {
+      return {};
+    }
     auto &Engine = State.Context.comptimeState().Engine;
-    std::vector<ExecutionValueRef> EvaluatedArguments;
-    EvaluatedArguments.reserve(Arguments.size());
+    std::vector<ExecutionValueRef> ResolvedArguments;
+    ResolvedArguments.reserve(Arguments.size());
     for (const Value *Argument : Arguments)
     {
-      ExecutionValueResult Evaluated = Engine.evaluate(*Argument, *State.Frame);
-      if (!reportExecution(State, Evaluated.Status, Node))
+      ExecutionValueResult Resolved = Engine.resolveValue(*Argument, *State.Frame);
+      if (!reportExecution(State, Resolved.Status, Node))
       {
         return {};
       }
-      EvaluatedArguments.push_back(std::move(Evaluated.Value));
+      ResolvedArguments.push_back(std::move(Resolved.Value));
     }
-    const ExecutionValueResult Result = Engine.execute(FunctionValue, EvaluatedArguments);
+    const ExecutionValueResult Result = Engine.execute(FunctionValue, ResolvedArguments);
     if (!reportExecution(State, Result.Status, Node))
     {
       return {};

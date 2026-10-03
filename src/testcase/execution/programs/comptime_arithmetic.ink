@@ -1,5 +1,5 @@
 // Subtraction, multiplication, division, remainder and bitwise operators currently execute in comptime.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
 // Compound assignments feed the updated value into each subsequent arithmetic operation.
 func compoundArithmetic(): i32

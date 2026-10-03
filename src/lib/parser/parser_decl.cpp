@@ -133,6 +133,62 @@ namespace ink::parser
   Decl *Parser::parseDecl(ASTArray<Attribute> Attributes)
   {
     const std::size_t Start = Attributes.empty() ? start() : Attributes.front().range().getBegin().getByteOffset();
+    DeclarationVisibility Visibility = DeclarationVisibility::Default;
+    bool Comptime = false;
+    bool HasAttributes = !Attributes.empty();
+    while (active())
+    {
+      if (at(TokenKind::KwPublic) || at(TokenKind::KwPrivate))
+      {
+        const TokenId Modifier = bump();
+        const DeclarationVisibility Current = Input.token(Modifier).Kind == TokenKind::KwPublic ? DeclarationVisibility::Public : DeclarationVisibility::Private;
+        if (Visibility != DeclarationVisibility::Default)
+        {
+          error(Visibility == Current ? core::DiagnosticKind::ParserDuplicateVisibilityModifier : core::DiagnosticKind::ParserConflictingVisibilityModifiers, Input.token(Modifier).Span);
+        }
+        else
+        {
+          Visibility = Current;
+        }
+        continue;
+      }
+      if (Visibility != DeclarationVisibility::Default && take(TokenKind::KwComptime))
+      {
+        Comptime = true;
+        continue;
+      }
+      if (Visibility != DeclarationVisibility::Default && at(TokenKind::LBracket))
+      {
+        const SourceRange AttributeStart = point();
+        const auto More = parseAttributes();
+        if (HasAttributes)
+        {
+          invalid(AttributeStart);
+        }
+        else
+        {
+          Attributes = More;
+          HasAttributes = true;
+        }
+        continue;
+      }
+      break;
+    }
+    Decl *Result = parseDeclBody(Attributes);
+    Result->setVisibility(Visibility);
+    if (Visibility != DeclarationVisibility::Default)
+    {
+      Result->setSourceRange(SourceRange::fromByteOffsets(Start, Result->getSourceRange().getEnd().getByteOffset()));
+    }
+    if (Comptime)
+    {
+      Result->setComptime();
+    }
+    return Result;
+  }
+  Decl *Parser::parseDeclBody(ASTArray<Attribute> Attributes)
+  {
+    const std::size_t Start = Attributes.empty() ? start() : Attributes.front().range().getBegin().getByteOffset();
     if (at(TokenKind::KwVar) || at(TokenKind::KwConst))
     {
       VarDecl *Result = parseVar(Attributes);
@@ -140,8 +196,10 @@ namespace ink::parser
       return Result;
     }
     Expr *Linkage = nullptr;
-    if (take(TokenKind::KwExtern))
+    NativeSymbolKind NativeSymbol = NativeSymbolKind::None;
+    if (at(TokenKind::KwImport) || at(TokenKind::KwExport))
     {
+      NativeSymbol = Input.token(bump()).Kind == TokenKind::KwImport ? NativeSymbolKind::Import : NativeSymbolKind::Export;
       const ExpectResult Language = expect(TokenKind::StringLiteral);
       Linkage = Language.Actual ? static_cast<Expr *>(make<LiteralExpr>(Language.Range, *Language.Actual, TokenKind::StringLiteral)) : missingExpr();
       expect(TokenKind::KwFunc);
@@ -156,7 +214,7 @@ namespace ink::parser
       TypeSyntax *ReturnType = parseTypeSyntax();
       const bool Forward = take(TokenKind::Semicolon);
       BlockStmt *Body = Forward ? nullptr : parseBlock();
-      return make<FunctionDecl>(range(Start), Attributes, Name, Generics, Parameters, ReturnType, Forward ? FunctionBodyKind::DeclarationOnly : FunctionBodyKind::Definition, Body, Linkage);
+      return make<FunctionDecl>(range(Start), Attributes, Name, Generics, Parameters, ReturnType, Forward ? FunctionBodyKind::DeclarationOnly : FunctionBodyKind::Definition, Body, Linkage, NativeSymbol);
     }
     if (take(TokenKind::KwField))
     {

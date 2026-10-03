@@ -127,10 +127,11 @@ namespace ink::semantic::test
     EXPECT_EQ(Engine.heap().liveStorageCount(), 0U);
   }
 
-  // A bodyless RHS is harmless on the skipped edge and reports MissingBody precisely when that edge is taken.
-  TEST(SemanticLogicalTest, SkipsBodylessCallsOnlyOnShortCircuitEdges)
+#if defined(_WIN32) || defined(__linux__)
+  // A valid RHS wrapper skips native lookup on the short-circuit edge and reports SymbolNotFound only when called.
+  TEST(SemanticLogicalTest, SkipsMissingNativeCallsOnlyOnShortCircuitEdges)
   {
-    LogicalAnalysis Input("func Missing(): bool; func And(Flag: bool): bool { return Flag && Missing(); } func Or(Flag: bool): bool { return Flag || Missing(); }");
+    LogicalAnalysis Input("import \"C\" func InkMissingLogicalRuntimeSymbol71e4935b(): i32; func Missing(): bool { return InkMissingLogicalRuntimeSymbol71e4935b() != 0; } func And(Flag: bool): bool { return Flag && Missing(); } func Or(Flag: bool): bool { return Flag || Missing(); }");
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Result = Input.analyze();
     ASSERT_NE(Result, nullptr);
@@ -144,10 +145,11 @@ namespace ink::semantic::test
     const ExecutionValueRef True[] = {Input.boolean(Engine, true)};
     expectBoolean(Engine.execute(*And, False), false);
     expectBoolean(Engine.execute(*Or, True), true);
-    EXPECT_EQ(Engine.execute(*And, True).Status, ExecutionStatus::MissingBody);
-    EXPECT_EQ(Engine.execute(*Or, False).Status, ExecutionStatus::MissingBody);
+    EXPECT_EQ(Engine.execute(*And, True).Status, ExecutionStatus::SymbolNotFound);
+    EXPECT_EQ(Engine.execute(*Or, False).Status, ExecutionStatus::SymbolNotFound);
     EXPECT_EQ(Engine.heap().liveStorageCount(), 0U);
   }
+#endif
 
   // Runtime RHS syntax must type-check even when its constant left operand will always skip it during execution.
   TEST(SemanticLogicalTest, RequiresBooleanOperandsOnBothRuntimePaths)
@@ -353,11 +355,12 @@ func RuntimeIr(): bool { return comptime Ordinary(-128); }
     }
   }
 
-  // Compile-time AST evaluation stays lazy, while compile-time functions execute the same short-circuit IR as ordinary calls.
+  // Compile-time AST and shared function IR skip unselected calls; a selected wrapper still performs native symbol lookup.
   TEST(SemanticLogicalTest, PreservesComptimeShortCircuitAndSharedFunctionExecution)
   {
     LogicalAnalysis Input(R"ink(
-func Missing(): bool;
+import "C" func InkMissingLogicalComptimeSymbol71e4935b(): i32;
+func Missing(): bool { return InkMissingLogicalComptimeSymbol71e4935b() != 0; }
 comptime func Select(A: bool, B: bool): bool { return !A || B && true; }
 comptime func Skip(): bool { return false && Missing() || true; }
 func First(): bool { return comptime Select(false, false); }
@@ -377,14 +380,16 @@ func Sixth(): bool { return comptime (true || Unknown); }
     Input.expectConstantBoolean(*Result, "Fourth", true);
     Input.expectConstantBoolean(*Result, "Fifth", false);
     Input.expectConstantBoolean(*Result, "Sixth", true);
-    LogicalAnalysis Required("func Missing(): bool; comptime func Required(): bool { return true && Missing(); } func Read(): bool { return comptime Required(); }");
+#if defined(_WIN32) || defined(__linux__)
+    LogicalAnalysis Required("import \"C\" func InkMissingLogicalRequiredSymbol71e4935b(): i32; func Missing(): bool { return InkMissingLogicalRequiredSymbol71e4935b() != 0; } comptime func Required(): bool { return true && Missing(); } func Read(): bool { return comptime Required(); }");
     ASSERT_TRUE(Required.Parsed.succeeded());
     EXPECT_EQ(Required.analyze(), nullptr);
-    EXPECT_EQ(Required.diagnosticCount(core::DiagnosticKind::ExecutionMissingBody), 1U);
+    EXPECT_EQ(Required.diagnosticCount(core::DiagnosticKind::ExecutionSymbolNotFound), 1U);
+#endif
   }
 
 #if defined(_WIN32) || defined(__linux__)
-  // A deferred left literal exhausts traversal depth or steps before the RHS can write or fail through a bodyless call.
+  // A deferred left literal exhausts traversal depth or steps before the RHS can write or resolve a missing native symbol.
   TEST(SemanticLogicalTest, ChecksDeferredLiteralBudgetsBeforeRightOperandEffects)
   {
     struct Case
@@ -408,10 +413,10 @@ func Sixth(): bool { return comptime (true || Unknown); }
       execution::test::NativePipe Pipe;
       ASSERT_TRUE(Pipe.valid());
       const std::string Left = std::string(Entry.Parentheses, '(') + "1" + std::string(Entry.Parentheses, ')');
-      const std::string Source = execution::test::writeDeclaration() + "func Missing(): i8; func Right(): i8 { " + std::string(execution::test::WriteSymbol) + "(" + std::to_string(Pipe.writer()) + ", \"R\", 1); return Missing(); } func Read(): bool { return comptime (" + Left + " == Right()); }";
+      const std::string Source = execution::test::writeDeclaration() + "import \"C\" func InkMissingLogicalBudgetSymbol71e4935b(): i8; func Missing(): i8 { return InkMissingLogicalBudgetSymbol71e4935b(); } func Right(): i8 { " + std::string(execution::test::WriteSymbol) + "(" + std::to_string(Pipe.writer()) + ", \"R\", 1); return Missing(); } func Read(): bool { return comptime (" + Left + " == Right()); }";
       LogicalAnalysis Input(Source);
       ASSERT_TRUE(Input.Parsed.succeeded());
-      // Calling Right first would write and then report MissingBody without a panic.
+      // Calling Right first would write and then report SymbolNotFound without a panic.
       // This also distinguishes ordering on Windows death tests, which recreate pipes.
       EXPECT_DEATH(Input.analyze(), "internal compiler error\\[INK-E0022\\]");
       std::string Output;

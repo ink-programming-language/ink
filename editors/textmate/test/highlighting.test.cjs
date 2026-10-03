@@ -49,6 +49,30 @@ test('all compiler keywords and Unicode identifier boundaries', () => {
   }
 });
 
+// Visibility modifiers receive their own scope without splitting longer or underscore-delimited identifiers.
+test('visibility modifiers and identifier boundaries', () => {
+  for (const modifier of ['public', 'private']) {
+    const row = tokenize(`${modifier} func visible(): i32`)[0];
+    expectScope(row, modifier, 'storage.modifier');
+    expectScope(row, 'visible', 'entity.name.function');
+    for (const name of [`_${modifier}`, `${modifier}_name`, `${modifier}1`, `${modifier}Name`]) {
+      expectScope(tokenize(name)[0], name, 'variable.other');
+      assert.ok(tokenize(name)[0].tokens.every(token => !token.scopes.some(scope => scope.startsWith('storage.modifier'))), name);
+    }
+  }
+});
+
+// Native binding keywords coexist with module imports and the retired extern spelling is an ordinary identifier.
+test('native import and export declarations', () => {
+  const imported = tokenize('private import "C" func abs(Value: i32): i32;')[0];
+  expectScope(imported, 'import', 'keyword.control');
+  expectScope(imported, 'abs', 'entity.name.function');
+  const exported = tokenize('public export "C" func sum(A: i32, B: i32): i32')[0];
+  expectScope(exported, 'export', 'storage.modifier');
+  expectScope(exported, 'sum', 'entity.name.function');
+  expectScope(tokenize('extern')[0], 'extern', 'variable.other');
+});
+
 // Only currently supported builtin spellings receive builtin type or constant scopes.
 test('builtin types and constants', () => {
   for (const name of ['void', 'bool', 'type', 'i8', 'u16', 'i32', 'u64', 'i128', 'u128', 'f16', 'f32', 'f64']) expectScope(tokenize(name)[0], name, 'support.type.builtin');

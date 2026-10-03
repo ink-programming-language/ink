@@ -52,8 +52,6 @@ namespace ink::execution
       ExecutionFrame *Parent;
       bool Active = true;
       std::unordered_map<const void *, ExecutionPlace> Bindings;
-      // SSA values are snapshots belonging to this activation, never cached on IR nodes.
-      std::unordered_map<const ir::Value *, ExecutionValueRef> Values;
       std::vector<ExecutionFrame *> Children;
       std::vector<ExecutionStorageRef> Storage;
 

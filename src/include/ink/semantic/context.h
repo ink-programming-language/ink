@@ -4,6 +4,11 @@
 #include "ink/ir/context.h"
 #include "ink/semantic/name_resolve/scope_store.h"
 #include "ink/semantic/comptime_state.h"
+#include "ink/ir/function/function.h"
+
+#include <algorithm>
+#include <span>
+#include <unordered_map>
 
 namespace ink::semantic
 {
@@ -17,6 +22,7 @@ namespace ink::semantic
             Comptime(IR)
       {
         Scopes.reset(new ScopeStore(*this));
+        ImportObserver.reset(new ModuleImportObserver(IR, *this));
       }
 
       FORCE_INLINE ~SemanticContext() = default;
@@ -95,10 +101,66 @@ namespace ink::semantic
         return Comptime;
       }
 
+      std::span<const ir::Function *const> moduleImports(const ir::Module &Module) const noexcept
+      {
+        const auto Found = Imports.find(&Module);
+        return Found == Imports.end() ? std::span<const ir::Function *const>{} : std::span<const ir::Function *const>(Found->second);
+      }
+
     private:
+      void recordModuleImport(const ir::Module &Module, const ir::Function &Function)
+      {
+        auto &Functions = Imports[&Module];
+        if (std::find(Functions.begin(), Functions.end(), &Function) == Functions.end())
+        {
+          Functions.push_back(&Function);
+        }
+      }
+
+      class ModuleImportObserver final : public ir::LifetimeObserver
+      {
+        public:
+          ModuleImportObserver(ir::IRContext &Context, SemanticContext &Owner)
+              : ir::LifetimeObserver(Context),
+                Owner(Owner)
+          {
+          }
+
+        private:
+          void valueDestroyed(ir::Value &Target) noexcept override
+          {
+            for (auto Iterator = Owner.Imports.begin(); Iterator != Owner.Imports.end();)
+            {
+              if (static_cast<const ir::Value *>(Iterator->first) == &Target)
+              {
+                Iterator = Owner.Imports.erase(Iterator);
+              }
+              else
+              {
+                auto &Functions = Iterator->second;
+                std::erase_if(Functions, [&Target](const ir::Function *Function)
+                {
+                  return static_cast<const ir::Value *>(Function) == &Target;
+                });
+                ++Iterator;
+              }
+            }
+          }
+
+          void declDestroyed(ir::Decl &) noexcept override
+          {
+          }
+
+          SemanticContext &Owner;
+      };
+
       ir::IRContext IR;
       ComptimeState Comptime;
       std::unique_ptr<ScopeStore> Scopes;
+      std::unordered_map<const ir::Module *, std::vector<const ir::Function *>> Imports;
+      std::unique_ptr<ModuleImportObserver> ImportObserver;
+
+      friend class Analyzer;
   };
 } // namespace ink::semantic
 

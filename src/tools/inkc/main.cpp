@@ -7,6 +7,8 @@
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
+#include "bytecode_commands.h"
+#include "source_modules.h"
 
 #include <array>
 #include <bit>
@@ -133,9 +135,9 @@ namespace
       return nullptr;
     }
     const auto &Function = static_cast<const ink::ir::Function &>(*Target);
-    if (Function.languageLinkage() != ink::ir::LanguageLinkage::Ink)
+    if (Function.isNativeImport())
     {
-      Error = Entry + " must use Ink language linkage";
+      Error = Entry + " cannot be a native import";
       return nullptr;
     }
     if (!Function.parameters().empty())
@@ -196,17 +198,26 @@ namespace
     return static_cast<int>(std::bit_cast<std::int32_t>(Bits));
   }
 
-  int interpretSource(const std::string &InputFile, std::string Source, const std::string &EntryName)
+  int processSource(const std::string &InputFile, std::string Source, const std::string &EntryName, const std::string &ModuleRoot, const ink::tools::BytecodeOptions *Bytecode)
   {
     ink::core::CompilationContext Compilation;
     ink::core::FrontendContext Frontend(Compilation);
     ink::core::CollectingDiagnosticConsumer Diagnostics;
     Compilation.diagnosticEngine().addConsumer(Diagnostics);
-    const ink::core::SourceId SourceId = Compilation.sourceManager().addSource(InputFile == "-" ? "<stdin>" : InputFile, std::move(Source));
-    const ink::parser::ParseResult Parsed = ink::parser::parse(Frontend, ink::tokenizer::tokenizeSource(Frontend, SourceId));
-    // The syntax tree outlives the semantic context that borrows its declarations.
+    ink::tools::SourceModules Sources(Frontend);
+    std::string LoadError;
+    if (!Sources.load(InputFile, std::move(Source), ModuleRoot, Bytecode != nullptr, LoadError))
+    {
+      return reportError(LoadError, ink::cli::ExitCode::SourceError);
+    }
+    // Every dependency's syntax tree outlives the semantic context borrowing its declarations.
     ink::semantic::SemanticContext Context(Compilation);
-    ink::ir::Module *Module = Parsed.succeeded() ? ink::semantic::Analyzer{}.analyze(Context, Parsed) : nullptr;
+    ink::ir::Module *Module = nullptr;
+    if (Sources.succeeded())
+    {
+      const auto Inputs = Sources.inputs();
+      Module = ink::semantic::Analyzer{}.analyzeModules(Context, Inputs, Sources.entryName());
+    }
     bool HasInternalError = false;
     if (!writeDiagnostics(Compilation.sourceManager(), Diagnostics.diagnostics(), HasInternalError))
     {
@@ -223,6 +234,10 @@ namespace
         return reportError("source analysis failed without a diagnostic", ink::cli::ExitCode::InternalError);
       }
       return ink::cli::exitStatus(ink::cli::ExitCode::SourceError);
+    }
+    if (Bytecode)
+    {
+      return ink::tools::emitBytecode(Context, *Module, *Bytecode);
     }
     std::string Error;
     const ink::ir::Function *Entry = findEntry(Context, *Module, EntryName, Error);
@@ -245,19 +260,49 @@ namespace
     std::string InputFile;
     std::string IrOutputFile;
     std::string EntryName = "main";
+    std::vector<std::string> LinkInputs;
+    std::string LinkOutput;
+    std::string ModuleRoot;
+    ink::tools::BytecodeOptions Bytecode;
     bool Interpret = false;
-    Command.addOption("-i,--input", InputFile, "Input Ink source file, or '-' for standard input").required().typeName("FILE");
+    bool RunBytecode = false;
+    Command.addOption("-i,--input", InputFile, "Input source or bytecode file; '-' reads source from standard input").typeName("FILE");
     ink::cli::Option &InterpretOption = Command.addFlag("--interpret", Interpret, "Interpret the source and execute its entry function");
+    ink::cli::Option &EmitOption = Command.addOption("--emit-bytecode", Bytecode.Output, "Compile all runtime functions to a bytecode object file").typeName("FILE").excludes(InterpretOption);
+    ink::cli::Option &LinkOption = Command.addOption("--link-bytecode", LinkInputs, "Link a bytecode object file; repeat for each input").repeatPolicy(ink::cli::RepeatPolicy::Append).typeName("FILE").excludes(InterpretOption).excludes(EmitOption);
+    Command.addFlag("--run-bytecode", RunBytecode, "Load a linked bytecode file and execute its saved entry").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption);
+    Command.addOption("-o,--output", LinkOutput, "Output linked bytecode executable").typeName("FILE");
+    Command.addOption("--module-root", ModuleRoot, "Root directory for source imports and module identities (default: input directory)").typeName("DIRECTORY");
     Command.addOption("--entry", EntryName, "Entry function name (default: main)").typeName("NAME");
-    Command.addOption("-oir", IrOutputFile, "Output IR file (not supported in interpretation mode)").typeName("FILE").excludes(InterpretOption);
+    Command.addOption("-oir", IrOutputFile, "Output IR file (not supported in interpretation or bytecode modes)").typeName("FILE").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption);
     const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
     if (ParsedArguments.ShouldExit)
     {
       return ink::cli::exitStatus(ParsedArguments.Code);
     }
-    if (!Interpret)
+    if (!Interpret && Bytecode.Output.empty() && LinkInputs.empty() && !RunBytecode)
     {
-      return reportError("compilation mode is not supported; use --interpret", ink::cli::ExitCode::InvocationError);
+      return reportError("select --interpret, --emit-bytecode, --link-bytecode or --run-bytecode", ink::cli::ExitCode::InvocationError);
+    }
+    if (!ModuleRoot.empty() && (RunBytecode || !LinkInputs.empty()))
+    {
+      return reportError("--module-root requires a source compilation or interpretation mode", ink::cli::ExitCode::InvocationError);
+    }
+    if (!LinkInputs.empty())
+    {
+      if (LinkOutput.empty() || !InputFile.empty())
+      {
+        return reportError("--link-bytecode requires --output and uses its own input files", ink::cli::ExitCode::InvocationError);
+      }
+      return ink::tools::linkBytecode(LinkInputs, LinkOutput, EntryName);
+    }
+    if (InputFile.empty() || !LinkOutput.empty() || (!IrOutputFile.empty() && RunBytecode))
+    {
+      return reportError("this mode requires --input and does not accept --output or -oir", ink::cli::ExitCode::InvocationError);
+    }
+    if (RunBytecode)
+    {
+      return ink::tools::runBytecode(InputFile);
     }
     if (EntryName.empty())
     {
@@ -269,7 +314,7 @@ namespace
     {
       return reportError(Error, ink::cli::ExitCode::InvocationError);
     }
-    return interpretSource(InputFile, std::move(Source), EntryName);
+    return processSource(InputFile, std::move(Source), EntryName, ModuleRoot, Bytecode.Output.empty() ? nullptr : &Bytecode);
   }
 } // namespace
 

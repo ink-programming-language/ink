@@ -11,84 +11,20 @@
 #include "ink/ir/context.h"
 #include "ink/ir/function/function.h"
 
-#include <limits>
 #include <utility>
-#include <vector>
 
 namespace ink::execution
 {
   struct ExecutionHeapState
   {
-      struct Slot
-      {
-          std::unique_ptr<ExecutionStorage> Storage;
-          std::uint64_t Generation = 1;
-      };
-
-      std::vector<Slot> Slots;
-      std::vector<std::size_t> FreeSlots;
       std::size_t LiveValues = 0;
-      std::size_t LiveStorage = 0;
-      std::size_t AllocatedStorage = 0;
-      std::size_t MaxStorage;
-
-      explicit ExecutionHeapState(std::size_t MaxStorage)
-          : MaxStorage(MaxStorage)
-      {
-      }
   };
 
-  bool ExecutionStorageRef::valid() const noexcept
-  {
-    return status() == ExecutionStatus::Success;
-  }
-
-  ExecutionStatus ExecutionStorageRef::status() const noexcept
-  {
-    if (Generation == 0)
-    {
-      return ExecutionStatus::InvalidPlace;
-    }
-    const auto Owner = State.lock();
-    if (!Owner || Slot >= Owner->Slots.size())
-    {
-      return ExecutionStatus::ExpiredPlace;
-    }
-    const auto &Entry = Owner->Slots[Slot];
-    return Entry.Generation == Generation && Entry.Storage ? ExecutionStatus::Success : ExecutionStatus::ExpiredPlace;
-  }
-
-  ExecutionStorage *ExecutionStorageRef::get() const noexcept
-  {
-    const auto Owner = State.lock();
-    if (!Owner || Generation == 0 || Slot >= Owner->Slots.size())
-    {
-      return nullptr;
-    }
-    const auto &Entry = Owner->Slots[Slot];
-    return Entry.Generation == Generation ? Entry.Storage.get() : nullptr;
-  }
-
-  ExecutionCell *ExecutionStorageRef::cell() const noexcept
-  {
-    ExecutionStorage *Storage = get();
-    return Storage && Storage->objectKind() == ExecutionObjectKind::Cell ? static_cast<ExecutionCell *>(Storage) : nullptr;
-  }
-
-  ExecutionBuffer *ExecutionStorageRef::buffer() const noexcept
-  {
-    ExecutionStorage *Storage = get();
-    return Storage && Storage->objectKind() == ExecutionObjectKind::Buffer ? static_cast<ExecutionBuffer *>(Storage) : nullptr;
-  }
-
-  bool ExecutionStorageRef::operator==(const ExecutionStorageRef &Other) const noexcept
-  {
-    return Slot == Other.Slot && Generation == Other.Generation && !State.owner_before(Other.State) && !Other.State.owner_before(State);
-  }
-
-  ExecutionHeap::ExecutionHeap(ir::IRContext &Context, std::size_t MaxStorage)
+  ExecutionHeap::ExecutionHeap(ir::IRContext &Context, std::size_t MaxStorage, std::size_t MaxStorageBytes)
       : Context(Context),
-        State(std::make_shared<ExecutionHeapState>(MaxStorage))
+        State(std::make_shared<ExecutionHeapState>()),
+        Bridge(Context, true),
+        Memory(MaxStorage, MaxStorageBytes)
   {
   }
 
@@ -111,15 +47,45 @@ namespace ink::execution
 
   std::size_t ExecutionHeap::liveStorageCount() const noexcept
   {
-    return State->LiveStorage;
+    return Memory.liveStorageCount();
   }
 
   std::size_t ExecutionHeap::allocatedStorageCount() const noexcept
   {
-    return State->AllocatedStorage;
+    return Memory.allocatedStorageCount();
   }
 
-  ExecutionValueRef ExecutionHeap::ownValue(std::unique_ptr<ExecutionValue> Value)
+  std::size_t ExecutionHeap::liveStorageBytes() const noexcept
+  {
+    return Memory.liveStorageBytes();
+  }
+
+  std::size_t ExecutionHeap::allocatedStorageBytes() const noexcept
+  {
+    return Memory.allocatedStorageBytes();
+  }
+
+  ExecutionMemoryManager &ExecutionHeap::memoryManager() noexcept
+  {
+    return Memory;
+  }
+
+  const ExecutionMemoryManager &ExecutionHeap::memoryManager() const noexcept
+  {
+    return Memory;
+  }
+
+  SemanticValueBridge &ExecutionHeap::bridge() noexcept
+  {
+    return Bridge;
+  }
+
+  const SemanticValueBridge &ExecutionHeap::bridge() const noexcept
+  {
+    return Bridge;
+  }
+
+  ExecutionValueRef ExecutionHeap::ownValue(std::unique_ptr<ExecutionValue> Value, bool AllowExpiredPointer)
   {
     if (!Value || !Value->type() || &Value->type()->context() != &Context)
     {
@@ -128,12 +94,21 @@ namespace ink::execution
     }
     if (!Value->valid())
     {
-      LastStatus = Value->kind() == ExecutionValueKind::Pointer ? static_cast<const ExecutionPointerValue &>(*Value).value().status() : ExecutionStatus::TypeMismatch;
-      if (LastStatus == ExecutionStatus::Success)
+      bool ExpiredSnapshot = false;
+      if (AllowExpiredPointer && Value->kind() == ExecutionValueKind::Pointer && Value->type()->typeKind() == ir::TypeKind::Pointer)
       {
-        LastStatus = ExecutionStatus::TypeMismatch;
+        const ExecutionPointer &Pointer = static_cast<const ExecutionPointerValue &>(*Value).value();
+        ExpiredSnapshot = Pointer.status() == ExecutionStatus::ExpiredPlace && ((Pointer.kind() == ExecutionPointer::Kind::Place && Memory.owns(Pointer.place().storage())) || (Pointer.kind() == ExecutionPointer::Kind::Buffer && Memory.owns(Pointer.bufferRef())));
       }
-      return {};
+      if (!ExpiredSnapshot)
+      {
+        LastStatus = Value->kind() == ExecutionValueKind::Pointer ? static_cast<const ExecutionPointerValue &>(*Value).value().status() : ExecutionStatus::TypeMismatch;
+        if (LastStatus == ExecutionStatus::Success)
+        {
+          LastStatus = ExecutionStatus::TypeMismatch;
+        }
+        return {};
+      }
     }
     const std::weak_ptr<ExecutionHeapState> Owner = State;
     std::shared_ptr<const ExecutionValue> Shared(Value.release(), [Owner](const ExecutionValue *Object)
@@ -197,6 +172,27 @@ namespace ink::execution
     return ownValue(std::unique_ptr<ExecutionValue>(new ExecutionPointerValue(Type, std::move(Value))));
   }
 
+  ExecutionValueRef ExecutionHeap::pointerSnapshot(const ir::Type &Type, ExecutionPointer Value)
+  {
+    if ((Value.kind() == ExecutionPointer::Kind::Place && !Memory.owns(Value.place().storage())) || (Value.kind() == ExecutionPointer::Kind::Buffer && !Memory.owns(Value.bufferRef())))
+    {
+      LastStatus = ExecutionStatus::InvalidPlace;
+      return {};
+    }
+    if (Value.kind() == ExecutionPointer::Kind::Place)
+    {
+      const ExecutionCell *Cell = Value.place().storage().cell();
+      if (Cell && Cell->layout().Domain != Bridge.types()->domain())
+      {
+        LastStatus = ExecutionStatus::TypeMismatch;
+        return {};
+      }
+    }
+    // A result may transport an expired identity after its stack frame ends.
+    // It remains invalid to dereference, store or lower back into execution.
+    return ownValue(std::unique_ptr<ExecutionValue>(new ExecutionPointerValue(Type, std::move(Value))), true);
+  }
+
   ExecutionValueRef ExecutionHeap::function(const ir::Function &Value)
   {
     return ownValue(std::unique_ptr<ExecutionValue>(new ExecutionFunctionValue(Value)));
@@ -205,32 +201,6 @@ namespace ink::execution
   ExecutionValueRef ExecutionHeap::voidValue(const ir::Type &Type)
   {
     return ownValue(std::unique_ptr<ExecutionValue>(new ExecutionVoidValue(Type)));
-  }
-
-  ExecutionStorageRef ExecutionHeap::ownStorage(std::unique_ptr<ExecutionStorage> Storage)
-  {
-    if (State->AllocatedStorage >= State->MaxStorage)
-    {
-      LastStatus = ExecutionStatus::BudgetExceeded;
-      return {};
-    }
-    std::size_t Index;
-    if (State->FreeSlots.empty())
-    {
-      Index = State->Slots.size();
-      State->Slots.push_back({});
-    }
-    else
-    {
-      Index = State->FreeSlots.back();
-      State->FreeSlots.pop_back();
-    }
-    auto &Slot = State->Slots[Index];
-    Slot.Storage = std::move(Storage);
-    ++State->AllocatedStorage;
-    ++State->LiveStorage;
-    LastStatus = ExecutionStatus::Success;
-    return ExecutionStorageRef(State, Index, Slot.Generation);
   }
 
   ExecutionPlaceResult ExecutionHeap::allocateCell(const ir::Type &Type, bool Writable, const ExecutionValueRef &Initial, bool Runtime)
@@ -243,65 +213,59 @@ namespace ink::execution
     {
       return {LastStatus = ExecutionStatus::TypeMismatch};
     }
-    if (State->AllocatedStorage >= State->MaxStorage)
+    const RuntimeTypeId TypeId = Bridge.lowerType(Type);
+    const StorageLayout *Layout = Bridge.types()->get(TypeId);
+    if (!Layout)
     {
-      return {LastStatus = ExecutionStatus::BudgetExceeded};
+      return {LastStatus = ExecutionStatus::Overflow};
     }
-    const ExecutionStorageRef Storage = ownStorage(std::unique_ptr<ExecutionStorage>(new ExecutionCell(Type, Writable, Initial, Runtime)));
-    return Storage.valid() ? ExecutionPlaceResult{ExecutionStatus::Success, ExecutionPlace(Storage)} : ExecutionPlaceResult{LastStatus};
+    RuntimeValue InitialValue;
+    if (Initial.get())
+    {
+      const RuntimeValueResult Converted = Bridge.lowerValue(Initial);
+      if (!Converted)
+      {
+        return {LastStatus = Converted.Status};
+      }
+      InitialValue = Converted.Value;
+    }
+    const ExecutionPlaceResult Result = Memory.allocateCell(*Layout, Writable, InitialValue, Runtime);
+    LastStatus = Result.Status;
+    return Result;
   }
 
   ExecutionStorageRef ExecutionHeap::allocateBuffer(std::string_view Bytes, bool Terminate)
   {
-    if (State->AllocatedStorage >= State->MaxStorage)
-    {
-      LastStatus = ExecutionStatus::BudgetExceeded;
-      return {};
-    }
-    return ownStorage(std::unique_ptr<ExecutionStorage>(new ExecutionBuffer(Bytes, Terminate)));
+    const ExecutionStorageRef Result = Memory.allocateBuffer(Bytes, Terminate);
+    LastStatus = Memory.lastStatus();
+    return Result;
+  }
+
+  ExecutionStorageRef ExecutionHeap::allocateBuffer(std::size_t Size)
+  {
+    const ExecutionStorageRef Result = Memory.allocateBuffer(Size);
+    LastStatus = Memory.lastStatus();
+    return Result;
   }
 
   bool ExecutionHeap::owns(const ExecutionStorageRef &Storage) const noexcept
   {
-    return Storage.Generation != 0 && !Storage.State.owner_before(State) && !State.owner_before(Storage.State);
+    return Memory.owns(Storage);
   }
 
   ExecutionStatus ExecutionHeap::release(const ExecutionStorageRef &Storage) noexcept
   {
-    if (!owns(Storage))
-    {
-      return LastStatus = ExecutionStatus::InvalidPlace;
-    }
-    const ExecutionStatus Status = Storage.status();
-    if (Status != ExecutionStatus::Success)
-    {
-      return LastStatus = Status;
-    }
-    auto &Slot = State->Slots[Storage.Slot];
-    Slot.Storage.reset();
-    --State->LiveStorage;
-    // A generation never wraps; a saturated slot is permanently retired.
-    if (Slot.Generation != std::numeric_limits<std::uint64_t>::max())
-    {
-      ++Slot.Generation;
-      State->FreeSlots.push_back(Storage.Slot);
-    }
-    return LastStatus = ExecutionStatus::Success;
+    return LastStatus = Memory.release(Storage);
   }
 
   ExecutionStatus ExecutionHeap::release(ExecutionPlace Place) noexcept
   {
-    const ExecutionStatus Status = validatePlace(Place);
-    return Status == ExecutionStatus::Success ? release(Place.storage()) : (LastStatus = Status);
+    return LastStatus = Memory.release(Place);
   }
 
   ExecutionStatus ExecutionHeap::validatePlace(ExecutionPlace Place) const noexcept
   {
-    if (!owns(Place.storage()))
-    {
-      return ExecutionStatus::InvalidPlace;
-    }
-    return Place.status();
+    return Memory.owns(Place.storage()) ? Place.status() : ExecutionStatus::InvalidPlace;
   }
 
   ExecutionValueResult ExecutionHeap::load(ExecutionPlace Place)
@@ -312,15 +276,18 @@ namespace ink::execution
       return {LastStatus = Status};
     }
     const ExecutionCell &Cell = *Place.storage().cell();
-    if (Cell.Runtime)
+    if (Cell.layout().Domain != Bridge.types()->domain())
     {
-      return {LastStatus = ExecutionStatus::RuntimeValue};
+      return {LastStatus = ExecutionStatus::TypeMismatch};
     }
-    if (!Cell.Value.get())
+    const RuntimeValueResult Loaded = Cell.loadRuntime();
+    if (!Loaded)
     {
-      return {LastStatus = ExecutionStatus::Uninitialized};
+      return {LastStatus = Loaded.Status};
     }
-    return {LastStatus = ExecutionStatus::Success, Cell.Value};
+    ExecutionValueResult Result = Bridge.raiseValue(*this, Loaded.Value, Cell.type());
+    LastStatus = Result.Status;
+    return Result;
   }
 
   ExecutionStatus ExecutionHeap::store(ExecutionPlace Place, const ExecutionValueRef &Value)
@@ -330,24 +297,33 @@ namespace ink::execution
     {
       return LastStatus = Status;
     }
-    ExecutionCell &Cell = *Place.storage().cell();
-    if (Cell.Runtime)
-    {
-      return LastStatus = ExecutionStatus::RuntimeValue;
-    }
-    if (!Cell.Writable && Cell.Value.get())
-    {
-      return LastStatus = ExecutionStatus::ReadOnly;
-    }
     if (Value.type() && &Value.type()->context() != &Context)
     {
       return LastStatus = ExecutionStatus::ForeignContext;
     }
-    if (!Value.valid() || Value.type() != Cell.ValueType)
+    ExecutionCell &Cell = *Place.storage().cell();
+    if (Cell.layout().Domain != Bridge.types()->domain())
     {
       return LastStatus = ExecutionStatus::TypeMismatch;
     }
-    Cell.Value = Value;
-    return LastStatus = ExecutionStatus::Success;
+    if (Cell.runtime())
+    {
+      return LastStatus = ExecutionStatus::RuntimeValue;
+    }
+    if (!Cell.writable() && Cell.initialized())
+    {
+      return LastStatus = ExecutionStatus::ReadOnly;
+    }
+    const RuntimeValueResult Converted = Bridge.lowerValue(Value);
+    if (!Converted)
+    {
+      return LastStatus = Converted.Status;
+    }
+    return LastStatus = Cell.storeRuntime(Converted.Value);
+  }
+
+  ExecutionPointer ExecutionHeap::pointerFromAddress(void *Address) const noexcept
+  {
+    return Memory.pointerFromAddress(Address);
   }
 } // namespace ink::execution

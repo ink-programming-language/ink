@@ -1,12 +1,12 @@
 // Keep all CString buffers in the live main activation while reusing C pointers.
-extern "C" func puts(Text: *u8): i32;
-extern "C" func strlen(Text: *u8): u64;
-extern "C" func strcmp(Left: *u8, Right: *u8): i32;
-extern "C" func strchr(Text: *u8, Needle: i32): *u8;
-extern "C" func strrchr(Text: *u8, Needle: i32): *u8;
-extern "C" func strstr(Text: *u8, Needle: *u8): *u8;
-extern "C" func strcpy(Destination: *u8, Source: *u8): *u8;
-extern "C" func memchr(Buffer: *u8, Needle: i32, Count: u64): *u8;
+import "C" func puts(Text: *u8): i32;
+import "C" func strlen(Text: *u8): u64;
+import "C" func strcmp(Left: *u8, Right: *u8): i32;
+import "C" func strchr(Text: *u8, Needle: i32): *u8;
+import "C" func strrchr(Text: *u8, Needle: i32): *u8;
+import "C" func strstr(Text: *u8, Needle: *u8): *u8;
+import "C" func strcpy(Destination: *u8, Source: *u8): *u8;
+import "C" func memchr(Buffer: *u8, Needle: i32, Count: u64): *u8;
 
 func check(Result: bool): bool
 {

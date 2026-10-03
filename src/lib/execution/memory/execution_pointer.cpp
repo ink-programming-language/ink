@@ -6,11 +6,12 @@
 
 namespace ink::execution
 {
-  ExecutionPointer ExecutionPointer::fromPlace(ExecutionPlace Place) noexcept
+  ExecutionPointer ExecutionPointer::fromPlace(ExecutionPlace Place, std::size_t Offset) noexcept
   {
     ExecutionPointer Result;
     Result.PointerKind = Kind::Place;
     Result.Place = std::move(Place);
+    Result.Offset = Offset;
     return Result;
   }
 
@@ -47,6 +48,11 @@ namespace ink::execution
       char *Start = buffer()->data();
       return Offset == 0 ? Start : Start + Offset;
     }
+    if (PointerKind == Kind::Place && valid())
+    {
+      void *Data = Place.storage().cell()->data();
+      return Data && Offset != 0 ? static_cast<unsigned char *>(Data) + Offset : Data;
+    }
     return nullptr;
   }
 
@@ -63,7 +69,8 @@ namespace ink::execution
       {
         return Status;
       }
-      return Place.storage().cell() ? ExecutionStatus::Success : ExecutionStatus::InvalidPlace;
+      const ExecutionCell *Cell = Place.storage().cell();
+      return Cell && Offset <= Cell->size() ? ExecutionStatus::Success : ExecutionStatus::InvalidPlace;
     }
     case Kind::Buffer:
     {

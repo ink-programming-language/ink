@@ -323,14 +323,14 @@ namespace ink::execution::test
     EXPECT_EQ(Test.Heap.liveValueCount(), 0U);
   }
 
-  // Cell release drops its value owner immediately while a prior load keeps an immutable snapshot alive.
+  // Native cells keep bytes instead of a value owner, and loaded snapshots survive storage release.
   TEST(ExecutionHeapTest, ReclaimsCellsWithoutDiscardingLoadedSnapshots)
   {
     ValueContext Test;
     const auto Cell = Test.Heap.allocateCell(Test.Int32, true, Test.Heap.fromConstant(Test.integer(41)));
     ASSERT_TRUE(Cell);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 1U);
-    EXPECT_EQ(Test.Heap.liveValueCount(), 1U);
+    EXPECT_EQ(Test.Heap.liveValueCount(), 0U);
     auto Loaded = Test.Heap.load(Cell.Place);
     ASSERT_TRUE(Loaded);
     EXPECT_EQ(Loaded.Value.integer().bits(), ir::IntegerBits(32, 41));
@@ -392,7 +392,7 @@ namespace ink::execution::test
     EXPECT_EQ(Limited.load(First.Place).Status, ExecutionStatus::ExpiredPlace);
   }
 
-  // This ownership-only cycle uses opaque place handles; it does not add language pointer casts or recursive types.
+  // Runtime pointer cycles retain no semantic value objects and loaded pointer snapshots preserve expired generations.
   TEST(ExecutionHeapTest, ReleasesMutuallyReferencingCellsWithoutTracing)
   {
     ValueContext Test;
@@ -403,10 +403,10 @@ namespace ink::execution::test
     ASSERT_EQ(Test.Heap.store(First.Place, Test.Heap.pointer(Test.BytePointer, ExecutionPointer::fromPlace(Second.Place))), ExecutionStatus::Success);
     ASSERT_EQ(Test.Heap.store(Second.Place, Test.Heap.pointer(Test.BytePointer, ExecutionPointer::fromPlace(First.Place))), ExecutionStatus::Success);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 2U);
-    EXPECT_EQ(Test.Heap.liveValueCount(), 2U);
+    EXPECT_EQ(Test.Heap.liveValueCount(), 0U);
     ASSERT_EQ(Test.Heap.release(First.Place), ExecutionStatus::Success);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 1U);
-    EXPECT_EQ(Test.Heap.liveValueCount(), 1U);
+    EXPECT_EQ(Test.Heap.liveValueCount(), 0U);
     EXPECT_EQ(Test.Heap.load(Second.Place).Value.pointer().status(), ExecutionStatus::ExpiredPlace);
     ASSERT_EQ(Test.Heap.release(Second.Place), ExecutionStatus::Success);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 0U);

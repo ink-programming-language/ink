@@ -1,5 +1,10 @@
-// Nested short-circuit continuations eventually reach the deliberately missing function.
-func missing(): bool;
+// Nested short-circuit continuations eventually execute the wrapper around a missing native symbol.
+import "C" func InkMissingLogicalNestedSymbol71e4935b(): bool;
+
+func missing(): bool
+{
+  return InkMissingLogicalNestedSymbol71e4935b();
+}
 
 func encode(Value: bool): i32
 {

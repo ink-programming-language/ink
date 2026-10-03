@@ -12,6 +12,7 @@ namespace ink::execution::test
       ExecutionConfigTest()
           : Steps("INK_EXECUTION_MAX_STEPS"),
             Objects("INK_EXECUTION_MAX_OBJECTS"),
+            StorageBytes("INK_EXECUTION_MAX_STORAGE_BYTES"),
             CallDepth("INK_EXECUTION_MAX_CALL_DEPTH"),
             EvaluationDepth("INK_EXECUTION_MAX_EVALUATION_DEPTH")
       {
@@ -21,12 +22,14 @@ namespace ink::execution::test
       {
         ASSERT_TRUE(Steps.set(nullptr));
         ASSERT_TRUE(Objects.set(nullptr));
+        ASSERT_TRUE(StorageBytes.set(nullptr));
         ASSERT_TRUE(CallDepth.set(nullptr));
         ASSERT_TRUE(EvaluationDepth.set(nullptr));
       }
 
       core::test::ScopedEnvironmentVariable Steps;
       core::test::ScopedEnvironmentVariable Objects;
+      core::test::ScopedEnvironmentVariable StorageBytes;
       core::test::ScopedEnvironmentVariable CallDepth;
       core::test::ScopedEnvironmentVariable EvaluationDepth;
   };
@@ -37,6 +40,7 @@ namespace ink::execution::test
     const ExecutionLimits Limits;
     EXPECT_EQ(Limits.MaxSteps, 100000U);
     EXPECT_EQ(Limits.MaxObjects, 16384U);
+    EXPECT_EQ(Limits.MaxStorageBytes, 67108864U);
     EXPECT_EQ(Limits.MaxCallDepth, 256U);
     EXPECT_EQ(Limits.MaxEvaluationDepth, 64U);
   }
@@ -46,24 +50,29 @@ namespace ink::execution::test
   {
     ASSERT_TRUE(Steps.set("13"));
     ASSERT_TRUE(Objects.set("17"));
+    ASSERT_TRUE(StorageBytes.set("1024"));
     ASSERT_TRUE(CallDepth.set("3"));
     ASSERT_TRUE(EvaluationDepth.set("5"));
     const ExecutionLimits First;
     EXPECT_EQ(First.MaxSteps, 13U);
     EXPECT_EQ(First.MaxObjects, 17U);
+    EXPECT_EQ(First.MaxStorageBytes, 1024U);
     EXPECT_EQ(First.MaxCallDepth, 3U);
     EXPECT_EQ(First.MaxEvaluationDepth, 5U);
     ASSERT_TRUE(Steps.set("23"));
     ASSERT_TRUE(Objects.set("29"));
+    ASSERT_TRUE(StorageBytes.set("2048"));
     ASSERT_TRUE(CallDepth.set("7"));
     ASSERT_TRUE(EvaluationDepth.set("11"));
     const ExecutionLimits Second;
     EXPECT_EQ(Second.MaxSteps, 23U);
     EXPECT_EQ(Second.MaxObjects, 29U);
+    EXPECT_EQ(Second.MaxStorageBytes, 2048U);
     EXPECT_EQ(Second.MaxCallDepth, 7U);
     EXPECT_EQ(Second.MaxEvaluationDepth, 11U);
     EXPECT_EQ(First.MaxSteps, 13U);
     EXPECT_EQ(First.MaxObjects, 17U);
+    EXPECT_EQ(First.MaxStorageBytes, 1024U);
     EXPECT_EQ(First.MaxCallDepth, 3U);
     EXPECT_EQ(First.MaxEvaluationDepth, 5U);
   }
@@ -83,11 +92,13 @@ namespace ink::execution::test
       SCOPED_TRACE(Value);
       ASSERT_TRUE(Steps.set(Value));
       ASSERT_TRUE(Objects.set(Value));
+      ASSERT_TRUE(StorageBytes.set(Value));
       ASSERT_TRUE(CallDepth.set(Value));
       ASSERT_TRUE(EvaluationDepth.set(Value));
       const ExecutionLimits Limits;
       EXPECT_EQ(Limits.MaxSteps, 100000U);
       EXPECT_EQ(Limits.MaxObjects, 16384U);
+      EXPECT_EQ(Limits.MaxStorageBytes, 67108864U);
       EXPECT_EQ(Limits.MaxCallDepth, 256U);
       EXPECT_EQ(Limits.MaxEvaluationDepth, 64U);
     }
@@ -98,11 +109,13 @@ namespace ink::execution::test
   {
     ASSERT_TRUE(Steps.set("0"));
     ASSERT_TRUE(Objects.set("0"));
+    ASSERT_TRUE(StorageBytes.set("0"));
     ASSERT_TRUE(CallDepth.set("0"));
     ASSERT_TRUE(EvaluationDepth.set("0"));
     const ExecutionLimits Limits;
     EXPECT_EQ(Limits.MaxSteps, 0U);
     EXPECT_EQ(Limits.MaxObjects, 0U);
+    EXPECT_EQ(Limits.MaxStorageBytes, 0U);
     EXPECT_EQ(Limits.MaxCallDepth, 0U);
     EXPECT_EQ(Limits.MaxEvaluationDepth, 0U);
     core::CompilationContext Compilation;
@@ -110,6 +123,27 @@ namespace ink::execution::test
     ExecutionEngine Engine(Context);
     EXPECT_EQ(Engine.consumeStep(), ExecutionStatus::BudgetExceeded);
     EXPECT_EQ(Engine.createFrame(ExecutionFrameKind::Module), nullptr);
+  }
+
+  // A zero byte budget permits frame creation but rejects native cell storage independently of the object limit.
+  TEST_F(ExecutionConfigTest, ZeroStorageByteBudgetRejectsCellAllocation)
+  {
+    ASSERT_TRUE(StorageBytes.set("0"));
+    core::CompilationContext Compilation;
+    ir::IRContext Context(Compilation);
+    ExecutionEngine Engine(Context);
+    auto *Frame = Engine.createFrame(ExecutionFrameKind::Analysis);
+    ASSERT_NE(Frame, nullptr);
+    const auto *Int32 = Context.typePool().getType<ir::TypeKind::Integer>(32, true);
+    ASSERT_NE(Int32, nullptr);
+    int Binding = 0;
+    const auto Allocation = Engine.allocate(*Frame, &Binding, *Int32);
+    EXPECT_EQ(Allocation.Status, ExecutionStatus::BudgetExceeded);
+    EXPECT_FALSE(Allocation.Place.valid());
+    EXPECT_EQ(Engine.lastStatus(), ExecutionStatus::BudgetExceeded);
+    EXPECT_EQ(Engine.heap().liveStorageCount(), 0U);
+    EXPECT_EQ(Engine.heap().allocatedStorageCount(), 0U);
+    EXPECT_EQ(Engine.endFrame(*Frame), ExecutionStatus::Success);
   }
 
   // An engine captures defaults when it is constructed, while explicit limits continue to override those defaults.

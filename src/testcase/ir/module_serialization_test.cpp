@@ -11,7 +11,7 @@ namespace ink::ir::test
 {
   namespace
   {
-    constexpr std::string_view EmptyModuleText = R"(ink-ir 2
+    constexpr std::string_view EmptyModuleText = R"(ink-ir 4
 module @"Example" {
 }
 )";
@@ -34,6 +34,10 @@ module @"Example" {
       auto TargetOwner = Builder.createFunction(Names.intern("Target"), *Signature, {}, {}, CallingConvention::Cold, LanguageLinkage::C);
       auto *Main = MainOwner.get();
       auto *Target = TargetOwner.get();
+      if (!Main || !Builder.setFunctionVisibility(*Main, VisibilityKind::Private))
+      {
+        return nullptr;
+      }
       if (!Builder.appendValue(Root->entryBlock(), std::move(MainOwner)) || !Builder.appendValue(Root->entryBlock(), std::move(TargetOwner)))
       {
         return nullptr;
@@ -118,6 +122,8 @@ module @"Example" {
       EXPECT_EQ(Main.callingConvention(), CallingConvention::Fast);
       EXPECT_EQ(Target.callingConvention(), CallingConvention::Cold);
       EXPECT_EQ(Target.languageLinkage(), LanguageLinkage::C);
+      EXPECT_EQ(Main.visibility(), VisibilityKind::Private);
+      EXPECT_EQ(Target.visibility(), VisibilityKind::Public);
       ASSERT_EQ(Main.parameters().size(), 3U);
       EXPECT_EQ(Main.parameters()[1]->parameterKind(), ParameterKind::Named);
       EXPECT_EQ(Main.parameters()[2]->parameterKind(), ParameterKind::Variadic);
@@ -222,7 +228,7 @@ module @"Example" {
     const auto *Sum = Builder.createAddInstruction(*FunctionValue->parameters()[0], *One);
     ASSERT_NE(Sum, nullptr);
     ASSERT_NE(Builder.createReturnInstruction(Sum), nullptr);
-    constexpr std::string_view Expected = R"(ink-ir 2
+    constexpr std::string_view Expected = R"(ink-ir 4
 module @Example {
   define i32 @addOne(i32 %x) {
   entry:
@@ -240,10 +246,211 @@ module @Example {
     EXPECT_EQ(serializeModuleText(*Decoded.ModuleValue).Bytes, Encoded.Bytes);
   }
 
+  // Explicit public/private text annotations and default public visibility survive both module archive formats.
+  TEST(IRModuleSerializationTest, PreservesFunctionVisibility)
+  {
+    core::CompilationContext Compilation;
+    IRContext Context(Compilation);
+    const auto Parsed = deserializeModuleText(Context, "ink-ir 4 module @Visibility { declare void @Default() declare void @Public() visibility public declare void @Private() visibility private }");
+    ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
+    for (bool Binary : {false, true})
+    {
+      const auto Saved = Binary ? serializeModuleBinary(*Parsed.ModuleValue) : serializeModuleText(*Parsed.ModuleValue);
+      ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
+      IRContext Destination(Compilation);
+      const auto Loaded = Binary ? deserializeModuleBinary(Destination, Saved.Bytes) : deserializeModuleText(Destination, Saved.Bytes);
+      ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
+      const auto &Values = Loaded.ModuleValue->entryBlock().values();
+      ASSERT_EQ(Values.size(), 3U);
+      EXPECT_EQ(static_cast<const Function &>(*Values[0]).visibility(), VisibilityKind::Public);
+      EXPECT_EQ(static_cast<const Function &>(*Values[1]).visibility(), VisibilityKind::Public);
+      EXPECT_EQ(static_cast<const Function &>(*Values[2]).visibility(), VisibilityKind::Private);
+      const auto Canonical = serializeModuleText(*Loaded.ModuleValue);
+      ASSERT_TRUE(Canonical.succeeded()) << Canonical.Message;
+      EXPECT_NE(Canonical.Bytes.find("@Private() visibility private"), std::string::npos);
+      EXPECT_EQ(Canonical.Bytes.find("visibility public"), std::string::npos);
+    }
+  }
+
+  // Unknown or missing visibility fields and old formats are rejected before a restored module can be published.
+  TEST(IRModuleSerializationTest, RejectsMalformedVisibilityAndLegacyVersions)
+  {
+    core::CompilationContext Compilation;
+    IRContext Context(Compilation);
+    const auto Parsed = deserializeModuleText(Context, "ink-ir 4 module @Visibility { declare void @Private() visibility private }");
+    ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
+    const auto Saved = serializeModuleBinary(*Parsed.ModuleValue);
+    ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
+    std::size_t Offset = 16;
+    bool Found = false;
+    while (Offset < Saved.Bytes.size())
+    {
+      const char *Header = Saved.Bytes.data() + Offset;
+      const auto Fields = llvm::support::endian::read32le(Header + 12);
+      const auto TextSize = llvm::support::endian::read64le(Header + 16);
+      if (llvm::support::endian::read32le(Header) == 36)
+      {
+        ASSERT_EQ(Fields, 4U);
+        auto Invalid = Saved.Bytes;
+        llvm::support::endian::write64le(Invalid.data() + Offset + 40, 99);
+        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, ModuleArchiveStatus::InvalidArchive);
+        Invalid = Saved.Bytes;
+        llvm::support::endian::write32le(Invalid.data() + Offset + 12, 3);
+        Invalid.erase(Offset + 40, 8);
+        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, ModuleArchiveStatus::InvalidArchive);
+        Found = true;
+        break;
+      }
+      Offset += 24 + static_cast<std::size_t>(Fields) * 8 + static_cast<std::size_t>(TextSize);
+    }
+    ASSERT_TRUE(Found);
+    auto Legacy = Saved.Bytes;
+    llvm::support::endian::write32le(Legacy.data() + 4, 2);
+    EXPECT_EQ(deserializeModuleBinary(Context, Legacy).Status, ModuleArchiveStatus::UnsupportedVersion);
+    EXPECT_EQ(deserializeModuleText(Context, "ink-ir 2 module @Legacy {}").Status, ModuleArchiveStatus::UnsupportedVersion);
+    llvm::support::endian::write32le(Legacy.data() + 4, 3);
+    EXPECT_EQ(deserializeModuleBinary(Context, Legacy).Status, ModuleArchiveStatus::UnsupportedVersion);
+    EXPECT_EQ(deserializeModuleText(Context, "ink-ir 3 module @Legacy {}").Status, ModuleArchiveStatus::UnsupportedVersion);
+    for (std::string_view Visibility : {"unknown", "private visibility public"})
+    {
+      const auto Invalid = deserializeModuleText(Context, "ink-ir 4 module @Invalid { declare void @f() visibility " + std::string(Visibility) + " }");
+      EXPECT_EQ(Invalid.Status, ModuleArchiveStatus::InvalidArchive);
+    }
+    EXPECT_EQ(Context.modules().size(), 1U);
+  }
+
+  // Native direction round-trips independently of source visibility and C ABI callbacks in both archive formats.
+  TEST(IRModuleSerializationTest, PreservesNativeBindingsAndPrivateExports)
+  {
+    constexpr std::string_view Text = R"(ink-ir 4
+module @Native {
+  declare void @Imported() linkage c visibility private binding import
+  define void @Callback() linkage c binding local {
+  callback_entry:
+    ret void
+  }
+  define void @Exported() linkage c visibility private binding export {
+  export_entry:
+    call void @Callback()
+    ret void
+  }
+}
+)";
+    core::CompilationContext Compilation;
+    IRContext Context(Compilation);
+    const auto Parsed = deserializeModuleText(Context, Text);
+    ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
+    for (bool Binary : {false, true})
+    {
+      const auto Saved = Binary ? serializeModuleBinary(*Parsed.ModuleValue) : serializeModuleText(*Parsed.ModuleValue);
+      ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
+      IRContext Destination(Compilation);
+      const auto Loaded = Binary ? deserializeModuleBinary(Destination, Saved.Bytes) : deserializeModuleText(Destination, Saved.Bytes);
+      ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
+      const auto &Values = Loaded.ModuleValue->entryBlock().values();
+      ASSERT_EQ(Values.size(), 3U);
+      const auto &Imported = static_cast<const Function &>(*Values[0]);
+      const auto &Callback = static_cast<const Function &>(*Values[1]);
+      const auto &Exported = static_cast<const Function &>(*Values[2]);
+      EXPECT_TRUE(Imported.isNativeImport());
+      EXPECT_FALSE(Imported.hasBody());
+      EXPECT_EQ(Imported.visibility(), VisibilityKind::Private);
+      EXPECT_EQ(Callback.binding(), FunctionBinding::Local);
+      EXPECT_EQ(Callback.languageLinkage(), LanguageLinkage::C);
+      EXPECT_TRUE(Callback.hasBody());
+      EXPECT_TRUE(Exported.isNativeExport());
+      EXPECT_TRUE(Exported.hasBody());
+      EXPECT_EQ(Exported.visibility(), VisibilityKind::Private);
+      const auto Canonical = serializeModuleText(*Loaded.ModuleValue);
+      ASSERT_TRUE(Canonical.succeeded()) << Canonical.Message;
+      EXPECT_NE(Canonical.Bytes.find("visibility private binding import"), std::string::npos);
+      EXPECT_NE(Canonical.Bytes.find("visibility private binding export"), std::string::npos);
+      EXPECT_EQ(Canonical.Bytes.find("binding local"), std::string::npos);
+      EXPECT_EQ(Canonical.Bytes, serializeModuleText(*Parsed.ModuleValue).Bytes);
+    }
+  }
+
+  // Archives reject native definitions with the wrong direction, ABI, missing body or unknown binding value.
+  TEST(IRModuleSerializationTest, RejectsInvalidNativeBindingMetadata)
+  {
+    core::CompilationContext Compilation;
+    IRContext Context(Compilation);
+    constexpr std::string_view InvalidFunctions[] = {
+        "declare void @f() binding import",
+        "declare void @f() cc fast linkage c binding import",
+        "declare void @f() linkage c binding export",
+        "declare void @f() linkage c binding unknown",
+        "declare void @f() linkage c binding import binding local",
+        "define void @f() linkage c binding import {}",
+        "define void @f() linkage c binding import { entry: ret void }",
+        "define void @f() linkage c binding export {}",
+        "define void @f() binding export { entry: ret void }",
+    };
+    for (std::string_view FunctionText : InvalidFunctions)
+    {
+      EXPECT_EQ(deserializeModuleText(Context, "ink-ir 4 module @Invalid { " + std::string(FunctionText) + " }").Status, ModuleArchiveStatus::InvalidArchive) << FunctionText;
+    }
+    EXPECT_TRUE(Context.modules().empty());
+    const auto Parsed = deserializeModuleText(Context, "ink-ir 4 module @Native { declare void @Imported() linkage c binding import }");
+    ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
+    const auto Saved = serializeModuleBinary(*Parsed.ModuleValue);
+    ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
+    std::size_t Offset = 16;
+    bool Found = false;
+    while (Offset < Saved.Bytes.size())
+    {
+      const char *Header = Saved.Bytes.data() + Offset;
+      const auto Fields = llvm::support::endian::read32le(Header + 12);
+      const auto TextSize = llvm::support::endian::read64le(Header + 16);
+      if (llvm::support::endian::read32le(Header) == 36)
+      {
+        ASSERT_EQ(Fields, 4U);
+        auto Invalid = Saved.Bytes;
+        llvm::support::endian::write64le(Invalid.data() + Offset + 48, 99);
+        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, ModuleArchiveStatus::InvalidArchive);
+        Invalid = Saved.Bytes;
+        llvm::support::endian::write64le(Invalid.data() + Offset + 48, 2);
+        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, ModuleArchiveStatus::InvalidArchive);
+        Invalid = Saved.Bytes;
+        llvm::support::endian::write64le(Invalid.data() + Offset + 32, 0);
+        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, ModuleArchiveStatus::InvalidArchive);
+        Found = true;
+        break;
+      }
+      Offset += 24 + static_cast<std::size_t>(Fields) * 8 + static_cast<std::size_t>(TextSize);
+    }
+    ASSERT_TRUE(Found);
+    EXPECT_EQ(Context.modules().size(), 1U);
+  }
+
+  // An export under construction cannot be archived until its implementation is attached.
+  TEST(IRModuleSerializationTest, RejectsIncompleteNativeExport)
+  {
+    core::CompilationContext Compilation;
+    IRContext Context(Compilation);
+    IRBuilder Builder(Context);
+    Module *ModuleValue = Builder.createModule(Context.namePool().intern("Native"));
+    ASSERT_NE(ModuleValue, nullptr);
+    const auto *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
+    ASSERT_NE(Signature, nullptr);
+    auto FunctionOwner = Builder.createFunction(Context.namePool().intern("Exported"), *Signature, {}, {}, CallingConvention::C, LanguageLinkage::C, FunctionBinding::Export);
+    ASSERT_NE(FunctionOwner, nullptr);
+    Function *Exported = FunctionOwner.get();
+    ASSERT_TRUE(Builder.appendValue(ModuleValue->entryBlock(), std::move(FunctionOwner)));
+    EXPECT_EQ(serializeModuleText(*ModuleValue).Status, ModuleArchiveStatus::InvalidInput);
+    EXPECT_EQ(serializeModuleBinary(*ModuleValue).Status, ModuleArchiveStatus::InvalidInput);
+    BasicBlock *Body = Builder.createFunctionBody(*Exported);
+    ASSERT_NE(Body, nullptr);
+    ASSERT_TRUE(Builder.setInsertPoint(*Body));
+    ASSERT_NE(Builder.createReturnInstruction(), nullptr);
+    EXPECT_TRUE(serializeModuleText(*ModuleValue).succeeded());
+    EXPECT_TRUE(serializeModuleBinary(*ModuleValue).succeeded());
+  }
+
   // Forward operands and functions resolve after parsing, while comments and quoted symbols remain editable.
   TEST(IRModuleSerializationTest, ReadsForwardReferencesAndComments)
   {
-    constexpr std::string_view Text = R"(ink-ir 2
+    constexpr std::string_view Text = R"(ink-ir 4
 ; A hand-written module needs no object table.
 module @Example {
   define i32 @main(i32 %x) {
@@ -303,7 +510,7 @@ module @Example {
   // Equivalent structural aliases compare restored types rather than incidental archive IDs.
   TEST(IRModuleSerializationTest, ResolvesEquivalentTypeAliases)
   {
-    constexpr std::string_view Text = R"(ink-ir 2
+    constexpr std::string_view Text = R"(ink-ir 4
 module @Aliases {
   type !left = i32
   type !right = i32
@@ -329,7 +536,7 @@ module @Aliases {
   // Repeated aliases must charge copied field storage rather than bypassing the allocation budget.
   TEST(IRModuleSerializationTest, ChargesRepeatedTypeAliasFields)
   {
-    std::string Text = "ink-ir 2 module @Budget { type !large = fn(";
+    std::string Text = "ink-ir 4 module @Budget { type !large = fn(";
     for (unsigned Index = 0; Index < 256; ++Index)
     {
       if (Index)
@@ -503,15 +710,15 @@ module @Aliases {
     ASSERT_TRUE(Original.succeeded()) << Original.Message;
     const std::string_view Invalid[] = {
         "other 2 module @A {}",
-        "ink-ir 2 module @A {",
-        "ink-ir 2 module @A {} junk",
-        "ink-ir 2 module @\"Bad\\qEscape\" {}",
-        "ink-ir 2 module @\"Bad\\xzzEscape\" {}",
-        "ink-ir 2 module @\"Unclosed {}",
-        "ink-ir 2 module @A { unknown }",
-        "ink-ir 2 module @A { declare void @f() declare void @f() }",
-        "ink-ir 2 module @A { define i32 @f() { ^entry: ret i32 %missing } }",
-        "ink-ir 2 module @A { define i32 @f(i32 %x, i32 %x) { ^entry: ret i32 %x } }",
+        "ink-ir 4 module @A {",
+        "ink-ir 4 module @A {} junk",
+        "ink-ir 4 module @\"Bad\\qEscape\" {}",
+        "ink-ir 4 module @\"Bad\\xzzEscape\" {}",
+        "ink-ir 4 module @\"Unclosed {}",
+        "ink-ir 4 module @A { unknown }",
+        "ink-ir 4 module @A { declare void @f() declare void @f() }",
+        "ink-ir 4 module @A { define i32 @f() { ^entry: ret i32 %missing } }",
+        "ink-ir 4 module @A { define i32 @f(i32 %x, i32 %x) { ^entry: ret i32 %x } }",
     };
     for (auto Text : Invalid)
     {
@@ -583,7 +790,7 @@ module @Aliases {
     };
     for (auto Body : Bodies)
     {
-      const auto Result = deserializeModuleText(Context, "ink-ir 2 module @Root { " + std::string(Body) + " }");
+      const auto Result = deserializeModuleText(Context, "ink-ir 4 module @Root { " + std::string(Body) + " }");
       EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Body << ": " << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Context.modules().empty());
@@ -593,7 +800,7 @@ module @Aliases {
   // Appending a value after a terminator fails during attachment and rolls back the detached tree.
   TEST(IRModuleSerializationTest, RollsBackAfterLateAttachmentFailure)
   {
-    constexpr std::string_view Text = R"(ink-ir 2
+    constexpr std::string_view Text = R"(ink-ir 4
 module @Root {
   define void @Main() {
   ^entry:

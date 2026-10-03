@@ -30,6 +30,10 @@ namespace ink::semantic
       return {};
     }
     std::vector<const Value *> Candidates;
+    if ((State.Evaluating || !CalleeNode->isComptime()) && parser::MemberExpr::classof(CalleeNode) && !resolveMemberFunctions(State, static_cast<const parser::MemberExpr &>(*CalleeNode), Candidates, CalleeDepth))
+    {
+      return {};
+    }
     if ((State.Evaluating || !CalleeNode->isComptime()) && parser::NameExpr::classof(CalleeNode))
     {
       const Name Symbol = State.Context.namePool().find(static_cast<const parser::NameExpr &>(*CalleeNode).name().Text);
@@ -187,6 +191,10 @@ namespace ink::semantic
       }
     }
     const auto Parameters = static_cast<const FunctionType &>(Selected->type()).parameterTypes();
+    if (State.Modules && State.CurrentFunction && Function::classof(Selected))
+    {
+      State.Modules->Dependencies[State.CurrentFunction].insert(static_cast<const Function *>(Selected));
+    }
     if (Parameters.size() != Arguments.size())
     {
       State.report<core::DiagnosticKind::SemanticArgumentCount>(Node.getSourceRange(), Parameters.size(), Arguments.size());

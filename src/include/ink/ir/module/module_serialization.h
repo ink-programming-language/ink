@@ -60,8 +60,8 @@ namespace ink::ir
       }
   };
 
-  inline constexpr std::uint32_t ModuleTextVersion = 2;
-  inline constexpr std::uint32_t ModuleBinaryVersion = 2;
+  inline constexpr std::uint32_t ModuleTextVersion = 4;
+  inline constexpr std::uint32_t ModuleBinaryVersion = 4;
 
   // Archives IR, declaration trees and complete syntax snapshots, including tokens and recovery metadata.
   // Supply the ParseResults borrowed by declarations; missing AST owners are rejected, never omitted.

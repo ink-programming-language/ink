@@ -1,7 +1,13 @@
 // Run every case from main and assert its result before reporting PASS on stdout.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
-func missing(): bool;
+// Compile-time short-circuiting must skip this otherwise valid function body and its missing native symbol.
+import "C" func InkMissingLogicalComptimeSymbol71e4935b(): bool;
+
+func missing(): bool
+{
+  return InkMissingLogicalComptimeSymbol71e4935b();
+}
 
 comptime const Minimum: i8 = -128;
 

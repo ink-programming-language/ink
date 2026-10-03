@@ -30,6 +30,8 @@ namespace ink::ir::archive
     static_assert(static_cast<unsigned>(ParameterKind::Positional) == 0 && static_cast<unsigned>(ParameterKind::Named) == 1 && static_cast<unsigned>(ParameterKind::Variadic) == 2);
     static_assert(static_cast<unsigned>(CallingConvention::C) == 0 && static_cast<unsigned>(CallingConvention::Fast) == 1 && static_cast<unsigned>(CallingConvention::Cold) == 2);
     static_assert(static_cast<unsigned>(LanguageLinkage::Ink) == 0 && static_cast<unsigned>(LanguageLinkage::C) == 1);
+    static_assert(static_cast<unsigned>(FunctionBinding::Local) == 0 && static_cast<unsigned>(FunctionBinding::Import) == 1 && static_cast<unsigned>(FunctionBinding::Export) == 2);
+    static_assert(static_cast<unsigned>(VisibilityKind::Public) == 0 && static_cast<unsigned>(VisibilityKind::Private) == 1);
 
     bool isType(Tag Kind)
     {
@@ -358,9 +360,16 @@ namespace ink::ir::archive
           {
             Entry.Kind = Tag::Function;
             const auto &FunctionValue = static_cast<const Function &>(Object);
+            if (FunctionValue.isNativeExport() && !FunctionValue.hasBody())
+            {
+              Data.fail("Native export requires a function body", ModuleArchiveStatus::InvalidInput);
+              break;
+            }
             name(Entry, FunctionValue.name());
             field(Entry, static_cast<unsigned>(FunctionValue.callingConvention()));
             field(Entry, static_cast<unsigned>(FunctionValue.languageLinkage()));
+            field(Entry, static_cast<unsigned>(FunctionValue.visibility()));
+            field(Entry, static_cast<unsigned>(FunctionValue.binding()));
             break;
           }
           case ValueKind::BasicBlock:
@@ -848,6 +857,10 @@ namespace ink::ir::archive
             {
               return Data.fail("Function parameter count does not match its signature");
             }
+            if ((Entry.Fields[3] == 1 && PreviousBlock) || (Entry.Fields[3] == 2 && !PreviousBlock))
+            {
+              return Data.fail("Native import must be a declaration and native export must have a body");
+            }
           }
           return true;
         }
@@ -1021,7 +1034,7 @@ namespace ink::ir::archive
             return nullptr;
           case Tag::Function:
           {
-            if (Fields[0] > 2 || Fields[1] > 1)
+            if (Fields[0] > 2 || Fields[1] > 1 || Fields[2] > 1 || Fields[3] > 2)
             {
               return nullptr;
             }
@@ -1035,7 +1048,12 @@ namespace ink::ir::archive
                 Names.push_back(Context.namePool().intern(record(Child).Text));
               }
             }
-            return own(Id, Builder.createFunction(NameValue(), *as<FunctionType>(Entry.Type), Kinds, Names, static_cast<CallingConvention>(Fields[0]), static_cast<LanguageLinkage>(Fields[1])));
+            auto FunctionValue = Builder.createFunction(NameValue(), *as<FunctionType>(Entry.Type), Kinds, Names, static_cast<CallingConvention>(Fields[0]), static_cast<LanguageLinkage>(Fields[1]), static_cast<FunctionBinding>(Fields[3]));
+            if (!FunctionValue || !Builder.setFunctionVisibility(*FunctionValue, static_cast<VisibilityKind>(Fields[2])))
+            {
+              return nullptr;
+            }
+            return own(Id, std::move(FunctionValue));
           }
           case Tag::Parameter:
             return static_cast<const Function *>(Values[Entry.Parent])->parameters()[Fields[0]].get();

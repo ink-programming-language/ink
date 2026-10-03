@@ -57,7 +57,7 @@ namespace ink::execution::test
         std::unique_ptr<ir::Function> function(std::string_view Name, const ir::Type &Result, std::span<const ir::Type *const> Parameters = {})
         {
           const auto *Signature = Context.typePool().getType<ir::TypeKind::Function>(Result, Parameters);
-          return Signature ? Builder.createFunction(Context.namePool().intern(Name), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C) : nullptr;
+          return Signature ? Builder.createFunction(Context.namePool().intern(Name), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import) : nullptr;
         }
 
         std::unique_ptr<ir::Function> writeFunction(bool VoidBuffer = false)

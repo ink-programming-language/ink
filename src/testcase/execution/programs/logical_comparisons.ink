@@ -1,5 +1,5 @@
 // Run every case from main and assert its result before reporting PASS on stdout.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
 func bit(Value: bool, Weight: i32): i32
 {

@@ -2,6 +2,7 @@
 #include "ink/ir/lifetime_observer.h"
 
 #include <algorithm>
+#include <limits>
 
 namespace ink::ir
 {
@@ -16,8 +17,18 @@ namespace ink::ir
     std::erase(Context.Observers, this);
   }
 
+  void IRContext::notifyChanged() const noexcept
+  {
+    if (Revision == std::numeric_limits<std::uint64_t>::max())
+    {
+      PANIC("IR context revision exhausted");
+    }
+    ++Revision;
+  }
+
   void IRContext::notifyDestroyed(Value &Target) const noexcept
   {
+    notifyChanged();
     for (LifetimeObserver *Observer : Observers)
     {
       Observer->valueDestroyed(Target);
@@ -26,6 +37,7 @@ namespace ink::ir
 
   void IRContext::notifyDestroyed(Decl &Target) const noexcept
   {
+    notifyChanged();
     for (LifetimeObserver *Observer : Observers)
     {
       Observer->declDestroyed(Target);

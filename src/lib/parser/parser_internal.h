@@ -175,6 +175,7 @@ namespace ink::parser
       ASTArray<Attribute> parseAttributes();
       bool attributesAhead();
       Decl *parseDecl(ASTArray<Attribute> Attributes);
+      Decl *parseDeclBody(ASTArray<Attribute> Attributes);
       VarDecl *parseVar(ASTArray<Attribute> Attributes);
       BindingPattern *parseBindingPattern();
       MatchPattern *parseMatchPattern();

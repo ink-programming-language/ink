@@ -1,5 +1,5 @@
 // Check local lifetime, frame isolation and control flow through ordinary calls.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
 // Updating a local copy leaves the caller's argument and prior results unchanged.
 func bump(Input: i32): i32

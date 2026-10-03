@@ -4,7 +4,6 @@
 #include "ink/execution/engine/execution_frame.h"
 #include "ink/execution/memory/execution_heap.h"
 #include "ink/execution/support/execution_result.h"
-#include "ink/execution/support/execution_instruction_result.h"
 #include "ink/execution/ffi/native_symbol_cache.h"
 #include "ink/core/config_manager.h"
 
@@ -15,21 +14,8 @@
 
 namespace ink::ir
 {
-  class AddInstruction;
-  class AllocaInstruction;
-  class BranchInstruction;
-  class CallInstruction;
-  class ConditionalBranchInstruction;
-  class CompareInstruction;
-  class CStringInstruction;
   class Function;
   class IRContext;
-  class LoadInstruction;
-  class LogicalAndInstruction;
-  class LogicalNotInstruction;
-  class LogicalOrInstruction;
-  class ReturnInstruction;
-  class StoreInstruction;
   class Type;
   class Value;
 } // namespace ink::ir
@@ -41,13 +27,17 @@ namespace ink::tokenizer
 
 namespace ink::execution
 {
+  class ExecutionMachine;
+  class ExecutionLinker;
+
   struct ExecutionLimits
   {
       std::size_t MaxSteps = core::ConfigManager::getSize<core::ConfigKind::ExecutionMaxSteps>();
       // Counts all storage allocations, including releases; reused slots get new generations.
       std::size_t MaxObjects = core::ConfigManager::getSize<core::ConfigKind::ExecutionMaxObjects>();
+      std::size_t MaxStorageBytes = core::ConfigManager::getSize<core::ConfigKind::ExecutionMaxStorageBytes>();
       std::size_t MaxCallDepth = core::ConfigManager::getSize<core::ConfigKind::ExecutionMaxCallDepth>();
-      // Bounds semantic evaluation and nested IR calls on the host stack.
+      // Bounds combined semantic evaluation and VM call nesting.
       std::size_t MaxEvaluationDepth = core::ConfigManager::getSize<core::ConfigKind::ExecutionMaxEvaluationDepth>();
   };
 
@@ -81,8 +71,8 @@ namespace ink::execution
       // Module frames persist. Ending another frame invalidates its objects and descendants.
       ExecutionStatus endFrame(ExecutionFrame &Frame);
 
+      // Semantic bindings associate compile-time storage with stable source identities.
       ExecutionPlaceResult allocate(ExecutionFrame &Frame, const void *Binding, const ir::Type &Type, bool Writable = true, const ir::Constant *Initial = nullptr);
-      ExecutionPlaceResult bindRuntime(ExecutionFrame &Frame, const void *Binding, const ir::Type &Type, bool Writable = true);
       ExecutionPlaceResult lookup(const ExecutionFrame &Frame, const void *Binding);
       ExecutionResult load(ExecutionPlace Place);
       ExecutionStatus store(ExecutionPlace Place, const ir::Constant &Value);
@@ -92,7 +82,9 @@ namespace ink::execution
       ExecutionPlaceResult allocateValue(ExecutionFrame &Frame, const void *Binding, const ir::Type &Type, bool Writable = true, const ExecutionValueRef *Initial = nullptr);
       ExecutionValueResult loadValue(ExecutionPlace Place);
       ExecutionStatus storeValue(ExecutionPlace Place, const ExecutionValueRef &Value);
-      ExecutionValueResult evaluate(const ir::Value &Value, ExecutionFrame &Frame);
+      // Resolve constants, function identities and existing semantic bindings.
+      // Unavailable values return RuntimeValue; instructions execute only through execute().
+      ExecutionValueResult resolveValue(const ir::Value &Value, ExecutionFrame &Frame);
       ExecutionValueResult execute(const ir::Function &Function, std::span<const ExecutionValueRef> Arguments = {});
 
       // The semantic driver charges AST operations and loop back edges here as well.
@@ -107,27 +99,11 @@ namespace ink::execution
       ExecutionResult evaluateBinary(tokenizer::TokenKind Operator, const ir::Constant &Left, const ir::Constant &Right);
 
     private:
-      ExecutionPlaceResult allocateObject(ExecutionFrame &Frame, const void *Binding, const ir::Type &Type, bool Writable, const ExecutionValueRef *Initial, bool Runtime);
       ExecutionStatus validatePlace(ExecutionPlace Place) const noexcept;
       ExecutionStatus validateValue(const ExecutionValueRef &Value) const noexcept;
       ExecutionStatus finishStatus(ExecutionStatus Status) noexcept;
-      ExecutionValueResult executeInvocation(const ir::Function &Function, std::span<const ExecutionValueRef> Arguments);
-      ExecutionValueResult executeBody(const ir::Function &Function, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeInstruction(const ir::Value &Instruction, ExecutionFrame &Frame);
+      ExecutionStatus consumeSteps(std::size_t Count);
       ExecutionValueResult makeFunctionValue(const ir::Function &Function);
-      ExecutionInstructionResult executeAlloca(const ir::AllocaInstruction &Alloca, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeLoad(const ir::LoadInstruction &Load, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeStore(const ir::StoreInstruction &Store, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeAdd(const ir::AddInstruction &Add, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeLogicalNot(const ir::LogicalNotInstruction &Not, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeLogicalAnd(const ir::LogicalAndInstruction &And, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeLogicalOr(const ir::LogicalOrInstruction &Or, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeCompare(const ir::CompareInstruction &Compare, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeCString(const ir::CStringInstruction &CString, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeCall(const ir::CallInstruction &Call, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeReturn(const ir::ReturnInstruction &Return, ExecutionFrame &Frame);
-      ExecutionInstructionResult executeBranch(const ir::BranchInstruction &Branch);
-      ExecutionInstructionResult executeConditionalBranch(const ir::ConditionalBranchInstruction &Branch, ExecutionFrame &Frame);
       ExecutionValueResult loadPointer(const ExecutionValueRef &Address);
       ExecutionStatus storePointer(const ExecutionValueRef &Address, const ExecutionValueRef &Value);
       ExecutionResult freeze(const ExecutionValueResult &Result);
@@ -142,6 +118,10 @@ namespace ink::execution
       std::size_t ActiveCalls = 0;
       std::size_t EvaluationDepth = 0;
       std::vector<std::unique_ptr<ExecutionFrame>> Frames;
+      std::unique_ptr<ExecutionLinker> Linker;
+      std::unique_ptr<ExecutionMachine> Machine;
+
+      friend class ExecutionMachine;
   };
 } // namespace ink::execution
 

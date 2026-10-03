@@ -1,5 +1,10 @@
-// A true left operand requires the right call, which deliberately has no body.
-func missing(): bool;
+// A true left operand requires the right call, whose body resolves a deliberately missing native symbol.
+import "C" func InkMissingLogicalAndSymbol71e4935b(): bool;
+
+func missing(): bool
+{
+  return InkMissingLogicalAndSymbol71e4935b();
+}
 
 func encode(Value: bool): i32
 {

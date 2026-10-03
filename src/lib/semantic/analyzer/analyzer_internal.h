@@ -14,6 +14,8 @@
 #include <cstddef>
 #include <optional>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace ink::semantic
@@ -22,6 +24,7 @@ namespace ink::semantic
   std::optional<ir::IntegerBits> integerBits(const parser::TokenBuffer &Input, const parser::LiteralExpr &Literal, bool Negative, const ir::IntegerType &Target);
   bool acceptsCString(const ir::Value &ValueObject, const ir::Type &Target, bool CArgument);
   const parser::LiteralExpr *findDeferredIntegerLiteral(const parser::Expr &Node, std::size_t Depth, std::size_t Limit);
+  bool moduleHasOtherDeclaration(const parser::ModuleAST &Root, std::string_view Name);
 
   // Integer literals keep their source until an expected type or overload is known.
   struct Analyzer::ExpressionResult
@@ -55,6 +58,8 @@ namespace ink::semantic
       }
 
       SemanticContext &Context;
+      ir::Module *CurrentModule = nullptr;
+      ModuleGraph *Modules = nullptr;
       NameResolver Resolver;
       ir::IRBuilder Builder;
       const parser::TokenBuffer &Input;
@@ -155,6 +160,42 @@ namespace ink::semantic
           bool Saved;
           const ir::Type *SavedType;
       };
+  };
+
+  struct Analyzer::ModuleAnalysis
+  {
+      const ModuleInput *Source = nullptr;
+      ir::Module *Owner = nullptr;
+      std::unique_ptr<AnalysisState> State;
+      Scope *ModuleScope = nullptr;
+      execution::ExecutionFrame *ModuleFrame = nullptr;
+      const parser::Stmt *ActiveStatement = nullptr;
+      std::unordered_map<const parser::FunctionDecl *, ir::Function *> Functions;
+      std::unordered_set<const parser::Stmt *> ProcessedStatements;
+  };
+
+  struct Analyzer::ModuleGraph
+  {
+      enum class BodyState
+      {
+        Pending,
+        Analyzing,
+        Complete,
+        Failed,
+      };
+
+      struct FunctionBody
+      {
+          ModuleAnalysis *Module = nullptr;
+          const parser::FunctionDecl *Declaration = nullptr;
+          BodyState State = BodyState::Pending;
+      };
+
+      std::unordered_map<std::string, ModuleAnalysis *> Modules;
+      std::unordered_map<const ir::Function *, FunctionBody> Bodies;
+      std::unordered_map<const ir::Function *, std::unordered_set<const ir::Function *>> Dependencies;
+      std::unordered_set<const ir::Function *> ActiveBodies;
+      std::size_t LoweringDepth = 0;
   };
 } // namespace ink::semantic
 

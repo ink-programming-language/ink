@@ -34,6 +34,26 @@ namespace ink::ir
         return Linkage;
       }
 
+      FunctionBinding binding() const noexcept
+      {
+        return Binding;
+      }
+
+      bool isNativeImport() const noexcept
+      {
+        return Binding == FunctionBinding::Import;
+      }
+
+      bool isNativeExport() const noexcept
+      {
+        return Binding == FunctionBinding::Export;
+      }
+
+      VisibilityKind visibility() const noexcept
+      {
+        return Visibility;
+      }
+
       bool hasBody() const noexcept
       {
         return !Blocks.empty();
@@ -67,17 +87,20 @@ namespace ink::ir
       }
 
     private:
-      Function(Name FunctionName, const FunctionType &Signature, CallingConvention Convention, LanguageLinkage Linkage) noexcept
+      Function(Name FunctionName, const FunctionType &Signature, CallingConvention Convention, LanguageLinkage Linkage, FunctionBinding Binding) noexcept
           : Value(Signature.context(), ValueKind::Function, Signature),
             FunctionName(FunctionName),
             Convention(Convention),
-            Linkage(Linkage)
+            Linkage(Linkage),
+            Binding(Binding)
       {
       }
 
       Name FunctionName;
       CallingConvention Convention;
       LanguageLinkage Linkage;
+      FunctionBinding Binding;
+      VisibilityKind Visibility = VisibilityKind::Public;
       // Blocks are destroyed before the parameters referenced by their instructions.
       std::vector<std::unique_ptr<FunctionParameter>> Parameters;
       std::vector<std::unique_ptr<BasicBlock>> Blocks;

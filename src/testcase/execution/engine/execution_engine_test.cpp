@@ -62,23 +62,29 @@ namespace ink::execution::test
     EXPECT_EQ(Before.Value, &Test.integer(1));
   }
 
-  // A runtime local stays unavailable to compilation even when another compile-time expression produced its initializer.
-  TEST(ExecutionEngineTest, RuntimeBindingCannotBeReadAsACompileTimeValue)
+  // Resolving an unbound load does not execute its allocation or store, even with a constant initializer.
+  TEST(ExecutionEngineTest, UnboundInstructionCannotBeResolvedAsACompileTimeValue)
   {
     TestContext Test;
     ExecutionFrame *Module = Test.Engine.createFrame(ExecutionFrameKind::Module);
     ASSERT_NE(Module, nullptr);
-    ExecutionFrame *Function = Test.Engine.createFrame(ExecutionFrameKind::Analysis, Module);
+    auto Function = Test.function();
     ASSERT_NE(Function, nullptr);
-    int Binding = 0;
-    const auto Runtime = Test.Engine.bindRuntime(*Function, &Binding, Test.Int32);
-    ASSERT_TRUE(Runtime.succeeded());
-    const auto Found = Test.Engine.lookup(*Function, &Binding);
-    ASSERT_TRUE(Found.succeeded());
-    EXPECT_EQ(Found.Place, Runtime.Place);
-    const ExecutionResult Loaded = Test.Engine.load(Found.Place);
-    EXPECT_EQ(Loaded.Status, ExecutionStatus::RuntimeValue);
-    EXPECT_EQ(Loaded.Value, nullptr);
+    ir::IRBuilder Builder(Test.Context);
+    auto *Body = Builder.createFunctionBody(*Function);
+    ASSERT_NE(Body, nullptr);
+    ASSERT_TRUE(Builder.setInsertPoint(*Body));
+    auto *Address = Builder.createAllocaInstruction(Test.Int32);
+    ASSERT_NE(Address, nullptr);
+    ASSERT_NE(Builder.createStoreInstruction(*Address, Test.integer(7)), nullptr);
+    auto *Loaded = Builder.createLoadInstruction(*Address);
+    ASSERT_NE(Loaded, nullptr);
+    ASSERT_NE(Builder.createReturnInstruction(Loaded), nullptr);
+    const ExecutionValueResult Resolved = Test.Engine.resolveValue(*Loaded, *Module);
+    EXPECT_EQ(Resolved.Status, ExecutionStatus::RuntimeValue);
+    EXPECT_FALSE(Resolved.Value.valid());
+    EXPECT_EQ(Test.Engine.lookup(*Module, Address).Status, ExecutionStatus::UnknownBinding);
+    EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
   }
 
   // Function-local storage expires on scope exit while inherited module storage remains writable and readable.

@@ -41,6 +41,14 @@ namespace ink::ir
     C,
   };
 
+  // Native symbol direction, independent of language linkage and source visibility.
+  enum class FunctionBinding : std::uint8_t
+  {
+    Local,
+    Import,
+    Export,
+  };
+
   // Access through a pointer/reference/slice, independent of binding mutability.
   enum class AccessKind : std::uint8_t
   {

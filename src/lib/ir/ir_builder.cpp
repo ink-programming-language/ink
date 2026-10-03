@@ -191,6 +191,7 @@ namespace ink::ir
                                  : Block.Values.end();
     Child->Outer = &Block;
     Block.Values.insert(Position, std::move(Child));
+    Context.notifyChanged();
   }
 
   std::unique_ptr<Value> IRBuilder::removeValue(BasicBlock &Block, Value &Child) noexcept
@@ -210,6 +211,7 @@ namespace ink::ir
     std::unique_ptr<Value> Result = std::move(*Position);
     Block.Values.erase(Position);
     Child.Outer = nullptr;
+    Context.notifyChanged();
     return Result;
   }
 
@@ -230,6 +232,7 @@ namespace ink::ir
     }
     std::unique_ptr<Module> Result = std::move(*Position);
     Context.Modules.erase(Position);
+    Context.notifyChanged();
     return Result;
   }
 
@@ -253,13 +256,17 @@ namespace ink::ir
     return Context.typePool().createInterfaceType(TypeName);
   }
 
-  std::unique_ptr<Function> IRBuilder::createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds, std::span<const Name> ParameterNames, CallingConvention Convention, LanguageLinkage Linkage)
+  std::unique_ptr<Function> IRBuilder::createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds, std::span<const Name> ParameterNames, CallingConvention Convention, LanguageLinkage Linkage, FunctionBinding Binding)
   {
     if (!Context.namePool().contains(FunctionName) || &Signature.context() != &Context || (!ParameterKinds.empty() && ParameterKinds.size() != Signature.parameterTypes().size()) || (!ParameterNames.empty() && ParameterNames.size() != Signature.parameterTypes().size()))
     {
       return nullptr;
     }
     if ((Convention != CallingConvention::C && Convention != CallingConvention::Fast && Convention != CallingConvention::Cold) || (Linkage != LanguageLinkage::Ink && Linkage != LanguageLinkage::C))
+    {
+      return nullptr;
+    }
+    if ((Binding != FunctionBinding::Local && Binding != FunctionBinding::Import && Binding != FunctionBinding::Export) || (Binding != FunctionBinding::Local && (Convention != CallingConvention::C || Linkage != LanguageLinkage::C)))
     {
       return nullptr;
     }
@@ -277,7 +284,7 @@ namespace ink::ir
         return nullptr;
       }
     }
-    auto Result = std::unique_ptr<Function>(new Function(FunctionName, Signature, Convention, Linkage));
+    auto Result = std::unique_ptr<Function>(new Function(FunctionName, Signature, Convention, Linkage, Binding));
     Function *Pointer = Result.get();
     for (const Type *ParameterType : Signature.parameterTypes())
     {
@@ -288,16 +295,45 @@ namespace ink::ir
       Parameter->Outer = Pointer;
       Pointer->Parameters.push_back(std::move(Parameter));
     }
+    Context.notifyChanged();
     return Result;
   }
 
   BasicBlock *IRBuilder::createFunctionBody(Function &FunctionValue)
   {
-    if (&FunctionValue.context() != &Context || FunctionValue.hasBody())
+    if (&FunctionValue.context() != &Context || FunctionValue.hasBody() || FunctionValue.isNativeImport())
     {
       return nullptr;
     }
     return createBasicBlock(FunctionValue);
+  }
+
+  bool IRBuilder::setFunctionVisibility(Function &FunctionValue, VisibilityKind Visibility) noexcept
+  {
+    if (&FunctionValue.context() != &Context || (Visibility != VisibilityKind::Public && Visibility != VisibilityKind::Private))
+    {
+      return false;
+    }
+    if (FunctionValue.Visibility != Visibility)
+    {
+      FunctionValue.Visibility = Visibility;
+      Context.notifyChanged();
+    }
+    return true;
+  }
+
+  bool IRBuilder::setFunctionBinding(Function &FunctionValue, FunctionBinding Binding) noexcept
+  {
+    if (&FunctionValue.context() != &Context || (Binding != FunctionBinding::Local && Binding != FunctionBinding::Import && Binding != FunctionBinding::Export) || (Binding != FunctionBinding::Local && (FunctionValue.callingConvention() != CallingConvention::C || FunctionValue.languageLinkage() != LanguageLinkage::C)) || (Binding == FunctionBinding::Import && FunctionValue.hasBody()))
+    {
+      return false;
+    }
+    if (FunctionValue.Binding != Binding)
+    {
+      FunctionValue.Binding = Binding;
+      Context.notifyChanged();
+    }
+    return true;
   }
 
   std::unique_ptr<BasicBlock> IRBuilder::createBasicBlock()
@@ -307,7 +343,7 @@ namespace ink::ir
 
   BasicBlock *IRBuilder::createBasicBlock(Function &FunctionValue)
   {
-    if (&FunctionValue.context() != &Context)
+    if (&FunctionValue.context() != &Context || FunctionValue.isNativeImport())
     {
       return nullptr;
     }
@@ -315,6 +351,7 @@ namespace ink::ir
     BasicBlock *Block = Result.get();
     FunctionValue.Blocks.push_back(std::move(Result));
     Block->Outer = &FunctionValue;
+    Context.notifyChanged();
     return Block;
   }
 
@@ -328,6 +365,7 @@ namespace ink::ir
     Module *Pointer = Result.get();
     Context.Modules.push_back(std::move(Result));
     Pointer->EntryBlock->Outer = Pointer;
+    Context.notifyChanged();
     return Pointer;
   }
 
@@ -490,6 +528,7 @@ namespace ink::ir
       return nullptr;
     }
     Owner.DeclarationRoot.reset(new ModuleDecl(Owner, Owner.name(), AST));
+    Context.notifyChanged();
     return Owner.DeclarationRoot.get();
   }
 
@@ -502,6 +541,7 @@ namespace ink::ir
     auto Result = std::unique_ptr<FunctionDecl>(new FunctionDecl(Parent, DeclName, AST));
     FunctionDecl *Pointer = Result.get();
     Parent.Children.push_back(std::move(Result));
+    Context.notifyChanged();
     return Pointer;
   }
 
@@ -514,6 +554,7 @@ namespace ink::ir
     auto Result = std::unique_ptr<ClassDecl>(new ClassDecl(Parent, DeclName, AST));
     ClassDecl *Pointer = Result.get();
     Parent.Children.push_back(std::move(Result));
+    Context.notifyChanged();
     return Pointer;
   }
 

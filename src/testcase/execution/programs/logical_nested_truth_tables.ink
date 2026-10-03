@@ -1,5 +1,5 @@
 // Exercise every three-input combination with independent expected results for nested logical expressions.
-extern "C" func puts(Text: *u8): i32;
+import "C" func puts(Text: *u8): i32;
 
 func check(Actual: bool, Expected: bool): bool
 {

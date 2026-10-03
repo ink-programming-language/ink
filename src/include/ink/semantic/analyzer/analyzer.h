@@ -6,9 +6,11 @@
 #include "ink/tokenizer/token.h"
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string_view>
+#include <vector>
 
 namespace ink::parser
 {
@@ -39,16 +41,27 @@ namespace ink::semantic
   class Analyzer
   {
     public:
+      struct ModuleInput
+      {
+          std::string_view Name;
+          const parser::ParseResult *Input = nullptr;
+      };
+
       // Builds a module from successfully parsed input. Unsupported syntax reports
       // an ICE. User errors return null. Source-ordered comptime evaluation uses
       // context-owned execution frames; runtime bodies support locals, calls, addition, logic, comparisons and branches.
       // The returned module is owned by Context. Analysis state is local to each call.
       // ir::Module declaration roots borrow Input's AST; its ParsedUnit must outlive any allocated module, including on failure.
       ir::Module *analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName = "main");
+      // Predeclares all top-level function signatures before resolving imports and checking bodies.
+      // Every input AST must outlive Context, including when analysis fails.
+      ir::Module *analyzeModules(SemanticContext &Context, std::span<const ModuleInput> Inputs, std::string_view EntryModuleName);
 
     private:
       struct AnalysisState;
       struct ExpressionResult;
+      struct ModuleAnalysis;
+      struct ModuleGraph;
 
       bool analyzeStmt(AnalysisState &State, const parser::Stmt &Stmt);
       bool analyzeDecl(AnalysisState &State, const parser::Decl &Declaration);
@@ -58,6 +71,8 @@ namespace ink::semantic
       ExpressionResult analyzeParenExpr(AnalysisState &State, const parser::ParenExpr &Node, std::size_t Depth);
       ExpressionResult analyzeLiteralExpr(AnalysisState &State, const parser::LiteralExpr &Node);
       ExpressionResult analyzeNameExpr(AnalysisState &State, const parser::NameExpr &Node);
+      ExpressionResult analyzeMemberExpr(AnalysisState &State, const parser::MemberExpr &Node, std::size_t Depth);
+      bool resolveMemberFunctions(AnalysisState &State, const parser::MemberExpr &Node, std::vector<const ir::Value *> &Functions, std::size_t Depth);
       ExpressionResult analyzeUnaryExpr(AnalysisState &State, const parser::UnaryExpr &Node, std::size_t Depth);
       bool prepareIntegerLiteral(AnalysisState &State, const parser::Expr &Node, std::size_t Depth);
       ExpressionResult materializeIntegerLiteral(AnalysisState &State, const parser::Expr &Node, const ir::Type &Target);
@@ -70,6 +85,7 @@ namespace ink::semantic
       ExpressionResult evaluateComptime(AnalysisState &State, const parser::Expr &Node);
       ExpressionResult callComptime(AnalysisState &State, const ir::Function &Function, std::span<const ir::Value *const> Arguments, const parser::Expr &Node);
       const ir::Value *resolveVariable(AnalysisState &State, const parser::Expr &Node);
+      const ir::Value *resolveAddress(AnalysisState &State, const parser::Expr &Node, std::size_t Depth, bool RequireInitialized = true);
       bool reportExecution(AnalysisState &State, execution::ExecutionStatus Status, const parser::ASTNodeBase &Node);
       const ir::Value *convertExpression(AnalysisState &State, const ExpressionResult &Expression, const ir::Type &Target, const parser::Expr &Node, bool CArgument = false);
 
@@ -102,8 +118,13 @@ namespace ink::semantic
       bool analyzeFieldDecl(AnalysisState &State, const parser::FieldDecl &Node);
 
       bool analyzeFunctionDecl(AnalysisState &State, const parser::FunctionDecl &Node);
+      std::unique_ptr<ir::Function> declareFunction(AnalysisState &State, const parser::FunctionDecl &Node);
+      bool analyzeFunctionBody(AnalysisState &State, const parser::FunctionDecl &Node, ir::Function &FunctionValue);
+      bool ensureModuleFunctionBody(AnalysisState &State, const ir::Function &FunctionValue, const parser::ASTNodeBase &Use);
+      bool prepareComptimeFunctions(AnalysisState &State, const ir::Function &FunctionValue, const parser::ASTNodeBase &Use);
+      bool analyzeModuleStatement(ModuleAnalysis &Module, const parser::Stmt &Statement);
       std::optional<ir::LanguageLinkage> analyzeFunctionLinkage(AnalysisState &State, const parser::FunctionDecl &Node);
-      bool checkFunctionConflicts(AnalysisState &State, const parser::FunctionDecl &Node, const ir::FunctionType &Signature, ir::LanguageLinkage Linkage);
+      bool checkFunctionConflicts(AnalysisState &State, const parser::FunctionDecl &Node, const ir::FunctionType &Signature, ir::FunctionBinding Binding);
       bool analyzeClassDecl(AnalysisState &State, const parser::ClassDecl &Node);
       bool analyzeEnumDecl(AnalysisState &State, const parser::EnumDecl &Node);
       bool analyzeInterfaceDecl(AnalysisState &State, const parser::InterfaceDecl &Node);

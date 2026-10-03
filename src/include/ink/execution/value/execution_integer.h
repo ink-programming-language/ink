@@ -22,6 +22,11 @@ namespace ink::execution
         return BitWidth;
       }
 
+      std::uint64_t lowWord() const noexcept
+      {
+        return Words.empty() ? 0 : Words.front();
+      }
+
       bool valid() const noexcept;
       bool isZero() const noexcept;
       bool isNegative() const noexcept;

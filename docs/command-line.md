@@ -35,9 +35,9 @@ inkc --interpret [--entry NAME] --input FILE
 | `-i FILE` / `--input FILE` | 必填源码文件；`-` 从 stdin 读取 |
 | `-oir FILE` | 保留识别的 IR 输出选项，与解释模式冲突；当前未提供 IR 输出模式 |
 
-当前只启用解释模式。省略 `--interpret` 会明确报告非解释编译尚未实现；同时指定 `--interpret` 和 `-oir` 会作为参数冲突拒绝。
+必须选择解释、字节码编译、字节码链接或字节码运行中的一种模式。同时指定 `--interpret` 和 `-oir` 会作为参数冲突拒绝。
 
-处理流程为源码 → tokenizer → parser AST → semantic IR → 选择入口 → `ExecutionEngine::execute()`。入口必须是模块内可唯一选择的零参数普通 Ink 函数，具有可执行 IR 函数体，返回 `void` 或有符号 `i32`。C 链接函数、仅声明而没有函数体的函数及编译期专用函数不能作为入口；程序实参传递尚未接入。
+处理流程为源码 → tokenizer → parser AST → semantic IR → 选择入口 → `ExecutionEngine::execute()`。入口必须是模块内可唯一选择的零参数本地或导出函数，具有可执行 IR 函数体，返回 `void` 或有符号 `i32`。原生导入、仅声明而没有函数体的函数及编译期专用函数不能作为入口；程序实参传递尚未接入。
 
 解释器当前执行 Alloca、Store、Load、整数 Add、LogicalNot、LogicalAnd、LogicalOr、Compare、CString、Call、Branch、ConditionalBranch 和 Return，以及块内函数声明。支持 bool 条件的 if/else/else-if 与嵌套分支，条件可来自参数、局部变量、函数返回值或 bool 常量；分支指令只执行选中的路径。普通 if 的两个分支在定义处均进行语义检查，`comptime if` 只分析选中分支。非泛型函数的编译期调用共享同一 IR 执行路径；显式 `comptime` 语句块和静态循环仍可在语义分析期间求值或展开。源码循环、聚合执行及完整后端编译仍未实现。
 
@@ -67,6 +67,32 @@ echo 'func main(): i32 { return 7; }' | ./build/src/tools/inkc/inkc --interpret 
 
 hello world 源码分别声明平台实际符号及 ABI：Windows 为 `_write(i32, *u8, u32): i32`，Linux 为 `write(i32, *u8, u64): i64`。main 向 stdout 写入 `hello, world\n` 并返回 0。Windows 示例沿用 CRT stdout 的默认文本模式，捕获的换行为 CRLF；Linux 捕获为 LF。解释器不添加输出标题或转换源程序的输出内容。
 
+## inkc 字节码编译、链接与运行
+
+```text
+inkc --emit-bytecode OBJECT [--module-root DIRECTORY] -i SOURCE
+inkc --link-bytecode OBJECT --link-bytecode OTHER --entry MODULE#NAME -o EXECUTABLE
+inkc --run-bytecode -i EXECUTABLE
+```
+
+三种模式与 `--interpret` 互斥。`--emit-bytecode` 的值就是输出路径；`--link-bytecode` 可重复指定，每次接收一个对象文件，并要求 `-o` / `--output`。运行模式的 `-i` 是已链接字节码文件路径，不接受源码 stdin。字节码文件的后缀不参与识别，加载器检查文件魔数、版本和 target。
+
+顶层函数的默认可见性为 `public`，`private func ...` 只在定义它的源码文件内可访问。局部函数始终私有，显式声明为 `public` 报源码错误。编译器把这一语义信息写入 IR 和字节码；CLI 不接受 `--export`、`--module-visible` 或 `--import-symbol`，测试清单也不配置导出及导入映射。所有普通函数定义都会编译，包括从未执行的函数，编译期专用函数不作为运行时导出。局部函数身份包含父函数签名与词法位置，父函数重载中的同名局部函数保持独立。
+
+跨文件使用 `from math import answer;`、`from math import answer as localAnswer;` 或 `import math as library;` 后调用 `library.answer()`。直接导入未写别名时使用模块路径末段作为绑定名。导入以目标声明为准，自动获得真实签名和重载集合；私有定义不能被导入或通过模块成员访问。普通 `func answer(): i32;` 会报告 `INK-S0028`，只能在 `import "C"` 下保留无函数体声明。
+
+模块身份由源码相对 `--module-root` 的路径去掉 `.ink` 后将目录分隔符替换为点确定，例如 `package/math.ink` 对应 `package.math`。生成对象或使用导入时，源文件扩展必须为 `.ink`，根目录内的目录名和文件基名不能包含点，以防 `package.math.ink` 与 `package/math.ink` 映射成相同身份；不含导入的单文件解释模式继续允许原有文件名。未指定源码根时使用入口文件的父目录，stdin 使用当前目录。`from .math import answer;` 的一个点表示当前包，更多点向上查找；不允许越过源码根。每个对象必须使用相同源码根独立编译，运行 `--interpret` 也支持该选项和源码导入。当前导入对象限于已实现的函数，泛型实例化尚未接入；闭合泛型符号元数据仍由库级构建 API 接收。
+
+原生接口使用 `private import "C" func abs(Value: i32): i32;` 或 `public export "C" func sum(A: i32, B: i32): i32 { return A + B; }`。导入禁止函数体，导出必须在模块顶层提供函数体；`[abi("C")] func ... { ... }` 仅设置本地定义的 C ABI。`public/private` 独立控制 Ink 源码访问，允许 `private export`，且不会因此允许其他 Ink 模块通过模块导入访问私有函数。原生导出名为声明名，不能形成重载；跨模块重复导出报告 `INK-S0049`。仅设置 `[abi("C")]` 的本地函数仍可按参数列表重载。旧 `extern` 语法已移除，`link` 属性暂不支持。
+
+当前 CLI 输出字节码对象与镜像；本地 C ABI 和导出函数由 VM 执行，存档保留其 ABI、原生符号名与导出标记。尚不生成原生 DLL/SO，也不提供可传给 C 的本地函数地址。原生导入优先按声明原名及完整签名匹配当前程序已纳入的导出，包括 `private export`；同名签名不匹配报告 `INK-S0050`。未匹配的导入继续按原声明名查找宿主已加载符号。原生导入本身不触发 Ink 源码依赖发现，也不加载新的宿主动态库。
+
+链接入口默认查找公开的 `main`，也可通过 `--entry module#function` 或简单的 `module::function` 指定。入口必须是具有函数体的本地或导出函数，没有泛型实参、没有运行时参数、返回 void 或 i32；候选不唯一时拒绝。链接文件记录所选入口；`--run-bytecode` 直接使用文件中的入口。v2 文件要求同宿主 target/ABI，未被同程序导出满足的原生导入符号在实际调用时重新解析。
+
+成功编译和链接退出为 0；参数、归档读取或写入失败退出为 2；源码、链接符号或普通执行失败退出为 1。运行成功时 void 返回 0，i32 作为退出码。已有的执行资源和内部错误继续使用 Core ICE/panic 规则。协议与 API 见 [字节码文件格式](Ink-Bytecode-Format.md)。
+
+`BytecodeProcessTest` 使用独立 `inkc` 进程编译、链接后移走源文件和对象文件，再重复加载执行最终镜像；另验证原生导入重新绑定、私有入口拒绝、歧义模块路径拒绝、旧可见性覆盖参数拒绝、对象不可直接执行及截断文件拒绝。跨模块源码场景由下述 `ExecutionMultiFileTest` 覆盖。
+
 ### CLI 与源码执行测试
 
 源码执行测试统一由 [`source_program_tests.cmake`](../src/testcase/execution/cli/source_program_tests.cmake) 的 `add_source_program_test()` 登记 HelloWorld 和功能测试程序；`src/testcase/CMakeLists.txt` 只需 include 这份清单。所有源码测试共用 [`source_program_test.cmake`](../src/testcase/execution/cli/source_program_test.cmake)，参数与入口错误等 CLI 行为另由 [`inkc_process_test.cmake`](../src/testcase/execution/cli/inkc_process_test.cmake) 验证。成功程序保留在 `src/testcase/execution/programs`，故意失败的输入放在 `src/testcase/execution/cli/inputs`。
@@ -87,7 +113,19 @@ ctest --test-dir build -R '^(ExecutionSourceTest[.].*|InkcProcessTest)$' --outpu
 
 `InkcProcessTest` 检查默认及指定入口、stdin、入口限制、参数冲突、错误诊断与执行返回结果。`ink_tests` 构建依赖 `inkc`、`ink-tokenize` 和 `ink-parse`；这些进程测试由 CTest 调度，不是由 GoogleTest 进程内模拟 CLI。
 
-所有功能测试程序通过 `puts` 打印用例名，再核对结果并打印 `PASS`；失败打印 `FAIL` 并返回 1，全部通过返回 0。副作用标记夹在用例名与结果之间，编译期外调的输出发生在 `main` 之前。CTest 对完整 stdout 逐字核对，要求退出码 0、空 stderr；仅将 CRLF 归一化为 LF，因此结果、顺序、调用次数和多余输出都受到检查。
+单文件 `ExecutionSourceTest` 功能测试程序通过 `puts` 打印用例名，再核对结果并打印 `PASS`；失败打印 `FAIL` 并返回 1，全部通过返回 0。副作用标记夹在用例名与结果之间，编译期外调的输出发生在 `main` 之前。CTest 对完整 stdout 逐字核对，要求退出码 0、空 stderr；仅将 CRLF 归一化为 LF，因此结果、顺序、调用次数和多余输出都受到检查。
+
+多文件用例放在 [`src/testcase/execution/multifile`](../src/testcase/execution/multifile)，每个场景一个子目录，包含至少两个真实 `.ink` 文件和一个 `case.cmake`。所有访问权限和依赖都写在 `.ink` 源码中。清单仅使用 `expect_bytecode_result()` 断言执行返回值，或用 `expect_bytecode_source_error()` 断言指定源码模块的错误。例如 `chain/case.cmake` 的三个文件分别编译为独立对象，再链接执行。
+
+[`multifile_program_tests.cmake`](../src/testcase/execution/cli/multifile_program_tests.cmake) 自动将每个目录注册为独立的 `ExecutionMultiFileTest.<目录名>`。共用运行器递归发现并复制源码，逐文件启动编译进程，并分别按原顺序和反向顺序链接。成功场景先解释执行，然后移走源码副本和对象文件，由两个新进程加载镜像，检查预期退出码及空 stdout/stderr；失败场景检查指定文件的具体诊断、退出码 1 和未生成对象文件，其他文件仍必须编译成功。测试日志和中间产物保留在构建目录的 `src/testcase/execution-multifile/<场景>/<本次运行 ID>`。
+
+多文件场景覆盖调用链、跨文件相互递归、跨模块编译期调用、重载、限定模块名和相对导入、跨文件共享指针读写、模块内访问、同名私有函数隔离、原生导入匹配 private 导出及本地 C ABI 调用，以及越权访问、无体 Ink 声明、签名不匹配、歧义调用、重复定义和缺失模块或符号。新增场景只需创建子目录及清单，无需修改运行器；清单必须编译目录中的每个 `.ink` 文件。
+
+```sh
+ctest --test-dir cmake-build-debug -R '^ExecutionMultiFileTest[.]' --output-on-failure
+```
+
+多配置生成器另加 `-C Debug` 或相应配置名。
 
 逻辑与比较包含以下程序，CTest 名称以 `ExecutionSourceTest.Logical.` 开头：
 

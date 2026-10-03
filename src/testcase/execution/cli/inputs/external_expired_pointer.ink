@@ -1,6 +1,6 @@
 // A pointer into a returned callee-local CString is rejected before native dereference.
-extern "C" func strchr(Text: *u8, Needle: i32): *u8;
-extern "C" func strcmp(Left: *u8, Right: *u8): i32;
+import "C" func strchr(Text: *u8, Needle: i32): *u8;
+import "C" func strcmp(Left: *u8, Right: *u8): i32;
 
 func findTail(): *u8
 {

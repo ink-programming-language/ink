@@ -4,7 +4,7 @@ namespace ink::parser
   bool Parser::declarationStart(std::size_t Ahead) const
   {
     const TokenKind Kind = kind(Ahead);
-    return Kind == TokenKind::KwVar || Kind == TokenKind::KwConst || Kind == TokenKind::KwField || Kind == TokenKind::KwClass || Kind == TokenKind::KwEnum || Kind == TokenKind::KwInterface || Kind == TokenKind::KwExtern || (Kind == TokenKind::KwFunc && kind(Ahead + 1) == TokenKind::Identifier);
+    return Kind == TokenKind::KwVar || Kind == TokenKind::KwConst || Kind == TokenKind::KwField || Kind == TokenKind::KwClass || Kind == TokenKind::KwEnum || Kind == TokenKind::KwInterface || Kind == TokenKind::KwExport || Kind == TokenKind::KwPublic || Kind == TokenKind::KwPrivate || (Kind == TokenKind::KwImport && kind(Ahead + 1) != TokenKind::Identifier) || (Kind == TokenKind::KwFunc && kind(Ahead + 1) == TokenKind::Identifier);
   }
   bool Parser::strongStart(TokenKind Kind) const
   {
@@ -15,7 +15,9 @@ namespace ink::parser
     case TokenKind::KwField:
     case TokenKind::KwClass:
     case TokenKind::KwEnum:
-    case TokenKind::KwExtern:
+    case TokenKind::KwExport:
+    case TokenKind::KwPublic:
+    case TokenKind::KwPrivate:
     case TokenKind::KwInterface:
     case TokenKind::KwIf:
     case TokenKind::KwWhile:

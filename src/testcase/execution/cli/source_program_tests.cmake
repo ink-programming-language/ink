@@ -53,6 +53,7 @@ endif()
 
 # C-runtime lookup is supported on Windows and Linux. The five programs contain 40 PASS checks.
 if(WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_source_program_test(Memory.Main.AddressOf programs/address_of.ink 0 "AddressOf.PASS|" "" LABELS memory external)
   add_source_program_test(External.Main.Scalars programs/external_scalars.ink 0 "External.abs_negative|PASS|External.abs_zero|PASS|External.abs_positive|PASS|External.abs_nested|PASS|External.abs_boundary|PASS|External.llabs_wide|PASS|External.atoi_signed|PASS|External.atoi_nested|PASS|External.atoi_empty|PASS|" "" LABELS external)
   add_source_program_test(External.Main.Comptime programs/external_comptime.ink 0 "External.comptime_initializer|External.comptime_stored|PASS|External.comptime_effect_once|PASS|External.comptime_function|PASS|External.comptime_ordinary|PASS|External.comptime_nested|PASS|External.comptime_strings|PASS|External.comptime_skipped_symbol|PASS|" "" LABELS external comptime)
 
@@ -86,10 +87,12 @@ add_source_program_test(Logical.Invalid.CompareWidths cli/inputs/logical_invalid
 add_source_program_test(Logical.Invalid.CompareSignedness cli/inputs/logical_invalid_compare_signedness.ink 1 "" "INK-S0004" LABELS logical)
 add_source_program_test(Logical.Invalid.CompareBoolOrder cli/inputs/logical_invalid_compare_bool.ink 1 "" "INK-S0004" LABELS logical)
 
-# Reaching a selected missing function must still fail in each short-circuit shape.
-add_source_program_test(Logical.ShortCircuit.reach_and cli/inputs/logical_reach_and.ink 1 "" "INK-E0013" LABELS logical)
-add_source_program_test(Logical.ShortCircuit.reach_or cli/inputs/logical_reach_or.ink 1 "" "INK-E0013" LABELS logical)
-add_source_program_test(Logical.ShortCircuit.nested_reach cli/inputs/logical_nested_reach.ink 1 "" "INK-E0013" LABELS logical)
+# Reaching the selected wrapper must perform native lookup and fail in each short-circuit shape.
+if(WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_source_program_test(Logical.ShortCircuit.reach_and cli/inputs/logical_reach_and.ink 1 "" "INK-E0014" LABELS logical external)
+  add_source_program_test(Logical.ShortCircuit.reach_or cli/inputs/logical_reach_or.ink 1 "" "INK-E0014" LABELS logical external)
+  add_source_program_test(Logical.ShortCircuit.nested_reach cli/inputs/logical_nested_reach.ink 1 "" "INK-E0014" LABELS logical external)
+endif()
 
 # Semantic control-flow failures are separate fixtures so each diagnostic is asserted independently.
 add_source_program_test(ControlFlow.Invalid.Condition cli/inputs/control_invalid_condition.ink 1 "" "INK-S0004" LABELS control_flow)
@@ -127,4 +130,4 @@ add_source_program_test(Function.Invalid.Capture cli/inputs/function_invalid_cap
 add_source_program_test(Function.Invalid.NotCallable cli/inputs/function_invalid_not_callable.ink 1 "" "INK-S0004" LABELS function)
 add_source_program_test(Function.Invalid.DuplicateParameter cli/inputs/function_invalid_duplicate_parameter.ink 1 "" "INK-S0015" LABELS function)
 add_source_program_test(Function.Invalid.DuplicateDefinition cli/inputs/function_invalid_duplicate_definition.ink 1 "" "INK-S0003" LABELS function)
-add_source_program_test(Function.Runtime.MissingBody cli/inputs/function_missing_body.ink 1 "" "INK-E0013" LABELS function)
+add_source_program_test(Function.Invalid.MissingBody cli/inputs/function_missing_body.ink 1 "" "INK-S0028" LABELS function)

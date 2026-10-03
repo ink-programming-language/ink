@@ -17,17 +17,17 @@ ASTDeserializeResult deserializeAST(core::FrontendContext &Context, std::string_
 
 Writer 根据源码遍历顺序，以后序为节点分配从 1 开始的存档局部编号；0 表示可选子节点为空。节点编号和源码 SourceId 都不是跨模块声明身份。原 AST 的地址、Arena 存储、`std::span` 和 `string_view` 的对象表示均不写入文件。
 
-Reader 要求子节点引用指向已经恢复的节点，并校验具体类型或节点类别；共享子节点、自引用、前向引用和游离节点被拒绝。最终必须是一棵以最后一个 `ModuleAST` 为根的树。按后序调用现有构造函数，通过 `ASTContext::copyArray` 恢复数组，再通过 `setComptime` 恢复节点共有标记，不需要序列化虚函数。树的遍历和重建不按 AST 深度递归。
+Reader 要求子节点引用指向已经恢复的节点，并校验具体类型或节点类别；共享子节点、自引用、前向引用和游离节点被拒绝。最终必须是一棵以最后一个 `ModuleAST` 为根的树。按后序调用现有构造函数，通过 `ASTContext::copyArray` 恢复数组，再通过 `setComptime` 恢复节点共有标记、`Decl::setVisibility` 恢复声明可见性，不需要序列化虚函数。树的遍历和重建不按 AST 深度递归。
 
-`ast_serialization_fields.def` 按构造函数实参顺序描述全部 64 种节点和 9 种嵌入记录，读写共享字段定义。每个节点的构造字段后额外保存共有的 `comptime` 布尔标记；嵌入记录没有该标记。`NameToken`、`RestBinding`、范围、可选值和数组有独立编码。新增 AST 节点而遗漏字段定义会导致编译失败。
+`ast_serialization_fields.def` 按构造函数实参顺序描述全部 64 种节点和 9 种嵌入记录，读写共享字段定义。每个节点的构造字段后额外保存共有的 `comptime` 布尔标记；所有 `Decl` 子类再保存 `DeclarationVisibility`，固定编码为 `Default=0`、`Public=1`、`Private=2`。嵌入记录没有这些标记。`Default` 保留源码未显式修饰的事实，由语义层按 public 解释；AST dump 显示 `Visibility=Default/Public/Private`，结构验证拒绝其他枚举值。`NameToken`、`RestBinding`、范围、可选值和数组有独立编码。新增 AST 节点而遗漏字段定义会导致编译失败。
 
 恢复的名称文本存放在新的 ASTContext；源码和 Token/payload 由恢复的 TokenBuffer 持有。原 ParseResult、原编译上下文、输入字节和接收方上下文释放后，恢复的 ParsedUnit 仍然有效。成功时源码注册到接收方 SourceManager，获得新的 SourceId；行起始位置由原始源码重新计算。
 
 Tokenizer 的 `TokenizedBuffer::fromSnapshot` 校验源码大小、成功源码的 UTF-8/NUL/BOM 规则、Token 顺序和范围、EOF 契约、种类与 payload 匹配、进制、字符串模式和 Unicode 标量。检查成功后才注册源码。它不会重新运行词法分析，不保证重新推导并比对每个 Token 的词法内容。
 
-## V3 格式
+## V5 格式
 
-文件以四个字节 `IAST` 开始，其后是 LLVM Bitstream block 8，记录编码宽度为 3，块长度按标准 Bitstream 规则以 32 位字为单位。V3 只接受未缩写记录，不接受其他块、缩写定义或额外尾部数据。底层使用仓库已有 LLVM 的公开 Bitstream 接口，不使用 Clang AST 私有接口。
+文件以四个字节 `IAST` 开始，其后是 LLVM Bitstream block 8，记录编码宽度为 3，块长度按标准 Bitstream 规则以 32 位字为单位。V5 只接受未缩写记录，不接受其他块、缩写定义或额外尾部数据。底层使用仓库已有 LLVM 的公开 Bitstream 接口，不使用 Clang AST 私有接口。
 
 | 顺序 | Record code | 内容 |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ Tokenizer 的 `TokenizedBuffer::fromSnapshot` 校验源码大小、成功源码�
 | 2 | 2 | 源码名称，各字节作为一个记录字段 |
 | 3 | 3 | 原始源码，各字节作为一个记录字段 |
 | 4 | 4 | 每个 Token：种类、范围、payload 标签及其字段 |
-| 5 | 5 | 每个 AST 节点：稳定 ASTKind 编号、构造顺序字段、comptime 布尔标记 |
+| 5 | 5 | 每个 AST 节点：稳定 ASTKind 编号、构造顺序字段、comptime 布尔标记；声明节点追加 visibility 枚举 |
 | 6 | 6 | 每个恢复记录：节点编号、预期 TokenKind、可选实际 TokenId、范围、ExpectStatus、可选跳过范围 |
 
 各记录字段使用无符号 VBR6 整数。普通字符串为字节数后接字节序列，支持 UTF-8 和解码后的 NUL。范围使用两个明确的 32 位 `SourceLocation` 编码值，即起止字节偏移分别加 1，区间为 `[Start, End)`。必需范围必须有效并位于保存的源码内。
@@ -44,9 +44,11 @@ Tokenizer 的 `TokenizedBuffer::fromSnapshot` 校验源码大小、成功源码�
 
 Token payload 使用明确标签：0=无数据、1=IdentifierInfo、2=NumericInfo、3=StringInfo、4=CharInfo，不依赖 `std::variant` 的 alternative 顺序。`ASTKind` 使用 ASTNodes.def 中的固定编号；其余枚举使用 `ast_serialization_enums.def` 中独立固定的文件编号，不依赖 C++ 枚举声明顺序。新增 TokenKind 但未补全映射会触发静态断言。
 
-当前 V3 将 `comptime` 保存为普通 AST 节点的共有布尔属性，删除原有表达式和语句包装节点；原节点编号 15、46 保留不用。V2 引入的 `FunctionDecl` 可选 linkage 子节点和 `KwExtern` 固定 Token 编号 84 保持不变。无 `extern` 时 linkage 为空，正常时为 `STRING_LITERAL`，缺失链接字符串的恢复树使用 `MissingExpr`；链接名称的完整解码字节保存在对应 Token 的 `StringInfo` 中。格式严格匹配 `ASTArchiveVersion`，不读取 V1、V2，也不做旧版本迁移或未知字段跳过。改变字段含义、数量、顺序或编码时必须更新版本及格式测试。新增枚举值只使用未分配编号，删除后不复用编号。文件不提供签名或真实性认证，结构合法不代表输入源码、语义或编译结果可信。
+当前 V5 为 `FunctionDecl` 增加独立的 `NativeSymbolKind`，固定编码为 `None=0`、`Import=1`、`Export=2`，在 linkage 子节点之后保存。`KwExport` 使用新 Token 编号 87，已移除的 `KwExtern` 编号 84 永久保留不用。普通函数和仅带 `[abi("C")]` 属性的函数使用 `None` 且 linkage 为空；显式 `import "C"` 或 `export "C"` 必须具有 linkage，正常时为 `STRING_LITERAL`，缺失 ABI 字符串的恢复树使用 `MissingExpr`。结构校验拒绝方向与 linkage 不一致的快照，ABI 名称的完整解码字节保存在 Token 的 `StringInfo` 中。
 
-文本快照独立使用 `ast 2` 格式和 `ASTTextArchiveVersion`，每个节点的命名字段末尾必须包含 `comptime = true` 或 `comptime = false`。读入时拒绝缺失标记、非法布尔值及旧的 `ast 1` 格式；文本与二进制恢复共用节点构造和校验逻辑。
+V4 引入的声明可见性和 `KwPublic`、`KwPrivate` 固定 Token 编号 85、86 保持不变。V3 引入的普通节点 `comptime` 布尔属性保持不变，原包装节点编号 15、46 保留不用。格式严格匹配 `ASTArchiveVersion`，不读取 V1 至 V4，也不做旧版本迁移或未知字段跳过。改变字段含义、数量、顺序或编码时必须更新版本及格式测试。新增枚举值只使用未分配编号，删除后不复用编号。文件不提供签名或真实性认证，结构合法不代表输入源码、语义或编译结果可信。
+
+文本快照独立使用 `ast 4` 格式和 `ASTTextArchiveVersion`，函数构造字段中必须包含 `nativeSymbolKind = None`、`Import` 或 `Export`。每个节点的命名字段末尾必须包含 `comptime = true` 或 `comptime = false`；声明随后必须包含 `visibility = Default`、`visibility = Public` 或 `visibility = Private`。读入时拒绝缺失标记、非法枚举、非法布尔值及旧的 `ast 1` 至 `ast 3` 格式；文本与二进制恢复共用节点构造和校验逻辑。
 
 ## 失败与预算
 
@@ -62,9 +64,9 @@ Token payload 使用明确标签：0=无数据、1=IdentifierInfo、2=NumericInf
 
 `src/testcase/parser/ast_serialization_test.cpp` 接入统一的 `ink_tests`，覆盖：
 
-- 现有 2,943 个 BNF 样例的往返恢复，比较 AST dump、全部 Token/payload、源码、解析状态、恢复记录及再次序列化的字节。
+- 现有 2,956 个 BNF 样例的往返恢复，比较 AST dump、全部 Token/payload、源码、解析状态、恢复记录及再次序列化的字节。
 - 所有已注册节点种类，包括独立构造的 10 种 missing/error 节点及其类型正确的父节点。
-- 普通表达式和语句的 `comptime` 标记、嵌套前缀范围，以及非法/缺失标记和旧二进制、文本版本的拒绝。
+- 普通表达式和语句的 `comptime` 标记、嵌套前缀范围，所有声明可见性，以及非法/缺失标记和旧二进制、文本版本的拒绝。
 - 原对象、原输入字节和两个编译上下文均释放后的生命周期。
 - Unicode 名称、各进制、字符、四种字符串模式、解码后的 NUL、换行索引。
 - 解析错误、词法失败、取消、资源耗尽和 10,000 层左结合表达式。

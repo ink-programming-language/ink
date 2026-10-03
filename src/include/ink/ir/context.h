@@ -8,6 +8,7 @@
 #include "ink/ir/name/name_pool.h"
 #include "ink/ir/type/type_pool.h"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -81,12 +82,23 @@ namespace ink::ir
         return Modules;
       }
 
+      // Changes whenever ownership, executable structure or borrowed object lifetime changes.
+      // Code caches must discard prior entries after a change; pool growth and reads are stable.
+      // Revisions are context-local and model mutation cannot overlap execution.
+      FORCE_INLINE std::uint64_t revision() const noexcept
+      {
+        return Revision;
+      }
+
     private:
+      void notifyChanged() const noexcept;
       void notifyDestroyed(Value &Target) const noexcept;
       void notifyDestroyed(Decl &Target) const noexcept;
 
       core::CompilationContext &Compilation;
       NamePool Names;
+      // Outlives owned values so their destruction can still invalidate borrowed code caches.
+      mutable std::uint64_t Revision = 0;
       // Initialized before pools; notifications remain available while owned values are destroyed.
       std::vector<LifetimeObserver *> Observers;
       std::unique_ptr<TypePool> Types;

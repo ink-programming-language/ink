@@ -112,8 +112,6 @@ namespace ink::semantic::test
         {"continue;", "ContinueStmt"},
         {"yield 1;", "YieldStmt"},
         {"defer {}", "DeferStmt"},
-        {"import Foo;", "DirectImportStmt"},
-        {"from Foo import Bar;", "FromImportStmt"},
         {"var X = 1;", "VarDecl"},
         {"field X: i32;", "FieldDecl"},
         {"func F[T: type](X: T): T { return X; }", "FunctionDecl"},
@@ -148,7 +146,6 @@ namespace ink::semantic::test
     constexpr Case Cases[] = {
         {"func F(X: comptime i32): void;", "NameExpr"},
         {"func F(): comptime i32;", "NameExpr"},
-        {"comptime import Foo;", "DirectImportStmt"},
     };
     for (const Case &Entry : Cases)
     {
@@ -192,7 +189,7 @@ namespace ink::semantic::test
     Source.append(200, '}');
     Source.append(200, '{');
     Source.append(200, '}');
-    Source.append("func after(): void;");
+    Source.append("func after(): void {}");
     parser::ParseLimits Limits;
     Limits.MaxNestingDepth = 1024;
     auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, std::move(Source)), Limits);

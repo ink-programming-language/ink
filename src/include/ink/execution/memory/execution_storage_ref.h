@@ -8,8 +8,8 @@
 namespace ink::execution
 {
   enum class ExecutionStatus;
-  class ExecutionHeap;
-  struct ExecutionHeapState;
+  class ExecutionMemoryManager;
+  struct ExecutionMemoryState;
   class ExecutionStorage;
   class ExecutionCell;
   class ExecutionBuffer;
@@ -28,18 +28,18 @@ namespace ink::execution
       bool operator==(const ExecutionStorageRef &Other) const noexcept;
 
     private:
-      ExecutionStorageRef(const std::shared_ptr<ExecutionHeapState> &State, std::size_t Slot, std::uint64_t Generation) noexcept
+      ExecutionStorageRef(const std::shared_ptr<ExecutionMemoryState> &State, std::size_t Slot, std::uint64_t Generation) noexcept
           : State(State),
             Slot(Slot),
             Generation(Generation)
       {
       }
 
-      std::weak_ptr<ExecutionHeapState> State;
+      std::weak_ptr<ExecutionMemoryState> State;
       std::size_t Slot = 0;
       std::uint64_t Generation = 0;
 
-      friend class ExecutionHeap;
+      friend class ExecutionMemoryManager;
   };
 } // namespace ink::execution
 

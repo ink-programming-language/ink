@@ -50,4 +50,8 @@ add_test(NAME TokenizerProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_TOKENIZER=$
 add_test(NAME InkcProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/inkc-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/inkc_process_test.cmake")
 set_tests_properties(InkcProcessTest PROPERTIES TIMEOUT 60 LABELS "execution;cli")
 
+add_test(NAME BytecodeProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/bytecode-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/bytecode_process_test.cmake")
+set_tests_properties(BytecodeProcessTest PROPERTIES TIMEOUT 120 LABELS "execution;bytecode;cli")
+
 include("${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/source_program_tests.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/multifile_program_tests.cmake")

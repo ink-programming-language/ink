@@ -121,6 +121,7 @@ namespace ink::ir
         }
         std::unique_ptr<Value> Owner = std::move(ModuleValue);
         Context.Modules.push_back(std::unique_ptr<Module>(static_cast<Module *>(Owner.release())));
+        Context.notifyChanged();
         return true;
       }
 
@@ -139,14 +140,18 @@ namespace ink::ir
       // otherwise exactly one valid kind per signature slot is required. Kinds are binding metadata,
       // not part of FunctionType identity, and do not enable named-argument binding or variadic expansion.
       // Empty names leave all slots unnamed; otherwise supply one local Name (or unnamed Name{}) per slot.
-      // Calling convention and language linkage are independent function metadata, not FunctionType identity.
-      // Defaults to the target C calling convention and Ink language linkage; undefined enum values return null.
-      [[nodiscard]] std::unique_ptr<Function> createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds = {}, std::span<const Name> ParameterNames = {}, CallingConvention Convention = CallingConvention::C, LanguageLinkage Linkage = LanguageLinkage::Ink);
-      // Creates a local function's empty entry block and sets its parent. Foreign functions or existing bodies return null.
+      // Calling convention, language linkage and native binding are function metadata, not FunctionType identity.
+      // Defaults to a local function with the target C convention and Ink linkage; invalid enum values return null.
+      // Native imports and exports require C convention and linkage. Local C functions may have bodies.
+      [[nodiscard]] std::unique_ptr<Function> createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds = {}, std::span<const Name> ParameterNames = {}, CallingConvention Convention = CallingConvention::C, LanguageLinkage Linkage = LanguageLinkage::Ink, FunctionBinding Binding = FunctionBinding::Local);
+      // Creates an empty entry block. Foreign contexts, native imports or existing bodies return null.
       BasicBlock *createFunctionBody(Function &FunctionValue);
+      bool setFunctionVisibility(Function &FunctionValue, VisibilityKind Visibility) noexcept;
+      // Native imports cannot have bodies; native imports and exports require C convention and linkage.
+      bool setFunctionBinding(Function &FunctionValue, FunctionBinding Binding) noexcept;
       // Returns a detached owner with the local label type and an initially empty value list.
       [[nodiscard]] std::unique_ptr<BasicBlock> createBasicBlock();
-      // Appends a new block to a local function; the first block becomes its entry. Foreign functions return null.
+      // Appends a block; the first becomes the entry. Foreign contexts and native imports return null.
       BasicBlock *createBasicBlock(Function &FunctionValue);
 
       // Creates a context-owned root module with its own empty entry block. Requires a local name.

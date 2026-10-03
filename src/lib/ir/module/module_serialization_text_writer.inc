@@ -312,6 +312,14 @@ namespace ink::ir::archive
           {
             Header += " linkage c";
           }
+          if (R.Fields[2])
+          {
+            Header += " visibility private";
+          }
+          if (R.Fields[3])
+          {
+            Header += R.Fields[3] == 1 ? " binding import" : " binding export";
+          }
           line(Depth, Header + (Body ? " {" : ""));
           if (!Body)
           {

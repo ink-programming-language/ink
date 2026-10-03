@@ -1,4 +1,7 @@
 #include "ink/execution/engine/execution_engine.h"
+#include "ink/execution/engine/execution_machine.h"
+#include "ink/execution/engine/execution_linker.h"
+#include "ink/execution/bridge/semantic_value_bridge.h"
 
 #include "ink/ir/context.h"
 
@@ -7,7 +10,9 @@ namespace ink::execution
   ExecutionEngine::ExecutionEngine(ir::IRContext &Context, ExecutionLimits Limits)
       : Context(Context),
         Limits(Limits),
-        Heap(Context, Limits.MaxObjects)
+        Heap(Context, Limits.MaxObjects, Limits.MaxStorageBytes),
+        Linker(std::make_unique<ExecutionLinker>(Heap.bridge())),
+        Machine(std::make_unique<ExecutionMachine>(*this, *Linker))
   {
   }
 
@@ -53,21 +58,27 @@ namespace ink::execution
 
   void ExecutionEngine::clearNativeSymbolCache() noexcept
   {
+    Machine->clearNativeSymbols();
     NativeSymbols.clear();
   }
 
   ExecutionStatus ExecutionEngine::consumeStep()
   {
+    return consumeSteps(1);
+  }
+
+  ExecutionStatus ExecutionEngine::consumeSteps(std::size_t Count)
+  {
     if (StopStatus != ExecutionStatus::Success)
     {
       return LastStatus = StopStatus;
     }
-    if (Steps >= Limits.MaxSteps)
+    if (Count > Limits.MaxSteps - Steps)
     {
       StopStatus = ExecutionStatus::BudgetExceeded;
       return LastStatus = ExecutionStatus::BudgetExceeded;
     }
-    ++Steps;
+    Steps += Count;
     return LastStatus = ExecutionStatus::Success;
   }
 
@@ -154,7 +165,6 @@ namespace ink::execution
       }
       Candidate->Active = false;
       Candidate->Bindings.clear();
-      Candidate->Values.clear();
       for (const ExecutionStorageRef &Storage : Candidate->Storage)
       {
         Heap.release(Storage);
@@ -184,17 +194,7 @@ namespace ink::execution
     return allocateValue(Frame, Binding, Type, Writable, Initial ? &InitialValue : nullptr);
   }
 
-  ExecutionPlaceResult ExecutionEngine::bindRuntime(ExecutionFrame &Frame, const void *Binding, const ir::Type &Type, bool Writable)
-  {
-    return allocateObject(Frame, Binding, Type, Writable, nullptr, true);
-  }
-
   ExecutionPlaceResult ExecutionEngine::allocateValue(ExecutionFrame &Frame, const void *Binding, const ir::Type &Type, bool Writable, const ExecutionValueRef *Initial)
-  {
-    return allocateObject(Frame, Binding, Type, Writable, Initial, false);
-  }
-
-  ExecutionPlaceResult ExecutionEngine::allocateObject(ExecutionFrame &Frame, const void *Binding, const ir::Type &Type, bool Writable, const ExecutionValueRef *Initial, bool Runtime)
   {
     if (consumeStep() != ExecutionStatus::Success)
     {
@@ -228,7 +228,7 @@ namespace ink::execution
     {
       return {LastStatus = ExecutionStatus::DuplicateBinding};
     }
-    const ExecutionPlaceResult Result = Heap.allocateCell(Type, Writable, Initial ? *Initial : ExecutionValueRef{}, Runtime);
+    const ExecutionPlaceResult Result = Heap.allocateCell(Type, Writable, Initial ? *Initial : ExecutionValueRef{});
     if (!Result)
     {
       if (Result.Status == ExecutionStatus::BudgetExceeded)

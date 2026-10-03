@@ -127,7 +127,14 @@ simple_stmt_item ::= expr [ assignment_op simple_stmt_item ] ;
 
 decl_stmt ::= decl ;
 
-decl ::= attributes decl_core ;
+// public/private 只可出现一个，重复或同时使用是语法错误；未修饰时由语义层按 public 处理。
+// 可见性可放在属性组前后，并可与声明级 comptime 组合；具体声明是否支持修饰由语义层判断。
+decl ::= attributes [ visibility_modifier [ "comptime" ] ] decl_core
+       | visibility_modifier [ "comptime" ] attributes decl_core
+       | visibility_modifier attributes "comptime" decl_core ;
+
+visibility_modifier ::= "public"
+                      | "private" ;
 
 attributes ::= [ "[" attribute { "," attribute } "]" ] ;
 
@@ -159,9 +166,10 @@ base_spec ::= type_expr
 
 // 链接名称保留 STRING_LITERAL 的完整解码值，不在语法层限定为 "C"。
 // 支持的链接名称及其 ABI 由后续语义分析和目标平台决定。
+// 语法树保留无函数体形式供诊断；语义层要求 import "C" 无函数体，export "C" 和普通 Ink 函数必须定义函数体。
 function_decl ::= [ linkage_specifier ] "func" callable_signature callable_body ;
 
-linkage_specifier ::= "extern" STRING_LITERAL ;
+linkage_specifier ::= ("import" | "export") STRING_LITERAL ;
 
 callable_signature ::= IDENTIFIER generic_params_opt "(" params_opt ")" ":" type_expr ;
 
