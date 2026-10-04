@@ -4,6 +4,7 @@
 #include "ink/parser/parser.h"
 #include "ink/ir/analysis/type_layout.h"
 #include "ink/ir/constant/class_constant.h"
+#include "ink/ir/linkage.h"
 
 #include <algorithm>
 
@@ -58,9 +59,25 @@ namespace ink::semantic
       Definition.Parent = Parent;
       Definition.EnclosingClass = State.CurrentClass;
       Definition.Members = Members.scope();
-      Definition.Identity = State.CurrentClass ? State.Context.classState().Definitions.at(State.CurrentClass).Identity : std::string(State.Context.namePool().text(State.CurrentModule->name()));
-      Definition.Identity += ".";
-      Definition.Identity += Node.name().Text;
+      std::vector<abi::Record> Owners;
+      if (State.CurrentClass)
+      {
+        const auto Parent = abi::demangle(State.Context.classState().Definitions.at(State.CurrentClass).Identity);
+        const auto Children = Parent ? abi::childRecords(*Parent.Identity) : std::nullopt;
+        if (!Children || Children->size() != 1)
+        {
+          State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
+          return false;
+        }
+        Owners.push_back(Children->front());
+      }
+      const auto Identity = abi::mangle(abi::record('T', {abi::record('c', {declarationRecord(State.CurrentModule->linkageIdentity(), Owners, 'c', Node.name().Text), {'X', {}}})}));
+      if (!Identity)
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidClass>(Node.getSourceRange(), Identity.Error);
+        return false;
+      }
+      Definition.Identity = Identity.Name;
     }
     auto &Definition = State.Context.classState().Definitions.at(Class);
     if (Node.body())
@@ -133,6 +150,11 @@ namespace ink::semantic
         return false;
       }
       const auto &Field = static_cast<const parser::FieldDecl &>(Declaration);
+      if (Field.name().Text == "__init__" || Field.name().Text == "__del__")
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidClass>(Field.getSourceRange(), "lifecycle names are reserved for methods");
+        return false;
+      }
       const Name FieldName = State.Context.namePool().intern(Field.name().Text);
       if (!Names.insert(FieldName).second || Members.Resolver.lookupLocal(FieldName) || Field.name().Text == "this")
       {
@@ -154,7 +176,7 @@ namespace ink::semantic
         State.report<core::DiagnosticKind::SemanticInvalidClass>(Field.getSourceRange(), "field type must have runtime storage");
         return false;
       }
-      Fields.push_back({FieldName, FieldType, Field.visibility() == parser::DeclarationVisibility::Private ? VisibilityKind::Private : VisibilityKind::Public});
+      Fields.push_back({FieldName, FieldType, Field.visibility() == parser::DeclarationVisibility::Private ? core::VisibilityKind::Private : core::VisibilityKind::Public});
       Definition.Fields.push_back(&Field);
     }
     Definition.Defaults.resize(Fields.size(), nullptr);
@@ -202,9 +224,9 @@ namespace ink::semantic
         const auto &Method = static_cast<const parser::FunctionDecl &>(Declaration);
         const Name MethodName = State.Context.namePool().intern(Method.name().Text);
         if (std::any_of(Class.fields().begin(), Class.fields().end(), [MethodName](const ClassField &Field)
-        {
-          return Field.FieldName == MethodName;
-        }))
+                        {
+                          return Field.FieldName == MethodName;
+                        }))
         {
           State.report<core::DiagnosticKind::SemanticDuplicateName>(Method.name().Range, Method.name().Text);
           return false;
@@ -225,6 +247,10 @@ namespace ink::semantic
           return false;
         }
       }
+    }
+    if (!declareClassLifecycle(Members, Class))
+    {
+      return false;
     }
     Definition.MembersDeclared = true;
     return true;
@@ -276,7 +302,7 @@ namespace ink::semantic
       }
       const Type &FieldType = *Class.fields()[Index].FieldType;
       const FunctionType *Signature = State.Context.typePool().getType<TypeKind::Function>(FieldType, {});
-      const Name Name = State.Context.namePool().intern(Definition.Identity + ".__default_" + std::to_string(Index));
+      const Name Name = State.Context.namePool().intern("__default_" + std::string(State.Context.namePool().text(Class.fields()[Index].FieldName)));
       auto Function = State.Builder.createFunction(Name, *Signature);
       AnalysisState Default(State.Context, *Definition.Members, *Definition.Input);
       Default.CurrentModule = Definition.Module;
@@ -289,7 +315,8 @@ namespace ink::semantic
       Default.Builder.setInsertPoint(*Body);
       const ExpressionResult Initial = analyzeExpr(Default, *Initializer);
       const Value *Value = Initial ? convertExpression(Default, Initial, FieldType, *Initializer) : nullptr;
-      if (!Value || !Default.Builder.createReturnInstruction(Value))
+      takeTemporary(Default, Initial.TemporaryAddress);
+      if (!Value || !cleanupObjects(Default, 0, false, *Initializer) || !Default.Builder.createReturnInstruction(Value))
       {
         return false;
       }
@@ -321,6 +348,26 @@ namespace ink::semantic
         {
           return false;
         }
+      }
+    }
+    for (const Function *Method : Class.methods())
+    {
+      if (Method->entryBlock())
+      {
+        continue;
+      }
+      AnalysisState Generated(State.Context, *Definition.Members, *Definition.Input);
+      Generated.CurrentModule = Definition.Module;
+      Generated.CurrentClass = &Class;
+      Generated.CurrentFunction = const_cast<Function *>(Method);
+      Generated.Modules = State.Modules;
+      Generated.Frame = State.Frame;
+      Generated.Constructing = State.Context.namePool().text(Method->name()) == "__init__";
+      Generated.Destroying = !Generated.Constructing;
+      auto *Body = Generated.Builder.createFunctionBody(*Generated.CurrentFunction);
+      if (!Body || !Generated.Builder.setInsertPoint(*Body) || (Generated.Constructing && !initializeClassFields(Generated, Node)) || !destroyClassFields(Generated, Node) || !Generated.Builder.createReturnInstruction())
+      {
+        return false;
       }
     }
     Definition.BodyComplete = true;
@@ -399,75 +446,89 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticInvalidConstruction>(Node.getSourceRange(), "class is incomplete");
       return {};
     }
-    auto &Definition = Found->second;
     if (!ensureClassDefinition(State, Class, Node))
     {
       return {};
     }
-    if (Node.arguments().size() > Class.fields().size())
+    const auto *Binding = State.Resolver.lookupMember(*const_cast<ClassType *>(&Class), State.Context.namePool().find("__init__"));
+    std::vector<const Value *> Candidates;
+    if (Binding)
     {
-      State.report<core::DiagnosticKind::SemanticInvalidConstruction>(Node.getSourceRange(), "too many field arguments");
+      for (const Value *Target : Binding->targets())
+      {
+        if (Function::classof(Target) && (static_cast<const Function *>(Target)->visibility() == core::VisibilityKind::Public || State.CurrentClass == &Class))
+        {
+          Candidates.push_back(Target);
+        }
+      }
+    }
+    if (Candidates.empty())
+    {
+      State.report<core::DiagnosticKind::SemanticInvalidConstruction>(Node.getSourceRange(), "class has no accessible __init__; fields without defaults require an explicit constructor");
       return {};
     }
-    std::vector<const Value *> Values;
-    std::vector<const Constant *> Constants;
-    for (std::size_t Index = 0; Index < Class.fields().size(); ++Index)
+    const Value *Address = nullptr;
+    if (State.Evaluating)
     {
-      const auto &Field = Class.fields()[Index];
-      const Value *Value = nullptr;
-      if (Index < Node.arguments().size())
+      auto Storage = State.Builder.createDetachedAllocaInstruction(Class);
+      auto &Execution = State.Context.comptimeState();
+      const auto Place = Execution.Engine.allocate(*State.Frame, Storage.get(), Class);
+      if (!reportExecution(State, Place.Status, Node))
       {
-        if (Field.Visibility == VisibilityKind::Private && State.CurrentClass != &Class)
-        {
-          State.report<core::DiagnosticKind::SemanticInvalidConstruction>(Node.getSourceRange(), "private fields cannot be supplied outside their class");
-          return {};
-        }
-        const auto &Argument = Node.arguments()[Index];
-        if (Argument.form() != parser::ArgumentKind::Positional)
-        {
-          State.report<core::DiagnosticKind::SemanticInvalidConstruction>(Argument.range(), "class construction accepts positional arguments only");
-          return {};
-        }
-        AnalysisState::EvaluationGuard Expected(State, State.Evaluating, Field.FieldType);
-        const ExpressionResult Initial = analyzeExpr(State, *Argument.value(), Depth + 1);
-        Value = Initial ? convertExpression(State, Initial, *Field.FieldType, *Argument.value()) : nullptr;
-      }
-      else if (const Function *Default = Definition.Defaults[Index])
-      {
-        if (State.CurrentModule && State.CurrentModule != Definition.Module)
-        {
-          State.Context.recordModuleImport(*State.CurrentModule, *Default);
-        }
-        if (State.Modules && State.CurrentFunction)
-        {
-          State.Modules->Dependencies[State.CurrentFunction].insert(Default);
-        }
-        Value = State.Evaluating ? callComptime(State, *Default, {}, Node).ValueObject : State.Builder.createCallInstruction(*Default, {});
-      }
-      else
-      {
-        State.report<core::DiagnosticKind::SemanticInvalidConstruction>(Node.getSourceRange(), "missing field argument without a default initializer");
         return {};
       }
+      Address = Storage.get();
+      Execution.Bindings.push_back(std::move(Storage));
+    }
+    else
+    {
+      Address = State.Builder.createAllocaInstruction(Class);
+    }
+    if (!Address)
+    {
+      return {};
+    }
+    std::vector<ExpressionResult> Arguments{{Address}};
+    std::vector<const parser::Expr *> Nodes{&Node};
+    for (const auto &Argument : Node.arguments())
+    {
+      if (Argument.form() != parser::ArgumentKind::Positional)
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidConstruction>(Argument.range(), "constructors accept positional arguments only");
+        return {};
+      }
+      const auto Parameters = static_cast<const FunctionType &>(Candidates.front()->type()).parameterTypes();
+      const Type *Parameter = Candidates.size() == 1 && Arguments.size() < Parameters.size() ? Parameters[Arguments.size()] : nullptr;
+      const bool Deferred = State.Evaluating && !Parameter && findDeferredIntegerLiteral(*Argument.value(), Depth + 1, State.ExpressionDepthLimit);
+      AnalysisState::EvaluationGuard Expected(State, State.Evaluating && !Deferred, Parameter);
+      const ExpressionResult Value = analyzeExpr(State, *Argument.value(), Depth + 1);
       if (!Value)
       {
         return {};
       }
-      Values.push_back(Value);
-      if (Constant::classof(Value))
-      {
-        Constants.push_back(static_cast<const Constant *>(Value));
-      }
+      Arguments.push_back(Value);
+      Nodes.push_back(Argument.value());
     }
-    if (Constants.size() == Values.size())
+    if (!finishCall(State, Candidates, Arguments, Nodes, Node))
     {
-      return {State.Context.constantPool().getClassConstant(Class, Constants)};
-    }
-    if (State.Evaluating)
-    {
-      reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
       return {};
     }
-    return {State.Builder.createClassInstruction(Class, Values)};
+    const Value *Result = nullptr;
+    if (State.Evaluating)
+    {
+      auto &Engine = State.Context.comptimeState().Engine;
+      const auto Place = Engine.lookup(*State.Frame, Address);
+      const auto Loaded = Place ? Engine.load(Place.Place) : execution::ExecutionResult{Place.Status};
+      if (!reportExecution(State, Loaded.Status, Node))
+      {
+        return {};
+      }
+      Result = Loaded.Value;
+    }
+    else
+    {
+      Result = State.Builder.createLoadInstruction(*Address);
+    }
+    return Result && trackObject(State, *Address, Class, true, Result) ? ExpressionResult{Result, nullptr, false, false, Address} : ExpressionResult{};
   }
 } // namespace ink::semantic

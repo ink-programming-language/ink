@@ -54,7 +54,8 @@ namespace ink::semantic
         Succeeded = false;
       }
     }
-    return Succeeded && validateRuntimeClassTypes(State, *Result, Root) ? Result : nullptr;
+    AnalysisState::EvaluationGuard CompileTime(State);
+    return Succeeded && validateRuntimeClassTypes(State, *Result, Root) && cleanupObjects(State, 0, false, Root) ? Result : nullptr;
   }
 
   bool Analyzer::validateRuntimeClassTypes(AnalysisState &State, const Module &ModuleValue, const parser::ASTNodeBase &Root)

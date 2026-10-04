@@ -37,18 +37,12 @@ namespace ink::semantic
       return false;
     }
     const Value *Initial = nullptr;
+    const Value *InitialTemporary = nullptr;
     if (Node.initializer())
     {
       ExpressionResult Result;
-      AnalysisState::EvaluationGuard Expected(State, State.Evaluating, ValueType);
-      if (Comptime && !State.Evaluating)
-      {
-        Result = evaluateComptime(State, *Node.initializer());
-      }
-      else
-      {
-        Result = analyzeExpr(State, *Node.initializer());
-      }
+      AnalysisState::EvaluationGuard Expected(State, Comptime, ValueType);
+      Result = analyzeExpr(State, *Node.initializer());
       if (!Result)
       {
         return false;
@@ -58,6 +52,7 @@ namespace ink::semantic
         ValueType = Result.IntegerLiteral ? State.Context.typePool().getType<TypeKind::Integer>(32, true) : (Result.ValueObject ? &Result.ValueObject->type() : &State.Context.typePool().getType<TypeKind::Void>());
       }
       Initial = convertExpression(State, Result, *ValueType, *Node.initializer());
+      InitialTemporary = Result.TemporaryAddress;
       if (!Initial)
       {
         return false;
@@ -67,28 +62,30 @@ namespace ink::semantic
     {
       return reportExecution(State, ExecutionStatus::UnsupportedOperation, Node);
     }
-    auto Storage = State.Builder.createDetachedAllocaInstruction(*ValueType);
-    if (!Storage)
+    AnalysisState::EvaluationGuard LifetimeMode(State, Comptime);
+    const Value *Temporary = takeTemporary(State, InitialTemporary);
+    auto Storage = Temporary ? nullptr : State.Builder.createDetachedAllocaInstruction(*ValueType);
+    if (!Temporary && !Storage)
     {
       State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
       return false;
     }
-    AllocaInstruction *Address = Storage.get();
+    AllocaInstruction *Address = Temporary ? const_cast<AllocaInstruction *>(static_cast<const AllocaInstruction *>(Temporary)) : Storage.get();
     auto &Execution = State.Context.comptimeState();
-    if (Comptime)
+    if (Comptime && !Temporary)
     {
       if (Initial && !Constant::classof(Initial))
       {
         return reportExecution(State, ExecutionStatus::RuntimeValue, Node);
       }
-      const auto Place = Execution.Engine.allocate(*State.Frame, Address, *ValueType, !Node.constant(), static_cast<const Constant *>(Initial));
+      const auto Place = Execution.Engine.allocate(*State.Frame, Address, *ValueType, !Node.constant() || needsDestruction(*ValueType), static_cast<const Constant *>(Initial));
       if (!reportExecution(State, Place.Status, Node))
       {
         return false;
       }
       Execution.Bindings.push_back(std::move(Storage));
     }
-    else
+    else if (!Comptime && !Temporary)
     {
       if (!State.Builder.appendValue(*State.Builder.insertBlock(), std::move(Storage)))
       {
@@ -106,6 +103,6 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticDuplicateName>(NameToken.Range, NameToken.Text);
       return false;
     }
-    return true;
+    return trackObject(State, *Address, *ValueType, Initial != nullptr) && cleanupObjects(State, 0, true, Node);
   }
 } // namespace ink::semantic

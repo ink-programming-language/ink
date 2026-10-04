@@ -60,14 +60,14 @@ namespace ink::semantic::test
     };
     EXPECT_TRUE(FunctionNamed("abs").isNativeImport());
     EXPECT_FALSE(FunctionNamed("abs").hasBody());
-    EXPECT_EQ(FunctionNamed("abs").visibility(), VisibilityKind::Private);
+    EXPECT_EQ(FunctionNamed("abs").visibility(), core::VisibilityKind::Private);
     EXPECT_EQ(FunctionNamed("callback").languageLinkage(), LanguageLinkage::C);
-    EXPECT_EQ(FunctionNamed("callback").binding(), FunctionBinding::Local);
+    EXPECT_EQ(FunctionNamed("callback").binding(), core::FunctionBinding::Local);
     EXPECT_TRUE(FunctionNamed("callback").hasBody());
     EXPECT_TRUE(FunctionNamed("hidden").isNativeExport());
-    EXPECT_EQ(FunctionNamed("hidden").visibility(), VisibilityKind::Private);
+    EXPECT_EQ(FunctionNamed("hidden").visibility(), core::VisibilityKind::Private);
     EXPECT_TRUE(FunctionNamed("exposed").isNativeExport());
-    EXPECT_EQ(FunctionNamed("exposed").visibility(), VisibilityKind::Public);
+    EXPECT_EQ(FunctionNamed("exposed").visibility(), core::VisibilityKind::Public);
     execution::ExecutionEngine Engine(Input.Context.irContext());
     const auto Executed = Engine.execute(FunctionNamed("main"));
     ASSERT_TRUE(Executed);

@@ -42,7 +42,7 @@ namespace ink::execution::test
       const auto &ArrayType = *Context.typePool().getType<ir::TypeKind::Array>(Byte, 8);
       const ir::Type *Parameters[] = {&FdType, &PointerType, &CountType};
       const auto &Signature = *Context.typePool().getType<ir::TypeKind::Function>(ReturnType, Parameters);
-      auto Read = Builder.createFunction(Context.namePool().intern(ReadSymbol), Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+      auto Read = Builder.createFunction(Context.namePool().intern(ReadSymbol), Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import);
       ASSERT_NE(Read, nullptr);
       const auto Initial = Heap.array(ArrayType, std::vector<ExecutionValueRef>(8, Heap.integer(Byte, ExecutionInteger(8, 0x55))));
       const auto Storage = Heap.allocateCell(ArrayType, true, Initial);

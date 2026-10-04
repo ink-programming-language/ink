@@ -139,7 +139,7 @@ namespace ink::execution::test
     const ExecutionValueRef Arguments[] = {Test.Engine.heap().fromConstant(Test.integer(1))};
     const auto Void = Test.Engine.execute(*VoidFunction, Arguments);
     ASSERT_TRUE(Void);
-    EXPECT_EQ(Void.Value.kind(), ExecutionValueKind::Void);
+    EXPECT_EQ(Void.Value.kind(), RuntimeKind::Void);
     EXPECT_EQ(Void.Value.type(), &Test.Context.typePool().getType<ir::TypeKind::Void>());
     const auto Missing = Test.Engine.execute(*MissingReturn, Arguments);
     EXPECT_EQ(Missing.Status, ExecutionStatus::MissingBody);

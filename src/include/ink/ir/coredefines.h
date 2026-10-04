@@ -1,6 +1,9 @@
 #ifndef INK_IR_COREDEFINES_H
 #define INK_IR_COREDEFINES_H
 
+#include "ink/core/function_binding.h"
+#include "ink/core/visibility.h"
+
 #include <cstdint>
 
 namespace ink::ir
@@ -41,26 +44,11 @@ namespace ink::ir
     C,
   };
 
-  // Native symbol direction, independent of language linkage and source visibility.
-  enum class FunctionBinding : std::uint8_t
-  {
-    Local,
-    Import,
-    Export,
-  };
-
   // Access through a pointer/reference/slice, independent of binding mutability.
   enum class AccessKind : std::uint8_t
   {
     ReadOnly,
     ReadWrite,
-  };
-
-  // Declaration/member visibility, independent of data access and binding mutability.
-  enum class VisibilityKind : std::uint8_t
-  {
-    Public,
-    Private,
   };
 } // namespace ink::ir
 

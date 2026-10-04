@@ -112,14 +112,14 @@ namespace ink::execution::test
       ASSERT_TRUE(Test.begin(*Function));
       const auto *Sum = Test.Builder.createAddInstruction(*Function->parameters()[0], *Function->parameters()[1]);
       ASSERT_NE(Sum, nullptr);
-      const auto *Compare = Test.Builder.createCompareInstruction(ir::ComparisonPredicate::Less, *Sum, *Function->parameters()[0]);
+      const auto *Compare = Test.Builder.createCompareInstruction(core::ComparisonPredicate::Less, *Sum, *Function->parameters()[0]);
       ASSERT_NE(Compare, nullptr);
       ASSERT_NE(Test.Builder.createReturnInstruction(Compare), nullptr);
       auto Compiled = Test.Compiler.compile(*Function, Test.Bridge);
       ASSERT_TRUE(Compiled);
       EXPECT_EQ(Compiled.Function->Code[0].Code, Entry.Add);
       EXPECT_EQ(Compiled.Function->Code[1].Code, Entry.Compare);
-      EXPECT_EQ(Compiled.Function->Code[1].Operands[3], static_cast<std::uint32_t>(ExecutionPredicate::Less));
+      EXPECT_EQ(Compiled.Function->Code[1].Operands[3], static_cast<std::uint32_t>(core::ComparisonPredicate::Less));
     }
   }
 

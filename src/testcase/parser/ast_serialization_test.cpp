@@ -216,9 +216,9 @@ namespace ink::parser::test
       }
     }
 
-    void expectRejected(core::FrontendContext &Frontend, std::string_view Bytes, ASTArchiveStatus Status = ASTArchiveStatus::InvalidArchive, ASTArchiveLimits Limits = {})
+    void expectRejected(core::FrontendContext &Frontend, std::string_view Bytes, core::ArchiveStatus Status = core::ArchiveStatus::InvalidArchive, ASTArchiveLimits Limits = {})
     {
-      const char *Pattern = Status == ASTArchiveStatus::UnsupportedVersion ? "internal compiler error\\[INK-P0023\\]" : "internal compiler error\\[INK-P";
+      const char *Pattern = Status == core::ArchiveStatus::UnsupportedVersion ? "internal compiler error\\[INK-P0023\\]" : "internal compiler error\\[INK-P";
       EXPECT_DEATH(deserializeAST(Frontend, Bytes, Limits), Pattern);
     }
 
@@ -265,7 +265,7 @@ namespace ink::parser::test
       ASSERT_NE(Text.find(From), std::string::npos);
       Text.replace(Text.find(From), From.size(), To);
       const auto Result = tryDeserializeASTText(Frontend, Text);
-      EXPECT_EQ(Result.Status, ASTArchiveStatus::InvalidArchive) << Result.Message;
+      EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidArchive) << Result.Message;
     }
     for (std::size_t Index = 0; Index < Saved.Bytes.size(); Index += 7)
     {
@@ -283,7 +283,7 @@ namespace ink::parser::test
     }
     ASTArchiveLimits Limits;
     Limits.MaxAllocationBytes = 64;
-    EXPECT_EQ(tryDeserializeASTText(Frontend, Saved.Bytes, Limits).Status, ASTArchiveStatus::LimitExceeded);
+    EXPECT_EQ(tryDeserializeASTText(Frontend, Saved.Bytes, Limits).Status, core::ArchiveStatus::LimitExceeded);
   }
 
   // Ordinary expression and statement nodes retain their comptime flags and prefix-inclusive ranges in both formats.
@@ -318,15 +318,15 @@ namespace ink::parser::test
     const auto OriginalRecords = records(Binary.Bytes);
     auto Records = OriginalRecords;
     nodeRecord(Records, ASTKind::LiteralExpr).Values.back() = 2;
-    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::InvalidArchive);
+    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, core::ArchiveStatus::InvalidArchive);
     Records = OriginalRecords;
     nodeRecord(Records, ASTKind::LiteralExpr).Values.pop_back();
-    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::InvalidArchive);
+    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, core::ArchiveStatus::InvalidArchive);
     for (std::uint64_t Version : {1ULL, 2ULL, 3ULL})
     {
       Records = OriginalRecords;
       Records.front().Values.front() = Version;
-      EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::UnsupportedVersion);
+      EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, core::ArchiveStatus::UnsupportedVersion);
     }
     const auto Text = trySerializeASTText(Parsed);
     ASSERT_TRUE(Text.succeeded()) << Text.Message;
@@ -337,11 +337,11 @@ namespace ink::parser::test
     {
       auto Malformed = Text.Bytes;
       Malformed.replace(Position, Flag.size(), Replacement);
-      EXPECT_EQ(tryDeserializeASTText(Frontend, Malformed).Status, ASTArchiveStatus::InvalidArchive);
+      EXPECT_EQ(tryDeserializeASTText(Frontend, Malformed).Status, core::ArchiveStatus::InvalidArchive);
     }
     auto Legacy = Text.Bytes;
     Legacy.replace(0, ("ast " + std::to_string(ASTTextArchiveVersion)).size(), "ast 1");
-    EXPECT_EQ(tryDeserializeASTText(Frontend, Legacy).Status, ASTArchiveStatus::UnsupportedVersion);
+    EXPECT_EQ(tryDeserializeASTText(Frontend, Legacy).Status, core::ArchiveStatus::UnsupportedVersion);
   }
 
   // Visibility is preserved for every declaration category and nested declarations in both binary and textual snapshots.
@@ -379,10 +379,10 @@ namespace ink::parser::test
     const auto Original = records(Saved.Bytes);
     auto Records = Original;
     nodeRecord(Records, ASTKind::FunctionDecl).Values.back() = 99;
-    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::InvalidArchive);
+    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, core::ArchiveStatus::InvalidArchive);
     Records = Original;
     nodeRecord(Records, ASTKind::FunctionDecl).Values.pop_back();
-    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, ASTArchiveStatus::InvalidArchive);
+    EXPECT_EQ(tryDeserializeAST(Frontend, archive(Records)).Status, core::ArchiveStatus::InvalidArchive);
     const auto Text = trySerializeASTText(Parsed);
     ASSERT_TRUE(Text.succeeded()) << Text.Message;
     const std::string_view Field = ", visibility = Public";
@@ -392,11 +392,11 @@ namespace ink::parser::test
     {
       std::string Invalid = Text.Bytes;
       Invalid.replace(Position, Field.size(), Replacement);
-      EXPECT_EQ(tryDeserializeASTText(Frontend, Invalid).Status, ASTArchiveStatus::InvalidArchive);
+      EXPECT_EQ(tryDeserializeASTText(Frontend, Invalid).Status, core::ArchiveStatus::InvalidArchive);
     }
     std::string Legacy = Text.Bytes;
     Legacy.replace(0, ("ast " + std::to_string(ASTTextArchiveVersion)).size(), "ast 2");
-    EXPECT_EQ(tryDeserializeASTText(Frontend, Legacy).Status, ASTArchiveStatus::UnsupportedVersion);
+    EXPECT_EQ(tryDeserializeASTText(Frontend, Legacy).Status, core::ArchiveStatus::UnsupportedVersion);
   }
 
   // Every accepted grammar sample round-trips with identical fields, tokens, recovery state and canonical bytes.
@@ -594,6 +594,48 @@ namespace ink::parser::test
     }
   }
 
+  // Shared function bindings retain the existing binary tags and text spellings in both snapshot formats.
+  TEST_F(ParserTest, ASTSerializationPreservesFunctionBindingEncoding)
+  {
+    struct Row
+    {
+        const char *Source;
+        core::FunctionBinding Binding;
+        std::uint64_t Wire;
+        const char *Spelling;
+    };
+    constexpr Row Rows[] = {
+        {"func f(): void {}", core::FunctionBinding::Local, 0, "None"},
+        {"import \"C\" func f(): void;", core::FunctionBinding::Import, 1, "Import"},
+        {"export \"C\" func f(): void {}", core::FunctionBinding::Export, 2, "Export"},
+    };
+    for (const Row &Entry : Rows)
+    {
+      SCOPED_TRACE(Entry.Spelling);
+      const auto Parsed = read(Entry.Source);
+      ASSERT_TRUE(Parsed.succeeded());
+      for (bool IsText : {false, true})
+      {
+        const auto Saved = IsText ? trySerializeASTText(Parsed) : trySerializeAST(Parsed);
+        ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
+        if (IsText)
+        {
+          EXPECT_NE(Saved.Bytes.find(std::string("nativeSymbolKind = ") + Entry.Spelling), std::string::npos);
+        }
+        else
+        {
+          auto Records = records(Saved.Bytes);
+          const auto &Values = nodeRecord(Records, ASTKind::FunctionDecl).Values;
+          ASSERT_GE(Values.size(), 3U);
+          EXPECT_EQ(Values[Values.size() - 3], Entry.Wire);
+        }
+        auto Loaded = IsText ? tryDeserializeASTText(Frontend, Saved.Bytes) : tryDeserializeAST(Frontend, Saved.Bytes);
+        ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
+        EXPECT_EQ(cast<FunctionDecl>(declaration(Loaded.Parsed, 0))->nativeSymbolKind(), Entry.Binding);
+      }
+    }
+  }
+
   // Binary and text snapshots reject unknown native directions and direction/linkage mismatches.
   TEST_F(ParserTest, ASTSerializationRejectsInvalidNativeSymbolKind)
   {
@@ -741,11 +783,11 @@ namespace ink::parser::test
     expectRejected(Frontend, Saved.Bytes + std::string(4, '\0'));
     auto Records = records(Saved.Bytes);
     Records[0].Values[0] = ASTArchiveVersion + 1;
-    expectRejected(Frontend, archive(Records), ASTArchiveStatus::UnsupportedVersion);
+    expectRejected(Frontend, archive(Records), core::ArchiveStatus::UnsupportedVersion);
     Records[0].Values[0] = 1;
-    expectRejected(Frontend, archive(Records), ASTArchiveStatus::UnsupportedVersion);
+    expectRejected(Frontend, archive(Records), core::ArchiveStatus::UnsupportedVersion);
     Records[0].Values[0] = 4;
-    expectRejected(Frontend, archive(Records), ASTArchiveStatus::UnsupportedVersion);
+    expectRejected(Frontend, archive(Records), core::ArchiveStatus::UnsupportedVersion);
     Records = records(Saved.Bytes);
     Records[0].Values.push_back(0);
     expectRejected(Frontend, archive(Records));
@@ -954,27 +996,27 @@ namespace ink::parser::test
     ASSERT_TRUE(Saved.succeeded());
     ASTArchiveLimits Limits;
     Limits.MaxArchiveBytes = Saved.Bytes.size() - 1;
-    expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
+    expectRejected(Frontend, Saved.Bytes, core::ArchiveStatus::LimitExceeded, Limits);
     expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveSizeLimitExceeded, Limits);
     Limits = {};
     Limits.MaxSourceBytes = 2;
-    expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
+    expectRejected(Frontend, Saved.Bytes, core::ArchiveStatus::LimitExceeded, Limits);
     expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveSourceLimitExceeded, Limits);
     Limits = {};
     Limits.MaxNodes = 1;
-    expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
+    expectRejected(Frontend, Saved.Bytes, core::ArchiveStatus::LimitExceeded, Limits);
     expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveNodeLimitExceeded, Limits);
     Limits = {};
     Limits.MaxTokens = 1;
-    expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
+    expectRejected(Frontend, Saved.Bytes, core::ArchiveStatus::LimitExceeded, Limits);
     expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveTokenLimitExceeded, Limits);
     Limits = {};
     Limits.MaxArrayElements = 0;
-    expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
+    expectRejected(Frontend, Saved.Bytes, core::ArchiveStatus::LimitExceeded, Limits);
     expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveArrayLimitExceeded, Limits);
     Limits = {};
     Limits.MaxAllocationBytes = 1;
-    expectRejected(Frontend, Saved.Bytes, ASTArchiveStatus::LimitExceeded, Limits);
+    expectRejected(Frontend, Saved.Bytes, core::ArchiveStatus::LimitExceeded, Limits);
     expectWriteRejected(Frontend, Parsed, core::DiagnosticKind::ASTArchiveRecordStorageLimitExceeded, Limits);
     Limits = {};
     Limits.MaxArchiveBytes = Saved.Bytes.size();
@@ -984,7 +1026,7 @@ namespace ink::parser::test
     ASSERT_TRUE(deserializeAST(Frontend, Saved.Bytes, Limits).succeeded());
     auto Records = records(Saved.Bytes);
     Records[0].Values[5] = std::numeric_limits<std::uint64_t>::max();
-    expectRejected(Frontend, archive(Records), ASTArchiveStatus::LimitExceeded);
+    expectRejected(Frontend, archive(Records), core::ArchiveStatus::LimitExceeded);
   }
 
   // Each random byte mutation runs in a subprocess and either prints an ICE or completes a verified round trip.

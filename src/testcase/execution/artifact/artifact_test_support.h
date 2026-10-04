@@ -22,7 +22,7 @@ namespace ink::execution::test
 {
   struct ArtifactContext
   {
-      ir::Function *function(std::string_view Name, const ir::Type &ReturnType, std::span<const ir::Type *const> Parameters = {}, ir::LanguageLinkage Linkage = ir::LanguageLinkage::Ink, ir::FunctionBinding Binding = ir::FunctionBinding::Local)
+      ir::Function *function(std::string_view Name, const ir::Type &ReturnType, std::span<const ir::Type *const> Parameters = {}, ir::LanguageLinkage Linkage = ir::LanguageLinkage::Ink, core::FunctionBinding Binding = core::FunctionBinding::Local)
       {
         auto Function = Builder.createFunction(Context.namePool().intern(Name), *Context.typePool().getType<ir::TypeKind::Function>(ReturnType, Parameters), {}, {}, ir::CallingConvention::C, Linkage, Binding);
         auto *Result = Function.get();
@@ -67,7 +67,7 @@ namespace ink::execution::test
     return nullptr;
   }
 
-  inline BytecodeArtifactResult constantObject(std::string Module, std::string Name, std::uint64_t Value, BytecodeVisibility Visibility = BytecodeVisibility::Public, ir::LanguageLinkage Linkage = ir::LanguageLinkage::Ink, ir::FunctionBinding Binding = ir::FunctionBinding::Local)
+  inline BytecodeArtifactResult constantObject(std::string Module, std::string Name, std::uint64_t Value, BytecodeVisibility Visibility = BytecodeVisibility::Public, ir::LanguageLinkage Linkage = ir::LanguageLinkage::Ink, core::FunctionBinding Binding = core::FunctionBinding::Local)
   {
     ArtifactContext Test;
     auto *Function = Test.function(Name, Test.Int32, {}, Linkage, Binding);

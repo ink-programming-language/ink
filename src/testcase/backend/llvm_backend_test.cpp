@@ -1,6 +1,7 @@
 #include "ink/backend/llvm/llvm_backend.h"
 #include "ink/ir/analysis/type_layout.h"
 #include "ink/ir/ir_builder.h"
+#include "ink/ir/linkage.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -73,7 +74,9 @@ namespace ink::backend::llvm::test
         {Source.Context.namePool().intern("Wide"), Wide},
         {Source.Context.namePool().intern("Last"), Source.Int32},
     };
-    ASSERT_TRUE(Source.Builder.defineClassType(*Class, Fields, "aot_test#Mixed"));
+    const auto Identity = abi::mangle(abi::record('T', {abi::record('c', {ir::declarationRecord(Source.Module->linkageIdentity(), {}, 'c', "Mixed"), {'X', {}}})}));
+    ASSERT_TRUE(Identity);
+    ASSERT_TRUE(Source.Builder.defineClassType(*Class, Fields, Identity.Name));
     const auto *ZeroByte = Source.Context.constantPool().getIntegerConstant(*Byte, ir::IntegerBits(8, 0));
     const auto *ZeroWide = Source.Context.constantPool().getIntegerConstant(*Wide, ir::IntegerBits(128, 0));
     const auto *Answer = Source.Context.constantPool().getIntegerConstant(*Source.Int32, ir::IntegerBits(32, 42));

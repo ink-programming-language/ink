@@ -59,27 +59,27 @@ namespace ink::execution::test
     void expectInteger(const ExecutionValueResult &Result, std::uint64_t Expected)
     {
       ASSERT_TRUE(Result);
-      ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Integer);
+      ASSERT_EQ(Result.Value.kind(), RuntimeKind::Integer);
       const auto Bits = Result.Value.integer().bits();
       ASSERT_EQ(Bits.words().size(), 1U);
       EXPECT_EQ(Bits.words().front(), Expected);
     }
 
-    bool comparisonResult(ir::ComparisonPredicate Predicate, int Ordering)
+    bool comparisonResult(core::ComparisonPredicate Predicate, int Ordering)
     {
       switch (Predicate)
       {
-      case ir::ComparisonPredicate::Equal:
+      case core::ComparisonPredicate::Equal:
         return Ordering == 0;
-      case ir::ComparisonPredicate::NotEqual:
+      case core::ComparisonPredicate::NotEqual:
         return Ordering != 0;
-      case ir::ComparisonPredicate::Less:
+      case core::ComparisonPredicate::Less:
         return Ordering < 0;
-      case ir::ComparisonPredicate::LessEqual:
+      case core::ComparisonPredicate::LessEqual:
         return Ordering <= 0;
-      case ir::ComparisonPredicate::Greater:
+      case core::ComparisonPredicate::Greater:
         return Ordering > 0;
-      case ir::ComparisonPredicate::GreaterEqual:
+      case core::ComparisonPredicate::GreaterEqual:
         return Ordering >= 0;
       }
       return false;
@@ -94,12 +94,12 @@ namespace ink::execution::test
     ASSERT_NE(Module, nullptr);
     const auto *Signature = Test.Context.typePool().getType<ir::TypeKind::Function>(Test.Int32, std::span<const ir::Type *const>{});
     ASSERT_NE(Signature, nullptr);
-    auto Exported = Test.Builder.createFunction(Test.Context.namePool().intern("inkExecutionPrivateNativeExport"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Export);
-    auto Imported = Test.Builder.createFunction(Test.Context.namePool().intern("inkExecutionPrivateNativeExport"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto Exported = Test.Builder.createFunction(Test.Context.namePool().intern("inkExecutionPrivateNativeExport"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Export);
+    auto Imported = Test.Builder.createFunction(Test.Context.namePool().intern("inkExecutionPrivateNativeExport"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(Exported, nullptr);
     ASSERT_NE(Imported, nullptr);
     EXPECT_EQ(Test.Engine.execute(*Imported).Status, ExecutionStatus::SymbolNotFound);
-    ASSERT_TRUE(Test.Builder.setFunctionVisibility(*Exported, ir::VisibilityKind::Private));
+    ASSERT_TRUE(Test.Builder.setFunctionVisibility(*Exported, core::VisibilityKind::Private));
     ASSERT_TRUE(Test.begin(*Exported));
     auto *Return = Test.Builder.createReturnInstruction(&Test.constant(42));
     ASSERT_NE(Return, nullptr);
@@ -112,15 +112,15 @@ namespace ink::execution::test
     ASSERT_TRUE(Test.Builder.setInsertPoint(*Definition->entryBlock()));
     ASSERT_NE(Test.Builder.createReturnInstruction(&Test.constant(73)), nullptr);
     expectInteger(Test.Engine.execute(*Imported), 73);
-    ASSERT_TRUE(Test.Builder.setFunctionBinding(*Definition, ir::FunctionBinding::Local));
+    ASSERT_TRUE(Test.Builder.setFunctionBinding(*Definition, core::FunctionBinding::Local));
     EXPECT_EQ(Test.Engine.execute(*Imported).Status, ExecutionStatus::SymbolNotFound);
     const auto Loaded = Test.Engine.heap().load(Saved.Place);
     ASSERT_TRUE(Loaded);
-    ASSERT_EQ(Loaded.Value.kind(), ExecutionValueKind::Function);
+    ASSERT_EQ(Loaded.Value.kind(), RuntimeKind::Function);
     ASSERT_EQ(Loaded.Value.function(), Definition);
     expectInteger(Test.Engine.execute(*Loaded.Value.function()), 73);
     EXPECT_EQ(Test.Engine.heap().release(Saved.Place), ExecutionStatus::Success);
-    ASSERT_TRUE(Test.Builder.setFunctionBinding(*Definition, ir::FunctionBinding::Export));
+    ASSERT_TRUE(Test.Builder.setFunctionBinding(*Definition, core::FunctionBinding::Export));
     expectInteger(Test.Engine.execute(*Imported), 73);
   }
 
@@ -161,7 +161,7 @@ namespace ink::execution::test
     const auto *String = Test.Context.typePool().getType<ir::TypeKind::Slice>(*Byte, ir::AccessKind::ReadOnly);
     const ir::Type *Parameters[] = {Pointer, Pointer};
     const auto *Signature = Test.Context.typePool().getType<ir::TypeKind::Function>(*Pointer, Parameters);
-    auto Function = Test.Builder.createFunction(Test.Context.namePool().intern("returnString"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Export);
+    auto Function = Test.Builder.createFunction(Test.Context.namePool().intern("returnString"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Export);
     ASSERT_NE(Function, nullptr);
     ASSERT_TRUE(Test.begin(*Function));
     const auto *ByteValue = Test.Context.constantPool().getIntegerConstant(*Byte, ir::IntegerBits(8, 'Z'));
@@ -171,7 +171,7 @@ namespace ink::execution::test
     const ExecutionValueRef Arguments[] = {Value, Value};
     const auto Result = Test.Engine.execute(*Function, Arguments);
     ASSERT_TRUE(Result);
-    ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Pointer);
+    ASSERT_EQ(Result.Value.kind(), RuntimeKind::Pointer);
     ASSERT_EQ(Result.Value.pointer().kind(), ExecutionPointer::Kind::Native);
     ASSERT_TRUE(Test.Engine.heap().owns(Test.Engine.heap().memoryManager().storageFromAddress(Result.Value.pointer().address())));
     const auto *ReturnedBuffer = Test.Engine.heap().memoryManager().storageFromAddress(Result.Value.pointer().address()).buffer();
@@ -285,12 +285,12 @@ namespace ink::execution::test
     BytecodeExecutionContext Test;
     const auto &Bool = Test.Context.typePool().getType<ir::TypeKind::Bool>();
     constexpr std::array Predicates = {
-        ir::ComparisonPredicate::Equal,
-        ir::ComparisonPredicate::NotEqual,
-        ir::ComparisonPredicate::Less,
-        ir::ComparisonPredicate::LessEqual,
-        ir::ComparisonPredicate::Greater,
-        ir::ComparisonPredicate::GreaterEqual,
+        core::ComparisonPredicate::Equal,
+        core::ComparisonPredicate::NotEqual,
+        core::ComparisonPredicate::Less,
+        core::ComparisonPredicate::LessEqual,
+        core::ComparisonPredicate::Greater,
+        core::ComparisonPredicate::GreaterEqual,
     };
     for (std::uint32_t Width : {8U, 16U, 32U, 64U})
     {
@@ -315,7 +315,7 @@ namespace ink::execution::test
           {Minimum, Minimum, 0},
           {Maximum, Maximum, 0},
       };
-      for (ir::ComparisonPredicate Predicate : Predicates)
+      for (core::ComparisonPredicate Predicate : Predicates)
       {
         SCOPED_TRACE(static_cast<unsigned>(Predicate));
         const ir::Type *Parameters[] = {Type, Type};
@@ -330,7 +330,7 @@ namespace ink::execution::test
           const ExecutionValueRef Arguments[] = {Test.Engine.heap().integer(*Type, ExecutionInteger(Width, Case.Left)), Test.Engine.heap().integer(*Type, ExecutionInteger(Width, Case.Right))};
           const auto Result = Test.Engine.execute(*Function, Arguments);
           ASSERT_TRUE(Result);
-          ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Boolean);
+          ASSERT_EQ(Result.Value.kind(), RuntimeKind::Boolean);
           EXPECT_EQ(Result.Value.boolean(), comparisonResult(Predicate, Case.Ordering));
         }
         Test.Builder.clearInsertPoint();

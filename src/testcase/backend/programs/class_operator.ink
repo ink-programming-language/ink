@@ -22,6 +22,11 @@ class Number
     puts("negative");
     return this.Value;
   }
+
+  func __init__(InitialValue: i32): void
+  {
+    this.Value = InitialValue;
+  }
 };
 
 func left(Value: *Number): *Number

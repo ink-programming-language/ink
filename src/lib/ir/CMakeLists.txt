@@ -5,7 +5,7 @@ add_library(ink::ir ALIAS ink_ir)
 target_compile_features(ink_ir PUBLIC cxx_std_20)
 target_include_directories(ink_ir PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>")
 # Generic declarations retain parser AST references; IR never depends on semantic analysis.
-target_link_libraries(ink_ir PUBLIC ink::core ink::parser PRIVATE ink::llvm)
+target_link_libraries(ink_ir PUBLIC ink::core ink::parser ink::abi PRIVATE ink::llvm)
 ink_disable_exceptions(ink_ir)
 
 if(MSVC)

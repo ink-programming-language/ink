@@ -11,7 +11,7 @@ namespace ink::execution
 {
   // Relocatable, constant AOT counterparts of the owned descriptors. IDs are
   // local to a module table; Details points to the structure selected by Kind.
-  // The generated C getter is ink_reflection_<hex UTF-8 module name>.
+  // The getter uses the _INK2 J(Package, Module) identity; obtain it with ir::reflectionSymbol.
   using NativeThunk = void (*)(void *Result, const void *const *Arguments);
 
   struct NativeIntegerDesc
@@ -131,7 +131,7 @@ namespace ink::execution
       {
         continue;
       }
-      if (Field.Visibility != static_cast<unsigned>(MemberVisibility::Public))
+      if (Field.Visibility != static_cast<unsigned>(core::VisibilityKind::Public))
       {
         return ExecutionStatus::AccessDenied;
       }
@@ -212,7 +212,7 @@ namespace ink::execution
         continue;
       }
       Named = true;
-      if (Method.Visibility != static_cast<unsigned>(MemberVisibility::Public))
+      if (Method.Visibility != static_cast<unsigned>(core::VisibilityKind::Public))
       {
         continue;
       }
@@ -268,6 +268,21 @@ namespace ink::execution
       return ExecutionStatus::InvalidArguments;
     }
     const auto &Class = *static_cast<const NativeClassDesc *>(Type->Details);
+    for (std::size_t Index = 0; Index < Class.MethodCount; ++Index)
+    {
+      if (std::string_view(Class.Methods[Index].Name) == "__init__")
+      {
+        return nativeInvoke(Object, "__init__", Arguments, {});
+      }
+    }
+    for (std::size_t Index = 0; Index < Class.MethodCount; ++Index)
+    {
+      if (std::string_view(Class.Methods[Index].Name) == "__del__")
+      {
+        return ExecutionStatus::InvalidArguments;
+      }
+    }
+    // Hand-built aggregate IR without lifecycle methods retains its explicit field API.
     if (Arguments.size() > Class.FieldCount)
     {
       return ExecutionStatus::InvalidArguments;
@@ -277,7 +292,7 @@ namespace ink::execution
       const auto &Field = Class.Fields[Index];
       if (Index < Arguments.size())
       {
-        if (!nativeType(Arguments[Index]) || Arguments[Index].Module != Object.Module || Arguments[Index].Type != Field.Type || Field.Visibility != static_cast<unsigned>(MemberVisibility::Public))
+        if (!nativeType(Arguments[Index]) || Arguments[Index].Module != Object.Module || Arguments[Index].Type != Field.Type || Field.Visibility != static_cast<unsigned>(core::VisibilityKind::Public))
         {
           return ExecutionStatus::InvalidArguments;
         }
@@ -307,6 +322,11 @@ namespace ink::execution
       }
     }
     return ExecutionStatus::Success;
+  }
+
+  inline ExecutionStatus nativeDestroy(const NativeObjectView &Object)
+  {
+    return nativeInvoke(Object, "__del__", {}, {});
   }
 } // namespace ink::execution
 

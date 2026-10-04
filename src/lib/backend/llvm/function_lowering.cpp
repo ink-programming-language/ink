@@ -1,4 +1,5 @@
 #include "lowering_context.h"
+#include "ink/ir/linkage.h"
 
 #include "ink/execution/support/execution_result.h"
 #include "ink/core/diagnostic.h"
@@ -579,22 +580,22 @@ namespace ink::backend::llvm
           ::llvm::CmpInst::Predicate Predicate = ::llvm::CmpInst::ICMP_EQ;
           switch (Compare.predicate())
           {
-            case ir::ComparisonPredicate::Equal:
+            case core::ComparisonPredicate::Equal:
               Predicate = ::llvm::CmpInst::ICMP_EQ;
               break;
-            case ir::ComparisonPredicate::NotEqual:
+            case core::ComparisonPredicate::NotEqual:
               Predicate = ::llvm::CmpInst::ICMP_NE;
               break;
-            case ir::ComparisonPredicate::Less:
+            case core::ComparisonPredicate::Less:
               Predicate = Signed ? ::llvm::CmpInst::ICMP_SLT : ::llvm::CmpInst::ICMP_ULT;
               break;
-            case ir::ComparisonPredicate::LessEqual:
+            case core::ComparisonPredicate::LessEqual:
               Predicate = Signed ? ::llvm::CmpInst::ICMP_SLE : ::llvm::CmpInst::ICMP_ULE;
               break;
-            case ir::ComparisonPredicate::Greater:
+            case core::ComparisonPredicate::Greater:
               Predicate = Signed ? ::llvm::CmpInst::ICMP_SGT : ::llvm::CmpInst::ICMP_UGT;
               break;
-            case ir::ComparisonPredicate::GreaterEqual:
+            case core::ComparisonPredicate::GreaterEqual:
               Predicate = Signed ? ::llvm::CmpInst::ICMP_SGE : ::llvm::CmpInst::ICMP_UGE;
               break;
           }
@@ -666,7 +667,13 @@ namespace ink::backend::llvm
       return nullptr;
     }
     auto *Signature = ::llvm::FunctionType::get(::llvm::Type::getVoidTy(Context), {PointerType, PointerType}, false);
-    auto *Thunk = ::llvm::Function::Create(Signature, ::llvm::GlobalValue::PrivateLinkage, "__ink_reflection_call", Module);
+    const auto Mangled = ir::reflectionThunkSymbol(Function);
+    if (!Mangled)
+    {
+      fail(Mangled.Error);
+      return nullptr;
+    }
+    auto *Thunk = ::llvm::Function::Create(Signature, ::llvm::GlobalValue::PrivateLinkage, Mangled.Name, Module);
     return FunctionLowering(*this, Function, *Thunk).lowerReflection() ? Thunk : nullptr;
   }
 } // namespace ink::backend::llvm

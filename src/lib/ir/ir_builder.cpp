@@ -259,7 +259,7 @@ namespace ink::ir
     return Context.typePool().createInterfaceType(TypeName);
   }
 
-  std::unique_ptr<Function> IRBuilder::createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds, std::span<const Name> ParameterNames, CallingConvention Convention, LanguageLinkage Linkage, FunctionBinding Binding)
+  std::unique_ptr<Function> IRBuilder::createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds, std::span<const Name> ParameterNames, CallingConvention Convention, LanguageLinkage Linkage, core::FunctionBinding Binding)
   {
     if (!Context.namePool().contains(FunctionName) || &Signature.context() != &Context || (!ParameterKinds.empty() && ParameterKinds.size() != Signature.parameterTypes().size()) || (!ParameterNames.empty() && ParameterNames.size() != Signature.parameterTypes().size()))
     {
@@ -269,7 +269,7 @@ namespace ink::ir
     {
       return nullptr;
     }
-    if ((Binding != FunctionBinding::Local && Binding != FunctionBinding::Import && Binding != FunctionBinding::Export) || (Binding != FunctionBinding::Local && (Convention != CallingConvention::C || Linkage != LanguageLinkage::C)))
+    if ((Binding != core::FunctionBinding::Local && Binding != core::FunctionBinding::Import && Binding != core::FunctionBinding::Export) || (Binding != core::FunctionBinding::Local && (Convention != CallingConvention::C || Linkage != LanguageLinkage::C)))
     {
       return nullptr;
     }
@@ -311,9 +311,9 @@ namespace ink::ir
     return createBasicBlock(FunctionValue);
   }
 
-  bool IRBuilder::setFunctionVisibility(Function &FunctionValue, VisibilityKind Visibility) noexcept
+  bool IRBuilder::setFunctionVisibility(Function &FunctionValue, core::VisibilityKind Visibility) noexcept
   {
-    if (&FunctionValue.context() != &Context || (Visibility != VisibilityKind::Public && Visibility != VisibilityKind::Private))
+    if (&FunctionValue.context() != &Context || (Visibility != core::VisibilityKind::Public && Visibility != core::VisibilityKind::Private))
     {
       return false;
     }
@@ -325,9 +325,9 @@ namespace ink::ir
     return true;
   }
 
-  bool IRBuilder::setFunctionBinding(Function &FunctionValue, FunctionBinding Binding) noexcept
+  bool IRBuilder::setFunctionBinding(Function &FunctionValue, core::FunctionBinding Binding) noexcept
   {
-    if (&FunctionValue.context() != &Context || (Binding != FunctionBinding::Local && Binding != FunctionBinding::Import && Binding != FunctionBinding::Export) || (Binding != FunctionBinding::Local && (FunctionValue.callingConvention() != CallingConvention::C || FunctionValue.languageLinkage() != LanguageLinkage::C)) || (Binding == FunctionBinding::Import && FunctionValue.hasBody()))
+    if (&FunctionValue.context() != &Context || (Binding != core::FunctionBinding::Local && Binding != core::FunctionBinding::Import && Binding != core::FunctionBinding::Export) || (Binding != core::FunctionBinding::Local && (FunctionValue.callingConvention() != CallingConvention::C || FunctionValue.languageLinkage() != LanguageLinkage::C)) || (Binding == core::FunctionBinding::Import && FunctionValue.hasBody()))
     {
       return false;
     }
@@ -527,7 +527,7 @@ namespace ink::ir
     return std::unique_ptr<LogicalOrInstruction>(new LogicalOrInstruction(Left, Right));
   }
 
-  std::unique_ptr<CompareInstruction> IRBuilder::createDetachedCompareInstruction(ComparisonPredicate Predicate, const Value &Left, const Value &Right)
+  std::unique_ptr<CompareInstruction> IRBuilder::createDetachedCompareInstruction(core::ComparisonPredicate Predicate, const Value &Left, const Value &Right)
   {
     if (&Left.context() != &Context || &Right.context() != &Context || &Left.type() != &Right.type() || (!IntegerType::classof(&Left.type()) && Left.type().typeKind() != TypeKind::Bool))
     {
@@ -535,13 +535,13 @@ namespace ink::ir
     }
     switch (Predicate)
     {
-    case ComparisonPredicate::Equal:
-    case ComparisonPredicate::NotEqual:
+    case core::ComparisonPredicate::Equal:
+    case core::ComparisonPredicate::NotEqual:
       break;
-    case ComparisonPredicate::Less:
-    case ComparisonPredicate::LessEqual:
-    case ComparisonPredicate::Greater:
-    case ComparisonPredicate::GreaterEqual:
+    case core::ComparisonPredicate::Less:
+    case core::ComparisonPredicate::LessEqual:
+    case core::ComparisonPredicate::Greater:
+    case core::ComparisonPredicate::GreaterEqual:
       if (!IntegerType::classof(&Left.type()))
       {
         return nullptr;
@@ -703,7 +703,7 @@ namespace ink::ir
     return insert(createDetachedLogicalOrInstruction(Left, Right));
   }
 
-  CompareInstruction *IRBuilder::createCompareInstruction(ComparisonPredicate Predicate, const Value &Left, const Value &Right)
+  CompareInstruction *IRBuilder::createCompareInstruction(core::ComparisonPredicate Predicate, const Value &Left, const Value &Right)
   {
     if (!canInsert())
     {

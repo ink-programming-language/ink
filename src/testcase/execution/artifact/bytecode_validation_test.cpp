@@ -54,7 +54,7 @@ namespace ink::execution::test
     for (int Case = 0; Case < 6; ++Case)
     {
       SCOPED_TRACE(Case);
-      auto Object = constantObject("library", "nativeValue", 42, BytecodeVisibility::Private, ir::LanguageLinkage::C, ir::FunctionBinding::Export);
+      auto Object = constantObject("library", "nativeValue", 42, BytecodeVisibility::Private, ir::LanguageLinkage::C, core::FunctionBinding::Export);
       ASSERT_TRUE(Object) << Object.Message;
       auto &Descriptor = Object.Artifact->Image.Descriptors.begin()->second;
       if (Case == 0)
@@ -239,10 +239,10 @@ namespace ink::execution::test
       ASSERT_TRUE(Object) << Object.Message;
       const auto *Integer = integerLayout(*Object.Artifact);
       ASSERT_NE(Integer, nullptr);
-      BytecodeGenericArgument Argument{BytecodeGenericArgumentKind::Constant, bytecodeTypeIdentity(*Object.Artifact->Image.Layouts, Integer->Type), "00000001"};
+      BytecodeGenericArgument Argument{core::GenericArgumentKind::Value, bytecodeTypeIdentity(*Object.Artifact->Image.Layouts, Integer->Type), "00000001"};
       if (Case == 0)
       {
-        Argument.Kind = BytecodeGenericArgumentKind::Type;
+        Argument.Kind = core::GenericArgumentKind::Type;
       }
       else if (Case == 1)
       {
@@ -250,7 +250,7 @@ namespace ink::execution::test
       }
       else if (Case == 2)
       {
-        Argument.Value = "0000000A";
+        Argument.Value = "0000000a";
       }
       else if (Case == 3)
       {
@@ -262,7 +262,7 @@ namespace ink::execution::test
       }
       else if (Case == 5)
       {
-        Argument.Kind = static_cast<BytecodeGenericArgumentKind>(255);
+        Argument.Kind = static_cast<core::GenericArgumentKind>(255);
       }
       else
       {
@@ -274,7 +274,7 @@ namespace ink::execution::test
         auto Types = extendLayouts(*Object.Artifact);
         const auto Type = Types->append(std::move(Narrow));
         Argument.Type = bytecodeTypeIdentity(*Types, Type);
-        Argument.Value = "f";
+        Argument.Value = "F";
       }
       Object.Artifact->Symbols.front().Identity.GenericArguments = {std::move(Argument)};
       EXPECT_EQ(validateBytecodeArtifact(*Object.Artifact).Status, BytecodeStatus::InvalidImage);

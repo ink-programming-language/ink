@@ -36,7 +36,7 @@ namespace ink::execution
   };
 
   // The memory manager outlives this service, its constructed objects and views.
-  // Construction returns a managed place; release it through that manager.
+  // Construction returns a managed place; destroy lifecycle objects before releasing their storage.
   class Reflection final
   {
     public:
@@ -53,6 +53,7 @@ namespace ink::execution
       ExecutionStatus setField(const ObjectView &Object, std::string_view Name, const ReflectedValue &Value);
       RuntimeValueResult invoke(const ObjectView &Object, std::string_view Name, std::span<const ReflectedValue> Arguments = {});
       ExecutionPlaceResult construct(RuntimeTypeId Type, std::span<const ReflectedValue> Arguments = {});
+      ExecutionStatus destroy(const ObjectView &Object);
 
     private:
       ExecutionStatus validate(const ObjectView &Object) const;

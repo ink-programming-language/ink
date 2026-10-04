@@ -41,7 +41,7 @@ namespace ink::execution::test
     void expectBoolean(const ExecutionValueResult &Result, bool Expected)
     {
       ASSERT_TRUE(Result);
-      ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Boolean);
+      ASSERT_EQ(Result.Value.kind(), RuntimeKind::Boolean);
       EXPECT_EQ(Result.Value.boolean(), Expected);
     }
   } // namespace
@@ -77,8 +77,8 @@ namespace ink::execution::test
       case 0: Value = Test.Builder.createLogicalNotInstruction(Left); break;
       case 1: Value = Test.Builder.createLogicalAndInstruction(Left, Right); break;
       case 2: Value = Test.Builder.createLogicalOrInstruction(Left, Right); break;
-      case 3: Value = Test.Builder.createCompareInstruction(ir::ComparisonPredicate::Equal, Left, Right); break;
-      case 4: Value = Test.Builder.createCompareInstruction(ir::ComparisonPredicate::NotEqual, Left, Right); break;
+      case 3: Value = Test.Builder.createCompareInstruction(core::ComparisonPredicate::Equal, Left, Right); break;
+      case 4: Value = Test.Builder.createCompareInstruction(core::ComparisonPredicate::NotEqual, Left, Right); break;
       }
       ASSERT_NE(Value, nullptr);
       ASSERT_NE(Test.Builder.createReturnInstruction(Value), nullptr);
@@ -118,13 +118,13 @@ namespace ink::execution::test
         {128, true, {5, 1}, {5, 2}, {false, true, true, true, false, false}},
         {128, false, {5, 2}, {5, 2}, {true, false, false, true, false, true}},
     };
-    const ir::ComparisonPredicate Predicates[] = {
-        ir::ComparisonPredicate::Equal,
-        ir::ComparisonPredicate::NotEqual,
-        ir::ComparisonPredicate::Less,
-        ir::ComparisonPredicate::LessEqual,
-        ir::ComparisonPredicate::Greater,
-        ir::ComparisonPredicate::GreaterEqual,
+    const core::ComparisonPredicate Predicates[] = {
+        core::ComparisonPredicate::Equal,
+        core::ComparisonPredicate::NotEqual,
+        core::ComparisonPredicate::Less,
+        core::ComparisonPredicate::LessEqual,
+        core::ComparisonPredicate::Greater,
+        core::ComparisonPredicate::GreaterEqual,
     };
     for (const auto &Row : Rows)
     {
@@ -172,10 +172,10 @@ namespace ink::execution::test
       case 0: Value = Test.Builder.createLogicalNotInstruction(*Missing); break;
       case 1: Value = Test.Builder.createLogicalAndInstruction(False, *Missing); break;
       case 2: Value = Test.Builder.createLogicalOrInstruction(True, *Missing); break;
-      case 3: Value = Test.Builder.createCompareInstruction(ir::ComparisonPredicate::Equal, True, *Missing); break;
+      case 3: Value = Test.Builder.createCompareInstruction(core::ComparisonPredicate::Equal, True, *Missing); break;
       case 4: Value = Test.Builder.createLogicalAndInstruction(*Missing, False); break;
       case 5: Value = Test.Builder.createLogicalOrInstruction(*Missing, True); break;
-      case 6: Value = Test.Builder.createCompareInstruction(ir::ComparisonPredicate::NotEqual, *Missing, False); break;
+      case 6: Value = Test.Builder.createCompareInstruction(core::ComparisonPredicate::NotEqual, *Missing, False); break;
       }
       ASSERT_NE(Value, nullptr);
       ASSERT_NE(Test.Builder.createReturnInstruction(Value), nullptr);
@@ -203,7 +203,7 @@ namespace ink::execution::test
       case 0: Value = Test.Builder.createLogicalNotInstruction(True); break;
       case 1: Value = Test.Builder.createLogicalAndInstruction(True, True); break;
       case 2: Value = Test.Builder.createLogicalOrInstruction(True, True); break;
-      case 3: Value = Test.Builder.createCompareInstruction(ir::ComparisonPredicate::Equal, True, True); break;
+      case 3: Value = Test.Builder.createCompareInstruction(core::ComparisonPredicate::Equal, True, True); break;
       }
       ASSERT_NE(Value, nullptr);
       ASSERT_NE(Test.Builder.createReturnInstruction(Value), nullptr);

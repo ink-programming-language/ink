@@ -3,8 +3,10 @@
 
 #include "ink/execution/artifact/bytecode_artifact.h"
 #include "ink/execution/bridge/semantic_value_bridge.h"
+#include "ink/abi/linkage_identity.h"
 
 #include <span>
+#include <optional>
 #include <string_view>
 
 namespace ink::execution
@@ -17,6 +19,9 @@ namespace ink::execution
       BytecodeSymbolIdentity Identity;
       BytecodeSymbolKind Kind = BytecodeSymbolKind::Definition;
       BytecodeVisibility Visibility = BytecodeVisibility::Public;
+      // For a generic whose parameters depend on its arguments, supply the open H pattern.
+      // Empty means its parameters are the fixed closed types of Function.
+      std::optional<abi::Record> OverloadPattern;
   };
 
   // Compile every supplied definition, including functions not yet executed. All referenced

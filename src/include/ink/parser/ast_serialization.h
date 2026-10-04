@@ -1,4 +1,5 @@
 #pragma once
+#include "ink/core/archive_status.h"
 #include "ink/core/config_manager.h"
 #include "ink/parser/parser.h"
 #include <cstdint>
@@ -7,15 +8,6 @@
 
 namespace ink::parser
 {
-  enum class ASTArchiveStatus
-  {
-    Success,
-    InvalidInput,
-    InvalidArchive,
-    UnsupportedVersion,
-    LimitExceeded
-  };
-
   struct ASTArchiveLimits
   {
       // Snapshot configured defaults at construction; callers can override individual fields.
@@ -31,23 +23,23 @@ namespace ink::parser
   struct ASTSerializeResult
   {
       std::string Bytes;
-      ASTArchiveStatus Status = ASTArchiveStatus::InvalidInput;
+      core::ArchiveStatus Status = core::ArchiveStatus::InvalidInput;
       std::string Message;
       bool succeeded() const noexcept
       {
-        return Status == ASTArchiveStatus::Success;
+        return Status == core::ArchiveStatus::Success;
       }
   };
 
   struct ASTDeserializeResult
   {
       ParseResult Parsed;
-      ASTArchiveStatus Status = ASTArchiveStatus::InvalidArchive;
+      core::ArchiveStatus Status = core::ArchiveStatus::InvalidArchive;
       std::string Message;
       // Successful restoration can contain a recovered or interrupted parse.
       bool succeeded() const noexcept
       {
-        return Status == ASTArchiveStatus::Success && Parsed.Unit != nullptr;
+        return Status == core::ArchiveStatus::Success && Parsed.Unit != nullptr;
       }
       // Cumulative decoded storage charged against MaxAllocationBytes.
       std::size_t AllocationBytes = 0;

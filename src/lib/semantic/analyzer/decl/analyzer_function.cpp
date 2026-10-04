@@ -59,7 +59,7 @@ namespace ink::semantic
     return LanguageLinkage::C;
   }
 
-  bool Analyzer::checkFunctionConflicts(AnalysisState &State, const parser::FunctionDecl &Node, const FunctionType &Signature, FunctionBinding NativeBinding)
+  bool Analyzer::checkFunctionConflicts(AnalysisState &State, const parser::FunctionDecl &Node, const FunctionType &Signature, core::FunctionBinding NativeBinding)
   {
     const Name FunctionName = State.Context.namePool().find(Node.name().Text);
     const auto ParameterTypes = Signature.parameterTypes();
@@ -75,7 +75,7 @@ namespace ink::semantic
         const auto &Existing = static_cast<const Function &>(*Target);
         const auto ExistingTypes = Existing.functionType().parameterTypes();
         const bool SameParameters = std::equal(ParameterTypes.begin(), ParameterTypes.end(), ExistingTypes.begin(), ExistingTypes.end());
-        if (SameParameters || NativeBinding != FunctionBinding::Local || Existing.binding() != FunctionBinding::Local)
+        if (SameParameters || NativeBinding != core::FunctionBinding::Local || Existing.binding() != core::FunctionBinding::Local)
         {
           State.report<core::DiagnosticKind::SemanticDuplicateName>(Node.name().Range, Node.name().Text);
           return false;
@@ -108,24 +108,24 @@ namespace ink::semantic
     {
       return nullptr;
     }
-    const FunctionBinding Binding = Node.nativeSymbolKind() == parser::NativeSymbolKind::Import ? FunctionBinding::Import : (Node.nativeSymbolKind() == parser::NativeSymbolKind::Export ? FunctionBinding::Export : FunctionBinding::Local);
-    if (State.DeclaringClass && (*Linkage != LanguageLinkage::Ink || Binding != FunctionBinding::Local || Node.name().Text == "this"))
+    const core::FunctionBinding Binding = Node.nativeSymbolKind();
+    if (State.DeclaringClass && (*Linkage != LanguageLinkage::Ink || Binding != core::FunctionBinding::Local || Node.name().Text == "this"))
     {
       State.report<core::DiagnosticKind::SemanticInvalidClass>(Node.getSourceRange(), "instance methods require Ink linkage and cannot be named this");
       return nullptr;
     }
-    if (Binding == FunctionBinding::Import && Node.body())
+    if (Binding == core::FunctionBinding::Import && Node.body())
     {
       State.report<core::DiagnosticKind::SemanticNativeImportHasBody>(Node.getSourceRange(), Node.name().Text);
       return nullptr;
     }
-    if (Binding == FunctionBinding::Export && !Node.body())
+    if (Binding == core::FunctionBinding::Export && !Node.body())
     {
       State.report<core::DiagnosticKind::SemanticNativeExportRequiresBody>(Node.getSourceRange(), Node.name().Text);
       return nullptr;
     }
     const bool Local = State.CurrentFunction || State.BlockDepth != 0;
-    if (Binding == FunctionBinding::Export && Local)
+    if (Binding == core::FunctionBinding::Export && Local)
     {
       State.report<core::DiagnosticKind::SemanticNativeExportRequiresTopLevel>(Node.getSourceRange());
       return nullptr;
@@ -202,13 +202,21 @@ namespace ink::semantic
     {
       return nullptr;
     }
+    if (State.DeclaringClass && (Node.name().Text == "__init__" || Node.name().Text == "__del__"))
+    {
+      if (ReturnType->typeKind() != TypeKind::Void || Node.isComptime() || (Node.name().Text == "__del__" && (ParameterTypes.size() != 1 || Node.visibility() == parser::DeclarationVisibility::Private)))
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidClass>(Node.getSourceRange(), "__init__ and __del__ must return void and support runtime calls; __del__ must be public and have no explicit parameters");
+        return nullptr;
+      }
+    }
 
-    if (*Linkage == LanguageLinkage::C && Binding != FunctionBinding::Import)
+    if (*Linkage == LanguageLinkage::C && Binding != core::FunctionBinding::Import)
     {
       if (!execution::ffiType(*ReturnType, execution::FfiTypeUsage::Return) || std::any_of(ParameterTypes.begin(), ParameterTypes.end(), [](const Type *Parameter)
-      {
-        return !execution::ffiType(*Parameter, execution::FfiTypeUsage::Argument);
-      }))
+                                                                                           {
+                                                                                             return !execution::ffiType(*Parameter, execution::FfiTypeUsage::Argument);
+                                                                                           }))
       {
         State.report<core::DiagnosticKind::SemanticUnsupportedAbiSignature>(Node.getSourceRange(), Node.name().Text);
         return nullptr;
@@ -226,7 +234,7 @@ namespace ink::semantic
       return nullptr;
     }
 
-    if (Binding != FunctionBinding::Import && !Node.body())
+    if (Binding != core::FunctionBinding::Import && !Node.body())
     {
       State.report<core::DiagnosticKind::SemanticFunctionRequiresBody>(Node.getSourceRange(), Node.name().Text);
       return nullptr;
@@ -238,7 +246,7 @@ namespace ink::semantic
     }
 
     const Name BoundName = State.Context.namePool().intern(Node.name().Text);
-    const Name FunctionName = State.DeclaringClass ? State.Context.namePool().intern(State.Context.classState().Definitions.at(State.DeclaringClass).Identity + "." + std::string(Node.name().Text)) : BoundName;
+    const Name FunctionName = BoundName;
     auto FunctionOwner = State.Builder.createFunction(FunctionName, *Signature, {}, ParameterNames, CallingConvention::C, *Linkage, Binding);
     if (!FunctionOwner || !State.Builder.insertBlock())
     {
@@ -246,7 +254,12 @@ namespace ink::semantic
       return nullptr;
     }
     Function &FunctionValue = *FunctionOwner;
-    if (!State.Builder.setFunctionVisibility(FunctionValue, Local || Node.visibility() == parser::DeclarationVisibility::Private ? VisibilityKind::Private : VisibilityKind::Public))
+    if (!State.Builder.setFunctionLexicalScope(FunctionValue, State.LexicalScope))
+    {
+      State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
+      return nullptr;
+    }
+    if (!State.Builder.setFunctionVisibility(FunctionValue, Local || Node.visibility() == parser::DeclarationVisibility::Private ? core::VisibilityKind::Private : core::VisibilityKind::Public))
     {
       State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
       return nullptr;
@@ -295,6 +308,9 @@ namespace ink::semantic
     FunctionState.BlockDepth = State.BlockDepth;
     FunctionState.CurrentFunction = &FunctionValue;
     FunctionState.ComptimeFunction = Node.isComptime();
+    const bool ClassMethod = State.Context.classState().MethodOwners.contains(&FunctionValue);
+    FunctionState.Constructing = ClassMethod && Node.name().Text == "__init__";
+    FunctionState.Destroying = ClassMethod && Node.name().Text == "__del__";
     NameResolver::ScopeGuard FunctionScope(FunctionState.Resolver, FunctionValue);
     if (!FunctionScope.scope())
     {
@@ -319,6 +335,22 @@ namespace ink::semantic
         State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
         return false;
       }
+      for (const auto &Parameter : FunctionValue.parameters())
+      {
+        if (!needsDestruction(Parameter->type()))
+        {
+          continue;
+        }
+        auto *Storage = FunctionState.Builder.createAllocaInstruction(Parameter->type());
+        if (!Storage || !FunctionState.Builder.createStoreInstruction(*Storage, *Parameter) || !trackObject(FunctionState, *Storage, Parameter->type(), true))
+        {
+          return false;
+        }
+      }
+      if (FunctionState.Constructing && !initializeClassFields(FunctionState, Node))
+      {
+        return false;
+      }
       if (!analyzeStmt(FunctionState, *Node.body()))
       {
         return false;
@@ -328,6 +360,10 @@ namespace ink::semantic
         if (FunctionValue.functionType().returnType().typeKind() != TypeKind::Void)
         {
           State.report<core::DiagnosticKind::SemanticMissingReturn>(Node.body()->getSourceRange(), Node.name().Text);
+          return false;
+        }
+        if (!checkConstructorComplete(FunctionState, Node) || !cleanupObjects(FunctionState, 0, false, Node) || !destroyClassFields(FunctionState, Node))
+        {
           return false;
         }
         if (!FunctionState.Builder.createReturnInstruction())

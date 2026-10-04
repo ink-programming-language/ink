@@ -106,7 +106,7 @@ namespace ink::execution::test
         std::unique_ptr<ir::Function> function(const ir::Type &Result, std::span<const ir::Type *const> Parameters)
         {
           const auto *Signature = Context.typePool().getType<ir::TypeKind::Function>(Result, Parameters);
-          return Signature ? Builder.createFunction(Context.namePool().intern("inkTestNativeStorage"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import) : nullptr;
+          return Signature ? Builder.createFunction(Context.namePool().intern("inkTestNativeStorage"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import) : nullptr;
         }
 
         core::CompilationContext Compilation;
@@ -246,7 +246,7 @@ namespace ink::execution::test
     const ExecutionValueRef Arguments[] = {Test.pointer(Test.Int32Pointer, Cell.Place)};
     const auto Result = callExternalFunction(Test.Heap, Cache, *Function, Arguments);
     ASSERT_TRUE(Result);
-    ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Pointer);
+    ASSERT_EQ(Result.Value.kind(), RuntimeKind::Pointer);
     const auto &Returned = Result.Value.pointer();
     EXPECT_EQ(Returned.kind(), ExecutionPointer::Kind::Native);
     EXPECT_EQ(ExecutionPlace(Test.Heap.memoryManager().storageFromAddress(Returned.address())), Cell.Place);

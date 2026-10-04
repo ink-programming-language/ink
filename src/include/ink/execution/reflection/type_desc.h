@@ -1,6 +1,9 @@
 #ifndef INK_EXECUTION_REFLECTION_TYPE_DESC_H
 #define INK_EXECUTION_REFLECTION_TYPE_DESC_H
 
+#include "ink/core/visibility.h"
+#include "ink/execution/support/runtime_kind.h"
+
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -20,26 +23,6 @@ namespace ink::execution
 
   struct RuntimeTypeDomain final
   {
-  };
-
-  enum class RuntimeKind
-  {
-    Invalid,
-    Void,
-    Boolean,
-    Integer,
-    Float,
-    String,
-    Pointer,
-    Function,
-    Array,
-    Class,
-  };
-
-  enum class MemberVisibility : std::uint8_t
-  {
-    Public,
-    Private,
   };
 
   struct StorageLayout
@@ -109,7 +92,7 @@ namespace ink::execution
       std::string Name;
       RuntimeTypeId Type = InvalidRuntimeType;
       std::size_t Offset = 0;
-      MemberVisibility Visibility = MemberVisibility::Public;
+      core::VisibilityKind Visibility = core::VisibilityKind::Public;
       FunctionId Initializer = InvalidFunction;
       std::shared_ptr<const TypeDesc> Layout;
   };
@@ -119,7 +102,7 @@ namespace ink::execution
       std::string Name;
       RuntimeTypeId Signature = InvalidRuntimeType;
       FunctionId Function = InvalidFunction;
-      MemberVisibility Visibility = MemberVisibility::Public;
+      core::VisibilityKind Visibility = core::VisibilityKind::Public;
       // Instance methods currently take a writable pointer as their first argument.
       bool WritableReceiver = true;
   };

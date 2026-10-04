@@ -191,7 +191,7 @@ namespace ink::execution::test
     const ir::Type *Parameters[] = {&Test.BytePointer};
     const auto *Signature = Test.Context.typePool().getType<ir::TypeKind::Function>(Test.BytePointer, Parameters);
     ASSERT_NE(Signature, nullptr);
-    auto Function = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestHeapReturnInterior"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto Function = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestHeapReturnInterior"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(Function, nullptr);
     NativeSymbolCache Cache([](std::string_view) -> NativeSymbol
     {
@@ -200,7 +200,7 @@ namespace ink::execution::test
     const ExecutionValueRef Arguments[] = {Test.Heap.fromConstant(Test.string("ABC"))};
     const auto Result = callExternalFunction(Test.Heap, Cache, *Function, Arguments);
     ASSERT_TRUE(Result);
-    ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Pointer);
+    ASSERT_EQ(Result.Value.kind(), RuntimeKind::Pointer);
     EXPECT_EQ(Result.Value.pointer().kind(), ExecutionPointer::Kind::Native);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 1U);
     ASSERT_NE(Result.Value.pointer().address(), nullptr);
@@ -217,7 +217,7 @@ namespace ink::execution::test
     const ir::Type *Parameters[] = {&Test.BytePointer};
     const auto *Signature = Test.Context.typePool().getType<ir::TypeKind::Function>(Test.Int32, Parameters);
     ASSERT_NE(Signature, nullptr);
-    auto Function = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestHeapReadFirstByte"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto Function = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestHeapReadFirstByte"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(Function, nullptr);
     NativeSymbolCache Cache([](std::string_view) -> NativeSymbol
     {
@@ -238,7 +238,7 @@ namespace ink::execution::test
     const ir::Type *Parameters[] = {&Test.BytePointer};
     const auto *Signature = Test.Context.typePool().getType<ir::TypeKind::Function>(Test.BytePointer, Parameters);
     ASSERT_NE(Signature, nullptr);
-    auto Function = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestHeapReturnInterior"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto Function = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestHeapReturnInterior"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(Function, nullptr);
     NativeSymbolCache Cache([](std::string_view) -> NativeSymbol
     {

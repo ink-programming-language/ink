@@ -11,6 +11,14 @@ class Packet
     this.Bits = this.Bits + 1;
     return *this.Address + this.Values[1];
   }
+
+  func __init__(InitialTag: u8, InitialBits: u128, InitialAddress: *i32, InitialValues: [i32; 2]): void
+  {
+    this.Tag = InitialTag;
+    this.Bits = InitialBits;
+    this.Address = InitialAddress;
+    this.Values = InitialValues;
+  }
 };
 
 import "C" func malloc(Size: u64): *Packet;

@@ -64,7 +64,7 @@ namespace ink::execution
         const auto Name = Context.namePool().text(Method->name());
         const auto Position = Name.rfind('.');
         const auto &Receiver = static_cast<const ir::PointerType &>(*Method->functionType().parameterTypes().front());
-        Description->Methods.push_back({std::string(Position == std::string_view::npos ? Name : Name.substr(Position + 1)), lowerType(Method->type()), Function, Method->visibility() == ir::VisibilityKind::Private ? MemberVisibility::Private : MemberVisibility::Public, Receiver.access() == ir::AccessKind::ReadWrite});
+        Description->Methods.push_back({std::string(Position == std::string_view::npos ? Name : Name.substr(Position + 1)), lowerType(Method->type()), Function, Method->visibility(), Receiver.access() == ir::AccessKind::ReadWrite});
       }
       Types->updateClass(static_cast<RuntimeTypeId>(Index), std::move(Description));
     }

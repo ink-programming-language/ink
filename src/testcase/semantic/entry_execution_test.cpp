@@ -64,7 +64,7 @@ namespace ink::semantic::test
     void expectInteger(const ExecutionValueResult &Result, std::uint32_t Width, std::uint64_t Expected)
     {
       ASSERT_TRUE(Result);
-      ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Integer);
+      ASSERT_EQ(Result.Value.kind(), RuntimeKind::Integer);
       const auto Bits = Result.Value.integer().bits();
       EXPECT_EQ(Bits.bitWidth(), Width);
       ASSERT_EQ(Bits.words().size(), 1U);
@@ -124,14 +124,14 @@ namespace ink::semantic::test
     const ExecutionValueRef BoolArguments[] = {Engine.heap().boolean(Input.Context.typePool().getType<TypeKind::Bool>(), true)};
     const auto BoolResult = Engine.execute(*Bool, BoolArguments);
     ASSERT_TRUE(BoolResult);
-    ASSERT_EQ(BoolResult.Value.kind(), ExecutionValueKind::Boolean);
+    ASSERT_EQ(BoolResult.Value.kind(), RuntimeKind::Boolean);
     EXPECT_TRUE(BoolResult.Value.boolean());
     const auto *FloatType = Input.Context.typePool().getType<TypeKind::Float>(32);
     const FloatBits Bits(32, std::bit_cast<std::uint32_t>(1.5F));
     const ExecutionValueRef FloatArguments[] = {Engine.heap().floating(*FloatType, Bits)};
     const auto FloatResult = Engine.execute(*Float, FloatArguments);
     ASSERT_TRUE(FloatResult);
-    ASSERT_EQ(FloatResult.Value.kind(), ExecutionValueKind::Float);
+    ASSERT_EQ(FloatResult.Value.kind(), RuntimeKind::Float);
     EXPECT_EQ(FloatResult.Value.floating(), Bits);
   }
 
@@ -148,7 +148,7 @@ namespace ink::semantic::test
     ExecutionEngine Engine(Input.Context.irContext());
     const auto Result = Engine.execute(*Entry);
     ASSERT_TRUE(Result);
-    EXPECT_EQ(Result.Value.kind(), ExecutionValueKind::Void);
+    EXPECT_EQ(Result.Value.kind(), RuntimeKind::Void);
   }
 
 #if defined(_WIN32) || defined(__linux__)

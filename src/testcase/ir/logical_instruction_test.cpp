@@ -79,13 +79,13 @@ namespace ink::ir::test
   TEST(IRCompareInstructionTest, PreservesPredicatesAndBoolResultTypes)
   {
     LogicalTestContext Test;
-    const ComparisonPredicate Predicates[] = {
-        ComparisonPredicate::Equal,
-        ComparisonPredicate::NotEqual,
-        ComparisonPredicate::Less,
-        ComparisonPredicate::LessEqual,
-        ComparisonPredicate::Greater,
-        ComparisonPredicate::GreaterEqual,
+    const core::ComparisonPredicate Predicates[] = {
+        core::ComparisonPredicate::Equal,
+        core::ComparisonPredicate::NotEqual,
+        core::ComparisonPredicate::Less,
+        core::ComparisonPredicate::LessEqual,
+        core::ComparisonPredicate::Greater,
+        core::ComparisonPredicate::GreaterEqual,
     };
     for (auto Predicate : Predicates)
     {
@@ -99,8 +99,8 @@ namespace ink::ir::test
       EXPECT_FALSE(Compare->isTerminator());
       EXPECT_TRUE(CompareInstruction::classof(Compare.get()));
     }
-    EXPECT_NE(Test.Builder.createDetachedCompareInstruction(ComparisonPredicate::Equal, Test.True, Test.False), nullptr);
-    EXPECT_NE(Test.Builder.createDetachedCompareInstruction(ComparisonPredicate::NotEqual, Test.True, Test.False), nullptr);
+    EXPECT_NE(Test.Builder.createDetachedCompareInstruction(core::ComparisonPredicate::Equal, Test.True, Test.False), nullptr);
+    EXPECT_NE(Test.Builder.createDetachedCompareInstruction(core::ComparisonPredicate::NotEqual, Test.True, Test.False), nullptr);
     EXPECT_FALSE(CompareInstruction::classof(&Test.One));
     EXPECT_FALSE(CompareInstruction::classof(nullptr));
   }
@@ -119,17 +119,17 @@ namespace ink::ir::test
     const Value *Invalid[] = {&Test.True, UnsignedOne, WideOne, FloatZero, &Foreign.One};
     for (const auto *Operand : Invalid)
     {
-      EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(ComparisonPredicate::Equal, Test.One, *Operand), nullptr);
-      EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(ComparisonPredicate::Equal, *Operand, Test.One), nullptr);
+      EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(core::ComparisonPredicate::Equal, Test.One, *Operand), nullptr);
+      EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(core::ComparisonPredicate::Equal, *Operand, Test.One), nullptr);
     }
-    EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(ComparisonPredicate::Equal, *FloatZero, *FloatZero), nullptr);
-    EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(ComparisonPredicate::Equal, Test.True, Foreign.True), nullptr);
-    for (auto Predicate : {ComparisonPredicate::Less, ComparisonPredicate::LessEqual, ComparisonPredicate::Greater, ComparisonPredicate::GreaterEqual})
+    EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(core::ComparisonPredicate::Equal, *FloatZero, *FloatZero), nullptr);
+    EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(core::ComparisonPredicate::Equal, Test.True, Foreign.True), nullptr);
+    for (auto Predicate : {core::ComparisonPredicate::Less, core::ComparisonPredicate::LessEqual, core::ComparisonPredicate::Greater, core::ComparisonPredicate::GreaterEqual})
     {
       EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(Predicate, Test.True, Test.False), nullptr);
     }
-    EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(static_cast<ComparisonPredicate>(99), Test.One, Test.One), nullptr);
-    EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(static_cast<ComparisonPredicate>(99), Test.True, Test.False), nullptr);
+    EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(static_cast<core::ComparisonPredicate>(99), Test.One, Test.One), nullptr);
+    EXPECT_EQ(Test.Builder.createDetachedCompareInstruction(static_cast<core::ComparisonPredicate>(99), Test.True, Test.False), nullptr);
   }
 
   // Every inserting factory requires a live point, respects terminators, and permits ordinary operations before a return.
@@ -139,7 +139,7 @@ namespace ink::ir::test
     EXPECT_EQ(Test.Builder.createLogicalNotInstruction(Test.True), nullptr);
     EXPECT_EQ(Test.Builder.createLogicalAndInstruction(Test.True, Test.False), nullptr);
     EXPECT_EQ(Test.Builder.createLogicalOrInstruction(Test.True, Test.False), nullptr);
-    EXPECT_EQ(Test.Builder.createCompareInstruction(ComparisonPredicate::Equal, Test.One, Test.One), nullptr);
+    EXPECT_EQ(Test.Builder.createCompareInstruction(core::ComparisonPredicate::Equal, Test.One, Test.One), nullptr);
     auto Function = Test.Builder.createFunction(Test.Context.namePool().intern("Logical"), *Test.Context.typePool().getType<TypeKind::Function>(Test.True.type()));
     ASSERT_NE(Function, nullptr);
     auto *Block = Test.Builder.createFunctionBody(*Function);
@@ -150,12 +150,12 @@ namespace ink::ir::test
     EXPECT_EQ(Test.Builder.createLogicalNotInstruction(Test.True), nullptr);
     EXPECT_EQ(Test.Builder.createLogicalAndInstruction(Test.True, Test.False), nullptr);
     EXPECT_EQ(Test.Builder.createLogicalOrInstruction(Test.True, Test.False), nullptr);
-    EXPECT_EQ(Test.Builder.createCompareInstruction(ComparisonPredicate::Equal, Test.One, Test.One), nullptr);
+    EXPECT_EQ(Test.Builder.createCompareInstruction(core::ComparisonPredicate::Equal, Test.One, Test.One), nullptr);
     ASSERT_TRUE(Test.Builder.setInsertPoint(*Return));
     EXPECT_NE(Test.Builder.createLogicalNotInstruction(Test.True), nullptr);
     EXPECT_NE(Test.Builder.createLogicalAndInstruction(Test.True, Test.False), nullptr);
     EXPECT_NE(Test.Builder.createLogicalOrInstruction(Test.True, Test.False), nullptr);
-    EXPECT_NE(Test.Builder.createCompareInstruction(ComparisonPredicate::Equal, Test.One, Test.One), nullptr);
+    EXPECT_NE(Test.Builder.createCompareInstruction(core::ComparisonPredicate::Equal, Test.One, Test.One), nullptr);
     EXPECT_EQ(Block->values().size(), 5U);
     EXPECT_EQ(Block->terminator(), Return);
   }

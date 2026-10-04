@@ -10,7 +10,7 @@ namespace ink::ir::test
 {
   namespace
   {
-    constexpr std::string_view BranchModuleText = R"(ink-ir 6
+    constexpr std::string_view BranchModuleText = R"(ink-ir 7
 module @Branches {
   define i32 @choose(bool %flag) {
   entry:
@@ -113,8 +113,8 @@ module @Branches {
     IRContext Context(Compilation);
     for (const auto Body : Bodies)
     {
-      const auto Result = deserializeModuleText(Context, "ink-ir 6 module @Invalid { " + std::string(Body) + " }");
-      EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Body << ": " << Result.Message;
+      const auto Result = deserializeModuleText(Context, "ink-ir 7 module @Invalid { " + std::string(Body) + " }");
+      EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidArchive) << Body << ": " << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Context.modules().empty());
     }
@@ -167,7 +167,7 @@ module @Branches {
       {
         BoolTypeId = Id;
       }
-      Offset += 24 + static_cast<std::size_t>(llvm::support::endian::read32le(Header + 12)) * 8 + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 16));
+      Offset += 32 + static_cast<std::size_t>(llvm::support::endian::read32le(Header + 12)) * 8 + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 16)) + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 24));
     }
     for (std::size_t Id = 1; Id < Offsets.size(); ++Id)
     {
@@ -188,13 +188,13 @@ module @Branches {
     {
       IRContext Destination(Compilation);
       const auto Result = deserializeModuleBinary(Destination, Bytes);
-      EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Result.Message;
+      EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidArchive) << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Destination.modules().empty());
     };
     for (const std::uint64_t Target : {std::uint64_t{0}, std::uint64_t{UINT32_MAX}, std::uint64_t{ParameterId}, std::uint64_t{OtherBlockId}, std::uint64_t{ModuleBlockId}})
     {
-      for (const auto FieldOffset : {BranchOffset + 24, ConditionalOffset + 32, ConditionalOffset + 40})
+      for (const auto FieldOffset : {BranchOffset + 32, ConditionalOffset + 40, ConditionalOffset + 48})
       {
         auto Bytes = Encoded.Bytes;
         llvm::support::endian::write64le(Bytes.data() + FieldOffset, Target);
@@ -202,7 +202,7 @@ module @Branches {
       }
     }
     auto WrongCondition = Encoded.Bytes;
-    llvm::support::endian::write64le(WrongCondition.data() + ConditionalOffset + 24, IntegerConstantId);
+    llvm::support::endian::write64le(WrongCondition.data() + ConditionalOffset + 32, IntegerConstantId);
     Reject(std::move(WrongCondition));
     auto WrongResult = Encoded.Bytes;
     llvm::support::endian::write32le(WrongResult.data() + ConditionalOffset + 4, BoolTypeId);

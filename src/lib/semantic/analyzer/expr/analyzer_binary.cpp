@@ -246,14 +246,14 @@ namespace ink::semantic
       const auto Result = State.Context.comptimeState().Engine.evaluateBinary(Node.op(), static_cast<const Constant &>(*First), static_cast<const Constant &>(*Second));
       return reportExecution(State, Result.Status, Node) ? ExpressionResult{Result.Value} : ExpressionResult{};
     }
-    ComparisonPredicate Predicate = ComparisonPredicate::Equal;
+    core::ComparisonPredicate Predicate = core::ComparisonPredicate::Equal;
     switch (Node.op())
     {
-    case TokenKind::BangEqual: Predicate = ComparisonPredicate::NotEqual; break;
-    case TokenKind::Less: Predicate = ComparisonPredicate::Less; break;
-    case TokenKind::LessEqual: Predicate = ComparisonPredicate::LessEqual; break;
-    case TokenKind::Greater: Predicate = ComparisonPredicate::Greater; break;
-    case TokenKind::GreaterEqual: Predicate = ComparisonPredicate::GreaterEqual; break;
+    case TokenKind::BangEqual: Predicate = core::ComparisonPredicate::NotEqual; break;
+    case TokenKind::Less: Predicate = core::ComparisonPredicate::Less; break;
+    case TokenKind::LessEqual: Predicate = core::ComparisonPredicate::LessEqual; break;
+    case TokenKind::Greater: Predicate = core::ComparisonPredicate::Greater; break;
+    case TokenKind::GreaterEqual: Predicate = core::ComparisonPredicate::GreaterEqual; break;
     default: break;
     }
     const Value *Result = State.Builder.createCompareInstruction(Predicate, *First, *Second);

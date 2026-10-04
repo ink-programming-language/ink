@@ -3,6 +3,7 @@
 #include "ink/ir/context.h"
 #include "ink/ir/decl/module_decl.h"
 #include "ink/parser/parser.h"
+#include "ink/abi/name_mangling.h"
 
 namespace ink::ir
 {
@@ -13,5 +14,6 @@ namespace ink::ir
         ModuleName(ModuleName),
         EntryBlock(std::move(EntryBlock))
   {
+    LinkageIdentity.Path = abi::modulePath(Context.namePool().text(ModuleName));
   }
 } // namespace ink::ir

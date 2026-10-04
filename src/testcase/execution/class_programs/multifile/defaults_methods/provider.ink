@@ -19,6 +19,21 @@ class Point
   {
     return this.X + this.Y;
   }
+
+  func __init__(): void
+  {
+  }
+
+  func __init__(InitialX: i32): void
+  {
+    this.X = InitialX;
+  }
+
+  private func __init__(InitialX: i32, InitialY: i32): void
+  {
+    this.X = InitialX;
+    this.Y = InitialY;
+  }
 };
 
 comptime func frozen(): Point

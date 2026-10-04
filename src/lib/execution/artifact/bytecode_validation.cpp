@@ -1,5 +1,6 @@
 #include "ink/core/target_context.h"
 #include "ink/core/object_layout.h"
+#include "ink/abi/name_mangling.h"
 #include "bytecode_internal.h"
 
 #include "ink/execution/bytecode/execution_compiler.h"
@@ -54,7 +55,9 @@ namespace ink::execution
       }
       case RuntimeKind::Class:
       {
-        if (!validName(Layout.classDesc().NominalIdentity) || Layout.bitWidth())
+        const auto Identity = abi::demangle(Layout.classDesc().NominalIdentity);
+        const auto Nominal = Identity ? abi::childRecords(*Identity.Identity) : std::nullopt;
+        if (!Nominal || Identity.Identity->Tag != 'T' || Nominal->size() != 1 || Nominal->front().Tag != 'c' || Layout.bitWidth())
         {
           return false;
         }
@@ -117,7 +120,7 @@ namespace ink::execution
       std::unordered_set<std::string> Names;
       for (const auto &Field : Layout.classDesc().Fields)
       {
-        if (!Names.insert(Field.Name).second || Field.Visibility > MemberVisibility::Private)
+        if (!Names.insert(Field.Name).second || Field.Visibility > core::VisibilityKind::Private)
         {
           return false;
         }
@@ -135,7 +138,7 @@ namespace ink::execution
       for (const auto &Method : Layout.classDesc().Methods)
       {
         const auto *Signature = Types.get(Method.Signature);
-        if (!validName(Method.Name) || Method.Visibility > MemberVisibility::Private || !Names.insert(Method.Name + ":" + std::to_string(Method.Signature)).second || !Signature || Signature->Kind != RuntimeKind::Function || Signature->functionDesc().Parameters.empty())
+        if (!validName(Method.Name) || Method.Visibility > core::VisibilityKind::Private || !Names.insert(Method.Name + ":" + std::to_string(Method.Signature)).second || !Signature || Signature->Kind != RuntimeKind::Function || Signature->functionDesc().Parameters.empty())
         {
           return false;
         }
@@ -145,7 +148,7 @@ namespace ink::execution
           return false;
         }
         const auto Found = Image.Descriptors.find(Method.Function);
-        if (Method.Function == InvalidFunction ? Method.Visibility != MemberVisibility::Private : Found == Image.Descriptors.end() || Found->second.Signature != Method.Signature)
+        if (Method.Function == InvalidFunction ? Method.Visibility != core::VisibilityKind::Private : Found == Image.Descriptors.end() || Found->second.Signature != Method.Signature)
         {
           return false;
         }
@@ -239,7 +242,7 @@ namespace ink::execution
 
     int hexDigit(char Character)
     {
-      return Character >= '0' && Character <= '9' ? Character - '0' : Character >= 'a' && Character <= 'f' ? Character - 'a' + 10 : -1;
+      return Character >= '0' && Character <= '9' ? Character - '0' : Character >= 'A' && Character <= 'F' ? Character - 'A' + 10 : -1;
     }
 
     bool genericConstant(const BytecodeGenericArgument &Argument, const TypeDesc &Type)
@@ -393,7 +396,7 @@ namespace ink::execution
       }
       for (const BytecodeSymbol &Symbol : Artifact.Symbols)
       {
-        if (!Usage.string(Symbol.Identity.Module) || !Usage.string(Symbol.Identity.Name) || !Usage.string(Symbol.Identity.Signature) || !Usage.records(Symbol.Identity.GenericArguments.size(), sizeof(BytecodeGenericArgument)))
+        if (!Usage.string(Symbol.Identity.Module) || !Usage.string(Symbol.Identity.Name) || !Usage.string(Symbol.Identity.Signature) || !Usage.string(Symbol.Identity.LinkName) || !Usage.records(Symbol.Identity.GenericArguments.size(), sizeof(BytecodeGenericArgument)))
         {
           return {BytecodeStatus::LimitExceeded, "Bytecode symbols exceed the configured storage limits"};
         }
@@ -562,7 +565,7 @@ namespace ink::execution
       {
         return {BytecodeStatus::InvalidImage, "Bytecode function has an unsupported C ABI signature"};
       }
-      if ((Descriptor.External || Descriptor.Exported) && !validName(Descriptor.Symbol))
+      if ((Descriptor.External || Descriptor.Exported) && (!validName(Descriptor.Symbol) || Descriptor.Symbol.starts_with("_INK")))
       {
         return {BytecodeStatus::InvalidImage, "Bytecode native import or export has an invalid symbol name"};
       }
@@ -581,10 +584,14 @@ namespace ink::execution
       for (const BytecodeGenericArgument &Argument : Symbol.Identity.GenericArguments)
       {
         const auto Type = IdentityTypes.find(Argument.Type);
-        if (Type == IdentityTypes.end() || Argument.Kind > BytecodeGenericArgumentKind::Constant || (Argument.Kind == BytecodeGenericArgumentKind::Type ? !Argument.Value.empty() : !genericConstant(Argument, *Types.get(Type->second))))
+        if (Type == IdentityTypes.end() || Argument.Kind > core::GenericArgumentKind::Value || (Argument.Kind == core::GenericArgumentKind::Type ? !Argument.Value.empty() : !genericConstant(Argument, *Types.get(Type->second))))
         {
           return {BytecodeStatus::InvalidImage, "Bytecode generic argument is not a canonical typed value"};
         }
+      }
+      if (!artifact_detail::validSymbolLinkage(Symbol, Descriptor, Types, IdentityTypes))
+      {
+        return {BytecodeStatus::SignatureMismatch, "Bytecode link identity differs from its logical signature or generic arguments"};
       }
       if (Symbol.Kind == BytecodeSymbolKind::Definition && (Artifact.Kind == BytecodeArtifactKind::Object || Symbol.Visibility != BytecodeVisibility::Private))
       {

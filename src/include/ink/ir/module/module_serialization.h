@@ -1,6 +1,7 @@
 #ifndef INK_IR_MODULE_SERIALIZATION_H
 #define INK_IR_MODULE_SERIALIZATION_H
 
+#include "ink/core/archive_status.h"
 #include "ink/core/config_manager.h"
 #include "ink/ir/module/module.h"
 #include "ink/parser/ast_serialization.h"
@@ -13,15 +14,6 @@
 
 namespace ink::ir
 {
-  enum class ModuleArchiveStatus
-  {
-    Success,
-    InvalidInput,
-    InvalidArchive,
-    UnsupportedVersion,
-    LimitExceeded,
-  };
-
   struct ModuleArchiveLimits
   {
       // Snapshot configured defaults at construction; callers can override individual fields.
@@ -39,29 +31,29 @@ namespace ink::ir
   struct ModuleSerializeResult
   {
       std::string Bytes;
-      ModuleArchiveStatus Status = ModuleArchiveStatus::InvalidInput;
+      core::ArchiveStatus Status = core::ArchiveStatus::InvalidInput;
       std::string Message;
 
       bool succeeded() const noexcept
       {
-        return Status == ModuleArchiveStatus::Success;
+        return Status == core::ArchiveStatus::Success;
       }
   };
 
   struct ModuleDeserializeResult
   {
       Module *ModuleValue = nullptr;
-      ModuleArchiveStatus Status = ModuleArchiveStatus::InvalidArchive;
+      core::ArchiveStatus Status = core::ArchiveStatus::InvalidArchive;
       std::string Message;
 
       bool succeeded() const noexcept
       {
-        return Status == ModuleArchiveStatus::Success && ModuleValue;
+        return Status == core::ArchiveStatus::Success && ModuleValue;
       }
   };
 
-  inline constexpr std::uint32_t ModuleTextVersion = 6;
-  inline constexpr std::uint32_t ModuleBinaryVersion = 6;
+  inline constexpr std::uint32_t ModuleTextVersion = 7;
+  inline constexpr std::uint32_t ModuleBinaryVersion = 7;
 
   // Archives IR, declaration trees and complete syntax snapshots, including tokens and recovery metadata.
   // Supply the ParseResults borrowed by declarations; missing AST owners are rejected, never omitted.

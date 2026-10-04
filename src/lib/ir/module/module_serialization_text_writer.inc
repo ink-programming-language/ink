@@ -115,7 +115,7 @@ namespace ink::ir::archive
           }
           if (Text.size() > Data.Limits.MaxArchiveBytes - Output.size())
           {
-            Data.fail("Module archive byte limit exceeded", ModuleArchiveStatus::LimitExceeded);
+            Data.fail("Module archive byte limit exceeded", core::ArchiveStatus::LimitExceeded);
             return;
           }
           if (Data.charge(Text.size(), 2))
@@ -239,7 +239,7 @@ namespace ink::ir::archive
           }
           if (Depth > Data.Limits.MaxNestingDepth)
           {
-            Data.fail("Array constant text nesting limit exceeded", ModuleArchiveStatus::LimitExceeded);
+            Data.fail("Array constant text nesting limit exceeded", core::ArchiveStatus::LimitExceeded);
             return {};
           }
           const auto &R = record(Id);
@@ -277,7 +277,7 @@ namespace ink::ir::archive
               const auto Element = value(R.Fields[Index], Depth + 1);
               if (Text.size() > Data.Limits.MaxArchiveBytes || Element.size() + 3 > Data.Limits.MaxArchiveBytes - Text.size() || !Data.charge(Element.size() + 2, 1))
               {
-                Data.fail("Array constant text byte limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                Data.fail("Array constant text byte limit exceeded", core::ArchiveStatus::LimitExceeded);
                 return {};
               }
               if (Index)
@@ -308,7 +308,7 @@ namespace ink::ir::archive
         void module(std::size_t Id, std::size_t Depth)
         {
           const auto Block = Children[Id][0];
-          line(Depth, "module " + Names[Id] + originalName(Id) + (Used[Block] ? " entry " + Names[Block] : "") + " {");
+          line(Depth, "module " + Names[Id] + originalName(Id) + (Used[Block] ? " entry " + Names[Block] : "") + (record(Id).Linkage.empty() ? "" : " identity " + core::archive::quote(record(Id).Linkage)) + " {");
           if (Id == 1)
           {
             for (std::size_t T = 1; T <= Data.Records.size(); ++T)
@@ -388,6 +388,10 @@ namespace ink::ir::archive
           if (R.Fields.size() == 6)
           {
             Header += " reflect " + type(R.Fields[4]) + (R.Fields[5] ? " initializer " + std::to_string(R.Fields[5] - 1) : " method");
+          }
+          if (!R.Linkage.empty())
+          {
+            Header += " scope " + core::archive::quote(R.Linkage);
           }
           line(Depth, Header + (Body ? " {" : ""));
           if (!Body)
@@ -518,7 +522,7 @@ namespace ink::ir::archive
             Text += ")";
             break;
           default:
-            Data.fail("Unsupported text IR value", ModuleArchiveStatus::InvalidInput);
+            Data.fail("Unsupported text IR value", core::ArchiveStatus::InvalidInput);
             return;
           }
           line(Depth, Text);

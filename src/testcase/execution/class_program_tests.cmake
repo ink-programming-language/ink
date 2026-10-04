@@ -1,6 +1,6 @@
 # Class source programs use the existing isolated source/archive/link/reload runner.
 if(WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  add_source_program_test(Class.Main.MethodsDefaults class_programs/methods_defaults.ink 0 "Class.defaults|default|PASS|Class.pointer_method|default|PASS|Class.temporary_method|PASS|" "" BYTECODE LABELS class)
+  add_source_program_test(Class.Main.MethodsDefaults class_programs/methods_defaults.ink 0 "Class.defaults|default|PASS|Class.pointer_method|default|PASS|Class.temporary_method|default|PASS|" "" BYTECODE LABELS class)
   add_source_program_test(Class.Main.ValuesDunder class_programs/values_dunder.ink 0 "Class.dunder_snapshot|PASS|Class.nested_alias|PASS|Class.pointer_field_copy|PASS|" "" BYTECODE LABELS class)
   add_source_program_test(Class.Main.Comptime class_programs/comptime.ink 0 "Class.comptime_return|PASS|Class.comptime_nested|PASS|" "" BYTECODE LABELS class comptime)
   add_source_program_test(Class.Main.Effects class_programs/effects.ink 0 "Class.method_order|receiver|argument|method|PASS|" "" BYTECODE LABELS class)
@@ -11,7 +11,7 @@ add_source_program_test(Class.Invalid.PrivateMethod class_programs/private_metho
 add_source_program_test(Class.Invalid.UnknownField class_programs/unknown_field.ink 1 "" "INK-S0057" LABELS class)
 add_source_program_test(Class.Invalid.WrongMethodArgument class_programs/wrong_method_argument.ink 1 "" "INK-S0004" LABELS class)
 add_source_program_test(Class.Invalid.MissingInitializer class_programs/missing_initializer.ink 1 "" "INK-S0058" LABELS class)
-add_source_program_test(Class.Invalid.ConstMethod class_programs/const_method.ink 1 "" "INK-S0057" LABELS class)
+add_source_program_test(Class.Invalid.ConstMethod class_programs/readonly_method.ink 1 "" "INK-S0057" LABELS class)
 
 file(GLOB INK_CLASS_MODULE_CASES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/execution/class_programs/multifile/*/case.cmake")
 list(SORT INK_CLASS_MODULE_CASES)

@@ -4,6 +4,7 @@
 #include "ink/execution/artifact/bytecode_artifact.h"
 
 #include <string_view>
+#include <unordered_map>
 
 namespace ink::execution::artifact_detail
 {
@@ -55,6 +56,7 @@ namespace ink::execution::artifact_detail
 
   BytecodeResult accountArtifact(const BytecodeArtifact &Artifact, Budget &Usage);
   bool accountSymbolKey(const BytecodeSymbolIdentity &Identity, Budget &Usage);
+  bool validSymbolLinkage(const BytecodeSymbol &Symbol, const RuntimeFunctionDescriptor &Descriptor, const RuntimeTypeTable &Types, const std::unordered_map<std::string, RuntimeTypeId> &IdentityTypes);
   BytecodeResult typeIdentities(const RuntimeTypeTable &Types, BytecodeLimits Limits, std::vector<std::string> &Identities, Budget *SharedUsage = nullptr);
 } // namespace ink::execution::artifact_detail
 

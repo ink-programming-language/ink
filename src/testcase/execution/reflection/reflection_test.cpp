@@ -1,6 +1,11 @@
 #include "../artifact/artifact_test_support.h"
 #include "ink/execution/reflection/reflection.h"
 #include "ink/ir/module/module_serialization.h"
+#include "ink/ir/linkage.h"
+#include "ink/parser/parser.h"
+#include "ink/semantic/analyzer/analyzer.h"
+#include "ink/semantic/context.h"
+#include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <gtest/gtest.h>
 
@@ -26,6 +31,12 @@ namespace ink::execution::test
 {
   namespace
   {
+    std::string classIdentity(std::string_view ModuleName, std::string_view Name)
+    {
+      const abi::ModuleIdentity Module{{}, abi::modulePath(ModuleName)};
+      return abi::mangle(abi::record('T', {abi::record('c', {ir::declarationRecord(Module, {}, 'c', Name), {'X', {}}})})).Name;
+    }
+
     struct ReflectionProgram : ArtifactContext
     {
         const ir::ClassType *Class = nullptr;
@@ -39,13 +50,13 @@ namespace ink::execution::test
           Class = Builder.createClassType(Context.namePool().intern("Counter"));
           const ir::ClassField Fields[] = {
               {Context.namePool().intern("Value"), &Int32},
-              {Context.namePool().intern("Secret"), &Int32, ir::VisibilityKind::Private},
+              {Context.namePool().intern("Secret"), &Int32, core::VisibilityKind::Private},
           };
-          if (!Builder.defineClassType(*Class, Fields, "reflection::Counter"))
+          if (!Builder.defineClassType(*Class, Fields, classIdentity("reflection", "Counter")))
           {
             return false;
           }
-          Next = function("inkTestReflectionNext", Int32, {}, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+          Next = function("inkTestReflectionNext", Int32, {}, ir::LanguageLinkage::C, core::FunctionBinding::Import);
           Initial = function("Counter.__default_0", Int32);
           if (!begin(*Initial) || !Builder.createReturnInstruction(Builder.createCallInstruction(*Next)) || !Builder.setFieldInitializer(*Class, 0, *Initial))
           {
@@ -82,7 +93,7 @@ namespace ink::execution::test
     ASSERT_TRUE(Test.build());
     const auto Type = Test.Bridge.lowerType(*Test.Class);
     ASSERT_NE(Type, InvalidRuntimeType);
-    EXPECT_EQ(Test.Bridge.types()->find("reflection::Counter")->Type, Type);
+    EXPECT_EQ(Test.Bridge.types()->find(classIdentity("reflection", "Counter"))->Type, Type);
     EXPECT_EQ(Test.Bridge.types()->find("i32")->Type, Test.Bridge.lowerType(Test.Int32));
     ExecutionEngine Engine(Test.Context);
     ExecutionLinker Linker(Test.Bridge);
@@ -140,7 +151,7 @@ namespace ink::execution::test
     auto Linked = linkBytecodeArtifacts(Objects);
     ASSERT_TRUE(Linked) << Linked.Message;
     const auto Types = Linked.Artifact->Image.Layouts;
-    const auto *Class = Types->find("reflection::Counter");
+    const auto *Class = Types->find(classIdentity("reflection", "Counter"));
     ASSERT_NE(Class, nullptr);
     ASSERT_EQ(Class->classDesc().Methods.size(), 1U);
     core::CompilationContext Compilation;
@@ -166,7 +177,7 @@ namespace ink::execution::test
     auto Object = Test.artifact();
     ASSERT_TRUE(Object) << Object.Message;
     auto Types = std::const_pointer_cast<RuntimeTypeTable>(Object.Artifact->Image.Layouts);
-    const auto *Class = Types->find("reflection::Counter");
+    const auto *Class = Types->find(classIdentity("reflection", "Counter"));
     auto Description = std::make_shared<ClassDesc>(Class->classDesc());
     Description->Fields[0].Initializer = Description->Methods[0].Function;
     ASSERT_TRUE(Types->updateClass(Class->Type, Description));
@@ -202,9 +213,9 @@ namespace ink::execution::test
           Bridge.lowerFunction(static_cast<const ir::Function &>(*Value));
         }
       }
-      const auto *Class = Bridge.types()->find("reflection::Counter");
+      const auto *Class = Bridge.types()->find(classIdentity("reflection", "Counter"));
       ASSERT_NE(Class, nullptr);
-      EXPECT_EQ(Class->classDesc().Fields[1].Visibility, MemberVisibility::Private);
+      EXPECT_EQ(Class->classDesc().Fields[1].Visibility, core::VisibilityKind::Private);
       EXPECT_NE(Class->classDesc().Fields[0].Initializer, InvalidFunction);
       ASSERT_EQ(Class->classDesc().Methods.size(), 1U);
       EXPECT_EQ(Class->classDesc().Methods[0].Name, "add");
@@ -218,7 +229,7 @@ namespace ink::execution::test
     auto *Module = Test.Builder.createModule(Test.Context.namePool().intern("types"));
     const auto *Class = Test.Builder.createClassType(Test.Context.namePool().intern("Unused"));
     const ir::ClassField Fields[] = {{Test.Context.namePool().intern("Code"), &Test.Int32}};
-    ASSERT_TRUE(Test.Builder.defineClassType(*Class, Fields, "types::Unused"));
+    ASSERT_TRUE(Test.Builder.defineClassType(*Class, Fields, classIdentity("types", "Unused")));
     ASSERT_TRUE(Test.Builder.registerClassType(*Module, *Class));
     ASSERT_TRUE(Test.Builder.registerClassType(*Module, *Class));
     ASSERT_EQ(Module->classTypes().size(), 1U);
@@ -238,7 +249,7 @@ namespace ink::execution::test
       ASSERT_TRUE(Bytes) << Bytes.Message;
       auto Loaded = deserializeBytecodeArtifact(Bytes.Bytes);
       ASSERT_TRUE(Loaded) << Loaded.Message;
-      const auto *Description = Loaded.Artifact->Image.Layouts->find("types::Unused");
+      const auto *Description = Loaded.Artifact->Image.Layouts->find(classIdentity("types", "Unused"));
       ASSERT_NE(Description, nullptr);
       ASSERT_EQ(Description->classDesc().Fields.size(), 1U);
       EXPECT_EQ(Description->classDesc().Fields[0].Name, "Code");
@@ -311,16 +322,16 @@ namespace ink::execution::test
     ArtifactContext Test;
     const auto *Class = Test.Builder.createClassType(Test.Context.namePool().intern("Record"));
     const ir::ClassField Fields[] = {{Test.Context.namePool().intern("Value"), &Test.Int32}};
-    ASSERT_TRUE(Test.Builder.defineClassType(*Class, Fields, "reflection::Record"));
+    ASSERT_TRUE(Test.Builder.defineClassType(*Class, Fields, classIdentity("reflection", "Record")));
     Test.Bridge.lowerType(*Class);
     auto Object = buildBytecodeObject("reflection", Test.Bridge, {});
     ASSERT_TRUE(Object);
     auto Types = std::const_pointer_cast<RuntimeTypeTable>(Object.Artifact->Image.Layouts);
-    const auto Duplicate = Types->append(*Types->find("reflection::Record"));
+    const auto Duplicate = Types->append(*Types->find(classIdentity("reflection", "Record")));
     ASSERT_NE(Duplicate, InvalidRuntimeType);
     ASSERT_TRUE(validateBytecodeArtifact(*Object.Artifact));
     auto Description = std::make_shared<ClassDesc>(Types->get(Duplicate)->classDesc());
-    Description->Fields[0].Visibility = MemberVisibility::Private;
+    Description->Fields[0].Visibility = core::VisibilityKind::Private;
     ASSERT_TRUE(Types->updateClass(Duplicate, std::move(Description)));
     EXPECT_FALSE(validateBytecodeArtifact(*Object.Artifact));
   }
@@ -344,5 +355,83 @@ namespace ink::execution::test
     Test.Bridge.synchronizeReflection();
     EXPECT_TRUE(Test.Bridge.types()->get(Type)->classDesc().Methods.empty());
     EXPECT_EQ(Test.Bridge.types()->get(Type)->classDesc().Fields[0].Initializer, InvalidFunction);
+  }
+
+  // Reflected source classes use constructor signatures and explicit destruction, including private fields.
+  TEST(ReflectionTest, InvokesSourceLifecycleHooks)
+  {
+    core::CompilationContext Compilation;
+    core::FrontendContext Frontend(Compilation);
+    auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, "import \"C\" func inkTestReflectionNext(): i32; class Item { private field Value: i32; func __init__(Start: i32): void { this.Value = Start + 2; inkTestReflectionNext(); } func __del__(): void { inkTestReflectionNext(); } func read(): i32 { return this.Value; } };"));
+    ASSERT_TRUE(Parsed.succeeded());
+    semantic::SemanticContext Context(Compilation);
+    auto *Module = semantic::Analyzer{}.analyze(Context, Parsed, "lifecycle");
+    ASSERT_NE(Module, nullptr);
+    const auto *Binding = semantic::NameResolver(Context).lookupMember(*Module, Context.namePool().find("Item"));
+    ASSERT_NE(Binding, nullptr);
+    const auto &Class = static_cast<const ir::ClassType &>(*Binding->targets().front());
+    SemanticValueBridge Bridge(Context.irContext());
+    const auto Type = Bridge.lowerType(Class);
+    ExecutionEngine Engine(Context.irContext());
+    ExecutionLinker Linker(Bridge);
+    ExecutionMachine Machine(Engine, Linker);
+    auto &Memory = Engine.heap().memoryManager();
+    Reflection Reflect(Bridge.types(), Memory, &Machine);
+    const auto Int32 = Bridge.lowerType(*Context.typePool().getType<ir::TypeKind::Integer>(32, true));
+    const ReflectedValue Arguments[] = {Reflect.value(RuntimeValue::fromBits(40, Int32))};
+    InitializerCalls = 0;
+    EXPECT_EQ(Reflect.construct(Type).Status, ExecutionStatus::InvalidArguments);
+    EXPECT_EQ(InitializerCalls, 0);
+    EXPECT_EQ(Memory.liveStorageCount(), 0U);
+    const auto Place = Reflect.construct(Type, Arguments);
+    ASSERT_TRUE(Place) << static_cast<unsigned>(Place.Status);
+    const auto Object = Reflect.view(Place.Place);
+    ASSERT_TRUE(Object);
+    EXPECT_EQ(Reflect.invoke(Object.Value, "read").Value.Bits, 42U);
+    EXPECT_EQ(InitializerCalls, 1);
+    EXPECT_EQ(Reflect.destroy(Object.Value), ExecutionStatus::Success);
+    EXPECT_EQ(InitializerCalls, 2);
+    EXPECT_EQ(Memory.release(Place.Place), ExecutionStatus::Success);
+    EXPECT_EQ(Memory.liveStorageCount(), 0U);
+  }
+
+  // Compile-time scopes retain distinct object identities even when their constant values are identical.
+  TEST(ReflectionTest, CleansCompileTimeObjectLifetimes)
+  {
+    struct Case
+    {
+        std::string_view Source;
+        std::int32_t Destructions;
+    };
+    const Case Cases[] = {
+        {"comptime var A = P();", 1},
+        {"func Entry(): i32 { comptime var A = P(); return 42; }", 1},
+        {"comptime { var A = [P(), P()]; }", 2},
+        {"comptime { var A = [P(); 2]; }", 2},
+        {"comptime { var A = P(); A = P(); }", 2},
+        {"comptime { var A = [P(), P()]; A[0] = P(); }", 3},
+        {"comptime { var A = [P(), P()]; var I = 0; A[I++] = P(); if (I == 1) { P(); } }", 4},
+        {"comptime { var A = P(); P() + A; }", 3},
+        {"comptime for (var I = 0; I < 2; I++) { comptime var A = P(); }", 2},
+        {"comptime if (true) comptime var A = P();", 1},
+    };
+    for (const auto &Case : Cases)
+    {
+      SCOPED_TRACE(Case.Source);
+      for (const bool Modules : {false, true})
+      {
+        SCOPED_TRACE(Modules);
+        core::CompilationContext Compilation;
+        core::FrontendContext Frontend(Compilation);
+        const std::string Source = "import \"C\" func inkTestReflectionNext(): i32; class P { field X: i32 = 1; func __del__(): void { inkTestReflectionNext(); } func __add__(Other: P): i32 { return this.X + Other.X; } }; " + std::string(Case.Source);
+        auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, Source));
+        ASSERT_TRUE(Parsed.succeeded());
+        semantic::SemanticContext Context(Compilation);
+        const semantic::Analyzer::ModuleInput Input{"lifecycle", &Parsed};
+        InitializerCalls = 0;
+        ASSERT_NE(Modules ? semantic::Analyzer{}.analyzeModules(Context, std::span<const semantic::Analyzer::ModuleInput>(&Input, 1), "lifecycle") : semantic::Analyzer{}.analyze(Context, Parsed, "lifecycle"), nullptr);
+        EXPECT_EQ(InitializerCalls, Case.Destructions);
+      }
+    }
   }
 } // namespace ink::execution::test

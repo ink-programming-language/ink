@@ -1,6 +1,8 @@
 #ifndef INK_EXECUTION_ARTIFACT_BYTECODE_ARTIFACT_H
 #define INK_EXECUTION_ARTIFACT_BYTECODE_ARTIFACT_H
 
+#include "ink/core/generic_argument_kind.h"
+
 #include "ink/execution/bytecode/execution_image.h"
 
 #include <cstddef>
@@ -31,16 +33,10 @@ namespace ink::execution
     Public,
   };
 
-  enum class BytecodeGenericArgumentKind : std::uint8_t
-  {
-    Type,
-    Constant,
-  };
-
   // Canonical type identities and exact constant encodings, never context-local IDs.
   struct BytecodeGenericArgument
   {
-      BytecodeGenericArgumentKind Kind = BytecodeGenericArgumentKind::Type;
+      core::GenericArgumentKind Kind = core::GenericArgumentKind::Type;
       std::string Type;
       std::string Value;
 
@@ -53,6 +49,8 @@ namespace ink::execution
       std::string Name;
       std::string Signature;
       std::vector<BytecodeGenericArgument> GenericArguments;
+      // Canonical _INK2 link name; the fields above remain diagnostic/ABI metadata.
+      std::string LinkName;
 
       bool operator==(const BytecodeSymbolIdentity &) const = default;
   };

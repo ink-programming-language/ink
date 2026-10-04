@@ -42,22 +42,22 @@ namespace ink::ir::archive
 
   struct ComparisonPredicateInfo
   {
-      ComparisonPredicate Predicate;
+      core::ComparisonPredicate Predicate;
       std::uint64_t Wire;
       std::string_view Text;
   };
 
   // Wire values are explicit so changes to the public enum cannot change existing archives.
   inline constexpr ComparisonPredicateInfo ComparisonPredicates[] = {
-      {ComparisonPredicate::Equal, 0, "eq"},
-      {ComparisonPredicate::NotEqual, 1, "ne"},
-      {ComparisonPredicate::Less, 2, "lt"},
-      {ComparisonPredicate::LessEqual, 3, "le"},
-      {ComparisonPredicate::Greater, 4, "gt"},
-      {ComparisonPredicate::GreaterEqual, 5, "ge"},
+      {core::ComparisonPredicate::Equal, 0, "eq"},
+      {core::ComparisonPredicate::NotEqual, 1, "ne"},
+      {core::ComparisonPredicate::Less, 2, "lt"},
+      {core::ComparisonPredicate::LessEqual, 3, "le"},
+      {core::ComparisonPredicate::Greater, 4, "gt"},
+      {core::ComparisonPredicate::GreaterEqual, 5, "ge"},
   };
 
-  inline const ComparisonPredicateInfo *comparisonPredicateInfo(ComparisonPredicate Predicate)
+  inline const ComparisonPredicateInfo *comparisonPredicateInfo(core::ComparisonPredicate Predicate)
   {
     for (const auto &Info : ComparisonPredicates)
     {
@@ -112,6 +112,7 @@ namespace ink::ir::archive
       std::uint64_t Parent = 0;
       std::vector<std::uint64_t> Fields;
       std::string Text;
+      std::string Linkage;
   };
 
   class State
@@ -124,7 +125,7 @@ namespace ink::ir::archive
 
       bool good() const noexcept
       {
-        return Status == ModuleArchiveStatus::Success;
+        return Status == core::ArchiveStatus::Success;
       }
 
       parser::ASTArchiveLimits astLimits() const
@@ -135,7 +136,7 @@ namespace ink::ir::archive
         return Result;
       }
 
-      bool fail(std::string_view Reason, ModuleArchiveStatus Failure = ModuleArchiveStatus::InvalidArchive)
+      bool fail(std::string_view Reason, core::ArchiveStatus Failure = core::ArchiveStatus::InvalidArchive)
       {
         if (good())
         {
@@ -153,7 +154,7 @@ namespace ink::ir::archive
         }
         if (Size && Count > (Limits.MaxAllocationBytes - Allocated) / Size)
         {
-          return fail("Module archive allocation limit exceeded", ModuleArchiveStatus::LimitExceeded);
+          return fail("Module archive allocation limit exceeded", core::ArchiveStatus::LimitExceeded);
         }
         Allocated += Count * Size;
         return true;
@@ -163,7 +164,7 @@ namespace ink::ir::archive
       {
         if (Records.size() >= Limits.MaxObjects)
         {
-          return fail("Module archive object limit exceeded", ModuleArchiveStatus::LimitExceeded);
+          return fail("Module archive object limit exceeded", core::ArchiveStatus::LimitExceeded);
         }
         // Includes records, graph bookkeeping, ownership, pool objects and container overhead.
         if (!charge(1, 1024))
@@ -178,7 +179,7 @@ namespace ink::ir::archive
       {
         if (Count > Limits.MaxFields)
         {
-          return fail("Module archive field limit exceeded", ModuleArchiveStatus::LimitExceeded);
+          return fail("Module archive field limit exceeded", core::ArchiveStatus::LimitExceeded);
         }
         return charge(Count, 64);
       }
@@ -187,13 +188,13 @@ namespace ink::ir::archive
       {
         if (Size > Limits.MaxStringBytes)
         {
-          return fail("Module archive string limit exceeded", ModuleArchiveStatus::LimitExceeded);
+          return fail("Module archive string limit exceeded", core::ArchiveStatus::LimitExceeded);
         }
         return charge(Size, 8);
       }
 
       ModuleArchiveLimits Limits;
-      ModuleArchiveStatus Status = ModuleArchiveStatus::Success;
+      core::ArchiveStatus Status = core::ArchiveStatus::Success;
       std::string Message;
       std::vector<Record> Records;
       std::vector<std::pair<std::uint64_t, std::uint64_t>> OperandTypes;

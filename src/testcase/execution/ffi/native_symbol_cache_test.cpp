@@ -213,7 +213,7 @@ namespace ink::execution::test
     ASSERT_NE(Int32, nullptr);
     const auto *Signature = Context.typePool().getType<ir::TypeKind::Function>(*Int32, std::span<const ir::Type *const>{});
     ASSERT_NE(Signature, nullptr);
-    auto Function = Builder.createFunction(Context.namePool().intern("inkTestNativeSymbolCacheCounter"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto Function = Builder.createFunction(Context.namePool().intern("inkTestNativeSymbolCacheCounter"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(Function, nullptr);
     unsigned ResolverCalls = 0;
     auto Resolve = [&](std::string_view Name) -> NativeSymbol

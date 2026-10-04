@@ -57,7 +57,7 @@ namespace ink::execution::test
         std::unique_ptr<ir::Function> function(std::string_view Name, const ir::Type &Result, std::span<const ir::Type *const> Parameters = {})
         {
           const auto *Signature = Context.typePool().getType<ir::TypeKind::Function>(Result, Parameters);
-          return Signature ? Builder.createFunction(Context.namePool().intern(Name), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import) : nullptr;
+          return Signature ? Builder.createFunction(Context.namePool().intern(Name), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import) : nullptr;
         }
 
         std::unique_ptr<ir::Function> writeFunction(bool VoidBuffer = false)
@@ -130,7 +130,7 @@ namespace ink::execution::test
     EXPECT_EQ(Test.Engine.execute(*Zero).Value.toConstant(Test.Context), &Test.integer(Test.Int32, 37));
     const auto Stored = Test.Engine.execute(*Set, Arguments);
     ASSERT_TRUE(Stored);
-    EXPECT_EQ(Stored.Value.kind(), ExecutionValueKind::Void);
+    EXPECT_EQ(Stored.Value.kind(), RuntimeKind::Void);
     EXPECT_EQ(Test.Engine.execute(*Get).Value.toConstant(Test.Context), &Test.integer(Test.Int32, 12345));
   }
 

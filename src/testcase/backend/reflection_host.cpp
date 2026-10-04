@@ -4,7 +4,7 @@
 
 using namespace ink::execution;
 
-extern "C" const NativeModuleDesc *ink_reflection_6d61696e();
+extern "C" const NativeModuleDesc *_INK2J49_P31_N5_localL12_N9_anonymousN1_0L0_M10_N7_program();
 
 namespace
 {
@@ -18,7 +18,7 @@ extern "C" std::int32_t inkReflectionNext()
 
 extern "C" std::int32_t inkReflectionProbe()
 {
-  const auto *Module = ink_reflection_6d61696e();
+  const auto *Module = _INK2J49_P31_N5_localL12_N9_anonymousN1_0L0_M10_N7_program();
   if (!Module || Module->Version != 1)
   {
     return 1;
@@ -94,5 +94,10 @@ extern "C" std::int32_t inkReflectionProbe()
     return 10;
   }
   std::memcpy(&Flag, Element.Data, sizeof(Flag));
+  Object.Writable = true;
+  if (nativeDestroy(Object) != ExecutionStatus::Success || nativeDestroy(Copy) != ExecutionStatus::Success)
+  {
+    return 13;
+  }
   return Flag == 0 ? 0 : 11;
 }

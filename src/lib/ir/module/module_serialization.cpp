@@ -1,4 +1,6 @@
 #include "module_serialization_internal.h"
+#include "ink/ir/linkage.h"
+#include <charconv>
 
 #include "ink/ir/ir_builder.h"
 #include "ink/ir/analysis/type_layout.h"
@@ -31,8 +33,8 @@ namespace ink::ir::archive
     static_assert(static_cast<unsigned>(ParameterKind::Positional) == 0 && static_cast<unsigned>(ParameterKind::Named) == 1 && static_cast<unsigned>(ParameterKind::Variadic) == 2);
     static_assert(static_cast<unsigned>(CallingConvention::C) == 0 && static_cast<unsigned>(CallingConvention::Fast) == 1 && static_cast<unsigned>(CallingConvention::Cold) == 2);
     static_assert(static_cast<unsigned>(LanguageLinkage::Ink) == 0 && static_cast<unsigned>(LanguageLinkage::C) == 1);
-    static_assert(static_cast<unsigned>(FunctionBinding::Local) == 0 && static_cast<unsigned>(FunctionBinding::Import) == 1 && static_cast<unsigned>(FunctionBinding::Export) == 2);
-    static_assert(static_cast<unsigned>(VisibilityKind::Public) == 0 && static_cast<unsigned>(VisibilityKind::Private) == 1);
+    static_assert(static_cast<unsigned>(core::FunctionBinding::Local) == 0 && static_cast<unsigned>(core::FunctionBinding::Import) == 1 && static_cast<unsigned>(core::FunctionBinding::Export) == 2);
+    static_assert(static_cast<unsigned>(core::VisibilityKind::Public) == 0 && static_cast<unsigned>(core::VisibilityKind::Private) == 1);
 
     bool isType(Tag Kind)
     {
@@ -47,24 +49,6 @@ namespace ink::ir::archive
     bool syntax(Tag Kind)
     {
       return Kind == Tag::AST || Kind == Tag::ModuleDecl || Kind == Tag::FunctionDecl || Kind == Tag::ClassDecl;
-    }
-
-    ModuleArchiveStatus astStatus(parser::ASTArchiveStatus Status)
-    {
-      switch (Status)
-      {
-      case parser::ASTArchiveStatus::Success:
-        return ModuleArchiveStatus::Success;
-      case parser::ASTArchiveStatus::InvalidInput:
-        return ModuleArchiveStatus::InvalidInput;
-      case parser::ASTArchiveStatus::InvalidArchive:
-        return ModuleArchiveStatus::InvalidArchive;
-      case parser::ASTArchiveStatus::UnsupportedVersion:
-        return ModuleArchiveStatus::UnsupportedVersion;
-      case parser::ASTArchiveStatus::LimitExceeded:
-        return ModuleArchiveStatus::LimitExceeded;
-      }
-      return ModuleArchiveStatus::InvalidArchive;
     }
 
     class Collector
@@ -88,7 +72,7 @@ namespace ink::ir::archive
             {
               if (ValueObject.outer() != &Object)
               {
-                Data.fail("Inconsistent IR ownership", ModuleArchiveStatus::InvalidInput);
+                Data.fail("Inconsistent IR ownership", core::ArchiveStatus::InvalidInput);
                 return;
               }
               add(ValueObject, Index + 1, Depths[Index] + 1);
@@ -175,7 +159,7 @@ namespace ink::ir::archive
           {
             if (!Source || !Source->Unit || !Source->Unit->root())
             {
-              return Data.fail("Missing declaration AST input", ModuleArchiveStatus::InvalidInput);
+              return Data.fail("Missing declaration AST input", core::ArchiveStatus::InvalidInput);
             }
             std::size_t NodeId = 0;
             parser::ASTWalker{}.walk(Source->Unit->root(), [&](const parser::ASTNodeBase *)
@@ -186,7 +170,7 @@ namespace ink::ir::archive
                                      {
                                        if (++NodeId > Data.Limits.AST.MaxNodes)
                                        {
-                                         Data.fail("Module AST node limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                                         Data.fail("Module AST node limit exceeded", core::ArchiveStatus::LimitExceeded);
                                        }
                                        else if (Data.charge(1, 128))
                                        {
@@ -204,12 +188,12 @@ namespace ink::ir::archive
             const auto Current = PendingDeclarations[Position];
             if (Current.Depth > Data.Limits.MaxNestingDepth)
             {
-              return Data.fail("Module declaration nesting limit exceeded", ModuleArchiveStatus::LimitExceeded);
+              return Data.fail("Module declaration nesting limit exceeded", core::ArchiveStatus::LimitExceeded);
             }
             const auto Found = References.find(&Current.Object->ast());
             if (Found == References.end())
             {
-              return Data.fail("Provide the ParseResult owning each declaration AST in Sources", ModuleArchiveStatus::InvalidInput);
+              return Data.fail("Provide the ParseResult owning each declaration AST in Sources", core::ArchiveStatus::InvalidInput);
             }
             auto ASTId = ASTIds.find(Found->second.Parsed);
             if (ASTId == ASTIds.end())
@@ -217,7 +201,7 @@ namespace ink::ir::archive
               auto Snapshot = Data.TextFormat ? parser::trySerializeASTText(*Found->second.Parsed, Data.astLimits()) : parser::trySerializeAST(*Found->second.Parsed, Data.astLimits());
               if (!Snapshot.succeeded())
               {
-                return Data.fail(Snapshot.Message, astStatus(Snapshot.Status));
+                return Data.fail(Snapshot.Message, Snapshot.Status);
               }
               if (!Data.addRecord() || !Data.string(Snapshot.Bytes.size()))
               {
@@ -245,7 +229,7 @@ namespace ink::ir::archive
             {
               if (Child->parent() != Current.Object || &Child->module() != &Current.Object->module())
               {
-                return Data.fail("Inconsistent declaration ownership", ModuleArchiveStatus::InvalidInput);
+                return Data.fail("Inconsistent declaration ownership", core::ArchiveStatus::InvalidInput);
               }
               PendingDeclarations.push_back({Child.get(), Id, Current.Depth + 1});
             }
@@ -261,12 +245,12 @@ namespace ink::ir::archive
           }
           if (&Object.context() != &Root.context() || Ids.contains(&Object))
           {
-            Data.fail("Foreign or multiply owned IR object", ModuleArchiveStatus::InvalidInput);
+            Data.fail("Foreign or multiply owned IR object", core::ArchiveStatus::InvalidInput);
             return 0;
           }
           if (Depth > Data.Limits.MaxNestingDepth)
           {
-            Data.fail("Module archive nesting limit exceeded", ModuleArchiveStatus::LimitExceeded);
+            Data.fail("Module archive nesting limit exceeded", core::ArchiveStatus::LimitExceeded);
             return 0;
           }
           if (!Data.addRecord())
@@ -289,7 +273,7 @@ namespace ink::ir::archive
           }
           if (!Type::classof(&Object) && !Constant::classof(&Object))
           {
-            Data.fail("IR operand is outside the module ownership tree", ModuleArchiveStatus::InvalidInput);
+            Data.fail("IR operand is outside the module ownership tree", core::ArchiveStatus::InvalidInput);
             return 0;
           }
           return add(Object, 0, 1);
@@ -299,7 +283,7 @@ namespace ink::ir::archive
         {
           if (Entry.Fields.size() >= Data.Limits.MaxFields)
           {
-            Data.fail("Module archive field limit exceeded", ModuleArchiveStatus::LimitExceeded);
+            Data.fail("Module archive field limit exceeded", core::ArchiveStatus::LimitExceeded);
           }
           else if (Data.fields(1))
           {
@@ -403,23 +387,49 @@ namespace ink::ir::archive
             ref(Entry, static_cast<const ArrayExtractInstruction &>(Object).index());
             break;
           case ValueKind::Module:
+          {
             Entry.Kind = Tag::Module;
             name(Entry, static_cast<const Module &>(Object).name());
+            const auto &Owner = static_cast<const Module &>(Object);
+            const abi::ModuleIdentity Default{{}, abi::modulePath(Owner.context().namePool().text(Owner.name()))};
+            if (Owner.linkageIdentity() != Default)
+            {
+              const auto Identity = reflectionSymbol(Owner);
+              if (!Identity)
+              {
+                Data.fail("Invalid module linkage identity", core::ArchiveStatus::InvalidInput);
+                break;
+              }
+              if (!Data.string(Identity.Name.size()))
+              {
+                break;
+              }
+              Entry.Linkage = Identity.Name;
+            }
             for (const auto *Class : static_cast<const Module &>(Object).classTypes())
             {
               ref(Entry, *Class);
             }
             break;
+          }
           case ValueKind::Function:
           {
             Entry.Kind = Tag::Function;
             const auto &FunctionValue = static_cast<const Function &>(Object);
             if (FunctionValue.isNativeExport() && !FunctionValue.hasBody())
             {
-              Data.fail("Native export requires a function body", ModuleArchiveStatus::InvalidInput);
+              Data.fail("Native export requires a function body", core::ArchiveStatus::InvalidInput);
               break;
             }
             name(Entry, FunctionValue.name());
+            for (const auto Index : FunctionValue.lexicalScope())
+            {
+              Entry.Linkage += abi::encodeRecord({'D', std::to_string(Index)});
+            }
+            if (!Data.string(Entry.Linkage.size()))
+            {
+              break;
+            }
             field(Entry, static_cast<unsigned>(FunctionValue.callingConvention()));
             field(Entry, static_cast<unsigned>(FunctionValue.languageLinkage()));
             field(Entry, static_cast<unsigned>(FunctionValue.visibility()));
@@ -497,7 +507,7 @@ namespace ink::ir::archive
             const auto *Predicate = comparisonPredicateInfo(Compare.predicate());
             if (!Predicate)
             {
-              Data.fail("Unsupported comparison predicate", ModuleArchiveStatus::InvalidInput);
+              Data.fail("Unsupported comparison predicate", core::ArchiveStatus::InvalidInput);
               break;
             }
             field(Entry, Predicate->Wire);
@@ -526,7 +536,7 @@ namespace ink::ir::archive
             break;
           }
           default:
-            Data.fail("Unsupported IR value kind", ModuleArchiveStatus::InvalidInput);
+            Data.fail("Unsupported IR value kind", core::ArchiveStatus::InvalidInput);
           }
         }
 
@@ -760,7 +770,7 @@ namespace ink::ir::archive
               {
                 return Data.fail("Class field type is unavailable");
               }
-              Members.push_back({Context.namePool().intern(std::string_view(Entry.Text).substr(Offset, static_cast<std::size_t>(Fields[Index + 2]))), FieldType, static_cast<VisibilityKind>(Fields[Index + 1])});
+              Members.push_back({Context.namePool().intern(std::string_view(Entry.Text).substr(Offset, static_cast<std::size_t>(Fields[Index + 2]))), FieldType, static_cast<core::VisibilityKind>(Fields[Index + 1])});
               Offset += static_cast<std::size_t>(Fields[Index + 2]);
             }
             if (!Builder.defineClassType(*as<ClassType>(Id), Members, std::string_view(Entry.Text).substr(static_cast<std::size_t>(Fields[0]), static_cast<std::size_t>(Fields[1]))))
@@ -809,7 +819,7 @@ namespace ink::ir::archive
           {
             const auto &Entry = record(Id);
             const auto *Info = tagInfo(static_cast<unsigned>(Entry.Kind));
-            if (!Info || Entry.Fields.size() < Info->MinFields || Entry.Fields.size() > Info->MaxFields || (!Info->HasText && !Entry.Text.empty()))
+            if (!Info || Entry.Fields.size() < Info->MinFields || Entry.Fields.size() > Info->MaxFields || (!Info->HasText && !Entry.Text.empty()) || (!Entry.Linkage.empty() && Entry.Kind != Tag::Module && Entry.Kind != Tag::Function))
             {
               return Data.fail("Invalid fields at object " + std::to_string(Id));
             }
@@ -839,7 +849,7 @@ namespace ink::ir::archive
               Depths[Id] = Depths[Entry.Parent] + 1;
               if (Depths[Id] > Data.Limits.MaxNestingDepth)
               {
-                return Data.fail("Module declaration nesting limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                return Data.fail("Module declaration nesting limit exceeded", core::ArchiveStatus::LimitExceeded);
               }
               continue;
             }
@@ -880,7 +890,7 @@ namespace ink::ir::archive
               Depths[Id] = Depths[Entry.Parent] + 1;
               if (Depths[Id] > Data.Limits.MaxNestingDepth)
               {
-                return Data.fail("Module archive ownership depth exceeded", ModuleArchiveStatus::LimitExceeded);
+                return Data.fail("Module archive ownership depth exceeded", core::ArchiveStatus::LimitExceeded);
               }
               Children[Entry.Parent].push_back(Id);
             }
@@ -1078,7 +1088,7 @@ namespace ink::ir::archive
             auto Result = Data.TextFormat ? parser::tryDeserializeASTText(Frontend, record(Id).Text, Data.astLimits()) : parser::tryDeserializeAST(Frontend, record(Id).Text, Data.astLimits());
             if (!Result.succeeded())
             {
-              return Data.fail(Result.Message, astStatus(Result.Status));
+              return Data.fail(Result.Message, Result.Status);
             }
             if (!Data.charge(Result.AllocationBytes, 1))
             {
@@ -1282,6 +1292,16 @@ namespace ink::ir::archive
           case Tag::Module:
             if (auto *ModuleValue = Builder.createModule(NameValue()))
             {
+              auto ModuleOwner = Builder.removeModule(*ModuleValue);
+              if (!Entry.Linkage.empty())
+              {
+                const auto Decoded = abi::demangle(Entry.Linkage);
+                const auto Identity = Decoded ? abi::moduleIdentity(*Decoded.Identity) : std::nullopt;
+                if (!Identity || !Builder.setModuleIdentity(*ModuleValue, *Identity))
+                {
+                  return nullptr;
+                }
+              }
               for (auto Class : Fields)
               {
                 if (!as<ClassType>(Class) || !Builder.registerClassType(*ModuleValue, *as<ClassType>(Class)))
@@ -1289,7 +1309,7 @@ namespace ink::ir::archive
                   return nullptr;
                 }
               }
-              return own(Id, Builder.removeModule(*ModuleValue));
+              return own(Id, std::move(ModuleOwner));
             }
             return nullptr;
           case Tag::Function:
@@ -1308,8 +1328,28 @@ namespace ink::ir::archive
                 Names.push_back(Context.namePool().intern(record(Child).Text));
               }
             }
-            auto FunctionValue = Builder.createFunction(NameValue(), *as<FunctionType>(Entry.Type), Kinds, Names, static_cast<CallingConvention>(Fields[0]), static_cast<LanguageLinkage>(Fields[1]), static_cast<FunctionBinding>(Fields[3]));
-            if (!FunctionValue || !Builder.setFunctionVisibility(*FunctionValue, static_cast<VisibilityKind>(Fields[2])))
+            auto FunctionValue = Builder.createFunction(NameValue(), *as<FunctionType>(Entry.Type), Kinds, Names, static_cast<CallingConvention>(Fields[0]), static_cast<LanguageLinkage>(Fields[1]), static_cast<core::FunctionBinding>(Fields[3]));
+            if (!FunctionValue || !Builder.setFunctionVisibility(*FunctionValue, static_cast<core::VisibilityKind>(Fields[2])))
+            {
+              return nullptr;
+            }
+            const auto Scope = abi::childRecords({'O', Entry.Linkage});
+            if (!Scope || Scope->size() >= abi::ManglingLimits{}.MaxDepth)
+            {
+              return nullptr;
+            }
+            std::vector<std::uint64_t> Indices;
+            for (const auto &Part : *Scope)
+            {
+              std::uint64_t Index = 0;
+              const auto Parsed = std::from_chars(Part.Payload.data(), Part.Payload.data() + Part.Payload.size(), Index);
+              if (Part.Tag != 'D' || Part.Payload.empty() || (Part.Payload.size() > 1 && Part.Payload.front() == '0') || Parsed.ec != std::errc{} || Parsed.ptr != Part.Payload.data() + Part.Payload.size())
+              {
+                return nullptr;
+              }
+              Indices.push_back(Index);
+            }
+            if (!Builder.setFunctionLexicalScope(*FunctionValue, std::move(Indices)))
             {
               return nullptr;
             }
@@ -1429,7 +1469,7 @@ namespace ink::ir
       Data.TextFormat = !Binary;
       if (Bytes.size() > Limits.MaxArchiveBytes)
       {
-        return {nullptr, ModuleArchiveStatus::LimitExceeded, "Module archive byte limit exceeded"};
+        return {nullptr, core::ArchiveStatus::LimitExceeded, "Module archive byte limit exceeded"};
       }
       const bool Read = Binary ? archive::readBinary(Bytes, Data) : archive::readText(Bytes, Data);
       auto *ModuleValue = Read ? archive::restore(Context, Data) : nullptr;

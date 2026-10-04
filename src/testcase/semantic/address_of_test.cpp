@@ -86,7 +86,7 @@ namespace ink::semantic::test
       ExecutionEngine Engine(Input.Context.irContext());
       const auto Result = Engine.execute(*Entry);
       ASSERT_TRUE(Result) << static_cast<int>(Result.Status);
-      ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Integer);
+      ASSERT_EQ(Result.Value.kind(), RuntimeKind::Integer);
       ASSERT_EQ(Result.Value.integer().bitWidth(), 32U);
       const auto Bits = Result.Value.integer().bits();
       ASSERT_EQ(Bits.words().size(), 1U);

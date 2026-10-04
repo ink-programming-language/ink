@@ -154,12 +154,12 @@ namespace ink::ir
       // Calling convention, language linkage and native binding are function metadata, not FunctionType identity.
       // Defaults to a local function with the target C convention and Ink linkage; invalid enum values return null.
       // Native imports and exports require C convention and linkage. Local C functions may have bodies.
-      [[nodiscard]] std::unique_ptr<Function> createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds = {}, std::span<const Name> ParameterNames = {}, CallingConvention Convention = CallingConvention::C, LanguageLinkage Linkage = LanguageLinkage::Ink, FunctionBinding Binding = FunctionBinding::Local);
+      [[nodiscard]] std::unique_ptr<Function> createFunction(Name FunctionName, const FunctionType &Signature, std::span<const ParameterKind> ParameterKinds = {}, std::span<const Name> ParameterNames = {}, CallingConvention Convention = CallingConvention::C, LanguageLinkage Linkage = LanguageLinkage::Ink, core::FunctionBinding Binding = core::FunctionBinding::Local);
       // Creates an empty entry block. Foreign contexts, native imports or existing bodies return null.
       BasicBlock *createFunctionBody(Function &FunctionValue);
-      bool setFunctionVisibility(Function &FunctionValue, VisibilityKind Visibility) noexcept;
+      bool setFunctionVisibility(Function &FunctionValue, core::VisibilityKind Visibility) noexcept;
       // Native imports cannot have bodies; native imports and exports require C convention and linkage.
-      bool setFunctionBinding(Function &FunctionValue, FunctionBinding Binding) noexcept;
+      bool setFunctionBinding(Function &FunctionValue, core::FunctionBinding Binding) noexcept;
       // Returns a detached owner with the local label type and an initially empty value list.
       [[nodiscard]] std::unique_ptr<BasicBlock> createBasicBlock();
       // Appends a block; the first becomes the entry. Foreign contexts and native imports return null.
@@ -167,6 +167,9 @@ namespace ink::ir
 
       // Creates a context-owned root module with its own empty entry block. Requires a local name.
       Module *createModule(Name ModuleName);
+      // Fix the resolved identity before inserting declarations, class roots or function values.
+      bool setModuleIdentity(Module &Owner, abi::ModuleIdentity Identity);
+      bool setFunctionLexicalScope(Function &Owner, std::vector<std::uint64_t> Scope);
 
       // Attaches the local module's unique declaration root, using its name; existing roots return null.
       // The AST and its ParsedUnit must outlive the owning module.
@@ -208,7 +211,7 @@ namespace ink::ir
       [[nodiscard]] std::unique_ptr<LogicalAndInstruction> createDetachedLogicalAndInstruction(const Value &Left, const Value &Right);
       [[nodiscard]] std::unique_ptr<LogicalOrInstruction> createDetachedLogicalOrInstruction(const Value &Left, const Value &Right);
       // Same local integer type for all predicates; bool operands support only Equal and NotEqual.
-      [[nodiscard]] std::unique_ptr<CompareInstruction> createDetachedCompareInstruction(ComparisonPredicate Predicate, const Value &Left, const Value &Right);
+      [[nodiscard]] std::unique_ptr<CompareInstruction> createDetachedCompareInstruction(core::ComparisonPredicate Predicate, const Value &Left, const Value &Right);
       // Creates a detached return; a supplied operand must be local and non-void.
       // Function identity and return-signature validation are determined when appendValue() attaches it.
       [[nodiscard]] std::unique_ptr<ReturnInstruction> createDetachedReturnInstruction(const Value *ReturnedValue = nullptr);
@@ -234,7 +237,7 @@ namespace ink::ir
       LogicalNotInstruction *createLogicalNotInstruction(const Value &Operand);
       LogicalAndInstruction *createLogicalAndInstruction(const Value &Left, const Value &Right);
       LogicalOrInstruction *createLogicalOrInstruction(const Value &Left, const Value &Right);
-      CompareInstruction *createCompareInstruction(ComparisonPredicate Predicate, const Value &Left, const Value &Right);
+      CompareInstruction *createCompareInstruction(core::ComparisonPredicate Predicate, const Value &Left, const Value &Right);
       // Returns require a function block, a matching return value, and an unterminated block's end.
       ReturnInstruction *createReturnInstruction(const Value *ReturnedValue = nullptr);
       BranchInstruction *createBranchInstruction(const BasicBlock &Target);

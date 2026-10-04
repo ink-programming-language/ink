@@ -85,8 +85,8 @@ namespace ink::execution
         {
           return {Status};
         }
-        HasStrings = HasStrings || Arguments[Index].kind() == ExecutionValueKind::String;
-        if (!External && Arguments[Index].type() != &Function.parameters()[Index]->type() && !(CAbi && Arguments[Index].kind() == ExecutionValueKind::String))
+        HasStrings = HasStrings || Arguments[Index].kind() == RuntimeKind::String;
+        if (!External && Arguments[Index].type() != &Function.parameters()[Index]->type() && !(CAbi && Arguments[Index].kind() == RuntimeKind::String))
         {
           return {ExecutionStatus::TypeMismatch};
         }
@@ -110,7 +110,7 @@ namespace ink::execution
       for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
       {
         const ExecutionValueRef &Argument = Arguments[Index];
-        if (VmCAbi && Argument.kind() == ExecutionValueKind::String)
+        if (VmCAbi && Argument.kind() == RuntimeKind::String)
         {
           const ir::Type &ParameterType = Function.parameters()[Index]->type();
           const ExecutionStatus Status = ConvertedStrings[Index].prepare(Heap, ParameterType, Argument);

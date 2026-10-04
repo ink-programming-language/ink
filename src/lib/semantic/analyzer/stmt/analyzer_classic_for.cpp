@@ -11,6 +11,7 @@ namespace ink::semantic
       return reportUnsupported(State, Node);
     }
     NameResolver::ScopeGuard Scope(State.Resolver);
+    const std::size_t LifetimeBegin = State.Lifetimes.size();
     AnalysisState::FrameGuard Frame(State, execution::ExecutionFrameKind::Block);
     if (!Frame)
     {
@@ -46,6 +47,11 @@ namespace ink::semantic
           Succeeded = false;
           break;
         }
+        if (!cleanupObjects(State, 0, true, Node))
+        {
+          Succeeded = false;
+          break;
+        }
         if (!static_cast<const ir::BoolConstant &>(*Condition.ValueObject).value())
         {
           break;
@@ -59,7 +65,9 @@ namespace ink::semantic
           Succeeded = reportExecution(State, State.Context.comptimeState().Engine.lastStatus(), Node);
           break;
         }
+        const std::size_t Begin = State.Lifetimes.size();
         Succeeded = analyzeStmt(State, *Node.body());
+        Succeeded = finishObjectScope(State, Begin, Node, Succeeded);
       }
       State.Continuing = false;
       if (!Succeeded || State.Terminated || State.Breaking)
@@ -69,7 +77,7 @@ namespace ink::semantic
       AnalysisState::EvaluationGuard Evaluate(State);
       for (const parser::SimpleItem *Step : Node.step())
       {
-        if (!analyzeSimpleItem(State, *Step))
+        if (!analyzeSimpleItem(State, *Step) || !cleanupObjects(State, 0, true, *Step))
         {
           Succeeded = false;
           break;
@@ -78,6 +86,6 @@ namespace ink::semantic
     }
     State.Breaking = false;
     --State.LoopDepth;
-    return Succeeded;
+    return finishObjectScope(State, LifetimeBegin, Node, Succeeded);
   }
 } // namespace ink::semantic

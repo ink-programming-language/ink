@@ -1,6 +1,8 @@
 #ifndef INK_EXECUTION_BYTECODE_INSTRUCTION_H
 #define INK_EXECUTION_BYTECODE_INSTRUCTION_H
 
+#include "ink/core/comparison_predicate.h"
+
 #include <array>
 #include <cstdint>
 #include <limits>
@@ -10,16 +12,6 @@ namespace ink::execution
 {
   using SlotId = std::uint32_t;
   inline constexpr SlotId InvalidSlot = std::numeric_limits<SlotId>::max();
-
-  enum class ExecutionPredicate
-  {
-    Equal,
-    NotEqual,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-  };
 
   enum class BytecodeOperandKind
   {

@@ -12,7 +12,7 @@
 namespace ink::execution::archive
 {
   inline constexpr std::string_view Magic("INKBC\0\r\n", 8);
-  inline constexpr std::uint32_t FormatVersion = 6;
+  inline constexpr std::uint32_t FormatVersion = 7;
   inline constexpr std::uint32_t InstructionVersion = 3;
 
   // File tags are independent of enum declaration order. Existing tags must never change.
@@ -96,12 +96,12 @@ namespace ink::execution::archive
   };
 
   inline constexpr std::array PredicateTags = {
-      std::pair{ExecutionPredicate::Equal, 0U},
-      std::pair{ExecutionPredicate::NotEqual, 1U},
-      std::pair{ExecutionPredicate::Less, 2U},
-      std::pair{ExecutionPredicate::LessEqual, 3U},
-      std::pair{ExecutionPredicate::Greater, 4U},
-      std::pair{ExecutionPredicate::GreaterEqual, 5U},
+      std::pair{core::ComparisonPredicate::Equal, 0U},
+      std::pair{core::ComparisonPredicate::NotEqual, 1U},
+      std::pair{core::ComparisonPredicate::Less, 2U},
+      std::pair{core::ComparisonPredicate::LessEqual, 3U},
+      std::pair{core::ComparisonPredicate::Greater, 4U},
+      std::pair{core::ComparisonPredicate::GreaterEqual, 5U},
   };
 
   inline constexpr std::array RuntimeKindTags = {
@@ -135,8 +135,8 @@ namespace ink::execution::archive
   };
 
   inline constexpr std::array GenericArgumentTags = {
-      std::pair{BytecodeGenericArgumentKind::Type, 1U},
-      std::pair{BytecodeGenericArgumentKind::Constant, 2U},
+      std::pair{core::GenericArgumentKind::Type, 1U},
+      std::pair{core::GenericArgumentKind::Value, 2U},
   };
 
   template <typename Enum, std::size_t Size>

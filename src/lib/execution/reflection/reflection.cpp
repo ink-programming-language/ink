@@ -87,7 +87,7 @@ namespace ink::execution
     {
       return {ExecutionStatus::UnknownBinding};
     }
-    if (Field->Visibility != MemberVisibility::Public)
+    if (Field->Visibility != core::VisibilityKind::Public)
     {
       return {ExecutionStatus::AccessDenied};
     }
@@ -171,7 +171,7 @@ namespace ink::execution
         continue;
       }
       Named = true;
-      if (Method.Visibility != MemberVisibility::Public)
+      if (Method.Visibility != core::VisibilityKind::Public)
       {
         continue;
       }
@@ -228,7 +228,34 @@ namespace ink::execution
   ExecutionPlaceResult Reflection::construct(RuntimeTypeId Type, std::span<const ReflectedValue> Arguments)
   {
     const auto *Layout = Types ? Types->get(Type) : nullptr;
-    if (!Layout || Layout->Kind != RuntimeKind::Class || Arguments.size() > Layout->classDesc().Fields.size())
+    if (!Layout || Layout->Kind != RuntimeKind::Class)
+    {
+      return {ExecutionStatus::InvalidArguments};
+    }
+    bool HasDestructor = false;
+    for (const auto &Method : Layout->classDesc().Methods)
+    {
+      HasDestructor = HasDestructor || Method.Name == "__del__";
+      if (Method.Name != "__init__")
+      {
+        continue;
+      }
+      const auto Place = Memory.allocateCell(*Layout);
+      if (!Place)
+      {
+        return Place;
+      }
+      const auto Object = view(Place.Place);
+      const auto Result = Object ? invoke(Object.Value, "__init__", Arguments) : RuntimeValueResult{Object.Status};
+      if (!Result)
+      {
+        Memory.release(Place.Place);
+        return {Result.Status};
+      }
+      return Place;
+    }
+    // Hand-built aggregate IR without lifecycle methods retains its explicit field API.
+    if (HasDestructor || Arguments.size() > Layout->classDesc().Fields.size())
     {
       return {ExecutionStatus::InvalidArguments};
     }
@@ -246,7 +273,7 @@ namespace ink::execution
         {
           return {ExecutionStatus::ForeignContext};
         }
-        if (Fields[Index].Visibility != MemberVisibility::Public)
+        if (Fields[Index].Visibility != core::VisibilityKind::Public)
         {
           return {ExecutionStatus::AccessDenied};
         }
@@ -278,5 +305,9 @@ namespace ink::execution
       }
     }
     return Memory.allocateCell(*Layout, true, RuntimeValue::fromClass(std::move(Values), Type));
+  }
+  ExecutionStatus Reflection::destroy(const ObjectView &Object)
+  {
+    return invoke(Object, "__del__").Status;
   }
 } // namespace ink::execution

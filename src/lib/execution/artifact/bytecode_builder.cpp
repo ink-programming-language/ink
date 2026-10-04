@@ -5,6 +5,7 @@
 #include "ink/ir/context.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/type/class_type.h"
+#include "ink/ir/linkage.h"
 
 #include <unordered_set>
 #include <utility>
@@ -69,7 +70,7 @@ namespace ink::execution
       }
       const ir::Module *Module = Owner(*Function);
       const bool Local = DefiningModules.contains(Module);
-      if (!Local && Function->visibility() == ir::VisibilityKind::Private)
+      if (!Local && Function->visibility() == core::VisibilityKind::Private)
       {
         return;
       }
@@ -79,7 +80,7 @@ namespace ink::execution
       Input.Identity.Module = Local ? std::string(ModuleName) : Module ? std::string(Module->context().namePool().text(Module->name())) : std::string(ModuleName);
       Input.Identity.Name = Function->context().namePool().text(Function->name());
       Input.Kind = Function->isNativeImport() ? BytecodeSymbolKind::Native : Local ? BytecodeSymbolKind::Definition : BytecodeSymbolKind::Import;
-      Input.Visibility = Function->visibility() == ir::VisibilityKind::Private ? BytecodeVisibility::Private : BytecodeVisibility::Public;
+      Input.Visibility = Function->visibility() == core::VisibilityKind::Private ? BytecodeVisibility::Private : BytecodeVisibility::Public;
       ReflectedFunctions.push_back(std::move(Input));
     };
     for (std::size_t Index = 0; Index < Bridge.types()->size(); ++Index)
@@ -176,6 +177,71 @@ namespace ink::execution
         return {BytecodeStatus::SignatureMismatch, "Symbol signature does not match its function type"};
       }
       Symbol.Identity.Signature = Signature;
+      const auto *Function = Bridge.sourceFunction(Symbol.Function);
+      if (Symbol.Kind == BytecodeSymbolKind::Native)
+      {
+        if (!Symbol.Identity.LinkName.empty() && Symbol.Identity.LinkName != Artifact->Image.Descriptors.at(Symbol.Function).Symbol)
+        {
+          return {BytecodeStatus::InvalidInput, "Native link name differs from its external symbol"};
+        }
+        Symbol.Identity.LinkName = Artifact->Image.Descriptors.at(Symbol.Function).Symbol;
+        continue;
+      }
+      abi::ModuleIdentity Detached;
+      Detached.Path = abi::modulePath(Symbol.Identity.Module);
+      auto Linkage = Function ? ir::functionRecord(*Function, &Detached, Symbol.Identity.Name) : std::nullopt;
+      if (!Linkage)
+      {
+        return {BytecodeStatus::InvalidInput, "Bytecode function has no supported Ink linkage identity"};
+      }
+      if (!Symbol.Identity.GenericArguments.empty())
+      {
+        auto F = abi::childRecords(*Linkage);
+        auto D = F && F->size() == 3 && Linkage->Tag == 'F' ? abi::childRecords((*F)[0]) : std::nullopt;
+        if (!D || D->size() != 7)
+        {
+          return {BytecodeStatus::InvalidInput, "Generic arguments require a function declaration"};
+        }
+        std::vector<abi::Record> Parameters;
+        std::vector<abi::Record> Arguments;
+        for (const auto &Argument : Symbol.Identity.GenericArguments)
+        {
+          const auto Found = std::find(TypeIdentities.begin(), TypeIdentities.end(), Argument.Type);
+          const auto *Source = Found == TypeIdentities.end() ? nullptr : Bridge.sourceType(static_cast<RuntimeTypeId>(Found - TypeIdentities.begin()));
+          const auto ValueType = Source ? ir::typeRecord(*Source) : std::nullopt;
+          if (!ValueType)
+          {
+            return {BytecodeStatus::InvalidInput, "Generic argument has no canonical IR type"};
+          }
+          if (Argument.Kind == core::GenericArgumentKind::Type)
+          {
+            Parameters.push_back({'T', {}});
+            Arguments.push_back(abi::record('T', {*ValueType}));
+          }
+          else
+          {
+            Parameters.push_back(abi::record('V', {*ValueType}));
+            Arguments.push_back(abi::record('V', {*ValueType, {'B', Argument.Value}}));
+          }
+        }
+        (*D)[5] = abi::record('G', Parameters);
+        for (const auto &Input : Functions)
+        {
+          if (Input.Function == Function && Input.OverloadPattern)
+          {
+            (*D)[6] = *Input.OverloadPattern;
+          }
+        }
+        (*F)[0] = abi::record('R', *D);
+        (*F)[1] = abi::record('X', Arguments);
+        Linkage = abi::record('F', *F);
+      }
+      const auto Mangled = abi::mangle(*Linkage);
+      if (!Mangled || (!Symbol.Identity.LinkName.empty() && Symbol.Identity.LinkName != Mangled.Name))
+      {
+        return {BytecodeStatus::InvalidInput, "Bytecode link name does not match its canonical IR identity"};
+      }
+      Symbol.Identity.LinkName = Mangled.Name;
     }
     // Freeze the type domain as well as code; later use of the compiler bridge must
     // not append types to an artifact already handed to a caller.
@@ -189,7 +255,7 @@ namespace ink::execution
       {
         for (auto &Method : Layout.editClass().Methods)
         {
-          if (Method.Visibility == MemberVisibility::Private && !Artifact->Image.Descriptors.contains(Method.Function))
+          if (Method.Visibility == core::VisibilityKind::Private && !Artifact->Image.Descriptors.contains(Method.Function))
           {
             Method.Function = InvalidFunction;
           }

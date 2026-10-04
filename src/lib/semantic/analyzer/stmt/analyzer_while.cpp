@@ -18,6 +18,10 @@ namespace ink::semantic
       {
         AnalysisState::EvaluationGuard Evaluate(State);
         Condition = analyzeExpr(State, *Node.condition());
+        if (Condition && !cleanupObjects(State, 0, true, Node))
+        {
+          return false;
+        }
       }
       if (!Condition || !Condition.ValueObject || !ir::BoolConstant::classof(Condition.ValueObject))
       {
@@ -40,7 +44,9 @@ namespace ink::semantic
         Succeeded = reportExecution(State, State.Context.comptimeState().Engine.lastStatus(), Node);
         break;
       }
+      const std::size_t Begin = State.Lifetimes.size();
       Succeeded = analyzeStmt(State, *Node.body());
+      Succeeded = finishObjectScope(State, Begin, Node, Succeeded);
       State.Continuing = false;
       if (State.Terminated || State.Breaking)
       {

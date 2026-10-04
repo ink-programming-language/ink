@@ -44,7 +44,7 @@ Tokenizer 的 `TokenizedBuffer::fromSnapshot` 校验源码大小、成功源码�
 
 Token payload 使用明确标签：0=无数据、1=IdentifierInfo、2=NumericInfo、3=StringInfo、4=CharInfo，不依赖 `std::variant` 的 alternative 顺序。`ASTKind` 使用 ASTNodes.def 中的固定编号；其余枚举使用 `ast_serialization_enums.def` 中独立固定的文件编号，不依赖 C++ 枚举声明顺序。新增 TokenKind 但未补全映射会触发静态断言。
 
-当前 V5 为 `FunctionDecl` 增加独立的 `NativeSymbolKind`，固定编码为 `None=0`、`Import=1`、`Export=2`，在 linkage 子节点之后保存。`KwExport` 使用新 Token 编号 87，已移除的 `KwExtern` 编号 84 永久保留不用。普通函数和仅带 `[abi("C")]` 属性的函数使用 `None` 且 linkage 为空；显式 `import "C"` 或 `export "C"` 必须具有 linkage，正常时为 `STRING_LITERAL`，缺失 ABI 字符串的恢复树使用 `MissingExpr`。结构校验拒绝方向与 linkage 不一致的快照，ABI 名称的完整解码字节保存在 Token 的 `StringInfo` 中。
+当前 V5 为 `FunctionDecl` 保存原生符号方向，AST 和 IR 共用 `core::FunctionBinding`；固定文件编码仍为 `None=0`、`Import=1`、`Export=2`，其中 `None` 对应内存枚举的 `Local`，在 linkage 子节点之后保存。`KwExport` 使用新 Token 编号 87，已移除的 `KwExtern` 编号 84 永久保留不用。普通函数和仅带 `[abi("C")]` 属性的函数使用 `None` 且 linkage 为空；显式 `import "C"` 或 `export "C"` 必须具有 linkage，正常时为 `STRING_LITERAL`，缺失 ABI 字符串的恢复树使用 `MissingExpr`。结构校验拒绝方向与 linkage 不一致的快照，ABI 名称的完整解码字节保存在 Token 的 `StringInfo` 中。
 
 V4 引入的声明可见性和 `KwPublic`、`KwPrivate` 固定 Token 编号 85、86 保持不变。V3 引入的普通节点 `comptime` 布尔属性保持不变，原包装节点编号 15、46 保留不用。格式严格匹配 `ASTArchiveVersion`，不读取 V1 至 V4，也不做旧版本迁移或未知字段跳过。改变字段含义、数量、顺序或编码时必须更新版本及格式测试。新增枚举值只使用未分配编号，删除后不复用编号。文件不提供签名或真实性认证，结构合法不代表输入源码、语义或编译结果可信。
 
@@ -56,7 +56,7 @@ V4 引入的声明可见性和 `KwPublic`、`KwPrivate` 固定 Token 编号 85�
 
 存档诊断使用具体的 `DiagnosticKind` 和类型化参数，例如 `ASTArchiveSizeLimitExceeded` 携带 `Size`、`MaximumSize`，`ASTArchiveUnsupportedVersion` 携带 `ActualVersion`、`SupportedVersion`。存档错误没有可保证有效的源码位置，因此诊断不伪造 SourceId 或 SourceRange；文件路径由负责文件读写的调用方提供。现有 CLI 的诊断输出格式为 `internal compiler error[INK-P0013]: AST archive size 300 bytes exceeds limit 256 bytes`，ICE 对应退出码 3。
 
-保存和恢复都通过传入的 `FrontendContext::diagnosticEngine()` 报告失败。每次操作只报告首个 ICE，后续级联检查不覆盖首个原因、不重复报告；成功操作不产生存档诊断，也不重放快照中的源码诊断。`ASTArchiveStatus` 继续供调用方判断失败类型，`Message` 是同一条结构化诊断的格式化文本，调用方不得再次报告该消息。不使用异常，也不因诊断分类为 ICE 而调用 abort。Reader 校验签名、版本、块和记录长度、整数溢出、枚举、字节值、数组长度、引用类型、源码范围、Token/payload、恢复元数据和 AST 结构。未完成校验的对象不发布给调用方。
+保存和恢复都通过传入的 `FrontendContext::diagnosticEngine()` 报告失败。每次操作只报告首个 ICE，后续级联检查不覆盖首个原因、不重复报告；成功操作不产生存档诊断，也不重放快照中的源码诊断。AST 和 IR 归档共用的 `core::ArchiveStatus` 供调用方判断失败类型，`Message` 是同一条结构化诊断的格式化文本，调用方不得再次报告该消息。不使用异常，也不因诊断分类为 ICE 而调用 abort。Reader 校验签名、版本、块和记录长度、整数溢出、枚举、字节值、数组长度、引用类型、源码范围、Token/payload、恢复元数据和 AST 结构。未完成校验的对象不发布给调用方。
 
 `ASTArchiveLimits` 限制文件字节、源码字节、节点数、Token 数、数组/恢复记录元素数以及累计解码存储。字符串、Token/节点表、AST 节点与数组、恢复表、行索引和相应临时副本均在分配前检查。`MaxAllocationBytes` 是解码存储预算，并作为 Writer 单条记录临时字段缓冲的上限；它不是进程 RSS 上限，不精确包含分配器、Arena 块、容器管理和最终结构验证的辅助内存。宿主内存耗尽仍遵循仓库的进程级致命故障约定。
 

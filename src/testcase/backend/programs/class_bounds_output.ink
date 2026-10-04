@@ -3,6 +3,11 @@ import "C" func puts(Text: *u8): i32;
 class Buffer
 {
   field Values: [i32; 2];
+
+  func __init__(InitialValues: [i32; 2]): void
+  {
+    this.Values = InitialValues;
+  }
 };
 
 func read(Value: *Buffer, Index: i32): i32

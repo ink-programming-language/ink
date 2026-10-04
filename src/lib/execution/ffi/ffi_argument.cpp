@@ -76,12 +76,12 @@ namespace ink::execution
     {
       return ExecutionStatus::UnsupportedExternalSignature;
     }
-    const bool IsStringPointer = Value.kind() == ExecutionValueKind::String && isStringPointer(Type);
+    const bool IsStringPointer = Value.kind() == RuntimeKind::String && isStringPointer(Type);
     if (Value.type() != &Type && !IsStringPointer)
     {
       return ExecutionStatus::TypeMismatch;
     }
-    if (Value.kind() == ExecutionValueKind::Pointer && Value.pointer().status() != ExecutionStatus::Success)
+    if (Value.kind() == RuntimeKind::Pointer && Value.pointer().status() != ExecutionStatus::Success)
     {
       return Value.pointer().status();
     }
@@ -93,11 +93,11 @@ namespace ink::execution
     switch (Type.typeKind())
     {
     case ir::TypeKind::Bool:
-      return Value.kind() == ExecutionValueKind::Boolean ? prepareBoolean(Value) : ExecutionStatus::TypeMismatch;
+      return Value.kind() == RuntimeKind::Boolean ? prepareBoolean(Value) : ExecutionStatus::TypeMismatch;
     case ir::TypeKind::Integer:
-      return Value.kind() == ExecutionValueKind::Integer ? prepareInteger(static_cast<const ir::IntegerType &>(Type).bitWidth(), static_cast<const ir::IntegerType &>(Type).isSigned(), Value.integer().bits().words().front()) : ExecutionStatus::TypeMismatch;
+      return Value.kind() == RuntimeKind::Integer ? prepareInteger(static_cast<const ir::IntegerType &>(Type).bitWidth(), static_cast<const ir::IntegerType &>(Type).isSigned(), Value.integer().bits().words().front()) : ExecutionStatus::TypeMismatch;
     case ir::TypeKind::Float:
-      return Value.kind() == ExecutionValueKind::Float ? prepareFloat(static_cast<const ir::FloatType &>(Type).bitWidth(), Value.floating().bits()) : ExecutionStatus::TypeMismatch;
+      return Value.kind() == RuntimeKind::Float ? prepareFloat(static_cast<const ir::FloatType &>(Type).bitWidth(), Value.floating().bits()) : ExecutionStatus::TypeMismatch;
     case ir::TypeKind::Pointer:
       return IsStringPointer ? prepareString(Heap, Value.string()) : preparePointer(Heap, Value);
     default:
@@ -239,7 +239,7 @@ namespace ink::execution
 
   ExecutionStatus FfiArgument::preparePointer(ExecutionHeap &Heap, const ExecutionValueRef &Value)
   {
-    if (Value.kind() != ExecutionValueKind::Pointer)
+    if (Value.kind() != RuntimeKind::Pointer)
     {
       return ExecutionStatus::TypeMismatch;
     }

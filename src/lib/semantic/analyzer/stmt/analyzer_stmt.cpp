@@ -100,6 +100,10 @@ namespace ink::semantic
           break;
         }
       }
+      if (Result && !cleanupObjects(State, 0, true, *Item))
+      {
+        return false;
+      }
     }
     return Succeeded;
   }
@@ -113,6 +117,27 @@ namespace ink::semantic
       return false;
     }
     BlockDepthGuard DepthGuard(State.BlockDepth);
+    struct LexicalGuard
+    {
+        AnalysisState &State;
+        std::uint64_t Next;
+
+        explicit LexicalGuard(AnalysisState &State)
+            : State(State),
+              Next(State.NextLexicalBlock + 1)
+        {
+          State.LexicalScope.push_back(State.NextLexicalBlock);
+          State.NextLexicalBlock = 0;
+        }
+
+        ~LexicalGuard()
+        {
+          State.LexicalScope.pop_back();
+          State.NextLexicalBlock = Next;
+        }
+    };
+    LexicalGuard Lexical(State);
+    const std::size_t LifetimeBegin = State.Lifetimes.size();
     NameResolver::ScopeGuard ScopeGuard(State.Resolver);
     AnalysisState::FrameGuard Frame(State, execution::ExecutionFrameKind::Block);
     if (!Frame)
@@ -131,7 +156,7 @@ namespace ink::semantic
         break;
       }
     }
-    return Succeeded;
+    return finishObjectScope(State, LifetimeBegin, Node, Succeeded);
   }
 
   bool Analyzer::analyzeDeclStmt(AnalysisState &State, const parser::DeclStmt &Node)

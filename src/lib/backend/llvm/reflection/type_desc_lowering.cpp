@@ -1,6 +1,7 @@
 #include "../lowering_context.h"
 #include "ink/execution/bridge/semantic_value_bridge.h"
 #include "ink/execution/reflection/native_reflection.h"
+#include "ink/ir/linkage.h"
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalVariable.h>
@@ -139,14 +140,12 @@ namespace ink::backend::llvm
     }
     const auto ModuleName = Source.context().namePool().text(Source.name());
     auto *Description = Record(ModuleType, {U32(1), Text(ModuleName), Size(Types.size()), Array(TypeType, Types)});
-    std::string Symbol = "ink_reflection_";
-    constexpr char Hex[] = "0123456789abcdef";
-    for (unsigned char Byte : ModuleName)
+    const auto Mangled = ir::reflectionSymbol(Source);
+    if (!Mangled)
     {
-      Symbol += Hex[Byte >> 4];
-      Symbol += Hex[Byte & 15];
+      return fail(Mangled.Error);
     }
-    auto *Getter = ::llvm::Function::Create(::llvm::FunctionType::get(PointerType, false), ::llvm::GlobalValue::ExternalLinkage, Symbol, Module);
+    auto *Getter = ::llvm::Function::Create(::llvm::FunctionType::get(PointerType, false), ::llvm::GlobalValue::ExternalLinkage, Mangled.Name, Module);
     ::llvm::IRBuilder<> Builder(::llvm::BasicBlock::Create(Context, "entry", Getter));
     Builder.CreateRet(Description);
     return true;

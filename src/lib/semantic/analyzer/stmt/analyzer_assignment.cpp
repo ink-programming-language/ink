@@ -13,17 +13,28 @@ namespace ink::semantic
     {
       switch (Operator)
       {
-      case TokenKind::PlusAssign: return TokenKind::Plus;
-      case TokenKind::MinusAssign: return TokenKind::Minus;
-      case TokenKind::StarAssign: return TokenKind::Star;
-      case TokenKind::SlashAssign: return TokenKind::Slash;
-      case TokenKind::PercentAssign: return TokenKind::Percent;
-      case TokenKind::AmpAssign: return TokenKind::Amp;
-      case TokenKind::PipeAssign: return TokenKind::Pipe;
-      case TokenKind::CaretAssign: return TokenKind::Caret;
-      case TokenKind::ShiftLeftAssign: return TokenKind::ShiftLeft;
-      case TokenKind::ShiftRightAssign: return TokenKind::ShiftRight;
-      default: return Operator;
+      case TokenKind::PlusAssign:
+        return TokenKind::Plus;
+      case TokenKind::MinusAssign:
+        return TokenKind::Minus;
+      case TokenKind::StarAssign:
+        return TokenKind::Star;
+      case TokenKind::SlashAssign:
+        return TokenKind::Slash;
+      case TokenKind::PercentAssign:
+        return TokenKind::Percent;
+      case TokenKind::AmpAssign:
+        return TokenKind::Amp;
+      case TokenKind::PipeAssign:
+        return TokenKind::Pipe;
+      case TokenKind::CaretAssign:
+        return TokenKind::Caret;
+      case TokenKind::ShiftLeftAssign:
+        return TokenKind::ShiftLeft;
+      case TokenKind::ShiftRightAssign:
+        return TokenKind::ShiftRight;
+      default:
+        return Operator;
       }
     }
   } // namespace
@@ -85,6 +96,11 @@ namespace ink::semantic
       return {};
     }
     const Type &Target = AllocaInstruction::classof(Address) ? static_cast<const AllocaInstruction &>(*Address).allocatedType() : (!State.Evaluating ? static_cast<const PointerType &>(Address->type()).pointeeType() : Address->type());
+    std::optional<std::size_t> ConstructorField;
+    if (State.Constructing && FieldPointerInstruction::classof(Address) && &static_cast<const FieldPointerInstruction *>(Address)->address() == State.CurrentFunction->parameters().front().get())
+    {
+      ConstructorField = static_cast<const FieldPointerInstruction *>(Address)->fieldIndex();
+    }
     if (ClassType::classof(&Target) && Assignment.op() != TokenKind::Assign)
     {
       State.report<core::DiagnosticKind::SemanticInvalidMember>(Node.getSourceRange(), "the in-place operator protocol is not enabled");
@@ -101,6 +117,11 @@ namespace ink::semantic
       return {};
     }
     const Value *Stored = Right.ValueObject;
+    if ((!ConstructorField || State.ConstructorFields[*ConstructorField]) && !destroyPrevious(State, *Address, Target, Node))
+    {
+      return {};
+    }
+    takeTemporary(State, Right.TemporaryAddress);
     if (State.Evaluating)
     {
       const auto Place = Execution.Engine.lookup(*State.Frame, Address);
@@ -148,6 +169,21 @@ namespace ink::semantic
     if (HasVariable)
     {
       Execution.Variables.find(Address)->second.Initialized = true;
+    }
+    if (ConstructorField)
+    {
+      State.ConstructorFields[*ConstructorField] = true;
+    }
+    for (auto &Lifetime : State.Lifetimes)
+    {
+      if (Lifetime.Address == Address && !Lifetime.TemporaryValue && Lifetime.Comptime == State.Evaluating)
+      {
+        Lifetime.Active = true;
+        if (!State.Evaluating && !State.Builder.createStoreInstruction(*Lifetime.Initialized, State.Context.constantPool().getBoolConstant(true)))
+        {
+          return {};
+        }
+      }
     }
     return {Stored};
   }

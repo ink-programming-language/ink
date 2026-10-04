@@ -35,7 +35,7 @@ namespace ink::semantic
     }
     if (parser::MemberExpr::classof(&Node))
     {
-      return resolveFieldAddress(State, static_cast<const parser::MemberExpr &>(Node), Depth);
+      return resolveFieldAddress(State, static_cast<const parser::MemberExpr &>(Node), Depth, RequireInitialized);
     }
     if (parser::IndexExpr::classof(&Node))
     {
@@ -168,6 +168,15 @@ namespace ink::semantic
       return {};
     }
     const Value *Result = Binding->targets().front();
+    if (Function::classof(Result) && State.Context.classState().MethodOwners.contains(static_cast<const Function *>(Result)) && (State.Context.namePool().text(static_cast<const Function *>(Result)->name()) == "__init__" || State.Context.namePool().text(static_cast<const Function *>(Result)->name()) == "__del__"))
+    {
+      State.report<core::DiagnosticKind::SemanticInvalidMember>(Node.getSourceRange(), "lifecycle methods cannot be referenced or called explicitly");
+      return {};
+    }
+    if (State.Constructing && !State.AccessingConstructorField && FunctionParameter::classof(Result) && Result == State.CurrentFunction->parameters().front().get() && !checkConstructorComplete(State, Node))
+    {
+      return {};
+    }
     if (State.Modules && State.CurrentFunction && Function::classof(Result))
     {
       State.Modules->Dependencies[State.CurrentFunction].insert(static_cast<const Function *>(Result));

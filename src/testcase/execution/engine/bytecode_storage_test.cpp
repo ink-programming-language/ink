@@ -38,7 +38,7 @@ namespace ink::execution::test
         std::unique_ptr<ir::Function> function(std::string_view Name, const ir::Type &ReturnType, std::span<const ir::Type *const> Parameters = {}, bool External = false)
         {
           const auto *Signature = Context.typePool().getType<ir::TypeKind::Function>(ReturnType, Parameters);
-          return Signature ? Builder.createFunction(Context.namePool().intern(Name), *Signature, {}, {}, ir::CallingConvention::C, External ? ir::LanguageLinkage::C : ir::LanguageLinkage::Ink, External ? ir::FunctionBinding::Import : ir::FunctionBinding::Local) : nullptr;
+          return Signature ? Builder.createFunction(Context.namePool().intern(Name), *Signature, {}, {}, ir::CallingConvention::C, External ? ir::LanguageLinkage::C : ir::LanguageLinkage::Ink, External ? core::FunctionBinding::Import : core::FunctionBinding::Local) : nullptr;
         }
 
         bool begin(ir::Function &Function)
@@ -155,7 +155,7 @@ namespace ink::execution::test
         ASSERT_TRUE(Arguments[0]);
         const auto Result = Test.Engine.execute(*Function, Arguments);
         ASSERT_TRUE(Result);
-        ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Float);
+        ASSERT_EQ(Result.Value.kind(), RuntimeKind::Float);
         EXPECT_EQ(Result.Value.floating(), ir::FloatBits(Case.Width, Payload));
         EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
       }
@@ -216,7 +216,7 @@ namespace ink::execution::test
     {
       auto *Added = Test.Builder.createAddInstruction(*Previous, Test.integer(1));
       ASSERT_NE(Added, nullptr);
-      auto *Compared = Test.Builder.createCompareInstruction(ir::ComparisonPredicate::Equal, *Added, Test.integer(Index + 2));
+      auto *Compared = Test.Builder.createCompareInstruction(core::ComparisonPredicate::Equal, *Added, Test.integer(Index + 2));
       ASSERT_NE(Compared, nullptr);
       AddResults.push_back(Added);
       CompareResults.push_back(Compared);
@@ -232,7 +232,7 @@ namespace ink::execution::test
       ASSERT_NE(Sum, nullptr);
     }
     const std::uint64_t ExpectedSum = 3 + Count * (Count + 3) / 2;
-    const ir::Value *Correct = Test.Builder.createCompareInstruction(ir::ComparisonPredicate::Equal, *Sum, Test.integer(ExpectedSum));
+    const ir::Value *Correct = Test.Builder.createCompareInstruction(core::ComparisonPredicate::Equal, *Sum, Test.integer(ExpectedSum));
     ASSERT_NE(Correct, nullptr);
     for (const ir::Value *Compared : CompareResults)
     {

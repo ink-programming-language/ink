@@ -196,10 +196,10 @@ namespace ink::parser
       return Result;
     }
     Expr *Linkage = nullptr;
-    NativeSymbolKind NativeSymbol = NativeSymbolKind::None;
+    core::FunctionBinding NativeSymbol = core::FunctionBinding::Local;
     if (at(TokenKind::KwImport) || at(TokenKind::KwExport))
     {
-      NativeSymbol = Input.token(bump()).Kind == TokenKind::KwImport ? NativeSymbolKind::Import : NativeSymbolKind::Export;
+      NativeSymbol = Input.token(bump()).Kind == TokenKind::KwImport ? core::FunctionBinding::Import : core::FunctionBinding::Export;
       const ExpectResult Language = expect(TokenKind::StringLiteral);
       Linkage = Language.Actual ? static_cast<Expr *>(make<LiteralExpr>(Language.Range, *Language.Actual, TokenKind::StringLiteral)) : missingExpr();
       expect(TokenKind::KwFunc);

@@ -128,17 +128,17 @@ namespace ink::parser
         return;
       }
     }
-    void printValue(std::ostringstream &Output, NativeSymbolKind Value)
+    void printValue(std::ostringstream &Output, core::FunctionBinding Value)
     {
       switch (Value)
       {
-      case NativeSymbolKind::None:
+      case core::FunctionBinding::Local:
         Output << "None";
         return;
-      case NativeSymbolKind::Import:
+      case core::FunctionBinding::Import:
         Output << "Import";
         return;
-      case NativeSymbolKind::Export:
+      case core::FunctionBinding::Export:
         Output << "Export";
         return;
       }

@@ -36,9 +36,9 @@ namespace ink::semantic::test
         bool parsed() const
         {
           return std::all_of(Parsed.begin(), Parsed.end(), [](const parser::ParseResult &Input)
-          {
-            return Input.succeeded();
-          });
+                             {
+                               return Input.succeeded();
+                             });
         }
 
         ir::Module *analyze(std::string_view Entry = "app")
@@ -81,7 +81,7 @@ namespace ink::semantic::test
           execution::ExecutionEngine Engine(Context.irContext());
           const auto Result = Engine.execute(*Entry);
           ASSERT_TRUE(Result);
-          ASSERT_EQ(Result.Value.kind(), execution::ExecutionValueKind::Integer);
+          ASSERT_EQ(Result.Value.kind(), execution::RuntimeKind::Integer);
           EXPECT_EQ(Result.Value.integer().bits().words().front(), Expected);
         }
 
@@ -108,7 +108,7 @@ namespace ink::semantic::test
     ASSERT_NE(Library, nullptr);
     const ir::Function *Original = Input.function(*Library, "answer");
     ASSERT_NE(Original, nullptr);
-    EXPECT_EQ(Original->visibility(), ir::VisibilityKind::Public);
+    EXPECT_EQ(Original->visibility(), core::VisibilityKind::Public);
     EXPECT_EQ(Input.function(*Entry, "read"), Original);
     EXPECT_EQ(Original->outer(), &Library->entryBlock());
     ASSERT_EQ(Input.Context.moduleImports(*Entry).size(), 1U);
@@ -327,7 +327,7 @@ namespace ink::semantic::test
       ir::Module *Entry = Input.analyze();
       ASSERT_NE(Entry, nullptr);
       ASSERT_EQ(Input.Context.moduleImports(*Entry).size(), 1U);
-      EXPECT_EQ(Input.Context.moduleImports(*Entry).front()->visibility(), ir::VisibilityKind::Public);
+      EXPECT_EQ(Input.Context.moduleImports(*Entry).front()->visibility(), core::VisibilityKind::Public);
       Input.expectResult(*Entry, 42);
     }
     for (std::string_view App : {"from library import choose; func main(): i32 { var x: u8 = 1; return choose(x); }", "import library as L; func main(): i32 { var x: u8 = 1; return L.choose(x); }"})
@@ -380,7 +380,7 @@ namespace ink::semantic::test
   TEST(SemanticModuleImportTest, PreservesClassDefaultDefinitionSnapshot)
   {
     constexpr std::string_view App = "from library import P; func main(): i32 { var Value = P(); return Value.X + 2; }";
-    constexpr std::string_view Library = "comptime var Seed = 40; class P { field X: i32 = comptime Seed; }; comptime { Seed = 9; }";
+    constexpr std::string_view Library = "comptime var Seed = 40; class P { field X: i32 = comptime Seed;  func __init__(): void {  }  func __init__(InitialX: i32): void { this.X = InitialX; } }; comptime { Seed = 9; }";
     for (bool LibraryFirst : {false, true})
     {
       ModuleAnalysis Input(LibraryFirst ? std::initializer_list<std::pair<std::string_view, std::string_view>>{{"library", Library}, {"app", App}} : std::initializer_list<std::pair<std::string_view, std::string_view>>{{"app", App}, {"library", Library}});
@@ -411,11 +411,11 @@ namespace ink::semantic::test
     ASSERT_NE(Entry, nullptr);
     const ir::Function *Main = Input.function(*Entry, "main");
     ASSERT_NE(Main, nullptr);
-    EXPECT_EQ(Main->visibility(), ir::VisibilityKind::Public);
-    EXPECT_EQ(Input.function(*Entry, "hidden")->visibility(), ir::VisibilityKind::Private);
-    EXPECT_EQ(Input.function(*Entry, "shown")->visibility(), ir::VisibilityKind::Public);
+    EXPECT_EQ(Main->visibility(), core::VisibilityKind::Public);
+    EXPECT_EQ(Input.function(*Entry, "hidden")->visibility(), core::VisibilityKind::Private);
+    EXPECT_EQ(Input.function(*Entry, "shown")->visibility(), core::VisibilityKind::Public);
     const auto *Inner = static_cast<const ir::Function *>(Main->entryBlock()->values().front().get());
-    EXPECT_EQ(Inner->visibility(), ir::VisibilityKind::Private);
+    EXPECT_EQ(Inner->visibility(), core::VisibilityKind::Private);
     Input.expectResult(*Entry, 42);
   }
 

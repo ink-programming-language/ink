@@ -117,8 +117,8 @@ namespace ink::parser::test
     EXPECT_EQ(Forward->body(), nullptr);
     EXPECT_EQ(Function->linkage(), nullptr);
     EXPECT_EQ(Forward->linkage(), nullptr);
-    EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::None);
-    EXPECT_EQ(Forward->nativeSymbolKind(), NativeSymbolKind::None);
+    EXPECT_EQ(Function->nativeSymbolKind(), core::FunctionBinding::Local);
+    EXPECT_EQ(Forward->nativeSymbolKind(), core::FunctionBinding::Local);
   }
 
   // Native import preserves arbitrary decoded linkage names and the literal's original spelling and range.
@@ -147,7 +147,7 @@ namespace ink::parser::test
       ASSERT_TRUE(Result.succeeded());
       const auto *Function = cast<FunctionDecl>(declaration(Result));
       ASSERT_TRUE(isa<LiteralExpr>(Function->linkage()));
-      EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Import);
+      EXPECT_EQ(Function->nativeSymbolKind(), core::FunctionBinding::Import);
       const auto *Linkage = cast<LiteralExpr>(Function->linkage());
       EXPECT_EQ(Linkage->literalKind(), TokenKind::StringLiteral);
       EXPECT_EQ(Result.Unit->input().spelling(Linkage->token()), Entry.Spelling);
@@ -171,7 +171,7 @@ namespace ink::parser::test
     EXPECT_TRUE(Function->isComptime());
     EXPECT_EQ(Function->attributes().size(), 1U);
     EXPECT_EQ(Function->genericParameters().size(), 1U);
-    EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Export);
+    EXPECT_EQ(Function->nativeSymbolKind(), core::FunctionBinding::Export);
     EXPECT_EQ(Function->bodyKind(), FunctionBodyKind::Definition);
     EXPECT_NE(Function->body(), nullptr);
     std::vector<const ASTNodeBase *> Visited;
@@ -196,18 +196,18 @@ namespace ink::parser::test
     EXPECT_TRUE(isa<DirectImportStmt>(Result.Unit->root()->statements()[0]));
     EXPECT_TRUE(isa<FromImportStmt>(Result.Unit->root()->statements()[1]));
     const auto *Imported = cast<FunctionDecl>(declaration(Result, 2));
-    EXPECT_EQ(Imported->nativeSymbolKind(), NativeSymbolKind::Import);
+    EXPECT_EQ(Imported->nativeSymbolKind(), core::FunctionBinding::Import);
     EXPECT_EQ(Imported->visibility(), DeclarationVisibility::Private);
     const auto *Exported = cast<FunctionDecl>(declaration(Result, 3));
-    EXPECT_EQ(Exported->nativeSymbolKind(), NativeSymbolKind::Export);
+    EXPECT_EQ(Exported->nativeSymbolKind(), core::FunctionBinding::Export);
     EXPECT_EQ(Exported->visibility(), DeclarationVisibility::Public);
     const auto *Callback = cast<FunctionDecl>(declaration(Result, 4));
-    EXPECT_EQ(Callback->nativeSymbolKind(), NativeSymbolKind::None);
+    EXPECT_EQ(Callback->nativeSymbolKind(), core::FunctionBinding::Local);
     EXPECT_EQ(Callback->linkage(), nullptr);
     ASSERT_EQ(Callback->attributes().size(), 1U);
     EXPECT_EQ(Callback->attributes()[0].path()[0].Text, "abi");
     const auto *Hidden = cast<FunctionDecl>(declaration(Result, 5));
-    EXPECT_EQ(Hidden->nativeSymbolKind(), NativeSymbolKind::Export);
+    EXPECT_EQ(Hidden->nativeSymbolKind(), core::FunctionBinding::Export);
     EXPECT_EQ(Hidden->visibility(), DeclarationVisibility::Private);
   }
 
@@ -268,12 +268,12 @@ namespace ink::parser::test
       ASSERT_TRUE(isa<FunctionDecl>(Last->declaration()));
       const auto *Function = cast<FunctionDecl>(Last->declaration());
       EXPECT_EQ(Function->name().Text, "kept");
-      EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Export);
+      EXPECT_EQ(Function->nativeSymbolKind(), core::FunctionBinding::Export);
     }
     const auto Missing = read("export func f(): void {}");
     ASSERT_FALSE(Missing.succeeded());
     const auto *Function = cast<FunctionDecl>(declaration(Missing));
-    EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Export);
+    EXPECT_EQ(Function->nativeSymbolKind(), core::FunctionBinding::Export);
     EXPECT_TRUE(isa<MissingExpr>(Function->linkage()));
   }
 

@@ -7,7 +7,7 @@ namespace ink::ir::archive
   namespace
   {
     constexpr std::size_t HeaderBytes = 16;
-    constexpr std::size_t RecordBytes = 24;
+    constexpr std::size_t RecordBytes = 32;
   } // namespace
 
   bool readBinary(std::string_view Bytes, State &Data)
@@ -18,7 +18,7 @@ namespace ink::ir::archive
     }
     if (llvm::support::endian::read32le(Bytes.data() + 4) != ModuleBinaryVersion)
     {
-      return Data.fail("Unsupported module binary version", ModuleArchiveStatus::UnsupportedVersion);
+      return Data.fail("Unsupported module binary version", core::ArchiveStatus::UnsupportedVersion);
     }
     const auto Count = llvm::support::endian::read32le(Bytes.data() + 8);
     if (llvm::support::endian::read32le(Bytes.data() + 12) != 0)
@@ -28,7 +28,7 @@ namespace ink::ir::archive
     Bytes.remove_prefix(HeaderBytes);
     if (Count > Data.Limits.MaxObjects)
     {
-      return Data.fail("Module archive object limit exceeded", ModuleArchiveStatus::LimitExceeded);
+      return Data.fail("Module archive object limit exceeded", core::ArchiveStatus::LimitExceeded);
     }
     if (Count > Bytes.size() / RecordBytes)
     {
@@ -36,7 +36,7 @@ namespace ink::ir::archive
     }
     if (Count > Data.Limits.MaxAllocationBytes / 1024)
     {
-      return Data.fail("Module archive allocation limit exceeded", ModuleArchiveStatus::LimitExceeded);
+      return Data.fail("Module archive allocation limit exceeded", core::ArchiveStatus::LimitExceeded);
     }
     Data.Records.reserve(Count);
     for (std::uint32_t I = 0; I < Count; ++I)
@@ -50,12 +50,17 @@ namespace ink::ir::archive
       const auto Parent = llvm::support::endian::read32le(Bytes.data() + 8);
       const auto Fields = llvm::support::endian::read32le(Bytes.data() + 12);
       const auto Length = llvm::support::endian::read64le(Bytes.data() + 16);
+      const auto LinkageLength = llvm::support::endian::read64le(Bytes.data() + 24);
       Bytes.remove_prefix(RecordBytes);
       if (!Info || Fields < Info->MinFields || Fields > Info->MaxFields || Fields > Bytes.size() / 8 || Length > Bytes.size() - static_cast<std::size_t>(Fields) * 8 || (!Info->HasText && Length))
       {
         return Data.fail("Invalid module record kind, fields or payload length");
       }
-      if (!Data.addRecord() || !Data.fields(Fields) || !Data.string(static_cast<std::size_t>(Length)))
+      if (LinkageLength > Bytes.size() - static_cast<std::size_t>(Fields) * 8 - Length)
+      {
+        return Data.fail("Invalid linkage payload length");
+      }
+      if (!Data.addRecord() || !Data.fields(Fields) || !Data.string(static_cast<std::size_t>(Length)) || !Data.string(static_cast<std::size_t>(LinkageLength)))
       {
         return false;
       }
@@ -71,6 +76,8 @@ namespace ink::ir::archive
       Bytes.remove_prefix(static_cast<std::size_t>(Fields) * 8);
       Entry.Text.assign(Bytes.data(), static_cast<std::size_t>(Length));
       Bytes.remove_prefix(static_cast<std::size_t>(Length));
+      Entry.Linkage.assign(Bytes.data(), static_cast<std::size_t>(LinkageLength));
+      Bytes.remove_prefix(static_cast<std::size_t>(LinkageLength));
     }
     return Bytes.empty() || Data.fail("Trailing module binary data");
   }
@@ -80,33 +87,39 @@ namespace ink::ir::archive
     std::size_t Size = HeaderBytes;
     if (Data.Records.size() > UINT32_MAX)
     {
-      Data.fail("Module binary object index exceeds 32 bits", ModuleArchiveStatus::LimitExceeded);
+      Data.fail("Module binary object index exceeds 32 bits", core::ArchiveStatus::LimitExceeded);
       return {};
     }
     for (const auto &Entry : Data.Records)
     {
       if (Entry.Type > UINT32_MAX || Entry.Parent > UINT32_MAX || Entry.Fields.size() > UINT32_MAX || Size > Data.Limits.MaxArchiveBytes || RecordBytes > Data.Limits.MaxArchiveBytes - Size)
       {
-        Data.fail("Module binary size or index limit exceeded", ModuleArchiveStatus::LimitExceeded);
+        Data.fail("Module binary size or index limit exceeded", core::ArchiveStatus::LimitExceeded);
         return {};
       }
       Size += RecordBytes;
       if (Entry.Fields.size() > (Data.Limits.MaxArchiveBytes - Size) / 8)
       {
-        Data.fail("Module archive byte limit exceeded", ModuleArchiveStatus::LimitExceeded);
+        Data.fail("Module archive byte limit exceeded", core::ArchiveStatus::LimitExceeded);
         return {};
       }
       Size += Entry.Fields.size() * 8;
       if (Entry.Text.size() > Data.Limits.MaxArchiveBytes - Size)
       {
-        Data.fail("Module archive byte limit exceeded", ModuleArchiveStatus::LimitExceeded);
+        Data.fail("Module archive byte limit exceeded", core::ArchiveStatus::LimitExceeded);
         return {};
       }
       Size += Entry.Text.size();
+      if (Entry.Linkage.size() > Data.Limits.MaxArchiveBytes - Size)
+      {
+        Data.fail("Module linkage payload exceeds byte limit", core::ArchiveStatus::LimitExceeded);
+        return {};
+      }
+      Size += Entry.Linkage.size();
     }
     if (Size > Data.Limits.MaxArchiveBytes || !Data.charge(Size, 1))
     {
-      Data.fail("Module archive byte limit exceeded", ModuleArchiveStatus::LimitExceeded);
+      Data.fail("Module archive byte limit exceeded", core::ArchiveStatus::LimitExceeded);
       return {};
     }
     // One allocation, fixed-width scalars, and one bulk copy per string or AST payload.
@@ -123,6 +136,7 @@ namespace ink::ir::archive
       llvm::support::endian::write32le(Cursor + 8, static_cast<std::uint32_t>(Entry.Parent));
       llvm::support::endian::write32le(Cursor + 12, static_cast<std::uint32_t>(Entry.Fields.size()));
       llvm::support::endian::write64le(Cursor + 16, Entry.Text.size());
+      llvm::support::endian::write64le(Cursor + 24, Entry.Linkage.size());
       Cursor += RecordBytes;
       for (auto Field : Entry.Fields)
       {
@@ -131,6 +145,8 @@ namespace ink::ir::archive
       }
       std::memcpy(Cursor, Entry.Text.data(), Entry.Text.size());
       Cursor += Entry.Text.size();
+      std::memcpy(Cursor, Entry.Linkage.data(), Entry.Linkage.size());
+      Cursor += Entry.Linkage.size();
     }
     return Output;
   }

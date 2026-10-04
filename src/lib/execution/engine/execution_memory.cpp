@@ -16,9 +16,9 @@ namespace ink::execution
     {
       return ExecutionStatus::ForeignContext;
     }
-    if (Value.kind() == ExecutionValueKind::Class || Value.kind() == ExecutionValueKind::Array)
+    if (Value.kind() == RuntimeKind::Class || Value.kind() == RuntimeKind::Array)
     {
-      for (const ExecutionValueRef &Field : Value.kind() == ExecutionValueKind::Class ? Value.fields() : Value.array())
+      for (const ExecutionValueRef &Field : Value.kind() == RuntimeKind::Class ? Value.fields() : Value.array())
       {
         const ExecutionStatus Status = validateValue(Field);
         if (Status != ExecutionStatus::Success)
@@ -41,7 +41,7 @@ namespace ink::execution
     {
       return {LastStatus = Status};
     }
-    if (Result.Value.kind() == ExecutionValueKind::Void)
+    if (Result.Value.kind() == RuntimeKind::Void)
     {
       LastStatus = ExecutionStatus::Success;
       return {};
@@ -62,7 +62,7 @@ namespace ink::execution
     {
       return {Status};
     }
-    if (Address.kind() != ExecutionValueKind::Pointer)
+    if (Address.kind() != RuntimeKind::Pointer)
     {
       return {ExecutionStatus::TypeMismatch};
     }
@@ -93,7 +93,7 @@ namespace ink::execution
     {
       return ValueStatus;
     }
-    if (Address.kind() != ExecutionValueKind::Pointer)
+    if (Address.kind() != RuntimeKind::Pointer)
     {
       return ExecutionStatus::TypeMismatch;
     }

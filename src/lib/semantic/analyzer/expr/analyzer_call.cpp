@@ -61,6 +61,18 @@ namespace ink::semantic
       Candidates.push_back(Callee.ValueObject);
     }
 
+    for (const Value *Candidate : Candidates)
+    {
+      if (Function::classof(Candidate) && State.Context.classState().MethodOwners.contains(static_cast<const Function *>(Candidate)))
+      {
+        const auto Name = State.Context.namePool().text(static_cast<const Function *>(Candidate)->name());
+        if (Name == "__init__" || Name == "__del__")
+        {
+          State.report<core::DiagnosticKind::SemanticInvalidMember>(Node.getSourceRange(), "lifecycle methods are invoked automatically");
+          return {};
+        }
+      }
+    }
     std::vector<ExpressionResult> Arguments;
     bool Succeeded = true;
     for (const auto &Argument : Node.arguments())
@@ -119,7 +131,6 @@ namespace ink::semantic
 
   Analyzer::ExpressionResult Analyzer::finishCall(AnalysisState &State, std::span<const Value *const> Candidates, std::span<const ExpressionResult> Arguments, std::span<const parser::Expr *const> ArgumentNodes, const parser::Expr &Node)
   {
-
     const auto IsCFunction = [](const Value &Callee)
     {
       return Function::classof(&Callee) && static_cast<const Function &>(Callee).languageLinkage() == LanguageLinkage::C;
@@ -182,18 +193,18 @@ namespace ink::semantic
       for (const CandidateMatch &Match : Matches)
       {
         const bool Dominated = std::any_of(Matches.begin(), Matches.end(), [&Match](const CandidateMatch &Other)
-        {
-          bool Better = false;
-          for (std::size_t Index = 0; Index < Match.Ranks.size(); ++Index)
-          {
-            if (Other.Ranks[Index] > Match.Ranks[Index])
-            {
-              return false;
-            }
-            Better = Better || Other.Ranks[Index] < Match.Ranks[Index];
-          }
-          return Better;
-        });
+                                           {
+                                             bool Better = false;
+                                             for (std::size_t Index = 0; Index < Match.Ranks.size(); ++Index)
+                                             {
+                                               if (Other.Ranks[Index] > Match.Ranks[Index])
+                                               {
+                                                 return false;
+                                               }
+                                               Better = Better || Other.Ranks[Index] < Match.Ranks[Index];
+                                             }
+                                             return Better;
+                                           });
         if (!Dominated)
         {
           if (Selected)
@@ -255,13 +266,14 @@ namespace ink::semantic
         reportExecution(State, execution::ExecutionStatus::UnsupportedOperation, Node);
         return {};
       }
-      return callComptime(State, static_cast<const Function &>(*Selected), Converted, Node);
+      const auto Result = callComptime(State, static_cast<const Function &>(*Selected), Converted, Node);
+      return Result.ValueObject ? trackTemporary(State, Result.ValueObject, Node) : Result;
     }
     const Value *Result = State.Builder.createCallInstruction(*Selected, Converted);
     if (!Result)
     {
       State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
     }
-    return {Result};
+    return trackTemporary(State, Result, Node);
   }
 } // namespace ink::semantic

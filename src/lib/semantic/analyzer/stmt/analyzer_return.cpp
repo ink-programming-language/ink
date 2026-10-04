@@ -21,6 +21,7 @@ namespace ink::semantic
     State.Terminated = true;
     const Type &ReturnType = State.CurrentFunction->functionType().returnType();
     const Value *ReturnedValue = nullptr;
+    const Value *ReturnedTemporary = nullptr;
     if (Node.value())
     {
       AnalysisState::EvaluationGuard Expected(State, State.Evaluating, &ReturnType);
@@ -35,6 +36,7 @@ namespace ink::semantic
         return false;
       }
       ReturnedValue = convertExpression(State, Result, ReturnType, *Node.value());
+      ReturnedTemporary = Result.TemporaryAddress;
       if (!ReturnedValue)
       {
         return false;
@@ -43,6 +45,11 @@ namespace ink::semantic
     else if (ReturnType.typeKind() != TypeKind::Void)
     {
       State.report<core::DiagnosticKind::SemanticMissingReturn>(Node.getSourceRange(), State.Context.namePool().text(State.CurrentFunction->name()));
+      return false;
+    }
+    takeTemporary(State, ReturnedTemporary);
+    if (!checkConstructorComplete(State, Node) || !cleanupObjects(State, 0, false, Node) || !destroyClassFields(State, Node))
+    {
       return false;
     }
     if (!State.Builder.createReturnInstruction(ReturnedValue))

@@ -38,9 +38,9 @@ namespace ink::semantic
       const auto &Type = static_cast<const IntegerType &>(Value.type());
       const auto Words = Value.value().words();
       if ((Type.isSigned() && (Words.back() & (std::uint64_t{1} << ((Type.bitWidth() - 1) % 64)))) || std::any_of(Words.begin() + 1, Words.end(), [](std::uint64_t Word)
-      {
-        return Word != 0;
-      }))
+                                                                                                                  {
+                                                                                                                    return Word != 0;
+                                                                                                                  }))
       {
         return std::nullopt;
       }
@@ -242,6 +242,13 @@ namespace ink::semantic
       }
     }
     const ArrayType *Type = State.Context.typePool().getType<TypeKind::Array>(*ElementType, Count);
+    if (Count)
+    {
+      for (const auto &Element : Analyzed)
+      {
+        takeTemporary(State, Element.TemporaryAddress);
+      }
+    }
     if (Constants.size() == Elements.size())
     {
       if (Repeated)
@@ -249,14 +256,14 @@ namespace ink::semantic
         const Constant *Element = Constants.front();
         Constants.assign(static_cast<std::size_t>(Count), Element);
       }
-      return {State.Context.constantPool().getArrayConstant(*Type, Constants)};
+      return trackTemporary(State, State.Context.constantPool().getArrayConstant(*Type, Constants), Node);
     }
     if (State.Evaluating)
     {
       reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
       return {};
     }
-    return {State.Builder.createArrayInstruction(*Type, Elements, Repeated)};
+    return trackTemporary(State, State.Builder.createArrayInstruction(*Type, Elements, Repeated), Node);
   }
 
   const Value *Analyzer::analyzeArrayIndex(AnalysisState &State, const parser::Expr &Node, std::uint64_t Count, std::size_t Depth)

@@ -41,6 +41,8 @@ namespace ink::backend::llvm
 
     private:
       bool declareFunctions();
+      bool recordClassABI(const ir::ClassType &Class);
+      void emitABIMetadata();
       bool lowerFunction(const ir::Function &Function);
       bool lowerEntry(const ir::Function &Entry);
       bool lowerNativeExports();
@@ -48,6 +50,7 @@ namespace ink::backend::llvm
       void collect(const ir::BasicBlock &Block);
 
       std::vector<const ir::Function *> SourceFunctions;
+      std::unordered_map<std::string, std::string> ClassDefinitions;
       std::unordered_map<const ir::Type *, ::llvm::Type *> Types;
       std::unordered_set<const ir::Type *> Defining;
       std::unordered_map<const ir::Value *, ::llvm::Constant *> Constants;

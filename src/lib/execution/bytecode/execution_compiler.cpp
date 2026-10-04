@@ -33,26 +33,6 @@ namespace ink::execution
 {
   namespace
   {
-    ExecutionPredicate lowerPredicate(ir::ComparisonPredicate Predicate)
-    {
-      switch (Predicate)
-      {
-      case ir::ComparisonPredicate::Equal:
-        return ExecutionPredicate::Equal;
-      case ir::ComparisonPredicate::NotEqual:
-        return ExecutionPredicate::NotEqual;
-      case ir::ComparisonPredicate::Less:
-        return ExecutionPredicate::Less;
-      case ir::ComparisonPredicate::LessEqual:
-        return ExecutionPredicate::LessEqual;
-      case ir::ComparisonPredicate::Greater:
-        return ExecutionPredicate::Greater;
-      case ir::ComparisonPredicate::GreaterEqual:
-        return ExecutionPredicate::GreaterEqual;
-      }
-      return ExecutionPredicate::Equal;
-    }
-
     BytecodeOpcode memoryOpcode(const TypeDesc &Layout, bool Store)
     {
       if (Layout.Kind == RuntimeKind::Integer)
@@ -564,7 +544,7 @@ namespace ink::execution
               break;
             }
             const BytecodeOpcode Code = Type.typeKind() == ir::TypeKind::Bool ? BytecodeOpcode::CompareBool : integerOpcode(static_cast<const ir::IntegerType &>(Type), true);
-            lowerBinary(Code, Destination, Compare, static_cast<std::uint32_t>(lowerPredicate(Compare.predicate())));
+            lowerBinary(Code, Destination, Compare, static_cast<std::uint32_t>(Compare.predicate()));
             break;
           }
           case ir::ValueKind::CallInstruction:
@@ -645,7 +625,7 @@ namespace ink::execution
       case BytecodeOperandKind::Layout:
         return Function.Layouts->get(Value) != nullptr;
       case BytecodeOperandKind::Predicate:
-        return Value <= static_cast<std::uint32_t>(ExecutionPredicate::GreaterEqual);
+        return Value <= static_cast<std::uint32_t>(core::ComparisonPredicate::GreaterEqual);
       case BytecodeOperandKind::Local:
         return Value < Function.LocalStorageCount;
       case BytecodeOperandKind::DataOffset:
@@ -854,7 +834,7 @@ namespace ink::execution
       case BytecodeOpcode::CompareWide:
         return isKind(SlotType(Value.Operands[0]), RuntimeKind::Boolean) && isKind(SlotType(Value.Operands[1]), RuntimeKind::Integer) && Function.SlotTypes[Value.Operands[1]] == Function.SlotTypes[Value.Operands[2]] && integerOpcode(*SlotType(Value.Operands[1]), true) == Value.Code;
       case BytecodeOpcode::CompareBool:
-        return isKind(SlotType(Value.Operands[0]), RuntimeKind::Boolean) && Function.SlotTypes[Value.Operands[0]] == Function.SlotTypes[Value.Operands[1]] && Function.SlotTypes[Value.Operands[1]] == Function.SlotTypes[Value.Operands[2]] && Value.Operands[3] <= static_cast<std::uint32_t>(ExecutionPredicate::NotEqual);
+        return isKind(SlotType(Value.Operands[0]), RuntimeKind::Boolean) && Function.SlotTypes[Value.Operands[0]] == Function.SlotTypes[Value.Operands[1]] && Function.SlotTypes[Value.Operands[1]] == Function.SlotTypes[Value.Operands[2]] && Value.Operands[3] <= static_cast<std::uint32_t>(core::ComparisonPredicate::NotEqual);
       case BytecodeOpcode::CallDirect:
       case BytecodeOpcode::CallIndirect:
         return verifyCall(Function, Value);

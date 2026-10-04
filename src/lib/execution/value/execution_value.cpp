@@ -46,58 +46,58 @@ namespace ink::execution
 
   ExecutionValue::~ExecutionValue() = default;
 
-  ExecutionValueKind ExecutionValue::kind() const noexcept
+  RuntimeKind ExecutionValue::kind() const noexcept
   {
     switch (objectKind())
     {
     case ExecutionObjectKind::VoidValue:
-      return ExecutionValueKind::Void;
+      return RuntimeKind::Void;
     case ExecutionObjectKind::BooleanValue:
-      return ExecutionValueKind::Boolean;
+      return RuntimeKind::Boolean;
     case ExecutionObjectKind::IntegerValue:
-      return ExecutionValueKind::Integer;
+      return RuntimeKind::Integer;
     case ExecutionObjectKind::FloatValue:
-      return ExecutionValueKind::Float;
+      return RuntimeKind::Float;
     case ExecutionObjectKind::StringValue:
-      return ExecutionValueKind::String;
+      return RuntimeKind::String;
     case ExecutionObjectKind::PointerValue:
-      return ExecutionValueKind::Pointer;
+      return RuntimeKind::Pointer;
     case ExecutionObjectKind::FunctionValue:
-      return ExecutionValueKind::Function;
+      return RuntimeKind::Function;
     case ExecutionObjectKind::ArrayValue:
-      return ExecutionValueKind::Array;
+      return RuntimeKind::Array;
     case ExecutionObjectKind::ClassValue:
-      return ExecutionValueKind::Class;
+      return RuntimeKind::Class;
     case ExecutionObjectKind::Cell:
     case ExecutionObjectKind::Buffer:
-      return ExecutionValueKind::Invalid;
+      return RuntimeKind::Invalid;
     }
-    return ExecutionValueKind::Invalid;
+    return RuntimeKind::Invalid;
   }
 
   bool ExecutionValue::valid() const noexcept
   {
     switch (kind())
     {
-    case ExecutionValueKind::Invalid:
+    case RuntimeKind::Invalid:
       return false;
-    case ExecutionValueKind::Void:
+    case RuntimeKind::Void:
       return ValueType.typeKind() == ir::TypeKind::Void;
-    case ExecutionValueKind::Boolean:
+    case RuntimeKind::Boolean:
       return ValueType.typeKind() == ir::TypeKind::Bool;
-    case ExecutionValueKind::Integer:
+    case RuntimeKind::Integer:
     {
       const ExecutionInteger &Value = static_cast<const ExecutionIntegerValue &>(*this).value();
       return ValueType.typeKind() == ir::TypeKind::Integer && Value.valid() && Value.bitWidth() == static_cast<const ir::IntegerType &>(ValueType).bitWidth();
     }
-    case ExecutionValueKind::Float:
+    case RuntimeKind::Float:
     {
       const ir::FloatBits Value = static_cast<const ExecutionFloatValue &>(*this).value();
       return ValueType.typeKind() == ir::TypeKind::Float && Value.valid() && Value.bitWidth() == static_cast<const ir::FloatType &>(ValueType).bitWidth();
     }
-    case ExecutionValueKind::String:
+    case RuntimeKind::String:
       return isStringType(ValueType);
-    case ExecutionValueKind::Array:
+    case RuntimeKind::Array:
     {
       if (!ir::ArrayType::classof(&ValueType))
       {
@@ -118,7 +118,7 @@ namespace ink::execution
       }
       return true;
     }
-    case ExecutionValueKind::Class:
+    case RuntimeKind::Class:
     {
       if (!ir::ClassType::classof(&ValueType))
       {
@@ -139,9 +139,9 @@ namespace ink::execution
       }
       return true;
     }
-    case ExecutionValueKind::Pointer:
+    case RuntimeKind::Pointer:
       return ValueType.typeKind() == ir::TypeKind::Pointer && static_cast<const ExecutionPointerValue &>(*this).value().valid();
-    case ExecutionValueKind::Function:
+    case RuntimeKind::Function:
       return ValueType.typeKind() == ir::TypeKind::Function && &static_cast<const ExecutionFunctionValue &>(*this).value().type() == &ValueType;
     }
     return false;
@@ -155,15 +155,15 @@ namespace ink::execution
     }
     switch (kind())
     {
-    case ExecutionValueKind::Boolean:
+    case RuntimeKind::Boolean:
       return &Context.constantPool().getBoolConstant(static_cast<const ExecutionBoolValue &>(*this).value());
-    case ExecutionValueKind::Integer:
+    case RuntimeKind::Integer:
       return Context.constantPool().getIntegerConstant(static_cast<const ir::IntegerType &>(ValueType), static_cast<const ExecutionIntegerValue &>(*this).value().bits());
-    case ExecutionValueKind::Float:
+    case RuntimeKind::Float:
       return Context.constantPool().getFloatConstant(static_cast<const ir::FloatType &>(ValueType), static_cast<const ExecutionFloatValue &>(*this).value());
-    case ExecutionValueKind::String:
+    case RuntimeKind::String:
       return Context.constantPool().getStringConstant(static_cast<const ir::SliceType &>(ValueType), static_cast<const ExecutionStringValue &>(*this).value());
-    case ExecutionValueKind::Array:
+    case RuntimeKind::Array:
     {
       std::vector<const ir::Constant *> Elements;
       for (const auto &Element : static_cast<const ExecutionArrayValue &>(*this).value())
@@ -177,7 +177,7 @@ namespace ink::execution
       }
       return Context.constantPool().getArrayConstant(static_cast<const ir::ArrayType &>(ValueType), Elements);
     }
-    case ExecutionValueKind::Class:
+    case RuntimeKind::Class:
     {
       std::vector<const ir::Constant *> Fields;
       for (const auto &Field : static_cast<const ExecutionClassValue &>(*this).value())
@@ -209,49 +209,49 @@ namespace ink::execution
 
   bool ExecutionValueRef::boolean() const noexcept
   {
-    assert(kind() == ExecutionValueKind::Boolean && "execution value is not a boolean");
+    assert(kind() == RuntimeKind::Boolean && "execution value is not a boolean");
     return static_cast<const ExecutionBoolValue &>(*Value).value();
   }
 
   const ExecutionInteger &ExecutionValueRef::integer() const noexcept
   {
-    assert(kind() == ExecutionValueKind::Integer && "execution value is not an integer");
+    assert(kind() == RuntimeKind::Integer && "execution value is not an integer");
     return static_cast<const ExecutionIntegerValue &>(*Value).value();
   }
 
   ir::FloatBits ExecutionValueRef::floating() const noexcept
   {
-    assert(kind() == ExecutionValueKind::Float && "execution value is not a float");
+    assert(kind() == RuntimeKind::Float && "execution value is not a float");
     return static_cast<const ExecutionFloatValue &>(*Value).value();
   }
 
   std::string_view ExecutionValueRef::string() const noexcept
   {
-    assert(kind() == ExecutionValueKind::String && "execution value is not a string");
+    assert(kind() == RuntimeKind::String && "execution value is not a string");
     return static_cast<const ExecutionStringValue &>(*Value).value();
   }
 
   const ExecutionPointer &ExecutionValueRef::pointer() const noexcept
   {
-    assert(kind() == ExecutionValueKind::Pointer && "execution value is not a pointer");
+    assert(kind() == RuntimeKind::Pointer && "execution value is not a pointer");
     return static_cast<const ExecutionPointerValue &>(*Value).value();
   }
 
   std::span<const ExecutionValueRef> ExecutionValueRef::array() const noexcept
   {
-    assert(kind() == ExecutionValueKind::Array && "execution value is not an array");
+    assert(kind() == RuntimeKind::Array && "execution value is not an array");
     return static_cast<const ExecutionArrayValue &>(*Value).value();
   }
 
   std::span<const ExecutionValueRef> ExecutionValueRef::fields() const noexcept
   {
-    assert(kind() == ExecutionValueKind::Class && "execution value is not a class");
+    assert(kind() == RuntimeKind::Class && "execution value is not a class");
     return static_cast<const ExecutionClassValue &>(*Value).value();
   }
 
   const ir::Function *ExecutionValueRef::function() const noexcept
   {
-    assert(kind() == ExecutionValueKind::Function && "execution value is not a function");
+    assert(kind() == RuntimeKind::Function && "execution value is not a function");
     return &static_cast<const ExecutionFunctionValue &>(*Value).value();
   }
 

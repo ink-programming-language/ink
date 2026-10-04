@@ -63,7 +63,7 @@ namespace ink::semantic::test
       {
         const auto Result = Engine.execute(*Entry);
         ASSERT_TRUE(Result) << static_cast<int>(Result.Status);
-        ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Integer);
+        ASSERT_EQ(Result.Value.kind(), RuntimeKind::Integer);
         EXPECT_EQ(Result.Value.integer().bitWidth(), Width);
         EXPECT_EQ(Result.Value.integer().bits().words().front(), Expected);
       }

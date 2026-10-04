@@ -52,7 +52,7 @@ INK_INSTRUCTION(ArrayExtract, WriteSlot, ReadSlot, ReadSlot, None)
 
 `AddI32` 将 `Operands[1]`、`Operands[2]` 指定的槽值相加后写入 `Operands[0]` 指定的槽；`CompareSigned32` 额外用 `Operands[3]` 指定谓词。`CallDirect` 的 `Operands[1]` 是调用点表索引，不是函数体宿主地址。`JumpIf` 的 `Operands[1]` 是 bool 条件槽，`Operands[2]` 和 `Operands[3]` 分别为真、假分支在本函数指令数组内的 PC。未使用项以 `None` 标记并置零。
 
-`AllocaLocal` 的 `Operands[1]` 是被分配值的运行时类型 ID，`Operands[2]` 是该函数独占的局部帧单元索引。`CString` 的 `Operands[1]`、`Operands[2]` 是自有 `ConstantData` 中的字节偏移与长度；`Function` 从 `InitialSlots[Operands[0]]` 取出预先编码的函数 ID。比较谓词使用独立的 `ExecutionPredicate`，编译器显式转换 IR 谓词，VM 不依赖 IR 枚举。
+`AllocaLocal` 的 `Operands[1]` 是被分配值的运行时类型 ID，`Operands[2]` 是该函数独占的局部帧单元索引。`CString` 的 `Operands[1]`、`Operands[2]` 是自有 `ConstantData` 中的字节偏移与长度；`Function` 从 `InitialSlots[Operands[0]]` 取出预先编码的函数 ID。IR 和 VM 共同使用 Core 的 `core::ComparisonPredicate`，不再逐项转换，VM 仍不依赖 IR 头文件。语义执行值、VM 值和反射描述共同使用 `execution/support/runtime_kind.h` 中的 `RuntimeKind`。
 
 `Array` 从 `ConstantData` 指定的范围读取小端 `u32` 源槽号，按顺序构造结果数组；字节长度必须为元素数乘 4。`ArrayRepeat` 读取一个元素槽，按结果数组布局的元素数复制，不会重新执行产生该元素的指令，零长度重复数组仍求值并检查该元素。`ArrayElementPointer` 的两个输入依次是数组地址和整数索引，结果为同权限的元素地址；`ArrayExtract` 的两个输入依次是数组值和整数索引，结果为元素值快照。普通构造与重复构造由 `ArrayInstruction::repeated()` 区分，其余两种操作分别降低对应的 IR 指令。
 
@@ -168,7 +168,7 @@ VM 保存调用者 PC、返回结果槽和各调用帧的独立状态，Ink 函�
 
 编译器在读取 IR 时检查常量归属。`ExecutionCompiler::verify()` 对独立产物检查操作码、槽位及布局 ID、参数/结果类型、调用签名、初始位模式、分支目标、常量字节范围、紧凑局部单元唯一性与内部句柄使用规则，不再访问源 IR。链接器另外检查直接函数 ID 的目标描述和签名。验证器不是完整的语义验证器，也不以静态验证替代实际路径上的未初始化、动态指针生命周期和预算检查。
 
-数组验证还检查元素数量、递归元素类型与初始化状态、源槽号表范围，以及索引类型和元素指针权限。重复构造在分配元素向量前检查 `MaxStorageBytes`，因此零大小元素也不能绕过元素数量预算；取址仍使用普通受控存储，不能把 `AllocaLocal` 的内部句柄传给数组元素地址操作。数组文件标签和条件布局字段见 [Ink 字节码文件格式](Ink-Bytecode-Format.md)，当前容器版本为 6、指令模式版本为 3。
+数组验证还检查元素数量、递归元素类型与初始化状态、源槽号表范围，以及索引类型和元素指针权限。重复构造在分配元素向量前检查 `MaxStorageBytes`，因此零大小元素也不能绕过元素数量预算；取址仍使用普通受控存储，不能把 `AllocaLocal` 的内部句柄传给数组元素地址操作。数组文件标签和条件布局字段见 [Ink 字节码文件格式](Ink-Bytecode-Format.md)，当前容器版本为 7、指令模式版本为 3。
 
 数组专项测试位于 [`array_bytecode_test.cpp`](../src/testcase/execution/bytecode/array_bytecode_test.cpp)、[`array_storage_test.cpp`](../src/testcase/execution/memory/array_storage_test.cpp) 和 [`array_artifact_test.cpp`](../src/testcase/execution/artifact/array_artifact_test.cpp)，覆盖 lowering、非法槽号与类型、各位宽动态越界、独立快照、重复求值次数、局部指针逃逸、空与嵌套数组、存储预算及独立对象归档链接。
 

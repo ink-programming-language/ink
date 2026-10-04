@@ -1,4 +1,5 @@
 file(GLOB_RECURSE INK_CORE_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/core/*_test.cpp")
+file(GLOB_RECURSE INK_ABI_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/abi/*_test.cpp")
 file(GLOB_RECURSE INK_TOKENIZER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tokenizer/*_test.cpp")
 file(GLOB_RECURSE INK_PARSER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/parser/*_test.cpp")
 file(GLOB_RECURSE INK_IR_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/ir/*_test.cpp")
@@ -26,7 +27,7 @@ target_compile_features(ink_ir_test_objects PRIVATE cxx_std_20)
 target_link_libraries(ink_ir_test_objects PRIVATE ink::ir ink::llvm GTest::gtest GTest::gmock)
 ink_disable_exceptions(ink_ir_test_objects)
 
-add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_SEMANTIC_TEST_SOURCES} ${INK_EXECUTION_TEST_SOURCES} ${INK_BACKEND_TEST_SOURCES})
+add_executable(ink_tests ${INK_ABI_TEST_SOURCES} ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_SEMANTIC_TEST_SOURCES} ${INK_EXECUTION_TEST_SOURCES} ${INK_BACKEND_TEST_SOURCES})
 # Expose the C ABI fixtures to the same process symbol lookup used by compile-time external calls.
 set_target_properties(ink_tests PROPERTIES ENABLE_EXPORTS ON)
 add_dependencies(ink_tests ink_tokenize ink_parse inkc)
@@ -55,6 +56,8 @@ set_tests_properties(InkcProcessTest PROPERTIES TIMEOUT 60 LABELS "execution;cli
 
 add_test(NAME BytecodeProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/bytecode-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/bytecode_process_test.cmake")
 set_tests_properties(BytecodeProcessTest PROPERTIES TIMEOUT 120 LABELS "execution;bytecode;cli")
+add_test(NAME SymbolManglingProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/symbol-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/backend/symbol_process_test.cmake")
+set_tests_properties(SymbolManglingProcessTest PROPERTIES TIMEOUT 120 LABELS "backend;abi;cli")
 
 add_test(NAME ArrayReadProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_POINTER_BYTES=${CMAKE_SIZEOF_VOID_P}" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/array-read-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/array_read_process_test.cmake")
 set_tests_properties(ArrayReadProcessTest PROPERTIES TIMEOUT 120 LABELS "execution;arrays;ffi;bytecode;cli")

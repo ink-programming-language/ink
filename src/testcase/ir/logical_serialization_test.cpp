@@ -12,7 +12,7 @@ namespace ink::ir::test
 {
   namespace
   {
-    constexpr std::string_view LogicalModuleText = R"(ink-ir 6
+    constexpr std::string_view LogicalModuleText = R"(ink-ir 7
 module @Logic {
   define bool @compare(bool %left, bool %right, i32 %number, i32 %other) {
   entry:
@@ -33,13 +33,13 @@ module @Logic {
 }
 )";
 
-    constexpr ComparisonPredicate Predicates[] = {
-        ComparisonPredicate::Equal,
-        ComparisonPredicate::NotEqual,
-        ComparisonPredicate::Less,
-        ComparisonPredicate::LessEqual,
-        ComparisonPredicate::Greater,
-        ComparisonPredicate::GreaterEqual,
+    constexpr core::ComparisonPredicate Predicates[] = {
+        core::ComparisonPredicate::Equal,
+        core::ComparisonPredicate::NotEqual,
+        core::ComparisonPredicate::Less,
+        core::ComparisonPredicate::LessEqual,
+        core::ComparisonPredicate::Greater,
+        core::ComparisonPredicate::GreaterEqual,
     };
 
     struct BinaryRecord
@@ -56,7 +56,7 @@ module @Logic {
       {
         const auto *Header = Bytes.data() + Offset;
         Records.push_back({Offset, static_cast<std::uint32_t>(Records.size() + 1), llvm::support::endian::read32le(Header)});
-        Offset += 24 + static_cast<std::size_t>(llvm::support::endian::read32le(Header + 12)) * 8 + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 16));
+        Offset += 32 + static_cast<std::size_t>(llvm::support::endian::read32le(Header + 12)) * 8 + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 16)) + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 24));
       }
       return Records;
     }
@@ -97,10 +97,10 @@ module @Logic {
         EXPECT_EQ(&Compare.left(), FunctionValue.parameters()[2].get());
         EXPECT_EQ(&Compare.right(), FunctionValue.parameters()[3].get());
       }
-      EXPECT_EQ(static_cast<const CompareInstruction &>(*Values[9]).predicate(), ComparisonPredicate::Equal);
-      EXPECT_EQ(static_cast<const CompareInstruction &>(*Values[10]).predicate(), ComparisonPredicate::NotEqual);
+      EXPECT_EQ(static_cast<const CompareInstruction &>(*Values[9]).predicate(), core::ComparisonPredicate::Equal);
+      EXPECT_EQ(static_cast<const CompareInstruction &>(*Values[10]).predicate(), core::ComparisonPredicate::NotEqual);
       const auto &Unsigned = static_cast<const CompareInstruction &>(*Values[11]);
-      EXPECT_EQ(Unsigned.predicate(), ComparisonPredicate::Greater);
+      EXPECT_EQ(Unsigned.predicate(), core::ComparisonPredicate::Greater);
       const auto &UnsignedType = static_cast<const IntegerType &>(Unsigned.left().type());
       EXPECT_FALSE(UnsignedType.isSigned());
       EXPECT_EQ(UnsignedType.bitWidth(), 8U);
@@ -143,7 +143,7 @@ module @Logic {
         if (Record.Kind == 55)
         {
           ASSERT_LT(Counts[Index], std::size(ExpectedPredicates));
-          EXPECT_EQ(llvm::support::endian::read64le(Binary.Bytes.data() + Record.Offset + 24), ExpectedPredicates[Counts[Index]]);
+          EXPECT_EQ(llvm::support::endian::read64le(Binary.Bytes.data() + Record.Offset + 32), ExpectedPredicates[Counts[Index]]);
         }
         ++Counts[Index];
       }
@@ -161,7 +161,7 @@ module @Logic {
   // Forward dependencies resolve through logical and comparison nodes without confusing a predicate with an object ID.
   TEST(IRModuleSerializationTest, LogicalInstructionsResolveForwardOperands)
   {
-    constexpr std::string_view Text = R"(ink-ir 6
+    constexpr std::string_view Text = R"(ink-ir 7
 module @Forward {
   define bool @f(i32 %left, i32 %right) {
   entry:
@@ -221,8 +221,8 @@ module @Forward {
     IRContext Context(Compilation);
     for (const auto InstructionsText : Instructions)
     {
-      const auto Result = deserializeModuleText(Context, "ink-ir 6 module @Invalid { define bool @f(bool %flag, i32 %number) { entry: " + std::string(InstructionsText) + " } }");
-      EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << InstructionsText << ": " << Result.Message;
+      const auto Result = deserializeModuleText(Context, "ink-ir 7 module @Invalid { define bool @f(bool %flag, i32 %number) { entry: " + std::string(InstructionsText) + " } }");
+      EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidArchive) << InstructionsText << ": " << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Context.modules().empty());
     }
@@ -261,7 +261,7 @@ module @Forward {
     {
       IRContext Destination(Compilation);
       const auto Result = deserializeModuleBinary(Destination, Bytes);
-      EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Result.Message;
+      EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidArchive) << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Destination.modules().empty());
     };
@@ -280,12 +280,12 @@ module @Forward {
         for (const std::uint64_t InvalidId : {std::uint64_t{0}, std::uint64_t{UINT32_MAX}, std::uint64_t{1}, std::uint64_t{Record.Id}})
         {
           auto BadReference = Encoded.Bytes;
-          llvm::support::endian::write64le(BadReference.data() + Record.Offset + 24 + Index * 8, InvalidId);
+          llvm::support::endian::write64le(BadReference.data() + Record.Offset + 32 + Index * 8, InvalidId);
           Reject(BadReference);
         }
       }
       auto WrongOperand = Encoded.Bytes;
-      const auto OperandOffset = Record.Offset + (Record.Kind == 55 ? 32 : 24);
+      const auto OperandOffset = Record.Offset + (Record.Kind == 55 ? 40 : 32);
       const auto OriginalOperandId = llvm::support::endian::read64le(Encoded.Bytes.data() + OperandOffset);
       const auto OriginalOperandTypeId = llvm::support::endian::read32le(Encoded.Bytes.data() + Records[static_cast<std::size_t>(OriginalOperandId - 1)].Offset + 4);
       const auto OriginalOperandTypeKind = Records[OriginalOperandTypeId - 1].Kind;
@@ -296,13 +296,13 @@ module @Forward {
         for (const auto InvalidPredicate : {std::uint64_t{6}, std::uint64_t{UINT64_MAX}})
         {
           auto WrongPredicate = Encoded.Bytes;
-          llvm::support::endian::write64le(WrongPredicate.data() + Record.Offset + 24, InvalidPredicate);
+          llvm::support::endian::write64le(WrongPredicate.data() + Record.Offset + 32, InvalidPredicate);
           Reject(WrongPredicate);
         }
         if (OriginalOperandTypeKind == 18)
         {
           auto OrderedBool = Encoded.Bytes;
-          llvm::support::endian::write64le(OrderedBool.data() + Record.Offset + 24, 2);
+          llvm::support::endian::write64le(OrderedBool.data() + Record.Offset + 32, 2);
           Reject(OrderedBool);
         }
       }

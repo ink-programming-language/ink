@@ -24,6 +24,11 @@ namespace ink::ir
         return FunctionName;
       }
 
+      const std::vector<std::uint64_t> &lexicalScope() const noexcept
+      {
+        return LexicalScope;
+      }
+
       const FunctionType &functionType() const noexcept
       {
         return static_cast<const FunctionType &>(type());
@@ -39,22 +44,22 @@ namespace ink::ir
         return Linkage;
       }
 
-      FunctionBinding binding() const noexcept
+      core::FunctionBinding binding() const noexcept
       {
         return Binding;
       }
 
       bool isNativeImport() const noexcept
       {
-        return Binding == FunctionBinding::Import;
+        return Binding == core::FunctionBinding::Import;
       }
 
       bool isNativeExport() const noexcept
       {
-        return Binding == FunctionBinding::Export;
+        return Binding == core::FunctionBinding::Export;
       }
 
-      VisibilityKind visibility() const noexcept
+      core::VisibilityKind visibility() const noexcept
       {
         return Visibility;
       }
@@ -102,7 +107,7 @@ namespace ink::ir
       }
 
     private:
-      Function(Name FunctionName, const FunctionType &Signature, CallingConvention Convention, LanguageLinkage Linkage, FunctionBinding Binding) noexcept
+      Function(Name FunctionName, const FunctionType &Signature, CallingConvention Convention, LanguageLinkage Linkage, core::FunctionBinding Binding) noexcept
           : Value(Signature.context(), ValueKind::Function, Signature),
             FunctionName(FunctionName),
             Convention(Convention),
@@ -114,10 +119,11 @@ namespace ink::ir
       const ClassType *ClassOwner = nullptr;
       std::size_t InitializerField = std::numeric_limits<std::size_t>::max();
       Name FunctionName;
+      std::vector<std::uint64_t> LexicalScope;
       CallingConvention Convention;
       LanguageLinkage Linkage;
-      FunctionBinding Binding;
-      VisibilityKind Visibility = VisibilityKind::Public;
+      core::FunctionBinding Binding;
+      core::VisibilityKind Visibility = core::VisibilityKind::Public;
       // Blocks are destroyed before the parameters referenced by their instructions.
       std::vector<std::unique_ptr<FunctionParameter>> Parameters;
       std::vector<std::unique_ptr<BasicBlock>> Blocks;

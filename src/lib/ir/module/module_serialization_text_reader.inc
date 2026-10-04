@@ -17,7 +17,7 @@ namespace ink::ir::archive
           const auto Version = Lex.number();
           if (Lex.good() && Version != ModuleTextVersion)
           {
-            return Data.fail("Unsupported module text version", ModuleArchiveStatus::UnsupportedVersion);
+            return Data.fail("Unsupported module text version", core::ArchiveStatus::UnsupportedVersion);
           }
           const auto Root = add(Tag::Module);
           module(Root, 0, 1);
@@ -81,7 +81,7 @@ namespace ink::ir::archive
         }
         bool depth(std::size_t Depth)
         {
-          return Depth <= Data.Limits.MaxNestingDepth || Data.fail("Module text nesting limit exceeded", ModuleArchiveStatus::LimitExceeded);
+          return Depth <= Data.Limits.MaxNestingDepth || Data.fail("Module text nesting limit exceeded", core::ArchiveStatus::LimitExceeded);
         }
         std::size_t add(Tag Kind, std::size_t Type = 0, std::size_t Parent = 0, std::vector<std::uint64_t> Fields = {}, std::string Text = {})
         {
@@ -101,7 +101,7 @@ namespace ink::ir::archive
           auto Value = Lex.string();
           if (Value.size() > Data.Limits.MaxStringBytes)
           {
-            Data.fail("Module text string limit exceeded", ModuleArchiveStatus::LimitExceeded);
+            Data.fail("Module text string limit exceeded", core::ArchiveStatus::LimitExceeded);
             return {};
           }
           return Value;
@@ -249,7 +249,7 @@ namespace ink::ir::archive
               }
               if (Fields.size() >= Data.Limits.MaxFields)
               {
-                Data.fail("Function type field limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                Data.fail("Function type field limit exceeded", core::ArchiveStatus::LimitExceeded);
                 return 0;
               }
               if (!Data.fields(1))
@@ -333,12 +333,12 @@ namespace ink::ir::archive
                 const auto FieldType = type();
                 if (Data.Limits.MaxFields < 3 || record(Id).Fields.size() > Data.Limits.MaxFields - 3 || !Data.fields(3) || !Data.string(FieldName.size()))
                 {
-                  Data.fail("Class field limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                  Data.fail("Class field limit exceeded", core::ArchiveStatus::LimitExceeded);
                   return;
                 }
                 if (FieldName.size() > Data.Limits.MaxStringBytes - record(Id).Text.size())
                 {
-                  Data.fail("Class name storage limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                  Data.fail("Class name storage limit exceeded", core::ArchiveStatus::LimitExceeded);
                   return;
                 }
                 record(Id).Fields.insert(record(Id).Fields.end(), {FieldType, Private, FieldName.size()});
@@ -425,7 +425,7 @@ namespace ink::ir::archive
               }
               if (Elements.size() >= Data.Limits.MaxFields || !Data.fields(1))
               {
-                Data.fail("Array constant element limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                Data.fail("Array constant element limit exceeded", core::ArchiveStatus::LimitExceeded);
                 return {};
               }
               Elements.push_back(value(ElementType, Depth + 1));
@@ -535,7 +535,7 @@ namespace ink::ir::archive
           {
             if (record(Id).Fields.size() >= Data.Limits.MaxFields)
             {
-              Data.fail("Module archive field limit exceeded", ModuleArchiveStatus::LimitExceeded);
+              Data.fail("Module archive field limit exceeded", core::ArchiveStatus::LimitExceeded);
               return;
             }
             if (!Data.fields(1))
@@ -626,7 +626,7 @@ namespace ink::ir::archive
               }
               if (Values.size() >= Data.Limits.MaxFields || !Data.fields(1))
               {
-                Data.fail("Array instruction element limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                Data.fail("Array instruction element limit exceeded", core::ArchiveStatus::LimitExceeded);
                 return;
               }
               Values.push_back(value(ElementType));
@@ -726,7 +726,7 @@ namespace ink::ir::archive
               }
               if (Values.size() >= Data.Limits.MaxFields)
               {
-                Data.fail("Call argument limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                Data.fail("Call argument limit exceeded", core::ArchiveStatus::LimitExceeded);
                 return;
               }
               if (!Data.fields(1))
@@ -796,7 +796,7 @@ namespace ink::ir::archive
             }
             if (Signature.size() >= Data.Limits.MaxFields)
             {
-              Data.fail("Function parameter limit exceeded", ModuleArchiveStatus::LimitExceeded);
+              Data.fail("Function parameter limit exceeded", core::ArchiveStatus::LimitExceeded);
               return;
             }
             const auto Type = type();
@@ -890,6 +890,10 @@ namespace ink::ir::archive
               return;
             }
             record(Id).Fields.insert(record(Id).Fields.end(), {Owner, Field});
+          }
+          if (Lex.take("scope"))
+          {
+            record(Id).Linkage = string();
           }
           if ((Body && record(Id).Fields[3] == 1) || (!Body && record(Id).Fields[3] == 2))
           {
@@ -1009,6 +1013,10 @@ namespace ink::ir::archive
           {
             define(symbol("^"), Block);
           }
+          if (Lex.take("identity"))
+          {
+            record(Id).Linkage = string();
+          }
           Lex.expect("{");
           while (good() && !Lex.take("}"))
           {
@@ -1022,7 +1030,7 @@ namespace ink::ir::archive
               const auto Class = type();
               if (!Data.fields(1) || record(Id).Fields.size() >= Data.Limits.MaxFields)
               {
-                Data.fail("Module reflected type limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                Data.fail("Module reflected type limit exceeded", core::ArchiveStatus::LimitExceeded);
                 return;
               }
               record(Id).Fields.push_back(Class);

@@ -19,8 +19,27 @@ namespace ink::semantic
       {
         return reportExecution(State, execution::ExecutionStatus::TypeMismatch, Node);
       }
+      {
+        AnalysisState::EvaluationGuard CompileTime(State);
+        if (!cleanupObjects(State, 0, true, Node))
+        {
+          return false;
+        }
+      }
       const parser::Stmt *Selected = static_cast<const ir::BoolConstant &>(*Condition.ValueObject).value() ? Node.thenBranch() : Node.elseBranch();
-      return !Selected || analyzeStmt(State, *Selected);
+      if (!Selected)
+      {
+        return true;
+      }
+      NameResolver::ScopeGuard Scope(State.Resolver);
+      AnalysisState::FrameGuard Frame(State, execution::ExecutionFrameKind::Block);
+      if (!Frame)
+      {
+        return reportExecution(State, State.Context.comptimeState().Engine.lastStatus(), Node);
+      }
+      const std::size_t Begin = State.Lifetimes.size();
+      const bool Succeeded = analyzeStmt(State, *Selected);
+      return finishObjectScope(State, Begin, Node, Succeeded);
     }
     if (!State.CurrentFunction)
     {
@@ -34,6 +53,10 @@ namespace ink::semantic
     if (!Condition.ValueObject || Condition.ValueObject->type().typeKind() != ir::TypeKind::Bool)
     {
       State.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.condition()->getSourceRange(), "bool", Condition.IntegerLiteral ? "integer literal" : (Condition.ValueObject ? describeType(Condition.ValueObject->type()) : "void"));
+      return false;
+    }
+    if (!cleanupObjects(State, 0, true, Node))
+    {
       return false;
     }
 
@@ -52,6 +75,7 @@ namespace ink::semantic
         bool Then;
     };
     std::vector<Initialization> Initializations;
+    const auto IncomingFields = State.ConstructorFields;
     for (auto &Entry : State.Context.comptimeState().Variables)
     {
       auto &Variable = Entry.second;
@@ -78,14 +102,18 @@ namespace ink::semantic
         return reportExecution(State, State.Context.comptimeState().Engine.lastStatus(), Branch);
       }
       const std::size_t SavedLoopDepth = State.LoopDepth;
+      const std::size_t LifetimeBegin = State.Lifetimes.size();
       State.LoopDepth = 0;
-      const bool Succeeded = analyzeStmt(State, Branch);
+      bool Succeeded = analyzeStmt(State, Branch);
+      Succeeded = finishObjectScope(State, LifetimeBegin, Branch, Succeeded);
       State.LoopDepth = SavedLoopDepth;
       return Succeeded;
     };
 
     bool Succeeded = AnalyzeBranch(*Node.thenBranch(), *ThenBlock);
     const bool ThenTerminated = State.Terminated;
+    const auto ThenFields = State.ConstructorFields;
+    State.ConstructorFields = IncomingFields;
     ir::BasicBlock *ThenEnd = State.Builder.insertBlock();
     for (auto &Entry : Initializations)
     {
@@ -117,6 +145,22 @@ namespace ink::semantic
       else if (!ThenTerminated)
       {
         Entry.Variable->Initialized = Entry.Then && Entry.Variable->Initialized;
+      }
+    }
+
+    for (std::size_t Index = 0; Index < State.ConstructorFields.size(); ++Index)
+    {
+      if (!Succeeded || (ThenTerminated && ElseTerminated))
+      {
+        State.ConstructorFields[Index] = IncomingFields[Index];
+      }
+      else if (ElseTerminated)
+      {
+        State.ConstructorFields[Index] = ThenFields[Index];
+      }
+      else if (!ThenTerminated)
+      {
+        State.ConstructorFields[Index] = ThenFields[Index] && State.ConstructorFields[Index];
       }
     }
 

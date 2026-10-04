@@ -57,7 +57,7 @@ namespace ink::execution::test
     {
       ArtifactContext Test;
       auto *Local = Test.function("inkBytecodeLocalC", Test.Int32, {}, ir::LanguageLinkage::C);
-      auto *Exported = Test.function("inkBytecodeNativeExport", Test.Int32, {}, ir::LanguageLinkage::C, ir::FunctionBinding::Export);
+      auto *Exported = Test.function("inkBytecodeNativeExport", Test.Int32, {}, ir::LanguageLinkage::C, core::FunctionBinding::Export);
       auto *Main = Test.function("main", Test.Int32);
       ASSERT_NE(Local, nullptr);
       ASSERT_NE(Exported, nullptr);
@@ -314,7 +314,7 @@ namespace ink::execution::test
       const auto *Pointer = Test.Context.typePool().getType<ir::TypeKind::Pointer>(*Byte, ir::AccessKind::ReadWrite);
       const ir::Type *Parameters[] = {Pointer};
       const auto *Signature = Test.Context.typePool().getType<ir::TypeKind::Function>(Test.Int32, Parameters);
-      auto Native = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestArchivedCString"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+      auto Native = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestArchivedCString"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import);
       ASSERT_NE(Native, nullptr);
       auto *Main = Test.function("main", Test.Int32);
       ASSERT_TRUE(Test.begin(*Main));

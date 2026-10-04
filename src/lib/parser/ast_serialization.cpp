@@ -56,7 +56,8 @@ namespace ink::parser
   {                          \
       using Enum = Type;     \
       static constexpr EnumEntry<Enum> Values[] = {
-#define AST_ENUM_VALUE(Name, Id) {Enum::Name, Id, #Name},
+#define AST_ENUM_NAMED_VALUE(Name, Id, Text) {Enum::Name, Id, Text},
+#define AST_ENUM_VALUE(Name, Id) AST_ENUM_NAMED_VALUE(Name, Id, #Name)
 #define AST_ENUM_END() \
   }                    \
   ;                    \
@@ -65,6 +66,7 @@ namespace ink::parser
 #include "ast_serialization_enums.def"
 #undef AST_ENUM_END
 #undef AST_ENUM_VALUE
+#undef AST_ENUM_NAMED_VALUE
 #undef AST_ENUM_BEGIN
 
     constexpr std::size_t TokenKindCount = 0
@@ -193,7 +195,7 @@ namespace ink::parser
         {
           if (!Parsed.Unit || !Parsed.Unit->root())
           {
-            failICE<core::DiagnosticKind::ASTArchiveMissingInput>(ASTArchiveStatus::InvalidInput);
+            failICE<core::DiagnosticKind::ASTArchiveMissingInput>(core::ArchiveStatus::InvalidInput);
             return result();
           }
           const auto &Input = Parsed.Unit->input().lexedFile();
@@ -201,34 +203,34 @@ namespace ink::parser
           Tokens = &Input.tokens();
           if (Source.size() > Limits.MaxSourceBytes)
           {
-            failICE<core::DiagnosticKind::ASTArchiveSourceLimitExceeded>(ASTArchiveStatus::LimitExceeded, Source.size(), Limits.MaxSourceBytes);
+            failICE<core::DiagnosticKind::ASTArchiveSourceLimitExceeded>(core::ArchiveStatus::LimitExceeded, Source.size(), Limits.MaxSourceBytes);
             return result();
           }
           if (Tokens->size() > Limits.MaxTokens)
           {
-            failICE<core::DiagnosticKind::ASTArchiveTokenLimitExceeded>(ASTArchiveStatus::LimitExceeded, Tokens->size(), Limits.MaxTokens);
+            failICE<core::DiagnosticKind::ASTArchiveTokenLimitExceeded>(core::ArchiveStatus::LimitExceeded, Tokens->size(), Limits.MaxTokens);
             return result();
           }
           if (Parsed.Unit->recoveryInfo().Entries.size() > Limits.MaxArrayElements)
           {
-            failICE<core::DiagnosticKind::ASTArchiveRecoveryLimitExceeded>(ASTArchiveStatus::LimitExceeded, Parsed.Unit->recoveryInfo().Entries.size(), Limits.MaxArrayElements);
+            failICE<core::DiagnosticKind::ASTArchiveRecoveryLimitExceeded>(core::ArchiveStatus::LimitExceeded, Parsed.Unit->recoveryInfo().Entries.size(), Limits.MaxArrayElements);
             return result();
           }
           std::string Reason;
           if (!verifyAST(Parsed.Unit->root(), Source.size(), &Reason))
           {
-            failICE<core::DiagnosticKind::ASTArchiveInvalidTree>(ASTArchiveStatus::InvalidInput, std::move(Reason));
+            failICE<core::DiagnosticKind::ASTArchiveInvalidTree>(core::ArchiveStatus::InvalidInput, std::move(Reason));
             return result();
           }
           ASTWalker{}.walk(Parsed.Unit->root(), [&](const ASTNodeBase *)
                            {
-                             return Status == ASTArchiveStatus::Success ? WalkAction::Continue : WalkAction::Stop;
+                             return Status == core::ArchiveStatus::Success ? WalkAction::Continue : WalkAction::Stop;
                            },
                            [&](const ASTNodeBase *Node)
                            {
                              if (Nodes.size() >= Limits.MaxNodes)
                              {
-                               failICE<core::DiagnosticKind::ASTArchiveNodeLimitExceeded>(ASTArchiveStatus::LimitExceeded, Nodes.size() + 1, Limits.MaxNodes);
+                               failICE<core::DiagnosticKind::ASTArchiveNodeLimitExceeded>(core::ArchiveStatus::LimitExceeded, Nodes.size() + 1, Limits.MaxNodes);
                                return;
                              }
                              Ids.emplace(Node, Nodes.size() + 1);
@@ -251,7 +253,7 @@ namespace ink::parser
           emitText(SourceTextRecord, Source);
           for (const auto &Token : *Tokens)
           {
-            if (Status != ASTArchiveStatus::Success)
+            if (Status != core::ArchiveStatus::Success)
             {
               break;
             }
@@ -293,13 +295,13 @@ namespace ink::parser
           }
           for (const ASTNodeBase *Node : Nodes)
           {
-            if (Status != ASTArchiveStatus::Success)
+            if (Status != core::ArchiveStatus::Success)
             {
               break;
             }
             if (!validNodeMetadata(Node, *Tokens))
             {
-              failICE<core::DiagnosticKind::ASTArchiveInvalidNodeToken>(ASTArchiveStatus::InvalidInput);
+              failICE<core::DiagnosticKind::ASTArchiveInvalidNodeToken>(core::ArchiveStatus::InvalidInput);
               break;
             }
             write(static_cast<std::uint64_t>(Node->getKind()));
@@ -323,7 +325,7 @@ namespace ink::parser
           {
             if (!validRecovery(Entry, *Tokens, Source.size()))
             {
-              failICE<core::DiagnosticKind::ASTArchiveInvalidRecovery>(ASTArchiveStatus::InvalidInput);
+              failICE<core::DiagnosticKind::ASTArchiveInvalidRecovery>(core::ArchiveStatus::InvalidInput);
               break;
             }
             write(Entry.Node);
@@ -337,9 +339,9 @@ namespace ink::parser
           Stream.ExitBlock();
           if (Output.size() > Limits.MaxArchiveBytes)
           {
-            failICE<core::DiagnosticKind::ASTArchiveSizeLimitExceeded>(ASTArchiveStatus::LimitExceeded, Output.size(), Limits.MaxArchiveBytes);
+            failICE<core::DiagnosticKind::ASTArchiveSizeLimitExceeded>(core::ArchiveStatus::LimitExceeded, Output.size(), Limits.MaxArchiveBytes);
           }
-          if (Status != ASTArchiveStatus::Success)
+          if (Status != core::ArchiveStatus::Success)
           {
             return result();
           }
@@ -348,10 +350,10 @@ namespace ink::parser
 
       private:
         template <core::DiagnosticKind Kind, typename... ArgumentTypes>
-        void failICE(ASTArchiveStatus NewStatus, ArgumentTypes &&...Arguments)
+        void failICE(core::ArchiveStatus NewStatus, ArgumentTypes &&...Arguments)
         {
           static_assert(core::DiagnosticTraits<Kind>::Classification == core::DiagnosticClass::InternalCompilerError);
-          if (Status == ASTArchiveStatus::Success)
+          if (Status == core::ArchiveStatus::Success)
           {
             Status = NewStatus;
             const auto Diagnostic = core::makeDiagnostic<Kind>({}, std::forward<ArgumentTypes>(Arguments)...);
@@ -368,19 +370,19 @@ namespace ink::parser
         }
         void emit(unsigned Code)
         {
-          if (Status == ASTArchiveStatus::Success)
+          if (Status == core::ArchiveStatus::Success)
           {
             Stream.EmitRecord(Code, Values);
             if (Output.size() > Limits.MaxArchiveBytes)
             {
-              failICE<core::DiagnosticKind::ASTArchiveSizeLimitExceeded>(ASTArchiveStatus::LimitExceeded, Output.size(), Limits.MaxArchiveBytes);
+              failICE<core::DiagnosticKind::ASTArchiveSizeLimitExceeded>(core::ArchiveStatus::LimitExceeded, Output.size(), Limits.MaxArchiveBytes);
             }
           }
           Values.clear();
         }
         void emitText(unsigned Code, std::string_view Text)
         {
-          if (Status == ASTArchiveStatus::Success)
+          if (Status == core::ArchiveStatus::Success)
           {
             Stream.EmitRecord(Code, llvm::ArrayRef<unsigned char>(reinterpret_cast<const unsigned char *>(Text.data()), Text.size()));
           }
@@ -397,7 +399,7 @@ namespace ink::parser
         template <typename T>
         void write(const T &Value)
         {
-          if (Status != ASTArchiveStatus::Success)
+          if (Status != core::ArchiveStatus::Success)
           {
             return;
           }
@@ -405,7 +407,7 @@ namespace ink::parser
           {
             if (Values.size() >= Limits.MaxAllocationBytes / sizeof(std::uint64_t))
             {
-              failICE<core::DiagnosticKind::ASTArchiveRecordStorageLimitExceeded>(ASTArchiveStatus::LimitExceeded, Values.size() + 1, Limits.MaxAllocationBytes / sizeof(std::uint64_t));
+              failICE<core::DiagnosticKind::ASTArchiveRecordStorageLimitExceeded>(core::ArchiveStatus::LimitExceeded, Values.size() + 1, Limits.MaxAllocationBytes / sizeof(std::uint64_t));
               return;
             }
             Values.push_back(static_cast<std::uint64_t>(Value));
@@ -420,7 +422,7 @@ namespace ink::parser
                 return;
               }
             }
-            failICE<core::DiagnosticKind::ASTArchiveInvalidEnum>(ASTArchiveStatus::InvalidInput, static_cast<std::uint64_t>(Value));
+            failICE<core::DiagnosticKind::ASTArchiveInvalidEnum>(core::ArchiveStatus::InvalidInput, static_cast<std::uint64_t>(Value));
           }
           else if constexpr (std::is_pointer_v<T>)
           {
@@ -434,14 +436,14 @@ namespace ink::parser
             }
             else
             {
-              failICE<core::DiagnosticKind::ASTArchiveExternalNodeReference>(ASTArchiveStatus::InvalidInput);
+              failICE<core::DiagnosticKind::ASTArchiveExternalNodeReference>(core::ArchiveStatus::InvalidInput);
             }
           }
           else if constexpr (std::is_same_v<T, SourceRange>)
           {
             if (!validRange(Value, Source.size()))
             {
-              failICE<core::DiagnosticKind::ASTArchiveInvalidSourceRange>(ASTArchiveStatus::InvalidInput);
+              failICE<core::DiagnosticKind::ASTArchiveInvalidSourceRange>(core::ArchiveStatus::InvalidInput);
               return;
             }
             write(Value.getBegin().getRawEncoding());
@@ -459,7 +461,7 @@ namespace ink::parser
           {
             if (!validName(Value, *Tokens, Source))
             {
-              failICE<core::DiagnosticKind::ASTArchiveInvalidNameToken>(ASTArchiveStatus::InvalidInput);
+              failICE<core::DiagnosticKind::ASTArchiveInvalidNameToken>(core::ArchiveStatus::InvalidInput);
               return;
             }
             write(Value.Id == InvalidTokenId ? 0 : Value.Id + 1);
@@ -484,7 +486,7 @@ namespace ink::parser
           {
             if (Value.size() > Limits.MaxArrayElements)
             {
-              failICE<core::DiagnosticKind::ASTArchiveArrayLimitExceeded>(ASTArchiveStatus::LimitExceeded, Value.size(), Limits.MaxArrayElements);
+              failICE<core::DiagnosticKind::ASTArchiveArrayLimitExceeded>(core::ArchiveStatus::LimitExceeded, Value.size(), Limits.MaxArrayElements);
               return;
             }
             write(Value.size());
@@ -509,7 +511,7 @@ namespace ink::parser
         std::unordered_map<const ASTNodeBase *, std::size_t> Ids;
         std::string_view Source;
         const std::vector<tokenizer::Token> *Tokens = nullptr;
-        ASTArchiveStatus Status = ASTArchiveStatus::Success;
+        core::ArchiveStatus Status = core::ArchiveStatus::Success;
         std::string Message;
     };
   } // namespace
@@ -531,31 +533,31 @@ namespace ink::parser
       {
         if (Bytes.size() > Limits.MaxArchiveBytes)
         {
-          failICE<core::DiagnosticKind::ASTArchiveSizeLimitExceeded>(ASTArchiveStatus::LimitExceeded, Bytes.size(), Limits.MaxArchiveBytes);
+          failICE<core::DiagnosticKind::ASTArchiveSizeLimitExceeded>(core::ArchiveStatus::LimitExceeded, Bytes.size(), Limits.MaxArchiveBytes);
           return result();
         }
         if (Bytes.size() < 12 || Bytes.size() % 4 != 0 || Bytes.substr(0, 4) != "IAST")
         {
-          failICE<core::DiagnosticKind::ASTArchiveInvalidSignature>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveInvalidSignature>(core::ArchiveStatus::InvalidArchive);
           return result();
         }
         bits(32);
         if (bits(2) != llvm::bitc::ENTER_SUBBLOCK || vbr(8) != ArchiveBlock || vbr(4) != CodeWidth || !align())
         {
-          failICE<core::DiagnosticKind::ASTArchiveInvalidBlock>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveInvalidBlock>(core::ArchiveStatus::InvalidArchive);
           return result();
         }
         const auto Words = bits(32);
         if (Words != (Bytes.size() - Cursor.GetCurrentBitNo() / 8) / 4)
         {
-          failICE<core::DiagnosticKind::ASTArchiveInvalidBlockSize>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveInvalidBlockSize>(core::ArchiveStatus::InvalidArchive);
           return result();
         }
         begin(HeaderRecord);
         const auto Version = number();
         if (Good && Version != ASTArchiveVersion)
         {
-          failICE<core::DiagnosticKind::ASTArchiveUnsupportedVersion>(ASTArchiveStatus::UnsupportedVersion, Version, ASTArchiveVersion);
+          failICE<core::DiagnosticKind::ASTArchiveUnsupportedVersion>(core::ArchiveStatus::UnsupportedVersion, Version, ASTArchiveVersion);
           return result();
         }
         const auto ParseState = read<ParseStatus>();
@@ -567,7 +569,7 @@ namespace ink::parser
         end();
         if (!Good || NodeCount == 0)
         {
-          failICE<core::DiagnosticKind::ASTArchiveMissingNodes>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveMissingNodes>(core::ArchiveStatus::InvalidArchive);
           return result();
         }
         begin(SourceNameRecord);
@@ -627,7 +629,7 @@ namespace ink::parser
             break;
           }
           default:
-            failICE<core::DiagnosticKind::ASTArchiveUnknownTokenPayload>(ASTArchiveStatus::InvalidArchive, Tag);
+            failICE<core::DiagnosticKind::ASTArchiveUnknownTokenPayload>(core::ArchiveStatus::InvalidArchive, Tag);
           }
           end();
           if (Good)
@@ -649,12 +651,12 @@ namespace ink::parser
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
           default:
-            failICE<core::DiagnosticKind::ASTArchiveUnknownNodeKind>(ASTArchiveStatus::InvalidArchive, Kind);
+            failICE<core::DiagnosticKind::ASTArchiveUnknownNodeKind>(core::ArchiveStatus::InvalidArchive, Kind);
           }
           end();
           if (Good && !validNodeMetadata(Node, Tokens))
           {
-            failICE<core::DiagnosticKind::ASTArchiveInvalidNodeToken>(ASTArchiveStatus::InvalidArchive);
+            failICE<core::DiagnosticKind::ASTArchiveInvalidNodeToken>(core::ArchiveStatus::InvalidArchive);
           }
           if (Good)
           {
@@ -672,7 +674,7 @@ namespace ink::parser
                                                            return Count == 1;
                                                          }))
         {
-          failICE<core::DiagnosticKind::ASTArchiveInvalidRoot>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveInvalidRoot>(core::ArchiveStatus::InvalidArchive);
           return result();
         }
         if (!charge(RecoveryCount, sizeof(RecoveryEntry)))
@@ -698,7 +700,7 @@ namespace ink::parser
           RecoveryEntry Entry{NodeId && NodeId <= Nodes.size() ? Nodes[NodeId - 1] : nullptr, {*Expected, *Actual, *Range, *State}, *Skipped};
           if (!validRecovery(Entry, Tokens, Source.size()))
           {
-            failICE<core::DiagnosticKind::ASTArchiveInvalidRecovery>(ASTArchiveStatus::InvalidArchive);
+            failICE<core::DiagnosticKind::ASTArchiveInvalidRecovery>(core::ArchiveStatus::InvalidArchive);
             break;
           }
           Recovery.Entries.push_back(Entry);
@@ -709,12 +711,12 @@ namespace ink::parser
         }
         if (bits(CodeWidth) != llvm::bitc::END_BLOCK || !align() || Cursor.GetCurrentBitNo() != Bytes.size() * 8)
         {
-          failICE<core::DiagnosticKind::ASTArchiveInvalidBlockEnd>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveInvalidBlockEnd>(core::ArchiveStatus::InvalidArchive);
         }
         std::string Reason;
         if (Good && !verifyAST(Root, Source.size(), &Reason))
         {
-          failICE<core::DiagnosticKind::ASTArchiveInvalidTree>(ASTArchiveStatus::InvalidArchive, std::move(Reason));
+          failICE<core::DiagnosticKind::ASTArchiveInvalidTree>(core::ArchiveStatus::InvalidArchive, std::move(Reason));
         }
         // Counting CR and LF separately conservatively covers CRLF normalization.
         const auto LineCount = 1 + static_cast<std::size_t>(std::count(Source.begin(), Source.end(), '\r')) + static_cast<std::size_t>(std::count(Source.begin(), Source.end(), '\n'));
@@ -725,19 +727,19 @@ namespace ink::parser
         auto Input = tokenizer::TokenizedBuffer::fromSnapshot(Context.sourceManager(), std::move(SourceName), std::move(Source), std::move(Tokens), *LexSucceeded);
         if (!Input)
         {
-          failICE<core::DiagnosticKind::ASTArchiveInvalidLexicalSnapshot>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveInvalidLexicalSnapshot>(core::ArchiveStatus::InvalidArchive);
           return result();
         }
         auto Unit = std::make_unique<ParsedUnit>(std::make_shared<const TokenBuffer>(std::move(*Input)));
         Unit->Context = std::move(Arena);
         Unit->Root = Root;
         Unit->Recovery = std::move(Recovery);
-        return {{std::move(Unit), *ParseState, *SyntaxErrors}, ASTArchiveStatus::Success, {}, Allocated};
+        return {{std::move(Unit), *ParseState, *SyntaxErrors}, core::ArchiveStatus::Success, {}, Allocated};
       }
 
     private:
       template <core::DiagnosticKind Kind, typename... ArgumentTypes>
-      void failICE(ASTArchiveStatus Status, ArgumentTypes &&...Arguments)
+      void failICE(core::ArchiveStatus Status, ArgumentTypes &&...Arguments)
       {
         static_assert(core::DiagnosticTraits<Kind>::Classification == core::DiagnosticClass::InternalCompilerError);
         if (Good)
@@ -764,7 +766,7 @@ namespace ink::parser
         }
         if (Size && Count > (Limits.MaxAllocationBytes - Allocated) / Size)
         {
-          failICE<core::DiagnosticKind::ASTArchiveAllocationLimitExceeded>(ASTArchiveStatus::LimitExceeded, Count, Size, Limits.MaxAllocationBytes - Allocated);
+          failICE<core::DiagnosticKind::ASTArchiveAllocationLimitExceeded>(core::ArchiveStatus::LimitExceeded, Count, Size, Limits.MaxAllocationBytes - Allocated);
           return false;
         }
         Allocated += Count * Size;
@@ -780,7 +782,7 @@ namespace ink::parser
         if (!Value)
         {
           llvm::consumeError(Value.takeError());
-          failICE<core::DiagnosticKind::ASTArchiveTruncatedBitstream>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveTruncatedBitstream>(core::ArchiveStatus::InvalidArchive);
           return 0;
         }
         return *Value;
@@ -803,7 +805,7 @@ namespace ink::parser
             return Value;
           }
         }
-        failICE<core::DiagnosticKind::ASTArchiveIntegerOverflow>(ASTArchiveStatus::InvalidArchive);
+        failICE<core::DiagnosticKind::ASTArchiveIntegerOverflow>(core::ArchiveStatus::InvalidArchive);
         return 0;
       }
       bool align()
@@ -811,7 +813,7 @@ namespace ink::parser
         const unsigned Padding = static_cast<unsigned>((32 - Cursor.GetCurrentBitNo() % 32) % 32);
         if (Padding && bits(Padding) != 0)
         {
-          failICE<core::DiagnosticKind::ASTArchiveNonzeroPadding>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveNonzeroPadding>(core::ArchiveStatus::InvalidArchive);
         }
         return Good;
       }
@@ -823,20 +825,20 @@ namespace ink::parser
         }
         if (bits(CodeWidth) != llvm::bitc::UNABBREV_RECORD || vbr(6) != Expected)
         {
-          failICE<core::DiagnosticKind::ASTArchiveUnexpectedRecord>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveUnexpectedRecord>(core::ArchiveStatus::InvalidArchive);
           return;
         }
         Remaining = vbr(6);
         if (Good && Remaining > (Bytes.size() * 8 - Cursor.GetCurrentBitNo()) / 6)
         {
-          failICE<core::DiagnosticKind::ASTArchiveRecordLengthExceeded>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveRecordLengthExceeded>(core::ArchiveStatus::InvalidArchive);
         }
       }
       void end()
       {
         if (Good && Remaining != 0)
         {
-          failICE<core::DiagnosticKind::ASTArchiveExtraRecordFields>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveExtraRecordFields>(core::ArchiveStatus::InvalidArchive);
         }
       }
       std::uint64_t number()
@@ -847,7 +849,7 @@ namespace ink::parser
         }
         if (Remaining == 0)
         {
-          failICE<core::DiagnosticKind::ASTArchiveMissingRecordField>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveMissingRecordField>(core::ArchiveStatus::InvalidArchive);
           return 0;
         }
         --Remaining;
@@ -858,7 +860,7 @@ namespace ink::parser
         const auto Count = number();
         if (Good && Count > Maximum)
         {
-          failICE<core::DiagnosticKind::ASTArchiveElementLimitExceeded>(ASTArchiveStatus::LimitExceeded, Count, Maximum);
+          failICE<core::DiagnosticKind::ASTArchiveElementLimitExceeded>(core::ArchiveStatus::LimitExceeded, Count, Maximum);
           return 0;
         }
         return static_cast<std::size_t>(Count);
@@ -871,12 +873,12 @@ namespace ink::parser
         }
         if (Length > Maximum)
         {
-          failICE<core::DiagnosticKind::ASTArchiveTextLimitExceeded>(ASTArchiveStatus::LimitExceeded, Length, Maximum);
+          failICE<core::DiagnosticKind::ASTArchiveTextLimitExceeded>(core::ArchiveStatus::LimitExceeded, Length, Maximum);
           return {};
         }
         if (Length > Remaining)
         {
-          failICE<core::DiagnosticKind::ASTArchiveStringLengthExceeded>(ASTArchiveStatus::InvalidArchive);
+          failICE<core::DiagnosticKind::ASTArchiveStringLengthExceeded>(core::ArchiveStatus::InvalidArchive);
           return {};
         }
         if (!charge(static_cast<std::size_t>(Length), 2))
@@ -889,7 +891,7 @@ namespace ink::parser
           const auto Value = number();
           if (!Good || Value > 255)
           {
-            failICE<core::DiagnosticKind::ASTArchiveInvalidByte>(ASTArchiveStatus::InvalidArchive, Value);
+            failICE<core::DiagnosticKind::ASTArchiveInvalidByte>(core::ArchiveStatus::InvalidArchive, Value);
             return {};
           }
           Byte = static_cast<char>(Value);
@@ -959,7 +961,7 @@ namespace ink::parser
           const auto Value = number();
           if (Good && Value > static_cast<std::uint64_t>(std::numeric_limits<T>::max()))
           {
-            failICE<core::DiagnosticKind::ASTArchiveIntegerOutOfRange>(ASTArchiveStatus::InvalidArchive, Value, static_cast<std::uint64_t>(std::numeric_limits<T>::max()));
+            failICE<core::DiagnosticKind::ASTArchiveIntegerOutOfRange>(core::ArchiveStatus::InvalidArchive, Value, static_cast<std::uint64_t>(std::numeric_limits<T>::max()));
           }
           if (Good)
           {
@@ -976,7 +978,7 @@ namespace ink::parser
               return Entry.Value;
             }
           }
-          failICE<core::DiagnosticKind::ASTArchiveUnknownEnum>(ASTArchiveStatus::InvalidArchive, Value);
+          failICE<core::DiagnosticKind::ASTArchiveUnknownEnum>(core::ArchiveStatus::InvalidArchive, Value);
         }
         else if constexpr (std::is_pointer_v<T>)
         {
@@ -990,7 +992,7 @@ namespace ink::parser
             ++Parents[Id - 1];
             return static_cast<T>(Nodes[Id - 1]);
           }
-          failICE<core::DiagnosticKind::ASTArchiveInvalidNodeReference>(ASTArchiveStatus::InvalidArchive, Id);
+          failICE<core::DiagnosticKind::ASTArchiveInvalidNodeReference>(core::ArchiveStatus::InvalidArchive, Id);
         }
         else if constexpr (std::is_same_v<T, SourceRange>)
         {
@@ -1003,7 +1005,7 @@ namespace ink::parser
             {
               return Range;
             }
-            failICE<core::DiagnosticKind::ASTArchiveInvalidSourceRange>(ASTArchiveStatus::InvalidArchive);
+            failICE<core::DiagnosticKind::ASTArchiveInvalidSourceRange>(core::ArchiveStatus::InvalidArchive);
           }
         }
         else if constexpr (std::is_same_v<T, NameToken>)
@@ -1016,7 +1018,7 @@ namespace ink::parser
             NameToken Name{Id ? static_cast<TokenId>(Id - 1) : InvalidTokenId, Text, *Range};
             if (Id > Tokens.size() || !validName(Name, Tokens, Source))
             {
-              failICE<core::DiagnosticKind::ASTArchiveInvalidNameToken>(ASTArchiveStatus::InvalidArchive);
+              failICE<core::DiagnosticKind::ASTArchiveInvalidNameToken>(core::ArchiveStatus::InvalidArchive);
             }
             else if (charge(Text.size(), 1))
             {
@@ -1055,7 +1057,7 @@ namespace ink::parser
           const auto Count = count(Limits.MaxArrayElements);
           if (Good && Count > Remaining)
           {
-            failICE<core::DiagnosticKind::ASTArchiveArrayLengthExceeded>(ASTArchiveStatus::InvalidArchive);
+            failICE<core::DiagnosticKind::ASTArchiveArrayLengthExceeded>(core::ArchiveStatus::InvalidArchive);
           }
           if (charge(Count, sizeof(Element) * 2))
           {
@@ -1103,7 +1105,7 @@ namespace ink::parser
       std::size_t Allocated = 0;
       bool Good = true;
       bool ReportDiagnostic;
-      ASTArchiveStatus Failure = ASTArchiveStatus::InvalidArchive;
+      core::ArchiveStatus Failure = core::ArchiveStatus::InvalidArchive;
       std::string Message;
   };
 

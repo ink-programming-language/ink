@@ -6,6 +6,15 @@ class Point
   {
     return this.X + N;
   }
+
+  func __init__(): void
+  {
+  }
+
+  func __init__(InitialX: i32): void
+  {
+    this.X = InitialX;
+  }
 };
 func main(): i32
 {

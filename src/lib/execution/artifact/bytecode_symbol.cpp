@@ -150,18 +150,7 @@ namespace ink::execution
 
   std::string bytecodeSymbolKey(const BytecodeSymbolIdentity &Identity)
   {
-    std::string Result;
-    appendField(Result, Identity.Module);
-    appendField(Result, Identity.Name);
-    appendField(Result, Identity.Signature);
-    Result += std::to_string(Identity.GenericArguments.size()) + ':';
-    for (const BytecodeGenericArgument &Argument : Identity.GenericArguments)
-    {
-      Result += Argument.Kind == BytecodeGenericArgumentKind::Type ? 'T' : 'C';
-      appendField(Result, Argument.Type);
-      appendField(Result, Argument.Value);
-    }
-    return Result;
+    return Identity.LinkName;
   }
 
   namespace artifact_detail
@@ -169,7 +158,7 @@ namespace ink::execution
     bool accountSymbolKey(const BytecodeSymbolIdentity &Identity, Budget &Usage)
     {
       constexpr std::size_t Prefix = std::numeric_limits<std::size_t>::digits10 + 2;
-      if (!Usage.allocation(Prefix * 4) || !Usage.allocation(Identity.Module.size()) || !Usage.allocation(Identity.Name.size()) || !Usage.allocation(Identity.Signature.size()))
+      if (!Usage.allocation(Prefix * 4) || !Usage.allocation(Identity.Module.size()) || !Usage.allocation(Identity.Name.size()) || !Usage.allocation(Identity.Signature.size()) || !Usage.allocation(Identity.LinkName.size()))
       {
         return false;
       }

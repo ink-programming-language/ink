@@ -11,6 +11,11 @@ class Counter
     this.Value = this.Value + N;
     return this.Value;
   }
+
+  func __init__(InitialValue: i32): void
+  {
+    this.Value = InitialValue;
+  }
 };
 
 func receiver(Count: *i32, Value: *Counter): *Counter

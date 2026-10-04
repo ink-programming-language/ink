@@ -27,6 +27,21 @@ class Point
   {
     return this.hidden();
   }
+
+  func __init__(): void
+  {
+  }
+
+  func __init__(InitialX: i32): void
+  {
+    this.X = InitialX;
+  }
+
+  func __init__(InitialX: i32, InitialY: i32): void
+  {
+    this.X = InitialX;
+    this.Y = InitialY;
+  }
 };
 
 func main(): i32

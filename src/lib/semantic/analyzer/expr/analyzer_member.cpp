@@ -68,7 +68,7 @@ namespace ink::semantic
       const auto &Field = Class.fields()[Index];
       if (Field.FieldName == Name)
       {
-        if (Field.Visibility == VisibilityKind::Private && State.CurrentClass != &Class)
+        if (Field.Visibility == core::VisibilityKind::Private && State.CurrentClass != &Class)
         {
           State.report<core::DiagnosticKind::SemanticInvalidMember>(Node.member().Range, "field is private");
           return std::nullopt;
@@ -80,9 +80,14 @@ namespace ink::semantic
     return std::nullopt;
   }
 
-  const Value *Analyzer::resolveFieldAddress(AnalysisState &State, const parser::MemberExpr &Node, std::size_t Depth)
+  const Value *Analyzer::resolveFieldAddress(AnalysisState &State, const parser::MemberExpr &Node, std::size_t Depth, bool RequireInitialized)
   {
-    const bool This = parser::NameExpr::classof(Node.object()) && static_cast<const parser::NameExpr *>(Node.object())->name().Text == "this" && State.CurrentClass;
+    const parser::Expr *Object = Node.object();
+    while (parser::ParenExpr::classof(Object))
+    {
+      Object = static_cast<const parser::ParenExpr *>(Object)->expression();
+    }
+    const bool This = parser::NameExpr::classof(Object) && static_cast<const parser::NameExpr *>(Object)->name().Text == "this" && State.CurrentClass;
     if (Node.access() != tokenizer::TokenKind::Dot && Node.access() != tokenizer::TokenKind::Arrow)
     {
       State.report<core::DiagnosticKind::SemanticInvalidMember>(Node.getSourceRange(), "optional member access is not supported");
@@ -92,7 +97,10 @@ namespace ink::semantic
     if (Node.access() == tokenizer::TokenKind::Arrow || This)
     {
       AnalysisState::EvaluationGuard Expected(State, State.Evaluating, nullptr);
+      const bool Saved = State.AccessingConstructorField;
+      State.AccessingConstructorField = This;
       Address = analyzeExpr(State, *Node.object(), Depth + 1).ValueObject;
+      State.AccessingConstructorField = Saved;
     }
     else
     {
@@ -114,10 +122,15 @@ namespace ink::semantic
       return nullptr;
     }
     const auto Index = lookupClassField(State, static_cast<const ClassType &>(Pointer.pointeeType()), Node);
+    if (Index && This && State.Constructing && RequireInitialized && !State.ConstructorFields[*Index])
+    {
+      State.report<core::DiagnosticKind::SemanticUninitializedRead>(Node.getSourceRange(), Node.member().Text);
+      return nullptr;
+    }
     return Index ? State.Builder.createFieldPointerInstruction(*Address, *Index) : nullptr;
   }
 
-  const Value *Analyzer::resolveComptimeReceiver(AnalysisState &State, const parser::Expr &Node, std::size_t Depth)
+  const Value *Analyzer::resolveComptimeReceiver(AnalysisState &State, const parser::Expr &Node, std::size_t Depth, std::span<const std::size_t> EvaluatedPath)
   {
     std::vector<const parser::Expr *> Path;
     const parser::Expr *Root = &Node;
@@ -154,6 +167,11 @@ namespace ink::semantic
     const Type *ProjectedType = &static_cast<const AllocaInstruction *>(Address)->allocatedType();
     std::size_t ByteOffset = 0;
     std::reverse(Path.begin(), Path.end());
+    if (!EvaluatedPath.empty() && EvaluatedPath.size() != Path.size())
+    {
+      return nullptr;
+    }
+    std::size_t ProjectionIndex = 0;
     for (const parser::Expr *Projection : Path)
     {
       std::unique_ptr<Value> Descriptor;
@@ -185,7 +203,8 @@ namespace ink::semantic
           return nullptr;
         }
         const auto &Array = static_cast<const ArrayType &>(*ProjectedType);
-        const Value *Offset = analyzeArrayIndex(State, *Index.index(), Array.elementCount(), Depth + 1);
+        // Assignment has already evaluated its indices before the right-hand side.
+        const Value *Offset = EvaluatedPath.empty() ? analyzeArrayIndex(State, *Index.index(), Array.elementCount(), Depth + 1) : State.Context.constantPool().getIntegerConstant(*State.Context.typePool().getType<TypeKind::Integer>(64, false), IntegerBits(64, EvaluatedPath[ProjectionIndex]));
         if (!Offset || !IntegerConstant::classof(Offset))
         {
           return nullptr;
@@ -212,6 +231,7 @@ namespace ink::semantic
       }
       Address = Descriptor.get();
       Execution.Projections.push_back(std::move(Descriptor));
+      ++ProjectionIndex;
     }
     return Address;
   }
@@ -239,7 +259,7 @@ namespace ink::semantic
       }
       const Value *Address = Storage.get();
       Execution.Bindings.push_back(std::move(Storage));
-      return Address;
+      return trackObject(State, *Address, Object.type(), true, &Object) ? Address : nullptr;
     }
     auto *Storage = State.Builder.createAllocaInstruction(Object.type());
     if (!Storage || !State.Builder.createStoreInstruction(*Storage, Object))
@@ -247,11 +267,16 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
       return nullptr;
     }
-    return Storage;
+    return trackObject(State, *Storage, Object.type(), true, &Object) ? Storage : nullptr;
   }
 
   Analyzer::ExpressionResult Analyzer::analyzeMethodCall(AnalysisState &State, const parser::MemberExpr &Member, const parser::CallExpr &Node, std::size_t Depth)
   {
+    if (Member.member().Text == "__init__" || Member.member().Text == "__del__")
+    {
+      State.report<core::DiagnosticKind::SemanticInvalidMember>(Member.member().Range, "lifecycle methods are invoked automatically; use the class name to construct an object");
+      return {};
+    }
     if (Member.access() != tokenizer::TokenKind::Dot && Member.access() != tokenizer::TokenKind::Arrow)
     {
       State.report<core::DiagnosticKind::SemanticInvalidMember>(Member.getSourceRange(), "optional member calls are not supported");
@@ -261,6 +286,7 @@ namespace ink::semantic
     const bool This = State.CurrentClass && parser::NameExpr::classof(Member.object()) && static_cast<const parser::NameExpr *>(Member.object())->name().Text == "this";
     const Value *Receiver = nullptr;
     const Value *Object = nullptr;
+    const Value *TemporaryReceiver = nullptr;
     if (!State.Evaluating && (Member.access() == tokenizer::TokenKind::Arrow || This))
     {
       Receiver = analyzeExpr(State, *Member.object(), Depth + 1).ValueObject;
@@ -271,7 +297,9 @@ namespace ink::semantic
     }
     else
     {
-      Object = analyzeExpr(State, *Member.object(), Depth + 1).ValueObject;
+      const auto Result = analyzeExpr(State, *Member.object(), Depth + 1);
+      Object = Result.ValueObject;
+      TemporaryReceiver = Result.TemporaryAddress;
     }
     if (!Receiver && !Object)
     {
@@ -325,14 +353,15 @@ namespace ink::semantic
         const parser::Expr *Root = Member.object();
         while (parser::ParenExpr::classof(Root) || parser::MemberExpr::classof(Root) || parser::IndexExpr::classof(Root))
         {
-          Root = parser::ParenExpr::classof(Root) ? static_cast<const parser::ParenExpr *>(Root)->expression() : parser::MemberExpr::classof(Root) ? static_cast<const parser::MemberExpr *>(Root)->object() : static_cast<const parser::IndexExpr *>(Root)->object();
+          Root = parser::ParenExpr::classof(Root) ? static_cast<const parser::ParenExpr *>(Root)->expression() : parser::MemberExpr::classof(Root) ? static_cast<const parser::MemberExpr *>(Root)->object()
+                                                                                                                                                   : static_cast<const parser::IndexExpr *>(Root)->object();
         }
         if (parser::NameExpr::classof(Root))
         {
           State.report<core::DiagnosticKind::SemanticInvalidMember>(Member.getSourceRange(), "mutable methods cannot be called on const objects or value parameters");
           return {};
         }
-        Receiver = materializeClassReceiver(State, *Object, Node);
+        Receiver = TemporaryReceiver ? TemporaryReceiver : materializeClassReceiver(State, *Object, Node);
       }
       if (!Receiver || !PointerType::classof(&Receiver->type()) || !ClassType::classof(&static_cast<const PointerType &>(Receiver->type()).pointeeType()) || static_cast<const PointerType &>(Receiver->type()).access() != AccessKind::ReadWrite)
       {
@@ -345,7 +374,7 @@ namespace ink::semantic
       {
         for (const Value *Target : Binding->targets())
         {
-          if (Function::classof(Target) && (static_cast<const Function *>(Target)->visibility() != VisibilityKind::Private || State.CurrentClass == &Class))
+          if (Function::classof(Target) && (static_cast<const Function *>(Target)->visibility() != core::VisibilityKind::Private || State.CurrentClass == &Class))
           {
             Candidates.push_back(Target);
           }
@@ -394,7 +423,7 @@ namespace ink::semantic
     {
       for (const Value *Target : Binding->targets())
       {
-        if (Function::classof(Target) && (static_cast<const Function *>(Target)->visibility() != VisibilityKind::Private || State.CurrentClass == &Class))
+        if (Function::classof(Target) && (static_cast<const Function *>(Target)->visibility() != core::VisibilityKind::Private || State.CurrentClass == &Class))
         {
           Candidates.push_back(Target);
         }
@@ -405,7 +434,7 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticInvalidMember>(Node.getSourceRange(), "operator method is missing or private");
       return {};
     }
-    const Value *Address = materializeClassReceiver(State, *Receiver.ValueObject, Node);
+    const Value *Address = Receiver.TemporaryAddress ? Receiver.TemporaryAddress : materializeClassReceiver(State, *Receiver.ValueObject, Node);
     if (!Address)
     {
       return {};
@@ -447,7 +476,7 @@ namespace ink::semantic
           continue;
         }
         const auto &Function = static_cast<const ir::Function &>(*Target);
-        if (State.CurrentModule != &Module && Function.visibility() != ir::VisibilityKind::Public)
+        if (State.CurrentModule != &Module && Function.visibility() != core::VisibilityKind::Public)
         {
           Private = true;
           continue;

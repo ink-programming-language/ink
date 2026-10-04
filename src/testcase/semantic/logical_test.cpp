@@ -94,7 +94,7 @@ namespace ink::semantic::test
     void expectBoolean(const ExecutionValueResult &Result, bool Expected)
     {
       ASSERT_TRUE(Result);
-      ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Boolean);
+      ASSERT_EQ(Result.Value.kind(), RuntimeKind::Boolean);
       EXPECT_EQ(Result.Value.boolean(), Expected);
     }
   } // namespace

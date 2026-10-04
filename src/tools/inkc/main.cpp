@@ -11,6 +11,7 @@
 #include <llvm/IR/LLVMContext.h>
 #include "bytecode_commands.h"
 #include "source_modules.h"
+#include "ink/abi/name_mangling.h"
 
 #include <array>
 #include <bit>
@@ -199,7 +200,7 @@ namespace
     {
       return reportError("interpreter returned an invalid entry result", ink::cli::ExitCode::InternalError);
     }
-    if (Result.Value.kind() == ink::execution::ExecutionValueKind::Void)
+    if (Result.Value.kind() == ink::execution::RuntimeKind::Void)
     {
       return ink::cli::exitStatus(ink::cli::ExitCode::Success);
     }
@@ -207,7 +208,7 @@ namespace
     return static_cast<int>(std::bit_cast<std::int32_t>(Bits));
   }
 
-  int processSource(const std::string &InputFile, std::string Source, const std::string &EntryName, const std::string &ModuleRoot, const ink::tools::BytecodeOptions *Bytecode, const NativeOptions *Native)
+  int processSource(const std::string &InputFile, std::string Source, const std::string &EntryName, const std::string &ModuleRoot, const ink::abi::PackageIdentity &Package, const ink::tools::BytecodeOptions *Bytecode, const NativeOptions *Native)
   {
     ink::core::CompilationContext Compilation;
     ink::core::FrontendContext Frontend(Compilation);
@@ -215,7 +216,7 @@ namespace
     Compilation.diagnosticEngine().addConsumer(Diagnostics);
     ink::tools::SourceModules Sources(Frontend);
     std::string LoadError;
-    if (!Sources.load(InputFile, std::move(Source), ModuleRoot, Bytecode != nullptr, LoadError))
+    if (!Sources.load(InputFile, std::move(Source), ModuleRoot, Bytecode != nullptr || Native != nullptr, LoadError))
     {
       return reportError(LoadError, ink::cli::ExitCode::SourceError);
     }
@@ -224,7 +225,11 @@ namespace
     ink::ir::Module *Module = nullptr;
     if (Sources.succeeded())
     {
-      const auto Inputs = Sources.inputs();
+      auto Inputs = Sources.inputs();
+      for (auto &Input : Inputs)
+      {
+        Input.Package = Package;
+      }
       Module = ink::semantic::Analyzer{}.analyzeModules(Context, Inputs, Sources.entryName());
     }
     bool HasInternalError = false;
@@ -283,6 +288,10 @@ namespace
     std::vector<std::string> LinkInputs;
     std::string LinkOutput;
     std::string ModuleRoot;
+    std::string PackageAuthority;
+    std::string PackageName;
+    std::string PackageRevision;
+    std::vector<std::string> PackageVariants;
     ink::tools::BytecodeOptions Bytecode;
     bool Interpret = false;
     bool RunBytecode = false;
@@ -298,6 +307,10 @@ namespace
     Command.addOption("--opt-level", OptimizationLevel, "LLVM optimization level: 0, 1, 2 or 3 (default: 0)").typeName("LEVEL");
     Command.addOption("-o,--output", LinkOutput, "Output linked bytecode executable").typeName("FILE");
     Command.addOption("--module-root", ModuleRoot, "Root directory for source imports and module identities (default: input directory)").typeName("DIRECTORY");
+    Command.addOption("--package-authority", PackageAuthority, "Resolved package authority, e.g. org.example").typeName("AUTHORITY");
+    Command.addOption("--package-name", PackageName, "Package name segments separated by '/'").typeName("NAME");
+    Command.addOption("--package-revision", PackageRevision, "Exact package revision").typeName("REVISION");
+    Command.addOption("--package-variant", PackageVariants, "Semantic build variant key=value; repeat for each key").repeatPolicy(ink::cli::RepeatPolicy::Append).typeName("KEY=VALUE");
     Command.addOption("--entry", EntryName, "Entry function name (default: main)").typeName("NAME");
     Command.addOption("-oir", IrOutputFile, "Reserved legacy IR output option").typeName("FILE").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption).excludes(LLVMOption).excludes(ObjectOption);
     const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
@@ -306,6 +319,44 @@ namespace
       return ink::cli::exitStatus(ParsedArguments.Code);
     }
     const bool EmitNative = !Native.IR.empty() || !Native.Object.empty();
+    ink::abi::PackageIdentity Package;
+    const bool HasPackage = !PackageAuthority.empty() || !PackageName.empty() || !PackageRevision.empty() || !PackageVariants.empty();
+    if (HasPackage)
+    {
+      if (PackageAuthority.empty() || PackageName.empty() || PackageRevision.empty() || RunBytecode || !LinkInputs.empty())
+      {
+        return reportError("source package identity requires --package-authority, --package-name and --package-revision together", ink::cli::ExitCode::InvocationError);
+      }
+      Package.Authority = PackageAuthority;
+      Package.Revision = PackageRevision;
+      Package.Name.clear();
+      std::size_t Begin = 0;
+      do
+      {
+        const auto End = PackageName.find('/', Begin);
+        Package.Name.push_back(PackageName.substr(Begin, End == std::string::npos ? PackageName.size() - Begin : End - Begin));
+        if (End == std::string::npos)
+        {
+          break;
+        }
+        Begin = End + 1;
+      } while (Begin <= PackageName.size());
+      for (const auto &Variant : PackageVariants)
+      {
+        const auto Equals = Variant.find('=');
+        if (Equals == std::string::npos)
+        {
+          return reportError("package variants must use key=value", ink::cli::ExitCode::InvocationError);
+        }
+        Package.Variant.emplace_back(Variant.substr(0, Equals), Variant.substr(Equals + 1));
+      }
+      const ink::abi::ModuleIdentity Probe{Package, {"probe"}};
+      const auto Checked = ink::abi::mangle(ink::abi::record('J', {ink::abi::packageRecord(Package), ink::abi::moduleRecord(Probe)}));
+      if (!Checked)
+      {
+        return reportError("package identity requires nonempty NFC names and unique variant keys", ink::cli::ExitCode::InvocationError);
+      }
+    }
     if (!OptimizationLevel.empty())
     {
       if (!EmitNative || OptimizationLevel.size() != 1 || OptimizationLevel[0] < '0' || OptimizationLevel[0] > '3')
@@ -348,7 +399,7 @@ namespace
     {
       return reportError(Error, ink::cli::ExitCode::InvocationError);
     }
-    return processSource(InputFile, std::move(Source), EntryName, ModuleRoot, Bytecode.Output.empty() ? nullptr : &Bytecode, EmitNative ? &Native : nullptr);
+    return processSource(InputFile, std::move(Source), EntryName, ModuleRoot, Package, Bytecode.Output.empty() ? nullptr : &Bytecode, EmitNative ? &Native : nullptr);
   }
 } // namespace
 

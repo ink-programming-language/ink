@@ -158,11 +158,11 @@ namespace ink::execution::test
     ExecutionEngine Engine(Test.Context);
     const auto *Class = pairType(Test);
     ASSERT_NE(Class, nullptr);
-    auto *ReturnsClass = Test.function("abs", *Class, {}, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto *ReturnsClass = Test.function("abs", *Class, {}, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(ReturnsClass, nullptr);
     EXPECT_EQ(Engine.execute(*ReturnsClass).Status, ExecutionStatus::UnsupportedExternalSignature);
     const ir::Type *Parameters[] = {Class};
-    auto *TakesClass = Test.function("abs", Test.Int32, Parameters, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto *TakesClass = Test.function("abs", Test.Int32, Parameters, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(TakesClass, nullptr);
     const ExecutionValueRef Arguments[] = {Engine.heap().classValue(*Class, {Engine.heap().boolean(Test.Bool, true), Engine.heap().integer(Test.Int32, ExecutionInteger(32, 42))})};
     EXPECT_EQ(Engine.execute(*TakesClass, Arguments).Status, ExecutionStatus::UnsupportedExternalSignature);

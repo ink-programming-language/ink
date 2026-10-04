@@ -3,6 +3,7 @@
 
 #include "ink/ir/function/basic_block.h"
 #include "ink/ir/name/name.h"
+#include "ink/abi/linkage_identity.h"
 
 #include <span>
 
@@ -25,6 +26,11 @@ namespace ink::ir
       Name name() const noexcept
       {
         return ModuleName;
+      }
+
+      const abi::ModuleIdentity &linkageIdentity() const noexcept
+      {
+        return LinkageIdentity;
       }
 
       std::span<const ClassType *const> classTypes() const noexcept
@@ -68,6 +74,7 @@ namespace ink::ir
       Module(const IRContext &Context, Name ModuleName, std::unique_ptr<BasicBlock> EntryBlock) noexcept;
 
       Name ModuleName;
+      abi::ModuleIdentity LinkageIdentity;
       std::vector<const ClassType *> ClassTypes;
       // Syntax outlives both declaration and IR trees.
       std::vector<std::shared_ptr<const parser::ParseResult>> ArchivedASTs;

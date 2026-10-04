@@ -4,100 +4,58 @@
 #include "ink/abi/linkage_identity.h"
 
 #include <cstddef>
-#include <cstdint>
+#include <initializer_list>
 #include <optional>
-#include <string>
+#include <span>
 #include <string_view>
-#include <variant>
 
 namespace ink::abi
 {
-  inline constexpr std::size_t NameManglingNestingLimit = 128;
+  inline constexpr std::string_view SymbolPrefix = "_INK2";
 
-  using LinkageIdentity = std::variant<FunctionIdentity, GlobalIdentity>;
-
-  enum class MangleErrorKind : std::uint8_t
+  struct ManglingLimits
   {
-    None,
-    MissingPackagePath,
-    EmptyNameComponent,
-    InvalidUtf8,
-    NonNormalizedName,
-    UnicodeNormalizationFailed,
-    UnsupportedValueArgumentType,
-    InvalidCanonicalBits,
-    NestingLimitExceeded,
-    InvalidFunctionKind,
-    InvalidGlobalMutability,
+      std::size_t MaxBytes = 1024 * 1024;
+      std::size_t MaxDepth = 128;
+      std::size_t MaxRecords = 65536;
   };
 
-  const char *mangleErrorKindName(MangleErrorKind Kind) noexcept;
-
-  class MangleResult final
+  struct MangleResult
   {
-    public:
-      bool succeeded() const noexcept;
-      const std::optional<std::string> &mangledName() const noexcept;
-      MangleErrorKind error() const noexcept;
+      std::string Name;
+      std::string Error;
 
-      static MangleResult success(std::string Name);
-      static MangleResult failure(MangleErrorKind Error) noexcept;
-
-    private:
-      MangleResult(std::optional<std::string> Name, MangleErrorKind Error) noexcept;
-
-      std::optional<std::string> Name;
-      MangleErrorKind Error;
+      explicit operator bool() const noexcept
+      {
+        return Error.empty() && !Name.empty();
+      }
   };
 
-  enum class DemangleErrorKind : std::uint8_t
+  struct DemangleResult
   {
-    None,
-    InvalidPrefix,
-    UnsupportedVersion,
-    UnexpectedEnd,
-    UnexpectedCharacter,
-    NonCanonicalNumber,
-    NumberOverflow,
-    InvalidNameLength,
-    InvalidHexadecimal,
-    InvalidUtf8,
-    NonNormalizedName,
-    UnicodeNormalizationFailed,
-    MissingPackagePath,
-    EmptyNameComponent,
-    InvalidType,
-    UnsupportedValueArgumentType,
-    InvalidCanonicalBits,
-    NestingLimitExceeded,
-    TrailingCharacters,
+      std::optional<Record> Identity;
+      std::string Error;
+      std::size_t ErrorOffset = 0;
+
+      explicit operator bool() const noexcept
+      {
+        return Identity.has_value();
+      }
   };
 
-  const char *demangleErrorKindName(DemangleErrorKind Kind) noexcept;
-
-  class DemangleResult final
-  {
-    public:
-      bool succeeded() const noexcept;
-      const std::optional<LinkageIdentity> &identity() const noexcept;
-      DemangleErrorKind error() const noexcept;
-      std::size_t errorOffset() const noexcept;
-
-      static DemangleResult success(LinkageIdentity Identity);
-      static DemangleResult failure(DemangleErrorKind Error, std::size_t ErrorOffset) noexcept;
-
-    private:
-      DemangleResult(std::optional<LinkageIdentity> Identity, DemangleErrorKind Error, std::size_t ErrorOffset) noexcept;
-
-      std::optional<LinkageIdentity> Identity;
-      DemangleErrorKind Error;
-      std::size_t ErrorOffset;
-  };
-
-  MangleResult mangle(const FunctionIdentity &Identity);
-  MangleResult mangle(const GlobalIdentity &Identity);
-  MangleResult mangle(const LinkageIdentity &Identity);
-  DemangleResult demangle(std::string_view Name);
+  std::string encodeRecord(const Record &Value);
+  Record record(char Tag, std::span<const Record> Children);
+  Record record(char Tag, std::initializer_list<Record> Children);
+  Record nameRecord(std::string_view Name);
+  std::optional<std::string> decodeName(const Record &Name);
+  std::optional<std::vector<Record>> childRecords(const Record &Value, std::size_t PrefixBytes = 0);
+  Record packageRecord(const PackageIdentity &Package);
+  Record moduleRecord(const ModuleIdentity &Module);
+  std::vector<std::string> modulePath(std::string_view DottedName);
+  std::optional<ModuleIdentity> moduleIdentity(const Record &Reflection);
+  // Validation rejects noncanonical spellings, invalid schemas and unsupported types.
+  MangleResult mangle(const Record &Identity, ManglingLimits Limits = {});
+  DemangleResult demangle(std::string_view Symbol, ManglingLimits Limits = {});
 } // namespace ink::abi
 
 #endif

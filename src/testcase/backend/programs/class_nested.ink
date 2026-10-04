@@ -2,12 +2,24 @@ class Pair
 {
   field Left: i32;
   field Right: i32;
+
+  func __init__(InitialLeft: i32, InitialRight: i32): void
+  {
+    this.Left = InitialLeft;
+    this.Right = InitialRight;
+  }
 };
 
 class Box
 {
   field Tag: u8;
   field Value: Pair;
+
+  func __init__(InitialTag: u8, InitialValue: Pair): void
+  {
+    this.Tag = InitialTag;
+    this.Value = InitialValue;
+  }
 };
 
 func main(): i32

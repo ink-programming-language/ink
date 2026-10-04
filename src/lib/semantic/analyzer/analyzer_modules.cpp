@@ -59,6 +59,13 @@ namespace ink::semantic
         Diagnostics.report<core::DiagnosticKind::SemanticConstructionFailed>(Root.getSourceRange());
         return nullptr;
       }
+      auto Identity = Module->Owner->linkageIdentity();
+      Identity.Package = Input.Package;
+      if (!Diagnostics.Builder.setModuleIdentity(*Module->Owner, std::move(Identity)))
+      {
+        Diagnostics.report<core::DiagnosticKind::SemanticInvalidModulePath>(Root.getSourceRange(), "invalid package identity");
+        return nullptr;
+      }
       Scope *ScopeValue = Diagnostics.Resolver.enterScope(*Module->Owner);
       if (!ScopeValue)
       {
@@ -107,7 +114,8 @@ namespace ink::semantic
             continue;
           }
           const auto &Class = static_cast<const parser::ClassDecl &>(*Declaration);
-          if (!(Phase == 0 ? registerClass(*Module->State, Class) : Phase == 1 ? defineClass(*Module->State, Class) : declareClassMembers(*Module->State, Class)))
+          if (!(Phase == 0 ? registerClass(*Module->State, Class) : Phase == 1 ? defineClass(*Module->State, Class)
+                                                                               : declareClassMembers(*Module->State, Class)))
           {
             Succeeded = false;
           }
@@ -243,6 +251,14 @@ namespace ink::semantic
     for (const auto &Module : Modules)
     {
       if (!validateRuntimeClassTypes(*Module->State, *Module->Owner, *Module->Source->Input->Unit->root()))
+      {
+        return nullptr;
+      }
+    }
+    for (auto Module = Modules.rbegin(); Module != Modules.rend(); ++Module)
+    {
+      AnalysisState::EvaluationGuard CompileTime(*(*Module)->State);
+      if (!cleanupObjects(*(*Module)->State, 0, false, *(*Module)->Source->Input->Unit->root()))
       {
         return nullptr;
       }

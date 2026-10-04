@@ -129,9 +129,9 @@ namespace ink::parser
           put("  ]\n}");
           if (!Good)
           {
-            return {{}, ASTArchiveStatus::LimitExceeded, "AST text size or allocation limit exceeded"};
+            return {{}, core::ArchiveStatus::LimitExceeded, "AST text size or allocation limit exceeded"};
           }
-          return {std::move(Output), ASTArchiveStatus::Success, {}};
+          return {std::move(Output), core::ArchiveStatus::Success, {}};
         }
 
       private:
@@ -296,12 +296,12 @@ namespace ink::parser
         {
           if (Text.size() > Limits.MaxArchiveBytes)
           {
-            return {{}, ASTArchiveStatus::LimitExceeded, "AST text byte limit exceeded"};
+            return {{}, core::ArchiveStatus::LimitExceeded, "AST text byte limit exceeded"};
           }
           Lex.expect("ast");
           if (Lex.number() != ASTTextArchiveVersion && Lex.good())
           {
-            return {{}, ASTArchiveStatus::UnsupportedVersion, "Unsupported AST text version"};
+            return {{}, core::ArchiveStatus::UnsupportedVersion, "Unsupported AST text version"};
           }
           Lex.expect("{");
           label("source_name");
@@ -463,11 +463,11 @@ namespace ink::parser
       private:
         bool good() const
         {
-          return Lex.good() && Status == ASTArchiveStatus::InvalidArchive;
+          return Lex.good() && Status == core::ArchiveStatus::InvalidArchive;
         }
         void limit()
         {
-          Status = ASTArchiveStatus::LimitExceeded;
+          Status = core::ArchiveStatus::LimitExceeded;
           Lex.fail("AST text allocation or element limit exceeded");
         }
         bool charge(std::size_t Count, std::size_t Size)
@@ -704,7 +704,7 @@ namespace ink::parser
         std::string_view Text;
         ASTArchiveLimits Limits;
         core::archive::Lexer Lex;
-        ASTArchiveStatus Status = ASTArchiveStatus::InvalidArchive;
+        core::ArchiveStatus Status = core::ArchiveStatus::InvalidArchive;
         std::size_t Allocated = 0;
         std::vector<std::uint64_t> Values;
         std::vector<std::pair<unsigned, std::vector<std::uint64_t>>> Records;

@@ -62,7 +62,7 @@ namespace ink::execution::test
           {
             return {ExecutionStatus::InvalidArguments};
           }
-          auto Function = Builder.createFunction(Context.namePool().intern("inkTestNativeStorageOffset"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+          auto Function = Builder.createFunction(Context.namePool().intern("inkTestNativeStorageOffset"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import);
           if (!Function)
           {
             return {ExecutionStatus::InvalidArguments};
@@ -242,7 +242,7 @@ namespace ink::execution::test
     const ir::Type *Parameters[] = {&Test.Int32Pointer};
     const auto *Signature = Test.Context.typePool().getType<ir::TypeKind::Function>(Test.Int32Pointer, Parameters);
     ASSERT_NE(Signature, nullptr);
-    auto Identity = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestNativeStorageOnePastIdentity"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto Identity = Test.Builder.createFunction(Test.Context.namePool().intern("inkTestNativeStorageOnePastIdentity"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(Identity, nullptr);
     NativeSymbolCache Cache([](std::string_view) -> NativeSymbol
                             {

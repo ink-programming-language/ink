@@ -20,17 +20,33 @@ class Number
   {
     return this.Value;
   }
+
+  func __init__(InitialValue: i32): void
+  {
+    this.Value = InitialValue;
+  }
 };
 
 class Box
 {
   field Current: Number;
   field Samples: [Number; 2];
+
+  func __init__(InitialCurrent: Number, InitialSamples: [Number; 2]): void
+  {
+    this.Current = InitialCurrent;
+    this.Samples = InitialSamples;
+  }
 };
 
 class Borrow
 {
   field Address: *i32;
+
+  func __init__(InitialAddress: *i32): void
+  {
+    this.Address = InitialAddress;
+  }
 };
 
 func copy(Value: Number): Number

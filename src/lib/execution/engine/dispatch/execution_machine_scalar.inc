@@ -4,19 +4,19 @@ namespace ink::execution
   {
     FORCE_INLINE bool compareResult(int Ordering, std::uint32_t Predicate) noexcept
     {
-      switch (static_cast<ExecutionPredicate>(Predicate))
+      switch (static_cast<core::ComparisonPredicate>(Predicate))
       {
-      case ExecutionPredicate::Equal:
+      case core::ComparisonPredicate::Equal:
         return Ordering == 0;
-      case ExecutionPredicate::NotEqual:
+      case core::ComparisonPredicate::NotEqual:
         return Ordering != 0;
-      case ExecutionPredicate::Less:
+      case core::ComparisonPredicate::Less:
         return Ordering < 0;
-      case ExecutionPredicate::LessEqual:
+      case core::ComparisonPredicate::LessEqual:
         return Ordering <= 0;
-      case ExecutionPredicate::Greater:
+      case core::ComparisonPredicate::Greater:
         return Ordering > 0;
-      case ExecutionPredicate::GreaterEqual:
+      case core::ComparisonPredicate::GreaterEqual:
         return Ordering >= 0;
       }
       return false;

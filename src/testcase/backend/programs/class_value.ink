@@ -8,6 +8,17 @@ class Counter
     this.Value = this.Value + this.Step;
     return this.Value;
   }
+
+  func __init__(InitialValue: i32): void
+  {
+    this.Value = InitialValue;
+  }
+
+  func __init__(InitialValue: i32, InitialStep: i32): void
+  {
+    this.Value = InitialValue;
+    this.Step = InitialStep;
+  }
 };
 
 func copy(Value: Counter): Counter

@@ -1,5 +1,6 @@
 #include "artifact_test_support.h"
 #include "ink/ir/constant/class_constant.h"
+#include "ink/ir/linkage.h"
 
 #include <gtest/gtest.h>
 
@@ -7,11 +8,17 @@ namespace ink::execution::test
 {
   namespace
   {
+    std::string classIdentity(std::string_view Name)
+    {
+      const abi::ModuleIdentity Module{{}, {"models"}};
+      return abi::mangle(abi::record('T', {abi::record('c', {ir::declarationRecord(Module, {}, 'c', Name), {'X', {}}})})).Name;
+    }
+
     const ir::ClassType *recordType(ArtifactContext &Test, std::string_view Identity, bool Reverse = false)
     {
       const auto *Class = Test.Builder.createClassType(Test.Context.namePool().intern("Record"));
       const ir::ClassField Fields[] = {{Test.Context.namePool().intern("Flag"), Reverse ? static_cast<const ir::Type *>(&Test.Int32) : &Test.Bool}, {Test.Context.namePool().intern("Value"), Reverse ? &Test.Bool : static_cast<const ir::Type *>(&Test.Int32)}};
-      return Class && Test.Builder.defineClassType(*Class, Fields, Identity) ? Class : nullptr;
+      return Class && Test.Builder.defineClassType(*Class, Fields, classIdentity(Identity)) ? Class : nullptr;
     }
 
     BytecodeArtifactResult classProvider(std::string_view Identity = "models::Record", bool Reverse = false)
@@ -79,7 +86,7 @@ namespace ink::execution::test
     ASSERT_EQ(Value.kind(), RuntimeKind::Class);
     ASSERT_EQ(Value.fields().size(), 2U);
     EXPECT_EQ(Value.fields()[1].Bits, 42U);
-    EXPECT_EQ(Function.Layouts->get(Value.Type)->classDesc().NominalIdentity, "models::Record");
+    EXPECT_EQ(Function.Layouts->get(Value.Type)->classDesc().NominalIdentity, classIdentity("models::Record"));
     EXPECT_EQ(Function.Layouts->get(Value.Type)->classDesc().Fields[0].Name, "Flag");
     EXPECT_EQ(Function.Layouts->get(Value.Type)->classDesc().Fields[1].Name, "Value");
     for (std::size_t Size = 0; Size < Encoded.Bytes.size(); ++Size)
@@ -141,7 +148,7 @@ namespace ink::execution::test
     const auto *Node = Test.Builder.createClassType(Test.Context.namePool().intern("Node"));
     const auto *Pointer = Test.Context.typePool().getType<ir::TypeKind::Pointer>(*Node, ir::AccessKind::ReadWrite);
     const ir::ClassField Fields[] = {{Test.Context.namePool().intern("Next"), Pointer}, {Test.Context.namePool().intern("Value"), &Test.Int32}};
-    ASSERT_TRUE(Test.Builder.defineClassType(*Node, Fields, "models::Node"));
+    ASSERT_TRUE(Test.Builder.defineClassType(*Node, Fields, classIdentity("models::Node")));
     const ir::Type *Parameters[] = {Pointer};
     auto *Function = Test.function("node", Test.Int32, Parameters);
     ASSERT_TRUE(Test.begin(*Function));

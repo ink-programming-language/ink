@@ -9,11 +9,25 @@ class Point
   {
     this.X = this.X + N;
   }
+
+  func __init__(): void
+  {
+  }
+
+  func __init__(InitialX: i32): void
+  {
+    this.X = InitialX;
+  }
 };
 
 class Box
 {
   field Items: [Point; 2];
+
+  func __init__(InitialItems: [Point; 2]): void
+  {
+    this.Items = InitialItems;
+  }
 };
 
 comptime func make(): Point

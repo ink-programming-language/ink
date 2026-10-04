@@ -164,7 +164,7 @@ namespace ink::execution
           TypeIds.erase(&Type);
           return InvalidRuntimeType;
         }
-        Description->Fields.push_back({std::string(Type.context().namePool().text(Class.fields()[Index].FieldName)), Field, static_cast<std::size_t>(Computed->FieldOffsets[Index]), Class.fields()[Index].Visibility == ir::VisibilityKind::Private ? MemberVisibility::Private : MemberVisibility::Public});
+        Description->Fields.push_back({std::string(Type.context().namePool().text(Class.fields()[Index].FieldName)), Field, static_cast<std::size_t>(Computed->FieldOffsets[Index]), Class.fields()[Index].Visibility});
         Layout.Native = Layout.Native && FieldLayout->Native;
       }
       Layout.setDetails(std::move(Description));
@@ -344,7 +344,7 @@ namespace ink::execution
     {
       return {ExecutionStatus::ForeignContext};
     }
-    if (Value.kind() == ExecutionValueKind::Pointer && Value.pointer().status() != ExecutionStatus::Success)
+    if (Value.kind() == RuntimeKind::Pointer && Value.pointer().status() != ExecutionStatus::Success)
     {
       return {Value.pointer().status()};
     }
@@ -359,17 +359,17 @@ namespace ink::execution
     }
     switch (Value.kind())
     {
-    case ExecutionValueKind::Void:
+    case RuntimeKind::Void:
       return {ExecutionStatus::Success, RuntimeValue::fromBits(0, Type)};
-    case ExecutionValueKind::Boolean:
+    case RuntimeKind::Boolean:
       return {ExecutionStatus::Success, RuntimeValue::fromBits(Value.boolean(), Type)};
-    case ExecutionValueKind::Integer:
+    case RuntimeKind::Integer:
       return {ExecutionStatus::Success, RuntimeValue::fromInteger(Value.integer(), Type)};
-    case ExecutionValueKind::Float:
+    case RuntimeKind::Float:
       return {ExecutionStatus::Success, RuntimeValue::fromBits(Value.floating().bits(), Type)};
-    case ExecutionValueKind::String:
+    case RuntimeKind::String:
       return {ExecutionStatus::Success, RuntimeValue::fromString(Value.string(), Type)};
-    case ExecutionValueKind::Array:
+    case RuntimeKind::Array:
     {
       std::vector<RuntimeValue> Elements;
       for (const auto &Element : Value.array())
@@ -383,7 +383,7 @@ namespace ink::execution
       }
       return {ExecutionStatus::Success, RuntimeValue::fromArray(std::move(Elements), Type)};
     }
-    case ExecutionValueKind::Class:
+    case RuntimeKind::Class:
     {
       std::vector<RuntimeValue> Elements;
       for (const auto &Element : Value.fields())
@@ -397,14 +397,14 @@ namespace ink::execution
       }
       return {ExecutionStatus::Success, RuntimeValue::fromClass(std::move(Elements), Type)};
     }
-    case ExecutionValueKind::Pointer:
+    case RuntimeKind::Pointer:
       return {ExecutionStatus::Success, RuntimeValue::fromPointer(Value.pointer(), Type)};
-    case ExecutionValueKind::Function:
+    case RuntimeKind::Function:
     {
       const FunctionId Id = lowerFunction(*Value.function());
       return Id == InvalidFunction ? RuntimeValueResult{ExecutionStatus::Overflow} : RuntimeValueResult{ExecutionStatus::Success, RuntimeValue::fromBits(Id, Type)};
     }
-    case ExecutionValueKind::Invalid:
+    case RuntimeKind::Invalid:
       return {ExecutionStatus::TypeMismatch};
     }
     return {ExecutionStatus::UnsupportedOperation};

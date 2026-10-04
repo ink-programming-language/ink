@@ -1,6 +1,8 @@
 #ifndef INK_EXECUTION_VALUE_EXECUTION_VALUE_H
 #define INK_EXECUTION_VALUE_EXECUTION_VALUE_H
 
+#include "ink/execution/support/runtime_kind.h"
+
 #include "ink/execution/memory/execution_pointer.h"
 #include "ink/execution/support/execution_object.h"
 #include "ink/execution/support/execution_result.h"
@@ -21,20 +23,6 @@ namespace ink::execution
 {
   class ExecutionHeap;
 
-  enum class ExecutionValueKind
-  {
-    Invalid,
-    Void,
-    Boolean,
-    Integer,
-    Float,
-    String,
-    Pointer,
-    Function,
-    Array,
-    Class,
-  };
-
   // Immutable execution payloads are shared through ExecutionValueRef. Their
   // types and any referenced IR functions must outlive the values themselves.
   class ExecutionValue : public ExecutionObject
@@ -42,7 +30,7 @@ namespace ink::execution
     public:
       ~ExecutionValue() override = 0;
 
-      ExecutionValueKind kind() const noexcept;
+      RuntimeKind kind() const noexcept;
 
       const ir::Type *type() const noexcept
       {
@@ -79,9 +67,9 @@ namespace ink::execution
         return static_cast<bool>(Value);
       }
 
-      ExecutionValueKind kind() const noexcept
+      RuntimeKind kind() const noexcept
       {
-        return Value ? Value->kind() : ExecutionValueKind::Invalid;
+        return Value ? Value->kind() : RuntimeKind::Invalid;
       }
 
       const ir::Type *type() const noexcept

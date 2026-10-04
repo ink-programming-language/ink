@@ -193,7 +193,7 @@ namespace ink::execution::test
       const auto &Pointer = *Context.typePool().getType<ir::TypeKind::Pointer>(Byte, ir::AccessKind::ReadWrite);
       const ir::Type *Parameters[] = {&Pointer};
       const auto &NativeSignature = *Context.typePool().getType<ir::TypeKind::Function>(Int32, Parameters);
-      auto Native = Builder.createFunction(Context.namePool().intern("inkTestOwnedImageStringLength"), NativeSignature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+      auto Native = Builder.createFunction(Context.namePool().intern("inkTestOwnedImageStringLength"), NativeSignature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Import);
       const auto &EntrySignature = *Context.typePool().getType<ir::TypeKind::Function>(Int32, std::span<const ir::Type *const>{});
       auto Function = Builder.createFunction(Context.namePool().intern("OwnedBytes"), EntrySignature);
       ASSERT_TRUE(Builder.setInsertPoint(*Builder.createFunctionBody(*Function)));

@@ -10,7 +10,7 @@ namespace ink::ir::test
 {
   namespace
   {
-    constexpr std::string_view ArrayModuleText = R"(ink-ir 6
+    constexpr std::string_view ArrayModuleText = R"(ink-ir 7
 module @Arrays {
   type !pair = [2 x i32]
   type !nested = [2 x !pair]
@@ -48,7 +48,7 @@ module @Arrays {
       {
         const auto *Header = Bytes.data() + Offset;
         Records.push_back({Offset, static_cast<std::uint32_t>(Records.size() + 1), llvm::support::endian::read32le(Header)});
-        Offset += 24 + static_cast<std::size_t>(llvm::support::endian::read32le(Header + 12)) * 8 + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 16));
+        Offset += 32 + static_cast<std::size_t>(llvm::support::endian::read32le(Header + 12)) * 8 + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 16)) + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 24));
       }
       return Records;
     }
@@ -144,8 +144,8 @@ module @Arrays {
     IRContext Context(Compilation);
     for (const auto Instructions : Invalid)
     {
-      const auto Result = deserializeModuleText(Context, "ink-ir 6 module @Invalid { define void @f(i32 %number, bool %flag) { entry: " + std::string(Instructions) + " ret void } }");
-      EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Instructions << ": " << Result.Message;
+      const auto Result = deserializeModuleText(Context, "ink-ir 7 module @Invalid { define void @f(i32 %number, bool %flag) { entry: " + std::string(Instructions) + " ret void } }");
+      EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidArchive) << Instructions << ": " << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Context.modules().empty());
     }
@@ -164,7 +164,7 @@ module @Arrays {
     {
       IRContext Destination(Compilation);
       const auto Result = deserializeModuleBinary(Destination, Bytes);
-      EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Result.Message;
+      EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidArchive) << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Destination.modules().empty());
     };
@@ -196,7 +196,7 @@ module @Arrays {
         for (std::uint64_t InvalidId : {std::uint64_t{0}, std::uint64_t{UINT32_MAX}, std::uint64_t{Record.Id}, std::uint64_t{1}})
         {
           auto WrongReference = Encoded.Bytes;
-          llvm::support::endian::write64le(WrongReference.data() + Record.Offset + 24 + Index * 8, InvalidId);
+          llvm::support::endian::write64le(WrongReference.data() + Record.Offset + 32 + Index * 8, InvalidId);
           Reject(WrongReference);
         }
       }
@@ -209,7 +209,7 @@ module @Arrays {
       if (Record.Kind == 57)
       {
         auto WrongFlag = Encoded.Bytes;
-        llvm::support::endian::write64le(WrongFlag.data() + Record.Offset + 24, 2);
+        llvm::support::endian::write64le(WrongFlag.data() + Record.Offset + 32, 2);
         Reject(WrongFlag);
       }
     }
@@ -222,12 +222,12 @@ module @Arrays {
     IRContext Context(Compilation);
     ModuleArchiveLimits Limits;
     Limits.MaxFields = 4;
-    const auto TooMany = deserializeModuleText(Context, "ink-ir 6 module @M { define [5 x i32] @f() { entry: ret [5 x i32] [1, 2, 3, 4, 5] } }", Limits);
-    EXPECT_EQ(TooMany.Status, ModuleArchiveStatus::LimitExceeded);
+    const auto TooMany = deserializeModuleText(Context, "ink-ir 7 module @M { define [5 x i32] @f() { entry: ret [5 x i32] [1, 2, 3, 4, 5] } }", Limits);
+    EXPECT_EQ(TooMany.Status, core::ArchiveStatus::LimitExceeded);
     Limits = {};
     Limits.MaxNestingDepth = 4;
-    const auto TooDeep = deserializeModuleText(Context, "ink-ir 6 module @M { type !a = [1 x i32] type !b = [1 x !a] type !c = [1 x !b] type !d = [1 x !c] type !e = [1 x !d] define !e @f() { entry: ret !e [[[[[1]]]]] } }", Limits);
-    EXPECT_EQ(TooDeep.Status, ModuleArchiveStatus::LimitExceeded);
+    const auto TooDeep = deserializeModuleText(Context, "ink-ir 7 module @M { type !a = [1 x i32] type !b = [1 x !a] type !c = [1 x !b] type !d = [1 x !c] type !e = [1 x !d] define !e @f() { entry: ret !e [[[[[1]]]]] } }", Limits);
+    EXPECT_EQ(TooDeep.Status, core::ArchiveStatus::LimitExceeded);
     EXPECT_TRUE(Context.modules().empty());
   }
 } // namespace ink::ir::test

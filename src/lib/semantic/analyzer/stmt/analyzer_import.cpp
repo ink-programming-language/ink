@@ -154,7 +154,7 @@ namespace ink::semantic
           if (ir::Function::classof(Target) && ownsFunction(Module, static_cast<const ir::Function &>(*Target)))
           {
             auto &Function = static_cast<ir::Function &>(*Target);
-            if (State.CurrentModule == &Module || Function.visibility() == ir::VisibilityKind::Public)
+            if (State.CurrentModule == &Module || Function.visibility() == core::VisibilityKind::Public)
             {
               Functions.push_back(&Function);
             }

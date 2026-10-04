@@ -2,6 +2,7 @@
 
 #include "ink/ir/constant/class_constant.h"
 #include "ink/ir/type/class_type.h"
+#include "ink/ir/linkage.h"
 
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APInt.h>
@@ -70,7 +71,7 @@ namespace ink::backend::llvm
       case ir::TypeKind::Class:
       {
         const auto &Class = static_cast<const ir::ClassType &>(Type);
-        if (!Class.isComplete() || !layout(Class))
+        if (!Class.isComplete() || !layout(Class) || !recordClassABI(Class))
         {
           fail("AOT requires a complete class layout");
           break;
@@ -86,7 +87,13 @@ namespace ink::backend::llvm
           Fields.push_back(FieldType);
         }
         // SSA aggregates are logical values. Memory operations use the shared explicit field offsets.
-        Result = ::llvm::StructType::create(Context, Fields, "ink.class." + std::to_string(Types.size()));
+        auto *Existing = ::llvm::StructType::getTypeByName(Context, Class.identity());
+        if (Existing && Existing->elements() != ::llvm::ArrayRef<::llvm::Type *>(Fields))
+        {
+          fail("Conflicting LLVM bodies for the same nominal Ink type");
+          return nullptr;
+        }
+        Result = Existing ? Existing : ::llvm::StructType::create(Context, Fields, Class.identity());
         break;
       }
       default:

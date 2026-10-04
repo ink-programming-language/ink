@@ -73,7 +73,7 @@ namespace ink::execution::test
     ExecutionInteger Source(Bits);
     const ExecutionValueRef Value = Test.Heap.integer(*Type, Source);
     ASSERT_TRUE(Value.valid());
-    EXPECT_EQ(Value.kind(), ExecutionValueKind::Integer);
+    EXPECT_EQ(Value.kind(), RuntimeKind::Integer);
     EXPECT_EQ(Value.type(), Type);
     ASSERT_EQ(Source.negate(Source), ExecutionStatus::Success);
     EXPECT_NE(Source.bits(), Bits);
@@ -103,7 +103,7 @@ namespace ink::execution::test
       ASSERT_NE(Type, nullptr);
       const ExecutionValueRef Value = Test.Heap.floating(*Type, Bits);
       ASSERT_TRUE(Value.valid());
-      EXPECT_EQ(Value.kind(), ExecutionValueKind::Float);
+      EXPECT_EQ(Value.kind(), RuntimeKind::Float);
       EXPECT_EQ(Value.floating(), Bits);
       const ir::Constant *Frozen = Value.toConstant(Test.Context);
       ASSERT_NE(Frozen, nullptr);
@@ -130,7 +130,7 @@ namespace ink::execution::test
     ASSERT_TRUE(Direct.valid());
     ASSERT_TRUE(Restored.valid());
     ASSERT_TRUE(Copy.valid());
-    EXPECT_EQ(Direct.kind(), ExecutionValueKind::String);
+    EXPECT_EQ(Direct.kind(), RuntimeKind::String);
     EXPECT_EQ(Direct.string(), Expected);
     EXPECT_EQ(Restored.string(), Expected);
     EXPECT_EQ(Copy.string(), Expected);
@@ -148,7 +148,7 @@ namespace ink::execution::test
     const auto &Boolean = Test.Context.constantPool().getBoolConstant(true);
     const ExecutionValueRef Scalar = Test.Heap.fromConstant(Boolean);
     ASSERT_TRUE(Scalar.valid());
-    EXPECT_EQ(Scalar.kind(), ExecutionValueKind::Boolean);
+    EXPECT_EQ(Scalar.kind(), RuntimeKind::Boolean);
     EXPECT_TRUE(Scalar.boolean());
     EXPECT_EQ(Scalar.toConstant(Test.Context), &Boolean);
     const ExecutionValueRef Integer = Test.Heap.fromConstant(Test.integer(17));
@@ -208,7 +208,7 @@ namespace ink::execution::test
       EXPECT_FALSE(Value.valid());
       EXPECT_EQ(Value.toConstant(Test.Context), nullptr);
     }
-    EXPECT_EQ(Invalid[0].kind(), ExecutionValueKind::Invalid);
+    EXPECT_EQ(Invalid[0].kind(), RuntimeKind::Invalid);
     EXPECT_EQ(Invalid[0].type(), nullptr);
     EXPECT_EQ(Test.Context.constantPool().size(), PoolSize);
   }

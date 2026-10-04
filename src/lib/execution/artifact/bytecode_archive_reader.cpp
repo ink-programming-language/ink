@@ -293,7 +293,7 @@ namespace ink::execution
                 {
                   return fail(BytecodeStatus::InvalidFormat, "Class field has invalid reflection metadata");
                 }
-                Field.Visibility = Private ? MemberVisibility::Private : MemberVisibility::Public;
+                Field.Visibility = Private ? core::VisibilityKind::Private : core::VisibilityKind::Public;
               }
               std::size_t Methods = 0;
               if (!count(Methods, 14, sizeof(MethodDesc)))
@@ -308,7 +308,7 @@ namespace ink::execution
                 {
                   return fail(BytecodeStatus::InvalidFormat, "Class method has invalid reflection metadata");
                 }
-                Method.Visibility = Private ? MemberVisibility::Private : MemberVisibility::Public;
+                Method.Visibility = Private ? core::VisibilityKind::Private : core::VisibilityKind::Public;
               }
               break;
             }
@@ -606,7 +606,7 @@ namespace ink::execution
         bool symbols(std::vector<BytecodeSymbol> &Symbols)
         {
           std::size_t Count = 0;
-          if (!count(Count, 28, sizeof(BytecodeSymbol)))
+          if (!count(Count, 32, sizeof(BytecodeSymbol)))
           {
             return false;
           }
@@ -616,7 +616,7 @@ namespace ink::execution
             BytecodeSymbol Symbol;
             auto &Identity = Symbol.Identity;
             std::size_t Arguments = 0;
-            if (!u32(Symbol.Function) || !tag(Symbol.Kind, archive::SymbolKindTags) || !tag(Symbol.Visibility, archive::VisibilityTags) || !string(Identity.Module) || !string(Identity.Name) || !string(Identity.Signature) || !count(Arguments, 12, sizeof(BytecodeGenericArgument)))
+            if (!u32(Symbol.Function) || !tag(Symbol.Kind, archive::SymbolKindTags) || !tag(Symbol.Visibility, archive::VisibilityTags) || !string(Identity.Module) || !string(Identity.Name) || !string(Identity.Signature) || !string(Identity.LinkName) || !count(Arguments, 12, sizeof(BytecodeGenericArgument)))
             {
               return false;
             }

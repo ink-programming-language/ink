@@ -1,6 +1,7 @@
 #include "ink/execution/artifact/bytecode_linker.h"
 
 #include "bytecode_internal.h"
+#include "ink/abi/name_mangling.h"
 
 #include <optional>
 #include <string_view>
@@ -52,7 +53,14 @@ namespace ink::execution
 
     bool sameDeclaration(const BytecodeSymbolIdentity &Left, const BytecodeSymbolIdentity &Right)
     {
-      return Left.Module == Right.Module && Left.Name == Right.Name && Left.GenericArguments == Right.GenericArguments;
+      const auto L = abi::demangle(Left.LinkName);
+      const auto R = abi::demangle(Right.LinkName);
+      const auto LC = L ? abi::childRecords(*L.Identity) : std::nullopt;
+      const auto RC = R ? abi::childRecords(*R.Identity) : std::nullopt;
+      const auto LD = LC && LC->size() == 3 && L.Identity->Tag == 'F' ? abi::childRecords(LC->front()) : std::nullopt;
+      const auto RD = RC && RC->size() == 3 && R.Identity->Tag == 'F' ? abi::childRecords(RC->front()) : std::nullopt;
+      // Only diagnose a signature mismatch inside the same package/declaration family.
+      return LD && RD && LD->size() == 7 && RD->size() == 7 && std::equal(LD->begin(), LD->begin() + 6, RD->begin()) && (*LC)[1] == (*RC)[1];
     }
 
     BytecodeArtifactResult failed(BytecodeStatus Status, std::string Message)
@@ -137,7 +145,7 @@ namespace ink::execution
     }
     if (Entry)
     {
-      if (!Usage.string(Entry->Module) || !Usage.string(Entry->Name) || !Usage.string(Entry->Signature) || !Usage.records(Entry->GenericArguments.size(), sizeof(BytecodeGenericArgument)))
+      if (!Usage.string(Entry->Module) || !Usage.string(Entry->Name) || !Usage.string(Entry->Signature) || !Usage.string(Entry->LinkName) || !Usage.records(Entry->GenericArguments.size(), sizeof(BytecodeGenericArgument)))
       {
         return failed(BytecodeStatus::LimitExceeded, "Bytecode entry identity exceeds the configured limit");
       }
@@ -405,7 +413,7 @@ namespace ink::execution
         }
         const RuntimeFunctionDescriptor &Imported = Objects[ObjectIndex]->Image.Descriptors.find(Symbol.Function)->second;
         const RuntimeFunctionDescriptor &Defined = Linked->Image.Descriptors.find(Resolved->Linked)->second;
-        if (Imported.CAbi != Defined.CAbi)
+        if (Imported.CAbi != Defined.CAbi || Mappings[ObjectIndex].Types[Imported.Signature] != Defined.Signature)
         {
           return failed(BytecodeStatus::SignatureMismatch, "Import ABI does not match the definition of " + symbolName(Symbol.Identity));
         }

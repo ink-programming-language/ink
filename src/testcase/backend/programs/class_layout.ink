@@ -8,6 +8,14 @@ class Wide
   field Bits: u128;
   field Marker: Empty;
   field Tail: i32;
+
+  func __init__(InitialTag: u8, InitialBits: u128, InitialMarker: Empty, InitialTail: i32): void
+  {
+    this.Tag = InitialTag;
+    this.Bits = InitialBits;
+    this.Marker = InitialMarker;
+    this.Tail = InitialTail;
+  }
 };
 
 func main(): i32

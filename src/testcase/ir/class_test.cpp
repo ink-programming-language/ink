@@ -15,7 +15,7 @@ namespace ink::ir::test
     const auto *First = Builder.createClassType(Context.namePool().intern("Pair"));
     const auto *Second = Builder.createClassType(Context.namePool().intern("Pair"));
     const auto *Integer = Context.typePool().getType<TypeKind::Integer>(32, true);
-    const ClassField Fields[] = {{Context.namePool().intern("X"), Integer, VisibilityKind::Private}};
+    const ClassField Fields[] = {{Context.namePool().intern("X"), Integer, core::VisibilityKind::Private}};
     EXPECT_NE(First, Second);
     EXPECT_FALSE(First->isComplete());
     EXPECT_EQ(Builder.createDetachedAllocaInstruction(*First), nullptr);
@@ -25,7 +25,7 @@ namespace ink::ir::test
     ASSERT_TRUE(Builder.defineClassType(*First, Fields, "module::Pair"));
     EXPECT_GT(Context.revision(), Revision);
     EXPECT_EQ(First->identity(), "module::Pair");
-    EXPECT_EQ(First->fields()[0].Visibility, VisibilityKind::Private);
+    EXPECT_EQ(First->fields()[0].Visibility, core::VisibilityKind::Private);
     EXPECT_FALSE(Builder.defineClassType(*First, {}, "changed"));
     EXPECT_EQ(First->fields().size(), 1U);
     EXPECT_NE(Builder.createDetachedAllocaInstruction(*First), nullptr);
@@ -159,7 +159,7 @@ namespace ink::ir::test
   // Both archive formats retain class definitions, recursive pointers, constants and field value/place operations.
   TEST(IRClassTest, RoundTripsDefinitionsConstantsAndInstructions)
   {
-    constexpr std::string_view Text = R"(ink-ir 6
+    constexpr std::string_view Text = R"(ink-ir 7
 module @Classes {
   type !c = class "Pair" identity "Classes::Pair" { public "X": i32, private "Flag": bool }
   type !node = class "Node" identity "Classes::Node" { public "Next": ptr<rw, !node> }
@@ -204,15 +204,15 @@ module @Classes {
     IRContext Context(Compilation);
     ModuleArchiveLimits Limits;
     Limits.MaxFields = 1;
-    const auto Metadata = deserializeModuleText(Context, "ink-ir 6 module @M { type !c = class \"C\" identity \"C\" {} }", Limits);
-    EXPECT_EQ(Metadata.Status, ModuleArchiveStatus::LimitExceeded);
+    const auto Metadata = deserializeModuleText(Context, "ink-ir 7 module @M { type !c = class \"C\" identity \"C\" {} }", Limits);
+    EXPECT_EQ(Metadata.Status, core::ArchiveStatus::LimitExceeded);
     Limits.MaxFields = 4;
-    const auto Fields = deserializeModuleText(Context, "ink-ir 6 module @M { type !c = class \"C\" identity \"C\" { public \"X\": i32 } }", Limits);
-    EXPECT_EQ(Fields.Status, ModuleArchiveStatus::LimitExceeded);
+    const auto Fields = deserializeModuleText(Context, "ink-ir 7 module @M { type !c = class \"C\" identity \"C\" { public \"X\": i32 } }", Limits);
+    EXPECT_EQ(Fields.Status, core::ArchiveStatus::LimitExceeded);
     Limits.MaxFields = 10;
     Limits.MaxStringBytes = 8;
-    const auto Names = deserializeModuleText(Context, "ink-ir 6 module @M { type !c = class \"CC\" identity \"CC\" { public \"XXXXX\": i32 } }", Limits);
-    EXPECT_EQ(Names.Status, ModuleArchiveStatus::LimitExceeded);
+    const auto Names = deserializeModuleText(Context, "ink-ir 7 module @M { type !c = class \"CC\" identity \"CC\" { public \"XXXXX\": i32 } }", Limits);
+    EXPECT_EQ(Names.Status, core::ArchiveStatus::LimitExceeded);
     EXPECT_TRUE(Context.modules().empty());
   }
 
@@ -231,7 +231,7 @@ module @Classes {
     {
       core::CompilationContext Compilation;
       IRContext Context(Compilation);
-      const auto Result = deserializeModuleText(Context, "ink-ir 6 module @Invalid { " + std::string(Body) + " }");
+      const auto Result = deserializeModuleText(Context, "ink-ir 7 module @Invalid { " + std::string(Body) + " }");
       EXPECT_FALSE(Result.succeeded()) << Body;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Context.modules().empty());

@@ -70,7 +70,7 @@ namespace ink::ir
     std::unordered_set<Name> Names;
     for (const ClassField &Field : Fields)
     {
-      if (!Context.namePool().contains(Field.FieldName) || !Names.insert(Field.FieldName).second || !Field.FieldType || &Field.FieldType->context() != &Context || (Field.Visibility != VisibilityKind::Public && Field.Visibility != VisibilityKind::Private) || !validFieldType(*Field.FieldType, ValueType, Active, Validated))
+      if (!Context.namePool().contains(Field.FieldName) || !Names.insert(Field.FieldName).second || !Field.FieldType || &Field.FieldType->context() != &Context || (Field.Visibility != core::VisibilityKind::Public && Field.Visibility != core::VisibilityKind::Private) || !validFieldType(*Field.FieldType, ValueType, Active, Validated))
       {
         return false;
       }

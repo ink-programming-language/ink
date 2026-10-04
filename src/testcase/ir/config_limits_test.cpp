@@ -73,10 +73,10 @@ namespace ink::ir::test
     ASSERT_TRUE(Text.succeeded());
     ASSERT_TRUE(Binary.succeeded());
     ASSERT_TRUE(Environment.set("0"));
-    EXPECT_EQ(serializeModuleText(*Root).Status, ModuleArchiveStatus::LimitExceeded);
-    EXPECT_EQ(serializeModuleBinary(*Root).Status, ModuleArchiveStatus::LimitExceeded);
-    EXPECT_EQ(deserializeModuleText(Context, Text.Bytes).Status, ModuleArchiveStatus::LimitExceeded);
-    EXPECT_EQ(deserializeModuleBinary(Context, Binary.Bytes).Status, ModuleArchiveStatus::LimitExceeded);
+    EXPECT_EQ(serializeModuleText(*Root).Status, core::ArchiveStatus::LimitExceeded);
+    EXPECT_EQ(serializeModuleBinary(*Root).Status, core::ArchiveStatus::LimitExceeded);
+    EXPECT_EQ(deserializeModuleText(Context, Text.Bytes).Status, core::ArchiveStatus::LimitExceeded);
+    EXPECT_EQ(deserializeModuleBinary(Context, Binary.Bytes).Status, core::ArchiveStatus::LimitExceeded);
     EXPECT_EQ(Context.modules().size(), 1U);
     ModuleArchiveLimits Limits;
     Limits.MaxArchiveBytes = Text.Bytes.size();

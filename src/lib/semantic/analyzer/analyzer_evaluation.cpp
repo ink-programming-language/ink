@@ -27,11 +27,17 @@ namespace ink::semantic
   Analyzer::ExpressionResult Analyzer::evaluateComptime(AnalysisState &State, const parser::Expr &Node)
   {
     AnalysisState::EvaluationGuard Guard(State, true, State.ExpectedType);
+    const std::size_t Begin = State.Lifetimes.size();
     const ExpressionResult Value = analyzeExpr(State, Node);
     if (!Value)
     {
       return {};
     }
+    if (!cleanupObjects(State, Begin, true, Node))
+    {
+      return {};
+    }
+    State.Lifetimes.resize(Begin);
     if (Value.Void)
     {
       return {nullptr, nullptr, false, true};
@@ -44,7 +50,7 @@ namespace ink::semantic
     return {Value.ValueObject};
   }
 
-  Analyzer::ExpressionResult Analyzer::callComptime(AnalysisState &State, const Function &FunctionValue, std::span<const Value *const> Arguments, const parser::Expr &Node)
+  Analyzer::ExpressionResult Analyzer::callComptime(AnalysisState &State, const Function &FunctionValue, std::span<const Value *const> Arguments, const parser::ASTNodeBase &Node)
   {
     if (!prepareComptimeFunctions(State, FunctionValue, Node))
     {
@@ -67,7 +73,7 @@ namespace ink::semantic
     {
       return {};
     }
-    if (Result.Value.kind() == ExecutionValueKind::Void)
+    if (Result.Value.kind() == RuntimeKind::Void)
     {
       return {nullptr, nullptr, false, true};
     }

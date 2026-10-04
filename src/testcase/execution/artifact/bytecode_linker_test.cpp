@@ -145,11 +145,11 @@ namespace ink::execution::test
   // Native imports bind private exports by raw name and signature, including direct calls and returned function values after archiving.
   TEST(BytecodeLinkerTest, BindsNativeImportsToPrivateExportBodies)
   {
-    auto Provider = constantObject("provider", "inkPrivateNativeLink", 20, BytecodeVisibility::Private, ir::LanguageLinkage::C, ir::FunctionBinding::Export);
+    auto Provider = constantObject("provider", "inkPrivateNativeLink", 20, BytecodeVisibility::Private, ir::LanguageLinkage::C, core::FunctionBinding::Export);
     ASSERT_TRUE(Provider) << Provider.Message;
     ArtifactContext Test;
-    auto *Native = Test.function("inkPrivateNativeLink", Test.Int32, {}, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
-    auto *Unresolved = Test.function("inkUnresolvedNativeLink", Test.Int32, {}, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto *Native = Test.function("inkPrivateNativeLink", Test.Int32, {}, ir::LanguageLinkage::C, core::FunctionBinding::Import);
+    auto *Unresolved = Test.function("inkUnresolvedNativeLink", Test.Int32, {}, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(Native, nullptr);
     ASSERT_NE(Unresolved, nullptr);
     auto *Factory = Test.function("factory", Native->type());
@@ -202,11 +202,11 @@ namespace ink::execution::test
   // A matching native name with an incompatible signature is a link error rather than a fallback to an unrelated host implementation.
   TEST(BytecodeLinkerTest, RejectsNativeImportExportSignatureMismatch)
   {
-    auto Provider = constantObject("provider", "inkNativeSignature", 42, BytecodeVisibility::Private, ir::LanguageLinkage::C, ir::FunctionBinding::Export);
+    auto Provider = constantObject("provider", "inkNativeSignature", 42, BytecodeVisibility::Private, ir::LanguageLinkage::C, core::FunctionBinding::Export);
     ASSERT_TRUE(Provider) << Provider.Message;
     ArtifactContext Test;
     const auto *Wide = Test.Context.typePool().getType<ir::TypeKind::Integer>(64, true);
-    auto *Native = Test.function("inkNativeSignature", *Wide, {}, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto *Native = Test.function("inkNativeSignature", *Wide, {}, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(Native, nullptr);
     const BytecodeFunctionInput Inputs[] = {Test.input(*Native, "C", "inkNativeSignature", BytecodeSymbolKind::Native)};
     auto Consumer = buildBytecodeObject("consumer", Test.Bridge, Inputs);
@@ -221,7 +221,7 @@ namespace ink::execution::test
     auto Provider = constantObject("provider", "inkUnexportedC", 42, BytecodeVisibility::Public, ir::LanguageLinkage::C);
     ASSERT_TRUE(Provider) << Provider.Message;
     ArtifactContext Test;
-    auto *Native = Test.function("inkUnexportedC", Test.Int32, {}, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto *Native = Test.function("inkUnexportedC", Test.Int32, {}, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(Native, nullptr);
     const BytecodeFunctionInput Inputs[] = {Test.input(*Native, "C", "inkUnexportedC", BytecodeSymbolKind::Native)};
     auto Consumer = buildBytecodeObject("consumer", Test.Bridge, Inputs);
@@ -237,8 +237,8 @@ namespace ink::execution::test
   // Native export names share one binary namespace, including definitions private to different Ink modules.
   TEST(BytecodeLinkerTest, RejectsDuplicatePrivateNativeExportsAcrossModules)
   {
-    auto Left = constantObject("left", "inkRepeatedNativeExport", 19, BytecodeVisibility::Private, ir::LanguageLinkage::C, ir::FunctionBinding::Export);
-    auto Right = constantObject("right", "inkRepeatedNativeExport", 23, BytecodeVisibility::Private, ir::LanguageLinkage::C, ir::FunctionBinding::Export);
+    auto Left = constantObject("left", "inkRepeatedNativeExport", 19, BytecodeVisibility::Private, ir::LanguageLinkage::C, core::FunctionBinding::Export);
+    auto Right = constantObject("right", "inkRepeatedNativeExport", 23, BytecodeVisibility::Private, ir::LanguageLinkage::C, core::FunctionBinding::Export);
     ASSERT_TRUE(Left) << Left.Message;
     ASSERT_TRUE(Right) << Right.Message;
     const BytecodeArtifact *Objects[] = {Left.Artifact.get(), Right.Artifact.get()};
@@ -460,10 +460,10 @@ namespace ink::execution::test
       const std::string Integer = bytecodeTypeIdentity(*Test.Bridge.types(), IntegerId);
       const std::string Boolean = bytecodeTypeIdentity(*Test.Bridge.types(), BooleanId);
       const BytecodeGenericArgument Arguments[] = {
-          {BytecodeGenericArgumentKind::Type, Integer, {}},
-          {BytecodeGenericArgumentKind::Type, Boolean, {}},
-          {BytecodeGenericArgumentKind::Constant, Integer, "00000001"},
-          {BytecodeGenericArgumentKind::Constant, Integer, "00000002"},
+          {core::GenericArgumentKind::Type, Integer, {}},
+          {core::GenericArgumentKind::Type, Boolean, {}},
+          {core::GenericArgumentKind::Value, Integer, "00000001"},
+          {core::GenericArgumentKind::Value, Integer, "00000002"},
       };
       std::vector<BytecodeFunctionInput> Inputs;
       for (std::size_t Index = 0; Index < std::size(Arguments); ++Index)
@@ -487,10 +487,10 @@ namespace ink::execution::test
     const std::string Integer = bytecodeTypeIdentity(*Test.Bridge.types(), IntegerId);
     const std::string Boolean = bytecodeTypeIdentity(*Test.Bridge.types(), BooleanId);
     const BytecodeGenericArgument Arguments[] = {
-        {BytecodeGenericArgumentKind::Type, Integer, {}},
-        {BytecodeGenericArgumentKind::Type, Boolean, {}},
-        {BytecodeGenericArgumentKind::Constant, Integer, "00000001"},
-        {BytecodeGenericArgumentKind::Constant, Integer, "00000002"},
+        {core::GenericArgumentKind::Type, Integer, {}},
+        {core::GenericArgumentKind::Type, Boolean, {}},
+        {core::GenericArgumentKind::Value, Integer, "00000001"},
+        {core::GenericArgumentKind::Value, Integer, "00000002"},
     };
     auto *Main = Test.function("main", Test.Int32);
     ASSERT_TRUE(Test.begin(*Main));

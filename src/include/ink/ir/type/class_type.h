@@ -15,7 +15,7 @@ namespace ink::ir
   {
       Name FieldName;
       const Type *FieldType = nullptr;
-      VisibilityKind Visibility = VisibilityKind::Public;
+      core::VisibilityKind Visibility = core::VisibilityKind::Public;
       const Function *Initializer = nullptr;
   };
 

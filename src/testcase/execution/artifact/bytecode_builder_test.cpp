@@ -4,6 +4,25 @@
 
 namespace ink::execution::test
 {
+  // Exact generic constant bits use the same uppercase canonical spelling as native Ink symbols.
+  TEST(BytecodeBuilderTest, PreservesUppercaseGenericConstantBits)
+  {
+    ArtifactContext Test;
+    auto *Function = Test.function("value", Test.Int32);
+    ASSERT_TRUE(Test.begin(*Function));
+    ASSERT_NE(Test.Builder.createReturnInstruction(&Test.integer(42)), nullptr);
+    const auto Integer = bytecodeTypeIdentity(*Test.Bridge.types(), Test.Bridge.lowerType(Test.Int32));
+    const BytecodeFunctionInput Inputs[] = {Test.input(*Function, "math", "value", BytecodeSymbolKind::Definition, BytecodeVisibility::Public, {{core::GenericArgumentKind::Value, Integer, "FFFFFFFE"}})};
+    const auto Built = buildBytecodeObject("math", Test.Bridge, Inputs);
+    ASSERT_TRUE(Built) << Built.Message;
+    EXPECT_NE(Built.Artifact->Symbols.front().Identity.LinkName.find("B8_FFFFFFFE"), std::string::npos);
+    const auto Saved = serializeBytecodeArtifact(*Built.Artifact);
+    ASSERT_TRUE(Saved);
+    const auto Restored = deserializeBytecodeArtifact(Saved.Bytes);
+    ASSERT_TRUE(Restored) << Restored.Message;
+    EXPECT_EQ(Restored.Artifact->Symbols.front().Identity, Built.Artifact->Symbols.front().Identity);
+  }
+
   // A source import borrows the analyzed target's real signature without copying its body into the consumer object.
   TEST(BytecodeBuilderTest, ImportsAnalyzedDefinitionsWithoutEmittingTheirBodies)
   {
@@ -40,7 +59,7 @@ namespace ink::execution::test
   // Importing an analyzed C ABI definition preserves its ABI without publishing its native export from the consumer object.
   TEST(BytecodeBuilderTest, ImportsLocalAndExportedCAbiDefinitionsAsModuleReferences)
   {
-    for (ir::FunctionBinding Binding : {ir::FunctionBinding::Local, ir::FunctionBinding::Export})
+    for (core::FunctionBinding Binding : {core::FunctionBinding::Local, core::FunctionBinding::Export})
     {
       SCOPED_TRACE(static_cast<int>(Binding));
       ArtifactContext Test;
@@ -75,7 +94,7 @@ namespace ink::execution::test
       ASSERT_TRUE(Linked) << Linked.Message;
       const auto *Defined = findArtifactSymbol(*Linked.Artifact, "library", "inkBytecodeAnswer");
       ASSERT_NE(Defined, nullptr);
-      EXPECT_EQ(Linked.Artifact->Image.Descriptors.at(Defined->Function).Exported, Binding == ir::FunctionBinding::Export);
+      EXPECT_EQ(Linked.Artifact->Image.Descriptors.at(Defined->Function).Exported, Binding == core::FunctionBinding::Export);
       const auto Executed = executeArtifact(*Linked.Artifact);
       ASSERT_TRUE(Executed);
       EXPECT_EQ(Executed.Value.Bits, 42U);
@@ -85,7 +104,7 @@ namespace ink::execution::test
   // Local and exported C ABI definitions cannot place unsupported wide-integer signatures in a portable bytecode object.
   TEST(BytecodeBuilderTest, RejectsUnsupportedCAbiDefinitionSignatures)
   {
-    for (ir::FunctionBinding Binding : {ir::FunctionBinding::Local, ir::FunctionBinding::Export})
+    for (core::FunctionBinding Binding : {core::FunctionBinding::Local, core::FunctionBinding::Export})
     {
       ArtifactContext Test;
       const auto *Wide = Test.Context.typePool().getType<ir::TypeKind::Integer>(128, true);
@@ -108,8 +127,8 @@ namespace ink::execution::test
     ASSERT_NE(Module, nullptr);
     const auto *Signature = Test.Context.typePool().getType<ir::TypeKind::Function>(Test.Int32, std::span<const ir::Type *const>{});
     ASSERT_NE(Signature, nullptr);
-    auto Exported = Test.Builder.createFunction(Test.Context.namePool().intern("inkNativeObjectBoundary"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, ir::FunctionBinding::Export);
-    auto *Imported = Test.function("inkNativeObjectBoundary", Test.Int32, {}, ir::LanguageLinkage::C, ir::FunctionBinding::Import);
+    auto Exported = Test.Builder.createFunction(Test.Context.namePool().intern("inkNativeObjectBoundary"), *Signature, {}, {}, ir::CallingConvention::C, ir::LanguageLinkage::C, core::FunctionBinding::Export);
+    auto *Imported = Test.function("inkNativeObjectBoundary", Test.Int32, {}, ir::LanguageLinkage::C, core::FunctionBinding::Import);
     ASSERT_NE(Exported, nullptr);
     ASSERT_NE(Imported, nullptr);
     ASSERT_TRUE(Test.begin(*Exported));

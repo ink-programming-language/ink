@@ -17,17 +17,28 @@ namespace ink::semantic
     {
       switch (Operator)
       {
-      case TokenKind::PlusAssign: return TokenKind::Plus;
-      case TokenKind::MinusAssign: return TokenKind::Minus;
-      case TokenKind::StarAssign: return TokenKind::Star;
-      case TokenKind::SlashAssign: return TokenKind::Slash;
-      case TokenKind::PercentAssign: return TokenKind::Percent;
-      case TokenKind::AmpAssign: return TokenKind::Amp;
-      case TokenKind::PipeAssign: return TokenKind::Pipe;
-      case TokenKind::CaretAssign: return TokenKind::Caret;
-      case TokenKind::ShiftLeftAssign: return TokenKind::ShiftLeft;
-      case TokenKind::ShiftRightAssign: return TokenKind::ShiftRight;
-      default: return Operator;
+      case TokenKind::PlusAssign:
+        return TokenKind::Plus;
+      case TokenKind::MinusAssign:
+        return TokenKind::Minus;
+      case TokenKind::StarAssign:
+        return TokenKind::Star;
+      case TokenKind::SlashAssign:
+        return TokenKind::Slash;
+      case TokenKind::PercentAssign:
+        return TokenKind::Percent;
+      case TokenKind::AmpAssign:
+        return TokenKind::Amp;
+      case TokenKind::PipeAssign:
+        return TokenKind::Pipe;
+      case TokenKind::CaretAssign:
+        return TokenKind::Caret;
+      case TokenKind::ShiftLeftAssign:
+        return TokenKind::ShiftLeft;
+      case TokenKind::ShiftRightAssign:
+        return TokenKind::ShiftRight;
+      default:
+        return Operator;
       }
     }
   } // namespace
@@ -155,6 +166,15 @@ namespace ink::semantic
     {
       reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
       return {};
+    }
+    if (needsDestruction(*ElementType))
+    {
+      const Value *Address = resolveComptimeReceiver(State, *Node.left(), Depth + 1, Path);
+      if (!Address || !destroyObject(State, *ElementType, *Address, Node))
+      {
+        return {};
+      }
+      takeTemporary(State, Right.TemporaryAddress);
     }
     // Reload after evaluating the RHS so writes to sibling elements are preserved.
     const auto Current = Execution.Engine.load(Place.Place);

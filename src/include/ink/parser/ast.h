@@ -1,4 +1,5 @@
 #pragma once
+#include "ink/core/function_binding.h"
 #include "ink/parser/ast_context.h"
 #include "ink/parser/ast_kind.h"
 #include "ink/core/source_range.h"
@@ -52,12 +53,6 @@ namespace ink::parser
   {
     DeclarationOnly,
     Definition
-  };
-  enum class NativeSymbolKind
-  {
-    None,
-    Import,
-    Export,
   };
   enum class AggregateForm
   {
@@ -2085,7 +2080,7 @@ namespace ink::parser
       {
         return Node && Node->getKind() == Kind;
       }
-      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body, Expr *Linkage = nullptr, NativeSymbolKind NativeSymbol = NativeSymbolKind::None)
+      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body, Expr *Linkage = nullptr, core::FunctionBinding NativeSymbol = core::FunctionBinding::Local)
           : Decl(Kind, Range),
             Attributes(Attributes),
             Name(Name),
@@ -2126,7 +2121,7 @@ namespace ink::parser
       {
         return BodyKind;
       }
-      NativeSymbolKind nativeSymbolKind() const noexcept
+      core::FunctionBinding nativeSymbolKind() const noexcept
       {
         return NativeSymbol;
       }
@@ -2157,7 +2152,7 @@ namespace ink::parser
       FunctionBodyKind BodyKind;
       BlockStmt *Body;
       Expr *Linkage;
-      NativeSymbolKind NativeSymbol;
+      core::FunctionBinding NativeSymbol;
   };
   class ClassDecl final : public Decl
   {

@@ -11,7 +11,7 @@ namespace ink::ir::test
 {
   namespace
   {
-    constexpr std::string_view EmptyModuleText = R"(ink-ir 6
+    constexpr std::string_view EmptyModuleText = R"(ink-ir 7
 module @"Example" {
 }
 )";
@@ -34,7 +34,7 @@ module @"Example" {
       auto TargetOwner = Builder.createFunction(Names.intern("Target"), *Signature, {}, {}, CallingConvention::Cold, LanguageLinkage::C);
       auto *Main = MainOwner.get();
       auto *Target = TargetOwner.get();
-      if (!Main || !Builder.setFunctionVisibility(*Main, VisibilityKind::Private))
+      if (!Main || !Builder.setFunctionVisibility(*Main, core::VisibilityKind::Private))
       {
         return nullptr;
       }
@@ -122,8 +122,8 @@ module @"Example" {
       EXPECT_EQ(Main.callingConvention(), CallingConvention::Fast);
       EXPECT_EQ(Target.callingConvention(), CallingConvention::Cold);
       EXPECT_EQ(Target.languageLinkage(), LanguageLinkage::C);
-      EXPECT_EQ(Main.visibility(), VisibilityKind::Private);
-      EXPECT_EQ(Target.visibility(), VisibilityKind::Public);
+      EXPECT_EQ(Main.visibility(), core::VisibilityKind::Private);
+      EXPECT_EQ(Target.visibility(), core::VisibilityKind::Public);
       ASSERT_EQ(Main.parameters().size(), 3U);
       EXPECT_EQ(Main.parameters()[1]->parameterKind(), ParameterKind::Named);
       EXPECT_EQ(Main.parameters()[2]->parameterKind(), ParameterKind::Variadic);
@@ -228,7 +228,7 @@ module @"Example" {
     const auto *Sum = Builder.createAddInstruction(*FunctionValue->parameters()[0], *One);
     ASSERT_NE(Sum, nullptr);
     ASSERT_NE(Builder.createReturnInstruction(Sum), nullptr);
-    constexpr std::string_view Expected = R"(ink-ir 6
+    constexpr std::string_view Expected = R"(ink-ir 7
 module @Example {
   define i32 @addOne(i32 %x) {
   entry:
@@ -251,7 +251,7 @@ module @Example {
   {
     core::CompilationContext Compilation;
     IRContext Context(Compilation);
-    const auto Parsed = deserializeModuleText(Context, "ink-ir 6 module @Visibility { declare void @Default() declare void @Public() visibility public declare void @Private() visibility private }");
+    const auto Parsed = deserializeModuleText(Context, "ink-ir 7 module @Visibility { declare void @Default() declare void @Public() visibility public declare void @Private() visibility private }");
     ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
     for (bool Binary : {false, true})
     {
@@ -262,9 +262,9 @@ module @Example {
       ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
       const auto &Values = Loaded.ModuleValue->entryBlock().values();
       ASSERT_EQ(Values.size(), 3U);
-      EXPECT_EQ(static_cast<const Function &>(*Values[0]).visibility(), VisibilityKind::Public);
-      EXPECT_EQ(static_cast<const Function &>(*Values[1]).visibility(), VisibilityKind::Public);
-      EXPECT_EQ(static_cast<const Function &>(*Values[2]).visibility(), VisibilityKind::Private);
+      EXPECT_EQ(static_cast<const Function &>(*Values[0]).visibility(), core::VisibilityKind::Public);
+      EXPECT_EQ(static_cast<const Function &>(*Values[1]).visibility(), core::VisibilityKind::Public);
+      EXPECT_EQ(static_cast<const Function &>(*Values[2]).visibility(), core::VisibilityKind::Private);
       const auto Canonical = serializeModuleText(*Loaded.ModuleValue);
       ASSERT_TRUE(Canonical.succeeded()) << Canonical.Message;
       EXPECT_NE(Canonical.Bytes.find("@Private() visibility private"), std::string::npos);
@@ -277,7 +277,7 @@ module @Example {
   {
     core::CompilationContext Compilation;
     IRContext Context(Compilation);
-    const auto Parsed = deserializeModuleText(Context, "ink-ir 6 module @Visibility { declare void @Private() visibility private }");
+    const auto Parsed = deserializeModuleText(Context, "ink-ir 7 module @Visibility { declare void @Private() visibility private }");
     ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
     const auto Saved = serializeModuleBinary(*Parsed.ModuleValue);
     ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
@@ -292,29 +292,29 @@ module @Example {
       {
         ASSERT_EQ(Fields, 4U);
         auto Invalid = Saved.Bytes;
-        llvm::support::endian::write64le(Invalid.data() + Offset + 40, 99);
-        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, ModuleArchiveStatus::InvalidArchive);
+        llvm::support::endian::write64le(Invalid.data() + Offset + 48, 99);
+        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, core::ArchiveStatus::InvalidArchive);
         Invalid = Saved.Bytes;
         llvm::support::endian::write32le(Invalid.data() + Offset + 12, 3);
-        Invalid.erase(Offset + 40, 8);
-        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, ModuleArchiveStatus::InvalidArchive);
+        Invalid.erase(Offset + 48, 8);
+        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, core::ArchiveStatus::InvalidArchive);
         Found = true;
         break;
       }
-      Offset += 24 + static_cast<std::size_t>(Fields) * 8 + static_cast<std::size_t>(TextSize);
+      Offset += 32 + static_cast<std::size_t>(Fields) * 8 + static_cast<std::size_t>(TextSize) + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 24));
     }
     ASSERT_TRUE(Found);
     auto Legacy = Saved.Bytes;
     llvm::support::endian::write32le(Legacy.data() + 4, 2);
-    EXPECT_EQ(deserializeModuleBinary(Context, Legacy).Status, ModuleArchiveStatus::UnsupportedVersion);
-    EXPECT_EQ(deserializeModuleText(Context, "ink-ir 2 module @Legacy {}").Status, ModuleArchiveStatus::UnsupportedVersion);
+    EXPECT_EQ(deserializeModuleBinary(Context, Legacy).Status, core::ArchiveStatus::UnsupportedVersion);
+    EXPECT_EQ(deserializeModuleText(Context, "ink-ir 2 module @Legacy {}").Status, core::ArchiveStatus::UnsupportedVersion);
     llvm::support::endian::write32le(Legacy.data() + 4, 3);
-    EXPECT_EQ(deserializeModuleBinary(Context, Legacy).Status, ModuleArchiveStatus::UnsupportedVersion);
-    EXPECT_EQ(deserializeModuleText(Context, "ink-ir 3 module @Legacy {}").Status, ModuleArchiveStatus::UnsupportedVersion);
+    EXPECT_EQ(deserializeModuleBinary(Context, Legacy).Status, core::ArchiveStatus::UnsupportedVersion);
+    EXPECT_EQ(deserializeModuleText(Context, "ink-ir 3 module @Legacy {}").Status, core::ArchiveStatus::UnsupportedVersion);
     for (std::string_view Visibility : {"unknown", "private visibility public"})
     {
-      const auto Invalid = deserializeModuleText(Context, "ink-ir 6 module @Invalid { declare void @f() visibility " + std::string(Visibility) + " }");
-      EXPECT_EQ(Invalid.Status, ModuleArchiveStatus::InvalidArchive);
+      const auto Invalid = deserializeModuleText(Context, "ink-ir 7 module @Invalid { declare void @f() visibility " + std::string(Visibility) + " }");
+      EXPECT_EQ(Invalid.Status, core::ArchiveStatus::InvalidArchive);
     }
     EXPECT_EQ(Context.modules().size(), 1U);
   }
@@ -322,7 +322,7 @@ module @Example {
   // Native direction round-trips independently of source visibility and C ABI callbacks in both archive formats.
   TEST(IRModuleSerializationTest, PreservesNativeBindingsAndPrivateExports)
   {
-    constexpr std::string_view Text = R"(ink-ir 6
+    constexpr std::string_view Text = R"(ink-ir 7
 module @Native {
   declare void @Imported() linkage c visibility private binding import
   define void @Callback() linkage c binding local {
@@ -354,13 +354,13 @@ module @Native {
       const auto &Exported = static_cast<const Function &>(*Values[2]);
       EXPECT_TRUE(Imported.isNativeImport());
       EXPECT_FALSE(Imported.hasBody());
-      EXPECT_EQ(Imported.visibility(), VisibilityKind::Private);
-      EXPECT_EQ(Callback.binding(), FunctionBinding::Local);
+      EXPECT_EQ(Imported.visibility(), core::VisibilityKind::Private);
+      EXPECT_EQ(Callback.binding(), core::FunctionBinding::Local);
       EXPECT_EQ(Callback.languageLinkage(), LanguageLinkage::C);
       EXPECT_TRUE(Callback.hasBody());
       EXPECT_TRUE(Exported.isNativeExport());
       EXPECT_TRUE(Exported.hasBody());
-      EXPECT_EQ(Exported.visibility(), VisibilityKind::Private);
+      EXPECT_EQ(Exported.visibility(), core::VisibilityKind::Private);
       const auto Canonical = serializeModuleText(*Loaded.ModuleValue);
       ASSERT_TRUE(Canonical.succeeded()) << Canonical.Message;
       EXPECT_NE(Canonical.Bytes.find("visibility private binding import"), std::string::npos);
@@ -388,10 +388,10 @@ module @Native {
     };
     for (std::string_view FunctionText : InvalidFunctions)
     {
-      EXPECT_EQ(deserializeModuleText(Context, "ink-ir 6 module @Invalid { " + std::string(FunctionText) + " }").Status, ModuleArchiveStatus::InvalidArchive) << FunctionText;
+      EXPECT_EQ(deserializeModuleText(Context, "ink-ir 7 module @Invalid { " + std::string(FunctionText) + " }").Status, core::ArchiveStatus::InvalidArchive) << FunctionText;
     }
     EXPECT_TRUE(Context.modules().empty());
-    const auto Parsed = deserializeModuleText(Context, "ink-ir 6 module @Native { declare void @Imported() linkage c binding import }");
+    const auto Parsed = deserializeModuleText(Context, "ink-ir 7 module @Native { declare void @Imported() linkage c binding import }");
     ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
     const auto Saved = serializeModuleBinary(*Parsed.ModuleValue);
     ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
@@ -406,18 +406,18 @@ module @Native {
       {
         ASSERT_EQ(Fields, 4U);
         auto Invalid = Saved.Bytes;
-        llvm::support::endian::write64le(Invalid.data() + Offset + 48, 99);
-        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, ModuleArchiveStatus::InvalidArchive);
+        llvm::support::endian::write64le(Invalid.data() + Offset + 56, 99);
+        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, core::ArchiveStatus::InvalidArchive);
         Invalid = Saved.Bytes;
-        llvm::support::endian::write64le(Invalid.data() + Offset + 48, 2);
-        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, ModuleArchiveStatus::InvalidArchive);
+        llvm::support::endian::write64le(Invalid.data() + Offset + 56, 2);
+        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, core::ArchiveStatus::InvalidArchive);
         Invalid = Saved.Bytes;
-        llvm::support::endian::write64le(Invalid.data() + Offset + 32, 0);
-        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, ModuleArchiveStatus::InvalidArchive);
+        llvm::support::endian::write64le(Invalid.data() + Offset + 40, 0);
+        EXPECT_EQ(deserializeModuleBinary(Context, Invalid).Status, core::ArchiveStatus::InvalidArchive);
         Found = true;
         break;
       }
-      Offset += 24 + static_cast<std::size_t>(Fields) * 8 + static_cast<std::size_t>(TextSize);
+      Offset += 32 + static_cast<std::size_t>(Fields) * 8 + static_cast<std::size_t>(TextSize) + static_cast<std::size_t>(llvm::support::endian::read64le(Header + 24));
     }
     ASSERT_TRUE(Found);
     EXPECT_EQ(Context.modules().size(), 1U);
@@ -433,12 +433,12 @@ module @Native {
     ASSERT_NE(ModuleValue, nullptr);
     const auto *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>());
     ASSERT_NE(Signature, nullptr);
-    auto FunctionOwner = Builder.createFunction(Context.namePool().intern("Exported"), *Signature, {}, {}, CallingConvention::C, LanguageLinkage::C, FunctionBinding::Export);
+    auto FunctionOwner = Builder.createFunction(Context.namePool().intern("Exported"), *Signature, {}, {}, CallingConvention::C, LanguageLinkage::C, core::FunctionBinding::Export);
     ASSERT_NE(FunctionOwner, nullptr);
     Function *Exported = FunctionOwner.get();
     ASSERT_TRUE(Builder.appendValue(ModuleValue->entryBlock(), std::move(FunctionOwner)));
-    EXPECT_EQ(serializeModuleText(*ModuleValue).Status, ModuleArchiveStatus::InvalidInput);
-    EXPECT_EQ(serializeModuleBinary(*ModuleValue).Status, ModuleArchiveStatus::InvalidInput);
+    EXPECT_EQ(serializeModuleText(*ModuleValue).Status, core::ArchiveStatus::InvalidInput);
+    EXPECT_EQ(serializeModuleBinary(*ModuleValue).Status, core::ArchiveStatus::InvalidInput);
     BasicBlock *Body = Builder.createFunctionBody(*Exported);
     ASSERT_NE(Body, nullptr);
     ASSERT_TRUE(Builder.setInsertPoint(*Body));
@@ -450,7 +450,7 @@ module @Native {
   // Forward operands and functions resolve after parsing, while comments and quoted symbols remain editable.
   TEST(IRModuleSerializationTest, ReadsForwardReferencesAndComments)
   {
-    constexpr std::string_view Text = R"(ink-ir 6
+    constexpr std::string_view Text = R"(ink-ir 7
 ; A hand-written module needs no object table.
 module @Example {
   define i32 @main(i32 %x) {
@@ -510,7 +510,7 @@ module @Example {
   // Equivalent structural aliases compare restored types rather than incidental archive IDs.
   TEST(IRModuleSerializationTest, ResolvesEquivalentTypeAliases)
   {
-    constexpr std::string_view Text = R"(ink-ir 6
+    constexpr std::string_view Text = R"(ink-ir 7
 module @Aliases {
   type !left = i32
   type !right = i32
@@ -536,7 +536,7 @@ module @Aliases {
   // Repeated aliases must charge copied field storage rather than bypassing the allocation budget.
   TEST(IRModuleSerializationTest, ChargesRepeatedTypeAliasFields)
   {
-    std::string Text = "ink-ir 6 module @Budget { type !large = fn(";
+    std::string Text = "ink-ir 7 module @Budget { type !large = fn(";
     for (unsigned Index = 0; Index < 256; ++Index)
     {
       if (Index)
@@ -556,7 +556,7 @@ module @Aliases {
     ModuleArchiveLimits Limits;
     Limits.MaxAllocationBytes = 128 * 1024;
     const auto Result = deserializeModuleText(Context, Text, Limits);
-    EXPECT_EQ(Result.Status, ModuleArchiveStatus::LimitExceeded) << Result.Message;
+    EXPECT_EQ(Result.Status, core::ArchiveStatus::LimitExceeded) << Result.Message;
     EXPECT_TRUE(Context.modules().empty());
   }
 
@@ -645,7 +645,7 @@ module @Aliases {
     ASSERT_TRUE(Builder.appendValue(Root->entryBlock(), Builder.createDetachedCallInstruction(*External)));
     for (const auto &Result : {serializeModuleText(*Root), serializeModuleBinary(*Root)})
     {
-      EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidInput);
+      EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidInput);
       EXPECT_TRUE(Result.Bytes.empty());
       EXPECT_FALSE(Result.Message.empty());
     }
@@ -681,23 +681,23 @@ module @Aliases {
     const auto *Root = Builder.createModule(Context.namePool().intern("Root"));
     const auto Archive = serializeModuleBinary(*Root);
     ASSERT_TRUE(Archive.succeeded());
-    const auto Check32 = [&](std::size_t Offset, std::uint32_t Value, ModuleArchiveStatus Status)
+    const auto Check32 = [&](std::size_t Offset, std::uint32_t Value, core::ArchiveStatus Status)
     {
       auto Bytes = Archive.Bytes;
       llvm::support::endian::write32le(Bytes.data() + Offset, Value);
       EXPECT_EQ(deserializeModuleBinary(Context, Bytes).Status, Status);
       EXPECT_EQ(Context.modules().size(), 1U);
     };
-    Check32(4, 999, ModuleArchiveStatus::UnsupportedVersion);
-    Check32(8, UINT32_MAX, ModuleArchiveStatus::LimitExceeded);
-    Check32(12, 1, ModuleArchiveStatus::InvalidArchive);
-    Check32(16, 999, ModuleArchiveStatus::InvalidArchive);
-    Check32(20, UINT32_MAX, ModuleArchiveStatus::InvalidArchive);
-    Check32(24, 1, ModuleArchiveStatus::InvalidArchive);
-    Check32(28, UINT32_MAX, ModuleArchiveStatus::InvalidArchive);
+    Check32(4, 999, core::ArchiveStatus::UnsupportedVersion);
+    Check32(8, UINT32_MAX, core::ArchiveStatus::LimitExceeded);
+    Check32(12, 1, core::ArchiveStatus::InvalidArchive);
+    Check32(16, 999, core::ArchiveStatus::InvalidArchive);
+    Check32(20, UINT32_MAX, core::ArchiveStatus::InvalidArchive);
+    Check32(24, 1, core::ArchiveStatus::InvalidArchive);
+    Check32(28, UINT32_MAX, core::ArchiveStatus::InvalidArchive);
     auto Bytes = Archive.Bytes;
     llvm::support::endian::write64le(Bytes.data() + 32, UINT64_MAX);
-    EXPECT_EQ(deserializeModuleBinary(Context, Bytes).Status, ModuleArchiveStatus::InvalidArchive);
+    EXPECT_EQ(deserializeModuleBinary(Context, Bytes).Status, core::ArchiveStatus::InvalidArchive);
     EXPECT_EQ(Context.modules().size(), 1U);
   }
 
@@ -710,25 +710,25 @@ module @Aliases {
     ASSERT_TRUE(Original.succeeded()) << Original.Message;
     const std::string_view Invalid[] = {
         "other 2 module @A {}",
-        "ink-ir 6 module @A {",
-        "ink-ir 6 module @A {} junk",
-        "ink-ir 6 module @\"Bad\\qEscape\" {}",
-        "ink-ir 6 module @\"Bad\\xzzEscape\" {}",
-        "ink-ir 6 module @\"Unclosed {}",
-        "ink-ir 6 module @A { unknown }",
-        "ink-ir 6 module @A { declare void @f() declare void @f() }",
-        "ink-ir 6 module @A { define i32 @f() { ^entry: ret i32 %missing } }",
-        "ink-ir 6 module @A { define i32 @f(i32 %x, i32 %x) { ^entry: ret i32 %x } }",
+        "ink-ir 7 module @A {",
+        "ink-ir 7 module @A {} junk",
+        "ink-ir 7 module @\"Bad\\qEscape\" {}",
+        "ink-ir 7 module @\"Bad\\xzzEscape\" {}",
+        "ink-ir 7 module @\"Unclosed {}",
+        "ink-ir 7 module @A { unknown }",
+        "ink-ir 7 module @A { declare void @f() declare void @f() }",
+        "ink-ir 7 module @A { define i32 @f() { ^entry: ret i32 %missing } }",
+        "ink-ir 7 module @A { define i32 @f(i32 %x, i32 %x) { ^entry: ret i32 %x } }",
     };
     for (auto Text : Invalid)
     {
       const auto Result = deserializeModuleText(Context, Text);
-      EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Text;
+      EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidArchive) << Text;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_EQ(Context.modules().size(), 1U);
       EXPECT_EQ(Context.modules()[0].get(), Original.ModuleValue);
     }
-    EXPECT_EQ(deserializeModuleText(Context, "ink-ir 999").Status, ModuleArchiveStatus::UnsupportedVersion);
+    EXPECT_EQ(deserializeModuleText(Context, "ink-ir 999").Status, core::ArchiveStatus::UnsupportedVersion);
   }
 
   // Each configurable budget is enforced for writers and readers with no partial archive or root.
@@ -753,12 +753,12 @@ module @Aliases {
     {
       for (const auto &Result : {serializeModuleText(*Root, Limit), serializeModuleBinary(*Root, Limit)})
       {
-        EXPECT_EQ(Result.Status, ModuleArchiveStatus::LimitExceeded) << Result.Message;
+        EXPECT_EQ(Result.Status, core::ArchiveStatus::LimitExceeded) << Result.Message;
         EXPECT_TRUE(Result.Bytes.empty());
       }
       for (const auto &Result : {deserializeModuleText(Context, Text.Bytes, Limit), deserializeModuleBinary(Context, Binary.Bytes, Limit)})
       {
-        EXPECT_EQ(Result.Status, ModuleArchiveStatus::LimitExceeded) << Result.Message;
+        EXPECT_EQ(Result.Status, core::ArchiveStatus::LimitExceeded) << Result.Message;
         EXPECT_EQ(Result.ModuleValue, nullptr);
         EXPECT_EQ(Context.modules().size(), 1U);
       }
@@ -790,8 +790,8 @@ module @Aliases {
     };
     for (auto Body : Bodies)
     {
-      const auto Result = deserializeModuleText(Context, "ink-ir 6 module @Root { " + std::string(Body) + " }");
-      EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Body << ": " << Result.Message;
+      const auto Result = deserializeModuleText(Context, "ink-ir 7 module @Root { " + std::string(Body) + " }");
+      EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidArchive) << Body << ": " << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Context.modules().empty());
     }
@@ -800,7 +800,7 @@ module @Aliases {
   // Appending a value after a terminator fails during attachment and rolls back the detached tree.
   TEST(IRModuleSerializationTest, RollsBackAfterLateAttachmentFailure)
   {
-    constexpr std::string_view Text = R"(ink-ir 6
+    constexpr std::string_view Text = R"(ink-ir 7
 module @Root {
   define void @Main() {
   ^entry:
@@ -812,7 +812,7 @@ module @Root {
     core::CompilationContext Compilation;
     IRContext Context(Compilation);
     const auto Result = deserializeModuleText(Context, Text);
-    EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive);
+    EXPECT_EQ(Result.Status, core::ArchiveStatus::InvalidArchive);
     EXPECT_EQ(Result.ModuleValue, nullptr);
     EXPECT_TRUE(Context.modules().empty());
     EXPECT_NE(Result.Message.find("placement"), std::string::npos);
@@ -911,8 +911,8 @@ module @Root {
     IRBuilder Builder(Context);
     auto *Root = Builder.createModule(Context.namePool().intern("Generic"));
     ASSERT_NE(Builder.createModuleDecl(*Root, *Parsed.Unit->root()), nullptr);
-    EXPECT_EQ(serializeModuleText(*Root).Status, ModuleArchiveStatus::InvalidInput);
-    EXPECT_EQ(serializeModuleBinary(*Root).Status, ModuleArchiveStatus::InvalidInput);
+    EXPECT_EQ(serializeModuleText(*Root).Status, core::ArchiveStatus::InvalidInput);
+    EXPECT_EQ(serializeModuleBinary(*Root).Status, core::ArchiveStatus::InvalidInput);
     const parser::ParseResult *Sources[] = {&Parsed};
     auto Encoded = serializeModuleText(*Root, {}, Sources);
     ASSERT_TRUE(Encoded.succeeded()) << Encoded.Message;
@@ -920,15 +920,15 @@ module @Root {
     ASSERT_NE(Signature, std::string::npos);
     Encoded.Bytes.replace(Signature, 9, "UnknownAST");
     auto Invalid = deserializeModuleText(Context, Encoded.Bytes);
-    EXPECT_EQ(Invalid.Status, ModuleArchiveStatus::InvalidArchive);
+    EXPECT_EQ(Invalid.Status, core::ArchiveStatus::InvalidArchive);
     EXPECT_EQ(Invalid.ModuleValue, nullptr);
     EXPECT_EQ(Context.modules().size(), 1U);
     ModuleArchiveLimits Limits;
     Limits.AST.MaxNodes = 1;
-    EXPECT_EQ(serializeModuleBinary(*Root, Limits, Sources).Status, ModuleArchiveStatus::LimitExceeded);
+    EXPECT_EQ(serializeModuleBinary(*Root, Limits, Sources).Status, core::ArchiveStatus::LimitExceeded);
     auto Binary = serializeModuleBinary(*Root, {}, Sources);
     ASSERT_TRUE(Binary.succeeded());
-    EXPECT_EQ(deserializeModuleBinary(Context, Binary.Bytes, Limits).Status, ModuleArchiveStatus::LimitExceeded);
+    EXPECT_EQ(deserializeModuleBinary(Context, Binary.Bytes, Limits).Status, core::ArchiveStatus::LimitExceeded);
     EXPECT_EQ(Context.modules().size(), 1U);
   }
 
@@ -949,7 +949,7 @@ module @Root {
       EXPECT_FALSE(Result.succeeded()) << Length;
       EXPECT_EQ(Result.Parsed.Unit, nullptr);
     }
-    EXPECT_EQ(parser::trySerializeAST({}).Status, parser::ASTArchiveStatus::InvalidInput);
+    EXPECT_EQ(parser::trySerializeAST({}).Status, core::ArchiveStatus::InvalidInput);
     IRContext Context(Compilation);
     IRBuilder Builder(Context);
     auto *Root = Builder.createModule(Context.namePool().intern("Interrupted"));

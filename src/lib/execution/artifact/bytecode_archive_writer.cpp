@@ -155,7 +155,7 @@ namespace ink::execution
             }
             for (const FieldDesc &Field : Layout.classDesc().Fields)
             {
-              if (!string(Field.Name) || !u32(Field.Type) || !u64(Field.Offset) || !u8(Field.Visibility == MemberVisibility::Private) || !u32(Field.Initializer))
+              if (!string(Field.Name) || !u32(Field.Type) || !u64(Field.Offset) || !u8(Field.Visibility == core::VisibilityKind::Private) || !u32(Field.Initializer))
               {
                 return false;
               }
@@ -166,7 +166,7 @@ namespace ink::execution
             }
             for (const MethodDesc &Method : Layout.classDesc().Methods)
             {
-              if (!string(Method.Name) || !u32(Method.Signature) || !u32(Method.Function) || !u8(Method.Visibility == MemberVisibility::Private) || !u8(Method.WritableReceiver))
+              if (!string(Method.Name) || !u32(Method.Signature) || !u32(Method.Function) || !u8(Method.Visibility == core::VisibilityKind::Private) || !u8(Method.WritableReceiver))
               {
                 return false;
               }
@@ -394,7 +394,7 @@ namespace ink::execution
         bool symbol(const BytecodeSymbol &Symbol)
         {
           const auto &Identity = Symbol.Identity;
-          if (!u32(Symbol.Function) || !tag(Symbol.Kind, archive::SymbolKindTags) || !tag(Symbol.Visibility, archive::VisibilityTags) || !string(Identity.Module) || !string(Identity.Name) || !string(Identity.Signature) || !count(Identity.GenericArguments.size()))
+          if (!u32(Symbol.Function) || !tag(Symbol.Kind, archive::SymbolKindTags) || !tag(Symbol.Visibility, archive::VisibilityTags) || !string(Identity.Module) || !string(Identity.Name) || !string(Identity.Signature) || !string(Identity.LinkName) || !count(Identity.GenericArguments.size()))
           {
             return false;
           }

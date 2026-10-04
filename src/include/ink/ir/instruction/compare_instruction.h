@@ -1,25 +1,17 @@
 #ifndef INK_IR_COMPARE_INSTRUCTION_H
 #define INK_IR_COMPARE_INSTRUCTION_H
 
+#include "ink/core/comparison_predicate.h"
+
 #include "ink/ir/value.h"
 
 namespace ink::ir
 {
-  enum class ComparisonPredicate
-  {
-    Equal,
-    NotEqual,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-  };
-
   // Compares identically typed integers, or bools for equality, producing a bool.
   class CompareInstruction final : public Value
   {
     public:
-      ComparisonPredicate predicate() const noexcept
+      core::ComparisonPredicate predicate() const noexcept
       {
         return Predicate;
       }
@@ -40,7 +32,7 @@ namespace ink::ir
       }
 
     private:
-      CompareInstruction(const Type &BoolType, ComparisonPredicate Predicate, const Value &Left, const Value &Right) noexcept
+      CompareInstruction(const Type &BoolType, core::ComparisonPredicate Predicate, const Value &Left, const Value &Right) noexcept
           : Value(Left.context(), ValueKind::CompareInstruction, BoolType),
             Predicate(Predicate),
             Left(Left),
@@ -48,7 +40,7 @@ namespace ink::ir
       {
       }
 
-      ComparisonPredicate Predicate;
+      core::ComparisonPredicate Predicate;
       const Value &Left;
       const Value &Right;
 

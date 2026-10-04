@@ -33,6 +33,7 @@ namespace ink::semantic
       const parser::LiteralExpr *IntegerLiteral = nullptr;
       bool Negative = false;
       bool Void = false;
+      const ir::Value *TemporaryAddress = nullptr;
 
       explicit operator bool() const noexcept
       {
@@ -67,6 +68,8 @@ namespace ink::semantic
       const std::size_t TypeDepthLimit = core::ConfigManager::getSize<core::ConfigKind::SemanticTypeDepthLimit>();
       const std::size_t ExpressionDepthLimit = core::ConfigManager::getSize<core::ConfigKind::SemanticExpressionDepthLimit>();
       std::size_t BlockDepth = 0;
+      std::vector<std::uint64_t> LexicalScope;
+      std::uint64_t NextLexicalBlock = 0;
       ir::Function *CurrentFunction = nullptr;
       const ir::ClassType *CurrentClass = nullptr;
       const ir::ClassType *DeclaringClass = nullptr;
@@ -79,6 +82,22 @@ namespace ink::semantic
       std::size_t LoopDepth = 0;
       bool Breaking = false;
       bool Continuing = false;
+
+      struct ObjectLifetime
+      {
+          const ir::Value *Address;
+          const ir::Type *Type;
+          const ir::Value *Initialized;
+          const ir::Value *TemporaryValue;
+          bool Comptime;
+          bool Active = true;
+      };
+
+      std::vector<ObjectLifetime> Lifetimes;
+      std::vector<bool> ConstructorFields;
+      bool Constructing = false;
+      bool AccessingConstructorField = false;
+      bool Destroying = false;
 
       class TraversalGuard final
       {
